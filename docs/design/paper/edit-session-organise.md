@@ -184,7 +184,7 @@ The screen ID keeps the inventory's name (“Document info”); the dialog and c
 - **Keyword chips** have 26 px remove buttons, the smallest icon button; they still meet the 24 px minimum.
 - **The two conformance warnings** (more than one author in PDF/A-1, no title in PDF/UA-1) appear under the field before Apply. The dialog applies the save planner's two rules itself, since the SDK reports conformance warnings only from a save plan; `apps/web/test/properties-warnings.test.ts` holds them to the SDK's. In a PDF/A file whose Info and XMP disagree, Apply writes the value shown to both, and the PDF/A notice names those fields.
 - **XMP metadata that can't be read** gets a warning notice: Apply replaces it.
-- **The edit is opened from** More › Document properties… and the palette; the top bar's file name doesn't open it yet.
+- **The dialog opens from** More › Document properties… and the palette; the top bar's file name doesn't open it yet.
 
 **Artboards:** `O04-document-info.dc.html`, `O04-xmp-editor.dc.html`.
 
@@ -219,8 +219,9 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 
 **Platform differences.** Desktop: opens as a window tab with the same content. Phone: the table becomes one card per operation (ID and name, then four label–badge pairs).
 
-**As built (E1f).** The page lives at `/capabilities` in the web reader, over the open document: More › What Lamina PDF can do (`help.capabilities`) pushes the address, and Back (the page's or the browser's) returns to the document as it was. A link from the docs site opens it directly, and Back then goes to the reader. The data is `docs/capabilities/matrix.json`, which `cargo xtask capabilities` writes beside the README and the reader bundles. Differences from the board:
+**As built (E1f).** The page lives at `/capabilities` in the web reader, over the open document. More › What Lamina PDF can do (`help.capabilities`) pushes the address, and Back (the page's or the browser's) returns to the document as it was. A link from the docs site opens it directly, and Back then goes to the reader. The data is `docs/capabilities/matrix.json`, which `cargo xtask capabilities` writes beside the README and the reader bundles. Differences from the board:
 
+- **The bar** holds Back alone, without the title, Commands and More: the page covers the reader, and Back is the way out of it.
 - **On a phone** the table scrolls inside its box rather than becoming one card per operation.
 - **"How statuses are tested"** opens the matrix's README on GitHub, which explains each status's evidence.
 - **"Unsupported" notices** don't link here yet; no notice in the reader says an operation is unsupported so far.
