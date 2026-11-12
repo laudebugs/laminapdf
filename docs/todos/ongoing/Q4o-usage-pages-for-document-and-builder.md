@@ -11,7 +11,7 @@
 | Branch | `docs/q4o-usage-pages` |
 | PR title | `docs: usage pages for Document and Builder` |
 | Size | M |
-| PR | — |
+| PR | [#462](https://github.com/laudebugs/laminapdf/pull/462) |
 
 ## Goal
 
