@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `X9d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [CI caching §8](../../plans/ci-caching.md#8-the-waits) |
 | Round / milestone | Round X (cross-cutting): CI |
 | Depends on | None |
@@ -11,7 +11,7 @@
 | Branch | `ci/x9d-cancel-superseded-main-runs` |
 | PR title | `ci: let a newer push to main cancel the older run of the fast and full lanes` |
 | Size | S |
-| PR | — |
+| PR | [#514](https://github.com/laudebugs/laminapdf/pull/514) |
 
 ## Goal
 

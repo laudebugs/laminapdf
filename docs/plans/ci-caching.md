@@ -121,6 +121,6 @@ The waits in §2 cost more than compiling. macOS jobs on PRs waited 27 to 120 mi
 - [ ] Rust on macOS x64 only on pushes to `main` and in the nightly, not on PRs: the leg that waits longest for a runner and finishes last. A break only macOS x64 shows then appears after the merge, and the macOS Arm64 leg still runs on every PR, so the owner accepted the risk (2026-11-12). X8b's PR measurements move to macOS Arm64 first ([X9a](../todos/ready/X9a-macos-x64-rust-off-prs.md))
 - [ ] The render goldens, which need a Mac, only when a PR changes what they draw ([X9b](../todos/ready/X9b-render-goldens-when-rendering-changes.md))
 - [ ] More of `cargo xtask changes`'s path flags, to skip whole groups of jobs a PR can't affect ([X9c](../todos/ready/X9c-skip-jobs-by-changed-paths.md))
-- [ ] A newer push to `main` cancels the older CI run on `main` ([X9d](../todos/ready/X9d-cancel-superseded-main-runs.md))
+- [ ] A newer push to `main` cancels the older CI run on `main` ([X9d](../todos/ongoing/X9d-cancel-superseded-main-runs.md))
 
 Turborepo for the TypeScript packages stays as ADR 0015 left it, to revisit once TypeScript time shows on the critical path.
