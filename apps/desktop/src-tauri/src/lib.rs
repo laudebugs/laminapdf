@@ -156,7 +156,7 @@ pub fn run() -> Result<(), DesktopError> {
             .level(tauri_plugin_log::log::LevelFilter::Info)
             .build(),
     );
-    // WebdriverIO's test API (scripts, logs) and the WebDriver server inside the app (D2e), after
+    // WebdriverIO's test API (scripts, logs) and the WebDriver server inside the app, after
     // the log plugin: tauri-plugin-wdio installs its own logger when none is set yet.
     #[cfg(feature = "e2e")]
     let builder = builder
