@@ -15,11 +15,11 @@
 
 ## Goal
 
-Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's DLL, the NSIS installer and uninstaller, and the MSI — carries a valid, timestamped Authenticode signature showing **the owner as publisher**, using whichever path D6a recorded: **Azure Artifact Signing** (if the owner is eligible as a US/Canada individual) or an **OV certificate whose key lives in a cloud HSM**. Both MSI (managed deployment) and NSIS (per-user install + updater) are produced for tagged releases (versions are plain `X.Y.Z`, as WiX requires; nightlies are NSIS-only and unsigned — D6b). SmartScreen behaviour on a clean VM is recorded and handled as the plan specifies: no warning with Artifact Signing; a warning is acceptable for early releases with OV, and the release notes explain how reputation builds.
+Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's DLL, the NSIS installer and uninstaller, and the MSI — carries a valid, timestamped Authenticode signature showing **the owner as publisher**, using whichever path D6a recorded: **Azure Artifact Signing** (if the owner is eligible as a US/Canada individual) or an **OV certificate whose key lives in a cloud HSM**. Both MSI (managed deployment) and NSIS (per-user install + updater) are produced for tagged releases (versions are plain `X.Y.Z`, as WiX requires; nightlies are NSIS-only and unsigned — D6b). SmartScreen behaviour on a clean VM is recorded and handled as the plan specifies: a warning that names the owner as publisher is acceptable for early releases with either path (Microsoft gives no certificate instant reputation, Artifact Signing included), and the release notes explain how reputation builds.
 
 ## Context
 
-- [Desktop plan §6 D6 accepted-when](../../plans/desktop-app.md#d6-signing-packaging-and-release-pipeline) (Authenticode valid, owner as publisher; SmartScreen expectations per path; neither OV nor EV gets instant reputation since 2024) and [§7 risks](../../plans/desktop-app.md#7-risks).
+- [Desktop plan §6 D6 accepted-when](../../plans/desktop-app.md#d6-signing-packaging-and-release-pipeline) (Authenticode valid, owner as publisher; no certificate type, Artifact Signing included, gets instant SmartScreen reputation) and [§7 risks](../../plans/desktop-app.md#7-risks).
 - `docs/guidelines/desktop-release.md` + ADR 0014 amendment (D6a): which path, tool, secret names.
 - [Desktop notes Q6](../../research/architecture/notes/desktop-shell.md#q6-code-signing--notarization-linux-packaging-ci): `bundle.windows.signCommand` with `%1`; Artifact Signing eligibility; HSM requirement.
 - Tauri [Windows signing](https://v2.tauri.app/distribute/sign/windows/): `bundle.windows.signCommand` (custom command; `%1` = file path; Tauri calls it for the app binary, sidecars, installers and the NSIS uninstaller), `certificateThumbprint`/`digestAlgorithm`/`timestampUrl` for local certificates; [Windows installer config](https://v2.tauri.app/distribute/windows-installer/): `bundle.windows.nsis` (`installMode: "currentUser" | "perMachine" | "both"`), `bundle.windows.wix`, `webviewInstallMode` (`downloadBootstrapper` / `embedBootstrapper` / `offlineInstaller`).
@@ -43,7 +43,7 @@ Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's
 - Lift the D6b guard for Windows.
 - Clean-VM checks (Windows 11 current, fresh, SmartScreen on, Defender on): download each installer via Edge (Mark-of-the-Web set), run; record SmartScreen behaviour, UAC prompt publisher name (MSI), installed app's signature (`Get-AuthenticodeSignature`), file association registration, uninstall cleanliness; update from the previous signed build via the NSIS updater artefact (two `release`-environment `workflow_dispatch` runs to the `staging` channel — nightlies are unsigned and NSIS-only per D6b).
 - Windows 10 22H2: best-effort smoke only (no CI), per the plan's supported-OS note.
-- Release-notes snippet (OV path) explaining SmartScreen "Windows protected your PC → More info → Run anyway" during the reputation period, added to the runbook template.
+- Release-notes snippet (either path) explaining SmartScreen "Windows protected your PC → More info → Run anyway" during the reputation period, added to the runbook template.
 
 **Out of scope** (and which todo covers it)
 
@@ -66,7 +66,7 @@ Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's
 
 - [ ] Every PE file in both installers and the installed app has a valid SHA-256 Authenticode signature with an RFC 3161 timestamp, signer = the owner's legal name (CI coverage check green).
 - [ ] On a clean Windows 11 VM: UAC (MSI) shows the owner as verified publisher; the installed app's `Get-AuthenticodeSignature` status is `Valid`.
-- [ ] SmartScreen: with Artifact Signing, the installer runs **without** a SmartScreen warning; with OV, any warning is recorded and the release notes text is in place (both outcomes per the plan).
+- [ ] SmartScreen: any warning is recorded, it names the owner as publisher, and the release notes text is in place (per the plan; no path gets instant reputation).
 - [ ] MSI and NSIS both install, register `.pdf` "Open with", and uninstall cleanly (manual check recorded).
 - [ ] An MSI-installed build shows "Updates are managed by your organisation" and makes no update requests (manual check with a proxy recorded).
 - [ ] An NSIS-installed signed build updates to the next signed build (two `release`-environment `workflow_dispatch` runs to the `staging` channel).

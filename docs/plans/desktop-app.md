@@ -137,7 +137,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 **Todos:** [D6a](../todos/ongoing/D6a-signing-runbook-and-owner-setup.md), [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/ready/D6c-macos-signing-and-notarisation.md), [D6d](../todos/ready/D6d-windows-signing.md)
 
 **Deliverable:** release workflow (tauri-action matrix) producing artefacts signed with the owner's identities as publisher: dmg (Developer ID + notarisation + stapling), MSI and NSIS (Azure Artifact Signing if the owner is eligible as an individual, otherwise an OV certificate in a cloud HSM), AppImage and deb (rpm optional); uploads to R2 with attestations; manifests updated per channel.
-**Accepted when:** Gatekeeper and `debsig`/AppImage signature checks pass on clean VMs; on Windows the Authenticode signature is valid and the owner is shown as publisher. With Artifact Signing, the installer runs on a clean VM without a SmartScreen warning; with an OV certificate, a SmartScreen warning is acceptable for early releases (neither OV nor EV gets instant reputation since 2024), and the release notes document how reputation builds up; release artifacts carry GitHub attestations; a nightly channel build publishes automatically (nightlies are built in a separate `nightly` environment, are not OS-code-signed, and form their own install line: switching to beta or stable means reinstalling; see [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md)).
+**Accepted when:** Gatekeeper and `debsig`/AppImage signature checks pass on clean VMs; on Windows the Authenticode signature is valid and the owner is shown as publisher. SmartScreen may warn on the first downloads with either path, since no certificate (OV, EV or Artifact Signing) gets instant reputation ([Microsoft](https://learn.microsoft.com/windows/apps/package-and-deploy/smartscreen-reputation), checked 2026-11-12 by D6a); the prompt names the owner as publisher, a warning is acceptable for early releases, and the release notes document how reputation builds up; release artifacts carry GitHub attestations; a nightly channel build publishes automatically (nightlies are built in a separate `nightly` environment, are not OS-code-signed, and form their own install line: switching to beta or stable means reinstalling; see [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md)).
 
 ### D7. Crash reporting and beta
 
@@ -218,7 +218,7 @@ Ticked by the PR that completes them.
 
 - [ ] Release workflow with tauri-action matrix (macOS arm64/x64, Windows x64/arm64, Linux x64/arm64)
 - [ ] Apple Developer ID signing, notarisation and stapling
-- [ ] Owner confirms Windows Artifact Signing individual eligibility (US/Canada only); otherwise obtain an OV certificate in a cloud HSM
+- [x] Owner confirms Windows Artifact Signing individual eligibility (US/Canada only); otherwise obtain an OV certificate in a cloud HSM (confirmed eligible 2026-11-12, [D6a](../todos/ongoing/D6a-signing-runbook-and-owner-setup.md))
 - [ ] Windows signing via `signCommand` (Artifact Signing or the OV certificate); MSI and NSIS outputs
 - [ ] Linux AppImage (updater) and deb; rpm if the matrix allows
 - [ ] Upload to R2 with `.sig` files and GitHub attestations; update channel manifests
