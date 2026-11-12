@@ -419,7 +419,8 @@ cargo xtask check docs       # docs-links + docs-prose + docs-snippets + todos -
                              #   + renames (docs/renames.json against laminapdf.renames/1, an entry per #[deprecated]/@deprecated item,
                              #   every new name in the sources) + package metadata (every published package, the CLI's npm wrapper
                              #   included, has a description; no ADR number, todo ID or "is private" in it or its README's
-                             #   first paragraph) + gen codes --check + gen boundary --check + version sync --check
+                             #   first paragraph) + sdk doc comments (no ADR number or todo ID in a /** */ comment of
+                             #   packages/sdk/src, generated files included: TypeDoc's API reference) + gen codes --check + gen boundary --check + version sync --check
                              #   (fast; no network, no build, no node_modules)
 cargo xtask check docs-prose [--all-strict] [--warnings] [--json]  # reader-facing text (docs site, docs/errors, package
                              #   READMEs) vs docs/guidelines/docs-writing.md (word lists: tools/xtask/docs-prose.toml); errors on

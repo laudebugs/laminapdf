@@ -47,6 +47,7 @@ mod render_diff;
 mod reports;
 mod roundtrip;
 mod runner;
+mod sdk_doc_comments;
 mod semver;
 mod todos;
 mod tracked;
@@ -544,6 +545,8 @@ fn check_docs(ws: &Workspace) -> Result<()> {
         "package metadata: no ADR number, todo ID or \"private\" in a published package's description or README opening",
     );
     package_metadata::check(ws)?;
+    step("sdk doc comments: no ADR number or todo ID in @laminapdf/sdk's API reference");
+    sdk_doc_comments::check(&ws.root)?;
     step("docs previews: the docs' example pictures match the example goldens");
     docs_previews::check(&ws.root)?;
     models::check(&ws.root)?;
