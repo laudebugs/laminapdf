@@ -68,7 +68,7 @@ catalog:
   # frontend plugin, pinned to the WebdriverIO versions @wdio/tauri-service 1.5.1 depends on, so
   # one copy is installed. MIT. Dev-only; the plugin is bundled only into e2e builds.
   "@wdio/cli": 9.31.9
-  "@wdio/globals": 9.31.3
+  "@wdio/globals": 10.1.0
   "@wdio/local-runner": 9.31.9
   "@wdio/mocha-framework": 9.31.9
   "@wdio/spec-reporter": 9.31.2
