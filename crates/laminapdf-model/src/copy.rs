@@ -48,8 +48,10 @@ impl Copied {
 ///   the caller then puts in the target's page tree. A reference to a page that is not being
 ///   copied, to a page-tree node, to the catalog (a link's destination) or to an annotation
 ///   whose `/P` names a page that is not being copied (a field's widget on another page) is
-///   written as `null`, and the object it named is listed in [`ObjectCopier::outside`]. A
-///   widget's field comes with it; fitting it into the target's form is the caller's job.
+///   written as `null`, and the object it named is listed in [`ObjectCopier::outside`]. An
+///   annotation a copied page lists in `/Annots` always comes with it, and one left out
+///   earlier comes with its page when a later call copies that page. A widget's field comes
+///   with it; fitting it into the target's form is the caller's job.
 /// * **Bounded.** The copy walks the source before it writes anything. Streams whose stored
 ///   (still encoded) data passes [`Limits::max_decoded_total`] bytes in one call, the bytes
 ///   the copy holds in memory, or objects nested deeper than [`Limits::max_nesting_depth`],
@@ -127,8 +129,19 @@ struct Walk {
     nulls: BTreeSet<ObjRef>,
     /// What lies outside the copy, for [`ObjectCopier::outside`] once the call succeeds.
     outside: BTreeSet<ObjRef>,
+    /// The annotations the pages being copied list in `/Annots`: never outside.
+    annots: BTreeSet<ObjRef>,
     /// Stream bytes read.
     bytes: usize,
+}
+
+/// What one call changed in the copier's records, undone if the call fails.
+#[derive(Default)]
+struct Journal {
+    /// Each source object mapped, with what it was mapped to before.
+    copies: Vec<(ObjRef, Option<Copied>)>,
+    /// Each stream key added.
+    streams: Vec<Key>,
 }
 
 /// The key of a reference written as `null`.
@@ -165,16 +178,38 @@ impl<'s> ObjectCopier<'s> {
     pub fn copy_pages(&mut self, target: &mut CosMut<'_>, pages: &[&laminapdf_cos::Page]) -> Result<Vec<ObjRef>> {
         let roots: Vec<Dict> = pages.iter().map(|page| page_dict(page)).collect();
         let walk = self.walk(&roots, pages.iter().filter_map(|page| page.obj_ref).collect())?;
-        let before = (self.copies.clone(), self.streams.clone(), self.keys.clone());
+        let mut journal = Journal::default();
         let written = self
             .key_streams(&walk)
-            .and_then(|()| self.write(target, pages, &roots, &walk));
+            .and_then(|()| self.write(target, pages, &roots, &walk, &mut journal));
         if written.is_err() {
-            (self.copies, self.streams, self.keys) = before;
+            self.undo(journal);
         } else {
             self.outside.extend(&walk.outside);
+            // A page or annotation left out before may be copied now.
+            let copies = &self.copies;
+            self.outside
+                .retain(|r| !matches!(copies.get(r), Some(Copied::Object(_))));
         }
         written
+    }
+
+    /// Records that `source` now became `copied`, so a failed call can undo it.
+    fn map(&mut self, journal: &mut Journal, source: ObjRef, copied: Copied) {
+        journal.copies.push((source, self.copies.insert(source, copied)));
+    }
+
+    /// Puts the copier's records back as they were before a failed call.
+    fn undo(&mut self, journal: Journal) {
+        for (source, before) in journal.copies.into_iter().rev() {
+            match before {
+                Some(copied) => self.copies.insert(source, copied),
+                None => self.copies.remove(&source),
+            };
+        }
+        for key in journal.streams {
+            self.streams.remove(&key);
+        }
     }
 
     /// Keys every stream the walk read, so equal ones are copied once.
@@ -194,16 +229,17 @@ impl<'s> ObjectCopier<'s> {
         pages: &[&laminapdf_cos::Page],
         roots: &[Dict],
         walk: &Walk,
+        journal: &mut Journal,
     ) -> Result<Vec<ObjRef>> {
         let doc = target.document();
         let copies = pages.iter().map(|_| doc.reserve_number()).collect::<Result<Vec<_>>>()?;
         for (page, &copy) in pages.iter().zip(&copies) {
             if let Some(r) = page.obj_ref {
-                self.copies.insert(r, Copied::Object(copy));
+                self.map(journal, r, Copied::Object(copy));
             }
         }
         for &r in &walk.nulls {
-            self.copies.insert(r, Copied::Null);
+            self.map(journal, r, Copied::Null);
         }
         let mut writes = Vec::new();
         for (r, object) in &walk.order {
@@ -212,13 +248,14 @@ impl<'s> ObjectCopier<'s> {
                 _ => None,
             };
             if let Some(&copy) = key.and_then(|k| self.streams.get(&k)) {
-                self.copies.insert(*r, Copied::Object(copy));
+                self.map(journal, *r, Copied::Object(copy));
                 continue;
             }
             let copy = doc.reserve_number()?;
-            self.copies.insert(*r, Copied::Object(copy));
+            self.map(journal, *r, Copied::Object(copy));
             if let Some(key) = key {
                 self.streams.insert(key, copy);
+                journal.streams.push(key);
             }
             writes.push((copy, Arc::clone(object)));
         }
@@ -267,10 +304,13 @@ impl<'s> ObjectCopier<'s> {
         let mut queue = VecDeque::new();
         for root in roots {
             self.scan_dict(root, None, 0, &mut queue)?;
+            walk.annots.extend(self.annots(root)?);
         }
         while let Some(r) = queue.pop_front() {
+            // Something copied before is reused; something left out before is looked at again,
+            // since the pages copied now may be what it belongs to.
             if walk.roots.contains(&r)
-                || self.copies.contains_key(&r)
+                || matches!(self.copies.get(&r), Some(Copied::Object(_)))
                 || walk.objects.contains_key(&r)
                 || walk.nulls.contains(&r)
             {
@@ -281,7 +321,7 @@ impl<'s> ObjectCopier<'s> {
                 walk.nulls.insert(r);
                 continue;
             }
-            if self.is_outside(&object, &walk.roots)? {
+            if !walk.annots.contains(&r) && self.is_outside(&object, &walk.roots)? {
                 walk.outside.insert(r);
                 walk.nulls.insert(r);
                 continue;
@@ -300,6 +340,18 @@ impl<'s> ObjectCopier<'s> {
             walk.objects.insert(r, object);
         }
         Ok(walk)
+    }
+
+    /// The annotations `page` lists in `/Annots`: they come with it whatever their `/P` says.
+    fn annots(&self, page: &Dict) -> Result<Vec<ObjRef>> {
+        let Some(annots) = page.get("Annots") else {
+            return Ok(Vec::new());
+        };
+        let annots = self.source.deref(annots)?;
+        Ok(annots
+            .as_array()
+            .map(|items| items.iter().filter_map(Object::as_ref).collect())
+            .unwrap_or_default())
     }
 
     /// Whether `object` lies outside the copy: a page not being copied (and not copied

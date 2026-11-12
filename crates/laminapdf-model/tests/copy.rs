@@ -170,15 +170,7 @@ fn links_between_pages_copied_together_point_at_the_copies_and_others_become_nul
 
 #[test]
 fn a_widget_comes_with_its_field_and_the_fields_widget_on_another_page_stays_out() {
-    let source = source(&[
-        b"<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [5 0 R] >> >>",
-        b"<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 /MediaBox [0 0 200 200] >>",
-        b"<< /Type /Page /Parent 2 0 R /Annots [6 0 R] >>",
-        b"<< /Type /Page /Parent 2 0 R /Annots [7 0 R] >>",
-        b"<< /FT /Tx /T (name) /Kids [6 0 R 7 0 R] >>",
-        b"<< /Type /Annot /Subtype /Widget /Rect [0 0 10 10] /P 3 0 R /Parent 5 0 R >>",
-        b"<< /Type /Annot /Subtype /Widget /Rect [0 0 10 10] /P 4 0 R /Parent 5 0 R >>",
-    ]);
+    let source = field_on_two_pages();
     let mut target = target();
     let pages = source.pages().unwrap();
     let mut copier = ObjectCopier::new(&source, Limits::default());
@@ -196,6 +188,86 @@ fn a_widget_comes_with_its_field_and_the_fields_widget_on_another_page_stays_out
     assert_eq!(kids.as_array().unwrap()[1], Object::Null);
 }
 
+/// The field test's source: a text field with a widget on each of two pages.
+fn field_on_two_pages() -> Document {
+    source(&[
+        b"<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [5 0 R] >> >>",
+        b"<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 /MediaBox [0 0 200 200] >>",
+        b"<< /Type /Page /Parent 2 0 R /Annots [6 0 R] >>",
+        b"<< /Type /Page /Parent 2 0 R /Annots [7 0 R] >>",
+        b"<< /FT /Tx /T (name) /Kids [6 0 R 7 0 R] >>",
+        b"<< /Type /Annot /Subtype /Widget /Rect [0 0 10 10] /P 3 0 R /Parent 5 0 R >>",
+        b"<< /Type /Annot /Subtype /Widget /Rect [0 0 10 10] /P 4 0 R /Parent 5 0 R >>",
+    ])
+}
+
+#[test]
+fn a_widget_left_out_of_one_copy_comes_with_its_page_in_the_next() {
+    let source = field_on_two_pages();
+    let mut target = target();
+    let pages = source.pages().unwrap();
+    let mut copier = ObjectCopier::new(&source, Limits::default());
+    copier.copy_pages(&mut target.edit(), &[&pages[0]]).unwrap();
+    let second = copier.copy_pages(&mut target.edit(), &[&pages[1]]).unwrap()[0];
+    let page = get(&mut target, second);
+    let annots = page
+        .as_dict()
+        .unwrap()
+        .get("Annots")
+        .unwrap()
+        .as_array()
+        .unwrap()
+        .to_vec();
+    assert!(matches!(annots[0], Object::Ref(_)), "{annots:?}");
+    assert!(copier.outside().is_empty());
+}
+
+#[test]
+fn an_annotation_a_copied_page_lists_comes_with_it_whatever_its_p_says() {
+    let source = source(&[
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 /MediaBox [0 0 200 200] >>",
+        b"<< /Type /Page /Parent 2 0 R >>",
+        b"<< /Type /Page /Parent 2 0 R /Annots [5 0 R] >>",
+        b"<< /Type /Annot /Subtype /Text /Rect [0 0 10 10] /P 3 0 R >>",
+    ]);
+    let mut target = target();
+    let pages = source.pages().unwrap();
+    let new_pages = ObjectCopier::new(&source, Limits::default())
+        .copy_pages(&mut target.edit(), &[&pages[1]])
+        .unwrap();
+    let page = get(&mut target, new_pages[0]);
+    let annots = page
+        .as_dict()
+        .unwrap()
+        .get("Annots")
+        .unwrap()
+        .as_array()
+        .unwrap()
+        .to_vec();
+    assert!(matches!(annots[0], Object::Ref(_)), "{annots:?}");
+}
+
+#[test]
+fn a_copy_that_runs_out_of_object_numbers_leaves_the_copier_as_it_was() {
+    let source = two_pages_one_font();
+    let options = OpenOptions::default().with_limits(Limits::default().with_max_object_number(4));
+    let bytes = classic_with_root(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [] /Count 0 >>",
+        ],
+        "",
+    );
+    let mut target = Document::open(bytes, options).unwrap();
+    let pages = source.pages().unwrap();
+    let mut copier = ObjectCopier::new(&source, Limits::default());
+    copier.copy_pages(&mut target.edit(), &[&pages[0]]).unwrap_err();
+    assert_eq!(copier.copy_of(ObjRef::new(3, 0)), None);
+    assert_eq!(copier.copy_of(ObjRef::new(5, 0)), None);
+    assert!(!target.is_dirty());
+}
+
 #[test]
 fn a_failed_copy_leaves_the_copier_as_it_was() {
     let source = source(&[
@@ -209,7 +281,8 @@ fn a_failed_copy_leaves_the_copier_as_it_was() {
     let mut target = target();
     let pages = source.pages().unwrap();
     let mut copier = ObjectCopier::new(&source, Limits::default().with_max_decoded_total(16));
-    // The walk reaches page 2 (outside the copy) and the link before the stream that is too big.
+    // The walk reaches page 2 (outside the copy) and the link before the stream that is too
+    // big, so this fails while reading, before any record changes.
     copier.copy_pages(&mut target.edit(), &[&pages[0]]).unwrap_err();
     assert!(copier.outside().is_empty());
     assert_eq!(copier.copy_of(ObjRef::new(4, 0)), None);
