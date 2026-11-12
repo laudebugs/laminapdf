@@ -49,7 +49,7 @@ const STATUS_LABEL: Readonly<Record<CapabilityStatus, MessageId>> = {
 };
 
 /** A status as its badge: round-trip positive with a check, write accent, read neutral, unsupported dashed. */
-export function StatusBadge({ status }: { status: CapabilityStatus | "n/a" | null }): ReactNode {
+function StatusBadge({ status }: { status: CapabilityStatus | "n/a" | null }): ReactNode {
   if (status === null) {
     return (
       <span className="paper-capability-none" title={message("capabilities.status.none")}>
