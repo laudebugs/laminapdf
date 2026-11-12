@@ -111,7 +111,7 @@ Agents can't push changes to `.github/workflows/`, so each todo's PR carries the
 
 ## 7. Todos
 
-- [ ] The setup action, the sccache pin, the workflow checks, ADR 0018's amendment and a trial on two legs ([X8a](../todos/ongoing/X8a-rust-compile-cache-trial.md))
+- [x] The setup action, the sccache pin, the workflow checks, ADR 0018's amendment and a trial on two legs ([X8a](../todos/done/X8a-rust-compile-cache-trial.md))
 - [ ] Spread it to every Rust job of the fast and full lanes, or remove it, from the trial's numbers ([X8b](../todos/ready/X8b-rust-compile-cache-everywhere.md))
 
 ## 8. Not in this plan
