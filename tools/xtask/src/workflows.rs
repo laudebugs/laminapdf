@@ -17,6 +17,8 @@
 //! `needs` on one line, as `[a, b]` or a single id, a trailing comment allowed. A gate whose `needs` is written any other way reads as empty, so every job is
 //! reported missing. The module is compiled only for tests (`main.rs`).
 
+mod compile_cache;
+
 /// The `<id>` of a two-space-indented `<id>:` line (a trailing comment allowed), else `None`.
 pub(crate) fn job_id(line: &str) -> Option<&str> {
     if !line.starts_with("  ") || line.starts_with("   ") || line.trim_start().starts_with('#') {
