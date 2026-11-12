@@ -12,7 +12,7 @@ This runbook tells the owner how to set up and look after the identities that si
 | Publisher shown on every OS | The owner's legal name, as on their government ID |
 | Windows signing path | **Azure Artifact Signing**, Public Trust, individual developer. The owner lives in the US or Canada, the only places Microsoft accepts individuals. |
 | Apple account | Apple Developer Program, **individual** membership, Team ID `35KBR7UHPZ` |
-| Updater keys, R2 buckets, ADR 0014 | Wait on [D5a](../todos/ready/D5a-update-worker-and-adr-0014.md), which hasn't started |
+| Updater keys, R2 buckets, ADR 0014 | Keys (release `AF48D217C8FBC9BB`, nightly `D8B5180692ABC3EF`), buckets and tokens done 2026-11-12; ADR 0014 waits on [D5a](../todos/ready/D5a-update-worker-and-adr-0014.md), which hasn't started |
 
 D5a writes ADR 0014. Once it exists, these answers, the Apple Team ID and the GPG fingerprint go into it, before D6a merges.
 
@@ -117,9 +117,9 @@ One key signs the AppImage, `.deb`, `.rpm`, the detached `.asc` files and `SHA25
 
 D5a's key ceremony makes two Tauri updater keys: one for releases and one for nightlies. Losing the release key strands every installed copy, because installed apps accept only updates that key signed.
 
-- [ ] Confirm `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` exist in the `desktop-release` environment.
+- [x] Confirm `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` exist in the `desktop-release` environment.
 - [ ] Confirm the release key's offline backups exist in two places.
-- [ ] Confirm the nightly key exists in the `desktop-nightly` environment under the same two names, with different values and one backup.
+- [x] Confirm the nightly key exists in the `desktop-nightly` environment under the same two names, with different values and one backup.
 
 ### 1.8 GitHub `desktop-release` environment
 
@@ -127,26 +127,26 @@ The `desktop-release` environment holds every production secret, and every job t
 
 - [x] Create it with required reviewer = the owner, and "Prevent self-review" off so the owner can approve their own runs.
 - [x] Limit deployment branches and tags to the tag pattern `desktop-v*`, the branch `main`, and, for now, the branches `ci/d6c-*` and `ci/d6d-*`, so D6c and D6d can test their signing steps before they merge. D6d removes the two `ci/` patterns when it merges.
-- [ ] Add the secrets listed for `desktop-release` in §2, and none at repository level.
+- [x] Add the secrets listed for `desktop-release` in §2, and none at repository level.
 
 ### 1.9 GitHub `desktop-nightly` environment
 
 Scheduled nightlies run in `desktop-nightly`, which has **no required reviewer** so the schedule never waits for approval. To keep that safe, it holds nothing that can sign as the owner.
 
 - [x] Create it with no reviewer, and limit deployment branches to `main`.
-- [ ] Add only the nightly updater key and the Cloudflare token for the nightly bucket (§2). It gets no Apple, Azure or GPG secret and no Azure federated credential. Nightlies are ad-hoc signed on macOS, unsigned on Windows, and come with only `SHA256SUMS` on Linux (decided in D6b).
+- [x] Add only the nightly updater key and the Cloudflare token for the nightly bucket (§2). It gets no Apple, Azure or GPG secret and no Azure federated credential. Nightlies are ad-hoc signed on macOS, unsigned on Windows, and come with only `SHA256SUMS` on Linux (decided in D6b).
 
 ### 1.10 GitHub `desktop-staging` environment
 
 D5b's updater tests run in `desktop-staging` on every push to `main` and every night, so it has no required reviewer either. It holds only a throwaway test updater key and a token for the staging bucket, so nothing in it can reach a user's install.
 
 - [x] Create it with no reviewer, and limit deployment branches to `main`.
-- [ ] Add only the two `desktop-staging` secrets in §2 (from D5a and D5b).
+- [x] Add only the two `desktop-staging` secrets in §2 (from D5a and D5b).
 
 ### 1.11 Cloudflare (waits on D5a)
 
-- [ ] Confirm the R2 buckets `lamina-pdf-releases`, `lamina-pdf-nightly` and `lamina-pdf-staging` and their download domains exist (D5a). The staging bucket and the `desktop-staging` environment in §2 serve D5b's updater tests and D6b–D6d's trial runs; they hold only a throwaway updater key and that bucket's token, so nothing in them can reach a user's install.
-- [ ] Confirm each token is scoped to one bucket only, stored as in §2. The staging bucket has two separate tokens: one in `desktop-release`, for D6b–D6d's signed trial runs, and one in `desktop-staging`, for D5b's tests.
+- [x] Confirm the R2 buckets `lamina-pdf-releases`, `lamina-pdf-nightly` and `lamina-pdf-staging` and their download domains exist (D5a). The staging bucket and the `desktop-staging` environment in §2 serve D5b's updater tests and D6b–D6d's trial runs; they hold only a throwaway updater key and that bucket's token, so nothing in them can reach a user's install.
+- [x] Confirm each token is scoped to one bucket only, stored as in §2. The staging bucket has two separate tokens: one in `desktop-release`, for D6b–D6d's signed trial runs, and one in `desktop-staging`, for D5b's tests.
 
 ## 2. Secrets inventory
 
