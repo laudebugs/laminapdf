@@ -14,7 +14,11 @@ interface Props {
 // The files a page may show: the TS examples (the quick-start apps and the Worker's included), the
 // Rust examples, which tests run, and the AGENTS.md snippet the packages ship.
 const FILES: Record<string, string> = import.meta.glob(
-  ["../../../../packages/sdk/examples/**/*.{ts,toml,md}", "../../../../crates/laminapdf/examples/*.rs"],
+  [
+    "../../../../packages/sdk/examples/**/*.{ts,toml,md}",
+    "../../../../packages/viewer/examples/*.ts",
+    "../../../../crates/laminapdf/examples/*.rs",
+  ],
   { query: "?raw", import: "default", eager: true },
 );
 const PREFIX = "../../../../";
