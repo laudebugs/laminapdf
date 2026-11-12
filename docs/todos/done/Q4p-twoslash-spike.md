@@ -78,7 +78,7 @@ None beyond the spike's own measurements; nothing ships.
 
 ## As built
 
-- **Q4i first?** Q4i hadn't started when the owner asked for this spike, so its dependency on [Q4i](../ready/Q4i-code-colours-by-class.md) was dropped and the spike measures against both CSPs: the current one, and the same policy without `'unsafe-inline'` in `style-src`, which is what Q4i will set.
+- **Q4i first?** Q4i hadn't started when the owner asked for this spike, so its dependency on [Q4i](../ongoing/Q4i-code-colours-by-class.md) was dropped and the spike measures against both CSPs: the current one, and the same policy without `'unsafe-inline'` in `style-src`, which is what Q4i will set.
 - **The plugin:** `expressive-code-twoslash` 0.6.1, the only Twoslash plugin for Expressive Code. It supports Expressive Code 0.41 and TypeScript 5 only, while the site runs 0.44.3 and 6.0.3. npm refuses it and pnpm installs it with peer warnings. It works once Expressive Code's options move to `ec.config.mjs`, which Starlight's `<Code>` needs for plugins.
 - **Where the code lives:** `spikes/docs-twoslash/` holds a patch for `apps/docs` (a `twoslash` prop through `Example`, `ExampleCode` and `Snippet`, set on "Your first PDF"; the plugin behind `LAMINA_PDF_TWOSLASH=1`), `measure.mjs`, the two JSON reports and two screenshots. The site itself is unchanged.
 - **Result:** keep it out. It adds 24.5 KB of script and 15.5 KB of CSS to every page. On the one page with hovers it adds 953 `style=` attributes, nearly doubles the HTML, and adds 1.7 s (10%) to the build. Hovers open by mouse only (touch too in Firefox and WebKit), and screen readers get nothing. A renamed type fails the build with it, but `cargo xtask check ts` already catches that, since the docs show only tested example files.
