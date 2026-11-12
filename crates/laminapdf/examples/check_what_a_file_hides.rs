@@ -74,8 +74,9 @@ fn failed_redactions(reveal: &Reveal) -> Vec<FailedRedaction> {
     for (page, _marks) in reveal.disclosure.redactions() {
         out.push(found("redaction-not-applied", Some(page)));
     }
-    let earlier = reveal.revisions.iter().filter(|r| r.removed_words > 0).count();
-    out.extend((0..earlier).map(|_| found("text-in-earlier-revision", None)));
+    for _ in reveal.revisions.iter().filter(|revision| revision.removed_words > 0) {
+        out.push(found("text-in-earlier-revision", None));
+    }
     out
 }
 
