@@ -7,6 +7,9 @@
 #![expect(clippy::panic, reason = "test helper: a panic is a test failure")]
 
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/check_what_a_file_hides.rs"]
+mod check_what_a_file_hides;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/edit_metadata.rs"]
 mod edit_metadata;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -293,7 +296,12 @@ fn every_example_file_is_listed_here_and_in_the_manifest() {
 }
 
 /// The examples that read a PDF instead of building one.
-const READERS: [&str; 3] = ["extract_markdown", "react_to_error_codes", "snapshot_test"];
+const READERS: [&str; 4] = [
+    "check_what_a_file_hides",
+    "extract_markdown",
+    "react_to_error_codes",
+    "snapshot_test",
+];
 
 #[test]
 fn react_to_error_codes_asks_for_a_password_then_again_and_refuses_a_non_pdf() {
@@ -311,6 +319,45 @@ fn react_to_error_codes_asks_for_a_password_then_again_and_refuses_a_non_pdf() {
     );
     let not_pdf = open_or_ask(b"not a PDF".to_vec(), None).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(not_pdf, NextStep::NotAPdf);
+}
+
+#[test]
+fn check_what_a_file_hides_finds_an_old_revision_hidden_text_and_metadata() {
+    use check_what_a_file_hides::{report, what_it_hides};
+    let hides = |path: &str| what_it_hides(fixture(path)).unwrap_or_else(|e| panic!("{path}: {e}"));
+    // A letter whose later revision deleted a word that the first one still holds.
+    let letter = hides("corpus/hello-incremental.pdf");
+    assert_eq!(letter.categories, ["history"]);
+    assert_eq!(letter.redactions, [("text-in-earlier-revision", None)]);
+    // Invisible text on its first page, and metadata.
+    let brochure = hides("corpus/text-example.pdf");
+    assert_eq!(brochure.categories, ["metadata", "hidden-content"]);
+    assert!(brochure.redactions.is_empty());
+    // The report is a golden: the docs' guide shows it as the example's output, for the two
+    // files under the names the guide gives them. `UPDATE_GOLDEN=1` rewrites it.
+    let printed = report("letter.pdf", &letter) + &report("brochure.pdf", &brochure);
+    let golden = fixtures_dir().join("reveal/examples/check_what_a_file_hides.txt");
+    if std::env::var_os("UPDATE_GOLDEN").is_some() {
+        std::fs::create_dir_all(golden.parent().unwrap_or_else(|| panic!("no parent")))
+            .unwrap_or_else(|e| panic!("{e}"));
+        std::fs::write(&golden, &printed).unwrap_or_else(|e| panic!("{e}"));
+    }
+    let want = std::fs::read_to_string(&golden).unwrap_or_default();
+    assert!(
+        printed == want,
+        "{} is stale: run with UPDATE_GOLDEN=1",
+        golden.display()
+    );
+}
+
+#[test]
+fn check_what_a_file_hides_reports_a_file_with_nothing_beyond_its_pages() {
+    use check_what_a_file_hides::{Hidden, report};
+    let clean = Hidden {
+        categories: Vec::new(),
+        redactions: Vec::new(),
+    };
+    assert_eq!(report("clean.pdf", &clean), "clean.pdf: nothing beyond its pages\n");
 }
 
 #[test]

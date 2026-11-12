@@ -206,8 +206,10 @@ const snippetCache = new Map();
  */
 const SHOWN_FOLDERS = [
   "packages/sdk/examples/",
+  "packages/viewer/examples/",
   "crates/laminapdf/examples/",
   "fixtures/extract/examples/",
+  "fixtures/reveal/examples/",
   "fixtures/cli/transcripts/",
 ];
 

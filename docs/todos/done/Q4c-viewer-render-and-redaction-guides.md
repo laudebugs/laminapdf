@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q4c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Docs redesign §4](../../plans/docs-redesign.md#4-todos) |
 | Round / milestone | Round Q (docs and code quality), Q4 docs redesign |
 | Depends on | None |
@@ -40,14 +40,14 @@ The viewer and render packages appear in the docs only as rows in the install ta
 
 ## Tasks
 
-- [ ] Confirm with the viewer's owners which of its API is stable enough to document; mark the rest as preview.
-- [ ] Write the examples and their tests.
-- [ ] Write the three guides and place them in the sidebar and llms.txt.
+- [x] Confirm with the viewer's owners which of its API is stable enough to document; mark the rest as preview. *The whole viewer is marked preview, on the guide and in the example's header: the reader still changes it (the edit and save calls of E1d and E1e), and no part has a stability promise yet. The guide documents only `ViewerClient.create`, `open`, `terminate`, `createViewer`, `mount`, `open` and `destroy`.*
+- [x] Write the examples and their tests. *`packages/viewer/examples/show-a-pdf.ts` with `test/browser/show-a-pdf.browser.test.ts` (Chromium, Firefox, WebKit), under the examples' rules (the viewer's examples folder joins docs-snippets, biome-examples, Snippet's glob, the agent docs and the guideline; the two dev demos moved to `packages/viewer/demo/`); `crates/laminapdf/examples/check_what_a_file_hides.rs` with its tests and an output golden, `fixtures/reveal/examples/`. Rendering reuses `draw-page.ts`, and Rust rendering, outside the façade, is the `render` transcript.*
+- [x] Write the three guides and place them in the sidebar and llms.txt. *Check what a file hides under Read and edit PDFs; Show a PDF in a web page and Render pages to images in a new Show PDFs group; llms.txt follows the sidebar.*
 
 ## Acceptance criteria
 
-- [ ] Each guide starts from a tested example and shows its result.
-- [ ] The install table links each package to its guide.
+- [x] Each guide starts from a tested example and shows its result. *The viewer guide says what the reader sees; the render guide shows the command line's output; the reveal guide's Output tab shows the example's report.*
+- [x] The install table links each package to its guide.
 
 ## Post-merge checks
 

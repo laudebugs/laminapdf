@@ -272,7 +272,7 @@ The browser suites run in Chromium, Firefox and WebKit over the built package: r
   - page labels in the names;
   - the outline and a named destination of the links-and-outlines reference PDF landing on their pages.
 - Unit tests sit next to their modules (`src/**/*.test.ts`) and run in Node. They cover the layout's cost, counted in steps, and the fit modes for portrait, landscape and rotated pages. They also cover zoom anchoring, tiles, cache eviction and the pool's caps, and where each kind of destination puts the view at each rotation. `test/dependencies.test.ts` checks that `src/` imports no UI framework, and `test/types.test.ts` checks the RPC types.
-- Two demo pages are manual checks: run `pnpm --filter @laminapdf/viewer exec vite examples`. `examples/viewer-demo.html` is the viewer, with zoom buttons; `examples/rpc-demo.html` draws page 1 through the RPC alone. The perf harness has its own page, `perf/page/` ([Performance](#performance)).
+- Two demo pages are manual checks: run `pnpm --filter @laminapdf/viewer exec vite demo`. `demo/viewer-demo.html` is the viewer, with zoom buttons; `demo/rpc-demo.html` draws page 1 through the RPC alone. `examples/` holds the examples the docs site shows, under [the examples' rules](../../docs/guidelines/examples.md); `test/browser/show-a-pdf.browser.test.ts` runs `examples/show-a-pdf.ts`. The perf harness has its own page, `perf/page/` ([Performance](#performance)).
 
 ### Performance
 
