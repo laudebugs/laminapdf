@@ -358,6 +358,14 @@ impl Packet {
         &self.original
     }
 
+    /// The packet's XML as parsed, in UTF-8 (a UTF-16 packet decoded).
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub fn xml(&self) -> &str {
+        &self.text
+    }
+
     /// Whether a setter changed a value since the packet was parsed.
     ///
     /// Added in 0.2.0.

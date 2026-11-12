@@ -153,6 +153,7 @@ pub use generated::explain::explain;
 pub use laminapdf_cos::Cipher;
 pub use laminapdf_model::FontEncoding;
 pub use links::{LinkTo, PageLink};
+pub use metadata::XmpPacket;
 pub use navigation::{OutlineNode, PageTarget, PageTargetView};
 pub use properties::{DocumentContents, DocumentPermissions, DocumentProperties, EncryptionSummary, FontSummary};
 pub use structure::{StructureKid, StructureNode};
@@ -174,11 +175,13 @@ pub use redaction::RedactionWarning;
 pub use warning::{Warning, WarningCursor};
 
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};
+pub use laminapdf_model::xmp::{ExtensionProperty, LangText, XmpReal, XmpValue};
 pub use laminapdf_model::{PageId, PdfDate, PointPt, Pt, RectPt, Rotation};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use laminapdf_ops::{
     ConformanceWarning, DocumentMetadata, InfoPatch, MetadataKey, MetadataPatch, MetadataSource, ModificationClass, Op,
-    OpLog, PacketStatus, RemoveMetadata, Reverted, RotatePage, SetInfo, SetMetadata, UndoOutcome,
+    OpLog, PacketStatus, RemoveMetadata, RemoveXmpProperty, ReplaceXmpPacket, Reverted, RotatePage, SetInfo,
+    SetMetadata, SetXmpProperty, UndoOutcome,
 };
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,

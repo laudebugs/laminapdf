@@ -10,6 +10,7 @@ import type {
   DocumentInfoJs,
   DocumentMetadata as DocumentMetadataJs,
   EditedJs,
+  ExtensionPropertyJs,
   FitInit,
   LimitsInit,
   LineBoxJs,
@@ -42,11 +43,15 @@ import type {
   UndoOutcomeJs,
   ViewerPreferencesInit,
   ViolationJs,
+  XmpLangText as XmpLangTextJs,
+  XmpPacketJs,
+  XmpValue as XmpValueJs,
 } from "@laminapdf/wasm/text";
 
 /**
- * An edit (`{ op, args }`): `setMetadata`, `removeMetadata`, `rotatePage`, or the deprecated
- * `setInfo` (use `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
+ * An edit (`{ op, args }`): `setMetadata`, `removeMetadata`, the XMP edits (`setXmpProperty`,
+ * `removeXmpProperty`, `replaceXmpPacket`), `rotatePage`, or the deprecated `setInfo` (use
+ * `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
  *
  * @since 0.2.0
  */
@@ -73,6 +78,34 @@ export type MetadataKey = MetadataKeyJs;
  * @since 0.2.0
  */
 export type DocumentMetadata = DocumentMetadataJs;
+/**
+ * A value an XMP property can be set to, tagged with its type: `{ type: "text", value: "…" }`,
+ * `uri`, `integer`, `real`, `boolean`, `date` (a PDF date, `D:20261110093000Z`), `langAlt` (a
+ * list of {@link XmpLangText}), or `seq` and `bag` (lists of simple values of one type).
+ *
+ * @since 0.2.0
+ */
+export type XmpValue = XmpValueJs;
+/**
+ * One language's text in an XMP language alternative: `{ lang: "x-default", text: "…" }`.
+ *
+ * @since 0.2.0
+ */
+export type XmpLangText = XmpLangTextJs;
+/**
+ * The document's XMP metadata as text: `status` (`absent`, `parsed` or `malformed`), the
+ * packet's `xml` with the edits made so far, and the PDF/A level it claims (`pdfa`, e.g. `"2B"`).
+ *
+ * @since 0.2.0
+ */
+export type XmpPacket = XmpPacketJs;
+/**
+ * An XMP property an edit declared in a PDF/A file's extension schemas, so the file keeps its
+ * PDF/A claim: its `namespace`, `prefix`, `name` and `valueType` (`Text`, `Seq Integer`, …).
+ *
+ * @since 0.2.0
+ */
+export type ExtensionProperty = ExtensionPropertyJs;
 /**
  * How a save would go, before it happens: what restricts it (`constraint`, the signatures and
  * the edits they forbid), the mode it resolves to or the code it would be refused with,

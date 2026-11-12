@@ -54,15 +54,19 @@ export const DOCUMENT_METHODS = {
   redo: 0,
   reflow: 0,
   removeMetadata: 2,
+  removeXmpProperty: 3,
+  replaceXmpPacket: 1,
   save: 1,
   saveWithReport: 1,
   saveCopy: 1,
   adoptCopy: 2,
   setMetadata: 2,
+  setXmpProperty: 5,
   structureTree: 0,
   undo: 0,
   warnings: 0,
   wouldViolate: 1,
+  xmpPacket: 0,
 } as const satisfies Record<RemotableDocumentMember, number>;
 
 export const PAGE_METHODS = {

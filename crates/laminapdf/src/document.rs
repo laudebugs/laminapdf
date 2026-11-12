@@ -117,6 +117,10 @@ pub struct Edited {
     /// Whether the edit changed the document. One that only set values they already had
     /// changes nothing and leaves no step to undo.
     pub changed: bool,
+    /// The XMP properties the edit declared in a PDF/A file's extension schemas, so the file
+    /// keeps its PDF/A claim ([`SetXmpProperty`](crate::SetXmpProperty),
+    /// [`ReplaceXmpPacket`](crate::ReplaceXmpPacket)).
+    pub declared: Vec<crate::ExtensionProperty>,
 }
 
 /// A finished save: the output and what the writer did.
@@ -382,13 +386,14 @@ impl Document {
     }
 
     /// Applies `ops` in order as one transaction (ADR 0006): all of them or none. Each op is
-    /// a value ([`Op`]: `SetMetadata`, `RemoveMetadata`, `RotatePage`, the deprecated
-    /// `SetInfo`), so the edit is serialisable and replayable;
+    /// a value ([`Op`]: `SetMetadata`, `RemoveMetadata`, the XMP ops, `RotatePage`, the
+    /// deprecated `SetInfo`), so the edit is serialisable and replayable;
     /// no closure crosses the boundary (F3).
     ///
     /// # Errors
     /// The first op's error (the transaction is rolled back): `unknown-page`, `direct-page`,
-    /// `malformed-xmp`, reading errors; `saved-not-rebased`.
+    /// `malformed-xmp`, `xmp-claim-read-only`, `invalid-xmp-packet`, `invalid-xmp-property`,
+    /// reading errors; `saved-not-rebased`.
     ///
     /// Added in 0.2.0.
     pub fn apply(&mut self, ops: Vec<Op>) -> Result<Edited> {
@@ -404,6 +409,7 @@ impl Document {
             packet_rewritten: applied.packet_rewritten,
             still_in_earlier_revisions: applied.still_in_earlier_revisions,
             changed,
+            declared: applied.declared,
         })
     }
 

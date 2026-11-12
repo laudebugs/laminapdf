@@ -143,6 +143,9 @@ required-features = ["text"]
 name = "edit_metadata"
 
 [[example]]
+name = "edit_xmp"
+
+[[example]]
 name = "pdf_ua_report"
 required-features = ["text"]
 

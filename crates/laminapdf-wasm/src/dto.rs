@@ -342,6 +342,8 @@ pub(crate) struct EditedJs {
     /// Whether the edit changed the document: one that only set values they already had leaves
     /// no step to undo.
     pub changed: bool,
+    /// The XMP properties the edit declared in a PDF/A file's extension schemas.
+    pub declared: Vec<ExtensionPropertyJs>,
 }
 
 impl From<laminapdf::Edited> for EditedJs {
@@ -351,6 +353,58 @@ impl From<laminapdf::Edited> for EditedJs {
             packet_rewritten: e.packet_rewritten,
             still_in_earlier_revisions: e.still_in_earlier_revisions,
             changed: e.changed,
+            declared: e.declared.into_iter().map(ExtensionPropertyJs::from).collect(),
+        }
+    }
+}
+
+/// An XMP property declared in a PDF/A file's extension schemas.
+#[derive(Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ExtensionPropertyJs {
+    /// The schema's namespace URI.
+    pub namespace: String,
+    /// The prefix the packet writes the namespace with.
+    pub prefix: String,
+    /// The property's local name.
+    pub name: String,
+    /// Its declared type, e.g. `Text` or `Seq Integer`.
+    pub value_type: String,
+}
+
+impl From<laminapdf::ExtensionProperty> for ExtensionPropertyJs {
+    fn from(p: laminapdf::ExtensionProperty) -> Self {
+        Self {
+            namespace: p.namespace,
+            prefix: p.prefix,
+            name: p.name,
+            value_type: p.value_type,
+        }
+    }
+}
+
+/// The document's XMP packet as text (`laminapdf::XmpPacket`).
+#[derive(Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct XmpPacketJs {
+    /// Whether there is a packet, and whether it was read.
+    pub status: laminapdf::PacketStatus,
+    /// The packet's XML, with the edits made so far.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub xml: Option<String>,
+    /// The PDF/A part and conformance the packet claims, e.g. `"2B"`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub pdfa: Option<String>,
+}
+
+impl From<laminapdf::XmpPacket> for XmpPacketJs {
+    fn from(p: laminapdf::XmpPacket) -> Self {
+        Self {
+            status: p.status,
+            xml: p.xml,
+            pdfa: p.pdfa,
         }
     }
 }

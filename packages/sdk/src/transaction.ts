@@ -1,7 +1,7 @@
 // The handle `Document.transact` passes to its callback (ADR 0006 §2): a closure can't cross the
 // WASM boundary, so the handle collects ops and the document applies them as one transaction.
 import { packageError } from "./errors.js";
-import type { DocumentInfo, MetadataKey, MetadataPatch, Op } from "./types.js";
+import type { DocumentInfo, MetadataKey, MetadataPatch, Op, XmpValue } from "./types.js";
 
 /**
  * The rotations `/Rotate` allows.
@@ -38,6 +38,32 @@ export interface MetadataRemoveOptions {
   /** As {@link MetadataEditOptions.replaceMalformed}. */
   readonly replaceMalformed?: boolean;
 }
+
+/**
+ * Options for the XMP property edits, `setXmpProperty` and `removeXmpProperty`.
+ *
+ * @since 0.2.0
+ */
+export interface XmpEditOptions {
+  /** As {@link MetadataEditOptions.replaceMalformed}. */
+  readonly replaceMalformed?: boolean;
+}
+
+/** @internal The `setXmpProperty` op. */
+export const setXmpPropertyOp = (
+  namespace: string,
+  prefix: string,
+  name: string,
+  value: XmpValue,
+  options?: XmpEditOptions,
+): Op => ({ op: "setXmpProperty", args: { namespace, prefix, name, value, ...options } }) as Op;
+
+/** @internal The `removeXmpProperty` op. */
+export const removeXmpPropertyOp = (namespace: string, name: string, options?: XmpEditOptions): Op =>
+  ({ op: "removeXmpProperty", args: { namespace, name, ...options } }) as Op;
+
+/** @internal The `replaceXmpPacket` op. */
+export const replaceXmpPacketOp = (xml: string): Op => ({ op: "replaceXmpPacket", args: { xml } }) as Op;
 
 /** @internal The `setMetadata` op. */
 export const setMetadataOp = (patch: MetadataPatch, options?: MetadataEditOptions): Op =>
@@ -107,6 +133,33 @@ export class Transaction {
    */
   removeMetadata(keys: readonly MetadataKey[], options?: MetadataRemoveOptions): this {
     return this.apply(removeMetadataOp(keys, options));
+  }
+
+  /**
+   * Sets any XMP property (`setXmpProperty`), as {@link Document.setXmpProperty}.
+   *
+   * @since 0.2.0
+   */
+  setXmpProperty(namespace: string, prefix: string, name: string, value: XmpValue, options?: XmpEditOptions): this {
+    return this.apply(setXmpPropertyOp(namespace, prefix, name, value, options));
+  }
+
+  /**
+   * Removes an XMP property (`removeXmpProperty`), as {@link Document.removeXmpProperty}.
+   *
+   * @since 0.2.0
+   */
+  removeXmpProperty(namespace: string, name: string, options?: XmpEditOptions): this {
+    return this.apply(removeXmpPropertyOp(namespace, name, options));
+  }
+
+  /**
+   * Replaces the whole XMP packet (`replaceXmpPacket`), as {@link Document.replaceXmpPacket}.
+   *
+   * @since 0.2.0
+   */
+  replaceXmpPacket(xml: string): this {
+    return this.apply(replaceXmpPacketOp(xml));
   }
 
   /**
