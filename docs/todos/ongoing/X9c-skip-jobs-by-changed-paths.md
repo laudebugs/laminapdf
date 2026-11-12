@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `X9c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [CI caching §8](../../plans/ci-caching.md#8-the-waits) |
 | Round / milestone | Round X (cross-cutting): CI |
 | Depends on | [X9b](./X9b-render-goldens-when-rendering-changes.md) |
@@ -11,7 +11,7 @@
 | Branch | `ci/x9c-skip-jobs-by-changed-paths` |
 | PR title | `ci: skip the jobs a PR's changed paths can't affect` |
 | Size | M |
-| PR | — |
+| PR | [#514](https://github.com/laudebugs/laminapdf/pull/514) |
 
 ## Goal
 

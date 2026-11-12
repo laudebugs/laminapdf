@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `X9a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [CI caching §8](../../plans/ci-caching.md#8-the-waits) |
 | Round / milestone | Round X (cross-cutting): CI |
 | Depends on | [X8a](../done/X8a-rust-compile-cache-trial.md) |
@@ -11,7 +11,7 @@
 | Branch | `ci/x9a-macos-x64-rust-off-prs` |
 | PR title | `ci: run Rust on macOS x64 on pushes to main and in the nightly, not on PRs` |
 | Size | S |
-| PR | — |
+| PR | [#514](https://github.com/laudebugs/laminapdf/pull/514) |
 
 ## Goal
 
@@ -35,7 +35,7 @@ Pull requests stop waiting for a macOS x64 runner. In the plan's baseline, the m
 
 **Out of scope** (and which todo covers it)
 
-- Moving X8b's PR measurements from macOS x64 to macOS Arm64 → [X8b](X8b-rust-compile-cache-everywhere.md) and its owner's small PR before this one (agreed 2026-11-12).
+- Moving X8b's PR measurements from macOS x64 to macOS Arm64 → [X8b](../ready/X8b-rust-compile-cache-everywhere.md) and its owner's small PR before this one (agreed 2026-11-12).
 - Render goldens on Mac runners → [X9b](X9b-render-goldens-when-rendering-changes.md).
 - Other macOS jobs (WebKit, the desktop builds) stay as they are.
 

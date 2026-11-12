@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `X9b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [CI caching §8](../../plans/ci-caching.md#8-the-waits) |
 | Round / milestone | Round X (cross-cutting): CI |
 | Depends on | None |
@@ -11,7 +11,7 @@
 | Branch | `ci/x9b-render-goldens-when-rendering-changes` |
 | PR title | `ci: run the render goldens only when a PR changes what they draw` |
 | Size | S |
-| PR | — |
+| PR | [#514](https://github.com/laudebugs/laminapdf/pull/514) |
 
 ## Goal
 
