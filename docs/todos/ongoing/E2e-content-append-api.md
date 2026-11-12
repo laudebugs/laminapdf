@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2e` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E2 page organisation §4](../../plans/editor/e2-page-organisation.md#4-crate-and-package-changes) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [E2a](../done/E2a-page-organisation-feature-plan.md) |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Add the minimal write API to `laminapdf-content` that never interprets existing operators (the only change to existing content is blanking unmatched `Q` tokens): wrap a page's existing content in `q … Q` by adding new streams to its `/Contents` array, append new streams (e.g. `q <cm> /Fm1 Do Q`), register Form XObjects under unused resource names, and balance `q`/`Q` by a token scan. Resize (E2f), flattening (E5e, E8g) and adding content (E6) use it. The `AppendContent` op is not here: no E2 op appends arbitrary content, and its payload depends on how E6 carries images and fonts, so [E6a](E6a-adding-content-feature-plan.md) defines it ([E2 plan §8](../../plans/editor/e2-page-organisation.md#8-todos)).
+Add the minimal write API to `laminapdf-content` that never interprets existing operators (the only change to existing content is blanking unmatched `Q` tokens): wrap a page's existing content in `q … Q` by adding new streams to its `/Contents` array, append new streams (e.g. `q <cm> /Fm1 Do Q`), register Form XObjects under unused resource names, and balance `q`/`Q` by a token scan. Resize (E2f), flattening (E5e, E8g) and adding content (E6) use it. The `AppendContent` op is not here: no E2 op appends arbitrary content, and its payload depends on how E6 carries images and fonts, so [E6a](../ready/E6a-adding-content-feature-plan.md) defines it ([E2 plan §8](../../plans/editor/e2-page-organisation.md#8-todos)).
 
 ## Context
 
@@ -39,8 +39,8 @@ Add the minimal write API to `laminapdf-content` that never interprets existing 
 
 **Out of scope** (and which todo covers it)
 
-- Parsing/editing existing operators → [E7c](E7c-content-ir.md)
-- The `AppendContent` op and its payload → [E6a](E6a-adding-content-feature-plan.md) (the writer's callers in E2s, E5e and E8g call it from their own ops)
+- Parsing/editing existing operators → [E7c](../ready/E7c-content-ir.md)
+- The `AppendContent` op and its payload → [E6a](../ready/E6a-adding-content-feature-plan.md) (the writer's callers in E2s, E5e and E8g call it from their own ops)
 
 **Editor facts**
 
