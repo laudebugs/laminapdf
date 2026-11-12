@@ -14,6 +14,8 @@ use crate::page::rect_object;
 /// has it (`null`).
 ///
 /// [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum Fit {
@@ -46,6 +48,8 @@ pub enum Fit {
 }
 
 /// Where a link or outline item goes.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum LinkTarget {
@@ -66,6 +70,8 @@ pub enum LinkTarget {
 
 impl LinkTarget {
     /// A page target showing the whole page.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn page(index: u32) -> Self {
         Self::Page { index, fit: Fit::Page }

@@ -44,6 +44,8 @@ pub(crate) const MAX_DEPTH: usize = 64;
 /// pointer that isn't one; `template-too-large` past 100,000 values filled in or 64 levels
 /// of nesting; `invalid-document` for a placeholder object with another key, or for the filled
 /// result. The pointer is in each error's data.
+///
+/// Added in 0.2.0.
 pub fn fill(template: &Value, data: &Value) -> Result<FlowDocument> {
     let mut filler = Filler {
         data,
@@ -61,6 +63,8 @@ pub fn fill(template: &Value, data: &Value) -> Result<FlowDocument> {
 ///
 /// # Errors
 /// As [`fill`] with data; as [`FlowDocument::from_json`] without.
+///
+/// Added in 0.2.0.
 pub fn fill_or_read(template: &Value, data: Option<&Value>) -> Result<FlowDocument> {
     match data {
         Some(data) => fill(template, data),

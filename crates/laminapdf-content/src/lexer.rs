@@ -11,6 +11,8 @@ use crate::operator::Operator;
 /// The most operands kept for one operator. Real operators take at most 33 (`scn` with 32
 /// DeviceN components and a pattern name, §8.6.6.5 and Annex C); when more pile up, the
 /// oldest are dropped, so a run of numbers without an operator can't grow memory (ADR 0023).
+///
+/// Added in 0.2.0.
 pub const MAX_OPERANDS: usize = 64;
 
 /// How many bytes after a candidate `EI` must be printable ASCII or white-space for the
@@ -18,6 +20,8 @@ pub const MAX_OPERANDS: usize = 64;
 const EI_LOOKAHEAD: usize = 10;
 
 /// One operator and the operands read before it.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Op<'a> {
@@ -33,6 +37,8 @@ pub struct Op<'a> {
 }
 
 /// An inline image (`BI <dict> ID <data> EI`, §8.9.7).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct InlineImage<'a> {
@@ -45,6 +51,8 @@ pub struct InlineImage<'a> {
 }
 
 /// A problem the tokenizer skipped over.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum IssueKind {
@@ -58,6 +66,8 @@ pub enum IssueKind {
 }
 
 /// A skipped problem and where it was.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct Issue {
@@ -68,6 +78,8 @@ pub struct Issue {
 }
 
 /// One item of a [`ContentIter`].
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Lexed<'a> {
     /// An operator with its operands.
@@ -95,6 +107,8 @@ pub enum Lexed<'a> {
 ///     .collect();
 /// assert_eq!(ops, [Operator::BeginText, Operator::Font, Operator::ShowText, Operator::EndText]);
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone)]
 pub struct ContentIter<'a> {
     lexer: Lexer<'a>,
@@ -118,6 +132,8 @@ enum Step<'a> {
 
 impl<'a> ContentIter<'a> {
     /// Reads `content` with the default [`Limits`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(content: &'a [u8]) -> Self {
         Self {
@@ -131,6 +147,8 @@ impl<'a> ContentIter<'a> {
     }
 
     /// Applies `limits` to strings, names and the nesting of array and dictionary operands.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_limits(mut self, limits: &Limits) -> Self {
         self.lexer = self.lexer.with_limits(limits);
@@ -139,6 +157,8 @@ impl<'a> ContentIter<'a> {
     }
 
     /// The byte offset reading has reached.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn offset(&self) -> usize {
         self.lexer.pos()

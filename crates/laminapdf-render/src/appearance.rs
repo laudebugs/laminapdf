@@ -20,6 +20,8 @@
 use crate::request::{BYTES_PER_PIXEL, Rgba8};
 
 /// How the page's colours are drawn. The default keeps them.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum PageAppearance {
     /// The page's own colours.
@@ -40,6 +42,8 @@ pub enum PageAppearance {
 }
 
 /// An appearance's paper (what white becomes) and ink (what black becomes).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PagePalette {
     /// What white becomes.
@@ -50,11 +54,15 @@ pub struct PagePalette {
 
 /// Sepia's paper and ink: `@laminapdf/tokens`' `PAGE_APPEARANCES.sepia` (`@laminapdf/render`'s
 /// tests hold both to the tokens).
+///
+/// Added in 0.2.0.
 pub const SEPIA: PagePalette = PagePalette {
     paper: rgb(0xF4, 0xEC, 0xD8),
     ink: rgb(0x3B, 0x2F, 0x20),
 };
 /// Dark's paper and ink: `@laminapdf/tokens`' `PAGE_APPEARANCES.dark`.
+///
+/// Added in 0.2.0.
 pub const DARK: PagePalette = PagePalette {
     paper: rgb(0x22, 0x21, 0x1F),
     ink: rgb(0xE6, 0xE1, 0xD8),
@@ -66,12 +74,16 @@ const fn rgb(r: u8, g: u8, b: u8) -> Rgba8 {
 
 impl PageAppearance {
     /// Whether this appearance changes any colour.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn recolours(self) -> bool {
         !matches!(self, Self::Original)
     }
 
     /// The colour `rgb` (straight, sRGB) becomes; alpha is never changed.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn recolour_rgb(self, rgb: [u8; 3]) -> [u8; 3] {
         let [red, green, blue] = rgb;
@@ -135,11 +147,15 @@ fn clamp(v: i32) -> u8 {
 }
 
 /// A quadrilateral in tile pixels: where an image's unit square or an annotation's rectangle lands.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Quad(pub [[f64; 2]; 4]);
 
 impl Quad {
     /// The unit square under the affine `[a, b, c, d, e, f]` (to tile pixels).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn from_transform(matrix: [f64; 6]) -> Self {
         let [xx, xy, yx, yy, dx, dy] = matrix;
@@ -183,6 +199,8 @@ impl Quad {
 
     /// Whether the quad covers the centre of any pixel of a `width` × `height` tile (its bounding
     /// box does, at least): a cheap test before work on what it covers.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn touches(&self, width: u32, height: u32) -> bool {
         self.bounds(width, height).is_some()
@@ -206,6 +224,8 @@ impl Quad {
 }
 
 /// What a recoloured tile keeps as drawn.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Kept<'a> {
     /// Opaque images: every pixel inside is kept.
@@ -221,6 +241,8 @@ pub struct Kept<'a> {
 }
 
 /// The same tile drawn with its annotations, and the rectangles kept whole.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy)]
 pub struct Annotated<'a> {
     /// The tile with annotations: same size as the one being recoloured.
@@ -234,6 +256,8 @@ pub struct Annotated<'a> {
 /// stamp), decided once for the page: `plain` and `annotated` are the whole page drawn small,
 /// without and with annotations, `width` pixels wide, and `rects` the rectangles in its pixels.
 /// Deciding per tile instead would split an annotation that two tiles share.
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn mostly_changed(rects: &[Quad], plain: &[u8], annotated: &[u8], width: u32) -> Vec<bool> {
     let height = u32::try_from(plain.len() / (width as usize * BYTES_PER_PIXEL).max(1)).unwrap_or(u32::MAX);
@@ -270,6 +294,8 @@ enum Fate {
 /// Pixels of an opaque image keep their colour, and so do those of a see-through image that
 /// aren't the background. With [`Kept::annotated`], its whole rectangles and every other pixel
 /// the annotations change (an ink stroke, a line) come from the annotated drawing.
+///
+/// Added in 0.2.0.
 pub fn recolour_tile(appearance: PageAppearance, width: u32, pixels: &mut [u8], kept: &Kept<'_>) {
     if !appearance.recolours() || width == 0 {
         return;

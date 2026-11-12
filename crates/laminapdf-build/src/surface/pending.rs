@@ -8,6 +8,8 @@ use super::style::StrokeStyle;
 use super::{Command, Paint, Surface};
 
 /// A path built by [`Surface::path`], waiting to be painted. Dropping it draws nothing.
+///
+/// Added in 0.2.0.
 #[derive(Debug)]
 #[must_use = "a path is drawn only when it is painted (fill, stroke, fill_stroke or clip)"]
 pub struct PendingPath<'s> {
@@ -34,22 +36,30 @@ impl<'s> PendingPath<'s> {
     }
 
     /// Strokes the path (`S`).
+    ///
+    /// Added in 0.2.0.
     pub fn stroke(self, style: &StrokeStyle) -> &'s mut Surface {
         self.paint(Paint::Stroke(style.clone()))
     }
 
     /// Fills the path (`f` or `f*`).
+    ///
+    /// Added in 0.2.0.
     pub fn fill(self, rule: FillRule) -> &'s mut Surface {
         self.paint(Paint::Fill(rule))
     }
 
     /// Fills, then strokes the path (`B` or `B*`).
+    ///
+    /// Added in 0.2.0.
     pub fn fill_stroke(self, rule: FillRule, style: &StrokeStyle) -> &'s mut Surface {
         self.paint(Paint::FillStroke(rule, style.clone()))
     }
 
     /// Intersects the clipping region with the path (`W n` or `W* n`) until the next
     /// [`Surface::restore`].
+    ///
+    /// Added in 0.2.0.
     pub fn clip(self, rule: FillRule) -> &'s mut Surface {
         self.paint(Paint::Clip(rule))
     }

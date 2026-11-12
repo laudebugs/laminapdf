@@ -16,6 +16,8 @@ use crate::page::{HIDDEN_ANNOT_FLAGS, Page, number, read_rect};
 use crate::values::{file_spec_name, read_name, text_of};
 
 /// One link annotation on a page.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Link {
@@ -31,6 +33,8 @@ pub struct Link {
 }
 
 /// What following a link does.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum LinkAction {

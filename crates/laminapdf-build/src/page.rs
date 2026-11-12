@@ -11,6 +11,8 @@ use crate::surface::{Surface, TextTarget};
 use crate::tag::mcid::Marking;
 
 /// A page size in points (physical: `/UserUnit` is applied when the page is written).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PageSize {
     /// Width (before `/Rotate`).
@@ -21,27 +23,49 @@ pub struct PageSize {
 
 impl PageSize {
     /// ISO 216 A0, 841 × 1189 mm.
+    ///
+    /// Added in 0.2.0.
     pub const A0: Self = Self::mm(841.0, 1189.0);
     /// ISO 216 A1, 594 × 841 mm.
+    ///
+    /// Added in 0.2.0.
     pub const A1: Self = Self::mm(594.0, 841.0);
     /// ISO 216 A2, 420 × 594 mm.
+    ///
+    /// Added in 0.2.0.
     pub const A2: Self = Self::mm(420.0, 594.0);
     /// ISO 216 A3, 297 × 420 mm.
+    ///
+    /// Added in 0.2.0.
     pub const A3: Self = Self::mm(297.0, 420.0);
     /// ISO 216 A4, 210 × 297 mm.
+    ///
+    /// Added in 0.2.0.
     pub const A4: Self = Self::mm(210.0, 297.0);
     /// ISO 216 A5, 148 × 210 mm.
+    ///
+    /// Added in 0.2.0.
     pub const A5: Self = Self::mm(148.0, 210.0);
     /// ISO 216 A6, 105 × 148 mm.
+    ///
+    /// Added in 0.2.0.
     pub const A6: Self = Self::mm(105.0, 148.0);
     /// US Letter, 8.5 × 11 in.
+    ///
+    /// Added in 0.2.0.
     pub const LETTER: Self = Self::new(Pt::new(612.0), Pt::new(792.0));
     /// US Legal, 8.5 × 14 in.
+    ///
+    /// Added in 0.2.0.
     pub const LEGAL: Self = Self::new(Pt::new(612.0), Pt::new(1008.0));
     /// Tabloid, 11 × 17 in.
+    ///
+    /// Added in 0.2.0.
     pub const TABLOID: Self = Self::new(Pt::new(792.0), Pt::new(1224.0));
 
     /// `width` × `height`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new(width: Pt, height: Pt) -> Self {
         Self { width, height }
@@ -52,6 +76,8 @@ impl PageSize {
     }
 
     /// The same size turned sideways (width and height swapped).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn landscape(self) -> Self {
         Self::new(self.height, self.width)
@@ -73,6 +99,8 @@ struct Boxes {
 /// Boxes are rectangles in the page space of the `MediaBox` as displayed (its top-left
 /// corner after `/Rotate`, y down, points); the surface's page space starts at the `CropBox`'s
 /// top-left (ADR 0027 §3), which is the `MediaBox`'s when no crop box is set.
+///
+/// Added in 0.2.0.
 #[derive(Debug)]
 #[must_use = "a page is written only by PageBuilder::finish"]
 pub struct PageBuilder<'b> {
@@ -99,6 +127,8 @@ impl<'b> PageBuilder<'b> {
 
     /// `/Rotate`: how the page is turned when displayed. The surface stays upright as
     /// displayed.
+    ///
+    /// Added in 0.2.0.
     pub fn rotate(&mut self, rotate: Rotation) -> &mut Self {
         self.rotate = rotate;
         self
@@ -106,36 +136,48 @@ impl<'b> PageBuilder<'b> {
 
     /// `/UserUnit` (PDF 1.6, §14.11.2.1): the size of a user-space unit in points, for pages
     /// larger than 14,400 units. Sizes and coordinates stay physical points.
+    ///
+    /// Added in 0.2.0.
     pub fn user_unit(&mut self, unit: f64) -> &mut Self {
         self.user_unit = unit;
         self
     }
 
     /// `/CropBox`: the visible region (clipped to the `MediaBox` when written).
+    ///
+    /// Added in 0.2.0.
     pub fn crop_box(&mut self, rect: RectPt) -> &mut Self {
         self.boxes.crop = Some(rect);
         self
     }
 
     /// `/BleedBox`.
+    ///
+    /// Added in 0.2.0.
     pub fn bleed_box(&mut self, rect: RectPt) -> &mut Self {
         self.boxes.bleed = Some(rect);
         self
     }
 
     /// `/TrimBox`.
+    ///
+    /// Added in 0.2.0.
     pub fn trim_box(&mut self, rect: RectPt) -> &mut Self {
         self.boxes.trim = Some(rect);
         self
     }
 
     /// `/ArtBox`.
+    ///
+    /// Added in 0.2.0.
     pub fn art_box(&mut self, rect: RectPt) -> &mut Self {
         self.boxes.art = Some(rect);
         self
     }
 
     /// The page's drawing surface.
+    ///
+    /// Added in 0.2.0.
     pub fn surface(&mut self) -> &mut Surface {
         &mut self.surface
     }
@@ -198,6 +240,8 @@ impl<'b> PageBuilder<'b> {
     ///
     /// A page that fails leaves nothing behind: the objects it wrote are rolled back, and the
     /// glyphs, fonts, resources and links it recorded are forgotten.
+    ///
+    /// Added in 0.2.0.
     pub fn finish(mut self) -> Result<PageId> {
         let mark = self.target.doc.journal_mark();
         let state = &*self.target.state;

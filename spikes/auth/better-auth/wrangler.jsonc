@@ -1,0 +1,12 @@
+{
+  "name": "auth-spike-better-auth",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [{ "binding": "DB", "database_name": "auth", "database_id": "00000000-0000-0000-0000-000000000000" }],
+  "vars": {
+    "BASE_URL": "http://localhost:8787",
+    "RP_ID": "localhost",
+    "GITHUB_CLIENT_ID": "spike-client-id"
+  }
+}

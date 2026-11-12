@@ -1,0 +1,17 @@
+{
+  "name": "auth-spike-better-auth",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --local --port 8787",
+    "migrate": "wrangler d1 migrations apply auth --local",
+    "size": "wrangler deploy --dry-run --outdir dist"
+  },
+  "dependencies": {
+    "better-auth": "1.7.14",
+    "@better-auth/passkey": "1.7.14"
+  },
+  "devDependencies": {
+    "wrangler": "4.157.0"
+  }
+}

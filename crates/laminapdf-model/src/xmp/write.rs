@@ -28,6 +28,8 @@ pub(super) const PADDING: usize = 2048;
 ///
 /// assert!(is_xml_char('\t') && !is_xml_char('\u{1}'));
 /// ```
+///
+/// Added in 0.2.0.
 #[must_use]
 pub const fn is_xml_char(ch: char) -> bool {
     !matches!(ch, '\u{0}'..='\u{8}' | '\u{B}' | '\u{C}' | '\u{E}'..='\u{1F}' | '\u{FFFE}' | '\u{FFFF}')
@@ -42,6 +44,8 @@ pub const fn is_xml_char(ch: char) -> bool {
 ///
 /// assert_eq!(escape("a<b & \"c\">\u{1}\n"), "a&lt;b &amp; &quot;c&quot;&gt;&#xA;");
 /// ```
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn escape(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
@@ -72,6 +76,8 @@ pub fn escape(text: &str) -> String {
 /// let title = property_element(MappedField::Title.mapping(), &Value::Text("Q3 & Q4".into()));
 /// assert_eq!(title, r#"<dc:title><rdf:Alt><rdf:li xml:lang="x-default">Q3 &amp; Q4</rdf:li></rdf:Alt></dc:title>"#);
 /// ```
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn property_element(mapping: &Mapping, value: &Value) -> String {
     element(mapping, mapping.prefix, "rdf", value, &[], &[])

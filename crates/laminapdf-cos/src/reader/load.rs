@@ -19,6 +19,8 @@ const MAX_FILTER_PARAM_DEPTH: usize = 3;
 
 /// The result of [`Document::deref`]: either the direct object that was passed in, or the
 /// shared, cached object a reference resolved to. Dereferences to [`Object`].
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Resolved<'o> {
     /// The input was not a reference; this is the input itself.
@@ -29,6 +31,8 @@ pub enum Resolved<'o> {
 
 impl Resolved<'_> {
     /// An owned copy of the object (clones unless this is the only handle to it).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn into_owned(self) -> Object {
         match self {
@@ -38,6 +42,8 @@ impl Resolved<'_> {
     }
 
     /// The object behind a shared pointer (a cheap clone for indirect objects).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn into_arc(self) -> Arc<Object> {
         match self {
@@ -77,6 +83,8 @@ impl Document {
     /// corrupt objects; [`Error::Strict`] in strict mode.
     ///
     /// [`Limits::max_resolve_depth`]: laminapdf_syntax::Limits::max_resolve_depth
+    ///
+    /// Added in 0.2.0.
     pub fn resolve(&self, r: ObjRef) -> Result<Arc<Object>> {
         let _call = self.call();
         let mut chain = Vec::new();
@@ -104,6 +112,8 @@ impl Document {
     /// # Errors
     /// Parse errors for corrupt objects; [`Error::ReferenceCycle`] for self-referential
     /// streams; [`Error::LimitExceeded`]; [`Error::Strict`] in strict mode.
+    ///
+    /// Added in 0.2.0.
     pub fn object(&self, num: u32) -> Result<Arc<Object>> {
         let _call = self.call();
         self.load_current(num, None)
@@ -113,6 +123,8 @@ impl Document {
     ///
     /// # Errors
     /// As [`Document::resolve`].
+    ///
+    /// Added in 0.2.0.
     pub fn deref<'o>(&self, obj: &'o Object) -> Result<Resolved<'o>> {
         match obj {
             Object::Ref(r) => self.resolve(*r).map(Resolved::Indirect),
@@ -296,6 +308,8 @@ impl Document {
     /// [`Limits::max_stream_decoded`]: laminapdf_syntax::Limits::max_stream_decoded
     /// [`Limits::max_decoded_total`]: laminapdf_syntax::Limits::max_decoded_total
     /// [`Limits::max_filter_chain`]: laminapdf_syntax::Limits::max_filter_chain
+    ///
+    /// Added in 0.2.0.
     pub fn decode_stream(&self, stream: &Stream) -> Result<Vec<u8>> {
         let _call = self.call();
         self.decode_stream_of(stream, None)

@@ -29,6 +29,8 @@ use crate::{furniture, headings, lists};
 /// [`Step::Done`]; an error or a cancellation ends it with no partial result. The core document
 /// has no revision to compare, so the job trusts the caller to pass that document; the façade's
 /// job checks it (`document-changed`, ADR 0028 §3).
+///
+/// Added in 0.2.0.
 #[derive(Debug)]
 pub struct ExtractJob {
     options: ExtractOptions,
@@ -111,6 +113,8 @@ impl Pending {
 /// # Errors
 /// `page-index-out-of-range` for a page past the last; reading errors (the page tree, the
 /// catalog).
+///
+/// Added in 0.2.0.
 pub fn extract_job(doc: &Document, options: &ExtractOptions) -> Result<ExtractJob, ExtractError> {
     extract_job_with(doc, options, TreeSource::Read)
 }
@@ -185,6 +189,8 @@ pub(crate) fn extract_job_with(
 /// As [`extract_job`] and [`ExtractJob::step`]; `model-needs-host` when a model's results
 /// would have to come from the host (a host model, or a plug-in without a renderer), which
 /// only [`ExtractJob::provide`] can give.
+///
+/// Added in 0.2.0.
 pub fn extract(doc: &Document, options: &ExtractOptions, cancel: &CancelToken) -> Result<Extraction, ExtractError> {
     let mut job = extract_job(doc, options)?;
     job.cancel = cancel.clone();
@@ -239,6 +245,8 @@ fn finish(out: &mut Extraction, options: &ExtractOptions) {
 
 impl ExtractJob {
     /// A token that cancels this job from another thread or callback.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn cancel_token(&self) -> CancelToken {
         self.cancel.clone()
@@ -254,6 +262,8 @@ impl ExtractJob {
     /// ([`ModelSlot::Host`], or a plug-in with no renderer): render the page at the
     /// resolution asked, run the model, and hand the result to [`ExtractJob::provide`]. While a
     /// request is open, [`ExtractJob::step`] returns the same progress and does nothing else.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn request(&self) -> Option<&ModelRequest> {
         self.request.as_ref()
@@ -264,6 +274,8 @@ impl ExtractJob {
     /// # Errors
     /// `model-result-unexpected` when no request is open or `result` is the other model's;
     /// `job-finished` after the job ended. Neither ends the job.
+    ///
+    /// Added in 0.2.0.
     pub fn provide(&mut self, result: ModelResult) -> Result<(), ExtractError> {
         if self.finished {
             return Err(ExtractError::JobFinished);
@@ -299,6 +311,8 @@ impl ExtractJob {
     /// `cancelled` once the token is cancelled; `job-finished` after the job returned its
     /// result or an error; `model-failed` when a plug-in failed; reading errors
     /// (`data-pending`, `strict`, …). Every error ends the job.
+    ///
+    /// Added in 0.2.0.
     pub fn step(&mut self, doc: &Document, budget: Budget) -> Result<Step<Extraction>, ExtractError> {
         if self.finished {
             return Err(ExtractError::JobFinished);

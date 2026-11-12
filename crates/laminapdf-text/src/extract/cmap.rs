@@ -11,6 +11,8 @@
 use std::collections::BTreeMap;
 
 /// One character code: its value and how many bytes it took (1–4).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Code {
     /// The code's bytes, big-endian.

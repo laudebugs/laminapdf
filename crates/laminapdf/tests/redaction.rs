@@ -32,13 +32,22 @@ fn page(content: &[u8], annots: &[&str]) -> Document {
 
 const SENTENCE: &[u8] = b"BT /F1 12 Tf 72 700 Td (Pay John Smith now.) Tj ET";
 
-/// Each warning's code and data.
-fn findings(doc: &Document) -> Vec<(&'static str, serde_json::Value)> {
-    doc.redaction_warnings(&OpenOptions::default(), &CancelToken::new())
-        .unwrap()
+/// Each warning as its code and JSON.
+fn as_json(warnings: &[laminapdf::Warning]) -> Vec<(&'static str, serde_json::Value)> {
+    warnings
         .iter()
         .map(|w| (w.code(), serde_json::to_value(w).unwrap()))
         .collect()
+}
+
+/// Each warning's code and data, after checking that `Reveal::redaction_warnings` gives the
+/// same warnings, data and order as `Document::redaction_warnings`.
+fn findings(doc: &Document) -> Vec<(&'static str, serde_json::Value)> {
+    let (options, cancel) = (OpenOptions::default(), CancelToken::new());
+    let found = as_json(&doc.redaction_warnings(&options, &cancel).unwrap());
+    let from_reveal = as_json(&doc.reveal(&options, &cancel).unwrap().redaction_warnings());
+    assert_eq!(from_reveal, found);
+    found
 }
 
 #[test]
@@ -68,6 +77,14 @@ fn two_redaction_marks_are_one_warning_and_none_without_them() {
         [("redaction-not-applied", Some(2))]
     );
     assert_eq!(findings(&page(SENTENCE, &[])), []);
+}
+
+#[test]
+fn a_box_and_marks_over_one_name_give_both_page_findings_in_order() {
+    let mark = "<< /Type /Annot /Subtype /Redact /Rect [95 694 157 710] >>";
+    let doc = page(&[SENTENCE, b" 0 g 95 694 62 16 re f"].concat(), &[mark]);
+    let codes: Vec<&str> = findings(&doc).iter().map(|(c, _)| *c).collect();
+    assert_eq!(codes, ["covered-text", "redaction-not-applied"]);
 }
 
 #[test]
@@ -169,6 +186,11 @@ fn only_the_named_fixtures_give_redaction_warnings() {
         let found = doc
             .redaction_warnings(&OpenOptions::default(), &CancelToken::new())
             .unwrap_or_else(|e| panic!("{name}: {}", e.code()));
+        let from_reveal = doc
+            .reveal(&OpenOptions::default(), &CancelToken::new())
+            .unwrap_or_else(|e| panic!("{name}: {}", e.code()))
+            .redaction_warnings();
+        assert_eq!(as_json(&from_reveal), as_json(&found), "{name}");
         let codes: Vec<&str> = found.iter().map(laminapdf::Warning::code).collect();
         let want = expected
             .iter()

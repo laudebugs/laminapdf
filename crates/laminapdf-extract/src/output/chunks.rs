@@ -9,6 +9,8 @@ use super::{Join, Rendered, TextRange, joins};
 use crate::model::{BlockKind, Extraction};
 
 /// Where chunks may start.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "kebab-case"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -24,6 +26,8 @@ pub enum SplitOn {
 }
 
 /// How the Markdown is cut.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct ChunkOptions {
@@ -49,12 +53,16 @@ impl Default for ChunkOptions {
 
 impl ChunkOptions {
     /// 512 tokens, no overlap, split at headings.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// The budget.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_max_tokens(mut self, max_tokens: usize) -> Self {
         self.max_tokens = max_tokens;
@@ -62,6 +70,8 @@ impl ChunkOptions {
     }
 
     /// The overlap.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_overlap(mut self, overlap: usize) -> Self {
         self.overlap = overlap;
@@ -69,6 +79,8 @@ impl ChunkOptions {
     }
 
     /// Where chunks may start.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_split_on(mut self, split_on: SplitOn) -> Self {
         self.split_on = split_on;
@@ -77,6 +89,8 @@ impl ChunkOptions {
 }
 
 /// A chunk's area on one page.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -91,6 +105,8 @@ pub struct Region {
 }
 
 /// One chunk.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -117,6 +133,8 @@ pub struct Chunk {
 /// About how many tokens `text` is for an LLM's tokenizer: one per four characters, rounded up.
 /// English prose runs close to that with today's tokenizers; code, numbers and scripts other
 /// than Latin run higher, so leave room in a budget.
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn tokens_approx(text: &str) -> usize {
     text.chars().count().div_ceil(4)

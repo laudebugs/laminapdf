@@ -20,6 +20,8 @@ use crate::page::{Pages, number, read_rect};
 
 /// How a destination shows its page (§12.3.2.2, Table 149). Coordinates that the file
 /// leaves `null` ("unchanged") are `None`.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[non_exhaustive]
 pub enum View {
@@ -63,6 +65,8 @@ pub enum View {
 }
 
 /// Where a destination points (§12.3.2).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Destination {
@@ -80,6 +84,8 @@ pub struct Destination {
 }
 
 /// The type of an outline item's action (`/A /S`, §12.6.4, Table 201).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum ActionKind {
@@ -111,6 +117,8 @@ pub enum ActionKind {
 
 impl ActionKind {
     /// The `/S` name the file uses for this type (`Other`'s as stored, lossily decoded).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn as_name(&self) -> Cow<'_, str> {
         Cow::Borrowed(match self {
@@ -158,6 +166,8 @@ struct Item {
 /// The document outline: its items in depth-first order, as a tree.
 ///
 /// Walking it is done once, when the outline is read; each item's fields are read lazily.
+///
+/// Added in 0.2.0.
 pub struct Outline<'d> {
     doc: &'d Document,
     items: Vec<Item>,
@@ -344,29 +354,39 @@ impl<'d> Outline<'d> {
     }
 
     /// The number of items (at every level).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn len(&self) -> usize {
         self.items.len()
     }
 
     /// True when the document has no outline items.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.items.is_empty()
     }
 
     /// The top-level items.
+    ///
+    /// Added in 0.2.0.
     pub fn roots(&self) -> impl Iterator<Item = OutlineItem<'_, 'd>> + '_ {
         self.roots.iter().map(|&index| OutlineItem { outline: self, index })
     }
 
     /// Every item, depth-first (each item before its children, children before later
     /// siblings).
+    ///
+    /// Added in 0.2.0.
     pub fn iter(&self) -> impl ExactSizeIterator<Item = OutlineItem<'_, 'd>> + '_ {
         (0..self.items.len()).map(|index| OutlineItem { outline: self, index })
     }
 
     /// The item with ID `id`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn by_id(&self, id: &OutlineItemId) -> Option<OutlineItem<'_, 'd>> {
         self.by_id.get(id).map(|&index| OutlineItem { outline: self, index })
@@ -391,6 +411,8 @@ impl<'d> Outline<'d> {
     /// # Errors
     /// As [`Outline::roots`]: strict mode, when reading the names or the page tree raises a
     /// warning.
+    ///
+    /// Added in 0.2.0.
     pub fn named_destination(&self, name: &[u8]) -> Result<Option<Destination>> {
         if !self.named()?.contains_key(name) {
             return Ok(None);
@@ -539,6 +561,8 @@ fn child_path(path: &DirectPath, own: Option<ObjRef>, key: &'static str) -> Dire
 }
 
 /// One outline item: a view over its dictionary.
+///
+/// Added in 0.2.0.
 #[derive(Clone, Copy)]
 pub struct OutlineItem<'o, 'd> {
     outline: &'o Outline<'d>,
@@ -569,18 +593,24 @@ impl<'o, 'd> OutlineItem<'o, 'd> {
     }
 
     /// The item's stable ID.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn id(&self) -> Option<&'o OutlineItemId> {
         self.item().map(|i| &i.id)
     }
 
     /// The nesting depth: 1 for a top-level item.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn depth(&self) -> usize {
         self.item().map_or(0, |i| i.depth)
     }
 
     /// The item's children, in order.
+    ///
+    /// Added in 0.2.0.
     pub fn children(&self) -> impl Iterator<Item = OutlineItem<'o, 'd>> + 'o {
         let outline = self.outline;
         self.item()
@@ -594,6 +624,8 @@ impl<'o, 'd> OutlineItem<'o, 'd> {
     ///
     /// # Errors
     /// [`laminapdf_cos::Error::DataPending`] / [`laminapdf_cos::Error::Source`].
+    ///
+    /// Added in 0.2.0.
     pub fn title(&self) -> Result<String> {
         let Some(title) = self.get("Title") else {
             return Ok(String::new());
@@ -609,6 +641,8 @@ impl<'o, 'd> OutlineItem<'o, 'd> {
     ///
     /// # Errors
     /// As [`OutlineItem::title`].
+    ///
+    /// Added in 0.2.0.
     pub fn count(&self) -> Result<Option<i64>> {
         let Some(count) = self.get("Count") else {
             return Ok(None);
@@ -620,6 +654,8 @@ impl<'o, 'd> OutlineItem<'o, 'd> {
     ///
     /// # Errors
     /// As [`OutlineItem::title`].
+    ///
+    /// Added in 0.2.0.
     pub fn is_open(&self) -> Result<bool> {
         Ok(self.count()?.is_some_and(|c| c > 0))
     }
@@ -628,6 +664,8 @@ impl<'o, 'd> OutlineItem<'o, 'd> {
     ///
     /// # Errors
     /// As [`OutlineItem::title`].
+    ///
+    /// Added in 0.2.0.
     pub fn action(&self) -> Result<Option<ActionKind>> {
         match self.action_dict()?.as_deref().and_then(Object::as_dict) {
             Some(action) => self.action_kind(action),
@@ -642,6 +680,8 @@ impl<'o, 'd> OutlineItem<'o, 'd> {
     /// # Errors
     /// [`laminapdf_cos::Error::Strict`] in strict mode when reading named destinations or the
     /// page tree raises a warning; as [`OutlineItem::title`].
+    ///
+    /// Added in 0.2.0.
     pub fn target(&self) -> Result<Option<Destination>> {
         // §12.3.3: `/Dest` and `/A` are exclusive; a `/Dest` that is null or unreadable
         // counts as absent, so a `GoTo` action is still followed.

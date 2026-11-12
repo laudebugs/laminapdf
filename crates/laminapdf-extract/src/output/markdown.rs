@@ -8,6 +8,8 @@ use super::{Join, Rendered, Writer, joins};
 use crate::model::{Block, BlockKind, Cell, Extraction, header_row_count};
 
 /// How Markdown is written.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub struct MarkdownOptions {
@@ -17,12 +19,16 @@ pub struct MarkdownOptions {
 
 impl MarkdownOptions {
     /// No page markers.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn new() -> Self {
         Self { page_markers: false }
     }
 
     /// Page markers on or off.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_page_markers(mut self, on: bool) -> Self {
         self.page_markers = on;

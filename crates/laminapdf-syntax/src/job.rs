@@ -9,6 +9,8 @@
 /// time between steps and adapt the next budget.
 ///
 /// [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Budget {
     units: u32,
@@ -16,16 +18,22 @@ pub struct Budget {
 
 impl Budget {
     /// No limit: the job runs to completion in one step.
+    ///
+    /// Added in 0.2.0.
     pub const UNLIMITED: Self = Self { units: u32::MAX };
 
     /// `units` work units (`u32`, a plain number in JS: ADR 0028 F5). A step always does at
     /// least one unit, so a budget of 0 behaves as 1.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn units(units: u32) -> Self {
         Self { units }
     }
 
     /// The number of units.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn get(self) -> u32 {
         self.units
@@ -34,6 +42,8 @@ impl Budget {
 
 /// What a step returns: progress, or the job's result (Rust-only; edges expose a concrete
 /// record per job, ADR 0028 F3).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum Step<T> {
@@ -54,6 +64,8 @@ pub enum Step<T> {
 /// What a job is doing ([ADR 0028] §3).
 ///
 /// [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum Phase {

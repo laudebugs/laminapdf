@@ -26,6 +26,8 @@ use crate::limits::{DecodeBudget, Limit, Limits};
 use crate::object::{Dict, Object};
 
 /// Decoded stream data.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub struct Decoded {
@@ -37,6 +39,8 @@ pub struct Decoded {
 }
 
 /// Zlib-compresses `data` at the default level (6).
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn flate_encode(data: &[u8]) -> Vec<u8> {
     miniz_oxide::deflate::compress_to_vec_zlib(data, 6)
@@ -51,6 +55,8 @@ pub fn flate_encode(data: &[u8]) -> Vec<u8> {
 /// # Errors
 /// [`Error::LimitExceeded`] ([`Limit::StreamDecoded`] or [`Limit::DecodedTotal`]) when the
 /// output would exceed either cap, [`Error::Decompress`] when the data is not inflatable at all.
+///
+/// Added in 0.2.0.
 pub fn flate_decode(data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -> Result<Decoded> {
     let stream_cap = limits.max_stream_decoded();
     let (cap, over) = if budget.remaining() < stream_cap {
@@ -83,6 +89,8 @@ pub fn flate_decode(data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -> 
 /// the file key, so the reader decrypts the stream when it loads it and removes `/Crypt` from
 /// the chain before calling this), [`Error::LimitExceeded`] for a chain longer than
 /// [`Limits::max_filter_chain`] or output over a decode limit, plus any decode error.
+///
+/// Added in 0.2.0.
 pub fn decode(dict: &Dict, data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -> Result<Decoded> {
     let filters: Vec<&[u8]> = match dict.get("Filter") {
         None | Some(Object::Null) => Vec::new(),
@@ -199,6 +207,8 @@ fn png_unpredict(data: &[u8], row_len: usize, bpp: usize) -> Result<Vec<u8>> {
 ///
 /// # Errors
 /// [`Error::InvalidStructure`] for a filter type other than 0–4.
+///
+/// Added in 0.2.0.
 pub fn unfilter_row(filter: u8, raw: &[u8], prev: &[u8], out: &mut [u8], bpp: usize) -> Result<()> {
     for i in 0..raw.len() {
         let x = raw.get(i).copied().unwrap_or(0);
@@ -227,6 +237,8 @@ pub fn unfilter_row(filter: u8, raw: &[u8], prev: &[u8], out: &mut [u8], bpp: us
 
 /// The Paeth predictor (PNG §9.4): of `a` (left), `b` (up) and `c` (up-left), the one closest
 /// to `a + b - c`.
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn paeth(a: u8, b: u8, c: u8) -> u8 {
     let (ia, ib, ic) = (i16::from(a), i16::from(b), i16::from(c));

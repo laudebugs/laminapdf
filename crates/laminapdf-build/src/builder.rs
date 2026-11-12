@@ -24,6 +24,8 @@ use crate::tag::open::{ElementId, ElementIds, next_builder};
 
 /// The header version of a new document (§7.5.2). Saving with object and cross-reference
 /// streams (`laminapdf-save`'s default) raises anything below 1.5 to 1.5.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[non_exhaustive]
 pub enum PdfVersion {
@@ -42,6 +44,8 @@ pub enum PdfVersion {
 
 impl PdfVersion {
     /// `"1.7"` and so on.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -69,6 +73,8 @@ impl PdfVersion {
 /// assert_eq!(options.version(), PdfVersion::V2_0);
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct BuildOptions {
     version: PdfVersion,
@@ -83,12 +89,16 @@ pub struct BuildOptions {
 
 impl BuildOptions {
     /// The defaults, as [`BuildOptions::default`].
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// The header version (default 1.7).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_version(mut self, version: PdfVersion) -> Self {
         self.version = version;
@@ -97,6 +107,8 @@ impl BuildOptions {
 
     /// A fixed permanent identifier (`/ID[0]`, §14.4); without one, the writer derives it
     /// from the content, which is just as deterministic.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_id(mut self, id: [u8; 16]) -> Self {
         self.id = Some(id);
@@ -105,6 +117,8 @@ impl BuildOptions {
 
     /// `/Producer` in the Info dictionary ([`Builder::metadata`] sets the rest, and its own
     /// producer wins).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_producer(mut self, producer: impl Into<String>) -> Self {
         self.producer = Some(producer.into());
@@ -112,6 +126,8 @@ impl BuildOptions {
     }
 
     /// `/CreationDate` in the Info dictionary: given, never read from a clock.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_creation_date(mut self, date: PdfDate) -> Self {
         self.creation_date = Some(date);
@@ -120,6 +136,8 @@ impl BuildOptions {
 
     /// Whether content streams are Flate-compressed (default `true`; `false` keeps them
     /// readable, for goldens and debugging). Images are always compressed.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_compress(mut self, compress: bool) -> Self {
         self.uncompressed = !compress;
@@ -133,6 +151,8 @@ impl BuildOptions {
     /// element or artifact makes the document tagged either way. Appended pages
     /// ([`Builder::on`]) are never tagged: merging into an existing structure tree isn't
     /// supported, so their elements and artifacts are drawn as plain content.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_tagged(mut self, tagged: bool) -> Self {
         self.tagged = tagged;
@@ -140,6 +160,8 @@ impl BuildOptions {
     }
 
     /// Whether the document is asked to be tagged (PDF/UA-1 asks for it too).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn tagged(&self) -> bool {
         self.tagged || self.conformance.ua
@@ -153,6 +175,8 @@ impl BuildOptions {
     /// intent with an embedded sRGB profile. PDF/UA-1 makes the document tagged.
     ///
     /// Only new documents ([`Builder::new`]) take a profile; [`Builder::on`] ignores it.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_profile(mut self, profile: Profile) -> Self {
         self.conformance = self.conformance.with(profile);
@@ -160,6 +184,8 @@ impl BuildOptions {
     }
 
     /// The profiles chosen, PDF/UA-1 first.
+    ///
+    /// Added in 0.2.0.
     pub fn profiles(&self) -> impl Iterator<Item = Profile> {
         self.conformance.profiles()
     }
@@ -170,6 +196,8 @@ impl BuildOptions {
 
     /// The limits and strict mode the new document carries (default
     /// [`OpenOptions::default`]); no password applies.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_open_options(mut self, open: OpenOptions) -> Self {
         self.open = open;
@@ -177,24 +205,32 @@ impl BuildOptions {
     }
 
     /// The header version.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn version(&self) -> PdfVersion {
         self.version
     }
 
     /// The permanent identifier, if fixed.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn id(&self) -> Option<&[u8; 16]> {
         self.id.as_ref()
     }
 
     /// `/Producer`, if set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn producer(&self) -> Option<&str> {
         self.producer.as_deref()
     }
 
     /// `/CreationDate`, if set.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn creation_date(&self) -> Option<&PdfDate> {
         self.creation_date.as_ref()
@@ -327,6 +363,8 @@ pub(crate) struct Target<'b> {
 /// ```
 ///
 /// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
+///
+/// Added in 0.2.0.
 #[derive(Debug)]
 pub struct Builder {
     doc: laminapdf_cos::Document,
@@ -339,6 +377,8 @@ pub struct Builder {
 impl Builder {
     /// A builder for a new, empty document. The catalog and the page tree root are reserved
     /// first, so they are objects 1 and 2.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new(options: BuildOptions) -> Self {
         let doc = laminapdf_cos::Document::empty(Some(options.version.as_str()), &options.open);
@@ -364,6 +404,8 @@ impl Builder {
     /// # Errors
     /// `font-not-embeddable` when the font's `fsType` forbids embedding (see
     /// [`Builder::font_with`]).
+    ///
+    /// Added in 0.2.0.
     #[cfg(feature = "text")]
     pub fn font(&mut self, font: laminapdf_text::Font) -> Result<FontHandle> {
         self.state.add_font(font, EmbedPolicy::Respect)
@@ -374,6 +416,8 @@ impl Builder {
     ///
     /// # Errors
     /// As [`Builder::font`].
+    ///
+    /// Added in 0.2.0.
     #[cfg(feature = "text")]
     pub fn font_with(&mut self, font: laminapdf_text::Font, policy: EmbedPolicy) -> Result<FontHandle> {
         self.state.add_font(font, policy)
@@ -385,6 +429,8 @@ impl Builder {
     /// # Errors
     /// None in practice (the registry accepts every standard 14 font); kept for symmetry
     /// with [`Builder::font`].
+    ///
+    /// Added in 0.2.0.
     #[cfg(feature = "text")]
     pub fn standard_font(&mut self, font: Standard14) -> Result<FontHandle> {
         self.state
@@ -396,6 +442,8 @@ impl Builder {
     /// reach it with [`LinkTarget::Named`](crate::LinkTarget::Named). Defining a name again
     /// replaces it. The tree is written sorted by name, so the output doesn't depend on the
     /// order of the calls.
+    ///
+    /// Added in 0.2.0.
     pub fn destination(&mut self, name: impl Into<String>, index: u32, fit: Fit) -> &mut Self {
         self.features.names.insert(name.into(), (index, fit));
         self
@@ -408,6 +456,8 @@ impl Builder {
     ///
     /// # Errors
     /// [`Error::Cos`](crate::Error::Cos) when object numbers run out.
+    ///
+    /// Added in 0.2.0.
     pub fn outline(&mut self, entries: impl IntoIterator<Item = OutlineEntry>) -> Result<Vec<OutlineItemId>> {
         let ids = IdAllocator::new(&self.doc);
         if self.features.outline.is_none() {
@@ -436,6 +486,8 @@ impl Builder {
     /// The page labels (`/PageLabels`, §12.4.2): ranges by first page, checked when the build
     /// finishes (the first must start at page 0, starts must increase and be pages of the
     /// document, numbers start at 1).
+    ///
+    /// Added in 0.2.0.
     pub fn page_labels(&mut self, ranges: impl IntoIterator<Item = PageLabel>) -> &mut Self {
         self.features.labels = Some(ranges.into_iter().collect());
         self
@@ -445,18 +497,24 @@ impl Builder {
     /// (the catalog's uncompressed `/Metadata` stream) with the same values. Values left
     /// `None` fall back to [`BuildOptions::with_producer`] and
     /// [`BuildOptions::with_creation_date`].
+    ///
+    /// Added in 0.2.0.
     pub fn metadata(&mut self, metadata: Metadata) -> &mut Self {
         self.features.metadata = Some(metadata);
         self
     }
 
     /// The document's natural language (`/Lang`, §14.9.2.2), a BCP 47 tag such as `en-GB`.
+    ///
+    /// Added in 0.2.0.
     pub fn lang(&mut self, lang: impl Into<String>) -> &mut Self {
         self.features.lang = Some(lang.into());
         self
     }
 
     /// How viewers present the document when it opens.
+    ///
+    /// Added in 0.2.0.
     pub fn viewer_preferences(&mut self, prefs: ViewerPreferences) -> &mut Self {
         self.features.prefs = Some(prefs);
         self
@@ -466,6 +524,8 @@ impl Builder {
     /// `/AFRelationship`): PDF/A-3b's associated files, such as an e-invoice's XML. Attaching a
     /// file with the same name again replaces it; files are written sorted by name. PDF/A-2b
     /// and PDF/A-2u refuse attachments at [`Builder::finish`] (`embedded-file-forbidden`).
+    ///
+    /// Added in 0.2.0.
     pub fn attach(&mut self, file: Attachment) -> &mut Self {
         self.features.attachments.insert(file.name().to_owned(), file);
         self
@@ -475,6 +535,8 @@ impl Builder {
     /// outside every structure element and artifact, and the figures without alternate text,
     /// in page order. Empty while the document isn't tagged (see
     /// [`BuildOptions::with_tagged`]).
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn tagging_diagnostics(&self) -> &[TagDiagnostic] {
         self.state.tag.diagnostics()
@@ -489,6 +551,8 @@ impl Builder {
     /// [`Error::TagElementNotOpen`](crate::Error::TagElementNotOpen) when `element` isn't
     /// open: closed already, opened by another builder or inside an artifact, or on a page
     /// whose [`PageBuilder::finish`] failed.
+    ///
+    /// Added in 0.2.0.
     pub fn close_element(&mut self, element: ElementId) -> Result<()> {
         self.state.tag.close(element)
     }
@@ -507,6 +571,8 @@ impl Builder {
     }
 
     /// A page of `size`, appended to the document by [`PageBuilder::finish`].
+    ///
+    /// Added in 0.2.0.
     pub fn page(&mut self, size: PageSize) -> PageBuilder<'_> {
         PageBuilder::new(
             Target {
@@ -525,6 +591,8 @@ impl Builder {
     /// As [`Appender::new`].
     ///
     /// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
+    ///
+    /// Added in 0.2.0.
     pub fn on<'d>(doc: &'d mut laminapdf_model::Document, options: &BuildOptions) -> Result<Appender<'d>> {
         Appender::new(doc, options)
     }
@@ -545,6 +613,8 @@ impl Builder {
     /// profile variants of [`Error`](crate::Error), from
     /// [`Error::ProfileVersionConflict`](crate::Error::ProfileVersionConflict) on (each code's
     /// page in `docs/errors/` names its profile and rule).
+    ///
+    /// Added in 0.2.0.
     pub fn finish(self) -> Result<laminapdf_ops::Document> {
         self.finish_inner().map(|(doc, _)| doc)
     }
@@ -554,6 +624,8 @@ impl Builder {
     ///
     /// # Errors
     /// As [`Builder::finish`].
+    ///
+    /// Added in 0.2.0.
     #[cfg(feature = "text")]
     pub fn finish_with_warnings(self) -> Result<(laminapdf_ops::Document, Vec<laminapdf_text::Warning>)> {
         self.finish_inner().map(|(doc, state)| (doc, state.font_warnings))
@@ -589,6 +661,8 @@ impl Builder {
 ///
 /// A feature newer than the document's version (see [`PageBuilder::finish`]) raises it with
 /// the catalog's `/Version` (§7.7.2) when the appender finishes.
+///
+/// Added in 0.2.0.
 #[derive(Debug)]
 pub struct Appender<'d> {
     doc: &'d mut laminapdf_model::Document,
@@ -601,6 +675,8 @@ impl<'d> Appender<'d> {
     /// # Errors
     /// [`Error::Cos`](crate::Error::Cos) with `invalid-structure` when the catalog's `/Pages`
     /// is not an indirect page tree node; errors reading the catalog.
+    ///
+    /// Added in 0.2.0.
     pub fn new(doc: &'d mut laminapdf_model::Document, options: &BuildOptions) -> Result<Self> {
         let pages_root = finish::page_tree_root(doc.cos())?;
         Ok(Self {
@@ -610,6 +686,8 @@ impl<'d> Appender<'d> {
     }
 
     /// A page of `size`, appended by [`PageBuilder::finish`].
+    ///
+    /// Added in 0.2.0.
     pub fn page(&mut self, size: PageSize) -> PageBuilder<'_> {
         PageBuilder::new(
             Target {
@@ -624,6 +702,8 @@ impl<'d> Appender<'d> {
     ///
     /// # Errors
     /// As [`Builder::font`].
+    ///
+    /// Added in 0.2.0.
     #[cfg(feature = "text")]
     pub fn font(&mut self, font: laminapdf_text::Font) -> Result<FontHandle> {
         self.state.add_font(font, EmbedPolicy::Respect)
@@ -633,6 +713,8 @@ impl<'d> Appender<'d> {
     ///
     /// # Errors
     /// As [`Builder::font`].
+    ///
+    /// Added in 0.2.0.
     #[cfg(feature = "text")]
     pub fn font_with(&mut self, font: laminapdf_text::Font, policy: EmbedPolicy) -> Result<FontHandle> {
         self.state.add_font(font, policy)
@@ -642,6 +724,8 @@ impl<'d> Appender<'d> {
     ///
     /// # Errors
     /// As [`Builder::standard_font`].
+    ///
+    /// Added in 0.2.0.
     #[cfg(feature = "text")]
     pub fn standard_font(&mut self, font: Standard14) -> Result<FontHandle> {
         self.state
@@ -659,6 +743,8 @@ impl<'d> Appender<'d> {
     ///
     /// Targets are checked before anything changes, and a write that fails rolls the
     /// document's overlay back to where this call started.
+    ///
+    /// Added in 0.2.0.
     pub fn finish(self) -> Result<Vec<PageId>> {
         finish::finish_appended(self.doc, self.state)
     }

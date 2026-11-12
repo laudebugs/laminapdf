@@ -21,6 +21,8 @@ use crate::std14::generated::agl::{AGL, ZAPF_DINGBATS};
 /// assert_eq!(zapf_dingbats_to_unicode("a20").as_deref(), Some("✔"));
 /// assert_eq!(glyph_name_to_unicode("g37"), None);
 /// ```
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn glyph_name_to_unicode(name: &str) -> Option<String> {
     map_name(name, false)
@@ -28,6 +30,8 @@ pub fn glyph_name_to_unicode(name: &str) -> Option<String> {
 
 /// As [`glyph_name_to_unicode`], but a component is first looked up in the ITC Zapf Dingbats Glyph List
 /// (`a1` … `a191`): for glyphs of the `ZapfDingbats` font.
+///
+/// Added in 0.2.0.
 #[must_use]
 pub fn zapf_dingbats_to_unicode(name: &str) -> Option<String> {
     map_name(name, true)

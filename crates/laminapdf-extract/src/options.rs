@@ -6,6 +6,8 @@ use crate::plugins::Models;
 use crate::tables::TableMode;
 
 /// How an extraction runs.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct ExtractOptions {
@@ -45,12 +47,16 @@ impl Default for ExtractOptions {
 impl ExtractOptions {
     /// The defaults: every page, reading order from the layout, hidden text and page furniture
     /// dropped, de-hyphenation on.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Only these pages, in this order.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_pages(mut self, pages: Vec<usize>) -> Self {
         self.pages = Some(pages);
@@ -58,6 +64,8 @@ impl ExtractOptions {
     }
 
     /// The reading order.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_reading_order(mut self, order: ReadingOrder) -> Self {
         self.reading_order = order;
@@ -65,6 +73,8 @@ impl ExtractOptions {
     }
 
     /// Which table detectors run.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_tables(mut self, mode: TableMode) -> Self {
         self.tables = mode;
@@ -72,6 +82,8 @@ impl ExtractOptions {
     }
 
     /// The cut-offs that decide each page's text-layer status.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub const fn with_text_layer(mut self, thresholds: TextLayerThresholds) -> Self {
         self.text_layer = thresholds;
@@ -79,6 +91,8 @@ impl ExtractOptions {
     }
 
     /// The layout and OCR models.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn with_models(mut self, models: Models) -> Self {
         self.models = models;
@@ -89,6 +103,8 @@ impl ExtractOptions {
 /// The cut-offs that decide a page's text-layer status ([`crate::TextLayerStatus`]): starting
 /// values, which a pipeline can tune to its documents. Shares are in thousandths (500 is half),
 /// as the measures are rounded to them: of the page's area, or of its visible glyphs.
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct TextLayerThresholds {
@@ -124,6 +140,8 @@ impl Default for TextLayerThresholds {
 /// Where the reading order comes from ([ADR 0030] §2).
 ///
 /// [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum ReadingOrder {
@@ -143,6 +161,8 @@ pub enum ReadingOrder {
 /// block's text.
 ///
 /// [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct DropOptions {
@@ -163,6 +183,8 @@ impl Default for DropOptions {
 }
 
 /// Bounds on the work per page: soft limits that leave work out with a warning (ADR 0003).
+///
+/// Added in 0.2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct ExtractLimits {
