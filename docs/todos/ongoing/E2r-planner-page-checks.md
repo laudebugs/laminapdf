@@ -3,19 +3,19 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2r` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E2 page organisation §6](../../plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E2j](../done/E2j-page-tree-and-tree-writers.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2r-planner-page-checks` |
 | PR title | `feat(save): field-level checks for page ops` |
-| Size | M (200–400): an index of the pages that hold restricted widgets, two restrictions and the per-field FieldMDP check in `laminapdf-save`, with tests on the signed fixtures; the ops that report their touched widgets come in [E2b](E2b-page-structure-ops.md) |
+| Size | M (200–400): an index of the pages that hold restricted widgets, two restrictions and the per-field FieldMDP check in `laminapdf-save`, with tests on the signed fixtures; the ops that report their touched widgets come in [E2b](../ready/E2b-page-structure-ops.md) |
 | PR | — |
 
 ## Goal
 
-Let the save planner judge page ops field by field before any page op ships, so deleting or turning the page of a signed or locked field is never saved as a plain incremental update. Split out of [E2b](E2b-page-structure-ops.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos), which E2b now waits on.
+Let the save planner judge page ops field by field before any page op ships, so deleting or turning the page of a signed or locked field is never saved as a plain incremental update. Split out of [E2b](../ready/E2b-page-structure-ops.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos), which E2b now waits on.
 
 ## Context
 
@@ -33,8 +33,8 @@ Let the save planner judge page ops field by field before any page op ships, so 
 
 **Out of scope** (and which todo covers it)
 
-- The page ops, which report their touched widgets → [E2b](E2b-page-structure-ops.md), [E2c](E2c-cross-document-pages.md), [E2f](E2f-page-geometry.md), [E2s](E2s-resize-and-orientation.md)
-- The suite of every op on every signed fixture → [E2i](E2i-signed-gating-and-close.md)
+- The page ops, which report their touched widgets → [E2b](../ready/E2b-page-structure-ops.md), [E2c](../ready/E2c-cross-document-pages.md), [E2f](../ready/E2f-page-geometry.md), [E2s](../ready/E2s-resize-and-orientation.md)
+- The suite of every op on every signed fixture → [E2i](../ready/E2i-signed-gating-and-close.md)
 
 **Editor facts**
 

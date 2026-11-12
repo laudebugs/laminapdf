@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2r](./E2r-planner-page-checks.md) |
+| Depends on | [E2r](../ongoing/E2r-planner-page-checks.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2f-page-geometry` |
 | PR title | `feat(ops): page boxes, and crop with its warning` |
@@ -28,7 +28,7 @@ Set any page box (Media, Crop, Bleed, Trim, Art) and crop pages by margins, with
 
 **In scope**
 
-- Ops, with the payloads of [E2 plan §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions): `SetPageBoxes` and `CropPages`; each reports its touched widgets to [E2r](E2r-planner-page-checks.md)'s checks
+- Ops, with the payloads of [E2 plan §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions): `SetPageBoxes` and `CropPages`; each reports its touched widgets to [E2r](../ongoing/E2r-planner-page-checks.md)'s checks
 - `Applied`/`Edited` warning `CroppedContentRemains` for `CropPages`, and for `SetPageBoxes` when the crop shrinks; the page-setup dialog ([E2g](E2g-page-labels.md)) shows it, and "remove hidden content" comes later (E11d, E12)
 
 **Out of scope** (and which todo covers it)
