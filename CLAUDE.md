@@ -623,7 +623,9 @@ cargo xtask changes [--base <rev>]    # paths changed since the merge base with 
                                       #   apps/gallery, packages/{ui,tokens,icons,fonts} or pnpm-lock.yaml; web=true unless all
                                       #   are docs or outside what the reader is built from (OUTSIDE_WEB: web-deploy.yml's filter);
                                       #   desktop=true when they touch apps/desktop, packages/, crates/, the manifests,
-                                      #   lockfiles, toolchain or the full lane (DESKTOP_INPUTS: the `desktop` job's filter)
+                                      #   lockfiles, toolchain or the full lane (DESKTOP_INPUTS: the `desktop` job's filter);
+                                      #   render=true when they touch crates/, the example and render goldens, the corpus,
+                                      #   tools/render, tools/xtask, the manifests or full.yml (RENDER_INPUTS: render-golden, X9b)
 cargo xtask fuzz tmin <target>        # minimise every crash in fuzz/artifacts/<target>/
 cargo xtask corpus fetch     # external corpora (pinned commits, SHA-256 per file in fixtures/corpus-manifest.toml) → target/corpus/
 cargo xtask differential --live [--corpus external|mutants|all] [--source <name>]… [--tools pdfjs,pdfium,qpdf,pypdf] [--sample N]

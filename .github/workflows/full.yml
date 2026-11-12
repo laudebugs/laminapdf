@@ -55,13 +55,17 @@ jobs:
     outputs:
       code: ${{ steps.pr.outputs.code || steps.push.outputs.code }}
       desktop: ${{ steps.pr.outputs.desktop || steps.push.outputs.desktop }}
+      render: ${{ steps.pr.outputs.render || steps.push.outputs.render }}
     steps:
       - name: Pushes to main run every suite
         id: push
         if: github.event_name != 'pull_request'
         run: |
-          echo "code=true" >> "$GITHUB_OUTPUT"
-          echo "desktop=true" >> "$GITHUB_OUTPUT"
+          {
+            echo "code=true"
+            echo "desktop=true"
+            echo "render=true"
+          } >> "$GITHUB_OUTPUT"
       - if: github.event_name == 'pull_request'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -484,11 +488,12 @@ jobs:
           if-no-files-found: ignore
 
   # The render goldens were written on macOS arm64, and PDFium's rasteriser (fonts, anti-aliasing)
-  # differs by platform, so this is the one suite that stays on macOS.
+  # differs by platform, so this is the one suite that stays on macOS. It waits for a Mac, so a PR
+  # runs it only when it changes what the goldens draw (`render`, todo X9b); pushes to main always do.
   render-golden:
     name: Render goldens (PDFium and hayro)
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    if: ${{ !cancelled() && needs.changes.outputs.render == 'true' }}
     runs-on: macos-15
     timeout-minutes: 40
     steps:
@@ -536,6 +541,7 @@ jobs:
           NEEDS: ${{ toJSON(needs) }}
           CODE: ${{ needs.changes.outputs.code }}
           DESKTOP: ${{ needs.changes.outputs.desktop }}
+          RENDER: ${{ needs.changes.outputs.render }}
         run: |
           set -euo pipefail
           changes=$(jq -r '.changes.result' <<<"$NEEDS")
@@ -553,10 +559,13 @@ jobs:
           failed=0
           for job in $(jq -r 'del(.changes) | keys[]' <<<"$NEEDS"); do
             result=$(jq -r --arg job "$job" '.[$job].result' <<<"$NEEDS")
-            # The desktop build and its e2e suite follow their own paths (`desktop`), every other
-            # suite `code`.
+            # The desktop build and its e2e suite follow their own paths (`desktop`), the render
+            # goldens theirs (`render`), every other suite `code`.
             needed=$CODE
-            case "$job" in desktop | desktop-e2e) needed=$DESKTOP ;; esac
+            case "$job" in
+              desktop | desktop-e2e) needed=$DESKTOP ;;
+              render-golden) needed=$RENDER ;;
+            esac
             echo "$job: $result"
             case "$needed/$result" in
               true/success | false/skipped) ;;

@@ -32,14 +32,17 @@ pub(crate) fn run(root: &Path, base: &str) -> Result<()> {
     let gallery = touches_gallery(&paths);
     let web = touches_web(&paths);
     let desktop = touches_desktop(&paths);
+    let render = touches_render(&paths);
     println!("code={code}");
     println!("gallery={gallery}");
     println!("web={web}");
     println!("desktop={desktop}");
+    println!("render={render}");
     crate::util::github_output("code", &code.to_string())?;
     crate::util::github_output("gallery", &gallery.to_string())?;
     crate::util::github_output("web", &web.to_string())?;
-    crate::util::github_output("desktop", &desktop.to_string())
+    crate::util::github_output("desktop", &desktop.to_string())?;
+    crate::util::github_output("render", &render.to_string())
 }
 
 /// What the desktop app's three-OS build depends on (apps/desktop, ADR 0008): the app, the
@@ -68,6 +71,33 @@ pub(crate) fn touches_desktop(paths: &[&str]) -> bool {
     paths
         .iter()
         .any(|path| !is_docs(path) && DESKTOP_INPUTS.iter().any(|input| path.starts_with(input)))
+}
+
+/// What the render goldens draw from (`cargo xtask render-golden`, the full lane's macOS job; todo
+/// X9b): the committed example PDFs and their pictures, the corpus and its goldens, the renderer
+/// tools, every crate (the render crates read through the core ones, and the examples come from
+/// the façade), the task itself, and the manifests, toolchain and workflow that build them. Wide on
+/// purpose: a path left out lets a drawing change through until the next push to main.
+const RENDER_INPUTS: [&str; 12] = [
+    "crates/",
+    "fixtures/golden/examples/",
+    "fixtures/golden/render/",
+    "fixtures/render-golden/",
+    "fixtures/corpus/",
+    "tools/render/",
+    "tools/xtask/",
+    "Cargo.toml",
+    "Cargo.lock",
+    "rust-toolchain.toml",
+    ".cargo/",
+    ".github/workflows/full.yml",
+];
+
+/// Whether any of `paths` can change what the render goldens draw, so the full lane runs them.
+pub(crate) fn touches_render(paths: &[&str]) -> bool {
+    paths
+        .iter()
+        .any(|path| !is_docs(path) && RENDER_INPUTS.iter().any(|input| path.starts_with(input)))
 }
 
 /// What the Paper gallery's screenshots and axe checks depend on (apps/gallery, todo U6f): the
@@ -190,7 +220,7 @@ fn pick_base(has_origin_main: bool) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_docs, pick_base, touches_code, touches_desktop, touches_gallery, touches_web};
+    use super::{is_docs, pick_base, touches_code, touches_desktop, touches_gallery, touches_render, touches_web};
 
     #[test]
     fn touches_web_should_follow_the_app_its_sources_build_tasks_and_root_config() {
@@ -252,6 +282,36 @@ mod tests {
             "apps/web/src/app.tsx",
             "docs/README.md",
             "tools/xtask/src/web.rs"
+        ]));
+    }
+
+    #[test]
+    fn touches_render_should_follow_the_crates_the_goldens_and_the_render_tools() {
+        assert_eq!(
+            [
+                "crates/laminapdf-render/src/lib.rs",
+                "crates/laminapdf-cos/src/xref.rs",
+                "fixtures/golden/render/page-0.png",
+                "fixtures/golden/examples/hello.pdf",
+                "fixtures/render-golden/thresholds.toml",
+                "tools/render/pdfium.py",
+                "tools/xtask/src/pdfium.rs",
+                "Cargo.lock",
+                ".github/workflows/full.yml",
+            ]
+            .map(|path| touches_render(&[path])),
+            [true; 9]
+        );
+    }
+
+    #[test]
+    fn touches_render_should_skip_the_apps_packages_docs_and_other_workflows() {
+        assert!(!touches_render(&[
+            "apps/web/src/app.tsx",
+            "packages/ui/src/index.ts",
+            "docs/README.md",
+            ".github/workflows/ci.yml",
+            "pnpm-lock.yaml",
         ]));
     }
 
