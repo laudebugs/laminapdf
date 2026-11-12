@@ -45,7 +45,7 @@ export const DASHBOARD = {
 /** The packages section. */
 export const PACKAGES = {
   heading: "The packages",
-  // The install page's note on alpha releases follows it (sources.ts, alphaNote).
+  // The install page's note on versions follows it (sources.ts, versionNote).
   intro: "Two packages cover most projects.",
   typescript: "TypeScript, in every JavaScript runtime",
   rust: "Rust",
