@@ -11,7 +11,7 @@ This runbook tells the owner how to set up and look after the identities that si
 | Product name and identifier | `Lamina PDF`, `com.laminapdf.desktop` (`apps/desktop/src-tauri/tauri.conf.json`) |
 | Publisher shown on every OS | The owner's legal name, as on their government ID |
 | Windows signing path | **Azure Artifact Signing**, Public Trust, individual developer. The owner lives in the US or Canada, the only places Microsoft accepts individuals. |
-| Apple account | Apple Developer Program, **individual** membership |
+| Apple account | Apple Developer Program, **individual** membership, Team ID `35KBR7UHPZ` |
 | Updater keys, R2 buckets, ADR 0014 | Wait on [D5a](../todos/ready/D5a-update-worker-and-adr-0014.md), which hasn't started |
 
 D5a writes ADR 0014. Once it exists, these answers, the Apple Team ID and the GPG fingerprint go into it, before D6a merges.
@@ -41,8 +41,8 @@ Start with the items that take longest: Apple enrolment and Azure identity valid
 
 ### 1.2 Apple Developer Program
 
-- [ ] Enrol as an individual at [developer.apple.com/programs/enroll](https://developer.apple.com/programs/enroll/) with the Apple Account you will keep for the project. Turn on two-factor authentication first.
-- [ ] Note the **Team ID** (Membership details) here: `<TEAM ID — to fill in>`.
+- [x] Enrol as an individual at [developer.apple.com/programs/enroll](https://developer.apple.com/programs/enroll/) with the Apple Account you will keep for the project. Turn on two-factor authentication first.
+- [x] Note the **Team ID** (Membership details) here: `35KBR7UHPZ` (recorded 2026-11-12).
 
 ### 1.3 Developer ID Application certificate
 
