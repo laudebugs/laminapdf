@@ -27,10 +27,10 @@ The thread model and `comment_threads`, the `AddReply` and `SetReviewState` ops,
 
 **In scope**
 
-- `laminapdf-model`: the thread model (replies in order, the latest state per model, broken threads flagged, cycles followed once), states read as names or strings, quoted text from the text under a markup annotation's quads
+- `laminapdf-model`: the thread model (replies in order, the latest state per model, broken threads flagged, cycles followed once), states read as names or strings, and in the façade (feature `extract`) the quoted text from the text under a markup annotation's quads, since the model can't extract text
 - `comment_threads(pages)` in the façade, WASM and SDK (`doc.annotations.threads`)
-- `AddReply` and `SetReviewState`: Text annotations with `/IRT`, the parent's `/Rect`, an appearance that draws nothing and no hiding flag, checked against pdf.js, PDFium and the reference files of [issue #521](https://github.com/laudebugs/laminapdf/issues/521)
-- `delete_annotations(ids)`: one transaction of E4b's `DeleteAnnot`
+- `AddReply` and `SetReviewState`: Text annotations with `/IRT`, the parent's `/Rect`, an appearance that draws nothing and no hiding flag, checked against pdf.js, PDFium and Acrobat-made reference files requested in [issue #524](https://github.com/laudebugs/laminapdf/issues/524)
+- `delete_annotations(ids)`: one transaction of E4b's `DeleteAnnot`, after dropping IDs another selected ID's cascade already removes
 - `fixtures/annotations/review.pdf`
 
 **Out of scope** (and which todo covers it)
@@ -61,6 +61,7 @@ The thread model and `comment_threads`, the `AddReply` and `SetReviewState` ops,
 - [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
 - [ ] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdicts of [E5 plan §5](../../plans/editor/e5-review-stamps-interchange.md#5-saving-and-the-save-constraint), because a misclassified op is a security bug
 - [ ] Round-trip: open → op → save → reopen in Lamina PDF, pdf.js and PDFium preserves the change and everything else; `qpdf --check` is clean
+- [ ] Deleting a comment together with its reply deletes both in one step
 - [ ] Every thread of `review.pdf` reads back, the broken ones flagged and none dropped
 - [ ] pdf.js reports each new reply's `inReplyTo` and each state, and neither pdf.js nor PDFium draws an icon for them
 

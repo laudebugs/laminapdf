@@ -27,8 +27,8 @@ Stamp annotations (the standard names, image stamps and dynamic text), FileAttac
 
 **In scope**
 
-- The `Stamp` spec: the standard names drawn by E4's generator, image stamps from the blob store, dynamic stamps laid out by `laminapdf-text` (`appearance-needs-text` in the base module)
-- The `FileAttachment` spec: the file specification through [E3f](E3f-attachments-and-associated-files.md)'s writer, the icons of C05; `pdfa-attachment-forbidden` on PDF/A-1 and -2
+- The `Stamp` spec: the standard names drawn by E4's generator, their lettering as paths from Lamina Sans outlines generated at build time (no font needed), image stamps from the blob store, dynamic stamps laid out by `laminapdf-text` (`appearance-needs-text` in the base module)
+- The `FileAttachment` spec: the file specification through [E3f](E3f-attachments-and-associated-files.md)'s writer, the icons of C05; `pdfa-attachment-forbidden` on PDF/A-1 and -2; on PDF/A-3 the file in the annotation's `/AF` with the modified date, else `pdfa-attachment-incomplete`
 - `page_annotations` records for Stamp, FileAttachment and Sound; `sound_as_wav(id)` for raw, signed, μ-law and A-law samples within `Limits`
 - `fixtures/annotations/stamps.pdf`, `attachments.pdf`, `sound.pdf`
 

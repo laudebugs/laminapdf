@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E5 plan §2.3](../../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary) ([full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E5b](./E5b-comment-threads-and-review.md), [E5c](./E5c-stamps-and-attachments.md) |
+| Depends on | [E4c](./E4c-appearances-markup-notes-caret.md), [E4d](./E4d-appearances-ink-and-shapes.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E5b](./E5b-comment-threads-and-review.md), [E5c](./E5c-stamps-and-attachments.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e5d-xfdf-fdf` |
 | PR title | `feat(interchange): import and export comments as XFDF, FDF and Markdown` |
@@ -30,6 +30,8 @@ A new core crate, `laminapdf-interchange`, that exports comments as XFDF, FDF or
 - `laminapdf-interchange` (layer core): the XFDF reader on quick-xml with no DTD and only XML's five entities, within `Limits`; the FDF reader on `laminapdf-syntax`'s parser; XFDF, FDF and Markdown writers
 - `export_annotations(&ExportOptions)` and `import_annotations(bytes, &ImportOptions)` in the façade, WASM and SDK
 - Import modes Merge (by `/NM` on the same page), Replace and Add; appearances regenerated; `interchange-skipped` for subtypes no spec covers and for form fields; `interchange-document-mismatch` for another file's `/ID` or name; a malformed file's error names its line
+- The guarded XML reader moved from `laminapdf-model`'s private `xmp/tree.rs` to a public `laminapdf_model::xml` module, used by XMP and XFDF alike
+- An optional `popup` in `AnnotCommon` (an additive wire change), so imported markup keeps its Popups
 - `fixtures/interchange/` and `tools/fixtures/interchange.py`
 - The `xfdf` and `fdf` fuzz targets, their regressions folders in the model's guard list
 
@@ -60,10 +62,10 @@ A new core crate, `laminapdf-interchange`, that exports comments as XFDF, FDF or
 
 - [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new op and function is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Property tests: for an import, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
-- [ ] Round-trip: importen → import → save → reimporten in Lamina PDF, pdf.js and PDFium preserves the change and everything else; `qpdf --check` is clean
+- [ ] Round-trip: open → import → save → reopen in Lamina PDF, pdf.js and PDFium preserves the change and everything else; `qpdf --check` is clean
 - [ ] Exporting `review.pdf`, importing into a copy without comments and exporting again gives the same file
 - [ ] An XFDF with a DTD is refused, and a malformed one reports its line
-- [ ] Acrobat-made exports from [issue #521](https://github.com/laudebugs/laminapdf/issues/521) import without loss, once supplied
+- [ ] Acrobat-made exports from [issue #524](https://github.com/laudebugs/laminapdf/issues/524) import without loss, once supplied
 
 ## Post-merge checks
 

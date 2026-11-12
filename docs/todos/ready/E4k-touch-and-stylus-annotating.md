@@ -35,7 +35,7 @@ The phone's annotate bar and options strip (C08) and the tablet's tool shelf (C0
 
 **Out of scope** (and which todo covers it)
 
-- Replies and status in the comment sheet → [E5b](E5b-comment-threads-and-review.md)
+- Replies and status in the comment sheet → [E5g](E5g-comments-panel.md)
 - Native apps → after ADR 0025
 
 **Editor facts**
