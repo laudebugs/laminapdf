@@ -19,11 +19,7 @@ use super::secret::SessionPassword;
 
 /// One open document.
 struct Entry {
-    /// The granted path, never sent anywhere.
-    #[expect(
-        dead_code,
-        reason = "file watching and reload read it; the registry holds it from the start"
-    )]
+    /// The granted path, never sent anywhere: only its file name leaves the main process.
     path: PathBuf,
     source: Arc<FileSource>,
     window: String,
@@ -65,6 +61,21 @@ impl DocumentRegistry {
     /// Whether `doc` is open in `window`: a window may touch only its own documents.
     pub(crate) fn owns(&self, window: &str, doc: DocId) -> bool {
         self.lock().get(&doc).is_some_and(|e| e.window == window)
+    }
+
+    /// `doc`'s file name without its folder, for the window's title, while it is open.
+    pub(crate) fn name_of(&self, doc: DocId) -> Option<String> {
+        self.lock().get(&doc).map(|entry| {
+            entry
+                .path
+                .file_name()
+                .map_or_else(String::new, |name| name.to_string_lossy().into_owned())
+        })
+    }
+
+    /// `doc`'s file length, while it is open.
+    pub(crate) fn len_of(&self, doc: DocId) -> Option<u64> {
+        self.lock().get(&doc).map(|entry| entry.source.len())
     }
 
     /// Keeps `password` for `doc` until it closes.

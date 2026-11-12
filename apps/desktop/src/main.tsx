@@ -7,11 +7,25 @@ import "@laminapdf/ui/styles.css";
 import "./app.css";
 import { FONT_PRELOADS } from "@laminapdf/fonts";
 import { PlatformProvider } from "@laminapdf/ui";
+import { createViewer } from "@laminapdf/viewer";
 import { isTauri } from "@tauri-apps/api/core";
 import { createRoot } from "react-dom/client";
-import { App } from "./app.tsx";
+import { App, type DesktopEngine } from "./app.tsx";
 import { type AppInfo, loadAppInfo } from "./app-info.ts";
+import { DesktopEngineClient, type DesktopShell } from "./engine/desktop-engine-client.ts";
+import { tauriShell } from "./engine/tauri-shell.ts";
 import { createDesktopPlatform } from "./platform/desktop.ts";
+
+/**
+ * This window's engine client and its view. The text and link layers stay off until the engine
+ * reads text; `#raw` in the address uses the raw RGBA transport instead of WebP, for diagnosis
+ * (ADR 0008 §4).
+ */
+function startEngine(shell: DesktopShell | undefined): DesktopEngine | undefined {
+  if (shell === undefined) return undefined;
+  const client = new DesktopEngineClient(shell, { transport: location.hash === "#raw" ? "raw" : "webp" });
+  return { shell, client, viewer: createViewer({ client, text: false, links: false }) };
+}
 
 for (const font of FONT_PRELOADS) {
   const link = document.createElement("link");
@@ -36,12 +50,16 @@ if (root === null) throw new Error("index.html has no #app");
 const desktop = isTauri();
 // Shortcut chips and `Mod` follow the OS, as in the web reader (apps/web/src/app.tsx).
 const keys = /Mac|iPhone|iPad/.test(navigator.platform) ? "mac" : "other";
-const platform = createDesktopPlatform();
+// Inside the shell, one engine client for this window and the view it draws; the platform's
+// open dialog runs in the main process.
+const shell = desktop ? tauriShell() : undefined;
+const engine = startEngine(shell);
+const platform = createDesktopPlatform(undefined, shell);
 const app = createRoot(root);
 const render = (info: AppInfo | undefined) =>
   app.render(
     <PlatformProvider platform={platform}>
-      <App platform={platform} info={info} keys={keys} />
+      <App platform={platform} info={info} keys={keys} engine={engine} />
     </PlatformProvider>,
   );
 render(undefined);

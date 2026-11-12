@@ -3,7 +3,7 @@
 // the calls Undo, Redo and the History tab make. The words for a step and the save state are pure,
 // so they are tested in Node.
 
-import { countMessage } from "../messages.js";
+import { countMessage, message } from "../messages.js";
 import type { ExternalStore } from "../state/hooks.js";
 
 /** One step of the history: a transaction, as the worker lists it. */
@@ -42,6 +42,8 @@ export interface EditSlice {
   };
   /** A call is running. */
   readonly busy: boolean;
+  /** A save is writing: edits wait, and the save state reads "Saving…". */
+  readonly saving?: boolean;
   readonly blocked: EditBlockReason | undefined;
   /** The last undo or redo that left part of a step alone, until the next edit. */
   readonly notice: RevertedSlice | undefined;
@@ -78,8 +80,9 @@ export function inSentence(label: string): string {
   return /^[A-Z][a-z]/.test(label) ? label[0]?.toLowerCase() + label.slice(1) : label;
 }
 
-/** What the top bar says of the changes: "No unsaved changes", "1 unsaved change", "4 unsaved changes". */
+/** What the top bar says of the changes: "No unsaved changes", "1 unsaved change", "4 unsaved changes", "Saving…". */
 export function saveStateText(slice: EditSlice): string {
+  if (slice.saving === true) return message("edit.saveState.saving");
   return countMessage(slice.history.unsaved, {
     zero: "edit.saveState.clean",
     one: "edit.saveState.one",

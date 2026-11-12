@@ -1,0 +1,33 @@
+---
+title: Edit the metadata
+description: Change a PDF's title, authors and keywords in both of the places a PDF keeps them, check the save first, and stamp when it happened.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll change a PDF's title and authors, remove its keywords, and save the edit with the time it was made. You need this for a properties dialog, a batch that fixes titles, or a pipeline that marks reports final.
+
+A PDF keeps these facts twice: in its Info dictionary, which older viewers read, and in its XMP metadata, an XML copy that archives and search engines read. Each edit writes both from one value:
+
+<Example ts="packages/sdk/examples/edit-metadata.ts" rust="crates/laminapdf/examples/edit_metadata.rs" result="edit_metadata" />
+
+The result is the original bytes, unchanged, followed by one revision. Both copies of the metadata name "Quarterly figures" and its two authors, neither holds keywords, and the modification date is the time of the save.
+
+## How it works
+
+- `metadata()` reads both copies at once. When they disagree, it trusts the XMP copy in a PDF 2.0 or PDF/A file and otherwise the copy changed last, and it lists the fields that differ in `disagreements`.
+- `setMetadata` (`SetMetadata` in Rust) takes a patch: a value sets a field, `null` removes it, and a field you leave out stays as it was. Authors are a list. The Info dictionary holds them as one string, joined with `; `.
+- `at` is the modification date the edit records, a PDF date such as `D:20261110093000Z` that your app takes from its clock. Leave it out and the edit writes no date.
+- `removeMetadata` (`RemoveMetadata`) removes fields from both copies and leaves the rest of the XMP metadata as it was.
+- `plan(options)` says how the save will go before it happens. On a certified file, `refusal` is `would-invalidate-signatures`, because a certification allows no metadata change. `conformanceWarnings` lists the PDF/A or PDF/UA rules the edit breaks, such as a title removed from an accessible file. The warnings never stop a save.
+- `metadataDate` (`with_metadata_date`) is the time of the save, from your app's clock. The save writes it as the modification date in both copies and gives the XMP metadata a new instance ID. Lamina PDF never reads the clock, so a save given neither `metadataDate` nor `instanceId` stamps nothing.
+
+## What to change
+
+- **Only some fields:** leave the others out of the patch.
+- **A PDF 2.0 file:** nothing. Lamina PDF writes only the two dates to its Info dictionary, which PDF 2.0 deprecates, and everything else to the XMP metadata.
+- **XMP metadata that can't be read:** the edit refuses with [`malformed-xmp`](/reference/codes/malformed-xmp/). Pass `replaceMalformed: true` to replace it with a new copy.
+- **Removing values for good:** an [incremental save](/reference/glossary/#incremental-save) keeps the old values in the file's earlier revisions. Save with `mode: "fullRewrite"` to drop them; the edit's `stillInEarlierRevisions` says when it matters.
+- **Your own instance ID:** pass `instanceId` (`with_instance_id`), a UUID, to the save.
+
+Next: [save a PDF](/guides/save-a-pdf/), for what a signed or repaired file allows.

@@ -5,8 +5,8 @@
 //! ```
 //! # #[cfg(feature = "text")] {
 //! use laminapdf::{
-//!     BuildOptions, Builder, CancelToken, Color, Document, FillRule, InfoPatch, LinkTarget, Op, OpenOptions,
-//!     PageSize, PointPt, Pt, RectPt, SaveMode, SaveOptions, SetInfo, Standard14, StrokeStyle,
+//!     BuildOptions, Builder, CancelToken, Color, Document, FillRule, LinkTarget, MetadataPatch, Op, OpenOptions,
+//!     PageSize, PointPt, Pt, RectPt, SaveMode, SaveOptions, SetMetadata, Standard14, StrokeStyle,
 //! };
 //!
 //! let at = PointPt::from_points;
@@ -41,7 +41,7 @@
 //! // Later: open the bytes, edit with ops (undoable, serialisable), save incrementally.
 //! let mut doc = Document::open_bytes(bytes, OpenOptions::new())?;
 //! assert_eq!((doc.page_count()?, doc.page_info(0)?.width.round()), (1, 595.0));
-//! doc.apply(vec![Op::from(SetInfo::patch(InfoPatch::new().subject(Some("Paid"))))])?;
+//! doc.apply(vec![Op::from(SetMetadata::new(MetadataPatch::new().subject(Some("Paid")), None))])?;
 //! let options = SaveOptions::new().with_mode(SaveMode::Incremental);
 //! let updated = doc.save(&options)?;
 //! assert_eq!(doc.info()?.subject.as_deref(), Some("Paid"));
@@ -54,10 +54,13 @@
 //!
 //! * [`Document`]: [`open_bytes`](Document::open_bytes) → reads ([`page_count`](Document::page_count),
 //!   [`page_info`](Document::page_info), [`info`](Document::info),
-//!   [`warnings`](Document::warnings)) → edits ([`apply`](Document::apply) a list of [`Op`]s as
-//!   one transaction, [`undo`](Document::undo), [`redo`](Document::redo)) →
-//!   [`save`](Document::save) with [`SaveOptions`] (incremental or a full rewrite, planned
-//!   around signatures).
+//!   [`metadata`](Document::metadata), [`warnings`](Document::warnings)) → edits
+//!   ([`apply`](Document::apply) a list of [`Op`]s as one transaction, such as
+//!   [`SetMetadata`] and [`RemoveMetadata`], which keep Info and XMP in step;
+//!   [`undo`](Document::undo), [`redo`](Document::redo)) → [`plan`](Document::plan) shows how a
+//!   save would go → [`save`](Document::save) with [`SaveOptions`] (incremental or a full
+//!   rewrite, planned around signatures; [`SaveOptions::with_metadata_date`] stamps the
+//!   save-time metadata).
 //! * [`Builder`] (feature `text`, on by default): pages, paths, colour, images, shaped text in
 //!   any script, text boxes, links, outlines, page labels and metadata, tagged PDF
 //!   ([`Surface::tag`], [`Surface::figure`], [`Surface::artifact`]; [`Tag`], [`TagKind`]),
@@ -113,6 +116,7 @@ mod generated {
 }
 mod job;
 mod links;
+mod metadata;
 mod navigation;
 mod properties;
 #[cfg(feature = "extract")]
@@ -135,6 +139,7 @@ pub mod markdown {
     pub use laminapdf_build::markdown::*;
 }
 mod revisions;
+mod save_plan;
 mod structure;
 mod warning;
 // What `fixtures/codes.json` lists, for the kind tests.
@@ -168,8 +173,16 @@ pub use warning::{Warning, WarningCursor};
 
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};
 pub use laminapdf_model::{PageId, PdfDate, PointPt, Pt, RectPt, Rotation};
-pub use laminapdf_ops::{InfoPatch, Op, OpLog, Reverted, RotatePage, SetInfo, UndoOutcome};
-pub use laminapdf_save::{IncrementalOutput, Renumber, SaveMode, SaveOptions, SaveReport, XrefEol, XrefKind};
+#[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
+pub use laminapdf_ops::{
+    ConformanceWarning, DocumentMetadata, InfoPatch, MetadataKey, MetadataPatch, MetadataSource, ModificationClass, Op,
+    OpLog, PacketStatus, RemoveMetadata, Reverted, RotatePage, SetInfo, SetMetadata, UndoOutcome,
+};
+pub use laminapdf_save::{
+    ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,
+    SaveMode, SaveOptions, SaveReport, SignatureInfo, SignatureKind, Violation, XrefEol, XrefKind,
+};
+pub use save_plan::PlannedSave;
 
 #[cfg(feature = "build")]
 pub use builder::Builder;

@@ -97,6 +97,15 @@ pub struct DocumentInfo {
 pub struct Edited {
     /// IDs of the pages whose content or attributes changed, in ID order.
     pub touched_pages: Vec<PageId>,
+    /// A metadata edit rewrote the XMP packet whole (it was UTF-16, or marked read-only): its
+    /// properties are kept, its layout and comments are not.
+    pub packet_rewritten: bool,
+    /// A metadata edit removed values that the file's earlier revisions still hold: an
+    /// incremental save keeps them in the file; a full rewrite ([`SaveMode::FullRewrite`],
+    /// on a signed file with the override) drops them.
+    ///
+    /// [`SaveMode::FullRewrite`]: crate::SaveMode::FullRewrite
+    pub still_in_earlier_revisions: bool,
     /// Whether the edit changed the document. One that only set values they already had
     /// changes nothing and leaves no step to undo.
     pub changed: bool,
@@ -284,18 +293,7 @@ impl Document {
     /// # Errors
     /// Reading errors (the catalog).
     pub fn version(&self) -> Result<Option<String>> {
-        let header = self.inner.header_version().filter(|v| version_number(v).is_some());
-        let catalog = self.inner.catalog()?;
-        let declared = catalog
-            .get_name("Version")
-            .and_then(|name| std::str::from_utf8(name).ok())
-            .filter(|v| version_number(v).is_some());
-        let later = match (header, declared) {
-            (Some(header), Some(declared)) if version_number(declared) > version_number(header) => Some(declared),
-            (Some(header), _) => Some(header),
-            (None, declared) => declared,
-        };
-        Ok(later.map(str::to_owned))
+        Ok(self.inner.version()?)
     }
 
     /// Whether the file is encrypted. An encrypted document opens only when its password, or
@@ -344,12 +342,13 @@ impl Document {
     }
 
     /// Applies `ops` in order as one transaction (ADR 0006): all of them or none. Each op is
-    /// a value ([`Op`]: `SetInfo`, `RotatePage`), so the edit is serialisable and replayable;
+    /// a value ([`Op`]: `SetMetadata`, `RemoveMetadata`, `RotatePage`, the deprecated
+    /// `SetInfo`), so the edit is serialisable and replayable;
     /// no closure crosses the boundary (F3).
     ///
     /// # Errors
     /// The first op's error (the transaction is rolled back): `unknown-page`, `direct-page`,
-    /// reading errors; `saved-not-rebased`.
+    /// `malformed-xmp`, reading errors; `saved-not-rebased`.
     pub fn apply(&mut self, ops: Vec<Op>) -> Result<Edited> {
         let applied = self.inner.apply_all(Origin::Local, ops)?;
         // An edit that changed nothing (setting a value it already had) commits no record:
@@ -360,6 +359,8 @@ impl Document {
         }
         Ok(Edited {
             touched_pages: applied.touched_pages.into_iter().collect(),
+            packet_rewritten: applied.packet_rewritten,
+            still_in_earlier_revisions: applied.still_in_earlier_revisions,
             changed,
         })
     }
@@ -422,6 +423,45 @@ impl Document {
                 return Ok(saved);
             }
         }
+    }
+
+    /// Writes what [`Document::save`] would, and leaves the document as it was: not rebased, its
+    /// changes still unsaved, the save-time stamp in the copy only. Save a copy, and the copy an
+    /// edit session draws its pages from (ADR 0007).
+    ///
+    /// ```
+    /// use laminapdf::{Document, MetadataPatch, Op, SaveOptions, SetMetadata};
+    ///
+    /// # let bytes = include_bytes!("../../../fixtures/corpus/hello.pdf").to_vec();
+    /// let mut doc = Document::open_bytes(bytes, Default::default())?;
+    /// doc.apply(vec![Op::from(SetMetadata::new(MetadataPatch::new().title(Some("Copy")), None))])?;
+    /// let copy = doc.save_copy(&SaveOptions::new())?;
+    /// assert!(copy.bytes.starts_with(b"%PDF-") && doc.has_unsaved_changes());
+    /// # Ok::<(), laminapdf::Error>(())
+    /// ```
+    ///
+    /// # Errors
+    /// As [`Document::save`]; the document is unchanged either way.
+    pub fn save_copy(&mut self, options: &SaveOptions) -> Result<Saved> {
+        let mut bytes = Vec::new();
+        let report = self.inner.save_copy(&mut Output { bytes: &mut bytes }, options)?;
+        Ok(Saved { bytes, report })
+    }
+
+    /// Makes `bytes`, the whole output of [`Document::save_copy`], the document's saved file, as
+    /// if [`Document::save`] had written it: once the copy is written where the document lives,
+    /// the document rebases onto it, so a failed write leaves it unsaved. `history_cleared` is
+    /// the copy's [`SaveReport::history_cleared`]. The document must not change in between.
+    ///
+    /// # Errors
+    /// `nested-transaction` / `saved-not-rebased`; `not-rebased` when `bytes` can't be read
+    /// (the document then waits for [`Document::rebase`]).
+    pub fn adopt_copy(&mut self, bytes: Vec<u8>, history_cleared: bool) -> Result<()> {
+        let result = self.inner.adopt_copy(bytes.into(), history_cleared);
+        if matches!(&result, Ok(()) | Err(laminapdf_save::SaveError::NotRebased { .. })) {
+            self.bump();
+        }
+        Ok(result?)
     }
 
     /// A save as a resumable job, with its own [`CancelToken`] ([`SaveJob::cancel_token`]).
@@ -542,15 +582,4 @@ impl ReadableSink for Output<'_> {
     fn into_source(self) -> core::result::Result<Arc<dyn ByteSource>, SinkError> {
         Ok(Arc::new(self.bytes.clone()))
     }
-}
-
-/// A version string's numbers, `"1.7"` → `(1, 7)`; `None` unless it is `<digits>.<digits>`.
-fn version_number(version: &str) -> Option<(u32, u32)> {
-    let (major, minor) = version.split_once('.')?;
-    // `u32::from_str` takes a leading `+`, which a version never has.
-    let digits = |s: &str| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit());
-    if !(digits(major) && digits(minor)) {
-        return None;
-    }
-    Some((major.parse().ok()?, minor.parse().ok()?))
 }

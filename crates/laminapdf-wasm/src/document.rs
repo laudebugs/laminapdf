@@ -20,6 +20,7 @@ use crate::dto::{
     phase_name,
 };
 use crate::error::{JsResult, disposed, invalid_argument, lamina_error};
+use crate::plan::{PlannedSaveJs, ViolationJs};
 use crate::source::WasmSparseSource;
 
 /// The shared document behind every handle.
@@ -237,9 +238,46 @@ impl WasmDocument {
         let out = self
             .doc
             .borrow_mut()
-            .save(&options.to_options())
+            .save(&options.to_options()?)
             .map_err(|e| lamina_error(&e))?;
         saved(&out)
+    }
+
+    /// Writes what `save` would and leaves the document as it was: not rebased, its changes
+    /// still unsaved, the save-time stamp in the copy only (Save a copy).
+    ///
+    /// # Errors
+    /// As `save`; the document is unchanged either way.
+    #[wasm_bindgen(js_name = saveCopy, unchecked_return_type = "{ bytes: Uint8Array<ArrayBuffer>; report: SaveReportJs }")]
+    pub fn save_copy(
+        &mut self,
+        #[wasm_bindgen(unchecked_param_type = "SaveOptionsInit | undefined")] options: &JsValue,
+    ) -> JsResult<JsValue> {
+        let options: SaveOptionsInit = from_js_or_default(options, "options")?;
+        let out = self
+            .doc
+            .borrow_mut()
+            .save_copy(&options.to_options()?)
+            .map_err(|e| lamina_error(&e))?;
+        saved(&out)
+    }
+
+    /// Makes `bytes`, the whole output of `saveCopy`, the document's saved file (it rebases onto
+    /// them), once they are written where the document lives; `historyCleared` is the copy's
+    /// report's.
+    ///
+    /// # Errors
+    /// `nested-transaction`, `saved-not-rebased`; `not-rebased` when `bytes` can't be read.
+    #[wasm_bindgen(js_name = adoptCopy)]
+    pub fn adopt_copy(
+        &mut self,
+        bytes: &[u8],
+        #[wasm_bindgen(js_name = historyCleared)] history_cleared: bool,
+    ) -> JsResult<()> {
+        self.doc
+            .borrow_mut()
+            .adopt_copy(bytes.to_vec(), history_cleared)
+            .map_err(|e| lamina_error(&e))
     }
 
     /// A save as a job, stepped with a budget of work units (ADR 0028 §3, §4).
@@ -252,11 +290,51 @@ impl WasmDocument {
         #[wasm_bindgen(unchecked_param_type = "SaveOptionsInit | undefined")] options: &JsValue,
     ) -> JsResult<WasmSaveJob> {
         let options: SaveOptionsInit = from_js_or_default(options, "options")?;
-        let job = self.doc.borrow().save_job(&options.to_options());
+        let job = self.doc.borrow().save_job(&options.to_options()?);
         Ok(WasmSaveJob {
             doc: Rc::downgrade(&self.doc),
             job,
         })
+    }
+
+    /// The document's metadata, read from Info and XMP together, with the fields where they
+    /// disagree.
+    ///
+    /// # Errors
+    /// Reading errors.
+    #[wasm_bindgen(unchecked_return_type = "DocumentMetadata")]
+    pub fn metadata(&self) -> JsResult<JsValue> {
+        let meta = self.doc.borrow().metadata().map_err(|e| lamina_error(&e))?;
+        Ok(to_js(&meta))
+    }
+
+    /// How a save with `options` would go, without saving.
+    ///
+    /// # Errors
+    /// `invalid-argument` / `unknown-option` for bad options; reading errors.
+    #[wasm_bindgen(unchecked_return_type = "PlannedSaveJs")]
+    pub fn plan(
+        &self,
+        #[wasm_bindgen(unchecked_param_type = "SaveOptionsInit | undefined")] options: &JsValue,
+    ) -> JsResult<JsValue> {
+        let options: SaveOptionsInit = from_js_or_default(options, "options")?;
+        let plan = self
+            .doc
+            .borrow()
+            .plan(&options.to_options()?)
+            .map_err(|e| lamina_error(&e))?;
+        Ok(to_js(&PlannedSaveJs::from(&plan)))
+    }
+
+    /// The signature restrictions `op` would break if it were applied and saved.
+    ///
+    /// # Errors
+    /// `invalid-argument` for a value that isn't an op; reading errors.
+    #[wasm_bindgen(js_name = wouldViolate, unchecked_return_type = "ViolationJs[]")]
+    pub fn would_violate(&self, #[wasm_bindgen(unchecked_param_type = "Op")] op: &JsValue) -> JsResult<JsValue> {
+        let op: laminapdf::Op = from_js(op, "op")?;
+        let violations = self.doc.borrow().would_violate(&op).map_err(|e| lamina_error(&e))?;
+        Ok(to_js(&violations.iter().map(ViolationJs::from).collect::<Vec<_>>()))
     }
 
     /// Rebases onto `bytes`, the output of a save whose rebase failed (`not-rebased`).

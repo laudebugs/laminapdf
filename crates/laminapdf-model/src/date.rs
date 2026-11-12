@@ -108,6 +108,25 @@ impl PdfDate {
     }
 }
 
+impl PdfDate {
+    /// The two dates' instants compared, whatever their UTC offsets: 12:00Z and 13:00+01:00
+    /// are `Equal` here, though they order apart (and differ) as values.
+    ///
+    /// ```
+    /// use laminapdf_model::PdfDate;
+    /// use std::cmp::Ordering;
+    ///
+    /// let utc: PdfDate = "D:20261110120000Z".parse()?;
+    /// let paris: PdfDate = "D:20261110130000+01'00".parse()?;
+    /// assert_eq!(utc.cmp_instant(&paris), Ordering::Equal);
+    /// # Ok::<(), laminapdf_model::InvalidDate>(())
+    /// ```
+    #[must_use]
+    pub fn cmp_instant(&self, other: &Self) -> std::cmp::Ordering {
+        self.instant().cmp(&other.instant())
+    }
+}
+
 impl Ord for PdfDate {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         (self.instant(), self.offset).cmp(&(other.instant(), other.offset))

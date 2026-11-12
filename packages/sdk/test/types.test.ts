@@ -26,6 +26,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "syntax":
     case "decompress":
     case "invalid-op-log":
+    case "malformed-xmp":
     case "invalid-font":
     case "missing-glyph":
     case "invalid-image":

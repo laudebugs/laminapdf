@@ -1,5 +1,9 @@
 //! Helpers for the tests of the overlay writers and rebase: editable documents, ops, sources
 //! and sinks that misbehave, and the facts a reopened file is compared on.
+#![allow(
+    deprecated,
+    reason = "SetInfo is these tests' simplest edit; it stays supported, so they keep exercising it"
+)]
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -15,10 +19,6 @@ use super::{classic_with_root, fixture};
 
 /// B3b's save names over [`Save`] with an explicit mode, so the writer tests keep naming the
 /// writer they exercise.
-#[expect(
-    clippy::trivially_copy_pass_by_ref,
-    reason = "the signatures of `Save`, which they wrap"
-)]
 pub trait ModeSaves {
     /// [`Save::save`] in [`SaveMode::Incremental`].
     fn save_incremental<S: WriteSink + ?Sized>(

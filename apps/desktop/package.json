@@ -14,13 +14,15 @@
     "tauri": "tauri",
     "desktop:dev": "tauri dev --config src-tauri/tauri.bundle.conf.json",
     "desktop:build": "tauri build --config src-tauri/tauri.bundle.conf.json",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck:wasm": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run -c vitest.config.ts"
   },
   "dependencies": {
     "@laminapdf/fonts": "workspace:*",
+    "@laminapdf/render": "workspace:*",
     "@laminapdf/tokens": "workspace:*",
     "@laminapdf/ui": "workspace:*",
+    "@laminapdf/viewer": "workspace:*",
     "@tauri-apps/api": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"

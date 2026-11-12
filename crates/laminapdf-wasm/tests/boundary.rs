@@ -47,6 +47,66 @@ fn the_set_info_sample_applies() {
 }
 
 #[wasm_bindgen_test]
+fn the_set_metadata_sample_applies_and_reads_back_from_metadata() {
+    let mut doc = hello();
+    doc.apply(&js(&format!(
+        "[{}]",
+        include_str!("../../../fixtures/ops/v1/set-metadata.json")
+    )))
+    .unwrap();
+    let meta = doc.metadata().unwrap();
+    assert_eq!(
+        (
+            string(&meta, "title").as_deref(),
+            get(&meta, "authors").dyn_into::<js_sys::Array>().unwrap().length(),
+            string(&meta, "packet").as_deref(),
+        ),
+        (Some("Quarterly figures"), 2, Some("parsed"))
+    );
+}
+
+#[wasm_bindgen_test]
+fn a_plan_crosses_as_a_record_and_a_stamped_save_says_so() {
+    let mut doc = hello();
+    doc.apply(&js(&format!(
+        "[{}]",
+        include_str!("../../../fixtures/ops/v1/remove-metadata.json")
+    )))
+    .unwrap();
+    doc.apply(&js(
+        r#"[{ "op": "setMetadata", "args": { "patch": { "title": "T" } } }]"#,
+    ))
+    .unwrap();
+    let options =
+        js(r#"{ "metadataDate": "2026-11-10T09:30:00Z", "instanceId": "abababab-abab-abab-abab-abababababab" }"#);
+    let plan = doc.plan(&options).unwrap();
+    assert_eq!(
+        (
+            string(&plan, "constraint").as_deref(),
+            string(&plan, "metadata").as_deref()
+        ),
+        (Some("free"), Some("stamp"))
+    );
+    let report = get(&doc.save(&options).unwrap(), "report");
+    assert_eq!(get(&report, "metadataUpdated").as_bool(), Some(true));
+}
+
+#[wasm_bindgen_test]
+fn a_bad_metadata_date_is_an_invalid_argument() {
+    let doc = hello();
+    let err = doc.plan(&js(r#"{ "metadataDate": "yesterday" }"#)).unwrap_err();
+    assert_eq!(string(&err, "code").as_deref(), Some("invalid-argument"));
+}
+
+#[wasm_bindgen_test]
+fn would_violate_answers_with_no_violation_on_an_unsigned_file() {
+    let doc = hello();
+    let op = js(r#"{ "op": "setMetadata", "args": { "patch": { "title": "T" } } }"#);
+    let violations = doc.would_violate(&op).unwrap();
+    assert_eq!(violations.dyn_into::<js_sys::Array>().unwrap().length(), 0);
+}
+
+#[wasm_bindgen_test]
 fn the_rotate_page_sample_applies_to_this_documents_page() {
     let mut doc = hello();
     let id = doc.page(0).unwrap().id();

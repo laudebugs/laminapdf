@@ -215,6 +215,10 @@ tasks:
                     nightly: lamina's page text vs live pdf.js and pdftotext over the external
                     corpus (whitespace and bidi controls removed; a page agrees when lamina
                     matches one tool); report in target/nightly/differential-text/
+  differential --live --xmp [--source <name>]… [--sample N]
+                    nightly: the XMP values lamina reads vs ExifTool's (pinned in doctor.rs) over
+                    the external corpus and the committed fixture PDFs, field by field; exceptions
+                    in fixtures/differential/xmp-exceptions.toml; report in target/nightly/differential-xmp/
   fetch-pdfium      download the pinned native PDFium (pdfium-binaries chromium/7881) for this host,
                     check its SHA-256, unpack the library and its notices, print LAMINA_PDF_PDFIUM_DIR
                     (cache: $LAMINA_PDF_PDFIUM_CACHE, $RUNNER_TOOL_CACHE/lamina-pdfium or target/pdfium)
@@ -227,11 +231,14 @@ tasks:
                     write an image-heavy PDF with the laminapdf builder (default 20,000 pages, about
                     1.1 GB, into target/fixtures/1gb.pdf; never committed): the desktop engine's
                     large-file fixture. Needs about 1.5 GB of RAM
+  desktop-frontend  the packages the desktop app's frontend imports through their built dist/: the
+                    WebAssembly modules without their tests, @laminapdf/sdk, the viewer with its render
+                    backends, @laminapdf/ui with its tokens, icons and fonts
   desktop-sidecar [--release | --debug]
                     build the desktop engine binary into apps/desktop/src-tauri/binaries/ (Tauri's
                     sidecar naming) and the pinned PDFium into src-tauri/resources/pdfium/, which
                     tauri.bundle.conf.json bundles; the profile defaults to the Tauri CLI's
-                    (TAURI_ENV_DEBUG), else debug
+                    (release unless its hook sets TAURI_ENV_DEBUG=true), else debug
   extract-bench [--subset <name>]… [--sample N] [--tables lattice-and-stream] [--update-lock]
                     score lamina's extraction on the pinned public benchmark of
                     tools/bench/extract-datasets.toml: fetch into target/bench/datasets/ (SHA-256 per
@@ -430,6 +437,7 @@ fn main() -> Result<()> {
         ("cli-dist", []) => cli_docs::dist_files(&ws),
         ("desktop-notices", []) => notices::desktop(&ws),
         ("desktop-sidecar", args) => desktop_sidecar::run(&ws, args),
+        ("desktop-frontend", []) => web::desktop_frontend(&ws),
         ("fixtures", [what, rest @ ..]) if what == "large-pdf" => fixtures::large_pdf(&ws, rest),
         ("extract-bench", args) => extract_bench::run(&ws, &extract_bench::parse_args(args)?),
         ("benchmarks", args) => benchmarks::run(&ws, &benchmarks::parse_args(args)?),

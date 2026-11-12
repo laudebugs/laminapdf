@@ -31,6 +31,7 @@ const DOCUMENT_CALLS: readonly [string, (doc: Document) => unknown][] = [
   ["redo", (d) => d.redo()],
   ["save", (d) => d.save()],
   ["saveWithReport", (d) => d.saveWithReport()],
+  ["saveCopy", (d) => d.saveCopy()],
   ["saveJob", (d) => d.saveJob()],
   ["rebase", (d) => d.rebase(new Uint8Array())],
 ];

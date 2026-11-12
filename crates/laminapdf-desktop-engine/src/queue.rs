@@ -173,7 +173,7 @@ impl Queue {
 
 #[cfg(test)]
 mod tests {
-    use laminapdf_desktop_protocol::TileFormat;
+    use laminapdf_desktop_protocol::{TileAppearance, TileFormat, ViewRotation};
 
     use super::*;
 
@@ -182,7 +182,9 @@ mod tests {
             req: ReqId(req),
             doc: DocId(1),
             page: 0,
-            scale_milli: 1000,
+            scale: 1.0,
+            rotation: ViewRotation::None,
+            appearance: TileAppearance::Original,
             x: 0,
             y: 0,
             w: 8,

@@ -37,6 +37,18 @@ Every save makes a plan before it writes. The plan reads the file's save constra
 
 <Diagram name="save-decision" />
 
+## See the plan before you save
+
+`doc.plan(options)` says how a save would go, without saving. Its `constraint` is `free`, `appendOnly`, `requiresRewrite` or `conflict`, and it lists the signatures, the edits they forbid and the `refusal` code a save would fail with. Show it before the user saves. To warn before an edit instead, `doc.wouldViolate(op)` lists what one edit would break.
+
+## Write a copy, then adopt it
+
+`doc.saveCopy(options)` writes what a save would and leaves the document as it was: its edits stay unsaved, and a later plan still sees them. Use it for Download a copy, and for a save whose write can fail, such as one to the user's disk. Write the copy first, then call `doc.adoptCopy(bytes, report.historyCleared)`, which makes it the document's saved file. If the write fails, don't adopt it: every edit stays unsaved.
+
+## Stamp the time of the save
+
+Pass `metadataDate`, the time from your app's clock, and a save that writes changes records it as the modification date and gives the XMP metadata a new instance ID. `instanceId` sets that ID yourself. Lamina PDF never reads the clock, so without either option nothing is stamped. On a certified file whose edits are otherwise allowed, the stamp is left out, and the report's `metadataNotUpdated` says so.
+
 :::note[Details]
 The save constraint covers signature fields, the [DocMDP](/reference/glossary/#docmdp) and [UR3](/reference/glossary/#ur3) permissions, a signature's `/Lock` entry (the form fields it locks), document timestamps, and whether the file needed repair.
 :::

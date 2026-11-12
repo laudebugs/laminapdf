@@ -18,7 +18,8 @@ use std::time::{Duration, Instant};
 
 use laminapdf_desktop_protocol::supervisor::{Config, Event, FontServer, RangeServer, Supervisor, SupervisorError};
 use laminapdf_desktop_protocol::{
-    DocId, FailureKind, FromEngine, Password, Priority, ReqId, TileFormat, TileRequest, ToEngine,
+    DocId, FailureKind, FromEngine, Password, Priority, ReqId, TileAppearance, TileFormat, TileRequest, ToEngine,
+    ViewRotation,
 };
 use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner, SystemFonts};
 use laminapdf_test_fixtures::{fixture, read_at};
@@ -280,19 +281,58 @@ fn a_closed_document_should_be_forgotten() {
 #[test]
 #[ignore = "needs the PDFium library: cargo xtask render-golden"]
 fn a_tile_should_match_an_in_process_pdfium_render() {
+    // text-latin.pdf, then every example document whose fonts are all embedded: a tile of each
+    // first page. The sandboxed engine can't reach the system fonts the in-process render may
+    // substitute for a missing one (ADR 0008 §5, fonts).
+    let mut samples = vec![("golden/text-latin.pdf".to_owned(), fixture("golden/text-latin.pdf"))];
+    let examples = laminapdf_test_fixtures::fixtures_dir().join("golden/examples");
+    let mut names: Vec<_> = std::fs::read_dir(&examples)
+        .unwrap()
+        .filter_map(|entry| entry.ok().map(|entry| entry.file_name().to_string_lossy().into_owned()))
+        .filter(|name| {
+            std::path::Path::new(name)
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("pdf"))
+        })
+        .collect();
+    names.sort();
+    assert!(!names.is_empty(), "no example documents in {}", examples.display());
+    for name in names {
+        let rel = format!("golden/examples/{name}");
+        let bytes = fixture(&rel);
+        if every_font_embedded(&bytes) {
+            samples.push((rel, bytes));
+        }
+    }
+    eprintln!(
+        "comparing {:?}",
+        samples.iter().map(|(name, _)| name).collect::<Vec<_>>()
+    );
+    let engine = Engine::start();
+    for (n, (name, bytes)) in samples.into_iter().enumerate() {
+        let (doc, len) = engine.add(n as u32 + 1, bytes.clone());
+        engine.open(doc, len);
+        assert_tile_matches(&engine, doc, bytes, &name);
+    }
+}
+
+/// The file holds every font it uses, so both renders draw the same glyphs.
+fn every_font_embedded(bytes: &[u8]) -> bool {
+    let doc = laminapdf::Document::open_bytes(bytes.to_vec(), laminapdf::OpenOptions::default()).unwrap();
+    doc.properties().unwrap().fonts.iter().all(|font| font.embedded)
+}
+
+/// Renders one tile of `doc`'s first page in the engine and in process, and compares the pixels.
+fn assert_tile_matches(engine: &Engine, doc: DocId, bytes: Vec<u8>, name: &str) {
     use laminapdf_render::{CancelToken, PixelRect, RenderBackend, RenderOpenOptions, RenderRequest};
 
-    let engine = Engine::start();
-    // Every font embedded: the sandboxed engine can't reach the system fonts the in-process
-    // render may substitute for a missing one (ADR 0008 §5, fonts).
-    let bytes = fixture("golden/text-latin.pdf");
-    let (doc, len) = engine.add(1, bytes.clone());
-    engine.open(doc, len);
     let tile = TileRequest {
         req: ReqId(0),
         doc,
         page: 0,
-        scale_milli: 1500,
+        scale: 1.5,
+        rotation: ViewRotation::None,
+        appearance: TileAppearance::Original,
         x: 64,
         y: 128,
         w: 256,
@@ -304,7 +344,10 @@ fn a_tile_should_match_an_in_process_pdfium_render() {
         .supervisor
         .request(|req| ToEngine::RenderTile(TileRequest { req, ..tile }))
         .unwrap();
-    assert!(matches!(reply, FromEngine::Tile { w: 256, h: 192, .. }), "{reply:?}");
+    assert!(
+        matches!(reply, FromEngine::Tile { w: 256, h: 192, .. }),
+        "{name}: {reply:?}"
+    );
 
     let backend = laminapdf_render_pdfium::PdfiumBackend::from_env().unwrap();
     let source: Arc<dyn laminapdf_render::ByteSource> = Arc::new(bytes);
@@ -323,7 +366,7 @@ fn a_tile_should_match_an_in_process_pdfium_render() {
     );
     assert!(
         pixels == expected,
-        "the engine's tile differs from the in-process render"
+        "{name}: the engine's tile differs from the in-process render"
     );
 }
 
@@ -338,7 +381,9 @@ fn text_in_a_non_embedded_standard_font_should_still_render_in_the_sandbox() {
             req,
             doc,
             page: 0,
-            scale_milli: 1000,
+            scale: 1.0,
+            rotation: ViewRotation::None,
+            appearance: TileAppearance::Original,
             x: 0,
             y: 0,
             w: 512,
@@ -378,7 +423,9 @@ fn cjk_text_in_a_font_the_file_does_not_embed_should_render_in_the_sandbox() {
                 req,
                 doc,
                 page: 0,
-                scale_milli: 1000,
+                scale: 1.0,
+                rotation: ViewRotation::None,
+                appearance: TileAppearance::Original,
                 x: 0,
                 y: 0,
                 w: 300,

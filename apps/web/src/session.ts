@@ -6,6 +6,7 @@
 // it, so its bytes never reach this page.
 
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
+import type { SaveOptions, SaveReport } from "@laminapdf/sdk";
 import type {
   DebugBackend,
   ExternalStore,
@@ -14,8 +15,9 @@ import type {
   PlatformFile,
   RemoteFailureReason,
   RepairKind,
+  SaveResult,
 } from "@laminapdf/ui";
-import { message, ReaderController } from "@laminapdf/ui";
+import { fromFile, message, ReaderController } from "@laminapdf/ui";
 import {
   createViewer,
   type LinkLayerOptions,
@@ -52,6 +54,16 @@ interface Session {
   /** The rail's Pages tab. */
   readonly strip: ThumbnailStrip;
 }
+
+/** A save that wrote the file: its name, the save's report, and whether it went as a download. */
+export interface SavedFile {
+  readonly name: string;
+  readonly report: SaveReport;
+  readonly downloaded: boolean;
+}
+
+/** Thrown inside a save's write when its dialog was cancelled, so the document stays unsaved without a failure. */
+const CANCELLED = Symbol("cancelled");
 
 /** What the chrome shows besides the reader's lifecycle. */
 export interface EngineState {
@@ -347,6 +359,46 @@ export class Engine implements ExternalStore<EngineState> {
     if (file === undefined) throw new Error("no document is open");
     const bytes = remotes.has(file) ? await (await this.#session).client.fileBytes() : await file.read(0, file.size);
     return { name: file.name, bytes };
+  }
+
+  /**
+   * Saves the open document's edits (E1 plan §7): the document worker writes a copy with
+   * `options`, the platform writes it where the file lives (in place where it can, else through
+   * the save dialog, else as a download; `pick` always asks where), and only then does the
+   * document take the copy as saved, so a failed write leaves every edit unsaved. The file read
+   * from then on is the one saved. Resolves undefined when the save dialog was cancelled.
+   */
+  async saveEdits(options: SaveOptions, where: "auto" | "pick"): Promise<SavedFile | undefined> {
+    const file = this.#file;
+    if (file === undefined) throw new Error("no document is open");
+    const { viewer } = await this.#session;
+    let written: SaveResult | undefined;
+    const copy = await viewer.edits
+      .save(options, async (copy) => {
+        written =
+          where === "auto" && file.writable
+            ? await this.#platform.saveInPlace(file, copy.bytes)
+            : await this.#platform.saveAs(copy.bytes, file.name);
+        if (!written.saved) throw CANCELLED;
+      })
+      .catch((error: unknown) => {
+        if (error === CANCELLED) return undefined;
+        throw error;
+      });
+    if (copy === undefined || written === undefined || !written.saved) return undefined;
+    // After a download the file is the bytes downloaded: the next save is again against them.
+    this.#file =
+      written.file ?? fromFile(new File([copy.bytes as BlobPart], written.name, { type: "application/pdf" }));
+    return { name: written.name, report: copy.report, downloaded: written.file === undefined };
+  }
+
+  /** The open document with its edits, as a save with `options` writes it, which leaves it unsaved (Download a copy). */
+  async copyEdits(options: SaveOptions): Promise<{ readonly name: string; readonly bytes: Uint8Array }> {
+    const file = this.#file;
+    if (file === undefined) throw new Error("no document is open");
+    const { viewer } = await this.#session;
+    const copy = await viewer.edits.copy(options);
+    return { name: file.name, bytes: copy.bytes };
   }
 
   /** Page `index` of the open document drawn for printing, by the document worker. */

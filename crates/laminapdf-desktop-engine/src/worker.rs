@@ -9,10 +9,12 @@ use std::sync::Arc;
 
 use laminapdf::OpenOptions;
 use laminapdf_desktop_protocol::{
-    DocId, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PageDimensions, Password, ReqId, TileFormat, TileRequest,
+    DocId, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PageDimensions, Password, ReqId, TileAppearance,
+    TileFormat, TileRequest, ViewRotation,
 };
 use laminapdf_render::{
-    ByteSource, CancelToken, PixelRect, RenderBackend, RenderDocument, RenderOpenOptions, RenderRequest,
+    ByteSource, CancelToken, PageAppearance, PixelRect, RenderBackend, RenderDocument, RenderOpenOptions,
+    RenderRequest, Rgba8, Rotation,
 };
 
 use crate::limits;
@@ -191,17 +193,15 @@ impl Worker {
             };
             return self.error(req, kind, "no renderer for this document".into());
         };
-        #[expect(
-            clippy::cast_precision_loss,
-            reason = "a scale in thousandths is far below f32's exact range"
-        )]
-        let scale = tile.scale_milli as f32 / 1000.0;
-        let request = RenderRequest::page(tile.page, scale).with_clip(PixelRect {
-            x: tile.x,
-            y: tile.y,
-            width: tile.w,
-            height: tile.h,
-        });
+        let request = RenderRequest::page(tile.page, tile.scale)
+            .with_clip(PixelRect {
+                x: tile.x,
+                y: tile.y,
+                width: tile.w,
+                height: tile.h,
+            })
+            .with_rotation(rotation(tile.rotation))
+            .with_appearance(appearance(tile.appearance));
         let plan = match render.plan(&request) {
             Ok(plan) => plan,
             Err(error) => return self.error(req, kind_of(error.code()), error.code().into()),
@@ -293,5 +293,31 @@ fn kind_of(code: &str) -> FailureKind {
         "render-failed" => FailureKind::RenderFailed,
         "invalid-argument" => FailureKind::Protocol,
         _ => FailureKind::Invalid,
+    }
+}
+
+/// The protocol's view rotation as the renderer's.
+const fn rotation(rotation: ViewRotation) -> Rotation {
+    match rotation {
+        ViewRotation::None => Rotation::None,
+        ViewRotation::Quarter => Rotation::Clockwise90,
+        ViewRotation::Half => Rotation::Half,
+        ViewRotation::ThreeQuarters => Rotation::Clockwise270,
+    }
+}
+
+/// The protocol's page appearance as the renderer's.
+const fn appearance(appearance: TileAppearance) -> PageAppearance {
+    const fn rgba([r, g, b, a]: [u8; 4]) -> Rgba8 {
+        Rgba8 { r, g, b, a }
+    }
+    match appearance {
+        TileAppearance::Original => PageAppearance::Original,
+        TileAppearance::Sepia => PageAppearance::Sepia,
+        TileAppearance::Dark => PageAppearance::Dark,
+        TileAppearance::HighContrast { ink, paper } => PageAppearance::HighContrast {
+            ink: rgba(ink),
+            paper: rgba(paper),
+        },
     }
 }

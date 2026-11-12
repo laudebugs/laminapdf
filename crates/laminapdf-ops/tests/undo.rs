@@ -1,4 +1,8 @@
 //! Undo and redo (ADR 0006 §4) and the two dirty levels (§7).
+#![expect(
+    deprecated,
+    reason = "these tests check that SetInfo, deprecated but still on the wire, keeps working"
+)]
 #![expect(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 
 mod common;

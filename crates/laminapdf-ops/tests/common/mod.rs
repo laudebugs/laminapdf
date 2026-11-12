@@ -2,6 +2,10 @@
 //! files and overlay snapshots. Fixtures and the classic-file builder come from
 //! `laminapdf-test-fixtures`.
 #![allow(
+    deprecated,
+    reason = "these tests check that SetInfo, deprecated but still on the wire, keeps working"
+)]
+#![allow(
     dead_code,
     unused_imports,
     unreachable_pub,

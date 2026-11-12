@@ -1,0 +1,2 @@
+$ laminapdf build invoice.json --data invoice-data.json --font regular=NotoSans-Regular.ttf --font bold=NotoSans-RegularBold.ttc#1 -o invoice.pdf
+built 2 pages → invoice.pdf (24 KB, PDF/UA-1)

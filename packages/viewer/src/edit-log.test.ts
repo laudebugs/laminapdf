@@ -78,4 +78,38 @@ describe("the page's edit log", () => {
     log.reset();
     expect([log.empty, log.history.steps]).toEqual([true, []]);
   });
+
+  describe("after a save", () => {
+    it("replays only the steps since the save, onto the saved file", () => {
+      const log = new EditLog();
+      log.take(result([1]), { ops: rotate(1), label: "one" });
+      log.saved(result([1]).history);
+      log.take(result([1, 2]), { ops: rotate(2), label: "two" });
+      log.take(result([1, 2, 3]), { ops: rotate(3), label: "three" });
+      log.take(result([1, 2, 3], 2));
+      expect(log.replay()).toEqual({
+        steps: [
+          { ops: rotate(2), label: "step 2", at: 2 },
+          { ops: rotate(3), label: "step 3", at: 3 },
+        ],
+        undone: 1,
+      });
+    });
+
+    it("has nothing to replay when nothing changed since", () => {
+      const log = new EditLog();
+      log.take(result([1]), { ops: rotate(1), label: "one" });
+      log.saved(result([1]).history);
+      expect(log.empty).toBe(true);
+    });
+
+    it("won't replay once an undo went back past the save", () => {
+      const log = new EditLog();
+      log.take(result([1]), { ops: rotate(1), label: "one" });
+      log.saved(result([1]).history);
+      log.take(result([1], 0));
+      log.take(result([2]), { ops: rotate(2), label: "two" });
+      expect(log.replay()).toBeUndefined();
+    });
+  });
 });

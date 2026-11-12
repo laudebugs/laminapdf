@@ -54,7 +54,7 @@ Build the Paper component library the shells and editor modes compose: every con
 - Reader chrome built from these (toolbar, page indicator, zoom control, drop zone, password dialog, error and repair banners), the `Platform` interface and `ReaderController` → [C4a](./C4a-ui-chrome-and-platform.md).
 - Layout regions (top bar, left rail, inspector, status bar, focus mode) → [U1c](../done/U1c-inverted-l-shell-and-modes.md); phone bottom bar and action bar → [U3a](../done/U3a-responsive-mobile-and-touch.md); command wiring and shortcut map → [U1b](../done/U1b-command-registry-and-palette.md).
 - Theme switching UI and settings → [C7a](./C7a-accessibility-and-theming.md); the gallery and screenshot tests → [U6f](../done/U6f-gallery-and-visual-tests.md).
-- Inspector panel and save banner (§7.11, §7.13) → [U1c](../done/U1c-inverted-l-shell-and-modes.md) and [E1e](../ready/E1e-save-and-constraint-banner.md), built from these components.
+- Inspector panel and save banner (§7.11, §7.13) → [U1c](../done/U1c-inverted-l-shell-and-modes.md) and [E1e](../done/E1e-save-and-constraint-banner.md), built from these components.
 
 ## Tasks
 

@@ -60,6 +60,7 @@ export const ROUTES: readonly Route[] = [
     components: [
       "ReaderTopBar",
       "EditArea",
+      "SaveStrip",
       "FindBar",
       "FindResults",
       "PageInput",
@@ -101,6 +102,8 @@ export const ROUTES: readonly Route[] = [
       "SettingsDialog",
       "ShortcutsDialog",
       "ViewSettingsButton",
+      "RemoveSignaturesDialog",
+      "ConformanceDialog",
     ],
     states: [
       "default",
@@ -117,6 +120,8 @@ export const ROUTES: readonly Route[] = [
       "settings",
       "shortcuts",
       "view-settings",
+      "remove-signatures",
+      "conformance",
     ],
   },
   {

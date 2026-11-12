@@ -1,0 +1,204 @@
+{
+  "page": "/start/first-pdf/",
+  "html": {
+    "styleAttributes": 1231,
+    "inlineStyleBlocks": 3,
+    "inlineScriptBlocks": 13,
+    "htmlBytes": 182963,
+    "htmlGzip": 24113
+  },
+  "assets": {
+    "js": {
+      "files": 6,
+      "bytes": 33380,
+      "gzip": 13196
+    },
+    "css": {
+      "files": 3,
+      "bytes": 135216,
+      "gzip": 24517
+    }
+  },
+  "browsers": {
+    "chromium": {
+      "current-light": {
+        "violations": [],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 49,
+          "shownAtLoad": 0,
+          "before": false,
+          "mouse": true,
+          "focusable": false,
+          "keyboard": false,
+          "touch": false
+        }
+      },
+      "current-dark": {
+        "violations": [],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 49,
+          "shownAtLoad": 0,
+          "before": false,
+          "mouse": true,
+          "focusable": false,
+          "keyboard": false,
+          "touch": false
+        }
+      },
+      "target-light": {
+        "violations": [
+          "style-src-attr inline",
+          "style-src-elem inline"
+        ],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 49,
+          "shownAtLoad": 0,
+          "before": false,
+          "mouse": true,
+          "focusable": false,
+          "keyboard": false,
+          "touch": false
+        }
+      },
+      "target-dark": {
+        "violations": [
+          "style-src-attr inline",
+          "style-src-elem inline"
+        ],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 49,
+          "shownAtLoad": 0,
+          "before": false,
+          "mouse": true,
+          "focusable": false,
+          "keyboard": false,
+          "touch": false
+        }
+      }
+    },
+    "firefox": {
+      "current-light": {
+        "violations": [],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 49,
+          "shownAtLoad": 0,
+          "before": false,
+          "mouse": true,
+          "focusable": false,
+          "keyboard": false,
+          "touch": true
+        }
+      },
+      "current-dark": {
+        "violations": [],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 49,
+          "shownAtLoad": 0,
+          "before": false,
+          "mouse": true,
+          "focusable": false,
+          "keyboard": false,
+          "touch": true
+        }
+      },
+      "target-light": {
+        "violations": [
+          "style-src-elem inline",
+          "style-src-attr inline"
+        ],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 49,
+          "shownAtLoad": 0,
+          "before": false,
+          "mouse": true,
+          "focusable": false,
+          "keyboard": false,
+          "touch": true
+        }
+      },
+      "target-dark": {
+        "violations": [
+          "style-src-elem inline",
+          "style-src-attr inline"
+        ],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 49,
+          "shownAtLoad": 0,
+          "before": false,
+          "mouse": true,
+          "focusable": false,
+          "keyboard": false,
+          "touch": true
+        }
+      }
+    },
+    "webkit": {
+      "current-light": {
+        "violations": [],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 49,
+          "shownAtLoad": 0,
+          "before": false,
+          "mouse": true,
+          "focusable": false,
+          "keyboard": false,
+          "touch": true
+        }
+      },
+      "current-dark": {
+        "violations": [],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 49,
+          "shownAtLoad": 0,
+          "before": false,
+          "mouse": true,
+          "focusable": false,
+          "keyboard": false,
+          "touch": true
+        }
+      },
+      "target-light": {
+        "violations": [
+          "style-src-elem inline",
+          "style-src-attr inline"
+        ],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 49,
+          "shownAtLoad": 0,
+          "before": false,
+          "mouse": true,
+          "focusable": false,
+          "keyboard": false,
+          "touch": true
+        }
+      },
+      "target-dark": {
+        "violations": [
+          "style-src-elem inline",
+          "style-src-attr inline"
+        ],
+        "otherOrigins": [],
+        "hovers": {
+          "tokens": 49,
+          "shownAtLoad": 0,
+          "before": false,
+          "mouse": true,
+          "focusable": false,
+          "keyboard": false,
+          "touch": true
+        }
+      }
+    }
+  }
+}

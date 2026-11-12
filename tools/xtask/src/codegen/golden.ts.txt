@@ -105,6 +105,7 @@ export const ERROR_GROUPS: readonly string[] = [
 /** The groups of `codes.json` that list warnings. */
 export const WARNING_GROUPS: readonly string[] = [
   "warnings",
+  "opWarnings",
   "textWarnings",
   "buildWarnings",
   "facadeWarnings",

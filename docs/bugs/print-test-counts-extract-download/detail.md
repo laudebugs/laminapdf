@@ -11,9 +11,9 @@ AssertionError: expected [ Array(1) ] to deeply equal []
 + ]
 ```
 
-The same test had failed in Firefox on that PR before, and passed when the job ran again. PR #411 doesn't change the reader, so the fault came from `main`.
+The same test had failed in Firefox on that PR before, and passed when the job ran again. PR #411 doesn't change the reader or the test, so the fault was in the test on `main`.
 
-A user could not see the fault. The print made no request. The one request the test caught was the extract module, which the reader downloads once for the text layer.
+A user could not see the fault. The print made no request. The one request the test caught was the extract module, which the reader downloads once for the text layer: a JavaScript chunk, then the WebAssembly file it loads.
 
 ## Cause
 

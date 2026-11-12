@@ -33,6 +33,7 @@ tauri-build = { workspace = true }
 
 [dependencies]
 # The engine process's protocol and supervisor; never the parser or PDFium (ADR 0008 §3).
+image-webp = { workspace = true }
 laminapdf-desktop-protocol = { workspace = true }
 # Starts each engine inside its sandbox; its lock-down half (feature `engine`) is the engine's.
 laminapdf-desktop-sandbox = { workspace = true }

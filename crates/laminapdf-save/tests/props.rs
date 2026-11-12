@@ -1,6 +1,10 @@
 //! Property test (ADR 0018 tier 5): random `SetInfo` / `RotatePage` sequences, saved with
 //! every writer, reopen to the same model facts as the in-memory view, and saving the same
 //! state twice gives the same bytes. Seed fixed (`SEED`) so failures reproduce.
+#![expect(
+    deprecated,
+    reason = "SetInfo is these tests' simplest edit; it stays supported, so they keep exercising it"
+)]
 #![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,
