@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E4f](./E4f-annotation-tools-ui.md), [E5a](./E5a-review-stamps-interchange-feature-plan.md) |
+| Depends on | [E4f](./E4f-annotation-tools-ui.md), [E5a](../ongoing/E5a-review-stamps-interchange-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e5b-comment-threads-and-review` |
 | PR title | `feat(annots): replies, review states and comment panel` |

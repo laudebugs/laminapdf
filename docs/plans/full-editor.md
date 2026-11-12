@@ -136,7 +136,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Crates:** as E4, plus XFDF reader/writer; flattening needs E4 appearances and uses the `laminapdf-content` append API from E2 (each appearance becomes a Form XObject drawn with an appended `q <cm> /FmN Do Q` stream; the annotation is then removed).
 - **Save:** flattening is a content change → incremental on `Free`; on signed files it invalidates signatures and is gated.
 - **Web vs desktop:** identical. Shared review across users is E18.
-- **Todos:** [E5a](../todos/ready/E5a-review-stamps-interchange-feature-plan.md) feature plan · [E5b](../todos/ready/E5b-comment-threads-and-review.md) Comment panel: replies, review state, filter and search · [E5c](../todos/ready/E5c-stamps-and-attachments.md) Custom stamps, file-attachment annotations and audio annotations (read) · [E5d](../todos/ready/E5d-xfdf-fdf.md) XFDF and FDF import/export of annotations · [E5e](../todos/ready/E5e-flatten-and-summary.md) Flatten annotations into content and comment summary.
+- **Todos:** [E5a](../todos/ongoing/E5a-review-stamps-interchange-feature-plan.md) feature plan · [E5b](../todos/ready/E5b-comment-threads-and-review.md) Comment panel: replies, review state, filter and search · [E5c](../todos/ready/E5c-stamps-and-attachments.md) Custom stamps, file-attachment annotations and audio annotations (read) · [E5d](../todos/ready/E5d-xfdf-fdf.md) XFDF and FDF import/export of annotations · [E5e](../todos/ready/E5e-flatten-and-summary.md) Flatten annotations into content and comment summary.
 
 ### Phase 4: content editing
 

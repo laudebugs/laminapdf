@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E5a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md) |
