@@ -6,11 +6,9 @@
 //! cargo run -p laminapdf --features extract --example check_what_a_file_hides -- <file.pdf>…
 //! ```
 
-use std::collections::BTreeSet;
 use std::error::Error;
 
-use laminapdf::extract::DropReason;
-use laminapdf::reveal::{Category, Reveal};
+use laminapdf::reveal::Category;
 use laminapdf::{CancelToken, Document, OpenOptions};
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -52,32 +50,16 @@ pub(crate) fn what_it_hides(bytes: Vec<u8>) -> Result<Hidden, laminapdf::Error> 
     let reveal = doc.reveal(&options, &CancelToken::new())?;
     Ok(Hidden {
         categories: reveal.found().into_iter().map(Category::as_str).collect(),
-        redactions: failed_redactions(&reveal),
+        // The same warnings `Document::redaction_warnings` gives, read from what `reveal` found.
+        redactions: reveal
+            .redaction_warnings()
+            .iter()
+            .map(|warning| FailedRedaction {
+                code: warning.code(),
+                page: warning.location().page_index,
+            })
+            .collect(),
     })
-}
-
-/// The redactions that only hid text, read from what `reveal` found: pages with covered text,
-/// pages with redaction marks never applied, then one for each earlier revision holding words
-/// the latest lost.
-fn failed_redactions(reveal: &Reveal) -> Vec<FailedRedaction> {
-    let found = |code, page: Option<usize>| FailedRedaction {
-        code,
-        page: page.and_then(|page| u64::try_from(page).ok()),
-    };
-    let covered: BTreeSet<usize> = reveal
-        .hidden
-        .iter()
-        .filter(|run| run.reason == DropReason::Covered)
-        .map(|run| run.page)
-        .collect();
-    let mut out: Vec<FailedRedaction> = covered.into_iter().map(|p| found("covered-text", Some(p))).collect();
-    for (page, _marks) in reveal.disclosure.redactions() {
-        out.push(found("redaction-not-applied", Some(page)));
-    }
-    for _ in reveal.revisions.iter().filter(|revision| revision.removed_words > 0) {
-        out.push(found("text-in-earlier-revision", None));
-    }
-    out
 }
 
 /// One line for each thing `found` holds, or one saying there is nothing.

@@ -91,6 +91,38 @@ fn count<'t>(texts: impl IntoIterator<Item = &'t str>) -> BTreeMap<String, u64> 
     out
 }
 
+/// `covered-text` for each page with covered runs among `hidden`, in page order: the
+/// characters (spaces left out) and runs under covers.
+pub(crate) fn covered_text(hidden: &[Dropped]) -> impl Iterator<Item = RedactionWarning> {
+    let mut pages: BTreeMap<usize, (u64, u32)> = BTreeMap::new();
+    for run in hidden.iter().filter(|run| run.reason == DropReason::Covered) {
+        let (chars, regions) = pages.entry(run.page).or_default();
+        *chars = chars.saturating_add(u64::try_from(run.chars).unwrap_or(u64::MAX));
+        *regions = regions.saturating_add(1);
+    }
+    pages
+        .into_iter()
+        .map(|(page, (chars, regions))| RedactionWarning::CoveredText {
+            page: to_u32(page),
+            chars,
+            regions,
+        })
+}
+
+/// `redaction-not-applied` for each `(page, count)` of `Redact` annotations with a count above
+/// zero.
+pub(crate) fn redactions_not_applied(
+    marks: impl IntoIterator<Item = (usize, u32)>,
+) -> impl Iterator<Item = RedactionWarning> {
+    marks
+        .into_iter()
+        .filter(|(_, annotations)| *annotations > 0)
+        .map(|(page, annotations)| RedactionWarning::RedactionNotApplied {
+            page: to_u32(page),
+            annotations,
+        })
+}
+
 /// Every page's text, visible or not, each page's lines joined (empty for a page that can't be
 /// read); the token is checked before each page.
 fn page_words(doc: &Document, cancel: &CancelToken) -> Result<Vec<String>> {
@@ -204,42 +236,23 @@ impl Document {
     /// covered text, `redaction-not-applied` per page with `Redact` annotations, and
     /// `text-in-earlier-revision` per earlier revision holding words the latest has nowhere.
     /// Earlier revisions open with `options` (its password and limits), never strictly.
+    /// [`Reveal::redaction_warnings`](crate::reveal::Reveal::redaction_warnings) gives the same
+    /// warnings from a [`Document::reveal`] result without reading the file again.
     ///
     /// # Errors
     /// `cancelled` (checked between pages and revisions); the reading errors of the latest
     /// revision.
     pub fn redaction_warnings(&self, options: &OpenOptions, cancel: &CancelToken) -> Result<Vec<Warning>> {
-        let mut out = Vec::new();
-        let mut covered: BTreeMap<usize, (u64, u32)> = BTreeMap::new();
-        for d in self.hidden_text(cancel)? {
-            if d.reason == DropReason::Covered {
-                let e = covered.entry(d.page).or_default();
-                e.0 += u64::try_from(d.chars).unwrap_or(u64::MAX);
-                e.1 = e.1.saturating_add(1);
-            }
-        }
-        out.extend(
-            covered
-                .into_iter()
-                .map(|(page, (chars, regions))| RedactionWarning::CoveredText {
-                    page: to_u32(page),
-                    chars,
-                    regions,
-                }),
-        );
+        let mut out: Vec<RedactionWarning> = covered_text(&self.hidden_text(cancel)?).collect();
         let model = self.ops();
+        let mut marks = Vec::new();
         for (index, page) in model.pages()?.iter().enumerate() {
             if cancel.is_cancelled() {
                 return Err(Error::Cancelled);
             }
-            let annotations = model.redact_annotations(&page)?;
-            if annotations > 0 {
-                out.push(RedactionWarning::RedactionNotApplied {
-                    page: to_u32(index),
-                    annotations,
-                });
-            }
+            marks.push((index, model.redact_annotations(&page)?));
         }
+        out.extend(redactions_not_applied(marks));
         for (revision, words, pages) in earlier_revisions(self, options, cancel)? {
             out.push(RedactionWarning::TextInEarlierRevision { revision, words, pages });
         }

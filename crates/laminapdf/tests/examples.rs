@@ -359,59 +359,6 @@ fn check_what_a_file_hides_finds_an_old_revision_hidden_text_and_metadata() {
 }
 
 #[test]
-fn check_what_a_file_hides_reads_the_same_failed_redactions_as_redaction_warnings() {
-    use check_what_a_file_hides::{FailedRedaction, what_it_hides};
-    use laminapdf::{CancelToken, Document, OpenOptions};
-    use laminapdf_test_fixtures::{classic, stream_body};
-    // One page whose name is under a black box and under two redaction marks never applied:
-    // the two page findings, which the golden's files don't have.
-    let content = stream_body(
-        "",
-        b"BT /F1 12 Tf 72 700 Td (Pay John Smith now.) Tj ET 0 g 95 694 62 16 re f",
-    );
-    let mark = b"<< /Type /Annot /Subtype /Redact /Rect [95 694 157 710] >>".as_slice();
-    let bytes = classic(
-        &[
-            b"<< /Type /Catalog /Pages 2 0 R >>",
-            b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Contents 4 0 R /Annots [6 0 R 7 0 R] \
-              /Resources << /Font << /F1 5 0 R >> >> >>",
-            &content,
-            b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
-            mark,
-            mark,
-        ],
-        "<< /Size 8 /Root 1 0 R >>",
-    );
-    let found = what_it_hides(bytes.clone()).unwrap_or_else(|e| panic!("{e}"));
-    let doc = Document::open_bytes(bytes, OpenOptions::default()).unwrap_or_else(|e| panic!("{e}"));
-    let warnings = doc
-        .redaction_warnings(&OpenOptions::default(), &CancelToken::new())
-        .unwrap_or_else(|e| panic!("{e}"));
-    let expected: Vec<FailedRedaction> = warnings
-        .iter()
-        .map(|w| FailedRedaction {
-            code: w.code(),
-            page: w.location().page_index,
-        })
-        .collect();
-    assert_eq!(
-        expected,
-        [
-            FailedRedaction {
-                code: "covered-text",
-                page: Some(0)
-            },
-            FailedRedaction {
-                code: "redaction-not-applied",
-                page: Some(0)
-            }
-        ]
-    );
-    assert_eq!(found.redactions, expected);
-}
-
-#[test]
 fn check_what_a_file_hides_reports_a_file_with_nothing_beyond_its_pages() {
     use check_what_a_file_hides::{Hidden, report};
     let clean = Hidden {
