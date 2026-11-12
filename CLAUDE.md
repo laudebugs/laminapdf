@@ -212,7 +212,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   keyboard, ARIA values, reduced motion (a Playwright command), axe in 3 themes × 2 directions, target sizes)
 ├── packages/site-kit/   # @laminapdf/site-kit (private, outside Changesets; build time only): what both Astro sites share.
 │                        #   src/integrations.mjs: the CSP's inline-script hashes into dist/_headers, X-Robots-Tag noindex unless
-│                        #   LAMINA_PDF_ENV=production, src/robots.mjs (W3a: the one robots.txt of the three sites, every crawler
+│                        #   LAMINA_PDF_ENV=production, src/inline-styles.mjs (Q4i: every style attribute as a class in one layered style
+│                        #   sheet, Expressive Code's token selector pointed at them, so the docs' style-src is 'self'), src/robots.mjs (W3a: the one robots.txt of the three sites, every crawler
 │                        #   let in, the sitemap named in production; robots, isProduction, robotsProblems), the website's checks of every built page (ADR 0011 §3: same-origin loads, no
 │                        #   inline styles, cookies or beacons, title, description, canonical URL, internal links), pageFiles, pageExists;
 │                        #   src/version.mjs (withVersion: the pages' `{{version}}`, P4);
@@ -284,7 +285,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   docs/errors/ (src/pages/, plugins/error-pages.mjs), post-build checks (plugins/), the shared site header
 │                        #   (src/components/Header.astro, Starlight's Header override, with its search and theme switch; the theme switch is
 │                        #   src/components/ThemeSelect.astro, Starlight's ThemeSelect override on site-kit's select); public/_headers
-│                        #   (ADR 0011 §4, inline-script hashes filled in after the build by @laminapdf/site-kit); wrangler.toml (Workers static
+│                        #   (ADR 0011 §4, inline-script hashes filled in and style attributes made classes after the build by @laminapdf/site-kit; style-src 'self'); wrangler.toml (Workers static
 │                        #   assets: docs.laminapdf.com, no workers.dev address, and next.docs.laminapdf.com as [env.next]); robots.txt from the site kit
 │                        #   (the sitemap only on the released docs, checked by plugins/release.mjs); deployed by .github/workflows/docs.yml; README.md has the owner's setup;
 │                        #   for agents (L5a): a Markdown twin of every page, llms.txt and llms-full.txt (plugins/agent-docs.mjs,

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q4i` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Docs redesign §4](../../plans/docs-redesign.md#4-todos) |
 | Round / milestone | Round Q (docs and code quality), Q4 docs redesign |
 | Depends on | None |
@@ -37,19 +37,19 @@ The docs site's CSP allows inline styles (`style-src 'self' 'unsafe-inline'`) on
 
 ## Tasks
 
-- [ ] Find whether Expressive Code can emit classes; if not, colour tokens at build time as `highlight.ts` does and keep Expressive Code's frames, copy button and tabs.
-- [ ] Scan the built pages for `style=` attributes and remove each source.
-- [ ] Drop `'unsafe-inline'`; run the e2e tests with CSP violations reported as failures.
+- [x] Find whether Expressive Code can emit classes; if not, colour tokens at build time as `highlight.ts` does and keep Expressive Code's frames, copy button and tabs.
+- [x] Scan the built pages for `style=` attributes and remove each source.
+- [x] Drop `'unsafe-inline'`; run the e2e tests with CSP violations reported as failures.
 
 ## Acceptance criteria
 
-- [ ] No built page has a `style` attribute.
-- [ ] The docs' headers have no `'unsafe-inline'`.
-- [ ] Code looks the same in light and dark as before.
+- [x] No built page has a `style` attribute.
+- [x] The docs' headers have no `'unsafe-inline'`.
+- [x] Code looks the same in light and dark as before.
 
 ## Post-merge checks
 
-- [ ] The production docs site shows no CSP violation in the browser console on a sample of pages.
+- [x] The production docs site shows no CSP violation in the browser console on a sample of pages.
 
 ## Tests
 
@@ -65,8 +65,8 @@ The `_headers` comment; ADR 0011's notes if it lists the exception.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

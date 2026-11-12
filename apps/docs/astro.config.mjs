@@ -14,6 +14,7 @@
 //   lets crawlers in (robots.txt), so they read that noindex; only the released docs name a sitemap.
 import { fileURLToPath } from "node:url";
 import starlight from "@astrojs/starlight";
+import { inlineStylesAsClasses } from "@laminapdf/site-kit/inline-styles";
 import { inlineScriptHashes, pageFiles, previewNoindex } from "@laminapdf/site-kit/integrations";
 import { robots } from "@laminapdf/site-kit/robots";
 import { defineConfig } from "astro/config";
@@ -74,6 +75,8 @@ export default defineConfig({
   site: SITE,
   // Telemetry is off in the package scripts (ASTRO_TELEMETRY_DISABLED).
   devToolbar: { enabled: false },
+  // Styles in files, never in <style> elements: the CSP's style-src is 'self' (public/_headers).
+  build: { inlineStylesheets: "never" },
   vite: {
     define: { __SITE_PAGES__: JSON.stringify(WEBSITE_PAGES), __DOCS_RELEASE__: JSON.stringify(DOCS_RELEASE) },
     // Pages write `{{version}}` where they name the version; this fills it in.
@@ -135,6 +138,8 @@ export default defineConfig({
     cliDownloadChecks(ROOT),
     websiteIcons(new URL("apps/site/public/", ROOT)),
     checkedLinks,
+    // Every style attribute the build writes as a class, so style-src needs no 'unsafe-inline'.
+    inlineStylesAsClasses,
     inlineScriptHashes,
     previewNoindex(process.env.LAMINA_PDF_ENV),
     // Starlight writes sitemap-index.xml from `site`; only the released docs name it.
