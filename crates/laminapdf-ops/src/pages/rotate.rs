@@ -14,7 +14,7 @@ use crate::wire;
 
 /// How [`RotatePages`] reads its angle.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -32,7 +32,7 @@ pub enum RotateMode {
 ///
 /// On the wire: `{ "op": "rotatePages", "args": { "pages": ["p3.0"], "angle": 90, "mode": "turn" } }`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -54,7 +54,7 @@ pub struct RotatePages {
 impl RotatePages {
     /// The op that shows `pages` at `angle`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn set(pages: Vec<PageId>, angle: Rotation) -> Self {
         Self {
@@ -66,7 +66,7 @@ impl RotatePages {
 
     /// The op that turns `pages` by `angle`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn turn(pages: Vec<PageId>, angle: Rotation) -> Self {
         Self {

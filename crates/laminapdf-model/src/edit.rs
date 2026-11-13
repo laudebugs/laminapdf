@@ -9,7 +9,7 @@ use laminapdf_cos::{CosMut, Error, Object, Result};
 /// Errors of the overlay; [`Error::MissingRoot`] without a catalog, and [`Error::Type`] when
 /// `/Root` is not a dictionary.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 pub fn set_catalog_entry(cos: &mut CosMut<'_>, key: &str, value: Option<Object>) -> Result<()> {
     let root = cos.trailer().get("Root").cloned();
     match root {

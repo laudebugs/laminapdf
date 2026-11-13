@@ -53,7 +53,7 @@ export const setInitialViewOp = (patch: InitialViewPatch): Op => ({ op: "setInit
 /**
  * Options for the XMP property edits, `setXmpProperty` and `removeXmpProperty`.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export interface XmpEditOptions {
   /** As {@link MetadataEditOptions.replaceMalformed}. */
@@ -79,14 +79,14 @@ export const replaceXmpPacketOp = (xml: string): Op => ({ op: "replaceXmpPacket"
 /**
  * Where pages go: before the first page, after the last, or before or after a page named by its ID.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type PagePosition = "start" | "end" | { readonly before: string } | { readonly after: string };
 
 /**
  * A page size in points (1/72 inch): `{ width: 612, height: 792 }` is US Letter.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export interface PageSize {
   readonly width: number;
@@ -98,7 +98,7 @@ export interface PageSize {
  * that point at them: `retarget` points each at the nearest page left (the next one, else the
  * one before), showing the whole page; `remove` removes it.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type ReferencePolicy = "retarget" | "remove";
 
@@ -106,14 +106,14 @@ export type ReferencePolicy = "retarget" | "remove";
  * How `rotatePages` uses its angle: `set` shows each page at the angle; `turn` adds it to each
  * page's own rotation, as rotate left and rotate right do.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type RotateMode = "set" | "turn";
 
 /**
  * Options for `insertBlankPages`.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export interface InsertBlankPagesOptions {
   /** The new pages' rotation in degrees clockwise; 0 when left out. */
@@ -123,7 +123,7 @@ export interface InsertBlankPagesOptions {
 /**
  * Options for `deletePages`.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export interface DeletePagesOptions {
   /** What happens to what points at the deleted pages; `retarget` when left out. */
@@ -133,7 +133,7 @@ export interface DeletePagesOptions {
 /**
  * Options for `rotatePages`.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export interface RotatePagesOptions {
   /** Whether the angle is set or added to each page's rotation; `set` when left out. */
@@ -289,7 +289,7 @@ export class Transaction {
   /**
    * Sets any XMP property (`setXmpProperty`), as {@link Document.setXmpProperty}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   setXmpProperty(namespace: string, prefix: string, name: string, value: XmpValue, options?: XmpEditOptions): this {
     return this.apply(setXmpPropertyOp(namespace, prefix, name, value, options));
@@ -298,7 +298,7 @@ export class Transaction {
   /**
    * Removes an XMP property (`removeXmpProperty`), as {@link Document.removeXmpProperty}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   removeXmpProperty(namespace: string, name: string, options?: XmpEditOptions): this {
     return this.apply(removeXmpPropertyOp(namespace, name, options));
@@ -307,7 +307,7 @@ export class Transaction {
   /**
    * Replaces the whole XMP packet (`replaceXmpPacket`), as {@link Document.replaceXmpPacket}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   replaceXmpPacket(xml: string): this {
     return this.apply(replaceXmpPacketOp(xml));
@@ -345,7 +345,7 @@ export class Transaction {
    *
    * @param patch - as {@link Document.setInitialView}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   setInitialView(patch: InitialViewPatch): this {
     return this.apply(setInitialViewOp(patch));
@@ -356,7 +356,7 @@ export class Transaction {
    *
    * @param options - as {@link Document.insertBlankPages}: `rotate`.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   insertBlankPages(at: PagePosition, count: number, size: PageSize, options?: InsertBlankPagesOptions): this {
     return this.apply(insertBlankPagesOp(at, count, size, options));
@@ -367,7 +367,7 @@ export class Transaction {
    *
    * @param options - as {@link Document.deletePages}: `references`.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   deletePages(pages: readonly string[], options?: DeletePagesOptions): this {
     return this.apply(deletePagesOp(pages, options));
@@ -376,7 +376,7 @@ export class Transaction {
   /**
    * Moves `pages`, by ID and in the order given, to `to` (`movePages`).
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   movePages(pages: readonly string[], to: PagePosition): this {
     return this.apply(movePagesOp(pages, to));
@@ -387,7 +387,7 @@ export class Transaction {
    *
    * @param options - as {@link Document.rotatePages}: `mode`.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   rotatePages(pages: readonly string[], angle: Rotation, options?: RotatePagesOptions): this {
     return this.apply(rotatePagesOp(pages, angle, options));
@@ -396,7 +396,7 @@ export class Transaction {
   /**
    * Reverses the order of `pages`, by ID, among the places they hold (`reversePages`).
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   reversePages(pages: readonly string[]): this {
     return this.apply(reversePagesOp(pages));
@@ -406,7 +406,7 @@ export class Transaction {
    * Copies `pages`, by ID and in the order given, to `at` (`duplicatePages`), as
    * {@link Document.duplicatePages}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   duplicatePages(pages: readonly string[], at: PagePosition): this {
     return this.apply(duplicatePagesOp(pages, at));
@@ -435,7 +435,7 @@ export class Transaction {
   /**
    * Replaces the document's page labels (`setPageLabels`), as {@link Document.setPageLabels}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   setPageLabels(ranges: readonly PageLabelRange[]): this {
     return this.apply(setPageLabelsOp(ranges));

@@ -114,7 +114,7 @@ impl PendingChanges {
     /// while any of them is still a page: like the rest of these changes, the set only grows
     /// until a save, so an undone duplication stays listed.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn tags_incomplete(&self) -> &BTreeSet<PageId> {
         &self.tags_incomplete

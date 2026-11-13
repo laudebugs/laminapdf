@@ -17,7 +17,7 @@ use crate::error::Result;
 
 /// What duplicating or copying in a page did to one form field whose widget the page shows.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct FieldChange {
@@ -31,7 +31,7 @@ pub struct FieldChange {
 
 /// What happened to a field when the page showing its widget was duplicated or copied in.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum FieldOutcome {
