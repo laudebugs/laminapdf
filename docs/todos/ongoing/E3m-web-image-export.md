@@ -11,7 +11,7 @@
 | Branch | `feat/e3m-web-image-export` |
 | PR title | `feat(sdk,viewer): images to PDF and page export in TypeScript and the web reader` |
 | Size | L (400–800): a binding and its example, the worker's export call, and a small WebAssembly module for TIFF |
-| PR | — |
+| PR | [#541](https://github.com/laudebugs/laminapdf/pull/541) |
 
 ## Goal
 
