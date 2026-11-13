@@ -157,6 +157,27 @@ fn a_notes_popup_opens_beside_it_at_every_rotation() {
 }
 
 #[test]
+fn a_popup_clears_its_icon_on_a_page_with_a_user_unit() {
+    let bytes = laminapdf_test_fixtures::classic_with_root(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 400] /UserUnit 2 >>",
+        ],
+        "",
+    );
+    let mut doc = Document::open_bytes(bytes, OpenOptions::default()).unwrap();
+    let op = doc
+        .note_at(0, PointPt::from_points(100.0, 100.0), "Check", NoteIcon::Note)
+        .unwrap();
+    doc.apply(vec![op.into()]).unwrap();
+    let annots = doc.page_annotations(0).unwrap();
+    let note = annots.iter().find(|a| a.subtype == "Text").unwrap().rect.unwrap();
+    let popup = annots.iter().find(|a| a.subtype == "Popup").unwrap().rect.unwrap();
+    assert!(near(popup.x0, note.x1), "{note:?} {popup:?}");
+}
+
+#[test]
 fn a_popup_near_the_right_edge_opens_left_of_its_note() {
     let mut doc = turned(0);
     let op = doc

@@ -24,12 +24,12 @@ const fn default_color(kind: MarkupKind) -> DeviceColor {
 type Quad = [UserSpacePoint; 4];
 
 /// The appearance of a text-markup annotation over `quads`; `None` when there are none.
-pub(crate) fn markup(style: MarkupKind, quads: &[Quad], paint: &Paint) -> Option<Drawn> {
+pub(crate) fn markup(kind: MarkupKind, quads: &[Quad], paint: &Paint) -> Option<Drawn> {
     let bbox = bounds(quads.iter().flatten().copied(), 0.0)?;
-    let color = paint.color_or(default_color(style));
-    let mut drawn = Drawn::new(bbox, paint.opacity, style == MarkupKind::Highlight);
+    let color = paint.color_or(default_color(kind));
+    let mut drawn = Drawn::new(bbox, paint.opacity, kind == MarkupKind::Highlight);
     let c = &mut drawn.content;
-    match style {
+    match kind {
         MarkupKind::Highlight => {
             color.fill(c);
             for [ul, ur, ll, lr] in quads {
@@ -44,7 +44,7 @@ pub(crate) fn markup(style: MarkupKind, quads: &[Quad], paint: &Paint) -> Option
         MarkupKind::Underline | MarkupKind::StrikeOut | MarkupKind::Squiggly => {
             color.stroke(c);
             for quad in quads {
-                line(c, style, &Frame::of(quad));
+                line(c, kind, &Frame::of(quad));
             }
         }
     }
@@ -93,12 +93,12 @@ impl Frame {
 
 /// Underline, strike-out or squiggly along one quad, its width a fourteenth of the text's
 /// height (at least half a point), kept inside the quad.
-fn line(c: &mut pdf_writer::Content, style: MarkupKind, f: &Frame) {
+fn line(c: &mut pdf_writer::Content, kind: MarkupKind, f: &Frame) {
     let width = (f.height / 14.0).max(0.5);
     c.set_line_width(n(width));
-    match style {
+    match kind {
         MarkupKind::Underline | MarkupKind::StrikeOut => {
-            let t = if style == MarkupKind::Underline {
+            let t = if kind == MarkupKind::Underline {
                 width / 2.0
             } else {
                 f.height / 2.0
@@ -151,8 +151,8 @@ mod tests {
         intent: None,
     };
 
-    fn text(style: MarkupKind, quads: &[Quad]) -> String {
-        String::from_utf8(markup(style, quads, &PAINT).unwrap().content()).unwrap()
+    fn text(kind: MarkupKind, quads: &[Quad]) -> String {
+        String::from_utf8(markup(kind, quads, &PAINT).unwrap().content()).unwrap()
     }
 
     #[test]

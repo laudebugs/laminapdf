@@ -9,8 +9,8 @@ use pdf_writer::Content;
 use super::{DeviceColor, Drawn, Paint};
 use crate::surface::n;
 
-/// The side of an icon's square, in points.
-pub(crate) const ICON: f64 = 20.0;
+/// The side of an icon's square, in points: the note's, which places its Popup beside it.
+const ICON: f64 = laminapdf_ops::Note::ICON;
 
 /// Bézier control-point distance for a quarter circle of radius 1.
 const KAPPA: f64 = 0.552_284_75;
@@ -103,11 +103,16 @@ pub(crate) fn note_icon(icon: NoteIcon, x: f64, y: f64, paint: &Paint) -> Drawn 
     drawn
 }
 
-/// The appearance of a caret filling `rect`: two sides bowed in a little, meeting at the top. With a paragraph sign, the caret takes the lower half and the sign the upper.
-pub(crate) fn caret(style: CaretSymbol, rect: UserSpaceRect, paint: &Paint) -> Drawn {
+/// The appearance of a caret filling `rect`: two sides bowed in a little, meeting at the top.
+/// With a paragraph sign, the caret takes the lower half and the sign the upper.
+pub(crate) fn caret(symbol: CaretSymbol, rect: UserSpaceRect, paint: &Paint) -> Drawn {
+    let paragraph = match symbol {
+        CaretSymbol::None => false,
+        CaretSymbol::Paragraph => true,
+    };
     let mut drawn = Drawn::new(rect, paint.opacity, false);
     let (w, h) = (rect.width(), rect.height());
-    let caret_h = if style == CaretSymbol::Paragraph { h / 2.0 } else { h };
+    let caret_h = if paragraph { h / 2.0 } else { h };
     let mut pen = Pen {
         c: &mut drawn.content,
         x: rect.x0,
@@ -121,7 +126,7 @@ pub(crate) fn caret(style: CaretSymbol, rect: UserSpaceRect, paint: &Paint) -> D
     pen.curve_to(mid * 1.15, caret_h * 0.6, mid * 1.45, caret_h * 0.2, w, 0.0);
     pen.c.close_path();
     pen.c.fill_nonzero();
-    if style == CaretSymbol::Paragraph {
+    if paragraph {
         let blue = paint.color_or(DeviceColor::Rgb(0.0, 0.0, 1.0));
         blue.stroke(pen.c);
         pen.c.set_line_width(n((w / 12.0).max(0.3)));

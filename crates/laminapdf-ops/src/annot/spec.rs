@@ -152,8 +152,10 @@ pub struct Note {
 }
 
 impl Note {
-    /// The side of the icon, in points.
-    pub(crate) const ICON: f64 = 20.0;
+    /// The side of a note's icon, in points.
+    ///
+    /// Added in 0.3.0.
+    pub const ICON: f64 = 20.0;
     /// The Popup's width and height, in points, as the page is shown.
     pub(crate) const POPUP: (f64, f64) = (180.0, 120.0);
 

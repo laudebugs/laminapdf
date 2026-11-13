@@ -302,7 +302,8 @@ fn popup_rect(frame: &PageFrame, note: &Note) -> UserSpaceRect {
     let at = frame.to_page(note.at);
     let (w, h) = Note::POPUP;
     let (page_w, page_h) = (frame.width().get(), frame.height().get());
-    let right = at.x.get() + Note::ICON;
+    // The icon is `ICON` user units wide, which a `/UserUnit` page shows larger.
+    let right = at.x.get() + Note::ICON * frame.user_unit();
     let x = if right + w <= page_w {
         right
     } else {
@@ -317,10 +318,7 @@ fn popup_rect(frame: &PageFrame, note: &Note) -> UserSpaceRect {
 /// The frame of the page `id`.
 fn page_frame(doc: &laminapdf_model::Document, id: &PageId) -> Result<PageFrame> {
     let pages = doc.pages()?;
-    let page = pages
-        .iter()
-        .find(|p| p.id() == id)
-        .ok_or_else(|| Error::UnknownPage(id.clone()))?;
+    let page = pages.by_id(id).ok_or_else(|| Error::UnknownPage(id.clone()))?;
     Ok(page.frame()?)
 }
 

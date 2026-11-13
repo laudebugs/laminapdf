@@ -62,7 +62,7 @@ fn draw(spec: &AnnotSpec, paint: &Paint) -> Drawn {
     let empty = || Drawn::new(UserSpaceRect::from_corners(0.0, 0.0, 0.0, 0.0), 1.0, false);
     match spec {
         AnnotSpec::TextMarkup(m) => markup(m.kind, &m.quads, paint).unwrap_or_else(empty),
-        AnnotSpec::Note(n) => note_icon(n.icon, n.at.x, n.at.y - note::ICON, paint),
+        AnnotSpec::Note(n) => note_icon(n.icon, n.at.x, n.at.y - laminapdf_ops::Note::ICON, paint),
         AnnotSpec::Caret(c) => caret(c.symbol, c.rect, paint),
         _ => empty(),
     }
@@ -83,6 +83,7 @@ impl DeviceColor {
             AnnotColor::Gray(g) => Some(Self::Gray(g)),
             AnnotColor::Rgb(r, g, b) => Some(Self::Rgb(r, g, b)),
             AnnotColor::Cmyk(c, m, y, k) => Some(Self::Cmyk(c, m, y, k)),
+            // A colour space this version doesn't know draws in the mark's own colour.
             _ => None,
         }
     }
@@ -151,7 +152,9 @@ impl Paint {
         match self.intent {
             Some(IntentSpace::Cmyk) => color.to_cmyk(),
             Some(IntentSpace::Rgb) => color.to_rgb(),
-            _ => color,
+            None => color,
+            // An intent space this version doesn't know: the colour as given, the closest it can do.
+            Some(_) => color,
         }
     }
 
