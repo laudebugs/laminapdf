@@ -10,7 +10,8 @@
 //! one bump changes both, and no workflow or action but `.github/actions/install-tools` runs
 //! install-action, so its pin lives in one place. cli-release.yml publishes
 //! only on a CLI tag push with the owner's variable, in the `release` environment, with no stored
-//! secret, from GitHub-hosted runners only (todo L4d). Both lanes cancel a superseded run (X9d);
+//! secret, from GitHub-hosted runners only (todo L4d). Both lanes cancel a superseded run (X9d),
+//! and cancel-merged.yml cancels a merged PR's unfinished runs without running its code;
 //! ci.yml checks Rust on macOS x64 only on pushes to main, and the nightly checks it too (X9a);
 //! each job runs on the `changes` flag its gate holds it to (X9b, X9c); and every workflow
 //! installs the cargo-nextest and cargo-deny that `doctor.rs` pins.
@@ -205,6 +206,7 @@ mod tests {
     const CLI_RELEASE: &str = include_str!("../../../.github/workflows/cli-release.yml");
     const WEB_DEPLOY: &str = include_str!("../../../.github/workflows/web-deploy.yml");
     const CLI_TRAIN: &str = include_str!("../../release/cli-release-train.yml");
+    const CANCEL_MERGED: &str = include_str!("../../../.github/workflows/cancel-merged.yml");
 
     #[test]
     fn fast_gate_should_need_every_ci_job() {
@@ -704,6 +706,44 @@ mod tests {
             .map(|workflow| top_level_value(workflow, "concurrency", "cancel-in-progress:"))
             .collect();
         assert_eq!(values, [Some("true".to_owned()), Some("true".to_owned())]);
+    }
+
+    /// A merged PR's runs that haven't finished are cancelled, its own branch's only, never this run.
+    /// `pull_request_target` gives the token its write access even for a fork's PR, so the
+    /// workflow must run none of the PR's code and must never put an event field in its script.
+    #[test]
+    fn a_merged_prs_unfinished_runs_should_be_cancelled_without_running_its_code() {
+        let trigger = lines_of(CANCEL_MERGED, "on", "pull_request_target").join("\n");
+        assert!(
+            trigger.contains("types: [closed]"),
+            "the workflow runs when a PR closes"
+        );
+        let job = lines_of(CANCEL_MERGED, "jobs", "cancel").join("\n");
+        for part in [
+            "if: github.event.pull_request.merged == true",
+            "-f event=pull_request -f branch=\"$HEAD_REF\"",
+            ".status != \"completed\"",
+            ".head_repository.full_name == $repo",
+            ".id != $self",
+            "actions/runs/$run/cancel",
+        ] {
+            assert!(job.contains(part), "the cancel job lacks {part}");
+        }
+        assert!(!CANCEL_MERGED.contains("actions/checkout"), "the PR's code never runs");
+        let script = job.split_once("run: |").map_or("", |(_, script)| script);
+        assert!(
+            !script.contains("${{"),
+            "event fields reach the script only through environment variables"
+        );
+        assert_eq!(
+            section_lines(CANCEL_MERGED, "permissions")
+                .iter()
+                .map(|line| line.trim())
+                .filter(|line| !line.is_empty() && !line.starts_with('#'))
+                .collect::<Vec<_>>(),
+            ["actions: write"],
+            "the token may cancel runs and nothing else"
+        );
     }
 
     #[test]

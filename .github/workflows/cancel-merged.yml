@@ -1,0 +1,47 @@
+# Once a pull request merges, its runs still queued or running test a branch that is done: the
+# push to main runs the lanes again on the merged code. This cancels them, so they stop holding
+# runners the push to main and other PRs wait for. A PR closed without merging keeps its runs.
+#
+# `pull_request_target` runs main's copy of this file with a token that may cancel runs, also for a
+# PR from a fork. It checks nothing out and runs none of the PR's code: it reads only the event's
+# fields, through environment variables, never interpolated into the script.
+name: Cancel a merged PR's runs
+
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  actions: write
+
+jobs:
+  cancel:
+    name: Cancel the merged PR's runs
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Cancel its queued and running runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          SELF: ${{ github.run_id }}
+        run: |
+          # The PR's runs: pull_request runs on its branch, from its repository (a fork may have a
+          # branch of the same name), not finished, and not this run.
+          gh api --paginate --method GET "repos/$REPO/actions/runs" \
+            -f event=pull_request -f branch="$HEAD_REF" -F per_page=100 \
+            | jq -r --arg repo "$HEAD_REPO" --argjson self "$SELF" '.workflow_runs[]
+              | select(.status != "completed" and .head_repository.full_name == $repo and .id != $self)
+              | .id' > runs.txt
+          cancelled=0
+          while read -r run; do
+            # A run that finished meanwhile can't be cancelled (409): that is fine.
+            if gh api --method POST "repos/$REPO/actions/runs/$run/cancel" --silent; then
+              cancelled=$((cancelled + 1))
+              echo "Cancelled run $run"
+            fi
+          done < runs.txt
+          echo "Cancelled $cancelled of $(wc -l < runs.txt) runs of $HEAD_REPO:$HEAD_REF." >> "$GITHUB_STEP_SUMMARY"
