@@ -114,6 +114,9 @@ pub struct Edited {
     ///
     /// [`SaveMode::FullRewrite`]: crate::SaveMode::FullRewrite
     pub still_in_earlier_revisions: bool,
+    /// The IDs of annotations an annotation op deleted besides the one it names: Popups,
+    /// replies and the rest of a group.
+    pub also_deleted: Vec<String>,
     /// Whether the edit changed the document. One that only set values they already had
     /// changes nothing and leaves no step to undo.
     pub changed: bool,
@@ -475,6 +478,7 @@ impl Document {
             touched_pages: applied.touched_pages.into_iter().collect(),
             packet_rewritten: applied.packet_rewritten,
             still_in_earlier_revisions: applied.still_in_earlier_revisions,
+            also_deleted: applied.also_deleted.iter().map(ToString::to_string).collect(),
             changed,
             page_order: applied.page_order,
             references: applied.references.into_iter().map(ReferenceEdit::from_change).collect(),

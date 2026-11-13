@@ -479,3 +479,36 @@ fn planning_is_refused_while_a_transaction_is_open() {
         Some(laminapdf_save::SaveError::Ops(laminapdf_ops::Error::NestedTransaction))
     );
 }
+
+#[test]
+fn the_annotation_ops_are_refused_only_by_a_p1_or_p2_certification() {
+    let id: laminapdf_model::AnnotId = "a1.0".parse().unwrap();
+    let ops: [laminapdf_ops::Op; 2] = [
+        laminapdf_ops::UpdateAnnot::new(id.clone()).into(),
+        laminapdf_ops::DeleteAnnot::new(id).into(),
+    ];
+    let verdicts: Vec<(&str, [usize; 2])> = [
+        "approval.pdf",
+        "certified-p1.pdf",
+        "certified-p2.pdf",
+        "certified-p3.pdf",
+        "locked.pdf",
+    ]
+    .into_iter()
+    .map(|name| {
+        let doc = signed(name);
+        let p = planner(&doc);
+        (name, [p.would_violate(&ops[0]).len(), p.would_violate(&ops[1]).len()])
+    })
+    .collect();
+    assert_eq!(
+        verdicts,
+        [
+            ("approval.pdf", [0, 0]),
+            ("certified-p1.pdf", [1, 1]),
+            ("certified-p2.pdf", [1, 1]),
+            ("certified-p3.pdf", [0, 0]),
+            ("locked.pdf", [0, 0]),
+        ]
+    );
+}

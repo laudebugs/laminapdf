@@ -7,6 +7,7 @@
 use laminapdf_model::PageId;
 use serde::{Deserialize, Deserializer, Serialize};
 
+use crate::annot::{DeleteAnnot, UpdateAnnot};
 use crate::class::ModificationClass;
 use crate::error::{Error, Result};
 use crate::info::SetInfo;
@@ -70,6 +71,10 @@ pub enum Op {
     /// log can name it.
     #[serde(skip)]
     UpdateSaveMetadata(UpdateSaveMetadata),
+    /// Change an annotation's common entries, or move it.
+    UpdateAnnot(UpdateAnnot),
+    /// Delete an annotation with its Popup, replies and group.
+    DeleteAnnot(DeleteAnnot),
     /// An op that declares the widgets it touches, for the save planner's tests
     /// ([`test_support::Declared`](crate::test_support::Declared)); never on the wire.
     #[cfg(feature = "test-support")]
@@ -93,6 +98,7 @@ impl Op {
             | Self::MovePages(_)
             | Self::RotatePages(_)
             | Self::ReversePages(_) => ModificationClass::PageStructure,
+            Self::UpdateAnnot(_) | Self::DeleteAnnot(_) => ModificationClass::Annotation,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.class(),
         }
@@ -114,7 +120,9 @@ impl Op {
             | Self::DeletePages(_)
             | Self::MovePages(_)
             | Self::RotatePages(_)
-            | Self::ReversePages(_) => false,
+            | Self::ReversePages(_)
+            | Self::UpdateAnnot(_)
+            | Self::DeleteAnnot(_) => false,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.requires_rewrite(),
         }
@@ -136,7 +144,9 @@ impl Op {
             | Self::SetMetadata(_)
             | Self::RemoveMetadata(_)
             | Self::UpdateSaveMetadata(_)
-            | Self::InsertBlankPages(_) => Vec::new(),
+            | Self::InsertBlankPages(_)
+            | Self::UpdateAnnot(_)
+            | Self::DeleteAnnot(_) => Vec::new(),
             Self::RotatePage(op) => vec![PageChange::new(op.page.clone(), WidgetChange::Reshown)],
             Self::RotatePages(op) => each(&op.pages, WidgetChange::Reshown),
             Self::DeletePages(op) => each(&op.pages, WidgetChange::Deleted),
@@ -170,6 +180,8 @@ impl Op {
             Self::SetMetadata(op) => op.apply_to(doc),
             Self::RemoveMetadata(op) => op.apply_to(doc),
             Self::UpdateSaveMetadata(op) => op.apply_to(doc),
+            Self::UpdateAnnot(op) => op.apply_to(doc),
+            Self::DeleteAnnot(op) => op.apply_to(doc),
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.apply_to(doc, self.class()),
         }
@@ -184,8 +196,10 @@ pub(crate) struct Effect {
     /// It rewrote the XMP packet whole, losing its layout and comments
     /// ([`Written::canonical`](laminapdf_model::xmp::Written::canonical)).
     pub(crate) packet_rewritten: bool,
-    /// It removed metadata that the file's earlier revisions still hold.
+    /// It removed something that the file's earlier revisions still hold.
     pub(crate) removed: bool,
+    /// Annotations it deleted besides the one it names (Popups, replies, a group).
+    pub(crate) also_deleted: Vec<laminapdf_model::AnnotId>,
     /// The form fields whose widgets it deleted, reshowed or moved.
     pub(crate) widgets: Vec<TouchedWidget>,
     /// The page IDs in order, when it changed the page list.
@@ -228,7 +242,7 @@ macro_rules! op_from {
     };
 }
 
-op_from!(InsertBlankPages, DeletePages, MovePages, RotatePages, ReversePages);
+op_from!(InsertBlankPages, DeletePages, MovePages, RotatePages, ReversePages, UpdateAnnot, DeleteAnnot);
 
 impl From<RotatePage> for Op {
     fn from(op: RotatePage) -> Self {

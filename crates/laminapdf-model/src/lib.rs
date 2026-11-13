@@ -68,6 +68,7 @@
 //! [ADR 0003]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0003-reader-tolerance-and-limits.md
 #![forbid(unsafe_code)]
 
+mod annot;
 mod copy;
 mod date;
 mod disclosure;
@@ -96,6 +97,7 @@ mod values;
 mod widgets;
 pub mod xmp;
 
+pub use annot::{Annot, AnnotFlags, AnnotGeometry, AnnotLink, AnnotSubtype, ReplyType};
 pub use copy::{Copied, ObjectCopier};
 pub use date::{InvalidDate, PdfDate};
 pub use disclosure::{

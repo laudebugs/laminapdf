@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E4 plan §2.1](../../plans/editor/e4-markup-and-drawing-annotations.md#21-ops) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [C5b](../done/C5b-find-in-document.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4b](./E4b-annotation-model-and-overlay.md) |
+| Depends on | [C5b](../done/C5b-find-in-document.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4b](../done/E4b-annotation-model-and-overlay.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e4c-appearances-markup-notes-caret` |
 | PR title | `feat(build): text markup, notes and caret annotations with their appearances` |
@@ -28,6 +28,7 @@ Highlight, underline, strike-through and squiggly annotations from glyph quads, 
 
 **In scope**
 
+- From [E4b](../done/E4b-annotation-model-and-overlay.md): `AddAnnot`'s common part (`AnnotCommon`, `/P`, `/F` with Print, `/NM`, `/M`) and the `Appearances` trait (`Document::with_appearances`; `appearance-unavailable` without one) with the builder's implementation ([E4 plan §2.2](../../plans/editor/e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated)); in tagged files the new `Annot` element through E2j's number-tree writer, `/Tabs /S`, `annot-without-contents` and `annot-not-tagged`, with E3c's pyHanko check on the certified-P3 fixture if E3c hasn't run it; `pdfa-annot-flags`; usage rights checked per op (`/Create`, `/Modify`, `/Delete`) once E2i adds the usage-rights file; and the recipe that highlights text and leaves a note, in Rust and TypeScript
 - Specs `TextMarkup`, `Note` and `Caret`; the generators: highlight (Multiply through an ExtGState in the appearance), underline, strike-out, squiggly, the seven note icons (Note, Comment, Key, Help, Paragraph, NewParagraph, Insert), the caret
 - Quads written in the order pdf.js, PDFium and Acrobat expect, read in either order
 - The façade's `replace_text` (a StrikeOut and a Caret grouped in one transaction); the group's primary member and where the replacement text lives checked against an Acrobat-made reference file, or the pdf.js corpus's `annotation-caret-ink.pdf` until one arrives

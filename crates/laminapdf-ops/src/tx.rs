@@ -81,6 +81,9 @@ pub struct Applied {
     /// A metadata op removed values that the file's earlier revisions still hold: an
     /// incremental save keeps them in the file, a full rewrite drops them.
     pub still_in_earlier_revisions: bool,
+    /// Annotations an annotation op deleted besides the one it names: Popups, replies and the
+    /// rest of a group.
+    pub also_deleted: Vec<laminapdf_model::AnnotId>,
     /// The form fields whose widgets it deleted, reshowed or moved, which the save planner
     /// checks against signed signature fields and field locks (E2 plan §6).
     ///
@@ -115,6 +118,7 @@ pub(crate) struct TxState {
     pub(crate) page_order: Option<Vec<PageId>>,
     /// The references the ops so far retargeted or removed.
     pub(crate) references: Vec<ReferenceChange>,
+    pub(crate) also_deleted: Vec<laminapdf_model::AnnotId>,
 }
 
 /// An open transaction ([ADR 0006] §2), handed to the closure of
@@ -173,6 +177,7 @@ impl Tx<'_> {
             touched_pages: effect.pages.into_iter().collect(),
             packet_rewritten: effect.packet_rewritten,
             still_in_earlier_revisions: effect.removed,
+            also_deleted: effect.also_deleted,
             widgets: effect.widgets,
             page_order: effect.page_order,
             references: effect.references,
@@ -198,6 +203,7 @@ impl Tx<'_> {
                     self.state.page_order.clone_from(&effect.page_order);
                 }
                 self.state.references.extend(effect.references.iter().cloned());
+                self.state.also_deleted.extend(effect.also_deleted.iter().cloned());
                 Ok(effect)
             }
             Err(e) => {
@@ -281,6 +287,7 @@ mod tests {
             removed: false,
             page_order: None,
             references: Vec::new(),
+            also_deleted: Vec::new(),
         }
     }
 

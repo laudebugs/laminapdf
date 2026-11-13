@@ -54,6 +54,9 @@ export type ErrorCode =
   | "unknown-source"
   | "no-pages-left"
   | "invalid-op"
+  | "unknown-annotation"
+  | "annotation-locked"
+  | "annotation-not-editable"
   | "sink"
   | "not-rebased"
   | "sink-not-empty"
@@ -174,6 +177,7 @@ export type WarningCode =
   | "outline-item-skipped"
   | "invalid-date"
   | "xmp-invalid"
+  | "annot-name-duplicate"
   | "xmp-repaired"
   | "invalid-page-label"
   | "invalid-entry"
@@ -266,6 +270,9 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "unknown-source",
   "no-pages-left",
   "invalid-op",
+  "unknown-annotation",
+  "annotation-locked",
+  "annotation-not-editable",
   "sink",
   "not-rebased",
   "sink-not-empty",
@@ -387,6 +394,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "outline-item-skipped",
   "invalid-date",
   "xmp-invalid",
+  "annot-name-duplicate",
   "xmp-repaired",
   "invalid-page-label",
   "invalid-entry",
@@ -450,6 +458,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "outline-item-skipped": "input",
   "invalid-date": "input",
   "xmp-invalid": "input",
+  "annot-name-duplicate": "input",
   "xmp-repaired": "input",
   "invalid-page-label": "input",
   "invalid-entry": "input",
@@ -505,6 +514,9 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "unknown-source": "usage",
   "no-pages-left": "usage",
   "invalid-op": "usage",
+  "unknown-annotation": "usage",
+  "annotation-locked": "state",
+  "annotation-not-editable": "unsupported",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
   "pdfa-info-mismatch": "input",
@@ -637,6 +649,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "outline-item-skipped": "check the outline: the skipped item and its children are missing",
   "invalid-date": "read the raw value from the Info view if you need it",
   "xmp-invalid": "nothing to do; a metadata edit asks before replacing it",
+  "annot-name-duplicate": "nothing to do; both are kept, and annotations are told apart by their own IDs",
   "xmp-repaired": "nothing to do; a metadata edit writes the declarations the packet left out",
   "invalid-page-label": "nothing to do; affected pages fall back to decimal labels",
   "invalid-entry": "nothing to do; the view uses the entry's default",
@@ -692,6 +705,9 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "unknown-source": "add the source document's bytes with addSource before applying ops that name it",
   "no-pages-left": "keep at least one page: delete all but one, or insert a blank page first",
   "invalid-op": "insert between 1 and 10,000 pages at a time, each with a width and height above 0 and up to 14,400 points",
+  "unknown-annotation": "read the page's annotations again and use an ID from that list",
+  "annotation-locked": "clear the lock with an update of its flags first, if you may",
+  "annotation-not-editable": "edit a widget through its form field; an annotation stored inside the page's list can't be edited yet",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",

@@ -100,6 +100,7 @@
 //! [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
 #![forbid(unsafe_code)]
 
+mod annotations;
 #[cfg(feature = "build")]
 mod builder;
 mod codes;
@@ -146,6 +147,7 @@ mod warning;
 #[cfg(test)]
 use laminapdf_test_fixtures::codes as test_codes;
 
+pub use annotations::{AnnotationGeometry, PageAnnotation};
 pub use document::{Document, DocumentInfo, Edited, PageInfo, ReferenceEdit, ReferenceEditKind, Saved};
 pub use error::{CoreError, Error, Result};
 #[cfg(feature = "explain")]
@@ -174,12 +176,13 @@ pub use redaction::RedactionWarning;
 pub use warning::{Warning, WarningCursor};
 
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};
-pub use laminapdf_model::{PageId, PagePosition, PageSize, PdfDate, PointPt, Pt, RectPt, Rotation};
+pub use laminapdf_model::{AnnotId, PageId, PagePosition, PageSize, PdfDate, PointPt, Pt, RectPt, Rotation};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use laminapdf_ops::{
-    ConformanceWarning, DeletePages, DocumentMetadata, InfoPatch, InsertBlankPages, MetadataKey, MetadataPatch,
-    MetadataSource, ModificationClass, MovePages, Op, OpLog, PacketStatus, ReferenceOutcome, ReferencePolicy,
+    ConformanceWarning, DeleteAnnot, DeletePages, DocumentMetadata, InfoPatch, InsertBlankPages, MetadataKey, MetadataPatch,
+    MetadataSource, ModificationClass, MovePages, Offset, Op, OpLog, PacketStatus, ReferenceOutcome, ReferencePolicy,
     RemoveMetadata, ReversePages, Reverted, RotateMode, RotatePage, RotatePages, SetInfo, SetMetadata, UndoOutcome,
+    UpdateAnnot,
 };
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,
