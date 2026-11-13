@@ -9,6 +9,8 @@
     },
     "openai": {
       "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "maxTokens": 16000,
       "maxSearches": 5
     }
   },

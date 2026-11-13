@@ -6,7 +6,7 @@ The [discoverability plan](../../docs/plans/discoverability.md) uses it to tell 
 
 ## Run it
 
-You need Node 22 or later and credentials for the engine you ask: an Anthropic key for Claude, or an OpenAI key for OpenAI.
+You need Node 22.21 or 24.5 or later (the first that read `NODE_USE_ENV_PROXY`) and credentials for the engine you ask: an Anthropic key for Claude, or an OpenAI key for OpenAI.
 
 ```sh
 pnpm --dir tools/answer-check install --frozen-lockfile   # its own pnpm project, outside the workspace
@@ -25,13 +25,13 @@ The credentials are read from the environment (or, for Claude, an `ant auth logi
 
 `config.json` pins the settings that make two runs comparable:
 
-- the default engine (`openai`, the one the baseline asked), and for each engine its model and at most five searches per answer: Claude is `claude-opus-5-5` at effort `medium` with the `web_search_20260209` tool; OpenAI is `gpt-6.1-sol` with the `web_search` tool, its sources included;
+- the default engine (`openai`, the one the baseline asked), and for each engine its model and at most five searches per answer: Claude is `claude-opus-5-5` at effort `medium` with the `web_search_20260209` tool; OpenAI is `gpt-6.1-sol` at reasoning effort `medium` with at most 16,000 output tokens and the `web_search` tool, its sources included;
 - three runs per question;
 - what counts as Lamina PDF: its names (`Lamina PDF`, `LaminaPDF`, `laminapdf`, `@laminapdf/`), its domain and subdomains, and its pages on GitHub, npm, crates.io, lib.rs and docs.rs.
 
 URLs are matched without the scheme, `www.`, query, fragment or case.
 
-Each request holds the question alone, with no system prompt. When Claude's server pauses a turn after many searches, the tool resumes it, at most three times. OpenAI is asked in background mode: the request returns at once, and the tool reads the response every three seconds until it is done, so no single HTTP request lasts as long as the answer takes. A proxy that cuts long requests off (the first baseline run met one at 30 seconds) can't stop a run that way. A failed call is sent again up to three times.
+Each request holds the question alone, with no system prompt. When Claude's server pauses a turn after many searches, the tool resumes it, at most three times. OpenAI is asked in background mode: the request returns at once, and the tool reads the response every three seconds until it is done, so no single HTTP request lasts as long as the answer takes. A proxy that cuts long requests off (the first baseline run met one at 30 seconds) can't stop a run that way. A read that fails for a passing reason is sent again up to three times; the request that starts an answer is sent once, so a lost reply can't start a second, billed answer. An answer still running after ten minutes is cancelled, and a failed or cancelled answer stops the run.
 
 Claude's requests also opt into the API's fallback model: if the pinned model declines a question, another model answers it instead. The answer records which model served it, and the report counts those answers apart, since a run with more of them isn't comparable with one with fewer.
 

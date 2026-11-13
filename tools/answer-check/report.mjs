@@ -210,9 +210,17 @@ function urlsIn(value, into) {
 
 /**
  * Why an answer counts as failed: a refusal, an unfinished turn, a cut-off text or a failed search.
- * Claude's stop reasons, then OpenAI's: an `incomplete` response's reason, or a `failed` one.
+ * Claude's stop reasons, then OpenAI's: an `incomplete` response's reason, or a `failed` or `cancelled` one.
  */
-const UNFINISHED = new Set(["refusal", "pause_turn", "max_tokens", "max_output_tokens", "content_filter", "failed"]);
+const UNFINISHED = new Set([
+  "refusal",
+  "pause_turn",
+  "max_tokens",
+  "max_output_tokens",
+  "content_filter",
+  "failed",
+  "cancelled",
+]);
 
 /**
  * Per question, how many runs mentioned, surfaced and cited Lamina PDF, and the hosts its answers

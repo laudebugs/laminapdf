@@ -22,6 +22,8 @@ const FALLBACK_BETA = "server-side-fallback-2026-07-01";
 const RETRIES = 3;
 /** The engines the check can ask. */
 const ENGINES = ["claude", "openai"];
+/** Asks the Responses API for the pages each web search returned; every read of a response needs it. */
+const SOURCES = "web_search_call.action.sources";
 
 /**
  * @typedef {object} ClaudeSettings
@@ -32,6 +34,8 @@ const ENGINES = ["claude", "openai"];
  *
  * @typedef {object} OpenAISettings
  * @property {string} model
+ * @property {"low" | "medium" | "high"} effort - the response's `reasoning.effort`
+ * @property {number} maxTokens - the response's `max_output_tokens`
  * @property {number} maxSearches - the response's `max_tool_calls`
  *
  * @typedef {object} Config
@@ -68,7 +72,8 @@ export function parseArgs(argv) {
 
 /** @param {string | undefined} value - `--engine`'s value */
 function engineName(value) {
-  if (value !== "claude" && value !== "openai") throw new Error(`--engine takes one of ${ENGINES.join(", ")}`);
+  if (value !== "claude" && value !== "openai")
+    throw new Error(`the engine is one of ${ENGINES.join(", ")}, not ${value}`);
   return value;
 }
 
@@ -118,9 +123,11 @@ export function claudeRequest(settings, question) {
 export function openaiRequest(settings, question) {
   return {
     model: settings.model,
+    reasoning: { effort: settings.effort },
+    max_output_tokens: settings.maxTokens,
     tools: [{ type: "web_search" }],
     max_tool_calls: settings.maxSearches,
-    include: ["web_search_call.action.sources"],
+    include: [SOURCES],
     background: true,
     input: question,
   };
@@ -187,7 +194,10 @@ export function openaiRaw(response) {
     usage: {
       inputTokens: response.usage?.input_tokens ?? 0,
       outputTokens: response.usage?.output_tokens ?? 0,
-      searches: output.filter((/** @type {any} */ item) => item.type === "web_search_call").length,
+      // Searches only: a web_search_call item may also open a page or find text in one.
+      searches: output.filter(
+        (/** @type {any} */ item) => item.type === "web_search_call" && item.action?.type === "search",
+      ).length,
     },
   };
 }
@@ -204,41 +214,53 @@ export function openaiRaw(response) {
 async function askOpenAI(params) {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error("set OPENAI_API_KEY to ask OpenAI");
-  let body = await callWithRetries(key, "POST", "responses", params);
+  // The POST is sent once: a retry after a lost answer could start a second response, billed too.
+  const created = await callOnce(key, "POST", "responses", params);
+  if (created.body === undefined) throw new Error(created.error);
+  let body = created.body;
   const started = Date.now();
-  while (body.status === "queued" || body.status === "in_progress") {
-    if (Date.now() - started > ANSWER_TIMEOUT_MS) throw new Error(`OpenAI's response ${body.id} took over 10 minutes`);
-    await sleep(POLL_MS);
-    body = await callWithRetries(key, "GET", `responses/${body.id}`);
+  try {
+    while (body.status === "queued" || body.status === "in_progress") {
+      if (Date.now() - started > ANSWER_TIMEOUT_MS) {
+        throw new Error(`OpenAI's response ${body.id} took over ${ANSWER_TIMEOUT_MS / 60_000} minutes`);
+      }
+      await sleep(POLL_MS);
+      // The sources must be asked for again on every read: a response read without them has none.
+      body = await callWithRetries(key, "GET", `responses/${body.id}?include[]=${SOURCES}`);
+    }
+  } catch (error) {
+    // Stop the response, so it isn't billed after the run gives up on it.
+    await callOnce(key, "POST", `responses/${body.id}/cancel`);
+    throw error;
   }
-  // A failed response (no credit left, a server error) stops the run, as a failed call does, so a
-  // run never records a string of empty answers as if the engine had answered.
-  if (body.status === "failed") {
-    throw new Error(`OpenAI's response ${body.id} failed: ${body.error?.message ?? "no message"}`);
+  // A failed or cancelled response (no credit left, a server error) stops the run, as a failed call
+  // does, so a run never records a string of empty answers as if the engine had answered.
+  if (body.status === "failed" || body.status === "cancelled") {
+    throw new Error(`OpenAI's response ${body.id} ${body.status}: ${body.error?.message ?? "no message"}`);
   }
   return openaiRaw(body);
 }
 
-/** How long to wait between reads of a response in progress, and for its whole answer. */
+/** How long to wait between reads of a response in progress, for its whole answer, and for one call. */
 const POLL_MS = 3000;
 const ANSWER_TIMEOUT_MS = 10 * 60 * 1000;
+const CALL_TIMEOUT_MS = 60 * 1000;
 
 /** @param {number} ms */
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * One call to the Responses API, sent again up to {@link RETRIES} times, 2, 4 and 8 s apart, when it
- * fails for a passing reason.
+ * One read of the Responses API, sent again up to {@link RETRIES} times, 2, 4 and 8 s apart, when it
+ * fails for a passing reason. Only reads: they change nothing, so a retry is safe.
  *
  * @param {string} key
- * @param {"GET" | "POST"} method
+ * @param {"GET"} method
  * @param {string} path - under https://api.openai.com/v1/
- * @param {Record<string, unknown>} [params] - the POST's body
  * @returns {Promise<any>} the response's JSON
  */
-async function callWithRetries(key, method, path, params) {
+async function callWithRetries(key, method, path) {
   for (let attempt = 0; ; attempt += 1) {
-    const outcome = await callOnce(key, method, path, params);
+    const outcome = await callOnce(key, method, path);
     if (outcome.body !== undefined) return outcome.body;
     if (!outcome.retry || attempt >= RETRIES) throw new Error(outcome.error);
     await sleep(2000 * 2 ** attempt);
@@ -247,8 +269,7 @@ async function callWithRetries(key, method, path, params) {
 
 /**
  * One call to the Responses API: its JSON body, or why it failed and whether a retry may help (the
- * network, a timeout, a rate limit, a server error, or a body that isn't JSON, such as a proxy's
- * "upstream request failed").
+ * network, a call over a minute, a timeout, a rate limit or a server error, whatever the body).
  *
  * @param {string} key
  * @param {"GET" | "POST"} method
@@ -258,22 +279,24 @@ async function callWithRetries(key, method, path, params) {
  */
 async function callOnce(key, method, path, params) {
   let response;
+  let text;
   try {
     response = await fetch(`https://api.openai.com/v1/${path}`, {
       method,
       headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+      signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
       ...(params === undefined ? {} : { body: JSON.stringify(params) }),
     });
+    text = await response.text();
   } catch (error) {
     return { retry: true, error: `OpenAI unreachable: ${error instanceof Error ? error.message : String(error)}` };
   }
-  const text = await response.text();
   const passing = response.status === 408 || response.status === 429 || response.status >= 500;
   let body;
   try {
     body = JSON.parse(text);
   } catch {
-    return { retry: true, error: `OpenAI answered ${response.status} with no JSON: ${text.slice(0, 80)}` };
+    return { retry: passing, error: `OpenAI answered ${response.status} with no JSON: ${text.slice(0, 80)}` };
   }
   if (!response.ok) {
     return { retry: passing, error: `OpenAI answered ${response.status}: ${body.error?.message ?? "no message"}` };
@@ -311,11 +334,24 @@ function describe(answer) {
  * @returns {Promise<(question: string) => Promise<Raw>>}
  */
 async function asker(config, engine) {
-  if (engine === "openai") return (question) => askOpenAI(openaiRequest(config.engines.openai, question));
+  if (engine === "openai") return (question) => askOpenAI(request(config, engine, question));
   const { default: Anthropic } = await import("@anthropic-ai/sdk");
   // Credentials as the SDK reads them: ANTHROPIC_API_KEY, else an `ant auth login` profile.
   const client = new Anthropic();
-  return (question) => askClaude(client, config, claudeRequest(config.engines.claude, question));
+  return (question) => askClaude(client, config, request(config, engine, question));
+}
+
+/**
+ * The request for one question on `engine`.
+ *
+ * @param {Config} config
+ * @param {"claude" | "openai"} engine
+ * @param {string} question
+ */
+function request(config, engine, question) {
+  return engine === "openai"
+    ? openaiRequest(config.engines.openai, question)
+    : claudeRequest(config.engines.claude, question);
 }
 
 /**
@@ -355,11 +391,11 @@ async function askAll(config, engine, questions, repeats) {
  */
 export function settingsOf(config, engine, repeats) {
   if (engine === "openai") {
-    const { model, maxSearches } = config.engines.openai;
-    return { engine, model, maxSearches, repeats, tool: "web_search" };
+    const { model, effort, maxTokens, maxSearches } = config.engines.openai;
+    return { engine, model, effort, maxTokens, maxSearches, repeats, tool: "web_search" };
   }
-  const { model, effort, maxSearches } = config.engines.claude;
-  return { engine, model, effort, maxSearches, repeats, tool: "web_search_20260209" };
+  const { model, effort, maxTokens, maxSearches } = config.engines.claude;
+  return { engine, model, effort, maxTokens, maxSearches, repeats, tool: "web_search_20260209" };
 }
 
 async function main() {
@@ -368,19 +404,13 @@ async function main() {
   const config = JSON.parse(readFileSync(join(HERE, "config.json"), "utf8"));
   const questions = selectQuestions(JSON.parse(readFileSync(join(HERE, "questions.json"), "utf8")), options.questions);
   const repeats = options.repeats ?? config.repeats;
-  const engine = options.engine ?? config.engine;
+  const engine = options.engine ?? engineName(config.engine);
 
   if (options.dryRun) {
     console.log(
       `${questions.length} questions × ${repeats} runs = ${questions.length * repeats} answers from ${engine}; each request:`,
     );
-    for (const question of questions) {
-      const params =
-        engine === "openai"
-          ? openaiRequest(config.engines.openai, question.question)
-          : claudeRequest(config.engines.claude, question.question);
-      console.log(JSON.stringify(params));
-    }
+    for (const question of questions) console.log(JSON.stringify(request(config, engine, question.question)));
     return;
   }
 

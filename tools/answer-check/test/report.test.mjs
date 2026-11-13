@@ -209,6 +209,8 @@ describe("the runner", () => {
     assert.equal(params.max_tool_calls, openai.maxSearches);
     assert.deepEqual(params.include, ["web_search_call.action.sources"]);
     assert.equal(params.background, true);
+    assert.deepEqual(params.reasoning, { effort: openai.effort });
+    assert.equal(params.max_output_tokens, openai.maxTokens);
     assert.equal("instructions" in params, false);
   });
 
@@ -216,6 +218,8 @@ describe("the runner", () => {
     assert.equal(settingsOf(config, "openai", 3).engine, "openai");
     assert.equal(settingsOf(config, "openai", 3).model, config.engines.openai.model);
     assert.equal(settingsOf(config, "claude", 1).model, config.engines.claude.model);
+    assert.equal(settingsOf(config, "openai", 3).effort, config.engines.openai.effort);
+    assert.equal(settingsOf(config, "openai", 3).maxTokens, config.engines.openai.maxTokens);
   });
 
   it("reads its options and refuses unknown ones", () => {
@@ -227,7 +231,7 @@ describe("the runner", () => {
     });
     assert.throws(() => parseArgs(["--repeats", "0"]), /whole number/);
     assert.throws(() => parseArgs(["--nope"]), /unknown argument/);
-    assert.throws(() => parseArgs(["--engine", "bing"]), /--engine takes one of/);
+    assert.throws(() => parseArgs(["--engine", "bing"]), /the engine is one of claude, openai, not bing/);
     assert.throws(() => parseArgs(["--questions", ""]), /one or more question ids/);
   });
 
@@ -314,8 +318,8 @@ describe("OpenAI answers", () => {
     assert.equal(answer.mentioned && answer.surfaced && answer.citedTarget, true);
   });
 
-  it("counts the searches and the tokens, and serves no fallback", () => {
-    assert.deepEqual(answer.usage, { inputTokens: 1200, outputTokens: 300, searches: 2 });
+  it("counts the searches, not the pages it opened, and the tokens, and serves no fallback", () => {
+    assert.deepEqual(answer.usage, { inputTokens: 1200, outputTokens: 300, searches: 1 });
     assert.equal(answer.fallback, false);
     assert.equal(answer.stopReason, "completed");
   });
