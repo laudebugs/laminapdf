@@ -29,29 +29,28 @@ Stamp watermarks (append) and backgrounds (prepend) as Form XObjects, optionally
 **In scope**
 
 - `AddWatermark`, `AddBackground`, `SetHeaderFooter { template, pages, tokens }`, `ApplyBates { spec }`, and their removal ops for lamina-added items
-- Dialogs with preview
 - Batch-ready: Bates across files uses the same op sequence (E14d)
 
 **Out of scope** (and which todo covers it)
 
-- None
+- The Page marks dialog and Manage page marks → [E6g](E6g-page-marks-dialog.md)
 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `B.10` background images and watermarks; `C.14` labels, page numbers, headers/footers
-- **Crates and packages:** `laminapdf-content`, `laminapdf-build`, `laminapdf-ops`, `@laminapdf/ui`
+- **Crates and packages:** `laminapdf-content`, `laminapdf-build`, `laminapdf-ops`
 - **`Op` variants:** the ops above (class `Content`)
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked unless the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock` (the signature panel, E10h, reports the later content change)
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `B.10` → `round-trip` (core, pdf, web, desktop); `C.14` → `round-trip` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `B.10` → `round-trip` (core, pdf); `C.14` → `round-trip` (core, pdf) (web and desktop flip with the dialog, in [E6g](E6g-page-marks-dialog.md))
 
 ## Tasks
 
 - [ ] Ops and builders
 - [ ] Token expansion (page label, number, total, date from payload)
 - [ ] OCG and Artifact marking
-- [ ] Dialogs
+- [ ] The overlap check's runs in the header and footer bands, for E6g's notice
 
 ## Acceptance criteria
 

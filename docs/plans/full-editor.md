@@ -144,11 +144,12 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 #### E6. Adding content to pages
 
 - **Ships:** group A: add text anywhere, insert special characters and symbols. Group B: insert images, resize/rotate/crop/reposition **new** images and shapes, opacity, draw lines/rectangles/circles/polygons as page content, add logos/icons/stamps as content, background images and watermarks. Group C: headers/footers and page numbers (Bates numbering as an option).
+- **Plan:** [E6 adding content to pages](editor/e6-adding-content.md).
 - **Crates:** `laminapdf-content` append API from E2 (new content as Form XObjects drawn by appended streams), `laminapdf-build` surfaces reused on existing pages, `laminapdf-text` for new text.
 - **Save:** incremental on `Free`; on signed files these are content changes and invalidate signatures (gated).
 - **Rendering:** touched pages reload in PDFium after an incremental update (the "two parsers" path in [architecture §6](architecture.md#6-risks)); measure and budget reload time.
 - **Web vs desktop:** desktop can use system fonts (font discovery at the edge, passed into the core as bytes); web uses bundled or user-supplied fonts.
-- **Todos:** [E6a](../todos/ongoing/E6a-adding-content-feature-plan.md) feature plan · [E6b](../todos/ready/E6b-place-images-and-shapes.md) Place images, shapes, logos and stamps as page content · [E6c](../todos/ready/E6c-add-text.md) Add text and special characters as page content · [E6d](../todos/ready/E6d-watermarks-headers-footers.md) Watermarks, backgrounds, headers/footers, page numbers and Bates numbering · [E6e](../todos/ready/E6e-content-tools-ui.md) Content insert tools and object handles · [E6f](../todos/ready/E6f-reload-budget.md) Touched-page reload time: measure and budget.
+- **Todos:** [E6a](../todos/done/E6a-adding-content-feature-plan.md) feature plan · [E6b](../todos/ready/E6b-place-images-and-shapes.md) Place images, shapes, logos and stamps as page content · [E6c](../todos/ready/E6c-add-text.md) Add text and special characters as page content · [E6d](../todos/ready/E6d-watermarks-headers-footers.md) Watermarks, backgrounds, headers/footers, page numbers and Bates numbering · [E6e](../todos/ready/E6e-content-tools-ui.md) Content insert tools and object handles · [E6f](../todos/ready/E6f-reload-budget.md) Touched-page reload time: measure and budget · [E6g](../todos/ready/E6g-page-marks-dialog.md) The Page marks dialog and Manage page marks · [E6h](../todos/ready/E6h-desktop-system-fonts.md) Fonts on the computer in the desktop font picker.
 
 #### E7. Editing existing content
 
@@ -347,7 +348,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 - [ ] Flatten annotations via the E2 append API; comment summary export
 
 ### E6. Adding content to pages
-- [ ] Feature-plan PR for E6
+- [x] Feature-plan PR for E6
 - [ ] Add text, images, shapes and stamps as page content via Form XObjects
 - [ ] Watermarks and backgrounds; headers, footers, page numbers, Bates numbering
 - [ ] Measure and budget touched-page reload time in web and desktop

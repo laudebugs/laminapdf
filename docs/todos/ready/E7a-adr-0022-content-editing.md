@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [E6a](../ongoing/E6a-adding-content-feature-plan.md) |
-| Dependency notes | [E6a](E6a-adding-content-feature-plan.md), `B9` ([pdf-library §B9](../../plans/pdf-library.md#b9-text-extraction): content reading and text extraction) |
+| Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [E6a](../done/E6a-adding-content-feature-plan.md) |
+| Dependency notes | [E6a](../done/E6a-adding-content-feature-plan.md), `B9` ([pdf-library §B9](../../plans/pdf-library.md#b9-text-extraction): content reading and text extraction) |
 | ADRs | Writes ADR 0022; builds on ADR 0023 (B9) and 0005 §6 |
 | Branch | `docs/e7a-adr-0022-content-editing` |
 | PR title | `docs(adr): 0022 content-stream editing model` |
