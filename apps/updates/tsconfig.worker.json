@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "lib": ["ES2024"],
+    "types": []
+  },
+  // The Worker as workerd runs it: its entry and every module it imports, with the runtime types
+  // `pnpm run types` generates from wrangler.jsonc.
+  "files": ["src/index.ts", "src/generated/worker-configuration.d.ts"]
+}

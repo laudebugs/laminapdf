@@ -74,6 +74,7 @@
 //! [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
 #![forbid(unsafe_code)]
 
+mod annot;
 mod blob;
 mod class;
 mod document;
@@ -85,13 +86,17 @@ mod op;
 mod pending;
 mod record;
 mod rotate;
+#[cfg(feature = "test-support")]
+pub mod test_support;
 mod tx;
+mod widgets;
 mod wire;
 // What `fixtures/codes.json` lists, for the kind tests.
 #[cfg(test)]
 use laminapdf_test_fixtures::codes as test_codes;
 
-pub use blob::{BlobId, ParseBlobIdError};
+pub use annot::{DeleteAnnot, Offset, UpdateAnnot};
+pub use blob::{BlobId, BlobStore, ParseBlobIdError, SourceId};
 pub use class::ModificationClass;
 pub use document::{Document, PendingRebase, SaveState};
 pub use error::{Error, Result};
@@ -107,3 +112,4 @@ pub use pending::PendingChanges;
 pub use record::{Change, Field, Property, PropertyValue, SkipReason, Skipped, Target, UndoRecord};
 pub use rotate::RotatePage;
 pub use tx::{Applied, Origin, PeerId, Tx};
+pub use widgets::{PageChange, TouchedWidget, WidgetChange};

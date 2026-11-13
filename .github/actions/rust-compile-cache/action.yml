@@ -1,0 +1,100 @@
+# The compile cache (docs/plans/ci-caching.md §4.1): sccache runs under every `rustc` call the
+# job's later steps make and stores the compiled crates in a bucket on Cloudflare R2. README.md
+# beside this file has the owner's setup. A job runs it twice:
+#   - after its toolchain step, to set the compile cache up (the Rust cache hashes every RUST*
+#     variable into its key, so a RUSTC_WRAPPER set before it would change the key);
+#   - as its last step with `stats: true` and `if: ${{ !cancelled() }}`, which writes
+#     `sccache --show-stats` into the job summary.
+# The stats call needs no other input. Only a push to main writes to the bucket; everything else
+# reads. Without the credentials (a fork pull request, a repository without the bucket) it prints a notice
+# and exports nothing, so the job builds as it would without it. The secrets come in as inputs
+# because a composite action can't read the `secrets` context. tools/xtask/src/workflows/
+# compile_cache.rs checks the sccache pin, the order of the steps and that nothing published or
+# released uses it.
+name: Rust compile cache
+description: Compile Rust through sccache over Cloudflare R2, or print the compile cache's statistics.
+inputs:
+  endpoint:
+    description: vars.SCCACHE_R2_ENDPOINT (https://<account>.r2.cloudflarestorage.com)
+    required: false
+    default: ""
+  bucket:
+    description: vars.SCCACHE_R2_BUCKET
+    required: false
+    default: ""
+  access-key-id:
+    description: secrets.SCCACHE_R2_ACCESS_KEY_ID (in the rust-compile-cache environment, the read-and-write token's)
+    required: false
+    default: ""
+  secret-access-key:
+    description: secrets.SCCACHE_R2_SECRET_ACCESS_KEY
+    required: false
+    default: ""
+  stats:
+    description: '"true" writes the compile cache''s statistics into the job summary instead of setting it up.'
+    required: false
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - id: check
+      if: inputs.stats != 'true'
+      shell: bash
+      # Only whether the inputs are set: the credentials stay out of this step.
+      env:
+        SET: ${{ inputs.endpoint != '' && inputs.bucket != '' && inputs.access-key-id != '' && inputs.secret-access-key != '' }}
+      run: |
+        if [ "$SET" = true ]; then
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "::notice title=Compile cache off::The SCCACHE_R2_* variables or secrets are not set (.github/actions/rust-compile-cache/README.md); this job compiles without the compile cache."
+          echo "enabled=false" >> "$GITHUB_OUTPUT"
+        fi
+    # Same version as tools/xtask/src/doctor.rs (SCCACHE_VERSION); a test checks it.
+    - if: steps.check.outputs.enabled == 'true'
+      uses: ./.github/actions/install-tools
+      with:
+        tool: sccache@0.19.0
+    # The credentials live in this step's environment only. The server keeps them and starts each
+    # rustc with the client's environment, not its own, so later steps, build scripts and
+    # proc-macros don't get them in their environment. (A process of the same user could still
+    # read the server's environment from the OS; on a pull request that is the read-only token.)
+    - name: Start the sccache server
+      if: steps.check.outputs.enabled == 'true'
+      shell: bash
+      env:
+        SCCACHE_ENDPOINT: ${{ inputs.endpoint }}
+        SCCACHE_BUCKET: ${{ inputs.bucket }}
+        # sccache's S3 backend, which R2 speaks, reads its keys only under AWS's names.
+        AWS_ACCESS_KEY_ID: ${{ inputs.access-key-id }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.secret-access-key }}
+        SCCACHE_REGION: auto
+        # Bump the version to start the compile cache afresh.
+        SCCACHE_S3_KEY_PREFIX: rust/v1/
+        SCCACHE_S3_RW_MODE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'READ_WRITE' || 'READ_ONLY' }}
+        # The server lives as long as the job.
+        SCCACHE_IDLE_TIMEOUT: "0"
+      run: |
+        echo "Compile cache: $SCCACHE_S3_RW_MODE"
+        sccache --start-server
+        {
+          echo "RUSTC_WRAPPER=sccache"
+          # If the server fails mid-job, the build goes on: sccache starts a new server without
+          # the credentials, and that server caches only on the runner's disk. If that fails too,
+          # sccache runs rustc directly.
+          echo "SCCACHE_IGNORE_SERVER_IO_ERROR=1"
+        } >> "$GITHUB_ENV"
+    - name: Compile cache statistics
+      if: inputs.stats == 'true'
+      shell: bash
+      run: |
+        if [ "${RUSTC_WRAPPER:-}" != sccache ]; then
+          echo "The compile cache was off in this job." >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+        {
+          echo "### Compile cache"
+          echo '```'
+          sccache --show-stats || echo "sccache's server had stopped."
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"

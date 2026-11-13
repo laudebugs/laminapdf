@@ -45,6 +45,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "unsupported-security-handler":
     case "unsupported-filter":
     case "direct-page":
+    case "annotation-not-editable":
     case "unsupported-version":
     case "subset-failed":
     case "unsupported-layout-option":
@@ -64,6 +65,8 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "path-outside-roots":
       return "security";
     case "unknown-page":
+    case "unknown-source":
+    case "unknown-annotation":
     case "sink-not-empty":
     case "collection-index":
     case "unknown-axis":
@@ -123,6 +126,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "no-transaction":
     case "saved-not-rebased":
     case "no-pending-save":
+    case "annotation-locked":
     case "not-rebased":
     case "requires-rewrite":
     case "job-finished":
@@ -144,6 +148,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "wasm-trap":
     case "model-failed":
     case "flow-layout-unstable":
+    case "export-failed":
       return "internal";
     default: {
       const unhandled: never = code;

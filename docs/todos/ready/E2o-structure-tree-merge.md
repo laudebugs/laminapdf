@@ -29,7 +29,7 @@ Keep tags when pages come from another document. Until this todo, `InsertPagesFr
 **In scope**
 
 - Read `/ClassMap`, `/IDTree` and `/Namespaces`
-- For each source: its elements for the imported pages placed under the target's top element (a `Document` or `Part` per source on a merge), new `/StructParents` and `/StructParent` keys from `/ParentTreeNextKey` with `/ParentTree` entries through [E2j](E2j-page-tree-and-tree-writers.md)'s number-tree writer, MCIDs untouched (they are per page)
+- For each source: its elements for the imported pages placed under the target's top element (a `Document` or `Part` per source on a merge), new `/StructParents` and `/StructParent` keys from `/ParentTreeNextKey` with `/ParentTree` entries through [E2j](../done/E2j-page-tree-and-tree-writers.md)'s number-tree writer, MCIDs untouched (they are per page)
 - `/RoleMap` and `/ClassMap` merged; a clash (one name mapped two ways) renames the added one and reports it; `/IDTree` IDs that clash renamed
 - Elements whose content is only partly on imported pages: kept with only the imported content items, or dropped with `TagsDropped` when that leaves an invalid element
 - The target becomes tagged (`/MarkInfo /Marked true`) only if it was tagged or every source was

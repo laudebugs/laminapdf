@@ -63,6 +63,13 @@ doc = false
 bench = false
 
 [[bin]]
+name = "copy_pages"
+path = "fuzz_targets/copy_pages.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
 name = "page_tree"
 path = "fuzz_targets/page_tree.rs"
 test = false
@@ -72,6 +79,20 @@ bench = false
 [[bin]]
 name = "content"
 path = "fuzz_targets/content.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "annots"
+path = "fuzz_targets/annots.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "content_append_scan"
+path = "fuzz_targets/content_append_scan.rs"
 test = false
 doc = false
 bench = false

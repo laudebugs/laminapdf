@@ -78,7 +78,7 @@ The web reader can open a remote PDF only when the site that serves it sends COR
 - **After the web launch.** K1a waits for [C7c](../todos/done/C7c-performance-gates-and-launch.md), so the extension packages the reader that launched and never competes with Round C for time.
 - **Nothing depends on Round K.** The roadmap's other rounds keep their order; Round K runs beside the desktop rounds (D) and the editor (E) as people are free.
 - **Chromium first.** One Chrome Web Store listing also reaches Brave, Vivaldi and Opera on desktop, and Edge's store takes the same package.
-- **Firefox and Safari in either order.** Both start after the Chromium release. K4a also needs the Apple Developer account that [D6a](../todos/ready/D6a-signing-runbook-and-owner-setup.md) sets up.
+- **Firefox and Safari in either order.** Both start after the Chromium release. K4a also needs the Apple Developer account that [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md) sets up.
 
 ## 7. Changes to existing plans
 

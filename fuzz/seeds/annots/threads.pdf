@@ -1,0 +1,72 @@
+%PDF-1.7
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [10 0 R 11 0 R 12 0 R 13 0 R 14 0 R 15 0 R 16 0 R 17 0 R] >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots 5 0 R >>
+endobj
+5 0 obj
+[20 0 R]
+endobj
+10 0 obj
+<< /Type /Annot /Subtype /Text /Rect [20 260 40 280] /Contents (Parent) /T (Ada) /NM (parent) /Popup 11 0 R >>
+endobj
+11 0 obj
+<< /Type /Annot /Subtype /Popup /Rect [50 200 150 260] /Parent 10 0 R >>
+endobj
+12 0 obj
+<< /Type /Annot /Subtype /Text /Rect [20 260 40 280] /Contents (Reply) /T (Ben) /IRT 10 0 R /NM (reply) >>
+endobj
+13 0 obj
+<< /Type /Annot /Subtype /Text /Rect [20 260 40 280] /Contents (Reply to the reply) /T (Ada) /IRT 12 0 R /RT /R >>
+endobj
+14 0 obj
+<< /Type /Annot /Subtype /Text /Rect [200 260 220 280] /Contents (Cycle A) /IRT 15 0 R >>
+endobj
+15 0 obj
+<< /Type /Annot /Subtype /Text /Rect [200 260 220 280] /Contents (Cycle B) /IRT 14 0 R >>
+endobj
+16 0 obj
+<< /Type /Annot /Subtype /StrikeOut /Rect [20 100 120 115] /QuadPoints [20 100 120 100 120 115 20 115] /Contents (better) >>
+endobj
+17 0 obj
+<< /Type /Annot /Subtype /Caret /Rect [118 100 126 115] /IRT 16 0 R /RT /Group >>
+endobj
+20 0 obj
+<< /Type /Annot /Subtype /Text /Rect [20 260 40 280] /Contents (Reply on page 2) /IRT 10 0 R >>
+endobj
+xref
+0 21
+0000000000 65535 f
+0000000015 00000 n
+0000000064 00000 n
+0000000127 00000 n
+0000000264 00000 n
+0000000349 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000373 00000 n
+0000000500 00000 n
+0000000589 00000 n
+0000000712 00000 n
+0000000843 00000 n
+0000000949 00000 n
+0000001055 00000 n
+0000001196 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000001294 00000 n
+trailer
+<< /Size 21 /Root 1 0 R >>
+startxref
+1406
+%%EOF

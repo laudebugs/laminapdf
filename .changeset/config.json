@@ -25,7 +25,8 @@
     "@laminapdf/web",
     "@laminapdf/desktop",
     "@laminapdf/gallery",
-    "@laminapdf/layout-heron"
+    "@laminapdf/layout-heron",
+    "@laminapdf/updates"
   ],
   "privatePackages": {
     "version": true,

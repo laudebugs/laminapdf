@@ -44,6 +44,8 @@ Conventions on this canvas:
 - **Dragging files over the window** (not drawn): a full-window overlay on `scrim` with a centred `surface` card, the drop icon and “Drop to open 2 PDFs”; non-PDF files say “Only PDF files open in lamina” and dropping them shows a toast with the file name only ([D3a](../../todos/done/D3a-open-from-os.md)). The same overlay appears over a document window (drop opens new tabs).
   - *As built (D3a):* the desktop shows the web reader's drop overlay (`DropOverlay`: an accent tint with a dashed accent border and the words in the heading style), so both readers look the same. Paper's `surface` card on `scrim`, with the drop icon, isn't built yet. Until tabs, a window shows one document, so several PDFs say "Drop to open the last of these 2 PDFs" and open the last. The app's name in the words is "Lamina PDF".
 - **Unreadable file** from the list or a drop: toast “Couldn’t open Annual-accounts-2025.pdf. It may have been moved.” plus the missing state on its card.
+  - *As built (D3b), the list:* the start window shows the web reader's Recent list (R01's rows, `RecentList`), not cards: no thumbnails, and no folder name, since the list keeps no path the webview could show. A missing file's row says "This device · File not found" with **Remove** at its end; the other rows open with no dialog. "Recent files are kept on this computer only." sits under the list. With Remember recent files off, the list is replaced by "Lamina PDF isn't remembering recent files. Turn on Remember recent files in Settings." Settings is the shared Settings dialog, opened from More, with one Files section holding both switches.
+  - *As built (D3b), what differs:* the first-run empty state and the default-app notice aren't built: the start window keeps the drop zone's own words. The palette's Open recent and Clear recent work while a document is open, in place of the Recent popover the todo proposed; the native menu's Open Recent is D4b's.
 
 **Behaviour.** Opening routes through `route_open` like every OS open: a file already open focuses its tab instead (unless duplicates are allowed). Double-clicking a PDF in Finder/Explorer/Files while lamina runs opens it in the front window as a new tab; the start window becomes that tab. Nothing in this window changes a file.
 
@@ -53,7 +55,7 @@ Conventions on this canvas:
 
 **Artboards:** `S01-start.dc.html`, `S01-start-empty.dc.html`.
 
-**Todos:** [D3a](../../todos/done/D3a-open-from-os.md), [D3b](../../todos/ready/D3b-recent-files-and-file-watching.md).
+**Todos:** [D3a](../../todos/done/D3a-open-from-os.md), [D3b](../../todos/done/D3b-recent-files-and-file-watching.md).
 
 ## S02 Window with document tabs and session restore
 
@@ -146,6 +148,8 @@ Conventions on this canvas:
 
 **States.** Conflict with unsaved changes (drawn, S04-file-changed) · moved or deleted (drawn, S04-file-missing) · silent reload with toast · unreadable, retrying · setting off (banner with **Reload** · **Ignore** for every change) — each described in the table above and under Behaviour.
 
+*As built (D3b):* the reader handles three states: a silent reload, moved or deleted, and unreadable. A settled change reloads silently with the toast "Reloaded: Q3-board-report.pdf changed on disk", at the same page, place and zoom, the page clamped when the document got shorter. Moved or deleted shows the strip as the reader's `Notice` (warning tone) with **Locate…** and **Close** as links: Locate… opens the file dialog and shows the chosen file in place of the missing one, at the same place. "File changed but couldn't be read. Lamina PDF tries again when it next changes." shows in the same strip until the next good reload. With the setting off, changes are ignored: the banner with **Reload** · **Ignore** isn't built.
+
 **Behaviour.**
 
 - **Compare** opens the on-disk version in a new read-only tab beside the current one (“Q3-board-report.pdf — on disk”), so the user can read both; the banner stays until Keep mine or Reload. A visual diff is out of scope here.
@@ -160,7 +164,7 @@ Conventions on this canvas:
 
 **Artboards:** `S04-file-changed.dc.html` (Editor top bar and the full Comment toolbar of §8.1, with its Colour swatches), `S04-file-missing.dc.html` (Reader v0.1 top bar).
 
-**Todos:** [D3b](../../todos/ready/D3b-recent-files-and-file-watching.md) (reload, missing, retrying); [E1e](../../todos/done/E1e-save-and-constraint-banner.md) (the conflict with unsaved changes: Compare, Keep mine, Reload from disk).
+**Todos:** [D3b](../../todos/done/D3b-recent-files-and-file-watching.md) (reload, missing, retrying); [E1e](../../todos/done/E1e-save-and-constraint-banner.md) (the conflict with unsaved changes: Compare, Keep mine, Reload from disk).
 
 ## S05 Print
 

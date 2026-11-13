@@ -16,6 +16,7 @@
 )]
 
 pub mod content;
+pub mod copy;
 pub mod fuzz_entry;
 pub mod legacy;
 pub mod roundtrip;

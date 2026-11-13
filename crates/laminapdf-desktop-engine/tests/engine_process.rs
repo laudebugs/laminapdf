@@ -300,7 +300,7 @@ fn a_tile_should_match_an_in_process_pdfium_render() {
     for name in names {
         let rel = format!("golden/examples/{name}");
         let bytes = fixture(&rel);
-        if every_font_embedded(&bytes) {
+        if text_in_embedded_fonts(&bytes) {
             samples.push((rel, bytes));
         }
     }
@@ -316,10 +316,12 @@ fn a_tile_should_match_an_in_process_pdfium_render() {
     }
 }
 
-/// The file holds every font it uses, so both renders draw the same glyphs.
-fn every_font_embedded(bytes: &[u8]) -> bool {
+/// The file has text, and holds every font it uses, so both renders draw the same glyphs. A
+/// file without fonts (images only) has no text for the tile to hold.
+fn text_in_embedded_fonts(bytes: &[u8]) -> bool {
     let doc = laminapdf::Document::open_bytes(bytes.to_vec(), laminapdf::OpenOptions::default()).unwrap();
-    doc.properties().unwrap().fonts.iter().all(|font| font.embedded)
+    let fonts = doc.properties().unwrap().fonts;
+    !fonts.is_empty() && fonts.iter().all(|font| font.embedded)
 }
 
 /// Renders one tile of `doc`'s first page in the engine and in process, and compares the pixels.

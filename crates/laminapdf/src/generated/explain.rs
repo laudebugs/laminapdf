@@ -634,6 +634,83 @@ The decisions and todos behind this code:
 
 - [E1b](../todos/done/E1b-xmp-packet-model.md): the XMP packet model
 "#,
+        "annot-name-duplicate" => r"# `annot-name-duplicate`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+Two annotations on the same page have the same name in their `/NM` entry. ISO 32000-2 §12.5.2 asks for that name to be unique on its page, because comment exchange files (XFDF, FDF) and replies match annotations by it.
+
+## Why
+
+A writer copied an annotation without giving the copy a new name, or gave every annotation it made the same name.
+
+## How to fix
+
+Nothing to do: both annotations are read and kept, and Lamina PDF tells annotations apart by their own IDs, never by `/NM`. An import that matches comments by name may match the wrong one of the two, so a writer that makes new annotations should give each its own name.
+
+## Example
+
+```text
+5 0 obj << /Type /Annot /Subtype /Text /NM (note-1) /Rect [72 700 92 720] >> endobj
+6 0 obj << /Type /Annot /Subtype /Text /NM (note-1) /Rect [72 650 92 670] >> endobj
+```
+
+Both are on one page, so object 6 raises the warning.
+
+## Data fields
+
+None. The `location` is the second annotation's `object`, none for a direct dictionary.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4b](../todos/done/E4b-annotation-model-and-overlay.md): the annotation model and the annotation ops' core
+",
+        "xmp-repaired" => r#"# `xmp-repaired`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+The document's XMP metadata has damage that ExifTool and pdf.js read past. Lamina PDF reads past it the same way, so it reads the values as the writer meant them.
+
+## Why
+
+`reason` says which damage:
+
+- `header-encoding`: the packet's `<?xpacket … ?>` header holds bytes that aren't UTF-8, most often a mangled byte-order mark. XML doesn't read inside that header, so Lamina PDF reads each such byte as `?`.
+- `undeclared-prefix`: the packet uses one of XMP's standard prefixes without declaring it, such as `dc:title` with no `xmlns:dc`. The prefixes read this way are `dc`, `xmp`, `pdf`, `xmpMM`, `pdfaid`, `pdfuaid`, and the older `xap` and `xapMM`, each in its standard namespace.
+
+## How to fix
+
+Nothing: Lamina PDF reads the file. In strict mode the warning is an error, so a strict reader refuses such a packet.
+
+An edit repairs the prefixes it touches. A metadata edit declares the prefix of each property it writes, and a packet rewritten whole declares the prefix of every property. A prefix used only inside a property's value, such as an `xmp:` field of an `xmpMM:History` entry, stays as the file wrote it.
+
+## Example
+
+```ts
+const doc = Document.open(bytes); // a packet that writes <dc:title> with no xmlns:dc
+doc.metadata().title; // read as written
+doc.warnings(); // xmp-repaired, reason "undeclared-prefix"
+```
+
+## Data fields
+
+- `reason`: `header-encoding` or `undeclared-prefix`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [`xmp-packets-other-readers-accept`](../bugs/xmp-packets-other-readers-accept/detail.md): the packets that needed it
+- [ADR 0003](../decisions/0003-reader-tolerance-and-limits.md): every repair is a warning
+"#,
         "invalid-page-label" => r#"# `invalid-page-label`
 
 - Type: warning
@@ -2312,6 +2389,145 @@ None.
 The decisions and todos behind this code:
 
 - [E1c](../todos/done/E1c-metadata-ops.md): the metadata ops
+"#,
+        "unknown-source" => r"# `unknown-source`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op, or a call that reads a source document, names a source by an ID that this session doesn't hold. A source document is another PDF that ops copy pages from, and the session only knows the ones added to it.
+
+## Why
+
+The source was never added, or it was added to another session. An op log names sources only by ID, so a log replayed in a new session (after the document reopens, or on another device) needs its sources added again first.
+
+## How to fix
+
+Add the source document's bytes with `add_source` (in Rust; the bindings come with the ops that copy pages) before applying ops that name it. The same bytes always give the same ID, so adding the file again restores the source the log names.
+
+## Example
+
+```rust
+let id = other_session.add_source(bytes, None)?;
+doc.source_document(&id)?; // unknown-source: `doc` never added these bytes
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E2p](../todos/done/E2p-source-documents-and-copier.md): source documents and the blob store
+",
+        "unknown-annotation" => r#"# `unknown-annotation`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An annotation op names an annotation by an ID that no page of the document lists in its `/Annots`.
+
+## Why
+
+The annotation was deleted, by an earlier op or along with its parent comment, or the ID comes from another document. An ID read before an undo can also name an annotation that the undo took away.
+
+## How to fix
+
+Read the page's annotations again and take the ID from that list.
+
+## Example
+
+```json
+{ "op": "deleteAnnot", "args": { "id": "a99.0" } }
+```
+
+No page lists object 99 as an annotation.
+
+## Data fields
+
+None. The `location` is the annotation's `object` and `id`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4b](../todos/done/E4b-annotation-model-and-overlay.md): the annotation model and the annotation ops' core
+"#,
+        "annotation-locked" => r#"# `annotation-locked`
+
+- Type: error
+- Kind: `state` (the operation isn't valid in the current state)
+
+## What happened
+
+The annotation's flags forbid the change (ISO 32000-2 §12.5.3, Table 167). The `Locked` flag forbids deleting the annotation, moving it or changing its properties, though its contents may still change. The `LockedContents` flag forbids changing its contents. A delete also takes the annotation's pop-up, its replies and the rest of its group, so a lock on any of those refuses it too.
+
+## Why
+
+The file's author locked the annotation so that readers can't change it by accident, as some review and form tools do.
+
+## How to fix
+
+An update that changes only the annotation's flags is always allowed, so clearing the lock first lets the next edit through. Clear it only when you are allowed to change the annotation.
+
+## Example
+
+```json
+{ "op": "updateAnnot", "args": { "id": "a12.0", "translate": { "dx": 10, "dy": 0 } } }
+```
+
+The annotation has `/F 132` (Print and Locked), so it can't be moved.
+
+## Data fields
+
+None. The `location` is the annotation's `object` and `id`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4b](../todos/done/E4b-annotation-model-and-overlay.md): the annotation model and the annotation ops' core
+"#,
+        "annotation-not-editable" => r#"# `annotation-not-editable`
+
+- Type: error
+- Kind: `unsupported` (valid input that Lamina PDF does not support yet)
+
+## What happened
+
+The annotation can't be changed or deleted by the annotation ops. Either it is a widget, the part of a form field that shows on the page, or it is stored as a direct dictionary inside the page's `/Annots` array instead of as an object of its own.
+
+## Why
+
+Widgets belong to their form fields, and editing one on its own would leave the field inconsistent; the form ops edit them. ISO 32000-2 Table 31 asks for `/Annots` to hold references to annotation objects, and a direct dictionary has no object an edit could change in place.
+
+## How to fix
+
+Edit a widget through its form field. An annotation stored inside the page's list can't be edited yet: Lamina PDF reads it, shows it and keeps it as it is when saving.
+
+## Example
+
+```json
+{ "op": "deleteAnnot", "args": { "id": "a14.0" } }
+```
+
+Object 14 is a text field's widget.
+
+## Data fields
+
+None. The `location` is the annotation's `object` and `id` when it has an object.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4b](../todos/done/E4b-annotation-model-and-overlay.md): the annotation model and the annotation ops' core
 "#,
         "pdfa-one-author" => r#"# `pdfa-one-author`
 
@@ -4335,6 +4551,39 @@ The decisions and todos behind this code:
 - [ADR 0004](../decisions/0004-render-backend.md) §3
 
 In a checkout of Lamina PDF, `cargo xtask fetch-pdfium` fetches the pinned build and prints its `LAMINA_PDF_PDFIUM_DIR`.
+",
+        "export-failed" => r"# `export-failed`
+
+- Type: error
+- Kind: `internal` (a bug in Lamina PDF)
+
+## What happened
+
+A page was drawn for an export, but the PNG, JPEG or TIFF encoder failed to write it.
+
+## Why
+
+The encoders write into memory, and the drawing gives them a valid image, so a failure is a bug in Lamina PDF or in the encoder, not a problem with the document. A page too big for the format is reported as `render-too-large` instead.
+
+## How to fix
+
+Report it with the format, the resolution and the page. Exporting in another format may work meanwhile.
+
+## Example
+
+```rust
+let files = export_pages(doc.as_ref(), &[0], &ExportOptions::new(ExportFormat::Png), &CancelToken::new())?; // export-failed only on a bug
+```
+
+## Data fields
+
+- `format`: `png`, `jpeg` or `tiff`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3h](../todos/done/E3h-images-to-pdf-and-page-export.md): page export
 ",
         "model-failed" => r"# `model-failed`
 

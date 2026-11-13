@@ -4,18 +4,18 @@
 | --- | --- |
 | ID | `E3d` |
 | Status | `ready` |
-| Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
+| Plan | [E3 plan §5](../../plans/editor/e3-navigation-attachments-inspection.md#5-the-viewer-and-the-initial-view) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E3a](./E3a-navigation-attachments-inspection-feature-plan.md) |
+| Depends on | [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3d-initial-view-and-threads` |
 | PR title | `feat(ops): initial view and viewer preferences; read article threads` |
-| Size | S (< 200 lines) |
+| Size | M (200–400): one op, the catalog and threads views, the viewer's initial view and the dialog |
 | PR | — |
 
 ## Goal
 
-Edit `/OpenAction` (initial page and zoom), `/PageMode`, `/PageLayout` and `/ViewerPreferences`, honour them on open in both apps, and read article threads (list and navigate beads).
+Edit `/OpenAction` (initial page and zoom), `/PageMode`, `/PageLayout` and `/ViewerPreferences`, honour them on open as the [E3 plan §5](../../plans/editor/e3-navigation-attachments-inspection.md#5-the-viewer-and-the-initial-view) describes, and read article threads (list and navigate beads).
 
 ## Context
 
@@ -27,23 +27,25 @@ Edit `/OpenAction` (initial page and zoom), `/PageMode`, `/PageLayout` and `/Vie
 
 **In scope**
 
-- `SetInitialView { open_action, page_mode, page_layout, prefs }` op
+- `SetInitialView { open, page_mode, page_layout, preferences }` op; an `/OpenAction` that is another action is shown and kept, never run (editing it is [E17b](E17b-action-editor.md)'s)
+- A catalog view reading the open destination, page mode, page layout and viewer preferences
 - Initial-view dialog in `@laminapdf/ui`
 - Article-thread view in `laminapdf-model` and a read-only threads panel
 
 **Out of scope** (and which todo covers it)
 
-- Editing article threads (deferred; plan says read now, edit later) → a later round decided in the E3 feature plan
+- Editing article threads → E15's feature plan, [E15a](E15a-accessibility-feature-plan.md) ([E3 plan §11](../../plans/editor/e3-navigation-attachments-inspection.md#11-decisions-on-the-open-questions))
+- The desktop column → [E3k](E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 
-- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `I.06` initial view and zoom; page display mode; `I.09` article threads
+- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `I.06` initial view and zoom; page display mode; `I.09` article threads; `I.11` outline and navigation preferences
 - **Crates and packages:** `laminapdf-model`, `laminapdf-ops`, `@laminapdf/ui`
 - **`Op` variants:** `SetInitialView` (class `Document`)
 - **`SaveConstraint`:** as E3b
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `I.06` → `round-trip` (core, pdf, web, desktop); `I.09` → `read` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `I.06` → `round-trip` (core, pdf, web); `I.09` → `read` (core, pdf, web); `I.11` → `round-trip` (core, pdf, web)
 
 ## Tasks
 
@@ -70,7 +72,7 @@ None.
 ## Docs to update
 
 - API docs
-- [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
+- [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) and the [E3 plan §8](../../plans/editor/e3-navigation-attachments-inspection.md#8-todos): point this todo's link at `done/`
 - `docs/capabilities/manifest.toml` statuses (regenerated `docs/capabilities/README.md` via `cargo xtask capabilities`)
 
 ## Risks and open questions
@@ -79,8 +81,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

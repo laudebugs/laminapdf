@@ -21,6 +21,9 @@ layer = "core"
 [features]
 # TypeScript declarations for the op types via tsify (ADR 0002); enabled by laminapdf-wasm (B6a).
 tsify = ["dep:tsify", "dep:wasm-bindgen"]
+# An op that declares the widgets it touches, for the save planner's tests (E2r); off by default,
+# turned on by laminapdf-save's dev-dependency, never by a published crate.
+test-support = []
 
 [dependencies]
 laminapdf-cos = { workspace = true }
@@ -28,6 +31,7 @@ laminapdf-model = { workspace = true }
 laminapdf-syntax = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+sha2 = { workspace = true }
 thiserror = { workspace = true }
 tsify = { workspace = true, optional = true }
 wasm-bindgen = { workspace = true, optional = true }

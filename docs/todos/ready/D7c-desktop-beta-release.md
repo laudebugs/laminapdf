@@ -20,7 +20,7 @@ Put the desktop reader in users' hands: tag and publish `desktop v0.1.0` to the 
 ## Context
 
 - [Desktop plan §6 D7 accepted-when](../../plans/desktop-app.md#d7-crash-reporting-and-beta): "beta installs and auto-updates for at least one release cycle on all three OSes".
-- [Desktop plan §4](../../plans/desktop-app.md#4-requirements): functional requirements, the release gates the beta must meet (cold start < 300 ms, installer < 15 MB; a miss blocks it) and the other non-functional targets it should meet (1 GB first page, idle memory).
+- [Desktop plan §4](../../plans/desktop-app.md#4-requirements): functional requirements, the release gates the beta must meet (the cold-start gates of ADR 0008 §4, installer < 15 MB; a miss blocks it) and the other non-functional targets it should meet (1 GB first page, idle memory).
 - `docs/guidelines/desktop-release.md` (D6a/D6b): "Cutting a release", verification commands, SmartScreen notes, rollout/pause procedures.
 - ADR 0014: rollout percentages, kill switch, bridges; default channel decision (plan open question 4).
 - [ADR 0019](../../decisions/0019-supply-chain-and-licence-hygiene.md): SBOMs and third-party notices required before the first public desktop release.
@@ -32,7 +32,7 @@ Put the desktop reader in users' hands: tag and publish `desktop v0.1.0` to the 
 
 - **Pre-release checklist** (in the PR, every item ticked with evidence):
   - [ ] All D1–D7b todos are in `done/`.
-  - [ ] Release gates met on the reference machines, with numbers recorded: cold start < 300 ms to an interactive window on macOS, Windows and Linux, and every installer < 15 MB (owner decision 2026-10-29); a miss blocks the beta.
+  - [ ] Release gates met on the reference machines, with numbers recorded: the cold-start gates on macOS, Windows and Linux: launch → window built and shown < 300 ms, and launch → first command within 75 ms of the floor build (owner decision 2026-11-11, [ADR 0008 §4](../../decisions/0008-desktop-shell.md#4-tiles-lossless-webp-over-the-lamina-scheme-512-px-single-threaded)), and every installer < 15 MB (owner decision 2026-10-29); a miss blocks the beta.
   - [ ] Pricing status stated: lamina will be priced (owner decision 2026-10-29) and the pricing page (U5a) comes after this beta, so the owner states what the beta is (for example a free preview) and the release notes and download page say lamina will be a paid product.
   - [ ] Other non-functional targets measured on reference machines and recorded (1 GB first page, idle memory) — misses listed as known issues with follow-up todos.
   - [ ] Supported-OS smoke on clean VMs: macOS 13 + latest, Windows 11 (+ Windows 10 22H2 best-effort), Ubuntu 22.04/24.04, Fedora current — install, open via double-click, tabs, print one page, settings, uninstall.
@@ -40,7 +40,7 @@ Put the desktop reader in users' hands: tag and publish `desktop v0.1.0` to the 
   - [ ] Privacy page updated (update endpoint data, install ID and reset, crash reports opt-in and 30-day retention, local recent files).
   - [ ] Third-party notices bundled; SBOMs and attestations generated.
   - [ ] Owner confirms: domain, product name, bundle identifier, default channel for new installs (open question 4), default-handler behaviour (open question 5).
-- Version `0.1.0` in `apps/desktop/package.json` (single source; `tauri.conf.json` reads it), changelog `apps/desktop/CHANGELOG.md`, release notes page content at `/desktop/releases/<version>` on the website (`apps/site`; the updater's `notes` URL, [D5a](./D5a-update-worker-and-adr-0014.md)) (features, known issues, SmartScreen note if OV, Linux graphics note, how to report bugs, how to verify downloads).
+- Version `0.1.0` in `apps/desktop/package.json` (single source; `tauri.conf.json` reads it), changelog `apps/desktop/CHANGELOG.md`, release notes page content at `/desktop/releases/<version>` on the website (`apps/site`; the updater's `notes` URL, [D5a](../done/D5a-update-worker-and-adr-0014.md)) (features, known issues, SmartScreen note if OV, Linux graphics note, how to report bugs, how to verify downloads).
 - Release: tag `desktop-v0.1.0` → workflow publishes to `beta` at the rollout chosen per ADR 0014 (for a first beta, 100 % of a small audience is fine — record), downloads JSON updated, download page shows Beta.
 - Announcement text (README badge/section, project site) — no external posting required by this todo.
 - **Update cycle**: after ≥ 3 days, release `0.1.1` (real fixes from beta feedback, or a small change) through the same pipeline with staged rollout 10 % → 50 % → 100 % on `beta`, observing the Worker's 200/204 counts (aggregate only) and crash reports; confirm on each OS that a `0.1.0` install updated to `0.1.1` without user action beyond the restart prompt (owner/maintainer machines plus at least one external tester per OS if available).
@@ -58,7 +58,7 @@ Put the desktop reader in users' hands: tag and publish `desktop v0.1.0` to the 
 - [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`.
 - [ ] Work through the pre-release checklist; collect evidence links (CI runs, VM notes).
 - [ ] Version bump, changelog, release notes.
-- [ ] Merge the PR (versions and notes) **before** tagging; tag from `main`; approve the `release` environment deployment (owner).
+- [ ] Merge the PR (versions and notes) **before** tagging; tag from `main`; approve the `desktop-release` environment deployment (owner).
 - [ ] Verify published artefacts with the runbook commands on each OS; verify the download page.
 - [ ] After merge and the `desktop-v0.1.0` tag: run the 0.1.1 update cycle and kill-switch rehearsal (Post-merge checks) and record the results in a follow-up PR that ticks them in the `done/` file.
 - [ ] Update plans and board; open follow-up todos.
@@ -72,7 +72,7 @@ Put the desktop reader in users' hands: tag and publish `desktop v0.1.0` to the 
 
 ## Post-merge checks
 
-- [ ] Tag `desktop-v0.1.0` from `main` after this PR merges and approve the `release` environment; the publish job and post-publish Worker check are green.
+- [ ] Tag `desktop-v0.1.0` from `main` after this PR merges and approve the `desktop-release` environment; the publish job and post-publish Worker check are green.
 - [ ] At least one install per OS on the beta channel auto-updated from `0.1.0` to `0.1.1` (recorded: OS version, install type, time to update).
 - [ ] Kill switch rehearsal: `paused` on `beta` → every poll returns 204 within 60 s of the manifest write (measured worst case recorded; anything over 30 s is investigated as a sign of a second cache layer) → resumed (recorded).
 - [ ] Both are recorded in a follow-up PR that ticks these boxes in the `done/` file (this todo moves to `done/` with its work PR, per the DoD).

@@ -84,7 +84,7 @@ pub(crate) struct Module {
     /// `base`, `text`, `extract` or `render_hayro`: the files are `lamina_pdf_<name>.{js,d.ts,wasm}`.
     pub(crate) name: &'static str,
     /// The crate built (`laminapdf-wasm` for Lamina PDF's three modules).
-    krate: &'static str,
+    pub(crate) krate: &'static str,
     /// The crate's cdylib file stem in `target/wasm32-unknown-unknown/wasm-release/`.
     artefact: &'static str,
     features: &'static [&'static str],

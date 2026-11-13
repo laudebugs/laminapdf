@@ -9,13 +9,13 @@
 
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, PoisonError, mpsc};
+use std::sync::{Mutex, PoisonError, mpsc};
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter as _, EventTarget, Manager as _};
 
 use crate::DesktopError;
-use crate::engine::{DocumentMeta, Engines};
+use crate::engine::DocumentMeta;
 
 /// A document opened at the OS's request, or why it didn't open: sent to the window that shows it.
 /// These event names are repeated in `src/engine/open.ts`.
@@ -228,8 +228,7 @@ fn open_and_tell(app: &AppHandle, job: &OpenJob) {
 fn opened(app: &AppHandle, job: &OpenJob) -> Opened {
     let name = file_name(&job.path);
     tracing::debug!(path = %job.path.display(), "opening a document the OS asked for");
-    let engines = Arc::clone(&app.state::<Arc<Engines>>());
-    match open_file(&engines, &job.window, &job.path) {
+    match open_file(app, &job.window, &job.path) {
         Ok(document) => Opened::Document { name, document },
         Err(error) => {
             tracing::info!(kind = error.kind(), "a document the OS asked for didn't open");
@@ -241,12 +240,13 @@ fn opened(app: &AppHandle, job: &OpenJob) -> Opened {
     }
 }
 
-/// Opens `path` in `window`'s engine; a missing file is an `io` error, which the window reports by name.
-fn open_file(engines: &Engines, window: &str, path: &Path) -> Result<DocumentMeta, DesktopError> {
+/// Opens `path` in `window`, recorded and watched; a missing file is an `io` error, which the
+/// window reports by name.
+fn open_file(app: &AppHandle, window: &str, path: &Path) -> Result<DocumentMeta, DesktopError> {
     if !path.is_file() {
         return Err(DesktopError::Io(std::io::ErrorKind::NotFound.into()));
     }
-    engines.open(window, path)
+    crate::opened::open_path(app, window, path)
 }
 
 /// `path`'s last part, for the window's words: never its folder.

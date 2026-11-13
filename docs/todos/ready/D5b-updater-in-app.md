@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D5](../../plans/desktop-app.md#d5-update-service) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D4b](./D4b-native-menus.md), [D5a](./D5a-update-worker-and-adr-0014.md) |
+| Depends on | [D4b](./D4b-native-menus.md), [D5a](../done/D5a-update-worker-and-adr-0014.md) |
 | ADRs | Implements ADR 0014 (client side). Follows ADR 0008 (security baseline), ADR 0011 (privacy) |
 | Branch | `feat/d5b-desktop-updater` |
 | PR title | `feat(desktop): wire the updater with channels, settings and the install-ID header` |
@@ -42,7 +42,7 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 - Menu: "Check for Updates…" (macOS app menu, Help menu elsewhere) enabled and wired.
 - Staging e2e workflow `.github/workflows/desktop-update-e2e.yml`, using the non-release test key, in two modes:
   - **`local` mode** — path-filtered `pull_request` (forks included; **no secrets at all**): the Worker runs on the runner with `wrangler dev` and local R2 simulation, seeded with `wrangler r2 object put --local`; the `e2e` build points the updater at `http://127.0.0.1:<port>` (`dangerousInsecureTransportProtocol` only under the `e2e` feature, which D2a's guard keeps out of release builds).
-  - **`staging` mode** — `push` to `main` (path-filtered), nightly schedule and `workflow_dispatch`, never `pull_request`: runs in a GitHub `staging` environment (deployment branches: `main` only) holding `CLOUDFLARE_STAGING_R2_TOKEN`, scoped to the separate **`lamina-pdf-staging`** bucket only (D5a), against the deployed Worker's `staging` channel. No job here ever gets a token for `lamina-pdf-releases`.
+  - **`staging` mode** — `push` to `main` (path-filtered), nightly schedule and `workflow_dispatch`, never `pull_request`: runs in a GitHub `desktop-staging` environment (deployment branches: `main` only) holding `CLOUDFLARE_STAGING_R2_TOKEN`, scoped to the separate **`lamina-pdf-staging`** bucket only (D5a), against the deployed Worker's `staging` channel. No job here ever gets a token for `lamina-pdf-releases`.
   Both modes build `0.0.1` and `0.0.2` (plain `X.Y.Z`: WiX/MSI only accepts a numeric pre-release ≤ 65535, so `-test` suffixes would fail the Windows bundle; versions below `0.1.0` are reserved for this staging test and never published to a user channel) for the three OSes with updater artefacts signed by a **test** updater key (separate from production; stored as a non-release secret), uploads 0.0.2 to the staging bucket (local or `lamina-pdf-staging`) and seeds the `staging` channel manifest, installs 0.0.1 on the runner, launches it with a test-only flag (feature `e2e`) that forces the `staging` channel and an immediate check, waits for install + relaunch, and asserts the running version is `0.0.2`. A second run serves a tampered bundle (one byte flipped, original `.sig`) and asserts the updater rejects it and the app stays on `0.0.1`.
 
 **Out of scope** (and which todo covers it)
@@ -65,7 +65,7 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 ## Acceptance criteria
 
 - [ ] On macOS, Windows and Linux (AppImage), an installed `0.0.1` updates to `0.0.2` from the `staging` channel without user interaction beyond what `installMode: passive` shows (`local`-mode CI run green on all three OSes in the PR; run linked).
-- [ ] The workflow's `pull_request` jobs reference no secrets and no environment; only `staging`-mode jobs use the `staging` environment (checked by reading the workflow in review).
+- [ ] The workflow's `pull_request` jobs reference no secrets and no environment; only `staging`-mode jobs use the `desktop-staging` environment (checked by reading the workflow in review).
 - [ ] A tampered bundle is rejected on each OS (signature error logged; app remains on 0.0.1) — same workflow.
 - [ ] The request to the update endpoint carries `Lamina-Install-Id` as a header and not in the URL (unit test of the builder config + a Worker-side assertion in the staging run).
 - [ ] Disabling updates stops all update network requests (unit test on the scheduler; manual check with a proxy).
@@ -75,7 +75,7 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 
 ## Post-merge checks
 
-- [ ] Owner has created the `staging` environment (deployment branches: `main`) with `CLOUDFLARE_STAGING_R2_TOKEN` scoped to `lamina-pdf-staging` only.
+- [ ] Owner has created the `desktop-staging` environment (deployment branches: `main`) with `CLOUDFLARE_STAGING_R2_TOKEN` scoped to `lamina-pdf-staging` only.
 - [ ] The first `staging`-mode run of `desktop-update-e2e.yml` on `main` (push after merge, or the next scheduled run) is green on all three OSes against `lamina-pdf-staging` (the PR only proves `local` mode, since a new workflow can't be dispatched or scheduled until it is on `main` and PRs get no secrets).
 
 ## Tests

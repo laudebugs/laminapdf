@@ -36,6 +36,8 @@ use laminapdf_ops::{
 use laminapdf_save::{Save, SaveError, SaveMode, SaveOptions, SaveReport};
 use serde_json::{Value, json};
 
+use super::copy;
+
 /// What a fixture is, which decides every expectation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Category {
@@ -365,5 +367,129 @@ pub fn run(root: &Path) -> Suite {
             }
         }
     }
+    copies(root, &mut suite);
+    images(root, &mut suite);
     suite
+}
+
+/// The image cases (todo E3h): photos made into PDFs with `images_to_pdf`, a page per photo,
+/// sized from the photo and fitted to A4, one of them a photo marked as taken sideways. Lamina
+/// reopens each; the tools check it like any other output.
+fn images(root: &Path, suite: &mut Suite) {
+    use laminapdf_build::{Image, ImagePages, ImagesOptions, PageSize, Pt, images_to_pdf};
+    let photo = |name: &str| Image::jpeg(std::fs::read(root.join("fixtures/images").join(name)).unwrap()).unwrap();
+    let photos = [
+        "photo-rgb.jpg",
+        "photo-gray.jpg",
+        "photo-cmyk.jpg",
+        "photo-wide-exif6.jpg",
+    ]
+    .map(photo);
+    let fitted = ImagesOptions::new()
+        .with_pages(ImagePages::Fit(PageSize::A4))
+        .with_margin(Pt::from_mm(15.0));
+    for (id, options) in [("images-sized", ImagesOptions::new()), ("images-fitted", fitted)] {
+        let mut doc = images_to_pdf(&photos, &options).unwrap();
+        let mut output = Vec::new();
+        let report = doc.save(&mut output, &SaveOptions::new()).unwrap();
+        suite.saved += 1;
+        let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
+        let (pages, rotations, _) = facts(&reopened);
+        if pages != photos.len() || reopened.was_repaired() {
+            suite.failures.push(format!(
+                "{id}: lamina reopened {pages} pages (repaired {}), expected {}",
+                reopened.was_repaired(),
+                photos.len()
+            ));
+        }
+        let file = format!("{id}.pdf");
+        suite.manifest.push(json!({
+            "file": &file,
+            "source": "images/photo-*.jpg",
+            "mode": format!("{:?}", report.mode()),
+            "pages": photos.len(),
+            "rotations": rotations,
+            "title": null,
+            "info": null,
+            "encrypted": false,
+            "direct_info": false,
+            "invalidated": 0,
+        }));
+        suite.outputs.push((file, output));
+    }
+}
+
+/// The files the copy cases take their first page from, with the password each opens with:
+/// the plain files above, a repaired one, a signed one and three encrypted ones.
+fn copy_sources() -> Vec<(String, Option<&'static str>)> {
+    let mut out: Vec<(String, Option<&str>)> = PLAIN_CORPUS
+        .iter()
+        .map(|name| (format!("corpus/{name}"), None))
+        .chain(PLAIN_BUILT.iter().map(|name| (format!("golden/{name}"), None)))
+        .collect();
+    out.extend([
+        ("corpus/hello-broken.pdf".into(), None),
+        ("corpus/signed.pdf".into(), None),
+        ("corpus/enc.pdf".into(), None),
+        ("encrypted/r4-aes-128-user.pdf".into(), Some("user-pw")),
+        ("text/encrypted/build-text-multiscript-rc4-128.pdf".into(), Some("user")),
+    ]);
+    out
+}
+
+/// The copy cases (todo E2p): the first page of each [`copy_sources`] file, copied with
+/// `ObjectCopier` into an empty document and saved. Lamina reopens each output; the tools check
+/// it like any other output, and `PDFium` also draws it next to the page it came from
+/// (`copy_of`).
+fn copies(root: &Path, suite: &mut Suite) {
+    for (name, password) in copy_sources() {
+        let path = root.join("fixtures").join(&name);
+        let id = format!("copy-{}", name.replace('/', "_").trim_end_matches(".pdf")).to_lowercase();
+        let mut options = OpenOptions::default();
+        if let Some(password) = password {
+            options = options.with_password(password);
+        }
+        let source = laminapdf_model::Document::open(std::fs::read(&path).unwrap(), options).unwrap();
+        let pages = source.pages().unwrap();
+        let page = pages.get(0).unwrap();
+        let rotation = page.rotate().unwrap().degrees();
+        let mut target = laminapdf_cos::Document::open(copy::empty_file(), OpenOptions::default()).unwrap();
+        copy::copy_pages_into(&mut target, &source, &[page.cos()]).unwrap();
+        let mut doc = Document::from(laminapdf_model::Document::from(target));
+        let mut output = Vec::new();
+        let report = match doc.save(&mut output, &SaveOptions::new()) {
+            Ok(report) => report,
+            Err(e) => {
+                suite
+                    .failures
+                    .push(format!("{id}: saving the copy failed: {}", e.code()));
+                continue;
+            }
+        };
+        suite.saved += 1;
+        let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
+        let (pages, rotations, _) = facts(&reopened);
+        if (pages, &rotations[..]) != (1, &[rotation][..]) || reopened.was_repaired() || reopened.is_encrypted() {
+            suite.failures.push(format!(
+                "{id}: lamina reopened {pages} pages turned {rotations:?} (repaired {}, encrypted {}), expected one turned {rotation}",
+                reopened.was_repaired(),
+                reopened.is_encrypted(),
+            ));
+        }
+        let file = format!("{id}.pdf");
+        suite.manifest.push(json!({
+            "file": &file,
+            "source": name,
+            "mode": format!("{:?}", report.mode()),
+            "pages": 1,
+            "rotations": [rotation],
+            "title": null,
+            "info": null,
+            "encrypted": false,
+            "direct_info": false,
+            "invalidated": 0,
+            "copy_of": { "path": path, "page": 0, "password": password },
+        }));
+        suite.outputs.push((file, output));
+    }
 }

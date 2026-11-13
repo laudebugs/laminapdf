@@ -21,7 +21,7 @@ use laminapdf_cos::Warning as W;
 use laminapdf_syntax::{Limit, Position};
 
 /// Codes whose page lists data keys but whose value can't be built outside its crate.
-const UNBUILDABLE: [(&str, &str); 19] = [
+const UNBUILDABLE: [(&str, &str); 20] = [
     (
         "not-rebased",
         "SaveError::NotRebased carries a SavedOutput, whose constructor is private to laminapdf-save",
@@ -43,6 +43,7 @@ const UNBUILDABLE: [(&str, &str); 19] = [
     ("render-too-large", "raised by laminapdf-render"),
     ("render-failed", "raised by laminapdf-render"),
     ("render-backend-unavailable", "raised by laminapdf-render"),
+    ("export-failed", "raised by laminapdf-render"),
     // `cliErrors`: raised by laminapdf-cli; its tests/data_fields.rs checks their keys.
     ("invalid-page-range", "raised by laminapdf-cli"),
     ("unknown-code", "raised by laminapdf-cli"),
@@ -314,6 +315,11 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
             object: None,
             offset: Some(0),
             reason: "dtd",
+        }
+        .into(),
+        W::XmpRepaired {
+            object: None,
+            reason: "undeclared-prefix",
         }
         .into(),
         W::ContentUnknownOperator {

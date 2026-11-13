@@ -25,7 +25,7 @@ categories = ["encoding", "parser-implementations", "text-processing", "wasm"]
 layer = "core"
 
 [features]
-default = ["text", "saslprep", "markdown", "document", "reflow"]
+default = ["text", "saslprep", "markdown", "document", "reflow", "page-checks"]
 # SASLprep for R5/R6 passwords (RFC 4013; laminapdf-syntax's `saslprep`). Left out of the WASM
 # base module (ADR 0016 §5).
 saslprep = ["laminapdf-cos/saslprep"]
@@ -48,6 +48,9 @@ markdown = ["text", "laminapdf-build/markdown"]
 # `FlowDocument`, `Resources` and `fill`) and `Builder::document`. On by default; the WASM modules
 # leave it out until T4j.
 document = ["text", "laminapdf-build/serde"]
+# The save planner's field-level checks of page ops (laminapdf-save's `page-checks`, ADR 0007 §11).
+# On by default; the WASM modules leave it out until their page ops report widgets.
+page-checks = ["laminapdf-save/page-checks"]
 # `laminapdf::explain(code)`: every code's explain page (docs/errors/<code>.md, ADR 0026 §6), about
 # 80 KB of text. Off by default and in the WASM modules; the CLI turns it on.
 explain = []
@@ -130,6 +133,10 @@ required-features = ["text"]
 [[example]]
 name = "images_and_vectors"
 required-features = ["text"]
+
+[[example]]
+name = "images_to_pdf"
+required-features = ["build"]
 
 [[example]]
 name = "links_and_outlines"

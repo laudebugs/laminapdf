@@ -25,7 +25,7 @@ SumatraPDF is the most-loved reader of the decade on Hacker News, and its saved 
 - **[C7b](../done/C7b-offline-pwa.md)** adds the database's schema version and migrations, OPFS copies of opened files, the recent rows on the home screen (with a last page), and the "Storage and privacy" settings section in C7a's dialog ("Clear recent files and cached documents" and "Remember recent local files"; it leaves out "Remember remote URLs", which ADR 0011 rules out).
 - **[C6b](../done/C6b-links-and-history.md):** `NavigationHistory`, whose entries are `{ page, scroll offset, zoom }`, and the viewer call that restores one. A remembered position is the same kind of value. **[C6a](../done/C6a-thumbnails-outline-page-labels.md):** the `#page=` and `#nameddest=` deep links, read through C4c's `parseFragment`.
 - **The viewer:** `Viewer.pointAt(x, y)` and `positionOf(point)` with `DocumentPoint` (a page and fractions of its box), `getState()`/`subscribe`, and the worker's `openDocument`, which returns `OpenedDocument` (`packages/viewer/src/protocol.ts`, `src/worker/document.ts`).
-- **Design (Paper):** [R01 Home / open](../../design/paper/reader-a.md#r01-home--open) (recent rows: "This device · pages · last page"; "Choose the file again to reopen"), [R15](../../design/paper/reader-b.md#r15-offline-install-and-update) ("Reload to use it; you'll come back to page 3"). Desktop: [S01](../../design/paper/desktop-shell.md#s01-start-window) and [S02](../../design/paper/desktop-shell.md#s02-window-with-document-tabs-and-session-restore), built by [D3b](../ready/D3b-recent-files-and-file-watching.md) (recent entries with page and zoom, by path) and [D4a](../ready/D4a-windows-tabs-and-session-restore.md) (session restore with each tab's own view).
+- **Design (Paper):** [R01 Home / open](../../design/paper/reader-a.md#r01-home--open) (recent rows: "This device · pages · last page"; "Choose the file again to reopen"), [R15](../../design/paper/reader-b.md#r15-offline-install-and-update) ("Reload to use it; you'll come back to page 3"). Desktop: [S01](../../design/paper/desktop-shell.md#s01-start-window) and [S02](../../design/paper/desktop-shell.md#s02-window-with-document-tabs-and-session-restore), built by [D3b](../done/D3b-recent-files-and-file-watching.md) (recent entries with page and zoom, by path) and [D4a](../ready/D4a-windows-tabs-and-session-restore.md) (session restore with each tab's own view).
 - **Spec:** ISO 32000-2 §14.4 (file identifiers: `/ID[0]` is meant to stay the same through incremental updates); §7.5.6 (incremental updates append to the file).
 
 ## Scope
@@ -62,7 +62,7 @@ SumatraPDF is the most-loved reader of the decade on Hacker News, and its saved 
 **Out of scope** (and which todo covers it)
 
 - Positions that follow the reader across devices (want 8, 159 comments): it needs accounts and ADR 0011 §6's end-to-end encryption; the hosted-service rounds ([H4](../ready/H4-document-sync.md)).
-- Desktop tabs and windows after a restart: [D4a](../ready/D4a-windows-tabs-and-session-restore.md). The desktop's recent list: [D3b](../ready/D3b-recent-files-and-file-watching.md).
+- Desktop tabs and windows after a restart: [D4a](../ready/D4a-windows-tabs-and-session-restore.md). The desktop's recent list: [D3b](../done/D3b-recent-files-and-file-watching.md).
 - A position inside reader mode's reflowed text ([U4b](../done/U4b-reader-mode-from-structure-tree.md), [U4c](../done/U4c-approximate-reader-mode.md)): later, once reader mode exists.
 - Page appearance remembered per document (R10's "for this document only"): [U2c](../done/U2c-page-appearance-modes.md). It can key its records by the same fingerprint.
 
@@ -101,7 +101,7 @@ SumatraPDF is the most-loved reader of the decade on Hacker News, and its saved 
 - ADR 0010 (§1 interface and §2 table; an amendment line in its header) and ADR 0011 (§3 guarantee 9; an amendment line in its header).
 - [R01](../../design/paper/reader-a.md#r01-home--open): the **Continue reading** row, recorded as a deviation ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)). The design language's [command appendix](../../design/paper/design-language.md#appendix-command-ids): `file.clear-reading-positions`, and `positions.enabled` in its list of preference keys.
 - `apps/web/README.md` (what the reader stores on the device and how to clear it) and `packages/ui/README.md` (`Platform.positions`).
-- [D3b](../ready/D3b-recent-files-and-file-watching.md) and [D4a](../ready/D4a-windows-tabs-and-session-restore.md), if still in `ready/`: D3b's recent entries store the fingerprint and read page and zoom from `Platform.positions` instead of their own fields; D4a's tabs keep their own view, and a document opened outside a restored tab uses `Platform.positions`.
+- [D3b](../done/D3b-recent-files-and-file-watching.md) and [D4a](../ready/D4a-windows-tabs-and-session-restore.md), if still in `ready/`: D3b's recent entries store the fingerprint and read page and zoom from `Platform.positions` instead of their own fields; D4a's tabs keep their own view, and a document opened outside a restored tab uses `Platform.positions`.
 - [Trust and proof §11](../../plans/trust-and-proof.md#11-to-dos): tick T5b.
 
 ## Risks and open questions

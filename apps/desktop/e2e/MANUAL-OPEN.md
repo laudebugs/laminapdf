@@ -1,6 +1,6 @@
-# Opening from the OS: manual checks
+# Opening from the OS and its recent lists: manual checks
 
-The e2e runs cover a second launch with a path and a cold start with a path, on all three OSes. Check by hand, once per OS with a dev bundle, what WebDriver can't drive: Finder, Explorer, a file manager, the Dock and a real drag. Record each run in the PR that changes how files open: the OS and version, the bundle, and each row's result.
+The e2e runs cover a second launch with a path and a cold start with a path, the app's own recent list and reloading a changed file, on all three OSes. Check by hand, once per OS with a dev bundle, what WebDriver can't drive: Finder, Explorer, a file manager, the Dock, a real drag and the OS's own recent lists. Record each run in the PR that changes how files open: the OS and version, the bundle, and each row's result.
 
 ## Build a dev bundle
 
@@ -30,3 +30,15 @@ Use three files: one plain (`fixtures/golden/examples/invoice.pdf`), one whose n
 | 9 | Windows: open the long-path copy and the network-share copy. | Both open. |
 | 10 | With the app running, start its binary again with the path of a PDF that doesn't exist. | A toast names the file; the window keeps what it shows. |
 | 11 | Check the default PDF app in the OS's settings after installing. | It is unchanged: Lamina PDF is listed as able to open PDFs but isn't the default. (Windows: on a machine where no default was ever chosen, Tauri's installers still make it the default until D6d changes them; record what you see.) |
+
+## Recent lists
+
+Open two PDFs one after the other, then check:
+
+| # | Do | Expect |
+| --- | --- | --- |
+| 12 | macOS: right-click the Dock icon. | Both files are under its recent documents, newest first. |
+| 13 | Windows: right-click the taskbar icon (pinned from the Start menu shortcut the installer made). | Both files are in the Jump List's Recent section. |
+| 14 | Linux (GNOME): open Files ▸ Recent. | Both files are there. |
+| 15 | Press Clear list on the start window, then repeat 12–14. | Lamina PDF's own lists are empty. On Windows, a `.txt` opened in Notepad beforehand is still in File Explorer's Recent items. |
+| 16 | Turn off Settings ▸ Files ▸ Remember recent files, open a PDF, then repeat 12–14. | Nothing new is listed anywhere. |

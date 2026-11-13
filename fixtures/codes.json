@@ -146,6 +146,20 @@
       "since": "0.2.0"
     },
     {
+      "code": "annot-name-duplicate",
+      "kind": "input",
+      "summary": "two annotations on one page have the same name (/NM), which should be unique on its page",
+      "hint": "nothing to do; both are kept, and annotations are told apart by their own IDs",
+      "since": "0.2.0"
+    },
+    {
+      "code": "xmp-repaired",
+      "kind": "input",
+      "summary": "the XMP metadata packet had damage other readers read past, and was read the same way",
+      "hint": "nothing to do; a metadata edit writes the declarations the packet left out",
+      "since": "0.2.0"
+    },
+    {
       "code": "invalid-page-label",
       "kind": "input",
       "summary": "a /PageLabels entry is malformed; the malformed part is dropped",
@@ -518,6 +532,34 @@
       "kind": "input",
       "summary": "a metadata edit would replace the document's XMP packet, which can't be read, losing what it holds",
       "hint": "set replaceMalformed on the edit to replace the packet with a new one, or leave the metadata as it is",
+      "since": "0.2.0"
+    },
+    {
+      "code": "unknown-source",
+      "kind": "usage",
+      "summary": "an op or a call names a source document that was not added to the session",
+      "hint": "add the source document's bytes with addSource before applying ops that name it",
+      "since": "0.2.0"
+    },
+    {
+      "code": "unknown-annotation",
+      "kind": "usage",
+      "summary": "the op names an annotation that no page of the document lists",
+      "hint": "read the page's annotations again and use an ID from that list",
+      "since": "0.2.0"
+    },
+    {
+      "code": "annotation-locked",
+      "kind": "state",
+      "summary": "the annotation's flags forbid the change: Locked forbids deleting it or changing its properties, LockedContents changing its contents",
+      "hint": "clear the lock with an update of its flags first, if you may",
+      "since": "0.2.0"
+    },
+    {
+      "code": "annotation-not-editable",
+      "kind": "unsupported",
+      "summary": "the annotation can't be edited by the annotation ops: it is a form field's widget, or a direct dictionary with no object of its own",
+      "hint": "edit a widget through its form field; an annotation stored inside the page's list can't be edited yet",
       "since": "0.2.0"
     }
   ],
@@ -1009,6 +1051,13 @@
       "summary": "the render engine is not available: its library or module could not be loaded",
       "hint": "run cargo xtask fetch-pdfium or set LAMINA_PDF_PDFIUM_DIR to the folder holding the PDFium library",
       "since": "0.1.0"
+    },
+    {
+      "code": "export-failed",
+      "kind": "internal",
+      "summary": "an export's PNG, JPEG or TIFF encoder failed on a page that was drawn",
+      "hint": "report it with the format and the page: the encoder writes into memory, so this is a bug in Lamina PDF",
+      "since": "0.2.0"
     }
   ],
   "extractErrors": [
