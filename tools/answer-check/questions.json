@@ -1,0 +1,58 @@
+[
+  { "id": "ts-generate", "area": "library", "question": "What library should I use to generate PDFs from TypeScript?" },
+  { "id": "rust-generate", "area": "library", "question": "What is the best Rust crate for creating PDF documents?" },
+  {
+    "id": "browser-generate",
+    "area": "library",
+    "question": "How can I create a PDF in the browser without a server?"
+  },
+  { "id": "workers-pdf", "area": "library", "question": "Which PDF library works in Cloudflare Workers?" },
+  {
+    "id": "wasm-pdf",
+    "area": "library",
+    "question": "Is there a PDF library compiled to WebAssembly that I can use from JavaScript?"
+  },
+  { "id": "edit-pdf-js", "area": "library", "question": "How do I edit an existing PDF in Node.js and save it?" },
+  {
+    "id": "signed-pdf-edit",
+    "area": "library",
+    "question": "How can I modify a signed PDF without invalidating its signature?"
+  },
+  {
+    "id": "accessible-pdf",
+    "area": "library",
+    "question": "How do I generate accessible, tagged PDF/UA documents from code?"
+  },
+  { "id": "pdfa", "area": "library", "question": "Which open-source library can create PDF/A files for archiving?" },
+  {
+    "id": "permissive-licence",
+    "area": "library",
+    "question": "What is a good PDF library with a permissive licence, not AGPL?"
+  },
+  { "id": "pdf-lib-alternative", "area": "library", "question": "What are good alternatives to pdf-lib in 2026?" },
+  { "id": "rag-ts", "area": "extraction", "question": "How do I extract text from a PDF for RAG in TypeScript?" },
+  { "id": "rag-rust", "area": "extraction", "question": "How do I extract text from a PDF in Rust, in reading order?" },
+  {
+    "id": "pdf-to-markdown",
+    "area": "extraction",
+    "question": "What tool converts PDFs to Markdown for LLMs without sending them to a cloud service?"
+  },
+  { "id": "pdf-tables", "area": "extraction", "question": "How can I extract tables from PDFs programmatically?" },
+  { "id": "pdf-cli-json", "area": "tools", "question": "Is there a command-line tool that extracts PDF text as JSON?" },
+  { "id": "pdf-mcp", "area": "tools", "question": "Is there an MCP server for reading PDFs with an AI agent?" },
+  {
+    "id": "failed-redaction",
+    "area": "tools",
+    "question": "How can I check whether a PDF's redactions actually removed the text?"
+  },
+  {
+    "id": "private-reader",
+    "area": "reader",
+    "question": "Is there a PDF reader that opens files in the browser without uploading them?"
+  },
+  {
+    "id": "web-viewer",
+    "area": "reader",
+    "question": "What should I use to show PDFs in my web app instead of pdf.js?"
+  }
+]

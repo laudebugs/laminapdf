@@ -38,7 +38,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | R16 | Focus mode (rails hidden; inspector returns on selection) | W | [U1c](../../todos/done/U1c-inverted-l-shell-and-modes.md) |
 | R17 | Tablet reading: rail as sheet, pen hover | T | [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md) |
 | R18 | Phone: outline, find, more (outline sheet, find, more menu, view settings sheet) | M | [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md) |
-| R19 | Close a document: Close beside the file name, More › Close document, Back to files on phone and tablet, home after a close | W, T, M | [C8a](../../todos/ready/C8a-every-close-asks-first.md), [C8b](../../todos/ready/C8b-close-button-and-command.md) |
+| R19 | Close a document: Close beside the file name, More › Close document, Back to files on phone and tablet, home after a close | W, T, M | [C8a](../../todos/done/C8a-every-close-asks-first.md), [C8b](../../todos/done/C8b-close-button-and-command.md) |
 
 ## S. Desktop shell
 
@@ -65,7 +65,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | O04 | Document info and XMP editor (title, author, subject, keywords, dates; XMP tree) | D | [E1f](../../todos/done/E1f-metadata-ui-capability-page.md), [E3e](../../todos/done/E3e-xmp-editor.md) |
 | O05 | Capability page: what lamina can read, write and round-trip | W | [E1f](../../todos/done/E1f-metadata-ui-capability-page.md) |
 | O06 | Organise mode: page grid, multi-select, insertion bar, rotate, delete, duplicate, "Move to page…" | D, W | [E2h](../../todos/ready/E2h-page-organiser-ui.md), [E2b](../../todos/done/E2b-page-structure-ops.md) |
-| O07 | Insert pages and merge documents (from another PDF, images, blank) | D | [E2c](../../todos/ready/E2c-cross-document-pages.md), [E2d](../../todos/ready/E2d-merge-and-split.md), [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md) |
+| O07 | Insert pages and merge documents (from another PDF, images, blank) | D | [E2c](../../todos/done/E2c-cross-document-pages.md), [E2d](../../todos/ready/E2d-merge-and-split.md), [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md) |
 | O08 | Split document (by count, ranges, bookmarks) | D | [E2d](../../todos/ready/E2d-merge-and-split.md) |
 | O09 | Page geometry: crop and page boxes, resize, warning that cropped content remains | D | [E2f](../../todos/ready/E2f-page-geometry.md), [E2s](../../todos/ready/E2s-resize-and-orientation.md), [E2g](../../todos/ready/E2g-page-labels.md) |
 | O10 | Page labels editor (roman front matter, numbering ranges) | D | [E2q](../../todos/done/E2q-page-labels-op.md), [E2g](../../todos/ready/E2g-page-labels.md) |

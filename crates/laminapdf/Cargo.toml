@@ -159,6 +159,12 @@ name = "edit_bookmarks"
 name = "duplicate_pages"
 
 [[example]]
+name = "extract_pages"
+
+[[example]]
+name = "insert_pages"
+
+[[example]]
 name = "edit_metadata"
 
 [[example]]

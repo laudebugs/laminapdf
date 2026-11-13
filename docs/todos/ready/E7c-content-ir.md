@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [E7b](./E7b-editing-existing-content-feature-plan.md) |
+| Depends on | [E7b](../done/E7b-editing-existing-content-feature-plan.md) |
 | ADRs | Implements ADR 0022; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e7c-content-ir` |
 | PR title | `feat(content): editable content IR with object identity` |
@@ -56,9 +56,10 @@ Implement the ADR 0022 IR in `laminapdf-content`: parse a page's content (and Fo
 
 ## Acceptance criteria
 
-- [ ] Parse → encode of every corpus page renders identically (PDFium diff zero) and is byte-identical for ≥ the rate set in ADR 0022
+- [ ] Parse → encode with no edit is byte-identical on every corpus page (the encoder copies every untouched span, ADR 0022 §3)
 - [ ] Fuzz 10 min without panic
-- [ ] Parse time within the ADR's budget
+- [ ] Tokenizing and grouping on the external corpus runs at 50 MB/s or faster (75 % of the spike's 67 MB/s) ([spike README](../../../spikes/content-edit/README.md)), reported, not a CI gate
+- [ ] `content-object-stale` and `content-not-editable` (reasons `type3-font`, `vertical-text`, `no-unicode-map`, `rotated-run`, `glyphs-out-of-order`, `too-deep`, `content-unreadable`) in `fixtures/codes.json` with their `docs/errors/` pages; `Op` reports an inline image's end offset ([E7 plan](../../plans/editor/e7-editing-existing-content.md) §2.1)
 
 ## Post-merge checks
 

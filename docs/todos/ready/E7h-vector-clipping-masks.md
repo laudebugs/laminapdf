@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [E7d](./E7d-select-transform-existing.md) |
+| Depends on | [E7d](./E7d-select-transform-existing.md), [E7k](./E7k-select-transform-ui.md) |
 | ADRs | Implements ADR 0022; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e7h-vector-clipping-masks` |
 | PR title | `feat(content): edit vector paths, clipping and masks` |
@@ -27,10 +27,8 @@ Edit existing paths (points, fill/stroke colour, width, dash), edit or remove cl
 
 **In scope**
 
-- Path point editing
-- Style edits
-- Clip and mask edits
-- UI handles for Bézier points
+- `EditContent` variants `EditPath { object, path }`, `SetPaint { object, fill, stroke, line }`, `SetClip { object, clip }`, `RemoveMask { object }` ([E7 plan](../../plans/editor/e7-editing-existing-content.md) §2.1)
+- A05's Edit points inspector and Bézier handles, on E7k's selection
 
 **Out of scope** (and which todo covers it)
 
@@ -40,7 +38,7 @@ Edit existing paths (points, fill/stroke colour, width, dash), edit or remove cl
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `B.07` edit vector paths, fills, strokes; `B.11` clipping paths and masks
 - **Crates and packages:** `laminapdf-content`, `@laminapdf/ui`
-- **`Op` variants:** `EditContent` variants `EditPath`, `SetClip`, `SetMask` (class `Content`)
+- **`Op` variants:** `EditContent` variants `EditPath`, `SetPaint`, `SetClip`, `RemoveMask` (class `Content`)
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked unless the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock` (the signature panel, E10h, reports the later content change)
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

@@ -194,6 +194,30 @@ impl<'s> ObjectCopier<'s> {
         written
     }
 
+    /// Copies `value` of the source (a resource dictionary, a destination array) into `target`:
+    /// every object it reaches that this copier hasn't copied yet is copied, and the value is
+    /// returned with its references pointing at the copies. A page, page-tree node or the
+    /// catalog it reaches is written as `null`, as [`ObjectCopier::copy_pages`] writes it.
+    ///
+    /// # Errors
+    /// As [`ObjectCopier::copy_pages`].
+    ///
+    /// Added in 0.3.0.
+    pub fn copy_value(&mut self, target: &mut CosMut<'_>, value: &Object) -> Result<Object> {
+        let root: Dict = [("V", value.clone())].into_iter().collect();
+        let walk = self.walk(std::slice::from_ref(&root), BTreeSet::new())?;
+        let mut journal = Journal::default();
+        let written = self
+            .key_streams(&walk)
+            .and_then(|()| self.write(target, &[], &[], &walk, &mut journal));
+        if let Err(e) = written {
+            self.undo(journal);
+            return Err(e);
+        }
+        self.outside.extend(&walk.outside);
+        Ok(self.rewrite(value))
+    }
+
     /// Records that `source` now became `copied`, so a failed call can undo it.
     fn map(&mut self, journal: &mut Journal, source: ObjRef, copied: Copied) {
         journal.copies.push((source, self.copies.insert(source, copied)));

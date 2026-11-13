@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Discoverability §5](../../plans/discoverability.md#5-todos) |
 | Round / milestone | Round W (website), W3 discoverability |
-| Depends on | [W3a](../done/W3a-crawl-and-index-rules.md), [W3i](./W3i-answer-engine-check.md) |
+| Depends on | [W3a](../done/W3a-crawl-and-index-rules.md), [W3i](../done/W3i-answer-engine-check.md) |
 | ADRs | Follows [0011 §4](../../decisions/0011-cloudflare-topology-and-privacy.md#4-security-headers-appswebpublic_headers-for-) (JSON-LD is a data block the browser never runs, so the CSP doesn't apply to it) |
 | Branch | `feat/w3d-structured-data` |
 | PR title | `feat(sites): structured data, share tags and links to the Markdown twins` |

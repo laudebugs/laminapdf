@@ -74,7 +74,7 @@ describe(`recent files in ${BROWSER}`, () => {
     await (await chooser).setFiles(new URL("outline.pdf", CORPUS).pathname);
     await opened(watched, "Outline fixture");
     await page.getByRole("button", { name: "More" }).first().click();
-    await page.getByRole("menuitem", { name: "Choose a file" }).click();
+    await page.getByRole("menuitem", { name: "Close document" }).click();
     const row = page.getByRole("button", { name: /outline\.pdf/ });
     await expect.poll(() => row.textContent()).toContain("3 pages");
     // Without a kept handle (no File System Access here) the row asks for the file again.

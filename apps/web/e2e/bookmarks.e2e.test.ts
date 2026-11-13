@@ -57,10 +57,10 @@ describe(`bookmarks in ${BROWSER}`, () => {
   async function editing(watched: Watched, file: string | { name: string; buffer: Buffer }): Promise<void> {
     const { page } = watched;
     const chooser = page.waitForEvent("filechooser");
-    // With a document open, Choose a file is in the More menu, which shows the home screen's button.
-    if (await page.getByRole("button", { name: "More" }).isVisible()) {
+    // With a document open, More › Close document goes back to the home screen and its button.
+    if ((await page.getByRole("button", { name: "Choose a file" }).count()) === 0) {
       await page.getByRole("button", { name: "More" }).click();
-      await page.getByRole("menuitem", { name: "Choose a file" }).click();
+      await page.getByRole("menuitem", { name: "Close document" }).click();
     }
     await page.getByRole("button", { name: "Choose a file" }).click();
     await (await chooser).setFiles(

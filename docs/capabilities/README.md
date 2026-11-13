@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 16 | 5 | 16 | 0 | 132 | 23 |
+| core | 169 | 18 | 7 | 16 | 0 | 128 | 27 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
 | web | 168 | 9 | 0 | 1 | 0 | 158 | 10 |
 | desktop | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
@@ -28,7 +28,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | A.03 | Delete or replace text | — | — | — | — | E7 round-trip |  |
 | A.04 | Change font family/size/colour/style | — | — | — | — | E7 round-trip |  |
 | A.05 | Bold, italic, underline, super/subscript | — | — | — | — | E7 round-trip |  |
-| A.06 | Alignment & line spacing | — | — | — | — | E7 round-trip |  |
+| A.06 | Alignment & line spacing | — | — | — | — | E7 write |  |
 | A.07 | Move/resize/rotate text blocks | — | — | — | — | E7 round-trip |  |
 | A.08 | Search & replace throughout document | — | — | — | — | E7 round-trip |  |
 | A.09 | Add hyperlinks to text | 🔵 write | — | — | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
@@ -40,8 +40,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| B.01 | Insert, delete, replace images | — | — | — | — | E6 write |  |
-| B.02 | Resize, rotate, crop, reposition | — | — | — | — | E6 write |  |
+| B.01 | Insert, delete, replace images | — | — | — | — | E7 round-trip |  |
+| B.02 | Resize, rotate, crop, reposition | — | — | — | — | E7 round-trip |  |
 | B.03 | Extract original embedded images | — | — | — | — | E3 read |  |
 | B.04 | Adjust transparency/opacity | — | — | — | — | E6 round-trip |  |
 | B.05 | Draw lines, rectangles, circles, polygons | — | — | — | — | E6 round-trip |  |
@@ -58,10 +58,10 @@ Rows per surface by best proven status (of the rows that target the surface).
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | C.01 | Insert blank pages | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
-| C.02 | Insert pages from other PDFs | — | — | — | — | E2 round-trip |  |
+| C.02 | Insert pages from other PDFs | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | C.03 | Delete & duplicate pages | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | C.04 | Reorder pages | 🟢 round-trip | — | — | — | E2 round-trip | [`ids_are_the_page_objects`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
-| C.05 | Extract selected pages | — | — | — | — | E2 write |  |
+| C.05 | Extract selected pages | 🔵 write | — | — | — | E2 write | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
 | C.06 | Merge multiple documents | — | — | — | — | E2 round-trip |  |
 | C.07 | Split by count, ranges, bookmarks | — | — | — | — | E2 write |  |
 | C.08 | Rotate pages 90/180/270 | 🟢 round-trip | — | — | — | E2 round-trip | [`rotate_normalises_negative_multiples_of_90`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
@@ -72,7 +72,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | C.13 | Reverse page order | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | C.14 | Labels, page numbers, headers/footers | 🟡 read | — | — | — | E6 round-trip | [`labels_follow_the_ranges`](../../crates/laminapdf-model/tests/views.rs) core read |
 | C.15 | Booklet / N-up layouts | — | — | — | — | E16 round-trip |  |
-| C.16 | Replace pages, preserving the rest | — | — | — | — | E2 round-trip |  |
+| C.16 | Replace pages, preserving the rest | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 
 ## D. Comments & annotations
 
@@ -164,7 +164,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | H.07 | Extract text & images | — | — | — | — | E3 read |  |
 | H.08 | Extract hyperlinks & bookmarks | — | — | — | — | E3 read |  |
 | H.09 | Extract attachments | — | — | — | — | E3 read |  |
-| H.10 | Export pages/ranges | — | — | — | — | E2 write |  |
+| H.10 | Export pages/ranges | 🔵 write | — | — | — | E2 write | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
 | H.11 | Render pages to images | 🟡 read | — | — | — | E3 read | [`a_png_holds_the_drawn_pixels_with_the_resolution_in_its_header`](../../crates/laminapdf-render/tests/export.rs) core read |
 | H.12 | Convert to PDF/A, PDF/X, PDF/UA | — | — | — | — | E16 round-trip |  |
 | H.13 | Scanned → searchable PDF | — | — | — | — | E13 round-trip |  |
