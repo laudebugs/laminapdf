@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q4s` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Docs redesign §4](../../plans/docs-redesign.md#4-todos) |
 | Round / milestone | Round Q (docs and code quality), Q4 docs redesign |
-| Depends on | [Q4q](../done/Q4q-resizable-page-beside-the-code.md) |
+| Depends on | [Q4q](./Q4q-resizable-page-beside-the-code.md) |
 | ADRs | [ADR 0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (the CSP the editor runs under) |
 | Branch | `claude/inspiring-lamport-q8469n` (this session's branch) |
 | PR title | `feat(docs): unwrapped lines in "Edit and run", with a Wrap lines toggle` |
@@ -39,16 +39,16 @@ The "Edit and run" editor wraps every long line, so a line of code can break in 
 
 ## Tasks
 
-- [ ] `editor.ts`: line wrapping in a CodeMirror compartment, off at first, switched by the toggle.
-- [ ] `Example.astro`: the toggle in the bar, its pressed look.
-- [ ] `runner.e2e.test.ts`: lines unwrapped at first (the editor scrolls sideways), wrapped after a press, unwrapped after a second.
-- [ ] The docs examples plan's editor notes.
+- [x] `editor.ts`: line wrapping in a CodeMirror compartment, off at first, switched by the toggle.
+- [x] `Example.astro`: the toggle in the bar, its pressed look.
+- [x] `runner.e2e.test.ts`: lines unwrapped at first (the editor scrolls sideways), wrapped after a press, unwrapped after a second.
+- [x] The docs examples plan's editor notes.
 
 ## Acceptance criteria
 
-- [ ] The editor opens unwrapped: a long line scrolls sideways instead of wrapping.
-- [ ] The toggle wraps the lines and says it is pressed; a second press unwraps them.
-- [ ] No CSP violation is reported.
+- [x] The editor opens unwrapped: a long line scrolls sideways instead of wrapping.
+- [x] The toggle wraps the lines and says it is pressed; a second press unwraps them.
+- [x] No CSP violation is reported.
 
 ## Post-merge checks
 
@@ -69,7 +69,7 @@ The [docs examples plan](../../plans/docs-examples.md) (§2's editor, §4) and t
 ## Definition of done
 
 - [x] Claimed: the work PR moved this file to `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
