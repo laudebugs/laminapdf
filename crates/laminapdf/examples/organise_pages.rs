@@ -39,7 +39,10 @@ pub(crate) fn organise(bytes: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
         Op::from(DeletePages::new(vec![third.clone()])),
         Op::from(MovePages::new(vec![last.clone()], PagePosition::Start)),
         Op::from(InsertBlankPages::new(PagePosition::End, 1, PageSize::LETTER)),
-        Op::from(RotatePages::turn(ids[..2].to_vec(), Rotation::Clockwise90)),
+        Op::from(RotatePages::turn(
+            ids.iter().take(2).cloned().collect(),
+            Rotation::Clockwise90,
+        )),
     ])?;
     for reference in &edited.references {
         if let ReferenceOutcome::Retargeted { to } = &reference.outcome {

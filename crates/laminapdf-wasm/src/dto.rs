@@ -358,12 +358,16 @@ pub(crate) struct ReferenceEditJs {
     pub page: String,
     /// `outlineItem`, `link`, `namedDestination`, `openAction`, `structureElement`,
     /// `structureKid` or `widget`.
+    #[tsify(
+        type = "\"outlineItem\" | \"link\" | \"namedDestination\" | \"openAction\" | \"structureElement\" | \"structureKid\" | \"widget\""
+    )]
     pub kind: &'static str,
     /// The named destination's name, for a `namedDestination`.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[tsify(optional)]
     pub name: Option<String>,
     /// `retargeted` or `removed`.
+    #[tsify(type = "\"retargeted\" | \"removed\"")]
     pub outcome: &'static str,
     /// The surviving page it now names, when retargeted.
     #[serde(skip_serializing_if = "Option::is_none")]

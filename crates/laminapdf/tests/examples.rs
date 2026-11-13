@@ -63,7 +63,7 @@ mod multilingual;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/organise_pages.rs"]
 mod organise_pages;
-
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/pdf_a3_invoice_with_xml.rs"]
 mod pdf_a3_invoice_with_xml;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -156,7 +156,9 @@ const EXAMPLES: [(&str, Build); 19] = [
     ("edit_metadata-pdfa", || {
         edit_metadata::edit(fixture("golden/examples/pdf_a_archive-2u.pdf"), EDITED.parse()?)
     }),
-    ("organise_pages", || organise_pages::organise(fixture("pages/references.pdf"))),
+    ("organise_pages", || {
+        organise_pages::organise(fixture("pages/references.pdf"))
+    }),
     ("pdf_ua_report", || pdf_ua_report::build(fixture(NOTO))),
     ("pdf_a_archive-2b", || {
         pdf_a_archive::build(Level::A2b, fixture(NOTO), fixture(PHOTO))

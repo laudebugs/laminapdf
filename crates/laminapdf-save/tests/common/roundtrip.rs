@@ -286,9 +286,14 @@ fn op(doc: &Document, name: &str, rotation: Rotation) -> Option<Op> {
     })
 }
 
-/// The page count and rotations (degrees) after `op`, from those before it.
-fn after_op(op: &Op, rotation: Rotation, pages: &mut usize, rotations: &mut Vec<u16>) {
+/// The facts after `op` (page count, rotations in degrees, the [`INFO`] keys' values), from
+/// those before it.
+fn after_op(op: &Op, rotation: Rotation, pages: &mut usize, rotations: &mut Vec<u16>, info: &mut Vec<Option<String>>) {
     match op {
+        Op::SetInfo(_) | Op::SetMetadata(_) => {
+            *info = INFO.iter().map(|(_, v)| Some((*v).to_owned())).collect();
+        }
+        Op::RemoveMetadata(_) => *info = vec![None; INFO.len()],
         Op::RotatePage(_) => {
             if let Some(first) = rotations.first_mut() {
                 *first = rotation.degrees();
@@ -350,13 +355,7 @@ pub fn run(root: &Path) -> Suite {
                     };
                     let category = with_widget_rule(&doc, &op, category);
                     let metadata_op = matches!(op, Op::SetMetadata(_) | Op::RemoveMetadata(_));
-                    match op {
-                        Op::SetInfo(_) | Op::SetMetadata(_) => {
-                            info = INFO.iter().map(|(_, v)| Some((*v).to_owned())).collect();
-                        }
-                        Op::RemoveMetadata(_) => info = vec![None; INFO.len()],
-                        _ => after_op(&op, rotation, &mut pages, &mut rotations),
-                    }
+                    after_op(&op, rotation, &mut pages, &mut rotations, &mut info);
                     // A removal from a file with nothing to remove would change nothing: it
                     // follows the metadata edit, in the same transaction.
                     let ops = if op_name == "removeMetadata" {

@@ -1,5 +1,5 @@
 //! The page ops on the signed fixtures (E2 plan §6, ADR 0007 §11): every op's class is
-//! `PageStructure`, which no DocMDP level permits; on an approval-signed file, deleting or
+//! `PageStructure`, which no `DocMDP` level permits; on an approval-signed file, deleting or
 //! rotating the page that holds the signed widget is a `SignedWidget` conflict, and the same
 //! ops on another page save as an incremental update that keeps the signed bytes; on the locked
 //! file, deleting or rotating the locked field's page breaks the lock, and moving, reversing and
