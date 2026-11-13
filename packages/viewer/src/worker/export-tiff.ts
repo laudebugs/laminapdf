@@ -8,7 +8,7 @@ import type { ExportedTiff, ExportTiffOptions } from "../protocol.js";
 import { current } from "./document.js";
 import { drawForExport, exportDpi, scaleFor } from "./export.js";
 
-/** The most pixel bytes one multi-page TIFF holds (256 MiB): past it, a file per page. */
+/** The most pixel bytes one multi-page TIFF holds (256 MiB, about four pages at the render limit): past it, a file per page. */
 const MAX_MULTI_PAGE_BYTES = 256 * 1024 * 1024;
 
 type TiffGlue = typeof import("@laminapdf/wasm/tiff");

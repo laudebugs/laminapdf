@@ -33,7 +33,9 @@ impl Seek for Shared {
 }
 
 /// A TIFF file in memory, one page per [`TiffWriter::add_page`]: straight 8-bit RGBA,
-/// Deflate-compressed, each page with its resolution in dots per inch.
+/// Deflate-compressed, each page with its resolution in dots per inch. It is neither `Send` nor
+/// `Sync`: the file and its encoder share one buffer through an `Rc`, so a writer stays on the
+/// thread that made it (the web reader's worker has only one).
 ///
 /// ```
 /// use laminapdf_render::TiffWriter;
@@ -49,6 +51,14 @@ impl Seek for Shared {
 pub struct TiffWriter {
     encoder: TiffEncoder<Shared>,
     file: Shared,
+}
+
+impl std::fmt::Debug for TiffWriter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TiffWriter")
+            .field("bytes", &self.file.0.borrow().get_ref().len())
+            .finish_non_exhaustive()
+    }
 }
 
 impl TiffWriter {
@@ -103,7 +113,8 @@ impl TiffWriter {
     #[must_use]
     pub fn finish(self) -> Vec<u8> {
         let Self { encoder, file } = self;
-        // The encoder's copy of the file goes first, which leaves this one the only owner.
+        // The encoder's copy of the file goes first, which leaves this one the only owner: the
+        // clone below never runs, but keeps the bytes if a later tiff version kept a copy.
         drop(encoder);
         match Rc::try_unwrap(file.0) {
             Ok(cell) => cell.into_inner().into_inner(),

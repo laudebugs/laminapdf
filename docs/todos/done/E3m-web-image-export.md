@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E3m` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E3 plan §2.3](../../plans/editor/e3-navigation-attachments-inspection.md#23-functions-that-only-read-or-write-new-files) and [§7](../../plans/editor/e3-navigation-attachments-inspection.md#7-differences-between-the-shells) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E3h](../done/E3h-images-to-pdf-and-page-export.md) |
+| Depends on | [E3h](./E3h-images-to-pdf-and-page-export.md) |
 | ADRs | Follows [0002](../../decisions/0002-binding-strategy.md), [0009](../../decisions/0009-web-client-architecture.md), [0016](../../decisions/0016-package-design.md), [0028](../../decisions/0028-facade-rules-jobs-and-cancellation.md) |
 | Branch | `feat/e3m-web-image-export` |
 | PR title | `feat(sdk,viewer): images to PDF and page export in TypeScript and the web reader` |
@@ -39,15 +39,23 @@ Bring E3h's two functions to TypeScript and the web reader, so E3j's export dial
 
 ## Tasks
 
-- [ ] The binding, its types, the TypeScript example and its recipe page; remove the example from `UNUSED.md`
-- [ ] The worker's export call for PNG and JPEG
-- [ ] The TIFF module, its build in `cargo xtask wasm`, its size budget and lazy loading
+- [x] The binding, its types, the TypeScript example and its recipe page; remove the example from `UNUSED.md`
+- [x] The worker's export call for PNG and JPEG
+- [x] The TIFF module, its build in `cargo xtask wasm`, its size budget and lazy loading
 
 ## Acceptance criteria
 
-- [ ] `images-to-pdf.ts` writes the Rust example's golden byte for byte
-- [ ] The reader's startup JS and WebAssembly sizes are unchanged
-- [ ] A page exported by the worker as PNG has the size the resolution gives
+- [x] `images-to-pdf.ts` writes the Rust example's golden byte for byte
+- [x] The reader's startup JS and WebAssembly sizes are unchanged
+- [x] A page exported by the worker as PNG has the size the resolution gives
+
+## Decisions and deviations
+
+- **Where `imagesToPdf` lives.** It is built into the extract and text modules only. The web reader loads the base module at startup, and images to PDF (its EXIF and resolution readers) would add about 22 KB there. The SDK's `imagesToPdf` throws `extract-module-not-loaded` until `loadExtract()` or `init({ text: true })`.
+- **Glue budget.** `imagesToPdf` put the extract module's JS glue at 5,011 bytes; the owner raised its budget to 5,200 on 2026-11-13 ([ADR 0016](../../decisions/0016-package-design.md)).
+- **TIFF.** laminapdf-render's TIFF encoder became `TiffWriter` (feature `tiff`), so the module `lamina_pdf_tiff` (62,374 B gzip, budget 70,000) binds the writer alone. A multi-page file holds pages while their pixels fit 256 MiB, else each page gets a file.
+- **Resolution.** A page is drawn as one tile, so an export is capped at the renderers' limit (16,777,216 pixels: Letter at about 450 dpi); the result reports the resolution used. The canvas writes no resolution, so the worker writes it: PNG `pHYs`, JFIF density.
+- **Capability matrix.** No row changes. No TypeScript suite can claim the `pdf` column yet (only the reader's end-to-end tests can claim `web`, which needs [E3j](../ready/E3j-export-dialog.md)'s dialog).
 
 ## Post-merge checks
 
@@ -67,8 +75,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

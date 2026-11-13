@@ -12,6 +12,9 @@ mod document;
 #[cfg(feature = "text")]
 mod flow;
 mod image;
+// Not in the base module: the web reader loads base at startup, and images to PDF (its EXIF and
+// resolution readers) would add about 22 KB there.
+#[cfg(feature = "extract")]
 mod images;
 #[cfg(feature = "text")]
 mod markdown;
@@ -23,6 +26,7 @@ pub use document::WasmBuilder;
 #[cfg(feature = "text")]
 pub use flow::WasmFlowResources;
 pub use image::WasmImage;
+#[cfg(feature = "extract")]
 pub use images::{WasmImageList, images_to_pdf};
 #[cfg(feature = "text")]
 pub use markdown::WasmMarkdownOptions;

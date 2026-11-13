@@ -3,12 +3,15 @@
 // density) as the Rust export writes it, so the image prints at the page's size. One page per
 // call: the pixels of the page before are released before the next is drawn.
 
-import type { RenderedTile, RenderRequest } from "@laminapdf/render";
+import { DEFAULT_LIMITS, type RenderedTile, type RenderRequest } from "@laminapdf/render";
 import type { ExportedPage, ExportPageOptions } from "../protocol.js";
 import { current, filling } from "./document.js";
 
-/** The most pixels one exported page holds: about 64 million, a 600 dpi page of 11 × 17 inches. */
-const MAX_EXPORT_PIXELS = 64_000_000;
+/**
+ * The most pixels one exported page holds: the renderers' own limit (about 16.8 million, Letter
+ * at 450 dpi), since a page is drawn as one tile.
+ */
+const MAX_EXPORT_PIXELS = DEFAULT_LIMITS.maxRenderPixels;
 
 /** JPEG quality when none is given, on the 1–100 scale. */
 const DEFAULT_QUALITY = 90;
@@ -78,11 +81,24 @@ export function scaleFor(dpi: number): number {
   return new Float32Array(bits.buffer)[0] ?? exact;
 }
 
-/** `png` with a `pHYs` chunk after its `IHDR` giving `dpi` (as pixels per metre). */
+/**
+ * `png` with its resolution `dpi` (as pixels per metre) in a `pHYs` chunk: the encoder's own one
+ * rewritten, or a new one after the `IHDR`.
+ */
 export function withPngDensity(png: Uint8Array, dpi: number): Uint8Array<ArrayBuffer> {
+  const perMetre = Math.round(dpi / 0.0254);
+  const own = chunkAt(png, "pHYs");
+  if (own !== undefined) {
+    const out = png.slice();
+    const view = new DataView(out.buffer);
+    view.setUint32(own + 8, perMetre);
+    view.setUint32(own + 12, perMetre);
+    out[own + 16] = 1;
+    view.setUint32(own + 17, crc32(out.subarray(own + 4, own + 17)));
+    return out;
+  }
   // Signature (8) and IHDR (length 4, type 4, data 13, CRC 4).
   const at = 8 + 25;
-  const perMetre = Math.round(dpi / 0.0254);
   const chunk = new Uint8Array(21);
   const view = new DataView(chunk.buffer);
   view.setUint32(0, 9);
@@ -110,7 +126,7 @@ export function withJpegDensity(jpeg: Uint8Array, dpi: number): Uint8Array<Array
     view.setUint16(16, density);
     return out;
   }
-  // SOI, then a 16-byte APP0: "JFIF\0", version 1.1, dots per inch, the density, no thumbnail.
+  // SOI, then an APP0 (18 bytes with its marker; its length field counts 16): "JFIF\0", version 1.1, dots per inch, the density, no thumbnail.
   const app0 = new Uint8Array([0xff, 0xe0, 0, 16, 0x4a, 0x46, 0x49, 0x46, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0]);
   const view = new DataView(app0.buffer);
   // In the segment: marker 0–1, length 2–3, "JFIF\0" 4–8, version 9–10, units 11, density 12–15.
@@ -121,6 +137,18 @@ export function withJpegDensity(jpeg: Uint8Array, dpi: number): Uint8Array<Array
   out.set(app0, 2);
   out.set(jpeg.subarray(2), 2 + app0.length);
   return out;
+}
+
+/** Where the first chunk of `type` starts in `png` (its length field), before the image data. */
+function chunkAt(png: Uint8Array, type: string): number | undefined {
+  const view = new DataView(png.buffer, png.byteOffset, png.byteLength);
+  for (let at = 8; at + 8 <= png.length; ) {
+    const name = String.fromCharCode(...png.subarray(at + 4, at + 8));
+    if (name === type) return at;
+    if (name === "IDAT" || name === "IEND") return undefined;
+    at += 12 + view.getUint32(at);
+  }
+  return undefined;
 }
 
 const CRC_TABLE = (() => {

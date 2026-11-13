@@ -133,7 +133,7 @@ pub(crate) const MODULES: [Module; 5] = [
         artefact: "laminapdf_render_wasm",
         features: &[],
     },
-    // laminapdf-render's TIFF writer (E3m): the web reader's document worker loads it when a
+    // laminapdf-render's TIFF writer: the web reader's document worker loads it when a
     // TIFF export starts, so it is never part of the reader's startup.
     Module {
         name: "tiff",

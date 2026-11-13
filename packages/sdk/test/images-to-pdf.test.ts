@@ -4,7 +4,7 @@ import { Image, imagesToPdf, init, isLaminaPdfError, PAGE_SIZES } from "@laminap
 import { beforeAll, describe, expect, it } from "vitest";
 import { read, thrown } from "./helpers.js";
 
-beforeAll(() => init());
+beforeAll(() => init({ extract: true }));
 
 /** 192 × 96 pixels: wider than it is tall. */
 const WIDE = "fixtures/images/photo-wide.jpg";

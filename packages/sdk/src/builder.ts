@@ -2,7 +2,8 @@
 // of the displayed page, y down; ADR 0027). Over WasmBuilder / WasmPageBuilder (ADR 0016 §7):
 // paths cross as flat Float64Arrays, colours as component arrays. Builders and pages are handles
 // (internal/handle.ts): a page is freed with its builder.
-import type { WasmBuilder as BaseBuilder, ImagesOptionsInit, WasmDocument, WasmImage } from "@laminapdf/wasm/base";
+import type { WasmBuilder as BaseBuilder, WasmDocument, WasmImage } from "@laminapdf/wasm/base";
+import type { ImagesOptionsInit } from "@laminapdf/wasm/extract";
 import type { WasmBuilder as TextBuilder, WasmPageBuilder as TextPageBuilder, WasmFont } from "@laminapdf/wasm/text";
 import { defined } from "./defined.js";
 import { Document } from "./document.js";
@@ -21,7 +22,7 @@ import {
   type TagName,
 } from "./generated/builder-enums.js";
 import type { FlowDocument } from "./generated/document.js";
-import { type BaseGlue, readingModule, type TextGlue, textModule } from "./init.js";
+import { type BaseGlue, type ExtractGlue, extractingModule, readingModule, type TextGlue, textModule } from "./init.js";
 import { disposable, forget, Handle, watch } from "./internal/handle.js";
 import type { Instance } from "./internal/instance.js";
 import type { Transform } from "./matrix.js";
@@ -1262,7 +1263,8 @@ export interface ImagesToPdfOptions extends Omit<BuilderOptions, "text"> {
 }
 
 /**
- * A new document with one page per image, in order. A JPEG is embedded as it is, without
+ * A new document with one page per image, in order. Needs the extract or the text module
+ * (`loadExtract()`, or `init({ text: true })`). A JPEG is embedded as it is, without
  * decoding it; a PNG keeps its transparency; each image is drawn the way up its EXIF orientation
  * says.
  *
@@ -1274,13 +1276,18 @@ export interface ImagesToPdfOptions extends Omit<BuilderOptions, "text"> {
  * @param images - the pages' images, at least one.
  * @param options - the page size to fit them in, the margin, the default resolution, and the
  *   file ID, producer and creation date.
- * @throws {@link LaminaPdfError} `not-initialized`; `invalid-geometry` for no images, a negative
+ * @throws {@link LaminaPdfError} `not-initialized`; `extract-module-not-loaded` when neither the
+ *   extract nor the text module is loaded; `invalid-geometry` for no images, a negative
  *   margin or resolution, or a page too small for its margins; `unknown-option`,
  *   `invalid-argument`.
  * @since 0.2.0
  */
 export function imagesToPdf(images: readonly Image[], options: ImagesToPdfOptions = {}): Document {
-  const instance = readingModule() as unknown as Instance<BaseGlue>;
+  const loaded = extractingModule();
+  if (loaded === undefined) {
+    throw packageError("extract-module-not-loaded", "imagesToPdf needs the extract or the text module");
+  }
+  const instance = loaded as unknown as Instance<ExtractGlue>;
   const { fit, margin, defaultDpi, ...build } = options;
   const buildInit = rest(build, ["id"]) ?? {};
   const record = defined({
