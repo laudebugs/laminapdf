@@ -3,7 +3,8 @@
 //! points from the displayed page's top-left, y down), so a viewer goes there without reading
 //! PDF user space. Page labels (§12.4.2) are on [`crate::PageInfo::label`].
 
-use laminapdf_model::{Destination, PageFrame, UserSpacePoint, View};
+use laminapdf_model::{ActionKind, Destination, OutlineItemId, PageFrame, PointPt, Pt, UserSpacePoint, View};
+use laminapdf_ops::{DestinationView, ExplicitDestination, Rgb};
 
 use crate::document::Document;
 use crate::error::Result;
@@ -14,14 +15,56 @@ use crate::error::Result;
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct OutlineNode {
+    /// Its ID, which the outline ops ([`crate::UpdateOutlineItem`], …) take.
+    ///
+    /// Added in 0.2.0.
+    pub id: OutlineItemId,
     /// Its title (document text).
     pub title: String,
     /// Whether it opens with its children shown (`/Count` positive).
     pub open: bool,
     /// Where it goes, when its destination names a page of this document.
     pub target: Option<PageTarget>,
+    /// The named destination it goes to (`/Dest (name)` or a `GoTo` naming one), when it names
+    /// one.
+    ///
+    /// Added in 0.2.0.
+    pub destination_name: Option<String>,
+    /// The web address it opens (a `URI` action), when it has one.
+    ///
+    /// Added in 0.2.0.
+    pub uri: Option<String>,
+    /// The type of its action when that is neither a `GoTo` nor a `URI` (`JavaScript`,
+    /// `Launch`, …): an edit replaces it only when it sets a new target.
+    ///
+    /// Added in 0.2.0.
+    pub other_action: Option<String>,
+    /// Its colour (`/C`), when it isn't the default black.
+    ///
+    /// Added in 0.2.0.
+    pub color: Option<Rgb>,
+    /// Shown in bold (`/F` bit 2).
+    ///
+    /// Added in 0.2.0.
+    pub bold: bool,
+    /// Shown in italic (`/F` bit 1).
+    ///
+    /// Added in 0.2.0.
+    pub italic: bool,
     /// Its children, in order.
     pub children: Vec<OutlineNode>,
+}
+
+/// One named destination: a name links can jump to, and where it goes.
+///
+/// Added in 0.2.0.
+#[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub struct NamedDestination {
+    /// The name (names that aren't UTF-8 are left out of the list).
+    pub name: String,
+    /// Where it goes, when it names a page of this document.
+    pub target: Option<PageTarget>,
 }
 
 /// A place in the document: a page, and how to show it.
@@ -113,6 +156,61 @@ impl Document {
         Ok(target(&dest, &page.frame()?))
     }
 
+    /// Every named destination, sorted by name: the `/Names /Dests` tree's and the catalog's
+    /// `/Dests` dictionary's (a name in both is listed once, as the tree resolves it).
+    ///
+    /// # Errors
+    /// Reading errors (the names, the page tree).
+    ///
+    /// Added in 0.2.0.
+    pub fn named_destinations(&self) -> Result<Vec<NamedDestination>> {
+        let doc = self.ops();
+        let mut names: std::collections::BTreeSet<Vec<u8>> = std::collections::BTreeSet::new();
+        if let Some(tree) = doc.name_tree("Dests")? {
+            names.extend(tree.entries()?.into_iter().map(|(k, _)| k));
+        }
+        let dests = match doc.catalog()?.get("Dests") {
+            Some(laminapdf_cos::Object::Ref(r)) => doc.resolve(*r)?.as_dict().cloned(),
+            Some(laminapdf_cos::Object::Dict(d)) => Some(d.clone()),
+            _ => None,
+        };
+        if let Some(d) = dests {
+            names.extend(d.iter().map(|(k, _)| k.as_bytes().to_vec()));
+        }
+        let outline = doc.outline()?;
+        let frames = self.frames()?;
+        let mut out = Vec::with_capacity(names.len());
+        for name in names {
+            let Ok(text) = String::from_utf8(name) else { continue };
+            let target = outline
+                .named_destination(text.as_bytes())?
+                .and_then(|dest| target(&dest, frames.get(dest.page_index?)?));
+            out.push(NamedDestination { name: text, target });
+        }
+        Ok(out)
+    }
+
+    /// `view` on the page at `page` (0-based), from page space (ADR 0027) into the page's user
+    /// space: the destination the outline and named-destination ops take. `PageTargetView::At`
+    /// with `x` and `y` is how "the current view" becomes a destination.
+    ///
+    /// # Errors
+    /// `page-index-out-of-range`; reading errors (the page tree).
+    ///
+    /// Added in 0.2.0.
+    pub fn destination_at(&self, page: u32, view: PageTargetView) -> Result<ExplicitDestination> {
+        let pages = self.ops().pages()?;
+        let index = usize::try_from(page).unwrap_or(usize::MAX);
+        let Some(p) = pages.get(index) else {
+            return Err(crate::Error::PageIndexOutOfRange {
+                index: page,
+                count: u32::try_from(pages.len()).unwrap_or(u32::MAX),
+            });
+        };
+        let frame = p.frame()?;
+        Ok(ExplicitDestination::new(p.id().clone(), user_view(view, &frame)))
+    }
+
     /// Every page's frame, in order, for moving destinations into page space.
     fn frames(&self) -> Result<Vec<PageFrame>> {
         let pages = self.ops().pages()?;
@@ -121,14 +219,37 @@ impl Document {
 }
 
 fn node(item: &laminapdf_model::OutlineItem<'_, '_>, frames: &[PageFrame]) -> Result<OutlineNode> {
+    // Every item the walk reached has an ID.
+    let id = item
+        .id()
+        .cloned()
+        .unwrap_or_else(|| OutlineItemId::object(laminapdf_cos::ObjRef::new(0, 0)));
     let target = match item.target()? {
         Some(dest) => dest.page_index.and_then(|index| target(&dest, frames.get(index)?)),
         None => None,
     };
+    let name = match item.target()? {
+        Some(dest) => dest.name.and_then(|n| String::from_utf8(n).ok()),
+        None => None,
+    };
+    let other_action = item
+        .action()?
+        .filter(|a| !matches!(a, ActionKind::GoTo | ActionKind::Uri))
+        .map(|a| a.as_name().into_owned());
+    let flags = item.flags()?;
     Ok(OutlineNode {
+        id,
         title: item.title()?,
         open: item.is_open()?,
         target,
+        destination_name: name,
+        uri: item.uri()?,
+        other_action,
+        color: item
+            .color()?
+            .and_then(|c| Rgb::from_pdf(&c.map(laminapdf_cos::Object::Real))),
+        bold: flags & 2 != 0,
+        italic: flags & 1 != 0,
         children: item
             .children()
             .map(|child| node(&child, frames))
@@ -196,5 +317,37 @@ fn page_view(view: &View, frame: &PageFrame) -> PageTargetView {
             y: None,
             zoom: None,
         },
+    }
+}
+
+/// `view` (page space) in the user space of the page `frame` shows: the inverse of
+/// [`page_view`]. On a page turned a quarter the displayed top or left names the other user-space
+/// coordinate, which `/FitH` and `/FitV` can't hold, so it is dropped there, as [`page_view`]
+/// drops it and the builder writes it.
+fn user_view(view: PageTargetView, frame: &PageFrame) -> DestinationView {
+    let upright = frame.rotate().degrees().is_multiple_of(180);
+    let user = |x: Option<f64>, y: Option<f64>| frame.to_user_space_unset(x.map(Pt::new), y.map(Pt::new));
+    match view {
+        PageTargetView::At { x, y, zoom } => {
+            let (left, top) = user(x, y);
+            DestinationView::Xyz { left, top, zoom }
+        }
+        PageTargetView::FitWidth { y } => DestinationView::FitH {
+            top: user(None, y).1.filter(|_| upright),
+        },
+        PageTargetView::FitHeight { x } => DestinationView::FitV {
+            left: user(x, None).0.filter(|_| upright),
+        },
+        PageTargetView::FitRect { x0, y0, x1, y1 } => {
+            let a = frame.to_user_space(PointPt::new(Pt::new(x0), Pt::new(y0)));
+            let b = frame.to_user_space(PointPt::new(Pt::new(x1), Pt::new(y1)));
+            DestinationView::FitR {
+                left: a.x.min(b.x),
+                bottom: a.y.min(b.y),
+                right: a.x.max(b.x),
+                top: a.y.max(b.y),
+            }
+        }
+        _ => DestinationView::Fit,
     }
 }

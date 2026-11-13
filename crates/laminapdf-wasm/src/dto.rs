@@ -342,6 +342,13 @@ pub(crate) struct EditedJs {
     /// Whether the edit changed the document: one that only set values they already had leaves
     /// no step to undo.
     pub changed: bool,
+    /// The IDs of the bookmarks the edit added, in order.
+    pub created_outline_items: Vec<String>,
+    /// An outline edit found the outline's links broken and rewrote them whole; bookmarks
+    /// stored inside others have new IDs.
+    pub outline_repaired: bool,
+    /// What still names a named destination the edit deleted.
+    pub destination_uses: Vec<laminapdf::DestinationUse>,
 }
 
 impl From<laminapdf::Edited> for EditedJs {
@@ -351,6 +358,9 @@ impl From<laminapdf::Edited> for EditedJs {
             packet_rewritten: e.packet_rewritten,
             still_in_earlier_revisions: e.still_in_earlier_revisions,
             changed: e.changed,
+            created_outline_items: e.created_outline_items.iter().map(ToString::to_string).collect(),
+            outline_repaired: e.outline_repaired,
+            destination_uses: e.destination_uses,
         }
     }
 }

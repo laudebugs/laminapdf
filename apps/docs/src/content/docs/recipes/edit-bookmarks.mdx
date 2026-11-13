@@ -1,0 +1,32 @@
+---
+title: Edit the bookmarks
+description: Add, move and style a PDF's bookmarks, name a place links can jump to, and rename a destination together with everything that uses it.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll add a bookmark to the top of a PDF's outline, move another under a chapter, and name places links jump to. You need this for a bookmark panel, a script that fixes a converter's outlines, or a pipeline that adds a summary to every report.
+
+A bookmark goes to a page and a view of it. Viewers report where they are in page space: points from the page's top-left corner, as the rest of Lamina PDF's API uses them. `destinationAt` turns that place into the destination the file stores, in the page's own coordinates:
+
+<Example ts="packages/sdk/examples/edit-bookmarks.ts" rust="crates/laminapdf/examples/edit_bookmarks.rs" result="edit_bookmarks" />
+
+The result is the original bytes, unchanged, followed by one revision. Its outline starts with "Summary" in bold, the "Website" bookmark sits at the end of "Chapters", and the name `summary` goes to the top of the last page. The bookmark that went to `chapter-2` now goes to `methods`, the same place under its new name.
+
+## How it works
+
+- `outline()` lists every bookmark with its `id`, which the bookmark edits take, its title, where it goes, its colour and style, and whether its children show.
+- `addOutlineItem` (`AddOutlineItem` in Rust) adds a bookmark under a `parent` (`null` for the top level) at a position: `"first"`, `"last"`, `{ before: id }` or `{ after: id }`. Its target is a page (`{ destination }`), a named destination (`{ named }`) or a web address (`{ uri }`). The edit's result lists the new bookmark's ID in `createdOutlineItems`.
+- `updateOutlineItem`, `moveOutlineItem` and `deleteOutlineItem` change, move and delete a bookmark by its ID. A moved bookmark takes its children with it and keeps its ID. A deleted one takes its children with it, or leaves them in its place with `children: "promote"`.
+- `setNamedDestination` gives a place a name, or points an existing name elsewhere. `renameNamedDestination` renames it and, unless you pass `links: "keep"`, every bookmark, link and opening view of the file that uses it.
+- Lamina PDF keeps the outline's links and counts consistent after every edit. When a file's outline was broken, such as a loop or a wrong last item, the first edit rewrites it whole and says so in `outlineRepaired`.
+
+## What to change
+
+- **A colour or style:** pass `style: { color: "#c00000", bold: true, italic: false }`. Leave `color` out for the viewer's default black.
+- **A web address:** pass `target: { uri: "https://example.com" }`. Only absolute `http`, `https` and `mailto` addresses are allowed; anything else, `javascript:` first, fails with [`link-uri-refused`](/reference/codes/link-uri-refused/).
+- **The current view:** pass what your viewer shows to `destinationAt`, such as `{ kind: "at", x, y, zoom }` for a point at the top-left, or `{ kind: "fit-width", y }` to fit the width.
+- **Deleting a name:** `deleteNamedDestination` leaves the bookmarks and links that use it alone, since removing them could lose your content. The edit's `destinationUses` lists them, so you can retarget or delete them next.
+- **A signed file:** a bookmark edit changes the document's structure, so a certified file refuses the save. On a file with approval signatures only, the save appends a revision and the signatures stay valid.
+
+Next: [save a PDF](/guides/save-a-pdf/), for what a signed or repaired file allows.

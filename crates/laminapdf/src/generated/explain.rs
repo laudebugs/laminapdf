@@ -2424,7 +2424,7 @@ The decisions and todos behind this code:
         "direct-outline-item" => r"# `direct-outline-item`
 
 - Type: error
-- Kind: `unsupported` (the input is valid, but Lamina PDF does not support it yet)
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
 
 ## What happened
 

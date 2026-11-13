@@ -5,8 +5,8 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 use laminapdf_cos::{ByteSource, OpenOptions};
-use laminapdf_model::PageId;
-use laminapdf_ops::{Op, OpLog, Origin, Reverted};
+use laminapdf_model::{OutlineItemId, PageId};
+use laminapdf_ops::{DestinationUse, Op, OpLog, Origin, Reverted};
 use laminapdf_save::{ReadableSink, Save as _, SaveOptions, SaveReport, SinkError, WriteSink};
 
 use crate::error::{Error, Result};
@@ -117,6 +117,20 @@ pub struct Edited {
     /// Whether the edit changed the document. One that only set values they already had
     /// changes nothing and leaves no step to undo.
     pub changed: bool,
+    /// The bookmarks the edit added, in order: their IDs, for the edits that follow.
+    ///
+    /// Added in 0.2.0.
+    pub created_outline_items: Vec<OutlineItemId>,
+    /// An outline edit found the outline's links broken and rewrote them whole. Bookmarks
+    /// that were stored inside other bookmarks have new IDs: read the outline again.
+    ///
+    /// Added in 0.2.0.
+    pub outline_repaired: bool,
+    /// What still names a named destination the edit deleted: those bookmarks and links no
+    /// longer go anywhere.
+    ///
+    /// Added in 0.2.0.
+    pub destination_uses: Vec<DestinationUse>,
 }
 
 /// A finished save: the output and what the writer did.
@@ -404,6 +418,9 @@ impl Document {
             packet_rewritten: applied.packet_rewritten,
             still_in_earlier_revisions: applied.still_in_earlier_revisions,
             changed,
+            created_outline_items: applied.created_outline_items,
+            outline_repaired: applied.outline_repaired,
+            destination_uses: applied.destination_uses,
         })
     }
 

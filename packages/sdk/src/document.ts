@@ -25,8 +25,10 @@ import type {
   DocumentMetadata,
   DocumentProperties,
   Edited,
+  ExplicitDestination,
   MetadataKey,
   MetadataPatch,
+  NamedDestination,
   Op,
   OpenOptions,
   OpLog,
@@ -40,6 +42,7 @@ import type {
   SaveReport,
   StructureNode,
   Target,
+  TargetView,
   Violation,
 } from "./types.js";
 
@@ -447,6 +450,31 @@ export class Document extends Handle<BaseGlue> {
    */
   namedDestination(name: string): Target | undefined {
     return this.call(() => this.#extracting("doc.namedDestination()").namedDestination(name));
+  }
+
+  /**
+   * Every named destination, sorted by name, with where each goes. Needs a document opened while
+   * the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   *
+   * @since 0.2.0
+   */
+  namedDestinations(): NamedDestination[] {
+    return this.call(() => this.#extracting("doc.namedDestinations()").namedDestinations());
+  }
+
+  /**
+   * A place in the viewer, page `page` (0-based) shown as `view` in page space, as the
+   * destination a bookmark or a named destination takes: "set the destination to the current
+   * view". Needs a document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `page-index-out-of-range`; as {@link Document.outline}.
+   *
+   * @since 0.2.0
+   */
+  destinationAt(page: number, view: TargetView): ExplicitDestination {
+    return this.call(() => this.#extracting("doc.destinationAt()").destinationAt(page, view));
   }
 
   /**

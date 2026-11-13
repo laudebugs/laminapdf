@@ -45,6 +45,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "unsupported-security-handler":
     case "unsupported-filter":
     case "direct-page":
+    case "direct-outline-item":
     case "unsupported-version":
     case "subset-failed":
     case "unsupported-layout-option":
@@ -65,6 +66,14 @@ function kindOf(code: ErrorCode): ErrorKind {
       return "security";
     case "unknown-page":
     case "unknown-source":
+    case "unknown-outline-item":
+    case "outline-not-a-sibling":
+    case "outline-move-into-itself":
+    case "unknown-named-destination":
+    case "named-destination-exists":
+    case "empty-destination-name":
+    case "link-uri-refused":
+    case "view-not-finite":
     case "sink-not-empty":
     case "collection-index":
     case "unknown-axis":

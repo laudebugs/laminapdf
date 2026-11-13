@@ -1,5 +1,27 @@
 {
   "examples": {
+    "edit_bookmarks": {
+      "sha256": "29d720845b78375297d03fdf91143f31726db4d508e25c61ac9add50f8e48b71",
+      "bytes": 6744,
+      "pages": [
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        }
+      ]
+    },
     "edit_metadata": {
       "sha256": "a6169a6dbc5a42136a03865ec8a00155a225b9cec01721fab7f6322c38e31ec6",
       "bytes": 6822,

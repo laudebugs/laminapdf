@@ -153,7 +153,7 @@ pub use generated::explain::explain;
 pub use laminapdf_cos::Cipher;
 pub use laminapdf_model::FontEncoding;
 pub use links::{LinkTo, PageLink};
-pub use navigation::{OutlineNode, PageTarget, PageTargetView};
+pub use navigation::{NamedDestination, OutlineNode, PageTarget, PageTargetView};
 pub use properties::{DocumentContents, DocumentPermissions, DocumentProperties, EncryptionSummary, FontSummary};
 pub use structure::{StructureKid, StructureNode};
 
@@ -174,11 +174,14 @@ pub use redaction::RedactionWarning;
 pub use warning::{Warning, WarningCursor};
 
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};
-pub use laminapdf_model::{PageId, PdfDate, PointPt, Pt, RectPt, Rotation};
+pub use laminapdf_model::{OutlineItemId, PageId, PdfDate, PointPt, Pt, RectPt, Rotation, SiblingPosition};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use laminapdf_ops::{
-    ConformanceWarning, DocumentMetadata, InfoPatch, MetadataKey, MetadataPatch, MetadataSource, ModificationClass, Op,
-    OpLog, PacketStatus, RemoveMetadata, Reverted, RotatePage, SetInfo, SetMetadata, UndoOutcome,
+    AddOutlineItem, ChildItems, ConformanceWarning, DeleteNamedDestination, DeleteOutlineItem, DestinationUse,
+    DestinationView, DocumentMetadata, ExplicitDestination, InfoPatch, MetadataKey, MetadataPatch, MetadataSource,
+    ModificationClass, MoveOutlineItem, Op, OpLog, OutlineStyle, OutlineTarget, PacketStatus, RemoveMetadata,
+    RenameLinks, RenameNamedDestination, Reverted, Rgb, RotatePage, SetInfo, SetMetadata, SetNamedDestination,
+    UndoOutcome, UpdateOutlineItem,
 };
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,
@@ -195,9 +198,9 @@ pub use laminapdf_build::FontHandle;
 pub use laminapdf_build::{
     AfRelationship, Artifact, ArtifactKind, Attachment, BlendMode, BuildOptions, Color, ContentKind, Dash, ElementId,
     FillRule, Fit, IccProfile, Image, ImageFormat, ImagePages, ImagesOptions, LabelStyle, LineCap, LineJoin,
-    LinkTarget, Matrix, Metadata, Orientation, OutlineEntry, OutlineItemId, PageBuilder, PageEdge, PageLabel,
-    PageLayout, PageMode, PageSize, PathBuilder, PdfVersion, PendingPath, PngOptions, Profile, StrokeStyle, Surface,
-    TableScope, Tag, TagDiagnostic, TagKind, ViewerPreferences,
+    LinkTarget, Matrix, Metadata, Orientation, OutlineEntry, PageBuilder, PageEdge, PageLabel, PageLayout, PageMode,
+    PageSize, PathBuilder, PdfVersion, PendingPath, PngOptions, Profile, StrokeStyle, Surface, TableScope, Tag,
+    TagDiagnostic, TagKind, ViewerPreferences,
 };
 #[cfg(feature = "text")]
 pub use laminapdf_build::{
