@@ -5,6 +5,9 @@
 import { capabilityState } from "../platform/context.js";
 import type { AnyCommand, Availability, CommandContext, CommandId } from "./types.js";
 
+/** Where a run came from: a key press in the web view, or a native menu item or its keys. */
+export type RunSource = "keys" | "menu";
+
 /** Why `run` refused: the command is unknown, can't run now, or its arguments don't parse. */
 export class CommandError extends Error {
   readonly id: CommandId;
@@ -79,8 +82,15 @@ export class CommandRegistry {
   /**
    * Runs `id` with `args`, or with `text` parsed by its schema. Rejects with a `CommandError`
    * when the command can't run now or its arguments are missing or don't parse; nothing runs then.
+   *
+   * `source` says where the run came from, for a shell that runs a command from more than one
+   * (the desktop app's native menus, which drop a key press's echo).
    */
-  async run(id: CommandId, ctx: CommandContext, input: { args?: unknown; text?: string } = {}): Promise<void> {
+  async run(
+    id: CommandId,
+    ctx: CommandContext,
+    input: { args?: unknown; text?: string; source?: RunSource } = {},
+  ): Promise<void> {
     const command = this.#commands.get(id);
     if (command === undefined) throw new CommandError(id, `there is no command ${id}`);
     const available = this.availability(id, ctx);

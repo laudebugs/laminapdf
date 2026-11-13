@@ -61,6 +61,8 @@ zeroize = { workspace = true }
 [dev-dependencies]
 # The fake engine (`supervisor::fake`) for the engine registry's tests.
 laminapdf-desktop-protocol = { workspace = true, features = ["test-support"] }
+# The menus' tests read each accelerator as the menus do.
+muda = { workspace = true }
 
 [lints]
 workspace = true

@@ -6,6 +6,7 @@ import {
   closeAll,
   drawsAfterZoomOut,
   fixture,
+  focusWindow,
   goToPage,
   open,
   openAndWait,
@@ -58,6 +59,8 @@ async function closeWindowFor(handle: string): Promise<void> {
     timeoutMsg: "the window didn't close",
   });
   await browser.switchToWindow(handle);
+  // macOS can leave it in the background, where WebKit slows its work (a shortcut, an open).
+  await focusWindow();
 }
 
 /**

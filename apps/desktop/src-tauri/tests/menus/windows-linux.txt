@@ -1,0 +1,92 @@
+&File
+  Open a file… [Ctrl+O]  <cmd:file.open>
+  Open recent ▸
+    report.pdf  <recent:r1>
+    invoice.pdf  <recent:r2>
+    ---
+    Clear menu  <recent-clear>
+  ---
+  New window [Ctrl+Shift+N]  <cmd:window.new>
+  Close tab [Ctrl+W]  <cmd:tab.close>
+  Close window [Ctrl+Shift+W]  <cmd:window.close>
+  ---
+  Save a copy… (disabled)  <cmd:file.save-copy>
+  Document properties… (disabled)  <cmd:file.properties>
+  ---
+  Print… [Ctrl+P] (disabled)  <cmd:file.print>
+  ---
+  Quit [Ctrl+Q]  <cmd:app.quit>
+&Edit
+  (Copy)
+  (SelectAll)
+  ---
+  Find in document [Ctrl+F] (disabled)  <cmd:find.open>
+  Next match (disabled)  <cmd:find.next>
+  Previous match (disabled)  <cmd:find.previous>
+  ---
+  Settings… [Ctrl+Comma]  <cmd:app.settings>
+&View
+  Zoom in [Ctrl+Equal]  <cmd:view.zoom-in>
+  Zoom out [Ctrl+Minus]  <cmd:view.zoom-out>
+  Actual size [Ctrl+0] (disabled)  <cmd:view.actual-size>
+  Fit width (disabled)  <cmd:view.fit-width>
+  Fit page (disabled)  <cmd:view.fit-page>
+  ---
+  Show or hide sidebar ☐ (disabled)  <cmd:view.toggle-sidebar>
+  Focus mode [Ctrl+Backslash] ✓  <cmd:view.focus-mode>
+  Rotate view (disabled)  <cmd:view.rotate-display>
+  ---
+  Page layout ▸
+    Single page ☐  <cmd:view.page-layout=single>
+    Two pages ✓  <cmd:view.page-layout=two-up>
+    Continuous ☐  <cmd:view.page-layout=continuous>
+  Page appearance ▸
+    Original ☐ (disabled)  <cmd:view.page-appearance=original>
+    Sepia ☐ (disabled)  <cmd:view.page-appearance=sepia>
+    Dark ☐ (disabled)  <cmd:view.page-appearance=dark>
+    High contrast ☐ (disabled)  <cmd:view.page-appearance=high-contrast>
+  Theme ▸
+    Light ☐ (disabled)  <cmd:view.theme=light>
+    Dark ☐ (disabled)  <cmd:view.theme=dark>
+    High contrast ☐ (disabled)  <cmd:view.theme=high-contrast>
+    Match the system ☐ (disabled)  <cmd:view.theme=system>
+  Accent colour ▸
+    Teal ☐ (disabled)  <cmd:view.accent=teal>
+    Blue ☐ (disabled)  <cmd:view.accent=blue>
+    Plum ☐ (disabled)  <cmd:view.accent=plum>
+    Green ☐ (disabled)  <cmd:view.accent=green>
+&Go
+  Next page (disabled)  <cmd:nav.next-page>
+  Previous page (disabled)  <cmd:nav.previous-page>
+  First page (disabled)  <cmd:nav.first-page>
+  Last page (disabled)  <cmd:nav.last-page>
+  Go to page… (disabled)  <cmd:nav.go-to-page>
+  ---
+  Back [Alt+ArrowLeft] (disabled)  <cmd:nav.back>
+  Forward [Alt+ArrowRight] (disabled)  <cmd:nav.forward>
+&Tools
+  Command palette [Ctrl+K] (disabled)  <cmd:palette.open>
+  Reader mode (disabled)  <cmd:view.reader-mode>
+  Network activity (disabled)  <cmd:privacy.network-activity>
+&Window
+  (Minimize)
+  ---
+  Next tab [Ctrl+Tab] (disabled)  <cmd:tab.next>
+  Previous tab [Ctrl+Shift+Tab] (disabled)  <cmd:tab.previous>
+  Move tab to new window  <cmd:tab.move-to-new-window>
+  Move tab to window ▸
+    report.pdf — Lamina PDF (disabled)  <move:main>
+    Lamina PDF  <move:doc-1>
+  ---
+  report.pdf — Lamina PDF ✓  <window:main>
+  Lamina PDF ☐  <window:doc-1>
+&Help
+  Lamina PDF help  <link:https://docs.laminapdf.com/>
+  Keyboard shortcuts [F1] (disabled)  <cmd:help.shortcuts>
+  What Lamina PDF can do (disabled)  <cmd:help.capabilities>
+  ---
+  Report an issue  <link:https://github.com/laudebugs/laminapdf/issues/new/choose>
+  View licences (disabled)  <later:View licences>
+  ---
+  Check for updates… (disabled)  <later:Check for updates…>
+  (About)

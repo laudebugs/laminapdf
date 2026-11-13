@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D5](../../plans/desktop-app.md#d5-update-service) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D4b](./D4b-native-menus.md), [D5a](../done/D5a-update-worker-and-adr-0014.md) |
+| Depends on | [D4b](../done/D4b-native-menus.md), [D5a](../done/D5a-update-worker-and-adr-0014.md) |
 | ADRs | Implements ADR 0014 (client side). Follows ADR 0008 (security baseline), ADR 0011 (privacy) |
 | Branch | `feat/d5b-desktop-updater` |
 | PR title | `feat(desktop): wire the updater with channels, settings and the install-ID header` |
