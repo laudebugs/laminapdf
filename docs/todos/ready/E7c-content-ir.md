@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [E7b](./E7b-editing-existing-content-feature-plan.md) |
+| Depends on | [E7b](../ongoing/E7b-editing-existing-content-feature-plan.md) |
 | ADRs | Implements ADR 0022; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e7c-content-ir` |
 | PR title | `feat(content): editable content IR with object identity` |
