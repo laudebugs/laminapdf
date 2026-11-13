@@ -419,7 +419,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   ├── desktop-print/   # D1b: webview, native raster and native vector printing per OS, scored against the fixtures (results in its README; D4c, ADR 0008)
 │   ├── desktop-ipc/     # D1a: Tauri tile transports (channel, ipc::Response, lamina:// raw and compressed) and COOP/COEP per webview (results in its README; ADR 0008)
 │   ├── auth/            # H1: Better Auth and Auth.js on a Worker with D1, Clerk's SDK on a Worker, a Rust loopback + PKCE desktop client (results in its README; ADR 0011)
-│   └── flow-layout/     # T4a: flowing layout by our own paginator over Surface, by Typst 0.15.1, and by Typst's frames through Surface (findings in its README; ADR 0032)
+│   ├── flow-layout/     # T4a: flowing layout by our own paginator over Surface, by Typst 0.15.1, and by Typst's frames through Surface (findings in its README; ADR 0032)
+│   └── content-edit/    # E7a: an editable content IR and two encoders (copy unchanged spans, or write every operator again) on the external corpus (results in its README; ADR 0022)
 ├── .agents/skills/      # the repository's agent skills (rust-best-practices, lamina-story, session-name); .claude/skills links here
 └── docs/                # all documentation (see docs/README.md)
     ├── research/        # deep dives and research notes, one subfolder per topic
@@ -826,6 +827,8 @@ Research spikes (`spikes/`) are throwaway-quality APIs used to inform decisions,
 `spikes/auth/` — Better Auth 1.7.14 and Auth.js 0.41.3 on a Worker with local D1, `@clerk/backend` on a Worker, and a Rust loopback + PKCE desktop client (H1, ADR 0011); standalone, not in CI: each folder is its own pnpm project (`pnpm install --ignore-workspace`, `pnpm dev` on `wrangler dev --local`, then `node check.mjs` with Playwright's Chromium), `desktop/` a Cargo project of its own (see its README).
 
 `spikes/flow-layout/` — our own paginator over `Surface`, Typst 0.15.1 embedded, and Typst's frames drawn through `Surface` (T4a, ADR 0032); standalone, not in CI. Typst needs `skrifa` 0.42.1 where the workspace pins `=0.42.0`, so `scripts/run.sh <command>` moves the pin for one command and restores the root `Cargo.toml`: `scripts/run.sh cargo run --release` (the PDFs in `target/flow-layout/`), `scripts/run.sh scripts/wasm.sh` (WebAssembly sizes), then `node scripts/node-time.mjs target/wasm/own.wasm` (see its README).
+
+`spikes/content-edit/` — an editable list of content operators with source spans, grouped into objects, and two encoders measured against each other (E7a, ADR 0022); standalone, not in CI. After `cargo xtask corpus fetch`, `cargo build --release` in the spike, then pass it PDFs (`find ../../target/corpus/pdfjs -name '*.pdf' -print0 | xargs -0 target/release/lamina-content-edit-spike`; `SPIKE_DEBUG=1` prints each mismatch).
 
 `spikes/pdfium-wasm/` — `@embedpdf/pdfium` beside `@laminapdf/sdk` in one web worker (Round C1b); standalone, its own pnpm project, not in CI; frozen before the `@laminapdf` rename, so it still imports `@lamina/pdf` from `vendor/lamina-*-0.0.0.tgz` and needs that rename (and its lockfile regenerated) before a re-run: `cargo xtask wasm`, then `sh scripts/pack-lamina.sh && pnpm install && node scripts/make-fixtures.mjs && pnpm exec playwright test && node scripts/summarise.mjs` (Chromium, Firefox, WebKit; see its README).
 
