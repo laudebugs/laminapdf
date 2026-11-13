@@ -1,7 +1,7 @@
 ---
 title: "Benchmarks"
 description: "How fast Lamina PDF makes PDFs in each runtime, how large its WebAssembly files are, and how well it extracts text on a public benchmark."
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/reference/benchmarks/"
 ---
 
@@ -9,7 +9,7 @@ url: "https://docs.laminapdf.com/reference/benchmarks/"
 
 How fast Lamina PDF makes PDFs in each runtime, how large its WebAssembly files are, and how well it extracts text on a public benchmark.
 
-These are Lamina PDF's measured numbers: how long it takes to make a PDF in each runtime, how much your app downloads, and how well it extracts text from a public benchmark of real pages. Each table states the version, the date and the machine it came from, so you can judge how the numbers apply to yours.
+This page gives Lamina PDF's measured numbers: how long it takes to make a PDF in each runtime, how much your app downloads, and how well it extracts text from a public benchmark of real pages. Each table states the version, the date and the machine it came from, so you can judge how the numbers apply to yours.
 
 ## How long a PDF takes to make
 
@@ -33,7 +33,7 @@ Each figure is the time to build a document and save it to bytes, after the WebA
 
 Measured with Lamina PDF 0.2.0-alpha.3 (commit `40c4179`) on 8 November 2026, on Apple M1 Pro (8 cores, 16 GB of memory), macOS 27.0.1, with a load average of 8.2 when the run began.
 
-The browsers run in Playwright at the version shown, and Cloudflare Workers run in workerd through wrangler. WebAssembly memory is the modules' memory after the reports, in megabytes of 1,000,000 bytes. It never shrinks, so it is their peak. The JavaScript heap isn't included. The native Rust row is the same invoice and report built by the `laminapdf` crate, the median build as measured by criterion, a Rust benchmarking library.
+The browsers run in Playwright at the version shown, and Cloudflare Workers run in workerd through wrangler. WebAssembly memory is the modules' memory after the reports, in megabytes of 1,000,000 bytes. Because WebAssembly memory never shrinks, the figure is also their peak. The JavaScript heap isn't included. The native Rust row is the same invoice and report built by the `laminapdf` crate, the median build as measured by criterion, a Rust benchmarking library.
 
 ## How much your app downloads
 
@@ -56,7 +56,7 @@ Sizes are in kilobytes of 1,000 bytes, as a server sends them compressed. The Ja
 
 ## How well it extracts text
 
-[olmOCR-bench](https://huggingface.co/datasets/allenai/olmOCR-bench), by the Allen Institute for AI, checks extracted text with small tests. A test checks that one passage comes before another, that a table cell sits beside its neighbours, or that a page's running header is left out. These figures use the three subsets made of pages that store their text, not scans, and the benchmark's own tests score the Markdown that Lamina PDF writes.
+[olmOCR-bench](https://huggingface.co/datasets/allenai/olmOCR-bench), by the Allen Institute for AI, checks extracted text with small tests. A test checks that one passage comes before another, that a table cell sits beside its neighbours, or that a page's running header is left out. For example, on a two-column paper, a test passes when the end of the left column comes before the top of the right one. These figures use the three subsets made of pages that store their text, not scans. The benchmark's own tests score the Markdown that Lamina PDF writes.
 
 | Subset | What it checks | Pages | Tests | Passed | Score |
 | --- | --- | ---: | ---: | ---: | ---: |
@@ -88,6 +88,8 @@ Measured with Lamina PDF 0.2.0-alpha.3 (commit `40c4179`) on 8 November 2026, on
 
 ## Where these numbers come from
 
-One command runs every measurement on one machine and writes the file this page reads, so no figure here is typed by hand. The numbers are one machine's, taken before a release. Each version of these docs keeps the numbers measured for it. Each table gives the machine's load average as its run began: how many jobs were running or waiting for a processor. A load average well above the core count means other jobs shared the machine, so the timings are slower than its best.
+One command runs every measurement on one machine before a release and writes the file this page reads, so no figure here is typed by hand. Each version of these docs keeps the numbers measured for it.
+
+Each table also gives the machine's load average as its run began: how many jobs were running or waiting for a processor. A load average well above the core count means other jobs shared the machine, so the timings are slower than its best. For example, a load average of 12 on an 8-core machine means about four jobs were waiting for a processor at any moment.
 
 Next: [make your first PDF](../../pages/start/first-pdf.md) and time it on your own machine.

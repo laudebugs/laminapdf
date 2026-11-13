@@ -1,7 +1,7 @@
 ---
 title: "Links and outlines"
 description: "Four A5 pages joined by web, page and named links, with a nested outline, page labels that read i, ii, 1, 2 and the outline shown on open."
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/recipes/links-and-outlines/"
 ---
 

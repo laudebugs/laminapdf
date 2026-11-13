@@ -4,6 +4,49 @@
 
 Lamina PDF is versioned in lockstep (ADR 0017): every crate and every npm package (`@laminapdf/wasm`, `@laminapdf/sdk`, `@laminapdf/render`, `@laminapdf/render-hayro`, `@laminapdf/render-pdfium`, `@laminapdf/viewer`) share one version, so these entries cover all of them. Versions from 0.2.0-alpha.2 on are published to crates.io and npm; earlier ones were only tagged (0.2.0-alpha.1's release run failed its checks, so nothing was published from it).
 
+## 0.2.0
+
+### Minor Changes
+
+- abd2520: `builder.flow(document, { data, fonts, images })` lays out a `laminapdf.document/1` document as tagged pages that flow. It needs `init({ text: true })`. The document is plain objects, typed by `FlowDocument`, so your editor catches a misspelt key or an unknown block `type`. A template with placeholders is a `FlowTemplate`: given `data`, `flow` fills it first, and a value the data lacks fails with `template-data-missing` and its pointer. The fonts and images the document names come by name as `Font`s and `Image`s. The new `invoice-from-json` example fills a two-page invoice from JSON.
+- 97cbf89: In TypeScript, `export-failed` is a new error code: a page export's encoder failed. The functions below are Rust only for now; their TypeScript versions follow.
+  
+  In Rust, turn images into a PDF, and export pages as PNG, JPEG or TIFF:
+  
+  - `laminapdf::images_to_pdf(&images, &ImagesOptions)` makes a document with one page per image. JPEGs are embedded as they are, and each image is drawn upright, as its EXIF orientation says. Pages take the image's size at its resolution, or a paper size with the image fitted inside the margins (`ImagePages::Fit`). `Image::orientation()` reads the orientation.
+  - `laminapdf_render::export_pages` (feature `export`) draws pages one at a time and encodes them as PNG, JPEG or TIFF at a resolution you choose, with the resolution recorded in each file. A multi-page TIFF holds every page in one file.
+- 755d6ec: Edit a document's metadata with the Info dictionary and the XMP metadata kept in step:
+  
+  - `doc.setMetadata(patch, { at, replaceMalformed })` sets or removes the title, the authors, the subject, the keywords, the creating and producing applications and the dates. In PDF 2.0 files only the dates go to the Info dictionary.
+  - `doc.removeMetadata(keys)` removes fields from both.
+  - `doc.metadata()` reads both copies together and says where they disagree.
+  - `doc.plan(options)` says how a save would go, without saving: the save constraint, the signatures, the refusal code, and the PDF/A and PDF/UA claims the edits break.
+  - `doc.wouldViolate(op)` checks one edit against the signatures.
+  - Saves take `metadataDate`, the time of the save, to stamp it as the modification date, and `instanceId` to set the XMP instance ID; either option turns the stamp on. The report says whether it happened (`metadataUpdated`, `metadataNotUpdated`).
+  - `Transaction.setMetadata` and `removeMetadata` take the same options.
+  - The `setInfo` op is deprecated in favour of `setMetadata`. It still applies, and now updates existing XMP metadata too.
+  
+  In Rust: `SetMetadata`, `RemoveMetadata`, `Document::metadata`, `Document::plan`, `Document::would_violate` and `SaveOptions::with_metadata_date`; `SetInfo` is `#[deprecated]`.
+- 9f555a2: Groundwork for copying pages between documents:
+  
+  - `unknown-source` is a new error code: an op or a call named a source document that wasn't added to the session.
+  
+  In Rust: `laminapdf_ops::Document::add_source(bytes, password)` opens another PDF as a source document and returns its `SourceId`, the SHA-256 of its bytes, so the same file has the same ID on every device. `source_document(id)` returns it, and `blobs()` the session's `BlobStore`. `laminapdf_model::ObjectCopier` copies pages, and everything they reach, from one document into another, sharing what several pages use, within `Limits`. The ops that use them, inserting pages from another file and merging, come next.
+- f49cfd9: `client.metadata()` reads the open document's metadata as its edits leave it: the title, authors, subject, keywords, the creating and producing applications and the dates, from the Info dictionary and the XMP metadata together, with the fields where they disagree. A properties form can show it, then apply its changes with `viewer.edits.apply` as `setMetadata` and `removeMetadata` ops.
+
+### Patch Changes
+
+- 7a59051: Every export of `@laminapdf/sdk` now says which release added it: a `@since 0.2.0` tag, which the API reference shows as "Since" and editors show on hover. In Rust, every public item's docs end with "Added in 0.2.0." Items added later will name the release they first ship in. The types `ExtractFormat`, `ReadingOrder`, `SplitOn`, `TableMode`, `LayoutRegion`, `ModelInfo`, `ModelRequest`, `Models`, `OcrWord` and `RegionLabel` are now declared in `@laminapdf/sdk` with their own docs; they're the same types as before.
+- e5fa57d: `builder.markdown` and `builder.flow` now lay a tab in a code block out as spaces to the next multiple of four columns, so the extracted text lines up as drawn. A tab anywhere else in the text becomes one space. Before, a font with CFF outlines (an `.otf` font) raised a `tounicode-conflict` warning for each code block line with a tab.
+- 2e74d7d: Every error's and warning's `docsUrl` now opens its page on the docs site, `https://docs.laminapdf.com/reference/codes/<code>/`, instead of the Markdown file on GitHub. The code still ends the path.
+- 8ae1bae: `FlowTemplate` is now an interface rather than a type alias, with the same keys and the same checks, so the API reference names it where `builder.flow()` takes it instead of spelling out every key of every block. Its reference page explains the placeholders, with an example. Every type declaration in the TypeScript reference is now a code block, one key or union case to a line.
+- cafed9f: `0.2.0` is the first release that isn't an alpha. A plain `npm install @laminapdf/sdk` or `cargo add laminapdf` now installs it, and from here on releases follow SemVer as the [stability policy](https://docs.laminapdf.com/reference/stability/) says: a breaking change raises the minor version (`0.2` to `0.3`), so an upgrade within `0.2.x` needs no change to your code. The `alpha` npm tag stays on `0.2.0-alpha.6`.
+- bd0148e: The packages' descriptions, keywords and README openings now say what each package does for you, and each package links to the issue tracker.
+- 55fc5eb: In Rust, the save planner now checks page edits field by field. The save is now a conflict when a page edit deletes a signed signature's widget or changes how it is shown (`Restriction::SignedWidget`), or does the same to a field that a signature's lock covers (`Restriction::FieldMdp`); `Violation::field` names the field. Moving a page breaks neither. `laminapdf_ops::Applied::widgets` and `PendingChanges::widgets()` record the fields an edit touched, and `Op::page_changes()` lists the pages it will change, so `SavePlanner::would_violate` can warn before the edit. The page edits that report them come next.
+- 82d3c07: In Rust, `Reveal::redaction_warnings()` gives the warnings `Document::redaction_warnings` would (`covered-text`, `redaction-not-applied` and `text-in-earlier-revision`, in the same order and with the same counts) from what `Document::reveal` already found. When you need both, call `reveal` and read the warnings from its result. The file's pages and earlier revisions are then read once instead of twice.
+- 414a955: The Rust crate `laminapdf-content` can now add content to a page without changing what the page already draws. `PageContentWriter` wraps a page's content in `q … Q`, adds streams before or after it, and registers Form XObjects, graphics states and fonts under names the page doesn't use yet. A page that shares its resources or content streams with other pages keeps them unchanged.
+- 1ad4b68: After the document worker crashes, or `stop()` ends it, `render()` sends each render that was waiting again, once, in the restarted worker. ADR 0009 §3.6 describes this. The pages and thumbnails those renders were for are drawn again. Before, they stayed blank, and the thumbnail strip reported "the worker stopped" to the page as an unhandled error. The render that was drawing when the worker was lost still fails, so a page that crashes the engine can't loop. When the restart can't reopen the document (an encrypted one waits for its password), a waiting render rejects with an `AbortError`.
+
 ## 0.2.0-alpha.6
 
 ### Minor Changes
