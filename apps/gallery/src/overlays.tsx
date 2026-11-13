@@ -48,7 +48,7 @@ import {
   ViewSettingsButton,
 } from "@laminapdf/ui";
 import { PrintDialog, PrintProgressDialog, PropertiesDialog } from "@laminapdf/ui/dialogs";
-import { ConformanceDialog, RemoveSignaturesDialog } from "@laminapdf/ui/editing";
+import { ConformanceDialog, NamedDestinationsDialog, RemoveSignaturesDialog } from "@laminapdf/ui/editing";
 import { fakeFile, fakePlatform } from "@laminapdf/ui/testing";
 import { type ReactNode, useEffect, useState } from "react";
 
@@ -143,12 +143,31 @@ function SettingsDialogs({ state }: { state: string }): ReactNode {
   );
 }
 
-/** The dialogs: the three widths, a destructive confirm, the reader's password prompt, print, properties and the save confirmations. */
-export function Dialogs({ state }: { state: string }): ReactNode {
-  if (state === "password") return <PasswordPrompt />;
-  if (state.startsWith("print") || state === "properties") return <OutputDialog state={state} />;
-  if (state === "settings" || state === "shortcuts" || state === "view-settings")
-    return <SettingsDialogs state={state} />;
+/** O11's third artboard: the names, where each goes and how many bookmarks use it. */
+function NamedDestinations(): ReactNode {
+  const destinations = [
+    { name: "chair-summary", page: "2", usedBy: 1 },
+    { name: "repairs-backlog", page: "5", usedBy: 3 },
+    { name: "repairs-by-region", page: "6", usedBy: 0 },
+  ];
+  return (
+    <NamedDestinationsDialog
+      isOpen
+      onOpenChange={noop}
+      destinations={destinations}
+      onGoTo={noop}
+      onRename={noop}
+      onDelete={noop}
+      onAdd={noop}
+    />
+  );
+}
+
+/** The editor's dialogs: the save's two confirmations and the named destinations. */
+const EDITING_DIALOGS = new Set(["remove-signatures", "conformance", "named-destinations"]);
+
+/** One of {@link EDITING_DIALOGS}. */
+function EditingDialogs({ state }: { state: string }): ReactNode {
   if (state === "remove-signatures") {
     // O02's confirmation before a save that invalidates a certification and a signature.
     const signatures = [{ kind: "certification" }, { kind: "approval" }];
@@ -158,6 +177,16 @@ export function Dialogs({ state }: { state: string }): ReactNode {
     const warnings = ["The file claims PDF/A-2b, and the saved file may no longer meet it."];
     return <ConformanceDialog warnings={warnings} onAnswer={noop} />;
   }
+  return <NamedDestinations />;
+}
+
+/** The dialogs: the three widths, a destructive confirm, the reader's password prompt, print, properties and the save confirmations. */
+export function Dialogs({ state }: { state: string }): ReactNode {
+  if (state === "password") return <PasswordPrompt />;
+  if (state.startsWith("print") || state === "properties") return <OutputDialog state={state} />;
+  if (state === "settings" || state === "shortcuts" || state === "view-settings")
+    return <SettingsDialogs state={state} />;
+  if (EDITING_DIALOGS.has(state)) return <EditingDialogs state={state} />;
   if (state === "external-link") {
     // R07's drawn state: the page's text shows a shorter address than the link's real target.
     return (

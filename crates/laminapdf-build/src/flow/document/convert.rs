@@ -18,8 +18,8 @@ use crate::flow::{
     Paragraph, ParagraphStyle, Table, TableCell, TableRow, TableRule, TextStyle, VerticalAlign,
 };
 use crate::nav::dest::LinkTarget;
-use crate::page::PageSize;
 use crate::surface::color::Color;
+use laminapdf_model::PageSize;
 
 /// The resolved styles and the images, while one document is converted.
 struct Ctx<'a> {

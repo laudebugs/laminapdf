@@ -1,6 +1,7 @@
-//! [`ConformanceWarning`]: what the document's metadata, as edited, breaks of the PDF/A or
-//! PDF/UA level its packet claims (E1 plan §3). Warnings never block a save: the user may mean
-//! to drop the claim.
+//! [`ConformanceWarning`]: what the document's edits break of the PDF/A or PDF/UA level its
+//! packet claims: its metadata as edited (E1 plan §3), and a page duplication that couldn't
+//! clone all of a page's tags (E2 plan §3). Warnings never block a save: the user may mean to
+//! drop the claim.
 
 use laminapdf_cos::{ErrorKind, Location};
 use laminapdf_model::xmp::PacketState;
@@ -33,13 +34,22 @@ pub enum ConformanceWarning {
         /// The fields that differ.
         keys: Vec<MetadataKey>,
     },
+    /// PDF/UA-1 requires all real content to be tagged (ISO 14289-1 §7.1), and a duplicated
+    /// page's content is partly untagged: it belonged to elements that also hold content on
+    /// other pages, which a copy can't share (`duplicate-tags-incomplete`).
+    DuplicateTagsIncomplete,
 }
 
 impl ConformanceWarning {
     /// Every code, in the order `fixtures/codes.json`'s `opWarnings` lists them.
     ///
     /// Added in 0.2.0.
-    pub const CODES: &'static [&'static str] = &["pdfa-one-author", "pdfua-title-missing", "pdfa-info-mismatch"];
+    pub const CODES: &'static [&'static str] = &[
+        "pdfa-one-author",
+        "pdfua-title-missing",
+        "pdfa-info-mismatch",
+        "duplicate-tags-incomplete",
+    ];
 
     /// The stable kebab-case code.
     ///
@@ -50,6 +60,7 @@ impl ConformanceWarning {
             Self::PdfaOneAuthor { .. } => "pdfa-one-author",
             Self::PdfuaTitleMissing => "pdfua-title-missing",
             Self::PdfaInfoMismatch { .. } => "pdfa-info-mismatch",
+            Self::DuplicateTagsIncomplete => "duplicate-tags-incomplete",
         }
     }
 
@@ -64,7 +75,7 @@ impl ConformanceWarning {
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {
-            Self::PdfaOneAuthor { .. } | Self::PdfuaTitleMissing => ErrorKind::Usage,
+            Self::PdfaOneAuthor { .. } | Self::PdfuaTitleMissing | Self::DuplicateTagsIncomplete => ErrorKind::Usage,
             Self::PdfaInfoMismatch { .. } => ErrorKind::Input,
         }
     }
@@ -104,6 +115,32 @@ pub fn conformance_warnings(doc: &laminapdf_model::Document) -> Result<Vec<Confo
         if !keys.is_empty() {
             out.push(ConformanceWarning::PdfaInfoMismatch { keys });
         }
+    }
+    Ok(out)
+}
+
+/// [`conformance_warnings`], plus what `pending` (the changes not yet saved) breaks: a page
+/// duplication that left a copy, still in the document, partly untagged, on a file whose
+/// packet claims PDF/UA-1.
+///
+/// # Errors
+/// As [`conformance_warnings`].
+///
+/// Added in 0.2.0.
+pub fn pending_conformance_warnings(
+    doc: &laminapdf_model::Document,
+    pending: &crate::PendingChanges,
+) -> Result<Vec<ConformanceWarning>> {
+    let mut out = conformance_warnings(doc)?;
+    if !pending.tags_incomplete().is_empty()
+        // A page tree that can't be read can't show the copy gone: keep the warning.
+        && doc
+            .pages()
+            .map_or(true, |tree| tree.iter().any(|p| pending.tags_incomplete().contains(p.id())))
+        && let PacketState::Parsed(packet) = doc.xmp()?
+        && packet.pdfua_part() == Some(1)
+    {
+        out.push(ConformanceWarning::DuplicateTagsIncomplete);
     }
     Ok(out)
 }

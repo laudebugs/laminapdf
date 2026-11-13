@@ -3,6 +3,8 @@
 
 use std::collections::BTreeSet;
 
+use laminapdf_model::PageId;
+
 use crate::class::ModificationClass;
 use crate::op::{Effect, Op};
 use crate::widgets::TouchedWidget;
@@ -27,6 +29,7 @@ pub struct PendingChanges {
     unknown: bool,
     packet_rewritten: bool,
     widgets: BTreeSet<TouchedWidget>,
+    tags_incomplete: BTreeSet<PageId>,
 }
 
 impl PendingChanges {
@@ -53,6 +56,7 @@ impl PendingChanges {
             unknown: true,
             packet_rewritten: false,
             widgets: BTreeSet::new(),
+            tags_incomplete: BTreeSet::new(),
         }
     }
 
@@ -102,6 +106,18 @@ impl PendingChanges {
         &self.widgets
     }
 
+    /// The copies page duplications left partly untagged (`DuplicateTagsIncomplete`), which
+    /// the save planner reports on a file that claims PDF/UA
+    /// ([`ConformanceWarning::DuplicateTagsIncomplete`](crate::ConformanceWarning::DuplicateTagsIncomplete))
+    /// while any of them is still a page: like the rest of these changes, the set only grows
+    /// until a save, so an undone duplication stays listed.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub const fn tags_incomplete(&self) -> &BTreeSet<PageId> {
+        &self.tags_incomplete
+    }
+
     /// Whether there are none.
     ///
     /// Added in 0.2.0.
@@ -117,6 +133,7 @@ impl PendingChanges {
         self.requires_rewrite |= op.requires_rewrite();
         self.packet_rewritten |= effect.packet_rewritten;
         self.widgets.extend(effect.widgets.iter().cloned());
+        self.tags_incomplete.extend(effect.tags_incomplete.iter().cloned());
     }
 
     /// Adds everything `other` holds.
@@ -126,6 +143,7 @@ impl PendingChanges {
         self.unknown |= other.unknown;
         self.packet_rewritten |= other.packet_rewritten;
         self.widgets.extend(other.widgets.iter().cloned());
+        self.tags_incomplete.extend(other.tags_incomplete.iter().cloned());
     }
 
     /// Forgets everything (after a rebase, or when the overlay is empty again).

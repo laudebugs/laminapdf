@@ -3,7 +3,8 @@
 // The outline marks the section at the top of the view, worked out at most every 150 ms while the
 // view scrolls. Where the rail covers the page (a drawer, or the phone's Contents sheet), going
 // somewhere from it closes it, so the page shows. While find is open, a Results tab lists its
-// matches.
+// matches. Once later.ts has loaded, the Outline tab's editing part (bookmarks.tsx, O11) adds Edit
+// bookmarks and reads the outline again after every edit, undo or redo.
 
 import {
   currentOutlineItem,
@@ -19,9 +20,9 @@ import {
   useStoreState,
 } from "@laminapdf/ui";
 import type { ThumbnailStrip, Viewer } from "@laminapdf/viewer";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ComponentType, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { resultHeadings } from "./find-headings.ts";
-import { downThePage } from "./outline.ts";
+import { downThePage, TOP_PROBE } from "./outline.ts";
 import type { Engine } from "./session.ts";
 
 /** How often the current section is worked out while the view moves, in ms. */
@@ -29,9 +30,6 @@ const SECTION_EVERY = 150;
 
 /** The outline's items before it is read. */
 const NO_ITEMS: readonly OutlineTreeItem[] = [];
-
-/** The point a page jump puts just under the viewport's top, past the gap left above the page, in CSS px. */
-const TOP_PROBE = 24;
 
 /** Closes the rail after a jump where it covers the page. */
 function useCloseAfterJump(layout: ShellLayout): () => void {
@@ -90,8 +88,34 @@ function useCurrentSection(viewer: Viewer, items: readonly OutlineTreeItem[]): s
   return current;
 }
 
-/** The outline, read when the tab first shows. */
-function OutlinePanel({ engine, viewer, layout }: { engine: Engine; viewer: Viewer; layout: ShellLayout }): ReactNode {
+/**
+ * The Outline tab's editing part, once later.ts has loaded: it shows the read view (`view`) with an
+ * Edit bookmarks button, or the bookmark editor, and reads the outline again after every edit,
+ * undo or redo.
+ */
+export type OutlineEditor = ComponentType<OutlineEditingProps>;
+
+/** What the Outline tab hands its editing part, which reads the view and the outline from the engine. */
+export interface OutlineEditingProps {
+  readonly engine: Engine;
+  readonly current: string | undefined;
+  readonly onNavigate: (id: string) => void;
+  /** The read view: the tree, or the empty state. */
+  readonly view: ReactNode;
+}
+
+/** The outline, read when the tab first shows; with the editor once it has loaded. */
+function OutlinePanel({
+  engine,
+  viewer,
+  layout,
+  editor,
+}: {
+  engine: Engine;
+  viewer: Viewer;
+  layout: ShellLayout;
+  editor: OutlineEditor | undefined;
+}): ReactNode {
   const outline = useStoreState(engine, (s) => s.outline);
   const closeIfCovering = useCloseAfterJump(layout);
   // Read once per document: a document opened while the tab shows clears it, so it reads again.
@@ -100,6 +124,10 @@ function OutlinePanel({ engine, viewer, layout }: { engine: Engine; viewer: View
   }, [engine, outline]);
   const items = typeof outline === "object" ? outline.items : NO_ITEMS;
   const current = useCurrentSection(viewer, items);
+  const go = (id: string) => {
+    void engine.goToOutlineItem(id);
+    closeIfCovering();
+  };
   if (outline === "failed") {
     return (
       <EmptyState title={message("reader.outline.failed")} headingLevel={3} icon="list">
@@ -108,23 +136,16 @@ function OutlinePanel({ engine, viewer, layout }: { engine: Engine; viewer: View
     );
   }
   if (typeof outline !== "object") return null;
-  if (items.length === 0) {
-    return (
+  const view =
+    items.length === 0 ? (
       <EmptyState title={message("reader.outline.none")} headingLevel={3} icon="list">
         {message("reader.outline.usePages")}
       </EmptyState>
+    ) : (
+      <OutlineTree items={items} {...(current === undefined ? {} : { current })} onNavigate={go} />
     );
-  }
-  return (
-    <OutlineTree
-      items={items}
-      {...(current === undefined ? {} : { current })}
-      onNavigate={(id) => {
-        void engine.goToOutlineItem(id);
-        closeIfCovering();
-      }}
-    />
-  );
+  const Editor = editor;
+  return Editor === undefined ? view : <Editor engine={engine} current={current} onNavigate={go} view={view} />;
 }
 
 /** Find's results, headed by page label and outline section; the outline is read for the headings. */
@@ -150,6 +171,8 @@ export function railTabs(
         readonly viewer: Viewer | undefined;
         /** Find is open: the Results tab shows. */
         readonly finding: boolean;
+        /** The bookmark editor, once later.ts has loaded. */
+        readonly editor: OutlineEditor | undefined;
       }
     | undefined,
 ): RailTab[] {
@@ -161,7 +184,7 @@ export function railTabs(
     {
       id: "outline",
       label: message("shell.rail.outline"),
-      panel: <OutlinePanel engine={engine} viewer={viewer} layout={layout} />,
+      panel: <OutlinePanel engine={engine} viewer={viewer} layout={layout} editor={view?.editor} />,
     },
     // Find's contextual tab, while find is open (R05); closing find takes it away.
     ...(view?.finding === true

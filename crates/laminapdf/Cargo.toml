@@ -131,6 +131,9 @@ name = "multilingual"
 required-features = ["text"]
 
 [[example]]
+name = "page_labels"
+
+[[example]]
 name = "images_and_vectors"
 required-features = ["text"]
 
@@ -147,7 +150,19 @@ name = "generate_then_edit"
 required-features = ["text"]
 
 [[example]]
+name = "edit_bookmarks"
+
+[[example]]
+name = "duplicate_pages"
+
+[[example]]
 name = "edit_metadata"
+
+[[example]]
+name = "edit_xmp"
+
+[[example]]
+name = "organise_pages"
 
 [[example]]
 name = "pdf_ua_report"

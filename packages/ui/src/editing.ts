@@ -4,8 +4,22 @@
 // `./dialogs`. Their types, and the edit session's words the top bar shows, are in the root entry.
 
 export { editCommands, registerEditCommands } from "./commands/edit-commands.js";
+export { type BookmarkMove, dropMove, keyMove, placeOf, type SiblingAt } from "./edit/bookmark-moves.js";
+export {
+  BookmarkEditor,
+  type BookmarkEditorProps,
+  type BookmarkItem,
+  type BookmarkStep,
+  type BookmarkStyle,
+  bookmarkWords,
+} from "./edit/bookmarks.js";
 export { EditArea } from "./edit/edit-area.js";
 export { HistoryPanel, type HistoryPanelProps } from "./edit/history-panel.js";
+export {
+  type NamedDestinationRow,
+  NamedDestinationsDialog,
+  type NamedDestinationsDialogProps,
+} from "./edit/named-destinations.js";
 export { blockedReason, revertedText } from "./edit/outcome.js";
 export {
   ConformanceDialog,

@@ -4,7 +4,7 @@
 //! (`fixtures/regressions/<target>/`) through the same function, so a regression test runs
 //! exactly what the fuzzer ran.
 
-use laminapdf_model::xmp::{MAPPINGS, Packet};
+use laminapdf_model::xmp::{MAPPINGS, Packet, RdfValue, XmpValue};
 use laminapdf_model::{Document, OpenOptions};
 use laminapdf_syntax::filters::{decode, flate_decode};
 use laminapdf_syntax::{DecodeBudget, Dict, Lexer, Limits, Object, Parser, Token, parse_object_with};
@@ -153,8 +153,9 @@ pub fn wrap_page_tree(body: &[u8]) -> Vec<u8> {
 }
 
 /// Reads `data` as an XMP packet. One that parses must write back unchanged, read every mapped
-/// field, and after an edit of the title, the authors, a date and the keywords write a packet
-/// that parses again with those values.
+/// field, and after an edit of the title, the authors, a date and the keywords, a custom
+/// property and an array, with every property declared when it claims PDF/A, write a packet that
+/// parses again with those values.
 pub fn xmp_parse(data: &[u8]) {
     let Ok(mut packet) = Packet::parse(data) else {
         return;
@@ -169,6 +170,15 @@ pub fn xmp_parse(data: &[u8]) {
     packet.set_authors(&["Ada", "Grace"]);
     packet.set_modify_date(modified);
     packet.set_keywords(None);
+    let custom = "http://example.com/fuzz/";
+    let tags = XmpValue::Bag(vec![XmpValue::Text("a & b".into()), XmpValue::Text("<c>".into())]);
+    packet
+        .set_property(custom, "fz", "count", Some(XmpValue::Integer(3)))
+        .unwrap_or_else(|e| panic!("a valid custom property was refused: {e}"));
+    packet
+        .set_property(custom, "fz", "tags", Some(tags))
+        .unwrap_or_else(|e| panic!("a valid array was refused: {e}"));
+    packet.declare_extensions();
     let written = packet.write();
     let edited = Packet::parse(&written.bytes).unwrap_or_else(|e| panic!("the edited packet doesn't parse: {e}"));
     assert_eq!(
@@ -185,5 +195,10 @@ pub fn xmp_parse(data: &[u8]) {
             None
         ),
         "the edited packet reads back what was set"
+    );
+    assert_eq!(
+        edited.property(custom, "count"),
+        Some(&RdfValue::Text("3".to_owned())),
+        "the custom property reads back"
     );
 }

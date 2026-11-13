@@ -61,14 +61,14 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | O01 | Edit session and history: unsaved state in title and status bar, undo/redo, History tab | D | [E1d](../../todos/done/E1d-edit-session-undo-ui.md) |
 | O02 | Save, Save as and Download a copy: Save a copy, signed-file constraint banner, incremental vs full explanation | D, W | [E1e](../../todos/done/E1e-save-and-constraint-banner.md) |
 | O03 | Close with unsaved changes (dialog) | D | [E2i](../../todos/ready/E2i-signed-gating-and-close.md) |
-| O04 | Document info and XMP editor (title, author, subject, keywords, dates; XMP tree) | D | [E1f](../../todos/done/E1f-metadata-ui-capability-page.md), [E3e](../../todos/ready/E3e-xmp-editor.md) |
+| O04 | Document info and XMP editor (title, author, subject, keywords, dates; XMP tree) | D | [E1f](../../todos/done/E1f-metadata-ui-capability-page.md), [E3e](../../todos/done/E3e-xmp-editor.md) |
 | O05 | Capability page: what lamina can read, write and round-trip | W | [E1f](../../todos/done/E1f-metadata-ui-capability-page.md) |
-| O06 | Organise mode: page grid, multi-select, insertion bar, rotate, delete, duplicate, "Move to page…" | D, W | [E2h](../../todos/ready/E2h-page-organiser-ui.md), [E2b](../../todos/ready/E2b-page-structure-ops.md) |
+| O06 | Organise mode: page grid, multi-select, insertion bar, rotate, delete, duplicate, "Move to page…" | D, W | [E2h](../../todos/ready/E2h-page-organiser-ui.md), [E2b](../../todos/done/E2b-page-structure-ops.md) |
 | O07 | Insert pages and merge documents (from another PDF, images, blank) | D | [E2c](../../todos/ready/E2c-cross-document-pages.md), [E2d](../../todos/ready/E2d-merge-and-split.md), [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md) |
 | O08 | Split document (by count, ranges, bookmarks) | D | [E2d](../../todos/ready/E2d-merge-and-split.md) |
 | O09 | Page geometry: crop and page boxes, resize, warning that cropped content remains | D | [E2f](../../todos/ready/E2f-page-geometry.md), [E2s](../../todos/ready/E2s-resize-and-orientation.md), [E2g](../../todos/ready/E2g-page-labels.md) |
-| O10 | Page labels editor (roman front matter, numbering ranges) | D | [E2q](../../todos/ready/E2q-page-labels-op.md), [E2g](../../todos/ready/E2g-page-labels.md) |
-| O11 | Bookmarks editor (nested, drag and keyboard reorder, from headings) | D | [E3b](../../todos/ready/E3b-bookmarks-and-destinations.md) |
+| O10 | Page labels editor (roman front matter, numbering ranges) | D | [E2q](../../todos/done/E2q-page-labels-op.md), [E2g](../../todos/ready/E2g-page-labels.md) |
+| O11 | Bookmarks editor (nested, drag and keyboard reorder, from headings) | D | [E3b](../../todos/done/E3b-bookmarks-and-destinations.md) |
 | O12 | Link editor: link selected text or draw a link area; target page, named destination, web or email address; script address rejected | D | [E3c](../../todos/ongoing/E3c-links.md) |
 | O13 | Initial view and article threads | D | [E3d](../../todos/ready/E3d-initial-view-and-threads.md) |
 | O14 | Attachments panel (add, extract, associated files) | D | [E3f](../../todos/ready/E3f-attachments-and-associated-files.md) |

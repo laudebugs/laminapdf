@@ -4,7 +4,7 @@
 use std::collections::BTreeMap;
 
 use laminapdf_cos::{Dict, Name, ObjRef, Object, PdfString};
-use laminapdf_model::{PageFrame, PointPt, Pt, RectPt};
+use laminapdf_model::{PageFrame, Pt, RectPt};
 
 use crate::error::{Error, Result};
 use crate::page::rect_object;
@@ -108,11 +108,7 @@ fn optional(v: Option<f64>) -> Object {
 pub(crate) fn dest_array(page: ObjRef, frame: &PageFrame, fit: &Fit) -> Object {
     // Page-space x is user-space x (or y) depending on whether the page is turned sideways.
     let upright = frame.rotate().degrees().is_multiple_of(180);
-    let point = |x: Option<Pt>, y: Option<Pt>| {
-        let p = frame.to_user_space(PointPt::new(x.unwrap_or(Pt::ZERO), y.unwrap_or(Pt::ZERO)));
-        let (along_x, along_y) = if upright { (x, y) } else { (y, x) };
-        (along_x.map(|_| p.x), along_y.map(|_| p.y))
-    };
+    let point = |x: Option<Pt>, y: Option<Pt>| frame.to_user_space_unset(x, y);
     let mut array = vec![Object::Ref(page)];
     match fit {
         Fit::Page => array.push(Object::name("Fit")),

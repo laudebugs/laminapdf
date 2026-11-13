@@ -41,7 +41,7 @@ The first user-visible write ops: set title/author/subject/keywords, dates, prod
 **Out of scope** (and which todo covers it)
 
 - UI for editing metadata → [E1f](../done/E1f-metadata-ui-capability-page.md)
-- Custom/extension schema editing → [E3e](../ready/E3e-xmp-editor.md)
+- Custom/extension schema editing → [E3e](../done/E3e-xmp-editor.md)
 - Stripping all hidden metadata as sanitisation (G.08) → [E11d](../ready/E11d-sanitiser.md)
 
 **Editor facts**

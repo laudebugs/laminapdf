@@ -1,0 +1,1 @@
+{ "op": "rotatePages", "args": { "pages": ["p3.0", "p4.0"], "angle": 90, "mode": "turn" } }

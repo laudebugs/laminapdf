@@ -84,11 +84,67 @@ mod samples {
 
     #[test]
     fn every_sample_round_trips() {
-        for name in ["set-info", "rotate-page", "set-metadata", "remove-metadata"] {
+        for name in [
+            "set-info",
+            "rotate-page",
+            "set-metadata",
+            "remove-metadata",
+            "set-xmp-property",
+            "remove-xmp-property",
+            "replace-xmp-packet",
+            "set-page-labels",
+        ]
+        .into_iter()
+        .chain(OUTLINE_SAMPLES)
+        {
             let op: Op = serde_json::from_slice(&fixture(&format!("ops/v1/{name}.json"))).unwrap();
             let again: Op = serde_json::from_str(&serde_json::to_string(&op).unwrap()).unwrap();
             assert_eq!(again, op, "{name}");
         }
+    }
+
+    /// The outline and named-destination samples, written for `corpus/outline.pdf`'s items,
+    /// pages and names.
+    const OUTLINE_SAMPLES: [&str; 7] = [
+        "add-outline-item",
+        "update-outline-item",
+        "move-outline-item",
+        "delete-outline-item",
+        "set-named-destination",
+        "rename-named-destination",
+        "delete-named-destination",
+    ];
+
+    #[test]
+    fn every_outline_sample_deserialises_and_applies_to_the_outline_fixture() {
+        for name in OUTLINE_SAMPLES {
+            let op: Op = serde_json::from_slice(&fixture(&format!("ops/v1/{name}.json"))).unwrap();
+            let mut doc = corpus("outline.pdf");
+            let applied = doc.apply_all(Origin::Local, [op]).unwrap();
+            assert!(!applied.undo.is_empty(), "{name} changed nothing");
+        }
+    }
+
+    #[test]
+    fn an_outline_position_names_first_last_or_a_sibling() {
+        for at in [r#""sideways""#, r#"{ "before": "p3.0" }"#, r#"{ "beside": "o3.0" }"#] {
+            let json = format!(r#"{{ "op": "moveOutlineItem", "args": {{ "item": "o3.0", "at": {at} }} }}"#);
+            assert!(op(&json).is_err(), "{at}");
+        }
+    }
+
+    #[test]
+    fn a_colour_is_hex_and_a_view_has_a_known_kind() {
+        let add = |extra: &str| {
+            format!(
+                r#"{{ "op": "addOutlineItem", "args": {{ "at": "last", "title": "x", "target": {{ "destination": {{ "page": "p3.0", "view": {extra} }} }} }} }}"#
+            )
+        };
+        assert!(op(&add(r#"{ "kind": "fit" }"#)).is_ok());
+        assert!(op(&add(r#"{ "kind": "zoomed" }"#)).is_err());
+        assert!(op(&add(r#"{ "kind": "fit", "top": 3 }"#)).is_err());
+        let styled = r#"{ "op": "addOutlineItem", "args": { "at": "last", "title": "x", "target": { "named": "a" }, "style": { "color": "red" } } }"#;
+        assert!(op(styled).is_err());
     }
 
     #[test]
@@ -96,10 +152,50 @@ mod samples {
         let log = OpLog::from_json(&fixture_text("ops/v1/envelope.json")).unwrap();
         assert_eq!(OpLog::from_json(&log.to_json().unwrap()).unwrap(), log);
     }
+
+    #[test]
+    fn the_xmp_samples_apply_to_the_metadata_golden() {
+        use laminapdf_model::xmp::{ArrayKind, RdfValue};
+        let ops: Vec<Op> = ["set-xmp-property", "replace-xmp-packet"]
+            .map(|name| serde_json::from_slice(&fixture(&format!("ops/v1/{name}.json"))).unwrap())
+            .into();
+        let mut doc = laminapdf_ops::Document::from(
+            laminapdf_model::Document::open(fixture("golden/metadata.pdf"), laminapdf_cos::OpenOptions::default())
+                .unwrap(),
+        );
+        let [set, replace]: [Op; 2] = ops.try_into().unwrap();
+        doc.apply_all(Origin::Local, [set]).unwrap();
+        let packet = doc.xmp().unwrap().packet().cloned().unwrap();
+        assert!(matches!(
+            packet.property("http://example.com/acme/", "reviewers"),
+            Some(RdfValue::Array { kind: ArrayKind::Seq, items }) if items.len() == 2
+        ));
+        let remove: Op = serde_json::from_slice(&fixture("ops/v1/remove-xmp-property.json")).unwrap();
+        doc.apply_all(Origin::Local, [remove, replace]).unwrap();
+        assert_eq!(title(&doc).as_deref(), Some("Minutes"));
+    }
 }
 
 mod rejects {
     use super::*;
+
+    #[test]
+    fn an_unknown_xmp_value_type() {
+        let json = r#"{ "op": "setXmpProperty", "args": { "namespace": "n:", "prefix": "a", "name": "b", "value": { "type": "struct", "value": {} } } }"#;
+        assert!(op(json).is_err());
+    }
+
+    #[test]
+    fn an_xmp_date_that_is_not_a_pdf_date() {
+        let json = r#"{ "op": "setXmpProperty", "args": { "namespace": "n:", "prefix": "a", "name": "b", "value": { "type": "date", "value": "yesterday" } } }"#;
+        assert!(op(json).is_err());
+    }
+
+    #[test]
+    fn an_unknown_field_in_a_language_entry() {
+        let json = r#"{ "op": "setXmpProperty", "args": { "namespace": "n:", "prefix": "a", "name": "b", "value": { "type": "langAlt", "value": [{ "lang": "en", "text": "t", "dir": "ltr" }] } } }"#;
+        assert!(op(json).is_err());
+    }
 
     #[test]
     fn an_unknown_op() {
@@ -232,6 +328,40 @@ mod wire_form {
         assert_eq!(
             OpLog::new(vec![stamp]).to_json().map_err(|e| e.code()),
             Err("invalid-op-log")
+        );
+    }
+
+    #[test]
+    fn every_xmp_value_type_round_trips() {
+        use laminapdf_model::xmp::{LangText, XmpReal, XmpValue};
+        use laminapdf_ops::SetXmpProperty;
+        let values = [
+            XmpValue::Text("t".into()),
+            XmpValue::Uri("https://example.com/".into()),
+            XmpValue::Integer(-3),
+            XmpValue::Real(XmpReal::new(2.5).unwrap()),
+            XmpValue::Boolean(false),
+            XmpValue::Date("D:20261112090000Z".parse().unwrap()),
+            XmpValue::LangAlt(vec![LangText::new("x-default", "Hi")]),
+            XmpValue::Seq(vec![XmpValue::Integer(1)]),
+            XmpValue::Bag(vec![XmpValue::Text("a".into())]),
+        ];
+        for value in values {
+            let sent: Op = SetXmpProperty::new("n:", "a", "b", value).into();
+            let json = serde_json::to_string(&sent).unwrap();
+            assert_eq!(op(&json).unwrap(), sent, "{json}");
+        }
+    }
+
+    #[test]
+    fn an_xmp_value_is_tagged_with_its_type() {
+        use laminapdf_model::xmp::{LangText, XmpValue};
+        let sent: Op =
+            laminapdf_ops::SetXmpProperty::new("n:", "a", "b", XmpValue::LangAlt(vec![LangText::new("en", "Hi")]))
+                .into();
+        assert_eq!(
+            serde_json::to_string(&sent).unwrap(),
+            r#"{"op":"setXmpProperty","args":{"namespace":"n:","prefix":"a","name":"b","value":{"type":"langAlt","value":[{"lang":"en","text":"Hi"}]}}}"#
         );
     }
 

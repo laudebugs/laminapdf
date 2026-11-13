@@ -9,8 +9,8 @@ use super::model::{Flow, FlowBlock, Margins, PageTemplate, Paragraph, ParagraphS
 use super::paginate::{Measures, PageOut, Placed, paginate};
 use crate::builder::{BuildOptions, Builder};
 use crate::error::Error;
-use crate::page::PageSize;
 use crate::surface::text::FontHandle;
+use laminapdf_model::PageSize;
 
 const NOTO: &[u8] = include_bytes!("../../../../fixtures/fonts/NotoSans-Regular.ttf");
 

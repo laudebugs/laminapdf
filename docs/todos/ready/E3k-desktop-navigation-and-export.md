@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E3 plan §7](../../plans/editor/e3-navigation-attachments-inspection.md#7-differences-between-the-shells) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E1i](./E1i-desktop-save-in-place.md), [E2i](./E2i-signed-gating-and-close.md), [E2n](./E2n-desktop-organise.md), [E3b](./E3b-bookmarks-and-destinations.md), [E3c](../ongoing/E3c-links.md), [E3d](./E3d-initial-view-and-threads.md), [E3e](./E3e-xmp-editor.md), [E3f](./E3f-attachments-and-associated-files.md), [E3g](./E3g-inspectors.md), [E3h](../done/E3h-images-to-pdf-and-page-export.md), [E3i](./E3i-extraction.md), [E3j](./E3j-export-dialog.md), [E3l](./E3l-contents-page.md) |
+| Depends on | [E1i](./E1i-desktop-save-in-place.md), [E2i](./E2i-signed-gating-and-close.md), [E2n](./E2n-desktop-organise.md), [E3b](../done/E3b-bookmarks-and-destinations.md), [E3c](../ongoing/E3c-links.md), [E3d](./E3d-initial-view-and-threads.md), [E3e](../done/E3e-xmp-editor.md), [E3f](./E3f-attachments-and-associated-files.md), [E3g](./E3g-inspectors.md), [E3h](../done/E3h-images-to-pdf-and-page-export.md), [E3i](./E3i-extraction.md), [E3j](./E3j-export-dialog.md), [E3l](./E3l-contents-page.md) |
 | ADRs | Follows [0008](../../decisions/0008-desktop-shell.md), [0010](../../decisions/0010-platform-adapter.md) |
 | Branch | `feat/e3k-desktop-navigation-and-export` |
 | PR title | `feat(desktop): bookmarks, links, attachments, inspector and exports` |

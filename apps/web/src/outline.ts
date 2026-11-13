@@ -1,10 +1,14 @@
-// The outline tab's items from the document's outline: each SDK item becomes a tree item with a
-// path id ("2.0"), its page's label, and its place for the current-section rule (a fraction down
-// the page, from the destination's top when it gives one). The targets stay here, by id, for
-// going to an item.
+// The outline tab's items from the document's outline: each SDK item becomes a tree item with the
+// bookmark's ID ("o12.0", which the bookmark edits take), its page's label, its style, the name or
+// address it goes to, and its place for the current-section rule (a fraction down the page, from
+// the destination's top when it gives one). The targets stay here, by id, for going to an item.
 
-import type { OutlinePlace, OutlineTreeItem } from "@laminapdf/ui";
+import type { OutlinePlace } from "@laminapdf/ui";
+import type { BookmarkItem } from "@laminapdf/ui/editing";
 import type { OpenedDocument, Rotation, Viewer, ViewerClient } from "@laminapdf/viewer";
+
+/** The point a page jump puts just under the viewport's top, past the gap left above the page, in CSS px. */
+export const TOP_PROBE = 24;
 
 /** A page's facts (size and label), as the viewer opened them. */
 export type PageInfo = OpenedDocument["pages"][number];
@@ -19,7 +23,7 @@ type Target = Parameters<Viewer["goToDestination"]>[0];
 
 /** The tree's items and each item's target, by id. */
 export interface OutlineModel {
-  readonly items: readonly OutlineTreeItem[];
+  readonly items: readonly BookmarkItem[];
   readonly targets: ReadonlyMap<string, Target>;
 }
 
@@ -35,20 +39,18 @@ export function placeOf(target: Target, pages: readonly PageInfo[]): OutlinePlac
 /** `nodes` as the outline tab shows them, with `pages`' labels. */
 export function outlineModel(nodes: readonly OutlineNode[], pages: readonly PageInfo[]): OutlineModel {
   const targets = new Map<string, Target>();
-  const convert = (list: readonly OutlineNode[], prefix: string): OutlineTreeItem[] =>
-    list.map((node, i) => {
-      const id = prefix === "" ? String(i) : `${prefix}.${i}`;
-      const target = node.target;
+  const convert = (list: readonly OutlineNode[]): BookmarkItem[] =>
+    list.map((node) => {
+      const { id, target } = node;
       if (target !== undefined) targets.set(id, target);
+      // The node's own fields (title, open state, style, the name or address it goes to), then the tree's.
       return {
-        id,
-        title: node.title,
-        open: node.open,
+        ...node,
         ...(target === undefined ? {} : { page: pageLabel(pages, target.page), at: placeOf(target, pages) }),
-        children: convert(node.children, id),
+        children: convert(node.children),
       };
     });
-  return { items: convert(nodes, ""), targets };
+  return { items: convert(nodes), targets };
 }
 
 /**

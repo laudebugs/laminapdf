@@ -11,7 +11,7 @@ use crate::error::{Result, SaveError};
 use crate::options::{SaveMode, SaveOptions};
 use crate::resolve::resolve;
 #[cfg(feature = "page-checks")]
-use crate::widgets::{WidgetIndex, qualified_name};
+use crate::widgets::WidgetIndex;
 
 /// Inspects a document for everything that restricts saving it ([ADR 0007] §2): its
 /// signatures and their `DocMDP`, `FieldMDP` and UR3 restrictions, why only a full rewrite would
@@ -111,7 +111,7 @@ impl SavePlanner {
         // Warnings only: a packet that can't be read (or read yet) claims nothing to break,
         // and the save itself reports any error reading the document.
         let conformance = if dirty {
-            laminapdf_ops::conformance_warnings(doc).unwrap_or_default()
+            laminapdf_ops::pending_conformance_warnings(doc, pending).unwrap_or_default()
         } else {
             Vec::new()
         };
@@ -264,7 +264,7 @@ fn pending_widget_violations(
 ) -> Result<()> {
     for w in pending.widgets() {
         let name = match w.field.as_lamina_id().obj_ref() {
-            Some(r) => qualified_name(doc, r)?,
+            Some(r) => doc.field_name(r)?,
             None => None,
         };
         for v in signatures.widget_violations(&w.field, name.as_deref(), w.change, w.class) {

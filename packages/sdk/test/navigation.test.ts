@@ -132,3 +132,58 @@ describe("properties", () => {
     }
   });
 });
+
+describe("editing bookmarks and named destinations", () => {
+  beforeAll(() => loadExtract());
+
+  const OUTLINE = "fixtures/corpus/outline.pdf";
+
+  it("lists each bookmark's ID and the name it goes to", () => {
+    using doc = Document.open(read(OUTLINE));
+    expect(doc.outline().map((n) => [n.id, n.destinationName ?? null])).toEqual([
+      ["o11.0", null],
+      ["o12.0", "chapter2"],
+      ["o13.0", "appendix"],
+    ]);
+  });
+
+  it("lists the named destinations of both stores, sorted", () => {
+    using doc = Document.open(read(OUTLINE));
+    expect(doc.namedDestinations().map((d) => [d.name, d.target?.page])).toEqual([
+      ["appendix", 2],
+      ["chapter2", 1],
+    ]);
+  });
+
+  it("adds a bookmark at a place in page space and reads it back there", () => {
+    using doc = Document.open(read(OUTLINE));
+    const destination = doc.destinationAt(1, { kind: "at", x: 36, y: 72 });
+    const edited = doc.apply([
+      {
+        op: "addOutlineItem",
+        args: { at: "last", title: "Here", target: { destination }, style: { color: "#c00000" } },
+      },
+    ]);
+    const [id] = edited.createdOutlineItems;
+    const added = doc.outline().find((n) => n.id === id);
+    expect([added?.title, added?.color, added?.target]).toEqual([
+      "Here",
+      "#c00000",
+      { page: 1, view: { kind: "at", x: 36, y: 72 } },
+    ]);
+  });
+
+  it("refuses a web address that isn't http, https or mailto", () => {
+    using doc = Document.open(read(OUTLINE));
+    const err = thrown(() =>
+      doc.apply([{ op: "addOutlineItem", args: { at: "last", title: "x", target: { uri: "javascript:alert(1)" } } }]),
+    );
+    expect(isLaminaPdfError(err, "link-uri-refused")).toBe(true);
+  });
+
+  it("reports what still names a deleted destination", () => {
+    using doc = Document.open(read(OUTLINE));
+    const edited = doc.apply([{ op: "deleteNamedDestination", args: { name: "appendix" } }]);
+    expect(edited.destinationUses).toEqual([{ kind: "outlineItem", item: "o13.0" }]);
+  });
+});
