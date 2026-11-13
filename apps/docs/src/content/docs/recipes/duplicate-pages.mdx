@@ -7,7 +7,7 @@ import Example from "../../../components/Example.astro";
 
 You'll add a copy of a form's first page at the end, so a second person can fill in the copy without changing the original. Use it for a sign-up sheet that needs another page, a template page repeated in a report, or a form filled in twice.
 
-A copy shows the same content as its page, but its form fields are new: each gets the original's name with `#2` added, or the next free number. The program prints the name of each field the copy got:
+A copy shows the same content as its page, but its form fields are new: each gets the original's name with `#2` added, or the next free number. A copy of a copy continues the series: `name#3`. The program prints the name of each field the copy got:
 
 <Example ts="packages/sdk/examples/duplicate-pages.ts" rust="crates/laminapdf/examples/duplicate_pages.rs" result="duplicate_pages" />
 
@@ -25,7 +25,7 @@ The result has three pages, and the third is a copy of the first. Its text field
 
 - **Copy several pages:** list their IDs in the order you want the copies, and they land together at the place you give.
 - **Signed forms:** a signature's field isn't copied, since a signature signs one place in one file. The edit's `fields` lists it as `notCopied`, and the copy shows no signature box.
-- **Tagged documents:** the copy gets tags of its own, so a screen reader reads it as it reads the original. Content of an element that runs on to another page, such as a paragraph that continues over the page break, stays untagged on the copy, and the edit's `tagsIncomplete` lists that copy. On a file that claims PDF/UA-1, saving then warns with [`duplicate-tags-incomplete`](/reference/codes/duplicate-tags-incomplete/).
+- **Tagged documents:** the copy gets tags of its own, so a screen reader reads it as it reads the original. Content of an element that runs on to another page, such as a paragraph that continues over the page break, stays untagged on the copy. The edit's `tagsIncomplete` lists that copy. On a file that claims PDF/UA-1, saving then warns with [`duplicate-tags-incomplete`](/reference/codes/duplicate-tags-incomplete/).
 - **Undo:** one `undo()` removes every copy the edit made, with its fields.
 
 Next: [organise pages](/recipes/organise-pages/), to delete, move and rotate them too.

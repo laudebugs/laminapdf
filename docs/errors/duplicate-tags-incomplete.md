@@ -9,7 +9,7 @@ The file says it conforms to PDF/UA-1, and a duplicated page's copy is partly un
 
 ## Why
 
-A copy shares its page's content, so Lamina PDF tags it with copies of the page's structure elements. An element that also holds content on another page, such as a paragraph that runs over a page break, can't be copied for one page alone. The copy's share of that content is left untagged rather than tied to the original's element.
+A copy shares its page's content, so Lamina PDF tags it with copies of the page's structure elements. An element that also holds content on another page, such as a paragraph that runs over a page break, can't be copied for one page alone. The copy's share of that content is left untagged rather than tied to the original's element. The same holds for content drawn by a form XObject that carries tags of its own, since the copy shares that XObject with its page.
 
 ## How to fix
 

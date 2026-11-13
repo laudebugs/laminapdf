@@ -2,7 +2,7 @@
 //
 // A copy shares its page's content but gets new annotations, so filling in a field on one page
 // leaves the other alone: each copied field gets a name of its own, `<name>#2` (or the next free
-// number). The edit lists each one, and a signature's widget, which isn't copied.
+// number). The edit lists each one, and each signature field it left out.
 import { Document } from "@laminapdf/sdk";
 
 /** The document with a copy of its first page added at the end. Needs `init()`. */
