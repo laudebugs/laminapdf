@@ -38,11 +38,15 @@ impl Document {
     /// ```
     ///
     /// # Errors
-    /// [`Error::UnknownPage`](crate::Error::UnknownPage) for a page this document lacks;
+    /// [`Error::NoPagesLeft`](crate::Error::NoPagesLeft) for no pages, since a document needs
+    /// one; [`Error::UnknownPage`](crate::Error::UnknownPage) for a page this document lacks;
     /// errors reading this document; [`Limits`](laminapdf_cos::Limits) passed by the copy.
     ///
     /// Added in 0.2.0.
     pub fn extract_pages(&self, pages: &[PageId]) -> Result<Self> {
+        if pages.is_empty() {
+            return Err(crate::Error::NoPagesLeft);
+        }
         let source: &laminapdf_model::Document = self;
         let mut out = new_document(source)?;
         let mut names = FieldNames::default();

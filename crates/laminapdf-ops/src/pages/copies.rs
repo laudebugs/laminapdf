@@ -228,14 +228,20 @@ fn rewrite(dict: &mut Dict, page: ObjRef, new: ObjRef, copied: &BTreeMap<ObjRef,
             dict.insert(key, Object::Ref(to));
         }
     }
-    if let Some(Object::String(nm)) = dict.get("NM") {
-        let name = format!("{}-{}", decode_text_string(&nm.bytes), new.num);
-        dict.insert("NM", text(&name));
-    }
+    renew_nm(dict, new.num);
     dict.remove("StructParent");
 }
 
+/// Gives annotation `dict`, copied as object `num`, a new `/NM`: its old one with `-<num>`
+/// added, so no two annotations of a document share a name (ISO 32000-2 §12.5.2).
+pub(super) fn renew_nm(dict: &mut Dict, num: u32) {
+    if let Some(Object::String(nm)) = dict.get("NM") {
+        let name = format!("{}-{num}", decode_text_string(&nm.bytes));
+        dict.insert("NM", text(&name));
+    }
+}
+
 /// `s` as a text string (PDFDocEncoding, else UTF-16BE).
-fn text(s: &str) -> Object {
+pub(super) fn text(s: &str) -> Object {
     Object::String(PdfString::literal(encode_text_string(s)))
 }

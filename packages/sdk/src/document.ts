@@ -1065,7 +1065,7 @@ export class Document extends Handle<BaseGlue> {
    * and the pages come without tags. Saving it writes a whole file holding only what its pages
    * use, with no password.
    *
-   * @throws {@link LaminaPdfError} `unknown-page`.
+   * @throws {@link LaminaPdfError} `unknown-page`; `no-pages-left` for no pages.
    *
    * @since 0.2.0
    */
@@ -1083,7 +1083,15 @@ export class Document extends Handle<BaseGlue> {
    * @since 0.2.0
    */
   exportRanges(ranges: readonly (readonly string[])[]): Document[] {
-    return ranges.map((pages) => this.extractPages(pages));
+    const parts: Document[] = [];
+    try {
+      for (const pages of ranges) parts.push(this.extractPages(pages));
+    } catch (e) {
+      // The documents made before the failure have no other owner: free them now.
+      for (const part of parts) part.free();
+      throw e;
+    }
+    return parts;
   }
 
   /**

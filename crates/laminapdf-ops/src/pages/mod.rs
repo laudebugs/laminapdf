@@ -6,6 +6,7 @@
 mod cleanup;
 mod copies;
 mod delete;
+mod dests;
 mod duplicate;
 mod extract;
 mod forms;

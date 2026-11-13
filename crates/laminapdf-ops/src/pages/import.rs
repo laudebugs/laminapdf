@@ -8,14 +8,17 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use laminapdf_cos::{Dict, ObjRef, Object, PdfString};
-use laminapdf_model::{Copied, FieldId, FieldNames, ObjectCopier, PageId, TreeWriter, set_catalog_entry};
-use laminapdf_syntax::text::{decode_text_string, encode_text_string};
+use laminapdf_cos::{Dict, ObjRef, Object};
+use laminapdf_model::{Copied, FieldId, FieldNames, ObjectCopier, PageId, is_widget, set_catalog_entry};
+use laminapdf_syntax::text::decode_text_string;
 
 use super::cleanup::{edit_dict, edit_object};
-use super::copies::{FieldChange, FieldOutcome};
+use super::copies::{FieldChange, FieldOutcome, renew_nm, text};
+use super::dests::Dests;
 use super::forms::{edit_list, is_signature_field, list_field};
+use crate::class::ModificationClass;
 use crate::error::{Error, Result};
+use crate::widgets::{TouchedWidget, WidgetChange};
 
 /// What comes along with pages copied from another document.
 ///
@@ -106,6 +109,9 @@ pub(crate) struct Imported {
     pub(crate) links_removed: Vec<PageId>,
     /// The copies whose source pages were tagged.
     pub(crate) tags_dropped: Vec<PageId>,
+    /// The target's fields that copied widgets joined ([`FieldClash::Link`]): their `/Kids`
+    /// changed, which the save planner checks against field locks.
+    pub(crate) widgets: Vec<TouchedWidget>,
 }
 
 /// Copies `pages` (each once, in the order given) of `src` into `doc` as new page objects,
@@ -130,6 +136,7 @@ pub(crate) fn import(
         return Ok(Imported::default());
     }
     let cos_pages: Vec<&laminapdf_cos::Page> = chosen.iter().map(laminapdf_model::Page::cos).collect();
+    let first_new = doc.next_number();
     let mut copy = ObjectCopier::new(src, *doc.limits());
     let copies = copy.copy_pages(&mut doc.cos_mut().edit(), &cos_pages)?;
     let mut out = Imported {
@@ -146,13 +153,178 @@ pub(crate) fn import(
         names,
         &mut out,
     )?;
+    if !out.fields.is_empty() || doc.catalog()?.contains_key("AcroForm") {
+        fit_form(doc, src, &mut copy)?;
+    }
     let mut dests = Dests::new(src, &copy)?;
     for &copy in &copies {
         fit_page(doc, copy, carry, &removed, &mut dests, &mut out)?;
     }
     dests.write(doc)?;
+    sweep(doc, first_new, &copies)?;
     raise_version(doc, src)?;
     Ok(out)
+}
+
+/// Gives the target's form the source form's default appearance (`/DA`) when it has none, and
+/// the source's default resources (`/DR`) under names the target's lack: a copied field with
+/// variable text needs both to draw its value again (ISO 32000-2 §12.7.4.3).
+fn fit_form(
+    doc: &mut laminapdf_model::Document,
+    src: &laminapdf_model::Document,
+    copy: &mut ObjectCopier<'_>,
+) -> Result<()> {
+    let Some(source_form) = form_of(src)? else {
+        return Ok(());
+    };
+    let Some(target_form) = form_of(doc)? else {
+        return Ok(());
+    };
+    let mut form = target_form.clone();
+    if !form.contains_key("DA")
+        && let Some(da) = source_form.get("DA")
+    {
+        form.insert("DA", src.deref(da)?.into_owned());
+    }
+    if let Some(source_dr) = source_form
+        .get("DR")
+        .map(|dr| src.deref(dr))
+        .transpose()?
+        .map(laminapdf_cos::Resolved::into_owned)
+        && let Object::Dict(source_dr) = source_dr
+    {
+        let mut dr = match form.get("DR").map(|dr| doc.deref(dr)).transpose()? {
+            Some(dr) => dr.into_owned().as_dict().cloned().unwrap_or_default(),
+            None => Dict::new(),
+        };
+        for (category, entries) in source_dr.iter() {
+            let Object::Dict(entries) = src.deref(entries)?.into_owned() else {
+                continue;
+            };
+            let mut ours = match dr
+                .iter()
+                .find(|(k, _)| *k == category)
+                .map(|(_, e)| doc.deref(e))
+                .transpose()?
+            {
+                Some(e) => e.into_owned().as_dict().cloned().unwrap_or_default(),
+                None => Dict::new(),
+            };
+            for (name, value) in entries.iter() {
+                if !ours.iter().any(|(k, _)| k == name) {
+                    let copied = copy.copy_value(&mut doc.cos_mut().edit(), value)?;
+                    ours.insert(name.clone(), copied);
+                }
+            }
+            dr.insert(category.clone(), Object::Dict(ours));
+        }
+        form.insert("DR", Object::Dict(dr));
+    }
+    if form == target_form {
+        return Ok(());
+    }
+    match doc.catalog()?.get("AcroForm").cloned() {
+        Some(Object::Ref(r)) => edit_object(doc, r, |o| *o = Object::Dict(form)),
+        _ => Ok(set_catalog_entry(
+            &mut doc.cos_mut().edit(),
+            "AcroForm",
+            Some(Object::Dict(form)),
+        )?),
+    }
+}
+
+/// `doc`'s interactive form dictionary, resolved.
+fn form_of(doc: &laminapdf_model::Document) -> Result<Option<Dict>> {
+    let Some(form) = doc.catalog()?.get("AcroForm").cloned() else {
+        return Ok(None);
+    };
+    Ok(doc.deref(&form)?.into_owned().as_dict().cloned())
+}
+
+/// Deletes the objects this import created that nothing reaches any more (annotations, fields
+/// and signatures left off, links removed), so a save never writes what the caller left out,
+/// and takes `/StructParents` and `/StructParent` off copied objects (Form XObjects carry them
+/// too), whose keys would name the target's structure elements.
+fn sweep(doc: &mut laminapdf_model::Document, first_new: u64, copies: &[ObjRef]) -> Result<()> {
+    let created: BTreeSet<u32> = doc
+        .overlay()
+        .iter()
+        .map(|(num, _)| num)
+        .filter(|&num| u64::from(num) >= first_new)
+        .collect();
+    let mut queue: Vec<u32> = copies.iter().map(|r| r.num).collect();
+    // What the target's own objects (the form, the name tree, the page tree) point at.
+    for (num, entry) in doc.overlay().iter() {
+        if created.contains(&num) {
+            continue;
+        }
+        if let Some(object) = entry.object() {
+            refs_in(object, 0, &mut |r| queue.push(r.num));
+        }
+    }
+    if let Some(trailer) = doc.overlay().trailer() {
+        refs_in(&Object::Dict(trailer.clone()), 0, &mut |r| queue.push(r.num));
+    }
+    let mut reached = BTreeSet::new();
+    while let Some(num) = queue.pop() {
+        if !created.contains(&num) || !reached.insert(num) {
+            continue;
+        }
+        let object = doc.object(num)?;
+        refs_in(&object, 0, &mut |r| queue.push(r.num));
+    }
+    for &num in &created {
+        let r = ObjRef::new(num, 0);
+        if !reached.contains(&num) {
+            doc.cos_mut().edit().delete(r)?;
+            continue;
+        }
+        let object = doc.object(num)?;
+        let dict = match &*object {
+            Object::Stream(stream) => &stream.dict,
+            Object::Dict(dict) => dict,
+            _ => continue,
+        };
+        let page = dict.get_name("Type") == Some(b"Page");
+        if !page && (dict.contains_key("StructParents") || dict.contains_key("StructParent")) {
+            edit_object(doc, r, |o| {
+                let dict = match o {
+                    Object::Stream(stream) => &mut stream.dict,
+                    Object::Dict(dict) => dict,
+                    _ => return,
+                };
+                dict.remove("StructParents");
+                dict.remove("StructParent");
+            })?;
+        }
+    }
+    Ok(())
+}
+
+/// Calls `f` with every reference in `object`, `depth` levels down at most 64.
+fn refs_in(object: &Object, depth: usize, f: &mut impl FnMut(ObjRef)) {
+    if depth > 64 {
+        return;
+    }
+    match object {
+        Object::Ref(r) => f(*r),
+        Object::Array(items) => {
+            for item in items {
+                refs_in(item, depth + 1, f);
+            }
+        }
+        Object::Dict(dict) => {
+            for (_, value) in dict.iter() {
+                refs_in(value, depth + 1, f);
+            }
+        }
+        Object::Stream(stream) => {
+            for (_, value) in stream.dict.iter() {
+                refs_in(value, depth + 1, f);
+            }
+        }
+        _ => {}
+    }
 }
 
 /// Fits the copies' form fields into `doc`'s form; returns the copied widgets left off the
@@ -220,6 +392,11 @@ fn fit_fields(
             && let Some(existing) = linkable(doc, root, &name)?
         {
             link(doc, root, existing)?;
+            out.widgets.push(TouchedWidget::new(
+                FieldId::object(existing),
+                WidgetChange::Reshown,
+                ModificationClass::PageStructure,
+            ));
             out.fields.push(FieldChange {
                 field: FieldId::object(root_source),
                 page,
@@ -294,10 +471,6 @@ fn prune(doc: &mut laminapdf_model::Document, node: ObjRef, removed: &BTreeSet<O
         d.insert("Kids", Object::Array(kept));
     })?;
     Ok(true)
-}
-
-fn is_widget(dict: &Dict) -> bool {
-    dict.get_name("Subtype") == Some(b"Widget")
 }
 
 /// `field`'s partial name (`/T`), if it has one.
@@ -407,6 +580,7 @@ fn fit_page(
     };
     let mut tagged = dict.remove("StructParents").is_some();
     dict.remove("B");
+    dests.fit_triggers(doc, &mut dict)?;
     let annots = match dict.get("Annots") {
         Some(Object::Array(items)) => items.clone(),
         Some(Object::Ref(r)) => doc
@@ -431,15 +605,21 @@ fn fit_page(
         }
         tagged |= annot.remove("StructParent").is_some();
         annot.insert("P", Object::Ref(copy));
-        if let Some(Object::String(nm)) = annot.get("NM") {
-            let name = format!("{}-{}", decode_text_string(&nm.bytes), held.map_or(copy.num, |r| r.num));
-            annot.insert("NM", text(&name));
-        }
+        renew_nm(&mut annot, held.map_or(copy.num, |r| r.num));
         let is_link = annot.get_name("Subtype") == Some(b"Link");
         if is_link && !dests.fit_link(doc, &mut annot)? {
             out.links_removed.push(page.clone());
             continue;
         }
+        if !is_link && let Some(action) = annot.get("A").cloned() {
+            match dests.fit_action(doc, action, 0)? {
+                Some(action) => annot.insert("A", action),
+                None => {
+                    annot.remove("A");
+                }
+            }
+        }
+        dests.fit_triggers(doc, &mut annot)?;
         match held {
             Some(r) => {
                 doc.cos_mut().edit().set(r, Object::Dict(annot))?;
@@ -460,185 +640,6 @@ fn fit_page(
     Ok(())
 }
 
-/// The named destinations copied links use: read from the source, written to the target once.
-struct Dests<'s, 'c> {
-    outline: laminapdf_model::Outline<'s>,
-    copier: &'c ObjectCopier<'s>,
-    /// Each source name already settled → its name in the target (`None`: no copied page).
-    settled: BTreeMap<Vec<u8>, Option<Vec<u8>>>,
-    /// The destinations to add to the target, by name.
-    added: BTreeMap<Vec<u8>, Object>,
-    /// The names the target already uses, read when first needed.
-    taken: Option<BTreeSet<Vec<u8>>>,
-}
-
-impl<'s, 'c> Dests<'s, 'c> {
-    fn new(src: &'s laminapdf_model::Document, copier: &'c ObjectCopier<'s>) -> Result<Self> {
-        let outline = src.outline()?;
-        Ok(Self {
-            outline,
-            copier,
-            settled: BTreeMap::new(),
-            added: BTreeMap::new(),
-            taken: None,
-        })
-    }
-
-    /// Fits a copied link's destination (`/Dest`, or a `GoTo` action's `/D`); `false` when it
-    /// names a page that didn't come along, so the link goes.
-    fn fit_link(&mut self, doc: &mut laminapdf_model::Document, link: &mut Dict) -> Result<bool> {
-        if let Some(dest) = link.get("Dest").cloned() {
-            return Ok(match self.fit(doc, dest)? {
-                Some(dest) => {
-                    link.insert("Dest", dest);
-                    true
-                }
-                None => false,
-            });
-        }
-        let (held, mut action) = match link.get("A") {
-            Some(Object::Dict(a)) => (None, a.clone()),
-            Some(Object::Ref(r)) => match doc.object(r.num)?.as_dict() {
-                Some(a) => (Some(*r), a.clone()),
-                None => return Ok(true),
-            },
-            _ => return Ok(true),
-        };
-        let is_goto = action.get_name("S") == Some(b"GoTo");
-        let Some(dest) = action.get("D").cloned().filter(|_| is_goto) else {
-            return Ok(true);
-        };
-        let Some(dest) = self.fit(doc, dest)? else {
-            return Ok(false);
-        };
-        action.insert("D", dest);
-        match held {
-            Some(r) => edit_object(doc, r, |o| *o = Object::Dict(action))?,
-            None => {
-                link.insert("A", Object::Dict(action));
-            }
-        }
-        Ok(true)
-    }
-
-    /// The copied destination `dest` as the target should hold it: an explicit one kept when
-    /// its page came along (the copier wrote the others' page as `null`), a named one renamed
-    /// to its copy in the target; `None` when its page didn't come along.
-    fn fit(&mut self, doc: &laminapdf_model::Document, dest: Object) -> Result<Option<Object>> {
-        let explicit = match &dest {
-            Object::Ref(r) => (*doc.object(r.num)?).clone(),
-            other => other.clone(),
-        };
-        match explicit {
-            Object::Array(items) => Ok(match items.first() {
-                Some(Object::Null) | None => None,
-                Some(_) => Some(dest),
-            }),
-            Object::Dict(d) => match d.get("D").cloned() {
-                Some(inner) => self.fit(doc, inner),
-                None => Ok(Some(dest)),
-            },
-            Object::Name(n) => Ok(self
-                .named(doc, n.as_bytes())?
-                .map(|n| Object::Name(laminapdf_syntax::Name::new(n)))),
-            Object::String(s) => Ok(self
-                .named(doc, &s.bytes)?
-                .map(|n| Object::String(PdfString::literal(n)))),
-            _ => Ok(Some(dest)),
-        }
-    }
-
-    /// The name the target gives the source's named destination `name`, copying it on first
-    /// use; `None` when it names no page that came along.
-    fn named(&mut self, doc: &laminapdf_model::Document, name: &[u8]) -> Result<Option<Vec<u8>>> {
-        if let Some(settled) = self.settled.get(name) {
-            return Ok(settled.clone());
-        }
-        let copied = match self.outline.named_destination_value(name)? {
-            Some(Object::Array(mut items)) => match items.first().and_then(Object::as_ref) {
-                Some(page) => match self.copier.copy_of(page) {
-                    Some(Copied::Object(copy)) => {
-                        if let Some(first) = items.first_mut() {
-                            *first = Object::Ref(copy);
-                        }
-                        Some(Object::Array(items))
-                    }
-                    _ => None,
-                },
-                None => None,
-            },
-            _ => None,
-        };
-        let Some(value) = copied else {
-            self.settled.insert(name.to_vec(), None);
-            return Ok(None);
-        };
-        let taken = match &mut self.taken {
-            Some(taken) => taken,
-            slot => slot.insert(destination_names(doc)?),
-        };
-        let mut chosen = name.to_vec();
-        let mut n: u32 = 2;
-        while taken.contains(&chosen) {
-            chosen = [name, format!("#{n}").as_bytes()].concat();
-            n += 1;
-        }
-        taken.insert(chosen.clone());
-        self.added.insert(chosen.clone(), value);
-        self.settled.insert(name.to_vec(), Some(chosen.clone()));
-        Ok(Some(chosen))
-    }
-
-    /// Adds the copied named destinations to the target's `/Names /Dests` tree.
-    fn write(self, doc: &mut laminapdf_model::Document) -> Result<()> {
-        if self.added.is_empty() {
-            return Ok(());
-        }
-        let mut entries: BTreeMap<Vec<u8>, Object> = match doc.name_tree("Dests")? {
-            Some(tree) => tree.entries()?.into_iter().collect(),
-            None => BTreeMap::new(),
-        };
-        entries.extend(self.added);
-        let root = TreeWriter::new().write_names(&mut doc.cos_mut().edit(), &entries)?;
-        match doc.catalog()?.get("Names").cloned() {
-            Some(Object::Ref(r)) => edit_dict(doc, r, |d| {
-                d.insert("Dests", Object::Ref(root));
-            }),
-            Some(Object::Dict(mut names)) => {
-                names.insert("Dests", Object::Ref(root));
-                Ok(set_catalog_entry(
-                    &mut doc.cos_mut().edit(),
-                    "Names",
-                    Some(Object::Dict(names)),
-                )?)
-            }
-            _ => {
-                let names: Dict = [("Dests", Object::Ref(root))].into_iter().collect();
-                Ok(set_catalog_entry(
-                    &mut doc.cos_mut().edit(),
-                    "Names",
-                    Some(Object::Dict(names)),
-                )?)
-            }
-        }
-    }
-}
-
-/// The names of `doc`'s named destinations: the `/Names /Dests` tree and the PDF 1.1 `/Dests`
-/// dictionary.
-fn destination_names(doc: &laminapdf_model::Document) -> Result<BTreeSet<Vec<u8>>> {
-    let mut names: BTreeSet<Vec<u8>> = match doc.name_tree("Dests")? {
-        Some(tree) => tree.entries()?.into_iter().map(|(k, _)| k).collect(),
-        None => BTreeSet::new(),
-    };
-    if let Some(dests) = doc.catalog()?.get("Dests").cloned()
-        && let Object::Dict(dests) = doc.deref(&dests)?.into_owned()
-    {
-        names.extend(dests.iter().map(|(k, _)| k.as_bytes().to_vec()));
-    }
-    Ok(names)
-}
-
 /// Raises `doc`'s version to `src`'s when the source's is newer (ISO 32000-2 §7.7.2).
 fn raise_version(doc: &mut laminapdf_model::Document, src: &laminapdf_model::Document) -> Result<()> {
     let parse = |v: &str| -> Option<(u32, u32)> {
@@ -657,9 +658,4 @@ fn raise_version(doc: &mut laminapdf_model::Document, src: &laminapdf_model::Doc
         set_catalog_entry(&mut doc.cos_mut().edit(), "Version", Some(Object::name(&theirs)))?;
     }
     Ok(())
-}
-
-/// `s` as a text string (PDFDocEncoding, else UTF-16BE).
-fn text(s: &str) -> Object {
-    Object::String(PdfString::literal(encode_text_string(s)))
 }

@@ -352,6 +352,14 @@ describe("pages from other documents", () => {
     }
   });
 
+  it("frees the documents it made when a later range fails", () => {
+    using doc = open("references");
+    const pages = ids(doc);
+    expect(thrown(() => doc.exportRanges([pages.slice(0, 1), ["p999.0"]]))).toMatchObject({
+      code: "unknown-page",
+    });
+  });
+
   it("refuses a source it wasn't given", () => {
     using doc = open("forms");
     const missing = "0".repeat(64);

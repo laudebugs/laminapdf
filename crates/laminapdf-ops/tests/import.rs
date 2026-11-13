@@ -202,6 +202,8 @@ fn a_field_can_join_the_targets_field_of_the_same_name_and_type() {
     }));
     let kids = dict(&doc, city).get("Kids").unwrap().as_array().unwrap().len();
     assert_eq!(kids, 2);
+    // The joined field's /Kids changed: reported for the planner's field-lock checks.
+    assert!(applied.widgets.iter().any(|w| w.field == FieldId::object(city)));
 }
 
 #[test]

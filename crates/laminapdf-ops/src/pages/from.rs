@@ -123,6 +123,7 @@ fn effect(imported: Imported, copies: Vec<PageId>, after: Vec<PageId>) -> Effect
         fields: imported.fields,
         links_removed: imported.links_removed,
         tags_dropped: imported.tags_dropped,
+        widgets: imported.widgets,
         ..Effect::default()
     }
 }
@@ -221,12 +222,13 @@ impl ReplacePages {
         let after = page_ids(doc)?;
         let mut pages = copies.clone();
         pages.extend(deleted.pages);
+        let mut effect = effect(imported, copies, after);
+        effect.widgets.extend(deleted.widgets);
         Ok(Effect {
             pages,
             references,
-            widgets: deleted.widgets,
             removed: true,
-            ..effect(imported, copies, after)
+            ..effect
         })
     }
 }

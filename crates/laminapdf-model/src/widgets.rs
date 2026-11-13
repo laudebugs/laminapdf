@@ -61,7 +61,10 @@ impl Document {
 
 /// A widget annotation: `/Subtype /Widget`, or, as some writers leave the subtype out, an
 /// annotation without one that carries a field key.
-fn is_widget(dict: &Dict) -> bool {
+///
+/// Added in 0.2.0.
+#[must_use]
+pub fn is_widget(dict: &Dict) -> bool {
     dict.get_name("Subtype").map_or_else(
         || dict.contains_key("FT") || dict.contains_key("Parent"),
         |s| s == b"Widget",
