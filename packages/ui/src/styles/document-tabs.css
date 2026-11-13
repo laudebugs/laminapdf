@@ -2,7 +2,8 @@
    most 220 px wide and at least 120, its label 13 px with an ellipsis, muted unless active; the
    active tab takes the top bar's `surface` and drops its bottom rule, so it joins the bar. The
    close button shows on the active, hovered and focused tab. The strip scrolls sideways when the
-   tabs don't fit; its menu at the end lists them all. */
+   tabs don't fit; its menu at the end lists them all. On touch every target grows to the touch
+   minimum (`--ui-target`). */
 @layer paper.components {
   .paper-reader-head {
     grid-row: 1;
@@ -12,7 +13,7 @@
   .paper-document-tabs {
     display: flex;
     align-items: stretch;
-    block-size: var(--paper-document-tab-strip-height);
+    block-size: max(var(--paper-document-tab-strip-height), calc(var(--ui-target) + var(--paper-border-width)));
     border-block-end: var(--paper-border-width) solid var(--paper-hairline);
     background: var(--paper-ground);
   }
@@ -78,8 +79,8 @@
     display: grid;
     place-items: center;
     flex: none;
-    inline-size: var(--paper-document-tab-close-size);
-    block-size: var(--paper-document-tab-close-size);
+    inline-size: max(var(--paper-document-tab-close-size), var(--ui-target));
+    block-size: max(var(--paper-document-tab-close-size), var(--ui-target));
     margin-inline-end: var(--paper-space-4);
     padding: 0;
     border: 0;
@@ -109,7 +110,7 @@
     display: grid;
     place-items: center;
     flex: none;
-    inline-size: var(--paper-document-tab-strip-height);
+    inline-size: max(var(--paper-document-tab-strip-height), var(--ui-target));
     border: 0;
     background: none;
     color: var(--paper-muted);
