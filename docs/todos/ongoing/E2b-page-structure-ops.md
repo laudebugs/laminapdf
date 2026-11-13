@@ -11,7 +11,7 @@
 | Branch | `feat/e2b-page-structure-ops` |
 | PR title | `feat(ops): page structure ops with reference cleanup` |
 | Size | L (400–800): five ops over E2j's page-tree editor, the reference cleanup and one new code, with bindings; the planner's checks are [E2r](../done/E2r-planner-page-checks.md)'s and duplicating is [E2k](../ready/E2k-duplicate-pages.md)'s |
-| PR | — |
+| PR | [#534](https://github.com/laudebugs/laminapdf/pull/534) |
 
 ## Goal
 
