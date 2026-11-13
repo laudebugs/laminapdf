@@ -155,6 +155,7 @@ pub use generated::explain::explain;
 pub use laminapdf_cos::Cipher;
 pub use laminapdf_model::FontEncoding;
 pub use links::{LinkTo, PageLink};
+pub use metadata::XmpText;
 pub use navigation::{OutlineNode, PageTarget, PageTargetView};
 pub use properties::{DocumentContents, DocumentPermissions, DocumentProperties, EncryptionSummary, FontSummary};
 pub use structure::{StructureKid, StructureNode};
@@ -176,6 +177,7 @@ pub use redaction::RedactionWarning;
 pub use warning::{Warning, WarningCursor};
 
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};
+pub use laminapdf_model::xmp::{ExtensionProperty, LangText, XmpReal, XmpValue};
 pub use laminapdf_model::{
     AnnotId, LabelStyle, PageId, PagePosition, PageSize, PdfDate, PointPt, Pt, RectPt, Rotation,
 };
@@ -183,8 +185,8 @@ pub use laminapdf_model::{
 pub use laminapdf_ops::{
     ConformanceWarning, DeleteAnnot, DeletePages, DocumentMetadata, InfoPatch, InsertBlankPages, MetadataKey,
     MetadataPatch, MetadataSource, ModificationClass, MovePages, Offset, Op, OpLog, PacketStatus, PageLabelRange,
-    ReferenceOutcome, ReferencePolicy, RemoveMetadata, ReversePages, Reverted, RotateMode, RotatePage, RotatePages,
-    SetInfo, SetMetadata, SetPageLabels, UndoOutcome, UpdateAnnot,
+    ReferenceOutcome, ReferencePolicy, RemoveMetadata, RemoveXmpProperty, ReplaceXmpPacket, ReversePages, Reverted,
+    RotateMode, RotatePage, RotatePages, SetInfo, SetMetadata, SetPageLabels, SetXmpProperty, UndoOutcome, UpdateAnnot,
 };
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,

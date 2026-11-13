@@ -178,7 +178,7 @@ The screen ID keeps the inventory's name (“Document info”); the dialog and c
 
 **Platform differences.** Web identical (opened from More). Phone: the dialog becomes a full-height sheet; XMP shows the tree, and selecting a property pushes the detail view with a Back button.
 
-**As built (E1f).** The web reader's dialog has the Description tab and a File tab (R08's read-only facts, with Copy all); the XMP tab waits for [E3e](../../todos/ready/E3e-xmp-editor.md). Differences from the boards:
+**As built (E1f).** The web reader's dialog has the Description tab and a File tab (R08's read-only facts, with Copy all); the XMP tab waits for [E3e](../../todos/done/E3e-xmp-editor.md). Differences from the boards:
 
 - **Modified** is read-only, with "Saving sets this to the time you save" and no checkbox: every save stamps the modification date ([E1e](../../todos/done/E1e-save-and-constraint-banner.md)), so the checkbox could only ever be on.
 - **Keyword chips** have 26 px remove buttons, the smallest icon button; they still meet the 24 px minimum.
@@ -186,9 +186,17 @@ The screen ID keeps the inventory's name (“Document info”); the dialog and c
 - **XMP metadata that can't be read** gets a warning notice: Apply replaces it.
 - **The dialog opens from** More › Document properties… and the palette; the top bar's file name doesn't open it yet.
 
+**As built (E3e).** The XMP tab follows the board, with these differences:
+
+- **Value editing by type:** a Type select and one field. Lists (Seq, Bag) take one item per line, and a language alternative takes one `lang: text` line per language. Structures show "Edit it in Raw XML" and can only be changed there.
+- **Kept properties:** `pdfaid:`, `pdfuaid:` and the extension schemas themselves are read-only ("Kept by Lamina PDF"). There is no "Description in the extension schema" field: Lamina PDF writes each declaration itself, and the PDF/A notice says so.
+- **Raw XML:** errors show the browser's parser message with its line; the column isn't shown, since each engine counts it differently. While a raw replacement is pending, the Properties view says so instead of showing properties that Apply would replace; while property changes are pending, Raw XML is read-only with "Apply your property changes first", since replacing the packet would drop them.
+- **Pending count:** under the tab ("2 properties changed"), not in the footer, which keeps Cancel and Apply only.
+- **Phone:** the panes stack, tree above detail, with no pushed detail view or Back button yet.
+
 **Artboards:** `O04-document-info.dc.html`, `O04-xmp-editor.dc.html`.
 
-**Todos:** [E1f](../../todos/done/E1f-metadata-ui-capability-page.md), [E3e](../../todos/ready/E3e-xmp-editor.md).
+**Todos:** [E1f](../../todos/done/E1f-metadata-ui-capability-page.md), [E3e](../../todos/done/E3e-xmp-editor.md).
 
 ## O05 Capability page
 

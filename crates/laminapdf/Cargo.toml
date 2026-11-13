@@ -153,6 +153,9 @@ required-features = ["text"]
 name = "edit_metadata"
 
 [[example]]
+name = "edit_xmp"
+
+[[example]]
 name = "organise_pages"
 
 [[example]]

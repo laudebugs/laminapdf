@@ -1,0 +1,30 @@
+---
+title: Record your own metadata
+description: Add properties of your own to a PDF's XMP metadata, such as a review's status and reviewers, and keep a PDF/A file valid while you do.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll record a review in a PDF's XMP metadata: its status, its reviewers and the review round, as properties of your own. You need this when a workflow tracks facts a PDF has no field for, such as an approval, a case number or a retention date.
+
+XMP metadata is the XML copy of a PDF's metadata. Besides the title and authors, it holds any property a namespace defines, and a namespace is a URI you own, so your names can't clash with anyone else's. This example edits an archive-ready PDF/A file:
+
+<Example ts="packages/sdk/examples/edit-xmp.ts" rust="crates/laminapdf/examples/edit_xmp.rs" result="edit_xmp" />
+
+The result is the original bytes followed by one revision. Its XMP metadata holds `review:status`, `review:reviewers` and `review:round`, and still meets PDF/A-2b.
+
+## How it works
+
+- `setXmpProperty(namespace, prefix, name, value)` (`SetXmpProperty` in Rust) sets one property. `prefix` is the short name the XML writes for the namespace, used when the metadata has none for it yet.
+- A value carries its type: `{ type: "text", value: "Approved" }`. The types are `text`, `uri`, `integer`, `real`, `boolean`, `date` (a PDF date), `langAlt` (the same text in several languages), and `seq` and `bag`, ordered and unordered lists of one type.
+- PDF/A allows only the properties its standard names, unless the metadata declares the others in an extension schema. Lamina PDF writes that declaration for each new property, and the edit's `declared` lists them.
+- A file without XMP metadata gets it with the first property you set.
+
+## What to change
+
+- **Remove a property:** `removeXmpProperty(namespace, name)`. As with any removal, an [incremental save](/reference/glossary/#incremental-save) keeps the old value in the file's earlier revisions; save with `mode: "fullRewrite"` to drop it.
+- **Title, authors and dates:** use [`setMetadata`](/recipes/edit-metadata/). `setXmpProperty` on `dc:title` works too and keeps the Info dictionary in step, but only with the value type the field needs: text for the title, a `seq` of text for the authors.
+- **Structures and comments:** read the metadata with `xmpPacket()`, change its XML, and write it back with `replaceXmpPacket(xml)`. XML that doesn't parse is refused with [`invalid-xmp-packet`](/reference/codes/invalid-xmp-packet/), and nothing changes.
+- **The PDF/A or PDF/UA claim itself:** an edit can't change it ([`xmp-claim-read-only`](/reference/codes/xmp-claim-read-only/)). Only converting or checking the file makes that claim.
+
+Next: [save a PDF](/guides/save-a-pdf/), for what a signed or repaired file allows.

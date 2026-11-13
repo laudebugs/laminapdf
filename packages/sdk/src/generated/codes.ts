@@ -52,6 +52,9 @@ export type ErrorCode =
   | "no-pending-save"
   | "malformed-xmp"
   | "unknown-source"
+  | "xmp-claim-read-only"
+  | "invalid-xmp-packet"
+  | "invalid-xmp-property"
   | "no-pages-left"
   | "invalid-op"
   | "unknown-annotation"
@@ -269,6 +272,9 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "no-pending-save",
   "malformed-xmp",
   "unknown-source",
+  "xmp-claim-read-only",
+  "invalid-xmp-packet",
+  "invalid-xmp-property",
   "no-pages-left",
   "invalid-op",
   "unknown-annotation",
@@ -514,6 +520,9 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "no-pending-save": "state",
   "malformed-xmp": "input",
   "unknown-source": "usage",
+  "xmp-claim-read-only": "usage",
+  "invalid-xmp-packet": "input",
+  "invalid-xmp-property": "usage",
   "no-pages-left": "usage",
   "invalid-op": "usage",
   "unknown-annotation": "usage",
@@ -706,6 +715,9 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "no-pending-save": "call rebase only after a save that returned SavedNotRebased",
   "malformed-xmp": "set replaceMalformed on the edit to replace the packet with a new one, or leave the metadata as it is",
   "unknown-source": "add the source document's bytes with addSource before applying ops that name it",
+  "xmp-claim-read-only": "leave the pdfaid: and pdfuaid: properties as they are; edit the other properties, or keep them unchanged in a replaced packet",
+  "invalid-xmp-packet": "fix the XML at the offset in the error's data (reason says what is wrong), then replace the packet again",
+  "invalid-xmp-property": "check the part the error's reason names: the namespace, prefix, name, value, or the shape a mirrored property needs",
   "no-pages-left": "keep at least one page: delete all but one, or insert a blank page first",
   "invalid-op": "insert between 1 and 10,000 pages at a time, each with a width and height above 0 and up to 14,400 points",
   "unknown-annotation": "read the page's annotations again and use an ID from that list",

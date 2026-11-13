@@ -5,6 +5,7 @@
 // runtime produces the same bytes.
 import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@laminapdf/sdk";
 import { editMetadata } from "../../examples/edit-metadata.js";
+import { editXmp } from "../../examples/edit-xmp.js";
 import { elementFlow, type Report } from "../../examples/element-flow.js";
 import { generateThenEdit } from "../../examples/generate-then-edit.js";
 import { hello } from "../../examples/hello.js";
@@ -60,6 +61,8 @@ const BOLD = "fixtures/fonts/NotoSans-RegularBold.ttc";
 const EDITED_AT = "D:20261030130000Z";
 /** The document edit-metadata edits. */
 const METADATA_PDF = "fixtures/golden/metadata.pdf";
+/** The PDF/A-2b file edit-xmp records a review in. */
+const PDFA_2B_PDF = "fixtures/golden/examples/pdf_a_archive-2b.pdf";
 /** The document organise-pages organises: five pages, with bookmarks, links and named destinations that point at the third. */
 const REFERENCES_PDF = "fixtures/pages/references.pdf";
 /** The input of page-labels: an example golden of four pages. */
@@ -153,6 +156,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "edit_metadata",
     inputs: [METADATA_PDF],
     build: (i) => editMetadata(input(i, METADATA_PDF), EDITED_AT),
+  },
+  {
+    name: "edit-xmp",
+    golden: "edit_xmp",
+    inputs: [PDFA_2B_PDF],
+    build: (i) => editXmp(input(i, PDFA_2B_PDF), EDITED_AT),
   },
   {
     name: "organise-pages",
