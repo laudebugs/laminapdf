@@ -29,7 +29,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 pub(crate) fn insert(bytes: Vec<u8>, other: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut doc = Document::open_bytes(bytes, OpenOptions::new())?;
     let source = doc.add_source(other, None)?;
-    let third = doc.source_pages(&source)?.into_iter().nth(2).ok_or("the other file has no third page")?;
+    let third = doc
+        .source_pages(&source)?
+        .into_iter()
+        .nth(2)
+        .ok_or("the other file has no third page")?;
     let insert = InsertPagesFrom::new(source, vec![third], PagePosition::End);
     let edited = doc.apply(vec![insert.into()])?;
     for field in &edited.fields {

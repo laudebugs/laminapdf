@@ -295,3 +295,68 @@ describe("the transaction handle", () => {
     expect(doc.pages.map((p) => p.rotation)).toEqual([0, 0, 0, 0, 0]);
   });
 });
+
+describe("pages from other documents", () => {
+  it("C.02 (pdf, round-trip): copies a page in from a source, renaming a field whose name is taken", () => {
+    using doc = open("forms");
+    const { id: source, pages } = doc.addSource(read("fixtures/pages/references.pdf"));
+    expect(source).toMatch(/^[0-9a-f]{64}$/);
+    expect(doc.addSource(read("fixtures/pages/references.pdf")).id).toBe(source);
+    expect(pages).toHaveLength(5);
+    const edited = doc.insertPagesFrom(source, [pages[2] as string], "end");
+    expect(edited.pageOrder).toHaveLength(3);
+    expect((edited.fields ?? []).map((f) => [f.outcome, f.name])).toEqual([["renamed", "name#2"]]);
+    expect(edited.tagsDropped).toHaveLength(1);
+    using again = reopened(doc);
+    expect(markers(again)).toEqual(["Page 1", "Page 2", "Page 3"]);
+  });
+
+  it("removes a copied link whose page didn't come along", () => {
+    using doc = open("forms");
+    const { id: source, pages } = doc.addSource(read("fixtures/pages/references.pdf"));
+    const [, p2] = pages as [string, string];
+    const edited = doc.insertPagesFrom(source, [p2], "start", { annotations: true });
+    expect(edited.linksRemoved).toEqual([edited.pageOrder?.[0]]);
+  });
+
+  it("C.16 (pdf, round-trip): replaces a page, keeping the bookmarks that pointed at it", () => {
+    using doc = open("references");
+    const before = ids(doc);
+    const { id: source, pages } = doc.addSource(read("fixtures/pages/forms.pdf"));
+    const [first] = pages as [string];
+    const edited = doc.replacePages([before[2] as string], source, [first]);
+    const copy = edited.pageOrder?.[2] as string;
+    expect(before).not.toContain(copy);
+    expect(edited.references.some((r) => r.outcome === "retargeted" && r.to === copy)).toBe(true);
+    using again = reopened(doc);
+    expect(again.outline()[0]?.target?.page).toBe(2);
+  });
+
+  it("C.05 (pdf, write): extracts pages into a new document with their labels", () => {
+    using doc = open("labels");
+    const pages = ids(doc).slice(2, 5);
+    using part = doc.extractPages(pages);
+    using again = Document.open(part.save());
+    expect(again.pageCount).toBe(3);
+    expect(again.pages.map((p) => p.label)).toEqual(doc.pages.slice(2, 5).map((p) => p.label));
+  });
+
+  it("H.10 (pdf, write): exports ranges as one document each", () => {
+    using doc = open("references");
+    const pages = ids(doc);
+    const parts = doc.exportRanges([pages.slice(0, 2), pages.slice(2)]);
+    try {
+      expect(parts.map((p) => p.pageCount)).toEqual([2, 3]);
+    } finally {
+      for (const part of parts) part.free();
+    }
+  });
+
+  it("refuses a source it wasn't given", () => {
+    using doc = open("forms");
+    const missing = "0".repeat(64);
+    expect(thrown(() => doc.insertPagesFrom(missing, ["p3.0"], "end"))).toMatchObject({
+      code: "unknown-source",
+    });
+  });
+});

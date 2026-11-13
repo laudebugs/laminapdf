@@ -14,13 +14,14 @@ import type { Reflow } from "./reflow.js";
 import { type RangeOptions, type RangeSource, type RangeState, settle, wholeBytes } from "./source/range.js";
 import { PageText, type TextOptions } from "./text.js";
 import {
+  type AddedSource,
+  type Carry,
   type DeletePagesOptions,
   deletePagesOp,
   duplicatePagesOp,
-  insertPagesFromOp,
-  replacePagesOp,
   type InsertBlankPagesOptions,
   insertBlankPagesOp,
+  insertPagesFromOp,
   type MetadataEditOptions,
   type MetadataRemoveOptions,
   movePagesOp,
@@ -30,6 +31,7 @@ import {
   type Rotation,
   removeMetadataOp,
   removeXmpPropertyOp,
+  replacePagesOp,
   replaceXmpPacketOp,
   reversePagesOp,
   rotatePagesOp,
@@ -1007,34 +1009,23 @@ export class Document extends Handle<BaseGlue> {
 
   /**
    * Adds another PDF as a source of pages for {@link Document.insertPagesFrom} and
-   * {@link Document.replacePages}, and returns its ID: the SHA-256 of its bytes, so the same file
-   * gets the same ID everywhere and is added once. An encrypted file opens with
-   * `options.password`, which no op ever holds. Adding a source changes nothing to save or undo.
+   * {@link Document.replacePages}: its ID (the SHA-256 of its bytes, so the same file gets the
+   * same ID everywhere and is added once) and its page IDs in order, which those ops name its
+   * pages by. An encrypted file opens with `options.password`, which no op ever holds. Adding a
+   * source changes nothing to save or undo.
    *
    * @throws {@link LaminaPdfError} `wrong-password`, `password-required`, and the errors of a file
    *   that doesn't open.
    *
    * @since 0.2.0
    */
-  addSource(bytes: Uint8Array | ArrayBuffer, options?: { readonly password?: string }): string {
+  addSource(bytes: Uint8Array | ArrayBuffer, options?: { readonly password?: string }): AddedSource {
     const data = bytesOf(bytes);
     return this.call(() => this.#doc.addSource(data, options?.password));
   }
 
   /**
-   * The page IDs of the source document `source`, in order: what
-   * {@link Document.insertPagesFrom} and {@link Document.replacePages} name its pages by.
-   *
-   * @throws {@link LaminaPdfError} `unknown-source`, `invalid-argument` for an ID that isn't one.
-   *
-   * @since 0.2.0
-   */
-  sourcePages(source: string): string[] {
-    return this.call(() => this.#doc.sourcePages(source));
-  }
-
-  /**
-   * Copies `pages` of the source document `source` (IDs from {@link Document.sourcePages}), each
+   * Copies `pages` of the source document `source` (IDs from {@link Document.addSource}), each
    * once and in the order given, to `at`, in one transaction (`insertPagesFrom`). The copies are
    * new pages with new IDs, listed in the result's `pageOrder`. Their annotations come along
    * unless `carry.annotations` is `false`; a link to a page left behind is removed (the result's
@@ -1079,7 +1070,7 @@ export class Document extends Handle<BaseGlue> {
    * @since 0.2.0
    */
   extractPages(pages: readonly string[]): Document {
-    const raw = this.call(() => this.#doc.extractPages(pages));
+    const raw = this.call(() => this.#doc.extractPages([...pages]));
     return new Document(raw, this.instance);
   }
 

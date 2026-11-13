@@ -13,12 +13,6 @@ mod check_what_a_file_hides;
 #[path = "../examples/duplicate_pages.rs"]
 mod duplicate_pages;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
-#[path = "../examples/extract_pages.rs"]
-mod extract_pages;
-#[expect(dead_code, reason = "the example's own `main` is not used here")]
-#[path = "../examples/insert_pages.rs"]
-mod insert_pages;
-#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/edit_metadata.rs"]
 mod edit_metadata;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -36,6 +30,9 @@ mod extract_chunks;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/extract_markdown.rs"]
 mod extract_markdown;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/extract_pages.rs"]
+mod extract_pages;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/extract_text.rs"]
 mod extract_text;
@@ -57,6 +54,9 @@ mod images_and_vectors;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/images_to_pdf.rs"]
 mod images_to_pdf;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/insert_pages.rs"]
+mod insert_pages;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/invoice.rs"]
 mod invoice;

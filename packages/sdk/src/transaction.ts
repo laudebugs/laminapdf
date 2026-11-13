@@ -179,13 +179,19 @@ export interface Carry {
   readonly fields?: "rename" | "link";
 }
 
+/**
+ * A source document {@link Document.addSource} added: its ID and its page IDs in order.
+ *
+ * @since 0.2.0
+ */
+export interface AddedSource {
+  readonly id: string;
+  readonly pages: readonly string[];
+}
+
 /** @internal The `insertPagesFrom` op. */
-export const insertPagesFromOp = (
-  source: string,
-  pages: readonly string[],
-  at: PagePosition,
-  carry?: Carry,
-): Op => ({ op: "insertPagesFrom", args: { source, pages, at, ...(carry ? { carry } : {}) } }) as Op;
+export const insertPagesFromOp = (source: string, pages: readonly string[], at: PagePosition, carry?: Carry): Op =>
+  ({ op: "insertPagesFrom", args: { source, pages, at, ...(carry ? { carry } : {}) } }) as Op;
 
 /** @internal The `replacePages` op. */
 export const replacePagesOp = (

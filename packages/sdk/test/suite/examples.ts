@@ -5,14 +5,14 @@
 // runtime produces the same bytes.
 import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@laminapdf/sdk";
 import { duplicatePages } from "../../examples/duplicate-pages.js";
-import { extractPages } from "../../examples/extract-pages.js";
-import { insertPages } from "../../examples/insert-pages.js";
 import { editMetadata } from "../../examples/edit-metadata.js";
 import { editXmp } from "../../examples/edit-xmp.js";
 import { elementFlow, type Report } from "../../examples/element-flow.js";
+import { extractPages } from "../../examples/extract-pages.js";
 import { generateThenEdit } from "../../examples/generate-then-edit.js";
 import { hello } from "../../examples/hello.js";
 import { imagesAndVectors } from "../../examples/images-and-vectors.js";
+import { insertPages } from "../../examples/insert-pages.js";
 import { invoice } from "../../examples/invoice.js";
 import { invoiceFromJson } from "../../examples/invoice-from-json.js";
 import { linksAndOutlines } from "../../examples/links-and-outlines.js";

@@ -9,11 +9,11 @@ import { Document } from "@laminapdf/sdk";
 export function insertPages(bytes: Uint8Array, other: Uint8Array): Uint8Array<ArrayBuffer> {
   using doc = Document.open(bytes);
   const source = doc.addSource(other);
-  const third = doc.sourcePages(source)[2];
+  const third = source.pages[2];
   if (third === undefined) {
     throw new Error("the other file has no third page");
   }
-  const edited = doc.insertPagesFrom(source, [third], "end");
+  const edited = doc.insertPagesFrom(source.id, [third], "end");
   for (const field of edited.fields ?? []) {
     if (field.outcome === "renamed") {
       console.warn(`a copied field was renamed ${field.name}`);
