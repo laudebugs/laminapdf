@@ -1,0 +1,18 @@
+[package]
+name = "lamina-content-edit-spike"
+version = "0.0.0"
+edition = "2024"
+description = "Research spike: what an editable content IR costs, and how much of a stream survives an edit byte for byte (E7a, ADR 0022)"
+license = "MIT OR Apache-2.0"
+publish = false
+
+# Standalone: spikes are outside the root workspace (docs/guidelines/code-organization.md §1).
+[workspace]
+
+[dependencies]
+laminapdf-cos = { path = "../../crates/laminapdf-cos" }
+laminapdf-content = { path = "../../crates/laminapdf-content" }
+laminapdf-syntax = { path = "../../crates/laminapdf-syntax" }
+
+[profile.release]
+debug = false

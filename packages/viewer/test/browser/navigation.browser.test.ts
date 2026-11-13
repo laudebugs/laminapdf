@@ -380,4 +380,43 @@ describe("the thumbnails strip after a crash", () => {
       client.terminate();
     }
   });
+
+  it("reports no error for the thumbnail that was drawing when the worker stopped", async () => {
+    // Its own client: the stop restarts the worker the other tests share.
+    const client = await testViewer();
+    const errors: unknown[] = [];
+    const reported = (e: ErrorEvent) => {
+      errors.push(e.error ?? e.message);
+      e.preventDefault();
+    };
+    window.addEventListener("error", reported);
+    const doc = await client.open(await read("fixtures/corpus/hello.pdf"));
+    const viewer = createViewer({ client });
+    viewer.mount(main);
+    viewer.open(doc);
+    const strip = new ThumbnailStrip(client, viewer);
+    strip.element.style.flex = "1";
+    try {
+      await until(() => viewer.stats().pages[0] === "sharp");
+      // With the main view drawn, the next render is the thumbnail's. The hook keeps the worker
+      // busy after drawing it, so it is still the running render when the worker stops, and a
+      // restart doesn't send it again.
+      await hook(client, "__holdNextRender", [3000]);
+      const started = next(client, "render-start");
+      strip.mount(side);
+      strip.open(doc);
+      // A thumbnail draws at a fraction of the page's size; the main view at more than its size.
+      expect((await started).scale).toBeLessThan(0.5);
+      const restarted = next(client, "restarted");
+      void client.stop();
+      expect(await restarted).toMatchObject({ reason: "cancelled", reopened: true });
+      expect(strip.element.querySelectorAll("canvas").length).toBe(0);
+      expect(errors).toEqual([]);
+    } finally {
+      window.removeEventListener("error", reported);
+      strip.destroy();
+      viewer.destroy();
+      client.terminate();
+    }
+  });
 });

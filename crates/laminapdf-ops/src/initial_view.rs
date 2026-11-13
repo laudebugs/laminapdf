@@ -47,7 +47,7 @@ use crate::wire;
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -93,7 +93,7 @@ pub struct SetInitialView {
 
 /// The page and zoom a document opens at.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -115,7 +115,7 @@ pub struct OpenAt {
 impl OpenAt {
     /// Open at `page` with `zoom`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn new(page: PageId, zoom: OpenZoom) -> Self {
         Self { page, zoom }
@@ -126,7 +126,7 @@ impl OpenAt {
 ///
 /// On the wire: `"default"`, `"fitPage"`, `"fitWidth"`, or a percentage as a number (`125`).
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum OpenZoom {
@@ -144,7 +144,7 @@ pub enum OpenZoom {
 impl OpenZoom {
     /// The largest percentage: Acrobat's maximum zoom.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub const MAX_PERCENT: u16 = 6400;
 
     /// The destination array opening `page` at this zoom.
@@ -168,7 +168,7 @@ impl OpenZoom {
 /// A patch of the window entries of `/ViewerPreferences` ([`WindowPreferences`]): each field
 /// left out keeps what the file has, `true` sets the entry, `false` removes it.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -203,7 +203,7 @@ pub struct WindowPreferencesPatch {
 impl WindowPreferencesPatch {
     /// Sets `/DisplayDocTitle`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn with_display_doc_title(mut self, value: bool) -> Self {
         self.display_doc_title = Some(value);
@@ -212,7 +212,7 @@ impl WindowPreferencesPatch {
 
     /// Sets `/FitWindow`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn with_fit_window(mut self, value: bool) -> Self {
         self.fit_window = Some(value);
@@ -221,7 +221,7 @@ impl WindowPreferencesPatch {
 
     /// Sets `/CenterWindow`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn with_center_window(mut self, value: bool) -> Self {
         self.center_window = Some(value);
@@ -230,7 +230,7 @@ impl WindowPreferencesPatch {
 
     /// Sets `/HideToolbar`, `/HideMenubar` and `/HideWindowUI` together.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn with_hide_reader_controls(mut self, value: bool) -> Self {
         self.hide_toolbar = Some(value);
@@ -241,7 +241,7 @@ impl WindowPreferencesPatch {
 
     /// Whether the patch changes nothing.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         *self == Self::default()
@@ -264,7 +264,7 @@ impl WindowPreferencesPatch {
 impl SetInitialView {
     /// Sets the page and zoom to open at; `None` removes an open destination.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn with_open(mut self, open: Option<OpenAt>) -> Self {
         self.open = Some(open);
@@ -273,7 +273,7 @@ impl SetInitialView {
 
     /// Sets the page mode; `None` removes it.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn with_page_mode(mut self, mode: Option<PageMode>) -> Self {
         self.page_mode = Some(mode);
@@ -282,7 +282,7 @@ impl SetInitialView {
 
     /// Sets the page layout; `None` removes it.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn with_page_layout(mut self, layout: Option<PageLayout>) -> Self {
         self.page_layout = Some(layout);
@@ -291,7 +291,7 @@ impl SetInitialView {
 
     /// Sets window preferences.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn with_preferences(mut self, preferences: WindowPreferencesPatch) -> Self {
         self.preferences = preferences;

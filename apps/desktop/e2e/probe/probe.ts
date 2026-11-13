@@ -30,6 +30,17 @@ export function exposeProbe(engine: DesktopEngine | undefined): void {
     if (paints.length > MAX_PAINTS) paints.splice(0, paints.length - MAX_PAINTS);
     last = pages;
   });
+  // A new document's pages start over: page 1 drawn sharp again counts as a paint even when the
+  // last document's page 1 was sharp too (a window back from its start screen shows no other
+  // state in between).
+  const viewer = engine?.viewer;
+  if (viewer !== undefined) {
+    const open = viewer.open.bind(viewer);
+    viewer.open = (document) => {
+      last = {};
+      open(document);
+    };
+  }
   // Counts the engine's answers at the client, the one door every tile comes through.
   let tilesDrawn = 0;
   const client = engine?.client;

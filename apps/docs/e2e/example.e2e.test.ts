@@ -231,3 +231,36 @@ describe(`the divider between an example's code and page in ${BROWSER} (todo Q4q
     }
   });
 });
+
+describe(`code blocks' "Wrap long lines" in ${BROWSER} (todo Q4r)`, () => {
+  it("wraps every block's long lines, says it is pressed, and keeps the choice after a reload", async () => {
+    const { page, errors } = await open("/guides/fonts-and-text/", 1440);
+    const scrolling = () =>
+      page.evaluate(
+        () =>
+          [...document.querySelectorAll(".expressive-code pre")].filter((pre) => pre.scrollWidth > pre.clientWidth + 1)
+            .length,
+      );
+    // Every block has one, those in a hidden tab (the Rust one here) too; getByRole sees only shown ones.
+    const buttons = page.locator(".expressive-code .lamina-wrap");
+    expect(await buttons.count()).toBe(await page.locator(".expressive-code .copy").count());
+    expect(await buttons.first().getAttribute("aria-label")).toBe("Wrap long lines");
+    expect(await scrolling()).toBeGreaterThan(0);
+    await buttons.first().click();
+    expect(await scrolling()).toBe(0);
+    for (const pressed of await buttons.evaluateAll((all) => all.map((b) => b.getAttribute("aria-pressed")))) {
+      expect(pressed).toBe("true");
+    }
+    // Checked per load: WebKit reports each select once per load (withoutSelectErrors).
+    const selects = await page.locator("select").count();
+    expect(withoutSelectErrors(BROWSER, errors, selects)).toEqual([]);
+    errors.length = 0;
+
+    await page.reload();
+    expect(await scrolling()).toBe(0);
+    await page.getByRole("button", { name: "Wrap long lines" }).first().click();
+    expect(await scrolling()).toBeGreaterThan(0);
+    expect(withoutSelectErrors(BROWSER, errors, selects)).toEqual([]);
+    await page.context().close();
+  });
+});

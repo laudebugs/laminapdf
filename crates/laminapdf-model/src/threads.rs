@@ -17,7 +17,7 @@ use crate::page::{Pages, read_rect};
 
 /// One part of an article: a rectangle on a page (`/Type /Bead`).
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Bead {
@@ -31,7 +31,7 @@ pub struct Bead {
 
 /// An article thread: its title and its beads in reading order (`/Type /Thread`).
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Thread {
@@ -50,7 +50,7 @@ impl Document {
     /// As [`Document::outline`]: strict mode, when a value raises a warning; reading errors
     /// of the catalog and the page tree.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn threads(&self) -> Result<Vec<Thread>> {
         let catalog = self.catalog()?;
         let Some(value) = catalog.get("Threads") else {
