@@ -134,7 +134,6 @@ export class WindowTabs implements ExternalStore<TabsState> {
     this.#keepView();
     const doc = documentOf(file)?.doc;
     const existing = doc === undefined ? undefined : this.tabOf(doc);
-    this.#aside = undefined;
     if (existing !== undefined) {
       this.#set({ active: existing.id });
       return existing.view;
@@ -142,6 +141,21 @@ export class WindowTabs implements ExternalStore<TabsState> {
     const tab: Tab = { id: String(this.#next++), file, view: undefined };
     this.#set({ tabs: [...this.#state.tabs, tab], active: tab.id });
     return undefined;
+  }
+
+  /**
+   * Whether the reader still waits for `file`, which the engine has just opened or unlocked. When
+   * it gave up on it meanwhile (Escape, another open), nothing will show it: its document closes
+   * unless a tab holds it.
+   */
+  stillWanted(file: PlatformFile): boolean {
+    const state = this.#reader?.getState();
+    if (state === undefined || (state.phase === "opening" && state.file === file)) return true;
+    const doc = documentOf(file)?.doc;
+    if (doc !== undefined && this.tabOf(doc) === undefined) {
+      void this.#shell.invoke("close_document", { doc }).catch(() => undefined);
+    }
+    return false;
   }
 
   /** The reader lets go of the shown document: its tab keeps the view, for when it shows again. */

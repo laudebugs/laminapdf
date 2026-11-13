@@ -79,6 +79,8 @@ struct Queue {
     /// Whether the webview has taken the queue: requests then open at once.
     ready: bool,
     paths: Vec<PathBuf>,
+    /// Whether a request took this window while it showed nothing ([`PendingOpens::claim_empty`]).
+    claimed: bool,
 }
 
 impl PendingOpens {
@@ -109,9 +111,17 @@ impl PendingOpens {
         std::mem::take(&mut queue.paths)
     }
 
-    /// Whether paths wait for `window`'s webview.
-    pub(crate) fn waiting(&self, window: &str) -> bool {
-        self.queues().get(window).is_some_and(|queue| !queue.paths.is_empty())
+    /// Claims `window`, which shows nothing, for a file to open in, once: two requests close
+    /// together can't both take it, as a request opens later than it is routed. False when
+    /// paths already wait for it or it was claimed before (window labels aren't reused).
+    pub(crate) fn claim_empty(&self, window: &str) -> bool {
+        let mut queues = self.queues();
+        let queue = queues.entry(window.to_owned()).or_default();
+        if queue.claimed || !queue.paths.is_empty() {
+            return false;
+        }
+        queue.claimed = true;
+        true
     }
 
     /// `window` closed: its queue goes (a reused label would start not ready).
@@ -199,7 +209,7 @@ pub(crate) fn route_open(app: &AppHandle, window: &str, paths: Vec<PathBuf>) {
     if app.state::<crate::prefs::Prefs>().get().open_in == crate::prefs::OpenIn::Windows {
         // The first file takes `window` if it shows nothing yet (a cold start, a window just made
         // for these files), so no window is left empty.
-        let mut empty = Some(window).filter(|w| !app.state::<PendingOpens>().waiting(w) && !holds_any(app, w));
+        let mut empty = Some(window).filter(|w| !holds_any(app, w) && app.state::<PendingOpens>().claim_empty(w));
         for path in paths {
             match empty
                 .take()

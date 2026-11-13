@@ -128,10 +128,37 @@ export async function listenForOsOpens(shell: DesktopShell, handlers: OsOpenHand
   return unsubscribe;
 }
 
+/**
+ * `opened`, unlocked with `password` first when it needs one; `file` then stands for the unlocked
+ * document. Without a password it fails with `password-required`.
+ */
+async function unlocked(
+  shell: DesktopShell,
+  file: PlatformFile,
+  opened: DesktopDocument,
+  password: string | undefined,
+): Promise<DesktopDocument> {
+  if (!opened.needsPassword) return opened;
+  if (password === undefined) throw new DesktopEngineError("password-required", "this document needs its password");
+  let document: DesktopDocument;
+  try {
+    document = await shell.invoke<DesktopDocument>("unlock_document", { doc: opened.doc, password });
+  } catch (error) {
+    throw engineError(error);
+  }
+  documents.set(file, document);
+  return document;
+}
+
 /** What the opener tells the window's tabs (`tabs/window-tabs.ts`). */
 export interface OpenerTabs {
   /** `file` is about to show: its tab becomes the shown one. Returns the view to put back. */
   showing(file: PlatformFile): ViewPosition | undefined;
+  /**
+   * Whether the reader still waits for `file`. An open it gave up on while the engine worked (a
+   * cancel, another open) shows nothing, and its document closes unless a tab holds it.
+   */
+  stillWanted(file: PlatformFile): boolean;
   /** The reader lets go of the shown document (before it shows another): its tab keeps the view. */
   setAside(): void;
 }
@@ -152,22 +179,13 @@ export function desktopOpener(
   return async (file, password) => {
     const failed = failures.get(file);
     if (failed !== undefined) throw failed;
-    let opened = documentOf(file);
-    if (opened === undefined) {
+    const known = documentOf(file);
+    if (known === undefined) {
       // A pasted file: the webview has its bytes but no path, and only the main process opens files.
       throw new DesktopEngineError("not-yet-supported", "open documents with the Open button or by dropping them");
     }
-    if (opened.needsPassword) {
-      if (password === undefined) throw new DesktopEngineError("password-required", "this document needs its password");
-      let unlocked: DesktopDocument;
-      try {
-        unlocked = await shell.invoke<DesktopDocument>("unlock_document", { doc: opened.doc, password });
-      } catch (error) {
-        throw engineError(error);
-      }
-      opened = unlocked;
-      documents.set(file, opened);
-    }
+    const opened = await unlocked(shell, file, known, password);
+    if (tabs !== undefined && !tabs.stillWanted(file)) return { pageCount: opened.pageCount };
     const view = tabs?.showing(file);
     viewer.open(client.show(opened));
     if (view !== undefined) viewer.restore(view);

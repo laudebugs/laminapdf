@@ -323,12 +323,12 @@ impl Engines {
         self.registry.open_from(path)
     }
 
-    /// `doc`'s file, for the watcher; never sent to a webview or an engine.
+    /// Whether `window` holds any document.
     pub(crate) fn holds_any(&self, window: &str) -> bool {
         self.registry.holds_any(window)
     }
 
-    /// The path `doc` was opened from.
+    /// `doc`'s file, for the watcher; never sent to a webview or an engine.
     pub(crate) fn path_of(&self, doc: DocId) -> Option<std::path::PathBuf> {
         self.registry.path_of(doc)
     }
@@ -341,7 +341,7 @@ impl Engines {
     /// owns it again, `to`'s engine forgets it, and the tab stays where it was.
     pub(crate) fn move_doc(&self, doc: DocId, from: &str, to: &str) -> Result<DocumentMeta, DesktopError> {
         let closed = self.moving.lock().unwrap_or_else(PoisonError::into_inner);
-        if closed.contains(to) {
+        if closed.contains(to) || closed.contains(from) {
             return Err(DesktopError::UnknownWindow);
         }
         self.check(from, doc)?;
@@ -377,12 +377,12 @@ impl Engines {
 
     /// `window` closed: its documents close and its engine stops.
     pub(crate) fn close_window(&self, window: &str) {
-        self.moving
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
-            .insert(window.to_owned());
+        // Held to the end: a move in or out of `window` happens wholly before or not at all.
+        let mut closed = self.moving.lock().unwrap_or_else(PoisonError::into_inner);
+        closed.insert(window.to_owned());
         self.registry.remove_window(window);
         let engine = self.windows().remove(window);
+        drop(closed);
         if let Some(engine) = engine {
             engine.shutdown();
         }

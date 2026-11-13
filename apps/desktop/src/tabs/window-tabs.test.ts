@@ -39,10 +39,28 @@ function at(page: number): ViewPosition {
 
 function harness() {
   const invoked: { command: string; args?: Record<string, unknown> }[] = [];
+  // Commands held until the test lets them answer.
+  const held = new Map<string, Promise<void>>();
+  const gate = (command: string) => {
+    let open = (): void => undefined;
+    held.set(
+      command,
+      new Promise<void>((resolve) => {
+        open = resolve;
+      }),
+    );
+    return () => open();
+  };
+  const answer = (command: string, args?: Record<string, unknown>): unknown => {
+    if (command === "move_tab") return "doc-1";
+    if (command === "unlock_document") return doc(Number(args?.doc), "locked.pdf");
+    return undefined;
+  };
   const shell: DesktopShell = {
-    invoke: <T>(command: string, args?: Record<string, unknown>) => {
+    invoke: async <T>(command: string, args?: Record<string, unknown>) => {
       invoked.push({ command, ...(args === undefined ? {} : { args }) });
-      return Promise.resolve((command === "move_tab" ? "doc-1" : undefined) as T);
+      await held.get(command);
+      return answer(command, args) as T;
     },
     listen: () => Promise.resolve(() => undefined),
     tileBase: "lamina://localhost/",
@@ -70,7 +88,7 @@ function harness() {
     view = at(page);
   };
   const closed = () => invoked.filter((c) => c.command === "close_document").map((c) => c.args?.doc);
-  return { tabs, reader, client, invoked, restored, scrollTo, closed };
+  return { tabs, reader, client, invoked, restored, scrollTo, closed, gate };
 }
 
 const names = (tabs: WindowTabs) => tabs.getState().tabs.map((t) => t.file.name);
@@ -153,6 +171,20 @@ describe("a window's tabs", () => {
     await expect.poll(() => tabs.shown?.file.name).toBe("a.pdf");
     expect(closed()).toEqual([2]);
     expect(names(tabs)).toEqual(["a.pdf"]);
+  });
+
+  it("make no tab for a document whose unlock finishes after the prompt was left", async () => {
+    const { tabs, reader, closed, gate } = harness();
+    await reader.open(desktopFile(doc(1, "a.pdf")));
+    await reader.open(desktopFile({ ...doc(2, "locked.pdf"), encrypted: true, needsPassword: true }));
+    const release = gate("unlock_document");
+    const submitted = reader.submitPassword("secret");
+    reader.cancel();
+    release();
+    await submitted;
+    await expect.poll(() => tabs.shown?.file.name).toBe("a.pdf");
+    expect(names(tabs)).toEqual(["a.pdf"]);
+    expect(closed()).toContain(2);
   });
 
   it("step to the next and previous tab, wrapping round", async () => {
