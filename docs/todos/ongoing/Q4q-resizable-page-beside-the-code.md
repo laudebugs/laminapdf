@@ -15,7 +15,7 @@
 
 ## Goal
 
-Since Q4d, an example's first page sits beside its code on wide screens, in a column 15rem wide. That keeps the code readable, but the page is too small to read, and a reader who edits and runs an example can't see what changed. The owner asked for a divider like VS Code's between its panes: drag it to give the page or the code more room.
+Since Q4d, an example's first page sits beside its code on wide screens, in a column 15rem wide. That width keeps the code readable, but the page is too small to read, and a reader who edits and runs an example can't see what changed. The owner asked for a divider like VS Code's between its panes: drag it to give the page or the code more room.
 
 ## Context
 
@@ -66,7 +66,7 @@ The docs examples plan (§2's notes, §4's table).
 
 ## Risks and open questions
 
-- The page pictures are 1190 px wide, sharp up to about 37rem on a screen with two pixels per point; a page widened past that is drawn larger than its picture.
+- The page pictures are 1190 px wide, sharp up to about 37rem on a screen with two pixels per point; a page widened past that is stretched and looks soft.
 
 ## Definition of done
 
