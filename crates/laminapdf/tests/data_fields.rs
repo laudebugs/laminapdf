@@ -317,6 +317,11 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
             reason: "dtd",
         }
         .into(),
+        W::XmpRepaired {
+            object: None,
+            reason: "undeclared-prefix",
+        }
+        .into(),
         W::ContentUnknownOperator {
             object: None,
             offset: 0,
