@@ -22,7 +22,10 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use laminapdf_cos::{Dict, DirectPath, Document, ObjRef, Object, PathSegment};
 use laminapdf_model::FieldId;
-use laminapdf_ops::{ModificationClass, WidgetChange};
+use laminapdf_ops::ModificationClass;
+#[cfg(feature = "page-checks")]
+use laminapdf_ops::WidgetChange;
+#[cfg(feature = "page-checks")]
 use laminapdf_syntax::text::decode_text_string;
 
 use crate::constraint::{DocMdp, DocMdpPermission, Restriction, SignatureInfo, SignatureKind, Violation};
@@ -65,6 +68,13 @@ impl Rule {
 
 /// The fields a `FieldMDP` lock covers (§12.8.2.4, Table 258), by fully qualified name.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(
+    not(feature = "page-checks"),
+    expect(
+        dead_code,
+        reason = "only the field-level checks of page ops read which fields a lock covers"
+    )
+)]
 enum Lock {
     /// `/Action /All`, or an action this reader doesn't know (the strictest reading).
     All,
@@ -80,6 +90,7 @@ impl Lock {
     ///
     /// # Errors
     /// Errors reading `/Fields` or a name in it.
+    #[cfg(feature = "page-checks")]
     fn from_params(doc: &Document, params: &Dict) -> Result<Self> {
         let action = params.get_name("Action");
         if !matches!(action, Some(b"Include" | b"Exclude")) {
@@ -100,6 +111,14 @@ impl Lock {
         })
     }
 
+    /// Without the field-level checks nothing reads which fields a lock names.
+    #[cfg(not(feature = "page-checks"))]
+    #[expect(clippy::unnecessary_wraps, reason = "the same signature as with `page-checks`")]
+    const fn from_params(_doc: &Document, _params: &Dict) -> Result<Self> {
+        Ok(Self::All)
+    }
+
+    #[cfg(feature = "page-checks")]
     /// Whether the lock covers the field named `name`: a listed name covers that field and
     /// the fields below it. A field whose name couldn't be read (`None`) is covered by every
     /// lock, since it may be one the lock names.
@@ -198,6 +217,7 @@ impl Signatures {
         })
     }
 
+    #[cfg(feature = "page-checks")]
     /// Whether any signature has a field or a field lock: only then do the field-level checks
     /// of page ops need to read widgets.
     pub(crate) fn has_field_rules(&self) -> bool {
@@ -206,6 +226,7 @@ impl Signatures {
             .any(|f| f.info.field.is_some() || f.rules.iter().any(|r| matches!(r, Rule::FieldMdp(_))))
     }
 
+    #[cfg(feature = "page-checks")]
     /// The restrictions that a change to `field`'s widget breaks ([E2 plan §6], a rule
     /// stricter than ISO 32000-2 §12.8): deleting or reshowing the widget of a signed
     /// signature field ([`Restriction::SignedWidget`]), or of a field a lock covers
@@ -843,6 +864,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "page-checks")]
     fn lock(action: &str, fields: &[&str]) -> Lock {
         let params: Dict = [
             ("Action", Object::name(action)),
@@ -862,6 +884,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "page-checks")]
     fn an_included_name_covers_that_field_and_the_fields_below_it() {
         let include = lock("Include", &["address"]);
         assert_eq!(
@@ -876,6 +899,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "page-checks")]
     fn an_excluding_lock_covers_every_field_it_does_not_name() {
         let exclude = lock("Exclude", &["notes"]);
         assert_eq!(
@@ -889,6 +913,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "page-checks")]
     fn a_lock_with_an_unknown_action_covers_every_field() {
         assert!(lock("Some", &["x"]).covers(Some("y")));
     }

@@ -9,6 +9,7 @@
     clippy::indexing_slicing,
     reason = "tests: a panic is a test failure"
 )]
+#![cfg(feature = "page-checks")]
 
 mod common;
 

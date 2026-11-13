@@ -73,6 +73,7 @@ mod options;
 mod planner;
 mod resolve;
 mod sink;
+#[cfg(feature = "page-checks")]
 mod widgets;
 mod xref;
 // What `fixtures/codes.json` lists, for the kind tests.
