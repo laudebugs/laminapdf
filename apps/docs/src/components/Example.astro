@@ -293,6 +293,11 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
     });
   };
 
+  /** Updates every divider's value now: after a key or a reset, which assistive technology reads at once. */
+  const describeNow = () => {
+    for (const split of splits) split.describe();
+  };
+
   /** Sets the page's width, in rem, for every example, or with `undefined` puts back the default. */
   const choose = (rem: number | undefined) => {
     if (rem === undefined) {
@@ -428,6 +433,7 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
       const chosen = this.clamp(rem);
       choose(chosen);
       remember(chosen);
+      describeNow();
       settled();
     };
 
@@ -435,6 +441,7 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
     private reset = (): void => {
       choose(undefined);
       remember(undefined);
+      describeNow();
       settled();
     };
   }

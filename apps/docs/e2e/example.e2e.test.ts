@@ -171,6 +171,10 @@ describe(`the divider between an example's code and page in ${BROWSER} (todo Q4q
     expect(after.picture).toBeGreaterThan(before.picture + 150);
     expect(after.code).toBeLessThan(before.code);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+    // Checked per load: WebKit reports each select once per load (withoutSelectErrors), and the page loads twice.
+    const selects = await page.locator("select").count();
+    expect(withoutSelectErrors(BROWSER, errors, selects)).toEqual([]);
+    errors.length = 0;
 
     await page.reload();
     await layout(page);
@@ -178,7 +182,7 @@ describe(`the divider between an example's code and page in ${BROWSER} (todo Q4q
 
     await page.locator(".example-split").first().dblclick();
     expect((await widths(page)).picture).toBeCloseTo(before.picture, -1);
-    expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
+    expect(withoutSelectErrors(BROWSER, errors, selects)).toEqual([]);
     await page.context().close();
   });
 
