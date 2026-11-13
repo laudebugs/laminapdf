@@ -10,7 +10,7 @@
 | ADRs | Follows [0010](../../decisions/0010-platform-adapter.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e2m-document-dialogs` |
 | PR title | `feat(ui): insert, replace, extract, merge and split dialogs` |
-| Size | L (400–800): six dialogs and their outputs in `@laminapdf/ui` and `apps/web`, with Playwright tests; the ops are [E2c](E2c-cross-document-pages.md)'s and [E2d](E2d-merge-and-split.md)'s |
+| Size | L (400–800): six dialogs and their outputs in `@laminapdf/ui` and `apps/web`, with Playwright tests; the ops are [E2c](../ongoing/E2c-cross-document-pages.md)'s and [E2d](E2d-merge-and-split.md)'s |
 | PR | — |
 
 ## Goal

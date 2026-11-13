@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E2 page organisation §2.2](../../plans/editor/e2-page-organisation.md#22-what-follows-a-page) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E2k](../done/E2k-duplicate-pages.md), [E2p](../done/E2p-source-documents-and-copier.md) |
@@ -28,7 +28,7 @@ Copy pages between documents with [E2p](../done/E2p-source-documents-and-copier.
 
 **In scope**
 
-- Rules for what follows a page ([E2 plan §2.2](../../plans/editor/e2-page-organisation.md#22-what-follows-a-page)): annotations (fix `/P`, new `/NM`), links to pages that didn't come removed and reported, widget annotations carried per `Carry::fields` (renamed with [E2k](../done/E2k-duplicate-pages.md)'s `<partial>#<n>` helper by default, or linked; [E2 plan §11](../../plans/editor/e2-page-organisation.md#11-decisions-on-the-open-questions)), struct-tree elements dropped with `TagsDropped` until [E2o](E2o-structure-tree-merge.md) merges them
+- Rules for what follows a page ([E2 plan §2.2](../../plans/editor/e2-page-organisation.md#22-what-follows-a-page)): annotations (fix `/P`, new `/NM`), links to pages that didn't come removed and reported, widget annotations carried per `Carry::fields` (renamed with [E2k](../done/E2k-duplicate-pages.md)'s `<partial>#<n>` helper by default, or linked; [E2 plan §11](../../plans/editor/e2-page-organisation.md#11-decisions-on-the-open-questions)), struct-tree elements dropped with `TagsDropped` until [E2o](../ready/E2o-structure-tree-merge.md) merges them
 - Ops, with the payloads of [E2 plan §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions): `InsertPagesFrom` and `ReplacePages`; `extract_pages` and `export_ranges` run as jobs with run-to-completion forms (ADR 0028 F10)
 - `extract_pages(doc, pages) -> Document` (new document whose base is empty, built in the overlay) and `export_ranges(doc, ranges) -> Vec<Document>`
 - Page labels and named destinations through [E2j](../done/E2j-page-tree-and-tree-writers.md)'s shared writers: `InsertPagesFrom` and `ReplacePages` call `PageLabels::remap` (target pages keep their labels; inserted pages continue the range they land in), and `extract_pages`/`export_ranges` write the source's labels for the extracted pages with the number-tree writer; named destinations used by imported links are copied with the name-tree writer
@@ -37,8 +37,8 @@ Copy pages between documents with [E2p](../done/E2p-source-documents-and-copier.
 **Out of scope** (and which todo covers it)
 
 - The blob store, `add_source` and the `ObjectCopier` → [E2p](../done/E2p-source-documents-and-copier.md)
-- Merging outlines, AcroForm and struct trees across whole documents; split → [E2d](E2d-merge-and-split.md)
-- The CLI's page commands (`laminapdf pages delete`, `extract`, `reorder`, `insert`, `merge`, `split`) → [T6a](./T6a-cli-page-commands.md)
+- Merging outlines, AcroForm and struct trees across whole documents; split → [E2d](../ready/E2d-merge-and-split.md)
+- The CLI's page commands (`laminapdf pages delete`, `extract`, `reorder`, `insert`, `merge`, `split`) → [T6a](../ready/T6a-cli-page-commands.md)
 
 **Editor facts**
 

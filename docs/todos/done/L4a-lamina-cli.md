@@ -66,7 +66,7 @@ Give shell users, CI pipelines and AI agents one binary, `laminapdf`, with a sta
 - Several inputs per command, `--jobs`, NDJSON, `render`, `extract --format md|json`, the `schema` command, completions and man pages: [L4b](./L4b-cli-batch-render-schema.md).
 - `laminapdf mcp`: [L4c](./L4c-mcp-mode.md).
 - Release binaries, Homebrew and npm: [L4d](../done/L4d-cli-distribution.md).
-- `pages select|delete|reorder|reverse` (need [E2b](../done/E2b-page-structure-ops.md)), `pages merge|split|shuffle` (need [E2c](../ready/E2c-cross-document-pages.md) and [E2d](../ready/E2d-merge-and-split.md)): a follow-up CLI todo is added when E2b is claimed. This PR parses the full range and handle grammar so those commands only add wiring.
+- `pages select|delete|reorder|reverse` (need [E2b](../done/E2b-page-structure-ops.md)), `pages merge|split|shuffle` (need [E2c](../ongoing/E2c-cross-document-pages.md) and [E2d](../ready/E2d-merge-and-split.md)): a follow-up CLI todo is added when E2b is claimed. This PR parses the full range and handle grammar so those commands only add wiring.
 - `fill`, `sign`, `verify`, `encrypt`, `optimize`, `diff`, `inspect`: later rounds, each with its feature.
 
 ## Tasks
