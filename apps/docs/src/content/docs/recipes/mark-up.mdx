@@ -16,7 +16,7 @@ The result is the original bytes, unchanged, followed by two revisions. "Widgets
 ## How it works
 
 - `markText` takes one box per line of the selected text and a kind: `highlight`, `underline`, `strikeOut` or `squiggly`. Each box becomes one of the mark's quadrilaterals, so a mark over three lines covers only those lines.
-- Lamina PDF draws every mark itself and stores the drawing in the file, so pdf.js, PDFium and Acrobat show the same mark. A highlight multiplies its colour with the page, which keeps the text under it legible.
+- Lamina PDF draws every mark itself and stores the drawing in the file, so every reader that draws stored appearances, as pdf.js, PDFium and Acrobat do, shows the same mark. A highlight multiplies its colour with the page, which keeps the text under it legible.
 - The report is a tagged PDF, the kind screen readers follow. In a tagged file, a mark's description (`contents`) is the text it marks, and the mark joins the document's structure right after that text.
 - `noteAt` puts a 20-point icon with its top-left corner on the point, and a pop-up beside it that shows the comment. The note keeps its size at any zoom and stays upright when the page turns, as Acrobat's notes do.
 - `replaceText` groups the strike-out with a caret, so a reader shows, moves and deletes them as one correction. The caret holds the replacement text. Both edits are one step: a single undo removes both.
@@ -28,7 +28,7 @@ The result is the original bytes, unchanged, followed by two revisions. "Widgets
 - **A colour or opacity:** set `common.color` (`[r, g, b]` from 0 to 1) and `common.opacity` before applying the edit.
 - **A note's icon:** pass `"note"`, `"comment"`, `"key"`, `"help"`, `"paragraph"`, `"newParagraph"` or `"insert"`.
 - **Change a mark later:** `updateAnnot` takes the ID from `createdAnnotations` and a new `color`, `opacity` or `spec`. Lamina PDF draws the mark again. `deleteAnnot` removes a mark, with its pop-up and the rest of its group.
-- **A PDF/A or PDF/UA file:** the marks keep the file's claims, and `doc.plan()` warns before you save when an edit breaks one. A highlight on a PDF/A-1 file breaks it, since that part forbids transparency ([`pdfa-transparency`](/reference/codes/pdfa-transparency/)), and a mark with an empty description breaks PDF/UA ([`annot-without-contents`](/reference/codes/annot-without-contents/)).
+- **A PDF/A or PDF/UA file:** the marks keep the file's claims, and `doc.plan()` warns before you save when an edit breaks one. A highlight breaks PDF/A-1, which forbids transparency ([`pdfa-transparency`](/reference/codes/pdfa-transparency/)). A mark with an empty description breaks PDF/UA ([`annot-without-contents`](/reference/codes/annot-without-contents/)).
 - **A signed file:** you can mark up a [certified](/reference/glossary/#docmdp) file that allows comments, or one with only approval signatures. Lamina PDF appends the marks as a new revision, and the signatures stay valid.
 
 Next: [add links](/recipes/add-links/), another kind of annotation made the same way.

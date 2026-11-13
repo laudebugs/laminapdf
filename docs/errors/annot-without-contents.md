@@ -9,7 +9,7 @@ The file says it conforms to PDF/UA-1, and an annotation the edits added or chan
 
 ## Why
 
-PDF/UA-1 asks every annotation for a description that a screen reader can read in place of the mark (ISO 14289-1 §7.18.1). A highlight without one is silent: the reader hears that something is marked, not what. Lamina PDF fills the description with the marked text when the edit comes from a text selection, so this warning means the edit gave an empty one or removed it.
+PDF/UA-1 asks every annotation for a description that a screen reader can read in place of the mark (ISO 14289-1 §7.18.1). A highlight without one is silent: the reader hears that something is marked, not what. In a tagged file, Lamina PDF fills the description with the marked text when the edit comes from a text selection, so there this warning means the edit gave an empty one or removed it.
 
 ## How to fix
 
