@@ -115,6 +115,9 @@ Rules that hold for every screen here:
 - Titles show their bold, italic and colour only while editing, which keeps the reader's startup script within its budget.
 - Deleting a bookmark has no toast with Undo; the top bar's Undo and the History tab take it back.
 - The named destinations dialog's "Used by" counts this file's bookmarks only, not its links (a link count needs the annotation views of [E4b](../../todos/ready/E4b-annotation-model-and-overlay.md)), and the delete question names only bookmarks. The rename field has its own name, "New name for …", apart from the Rename button's.
+- Not built yet: the palette commands (`organise.add-bookmark`, `organise.named-destinations`, `organise.set-bookmark-destination`, `organise.delete-bookmark`) and the selection toolbar's Add bookmark here, which join Organise's commands; the polite announcement of a move ("Moved under …"); and the phone's Edit button with its Move… sheets.
+- The notice that the outline was rebuilt shows after the first edit that rebuilt it, not on open: reading a file changes nothing, so the outline is repaired only by an edit.
+- A failed change, or Add bookmark with no page in view, shows a notice above the tree instead of a toast.
 - The drag grip is a 44 px button at each row's end, shown on hover, focus or selection; dropping onto a row nests, as the board says, with React Aria's drop indicator in place of the indented accent line.
 
 **Todos.** [E3b](../../todos/done/E3b-bookmarks-and-destinations.md).

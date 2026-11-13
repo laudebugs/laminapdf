@@ -200,9 +200,11 @@ function ConfirmDelete({
   const description =
     row === undefined
       ? ""
-      : row.usedBy === 1
-        ? laterMessage("named.confirmDelete.one", { name: row.name })
-        : laterMessage("named.confirmDelete", { name: row.name, count: row.usedBy });
+      : row.usedBy === 0
+        ? laterMessage("named.confirmDelete.none", { name: row.name })
+        : row.usedBy === 1
+          ? laterMessage("named.confirmDelete.one", { name: row.name })
+          : laterMessage("named.confirmDelete", { name: row.name, count: row.usedBy });
   return (
     <Dialog
       isOpen={row !== undefined}
@@ -228,7 +230,8 @@ function ConfirmDelete({
 /** The named destinations dialog. */
 export function NamedDestinationsDialog(props: NamedDestinationsDialogProps): ReactNode {
   const [confirming, setConfirming] = useState<NamedDestinationRow | undefined>(undefined);
-  const remove = (row: NamedDestinationRow) => (row.usedBy > 0 ? setConfirming(row) : props.onDelete(row.name));
+  // Always asked: links, which the count leaves out, and other files may use the name too.
+  const remove = (row: NamedDestinationRow) => setConfirming(row);
   return (
     <>
       <Dialog

@@ -433,3 +433,92 @@ fn every_op_undone_leaves_the_overlay_empty() {
         assert!(!doc.is_dirty(), "{op:?}");
     }
 }
+
+mod rename_follows_every_go_to {
+    use common::classic_with_root;
+    use laminapdf_model::AnnotId;
+
+    use super::*;
+
+    /// One page (object 3) with a link whose `GoTo` names `(x)` and runs a second `GoTo` naming it
+    /// through `/Next`, a widget whose `/AA` cursor-up action names it, and a catalog `/AA`
+    /// whose will-close action names it; `x` lives in the `/Names` tree.
+    fn file() -> Document {
+        common::open(&classic_with_root(
+            &[
+                "<< /Type /Catalog /Pages 2 0 R /Names << /Dests << /Names [(x) [3 0 R /Fit]] >> >> /AA << /WC << /S /GoTo /D (x) >> >> >>",
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Annots [4 0 R 5 0 R] >>",
+                "<< /Type /Annot /Subtype /Link /Rect [0 0 10 10] /A << /S /GoTo /D (x) /Next 6 0 R >> >>",
+                "<< /Type /Annot /Subtype /Widget /Rect [0 0 10 10] /AA << /U << /S /GoTo /D (x) >> >> >>",
+                "<< /S /GoTo /D (x) >>",
+            ],
+            "",
+        ))
+    }
+
+    fn d(doc: &Document, num: u32, path: &[&str]) -> Object {
+        let mut at = (*doc.resolve(laminapdf_cos::ObjRef::new(num, 0)).unwrap()).clone();
+        for key in path {
+            at = at.as_dict().unwrap().get(key).unwrap().clone();
+        }
+        at
+    }
+
+    fn is_y(o: &Object) -> bool {
+        matches!(o, Object::String(s) if s.bytes == b"y")
+    }
+
+    #[test]
+    fn links_next_chains_widgets_and_the_catalog_follow() {
+        let mut doc = file();
+        apply(&mut doc, RenameNamedDestination::new("x", "y"));
+        assert!(is_y(&d(&doc, 4, &["A", "D"])));
+        assert!(is_y(&d(&doc, 6, &["D"])));
+        assert!(is_y(&d(&doc, 5, &["AA", "U", "D"])));
+        assert!(is_y(&d(&doc, 1, &["AA", "WC", "D"])));
+    }
+
+    #[test]
+    fn a_delete_reports_each_holder_once_per_use() {
+        let mut doc = file();
+        let applied = apply(&mut doc, DeleteNamedDestination::new("x"));
+        let annots: Vec<AnnotId> = applied
+            .destination_uses
+            .iter()
+            .filter_map(|u| match u {
+                DestinationUse::Annotation { annot, .. } => Some(annot.clone()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            annots.len(),
+            3,
+            "the link, its /Next action, the widget: {:?}",
+            applied.destination_uses
+        );
+        assert!(applied.destination_uses.contains(&DestinationUse::Catalog));
+    }
+}
+
+#[test]
+fn a_name_in_both_stores_is_set_where_readers_find_it() {
+    let mut doc = common::open(&common::classic_with_root(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R /Names << /Dests << /Names [(x) [3 0 R /Fit]] >> >> /Dests << /x [3 0 R /FitH 10] >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>",
+        ],
+        "",
+    ));
+    let page = page(&doc, 0);
+    apply(
+        &mut doc,
+        SetNamedDestination::new(
+            "x",
+            ExplicitDestination::new(page, DestinationView::FitH { top: Some(50.0) }),
+        ),
+    );
+    let tree = doc.name_tree("Dests").unwrap().unwrap().get(b"x").unwrap().unwrap();
+    assert_eq!(tree.as_array().unwrap().get(1), Some(&Object::name("FitH")));
+}

@@ -447,3 +447,28 @@ fn random_edits_keep_every_list_whole_and_every_count_right() {
         })
         .unwrap();
 }
+
+#[test]
+fn a_refused_move_changes_nothing() {
+    let doc = outline_pdf();
+    let [intro, chapter, _] = <[OutlineItemId; 3]>::try_from(shape_ids(&doc)).unwrap();
+    let child = doc
+        .outline()
+        .unwrap()
+        .by_id(&chapter)
+        .unwrap()
+        .children()
+        .next()
+        .unwrap()
+        .id()
+        .cloned()
+        .unwrap();
+    let mut tree = OutlineTree::read(&doc).unwrap();
+    let before = tree.items();
+    assert_eq!(
+        tree.move_item(&intro, None, &SiblingPosition::After(child.clone())),
+        Err(OutlineTreeError::NotASibling(child))
+    );
+    assert_eq!(tree.items(), before);
+    assert!(tree.contains(&intro));
+}

@@ -422,6 +422,17 @@ impl<'d> Outline<'d> {
 
     /// Named destinations: the `/Names /Dests` tree first, then the catalog's `/Dests`
     /// dictionary (PDF 1.1), keyed by name bytes.
+    /// The names of every named destination, from the `/Names /Dests` tree and the catalog's
+    /// `/Dests` (a name in both listed once), sorted by their bytes.
+    ///
+    /// # Errors
+    /// Reading errors of the name tree and the catalog.
+    ///
+    /// Added in 0.2.0.
+    pub fn destination_names(&self) -> Result<Vec<Vec<u8>>> {
+        Ok(self.named()?.keys().cloned().collect())
+    }
+
     fn named(&self) -> Result<&BTreeMap<Vec<u8>, Object>> {
         if let Some(names) = self.names.get() {
             return Ok(names);

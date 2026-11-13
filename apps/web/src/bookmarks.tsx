@@ -13,6 +13,7 @@ import {
   bookmarkWords,
   type NamedDestinationRow,
   NamedDestinationsDialog,
+  placeOf,
   type SiblingAt,
 } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
@@ -26,17 +27,10 @@ import type { Engine } from "./session.ts";
 type UpdateArgs = Extract<Op, { op: "updateOutlineItem" }>["args"];
 
 /** Item `id` and its parent's id (`null` at the top level), wherever it is in the tree. */
-function find(
-  items: readonly BookmarkItem[],
-  id: string,
-  parent: string | null = null,
-): { item: BookmarkItem; parent: string | null } | undefined {
-  for (const item of items) {
-    if (item.id === id) return { item, parent };
-    const inside = find(item.children, id, item.id);
-    if (inside !== undefined) return inside;
-  }
-  return undefined;
+function find(items: readonly BookmarkItem[], id: string): { item: BookmarkItem; parent: string | null } | undefined {
+  const place = placeOf(items, id);
+  const item = place?.siblings[place.index] as BookmarkItem | undefined;
+  return place === undefined || item === undefined ? undefined : { item, parent: place.parent?.id ?? null };
 }
 
 /** How many bookmarks go to each named destination. */
@@ -72,20 +66,14 @@ const wasRepaired = (engine: Engine): boolean =>
 
 /**
  * Applies bookmark or named-destination `ops` to the open document as one step of the edit
- * session, named `label`, then reads the outline again. Returns the IDs of the bookmarks it added;
- * a failure is reported and adds nothing.
+ * session, named `label`, then reads the outline again. Returns the IDs of the bookmarks it added.
  */
 async function editOutline(engine: Engine, ops: readonly Op[], label: string): Promise<readonly string[]> {
-  try {
-    const { viewer } = await engine.view();
-    const result = await viewer.edits.apply(ops as Op[], label);
-    if (result.outlineRepaired === true) repaired.set(engine, engine.getState().openedAt);
-    await engine.loadOutline(true);
-    return result.createdOutlineItems ?? [];
-  } catch (error) {
-    reportError(error);
-    return [];
-  }
+  const { viewer } = await engine.view();
+  const result = await viewer.edits.apply(ops as Op[], label);
+  if (result.outlineRepaired === true) repaired.set(engine, engine.getState().openedAt);
+  await engine.loadOutline(true);
+  return result.createdOutlineItems ?? [];
 }
 
 /**
@@ -112,16 +100,16 @@ async function goToName(engine: Engine, name: string): Promise<void> {
 
 /** The editor's actions, each one op: what `BookmarkEditor` calls. */
 function bookmarkActions(
-  engine: Engine,
   items: readonly BookmarkItem[],
   apply: (ops: readonly Op[], label: string) => Promise<readonly string[]>,
+  here: () => Promise<ExplicitDestination | undefined>,
 ) {
   const title = (id: string) => find(items, id)?.item.title ?? "";
   const update = (item: string, args: Omit<UpdateArgs, "item">, label: string) =>
     void apply([{ op: "updateOutlineItem", args: { item, ...args } }], label);
   return {
     onAdd: async (after: string | undefined) => {
-      const destination = await destinationHere(engine);
+      const destination = await here();
       if (destination === undefined) return;
       const parent = after === undefined ? null : (find(items, after)?.parent ?? null);
       const at: SiblingAt = after === undefined ? "last" : { after };
@@ -145,7 +133,7 @@ function bookmarkActions(
     onShowChildren: (id: string, open: boolean) =>
       update(id, { open }, bookmarkWords("bookmark.open", { title: title(id) })),
     onUseCurrentView: async (id: string) => {
-      const destination = await destinationHere(engine);
+      const destination = await here();
       if (destination !== undefined) {
         update(id, { target: { destination } }, bookmarkWords("bookmark.target", { title: title(id) }));
       }
@@ -187,15 +175,27 @@ export function BookmarkPanel({ engine, items, current, onNavigate, keys }: Book
   const { viewer } = engine.getState();
   // Edits in flight: moves wait until the outline is read again after them.
   const [inFlight, setInFlight] = useState(0);
-  const apply = async (ops: readonly Op[], label: string) => {
+  // Why the last change failed, until the next one.
+  const [failure, setFailure] = useState<string | undefined>(undefined);
+  const apply = async (ops: readonly Op[], label: string): Promise<readonly string[]> => {
     setInFlight((n) => n + 1);
+    setFailure(undefined);
     try {
       return await editOutline(engine, ops, label);
+    } catch (error) {
+      setFailure(bookmarkWords("bookmarks.failed"));
+      reportError(error);
+      return [];
     } finally {
       setInFlight((n) => n - 1);
     }
   };
-  const actions = bookmarkActions(engine, items, apply);
+  const here = async () => {
+    const destination = await destinationHere(engine);
+    setFailure(destination === undefined ? bookmarkWords("bookmarks.noPage") : undefined);
+    return destination;
+  };
+  const actions = bookmarkActions(items, apply, here);
   const names = useNamedDestinations(engine, items, apply);
   return (
     <>
@@ -205,6 +205,7 @@ export function BookmarkPanel({ engine, items, current, onNavigate, keys }: Book
         repaired={wasRepaired(engine)}
         readOnly={viewer?.edits.getState().blocked !== undefined}
         busy={inFlight > 0}
+        {...(failure === undefined ? {} : { failure })}
         apple={keys === "mac"}
         onNavigate={onNavigate}
         {...actions}
@@ -235,7 +236,7 @@ export function BookmarkPanel({ engine, items, current, onNavigate, keys }: Book
           )
         }
         onAdd={async (name) => {
-          const destination = await destinationHere(engine);
+          const destination = await here();
           if (destination !== undefined) {
             await names.change(
               { op: "setNamedDestination", args: { name, destination } },

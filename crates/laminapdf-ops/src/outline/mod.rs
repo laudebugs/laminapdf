@@ -36,7 +36,8 @@ pub use names::{DeleteNamedDestination, DestinationUse, RenameNamedDestination, 
 pub use types::{ChildItems, DestinationView, ExplicitDestination, OutlineStyle, OutlineTarget, RenameLinks, Rgb};
 
 /// Adds a bookmark under `parent` (`null`: the top level) at `at`, with its title, target and
-/// style, open or closed. The new item's ID is in
+/// style. It has no children, so it has no open state yet (`/Count`, §12.3.3): set it with
+/// [`UpdateOutlineItem::open`] once it has some. The new item's ID is in
 /// [`Applied::created_outline_items`](crate::Applied::created_outline_items).
 ///
 /// On the wire: `{ "op": "addOutlineItem", "args": { "parent": null, "at": "last", "title":
@@ -67,10 +68,6 @@ pub struct AddOutlineItem {
     #[serde(default)]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub style: OutlineStyle,
-    /// Whether its children show (it has none yet; the state holds for when it gets some).
-    #[serde(default)]
-    #[cfg_attr(feature = "tsify", tsify(optional))]
-    pub open: bool,
 }
 
 impl AddOutlineItem {
@@ -91,7 +88,6 @@ impl AddOutlineItem {
             title: title.into(),
             target,
             style: OutlineStyle::default(),
-            open: false,
         }
     }
 
@@ -106,7 +102,6 @@ impl AddOutlineItem {
         self.style.write(&mut dict);
         let r = doc.cos_mut().edit().create(Object::Dict(dict))?;
         let id = tree.insert(r, self.parent.as_ref(), &self.at).map_err(tree_error)?;
-        tree.set_open(&id, self.open).map_err(tree_error)?;
         finish(
             doc,
             tree,
@@ -147,7 +142,8 @@ pub struct UpdateOutlineItem {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub style: Option<OutlineStyle>,
-    /// Open (children shown) or closed.
+    /// Open (children shown) or closed; a bookmark without children has nowhere to keep it
+    /// (`/Count`, §12.3.3), so it writes nothing there.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub open: Option<bool>,
@@ -298,7 +294,7 @@ fn tree_error(e: OutlineTreeError) -> Error {
     match e {
         OutlineTreeError::NotASibling(id) => Error::NotASibling(id),
         OutlineTreeError::IntoItself(id) => Error::OutlineIntoItself(id),
-        OutlineTreeError::UnknownItem(id) => Error::UnknownOutlineItem(id),
+        other => Error::UnknownOutlineItem(other.item().clone()),
     }
 }
 

@@ -3,7 +3,7 @@
 use laminapdf_cos::{Dict, ObjRef, Object, PdfString};
 use laminapdf_model::PageId;
 
-use super::names::Stores;
+use super::names::{Store, Stores, non_empty};
 use super::types::{ExplicitDestination, OutlineTarget};
 use crate::error::{Error, Result};
 
@@ -15,14 +15,13 @@ pub(super) fn write(doc: &laminapdf_model::Document, dict: &mut Dict, target: &O
             dict.remove("A");
         }
         OutlineTarget::Named(name) => {
-            if name.is_empty() {
-                return Err(Error::EmptyDestinationName);
-            }
-            // A name the catalog's `/Dests` holds resolves only as a name object.
-            let value = if Stores::read(doc)?.in_dests_dict(name.as_bytes()) {
+            let key = non_empty(name)?;
+            // A name only the catalog's `/Dests` holds resolves only as a name object; a name in
+            // the tree, or new, as a string.
+            let value = if Stores::read(doc)?.find(key) == Some(Store::DestsDict) {
                 Object::name(name)
             } else {
-                Object::String(PdfString::literal(name.as_bytes().to_vec()))
+                Object::String(PdfString::literal(key.to_vec()))
             };
             dict.insert("Dest", value);
             dict.remove("A");

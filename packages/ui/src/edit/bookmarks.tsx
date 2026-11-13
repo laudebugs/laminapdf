@@ -14,7 +14,7 @@ import { type Swatch, SwatchGroup } from "../components/swatches.js";
 import { ToggleButton } from "../components/toggle.js";
 import { laterMessage } from "../later-messages.js";
 import { OutlineTree, type OutlineTreeEditing, type OutlineTreeItem } from "../reader/outline-tree.js";
-import { type BookmarkMove, dropMove, keyMove, type MoveKey } from "./bookmark-moves.js";
+import { type BookmarkMove, dropMove, keyMove, type MoveKey, placeOf } from "./bookmark-moves.js";
 
 /** A bookmark's look, as `updateOutlineItem` takes it. */
 export interface BookmarkStyle {
@@ -58,6 +58,8 @@ export interface BookmarkEditorProps {
    * tree as it was would put the bookmark in the wrong place.
    */
   readonly busy?: boolean;
+  /** Why the last change failed, shown until the next one. */
+  readonly failure?: string;
   /** Whether ⌘ (Apple) or Ctrl moves bookmarks with Shift and the arrows. */
   readonly apple: boolean;
   readonly onNavigate: (id: string) => void;
@@ -80,6 +82,8 @@ type ColourId = "default" | "grey" | "red" | "blue" | "green";
  * bookmarks and Done editing (`bookmarks.start`, `bookmarks.done`).
  */
 export type BookmarkStep =
+  | "bookmarks.failed"
+  | "bookmarks.noPage"
   | "bookmarks.start"
   | "bookmarks.done"
   | "bookmark.add"
@@ -126,24 +130,25 @@ function Details({ item, props }: { item: BookmarkItem; props: BookmarkEditorPro
     italic: item.italic === true,
     color: item.color ?? null,
   };
-  const set = (change: Partial<BookmarkStyle>) => props.onStyle(item.id, { ...style, ...change });
+  // While an edit is applied, the style shown may be the one before it: a change made from it
+  // would undo that edit, so the controls wait.
+  const still = props.readOnly === true || props.busy === true;
+  const set = (change: Partial<BookmarkStyle>) => {
+    if (!still) props.onStyle(item.id, { ...style, ...change });
+  };
   return (
     <section className="paper-bookmark-details" aria-label={laterMessage("bookmarks.details")}>
       <p className="paper-bookmark-goes-to">
         {laterMessage("bookmarks.goesTo")} <strong>{goesTo(item)}</strong>
       </p>
-      <Button size={26} onPress={() => props.onUseCurrentView(item.id)} isDisabled={props.readOnly === true}>
+      <Button size={26} onPress={() => props.onUseCurrentView(item.id)} isDisabled={still}>
         {laterMessage("bookmarks.useCurrentView")}
       </Button>
       <div className="paper-bookmark-style">
-        <ToggleButton isSelected={style.bold} isDisabled={props.readOnly === true} onChange={(bold) => set({ bold })}>
+        <ToggleButton isSelected={style.bold} isDisabled={still} onChange={(bold) => set({ bold })}>
           {laterMessage("bookmarks.bold")}
         </ToggleButton>
-        <ToggleButton
-          isSelected={style.italic}
-          isDisabled={props.readOnly === true}
-          onChange={(italic) => set({ italic })}
-        >
+        <ToggleButton isSelected={style.italic} isDisabled={still} onChange={(italic) => set({ italic })}>
           {laterMessage("bookmarks.italic")}
         </ToggleButton>
       </div>
@@ -156,7 +161,7 @@ function Details({ item, props }: { item: BookmarkItem; props: BookmarkEditorPro
       <p className="paper-bookmark-hint">{laterMessage("bookmarks.colour.hint")}</p>
       <Checkbox
         isSelected={item.open === true}
-        isDisabled={item.children.length === 0 || props.readOnly === true}
+        isDisabled={item.children.length === 0 || still}
         onChange={(open) => props.onShowChildren(item.id, open)}
       >
         {laterMessage("bookmarks.showChildren")}
@@ -165,28 +170,12 @@ function Details({ item, props }: { item: BookmarkItem; props: BookmarkEditorPro
         <Button size={26} onPress={() => props.onNavigate(item.id)}>
           {laterMessage("bookmarks.goTo")}
         </Button>
-        <Button
-          size={26}
-          variant="danger"
-          icon="delete"
-          onPress={() => props.onDelete(item.id)}
-          isDisabled={props.readOnly === true}
-        >
+        <Button size={26} variant="danger" icon="delete" onPress={() => props.onDelete(item.id)} isDisabled={still}>
           {laterMessage("bookmarks.delete")}
         </Button>
       </div>
     </section>
   );
-}
-
-/** Item `id`, wherever it is in the tree. */
-function findItem(items: readonly BookmarkItem[], id: string): BookmarkItem | undefined {
-  for (const item of items) {
-    if (item.id === id) return item;
-    const inside = findItem(item.children, id);
-    if (inside !== undefined) return inside;
-  }
-  return undefined;
 }
 
 /** What a key on a selected row does: a move, a rename, a delete, or nothing (`undefined`). */
@@ -387,11 +376,13 @@ function useEditing(props: BookmarkEditorProps): {
 export function BookmarkEditor(props: BookmarkEditorProps): ReactNode {
   const { items, apple } = props;
   const { editing, selected, onKeyDownCapture } = useEditing(props);
-  const chosen = selected === undefined ? undefined : findItem(items, selected);
+  const place = selected === undefined ? undefined : placeOf(items, selected);
+  const chosen = place?.siblings[place.index] as BookmarkItem | undefined;
   return (
     <div className="paper-bookmarks">
       <Header props={props} selected={selected} />
       {props.repaired === true ? <Notice tone="warning" title={laterMessage("bookmarks.repaired")} /> : null}
+      {props.failure === undefined ? null : <Notice tone="danger" title={props.failure} />}
       {items.length === 0 ? (
         <Empty props={props} />
       ) : (

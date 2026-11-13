@@ -134,7 +134,10 @@ impl Document {
     pub fn outline(&self) -> Result<Vec<OutlineNode>> {
         let outline = self.ops().outline()?;
         let frames = self.frames()?;
-        outline.roots().map(|item| node(&item, &frames)).collect()
+        outline
+            .roots()
+            .filter_map(|item| node(&item, &frames).transpose())
+            .collect()
     }
 
     /// The named destination `name` (§12.3.2.4), from the `/Names /Dests` tree or the catalog's
@@ -164,28 +167,16 @@ impl Document {
     ///
     /// Added in 0.2.0.
     pub fn named_destinations(&self) -> Result<Vec<NamedDestination>> {
-        let doc = self.ops();
-        let mut names: std::collections::BTreeSet<Vec<u8>> = std::collections::BTreeSet::new();
-        if let Some(tree) = doc.name_tree("Dests")? {
-            names.extend(tree.entries()?.into_iter().map(|(k, _)| k));
-        }
-        let dests = match doc.catalog()?.get("Dests") {
-            Some(laminapdf_cos::Object::Ref(r)) => doc.resolve(*r)?.as_dict().cloned(),
-            Some(laminapdf_cos::Object::Dict(d)) => Some(d.clone()),
-            _ => None,
-        };
-        if let Some(d) = dests {
-            names.extend(d.iter().map(|(k, _)| k.as_bytes().to_vec()));
-        }
-        let outline = doc.outline()?;
+        let outline = self.ops().outline()?;
         let frames = self.frames()?;
-        let mut out = Vec::with_capacity(names.len());
-        for name in names {
-            let Ok(text) = String::from_utf8(name) else { continue };
+        let mut out = Vec::new();
+        for name in outline.destination_names()? {
             let target = outline
-                .named_destination(text.as_bytes())?
+                .named_destination(&name)?
                 .and_then(|dest| target(&dest, frames.get(dest.page_index?)?));
-            out.push(NamedDestination { name: text, target });
+            // A name that isn't UTF-8 can't be named in an edit: it is left out of the list.
+            let Ok(name) = String::from_utf8(name) else { continue };
+            out.push(NamedDestination { name, target });
         }
         Ok(out)
     }
@@ -218,12 +209,13 @@ impl Document {
     }
 }
 
-fn node(item: &laminapdf_model::OutlineItem<'_, '_>, frames: &[PageFrame]) -> Result<OutlineNode> {
-    // Every item the walk reached has an ID.
-    let id = item
-        .id()
-        .cloned()
-        .unwrap_or_else(|| OutlineItemId::object(laminapdf_cos::ObjRef::new(0, 0)));
+/// `/F`'s italic and bold bits (§12.3.3, Table 152).
+const ITALIC: i64 = 1;
+const BOLD: i64 = 2;
+
+/// The item as an `OutlineNode`; `None` for one without an ID (the walk gives every item one).
+fn node(item: &laminapdf_model::OutlineItem<'_, '_>, frames: &[PageFrame]) -> Result<Option<OutlineNode>> {
+    let Some(id) = item.id().cloned() else { return Ok(None) };
     let target = match item.target()? {
         Some(dest) => dest.page_index.and_then(|index| target(&dest, frames.get(index)?)),
         None => None,
@@ -237,7 +229,7 @@ fn node(item: &laminapdf_model::OutlineItem<'_, '_>, frames: &[PageFrame]) -> Re
         .filter(|a| !matches!(a, ActionKind::GoTo | ActionKind::Uri))
         .map(|a| a.as_name().into_owned());
     let flags = item.flags()?;
-    Ok(OutlineNode {
+    Ok(Some(OutlineNode {
         id,
         title: item.title()?,
         open: item.is_open()?,
@@ -248,13 +240,13 @@ fn node(item: &laminapdf_model::OutlineItem<'_, '_>, frames: &[PageFrame]) -> Re
         color: item
             .color()?
             .and_then(|c| Rgb::from_pdf(&c.map(laminapdf_cos::Object::Real))),
-        bold: flags & 2 != 0,
-        italic: flags & 1 != 0,
+        bold: flags & BOLD != 0,
+        italic: flags & ITALIC != 0,
         children: item
             .children()
-            .map(|child| node(&child, frames))
+            .filter_map(|child| node(&child, frames).transpose())
             .collect::<Result<_>>()?,
-    })
+    }))
 }
 
 /// `dest` in page space on its page, whose frame is `frame` (`None` without a page index, or past

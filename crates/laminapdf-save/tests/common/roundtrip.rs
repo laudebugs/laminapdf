@@ -387,14 +387,15 @@ pub fn outline_facts(doc: &laminapdf_model::Document) -> Vec<Value> {
 }
 
 /// The outline cases (todo E3b, I.01 and I.04): on every plain fixture, a bookmark added at the
-/// top, open and styled, with a child that goes to a new named destination, and the first old
-/// bookmark renamed, saved incrementally and as a full rewrite. Lamina reopens each with the
+/// top, styled, with a child that goes to a new named destination, then opened; the first old
+/// bookmark renamed, and a named destination a bookmark uses renamed with its uses (its page must
+/// still resolve), saved incrementally and as a full rewrite. Lamina reopens each with the
 /// same outline and pages; the tools compare the outline they read (`outline`).
 fn outlines(root: &Path, suite: &mut Suite) {
     use laminapdf_model::SiblingPosition;
     use laminapdf_ops::{
-        AddOutlineItem, DestinationView, ExplicitDestination, OutlineStyle, OutlineTarget, Rgb, SetNamedDestination,
-        UpdateOutlineItem,
+        AddOutlineItem, DestinationView, ExplicitDestination, OutlineStyle, OutlineTarget, RenameNamedDestination, Rgb,
+        SetNamedDestination, UpdateOutlineItem,
     };
     let names = PLAIN_CORPUS
         .iter()
@@ -417,7 +418,6 @@ fn outlines(root: &Path, suite: &mut Suite) {
                 OutlineTarget::Destination(fit),
             );
             top.style = OutlineStyle::new(Some(Rgb::new(192, 0, 0)), true, false);
-            top.open = true;
             let mut ops = vec![Op::from(top), Op::from(SetNamedDestination::new("round-trip", last))];
             if let Some(old) = first_old {
                 let mut rename = UpdateOutlineItem::new(old);
@@ -431,7 +431,22 @@ fn outlines(root: &Path, suite: &mut Suite) {
                 "Last page, by name",
                 OutlineTarget::Named("round-trip".into()),
             );
-            doc.apply_all(Origin::Local, [Op::from(child)]).unwrap();
+            // With a child, the new bookmark can hold its open state; an existing name the file's
+            // bookmarks use is renamed with its uses, which must still go to their pages.
+            let mut open = UpdateOutlineItem::new(created.first().cloned().unwrap());
+            open.open = Some(true);
+            let mut more = vec![Op::from(child), Op::from(open)];
+            let used = doc
+                .outline()
+                .unwrap()
+                .iter()
+                .find_map(|i| i.target().unwrap().and_then(|d| d.name))
+                .and_then(|n| String::from_utf8(n).ok())
+                .filter(|n| n != "round-trip");
+            if let Some(used) = used {
+                more.push(RenameNamedDestination::new(used, "renamed-by-the-round-trip").into());
+            }
+            doc.apply_all(Origin::Local, more).unwrap();
             let outline = outline_facts(&doc);
             let mut output = Vec::new();
             let report = doc.save(&mut output, &SaveOptions::new().with_mode(mode)).unwrap();

@@ -202,3 +202,18 @@ pub(crate) mod sibling_position {
         })
     }
 }
+
+/// An [`AnnotId`](laminapdf_model::AnnotId) as its string form (`"a12.0"`).
+pub(crate) mod annot_id {
+    use laminapdf_model::AnnotId;
+
+    use super::{Deserializer, Serializer};
+
+    pub(crate) fn serialize<S: Serializer>(id: &AnnotId, s: S) -> Result<S::Ok, S::Error> {
+        s.collect_str(id)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<AnnotId, D::Error> {
+        super::parse(d)
+    }
+}

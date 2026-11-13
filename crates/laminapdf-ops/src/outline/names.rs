@@ -46,11 +46,8 @@ impl SetNamedDestination {
         let key = non_empty(&self.name)?;
         let value = explicit(doc, &self.destination)?;
         let mut stores = Stores::read(doc)?;
-        let store = if stores.in_dests_dict(key) {
-            Store::DestsDict
-        } else {
-            Store::Tree
-        };
+        // Where readers find the name now (the tree first), else the tree.
+        let store = stores.find(key).unwrap_or(Store::Tree);
         stores.put(store, key.to_vec(), value);
         stores.write(doc, store)?;
         Ok(Effect::default())
@@ -172,21 +169,23 @@ pub enum DestinationUse {
         #[cfg_attr(feature = "tsify", tsify(type = "string"))]
         item: OutlineItemId,
     },
-    /// A link annotation on a page.
-    Link {
+    /// An annotation on a page: a link, or another whose actions go to the name.
+    Annotation {
         /// The page.
         #[serde(with = "crate::wire::page_id")]
         #[cfg_attr(feature = "tsify", tsify(type = "string"))]
         page: PageId,
-        /// The link's ID (`a12.0`).
+        /// The annotation (`a12.0`).
+        #[serde(with = "crate::wire::annot_id")]
         #[cfg_attr(feature = "tsify", tsify(type = "string"))]
-        annot: String,
+        annot: AnnotId,
     },
-    /// The catalog's `/OpenAction`: what the file shows when it opens.
-    OpenAction,
+    /// The catalog: what the file shows when it opens (`/OpenAction`), or a document action
+    /// (`/AA`).
+    Catalog,
 }
 
-fn non_empty(name: &str) -> Result<&[u8]> {
+pub(super) fn non_empty(name: &str) -> Result<&[u8]> {
     if name.is_empty() {
         Err(Error::EmptyDestinationName)
     } else {
@@ -234,7 +233,7 @@ impl Stores {
     }
 
     /// The store that holds `name`: the tree first, as readers look there first.
-    fn find(&self, name: &[u8]) -> Option<Store> {
+    pub(super) fn find(&self, name: &[u8]) -> Option<Store> {
         if self.tree.contains_key(name) {
             Some(Store::Tree)
         } else if self.in_dests_dict(name) {
@@ -318,41 +317,35 @@ fn put(dict: &mut Dict, key: &str, value: Option<Object>) {
     }
 }
 
-/// Where in its object a use names the destination.
-#[derive(Debug, Clone, Copy)]
-enum Place {
-    /// The object's `/Dest`.
-    Dest,
-    /// The object is a `GoTo` action; its `/D`.
-    ActionD,
-    /// The object's `key` holds a `GoTo` action dictionary; its `/D`.
-    InlineAction(&'static str),
+/// One step from an object to the value a use names the destination in.
+#[derive(Debug, Clone)]
+enum Step {
+    Key(Vec<u8>),
+    Index(usize),
 }
 
+/// A place that names the destination: an indirect object and the path inside it.
 struct Use {
     holder: DestinationUse,
     object: ObjRef,
-    place: Place,
+    path: Vec<Step>,
 }
 
 impl Use {
     fn rename(&self, doc: &mut laminapdf_model::Document, to: &[u8], store: Store) -> Result<()> {
-        let Some(mut dict) = doc.resolve(self.object)?.as_dict().cloned() else {
-            return Ok(());
-        };
-        let value = name_value(to, store);
-        match self.place {
-            Place::Dest => dict.insert("Dest", value),
-            Place::ActionD => dict.insert("D", value),
-            Place::InlineAction(key) => {
-                let Some(Object::Dict(mut action)) = dict.get(key).cloned() else {
-                    return Ok(());
-                };
-                action.insert("D", value);
-                dict.insert(key, Object::Dict(action));
-            }
+        let mut root = (*doc.resolve(self.object)?).clone();
+        let mut at = &mut root;
+        for step in &self.path {
+            let next = match (step, at) {
+                (Step::Key(k), Object::Dict(d)) => std::str::from_utf8(k).ok().and_then(|k| d.get_mut(k)),
+                (Step::Index(i), Object::Array(a)) => a.get_mut(*i),
+                _ => None,
+            };
+            let Some(next) = next else { return Ok(()) };
+            at = next;
         }
-        doc.cos_mut().edit().set(self.object, Object::Dict(dict))?;
+        *at = name_value(to, store);
+        doc.cos_mut().edit().set(self.object, root)?;
         Ok(())
     }
 }
@@ -373,48 +366,121 @@ fn names(value: Option<&Object>, name: &[u8], store: Store) -> bool {
     }
 }
 
-/// Where `dict` (an indirect object `r`) names the destination, through `/Dest` or a `GoTo`
-/// action under `key`.
-fn place_in(
-    doc: &laminapdf_model::Document,
-    r: ObjRef,
-    dict: &Dict,
-    key: &'static str,
-    name: &[u8],
+/// How deep `/Next` chains are followed, against a chain built to go on for ever.
+const MAX_ACTIONS: usize = 64;
+
+/// Finds every use of one name in one form.
+struct Finder<'a> {
+    doc: &'a laminapdf_model::Document,
+    name: &'a [u8],
     store: Store,
-) -> Result<Option<(ObjRef, Place)>> {
-    if key == "A" && names(dict.get("Dest"), name, store) {
-        return Ok(Some((r, Place::Dest)));
-    }
-    let is_go_to = |a: &Dict| a.get_name("S") == Some(b"GoTo") && names(a.get("D"), name, store);
-    Ok(match dict.get(key) {
-        Some(Object::Ref(a)) => doc
-            .resolve(*a)?
-            .as_dict()
-            .filter(|a| is_go_to(a))
-            .map(|_| (*a, Place::ActionD)),
-        Some(Object::Dict(a)) if is_go_to(a) => Some((r, Place::InlineAction(key))),
-        _ => None,
-    })
+    /// The indirect actions visited, so a `/Next` cycle ends.
+    seen: std::collections::BTreeSet<ObjRef>,
+    out: Vec<Use>,
 }
 
-/// The bookmarks, links and open action that name `name` in `store`'s form. Bookmarks and
-/// links stored as direct dictionaries are left out.
+impl Finder<'_> {
+    /// The uses inside `dict` (the object `r`, or a dictionary at `path` in it) through `/Dest`,
+    /// `/A` and each `/AA` trigger, for `holder`.
+    fn holder(&mut self, holder: &DestinationUse, r: ObjRef, dict: &Dict, path: &[Step], keys: &[&str]) -> Result<()> {
+        let at = |key: &str| [path, &[Step::Key(key.as_bytes().to_vec())]].concat();
+        if names(dict.get("Dest"), self.name, self.store) {
+            self.found(holder, r, at("Dest"));
+        }
+        for key in keys {
+            if let Some(action) = dict.get(key) {
+                self.action(holder, r, action, &at(key), 0)?;
+            }
+        }
+        // `/AA` holds one action per trigger, inside this object or in its own.
+        let triggers = match dict.get("AA") {
+            Some(Object::Dict(aa)) => Some((r, at("AA"), aa.clone())),
+            Some(Object::Ref(aa)) => self.doc.resolve(*aa)?.as_dict().map(|d| (*aa, Vec::new(), d.clone())),
+            _ => None,
+        };
+        if let Some((object, base, aa)) = triggers {
+            for (trigger, action) in aa.iter() {
+                let mut p = base.clone();
+                p.push(Step::Key(trigger.as_bytes().to_vec()));
+                self.action(holder, object, action, &p, 0)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// The uses in `value`, an action (or an array of them) at `path` in object `r`, and in the
+    /// actions its `/Next` runs after it.
+    fn action(
+        &mut self,
+        holder: &DestinationUse,
+        r: ObjRef,
+        value: &Object,
+        path: &[Step],
+        depth: usize,
+    ) -> Result<()> {
+        if depth > MAX_ACTIONS {
+            return Ok(());
+        }
+        match value {
+            Object::Ref(a) => {
+                if !self.seen.insert(*a) {
+                    return Ok(());
+                }
+                let resolved = self.doc.resolve(*a)?;
+                self.action(holder, *a, &resolved, &[], depth + 1)
+            }
+            Object::Array(list) => {
+                for (i, v) in list.iter().enumerate() {
+                    let mut p = path.to_vec();
+                    p.push(Step::Index(i));
+                    self.action(holder, r, v, &p, depth + 1)?;
+                }
+                Ok(())
+            }
+            Object::Dict(action) => {
+                if action.get_name("S") == Some(b"GoTo") && names(action.get("D"), self.name, self.store) {
+                    let mut p = path.to_vec();
+                    p.push(Step::Key(b"D".to_vec()));
+                    self.found(holder, r, p);
+                }
+                if let Some(next) = action.get("Next") {
+                    let mut p = path.to_vec();
+                    p.push(Step::Key(b"Next".to_vec()));
+                    self.action(holder, r, next, &p, depth + 1)?;
+                }
+                Ok(())
+            }
+            _ => Ok(()),
+        }
+    }
+
+    fn found(&mut self, holder: &DestinationUse, object: ObjRef, path: Vec<Step>) {
+        self.out.push(Use {
+            holder: holder.clone(),
+            object,
+            path,
+        });
+    }
+}
+
+/// Every place that names `name` in `store`'s form: bookmarks (`/Dest`, `/A`), annotations
+/// (`/Dest`, `/A`, `/AA`), the catalog's `/OpenAction` and `/AA`, and the actions each runs after
+/// through `/Next`. Bookmarks and annotations stored as direct dictionaries are left out.
 fn uses(doc: &laminapdf_model::Document, name: &[u8], store: Store) -> Result<Vec<Use>> {
-    let mut out = Vec::new();
+    let mut finder = Finder {
+        doc,
+        name,
+        store,
+        seen: std::collections::BTreeSet::new(),
+        out: Vec::new(),
+    };
     for item in doc.outline()?.iter() {
         let Some(id) = item.id() else { continue };
         let Some(r) = id.as_lamina_id().obj_ref() else { continue };
         let Some(dict) = doc.resolve(r)?.as_dict().cloned() else {
             continue;
         };
-        if let Some((object, place)) = place_in(doc, r, &dict, "A", name, store)? {
-            out.push(Use {
-                holder: DestinationUse::OutlineItem { item: id.clone() },
-                object,
-                place,
-            });
-        }
+        finder.holder(&DestinationUse::OutlineItem { item: id.clone() }, r, &dict, &[], &["A"])?;
     }
     let pages = doc.pages()?;
     for page in pages.iter() {
@@ -422,30 +488,16 @@ fn uses(doc: &laminapdf_model::Document, name: &[u8], store: Store) -> Result<Ve
             let Some(dict) = doc.resolve(annot)?.as_dict().cloned() else {
                 continue;
             };
-            if dict.get_name("Subtype") != Some(b"Link") {
-                continue;
-            }
-            if let Some((object, place)) = place_in(doc, annot, &dict, "A", name, store)? {
-                out.push(Use {
-                    holder: DestinationUse::Link {
-                        page: page.id().clone(),
-                        annot: AnnotId::object(annot).to_string(),
-                    },
-                    object,
-                    place,
-                });
-            }
+            let holder = DestinationUse::Annotation {
+                page: page.id().clone(),
+                annot: AnnotId::object(annot),
+            };
+            finder.holder(&holder, annot, &dict, &[], &["A"])?;
         }
     }
     if let Some(Object::Ref(root)) = doc.trailer().get("Root").cloned() {
         let catalog = doc.catalog()?;
-        if let Some((object, place)) = place_in(doc, root, &catalog, "OpenAction", name, store)? {
-            out.push(Use {
-                holder: DestinationUse::OpenAction,
-                object,
-                place,
-            });
-        }
+        finder.holder(&DestinationUse::Catalog, root, &catalog, &[], &["OpenAction"])?;
     }
-    Ok(out)
+    Ok(finder.out)
 }

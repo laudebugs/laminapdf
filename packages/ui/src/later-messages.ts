@@ -9,6 +9,9 @@
 import { type CountIds, countId, ENGLISH, fill, type MessageId } from "./messages.js";
 
 const EN = {
+  "edit.bookmarks.failed": "Couldn’t change the bookmarks. Try again.",
+  "edit.bookmarks.noPage": "No page is in view to point the bookmark at.",
+  "named.confirmDelete.none": "Links to {name}, in this file or from other files, will stop working.",
   "edit.bookmarks.start": "Edit bookmarks",
   "edit.bookmarks.done": "Done editing",
   "edit.bookmark.add": "Add bookmark",

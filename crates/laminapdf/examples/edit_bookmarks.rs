@@ -2,8 +2,9 @@
 //!
 //! A new "Summary" bookmark goes first, in bold, showing the top of the last page. The place
 //! comes from page space, as a viewer reports it, and becomes the destination the bookmark
-//! stores. The same place gets the name `summary`, a destination is renamed with every bookmark
-//! that uses it, and the "Website" bookmark moves to the end of the "Chapters" bookmark.
+//! stores. The same place gets the name `summary`, the destination `chapter-2` is renamed with
+//! every bookmark that uses it, and the "Website" bookmark moves to the end of the "Chapters"
+//! bookmark, when the file has them.
 //!
 //! ```sh
 //! cargo run -p laminapdf --example edit_bookmarks -- in.pdf [out-dir]
@@ -50,8 +51,12 @@ pub(crate) fn edit(bytes: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
     doc.apply(vec![
         Op::from(add),
         Op::from(SetNamedDestination::new("summary", summary)),
-        Op::from(RenameNamedDestination::new("chapter-2", "methods")),
     ])?;
+
+    // Rename a destination, if the file has it: bookmarks and links that use it follow.
+    if doc.named_destinations()?.iter().any(|d| d.name == "chapter-2") {
+        doc.apply(vec![Op::from(RenameNamedDestination::new("chapter-2", "methods"))])?;
+    }
 
     let outline = doc.outline()?;
     let find = |title: &str| outline.iter().find(|n| n.title == title).map(|n| n.id.clone());

@@ -13,7 +13,7 @@
 use laminapdf_cos::{CosMut, Dict, ObjRef, Object, Result};
 
 use crate::document::Document;
-use crate::edit::set_catalog_entry;
+use crate::edit::{put, set_catalog_entry};
 use crate::id::OutlineItemId;
 
 /// Where an item goes among its siblings. Positions name items, never indices, since indices
@@ -33,10 +33,11 @@ pub enum SiblingPosition {
     After(OutlineItemId),
 }
 
-/// Why an outline edit failed. Exhaustive, so the ops map every case to their own errors.
+/// Why an outline edit failed.
 ///
 /// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum OutlineTreeError {
     /// No item of the outline has this ID.
     #[error("the outline has no item with this ID")]
@@ -47,6 +48,18 @@ pub enum OutlineTreeError {
     /// A move would put an item inside itself or one of its descendants.
     #[error("an outline item can't be moved inside itself")]
     IntoItself(OutlineItemId),
+}
+
+impl OutlineTreeError {
+    /// The item the error names.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub const fn item(&self) -> &OutlineItemId {
+        match self {
+            Self::UnknownItem(id) | Self::NotASibling(id) | Self::IntoItself(id) => id,
+        }
+    }
 }
 
 /// Where an item is stored: an indirect object, or a direct dictionary that the first write
@@ -154,7 +167,8 @@ impl OutlineTree {
     }
 
     /// Whether the stored tree's links disagreed with the walk, so the next
-    /// [`OutlineTree::write`] rewrites them whole.
+    /// [`OutlineTree::write`] rewrites them whole. A wrong `/Count` alone doesn't count: the
+    /// write corrects it without a report, since many writers get it wrong harmlessly.
     ///
     /// Added in 0.2.0.
     #[must_use]
@@ -257,6 +271,8 @@ impl OutlineTree {
         {
             return Err(OutlineTreeError::IntoItself(item.clone()));
         }
+        // Check the position before taking the item out, so a refused move changes nothing.
+        self.slot_index(parent, at)?;
         let old = self.nodes.get(index).and_then(|n| n.parent);
         self.siblings_mut(old).retain(|&i| i != index);
         let slot = self.slot_index(parent, at)?;
@@ -312,7 +328,8 @@ impl OutlineTree {
     }
 
     /// Shows `item`'s children (`open`) or hides them. An item without children has no
-    /// `/Count` to hold the state, so it is kept only for when it gains some.
+    /// `/Count` to hold the state (§12.3.3), so for one the call writes nothing: the state holds
+    /// only once the item has children in the same tree.
     ///
     /// # Errors
     /// `UnknownItem`.
@@ -534,12 +551,12 @@ struct Links {
 impl Links {
     fn apply_links(self, dict: &mut Dict) {
         if !self.is_root {
-            put(dict, "Parent", self.parent);
-            put(dict, "Prev", self.prev);
-            put(dict, "Next", self.next);
+            put(dict, "Parent", self.parent.map(Object::Ref));
+            put(dict, "Prev", self.prev.map(Object::Ref));
+            put(dict, "Next", self.next.map(Object::Ref));
         }
-        put(dict, "First", self.first);
-        put(dict, "Last", self.last);
+        put(dict, "First", self.first.map(Object::Ref));
+        put(dict, "Last", self.last.map(Object::Ref));
     }
 
     /// Links and `/Count`. A leaf's stored `/Count` of 0 is left alone: it means the same as
@@ -552,15 +569,6 @@ impl Links {
             None => {
                 dict.remove("Count");
             }
-        }
-    }
-}
-
-fn put(dict: &mut Dict, key: &str, value: Option<ObjRef>) {
-    match value {
-        Some(r) => dict.insert(key, Object::Ref(r)),
-        None => {
-            dict.remove(key);
         }
     }
 }
