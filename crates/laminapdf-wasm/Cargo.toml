@@ -32,7 +32,7 @@ extract = ["laminapdf/extract"]
 reflow = ["extract", "laminapdf/reflow"]
 
 [dependencies]
-laminapdf = { workspace = true }
+laminapdf = { workspace = true, features = ["page-checks"] }
 laminapdf-ops = { workspace = true, features = ["tsify"] }
 laminapdf-source = { workspace = true }
 js-sys = { workspace = true }

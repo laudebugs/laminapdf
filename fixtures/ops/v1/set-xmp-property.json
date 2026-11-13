@@ -1,0 +1,9 @@
+{
+  "op": "setXmpProperty",
+  "args": {
+    "namespace": "http://example.com/acme/",
+    "prefix": "acme",
+    "name": "reviewers",
+    "value": { "type": "seq", "value": [{ "type": "text", "value": "Ada Lovelace" }, { "type": "text", "value": "Charles Babbage" }] }
+  }
+}

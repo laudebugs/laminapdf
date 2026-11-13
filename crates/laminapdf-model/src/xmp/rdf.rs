@@ -5,6 +5,7 @@
 use std::ops::Range;
 
 use super::ParseError;
+use super::extension::{self, Extensions, PDFA_EXTENSION};
 use super::mapping::{ADOBE_META, RDF, XML};
 use super::tree::{Binding, Element, Node, Scope};
 
@@ -128,6 +129,8 @@ pub(super) struct Rdf {
     pub(super) scope: Scope,
     /// `rdf:RDF`'s children other than descriptions (typed nodes, comments), as written.
     pub(super) others: Vec<Range<usize>>,
+    /// The PDF/A extension schemas the packet declares (the first `pdfaExtension:schemas`).
+    pub(super) extensions: Option<Extensions>,
 }
 
 /// Finds `rdf:RDF` (inside `x:xmpmeta` or at the top) and reads its descriptions.
@@ -202,6 +205,9 @@ fn description(text: &str, e: &Element, outer: &Scope, out: &mut Rdf) {
             };
             if indent.is_none() {
                 indent = Some(line_indent(text, child.span.start));
+            }
+            if out.extensions.is_none() && child.name.is(PDFA_EXTENSION, "schemas") {
+                out.extensions = Some(extension::read(text, child, &scope));
             }
             out.properties.push(Located {
                 property: RdfProperty {

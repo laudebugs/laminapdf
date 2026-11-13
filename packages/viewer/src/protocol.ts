@@ -27,6 +27,7 @@ import type {
   SaveReport,
   StructureNode,
   Target,
+  XmpText,
 } from "@laminapdf/sdk";
 import type { FindOptions } from "./find/fold.js";
 import type { FindSnippet } from "./find/page.js";
@@ -217,6 +218,8 @@ export interface Methods {
   editHistory: { params: [document: number]; result: EditHistory };
   /** Document `document`'s metadata as its edits leave it. */
   metadata: { params: [document: number]; result: DocumentMetadata };
+  /** Document `document`'s XMP metadata as text, as its edits leave it. */
+  xmpPacket: { params: [document: number]; result: XmpText };
   planSave: { params: [options: SaveOptions, document: number]; result: PlannedSave };
   copyEdits: { params: [options: SaveOptions, document: number]; result: SavedCopy };
   adoptEdits: { params: [token: number, document: number]; result: EditHistory };

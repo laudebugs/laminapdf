@@ -1,4 +1,4 @@
-//! Saving the metadata ops (E1 plan §2, §7): each op's verdict on the signed fixtures, the
+//! Saving the metadata ops (E1 plan §2, §7) and the XMP ops (E3 plan §2.1): each op's verdict on the signed fixtures, the
 //! save-time stamp and when it is left out, undo, determinism and the conformance warnings.
 #![allow(
     clippy::unwrap_used,
@@ -12,11 +12,11 @@ mod common;
 use common::classic_with_root;
 use common::fixture;
 use common::save::editable;
-use laminapdf_model::xmp::{Packet, PacketState};
+use laminapdf_model::xmp::{Packet, PacketState, XmpValue};
 use laminapdf_model::{PdfDate, Rotation};
 use laminapdf_ops::{
     ConformanceWarning, Document, MetadataKey, MetadataPatch, ModificationClass, Op, Origin, RemoveMetadata,
-    RotatePage, SetMetadata, UpdateSaveMetadata,
+    RemoveXmpProperty, ReplaceXmpPacket, RotatePage, SetMetadata, SetXmpProperty, UpdateSaveMetadata,
 };
 use laminapdf_save::{
     ConstraintKind, DocMdpPermission, MetadataUpdate, Restriction, Save, SaveMode, SaveOptions, SavePlanner,
@@ -30,10 +30,19 @@ fn date(s: &str) -> PdfDate {
     s.parse().unwrap()
 }
 
-fn the_metadata_ops() -> [Op; 3] {
+const ACME: &str = "http://example.com/acme/";
+
+/// Every op of class `Metadata`, the save-time stamp last.
+fn the_metadata_ops() -> [Op; 6] {
     [
         SetMetadata::new(MetadataPatch::new().title(Some("Changed")), None).into(),
         RemoveMetadata::new(vec![MetadataKey::Producer]).into(),
+        SetXmpProperty::new(ACME, "acme", "batch", XmpValue::Integer(7)).into(),
+        RemoveXmpProperty::new("http://ns.adobe.com/pdf/1.3/", "Producer").into(),
+        ReplaceXmpPacket::new(
+            r#"<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:acme="http://example.com/acme/" acme:batch="8"/></rdf:RDF></x:xmpmeta>"#,
+        )
+        .into(),
         UpdateSaveMetadata::new(Some(date("D:20261110093000Z")), "uuid:x".to_owned()).into(),
     ]
 }
@@ -77,11 +86,11 @@ mod would_violate {
     use super::*;
 
     fn none() -> (ConstraintKind, Vec<Vec<Restriction>>) {
-        (ConstraintKind::AppendOnly, vec![Vec::new(), Vec::new(), Vec::new()])
+        (ConstraintKind::AppendOnly, vec![Vec::new(); 6])
     }
 
     fn every_op(restriction: Restriction) -> (ConstraintKind, Vec<Vec<Restriction>>) {
-        (ConstraintKind::AppendOnly, vec![vec![restriction]; 3])
+        (ConstraintKind::AppendOnly, vec![vec![restriction]; 6])
     }
 
     #[test]
@@ -322,7 +331,7 @@ mod undo_and_determinism {
     #[test]
     fn each_edit_undone_saves_byte_identical_to_the_original() {
         let base = fixture("golden/metadata.pdf");
-        for op in the_metadata_ops().into_iter().take(2) {
+        for op in the_metadata_ops().into_iter().take(5) {
             let mut doc = editable(&base);
             doc.apply_all(Origin::Local, [op]).unwrap();
             doc.undo().unwrap();

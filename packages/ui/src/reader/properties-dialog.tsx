@@ -30,6 +30,8 @@ import {
   type MetadataForm,
   removalStaysInEarlierVersions,
 } from "./properties-form.js";
+import { XmpEditor, type XmpEdits, type XmpPacketData } from "./xmp-editor.js";
+import { type XmpChange, xmpRemovalStays } from "./xmp-model.js";
 
 /** What the dialog shows: the properties once read, or that they are being read or couldn't be. */
 export type PropertiesState =
@@ -49,11 +51,18 @@ export interface PropertiesEditing {
   readonly metadata: MetadataState;
   /** Whether a save rewrites the whole file, so a removed value leaves no earlier version behind. */
   readonly rewritesWhole: boolean;
+  /** The XMP metadata as text, for the XMP tab; the tab waits while it is undefined. */
+  readonly xmp?: XmpPacketData | undefined;
   /**
-   * Apply: `change` as one edit (`replaceMalformed` when the XMP metadata can't be read). Resolves
-   * once applied, and the dialog closes; rejects when it couldn't be, and the dialog says so.
+   * Apply: the XMP tab's `xmp` changes, then the Description tab's `change`, as one edit
+   * (`replaceMalformed` when the XMP metadata can't be read). Resolves once applied, and the
+   * dialog closes; rejects when it couldn't be, and the dialog says so.
    */
-  readonly onApply: (change: MetadataChange, options: { readonly replaceMalformed: boolean }) => Promise<void>;
+  readonly onApply: (
+    change: MetadataChange | undefined,
+    xmp: readonly XmpChange[],
+    options: { readonly replaceMalformed: boolean },
+  ) => Promise<void>;
 }
 
 /** Props of `PropertiesDialog`. */
@@ -184,7 +193,9 @@ function Facts({
   );
 }
 
-type Tab = "description" | "file";
+type Tab = "description" | "xmp" | "file";
+
+const NO_XMP_EDITS: XmpEdits = { changes: [], valid: true };
 
 /**
  * The editable dialog's state: the form, with the metadata it started from (new metadata, when
@@ -197,19 +208,22 @@ function useMetadataForm(editing: PropertiesEditing, onClose: () => void) {
   const [held, setHeld] = useState<{ from: DocumentMetadataData; form: MetadataForm } | undefined>();
   const [applying, setApplying] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [xmp, setXmp] = useState<XmpEdits>(NO_XMP_EDITS);
   const form = metadata === undefined ? undefined : held?.from === metadata ? held.form : formFrom(metadata);
   const change = metadata === undefined || form === undefined ? undefined : changeOf(metadata, form);
+  const canApply = (change !== undefined || xmp.changes.length > 0) && xmp.valid && !applying;
   const close = () => {
     setHeld(undefined);
     setFailed(false);
+    setXmp(NO_XMP_EDITS);
     setTab("description");
     onClose();
   };
   const apply = () => {
-    if (metadata === undefined || change === undefined) return;
+    if (metadata === undefined || !canApply) return;
     setApplying(true);
     setFailed(false);
-    editing.onApply(change, { replaceMalformed: metadata.packet === "malformed" }).then(
+    editing.onApply(change, xmp.changes, { replaceMalformed: metadata.packet === "malformed" }).then(
       () => {
         setApplying(false);
         close();
@@ -223,7 +237,7 @@ function useMetadataForm(editing: PropertiesEditing, onClose: () => void) {
   const setForm = (next: MetadataForm) => {
     if (metadata !== undefined) setHeld({ from: metadata, form: next });
   };
-  return { metadata, form, change, tab, setTab, applying, failed, close, apply, setForm };
+  return { metadata, form, change, canApply, xmp, setXmp, tab, setTab, failed, close, apply, setForm };
 }
 
 /** The editable dialog's footer: Remove metadata… (or Copy all on the File tab), Cancel and Apply. */
@@ -264,7 +278,7 @@ function EditableDialog(props: PropertiesDialogProps & { editing: PropertiesEdit
       <Button variant="danger" isDisabled={!removable} onPress={() => setRemoving(true)}>
         {laterMessage("properties.edit.removeMetadata")}
       </Button>
-    ) : state.status === "ready" ? (
+    ) : edit.tab === "file" && state.status === "ready" ? (
       <Button variant="ghost" onPress={() => onCopy(propertiesText(state.properties, context))}>
         {laterMessage("properties.copyAll")}
       </Button>
@@ -275,23 +289,17 @@ function EditableDialog(props: PropertiesDialogProps & { editing: PropertiesEdit
       onOpenChange={(open) => {
         if (!open) edit.close();
       }}
-      size="form"
+      size={edit.tab === "xmp" ? "wide" : "form"}
       title={laterMessage("properties.dialog.title")}
       description={fileName}
       closeLabel={laterMessage("properties.close")}
-      actions={
-        <EditFooter
-          start={start}
-          canApply={edit.change !== undefined && !edit.applying}
-          onCancel={edit.close}
-          onApply={edit.apply}
-        />
-      }
+      actions={<EditFooter start={start} canApply={edit.canApply} onCancel={edit.close} onApply={edit.apply} />}
     >
       <SegmentedTabs
         aria-label={laterMessage("properties.dialog.title")}
         tabs={[
           { id: "description", label: laterMessage("properties.tab.description") },
+          { id: "xmp", label: laterMessage("properties.tab.xmp") },
           { id: "file", label: laterMessage("properties.tab.file") },
         ]}
         selectedKey={edit.tab}
@@ -310,6 +318,20 @@ function EditableDialog(props: PropertiesDialogProps & { editing: PropertiesEdit
             <p className="paper-properties-empty">
               {laterMessage(editing.metadata.status === "failed" ? "properties.failed" : "properties.loading")}
             </p>
+          )}
+        </TabPanel>
+        <TabPanel id="xmp">
+          {edit.failed ? <Notice tone="danger" title={laterMessage("properties.edit.failed")} /> : null}
+          {editing.xmp === undefined ? (
+            <p className="paper-properties-empty">{laterMessage("properties.loading")}</p>
+          ) : (
+            <XmpEditor
+              removalStays={xmpRemovalStays(edit.xmp.changes, editing.rewritesWhole)}
+              packet={editing.xmp}
+              edits={edit.xmp}
+              onEdits={edit.setXmp}
+              onDescription={() => edit.setTab("description")}
+            />
           )}
         </TabPanel>
         <TabPanel id="file">

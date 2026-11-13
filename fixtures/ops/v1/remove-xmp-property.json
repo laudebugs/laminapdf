@@ -1,0 +1,1 @@
+{ "op": "removeXmpProperty", "args": { "namespace": "http://example.com/acme/", "name": "reviewers" } }

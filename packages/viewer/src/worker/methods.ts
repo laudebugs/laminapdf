@@ -23,6 +23,7 @@ import {
   goToStep,
   planSave,
   readMetadata,
+  readXmpPacket,
   restoreEdits,
   stepEdit,
 } from "./edit.js";
@@ -66,6 +67,7 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
     run: ([id]) => editHistory(id as number),
   },
   metadata: { run: ([id], { signal }) => readMetadata(id as number, signal) },
+  xmpPacket: { run: ([id], { signal }) => readXmpPacket(id as number, signal) },
   planSave: {
     run: ([options, id], { signal }) => planSave(options as SaveOptions, id as number, signal),
   },

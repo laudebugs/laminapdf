@@ -39,6 +39,18 @@ ts = "packages/sdk/examples/set-initial-view.ts"
 rust = "crates/laminapdf/examples/set_initial_view.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/duplicate-pages.ts"
+rust = "crates/laminapdf/examples/duplicate_pages.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/edit-xmp.ts"
+rust = "crates/laminapdf/examples/edit_xmp.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/organise-pages.ts"
+rust = "crates/laminapdf/examples/organise_pages.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/page-labels.ts"
 rust = "crates/laminapdf/examples/page_labels.rs"
 

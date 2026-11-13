@@ -7,6 +7,8 @@
 //   metadata gets it;
 // - values removed with Remove metadata… leave both, with the notice that earlier versions keep
 //   them;
+// - on the XMP tab, a property added and another's value changed, saved, and read back by Lamina
+//   PDF's SDK and by pdf.js; in a PDF/A file, the added property declared in the extension schemas;
 // - a PDF/UA file's title emptied shows the warning under the title;
 // - axe finds no serious violation on the dialog or the page;
 // - the page at /capabilities, its search, and Back to the open document.
@@ -226,6 +228,37 @@ describe(`document properties in ${BROWSER}`, () => {
     await clean(watched);
   });
 
+  it("[cap J.04 web round-trip] adds an XMP property and changes another on the XMP tab", async () => {
+    const watched = await opened("examples/edit_xmp.pdf");
+    const { page } = watched;
+    const dialog = await properties(page);
+    await dialog.getByRole("tab", { name: "XMP" }).click();
+    const tree = dialog.getByRole("treegrid", { name: "XMP properties" });
+    await tree.getByRole("row", { name: /^status/ }).click();
+    await dialog.getByLabel("Value").fill("Published");
+    await dialog.getByRole("button", { name: "Add property…" }).click();
+    await dialog.getByLabel("Namespace URI").fill("https://example.com/ns/review/1.0/");
+    await dialog.getByLabel("Prefix").fill("review");
+    await dialog.getByLabel("Name", { exact: true }).fill("approvedOn");
+    await dialog.getByLabel("Type").selectOption("date");
+    await dialog.getByLabel("Value").fill("2026-11-12");
+    await dialog.getByRole("button", { name: "Add", exact: true }).click();
+    await expect.poll(() => dialog.getByText("2 properties changed").count()).toBe(1);
+    const saved = await applyAndSave(page);
+
+    using doc = Document.open(saved);
+    const xml = doc.xmpPacket().xml ?? "";
+    expect([
+      xml.includes("<review:status>Published</review:status>"),
+      xml.includes("<review:approvedOn>2026-11-12"),
+    ]).toEqual([true, true]);
+    // The file claims PDF/A-2b: the new property is declared beside the example's three.
+    expect(xml.includes("<pdfaProperty:name>approvedOn</pdfaProperty:name>")).toBe(true);
+    const { xmp } = await pdfjs(saved);
+    expect(xmp["review:status"]).toBe("Published");
+    await clean(watched);
+  });
+
   it("warns under the title when a PDF/UA file's title is emptied, and Cancel changes nothing", async () => {
     const watched = await opened("examples/pdf_ua_report.pdf");
     const { page } = watched;
@@ -238,7 +271,7 @@ describe(`document properties in ${BROWSER}`, () => {
     await clean(watched);
   });
 
-  it("passes axe on the dialog, the removal list and the capability page", async () => {
+  it("passes axe on the dialog, the removal list, the XMP tab and the capability page", async () => {
     const watched = await opened("metadata.pdf", { axe: true });
     const { page } = watched;
     const dialog = await properties(page);
@@ -247,6 +280,9 @@ describe(`document properties in ${BROWSER}`, () => {
     await page.getByRole("dialog", { name: "Remove metadata" }).getByRole("checkbox").first().waitFor();
     problems.push(...(await serious(page)));
     await page.keyboard.press("Escape");
+    await dialog.getByRole("tab", { name: "XMP" }).click();
+    await dialog.getByRole("treegrid", { name: "XMP properties" }).getByRole("row").nth(1).click();
+    problems.push(...(await serious(page)));
     await page.keyboard.press("Escape");
     await dialog.waitFor({ state: "detached" });
     await more(page, "What Lamina PDF can do");

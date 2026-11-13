@@ -1,5 +1,23 @@
 {
   "examples": {
+    "duplicate_pages": {
+      "sha256": "5920e53b512d93aacd78406e3772eb25a929d510b3a443cb18cc0b6a04a40347",
+      "bytes": 3072,
+      "pages": [
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        }
+      ]
+    },
     "edit_metadata": {
       "sha256": "a6169a6dbc5a42136a03865ec8a00155a225b9cec01721fab7f6322c38e31ec6",
       "bytes": 6822,
@@ -13,6 +31,16 @@
     "edit_metadata-pdfa": {
       "sha256": "0194815e561520b5e1df07ee228f7d05310e4ef3add2d9f6863fe960ec96b614",
       "bytes": 19506,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
+    "edit_xmp": {
+      "sha256": "e5b7fb93aaf2891c0070fc4f4aefd3b6a2daefbd32b62018d3210095e8b293ec",
+      "bytes": 17973,
       "pages": [
         {
           "width": 1190,
@@ -229,6 +257,32 @@
         {
           "width": 1190,
           "height": 1683
+        }
+      ]
+    },
+    "organise_pages": {
+      "sha256": "d36bcaa2f5b53ddc85c54475ba5c6babe8fdbf5b20ba16dcb27b6dbe5b9c9e7e",
+      "bytes": 6638,
+      "pages": [
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1584,
+          "height": 1224
+        },
+        {
+          "width": 1584,
+          "height": 1224
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
         }
       ]
     },

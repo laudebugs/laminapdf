@@ -338,8 +338,9 @@ pub(crate) fn report(verdicts: &[Verdict]) -> Report {
 /// The profiles each lamina example that claims one must claim, by file name, as
 /// [`flavours`] spells them. An example that lost its identification would otherwise be
 /// skipped rather than fail.
-const EXPECTED: [(&str, &[&str]); 5] = [
+const EXPECTED: [(&str, &[&str]); 6] = [
     ("edit_metadata-pdfa.pdf", &["2u", "ua1"]),
+    ("edit_xmp.pdf", &["2b"]),
     ("pdf_a3_invoice_with_xml.pdf", &["3b"]),
     ("pdf_a_archive-2b.pdf", &["2b"]),
     ("pdf_a_archive-2u.pdf", &["2u", "ua1"]),
@@ -557,7 +558,9 @@ mod tests {
     #[test]
     fn an_example_that_lost_its_identification_is_reported() {
         let mut lost = EXPECTED;
-        lost[4] = ("pdf_ua_report.pdf", &[]);
+        if let Some(entry) = lost.iter_mut().find(|(name, _)| *name == "pdf_ua_report.pdf") {
+            *entry = ("pdf_ua_report.pdf", &[]);
+        }
         assert_eq!(
             unexpected_claims(&claims(&lost)),
             [r#"pdf_ua_report.pdf claims [], expected ["ua1"]"#]

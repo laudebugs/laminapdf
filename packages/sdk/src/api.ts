@@ -97,7 +97,19 @@ export { callbackSource } from "./source/range.js";
 export type { GlyphQuad, QuadPoint, TextGlyph, TextOptions as PageTextOptions } from "./text.js";
 export { PageText, PageTextRun } from "./text.js";
 export type { InfoPatch, Rotation } from "./transaction.js";
-export { type MetadataEditOptions, type MetadataRemoveOptions, Transaction } from "./transaction.js";
+export {
+  type DeletePagesOptions,
+  type InsertBlankPagesOptions,
+  type MetadataEditOptions,
+  type MetadataRemoveOptions,
+  type PagePosition,
+  type PageSize,
+  type ReferencePolicy,
+  type RotateMode,
+  type RotatePagesOptions,
+  Transaction,
+  type XmpEditOptions,
+} from "./transaction.js";
 export type {
   AfRelationship,
   Align,
@@ -111,6 +123,8 @@ export type {
   DocumentMetadata,
   DocumentProperties,
   Edited,
+  ExtensionProperty,
+  FieldEdit,
   Fit,
   InitialView,
   InitialViewPatch,
@@ -137,6 +151,7 @@ export type {
   Profile,
   Progress,
   Rect,
+  ReferenceEdit,
   RenderMode,
   Reverted,
   SaveOptions,
@@ -150,4 +165,7 @@ export type {
   UndoOutcome,
   ViewerPreferences,
   Violation,
+  XmpLangText,
+  XmpText,
+  XmpValue,
 } from "./types.js";

@@ -89,6 +89,11 @@ fn ops(e: &laminapdf_ops::Error) -> Data {
         E::Cos(e) => cos(e),
         E::UnsupportedVersion(version) => data([("version", json!(version))]),
         E::InvalidLog(detail) => data([("detail", json!(detail))]),
+        E::InvalidXmpPacket(e) => match e.offset() {
+            Some(offset) => data([("reason", json!(e.reason())), ("offset", json!(offset))]),
+            None => data([("reason", json!(e.reason()))]),
+        },
+        E::InvalidXmpProperty { reason } => data([("reason", json!(reason))]),
         E::InvalidLabelRanges { what } => data([("what", json!(what))]),
         _ => Data::new(),
     }

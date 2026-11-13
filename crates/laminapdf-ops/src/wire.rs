@@ -143,6 +143,96 @@ pub(crate) const fn is_false(flag: &bool) -> bool {
     !*flag
 }
 
+/// A [`PagePosition`](laminapdf_model::PagePosition) on the wire: `"start"`, `"end"`,
+/// `{ "before": "p12.0" }` or `{ "after": "p12.0" }` (E2 plan §2.1: positions name pages,
+/// never indices).
+pub(crate) mod position {
+    use laminapdf_model::{PageId, PagePosition};
+    use serde::{Deserialize, Serialize};
+
+    use super::{Deserializer, Serializer, de};
+
+    #[derive(Serialize, Deserialize)]
+    #[serde(rename_all = "camelCase", deny_unknown_fields)]
+    enum Wire {
+        Start,
+        End,
+        Before(#[serde(with = "super::page_id")] PageId),
+        After(#[serde(with = "super::page_id")] PageId),
+    }
+
+    pub(crate) fn serialize<S: Serializer>(at: &PagePosition, s: S) -> Result<S::Ok, S::Error> {
+        let wire = match at {
+            PagePosition::Start => Wire::Start,
+            PagePosition::End => Wire::End,
+            PagePosition::Before(id) => Wire::Before(id.clone()),
+            PagePosition::After(id) => Wire::After(id.clone()),
+            _ => return Err(serde::ser::Error::custom("a page position this version can't write")),
+        };
+        wire.serialize(s)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<PagePosition, D::Error> {
+        Ok(match Wire::deserialize(d).map_err(de::Error::custom)? {
+            Wire::Start => PagePosition::Start,
+            Wire::End => PagePosition::End,
+            Wire::Before(id) => PagePosition::Before(id),
+            Wire::After(id) => PagePosition::After(id),
+        })
+    }
+}
+
+/// A list of [`PageId`](laminapdf_model::PageId)s as their string forms.
+pub(crate) mod page_ids {
+    use laminapdf_model::PageId;
+    use serde::{Deserialize, Serializer, ser::SerializeSeq};
+
+    use super::{Deserializer, de};
+
+    pub(crate) fn serialize<S: Serializer>(ids: &[PageId], s: S) -> Result<S::Ok, S::Error> {
+        let mut seq = s.serialize_seq(Some(ids.len()))?;
+        for id in ids {
+            seq.serialize_element(&id.to_string())?;
+        }
+        seq.end()
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<PageId>, D::Error> {
+        Vec::<String>::deserialize(d)?
+            .into_iter()
+            .map(|s| s.parse().map_err(de::Error::custom))
+            .collect()
+    }
+}
+
+/// A [`PageSize`](laminapdf_model::PageSize) as `{ "width": …, "height": … }` in points.
+pub(crate) mod page_size {
+    use laminapdf_model::{PageSize, Pt};
+    use serde::{Deserialize, Serialize};
+
+    use super::{Deserializer, Serializer};
+
+    #[derive(Serialize, Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Wire {
+        width: f64,
+        height: f64,
+    }
+
+    pub(crate) fn serialize<S: Serializer>(size: &PageSize, s: S) -> Result<S::Ok, S::Error> {
+        Wire {
+            width: size.width.get(),
+            height: size.height.get(),
+        }
+        .serialize(s)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<PageSize, D::Error> {
+        let w = Wire::deserialize(d)?;
+        Ok(PageSize::new(Pt::new(w.width), Pt::new(w.height)))
+    }
+}
+
 /// An optional [`LabelStyle`](laminapdf_model::LabelStyle) by name: `decimal`, `upperRoman`,
 /// `lowerRoman`, `upperLetters` or `lowerLetters` (`null` or no value: no style). The names are
 /// listed once, in [`label_style::NAMES`]; `PageLabelRange::style`'s TypeScript type spells them
@@ -185,5 +275,89 @@ pub(crate) mod label_style {
             .find(|(_, n)| *n == name)
             .map(|(style, _)| Some(*style))
             .ok_or_else(|| D::Error::unknown_variant(&name, &EXPECTED))
+    }
+}
+
+/// An [`XmpValue`](laminapdf_model::xmp::XmpValue) as `{ "type": …, "value": … }`: `text`,
+/// `uri`, `integer`, `real` (finite), `boolean`, `date` (a PDF date string), `langAlt` (a list
+/// of `{ "lang", "text" }`), `seq` and `bag` (lists of values).
+pub(crate) mod xmp_value {
+    use laminapdf_model::xmp::{LangText, XmpReal, XmpValue as Value};
+    use serde::{Deserialize, Serialize};
+
+    use super::{Deserializer, Serializer, de};
+
+    /// The wire form, under the name TypeScript gives it.
+    #[derive(Serialize, Deserialize)]
+    #[serde(tag = "type", content = "value", rename_all = "camelCase")]
+    #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+    pub(crate) enum XmpValue {
+        Text(String),
+        Uri(String),
+        Integer(i64),
+        Real(f64),
+        Boolean(bool),
+        Date(String),
+        LangAlt(Vec<XmpLangText>),
+        Seq(Vec<XmpValue>),
+        Bag(Vec<XmpValue>),
+    }
+
+    /// One entry of a language alternative, under the name TypeScript gives it.
+    #[derive(Serialize, Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+    pub(crate) struct XmpLangText {
+        lang: String,
+        text: String,
+    }
+
+    fn to_wire(value: &Value) -> Result<XmpValue, &'static str> {
+        Ok(match value {
+            Value::Text(s) => XmpValue::Text(s.clone()),
+            Value::Uri(s) => XmpValue::Uri(s.clone()),
+            Value::Integer(n) => XmpValue::Integer(*n),
+            Value::Real(r) => XmpValue::Real(r.get()),
+            Value::Boolean(b) => XmpValue::Boolean(*b),
+            Value::Date(d) => XmpValue::Date(d.to_string()),
+            Value::LangAlt(entries) => XmpValue::LangAlt(
+                entries
+                    .iter()
+                    .map(|e| XmpLangText {
+                        lang: e.lang.clone(),
+                        text: e.text.clone(),
+                    })
+                    .collect(),
+            ),
+            Value::Seq(items) => XmpValue::Seq(items.iter().map(to_wire).collect::<Result<_, _>>()?),
+            Value::Bag(items) => XmpValue::Bag(items.iter().map(to_wire).collect::<Result<_, _>>()?),
+            // A later kind of value has no wire form yet: refuse rather than write another value.
+            _ => return Err("this kind of XMP value has no wire form"),
+        })
+    }
+
+    fn from_wire(wire: XmpValue) -> Result<Value, String> {
+        let list = |items: Vec<XmpValue>| items.into_iter().map(from_wire).collect::<Result<Vec<_>, _>>();
+        Ok(match wire {
+            XmpValue::Text(s) => Value::Text(s),
+            XmpValue::Uri(s) => Value::Uri(s),
+            XmpValue::Integer(n) => Value::Integer(n),
+            XmpValue::Real(r) => Value::Real(XmpReal::new(r).ok_or("a real must be finite")?),
+            XmpValue::Boolean(b) => Value::Boolean(b),
+            XmpValue::Date(s) => Value::Date(s.parse().map_err(|_| "a date must be a PDF date string")?),
+            XmpValue::LangAlt(entries) => {
+                Value::LangAlt(entries.into_iter().map(|e| LangText::new(e.lang, e.text)).collect())
+            }
+            XmpValue::Seq(items) => Value::Seq(list(items)?),
+            XmpValue::Bag(items) => Value::Bag(list(items)?),
+        })
+    }
+
+    pub(crate) fn serialize<S: Serializer>(value: &Value, s: S) -> Result<S::Ok, S::Error> {
+        to_wire(value).map_err(serde::ser::Error::custom)?.serialize(s)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Value, D::Error> {
+        from_wire(XmpValue::deserialize(d)?).map_err(de::Error::custom)
     }
 }

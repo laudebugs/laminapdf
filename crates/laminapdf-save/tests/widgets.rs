@@ -2,7 +2,7 @@
 //! a page op that deletes or reshows the widget of a signed signature field, or of a field a
 //! `FieldMDP` lock covers, breaks the signature's restriction; moving the page breaks nothing.
 //! The ops are stood in for by `laminapdf_ops::test_support::Declared`, which declares the
-//! widgets it touches around a real rotation.
+//! widgets it touches around an edit that touches none (a blank page added at the end).
 #![allow(
     clippy::unwrap_used,
     clippy::panic,
@@ -15,9 +15,9 @@ mod common;
 
 use common::fixture;
 use common::save::{editable, page_ids};
-use laminapdf_model::{FieldId, PageId, Rotation};
+use laminapdf_model::{FieldId, PageId, PagePosition, PageSize};
 use laminapdf_ops::test_support::Declared;
-use laminapdf_ops::{Document, ModificationClass, Op, Origin, PageChange, RotatePage, WidgetChange};
+use laminapdf_ops::{Document, InsertBlankPages, ModificationClass, Op, Origin, PageChange, WidgetChange};
 use laminapdf_save::{ConstraintKind, Restriction, Save, SaveOptions, SavePlanner, Violation};
 
 fn signed(name: &str) -> Document {
@@ -31,10 +31,11 @@ fn sig1(doc: &Document) -> (FieldId, PageId) {
     (field, page_ids(doc).remove(0))
 }
 
-/// A rotation of `page` that declares `field`'s widget changed by `change`.
+/// A blank page added at the end (an edit that touches no widget itself) that declares
+/// `field`'s widget on `page` changed by `change`.
 fn declared(page: &PageId, field: &FieldId, change: WidgetChange) -> Op {
     Declared::new(
-        RotatePage::new(page.clone(), Rotation::Half),
+        InsertBlankPages::new(PagePosition::End, 1, PageSize::LETTER),
         vec![(field.clone(), change)],
         vec![PageChange::new(page.clone(), change)],
     )
