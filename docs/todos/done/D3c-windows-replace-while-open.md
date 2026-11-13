@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `D3c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §6 D3](../../plans/desktop-app.md#d3-files) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D3b](../done/D3b-recent-files-and-file-watching.md) |
+| Depends on | [D3b](./D3b-recent-files-and-file-watching.md) |
 | ADRs | Amends [ADR 0008 §2 and §11](../../decisions/0008-desktop-shell.md#11-recent-files-and-files-that-change-on-disk) |
 | Branch | `fix/d3c-windows-replace-while-open` |
 | PR title | `fix(desktop): let Windows apps replace a PDF that is open in Lamina PDF` |
@@ -43,14 +43,14 @@ On Windows, an app that saves by renaming a new file over the old one with `Move
 
 ## Acceptance criteria
 
-- [ ] On Windows, a `MoveFileEx(MOVEFILE_REPLACE_EXISTING)` replace of an open document succeeds, and the window reloads it (e2e, through Node's `renameSync`).
-- [ ] A read after the file was replaced never returns the new file's bytes for the old document (unit test).
-- [ ] First page and scroll times on Windows within 10 % of today's, or the difference recorded with the choice.
+- [x] On Windows, a `MoveFileEx(MOVEFILE_REPLACE_EXISTING)` replace of an open document succeeds, and the window reloads it (e2e, through Node's `renameSync`): the watch scenario passes on the full lane's Windows leg.
+- [x] A read after the file was replaced never returns the new file's bytes for the old document (unit test): `a_reopening_source_should_refuse_a_file_replaced_since_it_opened`, run on every OS.
+- [x] First page and scroll times on Windows within 10 % of today's, or the difference recorded with the choice: about 20 µs per read, 83 ms over the 1 GB fixture's opening reads and 21 ms over 1,000 spread reads, against first pages of 1.4–2.1 s on the same runners (ADR 0008 §11).
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
 - [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

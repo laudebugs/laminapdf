@@ -104,7 +104,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   │                    #     builds only (D2c)
 │   ├── laminapdf-desktop-os/  # edge, unpublished: the desktop main process's calls into the OS's shell (D3b): the recent
 │   │                    #     documents (macOS NSDocumentController, Windows SHAddToRecentDocs and the Jump List of the
-│   │                    #     AppUserModelID set at start-up, Linux GTK RecentManager), on the main thread
+│   │                    #     AppUserModelID set at start-up, Linux GTK RecentManager), on the main thread; file_identity
+│   │                    #     (D3c: the file an open handle reads, volume and file ID or device and inode; example reopen_cost)
 │   ├── laminapdf-render-wasm/  # edge: wasm-bindgen bindings of the hayro adapter (flat numbers and bytes), built by
 │                        #     `cargo xtask wasm` as lamina_pdf_render_hayro into @laminapdf/wasm (C2c)
 │   └── laminapdf-test-fixtures/  # dev, unpublished: the Rust test helpers that crates share (fixtures_dir, fixture, corpus,
@@ -289,7 +290,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   feature `e2e`), startup.rs (feature `e2e`: the cold-start marks, logged by the first
 │                        #   `app_info`), engine/ (D2b: Engines = one supervised engine per window, engine://restarted and
 │                        #   engine://failed to that window; documents.rs DocumentRegistry, a window reads only its own docs;
-│                        #   bytesource.rs FileSource, positioned reads, no mmap; secret.rs SessionPassword, locked and wiped),
+│                        #   bytesource.rs FileSource, positioned reads, no mmap, on Windows the path reopened for each read and checked (D3c); secret.rs SessionPassword, locked and wiped),
 │                        #   open.rs (D3a: the OS's opens (argv, single-instance, macOS RunEvent::Opened, drops) through
 │                        #   route_open, queued in PendingOpens until the webview's take_pending_opens; open://document,
 │                        #   open://drag-enter|leave, open://refused), linux/laminapdf.desktop (Exec with %F),

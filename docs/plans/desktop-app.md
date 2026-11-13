@@ -113,7 +113,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D3. Files
 
-**Todos:** [D3a](../todos/done/D3a-open-from-os.md), [D3b](../todos/done/D3b-recent-files-and-file-watching.md), [D3c](../todos/ongoing/D3c-windows-replace-while-open.md)
+**Todos:** [D3a](../todos/done/D3a-open-from-os.md), [D3b](../todos/done/D3b-recent-files-and-file-watching.md), [D3c](../todos/done/D3c-windows-replace-while-open.md)
 
 **Deliverable:** file associations, argv and `RunEvent::Opened`, single-instance forwarding, recent files (OS and in-app), file watching with reload, drag-drop onto window and icon.
 **Accepted when:** double-clicking a PDF opens it in the running instance on each OS; editing the file externally reloads it keeping the page position.
@@ -197,7 +197,7 @@ Ticked by the PR that completes them.
 - [x] Recent files: OS recent documents and an in-app list with "clear" ([D3b](../todos/done/D3b-recent-files-and-file-watching.md); ADR 0008 §11)
 - [x] Watch open files and reload preserving position ([D3b](../todos/done/D3b-recent-files-and-file-watching.md): the folder watched, a change reloaded once it settles)
 - [x] Integration tests for open-from-OS on each platform ([D3a](../todos/done/D3a-open-from-os.md): a second launch and a cold start with a path; [D3b](../todos/done/D3b-recent-files-and-file-watching.md): a file written in place, an atomic save, a deletion, the recent list across a restart; all on three OSes)
-- [ ] Windows apps can replace an open PDF with a classic rename ([D3c](../todos/ongoing/D3c-windows-replace-while-open.md))
+- [x] Windows apps can replace an open PDF with a classic rename ([D3c](../todos/done/D3c-windows-replace-while-open.md))
 
 ### D4. Windows, tabs, menus and printing
 

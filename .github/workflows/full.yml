@@ -415,10 +415,6 @@ jobs:
           path: target/fixtures
           key: ${{ steps.fixtures.outputs.cache-primary-key }}
           enableCrossOsArchive: true
-      # D3c, temporary: what reading by reopening the file costs on each OS. Removed before merge.
-      - name: Measure reopening the 1 GB fixture per read
-        shell: bash
-        run: cargo run --release -p laminapdf-desktop-os --example reopen_cost -- target/fixtures/1gb.pdf | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Build the e2e app (feature e2e, tauri.e2e.conf.json)
         run: pnpm --filter @laminapdf/desktop run desktop:build:e2e
       - name: Run the scenarios
