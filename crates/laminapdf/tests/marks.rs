@@ -90,7 +90,7 @@ fn every_mark_is_saved_with_its_appearance() {
         ops.push(doc.mark_text(0, kind, &[line]).unwrap().into());
     }
     ops.push(
-        doc.note_at(0, PointPt::from_points(300.0, 100.0), NoteIcon::Help, "Why?")
+        doc.note_at(0, PointPt::from_points(300.0, 100.0), "Why?", NoteIcon::Help)
             .unwrap()
             .into(),
     );
@@ -120,7 +120,7 @@ fn every_mark_is_saved_with_its_appearance() {
 fn a_note_sits_at_the_point_in_page_space() {
     let mut doc = turned(0);
     let op = doc
-        .note_at(0, PointPt::from_points(300.0, 100.0), NoteIcon::Comment, "Check")
+        .note_at(0, PointPt::from_points(300.0, 100.0), "Check", NoteIcon::Comment)
         .unwrap();
     doc.apply(vec![op.into()]).unwrap();
     let note = doc
@@ -133,6 +133,43 @@ fn a_note_sits_at_the_point_in_page_space() {
         same(note.rect.unwrap(), rect(300.0, 100.0, 320.0, 120.0)) && note.contents.as_deref() == Some("Check"),
         "{note:?}"
     );
+}
+
+#[test]
+fn a_notes_popup_opens_beside_it_at_every_rotation() {
+    for rotate in [0, 90, 180, 270] {
+        let mut doc = turned(rotate);
+        let op = doc
+            .note_at(0, PointPt::from_points(100.0, 100.0), "Check", NoteIcon::Note)
+            .unwrap();
+        doc.apply(vec![op.into()]).unwrap();
+        let popup = doc
+            .page_annotations(0)
+            .unwrap()
+            .into_iter()
+            .find(|a| a.subtype == "Popup")
+            .unwrap();
+        assert!(
+            same(popup.rect.unwrap(), rect(120.0, 100.0, 300.0, 220.0)),
+            "/Rotate {rotate}: {popup:?}"
+        );
+    }
+}
+
+#[test]
+fn a_popup_near_the_right_edge_opens_left_of_its_note() {
+    let mut doc = turned(0);
+    let op = doc
+        .note_at(0, PointPt::from_points(580.0, 100.0), "Check", NoteIcon::Note)
+        .unwrap();
+    doc.apply(vec![op.into()]).unwrap();
+    let popup = doc
+        .page_annotations(0)
+        .unwrap()
+        .into_iter()
+        .find(|a| a.subtype == "Popup")
+        .unwrap();
+    assert!(same(popup.rect.unwrap(), rect(400.0, 100.0, 580.0, 220.0)), "{popup:?}");
 }
 
 #[test]

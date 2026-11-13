@@ -5,28 +5,18 @@
 use laminapdf_model::UserSpacePoint;
 #[cfg(test)]
 use laminapdf_model::UserSpaceRect;
+use laminapdf_ops::MarkupKind;
 
 use super::{DeviceColor, Drawn, Paint, bounds};
 use crate::surface::n;
 
-/// Which line a text-markup annotation draws.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum MarkupStyle {
-    Highlight,
-    Underline,
-    StrikeOut,
-    Squiggly,
-}
-
-impl MarkupStyle {
-    /// Acrobat's default colours, used when the op gives none.
-    const fn default_color(self) -> DeviceColor {
-        match self {
-            Self::Highlight => DeviceColor::Rgb(1.0, 1.0, 0.0),
-            Self::Underline => DeviceColor::Rgb(0.0, 0.6, 0.0),
-            Self::StrikeOut => DeviceColor::Rgb(1.0, 0.0, 0.0),
-            Self::Squiggly => DeviceColor::Rgb(0.0, 0.4, 1.0),
-        }
+/// Acrobat's default colour for `kind`, used when the op gives none.
+const fn default_color(kind: MarkupKind) -> DeviceColor {
+    match kind {
+        MarkupKind::Highlight => DeviceColor::Rgb(1.0, 1.0, 0.0),
+        MarkupKind::Underline => DeviceColor::Rgb(0.0, 0.6, 0.0),
+        MarkupKind::StrikeOut => DeviceColor::Rgb(1.0, 0.0, 0.0),
+        MarkupKind::Squiggly => DeviceColor::Rgb(0.0, 0.4, 1.0),
     }
 }
 
@@ -34,13 +24,13 @@ impl MarkupStyle {
 type Quad = [UserSpacePoint; 4];
 
 /// The appearance of a text-markup annotation over `quads`; `None` when there are none.
-pub(crate) fn markup(style: MarkupStyle, quads: &[Quad], paint: &Paint) -> Option<Drawn> {
+pub(crate) fn markup(style: MarkupKind, quads: &[Quad], paint: &Paint) -> Option<Drawn> {
     let bbox = bounds(quads.iter().flatten().copied(), 0.0)?;
-    let color = paint.color_or(style.default_color());
-    let mut drawn = Drawn::new(bbox, paint.opacity, style == MarkupStyle::Highlight);
+    let color = paint.color_or(default_color(style));
+    let mut drawn = Drawn::new(bbox, paint.opacity, style == MarkupKind::Highlight);
     let c = &mut drawn.content;
     match style {
-        MarkupStyle::Highlight => {
+        MarkupKind::Highlight => {
             color.fill(c);
             for [ul, ur, ll, lr] in quads {
                 c.move_to(n(ll.x), n(ll.y));
@@ -51,7 +41,7 @@ pub(crate) fn markup(style: MarkupStyle, quads: &[Quad], paint: &Paint) -> Optio
             }
             c.fill_nonzero();
         }
-        MarkupStyle::Underline | MarkupStyle::StrikeOut | MarkupStyle::Squiggly => {
+        MarkupKind::Underline | MarkupKind::StrikeOut | MarkupKind::Squiggly => {
             color.stroke(c);
             for quad in quads {
                 line(c, style, &Frame::of(quad));
@@ -103,12 +93,12 @@ impl Frame {
 
 /// Underline, strike-out or squiggly along one quad, its width a fourteenth of the text's
 /// height (at least half a point), kept inside the quad.
-fn line(c: &mut pdf_writer::Content, style: MarkupStyle, f: &Frame) {
+fn line(c: &mut pdf_writer::Content, style: MarkupKind, f: &Frame) {
     let width = (f.height / 14.0).max(0.5);
     c.set_line_width(n(width));
     match style {
-        MarkupStyle::Underline | MarkupStyle::StrikeOut => {
-            let t = if style == MarkupStyle::Underline {
+        MarkupKind::Underline | MarkupKind::StrikeOut => {
+            let t = if style == MarkupKind::Underline {
                 width / 2.0
             } else {
                 f.height / 2.0
@@ -118,7 +108,7 @@ fn line(c: &mut pdf_writer::Content, style: MarkupStyle, f: &Frame) {
             c.move_to(x0, y0);
             c.line_to(x1, y1);
         }
-        MarkupStyle::Squiggly | MarkupStyle::Highlight => {
+        MarkupKind::Squiggly | MarkupKind::Highlight => {
             // A zigzag in the quad's lowest sixth, one wave per third of the text's height.
             let wave = (f.height / 3.0).max(1.0);
             let (low, high) = (width / 2.0, f.height / 6.0);
@@ -161,14 +151,14 @@ mod tests {
         intent: None,
     };
 
-    fn text(style: MarkupStyle, quads: &[Quad]) -> String {
+    fn text(style: MarkupKind, quads: &[Quad]) -> String {
         String::from_utf8(markup(style, quads, &PAINT).unwrap().content()).unwrap()
     }
 
     #[test]
     fn a_highlight_fills_each_quad_in_yellow() {
         assert_eq!(
-            text(MarkupStyle::Highlight, &[word()]),
+            text(MarkupKind::Highlight, &[word()]),
             "/GS0 gs\n1 1 0 rg\n10 100 m\n60 100 l\n60 114 l\n10 114 l\nh\nf"
         );
     }
@@ -176,27 +166,27 @@ mod tests {
     #[test]
     fn an_underline_sits_on_the_baseline_inside_the_quad() {
         assert_eq!(
-            text(MarkupStyle::Underline, &[word()]),
+            text(MarkupKind::Underline, &[word()]),
             "0 0.6 0 RG\n1 w\n10 100.5 m\n60 100.5 l\nS"
         );
     }
 
     #[test]
     fn a_strike_out_crosses_the_middle_of_the_quad() {
-        assert!(text(MarkupStyle::StrikeOut, &[word()]).contains("10 107 m\n60 107 l"));
+        assert!(text(MarkupKind::StrikeOut, &[word()]).contains("10 107 m\n60 107 l"));
     }
 
     #[test]
     fn a_strike_out_follows_text_turned_a_quarter() {
         // Text running up the page: the baseline is the quad's right edge.
         let turned = [p(100.0, 10.0), p(100.0, 60.0), p(114.0, 10.0), p(114.0, 60.0)];
-        assert!(text(MarkupStyle::StrikeOut, &[turned]).contains("107 10 m\n107 60 l"));
+        assert!(text(MarkupKind::StrikeOut, &[turned]).contains("107 10 m\n107 60 l"));
     }
 
     #[test]
     fn a_squiggly_line_ends_at_the_end_of_the_text() {
-        assert!(text(MarkupStyle::Squiggly, &[word()]).ends_with(" l\nS"));
-        assert!(text(MarkupStyle::Squiggly, &[word()]).contains("\n60 "));
+        assert!(text(MarkupKind::Squiggly, &[word()]).ends_with(" l\nS"));
+        assert!(text(MarkupKind::Squiggly, &[word()]).contains("\n60 "));
     }
 
     #[test]
@@ -210,13 +200,13 @@ mod tests {
 
     #[test]
     fn no_quads_draw_nothing() {
-        assert!(markup(MarkupStyle::Highlight, &[], &PAINT).is_none());
+        assert!(markup(MarkupKind::Highlight, &[], &PAINT).is_none());
     }
 
     #[test]
     fn a_translucent_underline_sets_its_opacity_once() {
         let paint = Paint { opacity: 0.5, ..PAINT };
-        let drawn = markup(MarkupStyle::Underline, &[word()], &paint).unwrap();
+        let drawn = markup(MarkupKind::Underline, &[word()], &paint).unwrap();
         assert_eq!(
             drawn
                 .gs

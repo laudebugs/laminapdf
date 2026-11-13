@@ -133,6 +133,51 @@ mod add {
     }
 
     #[test]
+    fn quads_in_the_standards_order_draw_the_same_appearance() {
+        let standard = [p(72.0, 700.0), p(180.0, 700.0), p(180.0, 714.0), p(72.0, 714.0)];
+        let drawn = |quad| {
+            let mut doc = doc("golden/examples/hello.pdf");
+            let id = add(
+                &mut doc,
+                AnnotSpec::TextMarkup(TextMarkup::new(MarkupKind::Highlight, vec![quad])),
+            );
+            content(&doc, &dict(&doc, obj(&id)))
+        };
+        assert_eq!(drawn(standard), drawn(line()));
+    }
+
+    #[test]
+    fn a_pdf_2_file_gets_its_opacity_from_the_appearance_alone() {
+        let bytes = common::classic(
+            &[
+                b"<< /Type /Catalog /Pages 2 0 R /Version /2.0 >>",
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>",
+            ],
+            "<< /Size 4 /Root 1 0 R >>",
+        );
+        let mut doc = open(&bytes).with_appearances(AnnotationAppearances);
+        let mut common = AnnotCommon::default();
+        common.opacity = Opacity::new(0.5).unwrap();
+        let page = page(&doc, 0);
+        let id = apply(
+            &mut doc,
+            AddAnnot::new(page, markup(MarkupKind::Underline)).with_common(common),
+        )
+        .created_annotations
+        .pop()
+        .unwrap();
+        let annot = dict(&doc, obj(&id));
+        assert_eq!(
+            (
+                annot.get("CA"),
+                extgstate(&doc, &annot).and_then(|gs| gs.get("ca").and_then(Object::as_f64)),
+            ),
+            (None, Some(0.5))
+        );
+    }
+
+    #[test]
     fn the_appearance_maps_onto_the_rect() {
         let mut doc = doc("golden/examples/hello.pdf");
         let id = add(&mut doc, markup(MarkupKind::StrikeOut));
@@ -444,6 +489,28 @@ mod warnings {
         let mut doc = claiming(r#"pdfaid:part="1" pdfaid:conformance="B""#);
         add(&mut doc, markup(MarkupKind::Underline));
         assert_eq!(warnings(&doc), Vec::<&str>::new());
+    }
+
+    #[test]
+    fn recolouring_an_annotation_the_file_had_is_not_reported_untagged() {
+        let mut doc = claiming(r#"pdfuaid:part="1""#);
+        let mut common = AnnotCommon::default();
+        common.contents = Some("Marked".into());
+        let page = page(&doc, 0);
+        let id = apply(
+            &mut doc,
+            AddAnnot::new(page, markup(MarkupKind::Underline)).with_common(common),
+        )
+        .created_annotations
+        .pop()
+        .unwrap();
+        let mut saved = Vec::new();
+        laminapdf_save::Save::save(&mut doc, &mut saved, &laminapdf_save::SaveOptions::new()).unwrap();
+        let mut doc = open(&saved).with_appearances(AnnotationAppearances);
+        let mut update = UpdateAnnot::new(id);
+        update.color = Some(Some(AnnotColor::Rgb(1.0, 0.0, 0.0)));
+        apply(&mut doc, update);
+        assert_eq!(warnings(&doc), ["pdfua-title-missing"]);
     }
 
     #[test]

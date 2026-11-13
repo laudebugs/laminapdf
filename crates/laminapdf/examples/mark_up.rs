@@ -29,43 +29,55 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+// Where the marks go on the example's input, the quarterly report, in points from the page's
+// top-left: for your own file, take them from your viewer's selection and clicks, or from
+// `page_text`'s lines.
+/// The line "Widgets sold out in May.", as a selection gives it: `[x0, y0, x1, y1]`.
+const WIDGETS_LINE: [f64; 4] = [56.0, 358.241, 196.335, 373.223];
+/// The words "sold out" on that line.
+const SOLD_OUT: [f64; 4] = [114.902, 358.241, 156.713, 373.223];
+/// The note's spot, right of the chart.
+const BESIDE_CHART: [f64; 2] = [310.0, 140.0];
+/// The colour of a paper sticky note.
+const STICKY_YELLOW: AnnotColor = AnnotColor::Rgb(1.0, 0.82, 0.0);
+
 /// The document with a highlight, a note and a proposed word on its first page, saved
 /// incrementally.
 pub(crate) fn mark_up(bytes: Vec<u8>, at: PdfDate) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut doc = Document::open_bytes(bytes, OpenOptions::new())?;
-    // These boxes fit the example's input, the quarterly report; for your own file, take them
-    // from your viewer's selection and clicks, or from `page_text`'s lines.
-    let points = |x0, y0, x1, y1| RectPt::new(Pt::new(x0), Pt::new(y0), Pt::new(x1), Pt::new(y1));
     let mut by_me = AnnotCommon::default();
     by_me.author = Some("Ada Lovelace".into());
     by_me.created = Some(at.clone());
     by_me.modified = Some(at);
 
-    // The line "Widgets sold out in May.", as a selection gives it. In a tagged document the
-    // highlight's description is already the marked text; add who made it.
-    let line = points(56.0, 358.241, 196.335, 373.223);
-    let mut highlight = doc.mark_text(0, MarkupKind::Highlight, &[line])?;
-    highlight.common.author = by_me.author.clone();
-    highlight.common.created = by_me.created.clone();
-    highlight.common.modified = by_me.modified.clone();
+    // In a tagged document the highlight's description is already the marked text; add who
+    // made it.
+    let mut highlight = doc.mark_text(0, MarkupKind::Highlight, &[area(WIDGETS_LINE)])?;
+    sign(&mut highlight.common, &by_me);
 
-    // A note to the right of the chart, in the colour of a paper sticky note.
-    let mut note = doc.note_at(
-        0,
-        PointPt::new(Pt::new(310.0), Pt::new(140.0)),
-        NoteIcon::Comment,
-        "Add June's figures?",
-    )?;
-    note.common.author = by_me.author.clone();
-    note.common.created = by_me.created.clone();
-    note.common.color = Some(AnnotColor::Rgb(1.0, 0.82, 0.0));
+    let [x, y] = BESIDE_CHART;
+    let spot = PointPt::new(Pt::new(x), Pt::new(y));
+    let mut note = doc.note_at(0, spot, "Add June's figures?", NoteIcon::Comment)?;
+    sign(&mut note.common, &by_me);
+    note.common.color = Some(STICKY_YELLOW);
 
     doc.apply(vec![Op::from(highlight), Op::from(note)])?;
 
     // "sold out" reads better as "ran out": a strike-out and a caret, applied as one undo step.
-    let sold_out = points(114.902, 358.241, 156.713, 373.223);
-    doc.replace_text(0, &[sold_out], "ran out", by_me)?;
+    doc.replace_text(0, &[area(SOLD_OUT)], "ran out", by_me)?;
 
     let options = SaveOptions::new().with_mode(SaveMode::Incremental);
     Ok(doc.save(&options)?.bytes)
+}
+
+/// A box in page space from its corners.
+fn area([x0, y0, x1, y1]: [f64; 4]) -> RectPt {
+    RectPt::new(Pt::new(x0), Pt::new(y0), Pt::new(x1), Pt::new(y1))
+}
+
+/// Records on a mark who made it and when, from `by`.
+fn sign(common: &mut AnnotCommon, by: &AnnotCommon) {
+    common.author.clone_from(&by.author);
+    common.created.clone_from(&by.created);
+    common.modified.clone_from(&by.modified);
 }

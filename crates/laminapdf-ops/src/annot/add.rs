@@ -2,12 +2,13 @@
 //! correction, and its place in the structure tree in a tagged file.
 
 use laminapdf_cos::{Dict, ObjRef, Object, PdfString};
-use laminapdf_model::{AnnotFlags, AnnotId, PageId, PdfDate};
+use laminapdf_model::{AnnotFlags, AnnotId, PageFrame, PageId, PdfDate, PointPt, UserSpaceRect};
 use serde::{Deserialize, Serialize};
 
 use super::appearance::{AppearanceRequest, Appearances, IntentSpace};
+use super::geom::quad_points;
 use super::geom::{AnnotColor, Opacity};
-use super::spec::{AnnotSpec, CaretSymbol, Note, quad_points};
+use super::spec::{AnnotSpec, CaretSymbol, Note};
 use super::{Found, every_annotation, set_text, tags};
 use crate::error::{Error, Result};
 use crate::link::append_annot;
@@ -164,24 +165,26 @@ impl AddAnnot {
             Some(id) => Some(group_target(doc, &self.page, id)?),
             None => None,
         };
+        let spec = self.spec.normalised();
         let request = AppearanceRequest {
-            spec: &self.spec,
+            spec: &spec,
             color: self.common.color,
             opacity: self.common.opacity,
             intent: intent_space(doc)?,
         };
         let appearance = appearances.normal(&mut doc.cos_mut().edit(), &request)?;
-        let mut dict = common_dict(self.spec.subtype(), page, &appearance.rect, appearance.normal);
+        let mut dict = common_dict(spec.subtype(), page, &appearance.rect, appearance.normal);
         self.write_common(&mut dict, doc.is_pdf2()?);
-        write_spec(&mut dict, &self.spec);
+        write_spec(&mut dict, &spec);
         if let Some(group) = group {
             dict.insert("IRT", Object::Ref(group));
             dict.insert("RT", Object::name("Group"));
         }
         let annot = doc.cos_mut().edit().create(Object::Dict(dict))?;
         append_annot(doc, page, annot)?;
-        if let AnnotSpec::Note(note) = &self.spec {
-            let popup = popup(doc, note, page, annot)?;
+        if let AnnotSpec::Note(note) = &spec {
+            let frame = page_frame(doc, &self.page)?;
+            let popup = popup(doc, note, &popup_rect(&frame, note), page, annot)?;
             edit_dict(doc, annot, |d| {
                 d.insert("Popup", Object::Ref(popup));
             })?;
@@ -227,7 +230,7 @@ impl AddAnnot {
 }
 
 /// The entries every new annotation starts with.
-fn common_dict(subtype: &str, page: ObjRef, rect: &laminapdf_model::UserSpaceRect, normal: ObjRef) -> Dict {
+fn common_dict(subtype: &str, page: ObjRef, rect: &UserSpaceRect, normal: ObjRef) -> Dict {
     [
         ("Type", Object::name("Annot")),
         ("Subtype", Object::name(subtype)),
@@ -240,7 +243,7 @@ fn common_dict(subtype: &str, page: ObjRef, rect: &laminapdf_model::UserSpaceRec
 }
 
 /// `/Rect`'s array.
-pub(crate) fn rect_object(r: &laminapdf_model::UserSpaceRect) -> Object {
+pub(crate) fn rect_object(r: &UserSpaceRect) -> Object {
     Object::Array(r.to_array().into_iter().map(Object::Real).collect())
 }
 
@@ -264,12 +267,18 @@ pub(crate) fn write_spec(dict: &mut Dict, spec: &AnnotSpec) {
     }
 }
 
-/// A note's Popup: beside the icon, open as the note says, printed with it.
-fn popup(doc: &mut laminapdf_model::Document, note: &Note, page: ObjRef, parent: ObjRef) -> Result<ObjRef> {
+/// A note's Popup over `rect`, open as the note says, printed with it.
+fn popup(
+    doc: &mut laminapdf_model::Document,
+    note: &Note,
+    rect: &UserSpaceRect,
+    page: ObjRef,
+    parent: ObjRef,
+) -> Result<ObjRef> {
     let dict: Dict = [
         ("Type", Object::name("Annot")),
         ("Subtype", Object::name("Popup")),
-        ("Rect", rect_object(&note.popup_rect())),
+        ("Rect", rect_object(rect)),
         ("P", Object::Ref(page)),
         ("Parent", Object::Ref(parent)),
         ("Open", Object::Bool(note.open)),
@@ -283,6 +292,36 @@ fn popup(doc: &mut laminapdf_model::Document, note: &Note, page: ObjRef, parent:
     .into_iter()
     .collect();
     Ok(doc.cos_mut().edit().create(Object::Dict(dict))?)
+}
+
+/// Where a note's Popup goes, as the page is shown: right of the icon, its top level with the
+/// icon's, or left of it when the page has no room on the right, and never past the page's top
+/// or bottom. The icon keeps its upper-left corner at `at` however the page turns (NoRotate,
+/// ISO 32000-2 §12.5.3), so the Popup is placed from there in page space.
+fn popup_rect(frame: &PageFrame, note: &Note) -> UserSpaceRect {
+    let at = frame.to_page(note.at);
+    let (w, h) = Note::POPUP;
+    let (page_w, page_h) = (frame.width().get(), frame.height().get());
+    let right = at.x.get() + Note::ICON;
+    let x = if right + w <= page_w {
+        right
+    } else {
+        (at.x.get() - w).max(0.0)
+    };
+    let y = at.y.get().clamp(0.0, (page_h - h).max(0.0));
+    let a = frame.to_user_space(PointPt::from_points(x, y));
+    let b = frame.to_user_space(PointPt::from_points(x + w, y + h));
+    UserSpaceRect::from_corners(a.x, a.y, b.x, b.y)
+}
+
+/// The frame of the page `id`.
+fn page_frame(doc: &laminapdf_model::Document, id: &PageId) -> Result<PageFrame> {
+    let pages = doc.pages()?;
+    let page = pages
+        .iter()
+        .find(|p| p.id() == id)
+        .ok_or_else(|| Error::UnknownPage(id.clone()))?;
+    Ok(page.frame()?)
 }
 
 /// The annotation a new one groups with: an editable annotation on the same page.

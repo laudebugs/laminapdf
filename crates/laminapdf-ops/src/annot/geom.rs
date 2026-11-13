@@ -25,6 +25,17 @@ pub(crate) fn acrobat_order(c: Quad) -> Quad {
     }
 }
 
+/// `/QuadPoints`: eight numbers per quad, in the order given.
+pub(crate) fn quad_points(quads: &[Quad]) -> Object {
+    Object::Array(
+        quads
+            .iter()
+            .flatten()
+            .flat_map(|p| [Object::Real(p.x), Object::Real(p.y)])
+            .collect(),
+    )
+}
+
 /// Whether every coordinate of `points` is finite.
 pub(crate) fn finite(points: impl IntoIterator<Item = UserSpacePoint>) -> bool {
     points.into_iter().all(|p| p.x.is_finite() && p.y.is_finite())

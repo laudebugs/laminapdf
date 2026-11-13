@@ -2,11 +2,10 @@
 //! [`UpdateAnnot`](super::UpdateAnnot) can make to one ([`AnnotSpecPatch`]). Geometry is in user
 //! space, so a later rotation or crop leaves a spec's meaning unchanged.
 
-use laminapdf_cos::Object;
 use laminapdf_model::{UserSpacePoint, UserSpaceRect};
 use serde::{Deserialize, Serialize};
 
-use super::geom::{self, Quad};
+use super::geom;
 use crate::wire;
 
 /// The kind of mark an annotation op makes, with its geometry. Every spec gets an appearance
@@ -40,6 +39,18 @@ impl AnnotSpec {
             Self::TextMarkup(m) => m.kind.subtype(),
             Self::Note(_) => "Text",
             Self::Caret(_) => "Caret",
+        }
+    }
+
+    /// The same spec with every quad in Acrobat's order, which both the appearance and
+    /// `/QuadPoints` use, whichever order the op gave.
+    pub(crate) fn normalised(&self) -> Self {
+        match self {
+            Self::TextMarkup(m) => Self::TextMarkup(TextMarkup::new(
+                m.kind,
+                m.quads.iter().map(|q| geom::acrobat_order(*q)).collect(),
+            )),
+            other => other.clone(),
         }
     }
 
@@ -143,7 +154,7 @@ pub struct Note {
 impl Note {
     /// The side of the icon, in points.
     pub(crate) const ICON: f64 = 20.0;
-    /// The Popup's width and height, in points.
+    /// The Popup's width and height, in points, as the page is shown.
     pub(crate) const POPUP: (f64, f64) = (180.0, 120.0);
 
     /// A closed note with `icon` at `at`.
@@ -161,12 +172,6 @@ impl Note {
     pub const fn with_open(mut self, open: bool) -> Self {
         self.open = open;
         self
-    }
-
-    /// The Popup's `/Rect`: beside the icon, its top level with the icon's.
-    pub(crate) const fn popup_rect(&self) -> UserSpaceRect {
-        let x = self.at.x + Self::ICON;
-        UserSpaceRect::from_corners(x, self.at.y - Self::POPUP.1, x + Self::POPUP.0, self.at.y)
     }
 }
 
@@ -369,17 +374,6 @@ impl AnnotSpecPatch {
     }
 }
 
-/// `/QuadPoints`: eight numbers per quad, in Acrobat's order.
-pub(crate) fn quad_points(quads: &[Quad]) -> Object {
-    Object::Array(
-        quads
-            .iter()
-            .flat_map(|q| geom::acrobat_order(*q))
-            .flat_map(|p| [Object::Real(p.x), Object::Real(p.y)])
-            .collect(),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -422,14 +416,5 @@ mod tests {
     #[test]
     fn markup_without_quads_is_invalid() {
         assert!(!AnnotSpec::TextMarkup(TextMarkup::new(MarkupKind::Highlight, Vec::new())).is_valid());
-    }
-
-    #[test]
-    fn a_notes_popup_sits_right_of_its_icon() {
-        let note = Note::new(UserSpacePoint::new(100.0, 700.0), NoteIcon::Note);
-        assert_eq!(
-            note.popup_rect(),
-            UserSpaceRect::from_corners(120.0, 580.0, 300.0, 700.0)
-        );
     }
 }

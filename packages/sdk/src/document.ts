@@ -596,7 +596,7 @@ export class Document extends Handle<BaseGlue> {
    * @since 0.3.0
    */
   noteAt(page: number, at: readonly [number, number], comment: string, icon?: NoteIcon): AddAnnot {
-    return this.call(() => this.#doc.noteAt(page, [...at], icon, comment));
+    return this.call(() => this.#doc.noteAt(page, [...at], comment, icon));
   }
 
   /**

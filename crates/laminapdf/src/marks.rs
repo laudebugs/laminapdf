@@ -49,13 +49,14 @@ impl Document {
     }
 
     /// The edit that puts a sticky note on page `page` (0-based): its `icon` with its upper-left
-    /// corner at `at` in page space, and `comment` in its Popup, closed.
+    /// corner at `at` in page space, and `comment` in its Popup, closed. The Popup opens beside
+    /// the icon as the page is shown, on the page.
     ///
     /// # Errors
     /// `page-index-out-of-range`; reading errors (the page tree).
     ///
     /// Added in 0.3.0.
-    pub fn note_at(&self, page: u32, at: PointPt, icon: NoteIcon, comment: &str) -> Result<AddAnnot> {
+    pub fn note_at(&self, page: u32, at: PointPt, comment: &str, icon: NoteIcon) -> Result<AddAnnot> {
         let (id, frame) = self.page_frame(page)?;
         let mut op = AddAnnot::new(id, AnnotSpec::Note(Note::new(frame.to_user_space(at), icon)));
         op.common.contents = Some(comment.to_owned());

@@ -3,29 +3,11 @@
 //! black outline draws it, so it reads on any page.
 
 use laminapdf_model::UserSpaceRect;
+use laminapdf_ops::{CaretSymbol, NoteIcon};
 use pdf_writer::Content;
 
 use super::{DeviceColor, Drawn, Paint};
 use crate::surface::n;
-
-/// The standard note icons.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum NoteIconStyle {
-    Note,
-    Comment,
-    Key,
-    Help,
-    Paragraph,
-    NewParagraph,
-    Insert,
-}
-
-/// A caret alone, or with a paragraph sign over it (`/Sy /P`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum CaretStyle {
-    Plain,
-    Paragraph,
-}
 
 /// The side of an icon's square, in points.
 pub(crate) const ICON: f64 = 20.0;
@@ -34,7 +16,7 @@ pub(crate) const ICON: f64 = 20.0;
 const KAPPA: f64 = 0.552_284_75;
 
 /// The appearance of a note icon whose square has its lower-left corner at `(x, y)`.
-pub(crate) fn note_icon(icon: NoteIconStyle, x: f64, y: f64, paint: &Paint) -> Drawn {
+pub(crate) fn note_icon(icon: NoteIcon, x: f64, y: f64, paint: &Paint) -> Drawn {
     let bbox = UserSpaceRect::from_corners(x, y, x + ICON, y + ICON);
     let mut drawn = Drawn::new(bbox, paint.opacity, false);
     let mut pen = Pen {
@@ -46,7 +28,7 @@ pub(crate) fn note_icon(icon: NoteIconStyle, x: f64, y: f64, paint: &Paint) -> D
     paint.black().stroke(pen.c);
     pen.c.set_line_width(0.6);
     match icon {
-        NoteIconStyle::Note => {
+        NoteIcon::Note => {
             pen.rect(3.0, 1.0, 14.0, 18.0);
             pen.c.fill_nonzero_and_stroke();
             for line in [14.0, 11.0, 8.0, 5.0] {
@@ -55,7 +37,7 @@ pub(crate) fn note_icon(icon: NoteIconStyle, x: f64, y: f64, paint: &Paint) -> D
             }
             pen.c.stroke();
         }
-        NoteIconStyle::Comment => {
+        NoteIcon::Comment => {
             pen.move_to(2.0, 7.0);
             pen.line_to(18.0, 7.0);
             pen.line_to(18.0, 19.0);
@@ -66,7 +48,7 @@ pub(crate) fn note_icon(icon: NoteIconStyle, x: f64, y: f64, paint: &Paint) -> D
             pen.line_to(10.0, 7.0);
             pen.c.fill_nonzero_and_stroke();
         }
-        NoteIconStyle::Key => {
+        NoteIcon::Key => {
             pen.circle(6.5, 13.5, 4.5);
             pen.c.fill_nonzero_and_stroke();
             pen.c.set_line_width(1.5);
@@ -78,7 +60,7 @@ pub(crate) fn note_icon(icon: NoteIconStyle, x: f64, y: f64, paint: &Paint) -> D
             pen.line_to(14.0, 10.0);
             pen.c.stroke();
         }
-        NoteIconStyle::Help => {
+        NoteIcon::Help => {
             pen.circle(10.0, 10.0, 9.0);
             pen.c.fill_nonzero_and_stroke();
             pen.c.set_line_width(1.6);
@@ -90,14 +72,14 @@ pub(crate) fn note_icon(icon: NoteIconStyle, x: f64, y: f64, paint: &Paint) -> D
             pen.circle(10.0, 4.5, 1.0);
             pen.c.fill_nonzero();
         }
-        NoteIconStyle::Paragraph => {
+        NoteIcon::Paragraph => {
             pen.rect(1.0, 1.0, 18.0, 18.0);
             pen.c.fill_nonzero_and_stroke();
             paint.black().fill(pen.c);
             pen.c.set_line_width(1.2);
             pilcrow(&mut pen, 4.0, 3.0, 14.0);
         }
-        NoteIconStyle::NewParagraph => {
+        NoteIcon::NewParagraph => {
             pen.move_to(10.0, 19.0);
             pen.line_to(2.0, 8.0);
             pen.line_to(18.0, 8.0);
@@ -110,7 +92,7 @@ pub(crate) fn note_icon(icon: NoteIconStyle, x: f64, y: f64, paint: &Paint) -> D
             }
             pen.c.stroke();
         }
-        NoteIconStyle::Insert => {
+        NoteIcon::Insert => {
             pen.move_to(10.0, 18.0);
             pen.line_to(2.0, 2.0);
             pen.line_to(18.0, 2.0);
@@ -122,10 +104,10 @@ pub(crate) fn note_icon(icon: NoteIconStyle, x: f64, y: f64, paint: &Paint) -> D
 }
 
 /// The appearance of a caret filling `rect`: two sides bowed in a little, meeting at the top. With a paragraph sign, the caret takes the lower half and the sign the upper.
-pub(crate) fn caret(style: CaretStyle, rect: UserSpaceRect, paint: &Paint) -> Drawn {
+pub(crate) fn caret(style: CaretSymbol, rect: UserSpaceRect, paint: &Paint) -> Drawn {
     let mut drawn = Drawn::new(rect, paint.opacity, false);
     let (w, h) = (rect.width(), rect.height());
-    let caret_h = if style == CaretStyle::Paragraph { h / 2.0 } else { h };
+    let caret_h = if style == CaretSymbol::Paragraph { h / 2.0 } else { h };
     let mut pen = Pen {
         c: &mut drawn.content,
         x: rect.x0,
@@ -139,7 +121,7 @@ pub(crate) fn caret(style: CaretStyle, rect: UserSpaceRect, paint: &Paint) -> Dr
     pen.curve_to(mid * 1.15, caret_h * 0.6, mid * 1.45, caret_h * 0.2, w, 0.0);
     pen.c.close_path();
     pen.c.fill_nonzero();
-    if style == CaretStyle::Paragraph {
+    if style == CaretSymbol::Paragraph {
         let blue = paint.color_or(DeviceColor::Rgb(0.0, 0.0, 1.0));
         blue.stroke(pen.c);
         pen.c.set_line_width(n((w / 12.0).max(0.3)));
@@ -228,13 +210,13 @@ mod tests {
     #[test]
     fn every_icon_fills_and_outlines_its_square() {
         for icon in [
-            NoteIconStyle::Note,
-            NoteIconStyle::Comment,
-            NoteIconStyle::Key,
-            NoteIconStyle::Help,
-            NoteIconStyle::Paragraph,
-            NoteIconStyle::NewParagraph,
-            NoteIconStyle::Insert,
+            NoteIcon::Note,
+            NoteIcon::Comment,
+            NoteIcon::Key,
+            NoteIcon::Help,
+            NoteIcon::Paragraph,
+            NoteIcon::NewParagraph,
+            NoteIcon::Insert,
         ] {
             let drawn = text(note_icon(icon, 100.0, 200.0, &PAINT));
             assert!(drawn.contains("\nB"), "{icon:?} draws no outlined shape");
@@ -243,29 +225,29 @@ mod tests {
 
     #[test]
     fn an_icon_is_drawn_at_its_corner() {
-        assert!(text(note_icon(NoteIconStyle::Insert, 100.0, 200.0, &PAINT)).contains("110 218 m"));
+        assert!(text(note_icon(NoteIcon::Insert, 100.0, 200.0, &PAINT)).contains("110 218 m"));
     }
 
     #[test]
     fn an_icon_in_a_cmyk_file_paints_in_cmyk() {
         let paint = Paint {
-            intent: Some(super::super::IntentSpace::Cmyk),
+            intent: Some(laminapdf_ops::IntentSpace::Cmyk),
             ..PAINT
         };
-        let drawn = text(note_icon(NoteIconStyle::Note, 0.0, 0.0, &paint));
+        let drawn = text(note_icon(NoteIcon::Note, 0.0, 0.0, &paint));
         assert!(drawn.contains(" k\n") && drawn.contains(" K\n") && !drawn.contains("rg"));
     }
 
     #[test]
     fn a_caret_meets_at_the_top_middle_of_its_rect() {
         let rect = UserSpaceRect::from_corners(10.0, 100.0, 20.0, 110.0);
-        assert!(text(caret(CaretStyle::Plain, rect, &PAINT)).contains(" 15 110 c"));
+        assert!(text(caret(CaretSymbol::None, rect, &PAINT)).contains(" 15 110 c"));
     }
 
     #[test]
     fn a_paragraph_caret_adds_the_sign_above() {
         let rect = UserSpaceRect::from_corners(10.0, 100.0, 20.0, 110.0);
-        let drawn = text(caret(CaretStyle::Paragraph, rect, &PAINT));
+        let drawn = text(caret(CaretSymbol::Paragraph, rect, &PAINT));
         assert!(drawn.contains(" 15 105 c") && drawn.ends_with("S"));
     }
 }

@@ -4,8 +4,9 @@
 //!
 //! Unlike a link, an annotation takes no content: its element goes beside the content it marks,
 //! right after the element that owns that content, so a screen reader meets the comment after
-//! the text it is about (E4 plan §3). With no marked content (a note on a picture), it goes last
-//! in the document element. A Popup is never tagged: it belongs to its parent.
+//! the text it is about (E4 plan §3). With no marked content (a note on a picture), it goes after
+//! the page's last element, else last in the document element when the page has none. A Popup is
+//! never tagged: it belongs to its parent.
 
 use laminapdf_cos::{Dict, ObjRef, Object};
 
@@ -16,8 +17,9 @@ use crate::pages::edit_dict;
 use crate::parent_tree::ParentTree;
 
 /// Puts the new annotation `annot` on `page` into the structure tree, after the element that owns
-/// the first of `marked`, else last in the document element, and gives the page `/Tabs /S` when
-/// it has no tab order (ISO 14289-1 §7.18.3). An untagged document is left alone: on one that
+/// the first of `marked`, else after the element that owns the page's last marked content, else
+/// last in the document element; gives the page `/Tabs /S` when it has no tab order (ISO 14289-1
+/// §7.18.3). An untagged document is left alone: on one that
 /// claims PDF/UA-1 the conformance check reports `annot-not-tagged`.
 pub(super) fn tag(doc: &mut laminapdf_model::Document, page: ObjRef, annot: ObjRef, marked: &[u32]) -> Result<()> {
     let Some(mut tree) = ParentTree::read(doc)? else {
@@ -25,9 +27,12 @@ pub(super) fn tag(doc: &mut laminapdf_model::Document, page: ObjRef, annot: ObjR
     };
     let page_dict = object_dict(doc, page)?.unwrap_or_default();
     let owners = owners(doc, &tree, page_dict.get_int("StructParents"))?;
+    // After the element that owns the marked content, else after the page's last element, so a
+    // screen reader meets the mark with its page.
     let owner = marked
         .iter()
-        .find_map(|&m| owners.get(m as usize).and_then(Object::as_ref));
+        .find_map(|&m| owners.get(m as usize).and_then(Object::as_ref))
+        .or_else(|| owners.iter().rev().find_map(Object::as_ref));
     let (parent, after) = match owner {
         Some(owner) => {
             let parent = object_dict(doc, owner)?

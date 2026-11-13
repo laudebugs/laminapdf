@@ -12,8 +12,9 @@ use laminapdf_cos::{CosMut, Dict, Name, ObjRef, Object, Stream};
 use laminapdf_model::{UserSpacePoint, UserSpaceRect};
 use pdf_writer::Content;
 
-use markup::{MarkupStyle, markup};
-use note::{CaretStyle, NoteIconStyle, caret, note_icon};
+use laminapdf_ops::{AnnotColor, AnnotSpec, IntentSpace};
+use markup::markup;
+use note::{caret, note_icon};
 
 use crate::page::rect_object;
 use crate::surface::n;
@@ -44,14 +45,9 @@ impl laminapdf_ops::Appearances for AnnotationAppearances {
         request: &laminapdf_ops::AppearanceRequest<'_>,
     ) -> laminapdf_cos::Result<laminapdf_ops::Appearance> {
         let paint = Paint {
-            color: request
-                .color
-                .and_then(|c| DeviceColor::from_components(&c.components())),
+            color: request.color.and_then(DeviceColor::of),
             opacity: request.opacity.get(),
-            intent: request.intent.map(|i| match i {
-                laminapdf_ops::IntentSpace::Cmyk => IntentSpace::Cmyk,
-                _ => IntentSpace::Rgb,
-            }),
+            intent: request.intent,
         };
         let drawn = draw(request.spec, &paint);
         let (form, rect) = drawn.write(cos)?;
@@ -59,41 +55,16 @@ impl laminapdf_ops::Appearances for AnnotationAppearances {
     }
 }
 
-/// The drawing for `spec`. A markup's quads are never empty (the op checks), but an empty list
-/// still gets an empty form at the origin rather than none.
-fn draw(spec: &laminapdf_ops::AnnotSpec, paint: &Paint) -> Drawn {
-    use laminapdf_ops::{AnnotSpec, CaretSymbol, MarkupKind, NoteIcon};
+/// The drawing for `spec`. A markup's quads are never empty and a spec is never one this
+/// version doesn't know (the op checks both, and is built against this version's specs), but
+/// either still gets an empty form at the origin rather than none.
+fn draw(spec: &AnnotSpec, paint: &Paint) -> Drawn {
+    let empty = || Drawn::new(UserSpaceRect::from_corners(0.0, 0.0, 0.0, 0.0), 1.0, false);
     match spec {
-        AnnotSpec::TextMarkup(m) => {
-            let style = match m.kind {
-                MarkupKind::Highlight => MarkupStyle::Highlight,
-                MarkupKind::Underline => MarkupStyle::Underline,
-                MarkupKind::StrikeOut => MarkupStyle::StrikeOut,
-                _ => MarkupStyle::Squiggly,
-            };
-            markup(style, &m.quads, paint)
-                .unwrap_or_else(|| Drawn::new(UserSpaceRect::from_corners(0.0, 0.0, 0.0, 0.0), 1.0, false))
-        }
-        AnnotSpec::Note(n) => {
-            let icon = match n.icon {
-                NoteIcon::Comment => NoteIconStyle::Comment,
-                NoteIcon::Key => NoteIconStyle::Key,
-                NoteIcon::Help => NoteIconStyle::Help,
-                NoteIcon::Paragraph => NoteIconStyle::Paragraph,
-                NoteIcon::NewParagraph => NoteIconStyle::NewParagraph,
-                NoteIcon::Insert => NoteIconStyle::Insert,
-                _ => NoteIconStyle::Note,
-            };
-            note_icon(icon, n.at.x, n.at.y - note::ICON, paint)
-        }
-        AnnotSpec::Caret(c) => {
-            let style = match c.symbol {
-                CaretSymbol::Paragraph => CaretStyle::Paragraph,
-                _ => CaretStyle::Plain,
-            };
-            caret(style, c.rect, paint)
-        }
-        _ => Drawn::new(UserSpaceRect::from_corners(0.0, 0.0, 0.0, 0.0), 1.0, false),
+        AnnotSpec::TextMarkup(m) => markup(m.kind, &m.quads, paint).unwrap_or_else(empty),
+        AnnotSpec::Note(n) => note_icon(n.icon, n.at.x, n.at.y - note::ICON, paint),
+        AnnotSpec::Caret(c) => caret(c.symbol, c.rect, paint),
+        _ => empty(),
     }
 }
 
@@ -106,12 +77,12 @@ pub(crate) enum DeviceColor {
 }
 
 impl DeviceColor {
-    /// The colour of `/C`'s components; `None` for any other count.
-    pub(crate) fn from_components(c: &[f64]) -> Option<Self> {
-        match *c {
-            [g] => Some(Self::Gray(g)),
-            [r, g, b] => Some(Self::Rgb(r, g, b)),
-            [c, m, y, k] => Some(Self::Cmyk(c, m, y, k)),
+    /// The device colour of an annotation's `/C`.
+    fn of(c: AnnotColor) -> Option<Self> {
+        match c {
+            AnnotColor::Gray(g) => Some(Self::Gray(g)),
+            AnnotColor::Rgb(r, g, b) => Some(Self::Rgb(r, g, b)),
+            AnnotColor::Cmyk(c, m, y, k) => Some(Self::Cmyk(c, m, y, k)),
             _ => None,
         }
     }
@@ -162,14 +133,6 @@ impl DeviceColor {
     }
 }
 
-/// The device space a PDF/A file's output intent names, which every appearance paints in
-/// (ISO 19005-2 §6.2.4.3).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum IntentSpace {
-    Rgb,
-    Cmyk,
-}
-
 /// What every generator is given besides its geometry.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct Paint {
@@ -177,7 +140,7 @@ pub(crate) struct Paint {
     pub(crate) color: Option<DeviceColor>,
     /// 0 to 1.
     pub(crate) opacity: f64,
-    /// The output intent's device space, on a PDF/A file.
+    /// The output intent's device space, on a PDF/A file (ISO 19005-2 §6.2.4.3).
     pub(crate) intent: Option<IntentSpace>,
 }
 
@@ -188,7 +151,7 @@ impl Paint {
         match self.intent {
             Some(IntentSpace::Cmyk) => color.to_cmyk(),
             Some(IntentSpace::Rgb) => color.to_rgb(),
-            None => color,
+            _ => color,
         }
     }
 

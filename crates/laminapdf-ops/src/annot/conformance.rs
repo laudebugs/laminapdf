@@ -51,7 +51,10 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
                 if empty {
                     untitled.push(id.clone());
                 }
-                if dict.get("StructParent").is_none() {
+                // Only a new annotation is the edit's to place: one the file already had and an
+                // edit changed is as tagged as the file left it.
+                let new = i64::from(r.num) >= doc.size_floor();
+                if new && dict.get("StructParent").is_none() {
                     untagged.push(id.clone());
                 }
             }

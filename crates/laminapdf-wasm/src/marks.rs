@@ -47,15 +47,15 @@ impl WasmDocument {
         &self,
         page: u32,
         #[wasm_bindgen(unchecked_param_type = "[number, number]")] at: &JsValue,
-        #[wasm_bindgen(unchecked_param_type = "NoteIcon | undefined")] icon: &JsValue,
         comment: &str,
+        #[wasm_bindgen(unchecked_param_type = "NoteIcon | undefined")] icon: &JsValue,
     ) -> JsResult<JsValue> {
         let [x, y]: [f64; 2] = from_js(at, "at")?;
         let icon: NoteIcon = from_js_or_default(icon, "icon")?;
         let op = self
             .shared()
             .borrow()
-            .note_at(page, PointPt::from_points(x, y), icon, comment)
+            .note_at(page, PointPt::from_points(x, y), comment, icon)
             .map_err(|e| lamina_error(&e))?;
         Ok(to_js(&op))
     }

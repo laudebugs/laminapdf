@@ -42,7 +42,8 @@ impl Redraw<'_> {
                 .applied_to(&current)
                 .ok_or(Error::InvalidOp("the spec patch is for another kind of mark"))?,
             None => current,
-        };
+        }
+        .normalised();
         if !spec.is_valid() {
             return Err(Error::InvalidOp(
                 "an annotation needs quads, and every coordinate finite",
@@ -223,7 +224,7 @@ mod tests {
     }
 
     #[test]
-    fn a_square_has_no_spec_this_round_draws() {
+    fn a_square_has_no_spec_to_draw_again() {
         let d = dict(vec![
             ("Subtype", Object::name("Square")),
             ("Rect", numbers(&[0.0, 0.0, 1.0, 1.0])),
