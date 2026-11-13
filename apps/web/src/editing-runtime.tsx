@@ -4,6 +4,7 @@
 // Save); saving's questions and its strip (save-flow.ts, O02); and the interaction mode that reads
 // pointer input on the page (select, unless a later tool is chosen).
 
+import type { ArticleThread } from "@laminapdf/sdk";
 import {
   Button,
   type CommandRegistry,
@@ -17,7 +18,6 @@ import {
   type ReaderController,
   type ShellLayout,
   stepThreadPart,
-  type ThreadData,
   type ToastQueue,
   useMediaQuery,
   useStoreState,
@@ -39,6 +39,7 @@ import { InitialViewEditing, showInitialView } from "./initial-view-editing.tsx"
 import { type PageInfo, pageLabel } from "./outline.ts";
 import type { SaveFlow } from "./save-flow.ts";
 import type { Engine } from "./session.ts";
+import { followedPart, goToThreadPart } from "./thread-parts.ts";
 
 /** Toasts after undos and redos, and when a restarted worker lost the edits. */
 function useEditToasts(viewer: Viewer, engine: Engine, toasts: ToastQueue): void {
@@ -293,13 +294,13 @@ export function editActions(
   layout: ShellLayout,
   viewer: Viewer,
   flow: SaveFlow,
-  state: { readonly unsaved: boolean; readonly threads: readonly ThreadData[] },
+  state: { readonly unsaved: boolean; readonly threads: readonly ArticleThread[] },
 ): EditActions {
   const { unsaved, threads } = state;
   // Next and Previous thread part only while the file has threads: without, they stay out of view.
   const step = (direction: 1 | -1) => () => {
-    const part = stepThreadPart(threads, engine.getState().threadPart, direction);
-    if (part !== undefined) void engine.goToThreadPart(part);
+    const part = stepThreadPart(threads, followedPart(threads), direction);
+    if (part !== undefined) goToThreadPart(viewer, threads, part);
   };
   // A failed turn is said by the session's failure toast (edit-toasts.ts).
   const rotate = (delta: 90 | -90) => () =>

@@ -327,8 +327,6 @@ const EN = {
   "command.nav.back": "Back",
   "command.nav.forward": "Forward",
   "command.nav.follow-link": "Follow link",
-  "threads.note":
-    "Threads join the parts of an article across pages. Lamina PDF follows them; editing threads comes later.",
   "command.view.zoom-in": "Zoom in",
   "command.view.zoom-out": "Zoom out",
   "command.view.set-zoom": "Zoom to…",
@@ -669,7 +667,6 @@ const EN = {
   "command.edit.undo": "Undo",
   "command.edit.redo": "Redo",
   "command.edit.history": "Show history",
-  "command.organise.initial-view": "Initial view…",
   "command.edit.go-to-step": "Go to step",
   "command.pages.rotate-right": "Rotate page right",
   "command.pages.rotate-left": "Rotate page left",

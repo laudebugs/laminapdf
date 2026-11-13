@@ -251,7 +251,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   document traffic and unexpected sites; monitor.ts, the log and its summary; panel.tsx, R13's indicator and panel);
 │                        #   src/reader-mode.tsx (U4b: the Reader toggle, the column over the reflow, crops, the place kept both ways, settings;
 │                        #   U4c: reader-origin.ts outlines a block on its page for View original page, reader-crop.ts a crop's clip);
-│                        #   src/initial-view-editing.tsx and threads-tab.tsx (E3d: the Initial view dialog over the edit session, the Threads tab; the file's opening page and zoom in session.ts, after the first paint; its panel and the thread-part commands' handlers in editing-runtime.tsx);
+│                        #   src/initial-view-editing.tsx, threads-tab.tsx and thread-parts.ts (E3d: the Initial view dialog over the edit session, the Threads tab, the part followed last; the file's opening page and zoom in session.ts, after the first paint; its panel and the thread-part commands' handlers in editing-runtime.tsx);
 │                        #   src/editing.tsx (E1d: the edit session in the reader: rotate the current page, the History tab, "•" in the
 │                        #   tab's title, beforeunload) and editing-runtime.tsx (the commands, toasts, the close confirmation, the tools),
 │                        #   src/later.ts (the one chunk loaded once a document is open: dialogs, reader mode's column, the editor's parts, the capability page);

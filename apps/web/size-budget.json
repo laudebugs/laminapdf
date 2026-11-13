@@ -1,6 +1,6 @@
 {
-  "$comment": "The reader's startup JavaScript, gzipped (cargo xtask web size). Web-app §4's target is 200000; 276000 is the waiver (web v0.1 set 270000; T5a's link previews raised it to 272000, U6k's phone Settings to 275000, the reader changes merged on 2026-11-12, #455 and #468, to 276000), issue #380, which brings it back to 200000.",
-  "startupJsGzip": 276000,
+  "$comment": "The reader's startup JavaScript, gzipped (cargo xtask web size). Web-app §4's target is 200000; 276200 is the waiver (web v0.1 set 270000; T5a's link previews raised it to 272000, U6k's phone Settings to 275000, the reader changes merged on 2026-11-12, #455 and #468, to 276000, E3d's opening view and article threads to 276200), issue #380, which brings it back to 200000.",
+  "startupJsGzip": 276200,
   "target": 200000,
   "waiver": "https://github.com/laudebugs/laminapdf/issues/380"
 }

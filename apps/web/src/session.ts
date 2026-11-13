@@ -17,7 +17,7 @@ import type {
   RepairKind,
   SaveResult,
 } from "@laminapdf/ui";
-import { fromFile, message, ReaderController, type ThreadPartRef } from "@laminapdf/ui";
+import { fromFile, message, ReaderController } from "@laminapdf/ui";
 import {
   createViewer,
   type LinkLayerOptions,
@@ -99,10 +99,11 @@ export interface EngineState {
    * painted: the shell shows the panel it asks for. Undefined until read, and when it can't be.
    */
   readonly opening: InitialView | undefined;
-  /** The open document's article threads, read with `opening`; empty without any. */
+  /**
+   * The open document's article threads, read with `opening`; empty without any. Each document's
+   * threads are a new list, which thread-parts.ts keys the part followed last by.
+   */
   readonly threads: readonly ArticleThread[];
-  /** The thread part the reader followed last. */
-  readonly threadPart: ThreadPartRef | undefined;
 }
 
 /** Reports a failed read, which the reader goes on without (the worker says why). */
@@ -281,7 +282,6 @@ export class Engine implements ExternalStore<EngineState> {
       editsLost: 0,
       opening: undefined,
       threads: NO_THREADS,
-      threadPart: undefined,
     };
     this.#platform = platform;
     this.#session = this.#start(backend);
@@ -517,19 +517,6 @@ export class Engine implements ExternalStore<EngineState> {
     }
   }
 
-  /**
-   * Goes to part `ref` of the open document's article threads, as a history jump: the part's
-   * top at the top of the view, keeping the zoom. A part on a missing page goes nowhere.
-   */
-  async goToThreadPart(ref: ThreadPartRef): Promise<void> {
-    const part = this.#state.threads[ref.thread]?.parts[ref.part];
-    if (part?.page === undefined) return;
-    const { viewer } = await this.#session;
-    const y = part.rect?.[1];
-    viewer.jumpToDestination({ page: part.page, view: y === undefined ? { kind: "fit" } : { kind: "at", y } });
-    this.#set({ threadPart: ref });
-  }
-
   /** The open document's initial view as its edits leave it, for the dialog. */
   async initialView(): Promise<InitialView> {
     const session = await this.#session;
@@ -667,7 +654,6 @@ export class Engine implements ExternalStore<EngineState> {
       openedAt: Date.now(),
       opening: undefined,
       threads: NO_THREADS,
-      threadPart: undefined,
     });
     const firstPage = () => {
       const state = session.viewer.stats().pages[shownFirst];
@@ -716,7 +702,6 @@ export class Engine implements ExternalStore<EngineState> {
       openedAt: undefined,
       opening: undefined,
       threads: NO_THREADS,
-      threadPart: undefined,
     });
     if (session.client.document?.id === opened.id) void session.client.close().catch(() => undefined);
   }

@@ -11,7 +11,10 @@ import { type CountIds, countId, ENGLISH, fill, type MessageId } from "./message
 const EN = {
   "command.nav.next-thread-part": "Next thread part",
   "command.nav.previous-thread-part": "Previous thread part",
+  "command.organise.initial-view": "Initial view…",
   "threads.title": "Article threads",
+  "threads.note":
+    "Threads join the parts of an article across pages. Lamina PDF follows them; editing threads comes later.",
   "threads.untitled": "Untitled thread",
   "threads.parts": "{count} parts",
   "threads.parts.one": "1 part",

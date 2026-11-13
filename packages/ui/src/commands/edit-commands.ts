@@ -94,7 +94,7 @@ function threadPartCommands(): Command[] {
 function initialViewCommand(): Command {
   return {
     id: "organise.initial-view",
-    title: message("command.organise.initial-view"),
+    title: laterMessage("command.organise.initial-view"),
     keywords: ["open", "opens", "zoom", "layout", "page mode", "viewer preferences"],
     group: "edit",
     delegated: true,
