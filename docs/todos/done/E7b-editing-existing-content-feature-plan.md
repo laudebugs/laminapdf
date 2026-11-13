@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `E7b` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [E6a](../done/E6a-adding-content-feature-plan.md), [E7a](../done/E7a-adr-0022-content-editing.md) |
+| Depends on | [E6a](./E6a-adding-content-feature-plan.md), [E7a](./E7a-adr-0022-content-editing.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e7b-editing-existing-content-feature-plan` |
 | PR title | `docs(editor): E7 feature plan (editing existing content)` |
 | Size | S (< 200 lines) |
-| PR | — |
+| PR | [#564](https://github.com/laudebugs/laminapdf/pull/564) |
 
 ## Goal
 
@@ -48,23 +48,23 @@ The short feature-plan PR that opens round E7 ([full-editor §E7](../../plans/fu
 
 ## Tasks
 
-- [ ] Create `docs/plans/editor/e7-editing-existing-content.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`A.02`, `A.03`, `A.04`, `A.05`, `A.06`, `A.07`, `A.08`, `B.01`, `B.02`, `B.07`, `B.08`, `B.11`, `B.12`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaPdfId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
-- [ ] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
-- [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
-- [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
-- [ ] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e
-- [ ] Add the round's rows to `docs/capabilities/manifest.toml` with `target round = "E7"` and status `unsupported` until each implementation PR flips them
-- [ ] Confirm or adjust the round's implementation todos in `docs/todos/ready/` (E7c onwards): split or merge them so each stays one reviewable PR (≤ ~1,500 lines), and keep their `Depends on` explicit
-- [ ] Answer or assign an owner to each open question below; record decisions in the feature plan
-- [ ] Index the new plan in `docs/plans/README.md` and link it from [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content)
+- [x] Create `docs/plans/editor/e7-editing-existing-content.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`A.02`, `A.03`, `A.04`, `A.05`, `A.06`, `A.07`, `A.08`, `B.01`, `B.02`, `B.07`, `B.08`, `B.11`, `B.12`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaPdfId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
+- [x] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
+- [x] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
+- [x] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
+- [x] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e
+- [x] Add the round's rows to `docs/capabilities/manifest.toml` with `target round = "E7"` and status `unsupported` until each implementation PR flips them
+- [x] Confirm or adjust the round's implementation todos in `docs/todos/ready/` (E7c onwards): split or merge them so each stays one reviewable PR (≤ ~1,500 lines), and keep their `Depends on` explicit
+- [x] Answer or assign an owner to each open question below; record decisions in the feature plan
+- [x] Index the new plan in `docs/plans/README.md` and link it from [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content)
 
 ## Acceptance criteria
 
-- [ ] The plan lists every operation in scope by inventory ID with an `Op` name, class and target status
-- [ ] The `SaveConstraint` table covers Free, AppendOnly (P1/P2/P3), RequiresRewrite and Conflict
-- [ ] Every implementation todo of the round is linked from the plan and each has explicit dependencies
-- [ ] `docs/capabilities/manifest.toml` has a row per op with `target round = "E7"`; `cargo xtask capabilities` regenerates without error
-- [ ] Each open question below is answered or has a named owner and a deadline round
+- [x] The plan lists every operation in scope by inventory ID with an `Op` name, class and target status
+- [x] The `SaveConstraint` table covers Free, AppendOnly (P1/P2/P3), RequiresRewrite and Conflict
+- [x] Every implementation todo of the round is linked from the plan and each has explicit dependencies
+- [x] `docs/capabilities/manifest.toml` has a row per op with `target round = "E7"`; `cargo xtask capabilities` regenerates without error
+- [x] Each open question below is answered or has a named owner and a deadline round
 
 ## Post-merge checks
 
@@ -81,14 +81,21 @@ Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accep
 
 ## Risks and open questions
 
-- Open question: Line-level only, or a layout-aware "reflow edit" mode for paragraphs? (full-editor §9 Q4)
-- Open question: Which edit corpus (sources, licences) and what thresholds define "identical except edited regions"?
+- Answered: line-level only for E7, decided by the owner on 2026-11-13 ([E7 plan §10](../../plans/editor/e7-editing-existing-content.md#10-decisions-on-the-open-questions), question 1)
+- Answered: the edit corpus and its thresholds ([E7 plan §10](../../plans/editor/e7-editing-existing-content.md#10-decisions-on-the-open-questions), question 3)
 - The plan location `docs/plans/editor/` is a recommendation; if the plans README prescribes another place, use it and update this todo's links
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR's first commit moved this file `ready/` → `ongoing/` (Status `ongoing`, links updated)
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## As built
+
+- **The plan** is [docs/plans/editor/e7-editing-existing-content.md](../../plans/editor/e7-editing-existing-content.md). The owner answered its two open questions on 2026-11-13: line-level text editing for this round, and no "keep the claim" option.
+- **Todos:** E7d and E7e handed their reader UI to two new todos, E7k (A05) and E7l (A04), so the core waits only on E7c. E7i gained `RemoveConformanceClaims`, since the claim properties are read-only to every other op.
+- **Matrix:** B.01 and B.02 moved to round E7 at `round-trip`; A.06 targets `write`, since positioned glyphs carry no alignment to read back.
+- **Size:** about 400 lines rather than the estimated < 200, mostly the two new todos.

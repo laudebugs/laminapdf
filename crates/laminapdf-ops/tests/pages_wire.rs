@@ -8,13 +8,15 @@ use common::fixture;
 use laminapdf_model::{PagePosition, Rotation};
 use laminapdf_ops::{Op, ReferencePolicy, RotateMode};
 
-const SAMPLES: [&str; 6] = [
+const SAMPLES: [&str; 8] = [
     "insert-blank-pages",
     "delete-pages",
     "move-pages",
     "rotate-pages",
     "reverse-pages",
     "duplicate-pages",
+    "insert-pages-from",
+    "replace-pages",
 ];
 
 fn sample(name: &str) -> Op {
@@ -83,6 +85,10 @@ fn unknown_fields_and_positions_are_rejected() {
         r#"{ "op": "rotatePages", "args": { "pages": ["p7.0"], "angle": 45 } }"#,
         r#"{ "op": "duplicatePages", "args": { "pages": ["p7.0"], "at": "end", "count": 2 } }"#,
         r#"{ "op": "duplicatePages", "args": { "pages": ["p7.0"] } }"#,
+        r#"{ "op": "insertPagesFrom", "args": { "source": "f534f6f1a920e560dfd6103ae24af60e318d129a177a038366135afc943d058d", "pages": ["p3.0"], "at": "end", "copy": true } }"#,
+        r#"{ "op": "insertPagesFrom", "args": { "source": "not-a-hash", "pages": ["p3.0"], "at": "end" } }"#,
+        r#"{ "op": "insertPagesFrom", "args": { "source": "f534f6f1a920e560dfd6103ae24af60e318d129a177a038366135afc943d058d", "pages": ["p3.0"], "at": "end", "carry": { "fields": "merge" } } }"#,
+        r#"{ "op": "replacePages", "args": { "targets": ["p7.0"], "source": "f534f6f1a920e560dfd6103ae24af60e318d129a177a038366135afc943d058d" } }"#,
         r#"{ "op": "insertBlankPages", "args": { "at": "end", "count": 1, "size": { "width": 1, "height": 1, "depth": 1 }, "rotate": 0 } }"#,
     ] {
         assert!(serde_json::from_str::<Op>(json).is_err(), "{json}");
@@ -100,5 +106,27 @@ fn the_duplicate_sample_names_its_pages_and_place() {
             vec!["p7.0".parse().unwrap()],
             PagePosition::After("p7.0".parse().unwrap())
         )
+    );
+}
+
+#[test]
+fn the_import_samples_name_their_source_pages_and_carry() {
+    let Op::InsertPagesFrom(insert) = sample("insert-pages-from") else {
+        panic!("not insertPagesFrom");
+    };
+    assert_eq!(
+        (insert.source.to_string(), insert.pages.len(), insert.carry.fields),
+        (
+            "f534f6f1a920e560dfd6103ae24af60e318d129a177a038366135afc943d058d".to_owned(),
+            2,
+            laminapdf_ops::FieldClash::Link
+        )
+    );
+    let Op::ReplacePages(replace) = sample("replace-pages") else {
+        panic!("not replacePages");
+    };
+    assert_eq!(
+        (replace.targets.len(), replace.carry, replace.pages.len()),
+        (1, laminapdf_ops::Carry::default(), 1)
     );
 }
