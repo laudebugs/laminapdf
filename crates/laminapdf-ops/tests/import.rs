@@ -377,3 +377,44 @@ fn export_ranges_makes_one_document_per_range() {
     let counts: Vec<usize> = parts.iter().map(|d| d.page_count().unwrap()).collect();
     assert_eq!(counts, [2, 3]);
 }
+
+#[test]
+fn undoing_a_replacement_brings_the_old_page_and_what_pointed_at_it_back() {
+    let mut doc = pages("references.pdf");
+    let before = page_ids(&doc);
+    let (src, ids) = with_source(&mut doc, "pages/forms.pdf");
+    let empty = snapshot(&doc);
+    apply(
+        &mut doc,
+        ReplacePages::new(vec![before[2].clone()], src, vec![ids[0].clone()]),
+    );
+    let replaced = snapshot(&doc);
+    doc.undo().unwrap();
+    assert_eq!((snapshot(&doc), page_ids(&doc)), (empty, before));
+    doc.redo().unwrap();
+    assert_eq!(snapshot(&doc), replaced);
+}
+
+#[test]
+fn pages_from_an_encrypted_source_are_written_as_plain_objects() {
+    use laminapdf_save::{Save as _, SaveOptions};
+    let mut doc = pages("forms.pdf");
+    let id = doc
+        .add_source(fixture("encrypted/r4-aes-128-user.pdf"), Some("user-pw"))
+        .unwrap();
+    let source = doc.source_document(&id).unwrap();
+    let first = page_ids(source)[0].clone();
+    let source_cos: &laminapdf_cos::Document = source;
+    let want = source_cos.page_content(&source_cos.pages().unwrap()[0]).unwrap();
+    apply(&mut doc, InsertPagesFrom::new(id, vec![first], PagePosition::End));
+    let mut out = Vec::new();
+    doc.save(&mut out, &SaveOptions::new()).unwrap();
+    // No password: the copy was written as plain objects into an unencrypted file.
+    let reopened = laminapdf_model::Document::open(out, laminapdf_cos::OpenOptions::default()).unwrap();
+    assert!(!reopened.is_encrypted());
+    let pages = reopened.pages().unwrap();
+    let cos: &laminapdf_cos::Document = &reopened;
+    let copy = cos.pages().unwrap();
+    assert_eq!(cos.page_content(copy.last().unwrap()).unwrap(), want);
+    assert_eq!(pages.len(), 3);
+}

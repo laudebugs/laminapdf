@@ -27,5 +27,5 @@ None.
 
 The decisions and todos behind this code:
 
-- [E2c](../todos/ongoing/E2c-cross-document-pages.md): importing, replacing and extracting pages
+- [E2c](../todos/done/E2c-cross-document-pages.md): importing, replacing and extracting pages
 - [E2 plan §3](../plans/editor/e2-page-organisation.md#3-conformance-the-edits-must-keep): what page edits do to a PDF/UA claim

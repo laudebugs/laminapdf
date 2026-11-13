@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §2.2](../../plans/editor/e2-page-organisation.md#22-what-follows-a-page) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E2c](../ongoing/E2c-cross-document-pages.md) |
+| Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E2c](../done/E2c-cross-document-pages.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2d-merge-and-split` |
 | PR title | `feat(ops): merge documents with outline, destination and field remapping; split` |
