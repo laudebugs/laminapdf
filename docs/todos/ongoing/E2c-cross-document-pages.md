@@ -11,7 +11,7 @@
 | Branch | `feat/e2c-cross-document-pages` |
 | PR title | `feat(ops): import, replace and extract pages across documents` |
 | Size | L (400–800): two ops and two functions over [E2p](../done/E2p-source-documents-and-copier.md)'s copier and sources, the rules for what follows a page, and bindings |
-| PR | — |
+| PR | [laudebugs/laminapdf#544](https://github.com/laudebugs/laminapdf/pull/544) |
 
 ## Goal
 
