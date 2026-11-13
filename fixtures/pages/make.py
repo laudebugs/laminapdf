@@ -17,6 +17,8 @@ boxes.pdf        all five boxes, /UserUnit, each rotation
 forms.pdf        a merged field and widget, a field with two kid widgets, an unsigned signature
 layers.pdf       two optional content groups
 chapters.pdf     three top-level bookmarks with sections, one through a named destination
+tagged.pdf       a tagged form page claiming PDF/UA-1: a heading and a paragraph on page 1, a
+                 paragraph that runs on to page 2, a tagged link and a tagged text field
 """
 
 from pathlib import Path
@@ -314,6 +316,53 @@ def chapters():
     pdf.write("chapters.pdf", cat, "7F9718E92A3B4C5D6E7F8091A2B3C4D5")
 
 
+def tagged():
+    """Two pages under a structure tree, the metadata claiming PDF/UA-1. Page 1 holds an H1
+    (MCID 0) and a P (MCID 1) of its own, the start of a P that runs on to page 2 (MCID 2 here,
+    MCID 0 there), a Link element holding the link's text (MCID 3) and the link annotation
+    (OBJR, /StructParent 1), and a Form element holding a merged text field (OBJR, /StructParent
+    2)."""
+    pdf = Pdf()
+    f = font(pdf)
+    root = pdf.reserve()
+    p1, p2 = pdf.reserve(), pdf.reserve()
+    st, doc_elem, h1, para, runs, link_el, form_el = (pdf.reserve() for _ in range(7))
+    link = pdf.add(f"<< /Type /Annot /Subtype /Link /Rect [72 500 300 520] /P {p1} 0 R /StructParent 1"
+                   f" /Contents (Page 2) /A << /S /GoTo /D [{p2} 0 R /Fit] >> >>")
+    field = pdf.add(f"<< /Type /Annot /Subtype /Widget /FT /Tx /T (email) /V (ada@example.org)"
+                    f" /Rect [72 400 300 420] /P {p1} 0 R /StructParent 2 /TU (Email address) >>")
+    c1 = (b"\n/H1 <</MCID 0>> BDC BT /F1 18 Tf 72 650 Td (Title) Tj ET EMC"
+          b"\n/P <</MCID 1>> BDC BT /F1 12 Tf 72 620 Td (Own) Tj ET EMC"
+          b"\n/P <</MCID 2>> BDC BT /F1 12 Tf 72 600 Td (Runs) Tj ET EMC"
+          b"\n/Link <</MCID 3>> BDC BT /F1 12 Tf 72 505 Td (Next) Tj ET EMC")
+    c2 = b"\n/P <</MCID 0>> BDC BT /F1 12 Tf 72 650 Td (on) Tj ET EMC"
+    pdf.set(p1, page(root, marker(pdf, 1, c1), f" /Annots {kids([link, field])} /StructParents 0 /Tabs /S"))
+    pdf.set(p2, page(root, marker(pdf, 2, c2), " /StructParents 3 /Tabs /S"))
+    pdf.set(root, f"<< /Type /Pages /Kids {kids([p1, p2])} /Count 2 /MediaBox [0 0 612 792] /Resources {resources(f)} >>")
+    pdf.set(h1, f"<< /Type /StructElem /S /H1 /P {doc_elem} 0 R /Pg {p1} 0 R /K 0 >>")
+    pdf.set(para, f"<< /Type /StructElem /S /P /P {doc_elem} 0 R /Pg {p1} 0 R /K 1 >>")
+    pdf.set(runs, f"<< /Type /StructElem /S /P /P {doc_elem} 0 R /Pg {p1} 0 R"
+            f" /K [2 << /Type /MCR /Pg {p2} 0 R /MCID 0 >>] >>")
+    pdf.set(link_el, f"<< /Type /StructElem /S /Link /P {doc_elem} 0 R /Pg {p1} 0 R"
+            f" /K [3 << /Type /OBJR /Obj {link} 0 R >>] >>")
+    pdf.set(form_el, f"<< /Type /StructElem /S /Form /P {doc_elem} 0 R /Pg {p1} 0 R"
+            f" /K << /Type /OBJR /Obj {field} 0 R >> >>")
+    pdf.set(doc_elem, f"<< /Type /StructElem /S /Document /P {st} 0 R"
+            f" /K [{h1} 0 R {para} 0 R {runs} 0 R {link_el} 0 R {form_el} 0 R] >>")
+    pdf.set(st, f"<< /Type /StructTreeRoot /K {doc_elem} 0 R /ParentTree << /Nums [0 [{h1} 0 R {para} 0 R"
+            f" {runs} 0 R {link_el} 0 R] 1 {link_el} 0 R 2 {form_el} 0 R 3 [{runs} 0 R]] >> /ParentTreeNextKey 4 >>")
+    xmp = (b'<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?><x:xmpmeta xmlns:x="adobe:ns:meta/">'
+           b'<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about=""'
+           b' xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/">'
+           b'<dc:title><rdf:Alt><rdf:li xml:lang="x-default">Tagged form</rdf:li></rdf:Alt></dc:title>'
+           b'<pdfuaid:part>1</pdfuaid:part></rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end="w"?>')
+    meta = pdf.stream(xmp, "/Type /Metadata /Subtype /XML ")
+    cat = pdf.add(f"<< /Type /Catalog /Pages {root} 0 R /Metadata {meta} 0 R /Lang (en) /MarkInfo << /Marked true >>"
+                  f" /StructTreeRoot {st} 0 R /ViewerPreferences << /DisplayDocTitle true >>"
+                  f" /AcroForm << /Fields [{field} 0 R] >> >>")
+    pdf.write("tagged.pdf", cat, "80A829FA3B4C5D6E7F8091A2B3C4D5E6")
+
+
 def main():
     inherited()
     unbalanced()
@@ -323,6 +372,7 @@ def main():
     forms()
     layers()
     chapters()
+    tagged()
 
 
 if __name__ == "__main__":

@@ -41,7 +41,7 @@ pub(crate) fn drop_widgets(
 
 /// Whether `field` is a signature field: `/FT /Sig` on it or inherited from a parent
 /// (ISO 32000-2 §12.7.4.1, §12.7.5.5).
-fn is_signature_field(doc: &laminapdf_model::Document, field: ObjRef) -> Result<bool> {
+pub(crate) fn is_signature_field(doc: &laminapdf_model::Document, field: ObjRef) -> Result<bool> {
     let mut next = Some(field);
     let mut seen = std::collections::BTreeSet::new();
     while let Some(r) = next {
@@ -85,47 +85,74 @@ fn unlist_field(doc: &mut laminapdf_model::Document, field: ObjRef) -> Result<()
         }
         field = parent;
     }
+    edit_form_fields(doc, |items| items.retain(|o| o.as_ref() != Some(field)))
+}
+
+/// Puts `field` in its parent's `/Kids`, or in `/AcroForm /Fields` when it has no `parent`:
+/// how a new field joins the form (ISO 32000-2 §12.7.4).
+pub(crate) fn list_field(doc: &mut laminapdf_model::Document, parent: Option<ObjRef>, field: ObjRef) -> Result<()> {
+    match parent {
+        Some(parent) => edit_list(doc, parent, "Kids", |items| items.push(Object::Ref(field))),
+        None => edit_form_fields(doc, |items| items.push(Object::Ref(field))),
+    }
+}
+
+/// Edits `/AcroForm /Fields` with `f`, wherever the form and the array are stored (direct or
+/// indirect). A document without a form, or a form without `/Fields`, is left alone.
+fn edit_form_fields(doc: &mut laminapdf_model::Document, f: impl FnOnce(&mut Vec<Object>)) -> Result<()> {
     match doc.catalog()?.get("AcroForm").cloned() {
-        Some(Object::Ref(form)) => drop_from_list(doc, form, "Fields", field),
-        Some(Object::Dict(mut form)) => {
-            let fields = form.get("Fields").cloned();
-            match fields {
-                Some(Object::Ref(list)) => drop_from_array(doc, list, field),
-                Some(Object::Array(mut items)) => {
-                    items.retain(|o| o.as_ref() != Some(field));
-                    form.insert("Fields", Object::Array(items));
-                    Ok(set_catalog_entry(
-                        &mut doc.cos_mut().edit(),
-                        "AcroForm",
-                        Some(Object::Dict(form)),
-                    )?)
-                }
-                _ => Ok(()),
+        Some(Object::Ref(form)) => edit_list(doc, form, "Fields", f),
+        Some(Object::Dict(mut form)) => match form.get("Fields").cloned() {
+            Some(Object::Ref(list)) => edit_array(doc, list, f),
+            Some(Object::Array(mut items)) => {
+                f(&mut items);
+                form.insert("Fields", Object::Array(items));
+                Ok(set_catalog_entry(
+                    &mut doc.cos_mut().edit(),
+                    "AcroForm",
+                    Some(Object::Dict(form)),
+                )?)
             }
-        }
+            _ => Ok(()),
+        },
         _ => Ok(()),
     }
 }
 
-/// Takes `target` out of the array at `key` of the dictionary object `holder` (the array may
-/// be indirect).
+/// Takes `target` out of the array at `key` of the dictionary object `holder`.
 fn drop_from_list(doc: &mut laminapdf_model::Document, holder: ObjRef, key: &str, target: ObjRef) -> Result<()> {
+    if !doc.object(holder.num)?.as_dict().is_some_and(|d| d.contains_key(key)) {
+        return Ok(());
+    }
+    edit_list(doc, holder, key, |items| items.retain(|o| o.as_ref() != Some(target)))
+}
+
+/// Edits with `f` the array at `key` of the dictionary object `holder` (the array may be
+/// indirect); a holder without one gets a new array.
+fn edit_list(
+    doc: &mut laminapdf_model::Document,
+    holder: ObjRef,
+    key: &str,
+    f: impl FnOnce(&mut Vec<Object>),
+) -> Result<()> {
     match doc.object(holder.num)?.as_dict().and_then(|d| d.get(key)).cloned() {
-        Some(Object::Ref(list)) => drop_from_array(doc, list, target),
-        Some(Object::Array(_)) => edit_dict(doc, holder, |d| {
-            if let Some(Object::Array(items)) = d.get_mut(key) {
-                items.retain(|o| o.as_ref() != Some(target));
-            }
+        Some(Object::Ref(list)) => edit_array(doc, list, f),
+        _ => edit_dict(doc, holder, |d| {
+            let mut items = match d.get(key) {
+                Some(Object::Array(items)) => items.clone(),
+                _ => Vec::new(),
+            };
+            f(&mut items);
+            d.insert(key, Object::Array(items));
         }),
-        _ => Ok(()),
     }
 }
 
-/// Takes `target` out of the array object `list`.
-fn drop_from_array(doc: &mut laminapdf_model::Document, list: ObjRef, target: ObjRef) -> Result<()> {
+/// Edits the array object `list` with `f`.
+fn edit_array(doc: &mut laminapdf_model::Document, list: ObjRef, f: impl FnOnce(&mut Vec<Object>)) -> Result<()> {
     edit_object(doc, list, |o| {
         if let Object::Array(items) = o {
-            items.retain(|o| o.as_ref() != Some(target));
+            f(items);
         }
     })
 }

@@ -13,7 +13,9 @@ use crate::error::{Error, Result};
 use crate::info::SetInfo;
 use crate::labels::SetPageLabels;
 use crate::metadata::{RemoveMetadata, SetMetadata, UpdateSaveMetadata};
-use crate::pages::{DeletePages, InsertBlankPages, MovePages, ReferenceChange, ReversePages, RotatePages};
+use crate::pages::{
+    DeletePages, DuplicatePages, FieldChange, InsertBlankPages, MovePages, ReferenceChange, ReversePages, RotatePages,
+};
 use crate::rotate::RotatePage;
 #[cfg(feature = "test-support")]
 use crate::test_support::Declared;
@@ -67,6 +69,8 @@ pub enum Op {
     RotatePages(RotatePages),
     /// Reverse pages within the places they hold.
     ReversePages(ReversePages),
+    /// Copy pages within the document, with new annotations, fields and structure.
+    DuplicatePages(DuplicatePages),
     /// The save-time metadata stamp, made only by the save planner. It never crosses the wire:
     /// serialising it fails with serde's error (`OpLog::to_json`: `invalid-op-log`), and no op
     /// log can name it.
@@ -100,7 +104,8 @@ impl Op {
             | Self::DeletePages(_)
             | Self::MovePages(_)
             | Self::RotatePages(_)
-            | Self::ReversePages(_) => ModificationClass::PageStructure,
+            | Self::ReversePages(_)
+            | Self::DuplicatePages(_) => ModificationClass::PageStructure,
             Self::UpdateAnnot(_) | Self::DeleteAnnot(_) => ModificationClass::Annotation,
             Self::SetPageLabels(_) => ModificationClass::Document,
             #[cfg(feature = "test-support")]
@@ -125,6 +130,7 @@ impl Op {
             | Self::MovePages(_)
             | Self::RotatePages(_)
             | Self::ReversePages(_)
+            | Self::DuplicatePages(_)
             | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_) => false,
@@ -135,8 +141,8 @@ impl Op {
 
     /// The pages this op would delete, replace, reshow or move: what `laminapdf-save`'s
     /// `SavePlanner::would_violate` checks against the widgets on them before the op applies
-    /// ([E2 plan §6]): deleted pages, rotated ones and moved or reversed ones. Inserting
-    /// pages and metadata edits change none.
+    /// ([E2 plan §6]): deleted pages, rotated ones and moved or reversed ones. Inserting and
+    /// duplicating pages (a copy's widgets belong to new fields) and metadata edits change none.
     ///
     /// [E2 plan §6]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint
     ///
@@ -150,6 +156,7 @@ impl Op {
             | Self::RemoveMetadata(_)
             | Self::UpdateSaveMetadata(_)
             | Self::InsertBlankPages(_)
+            | Self::DuplicatePages(_)
             | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_) => Vec::new(),
@@ -183,6 +190,7 @@ impl Op {
             Self::MovePages(op) => op.apply_to(doc),
             Self::RotatePages(op) => op.apply_to(doc),
             Self::ReversePages(op) => op.apply_to(doc),
+            Self::DuplicatePages(op) => op.apply_to(doc),
             Self::SetMetadata(op) => op.apply_to(doc),
             Self::RemoveMetadata(op) => op.apply_to(doc),
             Self::UpdateSaveMetadata(op) => op.apply_to(doc),
@@ -213,6 +221,10 @@ pub(crate) struct Effect {
     pub(crate) page_order: Option<Vec<PageId>>,
     /// The references to deleted pages it retargeted or removed.
     pub(crate) references: Vec<ReferenceChange>,
+    /// The form fields whose widgets it copied (renamed) or left out (signatures).
+    pub(crate) fields: Vec<FieldChange>,
+    /// The copies whose tags it couldn't clone whole (`DuplicateTagsIncomplete`).
+    pub(crate) tags_incomplete: Vec<PageId>,
 }
 
 impl From<SetInfo> for Op {
@@ -255,6 +267,7 @@ op_from!(
     MovePages,
     RotatePages,
     ReversePages,
+    DuplicatePages,
     UpdateAnnot,
     DeleteAnnot
 );

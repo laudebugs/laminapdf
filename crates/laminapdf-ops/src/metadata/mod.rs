@@ -35,7 +35,7 @@ use crate::error::Result;
 use crate::op::Effect;
 use crate::wire;
 
-pub use conformance::{ConformanceWarning, conformance_warnings};
+pub use conformance::{ConformanceWarning, conformance_warnings, pending_conformance_warnings};
 pub use read::{DocumentMetadata, MetadataSource, PacketStatus, read_metadata};
 pub(crate) use write::{Policy, write};
 
