@@ -67,10 +67,9 @@ describe(`bookmarks in ${BROWSER}`, () => {
       typeof file === "string" ? file : { name: file.name, mimeType: "application/pdf", buffer: file.buffer },
     );
     await page.locator(".web-viewer canvas").first().waitFor();
-    if (!(await page.getByRole("tab", { name: "Outline" }).isVisible())) {
-      await page.getByRole("button", { name: "Sidebar" }).click();
-    }
-    await page.getByRole("tab", { name: "Outline" }).click();
+    // The file asks for its outline when it opens (/PageMode /UseOutlines): the rail opens on it
+    // once the first page is drawn. Toggling the rail before then could close it as it opens.
+    await expect.poll(() => page.getByRole("tab", { name: "Outline" }).getAttribute("aria-selected")).toBe("true");
   }
 
   it("[cap I.01 web round-trip] [cap I.04 web round-trip] adds, renames, nests and moves a bookmark and renames a destination", async () => {
