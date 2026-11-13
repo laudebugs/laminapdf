@@ -5,7 +5,7 @@
 
 ## What happened
 
-A bookmark's web address isn't a full `http`, `https` or `mailto` address in plain ASCII.
+The web address of a bookmark or link isn't a full `http`, `https` or `mailto` address in plain ASCII.
 
 ## Why
 
@@ -31,3 +31,4 @@ None.
 The decisions and todos behind this code:
 
 - [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+- [E3c](../todos/done/E3c-links.md): link annotations

@@ -97,6 +97,7 @@ mod samples {
         ]
         .into_iter()
         .chain(OUTLINE_SAMPLES)
+        .chain(LINK_SAMPLES)
         {
             let op: Op = serde_json::from_slice(&fixture(&format!("ops/v1/{name}.json"))).unwrap();
             let again: Op = serde_json::from_str(&serde_json::to_string(&op).unwrap()).unwrap();
@@ -123,6 +124,33 @@ mod samples {
             let mut doc = corpus("outline.pdf");
             let applied = doc.apply_all(Origin::Local, [op]).unwrap();
             assert!(!applied.undo.is_empty(), "{name} changed nothing");
+        }
+    }
+
+    /// The link samples, written for `golden/links-and-outlines.pdf`'s first page (`p9.0`) and
+    /// its links (`a5.0` to `a8.0`).
+    const LINK_SAMPLES: [&str; 3] = ["add-link", "update-link", "delete-link"];
+
+    #[test]
+    fn every_link_sample_deserialises_and_applies_to_the_links_fixture() {
+        for name in LINK_SAMPLES {
+            let op: Op = serde_json::from_slice(&fixture(&format!("ops/v1/{name}.json"))).unwrap();
+            let mut doc = common::open(&fixture("golden/links-and-outlines.pdf"));
+            let applied = doc.apply_all(Origin::Local, [op]).unwrap();
+            assert!(!applied.undo.is_empty(), "{name} changed nothing");
+        }
+    }
+
+    #[test]
+    fn a_link_rejects_unknown_fields_and_short_quads() {
+        for args in [
+            r#""rect": { "x0": 0, "y0": 0, "x1": 1, "y1": 1, "z": 0 }"#,
+            r#""rect": { "x0": 0, "y0": 0, "x1": 1, "y1": 1 }, "quads": [[{ "x": 0, "y": 0, "z": 0 }, { "x": 0, "y": 0 }, { "x": 0, "y": 0 }, { "x": 0, "y": 0 }]]"#,
+            r#""rect": { "x0": 0, "y0": 0, "x1": 1, "y1": 1 }, "quads": [[{ "x": 0, "y": 0 }]]"#,
+        ] {
+            let json =
+                format!(r#"{{ "op": "addLink", "args": {{ "page": "p9.0", {args}, "target": {{ "named": "a" }} }} }}"#);
+            assert!(op(&json).is_err(), "{args}");
         }
     }
 

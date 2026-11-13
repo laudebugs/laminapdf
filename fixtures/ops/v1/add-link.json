@@ -1,0 +1,1 @@
+{ "op": "addLink", "args": { "page": "p9.0", "rect": { "x0": 36, "y0": 380, "x1": 236, "y1": 394 }, "quads": [[{ "x": 36, "y": 394 }, { "x": 236, "y": 394 }, { "x": 36, "y": 380 }, { "x": 236, "y": 380 }]], "target": { "named": "chapter-2" }, "contents": "Chapter 2", "nm": "link-1" } }

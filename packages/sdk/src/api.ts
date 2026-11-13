@@ -111,6 +111,7 @@ export {
   type XmpEditOptions,
 } from "./transaction.js";
 export type {
+  AddLink,
   AfRelationship,
   Align,
   ArticleThread,

@@ -2,7 +2,7 @@
 // workers too, which add their own hooks on top so none ships.
 
 import type { RenderRequest } from "@laminapdf/render";
-import type { Op, SaveOptions, TargetView } from "@laminapdf/sdk";
+import type { Op, OutlineTarget, SaveOptions, TargetView } from "@laminapdf/sdk";
 import type { ExtensionMethod } from "@laminapdf/sdk/worker/server";
 import type { FindOptions } from "../find/fold.js";
 import type { BackendInit, PrintOptions, ReplayedStep, SavedCopy, SourceInit, ViewerOpenOptions } from "../protocol.js";
@@ -32,6 +32,8 @@ import {
   destinationAt,
   forgetLinks,
   initialView,
+  linkOnArea,
+  linkOnText,
   namedDestination,
   namedDestinations,
   outline,
@@ -124,6 +126,19 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   threads: { run: (_params, { signal }) => threads(signal) },
   namedDestinations: { run: (_, { signal }) => namedDestinations(signal) },
   destinationAt: { run: ([page, view], { signal }) => destinationAt(page as number, view as TargetView, signal) },
+  linkOnArea: {
+    run: ([page, area, target], { signal }) =>
+      linkOnArea(page as number, area as readonly [number, number, number, number], target as OutlineTarget, signal),
+  },
+  linkOnText: {
+    run: ([page, lines, target], { signal }) =>
+      linkOnText(
+        page as number,
+        lines as readonly (readonly [number, number, number, number])[],
+        target as OutlineTarget,
+        signal,
+      ),
+  },
   pageLinks: { run: ([index], { signal }) => pageLinks(index as number, signal) },
   properties: {
     run: async (_params, { signal }) => {

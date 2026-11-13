@@ -55,6 +55,31 @@ async function outlineOf(doc) {
   return out;
 }
 
+/** Where a Link annotation goes: ["uri", address], ["page", index] or ["other"]. */
+async function linkTarget(doc, annotation) {
+  if (typeof annotation.url === "string") return ["uri", annotation.url];
+  let dest = annotation.dest;
+  if (typeof dest === "string") dest = await doc.getDestination(dest);
+  if (!Array.isArray(dest) || dest[0] === null || typeof dest[0] !== "object") return ["other"];
+  const index = await doc.getPageIndex(dest[0]).catch(() => null);
+  return index === null ? ["other"] : ["page", index];
+}
+
+/** Each page's links, sorted: ["page", index], ["uri", address] or ["other"], as lamina lists them. */
+async function linksOf(doc) {
+  const pages = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const found = [];
+    for (const a of await page.getAnnotations()) {
+      if (a.subtype === "Link") found.push(await linkTarget(doc, a));
+    }
+    const key = (x) => JSON.stringify(x);
+    pages.push(found.sort((x, y) => (key(x) < key(y) ? -1 : key(x) > key(y) ? 1 : 0)));
+  }
+  return pages;
+}
+
 // Each page's label (getPageLabels() is null for a document without labels).
 async function pageLabels(doc) {
   const labels = await doc.getPageLabels();
@@ -108,6 +133,10 @@ for (const c of cases) {
     if (c.outline !== undefined) {
       got.outline = await outlineOf(doc);
       want.outline = c.outline;
+    }
+    if (c.links !== undefined) {
+      got.links = await linksOf(doc);
+      want.links = c.links;
     }
     if (JSON.stringify(got) !== JSON.stringify(want)) {
       failures.push(`${c.file}: got ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`);

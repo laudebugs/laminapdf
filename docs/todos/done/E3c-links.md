@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `E3c` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [E3 plan §2.1](../../plans/editor/e3-navigation-attachments-inspection.md#21-ops) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [C5b](../done/C5b-find-in-document.md), [E2j](../done/E2j-page-tree-and-tree-writers.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md) |
+| Depends on | [C5b](./C5b-find-in-document.md), [E2j](./E2j-page-tree-and-tree-writers.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3c-links` |
 | PR title | `feat(ops): create and edit link annotations` |
 | Size | M (200–400): three ops, the structure-tree placement and the link tool |
-| PR | — |
+| PR | [#542](https://github.com/laudebugs/laminapdf/pull/542) |
 
 ## Goal
 
@@ -35,7 +35,7 @@ Create, edit and delete Link annotations: internal (GoTo/destination), external 
 
 **Out of scope** (and which todo covers it)
 
-- The desktop column → [E3k](E3k-desktop-navigation-and-export.md)
+- The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 
@@ -49,21 +49,29 @@ Create, edit and delete Link annotations: internal (GoTo/destination), external 
 
 ## Tasks
 
-- [ ] Link view and ops
-- [ ] Quads from selection
-- [ ] Tool and popover
-- [ ] Tests
+- [x] Link view and ops
+- [x] Quads from selection
+- [x] Tool and popover
+- [x] Tests
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
-- [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
-- [ ] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
-- [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
+- [x] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [x] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
+- [x] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
+- [x] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] Links created in lamina navigate correctly in pdf.js and PDFium (e2e clicks in pdf.js viewer harness)
-- [ ] veraPDF reports nothing new on `golden/tagged-report.pdf` after adding a link on its text
-- [ ] A certified-P3 file saves a new link incrementally; P1 and P2 refuse it before it applies
+- [x] veraPDF reports nothing new on `golden/tagged-report.pdf` after adding a link on its text
+- [x] A certified-P3 file saves a new link incrementally; P1 and P2 refuse it before it applies
 - [ ] On a tagged certified-P3 file, pyHanko's DocMDP check accepts the saved link with its structure entries; if it doesn't, links on certified files are added untagged with `link-not-tagged` ([E3 plan §6](../../plans/editor/e3-navigation-attachments-inspection.md#6-saving-and-the-save-constraint))
+
+**As built.**
+
+- `AddLink` takes no ID: like `AddOutlineItem`, it makes one, and `Applied::created_annotations` lists it. It takes `marked` instead, the MCIDs of the content under the link, which the façade's `link_on_text` reads from the glyphs, since `laminapdf-ops` can't read content. The target is E3b's `OutlineTarget`, as the builder already has a `LinkTarget`; a quad is four `UserSpacePoint`s, as links read them. An annotation that isn't a link is `not-a-link`.
+- In a tagged file the link becomes a `Link` element under the element that owns the first covered MCID, holding that element's covered content and the link's `OBJR` in that content's place. Content another element owns stays where it is. A link on text another link covers goes after that link, since a link can't hold one. The page gets `/Tabs /S`, and `DeleteLink` puts the content back. Both ops write the parent tree whole, as E2b's duplicate does, so an incremental save adds its nodes again.
+- Navigation: the round-trip suite's link cases check that pdf.js and PDFium resolve each link to the same page or address as Lamina PDF, on every plain fixture and in both save modes. No pdf.js viewer harness exists to click them.
+- pyHanko (0.38.0) can't settle the P3 question: on a certified-P3 copy of the tagged report, its standard difference policy rejects the saved link (`docmdp_ok` false), and it rejects an untagged link on `signed/certified-p3.pdf` the same way, naming the page's new `/Annots` entry. Its own warning says that policy wasn't built for P3, so leaving links untagged on certified files would change nothing, and links stay tagged. ISO 32000-2 allows annotations at P3; the planner keeps allowing them.
+- The reader has no Edit mode yet, so the Link tool's toggle sits in the top bar and the editor in a panel by the link; the other differences from O12 are in the [area document](../../design/paper/pages-navigation-extraction.md#o12-link-editor). The `pdf` column has no evidence: only the reader's end-to-end titles carry TypeScript capability tags.
 
 ## Post-merge checks
 
@@ -85,8 +93,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

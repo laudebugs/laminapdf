@@ -4,6 +4,7 @@
 // Worker's bundled `INPUT_PATHS`) and the output is compared with the Rust golden, so every
 // runtime produces the same bytes.
 import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@laminapdf/sdk";
+import { addLinks } from "../../examples/add-links.js";
 import { duplicatePages } from "../../examples/duplicate-pages.js";
 import { editBookmarks } from "../../examples/edit-bookmarks.js";
 import { editMetadata } from "../../examples/edit-metadata.js";
@@ -64,6 +65,8 @@ const BOLD = "fixtures/fonts/NotoSans-RegularBold.ttc";
 const EDITED_AT = "D:20261030130000Z";
 /** The document edit-metadata edits. */
 const METADATA_PDF = "fixtures/golden/metadata.pdf";
+/** The tagged document add-links adds links to. */
+const TAGGED_PDF = "fixtures/golden/tagged-report.pdf";
 /** The document set-initial-view edits: three pages with an outline. */
 const OUTLINE_PDF = "fixtures/corpus/outline.pdf";
 /** The document edit-bookmarks edits. */
@@ -165,6 +168,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "edit_metadata",
     inputs: [METADATA_PDF],
     build: (i) => editMetadata(input(i, METADATA_PDF), EDITED_AT),
+  },
+  {
+    name: "add-links",
+    golden: "add_links",
+    inputs: [TAGGED_PDF],
+    build: (i) => addLinks(input(i, TAGGED_PDF)),
   },
   {
     name: "set-initial-view",

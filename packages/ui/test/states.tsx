@@ -9,6 +9,7 @@ import {
   type BookmarkItem,
   EditArea,
   HistoryPanel,
+  LinkEditor,
   type SavePlanSlice,
   SaveStrip,
 } from "../src/editing.ts";
@@ -611,6 +612,42 @@ const bookmarks: Example[] = [
   },
 ];
 
+/** The link editor's handlers, which the examples never call. */
+const LINK_ACTIONS = {
+  pageCount: 12,
+  names: ["chapter-2", "summary"],
+  onGoal: () => undefined,
+  onContents: () => undefined,
+  onDelete: () => undefined,
+  checkAddress: (address: string) => ({ ok: true, address }) as const,
+};
+
+const links: Example[] = [
+  {
+    component: "LinkEditor",
+    state: "a link on text to a page",
+    element: () => (
+      <LinkEditor
+        text="full report"
+        goal={{ kind: "page", page: 4 }}
+        contents="The full report"
+        onFollow={() => undefined}
+        {...LINK_ACTIONS}
+      />
+    ),
+  },
+  {
+    component: "LinkEditor",
+    state: "a new drawn link with nowhere to go yet",
+    element: () => <LinkEditor drawn goal={undefined} contents="" {...LINK_ACTIONS} />,
+  },
+  {
+    component: "LinkEditor",
+    state: "a link read from a file that runs a script",
+    element: () => <LinkEditor goal={{ kind: "script", action: "JavaScript" }} contents="" {...LINK_ACTIONS} />,
+  },
+];
+
 const CERTIFICATION = { kind: "certification", field: "f7.0" };
 const APPROVAL = { kind: "approval", field: "f9.0" };
 
@@ -1011,6 +1048,7 @@ export const EXAMPLES: readonly Example[] = [
   ...history,
   ...threads,
   ...bookmarks,
+  ...links,
   ...saveStrip,
   ...buttons,
   ...toggles,

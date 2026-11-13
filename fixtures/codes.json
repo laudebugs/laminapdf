@@ -668,6 +668,20 @@
       "since": "0.2.0"
     },
     {
+      "code": "not-a-link",
+      "kind": "usage",
+      "summary": "a link op names an annotation that isn't a link",
+      "hint": "name a link from the page's links; change other annotations with updateAnnot and deleteAnnot",
+      "since": "0.2.0"
+    },
+    {
+      "code": "link-not-tagged",
+      "kind": "unsupported",
+      "summary": "the file claims PDF/UA-1 but has no structure tree for a new link to join",
+      "hint": "tag the document first, or add the link to a copy that doesn't claim PDF/UA",
+      "since": "0.2.0"
+    },
+    {
       "code": "invalid-label-ranges",
       "kind": "usage",
       "summary": "page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0",

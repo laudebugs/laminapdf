@@ -119,6 +119,8 @@ A PR that adds a code adds:
 | [`unknown-annotation`](unknown-annotation.md) | `usage` | the op names an annotation that no page of the document lists |
 | [`annotation-locked`](annotation-locked.md) | `state` | the annotation's flags forbid the change: Locked forbids deleting it or changing its properties, LockedContents changing its contents |
 | [`annotation-not-editable`](annotation-not-editable.md) | `unsupported` | the annotation can't be edited by the annotation ops: it is a form field's widget, or a direct dictionary with no object of its own |
+| [`not-a-link`](not-a-link.md) | `usage` | a link op names an annotation that isn't a link |
+| [`link-not-tagged`](link-not-tagged.md) | `unsupported` | the file claims PDF/UA-1 but has no structure tree for a new link to join |
 | [`invalid-label-ranges`](invalid-label-ranges.md) | `usage` | page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0 |
 
 ## Op warnings

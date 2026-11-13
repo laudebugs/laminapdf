@@ -3,7 +3,8 @@
 //! objects. Nothing here runs an action: a `Launch`, `JavaScript` or `SubmitForm` link is
 //! reported by its type, for the viewer to say it won't run it.
 
-use laminapdf_model::{Link, LinkAction, PointPt, RectPt};
+use laminapdf_model::{AnnotId, Link, LinkAction, PageFrame, PointPt, Pt, RectPt};
+use laminapdf_ops::{AddLink, OutlineTarget};
 
 use crate::document::Document;
 use crate::error::{Error, Result};
@@ -15,6 +16,9 @@ use crate::navigation::{PageTarget, target};
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct PageLink {
+    /// Its ID, for the link edits; `None` for a link stored inside the page's list, which
+    /// can't be edited.
+    pub id: Option<AnnotId>,
     /// Its rectangle, in page space.
     pub rect: RectPt,
     /// The areas that follow it, four corners each in page space, when the file gives them
@@ -72,6 +76,7 @@ impl Document {
         let mut out = Vec::new();
         for link in pages.links(&page)? {
             let Link {
+                id,
                 rect,
                 quads,
                 contents,
@@ -96,6 +101,7 @@ impl Document {
                 _ => continue,
             };
             out.push(PageLink {
+                id,
                 rect: frame.rect_to_page(&rect),
                 quads: quads.iter().map(|q| q.map(|p| frame.to_page(p))).collect(),
                 contents,
@@ -104,4 +110,95 @@ impl Document {
         }
         Ok(out)
     }
+}
+
+impl Document {
+    /// The edit that adds a link going to `target` on `area`, a box the user drew in page space,
+    /// of page `page` (0-based). Apply it with [`Document::apply`]; its description and
+    /// `/NM` are the caller's to set.
+    ///
+    /// # Errors
+    /// `page-index-out-of-range`; reading errors (the page tree).
+    ///
+    /// Added in 0.3.0.
+    pub fn link_on_area(&self, page: u32, area: RectPt, target: OutlineTarget) -> Result<AddLink> {
+        let (id, frame) = self.page_frame(page)?;
+        Ok(AddLink::new(id, user_rect(&frame, &[area]), target))
+    }
+
+    /// The edit that adds a link on text of page `page` (0-based): `lines` are the boxes of
+    /// the text, one per line, in page space, as a selection gives them. Each line becomes one
+    /// of the link's quads. In a tagged document, the MCIDs of the glyphs inside them place the
+    /// link in the structure tree beside its text ([`AddLink::marked`]).
+    ///
+    /// # Errors
+    /// `invalid-op` for no lines; `page-index-out-of-range`; the reading errors of
+    /// [`Document::page_text`].
+    ///
+    /// Added in 0.3.0.
+    #[cfg(feature = "extract")]
+    pub fn link_on_text(&self, page: u32, lines: &[RectPt], target: OutlineTarget) -> Result<AddLink> {
+        if lines.is_empty() {
+            return Err(laminapdf_ops::Error::InvalidOp("a link on text needs one line or more").into());
+        }
+        let (id, frame) = self.page_frame(page)?;
+        let text = self.page_text(page, &crate::extract::TextOptions::default())?;
+        let mut marked: Vec<u32> = Vec::new();
+        for glyph in &text.glyphs {
+            let [a, _, c, _] = glyph.quad;
+            let centre = PointPt::new(
+                Pt::new(f64::midpoint(a.x.get(), c.x.get())),
+                Pt::new(f64::midpoint(a.y.get(), c.y.get())),
+            );
+            let inside = lines.iter().any(|l| {
+                (l.x0.get()..=l.x1.get()).contains(&centre.x.get())
+                    && (l.y0.get()..=l.y1.get()).contains(&centre.y.get())
+            });
+            if let Some(m) = glyph.mcid.and_then(|m| u32::try_from(m).ok())
+                && inside
+                && !marked.contains(&m)
+            {
+                marked.push(m);
+            }
+        }
+        let mut op = AddLink::new(id, user_rect(&frame, lines), target);
+        op.quads = lines
+            .iter()
+            .map(|l| {
+                [
+                    PointPt::new(l.x0, l.y0),
+                    PointPt::new(l.x1, l.y0),
+                    PointPt::new(l.x0, l.y1),
+                    PointPt::new(l.x1, l.y1),
+                ]
+                .map(|p| frame.to_user_space(p))
+            })
+            .collect();
+        op.marked = marked;
+        Ok(op)
+    }
+
+    /// Page `page`'s ID and frame.
+    fn page_frame(&self, page: u32) -> Result<(laminapdf_model::PageId, PageFrame)> {
+        let pages = self.ops().pages()?;
+        let p = usize::try_from(page)
+            .ok()
+            .and_then(|i| pages.get(i))
+            .ok_or(Error::PageIndexOutOfRange {
+                index: page,
+                count: u32::try_from(pages.len()).unwrap_or(u32::MAX),
+            })?;
+        Ok((p.id().clone(), p.frame()?))
+    }
+}
+
+/// The user-space rectangle that bounds `areas`, given in page space.
+fn user_rect(frame: &PageFrame, areas: &[RectPt]) -> laminapdf_model::UserSpaceRect {
+    let bounds = areas
+        .iter()
+        .skip(1)
+        .fold(areas.first().copied().unwrap_or_default(), |r, a| r.union(a));
+    let a = frame.to_user_space(PointPt::new(bounds.x0, bounds.y0));
+    let b = frame.to_user_space(PointPt::new(bounds.x1, bounds.y1));
+    laminapdf_model::UserSpaceRect::from_corners(a.x, a.y, b.x, b.y)
 }

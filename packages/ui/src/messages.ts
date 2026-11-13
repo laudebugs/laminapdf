@@ -588,6 +588,7 @@ const EN = {
   "command.find.previous": "Previous match",
   "command.edit.copy": "Copy",
   "command.edit.copy-exact": "Copy exact",
+  "command.edit.make-link": "Make link",
   "command.edit.select-column-mode": "Select by column",
   "command.selection.search": "Search for the selection",
   "command.selection.share": "Share the selection",
