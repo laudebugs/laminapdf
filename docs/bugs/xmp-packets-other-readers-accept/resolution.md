@@ -7,7 +7,7 @@
 The XMP reader (`laminapdf_model::xmp`) now reads both kinds of damage, and reports each:
 
 - **The header.** Bytes that aren't UTF-8 are still refused, except inside the leading `<?xpacket … ?>` header, where each is read as `?`. One byte stands for one, so error offsets and the packet's length are those of the bytes given. An unchanged packet still writes back byte for byte; an edited one writes `?` in their place.
-- **Prefixes.** An undeclared prefix that is one of XMP's standard ones names its standard namespace: `dc`, `xmp`, `pdf`, `xmpMM`, `pdfaid`, `pdfuaid`, and the older `xap` and `xapMM`. Only the parser falls back; a declaration always wins, and any other undeclared prefix is still refused. An edit declares such a prefix where it writes the property, on the replaced element or on the description of a replaced attribute, and a canonical rewrite declares it with the other namespaces. Properties an in-place edit leaves alone stay as the file wrote them.
+- **Prefixes.** An undeclared prefix that is one of XMP's standard ones names its standard namespace: `dc`, `xmp`, `pdf`, `xmpMM`, `pdfaid`, `pdfuaid`, and the older `xap` and `xapMM`. Only the parser falls back; a declaration always wins, and any other undeclared prefix is still refused. An edit declares such a prefix where it writes the property, on the replaced element or on the description of a replaced attribute, and a canonical rewrite declares each property's prefix with the other namespaces. Properties an in-place edit leaves alone stay as the file wrote them.
 - **The warning.** ADR 0003 says a repair is never silent. `Packet::repairs` says which damage a packet was read through, and `Document::xmp` raises the new warning `xmp-repaired` once for each, with `reason` `header-encoding` or `undeclared-prefix`. Strict mode refuses such a packet, as it refuses a malformed one.
 
 The 13 files now parse, and their fields equal ExifTool's. The other 7 files' 8 differences are `[[known]]` entries in `fixtures/differential/xmp-exceptions.toml`, each with its reason, tracked by [#527](https://github.com/laudebugs/laminapdf/issues/527):
@@ -32,4 +32,4 @@ The 13 files now parse, and their fields equal ExifTool's. The other 7 files' 8 
 ## Left for later
 
 - A packet whose bytes outside the header aren't UTF-8 is still malformed.
-- A structure's fields that use an undeclared standard prefix are read the same way, but an edit declares only the prefix of the property it writes.
+- A prefix used undeclared only inside a property's value (a field of a structure, such as an `xmp:` field in an `xmpMM:History` entry) is read the same way, but no edit or rewrite declares it: the value is copied as written.

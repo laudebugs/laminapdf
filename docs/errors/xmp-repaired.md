@@ -16,7 +16,7 @@ The document's XMP metadata has damage that ExifTool and pdf.js read past, and L
 
 ## How to fix
 
-Nothing, to read the file. A metadata edit writes the declaration of each prefix it writes, and a rewritten packet declares every prefix it uses. In strict mode the warning is an error, so a strict reader refuses such a packet.
+Nothing, to read the file. A metadata edit declares the prefix of each property it writes, and a packet rewritten whole declares the prefix of every property. A prefix used only inside a property's value, such as an `xmp:` field of an `xmpMM:History` entry, is copied as the file wrote it. In strict mode the warning is an error, so a strict reader refuses such a packet.
 
 ## Example
 
