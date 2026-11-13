@@ -239,6 +239,11 @@ name = "flowing"
 harness = false
 required-features = ["text"]
 
+# Merging 100 files of 10 pages (todo E2d, E2 plan §10).
+[[bench]]
+name = "merge"
+harness = false
+
 [lints]
 workspace = true
 
