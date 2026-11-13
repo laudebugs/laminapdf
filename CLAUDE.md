@@ -28,7 +28,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   │                    #     (src/generated/) and, with feature `json`, Diagnostic (the ADR 0026 object every boundary throws)
 │   ├── laminapdf-cos/   #   core: reader and overlay: Document over a ByteSource (xref, object streams, repair, page tree,
 │   │                    #     warnings), the overlay (CosMut, journal), rebase
-│   ├── laminapdf-model/ #   core: typed views (pages, outline, Info, name/number trees, page labels, structure tree),
+│   ├── laminapdf-model/ #   core: typed views (pages, outline, Info, name/number trees, page labels, structure tree,
+│                        #     annotations: `Document::annotations` → `Annot`, E4b),
 │                        #     LaminaPdfIds and the shared graphics values (Matrix, FillRule, Dash), ObjectCopier (pages and what
 │                        #     they reach copied across documents); xmp/: the XMP
 │                        #     packet (a tolerant reader over quick-xml, typed Info-mapped fields, the one Info ↔ XMP
@@ -37,7 +38,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #     writes trees: the page-tree editor (PageTreeEditor), name and number tree writers
 │                        #     (TreeWriter), PageLabels::remap/write, and PageReferences (what points at a page)
 │   ├── laminapdf-ops/   #   core: typed serialisable Op (SetMetadata, RemoveMetadata, the XMP ops, the planner's
-│                        #     UpdateSaveMetadata, RotatePage, the deprecated SetInfo), metadata/ (one Info + XMP writer, read_metadata,
+│                        #     UpdateSaveMetadata, UpdateAnnot and DeleteAnnot (annot.rs, E4b),
+│                        #     RotatePage, the deprecated SetInfo), metadata/ (one Info + XMP writer, read_metadata,
 │                        #     conformance warnings), transactions, savepoints, undo/redo, source documents and the blob store
 │   ├── laminapdf-save/  #   core: save planner (SaveConstraint, signatures, mode table), incremental and full writers
 │   │                    #     over the overlay, WriteSink, /ID, rebase; the spike-era Writer (feature `test-support`)

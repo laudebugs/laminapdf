@@ -140,6 +140,12 @@ pub enum Warning {
         /// or `no-rdf`.
         reason: &'static str,
     },
+    /// `annot-name-duplicate`: two annotations on one page have the same `/NM` (§12.5.2: it
+    /// shall be unique on its page); both are kept, and an annotation's ID never depends on it.
+    AnnotNameDuplicate {
+        /// The second annotation's object number (`None` for a direct one).
+        object: Option<u32>,
+    },
     /// `xmp-repaired`: the catalog's XMP metadata packet had damage other readers read past, and
     /// was read the same way: bytes that aren't UTF-8 in its `<?xpacket … ?>` header, or one of
     /// XMP's standard prefixes (`dc`, `xmp`, `pdf`, …) used without its declaration.
@@ -364,6 +370,7 @@ impl Warning {
         "outline-item-skipped",
         "invalid-date",
         "xmp-invalid",
+        "annot-name-duplicate",
         "xmp-repaired",
         "invalid-page-label",
         "invalid-entry",
@@ -416,6 +423,7 @@ impl Warning {
             Self::OutlineItemSkipped { .. } => "outline-item-skipped",
             Self::InvalidDate { .. } => "invalid-date",
             Self::XmpInvalid { .. } => "xmp-invalid",
+            Self::AnnotNameDuplicate { .. } => "annot-name-duplicate",
             Self::XmpRepaired { .. } => "xmp-repaired",
             Self::InvalidPageLabel { .. } => "invalid-page-label",
             Self::InvalidEntry { .. } => "invalid-entry",
@@ -465,6 +473,7 @@ impl Warning {
             | Self::OutlineItemSkipped { object }
             | Self::InvalidDate { object, .. }
             | Self::XmpInvalid { object, .. }
+            | Self::AnnotNameDuplicate { object }
             | Self::XmpRepaired { object, .. }
             | Self::InvalidEntry { object, .. }
             | Self::ContentUnknownOperator { object, .. }
@@ -521,6 +530,7 @@ impl Warning {
             | Self::OutlineItemSkipped { .. }
             | Self::InvalidDate { .. }
             | Self::XmpInvalid { .. }
+            | Self::AnnotNameDuplicate { .. }
             | Self::XmpRepaired { .. }
             | Self::InvalidPageLabel { .. }
             | Self::InvalidEntry { .. }
@@ -714,6 +724,7 @@ mod tests {
                 offset: Some(0),
                 reason: "dtd",
             },
+            Warning::AnnotNameDuplicate { object: None },
             Warning::XmpRepaired {
                 object: None,
                 reason: "undeclared-prefix",
@@ -804,6 +815,7 @@ mod tests {
                 | Warning::OutlineItemSkipped { .. }
                 | Warning::InvalidDate { .. }
                 | Warning::XmpInvalid { .. }
+                | Warning::AnnotNameDuplicate { .. }
                 | Warning::XmpRepaired { .. }
                 | Warning::InvalidPageLabel { .. }
                 | Warning::InvalidEntry { .. }

@@ -3,7 +3,7 @@
 use core::fmt;
 
 use laminapdf_cos::{ErrorKind, Location};
-use laminapdf_model::PageId;
+use laminapdf_model::{AnnotId, PageId};
 
 /// Everything that can go wrong while applying ops, running transactions or reading op logs.
 ///
@@ -76,6 +76,18 @@ pub enum Error {
         /// the Info dictionary mirrors).
         reason: &'static str,
     },
+    /// The op names an annotation that no page's `/Annots` lists.
+    #[error("no annotation {}", ShownAnnot(.0))]
+    UnknownAnnotation(AnnotId),
+    /// The annotation's flags forbid the change (ISO 32000-2 Table 167): `Locked` forbids
+    /// deleting it or changing its properties, `LockedContents` changing its contents. A
+    /// change of the flags alone is always allowed, so a lock can be lifted.
+    #[error("annotation {} is locked", ShownAnnot(.0))]
+    AnnotationLocked(AnnotId),
+    /// The annotation can't be edited by the annotation ops: a widget (a form field's, edited
+    /// by the form ops), or a direct dictionary in `/Annots`, which has no object to edit.
+    #[error("annotation {} can't be edited by the annotation ops", ShownAnnot(.0))]
+    AnnotationNotEditable(AnnotId),
 }
 
 impl From<laminapdf_model::xmp::PropertyError> for Error {
@@ -89,6 +101,18 @@ impl From<laminapdf_model::xmp::PropertyError> for Error {
             _ => "value",
         };
         Self::InvalidXmpProperty { reason }
+    }
+}
+
+/// An annotation ID as a message may show it, as [`Shown`] does for pages.
+struct ShownAnnot<'a>(&'a AnnotId);
+
+impl fmt::Display for ShownAnnot<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.0.as_lamina_id().obj_ref() {
+            Some(_) => self.0.fmt(f),
+            None => f.write_str("(a path ID)"),
+        }
     }
 }
 
@@ -130,6 +154,9 @@ impl Error {
         "xmp-claim-read-only",
         "invalid-xmp-packet",
         "invalid-xmp-property",
+        "unknown-annotation",
+        "annotation-locked",
+        "annotation-not-editable",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -152,6 +179,9 @@ impl Error {
             Self::XmpClaimReadOnly => "xmp-claim-read-only",
             Self::InvalidXmpPacket(_) => "invalid-xmp-packet",
             Self::InvalidXmpProperty { .. } => "invalid-xmp-property",
+            Self::UnknownAnnotation(_) => "unknown-annotation",
+            Self::AnnotationLocked(_) => "annotation-locked",
+            Self::AnnotationNotEditable(_) => "annotation-not-editable",
         }
     }
 
@@ -171,9 +201,13 @@ impl Error {
             }
             Self::UnknownPage(_)
             | Self::UnknownSource(_)
+            | Self::UnknownAnnotation(_)
             | Self::XmpClaimReadOnly
             | Self::InvalidXmpProperty { .. } => ErrorKind::Usage,
-            Self::DirectPage(_) | Self::UnsupportedVersion(_) => ErrorKind::Unsupported,
+            Self::AnnotationLocked(_) => ErrorKind::State,
+            Self::DirectPage(_) | Self::UnsupportedVersion(_) | Self::AnnotationNotEditable(_) => {
+                ErrorKind::Unsupported
+            }
             Self::InvalidLog(_) | Self::MalformedXmp | Self::InvalidXmpPacket(_) => ErrorKind::Input,
         }
     }
@@ -195,6 +229,16 @@ impl Error {
                 },
                 None => Location::NONE,
             },
+            Self::UnknownAnnotation(annot) | Self::AnnotationLocked(annot) | Self::AnnotationNotEditable(annot) => {
+                match annot.as_lamina_id().obj_ref() {
+                    Some(r) => Location {
+                        object: Some(r.num),
+                        id: Some(annot.to_string()),
+                        ..Location::NONE
+                    },
+                    None => Location::NONE,
+                }
+            }
             Self::NestedTransaction
             | Self::NoTransaction
             | Self::UnsupportedVersion(_)
@@ -238,6 +282,9 @@ mod tests {
             Error::XmpClaimReadOnly,
             Error::InvalidXmpPacket(laminapdf_model::xmp::ParseError::NoRdf),
             Error::InvalidXmpProperty { reason: "name" },
+            Error::UnknownAnnotation("a7.0".parse().unwrap()),
+            Error::AnnotationLocked("a7.0".parse().unwrap()),
+            Error::AnnotationNotEditable("a7.0".parse().unwrap()),
         ]
     }
 

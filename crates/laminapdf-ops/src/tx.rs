@@ -86,6 +86,9 @@ pub struct Applied {
     ///
     /// Added in 0.2.0.
     pub declared: Vec<laminapdf_model::xmp::ExtensionProperty>,
+    /// Annotations an annotation op deleted besides the one it names: Popups, replies and the
+    /// rest of a group.
+    pub also_deleted: Vec<laminapdf_model::AnnotId>,
     /// The form fields whose widgets it deleted, reshowed or moved, which the save planner
     /// checks against signed signature fields and field locks (E2 plan §6).
     ///
@@ -107,6 +110,7 @@ pub(crate) struct TxState {
     pub(crate) packet_rewritten: bool,
     pub(crate) removed: bool,
     pub(crate) declared: Vec<laminapdf_model::xmp::ExtensionProperty>,
+    pub(crate) also_deleted: Vec<laminapdf_model::AnnotId>,
 }
 
 /// An open transaction ([ADR 0006] §2), handed to the closure of
@@ -166,6 +170,7 @@ impl Tx<'_> {
             packet_rewritten: effect.packet_rewritten,
             still_in_earlier_revisions: effect.removed,
             declared: effect.declared,
+            also_deleted: effect.also_deleted,
             widgets: effect.widgets,
         })
     }
@@ -186,6 +191,7 @@ impl Tx<'_> {
                 self.state.packet_rewritten |= effect.packet_rewritten;
                 self.state.removed |= effect.removed;
                 self.state.declared.extend(effect.declared.iter().cloned());
+                self.state.also_deleted.extend(effect.also_deleted.iter().cloned());
                 Ok(effect)
             }
             Err(e) => {
@@ -264,6 +270,7 @@ mod tests {
             packet_rewritten: false,
             removed: false,
             declared: Vec::new(),
+            also_deleted: Vec::new(),
         }
     }
 

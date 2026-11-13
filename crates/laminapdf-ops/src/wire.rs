@@ -33,6 +33,21 @@ pub(crate) mod page_id {
     }
 }
 
+/// An [`AnnotId`](laminapdf_model::AnnotId) as its string form (`"a12.0"`).
+pub(crate) mod annot_id {
+    use laminapdf_model::AnnotId;
+
+    use super::{Deserializer, Serializer};
+
+    pub(crate) fn serialize<S: Serializer>(id: &AnnotId, s: S) -> Result<S::Ok, S::Error> {
+        s.collect_str(id)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<AnnotId, D::Error> {
+        super::parse(d)
+    }
+}
+
 /// An optional [`PdfDate`](laminapdf_model::PdfDate) as its PDF string form
 /// (`"D:20261029120000Z"`).
 pub(crate) mod opt_date {

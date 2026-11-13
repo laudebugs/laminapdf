@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E18](../../plans/full-editor.md#e18-collaboration-hosted-service) |
 | Round / milestone | Editor phase 6 (E18) — M10 Collaboration |
-| Depends on | [E2b](./E2b-page-structure-ops.md), [E4b](./E4b-annotation-model-and-overlay.md), [E5b](./E5b-comment-threads-and-review.md), [E8c](./E8c-acroform-field-model.md), [E18a](./E18a-adr-0012-collaboration.md), [H2](./H2-accounts-and-login.md), [H3](./H3-cloud-document-storage.md) |
+| Depends on | [E2b](./E2b-page-structure-ops.md), [E4b](../done/E4b-annotation-model-and-overlay.md), [E5b](./E5b-comment-threads-and-review.md), [E8c](./E8c-acroform-field-model.md), [E18a](./E18a-adr-0012-collaboration.md), [H2](./H2-accounts-and-login.md), [H3](./H3-cloud-document-storage.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e18b-collaboration-feature-plan` |
 | PR title | `docs(editor): E18 feature plan (collaboration (hosted service))` |

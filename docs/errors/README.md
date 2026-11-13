@@ -37,6 +37,7 @@ A PR that adds a code adds:
 | [`outline-item-skipped`](outline-item-skipped.md) | `input` | an outline item was missing, not a dictionary or too deep, and was skipped with its subtree |
 | [`invalid-date`](invalid-date.md) | `input` | an Info date is not a valid PDF date; the raw string is kept |
 | [`xmp-invalid`](xmp-invalid.md) | `input` | the XMP metadata packet is not readable XMP and reads as absent |
+| [`annot-name-duplicate`](annot-name-duplicate.md) | `input` | two annotations on one page have the same name (/NM), which should be unique on its page |
 | [`xmp-repaired`](xmp-repaired.md) | `input` | the XMP metadata packet had damage other readers read past, and was read the same way |
 | [`invalid-page-label`](invalid-page-label.md) | `input` | a /PageLabels entry is malformed; the malformed part is dropped |
 | [`invalid-entry`](invalid-entry.md) | `input` | an entry a view reads is unreadable or of the wrong type and reads as absent |
@@ -103,6 +104,9 @@ A PR that adds a code adds:
 | [`xmp-claim-read-only`](xmp-claim-read-only.md) | `usage` | an XMP edit would change the file's PDF/A or PDF/UA identification, which only conversion or a check may set |
 | [`invalid-xmp-packet`](invalid-xmp-packet.md) | `input` | the XMP packet given to replace the document's doesn't parse |
 | [`invalid-xmp-property`](invalid-xmp-property.md) | `usage` | an XMP property edit names a property, or gives a value, that can't be written |
+| [`unknown-annotation`](unknown-annotation.md) | `usage` | the op names an annotation that no page of the document lists |
+| [`annotation-locked`](annotation-locked.md) | `state` | the annotation's flags forbid the change: Locked forbids deleting it or changing its properties, LockedContents changing its contents |
+| [`annotation-not-editable`](annotation-not-editable.md) | `unsupported` | the annotation can't be edited by the annotation ops: it is a form field's widget, or a direct dictionary with no object of its own |
 
 ## Op warnings
 

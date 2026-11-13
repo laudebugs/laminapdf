@@ -43,6 +43,7 @@ export const DOCUMENT_METHODS = {
   namedDestination: 1,
   outline: 0,
   page: 1,
+  pageAnnotations: 1,
   pageById: 1,
   pageCount: 0,
   pageInfo: 1,

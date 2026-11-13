@@ -129,6 +129,7 @@ export type {
   OutlineEntry,
   OutlineNode,
   Overflow,
+  PageAnnotation,
   PageInfo,
   PageLabel,
   PageLink,

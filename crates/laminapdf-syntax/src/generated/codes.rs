@@ -108,6 +108,12 @@ pub enum ErrorCode {
     InvalidXmpPacket,
     /// `invalid-xmp-property`: an XMP property edit names a property, or gives a value, that can't be written.
     InvalidXmpProperty,
+    /// `unknown-annotation`: the op names an annotation that no page of the document lists.
+    UnknownAnnotation,
+    /// `annotation-locked`: the annotation's flags forbid the change: Locked forbids deleting it or changing its properties, LockedContents changing its contents.
+    AnnotationLocked,
+    /// `annotation-not-editable`: the annotation can't be edited by the annotation ops: it is a form field's widget, or a direct dictionary with no object of its own.
+    AnnotationNotEditable,
     /// `sink`: the sink failed to take the bytes or could not give them back.
     Sink,
     /// `not-rebased`: the output was written, but rebasing the document onto it failed.
@@ -309,6 +315,9 @@ impl ErrorCode {
         Self::XmpClaimReadOnly,
         Self::InvalidXmpPacket,
         Self::InvalidXmpProperty,
+        Self::UnknownAnnotation,
+        Self::AnnotationLocked,
+        Self::AnnotationNotEditable,
         Self::Sink,
         Self::NotRebased,
         Self::SinkNotEmpty,
@@ -445,6 +454,9 @@ impl ErrorCode {
             Self::XmpClaimReadOnly => "xmp-claim-read-only",
             Self::InvalidXmpPacket => "invalid-xmp-packet",
             Self::InvalidXmpProperty => "invalid-xmp-property",
+            Self::UnknownAnnotation => "unknown-annotation",
+            Self::AnnotationLocked => "annotation-locked",
+            Self::AnnotationNotEditable => "annotation-not-editable",
             Self::Sink => "sink",
             Self::NotRebased => "not-rebased",
             Self::SinkNotEmpty => "sink-not-empty",
@@ -567,6 +579,9 @@ impl ErrorCode {
             Self::XmpClaimReadOnly => ErrorKind::Usage,
             Self::InvalidXmpPacket => ErrorKind::Input,
             Self::InvalidXmpProperty => ErrorKind::Usage,
+            Self::UnknownAnnotation => ErrorKind::Usage,
+            Self::AnnotationLocked => ErrorKind::State,
+            Self::AnnotationNotEditable => ErrorKind::Unsupported,
             Self::Sink => ErrorKind::Io,
             Self::NotRebased => ErrorKind::State,
             Self::SinkNotEmpty => ErrorKind::Usage,
@@ -689,6 +704,9 @@ impl ErrorCode {
             Self::XmpClaimReadOnly => "an XMP edit would change the file's PDF/A or PDF/UA identification, which only conversion or a check may set",
             Self::InvalidXmpPacket => "the XMP packet given to replace the document's doesn't parse",
             Self::InvalidXmpProperty => "an XMP property edit names a property, or gives a value, that can't be written",
+            Self::UnknownAnnotation => "the op names an annotation that no page of the document lists",
+            Self::AnnotationLocked => "the annotation's flags forbid the change: Locked forbids deleting it or changing its properties, LockedContents changing its contents",
+            Self::AnnotationNotEditable => "the annotation can't be edited by the annotation ops: it is a form field's widget, or a direct dictionary with no object of its own",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
             Self::SinkNotEmpty => "the sink already held bytes before the save started",
@@ -811,6 +829,9 @@ impl ErrorCode {
             Self::XmpClaimReadOnly => "leave the pdfaid: and pdfuaid: properties as they are; edit the other properties, or keep them unchanged in a replaced packet",
             Self::InvalidXmpPacket => "fix the XML at the offset in the error's data (reason says what is wrong), then replace the packet again",
             Self::InvalidXmpProperty => "check the part the error's reason names: the namespace, prefix, name, value, or the shape a mirrored property needs",
+            Self::UnknownAnnotation => "read the page's annotations again and use an ID from that list",
+            Self::AnnotationLocked => "clear the lock with an update of its flags first, if you may",
+            Self::AnnotationNotEditable => "edit a widget through its form field; an annotation stored inside the page's list can't be edited yet",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",
             Self::SinkNotEmpty => "pass an empty sink: output offsets count from the sink's first byte",
@@ -950,6 +971,8 @@ pub enum WarningCode {
     InvalidDate,
     /// `xmp-invalid`: the XMP metadata packet is not readable XMP and reads as absent.
     XmpInvalid,
+    /// `annot-name-duplicate`: two annotations on one page have the same name (/NM), which should be unique on its page.
+    AnnotNameDuplicate,
     /// `xmp-repaired`: the XMP metadata packet had damage other readers read past, and was read the same way.
     XmpRepaired,
     /// `invalid-page-label`: a /PageLabels entry is malformed; the malformed part is dropped.
@@ -1047,6 +1070,7 @@ impl WarningCode {
         Self::OutlineItemSkipped,
         Self::InvalidDate,
         Self::XmpInvalid,
+        Self::AnnotNameDuplicate,
         Self::XmpRepaired,
         Self::InvalidPageLabel,
         Self::InvalidEntry,
@@ -1125,6 +1149,7 @@ impl WarningCode {
             Self::OutlineItemSkipped => "outline-item-skipped",
             Self::InvalidDate => "invalid-date",
             Self::XmpInvalid => "xmp-invalid",
+            Self::AnnotNameDuplicate => "annot-name-duplicate",
             Self::XmpRepaired => "xmp-repaired",
             Self::InvalidPageLabel => "invalid-page-label",
             Self::InvalidEntry => "invalid-entry",
@@ -1189,6 +1214,7 @@ impl WarningCode {
             Self::OutlineItemSkipped => ErrorKind::Input,
             Self::InvalidDate => ErrorKind::Input,
             Self::XmpInvalid => ErrorKind::Input,
+            Self::AnnotNameDuplicate => ErrorKind::Input,
             Self::XmpRepaired => ErrorKind::Input,
             Self::InvalidPageLabel => ErrorKind::Input,
             Self::InvalidEntry => ErrorKind::Input,
@@ -1253,6 +1279,7 @@ impl WarningCode {
             Self::OutlineItemSkipped => "an outline item was missing, not a dictionary or too deep, and was skipped with its subtree",
             Self::InvalidDate => "an Info date is not a valid PDF date; the raw string is kept",
             Self::XmpInvalid => "the XMP metadata packet is not readable XMP and reads as absent",
+            Self::AnnotNameDuplicate => "two annotations on one page have the same name (/NM), which should be unique on its page",
             Self::XmpRepaired => "the XMP metadata packet had damage other readers read past, and was read the same way",
             Self::InvalidPageLabel => "a /PageLabels entry is malformed; the malformed part is dropped",
             Self::InvalidEntry => "an entry a view reads is unreadable or of the wrong type and reads as absent",
@@ -1317,6 +1344,7 @@ impl WarningCode {
             Self::OutlineItemSkipped => "check the outline: the skipped item and its children are missing",
             Self::InvalidDate => "read the raw value from the Info view if you need it",
             Self::XmpInvalid => "nothing to do; a metadata edit asks before replacing it",
+            Self::AnnotNameDuplicate => "nothing to do; both are kept, and annotations are told apart by their own IDs",
             Self::XmpRepaired => "nothing to do; a metadata edit writes the declarations the packet left out",
             Self::InvalidPageLabel => "nothing to do; affected pages fall back to decimal labels",
             Self::InvalidEntry => "nothing to do; the view uses the entry's default",

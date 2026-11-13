@@ -7,6 +7,7 @@
 use laminapdf_model::PageId;
 use serde::{Deserialize, Deserializer, Serialize};
 
+use crate::annot::{DeleteAnnot, UpdateAnnot};
 use crate::class::ModificationClass;
 use crate::error::{Error, Result};
 use crate::info::SetInfo;
@@ -67,6 +68,10 @@ pub enum Op {
     /// log can name it.
     #[serde(skip)]
     UpdateSaveMetadata(UpdateSaveMetadata),
+    /// Change an annotation's common entries, or move it.
+    UpdateAnnot(UpdateAnnot),
+    /// Delete an annotation with its Popup, replies and group.
+    DeleteAnnot(DeleteAnnot),
     /// An op that declares the widgets it touches, for the save planner's tests
     /// ([`test_support::Declared`](crate::test_support::Declared)); never on the wire.
     #[cfg(feature = "test-support")]
@@ -89,6 +94,7 @@ impl Op {
             | Self::ReplaceXmpPacket(_)
             | Self::UpdateSaveMetadata(_) => ModificationClass::Metadata,
             Self::RotatePage(_) => ModificationClass::PageStructure,
+            Self::UpdateAnnot(_) | Self::DeleteAnnot(_) => ModificationClass::Annotation,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.class(),
         }
@@ -108,7 +114,9 @@ impl Op {
             | Self::SetXmpProperty(_)
             | Self::RemoveXmpProperty(_)
             | Self::ReplaceXmpPacket(_)
-            | Self::UpdateSaveMetadata(_) => false,
+            | Self::UpdateSaveMetadata(_)
+            | Self::UpdateAnnot(_)
+            | Self::DeleteAnnot(_) => false,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.requires_rewrite(),
         }
@@ -132,7 +140,9 @@ impl Op {
             | Self::SetXmpProperty(_)
             | Self::RemoveXmpProperty(_)
             | Self::ReplaceXmpPacket(_)
-            | Self::UpdateSaveMetadata(_) => Vec::new(),
+            | Self::UpdateSaveMetadata(_)
+            | Self::UpdateAnnot(_)
+            | Self::DeleteAnnot(_) => Vec::new(),
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.pages.clone(),
         }
@@ -153,6 +163,8 @@ impl Op {
             Self::RemoveXmpProperty(op) => op.apply_to(doc),
             Self::ReplaceXmpPacket(op) => op.apply_to(doc),
             Self::UpdateSaveMetadata(op) => op.apply_to(doc),
+            Self::UpdateAnnot(op) => op.apply_to(doc),
+            Self::DeleteAnnot(op) => op.apply_to(doc),
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.apply_to(doc, self.class()),
         }
@@ -167,10 +179,12 @@ pub(crate) struct Effect {
     /// It rewrote the XMP packet whole, losing its layout and comments
     /// ([`Written::canonical`](laminapdf_model::xmp::Written::canonical)).
     pub(crate) packet_rewritten: bool,
-    /// It removed metadata that the file's earlier revisions still hold.
+    /// It removed something that the file's earlier revisions still hold.
     pub(crate) removed: bool,
     /// The properties it declared in a PDF/A packet's extension schemas.
     pub(crate) declared: Vec<laminapdf_model::xmp::ExtensionProperty>,
+    /// Annotations it deleted besides the one it names (Popups, replies, a group).
+    pub(crate) also_deleted: Vec<laminapdf_model::AnnotId>,
     /// The form fields whose widgets it deleted, reshowed or moved.
     pub(crate) widgets: Vec<TouchedWidget>,
 }
@@ -214,6 +228,18 @@ impl From<RemoveXmpProperty> for Op {
 impl From<ReplaceXmpPacket> for Op {
     fn from(op: ReplaceXmpPacket) -> Self {
         Self::ReplaceXmpPacket(op)
+    }
+}
+
+impl From<UpdateAnnot> for Op {
+    fn from(op: UpdateAnnot) -> Self {
+        Self::UpdateAnnot(op)
+    }
+}
+
+impl From<DeleteAnnot> for Op {
+    fn from(op: DeleteAnnot) -> Self {
+        Self::DeleteAnnot(op)
     }
 }
 
