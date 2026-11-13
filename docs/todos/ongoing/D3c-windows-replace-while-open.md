@@ -11,7 +11,7 @@
 | Branch | `fix/d3c-windows-replace-while-open` |
 | PR title | `fix(desktop): let Windows apps replace a PDF that is open in Lamina PDF` |
 | Size | M (300–700 lines) |
-| PR | — |
+| PR | [#557](https://github.com/laudebugs/laminapdf/pull/557) |
 
 ## Goal
 
