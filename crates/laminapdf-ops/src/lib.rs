@@ -75,6 +75,7 @@
 //! [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
 #![forbid(unsafe_code)]
 
+mod annot;
 mod blob;
 mod class;
 mod document;
@@ -96,6 +97,7 @@ mod wire;
 #[cfg(test)]
 use laminapdf_test_fixtures::codes as test_codes;
 
+pub use annot::{DeleteAnnot, Offset, UpdateAnnot};
 pub use blob::{BlobId, BlobStore, ParseBlobIdError, SourceId};
 pub use class::ModificationClass;
 pub use document::{Document, PendingRebase, SaveState};

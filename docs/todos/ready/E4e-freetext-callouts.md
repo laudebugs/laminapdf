@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E4 plan §2.1](../../plans/editor/e4-markup-and-drawing-annotations.md#21-ops) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [B4b](../done/B4b-shaping-bidi-line-breaking.md), [B4c](../done/B4c-standard-14-and-simple-fonts.md), [E2p](../done/E2p-source-documents-and-copier.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4b](./E4b-annotation-model-and-overlay.md) |
+| Depends on | [B4b](../done/B4b-shaping-bidi-line-breaking.md), [B4c](../done/B4c-standard-14-and-simple-fonts.md), [E2p](../done/E2p-source-documents-and-copier.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4b](../done/E4b-annotation-model-and-overlay.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e4e-freetext-callouts` |
 | PR title | `feat(build): FreeText and callout annotations with generated appearances` |

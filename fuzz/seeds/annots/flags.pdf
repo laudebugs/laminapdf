@@ -1,0 +1,48 @@
+%PDF-1.7
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [10 0 R 11 0 R 12 0 R 13 0 R 14 0 R] >>
+endobj
+10 0 obj
+<< /Type /Annot /Subtype /Square /Rect [20 20 80 80] /F 132 /Contents (Locked) >>
+endobj
+11 0 obj
+<< /Type /Annot /Subtype /Text /Rect [100 20 120 40] /F 516 /Contents (Fixed text) >>
+endobj
+12 0 obj
+<< /Type /Annot /Subtype /Square /Rect [150 20 210 80] /LaminaTestKey (kept) /AAPL:Private << /Kept true >> /F 4 >>
+endobj
+13 0 obj
+<< /Type /Annot /Subtype /Text /Rect [20 200 40 220] /NM (same) >>
+endobj
+14 0 obj
+<< /Type /Annot /Subtype /Text /Rect [60 200 80 220] /NM (same) >>
+endobj
+xref
+0 15
+0000000000 65535 f
+0000000015 00000 n
+0000000064 00000 n
+0000000121 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000237 00000 n
+0000000335 00000 n
+0000000437 00000 n
+0000000569 00000 n
+0000000652 00000 n
+trailer
+<< /Size 15 /Root 1 0 R >>
+startxref
+735
+%%EOF

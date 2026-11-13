@@ -201,6 +201,7 @@ const EN = {
   "repairCode.outline-item-skipped": "Left out outline entries that point to no page",
   "repairCode.invalid-date": "Ignored dates that couldn't be read",
   "repairCode.xmp-invalid": "Ignored document metadata that couldn't be read",
+  "repairCode.annot-name-duplicate": "Found two comments with the same name on one page and kept both",
   "repairCode.xmp-repaired": "Read document metadata that was slightly damaged",
   "repairCode.invalid-page-label": "Ignored page labels that couldn't be read",
   "repairCode.invalid-entry": "Ignored settings that had the wrong kind of value",

@@ -71,7 +71,12 @@ pub fn run(args: &[&str], stdin: Option<&[u8]>, env: &[(&str, &str)]) -> Run {
         .stderr(Stdio::piped());
     let mut child = command.spawn().unwrap();
     if let Some(bytes) = stdin {
-        child.stdin.take().unwrap().write_all(bytes).unwrap();
+        // A command that refuses its arguments can exit before it reads standard input; the
+        // write then fails with a broken pipe, and the exit code and stderr below still say
+        // what happened. Any other write error is a test failure.
+        if let Err(e) = child.stdin.take().unwrap().write_all(bytes) {
+            assert_eq!(e.kind(), std::io::ErrorKind::BrokenPipe, "{e}");
+        }
     }
     let output = child.wait_with_output().unwrap();
     Run {
