@@ -68,7 +68,6 @@ pub struct AnnotCommon {
     pub group_with: Option<AnnotId>,
 }
 
-
 /// Adds an annotation to `page`: a text markup, a note or a caret ([`AnnotSpec`]), with an
 /// appearance stream drawn by the document's [`Appearances`] and the common entries of
 /// [`AnnotCommon`]. A note also gets its Popup, listed on the page after it.
