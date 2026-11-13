@@ -31,9 +31,9 @@ import { find, forgetSearch } from "./find.js";
 import {
   destinationAt,
   forgetLinks,
+  initialView,
   linkOnArea,
   linkOnText,
-  initialView,
   namedDestination,
   namedDestinations,
   outline,
