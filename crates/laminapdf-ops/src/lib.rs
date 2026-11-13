@@ -82,6 +82,7 @@ mod history;
 mod info;
 mod metadata;
 mod op;
+mod outline;
 mod pending;
 mod record;
 mod rotate;
@@ -106,6 +107,11 @@ pub use metadata::{
     SetMetadata, UpdateSaveMetadata, conformance_warnings, read_metadata,
 };
 pub use op::{Op, OpLog};
+pub use outline::{
+    AddOutlineItem, ChildItems, DeleteNamedDestination, DeleteOutlineItem, DestinationUse, DestinationView,
+    ExplicitDestination, MoveOutlineItem, OutlineStyle, OutlineTarget, RenameLinks, RenameNamedDestination, Rgb,
+    SetNamedDestination, UpdateOutlineItem,
+};
 pub use pending::PendingChanges;
 pub use record::{Change, Field, Property, PropertyValue, SkipReason, Skipped, Target, UndoRecord};
 pub use rotate::RotatePage;

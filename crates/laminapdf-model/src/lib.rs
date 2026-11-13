@@ -103,6 +103,8 @@ pub use disclosure::{
     Action, Annotation, Disclosure, EmbeddedFile, EmbeddedFileHolder, FormField, Owner, Trigger, XmpPacket,
 };
 pub use document::Document;
+#[cfg(feature = "navigation")]
+pub use edit::set_catalog_entry;
 pub use fonts::{FontEncoding, FontResource};
 pub use geometry::{LETTER, PageFrame, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
 pub use graphics::{BlendMode, Dash, FillRule, Matrix};

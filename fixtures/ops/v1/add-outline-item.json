@@ -1,0 +1,1 @@
+{ "op": "addOutlineItem", "args": { "parent": "o12.0", "at": { "after": "o14.0" }, "title": "Results", "target": { "destination": { "page": "p5.0", "view": { "kind": "xyz", "left": 72, "top": 700, "zoom": null } } }, "style": { "color": "#c00000", "bold": true, "italic": false }, "open": false } }

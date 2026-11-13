@@ -2388,6 +2388,255 @@ The decisions and todos behind this code:
 
 - [E2p](../todos/done/E2p-source-documents-and-copier.md): source documents and the blob store
 ",
+        "unknown-outline-item" => r#"# `unknown-outline-item`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An outline op names a bookmark by an ID that the document's outline doesn't hold.
+
+## Why
+
+The ID came from another document, or from an older read of this one: a bookmark that an earlier op deleted is gone, and the IDs a file's bookmarks have depend on that file.
+
+## How to fix
+
+Read the outline again and take the item's ID from it. A bookmark an op adds reports its ID in the edit's result.
+
+## Example
+
+```rust
+doc.apply(vec![Op::DeleteOutlineItem(DeleteOutlineItem::new("o999.0".parse()?, ChildItems::Delete))])?; // unknown-outline-item
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3b](../todos/ongoing/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+"#,
+        "direct-outline-item" => r"# `direct-outline-item`
+
+- Type: error
+- Kind: `unsupported` (the input is valid, but Lamina PDF does not support it yet)
+
+## What happened
+
+The bookmark is stored as a dictionary inside another bookmark, not as an object of its own, so the outline ops can't change it.
+
+## Why
+
+PDF files usually store each bookmark as its own object, which links can point to. A few writers put one inside another. Such a bookmark has an ID made of its path, and the outline's links (`/Prev`, `/Parent`) can't point at it.
+
+## How to fix
+
+Apply another outline op first, such as moving any bookmark to where it already is. It rewrites the outline, gives every bookmark its own object and new ID, and reports that it repaired the outline. Then read the outline again for the new IDs.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3b](../todos/ongoing/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+",
+        "outline-not-a-sibling" => r"# `outline-not-a-sibling`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The op places a bookmark before or after another one, but that other bookmark isn't a child of the parent the op names.
+
+## Why
+
+A position is relative to the parent's children: `before` and `after` name one of them. A bookmark elsewhere in the outline can't mark a place under this parent.
+
+## How to fix
+
+Name a child of the same parent in `before` or `after`, or use `first` or `last`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3b](../todos/ongoing/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+",
+        "outline-move-into-itself" => r"# `outline-move-into-itself`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A move names the bookmark itself, or one of the bookmarks under it, as its new parent or as the place to put it next to.
+
+## Why
+
+A bookmark goes with its children when it moves, so it can't move into its own branch: the outline would become a loop.
+
+## How to fix
+
+Choose a parent outside the bookmark's branch. To move children up, move them one by one, or delete the bookmark with `children: promote`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3b](../todos/ongoing/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+",
+        "unknown-named-destination" => r"# `unknown-named-destination`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A rename or delete names a destination that the file doesn't define.
+
+## Why
+
+The name is spelled differently, or an earlier op renamed or deleted it. Names are case-sensitive.
+
+## How to fix
+
+List the document's named destinations and use one of the names it shows. To create a name, use `setNamedDestination`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3b](../todos/ongoing/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+",
+        "named-destination-exists" => r"# `named-destination-exists`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A rename gives a destination a name that another destination of the file already has.
+
+## Why
+
+Each name points at one place, so two destinations can't share it. Renaming over it would lose the other destination.
+
+## How to fix
+
+Choose another name, or delete the other destination first if it is no longer needed.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3b](../todos/ongoing/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+",
+        "empty-destination-name" => r"# `empty-destination-name`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op names a destination with an empty name.
+
+## Why
+
+Links and bookmarks find a named destination by its name, so it needs at least one character.
+
+## How to fix
+
+Give the destination a name. Names are case-sensitive and can hold any text.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3b](../todos/ongoing/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+",
+        "link-uri-refused" => r"# `link-uri-refused`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A bookmark's web address isn't a full `http`, `https` or `mailto` address in plain ASCII.
+
+## Why
+
+Lamina PDF writes only addresses that a reader can open safely. Other schemes, `javascript:` among them, can run code or open local files. The PDF standard also stores a web address as 7-bit ASCII.
+
+## How to fix
+
+Use the full address, with its scheme and host, such as `https://example.com/page`. Percent-encode spaces and characters outside ASCII (`%20`, `%C3%A9`).
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3b](../todos/ongoing/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+",
+        "view-not-finite" => r"# `view-not-finite`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A destination's view has a coordinate or zoom that isn't a finite number.
+
+## Why
+
+A PDF file can only hold finite numbers, so a view of infinity or NaN can't be written.
+
+## How to fix
+
+Pass finite numbers, in the page's user space, or `null` for a coordinate the viewer should keep as it is.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3b](../todos/ongoing/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+",
         "pdfa-one-author" => r#"# `pdfa-one-author`
 
 - Type: warning

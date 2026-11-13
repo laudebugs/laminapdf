@@ -33,11 +33,10 @@ pub enum SiblingPosition {
     After(OutlineItemId),
 }
 
-/// Why an outline edit failed.
+/// Why an outline edit failed. Exhaustive, so the ops map every case to their own errors.
 ///
 /// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-#[non_exhaustive]
 pub enum OutlineTreeError {
     /// No item of the outline has this ID.
     #[error("the outline has no item with this ID")]
@@ -398,13 +397,13 @@ impl OutlineTree {
             Some(Slot::Indirect(r)) => Some(*r),
             _ => None,
         };
-        let list = |children: &[usize]| {
+        let ends = |children: &[usize]| {
             (
                 children.first().and_then(|&c| r(c)),
                 children.last().and_then(|&c| r(c)),
             )
         };
-        let (first, last) = list(&self.roots);
+        let (first, last) = ends(&self.roots);
         let visible: i64 = self.roots.iter().map(|&c| 1 + self.visible(c)).sum();
         let mut out = vec![(
             root,
@@ -425,7 +424,7 @@ impl OutlineTree {
                 let (Some(own), Some(node)) = (r(c), self.nodes.get(c)) else {
                     continue;
                 };
-                let (first, last) = list(&node.children);
+                let (first, last) = ends(&node.children);
                 let shown: i64 = node.children.iter().map(|&g| 1 + self.visible(g)).sum();
                 out.push((
                     own,

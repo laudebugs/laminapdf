@@ -100,6 +100,15 @@ A PR that adds a code adds:
 | [`no-pending-save`](no-pending-save.md) | `state` | rebase was called without a save waiting for it |
 | [`malformed-xmp`](malformed-xmp.md) | `input` | a metadata edit would replace the document's XMP packet, which can't be read, losing what it holds |
 | [`unknown-source`](unknown-source.md) | `usage` | an op or a call names a source document that was not added to the session |
+| [`unknown-outline-item`](unknown-outline-item.md) | `usage` | an outline op names a bookmark the outline does not have |
+| [`direct-outline-item`](direct-outline-item.md) | `unsupported` | the bookmark is stored inside another item rather than as an object of its own, so outline ops can't name it yet |
+| [`outline-not-a-sibling`](outline-not-a-sibling.md) | `usage` | the position names a bookmark that is not a child of the parent the op names |
+| [`outline-move-into-itself`](outline-move-into-itself.md) | `usage` | a move would put a bookmark inside itself or one of its descendants |
+| [`unknown-named-destination`](unknown-named-destination.md) | `usage` | the op names a destination the file does not define |
+| [`named-destination-exists`](named-destination-exists.md) | `usage` | a rename to a name another destination already has |
+| [`empty-destination-name`](empty-destination-name.md) | `usage` | a destination name is empty |
+| [`link-uri-refused`](link-uri-refused.md) | `usage` | a web address that isn't an absolute http, https or mailto address in plain ASCII |
+| [`view-not-finite`](view-not-finite.md) | `usage` | a destination's coordinates and zoom must be finite numbers |
 
 ## Op warnings
 

@@ -7,10 +7,11 @@ use std::collections::BTreeSet;
 use std::fmt;
 
 use laminapdf_cos::JournalMark;
-use laminapdf_model::PageId;
+use laminapdf_model::{OutlineItemId, PageId};
 
 use crate::error::Result;
 use crate::op::{Effect, Op};
+use crate::outline::DestinationUse;
 use crate::pending::PendingChanges;
 use crate::record::UndoRecord;
 use crate::widgets::TouchedWidget;
@@ -85,6 +86,21 @@ pub struct Applied {
     ///
     /// Added in 0.2.0.
     pub widgets: Vec<TouchedWidget>,
+    /// The bookmarks [`AddOutlineItem`](crate::AddOutlineItem) created, in order.
+    ///
+    /// Added in 0.2.0.
+    pub created_outline_items: Vec<OutlineItemId>,
+    /// An outline op found the outline's links broken (a cycle, a wrong `/Last`, an item
+    /// stored as a direct dictionary) and rewrote them whole; items that were direct have new
+    /// IDs.
+    ///
+    /// Added in 0.2.0.
+    pub outline_repaired: bool,
+    /// What still names a destination that [`DeleteNamedDestination`](crate::DeleteNamedDestination)
+    /// deleted: those bookmarks and links no longer go anywhere.
+    ///
+    /// Added in 0.2.0.
+    pub destination_uses: Vec<DestinationUse>,
 }
 
 /// The state of the open transaction, kept on the [`Document`](crate::Document) so the
@@ -100,6 +116,9 @@ pub(crate) struct TxState {
     /// What the ops applied so far did besides their changes (`Applied`'s flags).
     pub(crate) packet_rewritten: bool,
     pub(crate) removed: bool,
+    pub(crate) outline_repaired: bool,
+    pub(crate) created_outline_items: Vec<OutlineItemId>,
+    pub(crate) destination_uses: Vec<DestinationUse>,
 }
 
 /// An open transaction ([ADR 0006] §2), handed to the closure of
@@ -159,6 +178,9 @@ impl Tx<'_> {
             packet_rewritten: effect.packet_rewritten,
             still_in_earlier_revisions: effect.removed,
             widgets: effect.widgets,
+            created_outline_items: effect.created_outline_items,
+            outline_repaired: effect.outline_repaired,
+            destination_uses: effect.destination_uses,
         })
     }
 
@@ -177,6 +199,13 @@ impl Tx<'_> {
                 self.state.pending.record(op, &effect);
                 self.state.packet_rewritten |= effect.packet_rewritten;
                 self.state.removed |= effect.removed;
+                self.state.outline_repaired |= effect.outline_repaired;
+                self.state
+                    .created_outline_items
+                    .extend(effect.created_outline_items.iter().cloned());
+                self.state
+                    .destination_uses
+                    .extend(effect.destination_uses.iter().cloned());
                 Ok(effect)
             }
             Err(e) => {
@@ -199,11 +228,20 @@ impl Tx<'_> {
         let mark = self.doc.journal_mark();
         let touched = self.state.touched.clone();
         let pending = self.state.pending.clone();
+        let reports = (
+            self.state.outline_repaired,
+            self.state.created_outline_items.len(),
+            self.state.destination_uses.len(),
+        );
         let result = f(self);
         if result.is_err() {
             self.doc.cos_mut().rollback_to(mark)?;
             self.state.touched = touched;
             self.state.pending = pending;
+            // What the rolled-back ops reported goes with them.
+            self.state.outline_repaired = reports.0;
+            self.state.created_outline_items.truncate(reports.1);
+            self.state.destination_uses.truncate(reports.2);
         }
         result
     }
@@ -254,6 +292,9 @@ mod tests {
             coalesce: None,
             packet_rewritten: false,
             removed: false,
+            outline_repaired: false,
+            created_outline_items: Vec::new(),
+            destination_uses: Vec::new(),
         }
     }
 

@@ -452,6 +452,9 @@ impl Document {
             coalesce,
             packet_rewritten: false,
             removed: false,
+            outline_repaired: false,
+            created_outline_items: Vec::new(),
+            destination_uses: Vec::new(),
         });
         Ok(())
     }
@@ -507,6 +510,9 @@ impl Document {
             packet_rewritten: state.packet_rewritten,
             still_in_earlier_revisions: state.removed,
             widgets,
+            created_outline_items: state.created_outline_items,
+            outline_repaired: state.outline_repaired,
+            destination_uses: state.destination_uses,
         })
     }
 

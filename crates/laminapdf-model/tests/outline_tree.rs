@@ -43,6 +43,37 @@ fn get_ref(d: &Dict, key: &str) -> Option<ObjRef> {
     d.get(key).and_then(Object::as_ref)
 }
 
+/// Checks the children of `parent`; returns how many of its descendants show.
+fn level(doc: &Document, parent: ObjRef, reached: &mut usize) -> i64 {
+    let p = dict(doc, parent);
+    let mut prev: Option<ObjRef> = None;
+    let mut at = get_ref(&p, "First");
+    let mut shown = 0;
+    while let Some(r) = at {
+        *reached += 1;
+        assert!(*reached < 10_000, "a cycle");
+        let d = dict(doc, r);
+        assert_eq!(get_ref(&d, "Parent"), Some(parent), "{r:?}'s /Parent");
+        assert_eq!(get_ref(&d, "Prev"), prev, "{r:?}'s /Prev");
+        let under = level(doc, r, reached);
+        let count = d.get("Count").and_then(Object::as_int);
+        if get_ref(&d, "First").is_none() {
+            assert!(matches!(count, None | Some(0)), "{r:?}: a leaf with a /Count");
+        } else {
+            let c = count.unwrap();
+            assert_eq!(c.abs(), under, "{r:?}'s /Count");
+            if c > 0 {
+                shown += c;
+            }
+        }
+        shown += 1;
+        prev = Some(r);
+        at = get_ref(&d, "Next");
+    }
+    assert_eq!(get_ref(&p, "Last"), prev, "{parent:?}'s /Last");
+    shown
+}
+
 /// Walks the stored links from `/Outlines` and fails on any that the spec's rules break;
 /// returns the number of items reached.
 fn check_links(doc: &Document) -> usize {
@@ -50,36 +81,6 @@ fn check_links(doc: &Document) -> usize {
     let Some(root) = catalog.get("Outlines").and_then(Object::as_ref) else {
         return 0;
     };
-    /// Checks the children of `parent`; returns how many of its descendants show.
-    fn level(doc: &Document, parent: ObjRef, reached: &mut usize) -> i64 {
-        let p = dict(doc, parent);
-        let mut prev: Option<ObjRef> = None;
-        let mut at = get_ref(&p, "First");
-        let mut shown = 0;
-        while let Some(r) = at {
-            *reached += 1;
-            assert!(*reached < 10_000, "a cycle");
-            let d = dict(doc, r);
-            assert_eq!(get_ref(&d, "Parent"), Some(parent), "{r:?}'s /Parent");
-            assert_eq!(get_ref(&d, "Prev"), prev, "{r:?}'s /Prev");
-            let under = level(doc, r, reached);
-            let count = d.get("Count").and_then(Object::as_int);
-            if get_ref(&d, "First").is_none() {
-                assert!(matches!(count, None | Some(0)), "{r:?}: a leaf with a /Count");
-            } else {
-                let c = count.unwrap();
-                assert_eq!(c.abs(), under, "{r:?}'s /Count");
-                if c > 0 {
-                    shown += c;
-                }
-            }
-            shown += 1;
-            prev = Some(r);
-            at = get_ref(&d, "Next");
-        }
-        assert_eq!(get_ref(&p, "Last"), prev, "{parent:?}'s /Last");
-        shown
-    }
     let mut reached = 0;
     let shown = level(doc, root, &mut reached);
     let count = dict(doc, root).get("Count").and_then(Object::as_int);

@@ -4,13 +4,17 @@
     reason = "SetInfo is defined and dispatched here; it stays, deprecated, so v1 op logs still apply"
 )]
 
-use laminapdf_model::PageId;
+use laminapdf_model::{OutlineItemId, PageId};
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::class::ModificationClass;
 use crate::error::{Error, Result};
 use crate::info::SetInfo;
 use crate::metadata::{RemoveMetadata, SetMetadata, UpdateSaveMetadata};
+use crate::outline::{
+    AddOutlineItem, DeleteNamedDestination, DeleteOutlineItem, DestinationUse, MoveOutlineItem, RenameNamedDestination,
+    SetNamedDestination, UpdateOutlineItem,
+};
 use crate::rotate::RotatePage;
 #[cfg(feature = "test-support")]
 use crate::test_support::Declared;
@@ -54,6 +58,20 @@ pub enum Op {
     SetMetadata(SetMetadata),
     /// Remove metadata fields from Info and XMP.
     RemoveMetadata(RemoveMetadata),
+    /// Add a bookmark.
+    AddOutlineItem(AddOutlineItem),
+    /// Change a bookmark's title, target, style or open state.
+    UpdateOutlineItem(UpdateOutlineItem),
+    /// Move a bookmark with its children.
+    MoveOutlineItem(MoveOutlineItem),
+    /// Delete a bookmark.
+    DeleteOutlineItem(DeleteOutlineItem),
+    /// Add a named destination or point it elsewhere.
+    SetNamedDestination(SetNamedDestination),
+    /// Rename a named destination (and, by default, its uses).
+    RenameNamedDestination(RenameNamedDestination),
+    /// Delete a named destination.
+    DeleteNamedDestination(DeleteNamedDestination),
     /// The save-time metadata stamp, made only by the save planner. It never crosses the wire:
     /// serialising it fails with serde's error (`OpLog::to_json`: `invalid-op-log`), and no op
     /// log can name it.
@@ -77,6 +95,13 @@ impl Op {
                 ModificationClass::Metadata
             }
             Self::RotatePage(_) => ModificationClass::PageStructure,
+            Self::AddOutlineItem(_)
+            | Self::UpdateOutlineItem(_)
+            | Self::MoveOutlineItem(_)
+            | Self::DeleteOutlineItem(_)
+            | Self::SetNamedDestination(_)
+            | Self::RenameNamedDestination(_)
+            | Self::DeleteNamedDestination(_) => ModificationClass::Document,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.class(),
         }
@@ -93,7 +118,14 @@ impl Op {
             | Self::RotatePage(_)
             | Self::SetMetadata(_)
             | Self::RemoveMetadata(_)
-            | Self::UpdateSaveMetadata(_) => false,
+            | Self::UpdateSaveMetadata(_)
+            | Self::AddOutlineItem(_)
+            | Self::UpdateOutlineItem(_)
+            | Self::MoveOutlineItem(_)
+            | Self::DeleteOutlineItem(_)
+            | Self::SetNamedDestination(_)
+            | Self::RenameNamedDestination(_)
+            | Self::DeleteNamedDestination(_) => false,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.requires_rewrite(),
         }
@@ -114,7 +146,14 @@ impl Op {
             | Self::RotatePage(_)
             | Self::SetMetadata(_)
             | Self::RemoveMetadata(_)
-            | Self::UpdateSaveMetadata(_) => Vec::new(),
+            | Self::UpdateSaveMetadata(_)
+            | Self::AddOutlineItem(_)
+            | Self::UpdateOutlineItem(_)
+            | Self::MoveOutlineItem(_)
+            | Self::DeleteOutlineItem(_)
+            | Self::SetNamedDestination(_)
+            | Self::RenameNamedDestination(_)
+            | Self::DeleteNamedDestination(_) => Vec::new(),
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.pages.clone(),
         }
@@ -132,6 +171,13 @@ impl Op {
             Self::SetMetadata(op) => op.apply_to(doc),
             Self::RemoveMetadata(op) => op.apply_to(doc),
             Self::UpdateSaveMetadata(op) => op.apply_to(doc),
+            Self::AddOutlineItem(op) => op.apply_to(doc),
+            Self::UpdateOutlineItem(op) => op.apply_to(doc),
+            Self::MoveOutlineItem(op) => op.apply_to(doc),
+            Self::DeleteOutlineItem(op) => op.apply_to(doc),
+            Self::SetNamedDestination(op) => op.apply_to(doc),
+            Self::RenameNamedDestination(op) => op.apply_to(doc),
+            Self::DeleteNamedDestination(op) => op.apply_to(doc),
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.apply_to(doc, self.class()),
         }
@@ -150,6 +196,12 @@ pub(crate) struct Effect {
     pub(crate) removed: bool,
     /// The form fields whose widgets it deleted, reshowed or moved.
     pub(crate) widgets: Vec<TouchedWidget>,
+    /// The bookmarks it created.
+    pub(crate) created_outline_items: Vec<OutlineItemId>,
+    /// It rewrote an outline whose links were broken.
+    pub(crate) outline_repaired: bool,
+    /// What still names a destination it deleted.
+    pub(crate) destination_uses: Vec<DestinationUse>,
 }
 
 impl From<SetInfo> for Op {
@@ -173,6 +225,48 @@ impl From<RemoveMetadata> for Op {
 impl From<UpdateSaveMetadata> for Op {
     fn from(op: UpdateSaveMetadata) -> Self {
         Self::UpdateSaveMetadata(op)
+    }
+}
+
+impl From<AddOutlineItem> for Op {
+    fn from(op: AddOutlineItem) -> Self {
+        Self::AddOutlineItem(op)
+    }
+}
+
+impl From<UpdateOutlineItem> for Op {
+    fn from(op: UpdateOutlineItem) -> Self {
+        Self::UpdateOutlineItem(op)
+    }
+}
+
+impl From<MoveOutlineItem> for Op {
+    fn from(op: MoveOutlineItem) -> Self {
+        Self::MoveOutlineItem(op)
+    }
+}
+
+impl From<DeleteOutlineItem> for Op {
+    fn from(op: DeleteOutlineItem) -> Self {
+        Self::DeleteOutlineItem(op)
+    }
+}
+
+impl From<SetNamedDestination> for Op {
+    fn from(op: SetNamedDestination) -> Self {
+        Self::SetNamedDestination(op)
+    }
+}
+
+impl From<RenameNamedDestination> for Op {
+    fn from(op: RenameNamedDestination) -> Self {
+        Self::RenameNamedDestination(op)
+    }
+}
+
+impl From<DeleteNamedDestination> for Op {
+    fn from(op: DeleteNamedDestination) -> Self {
+        Self::DeleteNamedDestination(op)
     }
 }
 
