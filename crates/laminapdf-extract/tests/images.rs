@@ -1,7 +1,7 @@
-//! Image extraction (todo E3i) over fixtures/images/extract.pdf, which draws one image of each
-//! kind (tools/fixtures/extract_images.py): JPEG and JPEG 2000 kept byte for byte, the rest
+//! Image extraction over `fixtures/images/extract.pdf`, which draws one image of each kind
+//! (`tools/fixtures/extract_images.py`): JPEG and JPEG 2000 kept byte for byte, the rest
 //! decoded with their `/Decode`, colour space and masks, and the list checked against
-//! `pdfimages -list` (fixtures/images/extract-facts.json).
+//! `pdfimages -list` (`fixtures/images/extract-facts.json`).
 
 #![allow(clippy::unwrap_used, clippy::panic, clippy::indexing_slicing, reason = "test code")]
 
@@ -42,7 +42,9 @@ fn pixels(png: &[u8]) -> (u32, u32, usize, Vec<u8>) {
 /// The raw stream data of object `num`, as stored.
 fn stored(doc: &Document, num: u32) -> Vec<u8> {
     let object = doc.resolve(laminapdf_syntax::ObjRef { num, gen_nr: 0 }).unwrap();
-    let Object::Stream(stream) = &*object else { panic!("{num} isn't a stream") };
+    let Object::Stream(stream) = &*object else {
+        panic!("{num} isn't a stream")
+    };
     stream.data.clone()
 }
 
@@ -60,7 +62,10 @@ fn jpegs_and_jpeg_2000_come_out_byte_for_byte() {
     assert_eq!(jpx.format, ImageFormat::Jpeg2000);
     assert_eq!(jpx.data, stored(&doc, 14));
     // The photo fixtures are the JPEGs the file embeds.
-    assert_eq!(by_object(&images, 10, ImageKind::Image).data, fixture("images/photo-rgb.jpg"));
+    assert_eq!(
+        by_object(&images, 10, ImageKind::Image).data,
+        fixture("images/photo-rgb.jpg")
+    );
 }
 
 /// capability: H.07 core read
@@ -78,7 +83,9 @@ fn lists_the_images_pdfimages_lists() {
         let kind = row["type"].as_str().unwrap();
         let parent_is_kept = matches!(row["enc"].as_str(), Some("jpeg" | "jpx"))
             || facts["rows"].as_array().unwrap().iter().any(|r| {
-                r["object"] == row["object"] && r["type"] == "image" && matches!(r["enc"].as_str(), Some("jpeg" | "jpx"))
+                r["object"] == row["object"]
+                    && r["type"] == "image"
+                    && matches!(r["enc"].as_str(), Some("jpeg" | "jpx"))
             });
         match (kind, object) {
             ("smask" | "mask", _) if !parent_is_kept => decoded_masks += 1,
@@ -100,7 +107,9 @@ fn lists_the_images_pdfimages_lists() {
             .find(|r| {
                 let object = doc.resolve(*r).unwrap();
                 let dict = object.as_dict().unwrap();
-                ["SMask", "Mask"].iter().any(|k| dict.get(k).and_then(Object::as_ref).is_some_and(|m| m.num == mask))
+                ["SMask", "Mask"]
+                    .iter()
+                    .any(|k| dict.get(k).and_then(Object::as_ref).is_some_and(|m| m.num == mask))
             })
             .map_or(mask, |r| r.num)
     };
@@ -109,7 +118,11 @@ fn lists_the_images_pdfimages_lists() {
         .iter()
         .map(|i| match i.object {
             Some(r) => (
-                u64::from(if matches!(i.kind, ImageKind::SoftMask | ImageKind::Mask) { parent_of(r.num) } else { r.num }),
+                u64::from(if matches!(i.kind, ImageKind::SoftMask | ImageKind::Mask) {
+                    parent_of(r.num)
+                } else {
+                    r.num
+                }),
                 match i.kind {
                     ImageKind::Stencil => "stencil",
                     ImageKind::SoftMask => "smask",
@@ -122,7 +135,10 @@ fn lists_the_images_pdfimages_lists() {
         })
         .collect();
     assert_eq!(ours, theirs);
-    assert_eq!(decoded_masks, 1, "the RGB image's /Mask stencil, applied as its transparency");
+    assert_eq!(
+        decoded_masks, 1,
+        "the RGB image's /Mask stencil, applied as its transparency"
+    );
     assert_eq!(images.skipped, vec![]);
 }
 
@@ -137,7 +153,11 @@ fn reports_each_image_as_pdfimages_describes_it() {
         let image = by_object(&images, u32::try_from(object).unwrap(), ImageKind::Image);
         assert_eq!(u64::from(image.width), row["width"].as_u64().unwrap(), "{object}");
         assert_eq!(u64::from(image.height), row["height"].as_u64().unwrap(), "{object}");
-        assert_eq!(u64::from(image.bits_per_component), row["bpc"].as_u64().unwrap(), "{object}");
+        assert_eq!(
+            u64::from(image.bits_per_component),
+            row["bpc"].as_u64().unwrap(),
+            "{object}"
+        );
         assert_eq!(image.color_space, row["color"].as_str().unwrap(), "{object}");
     }
 }
@@ -145,7 +165,11 @@ fn reports_each_image_as_pdfimages_describes_it() {
 #[test]
 fn extracts_an_image_once_on_the_first_page_that_draws_it() {
     let images = extracted();
-    let flate: Vec<_> = images.images.iter().filter(|i| i.object.is_some_and(|r| r.num == 15)).collect();
+    let flate: Vec<_> = images
+        .images
+        .iter()
+        .filter(|i| i.object.is_some_and(|r| r.num == 15))
+        .collect();
     assert_eq!(flate.len(), 1);
     assert_eq!(flate[0].page, 0);
     // Page 2 alone gives it, as its first page there.
@@ -161,7 +185,10 @@ fn finds_images_in_nested_forms_and_inline() {
     assert_eq!(pixels(&deep.data).3, vec![0, 255, 255, 0]);
     let inline = images.images.iter().find(|i| i.object.is_none()).unwrap();
     assert_eq!(inline.filters, vec!["ASCIIHexDecode"]);
-    assert_eq!(pixels(&inline.data).3, vec![0x00, 0x40, 0x80, 0xc0, 0xff, 0xc0, 0x80, 0x40]);
+    assert_eq!(
+        pixels(&inline.data).3,
+        vec![0x00, 0x40, 0x80, 0xc0, 0xff, 0xc0, 0x80, 0x40]
+    );
 }
 
 #[test]
@@ -220,7 +247,10 @@ fn decodes_ccitt_fax_and_stencils() {
     let images = extracted();
     // Row 1 white; row 2 four white then four black (BlackIs1 false: black is 0).
     let fax = pixels(&by_object(&images, 27, ImageKind::Image).data).3;
-    assert_eq!(fax, vec![255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0]);
+    assert_eq!(
+        fax,
+        vec![255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0]
+    );
     // A stencil: its 0 bits painted, black.
     let stencil = by_object(&images, 28, ImageKind::Stencil);
     assert_eq!(pixels(&stencil.data).3[..8], [255, 0, 255, 0, 255, 0, 255, 0]);
