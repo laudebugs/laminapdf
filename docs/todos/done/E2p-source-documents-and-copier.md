@@ -35,7 +35,7 @@ Give the session the three pieces every cross-document op needs, before any op u
 **Out of scope** (and which todo covers it)
 
 - The ops that copy pages (`InsertPagesFrom`, `ReplacePages`), extract and export → [E2c](../done/E2c-cross-document-pages.md)
-- Merge → [E2d](../ready/E2d-merge-and-split.md)
+- Merge → [E2d](../done/E2d-merge-and-split.md)
 
 **Editor facts**
 

@@ -112,6 +112,12 @@ pub(crate) struct Imported {
     /// The target's fields that copied widgets joined ([`FieldClash::Link`]): their `/Kids`
     /// changed, which the save planner checks against field locks.
     pub(crate) widgets: Vec<TouchedWidget>,
+    /// The source's named destinations that came along under another name: (source name,
+    /// name in the target).
+    pub(crate) destinations_renamed: Vec<(Vec<u8>, Vec<u8>)>,
+    /// The copies brought into a file that claims PDF/A from a source that doesn't make the same
+    /// claim: nothing checks what they bring (fonts, colour spaces) against it.
+    pub(crate) pdfa_unchecked: Vec<PageId>,
 }
 
 /// Copies `pages` (each once, in the order given) of `src` into `doc` as new page objects,
@@ -124,6 +130,28 @@ pub(crate) fn import(
     signatures: Signatures,
     names: &mut FieldNames,
 ) -> Result<Imported> {
+    import_with(doc, src, pages, (carry, signatures), names, |_, _, _| Ok(Vec::new()))
+}
+
+/// [`import`], then `after` while the copier and the destinations are still at hand, before
+/// the named destinations are written: a merge copies the source's outline there, so its items
+/// go to the copies and share the links' renamed destinations. `after` returns the objects it
+/// created that nothing reaches yet, which the sweep of unreached copies then keeps.
+pub(crate) fn import_with<F>(
+    doc: &mut laminapdf_model::Document,
+    src: &laminapdf_model::Document,
+    pages: &[PageId],
+    (carry, signatures): (Carry, Signatures),
+    names: &mut FieldNames,
+    after: F,
+) -> Result<Imported>
+where
+    F: for<'s, 'c> FnOnce(
+        &mut laminapdf_model::Document,
+        &'c ObjectCopier<'s>,
+        &mut Dests<'s, 'c>,
+    ) -> Result<Vec<ObjRef>>,
+{
     let tree = src.pages()?;
     let mut seen = BTreeSet::new();
     let mut chosen = Vec::with_capacity(pages.len());
@@ -160,15 +188,33 @@ pub(crate) fn import(
     for &copy in &copies {
         fit_page(doc, copy, carry, &removed, &mut dests, &mut out)?;
     }
+    let kept = after(doc, &copy, &mut dests)?;
+    out.destinations_renamed = dests.renamed();
     dests.write(doc)?;
-    sweep(doc, first_new, &copies)?;
+    sweep(doc, first_new, &[copies.as_slice(), kept.as_slice()].concat())?;
     raise_version(doc, src)?;
+    if let Some(claim) = pdfa_claim(doc)?
+        && pdfa_claim(src)? != Some(claim)
+    {
+        out.pdfa_unchecked = copies.iter().map(|&c| PageId::object(c)).collect();
+    }
     Ok(out)
+}
+
+/// The PDF/A part and conformance level `doc`'s XMP metadata claims, when it claims one.
+fn pdfa_claim(doc: &laminapdf_model::Document) -> Result<Option<(u8, Option<String>)>> {
+    Ok(match doc.xmp()? {
+        laminapdf_model::xmp::PacketState::Parsed(packet) => packet
+            .pdfa_part()
+            .map(|part| (part, packet.pdfa_conformance().map(|c| c.to_ascii_uppercase()))),
+        _ => None,
+    })
 }
 
 /// Gives the target's form the source form's default appearance (`/DA`) when it has none, and
 /// the source's default resources (`/DR`) under names the target's lack: a copied field with
-/// variable text needs both to draw its value again (ISO 32000-2 §12.7.4.3).
+/// variable text needs both to draw its value again (ISO 32000-2 §12.7.4.3). A source form
+/// that asks viewers to draw its fields (`/NeedAppearances true`) makes the target's ask too.
 fn fit_form(
     doc: &mut laminapdf_model::Document,
     src: &laminapdf_model::Document,
@@ -181,6 +227,12 @@ fn fit_form(
         return Ok(());
     };
     let mut form = target_form.clone();
+    // Fields whose appearances the source left to the viewer still need them drawn here.
+    if let Some(need) = source_form.get("NeedAppearances")
+        && matches!(*src.deref(need)?, Object::Bool(true))
+    {
+        form.insert("NeedAppearances", Object::Bool(true));
+    }
     if !form.contains_key("DA")
         && let Some(da) = source_form.get("DA")
     {

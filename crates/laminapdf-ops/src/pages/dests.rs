@@ -219,6 +219,55 @@ impl<'s, 'c> Dests<'s, 'c> {
         Ok(Some(chosen))
     }
 
+    /// The source destination `dest`, read from the source (an outline item's, which the copier
+    /// didn't copy), as the target should hold it: an explicit one pointed at the copy of its
+    /// page with its view's operands made direct, a named one renamed as links' are; `None` when
+    /// its page didn't come along or it isn't a destination.
+    pub(super) fn fit_source(&mut self, doc: &laminapdf_model::Document, dest: &Object) -> Result<Option<Object>> {
+        match (*self.src.deref(dest)?).clone() {
+            Object::Array(mut items) => {
+                let Some(Copied::Object(copy)) = items
+                    .first()
+                    .and_then(Object::as_ref)
+                    .and_then(|p| self.copier.copy_of(p))
+                else {
+                    return Ok(None);
+                };
+                for item in items.iter_mut().skip(1) {
+                    if let Object::Ref(r) = item {
+                        *item = (*self.src.resolve(*r)?).clone();
+                    }
+                }
+                if let Some(first) = items.first_mut() {
+                    *first = Object::Ref(copy);
+                }
+                Ok(Some(Object::Array(items)))
+            }
+            Object::Dict(d) => match d.get("D") {
+                Some(inner) => self.fit_source(doc, inner),
+                None => Ok(None),
+            },
+            Object::Name(n) => Ok(self
+                .named(doc, n.as_bytes())?
+                .map(|n| Object::String(PdfString::literal(n)))),
+            Object::String(s) => Ok(self
+                .named(doc, &s.bytes)?
+                .map(|n| Object::String(PdfString::literal(n)))),
+            _ => Ok(None),
+        }
+    }
+
+    /// The source's names that came along under another name: (source name, target name).
+    pub(super) fn renamed(&self) -> Vec<(Vec<u8>, Vec<u8>)> {
+        self.settled
+            .iter()
+            .filter_map(|(from, to)| match to {
+                Some(to) if to != from => Some((from.clone(), to.clone())),
+                _ => None,
+            })
+            .collect()
+    }
+
     /// Adds the copied named destinations to the target's `/Names /Dests` tree.
     pub(super) fn write(self, doc: &mut laminapdf_model::Document) -> Result<()> {
         if self.added.is_empty() {

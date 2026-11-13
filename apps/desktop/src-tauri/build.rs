@@ -55,7 +55,6 @@ const E2E_COMMANDS: &[&str] = &[
     "save_copy",
     "debug_kill_engine",
     "e2e_queue_pick",
-    "e2e_replace",
     "e2e_interactive",
     "e2e_focus",
     "e2e_menu_click",

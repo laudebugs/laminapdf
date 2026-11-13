@@ -311,7 +311,7 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 
 **Artboards:** `O07-insert-pages.dc.html`, `O07-merge.dc.html`.
 
-**Todos:** [E2c](../../todos/done/E2c-cross-document-pages.md), [E2d](../../todos/ready/E2d-merge-and-split.md), [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md).
+**Todos:** [E2c](../../todos/done/E2c-cross-document-pages.md), [E2d](../../todos/done/E2d-merge-and-split.md), [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md).
 
 ## O08 Split document
 
@@ -333,7 +333,7 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 
 **Artboards:** `O08-split.dc.html`.
 
-**Todos:** [E2d](../../todos/ready/E2d-merge-and-split.md).
+**Todos:** [E2d](../../todos/done/E2d-merge-and-split.md).
 
 ## New components
 

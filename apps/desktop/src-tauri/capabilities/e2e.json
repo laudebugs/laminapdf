@@ -7,7 +7,6 @@
   "permissions": [
     "allow-debug-kill-engine",
     "allow-e2e-queue-pick",
-    "allow-e2e-replace",
     "allow-e2e-interactive",
     "allow-e2e-focus",
     "allow-e2e-menu-click",

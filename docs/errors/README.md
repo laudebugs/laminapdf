@@ -130,6 +130,7 @@ A PR that adds a code adds:
 | [`pdfa-info-mismatch`](pdfa-info-mismatch.md) | `input` | the file claims PDF/A, which requires the Info dictionary and the XMP packet to agree, and they differ |
 | [`duplicate-tags-incomplete`](duplicate-tags-incomplete.md) | `usage` | a duplicated page's content is partly untagged, which breaks the PDF/UA claim of the document's metadata |
 | [`imported-tags-dropped`](imported-tags-dropped.md) | `usage` | pages copied in from another document came without their tags, which breaks the PDF/UA claim of the document's metadata |
+| [`imported-pdfa-unchecked`](imported-pdfa-unchecked.md) | `usage` | pages copied in from a document that doesn't claim the same PDF/A level may break the PDF/A claim of the document's metadata |
 
 ## Save errors
 
