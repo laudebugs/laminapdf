@@ -1,6 +1,6 @@
 ---
 title: "sink"
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/reference/codes/sink/"
 ---
 

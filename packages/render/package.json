@@ -1,6 +1,6 @@
 {
   "name": "@laminapdf/render",
-  "version": "0.2.0-alpha.6",
+  "version": "0.2.0",
   "description": "The interface Lamina PDF's web viewer renders PDF pages through: a page tile as RGBA pixels, shared by @laminapdf/render-pdfium and @laminapdf/render-hayro.",
   "license": "MIT OR Apache-2.0",
   "homepage": "https://laminapdf.com",

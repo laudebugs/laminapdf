@@ -81,6 +81,22 @@
       "kind": "function",
       "since": "0.2.0",
       "note": ""
+    },
+    {
+      "from": "Transaction.setInfo",
+      "to": "Transaction.setMetadata",
+      "surface": "ts",
+      "kind": "method",
+      "since": "0.2.0",
+      "note": "setMetadata writes the Info dictionary and the XMP metadata together, and takes authors as a list; setInfo still applies, as the setInfo op."
+    },
+    {
+      "from": "laminapdf::SetInfo",
+      "to": "laminapdf::SetMetadata",
+      "surface": "rust",
+      "kind": "type",
+      "since": "0.2.0",
+      "note": "SetMetadata writes the Info dictionary and the XMP metadata together, and takes authors as a list; SetInfo still applies, as the setInfo op."
     }
   ]
 }

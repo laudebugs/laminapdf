@@ -1,7 +1,7 @@
 ---
 title: "A Cloudflare Worker"
 description: "A Cloudflare Worker that returns a one-page letter per request, in a standard 14 font or a bundled one, and a 400 for a name the font can't draw."
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/recipes/cloudflare-worker/"
 ---
 
@@ -112,4 +112,4 @@ Open `/?name=Ada` and your browser shows one A4 page that says "Hello, Ada!" in 
 - **Errors the caller caused:** add a code to `isNameError` when the request can cause it, such as `text-overflow` for a text box drawn with `overflow: "error"`. See [Errors and warnings](../../pages/concepts/errors-and-warnings.md).
 - **A download name:** add `content-disposition: attachment; filename="letter.pdf"` to the headers in `pdf`, so browsers save the file instead of showing it.
 
-Next: [Troubleshooting](../../pages/troubleshooting.md), for the problems people hit most and how to fix them.
+Next: [Troubleshooting JavaScript and TypeScript](../../pages/troubleshooting/javascript.md), for the problems people hit most and how to fix them.

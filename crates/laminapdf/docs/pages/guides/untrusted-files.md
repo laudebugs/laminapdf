@@ -1,7 +1,7 @@
 ---
 title: "Open files you don't trust"
 description: "Cap how much work an uploaded PDF can make Lamina PDF do, and refuse damaged files with strict mode."
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/guides/untrusted-files/"
 ---
 
@@ -78,5 +78,7 @@ These are the TypeScript names. In Rust they're builder methods, such as `Limits
 Lamina PDF repairs damaged files as it opens them and reports each repair as a warning. Pass `strict: true` to refuse any file that needs repair instead. It then fails with `strict`.
 
 A file on someone else's server can also decide how much you download. [Open it by ranges](../../pages/guides/open-large-files.md) and cap the bytes it may fetch with `budget`.
+
+When a file you trust goes over a limit, [Troubleshooting opening and saving files](../../pages/troubleshooting/files.md#opening-or-reading-a-file-fails-with-limit-exceeded) says how to raise it.
 
 Next: [keep the page responsive](../../pages/guides/keep-the-page-responsive.md).
