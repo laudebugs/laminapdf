@@ -97,6 +97,16 @@ def page_mode_of(pdf: pdfium.PdfDocument) -> str | None:
     return PAGE_MODES.get(pdfium.raw.FPDFDoc_GetPageMode(pdf))
 
 
+def outline_of(pdf: pdfium.PdfDocument) -> list:
+    """The outline as [depth, title, page index or None] per item in document order."""
+    return [[item.level, item.get_title(), page_of(item)] for item in pdf.get_toc()]
+
+
+def page_of(item) -> int | None:
+    dest = item.get_dest()
+    return None if dest is None else dest.get_index()
+
+
 def main() -> int:
     if len(sys.argv) != 2:
         raise SystemExit("usage: pdfium.py <out-dir>")
@@ -144,6 +154,9 @@ def main() -> int:
                 "page_mode": want_mode,
                 "labels": case.get("labels"),
             }
+            if case.get("outline") is not None:
+                got["outline"] = outline_of(pdf)
+                want["outline"] = case["outline"]
             if got != want:
                 failures.append(f"{case['file']}: got {got}, expected {want}")
             elif case.get("copy_of") is not None:

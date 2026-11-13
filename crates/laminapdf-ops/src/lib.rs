@@ -86,6 +86,7 @@ mod initial_view;
 mod labels;
 mod metadata;
 mod op;
+mod outline;
 mod pages;
 mod pending;
 mod record;
@@ -115,6 +116,11 @@ pub use metadata::{
     pending_conformance_warnings, read_metadata,
 };
 pub use op::{Op, OpLog};
+pub use outline::{
+    AddOutlineItem, ChildItems, DeleteNamedDestination, DeleteOutlineItem, DestinationUse, DestinationView,
+    ExplicitDestination, MoveOutlineItem, OutlineStyle, OutlineTarget, RenameLinks, RenameNamedDestination, Rgb,
+    SetNamedDestination, UpdateOutlineItem,
+};
 pub use pages::{
     DeletePages, DuplicatePages, FieldChange, FieldOutcome, InsertBlankPages, MovePages, ReferenceChange,
     ReferenceOutcome, ReferencePolicy, ReversePages, RotateMode, RotatePages,

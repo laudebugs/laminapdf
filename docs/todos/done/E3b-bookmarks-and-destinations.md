@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `E3b` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [E3 plan §2.1](../../plans/editor/e3-navigation-attachments-inspection.md#21-ops) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2j](../done/E2j-page-tree-and-tree-writers.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md) |
+| Depends on | [E2j](./E2j-page-tree-and-tree-writers.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3b-bookmarks-and-destinations` |
 | PR title | `feat(ops): outline editing, named destinations and TOC generation` |
 | Size | L (400–800): seven ops over one list writer, and the Outline tab's editing |
-| PR | — |
+| PR | [#535](https://github.com/laudebugs/laminapdf/pull/535) |
 
 ## Goal
 
@@ -35,11 +35,11 @@ Create and edit nested bookmarks (add, rename, retarget, move, nest, colour and 
 
 **Out of scope** (and which todo covers it)
 
-- Link annotations → [E3c](E3c-links.md)
-- The contents page → [E3l](E3l-contents-page.md)
-- Viewer preferences and page mode (`I.11`) → [E3d](../done/E3d-initial-view-and-threads.md)
-- The desktop column → [E3k](E3k-desktop-navigation-and-export.md)
-- TOC from struct-tree headings, if decided → [E15b](E15b-structure-tree-editing.md)
+- Link annotations → [E3c](../ready/E3c-links.md)
+- The contents page → [E3l](../ready/E3l-contents-page.md)
+- Viewer preferences and page mode (`I.11`) → [E3d](E3d-initial-view-and-threads.md)
+- The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
+- TOC from struct-tree headings, if decided → [E15b](../ready/E15b-structure-tree-editing.md)
 
 **Editor facts**
 
@@ -53,19 +53,21 @@ Create and edit nested bookmarks (add, rename, retarget, move, nest, colour and 
 
 ## Tasks
 
-- [ ] Outline writer with `/Count` sign semantics
-- [ ] Named-destination ops over [E2j](../done/E2j-page-tree-and-tree-writers.md)'s name-tree writer (E3b does not write its own; E3f uses the same writer)
-- [ ] Ops with undo
-- [ ] Bookmark panel with DnD and keyboard
+- [x] Outline writer with `/Count` sign semantics
+- [x] Named-destination ops over [E2j](../done/E2j-page-tree-and-tree-writers.md)'s name-tree writer (E3b does not write its own; E3f uses the same writer)
+- [x] Ops with undo
+- [x] Bookmark panel with DnD and keyboard
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
-- [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
-- [ ] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
-- [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
-- [ ] Outline facts (titles, levels, targets) match pdf.js and pypdf after edits on corpus files
-- [ ] Playwright: create nested bookmarks, reorder, rename a named destination, save, reopen
+- [x] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [x] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
+- [x] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
+- [x] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
+- [x] Outline facts (titles, levels, targets) match pdf.js and pypdf after edits on corpus files
+- [x] Playwright: create nested bookmarks, reorder, rename a named destination, save, reopen
+
+**As built.** The outline facts after edits are checked by the round-trip suite's outline cases, which every plain corpus and built fixture runs: Lamina PDF, pdf.js and PDFium read the same titles, levels and pages (pypdf's role there is PDFium's, the two tools `cargo xtask roundtrip` runs). The reader edits in the Outline tab until Organise mode exists ([E2h](../ready/E2h-page-organiser-ui.md)); the other differences from O11 are in the [area document](../../design/paper/pages-navigation-extraction.md#o11-bookmarks-editor). The `pdf` column stays without evidence, as for J.01: TypeScript tests outside the reader's end-to-end suite carry no capability tags.
 
 ## Post-merge checks
 
@@ -89,8 +91,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

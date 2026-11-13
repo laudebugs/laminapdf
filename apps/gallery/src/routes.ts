@@ -51,7 +51,7 @@ export const ROUTES: readonly Route[] = [
   {
     id: "rail",
     title: "Thumbnails, outline and history",
-    components: ["Thumbnail", "OutlineRow", "OutlineTree", "HistoryPanel", "ThreadsPanel"],
+    components: ["Thumbnail", "OutlineRow", "OutlineTree", "HistoryPanel", "ThreadsPanel", "BookmarkEditor"],
     pageRelated: true,
   },
   {
@@ -105,6 +105,7 @@ export const ROUTES: readonly Route[] = [
       "ViewSettingsButton",
       "RemoveSignaturesDialog",
       "ConformanceDialog",
+      "NamedDestinationsDialog",
     ],
     states: [
       "default",
@@ -125,6 +126,7 @@ export const ROUTES: readonly Route[] = [
       "view-settings",
       "remove-signatures",
       "conformance",
+      "named-destinations",
     ],
   },
   {

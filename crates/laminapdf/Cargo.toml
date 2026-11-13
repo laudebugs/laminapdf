@@ -153,6 +153,9 @@ name = "generate_then_edit"
 required-features = ["text"]
 
 [[example]]
+name = "edit_bookmarks"
+
+[[example]]
 name = "duplicate_pages"
 
 [[example]]

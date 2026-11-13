@@ -574,7 +574,116 @@ pub fn run(root: &Path) -> Suite {
     }
     copies(root, &mut suite);
     images(root, &mut suite);
+    outlines(root, &mut suite);
     suite
+}
+
+/// The outline as the tools list it: `[depth, title, page]` per item in document order, the
+/// depth from 0, the page `null` when the item goes to no page of the file.
+pub fn outline_facts(doc: &laminapdf_model::Document) -> Vec<Value> {
+    let outline = doc.outline().unwrap();
+    outline
+        .iter()
+        .map(|item| {
+            let page = item.target().unwrap().and_then(|d| d.page_index);
+            json!([item.depth() - 1, item.title().unwrap(), page])
+        })
+        .collect()
+}
+
+/// The outline cases (todo E3b, I.01 and I.04): on every plain fixture, a bookmark added at the
+/// top, styled, with a child that goes to a new named destination, then opened; the first old
+/// bookmark renamed, and a named destination a bookmark uses renamed with its uses (its page must
+/// still resolve), saved incrementally and as a full rewrite. Lamina reopens each with the
+/// same outline and pages; the tools compare the outline they read (`outline`).
+fn outlines(root: &Path, suite: &mut Suite) {
+    use laminapdf_model::SiblingPosition;
+    use laminapdf_ops::{
+        AddOutlineItem, DestinationView, ExplicitDestination, OutlineStyle, OutlineTarget, RenameNamedDestination, Rgb,
+        SetNamedDestination, UpdateOutlineItem,
+    };
+    let names = PLAIN_CORPUS
+        .iter()
+        .map(|n| format!("corpus/{n}"))
+        .chain(PLAIN_BUILT.iter().map(|n| format!("golden/{n}")));
+    for name in names {
+        let bytes = std::fs::read(root.join("fixtures").join(&name)).unwrap();
+        for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
+            let id = format!("outline-{}-{mode:?}", name.replace('/', "_").trim_end_matches(".pdf")).to_lowercase();
+            let mut doc = Document::open(bytes.clone(), OpenOptions::default()).unwrap();
+            let (pages, rotations, info, labels) = facts(&doc);
+            let first_old = doc.outline().unwrap().roots().next().and_then(|i| i.id().cloned());
+            let page = |doc: &Document, i: usize| doc.pages().unwrap().get(i).unwrap().id().clone();
+            let fit = ExplicitDestination::new(page(&doc, 0), DestinationView::Fit);
+            let last = ExplicitDestination::new(page(&doc, pages - 1), DestinationView::FitH { top: None });
+            let mut top = AddOutlineItem::new(
+                None,
+                SiblingPosition::First,
+                "Round trip",
+                OutlineTarget::Destination(fit),
+            );
+            top.style = OutlineStyle::new(Some(Rgb::new(192, 0, 0)), true, false);
+            let mut ops = vec![Op::from(top), Op::from(SetNamedDestination::new("round-trip", last))];
+            if let Some(old) = first_old {
+                let mut rename = UpdateOutlineItem::new(old);
+                rename.title = Some("Renamed by the round trip".into());
+                ops.push(rename.into());
+            }
+            let created = doc.apply_all(Origin::Local, ops).unwrap().created_outline_items;
+            let child = AddOutlineItem::new(
+                created.first().cloned(),
+                SiblingPosition::Last,
+                "Last page, by name",
+                OutlineTarget::Named("round-trip".into()),
+            );
+            // With a child, the new bookmark can hold its open state; an existing name the file's
+            // bookmarks use is renamed with its uses, which must still go to their pages.
+            let mut open = UpdateOutlineItem::new(created.first().cloned().unwrap());
+            open.open = Some(true);
+            let mut more = vec![Op::from(child), Op::from(open)];
+            let used = doc
+                .outline()
+                .unwrap()
+                .iter()
+                .find_map(|i| i.target().unwrap().and_then(|d| d.name))
+                .and_then(|n| String::from_utf8(n).ok())
+                .filter(|n| n != "round-trip");
+            if let Some(used) = used {
+                more.push(RenameNamedDestination::new(used, "renamed-by-the-round-trip").into());
+            }
+            doc.apply_all(Origin::Local, more).unwrap();
+            let outline = outline_facts(&doc);
+            let mut output = Vec::new();
+            let report = doc.save(&mut output, &SaveOptions::new().with_mode(mode)).unwrap();
+            suite.saved += 1;
+            let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
+            if outline_facts(&reopened) != outline
+                || facts(&reopened) != (pages, rotations.clone(), info.clone(), labels.clone())
+                || reopened.was_repaired()
+            {
+                suite.failures.push(format!(
+                    "{id}: lamina reopened outline {:?} (repaired {}), expected {outline:?}",
+                    outline_facts(&reopened),
+                    reopened.was_repaired()
+                ));
+            }
+            let file = format!("{id}.pdf");
+            suite.manifest.push(json!({
+                "file": &file,
+                "source": name,
+                "mode": format!("{:?}", report.mode()),
+                "pages": pages,
+                "rotations": rotations,
+                "title": info[0],
+                "info": null,
+                "encrypted": false,
+                "direct_info": matches!(reopened.trailer().get("Info"), Some(laminapdf_cos::Object::Dict(_))),
+                "invalidated": 0,
+                "outline": outline,
+            }));
+            suite.outputs.push((file, output));
+        }
+    }
 }
 
 /// The image cases (todo E3h): photos made into PDFs with `images_to_pdf`, a page per photo,

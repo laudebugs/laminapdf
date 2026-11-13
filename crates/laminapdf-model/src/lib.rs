@@ -87,6 +87,8 @@ mod labels;
 mod link;
 mod locate;
 mod outline;
+#[cfg(feature = "navigation")]
+mod outline_edit;
 mod page;
 #[cfg(feature = "edit")]
 mod page_tree;
@@ -108,7 +110,7 @@ pub use disclosure::{
     Action, Annotation, Disclosure, EmbeddedFile, EmbeddedFileHolder, FormField, Owner, Trigger, XmpPacket,
 };
 pub use document::Document;
-#[cfg(feature = "edit")]
+#[cfg(feature = "tree-write")]
 pub use edit::set_catalog_entry;
 pub use fonts::{FontEncoding, FontResource};
 pub use geometry::{LETTER, PageFrame, PageSize, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
@@ -120,6 +122,8 @@ pub use labels::{LabelRange, LabelStyle, PageLabels};
 pub use link::{Link, LinkAction};
 pub use locate::ParentedPage;
 pub use outline::{ActionKind, Destination, Outline, OutlineItem, View};
+#[cfg(feature = "navigation")]
+pub use outline_edit::{OutlineTree, OutlineTreeError, SiblingPosition};
 pub use page::{Page, Pages, Rotation};
 #[cfg(feature = "edit")]
 pub use page_tree::{PagePosition, PageTreeEditor, PageTreeError};

@@ -1,8 +1,8 @@
 // The pdf.js half of the round-trip suite (todo B3c, ADR 0018 tier 7): opens every output
 // listed in <out-dir>/manifest.json (written by laminapdf-save's `roundtrip` example) and checks
-// the page count, each page's rotation, the Info /Title and whether the file is encrypted
-// against it, and in the setInitialView cases the page the file opens on, its page mode and its
-// page layout. `cargo xtask roundtrip`
+// the page count, each page's rotation, the Info /Title, whether the file is encrypted, for the
+// outline cases the outline (depth, title, page per item), and in the setInitialView cases the
+// page the file opens on, its page mode and its page layout, against it. `cargo xtask roundtrip`
 // runs it; it prints one JSON line ({ tool, version, checked, failures }) and exits 1 on any
 // failure.
 //
@@ -34,6 +34,25 @@ async function initialView(doc, c) {
     page_mode: await doc.getPageMode(),
     page_layout: await doc.getPageLayout(),
   };
+}
+
+/** The outline as [depth, title, page index or null] per item in document order. */
+async function outlineOf(doc) {
+  const out = [];
+  const walk = async (items, depth) => {
+    for (const item of items ?? []) {
+      let dest = item.dest;
+      if (typeof dest === "string") dest = await doc.getDestination(dest);
+      let page = null;
+      if (Array.isArray(dest) && dest[0] !== null && typeof dest[0] === "object") {
+        page = await doc.getPageIndex(dest[0]).catch(() => null);
+      }
+      out.push([depth, item.title, page]);
+      await walk(item.items, depth + 1);
+    }
+  };
+  await walk(await doc.getOutline(), 0);
+  return out;
 }
 
 // Each page's label (getPageLabels() is null for a document without labels).
@@ -86,6 +105,10 @@ for (const c of cases) {
               page_layout: c.initial_view.page_layout,
             },
     };
+    if (c.outline !== undefined) {
+      got.outline = await outlineOf(doc);
+      want.outline = c.outline;
+    }
     if (JSON.stringify(got) !== JSON.stringify(want)) {
       failures.push(`${c.file}: got ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`);
     }

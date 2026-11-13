@@ -114,6 +114,7 @@ export function sidebar(typeDoc) {
         { label: "Generate, then edit", slug: "recipes/generate-then-edit" },
         { label: "Edit the metadata", slug: "recipes/edit-metadata" },
         { label: "Choose how a PDF opens", slug: "recipes/set-initial-view" },
+        { label: "Edit the bookmarks", slug: "recipes/edit-bookmarks" },
         { label: "Record your own metadata", slug: "recipes/edit-xmp" },
         { label: "Organise pages", slug: "recipes/organise-pages" },
         { label: "Duplicate pages", slug: "recipes/duplicate-pages" },

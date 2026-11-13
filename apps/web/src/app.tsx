@@ -54,6 +54,7 @@ import { type CapabilityRoute, useCapabilityRoute } from "./capabilities.tsx";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
 import { type EditActions, type Editing, type EditMenuId, useEditing } from "./editing.tsx";
 import { type FindActions, useFind } from "./find.tsx";
+import { KEYS } from "./keys.ts";
 import type { NetworkMonitor } from "./network/monitor.ts";
 import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
 import { clearDocumentCache } from "./offline/document-cache.ts";
@@ -63,16 +64,13 @@ import type { AppUpdates } from "./offline/updates.ts";
 import { type PageInfo, pageLabel } from "./outline.ts";
 import { type Output, type OutputCommand, useOutput } from "./output.tsx";
 import { usePageAppearance } from "./page-appearance.tsx";
-import { railTabs } from "./rail.tsx";
+import { type OutlineEditor, railTabs } from "./rail.tsx";
 import { type ReaderMode, useReaderMode } from "./reader-mode.tsx";
 import { type Recent, useRecent } from "./recent.tsx";
 import type { SelectionSurfaces } from "./selection.tsx";
 import { useSelection } from "./selection.tsx";
 import { type Engine, type EngineState, remoteUrlOf } from "./session.ts";
 import { type Settings, useSettings } from "./settings.tsx";
-
-/** How shortcut chips are written: Apple keys on Apple platforms, Ctrl elsewhere. */
-const KEYS = /Mac|iPhone|iPad/.test(navigator.platform) ? "mac" : "other";
 
 /** The website's privacy page, which states the reader's privacy promises. */
 const PRIVACY_URL = "https://laminapdf.com/privacy/";
@@ -595,13 +593,14 @@ function useRailTabs(
   open: boolean,
   finding: boolean,
   history: RailTab | undefined,
+  editor: OutlineEditor | undefined,
 ) {
   const { strip, viewer } = useStoreState(engine, (s) => s);
   const threaded = useStoreState(engine, (s) => s.threads.length > 0);
   return useMemo(() => {
-    const tabs = railTabs(engine, layout, open ? { strip, viewer, finding, threaded } : undefined);
+    const tabs = railTabs(engine, layout, open ? { strip, viewer, finding, editor, threaded } : undefined);
     return tabs.length > 0 && history !== undefined ? [...tabs, history] : tabs;
-  }, [engine, layout, open, strip, viewer, finding, threaded, history]);
+  }, [engine, layout, open, strip, viewer, finding, history, editor, threaded]);
 }
 
 /** The settings, with the page appearance of the document `viewer` shows, and the toasts they share. */
@@ -632,7 +631,7 @@ function useDocumentChrome(options: {
   const open = state.phase === "open";
   const pages = useStoreState(engine, (s) => s.pages);
   const find = useFind(shown, open ? state.file : undefined);
-  const tabs = useRailTabs(engine, shell.layout, open, find.open, editing.tab);
+  const tabs = useRailTabs(engine, shell.layout, open, find.open, editing.tab, editing.later?.OutlineEditing);
   const rail = tabs.length > 0;
   const history = useHistory(shown, pages);
   const selection = useSelection(shown, find, platform, KEYS);

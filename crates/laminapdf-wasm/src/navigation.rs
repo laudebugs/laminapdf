@@ -1,17 +1,18 @@
 //! Moving through a document across the boundary: `WasmDocument.outline()`,
-//! `namedDestination(name)`, `pageLinks(index)`, `initialView()` and `threads()`, each target a
-//! page index and a view in page space (the extract and text modules, so the base module stays in
-//! its size budget).
+//! `namedDestination(name)`, `namedDestinations()`, `pageLinks(index)`, `initialView()` and
+//! `threads()`, each target a page index and a view in page space, and `destinationAt(page, view)`,
+//! a page-space view as the destination the outline ops take (the extract and text modules, so the
+//! base module stays in its size budget).
 
 use laminapdf::{
-    ArticleThread, LinkTo, OpenTarget, OpeningView, OutlineNode, PageLayout, PageLink, PageMode, PageTarget,
-    PageTargetView,
+    ArticleThread, LinkTo, NamedDestination, OpenTarget, OpeningView, OutlineNode, PageLayout, PageLink, PageMode,
+    PageTarget, PageTargetView,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
-use crate::convert::to_js;
+use crate::convert::{from_js, to_js};
 use crate::document::WasmDocument;
 use crate::error::{JsResult, lamina_error};
 
@@ -19,6 +20,8 @@ use crate::error::{JsResult, lamina_error};
 #[derive(Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct OutlineNodeJs {
+    /// Its ID (`o12.0`), which the outline ops take.
+    pub id: String,
     /// Its title (document text).
     pub title: String,
     /// Whether it opens with its children shown.
@@ -26,8 +29,44 @@ pub(crate) struct OutlineNodeJs {
     /// Where it goes, when its destination names a page of this document.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub target: Option<TargetJs>,
+    /// The named destination it goes to, when it names one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub destination_name: Option<String>,
+    /// The web address it opens, when it has one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
+    /// Its action's type when that is neither `GoTo` nor `URI` (`JavaScript`, `Launch`, …).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub other_action: Option<String>,
+    /// Its colour as `"#rrggbb"`, when it isn't the default black.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    /// Shown in bold.
+    pub bold: bool,
+    /// Shown in italic.
+    pub italic: bool,
     /// Its children, in order.
     pub children: Vec<OutlineNodeJs>,
+}
+
+/// One named destination and where it goes.
+#[derive(Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct NamedDestinationJs {
+    /// The name.
+    pub name: String,
+    /// Where it goes, when it names a page of this document.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target: Option<TargetJs>,
+}
+
+impl From<&NamedDestination> for NamedDestinationJs {
+    fn from(d: &NamedDestination) -> Self {
+        Self {
+            name: d.name.clone(),
+            target: d.target.map(TargetJs::from),
+        }
+    }
 }
 
 /// A page and how to show it.
@@ -41,8 +80,8 @@ pub(crate) struct TargetJs {
 }
 
 /// How a target shows its page, in page space; an unset coordinate is left out.
-#[derive(Debug, Serialize, Tsify)]
-#[serde(tag = "kind", rename_all = "kebab-case")]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Tsify)]
+#[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub(crate) enum TargetViewJs {
     /// The point (`x`, `y`) at the viewport's top-left, at `zoom` when given.
     At {
@@ -86,10 +125,29 @@ pub(crate) enum TargetViewJs {
 impl From<&OutlineNode> for OutlineNodeJs {
     fn from(node: &OutlineNode) -> Self {
         Self {
+            id: node.id.to_string(),
             title: node.title.clone(),
             open: node.open,
             target: node.target.map(TargetJs::from),
+            destination_name: node.destination_name.clone(),
+            uri: node.uri.clone(),
+            other_action: node.other_action.clone(),
+            color: node.color.map(|c| c.to_string()),
+            bold: node.bold,
+            italic: node.italic,
             children: node.children.iter().map(Self::from).collect(),
+        }
+    }
+}
+
+impl From<TargetViewJs> for PageTargetView {
+    fn from(view: TargetViewJs) -> Self {
+        match view {
+            TargetViewJs::At { x, y, zoom } => Self::At { x, y, zoom },
+            TargetViewJs::Fit => Self::Fit,
+            TargetViewJs::FitWidth { y } => Self::FitWidth { y },
+            TargetViewJs::FitHeight { x } => Self::FitHeight { x },
+            TargetViewJs::FitRect { x0, y0, x1, y1 } => Self::FitRect { x0, y0, x1, y1 },
         }
     }
 }
@@ -419,6 +477,40 @@ impl WasmDocument {
     pub fn outline(&self) -> JsResult<JsValue> {
         let outline = self.shared().borrow().outline().map_err(|e| lamina_error(&e))?;
         Ok(to_js(&outline.iter().map(OutlineNodeJs::from).collect::<Vec<_>>()))
+    }
+
+    /// Every named destination, sorted by name (the extract and text modules).
+    ///
+    /// # Errors
+    /// `data-pending` and the reading errors.
+    #[wasm_bindgen(js_name = namedDestinations, unchecked_return_type = "NamedDestinationJs[]")]
+    pub fn named_destinations(&self) -> JsResult<JsValue> {
+        let names = self
+            .shared()
+            .borrow()
+            .named_destinations()
+            .map_err(|e| lamina_error(&e))?;
+        Ok(to_js(&names.iter().map(NamedDestinationJs::from).collect::<Vec<_>>()))
+    }
+
+    /// `view` (page space) on page `page` as the destination the outline and named-destination
+    /// ops take, in the page's user space (the extract and text modules).
+    ///
+    /// # Errors
+    /// `invalid-argument` for a view that isn't one; `page-index-out-of-range`; reading errors.
+    #[wasm_bindgen(js_name = destinationAt, unchecked_return_type = "ExplicitDestination")]
+    pub fn destination_at(
+        &self,
+        page: u32,
+        #[wasm_bindgen(unchecked_param_type = "TargetViewJs")] view: &JsValue,
+    ) -> JsResult<JsValue> {
+        let view: TargetViewJs = from_js(view, "view")?;
+        let dest = self
+            .shared()
+            .borrow()
+            .destination_at(page, view.into())
+            .map_err(|e| lamina_error(&e))?;
+        Ok(to_js(&dest))
     }
 
     /// The named destination `name`, or `undefined` when the document has none by that name or

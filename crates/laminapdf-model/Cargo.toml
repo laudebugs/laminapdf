@@ -24,10 +24,14 @@ default = ["edit"]
 # `PageLabels::remap`/`write` and `PageReferences`. Off for the workspace's other crates (their
 # dependency turns default features off), so crates that only read compile none of it: its
 # callers otherwise change how the shared read path is optimised.
-edit = ["tree-write"]
-# Only the name and number tree writers and `PageLabels::write`/`remap`: what `laminapdf-ops`'
-# `SetPageLabels` calls, so the ops (and every WASM module) need neither the page-tree editor
-# nor `PageReferences`.
+edit = ["navigation"]
+# The outline's tree editor (OutlineTree): what the outline and named-destination ops need,
+# without the page-tree editor and the reference index, whose code changes how the shared read
+# path is inlined. laminapdf-ops turns it on.
+navigation = ["tree-write"]
+# Only the name and number tree writers, `set_catalog_entry` and `PageLabels::write`/`remap`:
+# what `laminapdf-ops`' `SetPageLabels` calls, so the ops (and every WASM module) need neither
+# the page-tree editor nor `PageReferences`.
 tree-write = []
 
 [dependencies]
@@ -57,6 +61,10 @@ required-features = ["edit"]
 [[test]]
 name = "references"
 required-features = ["edit"]
+
+[[test]]
+name = "outline_tree"
+required-features = ["navigation"]
 
 [[test]]
 name = "trees"
