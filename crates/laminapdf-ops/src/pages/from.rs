@@ -138,6 +138,7 @@ pub(super) fn effect(imported: Imported, copies: Vec<PageId>, after: Vec<PageId>
         widgets: imported.widgets,
         renamed_destinations: super::merge::RenamedDestination::of(&imported.destinations_renamed),
         pdfa_unchecked: imported.pdfa_unchecked,
+        pdfua_unchecked: imported.pdfua_unchecked,
         ..Effect::default()
     }
 }

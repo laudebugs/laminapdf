@@ -15,7 +15,8 @@ use common::{fixture, open, page_ids, snapshot};
 use laminapdf_cos::{ObjRef, Object};
 use laminapdf_model::{FieldId, PageId, PagePosition};
 use laminapdf_ops::{
-    Carry, Document, Error, FieldClash, FieldOutcome, InsertPagesFrom, Origin, ReferenceOutcome, ReplacePages, SourceId,
+    Carry, ConformanceWarning, Document, Error, FieldClash, FieldOutcome, InsertPagesFrom, Origin, ReferenceOutcome,
+    ReplacePages, SourceId, pending_conformance_warnings,
 };
 
 fn pages(name: &str) -> Document {
@@ -241,6 +242,16 @@ fn tagged_pages_keep_their_tags_in_a_tagged_file() {
         .count();
     assert!(on_copy > 0, "no element is on the copy");
     assert!(tree.parent_tree_next_key.unwrap() > key);
+    // tagged.pdf claims PDF/UA-1 and references.pdf doesn't: its tags came along unchecked.
+    let warnings = pending_conformance_warnings(&doc, doc.pending_changes()).unwrap();
+    assert!(
+        warnings.contains(&ConformanceWarning::ImportedPdfuaUnchecked),
+        "{warnings:?}"
+    );
+    assert!(
+        !warnings.contains(&ConformanceWarning::ImportedTagsDropped),
+        "{warnings:?}"
+    );
 }
 
 #[test]

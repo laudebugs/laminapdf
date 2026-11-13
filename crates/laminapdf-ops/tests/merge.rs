@@ -301,6 +301,11 @@ fn merged_tagged_pages_keep_their_tags_in_a_part_named_after_the_file() {
         !warnings.contains(&ConformanceWarning::ImportedTagsDropped),
         "{warnings:?}"
     );
+    // Both claim PDF/UA-1.
+    assert!(
+        !warnings.contains(&ConformanceWarning::ImportedPdfuaUnchecked),
+        "{warnings:?}"
+    );
 }
 
 #[test]

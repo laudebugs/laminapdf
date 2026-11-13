@@ -46,6 +46,12 @@ pub enum ConformanceWarning {
     /// same level: nothing checks the fonts, colour spaces and transparency they bring against
     /// the claim (ISO 19005-2 §6) (`imported-pdfa-unchecked`).
     ImportedPdfaUnchecked,
+    /// The file claims PDF/UA-1, and pages were copied in, with their tags, from a document
+    /// that doesn't claim it: nothing checks their tags, alternate text and reading order
+    /// against the claim (ISO 14289-1 §7) (`imported-pdfua-unchecked`).
+    ///
+    /// Added in 0.3.0.
+    ImportedPdfuaUnchecked,
 }
 
 impl ConformanceWarning {
@@ -59,6 +65,7 @@ impl ConformanceWarning {
         "duplicate-tags-incomplete",
         "imported-tags-dropped",
         "imported-pdfa-unchecked",
+        "imported-pdfua-unchecked",
     ];
 
     /// The stable kebab-case code.
@@ -73,6 +80,7 @@ impl ConformanceWarning {
             Self::DuplicateTagsIncomplete => "duplicate-tags-incomplete",
             Self::ImportedTagsDropped => "imported-tags-dropped",
             Self::ImportedPdfaUnchecked => "imported-pdfa-unchecked",
+            Self::ImportedPdfuaUnchecked => "imported-pdfua-unchecked",
         }
     }
 
@@ -91,7 +99,8 @@ impl ConformanceWarning {
             | Self::PdfuaTitleMissing
             | Self::DuplicateTagsIncomplete
             | Self::ImportedTagsDropped
-            | Self::ImportedPdfaUnchecked => ErrorKind::Usage,
+            | Self::ImportedPdfaUnchecked
+            | Self::ImportedPdfuaUnchecked => ErrorKind::Usage,
             Self::PdfaInfoMismatch { .. } => ErrorKind::Input,
         }
     }
@@ -149,12 +158,13 @@ pub fn pending_conformance_warnings(
     pending: &crate::PendingChanges,
 ) -> Result<Vec<ConformanceWarning>> {
     let mut out = conformance_warnings(doc)?;
-    let (incomplete, dropped, unchecked) = (
+    let (incomplete, dropped, unchecked, ua_unchecked) = (
         pending.tags_incomplete(),
         pending.tags_dropped(),
         pending.pdfa_unchecked(),
+        pending.pdfua_unchecked(),
     );
-    if incomplete.is_empty() && dropped.is_empty() && unchecked.is_empty() {
+    if incomplete.is_empty() && dropped.is_empty() && unchecked.is_empty() && ua_unchecked.is_empty() {
         return Ok(out);
     }
     let PacketState::Parsed(packet) = doc.xmp()? else {
@@ -173,6 +183,9 @@ pub fn pending_conformance_warnings(
         }
         if still(dropped) {
             out.push(ConformanceWarning::ImportedTagsDropped);
+        }
+        if still(ua_unchecked) {
+            out.push(ConformanceWarning::ImportedPdfuaUnchecked);
         }
     }
     if packet.pdfa_part().is_some() && still(unchecked) {

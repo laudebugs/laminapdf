@@ -502,6 +502,7 @@ impl Imported {
         self.destinations_renamed.extend(other.destinations_renamed);
         self.structure_renamed.extend(other.structure_renamed);
         self.pdfa_unchecked.extend(other.pdfa_unchecked);
+        self.pdfua_unchecked.extend(other.pdfua_unchecked);
     }
 }
 

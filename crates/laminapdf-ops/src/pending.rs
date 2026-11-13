@@ -32,6 +32,7 @@ pub struct PendingChanges {
     tags_incomplete: BTreeSet<PageId>,
     tags_dropped: BTreeSet<PageId>,
     pdfa_unchecked: BTreeSet<PageId>,
+    pdfua_unchecked: BTreeSet<PageId>,
 }
 
 impl PendingChanges {
@@ -61,6 +62,7 @@ impl PendingChanges {
             tags_incomplete: BTreeSet::new(),
             tags_dropped: BTreeSet::new(),
             pdfa_unchecked: BTreeSet::new(),
+            pdfua_unchecked: BTreeSet::new(),
         }
     }
 
@@ -144,6 +146,17 @@ impl PendingChanges {
         &self.pdfa_unchecked
     }
 
+    /// The pages copied in, with their tags, from a source that doesn't claim PDF/UA-1 into
+    /// this file, which claims it; the save planner reports them
+    /// ([`ConformanceWarning::ImportedPdfuaUnchecked`](crate::ConformanceWarning::ImportedPdfuaUnchecked))
+    /// while any of them is still a page.
+    ///
+    /// Added in 0.3.0.
+    #[must_use]
+    pub const fn pdfua_unchecked(&self) -> &BTreeSet<PageId> {
+        &self.pdfua_unchecked
+    }
+
     /// Whether there are none.
     ///
     /// Added in 0.2.0.
@@ -162,6 +175,7 @@ impl PendingChanges {
         self.tags_incomplete.extend(effect.tags_incomplete.iter().cloned());
         self.tags_dropped.extend(effect.tags_dropped.iter().cloned());
         self.pdfa_unchecked.extend(effect.pdfa_unchecked.iter().cloned());
+        self.pdfua_unchecked.extend(effect.pdfua_unchecked.iter().cloned());
     }
 
     /// Adds everything `other` holds.
@@ -174,6 +188,7 @@ impl PendingChanges {
         self.tags_incomplete.extend(other.tags_incomplete.iter().cloned());
         self.tags_dropped.extend(other.tags_dropped.iter().cloned());
         self.pdfa_unchecked.extend(other.pdfa_unchecked.iter().cloned());
+        self.pdfua_unchecked.extend(other.pdfua_unchecked.iter().cloned());
     }
 
     /// Forgets everything (after a rebase, or when the overlay is empty again).

@@ -1124,6 +1124,8 @@ pub enum WarningCode {
     ImportedTagsDropped,
     /// `imported-pdfa-unchecked`: pages copied in from a document that doesn't claim the same PDF/A level may break the PDF/A claim of the document's metadata.
     ImportedPdfaUnchecked,
+    /// `imported-pdfua-unchecked`: pages copied in with their tags from a document that doesn't claim PDF/UA-1 may break the PDF/UA claim of the document's metadata.
+    ImportedPdfuaUnchecked,
     /// `tounicode-conflict`: one glyph was used for two different texts; ToUnicode keeps the first.
     TounicodeConflict,
     /// `whole-font-rebuilt`: a font that forbids subsetting was rebuilt with every glyph kept.
@@ -1198,6 +1200,7 @@ impl WarningCode {
         Self::DuplicateTagsIncomplete,
         Self::ImportedTagsDropped,
         Self::ImportedPdfaUnchecked,
+        Self::ImportedPdfuaUnchecked,
         Self::TounicodeConflict,
         Self::WholeFontRebuilt,
         Self::FlowKeepBroken,
@@ -1280,6 +1283,7 @@ impl WarningCode {
             Self::DuplicateTagsIncomplete => "duplicate-tags-incomplete",
             Self::ImportedTagsDropped => "imported-tags-dropped",
             Self::ImportedPdfaUnchecked => "imported-pdfa-unchecked",
+            Self::ImportedPdfuaUnchecked => "imported-pdfua-unchecked",
             Self::TounicodeConflict => "tounicode-conflict",
             Self::WholeFontRebuilt => "whole-font-rebuilt",
             Self::FlowKeepBroken => "flow-keep-broken",
@@ -1348,6 +1352,7 @@ impl WarningCode {
             Self::DuplicateTagsIncomplete => ErrorKind::Usage,
             Self::ImportedTagsDropped => ErrorKind::Usage,
             Self::ImportedPdfaUnchecked => ErrorKind::Usage,
+            Self::ImportedPdfuaUnchecked => ErrorKind::Usage,
             Self::TounicodeConflict => ErrorKind::Usage,
             Self::WholeFontRebuilt => ErrorKind::Usage,
             Self::FlowKeepBroken => ErrorKind::Usage,
@@ -1416,6 +1421,7 @@ impl WarningCode {
             Self::DuplicateTagsIncomplete => "a duplicated page's content is partly untagged, which breaks the PDF/UA claim of the document's metadata",
             Self::ImportedTagsDropped => "pages copied in from another document came without their tags, which breaks the PDF/UA claim of the document's metadata",
             Self::ImportedPdfaUnchecked => "pages copied in from a document that doesn't claim the same PDF/A level may break the PDF/A claim of the document's metadata",
+            Self::ImportedPdfuaUnchecked => "pages copied in with their tags from a document that doesn't claim PDF/UA-1 may break the PDF/UA claim of the document's metadata",
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
             Self::WholeFontRebuilt => "a font that forbids subsetting was rebuilt with every glyph kept",
             Self::FlowKeepBroken => "blocks kept together are taller than a page, so the flow split them",
@@ -1484,6 +1490,7 @@ impl WarningCode {
             Self::DuplicateTagsIncomplete => "retag the copy, or duplicate pages whose tagged elements lie on the page alone",
             Self::ImportedTagsDropped => "tag the copied pages in a tagging tool, or copy pages from a document without tags",
             Self::ImportedPdfaUnchecked => "check the saved file with a PDF/A validator such as veraPDF, or copy pages from a document that claims the same level",
+            Self::ImportedPdfuaUnchecked => "check the saved file's tags, alternate text and reading order with a PDF/UA checker such as veraPDF, or copy pages from a document that claims PDF/UA-1",
             Self::TounicodeConflict => "mark the second occurrence with /ActualText so extraction gets its text",
             Self::WholeFontRebuilt => "check that the font's licence allows this, or use a static TrueType or CFF version",
             Self::FlowKeepBroken => "split the keep group or drop keep-with-next on a heading chain, or use a taller page",

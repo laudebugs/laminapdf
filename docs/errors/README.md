@@ -131,6 +131,7 @@ A PR that adds a code adds:
 | [`duplicate-tags-incomplete`](duplicate-tags-incomplete.md) | `usage` | a duplicated page's content is partly untagged, which breaks the PDF/UA claim of the document's metadata |
 | [`imported-tags-dropped`](imported-tags-dropped.md) | `usage` | pages copied in from another document came without their tags, which breaks the PDF/UA claim of the document's metadata |
 | [`imported-pdfa-unchecked`](imported-pdfa-unchecked.md) | `usage` | pages copied in from a document that doesn't claim the same PDF/A level may break the PDF/A claim of the document's metadata |
+| [`imported-pdfua-unchecked`](imported-pdfua-unchecked.md) | `usage` | pages copied in with their tags from a document that doesn't claim PDF/UA-1 may break the PDF/UA claim of the document's metadata |
 
 ## Save errors
 
