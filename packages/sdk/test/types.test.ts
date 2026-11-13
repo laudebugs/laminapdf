@@ -49,6 +49,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "direct-outline-item":
     case "annotation-not-editable":
     case "link-not-tagged":
+    case "appearance-unavailable":
     case "unsupported-version":
     case "subset-failed":
     case "unsupported-layout-option":

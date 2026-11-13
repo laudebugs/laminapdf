@@ -32,6 +32,10 @@ impl Document {
         }
         let (id, frame) = self.page_frame(page)?;
         let quads = lines.iter().map(|l| quad(&frame, l)).collect();
+        #[cfg_attr(
+            not(feature = "extract"),
+            expect(unused_mut, reason = "only extraction fills in the marked text")
+        )]
         let mut op = AddAnnot::new(id, AnnotSpec::TextMarkup(TextMarkup::new(kind, quads)));
         #[cfg(feature = "extract")]
         {

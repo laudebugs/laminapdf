@@ -121,8 +121,7 @@ pub(crate) fn note_icon(icon: NoteIconStyle, x: f64, y: f64, paint: &Paint) -> D
     drawn
 }
 
-/// The appearance of a caret filling `rect`: two curved sides meeting at the top, Acrobat's
-/// shape. With a paragraph sign, the caret takes the lower half and the sign the upper.
+/// The appearance of a caret filling `rect`: two sides bowed in a little, meeting at the top. With a paragraph sign, the caret takes the lower half and the sign the upper.
 pub(crate) fn caret(style: CaretStyle, rect: UserSpaceRect, paint: &Paint) -> Drawn {
     let mut drawn = Drawn::new(rect, paint.opacity, false);
     let (w, h) = (rect.width(), rect.height());
@@ -134,9 +133,10 @@ pub(crate) fn caret(style: CaretStyle, rect: UserSpaceRect, paint: &Paint) -> Dr
     };
     paint.color_or(DeviceColor::Rgb(0.0, 0.0, 1.0)).fill(pen.c);
     let mid = w / 2.0;
+    // Each side bows in a little from the straight line to the apex.
     pen.move_to(0.0, 0.0);
-    pen.curve_to(mid * 0.9, caret_h * 0.1, mid, caret_h * 0.5, mid, caret_h);
-    pen.curve_to(mid, caret_h * 0.5, mid * 1.1, caret_h * 0.1, w, 0.0);
+    pen.curve_to(mid * 0.55, caret_h * 0.2, mid * 0.85, caret_h * 0.6, mid, caret_h);
+    pen.curve_to(mid * 1.15, caret_h * 0.6, mid * 1.45, caret_h * 0.2, w, 0.0);
     pen.c.close_path();
     pen.c.fill_nonzero();
     if style == CaretStyle::Paragraph {

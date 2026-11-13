@@ -35,6 +35,10 @@ ts = "packages/sdk/examples/add-links.ts"
 rust = "crates/laminapdf/examples/add_links.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/mark-up.ts"
+rust = "crates/laminapdf/examples/mark_up.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/edit-bookmarks.ts"
 rust = "crates/laminapdf/examples/edit_bookmarks.rs"
 

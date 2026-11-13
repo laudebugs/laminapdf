@@ -16,6 +16,7 @@ import { imagesAndVectors } from "../../examples/images-and-vectors.js";
 import { invoice } from "../../examples/invoice.js";
 import { invoiceFromJson } from "../../examples/invoice-from-json.js";
 import { linksAndOutlines } from "../../examples/links-and-outlines.js";
+import { markUp } from "../../examples/mark-up.js";
 import { markdownToPdf } from "../../examples/markdown-to-pdf.js";
 import { multilingual } from "../../examples/multilingual.js";
 import { organisePages } from "../../examples/organise-pages.js";
@@ -174,6 +175,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "add_links",
     inputs: [TAGGED_PDF],
     build: (i) => addLinks(input(i, TAGGED_PDF)),
+  },
+  {
+    name: "mark-up",
+    golden: "mark_up",
+    inputs: [TAGGED_PDF],
+    build: (i) => markUp(input(i, TAGGED_PDF), EDITED_AT),
   },
   {
     name: "set-initial-view",

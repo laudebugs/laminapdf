@@ -116,6 +116,7 @@ export function sidebar(typeDoc) {
         { label: "Choose how a PDF opens", slug: "recipes/set-initial-view" },
         { label: "Edit the bookmarks", slug: "recipes/edit-bookmarks" },
         { label: "Add links", slug: "recipes/add-links" },
+        { label: "Mark up a page", slug: "recipes/mark-up" },
         { label: "Record your own metadata", slug: "recipes/edit-xmp" },
         { label: "Organise pages", slug: "recipes/organise-pages" },
         { label: "Duplicate pages", slug: "recipes/duplicate-pages" },

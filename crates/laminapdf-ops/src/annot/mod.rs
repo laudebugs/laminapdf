@@ -267,6 +267,14 @@ impl UpdateAnnot {
                 pages.push(popup.page);
             }
         }
+        // A note's Popup shows or hides with it.
+        if let Some(AnnotSpecPatch::Note(NotePatch { open: Some(open), .. })) = &self.spec
+            && let Some(popup) = found.annot.popup.as_ref().and_then(|p| p.as_lamina_id().obj_ref())
+        {
+            crate::pages::edit_dict(doc, popup, |d| {
+                d.insert("Open", Object::Bool(*open));
+            })?;
+        }
         Ok(Effect {
             pages,
             ..Effect::default()

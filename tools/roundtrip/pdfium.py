@@ -108,6 +108,49 @@ def page_of(item) -> int | None:
     return None if dest is None else dest.get_index()
 
 
+# PDFium's numbers for the subtypes lamina's mark cases make (fpdf_annot.h).
+MARKS = {
+    c.FPDF_ANNOT_HIGHLIGHT: "Highlight",
+    c.FPDF_ANNOT_UNDERLINE: "Underline",
+    c.FPDF_ANNOT_STRIKEOUT: "StrikeOut",
+    c.FPDF_ANNOT_SQUIGGLY: "Squiggly",
+    c.FPDF_ANNOT_TEXT: "Text",
+    c.FPDF_ANNOT_CARET: "Caret",
+}
+
+
+def string_value(annot, key: bytes) -> str:
+    """The annotation's text or name entry `key`, "" when it has none."""
+    size = c.FPDFAnnot_GetStringValue(annot, key, None, 0)
+    buffer = ctypes.create_string_buffer(size)
+    c.FPDFAnnot_GetStringValue(annot, key, ctypes.cast(buffer, ctypes.POINTER(c.FPDF_WCHAR)), size)
+    return buffer.raw[: max(size - 2, 0)].decode("utf-16-le")
+
+
+def marks_of(pdf: pdfium.PdfDocument) -> list:
+    """Each page's text markup, notes and carets, sorted: [subtype, contents], as lamina lists them."""
+    pages = []
+    for i in range(len(pdf)):
+        page = pdf[i]
+        found = []
+        for n in range(c.FPDFPage_GetAnnotCount(page.raw)):
+            annot = c.FPDFPage_GetAnnot(page.raw, n)
+            subtype = MARKS.get(c.FPDFAnnot_GetSubtype(annot))
+            if subtype is not None:
+                # A group member's contents are its primary's (ISO 32000-2 §12.5.6.2), as pdf.js
+                # reads them; PDFium gives each annotation's own.
+                source = annot
+                primary = c.FPDFAnnot_GetLinkedAnnot(annot, b"IRT")
+                if primary and string_value(annot, b"RT") == "Group":
+                    source = primary
+                found.append([subtype, string_value(source, b"Contents")])
+                if primary:
+                    c.FPDFPage_CloseAnnot(primary)
+            c.FPDFPage_CloseAnnot(annot)
+        pages.append(sorted(found, key=lambda x: json.dumps(x, separators=(",", ":"))))
+    return pages
+
+
 def links_of(pdf: pdfium.PdfDocument) -> list:
     """Each page's links, sorted: ["page", index], ["uri", address] or ["other"], as lamina lists them."""
     def target(link) -> list:
@@ -190,6 +233,9 @@ def main() -> int:
             if case.get("links") is not None:
                 got["links"] = links_of(pdf)
                 want["links"] = case["links"]
+            if case.get("marks") is not None:
+                got["marks"] = marks_of(pdf)
+                want["marks"] = case["marks"]
             if got != want:
                 failures.append(f"{case['file']}: got {got}, expected {want}")
             elif case.get("copy_of") is not None:

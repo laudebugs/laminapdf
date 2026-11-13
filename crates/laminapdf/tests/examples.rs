@@ -67,6 +67,9 @@ mod invoice_from_json;
 #[path = "../examples/links_and_outlines.rs"]
 mod links_and_outlines;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/mark_up.rs"]
+mod mark_up;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/markdown_to_pdf.rs"]
 mod markdown_to_pdf;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -150,7 +153,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 26] = [
+const EXAMPLES: [(&str, Build); 28] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -179,6 +182,14 @@ const EXAMPLES: [(&str, Build); 26] = [
     // example's output) checks that a new link keeps the claim.
     ("add_links-pdfua", || {
         add_links::add(fixture("golden/examples/pdf_ua_report.pdf"))
+    }),
+    ("mark_up", || {
+        mark_up::mark_up(fixture("golden/tagged-report.pdf"), EDITED.parse()?)
+    }),
+    // The same marks on a file that claims PDF/UA-1, so `cargo xtask verapdf` checks that new
+    // annotations keep the claim.
+    ("mark_up-pdfua", || {
+        mark_up::mark_up(fixture("golden/examples/pdf_ua_report.pdf"), EDITED.parse()?)
     }),
     ("edit_bookmarks", || {
         edit_bookmarks::edit(fixture("golden/links-and-outlines.pdf"))

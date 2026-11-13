@@ -39,7 +39,9 @@ import {
   type XmpEditOptions,
 } from "./transaction.js";
 import type {
+  AddAnnot,
   AddLink,
+  AnnotCommon,
   ArticleThread,
   DocumentInfo,
   DocumentMetadata,
@@ -48,9 +50,11 @@ import type {
   ExplicitDestination,
   InitialView,
   InitialViewPatch,
+  MarkupKind,
   MetadataKey,
   MetadataPatch,
   NamedDestination,
+  NoteIcon,
   Op,
   OpenOptions,
   OpLog,
@@ -564,6 +568,68 @@ export class Document extends Handle<BaseGlue> {
   ): AddLink {
     const boxes = lines.map((line) => [...line] as [number, number, number, number]);
     return this.call(() => this.#extracting("doc.linkOnText()").linkOnText(page, boxes, target));
+  }
+
+  /**
+   * The edit that marks text of page `page` (0-based) with a highlight, underline, strike-out or
+   * squiggly line: `lines` are the text's boxes, one per line, as a selection gives them, each
+   * `[x0, y0, x1, y1]` in page space. Apply it with `{ op: "addAnnot", args }`. In a tagged
+   * document the mark joins the structure tree after its text, and its description (`contents`,
+   * what a screen reader reads) is that text; that needs the extract or text module.
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument`, `invalid-op` (no lines),
+   * `page-index-out-of-range`.
+   *
+   * @since 0.3.0
+   */
+  markText(page: number, kind: MarkupKind, lines: readonly (readonly [number, number, number, number])[]): AddAnnot {
+    const boxes = lines.map((line) => [...line] as [number, number, number, number]);
+    return this.call(() => this.#doc.markText(page, kind, boxes));
+  }
+
+  /**
+   * The edit that puts a sticky note on page `page`: its `icon` (`"note"` by default) with its
+   * upper-left corner at `at`, `[x, y]` in page space, and `comment` in the pop-up it opens.
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`.
+   *
+   * @since 0.3.0
+   */
+  noteAt(page: number, at: readonly [number, number], comment: string, icon?: NoteIcon): AddAnnot {
+    return this.call(() => this.#doc.noteAt(page, [...at], icon, comment));
+  }
+
+  /**
+   * The edit that puts a caret, a mark for where text goes, on page `page`, filling `area`
+   * (`[x0, y0, x1, y1]` in page space).
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`.
+   *
+   * @since 0.3.0
+   */
+  caretAt(page: number, area: readonly [number, number, number, number]): AddAnnot {
+    return this.call(() => this.#doc.caretAt(page, [...area]));
+  }
+
+  /**
+   * Proposes replacing the text in `lines` of page `page` with `replacement`: a strike-out over
+   * the text and a caret after it, grouped so they show, move and delete together. The caret
+   * holds `replacement`. `common` (author, dates, colour…) goes to both. The two edits are
+   * applied at once, as one undo step; the caret's ID is `createdAnnotations[0]`.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.markText}; as {@link Document.apply}.
+   *
+   * @since 0.3.0
+   */
+  replaceText(
+    page: number,
+    lines: readonly (readonly [number, number, number, number])[],
+    replacement: string,
+    common?: AnnotCommon,
+  ): Edited {
+    this.#notInTransaction("replaceText");
+    const boxes = lines.map((line) => [...line] as [number, number, number, number]);
+    return this.call(() => this.#doc.replaceText(page, boxes, replacement, common));
   }
 
   /**

@@ -334,6 +334,23 @@ mod update {
     }
 
     #[test]
+    fn opening_a_note_opens_its_popup() {
+        let mut doc = doc("golden/examples/hello.pdf");
+        let id = add(&mut doc, AnnotSpec::Note(Note::new(p(100.0, 700.0), NoteIcon::Note)));
+        let mut update = UpdateAnnot::new(id.clone());
+        let mut patch = laminapdf_ops::NotePatch::default();
+        patch.open = Some(true);
+        update.spec = Some(AnnotSpecPatch::Note(patch));
+        apply(&mut doc, update);
+        let note = dict(&doc, obj(&id));
+        let popup = dict(&doc, note.get("Popup").and_then(Object::as_ref).unwrap());
+        assert_eq!(
+            (note.get("Open"), popup.get("Open")),
+            (Some(&Object::Bool(true)), Some(&Object::Bool(true)))
+        );
+    }
+
+    #[test]
     fn a_patch_for_another_kind_of_mark_is_refused() {
         let mut doc = doc("golden/examples/hello.pdf");
         let id = add(&mut doc, markup(MarkupKind::Highlight));
