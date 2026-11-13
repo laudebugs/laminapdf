@@ -15,6 +15,14 @@ PDF files usually store each bookmark as its own object, which links can point t
 
 Apply another outline op first, such as moving any bookmark to where it already is. It rewrites the outline, gives every bookmark its own object and new ID, and reports that it repaired the outline. Then read the outline again for the new IDs.
 
+## Example
+
+```rust
+// The outline holds a bookmark as a dictionary inside its parent, so its ID is a path ID.
+let item: OutlineItemId = "o12.0/First".parse()?;
+doc.apply(vec![Op::from(DeleteOutlineItem::new(item, ChildItems::Delete))])?; // direct-outline-item
+```
+
 ## Data fields
 
 None.

@@ -15,6 +15,13 @@ Each name points at one place, so two destinations can't share it. Renaming over
 
 Choose another name, or delete the other destination first if it is no longer needed.
 
+## Example
+
+```rust
+// The file defines both chapter-2 and appendix.
+doc.apply(vec![Op::from(RenameNamedDestination::new("chapter-2", "appendix"))])?; // named-destination-exists
+```
+
 ## Data fields
 
 None.

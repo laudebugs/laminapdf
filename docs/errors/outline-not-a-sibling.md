@@ -15,6 +15,14 @@ A position is relative to the parent's children: `before` and `after` name one o
 
 Name a child of the same parent in `before` or `after`, or use `first` or `last`.
 
+## Example
+
+```rust
+// "o14.0" is a child of "o12.0", not of the top level.
+let op = MoveOutlineItem::new(intro, None, SiblingPosition::After("o14.0".parse()?));
+doc.apply(vec![Op::from(op)])?; // outline-not-a-sibling
+```
+
 ## Data fields
 
 None.

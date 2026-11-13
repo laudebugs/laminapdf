@@ -15,6 +15,13 @@ Lamina PDF writes only addresses that a reader can open safely. Other schemes, `
 
 Use the full address, with its scheme and host, such as `https://example.com/page`. Percent-encode spaces and characters outside ASCII (`%20`, `%C3%A9`).
 
+## Example
+
+```rust
+let target = OutlineTarget::Uri("javascript:alert(1)".into());
+doc.apply(vec![Op::from(AddOutlineItem::new(None, SiblingPosition::Last, "Run", target))])?; // link-uri-refused
+```
+
 ## Data fields
 
 None.

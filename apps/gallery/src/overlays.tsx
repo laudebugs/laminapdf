@@ -48,7 +48,7 @@ import {
   ViewSettingsButton,
 } from "@laminapdf/ui";
 import { PrintDialog, PrintProgressDialog, PropertiesDialog } from "@laminapdf/ui/dialogs";
-import { ConformanceDialog, RemoveSignaturesDialog } from "@laminapdf/ui/editing";
+import { ConformanceDialog, NamedDestinationsDialog, RemoveSignaturesDialog } from "@laminapdf/ui/editing";
 import { fakeFile, fakePlatform } from "@laminapdf/ui/testing";
 import { type ReactNode, useEffect, useState } from "react";
 
@@ -157,6 +157,25 @@ export function Dialogs({ state }: { state: string }): ReactNode {
   if (state === "conformance") {
     const warnings = ["The file claims PDF/A-2b, and the saved file may no longer meet it."];
     return <ConformanceDialog warnings={warnings} onAnswer={noop} />;
+  }
+  if (state === "named-destinations") {
+    // O11's third artboard: the names, where each goes and how many bookmarks use it.
+    const destinations = [
+      { name: "chair-summary", page: "2", usedBy: 1 },
+      { name: "repairs-backlog", page: "5", usedBy: 3 },
+      { name: "repairs-by-region", page: "6", usedBy: 0 },
+    ];
+    return (
+      <NamedDestinationsDialog
+        isOpen
+        onOpenChange={noop}
+        destinations={destinations}
+        onGoTo={noop}
+        onRename={noop}
+        onDelete={noop}
+        onAdd={noop}
+      />
+    );
   }
   if (state === "external-link") {
     // R07's drawn state: the page's text shows a shorter address than the link's real target.

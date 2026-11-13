@@ -15,6 +15,12 @@ Links and bookmarks find a named destination by its name, so it needs at least o
 
 Give the destination a name. Names are case-sensitive and can hold any text.
 
+## Example
+
+```rust
+doc.apply(vec![Op::from(DeleteNamedDestination::new(""))])?; // empty-destination-name
+```
+
 ## Data fields
 
 None.

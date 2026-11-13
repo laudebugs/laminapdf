@@ -15,6 +15,13 @@ A PDF file can only hold finite numbers, so a view of infinity or NaN can't be w
 
 Pass finite numbers, in the page's user space, or `null` for a coordinate the viewer should keep as it is.
 
+## Example
+
+```rust
+let view = DestinationView::Xyz { left: Some(f64::NAN), top: None, zoom: None };
+doc.apply(vec![Op::from(SetNamedDestination::new("here", ExplicitDestination::new(page, view)))])?; // view-not-finite
+```
+
 ## Data fields
 
 None.

@@ -2457,7 +2457,7 @@ The decisions and todos behind this code:
 
 - [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
 "#,
-        "direct-outline-item" => r"# `direct-outline-item`
+        "direct-outline-item" => r#"# `direct-outline-item`
 
 - Type: error
 - Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
@@ -2474,6 +2474,14 @@ PDF files usually store each bookmark as its own object, which links can point t
 
 Apply another outline op first, such as moving any bookmark to where it already is. It rewrites the outline, gives every bookmark its own object and new ID, and reports that it repaired the outline. Then read the outline again for the new IDs.
 
+## Example
+
+```rust
+// The outline holds a bookmark as a dictionary inside its parent, so its ID is a path ID.
+let item: OutlineItemId = "o12.0/First".parse()?;
+doc.apply(vec![Op::from(DeleteOutlineItem::new(item, ChildItems::Delete))])?; // direct-outline-item
+```
+
 ## Data fields
 
 None.
@@ -2483,8 +2491,8 @@ None.
 The decisions and todos behind this code:
 
 - [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
-",
-        "outline-not-a-sibling" => r"# `outline-not-a-sibling`
+"#,
+        "outline-not-a-sibling" => r#"# `outline-not-a-sibling`
 
 - Type: error
 - Kind: `usage` (the caller misused the API)
@@ -2501,6 +2509,14 @@ A position is relative to the parent's children: `before` and `after` name one o
 
 Name a child of the same parent in `before` or `after`, or use `first` or `last`.
 
+## Example
+
+```rust
+// "o14.0" is a child of "o12.0", not of the top level.
+let op = MoveOutlineItem::new(intro, None, SiblingPosition::After("o14.0".parse()?));
+doc.apply(vec![Op::from(op)])?; // outline-not-a-sibling
+```
+
 ## Data fields
 
 None.
@@ -2510,8 +2526,8 @@ None.
 The decisions and todos behind this code:
 
 - [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
-",
-        "outline-move-into-itself" => r"# `outline-move-into-itself`
+"#,
+        "outline-move-into-itself" => r#"# `outline-move-into-itself`
 
 - Type: error
 - Kind: `usage` (the caller misused the API)
@@ -2528,6 +2544,14 @@ A bookmark goes with its children when it moves, so it can't move into its own b
 
 Choose a parent outside the bookmark's branch. To move children up, move them one by one, or delete the bookmark with `children: promote`.
 
+## Example
+
+```rust
+// "o14.0" is one of "o12.0"'s children.
+let op = MoveOutlineItem::new("o12.0".parse()?, Some("o14.0".parse()?), SiblingPosition::Last);
+doc.apply(vec![Op::from(op)])?; // outline-move-into-itself
+```
+
 ## Data fields
 
 None.
@@ -2537,8 +2561,8 @@ None.
 The decisions and todos behind this code:
 
 - [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
-",
-        "unknown-named-destination" => r"# `unknown-named-destination`
+"#,
+        "unknown-named-destination" => r#"# `unknown-named-destination`
 
 - Type: error
 - Kind: `usage` (the caller misused the API)
@@ -2555,6 +2579,12 @@ The name is spelled differently, or an earlier op renamed or deleted it. Names a
 
 List the document's named destinations and use one of the names it shows. To create a name, use `setNamedDestination`.
 
+## Example
+
+```rust
+doc.apply(vec![Op::from(DeleteNamedDestination::new("no-such-name"))])?; // unknown-named-destination
+```
+
 ## Data fields
 
 None.
@@ -2564,8 +2594,8 @@ None.
 The decisions and todos behind this code:
 
 - [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
-",
-        "named-destination-exists" => r"# `named-destination-exists`
+"#,
+        "named-destination-exists" => r#"# `named-destination-exists`
 
 - Type: error
 - Kind: `usage` (the caller misused the API)
@@ -2582,6 +2612,13 @@ Each name points at one place, so two destinations can't share it. Renaming over
 
 Choose another name, or delete the other destination first if it is no longer needed.
 
+## Example
+
+```rust
+// The file defines both chapter-2 and appendix.
+doc.apply(vec![Op::from(RenameNamedDestination::new("chapter-2", "appendix"))])?; // named-destination-exists
+```
+
 ## Data fields
 
 None.
@@ -2591,8 +2628,8 @@ None.
 The decisions and todos behind this code:
 
 - [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
-",
-        "empty-destination-name" => r"# `empty-destination-name`
+"#,
+        "empty-destination-name" => r#"# `empty-destination-name`
 
 - Type: error
 - Kind: `usage` (the caller misused the API)
@@ -2609,6 +2646,12 @@ Links and bookmarks find a named destination by its name, so it needs at least o
 
 Give the destination a name. Names are case-sensitive and can hold any text.
 
+## Example
+
+```rust
+doc.apply(vec![Op::from(DeleteNamedDestination::new(""))])?; // empty-destination-name
+```
+
 ## Data fields
 
 None.
@@ -2618,8 +2661,8 @@ None.
 The decisions and todos behind this code:
 
 - [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
-",
-        "link-uri-refused" => r"# `link-uri-refused`
+"#,
+        "link-uri-refused" => r#"# `link-uri-refused`
 
 - Type: error
 - Kind: `usage` (the caller misused the API)
@@ -2636,6 +2679,13 @@ Lamina PDF writes only addresses that a reader can open safely. Other schemes, `
 
 Use the full address, with its scheme and host, such as `https://example.com/page`. Percent-encode spaces and characters outside ASCII (`%20`, `%C3%A9`).
 
+## Example
+
+```rust
+let target = OutlineTarget::Uri("javascript:alert(1)".into());
+doc.apply(vec![Op::from(AddOutlineItem::new(None, SiblingPosition::Last, "Run", target))])?; // link-uri-refused
+```
+
 ## Data fields
 
 None.
@@ -2645,8 +2695,8 @@ None.
 The decisions and todos behind this code:
 
 - [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
-",
-        "view-not-finite" => r"# `view-not-finite`
+"#,
+        "view-not-finite" => r#"# `view-not-finite`
 
 - Type: error
 - Kind: `usage` (the caller misused the API)
@@ -2663,6 +2713,13 @@ A PDF file can only hold finite numbers, so a view of infinity or NaN can't be w
 
 Pass finite numbers, in the page's user space, or `null` for a coordinate the viewer should keep as it is.
 
+## Example
+
+```rust
+let view = DestinationView::Xyz { left: Some(f64::NAN), top: None, zoom: None };
+doc.apply(vec![Op::from(SetNamedDestination::new("here", ExplicitDestination::new(page, view)))])?; // view-not-finite
+```
+
 ## Data fields
 
 None.
@@ -2672,7 +2729,7 @@ None.
 The decisions and todos behind this code:
 
 - [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
-",
+"#,
         "unknown-annotation" => r#"# `unknown-annotation`
 
 - Type: error

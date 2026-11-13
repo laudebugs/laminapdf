@@ -15,6 +15,12 @@ The name is spelled differently, or an earlier op renamed or deleted it. Names a
 
 List the document's named destinations and use one of the names it shows. To create a name, use `setNamedDestination`.
 
+## Example
+
+```rust
+doc.apply(vec![Op::from(DeleteNamedDestination::new("no-such-name"))])?; // unknown-named-destination
+```
+
 ## Data fields
 
 None.
