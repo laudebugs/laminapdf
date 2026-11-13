@@ -277,6 +277,20 @@ impl Document {
     ///
     /// Added in 0.2.0.
     pub fn annotations(&self, page: &Page<'_>) -> Result<Vec<Annot>> {
+        let found = self.annotations_quietly(page)?;
+        self.check_names(&found)?;
+        Ok(found)
+    }
+
+    /// [`Document::annotations`] without its warning, for the ops, which read every page's
+    /// annotations to find one: a duplicate name elsewhere must not stop an edit, strict mode
+    /// included.
+    ///
+    /// # Errors
+    /// As [`Document::annotations`].
+    ///
+    /// Added in 0.2.0.
+    pub fn annotations_quietly(&self, page: &Page<'_>) -> Result<Vec<Annot>> {
         let Some(value) = page.dict().get("Annots") else {
             return Ok(Vec::new());
         };
@@ -295,7 +309,6 @@ impl Document {
             found.push(self.annotation(id, index, dict)?);
         }
         pair_popups(&mut found);
-        self.check_names(&found)?;
         Ok(found)
     }
 

@@ -24,7 +24,7 @@ pub fn annots(data: &[u8]) {
     drop(pages);
     for id in ids.into_iter().take(MAX_EDITS) {
         let mut moved = UpdateAnnot::new(id.clone());
-        moved.translate = Some(Offset::new(1.0, -1.0));
+        moved.translate = Offset::new(1.0, -1.0);
         moved.contents = Some(Some("fuzz".to_owned()));
         for op in [moved.into(), DeleteAnnot::new(id).into()] {
             if doc.apply_all(Origin::Local, [op]).is_ok() {

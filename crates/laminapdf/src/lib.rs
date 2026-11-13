@@ -100,8 +100,8 @@
 //! [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
 #![forbid(unsafe_code)]
 
-#[cfg(feature = "build")]
 mod annotations;
+#[cfg(feature = "build")]
 mod builder;
 mod codes;
 mod data;

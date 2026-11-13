@@ -695,7 +695,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "unknown-source": "add the source document's bytes with addSource before applying ops that name it",
   "unknown-annotation": "read the page's annotations again and use an ID from that list",
   "annotation-locked": "clear the lock with an update of its flags first, if you may",
-  "annotation-not-editable": "edit a widget through its form field; a direct annotation can be edited once the file is saved with a full rewrite",
+  "annotation-not-editable": "edit a widget through its form field; an annotation stored inside the page's list can't be edited yet",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",

@@ -12,8 +12,9 @@ points.
                        the note on page 1; /Annots of page 2 is an indirect array
     flags.pdf          a Locked square, a LockedContents note, a square with private keys, and
                        two notes with the same /NM
-    tagged.pdf         a tagged page: a square that is the only kid of an Annot element, and a
-                       note that shares its element with marked content
+    tagged.pdf         a tagged page: a square that is the only kid of an Annot element, a note
+                       that shares its element with marked content, and a line whose OBJR is an
+                       indirect object
 
     python3 tools/fixtures/annotations.py
 """
@@ -119,14 +120,17 @@ def flags():
 def tagged():
     objects = {
         2: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-        **page(3, "[10 0 R 11 0 R]", "/StructParents 0 /Tabs /S /Contents 30 0 R "),
+        **page(3, "[10 0 R 11 0 R 12 0 R]", "/StructParents 0 /Tabs /S /Contents 30 0 R "),
         10: "<< /Type /Annot /Subtype /Square /Rect [20 20 80 80] /StructParent 1 /Contents (Square) >>",
         11: "<< /Type /Annot /Subtype /Text /Rect [100 200 120 220] /StructParent 2 /Contents (Note) >>",
-        20: "<< /Type /StructTreeRoot /K 21 0 R /ParentTree 25 0 R /ParentTreeNextKey 3 >>",
-        21: "<< /Type /StructElem /S /Document /P 20 0 R /K [22 0 R 23 0 R] >>",
+        12: "<< /Type /Annot /Subtype /Line /Rect [150 150 250 250] /L [150 150 250 250] /StructParent 3 /Contents (Line) >>",
+        20: "<< /Type /StructTreeRoot /K 21 0 R /ParentTree 25 0 R /ParentTreeNextKey 4 >>",
+        21: "<< /Type /StructElem /S /Document /P 20 0 R /K [22 0 R 23 0 R 24 0 R] >>",
         22: "<< /Type /StructElem /S /Annot /P 21 0 R /Pg 3 0 R /K << /Type /OBJR /Obj 10 0 R >> >>",
         23: "<< /Type /StructElem /S /P /P 21 0 R /Pg 3 0 R /K [0 << /Type /OBJR /Obj 11 0 R >>] >>",
-        25: "<< /Nums [0 [23 0 R] 1 22 0 R 2 23 0 R] >>",
+        24: "<< /Type /StructElem /S /Annot /P 21 0 R /Pg 3 0 R /K [26 0 R] >>",
+        25: "<< /Nums [0 [23 0 R] 1 22 0 R 2 23 0 R 3 24 0 R] >>",
+        26: "<< /Type /OBJR /Obj 12 0 R >>",
     }
     streams = {30: ("", b"/P << /MCID 0 >> BDC BT /F1 12 Tf 20 250 Td (Text) Tj ET EMC")}
     write("tagged.pdf", objects, streams, "/MarkInfo << /Marked true >> /StructTreeRoot 20 0 R ")

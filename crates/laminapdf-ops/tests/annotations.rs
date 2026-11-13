@@ -96,7 +96,7 @@ mod update {
         let mut d = doc("every-subtype.pdf");
         for num in [10, 14] {
             let mut op = UpdateAnnot::new(AnnotId::object(laminapdf_cos::ObjRef { num, gen_nr: 0 }));
-            op.translate = Some(Offset::new(5.0, -10.0));
+            op.translate = Offset::new(5.0, -10.0);
             apply(&mut d, op).unwrap();
         }
         let highlight = object(&d, 10).unwrap();
@@ -127,7 +127,7 @@ mod update {
     fn translate_moves_the_popup_with_its_parent() {
         let mut d = doc("every-subtype.pdf");
         let mut op = UpdateAnnot::new(id("a12.0"));
-        op.translate = Some(Offset::new(-10.0, 0.0));
+        op.translate = Offset::new(-10.0, 0.0);
         apply(&mut d, op).unwrap();
         assert_eq!(numbers(&object(&d, 13).unwrap(), "Rect"), [170.0, 200.0, 270.0, 260.0]);
     }
@@ -137,7 +137,7 @@ mod update {
         let mut d = doc("flags.pdf");
         let mut op = UpdateAnnot::new(id("a12.0"));
         op.contents = Some(Some("Note".to_owned()));
-        op.translate = Some(Offset::new(1.0, 1.0));
+        op.translate = Offset::new(1.0, 1.0);
         apply(&mut d, op).unwrap();
         let dict = object(&d, 12).unwrap();
         assert_eq!(
@@ -153,7 +153,7 @@ mod update {
     fn a_locked_annotation_refuses_a_move_but_takes_new_flags_and_contents() {
         let mut d = doc("flags.pdf");
         let mut moved = UpdateAnnot::new(id("a10.0"));
-        moved.translate = Some(Offset::new(1.0, 0.0));
+        moved.translate = Offset::new(1.0, 0.0);
         let mut unlocked = UpdateAnnot::new(id("a10.0"));
         unlocked.flags = Some(4);
         let mut contents = UpdateAnnot::new(id("a10.0"));
@@ -275,10 +275,10 @@ mod delete {
         assert_eq!(
             (document.get("K").cloned(), paragraph.get("K").cloned()),
             (
-                Some(Object::Array(vec![Object::Ref(laminapdf_cos::ObjRef {
-                    num: 23,
-                    gen_nr: 0
-                })])),
+                Some(Object::Array(vec![
+                    Object::Ref(laminapdf_cos::ObjRef { num: 23, gen_nr: 0 }),
+                    Object::Ref(laminapdf_cos::ObjRef { num: 24, gen_nr: 0 }),
+                ])),
                 Some(Object::Array(vec![Object::Integer(0)]))
             )
         );
@@ -301,7 +301,7 @@ fn undo_leaves_the_overlay_as_it_was_and_redo_writes_the_same_again() {
     let mut d = doc("threads.pdf");
     let before = snapshot(&d);
     let mut op = UpdateAnnot::new(id("a12.0"));
-    op.translate = Some(Offset::new(3.0, 3.0));
+    op.translate = Offset::new(3.0, 3.0);
     apply(&mut d, op).unwrap();
     apply(&mut d, DeleteAnnot::new(id("a10.0"))).unwrap();
     let after = snapshot(&d);
@@ -327,5 +327,141 @@ fn the_frozen_samples_apply() {
 fn the_fuzz_entry_holds_on_every_fixture() {
     for name in ["every-subtype.pdf", "threads.pdf", "flags.pdf", "tagged.pdf"] {
         common::annot_fuzz_entry::annots(&fixture(&format!("annotations/{name}")));
+    }
+}
+
+/// The cases a code review raised.
+mod review {
+    use super::*;
+    use common::classic_with_root;
+
+    /// A one-page file whose `/Annots` holds `annots` as objects 4, 5, …, then `direct`.
+    fn one_page(annots: &[&str], direct: &str) -> Document {
+        let list: Vec<String> = (0..annots.len()).map(|i| format!("{} 0 R", i + 4)).collect();
+        let page = format!(
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [{} {direct}] >>",
+            list.join(" ")
+        );
+        let mut objects = vec![
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            page.as_str(),
+        ];
+        objects.extend(annots.iter().copied());
+        open(&classic_with_root(&objects, ""))
+    }
+
+    #[test]
+    fn an_irt_or_popup_naming_another_object_is_never_freed() {
+        let mut d = one_page(
+            &["<< /Type /Annot /Subtype /Highlight /Rect [0 0 10 10] /IRT 3 0 R /RT /Group /Popup 1 0 R >>"],
+            "",
+        );
+        apply(&mut d, DeleteAnnot::new(id("a4.0"))).unwrap();
+        assert_eq!(
+            (
+                d.pages().unwrap().len(),
+                object(&d, 1).is_some(),
+                object(&d, 3).is_some()
+            ),
+            (1, true, true)
+        );
+    }
+
+    #[test]
+    fn a_locked_member_of_what_a_delete_takes_refuses_it() {
+        let mut d = one_page(
+            &[
+                "<< /Type /Annot /Subtype /StrikeOut /Rect [0 0 10 10] /F 128 >>",
+                "<< /Type /Annot /Subtype /Caret /Rect [0 0 10 10] /IRT 4 0 R /RT /Group >>",
+            ],
+            "",
+        );
+        assert_eq!(
+            apply(&mut d, DeleteAnnot::new(id("a5.0"))).map_err(|e| e.code()).err(),
+            Some("annotation-locked")
+        );
+    }
+
+    #[test]
+    fn a_direct_reply_leaves_the_page_with_its_parent() {
+        let mut d = one_page(
+            &["<< /Type /Annot /Subtype /Text /Rect [0 0 10 10] >>"],
+            "<< /Type /Annot /Subtype /Text /Rect [0 0 10 10] /IRT 4 0 R >>",
+        );
+        let applied = apply(&mut d, DeleteAnnot::new(id("a4.0"))).unwrap();
+        let left = d.annotations(&d.pages().unwrap().get(0).unwrap()).unwrap().len();
+        assert_eq!((left, applied.also_deleted.len()), (0, 1));
+    }
+
+    #[test]
+    fn a_locked_popup_refuses_its_parent_s_move() {
+        let mut d = one_page(
+            &[
+                "<< /Type /Annot /Subtype /Text /Rect [0 0 10 10] /Popup 5 0 R >>",
+                "<< /Type /Annot /Subtype /Popup /Rect [20 20 80 80] /Parent 4 0 R /F 128 >>",
+            ],
+            "",
+        );
+        let mut op = UpdateAnnot::new(id("a4.0"));
+        op.translate = Offset::new(1.0, 1.0);
+        assert_eq!(apply(&mut d, op).map_err(|e| e.code()).err(), Some("annotation-locked"));
+    }
+
+    #[test]
+    fn a_popup_moves_even_when_its_parent_s_rect_is_indirect() {
+        let mut d = one_page(
+            &[
+                "<< /Type /Annot /Subtype /Text /Rect 6 0 R /Popup 5 0 R >>",
+                "<< /Type /Annot /Subtype /Popup /Rect [20 20 80 80] /Parent 4 0 R >>",
+                "[0 0 10 10]",
+            ],
+            "",
+        );
+        let mut op = UpdateAnnot::new(id("a4.0"));
+        op.translate = Offset::new(1.0, 0.0);
+        let applied = apply(&mut d, op).unwrap();
+        assert_eq!(
+            (numbers(&object(&d, 5).unwrap(), "Rect"), applied.touched_pages.len()),
+            (vec![21.0, 20.0, 81.0, 80.0], 1)
+        );
+    }
+
+    #[test]
+    fn an_indirect_objr_and_the_parent_tree_key_go_with_the_annotation() {
+        let mut d = doc("tagged.pdf");
+        apply(&mut d, DeleteAnnot::new(id("a12.0"))).unwrap();
+        let nums = object(&d, 25)
+            .unwrap()
+            .get("Nums")
+            .and_then(Object::as_array)
+            .unwrap()
+            .len();
+        assert_eq!((object(&d, 24).unwrap().get("K").cloned(), nums), (None, 6));
+    }
+
+    #[test]
+    fn a_duplicate_name_doesn_t_stop_an_op_in_strict_mode() {
+        let mut d = Document::open(
+            fixture("annotations/flags.pdf"),
+            laminapdf_cos::OpenOptions::default().with_strict(true),
+        )
+        .unwrap();
+        assert!(apply(&mut d, DeleteAnnot::new(id("a12.0"))).is_ok());
+    }
+
+    #[test]
+    fn a_move_must_be_finite() {
+        let wire = serde_json::from_str::<Op>(
+            r#"{ "op": "updateAnnot", "args": { "id": "a1.0", "translate": { "dx": 1e999, "dy": 0 } } }"#,
+        );
+        assert_eq!(
+            (
+                Offset::new(f64::NAN, 0.0),
+                Offset::new(f64::INFINITY, 0.0),
+                wire.is_err()
+            ),
+            (None, None, true)
+        );
     }
 }

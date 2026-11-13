@@ -810,7 +810,7 @@ impl ErrorCode {
             Self::UnknownSource => "add the source document's bytes with addSource before applying ops that name it",
             Self::UnknownAnnotation => "read the page's annotations again and use an ID from that list",
             Self::AnnotationLocked => "clear the lock with an update of its flags first, if you may",
-            Self::AnnotationNotEditable => "edit a widget through its form field; a direct annotation can be edited once the file is saved with a full rewrite",
+            Self::AnnotationNotEditable => "edit a widget through its form field; an annotation stored inside the page's list can't be edited yet",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",
             Self::SinkNotEmpty => "pass an empty sink: output offsets count from the sink's first byte",

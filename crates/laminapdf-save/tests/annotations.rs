@@ -55,7 +55,7 @@ fn an_edit_and_a_delete_save_in_both_modes_and_reopen() {
     let bytes = fixture("annotations/threads.pdf");
     let mut update = UpdateAnnot::new(id("a16.0"));
     update.contents = Some(Some("best".to_owned()));
-    update.translate = Some(Offset::new(10.0, 0.0));
+    update.translate = Offset::new(10.0, 0.0);
     let ops: [Op; 2] = [update.into(), DeleteAnnot::new(id("a10.0")).into()];
     for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
         let mut doc = Document::open(bytes.clone(), OpenOptions::default()).unwrap();

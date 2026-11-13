@@ -552,7 +552,7 @@
       "code": "annotation-not-editable",
       "kind": "unsupported",
       "summary": "the annotation can't be edited by the annotation ops: it is a form field's widget, or a direct dictionary with no object of its own",
-      "hint": "edit a widget through its form field; a direct annotation can be edited once the file is saved with a full rewrite",
+      "hint": "edit a widget through its form field; an annotation stored inside the page's list can't be edited yet",
       "since": "0.2.0"
     }
   ],

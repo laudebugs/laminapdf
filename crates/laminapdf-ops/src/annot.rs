@@ -6,7 +6,7 @@
 //! and so its [`AnnotId`]), and a deleted one is unlinked from its page and freed. Keys the ops
 //! don't own are kept untouched.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use laminapdf_cos::{Dict, ObjRef, Object, PdfString};
 use laminapdf_model::{Annot, AnnotFlags, AnnotId, AnnotSubtype, PageId, PdfDate};
@@ -17,31 +17,65 @@ use crate::error::{Error, Result};
 use crate::op::Effect;
 use crate::wire;
 
-/// A move in user space (ISO 32000-2 §8.3.2.3: y up), in user-space units.
+/// A move in user space (ISO 32000-2 §8.3.2.3: y up), in user-space units. Both distances are
+/// finite: [`Offset::new`] and the wire form refuse anything else, so a move never writes a
+/// coordinate a PDF can't hold.
 ///
 /// Added in 0.2.0.
-#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
-#[non_exhaustive]
 pub struct Offset {
-    /// Along x.
-    pub dx: f64,
-    /// Along y (up is positive).
-    pub dy: f64,
+    dx: f64,
+    dy: f64,
 }
 
 impl Offset {
-    /// The move by `(dx, dy)`.
+    /// The move by `(dx, dy)`; `None` unless both are finite.
     ///
     /// Added in 0.2.0.
     #[must_use]
-    pub const fn new(dx: f64, dy: f64) -> Self {
-        Self { dx, dy }
+    pub const fn new(dx: f64, dy: f64) -> Option<Self> {
+        if dx.is_finite() && dy.is_finite() {
+            Some(Self { dx, dy })
+        } else {
+            None
+        }
+    }
+
+    /// Along x.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub const fn dx(self) -> f64 {
+        self.dx
+    }
+
+    /// Along y (up is positive).
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub const fn dy(self) -> f64 {
+        self.dy
     }
 }
 
+// Sound: both fields are finite (`Offset::new` and the deserialiser check), so no NaN breaks
+// reflexivity.
 impl Eq for Offset {}
+
+impl<'de> Deserialize<'de> for Offset {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> core::result::Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Wire {
+            dx: f64,
+            dy: f64,
+        }
+        let wire = Wire::deserialize(d)?;
+        Self::new(wire.dx, wire.dy).ok_or_else(|| serde::de::Error::custom("a move must be finite"))
+    }
+}
 
 /// Changes an annotation's common and markup entries and moves it.
 ///
@@ -121,7 +155,8 @@ impl UpdateAnnot {
     }
 
     pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Effect> {
-        let found = Found::locate(doc, &self.id)?;
+        let all = every_annotation(doc)?;
+        let found = Found::locate(&all, &self.id)?;
         let flags = found.annot.flags;
         let properties = self.author.is_some() || self.subject.is_some() || self.translate.is_some();
         if (properties && flags.has(AnnotFlags::LOCKED))
@@ -137,21 +172,43 @@ impl UpdateAnnot {
         if let Some(flags) = self.flags {
             dict.insert("F", Object::Integer(i64::from(flags)));
         }
+        // The Popup moves with its parent, unless it is locked, which refuses the move.
+        let popup = match (self.translate, &found.annot.popup) {
+            (Some(offset), Some(popup)) => match Found::locate(&all, popup) {
+                Ok(popup) if popup.annot.flags.has(AnnotFlags::LOCKED) => {
+                    return Err(Error::AnnotationLocked(popup.annot.id));
+                }
+                Ok(popup) => {
+                    let mut moved = popup.dict(doc)?;
+                    let was = moved.clone();
+                    translate(&mut moved, offset);
+                    (moved != was).then_some((popup, moved))
+                }
+                Err(_) => None,
+            },
+            _ => None,
+        };
         if let Some(offset) = self.translate {
             translate(&mut dict, offset);
-            if let Some(popup) = found.annot.popup.as_ref().and_then(|p| p.as_lamina_id().obj_ref()) {
-                move_popup(doc, popup, offset)?;
-            }
         }
-        if dict == before {
+        if dict == before && popup.is_none() {
             return Ok(Effect::default());
         }
-        if let Some(at) = &self.modified {
-            dict.insert("M", Object::String(PdfString::literal(at.to_pdf_string().into_bytes())));
+        let mut pages = vec![found.page.clone()];
+        if dict != before {
+            if let Some(at) = &self.modified {
+                dict.insert("M", Object::String(PdfString::literal(at.to_pdf_string().into_bytes())));
+            }
+            doc.cos_mut().edit().set(found.object, Object::Dict(dict))?;
         }
-        doc.cos_mut().edit().set(found.object, Object::Dict(dict))?;
+        if let Some((popup, moved)) = popup {
+            doc.cos_mut().edit().set(popup.object, Object::Dict(moved))?;
+            if popup.page != found.page {
+                pages.push(popup.page);
+            }
+        }
         Ok(Effect {
-            pages: vec![found.page],
+            pages,
             ..Effect::default()
         })
     }
@@ -191,16 +248,26 @@ impl DeleteAnnot {
     }
 
     pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Effect> {
-        let found = Found::locate(doc, &self.id)?;
-        if found.annot.flags.has(AnnotFlags::LOCKED) {
-            return Err(Error::AnnotationLocked(self.id.clone()));
-        }
         let all = every_annotation(doc)?;
+        let found = Found::locate(&all, &self.id)?;
         let doomed = doomed(&found.annot, &all);
+        if let Some(locked) = all
+            .iter()
+            .flat_map(|(_, annots)| annots)
+            .find(|a| doomed.contains(&a.id) && a.flags.has(AnnotFlags::LOCKED))
+        {
+            return Err(Error::AnnotationLocked(locked.id.clone()));
+        }
+        let parent_tree = parent_tree(doc)?;
         let mut pages = Vec::new();
         for (page, annots) in &all {
-            if annots.iter().any(|a| doomed.contains(&a.id)) {
-                unlink(doc, page, &doomed)?;
+            let gone: BTreeSet<usize> = annots
+                .iter()
+                .filter(|a| doomed.contains(&a.id))
+                .map(|a| a.index)
+                .collect();
+            if !gone.is_empty() {
+                unlink(doc, page, &gone)?;
                 pages.push(page.clone());
             }
             for annot in annots.iter().filter(|a| !doomed.contains(&a.id)) {
@@ -209,11 +276,17 @@ impl DeleteAnnot {
                 }
             }
         }
+        let mut freed_keys = BTreeSet::new();
         for id in &doomed {
             if let Some(r) = id.as_lamina_id().obj_ref() {
-                untag(doc, r)?;
+                if let Some(key) = untag(doc, parent_tree.as_ref(), r)? {
+                    freed_keys.insert(key);
+                }
                 doc.cos_mut().edit().delete(r)?;
             }
+        }
+        if let Some((root, tree)) = &parent_tree {
+            drop_parent_tree_keys(doc, *root, tree, &freed_keys)?;
         }
         Ok(Effect {
             pages,
@@ -232,9 +305,10 @@ struct Found {
 }
 
 impl Found {
-    fn locate(doc: &laminapdf_model::Document, id: &AnnotId) -> Result<Self> {
-        for (page, annots) in every_annotation(doc)? {
-            if let Some(annot) = annots.into_iter().find(|a| a.id == *id) {
+    fn locate(all: &[(PageId, Vec<Annot>)], id: &AnnotId) -> Result<Self> {
+        for (page, annots) in all {
+            if let Some(annot) = annots.iter().find(|a| a.id == *id) {
+                let (page, annot) = (page.clone(), annot.clone());
                 let object = id
                     .as_lamina_id()
                     .obj_ref()
@@ -256,7 +330,7 @@ fn every_annotation(doc: &laminapdf_model::Document) -> Result<Vec<(PageId, Vec<
     let pages = doc.pages()?;
     let mut all = Vec::with_capacity(pages.len());
     for page in pages.iter() {
-        all.push((page.id().clone(), doc.annotations(&page)?));
+        all.push((page.id().clone(), doc.annotations_quietly(&page)?));
     }
     Ok(all)
 }
@@ -265,9 +339,12 @@ fn every_annotation(doc: &laminapdf_model::Document) -> Result<Vec<(PageId, Vec<
 /// any of them, followed to a fixed point (so cycles end).
 fn doomed(target: &Annot, all: &[(PageId, Vec<Annot>)]) -> BTreeSet<AnnotId> {
     let annots: Vec<&Annot> = all.iter().flat_map(|(_, a)| a).collect();
+    // Only annotations some page lists are deleted: an `/IRT` or `/Popup` that names any other
+    // object (a page, a font, in a malformed file) is ignored, never freed.
+    let listed: BTreeSet<&AnnotId> = annots.iter().map(|a| &a.id).collect();
     let mut doomed = BTreeSet::from([target.id.clone()]);
     if target.reply_type == laminapdf_model::ReplyType::Group
-        && let Some(primary) = &target.in_reply_to
+        && let Some(primary) = target.in_reply_to.as_ref().filter(|p| listed.contains(p))
     {
         doomed.insert(primary.clone());
     }
@@ -280,7 +357,7 @@ fn doomed(target: &Annot, all: &[(PageId, Vec<Annot>)]) -> BTreeSet<AnnotId> {
                 doomed.insert(annot.id.clone());
             }
             if doomed.contains(&annot.id)
-                && let Some(popup) = &annot.popup
+                && let Some(popup) = annot.popup.as_ref().filter(|p| listed.contains(p))
             {
                 doomed.insert(popup.clone());
             }
@@ -291,9 +368,10 @@ fn doomed(target: &Annot, all: &[(PageId, Vec<Annot>)]) -> BTreeSet<AnnotId> {
     }
 }
 
-/// Removes the doomed annotations from the page's `/Annots`, in the array object when it is
-/// indirect, else in the page's own dictionary.
-fn unlink(doc: &mut laminapdf_model::Document, page: &PageId, doomed: &BTreeSet<AnnotId>) -> Result<()> {
+/// Removes the entries at the positions `gone` from the page's `/Annots`, in the array object
+/// when it is indirect, else in the page's own dictionary. Positions, not references, so a
+/// direct dictionary goes too.
+fn unlink(doc: &mut laminapdf_model::Document, page: &PageId, gone: &BTreeSet<usize>) -> Result<()> {
     let page_ref = page
         .as_lamina_id()
         .obj_ref()
@@ -305,8 +383,9 @@ fn unlink(doc: &mut laminapdf_model::Document, page: &PageId, doomed: &BTreeSet<
     let kept = |items: &[Object]| -> Vec<Object> {
         items
             .iter()
-            .filter(|item| item.as_ref().is_none_or(|r| !doomed.contains(&AnnotId::object(r))))
-            .cloned()
+            .enumerate()
+            .filter(|(i, _)| !gone.contains(i))
+            .map(|(_, item)| item.clone())
             .collect()
     };
     match value {
@@ -338,67 +417,129 @@ fn drop_entry(doc: &mut laminapdf_model::Document, annot: &Annot, key: &str) -> 
     Ok(())
 }
 
-/// Removes the structure tree's object reference to the annotation `r` (§14.7.5.3): the `OBJR`
-/// among the `/K` of the element its `/StructParent` names in the parent tree, and the element
-/// itself from its parent when nothing else is left in it.
-fn untag(doc: &mut laminapdf_model::Document, r: ObjRef) -> Result<()> {
+/// The structure tree's parent tree, read once per op: the `/ParentTree` reference of the
+/// catalog's `/StructTreeRoot`, and its entries.
+type ParentTree = (ObjRef, BTreeMap<i64, Object>);
+
+fn parent_tree(doc: &laminapdf_model::Document) -> Result<Option<ParentTree>> {
+    let catalog = doc.catalog()?;
+    let Some(root) = catalog.get("StructTreeRoot").and_then(Object::as_ref) else {
+        return Ok(None);
+    };
+    let Some(root) = object_dict(doc, root)? else {
+        return Ok(None);
+    };
+    let Some(tree) = root.get("ParentTree").and_then(Object::as_ref) else {
+        return Ok(None);
+    };
+    let entries = doc.number_tree(Object::Ref(tree)).entries()?.into_iter().collect();
+    Ok(Some((tree, entries)))
+}
+
+/// Removes the structure tree's object reference to the annotation `r` (§14.7.5.3): the `OBJR`,
+/// direct or indirect, among the `/K` of the element its `/StructParent` names in the parent
+/// tree, and the element itself from its parent when nothing else is left in it. Returns the
+/// `/StructParent` key, for the parent tree to drop.
+fn untag(doc: &mut laminapdf_model::Document, tree: Option<&ParentTree>, r: ObjRef) -> Result<Option<i64>> {
+    let Some((_, entries)) = tree else { return Ok(None) };
     let Some(annot) = object_dict(doc, r)? else {
-        return Ok(());
+        return Ok(None);
     };
     let Some(key) = annot.get("StructParent").and_then(Object::as_int) else {
-        return Ok(());
+        return Ok(None);
     };
-    let Some(tree) = doc.structure()? else { return Ok(()) };
-    let Some(root) = tree.parent_tree else { return Ok(()) };
-    let Some(elem) = doc.number_tree(root).get(key)?.and_then(|e| e.as_ref()) else {
-        return Ok(());
+    let Some(elem) = entries.get(&key).and_then(Object::as_ref) else {
+        return Ok(Some(key));
     };
     let Some(mut dict) = object_dict(doc, elem)? else {
-        return Ok(());
+        return Ok(Some(key));
     };
     let Some(kids) = dict.get("K").cloned() else {
-        return Ok(());
+        return Ok(Some(key));
     };
-    let is_this = |kid: &Object| match kid {
-        Object::Dict(d) => d.get("Obj").and_then(Object::as_ref) == Some(r),
-        _ => false,
+    let is_this = |kid: &Object| -> Result<bool> {
+        let objr = match kid {
+            Object::Dict(d) => Some(d.clone()),
+            Object::Ref(k) => object_dict(doc, *k)?,
+            _ => None,
+        };
+        Ok(objr.is_some_and(|d| d.get("Obj").and_then(Object::as_ref) == Some(r)))
     };
-    let left: Vec<Object> = match kids {
-        Object::Array(items) => items.into_iter().filter(|k| !is_this(k)).collect(),
-        kid if is_this(&kid) => Vec::new(),
+    let items = match kids {
+        Object::Array(items) => items,
         kid => vec![kid],
     };
+    let mut left = Vec::with_capacity(items.len());
+    for kid in items {
+        if !is_this(&kid)? {
+            left.push(kid);
+        }
+    }
     if !left.is_empty() {
         dict.insert("K", Object::Array(left));
-        return doc.cos_mut().edit().set(elem, Object::Dict(dict)).map_err(Error::from);
+        doc.cos_mut().edit().set(elem, Object::Dict(dict))?;
+        return Ok(Some(key));
     }
     dict.remove("K");
     doc.cos_mut().edit().set(elem, Object::Dict(dict.clone()))?;
-    let Some(parent) = dict.get("P").and_then(Object::as_ref) else {
-        return Ok(());
-    };
-    let Some(mut parent_dict) = object_dict(doc, parent)? else {
-        return Ok(());
-    };
-    let without = match parent_dict.get("K").cloned() {
-        Some(Object::Array(items)) => Object::Array(items.into_iter().filter(|k| k.as_ref() != Some(elem)).collect()),
-        Some(Object::Ref(only)) if only == elem => Object::Array(Vec::new()),
-        _ => return Ok(()),
-    };
-    parent_dict.insert("K", without);
-    doc.cos_mut()
-        .edit()
-        .set(parent, Object::Dict(parent_dict))
-        .map_err(Error::from)
+    if let Some(parent) = dict.get("P").and_then(Object::as_ref)
+        && let Some(mut parent_dict) = object_dict(doc, parent)?
+    {
+        let without = match parent_dict.get("K").cloned() {
+            Some(Object::Array(items)) => Some(Object::Array(
+                items.into_iter().filter(|k| k.as_ref() != Some(elem)).collect(),
+            )),
+            Some(Object::Ref(only)) if only == elem => Some(Object::Array(Vec::new())),
+            _ => None,
+        };
+        if let Some(without) = without {
+            parent_dict.insert("K", without);
+            doc.cos_mut().edit().set(parent, Object::Dict(parent_dict))?;
+        }
+    }
+    Ok(Some(key))
 }
 
-/// Moves a Popup's `/Rect` with its parent.
-fn move_popup(doc: &mut laminapdf_model::Document, popup: ObjRef, offset: Offset) -> Result<()> {
-    let Some(mut dict) = object_dict(doc, popup)? else {
+/// Removes the keys of deleted annotations from the parent tree's leaves, in place (§7.9.7):
+/// each leaf's `/Nums` loses those pairs, and nothing else changes, so a `/Limits` stays true.
+/// Nodes are followed through `/Kids` once each, up to `max_nesting_depth`.
+fn drop_parent_tree_keys(
+    doc: &mut laminapdf_model::Document,
+    root: ObjRef,
+    entries: &BTreeMap<i64, Object>,
+    keys: &BTreeSet<i64>,
+) -> Result<()> {
+    if !keys.iter().any(|k| entries.contains_key(k)) {
         return Ok(());
-    };
-    translate(&mut dict, offset);
-    doc.cos_mut().edit().set(popup, Object::Dict(dict)).map_err(Error::from)
+    }
+    let depth = doc.cos().limits().max_nesting_depth();
+    let mut seen = BTreeSet::new();
+    let mut next = vec![(root, 0_usize)];
+    while let Some((node, level)) = next.pop() {
+        if level > depth || !seen.insert(node) {
+            continue;
+        }
+        let Some(mut dict) = object_dict(doc, node)? else {
+            continue;
+        };
+        if let Some(Object::Array(kids)) = dict.get("Kids") {
+            next.extend(kids.iter().filter_map(Object::as_ref).map(|k| (k, level + 1)));
+        }
+        let Some(Object::Array(nums)) = dict.get("Nums").cloned() else {
+            continue;
+        };
+        let (pairs, _) = nums.as_chunks::<2>();
+        let kept: Vec<Object> = pairs
+            .iter()
+            .filter(|[k, _]| k.as_int().is_none_or(|k| !keys.contains(&k)))
+            .flat_map(|pair| pair.iter().cloned())
+            .collect();
+        if kept.len() != nums.len() {
+            dict.insert("Nums", Object::Array(kept));
+            doc.cos_mut().edit().set(node, Object::Dict(dict))?;
+        }
+    }
+    Ok(())
 }
 
 /// Shifts every coordinate pair of the geometry keys by `offset`. A value that isn't an array
@@ -435,7 +576,7 @@ fn shift_pairs(items: &[Object], offset: Offset) -> Option<Vec<Object>> {
         .enumerate()
         .map(|(i, item)| {
             let value = item.as_f64()?;
-            Some(Object::Real(value + if i % 2 == 0 { offset.dx } else { offset.dy }))
+            Some(Object::number(value + if i % 2 == 0 { offset.dx } else { offset.dy }))
         })
         .collect()
 }

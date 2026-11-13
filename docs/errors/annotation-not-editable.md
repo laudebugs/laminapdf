@@ -13,7 +13,7 @@ Widgets belong to their form fields, and editing one on its own would leave the 
 
 ## How to fix
 
-Edit a widget through its form field. A direct annotation can be edited once the file has been saved with a full rewrite, which gives every annotation its own object.
+Edit a widget through its form field. An annotation stored inside the page's list can't be edited yet: Lamina PDF reads it, shows it and keeps it as it is when saving.
 
 ## Example
 
