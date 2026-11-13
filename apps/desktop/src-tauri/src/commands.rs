@@ -213,6 +213,7 @@ pub(crate) fn set_preferences(
     if was.stops_remembering(value) {
         opened::forget(&app, recent.clear(), true);
     }
+    crate::session::app::preferences_changed(&app, was, value);
 }
 
 /// Kills this window's engine as a crash would (end-to-end tests only, feature `e2e`).

@@ -21,7 +21,9 @@
 
 use std::path::{Path, PathBuf};
 
+mod bookmark;
 mod files;
+pub use bookmark::{file_bookmark, resolve_bookmark};
 pub use files::{FileIdentity, file_identity, open_shared};
 
 #[cfg(target_os = "linux")]

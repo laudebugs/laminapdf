@@ -11,7 +11,7 @@
 | Branch | `feat/d4d-session-restore` |
 | PR title | `feat(desktop): restore the last session's windows and tabs on launch` |
 | Size | L (400–800): the session file and its resolver, window geometry, the macOS bookmark helper, the privacy rule and their tests |
-| PR | — |
+| PR | [#573](https://github.com/laudebugs/laminapdf/pull/573) |
 
 ## Goal
 
