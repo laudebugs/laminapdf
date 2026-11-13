@@ -11,6 +11,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ```
 .
 ├── CLAUDE.md            # this file
+├── AGENTS.md            # a link to CLAUDE.md, for agents that read AGENTS.md
 ├── README.md            # project overview
 ├── Cargo.toml           # Rust workspace (virtual manifest): shared package fields, deps, lints, profiles
 ├── rust-toolchain.toml  # pinned Rust toolchain + targets (wasm32, iOS, Android)

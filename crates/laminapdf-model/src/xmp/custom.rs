@@ -19,7 +19,7 @@ pub(super) struct Custom {
 
 /// Why [`Packet::set_property`] refused a property.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum PropertyError {
@@ -94,7 +94,7 @@ impl Packet {
     /// A [`PropertyError`] when the namespace, prefix, name or value can't be written, or the
     /// property is one of [`MAPPINGS`](super::MAPPINGS).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn set_property(
         &mut self,
         namespace: &str,
@@ -126,7 +126,7 @@ impl Packet {
     /// A [`PropertyError`] when the namespace or name can't hold a property, or the property is
     /// one of [`MAPPINGS`](super::MAPPINGS), which [`Packet::set`] removes.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn remove_property(&mut self, namespace: &str, name: &str) -> Result<(), PropertyError> {
         check_property(namespace, name)?;
         let key = (namespace.to_owned(), name.to_owned());
@@ -151,7 +151,7 @@ impl Packet {
     /// structure or a qualified value is left undeclared: its type can't be told from the
     /// packet. It does nothing to a packet that doesn't claim PDF/A.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn declare_extensions(&mut self) {
         self.edits.declare_all = self.pdfa_part().is_some();
     }

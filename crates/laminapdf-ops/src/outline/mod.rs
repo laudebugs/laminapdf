@@ -43,7 +43,7 @@ pub use types::{ChildItems, DestinationView, ExplicitDestination, OutlineStyle, 
 /// On the wire: `{ "op": "addOutlineItem", "args": { "parent": null, "at": "last", "title":
 /// "Chapter 1", "target": { "destination": { "page": "p3.0", "view": { "kind": "fit" } } } } }`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -74,7 +74,7 @@ impl AddOutlineItem {
     /// The op that adds `title`, pointing at `target`, at `at` under `parent`, unstyled and
     /// closed.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn new(
         parent: Option<OutlineItemId>,
@@ -120,7 +120,7 @@ impl AddOutlineItem {
 /// On the wire: `{ "op": "updateOutlineItem", "args": { "item": "o12.0", "title": "Results",
 /// "open": true } }`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -152,7 +152,7 @@ pub struct UpdateOutlineItem {
 impl UpdateOutlineItem {
     /// The op that changes nothing yet on `item`; set the fields to change.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn new(item: OutlineItemId) -> Self {
         Self {
@@ -194,7 +194,7 @@ impl UpdateOutlineItem {
 /// On the wire: `{ "op": "moveOutlineItem", "args": { "item": "o12.0", "parent": "o9.0", "at":
 /// { "after": "o10.0" } } }`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -220,7 +220,7 @@ pub struct MoveOutlineItem {
 impl MoveOutlineItem {
     /// The op that moves `item` to `at` under `parent`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn new(item: OutlineItemId, parent: Option<OutlineItemId>, at: SiblingPosition) -> Self {
         Self { item, parent, at }
@@ -240,7 +240,7 @@ impl MoveOutlineItem {
 /// On the wire: `{ "op": "deleteOutlineItem", "args": { "item": "o12.0", "children":
 /// "promote" } }`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -257,7 +257,7 @@ pub struct DeleteOutlineItem {
 impl DeleteOutlineItem {
     /// The op that deletes `item`, doing `children` with its children.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn new(item: OutlineItemId, children: ChildItems) -> Self {
         Self { item, children }

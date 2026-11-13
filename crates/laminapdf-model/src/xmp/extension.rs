@@ -13,15 +13,15 @@ use super::write::{escape, prefix_in, rdf_attribute_prefix, write_declarations};
 
 /// `pdfaExtension:`, the extension schema container (ISO 19005-2 §6.6.2.3.2).
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 pub const PDFA_EXTENSION: &str = "http://www.aiim.org/pdfa/ns/extension/";
 /// `pdfaSchema:`, a schema's description.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 pub const PDFA_SCHEMA: &str = "http://www.aiim.org/pdfa/ns/schema#";
 /// `pdfaProperty:`, a property's description.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 pub const PDFA_PROPERTY: &str = "http://www.aiim.org/pdfa/ns/property#";
 pub(super) const PDFA_TYPE: &str = "http://www.aiim.org/pdfa/ns/type#";
 pub(super) const PDFA_FIELD: &str = "http://www.aiim.org/pdfa/ns/field#";
@@ -59,7 +59,7 @@ const PREDEFINED: [&str; 19] = [
 /// assert!(!is_predefined_in_pdfa("http://www.aiim.org/pdfua/ns/id/"));
 /// ```
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[must_use]
 pub fn is_predefined_in_pdfa(namespace: &str) -> bool {
     PREDEFINED.contains(&namespace)
@@ -67,7 +67,7 @@ pub fn is_predefined_in_pdfa(namespace: &str) -> bool {
 
 /// A property a PDF/A file's packet declares, or an edit declared, in its extension schemas.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct ExtensionProperty {

@@ -19,7 +19,7 @@ use crate::values::read_name;
 
 /// One annotation on a page.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Annot {
@@ -69,7 +69,7 @@ pub struct Annot {
 /// What an annotation op needs of an annotation, read without its text or geometry: its ID and
 /// place, subtype, flags, and its links to other annotations ([`Document::annotation_links`]).
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct AnnotLink {
@@ -93,7 +93,7 @@ pub struct AnnotLink {
 
 /// An annotation's `/Subtype` (Table 171).
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum AnnotSubtype {
@@ -170,7 +170,7 @@ impl AnnotSubtype {
 
     /// The subtype's name as written in `/Subtype`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn name(&self) -> &[u8] {
         match self {
@@ -201,55 +201,55 @@ impl AnnotSubtype {
 
 /// An annotation's `/F` flags (Table 167).
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct AnnotFlags(pub u32);
 
 impl AnnotFlags {
     /// Don't show an annotation of an unknown subtype.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub const INVISIBLE: u32 = 1;
     /// Don't show or print it.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub const HIDDEN: u32 = 1 << 1;
     /// Print it.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub const PRINT: u32 = 1 << 2;
     /// Don't scale it with the page's zoom.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub const NO_ZOOM: u32 = 1 << 3;
     /// Don't rotate it with the page.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub const NO_ROTATE: u32 = 1 << 4;
     /// Print it but don't show it.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub const NO_VIEW: u32 = 1 << 5;
     /// Don't let a user interact with it.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub const READ_ONLY: u32 = 1 << 6;
     /// Don't let a user delete it or change its properties (its contents may change).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub const LOCKED: u32 = 1 << 7;
     /// Invert `NO_VIEW` on hover or selection.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub const TOGGLE_NO_VIEW: u32 = 1 << 8;
     /// Don't let a user change its contents.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub const LOCKED_CONTENTS: u32 = 1 << 9;
 
     /// Whether every bit of `flag` is set.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn has(self, flag: u32) -> bool {
         self.0 & flag == flag
@@ -258,7 +258,7 @@ impl AnnotFlags {
 
 /// How a markup annotation relates to its `/IRT` (Table 172).
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum ReplyType {
     /// `/R`: a reply.
@@ -270,7 +270,7 @@ pub enum ReplyType {
 
 /// Where a subtype's own geometry puts it, in user space.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Default)]
 #[non_exhaustive]
 pub enum AnnotGeometry {
@@ -300,7 +300,7 @@ impl Document {
     /// Only errors that must propagate ([`laminapdf_cos::Error::must_propagate`]): an
     /// unreadable entry is left out.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn annotations(&self, page: &Page<'_>) -> Result<Vec<Annot>> {
         let mut found = Vec::new();
         self.each_annotation(page, |id, index, dict| {
@@ -321,7 +321,7 @@ impl Document {
     /// # Errors
     /// As [`Document::annotations`].
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn annotation_links(&self, page: &Page<'_>) -> Result<Vec<AnnotLink>> {
         let mut found = Vec::new();
         self.each_annotation(page, |id, index, dict| {
