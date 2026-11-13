@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §5](../../plans/editor/e2-page-organisation.md#5-the-viewer-across-page-structure-edits) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E1d](../done/E1d-edit-session-undo-ui.md), [E1g](../done/E1g-redraw-after-edit.md), [E2b](./E2b-page-structure-ops.md) |
+| Depends on | [E1d](../done/E1d-edit-session-undo-ui.md), [E1g](../done/E1g-redraw-after-edit.md), [E2b](../ongoing/E2b-page-structure-ops.md) |
 | ADRs | Follows [0009](../../decisions/0009-web-client-architecture.md), [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) |
 | Branch | `feat/e2l-viewer-across-page-edits` |
 | PR title | `feat(viewer): follow inserted, deleted and moved pages by ID` |

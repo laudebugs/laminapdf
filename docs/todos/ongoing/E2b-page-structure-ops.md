@@ -3,19 +3,19 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E2 page organisation §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B8a](../done/B8a-structure-tree.md), [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E1c](../done/E1c-metadata-ops.md), [E2j](../done/E2j-page-tree-and-tree-writers.md), [E2r](../done/E2r-planner-page-checks.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2b-page-structure-ops` |
 | PR title | `feat(ops): page structure ops with reference cleanup` |
-| Size | L (400–800): five ops over E2j's page-tree editor, the reference cleanup and one new code, with bindings; the planner's checks are [E2r](../done/E2r-planner-page-checks.md)'s and duplicating is [E2k](E2k-duplicate-pages.md)'s |
+| Size | L (400–800): five ops over E2j's page-tree editor, the reference cleanup and one new code, with bindings; the planner's checks are [E2r](../done/E2r-planner-page-checks.md)'s and duplicating is [E2k](../ready/E2k-duplicate-pages.md)'s |
 | PR | — |
 
 ## Goal
 
-Implement the single-document page ops as view-level mapping of `PageId`s (no re-parse of content) over [E2j](../done/E2j-page-tree-and-tree-writers.md)'s page-tree editor: insert blank pages, delete, move (reorder), rotate (batch, generalising B3's `RotatePage`) and reverse, with cleanup of references to deleted pages (outline items, link destinations, named destinations, struct-tree `/Pg`, `/OpenAction`). Each op reports the widgets it touches, which [E2r](../done/E2r-planner-page-checks.md)'s checks judge. Duplicating pages is [E2k](E2k-duplicate-pages.md).
+Implement the single-document page ops as view-level mapping of `PageId`s (no re-parse of content) over [E2j](../done/E2j-page-tree-and-tree-writers.md)'s page-tree editor: insert blank pages, delete, move (reorder), rotate (batch, generalising B3's `RotatePage`) and reverse, with cleanup of references to deleted pages (outline items, link destinations, named destinations, struct-tree `/Pg`, `/OpenAction`). Each op reports the widgets it touches, which [E2r](../done/E2r-planner-page-checks.md)'s checks judge. Duplicating pages is [E2k](../ready/E2k-duplicate-pages.md).
 
 ## Context
 
@@ -40,11 +40,11 @@ Implement the single-document page ops as view-level mapping of `PageId`s (no re
 
 - Page-tree editing, the tree writers, `PageLabels::remap` and the reference index → [E2j](../done/E2j-page-tree-and-tree-writers.md)
 - The planner's field-level checks → [E2r](../done/E2r-planner-page-checks.md)
-- Duplicating pages (tags and widgets) → [E2k](E2k-duplicate-pages.md)
-- Pages from other documents, replace, extract → [E2c](E2c-cross-document-pages.md)
-- Merge and split → [E2d](E2d-merge-and-split.md)
-- The viewer across page-list changes → [E2l](E2l-viewer-across-page-edits.md); the Organise UI → [E2h](E2h-page-organiser-ui.md)
-- The CLI's page commands (`laminapdf pages delete`, `extract`, `reorder`, `insert`, `merge`, `split`) → [T6a](./T6a-cli-page-commands.md)
+- Duplicating pages (tags and widgets) → [E2k](../ready/E2k-duplicate-pages.md)
+- Pages from other documents, replace, extract → [E2c](../ready/E2c-cross-document-pages.md)
+- Merge and split → [E2d](../ready/E2d-merge-and-split.md)
+- The viewer across page-list changes → [E2l](../ready/E2l-viewer-across-page-edits.md); the Organise UI → [E2h](../ready/E2h-page-organiser-ui.md)
+- The CLI's page commands (`laminapdf pages delete`, `extract`, `reorder`, `insert`, `merge`, `split`) → [T6a](../ready/T6a-cli-page-commands.md)
 
 **Editor facts**
 
