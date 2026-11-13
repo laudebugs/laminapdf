@@ -17,6 +17,8 @@ import { type ExternalStore, useStoreState } from "../state/hooks.js";
 export interface ReaderShellProps {
   /** The top bar: a `ReaderTopBar`. */
   topBar: ReactNode;
+  /** The window's document tabs (`DocumentTabs`), over the top bar, in shells with tabs. */
+  tabs?: ReactNode;
   /** A tool's toolbar or the find bar, under the top bar in place of the mode's own. */
   secondaryToolbar?: ReactNode;
   /** A notice across the window under the top bar, above any secondary toolbar (R15's offline notice). */
@@ -61,6 +63,7 @@ function useModeToolbar(modes: ModeRegistry | undefined): (() => ReactNode) | un
 /** The reader's layout, filling its container. */
 export function ReaderShell({
   topBar,
+  tabs,
   secondaryToolbar,
   notice,
   rail,
@@ -81,7 +84,14 @@ export function ReaderShell({
   return (
     <div className="paper-reader-shell" data-focus={focus || undefined}>
       <SkipLink canvas={canvas} />
-      {topBar}
+      {tabs === undefined || tabs === null ? (
+        topBar
+      ) : (
+        <div className="paper-reader-head">
+          {tabs}
+          {topBar}
+        </div>
+      )}
       {notice === undefined && toolbar === undefined ? null : (
         <div className="paper-reader-under">
           {notice}

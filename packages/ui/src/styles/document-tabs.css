@@ -1,0 +1,126 @@
+/* The window's document tabs (desktop shell S02): a 34 px strip over the top bar. Each tab is at
+   most 220 px wide and at least 120, its label 13 px with an ellipsis, muted unless active; the
+   active tab takes the top bar's `surface` and drops its bottom rule, so it joins the bar. The
+   close button shows on the active, hovered and focused tab. The strip scrolls sideways when the
+   tabs don't fit; its menu at the end lists them all. */
+@layer paper.components {
+  .paper-reader-head {
+    grid-row: 1;
+    min-inline-size: 0;
+  }
+
+  .paper-document-tabs {
+    display: flex;
+    align-items: stretch;
+    block-size: 34px;
+    border-block-end: var(--paper-border-width) solid var(--paper-hairline);
+    background: var(--paper-ground);
+  }
+
+  .paper-document-tabs-list {
+    display: flex;
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .paper-document-tab {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 0 1 220px;
+    min-inline-size: 120px;
+    margin-block-end: calc(-1 * var(--paper-border-width));
+    border-inline-end: var(--paper-border-width) solid var(--paper-hairline);
+    border-block-end: var(--paper-border-width) solid var(--paper-hairline);
+  }
+
+  .paper-document-tab:hover {
+    background: var(--paper-hover);
+  }
+
+  .paper-document-tab[data-active] {
+    border-block-end-color: transparent;
+    background: var(--paper-surface);
+  }
+
+  .paper-document-tab[data-dragging] {
+    opacity: 0.5;
+  }
+
+  .paper-document-tab-label {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    overflow: hidden;
+    padding-inline: var(--paper-space-12) var(--paper-space-4);
+    font: var(--paper-type-control);
+    font-size: 13px;
+    line-height: 34px;
+    color: var(--paper-muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: default;
+  }
+
+  .paper-document-tab[data-active] .paper-document-tab-label {
+    color: var(--paper-text);
+    font-weight: 600;
+  }
+
+  .paper-document-tab-label:focus-visible {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset-inset);
+  }
+
+  .paper-document-tab-close {
+    display: grid;
+    place-items: center;
+    flex: none;
+    inline-size: 24px;
+    block-size: 24px;
+    margin-inline-end: var(--paper-space-4);
+    padding: 0;
+    border: 0;
+    border-radius: var(--paper-radius-4);
+    background: none;
+    color: var(--paper-muted);
+    visibility: hidden;
+  }
+
+  .paper-document-tab-close svg {
+    inline-size: 14px;
+    block-size: 14px;
+  }
+
+  .paper-document-tab[data-active] .paper-document-tab-close,
+  .paper-document-tab:hover .paper-document-tab-close,
+  .paper-document-tab:focus-within .paper-document-tab-close {
+    visibility: visible;
+  }
+
+  .paper-document-tab-close:hover {
+    background: var(--paper-hover);
+    color: var(--paper-text);
+  }
+
+  .paper-document-tabs-menu {
+    display: grid;
+    place-items: center;
+    flex: none;
+    inline-size: 34px;
+    border: 0;
+    background: none;
+    color: var(--paper-muted);
+  }
+
+  .paper-document-tabs-menu[data-hovered] {
+    background: var(--paper-hover);
+    color: var(--paper-text);
+  }
+
+  .paper-document-tabs-menu[data-focus-visible] {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset-inset);
+  }
+}
