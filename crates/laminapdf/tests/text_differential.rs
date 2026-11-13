@@ -48,6 +48,7 @@ fn lamina_pages(rel: &str) -> Vec<String> {
         .unwrap_or_default()
 }
 
+/// capability: H.07 core read
 #[test]
 fn page_text_agrees_with_pdfjs_and_pdftotext() {
     let expected = json("fixtures/differential/text.json");
