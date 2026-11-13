@@ -23,10 +23,10 @@ function keys(scope: ShortcutScope, mac: string, other = mac, extra: Partial<Sho
 }
 
 /** A binding only the desktop app takes: the browser keeps these keys on the web. */
-const desktop = (mac: string, other = mac) => keys("global", mac, other, { requires: "ownsKeyboard" });
+export const desktop = (mac: string, other = mac) => keys("global", mac, other, { requires: "ownsKeyboard" });
 
 /** `true` with a document open (by the reader's state, else by a viewer being there), else why not. */
-function documentOpen(ctx: CommandContext): true | string {
+export function documentOpen(ctx: CommandContext): true | string {
   const open = ctx.reader === undefined ? ctx.viewer !== undefined : ctx.reader.getState().phase === "open";
   return open ? true : message("command.reason.noDocument");
 }
@@ -44,7 +44,7 @@ function withViewer(check: (state: ViewerSlice) => true | string) {
 const viewerOpen = withViewer(() => true);
 
 /** A command the shell does: its handler in `ctx.actions`, given the parsed arguments. */
-function delegated<Args = undefined>(
+export function delegated<Args = undefined>(
   command: Omit<Command<Args>, "run" | "delegated"> & { run?: never },
 ): Command<Args> {
   return { ...command, delegated: true, run: (ctx, args) => ctx.actions?.[command.id]?.(args) };
@@ -55,7 +55,7 @@ const viewerRun = (act: (viewer: ViewerControls, state: ViewerSlice) => void) =>
   if (ctx.viewer !== undefined) act(ctx.viewer, ctx.viewer.getState());
 };
 
-const title = (id: CommandId) => message(`command.${id}` as Parameters<typeof message>[0]);
+export const title = (id: CommandId) => message(`command.${id}` as Parameters<typeof message>[0]);
 
 /** The reader's commands, built in the catalogue's words. */
 /** Opening files and unlocking them. */
@@ -344,55 +344,6 @@ function zoomModeCommands(): AnyCommand[] {
       run: (ctx, way: "clockwise" | "counter-clockwise" | undefined) =>
         ctx.viewer?.rotate(way === "counter-clockwise" ? -90 : 90),
     } satisfies Command<"clockwise" | "counter-clockwise" | undefined>,
-  ];
-}
-
-/**
- * Tabs and windows, for shells with more than one window (the desktop app), which register them
- * with {@link registerTabCommands}: kept out of {@link readerCommands} so the web reader doesn't
- * load them. Their home is the tab strip; the native menus will list them too.
- */
-export function tabCommands(): AnyCommand[] {
-  return [
-    delegated({
-      id: "tab.close",
-      title: title("tab.close"),
-      keywords: ["close", "tab", "document"],
-      group: "file",
-      shortcuts: [desktop("Mod+W")],
-      home: ["tab-strip"],
-    }),
-    delegated({
-      id: "tab.next",
-      title: title("tab.next"),
-      keywords: ["tab", "next", "switch"],
-      group: "navigate",
-      shortcuts: [desktop("Ctrl+Tab")],
-      home: ["tab-strip"],
-    }),
-    delegated({
-      id: "tab.previous",
-      title: title("tab.previous"),
-      keywords: ["tab", "previous", "switch"],
-      group: "navigate",
-      shortcuts: [desktop("Ctrl+Shift+Tab")],
-      home: ["tab-strip"],
-    }),
-    delegated({
-      id: "tab.move-to-new-window",
-      title: title("tab.move-to-new-window"),
-      keywords: ["tab", "window", "move", "detach"],
-      group: "file",
-      home: ["tab-strip"],
-    }),
-    delegated({
-      id: "window.new",
-      title: title("window.new"),
-      keywords: ["window", "new"],
-      group: "file",
-      shortcuts: [desktop("Mod+Shift+N")],
-      home: ["tab-strip"],
-    }),
   ];
 }
 
@@ -719,12 +670,8 @@ export function registerReaderCommands(registry: CommandRegistry): () => void {
   return registerAll(registry, readerCommands());
 }
 
-/** Registers the tab and window commands in `registry`; returns the function that removes them. */
-export function registerTabCommands(registry: CommandRegistry): () => void {
-  return registerAll(registry, tabCommands());
-}
-
-function registerAll(registry: CommandRegistry, commands: readonly AnyCommand[]): () => void {
+/** Registers `commands` in `registry`; returns the function that removes them all. */
+export function registerAll(registry: CommandRegistry, commands: readonly AnyCommand[]): () => void {
   const removers = commands.map((command) => registry.register(command));
   return () => {
     for (const remove of removers) remove();

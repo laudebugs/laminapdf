@@ -421,6 +421,7 @@ mod conformance {
             ConformanceWarning::DuplicateTagsIncomplete,
             ConformanceWarning::ImportedTagsDropped,
             ConformanceWarning::ImportedPdfaUnchecked,
+            ConformanceWarning::ImportedPdfuaUnchecked,
         ];
         assert_eq!(samples.map(|w| w.code()), ConformanceWarning::CODES);
     }
@@ -434,6 +435,7 @@ mod conformance {
             ConformanceWarning::DuplicateTagsIncomplete,
             ConformanceWarning::ImportedTagsDropped,
             ConformanceWarning::ImportedPdfaUnchecked,
+            ConformanceWarning::ImportedPdfuaUnchecked,
         ];
         crate::test_codes::assert_kinds_match(samples.iter().map(|w| (w.code(), w.kind().as_str())));
     }

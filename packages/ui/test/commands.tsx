@@ -2,9 +2,10 @@
 // reader, viewer and shell handlers a test gives, wrapped around the components that run them.
 
 import { type ReactNode, useState } from "react";
+import { registerDesktopCommands } from "../src/commands/desktop-commands.ts";
 import { registerEditCommands } from "../src/commands/edit-commands.ts";
 import { CommandsProvider } from "../src/commands/react.tsx";
-import { registerReaderCommands, registerTabCommands } from "../src/commands/reader-commands.ts";
+import { registerReaderCommands } from "../src/commands/reader-commands.ts";
 import { CommandRegistry } from "../src/commands/registry.ts";
 import type { CommandContext, CommandId } from "../src/commands/types.ts";
 import type { KeyPlatform } from "../src/components/shortcut-chip.tsx";
@@ -31,7 +32,7 @@ export interface CommandsSetup {
 export function readerCommandsFor(setup: CommandsSetup = {}): { registry: CommandRegistry; context: CommandContext } {
   const registry = new CommandRegistry();
   registerReaderCommands(registry);
-  registerTabCommands(registry);
+  registerDesktopCommands(registry);
   if (setup.edits !== undefined) registerEditCommands(registry);
   const { reader } = setup;
   const context: CommandContext = {

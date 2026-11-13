@@ -10,12 +10,12 @@
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2d-merge-and-split` |
 | PR title | `feat(ops): merge documents with outline, destination and field remapping; split` |
-| Size | L (400–800): merge of the outline, the name trees, the AcroForm and the layers over [E2p](../done/E2p-source-documents-and-copier.md)'s copier, and split; the structure-tree merge is [E2o](../ready/E2o-structure-tree-merge.md)'s |
+| Size | L (400–800): merge of the outline, the name trees, the AcroForm and the layers over [E2p](../done/E2p-source-documents-and-copier.md)'s copier, and split; the structure-tree merge is [E2o](../done/E2o-structure-tree-merge.md)'s |
 | PR | [#566](https://github.com/laudebugs/laminapdf/pull/566) |
 
 ## Goal
 
-Merge whole documents with the hard parts done: outlines appended as subtrees, named destinations renamed on clash, AcroForm fields merged with the [E2 plan's clash rule](../../plans/editor/e2-page-organisation.md#11-decisions-on-the-open-questions) (rename `<partial>#<n>` by default, or link same-named fields of the same type and value; [E2 plan §11](../../plans/editor/e2-page-organisation.md#11-decisions-on-the-open-questions)), OCGs merged; and split a document by page count, explicit ranges or top-level bookmarks. Merging structure trees is [E2o](../ready/E2o-structure-tree-merge.md); until it lands, merged pages lose their tags with `TagsDropped`.
+Merge whole documents with the hard parts done: outlines appended as subtrees, named destinations renamed on clash, AcroForm fields merged with the [E2 plan's clash rule](../../plans/editor/e2-page-organisation.md#11-decisions-on-the-open-questions) (rename `<partial>#<n>` by default, or link same-named fields of the same type and value; [E2 plan §11](../../plans/editor/e2-page-organisation.md#11-decisions-on-the-open-questions)), OCGs merged; and split a document by page count, explicit ranges or top-level bookmarks. Merging structure trees is [E2o](../done/E2o-structure-tree-merge.md); until it lands, merged pages lose their tags with `TagsDropped`.
 
 ## Context
 

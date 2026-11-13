@@ -42,8 +42,8 @@ impl Document {
     /// A new document of `pages` of this one (each once, in the order given), as it stands
     /// now, edits included: the pages with their annotations, the links between them, the
     /// named destinations those links use, their form fields (signature fields unsigned) and
-    /// their page labels. Links to pages left behind are removed, and the pages come without
-    /// tags. Saving the new document writes a whole file holding only what its pages reach,
+    /// their page labels, and their tags when this document is tagged. Links to pages left
+    /// behind are removed. Saving the new document writes a whole file holding only what its pages reach,
     /// with no password.
     ///
     /// # Errors
@@ -129,7 +129,8 @@ impl Document {
     /// bookmarks (per file, under a bookmark named after its title, unless `options` says
     /// otherwise), its form fields (renamed `<partial>#<n>` when a name is already used, or
     /// linked on request), its layers and page labels. Signature fields are left off, since a
-    /// signature covers the file it was made in; tagged pages come without their tags.
+    /// signature covers the file it was made in. The result is tagged when every file is,
+    /// each file's tags under a `Part` element; otherwise it comes without tags.
     ///
     /// # Errors
     /// `no-pages-left` for no inputs; `wrong-password`, `password-required` and the errors of a

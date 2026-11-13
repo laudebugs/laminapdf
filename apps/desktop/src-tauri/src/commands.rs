@@ -215,6 +215,64 @@ pub(crate) fn set_preferences(
     }
 }
 
+/// This window's commands' state for the native menus: which are enabled, and which toggles and
+/// choices are on. The menus show the focused window's (src/menus/use-native-menus.tsx sends it).
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window by value")]
+pub(crate) fn menu_state(window: tauri::WebviewWindow, state: Vec<crate::menu::CommandState>) {
+    crate::menu::set_state(window.app_handle(), window.label(), state);
+}
+
+/// Closes this window (File ▸ Close window): as its close button does, its documents with it.
+/// Async, as every command that makes or closes a window: on Windows a synchronous command runs
+/// on the main thread, which the window's teardown waits for.
+#[tauri::command]
+pub(crate) async fn close_window(window: tauri::WebviewWindow) -> Result<(), DesktopError> {
+    window.close()?;
+    Ok(())
+}
+
+/// Quits the app (File ▸ Quit on Windows and Linux; macOS quits from its app menu).
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its app by value")]
+pub(crate) fn quit(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
+/// Saves a copy of this window's document `doc` where the user chooses (File ▸ Save a copy…):
+/// the file's bytes as they are on disk, copied by the main process, never through the webview.
+/// Returns the copy's file name, or `None` when the dialog was cancelled.
+#[tauri::command]
+pub(crate) async fn save_copy(
+    window: tauri::WebviewWindow,
+    engines: tauri::State<'_, Arc<Engines>>,
+    doc: u32,
+) -> Result<Option<String>, DesktopError> {
+    let from = engines
+        .path_in(window.label(), DocId(doc))
+        .ok_or_else(|| DesktopError::Internal("save_copy: not one of this window's documents".to_owned()))?;
+    // The dialog blocks: off the async runtime's threads.
+    tauri::async_runtime::spawn_blocking(move || {
+        let name = from.file_name().map(|name| name.to_string_lossy().into_owned());
+        let mut dialog = window.dialog().file().set_parent(&window).add_filter("PDF", &["pdf"]);
+        if let Some(name) = &name {
+            dialog = dialog.set_file_name(name);
+        }
+        let Some(to) = dialog.blocking_save_file() else {
+            return Ok(None);
+        };
+        let to = to
+            .into_path()
+            .map_err(|error| DesktopError::Internal(error.to_string()))?;
+        if to != from {
+            std::fs::copy(&from, &to)?;
+        }
+        Ok(to.file_name().map(|name| name.to_string_lossy().into_owned()))
+    })
+    .await
+    .map_err(|error| DesktopError::Internal(error.to_string()))?
+}
+
 /// Kills this window's engine as a crash would (end-to-end tests only, feature `e2e`).
 #[cfg(feature = "e2e")]
 #[tauri::command]
@@ -226,10 +284,10 @@ pub(crate) fn debug_kill_engine(window: tauri::WebviewWindow, engines: tauri::St
     engines.kill(window.label());
 }
 
-/// Opens a new, empty window (File ▸ New Window) and returns its label.
+/// Opens a new, empty window (File ▸ New Window) and returns its label. Async: on Windows a
+/// synchronous command runs on the main thread, where making a window deadlocks.
 #[tauri::command]
-#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its app by value")]
-pub(crate) fn new_window(app: tauri::AppHandle) -> Result<String, DesktopError> {
+pub(crate) async fn new_window(app: tauri::AppHandle) -> Result<String, DesktopError> {
     crate::windows::new_window(&app, None)
 }
 
