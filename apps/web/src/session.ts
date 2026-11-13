@@ -105,6 +105,12 @@ export interface EngineState {
   readonly threadPart: ThreadPartRef | undefined;
 }
 
+/** Reports a failed read, which the reader goes on without (the worker says why). */
+function reportAndForget(error: unknown): undefined {
+  reportError(error);
+  return undefined;
+}
+
 /** No threads: the Threads tab stays away. */
 const NO_THREADS: readonly ArticleThread[] = [];
 
@@ -495,17 +501,19 @@ export class Engine implements ExternalStore<EngineState> {
    * fragment named a place and no kept position wins, and the reader hasn't moved since.
    */
   async #readOpening(session: Session, latest: () => boolean, go: boolean): Promise<void> {
-    try {
-      const [opening, threads] = await Promise.all([session.client.initialView(), session.client.threads()]);
-      if (!latest()) return;
-      this.#set({ opening, threads: threads.length === 0 ? NO_THREADS : threads });
-      const state = session.viewer.getState();
-      if (go && opening.open.kind === "page" && state.currentPage === 0 && state.scrollTop === 0) {
-        session.viewer.goToDestination(opening.open.target);
-      }
-    } catch (error) {
-      // The file opens at its first page, as without an initial view; the error is the worker's.
-      reportError(error);
+    // Apart, so a file whose threads can't be read still opens as it asks, and the reverse.
+    const [opening, threads] = await Promise.all([
+      session.client.initialView().catch(reportAndForget),
+      session.client.threads().catch(reportAndForget),
+    ]);
+    if (!latest()) return;
+    this.#set({
+      ...(opening === undefined ? {} : { opening }),
+      ...(threads === undefined ? {} : { threads }),
+    });
+    const state = session.viewer.getState();
+    if (go && opening?.open.kind === "page" && state.currentPage === 0 && state.scrollTop === 0) {
+      session.viewer.goToDestination(opening.open.target);
     }
   }
 

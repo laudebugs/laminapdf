@@ -24,6 +24,8 @@ const EN = {
   "initialView.close": "Close Initial view",
   "initialView.action":
     "This file runs a {action} action when it opens. Lamina PDF never runs it, and keeps it: the opening page can't be set here.",
+  "initialView.action.unnamed":
+    "This file runs an action when it opens. Lamina PDF never runs it, and keeps it: the opening page can't be set here.",
   "initialView.page": "Open at page",
   "initialView.page.help": "Of {pages}. Leave it empty to open at the first page.",
   "initialView.page.invalid": "Enter a page from 1 to {pages}, or leave it empty.",

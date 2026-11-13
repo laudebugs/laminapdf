@@ -154,7 +154,14 @@ function OpenFields({ props, state }: { props: InitialViewDialogProps; state: Fo
   const action = props.view?.open.kind === "action" ? props.view.open.action : undefined;
   return (
     <>
-      {action === undefined ? null : <Notice title={laterMessage("initialView.action", { action })} />}
+      {action === undefined ? null : (
+        <Notice
+          title={
+            // An action whose type can't be read has no name to show.
+            action === "" ? laterMessage("initialView.action.unnamed") : laterMessage("initialView.action", { action })
+          }
+        />
+      )}
       <div className="paper-initial-view-open">
         <TextInput
           label={laterMessage("initialView.page")}

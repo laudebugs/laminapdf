@@ -202,6 +202,28 @@ fn an_open_action_that_is_not_a_destination_is_never_replaced() {
 }
 
 #[test]
+fn a_goto_that_runs_more_actions_or_an_unreadable_action_is_never_replaced() {
+    for action in [
+        "/OpenAction << /S /GoTo /D [3 0 R /Fit] /Next << /S /JavaScript /JS (app.alert(1)) >> >>",
+        "/OpenAction << /JS (app.alert(1)) /S (JavaScript) >>",
+    ] {
+        let mut d = doc(action, &[]);
+        let before = snapshot(&d);
+        let op = SetInitialView::default().with_open(Some(OpenAt::new("p3.0".parse().unwrap(), OpenZoom::FitPage)));
+        assert_eq!(
+            apply(&mut d, op).map_err(|e| e.code()),
+            Err("open-action-not-destination"),
+            "{action}"
+        );
+        assert_eq!(snapshot(&d), before);
+        assert!(
+            matches!(d.initial_view().unwrap().open, OpenAction::Action(_)),
+            "{action}"
+        );
+    }
+}
+
+#[test]
 fn a_goto_open_action_is_a_destination_and_can_be_replaced() {
     let mut d = doc("/OpenAction << /S /GoTo /D [3 0 R /Fit] >>", &[]);
     apply(

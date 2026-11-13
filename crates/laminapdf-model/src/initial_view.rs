@@ -225,8 +225,9 @@ pub enum OpenAction {
     None,
     /// A destination, given directly or through a `GoTo` action's `/D`.
     Destination(Destination),
-    /// Another action (JavaScript, a named action, a link to another file). Lamina PDF never
-    /// runs it and only reports its type.
+    /// Another action (JavaScript, a named action, a link to another file), a `GoTo` whose
+    /// `/Next` runs further actions, or an action whose `/S` can't be read (`Other` with no
+    /// name). Lamina PDF never runs it and only reports its type.
     Action(ActionKind),
 }
 
@@ -278,13 +279,15 @@ impl Document {
         let outline = crate::outline::Outline::destinations_only(self);
         let destination = match &*resolved {
             Object::Array(_) => &*resolved,
+            // A `GoTo` that runs more actions through `/Next`, or a dictionary whose `/S` can't
+            // be read, is an action as `open_action_kind` counts them: never followed or replaced.
             Object::Dict(action) => match self.action_kind(action)? {
-                Some(ActionKind::GoTo) => match action.get("D") {
+                Some(ActionKind::GoTo) if !action.contains_key("Next") => match action.get("D") {
                     Some(d) => d,
                     None => return Ok(OpenAction::None),
                 },
                 Some(kind) => return Ok(OpenAction::Action(kind)),
-                None => return Ok(OpenAction::None),
+                None => return Ok(OpenAction::Action(ActionKind::Other(Vec::new()))),
             },
             _ => {
                 self.warn_catalog("OpenAction")?;
@@ -296,10 +299,12 @@ impl Document {
             .map_or(OpenAction::None, OpenAction::Destination))
     }
 
-    /// The kind of the action the document runs when it opens, when `/OpenAction` is an action
-    /// other than going to a page; `None` for a destination, a `GoTo` action or no open action.
-    /// It reads only the catalog's entry, never a destination or a name tree, so an edit can
-    /// check it without the reading code [`Document::initial_view`] needs.
+    /// The kind of the action the document runs when it opens, when `/OpenAction` runs more
+    /// than a page change: an action other than `GoTo`, a `GoTo` whose `/Next` runs further
+    /// actions, or an action dictionary whose `/S` can't be read (`Other` with no name). `None`
+    /// for a destination, a plain `GoTo` action or no open action. It reads only the catalog's
+    /// entry, never a destination or a name tree, so an edit can check it without the reading
+    /// code [`Document::initial_view`] needs.
     ///
     /// # Errors
     /// Reading errors (the catalog).
@@ -310,9 +315,13 @@ impl Document {
         let Some(resolved) = self.open_action_value(&catalog)? else {
             return Ok(None);
         };
-        Ok(match &*resolved {
-            Object::Dict(action) => self.action_kind(action)?.filter(|k| *k != ActionKind::GoTo),
-            _ => None,
+        let Object::Dict(action) = &*resolved else {
+            return Ok(None);
+        };
+        Ok(match self.action_kind(action)? {
+            Some(ActionKind::GoTo) if !action.contains_key("Next") => None,
+            Some(kind) => Some(kind),
+            None => Some(ActionKind::Other(Vec::new())),
         })
     }
 

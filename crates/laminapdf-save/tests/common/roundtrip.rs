@@ -216,10 +216,10 @@ const OPS: [&str; 5] = [
 ];
 
 /// What the `setInitialView` cases write: open on the last page at its width, with the
-/// thumbnails panel, two columns (PDF 1.5, so older files' `/Version` rises) and the title in
+/// thumbnails panel, two pages side by side (PDF 1.5, so older files' `/Version` rises) and the title in
 /// the window. The tools check the page mode by its PDF name.
 const INITIAL_MODE: PageMode = PageMode::Thumbnails;
-const INITIAL_LAYOUT: PageLayout = PageLayout::TwoColumnLeft;
+const INITIAL_LAYOUT: PageLayout = PageLayout::TwoPageLeft;
 
 /// The save-time date the metadata cases stamp (J.02).
 const STAMP: &str = "D:20261110093000Z";
