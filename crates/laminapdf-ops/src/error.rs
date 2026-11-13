@@ -138,6 +138,13 @@ pub enum Error {
     /// by the form ops), or a direct dictionary in `/Annots`, which has no object to edit.
     #[error("annotation {} can't be edited by the annotation ops", ShownAnnot(.0))]
     AnnotationNotEditable(AnnotId),
+    /// A link op names an annotation that isn't a link (`/Subtype /Link`).
+    #[error("annotation {} is not a link", ShownAnnot(.0))]
+    NotALink(AnnotId),
+    /// The file claims PDF/UA-1 but has no structure tree to put a new link in: a link
+    /// without its `Link` element would break the claim (ISO 14289-1 §7.18.5).
+    #[error("the link can't join the structure tree that a PDF/UA file needs")]
+    LinkNotTagged,
 }
 
 /// An outline item ID as a message may show it, as [`Shown`] does pages.
@@ -247,6 +254,8 @@ impl Error {
         "unknown-annotation",
         "annotation-locked",
         "annotation-not-editable",
+        "not-a-link",
+        "link-not-tagged",
         "invalid-label-ranges",
     ];
 
@@ -285,6 +294,8 @@ impl Error {
             Self::UnknownAnnotation(_) => "unknown-annotation",
             Self::AnnotationLocked(_) => "annotation-locked",
             Self::AnnotationNotEditable(_) => "annotation-not-editable",
+            Self::NotALink(_) => "not-a-link",
+            Self::LinkNotTagged => "link-not-tagged",
             Self::InvalidLabelRanges { .. } => "invalid-label-ranges",
         }
     }
@@ -316,6 +327,7 @@ impl Error {
             | Self::NoPagesLeft
             | Self::InvalidOp(_)
             | Self::UnknownAnnotation(_)
+            | Self::NotALink(_)
             | Self::OpenActionNotDestination
             | Self::XmpClaimReadOnly
             | Self::InvalidXmpProperty { .. }
@@ -324,7 +336,8 @@ impl Error {
             Self::DirectPage(_)
             | Self::UnsupportedVersion(_)
             | Self::DirectOutlineItem(_)
-            | Self::AnnotationNotEditable(_) => ErrorKind::Unsupported,
+            | Self::AnnotationNotEditable(_)
+            | Self::LinkNotTagged => ErrorKind::Unsupported,
             Self::InvalidLog(_) | Self::MalformedXmp | Self::InvalidXmpPacket(_) => ErrorKind::Input,
         }
     }
@@ -346,16 +359,17 @@ impl Error {
                 },
                 None => Location::NONE,
             },
-            Self::UnknownAnnotation(annot) | Self::AnnotationLocked(annot) | Self::AnnotationNotEditable(annot) => {
-                match annot.as_lamina_id().obj_ref() {
-                    Some(r) => Location {
-                        object: Some(r.num),
-                        id: Some(annot.to_string()),
-                        ..Location::NONE
-                    },
-                    None => Location::NONE,
-                }
-            }
+            Self::UnknownAnnotation(annot)
+            | Self::AnnotationLocked(annot)
+            | Self::AnnotationNotEditable(annot)
+            | Self::NotALink(annot) => match annot.as_lamina_id().obj_ref() {
+                Some(r) => Location {
+                    object: Some(r.num),
+                    id: Some(annot.to_string()),
+                    ..Location::NONE
+                },
+                None => Location::NONE,
+            },
             Self::UnknownOutlineItem(item)
             | Self::DirectOutlineItem(item)
             | Self::NotASibling(item)
@@ -371,6 +385,7 @@ impl Error {
             | Self::NamedDestinationExists(_)
             | Self::EmptyDestinationName
             | Self::LinkUriRefused
+            | Self::LinkNotTagged
             | Self::ViewNotFinite
             | Self::NestedTransaction
             | Self::NoTransaction
@@ -435,6 +450,8 @@ mod tests {
             Error::UnknownAnnotation("a7.0".parse().unwrap()),
             Error::AnnotationLocked("a7.0".parse().unwrap()),
             Error::AnnotationNotEditable("a7.0".parse().unwrap()),
+            Error::NotALink("a7.0".parse().unwrap()),
+            Error::LinkNotTagged,
             Error::InvalidLabelRanges { what: "order" },
         ]
     }

@@ -6,7 +6,7 @@
 
 use laminapdf::{
     ArticleThread, LinkTo, NamedDestination, OpenTarget, OpeningView, OutlineNode, PageLayout, PageLink, PageMode,
-    PageTarget, PageTargetView,
+    PageTarget, PageTargetView, Pt,
 };
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
@@ -179,6 +179,9 @@ impl From<PageTarget> for TargetJs {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct PageLinkJs {
+    /// Its ID, for the link edits; left out for a link stored inside the page's list.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
     /// Its rectangle: `[x0, y0, x1, y1]`, top-left and bottom-right.
     pub rect: [f64; 4],
     /// The areas that follow it, eight numbers per area (four corners, `x` then `y`); left out
@@ -238,6 +241,8 @@ pub(crate) enum LinkToJs {
 const PAGE_LINK_TS: &str = r#"
 /** One link on a page, in page space, and what following it does (by `kind`). */
 export type PageLinkJs = {
+  /** Its ID, for the link edits; absent for a link stored inside the page's list. */
+  id?: string;
   /** Its rectangle: `[x0, y0, x1, y1]`, top-left and bottom-right. */
   rect: [number, number, number, number];
   /** The areas that follow it, eight numbers per area; absent when the rectangle is the area. */
@@ -271,6 +276,7 @@ impl From<&PageLink> for PageLinkJs {
             },
         };
         Self {
+            id: link.id.as_ref().map(ToString::to_string),
             rect: [r.x0.get(), r.y0.get(), r.x1.get(), r.y1.get()],
             quads: link
                 .quads
@@ -513,6 +519,56 @@ impl WasmDocument {
         Ok(to_js(&dest))
     }
 
+    /// The edit that adds a link on `area` (`[x0, y0, x1, y1]` in page space: a drawn box) of
+    /// page `page`, going to `target`: an `addLink` op's arguments (the extract and text
+    /// modules).
+    ///
+    /// # Errors
+    /// `invalid-argument` for an area or target that isn't one; `page-index-out-of-range`;
+    /// reading errors.
+    #[wasm_bindgen(js_name = linkOnArea, unchecked_return_type = "AddLink")]
+    pub fn link_on_area(
+        &self,
+        page: u32,
+        #[wasm_bindgen(unchecked_param_type = "[number, number, number, number]")] area: &JsValue,
+        #[wasm_bindgen(unchecked_param_type = "OutlineTarget")] target: &JsValue,
+    ) -> JsResult<JsValue> {
+        let [x0, y0, x1, y1]: [f64; 4] = from_js(area, "area")?;
+        let target = from_js(target, "target")?;
+        let op = self
+            .shared()
+            .borrow()
+            .link_on_area(page, rect(x0, y0, x1, y1), target)
+            .map_err(|e| lamina_error(&e))?;
+        Ok(to_js(&op))
+    }
+
+    /// The edit that adds a link on text of page `page`: `lines` are the text's boxes, one per
+    /// line, each `[x0, y0, x1, y1]` in page space, as a selection gives them; the link takes their
+    /// quads and, in a tagged document, the marked content under them (the extract and text
+    /// modules).
+    ///
+    /// # Errors
+    /// `invalid-argument` for lines or a target that aren't ones; `page-index-out-of-range`;
+    /// the page's reading errors.
+    #[wasm_bindgen(js_name = linkOnText, unchecked_return_type = "AddLink")]
+    pub fn link_on_text(
+        &self,
+        page: u32,
+        #[wasm_bindgen(unchecked_param_type = "[number, number, number, number][]")] lines: &JsValue,
+        #[wasm_bindgen(unchecked_param_type = "OutlineTarget")] target: &JsValue,
+    ) -> JsResult<JsValue> {
+        let boxes: Vec<[f64; 4]> = from_js(lines, "lines")?;
+        let lines: Vec<_> = boxes.iter().map(|&[x0, y0, x1, y1]| rect(x0, y0, x1, y1)).collect();
+        let target = from_js(target, "target")?;
+        let op = self
+            .shared()
+            .borrow()
+            .link_on_text(page, &lines, target)
+            .map_err(|e| lamina_error(&e))?;
+        Ok(to_js(&op))
+    }
+
     /// The named destination `name`, or `undefined` when the document has none by that name or
     /// it names no page here (the extract and text modules).
     ///
@@ -530,4 +586,9 @@ impl WasmDocument {
             None => Ok(JsValue::UNDEFINED),
         }
     }
+}
+
+/// A page-space rectangle from its corners.
+fn rect(x0: f64, y0: f64, x1: f64, y1: f64) -> laminapdf::RectPt {
+    laminapdf::RectPt::new(Pt::new(x0), Pt::new(y0), Pt::new(x1), Pt::new(y1))
 }

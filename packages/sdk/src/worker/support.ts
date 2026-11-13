@@ -57,6 +57,8 @@ export const DOCUMENT_METHODS = {
   insertPagesFrom: 4,
   isEncrypted: 0,
   isTagged: 0,
+  linkOnArea: 3,
+  linkOnText: 3,
   mergeDocuments: 3,
   metadata: 0,
   movePages: 2,

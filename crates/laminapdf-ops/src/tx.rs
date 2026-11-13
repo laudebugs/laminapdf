@@ -100,6 +100,10 @@ pub struct Applied {
     ///
     /// Added in 0.3.0.
     pub created_outline_items: Vec<OutlineItemId>,
+    /// The links [`AddLink`](crate::AddLink) created, in order.
+    ///
+    /// Added in 0.3.0.
+    pub created_annotations: Vec<laminapdf_model::AnnotId>,
     /// An outline op found the outline's links broken (a cycle, a wrong `/Last`, an item
     /// stored as a direct dictionary) and rewrote them whole; items that were direct have new
     /// IDs.
@@ -175,6 +179,7 @@ pub(crate) struct TxState {
     pub(crate) removed: bool,
     pub(crate) outline_repaired: bool,
     pub(crate) created_outline_items: Vec<OutlineItemId>,
+    pub(crate) created_annotations: Vec<laminapdf_model::AnnotId>,
     pub(crate) destination_uses: Vec<DestinationUse>,
     pub(crate) declared: Vec<laminapdf_model::xmp::ExtensionProperty>,
     /// The page order after the last op that changed it.
@@ -260,6 +265,7 @@ impl Tx<'_> {
             also_deleted: effect.also_deleted,
             widgets: effect.widgets,
             created_outline_items: effect.created_outline_items,
+            created_annotations: effect.created_annotations,
             outline_repaired: effect.outline_repaired,
             destination_uses: effect.destination_uses,
             page_order: effect.page_order,
@@ -293,6 +299,9 @@ impl Tx<'_> {
                 self.state
                     .created_outline_items
                     .extend(effect.created_outline_items.iter().cloned());
+                self.state
+                    .created_annotations
+                    .extend(effect.created_annotations.iter().cloned());
                 self.state
                     .destination_uses
                     .extend(effect.destination_uses.iter().cloned());
@@ -341,6 +350,7 @@ impl Tx<'_> {
             self.state.outline_repaired,
             self.state.created_outline_items.len(),
             self.state.destination_uses.len(),
+            self.state.created_annotations.len(),
         );
         let page_order = self.state.page_order.clone();
         let references = self.state.references.len();
@@ -362,6 +372,7 @@ impl Tx<'_> {
             self.state.outline_repaired = reports.0;
             self.state.created_outline_items.truncate(reports.1);
             self.state.destination_uses.truncate(reports.2);
+            self.state.created_annotations.truncate(reports.3);
             self.state.page_order = page_order;
             self.state.references.truncate(references);
             self.state.fields.truncate(fields);
@@ -423,6 +434,7 @@ mod tests {
             removed: false,
             outline_repaired: false,
             created_outline_items: Vec::new(),
+            created_annotations: Vec::new(),
             destination_uses: Vec::new(),
             declared: Vec::new(),
             page_order: None,

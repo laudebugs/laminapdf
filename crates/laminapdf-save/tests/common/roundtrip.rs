@@ -615,6 +615,126 @@ fn extra_cases(root: &Path, suite: &mut Suite) {
     images(root, suite);
     extracted(root, suite);
     outlines(root, suite);
+    links(root, suite);
+}
+
+/// Each page's links as the tools list them, sorted: `["page", index]` for a destination in the
+/// file, `["uri", address]` for a web address, `["other"]` for anything else.
+pub fn link_facts(doc: &laminapdf_model::Document) -> Vec<Vec<Value>> {
+    use laminapdf_model::LinkAction;
+    let pages = doc.pages().unwrap();
+    pages
+        .iter()
+        .map(|page| {
+            let mut found: Vec<Value> = pages
+                .links(&page)
+                .unwrap()
+                .into_iter()
+                .map(|link| match link.action {
+                    LinkAction::GoTo(dest) => match dest.page_index {
+                        Some(i) => json!(["page", i]),
+                        None => json!(["other"]),
+                    },
+                    LinkAction::Uri(uri) => json!(["uri", String::from_utf8_lossy(&uri)]),
+                    _ => json!(["other"]),
+                })
+                .collect();
+            found.sort_by_key(ToString::to_string);
+            found
+        })
+        .collect()
+}
+
+/// The link cases (todo E3c, I.02, I.03 and A.09): on every plain fixture, a link on an area of
+/// the first page to the last page, and a web link on a line of text; the page's first link, when
+/// it has one, retargeted to a web address, and its second deleted, saved incrementally and as a
+/// full rewrite. Lamina reopens each with the same links and pages; the tools compare the links
+/// they read (`links`).
+fn links(root: &Path, suite: &mut Suite) {
+    use laminapdf_model::{AnnotSubtype, UserSpacePoint, UserSpaceRect};
+    use laminapdf_ops::{AddLink, DeleteLink, DestinationView, ExplicitDestination, OutlineTarget, UpdateLink};
+    let names = PLAIN_CORPUS
+        .iter()
+        .map(|n| format!("corpus/{n}"))
+        .chain(PLAIN_BUILT.iter().map(|n| format!("golden/{n}")));
+    for name in names {
+        let bytes = std::fs::read(root.join("fixtures").join(&name)).unwrap();
+        for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
+            let id = format!("links-{}-{mode:?}", name.replace('/', "_").trim_end_matches(".pdf")).to_lowercase();
+            let mut doc = Document::open(bytes.clone(), OpenOptions::default()).unwrap();
+            let (pages, rotations, info, labels) = facts(&doc);
+            let all = doc.pages().unwrap();
+            let first = all.get(0).unwrap();
+            let existing: Vec<_> = doc
+                .annotations(&first)
+                .unwrap()
+                .into_iter()
+                .filter(|a| a.subtype == AnnotSubtype::Link)
+                .map(|a| a.id)
+                .collect();
+            let last = all.get(pages - 1).unwrap().id().clone();
+            let first = first.id().clone();
+            drop(all);
+            let to_last = OutlineTarget::Destination(ExplicitDestination::new(last, DestinationView::Fit));
+            let area = AddLink::new(
+                first.clone(),
+                UserSpaceRect::from_corners(36.0, 36.0, 120.0, 60.0),
+                to_last,
+            );
+            let mut on_text = AddLink::new(
+                first,
+                UserSpaceRect::from_corners(36.0, 80.0, 200.0, 94.0),
+                OutlineTarget::Uri("https://example.com/round-trip".into()),
+            );
+            on_text.quads = vec![[
+                UserSpacePoint::new(36.0, 94.0),
+                UserSpacePoint::new(200.0, 94.0),
+                UserSpacePoint::new(36.0, 80.0),
+                UserSpacePoint::new(200.0, 80.0),
+            ]];
+            on_text.contents = Some("Round trip".into());
+            let mut ops = vec![Op::from(area), Op::from(on_text)];
+            if let Some(link) = existing.first() {
+                let mut retarget = UpdateLink::new(link.clone());
+                retarget.target = Some(OutlineTarget::Uri("https://example.com/retargeted".into()));
+                ops.push(retarget.into());
+            }
+            if let Some(link) = existing.get(1) {
+                ops.push(DeleteLink::new(link.clone()).into());
+            }
+            doc.apply_all(Origin::Local, ops).unwrap();
+            let links = link_facts(&doc);
+            let mut output = Vec::new();
+            let report = doc.save(&mut output, &SaveOptions::new().with_mode(mode)).unwrap();
+            suite.saved += 1;
+            let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
+            if link_facts(&reopened) != links
+                || facts(&reopened) != (pages, rotations.clone(), info.clone(), labels.clone())
+                || reopened.was_repaired()
+            {
+                suite.failures.push(format!(
+                    "{id}: lamina reopened links {:?} (repaired {}), expected {links:?}",
+                    link_facts(&reopened),
+                    reopened.was_repaired()
+                ));
+            }
+            let file = format!("{id}.pdf");
+            suite.manifest.push(json!({
+                "file": &file,
+                "source": name,
+                "mode": format!("{:?}", report.mode()),
+                "pages": pages,
+                "rotations": rotations,
+                "title": info[0],
+                "info": null,
+                "encrypted": false,
+                "direct_info": matches!(reopened.trailer().get("Info"), Some(laminapdf_cos::Object::Dict(_))),
+                "invalidated": 0,
+                "links": links,
+            }));
+            suite.outputs.push((file, output));
+        }
+    }
 }
 
 /// The outline as the tools list it: `[depth, title, page]` per item in document order, the

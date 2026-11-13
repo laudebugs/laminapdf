@@ -9,20 +9,47 @@ import { isBound, onPlatform } from "../commands/shortcuts.js";
 import type { CommandContext, CommandId, Shortcut } from "../commands/types.js";
 import { IconButton } from "../components/button.js";
 import type { KeyPlatform } from "../components/shortcut-chip.js";
+import { ToolToggle } from "../components/toggle.js";
+import { laterMessage } from "../later-messages.js";
 import { message } from "../messages.js";
 import { Tooltip } from "../overlays/tooltip.js";
 import { useStoreState } from "../state/hooks.js";
+import type { ToolRegistry } from "../tools/tools.js";
 import { type EditControls, saveStateText, sessionStarted } from "./edit-controls.js";
 import { SaveButton } from "./save-ui.js";
 
-/** The editor's part of the file area: the save state, then Undo and Redo; nothing in the reader. */
-export function EditArea({ edits, keys }: { edits: EditControls; keys: KeyPlatform }): ReactNode {
+/**
+ * The editor's part of the file area: the save state, then Undo and Redo, and the Link tool
+ * (O12, while the reader has no Edit mode to hold it) once `tools` has it; nothing in the reader.
+ */
+export function EditArea({
+  edits,
+  keys,
+  tools,
+}: {
+  edits: EditControls;
+  keys: KeyPlatform;
+  tools?: ToolRegistry;
+}): ReactNode {
   return (
     <>
       <SaveState edits={edits} />
       <UndoRedo keys={keys} />
+      {tools === undefined ? null : <LinkTool tools={tools} />}
       <SaveButton keys={keys} />
     </>
+  );
+}
+
+/** The Link tool's toggle: pressed while it is on; off goes back to selecting text. */
+function LinkTool({ tools }: { tools: ToolRegistry }): ReactNode {
+  const registered = useStoreState(tools, (s) => s.tools.has("link"));
+  const on = useStoreState(tools, (s) => s.current === "link");
+  if (!registered) return null;
+  return (
+    <ToolToggle icon="link" isSelected={on} onChange={(next) => tools.use(next ? "link" : "select")}>
+      {laterMessage("link.tool")}
+    </ToolToggle>
   );
 }
 

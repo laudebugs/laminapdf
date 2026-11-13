@@ -353,6 +353,8 @@ pub(crate) struct EditedJs {
     pub changed: bool,
     /// The IDs of the bookmarks the edit added, in order.
     pub created_outline_items: Vec<String>,
+    /// The IDs of the links the edit added, in order.
+    pub created_annotations: Vec<String>,
     /// An outline edit found the outline's links broken and rewrote them whole; bookmarks
     /// stored inside others have new IDs.
     pub outline_repaired: bool,
@@ -523,6 +525,7 @@ impl From<laminapdf::Edited> for EditedJs {
             also_deleted: e.also_deleted,
             changed: e.changed,
             created_outline_items: e.created_outline_items.iter().map(ToString::to_string).collect(),
+            created_annotations: e.created_annotations.iter().map(ToString::to_string).collect(),
             outline_repaired: e.outline_repaired,
             destination_uses: e.destination_uses,
             page_order: e.page_order.map(|o| o.iter().map(ToString::to_string).collect()),
