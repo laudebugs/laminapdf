@@ -1,0 +1,4 @@
+# Its own pnpm project, outside the root workspace (like tools/differential): the Anthropic SDK is
+# needed only by this hand-run check, so the root install stays small. Install with
+# `pnpm --dir tools/answer-check install --frozen-lockfile`.
+packages: []

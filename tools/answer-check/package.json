@@ -1,0 +1,17 @@
+{
+  "name": "lamina-answer-check",
+  "private": true,
+  "description": "Asks answer engines a fixed set of developer questions and records whether they mention or cite Lamina PDF (todo W3i); a tool run by hand, never shipped and never in CI.",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": "^22.21.0 || >=24.5.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.3.0"
+  }
+}
