@@ -153,11 +153,12 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 
 #### E7. Editing existing content
 
+- **Plan:** [E7 editing existing content](editor/e7-editing-existing-content.md).
 - **Ships:** group A: edit existing text, delete or replace text, change font family/size/colour/style, bold/italic/underline/super/subscript, alignment and line spacing, move/resize/rotate text blocks, search and replace across the document. Group B: delete/replace existing images, resize/rotate/crop/reposition existing objects, edit vector paths/fills/strokes, change stacking order, clipping paths and masks, transformations.
 - **Crates:** ADR 0022 (content-stream editing model) and the `laminapdf-content` IR with object identity and encoder, built on B9's interpreter; text-run detection via MCIDs where tagged, heuristics otherwise; re-layout with the original subset when it has the glyphs, a new subset otherwise ([03 §11.2 "Editing"](../research/pdf/03-text-and-fonts.md#112-concrete-requirements)). This is the hardest round ([06 §7](../research/pdf/06-feature-inventory.md#7-difficulty-map)); "edit in place" is best-effort and the UI says so.
 - **Save:** incremental on `Free`; structure tree and MCIDs updated so tagging survives; PDF/A/UA claims re-checked on save.
 - **Web vs desktop:** identical; desktop font substitution can use system fonts.
-- **Todos:** [E7a](../todos/done/E7a-adr-0022-content-editing.md) ADR 0022: content-stream editing model for existing content · [E7b](../todos/ready/E7b-editing-existing-content-feature-plan.md) feature plan · [E7c](../todos/ready/E7c-content-ir.md) Content IR with object identity and encoder · [E7d](../todos/ready/E7d-select-transform-existing.md) Select, move, resize, rotate, delete and replace existing objects; stacking order · [E7e](../todos/ready/E7e-text-runs-and-inline-edit.md) Text-run detection and in-place text editing with the existing subset · [E7f](../todos/ready/E7f-font-handling-and-styling.md) Font handling: re-subset, substitution, font/size/colour/style, alignment and spacing · [E7g](../todos/ready/E7g-search-and-replace.md) Search and replace across the document · [E7h](../todos/ready/E7h-vector-clipping-masks.md) Vector path editing, fills, strokes, clipping paths and masks · [E7i](../todos/ready/E7i-structure-and-conformance-maintenance.md) Struct-tree and MCID maintenance; PDF/A and PDF/UA re-checks on save · [E7j](../todos/ready/E7j-edit-corpus.md) Edit-corpus tests and E7 round close.
+- **Todos:** [E7a](../todos/done/E7a-adr-0022-content-editing.md) ADR 0022: content-stream editing model for existing content · [E7b](../todos/done/E7b-editing-existing-content-feature-plan.md) feature plan · [E7c](../todos/ready/E7c-content-ir.md) Content IR with object identity and encoder · [E7d](../todos/ready/E7d-select-transform-existing.md) Select, move, resize, rotate, delete and replace existing objects; stacking order · [E7e](../todos/ready/E7e-text-runs-and-inline-edit.md) Text-run detection and in-place text editing with the existing subset · [E7f](../todos/ready/E7f-font-handling-and-styling.md) Font handling: re-subset, substitution, font/size/colour/style, alignment and spacing · [E7g](../todos/ready/E7g-search-and-replace.md) Search and replace across the document · [E7h](../todos/ready/E7h-vector-clipping-masks.md) Vector path editing, fills, strokes, clipping paths and masks · [E7i](../todos/ready/E7i-structure-and-conformance-maintenance.md) Struct-tree and MCID maintenance; PDF/A and PDF/UA re-checks on save · [E7j](../todos/ready/E7j-edit-corpus.md) Edit-corpus tests and E7 round close · [E7k](../todos/ready/E7k-select-transform-ui.md) Select and transform existing objects in the reader · [E7l](../todos/ready/E7l-inline-text-editor.md) Edit existing text inline in the reader.
 
 ### Phase 5: forms and signatures
 
@@ -286,7 +287,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 1. JavaScript: never execute, or run a restricted sandbox (for example a WASM JS engine with only the Acrobat form-helper API) for formatting and calculation?
 2. Which OCR engine (licence, size, quality) for client-side and Container use?
 3. Is batch processing a desktop/CLI feature only, or also a hosted service?
-4. Do we build a layout-aware "reflow edit" mode for paragraphs, or keep line-level editing only?
+4. Do we build a layout-aware "reflow edit" mode for paragraphs, or keep line-level editing only? *Answered 2026-11-13: line-level for E7; paragraph reflow is a later round ([E7 plan §10](editor/e7-editing-existing-content.md#10-decisions-on-the-open-questions)).*
 5. Qualified electronic signatures (eIDAS QES) via remote signing services: in scope, and which providers?
 6. Does collaboration (E18) need accounts, or can it start with capability links?
 
@@ -355,7 +356,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 
 ### E7. Editing existing content
 - [x] Write ADR 0022 (content-stream editing model for existing content)
-- [ ] Feature-plan PR for E7
+- [x] Feature-plan PR for E7
 - [ ] Content IR with object identity; select and transform existing objects
 - [ ] Text-run detection (MCID first, heuristics second) and in-place text editing
 - [ ] Font handling: reuse subset when possible, re-subset or substitute otherwise
