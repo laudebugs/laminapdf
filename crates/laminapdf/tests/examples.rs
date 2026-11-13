@@ -156,7 +156,9 @@ const EXAMPLES: [(&str, Build); 19] = [
     ("edit_metadata-pdfa", || {
         edit_metadata::edit(fixture("golden/examples/pdf_a_archive-2u.pdf"), EDITED.parse()?)
     }),
-    ("set_initial_view", || set_initial_view::open_on(fixture("corpus/outline.pdf"), 1)),
+    ("set_initial_view", || {
+        set_initial_view::open_on(fixture("corpus/outline.pdf"), 1)
+    }),
     ("pdf_ua_report", || pdf_ua_report::build(fixture(NOTO))),
     ("pdf_a_archive-2b", || {
         pdf_a_archive::build(Level::A2b, fixture(NOTO), fixture(PHOTO))
