@@ -12,7 +12,16 @@
 // edit unsaved.
 
 import type { RenderSource } from "@laminapdf/render";
-import type { Document, DocumentMetadata, Op, PageInfo, PlannedSave, Reverted, SaveOptions } from "@laminapdf/sdk";
+import type {
+  Document,
+  DocumentMetadata,
+  Op,
+  PageInfo,
+  PlannedSave,
+  Reverted,
+  SaveOptions,
+  XmpText,
+} from "@laminapdf/sdk";
 import type { EditHistory, EditResult, ReplayedStep, RevertedStep, SavedCopy } from "../protocol.js";
 import { current, currentBackend, type EditState, filling, followEdit, type Open } from "./document.js";
 import { forgetSearch } from "./find.js";
@@ -333,6 +342,12 @@ export function planSave(options: SaveOptions, id: number, signal: AbortSignal):
 export function readMetadata(id: number, signal: AbortSignal): Promise<DocumentMetadata> {
   const opened = current(id);
   return serial(opened, () => opened.model.ensure(() => opened.model.metadata(), { signal }));
+}
+
+/** Document `id`'s XMP metadata as text, as its edits leave it, for the properties dialog's XMP tab. */
+export function readXmpPacket(id: number, signal: AbortSignal): Promise<XmpText> {
+  const opened = current(id);
+  return serial(opened, () => opened.model.ensure(() => opened.model.xmpPacket(), { signal }));
 }
 
 /** The token of the next copy a save writes. */

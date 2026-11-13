@@ -16,6 +16,7 @@ mod common;
 /// capability: C.08 core round-trip
 /// capability: C.13 core round-trip
 /// capability: J.01 core round-trip
+/// capability: J.04 core round-trip
 /// capability: G.05 core round-trip
 /// capability: H.02 core write
 /// capability: I.10 core round-trip
@@ -159,6 +160,7 @@ fn built_text_links_outlines_labels_and_xmp_survive_a_save() {
 /// hold the new values and agree, the pages and every other mapped field are kept, and a
 /// removal leaves neither side holding the value.
 /// capability: J.01 core round-trip
+/// capability: J.04 core round-trip
 /// capability: J.02 core round-trip
 /// capability: J.03 core round-trip
 /// capability: J.10 core round-trip

@@ -102,6 +102,12 @@ pub enum ErrorCode {
     MalformedXmp,
     /// `unknown-source`: an op or a call names a source document that was not added to the session.
     UnknownSource,
+    /// `xmp-claim-read-only`: an XMP edit would change the file's PDF/A or PDF/UA identification, which only conversion or a check may set.
+    XmpClaimReadOnly,
+    /// `invalid-xmp-packet`: the XMP packet given to replace the document's doesn't parse.
+    InvalidXmpPacket,
+    /// `invalid-xmp-property`: an XMP property edit names a property, or gives a value, that can't be written.
+    InvalidXmpProperty,
     /// `no-pages-left`: a page deletion would leave the document with no pages.
     NoPagesLeft,
     /// `invalid-op`: an op's values are out of range, such as a page count or a page size.
@@ -312,6 +318,9 @@ impl ErrorCode {
         Self::NoPendingSave,
         Self::MalformedXmp,
         Self::UnknownSource,
+        Self::XmpClaimReadOnly,
+        Self::InvalidXmpPacket,
+        Self::InvalidXmpProperty,
         Self::NoPagesLeft,
         Self::InvalidOp,
         Self::UnknownAnnotation,
@@ -451,6 +460,9 @@ impl ErrorCode {
             Self::NoPendingSave => "no-pending-save",
             Self::MalformedXmp => "malformed-xmp",
             Self::UnknownSource => "unknown-source",
+            Self::XmpClaimReadOnly => "xmp-claim-read-only",
+            Self::InvalidXmpPacket => "invalid-xmp-packet",
+            Self::InvalidXmpProperty => "invalid-xmp-property",
             Self::NoPagesLeft => "no-pages-left",
             Self::InvalidOp => "invalid-op",
             Self::UnknownAnnotation => "unknown-annotation",
@@ -576,6 +588,9 @@ impl ErrorCode {
             Self::NoPendingSave => ErrorKind::State,
             Self::MalformedXmp => ErrorKind::Input,
             Self::UnknownSource => ErrorKind::Usage,
+            Self::XmpClaimReadOnly => ErrorKind::Usage,
+            Self::InvalidXmpPacket => ErrorKind::Input,
+            Self::InvalidXmpProperty => ErrorKind::Usage,
             Self::NoPagesLeft => ErrorKind::Usage,
             Self::InvalidOp => ErrorKind::Usage,
             Self::UnknownAnnotation => ErrorKind::Usage,
@@ -701,6 +716,9 @@ impl ErrorCode {
             Self::NoPendingSave => "rebase was called without a save waiting for it",
             Self::MalformedXmp => "a metadata edit would replace the document's XMP packet, which can't be read, losing what it holds",
             Self::UnknownSource => "an op or a call names a source document that was not added to the session",
+            Self::XmpClaimReadOnly => "an XMP edit would change the file's PDF/A or PDF/UA identification, which only conversion or a check may set",
+            Self::InvalidXmpPacket => "the XMP packet given to replace the document's doesn't parse",
+            Self::InvalidXmpProperty => "an XMP property edit names a property, or gives a value, that can't be written",
             Self::NoPagesLeft => "a page deletion would leave the document with no pages",
             Self::InvalidOp => "an op's values are out of range, such as a page count or a page size",
             Self::UnknownAnnotation => "the op names an annotation that no page of the document lists",
@@ -826,6 +844,9 @@ impl ErrorCode {
             Self::NoPendingSave => "call rebase only after a save that returned SavedNotRebased",
             Self::MalformedXmp => "set replaceMalformed on the edit to replace the packet with a new one, or leave the metadata as it is",
             Self::UnknownSource => "add the source document's bytes with addSource before applying ops that name it",
+            Self::XmpClaimReadOnly => "leave the pdfaid: and pdfuaid: properties as they are; edit the other properties, or keep them unchanged in a replaced packet",
+            Self::InvalidXmpPacket => "fix the XML at the offset in the error's data (reason says what is wrong), then replace the packet again",
+            Self::InvalidXmpProperty => "check the part the error's reason names: the namespace, prefix, name, value, or the shape a mirrored property needs",
             Self::NoPagesLeft => "keep at least one page: delete all but one, or insert a blank page first",
             Self::InvalidOp => "insert between 1 and 10,000 pages at a time, each with a width and height above 0 and up to 14,400 points",
             Self::UnknownAnnotation => "read the page's annotations again and use an ID from that list",

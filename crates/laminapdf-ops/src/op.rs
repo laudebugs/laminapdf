@@ -12,7 +12,9 @@ use crate::class::ModificationClass;
 use crate::error::{Error, Result};
 use crate::info::SetInfo;
 use crate::labels::SetPageLabels;
-use crate::metadata::{RemoveMetadata, SetMetadata, UpdateSaveMetadata};
+use crate::metadata::{
+    RemoveMetadata, RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty, UpdateSaveMetadata,
+};
 use crate::pages::{
     DeletePages, DuplicatePages, FieldChange, InsertBlankPages, MovePages, ReferenceChange, ReversePages, RotatePages,
 };
@@ -59,6 +61,12 @@ pub enum Op {
     SetMetadata(SetMetadata),
     /// Remove metadata fields from Info and XMP.
     RemoveMetadata(RemoveMetadata),
+    /// Set any XMP property.
+    SetXmpProperty(SetXmpProperty),
+    /// Remove an XMP property.
+    RemoveXmpProperty(RemoveXmpProperty),
+    /// Replace the whole XMP packet.
+    ReplaceXmpPacket(ReplaceXmpPacket),
     /// Insert blank pages.
     InsertBlankPages(InsertBlankPages),
     /// Delete pages, cleaning up what named them.
@@ -96,9 +104,13 @@ impl Op {
     #[must_use]
     pub const fn class(&self) -> ModificationClass {
         match self {
-            Self::SetInfo(_) | Self::SetMetadata(_) | Self::RemoveMetadata(_) | Self::UpdateSaveMetadata(_) => {
-                ModificationClass::Metadata
-            }
+            Self::SetInfo(_)
+            | Self::SetMetadata(_)
+            | Self::RemoveMetadata(_)
+            | Self::SetXmpProperty(_)
+            | Self::RemoveXmpProperty(_)
+            | Self::ReplaceXmpPacket(_)
+            | Self::UpdateSaveMetadata(_) => ModificationClass::Metadata,
             Self::RotatePage(_)
             | Self::InsertBlankPages(_)
             | Self::DeletePages(_)
@@ -124,6 +136,9 @@ impl Op {
             | Self::RotatePage(_)
             | Self::SetMetadata(_)
             | Self::RemoveMetadata(_)
+            | Self::SetXmpProperty(_)
+            | Self::RemoveXmpProperty(_)
+            | Self::ReplaceXmpPacket(_)
             | Self::UpdateSaveMetadata(_)
             | Self::InsertBlankPages(_)
             | Self::DeletePages(_)
@@ -154,6 +169,9 @@ impl Op {
             Self::SetInfo(_)
             | Self::SetMetadata(_)
             | Self::RemoveMetadata(_)
+            | Self::SetXmpProperty(_)
+            | Self::RemoveXmpProperty(_)
+            | Self::ReplaceXmpPacket(_)
             | Self::UpdateSaveMetadata(_)
             | Self::InsertBlankPages(_)
             | Self::DuplicatePages(_)
@@ -193,6 +211,9 @@ impl Op {
             Self::DuplicatePages(op) => op.apply_to(doc),
             Self::SetMetadata(op) => op.apply_to(doc),
             Self::RemoveMetadata(op) => op.apply_to(doc),
+            Self::SetXmpProperty(op) => op.apply_to(doc),
+            Self::RemoveXmpProperty(op) => op.apply_to(doc),
+            Self::ReplaceXmpPacket(op) => op.apply_to(doc),
             Self::UpdateSaveMetadata(op) => op.apply_to(doc),
             Self::UpdateAnnot(op) => op.apply_to(doc),
             Self::DeleteAnnot(op) => op.apply_to(doc),
@@ -213,6 +234,8 @@ pub(crate) struct Effect {
     pub(crate) packet_rewritten: bool,
     /// It removed something that the file's earlier revisions still hold.
     pub(crate) removed: bool,
+    /// The properties it declared in a PDF/A packet's extension schemas.
+    pub(crate) declared: Vec<laminapdf_model::xmp::ExtensionProperty>,
     /// Annotations it deleted besides the one it names (Popups, replies, a group).
     pub(crate) also_deleted: Vec<laminapdf_model::AnnotId>,
     /// The form fields whose widgets it deleted, reshowed or moved.
@@ -262,6 +285,9 @@ macro_rules! op_from {
 }
 
 op_from!(
+    SetXmpProperty,
+    RemoveXmpProperty,
+    ReplaceXmpPacket,
     InsertBlankPages,
     DeletePages,
     MovePages,

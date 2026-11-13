@@ -28,11 +28,12 @@
 use std::path::Path;
 
 use laminapdf_cos::OpenOptions;
+use laminapdf_model::xmp::{RdfValue, XmpValue};
 use laminapdf_model::{LabelStyle, PageId, PagePosition, PageSize, Rotation};
 use laminapdf_ops::{
     DeletePages, Document, DuplicatePages, InfoPatch, InsertBlankPages, MetadataKey, MetadataPatch, MovePages, Op,
     Origin, PageLabelRange, RemoveMetadata, ReversePages, RotatePage, RotatePages, SetInfo, SetMetadata, SetPageLabels,
-    read_metadata,
+    SetXmpProperty, read_metadata,
 };
 use laminapdf_save::{Restriction, Save, SaveError, SaveMode, SaveOptions, SavePlanner, SaveReport};
 use serde_json::{Value, json};
@@ -247,13 +248,15 @@ fn new_labels(pages: usize) -> Vec<Option<String>> {
 }
 
 /// The ops each fixture is saved with: a title through the deprecated `setInfo`, a rotation,
-/// the metadata ops (J.01–J.03, J.10), page labels (I.10) and the page ops (C.01, C.03, C.04,
-/// C.08, C.13), duplicating included (C.03).
-const OPS: [&str; 11] = [
+/// the metadata ops (J.01–J.03, J.10), the XMP property op (J.04: the title, mirrored in
+/// Info, and a custom property, [`CUSTOM`]), page labels (I.10) and the page ops (C.01, C.03,
+/// C.04, C.08, C.13), duplicating included (C.03).
+const OPS: [&str; 12] = [
     "setInfo",
     "rotatePage",
     "setMetadata",
     "removeMetadata",
+    "setXmpProperty",
     "insertBlankPages",
     "deletePages",
     "reversePages",
@@ -262,6 +265,9 @@ const OPS: [&str; 11] = [
     "setPageLabels",
     "duplicatePages",
 ];
+
+/// The custom XMP property the `setXmpProperty` cases add: namespace and name.
+const CUSTOM: (&str, &str) = ("http://example.com/roundtrip/", "batch");
 
 /// The save-time date the metadata cases stamp (J.02).
 const STAMP: &str = "D:20261110093000Z";
@@ -289,6 +295,13 @@ fn op(doc: &Document, name: &str, rotation: Rotation) -> Option<Op> {
                 .creator(Some("lamina round trip"))
                 .created(Some("D:20260101120000+01'00'".parse().unwrap())),
             None,
+        )
+        .into(),
+        "setXmpProperty" => SetXmpProperty::new(
+            "http://purl.org/dc/elements/1.1/",
+            "dc",
+            "title",
+            XmpValue::Text(INFO[0].1.to_owned()),
         )
         .into(),
         "removeMetadata" => RemoveMetadata::new(vec![
@@ -326,6 +339,31 @@ fn op(doc: &Document, name: &str, rotation: Rotation) -> Option<Op> {
     })
 }
 
+/// The ops a case applies: `op`, after the edit a removal removes, or with the custom XMP
+/// property beside the title. A removal from a file with nothing to remove would change
+/// nothing, so it follows the metadata edit, in the same transaction.
+fn case_ops(doc: &Document, op_name: &str, op: Op, rotation: Rotation) -> Vec<Op> {
+    match op_name {
+        "removeMetadata" => vec![self::op(doc, "setMetadata", rotation).unwrap(), op],
+        "setXmpProperty" => vec![
+            op,
+            SetXmpProperty::new(CUSTOM.0, "rt", CUSTOM.1, XmpValue::Integer(7)).into(),
+        ],
+        _ => vec![op],
+    }
+}
+
+/// What is wrong with the custom XMP property a `setXmpProperty` case added, as reopened.
+fn custom_property_problem(id: &str, reopened: &laminapdf_model::Document) -> Option<String> {
+    let custom = reopened
+        .xmp()
+        .unwrap()
+        .packet()
+        .and_then(|p| p.property(CUSTOM.0, CUSTOM.1).cloned());
+    (custom != Some(RdfValue::Text("7".to_owned())))
+        .then(|| format!("{id}: the custom XMP property reads back as {custom:?}"))
+}
+
 /// The facts after `op` (page count, rotations in degrees, the [`INFO`] keys' values), from
 /// those before it.
 fn after_op(op: &Op, rotation: Rotation, pages: &mut usize, rotations: &mut Vec<u16>, info: &mut Vec<Option<String>>) {
@@ -333,6 +371,7 @@ fn after_op(op: &Op, rotation: Rotation, pages: &mut usize, rotations: &mut Vec<
         Op::SetInfo(_) | Op::SetMetadata(_) => {
             *info = INFO.iter().map(|(_, v)| Some((*v).to_owned())).collect();
         }
+        Op::SetXmpProperty(_) => info[0] = Some(INFO[0].1.to_owned()),
         Op::RemoveMetadata(_) => *info = vec![None; INFO.len()],
         Op::RotatePage(_) => {
             if let Some(first) = rotations.first_mut() {
@@ -400,15 +439,9 @@ pub fn run(root: &Path) -> Suite {
                         continue;
                     };
                     let category = with_widget_rule(&doc, &op, category);
-                    let metadata_op = matches!(op, Op::SetMetadata(_) | Op::RemoveMetadata(_));
+                    let metadata_op = matches!(op, Op::SetMetadata(_) | Op::RemoveMetadata(_) | Op::SetXmpProperty(_));
                     after_op(&op, rotation, &mut pages, &mut rotations, &mut info);
-                    // A removal from a file with nothing to remove would change nothing: it
-                    // follows the metadata edit, in the same transaction.
-                    let ops = if op_name == "removeMetadata" {
-                        vec![self::op(&doc, "setMetadata", rotation).unwrap(), op]
-                    } else {
-                        vec![op]
-                    };
+                    let ops = case_ops(&doc, op_name, op, rotation);
                     doc.apply_all(Origin::Local, ops).unwrap();
                     let labels = labels_after(&doc, op_name, pages);
                     let mut options = SaveOptions::new()
@@ -455,6 +488,9 @@ pub fn run(root: &Path) -> Suite {
                                 .push(format!("{id}: Info and XMP disagree on {:?}", meta.disagreements));
                         }
                     }
+                    if op_name == "setXmpProperty" {
+                        suite.failures.extend(custom_property_problem(&id, &reopened));
+                    }
                     let file = format!("{id}.pdf");
 
                     suite.manifest.push(json!({
@@ -464,8 +500,10 @@ pub fn run(root: &Path) -> Suite {
                         "pages": pages,
                         "rotations": rotations,
                         "title": info[0],
-                        // The other three keys the setInfo cases write (J.01), compared by the
-                        // tools only there: elsewhere they are the fixture's own values.
+                        // The other three keys the Info and metadata cases write (J.01, J.10),
+                        // compared by the tools only there: elsewhere they are the fixture's own
+                        // values, which the tools read in their own ways (PDFium reads an empty
+                        // `/Keywords` as none).
                         "info": matches!(op_name, "setInfo" | "setMetadata" | "removeMetadata").then(|| json!({
                             "Author": info[1],
                             "Subject": info[2],

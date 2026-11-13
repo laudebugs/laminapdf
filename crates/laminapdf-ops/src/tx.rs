@@ -81,6 +81,12 @@ pub struct Applied {
     /// A metadata op removed values that the file's earlier revisions still hold: an
     /// incremental save keeps them in the file, a full rewrite drops them.
     pub still_in_earlier_revisions: bool,
+    /// The properties an XMP op declared in a PDF/A packet's extension schemas, so it stays
+    /// valid PDF/A ([`SetXmpProperty`](crate::SetXmpProperty),
+    /// [`ReplaceXmpPacket`](crate::ReplaceXmpPacket)).
+    ///
+    /// Added in 0.2.0.
+    pub declared: Vec<laminapdf_model::xmp::ExtensionProperty>,
     /// Annotations an annotation op deleted besides the one it names: Popups, replies and the
     /// rest of a group.
     pub also_deleted: Vec<laminapdf_model::AnnotId>,
@@ -125,6 +131,7 @@ pub(crate) struct TxState {
     /// What the ops applied so far did besides their changes (`Applied`'s flags).
     pub(crate) packet_rewritten: bool,
     pub(crate) removed: bool,
+    pub(crate) declared: Vec<laminapdf_model::xmp::ExtensionProperty>,
     /// The page order after the last op that changed it.
     pub(crate) page_order: Option<Vec<PageId>>,
     /// The references the ops so far retargeted or removed.
@@ -192,6 +199,7 @@ impl Tx<'_> {
             touched_pages: effect.pages.into_iter().collect(),
             packet_rewritten: effect.packet_rewritten,
             still_in_earlier_revisions: effect.removed,
+            declared: effect.declared,
             also_deleted: effect.also_deleted,
             widgets: effect.widgets,
             page_order: effect.page_order,
@@ -216,6 +224,7 @@ impl Tx<'_> {
                 self.state.pending.record(op, &effect);
                 self.state.packet_rewritten |= effect.packet_rewritten;
                 self.state.removed |= effect.removed;
+                self.state.declared.extend(effect.declared.iter().cloned());
                 if effect.page_order.is_some() {
                     self.state.page_order.clone_from(&effect.page_order);
                 }
@@ -310,6 +319,7 @@ mod tests {
             coalesce: None,
             packet_rewritten: false,
             removed: false,
+            declared: Vec::new(),
             page_order: None,
             references: Vec::new(),
             also_deleted: Vec::new(),

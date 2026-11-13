@@ -482,7 +482,7 @@ fn scan_tag(tag: &str, base: usize) -> Option<RawTag<'_>> {
 /// declared prefix must be one too: a packet that names one otherwise is malformed, and the writer
 /// would build tags from such a prefix (`xmlns:?dc`) that read back as something else (`<?dc:title>`
 /// is a processing instruction).
-fn is_name(name: &str) -> bool {
+pub(super) fn is_name(name: &str) -> bool {
     let mut chars = name.chars();
     chars.next().is_some_and(is_name_start) && chars.all(|c| is_name_start(c) || is_name_rest(c))
 }

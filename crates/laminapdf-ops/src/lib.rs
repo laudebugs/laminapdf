@@ -108,7 +108,8 @@ pub use info::{InfoPatch, SetInfo};
 pub use labels::{PageLabelRange, SetPageLabels};
 pub use metadata::{
     ConformanceWarning, DocumentMetadata, MetadataKey, MetadataPatch, MetadataSource, PacketStatus, RemoveMetadata,
-    SetMetadata, UpdateSaveMetadata, conformance_warnings, pending_conformance_warnings, read_metadata,
+    RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty, UpdateSaveMetadata, conformance_warnings,
+    pending_conformance_warnings, read_metadata,
 };
 pub use op::{Op, OpLog};
 pub use pages::{

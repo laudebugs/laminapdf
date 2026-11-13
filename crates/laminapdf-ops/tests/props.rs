@@ -1,5 +1,5 @@
 //! Property tests (ADR 0018 tier 5, ADR 0006 §3–§4): random sequences of `SetInfo`,
-//! `SetMetadata`, `RemoveMetadata` and `RotatePage`, grouped into local transactions (some
+//! `SetMetadata`, `RemoveMetadata`, the XMP ops and `RotatePage`, grouped into local transactions (some
 //! coalescing), over files with an indirect, a direct and no Info dictionary, with and without
 //! an XMP packet, a PDF 2.0 file and inherited `/Rotate`. Undoing everything leaves the overlay
 //! empty; redoing everything gives the same overlay as before the undo.
@@ -15,10 +15,11 @@
 mod common;
 
 use common::{corpus, fixture, inherited_rotate, open, page_ids, snapshot};
+use laminapdf_model::xmp::{LangText, XmpValue};
 use laminapdf_model::{PdfDate, Rotation};
 use laminapdf_ops::{
-    Document, InfoPatch, MetadataKey, MetadataPatch, Op, Origin, RemoveMetadata, RotatePage, SetInfo, SetMetadata,
-    UndoOutcome,
+    Document, InfoPatch, MetadataKey, MetadataPatch, Op, Origin, RemoveMetadata, RemoveXmpProperty, ReplaceXmpPacket,
+    RotatePage, SetInfo, SetMetadata, SetXmpProperty, UndoOutcome,
 };
 use proptest::prelude::*;
 use proptest::test_runner::{Config, RngSeed, TestRunner};
@@ -33,6 +34,33 @@ enum Recipe {
     Metadata([Option<Option<&'static str>>; 3], Option<u8>),
     Remove(Vec<usize>),
     Rotate(usize, Rotation),
+    /// `SetXmpProperty` of one of [`XMP_NAMES`] to the value of that index.
+    Xmp(usize),
+    XmpRemove(usize),
+    /// `ReplaceXmpPacket` with one of [`PACKETS`].
+    XmpPacket(usize),
+}
+
+const ACME: &str = "http://example.com/acme/";
+/// The XMP properties the XMP ops edit: three custom ones and a mirrored one.
+const XMP_NAMES: [(&str, &str); 4] = [
+    (ACME, "batch"),
+    (ACME, "tags"),
+    (ACME, "home"),
+    ("http://purl.org/dc/elements/1.1/", "title"),
+];
+const PACKETS: [&str; 2] = [
+    r#"<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:acme="http://example.com/acme/" acme:batch="9"/></rdf:RDF></x:xmpmeta>"#,
+    r#"<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?><x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Replaced</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end="w"?>"#,
+];
+
+fn xmp_value(index: usize) -> XmpValue {
+    match index % 4 {
+        0 => XmpValue::Integer(42),
+        1 => XmpValue::Bag(vec![XmpValue::Text("b".into()), XmpValue::Text("a".into())]),
+        2 => XmpValue::Uri("https://example.com/".into()),
+        _ => XmpValue::LangAlt(vec![LangText::new("x-default", "Grüße")]),
+    }
 }
 
 const TEXTS: [&str; 5] = ["A", "Report", "Grüße", "世界", ""];
@@ -65,6 +93,9 @@ fn recipe() -> impl Strategy<Value = Recipe> {
             .prop_map(|(f, d)| Recipe::Metadata(f, d)),
         proptest::collection::vec(0usize..8, 1..3).prop_map(Recipe::Remove),
         (0usize..8, rotation).prop_map(|(p, r)| Recipe::Rotate(p, r)),
+        (0usize..4).prop_map(Recipe::Xmp),
+        (0usize..4).prop_map(Recipe::XmpRemove),
+        (0usize..2).prop_map(Recipe::XmpPacket),
     ]
 }
 
@@ -95,6 +126,15 @@ fn to_op(doc: &laminapdf_model::Document, recipe: &Recipe) -> Op {
             let page = ids.get(index % ids.len()).unwrap().clone();
             RotatePage::new(page, *rotation).into()
         }
+        Recipe::Xmp(i) => {
+            let (namespace, name) = *XMP_NAMES.get(i % 4).unwrap();
+            SetXmpProperty::new(namespace, "acme", name, xmp_value(*i)).into()
+        }
+        Recipe::XmpRemove(i) => {
+            let (namespace, name) = *XMP_NAMES.get(i % 4).unwrap();
+            RemoveXmpProperty::new(namespace, name).into()
+        }
+        Recipe::XmpPacket(i) => ReplaceXmpPacket::new(*PACKETS.get(i % 2).unwrap()).into(),
     }
 }
 

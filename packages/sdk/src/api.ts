@@ -108,6 +108,7 @@ export {
   type RotateMode,
   type RotatePagesOptions,
   Transaction,
+  type XmpEditOptions,
 } from "./transaction.js";
 export type {
   AfRelationship,
@@ -121,6 +122,7 @@ export type {
   DocumentMetadata,
   DocumentProperties,
   Edited,
+  ExtensionProperty,
   FieldEdit,
   Fit,
   Limits,
@@ -159,4 +161,7 @@ export type {
   UndoOutcome,
   ViewerPreferences,
   Violation,
+  XmpLangText,
+  XmpText,
+  XmpValue,
 } from "./types.js";

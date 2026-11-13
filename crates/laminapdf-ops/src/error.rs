@@ -60,6 +60,22 @@ pub enum Error {
     /// its sources before it replays the log).
     #[error("no source document with this ID was added to the session")]
     UnknownSource(crate::SourceId),
+    /// An XMP edit would change the file's PDF/A or PDF/UA identification (`pdfaid:`,
+    /// `pdfuaid:`): a claim only conversion or a check can make, never an edit.
+    #[error("the PDF/A and PDF/UA identification can't be edited")]
+    XmpClaimReadOnly,
+    /// The packet given to [`ReplaceXmpPacket`](crate::ReplaceXmpPacket) doesn't parse.
+    #[error("the XMP packet doesn't parse")]
+    InvalidXmpPacket(laminapdf_model::xmp::ParseError),
+    /// An XMP property edit names a property, or gives a value, that can't be written:
+    /// [`reason`](Error::InvalidXmpProperty::reason) says which part.
+    #[error("the XMP property or its value can't be written")]
+    InvalidXmpProperty {
+        /// `namespace`, `prefix`, `name`, `value` (an empty array, an array of mixed or nested
+        /// values, a repeated language) or `shape` (a value of the wrong shape for a property
+        /// the Info dictionary mirrors).
+        reason: &'static str,
+    },
     /// A [`DeletePages`](crate::DeletePages) would delete every page: a document needs a page
     /// to show, so delete all but one, or insert a page first.
     #[error("the edit would delete every page")]
@@ -87,6 +103,20 @@ pub enum Error {
     /// by the form ops), or a direct dictionary in `/Annots`, which has no object to edit.
     #[error("annotation {} can't be edited by the annotation ops", ShownAnnot(.0))]
     AnnotationNotEditable(AnnotId),
+}
+
+impl From<laminapdf_model::xmp::PropertyError> for Error {
+    fn from(e: laminapdf_model::xmp::PropertyError) -> Self {
+        use laminapdf_model::xmp::PropertyError as P;
+        let reason = match e {
+            P::Namespace => "namespace",
+            P::Prefix => "prefix",
+            P::Name => "name",
+            P::Mapped(_) => "shape",
+            _ => "value",
+        };
+        Self::InvalidXmpProperty { reason }
+    }
 }
 
 /// An annotation ID as a message may show it, as [`Shown`] does for pages.
@@ -152,6 +182,9 @@ impl Error {
         "no-pending-save",
         "malformed-xmp",
         "unknown-source",
+        "xmp-claim-read-only",
+        "invalid-xmp-packet",
+        "invalid-xmp-property",
         "no-pages-left",
         "invalid-op",
         "unknown-annotation",
@@ -177,6 +210,9 @@ impl Error {
             Self::NoPendingSave => "no-pending-save",
             Self::MalformedXmp => "malformed-xmp",
             Self::UnknownSource(_) => "unknown-source",
+            Self::XmpClaimReadOnly => "xmp-claim-read-only",
+            Self::InvalidXmpPacket(_) => "invalid-xmp-packet",
+            Self::InvalidXmpProperty { .. } => "invalid-xmp-property",
             Self::NoPagesLeft => "no-pages-left",
             Self::InvalidOp(_) => "invalid-op",
             Self::UnknownAnnotation(_) => "unknown-annotation",
@@ -205,12 +241,14 @@ impl Error {
             | Self::NoPagesLeft
             | Self::InvalidOp(_)
             | Self::UnknownAnnotation(_)
+            | Self::XmpClaimReadOnly
+            | Self::InvalidXmpProperty { .. }
             | Self::InvalidLabelRanges { .. } => ErrorKind::Usage,
             Self::AnnotationLocked(_) => ErrorKind::State,
             Self::DirectPage(_) | Self::UnsupportedVersion(_) | Self::AnnotationNotEditable(_) => {
                 ErrorKind::Unsupported
             }
-            Self::InvalidLog(_) | Self::MalformedXmp => ErrorKind::Input,
+            Self::InvalidLog(_) | Self::MalformedXmp | Self::InvalidXmpPacket(_) => ErrorKind::Input,
         }
     }
 
@@ -249,6 +287,9 @@ impl Error {
             | Self::NoPendingSave
             | Self::MalformedXmp
             | Self::UnknownSource(_)
+            | Self::XmpClaimReadOnly
+            | Self::InvalidXmpPacket(_)
+            | Self::InvalidXmpProperty { .. }
             | Self::NoPagesLeft
             | Self::InvalidOp(_)
             | Self::InvalidLabelRanges { .. } => Location::NONE,
@@ -281,6 +322,9 @@ mod tests {
             Error::NoPendingSave,
             Error::MalformedXmp,
             Error::UnknownSource(crate::SourceId::from_bytes([0; 32])),
+            Error::XmpClaimReadOnly,
+            Error::InvalidXmpPacket(laminapdf_model::xmp::ParseError::NoRdf),
+            Error::InvalidXmpProperty { reason: "name" },
             Error::NoPagesLeft,
             Error::InvalidOp("a reason"),
             Error::UnknownAnnotation("a7.0".parse().unwrap()),

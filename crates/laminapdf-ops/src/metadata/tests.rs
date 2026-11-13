@@ -15,7 +15,7 @@ use crate::Error;
 const NS: &str = r#"xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:pdf="http://ns.adobe.com/pdf/1.3/" xmlns:xmp="http://ns.adobe.com/xap/1.0/" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/""#;
 
 /// A packet with `body` inside one description.
-fn packet(body: &str) -> String {
+pub(super) fn packet(body: &str) -> String {
     format!(
         "<?xpacket begin=\"\u{FEFF}\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?><x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"><rdf:Description rdf:about=\"\" {NS}>{body}</rdf:Description></rdf:RDF></x:xmpmeta>{}<?xpacket end=\"w\"?>",
         " ".repeat(200)
@@ -24,7 +24,7 @@ fn packet(body: &str) -> String {
 
 /// A one-page-tree document: `catalog_extra` in the catalog, `info` as object 3 (when given)
 /// and `xmp` as object 4 (when given).
-fn doc(catalog_extra: &str, info: Option<&str>, xmp: Option<&[u8]>) -> laminapdf_model::Document {
+pub(super) fn doc(catalog_extra: &str, info: Option<&str>, xmp: Option<&[u8]>) -> laminapdf_model::Document {
     let metadata = if xmp.is_some() { "/Metadata 4 0 R" } else { "" };
     let catalog = format!("<< /Type /Catalog /Pages 2 0 R {metadata} {catalog_extra} >>");
     let info_body = info.unwrap_or("<< >>");
@@ -51,14 +51,14 @@ fn set(doc: &mut laminapdf_model::Document, patch: MetadataPatch) -> Effect {
     SetMetadata::new(patch, None).apply_to(doc).unwrap()
 }
 
-fn xmp(doc: &laminapdf_model::Document) -> laminapdf_model::xmp::Packet {
+pub(super) fn xmp(doc: &laminapdf_model::Document) -> laminapdf_model::xmp::Packet {
     match doc.xmp().unwrap() {
         PacketState::Parsed(p) => p,
         other => panic!("no packet: {other:?}"),
     }
 }
 
-fn info_text(doc: &laminapdf_model::Document, key: &str) -> Option<String> {
+pub(super) fn info_text(doc: &laminapdf_model::Document, key: &str) -> Option<String> {
     doc.info().unwrap().and_then(|i| i.text(key).unwrap())
 }
 

@@ -225,6 +225,17 @@ impl MappedField {
         }
     }
 
+    /// The field whose XMP property is `name` in `namespace`, e.g. `dc:title`.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub fn from_property(namespace: &str, name: &str) -> Option<Self> {
+        MAPPINGS
+            .iter()
+            .find(|m| m.namespace == namespace && m.name == name)
+            .map(|m| m.field)
+    }
+
     /// The field whose Info key is `key`, e.g. `Title`.
     ///
     /// Added in 0.2.0.
@@ -235,7 +246,8 @@ impl MappedField {
 }
 
 /// The prefix ISO 16684-1 gives `namespace`, when it is one of [`STANDARD_PREFIXES`].
-pub(super) fn standard_prefix(namespace: &str) -> Option<&'static str> {
+#[cfg(test)]
+fn standard_prefix(namespace: &str) -> Option<&'static str> {
     STANDARD_PREFIXES
         .iter()
         .find(|(_, ns)| *ns == namespace)

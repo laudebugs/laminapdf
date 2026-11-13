@@ -27,11 +27,15 @@ import {
   type RotatePagesOptions,
   type Rotation,
   removeMetadataOp,
+  removeXmpPropertyOp,
+  replaceXmpPacketOp,
   reversePagesOp,
   rotatePagesOp,
   setMetadataOp,
   setPageLabelsOp,
+  setXmpPropertyOp,
   Transaction,
+  type XmpEditOptions,
 } from "./transaction.js";
 import type {
   DocumentInfo,
@@ -56,6 +60,8 @@ import type {
   StructureNode,
   Target,
   Violation,
+  XmpText,
+  XmpValue,
 } from "./types.js";
 
 function isThenable(value: unknown): boolean {
@@ -831,6 +837,71 @@ export class Document extends Handle<BaseGlue> {
    */
   removeMetadata(keys: readonly MetadataKey[], options?: MetadataRemoveOptions): Edited {
     return this.apply([removeMetadataOp(keys, options)]);
+  }
+
+  /**
+   * The document's XMP metadata as text, with the edits made so far: `status` (`absent`,
+   * `parsed`, or `malformed` for metadata that can't be read), the packet's `xml`, and `pdfa`, the
+   * PDF/A level it claims.
+   *
+   * @throws {@link LaminaPdfError} reading errors.
+   *
+   * @since 0.2.0
+   */
+  xmpPacket(): XmpText {
+    return this.call(() => this.#doc.xmpPacket());
+  }
+
+  /**
+   * Sets any XMP property in one transaction (`setXmpProperty`): text, a URI, a number, a
+   * boolean, a date, a language alternative, or a list. A document without XMP metadata gets it.
+   * A property the Info dictionary mirrors (`dc:title`, `pdf:Producer`, …) is written to both, as
+   * {@link Document.setMetadata} writes it. In a PDF/A file, a property PDF/A doesn't predefine is
+   * declared in the metadata's extension schemas, so the file keeps its claim; the result's
+   * `declared` lists them.
+   *
+   * @param namespace - the property's namespace URI (`https://example.com/ns/review/1.0/`).
+   * @param prefix - the prefix to write the namespace with when the metadata has none for it.
+   * @param name - the property's local name.
+   * @param value - the value, tagged with its type: `{ type: "integer", value: 3 }`.
+   * @param options - `replaceMalformed`, as {@link Document.setMetadata}.
+   * @throws {@link LaminaPdfError} `invalid-xmp-property` when the name or value can't be
+   *   written; `xmp-claim-read-only` for the PDF/A or PDF/UA identification; `malformed-xmp`; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.2.0
+   */
+  setXmpProperty(namespace: string, prefix: string, name: string, value: XmpValue, options?: XmpEditOptions): Edited {
+    return this.apply([setXmpPropertyOp(namespace, prefix, name, value, options)]);
+  }
+
+  /**
+   * Removes an XMP property (`removeXmpProperty`), from the Info dictionary too when it mirrors
+   * it. The file's earlier revisions keep the old value until a full rewrite; the result's
+   * `stillInEarlierRevisions` says when.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.setXmpProperty}.
+   *
+   * @since 0.2.0
+   */
+  removeXmpProperty(namespace: string, name: string, options?: XmpEditOptions): Edited {
+    return this.apply([removeXmpPropertyOp(namespace, name, options)]);
+  }
+
+  /**
+   * Replaces the whole XMP packet with `xml` (`replaceXmpPacket`), for what the property edits
+   * can't write: structures, qualifiers, comments. The packet is read first; the Info
+   * dictionary's mirrored entries follow it, and in a PDF/A file its custom properties are
+   * declared (`declared` in the result).
+   *
+   * @throws {@link LaminaPdfError} `invalid-xmp-packet` (with `reason` and `offset`) when it
+   *   doesn't parse; `xmp-claim-read-only` when it changes the PDF/A or PDF/UA identification; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.2.0
+   */
+  replaceXmpPacket(xml: string): Edited {
+    return this.apply([replaceXmpPacketOp(xml)]);
   }
 
   /**

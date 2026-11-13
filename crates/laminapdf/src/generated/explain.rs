@@ -2424,6 +2424,115 @@ The decisions and todos behind this code:
 
 - [E2p](../todos/done/E2p-source-documents-and-copier.md): source documents and the blob store
 ",
+        "xmp-claim-read-only" => r#"# `xmp-claim-read-only`
+
+- Type: error
+- Kind: `usage` (the call was made wrongly)
+
+## What happened
+
+An XMP edit tried to change the file's PDF/A or PDF/UA identification: the `pdfaid:` or `pdfuaid:` properties that say which standard the file claims to meet. Lamina PDF refused the edit, and nothing changed.
+
+## Why
+
+These properties are a promise that the whole file meets a standard. Only converting the file, or checking it against the standard, can make that promise. An edit to the metadata can't, so `setXmpProperty` and `removeXmpProperty` refuse these properties, and `replaceXmpPacket` refuses a packet whose `pdfaid:` or `pdfuaid:` properties differ from the file's.
+
+## How to fix
+
+Edit the other properties instead. When you replace the whole packet, copy the file's `pdfaid:` and `pdfuaid:` properties into the new packet unchanged, or leave them out of a file that has none.
+
+## Example
+
+```ts
+doc.setXmpProperty("http://www.aiim.org/pdfa/ns/id/", "pdfaid", "part", { type: "integer", value: 3 });
+// xmp-claim-read-only: the file's PDF/A part can't be edited
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3e](../todos/done/E3e-xmp-editor.md): the general XMP editor
+- [E3 plan §11](../plans/editor/e3-navigation-attachments-inspection.md#11-decisions-on-the-open-questions): why the identification is read-only
+"#,
+        "invalid-xmp-packet" => r#"# `invalid-xmp-packet`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+`replaceXmpPacket` was given XML that isn't an XMP packet Lamina PDF can read, so the document's packet was left as it was.
+
+## Why
+
+The new packet is read before it replaces the old one, with the same rules as a packet in a file. It must be well-formed XML in UTF-8 or UTF-16 with an `rdf:RDF` element, every prefix declared. It must not declare a DTD or use entities other than XML's five predefined ones, and it must stay within the limits on depth and attributes.
+
+## How to fix
+
+Fix the XML near the `offset` in the error's data; `reason` says what is wrong. Then replace the packet again.
+
+## Example
+
+```ts
+doc.replaceXmpPacket("<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF>");
+// invalid-xmp-packet: reason "prefix", the rdf: prefix isn't declared
+```
+
+## Data fields
+
+- `reason`: what is wrong: `encoding` (neither UTF-8 nor UTF-16), `dtd`, `entity` (an undefined entity), `prefix` (an undeclared prefix), `depth` (elements nested more than 64 deep), `limit` (too many attributes or namespaces), `syntax` (not well-formed XML) or `no-rdf` (no `rdf:RDF` element).
+- `offset`: the byte in the packet where the problem is, when there is one place.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3e](../todos/done/E3e-xmp-editor.md): the general XMP editor
+"#,
+        "invalid-xmp-property" => r#"# `invalid-xmp-property`
+
+- Type: error
+- Kind: `usage` (the call was made wrongly)
+
+## What happened
+
+`setXmpProperty` or `removeXmpProperty` named a property, or gave a value, that can't be written to the document's XMP metadata. Nothing changed.
+
+## Why
+
+An XMP property is named by a namespace URI and a local name, and written with a prefix for its namespace. A value can't be written when:
+
+- the namespace is empty, or is one the packet's own structure uses (RDF, `xml:`, `x:`, or the PDF/A extension schemas);
+- the prefix or name isn't an XML name without a colon, or the prefix starts with `xml`;
+- an array or a language alternative has no entries, an array mixes types or holds other arrays, or a language appears twice;
+- the property is one the document information dictionary mirrors (`dc:title`, `dc:creator`, `pdf:Producer`, the dates, …) and the value has the wrong shape for it.
+
+## How to fix
+
+Change the part `reason` names. For a property the information dictionary mirrors, give the title and subject as text, the authors (`dc:creator`) as an array of text, and the dates as dates. To write a structure, or the title in other languages, replace the whole packet with `replaceXmpPacket`.
+
+## Example
+
+```ts
+doc.setXmpProperty("http://purl.org/dc/elements/1.1/", "dc", "title", { type: "integer", value: 3 });
+// invalid-xmp-property: reason "shape", the title is text
+```
+
+## Data fields
+
+- `reason`: the part that can't be written: `namespace`, `prefix`, `name`, `value` (an empty, mixed or nested array, or a repeated language) or `shape` (the wrong shape for a mirrored property).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3e](../todos/done/E3e-xmp-editor.md): the general XMP editor
+"#,
         "no-pages-left" => r"# `no-pages-left`
 
 - Type: error

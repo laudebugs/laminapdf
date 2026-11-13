@@ -277,3 +277,87 @@ pub(crate) mod label_style {
             .ok_or_else(|| D::Error::unknown_variant(&name, &EXPECTED))
     }
 }
+
+/// An [`XmpValue`](laminapdf_model::xmp::XmpValue) as `{ "type": …, "value": … }`: `text`,
+/// `uri`, `integer`, `real` (finite), `boolean`, `date` (a PDF date string), `langAlt` (a list
+/// of `{ "lang", "text" }`), `seq` and `bag` (lists of values).
+pub(crate) mod xmp_value {
+    use laminapdf_model::xmp::{LangText, XmpReal, XmpValue as Value};
+    use serde::{Deserialize, Serialize};
+
+    use super::{Deserializer, Serializer, de};
+
+    /// The wire form, under the name TypeScript gives it.
+    #[derive(Serialize, Deserialize)]
+    #[serde(tag = "type", content = "value", rename_all = "camelCase")]
+    #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+    pub(crate) enum XmpValue {
+        Text(String),
+        Uri(String),
+        Integer(i64),
+        Real(f64),
+        Boolean(bool),
+        Date(String),
+        LangAlt(Vec<XmpLangText>),
+        Seq(Vec<XmpValue>),
+        Bag(Vec<XmpValue>),
+    }
+
+    /// One entry of a language alternative, under the name TypeScript gives it.
+    #[derive(Serialize, Deserialize)]
+    #[serde(deny_unknown_fields)]
+    #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+    pub(crate) struct XmpLangText {
+        lang: String,
+        text: String,
+    }
+
+    fn to_wire(value: &Value) -> Result<XmpValue, &'static str> {
+        Ok(match value {
+            Value::Text(s) => XmpValue::Text(s.clone()),
+            Value::Uri(s) => XmpValue::Uri(s.clone()),
+            Value::Integer(n) => XmpValue::Integer(*n),
+            Value::Real(r) => XmpValue::Real(r.get()),
+            Value::Boolean(b) => XmpValue::Boolean(*b),
+            Value::Date(d) => XmpValue::Date(d.to_string()),
+            Value::LangAlt(entries) => XmpValue::LangAlt(
+                entries
+                    .iter()
+                    .map(|e| XmpLangText {
+                        lang: e.lang.clone(),
+                        text: e.text.clone(),
+                    })
+                    .collect(),
+            ),
+            Value::Seq(items) => XmpValue::Seq(items.iter().map(to_wire).collect::<Result<_, _>>()?),
+            Value::Bag(items) => XmpValue::Bag(items.iter().map(to_wire).collect::<Result<_, _>>()?),
+            // A later kind of value has no wire form yet: refuse rather than write another value.
+            _ => return Err("this kind of XMP value has no wire form"),
+        })
+    }
+
+    fn from_wire(wire: XmpValue) -> Result<Value, String> {
+        let list = |items: Vec<XmpValue>| items.into_iter().map(from_wire).collect::<Result<Vec<_>, _>>();
+        Ok(match wire {
+            XmpValue::Text(s) => Value::Text(s),
+            XmpValue::Uri(s) => Value::Uri(s),
+            XmpValue::Integer(n) => Value::Integer(n),
+            XmpValue::Real(r) => Value::Real(XmpReal::new(r).ok_or("a real must be finite")?),
+            XmpValue::Boolean(b) => Value::Boolean(b),
+            XmpValue::Date(s) => Value::Date(s.parse().map_err(|_| "a date must be a PDF date string")?),
+            XmpValue::LangAlt(entries) => {
+                Value::LangAlt(entries.into_iter().map(|e| LangText::new(e.lang, e.text)).collect())
+            }
+            XmpValue::Seq(items) => Value::Seq(list(items)?),
+            XmpValue::Bag(items) => Value::Bag(list(items)?),
+        })
+    }
+
+    pub(crate) fn serialize<S: Serializer>(value: &Value, s: S) -> Result<S::Ok, S::Error> {
+        to_wire(value).map_err(serde::ser::Error::custom)?.serialize(s)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Value, D::Error> {
+        from_wire(XmpValue::deserialize(d)?).map_err(de::Error::custom)
+    }
+}
