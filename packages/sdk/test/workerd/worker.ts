@@ -15,6 +15,7 @@ import notoSansSC from "../../../../fixtures/fonts/NotoSansSC-Regular.otf";
 import linksAndOutlinesPdf from "../../../../fixtures/golden/examples/links_and_outlines.pdf";
 import pdfaArchive2b from "../../../../fixtures/golden/examples/pdf_a_archive-2b.pdf";
 import bookmarksPdf from "../../../../fixtures/golden/links-and-outlines.pdf";
+import taggedPdf from "../../../../fixtures/golden/tagged-report.pdf";
 import metadataPdf from "../../../../fixtures/golden/metadata.pdf";
 import photo from "../../../../fixtures/images/photo-rgb.jpg";
 import report from "../../../../fixtures/markdown/report.md";
@@ -39,6 +40,7 @@ const inputs: Inputs = {
       "fixtures/markdown/report.md": report,
       "fixtures/golden/metadata.pdf": metadataPdf,
       "fixtures/golden/links-and-outlines.pdf": bookmarksPdf,
+      "fixtures/golden/tagged-report.pdf": taggedPdf,
       "fixtures/golden/examples/pdf_a_archive-2b.pdf": pdfaArchive2b,
       "fixtures/pages/references.pdf": referencesPdf,
       "fixtures/pages/forms.pdf": formsPdf,

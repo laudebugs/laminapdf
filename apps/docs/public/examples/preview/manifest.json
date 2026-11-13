@@ -1,5 +1,19 @@
 {
   "examples": {
+    "add_links": {
+      "sha256": "cf14787b3c3b42d1db5843bb928a02674b39cc9556e65f3693419f06f47a79e3",
+      "bytes": 25632,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        },
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
     "duplicate_pages": {
       "sha256": "5920e53b512d93aacd78406e3772eb25a929d510b3a443cb18cc0b6a04a40347",
       "bytes": 3072,

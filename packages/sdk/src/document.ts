@@ -38,6 +38,8 @@ import {
   type XmpEditOptions,
 } from "./transaction.js";
 import type {
+  OutlineTarget,
+  AddLink,
   DocumentInfo,
   DocumentMetadata,
   DocumentProperties,
@@ -496,6 +498,37 @@ export class Document extends Handle<BaseGlue> {
    */
   destinationAt(page: number, view: TargetView): ExplicitDestination {
     return this.call(() => this.#extracting("doc.destinationAt()").destinationAt(page, view));
+  }
+
+  /**
+   * The edit that adds a link on `area` of page `page` (0-based): a box in page space, `[x0, y0,
+   * x1, y1]` from the page's top-left, such as one the user drew. The link goes to `target`; set
+   * its `contents` (the description screen readers read) before applying it with
+   * `{ op: "addLink", args }`. Needs a document opened while the extract or text module was
+   * loaded.
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`; as
+   * {@link Document.outline}.
+   *
+   * @since 0.2.0
+   */
+  linkOnArea(page: number, area: [number, number, number, number], target: OutlineTarget): AddLink {
+    return this.call(() => this.#extracting("doc.linkOnArea()").linkOnArea(page, area, target));
+  }
+
+  /**
+   * The edit that adds a link on text of page `page`: `lines` are the text's boxes, one per line,
+   * as a selection gives them, four numbers each in page space (`x0, y0, x1, y1`). The link takes
+   * one area per line, and in a tagged document it joins the structure tree around that text.
+   * Needs a document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`; as
+   * {@link Document.outline}.
+   *
+   * @since 0.2.0
+   */
+  linkOnText(page: number, lines: readonly number[], target: OutlineTarget): AddLink {
+    return this.call(() => this.#extracting("doc.linkOnText()").linkOnText(page, [...lines], target));
   }
 
   /**

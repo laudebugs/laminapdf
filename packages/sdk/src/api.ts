@@ -125,6 +125,7 @@ export type {
   DocumentMetadata,
   DocumentProperties,
   Edited,
+  AddLink,
   ExplicitDestination,
   ExtensionProperty,
   FieldEdit,
