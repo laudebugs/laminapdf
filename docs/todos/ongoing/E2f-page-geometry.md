@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2f` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E2 page organisation §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E2r](../done/E2r-planner-page-checks.md) |

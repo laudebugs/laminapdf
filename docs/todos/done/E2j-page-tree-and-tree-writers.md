@@ -15,7 +15,7 @@
 
 ## Goal
 
-Give `laminapdf-model` the write side that every E2 page op needs, so the ops themselves stay small: a page-tree editor, writers for number trees and name trees, `PageLabels::remap`, and an index of everything that points at a page. Split out of [E2b](../done/E2b-page-structure-ops.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos) to keep each PR reviewable; [E2b](../done/E2b-page-structure-ops.md), [E2c](../done/E2c-cross-document-pages.md), [E2d](../done/E2d-merge-and-split.md), [E2f](../ready/E2f-page-geometry.md), [E2g](../ready/E2g-page-labels.md), [E3b](../done/E3b-bookmarks-and-destinations.md) and [E3f](../ready/E3f-attachments-and-associated-files.md) build on it instead of writing their own.
+Give `laminapdf-model` the write side that every E2 page op needs, so the ops themselves stay small: a page-tree editor, writers for number trees and name trees, `PageLabels::remap`, and an index of everything that points at a page. Split out of [E2b](../done/E2b-page-structure-ops.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos) to keep each PR reviewable; [E2b](../done/E2b-page-structure-ops.md), [E2c](../done/E2c-cross-document-pages.md), [E2d](../done/E2d-merge-and-split.md), [E2f](../ongoing/E2f-page-geometry.md), [E2g](../ready/E2g-page-labels.md), [E3b](../done/E3b-bookmarks-and-destinations.md) and [E3f](../ready/E3f-attachments-and-associated-files.md) build on it instead of writing their own.
 
 ## Context
 

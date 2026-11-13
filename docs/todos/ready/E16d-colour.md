@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E16](../../plans/full-editor.md#e16-optimisation-and-print-production) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [E2f](./E2f-page-geometry.md), [E7c](./E7c-content-ir.md), [E16a](./E16a-optimisation-print-feature-plan.md) |
+| Depends on | [E2f](../ongoing/E2f-page-geometry.md), [E7c](./E7c-content-ir.md), [E16a](./E16a-optimisation-print-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e16d-colour` |
 | PR title | `feat(colour): colour conversion, output intents and overprint preview` |
