@@ -270,7 +270,10 @@ pub(crate) enum OpenTargetJs {
 /// The yes-or-no window entries of the viewer preferences.
 #[derive(Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-#[expect(clippy::struct_excessive_bools, reason = "the six booleans the file stores, one field each")]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "the six booleans the file stores, one field each"
+)]
 pub(crate) struct WindowPreferencesJs {
     /// Hide the reader's toolbars.
     pub hide_toolbar: bool,
