@@ -411,7 +411,55 @@ pub fn run(root: &Path) -> Suite {
         }
     }
     copies(root, &mut suite);
+    images(root, &mut suite);
     suite
+}
+
+/// The image cases (todo E3h): photos made into PDFs with `images_to_pdf`, a page per photo,
+/// sized from the photo and fitted to A4, one of them a photo marked as taken sideways. Lamina
+/// reopens each; the tools check it like any other output.
+fn images(root: &Path, suite: &mut Suite) {
+    use laminapdf_build::{Image, ImagePages, ImagesOptions, PageSize, Pt, images_to_pdf};
+    let photo = |name: &str| Image::jpeg(std::fs::read(root.join("fixtures/images").join(name)).unwrap()).unwrap();
+    let photos = [
+        "photo-rgb.jpg",
+        "photo-gray.jpg",
+        "photo-cmyk.jpg",
+        "photo-wide-exif6.jpg",
+    ]
+    .map(photo);
+    let fitted = ImagesOptions::new()
+        .with_pages(ImagePages::Fit(PageSize::A4))
+        .with_margin(Pt::from_mm(15.0));
+    for (id, options) in [("images-sized", ImagesOptions::new()), ("images-fitted", fitted)] {
+        let mut doc = images_to_pdf(&photos, &options).unwrap();
+        let mut output = Vec::new();
+        let report = doc.save(&mut output, &SaveOptions::new()).unwrap();
+        suite.saved += 1;
+        let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
+        let (pages, rotations, _) = facts(&reopened);
+        if pages != photos.len() || reopened.was_repaired() {
+            suite.failures.push(format!(
+                "{id}: lamina reopened {pages} pages (repaired {}), expected {}",
+                reopened.was_repaired(),
+                photos.len()
+            ));
+        }
+        let file = format!("{id}.pdf");
+        suite.manifest.push(json!({
+            "file": &file,
+            "source": "images/photo-*.jpg",
+            "mode": format!("{:?}", report.mode()),
+            "pages": photos.len(),
+            "rotations": rotations,
+            "title": null,
+            "info": null,
+            "encrypted": false,
+            "direct_info": false,
+            "invalidated": 0,
+        }));
+        suite.outputs.push((file, output));
+    }
 }
 
 /// The files the copy cases take their first page from, with the password each opens with:

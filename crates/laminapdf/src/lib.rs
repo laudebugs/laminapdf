@@ -190,17 +190,17 @@ pub use laminapdf_save::{
 pub use save_plan::PlannedSave;
 
 #[cfg(feature = "build")]
-pub use builder::Builder;
+pub use builder::{Builder, images_to_pdf};
 /// A font registered with a [`Builder`], to draw text with ([`Surface::text`]).
 #[cfg(feature = "text")]
 pub use laminapdf_build::FontHandle;
 #[cfg(feature = "build")]
 pub use laminapdf_build::{
     AfRelationship, Artifact, ArtifactKind, Attachment, BlendMode, BuildOptions, Color, ContentKind, Dash, ElementId,
-    FillRule, Fit, IccProfile, Image, ImageFormat, LabelStyle, LineCap, LineJoin, LinkTarget, Matrix, Metadata,
-    OutlineEntry, OutlineItemId, PageBuilder, PageEdge, PageLabel, PageLayout, PageMode, PageSize, PathBuilder,
-    PdfVersion, PendingPath, PngOptions, Profile, StrokeStyle, Surface, TableScope, Tag, TagDiagnostic, TagKind,
-    ViewerPreferences,
+    FillRule, Fit, IccProfile, Image, ImageFormat, ImagePages, ImagesOptions, LabelStyle, LineCap, LineJoin,
+    LinkTarget, Matrix, Metadata, Orientation, OutlineEntry, OutlineItemId, PageBuilder, PageEdge, PageLabel,
+    PageLayout, PageMode, PageSize, PathBuilder, PdfVersion, PendingPath, PngOptions, Profile, StrokeStyle, Surface,
+    TableScope, Tag, TagDiagnostic, TagKind, ViewerPreferences,
 };
 #[cfg(feature = "text")]
 pub use laminapdf_build::{

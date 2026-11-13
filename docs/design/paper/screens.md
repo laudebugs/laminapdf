@@ -64,7 +64,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | O04 | Document info and XMP editor (title, author, subject, keywords, dates; XMP tree) | D | [E1f](../../todos/done/E1f-metadata-ui-capability-page.md), [E3e](../../todos/done/E3e-xmp-editor.md) |
 | O05 | Capability page: what lamina can read, write and round-trip | W | [E1f](../../todos/done/E1f-metadata-ui-capability-page.md) |
 | O06 | Organise mode: page grid, multi-select, insertion bar, rotate, delete, duplicate, "Move to page…" | D, W | [E2h](../../todos/ready/E2h-page-organiser-ui.md), [E2b](../../todos/ready/E2b-page-structure-ops.md) |
-| O07 | Insert pages and merge documents (from another PDF, images, blank) | D | [E2c](../../todos/ready/E2c-cross-document-pages.md), [E2d](../../todos/ready/E2d-merge-and-split.md), [E3h](../../todos/ready/E3h-images-to-pdf-and-page-export.md) |
+| O07 | Insert pages and merge documents (from another PDF, images, blank) | D | [E2c](../../todos/ready/E2c-cross-document-pages.md), [E2d](../../todos/ready/E2d-merge-and-split.md), [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md) |
 | O08 | Split document (by count, ranges, bookmarks) | D | [E2d](../../todos/ready/E2d-merge-and-split.md) |
 | O09 | Page geometry: crop and page boxes, resize, warning that cropped content remains | D | [E2f](../../todos/ready/E2f-page-geometry.md), [E2s](../../todos/ready/E2s-resize-and-orientation.md), [E2g](../../todos/ready/E2g-page-labels.md) |
 | O10 | Page labels editor (roman front matter, numbering ranges) | D | [E2q](../../todos/ready/E2q-page-labels-op.md), [E2g](../../todos/ready/E2g-page-labels.md) |
@@ -73,7 +73,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | O13 | Initial view and article threads | D | [E3d](../../todos/ready/E3d-initial-view-and-threads.md) |
 | O14 | Attachments panel (add, extract, associated files) | D | [E3f](../../todos/ready/E3f-attachments-and-associated-files.md) |
 | O15 | Object inspector (object tree / COS inspector, advanced) | D | [E3g](../../todos/ready/E3g-inspectors.md) |
-| O16 | Export and extraction: pages as images, text/Markdown/JSON, pictures out | D, W | [E3h](../../todos/ready/E3h-images-to-pdf-and-page-export.md), [E3i](../../todos/ready/E3i-extraction.md) |
+| O16 | Export and extraction: pages as images, text/Markdown/JSON, pictures out | D, W | [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md), [E3i](../../todos/ready/E3i-extraction.md) |
 | O17 | Phone: organise pages (grid, select, reorder by "Move to"), bottom action bar | M | [E2h](../../todos/ready/E2h-page-organiser-ui.md) |
 
 ## C. Comment and review (E4–E5)
@@ -83,10 +83,10 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | C01 | Comment tools: highlight, underline, strike, caret, note, ink, shapes, arrow, text box; colour and width | D | [E4f](../../todos/ready/E4f-annotation-tools-ui.md) |
 | C02 | Ink and shapes: drawing in progress, selected shape with handles, inspector | D | [E4d](../../todos/ready/E4d-appearances-ink-and-shapes.md) |
 | C03 | Free text and callouts: editing | D | [E4e](../../todos/ready/E4e-freetext-callouts.md) |
-| C04 | Comments panel: threads, replies, status (accepted, rejected, done), filter and search | D, W | [E5b](../../todos/ready/E5b-comment-threads-and-review.md) |
-| C05 | Stamps and file attachments (stamps picker: standard, custom image, dynamic date/name; file attachment annotation) | D | [E5c](../../todos/ready/E5c-stamps-and-attachments.md) |
-| C06 | Import and export comments (XFDF/FDF), export highlights as Markdown | D | [E5d](../../todos/ready/E5d-xfdf-fdf.md) |
-| C07 | Flatten and comment summary (print/export) | D | [E5e](../../todos/ready/E5e-flatten-and-summary.md) |
+| C04 | Comments panel: threads, replies, status (accepted, rejected, done), filter and search | D, W | [E5b](../../todos/ready/E5b-comment-threads-and-review.md), [E5g](../../todos/ready/E5g-comments-panel.md) |
+| C05 | Stamps and file attachments (stamps picker: standard, custom image, dynamic date/name; file attachment annotation) | D | [E5c](../../todos/ready/E5c-stamps-and-attachments.md), [E5h](../../todos/ready/E5h-stamps-and-attachments-ui.md) |
+| C06 | Import and export comments (XFDF/FDF), export highlights as Markdown | D | [E5d](../../todos/ready/E5d-xfdf-fdf.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md) |
+| C07 | Flatten and comment summary (print/export) | D | [E5e](../../todos/ready/E5e-flatten-and-summary.md), [E5f](../../todos/ready/E5f-comment-summary.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md) |
 | C08 | Phone annotate (pen, highlighter, eraser), comment sheet | M | [E4f](../../todos/ready/E4f-annotation-tools-ui.md), [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md) |
 | C09 | Tablet stylus: ink with palm rejection, tool shelf | T | [E4f](../../todos/ready/E4f-annotation-tools-ui.md) |
 

@@ -121,6 +121,9 @@ pub(super) struct Chunks<'a> {
     pub(super) header: Header,
     pub(super) palette: Option<&'a [u8]>,
     pub(super) trns: Option<&'a [u8]>,
+    /// `pHYs` and `eXIf`, for how the image is shown.
+    pub(super) phys: Option<&'a [u8]>,
+    pub(super) exif: Option<&'a [u8]>,
     pub(super) idat: Vec<u8>,
 }
 
@@ -139,6 +142,7 @@ pub(super) fn read_chunks(bytes: &[u8]) -> Result<Chunks<'_>> {
     let mut header = None;
     let mut palette: Option<&[u8]> = None;
     let mut trns: Option<&[u8]> = None;
+    let (mut phys, mut exif): (Option<&[u8]>, Option<&[u8]>) = (None, None);
     let mut idat = Vec::new();
     while !rest.is_empty() {
         let in_image_data = !idat.is_empty();
@@ -177,6 +181,8 @@ pub(super) fn read_chunks(bytes: &[u8]) -> Result<Chunks<'_>> {
                 palette = Some(data);
             }
             b"tRNS" => trns = Some(data),
+            b"pHYs" => phys = Some(data),
+            b"eXIf" => exif = Some(data),
             b"IDAT" => idat.extend_from_slice(data),
             b"IEND" => break,
             // An unknown critical chunk (upper-case first letter) can't be skipped (§5.4).
@@ -188,6 +194,8 @@ pub(super) fn read_chunks(bytes: &[u8]) -> Result<Chunks<'_>> {
         header: header.ok_or_else(|| invalid("no IHDR chunk"))?,
         palette,
         trns,
+        phys,
+        exif,
         idat,
     })
 }

@@ -205,6 +205,7 @@ A PR that adds a code adds:
 | [`render-too-large`](render-too-large.md) | `limit` | the requested tile is larger than the render limits allow; nothing was allocated |
 | [`render-failed`](render-failed.md) | `input` | the render engine could not open the document or draw the page |
 | [`render-backend-unavailable`](render-backend-unavailable.md) | `io` | the render engine is not available: its library or module could not be loaded |
+| [`export-failed`](export-failed.md) | `internal` | an export's PNG, JPEG or TIFF encoder failed on a page that was drawn |
 
 ## Extract errors (`laminapdf-extract`)
 

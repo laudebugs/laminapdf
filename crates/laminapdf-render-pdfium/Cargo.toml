@@ -31,7 +31,9 @@ laminapdf-content = { path = "../laminapdf-content" }
 laminapdf-cos = { path = "../laminapdf-cos" }
 laminapdf-model = { path = "../laminapdf-model" }
 laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
-laminapdf-render = { path = "../laminapdf-render", features = ["hayro"] }
+laminapdf-render = { path = "../laminapdf-render", features = ["hayro", "export"] }
+# Decoding what export_pages wrote (tests/export.rs).
+png = { workspace = true }
 # The test helpers every crate shares (code-organization.md §6).
 laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 serde_json = { workspace = true }

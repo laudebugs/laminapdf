@@ -1229,7 +1229,7 @@
           "round": "E3",
           "target": "write",
           "surfaces": {
-            "core": null,
+            "core": "write",
             "pdf": null,
             "web": null,
             "desktop": null
@@ -1277,7 +1277,7 @@
           "round": "E3",
           "target": "read",
           "surfaces": {
-            "core": null,
+            "core": "read",
             "pdf": null,
             "web": null,
             "desktop": null
@@ -1337,7 +1337,7 @@
           "round": "E3",
           "target": "read",
           "surfaces": {
-            "core": null,
+            "core": "read",
             "pdf": null,
             "web": null,
             "desktop": null

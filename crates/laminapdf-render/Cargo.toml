@@ -23,6 +23,9 @@ layer = "core"
 # The pure-Rust renderer (hayro 0.8, MIT OR Apache-2.0): ADR 0004's CI oracle and debug choice.
 # Off by default, so crates that only need the trait don't compile it.
 hayro = ["dep:hayro"]
+# Page export to PNG, JPEG and TIFF (`export_pages`, todo E3h). Off by default, so the web
+# reader's renderer doesn't carry the encoders: the browser encodes PNG and JPEG there.
+export = ["dep:png", "dep:jpeg-encoder", "dep:tiff"]
 
 [dependencies]
 laminapdf-cos = { workspace = true }
@@ -31,11 +34,17 @@ laminapdf-syntax = { workspace = true, features = ["json"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 hayro = { workspace = true, optional = true }
+png = { workspace = true, optional = true }
+jpeg-encoder = { workspace = true, optional = true }
+tiff = { workspace = true, optional = true }
 
 [dev-dependencies]
 # The test helpers every crate shares, by path only (code-organization.md §6).
 laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 boon = { workspace = true }
+# Decoding what `export_pages` wrote, in tests/export.rs.
+png = { workspace = true }
+tiff = { workspace = true }
 
 [lints]
 workspace = true

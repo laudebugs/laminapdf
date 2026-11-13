@@ -1,6 +1,6 @@
 //! [`Builder`]: `laminapdf-build`'s builder, finishing into a façade [`Document`].
 
-use laminapdf_build::{Attachment, ViewerPreferences};
+use laminapdf_build::{Attachment, Image, ImagesOptions, ViewerPreferences};
 use laminapdf_build::{
     BuildOptions, ElementId, Fit, Metadata, OutlineEntry, OutlineItemId, PageBuilder, PageLabel, PageSize,
     TagDiagnostic,
@@ -259,4 +259,31 @@ impl Builder {
         let (doc, warnings) = (builder.finish()?, flows);
         Ok(Document::built(doc, warnings))
     }
+}
+
+/// A new document with one page per image, each drawn the way up its EXIF orientation says:
+/// a JPEG embedded as it is, a PNG decoded with its transparency kept ([`ImagesOptions`] sizes
+/// the pages). It saves as a full rewrite, like a [`Builder`]'s.
+///
+/// ```
+/// use laminapdf::{Image, ImagePages, ImagesOptions, PageSize, Pt, SaveOptions, images_to_pdf};
+///
+/// let dot = Image::rgba(1, 1, &[0, 128, 255, 255])?;
+/// let options = ImagesOptions::new().with_pages(ImagePages::Fit(PageSize::A4)).with_margin(Pt::from_mm(10.0));
+/// let mut doc = images_to_pdf(&[dot.clone(), dot], &options)?;
+/// assert_eq!(doc.page_count()?, 2);
+/// let bytes = doc.save(&SaveOptions::new())?.bytes;
+/// # assert!(bytes.starts_with(b"%PDF-"));
+/// # Ok::<(), laminapdf::Error>(())
+/// ```
+///
+/// # Errors
+/// `invalid-geometry` for no images or options that leave no room for them.
+///
+/// Added in 0.2.0.
+pub fn images_to_pdf(images: &[Image], options: &ImagesOptions) -> Result<Document> {
+    Ok(Document::built(
+        laminapdf_build::images_to_pdf(images, options)?,
+        Vec::new(),
+    ))
 }
