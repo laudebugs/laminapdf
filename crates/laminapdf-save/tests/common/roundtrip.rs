@@ -30,8 +30,8 @@ use std::path::Path;
 use laminapdf_cos::OpenOptions;
 use laminapdf_model::{PageId, PagePosition, PageSize, Rotation};
 use laminapdf_ops::{
-    DeletePages, Document, InfoPatch, InsertBlankPages, MetadataKey, MetadataPatch, Op, Origin, RemoveMetadata,
-    ReversePages, RotatePage, RotatePages, SetInfo, SetMetadata, read_metadata,
+    DeletePages, Document, InfoPatch, InsertBlankPages, MetadataKey, MetadataPatch, MovePages, Op, Origin,
+    RemoveMetadata, ReversePages, RotatePage, RotatePages, SetInfo, SetMetadata, read_metadata,
 };
 use laminapdf_save::{Restriction, Save, SaveError, SaveMode, SaveOptions, SavePlanner, SaveReport};
 use serde_json::{Value, json};
@@ -223,7 +223,7 @@ fn facts(doc: &laminapdf_model::Document) -> (usize, Vec<u16>, Vec<Option<String
 
 /// The ops each fixture is saved with: a title through the deprecated `setInfo`, a rotation,
 /// the metadata ops (J.01–J.03, J.10) and the page ops (C.01, C.03, C.04, C.08, C.13).
-const OPS: [&str; 8] = [
+const OPS: [&str; 9] = [
     "setInfo",
     "rotatePage",
     "setMetadata",
@@ -231,14 +231,15 @@ const OPS: [&str; 8] = [
     "insertBlankPages",
     "deletePages",
     "reversePages",
+    "movePages",
     "rotatePages",
 ];
 
 /// The save-time date the metadata cases stamp (J.02).
 const STAMP: &str = "D:20261110093000Z";
 
-/// The op `name`, or `None` for a deletion or a reversal on a one-page file (a document keeps
-/// a page, and one page reversed is no change).
+/// The op `name`, or `None` for a deletion, a reversal or a move on a one-page file (a document
+/// keeps a page, and one page reversed or moved is no change).
 fn op(doc: &Document, name: &str, rotation: Rotation) -> Option<Op> {
     let [title, author, subject, keywords] = INFO.map(|(_, value)| Some(value));
     let ids: Vec<PageId> = doc.pages().unwrap().iter().map(|p| p.id().clone()).collect();
@@ -276,6 +277,10 @@ fn op(doc: &Document, name: &str, rotation: Rotation) -> Option<Op> {
         "deletePages" => return None,
         "reversePages" if ids.len() > 1 => ReversePages::new(ids).into(),
         "reversePages" => return None,
+        "movePages" if ids.len() > 1 => {
+            MovePages::new(ids.last().cloned().into_iter().collect(), PagePosition::Start).into()
+        }
+        "movePages" => return None,
         "rotatePages" => RotatePages::turn(ids, rotation).into(),
         _ => RotatePage::new(ids.first().cloned()?, rotation).into(),
     })
@@ -298,6 +303,7 @@ fn after_op(op: &Op, rotation: Rotation, pages: &mut usize, rotations: &mut Vec<
             rotations.pop();
         }
         Op::ReversePages(_) => rotations.reverse(),
+        Op::MovePages(_) => rotations.rotate_right(1),
         Op::RotatePages(_) => {
             for r in rotations.iter_mut() {
                 *r = (*r + rotation.degrees()) % 360;
