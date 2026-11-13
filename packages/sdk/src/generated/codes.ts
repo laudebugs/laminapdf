@@ -52,6 +52,7 @@ export type ErrorCode =
   | "no-pending-save"
   | "malformed-xmp"
   | "unknown-source"
+  | "open-action-not-destination"
   | "unknown-outline-item"
   | "direct-outline-item"
   | "outline-not-a-sibling"
@@ -282,6 +283,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "no-pending-save",
   "malformed-xmp",
   "unknown-source",
+  "open-action-not-destination",
   "unknown-outline-item",
   "direct-outline-item",
   "outline-not-a-sibling",
@@ -540,6 +542,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "no-pending-save": "state",
   "malformed-xmp": "input",
   "unknown-source": "usage",
+  "open-action-not-destination": "usage",
   "unknown-outline-item": "usage",
   "direct-outline-item": "unsupported",
   "outline-not-a-sibling": "usage",
@@ -745,6 +748,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "no-pending-save": "call rebase only after a save that returned SavedNotRebased",
   "malformed-xmp": "set replaceMalformed on the edit to replace the packet with a new one, or leave the metadata as it is",
   "unknown-source": "add the source document's bytes with addSource before applying ops that name it",
+  "open-action-not-destination": "leave the open page out of the edit, which keeps the open action as it is",
   "unknown-outline-item": "read the outline again and use one of its item IDs; an item a previous op deleted is gone",
   "direct-outline-item": "apply any other outline op first: it rewrites the outline and gives every bookmark an object and an ID of its own",
   "outline-not-a-sibling": "name a position among the parent's own children, or use first or last",

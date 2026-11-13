@@ -37,7 +37,7 @@ Create and edit nested bookmarks (add, rename, retarget, move, nest, colour and 
 
 - Link annotations → [E3c](../ready/E3c-links.md)
 - The contents page → [E3l](../ready/E3l-contents-page.md)
-- Viewer preferences and page mode (`I.11`) → [E3d](../ready/E3d-initial-view-and-threads.md)
+- Viewer preferences and page mode (`I.11`) → [E3d](E3d-initial-view-and-threads.md)
 - The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
 - TOC from struct-tree headings, if decided → [E15b](../ready/E15b-structure-tree-editing.md)
 

@@ -4,6 +4,7 @@
 // isolate: hello-first is then cold and the WebAssembly memory is the hello and report runs'
 // alone (memory never shrinks).
 import { init } from "@laminapdf/sdk";
+import outlinePdf from "../../../../fixtures/corpus/outline.pdf";
 import invoiceTemplate from "../../../../fixtures/documents/invoice.json" with { type: "json" };
 import invoiceData from "../../../../fixtures/documents/invoice-data.json" with { type: "json" };
 import notoSans from "../../../../fixtures/fonts/NotoSans-Regular.ttf";
@@ -38,6 +39,7 @@ const inputs: Inputs = {
       "fixtures/fonts/NotoSans-RegularBold.ttc": notoSansCollection,
       "fixtures/markdown/report.md": report,
       "fixtures/golden/metadata.pdf": metadataPdf,
+      "fixtures/corpus/outline.pdf": outlinePdf,
       "fixtures/golden/links-and-outlines.pdf": bookmarksPdf,
       "fixtures/golden/examples/pdf_a_archive-2b.pdf": pdfaArchive2b,
       "fixtures/pages/references.pdf": referencesPdf,

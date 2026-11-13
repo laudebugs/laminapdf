@@ -60,6 +60,11 @@ pub enum Error {
     /// its sources before it replays the log).
     #[error("no source document with this ID was added to the session")]
     UnknownSource(crate::SourceId),
+    /// A [`SetInitialView`](crate::SetInitialView) would replace or remove the catalog's
+    /// `/OpenAction`, which is an action other than `GoTo` (JavaScript, a named action, a link
+    /// to another file). The op never replaces one: leave `open` out to keep it.
+    #[error("the document's open action is not a destination, and the op would replace it")]
+    OpenActionNotDestination,
     /// The op names a bookmark the outline does not have.
     #[error("the outline has no item {}", ShownItem(.0))]
     UnknownOutlineItem(OutlineItemId),
@@ -224,6 +229,7 @@ impl Error {
         "no-pending-save",
         "malformed-xmp",
         "unknown-source",
+        "open-action-not-destination",
         "unknown-outline-item",
         "direct-outline-item",
         "outline-not-a-sibling",
@@ -261,6 +267,7 @@ impl Error {
             Self::NoPendingSave => "no-pending-save",
             Self::MalformedXmp => "malformed-xmp",
             Self::UnknownSource(_) => "unknown-source",
+            Self::OpenActionNotDestination => "open-action-not-destination",
             Self::UnknownOutlineItem(_) => "unknown-outline-item",
             Self::DirectOutlineItem(_) => "direct-outline-item",
             Self::NotASibling(_) => "outline-not-a-sibling",
@@ -309,6 +316,7 @@ impl Error {
             | Self::NoPagesLeft
             | Self::InvalidOp(_)
             | Self::UnknownAnnotation(_)
+            | Self::OpenActionNotDestination
             | Self::XmpClaimReadOnly
             | Self::InvalidXmpProperty { .. }
             | Self::InvalidLabelRanges { .. } => ErrorKind::Usage,
@@ -372,6 +380,7 @@ impl Error {
             | Self::NoPendingSave
             | Self::MalformedXmp
             | Self::UnknownSource(_)
+            | Self::OpenActionNotDestination
             | Self::XmpClaimReadOnly
             | Self::InvalidXmpPacket(_)
             | Self::InvalidXmpProperty { .. }
@@ -408,6 +417,7 @@ mod tests {
             Error::NoPendingSave,
             Error::MalformedXmp,
             Error::UnknownSource(crate::SourceId::from_bytes([0; 32])),
+            Error::OpenActionNotDestination,
             Error::UnknownOutlineItem(item.clone()),
             Error::DirectOutlineItem(item.clone()),
             Error::NotASibling(item.clone()),

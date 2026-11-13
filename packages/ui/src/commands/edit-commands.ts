@@ -1,5 +1,6 @@
 // The edit session's commands (Paper O01, design language §8.8): Undo and Redo with their
-// shortcuts, Show history and Go to step, and turning the current page, the one edit the reader
+// shortcuts, Show history and Go to step, Initial view… and the thread-part steps (O13, which
+// load with these, once a document is open), and turning the current page, the one edit the reader
 // makes until Organise (E2) brings the page grid. Undo, Redo and Go to step drive the session in
 // the context; Show history and the page turns are the shell's, which knows the rail and the pages.
 // Each has a visible home: the top bar's Undo and Redo, the web's More menu (the desktop's Edit
@@ -9,6 +10,7 @@
 
 import { type EditControls, type EditSlice, inSentence, stepToRedo, stepToUndo } from "../edit/edit-controls.js";
 import { blockedReason } from "../edit/outcome.js";
+import { laterMessage } from "../later-messages.js";
 import { message } from "../messages.js";
 import type { CommandRegistry } from "./registry.js";
 import type { AnyCommand, ArgsSchema, Command, CommandContext, CommandId, Shortcut } from "./types.js";
@@ -67,6 +69,38 @@ function rotateCommand(id: CommandId, icon: "rotate-left" | "rotate-right"): Com
     home: ["edit-menu"],
     enabled: editable,
     run: (ctx) => ctx.actions?.[id]?.(undefined),
+  };
+}
+
+/**
+ * Next and Previous thread part (O13), registered with the edit commands once a document is open:
+ * the shell gives their handlers only while the file has article threads, so they stay out of view
+ * otherwise. Their home is the Threads tab's Previous part and Next part.
+ */
+function threadPartCommands(): Command[] {
+  return (["nav.next-thread-part", "nav.previous-thread-part"] as const).map((id) => ({
+    id,
+    title: laterMessage(`command.${id}`),
+    keywords: ["article", "bead", "thread"],
+    group: "navigate",
+    delegated: true,
+    home: ["threads-panel"],
+    enabled: (ctx) => (ctx.viewer === undefined ? message("command.reason.noDocument") : true),
+    run: (ctx) => ctx.actions?.[id]?.(undefined),
+  }));
+}
+
+/** Initial view… (O13): the shell opens the dialog, which knows the document's pages. */
+function initialViewCommand(): Command {
+  return {
+    id: "organise.initial-view",
+    title: laterMessage("command.organise.initial-view"),
+    keywords: ["open", "opens", "zoom", "layout", "page mode", "viewer preferences"],
+    group: "edit",
+    delegated: true,
+    home: ["edit-menu"],
+    enabled: editable,
+    run: (ctx) => ctx.actions?.["organise.initial-view"]?.(undefined),
   };
 }
 
@@ -191,6 +225,8 @@ export function editCommands(): readonly AnyCommand[] {
         await ctx.edits?.goTo(step);
       },
     } satisfies Command<number>,
+    initialViewCommand(),
+    ...threadPartCommands(),
     rotateCommand("pages.rotate-right", "rotate-right"),
     rotateCommand("pages.rotate-left", "rotate-left"),
     ...saveCommands(),

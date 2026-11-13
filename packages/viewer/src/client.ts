@@ -548,6 +548,19 @@ export class ViewerClient {
   }
 
   /**
+   * How the open document asks to be shown when it opens: the page and zoom, the panel, the page
+   * layout and the window preferences, as its edits leave them.
+   */
+  initialView(options?: ViewerCallOptions) {
+    return this.call("initialView", [], options);
+  }
+
+  /** The open document's article threads, each with its parts in reading order; empty without any. */
+  threads(options?: ViewerCallOptions) {
+    return this.call("threads", [], options);
+  }
+
+  /**
    * What a properties view shows about the open document (`@laminapdf/sdk`'s `properties()`,
    * read in the worker). It reads every object once: ask when the view opens.
    */

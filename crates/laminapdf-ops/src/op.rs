@@ -11,6 +11,7 @@ use crate::annot::{DeleteAnnot, UpdateAnnot};
 use crate::class::ModificationClass;
 use crate::error::{Error, Result};
 use crate::info::SetInfo;
+use crate::initial_view::SetInitialView;
 use crate::labels::SetPageLabels;
 use crate::metadata::{
     RemoveMetadata, RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty, UpdateSaveMetadata,
@@ -65,6 +66,8 @@ pub enum Op {
     SetMetadata(SetMetadata),
     /// Remove metadata fields from Info and XMP.
     RemoveMetadata(RemoveMetadata),
+    /// Change how the document asks to be shown when it opens.
+    SetInitialView(SetInitialView),
     /// Add a bookmark.
     AddOutlineItem(AddOutlineItem),
     /// Change a bookmark's title, target, style or open state.
@@ -136,7 +139,8 @@ impl Op {
             | Self::RotatePages(_)
             | Self::ReversePages(_)
             | Self::DuplicatePages(_) => ModificationClass::PageStructure,
-            Self::AddOutlineItem(_)
+            Self::SetInitialView(_)
+            | Self::AddOutlineItem(_)
             | Self::UpdateOutlineItem(_)
             | Self::MoveOutlineItem(_)
             | Self::DeleteOutlineItem(_)
@@ -161,6 +165,7 @@ impl Op {
             | Self::RotatePage(_)
             | Self::SetMetadata(_)
             | Self::RemoveMetadata(_)
+            | Self::SetInitialView(_)
             | Self::SetXmpProperty(_)
             | Self::RemoveXmpProperty(_)
             | Self::ReplaceXmpPacket(_)
@@ -201,6 +206,7 @@ impl Op {
             Self::SetInfo(_)
             | Self::SetMetadata(_)
             | Self::RemoveMetadata(_)
+            | Self::SetInitialView(_)
             | Self::SetXmpProperty(_)
             | Self::RemoveXmpProperty(_)
             | Self::ReplaceXmpPacket(_)
@@ -250,6 +256,7 @@ impl Op {
             Self::DuplicatePages(op) => op.apply_to(doc),
             Self::SetMetadata(op) => op.apply_to(doc),
             Self::RemoveMetadata(op) => op.apply_to(doc),
+            Self::SetInitialView(op) => op.apply_to(doc).map(|()| Effect::default()),
             Self::SetXmpProperty(op) => op.apply_to(doc),
             Self::RemoveXmpProperty(op) => op.apply_to(doc),
             Self::ReplaceXmpPacket(op) => op.apply_to(doc),
@@ -337,6 +344,7 @@ macro_rules! op_from {
 }
 
 op_from!(
+    SetInitialView,
     AddOutlineItem,
     UpdateOutlineItem,
     MoveOutlineItem,
