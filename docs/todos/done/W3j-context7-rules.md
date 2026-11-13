@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `W3j` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Discoverability §5](../../plans/discoverability.md#5-todos) |
 | Round / milestone | Round W (website), W3 discoverability |
-| Depends on | [W3f](../done/W3f-agent-discovery.md) |
+| Depends on | [W3f](./W3f-agent-discovery.md) |
 | ADRs | None |
 | Branch | `claude/inspiring-lamport-q8469n` (this session's branch) |
 | PR title | `docs: bring Context7's rules in line with the agent snippet` |
 | Size | S |
-| PR | — |
+| PR | [#551](https://github.com/laudebugs/laminapdf/pull/551) |
 
 ## Goal
 
@@ -40,14 +40,14 @@ An agent that asks Context7 about Lamina PDF reads the rules in the root `contex
 ## Tasks
 
 - [x] Link `AGENTS.md` to `CLAUDE.md`; add it to the layout in `CLAUDE.md`.
-- [ ] Rewrite `context7.json`'s rules from the snippet; add extraction and the command line.
-- [ ] Add the two points to the snippet.
+- [x] Rewrite `context7.json`'s rules from the snippet; add extraction and the command line.
+- [x] Add the two points to the snippet.
 
 ## Acceptance criteria
 
-- [ ] Each point of the snippet has a rule in `context7.json`, and each rule a point in the snippet.
-- [ ] Every API name, option, command and tool a rule names exists, as the docs pages above show it.
-- [ ] `cargo xtask check docs` passes.
+- [x] Each point of the snippet has a rule in `context7.json`, and each rule a point in the snippet.
+- [x] Every API name, option, command and tool a rule names exists, as the docs pages above show it.
+- [x] `cargo xtask check docs` passes.
 
 ## Post-merge checks
 
@@ -68,7 +68,7 @@ The [discoverability plan](../../plans/discoverability.md) (its table and to-dos
 ## Definition of done
 
 - [x] Claimed: the work PR moved this file to `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
