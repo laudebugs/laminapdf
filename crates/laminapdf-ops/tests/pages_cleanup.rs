@@ -11,7 +11,7 @@
 mod common;
 
 use common::{open, page_ids};
-use laminapdf_cos::{Dict, Name, ObjRef, Object};
+use laminapdf_cos::{Dict, Name, ObjRef, Object, PdfString};
 use laminapdf_model::{PagePosition, PageSize, Pt};
 use laminapdf_ops::{DeletePages, Document, Error, InsertBlankPages, MovePages, Origin};
 use laminapdf_save::test_support::Writer;
@@ -193,4 +193,54 @@ fn moving_lists_the_moved_pages_as_touched() {
         ),
         (vec![&ids[2]], vec![&ids[2]])
     );
+}
+
+#[test]
+fn a_field_whose_indirect_kids_empty_leaves_the_form() {
+    let mut w = Writer::new(1, 7);
+    let pages = w.reserve();
+    let field = w.reserve();
+    let kids = w.reserve();
+    let widget = w.add(dict(vec![
+        ("Type", Object::name("Annot")),
+        ("Subtype", Object::name("Widget")),
+        ("Parent", field.into()),
+        ("Rect", vec![0.into(), 0.into(), 10.into(), 10.into()].into()),
+    ]));
+    let p1 = w.add(dict(vec![("Type", Object::name("Page")), ("Parent", pages.into())]));
+    let p2 = w.add(dict(vec![
+        ("Type", Object::name("Page")),
+        ("Parent", pages.into()),
+        ("Annots", vec![widget.into()].into()),
+    ]));
+    w.set(kids, Object::Array(vec![widget.into()]));
+    w.set(
+        field,
+        dict(vec![
+            ("FT", Object::name("Tx")),
+            ("T", Object::String(PdfString::literal("name"))),
+            ("Kids", kids.into()),
+        ]),
+    );
+    w.set(
+        pages,
+        dict(vec![
+            ("Type", Object::name("Pages")),
+            ("Kids", vec![p1.into(), p2.into()].into()),
+            ("Count", 2.into()),
+            ("MediaBox", vec![0.into(), 0.into(), 612.into(), 792.into()].into()),
+        ]),
+    );
+    let form = w.add(dict(vec![("Fields", vec![field.into()].into())]));
+    let catalog = w.add(dict(vec![
+        ("Type", Object::name("Catalog")),
+        ("Pages", pages.into()),
+        ("AcroForm", form.into()),
+    ]));
+    let mut doc = open(&w.finish(&dict(vec![("Root", catalog.into())])).unwrap());
+    let ids = page_ids(&doc);
+    doc.apply_all(Origin::Local, [DeletePages::new(vec![ids[1].clone()]).into()])
+        .unwrap();
+    let fields = doc.resolve(form).unwrap().as_dict().unwrap().get("Fields").cloned();
+    assert_eq!(fields, Some(Object::Array(Vec::new())));
 }

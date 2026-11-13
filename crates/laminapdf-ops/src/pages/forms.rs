@@ -32,13 +32,14 @@ pub(crate) fn drop_widgets(
     Ok(changes)
 }
 
-/// Whether `field` still lists a kid (an indirect `/Kids` array counts as listing some).
+/// Whether `field` still lists a kid, following an indirect `/Kids` array.
 fn has_kids(doc: &laminapdf_model::Document, field: ObjRef) -> Result<bool> {
-    Ok(doc
-        .object(field.num)?
-        .as_dict()
-        .and_then(|d| d.get("Kids"))
-        .is_some_and(|k| !matches!(k, Object::Array(items) if items.is_empty())))
+    let kids = doc.object(field.num)?.as_dict().and_then(|d| d.get("Kids")).cloned();
+    Ok(match kids {
+        Some(Object::Ref(list)) => doc.object(list.num)?.as_array().is_some_and(|items| !items.is_empty()),
+        Some(Object::Array(items)) => !items.is_empty(),
+        _ => false,
+    })
 }
 
 /// Takes `field` out of its parent's `/Kids`, and a parent left with no kids out of its own,
