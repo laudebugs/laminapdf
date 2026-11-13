@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E3i` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E3 plan §2.3](../../plans/editor/e3-navigation-attachments-inspection.md#23-functions-that-only-read-or-write-new-files) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md) |
@@ -15,7 +15,7 @@
 
 ## Goal
 
-Give the library what it lacks for the round's extraction rows: the original embedded images (DCT and JPX passed through, others decoded with `/Decode`, masks and colour spaces honoured), and links and bookmarks as JSON and CSV. Text already comes from `laminapdf-extract` and its `@laminapdf/sdk` binding; this todo tags their tests for `A.10` and the text half of `H.07`. The dialog is [E3j](E3j-export-dialog.md)'s.
+Give the library what it lacks for the round's extraction rows: the original embedded images (DCT and JPX passed through, others decoded with `/Decode`, masks and colour spaces honoured), and links and bookmarks as JSON and CSV. Text already comes from `laminapdf-extract` and its `@laminapdf/sdk` binding; this todo tags their tests for `A.10` and the text half of `H.07`. The dialog is [E3j](../ready/E3j-export-dialog.md)'s.
 
 ## Context
 
@@ -34,8 +34,8 @@ Give the library what it lacks for the round's extraction rows: the original emb
 
 **Out of scope** (and which todo covers it)
 
-- The export dialog → [E3j](E3j-export-dialog.md)
-- The desktop column → [E3k](E3k-desktop-navigation-and-export.md)
+- The export dialog → [E3j](../ready/E3j-export-dialog.md)
+- The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 
