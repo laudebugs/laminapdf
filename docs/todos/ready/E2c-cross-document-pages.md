@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §2.2](../../plans/editor/e2-page-organisation.md#22-what-follows-a-page) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2k](./E2k-duplicate-pages.md), [E2p](../done/E2p-source-documents-and-copier.md) |
+| Depends on | [E2k](../ongoing/E2k-duplicate-pages.md), [E2p](../done/E2p-source-documents-and-copier.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2c-cross-document-pages` |
 | PR title | `feat(ops): import, replace and extract pages across documents` |
