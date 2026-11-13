@@ -83,6 +83,16 @@ cargo run --release -p laminapdf-desktop-engine --example measure -- \
     --engine target/release/laminapdf-desktop-engine --file target/fixtures/1gb.pdf --tiles 200
 ```
 
+### Windows and tabs
+
+Each window holds tabs, one per open document; the strip shows from two tabs on. Opening a file adds a tab to the frontmost window (Settings › Files can open each file in its own window instead), and opening a file that is already open shows its tab. Rust makes every window (`src-tauri/src/windows.rs`, labels `main` then `doc-1`, `doc-2`, …) and knows which window owns each document. The tabs themselves (their order, the shown one, each one's view) live in the webview (`src/tabs/`). Each window has its own engine, so moving a tab to another window reopens its document in that window's engine, keeping its password, page and zoom ([ADR 0008 §2](../../docs/decisions/0008-desktop-shell.md#2-process-model-a-main-process-that-owns-files-and-a-sandboxed-engine-per-window)). To measure the engines with documents spread over windows:
+
+```sh
+cargo run --release -p laminapdf-desktop-engine --example windows -- \
+    --engine target/release/laminapdf-desktop-engine \
+    --pdfium apps/desktop/src-tauri/resources/pdfium --files fixtures/golden/examples
+```
+
 Add `#raw` to the window's address (in the dev tools) to fetch tiles as raw RGBA instead of WebP, which ADR 0008 §4 keeps for diagnosis.
 
 ## How it fits together

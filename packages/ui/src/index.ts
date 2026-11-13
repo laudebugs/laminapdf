@@ -32,7 +32,12 @@ export {
   useCommands,
   useShortcutMap,
 } from "./commands/react.js";
-export { readerCommands, registerReaderCommands } from "./commands/reader-commands.js";
+export {
+  readerCommands,
+  registerReaderCommands,
+  registerTabCommands,
+  tabCommands,
+} from "./commands/reader-commands.js";
 export { CommandError, CommandRegistry } from "./commands/registry.js";
 export { RegistryPalette, type RegistryPaletteProps } from "./commands/registry-palette.js";
 export {
@@ -215,6 +220,7 @@ export {
 } from "./reader/appearance.js";
 export { formatBytes } from "./reader/bytes.js";
 export { type DebugBackend, DebugMenu, type DebugMenuProps } from "./reader/debug-menu.js";
+export { type DocumentTab, DocumentTabs, type DocumentTabsProps } from "./reader/document-tabs.js";
 export {
   ExternalLinkDialog,
   type ExternalLinkDialogProps,

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-take-pending-tabs"
+description = "Enables the take_pending_tabs command without any pre-configured scope."
+commands.allow = ["take_pending_tabs"]
+
+[[permission]]
+identifier = "deny-take-pending-tabs"
+description = "Denies the take_pending_tabs command without any pre-configured scope."
+commands.deny = ["take_pending_tabs"]
