@@ -374,6 +374,21 @@ impl MergeInput {
 }
 
 impl Document {
+    /// An empty document: a catalog and an empty page tree, in the overlay of an empty base,
+    /// with default limits. A document needs a page to show, so this one is a target to merge
+    /// files into ([`Document::merge`] starts from one) or to build pages in.
+    ///
+    /// # Errors
+    /// Errors of the overlay.
+    ///
+    /// Added in 0.3.0.
+    pub fn empty() -> Result<Self> {
+        Ok(Self::from(super::extract::empty_document(
+            None,
+            laminapdf_cos::Limits::default(),
+        )?))
+    }
+
     /// A new document of `inputs`' pages, in order: an empty document with one
     /// [`MergeDocuments`] applied, so it holds what that op brings in (bookmarks per
     /// `options.outline`, fields under `options.fields`' clash rule, layers, page labels) and
@@ -409,7 +424,7 @@ impl Document {
         if inputs.is_empty() {
             return Err(Error::NoPagesLeft);
         }
-        let mut doc = Self::from(super::extract::empty_document(None, laminapdf_cos::Limits::default())?);
+        let mut doc = Self::empty()?;
         let mut sources = Vec::with_capacity(inputs.len());
         for input in inputs {
             let id = doc.add_source(input.bytes, input.password.as_deref())?;
