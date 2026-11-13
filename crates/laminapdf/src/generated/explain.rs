@@ -3259,7 +3259,7 @@ Check the saved file with a PDF/A validator such as veraPDF, or copy pages from 
 
 ## Example
 
-Merging a scanned report that claims no PDF/A level into a PDF/A-2b file with `mergeDocuments`, then `doc.plan()`, lists `imported-pdfa-unchecked`.
+A PDF/A-2b file merges in a scanned report that claims no PDF/A level with `mergeDocuments`. Its `doc.plan()` then lists `imported-pdfa-unchecked`.
 
 ## Data fields
 

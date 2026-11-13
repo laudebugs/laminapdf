@@ -26,14 +26,14 @@ The book has three chapters of four pages, so the program makes three files. Eac
 ## How it works
 
 - Each file's pages come in as copied pages do: with their annotations, form fields and page labels, and with the named destinations their links use. [Copy pages between PDFs](/recipes/copy-pages/) explains the rules.
-- When two files use one form field name, the later field becomes `<name>#2`, and when they use one named destination, the later becomes `<name>#2` and the bookmarks and links that used it follow.
+- When two files use one form field name, the later file's field becomes `<name>#2`. A named destination that two files use is renamed the same way, and the bookmarks and links that used it follow the new name.
 - Layers keep the visibility each file gave them.
 - A merged file is a new document, so saving it writes a whole file with no password. An encrypted file needs its `password` beside its bytes.
 - A part of a split holds only what its pages use, as a document from `extractPages` does.
 
 ## Merge tagged PDFs
 
-Merged pages come without their tags, as copied pages do, so a merge of tagged PDFs makes an untagged file. On a document that claims PDF/UA-1, saving then warns with [`imported-tags-dropped`](/reference/codes/imported-tags-dropped/). On one that claims a PDF/A level, merging a file that doesn't claim the same level warns with [`imported-pdfa-unchecked`](/reference/codes/imported-pdfa-unchecked/): check the saved file with a PDF/A validator.
+Merged pages come without their tags, as copied pages do, so a merge of tagged PDFs makes an untagged file. On a document that claims PDF/UA-1, saving then warns with [`imported-tags-dropped`](/reference/codes/imported-tags-dropped/). A document that claims a PDF/A level warns with [`imported-pdfa-unchecked`](/reference/codes/imported-pdfa-unchecked/) when a merged file doesn't claim the same level, so check the saved file with a PDF/A validator.
 
 ## What to change
 
