@@ -3,7 +3,7 @@
 //!
 //! ```sh
 //! cargo xtask fixtures large-pdf
-//! cargo run --release -p laminapdf-desktop-os --example reopen_cost -- target/fixtures/1gb.pdf
+//! cargo run --release -p laminapdf-desktop-os --example reopen-cost -- target/fixtures/1gb.pdf
 //! ```
 //!
 //! Reads the file in 256 KiB blocks, the engine's block size, both ways: every block in order (what
@@ -21,21 +21,9 @@ use std::io;
 use std::path::Path;
 use std::time::{Duration, Instant};
 
-use laminapdf_desktop_os::file_identity;
+use laminapdf_desktop_os::{file_identity, open_shared};
 
 const BLOCK: u64 = 256 * 1024;
-
-/// `path` opened as `FileSource` opens it: read-only, and on Windows sharing read, write and delete.
-fn open_shared(path: &Path) -> io::Result<File> {
-    let mut options = std::fs::OpenOptions::new();
-    options.read(true);
-    #[cfg(windows)]
-    {
-        use std::os::windows::fs::OpenOptionsExt as _;
-        options.share_mode(0x1 | 0x2 | 0x4);
-    }
-    options.open(path)
-}
 
 fn read_at(file: &File, buf: &mut [u8], offset: u64) -> io::Result<usize> {
     #[cfg(unix)]
@@ -77,7 +65,7 @@ fn ms(d: Duration) -> f64 {
 }
 
 fn main() {
-    let path = std::env::args_os().nth(1).expect("usage: reopen_cost <file>");
+    let path = std::env::args_os().nth(1).expect("usage: reopen-cost <file>");
     let path = Path::new(&path);
     let len = std::fs::metadata(path).unwrap().len();
     let blocks = len.div_ceil(BLOCK);

@@ -104,8 +104,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   │                    #     builds only (D2c)
 │   ├── laminapdf-desktop-os/  # edge, unpublished: the desktop main process's calls into the OS's shell (D3b): the recent
 │   │                    #     documents (macOS NSDocumentController, Windows SHAddToRecentDocs and the Jump List of the
-│   │                    #     AppUserModelID set at start-up, Linux GTK RecentManager), on the main thread; file_identity
-│   │                    #     (D3c: the file an open handle reads, volume and file ID or device and inode; example reopen_cost)
+│   │                    #     AppUserModelID set at start-up, Linux GTK RecentManager), on the main thread; open_shared and file_identity
+│   │                    #     (D3c: the share mode documents open with, the file an open handle reads, volume and file ID or device and inode; example reopen-cost)
 │   ├── laminapdf-render-wasm/  # edge: wasm-bindgen bindings of the hayro adapter (flat numbers and bytes), built by
 │                        #     `cargo xtask wasm` as lamina_pdf_render_hayro into @laminapdf/wasm (C2c)
 │   └── laminapdf-test-fixtures/  # dev, unpublished: the Rust test helpers that crates share (fixtures_dir, fixture, corpus,

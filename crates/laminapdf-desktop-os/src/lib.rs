@@ -11,8 +11,9 @@
 //! - **Linux:** GTK's `RecentManager` (`recently-used.xbel`), which file managers show; clearing
 //!   removes only the entries this app added.
 //!
-//! It also says which file an open handle reads ([`file_identity`]), so a document read by path
-//! can tell its own file from one an atomic save put in its place.
+//! It also opens a document's file so that other apps may still write, rename and delete it
+//! ([`open_shared`]), and says which file an open handle reads ([`file_identity`]), so a document
+//! read by path can tell its own file from one an atomic save put in its place.
 //!
 //! Every recent-list call must run on the app's main thread (`AppKit`'s and GTK's rule; on Windows the
 //! calls join that thread's COM apartment). Elsewhere the calls do nothing on macOS and fail on
@@ -20,8 +21,8 @@
 
 use std::path::{Path, PathBuf};
 
-mod identity;
-pub use identity::{FileIdentity, file_identity};
+mod files;
+pub use files::{FileIdentity, file_identity, open_shared};
 
 #[cfg(target_os = "linux")]
 mod linux;
