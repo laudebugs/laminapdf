@@ -45,7 +45,7 @@ function uses(items: readonly BookmarkItem[], counts = new Map<string, number>()
 }
 
 /** Props of `BookmarkPanel`. */
-export interface BookmarkPanelProps {
+interface BookmarkPanelProps {
   readonly engine: Engine;
   readonly items: readonly BookmarkItem[];
   readonly current: string | undefined;
@@ -171,7 +171,7 @@ function useNamedDestinations(
 }
 
 /** The Outline tab's editor and its named destinations dialog. */
-export function BookmarkPanel({ engine, items, current, onNavigate, keys }: BookmarkPanelProps): ReactNode {
+function BookmarkPanel({ engine, items, current, onNavigate, keys }: BookmarkPanelProps): ReactNode {
   const { viewer } = engine.getState();
   // Edits in flight: moves wait until the outline is read again after them.
   const [inFlight, setInFlight] = useState(0);
