@@ -86,10 +86,11 @@ enum Lock {
 
 impl Lock {
     /// The lock that `params` (a `/Lock` dictionary or `FieldMDP` transform parameters)
-    /// describes; `/Fields` and its names may be indirect.
+    /// describes; `/Fields` and its names may be indirect. Read tolerantly (ADR 0003): a list
+    /// that can't be read whole makes the lock [`Lock::All`], the strictest reading.
     ///
     /// # Errors
-    /// Errors reading `/Fields` or a name in it.
+    /// Unavailable input and hard limits reading `/Fields`.
     #[cfg(feature = "page-checks")]
     fn from_params(doc: &Document, params: &Dict) -> Result<Self> {
         let action = params.get_name("Action");
@@ -98,9 +99,13 @@ impl Lock {
         }
         let mut names = Vec::new();
         if let Some(fields) = params.get("Fields") {
-            for item in doc.deref(fields)?.as_array().unwrap_or_default() {
-                if let Object::String(name) = &*doc.deref(item)? {
-                    names.push(decode_text_string(&name.bytes));
+            let Some(fields) = laminapdf_cos::tolerant(doc.deref(fields))? else {
+                return Ok(Self::All);
+            };
+            for item in fields.as_array().unwrap_or_default() {
+                match laminapdf_cos::tolerant(doc.deref(item))?.as_deref() {
+                    Some(Object::String(name)) => names.push(decode_text_string(&name.bytes)),
+                    _ => return Ok(Self::All),
                 }
             }
         }

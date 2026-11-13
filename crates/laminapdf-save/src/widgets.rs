@@ -39,11 +39,7 @@ impl WidgetIndex {
                 if !is_widget(&widget) {
                     continue;
                 }
-                let field = if widget.contains_key("T") {
-                    annot
-                } else {
-                    widget.get("Parent").and_then(Object::as_ref).unwrap_or(annot)
-                };
+                let field = terminal_field(doc, annot, &widget)?;
                 let id = FieldId::object(field);
                 if !index.names.contains_key(&id) {
                     let name = qualified_name(doc, field)?;
@@ -64,6 +60,34 @@ impl WidgetIndex {
     pub(crate) fn name(&self, field: &FieldId) -> Option<&str> {
         self.names.get(field).and_then(Option::as_deref)
     }
+}
+
+/// The field `widget` (dictionary `dict`) belongs to: the widget itself when it has a `/T` or
+/// a `/V` (a merged field and widget), else the first field up its `/Parent` chain that does,
+/// since an intermediate field may have no partial name (§12.7.4.2). The signature check
+/// matches it against the field holding the signature's `/V`. A chain that ends, loops or
+/// passes `Limits::max_tree_depth` before such a field gives the immediate parent.
+fn terminal_field(doc: &laminapdf_model::Document, widget: ObjRef, dict: &Dict) -> Result<ObjRef> {
+    let names = |d: &Dict| d.contains_key("T") || d.contains_key("V");
+    if names(dict) {
+        return Ok(widget);
+    }
+    let Some(parent) = dict.get("Parent").and_then(Object::as_ref) else {
+        return Ok(widget);
+    };
+    let mut seen = BTreeSet::from([widget.num]);
+    let mut next = Some(parent);
+    while let Some(r) = next {
+        if seen.len() > doc.limits().max_tree_depth() || !seen.insert(r.num) {
+            break;
+        }
+        let Some(d) = self::dict(doc, r)? else { break };
+        if names(&d) {
+            return Ok(r);
+        }
+        next = d.get("Parent").and_then(Object::as_ref);
+    }
+    Ok(parent)
 }
 
 /// A widget annotation: `/Subtype /Widget`, or, as some writers leave the subtype out, an
