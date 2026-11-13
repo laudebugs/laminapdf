@@ -323,9 +323,14 @@ tasks:
                     without the branch or with no full record, and warns when it is over 3 days old
   changes [--base <rev>]
                     list the paths changed since the merge base with <rev> (default origin/main)
-                    and say whether any is code (not docs), the gallery's inputs or the
-                    reader's; sets `code`, `gallery` and `web` in $GITHUB_OUTPUT
-                    (default base: origin/main, or main when there is no origin/main)
+                    and say which groups of CI jobs they can affect; sets `code`, `gallery`,
+                    `web`, `desktop`, `render`, `rust`, `ts` and `codeql` (the CodeQL languages,
+                    as JSON) in $GITHUB_OUTPUT
+                    (default base: origin/main, or main when there is no origin/main); also
+                    `desktop-key`, as `desktop-key` prints it
+  desktop-key       print a key naming the contents of every file the desktop app's full-lane
+                    jobs read at HEAD (the crates and packages it builds, from cargo metadata
+                    and the package.json files): a leg that passed with it needn't run again
   version sync [--check]
                     copy the npm fixed group's version (`fixed` in .changeset/config.json;
                     every member must agree) into [workspace.package] version, the internal
@@ -364,6 +369,8 @@ fn without_workspace(task: &str, rest: &[String]) -> Option<Result<()>> {
         ("changes", []) => repo_root().and_then(|root| changes::run(&root, changes::default_base(&root))),
         ("changes", [flag, base]) if flag == "--base" => repo_root().and_then(|root| changes::run(&root, base)),
         ("changes", _) => Err(anyhow::anyhow!("usage: cargo xtask changes [--base <rev>]")),
+        // Needs only git and `cargo metadata --no-deps`.
+        ("desktop-key", []) => repo_root().and_then(|root| changes::desktop::print_key(&root)),
         // `version` rewrites Cargo.toml and Cargo.lock, so it can't wait for `cargo metadata
         // --locked` (which fails on a manifest bumped by hand, the case `--check` reports).
         ("version", _) => version::parse_args(rest).and_then(|args| version::run(&repo_root()?, &args)),

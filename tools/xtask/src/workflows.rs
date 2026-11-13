@@ -198,6 +198,7 @@ mod tests {
 
     const CI: &str = include_str!("../../../.github/workflows/ci.yml");
     const FULL: &str = include_str!("../../../.github/workflows/full.yml");
+    const CODEQL: &str = include_str!("../../../.github/workflows/codeql.yml");
     const NIGHTLY: &str = include_str!("../../../.github/workflows/nightly.yml");
     const SITE: &str = include_str!("../../../.github/workflows/site.yml");
     const DOCS: &str = include_str!("../../../.github/workflows/docs.yml");
@@ -782,6 +783,45 @@ mod tests {
         );
     }
 
+    /// Todo X10b: each desktop job runs the `changes` job's legs for it, and each leg saves its pass
+    /// under the name that job looks up: `desktop-passed-<key>-<build|e2e>-<os>`.
+    #[test]
+    fn each_desktop_leg_should_save_its_pass_where_the_changes_job_looks() {
+        let changes = lines_of(FULL, "jobs", "changes");
+        let looks_up = changes.iter().any(|l| l.contains(r#"key="desktop-passed-$KEY-""#))
+            && changes
+                .iter()
+                .any(|l| l.contains(r#"--arg prefix "desktop-passed-$KEY-$job-""#))
+            && changes.iter().any(|l| l.trim() == "for job in build e2e; do");
+        let saves = [("desktop", "build"), ("desktop-e2e", "e2e")].map(|(job, short)| {
+            let lines = lines_of(FULL, "jobs", job);
+            let matrix = format!("include: ${{{{ fromJSON(needs.changes.outputs.desktop-{short}-legs) }}}}");
+            let key = format!("desktop-passed-$(cargo xtask desktop-key)-{short}-$OS");
+            lines.iter().any(|l| l.trim() == matrix)
+                && lines.iter().any(|l| l.contains(&key))
+                && lines.iter().any(|l| l.trim() == "key: ${{ steps.passed.outputs.key }}")
+        });
+        assert_eq!([looks_up, saves[0], saves[1]], [true; 3]);
+    }
+
+    /// Todo X10c: pushes and the schedule analyse every language `cargo xtask changes` can name,
+    /// and the matrix is the `changes` job's list.
+    #[test]
+    fn codeql_should_analyse_every_language_on_main_and_the_changed_ones_on_a_pr() {
+        let changes = lines_of(CODEQL, "jobs", "changes");
+        let all = changes
+            .iter()
+            .find_map(|l| l.split("echo 'codeql=").nth(1)?.split('\'').next())
+            .and_then(|list| serde_json::from_str::<Vec<String>>(list).ok());
+        let matrix = lines_of(CODEQL, "jobs", "analyze")
+            .iter()
+            .any(|l| l.trim() == "language: ${{ fromJSON(needs.changes.outputs.languages) }}");
+        assert_eq!(
+            (all, matrix),
+            (Some(crate::changes::CODEQL_LANGUAGES.map(String::from).to_vec()), true)
+        );
+    }
+
     /// Todo X9a: the nightly checks Rust on macOS x64, after the benchmarks, and reports it.
     #[test]
     fn nightly_should_check_rust_on_macos_x64_after_the_benchmarks() {
@@ -826,11 +866,12 @@ mod tests {
     fn gate_flag(workflow: &str, gate: &str, job: &str) -> Option<String> {
         let lines = lines_of(workflow, "jobs", gate);
         let flag_of = |line: &str| {
+            // `$DESKTOP_E2E` holds the job to the `desktop-e2e` output.
             line.split("needed=$").nth(1).map(|rest| {
                 rest.chars()
-                    .take_while(char::is_ascii_alphabetic)
+                    .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+                    .map(|c| if c == '_' { '-' } else { c.to_ascii_lowercase() })
                     .collect::<String>()
-                    .to_lowercase()
             })
         };
         let listed = lines.iter().find_map(|l| {
@@ -871,6 +912,12 @@ mod tests {
             [gate_flag(workflow, "g", "b"), gate_flag(workflow, "g", "c")],
             [Some("rust".to_owned()), Some("code".to_owned())]
         );
+    }
+
+    #[test]
+    fn gate_flag_should_read_an_underscore_as_the_outputs_hyphen() {
+        let workflow = "jobs:\n  g:\n    steps:\n      - run: |\n          needed=$CODE\n          case \"$job\" in\n            e) needed=$DESKTOP_E2E ;;\n          esac\n";
+        assert_eq!(gate_flag(workflow, "g", "e"), Some("desktop-e2e".to_owned()));
     }
 
     /// Every workflow installs the cargo-nextest and cargo-deny that doctor.rs pins.
