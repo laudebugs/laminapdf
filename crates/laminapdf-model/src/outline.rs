@@ -588,7 +588,7 @@ impl<'o, 'd> OutlineItem<'o, 'd> {
     }
 
     /// The item dictionary.
-    #[cfg(feature = "edit")]
+    #[cfg(feature = "navigation")]
     pub(crate) fn dict(&self) -> Option<&'o laminapdf_cos::Dict> {
         self.item().and_then(|i| i.node.as_dict())
     }
