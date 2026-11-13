@@ -2,18 +2,6 @@
   "comment": "Pages where lamina's page_texts and pdf.js or pdftotext disagree after whitespace and bidi controls are removed (crates/laminapdf/tests/text_differential.rs, todo B9c), each with the reason. Every entry must still disagree.",
   "exceptions": [
     {
-      "file": "fixtures/corpus/reportlab.pdf",
-      "page": 0,
-      "tool": "pdfjs",
-      "reason": "the content stream is ASCII85Decode-filtered, a filter lamina doesn't decode yet, so the page has no text for lamina (fixtures/README.md; pdfjs-exceptions.toml lists the same page)"
-    },
-    {
-      "file": "fixtures/corpus/reportlab.pdf",
-      "page": 0,
-      "tool": "pdftotext",
-      "reason": "the content stream is ASCII85Decode-filtered, a filter lamina doesn't decode yet (as for pdf.js)"
-    },
-    {
       "file": "fixtures/corpus/signed.pdf",
       "page": 0,
       "tool": "pdftotext",

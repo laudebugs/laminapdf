@@ -324,6 +324,11 @@ pub struct ImageDraw<'s> {
     pub source: ImageSource<'s>,
     /// The graphics state (its CTM maps the unit square to the page).
     pub state: &'s GraphicsState,
+    /// The resource dictionary the image is drawn with: where an inline image's named colour
+    /// space (`/CS /CS0`) is defined.
+    ///
+    /// Added in 0.3.0.
+    pub resources: Option<&'s Object>,
 }
 
 /// `sh`: a shading painted over the clip (§8.7.4.2).
