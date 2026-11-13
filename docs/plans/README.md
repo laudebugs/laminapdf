@@ -16,6 +16,7 @@ Roadmaps and design docs for upcoming work. Name files `kebab-case.md`; include 
 | [Paper design](paper-design.md): the chosen visual design, every screen designed and documented, Round U6 design system | Draft |
 | [Website](website.md): the website at `laminapdf.com` and the reader at `app.laminapdf.com` (Round W) | Draft |
 | [Discoverability](discoverability.md): search engines, AI answer engines, coding agents and registries find Lamina PDF: crawl rules, the public repository, package metadata, structured data, engine registration, a Context7 listing, pages for developers' questions, an answer-engine check (Round W3) | Draft |
+| [Close a document](close-document.md): a Close button beside the file name that goes back to the home screen, and one close path that always asks about unsaved changes (Round C) | Accepted |
 | [CI caching](ci-caching.md): compiled Rust shared between CI runs through sccache on Cloudflare R2, filled by `main` and read by pull requests (Round X) | Draft |
 | [Releases](releases.md): a daily automatic release after the nightly, npm trusted publishing, docs that match the released version (Round P) | Draft |
 | [Quality](quality.md): docs that tell a story in plain English, examples readers can copy, maintainable code with checks that keep it so (Round Q) | Draft |

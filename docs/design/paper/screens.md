@@ -38,6 +38,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | R16 | Focus mode (rails hidden; inspector returns on selection) | W | [U1c](../../todos/done/U1c-inverted-l-shell-and-modes.md) |
 | R17 | Tablet reading: rail as sheet, pen hover | T | [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md) |
 | R18 | Phone: outline, find, more (outline sheet, find, more menu, view settings sheet) | M | [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md) |
+| R19 | Close a document: Close beside the file name, More › Close document, Back to files on phone and tablet, home after a close | W, T, M | [C8a](../../todos/ready/C8a-every-close-asks-first.md), [C8b](../../todos/ready/C8b-close-button-and-command.md) |
 
 ## S. Desktop shell
 
@@ -173,6 +174,7 @@ Each canvas is private to the owner until shared. Its source files are committed
 | --- | --- | --- | --- | --- |
 | F | Paper foundations | this page | [canvas](https://claude.ai/artifact/EdzB5wLs6neApuNbwN6Jmr) | [`foundations/`](foundations/project/canvas.json) |
 | R01–R09 | Reader A | [reader-a.md](reader-a.md) | [canvas](https://claude.ai/artifact/MWpEwMqZSWUBYSMuCi1Fz2) | [`reader-a/`](reader-a/project/canvas.json) |
+| R19 | Reader A | [reader-a.md](reader-a.md#r19-close-a-document) | [canvas](https://claude.ai/artifact/MWpEwMqZSWUBYSMuCi1Fz2) | [`reader-a/`](reader-a/project/canvas.json) |
 | R10–R18 | Reader B | [reader-b.md](reader-b.md) | [canvas](https://claude.ai/artifact/KaCtzmB4hNEHgyJJQv2HBi) | [`reader-b/`](reader-b/project/canvas.json) |
 | S | Desktop shell | [desktop-shell.md](desktop-shell.md) | [canvas](https://claude.ai/artifact/RMvUvGA8RAG3AHmdCZYnfw) | [`desktop-shell/`](desktop-shell/project/canvas.json) |
 | O01–O08 | Edit session and organise | [edit-session-organise.md](edit-session-organise.md) | [canvas](https://claude.ai/artifact/R2ZvF977LNg99a85zQiEeH) | [`edit-session-organise/`](edit-session-organise/project/canvas.json) |
