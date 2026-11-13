@@ -6,7 +6,7 @@
 // it, so its bytes never reach this page.
 
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
-import type { DocumentMetadata, Op, SaveOptions, SaveReport } from "@laminapdf/sdk";
+import type { DocumentMetadata, Op, SaveOptions, SaveReport, XmpText } from "@laminapdf/sdk";
 import type {
   DebugBackend,
   ExternalStore,
@@ -301,21 +301,33 @@ export class Engine implements ExternalStore<EngineState> {
     this.#set({ linkProblem: undefined });
   }
 
-  /** Reads the open document's outline, once: the Outline tab shows it. */
-  async loadOutline(): Promise<void> {
-    if (this.#state.outline !== undefined || this.reader.getState().phase !== "open") return;
+  /**
+   * Reads the open document's outline, once: the Outline tab shows it. `again` reads it after an
+   * edit, undo or redo that may have changed it, keeping the last one shown while it reads (and
+   * doing nothing before the tab read one); a read that fails says so either way.
+   */
+  async loadOutline(again = false): Promise<void> {
+    const { outline } = this.#state;
+    if ((again ? typeof outline !== "object" : outline !== undefined) || this.reader.getState().phase !== "open")
+      return;
     const turn = this.#turn;
-    this.#set({ outline: "loading" });
+    if (!again) this.#set({ outline: "loading" });
     const session = await this.#session;
     try {
       const nodes = await session.client.outline();
       // Another document opened meanwhile: its own tab asks again.
       if (turn === this.#turn) this.#set({ outline: outlineModel(nodes, this.#state.pages) });
     } catch (error) {
-      // The tab says the outline couldn't be read, rather than that there is none.
+      // The tab says the outline couldn't be read, rather than that there is none (after an edit
+      // too: the outline it shows would be out of date).
       if (turn === this.#turn) this.#set({ outline: "failed" });
       reportError(error);
     }
+  }
+
+  /** The open document's view and its worker client, for the parts that load later (bookmarks.tsx). */
+  view(): Promise<{ readonly viewer: Viewer; readonly client: ViewerClient }> {
+    return this.#session;
   }
 
   /** `read` once per open document under `key`; a failed read isn't kept, so the next caller asks again. */
@@ -458,11 +470,11 @@ export class Engine implements ExternalStore<EngineState> {
    * and whether a save rewrites the whole file (so a removed value keeps no earlier version).
    * Undefined when the document can't be edited (encrypted, or its edits diverged).
    */
-  async editableMetadata(): Promise<{ metadata: DocumentMetadata; rewritesWhole: boolean } | undefined> {
+  async editableMetadata(): Promise<{ metadata: DocumentMetadata; xmp: XmpText; rewritesWhole: boolean } | undefined> {
     const { client, viewer } = await this.#session;
     if (viewer.edits.getState().blocked !== undefined) return undefined;
-    const [metadata, plan] = await Promise.all([client.metadata(), viewer.edits.plan({})]);
-    return { metadata, rewritesWhole: plan.mode === "fullRewrite" || plan.constraint === "requiresRewrite" };
+    const [metadata, xmp, plan] = await Promise.all([client.metadata(), client.xmpPacket(), viewer.edits.plan({})]);
+    return { metadata, xmp, rewritesWhole: plan.mode === "fullRewrite" || plan.constraint === "requiresRewrite" };
   }
 
   /**

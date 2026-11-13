@@ -2,7 +2,7 @@
 // workers too, which add their own hooks on top so none ships.
 
 import type { RenderRequest } from "@laminapdf/render";
-import type { Op, SaveOptions } from "@laminapdf/sdk";
+import type { Op, SaveOptions, TargetView } from "@laminapdf/sdk";
 import type { ExtensionMethod } from "@laminapdf/sdk/worker/server";
 import type { FindOptions } from "../find/fold.js";
 import type { BackendInit, PrintOptions, ReplayedStep, SavedCopy, SourceInit, ViewerOpenOptions } from "../protocol.js";
@@ -23,11 +23,12 @@ import {
   goToStep,
   planSave,
   readMetadata,
+  readXmpPacket,
   restoreEdits,
   stepEdit,
 } from "./edit.js";
 import { find, forgetSearch } from "./find.js";
-import { forgetLinks, namedDestination, outline, pageLinks } from "./navigation.js";
+import { destinationAt, forgetLinks, namedDestination, namedDestinations, outline, pageLinks } from "./navigation.js";
 import { networkLog } from "./network.js";
 import { fileBytes, printPage, replyBytes } from "./print.js";
 import { render, reply } from "./render.js";
@@ -66,6 +67,7 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
     run: ([id]) => editHistory(id as number),
   },
   metadata: { run: ([id], { signal }) => readMetadata(id as number, signal) },
+  xmpPacket: { run: ([id], { signal }) => readXmpPacket(id as number, signal) },
   planSave: {
     run: ([options, id], { signal }) => planSave(options as SaveOptions, id as number, signal),
   },
@@ -109,6 +111,8 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   },
   outline: { run: (_params, { signal }) => outline(signal) },
   namedDestination: { run: ([name], { signal }) => namedDestination(name as string, signal) },
+  namedDestinations: { run: (_, { signal }) => namedDestinations(signal) },
+  destinationAt: { run: ([page, view], { signal }) => destinationAt(page as number, view as TargetView, signal) },
   pageLinks: { run: ([index], { signal }) => pageLinks(index as number, signal) },
   properties: {
     run: async (_params, { signal }) => {

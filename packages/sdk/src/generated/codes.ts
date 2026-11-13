@@ -52,9 +52,24 @@ export type ErrorCode =
   | "no-pending-save"
   | "malformed-xmp"
   | "unknown-source"
+  | "unknown-outline-item"
+  | "direct-outline-item"
+  | "outline-not-a-sibling"
+  | "outline-move-into-itself"
+  | "unknown-named-destination"
+  | "named-destination-exists"
+  | "empty-destination-name"
+  | "link-uri-refused"
+  | "view-not-finite"
+  | "xmp-claim-read-only"
+  | "invalid-xmp-packet"
+  | "invalid-xmp-property"
+  | "no-pages-left"
+  | "invalid-op"
   | "unknown-annotation"
   | "annotation-locked"
   | "annotation-not-editable"
+  | "invalid-label-ranges"
   | "sink"
   | "not-rebased"
   | "sink-not-empty"
@@ -203,6 +218,7 @@ export type WarningCode =
   | "pdfa-one-author"
   | "pdfua-title-missing"
   | "pdfa-info-mismatch"
+  | "duplicate-tags-incomplete"
   | "tounicode-conflict"
   | "whole-font-rebuilt"
   | "flow-keep-broken"
@@ -266,9 +282,24 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "no-pending-save",
   "malformed-xmp",
   "unknown-source",
+  "unknown-outline-item",
+  "direct-outline-item",
+  "outline-not-a-sibling",
+  "outline-move-into-itself",
+  "unknown-named-destination",
+  "named-destination-exists",
+  "empty-destination-name",
+  "link-uri-refused",
+  "view-not-finite",
+  "xmp-claim-read-only",
+  "invalid-xmp-packet",
+  "invalid-xmp-property",
+  "no-pages-left",
+  "invalid-op",
   "unknown-annotation",
   "annotation-locked",
   "annotation-not-editable",
+  "invalid-label-ranges",
   "sink",
   "not-rebased",
   "sink-not-empty",
@@ -418,6 +449,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "pdfa-one-author",
   "pdfua-title-missing",
   "pdfa-info-mismatch",
+  "duplicate-tags-incomplete",
   "tounicode-conflict",
   "whole-font-rebuilt",
   "flow-keep-broken",
@@ -508,12 +540,28 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "no-pending-save": "state",
   "malformed-xmp": "input",
   "unknown-source": "usage",
+  "unknown-outline-item": "usage",
+  "direct-outline-item": "unsupported",
+  "outline-not-a-sibling": "usage",
+  "outline-move-into-itself": "usage",
+  "unknown-named-destination": "usage",
+  "named-destination-exists": "usage",
+  "empty-destination-name": "usage",
+  "link-uri-refused": "usage",
+  "view-not-finite": "usage",
+  "xmp-claim-read-only": "usage",
+  "invalid-xmp-packet": "input",
+  "invalid-xmp-property": "usage",
+  "no-pages-left": "usage",
+  "invalid-op": "usage",
   "unknown-annotation": "usage",
   "annotation-locked": "state",
   "annotation-not-editable": "unsupported",
+  "invalid-label-ranges": "usage",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
   "pdfa-info-mismatch": "input",
+  "duplicate-tags-incomplete": "usage",
   "sink": "io",
   "not-rebased": "state",
   "sink-not-empty": "usage",
@@ -697,12 +745,28 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "no-pending-save": "call rebase only after a save that returned SavedNotRebased",
   "malformed-xmp": "set replaceMalformed on the edit to replace the packet with a new one, or leave the metadata as it is",
   "unknown-source": "add the source document's bytes with addSource before applying ops that name it",
+  "unknown-outline-item": "read the outline again and use one of its item IDs; an item a previous op deleted is gone",
+  "direct-outline-item": "apply any other outline op first: it rewrites the outline and gives every bookmark an object and an ID of its own",
+  "outline-not-a-sibling": "name a position among the parent's own children, or use first or last",
+  "outline-move-into-itself": "choose a parent outside the bookmark's own branch",
+  "unknown-named-destination": "list the file's named destinations and use one of their names",
+  "named-destination-exists": "choose a name no destination has, or delete the other one first",
+  "empty-destination-name": "give the destination a name of at least one character",
+  "link-uri-refused": "use a full address such as https://example.com/page; encode other characters with %",
+  "view-not-finite": "pass finite numbers, or null to keep the viewer's current value",
+  "xmp-claim-read-only": "leave the pdfaid: and pdfuaid: properties as they are; edit the other properties, or keep them unchanged in a replaced packet",
+  "invalid-xmp-packet": "fix the XML at the offset in the error's data (reason says what is wrong), then replace the packet again",
+  "invalid-xmp-property": "check the part the error's reason names: the namespace, prefix, name, value, or the shape a mirrored property needs",
+  "no-pages-left": "keep at least one page: delete all but one, or insert a blank page first",
+  "invalid-op": "insert between 1 and 10,000 pages at a time, each with a width and height above 0 and up to 14,400 points",
   "unknown-annotation": "read the page's annotations again and use an ID from that list",
   "annotation-locked": "clear the lock with an update of its flags first, if you may",
   "annotation-not-editable": "edit a widget through its form field; an annotation stored inside the page's list can't be edited yet",
+  "invalid-label-ranges": "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
+  "duplicate-tags-incomplete": "retag the copy, or duplicate pages whose tagged elements lie on the page alone",
   "sink": "check the destination and retry the save; the document is unchanged",
   "not-rebased": "retry rebase with the saved output carried by the error",
   "sink-not-empty": "pass an empty sink: output offsets count from the sink's first byte",

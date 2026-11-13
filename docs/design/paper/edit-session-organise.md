@@ -178,7 +178,7 @@ The screen ID keeps the inventory's name (“Document info”); the dialog and c
 
 **Platform differences.** Web identical (opened from More). Phone: the dialog becomes a full-height sheet; XMP shows the tree, and selecting a property pushes the detail view with a Back button.
 
-**As built (E1f).** The web reader's dialog has the Description tab and a File tab (R08's read-only facts, with Copy all); the XMP tab waits for [E3e](../../todos/ready/E3e-xmp-editor.md). Differences from the boards:
+**As built (E1f).** The web reader's dialog has the Description tab and a File tab (R08's read-only facts, with Copy all); the XMP tab waits for [E3e](../../todos/done/E3e-xmp-editor.md). Differences from the boards:
 
 - **Modified** is read-only, with "Saving sets this to the time you save" and no checkbox: every save stamps the modification date ([E1e](../../todos/done/E1e-save-and-constraint-banner.md)), so the checkbox could only ever be on.
 - **Keyword chips** have 26 px remove buttons, the smallest icon button; they still meet the 24 px minimum.
@@ -186,9 +186,17 @@ The screen ID keeps the inventory's name (“Document info”); the dialog and c
 - **XMP metadata that can't be read** gets a warning notice: Apply replaces it.
 - **The dialog opens from** More › Document properties… and the palette; the top bar's file name doesn't open it yet.
 
+**As built (E3e).** The XMP tab follows the board, with these differences:
+
+- **Value editing by type:** a Type select and one field. Lists (Seq, Bag) take one item per line, and a language alternative takes one `lang: text` line per language. Structures show "Edit it in Raw XML" and can only be changed there.
+- **Kept properties:** `pdfaid:`, `pdfuaid:` and the extension schemas themselves are read-only ("Kept by Lamina PDF"). There is no "Description in the extension schema" field: Lamina PDF writes each declaration itself, and the PDF/A notice says so.
+- **Raw XML:** errors show the browser's parser message with its line; the column isn't shown, since each engine counts it differently. While a raw replacement is pending, the Properties view says so instead of showing properties that Apply would replace; while property changes are pending, Raw XML is read-only with "Apply your property changes first", since replacing the packet would drop them.
+- **Pending count:** under the tab ("2 properties changed"), not in the footer, which keeps Cancel and Apply only.
+- **Phone:** the panes stack, tree above detail, with no pushed detail view or Back button yet.
+
 **Artboards:** `O04-document-info.dc.html`, `O04-xmp-editor.dc.html`.
 
-**Todos:** [E1f](../../todos/done/E1f-metadata-ui-capability-page.md), [E3e](../../todos/ready/E3e-xmp-editor.md).
+**Todos:** [E1f](../../todos/done/E1f-metadata-ui-capability-page.md), [E3e](../../todos/done/E3e-xmp-editor.md).
 
 ## O05 Capability page
 
@@ -261,7 +269,7 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 
 - **Nothing selected:** no inspector; toolbar actions that need a selection are disabled; note “24 pages”.
 - **Dragging:** drawn in `O06-organise`.
-- **Approval-signed file, deleting or rotating the signature's page:** [E2r](../../todos/done/E2r-planner-page-checks.md)'s checks report `Restriction::SignedWidget { field }` for [E2b](../../todos/ready/E2b-page-structure-ops.md)'s `DeletePages` and `RotatePages` on the page that holds a signed signature's widget (deleting removes the signature's appearance and leaves its widget pointing at a missing page; rotating turns the signed appearance), so the save would be `Conflict`. The op is refused before applying and the `alertdialog` drawn in `O06-delete-signed` names the signature and offers “Delete page 23 only” (primary), Cancel (focus) and “Remove signature and delete…” (danger ghost, leads to the O02 confirm). For a rotate the same dialog reads “Rotate page 23 only” and “Remove signature and rotate…”. Moving, inserting or duplicating pages, and deleting or rotating other pages, on an approval-only file is `AppendOnly` and needs no dialog ([E2i](../../todos/ready/E2i-signed-gating-and-close.md)).
+- **Approval-signed file, deleting or rotating the signature's page:** [E2r](../../todos/done/E2r-planner-page-checks.md)'s checks report `Restriction::SignedWidget { field }` for [E2b](../../todos/done/E2b-page-structure-ops.md)'s `DeletePages` and `RotatePages` on the page that holds a signed signature's widget (deleting removes the signature's appearance and leaves its widget pointing at a missing page; rotating turns the signed appearance), so the save would be `Conflict`. The op is refused before applying and the `alertdialog` drawn in `O06-delete-signed` names the signature and offers “Delete page 23 only” (primary), Cancel (focus) and “Remove signature and delete…” (danger ghost, leads to the O02 confirm). For a rotate the same dialog reads “Rotate page 23 only” and “Remove signature and rotate…”. Moving, inserting or duplicating pages, and deleting or rotating other pages, on an approval-only file is `AppendOnly` and needs no dialog ([E2i](../../todos/ready/E2i-signed-gating-and-close.md)).
 - **Certified file, any page change:** refused before applying (`would_violate`, the area's signed-file rule): a drop, delete, rotate or insert changes nothing and shows the banner “**Moving pages would invalidate the certification.** … nothing has been moved.” with Save a copy · Apply anyway… · Details. A dropped drag animates back to its place. Apply anyway… confirms and then applies the change as one undo step.
 - **Delete with references:** the toast after deleting says what changed: “Deleted 2 pages. 1 bookmark now points to page 4.” with Undo.
 - **Duplicate on a form:** toast “Duplicated page 6. Its 2 fields were copied as new fields; the signature field wasn’t copied.”
@@ -275,7 +283,7 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 
 **Artboards:** `O06-organise.dc.html` (drag with insertion bar), `O06-organise-menu.dc.html` (page context menu), `O06-move-dialog.dc.html` (Move to page…, 440 px), `O06-delete-signed.dc.html` (approval signature, 560 px).
 
-**Todos:** [E2h](../../todos/ready/E2h-page-organiser-ui.md), [E2b](../../todos/ready/E2b-page-structure-ops.md).
+**Todos:** [E2h](../../todos/ready/E2h-page-organiser-ui.md), [E2b](../../todos/done/E2b-page-structure-ops.md).
 
 ## O07 Insert pages and merge documents
 

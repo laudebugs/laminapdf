@@ -18,3 +18,5 @@ export {
   type PropertiesState,
 } from "./reader/properties-dialog.js";
 export type { DocumentMetadataData, MetadataChange } from "./reader/properties-form.js";
+export type { XmpPacketData } from "./reader/xmp-editor.js";
+export type { XmpChange, XmpValueData } from "./reader/xmp-model.js";

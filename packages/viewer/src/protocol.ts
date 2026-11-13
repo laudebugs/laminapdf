@@ -14,7 +14,9 @@ import {
 import type {
   DocumentMetadata,
   DocumentProperties,
+  ExplicitDestination,
   Limits,
+  NamedDestination,
   Op,
   OutlineNode,
   PageInfo,
@@ -25,6 +27,8 @@ import type {
   SaveReport,
   StructureNode,
   Target,
+  TargetView,
+  XmpText,
 } from "@laminapdf/sdk";
 import type { FindOptions } from "./find/fold.js";
 import type { FindSnippet } from "./find/page.js";
@@ -102,6 +106,10 @@ export interface EditResult {
   readonly history: EditHistory;
   /** Each step an undo or redo took back or made again, in order, with how it went (none for an edit). */
   readonly reverted?: readonly RevertedStep[];
+  /** The IDs of the bookmarks the edit added, in order (none for an undo or redo). */
+  readonly createdOutlineItems?: readonly string[];
+  /** The edit found the outline's links broken and rebuilt them. */
+  readonly outlineRepaired?: boolean;
 }
 
 /** The most steps an edit session keeps: the oldest go after this many (ADR 0006 §4). */
@@ -215,6 +223,8 @@ export interface Methods {
   editHistory: { params: [document: number]; result: EditHistory };
   /** Document `document`'s metadata as its edits leave it. */
   metadata: { params: [document: number]; result: DocumentMetadata };
+  /** Document `document`'s XMP metadata as text, as its edits leave it. */
+  xmpPacket: { params: [document: number]; result: XmpText };
   planSave: { params: [options: SaveOptions, document: number]; result: PlannedSave };
   copyEdits: { params: [options: SaveOptions, document: number]; result: SavedCopy };
   adoptEdits: { params: [token: number, document: number]; result: EditHistory };
@@ -232,6 +242,8 @@ export interface Methods {
   networkLog: { params: []; result: WorkerNetworkLog };
   outline: { params: []; result: OutlineNode[] };
   namedDestination: { params: [name: string]; result: Target | undefined };
+  namedDestinations: { params: []; result: NamedDestination[] };
+  destinationAt: { params: [page: number, view: TargetView]; result: ExplicitDestination };
   pageLinks: { params: [index: number]; result: readonly PageLink[] };
   properties: { params: []; result: DocumentProperties };
   printPage: { params: [index: number, options: PrintOptions]; result: PrintedPage };
