@@ -94,9 +94,12 @@ mod samples {
             "remove-xmp-property",
             "replace-xmp-packet",
             "set-page-labels",
+            "update-annot-redraw",
         ]
         .into_iter()
         .chain(OUTLINE_SAMPLES)
+        .chain(LINK_SAMPLES)
+        .chain(ANNOT_SAMPLES)
         {
             let op: Op = serde_json::from_slice(&fixture(&format!("ops/v1/{name}.json"))).unwrap();
             let again: Op = serde_json::from_str(&serde_json::to_string(&op).unwrap()).unwrap();
@@ -123,6 +126,60 @@ mod samples {
             let mut doc = corpus("outline.pdf");
             let applied = doc.apply_all(Origin::Local, [op]).unwrap();
             assert!(!applied.undo.is_empty(), "{name} changed nothing");
+        }
+    }
+
+    /// The link samples, written for `golden/links-and-outlines.pdf`'s first page (`p9.0`) and
+    /// its links (`a5.0` to `a8.0`).
+    const LINK_SAMPLES: [&str; 3] = ["add-link", "update-link", "delete-link"];
+
+    #[test]
+    fn every_link_sample_deserialises_and_applies_to_the_links_fixture() {
+        for name in LINK_SAMPLES {
+            let op: Op = serde_json::from_slice(&fixture(&format!("ops/v1/{name}.json"))).unwrap();
+            let mut doc = common::open(&fixture("golden/links-and-outlines.pdf"));
+            let applied = doc.apply_all(Origin::Local, [op]).unwrap();
+            assert!(!applied.undo.is_empty(), "{name} changed nothing");
+        }
+    }
+
+    /// The annotation samples, written for the same page; the caret groups with its first link.
+    const ANNOT_SAMPLES: [&str; 3] = ["add-annot-highlight", "add-annot-note", "add-annot-caret"];
+
+    #[test]
+    fn every_annotation_sample_deserialises_and_applies_to_the_links_fixture() {
+        for name in ANNOT_SAMPLES {
+            let op: Op = serde_json::from_slice(&fixture(&format!("ops/v1/{name}.json"))).unwrap();
+            let mut doc = common::open(&fixture("golden/links-and-outlines.pdf"))
+                .with_appearances(laminapdf_build::AnnotationAppearances);
+            let applied = doc.apply_all(Origin::Local, [op]).unwrap();
+            assert_eq!(applied.created_annotations.len(), 1, "{name}");
+        }
+    }
+
+    #[test]
+    fn an_annotation_spec_rejects_unknown_fields_and_types() {
+        for spec in [
+            r#"{ "type": "note", "at": { "x": 0, "y": 0 }, "colour": "red" }"#,
+            r#"{ "type": "stamp", "rect": { "x0": 0, "y0": 0, "x1": 1, "y1": 1 } }"#,
+            r#"{ "type": "caret", "rect": { "x0": 0, "y0": 0, "x1": 1, "y1": 1 }, "symbol": "star" }"#,
+            r#"{ "type": "textMarkup", "kind": "highlight", "quads": [[{ "x": 0, "y": 0 }]] }"#,
+        ] {
+            let json = format!(r#"{{ "op": "addAnnot", "args": {{ "page": "p9.0", "spec": {spec} }} }}"#);
+            assert!(serde_json::from_str::<Op>(&json).is_err(), "{spec}");
+        }
+    }
+
+    #[test]
+    fn a_link_rejects_unknown_fields_and_short_quads() {
+        for args in [
+            r#""rect": { "x0": 0, "y0": 0, "x1": 1, "y1": 1, "z": 0 }"#,
+            r#""rect": { "x0": 0, "y0": 0, "x1": 1, "y1": 1 }, "quads": [[{ "x": 0, "y": 0, "z": 0 }, { "x": 0, "y": 0 }, { "x": 0, "y": 0 }, { "x": 0, "y": 0 }]]"#,
+            r#""rect": { "x0": 0, "y0": 0, "x1": 1, "y1": 1 }, "quads": [[{ "x": 0, "y": 0 }]]"#,
+        ] {
+            let json =
+                format!(r#"{{ "op": "addLink", "args": {{ "page": "p9.0", {args}, "target": {{ "named": "a" }} }} }}"#);
+            assert!(op(&json).is_err(), "{args}");
         }
     }
 

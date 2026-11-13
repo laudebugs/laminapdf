@@ -2,8 +2,13 @@
 // under @laminapdf/sdk's names. They are the Rust façade's records, camelCase; only `OpenOptions`
 // and `Color` are written here.
 import type {
+  AddAnnot as AddAnnotJs,
+  AddLink as AddLinkJs,
   AfRelationshipInit,
   AlignInit,
+  AnnotColor as AnnotColorJs,
+  AnnotCommon as AnnotCommonJs,
+  AnnotSpec as AnnotSpecJs,
   AttachmentInit,
   BuildOptionsInit,
   ChildItems as ChildItemsJs,
@@ -21,10 +26,12 @@ import type {
   LimitsInit,
   LineBoxJs,
   LinkTargetInit,
+  MarkupKind as MarkupKindJs,
   MetadataInit,
   MetadataKey as MetadataKeyJs,
   MetadataPatch as MetadataPatchJs,
   NamedDestinationJs,
+  NoteIcon as NoteIconJs,
   OpenAt as OpenAtJs,
   Op as OpJs,
   OutlineEntryInit,
@@ -70,7 +77,9 @@ import type {
  * `movePages`, `rotatePages`, `reversePages`, `duplicatePages`, `insertPagesFrom`, `replacePages`,
  * `rotatePage`), the bookmark edits
  * (`addOutlineItem`, `updateOutlineItem`, `moveOutlineItem`, `deleteOutlineItem`), the named-destination edits
- * (`setNamedDestination`, `renameNamedDestination`, `deleteNamedDestination`), `setInitialView`, or the deprecated `setInfo` (use
+ * (`setNamedDestination`, `renameNamedDestination`, `deleteNamedDestination`), `setInitialView`, the link
+ * edits (`addLink`, `updateLink`, `deleteLink`), the annotation edits (`addAnnot`, `updateAnnot`,
+ * `deleteAnnot`), or the deprecated `setInfo` (use
  * `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
  *
  * @since 0.2.0
@@ -97,12 +106,72 @@ export type ExplicitDestination = ExplicitDestinationJs;
 export type DestinationView = DestinationViewJs;
 
 /**
- * Where a bookmark goes: `{ destination }` (a page), `{ named }` (a named destination) or
- * `{ uri }` (an `http`, `https` or `mailto` address).
+ * Where a bookmark or a link goes: `{ destination }` (a page), `{ named }` (a named
+ * destination) or `{ uri }` (an `http`, `https` or `mailto` address).
  *
  * @since 0.3.0
  */
 export type OutlineTarget = OutlineTargetJs;
+
+/**
+ * An `addLink` edit's arguments: the `page`, its `rect` and `quads` in user space, where it goes
+ * (`target`), its description (`contents`) and, in a tagged document, the marked content it
+ * covers (`marked`). {@link Document.linkOnArea} and {@link Document.linkOnText} make one from
+ * page space.
+ *
+ * @since 0.3.0
+ */
+export type AddLink = AddLinkJs;
+
+/**
+ * An `addAnnot` edit's arguments: the `page`, the mark (`spec`: a text markup, a note or a caret,
+ * in user space), its `common` entries, its `nm` and, in a tagged document, the marked content
+ * under it (`marked`). {@link Document.markText}, {@link Document.noteAt} and
+ * {@link Document.caretAt} make one from page space.
+ *
+ * @since 0.3.0
+ */
+export type AddAnnot = AddAnnotJs;
+
+/**
+ * What an annotation edit draws: `{ type: "textMarkup", kind, quads }`, `{ type: "note", at, icon,
+ * open }` or `{ type: "caret", rect, symbol }`, in user space.
+ *
+ * @since 0.3.0
+ */
+export type AnnotSpec = AnnotSpecJs;
+
+/**
+ * The entries every new annotation has: its description or comment (`contents`), `author`,
+ * `subject`, dates (`created`, `modified`), `color`, `opacity`, `flags`, and `groupWith`, an
+ * annotation on the same page to group it with.
+ *
+ * @since 0.3.0
+ */
+export type AnnotCommon = AnnotCommonJs;
+
+/**
+ * An annotation's colour as PDF stores it: `[gray]`, `[r, g, b]` or `[c, m, y, k]`, each from 0
+ * to 1.
+ *
+ * @since 0.3.0
+ */
+export type AnnotColor = AnnotColorJs;
+
+/**
+ * A text mark: `"highlight"`, `"underline"`, `"strikeOut"` or `"squiggly"`.
+ *
+ * @since 0.3.0
+ */
+export type MarkupKind = MarkupKindJs;
+
+/**
+ * A note's icon: `"note"`, `"comment"`, `"key"`, `"help"`, `"paragraph"`, `"newParagraph"` or
+ * `"insert"`.
+ *
+ * @since 0.3.0
+ */
+export type NoteIcon = NoteIconJs;
 
 /**
  * A bookmark's look: its `color` (`"#rrggbb"`, or `null` for the default black), `bold` and
@@ -278,7 +347,8 @@ export type StructureKid = StructureKidJs;
  * deletion did to the references to the deleted pages (`references`), and what a page
  * duplication or a page copied in did to form fields (`fields`), which copies a duplication
  * couldn't tag whole (`tagsIncomplete`), the page of each link a copied-in page lost
- * (`linksRemoved`) and the copied-in pages that came without their tags (`tagsDropped`).
+ * (`linksRemoved`), the copied-in pages that came without their tags (`tagsDropped`) and the
+ * structure names copied-in pages brought under another name (`structureRenamed`).
  *
  * @since 0.2.0
  */

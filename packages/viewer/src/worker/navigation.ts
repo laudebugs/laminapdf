@@ -6,11 +6,13 @@
 // asks again.
 
 import type {
+  AddLink,
   ArticleThread,
   ExplicitDestination,
   InitialView,
   NamedDestination,
   OutlineNode,
+  OutlineTarget,
   PageLink,
   Target,
   TargetView,
@@ -55,6 +57,28 @@ export async function namedDestinations(signal: AbortSignal): Promise<NamedDesti
 export async function destinationAt(page: number, view: TargetView, signal: AbortSignal): Promise<ExplicitDestination> {
   const model = await textModel(signal);
   return model.ensure(() => model.destinationAt(page, view), { signal });
+}
+
+/** The edit that adds a link on `area` of page `page` (page space), going to `target`. */
+export async function linkOnArea(
+  page: number,
+  area: readonly [number, number, number, number],
+  target: OutlineTarget,
+  signal: AbortSignal,
+): Promise<AddLink> {
+  const model = await textModel(signal);
+  return model.ensure(() => model.linkOnArea(page, area, target), { signal });
+}
+
+/** The edit that adds a link on text of page `page`: `lines`, one `[x0, y0, x1, y1]` box per line in page space. */
+export async function linkOnText(
+  page: number,
+  lines: readonly (readonly [number, number, number, number])[],
+  target: OutlineTarget,
+  signal: AbortSignal,
+): Promise<AddLink> {
+  const model = await textModel(signal);
+  return model.ensure(() => model.linkOnText(page, lines, target), { signal });
 }
 
 /** Page `index`'s links, in annotation order (cached). */

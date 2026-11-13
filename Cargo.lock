@@ -3011,6 +3011,7 @@ dependencies = [
  "laminapdf-desktop-os",
  "laminapdf-desktop-protocol",
  "laminapdf-desktop-sandbox",
+ "muda",
  "notify",
  "region",
  "serde",
@@ -3129,6 +3130,7 @@ dependencies = [
 name = "laminapdf-ops"
 version = "0.3.0"
 dependencies = [
+ "laminapdf-build",
  "laminapdf-cos",
  "laminapdf-model",
  "laminapdf-save",

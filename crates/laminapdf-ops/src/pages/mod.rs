@@ -12,6 +12,7 @@ mod extract;
 mod forms;
 mod from;
 mod import;
+mod import_tags;
 mod insert;
 mod merge;
 mod merge_parts;
@@ -20,6 +21,8 @@ mod rotate;
 mod split;
 mod structure;
 mod tags;
+
+pub(crate) use cleanup::edit_dict;
 
 use std::collections::BTreeSet;
 
@@ -31,6 +34,7 @@ pub use delete::{DeletePages, ReferencePolicy};
 pub use duplicate::DuplicatePages;
 pub use from::{InsertPagesFrom, ReplacePages};
 pub use import::{Carry, FieldClash};
+pub use import_tags::{StructureName, StructureRename};
 pub use insert::InsertBlankPages;
 pub use merge::{MergeDocuments, MergeInput, MergeOptions, MergeSource, OutlineMerge, RenamedDestination};
 pub use order::{MovePages, ReversePages};

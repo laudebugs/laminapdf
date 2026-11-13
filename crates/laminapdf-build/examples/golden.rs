@@ -2,7 +2,8 @@
 //! and prints the files it wrote: `vectors.pdf` and `images.pdf` (the code is in
 //! `tests/common/samples.rs`), the text and navigation goldens `build-text-latin.pdf`,
 //! `build-text-multiscript.pdf`, `links-and-outlines.pdf` and `metadata.pdf`
-//! (`text_and_navigation.rs`), and the tagged `tagged-report.pdf` (`tagged.rs`). `cargo xtask
+//! (`text_and_navigation.rs`), the tagged `tagged-report.pdf` (`tagged.rs`), and every annotation
+//! appearance in `annots/markup.pdf` (`annots.rs`). `cargo xtask
 //! golden --update` runs it on `fixtures/golden/`; tests never write goldens (ADR 0018 tier 3).
 //!
 //! ```sh
@@ -26,6 +27,7 @@ fn main() {
     for (name, build) in common::samples::GOLDENS {
         let bytes = build();
         let path = out.join(name);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(&path, &bytes).unwrap();
         println!("{} ({} bytes)", path.display(), bytes.len());
     }

@@ -18,6 +18,7 @@ import sys
 from pathlib import Path
 
 import pypdfium2 as pdfium
+import pypdfium2.raw as c
 import pypdfium2.version as pdfium_version
 
 PINNED = "5.14.0"
@@ -107,6 +108,78 @@ def page_of(item) -> int | None:
     return None if dest is None else dest.get_index()
 
 
+# PDFium's numbers for the subtypes lamina's mark cases make (fpdf_annot.h).
+MARKS = {
+    c.FPDF_ANNOT_HIGHLIGHT: "Highlight",
+    c.FPDF_ANNOT_UNDERLINE: "Underline",
+    c.FPDF_ANNOT_STRIKEOUT: "StrikeOut",
+    c.FPDF_ANNOT_SQUIGGLY: "Squiggly",
+    c.FPDF_ANNOT_TEXT: "Text",
+    c.FPDF_ANNOT_CARET: "Caret",
+}
+
+
+def string_value(annot, key: bytes) -> str:
+    """The annotation's text or name entry `key`, "" when it has none."""
+    size = c.FPDFAnnot_GetStringValue(annot, key, None, 0)
+    buffer = ctypes.create_string_buffer(size)
+    c.FPDFAnnot_GetStringValue(annot, key, ctypes.cast(buffer, ctypes.POINTER(c.FPDF_WCHAR)), size)
+    return buffer.raw[: max(size - 2, 0)].decode("utf-16-le")
+
+
+def marks_of(pdf: pdfium.PdfDocument) -> list:
+    """Each page's text markup, notes and carets, sorted: [subtype, contents], as lamina lists them."""
+    pages = []
+    for i in range(len(pdf)):
+        page = pdf[i]
+        found = []
+        for n in range(c.FPDFPage_GetAnnotCount(page.raw)):
+            annot = c.FPDFPage_GetAnnot(page.raw, n)
+            subtype = MARKS.get(c.FPDFAnnot_GetSubtype(annot))
+            if subtype is not None:
+                # A group member's contents are its primary's (ISO 32000-2 §12.5.6.2), as pdf.js
+                # reads them; PDFium gives each annotation's own.
+                source = annot
+                primary = c.FPDFAnnot_GetLinkedAnnot(annot, b"IRT")
+                if primary and string_value(annot, b"RT") == "Group":
+                    source = primary
+                found.append([subtype, string_value(source, b"Contents")])
+                if primary:
+                    c.FPDFPage_CloseAnnot(primary)
+            c.FPDFPage_CloseAnnot(annot)
+        pages.append(sorted(found, key=lambda x: json.dumps(x, separators=(",", ":"))))
+    return pages
+
+
+def links_of(pdf: pdfium.PdfDocument) -> list:
+    """Each page's links, sorted: ["page", index], ["uri", address] or ["other"], as lamina lists them."""
+    def target(link) -> list:
+        dest = c.FPDFLink_GetDest(pdf.raw, link)
+        action = c.FPDFLink_GetAction(link)
+        if not dest and action and c.FPDFAction_GetType(action) == c.PDFACTION_GOTO:
+            dest = c.FPDFAction_GetDest(pdf.raw, action)
+        if dest:
+            index = c.FPDFDest_GetDestPageIndex(pdf.raw, dest)
+            return ["page", index] if index >= 0 else ["other"]
+        if action and c.FPDFAction_GetType(action) == c.PDFACTION_URI:
+            size = c.FPDFAction_GetURIPath(pdf.raw, action, None, 0)
+            buffer = ctypes.create_string_buffer(size)
+            c.FPDFAction_GetURIPath(pdf.raw, action, buffer, size)
+            return ["uri", buffer.value.decode("ascii", "replace")]
+        return ["other"]
+
+    pages = []
+    for i in range(len(pdf)):
+        page = pdf[i]
+        start = ctypes.c_int(0)
+        link = c.FPDF_LINK()
+        found = []
+        while c.FPDFLink_Enumerate(page.raw, ctypes.byref(start), ctypes.byref(link)):
+            found.append(target(link))
+        pages.append(sorted(found, key=lambda x: json.dumps(x, separators=(",", ":"))))
+    return pages
+
+
 def main() -> int:
     if len(sys.argv) != 2:
         raise SystemExit("usage: pdfium.py <out-dir>")
@@ -157,6 +230,12 @@ def main() -> int:
             if case.get("outline") is not None:
                 got["outline"] = outline_of(pdf)
                 want["outline"] = case["outline"]
+            if case.get("links") is not None:
+                got["links"] = links_of(pdf)
+                want["links"] = case["links"]
+            if case.get("marks") is not None:
+                got["marks"] = marks_of(pdf)
+                want["marks"] = case["marks"]
             if got != want:
                 failures.append(f"{case['file']}: got {got}, expected {want}")
             elif case.get("copy_of") is not None:

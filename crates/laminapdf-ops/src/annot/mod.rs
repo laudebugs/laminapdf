@@ -6,6 +6,25 @@
 //! and so its [`AnnotId`]), and a deleted one is unlinked from its page and freed. Keys the ops
 //! don't own are kept untouched.
 
+mod add;
+mod appearance;
+mod conformance;
+mod geom;
+mod redraw;
+mod spec;
+mod tags;
+
+pub use add::{AddAnnot, AnnotCommon};
+pub(crate) use appearance::Generator;
+pub use appearance::{Appearance, AppearanceRequest, Appearances, IntentSpace};
+pub(crate) use conformance::warnings as conformance_warnings;
+pub(crate) use geom::quad_points;
+pub use geom::{AnnotColor, Opacity};
+pub use spec::{
+    AnnotSpec, AnnotSpecPatch, Caret, CaretPatch, CaretSymbol, MarkupKind, Note, NoteIcon, NotePatch, TextMarkup,
+    TextMarkupPatch,
+};
+
 use laminapdf_cos::{Dict, ObjRef, Object, PdfString};
 use laminapdf_model::{AnnotFlags, AnnotId, AnnotLink, AnnotSubtype, PageId, PdfDate};
 use laminapdf_syntax::text::encode_text_string;
@@ -133,6 +152,35 @@ pub struct UpdateAnnot {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub translate: Option<Offset>,
+    /// `/C`; `null` removes it, and the mark is drawn in its usual colour. The appearance is
+    /// drawn again.
+    ///
+    /// Added in 0.3.0.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "wire::double_option::deserialize"
+    )]
+    #[cfg_attr(
+        feature = "tsify",
+        tsify(
+            optional,
+            type = "[number] | [number, number, number] | [number, number, number, number] | null"
+        )
+    )]
+    pub color: Option<Option<AnnotColor>>,
+    /// The opacity. The appearance is drawn again.
+    ///
+    /// Added in 0.3.0.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "tsify", tsify(optional))]
+    pub opacity: Option<Opacity>,
+    /// A change to the mark's geometry or icon. The appearance is drawn again.
+    ///
+    /// Added in 0.3.0.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "tsify", tsify(optional))]
+    pub spec: Option<AnnotSpecPatch>,
 }
 
 impl UpdateAnnot {
@@ -149,14 +197,26 @@ impl UpdateAnnot {
             modified: None,
             flags: None,
             translate: None,
+            color: None,
+            opacity: None,
+            spec: None,
         }
     }
 
-    pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Effect> {
+    pub(crate) fn apply_to(
+        &self,
+        doc: &mut laminapdf_model::Document,
+        appearances: Option<&dyn Appearances>,
+    ) -> Result<Effect> {
         let all = every_annotation(doc)?;
         let found = Found::locate(&all, &self.id)?;
         let flags = found.annot.flags;
-        let properties = self.author.is_some() || self.subject.is_some() || self.translate.is_some();
+        let redraw = redraw::Redraw {
+            color: self.color,
+            opacity: self.opacity,
+            spec: self.spec.as_ref(),
+        };
+        let properties = self.author.is_some() || self.subject.is_some() || self.translate.is_some() || redraw.any();
         if (properties && flags.has(AnnotFlags::LOCKED))
             || (self.contents.is_some() && flags.has(AnnotFlags::LOCKED_CONTENTS))
         {
@@ -169,6 +229,9 @@ impl UpdateAnnot {
         set_text(&mut dict, "Subj", self.subject.as_ref());
         if let Some(flags) = self.flags {
             dict.insert("F", Object::Integer(i64::from(flags)));
+        }
+        if redraw.any() {
+            redraw.apply(doc, &mut dict, appearances)?;
         }
         // The Popup moves with its parent, unless it is locked, which refuses the move.
         let popup = match (self.translate, &found.annot.popup) {
@@ -204,6 +267,14 @@ impl UpdateAnnot {
             if popup.page != found.page {
                 pages.push(popup.page);
             }
+        }
+        // A note's Popup shows or hides with it.
+        if let Some(AnnotSpecPatch::Note(NotePatch { open: Some(open), .. })) = &self.spec
+            && let Some(popup) = found.annot.popup.as_ref().and_then(|p| p.as_lamina_id().obj_ref())
+        {
+            crate::pages::edit_dict(doc, popup, |d| {
+                d.insert("Open", Object::Bool(*open));
+            })?;
         }
         Ok(Effect {
             pages,
@@ -297,14 +368,14 @@ impl DeleteAnnot {
 }
 
 /// The annotation an op names, with its page and object.
-struct Found {
-    page: PageId,
-    object: ObjRef,
-    annot: AnnotLink,
+pub(crate) struct Found {
+    pub(crate) page: PageId,
+    pub(crate) object: ObjRef,
+    pub(crate) annot: AnnotLink,
 }
 
 impl Found {
-    fn locate(all: &[(PageId, Vec<AnnotLink>)], id: &AnnotId) -> Result<Self> {
+    pub(crate) fn locate(all: &[(PageId, Vec<AnnotLink>)], id: &AnnotId) -> Result<Self> {
         for (page, annots) in all {
             if let Some(annot) = annots.iter().find(|a| a.id == *id) {
                 let (page, annot) = (page.clone(), annot.clone());
@@ -319,13 +390,13 @@ impl Found {
         Err(Error::UnknownAnnotation(id.clone()))
     }
 
-    fn dict(&self, doc: &laminapdf_model::Document) -> Result<Dict> {
+    pub(crate) fn dict(&self, doc: &laminapdf_model::Document) -> Result<Dict> {
         object_dict(doc, self.object)?.ok_or_else(|| Error::UnknownAnnotation(self.annot.id.clone()))
     }
 }
 
 /// Every page's annotations, in page order.
-fn every_annotation(doc: &laminapdf_model::Document) -> Result<Vec<(PageId, Vec<AnnotLink>)>> {
+pub(crate) fn every_annotation(doc: &laminapdf_model::Document) -> Result<Vec<(PageId, Vec<AnnotLink>)>> {
     let pages = doc.pages()?;
     let mut all = Vec::with_capacity(pages.len());
     for page in pages.iter() {
@@ -589,7 +660,7 @@ fn shift_pairs(items: &[Object], offset: Offset) -> Option<Vec<Object>> {
 }
 
 /// Sets or removes a text-string entry: `None` leaves it, `Some(None)` removes it.
-fn set_text(dict: &mut Dict, key: &str, value: Option<&Option<String>>) {
+pub(crate) fn set_text(dict: &mut Dict, key: &str, value: Option<&Option<String>>) {
     match value {
         Some(Some(text)) => {
             dict.insert(key, Object::String(PdfString::literal(encode_text_string(text))));
@@ -602,7 +673,7 @@ fn set_text(dict: &mut Dict, key: &str, value: Option<&Option<String>>) {
 }
 
 /// The dictionary of the object `r` as the overlay holds it now.
-fn object_dict(doc: &laminapdf_model::Document, r: ObjRef) -> Result<Option<Dict>> {
+pub(crate) fn object_dict(doc: &laminapdf_model::Document, r: ObjRef) -> Result<Option<Dict>> {
     Ok(laminapdf_cos::tolerant(doc.cos().resolve(r))?
         .as_deref()
         .and_then(Object::as_dict)

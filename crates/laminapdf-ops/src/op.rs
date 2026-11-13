@@ -7,12 +7,13 @@
 use laminapdf_model::{OutlineItemId, PageId};
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::annot::{DeleteAnnot, UpdateAnnot};
+use crate::annot::{AddAnnot, Appearances, DeleteAnnot, UpdateAnnot};
 use crate::class::ModificationClass;
 use crate::error::{Error, Result};
 use crate::info::SetInfo;
 use crate::initial_view::SetInitialView;
 use crate::labels::SetPageLabels;
+use crate::link::{AddLink, DeleteLink, UpdateLink};
 use crate::metadata::{
     RemoveMetadata, RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty, UpdateSaveMetadata,
 };
@@ -22,7 +23,7 @@ use crate::outline::{
 };
 use crate::pages::{
     DeletePages, DuplicatePages, FieldChange, InsertBlankPages, InsertPagesFrom, MergeDocuments, MovePages,
-    ReferenceChange, RenamedDestination, ReplacePages, ReversePages, RotatePages,
+    ReferenceChange, RenamedDestination, ReplacePages, ReversePages, RotatePages, StructureRename,
 };
 use crate::rotate::RotatePage;
 #[cfg(feature = "test-support")]
@@ -112,10 +113,18 @@ pub enum Op {
     /// log can name it.
     #[serde(skip)]
     UpdateSaveMetadata(UpdateSaveMetadata),
+    /// Add a text markup, a note or a caret, with its appearance.
+    AddAnnot(AddAnnot),
     /// Change an annotation's common entries, or move it.
     UpdateAnnot(UpdateAnnot),
     /// Delete an annotation with its Popup, replies and group.
     DeleteAnnot(DeleteAnnot),
+    /// Add a link on an area or on text.
+    AddLink(AddLink),
+    /// Change a link's area, quads, target or description.
+    UpdateLink(UpdateLink),
+    /// Delete a link, with its place in the structure tree.
+    DeleteLink(DeleteLink),
     /// Replace the document's page labels.
     SetPageLabels(SetPageLabels),
     /// An op that declares the widgets it touches, for the save planner's tests
@@ -157,7 +166,12 @@ impl Op {
             | Self::SetNamedDestination(_)
             | Self::RenameNamedDestination(_)
             | Self::DeleteNamedDestination(_) => ModificationClass::Document,
-            Self::UpdateAnnot(_) | Self::DeleteAnnot(_) => ModificationClass::Annotation,
+            Self::UpdateAnnot(_)
+            | Self::DeleteAnnot(_)
+            | Self::AddAnnot(_)
+            | Self::AddLink(_)
+            | Self::UpdateLink(_)
+            | Self::DeleteLink(_) => ModificationClass::Annotation,
             Self::SetPageLabels(_) => ModificationClass::Document,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.class(),
@@ -198,7 +212,11 @@ impl Op {
             | Self::MergeDocuments(_)
             | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
-            | Self::DeleteAnnot(_) => false,
+            | Self::DeleteAnnot(_)
+            | Self::AddAnnot(_)
+            | Self::AddLink(_)
+            | Self::UpdateLink(_)
+            | Self::DeleteLink(_) => false,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.requires_rewrite(),
         }
@@ -237,7 +255,11 @@ impl Op {
             | Self::MergeDocuments(_)
             | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
-            | Self::DeleteAnnot(_) => Vec::new(),
+            | Self::DeleteAnnot(_)
+            | Self::AddAnnot(_)
+            | Self::AddLink(_)
+            | Self::UpdateLink(_)
+            | Self::DeleteLink(_) => Vec::new(),
             Self::ReplacePages(op) => each(&op.targets, WidgetChange::Deleted),
             Self::RotatePage(op) => vec![PageChange::new(op.page.clone(), WidgetChange::Reshown)],
             Self::RotatePages(op) => each(&op.pages, WidgetChange::Reshown),
@@ -255,6 +277,7 @@ impl Op {
         &self,
         doc: &mut laminapdf_model::Document,
         sources: &crate::document::Sources,
+        appearances: Option<&dyn Appearances>,
     ) -> Result<Effect> {
         match self {
             Self::SetInfo(op) => op.apply_to(doc),
@@ -291,8 +314,12 @@ impl Op {
             Self::SetNamedDestination(op) => op.apply_to(doc),
             Self::RenameNamedDestination(op) => op.apply_to(doc),
             Self::DeleteNamedDestination(op) => op.apply_to(doc),
-            Self::UpdateAnnot(op) => op.apply_to(doc),
+            Self::AddAnnot(op) => op.apply_to(doc, appearances),
+            Self::UpdateAnnot(op) => op.apply_to(doc, appearances),
             Self::DeleteAnnot(op) => op.apply_to(doc),
+            Self::AddLink(op) => op.apply_to(doc),
+            Self::UpdateLink(op) => op.apply_to(doc),
+            Self::DeleteLink(op) => op.apply_to(doc),
             Self::SetPageLabels(op) => op.apply_to(doc).map(|()| Effect::default()),
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.apply_to(doc, sources, self.class()),
@@ -318,6 +345,8 @@ pub(crate) struct Effect {
     pub(crate) widgets: Vec<TouchedWidget>,
     /// The bookmarks it created.
     pub(crate) created_outline_items: Vec<OutlineItemId>,
+    /// The annotations it created.
+    pub(crate) created_annotations: Vec<laminapdf_model::AnnotId>,
     /// It rewrote an outline whose links were broken.
     pub(crate) outline_repaired: bool,
     /// What still names a destination it deleted.
@@ -336,10 +365,14 @@ pub(crate) struct Effect {
     pub(crate) tags_dropped: Vec<PageId>,
     /// The named destinations it brought in under another name.
     pub(crate) renamed_destinations: Vec<RenamedDestination>,
+    /// The role, class and element names it brought in under another name.
+    pub(crate) structure_renamed: Vec<StructureRename>,
     /// The bookmarks it left out because the pages they go to didn't come along.
     pub(crate) bookmarks_dropped: usize,
     /// The copies it brought into a file claiming PDF/A from a source without that claim.
     pub(crate) pdfa_unchecked: Vec<PageId>,
+    /// The copies it brought into a file claiming PDF/UA-1 from a source without that claim.
+    pub(crate) pdfua_unchecked: Vec<PageId>,
 }
 
 impl From<SetInfo> for Op {
@@ -394,11 +427,15 @@ op_from!(
     RotatePages,
     ReversePages,
     DuplicatePages,
+    AddAnnot,
     InsertPagesFrom,
     ReplacePages,
     MergeDocuments,
     UpdateAnnot,
-    DeleteAnnot
+    DeleteAnnot,
+    AddLink,
+    UpdateLink,
+    DeleteLink
 );
 
 impl From<SetPageLabels> for Op {

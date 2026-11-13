@@ -6,6 +6,7 @@ use laminapdf_cos::{Dict, Object, OpenOptions};
 use laminapdf_model::{FieldNames, OutlineTree, PageId, PagePosition, SiblingPosition};
 
 use super::import::{Carry, Signatures, import_with};
+use super::import_tags::Tags;
 use super::merge_parts::{CopiedItem, copy_outline, merge_layers, source_layers};
 use super::page_ids;
 use crate::document::Document;
@@ -18,7 +19,7 @@ impl Document {
     /// unsigned: a signature covers the file it was made in) and the page labels they show
     /// here, with the bookmarks that go to them (a bookmark whose page was left behind is left
     /// out unless one of its children came) and the layers they use. Links to pages left behind
-    /// are removed, and the pages come without tags. The new
+    /// are removed. The pages keep their tags when this document is tagged. The new
     /// document has the same PDF version and limits, no password, and a base that is empty, so
     /// saving it writes a whole file holding only what its pages reach.
     ///
@@ -55,11 +56,12 @@ impl Document {
         let mut names = FieldNames::default();
         let mut outline = Vec::new();
         let mut layers = None;
+        let tags = if source.is_tagged()? { Tags::Keep } else { Tags::Drop };
         let imported = import_with(
             &mut out,
             source,
             pages,
-            (Carry::default(), Signatures::Unsign),
+            (Carry::default(), Signatures::Unsign, &tags),
             &mut names,
             |doc, copier, dests| {
                 outline = copy_outline(doc, source, dests)?.0;

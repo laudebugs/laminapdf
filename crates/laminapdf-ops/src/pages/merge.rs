@@ -10,6 +10,7 @@ use super::duplicate::names_in_use;
 use super::extract::add_items;
 use super::from::insert;
 use super::import::{Carry, FieldClash, Imported, Signatures, import_with};
+use super::import_tags::Tags;
 use super::merge_parts::{CopiedItem, Label, SourceLabels, copy_outline, merge_labels, merge_layers, source_layers};
 use super::{page_ids, pages_before};
 use crate::SourceId;
@@ -227,11 +228,28 @@ impl MergeDocuments {
         let mut all = Imported::default();
         let mut merged: Vec<Merged> = Vec::with_capacity(self.sources.len());
         let mut bookmarks_dropped = 0;
+        let mut all_sources = Vec::with_capacity(self.sources.len());
+        for part in &self.sources {
+            all_sources.push(sources.get(&part.source).ok_or(Error::UnknownSource(part.source))?);
+        }
+        let keep_tags = Tags::kept(doc, before.is_empty(), &all_sources)?;
         for part in &self.sources {
             let src = sources.get(&part.source).ok_or(Error::UnknownSource(part.source))?;
             let pages = match &part.pages {
                 Some(pages) => once_each(pages),
                 None => page_ids(src)?,
+            };
+            let title = match &part.title {
+                Some(title) => Some(title.clone()),
+                None => match src.info()? {
+                    Some(info) => info.title()?.filter(|t| !t.trim().is_empty()),
+                    None => None,
+                },
+            };
+            let tags = if keep_tags {
+                Tags::KeepInPart(title.clone())
+            } else {
+                Tags::Drop
             };
             let keep_outline = self.options.outline != OutlineMerge::None;
             let mut outline = Vec::new();
@@ -241,7 +259,11 @@ impl MergeDocuments {
                 doc,
                 src,
                 &pages,
-                (Carry::default().with_fields(self.options.fields), Signatures::Skip),
+                (
+                    Carry::default().with_fields(self.options.fields),
+                    Signatures::Skip,
+                    &tags,
+                ),
                 &mut names,
                 |doc, copier, dests| {
                     if keep_outline {
@@ -254,13 +276,6 @@ impl MergeDocuments {
             if let Some(layers) = layers {
                 merge_layers(doc, &layers)?;
             }
-            let title = match &part.title {
-                Some(title) => Some(title.clone()),
-                None => match src.info()? {
-                    Some(info) => info.title()?.filter(|t| !t.trim().is_empty()),
-                    None => None,
-                },
-            };
             bookmarks_dropped += dropped;
             merged.push(Merged {
                 copies: imported.copies.clone(),
@@ -485,7 +500,9 @@ impl Imported {
         self.tags_dropped.extend(other.tags_dropped);
         self.widgets.extend(other.widgets);
         self.destinations_renamed.extend(other.destinations_renamed);
+        self.structure_renamed.extend(other.structure_renamed);
         self.pdfa_unchecked.extend(other.pdfa_unchecked);
+        self.pdfua_unchecked.extend(other.pdfua_unchecked);
     }
 }
 
