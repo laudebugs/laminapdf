@@ -28,10 +28,10 @@
 use std::path::Path;
 
 use laminapdf_cos::OpenOptions;
-use laminapdf_model::Rotation;
+use laminapdf_model::{OpenAction, PageLayout, PageMode, Rotation};
 use laminapdf_ops::{
-    Document, InfoPatch, MetadataKey, MetadataPatch, Op, Origin, RemoveMetadata, RotatePage, SetInfo, SetMetadata,
-    read_metadata,
+    Document, InfoPatch, MetadataKey, MetadataPatch, Op, OpenAt, OpenZoom, Origin, RemoveMetadata, RotatePage, SetInfo,
+    SetInitialView, SetMetadata, WindowPreferencesPatch, read_metadata,
 };
 use laminapdf_save::{Save, SaveError, SaveMode, SaveOptions, SaveReport};
 use serde_json::{Value, json};
@@ -206,8 +206,20 @@ fn facts(doc: &laminapdf_model::Document) -> (usize, Vec<u16>, Vec<Option<String
 }
 
 /// The ops each fixture is saved with: a title through the deprecated `setInfo`, a rotation,
-/// and the metadata ops (J.01–J.03, J.10).
-const OPS: [&str; 4] = ["setInfo", "rotatePage", "setMetadata", "removeMetadata"];
+/// the metadata ops (J.01–J.03, J.10) and the initial view (I.06, I.11).
+const OPS: [&str; 5] = [
+    "setInfo",
+    "rotatePage",
+    "setMetadata",
+    "removeMetadata",
+    "setInitialView",
+];
+
+/// What the `setInitialView` cases write: open on the last page at its width, with the
+/// thumbnails panel, two columns (PDF 1.5, so older files' `/Version` rises) and the title in
+/// the window. The tools check the page mode by its PDF name.
+const INITIAL_MODE: PageMode = PageMode::Thumbnails;
+const INITIAL_LAYOUT: PageLayout = PageLayout::TwoColumnLeft;
 
 /// The save-time date the metadata cases stamp (J.02).
 const STAMP: &str = "D:20261110093000Z";
@@ -241,11 +253,32 @@ fn op(doc: &Document, name: &str, rotation: Rotation) -> Op {
             MetadataKey::Keywords,
         ])
         .into(),
+        "setInitialView" => {
+            let pages = doc.pages().unwrap();
+            let last = pages.get(pages.len() - 1).unwrap().id().clone();
+            SetInitialView::default()
+                .with_open(Some(OpenAt::new(last, OpenZoom::FitWidth)))
+                .with_page_mode(Some(INITIAL_MODE))
+                .with_page_layout(Some(INITIAL_LAYOUT))
+                .with_preferences(WindowPreferencesPatch::default().with_display_doc_title(true))
+                .into()
+        }
         _ => {
             let page = doc.pages().unwrap().get(0).unwrap().id().clone();
             RotatePage::new(page, rotation).into()
         }
     }
+}
+
+/// Whether `doc` opens as the `setInitialView` cases ask: on the last page, with the panel,
+/// layout and title preference they set.
+fn opens_as_set(doc: &laminapdf_model::Document) -> bool {
+    let view = doc.initial_view().unwrap();
+    let last = doc.pages().unwrap().len().checked_sub(1);
+    matches!(&view.open, OpenAction::Destination(dest) if dest.page_index == last)
+        && view.page_mode == Some(INITIAL_MODE)
+        && view.page_layout == Some(INITIAL_LAYOUT)
+        && view.preferences.display_doc_title
 }
 
 /// What a run produced.
@@ -287,6 +320,7 @@ pub fn run(root: &Path) -> Suite {
                             info = INFO.iter().map(|(_, v)| Some((*v).to_owned())).collect();
                         }
                         Op::RemoveMetadata(_) => info = vec![None; INFO.len()],
+                        Op::SetInitialView(_) => {}
                         _ => rotations[0] = rotation.degrees(),
                     }
                     // A removal from a file with nothing to remove would change nothing: it
@@ -333,6 +367,13 @@ pub fn run(root: &Path) -> Suite {
                             (pages, &rotations, &info)
                         ));
                     }
+                    let initial_view = op_name == "setInitialView";
+                    if initial_view && !opens_as_set(&reopened) {
+                        suite.failures.push(format!(
+                            "{id}: lamina reopened the initial view as {:?}",
+                            reopened.initial_view()
+                        ));
+                    }
                     if metadata_op {
                         let meta = read_metadata(&reopened).unwrap();
                         if !meta.disagreements.is_empty() {
@@ -350,9 +391,9 @@ pub fn run(root: &Path) -> Suite {
                         "pages": pages,
                         "rotations": rotations,
                         "title": info[0],
-                        // The other three keys the setInfo cases write (J.01), compared by the
+                        // The other three keys the metadata cases write (J.01), compared by the
                         // tools only there: elsewhere they are the fixture's own values.
-                        "info": (op_name != "rotatePage").then(|| json!({
+                        "info": matches!(op_name, "setInfo" | "setMetadata" | "removeMetadata").then(|| json!({
                             "Author": info[1],
                             "Subject": info[2],
                             "Keywords": info[3],
@@ -361,6 +402,13 @@ pub fn run(root: &Path) -> Suite {
                         // PDFium reads no `/Title` from a direct `/Info` dictionary.
                         "direct_info": matches!(reopened.trailer().get("Info"), Some(laminapdf_cos::Object::Dict(_))),
                         "invalidated": report.invalidated().len(),
+                        // The setInitialView cases' open page (0-based), page mode and layout,
+                        // by their PDF names; null elsewhere, where the fixture keeps its own.
+                        "initial_view": initial_view.then(|| json!({
+                            "open_page": pages - 1,
+                            "page_mode": INITIAL_MODE.pdf_name(),
+                            "page_layout": INITIAL_LAYOUT.pdf_name(),
+                        })),
                     }));
                     suite.outputs.push((file, output));
                 }

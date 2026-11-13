@@ -1,0 +1,32 @@
+---
+title: Choose how a PDF opens
+description: Set the page and zoom a PDF opens at, the panel beside it and the title in the window, for Lamina PDF and every other PDF reader.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll make a PDF open on a chosen page at the page's width, with its bookmarks panel showing and its title in the window. You need this for a report that should open on its summary, a manual that should show its contents first, or a form that should open on the page to fill in.
+
+A PDF keeps these choices in its catalog, and every reader that follows the PDF standard reads them when it opens the file. One edit sets them:
+
+<Example ts="packages/sdk/examples/set-initial-view.ts" rust="crates/laminapdf/examples/set_initial_view.rs" />
+
+The result is the original bytes, unchanged, followed by one revision. The file opens on the page you chose, fitted to the window's width, with the bookmarks panel open and the document's title in the window's title bar.
+
+## How it works
+
+- `initialView()` reads how the file asks to open. Its `open` is `"default"` when the file leaves the first page and zoom to the reader, `"page"` with a target in [page space](/reference/glossary/#page-space), or `"action"` when the file runs an action, such as a script, instead.
+- `setInitialView` (`SetInitialView` in Rust) takes a patch: a value sets a field, `null` removes it, and a field you leave out stays as the file has it.
+- `open` names the page by its ID and a `zoom`: `"fitWidth"`, `"fitPage"`, `"default"` (the reader's own zoom) or a percentage from 1 to 6400.
+- `pageMode` is the panel beside the page: `"outlines"` for bookmarks, `"thumbnails"`, `"attachments"`, `"optionalContent"` for layers, `"fullScreen"` or `"none"`.
+- `preferences` holds the window's requests, such as `displayDocTitle` for the title in the title bar. `true` sets one; `false` removes it, which is its default.
+- An open action that runs a script or another action is never replaced: an edit that names the page fails with [`open-action-not-destination`](/reference/codes/open-action-not-destination/). The example reads the file's view first and leaves the page out of its edit then. Lamina PDF never runs the action.
+- When a value needs a newer PDF version than the file declares, such as the attachments panel (PDF 1.6), the edit raises the file's version to it.
+
+## What to change
+
+- **Another page layout:** add `pageLayout`, such as `"twoPageRight"` for two pages side by side with the cover alone.
+- **The reader's defaults again:** pass `null` for each field you set, `open` included.
+- **The article threads:** `threads()` lists a file's article threads, each with its parts as rectangles in page space, in reading order.
+
+Next: [save a PDF](/guides/save-a-pdf/), for what a signed or repaired file allows.

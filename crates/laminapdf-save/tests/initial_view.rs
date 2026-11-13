@@ -26,8 +26,6 @@ fn op(doc: &Document) -> Op {
         .into()
 }
 
-/// capability: I.06 core round-trip
-/// capability: I.11 core round-trip
 #[test]
 fn the_initial_view_survives_a_save_and_a_reopen() {
     for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
