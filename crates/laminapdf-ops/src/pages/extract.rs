@@ -6,6 +6,7 @@ use laminapdf_cos::{Dict, Object, OpenOptions};
 use laminapdf_model::{FieldNames, OutlineTree, PageId, PagePosition, SiblingPosition};
 
 use super::import::{Carry, Signatures, import_with};
+use super::import_tags::Tags;
 use super::merge_parts::{CopiedItem, copy_outline, merge_layers, source_layers};
 use super::page_ids;
 use crate::document::Document;
@@ -55,11 +56,12 @@ impl Document {
         let mut names = FieldNames::default();
         let mut outline = Vec::new();
         let mut layers = None;
+        let tags = if source.is_tagged()? { Tags::Keep } else { Tags::Drop };
         let imported = import_with(
             &mut out,
             source,
             pages,
-            (Carry::default(), Signatures::Unsign),
+            (Carry::default(), Signatures::Unsign, &tags),
             &mut names,
             |doc, copier, dests| {
                 outline = copy_outline(doc, source, dests)?.0;

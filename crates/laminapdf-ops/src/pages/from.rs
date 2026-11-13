@@ -7,6 +7,7 @@ use super::cleanup::{ReferenceChange, destinations};
 use super::delete::{DeletePages, ReferencePolicy};
 use super::duplicate::names_in_use;
 use super::import::{Carry, Imported, Signatures, import};
+use super::import_tags::Tags;
 use super::{checked, page_ids, pages_before, relabel};
 use crate::SourceId;
 use crate::document::Sources;
@@ -81,7 +82,8 @@ impl InsertPagesFrom {
         let src = sources.get(&self.source).ok_or(Error::UnknownSource(self.source))?;
         let before = pages_before(doc)?;
         let mut names = names_in_use(doc, &before)?;
-        let imported = import(doc, src, &self.pages, self.carry, Signatures::Skip, &mut names)?;
+        let tags = tags_for(doc, &before, src)?;
+        let imported = import(doc, src, &self.pages, self.carry, Signatures::Skip, &tags, &mut names)?;
         if imported.copies.is_empty() {
             return Ok(Effect::default());
         }
@@ -90,6 +92,15 @@ impl InsertPagesFrom {
         relabel(doc, &before, &after)?;
         Ok(effect(imported, copies, after))
     }
+}
+
+/// What becomes of the tags of pages copied from `src` into `doc`, whose pages are `before`.
+fn tags_for(doc: &laminapdf_model::Document, before: &[PageId], src: &laminapdf_model::Document) -> Result<Tags> {
+    Ok(if Tags::kept(doc, before.is_empty(), &[src])? {
+        Tags::Keep
+    } else {
+        Tags::Drop
+    })
 }
 
 /// Puts each copy in the page tree in order: copy `i` before the page `at(i)` names when it
@@ -123,6 +134,7 @@ pub(super) fn effect(imported: Imported, copies: Vec<PageId>, after: Vec<PageId>
         fields: imported.fields,
         links_removed: imported.links_removed,
         tags_dropped: imported.tags_dropped,
+        structure_renamed: imported.structure_renamed,
         widgets: imported.widgets,
         renamed_destinations: super::merge::RenamedDestination::of(&imported.destinations_renamed),
         pdfa_unchecked: imported.pdfa_unchecked,
@@ -199,7 +211,8 @@ impl ReplacePages {
             return Ok(Effect::default());
         }
         let mut names = names_in_use(doc, &before)?;
-        let imported = import(doc, src, &self.pages, self.carry, Signatures::Skip, &mut names)?;
+        let tags = tags_for(doc, &before, src)?;
+        let imported = import(doc, src, &self.pages, self.carry, Signatures::Skip, &tags, &mut names)?;
         // Each copy goes before its target; extra copies follow the last one. Replacing every
         // page with nothing is refused by the deletion (`no-pages-left`).
         let copies = insert(doc, &imported, |i| match targets.get(i) {

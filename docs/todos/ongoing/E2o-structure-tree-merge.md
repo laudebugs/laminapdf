@@ -11,7 +11,7 @@
 | Branch | `feat/e2o-structure-tree-merge` |
 | PR title | `feat(model): merge structure trees with ParentTree renumbering` |
 | Size | L (400–800): the structure-tree merge in `laminapdf-model`, `/ClassMap` and `/IDTree`, with veraPDF checks |
-| PR | — |
+| PR | [#572](https://github.com/laudebugs/laminapdf/pull/572) |
 
 ## Goal
 
