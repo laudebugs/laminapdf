@@ -137,8 +137,9 @@ pub struct Applied {
     ///
     /// Added in 0.3.0.
     pub links_removed: Vec<PageId>,
-    /// The pages brought in from another document whose source pages were tagged: they come
-    /// without their tags (`TagsDropped`) until structure trees can be merged.
+    /// The pages brought in from another document whose source pages were tagged but came
+    /// without their tags, because this document isn't tagged (or a new document's other
+    /// sources aren't): a tagged file must tag all its content.
     ///
     /// Added in 0.3.0.
     pub tags_dropped: Vec<PageId>,

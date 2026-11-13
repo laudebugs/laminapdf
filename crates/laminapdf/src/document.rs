@@ -170,9 +170,9 @@ pub struct Edited {
     ///
     /// Added in 0.3.0.
     pub links_removed: Vec<PageId>,
-    /// The pages copied in from another document whose source pages were tagged: they come
-    /// without their tags. On a PDF/UA-1 file, [`Document::plan`] then warns
-    /// `imported-tags-dropped`.
+    /// The pages copied in from another document whose source pages were tagged but came
+    /// without their tags, because this document isn't tagged. On a PDF/UA-1 file,
+    /// [`Document::plan`] then warns `imported-tags-dropped`.
     ///
     /// Added in 0.3.0.
     pub tags_dropped: Vec<PageId>,

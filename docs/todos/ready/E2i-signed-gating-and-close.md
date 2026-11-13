@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §6](../../plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2g](./E2g-page-labels.md), [E2m](./E2m-document-dialogs.md), [E2o](../ongoing/E2o-structure-tree-merge.md) |
+| Depends on | [E2g](./E2g-page-labels.md), [E2m](./E2m-document-dialogs.md), [E2o](../done/E2o-structure-tree-merge.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `test/e2i-signed-gating-and-close` |
 | PR title | `test(editor): signed-document gating suite for page operations` |

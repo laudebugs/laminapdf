@@ -21,8 +21,10 @@ use crate::wire;
 /// removed ([`Applied::links_removed`](crate::Applied::links_removed)), and the named
 /// destinations the others use come along, renamed `<name>#<n>` on a clash. Form fields join
 /// the form under their own names, or per [`Carry::fields`] when the name is taken
-/// ([`Applied::fields`](crate::Applied::fields)); signature fields are left off. The copies
-/// lose their tags ([`Applied::tags_dropped`](crate::Applied::tags_dropped)), page labels
+/// ([`Applied::fields`](crate::Applied::fields)); signature fields are left off. In a tagged
+/// document the copies keep their tags, the source's elements joining the structure tree
+/// ([`Applied::structure_renamed`](crate::Applied::structure_renamed) lists names that clashed);
+/// in an untagged one they lose them ([`Applied::tags_dropped`](crate::Applied::tags_dropped)). Page labels
 /// continue the range each copy lands in, and the document's version rises to the source's
 /// when that is newer.
 ///

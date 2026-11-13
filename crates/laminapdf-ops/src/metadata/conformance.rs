@@ -146,8 +146,9 @@ pub fn conformance_warnings(doc: &laminapdf_model::Document) -> Result<Vec<Confo
 
 /// [`conformance_warnings`], plus what `pending` (the changes not yet saved) breaks: on a file
 /// whose packet claims PDF/UA-1, a page duplication that left a copy, still in the document,
-/// partly untagged, and tagged pages copied in from another document without their tags; on a
-/// file claiming PDF/A, pages copied in from a document without the same claim.
+/// partly untagged, tagged pages copied in from another document without their tags, and
+/// pages copied with their tags from a document without the claim; on a file claiming PDF/A,
+/// pages copied in from a document without the same claim.
 ///
 /// # Errors
 /// As [`conformance_warnings`].

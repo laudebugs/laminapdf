@@ -19,7 +19,7 @@ impl Document {
     /// unsigned: a signature covers the file it was made in) and the page labels they show
     /// here, with the bookmarks that go to them (a bookmark whose page was left behind is left
     /// out unless one of its children came) and the layers they use. Links to pages left behind
-    /// are removed, and the pages come without tags. The new
+    /// are removed. The pages keep their tags when this document is tagged. The new
     /// document has the same PDF version and limits, no password, and a base that is empty, so
     /// saving it writes a whole file holding only what its pages reach.
     ///

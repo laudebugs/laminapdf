@@ -124,8 +124,8 @@ impl PendingChanges {
         &self.tags_incomplete
     }
 
-    /// The pages copied in from other documents without the tags their source pages had
-    /// (`TagsDropped`), which the save planner reports on a file that claims PDF/UA
+    /// The pages copied in from other documents without the tags their source pages had (into
+    /// an untagged document), which the save planner reports on a file that claims PDF/UA
     /// ([`ConformanceWarning::ImportedTagsDropped`](crate::ConformanceWarning::ImportedTagsDropped))
     /// while any of them is still a page.
     ///

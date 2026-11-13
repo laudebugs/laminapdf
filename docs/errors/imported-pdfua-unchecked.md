@@ -27,5 +27,5 @@ None.
 
 The decisions and todos behind this code:
 
-- [E2o](../todos/ongoing/E2o-structure-tree-merge.md): merging structure trees, for merged and imported pages
+- [E2o](../todos/done/E2o-structure-tree-merge.md): merging structure trees, for merged and imported pages
 - [E2 plan §3](../plans/editor/e2-page-organisation.md#3-conformance-the-edits-must-keep): what page edits do to a PDF/UA claim
