@@ -108,7 +108,8 @@ export function claudeRequest(settings, question) {
 
 /**
  * The OpenAI Responses API request for one question: the question alone, with web search and its
- * sources included, so the report sees every page the search returned.
+ * sources included, so the report sees every page the search returned, in background mode (see
+ * askOpenAI).
  *
  * @param {OpenAISettings} settings
  * @param {string} question
@@ -120,6 +121,7 @@ export function openaiRequest(settings, question) {
     tools: [{ type: "web_search" }],
     max_tool_calls: settings.maxSearches,
     include: ["web_search_call.action.sources"],
+    background: true,
     input: question,
   };
 }
@@ -191,8 +193,10 @@ export function openaiRaw(response) {
 }
 
 /**
- * Asks OpenAI one question once. The key comes from OPENAI_API_KEY; a proxy that adds the key
- * itself takes a placeholder there.
+ * Asks OpenAI one question once. The request runs in background mode, so no one HTTP request lasts
+ * as long as the answer takes (a proxy can cut a long one off, as the first baseline run found):
+ * the POST returns at once with the response's id, and the response is fetched until it is done.
+ * The key comes from OPENAI_API_KEY; a proxy that adds the key itself takes a placeholder there.
  *
  * @param {Record<string, unknown>} params
  * @returns {Promise<Raw>}
@@ -200,30 +204,60 @@ export function openaiRaw(response) {
 async function askOpenAI(params) {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error("set OPENAI_API_KEY to ask OpenAI");
+  let body = await callWithRetries(key, "POST", "responses", params);
+  const started = Date.now();
+  while (body.status === "queued" || body.status === "in_progress") {
+    if (Date.now() - started > ANSWER_TIMEOUT_MS) throw new Error(`OpenAI's response ${body.id} took over 10 minutes`);
+    await sleep(POLL_MS);
+    body = await callWithRetries(key, "GET", `responses/${body.id}`);
+  }
+  return openaiRaw(body);
+}
+
+/** How long to wait between reads of a response in progress, and for its whole answer. */
+const POLL_MS = 3000;
+const ANSWER_TIMEOUT_MS = 10 * 60 * 1000;
+
+/** @param {number} ms */
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * One call to the Responses API, sent again up to {@link RETRIES} times, 2, 4 and 8 s apart, when it
+ * fails for a passing reason.
+ *
+ * @param {string} key
+ * @param {"GET" | "POST"} method
+ * @param {string} path - under https://api.openai.com/v1/
+ * @param {Record<string, unknown>} [params] - the POST's body
+ * @returns {Promise<any>} the response's JSON
+ */
+async function callWithRetries(key, method, path, params) {
   for (let attempt = 0; ; attempt += 1) {
-    const outcome = await postOnce(key, params);
-    if (outcome.body !== undefined) return openaiRaw(outcome.body);
+    const outcome = await callOnce(key, method, path, params);
+    if (outcome.body !== undefined) return outcome.body;
     if (!outcome.retry || attempt >= RETRIES) throw new Error(outcome.error);
-    await new Promise((resolve) => setTimeout(resolve, 2000 * 2 ** attempt));
+    await sleep(2000 * 2 ** attempt);
   }
 }
 
 /**
- * One POST to the Responses API: its JSON body, or why it failed and whether a retry may help (the
+ * One call to the Responses API: its JSON body, or why it failed and whether a retry may help (the
  * network, a timeout, a rate limit, a server error, or a body that isn't JSON, such as a proxy's
- * "upstream request timeout").
+ * "upstream request failed").
  *
  * @param {string} key
- * @param {Record<string, unknown>} params
+ * @param {"GET" | "POST"} method
+ * @param {string} path
+ * @param {Record<string, unknown>} [params]
  * @returns {Promise<{ body: any, retry?: undefined, error?: undefined } | { body?: undefined, retry: boolean, error: string }>}
  */
-async function postOnce(key, params) {
+async function callOnce(key, method, path, params) {
   let response;
   try {
-    response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
+    response = await fetch(`https://api.openai.com/v1/${path}`, {
+      method,
       headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-      body: JSON.stringify(params),
+      ...(params === undefined ? {} : { body: JSON.stringify(params) }),
     });
   } catch (error) {
     return { retry: true, error: `OpenAI unreachable: ${error instanceof Error ? error.message : String(error)}` };

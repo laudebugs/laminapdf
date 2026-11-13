@@ -208,6 +208,7 @@ describe("the runner", () => {
     assert.deepEqual(params.tools, [{ type: "web_search" }]);
     assert.equal(params.max_tool_calls, openai.maxSearches);
     assert.deepEqual(params.include, ["web_search_call.action.sources"]);
+    assert.equal(params.background, true);
     assert.equal("instructions" in params, false);
   });
 
