@@ -36,10 +36,10 @@ pub(crate) fn e2e_interactive() -> u128 {
 
 /// Brings this window to the front, as a click on it would. Once another window closes, macOS
 /// can leave the one under it in the background, where `WebKit` slows its work; and the menus
-/// act on the focused window.
+/// act on the focused window. Async, as the commands that focus or make windows are: on Windows
+/// a synchronous command runs on the main thread, which those wait for.
 #[tauri::command]
-#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window by value")]
-pub(crate) fn e2e_focus(window: tauri::WebviewWindow) -> Result<(), DesktopError> {
+pub(crate) async fn e2e_focus(window: tauri::WebviewWindow) -> Result<(), DesktopError> {
     focus(&window)
 }
 
@@ -54,8 +54,7 @@ fn focus(window: &tauri::WebviewWindow) -> Result<(), DesktopError> {
 /// Chooses the native menu item `id` in this window, as a click on its menu would
 /// (`cmd:view.zoom-in`, `recent:<id>`, `window:doc-1`): `WebDriver` can't reach the OS's menus.
 #[tauri::command]
-#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window by value")]
-pub(crate) fn e2e_menu_click(window: tauri::WebviewWindow, id: String) -> Result<(), DesktopError> {
+pub(crate) async fn e2e_menu_click(window: tauri::WebviewWindow, id: String) -> Result<(), DesktopError> {
     focus(&window)?;
     crate::menu::run(window.app_handle(), crate::menu::action(&id));
     Ok(())

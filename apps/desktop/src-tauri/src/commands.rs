@@ -224,9 +224,10 @@ pub(crate) fn menu_state(window: tauri::WebviewWindow, state: Vec<crate::menu::C
 }
 
 /// Closes this window (File ▸ Close window): as its close button does, its documents with it.
+/// Async, as every command that makes or closes a window: on Windows a synchronous command runs
+/// on the main thread, which the window's teardown waits for.
 #[tauri::command]
-#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window by value")]
-pub(crate) fn close_window(window: tauri::WebviewWindow) -> Result<(), DesktopError> {
+pub(crate) async fn close_window(window: tauri::WebviewWindow) -> Result<(), DesktopError> {
     window.close()?;
     Ok(())
 }
@@ -283,10 +284,10 @@ pub(crate) fn debug_kill_engine(window: tauri::WebviewWindow, engines: tauri::St
     engines.kill(window.label());
 }
 
-/// Opens a new, empty window (File ▸ New Window) and returns its label.
+/// Opens a new, empty window (File ▸ New Window) and returns its label. Async: on Windows a
+/// synchronous command runs on the main thread, where making a window deadlocks.
 #[tauri::command]
-#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its app by value")]
-pub(crate) fn new_window(app: tauri::AppHandle) -> Result<String, DesktopError> {
+pub(crate) async fn new_window(app: tauri::AppHandle) -> Result<String, DesktopError> {
     crate::windows::new_window(&app)
 }
 
