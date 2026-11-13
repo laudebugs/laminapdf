@@ -81,6 +81,9 @@ pub struct Applied {
     /// A metadata op removed values that the file's earlier revisions still hold: an
     /// incremental save keeps them in the file, a full rewrite drops them.
     pub still_in_earlier_revisions: bool,
+    /// Annotations an annotation op deleted besides the one it names: Popups, replies and the
+    /// rest of a group.
+    pub also_deleted: Vec<laminapdf_model::AnnotId>,
     /// The form fields whose widgets it deleted, reshowed or moved, which the save planner
     /// checks against signed signature fields and field locks (E2 plan §6).
     ///
@@ -119,6 +122,7 @@ pub(crate) struct TxState {
     pub(crate) outline_repaired: bool,
     pub(crate) created_outline_items: Vec<OutlineItemId>,
     pub(crate) destination_uses: Vec<DestinationUse>,
+    pub(crate) also_deleted: Vec<laminapdf_model::AnnotId>,
 }
 
 /// An open transaction ([ADR 0006] §2), handed to the closure of
@@ -177,6 +181,7 @@ impl Tx<'_> {
             touched_pages: effect.pages.into_iter().collect(),
             packet_rewritten: effect.packet_rewritten,
             still_in_earlier_revisions: effect.removed,
+            also_deleted: effect.also_deleted,
             widgets: effect.widgets,
             created_outline_items: effect.created_outline_items,
             outline_repaired: effect.outline_repaired,
@@ -206,6 +211,7 @@ impl Tx<'_> {
                 self.state
                     .destination_uses
                     .extend(effect.destination_uses.iter().cloned());
+                self.state.also_deleted.extend(effect.also_deleted.iter().cloned());
                 Ok(effect)
             }
             Err(e) => {
@@ -295,6 +301,7 @@ mod tests {
             outline_repaired: false,
             created_outline_items: Vec::new(),
             destination_uses: Vec::new(),
+            also_deleted: Vec::new(),
         }
     }
 

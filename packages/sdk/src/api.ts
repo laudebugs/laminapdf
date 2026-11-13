@@ -130,6 +130,7 @@ export type {
   OutlineStyle,
   OutlineTarget,
   Overflow,
+  PageAnnotation,
   PageInfo,
   PageLabel,
   PageLink,

@@ -100,6 +100,7 @@
 //! [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
 #![forbid(unsafe_code)]
 
+mod annotations;
 #[cfg(feature = "build")]
 mod builder;
 mod codes;
@@ -146,6 +147,7 @@ mod warning;
 #[cfg(test)]
 use laminapdf_test_fixtures::codes as test_codes;
 
+pub use annotations::{AnnotationGeometry, PageAnnotation};
 pub use document::{Document, DocumentInfo, Edited, PageInfo, Saved};
 pub use error::{CoreError, Error, Result};
 #[cfg(feature = "explain")]
@@ -174,14 +176,14 @@ pub use redaction::RedactionWarning;
 pub use warning::{Warning, WarningCursor};
 
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};
-pub use laminapdf_model::{OutlineItemId, PageId, PdfDate, PointPt, Pt, RectPt, Rotation, SiblingPosition};
+pub use laminapdf_model::{AnnotId, OutlineItemId, PageId, PdfDate, PointPt, Pt, RectPt, Rotation, SiblingPosition};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use laminapdf_ops::{
-    AddOutlineItem, ChildItems, ConformanceWarning, DeleteNamedDestination, DeleteOutlineItem, DestinationUse,
-    DestinationView, DocumentMetadata, ExplicitDestination, InfoPatch, MetadataKey, MetadataPatch, MetadataSource,
-    ModificationClass, MoveOutlineItem, Op, OpLog, OutlineStyle, OutlineTarget, PacketStatus, RemoveMetadata,
-    RenameLinks, RenameNamedDestination, Reverted, Rgb, RotatePage, SetInfo, SetMetadata, SetNamedDestination,
-    UndoOutcome, UpdateOutlineItem,
+    AddOutlineItem, ChildItems, ConformanceWarning, DeleteAnnot, DeleteNamedDestination, DeleteOutlineItem,
+    DestinationUse, DestinationView, DocumentMetadata, ExplicitDestination, InfoPatch, MetadataKey, MetadataPatch,
+    MetadataSource, ModificationClass, MoveOutlineItem, Offset, Op, OpLog, OutlineStyle, OutlineTarget, PacketStatus,
+    RemoveMetadata, RenameLinks, RenameNamedDestination, Reverted, Rgb, RotatePage, SetInfo, SetMetadata,
+    SetNamedDestination, UndoOutcome, UpdateAnnot, UpdateOutlineItem,
 };
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,

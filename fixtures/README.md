@@ -136,6 +136,18 @@ The sRGB profile that `laminapdf-build` embeds in PDF/A output intents is not a 
 | `operators.pdf` | [`tools/fixtures/content.py`](../tools/fixtures/content.py) (no dependencies) | One page using every content construct `laminapdf-content` interprets: graphics state and `ExtGState`, every path-painting and clipping operator, device, named and pattern colours, a shading, every text operator, an inline image, an image XObject, nested Form XObjects with their own matrix and resources, marked content (inline and named property lists, points) and a `BX`/`EX` section. Compared with pdf.js by `crates/laminapdf-content/tests/corpus.rs` |
 | `append/*.pdf` | [`tools/fixtures/content_append.py`](../tools/fixtures/content_append.py) (no dependencies) | Pages whose content leaves `q`/`Q` unbalanced, for the append API (E2e): balanced, two `q`s left open, a `Q` after a balanced pair (`q 2 0 0 2 0 0 cm … Q Q 0 0 1 rg`), a `Q` at depth 0 after a state change (`2 0 0 2 0 0 cm Q 0 0 10 10 re f`), an unmatched `Q` and an open `q` in each of two `/Contents` streams, an inline image whose data is `QQ`, two pages sharing a content stream and inherited resources that use `Fm1` and `Gs1`, content ending in a text object and content ending inside a string (refused). Read by `crates/laminapdf-content/tests/append.rs` and rendered by `crates/laminapdf-render-pdfium/tests/append.rs` |
 
+### `annotations/`
+
+| File | Origin | Exercises |
+| --- | --- | --- |
+| `every-subtype.pdf` | [`tools/fixtures/annotations.py`](../tools/fixtures/annotations.py) (no dependencies) | One page with a highlight (quads in the standard's order, an appearance), an underline (quads in Acrobat's order, none), a note and its Popup, ink, a line, a polygon, a FreeText callout with rich text, a widget and a direct annotation dictionary (E4b) |
+| `threads.pdf` | the same script | Two pages: a note with its Popup, a reply and a reply to it, an `/IRT` cycle, a strike-out grouped with a caret, and on page 2 (an indirect `/Annots` array) a reply to the note on page 1 |
+| `flags.pdf` | the same script | A `Locked` square, a `LockedContents` note, a square with private keys and two notes with the same `/NM` |
+| `tagged.pdf` | the same script | A tagged page: a square that is the only kid of an `Annot` element, and a note sharing a `P` element with marked content |
+| `pdfjs.json` | [`tools/fixtures/pdfjs_annotations.mjs`](../tools/fixtures/pdfjs_annotations.mjs) (pdf.js 6.4.299, run by hand) | What pdf.js's `getAnnotations` reports on each page of the files above, compared by `crates/laminapdf-model/tests/annotations.rs` |
+
+All are read by `crates/laminapdf-model/tests/annotations.rs`, `crates/laminapdf-ops/tests/annotations.rs`, `crates/laminapdf-save/tests/annotations.rs` and `crates/laminapdf/tests/annotations.rs`, and seed the `annots` fuzz target.
+
 ### `differential/`
 
 | File | Origin | Exercises |
@@ -165,6 +177,8 @@ Hand-written samples of the op JSON format, version 1, read by `crates/laminapdf
 | `envelope.json` | The `{ "v": 1, "ops": [ … ] }` envelope with both ops (`p4.0`, `/Producer` cleared, `at` with a UTC offset), applied to `corpus/outline.pdf` as one transaction |
 | `set-metadata.json` | One `setMetadata` op (E1c): a title, two authors, a cleared subject, a UTF-16-only value, a creation date and `at`; applied to `golden/metadata.pdf`, whose Info and XMP it writes together |
 | `remove-metadata.json` | One `removeMetadata` op removing three fields, applied to `golden/metadata.pdf` |
+| `update-annot.json` | One `updateAnnot` op (E4b): new contents, a modification date and a move by `translate`, on `a12.0` of `annotations/threads.pdf`; read by `crates/laminapdf-ops/tests/annotations.rs` |
+| `delete-annot.json` | One `deleteAnnot` op on `a10.0` of `annotations/threads.pdf`, which takes its Popup and every reply with it |
 | `mixed-log.json` | A v1 log mixing the deprecated `setInfo` with `setMetadata` and `removeMetadata`, applied as one transaction (adding ops kept `v` at 1, ADR 0006 §6) |
 | `add-outline-item.json` | One `addOutlineItem` op: a child of the chapter (`o12.0`) after its first child, to an `/XYZ` view of page 2, red and bold; applied to `corpus/outline.pdf` |
 | `update-outline-item.json` | One `updateOutlineItem` op: the appendix (`o13.0`) renamed, opened and pointed at a web address in place of its `GoTo` |

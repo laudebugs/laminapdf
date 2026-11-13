@@ -28,6 +28,7 @@ import type {
   OutlineStyle as OutlineStyleJs,
   OutlineTarget as OutlineTargetJs,
   OverflowInit,
+  PageAnnotationJs,
   PageInfoJs,
   PageLabelInit,
   PageLinkJs,
@@ -318,6 +319,16 @@ export type OutlineNode = OutlineNodeJs;
  * @since 0.2.0
  */
 export type PageLink = PageLinkJs;
+
+/**
+ * One annotation on a page, in page space: its ID (which the `updateAnnot` and `deleteAnnot`
+ * ops take), subtype, rectangle, text, author, dates, flags, colour, reply links and its own
+ * geometry by `kind` (`"quads"`, `"ink"`, `"vertices"`, `"line"`, `"callout"` or `"none"`),
+ * points as flat `[x, y, …]` lists.
+ *
+ * @since 0.2.0
+ */
+export type PageAnnotation = PageAnnotationJs;
 
 /**
  * What a properties view shows about a document: its Info entries and dates (ISO 8601), the

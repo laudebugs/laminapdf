@@ -3,7 +3,7 @@
 use core::fmt;
 
 use laminapdf_cos::{ErrorKind, Location};
-use laminapdf_model::{OutlineItemId, PageId};
+use laminapdf_model::{AnnotId, OutlineItemId, PageId};
 
 /// Everything that can go wrong while applying ops, running transactions or reading op logs.
 ///
@@ -90,12 +90,36 @@ pub enum Error {
     /// A destination's view has a number that isn't finite.
     #[error("a destination's coordinates and zoom must be finite numbers")]
     ViewNotFinite,
+    /// The op names an annotation that no page's `/Annots` lists.
+    #[error("no annotation {}", ShownAnnot(.0))]
+    UnknownAnnotation(AnnotId),
+    /// The annotation's flags forbid the change (ISO 32000-2 Table 167): `Locked` forbids
+    /// deleting it or changing its properties, `LockedContents` changing its contents. A
+    /// change of the flags alone is always allowed, so a lock can be lifted.
+    #[error("annotation {} is locked", ShownAnnot(.0))]
+    AnnotationLocked(AnnotId),
+    /// The annotation can't be edited by the annotation ops: a widget (a form field's, edited
+    /// by the form ops), or a direct dictionary in `/Annots`, which has no object to edit.
+    #[error("annotation {} can't be edited by the annotation ops", ShownAnnot(.0))]
+    AnnotationNotEditable(AnnotId),
 }
 
 /// An outline item ID as a message may show it, as [`Shown`] does pages.
 struct ShownItem<'a>(&'a OutlineItemId);
 
 impl fmt::Display for ShownItem<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.0.as_lamina_id().obj_ref() {
+            Some(_) => self.0.fmt(f),
+            None => f.write_str("(a path ID)"),
+        }
+    }
+}
+
+/// An annotation ID as a message may show it, as [`Shown`] does for pages.
+struct ShownAnnot<'a>(&'a AnnotId);
+
+impl fmt::Display for ShownAnnot<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0.as_lamina_id().obj_ref() {
             Some(_) => self.0.fmt(f),
@@ -148,6 +172,9 @@ impl Error {
         "empty-destination-name",
         "link-uri-refused",
         "view-not-finite",
+        "unknown-annotation",
+        "annotation-locked",
+        "annotation-not-editable",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -176,6 +203,9 @@ impl Error {
             Self::EmptyDestinationName => "empty-destination-name",
             Self::LinkUriRefused => "link-uri-refused",
             Self::ViewNotFinite => "view-not-finite",
+            Self::UnknownAnnotation(_) => "unknown-annotation",
+            Self::AnnotationLocked(_) => "annotation-locked",
+            Self::AnnotationNotEditable(_) => "annotation-not-editable",
         }
     }
 
@@ -202,8 +232,13 @@ impl Error {
             | Self::NamedDestinationExists(_)
             | Self::EmptyDestinationName
             | Self::LinkUriRefused
-            | Self::ViewNotFinite => ErrorKind::Usage,
-            Self::DirectPage(_) | Self::UnsupportedVersion(_) | Self::DirectOutlineItem(_) => ErrorKind::Unsupported,
+            | Self::ViewNotFinite
+            | Self::UnknownAnnotation(_) => ErrorKind::Usage,
+            Self::AnnotationLocked(_) => ErrorKind::State,
+            Self::DirectPage(_)
+            | Self::UnsupportedVersion(_)
+            | Self::DirectOutlineItem(_)
+            | Self::AnnotationNotEditable(_) => ErrorKind::Unsupported,
             Self::InvalidLog(_) | Self::MalformedXmp => ErrorKind::Input,
         }
     }
@@ -225,6 +260,16 @@ impl Error {
                 },
                 None => Location::NONE,
             },
+            Self::UnknownAnnotation(annot) | Self::AnnotationLocked(annot) | Self::AnnotationNotEditable(annot) => {
+                match annot.as_lamina_id().obj_ref() {
+                    Some(r) => Location {
+                        object: Some(r.num),
+                        id: Some(annot.to_string()),
+                        ..Location::NONE
+                    },
+                    None => Location::NONE,
+                }
+            }
             Self::UnknownOutlineItem(item)
             | Self::DirectOutlineItem(item)
             | Self::NotASibling(item)
@@ -288,6 +333,9 @@ mod tests {
             Error::EmptyDestinationName,
             Error::LinkUriRefused,
             Error::ViewNotFinite,
+            Error::UnknownAnnotation("a7.0".parse().unwrap()),
+            Error::AnnotationLocked("a7.0".parse().unwrap()),
+            Error::AnnotationNotEditable("a7.0".parse().unwrap()),
         ]
     }
 

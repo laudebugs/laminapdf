@@ -28,7 +28,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   │                    #     (src/generated/) and, with feature `json`, Diagnostic (the ADR 0026 object every boundary throws)
 │   ├── laminapdf-cos/   #   core: reader and overlay: Document over a ByteSource (xref, object streams, repair, page tree,
 │   │                    #     warnings), the overlay (CosMut, journal), rebase
-│   ├── laminapdf-model/ #   core: typed views (pages, outline, Info, name/number trees, page labels, structure tree),
+│   ├── laminapdf-model/ #   core: typed views (pages, outline, Info, name/number trees, page labels, structure tree,
+│                        #     annotations: `Document::annotations` → `Annot`, E4b),
 │                        #     LaminaPdfIds and the shared graphics values (Matrix, FillRule, Dash), ObjectCopier (pages and what
 │                        #     they reach copied across documents); xmp/: the XMP
 │                        #     packet (a tolerant reader over quick-xml, typed Info-mapped fields, the one Info ↔ XMP
@@ -38,6 +39,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #     `navigation` (which `edit` implies, laminapdf-ops turns on): TreeWriter and OutlineTree (E3b:
 │                        #     the outline's lists and counts rewritten after inserts, moves and removals by OutlineItemId)
 │   ├── laminapdf-ops/   #   core: typed serialisable Op (SetMetadata, RemoveMetadata, the planner's UpdateSaveMetadata,
+│                        #     UpdateAnnot and DeleteAnnot (annot.rs, E4b),
 │                        #     RotatePage, the deprecated SetInfo; outline/: the bookmark and named-destination ops), metadata/ (one Info + XMP writer, read_metadata,
 │                        #     conformance warnings), transactions, savepoints, undo/redo, source documents and the blob store
 │   ├── laminapdf-save/  #   core: save planner (SaveConstraint, signatures, mode table), incremental and full writers

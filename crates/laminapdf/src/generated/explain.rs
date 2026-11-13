@@ -634,6 +634,42 @@ The decisions and todos behind this code:
 
 - [E1b](../todos/done/E1b-xmp-packet-model.md): the XMP packet model
 "#,
+        "annot-name-duplicate" => r"# `annot-name-duplicate`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+Two annotations on the same page have the same name in their `/NM` entry. ISO 32000-2 §12.5.2 asks for that name to be unique on its page, because comment exchange files (XFDF, FDF) and replies match annotations by it.
+
+## Why
+
+A writer copied an annotation without giving the copy a new name, or gave every annotation it made the same name.
+
+## How to fix
+
+Nothing to do: both annotations are read and kept, and Lamina PDF tells annotations apart by their own IDs, never by `/NM`. An import that matches comments by name may match the wrong one of the two, so a writer that makes new annotations should give each its own name.
+
+## Example
+
+```text
+5 0 obj << /Type /Annot /Subtype /Text /NM (note-1) /Rect [72 700 92 720] >> endobj
+6 0 obj << /Type /Annot /Subtype /Text /NM (note-1) /Rect [72 650 92 670] >> endobj
+```
+
+Both are on one page, so object 6 raises the warning.
+
+## Data fields
+
+None. The `location` is the second annotation's `object`, none for a direct dictionary.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4b](../todos/done/E4b-annotation-model-and-overlay.md): the annotation model and the annotation ops' core
+",
         "xmp-repaired" => r#"# `xmp-repaired`
 
 - Type: warning
@@ -2637,6 +2673,111 @@ The decisions and todos behind this code:
 
 - [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
 ",
+        "unknown-annotation" => r#"# `unknown-annotation`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An annotation op names an annotation by an ID that no page of the document lists in its `/Annots`.
+
+## Why
+
+The annotation was deleted, by an earlier op or along with its parent comment, or the ID comes from another document. An ID read before an undo can also name an annotation that the undo took away.
+
+## How to fix
+
+Read the page's annotations again and take the ID from that list.
+
+## Example
+
+```json
+{ "op": "deleteAnnot", "args": { "id": "a99.0" } }
+```
+
+No page lists object 99 as an annotation.
+
+## Data fields
+
+None. The `location` is the annotation's `object` and `id`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4b](../todos/done/E4b-annotation-model-and-overlay.md): the annotation model and the annotation ops' core
+"#,
+        "annotation-locked" => r#"# `annotation-locked`
+
+- Type: error
+- Kind: `state` (the operation isn't valid in the current state)
+
+## What happened
+
+The annotation's flags forbid the change (ISO 32000-2 §12.5.3, Table 167). The `Locked` flag forbids deleting the annotation, moving it or changing its properties, though its contents may still change. The `LockedContents` flag forbids changing its contents. A delete also takes the annotation's pop-up, its replies and the rest of its group, so a lock on any of those refuses it too.
+
+## Why
+
+The file's author locked the annotation so that readers can't change it by accident, as some review and form tools do.
+
+## How to fix
+
+An update that changes only the annotation's flags is always allowed, so clearing the lock first lets the next edit through. Clear it only when you are allowed to change the annotation.
+
+## Example
+
+```json
+{ "op": "updateAnnot", "args": { "id": "a12.0", "translate": { "dx": 10, "dy": 0 } } }
+```
+
+The annotation has `/F 132` (Print and Locked), so it can't be moved.
+
+## Data fields
+
+None. The `location` is the annotation's `object` and `id`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4b](../todos/done/E4b-annotation-model-and-overlay.md): the annotation model and the annotation ops' core
+"#,
+        "annotation-not-editable" => r#"# `annotation-not-editable`
+
+- Type: error
+- Kind: `unsupported` (valid input that Lamina PDF does not support yet)
+
+## What happened
+
+The annotation can't be changed or deleted by the annotation ops. Either it is a widget, the part of a form field that shows on the page, or it is stored as a direct dictionary inside the page's `/Annots` array instead of as an object of its own.
+
+## Why
+
+Widgets belong to their form fields, and editing one on its own would leave the field inconsistent; the form ops edit them. ISO 32000-2 Table 31 asks for `/Annots` to hold references to annotation objects, and a direct dictionary has no object an edit could change in place.
+
+## How to fix
+
+Edit a widget through its form field. An annotation stored inside the page's list can't be edited yet: Lamina PDF reads it, shows it and keeps it as it is when saving.
+
+## Example
+
+```json
+{ "op": "deleteAnnot", "args": { "id": "a14.0" } }
+```
+
+Object 14 is a text field's widget.
+
+## Data fields
+
+None. The `location` is the annotation's `object` and `id` when it has an object.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4b](../todos/done/E4b-annotation-model-and-overlay.md): the annotation model and the annotation ops' core
+"#,
         "pdfa-one-author" => r#"# `pdfa-one-author`
 
 - Type: warning
