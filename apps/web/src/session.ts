@@ -309,10 +309,14 @@ export class Engine implements ExternalStore<EngineState> {
     return this.reader.open(file);
   }
 
-  /** Shows why the address's link can't be opened, in place of the home screen. */
-  showLinkProblem(problem: Exclude<RemoteFailureReason, "cors">): void {
-    this.reader.close();
+  /**
+   * Shows why the address's link can't be opened, in place of the home screen, once the close
+   * guard lets the open document go; resolves whether it did.
+   */
+  async showLinkProblem(problem: Exclude<RemoteFailureReason, "cors">): Promise<boolean> {
+    if (!(await this.reader.requestClose())) return false;
     this.#set({ linkProblem: problem });
+    return true;
   }
 
   /** Asks the reader to confirm the web link `link`, as the link layer read it. */

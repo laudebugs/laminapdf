@@ -82,6 +82,7 @@ type ReaderMoreId =
   | "properties"
   | "install"
   | "open"
+  | "close"
   | "rotate"
   | "settings"
   | "shortcuts"
@@ -89,7 +90,7 @@ type ReaderMoreId =
   | "privacy";
 
 /** The More menu's items that aren't one of the output's commands: the menu handles each itself. */
-type OwnMoreId = "install" | "open" | "rotate" | "settings" | "shortcuts" | "capabilities" | "privacy";
+type OwnMoreId = "install" | "open" | "close" | "rotate" | "settings" | "shortcuts" | "capabilities" | "privacy";
 
 /** The More menu's commands, by item. */
 const MORE_COMMANDS = {
@@ -103,11 +104,13 @@ type MoreId = EditMenuId | ReaderMoreId;
 
 /**
  * The More menu (R09): Download a copy, Print… and Document properties, which need an open
- * document; then the reader's own items. The edit items (the web's Edit menu, O01) go first once
- * a document is open (`withEditItems`).
+ * document; then the reader's own items, with Close document (R19) while the reader holds a
+ * document in any phase (`holding`). The edit items (the web's Edit menu, O01) go first once a
+ * document is open (`withEditItems`).
  */
-function moreEntries(open: boolean, installable: boolean): GatedEntry<ReaderMoreId>[] {
-  const needsDocument = open ? {} : { isDisabled: true, disabledReason: message("command.reason.noDocument") };
+function moreEntries(open: boolean, holding: boolean, installable: boolean): GatedEntry<ReaderMoreId>[] {
+  const noDocument = { isDisabled: true, disabledReason: message("command.reason.noDocument") };
+  const needsDocument = open ? {} : noDocument;
   return [
     { id: "save-copy", label: message("command.file.save-copy"), icon: "download", ...needsDocument },
     {
@@ -122,7 +125,8 @@ function moreEntries(open: boolean, installable: boolean): GatedEntry<ReaderMore
     ...(installable
       ? [{ id: "install" as const, label: message("command.app.install"), icon: "download" as const }]
       : []),
-    { id: "open", label: message("reader.open.choose") },
+    { id: "open", label: message("reader.open.another"), shortcut: { mac: "Mod+O", other: "Mod+O" } },
+    { id: "close", label: message("command.file.close"), icon: "close", ...(holding ? {} : noDocument) },
     { id: "rotate", label: message("reader.rotate"), icon: "rotate-right" },
     { id: "settings", label: message("command.app.settings"), icon: "settings" },
     { id: "shortcuts", label: message("command.help.shortcuts"), icon: "keyboard" },
@@ -337,7 +341,7 @@ function Failure({
   return (
     <OpenFailure
       error={error}
-      onTryAnother={() => reader.close()}
+      onTryAnother={() => void reader.requestClose()}
       onCopy={() => void platform.copyText(`${error.code}: ${error.message}`)}
     />
   );
@@ -475,10 +479,13 @@ function useDocumentMenu(
   );
   const install = useInstall();
   const capabilities = useCapabilityRoute(window);
-  const items = useGatedEntries<ReaderMoreId>(moreEntries(document !== undefined, install.available));
+  const items = useGatedEntries<ReaderMoreId>(
+    moreEntries(document !== undefined, state.phase !== "empty", install.available),
+  );
   // The items that aren't one of the output's commands, each with what it does.
   const own: Record<OwnMoreId, () => void> = {
-    open: () => void engine.reader.requestClose(),
+    open: () => void engine.reader.openFromPicker(),
+    close: () => void engine.reader.requestClose(),
     rotate: () => engine.getState().viewer?.rotate(90),
     settings: () => appActions["app.settings"]?.(undefined),
     shortcuts: () => appActions["help.shortcuts"]?.(undefined),
@@ -502,6 +509,7 @@ function useDocumentMenu(
     capabilities,
     appActions: {
       ...appActions,
+      "file.close": () => void engine.reader.requestClose(),
       "help.capabilities": capabilities.show,
       ...recent.actions,
       ...install.actions,
@@ -550,10 +558,11 @@ function Canvas({
 }): ReactNode {
   const { reader } = engine;
   const linkProblem = useStoreState(engine, (s) => s.linkProblem);
+  const closed = useClosed(state.phase);
   return (
     <>
       {state.phase === "empty" && linkProblem === undefined ? (
-        <OpenDropZone reader={reader} keys={KEYS}>
+        <OpenDropZone reader={reader} keys={KEYS} focusHeading={closed}>
           {recent}
           <p className="web-privacy">{message("reader.open.privacy")}</p>
         </OpenDropZone>
@@ -570,6 +579,20 @@ function Canvas({
       {state.phase === "open" ? readerMode.view : null}
     </>
   );
+}
+
+/**
+ * Whether the home screen shows because a document closed (R19), not because the app started:
+ * set when `phase` turns `empty` from any other phase, cleared when it leaves `empty`.
+ */
+function useClosed(phase: ReaderState["phase"]): boolean {
+  const [previous, setPrevious] = useState(phase);
+  const [closed, setClosed] = useState(false);
+  if (phase !== previous) {
+    setPrevious(phase);
+    setClosed(phase === "empty");
+  }
+  return closed;
 }
 
 /** Props of `App`. */
@@ -678,7 +701,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
   const { find, tabs, rail, history, selection, reading, commands } = chrome;
   const moreItems = withEditItems(editing.menu(commands.context), menu.moreItems);
   useWindowTitle(fileName, engineState.title, editing.unsaved);
-  const liveRegions = useAnnouncements(shown, open ? state.file : undefined, engineState);
+  const liveRegions = useAnnouncements(shown, open ? state.file : undefined, engineState, state.phase === "empty");
   const { inspector, status, notice } = usePanels(layout, platform, network, fileName, engineState, debug, {
     updates,
     toasts,

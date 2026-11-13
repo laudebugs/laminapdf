@@ -4,7 +4,7 @@
 // message, and the reader stays on the home screen. The recent list and the privacy line come from the shell, under it.
 
 import { Icon } from "@laminapdf/icons/react";
-import { type ReactNode, useEffectEvent, useId, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "../components/button.js";
 import { type KeyPlatform, ShortcutChip } from "../components/shortcut-chip.js";
 import { message } from "../messages.js";
@@ -20,14 +20,23 @@ export interface OpenDropZoneProps {
   keys: KeyPlatform;
   /** What follows the zone on the home screen: recent files, the privacy line. */
   children?: ReactNode;
+  /**
+   * Moves focus to the heading as the zone shows (R19): the shell asks for it after a close, so
+   * focus doesn't vanish with the control that closed the document.
+   */
+  focusHeading?: boolean;
 }
 
 const PASTE = { mac: "Mod+V", other: "Mod+V" };
 
 /** The home screen's drop zone and Choose a file; the whole window takes drops and pastes while it shows. */
-export function OpenDropZone({ reader, keys, children }: OpenDropZoneProps): ReactNode {
+export function OpenDropZone({ reader, keys, children, focusHeading = false }: OpenDropZoneProps): ReactNode {
   const platform = usePlatform();
   const heading = useId();
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (focusHeading) headingRef.current?.focus();
+  }, [focusHeading]);
   const [dragging, setDragging] = useState(false);
   const [problem, setProblem] = useState("");
   // Each choice, drop or paste supersedes the last; a slow check of an earlier one opens nothing.
@@ -55,7 +64,7 @@ export function OpenDropZone({ reader, keys, children }: OpenDropZoneProps): Rea
   useLayoutEffect(() => listenForFiles(window, { drops, onDragging: setDragging, onFiles }), [drops]);
   return (
     <section className="paper-open" aria-labelledby={heading}>
-      <h1 id={heading} className="paper-open-heading">
+      <h1 id={heading} ref={headingRef} tabIndex={-1} className="paper-open-heading">
         {message("reader.open.heading")}
       </h1>
       <div className="paper-open-zone">

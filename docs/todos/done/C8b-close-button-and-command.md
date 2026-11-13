@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `C8b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Close a document §4](../../plans/close-document.md#4-decisions) |
 | Round / milestone | Round C (web reader): C8, closing a document |
 | Depends on | [C8a](./C8a-every-close-asks-first.md) |
@@ -11,7 +11,7 @@
 | Branch | `feat/c8b-close-button-and-command` |
 | PR title | `feat(web): close a document with the × beside its name and go back to the home screen` |
 | Size | M |
-| PR | — |
+| PR | [laudebugs/laminapdf#555](https://github.com/laudebugs/laminapdf/pull/555) |
 
 ## Goal
 
@@ -44,20 +44,20 @@ The web reader has no visible way to leave a document: More's "Choose a file" cl
 
 ## Tasks
 
-- [ ] Add `file.close` to the registry, with its messages, and to the shortcut help's list (no key).
-- [ ] Add the × to `ReaderTopBar` behind an optional `onClose`-style prop or the command id, with the file name cut short before it.
-- [ ] Add Back to files to the phone and tablet top bar.
-- [ ] Rewrite More's file items in `apps/web/src/app.tsx`.
-- [ ] Move focus and announce after a close; check the window title.
-- [ ] Keep the desktop app's top bar without the ×.
+- [x] Add `file.close` to the registry, with its messages, and to the shortcut help's list (no key).
+- [x] Add the × to `ReaderTopBar` behind an optional `onClose`-style prop or the command id, with the file name cut short before it.
+- [x] Add Back to files to the phone and tablet top bar.
+- [x] Rewrite More's file items in `apps/web/src/app.tsx`.
+- [x] Move focus and announce after a close; check the window title.
+- [x] Keep the desktop app's top bar without the ×.
 - [ ] Update the gallery's states for the top bar (`packages/ui/test/states.tsx`) and its screenshots (`cargo xtask gallery --update`, which the owner runs in Docker).
 
 ## Acceptance criteria
 
-- [ ] The ×, More's Close document, the palette and Back to files each close to the home screen, with focus on the heading and the announcement.
-- [ ] With unsaved changes, each shows O03; Cancel keeps the document and returns focus to the control that asked.
-- [ ] Open another file… opens the picker; picking a file with unsaved changes open shows O03 first.
-- [ ] The desktop app shows no ×.
+- [x] The ×, More's Close document, the palette and Back to files each close to the home screen, with focus on the heading and the announcement.
+- [x] With unsaved changes, each shows O03; Cancel keeps the document and returns focus to the control that asked.
+- [x] Open another file… opens the picker; picking a file with unsaved changes open shows O03 first.
+- [x] The desktop app shows no ×.
 - [ ] axe finds nothing new on the top bar in three themes and both directions.
 
 ## Post-merge checks
@@ -80,8 +80,8 @@ The plan's to-dos and status, [Reader A R19](../../design/paper/reader-a.md#r19-
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

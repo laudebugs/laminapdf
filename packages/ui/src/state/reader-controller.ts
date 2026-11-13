@@ -118,7 +118,11 @@ export class ReaderController {
     return true;
   }
 
-  /** Closes the document, whether open, opening, asking for a password or failed, back to empty. */
+  /**
+   * Closes the document, whether open, opening, asking for a password or failed, back to empty,
+   * without asking the close guard: for closes the reader didn't ask for, such as a backend
+   * switch reopening the same file. A close the reader asks for goes through `requestClose()`.
+   */
   close(): void {
     this.#attempt += 1;
     this.#release();

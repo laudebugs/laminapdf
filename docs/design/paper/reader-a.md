@@ -377,7 +377,13 @@ Closing saves the reading position a last time, frees the document in the worker
 
 **Artboards.** `R19-close-button.dc.html`, `R19-close-more.dc.html`, `R19-closed-home.dc.html`.
 
-**Todos.** [C8a](../../todos/ongoing/C8a-every-close-asks-first.md), [C8b](../../todos/ongoing/C8b-close-button-and-command.md).
+**As built ([C8a](../../todos/done/C8a-every-close-asks-first.md), [C8b](../../todos/done/C8b-close-button-and-command.md)).** The × is the 26 px icon button with its 16 px icon, the smallest the components have, and sits 2 px after the name as drawn. `file.close` is a delegated command, so it, the ×, More's item and Back to files show only in a shell that handles it: the web reader does, the desktop app doesn't. Three things differ from the boards:
+
+- *Tablets:* the reader has no tablet layout, so a tablet wider than a phone gets the desktop bar with the ×; Back to files is built for phones only.
+- *The phone's More sheet:* it lists the desktop menu's items, so it holds Close document too, beside Back to files.
+- *An unusable `#url=` link:* the reader shows the link's problem page only once the guard lets the document go; on Cancel it shows no problem page and the address names the open file again.
+
+**Todos.** [C8a](../../todos/done/C8a-every-close-asks-first.md), [C8b](../../todos/done/C8b-close-button-and-command.md).
 
 ## New components
 

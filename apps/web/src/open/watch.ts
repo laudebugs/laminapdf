@@ -4,7 +4,9 @@
 // stays in the fragment only: it is never put in a path, a query or the window's title. When the
 // reader lets a remote file go (closed, or replaced by a local file), or leaves an unusable link's
 // page, the `url` key is removed with replaceState, so a reload doesn't open it again and no
-// history entry is added.
+// history entry is added. A change that would close the document asks the close guard first; when
+// the reader keeps the document (Cancel in the unsaved-changes dialog), the `url` key goes back to
+// the address it holds, so the address still names the open file.
 
 import type { ReaderState } from "@laminapdf/ui";
 import { type Engine, remoteUrlOf } from "../session.ts";
@@ -24,6 +26,22 @@ function heldUrl(state: ReaderState): string | undefined {
 export function watchFragment(win: Window, engine: Engine): () => void {
   const { reader } = engine;
   const history = followHistory(win, engine);
+  /** Sets the fragment's `url` key to `url` (none: removed) with replaceState, adding no history entry. */
+  const writeUrl = (url: string | undefined) => {
+    const fragment = parseFragment(win.location.hash);
+    if (remoteUrl(fragment, ALLOW_LOCAL_HTTP).kind === "none" && url === undefined) return;
+    const next = buildFragment(fragment, { url });
+    const { pathname, search } = win.location;
+    win.history.replaceState(
+      win.history.state,
+      "",
+      next === "" ? `${pathname}${search}` : `${pathname}${search}#${next}`,
+    );
+  };
+  /** After the close guard kept the document: the address names it again. */
+  const kept = (closed: boolean) => {
+    if (!closed) writeUrl(heldUrl(reader.getState()));
+  };
   const apply = () => {
     // Back or Forward to a place a jump left from or landed on: the view goes there itself.
     if (history.restore()) return;
@@ -33,13 +51,13 @@ export function watchFragment(win: Window, engine: Engine): () => void {
         void engine.openRemote(action.url, action.place);
         return;
       case "close":
-        reader.close();
+        void reader.requestClose().then(kept);
         return;
       case "navigate":
         engine.goTo(action.place);
         return;
       case "invalid":
-        engine.showLinkProblem(action.problem);
+        void engine.showLinkProblem(action.problem).then(kept);
         return;
       case "none":
         return;
@@ -52,13 +70,7 @@ export function watchFragment(win: Window, engine: Engine): () => void {
     // A usable link stays while the reader holds its file; an unusable one while its page shows.
     if (remote.kind === "url" && heldUrl(reader.getState()) === remote.url) return;
     if (remote.kind === "invalid" && engine.getState().linkProblem !== undefined) return;
-    const next = buildFragment(fragment, { url: undefined });
-    const { pathname, search } = win.location;
-    win.history.replaceState(
-      win.history.state,
-      "",
-      next === "" ? `${pathname}${search}` : `${pathname}${search}#${next}`,
-    );
+    writeUrl(undefined);
   };
   apply();
   win.addEventListener("hashchange", apply);

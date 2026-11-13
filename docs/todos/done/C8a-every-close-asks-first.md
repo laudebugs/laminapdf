@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `C8a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Close a document §4](../../plans/close-document.md#4-decisions) |
 | Round / milestone | Round C (web reader): C8, closing a document |
 | Depends on | None |
@@ -11,7 +11,7 @@
 | Branch | `fix/c8a-every-close-asks-first` |
 | PR title | `fix(web): ask about unsaved changes before the address or Try another closes a document` |
 | Size | S |
-| PR | — |
+| PR | [laudebugs/laminapdf#555](https://github.com/laudebugs/laminapdf/pull/555) |
 
 ## Goal
 
@@ -41,15 +41,15 @@ Three routes close the web reader's document without asking about unsaved change
 
 ## Tasks
 
-- [ ] `watch.ts`: on `close`, call `requestClose()`; when it resolves `false`, `watch.ts` writes the fragment itself from what the reader holds (`remoteUrlOf(state.file)`) with `replaceState`, so the address names the open file again. `forget()` won't re-add it: it only removes keys, and a Cancel changes no state.
-- [ ] `session.ts`: `showLinkProblem` through `requestClose()`; on Cancel, restore the fragment the same way and show no problem page.
-- [ ] `app.tsx`: Try another through `requestClose()`. A failed document has no guard (the guard applies only while `open`), so behaviour stays the same; the one path matters for C8b.
-- [ ] Check no other caller closes for the reader: `git grep -E "reader\.close\(\)"` in `apps/web/src` and `packages/ui/src` (this matches `this.reader.close()` too), and record each kept one, such as the backend switch, with its reason.
+- [x] `watch.ts`: on `close`, call `requestClose()`; when it resolves `false`, `watch.ts` writes the fragment itself from what the reader holds (`remoteUrlOf(state.file)`) with `replaceState`, so the address names the open file again. `forget()` won't re-add it: it only removes keys, and a Cancel changes no state.
+- [x] `session.ts`: `showLinkProblem` through `requestClose()`; on Cancel, restore the fragment the same way and show no problem page.
+- [x] `app.tsx`: Try another through `requestClose()`. A failed document has no guard (the guard applies only while `open`), so behaviour stays the same; the one path matters for C8b.
+- [x] Check no other caller closes for the reader: `git grep -E "reader\.close\(\)"` in `apps/web/src` and `packages/ui/src` (this matches `this.reader.close()` too), and record each kept one, such as the backend switch, with its reason.
 
 ## Acceptance criteria
 
-- [ ] With an unsaved edit on a `#url=` document, pressing Back to the address without `#url=` shows O03; Cancel keeps the document and the address shows its `#url=` again; Don't save closes to the home screen.
-- [ ] Without unsaved edits, the same Back closes at once, as today.
+- [x] With an unsaved edit on a `#url=` document, pressing Back to the address without `#url=` shows O03; Cancel keeps the document and the address shows its `#url=` again; Don't save closes to the home screen.
+- [x] Without unsaved edits, the same Back closes at once, as today.
 
 ## Post-merge checks
 
@@ -68,10 +68,17 @@ The plan's to-do; [Reader A R19](../../design/paper/reader-a.md#r19-close-a-docu
 
 - `popstate` from the browser's Back has already moved the history entry when the guard asks; restoring the fragment with `replaceState` rewrites that entry. Check that Forward then still works as the reader expects.
 
+## As built
+
+- `watch.ts` sends the fragment's close and an unusable link through the guard; after a Cancel it writes the `url` key the reader holds back into the address (`writeUrl`), which `forget()` now uses too.
+- `Engine.showLinkProblem` resolves whether it closed; on Cancel the reader shows no problem page.
+- The audit of `reader.close()`: two calls are left, both closes the reader didn't ask for: `ReaderController.requestClose()` itself, and the `#debug` backend switch, which reopens the same file. `close()`'s doc comment now says so.
+- Not checked: Forward after a Cancel that followed Back. The restored entry is the one Back landed on, rewritten by `replaceState`, so Forward goes where it went before.
+
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
