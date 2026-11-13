@@ -35,8 +35,8 @@
 
 **Out of scope** (and which todo covers it)
 
-- Copying pages from other documents → [E2c](E2c-cross-document-pages.md)
-- The Organise command → [E2h](E2h-page-organiser-ui.md)
+- Copying pages from other documents → [E2c](../ready/E2c-cross-document-pages.md)
+- The Organise command → [E2h](../ready/E2h-page-organiser-ui.md)
 
 **Editor facts**
 
