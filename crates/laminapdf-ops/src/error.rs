@@ -67,6 +67,14 @@ pub enum Error {
     /// An op's values are out of range: the reason names which (fixed text, never the op's).
     #[error("the op's values are out of range: {0}")]
     InvalidOp(&'static str),
+    /// [`SetPageLabels`](crate::SetPageLabels)' ranges break a rule of ISO 32000-2 §12.4.2:
+    /// `what` is `first-page` (the first range isn't on the first page), `order` (ranges out
+    /// of page order, or two on one page) or `first-number` (a range numbered from 0).
+    #[error("page label ranges are invalid ({what})")]
+    InvalidLabelRanges {
+        /// Which rule.
+        what: &'static str,
+    },
     /// The op names an annotation that no page's `/Annots` lists.
     #[error("no annotation {}", ShownAnnot(.0))]
     UnknownAnnotation(AnnotId),
@@ -149,6 +157,7 @@ impl Error {
         "unknown-annotation",
         "annotation-locked",
         "annotation-not-editable",
+        "invalid-label-ranges",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -173,6 +182,7 @@ impl Error {
             Self::UnknownAnnotation(_) => "unknown-annotation",
             Self::AnnotationLocked(_) => "annotation-locked",
             Self::AnnotationNotEditable(_) => "annotation-not-editable",
+            Self::InvalidLabelRanges { .. } => "invalid-label-ranges",
         }
     }
 
@@ -194,7 +204,8 @@ impl Error {
             | Self::UnknownSource(_)
             | Self::NoPagesLeft
             | Self::InvalidOp(_)
-            | Self::UnknownAnnotation(_) => ErrorKind::Usage,
+            | Self::UnknownAnnotation(_)
+            | Self::InvalidLabelRanges { .. } => ErrorKind::Usage,
             Self::AnnotationLocked(_) => ErrorKind::State,
             Self::DirectPage(_) | Self::UnsupportedVersion(_) | Self::AnnotationNotEditable(_) => {
                 ErrorKind::Unsupported
@@ -239,7 +250,8 @@ impl Error {
             | Self::MalformedXmp
             | Self::UnknownSource(_)
             | Self::NoPagesLeft
-            | Self::InvalidOp(_) => Location::NONE,
+            | Self::InvalidOp(_)
+            | Self::InvalidLabelRanges { .. } => Location::NONE,
         }
     }
 }
@@ -274,6 +286,7 @@ mod tests {
             Error::UnknownAnnotation("a7.0".parse().unwrap()),
             Error::AnnotationLocked("a7.0".parse().unwrap()),
             Error::AnnotationNotEditable("a7.0".parse().unwrap()),
+            Error::InvalidLabelRanges { what: "order" },
         ]
     }
 

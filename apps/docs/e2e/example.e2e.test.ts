@@ -143,3 +143,91 @@ describe(`an example's first page in ${BROWSER}`, () => {
     }
   });
 });
+
+/** The first example's divider, and the widths of its code and page. */
+async function widths(page: Page) {
+  return page.evaluate(() => {
+    const width = (selector: string) => document.querySelector(selector)?.getBoundingClientRect().width ?? 0;
+    return { code: width(".example-code"), picture: width(".example-first img") };
+  });
+}
+
+describe(`the divider between an example's code and page in ${BROWSER} (todo Q4q)`, () => {
+  it("widens the page when dragged left, keeps the width after a reload, and resets on double-click", async () => {
+    const { page, errors } = await open("/recipes/invoice/", 1440);
+    await layout(page);
+    const before = await widths(page);
+    const split = page.locator(".example-split").first();
+    const box = await split.boundingBox();
+    if (box === null) throw new Error("the divider isn't shown at 1440 px");
+    const y = box.y + Math.min(box.height / 2, 200);
+    await page.mouse.move(box.x + box.width / 2, y);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 - 100, y, { steps: 5 });
+    await page.mouse.move(box.x + box.width / 2 - 200, y, { steps: 5 });
+    await page.mouse.up();
+    // The divider stays under the pointer: the page is 200 px wider, give or take its border.
+    const after = await widths(page);
+    expect(after.picture).toBeGreaterThan(before.picture + 150);
+    expect(after.code).toBeLessThan(before.code);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+    // Checked per load: WebKit reports each select once per load (withoutSelectErrors), and the page loads twice.
+    const selects = await page.locator("select").count();
+    expect(withoutSelectErrors(BROWSER, errors, selects)).toEqual([]);
+    errors.length = 0;
+
+    await page.reload();
+    await layout(page);
+    expect((await widths(page)).picture).toBeCloseTo(after.picture, -1);
+
+    await page.locator(".example-split").first().dblclick();
+    expect((await widths(page)).picture).toBeCloseTo(before.picture, -1);
+    expect(withoutSelectErrors(BROWSER, errors, selects)).toEqual([]);
+    await page.context().close();
+  });
+
+  it("moves by the arrow keys, Home and End, keeps the code 20rem wide, and says how it splits", async () => {
+    const { page } = await open("/recipes/invoice/", 1440);
+    await layout(page);
+    const before = await widths(page);
+    const split = page.getByRole("separator", { name: "Resize the code and the page" }).first();
+    // It names the code and the page it resizes.
+    const controls = (await split.getAttribute("aria-controls"))?.split(" ") ?? [];
+    expect(controls).toHaveLength(2);
+    for (const id of controls) expect(await page.locator(`#${id}`).count()).toBe(1);
+    await split.focus();
+    // Alt+← is the browser's (back): the divider leaves it alone.
+    await page.keyboard.down("Alt");
+    await split.dispatchEvent("keydown", { key: "ArrowLeft", altKey: true });
+    await page.keyboard.up("Alt");
+    expect((await widths(page)).picture).toBeCloseTo(before.picture, -1);
+    await page.keyboard.press("ArrowLeft");
+    expect((await widths(page)).picture).toBeCloseTo(before.picture + 16, -1);
+    await page.keyboard.press("Shift+ArrowRight");
+    expect((await widths(page)).picture).toBeCloseTo(before.picture - 48, -1);
+    // Home: the page as wide as it may be, which leaves the code its 20rem (320 px).
+    await page.keyboard.press("Home");
+    expect((await widths(page)).code).toBeCloseTo(320, -1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+    // End: the page at its narrowest, 12rem (192 px).
+    await page.keyboard.press("End");
+    expect((await widths(page)).picture).toBeCloseTo(192, -1);
+    expect(Number(await split.getAttribute("aria-valuenow"))).toBeGreaterThan(50);
+    expect(await split.getAttribute("aria-valuetext")).toMatch(/^The code takes \d+% of the width, the page \d+%$/);
+    await page.keyboard.press("Enter");
+    expect((await widths(page)).picture).toBeCloseTo(before.picture, -1);
+    await page.context().close();
+  });
+
+  it("isn't shown below 1440 px or with JavaScript off", async () => {
+    for (const [width, javaScript] of [
+      [390, true],
+      [1440, false],
+    ] as const) {
+      const { page } = await open("/recipes/invoice/", width, { javaScript });
+      await layout(page);
+      expect(await page.locator(".example-split").first().isVisible()).toBe(false);
+      await page.context().close();
+    }
+  });
+});

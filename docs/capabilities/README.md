@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 9 | 8 | 16 | 0 | 136 | 15 |
+| core | 169 | 10 | 7 | 16 | 0 | 136 | 16 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
 | web | 168 | 4 | 0 | 0 | 0 | 164 | 4 |
 | desktop | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
@@ -182,7 +182,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | I.07 | Define reading order; logical structure tags | — | — | — | — | E15 round-trip |  |
 | I.08 | Optional content groups (layers) | — | — | — | — | E17 round-trip |  |
 | I.09 | Article threads | — | — | — | — | E3 read |  |
-| I.10 | Page labels | 🔵 write | — | — | — | E2 round-trip | [`labels_follow_the_ranges`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
+| I.10 | Page labels | 🟢 round-trip | — | — | — | E2 round-trip | [`labels_follow_the_ranges`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | I.11 | Outline & navigation preferences | — | — | — | — | E3 round-trip |  |
 
 ## J. Metadata & attachments

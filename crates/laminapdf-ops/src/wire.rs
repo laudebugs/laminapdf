@@ -232,3 +232,48 @@ pub(crate) mod page_size {
         Ok(PageSize::new(Pt::new(w.width), Pt::new(w.height)))
     }
 }
+
+/// An optional [`LabelStyle`](laminapdf_model::LabelStyle) by name: `decimal`, `upperRoman`,
+/// `lowerRoman`, `upperLetters` or `lowerLetters` (`null` or no value: no style). The names are
+/// listed once, in [`label_style::NAMES`]; `PageLabelRange::style`'s TypeScript type spells them
+/// out for tsify, and a test checks it against this list.
+pub(crate) mod label_style {
+    use laminapdf_model::LabelStyle;
+    use serde::de::Error as _;
+
+    use super::{Deserialize, Deserializer, Serializer};
+
+    /// Each style and its name on the wire.
+    pub(crate) const NAMES: [(LabelStyle, &str); 5] = [
+        (LabelStyle::Decimal, "decimal"),
+        (LabelStyle::UpperRoman, "upperRoman"),
+        (LabelStyle::LowerRoman, "lowerRoman"),
+        (LabelStyle::UpperLetters, "upperLetters"),
+        (LabelStyle::LowerLetters, "lowerLetters"),
+    ];
+
+    const EXPECTED: [&str; 5] = [NAMES[0].1, NAMES[1].1, NAMES[2].1, NAMES[3].1, NAMES[4].1];
+
+    #[expect(
+        clippy::ref_option,
+        clippy::trivially_copy_pass_by_ref,
+        reason = "serde's `with` passes the field by reference"
+    )]
+    pub(crate) fn serialize<S: Serializer>(style: &Option<LabelStyle>, s: S) -> Result<S::Ok, S::Error> {
+        match style.and_then(|style| NAMES.iter().find(|(st, _)| *st == style)) {
+            Some((_, name)) => s.serialize_str(name),
+            None => s.serialize_none(),
+        }
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<LabelStyle>, D::Error> {
+        let Some(name) = Option::<String>::deserialize(d)? else {
+            return Ok(None);
+        };
+        NAMES
+            .iter()
+            .find(|(_, n)| *n == name)
+            .map(|(style, _)| Some(*style))
+            .ok_or_else(|| D::Error::unknown_variant(&name, &EXPECTED))
+    }
+}

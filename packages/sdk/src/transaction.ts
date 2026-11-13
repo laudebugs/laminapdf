@@ -1,7 +1,7 @@
 // The handle `Document.transact` passes to its callback (ADR 0006 §2): a closure can't cross the
 // WASM boundary, so the handle collects ops and the document applies them as one transaction.
 import { packageError } from "./errors.js";
-import type { DocumentInfo, MetadataKey, MetadataPatch, Op } from "./types.js";
+import type { DocumentInfo, MetadataKey, MetadataPatch, Op, PageLabelRange } from "./types.js";
 
 /**
  * The rotations `/Rotate` allows.
@@ -139,6 +139,10 @@ export const reversePagesOp = (pages: readonly string[]): Op => ({ op: "reverseP
 /** @internal The `setMetadata` op. */
 export const setMetadataOp = (patch: MetadataPatch, options?: MetadataEditOptions): Op =>
   ({ op: "setMetadata", args: { patch, ...options } }) as Op;
+
+/** @internal The `setPageLabels` op. */
+export const setPageLabelsOp = (ranges: readonly PageLabelRange[]): Op =>
+  ({ op: "setPageLabels", args: { ranges } }) as Op;
 
 /** @internal The `removeMetadata` op. */
 export const removeMetadataOp = (keys: readonly MetadataKey[], options?: MetadataRemoveOptions): Op =>
@@ -282,5 +286,14 @@ export class Transaction {
    */
   reversePages(pages: readonly string[]): this {
     return this.apply(reversePagesOp(pages));
+  }
+
+  /**
+   * Replaces the document's page labels (`setPageLabels`), as {@link Document.setPageLabels}.
+   *
+   * @since 0.2.0
+   */
+  setPageLabels(ranges: readonly PageLabelRange[]): this {
+    return this.apply(setPageLabelsOp(ranges));
   }
 }

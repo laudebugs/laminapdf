@@ -28,10 +28,11 @@
 use std::path::Path;
 
 use laminapdf_cos::OpenOptions;
-use laminapdf_model::{PageId, PagePosition, PageSize, Rotation};
+use laminapdf_model::{LabelStyle, PageId, PagePosition, PageSize, Rotation};
 use laminapdf_ops::{
     DeletePages, Document, InfoPatch, InsertBlankPages, MetadataKey, MetadataPatch, MovePages, Op, Origin,
-    RemoveMetadata, ReversePages, RotatePage, RotatePages, SetInfo, SetMetadata, read_metadata,
+    PageLabelRange, RemoveMetadata, ReversePages, RotatePage, RotatePages, SetInfo, SetMetadata, SetPageLabels,
+    read_metadata,
 };
 use laminapdf_save::{Restriction, Save, SaveError, SaveMode, SaveOptions, SavePlanner, SaveReport};
 use serde_json::{Value, json};
@@ -208,9 +209,12 @@ fn with_widget_rule(doc: &Document, op: &Op, category: Category) -> Category {
     }
 }
 
-/// The facts Lamina PDF compares after reopening: page count, rotations (degrees) and the
-/// [`INFO`] keys' values, in that order (the other tools compare the same ones).
-fn facts(doc: &laminapdf_model::Document) -> (usize, Vec<u16>, Vec<Option<String>>) {
+/// The facts Lamina PDF compares after reopening: page count, rotations (degrees), the
+/// [`INFO`] keys' values and each page's label, in that order (the other tools compare the same
+/// ones; the labels only in the `setPageLabels` cases).
+type Facts = (usize, Vec<u16>, Vec<Option<String>>, Vec<Option<String>>);
+
+fn facts(doc: &laminapdf_model::Document) -> Facts {
     let pages = doc.pages().unwrap();
     let rotations = pages.iter().map(|p| p.rotate().unwrap().degrees()).collect();
     let info = doc.info().unwrap();
@@ -218,12 +222,34 @@ fn facts(doc: &laminapdf_model::Document) -> (usize, Vec<u16>, Vec<Option<String
         .iter()
         .map(|(key, _)| info.as_ref().and_then(|i| i.text(key).unwrap()))
         .collect();
-    (pages.len(), rotations, values)
+    let labels = doc.page_labels().unwrap();
+    let labels = (0..pages.len()).map(|i| labels.label(i)).collect();
+    (pages.len(), rotations, values, labels)
+}
+
+/// The labels `doc` should show after `op_name` once saved: the `setPageLabels` cases' own, else
+/// the edited document's (the page ops keep each label with its page, and the save must keep
+/// them there).
+fn labels_after(doc: &laminapdf_model::Document, op_name: &str, pages: usize) -> Vec<Option<String>> {
+    if op_name == "setPageLabels" {
+        new_labels(pages)
+    } else {
+        facts(doc).3
+    }
+}
+
+/// The labels the `setPageLabels` cases give a document of `pages` pages: `i` for the first
+/// page, then `p. 1`, `p. 2`, … (I.10).
+fn new_labels(pages: usize) -> Vec<Option<String>> {
+    (0..pages)
+        .map(|i| Some(if i == 0 { "i".to_owned() } else { format!("p. {i}") }))
+        .collect()
 }
 
 /// The ops each fixture is saved with: a title through the deprecated `setInfo`, a rotation,
-/// the metadata ops (J.01–J.03, J.10) and the page ops (C.01, C.03, C.04, C.08, C.13).
-const OPS: [&str; 9] = [
+/// the metadata ops (J.01–J.03, J.10), page labels (I.10) and the page ops (C.01, C.03, C.04,
+/// C.08, C.13).
+const OPS: [&str; 10] = [
     "setInfo",
     "rotatePage",
     "setMetadata",
@@ -233,6 +259,7 @@ const OPS: [&str; 9] = [
     "reversePages",
     "movePages",
     "rotatePages",
+    "setPageLabels",
 ];
 
 /// The save-time date the metadata cases stamp (J.02).
@@ -282,6 +309,17 @@ fn op(doc: &Document, name: &str, rotation: Rotation) -> Option<Op> {
         }
         "movePages" => return None,
         "rotatePages" => RotatePages::turn(ids, rotation).into(),
+        "setPageLabels" => {
+            let pages = doc.pages().unwrap();
+            let mut ranges = vec![PageLabelRange::new(
+                pages.get(0).unwrap().id().clone(),
+                Some(LabelStyle::LowerRoman),
+            )];
+            if let Some(second) = pages.get(1) {
+                ranges.push(PageLabelRange::new(second.id().clone(), Some(LabelStyle::Decimal)).with_prefix("p. "));
+            }
+            SetPageLabels::new(ranges).into()
+        }
         _ => RotatePage::new(ids.first().cloned()?, rotation).into(),
     })
 }
@@ -349,7 +387,7 @@ pub fn run(root: &Path) -> Suite {
                     )
                     .to_lowercase();
                     let mut doc = Document::open(bytes.clone(), OpenOptions::default()).unwrap();
-                    let (mut pages, mut rotations, mut info) = facts(&doc);
+                    let (mut pages, mut rotations, mut info, _) = facts(&doc);
                     let Some(op) = op(&doc, op_name, rotation) else {
                         continue;
                     };
@@ -364,6 +402,7 @@ pub fn run(root: &Path) -> Suite {
                         vec![op]
                     };
                     doc.apply_all(Origin::Local, ops).unwrap();
+                    let labels = labels_after(&doc, op_name, pages);
                     let mut options = SaveOptions::new()
                         .with_mode(mode)
                         .with_invalidate_signatures(invalidate)
@@ -393,11 +432,11 @@ pub fn run(root: &Path) -> Suite {
                             .failures
                             .push(format!("{id}: removing the encryption left /Encrypt"));
                     }
-                    if again != (pages, rotations.clone(), info.clone()) || reopened.was_repaired() {
+                    if again != (pages, rotations.clone(), info.clone(), labels.clone()) || reopened.was_repaired() {
                         suite.failures.push(format!(
                             "{id}: lamina reopened {again:?} (repaired {}), expected {:?}",
                             reopened.was_repaired(),
-                            (pages, &rotations, &info)
+                            (pages, &rotations, &info, &labels)
                         ));
                     }
                     if metadata_op {
@@ -424,6 +463,8 @@ pub fn run(root: &Path) -> Suite {
                             "Subject": info[2],
                             "Keywords": info[3],
                         })),
+                        // Each page's label, compared by the tools only in the setPageLabels cases.
+                        "labels": (op_name == "setPageLabels").then(|| labels.clone()),
                         "encrypted": reopened.is_encrypted(),
                         // PDFium reads no `/Title` from a direct `/Info` dictionary.
                         "direct_info": matches!(reopened.trailer().get("Info"), Some(laminapdf_cos::Object::Dict(_))),
@@ -461,7 +502,7 @@ fn images(root: &Path, suite: &mut Suite) {
         let report = doc.save(&mut output, &SaveOptions::new()).unwrap();
         suite.saved += 1;
         let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
-        let (pages, rotations, _) = facts(&reopened);
+        let (pages, rotations, _, _) = facts(&reopened);
         if pages != photos.len() || reopened.was_repaired() {
             suite.failures.push(format!(
                 "{id}: lamina reopened {pages} pages (repaired {}), expected {}",
@@ -535,7 +576,7 @@ fn copies(root: &Path, suite: &mut Suite) {
         };
         suite.saved += 1;
         let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
-        let (pages, rotations, _) = facts(&reopened);
+        let (pages, rotations, _, _) = facts(&reopened);
         if (pages, &rotations[..]) != (1, &[rotation][..]) || reopened.was_repaired() || reopened.is_encrypted() {
             suite.failures.push(format!(
                 "{id}: lamina reopened {pages} pages turned {rotations:?} (repaired {}, encrypted {}), expected one turned {rotation}",

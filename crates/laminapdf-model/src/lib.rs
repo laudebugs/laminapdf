@@ -73,7 +73,7 @@ mod copy;
 mod date;
 mod disclosure;
 mod document;
-#[cfg(feature = "edit")]
+#[cfg(feature = "tree-write")]
 mod edit;
 mod fonts;
 mod geometry;
@@ -91,7 +91,7 @@ mod page_tree;
 mod references;
 mod structure;
 mod tree;
-#[cfg(feature = "edit")]
+#[cfg(feature = "tree-write")]
 mod tree_writer;
 mod values;
 mod widgets;
@@ -122,7 +122,7 @@ pub use page_tree::{PagePosition, PageTreeEditor, PageTreeError};
 pub use references::{NameStore, PageReference, PageReferences, ReferenceKind, Via, WidgetLink};
 pub use structure::{StructElem, StructKid, StructTree};
 pub use tree::{NameTree, NumberTree};
-#[cfg(feature = "edit")]
+#[cfg(feature = "tree-write")]
 pub use tree_writer::TreeWriter;
 pub use widgets::PageWidget;
 

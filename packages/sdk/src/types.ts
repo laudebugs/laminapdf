@@ -24,6 +24,7 @@ import type {
   PageAnnotationJs,
   PageInfoJs,
   PageLabelInit,
+  PageLabelRange as PageLabelRangeJs,
   PageLinkJs,
   PlannedSaveJs,
   ProfileInit,
@@ -47,7 +48,7 @@ import type {
 } from "@laminapdf/wasm/text";
 
 /**
- * An edit (`{ op, args }`): `setMetadata`, `removeMetadata`, the page ops (`insertBlankPages`,
+ * An edit (`{ op, args }`): `setMetadata`, `removeMetadata`, `setPageLabels`, the page ops (`insertBlankPages`,
  * `deletePages`, `movePages`, `rotatePages`, `reversePages`, `rotatePage`), or the deprecated
  * `setInfo` (use `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
  *
@@ -293,6 +294,15 @@ export type TargetView = TargetViewJs;
  * @since 0.2.0
  */
 export type PageLabel = PageLabelInit;
+/**
+ * A page-label range for {@link Document.setPageLabels}: the labels from `page` (a page ID) up
+ * to the next range's page, in a `style` (`"decimal"`, `"upperRoman"`, `"lowerRoman"`,
+ * `"upperLetters"`, `"lowerLetters"`; without one, the `prefix` alone), after a `prefix`,
+ * numbered from `first` (1 when left out).
+ *
+ * @since 0.2.0
+ */
+export type PageLabelRange = PageLabelRangeJs;
 /**
  * The document's metadata (Info and XMP).
  *

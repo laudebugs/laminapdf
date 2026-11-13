@@ -15,6 +15,7 @@ import { linksAndOutlines } from "../../examples/links-and-outlines.js";
 import { markdownToPdf } from "../../examples/markdown-to-pdf.js";
 import { multilingual } from "../../examples/multilingual.js";
 import { organisePages } from "../../examples/organise-pages.js";
+import { pageLabels } from "../../examples/page-labels.js";
 import { pdfAArchive } from "../../examples/pdf-a-archive.js";
 import { pdfA3InvoiceWithXml } from "../../examples/pdf-a3-invoice-with-xml.js";
 import { pdfUaReport } from "../../examples/pdf-ua-report.js";
@@ -61,6 +62,8 @@ const EDITED_AT = "D:20261030130000Z";
 const METADATA_PDF = "fixtures/golden/metadata.pdf";
 /** The document organise-pages organises: five pages, with bookmarks, links and named destinations that point at the third. */
 const REFERENCES_PDF = "fixtures/pages/references.pdf";
+/** The input of page-labels: an example golden of four pages. */
+const LABELS_INPUT_PDF = "fixtures/golden/examples/links_and_outlines.pdf";
 
 /** An input the runner was asked for (`input` says which), else an error naming it. */
 function input(inputs: Inputs, path: string): Uint8Array {
@@ -156,6 +159,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "organise_pages",
     inputs: [REFERENCES_PDF],
     build: (i) => organisePages(input(i, REFERENCES_PDF)),
+  },
+  {
+    name: "page-labels",
+    golden: "page_labels",
+    inputs: [LABELS_INPUT_PDF],
+    build: (i) => pageLabels(input(i, LABELS_INPUT_PDF)),
   },
   { name: "pdf-ua-report", golden: "pdf_ua_report", inputs: [NOTO], build: (i) => pdfUaReport(input(i, NOTO)) },
   {

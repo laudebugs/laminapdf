@@ -575,6 +575,13 @@
       "summary": "the annotation can't be edited by the annotation ops: it is a form field's widget, or a direct dictionary with no object of its own",
       "hint": "edit a widget through its form field; an annotation stored inside the page's list can't be edited yet",
       "since": "0.2.0"
+    },
+    {
+      "code": "invalid-label-ranges",
+      "kind": "usage",
+      "summary": "page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0",
+      "hint": "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
+      "since": "0.2.0"
     }
   ],
   "opWarnings": [

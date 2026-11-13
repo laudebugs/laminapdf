@@ -147,6 +147,7 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         Error::from(laminapdf_syntax::Error::UnsupportedFilter(s())),
         Error::from(laminapdf_ops::Error::UnsupportedVersion(9)),
         Error::from(laminapdf_ops::Error::InvalidLog(s())),
+        Error::from(laminapdf_ops::Error::InvalidLabelRanges { what: "order" }),
         Error::from(laminapdf_save::SaveError::RequiresRewrite { reasons: vec![] }),
         Error::from(laminapdf_save::SaveError::WouldInvalidateSignatures {
             signatures: vec![],
