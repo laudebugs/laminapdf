@@ -37,7 +37,7 @@ Copy pages between documents with [E2p](../done/E2p-source-documents-and-copier.
 **Out of scope** (and which todo covers it)
 
 - The blob store, `add_source` and the `ObjectCopier` → [E2p](../done/E2p-source-documents-and-copier.md)
-- Merging outlines, AcroForm and struct trees across whole documents; split → [E2d](../ready/E2d-merge-and-split.md)
+- Merging outlines, AcroForm and struct trees across whole documents; split → [E2d](../ongoing/E2d-merge-and-split.md)
 - The CLI's page commands (`laminapdf pages delete`, `extract`, `reorder`, `insert`, `merge`, `split`) → [T6a](../ready/T6a-cli-page-commands.md)
 
 **Editor facts**

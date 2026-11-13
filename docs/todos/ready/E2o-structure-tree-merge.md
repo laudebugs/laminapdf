@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §2.2](../../plans/editor/e2-page-organisation.md#22-what-follows-a-page) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2d](./E2d-merge-and-split.md) |
+| Depends on | [E2d](../ongoing/E2d-merge-and-split.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md) |
 | Branch | `feat/e2o-structure-tree-merge` |
 | PR title | `feat(model): merge structure trees with ParentTree renumbering` |

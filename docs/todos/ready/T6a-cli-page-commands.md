@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [trust and proof §T6](../../plans/trust-and-proof.md#t6-chained-jobs-in-the-cli) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [L4e](../done/L4e-cli-render.md), [E2d](./E2d-merge-and-split.md) |
+| Depends on | [L4e](../done/L4e-cli-render.md), [E2d](../ongoing/E2d-merge-and-split.md) |
 | ADRs | Follows and amends [0031](../../decisions/0031-cli-and-mcp-contract.md) (§2 grammar: the page subcommands; §6: new keys in `laminapdf.pages/1`; the batch amendment: write commands, `--output-dir`, split's template fields); follows [0007](../../decisions/0007-save-planner.md) (every save planned), [0026](../../decisions/0026-error-and-diagnostic-contract.md) (errors), [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) §6 (`index` and `number`), [0028](../../decisions/0028-facade-rules-jobs-and-cancellation.md) (the façade only, `CancelToken`) |
 | Branch | `feat/t6a-cli-page-commands` |
 | PR title | `feat(cli): pages merge, split, delete, extract, reorder and insert` |

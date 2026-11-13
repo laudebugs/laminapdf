@@ -173,7 +173,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E2e](../../todos/done/E2e-content-append-api.md) | The `laminapdf-content` append API | E2a |
 | [E2p](../../todos/done/E2p-source-documents-and-copier.md) | Source documents, the blob store and the object copier | E2a |
 | [E2c](../../todos/done/E2c-cross-document-pages.md) | Insert and replace from other files, extract and export | E2k, E2p |
-| [E2d](../../todos/ready/E2d-merge-and-split.md) | Merge with outlines, destinations, fields and layers; split by count, ranges and bookmarks | E2c |
+| [E2d](../../todos/ongoing/E2d-merge-and-split.md) | Merge with outlines, destinations, fields and layers; split by count, ranges and bookmarks | E2c |
 | [E2o](../../todos/ready/E2o-structure-tree-merge.md) | Merge structure trees, for merged and imported pages | E2d |
 | [E2f](../../todos/ready/E2f-page-geometry.md) | Crop pages and set their boxes | E2r |
 | [E2s](../../todos/ready/E2s-resize-and-orientation.md) | Resize pages and change their orientation | E2e, E2f |
