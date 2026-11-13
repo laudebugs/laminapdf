@@ -1,6 +1,6 @@
 [package]
 name = "laminapdf-desktop-os"
-description = "The calls Lamina PDF's desktop reader makes into the OS's shell: its recent-documents lists and Windows' app ID."
+description = "The calls Lamina PDF's desktop reader makes into the OS: its recent-documents lists, Windows' app ID and which file an open handle reads."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,9 +10,9 @@ repository.workspace = true
 publish = false
 homepage.workspace = true
 
-# Read by `cargo xtask`: an edge crate, since it calls AppKit and Windows' Shell through FFI (rust.md:
-# `unsafe` only in edge crates), each `unsafe` block in a module that opts in with
-# `#![expect(unsafe_code)]`. Only the desktop app's main process links it.
+# Read by `cargo xtask`: an edge crate, since it calls AppKit, Windows' Shell and Windows' file
+# information through FFI (rust.md: `unsafe` only in edge crates), each `unsafe` block in a module
+# that opts in with `#![expect(unsafe_code)]`. Only the desktop app's main process links it.
 [package.metadata.laminapdf]
 layer = "edge"
 
