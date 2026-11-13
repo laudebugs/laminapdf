@@ -116,7 +116,11 @@ fn the_import_samples_name_their_source_pages_and_carry() {
     };
     assert_eq!(
         (insert.source.to_string(), insert.pages.len(), insert.carry.fields),
-        ("f534f6f1a920e560dfd6103ae24af60e318d129a177a038366135afc943d058d".to_owned(), 2, laminapdf_ops::FieldClash::Link)
+        (
+            "f534f6f1a920e560dfd6103ae24af60e318d129a177a038366135afc943d058d".to_owned(),
+            2,
+            laminapdf_ops::FieldClash::Link
+        )
     );
     let Op::ReplacePages(replace) = sample("replace-pages") else {
         panic!("not replacePages");

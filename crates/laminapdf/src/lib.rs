@@ -119,6 +119,7 @@ mod job;
 mod links;
 mod metadata;
 mod navigation;
+mod pages;
 mod properties;
 #[cfg(feature = "extract")]
 mod redaction;
@@ -172,6 +173,7 @@ pub use job::{Budget, CancelToken, Phase, SaveJob, Step};
 #[cfg(feature = "build")]
 pub use laminapdf_build::Error as BuildError;
 pub use laminapdf_syntax::{DOCS_URL_BASE, DOCS_URL_SUFFIX, Diagnostic, ErrorCode, WarningCode, did_you_mean};
+pub use pages::ExportJob;
 #[cfg(feature = "extract")]
 pub use redaction::RedactionWarning;
 pub use warning::{Warning, WarningCursor};
@@ -183,11 +185,11 @@ pub use laminapdf_model::{
 };
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use laminapdf_ops::{
-    ConformanceWarning, DeleteAnnot, DeletePages, DocumentMetadata, DuplicatePages, FieldChange, FieldOutcome,
-    InfoPatch, InsertBlankPages, MetadataKey, MetadataPatch, MetadataSource, ModificationClass, MovePages, Offset, Op,
-    OpLog, PacketStatus, PageLabelRange, ReferenceOutcome, ReferencePolicy, RemoveMetadata, RemoveXmpProperty,
-    ReplaceXmpPacket, ReversePages, Reverted, RotateMode, RotatePage, RotatePages, SetInfo, SetMetadata, SetPageLabels,
-    SetXmpProperty, UndoOutcome, UpdateAnnot,
+    Carry, ConformanceWarning, DeleteAnnot, DeletePages, DocumentMetadata, DuplicatePages, FieldChange, FieldClash,
+    FieldOutcome, InfoPatch, InsertBlankPages, InsertPagesFrom, MetadataKey, MetadataPatch, MetadataSource,
+    ModificationClass, MovePages, Offset, Op, OpLog, PacketStatus, PageLabelRange, ReferenceOutcome, ReferencePolicy,
+    RemoveMetadata, RemoveXmpProperty, ReplacePages, ReplaceXmpPacket, ReversePages, Reverted, RotateMode, RotatePage,
+    RotatePages, SetInfo, SetMetadata, SetPageLabels, SetXmpProperty, SourceId, UndoOutcome, UpdateAnnot,
 };
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,
