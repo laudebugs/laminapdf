@@ -3,7 +3,7 @@
 // repository's Biome settings (biome.json: 2 spaces, 120 columns, double quotes, semicolons,
 // trailing commas), at which Prettier leaves every runnable example exactly as it is written.
 
-/** The formatted code and where the cursor goes in it. */
+/** The formatted code and where the cursor goes in it (an offset from 0 to its length). */
 export interface Formatted {
   readonly code: string;
   readonly cursor: number;
@@ -31,7 +31,9 @@ export async function formatCode(code: string, cursor: number): Promise<Formatte
     singleQuote: false,
     trailingComma: "all",
   });
-  return { code: result.formatted, cursor: result.cursorOffset };
+  // Prettier answers -1 when it can't place the cursor: the end of the code then.
+  const placed = result.cursorOffset >= 0 ? result.cursorOffset : result.formatted.length;
+  return { code: result.formatted, cursor: Math.min(placed, result.formatted.length) };
 }
 
 /** The first line of a formatter's error: Prettier adds a code frame after it. */

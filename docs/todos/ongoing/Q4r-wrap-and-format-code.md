@@ -39,11 +39,11 @@ The owner asked for two buttons. Long lines in the docs' code blocks scroll side
 
 ## Tasks
 
-- [ ] The two icons, their rows in the design language.
-- [ ] The wrap button and its style.
-- [ ] The Format button and `runner/format.ts`.
-- [ ] e2e tests: wrap in `example.e2e.test.ts`; Format in `runner.e2e.test.ts`.
-- [ ] The docs examples plan's notes.
+- [x] The two icons, their rows in the design language.
+- [x] The wrap button and its style.
+- [x] The Format button and `runner/format.ts`.
+- [x] e2e tests: wrap in `example.e2e.test.ts`; Format in `runner.e2e.test.ts`.
+- [x] The docs examples plan's notes.
 
 ## Acceptance criteria
 

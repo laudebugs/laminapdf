@@ -16,6 +16,24 @@
 
   const wrapped = () => root.dataset.codeWrap !== undefined;
 
+  /**
+   * A block that scrolls is a tab stop, so a keyboard can scroll it; one that doesn't, isn't.
+   * Expressive Code sets this when a block resizes, and wrapping changes the scroll, not the size.
+   */
+  const tabStops = () => {
+    for (const pre of document.querySelectorAll<HTMLElement>(".expressive-code pre")) {
+      if (pre.scrollWidth > pre.clientWidth) {
+        if (!pre.hasAttribute("tabindex")) {
+          pre.setAttribute("tabindex", "0");
+          pre.setAttribute("role", "region");
+        }
+      } else if (pre.hasAttribute("tabindex")) {
+        pre.removeAttribute("tabindex");
+        pre.removeAttribute("role");
+      }
+    }
+  };
+
   /** Wraps every block's lines, or stops, and marks every button pressed or not. */
   const apply = (on: boolean) => {
     if (on) root.dataset.codeWrap = "";
@@ -23,6 +41,7 @@
     for (const button of document.querySelectorAll(".expressive-code .lamina-wrap")) {
       button.setAttribute("aria-pressed", String(on));
     }
+    tabStops();
   };
 
   /** A button like Copy's: the inner div is the background Expressive Code's styles fade in. */
@@ -42,13 +61,9 @@
   } catch {
     // No storage (a private window): blocks start unwrapped.
   }
-  // Module scripts run once the page is parsed, so every block is there.
-  for (const copy of document.querySelectorAll(".expressive-code .copy")) {
-    const added = button();
-    const copyButton = copy.querySelector("button");
-    if (copyButton === null) copy.append(added);
-    else copyButton.before(added);
-  }
+  // Module scripts run once the page is parsed, so every block is there. The button goes after
+  // Copy: Expressive Code shows "Copied!" in a live region before Copy, pointing at it.
+  for (const copy of document.querySelectorAll(".expressive-code .copy")) copy.append(button());
   document.addEventListener("click", (event) => {
     if (!(event.target instanceof Element) || event.target.closest(".lamina-wrap") === null) return;
     const on = !wrapped();

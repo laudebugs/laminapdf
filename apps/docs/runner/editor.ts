@@ -4,6 +4,7 @@
 
 import { javascript } from "@codemirror/lang-javascript";
 import { basicSetup, EditorView } from "codemirror";
+import { firstLine, formatCode } from "./format.js";
 import type { RunReply, RunRequest } from "./protocol.js";
 import { paperTheme } from "./theme.js";
 
@@ -239,7 +240,7 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
 }
 
 /**
- * Format: the editor's code through Prettier (format.ts, loaded on the first press), one change
+ * Format: the editor's code through Prettier (format.ts, which loads it on the first press), one change
  * that Undo takes back, with the cursor where it was. Code that doesn't parse stays as typed, and
  * the alert says where Prettier stopped.
  */
@@ -248,21 +249,19 @@ function formatOnPress(view: EditorView, button: HTMLButtonElement, status: HTML
     button.disabled = true;
     status.textContent = "Formatting…";
     try {
-      const { formatCode } = await import("./format.js");
       const code = view.state.doc.toString();
       const formatted = await formatCode(code, view.state.selection.main.head);
       problem.hidden = true;
       if (formatted.code !== code) {
         view.dispatch({
           changes: { from: 0, to: view.state.doc.length, insert: formatted.code },
-          selection: { anchor: Math.min(formatted.cursor, formatted.code.length) },
+          selection: { anchor: formatted.cursor },
           scrollIntoView: true,
           userEvent: "input.format",
         });
       }
       status.textContent = formatted.code === code ? "Already formatted." : "Formatted.";
     } catch (error) {
-      const { firstLine } = await import("./format.js");
       status.textContent = "";
       problem.replaceChildren(element("strong", "", "can't format"), document.createTextNode(`: ${firstLine(error)}`));
       problem.hidden = false;
