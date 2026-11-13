@@ -116,6 +116,24 @@ fn the_per_file_bookmark_opens_the_files_first_page() {
 }
 
 #[test]
+fn a_file_that_brings_no_pages_gets_no_bookmark() {
+    let mut doc = pages("references.pdf");
+    let before = doc.page_count().unwrap();
+    let mut empty = titled(&mut doc, "labels.pdf", "Labels");
+    empty.pages = Some(Vec::new());
+    let sources = vec![empty, titled(&mut doc, "chapters.pdf", "Chapters")];
+    let applied = merge(&mut doc, sources, MergeOptions::default());
+    let titles: Vec<String> = outline(&doc)
+        .into_iter()
+        .filter(|(d, _)| *d == 1)
+        .map(|(_, t)| t)
+        .collect();
+    assert!(!titles.contains(&"Labels".to_owned()), "{titles:?}");
+    assert_eq!(targets(&doc).last().copied().flatten(), Some(before));
+    assert_eq!(applied.created_outline_items.len(), 1);
+}
+
+#[test]
 fn kept_bookmarks_join_the_top_level() {
     let mut doc = pages("labels.pdf");
     let id = source(&mut doc, "chapters.pdf");

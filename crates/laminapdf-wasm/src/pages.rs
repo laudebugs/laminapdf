@@ -71,7 +71,9 @@ impl WasmDocument {
     #[wasm_bindgen(unchecked_return_type = "WasmDocument[]")]
     pub fn split(
         &self,
-        #[wasm_bindgen(unchecked_param_type = "{ count: number } | { ranges: string[][] } | { bookmarks: number }")]
+        #[wasm_bindgen(
+            unchecked_param_type = "{ readonly count: number } | { readonly ranges: readonly (readonly string[])[] } | { readonly bookmarks: number }"
+        )]
         by: &JsValue,
     ) -> JsResult<js_sys::Array> {
         let by = match from_js::<SplitByJs>(by, "by")? {
@@ -126,25 +128,32 @@ fn page_ids(ids: &[String], argument: &'static str) -> JsResult<Vec<PageId>> {
 
 /// `merge`'s inputs, read field by field so the bytes aren't copied through JSON.
 fn merge_inputs(inputs: &JsValue) -> JsResult<Vec<MergeInput>> {
-    let not_list = || {
-        invalid_argument(
-            "inputs",
-            "not a list of { bytes, password?, title? }".to_owned(),
-            Vec::new(),
-        )
-    };
-    let list = inputs.dyn_ref::<js_sys::Array>().ok_or_else(not_list)?;
+    let wrong = |what: &str| invalid_argument("inputs", what.to_owned(), Vec::new());
+    let list = inputs
+        .dyn_ref::<js_sys::Array>()
+        .ok_or_else(|| wrong("not a list of { bytes, password?, title? }"))?;
     list.iter()
         .map(|item| {
-            let field = |name: &str| js_sys::Reflect::get(&item, &JsValue::from_str(name)).ok();
+            let field = |name: &str| {
+                js_sys::Reflect::get(&item, &JsValue::from_str(name))
+                    .ok()
+                    .filter(|v| !v.is_undefined())
+            };
+            let text = |name: &str| match field(name) {
+                None => Ok(None),
+                Some(v) => v
+                    .as_string()
+                    .map(Some)
+                    .ok_or_else(|| wrong(&format!("an input's {name} isn't a string"))),
+            };
             let bytes = field("bytes")
                 .and_then(|b| b.dyn_into::<js_sys::Uint8Array>().ok())
-                .ok_or_else(not_list)?;
+                .ok_or_else(|| wrong("an input's bytes aren't a Uint8Array"))?;
             let mut input = MergeInput::new(bytes.to_vec());
-            if let Some(password) = field("password").and_then(|p| p.as_string()) {
+            if let Some(password) = text("password")? {
                 input = input.with_password(password);
             }
-            if let Some(title) = field("title").and_then(|t| t.as_string()) {
+            if let Some(title) = text("title")? {
                 input = input.with_title(title);
             }
             Ok(input)

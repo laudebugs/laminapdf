@@ -299,6 +299,10 @@ impl MergeDocuments {
         let mut created = Vec::new();
         let mut index = 0;
         for part in merged.iter_mut() {
+            if part.copies.is_empty() {
+                // No pages came from this source, so neither did any of its bookmarks.
+                continue;
+            }
             let first = copies.get(index).and_then(|p| p.as_lamina_id().obj_ref());
             index += part.copies.len();
             let items = std::mem::take(&mut part.outline);
@@ -468,13 +472,8 @@ fn merged_labels(merged: &[Merged], copies: &[PageId]) -> Vec<(PageId, Option<(L
 
 /// `pages` without repeats, in order.
 fn once_each(pages: &[PageId]) -> Vec<PageId> {
-    let mut out: Vec<PageId> = Vec::with_capacity(pages.len());
-    for page in pages {
-        if !out.contains(page) {
-            out.push(page.clone());
-        }
-    }
-    out
+    let mut seen = std::collections::BTreeSet::new();
+    pages.iter().filter(|p| seen.insert(*p)).cloned().collect()
 }
 
 impl Imported {

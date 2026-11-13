@@ -17,7 +17,7 @@ use std::hint::black_box;
 use std::sync::Arc;
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use laminapdf::{Document, MergeInput, MergeOptions, SaveOptions};
+use laminapdf::{Document, MergeInput, MergeOptions, OpenOptions, SaveOptions};
 
 const FILE: &[u8] = include_bytes!("../../../fixtures/pages/labels.pdf");
 
@@ -34,7 +34,7 @@ fn merge_100_files(c: &mut Criterion) {
     let files: Vec<MergeInput> = (0..FILES)
         .map(|i| MergeInput::new(Arc::clone(&bytes)).with_title(format!("file-{i}.pdf")))
         .collect();
-    let pages = Document::open_bytes(merge(&files), Default::default())
+    let pages = Document::open_bytes(merge(&files), OpenOptions::default())
         .unwrap()
         .page_count()
         .unwrap();

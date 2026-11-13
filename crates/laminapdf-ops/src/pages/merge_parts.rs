@@ -3,7 +3,7 @@
 //! its optional content groups, added to the target's `/OCProperties` (§8.11.4); and the labels
 //! its pages showed (§12.4.2).
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use laminapdf_cos::{Dict, ObjRef, Object};
 use laminapdf_model::{
@@ -370,11 +370,12 @@ impl SourceLabels {
     pub(super) fn of(src: &laminapdf_model::Document, pages: &[PageId]) -> Result<Self> {
         let labels = src.page_labels()?;
         let all = page_ids(src)?;
+        let index = positions(&all);
         Ok(Self {
             labelled: !labels.is_empty(),
             labels: pages
                 .iter()
-                .map(|p| Label::of(&labels, all.iter().position(|q| q == p).unwrap_or(0)))
+                .map(|p| Label::of(&labels, index.get(p).copied().unwrap_or(0)))
                 .collect(),
         })
     }
@@ -400,12 +401,14 @@ pub(super) fn merge_labels(
     if !labelled {
         return Ok(());
     }
+    let label_of: BTreeMap<&PageId, &Option<(Label, bool)>> = copies.iter().map(|(id, l)| (id, l)).collect();
+    let index = positions(before);
     let mut ranges: Vec<LabelRange> = Vec::new();
     let mut previous: Option<Label> = None;
     for (k, page) in after.iter().enumerate() {
-        let label = match copies.iter().find(|(id, _)| id == page) {
-            Some((_, Some((label, _)))) => label.clone(),
-            _ => Label::of(labels_before, before.iter().position(|p| p == page).unwrap_or(k)),
+        let label = match label_of.get(page) {
+            Some(Some((label, _))) => label.clone(),
+            _ => Label::of(labels_before, index.get(page).copied().unwrap_or(k)),
         };
         if previous.as_ref().is_none_or(|p| !label.follows(p)) {
             ranges.push(LabelRange::new(
@@ -422,6 +425,11 @@ pub(super) fn merge_labels(
         merged.write(&mut doc.cos_mut().edit())?;
     }
     Ok(())
+}
+
+/// Each page's index in `pages`.
+fn positions(pages: &[PageId]) -> BTreeMap<&PageId, usize> {
+    pages.iter().enumerate().map(|(i, p)| (p, i)).collect()
 }
 
 #[cfg(test)]

@@ -25,8 +25,8 @@ import {
   type MergeOptions,
   type MergeSource,
   type MetadataEditOptions,
-  mergeDocumentsOp,
   type MetadataRemoveOptions,
+  mergeDocumentsOp,
   movePagesOp,
   type PagePosition,
   type PageSize,
@@ -423,15 +423,26 @@ export class Document extends Handle<BaseGlue> {
    */
   static merge(inputs: readonly MergeInput[], options?: MergeOptions): Document {
     const instance = readingModule();
-    const raw = inputs.map((input) => ({
-      bytes: bytesOf(input.bytes),
-      ...(input.password === undefined ? {} : { password: input.password }),
-      ...(input.title === undefined ? {} : { title: input.title }),
-    }));
-    return new Document(
-      instance.call((wasm) => wasm.WasmDocument.merge(raw, options)),
-      instance,
-    );
+    const raw = (nfkc: boolean) =>
+      inputs.map((input) => ({
+        bytes: bytesOf(input.bytes),
+        ...(input.password === undefined ? {} : { password: nfkc ? input.password.normalize("NFKC") : input.password }),
+        ...(input.title === undefined ? {} : { title: input.title }),
+      }));
+    // As `open` does: the passwords as given, then in their NFKC form after `wrong-password`.
+    const retry = inputs.some((i) => i.password !== undefined && i.password.normalize("NFKC") !== i.password);
+    const attempts = retry ? [false, true] : [false];
+    for (let i = 0; ; i++) {
+      try {
+        const list = raw(attempts[i] ?? false);
+        return new Document(
+          instance.call((wasm) => wasm.WasmDocument.merge(list, options)),
+          instance,
+        );
+      } catch (e) {
+        if (!tryNext(e, i, attempts.length)) throw e;
+      }
+    }
   }
 
   /**
