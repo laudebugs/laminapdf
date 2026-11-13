@@ -97,7 +97,7 @@ One key signs the AppImage, `.deb`, `.rpm`, the detached `.asc` files and `SHA25
 
 - [x] On a trusted machine, preferably offline, create an ed25519 **primary key** for certification only: `gpg --quick-gen-key "<Legal Name> (Lamina PDF releases) <releases@laminapdf.com>" ed25519 cert 5y`. The email address is a suggestion.
 - [x] Add a **signing subkey** that expires in two years: `gpg --quick-add-key <PRIMARY FPR> ed25519 sign 2y`.
-- [ ] Back up the primary key (`gpg --export-secret-keys --armor`) and a revocation certificate to two encrypted drives kept in different places, then remove the primary secret key from the machine CI's key comes from.
+- [x] Back up the primary key (`gpg --export-secret-keys --armor`) and a revocation certificate to two encrypted drives kept in different places, then remove the primary secret key from the machine CI's key comes from.
 - [x] Export **only the subkey** (`gpg --export-secret-subkeys --armor '<SUBKEY FPR>!'`, single-quoted so zsh leaves the `!` alone), protected by a passphrase. Add the `desktop-release` secrets `LINUX_SIGNING_KEY` (the armored export) and `LINUX_SIGNING_KEY_PASSPHRASE`.
 - [x] Publish the public key at `https://laminapdf.com/keys/lamina-release.asc` (the file `apps/site/public/keys/lamina-release.asc`, added by D6a; live once the website deploys it).
 - [x] Upload it to [keys.openpgp.org](https://keys.openpgp.org/upload) and click the link it sends to `releases@laminapdf.com`, so the key is found by its email address.
