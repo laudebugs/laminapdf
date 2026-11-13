@@ -7,8 +7,9 @@ import {
   parseZoom,
   parseZoomPercent,
 } from "../src/commands/args.ts";
+import { desktopCommands } from "../src/commands/desktop-commands.ts";
 import { matchText, RecentCommands, rankCommands } from "../src/commands/rank.ts";
-import { desktopCommands, readerCommands } from "../src/commands/reader-commands.ts";
+import { readerCommands } from "../src/commands/reader-commands.ts";
 import { CommandError, CommandRegistry } from "../src/commands/registry.ts";
 import { bindingKey, pressKey, shortcutProblems } from "../src/commands/shortcuts.ts";
 import type { AnyCommand, CommandContext } from "../src/commands/types.ts";
@@ -119,33 +120,6 @@ describe("CommandRegistry", () => {
     home: ["view-menu"],
     run: vi.fn(),
     ...over,
-  });
-
-  it("runs a command once when one key press reaches it from the keys and the native menu", async () => {
-    vi.useFakeTimers();
-    try {
-      const run = vi.fn();
-      const registry = new CommandRegistry();
-      registry.register(command({ run }));
-      await registry.run("test.do-thing", opened(), { source: "keys" });
-      await registry.run("test.do-thing", opened(), { source: "menu" });
-      expect(run).toHaveBeenCalledTimes(1);
-      // The same source twice is two presses; the other source later is another choice.
-      await registry.run("test.do-thing", opened(), { source: "menu" });
-      vi.advanceTimersByTime(400);
-      await registry.run("test.do-thing", opened(), { source: "keys" });
-      expect(run).toHaveBeenCalledTimes(3);
-      // Two quick presses, each echoed by the menu: two runs.
-      vi.advanceTimersByTime(400);
-      await registry.run("test.do-thing", opened(), { source: "keys" });
-      await registry.run("test.do-thing", opened(), { source: "menu" });
-      vi.advanceTimersByTime(150);
-      await registry.run("test.do-thing", opened(), { source: "keys" });
-      await registry.run("test.do-thing", opened(), { source: "menu" });
-      expect(run).toHaveBeenCalledTimes(5);
-    } finally {
-      vi.useRealTimers();
-    }
   });
 
   it("refuses an id twice, and an id that isn't namespace.verb-object", () => {

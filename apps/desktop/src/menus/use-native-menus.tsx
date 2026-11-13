@@ -12,7 +12,7 @@ import { stopper } from "../engine/stopper.ts";
 import { type MenusJson, menuCommandIds } from "./menus.ts";
 
 /** A menu command for this window: `src-tauri/src/menu.rs`'s `COMMAND_EVENT`. */
-export const MENU_COMMAND_EVENT = "menu://command";
+const MENU_COMMAND_EVENT = "menu://command";
 
 /** What `MENU_COMMAND_EVENT` carries. */
 interface MenuCommand {

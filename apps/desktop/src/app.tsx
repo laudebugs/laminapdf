@@ -10,7 +10,7 @@
 import type { KeyPlatform, Platform, ReaderError, ReaderState } from "@laminapdf/ui";
 import {
   type CommandContext,
-  CommandRegistry,
+  type CommandRegistry,
   CommandsProvider,
   DropOverlay,
   message,
@@ -39,6 +39,7 @@ import { type DesktopEngineClient, DesktopEngineError, type DesktopShell } from 
 import { type Dragging, desktopOpener, listenForOsOpens } from "./engine/open.ts";
 import { stopper } from "./engine/stopper.ts";
 import { useFileChanges } from "./file-changes.tsx";
+import { EchoRegistry } from "./menus/echo-registry.ts";
 import { useNativeMenus } from "./menus/use-native-menus.tsx";
 import { NotYetSupportedError } from "./platform/desktop.ts";
 import { type DesktopRecent, useDesktopRecent } from "./recent.tsx";
@@ -192,7 +193,8 @@ function useCommands(
   viewer: Viewer | undefined,
 ): { registry: CommandRegistry; context: CommandContext; palette: ReactNode; singleKeys: boolean } {
   const [registry] = useState(() => {
-    const commands = new CommandRegistry();
+    // The menus' accelerators and the web view's shortcuts can both see one key press.
+    const commands = new EchoRegistry();
     registerReaderCommands(commands);
     registerDesktopCommands(commands);
     return commands;

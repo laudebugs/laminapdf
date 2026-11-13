@@ -6,16 +6,19 @@
 import {
   type AnyCommand,
   type CommandContext,
-  CommandRegistry,
+  type CommandRegistry,
   type KeyPlatform,
+  type MessageId,
   menuAccelerator,
+  message,
   registerDesktopCommands,
   registerReaderCommands,
 } from "@laminapdf/ui";
+import { EchoRegistry } from "./echo-registry.ts";
 import { LINKS, MENU_LAYOUT, MENU_WORDS, type MenuEntry, type MenuLayout } from "./layout.ts";
 
 /** A menu item, as `menus.json` holds it. `on` limits it to one platform. */
-export type MenuItemJson = (
+type MenuItemJson = (
   | {
       readonly kind: "command";
       readonly id: string;
@@ -41,7 +44,7 @@ export type MenuItemJson = (
 ) & { readonly on?: KeyPlatform };
 
 /** A top-level menu, as `menus.json` holds it. */
-export interface MenuJson {
+interface MenuJson {
   readonly id: MenuLayout["id"];
   readonly title: string;
   readonly on?: KeyPlatform;
@@ -56,7 +59,7 @@ export interface MenusJson {
 
 /** A registry with every command the desktop app registers (`app.tsx` registers the same). */
 export function desktopRegistry(): CommandRegistry {
-  const registry = new CommandRegistry();
+  const registry = new EchoRegistry();
   registerReaderCommands(registry);
   registerDesktopCommands(registry);
   return registry;
@@ -96,8 +99,9 @@ function commandItem(source: Source, entry: Entry<"command">): MenuItemJson {
 /** A command's choices, as a submenu. @throws Error when it takes no fixed choices. */
 function choicesItem(source: Source, entry: Entry<"choices">): MenuItemJson {
   const found = commandOf(source, entry.choices);
-  const choices = found.args?.choices;
-  if (choices === undefined) throw new Error(`${entry.choices} takes no fixed choices`);
+  const values = found.args?.choices;
+  if (values === undefined) throw new Error(`${entry.choices} takes no fixed choices`);
+  const choices = values.map((value) => ({ value, title: message(`choice.${value}` as MessageId) }));
   return { kind: "choices", id: found.id, title: source.registry.title(found, source.ctx), choices };
 }
 

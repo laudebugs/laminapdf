@@ -86,7 +86,7 @@ function useTabActions(
         void shell
           .invoke<string | null>("save_copy", { doc })
           .then((name) => {
-            if (name !== null) toasts.add({ message: message("tabs.savedCopy", { name }) });
+            if (name !== null) toasts.add({ message: `Saved a copy as ${name}` });
           })
           .catch((error: unknown) => toasts.add({ message: engineError(error).message }));
       },

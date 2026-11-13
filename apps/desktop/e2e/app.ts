@@ -207,7 +207,7 @@ export async function focusWindow(): Promise<void> {
 }
 
 /** The native menus as they show now, one item a line (src-tauri/src/menu.rs's `render`). */
-export async function menuSnapshot(): Promise<string> {
+async function menuSnapshot(): Promise<string> {
   return (await invoke("e2e_menu_snapshot")) as string;
 }
 

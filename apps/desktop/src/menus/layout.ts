@@ -6,7 +6,7 @@
 import type { CommandId, KeyPlatform } from "@laminapdf/ui";
 
 /** A menu item the OS provides (its title, its keys and what it does are the OS's). */
-export type Predefined =
+type Predefined =
   | "about"
   | "services"
   | "hide"
@@ -24,7 +24,7 @@ export type Predefined =
 export type Link = "help" | "issues";
 
 /** An item whose work comes in a later todo: shown, never enabled. */
-export type Placeholder = "check-for-updates" | "licences";
+type Placeholder = "check-for-updates" | "licences";
 
 /** One entry of a menu. Each may exist on one platform only (`on`). */
 export type MenuEntry = (
