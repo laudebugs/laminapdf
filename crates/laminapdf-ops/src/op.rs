@@ -342,8 +342,7 @@ pub(crate) struct Effect {
     pub(crate) bookmarks_dropped: usize,
     /// The copies it brought into a file claiming PDF/A from a source without that claim.
     pub(crate) pdfa_unchecked: Vec<PageId>,
-    /// The copies it brought, with their tags, into a file claiming PDF/UA-1 from a source
-    /// without that claim.
+    /// The copies it brought into a file claiming PDF/UA-1 from a source without that claim.
     pub(crate) pdfua_unchecked: Vec<PageId>,
 }
 

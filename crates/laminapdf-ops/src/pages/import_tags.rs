@@ -125,13 +125,7 @@ pub(crate) fn import_tags(
     };
     let Some((tree, src_root_ref, parent_tree)) = source else {
         let dropped = tagged_pages(doc, pages, &keyed)?;
-        for k in &keyed {
-            edit_object(doc, k.object, |o| {
-                if let Some(d) = dict_mut(o) {
-                    d.remove(k.key);
-                }
-            })?;
-        }
+        strip(doc, &keyed)?;
         return Ok(TagOutcome {
             dropped,
             renamed: Vec::new(),
@@ -153,15 +147,32 @@ pub(crate) fn import_tags(
             }
         }
     }
-    let target = Target::open(doc, tags)?;
+    if merge.needed.is_empty() {
+        // The keys name no element: they go, and the copies come untagged as they were.
+        strip(doc, &keyed)?;
+        return Ok(TagOutcome::default());
+    }
+    let mut target = Target::open(doc, tags)?;
     let maps = merge.maps(doc, copier, &target)?;
-    let ids = merge.copy_elements(doc, copier, &target, &maps)?;
+    let ids = merge.copy_elements(doc, copier, &mut target, &maps)?;
     renumber(doc, &target, (&keyed, &entries), &merge.made, src)?;
     maps.write(doc, &target, ids)?;
     Ok(TagOutcome {
         dropped: Vec::new(),
         renamed: merge.renamed,
     })
+}
+
+/// Removes the structure keys of `keyed`.
+fn strip(doc: &mut laminapdf_model::Document, keyed: &[Keyed]) -> Result<()> {
+    for k in keyed {
+        edit_object(doc, k.object, |o| {
+            if let Some(d) = dict_mut(o) {
+                d.remove(k.key);
+            }
+        })?;
+    }
+    Ok(())
 }
 
 /// The copies that carry `/StructParents` or `/StructParent`: the pages, the annotations their
@@ -240,17 +251,20 @@ fn owners(src: &laminapdf_model::Document, value: &Object) -> Result<Vec<ObjRef>
 struct Target {
     root: ObjRef,
     container: ObjRef,
+    /// Whether the copies go in a `Part` not made yet (made the first time an element needs
+    /// it), and its title.
+    part_pending: bool,
+    part_title: Option<String>,
     /// The target's tree as it was (empty when it had none).
     tree: StructTree,
 }
 
 impl Target {
-    /// Opens the target's tree, creating a root and a `Document` element when it has none, and
-    /// a `Part` for `tags`' title when it asks for one.
+    /// Opens the target's tree, creating a root and a `Document` element when it has none.
     fn open(doc: &mut laminapdf_model::Document, tags: &Tags) -> Result<Self> {
         let existing = doc.catalog()?.get("StructTreeRoot").and_then(Object::as_ref);
         let tree = doc.structure()?.unwrap_or_default();
-        let (root, mut container) = if let Some(root) = existing {
+        let (root, container) = if let Some(root) = existing {
             let top = match tree.roots.as_slice() {
                 [only] if tree.standard_kind(&only.kind) == b"Document" => only.object,
                 _ => None,
@@ -277,22 +291,38 @@ impl Target {
             mark_tagged(doc)?;
             (root, top)
         };
-        if let Tags::KeepInPart(title) = tags {
+        let (part_pending, part_title) = match tags {
+            Tags::KeepInPart(title) => (true, title.clone()),
+            _ => (false, None),
+        };
+        Ok(Self {
+            root,
+            container,
+            part_pending,
+            part_title,
+            tree,
+        })
+    }
+
+    /// The element the copies' top elements go under: the `Part` for this source, made now if
+    /// it is asked for and not made yet, else the target's top element.
+    fn container(&mut self, doc: &mut laminapdf_model::Document) -> Result<ObjRef> {
+        if std::mem::take(&mut self.part_pending) {
             let mut part: Dict = [
                 ("Type", Object::name("StructElem")),
                 ("S", Object::name("Part")),
-                ("P", Object::Ref(container)),
+                ("P", Object::Ref(self.container)),
             ]
             .into_iter()
             .collect();
-            if let Some(title) = title {
+            if let Some(title) = &self.part_title {
                 part.insert("T", crate::outline::title(title));
             }
             let part = doc.cos_mut().edit().create(Object::Dict(part))?;
-            append_kids(doc, container, &[part])?;
-            container = part;
+            append_kids(doc, self.container, &[part])?;
+            self.container = part;
         }
-        Ok(Self { root, container, tree })
+        Ok(self.container)
     }
 }
 
@@ -513,12 +543,13 @@ impl Merge<'_> {
     }
 
     /// Copies the needed elements, puts the top ones below the target's container in the
-    /// source's order, and returns the copies' IDs for the target's `/IDTree`.
+    /// source's order (and those whose parent chain is broken after them), and returns the
+    /// copies' IDs for the target's `/IDTree`.
     fn copy_elements(
         &mut self,
         doc: &mut laminapdf_model::Document,
         copier: &mut ObjectCopier<'_>,
-        target: &Target,
+        target: &mut Target,
         maps: &Maps,
     ) -> Result<BTreeMap<Vec<u8>, Object>> {
         let mut skip = BTreeSet::new();
@@ -533,8 +564,14 @@ impl Merge<'_> {
                 self.made.insert(e, copy);
             }
         }
+        if self.made.is_empty() {
+            return Ok(BTreeMap::new());
+        }
+        let container = target.container(doc)?;
         let mut taken = maps.ids.clone();
         let mut ids = BTreeMap::new();
+        // Copies whose parent wasn't copied: they go under the container.
+        let mut orphans = Vec::new();
         let elems: Vec<(ObjRef, ObjRef)> = self.made.iter().map(|(&s, &c)| (s, c)).collect();
         for (source, copy) in elems {
             let object = self.src.object(source.num)?;
@@ -543,7 +580,10 @@ impl Merge<'_> {
                 .get("P")
                 .and_then(Object::as_ref)
                 .and_then(|p| self.made.get(&p).copied())
-                .unwrap_or(target.container);
+                .unwrap_or_else(|| {
+                    orphans.push(copy);
+                    container
+                });
             let mut out = self.element(doc, copier, dict, maps)?;
             out.insert("P", Object::Ref(parent));
             if let Some(Object::String(id)) = dict.get("ID").map(|i| self.src.deref(i)).transpose()?.as_deref() {
@@ -585,7 +625,10 @@ impl Merge<'_> {
                 tops.push(copy);
             }
         }
-        append_kids(doc, target.container, &tops)?;
+        // A copy whose parent chain didn't reach the root (a broken `/P`) follows the others.
+        let listed: BTreeSet<ObjRef> = tops.iter().copied().collect();
+        tops.extend(orphans.into_iter().filter(|o| !listed.contains(o)));
+        append_kids(doc, container, &tops)?;
         Ok(ids)
     }
 

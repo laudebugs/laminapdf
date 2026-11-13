@@ -121,8 +121,8 @@ pub(crate) struct Imported {
     /// The copies brought into a file that claims PDF/A from a source that doesn't make the same
     /// claim: nothing checks what they bring (fonts, colour spaces) against it.
     pub(crate) pdfa_unchecked: Vec<PageId>,
-    /// The copies brought, with their tags, into a file that claims PDF/UA-1 from a source
-    /// that doesn't: nothing checks their tags against the claim.
+    /// The copies brought into a file that claims PDF/UA-1 from a source that doesn't:
+    /// nothing checks their tags against the claim.
     pub(crate) pdfua_unchecked: Vec<PageId>,
 }
 

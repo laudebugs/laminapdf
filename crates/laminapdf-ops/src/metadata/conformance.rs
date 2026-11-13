@@ -46,9 +46,9 @@ pub enum ConformanceWarning {
     /// same level: nothing checks the fonts, colour spaces and transparency they bring against
     /// the claim (ISO 19005-2 §6) (`imported-pdfa-unchecked`).
     ImportedPdfaUnchecked,
-    /// The file claims PDF/UA-1, and pages were copied in, with their tags, from a document
-    /// that doesn't claim it: nothing checks their tags, alternate text and reading order
-    /// against the claim (ISO 14289-1 §7) (`imported-pdfua-unchecked`).
+    /// The file claims PDF/UA-1, and pages were copied in from a document that doesn't claim
+    /// it: nothing checks their tags, alternate text and reading order against the claim
+    /// (ISO 14289-1 §7) (`imported-pdfua-unchecked`).
     ///
     /// Added in 0.3.0.
     ImportedPdfuaUnchecked,

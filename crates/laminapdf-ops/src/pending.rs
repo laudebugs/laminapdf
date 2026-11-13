@@ -146,8 +146,8 @@ impl PendingChanges {
         &self.pdfa_unchecked
     }
 
-    /// The pages copied in, with their tags, from a source that doesn't claim PDF/UA-1 into
-    /// this file, which claims it; the save planner reports them
+    /// The pages copied in from a source that doesn't claim PDF/UA-1 into this file, which
+    /// claims it; the save planner reports them
     /// ([`ConformanceWarning::ImportedPdfuaUnchecked`](crate::ConformanceWarning::ImportedPdfuaUnchecked))
     /// while any of them is still a page.
     ///

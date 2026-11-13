@@ -1124,7 +1124,7 @@ pub enum WarningCode {
     ImportedTagsDropped,
     /// `imported-pdfa-unchecked`: pages copied in from a document that doesn't claim the same PDF/A level may break the PDF/A claim of the document's metadata.
     ImportedPdfaUnchecked,
-    /// `imported-pdfua-unchecked`: pages copied in with their tags from a document that doesn't claim PDF/UA-1 may break the PDF/UA claim of the document's metadata.
+    /// `imported-pdfua-unchecked`: pages copied in from a document that doesn't claim PDF/UA-1 may break the PDF/UA claim of the document's metadata.
     ImportedPdfuaUnchecked,
     /// `tounicode-conflict`: one glyph was used for two different texts; ToUnicode keeps the first.
     TounicodeConflict,
@@ -1421,7 +1421,7 @@ impl WarningCode {
             Self::DuplicateTagsIncomplete => "a duplicated page's content is partly untagged, which breaks the PDF/UA claim of the document's metadata",
             Self::ImportedTagsDropped => "pages copied in from another document came without their tags, which breaks the PDF/UA claim of the document's metadata",
             Self::ImportedPdfaUnchecked => "pages copied in from a document that doesn't claim the same PDF/A level may break the PDF/A claim of the document's metadata",
-            Self::ImportedPdfuaUnchecked => "pages copied in with their tags from a document that doesn't claim PDF/UA-1 may break the PDF/UA claim of the document's metadata",
+            Self::ImportedPdfuaUnchecked => "pages copied in from a document that doesn't claim PDF/UA-1 may break the PDF/UA claim of the document's metadata",
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
             Self::WholeFontRebuilt => "a font that forbids subsetting was rebuilt with every glyph kept",
             Self::FlowKeepBroken => "blocks kept together are taller than a page, so the flow split them",

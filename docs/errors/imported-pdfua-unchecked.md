@@ -5,11 +5,11 @@
 
 ## What happened
 
-The file says it conforms to PDF/UA-1, and pages were copied in, with their tags, from a document that doesn't make that claim. Saving the file as it is may write one that no longer meets the claim.
+The file says it conforms to PDF/UA-1, and pages were copied in from a document that doesn't make that claim. Saving the file as it is may write one that no longer meets the claim.
 
 ## Why
 
-PDF/UA-1 asks more of a file than tags: every image needs alternate text, headings must nest in order, tables need their headers, and the reading order must make sense (ISO 14289-1 §7). Pages copied from another document bring that document's tags with them. When that document claims PDF/UA-1 too, its tags were made to meet these rules. When it doesn't, nothing checks them, and Lamina PDF can't tell whether they keep the claim.
+PDF/UA-1 asks more of a file than tags: every image needs alternate text, headings must nest in order, tables need their headers, and the reading order must make sense (ISO 14289-1 §7). Pages copied from another document bring that document's tags with them, or no tags when it has none. When that document claims PDF/UA-1 too, its tags were made to meet these rules. When it doesn't, nothing checks them, and Lamina PDF can't tell whether the pages keep the claim.
 
 ## How to fix
 
