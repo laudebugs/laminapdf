@@ -3,37 +3,60 @@
 //! No memory mapping (ADR 0008 §2): if another app truncates a mapped file, touching the mapping
 //! raises `SIGBUS` (`EXCEPTION_IN_PAGE_ERROR` on Windows) in the main process and takes down every
 //! window. A positioned read of a truncated file is an ordinary error instead.
+//!
+//! On Windows no handle stays open between reads (ADR 0008 §11): `MoveFileEx` and `ReplaceFile`,
+//! which some apps' atomic saves use, refuse to rename over a file any process holds open, whatever
+//! the share mode. Each read opens the path again and checks that it is still the file that
+//! opened: a file replaced since fails the read, so the old document never gets the new file's
+//! bytes, and the watcher reloads the new one. Elsewhere a rename already replaces an open file,
+//! and the one handle keeps reading the file that opened.
 
 use std::fs::File;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+use laminapdf_desktop_os::{FileIdentity, file_identity};
 
 /// The most bytes one read returns. The engine asks for 256 KiB blocks; a larger request comes
 /// from a confused or compromised engine and must not make the main process allocate gigabytes.
 pub(crate) const MAX_READ: u32 = 16 * 1024 * 1024;
 
-/// A document's file, opened read-only once. Its length is fixed when it opens: the engine
+/// A document's file, opened read-only. Its length is fixed when it opens: the engine
 /// reads that many bytes, and a file that shrinks underneath answers errors.
 #[derive(Debug)]
 pub(crate) struct FileSource {
-    file: File,
+    access: Access,
     len: u64,
 }
 
+/// How reads reach the file.
+#[derive(Debug)]
+enum Access {
+    /// One handle, opened once: macOS and Linux.
+    Held(File),
+    /// The path, opened for each read and checked against the file that opened: Windows.
+    Reopened { path: PathBuf, identity: FileIdentity },
+}
+
 impl FileSource {
-    /// Opens `path` read-only. On Windows other apps may still write, rename and delete it.
+    /// Opens `path` read-only. Other apps may still write, rename, delete and replace it.
     pub(crate) fn open(path: &Path) -> io::Result<Self> {
-        let mut options = std::fs::OpenOptions::new();
-        options.read(true);
-        #[cfg(windows)]
-        {
-            use std::os::windows::fs::OpenOptionsExt as _;
-            // FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE.
-            options.share_mode(0x1 | 0x2 | 0x4);
-        }
-        let file = options.open(path)?;
+        Self::open_with(path, cfg!(windows))
+    }
+
+    /// Opens `path`, holding its handle, or (`reopen`) keeping only its path and identity.
+    fn open_with(path: &Path, reopen: bool) -> io::Result<Self> {
+        let file = open_shared(path)?;
         let len = file.metadata()?.len();
-        Ok(Self { file, len })
+        let access = if reopen {
+            Access::Reopened {
+                path: path.to_owned(),
+                identity: file_identity(&file)?,
+            }
+        } else {
+            Access::Held(file)
+        };
+        Ok(Self { access, len })
     }
 
     /// The file's length when it opened.
@@ -45,7 +68,8 @@ impl FileSource {
     ///
     /// # Errors
     /// `InvalidInput` for a read over [`MAX_READ`], `UnexpectedEof` for a read that starts past
-    /// the end or a file that has shrunk, and the OS's own read errors.
+    /// the end or a file that has shrunk, `Other` for a file replaced since it opened, and the OS's
+    /// own errors (`NotFound` for a file moved or deleted, on Windows).
     pub(crate) fn read(&self, offset: u64, len: u32) -> io::Result<Vec<u8>> {
         if len > MAX_READ {
             return Err(io::Error::new(io::ErrorKind::InvalidInput, "read too large"));
@@ -56,11 +80,26 @@ impl FileSource {
                 "read past the end of the file",
             ));
         }
+        match &self.access {
+            Access::Held(file) => self.read_from(file, offset, len),
+            Access::Reopened { path, identity } => {
+                let file = open_shared(path)?;
+                // The same file, and its length unchanged: a file renamed over it has another
+                // identity, and one written in place to another length is no longer the same.
+                if file_identity(&file)? != *identity || file.metadata()?.len() != self.len {
+                    return Err(io::Error::other("the file was replaced since it opened"));
+                }
+                self.read_from(&file, offset, len)
+            }
+        }
+    }
+
+    fn read_from(&self, file: &File, offset: u64, len: u32) -> io::Result<Vec<u8>> {
         let want = u64::from(len).min(self.len - offset);
         let mut buf = vec![0_u8; usize::try_from(want).unwrap_or(0)];
         let mut filled = 0;
         while let Some(rest) = buf.get_mut(filled..).filter(|rest| !rest.is_empty()) {
-            match read_at(&self.file, rest, offset + filled as u64) {
+            match read_at(file, rest, offset + filled as u64) {
                 Ok(0) => {
                     return Err(io::Error::new(
                         io::ErrorKind::UnexpectedEof,
@@ -74,6 +113,19 @@ impl FileSource {
         }
         Ok(buf)
     }
+}
+
+/// `path` opened read-only. On Windows other apps may write, rename and delete it while it is open.
+fn open_shared(path: &Path) -> io::Result<File> {
+    let mut options = std::fs::OpenOptions::new();
+    options.read(true);
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt as _;
+        // FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE.
+        options.share_mode(0x1 | 0x2 | 0x4);
+    }
+    options.open(path)
 }
 
 #[cfg(unix)]
@@ -93,7 +145,7 @@ mod tests {
     use super::*;
 
     /// A temporary file holding `bytes`, removed when dropped.
-    struct Temp(std::path::PathBuf);
+    struct Temp(PathBuf);
 
     impl Temp {
         fn new(name: &str, bytes: &[u8]) -> Self {
@@ -163,11 +215,11 @@ mod tests {
     }
 
     /// Another app saving over an open document (an atomic save renames its file over ours), then
-    /// deleting it: neither is refused, and the open handle keeps reading what it opened. On
-    /// Windows that needs the share mode `FileSource` opens with.
+    /// deleting it: neither is refused, and a held handle keeps reading what it opened.
     #[test]
     fn another_app_should_replace_and_delete_an_open_file() {
-        let (temp, src) = source("replaced", b"the first version");
+        let temp = Temp::new("replaced", b"the first version");
+        let src = FileSource::open_with(&temp.0, false).unwrap();
         let saved = Temp::new("replaced-new", b"the second version, longer");
         std::fs::rename(&saved.0, &temp.0).unwrap();
         let after_replace = src.read(0, 9).unwrap();
@@ -176,6 +228,49 @@ mod tests {
             (after_replace, src.read(4, 5).unwrap()),
             (b"the first".to_vec(), b"first".to_vec())
         );
+    }
+
+    /// The Windows way, on every OS: a read after another app renamed a new file over the open one
+    /// fails, and never returns the new file's bytes; a read before it returns the first file's.
+    #[test]
+    fn a_reopening_source_should_refuse_a_file_replaced_since_it_opened() {
+        let temp = Temp::new("reopened", b"the first version");
+        let src = FileSource::open_with(&temp.0, true).unwrap();
+        let before = src.read(0, 9).unwrap();
+        let saved = Temp::new("reopened-new", b"the second version");
+        std::fs::rename(&saved.0, &temp.0).unwrap();
+        let after = src.read(0, 9).unwrap_err();
+        assert_eq!(
+            (before, after.kind(), after.to_string()),
+            (
+                b"the first".to_vec(),
+                io::ErrorKind::Other,
+                "the file was replaced since it opened".to_owned()
+            )
+        );
+    }
+
+    #[test]
+    fn a_reopening_source_should_refuse_a_file_written_to_another_length() {
+        let temp = Temp::new("regrown", b"0123456789");
+        let src = FileSource::open_with(&temp.0, true).unwrap();
+        std::fs::write(&temp.0, b"0123456789 and more").unwrap();
+        assert_eq!(src.read(0, 4).unwrap_err().kind(), io::ErrorKind::Other);
+    }
+
+    #[test]
+    fn a_reopening_source_should_fail_once_its_file_is_deleted() {
+        let temp = Temp::new("deleted", b"0123456789");
+        let src = FileSource::open_with(&temp.0, true).unwrap();
+        std::fs::remove_file(&temp.0).unwrap();
+        assert_eq!(src.read(0, 4).unwrap_err().kind(), io::ErrorKind::NotFound);
+    }
+
+    #[test]
+    fn a_reopening_source_should_read_its_file_like_a_held_one() {
+        let (temp, held) = source("both", b"0123456789");
+        let reopened = FileSource::open_with(&temp.0, true).unwrap();
+        assert_eq!(reopened.read(2, 100).unwrap(), held.read(2, 100).unwrap());
     }
 
     #[test]

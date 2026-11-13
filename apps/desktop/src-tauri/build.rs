@@ -37,7 +37,6 @@ const E2E_COMMANDS: &[&str] = &[
     "set_preferences",
     "debug_kill_engine",
     "e2e_queue_pick",
-    "e2e_replace",
     "e2e_interactive",
 ];
 

@@ -1,6 +1,6 @@
 [package]
 name = "laminapdf-desktop-os"
-description = "The calls Lamina PDF's desktop reader makes into the OS's shell: its recent-documents lists and Windows' app ID."
+description = "The calls Lamina PDF's desktop reader makes into the OS: its recent-documents lists, Windows' app ID and which file an open handle reads."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
