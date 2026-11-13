@@ -33,7 +33,7 @@ Let the save planner judge page ops field by field before any page op ships, so 
 
 **Out of scope** (and which todo covers it)
 
-- The page ops, which report their touched widgets → [E2b](../done/E2b-page-structure-ops.md), [E2c](../ready/E2c-cross-document-pages.md), [E2f](../ready/E2f-page-geometry.md), [E2s](../ready/E2s-resize-and-orientation.md)
+- The page ops, which report their touched widgets → [E2b](../done/E2b-page-structure-ops.md), [E2c](../done/E2c-cross-document-pages.md), [E2f](../ready/E2f-page-geometry.md), [E2s](../ready/E2s-resize-and-orientation.md)
 - The suite of every op on every signed fixture → [E2i](../ready/E2i-signed-gating-and-close.md)
 
 **Editor facts**

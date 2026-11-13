@@ -433,6 +433,34 @@ impl<'d> Outline<'d> {
         self.destination(&Object::Name(laminapdf_syntax::Name::new(name)))
     }
 
+    /// The value the document stores for the named destination `name`: a destination array,
+    /// or a dictionary holding one in `/D` (ISO 32000-2 §12.3.2.4), as written, with its
+    /// references unresolved; `None` when the document names no such destination.
+    ///
+    /// # Errors
+    /// As [`Outline::named_destination`].
+    ///
+    /// Added in 0.3.0.
+    pub fn named_destination_value(&self, name: &[u8]) -> Result<Option<Object>> {
+        let Some(value) = self.named()?.get(name).cloned() else {
+            return Ok(None);
+        };
+        let resolved = match self.doc.read(&value)? {
+            Some(value) => (*value).clone(),
+            None => return Ok(None),
+        };
+        Ok(Some(match resolved {
+            Object::Dict(d) => match d.get("D") {
+                Some(dest) => match self.doc.read(dest)? {
+                    Some(dest) => (*dest).clone(),
+                    None => return Ok(None),
+                },
+                None => return Ok(None),
+            },
+            other => other,
+        }))
+    }
+
     /// Named destinations: the `/Names /Dests` tree first, then the catalog's `/Dests`
     /// dictionary (PDF 1.1), keyed by name bytes.
     /// The names of every named destination, from the `/Names /Dests` tree and the catalog's

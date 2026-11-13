@@ -4,7 +4,7 @@
 //! don't list a field that no page shows. Signature fields stay, so the signatures a save
 //! would invalidate stay visible.
 
-use laminapdf_cos::{ObjRef, Object};
+use laminapdf_cos::{Dict, ObjRef, Object};
 use laminapdf_model::{PageReference, ReferenceKind, set_catalog_entry};
 
 use super::cleanup::{ReferenceChange, ReferenceOutcome, edit_dict, edit_object};
@@ -98,8 +98,8 @@ pub(crate) fn list_field(doc: &mut laminapdf_model::Document, parent: Option<Obj
 }
 
 /// Edits `/AcroForm /Fields` with `f`, wherever the form and the array are stored (direct or
-/// indirect). A document without a form is left alone; a form without `/Fields` gets one only
-/// when `create` (a field being added), and is left alone otherwise.
+/// indirect). A form without `/Fields`, or a document without a form, gets one only when
+/// `create` (a field being added), and is left alone otherwise.
 fn edit_form_fields(doc: &mut laminapdf_model::Document, create: bool, f: impl FnOnce(&mut Vec<Object>)) -> Result<()> {
     match doc.catalog()?.get("AcroForm").cloned() {
         Some(Object::Ref(form)) => {
@@ -131,6 +131,16 @@ fn edit_form_fields(doc: &mut laminapdf_model::Document, create: bool, f: impl F
             }
             _ => Ok(()),
         },
+        None if create => {
+            let mut items = Vec::new();
+            f(&mut items);
+            let form: Dict = [("Fields", Object::Array(items))].into_iter().collect();
+            Ok(set_catalog_entry(
+                &mut doc.cos_mut().edit(),
+                "AcroForm",
+                Some(Object::Dict(form)),
+            )?)
+        }
         _ => Ok(()),
     }
 }
@@ -145,7 +155,7 @@ fn drop_from_list(doc: &mut laminapdf_model::Document, holder: ObjRef, key: &str
 
 /// Edits with `f` the array at `key` of the dictionary object `holder` (the array may be
 /// indirect); a holder without one gets a new array.
-fn edit_list(
+pub(crate) fn edit_list(
     doc: &mut laminapdf_model::Document,
     holder: ObjRef,
     key: &str,

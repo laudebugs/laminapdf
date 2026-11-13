@@ -2,8 +2,9 @@
 //! `PageStructure`, which no `DocMDP` level permits; on an approval-signed file, deleting or
 //! rotating the page that holds the signed widget is a `SignedWidget` conflict, and the same
 //! ops on another page save as an incremental update that keeps the signed bytes; on the locked
-//! file, deleting or rotating the locked field's page breaks the lock, and moving, reversing,
-//! inserting and duplicating don't (a copy's widgets belong to new fields). A misclassified op is a security bug, so each op has its verdict here.
+//! file, deleting, replacing or rotating the locked field's page breaks the lock, and moving,
+//! reversing, inserting, copying in and duplicating don't (a copy's widgets belong to new
+//! fields). A misclassified op is a security bug, so each op has its verdict here.
 #![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,
@@ -16,8 +17,8 @@ use common::fixture;
 use common::save::{editable, page_ids};
 use laminapdf_model::{PageId, PagePosition, PageSize, Rotation};
 use laminapdf_ops::{
-    DeletePages, Document, DuplicatePages, InsertBlankPages, ModificationClass, MovePages, Op, Origin, ReversePages,
-    RotatePages,
+    DeletePages, Document, DuplicatePages, InsertBlankPages, InsertPagesFrom, ModificationClass, MovePages, Op, Origin,
+    ReplacePages, ReversePages, RotatePages, SourceId,
 };
 use laminapdf_save::{ConstraintKind, Restriction, Save, SaveMode, SaveOptions, SavePlanner};
 
@@ -51,7 +52,24 @@ fn ops(page: &PageId) -> Vec<(&'static str, Op)> {
             "duplicate",
             DuplicatePages::new(vec![page.clone()], PagePosition::End).into(),
         ),
+        (
+            "insert-from",
+            InsertPagesFrom::new(source(), vec![first_page()], PagePosition::After(page.clone())).into(),
+        ),
+        (
+            "replace",
+            ReplacePages::new(vec![page.clone()], source(), vec![first_page()]).into(),
+        ),
     ]
+}
+
+/// A source document's ID: the verdicts read only the op, so no source needs adding.
+fn source() -> SourceId {
+    SourceId::of(b"a source document")
+}
+
+fn first_page() -> PageId {
+    "p3.0".parse().unwrap()
 }
 
 fn restrictions(doc: &Document, op: &Op) -> Vec<Restriction> {
@@ -104,7 +122,7 @@ fn deleting_or_rotating_the_signed_widgets_page_is_a_conflict() {
     let first = page_ids(&doc)[0].clone();
     for (name, op) in ops(&first) {
         let expected: &[Restriction] = match name {
-            "delete" | "rotate" => &[Restriction::SignedWidget],
+            "delete" | "rotate" | "replace" => &[Restriction::SignedWidget],
             _ => &[],
         };
         assert_eq!(restrictions(&doc, &op), expected, "{name}");
@@ -150,6 +168,34 @@ fn deleting_or_rotating_the_locked_fields_page_breaks_the_lock() {
     for (name, op) in ops(&first) {
         let found = restrictions(&doc, &op);
         let breaks_lock = found.contains(&Restriction::FieldMdp);
-        assert_eq!(breaks_lock, matches!(name, "delete" | "rotate"), "{name}: {found:?}");
+        assert_eq!(
+            breaks_lock,
+            matches!(name, "delete" | "rotate" | "replace"),
+            "{name}: {found:?}"
+        );
+    }
+}
+
+#[test]
+fn copying_pages_in_or_replacing_another_page_saves_incrementally_and_keeps_the_signed_bytes() {
+    let bytes = fixture("signed/approval.pdf");
+    let source_bytes = fixture("pages/forms.pdf");
+    for op_name in ["insert-from", "replace"] {
+        let (mut doc, second) = with_second_page(editable(&bytes));
+        let source = doc.add_source(source_bytes.clone(), None).unwrap();
+        let page = page_ids(doc.source_document(&source).unwrap())[0].clone();
+        let op: Op = match op_name {
+            "insert-from" => InsertPagesFrom::new(source, vec![page], PagePosition::End).into(),
+            _ => ReplacePages::new(vec![second], source, vec![page]).into(),
+        };
+        doc.apply_all(Origin::Local, [op]).unwrap();
+        let kind = SavePlanner::new(&doc).unwrap().constraint().kind();
+        let mut out = Vec::new();
+        let report = doc.save(&mut out, &SaveOptions::new()).unwrap();
+        assert_eq!(
+            (kind, report.mode(), out.starts_with(&bytes), report.invalidated().len()),
+            (ConstraintKind::AppendOnly, SaveMode::Incremental, true, 0),
+            "{op_name}"
+        );
     }
 }
