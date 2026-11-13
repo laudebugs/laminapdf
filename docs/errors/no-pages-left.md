@@ -9,7 +9,7 @@ A page deletion named every page of the document. Lamina PDF refused it and chan
 
 ## Why
 
-The pages given to the deletion cover the whole document. That can happen when a selection of all pages is deleted, or when a script deletes pages one batch at a time and the last batch takes the rest.
+The pages given to the deletion cover the whole document. That can happen when someone selects every page and deletes the selection, or when a script deletes pages one batch at a time and the last batch takes the rest.
 
 ## How to fix
 

@@ -5,7 +5,7 @@
 
 ## What happened
 
-An edit carried a value Lamina PDF can't use, so it was refused and the document was left unchanged. Inserting blank pages, for example, needs a page count from 1 to 10,000 and a size whose width and height are above 0 and at most 14,400 points.
+An edit carried a value Lamina PDF can't use, so Lamina PDF refused it and left the document unchanged. Inserting blank pages, for example, needs a page count from 1 to 10,000 and a size whose width and height are above 0 and at most 14,400 points.
 
 ## Why
 

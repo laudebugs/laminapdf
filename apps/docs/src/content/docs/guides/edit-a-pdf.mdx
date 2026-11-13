@@ -26,7 +26,7 @@ Your edits live beside the bytes you opened and never change them. Nothing reach
 
 ## Organise the pages
 
-`doc.deletePages(ids)`, `doc.movePages(ids, "start")`, `doc.insertBlankPages("end", 1, { width: 612, height: 792 })`, `doc.rotatePages(ids, 90, { mode: "turn" })` and `doc.reversePages(ids)` change which pages a document has and their order. They name pages by ID, and a page keeps its ID when it moves. Deleting a page sends the bookmarks and links that pointed at it to the nearest page left, and deleting every page is refused. [Organise pages](/recipes/organise-pages/) has the whole program.
+Five calls change which pages a document has and their order: `doc.deletePages(ids)`, `doc.movePages(ids, "start")`, `doc.insertBlankPages("end", 1, { width: 612, height: 792 })`, `doc.rotatePages(ids, 90, { mode: "turn" })` and `doc.reversePages(ids)`. They name pages by ID, and a page keeps its ID when it moves. Deleting a page sends the bookmarks and links that pointed at it to the nearest page left, and deleting every page is refused. [Organise pages](/recipes/organise-pages/) has the whole program.
 
 ## Undo and redo
 
