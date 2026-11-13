@@ -214,8 +214,6 @@ pub fn run() -> Result<(), DesktopError> {
             commands::take_pending_tabs,
             commands::tab_drag_start,
             commands::tab_drag_end,
-            commands::tab_drag_start,
-            commands::tab_drag_end,
             open::take_pending_opens,
             commands::debug_kill_engine,
             e2e::e2e_queue_pick,

@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use laminapdf_desktop_protocol::DocId;
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter as _, EventTarget, Manager as _, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter as _, EventTarget, Manager as _, Position, WebviewUrl, WebviewWindowBuilder};
 
 use crate::engine::{DocumentMeta, Engines};
 use crate::{DesktopError, MAIN_WINDOW};
@@ -149,8 +149,8 @@ pub(crate) fn target_window(app: &AppHandle) -> Result<String, DesktopError> {
 }
 
 /// Makes a window labelled `label`: the app's page, a title, a size that fits the screen, and its
-/// top-left corner at `corner` (logical pixels) when given.
-pub(crate) fn build_window(app: &AppHandle, label: &str, corner: Option<(f64, f64)>) -> Result<(), DesktopError> {
+/// top-left corner at `corner` when given.
+pub(crate) fn build_window(app: &AppHandle, label: &str, corner: Option<Position>) -> Result<(), DesktopError> {
     let monitor = app.primary_monitor().ok().flatten();
     let (width, height) = crate::first_window_size(monitor);
     let builder = WebviewWindowBuilder::new(app, label, WebviewUrl::default())
@@ -160,17 +160,24 @@ pub(crate) fn build_window(app: &AppHandle, label: &str, corner: Option<(f64, f6
     // The first window is centred; a tab dropped outside every window opens one where it was
     // dropped; other windows open where the OS cascades them.
     let builder = match corner {
-        Some((x, y)) => builder.position(x, y),
+        Some(Position::Logical(at)) => builder.position(at.x, at.y),
+        // The builder takes logical pixels at a scale it guesses before the window has a screen:
+        // a physical corner is set once it has one, before it shows.
+        Some(Position::Physical(_)) => builder.visible(false),
         None if label == MAIN_WINDOW => builder.center(),
         None => builder,
     };
-    builder.build()?;
+    let window = builder.build()?;
+    if let Some(at @ Position::Physical(_)) = corner {
+        window.set_position(at)?;
+        window.show()?;
+    }
     Ok(())
 }
 
 /// A new, empty window (File ▸ New Window, or a tab moved out), with its corner at `corner` when
 /// given. Returns its label.
-pub(crate) fn new_window(app: &AppHandle, corner: Option<(f64, f64)>) -> Result<String, DesktopError> {
+pub(crate) fn new_window(app: &AppHandle, corner: Option<Position>) -> Result<String, DesktopError> {
     let label = app.state::<Windows>().next_label();
     build_window(app, &label, corner)?;
     changed(app);
@@ -195,7 +202,7 @@ pub(crate) fn move_tab(
     doc: DocId,
     to: &MoveTo,
     view: View,
-    corner: Option<(f64, f64)>,
+    corner: Option<Position>,
 ) -> Result<String, DesktopError> {
     let target = match to {
         MoveTo::NewWindow => new_window(app, corner)?,

@@ -2,8 +2,8 @@
 // windows (`tab://arrived`, with the ones that came before the webview was ready handed over by
 // `take_pending_tabs`), a second open of a file showing its tab (`tab://activate`), the other
 // windows for "Move tab to window ▸", the window's title, tabs not shown when the engine
-// restarts, and another window's tab dragged over this one (`tab://drag-over`). A tab dragged out
-// of the strip goes where Rust finds the cursor when the drag ends (`tab_drag_end`). The strip shows from two tabs on (S02); with one, the title bar carries the name.
+// restarts, and another window's tab dragged over this one (`tab://drag-over`). A tab dragged
+// off the strip goes where Rust finds the cursor when the drag ends (`tab_drag_end`). The strip shows from two tabs on (S02); with one, the title bar carries the name.
 import {
   type CommandContext,
   DocumentTabs,

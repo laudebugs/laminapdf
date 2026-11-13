@@ -1,21 +1,25 @@
-//! Dragging a tab out of its window or onto another one (D4e). A webview's drag can't cross into
+//! Dragging a tab out of its window or onto another one. A webview's drag can't cross into
 //! another window as a drop it can read, so Rust follows the drag instead: the tab's window calls
 //! [`start`] when the drag begins and [`end`] when it ends. In between, a thread reads the OS's
 //! cursor and tells the window under it that a tab may drop there ([`DRAG_OVER_EVENT`]). At the end
 //! Rust looks where the cursor is: over another window, the tab moves there; outside every window, a
 //! new window opens under the cursor with the tab; over its own window, nothing happens (the strip's
-//! own drop reorders). Both moves are D4a's [`crate::windows::move_tab`].
+//! own drop reorders). Both moves are [`crate::windows::move_tab`], as the tab menu's are.
 //!
-//! Where the OS won't say where the cursor or the windows are (Wayland: positions are the
-//! compositor's), the webview's own account is used: a drag that left its window opens a new one,
-//! wherever the compositor puts it, and no other window can be detected under the cursor.
+//! Under Wayland the compositor keeps windows' positions to itself, so the webview's own account is
+//! used: a drag that left its window opens a new one, wherever the compositor puts it, and no
+//! other window can be found under the cursor.
+//!
+//! The end of a drag can't tell a drop from a cancel (Escape): a cancelled drag whose cursor is
+//! outside its window moves the tab too. Windows of other apps are invisible here, so a drop on one
+//! that covers a Lamina PDF window moves the tab to the covered window.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant};
 
 use laminapdf_desktop_protocol::DocId;
-use tauri::{AppHandle, Emitter as _, EventTarget, Manager as _};
+use tauri::{AppHandle, Emitter as _, EventTarget, LogicalPosition, Manager as _, PhysicalPosition, Position};
 
 use crate::DesktopError;
 use crate::windows::{MoveTo, View, Windows};
@@ -56,7 +60,7 @@ impl Frame {
 
 /// What a drag's end does with the tab.
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) enum Drop {
+pub(crate) enum Target {
     /// Nothing: it ended over its own window.
     Stay,
     /// It moves to this window.
@@ -75,17 +79,17 @@ pub(crate) fn window_at(cursor: Point, frames: &[(String, Frame)]) -> Option<&st
 
 /// Where a tab dragged from `from` goes when the drag ends. `cursor` is `None` when the OS won't
 /// say; `outside` is the webview's account of whether the pointer left `from`, used only then.
-pub(crate) fn decide(from: &str, cursor: Option<Point>, outside: bool, frames: &[(String, Frame)]) -> Drop {
+pub(crate) fn decide(from: &str, cursor: Option<Point>, outside: bool, frames: &[(String, Frame)]) -> Target {
     let Some(cursor) = cursor else {
-        return if outside { Drop::NewWindow(None) } else { Drop::Stay };
+        return if outside { Target::NewWindow(None) } else { Target::Stay };
     };
     match window_at(cursor, frames) {
-        Some(label) if label == from => Drop::Stay,
-        Some(label) => Drop::Window(label.to_owned()),
+        Some(label) if label == from => Target::Stay,
+        Some(label) => Target::Window(label.to_owned()),
         // Outside every window whose frame is known. With none known (Wayland), the cursor's
         // position alone can't say it left its window.
-        None if frames.is_empty() && !outside => Drop::Stay,
-        None => Drop::NewWindow(Some(cursor)),
+        None if frames.is_empty() && !outside => Target::Stay,
+        None => Target::NewWindow(Some(cursor)),
     }
 }
 
@@ -131,9 +135,37 @@ impl TabDrag {
     }
 }
 
+/// Where a window opened by a drop at `cursor` puts its corner: up and left of the cursor by
+/// `GRIP`, in logical pixels times `scale` (1 where `cursor` is in points). The corner may be
+/// negative, on a screen left of or above the main one.
+pub(crate) fn corner(cursor: Point, scale: f64) -> Point {
+    Point {
+        x: cursor.x - GRIP.x * scale,
+        y: cursor.y - GRIP.y * scale,
+    }
+}
+
+/// Whether the OS says where windows and the cursor are: everywhere but under a Wayland
+/// compositor (GTK runs on Wayland when `WAYLAND_DISPLAY` is set, unless `GDK_BACKEND` asks for X11).
+fn positions_known() -> bool {
+    !cfg!(target_os = "linux")
+        || std::env::var_os("WAYLAND_DISPLAY").is_none()
+        || std::env::var("GDK_BACKEND").is_ok_and(|backend| backend.starts_with("x11"))
+}
+
+/// The factor that takes a frame or the cursor into the space they share: on macOS, points (each
+/// reported scaled by its own screen's factor, which `scale` reads); elsewhere physical pixels,
+/// one space across screens, so 1.
+fn to_shared_space(scale: impl FnOnce() -> Option<f64>) -> Option<f64> {
+    if cfg!(target_os = "macos") { scale() } else { Some(1.0) }
+}
+
 /// The open, visible windows' frames, front to back (the window focused last first). On macOS
 /// in points, on the other systems in physical pixels: the same space as [`cursor`]'s.
 fn window_frames(app: &AppHandle) -> Vec<(String, Frame)> {
+    if !positions_known() {
+        return Vec::new();
+    }
     let mut labels = app.state::<Windows>().front_to_back();
     for label in app.webview_windows().into_keys() {
         if !labels.contains(&label) {
@@ -149,11 +181,7 @@ fn window_frames(app: &AppHandle) -> Vec<(String, Frame)> {
             }
             let position = window.outer_position().ok()?;
             let size = window.outer_size().ok()?;
-            let scale = if cfg!(target_os = "macos") {
-                window.scale_factor().ok()?
-            } else {
-                1.0
-            };
+            let scale = to_shared_space(|| window.scale_factor().ok())?;
             let frame = Frame {
                 x: f64::from(position.x) / scale,
                 y: f64::from(position.y) / scale,
@@ -165,36 +193,36 @@ fn window_frames(app: &AppHandle) -> Vec<(String, Frame)> {
         .collect()
 }
 
-/// Where the cursor is, if the OS says. macOS reports it scaled by the main screen's factor while
-/// each window's frame is scaled by its own screen's, so both go back to points there.
+/// Where the cursor is, if the OS says. macOS reports it scaled by the main screen's factor.
 fn cursor(app: &AppHandle) -> Option<Point> {
+    if !positions_known() {
+        return None;
+    }
     let position = app.cursor_position().ok()?;
-    let scale = if cfg!(target_os = "macos") {
-        app.primary_monitor().ok().flatten()?.scale_factor()
-    } else {
-        1.0
-    };
+    let scale = to_shared_space(|| Some(app.primary_monitor().ok().flatten()?.scale_factor()))?;
     Some(Point {
         x: position.x / scale,
         y: position.y / scale,
     })
 }
 
-/// Where a window opened by a drop at `cursor` goes, in logical pixels: its corner up and left of
-/// the cursor by `GRIP`.
-fn new_window_corner(app: &AppHandle, cursor: Point) -> (f64, f64) {
-    let scale = if cfg!(target_os = "macos") {
-        1.0
-    } else {
-        app.monitor_from_point(cursor.x, cursor.y)
-            .ok()
-            .flatten()
-            .map_or(1.0, |monitor| monitor.scale_factor())
-    };
-    (
-        (cursor.x / scale - GRIP.x).max(0.0),
-        (cursor.y / scale - GRIP.y).max(0.0),
-    )
+/// The corner of a window opened by a drop at `cursor`: in points on macOS; elsewhere in physical
+/// pixels, so a screen with its own scale factor places it right, with `GRIP` scaled by the factor
+/// of the screen under the cursor.
+fn new_window_corner(app: &AppHandle, cursor: Point) -> Position {
+    if cfg!(target_os = "macos") {
+        let at = corner(cursor, 1.0);
+        return Position::Logical(LogicalPosition::new(at.x, at.y));
+    }
+    let scale = app
+        .monitor_from_point(cursor.x, cursor.y)
+        .ok()
+        .flatten()
+        .map_or(1.0, |monitor| monitor.scale_factor());
+    let at = corner(cursor, scale);
+    // Whole pixels: the cast saturates far off any screen.
+    #[expect(clippy::cast_possible_truncation, reason = "screen coordinates fit an i32")]
+    Position::Physical(PhysicalPosition::new(at.x.round() as i32, at.y.round() as i32))
 }
 
 /// A tab of `from`, its document `doc`, began to be dragged: the window under the cursor is told
@@ -246,9 +274,9 @@ pub(crate) fn end(
     let cursor = cursor(app);
     let frames = window_frames(app);
     let to = match decide(from, cursor, outside, &frames) {
-        Drop::Stay => return Ok(None),
-        Drop::Window(label) => crate::windows::move_tab(app, from, doc, &MoveTo::Window(label), view, None)?,
-        Drop::NewWindow(at) => {
+        Target::Stay => return Ok(None),
+        Target::Window(label) => crate::windows::move_tab(app, from, doc, &MoveTo::Window(label), view, None)?,
+        Target::NewWindow(at) => {
             let corner = at.map(|at| new_window_corner(app, at));
             crate::windows::move_tab(app, from, doc, &MoveTo::NewWindow, view, corner)?
         }
@@ -299,38 +327,46 @@ mod tests {
     fn a_drop_on_another_window_moves_the_tab_there() {
         assert_eq!(
             decide("main", Some(at(900.0, 20.0)), true, &frames()),
-            Drop::Window("doc-1".into())
+            Target::Window("doc-1".into())
         );
     }
 
     #[test]
     fn a_drop_on_its_own_window_leaves_the_tab_alone() {
-        assert_eq!(decide("main", Some(at(100.0, 20.0)), false, &frames()), Drop::Stay);
+        assert_eq!(decide("main", Some(at(100.0, 20.0)), false, &frames()), Target::Stay);
         // The cursor wins over the webview's account, which can miss a re-entry.
-        assert_eq!(decide("main", Some(at(100.0, 20.0)), true, &frames()), Drop::Stay);
+        assert_eq!(decide("main", Some(at(100.0, 20.0)), true, &frames()), Target::Stay);
     }
 
     #[test]
     fn a_drop_outside_every_window_opens_one_there() {
         assert_eq!(
             decide("main", Some(at(1300.0, 500.0)), false, &frames()),
-            Drop::NewWindow(Some(at(1300.0, 500.0)))
+            Target::NewWindow(Some(at(1300.0, 500.0)))
         );
     }
 
     #[test]
     fn without_the_cursor_the_webviews_account_decides() {
-        assert_eq!(decide("main", None, true, &frames()), Drop::NewWindow(None));
-        assert_eq!(decide("main", None, false, &frames()), Drop::Stay);
+        assert_eq!(decide("main", None, true, &frames()), Target::NewWindow(None));
+        assert_eq!(decide("main", None, false, &frames()), Target::Stay);
     }
 
     #[test]
     fn without_window_frames_the_cursor_alone_opens_no_window() {
-        assert_eq!(decide("main", Some(at(5.0, 5.0)), false, &[]), Drop::Stay);
+        assert_eq!(decide("main", Some(at(5.0, 5.0)), false, &[]), Target::Stay);
         assert_eq!(
             decide("main", Some(at(5.0, 5.0)), true, &[]),
-            Drop::NewWindow(Some(at(5.0, 5.0)))
+            Target::NewWindow(Some(at(5.0, 5.0)))
         );
+    }
+
+    #[test]
+    fn a_new_window_puts_the_grip_under_the_cursor_on_any_screen() {
+        assert_eq!(corner(at(500.0, 300.0), 1.0), at(404.0, 288.0));
+        assert_eq!(corner(at(500.0, 300.0), 2.0), at(308.0, 276.0));
+        // Left of and above the main screen, coordinates go below zero and stay there.
+        assert_eq!(corner(at(-500.0, -20.0), 1.0), at(-596.0, -32.0));
     }
 
     #[test]

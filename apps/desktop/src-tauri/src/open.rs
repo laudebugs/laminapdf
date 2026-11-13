@@ -327,6 +327,9 @@ struct Dragging {
 pub(crate) fn on_drag_drop(window: &tauri::Window, event: &tauri::DragDropEvent) {
     let target = EventTarget::webview_window(window.label());
     let sent = match event {
+        // A drag that carries no files (a tab dragged from a window's strip) is no open: the
+        // overlay stays away, and the tab's own drop is Rust's (tab_drag.rs).
+        tauri::DragDropEvent::Enter { paths, .. } if paths.is_empty() => Ok(()),
         tauri::DragDropEvent::Enter { paths, .. } => {
             let (pdfs, others) = split_drop(paths);
             let payload = Dragging {

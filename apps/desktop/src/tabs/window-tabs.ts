@@ -67,6 +67,8 @@ export class WindowTabs implements ExternalStore<TabsState> {
   #aside: string | undefined;
   /** The document whose password the reader asks for: it has no tab until it unlocks. */
   #locked: number | undefined;
+  /** The last drag's `tab_drag_start`: its end waits for it, so Rust never ends a drag it hasn't begun. */
+  #dragStart: Promise<void> = Promise.resolve();
 
   constructor(shell: DesktopShell, client: DesktopEngineClient, viewer: Viewer) {
     this.#shell = shell;
@@ -255,8 +257,12 @@ export class WindowTabs implements ExternalStore<TabsState> {
 
   /** Tab `id` began to be dragged: Rust follows the cursor until the drag ends. */
   dragStarted(id: string): void {
-    const doc = this.#docOf(id);
-    if (doc !== undefined) void this.#shell.invoke("tab_drag_start", { doc }).catch(() => undefined);
+    const doc = this.#tab(id)?.doc;
+    if (doc === undefined) return;
+    this.#dragStart = this.#shell.invoke<void>("tab_drag_start", { doc }).catch((error: unknown) => {
+      // The drag still ends where Rust finds the cursor; only the drop border is missing.
+      console.warn("following the dragged tab failed", error);
+    });
   }
 
   /**
@@ -266,12 +272,15 @@ export class WindowTabs implements ExternalStore<TabsState> {
    * {@link moveShown}'s does; on failure the tab stays and the error rejects.
    */
   async draggedOut(id: string, outside: boolean): Promise<void> {
+    await this.#dragStart;
     await this.#move(id, (doc, view) => this.#shell.invoke<string | null>("tab_drag_end", { doc, view, outside }));
   }
 
-  #docOf(id: string): number | undefined {
+  /** Tab `id` and its document, while it has one. */
+  #tab(id: string): { tab: Tab; doc: number } | undefined {
     const tab = this.#state.tabs.find((t) => t.id === id);
-    return tab === undefined ? undefined : documentOf(tab.file)?.doc;
+    const doc = tab === undefined ? undefined : documentOf(tab.file)?.doc;
+    return tab === undefined || doc === undefined ? undefined : { tab, doc };
   }
 
   /**
@@ -279,10 +288,10 @@ export class WindowTabs implements ExternalStore<TabsState> {
    * it stayed). A moved tab leaves; when it was the shown one, the next shows, or the start screen.
    */
   async #move(id: string, send: (doc: number, view: ViewPosition | null) => Promise<string | null>): Promise<void> {
-    const tab = this.#state.tabs.find((t) => t.id === id);
-    const doc = this.#docOf(id);
+    const found = this.#tab(id);
     const reader = this.#reader;
-    if (tab === undefined || doc === undefined || reader === undefined) return;
+    if (found === undefined || reader === undefined) return;
+    const { tab, doc } = found;
     const shown = id === this.#state.active;
     const view = (shown ? this.#viewer.viewPosition() : tab.view) ?? null;
     if ((await send(doc, view)) === null) return;
