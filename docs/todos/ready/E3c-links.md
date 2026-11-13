@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E3 plan §2.1](../../plans/editor/e3-navigation-attachments-inspection.md#21-ops) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [C5b](../done/C5b-find-in-document.md), [E2j](./E2j-page-tree-and-tree-writers.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md) |
+| Depends on | [C5b](../done/C5b-find-in-document.md), [E2j](../done/E2j-page-tree-and-tree-writers.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3c-links` |
 | PR title | `feat(ops): create and edit link annotations` |
@@ -31,7 +31,7 @@ Create, edit and delete Link annotations: internal (GoTo/destination), external 
 - Ops: `AddLink { id, nm, page, rect, quads, target, contents }` (user-space rectangle and quads, [E3 plan §2.1](../../plans/editor/e3-navigation-attachments-inspection.md#21-ops)), `UpdateLink`, `DeleteLink` with `/NM` = ID. They are the link-specific ops for good (frozen on the wire in `fixtures/ops/v1/`): when [E4b](E4b-annotation-model-and-overlay.md) adds the generic annotation core, these three become thin wrappers over it (same undo records, same IDs, same `/NM` and `/P` handling), and E4b's `AddAnnot` has no `Link` spec, so there is exactly one way to create a link
 - Link tool in `@laminapdf/ui`: draw a rect or make a link from the current text selection; edit target in a popover; `/Contents` description (accessibility, overlaps L.07)
 - URI validation and scheme allow-list (http, https, mailto); anything else fails with `link-uri-refused`
-- Tagged files: the link joins the structure tree as a `Link` element with an `OBJR`, `/StructParent` and a `/ParentTree` entry, through [E2j](E2j-page-tree-and-tree-writers.md)'s number-tree writer; `link-not-tagged` when it can't be placed on a PDF/UA-1 file
+- Tagged files: the link joins the structure tree as a `Link` element with an `OBJR`, `/StructParent` and a `/ParentTree` entry, through [E2j](../done/E2j-page-tree-and-tree-writers.md)'s number-tree writer; `link-not-tagged` when it can't be placed on a PDF/UA-1 file
 
 **Out of scope** (and which todo covers it)
 

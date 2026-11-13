@@ -112,6 +112,7 @@ export type ErrorCode =
   | "render-too-large"
   | "render-failed"
   | "render-backend-unavailable"
+  | "export-failed"
   | "model-failed"
   | "model-result-unexpected"
   | "model-needs-host"
@@ -321,6 +322,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "render-too-large",
   "render-failed",
   "render-backend-unavailable",
+  "export-failed",
   "model-failed",
   "model-result-unexpected",
   "model-needs-host",
@@ -565,6 +567,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "render-too-large": "limit",
   "render-failed": "input",
   "render-backend-unavailable": "io",
+  "export-failed": "internal",
   "model-failed": "internal",
   "model-result-unexpected": "usage",
   "model-needs-host": "usage",
@@ -749,6 +752,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "render-too-large": "request smaller tiles (256 to 512 pixels at high zoom) or raise RenderLimits if the larger bitmap is intended",
   "render-failed": "the file may be damaged or use a feature this engine can't draw; try the other backend, or report the file",
   "render-backend-unavailable": "run cargo xtask fetch-pdfium or set LAMINA_PDF_PDFIUM_DIR to the folder holding the PDFium library",
+  "export-failed": "report it with the format and the page: the encoder writes into memory, so this is a bug in Lamina PDF",
   "model-failed": "check the plug-in's own logs; extract without the model to get the rules-only result",
   "model-result-unexpected": "call provide only while request() returns a request, with the result its kind asks for",
   "model-needs-host": "step an extraction job and hand it each result with provide, or give the plug-in a page renderer",

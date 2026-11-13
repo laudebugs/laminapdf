@@ -222,6 +222,8 @@ pub enum ErrorCode {
     RenderFailed,
     /// `render-backend-unavailable`: the render engine is not available: its library or module could not be loaded.
     RenderBackendUnavailable,
+    /// `export-failed`: an export's PNG, JPEG or TIFF encoder failed on a page that was drawn.
+    ExportFailed,
     /// `model-failed`: a layout model, OCR engine or page renderer plugged into an extraction failed; the extraction stops with no partial result.
     ModelFailed,
     /// `model-result-unexpected`: a model result was handed to an extraction job that hadn't asked for it, or was the other model's result.
@@ -358,6 +360,7 @@ impl ErrorCode {
         Self::RenderTooLarge,
         Self::RenderFailed,
         Self::RenderBackendUnavailable,
+        Self::ExportFailed,
         Self::ModelFailed,
         Self::ModelResultUnexpected,
         Self::ModelNeedsHost,
@@ -490,6 +493,7 @@ impl ErrorCode {
             Self::RenderTooLarge => "render-too-large",
             Self::RenderFailed => "render-failed",
             Self::RenderBackendUnavailable => "render-backend-unavailable",
+            Self::ExportFailed => "export-failed",
             Self::ModelFailed => "model-failed",
             Self::ModelResultUnexpected => "model-result-unexpected",
             Self::ModelNeedsHost => "model-needs-host",
@@ -608,6 +612,7 @@ impl ErrorCode {
             Self::RenderTooLarge => ErrorKind::Limit,
             Self::RenderFailed => ErrorKind::Input,
             Self::RenderBackendUnavailable => ErrorKind::Io,
+            Self::ExportFailed => ErrorKind::Internal,
             Self::ModelFailed => ErrorKind::Internal,
             Self::ModelResultUnexpected => ErrorKind::Usage,
             Self::ModelNeedsHost => ErrorKind::Usage,
@@ -726,6 +731,7 @@ impl ErrorCode {
             Self::RenderTooLarge => "the requested tile is larger than the render limits allow; nothing was allocated",
             Self::RenderFailed => "the render engine could not open the document or draw the page",
             Self::RenderBackendUnavailable => "the render engine is not available: its library or module could not be loaded",
+            Self::ExportFailed => "an export's PNG, JPEG or TIFF encoder failed on a page that was drawn",
             Self::ModelFailed => "a layout model, OCR engine or page renderer plugged into an extraction failed; the extraction stops with no partial result",
             Self::ModelResultUnexpected => "a model result was handed to an extraction job that hadn't asked for it, or was the other model's result",
             Self::ModelNeedsHost => "an extraction in one call was given a model whose results only the host can give: a host model, or a plug-in model without a page renderer",
@@ -844,6 +850,7 @@ impl ErrorCode {
             Self::RenderTooLarge => "request smaller tiles (256 to 512 pixels at high zoom) or raise RenderLimits if the larger bitmap is intended",
             Self::RenderFailed => "the file may be damaged or use a feature this engine can't draw; try the other backend, or report the file",
             Self::RenderBackendUnavailable => "run cargo xtask fetch-pdfium or set LAMINA_PDF_PDFIUM_DIR to the folder holding the PDFium library",
+            Self::ExportFailed => "report it with the format and the page: the encoder writes into memory, so this is a bug in Lamina PDF",
             Self::ModelFailed => "check the plug-in's own logs; extract without the model to get the rules-only result",
             Self::ModelResultUnexpected => "call provide only while request() returns a request, with the result its kind asks for",
             Self::ModelNeedsHost => "step an extraction job and hand it each result with provide, or give the plug-in a page renderer",
