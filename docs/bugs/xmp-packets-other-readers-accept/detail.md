@@ -17,7 +17,7 @@ A malformed packet reads as absent, so these files showed no title, dates or IDs
 
 ## Cause
 
-Two kinds of damage that ExifTool and pdf.js read past.
+The 13 packets carry two kinds of damage that ExifTool and pdf.js read past.
 
 - **A mangled byte-order mark.** The XFA files' header reads `<?xpacket begin="` then `EF BB 3F`: the mark's last byte became `?`. The packet is then not UTF-8, and the reader refused it whole. XML never reads inside a processing instruction, so the damage changes nothing the packet says.
 - **Undeclared standard prefixes.**
@@ -26,4 +26,4 @@ Two kinds of damage that ExifTool and pdf.js read past.
 
   The reader followed Namespaces in XML and refused a prefix with no declaration.
 
-The other 7 files are differences in how the two readers read valid packets, or files ExifTool can't read. Lamina PDF reads them correctly (pypdf agrees where it reads them), and `fixtures/differential/xmp-exceptions.toml` excuses each, tracked by [#527](https://github.com/laudebugs/laminapdf/issues/527).
+The other 7 files differ for other reasons: the two readers read a valid packet differently, or ExifTool can't read the file. Lamina PDF reads them correctly (pypdf agrees where it reads them), and `fixtures/differential/xmp-exceptions.toml` excuses each, tracked by [#527](https://github.com/laudebugs/laminapdf/issues/527).

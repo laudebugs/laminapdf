@@ -5,7 +5,7 @@
 
 ## What happened
 
-The document's XMP metadata has damage that ExifTool and pdf.js read past, and Lamina PDF read it the same way. Its values are read as the writer meant them.
+The document's XMP metadata has damage that ExifTool and pdf.js read past. Lamina PDF reads past it the same way, so it reads the values as the writer meant them.
 
 ## Why
 
@@ -16,7 +16,9 @@ The document's XMP metadata has damage that ExifTool and pdf.js read past, and L
 
 ## How to fix
 
-Nothing, to read the file. A metadata edit declares the prefix of each property it writes, and a packet rewritten whole declares the prefix of every property. A prefix used only inside a property's value, such as an `xmp:` field of an `xmpMM:History` entry, is copied as the file wrote it. In strict mode the warning is an error, so a strict reader refuses such a packet.
+Nothing: Lamina PDF reads the file. In strict mode the warning is an error, so a strict reader refuses such a packet.
+
+An edit repairs the prefixes it touches. A metadata edit declares the prefix of each property it writes, and a packet rewritten whole declares the prefix of every property. A prefix used only inside a property's value, such as an `xmp:` field of an `xmpMM:History` entry, stays as the file wrote it.
 
 ## Example
 
