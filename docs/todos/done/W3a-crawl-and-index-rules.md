@@ -37,7 +37,7 @@ Each of the project's hosts tells crawlers the same thing: production pages may 
 
 **Out of scope** (and which todo covers it)
 
-- Canonical URLs and share tags on the reader: [W3d](../ongoing/W3d-structured-data-and-share-tags.md).
+- Canonical URLs and share tags on the reader: [W3d](../done/W3d-structured-data-and-share-tags.md).
 - Submitting sitemaps and pinging IndexNow: [W3e](../ready/W3e-search-engine-registration.md).
 - Soft 404s on unknown reader paths other than `/robots.txt`: the single-page fallback serves the app's own routes; leave it.
 
@@ -68,7 +68,7 @@ Each of the project's hosts tells crawlers the same thing: production pages may 
 - **One build step, not endpoints.** Every build writes `dist/robots.txt` from the site kit's `robotsTxt`: the Astro sites through its `robots` integration after the build (so the website's `robots.txt.ts` endpoint is gone and the docs site never got one), and the reader through its Vite plugin (`apps/web/plugins/search.ts`), which emits it with the bundle. All of them, and `markNoindex`, decide by `isProduction`; `robotsProblems` feeds the docs site's release checks.
 - **Staging takes no `staging` value.** Any build without `LAMINA_PDF_ENV=production` is noindex, as on the two Astro sites, so only `production-checks` sets the variable, on its build and on its e2e step; `tools/xtask/src/workflows.rs` checks it. The agent's GitHub access can't change workflow files, so the PR carries that `web-deploy.yml` change in its description and the owner commits it before merge.
 - **C4d's comparison** is the reader's e2e suite: it checks `X-Robots-Tag` against the run's `LAMINA_PDF_ENV` beside the §4 headers it already checked, and `test/search.test.ts` checks that production's `_headers` is `public/_headers` unchanged and every other build's adds only the `noindex` line.
-- **The reader's other paths.** The single-page fallback answers every path with the app, and production lets crawlers in, so a stray link could make `/anything` a copy of `/`. A canonical link to `/` on the one page fixes that; it belongs with the reader's other head tags in [W3d](../ongoing/W3d-structured-data-and-share-tags.md), which now says so.
+- **The reader's other paths.** The single-page fallback answers every path with the app, and production lets crawlers in, so a stray link could make `/anything` a copy of `/`. A canonical link to `/` on the one page fixes that; it belongs with the reader's other head tags in [W3d](../done/W3d-structured-data-and-share-tags.md), which now says so.
 - **The docs' `workers.dev` copy** is gone: `workers_dev = false` with `preview_urls = true`, the pair the website's Worker and the reader's preview Worker already run. Whether PR previews still deploy is a post-merge check.
 
 ## Post-merge checks

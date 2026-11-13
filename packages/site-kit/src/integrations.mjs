@@ -65,9 +65,34 @@ async function isFile(url) {
 function inlineScripts(html) {
   const bodies = [];
   for (const [, attributes = "", body = ""] of html.matchAll(/<script(\s[^>]*)?>([\s\S]*?)<\/script>/gi)) {
-    if (!/\ssrc\s*=/i.test(attributes) && body.length > 0) bodies.push(body);
+    if (!/\ssrc\s*=/i.test(attributes) && body.length > 0 && !isDataBlock(attributes)) bodies.push(body);
   }
   return bodies;
+}
+
+/** The JavaScript MIME types the HTML standard lists, which run like a script with no `type`. */
+const JAVASCRIPT_TYPE =
+  /^(application\/(ecmascript|javascript|x-ecmascript|x-javascript)|text\/(ecmascript|javascript(1\.[0-5])?|jscript|livescript|x-ecmascript|x-javascript))$/;
+
+/**
+ * Whether a `<script>` with these attributes is a data block, such as JSON-LD: one the browser
+ * never runs, so the CSP doesn't apply to it (HTML standard, "prepare the script element").
+ * Scripts with no `type`, an empty one, a JavaScript MIME type, `module` or `importmap` run, and
+ * keep their hash.
+ *
+ * @param {string} attributes the start tag's attributes
+ * @returns {boolean}
+ */
+export function isDataBlock(attributes) {
+  const type = attributes.match(/\stype\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+  if (type === null) return false;
+  const value = (type[1] ?? type[2] ?? type[3] ?? "").trim().toLowerCase();
+  return !(
+    value === "" ||
+    value === "module" ||
+    value === "importmap" ||
+    JAVASCRIPT_TYPE.test(value.split(";")[0] ?? "")
+  );
 }
 
 /**

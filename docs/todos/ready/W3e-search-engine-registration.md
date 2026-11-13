@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Discoverability §5](../../plans/discoverability.md#5-todos) |
 | Round / milestone | Round W (website), W3 discoverability |
-| Depends on | [W3d](../ongoing/W3d-structured-data-and-share-tags.md) |
+| Depends on | [W3d](../done/W3d-structured-data-and-share-tags.md) |
 | ADRs | Follows [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (no page change for verification; no ping from a browser) |
 | Branch | `feat/w3e-indexnow` |
 | PR title | `feat(sites): IndexNow pings from the production deploys` |

@@ -47,7 +47,7 @@ Round W3 closes those gaps in order of reach, then adds the pages and the measur
 | [W3a](../todos/done/W3a-crawl-and-index-rules.md) | Crawl and index rules on every host: robots.txt for the docs site and the reader, `noindex` on the reader's staging and previews and on the docs' `workers.dev` copy, one robots policy, a test that holds the hosts to it | — |
 | [W3b](../todos/done/W3b-public-repository-links.md) | The repository is public: GitHub links on the docs site, `docsUrl` on the docs site's code pages (ADR 0026 §6), no "private" left in READMEs and plans, a README that names every part | — |
 | [W3c](../todos/done/W3c-package-metadata.md) | Package metadata written for users: npm and crates.io descriptions without internal IDs, keywords for the jobs people search for, `bugs` fields, READMEs that open with what the package does, and a check that keeps internal IDs out | — |
-| [W3d](../todos/ongoing/W3d-structured-data-and-share-tags.md) | Structured data and share tags: JSON-LD on the website and the docs, share tags on the docs and the reader, links to the Markdown twins, `lastmod` in the sitemaps | W3a, W3i |
+| [W3d](../todos/done/W3d-structured-data-and-share-tags.md) | Structured data and share tags: JSON-LD on the website and the docs, share tags on the docs and the reader, links to the Markdown twins, `lastmod` in the sitemaps | W3a, W3i |
 | [W3e](../todos/ready/W3e-search-engine-registration.md) | Search engines told about every change: Search Console and Bing Webmaster by DNS, sitemaps submitted, IndexNow pinged from the production deploys | W3d |
 | [W3f](../todos/done/W3f-agent-discovery.md) | Coding agents find the docs: a Context7 listing claimed with `context7.json`, llms.txt linked from the website and the README, L5a's production check ticked | W3b |
 | [W3g](../todos/done/W3g-choosing-a-pdf-library.md) | A page that answers "which PDF library should I use?": what Lamina PDF does and doesn't do beside the common libraries, with sources, approved by the owner | W3c |
@@ -64,7 +64,7 @@ W3a, W3b, W3c and W3i depend on nothing and can start at once, but W3a should me
 - [x] Set crawl and index rules on every host ([W3a](../todos/done/W3a-crawl-and-index-rules.md))
 - [x] Treat the repository as public everywhere a reader or engine looks ([W3b](../todos/done/W3b-public-repository-links.md))
 - [x] Write package metadata for users, and check it ([W3c](../todos/done/W3c-package-metadata.md))
-- [ ] Add structured data and share tags ([W3d](../todos/ongoing/W3d-structured-data-and-share-tags.md))
+- [x] Add structured data and share tags ([W3d](../todos/done/W3d-structured-data-and-share-tags.md))
 - [ ] Register with Google and Bing, and ping IndexNow from the deploys ([W3e](../todos/ready/W3e-search-engine-registration.md))
 - [x] List the docs with Context7 and link llms.txt where agents look ([W3f](../todos/done/W3f-agent-discovery.md))
 - [x] Publish a page that helps a developer choose a PDF library ([W3g](../todos/done/W3g-choosing-a-pdf-library.md))
