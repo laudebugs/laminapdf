@@ -93,6 +93,7 @@ mod tree;
 #[cfg(feature = "edit")]
 mod tree_writer;
 mod values;
+mod widgets;
 pub mod xmp;
 
 pub use copy::{Copied, ObjectCopier};
@@ -121,6 +122,7 @@ pub use structure::{StructElem, StructKid, StructTree};
 pub use tree::{NameTree, NumberTree};
 #[cfg(feature = "edit")]
 pub use tree_writer::TreeWriter;
+pub use widgets::PageWidget;
 
 // The layers below, in façade order (ADR 0005 §1): what callers of the model need without
 // naming `laminapdf-cos`.

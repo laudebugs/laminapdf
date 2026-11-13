@@ -3,7 +3,7 @@
 
 use laminapdf_model::PageId;
 
-use super::{checked, cleanup, page_ids, pages_before, relabel, structure, widgets_on};
+use super::{checked, cleanup, forms, page_ids, pages_before, relabel, structure, widgets_on};
 use crate::class::ModificationClass;
 use crate::error::{Error, Result};
 use crate::op::Effect;
@@ -22,16 +22,17 @@ pub enum ReferencePolicy {
     /// `/Fit`, so the outline item, link or named destination keeps working.
     #[default]
     Retarget,
-    /// Remove it: an outline item loses its destination, a link annotation leaves its page,
-    /// a named destination and `/OpenAction` are removed.
+    /// Remove it: an outline item or a link loses its destination (the link stays on its page,
+    /// inert), a named destination and `/OpenAction` are removed.
     Remove,
 }
 
 /// Deletes `pages` (each once; unknown pages are an error). Outline items, links and `GoTo`
 /// actions on surviving pages, named destinations and `/OpenAction` that named a deleted page
 /// follow `references` ([`ReferencePolicy`]); structure elements whose content was all on
-/// deleted pages are removed with their `/ParentTree` entries. The page objects stay in the
-/// file's earlier revisions. Deleting every page is [`Error::NoPagesLeft`].
+/// deleted pages are removed with their `/ParentTree` entries, and the widgets on deleted pages
+/// leave the form (a field left with none leaves it too). The page objects stay in the file's
+/// earlier revisions. Deleting every page is [`Error::NoPagesLeft`].
 ///
 /// On the wire: `{ "op": "deletePages", "args": { "pages": ["p7.0"], "references": "retarget" } }`.
 ///
@@ -92,6 +93,7 @@ impl DeletePages {
         }
         let mut changes = cleanup::destinations(doc, &references, &before, &pages, self.references)?;
         changes.extend(structure::clean(doc, &references, &pages, &parent_keys)?);
+        changes.extend(forms::drop_widgets(doc, &references)?);
         let after = page_ids(doc)?;
         relabel(doc, &before, &after)?;
         Ok(Effect {

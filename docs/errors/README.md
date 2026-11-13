@@ -101,6 +101,7 @@ A PR that adds a code adds:
 | [`malformed-xmp`](malformed-xmp.md) | `input` | a metadata edit would replace the document's XMP packet, which can't be read, losing what it holds |
 | [`unknown-source`](unknown-source.md) | `usage` | an op or a call names a source document that was not added to the session |
 | [`no-pages-left`](no-pages-left.md) | `usage` | a page deletion would leave the document with no pages |
+| [`invalid-op`](invalid-op.md) | `usage` | an op's values are out of range, such as a page count or a page size |
 
 ## Op warnings
 

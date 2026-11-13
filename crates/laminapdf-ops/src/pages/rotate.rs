@@ -1,5 +1,7 @@
 //! `RotatePages`: `/Rotate` on many pages at once (ISO 32000-2 §7.7.3.3).
 
+use std::collections::{BTreeMap, BTreeSet};
+
 use laminapdf_model::{PageId, Rotation};
 
 use super::{checked, pages_before, widgets_on};
@@ -77,11 +79,15 @@ impl RotatePages {
     pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Effect> {
         let all = pages_before(doc)?;
         let pages = checked(&all, &self.pages)?;
+        let shown = match self.mode {
+            RotateMode::Set => BTreeMap::new(),
+            RotateMode::Turn => shown(doc, &pages)?,
+        };
         let mut changed: Vec<PageId> = Vec::new();
         for page in pages {
             let to = match self.mode {
                 RotateMode::Set => self.angle,
-                RotateMode::Turn => turned(shown(doc, &page)?, self.angle),
+                RotateMode::Turn => turned(shown.get(&page).copied().unwrap_or(Rotation::None), self.angle),
             };
             changed.extend(RotatePage::new(page, to).apply_to(doc)?);
         }
@@ -94,14 +100,17 @@ impl RotatePages {
     }
 }
 
-/// The rotation `page` shows (own or inherited); a value that isn't a multiple of 90 reads as
-/// upright, as `RotatePage` treats it.
-fn shown(doc: &laminapdf_model::Document, page: &PageId) -> Result<Rotation> {
-    let pages = doc.pages()?;
-    match pages.by_id(page) {
-        Some(p) => Ok(p.rotate_quietly()?),
-        None => Ok(Rotation::None),
+/// The rotation each of `pages` shows (own or inherited), read in one walk of the page tree; a
+/// value that isn't a multiple of 90 reads as upright, as `RotatePage` treats it.
+fn shown(doc: &laminapdf_model::Document, pages: &[PageId]) -> Result<BTreeMap<PageId, Rotation>> {
+    let wanted: BTreeSet<&PageId> = pages.iter().collect();
+    let mut out = BTreeMap::new();
+    for page in doc.pages()?.iter() {
+        if wanted.contains(page.id()) {
+            out.insert(page.id().clone(), page.rotate_quietly()?);
+        }
     }
+    Ok(out)
 }
 
 /// `from` turned clockwise by `by`.

@@ -141,7 +141,10 @@ fn finish_reorder(doc: &mut laminapdf_model::Document, before: &[PageId], moved:
     }
     relabel(doc, before, &after)?;
     let widgets = widgets_on(doc, moved, WidgetChange::Moved, ModificationClass::PageStructure)?;
+    // The moved pages are listed as touched: a viewer that redraws touched pages sees the
+    // order change, and so does undo, which reports the same pages.
     Ok(Effect {
+        pages: moved.to_vec(),
         page_order: Some(after),
         widgets,
         ..Effect::default()

@@ -90,10 +90,9 @@ pub(crate) fn destinations(
                 true
             }
             ReferenceKind::Link { annot, on, via } if named(via).is_none() && !deleted.contains(on) => {
-                match &new {
-                    Some(_) => write_dest(doc, Holder::Object(*annot), via, new.clone(), &[])?,
-                    None => unlist_annot(doc, on, *annot)?,
-                }
+                // A removed destination leaves the link on its page, inert, so the structure
+                // tree's OBJR and parent-tree entry for it stay right.
+                write_dest(doc, Holder::Object(*annot), via, new.clone(), &["Dest", "A"])?;
                 true
             }
             ReferenceKind::OpenAction { via } if named(via).is_none() => {
@@ -113,11 +112,18 @@ pub(crate) fn destinations(
             changes.push(ReferenceChange::new(reference.clone(), outcome(new.as_ref(), target)));
         }
     }
+    let mut tree: BTreeMap<Vec<u8>, Option<Object>> = BTreeMap::new();
     for ((name, store), (reference, new)) in names {
-        rename_destination(doc, store, &name, new.clone())?;
+        match store {
+            NameStoreKey::NameTree => {
+                tree.insert(name, new.clone());
+            }
+            NameStoreKey::DestsDict => set_old_destination(doc, &name, new.as_ref())?,
+        }
         let target = nearest(before, &deleted, &reference.page);
         changes.push(ReferenceChange::new(reference, outcome(new.as_ref(), target)));
     }
+    set_tree_destinations(doc, &tree)?;
     Ok(changes)
 }
 
@@ -211,92 +217,65 @@ fn write_dest(
     }
 }
 
-/// Takes the link annotation `annot` off page `on`'s `/Annots`.
-fn unlist_annot(doc: &mut laminapdf_model::Document, on: &PageId, annot: ObjRef) -> Result<()> {
-    let Some(page) = on.as_lamina_id().obj_ref() else {
+/// Sets each named destination of `changes` in the `/Names /Dests` tree to its new
+/// destination, or removes it with `None`, writing the tree again once. A destination
+/// dictionary (`<< /D [...] >>`) keeps its other entries.
+fn set_tree_destinations(
+    doc: &mut laminapdf_model::Document,
+    changes: &BTreeMap<Vec<u8>, Option<Object>>,
+) -> Result<()> {
+    if changes.is_empty() {
+        return Ok(());
+    }
+    let Some(tree) = doc.name_tree("Dests")? else {
         return Ok(());
     };
-    let annots = doc.object(page.num)?.as_dict().and_then(|d| d.get("Annots").cloned());
-    let keep = |items: &mut Vec<Object>| items.retain(|o| o.as_ref() != Some(annot));
-    match annots {
-        Some(Object::Ref(list)) => edit_object(doc, list, |o| {
-            if let Object::Array(items) = o {
-                keep(items);
+    let mut entries: BTreeMap<Vec<u8>, Object> = tree.entries()?.into_iter().collect();
+    for (name, new) in changes {
+        match (entries.get(name).cloned(), new) {
+            (Some(old), Some(dest)) => {
+                let value = with_dest(doc, &old, dest.clone())?;
+                entries.insert(name.clone(), value);
             }
-        }),
-        Some(Object::Array(_)) => edit_dict(doc, page, |d| {
-            if let Some(Object::Array(items)) = d.get_mut("Annots") {
-                keep(items);
+            (Some(_), None) => {
+                entries.remove(name);
             }
-        }),
-        _ => Ok(()),
+            (None, _) => {}
+        }
     }
+    let root = TreeWriter::new().write_names(&mut doc.cos_mut().edit(), &entries)?;
+    set_names_entry(doc, "Dests", Object::Ref(root))
 }
 
-/// Sets the named destination `name` in `store` to `new`, or removes it with `None`. A
-/// destination dictionary (`<< /D [...] >>`) keeps its other entries.
-fn rename_destination(
-    doc: &mut laminapdf_model::Document,
-    store: NameStoreKey,
-    name: &[u8],
-    new: Option<Object>,
-) -> Result<()> {
-    match store {
-        NameStoreKey::NameTree => {
-            let Some(tree) = doc.name_tree("Dests")? else {
-                return Ok(());
-            };
-            let mut entries: BTreeMap<Vec<u8>, Object> = tree.entries()?.into_iter().collect();
-            let Some(old) = entries.get(name).cloned() else {
-                return Ok(());
-            };
-            match new {
-                Some(dest) => {
-                    let value = with_dest(doc, &old, dest)?;
-                    entries.insert(name.to_vec(), value);
-                }
-                None => {
-                    entries.remove(name);
-                }
-            }
-            let root = TreeWriter::new().write_names(&mut doc.cos_mut().edit(), &entries)?;
-            set_names_entry(doc, "Dests", Object::Ref(root))
+/// Sets the named destination `name` in the catalog's PDF 1.1 `/Dests` dictionary to `new`,
+/// or removes it with `None`. Names are matched byte for byte (a name need not be UTF-8), and
+/// a destination dictionary keeps its other entries.
+fn set_old_destination(doc: &mut laminapdf_model::Document, name: &[u8], new: Option<&Object>) -> Result<()> {
+    let Some(dests) = doc.catalog()?.get("Dests").cloned() else {
+        return Ok(());
+    };
+    let (holder, dict) = match dests {
+        Object::Ref(r) => match doc.object(r.num)?.as_dict() {
+            Some(d) => (Some(r), d.clone()),
+            None => return Ok(()),
+        },
+        Object::Dict(d) => (None, d),
+        _ => return Ok(()),
+    };
+    let mut out = Dict::new();
+    for (key, value) in dict.iter() {
+        if key.0 != name {
+            out.insert(key.clone(), value.clone());
+            continue;
         }
-        NameStoreKey::DestsDict => {
-            let Some(dests) = doc.catalog()?.get("Dests").cloned() else {
-                return Ok(());
-            };
-            let key = String::from_utf8_lossy(name).into_owned();
-            let update = |d: &mut Dict, old: Option<Object>| match &new {
-                Some(dest) => {
-                    let value = match old.as_ref().and_then(Object::as_dict) {
-                        Some(holder) => {
-                            let mut holder = holder.clone();
-                            holder.insert("D", dest.clone());
-                            Object::Dict(holder)
-                        }
-                        None => dest.clone(),
-                    };
-                    d.insert(key.as_str(), value);
-                }
-                None => {
-                    d.remove(&key);
-                }
-            };
-            match dests {
-                Object::Ref(r) => {
-                    let old = doc.object(r.num)?.as_dict().and_then(|d| d.get(&key).cloned());
-                    let old = resolve(doc, old)?;
-                    edit_dict(doc, r, |d| update(d, old))
-                }
-                Object::Dict(mut d) => {
-                    let old = resolve(doc, d.get(&key).cloned())?;
-                    update(&mut d, old);
-                    set_catalog(doc, "Dests", Some(Object::Dict(d)))
-                }
-                _ => Ok(()),
-            }
+        if let Some(dest) = new {
+            let value = with_dest(doc, value, dest.clone())?;
+            out.insert(key.clone(), value);
         }
+    }
+    match holder {
+        Some(r) => edit_object(doc, r, |o| *o = Object::Dict(out)),
+        None => set_catalog(doc, "Dests", Some(Object::Dict(out))),
     }
 }
 

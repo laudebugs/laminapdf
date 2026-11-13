@@ -64,6 +64,9 @@ pub enum Error {
     /// to show, so delete all but one, or insert a page first.
     #[error("the edit would delete every page")]
     NoPagesLeft,
+    /// An op's values are out of range: the reason names which (fixed text, never the op's).
+    #[error("the op's values are out of range: {0}")]
+    InvalidOp(&'static str),
 }
 
 /// A page ID as a message may show it: an object ID in full (lamina-made: a kind and two
@@ -118,6 +121,7 @@ impl Error {
         "malformed-xmp",
         "unknown-source",
         "no-pages-left",
+        "invalid-op",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -138,6 +142,7 @@ impl Error {
             Self::MalformedXmp => "malformed-xmp",
             Self::UnknownSource(_) => "unknown-source",
             Self::NoPagesLeft => "no-pages-left",
+            Self::InvalidOp(_) => "invalid-op",
         }
     }
 
@@ -155,7 +160,7 @@ impl Error {
             Self::NestedTransaction | Self::NoTransaction | Self::SavedNotRebased | Self::NoPendingSave => {
                 ErrorKind::State
             }
-            Self::UnknownPage(_) | Self::UnknownSource(_) | Self::NoPagesLeft => ErrorKind::Usage,
+            Self::UnknownPage(_) | Self::UnknownSource(_) | Self::NoPagesLeft | Self::InvalidOp(_) => ErrorKind::Usage,
             Self::DirectPage(_) | Self::UnsupportedVersion(_) => ErrorKind::Unsupported,
             Self::InvalidLog(_) | Self::MalformedXmp => ErrorKind::Input,
         }
@@ -186,7 +191,8 @@ impl Error {
             | Self::NoPendingSave
             | Self::MalformedXmp
             | Self::UnknownSource(_)
-            | Self::NoPagesLeft => Location::NONE,
+            | Self::NoPagesLeft
+            | Self::InvalidOp(_) => Location::NONE,
         }
     }
 }
@@ -217,6 +223,7 @@ mod tests {
             Error::MalformedXmp,
             Error::UnknownSource(crate::SourceId::from_bytes([0; 32])),
             Error::NoPagesLeft,
+            Error::InvalidOp("a reason"),
         ]
     }
 

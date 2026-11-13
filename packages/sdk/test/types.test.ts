@@ -65,6 +65,7 @@ function kindOf(code: ErrorCode): ErrorKind {
       return "security";
     case "unknown-page":
     case "no-pages-left":
+    case "invalid-op":
     case "unknown-source":
     case "sink-not-empty":
     case "collection-index":

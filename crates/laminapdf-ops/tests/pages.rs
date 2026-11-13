@@ -210,7 +210,9 @@ fn deleting_a_page_retargets_what_named_it_to_the_next_page() {
             .iter()
             .filter(|c| !matches!(
                 c.reference.kind,
-                ReferenceKind::StructElem { .. } | ReferenceKind::StructContentRef { .. }
+                ReferenceKind::StructElem { .. }
+                    | ReferenceKind::StructContentRef { .. }
+                    | ReferenceKind::Widget { .. }
             ))
             .all(|c| c.outcome == ReferenceOutcome::Retargeted { to: ids[3].clone() }),
         "{:?}",
@@ -238,15 +240,16 @@ fn deleting_with_remove_drops_what_named_the_page() {
         &mut doc,
         DeletePages::new(vec![ids[2].clone()]).with_references(ReferencePolicy::Remove),
     );
-    let page_1_links = doc.pages().unwrap().get(0).unwrap().annots().unwrap().len();
+    // The link stays on its page (its structure entries stay right), with no destination.
+    let link = doc.pages().unwrap().get(0).unwrap().annots().unwrap()[0];
     assert_eq!(
         (
             entry(&doc, first_item, "Dest"),
             doc.name_tree("Dests").unwrap().unwrap().get(b"chap3").unwrap(),
             entry(&doc, catalog, "OpenAction"),
-            page_1_links,
+            entry(&doc, link, "Dest"),
         ),
-        (None, None, None, 0)
+        (None, None, None, None)
     );
 }
 
@@ -272,6 +275,28 @@ fn deleting_a_page_removes_the_structure_elements_only_it_held() {
     // Paragraph 3 (all on page 3) goes; paragraph 2 keeps its own content and loses the MCR
     // and OBJR on page 3; the parent tree loses page 3's key and its widget's.
     assert_eq!((structure, parent_tree), (3, Some(1)));
+}
+
+#[test]
+fn deleting_takes_the_deleted_pages_widgets_out_of_the_form() {
+    let mut doc = pages("references.pdf");
+    let ids = page_ids(&doc);
+    let catalog = doc.trailer().get("Root").and_then(Object::as_ref).unwrap();
+    let fields_before = entry(&doc, catalog, "AcroForm")
+        .unwrap()
+        .as_dict()
+        .unwrap()
+        .get("Fields")
+        .unwrap()
+        .as_array()
+        .unwrap()
+        .len();
+    apply(&mut doc, DeletePages::new(vec![ids[2].clone()]));
+    let form = entry(&doc, catalog, "AcroForm").unwrap();
+    let fields = form.as_dict().unwrap().get("Fields").unwrap().as_array().unwrap().len();
+    // "name" (merged, on page 3), "city" (its one widget on page 3) and "addr" (both its
+    // widgets on page 3) leave the form; "zip", on page 4, stays.
+    assert_eq!((fields_before, fields), (4, 1));
 }
 
 #[test]

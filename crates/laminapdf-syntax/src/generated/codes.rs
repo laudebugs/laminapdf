@@ -104,6 +104,8 @@ pub enum ErrorCode {
     UnknownSource,
     /// `no-pages-left`: a page deletion would leave the document with no pages.
     NoPagesLeft,
+    /// `invalid-op`: an op's values are out of range, such as a page count or a page size.
+    InvalidOp,
     /// `sink`: the sink failed to take the bytes or could not give them back.
     Sink,
     /// `not-rebased`: the output was written, but rebasing the document onto it failed.
@@ -303,6 +305,7 @@ impl ErrorCode {
         Self::MalformedXmp,
         Self::UnknownSource,
         Self::NoPagesLeft,
+        Self::InvalidOp,
         Self::Sink,
         Self::NotRebased,
         Self::SinkNotEmpty,
@@ -437,6 +440,7 @@ impl ErrorCode {
             Self::MalformedXmp => "malformed-xmp",
             Self::UnknownSource => "unknown-source",
             Self::NoPagesLeft => "no-pages-left",
+            Self::InvalidOp => "invalid-op",
             Self::Sink => "sink",
             Self::NotRebased => "not-rebased",
             Self::SinkNotEmpty => "sink-not-empty",
@@ -557,6 +561,7 @@ impl ErrorCode {
             Self::MalformedXmp => ErrorKind::Input,
             Self::UnknownSource => ErrorKind::Usage,
             Self::NoPagesLeft => ErrorKind::Usage,
+            Self::InvalidOp => ErrorKind::Usage,
             Self::Sink => ErrorKind::Io,
             Self::NotRebased => ErrorKind::State,
             Self::SinkNotEmpty => ErrorKind::Usage,
@@ -677,6 +682,7 @@ impl ErrorCode {
             Self::MalformedXmp => "a metadata edit would replace the document's XMP packet, which can't be read, losing what it holds",
             Self::UnknownSource => "an op or a call names a source document that was not added to the session",
             Self::NoPagesLeft => "a page deletion would leave the document with no pages",
+            Self::InvalidOp => "an op's values are out of range, such as a page count or a page size",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
             Self::SinkNotEmpty => "the sink already held bytes before the save started",
@@ -797,6 +803,7 @@ impl ErrorCode {
             Self::MalformedXmp => "set replaceMalformed on the edit to replace the packet with a new one, or leave the metadata as it is",
             Self::UnknownSource => "add the source document's bytes with addSource before applying ops that name it",
             Self::NoPagesLeft => "keep at least one page: delete all but one, or insert a blank page first",
+            Self::InvalidOp => "insert between 1 and 10,000 pages at a time, each with a width and height above 0 and up to 14,400 points",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",
             Self::SinkNotEmpty => "pass an empty sink: output offsets count from the sink's first byte",

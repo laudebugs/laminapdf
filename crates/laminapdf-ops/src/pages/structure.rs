@@ -48,63 +48,85 @@ pub(crate) fn clean(
     parent_keys: &BTreeSet<i64>,
 ) -> Result<Vec<ReferenceChange>> {
     let gone: BTreeSet<ObjRef> = deleted.iter().filter_map(|p| p.as_lamina_id().obj_ref()).collect();
-    let elements: Vec<(ObjRef, &PageReference)> = references
-        .iter()
-        .filter_map(|r| match &r.kind {
-            ReferenceKind::StructElem { elem: Some(e) } => Some((*e, r)),
-            _ => None,
-        })
-        .collect();
-    // Elements whose kids are all on deleted pages, or are elements removed already.
+    // Candidates: the elements whose `/Pg` is a deleted page, and, as they go, their parents
+    // (a grouping element such as a Table or L has no `/Pg` of its own).
+    let mut candidates: Vec<ObjRef> = Vec::new();
+    for r in references {
+        if let ReferenceKind::StructElem { elem: Some(e) } = &r.kind
+            && !candidates.contains(e)
+        {
+            candidates.push(*e);
+        }
+    }
     let mut removed: BTreeSet<ObjRef> = BTreeSet::new();
     loop {
         let before = removed.len();
-        for (elem, _) in &elements {
-            if !removed.contains(elem) && all_gone(doc, *elem, &gone, &removed)? {
-                removed.insert(*elem);
+        let mut i = 0;
+        while let Some(&elem) = candidates.get(i) {
+            i += 1;
+            if removed.contains(&elem) || !all_gone(doc, elem, &gone, &removed)? {
+                continue;
+            }
+            removed.insert(elem);
+            if let Some(parent) = struct_parent(doc, elem)?
+                && !candidates.contains(&parent)
+            {
+                candidates.push(parent);
             }
         }
         if removed.len() == before {
             break;
         }
     }
-    let mut changes = Vec::new();
-    for (elem, reference) in &elements {
-        if !removed.contains(elem) {
-            continue;
-        }
+    // Per holder (a surviving element or the tree root): the removed elements and the kid
+    // indexes to drop, all in one pass, so no index shifts under another drop.
+    let mut drops: BTreeMap<ObjRef, (BTreeSet<ObjRef>, BTreeSet<usize>)> = BTreeMap::new();
+    for &elem in &removed {
         let parent = doc
             .object(elem.num)?
             .as_dict()
             .and_then(|d| d.get("P"))
             .and_then(Object::as_ref);
         if let Some(parent) = parent.filter(|p| !removed.contains(p)) {
-            drop_kids(doc, parent, |kid, _| kid.as_ref() == Some(*elem))?;
-        }
-        changes.push(ReferenceChange::new((*reference).clone(), ReferenceOutcome::Removed));
-    }
-    // Kids of surviving elements that name a deleted page, by element, highest index first.
-    let mut kids: BTreeMap<ObjRef, Vec<(usize, &PageReference)>> = BTreeMap::new();
-    for reference in references {
-        if let ReferenceKind::StructContentRef {
-            elem: Some(e), index, ..
-        } = &reference.kind
-            && !removed.contains(e)
-        {
-            kids.entry(*e).or_default().push((*index, reference));
+            drops.entry(parent).or_default().0.insert(elem);
         }
     }
-    for (elem, mut at) in kids {
-        let indices: BTreeSet<usize> = at.iter().map(|(i, _)| *i).collect();
-        drop_kids(doc, elem, |_, i| indices.contains(&i))?;
-        at.sort_by_key(|(i, _)| *i);
-        changes.extend(
-            at.into_iter()
-                .map(|(_, r)| ReferenceChange::new(r.clone(), ReferenceOutcome::Removed)),
-        );
+    let mut changes = Vec::new();
+    for r in references {
+        match &r.kind {
+            ReferenceKind::StructElem { elem: Some(e) } if removed.contains(e) => {
+                changes.push(ReferenceChange::new(r.clone(), ReferenceOutcome::Removed));
+            }
+            ReferenceKind::StructContentRef {
+                elem: Some(e), index, ..
+            } if !removed.contains(e) => {
+                drops.entry(*e).or_default().1.insert(*index);
+                changes.push(ReferenceChange::new(r.clone(), ReferenceOutcome::Removed));
+            }
+            _ => {}
+        }
+    }
+    for (holder, (elements, indices)) in drops {
+        drop_kids(doc, holder, |kid, i| {
+            indices.contains(&i) || kid.as_ref().is_some_and(|r| elements.contains(&r))
+        })?;
     }
     drop_parent_tree_keys(doc, parent_keys)?;
     Ok(changes)
+}
+
+/// `elem`'s parent when it is a structure element (not the tree root, `/Type /StructTreeRoot`).
+fn struct_parent(doc: &laminapdf_model::Document, elem: ObjRef) -> Result<Option<ObjRef>> {
+    let Some(parent) = doc
+        .object(elem.num)?
+        .as_dict()
+        .and_then(|d| d.get("P"))
+        .and_then(Object::as_ref)
+    else {
+        return Ok(None);
+    };
+    let is_root = doc.object(parent.num)?.as_dict().and_then(|d| d.get_name("Type")) == Some(b"StructTreeRoot");
+    Ok((!is_root).then_some(parent))
 }
 
 /// Whether every kid of element `elem` is content on a deleted page or a removed element.

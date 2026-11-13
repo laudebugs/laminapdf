@@ -4,13 +4,15 @@ use laminapdf_cos::{Dict, Object};
 use laminapdf_model::{PageId, PagePosition, PageSize, Rotation};
 
 use super::{page_ids, pages_before, relabel};
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::op::Effect;
 use crate::wire;
 
 /// Inserts `count` blank pages of `size` at `at`, each showing at `rotate`. Each new page
 /// gets a new object and [`PageId`] (ADR 0005 §5), an empty `/Resources` and no content; in
-/// a labelled document they continue the label range they land in.
+/// a labelled document they continue the label range they land in. A count outside 1 to
+/// 10,000, or a side that isn't above 0 and at most 14,400 points, is
+/// [`Error::InvalidOp`](crate::Error::InvalidOp).
 ///
 /// On the wire: `{ "op": "insertBlankPages", "args": { "at": { "after": "p3.0" }, "count": 2,
 /// "size": { "width": 612, "height": 792 }, "rotate": 0 } }`.
@@ -41,7 +43,7 @@ pub struct InsertBlankPages {
 }
 
 // Ops compare by value (`Op: Eq`); a size is two numbers, and the one value that isn't equal
-// to itself, NaN, never reaches an op from JSON, and would be written as a 1-point page.
+// to itself, NaN, never reaches an op from JSON, and is refused as `invalid-op`.
 impl Eq for InsertBlankPages {}
 
 impl InsertBlankPages {
@@ -70,10 +72,7 @@ impl InsertBlankPages {
     /// The page dictionary each new page starts from.
     fn page(&self) -> Dict {
         let mut dict = Dict::new();
-        let size = |v: laminapdf_model::Pt| {
-            let v = v.get();
-            Object::Real(if v.is_finite() && v > 0.0 { v } else { 1.0 })
-        };
+        let size = |v: laminapdf_model::Pt| Object::Real(v.get());
         dict.insert(
             "MediaBox",
             Object::Array(vec![0.into(), 0.into(), size(self.size.width), size(self.size.height)]),
@@ -85,10 +84,28 @@ impl InsertBlankPages {
         dict
     }
 
-    pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Effect> {
-        if self.count == 0 {
-            return Ok(Effect::default());
+    /// The most pages one op inserts.
+    const MAX_COUNT: u32 = 10_000;
+
+    /// The largest page side, in points: 14,400 units at a `/UserUnit` of 1 (ISO 32000-2
+    /// Annex C).
+    const MAX_SIDE: f64 = 14_400.0;
+
+    fn check(&self) -> Result<()> {
+        if self.count == 0 || self.count > Self::MAX_COUNT {
+            return Err(Error::InvalidOp("insert between 1 and 10,000 pages"));
         }
+        let side = |v: laminapdf_model::Pt| v.get().is_finite() && v.get() > 0.0 && v.get() <= Self::MAX_SIDE;
+        if !side(self.size.width) || !side(self.size.height) {
+            return Err(Error::InvalidOp(
+                "a page's width and height are above 0 and at most 14,400 points",
+            ));
+        }
+        Ok(())
+    }
+
+    pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Effect> {
+        self.check()?;
         let before = pages_before(doc)?;
         let mut added: Vec<PageId> = Vec::new();
         {

@@ -5,6 +5,7 @@
 
 mod cleanup;
 mod delete;
+mod forms;
 mod insert;
 mod order;
 mod rotate;
@@ -12,7 +13,7 @@ mod structure;
 
 use std::collections::BTreeSet;
 
-use laminapdf_model::{PageId, ReferenceKind};
+use laminapdf_model::PageId;
 
 pub use cleanup::{ReferenceChange, ReferenceOutcome};
 pub use delete::{DeletePages, ReferencePolicy};
@@ -77,19 +78,24 @@ pub(crate) fn relabel(doc: &mut laminapdf_model::Document, before: &[PageId], af
     Ok(())
 }
 
-/// The form fields whose widgets are on `pages`, each once, as changed by `change`.
+/// The form fields whose widgets `pages` show (their `/Annots`), each once, as changed by
+/// `change`: the same widgets the save planner indexes.
 pub(crate) fn widgets_on(
     doc: &laminapdf_model::Document,
     pages: &[PageId],
     change: WidgetChange,
     class: ModificationClass,
 ) -> Result<Vec<TouchedWidget>> {
+    let mut seen = BTreeSet::new();
     let mut out: Vec<TouchedWidget> = Vec::new();
-    for entry in doc.page_references(pages)?.entries() {
-        if let ReferenceKind::Widget { field, .. } = &entry.kind {
-            let touched = TouchedWidget::new(laminapdf_model::FieldId::object(*field), change, class);
-            if !out.contains(&touched) {
-                out.push(touched);
+    for page in pages {
+        for w in doc.page_widgets(page)? {
+            if seen.insert(w.field) {
+                out.push(TouchedWidget::new(
+                    laminapdf_model::FieldId::object(w.field),
+                    change,
+                    class,
+                ));
             }
         }
     }

@@ -35,6 +35,7 @@
             "malformed-xmp",
             "unknown-source",
             "no-pages-left",
+            "invalid-op",
             "sink",
             "not-rebased",
             "sink-not-empty",

@@ -24,7 +24,7 @@ The result has five pages: the old last page, then the old first and second page
 
 ## What to change
 
-- **Remove what pointed at a deleted page:** pass `references: "remove"` to `deletePages`. A bookmark keeps its title but goes nowhere, and a link to the page is removed from its own page.
+- **Remove what pointed at a deleted page:** pass `references: "remove"` to `deletePages`. A bookmark keeps its title but goes nowhere, and a link to the page stays on its own page but goes nowhere.
 - **Reverse the order:** `reversePages` with every page's ID reverses the document. With some of them, those pages swap places and the others stay put.
 - **One step at a time:** `doc.deletePages(ids)`, `doc.movePages(ids, "start")` and the others each apply one step as its own edit, and `doc.transact(tx => …)` collects several of them into one.
 - **Delete every page:** you can't. A PDF needs at least one page, so the edit refuses with [`no-pages-left`](/reference/codes/no-pages-left/) and changes nothing.

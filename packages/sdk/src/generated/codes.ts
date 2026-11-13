@@ -53,6 +53,7 @@ export type ErrorCode =
   | "malformed-xmp"
   | "unknown-source"
   | "no-pages-left"
+  | "invalid-op"
   | "sink"
   | "not-rebased"
   | "sink-not-empty"
@@ -264,6 +265,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "malformed-xmp",
   "unknown-source",
   "no-pages-left",
+  "invalid-op",
   "sink",
   "not-rebased",
   "sink-not-empty",
@@ -502,6 +504,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "malformed-xmp": "input",
   "unknown-source": "usage",
   "no-pages-left": "usage",
+  "invalid-op": "usage",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
   "pdfa-info-mismatch": "input",
@@ -688,6 +691,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "malformed-xmp": "set replaceMalformed on the edit to replace the packet with a new one, or leave the metadata as it is",
   "unknown-source": "add the source document's bytes with addSource before applying ops that name it",
   "no-pages-left": "keep at least one page: delete all but one, or insert a blank page first",
+  "invalid-op": "insert between 1 and 10,000 pages at a time, each with a width and height above 0 and up to 14,400 points",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
