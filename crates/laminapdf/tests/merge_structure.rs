@@ -165,7 +165,7 @@ fn an_element_id_already_used_comes_in_renamed() {
     let ids: Vec<&[u8]> = tree.elements().iter().filter_map(|e| e.id.as_deref()).collect();
     assert_eq!(ids, [&b"Note1"[..], b"Note1#2"]);
     // The IDTree maps both.
-    let entries = laminapdf_model::NameTree::new(&ops, tree.id_tree.clone().unwrap())
+    let entries = laminapdf_model::NameTree::new(ops, tree.id_tree.clone().unwrap())
         .entries()
         .unwrap();
     let keys: Vec<&[u8]> = entries.iter().map(|(k, _)| k.as_slice()).collect();
