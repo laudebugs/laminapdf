@@ -102,6 +102,8 @@ pub enum ErrorCode {
     MalformedXmp,
     /// `unknown-source`: an op or a call names a source document that was not added to the session.
     UnknownSource,
+    /// `open-action-not-destination`: an op would replace or remove the document's open action, which is an action other than a destination.
+    OpenActionNotDestination,
     /// `unknown-outline-item`: an outline op names a bookmark the outline does not have.
     UnknownOutlineItem,
     /// `direct-outline-item`: the bookmark is stored inside another item rather than as an object of its own, so outline ops can't name it yet.
@@ -340,6 +342,7 @@ impl ErrorCode {
         Self::NoPendingSave,
         Self::MalformedXmp,
         Self::UnknownSource,
+        Self::OpenActionNotDestination,
         Self::UnknownOutlineItem,
         Self::DirectOutlineItem,
         Self::OutlineNotASibling,
@@ -493,6 +496,7 @@ impl ErrorCode {
             Self::NoPendingSave => "no-pending-save",
             Self::MalformedXmp => "malformed-xmp",
             Self::UnknownSource => "unknown-source",
+            Self::OpenActionNotDestination => "open-action-not-destination",
             Self::UnknownOutlineItem => "unknown-outline-item",
             Self::DirectOutlineItem => "direct-outline-item",
             Self::OutlineNotASibling => "outline-not-a-sibling",
@@ -632,6 +636,7 @@ impl ErrorCode {
             Self::NoPendingSave => ErrorKind::State,
             Self::MalformedXmp => ErrorKind::Input,
             Self::UnknownSource => ErrorKind::Usage,
+            Self::OpenActionNotDestination => ErrorKind::Usage,
             Self::UnknownOutlineItem => ErrorKind::Usage,
             Self::DirectOutlineItem => ErrorKind::Unsupported,
             Self::OutlineNotASibling => ErrorKind::Usage,
@@ -771,6 +776,7 @@ impl ErrorCode {
             Self::NoPendingSave => "rebase was called without a save waiting for it",
             Self::MalformedXmp => "a metadata edit would replace the document's XMP packet, which can't be read, losing what it holds",
             Self::UnknownSource => "an op or a call names a source document that was not added to the session",
+            Self::OpenActionNotDestination => "an op would replace or remove the document's open action, which is an action other than a destination",
             Self::UnknownOutlineItem => "an outline op names a bookmark the outline does not have",
             Self::DirectOutlineItem => "the bookmark is stored inside another item rather than as an object of its own, so outline ops can't name it yet",
             Self::OutlineNotASibling => "the position names a bookmark that is not a child of the parent the op names",
@@ -910,6 +916,7 @@ impl ErrorCode {
             Self::NoPendingSave => "call rebase only after a save that returned SavedNotRebased",
             Self::MalformedXmp => "set replaceMalformed on the edit to replace the packet with a new one, or leave the metadata as it is",
             Self::UnknownSource => "add the source document's bytes with addSource before applying ops that name it",
+            Self::OpenActionNotDestination => "leave the open page out of the edit, which keeps the open action as it is",
             Self::UnknownOutlineItem => "read the outline again and use one of its item IDs; an item a previous op deleted is gone",
             Self::DirectOutlineItem => "apply any other outline op first: it rewrites the outline and gives every bookmark an object and an ID of its own",
             Self::OutlineNotASibling => "name a position among the parent's own children, or use first or last",

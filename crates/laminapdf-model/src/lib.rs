@@ -42,6 +42,8 @@
 //! * [`Outline`] / [`OutlineItem`]: titles, nesting, open state, [`Destination`]s resolved
 //!   to [`PageId`]s, action kinds.
 //! * [`Info`]: the information dictionary, with dates as [`PdfDate`].
+//! * [`InitialView`]: how the document asks to be shown when it opens ([`Document::initial_view`]),
+//!   and its article [`Thread`]s ([`Document::threads`]).
 //! * [`Disclosure`]: what a document holds beyond its visible pages ([`Document::disclosure`]).
 //! * [`xmp`]: the XMP metadata packet ([`Document::xmp`]): a tolerant reader, typed access to
 //!   the properties Info mirrors, the Info ↔ XMP mapping table, and a writer that keeps every
@@ -80,6 +82,7 @@ mod geometry;
 mod graphics;
 mod id;
 mod info;
+mod initial_view;
 mod labels;
 mod link;
 mod locate;
@@ -92,6 +95,7 @@ mod page_tree;
 #[cfg(feature = "edit")]
 mod references;
 mod structure;
+mod threads;
 mod tree;
 #[cfg(feature = "tree-write")]
 mod tree_writer;
@@ -113,6 +117,7 @@ pub use geometry::{LETTER, PageFrame, PageSize, PointPt, Pt, RectPt, UserSpacePo
 pub use graphics::{BlendMode, Dash, FillRule, Matrix};
 pub use id::{AnnotId, FieldId, IdAllocator, Kind, LaminaPdfId, OutlineItemId, PageId, ParseIdError};
 pub use info::{Info, InfoDate};
+pub use initial_view::{InitialView, OpenAction, PageLayout, PageMode, WindowPreferences};
 pub use labels::{LabelRange, LabelStyle, PageLabels};
 pub use link::{Link, LinkAction};
 pub use locate::ParentedPage;
@@ -125,6 +130,7 @@ pub use page_tree::{PagePosition, PageTreeEditor, PageTreeError};
 #[cfg(feature = "edit")]
 pub use references::{NameStore, PageReference, PageReferences, ReferenceKind, Via, WidgetLink};
 pub use structure::{StructElem, StructKid, StructTree};
+pub use threads::{Bead, Thread};
 pub use tree::{NameTree, NumberTree};
 #[cfg(feature = "tree-write")]
 pub use tree_writer::TreeWriter;

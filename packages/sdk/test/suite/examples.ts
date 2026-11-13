@@ -24,6 +24,7 @@ import { pdfAArchive } from "../../examples/pdf-a-archive.js";
 import { pdfA3InvoiceWithXml } from "../../examples/pdf-a3-invoice-with-xml.js";
 import { pdfUaReport } from "../../examples/pdf-ua-report.js";
 import { report } from "../../examples/report.js";
+import { openOn } from "../../examples/set-initial-view.js";
 import { exampleOptions, HELLO_OPTIONS } from "./hello-options.js";
 
 /** The fixture files an example reads, by path from the repository root. */
@@ -66,6 +67,8 @@ const EDITED_AT = "D:20261030130000Z";
 const METADATA_PDF = "fixtures/golden/metadata.pdf";
 /** The tagged document add-links adds links to. */
 const TAGGED_PDF = "fixtures/golden/tagged-report.pdf";
+/** The document set-initial-view edits: three pages with an outline. */
+const OUTLINE_PDF = "fixtures/corpus/outline.pdf";
 /** The document edit-bookmarks edits. */
 const BOOKMARKS_PDF = "fixtures/golden/links-and-outlines.pdf";
 /** The PDF/A-2b file edit-xmp records a review in. */
@@ -171,6 +174,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "add_links",
     inputs: [TAGGED_PDF],
     build: (i) => addLinks(input(i, TAGGED_PDF)),
+  },
+  {
+    name: "set-initial-view",
+    golden: "set_initial_view",
+    inputs: [OUTLINE_PDF],
+    build: (i) => openOn(input(i, OUTLINE_PDF), 1),
   },
   {
     name: "edit-bookmarks",

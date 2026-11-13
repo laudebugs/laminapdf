@@ -224,6 +224,19 @@ impl<'d> Outline<'d> {
         }
     }
 
+    /// An outline without its items that walks the page tree only when a destination needs
+    /// it: for resolving one destination (the catalog's `/OpenAction`).
+    pub(crate) const fn destinations_only(doc: &'d Document) -> Self {
+        Self {
+            doc,
+            items: Vec::new(),
+            roots: Vec::new(),
+            by_id: BTreeMap::new(),
+            pages: PageSource::Lazy(OnceCell::new()),
+            names: OnceCell::new(),
+        }
+    }
+
     /// The document it reads.
     pub(crate) const fn doc(&self) -> &'d Document {
         self.doc

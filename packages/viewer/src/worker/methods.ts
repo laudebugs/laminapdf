@@ -33,10 +33,12 @@ import {
   forgetLinks,
   linkOnArea,
   linkOnText,
+  initialView,
   namedDestination,
   namedDestinations,
   outline,
   pageLinks,
+  threads,
 } from "./navigation.js";
 import { networkLog } from "./network.js";
 import { fileBytes, printPage, replyBytes } from "./print.js";
@@ -120,6 +122,8 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   },
   outline: { run: (_params, { signal }) => outline(signal) },
   namedDestination: { run: ([name], { signal }) => namedDestination(name as string, signal) },
+  initialView: { run: (_params, { signal }) => initialView(signal) },
+  threads: { run: (_params, { signal }) => threads(signal) },
   namedDestinations: { run: (_, { signal }) => namedDestinations(signal) },
   destinationAt: { run: ([page, view], { signal }) => destinationAt(page as number, view as TargetView, signal) },
   linkOnArea: {

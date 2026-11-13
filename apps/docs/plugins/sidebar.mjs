@@ -113,6 +113,7 @@ export function sidebar(typeDoc) {
         { label: "Links and outlines", slug: "recipes/links-and-outlines" },
         { label: "Generate, then edit", slug: "recipes/generate-then-edit" },
         { label: "Edit the metadata", slug: "recipes/edit-metadata" },
+        { label: "Choose how a PDF opens", slug: "recipes/set-initial-view" },
         { label: "Edit the bookmarks", slug: "recipes/edit-bookmarks" },
         { label: "Add links", slug: "recipes/add-links" },
         { label: "Record your own metadata", slug: "recipes/edit-xmp" },

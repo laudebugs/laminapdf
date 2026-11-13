@@ -13,9 +13,11 @@ import {
 } from "@laminapdf/render";
 import type {
   AddLink,
+  ArticleThread,
   DocumentMetadata,
   DocumentProperties,
   ExplicitDestination,
+  InitialView,
   Limits,
   NamedDestination,
   Op,
@@ -253,6 +255,8 @@ export interface Methods {
     result: AddLink;
   };
   linkOnText: { params: [page: number, lines: readonly number[], target: OutlineTarget]; result: AddLink };
+  initialView: { params: []; result: InitialView };
+  threads: { params: []; result: ArticleThread[] };
   pageLinks: { params: [index: number]; result: readonly PageLink[] };
   properties: { params: []; result: DocumentProperties };
   printPage: { params: [index: number, options: PrintOptions]; result: PrintedPage };

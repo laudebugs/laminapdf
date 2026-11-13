@@ -3,6 +3,7 @@
 // the tests that need them, not from props, so shipped code carries nothing for tests.
 
 import type { ReactElement } from "react";
+import { ThreadsPanel } from "../src/dialogs.ts";
 import {
   BookmarkEditor,
   type BookmarkItem,
@@ -60,6 +61,7 @@ import {
   WholeFileDownload,
   ZoomControl,
 } from "../src/index.ts";
+import { stepThreadPart } from "../src/reader/threads.ts";
 import { ReaderSettingsPanel, ReaderView } from "../src/reader-mode.ts";
 import { WithCommands } from "./commands.tsx";
 import { FakeEdits, FakeFind, FakeViewer, fakeFile } from "./fakes.ts";
@@ -543,6 +545,28 @@ const history: Example[] = [
   },
 ];
 
+/** Two article threads, one with a part on a page the file lacks. */
+const THREADS = [
+  { title: "Repairs backlog in depth", parts: [{ page: 2 }, { page: 4 }, {}] },
+  { parts: [{ page: 7 }] },
+];
+
+const threads: Example[] = [
+  {
+    component: "ThreadsPanel",
+    state: "following the first thread, its second part current",
+    element: () => (
+      <ThreadsPanel
+        threads={THREADS}
+        current={{ thread: 0, part: 1 }}
+        pageName={(index) => String(index + 1)}
+        step={(direction) => stepThreadPart(THREADS, { thread: 0, part: 1 }, direction)}
+        onGo={() => undefined}
+      />
+    ),
+  },
+];
+
 /** O11's bookmarks: one styled red and bold, one nested, one that goes to a name. */
 const BOOKMARKS: BookmarkItem[] = [
   { id: "o4.0", title: "Chair's summary", page: "2", bold: true, color: "#c00000", children: [] },
@@ -1021,6 +1045,7 @@ export const EXAMPLES: readonly Example[] = [
   ...findBar,
   ...findResults,
   ...history,
+  ...threads,
   ...bookmarks,
   ...links,
   ...saveStrip,

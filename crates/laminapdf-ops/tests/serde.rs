@@ -89,6 +89,7 @@ mod samples {
             "rotate-page",
             "set-metadata",
             "remove-metadata",
+            "set-initial-view",
             "set-xmp-property",
             "remove-xmp-property",
             "replace-xmp-packet",

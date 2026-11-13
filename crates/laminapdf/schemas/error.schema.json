@@ -34,6 +34,7 @@
             "no-pending-save",
             "malformed-xmp",
             "unknown-source",
+            "open-action-not-destination",
             "unknown-outline-item",
             "direct-outline-item",
             "outline-not-a-sibling",
