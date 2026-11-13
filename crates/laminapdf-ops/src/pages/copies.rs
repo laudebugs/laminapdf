@@ -15,13 +15,13 @@ use laminapdf_syntax::text::{decode_text_string, encode_text_string};
 use super::forms::{is_signature_field, list_field};
 use crate::error::Result;
 
-/// What duplicating a page did to one form field whose widget the page shows.
+/// What duplicating or copying in a page did to one form field whose widget the page shows.
 ///
 /// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct FieldChange {
-    /// The field on the source page.
+    /// The field on the source page (in the source document, for a page copied in).
     pub field: FieldId,
     /// The copy whose widget it concerns.
     pub page: PageId,
@@ -29,7 +29,7 @@ pub struct FieldChange {
     pub outcome: FieldOutcome,
 }
 
-/// What happened to a field when the page showing its widget was duplicated.
+/// What happened to a field when the page showing its widget was duplicated or copied in.
 ///
 /// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -45,6 +45,12 @@ pub enum FieldOutcome {
     },
     /// A signature field's widget: not copied, since a signature signs one place in one file.
     NotCopied,
+    /// A field copied from another document joined the target's field of the same name, `to`,
+    /// and shares its value ([`FieldClash::Link`](crate::FieldClash::Link)).
+    Linked {
+        /// The target's field.
+        to: FieldId,
+    },
 }
 
 /// The annotations a page's copy got: each copied annotation's new object by its source, and

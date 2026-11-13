@@ -2,7 +2,7 @@
 //! annotations in its `/Annots`, each with the field it belongs to; and fields' fully qualified
 //! names (§12.7.4.2), with the `<partial>#<n>` rule that keeps a copied field's name unique.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use laminapdf_cos::{Dict, ObjRef, Object, Result, tolerant};
 use laminapdf_syntax::text::decode_text_string;
@@ -118,6 +118,26 @@ impl FieldNames {
         self.names.contains(name)
     }
 
+    /// Whether a field named `name` would clash with one already here: a field of that name,
+    /// one below it (`name.x`) or one it would sit below (`name` starting `x.` for a field
+    /// `x`): fully qualified names must be unique (ISO 32000-2 §12.7.4.2), and a terminal field
+    /// can't hold kids.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub fn clashes(&self, name: &str) -> bool {
+        let below = format!("{name}.");
+        self.names.contains(name)
+            || self
+                .names
+                .range(below.clone()..)
+                .next()
+                .is_some_and(|n| n.starts_with(&below))
+            || name
+                .match_indices('.')
+                .any(|(at, _)| name.get(..at).is_some_and(|prefix| self.names.contains(prefix)))
+    }
+
     /// Records `name`, a fully qualified name in use that [`Document::field_names`] doesn't
     /// list (a field the form's `/Fields` doesn't reach, for one).
     ///
@@ -190,7 +210,26 @@ impl Document {
     ///
     /// Added in 0.2.0.
     pub fn field_names(&self) -> Result<FieldNames> {
-        let mut names = FieldNames::default();
+        Ok(FieldNames {
+            names: self.named_fields()?.into_keys().collect(),
+        })
+    }
+
+    /// The field whose fully qualified name is `name`, among those the form lists (as
+    /// [`Document::field_names`] reads them); the first found when two share it.
+    ///
+    /// # Errors
+    /// Unavailable input and hard limits.
+    ///
+    /// Added in 0.2.0.
+    pub fn field_by_name(&self, name: &str) -> Result<Option<ObjRef>> {
+        Ok(self.named_fields()?.get(name).copied())
+    }
+
+    /// Every named field the form lists, by fully qualified name (the first one reached for a
+    /// name two fields share).
+    fn named_fields(&self) -> Result<BTreeMap<String, ObjRef>> {
+        let mut names = BTreeMap::new();
         let Some(form) = self.catalog()?.get("AcroForm").cloned() else {
             return Ok(names);
         };
@@ -201,6 +240,7 @@ impl Document {
         let mut seen = BTreeSet::new();
         let mut stack: Vec<(Object, Option<String>, usize)> = kids(self, form.get("Fields"))?
             .into_iter()
+            .rev()
             .map(|k| (k, None, 0))
             .collect();
         while let Some((node, prefix, depth)) = stack.pop() {
@@ -219,12 +259,12 @@ impl Document {
                 Some(Object::String(t)) => {
                     let partial = decode_text_string(&t.bytes);
                     let full = prefix.map_or_else(|| partial.clone(), |p| format!("{p}.{partial}"));
-                    names.names.insert(full.clone());
+                    names.entry(full.clone()).or_insert(r);
                     Some(full)
                 }
                 _ => prefix,
             };
-            for kid in kids(self, d.get("Kids"))? {
+            for kid in kids(self, d.get("Kids"))?.into_iter().rev() {
                 stack.push((kid, name.clone(), depth + 1));
             }
         }

@@ -30,6 +30,7 @@ pub struct PendingChanges {
     packet_rewritten: bool,
     widgets: BTreeSet<TouchedWidget>,
     tags_incomplete: BTreeSet<PageId>,
+    tags_dropped: BTreeSet<PageId>,
 }
 
 impl PendingChanges {
@@ -57,6 +58,7 @@ impl PendingChanges {
             packet_rewritten: false,
             widgets: BTreeSet::new(),
             tags_incomplete: BTreeSet::new(),
+            tags_dropped: BTreeSet::new(),
         }
     }
 
@@ -118,6 +120,17 @@ impl PendingChanges {
         &self.tags_incomplete
     }
 
+    /// The pages copied in from other documents without the tags their source pages had
+    /// (`TagsDropped`), which the save planner reports on a file that claims PDF/UA
+    /// ([`ConformanceWarning::ImportedTagsDropped`](crate::ConformanceWarning::ImportedTagsDropped))
+    /// while any of them is still a page.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub const fn tags_dropped(&self) -> &BTreeSet<PageId> {
+        &self.tags_dropped
+    }
+
     /// Whether there are none.
     ///
     /// Added in 0.2.0.
@@ -134,6 +147,7 @@ impl PendingChanges {
         self.packet_rewritten |= effect.packet_rewritten;
         self.widgets.extend(effect.widgets.iter().cloned());
         self.tags_incomplete.extend(effect.tags_incomplete.iter().cloned());
+        self.tags_dropped.extend(effect.tags_dropped.iter().cloned());
     }
 
     /// Adds everything `other` holds.
@@ -144,6 +158,7 @@ impl PendingChanges {
         self.packet_rewritten |= other.packet_rewritten;
         self.widgets.extend(other.widgets.iter().cloned());
         self.tags_incomplete.extend(other.tags_incomplete.iter().cloned());
+        self.tags_dropped.extend(other.tags_dropped.iter().cloned());
     }
 
     /// Forgets everything (after a rebase, or when the overlay is empty again).

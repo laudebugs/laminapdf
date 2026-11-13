@@ -38,6 +38,10 @@ pub enum ConformanceWarning {
     /// page's content is partly untagged: it belonged to elements that also hold content on
     /// other pages, which a copy can't share (`duplicate-tags-incomplete`).
     DuplicateTagsIncomplete,
+    /// PDF/UA-1 requires all real content to be tagged (ISO 14289-1 §7.1), and pages copied in
+    /// from another document came without the tags their source gave them
+    /// (`imported-tags-dropped`).
+    ImportedTagsDropped,
 }
 
 impl ConformanceWarning {
@@ -49,6 +53,7 @@ impl ConformanceWarning {
         "pdfua-title-missing",
         "pdfa-info-mismatch",
         "duplicate-tags-incomplete",
+        "imported-tags-dropped",
     ];
 
     /// The stable kebab-case code.
@@ -61,6 +66,7 @@ impl ConformanceWarning {
             Self::PdfuaTitleMissing => "pdfua-title-missing",
             Self::PdfaInfoMismatch { .. } => "pdfa-info-mismatch",
             Self::DuplicateTagsIncomplete => "duplicate-tags-incomplete",
+            Self::ImportedTagsDropped => "imported-tags-dropped",
         }
     }
 
@@ -75,7 +81,10 @@ impl ConformanceWarning {
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {
-            Self::PdfaOneAuthor { .. } | Self::PdfuaTitleMissing | Self::DuplicateTagsIncomplete => ErrorKind::Usage,
+            Self::PdfaOneAuthor { .. }
+            | Self::PdfuaTitleMissing
+            | Self::DuplicateTagsIncomplete
+            | Self::ImportedTagsDropped => ErrorKind::Usage,
             Self::PdfaInfoMismatch { .. } => ErrorKind::Input,
         }
     }
@@ -119,9 +128,9 @@ pub fn conformance_warnings(doc: &laminapdf_model::Document) -> Result<Vec<Confo
     Ok(out)
 }
 
-/// [`conformance_warnings`], plus what `pending` (the changes not yet saved) breaks: a page
-/// duplication that left a copy, still in the document, partly untagged, on a file whose
-/// packet claims PDF/UA-1.
+/// [`conformance_warnings`], plus what `pending` (the changes not yet saved) breaks on a file
+/// whose packet claims PDF/UA-1: a page duplication that left a copy, still in the document,
+/// partly untagged, and tagged pages copied in from another document without their tags.
 ///
 /// # Errors
 /// As [`conformance_warnings`].
@@ -132,15 +141,28 @@ pub fn pending_conformance_warnings(
     pending: &crate::PendingChanges,
 ) -> Result<Vec<ConformanceWarning>> {
     let mut out = conformance_warnings(doc)?;
-    if !pending.tags_incomplete().is_empty()
-        // A page tree that can't be read can't show the copy gone: keep the warning.
-        && doc
-            .pages()
-            .map_or(true, |tree| tree.iter().any(|p| pending.tags_incomplete().contains(p.id())))
-        && let PacketState::Parsed(packet) = doc.xmp()?
-        && packet.pdfua_part() == Some(1)
-    {
+    let (incomplete, dropped) = (pending.tags_incomplete(), pending.tags_dropped());
+    if incomplete.is_empty() && dropped.is_empty() {
+        return Ok(out);
+    }
+    let PacketState::Parsed(packet) = doc.xmp()? else {
+        return Ok(out);
+    };
+    if packet.pdfua_part() != Some(1) {
+        return Ok(out);
+    }
+    // A page tree that can't be read can't show the pages gone: keep the warnings.
+    let still = |pages: &std::collections::BTreeSet<laminapdf_model::PageId>| {
+        !pages.is_empty()
+            && doc
+                .pages()
+                .map_or(true, |tree| tree.iter().any(|p| pages.contains(p.id())))
+    };
+    if still(incomplete) {
         out.push(ConformanceWarning::DuplicateTagsIncomplete);
+    }
+    if still(dropped) {
+        out.push(ConformanceWarning::ImportedTagsDropped);
     }
     Ok(out)
 }
