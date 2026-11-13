@@ -324,6 +324,55 @@ mod tagged {
     }
 }
 
+mod tagged_popup {
+    use super::*;
+
+    #[test]
+    fn a_notes_popup_is_tagged_after_it_with_its_comment() {
+        let mut doc = doc("golden/examples/pdf_ua_report.pdf");
+        let page = page(&doc, 0);
+        let mut note = AddAnnot::new(page, AnnotSpec::Note(Note::new(p(100.0, 700.0), NoteIcon::Note)));
+        note.common.contents = Some("Check".into());
+        let id = apply(&mut doc, note).created_annotations.pop().unwrap();
+        let note = dict(&doc, obj(&id));
+        let popup = dict(&doc, note.get("Popup").and_then(Object::as_ref).unwrap());
+        let root = dict(
+            &doc,
+            doc.catalog()
+                .unwrap()
+                .get("StructTreeRoot")
+                .and_then(Object::as_ref)
+                .unwrap(),
+        );
+        let entries = doc
+            .number_tree(root.get("ParentTree").cloned().unwrap())
+            .entries()
+            .unwrap();
+        let element_of = |d: &Dict| {
+            let key = d.get_int("StructParent").unwrap();
+            entries
+                .iter()
+                .find(|(k, _)| *k == key)
+                .and_then(|(_, e)| e.as_ref())
+                .unwrap()
+        };
+        let (note_elem, popup_elem) = (element_of(&note), element_of(&popup));
+        let parent = dict(&doc, dict(&doc, note_elem).get("P").and_then(Object::as_ref).unwrap());
+        let kids: Vec<Option<laminapdf_cos::ObjRef>> = parent
+            .get("K")
+            .and_then(Object::as_array)
+            .unwrap()
+            .iter()
+            .map(Object::as_ref)
+            .collect();
+        let at = kids.iter().position(|k| *k == Some(note_elem)).unwrap();
+        assert_eq!(
+            (kids.get(at + 1).copied().flatten(), popup.get("Contents").cloned()),
+            (Some(popup_elem), note.get("Contents").cloned())
+        );
+    }
+}
+
 mod pdfa {
     use super::*;
 

@@ -19,7 +19,8 @@ impl Document {
     /// The edit that marks text of page `page` (0-based) with `kind`: `lines` are the boxes of
     /// the text, one per line, in page space, as a selection gives them, and each becomes one of
     /// the mark's quads. In a tagged document the mark is placed in the structure tree after the
-    /// text it marks, and its description (`/Contents`, what a screen reader reads) is that text.
+    /// text it marks, and its description (`/Contents`, what a screen reader reads) is that text,
+    /// or the kind of mark when the boxes hold none ("Highlighted text").
     ///
     /// # Errors
     /// `invalid-op` for no lines; `page-index-out-of-range`; the reading errors of
@@ -41,8 +42,12 @@ impl Document {
         {
             let under = self.text_under(page, lines)?;
             op.marked = under.marked;
-            if self.is_tagged()? && !under.text.is_empty() {
-                op.common.contents = Some(under.text);
+            if self.is_tagged()? {
+                op.common.contents = Some(if under.text.is_empty() {
+                    described(kind).to_owned()
+                } else {
+                    under.text
+                });
             }
         }
         Ok(op)
@@ -117,6 +122,17 @@ impl Document {
             Ok(())
         })?;
         Ok(self.edited(applied))
+    }
+}
+
+/// What a screen reader says for a mark over no text it could read.
+#[cfg(feature = "extract")]
+const fn described(kind: MarkupKind) -> &'static str {
+    match kind {
+        MarkupKind::Highlight => "Highlighted text",
+        MarkupKind::Underline => "Underlined text",
+        MarkupKind::StrikeOut => "Struck-out text",
+        MarkupKind::Squiggly => "Text marked with a wavy line",
     }
 }
 

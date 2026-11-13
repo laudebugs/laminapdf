@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [E2e](../done/E2e-content-append-api.md), [E4c](../ongoing/E4c-appearances-markup-notes-caret.md), [E6a](../done/E6a-adding-content-feature-plan.md) |
+| Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [E2e](../done/E2e-content-append-api.md), [E4c](../done/E4c-appearances-markup-notes-caret.md), [E6a](../done/E6a-adding-content-feature-plan.md) |
 | Dependency notes | [E6a](../done/E6a-adding-content-feature-plan.md), [E2e](../done/E2e-content-append-api.md), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate): builder and `laminapdf` crate) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e6b-place-images-and-shapes` |

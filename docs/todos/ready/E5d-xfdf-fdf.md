@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E5 plan §2.3](../../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary) ([full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E4c](../ongoing/E4c-appearances-markup-notes-caret.md), [E4d](./E4d-appearances-ink-and-shapes.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E5b](./E5b-comment-threads-and-review.md), [E5c](./E5c-stamps-and-attachments.md) |
+| Depends on | [E4c](../done/E4c-appearances-markup-notes-caret.md), [E4d](./E4d-appearances-ink-and-shapes.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E5b](./E5b-comment-threads-and-review.md), [E5c](./E5c-stamps-and-attachments.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e5d-xfdf-fdf` |
 | PR title | `feat(interchange): import and export comments as XFDF, FDF and Markdown` |

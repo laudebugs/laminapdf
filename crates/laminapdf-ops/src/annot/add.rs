@@ -9,7 +9,7 @@ use super::appearance::{AppearanceRequest, Appearances, IntentSpace};
 use super::geom::quad_points;
 use super::geom::{AnnotColor, Opacity};
 use super::spec::{AnnotSpec, CaretSymbol, Note};
-use super::{Found, every_annotation, set_text, tags};
+use super::{Found, every_annotation, object_dict, set_text, tags};
 use crate::error::{Error, Result};
 use crate::link::append_annot;
 use crate::op::Effect;
@@ -182,6 +182,7 @@ impl AddAnnot {
         }
         let annot = doc.cos_mut().edit().create(Object::Dict(dict))?;
         append_annot(doc, page, annot)?;
+        let mut tagged = vec![annot];
         if let AnnotSpec::Note(note) = &spec {
             let frame = page_frame(doc, &self.page)?;
             let popup = popup(doc, note, &popup_rect(&frame, note), page, annot)?;
@@ -189,8 +190,9 @@ impl AddAnnot {
                 d.insert("Popup", Object::Ref(popup));
             })?;
             append_annot(doc, page, popup)?;
+            tagged.push(popup);
         }
-        tags::tag(doc, page, annot, &self.marked)?;
+        tags::tag(doc, page, &tagged, &self.marked)?;
         Ok(Effect {
             pages: vec![self.page.clone()],
             created_annotations: vec![AnnotId::object(annot)],
@@ -267,7 +269,7 @@ pub(crate) fn write_spec(dict: &mut Dict, spec: &AnnotSpec) {
     }
 }
 
-/// A note's Popup over `rect`, open as the note says, printed with it.
+/// A note's Popup over `rect`, open as the note says, printed with it, with its note's comment.
 fn popup(
     doc: &mut laminapdf_model::Document,
     note: &Note,
@@ -275,7 +277,9 @@ fn popup(
     page: ObjRef,
     parent: ObjRef,
 ) -> Result<ObjRef> {
-    let dict: Dict = [
+    // The note's comment, which a screen reader reads for the Popup too (ISO 14289-1 §7.18.1).
+    let contents = object_dict(doc, parent)?.and_then(|d| d.get("Contents").cloned());
+    let mut dict: Dict = [
         ("Type", Object::name("Annot")),
         ("Subtype", Object::name("Popup")),
         ("Rect", rect_object(rect)),
@@ -291,6 +295,9 @@ fn popup(
     ]
     .into_iter()
     .collect();
+    if let Some(contents) = contents {
+        dict.insert("Contents", contents);
+    }
     Ok(doc.cos_mut().edit().create(Object::Dict(dict))?)
 }
 

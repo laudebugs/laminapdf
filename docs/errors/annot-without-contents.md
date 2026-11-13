@@ -27,5 +27,5 @@ A highlight added to a PDF/UA-1 report with `"contents": ""`, then `doc.plan()`,
 
 The decisions and todos behind this code:
 
-- [E4c](../todos/ongoing/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
+- [E4c](../todos/done/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
 - [E4 plan §3](../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep): conformance the edits must keep

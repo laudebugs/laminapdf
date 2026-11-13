@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E4c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E4 plan §2.1](../../plans/editor/e4-markup-and-drawing-annotations.md#21-ops) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [C5b](../done/C5b-find-in-document.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4b](../done/E4b-annotation-model-and-overlay.md) |
+| Depends on | [C5b](./C5b-find-in-document.md), [E4a](./E4a-markup-and-drawing-annotations-feature-plan.md), [E4b](./E4b-annotation-model-and-overlay.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e4c-appearances-markup-notes-caret` |
 | PR title | `feat(build): text markup, notes and caret annotations with their appearances` |
@@ -65,7 +65,7 @@ Highlight, underline, strike-through and squiggly annotations from glyph quads, 
 - **The hook.** `Op::apply_to` takes the document's `Appearances`, which `Tx` borrows from `Document::with_appearances`; the façade sets `laminapdf-build`'s `AnnotationAppearances` on every document when its `build` feature is on, so all three WebAssembly modules draw appearances. Each appearance is a Form XObject in user space whose `/BBox` is the `/Rect`, with no `/Matrix`.
 - **Opacity.** Measured on 2026-11-13 with pdf.js 6.4.299 and PDFium (pypdfium2 5.14.0): neither applies an annotation's `/CA` on top of its appearance. So opacity lives in the appearance's ExtGState, and `/CA` is also written before PDF 2.0, for readers that draw from the keys.
 - **Text corrections.** The pdf.js corpus's `annotation-caret-ink.pdf` has a lone caret ("Insert Text") holding its text in `/Contents`, not a replacement group, so the group's order follows the standard and Acrobat's described behaviour: the caret is the primary and holds the replacement, and the strike-out names it with `/IRT` and `/RT /Group`. pdf.js shows a group member's `/Contents` from its primary (ISO 32000-2 §12.5.6.2), so the strike-out's own description reads as the replacement there; the round-trip suite compares contents by that rule. The Acrobat reference file of issue #521 can still confirm the order.
-- **Tagging.** In a tagged file the `Annot` element goes right after the element that owns the first marked MCID, else after the element that owns the page's last marked content (the highest MCID, which approximates the page's last element in reading order, and may be nested), else last in the document element. On a file that claims PDF/UA-1 without a structure tree, the mark is made and `annot-not-tagged` warns (for new annotations only), where `AddLink` refuses.
+- **Tagging.** In a tagged file the `Annot` element goes right after the element that owns the first marked MCID, else after the element that owns the page's last marked content (the highest MCID, which approximates the page's last element in reading order, and may be nested), else last in the document element. A note's Popup gets an `Annot` element of its own right after the note's, and the note's comment as its `/Contents`: veraPDF's PDF/UA-1 rules 7.18.1-1 and -2 ask both of every annotation but widgets, printer's marks and links, Popups included. The façade describes a text mark over no text it can read by its kind ("Highlighted text"). veraPDF passes `mark_up-pdfua.pdf`. On a file that claims PDF/UA-1 without a structure tree, the mark is made and `annot-not-tagged` warns (for new annotations only), where `AddLink` refuses.
 - **Usage rights per op** wait for E2i's usage-rights fixture; E2i's todo now carries the check.
 - **Capabilities.** `D.01`, `D.02` and `D.03` are `round-trip` in the core column. The `pdf` column has no evidence mechanism yet (only the reader's end-to-end tests claim TypeScript evidence), so it stays empty, as for every other row.
 - **Rotated pages** are covered by the façade's tests at `/Rotate` 0, 90, 180 and 270 over generated pages, in place of a `fixtures/annotations/rotated.pdf`: text marks read back on their page-space boxes, and a note's Popup opens right of its icon as the page is shown (left of it when the page has no room), on the page. The icon keeps its upper-left corner at the point through NoRotate.
@@ -73,11 +73,11 @@ Highlight, underline, strike-through and squiggly annotations from glyph quads, 
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new spec is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
-- [ ] Every spec's op reports `Annotation` and `requires_rewrite` false; `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) gives the verdicts of [E4 plan §6](../../plans/editor/e4-markup-and-drawing-annotations.md#6-saving-and-the-save-constraint)
-- [ ] Round-trip: open → op → save → reopen in Lamina PDF, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, structure tree facts in `expected.json`); `qpdf --check` is clean
-- [ ] Each appearance renders in pdf.js and PDFium within E4g's threshold, and a highlight keeps the text under it legible in both
-- [ ] veraPDF reports nothing new on `golden/examples/pdf_ua_report.pdf` after a highlight with its default `/Contents`
+- [x] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new spec is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [x] Every spec's op reports `Annotation` and `requires_rewrite` false; `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) gives the verdicts of [E4 plan §6](../../plans/editor/e4-markup-and-drawing-annotations.md#6-saving-and-the-save-constraint)
+- [x] Round-trip: open → op → save → reopen in Lamina PDF, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, structure tree facts in `expected.json`); `qpdf --check` is clean
+- [x] Each appearance renders in pdf.js and PDFium within E4g's threshold, and a highlight keeps the text under it legible in both
+- [x] veraPDF reports nothing new on `golden/examples/pdf_ua_report.pdf` after a highlight with its default `/Contents`
 
 ## Post-merge checks
 
@@ -101,8 +101,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

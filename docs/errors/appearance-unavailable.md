@@ -33,5 +33,5 @@ None.
 
 The decisions and todos behind this code:
 
-- [E4c](../todos/ongoing/E4c-appearances-markup-notes-caret.md): appearances for text markup, notes and carets
+- [E4c](../todos/done/E4c-appearances-markup-notes-caret.md): appearances for text markup, notes and carets
 - [E4 plan §2.2](../plans/editor/e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated): where appearances are generated

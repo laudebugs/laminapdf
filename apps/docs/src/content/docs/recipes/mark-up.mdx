@@ -17,7 +17,7 @@ The result is the original bytes, unchanged, followed by two revisions. "Widgets
 
 - `markText` takes one box per line of the selected text and a kind: `highlight`, `underline`, `strikeOut` or `squiggly`. Each box becomes one of the mark's quadrilaterals, so a mark over three lines covers only those lines.
 - Lamina PDF draws every mark itself and stores the drawing in the file, so every reader that draws stored appearances, as pdf.js, PDFium and Acrobat do, shows the same mark. A highlight multiplies its colour with the page, which keeps the text under it legible.
-- The report is a tagged PDF, the kind screen readers follow. In a tagged file, a mark's description (`contents`) is the text it marks, and the mark joins the document's structure right after that text.
+- The report is a tagged PDF, the kind screen readers follow. In a tagged file, a mark's description (`contents`) is the text it marks, or the kind of mark when its boxes hold no text. The mark joins the document's structure right after that text.
 - `noteAt` puts a 20-point icon with its top-left corner on the point, and a pop-up beside it that shows the comment. The note keeps its size at any zoom and stays upright when the page turns, as Acrobat's notes do.
 - `replaceText` groups the strike-out with a caret, so a reader shows, moves and deletes them as one correction. The caret holds the replacement text. Both edits are one step: a single undo removes both.
 - The author and dates come from your code, never from a clock inside Lamina PDF, so the same edit gives the same file wherever it runs.

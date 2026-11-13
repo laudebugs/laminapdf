@@ -3156,7 +3156,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E4c](../todos/ongoing/E4c-appearances-markup-notes-caret.md): appearances for text markup, notes and carets
+- [E4c](../todos/done/E4c-appearances-markup-notes-caret.md): appearances for text markup, notes and carets
 - [E4 plan §2.2](../plans/editor/e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated): where appearances are generated
 "#,
         "invalid-label-ranges" => r"# `invalid-label-ranges`
@@ -3328,7 +3328,7 @@ The file says it conforms to PDF/UA-1, and an annotation the edits added or chan
 
 ## Why
 
-PDF/UA-1 asks every annotation for a description that a screen reader can read in place of the mark (ISO 14289-1 §7.18.1). A highlight without one is silent: the reader hears that something is marked, not what. Lamina PDF fills the description with the marked text when the edit comes from a text selection, so this warning means the edit gave an empty one or removed it.
+PDF/UA-1 asks every annotation for a description that a screen reader can read in place of the mark (ISO 14289-1 §7.18.1). A highlight without one is silent: the reader hears that something is marked, not what. In a tagged file, Lamina PDF fills the description with the marked text when the edit comes from a text selection, so there this warning means the edit gave an empty one or removed it.
 
 ## How to fix
 
@@ -3346,7 +3346,7 @@ A highlight added to a PDF/UA-1 report with `"contents": ""`, then `doc.plan()`,
 
 The decisions and todos behind this code:
 
-- [E4c](../todos/ongoing/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
+- [E4c](../todos/done/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
 - [E4 plan §3](../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep): conformance the edits must keep
 "#,
         "annot-not-tagged" => r"# `annot-not-tagged`
@@ -3378,7 +3378,7 @@ A note added to a file whose XMP metadata has `pdfuaid:part` 1 but whose catalog
 
 The decisions and todos behind this code:
 
-- [E4c](../todos/ongoing/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
+- [E4c](../todos/done/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
 - [E4 plan §3](../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep): conformance the edits must keep
 ",
         "pdfa-annot-flags" => r#"# `pdfa-annot-flags`
@@ -3410,7 +3410,7 @@ Change the annotation's flags back: set Print and clear the hiding flags. Lamina
 
 The decisions and todos behind this code:
 
-- [E4c](../todos/ongoing/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
+- [E4c](../todos/done/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
 - [E4 plan §3](../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep): conformance the edits must keep
 "#,
         "pdfa-transparency" => r"# `pdfa-transparency`
@@ -3442,7 +3442,7 @@ A highlight added to a PDF/A-1b file, then `doc.plan()`, lists `pdfa-transparenc
 
 The decisions and todos behind this code:
 
-- [E4c](../todos/ongoing/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
+- [E4c](../todos/done/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
 - [E4 plan §3](../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep): conformance the edits must keep
 ",
         "sink" => r"# `sink`

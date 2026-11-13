@@ -275,8 +275,8 @@
       ]
     },
     "mark_up": {
-      "sha256": "8ee51a1e2c2c87fc12485b076762839bd659b1af6335d83417117f0793d680cd",
-      "bytes": 28566,
+      "sha256": "2cf614196229cc273de596217f2ce25e8a2f0b35e767bb2b49e137b88249565f",
+      "bytes": 28782,
       "pages": [
         {
           "width": 1190,
@@ -289,8 +289,8 @@
       ]
     },
     "mark_up-pdfua": {
-      "sha256": "dc598746d617dd2bc432fd6734977b6bdbd4842da4e6f2b24f1a11833a786d70",
-      "bytes": 14988,
+      "sha256": "be192a38d8b7c4f2a53e388411433d3502cc28b8bc53b9f6f55f6ae00fc3d329",
+      "bytes": 15246,
       "pages": [
         {
           "width": 1190,

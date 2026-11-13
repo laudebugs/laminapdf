@@ -246,6 +246,15 @@ fn a_mark_in_a_tagged_file_is_described_by_the_text_it_marks() {
 }
 
 #[test]
+fn a_mark_over_no_text_in_a_tagged_file_is_described_by_its_kind() {
+    let doc = open("golden/examples/pdf_ua_report.pdf");
+    let op = doc
+        .mark_text(0, MarkupKind::Underline, &[rect(500.0, 760.0, 560.0, 774.0)])
+        .unwrap();
+    assert_eq!(op.common.contents.as_deref(), Some("Underlined text"));
+}
+
+#[test]
 fn a_mark_on_no_lines_is_refused() {
     let doc = turned(0);
     assert_eq!(
