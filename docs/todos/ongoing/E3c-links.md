@@ -11,7 +11,7 @@
 | Branch | `feat/e3c-links` |
 | PR title | `feat(ops): create and edit link annotations` |
 | Size | M (200–400): three ops, the structure-tree placement and the link tool |
-| PR | — |
+| PR | [#542](https://github.com/laudebugs/laminapdf/pull/542) |
 
 ## Goal
 
