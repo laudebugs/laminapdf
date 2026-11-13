@@ -395,15 +395,18 @@ describe("the thumbnails strip after a crash", () => {
     viewer.mount(main);
     viewer.open(doc);
     const strip = new ThumbnailStrip(client, viewer);
+    strip.element.style.flex = "1";
     try {
       await until(() => viewer.stats().pages[0] === "sharp");
-      // The main view is drawn, so the next render is the thumbnail's: it holds the worker once
-      // drawn, still the render running, and is the one a restart doesn't send again.
+      // With the main view drawn, the next render is the thumbnail's. The hook keeps the worker
+      // busy after drawing it, so it is still the running render when the worker stops, and a
+      // restart doesn't send it again.
       await hook(client, "__holdNextRender", [3000]);
       const started = next(client, "render-start");
       strip.mount(side);
       strip.open(doc);
-      await started;
+      // A thumbnail draws at a fraction of the page's size; the main view at more than its size.
+      expect((await started).scale).toBeLessThan(0.5);
       const restarted = next(client, "restarted");
       void client.stop();
       expect(await restarted).toMatchObject({ reason: "cancelled", reopened: true });

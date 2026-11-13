@@ -288,7 +288,7 @@ export class ThumbnailStrip {
     let owned = false;
     if (bitmap === undefined) {
       const abort = new AbortController();
-      bitmap = await this.#fetch(item, layout, scale, appearance, abort);
+      bitmap = await this.#renderBitmap(item, layout, scale, appearance, abort);
       if (bitmap === undefined) return;
       if (abort.signal.aborted || this.#items.get(item.index) !== item || this.#layout !== layout) {
         bitmap.close();
@@ -300,8 +300,11 @@ export class ThumbnailStrip {
     if (owned) bitmap.close();
   }
 
-  /** Renders `item`'s thumbnail; undefined when the render was aborted or failed. */
-  async #fetch(
+  /**
+   * Renders `item`'s thumbnail. Undefined when the render was aborted, or when it failed: then
+   * `item` is marked done, so it keeps its placeholder while mounted, and the failure is reported.
+   */
+  async #renderBitmap(
     item: Item,
     layout: PageLayout,
     scale: number,
@@ -321,8 +324,8 @@ export class ThumbnailStrip {
       // A failed render keeps its placeholder, and isn't asked for again while mounted.
       item.done = true;
       // The render drawing when the worker crashed or was stopped isn't sent again (ADR 0009
-      // §3.6). The client's `crashed` or `restarted` event already tells of the loss, which isn't
-      // this page's failure.
+      // §3.6). Losing the worker isn't this page's failure: the client reports a crash or a
+      // restart with its `crashed` and `restarted` events, and `terminate()` is the app's own call.
       if (!isLaminaPdfError(error, "worker-crashed")) reportError(error);
       return undefined;
     } finally {
