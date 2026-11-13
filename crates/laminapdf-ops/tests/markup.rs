@@ -372,3 +372,70 @@ mod refusals {
         assert_eq!(refused(&mut doc, AddAnnot::new(page, note)), "invalid-op");
     }
 }
+
+mod warnings {
+    use laminapdf_ops::{ConformanceWarning, pending_conformance_warnings};
+
+    use super::*;
+
+    /// One untagged page and an XMP packet with `claim` (attributes of `rdf:Description`).
+    fn claiming(claim: &str) -> Document {
+        let xmp = format!(
+            r#"<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/" {claim}/></rdf:RDF></x:xmpmeta>"#
+        );
+        let metadata = common::stream_body("/Type /Metadata /Subtype /XML", xmp.as_bytes());
+        let bytes = common::classic(
+            &[
+                b"<< /Type /Catalog /Pages 2 0 R /Metadata 4 0 R >>",
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>",
+                &metadata,
+            ],
+            "<< /Size 5 /Root 1 0 R >>",
+        );
+        open(&bytes).with_appearances(AnnotationAppearances)
+    }
+
+    fn warnings(doc: &Document) -> Vec<&'static str> {
+        pending_conformance_warnings(doc, doc.pending_changes())
+            .unwrap()
+            .iter()
+            .map(ConformanceWarning::code)
+            .collect()
+    }
+
+    #[test]
+    fn a_pdf_ua_file_without_a_tree_gets_untagged_and_undescribed_warnings() {
+        let mut doc = claiming(r#"pdfuaid:part="1""#);
+        add(&mut doc, markup(MarkupKind::Highlight));
+        // The bare packet has no title either, which PDF/UA-1 also needs.
+        assert_eq!(
+            warnings(&doc),
+            ["pdfua-title-missing", "annot-without-contents", "annot-not-tagged"]
+        );
+    }
+
+    #[test]
+    fn a_highlight_on_a_pdf_a_1_file_is_transparency() {
+        let mut doc = claiming(r#"pdfaid:part="1" pdfaid:conformance="B""#);
+        add(&mut doc, markup(MarkupKind::Highlight));
+        assert_eq!(warnings(&doc), ["pdfa-transparency"]);
+    }
+
+    #[test]
+    fn an_underline_on_a_pdf_a_1_file_is_fine() {
+        let mut doc = claiming(r#"pdfaid:part="1" pdfaid:conformance="B""#);
+        add(&mut doc, markup(MarkupKind::Underline));
+        assert_eq!(warnings(&doc), Vec::<&str>::new());
+    }
+
+    #[test]
+    fn hiding_an_annotation_on_a_pdf_a_file_breaks_its_flags() {
+        let mut doc = claiming(r#"pdfaid:part="2" pdfaid:conformance="B""#);
+        let id = add(&mut doc, markup(MarkupKind::Underline));
+        let mut update = UpdateAnnot::new(id);
+        update.flags = Some(laminapdf_model::AnnotFlags::HIDDEN);
+        apply(&mut doc, update);
+        assert_eq!(warnings(&doc), ["pdfa-annot-flags"]);
+    }
+}

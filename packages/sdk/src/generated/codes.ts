@@ -223,6 +223,10 @@ export type WarningCode =
   | "pdfua-title-missing"
   | "pdfa-info-mismatch"
   | "duplicate-tags-incomplete"
+  | "annot-without-contents"
+  | "annot-not-tagged"
+  | "pdfa-annot-flags"
+  | "pdfa-transparency"
   | "tounicode-conflict"
   | "whole-font-rebuilt"
   | "flow-keep-broken"
@@ -458,6 +462,10 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "pdfua-title-missing",
   "pdfa-info-mismatch",
   "duplicate-tags-incomplete",
+  "annot-without-contents",
+  "annot-not-tagged",
+  "pdfa-annot-flags",
+  "pdfa-transparency",
   "tounicode-conflict",
   "whole-font-rebuilt",
   "flow-keep-broken",
@@ -574,6 +582,10 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "pdfua-title-missing": "usage",
   "pdfa-info-mismatch": "input",
   "duplicate-tags-incomplete": "usage",
+  "annot-without-contents": "usage",
+  "annot-not-tagged": "usage",
+  "pdfa-annot-flags": "usage",
+  "pdfa-transparency": "usage",
   "sink": "io",
   "not-rebased": "state",
   "sink-not-empty": "usage",
@@ -783,6 +795,10 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
   "duplicate-tags-incomplete": "retag the copy, or duplicate pages whose tagged elements lie on the page alone",
+  "annot-without-contents": "give the annotation a description: the text it marks, or what the mark means",
+  "annot-not-tagged": "tag the document first, or add the annotation to a copy that doesn't claim PDF/UA",
+  "pdfa-annot-flags": "keep the annotation's Print flag and clear Hidden, Invisible, NoView and ToggleNoView",
+  "pdfa-transparency": "make the mark opaque, or use an underline instead of a highlight",
   "sink": "check the destination and retry the save; the document is unchanged",
   "not-rebased": "retry rebase with the saved output carried by the error",
   "sink-not-empty": "pass an empty sink: output offsets count from the sink's first byte",

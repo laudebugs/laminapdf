@@ -1,6 +1,6 @@
 //! [`ConformanceWarning`]: what the document's edits break of the PDF/A or PDF/UA level its
-//! packet claims: its metadata as edited (E1 plan §3), and a page duplication that couldn't
-//! clone all of a page's tags (E2 plan §3). Warnings never block a save: the user may mean to
+//! packet claims: its metadata as edited (E1 plan §3), a page duplication that couldn't
+//! clone all of a page's tags (E2 plan §3), and the annotations the edits wrote (E4 plan §3). Warnings never block a save: the user may mean to
 //! drop the claim.
 
 use laminapdf_cos::{ErrorKind, Location};
@@ -38,6 +38,39 @@ pub enum ConformanceWarning {
     /// page's content is partly untagged: it belonged to elements that also hold content on
     /// other pages, which a copy can't share (`duplicate-tags-incomplete`).
     DuplicateTagsIncomplete,
+    /// PDF/UA-1 requires an annotation's `/Contents`, its alternative description (ISO 14289-1
+    /// §7.18.1), and these new or changed annotations have none (`annot-without-contents`).
+    ///
+    /// Added in 0.3.0.
+    AnnotWithoutContents {
+        /// The annotations' IDs.
+        annotations: Vec<String>,
+    },
+    /// PDF/UA-1 requires every annotation to be tagged (ISO 14289-1 §7.18.1), and these new
+    /// annotations have no place in the structure tree: the file has none
+    /// (`annot-not-tagged`).
+    ///
+    /// Added in 0.3.0.
+    AnnotNotTagged {
+        /// The annotations' IDs.
+        annotations: Vec<String>,
+    },
+    /// PDF/A requires every annotation to print and none to be hidden (ISO 19005-2 §6.3.2), and
+    /// these annotations' flags break that (`pdfa-annot-flags`).
+    ///
+    /// Added in 0.3.0.
+    PdfaAnnotFlags {
+        /// The annotations' IDs.
+        annotations: Vec<String>,
+    },
+    /// PDF/A-1 forbids transparency (ISO 19005-1 §6.4), and these annotations are translucent or
+    /// blend, as a highlight does (`pdfa-transparency`).
+    ///
+    /// Added in 0.3.0.
+    PdfaTransparency {
+        /// The annotations' IDs.
+        annotations: Vec<String>,
+    },
 }
 
 impl ConformanceWarning {
@@ -49,6 +82,10 @@ impl ConformanceWarning {
         "pdfua-title-missing",
         "pdfa-info-mismatch",
         "duplicate-tags-incomplete",
+        "annot-without-contents",
+        "annot-not-tagged",
+        "pdfa-annot-flags",
+        "pdfa-transparency",
     ];
 
     /// The stable kebab-case code.
@@ -61,6 +98,10 @@ impl ConformanceWarning {
             Self::PdfuaTitleMissing => "pdfua-title-missing",
             Self::PdfaInfoMismatch { .. } => "pdfa-info-mismatch",
             Self::DuplicateTagsIncomplete => "duplicate-tags-incomplete",
+            Self::AnnotWithoutContents { .. } => "annot-without-contents",
+            Self::AnnotNotTagged { .. } => "annot-not-tagged",
+            Self::PdfaAnnotFlags { .. } => "pdfa-annot-flags",
+            Self::PdfaTransparency { .. } => "pdfa-transparency",
         }
     }
 
@@ -75,7 +116,13 @@ impl ConformanceWarning {
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {
-            Self::PdfaOneAuthor { .. } | Self::PdfuaTitleMissing | Self::DuplicateTagsIncomplete => ErrorKind::Usage,
+            Self::PdfaOneAuthor { .. }
+            | Self::PdfuaTitleMissing
+            | Self::DuplicateTagsIncomplete
+            | Self::AnnotWithoutContents { .. }
+            | Self::AnnotNotTagged { .. }
+            | Self::PdfaAnnotFlags { .. }
+            | Self::PdfaTransparency { .. } => ErrorKind::Usage,
             Self::PdfaInfoMismatch { .. } => ErrorKind::Input,
         }
     }
@@ -121,7 +168,8 @@ pub fn conformance_warnings(doc: &laminapdf_model::Document) -> Result<Vec<Confo
 
 /// [`conformance_warnings`], plus what `pending` (the changes not yet saved) breaks: a page
 /// duplication that left a copy, still in the document, partly untagged, on a file whose
-/// packet claims PDF/UA-1.
+/// packet claims PDF/UA-1; and annotations the edits wrote that break the file's PDF/A or PDF/UA
+/// claim (Added in 0.3.0).
 ///
 /// # Errors
 /// As [`conformance_warnings`].
@@ -141,6 +189,9 @@ pub fn pending_conformance_warnings(
         && packet.pdfua_part() == Some(1)
     {
         out.push(ConformanceWarning::DuplicateTagsIncomplete);
+    }
+    if pending.classes().contains(&crate::ModificationClass::Annotation) {
+        out.extend(crate::annot::conformance_warnings(doc)?);
     }
     Ok(out)
 }

@@ -3317,6 +3317,134 @@ The decisions and todos behind this code:
 - [E2k](../todos/done/E2k-duplicate-pages.md): duplicating pages
 - [E2 plan §3](../plans/editor/e2-page-organisation.md#3-conformance-the-edits-must-keep): what page edits do to a PDF/UA claim
 ",
+        "annot-without-contents" => r#"# `annot-without-contents`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file says it conforms to PDF/UA-1, and an annotation the edits added or changed has no description (`/Contents`). Saving the file as it is writes one that no longer meets PDF/UA-1.
+
+## Why
+
+PDF/UA-1 asks every annotation for a description that a screen reader can read in place of the mark (ISO 14289-1 §7.18.1). A highlight without one is silent: the reader hears that something is marked, not what. Lamina PDF fills the description with the marked text when the edit comes from a text selection, so this warning means the edit gave an empty one or removed it.
+
+## How to fix
+
+Give the annotation a description: for a highlight, underline or strike-out, the text it marks; for a note, its comment; for a caret, what goes there. If the file needn't stay PDF/UA-1, save anyway: the warning never blocks a save.
+
+## Example
+
+A highlight added to a PDF/UA-1 report with `"contents": ""`, then `doc.plan()`, lists `annot-without-contents` with the highlight's ID in `annotations`.
+
+## Data fields
+
+- `annotations`: the IDs of the annotations without a description, in page order.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4c](../todos/ongoing/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
+- [E4 plan §3](../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep): conformance the edits must keep
+"#,
+        "annot-not-tagged" => r"# `annot-not-tagged`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file says it conforms to PDF/UA-1, but it isn't tagged: it has no structure tree, so a new annotation has no element to join. Saving the file as it is writes one that no longer meets PDF/UA-1.
+
+## Why
+
+PDF/UA-1 asks for every annotation to be an `Annot` element of the structure tree (ISO 14289-1 §7.18.1), which places it in the reading order next to the text it is about. In a tagged file Lamina PDF adds that element itself; a file without a tree gives it nowhere to go.
+
+## How to fix
+
+Export the file again as a tagged PDF from the program that made it, then add the annotation. If the claim is wrong, remove it. The warning never blocks a save.
+
+## Example
+
+A note added to a file whose XMP metadata has `pdfuaid:part` 1 but whose catalog has no `/StructTreeRoot`, then `doc.plan()`, lists `annot-not-tagged`.
+
+## Data fields
+
+- `annotations`: the IDs of the untagged annotations, in page order.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4c](../todos/ongoing/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
+- [E4 plan §3](../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep): conformance the edits must keep
+",
+        "pdfa-annot-flags" => r#"# `pdfa-annot-flags`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file says it conforms to PDF/A, and an annotation the edits added or changed doesn't print, or is hidden. Saving the file as it is writes one that no longer meets PDF/A.
+
+## Why
+
+PDF/A keeps a document looking the same wherever it is shown or printed, so every annotation must print and none may be hidden (ISO 19005-2 §6.3.2). The annotation's flags (`/F`) control both: the Print flag must be set, and Hidden, Invisible, NoView and ToggleNoView must be clear.
+
+## How to fix
+
+Change the annotation's flags back: set Print and clear the hiding flags. Lamina PDF's new annotations have the right flags unless the edit names others. If the file needn't stay PDF/A, save anyway: the warning never blocks a save.
+
+## Example
+
+`{ "op": "updateAnnot", "args": { "id": "a12.0", "flags": 2 } }` on a PDF/A-2b file hides the annotation, and `doc.plan()` lists `pdfa-annot-flags`.
+
+## Data fields
+
+- `annotations`: the IDs of the annotations with flags PDF/A forbids, in page order.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4c](../todos/ongoing/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
+- [E4 plan §3](../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep): conformance the edits must keep
+"#,
+        "pdfa-transparency" => r"# `pdfa-transparency`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file says it conforms to PDF/A-1, and an annotation the edits added or changed is translucent, or blends with the page as a highlight does. Saving the file as it is writes one that no longer meets PDF/A-1.
+
+## Why
+
+PDF/A-1 predates transparency in PDF and forbids it (ISO 19005-1 §6.4). A highlight multiplies its colour with the text under it so the text stays legible, and that blending is transparency. Later parts of PDF/A, PDF/A-2 and PDF/A-3, allow it.
+
+## How to fix
+
+Mark the text another way, with an underline or a strike-out, or make the mark opaque. If the file needn't stay PDF/A-1, save anyway: the warning never blocks a save.
+
+## Example
+
+A highlight added to a PDF/A-1b file, then `doc.plan()`, lists `pdfa-transparency`.
+
+## Data fields
+
+- `annotations`: the IDs of the translucent or blending annotations, in page order.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4c](../todos/ongoing/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
+- [E4 plan §3](../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep): conformance the edits must keep
+",
         "sink" => r"# `sink`
 
 - Type: error

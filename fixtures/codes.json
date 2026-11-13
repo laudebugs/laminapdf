@@ -724,6 +724,34 @@
       "summary": "a duplicated page's content is partly untagged, which breaks the PDF/UA claim of the document's metadata",
       "hint": "retag the copy, or duplicate pages whose tagged elements lie on the page alone",
       "since": "0.2.0"
+    },
+    {
+      "code": "annot-without-contents",
+      "kind": "usage",
+      "summary": "a new or changed annotation has no description, which breaks the document's PDF/UA claim",
+      "hint": "give the annotation a description: the text it marks, or what the mark means",
+      "since": "0.3.0"
+    },
+    {
+      "code": "annot-not-tagged",
+      "kind": "usage",
+      "summary": "a new annotation isn't in the structure tree, which breaks the document's PDF/UA claim",
+      "hint": "tag the document first, or add the annotation to a copy that doesn't claim PDF/UA",
+      "since": "0.3.0"
+    },
+    {
+      "code": "pdfa-annot-flags",
+      "kind": "usage",
+      "summary": "an annotation doesn't print or is hidden, which breaks the document's PDF/A claim",
+      "hint": "keep the annotation's Print flag and clear Hidden, Invisible, NoView and ToggleNoView",
+      "since": "0.3.0"
+    },
+    {
+      "code": "pdfa-transparency",
+      "kind": "usage",
+      "summary": "an annotation is translucent or blends, which PDF/A-1 forbids",
+      "hint": "make the mark opaque, or use an underline instead of a highlight",
+      "since": "0.3.0"
     }
   ],
   "saveErrors": [

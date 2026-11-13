@@ -8,6 +8,7 @@
 
 mod add;
 mod appearance;
+mod conformance;
 mod geom;
 mod redraw;
 mod spec;
@@ -16,6 +17,7 @@ mod tags;
 pub use add::{AddAnnot, AnnotCommon};
 pub(crate) use appearance::Generator;
 pub use appearance::{Appearance, AppearanceRequest, Appearances, IntentSpace};
+pub(crate) use conformance::warnings as conformance_warnings;
 pub use geom::{AnnotColor, Opacity};
 pub use spec::{
     AnnotSpec, AnnotSpecPatch, Caret, CaretPatch, CaretSymbol, MarkupKind, Note, NoteIcon, NotePatch, TextMarkup,

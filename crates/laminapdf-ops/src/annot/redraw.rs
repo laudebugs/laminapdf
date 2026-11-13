@@ -135,32 +135,42 @@ fn current_opacity(doc: &laminapdf_model::Document, dict: &Dict) -> Result<Opaci
     if let Some(ca) = dict.get("CA").and_then(Object::as_f64) {
         return Ok(Opacity::new(ca).unwrap_or_default());
     }
-    let Some(ap) = dict.get("AP") else {
-        return Ok(Opacity::OPAQUE);
-    };
-    let ap = doc.deref(ap)?;
-    let Some(normal) = ap.as_dict().and_then(|ap| ap.get("N")).cloned() else {
-        return Ok(Opacity::OPAQUE);
-    };
-    let normal = doc.deref(&normal)?;
-    let Some(resources) = normal.as_dict().and_then(|d| d.get("Resources")).cloned() else {
-        return Ok(Opacity::OPAQUE);
-    };
-    let resources = doc.deref(&resources)?;
-    let Some(states) = resources.as_dict().and_then(|r| r.get("ExtGState")).cloned() else {
-        return Ok(Opacity::OPAQUE);
-    };
-    let states = doc.deref(&states)?;
-    let first = states.as_dict().and_then(|s| s.iter().next().map(|(_, v)| v.clone()));
-    let Some(first) = first else {
-        return Ok(Opacity::OPAQUE);
-    };
-    let first = doc.deref(&first)?;
-    Ok(first
-        .as_dict()
+    Ok(appearance_states(doc, dict)?
+        .first()
         .and_then(|gs| gs.get("ca").and_then(Object::as_f64))
         .and_then(Opacity::new)
         .unwrap_or_default())
+}
+
+/// The ExtGStates of an annotation's normal appearance, in its resources' order; none when it
+/// has no appearance or the appearance names none.
+pub(super) fn appearance_states(doc: &laminapdf_model::Document, dict: &Dict) -> Result<Vec<Dict>> {
+    let resolve = |value: Option<&Object>| -> Result<Option<Dict>> {
+        match value {
+            Some(v) => Ok(doc.deref(v)?.as_dict().cloned()),
+            None => Ok(None),
+        }
+    };
+    let Some(ap) = resolve(dict.get("AP"))? else {
+        return Ok(Vec::new());
+    };
+    // `as_dict` gives a stream's dictionary too, which a Form XObject is.
+    let Some(normal) = resolve(ap.get("N"))? else {
+        return Ok(Vec::new());
+    };
+    let Some(resources) = resolve(normal.get("Resources"))? else {
+        return Ok(Vec::new());
+    };
+    let Some(states) = resolve(resources.get("ExtGState"))? else {
+        return Ok(Vec::new());
+    };
+    let mut out = Vec::new();
+    for (_, state) in states.iter() {
+        if let Some(state) = resolve(Some(state))? {
+            out.push(state);
+        }
+    }
+    Ok(out)
 }
 
 /// The numbers of an array.
