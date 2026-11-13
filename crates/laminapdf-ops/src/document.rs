@@ -488,6 +488,7 @@ impl Document {
         let changes = self.model.cos_mut().take_changes(mark)?;
         let state = self.open.take().ok_or(Error::NoTransaction)?;
         let undo = UndoRecord::from_changes(&changes);
+        let widgets = state.pending.widgets().iter().cloned().collect();
         if !undo.is_empty() {
             self.pending.merge(&state.pending);
             if state.origin == Origin::Local {
@@ -505,6 +506,7 @@ impl Document {
             touched_pages: state.touched,
             packet_rewritten: state.packet_rewritten,
             still_in_earlier_revisions: state.removed,
+            widgets,
         })
     }
 

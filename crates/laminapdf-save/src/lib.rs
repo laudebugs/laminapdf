@@ -73,6 +73,7 @@ mod options;
 mod planner;
 mod resolve;
 mod sink;
+mod widgets;
 mod xref;
 // What `fixtures/codes.json` lists, for the kind tests.
 #[cfg(test)]

@@ -12,6 +12,9 @@ use crate::error::{Error, Result};
 use crate::info::SetInfo;
 use crate::metadata::{RemoveMetadata, SetMetadata, UpdateSaveMetadata};
 use crate::rotate::RotatePage;
+#[cfg(feature = "test-support")]
+use crate::test_support::Declared;
+use crate::widgets::{PageChange, TouchedWidget};
 
 /// An editing operation ([ADR 0006] §1): typed and semantic (it names things by
 /// [`LaminaPdfId`](laminapdf_model::LaminaPdfId), never by object reference), serialisable, and free
@@ -56,6 +59,11 @@ pub enum Op {
     /// log can name it.
     #[serde(skip)]
     UpdateSaveMetadata(UpdateSaveMetadata),
+    /// An op that declares the widgets it touches, for the save planner's tests
+    /// ([`test_support::Declared`](crate::test_support::Declared)); never on the wire.
+    #[cfg(feature = "test-support")]
+    #[serde(skip)]
+    Declared(Declared),
 }
 
 impl Op {
@@ -69,6 +77,8 @@ impl Op {
                 ModificationClass::Metadata
             }
             Self::RotatePage(_) => ModificationClass::PageStructure,
+            #[cfg(feature = "test-support")]
+            Self::Declared(op) => op.op.class(),
         }
     }
 
@@ -84,6 +94,29 @@ impl Op {
             | Self::SetMetadata(_)
             | Self::RemoveMetadata(_)
             | Self::UpdateSaveMetadata(_) => false,
+            #[cfg(feature = "test-support")]
+            Self::Declared(op) => op.op.requires_rewrite(),
+        }
+    }
+
+    /// The pages this op would delete, replace, reshow or move: what `laminapdf-save`'s
+    /// `SavePlanner::would_violate` checks against the widgets on them before the op applies
+    /// ([E2 plan §6]). None of these ops reports a page yet: [`Op::RotatePage`] starts
+    /// reporting its page along with the page ops that delete, move and reverse pages.
+    ///
+    /// [E2 plan §6]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub fn page_changes(&self) -> Vec<PageChange> {
+        match self {
+            Self::SetInfo(_)
+            | Self::RotatePage(_)
+            | Self::SetMetadata(_)
+            | Self::RemoveMetadata(_)
+            | Self::UpdateSaveMetadata(_) => Vec::new(),
+            #[cfg(feature = "test-support")]
+            Self::Declared(op) => op.pages.clone(),
         }
     }
 
@@ -99,6 +132,8 @@ impl Op {
             Self::SetMetadata(op) => op.apply_to(doc),
             Self::RemoveMetadata(op) => op.apply_to(doc),
             Self::UpdateSaveMetadata(op) => op.apply_to(doc),
+            #[cfg(feature = "test-support")]
+            Self::Declared(op) => op.apply_to(doc, self.class()),
         }
     }
 }
@@ -113,6 +148,8 @@ pub(crate) struct Effect {
     pub(crate) packet_rewritten: bool,
     /// It removed metadata that the file's earlier revisions still hold.
     pub(crate) removed: bool,
+    /// The form fields whose widgets it deleted, reshowed or moved.
+    pub(crate) widgets: Vec<TouchedWidget>,
 }
 
 impl From<SetInfo> for Op {

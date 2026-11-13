@@ -22,10 +22,12 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use laminapdf_cos::{Dict, DirectPath, Document, ObjRef, Object, PathSegment};
 use laminapdf_model::FieldId;
-use laminapdf_ops::ModificationClass;
+use laminapdf_ops::{ModificationClass, WidgetChange};
+use laminapdf_syntax::text::decode_text_string;
 
 use crate::constraint::{DocMdp, DocMdpPermission, Restriction, SignatureInfo, SignatureKind, Violation};
 use crate::error::Result;
+use crate::widgets::WidgetIndex;
 
 /// What a signature forbids.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -36,8 +38,8 @@ enum Rule {
         permission: DocMdpPermission,
         assumed: bool,
     },
-    /// A `FieldMDP` lock that may cover fields.
-    FieldMdp,
+    /// A `FieldMDP` lock that may cover fields, and which.
+    FieldMdp(Lock),
     /// A usage-rights signature, with the op classes its rights cover.
     UsageRights(BTreeSet<ModificationClass>),
 }
@@ -48,7 +50,7 @@ impl Rule {
             Self::DocMdp { permission, .. } => permission.allows(class),
             // A lock covers named fields, and op classes don't name fields: any form change
             // may touch a locked field (ADR 0007 §9).
-            Self::FieldMdp => class != ModificationClass::FormFill,
+            Self::FieldMdp(_) => class != ModificationClass::FormFill,
             Self::UsageRights(granted) => granted.contains(&class),
         }
     }
@@ -56,8 +58,62 @@ impl Rule {
     const fn restriction(&self) -> Restriction {
         match self {
             Self::DocMdp { permission, .. } => Restriction::DocMdp(*permission),
-            Self::FieldMdp => Restriction::FieldMdp,
+            Self::FieldMdp(_) => Restriction::FieldMdp,
             Self::UsageRights(_) => Restriction::UsageRights,
+        }
+    }
+}
+
+/// The fields a `FieldMDP` lock covers (§12.8.2.4, Table 258), by fully qualified name.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Lock {
+    /// `/Action /All`, or an action this reader doesn't know (the strictest reading).
+    All,
+    /// `/Action /Include`: the fields named in `/Fields`.
+    Include(Vec<String>),
+    /// `/Action /Exclude`: every field but those named in `/Fields`.
+    Exclude(Vec<String>),
+}
+
+impl Lock {
+    /// The lock that `params` (a `/Lock` dictionary or `FieldMDP` transform parameters)
+    /// describes.
+    fn from_params(params: &Dict) -> Self {
+        let names = || {
+            params
+                .get("Fields")
+                .and_then(Object::as_array)
+                .unwrap_or_default()
+                .iter()
+                .filter_map(|o| match o {
+                    Object::String(s) => Some(decode_text_string(&s.bytes)),
+                    _ => None,
+                })
+                .collect()
+        };
+        match params.get_name("Action") {
+            Some(b"Include") => Self::Include(names()),
+            Some(b"Exclude") => Self::Exclude(names()),
+            _ => Self::All,
+        }
+    }
+
+    /// Whether the lock covers the field named `name`: a listed name covers that field and
+    /// the fields below it. A field whose name isn't known is covered unless the lock covers
+    /// nothing but listed fields.
+    fn covers(&self, name: Option<&str>) -> bool {
+        let listed = |names: &[String]| {
+            name.is_some_and(|name| {
+                names.iter().any(|n| {
+                    name.strip_prefix(n.as_str())
+                        .is_some_and(|rest| rest.is_empty() || rest.starts_with('.'))
+                })
+            })
+        };
+        match self {
+            Self::All => true,
+            Self::Include(names) => listed(names),
+            Self::Exclude(names) => !listed(names),
         }
     }
 }
@@ -132,6 +188,43 @@ impl Signatures {
                 .iter()
                 .filter(move |rule| !rule.allows(class))
                 .map(move |rule| Violation::new(class, rule.restriction(), f.info.clone()))
+        })
+    }
+
+    /// Whether any signature has a field or a field lock: only then do the field-level checks
+    /// of page ops need the [`WidgetIndex`].
+    pub(crate) fn has_field_rules(&self) -> bool {
+        self.found
+            .iter()
+            .any(|f| f.info.field.is_some() || f.rules.iter().any(|r| matches!(r, Rule::FieldMdp(_))))
+    }
+
+    /// The restrictions that a change to `field`'s widget breaks ([E2 plan §6], a rule
+    /// stricter than ISO 32000-2 §12.8): deleting or reshowing the widget of a signed
+    /// signature field ([`Restriction::SignedWidget`]), or of a field a lock covers
+    /// ([`Restriction::FieldMdp`]). Moving a widget's page breaks neither.
+    ///
+    /// [E2 plan §6]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint
+    pub(crate) fn widget_violations<'a>(
+        &'a self,
+        index: &'a WidgetIndex,
+        field: &'a FieldId,
+        change: WidgetChange,
+        class: ModificationClass,
+    ) -> impl Iterator<Item = Violation> + 'a {
+        let alters = change.alters_appearance();
+        let name = index.name(field);
+        self.found.iter().filter(move |_| alters).flat_map(move |f| {
+            let signed = (f.info.field.as_ref() == Some(field)).then_some(Restriction::SignedWidget);
+            let locked = f
+                .rules
+                .iter()
+                .any(|r| matches!(r, Rule::FieldMdp(lock) if lock.covers(name)))
+                .then_some(Restriction::FieldMdp);
+            signed
+                .into_iter()
+                .chain(locked)
+                .map(move |restriction| Violation::new(class, restriction, f.info.clone()).with_field(field.clone()))
         })
     }
 
@@ -491,7 +584,7 @@ fn lock_rules(doc: &Document, field: &Dict) -> Result<Vec<Rule>> {
     };
     let mut rules = Vec::new();
     if locks_fields(lock) {
-        rules.push(Rule::FieldMdp);
+        rules.push(Rule::FieldMdp(Lock::from_params(lock)));
     }
     if let Some(p) = lock.get("P") {
         rules.push(docmdp_rule(p.as_int()));
@@ -607,7 +700,9 @@ fn classify(doc: &Document, dict: &Dict, value: &Object, perms: &Perms) -> Resul
                     kind = SignatureKind::UsageRights;
                     rules.push(Rule::UsageRights(params.as_ref().map(granted).unwrap_or_default()));
                 }
-                Some(b"FieldMDP") if params.as_ref().is_none_or(locks_fields) => rules.push(Rule::FieldMdp),
+                Some(b"FieldMDP") if params.as_ref().is_none_or(locks_fields) => {
+                    rules.push(Rule::FieldMdp(params.as_ref().map_or(Lock::All, Lock::from_params)));
+                }
                 _ => {}
             }
         }
@@ -735,6 +830,56 @@ mod tests {
             granted(&params).into_iter().collect::<Vec<_>>(),
             [ModificationClass::FormFill, ModificationClass::Annotation]
         );
+    }
+
+    fn lock(action: &str, fields: &[&str]) -> Lock {
+        let params: Dict = [
+            ("Action", Object::name(action)),
+            (
+                "Fields",
+                Object::Array(
+                    fields
+                        .iter()
+                        .map(|f| Object::String(laminapdf_cos::PdfString::literal(f.as_bytes().to_vec())))
+                        .collect(),
+                ),
+            ),
+        ]
+        .into_iter()
+        .collect();
+        Lock::from_params(&params)
+    }
+
+    #[test]
+    fn an_included_name_covers_that_field_and_the_fields_below_it() {
+        let include = lock("Include", &["address"]);
+        assert_eq!(
+            [
+                include.covers(Some("address")),
+                include.covers(Some("address.street")),
+                include.covers(Some("addresses")),
+                include.covers(None),
+            ],
+            [true, true, false, false]
+        );
+    }
+
+    #[test]
+    fn an_excluding_lock_covers_every_field_it_does_not_name() {
+        let exclude = lock("Exclude", &["notes"]);
+        assert_eq!(
+            [
+                exclude.covers(Some("notes")),
+                exclude.covers(Some("total")),
+                exclude.covers(None)
+            ],
+            [false, true, true]
+        );
+    }
+
+    #[test]
+    fn a_lock_with_an_unknown_action_covers_every_field() {
+        assert!(lock("Some", &["x"]).covers(Some("y")));
     }
 
     #[test]
