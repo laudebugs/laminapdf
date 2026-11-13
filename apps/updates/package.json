@@ -1,0 +1,27 @@
+{
+  "name": "@laminapdf/updates",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Lamina PDF's desktop update service: a Cloudflare Worker that answers the Tauri updater from channel manifests in R2, with staged rollout, a kill switch and bridge releases (ADR 0014).",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "dev": "wrangler dev --local",
+    "types": "wrangler types --env-interface Env src/generated/worker-configuration.d.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.worker.json && wrangler types --env-interface Env src/generated/worker-configuration.d.ts --check",
+    "test": "vitest run",
+    "manifest": "node scripts/manifest.ts"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "ajv": "catalog:",
+    "esbuild": "catalog:",
+    "miniflare": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "wrangler": "catalog:"
+  }
+}

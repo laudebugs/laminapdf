@@ -19,6 +19,12 @@ categories = ["encoding"]
 layer = "core"
 
 [features]
+default = ["page-checks"]
+# The planner's field-level checks of page ops (ADR 0007 §11): a page op that deletes or reshows
+# the widget of a signed signature field or a locked field is a violation. On by default; the WASM
+# modules leave it out, where no op reports widgets yet (ADR 0016 §6's budgets). Without it, the
+# widgets ops report are not judged, so turn it on wherever page ops run.
+page-checks = []
 # The spike-era `Writer` and `incremental_update` as `laminapdf_save::test_support`, for the
 # workspace's tests and doc examples: not part of the product API.
 test-support = []
@@ -41,6 +47,8 @@ path = "examples/golden.rs"
 [dev-dependencies]
 # This crate's own tests use `test_support` (Cargo allows the self-dependency for tests).
 laminapdf-save = { path = ".", features = ["test-support"] }
+# The op that declares the widgets it touches, for the field-level planner tests (E2r).
+laminapdf-ops = { path = "../laminapdf-ops", features = ["test-support"] }
 # The test helpers every crate shares, by path only so `cargo publish` drops it
 # (code-organization.md §6).
 laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }

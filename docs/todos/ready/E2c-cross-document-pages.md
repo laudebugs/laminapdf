@@ -32,7 +32,7 @@ Copy pages between documents with [E2p](../done/E2p-source-documents-and-copier.
 - Ops, with the payloads of [E2 plan §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions): `InsertPagesFrom` and `ReplacePages`; `extract_pages` and `export_ranges` run as jobs with run-to-completion forms (ADR 0028 F10)
 - `extract_pages(doc, pages) -> Document` (new document whose base is empty, built in the overlay) and `export_ranges(doc, ranges) -> Vec<Document>`
 - Page labels and named destinations through [E2j](../done/E2j-page-tree-and-tree-writers.md)'s shared writers: `InsertPagesFrom` and `ReplacePages` call `PageLabels::remap` (target pages keep their labels; inserted pages continue the range they land in), and `extract_pages`/`export_ranges` write the source's labels for the extracted pages with the number-tree writer; named destinations used by imported links are copied with the name-tree writer
-- `ReplacePages` reports its touched widgets to [E2r](E2r-planner-page-checks.md)'s checks: replacing a page that holds a signed signature widget is `Restriction::SignedWidget { field }`
+- `ReplacePages` reports its touched widgets to [E2r](../done/E2r-planner-page-checks.md)'s checks: replacing a page that holds a signed signature widget is `Restriction::SignedWidget { field }`
 
 **Out of scope** (and which todo covers it)
 

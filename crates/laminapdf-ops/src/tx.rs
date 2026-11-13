@@ -13,6 +13,7 @@ use crate::error::Result;
 use crate::op::{Effect, Op};
 use crate::pending::PendingChanges;
 use crate::record::UndoRecord;
+use crate::widgets::TouchedWidget;
 
 /// The identity of a collaborator (ADR 0012), as sync assigns it.
 ///
@@ -82,7 +83,14 @@ pub struct Applied {
     /// The properties an XMP op declared in a PDF/A packet's extension schemas, so it stays
     /// valid PDF/A ([`SetXmpProperty`](crate::SetXmpProperty),
     /// [`ReplaceXmpPacket`](crate::ReplaceXmpPacket)).
+    ///
+    /// Added in 0.2.0.
     pub declared: Vec<laminapdf_model::xmp::ExtensionProperty>,
+    /// The form fields whose widgets it deleted, reshowed or moved, which the save planner
+    /// checks against signed signature fields and field locks (E2 plan §6).
+    ///
+    /// Added in 0.2.0.
+    pub widgets: Vec<TouchedWidget>,
 }
 
 /// The state of the open transaction, kept on the [`Document`](crate::Document) so the
@@ -158,6 +166,7 @@ impl Tx<'_> {
             packet_rewritten: effect.packet_rewritten,
             still_in_earlier_revisions: effect.removed,
             declared: effect.declared,
+            widgets: effect.widgets,
         })
     }
 
@@ -173,7 +182,7 @@ impl Tx<'_> {
         match op.apply_to(self.doc) {
             Ok(effect) => {
                 self.state.touched.extend(effect.pages.iter().cloned());
-                self.state.pending.record(op, effect.packet_rewritten);
+                self.state.pending.record(op, &effect);
                 self.state.packet_rewritten |= effect.packet_rewritten;
                 self.state.removed |= effect.removed;
                 self.state.declared.extend(effect.declared.iter().cloned());

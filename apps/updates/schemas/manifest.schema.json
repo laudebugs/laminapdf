@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/laudebugs/laminapdf/blob/main/apps/updates/schemas/manifest.schema.json",
+  "title": "Lamina PDF desktop channel manifest",
+  "description": "channels/{channel}.json in the channel's R2 bucket (ADR 0014 §5). The update Worker's own check (apps/updates/src/manifest.ts) also requires previous.version < release.version and each bridge's release.version >= below; test/manifest.test.ts holds this schema to it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "channel", "paused"],
+  "properties": {
+    "schema": { "const": 1 },
+    "channel": { "enum": ["stable", "beta", "nightly", "staging"] },
+    "paused": { "type": "boolean", "description": "The kill switch: no release or previous is served; bridges still are." },
+    "release": {
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/release" }],
+      "required": ["rollout_percent"]
+    },
+    "previous": {
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/release" }],
+      "properties": { "rollout_percent": { "const": 100 } }
+    },
+    "bridges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["below", "release"],
+        "properties": {
+          "below": { "$ref": "#/$defs/version" },
+          "release": {
+            "type": "object",
+            "allOf": [{ "$ref": "#/$defs/release" }],
+            "not": { "type": "object", "required": ["rollout_percent"] }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "version": {
+      "type": "string",
+      "maxLength": 128,
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?$"
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "pub_date", "notes", "platforms"],
+      "properties": {
+        "version": { "$ref": "#/$defs/version" },
+        "pub_date": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$"
+        },
+        "notes": { "type": "string" },
+        "rollout_percent": { "type": "number", "minimum": 0, "maximum": 100, "multipleOf": 0.01 },
+        "platforms": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "pattern": "^(linux|windows|darwin)-(x86_64|aarch64|i686|armv7)$" },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["url", "signature"],
+            "properties": {
+              "url": { "type": "string", "pattern": "^https://" },
+              "signature": { "type": "string", "pattern": "\\S" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

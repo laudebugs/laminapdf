@@ -159,7 +159,7 @@
           "id": "B.01",
           "name": "Insert, delete, replace images",
           "round": "E6",
-          "target": "round-trip",
+          "target": "write",
           "surfaces": {
             "core": null,
             "pdf": null,
@@ -171,7 +171,7 @@
           "id": "B.02",
           "name": "Resize, rotate, crop, reposition",
           "round": "E6",
-          "target": "round-trip",
+          "target": "write",
           "surfaces": {
             "core": null,
             "pdf": null,
