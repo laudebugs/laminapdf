@@ -722,7 +722,7 @@ mod tests {
         let job = lines_of(CANCEL_MERGED, "jobs", "cancel").join("\n");
         for part in [
             "shell: bash",
-            r#"select(.merge_commit_sha == $sha)"#,
+            r"select(.merge_commit_sha == $sha)",
             r#"-f event=pull_request -f branch="$head_ref""#,
             r#".status != "completed""#,
             ".head_repository.full_name == $pr[0].head.repo.full_name",
