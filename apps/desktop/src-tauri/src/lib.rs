@@ -259,7 +259,7 @@ pub fn run() -> Result<(), DesktopError> {
         .setup(setup)
         .on_window_event(on_window_event)
         .build(tauri::generate_context!())?;
-    app.run(on_run_event);
+    app.run(|app, event| on_run_event(app, &event));
     Ok(())
 }
 
@@ -297,14 +297,14 @@ fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
     }
 }
 
-fn on_run_event(app: &tauri::AppHandle, event: RunEvent) {
+fn on_run_event(app: &tauri::AppHandle, event: &RunEvent) {
     match event {
         RunEvent::Exit => app.state::<Arc<Engines>>().shutdown(),
         // macOS hands Finder's, the Dock's and `open`'s files to the running app, cold or warm,
         // with or without a window.
         #[cfg(target_os = "macos")]
         RunEvent::Opened { urls } => match windows::target_window(app) {
-            Ok(window) => open::route_open(app, &window, open::paths_from_urls(&urls)),
+            Ok(window) => open::route_open(app, &window, open::paths_from_urls(urls)),
             Err(error) => tracing::warn!("no window for the files macOS opened: {error}"),
         },
         // A macOS app keeps running when its last window closes; quitting is the user's (⌘Q).

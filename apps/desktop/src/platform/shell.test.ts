@@ -5,7 +5,7 @@
 import type { RecentFile } from "@laminapdf/ui";
 import { fakePlatform } from "@laminapdf/ui/testing";
 import { emit } from "@tauri-apps/api/event";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { DesktopDocument } from "../engine/desktop-engine-client.ts";
 import { listenForFileChanges, MISSING_EVENT, RELOADED_EVENT, UNREADABLE_EVENT } from "../engine/file-changes.ts";
@@ -45,6 +45,7 @@ beforeEach(() => {
   calls = [];
   answers = {};
   mockConvertFileSrc("macos");
+  mockWindows("main");
   mockIPC(
     (command, args) => {
       calls.push([command, args]);

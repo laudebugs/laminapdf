@@ -9,7 +9,7 @@
 // reader has one document per browser tab.
 
 import { Icon } from "@laminapdf/icons/react";
-import { type DragEvent, type KeyboardEvent, type ReactNode, useRef, useState } from "react";
+import { type DragEvent, type KeyboardEvent, type ReactNode, useState } from "react";
 import { Button as AriaButton, MenuTrigger } from "react-aria-components";
 import type { KeyPlatform } from "../components/shortcut-chip.js";
 import { message } from "../messages.js";
@@ -41,6 +41,9 @@ export interface DocumentTabsProps {
   readonly platform: KeyPlatform;
 }
 
+/** The drag data type that carries a dragged tab's id. */
+const TAB_DRAG_TYPE = "application/x-laminapdf-tab";
+
 /** The prefix that tells a tab's entry in the strip's menu from the move entries. */
 const TAB_ENTRY = "tab:";
 
@@ -55,7 +58,6 @@ export function DocumentTabs({
   onMove,
   platform,
 }: DocumentTabsProps): ReactNode {
-  const strip = useRef<HTMLDivElement>(null);
   // The roving tab stop: the focused tab, else the active one, else the first.
   const [focused, setFocused] = useState<string>();
   const stop = tabs.find((t) => t.id === focused)?.id ?? active ?? tabs[0]?.id;
@@ -66,16 +68,20 @@ export function DocumentTabs({
     onActivate(id);
     setMenuOpen(true);
   };
-  const focusTab = (id: string) => {
+  // Focuses tab `id` in the strip that holds `from` (the tab a key was pressed on).
+  const focusTab = (from: HTMLElement, id: string) => {
     setFocused(id);
-    strip.current?.querySelector<HTMLElement>(`[data-tab-id="${CSS.escape(id)}"]`)?.focus();
+    from
+      .closest('[role="tablist"]')
+      ?.querySelector<HTMLElement>(`[data-tab-id="${CSS.escape(id)}"]`)
+      ?.focus();
   };
   const onKeyDown = tabKeys(tabs, { focusTab, onActivate, onClose, openMenuFor });
 
   const menu: MenuEntry<string>[] = [...tabs.map((t) => ({ id: `${TAB_ENTRY}${t.id}`, label: t.title })), ...moves];
   return (
     <div className="paper-document-tabs">
-      <div ref={strip} role="tablist" aria-label={message("tabs.label")} className="paper-document-tabs-list">
+      <div role="tablist" aria-label={message("tabs.label")} className="paper-document-tabs-list">
         {tabs.map((tab) => (
           <OneTab
             key={tab.id}
@@ -112,7 +118,7 @@ export function DocumentTabs({
 
 /** What the strip's keys do to its tabs. */
 interface TabActions {
-  focusTab(id: string): void;
+  focusTab(from: HTMLElement, id: string): void;
   onActivate(id: string): void;
   onClose(id: string): void;
   openMenuFor(id: string): void;
@@ -124,8 +130,9 @@ function tabKeys(
   act: TabActions,
 ): (event: KeyboardEvent<HTMLElement>, id: string) => void {
   return (event, id) => {
+    const from = event.currentTarget;
     const index = tabs.findIndex((t) => t.id === id);
-    const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+    const rtl = getComputedStyle(from).direction === "rtl";
     const step = (by: number) => tabs[(index + by + tabs.length) % tabs.length]?.id;
     const target = {
       ArrowRight: step(rtl ? -1 : 1),
@@ -143,11 +150,11 @@ function tabKeys(
       delete: () => {
         const next = step(1);
         act.onClose(id);
-        if (next !== undefined && next !== id) act.focusTab(next);
+        if (next !== undefined && next !== id) act.focusTab(from, next);
       },
     };
     const action =
-      target === undefined ? others[contextMenu ? "menu" : event.key.toLowerCase()] : () => act.focusTab(target);
+      target === undefined ? others[contextMenu ? "menu" : event.key.toLowerCase()] : () => act.focusTab(from, target);
     if (action === undefined) return;
     event.preventDefault();
     action();
@@ -159,7 +166,7 @@ interface TabDrag {
   readonly dragged: string | undefined;
   /** Whether `onReorder` was given: tabs are draggable only then. */
   readonly enabled: boolean;
-  start(id: string): void;
+  start(event: DragEvent, id: string): void;
   end(): void;
   /** A drag over a tab may drop there while a tab of this strip is dragged. */
   over(event: DragEvent): void;
@@ -167,27 +174,26 @@ interface TabDrag {
 }
 
 function useTabDrag(tabs: readonly DocumentTab[], onReorder: DocumentTabsProps["onReorder"]): TabDrag {
-  // A ref for the drop handlers, which can run before React renders again, and state for the
-  // dragged tab's dimmed look.
-  const draggedRef = useRef<string | undefined>(undefined);
-  const [dragged, setDraggedState] = useState<string>();
-  const setDragged = (id: string | undefined) => {
-    draggedRef.current = id;
-    setDraggedState(id);
-  };
+  // The dragged tab's id travels in the drag's data, which the drop reads; the state only dims it.
+  const [dragged, setDragged] = useState<string>();
   return {
     dragged,
     enabled: onReorder !== undefined,
-    start: setDragged,
+    start: (event, id) => {
+      event.dataTransfer.setData(TAB_DRAG_TYPE, id);
+      event.dataTransfer.effectAllowed = "move";
+      setDragged(id);
+    },
     end: () => setDragged(undefined),
     over: (event) => {
-      if (draggedRef.current !== undefined) event.preventDefault();
+      // Only this strip's tabs drop here: not files, not text.
+      if (event.dataTransfer.types.includes(TAB_DRAG_TYPE)) event.preventDefault();
     },
     drop: (event, onto) => {
       event.preventDefault();
-      const moving = draggedRef.current;
+      const moving = event.dataTransfer.getData(TAB_DRAG_TYPE);
       setDragged(undefined);
-      if (moving === undefined || moving === onto || onReorder === undefined) return;
+      if (moving === "" || moving === onto || onReorder === undefined || !tabs.some((t) => t.id === moving)) return;
       const all = tabs.map((t) => t.id);
       // Dropped on a tab after it: it goes after that tab; on one before it: before that tab.
       const after = all.indexOf(moving) < all.indexOf(onto);
@@ -237,10 +243,7 @@ function OneTab({
         title={tab.title}
         className="paper-document-tab-label"
         draggable={drag.enabled}
-        onDragStart={(event) => {
-          drag.start(tab.id);
-          event.dataTransfer.effectAllowed = "move";
-        }}
+        onDragStart={(event) => drag.start(event, tab.id)}
         onDragEnd={drag.end}
         onDragOver={drag.over}
         onDrop={(event) => drag.drop(event, tab.id)}

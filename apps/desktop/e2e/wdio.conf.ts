@@ -43,9 +43,10 @@ export function e2eConfig(names: readonly string[], args: readonly string[] = []
 }
 
 // The service starts the app once for the whole run, so the scenarios share it and run in this
-// order: the empty state while nothing is open first, then the rest, each opening its own file,
-// which replaces the one before (ADR 0018 §4's ordering exception). The cold start with a file
-// needs its own launch: wdio.cold-open.conf.ts.
+// order: the empty state while nothing is open first, then the rest, each opening its own files
+// (ADR 0018 §4's ordering exception). The cold start with a file needs its own launch:
+// wdio.cold-open.conf.ts.
+let scenario: string | undefined;
 export const config: WebdriverIO.Config = {
   ...e2eConfig([
     "start",
@@ -61,9 +62,14 @@ export const config: WebdriverIO.Config = {
     "large",
     "tabs",
   ]),
-  // Opening no longer replaces the document before (each opens a tab), so each scenario starts
-  // with every tab closed, as if it had the app to itself.
-  beforeSuite: closeAll,
+  // Opening adds a tab rather than replacing the document before, so each scenario starts with
+  // every tab closed, as if it had the app to itself. The scenarios run as one group, where
+  // `beforeSuite` fires once only: the first test of each file closes them.
+  beforeTest: async (test) => {
+    if (test.file === scenario) return;
+    scenario = test.file;
+    await closeAll();
+  },
 };
 
 /** A test that passed only on its retry: a warning annotation on Actions, a console warning elsewhere. */

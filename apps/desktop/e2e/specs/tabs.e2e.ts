@@ -20,6 +20,11 @@ import {
 
 const example = (name: string) => fixture("fixtures", "golden", "examples", name);
 
+/** The shown document's page count, 0 while the window shows none (a new window, before its tab). */
+function pagesShown(): Promise<number> {
+  return browser.execute(() => globalThis.__laminaE2e?.view()?.pageCount ?? 0);
+}
+
 /** Waits until the strip shows `name` as the shown tab. */
 async function waitForShown(name: string): Promise<void> {
   await browser.waitUntil(async () => (await shownTab()) === name, { timeoutMsg: `${name} isn't the shown tab` });
@@ -50,14 +55,16 @@ async function movesToWindows(): Promise<void> {
   await zoomOnce("Zoom in");
   const { currentPage, percent } = await view();
   const main = await moveToNewWindow();
-  await browser.waitUntil(async () => (await view()).pageCount === 13, { timeoutMsg: "the tab didn't arrive" });
+  await browser.waitUntil(async () => (await pagesShown()) === 13, { timeoutMsg: "the tab didn't arrive" });
   await browser.waitUntil(async () => (await view()).currentPage === currentPage, { timeoutMsg: "a different page" });
   expect((await view()).percent).toBe(percent);
   expect(await browser.getTitle()).toBe("flowing_report.pdf — Lamina PDF");
   const other = await browser.getWindowHandle();
   await browser.switchToWindow(main);
   // It left this window, which shows the next tab.
-  expect(await tabNames()).toEqual(["hello.pdf", "invoice.pdf"]);
+  await browser.waitUntil(async () => (await tabNames()).join() === "hello.pdf,invoice.pdf", {
+    timeoutMsg: "the moved tab is still in this window",
+  });
   // Move tab to window ▸ the new one, from the strip's menu.
   await $('[role="tab"]=invoice.pdf').click();
   await waitForShown("invoice.pdf");
@@ -79,9 +86,9 @@ async function movesEncrypted(): Promise<void> {
   await open(fixture("fixtures", "encrypted", "r3-rc4-128-user.pdf"));
   await $('input[aria-label="Password"]').setValue("user-pw");
   await $("button=Open").click();
-  await browser.waitUntil(async () => (await view()).pageCount > 0, { timeoutMsg: "it didn't open" });
+  await browser.waitUntil(async () => (await pagesShown()) > 0, { timeoutMsg: "it didn't open" });
   const main = await moveToNewWindow();
-  await browser.waitUntil(async () => (await view()).pageCount > 0, { timeoutMsg: "the tab didn't arrive" });
+  await browser.waitUntil(async () => (await pagesShown()) > 0, { timeoutMsg: "the tab didn't arrive" });
   await waitForSharp(0);
   await expect($('input[aria-label="Password"]')).not.toBeExisting();
   // Moved on again, then the window it came from closes: it stays unlocked and keeps drawing.
@@ -89,7 +96,7 @@ async function movesEncrypted(): Promise<void> {
   const last = await browser.getWindowHandle();
   await browser.switchToWindow(source);
   await closeWindowFor(last);
-  await browser.waitUntil(async () => (await view()).pageCount > 0, { timeoutMsg: "the tab didn't arrive" });
+  await browser.waitUntil(async () => (await pagesShown()) > 0, { timeoutMsg: "the tab didn't arrive" });
   await drawsAfterZoomOut();
   await expect($('input[aria-label="Password"]')).not.toBeExisting();
   await closeWindowFor(main);

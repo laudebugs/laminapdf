@@ -103,7 +103,7 @@ export function useTabStrip(
   return { strip, actions };
 }
 
-const NO_TABS = {
+export const NO_TABS = {
   getState: () => ({ tabs: [], active: undefined }),
   subscribe: () => () => undefined,
 } as const;
@@ -168,6 +168,8 @@ function useWindowTitle(
     if (shell === undefined || tabs === undefined) return;
     const shown = tabs.shown;
     const name = shown === undefined ? null : (documentOf(shown.file)?.name ?? shown.file.name);
+    // The page's title too, as the window's (src-tauri/src/windows.rs `title`).
+    document.title = name === null ? "Lamina PDF" : `${name} — Lamina PDF`;
     void shell.invoke("set_window_title", { name }).catch(() => undefined);
   }, [shell, tabs, active]);
 }

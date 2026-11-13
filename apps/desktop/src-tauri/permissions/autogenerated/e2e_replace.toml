@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-e2e-replace"
+description = "Enables the e2e_replace command without any pre-configured scope."
+commands.allow = ["e2e_replace"]
+
+[[permission]]
+identifier = "deny-e2e-replace"
+description = "Denies the e2e_replace command without any pre-configured scope."
+commands.deny = ["e2e_replace"]

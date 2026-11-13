@@ -40,7 +40,7 @@ import { useFileChanges } from "./file-changes.tsx";
 import { NotYetSupportedError } from "./platform/desktop.ts";
 import { type DesktopRecent, useDesktopRecent } from "./recent.tsx";
 import { type DesktopSettings, useDesktopSettings } from "./settings.tsx";
-import { useTabStrip } from "./tabs/use-tabs.tsx";
+import { NO_TABS, useTabStrip } from "./tabs/use-tabs.tsx";
 import { WindowTabs } from "./tabs/window-tabs.ts";
 
 /** Outside Tauri (`pnpm dev` in a browser) there is no engine to open with. */
@@ -110,6 +110,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const { settings, recent, actions: homeActions } = useHome(engine, platform, reader, state, toasts);
   const actions = useMemo(() => ({ ...homeActions, ...tabActions }), [homeActions, tabActions]);
   const open = state.phase === "open";
+  const shows = useShownParts(state.phase, tabs);
   // The page input, zoom and the viewer's commands work while a document is on screen.
   const viewer = open && lost === undefined ? engine?.viewer : undefined;
   const { registry, context, palette } = useCommands(platform, reader, actions, viewer);
@@ -148,7 +149,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
           </>
         }
       >
-        {state.phase === "empty" || state.phase === "opening" || state.phase === "needs-password" ? (
+        {shows.startScreen ? (
           <OpenDropZone reader={reader} keys={keys}>
             {recent.home}
           </OpenDropZone>
@@ -163,7 +164,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
             </button>
           </Notice>
         ) : null}
-        <ViewerHost viewer={engine?.viewer} visible={open && lost === undefined} />
+        <ViewerHost viewer={engine?.viewer} visible={shows.viewer && lost === undefined} />
       </ReaderShell>
       {dragging === undefined ? null : <DropOverlay>{dropText(dragging)}</DropOverlay>}
       <PasswordDialog reader={reader} />
@@ -313,6 +314,24 @@ function Failure({
       onCopy={() => void platform.copyText(`${error.code}: ${error.message}`)}
     />
   );
+}
+
+/**
+ * Whether the window shows its start screen and its viewer. With tabs open, a document that is
+ * opening (a tab shown, a file opened) replaces the one on screen: the viewer stays and the start
+ * screen doesn't flash. A hide and show within one frame would also leave the viewer without the
+ * size it waits for.
+ */
+function useShownParts(
+  phase: ReaderState["phase"],
+  tabs: WindowTabs | undefined,
+): { startScreen: boolean; viewer: boolean } {
+  const hasTabs = useStoreState(tabs ?? NO_TABS, (s) => s.tabs.length > 0);
+  const between = phase === "opening" && hasTabs;
+  return {
+    startScreen: phase === "empty" || phase === "needs-password" || (phase === "opening" && !hasTabs),
+    viewer: phase === "open" || between,
+  };
 }
 
 /** Mounts `viewer` into a box that fills the canvas, and shows it while `visible`. */
