@@ -194,7 +194,7 @@ fn draws_tagged_form(doc: &laminapdf_model::Document, page: &laminapdf_model::Pa
 
 /// The fully qualified names any field has: those the form lists, and those of every page's
 /// widgets, since a field the form's `/Fields` doesn't reach still names a value viewers share.
-fn names_in_use(doc: &laminapdf_model::Document, pages: &[PageId]) -> Result<laminapdf_model::FieldNames> {
+pub(super) fn names_in_use(doc: &laminapdf_model::Document, pages: &[PageId]) -> Result<laminapdf_model::FieldNames> {
     let mut names = doc.field_names()?;
     for page in pages {
         for w in doc.page_widgets(page)? {

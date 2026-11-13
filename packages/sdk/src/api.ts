@@ -99,6 +99,8 @@ export type { GlyphQuad, QuadPoint, TextGlyph, TextOptions as PageTextOptions } 
 export { PageText, PageTextRun } from "./text.js";
 export type { InfoPatch, Rotation } from "./transaction.js";
 export {
+  type AddedSource,
+  type Carry,
   type DeletePagesOptions,
   type InsertBlankPagesOptions,
   type MetadataEditOptions,
