@@ -27,6 +27,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "decompress":
     case "invalid-op-log":
     case "malformed-xmp":
+    case "invalid-xmp-packet":
     case "invalid-font":
     case "missing-glyph":
     case "invalid-image":
@@ -66,6 +67,8 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "path-outside-roots":
       return "security";
     case "unknown-page":
+    case "no-pages-left":
+    case "invalid-op":
     case "invalid-label-ranges":
     case "unknown-source":
     case "unknown-outline-item":
@@ -76,6 +79,8 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "empty-destination-name":
     case "link-uri-refused":
     case "view-not-finite":
+    case "xmp-claim-read-only":
+    case "invalid-xmp-property":
     case "unknown-annotation":
     case "sink-not-empty":
     case "collection-index":

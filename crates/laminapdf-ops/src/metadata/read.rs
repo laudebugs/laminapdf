@@ -152,7 +152,7 @@ impl Side {
 
 /// Whether two values say the same: dates naming the same instant in any zone, anything else
 /// equal.
-fn same(a: &Value, b: &Value) -> bool {
+pub(super) fn same(a: &Value, b: &Value) -> bool {
     match (a, b) {
         (Value::Date(a), Value::Date(b)) => a.cmp_instant(b).is_eq(),
         _ => a == b,

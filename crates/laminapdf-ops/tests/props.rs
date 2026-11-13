@@ -1,6 +1,6 @@
 //! Property tests (ADR 0018 tier 5, ADR 0006 §3–§4): random sequences of `SetInfo`,
-//! `SetMetadata`, `RemoveMetadata`, `RotatePage` and the outline and named-destination ops,
-//! grouped into local transactions (some
+//! `SetMetadata`, `RemoveMetadata`, the XMP ops, `RotatePage` and the outline and
+//! named-destination ops, grouped into local transactions (some
 //! coalescing), over files with an indirect, a direct and no Info dictionary, with and without
 //! an XMP packet, a PDF 2.0 file and inherited `/Rotate`. Undoing everything leaves the overlay
 //! empty; redoing everything gives the same overlay as before the undo.
@@ -20,12 +20,13 @@
 mod common;
 
 use common::{corpus, fixture, inherited_rotate, open, page_ids, snapshot};
+use laminapdf_model::xmp::{LangText, XmpValue};
 use laminapdf_model::{OutlineTree, PdfDate, Rotation, SiblingPosition};
 use laminapdf_ops::{
     AddOutlineItem, ChildItems, DeleteNamedDestination, DeleteOutlineItem, DestinationView, Document,
     ExplicitDestination, InfoPatch, MetadataKey, MetadataPatch, MoveOutlineItem, Op, Origin, OutlineStyle,
-    OutlineTarget, RemoveMetadata, RenameNamedDestination, Rgb, RotatePage, SetInfo, SetMetadata, SetNamedDestination,
-    UndoOutcome, UpdateOutlineItem,
+    OutlineTarget, RemoveMetadata, RemoveXmpProperty, RenameNamedDestination, ReplaceXmpPacket, Rgb, RotatePage,
+    SetInfo, SetMetadata, SetNamedDestination, SetXmpProperty, UndoOutcome, UpdateOutlineItem,
 };
 use proptest::prelude::*;
 use proptest::test_runner::{Config, RngSeed, TestRunner};
@@ -54,6 +55,33 @@ enum Recipe {
     RenameName(usize, usize),
     /// Delete the nth existing name.
     DeleteName(usize),
+    /// `SetXmpProperty` of one of [`XMP_NAMES`] to the value of that index.
+    Xmp(usize),
+    XmpRemove(usize),
+    /// `ReplaceXmpPacket` with one of [`PACKETS`].
+    XmpPacket(usize),
+}
+
+const ACME: &str = "http://example.com/acme/";
+/// The XMP properties the XMP ops edit: three custom ones and a mirrored one.
+const XMP_NAMES: [(&str, &str); 4] = [
+    (ACME, "batch"),
+    (ACME, "tags"),
+    (ACME, "home"),
+    ("http://purl.org/dc/elements/1.1/", "title"),
+];
+const PACKETS: [&str; 2] = [
+    r#"<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:acme="http://example.com/acme/" acme:batch="9"/></rdf:RDF></x:xmpmeta>"#,
+    r#"<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?><x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">Replaced</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end="w"?>"#,
+];
+
+fn xmp_value(index: usize) -> XmpValue {
+    match index % 4 {
+        0 => XmpValue::Integer(42),
+        1 => XmpValue::Bag(vec![XmpValue::Text("b".into()), XmpValue::Text("a".into())]),
+        2 => XmpValue::Uri("https://example.com/".into()),
+        _ => XmpValue::LangAlt(vec![LangText::new("x-default", "Grüße")]),
+    }
 }
 
 const NAMES: [&str; 4] = ["chapter2", "appendix", "results", "Grüße"];
@@ -95,6 +123,9 @@ fn recipe() -> impl Strategy<Value = Recipe> {
         (0usize..4, 0usize..8).prop_map(|(n, p)| Recipe::SetName(n, p)),
         (0usize..4, 0usize..4).prop_map(|(f, t)| Recipe::RenameName(f, t)),
         (0usize..4).prop_map(Recipe::DeleteName),
+        (0usize..4).prop_map(Recipe::Xmp),
+        (0usize..4).prop_map(Recipe::XmpRemove),
+        (0usize..2).prop_map(Recipe::XmpPacket),
     ]
 }
 
@@ -227,6 +258,15 @@ fn to_op(doc: &laminapdf_model::Document, recipe: &Recipe) -> Op {
             let page = ids.get(index % ids.len()).unwrap().clone();
             RotatePage::new(page, *rotation).into()
         }
+        Recipe::Xmp(i) => {
+            let (namespace, name) = *XMP_NAMES.get(i % 4).unwrap();
+            SetXmpProperty::new(namespace, "acme", name, xmp_value(*i)).into()
+        }
+        Recipe::XmpRemove(i) => {
+            let (namespace, name) = *XMP_NAMES.get(i % 4).unwrap();
+            RemoveXmpProperty::new(namespace, name).into()
+        }
+        Recipe::XmpPacket(i) => ReplaceXmpPacket::new(*PACKETS.get(i % 2).unwrap()).into(),
         // An outline recipe the document has nothing for: a rotation instead.
         _ => RotatePage::new(page_ids(doc).first().unwrap().clone(), Rotation::Half).into(),
     }

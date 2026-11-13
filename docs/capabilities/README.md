@@ -14,9 +14,9 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 9 | 6 | 16 | 0 | 138 | 15 |
+| core | 169 | 14 | 5 | 15 | 0 | 135 | 20 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
-| web | 168 | 6 | 0 | 0 | 0 | 162 | 6 |
+| web | 168 | 7 | 0 | 0 | 0 | 161 | 7 |
 | desktop | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
 
 ## A. Text & typography
@@ -57,10 +57,10 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| C.01 | Insert blank pages | — | — | — | — | E2 round-trip |  |
+| C.01 | Insert blank pages | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | C.02 | Insert pages from other PDFs | — | — | — | — | E2 round-trip |  |
-| C.03 | Delete & duplicate pages | — | — | — | — | E2 round-trip |  |
-| C.04 | Reorder pages | 🟡 read | — | — | — | E2 round-trip | [`ids_are_the_page_objects`](../../crates/laminapdf-model/tests/views.rs) core read |
+| C.03 | Delete & duplicate pages | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| C.04 | Reorder pages | 🟢 round-trip | — | — | — | E2 round-trip | [`ids_are_the_page_objects`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | C.05 | Extract selected pages | — | — | — | — | E2 write |  |
 | C.06 | Merge multiple documents | — | — | — | — | E2 round-trip |  |
 | C.07 | Split by count, ranges, bookmarks | — | — | — | — | E2 write |  |
@@ -69,7 +69,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | C.10 | Resize page dimensions | — | — | — | — | E2 round-trip |  |
 | C.11 | Modify margins & page boxes | 🟡 read | — | — | — | E2 round-trip | [`art_and_bleed_boxes_are_read_from_the_page`](../../crates/laminapdf-model/tests/views.rs) core read |
 | C.12 | Portrait ↔ landscape | — | — | — | — | E2 round-trip |  |
-| C.13 | Reverse page order | — | — | — | — | E2 round-trip |  |
+| C.13 | Reverse page order | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | C.14 | Labels, page numbers, headers/footers | 🟡 read | — | — | — | E6 round-trip | [`labels_follow_the_ranges`](../../crates/laminapdf-model/tests/views.rs) core read |
 | C.15 | Booklet / N-up layouts | — | — | — | — | E16 round-trip |  |
 | C.16 | Replace pages, preserving the rest | — | — | — | — | E2 round-trip |  |
@@ -192,7 +192,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | J.01 | Title, author, subject, keywords | 🟢 round-trip | — | 🟢 round-trip | — | E1 round-trip | [`text_fields_are_decoded`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[`metadata_edits_round_trip_with_info_and_xmp_in_step`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[sets title, authors, subject, keywords, creator and producer in Info and XMP](../../apps/web/e2e/properties.e2e.test.ts) web round-trip |
 | J.02 | Creation/modification dates | 🟢 round-trip | — | 🟢 round-trip | — | E1 round-trip | [`a_valid_date_is_parsed`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`metadata_edits_round_trip_with_info_and_xmp_in_step`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[sets the creation date, and the save sets the modification date, in a file that had no XMP](../../apps/web/e2e/properties.e2e.test.ts) web round-trip |
 | J.03 | Producer & creator | 🟢 round-trip | — | 🟢 round-trip | — | E1 round-trip | [`metadata_edits_round_trip_with_info_and_xmp_in_step`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[sets title, authors, subject, keywords, creator and producer in Info and XMP](../../apps/web/e2e/properties.e2e.test.ts) web round-trip |
-| J.04 | Manage XMP | 🔵 write | — | — | — | E3 round-trip | [`a_documents_packet_is_parsed_and_its_fields_read`](../../crates/laminapdf-model/tests/xmp.rs) core read<br>[`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
+| J.04 | Manage XMP | 🟢 round-trip | — | 🟢 round-trip | — | E3 round-trip | [`a_documents_packet_is_parsed_and_its_fields_read`](../../crates/laminapdf-model/tests/xmp.rs) core read<br>[`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[`metadata_edits_round_trip_with_info_and_xmp_in_step`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[adds an XMP property and changes another on the XMP tab](../../apps/web/e2e/properties.e2e.test.ts) web round-trip |
 | J.05 | Attach / extract / delete embedded files | — | — | — | — | E3 round-trip |  |
 | J.06 | Portfolios / collections | — | — | — | — | E3 read |  |
 | J.07 | Inspect version & conformance | — | — | — | — | E3 read |  |

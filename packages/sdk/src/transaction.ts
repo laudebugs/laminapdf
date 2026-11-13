@@ -1,7 +1,7 @@
 // The handle `Document.transact` passes to its callback (ADR 0006 §2): a closure can't cross the
 // WASM boundary, so the handle collects ops and the document applies them as one transaction.
 import { packageError } from "./errors.js";
-import type { DocumentInfo, MetadataKey, MetadataPatch, Op, PageLabelRange } from "./types.js";
+import type { DocumentInfo, MetadataKey, MetadataPatch, Op, PageLabelRange, XmpValue } from "./types.js";
 
 /**
  * The rotations `/Rotate` allows.
@@ -38,6 +38,133 @@ export interface MetadataRemoveOptions {
   /** As {@link MetadataEditOptions.replaceMalformed}. */
   readonly replaceMalformed?: boolean;
 }
+
+/**
+ * Options for the XMP property edits, `setXmpProperty` and `removeXmpProperty`.
+ *
+ * @since 0.2.0
+ */
+export interface XmpEditOptions {
+  /** As {@link MetadataEditOptions.replaceMalformed}. */
+  readonly replaceMalformed?: boolean;
+}
+
+/** @internal The `setXmpProperty` op. */
+export const setXmpPropertyOp = (
+  namespace: string,
+  prefix: string,
+  name: string,
+  value: XmpValue,
+  options?: XmpEditOptions,
+): Op => ({ op: "setXmpProperty", args: { namespace, prefix, name, value, ...options } }) as Op;
+
+/** @internal The `removeXmpProperty` op. */
+export const removeXmpPropertyOp = (namespace: string, name: string, options?: XmpEditOptions): Op =>
+  ({ op: "removeXmpProperty", args: { namespace, name, ...options } }) as Op;
+
+/** @internal The `replaceXmpPacket` op. */
+export const replaceXmpPacketOp = (xml: string): Op => ({ op: "replaceXmpPacket", args: { xml } }) as Op;
+
+/**
+ * Where pages go: before the first page, after the last, or before or after a page named by its ID.
+ *
+ * @since 0.2.0
+ */
+export type PagePosition = "start" | "end" | { readonly before: string } | { readonly after: string };
+
+/**
+ * A page size in points (1/72 inch): `{ width: 612, height: 792 }` is US Letter.
+ *
+ * @since 0.2.0
+ */
+export interface PageSize {
+  readonly width: number;
+  readonly height: number;
+}
+
+/**
+ * What deleting pages does to the outline items, links, named destinations and open action
+ * that point at them: `retarget` points each at the nearest page left (the next one, else the
+ * one before), showing the whole page; `remove` removes it.
+ *
+ * @since 0.2.0
+ */
+export type ReferencePolicy = "retarget" | "remove";
+
+/**
+ * How `rotatePages` uses its angle: `set` shows each page at the angle; `turn` adds it to each
+ * page's own rotation, as rotate left and rotate right do.
+ *
+ * @since 0.2.0
+ */
+export type RotateMode = "set" | "turn";
+
+/**
+ * Options for `insertBlankPages`.
+ *
+ * @since 0.2.0
+ */
+export interface InsertBlankPagesOptions {
+  /** The new pages' rotation in degrees clockwise; 0 when left out. */
+  readonly rotate?: Rotation;
+}
+
+/**
+ * Options for `deletePages`.
+ *
+ * @since 0.2.0
+ */
+export interface DeletePagesOptions {
+  /** What happens to what points at the deleted pages; `retarget` when left out. */
+  readonly references?: ReferencePolicy;
+}
+
+/**
+ * Options for `rotatePages`.
+ *
+ * @since 0.2.0
+ */
+export interface RotatePagesOptions {
+  /** Whether the angle is set or added to each page's rotation; `set` when left out. */
+  readonly mode?: RotateMode;
+}
+
+/** @internal The `insertBlankPages` op. */
+export const insertBlankPagesOp = (
+  at: PagePosition,
+  count: number,
+  size: PageSize,
+  options?: InsertBlankPagesOptions,
+): Op =>
+  ({
+    op: "insertBlankPages",
+    args: { at, count, size: { width: size.width, height: size.height }, rotate: options?.rotate ?? 0 },
+  }) as Op;
+
+/** @internal The `deletePages` op. */
+export const deletePagesOp = (pages: readonly string[], options?: DeletePagesOptions): Op =>
+  ({
+    op: "deletePages",
+    args: options?.references === undefined ? { pages } : { pages, references: options.references },
+  }) as Op;
+
+/** @internal The `movePages` op. */
+export const movePagesOp = (pages: readonly string[], to: PagePosition): Op =>
+  ({ op: "movePages", args: { pages, to } }) as Op;
+
+/** @internal The `rotatePages` op. */
+export const rotatePagesOp = (pages: readonly string[], angle: Rotation, options?: RotatePagesOptions): Op =>
+  ({
+    op: "rotatePages",
+    args: options?.mode === undefined ? { pages, angle } : { pages, angle, mode: options.mode },
+  }) as Op;
+
+/** @internal The `reversePages` op. */
+export const reversePagesOp = (pages: readonly string[]): Op => ({ op: "reversePages", args: { pages } }) as Op;
+
+/** @internal The `duplicatePages` op. */
+export const duplicatePagesOp = (pages: readonly string[], at: PagePosition): Op =>
+  ({ op: "duplicatePages", args: { pages, at } }) as Op;
 
 /** @internal The `setMetadata` op. */
 export const setMetadataOp = (patch: MetadataPatch, options?: MetadataEditOptions): Op =>
@@ -114,6 +241,33 @@ export class Transaction {
   }
 
   /**
+   * Sets any XMP property (`setXmpProperty`), as {@link Document.setXmpProperty}.
+   *
+   * @since 0.2.0
+   */
+  setXmpProperty(namespace: string, prefix: string, name: string, value: XmpValue, options?: XmpEditOptions): this {
+    return this.apply(setXmpPropertyOp(namespace, prefix, name, value, options));
+  }
+
+  /**
+   * Removes an XMP property (`removeXmpProperty`), as {@link Document.removeXmpProperty}.
+   *
+   * @since 0.2.0
+   */
+  removeXmpProperty(namespace: string, name: string, options?: XmpEditOptions): this {
+    return this.apply(removeXmpPropertyOp(namespace, name, options));
+  }
+
+  /**
+   * Replaces the whole XMP packet (`replaceXmpPacket`), as {@link Document.replaceXmpPacket}.
+   *
+   * @since 0.2.0
+   */
+  replaceXmpPacket(xml: string): this {
+    return this.apply(replaceXmpPacketOp(xml));
+  }
+
+  /**
    * Patches the Info dictionary (`setInfo`), and the XMP metadata with it when the document has
    * some.
    *
@@ -138,6 +292,67 @@ export class Transaction {
    */
   rotatePage(page: string, rotate: Rotation): this {
     return this.apply({ op: "rotatePage", args: { page, rotate } } as Op);
+  }
+
+  /**
+   * Inserts `count` blank pages of `size` at `at` (`insertBlankPages`).
+   *
+   * @param options - as {@link Document.insertBlankPages}: `rotate`.
+   *
+   * @since 0.2.0
+   */
+  insertBlankPages(at: PagePosition, count: number, size: PageSize, options?: InsertBlankPagesOptions): this {
+    return this.apply(insertBlankPagesOp(at, count, size, options));
+  }
+
+  /**
+   * Deletes `pages`, by ID (`deletePages`).
+   *
+   * @param options - as {@link Document.deletePages}: `references`.
+   *
+   * @since 0.2.0
+   */
+  deletePages(pages: readonly string[], options?: DeletePagesOptions): this {
+    return this.apply(deletePagesOp(pages, options));
+  }
+
+  /**
+   * Moves `pages`, by ID and in the order given, to `to` (`movePages`).
+   *
+   * @since 0.2.0
+   */
+  movePages(pages: readonly string[], to: PagePosition): this {
+    return this.apply(movePagesOp(pages, to));
+  }
+
+  /**
+   * Rotates `pages`, by ID, by `angle` degrees clockwise (`rotatePages`).
+   *
+   * @param options - as {@link Document.rotatePages}: `mode`.
+   *
+   * @since 0.2.0
+   */
+  rotatePages(pages: readonly string[], angle: Rotation, options?: RotatePagesOptions): this {
+    return this.apply(rotatePagesOp(pages, angle, options));
+  }
+
+  /**
+   * Reverses the order of `pages`, by ID, among the places they hold (`reversePages`).
+   *
+   * @since 0.2.0
+   */
+  reversePages(pages: readonly string[]): this {
+    return this.apply(reversePagesOp(pages));
+  }
+
+  /**
+   * Copies `pages`, by ID and in the order given, to `at` (`duplicatePages`), as
+   * {@link Document.duplicatePages}.
+   *
+   * @since 0.2.0
+   */
+  duplicatePages(pages: readonly string[], at: PagePosition): this {
+    return this.apply(duplicatePagesOp(pages, at));
   }
 
   /**

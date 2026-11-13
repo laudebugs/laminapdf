@@ -605,6 +605,41 @@
       "since": "0.2.0"
     },
     {
+      "code": "xmp-claim-read-only",
+      "kind": "usage",
+      "summary": "an XMP edit would change the file's PDF/A or PDF/UA identification, which only conversion or a check may set",
+      "hint": "leave the pdfaid: and pdfuaid: properties as they are; edit the other properties, or keep them unchanged in a replaced packet",
+      "since": "0.2.0"
+    },
+    {
+      "code": "invalid-xmp-packet",
+      "kind": "input",
+      "summary": "the XMP packet given to replace the document's doesn't parse",
+      "hint": "fix the XML at the offset in the error's data (reason says what is wrong), then replace the packet again",
+      "since": "0.2.0"
+    },
+    {
+      "code": "invalid-xmp-property",
+      "kind": "usage",
+      "summary": "an XMP property edit names a property, or gives a value, that can't be written",
+      "hint": "check the part the error's reason names: the namespace, prefix, name, value, or the shape a mirrored property needs",
+      "since": "0.2.0"
+    },
+    {
+      "code": "no-pages-left",
+      "kind": "usage",
+      "summary": "a page deletion would leave the document with no pages",
+      "hint": "keep at least one page: delete all but one, or insert a blank page first",
+      "since": "0.2.0"
+    },
+    {
+      "code": "invalid-op",
+      "kind": "usage",
+      "summary": "an op's values are out of range, such as a page count or a page size",
+      "hint": "insert between 1 and 10,000 pages at a time, each with a width and height above 0 and up to 14,400 points",
+      "since": "0.2.0"
+    },
+    {
       "code": "unknown-annotation",
       "kind": "usage",
       "summary": "the op names an annotation that no page of the document lists",
@@ -653,6 +688,13 @@
       "kind": "input",
       "summary": "the file claims PDF/A, which requires the Info dictionary and the XMP packet to agree, and they differ",
       "hint": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
+      "since": "0.2.0"
+    },
+    {
+      "code": "duplicate-tags-incomplete",
+      "kind": "usage",
+      "summary": "a duplicated page's content is partly untagged, which breaks the PDF/UA claim of the document's metadata",
+      "hint": "retag the copy, or duplicate pages whose tagged elements lie on the page alone",
       "since": "0.2.0"
     }
   ],

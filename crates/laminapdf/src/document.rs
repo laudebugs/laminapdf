@@ -138,6 +138,93 @@ pub struct Edited {
     ///
     /// Added in 0.2.0.
     pub destination_uses: Vec<DestinationUse>,
+    /// The XMP properties the edit declared in a PDF/A file's extension schemas, so the file
+    /// keeps its PDF/A claim ([`SetXmpProperty`](crate::SetXmpProperty),
+    /// [`ReplaceXmpPacket`](crate::ReplaceXmpPacket)).
+    pub declared: Vec<crate::ExtensionProperty>,
+    /// The page IDs in order after the edit, when it inserted, deleted, moved or reversed
+    /// pages; `None` when the page list didn't change.
+    ///
+    /// Added in 0.2.0.
+    pub page_order: Option<Vec<PageId>>,
+    /// What a page deletion did to the references to the deleted pages: each outline item,
+    /// link, named destination, `/OpenAction` and structure element it retargeted or removed.
+    ///
+    /// Added in 0.2.0.
+    pub references: Vec<ReferenceEdit>,
+    /// What a page duplication did to the form fields whose widgets the copied pages show: each
+    /// copy's new field (named `<partial>#<n>`), or a signature field whose widget was not
+    /// copied.
+    ///
+    /// Added in 0.2.0.
+    pub fields: Vec<laminapdf_ops::FieldChange>,
+    /// The copies a page duplication made whose tags couldn't all be cloned: content of
+    /// elements that also hold content on other pages is left untagged on them. On a PDF/UA-1
+    /// file, [`Document::plan`] then warns `duplicate-tags-incomplete`.
+    ///
+    /// Added in 0.2.0.
+    pub tags_incomplete: Vec<PageId>,
+}
+
+/// One reference to a deleted page and what the deletion did to it.
+///
+/// Added in 0.2.0.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct ReferenceEdit {
+    /// The deleted page it named.
+    pub page: PageId,
+    /// What held it.
+    pub kind: ReferenceEditKind,
+    /// What happened to it.
+    pub outcome: laminapdf_ops::ReferenceOutcome,
+}
+
+/// What held a reference to a deleted page.
+///
+/// Added in 0.2.0.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum ReferenceEditKind {
+    /// An outline item (a bookmark).
+    OutlineItem,
+    /// A link, or another annotation with a destination, on a surviving page.
+    Link,
+    /// A named destination, by its name (as UTF-8, invalid bytes replaced).
+    NamedDestination {
+        /// The name.
+        name: String,
+    },
+    /// The document's `/OpenAction`, the view it opens at.
+    OpenAction,
+    /// A structure element whose content was all on deleted pages.
+    StructureElement,
+    /// A kid of a structure element (marked content or an object) on a deleted page.
+    StructureKid,
+    /// A form field's widget.
+    Widget,
+}
+
+impl ReferenceEdit {
+    fn from_change(change: laminapdf_ops::ReferenceChange) -> Self {
+        use laminapdf_model::ReferenceKind as K;
+        let kind = match &change.reference.kind {
+            K::OutlineItem { .. } => ReferenceEditKind::OutlineItem,
+            K::NamedDestination { name, .. } => ReferenceEditKind::NamedDestination {
+                name: String::from_utf8_lossy(name).into_owned(),
+            },
+            K::OpenAction { .. } => ReferenceEditKind::OpenAction,
+            K::StructElem { .. } => ReferenceEditKind::StructureElement,
+            K::StructContentRef { .. } => ReferenceEditKind::StructureKid,
+            K::Widget { .. } => ReferenceEditKind::Widget,
+            _ => ReferenceEditKind::Link,
+        };
+        Self {
+            page: change.reference.page,
+            kind,
+            outcome: change.outcome,
+        }
+    }
 }
 
 /// A finished save: the output and what the writer did.
@@ -403,13 +490,15 @@ impl Document {
     }
 
     /// Applies `ops` in order as one transaction (ADR 0006): all of them or none. Each op is
-    /// a value ([`Op`]: `SetMetadata`, `RemoveMetadata`, `RotatePage`, the deprecated
-    /// `SetInfo`), so the edit is serialisable and replayable;
+    /// a value ([`Op`]: `SetMetadata`, `RemoveMetadata`, the XMP ops, `RotatePage`, the page ops
+    /// `InsertBlankPages`, `DeletePages`, `MovePages`, `RotatePages` and `ReversePages`, and
+    /// the deprecated `SetInfo`), so the edit is serialisable and replayable;
     /// no closure crosses the boundary (F3).
     ///
     /// # Errors
     /// The first op's error (the transaction is rolled back): `unknown-page`, `direct-page`,
-    /// `malformed-xmp`, reading errors; `saved-not-rebased`.
+    /// `malformed-xmp`, `xmp-claim-read-only`, `invalid-xmp-packet`, `invalid-xmp-property`,
+    /// `no-pages-left`, reading errors; `saved-not-rebased`.
     ///
     /// Added in 0.2.0.
     pub fn apply(&mut self, ops: Vec<Op>) -> Result<Edited> {
@@ -429,6 +518,11 @@ impl Document {
             created_outline_items: applied.created_outline_items,
             outline_repaired: applied.outline_repaired,
             destination_uses: applied.destination_uses,
+            declared: applied.declared,
+            page_order: applied.page_order,
+            references: applied.references.into_iter().map(ReferenceEdit::from_change).collect(),
+            fields: applied.fields,
+            tags_incomplete: applied.tags_incomplete,
         })
     }
 

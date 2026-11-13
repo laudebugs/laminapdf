@@ -14,6 +14,8 @@ import type {
   DocumentMetadata as DocumentMetadataJs,
   EditedJs,
   ExplicitDestination as ExplicitDestinationJs,
+  ExtensionPropertyJs,
+  FieldEditJs,
   FitInit,
   LimitsInit,
   LineBoxJs,
@@ -38,6 +40,7 @@ import type {
   ProgressJs,
   PropertiesJs,
   RectJs,
+  ReferenceEditJs,
   RenameLinks as RenameLinksJs,
   RenderModeInit,
   RevertedJs,
@@ -52,14 +55,18 @@ import type {
   UndoOutcomeJs,
   ViewerPreferencesInit,
   ViolationJs,
+  XmpLangText as XmpLangTextJs,
+  XmpTextJs,
+  XmpValue as XmpValueJs,
 } from "@laminapdf/wasm/text";
 
 /**
- * An edit (`{ op, args }`): `setMetadata`, `removeMetadata`, `rotatePage`, `setPageLabels`, the bookmark
- * edits (`addOutlineItem`, `updateOutlineItem`, `moveOutlineItem`, `deleteOutlineItem`), the
- * named-destination edits (`setNamedDestination`, `renameNamedDestination`,
- * `deleteNamedDestination`), or the deprecated `setInfo` (use `setMetadata`, which keeps the
- * Info dictionary and the XMP metadata in step).
+ * An edit (`{ op, args }`): `setMetadata`, `removeMetadata`, the XMP edits (`setXmpProperty`,
+ * `removeXmpProperty`, `replaceXmpPacket`), `setPageLabels`, the page ops (`insertBlankPages`, `deletePages`,
+ * `movePages`, `rotatePages`, `reversePages`, `duplicatePages`, `rotatePage`), the bookmark edits
+ * (`addOutlineItem`, `updateOutlineItem`, `moveOutlineItem`, `deleteOutlineItem`), the named-destination edits
+ * (`setNamedDestination`, `renameNamedDestination`, `deleteNamedDestination`), or the deprecated `setInfo` (use
+ * `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
  *
  * @since 0.2.0
  */
@@ -154,6 +161,34 @@ export type MetadataKey = MetadataKeyJs;
  */
 export type DocumentMetadata = DocumentMetadataJs;
 /**
+ * A value an XMP property can be set to, tagged with its type: `{ type: "text", value: "…" }`,
+ * `uri`, `integer`, `real`, `boolean`, `date` (a PDF date, `D:20261110093000Z`), `langAlt` (a
+ * list of {@link XmpLangText}), or `seq` and `bag` (lists of simple values of one type).
+ *
+ * @since 0.2.0
+ */
+export type XmpValue = XmpValueJs;
+/**
+ * One language's text in an XMP language alternative: `{ lang: "x-default", text: "…" }`.
+ *
+ * @since 0.2.0
+ */
+export type XmpLangText = XmpLangTextJs;
+/**
+ * The document's XMP metadata as text: `status` (`absent`, `parsed` or `malformed`), the
+ * packet's `xml` with the edits made so far, and the PDF/A level it claims (`pdfa`, e.g. `"2B"`).
+ *
+ * @since 0.2.0
+ */
+export type XmpText = XmpTextJs;
+/**
+ * An XMP property an edit declared in a PDF/A file's extension schemas, so the file keeps its
+ * PDF/A claim: its `namespace`, `prefix`, `name` and `valueType` (`Text`, `Seq Integer`, …).
+ *
+ * @since 0.2.0
+ */
+export type ExtensionProperty = ExtensionPropertyJs;
+/**
  * How a save would go, before it happens: what restricts it (`constraint`, the signatures and
  * the edits they forbid), the mode it resolves to or the code it would be refused with,
  * what it does with the save-time metadata, and the PDF/A and PDF/UA claims the edits break.
@@ -233,11 +268,31 @@ export type StructureNode = StructureNodeJs;
  */
 export type StructureKid = StructureKidJs;
 /**
- * The pages an edit touched.
+ * What an edit did: the pages it touched (`touchedPages`, IDs), whether it changed anything,
+ * the page IDs in their new order when it changed the page list (`pageOrder`), what a page
+ * deletion did to the references to the deleted pages (`references`), and what a page
+ * duplication did to form fields (`fields`) and which copies it couldn't tag whole
+ * (`tagsIncomplete`).
  *
  * @since 0.2.0
  */
 export type Edited = EditedJs;
+/**
+ * A reference to a deleted page (an outline item, a link, a named destination, the open action,
+ * a structure element or kid, or a form field's widget) and what the deletion did to it:
+ * `retargeted` to the page `to`, or `removed`.
+ *
+ * @since 0.2.0
+ */
+export type ReferenceEdit = ReferenceEditJs;
+/**
+ * A form field whose widget a duplicated page showed, and what the copy did with it: `renamed`
+ * (the copy's widget belongs to the new field `to`, fully named `name`) or `notCopied` (a
+ * signature's widget).
+ *
+ * @since 0.2.0
+ */
+export type FieldEdit = FieldEditJs;
 /**
  * How an undo or redo went.
  *

@@ -13,7 +13,7 @@ use crate::error::Result;
 use crate::finish;
 use crate::meta::{Metadata, ViewerPreferences};
 use crate::nav::{Fit, OutlineEntry, PageLabel};
-use crate::page::{PageBuilder, PageSize};
+use crate::page::PageBuilder;
 use crate::profile::{Conformance, Profile};
 use crate::resources::DocResources;
 #[cfg(feature = "text")]
@@ -21,6 +21,7 @@ use crate::surface::text::FontHandle;
 use crate::tag::TagDiagnostic;
 use crate::tag::elem::TagState;
 use crate::tag::open::{ElementId, ElementIds, next_builder};
+use laminapdf_model::PageSize;
 
 /// The header version of a new document (§7.5.2). Saving with object and cross-reference
 /// streams (`laminapdf-save`'s default) raises anything below 1.5 to 1.5.

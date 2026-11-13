@@ -96,6 +96,7 @@ mod tree;
 #[cfg(feature = "tree-write")]
 mod tree_writer;
 mod values;
+mod widgets;
 pub mod xmp;
 
 pub use annot::{Annot, AnnotFlags, AnnotGeometry, AnnotLink, AnnotSubtype, ReplyType};
@@ -108,7 +109,7 @@ pub use document::Document;
 #[cfg(feature = "tree-write")]
 pub use edit::set_catalog_entry;
 pub use fonts::{FontEncoding, FontResource};
-pub use geometry::{LETTER, PageFrame, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
+pub use geometry::{LETTER, PageFrame, PageSize, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
 pub use graphics::{BlendMode, Dash, FillRule, Matrix};
 pub use id::{AnnotId, FieldId, IdAllocator, Kind, LaminaPdfId, OutlineItemId, PageId, ParseIdError};
 pub use info::{Info, InfoDate};
@@ -127,6 +128,7 @@ pub use structure::{StructElem, StructKid, StructTree};
 pub use tree::{NameTree, NumberTree};
 #[cfg(feature = "tree-write")]
 pub use tree_writer::TreeWriter;
+pub use widgets::{FieldNames, PageWidget};
 
 // The layers below, in façade order (ADR 0005 §1): what callers of the model need without
 // naming `laminapdf-cos`.

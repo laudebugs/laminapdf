@@ -14,12 +14,28 @@ import type { Reflow } from "./reflow.js";
 import { type RangeOptions, type RangeSource, type RangeState, settle, wholeBytes } from "./source/range.js";
 import { PageText, type TextOptions } from "./text.js";
 import {
+  type DeletePagesOptions,
+  deletePagesOp,
+  duplicatePagesOp,
+  type InsertBlankPagesOptions,
+  insertBlankPagesOp,
   type MetadataEditOptions,
   type MetadataRemoveOptions,
+  movePagesOp,
+  type PagePosition,
+  type PageSize,
+  type RotatePagesOptions,
+  type Rotation,
   removeMetadataOp,
+  removeXmpPropertyOp,
+  replaceXmpPacketOp,
+  reversePagesOp,
+  rotatePagesOp,
   setMetadataOp,
   setPageLabelsOp,
+  setXmpPropertyOp,
   Transaction,
+  type XmpEditOptions,
 } from "./transaction.js";
 import type {
   DocumentInfo,
@@ -47,6 +63,8 @@ import type {
   Target,
   TargetView,
   Violation,
+  XmpText,
+  XmpValue,
 } from "./types.js";
 
 function isThenable(value: unknown): boolean {
@@ -847,6 +865,170 @@ export class Document extends Handle<BaseGlue> {
    */
   removeMetadata(keys: readonly MetadataKey[], options?: MetadataRemoveOptions): Edited {
     return this.apply([removeMetadataOp(keys, options)]);
+  }
+
+  /**
+   * The document's XMP metadata as text, with the edits made so far: `status` (`absent`,
+   * `parsed`, or `malformed` for metadata that can't be read), the packet's `xml`, and `pdfa`, the
+   * PDF/A level it claims.
+   *
+   * @throws {@link LaminaPdfError} reading errors.
+   *
+   * @since 0.2.0
+   */
+  xmpPacket(): XmpText {
+    return this.call(() => this.#doc.xmpPacket());
+  }
+
+  /**
+   * Sets any XMP property in one transaction (`setXmpProperty`): text, a URI, a number, a
+   * boolean, a date, a language alternative, or a list. A document without XMP metadata gets it.
+   * A property the Info dictionary mirrors (`dc:title`, `pdf:Producer`, …) is written to both, as
+   * {@link Document.setMetadata} writes it. In a PDF/A file, a property PDF/A doesn't predefine is
+   * declared in the metadata's extension schemas, so the file keeps its claim; the result's
+   * `declared` lists them.
+   *
+   * @param namespace - the property's namespace URI (`https://example.com/ns/review/1.0/`).
+   * @param prefix - the prefix to write the namespace with when the metadata has none for it.
+   * @param name - the property's local name.
+   * @param value - the value, tagged with its type: `{ type: "integer", value: 3 }`.
+   * @param options - `replaceMalformed`, as {@link Document.setMetadata}.
+   * @throws {@link LaminaPdfError} `invalid-xmp-property` when the name or value can't be
+   *   written; `xmp-claim-read-only` for the PDF/A or PDF/UA identification; `malformed-xmp`; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.2.0
+   */
+  setXmpProperty(namespace: string, prefix: string, name: string, value: XmpValue, options?: XmpEditOptions): Edited {
+    return this.apply([setXmpPropertyOp(namespace, prefix, name, value, options)]);
+  }
+
+  /**
+   * Removes an XMP property (`removeXmpProperty`), from the Info dictionary too when it mirrors
+   * it. The file's earlier revisions keep the old value until a full rewrite; the result's
+   * `stillInEarlierRevisions` says when.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.setXmpProperty}.
+   *
+   * @since 0.2.0
+   */
+  removeXmpProperty(namespace: string, name: string, options?: XmpEditOptions): Edited {
+    return this.apply([removeXmpPropertyOp(namespace, name, options)]);
+  }
+
+  /**
+   * Replaces the whole XMP packet with `xml` (`replaceXmpPacket`), for what the property edits
+   * can't write: structures, qualifiers, comments. The packet is read first; the Info
+   * dictionary's mirrored entries follow it, and in a PDF/A file its custom properties are
+   * declared (`declared` in the result).
+   *
+   * @throws {@link LaminaPdfError} `invalid-xmp-packet` (with `reason` and `offset`) when it
+   *   doesn't parse; `xmp-claim-read-only` when it changes the PDF/A or PDF/UA identification; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.2.0
+   */
+  replaceXmpPacket(xml: string): Edited {
+    return this.apply([replaceXmpPacketOp(xml)]);
+  }
+
+  /**
+   * Inserts `count` blank pages of `size` at `at`, in one transaction (`insertBlankPages`). Each
+   * new page gets a new ID, listed in the result's `pageOrder`; in a document with page labels
+   * the new pages continue the label range they land in.
+   *
+   * @param at - `"start"`, `"end"`, or `{ before: id }` / `{ after: id }` of a page.
+   * @param count - how many pages; 0 changes nothing.
+   * @param size - their size in points (`{ width: 612, height: 792 }` is US Letter).
+   * @param options - `rotate`: their rotation in degrees clockwise, 0 when left out.
+   * @throws {@link LaminaPdfError} `unknown-page` for an anchor that isn't a page of the
+   *   document; as {@link Document.apply}.
+   *
+   * @since 0.2.0
+   */
+  insertBlankPages(at: PagePosition, count: number, size: PageSize, options?: InsertBlankPagesOptions): Edited {
+    return this.apply([insertBlankPagesOp(at, count, size, options)]);
+  }
+
+  /**
+   * Deletes `pages`, by ID, in one transaction (`deletePages`). The outline items, links, named
+   * destinations and open action that pointed at a deleted page point at the nearest page left
+   * (the next one, else the one before), or are removed with `references: "remove"`; the
+   * result's `references` lists each one. The deleted pages stay in the file's earlier revisions
+   * until a full rewrite (`save({ mode: "fullRewrite" })`).
+   *
+   * @param pages - the pages' IDs, each once.
+   * @param options - `references`: `"retarget"` (the default) or `"remove"`.
+   * @throws {@link LaminaPdfError} `no-pages-left` when `pages` is every page of the document;
+   *   `unknown-page` for an ID that isn't a page of it; as {@link Document.apply}.
+   *
+   * @since 0.2.0
+   */
+  deletePages(pages: readonly string[], options?: DeletePagesOptions): Edited {
+    return this.apply([deletePagesOp(pages, options)]);
+  }
+
+  /**
+   * Moves `pages`, by ID, to `to` in one transaction (`movePages`). They take the order given
+   * and keep their IDs; an anchor that is itself moved stands for the nearest page that stays.
+   *
+   * @param pages - the pages' IDs, each once, in the order they take.
+   * @param to - `"start"`, `"end"`, or `{ before: id }` / `{ after: id }` of a page.
+   * @throws {@link LaminaPdfError} `unknown-page` for an ID that isn't a page of the document; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.2.0
+   */
+  movePages(pages: readonly string[], to: PagePosition): Edited {
+    return this.apply([movePagesOp(pages, to)]);
+  }
+
+  /**
+   * Rotates `pages`, by ID, in one transaction (`rotatePages`): each shows at `angle`, or with
+   * `mode: "turn"` turns by `angle` from the rotation it has.
+   *
+   * @param angle - degrees clockwise: 0, 90, 180 or 270.
+   * @param options - `mode`: `"set"` (the default) or `"turn"`.
+   * @throws {@link LaminaPdfError} `unknown-page` for an ID that isn't a page of the document; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.2.0
+   */
+  rotatePages(pages: readonly string[], angle: Rotation, options?: RotatePagesOptions): Edited {
+    return this.apply([rotatePagesOp(pages, angle, options)]);
+  }
+
+  /**
+   * Reverses the order of `pages`, by ID, among the places they hold, in one transaction
+   * (`reversePages`): the first of them takes the last one's place, and so on, and the other
+   * pages stay where they are. Pass every page's ID to reverse the whole document.
+   *
+   * @throws {@link LaminaPdfError} `unknown-page` for an ID that isn't a page of the document; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.2.0
+   */
+  reversePages(pages: readonly string[]): Edited {
+    return this.apply([reversePagesOp(pages)]);
+  }
+
+  /**
+   * Copies `pages`, by ID and in the order given, to `at` (`"start"`, `"end"`,
+   * `{ before: id }` or `{ after: id }`), in one transaction (`duplicatePages`). A copy shares
+   * its page's content and gets new IDs for itself and its annotations, listed in the result's
+   * `pageOrder`. A form field's widget becomes a new field named `<name>#2` (or the next free
+   * number) with its own value, and a signature's widget is not copied; the result's `fields`
+   * lists both. In a tagged document the copy gets its own tags, except for content of
+   * elements that run on to other pages, which stays untagged: the result's `tagsIncomplete`
+   * lists those copies.
+   *
+   * @throws {@link LaminaPdfError} `unknown-page` for an ID that isn't a page of the document; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.2.0
+   */
+  duplicatePages(pages: readonly string[], at: PagePosition): Edited {
+    return this.apply([duplicatePagesOp(pages, at)]);
   }
 
   /**

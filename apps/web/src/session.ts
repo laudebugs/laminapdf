@@ -6,7 +6,7 @@
 // it, so its bytes never reach this page.
 
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
-import type { DocumentMetadata, Op, SaveOptions, SaveReport } from "@laminapdf/sdk";
+import type { DocumentMetadata, Op, SaveOptions, SaveReport, XmpText } from "@laminapdf/sdk";
 import type {
   DebugBackend,
   ExternalStore,
@@ -470,11 +470,11 @@ export class Engine implements ExternalStore<EngineState> {
    * and whether a save rewrites the whole file (so a removed value keeps no earlier version).
    * Undefined when the document can't be edited (encrypted, or its edits diverged).
    */
-  async editableMetadata(): Promise<{ metadata: DocumentMetadata; rewritesWhole: boolean } | undefined> {
+  async editableMetadata(): Promise<{ metadata: DocumentMetadata; xmp: XmpText; rewritesWhole: boolean } | undefined> {
     const { client, viewer } = await this.#session;
     if (viewer.edits.getState().blocked !== undefined) return undefined;
-    const [metadata, plan] = await Promise.all([client.metadata(), viewer.edits.plan({})]);
-    return { metadata, rewritesWhole: plan.mode === "fullRewrite" || plan.constraint === "requiresRewrite" };
+    const [metadata, xmp, plan] = await Promise.all([client.metadata(), client.xmpPacket(), viewer.edits.plan({})]);
+    return { metadata, xmp, rewritesWhole: plan.mode === "fullRewrite" || plan.constraint === "requiresRewrite" };
   }
 
   /**

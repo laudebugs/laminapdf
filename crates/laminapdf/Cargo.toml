@@ -153,7 +153,16 @@ required-features = ["text"]
 name = "edit_bookmarks"
 
 [[example]]
+name = "duplicate_pages"
+
+[[example]]
 name = "edit_metadata"
+
+[[example]]
+name = "edit_xmp"
+
+[[example]]
+name = "organise_pages"
 
 [[example]]
 name = "pdf_ua_report"

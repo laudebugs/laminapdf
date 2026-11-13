@@ -78,6 +78,7 @@ The scripts behind the research-chapter files live in [`docs/research/pdf/exampl
 | `ghostscript.xmp` | Ghostscript's `pdfwrite`: single quotes, `rdf:about` set to a UUID, the `xapMM` prefix for the media-management namespace, properties in attribute form on empty descriptions, the `adobe-xap-filters` processing instruction | Attribute form, prefixes that differ from the standard ones |
 | `utf16.xmp` | A UTF-16BE packet with a byte-order mark | Reading UTF-16, the canonical rewrite |
 | `invalid-dtd.xmp` | A packet with a DTD defining a billion-laughs entity and an external one | Refusing a DTD (`xmp-invalid`) |
+| `pdfa-extension.xmp` | A PDF/A-2b packet in three descriptions: the identification and a title, an extension schema declaring `review:status`, and that property beside an undeclared structure (`review:point`) | Custom properties and declarations (todo E3e): the `xmp_parse` fuzz target's seed for the extension schema writer |
 
 The outputs are:
 
@@ -177,6 +178,9 @@ Hand-written samples of the op JSON format, version 1, read by `crates/laminapdf
 | `envelope.json` | The `{ "v": 1, "ops": [ … ] }` envelope with both ops (`p4.0`, `/Producer` cleared, `at` with a UTC offset), applied to `corpus/outline.pdf` as one transaction |
 | `set-metadata.json` | One `setMetadata` op (E1c): a title, two authors, a cleared subject, a UTF-16-only value, a creation date and `at`; applied to `golden/metadata.pdf`, whose Info and XMP it writes together |
 | `remove-metadata.json` | One `removeMetadata` op removing three fields, applied to `golden/metadata.pdf` |
+| `set-xmp-property.json` | One `setXmpProperty` op (E3e): a custom `rdf:Seq` of two names in a namespace the packet doesn't declare; applied to `golden/metadata.pdf` |
+| `remove-xmp-property.json` | One `removeXmpProperty` op removing that property |
+| `replace-xmp-packet.json` | One `replaceXmpPacket` op: a packet without the `xpacket` wrapper holding only a title, which Info's `/Title` then follows |
 | `update-annot.json` | One `updateAnnot` op (E4b): new contents, a modification date and a move by `translate`, on `a12.0` of `annotations/threads.pdf`; read by `crates/laminapdf-ops/tests/annotations.rs` |
 | `delete-annot.json` | One `deleteAnnot` op on `a10.0` of `annotations/threads.pdf`, which takes its Popup and every reply with it |
 | `mixed-log.json` | A v1 log mixing the deprecated `setInfo` with `setMetadata` and `removeMetadata`, applied as one transaction (adding ops kept `v` at 1, ADR 0006 §6) |
@@ -238,6 +242,7 @@ python3 fixtures/pages/make.py
 | `forms.pdf` | Two pages: a merged text field and widget (`name`), a checkbox field (`agree`) with kid widgets on both pages, and an unsigned signature field; a second copy's field names clash with these |
 | `layers.pdf` | Two pages, each drawing a square in each of two optional content groups, `Draft` (on) and `Notes` (off) |
 | `chapters.pdf` | Twelve pages in three chapters of two sections each; the outline's three top-level items go to pages 1, 5 and 9, chapter 2's through the named destination `chapter-2` |
+| `tagged.pdf` | Two tagged pages whose metadata claims PDF/UA-1. Page 1 holds an `H1` and a `P` of its own, the start of a `P` that runs on to page 2 (an MCID here and an `MCR` there), a `Link` element holding the link's text and the link annotation (`OBJR`, `/StructParent 1`), and a `Form` element holding a merged text field (`OBJR`, `/StructParent 2`); `/ParentTreeNextKey 4` |
 
 ### `fonts/`
 

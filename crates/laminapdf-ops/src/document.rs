@@ -455,7 +455,12 @@ impl Document {
             outline_repaired: false,
             created_outline_items: Vec::new(),
             destination_uses: Vec::new(),
+            declared: Vec::new(),
+            page_order: None,
+            references: Vec::new(),
             also_deleted: Vec::new(),
+            fields: Vec::new(),
+            tags_incomplete: Vec::new(),
         });
         Ok(())
     }
@@ -510,11 +515,16 @@ impl Document {
             touched_pages: state.touched,
             packet_rewritten: state.packet_rewritten,
             still_in_earlier_revisions: state.removed,
+            declared: state.declared,
             also_deleted: state.also_deleted,
             widgets,
             created_outline_items: state.created_outline_items,
             outline_repaired: state.outline_repaired,
             destination_uses: state.destination_uses,
+            page_order: state.page_order,
+            references: state.references,
+            fields: state.fields,
+            tags_incomplete: state.tags_incomplete,
         })
     }
 

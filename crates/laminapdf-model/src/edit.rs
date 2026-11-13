@@ -6,8 +6,8 @@ use laminapdf_cos::{CosMut, Error, Object, Result};
 /// trailer holds the catalog directly, in the trailer.
 ///
 /// # Errors
-/// `missing-root` when the trailer has no catalog; a type error when `/Root` isn't a
-/// dictionary; errors of the overlay.
+/// Errors of the overlay; [`Error::MissingRoot`] without a catalog, and [`Error::Type`] when
+/// `/Root` is not a dictionary.
 ///
 /// Added in 0.2.0.
 pub fn set_catalog_entry(cos: &mut CosMut<'_>, key: &str, value: Option<Object>) -> Result<()> {

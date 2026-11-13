@@ -12,15 +12,20 @@ use crate::class::ModificationClass;
 use crate::error::{Error, Result};
 use crate::info::SetInfo;
 use crate::labels::SetPageLabels;
-use crate::metadata::{RemoveMetadata, SetMetadata, UpdateSaveMetadata};
+use crate::metadata::{
+    RemoveMetadata, RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty, UpdateSaveMetadata,
+};
 use crate::outline::{
     AddOutlineItem, DeleteNamedDestination, DeleteOutlineItem, DestinationUse, MoveOutlineItem, RenameNamedDestination,
     SetNamedDestination, UpdateOutlineItem,
 };
+use crate::pages::{
+    DeletePages, DuplicatePages, FieldChange, InsertBlankPages, MovePages, ReferenceChange, ReversePages, RotatePages,
+};
 use crate::rotate::RotatePage;
 #[cfg(feature = "test-support")]
 use crate::test_support::Declared;
-use crate::widgets::{PageChange, TouchedWidget};
+use crate::widgets::{PageChange, TouchedWidget, WidgetChange};
 
 /// An editing operation ([ADR 0006] §1): typed and semantic (it names things by
 /// [`LaminaPdfId`](laminapdf_model::LaminaPdfId), never by object reference), serialisable, and free
@@ -74,6 +79,24 @@ pub enum Op {
     RenameNamedDestination(RenameNamedDestination),
     /// Delete a named destination.
     DeleteNamedDestination(DeleteNamedDestination),
+    /// Set any XMP property.
+    SetXmpProperty(SetXmpProperty),
+    /// Remove an XMP property.
+    RemoveXmpProperty(RemoveXmpProperty),
+    /// Replace the whole XMP packet.
+    ReplaceXmpPacket(ReplaceXmpPacket),
+    /// Insert blank pages.
+    InsertBlankPages(InsertBlankPages),
+    /// Delete pages, cleaning up what named them.
+    DeletePages(DeletePages),
+    /// Move pages to another position.
+    MovePages(MovePages),
+    /// Rotate pages, set or turned.
+    RotatePages(RotatePages),
+    /// Reverse pages within the places they hold.
+    ReversePages(ReversePages),
+    /// Copy pages within the document, with new annotations, fields and structure.
+    DuplicatePages(DuplicatePages),
     /// The save-time metadata stamp, made only by the save planner. It never crosses the wire:
     /// serialising it fails with serde's error (`OpLog::to_json`: `invalid-op-log`), and no op
     /// log can name it.
@@ -99,10 +122,20 @@ impl Op {
     #[must_use]
     pub const fn class(&self) -> ModificationClass {
         match self {
-            Self::SetInfo(_) | Self::SetMetadata(_) | Self::RemoveMetadata(_) | Self::UpdateSaveMetadata(_) => {
-                ModificationClass::Metadata
-            }
-            Self::RotatePage(_) => ModificationClass::PageStructure,
+            Self::SetInfo(_)
+            | Self::SetMetadata(_)
+            | Self::RemoveMetadata(_)
+            | Self::SetXmpProperty(_)
+            | Self::RemoveXmpProperty(_)
+            | Self::ReplaceXmpPacket(_)
+            | Self::UpdateSaveMetadata(_) => ModificationClass::Metadata,
+            Self::RotatePage(_)
+            | Self::InsertBlankPages(_)
+            | Self::DeletePages(_)
+            | Self::MovePages(_)
+            | Self::RotatePages(_)
+            | Self::ReversePages(_)
+            | Self::DuplicatePages(_) => ModificationClass::PageStructure,
             Self::AddOutlineItem(_)
             | Self::UpdateOutlineItem(_)
             | Self::MoveOutlineItem(_)
@@ -128,6 +161,9 @@ impl Op {
             | Self::RotatePage(_)
             | Self::SetMetadata(_)
             | Self::RemoveMetadata(_)
+            | Self::SetXmpProperty(_)
+            | Self::RemoveXmpProperty(_)
+            | Self::ReplaceXmpPacket(_)
             | Self::UpdateSaveMetadata(_)
             | Self::AddOutlineItem(_)
             | Self::UpdateOutlineItem(_)
@@ -136,6 +172,12 @@ impl Op {
             | Self::SetNamedDestination(_)
             | Self::RenameNamedDestination(_)
             | Self::DeleteNamedDestination(_)
+            | Self::InsertBlankPages(_)
+            | Self::DeletePages(_)
+            | Self::MovePages(_)
+            | Self::RotatePages(_)
+            | Self::ReversePages(_)
+            | Self::DuplicatePages(_)
             | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_) => false,
@@ -146,19 +188,22 @@ impl Op {
 
     /// The pages this op would delete, replace, reshow or move: what `laminapdf-save`'s
     /// `SavePlanner::would_violate` checks against the widgets on them before the op applies
-    /// ([E2 plan §6]). None of these ops reports a page yet: [`Op::RotatePage`] starts
-    /// reporting its page along with the page ops that delete, move and reverse pages.
+    /// ([E2 plan §6]): deleted pages, rotated ones and moved or reversed ones. Inserting and
+    /// duplicating pages (a copy's widgets belong to new fields) and metadata edits change none.
     ///
     /// [E2 plan §6]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint
     ///
     /// Added in 0.2.0.
     #[must_use]
     pub fn page_changes(&self) -> Vec<PageChange> {
+        let each = |pages: &[PageId], change| pages.iter().map(|p| PageChange::new(p.clone(), change)).collect();
         match self {
             Self::SetInfo(_)
-            | Self::RotatePage(_)
             | Self::SetMetadata(_)
             | Self::RemoveMetadata(_)
+            | Self::SetXmpProperty(_)
+            | Self::RemoveXmpProperty(_)
+            | Self::ReplaceXmpPacket(_)
             | Self::UpdateSaveMetadata(_)
             | Self::AddOutlineItem(_)
             | Self::UpdateOutlineItem(_)
@@ -167,9 +212,16 @@ impl Op {
             | Self::SetNamedDestination(_)
             | Self::RenameNamedDestination(_)
             | Self::DeleteNamedDestination(_)
+            | Self::InsertBlankPages(_)
+            | Self::DuplicatePages(_)
             | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_) => Vec::new(),
+            Self::RotatePage(op) => vec![PageChange::new(op.page.clone(), WidgetChange::Reshown)],
+            Self::RotatePages(op) => each(&op.pages, WidgetChange::Reshown),
+            Self::DeletePages(op) => each(&op.pages, WidgetChange::Deleted),
+            Self::MovePages(op) => each(&op.pages, WidgetChange::Moved),
+            Self::ReversePages(op) => each(&op.pages, WidgetChange::Moved),
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.pages.clone(),
         }
@@ -180,12 +232,27 @@ impl Op {
     pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Effect> {
         match self {
             Self::SetInfo(op) => op.apply_to(doc),
-            Self::RotatePage(op) => op.apply_to(doc).map(|pages| Effect {
-                pages,
-                ..Effect::default()
-            }),
+            Self::RotatePage(op) => {
+                let pages = op.apply_to(doc)?;
+                let widgets =
+                    crate::pages::widgets_on(doc, &pages, WidgetChange::Reshown, ModificationClass::PageStructure)?;
+                Ok(Effect {
+                    pages,
+                    widgets,
+                    ..Effect::default()
+                })
+            }
+            Self::InsertBlankPages(op) => op.apply_to(doc),
+            Self::DeletePages(op) => op.apply_to(doc),
+            Self::MovePages(op) => op.apply_to(doc),
+            Self::RotatePages(op) => op.apply_to(doc),
+            Self::ReversePages(op) => op.apply_to(doc),
+            Self::DuplicatePages(op) => op.apply_to(doc),
             Self::SetMetadata(op) => op.apply_to(doc),
             Self::RemoveMetadata(op) => op.apply_to(doc),
+            Self::SetXmpProperty(op) => op.apply_to(doc),
+            Self::RemoveXmpProperty(op) => op.apply_to(doc),
+            Self::ReplaceXmpPacket(op) => op.apply_to(doc),
             Self::UpdateSaveMetadata(op) => op.apply_to(doc),
             Self::AddOutlineItem(op) => op.apply_to(doc),
             Self::UpdateOutlineItem(op) => op.apply_to(doc),
@@ -213,6 +280,8 @@ pub(crate) struct Effect {
     pub(crate) packet_rewritten: bool,
     /// It removed something that the file's earlier revisions still hold.
     pub(crate) removed: bool,
+    /// The properties it declared in a PDF/A packet's extension schemas.
+    pub(crate) declared: Vec<laminapdf_model::xmp::ExtensionProperty>,
     /// Annotations it deleted besides the one it names (Popups, replies, a group).
     pub(crate) also_deleted: Vec<laminapdf_model::AnnotId>,
     /// The form fields whose widgets it deleted, reshowed or moved.
@@ -223,6 +292,14 @@ pub(crate) struct Effect {
     pub(crate) outline_repaired: bool,
     /// What still names a destination it deleted.
     pub(crate) destination_uses: Vec<DestinationUse>,
+    /// The page IDs in order, when it changed the page list.
+    pub(crate) page_order: Option<Vec<PageId>>,
+    /// The references to deleted pages it retargeted or removed.
+    pub(crate) references: Vec<ReferenceChange>,
+    /// The form fields whose widgets it copied (renamed) or left out (signatures).
+    pub(crate) fields: Vec<FieldChange>,
+    /// The copies whose tags it couldn't clone whole (`DuplicateTagsIncomplete`).
+    pub(crate) tags_incomplete: Vec<PageId>,
 }
 
 impl From<SetInfo> for Op {
@@ -249,59 +326,36 @@ impl From<UpdateSaveMetadata> for Op {
     }
 }
 
-impl From<AddOutlineItem> for Op {
-    fn from(op: AddOutlineItem) -> Self {
-        Self::AddOutlineItem(op)
-    }
+macro_rules! op_from {
+    ($($name:ident),*) => {
+        $(impl From<$name> for Op {
+            fn from(op: $name) -> Self {
+                Self::$name(op)
+            }
+        })*
+    };
 }
 
-impl From<UpdateOutlineItem> for Op {
-    fn from(op: UpdateOutlineItem) -> Self {
-        Self::UpdateOutlineItem(op)
-    }
-}
-
-impl From<MoveOutlineItem> for Op {
-    fn from(op: MoveOutlineItem) -> Self {
-        Self::MoveOutlineItem(op)
-    }
-}
-
-impl From<DeleteOutlineItem> for Op {
-    fn from(op: DeleteOutlineItem) -> Self {
-        Self::DeleteOutlineItem(op)
-    }
-}
-
-impl From<SetNamedDestination> for Op {
-    fn from(op: SetNamedDestination) -> Self {
-        Self::SetNamedDestination(op)
-    }
-}
-
-impl From<RenameNamedDestination> for Op {
-    fn from(op: RenameNamedDestination) -> Self {
-        Self::RenameNamedDestination(op)
-    }
-}
-
-impl From<DeleteNamedDestination> for Op {
-    fn from(op: DeleteNamedDestination) -> Self {
-        Self::DeleteNamedDestination(op)
-    }
-}
-
-impl From<UpdateAnnot> for Op {
-    fn from(op: UpdateAnnot) -> Self {
-        Self::UpdateAnnot(op)
-    }
-}
-
-impl From<DeleteAnnot> for Op {
-    fn from(op: DeleteAnnot) -> Self {
-        Self::DeleteAnnot(op)
-    }
-}
+op_from!(
+    AddOutlineItem,
+    UpdateOutlineItem,
+    MoveOutlineItem,
+    DeleteOutlineItem,
+    SetNamedDestination,
+    RenameNamedDestination,
+    DeleteNamedDestination,
+    SetXmpProperty,
+    RemoveXmpProperty,
+    ReplaceXmpPacket,
+    InsertBlankPages,
+    DeletePages,
+    MovePages,
+    RotatePages,
+    ReversePages,
+    DuplicatePages,
+    UpdateAnnot,
+    DeleteAnnot
+);
 
 impl From<SetPageLabels> for Op {
     fn from(op: SetPageLabels) -> Self {
