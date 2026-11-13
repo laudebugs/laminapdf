@@ -11,7 +11,7 @@
 | Branch | `feat/d4a-windows-and-tabs` |
 | PR title | `feat(desktop): add multiple windows, tabs and session restore` |
 | Size | L (700–1,400 lines) |
-| PR | — |
+| PR | [#529](https://github.com/laudebugs/laminapdf/pull/529) |
 
 ## Goal
 
