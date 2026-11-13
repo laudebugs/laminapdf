@@ -18,6 +18,7 @@ import metadataPdf from "../../../../fixtures/golden/metadata.pdf";
 import photo from "../../../../fixtures/images/photo-rgb.jpg";
 import report from "../../../../fixtures/markdown/report.md";
 import formsPdf from "../../../../fixtures/pages/forms.pdf";
+import labelsPdf from "../../../../fixtures/pages/labels.pdf";
 import referencesPdf from "../../../../fixtures/pages/references.pdf";
 import flowReport from "../../../../fixtures/text/element-flow-report.json" with { type: "json" };
 import { EXAMPLES, INPUT_PATHS, type Inputs, measure, missingInputs, sha256 } from "../suite/examples.js";
@@ -40,6 +41,7 @@ const inputs: Inputs = {
       "fixtures/golden/examples/pdf_a_archive-2b.pdf": pdfaArchive2b,
       "fixtures/pages/references.pdf": referencesPdf,
       "fixtures/pages/forms.pdf": formsPdf,
+      "fixtures/pages/labels.pdf": labelsPdf,
       "fixtures/golden/examples/links_and_outlines.pdf": linksAndOutlinesPdf,
     }).map(([path, data]) => [path, new Uint8Array(data)]),
   ),

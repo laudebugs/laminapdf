@@ -13,11 +13,21 @@ import type { Document, PageRef } from "../document.js";
  * - `extractJob` returns a job whose model results the caller provides between steps: run the
  *   model in the worker's own context, or extract on the main thread;
  * - `ensure` fetches a range document's bytes: the worker does that for every call;
+ * - `extractPages` and `exportRanges` return new documents, which stay in the worker: save one
+ *   on the main thread, or open the saved bytes with the client;
  * - `free` and `Symbol.dispose`: the remote handle's `close()` and `Symbol.asyncDispose`.
  *
  * @since 0.2.0
  */
-export type ExcludedDocumentMembers = "transact" | "saveJob" | "extractJob" | "ensure" | "free" | typeof Symbol.dispose;
+export type ExcludedDocumentMembers =
+  | "transact"
+  | "saveJob"
+  | "extractJob"
+  | "extractPages"
+  | "exportRanges"
+  | "ensure"
+  | "free"
+  | typeof Symbol.dispose;
 
 /**
  * PageRef members with no remote twin: `free` and `Symbol.dispose`, since the worker frees a page
@@ -32,6 +42,7 @@ export type RemotablePageMember = Exclude<keyof PageRef, ExcludedPageMembers>;
 
 export const DOCUMENT_METHODS = {
   apply: 1,
+  addSource: 2,
   applyLog: 1,
   canExtractText: 0,
   deletePages: 2,
@@ -40,6 +51,7 @@ export const DOCUMENT_METHODS = {
   hasUnsavedChanges: 0,
   info: 0,
   insertBlankPages: 4,
+  insertPagesFrom: 4,
   isEncrypted: 0,
   isTagged: 0,
   metadata: 0,
@@ -58,6 +70,7 @@ export const DOCUMENT_METHODS = {
   rebase: 1,
   redo: 0,
   reflow: 0,
+  replacePages: 4,
   removeMetadata: 2,
   removeXmpProperty: 3,
   replaceXmpPacket: 1,
@@ -70,6 +83,7 @@ export const DOCUMENT_METHODS = {
   setMetadata: 2,
   setXmpProperty: 5,
   setPageLabels: 1,
+  sourcePages: 1,
   structureTree: 0,
   undo: 0,
   warnings: 0,

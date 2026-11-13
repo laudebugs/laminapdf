@@ -365,21 +365,31 @@ pub(crate) struct EditedJs {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[tsify(optional)]
     pub tags_incomplete: Vec<String>,
+    /// The page holding each link a page copied in from another document lost, one entry per
+    /// link; left out when there are none.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[tsify(optional)]
+    pub links_removed: Vec<String>,
+    /// The pages copied in from another document without the tags their source gave them; left
+    /// out when there are none.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[tsify(optional)]
+    pub tags_dropped: Vec<String>,
 }
 
-/// What a page duplication did to one form field.
+/// What a page duplication or a page copied in did to one form field.
 #[derive(Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct FieldEditJs {
-    /// The field on the source page.
+    /// The field on the source page (in the source document, for a page copied in).
     pub field: String,
     /// The copy whose widget it concerns.
     pub page: String,
-    /// `renamed` (the copy's widget belongs to a new field) or `notCopied` (a signature's
-    /// widget).
-    #[tsify(type = "\"renamed\" | \"notCopied\"")]
+    /// `renamed` (the copy's widget belongs to a new field), `linked` (it joined the field of
+    /// the same name) or `notCopied` (a signature's widget).
+    #[tsify(type = "\"renamed\" | \"linked\" | \"notCopied\"")]
     pub outcome: &'static str,
-    /// The new field's ID, when renamed.
+    /// The new field's ID, when renamed; the field it joined, when linked.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[tsify(optional)]
     pub to: Option<String>,
@@ -393,6 +403,7 @@ impl From<laminapdf::FieldChange> for FieldEditJs {
     fn from(c: laminapdf::FieldChange) -> Self {
         let (outcome, to, name) = match c.outcome {
             laminapdf::FieldOutcome::Renamed { to, name } => ("renamed", Some(to.to_string()), Some(name)),
+            laminapdf::FieldOutcome::Linked { to } => ("linked", Some(to.to_string()), None),
             _ => ("notCopied", None, None),
         };
         Self {
@@ -468,6 +479,8 @@ impl From<laminapdf::Edited> for EditedJs {
             references: e.references.into_iter().map(ReferenceEditJs::from).collect(),
             fields: e.fields.into_iter().map(FieldEditJs::from).collect(),
             tags_incomplete: e.tags_incomplete.iter().map(ToString::to_string).collect(),
+            links_removed: e.links_removed.iter().map(ToString::to_string).collect(),
+            tags_dropped: e.tags_dropped.iter().map(ToString::to_string).collect(),
             declared: e.declared.into_iter().map(ExtensionPropertyJs::from).collect(),
         }
     }

@@ -5,6 +5,8 @@
 // runtime produces the same bytes.
 import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@laminapdf/sdk";
 import { duplicatePages } from "../../examples/duplicate-pages.js";
+import { extractPages } from "../../examples/extract-pages.js";
+import { insertPages } from "../../examples/insert-pages.js";
 import { editMetadata } from "../../examples/edit-metadata.js";
 import { editXmp } from "../../examples/edit-xmp.js";
 import { elementFlow, type Report } from "../../examples/element-flow.js";
@@ -70,6 +72,8 @@ const REFERENCES_PDF = "fixtures/pages/references.pdf";
 const FORMS_PDF = "fixtures/pages/forms.pdf";
 /** The input of page-labels: an example golden of four pages. */
 const LABELS_INPUT_PDF = "fixtures/golden/examples/links_and_outlines.pdf";
+/** The input of extract-pages: ten pages labelled i–iii, 1–4, A-1, A-2 and Back cover. */
+const LABELS_PDF = "fixtures/pages/labels.pdf";
 
 /** An input the runner was asked for (`input` says which), else an error naming it. */
 function input(inputs: Inputs, path: string): Uint8Array {
@@ -165,6 +169,18 @@ export const EXAMPLES: readonly Example[] = [
     golden: "duplicate_pages",
     inputs: [FORMS_PDF],
     build: (i) => duplicatePages(input(i, FORMS_PDF)),
+  },
+  {
+    name: "insert-pages",
+    golden: "insert_pages",
+    inputs: [FORMS_PDF, REFERENCES_PDF],
+    build: (i) => insertPages(input(i, FORMS_PDF), input(i, REFERENCES_PDF)),
+  },
+  {
+    name: "extract-pages",
+    golden: "extract_pages",
+    inputs: [LABELS_PDF],
+    build: (i) => extractPages(input(i, LABELS_PDF)),
   },
   {
     name: "edit-xmp",
