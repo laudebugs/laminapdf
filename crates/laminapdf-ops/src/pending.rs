@@ -4,7 +4,8 @@
 use std::collections::BTreeSet;
 
 use crate::class::ModificationClass;
-use crate::op::Op;
+use crate::op::{Effect, Op};
+use crate::widgets::TouchedWidget;
 
 /// The kinds of change the document holds since it was opened or last rebased onto a save:
 /// what the save planner checks against `DocMDP`, `FieldMDP` and UR3, and whether any of them
@@ -25,6 +26,7 @@ pub struct PendingChanges {
     requires_rewrite: bool,
     unknown: bool,
     packet_rewritten: bool,
+    widgets: BTreeSet<TouchedWidget>,
 }
 
 impl PendingChanges {
@@ -50,6 +52,7 @@ impl PendingChanges {
             requires_rewrite: true,
             unknown: true,
             packet_rewritten: false,
+            widgets: BTreeSet::new(),
         }
     }
 
@@ -86,6 +89,19 @@ impl PendingChanges {
         self.packet_rewritten
     }
 
+    /// The form fields whose widgets the changes deleted, reshowed or moved: what the save
+    /// planner checks against signed signature fields and field locks, field by field
+    /// ([E2 plan §6]). Changes of unknown kind ([`PendingChanges::unknown`]) name no field;
+    /// they hold every class, which the planner already judges.
+    ///
+    /// [E2 plan §6]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub const fn widgets(&self) -> &BTreeSet<TouchedWidget> {
+        &self.widgets
+    }
+
     /// Whether there are none.
     ///
     /// Added in 0.2.0.
@@ -94,11 +110,13 @@ impl PendingChanges {
         self.classes.is_empty() && !self.requires_rewrite
     }
 
-    /// Adds `op`'s class and rewrite need, and whether it rewrote the packet whole.
-    pub(crate) fn record(&mut self, op: &Op, packet_rewritten: bool) {
+    /// Adds `op`'s class and rewrite need, and what applying it did: whether it rewrote the
+    /// packet whole, and the widgets it touched.
+    pub(crate) fn record(&mut self, op: &Op, effect: &Effect) {
         self.classes.insert(op.class());
         self.requires_rewrite |= op.requires_rewrite();
-        self.packet_rewritten |= packet_rewritten;
+        self.packet_rewritten |= effect.packet_rewritten;
+        self.widgets.extend(effect.widgets.iter().cloned());
     }
 
     /// Adds everything `other` holds.
@@ -107,6 +125,7 @@ impl PendingChanges {
         self.requires_rewrite |= other.requires_rewrite;
         self.unknown |= other.unknown;
         self.packet_rewritten |= other.packet_rewritten;
+        self.widgets.extend(other.widgets.iter().cloned());
     }
 
     /// Forgets everything (after a rebase, or when the overlay is empty again).
