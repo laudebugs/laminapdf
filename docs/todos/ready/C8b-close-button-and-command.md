@@ -22,17 +22,17 @@ The web reader has no visible way to leave a document: More's "Choose a file" cl
 - [Close a document plan](../../plans/close-document.md) and [Reader A R19](../../design/paper/reader-a.md#r19-close-a-document), with its boards in `docs/design/paper/reader-a/project/R19-*.dc.html`.
 - [Reader B R17 and R18](../../design/paper/reader-b.md#r18-phone-outline-find-more): Back to files on tablet and phone.
 - [Edit session O03](../../design/paper/edit-session-organise.md): the confirmation the guard shows.
-- `packages/ui/src/commands/reader-commands.ts` (`file.open`), `packages/ui/src/reader/reader-top-bar.tsx`, `packages/ui/src/messages.ts`, `apps/web/src/app.tsx` (More's items), `apps/desktop/src/app.tsx` (uses `ReaderTopBar`: its tabs own closing).
+- `packages/ui/src/commands/reader-commands.ts` (`file.open`), `packages/ui/src/reader/top-bar.tsx`, `packages/ui/src/messages.ts`, `apps/web/src/app.tsx` (More's items), `apps/desktop/src/app.tsx` (uses `ReaderTopBar`: its tabs own closing).
 - Design language [§8.8](../../design/paper/design-language.md#88-keyboard-and-shortcuts): no `Mod+W` on the web.
 
 ## Scope
 
 **In scope**
 
-- `file.close` ("Close document"; group `file`; icon `close`; no shortcut; enabled while the reader holds a document; runs `requestClose()`).
+- `file.close` ("Close document"; group `file`; icon `close`; no shortcut; enabled in every phase but `empty`; runs `requestClose()`).
 - `ReaderTopBar`: the 24 px × after the file name at desktop width, named "Close {name}", tooltip "Close document", shown in every phase but `empty`, only when the shell passes it (the desktop app doesn't).
 - `ReaderTopBar` at phone and tablet widths: Back to files at the top left, running `file.close`.
-- More: "Choose a file" becomes "Open another file…" (`file.open`, `Ctrl O` chip), and "Close document" goes last.
+- More: "Choose a file" becomes "Open another file…" (`file.open`, `Ctrl O` chip), and "Close document" follows it directly.
 - After a close: focus on the home heading (`tabindex="-1"`), a polite announcement "Closed {name}", the window title "lamina".
 
 **Out of scope** (and which todo covers it)

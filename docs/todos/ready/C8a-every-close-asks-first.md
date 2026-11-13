@@ -15,7 +15,7 @@
 
 ## Goal
 
-Two routes close the web reader's document without asking about unsaved changes: removing `#url=` from the address (by editing it or pressing Back) and the failure page's Try another. Both call `ReaderController.close()`, which skips the close guard, and a fragment change fires no `beforeunload`, so an edit session's changes are lost without a word. This todo sends every close through `requestClose()`, so O03 asks first, and puts the link back in the address when the reader answers Cancel. C8b's Close button builds on this one path.
+Three routes close the web reader's document without asking about unsaved changes: removing `#url=` from the address (by editing it or pressing Back), changing it to an unusable `#url=` link (`showLinkProblem`), and the failure page's Try another. All three call `ReaderController.close()`, which skips the close guard, and a fragment change fires no `beforeunload`, so an edit session's changes are lost without a word. This todo sends every close through `requestClose()`, so O03 asks first, and puts the link back in the address when the reader answers Cancel. C8b's Close button builds on this one path.
 
 ## Context
 
@@ -23,6 +23,7 @@ Two routes close the web reader's document without asking about unsaved changes:
 - [Reader A R19](../../design/paper/reader-a.md#r19-close-a-document): Behaviour.
 - `packages/ui/src/state/reader-controller.ts`: `requestClose()` asks the guard; `close()` doesn't.
 - `apps/web/src/open/watch.ts` and `navigation.ts`: the fragment's `close` action; `forget()` removes `url` with `replaceState`.
+- `apps/web/src/session.ts`: `showLinkProblem` closes before showing the link's problem; the backend switch (`#debug`) closes and reopens the same file, which needs no guard.
 - `apps/web/src/app.tsx`: `onTryAnother={() => reader.close()}`.
 - `apps/web/src/editing-runtime.tsx`: the guard and O03's dialog.
 
@@ -30,7 +31,7 @@ Two routes close the web reader's document without asking about unsaved changes:
 
 **In scope**
 
-- The fragment watcher's `close` and Try another through `requestClose()`.
+- The fragment watcher's `close`, `showLinkProblem` and Try another through `requestClose()`; on Cancel, `showLinkProblem` shows no problem page.
 - Cancel after a fragment change restores the `url` key (and any place keys) with `replaceState`, adding no history entry.
 - A note in `ReaderController.close()`'s doc comment: it is for closes the reader didn't ask for (a backend switch); everything the reader asks for goes through `requestClose()`.
 
@@ -40,9 +41,10 @@ Two routes close the web reader's document without asking about unsaved changes:
 
 ## Tasks
 
-- [ ] `watch.ts`: on `close`, call `requestClose()`; when it resolves `false`, rebuild the fragment from what the reader holds (`remoteUrlOf(state.file)`) with `replaceState`, so the address names the open file again.
+- [ ] `watch.ts`: on `close`, call `requestClose()`; when it resolves `false`, `watch.ts` writes the fragment itself from what the reader holds (`remoteUrlOf(state.file)`) with `replaceState`, so the address names the open file again. `forget()` won't re-add it: it only removes keys, and a Cancel changes no state.
+- [ ] `session.ts`: `showLinkProblem` through `requestClose()`; on Cancel, restore the fragment the same way and show no problem page.
 - [ ] `app.tsx`: Try another through `requestClose()`. A failed document has no guard (the guard applies only while `open`), so behaviour stays the same; the one path matters for C8b.
-- [ ] Check no other caller of `reader.close()` closes for the reader: `git grep "reader.close()"` in `apps/web/src` and `packages/ui/src`, and record each kept one with its reason.
+- [ ] Check no other caller closes for the reader: `git grep -E "reader\.close\(\)"` in `apps/web/src` and `packages/ui/src` (this matches `this.reader.close()` too), and record each kept one, such as the backend switch, with its reason.
 
 ## Acceptance criteria
 
