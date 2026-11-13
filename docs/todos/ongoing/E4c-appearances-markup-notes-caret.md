@@ -11,7 +11,7 @@
 | Branch | `feat/e4c-appearances-markup-notes-caret` |
 | PR title | `feat(build): text markup, notes and caret annotations with their appearances` |
 | Size | M (200–400): three specs and their generators, `replace_text`, bindings |
-| PR | — |
+| PR | [#539](https://github.com/laudebugs/laminapdf/pull/539) |
 
 ## Goal
 
