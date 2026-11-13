@@ -558,7 +558,9 @@ mod tests {
     #[test]
     fn an_example_that_lost_its_identification_is_reported() {
         let mut lost = EXPECTED;
-        lost[4] = ("pdf_ua_report.pdf", &[]);
+        if let Some(entry) = lost.iter_mut().find(|(name, _)| *name == "pdf_ua_report.pdf") {
+            *entry = ("pdf_ua_report.pdf", &[]);
+        }
         assert_eq!(
             unexpected_claims(&claims(&lost)),
             [r#"pdf_ua_report.pdf claims [], expected ["ua1"]"#]

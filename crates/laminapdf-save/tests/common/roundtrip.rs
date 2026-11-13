@@ -391,9 +391,11 @@ pub fn run(root: &Path) -> Suite {
                         "pages": pages,
                         "rotations": rotations,
                         "title": info[0],
-                        // The other three keys the setInfo cases write (J.01), compared by the
-                        // tools only there: elsewhere they are the fixture's own values.
-                        "info": (op_name != "rotatePage").then(|| json!({
+                        // The other three keys the Info and metadata cases write (J.01, J.10),
+                        // compared by the tools only there: elsewhere they are the fixture's own
+                        // values, which the tools read in their own ways (PDFium reads an empty
+                        // `/Keywords` as none).
+                        "info": matches!(op_name, "setInfo" | "setMetadata" | "removeMetadata").then(|| json!({
                             "Author": info[1],
                             "Subject": info[2],
                             "Keywords": info[3],

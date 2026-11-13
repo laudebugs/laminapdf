@@ -172,11 +172,14 @@ pub(crate) fn replace_packet(doc: &mut laminapdf_model::Document, xml: &str) -> 
     let mut new = Packet::parse(xml.as_bytes()).map_err(Error::InvalidXmpPacket)?;
     let old = doc.xmp()?;
     let same_claims = match &old {
-        // A packet that can't be read can't be compared value by value: for each identification,
-        // the new packet may claim it only where the old bytes show a `part` in its namespace.
-        PacketState::Malformed { bytes, .. } => [PDFA_ID, PDFUA_ID]
-            .into_iter()
-            .all(|ns| claims_part(&String::from_utf8_lossy(bytes), ns) == new.properties().any(|p| p.namespace == ns)),
+        // A packet that can't be read can't be parsed for its claims: they are read from its
+        // text instead, and the new packet must claim the same parts and conformance.
+        PacketState::Malformed { bytes, .. } => {
+            let text = String::from_utf8_lossy(bytes);
+            [PDFA_ID, PDFUA_ID]
+                .into_iter()
+                .all(|ns| scanned_claims(&text, ns) == claimed_values(&new, ns))
+        }
         _ => claims(old.packet()) == claims(Some(&new)),
     };
     if !same_claims {
@@ -213,20 +216,51 @@ pub(crate) fn replace_packet(doc: &mut laminapdf_model::Document, xml: &str) -> 
     })
 }
 
-/// Whether the text of a packet that can't be parsed shows a `part` property in `namespace`:
-/// `<p:part` or `p:part=` for a prefix `p` it binds to the namespace.
-fn claims_part(text: &str, namespace: &str) -> bool {
-    text.match_indices(namespace).any(|(at, _)| {
-        let before = text
-            .get(..at)
-            .unwrap_or_default()
-            .trim_end_matches(['"', '\'', '=', ' ']);
-        let Some(start) = before.rfind("xmlns:") else {
-            return false;
-        };
-        let prefix = before.get(start + "xmlns:".len()..).unwrap_or_default();
-        !prefix.is_empty() && (text.contains(&format!("<{prefix}:part")) || text.contains(&format!("{prefix}:part=")))
-    })
+/// The identification properties a claim is made of.
+const CLAIM_NAMES: [&str; 2] = ["part", "conformance"];
+
+/// `packet`'s `part` and `conformance` in `namespace`, trimmed, in [`CLAIM_NAMES`]' order.
+fn claimed_values(packet: &Packet, namespace: &str) -> Vec<(&'static str, String)> {
+    CLAIM_NAMES
+        .into_iter()
+        .filter_map(|name| match packet.property(namespace, name)? {
+            RdfValue::Text(t) => Some((name, t.trim().to_owned())),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The `part` and `conformance` in `namespace` that the text of a packet that can't be parsed
+/// shows: `<p:name>value</p:name>` or `p:name="value"` for each prefix `p` it binds to the
+/// namespace (the first value found for each), in [`CLAIM_NAMES`]' order.
+fn scanned_claims(text: &str, namespace: &str) -> Vec<(&'static str, String)> {
+    let prefixes: Vec<&str> = text
+        .match_indices(namespace)
+        .filter_map(|(at, _)| {
+            let before = text
+                .get(..at)?
+                .trim_end_matches(['"', '\'', '=', ' ', '\t', '\r', '\n']);
+            let start = before.rfind("xmlns:")?;
+            before.get(start + "xmlns:".len()..).filter(|p| !p.is_empty())
+        })
+        .collect();
+    CLAIM_NAMES
+        .into_iter()
+        .filter_map(|name| {
+            prefixes.iter().find_map(|prefix| {
+                let element = format!("<{prefix}:{name}>");
+                let attribute = format!("{prefix}:{name}=");
+                if let Some(at) = text.find(&element) {
+                    let rest = text.get(at + element.len()..)?;
+                    return Some((name, rest.get(..rest.find('<')?)?.trim().to_owned()));
+                }
+                let rest = text.get(text.find(&attribute)? + attribute.len()..)?;
+                let quote = rest.chars().next().filter(|q| matches!(q, '"' | '\''))?;
+                let value = rest.get(1..)?;
+                Some((name, value.get(..value.find(quote)?)?.trim().to_owned()))
+            })
+        })
+        .collect()
 }
 
 /// A packet's PDF/A and PDF/UA identification: its `pdfaid:` and `pdfuaid:` properties, text

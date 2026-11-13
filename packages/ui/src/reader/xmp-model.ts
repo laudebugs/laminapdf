@@ -93,7 +93,7 @@ export interface XmpSchema {
 }
 
 /** Why XML didn't parse: the browser's message, and where, when it says. */
-export interface XmlError {
+interface XmlError {
   readonly message: string;
   readonly line?: number | undefined;
   readonly column?: number | undefined;
@@ -111,7 +111,7 @@ function position(text: string): Pick<XmlError, "line" | "column"> {
 }
 
 /** `xml` parsed, or the parser's error: the first line of its message and where it is. */
-export function parseXml(xml: string): Document | XmlError {
+function parseXml(xml: string): Document | XmlError {
   const doc = new DOMParser().parseFromString(xml, "application/xml");
   const error = doc.getElementsByTagName("parsererror")[0];
   if (error === undefined) return doc;
@@ -192,7 +192,7 @@ export function readXmpPacket(xml: string): XmpRead {
 }
 
 /** An XMP date (ISO 8601: `2026-10-14`, `2026-10-14T10:20:00+02:00`) as a PDF date; undefined when it isn't one. */
-export function isoToPdfDate(iso: string): string | undefined {
+function isoToPdfDate(iso: string): string | undefined {
   const m = /^(\d{4})(?:-(\d{2})(?:-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(Z|[+-]\d{2}:\d{2})?)?)?)?$/.exec(
     iso.trim(),
   );

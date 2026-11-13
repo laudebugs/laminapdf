@@ -261,3 +261,23 @@ fn an_empty_list_for_a_mirrored_property_is_refused() {
         .unwrap_err();
     assert_eq!(e, Error::InvalidXmpProperty { reason: "value" });
 }
+
+#[test]
+fn a_malformed_packets_repair_cannot_change_its_level() {
+    let broken = format!("{}<unclosed>", packet(PDFA_2B));
+    let mut d = doc("", None, Some(broken.as_bytes()));
+    let other_level = packet("<pdfaid:part>1</pdfaid:part><pdfaid:conformance>A</pdfaid:conformance>");
+    assert_eq!(
+        ReplaceXmpPacket::new(other_level).apply_to(&mut d).unwrap_err(),
+        Error::XmpClaimReadOnly
+    );
+    let attributes = format!(
+        "{}<unclosed>",
+        packet("").replace(
+            r#"rdf:about="""#,
+            r#"rdf:about="" pdfaid:part="2" pdfaid:conformance="B""#
+        )
+    );
+    let mut d = doc("", None, Some(attributes.as_bytes()));
+    ReplaceXmpPacket::new(packet(PDFA_2B)).apply_to(&mut d).unwrap();
+}

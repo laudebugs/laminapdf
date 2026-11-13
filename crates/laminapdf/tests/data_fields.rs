@@ -146,6 +146,10 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         Error::from(laminapdf_syntax::Error::UnsupportedFilter(s())),
         Error::from(laminapdf_ops::Error::UnsupportedVersion(9)),
         Error::from(laminapdf_ops::Error::InvalidLog(s())),
+        Error::from(laminapdf_ops::Error::InvalidXmpPacket(
+            laminapdf_model::xmp::ParseError::Syntax { offset: 0 },
+        )),
+        Error::from(laminapdf_ops::Error::InvalidXmpProperty { reason: "name" }),
         Error::from(laminapdf_save::SaveError::RequiresRewrite { reasons: vec![] }),
         Error::from(laminapdf_save::SaveError::WouldInvalidateSignatures {
             signatures: vec![],
