@@ -13,7 +13,7 @@ disallowed-types = [
 ]
 
 # Spec and crate names that doc_markdown would otherwise want in backticks ("..": keep the defaults).
-doc-valid-idents = ["..", "PDFDocEncoding", "SASLprep", "RustCrypto", "ToUnicode", "CMap", "CMaps", "CIDFont", "CIDFonts", "TrueType", "OpenType", "PostScript", "XObject", "XObjects", "ExtGState", "DeviceGray", "DeviceRGB", "DeviceCMYK", "DeviceN", "ICCBased", "HarfBuzz", "HarfRust", "ICU4X", "ICU4C", "PDFium"]
+doc-valid-idents = ["..", "PDFDocEncoding", "SASLprep", "RustCrypto", "ToUnicode", "CMap", "CMaps", "CIDFont", "CIDFonts", "TrueType", "OpenType", "PostScript", "XObject", "XObjects", "ExtGState", "DeviceGray", "DeviceRGB", "DeviceCMYK", "DeviceN", "ICCBased", "HarfBuzz", "HarfRust", "ICU4X", "ICU4C", "PDFium", "CodeQL"]
 
 # The examples only (docs/guidelines/examples.md): functions of at most 40 lines. This file is the root
 # clippy.toml without its last paragraph (its own threshold) plus this line, because clippy reads one
