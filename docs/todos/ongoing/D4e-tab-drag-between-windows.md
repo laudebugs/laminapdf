@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D4e` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [D4a](../done/D4a-windows-tabs-and-session-restore.md) |
@@ -31,7 +31,7 @@ Move a tab by dragging it: out of its window to open a new window where it is dr
 
 **Out of scope** (and which todo covers it)
 
-- Session restore → [D4d](D4d-session-restore.md)
+- Session restore → [D4d](../ready/D4d-session-restore.md)
 
 ## Tasks
 
