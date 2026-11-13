@@ -7,7 +7,7 @@ The seventh editor round changes what a PDF already draws: the text, images and 
 [ADR 0022](../../decisions/0022-content-stream-editing.md) settled the hard part, how to edit a content stream at all. Its intermediate representation (IR), `ContentOps`, keeps every operator's source bytes, groups operators into objects with their graphics state, and writes back only what an edit changed. This round builds on it, and its own hard part is text: an edit has to work with the font that is already embedded, or say plainly when it can't.
 
 - **Round:** [full-editor §E7](../full-editor.md#e7-editing-existing-content), phase 4, milestone M7 Content editor
-- **Feature-plan todo:** [E7b](../../todos/ongoing/E7b-editing-existing-content-feature-plan.md)
+- **Feature-plan todo:** [E7b](../../todos/done/E7b-editing-existing-content-feature-plan.md)
 - **Follows:** ADR [0022](../../decisions/0022-content-stream-editing.md) (the IR, identity, encoder, fonts, tagging), [0023](../../decisions/0023-content-stream-reading.md) (the tokenizer and interpreter), [0006](../../decisions/0006-op-log-and-undo.md) (ops and undo), [0007](../../decisions/0007-save-planner.md) (the save planner), [0018](../../decisions/0018-test-strategy.md) (test tiers), [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) (page space)
 - **Builds on:** [E6](e6-adding-content.md) (Edit mode's tools and handles in E6e, fonts for added text in E6c, system fonts in E6h), [B9](../pdf-library.md#b9-text-extraction) (extraction's glyphs and runs), [C5b](../../todos/done/C5b-find-in-document.md) (find)
 - **Design:** [A04 Edit existing text inline](../../design/paper/add-edit-content.md#a04-edit-existing-text-inline), [A05 Select and transform existing objects](../../design/paper/add-edit-content.md#a05-select-and-transform-existing-objects), [A06 Search and replace](../../design/paper/add-edit-content.md#a06-search-and-replace-across-the-document), [A07 Structure and conformance warning](../../design/paper/add-edit-content.md#a07-structure-and-conformance-warning)
@@ -17,7 +17,7 @@ The seventh editor round changes what a PDF already draws: the text, images and 
 - **Reading content.** `laminapdf-content` tokenizes and interprets content with full graphics state, Form XObjects and marked content (ADR 0023). It has no editable form yet.
 - **Writing content.** E2e's `PageContentWriter` wraps a page and appends streams without parsing what is there. E6's ops place new objects as Form XObjects through it and find them again by their `/PieceInfo`; they never touch original content.
 - **Text.** Extraction gives every glyph its code, Unicode, position, quad, MCID and font (`PageText::glyphs`) and groups glyphs into runs (`PageText::runs`); `lines()` gives only strings. `laminapdf-text` can shape, subset and embed new fonts; it can't yet tell whether an embedded subset holds a glyph for a new character.
-- **The matrix.** A.02–A.08, B.07, B.08, B.11 and B.12 have `round = "E7"`. B.01 and B.02 had `round = "E6"` with `target = "write"`, since E6 changes only what it added; E7b moves them to E7 at `round-trip`, which E7d reaches by editing existing images.
+- **The matrix.** A.06 targets `write`: alignment and line spacing can be set on edited lines, but positioned glyphs carry no alignment to read back. A.02–A.05, A.07, A.08, B.07, B.08, B.11 and B.12 have `round = "E7"`. B.01 and B.02 had `round = "E6"` with `target = "write"`, since E6 changes only what it added; E7b moves them to E7 at `round-trip`, which E7d reaches by editing existing images.
 
 ## 2. The operations
 
@@ -27,7 +27,7 @@ The seventh editor round changes what a PDF already draws: the text, images and 
 | A.03 | Delete or replace text | `EditText` | round-trip | E7e · E7l · E7l |
 | A.04 | Change font family, size, colour, style | `SetTextStyle` | round-trip | E7f · E7l · E7l |
 | A.05 | Bold, italic, underline, super/subscript | `SetTextStyle` | round-trip | E7f · E7l · E7l |
-| A.06 | Alignment and line spacing | `SetTextStyle` | round-trip | E7f · E7l · E7l |
+| A.06 | Alignment and line spacing | `SetTextStyle` | write | E7f · E7l · E7l |
 | A.07 | Move, resize, rotate text blocks | `EditContent` (`Transform`) | round-trip | E7d · E7k · E7k |
 | A.08 | Search and replace throughout the document | `ReplaceText` | round-trip | E7g · E7g · E7g |
 | B.01 | Insert, delete, replace images | `EditContent` (`Delete`, `ReplaceImage`) | round-trip | E7d · E7k · E7k |
@@ -50,7 +50,7 @@ Every op names objects by `ContentObjectRef`: the owner (`PageId`, or a Form XOb
 | `ReplaceText` | `{ edits: Vec<{ run: TextRunRef, range, text }> }`, one transaction, a report of skipped matches | E7g |
 | `RemoveConformanceClaims` | `{ pdfa: bool, pdfua: bool }`: removes `pdfaid:` and `pdfuaid:` from the XMP packet; every other op refuses to touch them (`xmp-claim-read-only`) | E7i |
 
-**Each op reports what it did.** `Applied::content` carries each edit's fidelity (ADR 0022 §7: exact, reflowed or substituted), the objects it created, the objects it copied on write (a shared stream or form), and for `ReplaceText` the matches it skipped with their reasons. A reference whose hash no longer matches fails with `content-object-stale`; an object that can't be edited fails with `content-not-editable` and a reason (`type3-font`, `vertical-text`, `no-unicode-map`, `inside-shared-form`, `too-deep`), a new code E7c adds with its error page.
+**Each op reports what it did.** `Applied::content` carries each edit's fidelity (ADR 0022 §7: exact, reflowed or substituted), the objects it created, the objects it copied on write (a shared stream or form), and for `ReplaceText` the matches it skipped with their reasons. A reference whose hash no longer matches fails with `content-object-stale`; an object that can't be edited fails with `content-not-editable` and a reason (`type3-font`, `vertical-text`, `no-unicode-map`, `rotated-run`, `glyphs-out-of-order`, `too-deep`, `content-unreadable`, from ADR 0022 §5 and §7), a new code E7c adds with its error page. A shared stream or form is never a reason: it is copied on write (§2.3).
 
 **No ops for raw operators.** As in E6, no wire op carries content bytes: every change is typed, so nothing a caller sends can unbalance a stream.
 
@@ -58,7 +58,7 @@ Every op names objects by `ContentObjectRef`: the owner (`PageId`, or a Form XOb
 
 `EditText` follows ADR 0022 §6's order. It re-encodes with the embedded subset when every new character has a glyph in it (E7e); otherwise E7f's chain applies: a new subset of the same font when the full font is available, then a metrics-matched substitute for the missing characters only, which the edit reports as `substituted`. Reflow stays on the edited line: glyphs after the edit on the same line move by the width difference, and the lines below it don't move. A line that would overflow its text block is reported (`reflowed`, with the overflow in points), not wrapped. Paragraph reflow is a later round's (§10, question 1).
 
-The glyph check needs the font program, so `EditText`, `SetTextStyle` and `ReplaceText` work in the text and extract modules; In the base module they fail with `appearance-needs-text`, the code [E4's plan](e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated) defines for the same split. Whichever of E4 and E7e lands first adds it. The viewer opens documents in the extract module.
+The glyph check needs the font program, so `EditText`, `SetTextStyle` and `ReplaceText` work in the text and extract modules. In the base module they fail with `appearance-needs-text`, the code [E4's plan](e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated) defines for the same split. Whichever of E4 and E7e lands first adds it. The viewer opens documents in the extract module.
 
 ### 2.3 Objects
 
@@ -66,8 +66,8 @@ The glyph check needs the font program, so `EditText`, `SetTextStyle` and `Repla
 
 ## 3. Conformance the edits must keep
 
-- **Tagging.** ADR 0022 §4's rules, implemented by E7i: a moved or rewritten object keeps its marked content and MCID; a deleted one clears its MCID's slot in the page's `/ParentTree` array and is removed from its structure element's `/K`; an element left empty is removed from its parent. Edited text keeps its `/ActualText` and `/Alt` in step: a span whose text changes gets the new text, and an image replaced in a `Figure` keeps the element and asks for new alternative text.
-- **PDF/A and PDF/UA.** Every font an edit adds is embedded; a substitute is subset and embedded like any other. After each edit, `pending_conformance_warnings` lists the claims the edit breaks, as the save planner already does for metadata (ADR 0007). A07 shows them before saving: **Fix it first**, or **Save without the claim**, which applies `RemoveConformanceClaims` (§10, question 2).
+- **Tagging.** ADR 0022 §4's rules, implemented by E7i as hooks in `EditContent` and `EditText` (`SetTextStyle` and `ReplaceText` change text through `EditText`'s path, so they inherit them): a moved or rewritten object keeps its marked content and MCID; a deleted one clears its MCID's slot in the page's `/ParentTree` array and is removed from its structure element's `/K`; an element left empty is removed from its parent. Edited text keeps its `/ActualText` and `/Alt` in step: a span whose text changes gets the new text, and an image replaced in a `Figure` keeps the element and asks for new alternative text.
+- **PDF/A and PDF/UA.** Every font an edit adds is embedded; a substitute is subset and embedded like any other. After each edit, `pending_conformance_warnings` lists the claims the edit breaks; today it checks metadata and incomplete tags, and E7i extends it to content (an added font not embedded, a figure without alternative text, broken tags). A07 shows them before saving: **Fix it first**, or **Save without the claim**, which applies `RemoveConformanceClaims` (§10, question 2).
 - **Earlier revisions.** An incremental save keeps the old content in the previous revision, so `EditContent`'s `Delete` and `EditText`'s deletions set `still_in_earlier_revisions`. Removing text for good is redaction (E12), not editing.
 
 ## 4. Crate and package changes
@@ -88,7 +88,8 @@ DocMDP permits no content change at any level: P1 allows none, P2 form filling a
 | --- | --- | --- | --- |
 | `Free` | No signature, a sound base | An incremental update | Nothing; after a delete, the note that earlier versions stay in the file |
 | `AppendOnly`: approval signatures | Signed, not certified | An incremental update after the signature, which stays valid | The status-bar note "Signed file. Saving adds your changes after the signature" |
-| `AppendOnly` with a FieldMDP lock | Locked form fields | An incremental update: no E7 op touches a field or widget | The note |
+| `AppendOnly` with a FieldMDP lock | Locked form fields | An incremental update: FieldMDP restricts form filling only, and no E7 op touches a field or widget. A PDF 2.0 lock with `/P` counts as DocMDP (the next row) | The note |
+| `AppendOnly` with usage rights (UR3) | Reader-extended files | UR3 grants form filling, annotations and signing; every E7 op violates, so the session becomes `Conflict` | The banner, saying the extended rights will be lost |
 | `AppendOnly` with DocMDP P1, P2 or P3 | Certified | Every op violates, so the session becomes `Conflict` | The banner naming the certifier from the first edit; on P1, from entering Edit mode |
 | `RequiresRewrite` | A repaired file | A full rewrite | A neutral strip saying why |
 | `RequiresRewrite`: encrypted base | Password-protected | Save is refused (`encrypted-base`) until E11 | The warning strip |
@@ -131,7 +132,7 @@ E7d and E7e hand their reader UI to E7k and E7l, so the core can land while E6's
 - **Text:** a paragraph in an embedded TrueType subset that lacks some letters; the same with the font embedded whole; a standard 14 font; a Type 3 font; vertical text (`Identity-V`); text with `/ActualText`; a line with `TJ` kerning; text whose glyphs are drawn out of order.
 - **Tagging and claims:** a tagged PDF/UA-1 page with a figure and paragraphs; a PDF/A-2b file. The signed files in `fixtures/signed/` cover approval and P1–P3 certification.
 
-Fonts come from `fixtures/fonts/` (OFL Noto subsets). Reopened outputs of each op become byte goldens through `golden --update`.
+Fonts come from `fixtures/fonts/` (OFL Noto subsets). The generator and each file's provenance and licence go in `fixtures/README.md`. Reopened outputs of each op become byte goldens through `golden --update`.
 
 ## 9. Tests
 

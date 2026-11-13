@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E7b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [E6a](../done/E6a-adding-content-feature-plan.md), [E7a](../done/E7a-adr-0022-content-editing.md) |
+| Depends on | [E6a](./E6a-adding-content-feature-plan.md), [E7a](./E7a-adr-0022-content-editing.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e7b-editing-existing-content-feature-plan` |
 | PR title | `docs(editor): E7 feature plan (editing existing content)` |
@@ -92,3 +92,10 @@ Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accep
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## As built
+
+- **The plan** is [docs/plans/editor/e7-editing-existing-content.md](../../plans/editor/e7-editing-existing-content.md). The owner answered its two open questions on 2026-11-13: line-level text editing for this round, and no "keep the claim" option.
+- **Todos:** E7d and E7e handed their reader UI to two new todos, E7k (A05) and E7l (A04), so the core waits only on E7c. E7i gained `RemoveConformanceClaims`, since the claim properties are read-only to every other op.
+- **Matrix:** B.01 and B.02 moved to round E7 at `round-trip`; A.06 targets `write`, since positioned glyphs carry no alignment to read back.
+- **Size:** about 400 lines rather than the estimated < 200, mostly the two new todos.

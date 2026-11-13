@@ -69,7 +69,7 @@
           "id": "A.06",
           "name": "Alignment & line spacing",
           "round": "E7",
-          "target": "round-trip",
+          "target": "write",
           "surfaces": {
             "core": null,
             "pdf": null,

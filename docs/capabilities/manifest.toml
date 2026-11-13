@@ -101,6 +101,8 @@ round = "E7"
 id = "A.06"
 name = "Alignment & line spacing"
 round = "E7"
+# Set on edited lines; positioned glyphs carry no alignment to read back (E7 plan §1).
+target = "write"
 
 [[op]]
 id = "A.07"
