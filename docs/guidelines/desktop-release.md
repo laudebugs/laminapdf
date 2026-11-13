@@ -38,7 +38,7 @@ Start with the items that take longest: Apple enrolment and Azure identity valid
 
 ### 1.1 Bundle identity
 
-- [ ] Confirm the product name `Lamina PDF` and identifier `com.laminapdf.desktop`. The identifier ends up in signed bundles and in every installed copy's settings path, so it must not change after the first release.
+- [x] Confirm the product name `Lamina PDF` and identifier `com.laminapdf.desktop` (confirmed by the owner 2026-11-13). The identifier ends up in signed bundles and in every installed copy's settings path, so it must not change after the first release.
 - [x] Confirm the publisher is your legal name, spelled as on the ID you use for Apple and Azure. Both certificates must show the same name.
 
 ### 1.2 Apple Developer Program
