@@ -92,7 +92,7 @@ impl Packet {
     ///
     /// # Errors
     /// A [`PropertyError`] when the namespace, prefix, name or value can't be written, or the
-    /// property is one of [`MAPPINGS`].
+    /// property is one of [`MAPPINGS`](super::MAPPINGS).
     ///
     /// Added in 0.2.0.
     pub fn set_property(
@@ -124,7 +124,7 @@ impl Packet {
     ///
     /// # Errors
     /// A [`PropertyError`] when the namespace or name can't hold a property, or the property is
-    /// one of [`MAPPINGS`], which [`Packet::set`] removes.
+    /// one of [`MAPPINGS`](super::MAPPINGS), which [`Packet::set`] removes.
     ///
     /// Added in 0.2.0.
     pub fn remove_property(&mut self, namespace: &str, name: &str) -> Result<(), PropertyError> {
