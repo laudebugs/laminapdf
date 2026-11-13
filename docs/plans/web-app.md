@@ -136,6 +136,12 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 **Accepted when:** axe shows zero serious violations; a manual NVDA, VoiceOver and keyboard-only pass is recorded; the app works offline after first load; Lighthouse PWA installability passes; performance targets in §4 are met on the reference machine.
 **Todos:** [C7a](../todos/done/C7a-accessibility-and-theming.md), [C7b](../todos/done/C7b-offline-pwa.md), [C7c](../todos/done/C7c-performance-gates-and-launch.md), [C7d](../todos/done/C7d-cold-first-page.md), [C7e](../todos/done/C7e-automated-web-releases.md)
 
+### C8. Closing a document
+
+**Deliverable:** a Close button beside the file name, `file.close` in the palette and More, Back to files on phone and tablet, and one close path that always asks about unsaved changes ([close-document plan](close-document.md), [Reader A R19](../design/paper/reader-a.md#r19-close-a-document)).
+**Accepted when:** each route closes to the home screen with focus on its heading; a document with unsaved changes never closes without O03's answer, from any route.
+**Todos:** [C8a](../todos/ready/C8a-every-close-asks-first.md), [C8b](../todos/ready/C8b-close-button-and-command.md)
+
 ## 7. Risks
 
 | Risk | Mitigation |
@@ -218,3 +224,7 @@ Ticked by the PR that completes them.
 - [x] Performance budgets as CI gates ([C7c](../todos/done/C7c-performance-gates-and-launch.md): the startup size on every PR, Lighthouse and the §4 timings before each release)
 - [ ] axe in Playwright; record a manual NVDA, VoiceOver and keyboard-only pass
 - [ ] Publish the privacy page; tag `web v0.1` and deploy to production
+
+### C8. Closing a document
+- [ ] Every close asks about unsaved changes first ([C8a](../todos/ready/C8a-every-close-asks-first.md))
+- [ ] The Close button, `file.close`, More's items and Back to files ([C8b](../todos/ready/C8b-close-button-and-command.md))

@@ -7,7 +7,7 @@
 // the CSSOM, which a `style-src 'self'` policy allows.
 
 import type { PageAppearance } from "@laminapdf/render";
-import type { PageInfo } from "@laminapdf/sdk";
+import { isLaminaPdfError, type PageInfo } from "@laminapdf/sdk";
 import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool } from "../canvas/pool.js";
 import type { ViewerClient } from "../client.js";
@@ -288,23 +288,8 @@ export class ThumbnailStrip {
     let owned = false;
     if (bitmap === undefined) {
       const abort = new AbortController();
-      item.abort = abort;
-      try {
-        const rendered = await this.#client.render(
-          { page: item.index, scale, rotation: layout.rotation, ...appearanceField(appearance) },
-          { priority: "background", signal: abort.signal },
-        );
-        bitmap = rendered.bitmap;
-      } catch (error) {
-        // Scrolled away or a new document: drawn again if it comes back into view.
-        if (abort.signal.aborted) return;
-        // A failed render keeps its placeholder, and isn't asked for again while mounted.
-        item.done = true;
-        reportError(error);
-        return;
-      } finally {
-        if (item.abort === abort) item.abort = undefined;
-      }
+      bitmap = await this.#renderBitmap(item, layout, scale, appearance, abort);
+      if (bitmap === undefined) return;
       if (abort.signal.aborted || this.#items.get(item.index) !== item || this.#layout !== layout) {
         bitmap.close();
         return;
@@ -313,6 +298,39 @@ export class ThumbnailStrip {
     }
     this.#paint(item, bitmap, layout);
     if (owned) bitmap.close();
+  }
+
+  /**
+   * Renders `item`'s thumbnail. Undefined when the render was aborted, or when it failed: then
+   * `item` is marked done, so it keeps its placeholder while mounted, and the failure is reported.
+   */
+  async #renderBitmap(
+    item: Item,
+    layout: PageLayout,
+    scale: number,
+    appearance: PageAppearance,
+    abort: AbortController,
+  ): Promise<ImageBitmap | undefined> {
+    item.abort = abort;
+    try {
+      const rendered = await this.#client.render(
+        { page: item.index, scale, rotation: layout.rotation, ...appearanceField(appearance) },
+        { priority: "background", signal: abort.signal },
+      );
+      return rendered.bitmap;
+    } catch (error) {
+      // Scrolled away or a new document: drawn again if it comes back into view.
+      if (abort.signal.aborted) return undefined;
+      // A failed render keeps its placeholder, and isn't asked for again while mounted.
+      item.done = true;
+      // The render drawing when the worker crashed or was stopped isn't sent again (ADR 0009
+      // §3.6). Losing the worker isn't this page's failure: the client reports a crash or a
+      // restart with its `crashed` and `restarted` events, and `terminate()` is the app's own call.
+      if (!isLaminaPdfError(error, "worker-crashed")) reportError(error);
+      return undefined;
+    } finally {
+      if (item.abort === abort) item.abort = undefined;
+    }
   }
 
   #paint(item: Item, bitmap: ImageBitmap, layout: PageLayout): void {
