@@ -53,7 +53,40 @@ test("every Markdown file is stamped with the package version", async () => {
   }
 });
 
-test("every relative link resolves inside the folder", async () => {
+/**
+ * A heading's anchor as GitHub writes it (github-slugger, which `cargo xtask docs-links` checks the
+ * released folder with): lower case, letters, marks, numbers, `_` and `-` kept, each space a `-`.
+ *
+ * @param {string} text
+ * @returns {string}
+ */
+function slug(text) {
+  return text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{M}\p{N}\p{Pc}\- ]/gu, "")
+    .replaceAll(" ", "-");
+}
+
+/**
+ * The anchors of a Markdown file's headings, repeats numbered as GitHub numbers them.
+ *
+ * @param {string} text
+ * @returns {Set<string>}
+ */
+function anchors(text) {
+  const seen = new Map();
+  const found = new Set();
+  const withoutCode = text.replace(/^(`{3,})[^\n]*\n[\s\S]*?\n\1[ \t]*$/gm, "");
+  for (const [, heading = ""] of withoutCode.matchAll(/^#{1,6}[ \t]+(.+?)[ \t#]*$/gm)) {
+    const base = slug(heading.replace(/`([^`]*)`/g, "$1").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1"));
+    const count = seen.get(base) ?? 0;
+    seen.set(base, count + 1);
+    found.add(count === 0 ? base : `${base}-${count}`);
+  }
+  return found;
+}
+
+test("every relative link resolves inside the folder, anchors included", async () => {
   const files = [...(await markdownFiles()), "llms.txt"];
   const broken = [];
   for (const name of files) {
@@ -61,15 +94,27 @@ test("every relative link resolves inside the folder", async () => {
     const withoutCode = text.replace(/^(`{3,})[^\n]*\n[\s\S]*?\n\1[ \t]*$/gm, "").replace(/`[^`\n]+`/g, "");
     for (const [, href = ""] of withoutCode.matchAll(/\]\(([^)\s]+)\)/g)) {
       if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("#")) continue;
-      const target = join(dir, name, "..", href.replace(/#.*$/, ""));
+      const [path = "", anchor] = href.split("#");
+      const target = join(dir, name, "..", path);
       if (!existsSync(target)) broken.push(`${name}: ${href}`);
+      else if (anchor !== undefined && target.endsWith(".md") && !anchors(await readFile(target, "utf8")).has(anchor)) {
+        broken.push(`${name}: ${href} (no such heading)`);
+      }
     }
   }
   assert.deepEqual(broken, []);
 });
 
+test("anchors follow GitHub's rule", () => {
+  assert.deepEqual(
+    [...anchors("# Page\n\n## React to a code\n\n## `kind`, again\n\n## Page\n")],
+    ["page", "react-to-a-code", "kind-again", "page-1"],
+  );
+});
+
 test("the code list and the API reference map to the folder's own copies", () => {
   assert.equal(packageHref("/reference/codes/", 2), "../../errors/README.md");
+  assert.equal(packageHref("/reference/codes/#react-to-a-code", 2), "../../pages/reference/codes.md#react-to-a-code");
   assert.equal(packageHref("/reference/sdk/readme/", 1, true), "../api/README.md");
   assert.equal(packageHref("/reference/sdk/readme/", 1), "https://docs.laminapdf.com/reference/sdk/readme/");
 });

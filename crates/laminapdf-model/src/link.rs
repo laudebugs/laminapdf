@@ -176,7 +176,7 @@ fn file_name(doc: &Document, value: Option<&Object>) -> Result<Option<String>> {
 /// `/QuadPoints`: groups of eight numbers, each the four corners of one area. Anything else
 /// (a count not a multiple of eight, a value that isn't a number) gives none, so the link
 /// falls back to its rectangle.
-fn quads(doc: &Document, value: Option<&Object>) -> Result<Vec<[UserSpacePoint; 4]>> {
+pub(crate) fn quads(doc: &Document, value: Option<&Object>) -> Result<Vec<[UserSpacePoint; 4]>> {
     let Some(value) = value else { return Ok(Vec::new()) };
     let Some(array) = doc.read(value)? else {
         return Ok(Vec::new());
