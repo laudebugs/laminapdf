@@ -20,6 +20,7 @@ mod recent;
 mod startup;
 mod store;
 mod watch;
+mod windows;
 
 use std::ffi::OsString;
 use std::path::PathBuf;
@@ -28,7 +29,7 @@ use std::sync::Arc;
 pub use error::DesktopError;
 use laminapdf_desktop_protocol::supervisor::{Config, FontServer, Spawner};
 use laminapdf_desktop_sandbox::{BackgroundFonts, SandboxConfig, SandboxSpawner};
-use tauri::{Emitter as _, EventTarget, Manager as _, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+use tauri::{Emitter as _, EventTarget, Manager as _, RunEvent, WindowEvent};
 
 use crate::engine::{Engines, FAILED_EVENT, Failed, Launcher, Notify, RESTARTED_EVENT, Restarted};
 
@@ -42,7 +43,7 @@ pub(crate) const MAIN_WINDOW: &str = "main";
 /// The first window's size in logical pixels: 1200 × 800, shrunk to fit a smaller screen (a
 /// 1366 × 768 laptop would otherwise lose the status bar under its taskbar), never below the
 /// window's minimum.
-fn first_window_size(monitor: Option<tauri::Monitor>) -> (f64, f64) {
+pub(crate) fn first_window_size(monitor: Option<tauri::Monitor>) -> (f64, f64) {
     let Some(monitor) = monitor else {
         return (1200.0, 800.0);
     };
@@ -140,14 +141,9 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         app.handle().clone(),
     )))?);
     app.manage(open::OpenWorker::start(app.handle().clone())?);
+    app.manage(windows::Windows::default());
     // Windows are made here, not in tauri.conf.json, so the app chooses every label.
-    let (width, height) = first_window_size(app.primary_monitor().ok().flatten());
-    WebviewWindowBuilder::new(app, MAIN_WINDOW, WebviewUrl::default())
-        .title("Lamina PDF")
-        .inner_size(width, height)
-        .min_inner_size(640.0, 480.0)
-        .center()
-        .build()?;
+    windows::build_window(app.handle(), MAIN_WINDOW)?;
     #[cfg(feature = "e2e")]
     startup::window();
     tracing::info!(version = %app.package_info().version, "Lamina PDF started");
@@ -185,6 +181,11 @@ pub fn run() -> Result<(), DesktopError> {
         commands::recent_clear,
         commands::preferences,
         commands::set_preferences,
+        commands::new_window,
+        commands::move_tab,
+        commands::window_list,
+        commands::set_window_title,
+        commands::take_pending_tabs,
         open::take_pending_opens,
     ]);
     #[cfg(feature = "e2e")]
@@ -202,6 +203,11 @@ pub fn run() -> Result<(), DesktopError> {
             commands::recent_clear,
             commands::preferences,
             commands::set_preferences,
+            commands::new_window,
+            commands::move_tab,
+            commands::window_list,
+            commands::set_window_title,
+            commands::take_pending_tabs,
             open::take_pending_opens,
             commands::debug_kill_engine,
             e2e::e2e_queue_pick,
@@ -213,12 +219,7 @@ pub fn run() -> Result<(), DesktopError> {
     // anything else starts (the plugin's own rule). Its callback queues them like any OS request.
     let builder = builder
         .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
-            // A launch with no file still brings the running app to the front; with files, opening does.
-            let paths = open::paths_from_args(&args, std::path::Path::new(&cwd));
-            if paths.is_empty() {
-                open::bring_forward(app, MAIN_WINDOW);
-            }
-            open::route_open(app, MAIN_WINDOW, paths);
+            second_launch(app, &args, &cwd);
         }))
         .manage(open::PendingOpens::default());
     let builder = builder.plugin(
@@ -256,28 +257,71 @@ pub fn run() -> Result<(), DesktopError> {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .setup(setup)
-        .on_window_event(|window, event| {
-            match event {
-                // A closed window's documents close, their passwords are wiped, its engine stops,
-                // and their files are no longer watched.
-                WindowEvent::Destroyed => {
-                    window.state::<Arc<Engines>>().close_window(window.label());
-                    window.state::<watch::Watcher>().unwatch_window(window.label());
-                }
-                // Files dragged over or dropped on the window: Rust opens them, never the webview.
-                WindowEvent::DragDrop(drag) => open::on_drag_drop(window, drag),
-                _ => {}
-            }
-        })
+        .on_window_event(on_window_event)
         .build(tauri::generate_context!())?;
-    app.run(|app, event| match event {
-        RunEvent::Exit => app.state::<Arc<Engines>>().shutdown(),
-        // macOS hands Finder's, the Dock's and `open`'s files to the running app, cold or warm.
-        #[cfg(target_os = "macos")]
-        RunEvent::Opened { urls } => open::route_open(app, MAIN_WINDOW, open::paths_from_urls(&urls)),
-        _ => {}
-    });
+    app.run(|app, event| on_run_event(app, &event));
     Ok(())
+}
+
+/// A second launch's files, which the single-instance plugin forwards: they open in the frontmost
+/// window; a launch with no file still brings that window to the front.
+fn second_launch(app: &tauri::AppHandle, args: &[String], cwd: &str) {
+    let paths = open::paths_from_args(args, std::path::Path::new(cwd));
+    match windows::target_window(app) {
+        Ok(window) => {
+            if paths.is_empty() {
+                open::bring_forward(app, &window);
+            }
+            open::route_open(app, &window, paths);
+        }
+        Err(error) => tracing::warn!("no window for a second launch's files: {error}"),
+    }
+}
+
+fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
+    match event {
+        // A closed window's documents close, their passwords are wiped, its engine stops, and
+        // their files are no longer watched.
+        WindowEvent::Destroyed => {
+            window.state::<Arc<Engines>>().close_window(window.label());
+            window.state::<watch::Watcher>().unwatch_window(window.label());
+            window.state::<windows::Windows>().closed(window.label());
+            window.state::<open::PendingOpens>().closed(window.label());
+            windows::changed(window.app_handle());
+        }
+        // The OS's open requests go to the window focused last.
+        WindowEvent::Focused(true) => window.state::<windows::Windows>().focused(window.label()),
+        // Files dragged over or dropped on the window: Rust opens them, never the webview.
+        WindowEvent::DragDrop(drag) => open::on_drag_drop(window, drag),
+        _ => {}
+    }
+}
+
+fn on_run_event(app: &tauri::AppHandle, event: &RunEvent) {
+    match event {
+        RunEvent::Exit => app.state::<Arc<Engines>>().shutdown(),
+        // macOS hands Finder's, the Dock's and `open`'s files to the running app, cold or warm,
+        // with or without a window.
+        #[cfg(target_os = "macos")]
+        RunEvent::Opened { urls } => match windows::target_window(app) {
+            Ok(window) => open::route_open(app, &window, open::paths_from_urls(urls)),
+            Err(error) => tracing::warn!("no window for the files macOS opened: {error}"),
+        },
+        // A macOS app keeps running when its last window closes; quitting is the user's (⌘Q).
+        #[cfg(target_os = "macos")]
+        RunEvent::ExitRequested { code: None, api, .. } => api.prevent_exit(),
+        // The Dock icon clicked with no window open: a new, empty one.
+        #[cfg(target_os = "macos")]
+        RunEvent::Reopen {
+            has_visible_windows: false,
+            ..
+        } => {
+            if let Err(error) = windows::new_window(app) {
+                tracing::warn!("could not open a window from the Dock: {error}");
+            }
+        }
+        _ => {}
+    }
 }
 
 #[cfg(test)]

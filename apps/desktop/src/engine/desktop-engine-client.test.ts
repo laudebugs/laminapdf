@@ -3,7 +3,7 @@
 // has neither the `lamina://` scheme nor a decoder.
 
 import { emit } from "@tauri-apps/api/event";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type DesktopDocument,
@@ -76,6 +76,7 @@ beforeEach(() => {
   commands = [];
   bitmaps = [];
   mockConvertFileSrc("macos");
+  mockWindows("main");
   mockIPC(
     (command, args) => {
       commands.push({ command, args });

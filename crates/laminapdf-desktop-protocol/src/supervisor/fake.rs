@@ -32,6 +32,8 @@ pub enum Mode {
     RefuseReopen,
     /// The first engine is healthy; later ones exit when asked to open `DocId(1)`.
     DieReopeningFirst,
+    /// The first engine is healthy; later ones refuse every password.
+    RefuseUnlockLater,
 }
 
 /// The password of the fake's encrypted documents.
@@ -140,7 +142,7 @@ fn fake_engine(mode: Mode, pid: u32, mut stdin: PipeReader, out: &SharedOut) {
             while read_frame::<_, ToEngine>(&mut stdin, MAX_FRAME).is_ok() {}
             return;
         }
-        Mode::Healthy | Mode::RefuseReopen | Mode::DieReopeningFirst => {}
+        Mode::Healthy | Mode::RefuseReopen | Mode::DieReopeningFirst | Mode::RefuseUnlockLater => {}
     }
     // Later engines (pid past the first) misbehave in the reopen modes.
     let restarted = pid > 1000;
@@ -185,25 +187,15 @@ fn fake_engine(mode: Mode, pid: u32, mut stdin: PipeReader, out: &SharedOut) {
             }
             _ => {}
         }
-        if let (true, ToEngine::OpenDocument { req, doc, .. }) = (restarted, &msg) {
-            match mode {
-                Mode::DieReopeningFirst if *doc == DocId(1) => {
-                    lock(out).take();
-                    return;
-                }
-                Mode::RefuseReopen => {
-                    let refused = FromEngine::Error {
-                        req: Some(*req),
-                        kind: FailureKind::Invalid,
-                        message: "invalid".into(),
-                    };
-                    if !send(out, &refused) {
-                        return;
-                    }
-                    continue;
-                }
-                _ => {}
+        if let (true, Mode::DieReopeningFirst, ToEngine::OpenDocument { doc: DocId(1), .. }) = (restarted, mode, &msg) {
+            lock(out).take();
+            return;
+        }
+        if let Some(refused) = restarted.then(|| refusal(mode, &msg)).flatten() {
+            if !send(out, &refused) {
+                return;
             }
+            continue;
         }
         let Some(reply) = answer(msg, &mut locked) else {
             continue;
@@ -212,6 +204,22 @@ fn fake_engine(mode: Mode, pid: u32, mut stdin: PipeReader, out: &SharedOut) {
             return;
         }
     }
+}
+
+/// What a later engine in a refusing mode answers `msg` with, if it refuses it.
+fn refusal(mode: Mode, msg: &ToEngine) -> Option<FromEngine> {
+    let (req, kind, message) = match (mode, msg) {
+        (Mode::RefuseReopen, ToEngine::OpenDocument { req, .. }) => (req, FailureKind::Invalid, "invalid"),
+        (Mode::RefuseUnlockLater, ToEngine::UnlockDocument { req, .. }) => {
+            (req, FailureKind::WrongPassword, "wrong password")
+        }
+        _ => return None,
+    };
+    Some(FromEngine::Error {
+        req: Some(*req),
+        kind,
+        message: message.into(),
+    })
 }
 
 /// The fake's answer to `msg`; `None` for messages without one.

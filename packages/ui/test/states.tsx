@@ -18,6 +18,7 @@ import {
   Button,
   Checkbox,
   DEFAULT_READER_SETTINGS,
+  DocumentTabs,
   EmptyState,
   FindBar,
   FindResults,
@@ -98,6 +99,45 @@ const OPTIONS = [
   { value: "a4", label: "A4" },
   { value: "letter", label: "Letter" },
 ] as const;
+
+const documentTabs: Example[] = [
+  {
+    component: "DocumentTabs",
+    state: "three tabs, the second shown",
+    element: () => (
+      <DocumentTabs
+        tabs={[
+          { id: "1", title: "report.pdf" },
+          { id: "2", title: "Board papers, November 2026, final.pdf" },
+          { id: "3", title: "notes.pdf" },
+        ]}
+        active="2"
+        onActivate={() => {}}
+        onClose={() => {}}
+        onReorder={() => {}}
+        moves={[{ id: "new", label: "Move tab to new window" }]}
+        onMove={() => {}}
+        platform="mac"
+      />
+    ),
+  },
+  {
+    component: "DocumentTabs",
+    state: "no tab shown (an error in the window)",
+    element: () => (
+      <DocumentTabs
+        tabs={[
+          { id: "1", title: "report.pdf" },
+          { id: "2", title: "notes.pdf" },
+        ]}
+        active={undefined}
+        onActivate={() => {}}
+        onClose={() => {}}
+        platform="other"
+      />
+    ),
+  },
+];
 
 const buttons: Example[] = [
   ...(["primary", "secondary", "ghost", "danger", "danger-filled"] as const).flatMap((variant) => [
@@ -1051,6 +1091,7 @@ export const EXAMPLES: readonly Example[] = [
   ...links,
   ...saveStrip,
   ...buttons,
+  ...documentTabs,
   ...toggles,
   ...rail,
   ...status,

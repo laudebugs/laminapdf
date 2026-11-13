@@ -3262,6 +3262,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "laminapdf-tiff-wasm"
+version = "0.2.0"
+dependencies = [
+ "js-sys",
+ "laminapdf-render",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "laminapdf-wasm"
 version = "0.2.0"
 dependencies = [

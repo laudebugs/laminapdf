@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "main",
-  "description": "The reader's windows: only the app commands the UI calls (open a document through the dialog, unlock it, its pages, dropping tiles it no longer wants, closing it, taking the files the OS asked it to open before it was ready, the recent files by id and the app's preferences) and listening for the open requests' events, the engine's restart and failure events and the events of a file that changed on disk. core:default is not granted; each core permission is named (ADR 0008 §6).",
+  "description": "The reader's windows: only the app commands the UI calls (open a document through the dialog, unlock it, its pages, dropping tiles it no longer wants, closing it, taking the files the OS asked it to open before it was ready, the recent files by id, the app's preferences, and its windows and tabs: a new window, moving a tab to another window, the list of windows, the window's title, and taking the tabs moved to it before it was ready) and listening for the open requests' and tabs' events, the engine's restart and failure events and the events of a file that changed on disk. core:default is not granted; each core permission is named (ADR 0008 §6).",
   "windows": ["main", "doc-*"],
   "platforms": ["macOS", "windows", "linux"],
   "permissions": [
@@ -18,6 +18,11 @@
     "allow-recent-clear",
     "allow-preferences",
     "allow-set-preferences",
+    "allow-new-window",
+    "allow-move-tab",
+    "allow-window-list",
+    "allow-set-window-title",
+    "allow-take-pending-tabs",
     "core:event:allow-listen",
     "core:event:allow-unlisten"
   ]

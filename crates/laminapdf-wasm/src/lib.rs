@@ -57,6 +57,8 @@ mod text;
 pub use builder::{WasmBuilder, WasmImage, WasmPageBuilder};
 #[cfg(feature = "text")]
 pub use builder::{WasmFlowResources, WasmFont, WasmMarkdownOptions};
+#[cfg(all(feature = "build", feature = "extract"))]
+pub use builder::{WasmImageList, images_to_pdf};
 pub use document::{WasmDocument, WasmPage, WasmSaveJob, WasmWarningCursor};
 pub use memory::allocation_failed;
 pub use source::WasmSparseSource;

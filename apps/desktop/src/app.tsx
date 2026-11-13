@@ -2,9 +2,10 @@
 // from this window's engine process through `DesktopEngineClient` (ADR 0008). The Open button
 // runs the main process's file dialog; a locked document asks for its password; a restarted
 // engine shows "Document process restarted" and the view redraws by itself. Files the OS asks the
-// app to open (the command line, a second launch, Finder, the Dock, a drop on the window) replace
-// what the window shows, until it has tabs (D4a). The start window lists recent files; a document
-// whose file changes on disk reloads in place (file-changes.tsx); Settings holds the Files choices.
+// app to open (the command line, a second launch, Finder, the Dock, a drop on the window) open in
+// a new tab (tabs/), and a file opened again shows its tab. The start window lists recent files; a
+// document whose file changes on disk reloads in place (file-changes.tsx); Settings holds the Files
+// choices.
 
 import type { KeyPlatform, Platform, ReaderError, ReaderState } from "@laminapdf/ui";
 import {
@@ -24,6 +25,7 @@ import {
   RegistryPalette,
   RepairedNotice,
   registerReaderCommands,
+  registerTabCommands,
   StatusBarItem,
   ToastQueue,
   ToastRegion,
@@ -39,6 +41,8 @@ import { useFileChanges } from "./file-changes.tsx";
 import { NotYetSupportedError } from "./platform/desktop.ts";
 import { type DesktopRecent, useDesktopRecent } from "./recent.tsx";
 import { type DesktopSettings, useDesktopSettings } from "./settings.tsx";
+import { NO_TABS, useTabStrip } from "./tabs/use-tabs.tsx";
+import { WindowTabs } from "./tabs/window-tabs.ts";
 
 /** Outside Tauri (`pnpm dev` in a browser) there is no engine to open with. */
 const openLater: Opener = () => Promise.reject(new NotYetSupportedError("open"));
@@ -85,20 +89,29 @@ const LOST_TEXT: Readonly<Record<Lost, { title: string; body: string }>> = {
  * @returns The window's content.
  */
 export function App({ platform, info, keys, engine }: AppProps): ReactNode {
+  // The tabs come first: the reader's opener tells them which document shows.
+  const [tabs] = useState(() =>
+    engine === undefined || !platform.capabilities.multiWindow
+      ? undefined
+      : new WindowTabs(engine.shell, engine.client, engine.viewer),
+  );
   const [reader] = useState(
     () =>
       new ReaderController(
         platform,
-        engine === undefined ? openLater : desktopOpener(engine.shell, engine.client, engine.viewer),
+        engine === undefined ? openLater : desktopOpener(engine.shell, engine.client, engine.viewer, tabs),
       ),
   );
   const state = useStoreState(reader, (s) => s);
   const [toasts] = useState(() => new ToastQueue());
   const lost = useEngineEvents(engine, toasts, state.phase === "open");
   const dragging = useOsOpens(engine, reader, toasts);
-  const fileProblem = useFileChanges(engine, reader, toasts);
-  const { settings, recent, actions } = useHome(engine, platform, reader, state, toasts);
+  const fileProblem = useFileChanges(engine, reader, toasts, tabs);
+  const { strip, actions: tabActions } = useTabStrip(engine?.shell, tabs, reader, toasts, keys);
+  const { settings, recent, actions: homeActions } = useHome(engine, platform, reader, state, toasts);
+  const actions = useMemo(() => ({ ...homeActions, ...tabActions }), [homeActions, tabActions]);
   const open = state.phase === "open";
+  const shows = useShownParts(state.phase, tabs);
   // The page input, zoom and the viewer's commands work while a document is on screen.
   const viewer = open && lost === undefined ? engine?.viewer : undefined;
   const { registry, context, palette } = useCommands(platform, reader, actions, viewer);
@@ -106,6 +119,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   return (
     <CommandsProvider registry={registry} context={context} keys={keys}>
       <ReaderShell
+        tabs={strip}
         topBar={
           <ReaderTopBar
             reader={reader}
@@ -136,7 +150,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
           </>
         }
       >
-        {state.phase === "empty" || state.phase === "opening" || state.phase === "needs-password" ? (
+        {shows.startScreen ? (
           <OpenDropZone reader={reader} keys={keys}>
             {recent.home}
           </OpenDropZone>
@@ -151,7 +165,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
             </button>
           </Notice>
         ) : null}
-        <ViewerHost viewer={engine?.viewer} visible={open && lost === undefined} />
+        <ViewerHost viewer={engine?.viewer} visible={shows.viewer && lost === undefined} />
       </ReaderShell>
       {dragging === undefined ? null : <DropOverlay>{dropText(dragging)}</DropOverlay>}
       <PasswordDialog reader={reader} />
@@ -176,6 +190,7 @@ function useCommands(
   const [registry] = useState(() => {
     const commands = new CommandRegistry();
     registerReaderCommands(commands);
+    registerTabCommands(commands);
     return commands;
   });
   const [isOpen, setOpen] = useState(false);
@@ -301,6 +316,24 @@ function Failure({
       onCopy={() => void platform.copyText(`${error.code}: ${error.message}`)}
     />
   );
+}
+
+/**
+ * Whether the window shows its start screen and its viewer. With tabs open, a document that is
+ * opening (a tab shown, a file opened) replaces the one on screen: the viewer stays and the start
+ * screen doesn't flash. A hide and show within one frame would also leave the viewer without the
+ * size it waits for.
+ */
+function useShownParts(
+  phase: ReaderState["phase"],
+  tabs: WindowTabs | undefined,
+): { startScreen: boolean; viewer: boolean } {
+  const hasTabs = useStoreState(tabs ?? NO_TABS, (s) => s.tabs.length > 0);
+  const between = phase === "opening" && hasTabs;
+  return {
+    startScreen: phase === "empty" || phase === "needs-password" || (phase === "opening" && !hasTabs),
+    viewer: phase === "open" || between,
+  };
 }
 
 /** Mounts `viewer` into a box that fills the canvas, and shows it while `visible`. */

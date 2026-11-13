@@ -1,8 +1,8 @@
-// The desktop app's Settings dialog (S07): for now its Files section, with the two choices the
-// main process keeps in preferences.json and acts on (src-tauri/src/prefs.rs): remembering recent
-// files, which turned off clears the app's and the OS's recent lists, and reloading open files
-// that change on disk. The settings page D5b and D7b build adds the other sections to the same
-// registry.
+// The desktop app's Settings dialog (S07): for now its Files section, with the choices the main
+// process keeps in preferences.json and acts on (src-tauri/src/prefs.rs): remembering recent
+// files, which turned off clears the app's and the OS's recent lists, reloading open files that
+// change on disk, opening files in tabs or windows, and opening a file that is open already. The
+// full settings page adds its other sections to the same registry.
 
 import { message, SettingsDialog, SettingsRegistry, Switch, useSettingsSection } from "@laminapdf/ui";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
@@ -12,10 +12,14 @@ import type { DesktopShell } from "./engine/desktop-engine-client.ts";
 interface Preferences {
   readonly rememberRecent: boolean;
   readonly reloadOnChange: boolean;
+  /** Where the files the user opens go: tabs in the frontmost window, or a window each. */
+  readonly openIn: "tabs" | "windows";
+  /** Whether a file that is open already opens again, rather than showing its tab. */
+  readonly allowDuplicates: boolean;
 }
 
 /** Until the main process answers, and outside the shell: its defaults. */
-const DEFAULTS: Preferences = { rememberRecent: true, reloadOnChange: true };
+const DEFAULTS: Preferences = { rememberRecent: true, reloadOnChange: true, openIn: "tabs", allowDuplicates: false };
 
 /** What the settings give the app. */
 export interface DesktopSettings {
@@ -58,7 +62,7 @@ export function useDesktopSettings(shell: DesktopShell | undefined, onChange: ()
   };
 }
 
-/** Settings › Files: remembering recent files and reloading changed ones. */
+/** Settings › Files: remembering recent files, reloading changed ones, and where files open. */
 function FileSettings({
   preferences,
   onChange,
@@ -82,6 +86,20 @@ function FileSettings({
         {message("settings.files.reloadOnChange")}
       </Switch>
       <p className="desktop-settings-help">{message("settings.files.reloadOnChange.help")}</p>
+      <Switch
+        isSelected={preferences.openIn === "windows"}
+        onChange={(on) => onChange({ ...preferences, openIn: on ? "windows" : "tabs" })}
+      >
+        {message("settings.files.openInWindows")}
+      </Switch>
+      <p className="desktop-settings-help">{message("settings.files.openInWindows.help")}</p>
+      <Switch
+        isSelected={preferences.allowDuplicates}
+        onChange={(on) => onChange({ ...preferences, allowDuplicates: on })}
+      >
+        {message("settings.files.allowDuplicates")}
+      </Switch>
+      <p className="desktop-settings-help">{message("settings.files.allowDuplicates.help")}</p>
     </div>
   );
 }
