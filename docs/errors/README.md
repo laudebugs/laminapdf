@@ -134,6 +134,7 @@ A PR that adds a code adds:
 | [`duplicate-tags-incomplete`](duplicate-tags-incomplete.md) | `usage` | a duplicated page's content is partly untagged, which breaks the PDF/UA claim of the document's metadata |
 | [`imported-tags-dropped`](imported-tags-dropped.md) | `usage` | pages copied in from another document came without their tags, which breaks the PDF/UA claim of the document's metadata |
 | [`imported-pdfa-unchecked`](imported-pdfa-unchecked.md) | `usage` | pages copied in from a document that doesn't claim the same PDF/A level may break the PDF/A claim of the document's metadata |
+| [`imported-pdfua-unchecked`](imported-pdfua-unchecked.md) | `usage` | pages copied in from a document that doesn't claim PDF/UA-1 may break the PDF/UA claim of the document's metadata |
 | [`annot-without-contents`](annot-without-contents.md) | `usage` | a new or changed annotation has no description, which breaks the document's PDF/UA claim |
 | [`annot-not-tagged`](annot-not-tagged.md) | `usage` | a new annotation isn't in the structure tree, which breaks the document's PDF/UA claim |
 | [`pdfa-annot-flags`](pdfa-annot-flags.md) | `usage` | an annotation doesn't print or is hidden, which breaks the document's PDF/A claim |

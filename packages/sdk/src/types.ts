@@ -347,7 +347,8 @@ export type StructureKid = StructureKidJs;
  * deletion did to the references to the deleted pages (`references`), and what a page
  * duplication or a page copied in did to form fields (`fields`), which copies a duplication
  * couldn't tag whole (`tagsIncomplete`), the page of each link a copied-in page lost
- * (`linksRemoved`) and the copied-in pages that came without their tags (`tagsDropped`).
+ * (`linksRemoved`), the copied-in pages that came without their tags (`tagsDropped`) and the
+ * structure names copied-in pages brought under another name (`structureRenamed`).
  *
  * @since 0.2.0
  */

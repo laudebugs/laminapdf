@@ -3,11 +3,15 @@
 //! `e2e_queue_pick` and clicks Choose a file, and `open_dialog` takes the queued path instead of
 //! showing the dialog. Only files under the repository's `fixtures/` or `target/fixtures/` may be
 //! queued. `e2e_interactive` reports the cold start: the time from `run()` to the empty state
-//! accepting input. Release builds have none of this; CI checks their binary (ADR 0008 §8).
+//! accepting input. `e2e_menu_click` and `e2e_menu_snapshot` choose a native menu item and read
+//! the menus, which `WebDriver` can't reach; `e2e_focus` brings a window to the front. Release
+//! builds have none of this; CI checks their binary (ADR 0008 §8).
 
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock, PoisonError};
 use std::time::Instant;
+
+use tauri::Manager as _;
 
 use crate::DesktopError;
 
@@ -27,6 +31,40 @@ pub(crate) fn e2e_interactive() -> u128 {
     let ms = STARTED.get().map_or(0, |started| started.elapsed().as_millis());
     println!("e2e: interactive {ms} ms");
     ms
+}
+
+/// Brings this window to the front, as a click on it would. Once another window closes, macOS
+/// can leave the one under it in the background, where `WebKit` slows its work; and the menus
+/// act on the focused window. Async, as the commands that focus or make windows are: on Windows
+/// a synchronous command runs on the main thread, which those wait for.
+#[tauri::command]
+pub(crate) async fn e2e_focus(window: tauri::WebviewWindow) -> Result<(), DesktopError> {
+    focus(&window)
+}
+
+fn focus(window: &tauri::WebviewWindow) -> Result<(), DesktopError> {
+    window.set_focus()?;
+    // The OS reports the focus later; the menus need it now.
+    window.state::<crate::windows::Windows>().focused(window.label());
+    crate::menu::refresh(window.app_handle());
+    Ok(())
+}
+
+/// Chooses the native menu item `id` in this window, as a click on its menu would
+/// (`cmd:view.zoom-in`, `recent:<id>`, `window:doc-1`): `WebDriver` can't reach the OS's menus.
+#[tauri::command]
+pub(crate) async fn e2e_menu_click(window: tauri::WebviewWindow, id: String) -> Result<(), DesktopError> {
+    focus(&window)?;
+    crate::menu::run(window.app_handle(), crate::menu::action(&id));
+    Ok(())
+}
+
+/// The native menus as they show now, for the focused window, one item a line (`menu::render`):
+/// titles, keys, enabled and ticked. Reading them changes nothing, focus included.
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its app by value")]
+pub(crate) fn e2e_menu_snapshot(app: tauri::AppHandle) -> String {
+    crate::menu::snapshot(&app)
 }
 
 /// The path the next `open_dialog` opens instead of asking, per app.

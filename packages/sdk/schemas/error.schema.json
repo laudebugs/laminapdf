@@ -299,6 +299,7 @@
             "duplicate-tags-incomplete",
             "imported-tags-dropped",
             "imported-pdfa-unchecked",
+            "imported-pdfua-unchecked",
             "annot-without-contents",
             "annot-not-tagged",
             "pdfa-annot-flags",

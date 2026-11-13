@@ -46,6 +46,12 @@ pub enum ConformanceWarning {
     /// same level: nothing checks the fonts, colour spaces and transparency they bring against
     /// the claim (ISO 19005-2 §6) (`imported-pdfa-unchecked`).
     ImportedPdfaUnchecked,
+    /// The file claims PDF/UA-1, and pages were copied in from a document that doesn't claim
+    /// it: nothing checks their tags, alternate text and reading order against the claim
+    /// (ISO 14289-1 §7) (`imported-pdfua-unchecked`).
+    ///
+    /// Added in 0.3.0.
+    ImportedPdfuaUnchecked,
     /// PDF/UA-1 requires an annotation's `/Contents`, its alternative description (ISO 14289-1
     /// §7.18.1), and these new or changed annotations have none (`annot-without-contents`).
     ///
@@ -92,6 +98,7 @@ impl ConformanceWarning {
         "duplicate-tags-incomplete",
         "imported-tags-dropped",
         "imported-pdfa-unchecked",
+        "imported-pdfua-unchecked",
         "annot-without-contents",
         "annot-not-tagged",
         "pdfa-annot-flags",
@@ -110,6 +117,7 @@ impl ConformanceWarning {
             Self::DuplicateTagsIncomplete => "duplicate-tags-incomplete",
             Self::ImportedTagsDropped => "imported-tags-dropped",
             Self::ImportedPdfaUnchecked => "imported-pdfa-unchecked",
+            Self::ImportedPdfuaUnchecked => "imported-pdfua-unchecked",
             Self::AnnotWithoutContents { .. } => "annot-without-contents",
             Self::AnnotNotTagged { .. } => "annot-not-tagged",
             Self::PdfaAnnotFlags { .. } => "pdfa-annot-flags",
@@ -133,6 +141,7 @@ impl ConformanceWarning {
             | Self::DuplicateTagsIncomplete
             | Self::ImportedTagsDropped
             | Self::ImportedPdfaUnchecked
+            | Self::ImportedPdfuaUnchecked
             | Self::AnnotWithoutContents { .. }
             | Self::AnnotNotTagged { .. }
             | Self::PdfaAnnotFlags { .. }
@@ -182,8 +191,9 @@ pub fn conformance_warnings(doc: &laminapdf_model::Document) -> Result<Vec<Confo
 
 /// [`conformance_warnings`], plus what `pending` (the changes not yet saved) breaks: annotations
 /// the edits wrote that break the file's PDF/A or PDF/UA claim; on a file whose packet claims
-/// PDF/UA-1, a page duplication that left a copy, still in the document, partly untagged, and
-/// tagged pages copied in from another document without their tags; on a file claiming PDF/A,
+/// PDF/UA-1, a page duplication that left a copy, still in the document, partly untagged, tagged
+/// pages copied in from another document without their tags, and pages copied with their tags
+/// from a document without the claim; on a file claiming PDF/A,
 /// pages copied in from a document without the same claim.
 ///
 /// # Errors
@@ -198,12 +208,13 @@ pub fn pending_conformance_warnings(
     if pending.classes().contains(&crate::ModificationClass::Annotation) {
         out.extend(crate::annot::conformance_warnings(doc)?);
     }
-    let (incomplete, dropped, unchecked) = (
+    let (incomplete, dropped, unchecked, ua_unchecked) = (
         pending.tags_incomplete(),
         pending.tags_dropped(),
         pending.pdfa_unchecked(),
+        pending.pdfua_unchecked(),
     );
-    if incomplete.is_empty() && dropped.is_empty() && unchecked.is_empty() {
+    if incomplete.is_empty() && dropped.is_empty() && unchecked.is_empty() && ua_unchecked.is_empty() {
         return Ok(out);
     }
     let PacketState::Parsed(packet) = doc.xmp()? else {
@@ -222,6 +233,9 @@ pub fn pending_conformance_warnings(
         }
         if still(dropped) {
             out.push(ConformanceWarning::ImportedTagsDropped);
+        }
+        if still(ua_unchecked) {
+            out.push(ConformanceWarning::ImportedPdfuaUnchecked);
         }
     }
     if packet.pdfa_part().is_some() && still(unchecked) {

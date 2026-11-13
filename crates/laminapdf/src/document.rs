@@ -174,9 +174,9 @@ pub struct Edited {
     ///
     /// Added in 0.3.0.
     pub links_removed: Vec<PageId>,
-    /// The pages copied in from another document whose source pages were tagged: they come
-    /// without their tags. On a PDF/UA-1 file, [`Document::plan`] then warns
-    /// `imported-tags-dropped`.
+    /// The pages copied in from another document whose source pages were tagged but came
+    /// without their tags, because this document isn't tagged. On a PDF/UA-1 file,
+    /// [`Document::plan`] then warns `imported-tags-dropped`.
     ///
     /// Added in 0.3.0.
     pub tags_dropped: Vec<PageId>,
@@ -185,6 +185,11 @@ pub struct Edited {
     ///
     /// Added in 0.3.0.
     pub renamed_destinations: Vec<laminapdf_ops::RenamedDestination>,
+    /// The role, class and element ID names that pages copied in from another document
+    /// brought under another name, because this document already used them another way.
+    ///
+    /// Added in 0.3.0.
+    pub structure_renamed: Vec<laminapdf_ops::StructureRename>,
     /// The bookmarks a merge left out because the pages they went to didn't come along.
     ///
     /// Added in 0.3.0.
@@ -560,6 +565,7 @@ impl Document {
             links_removed: applied.links_removed,
             tags_dropped: applied.tags_dropped,
             renamed_destinations: applied.renamed_destinations,
+            structure_renamed: applied.structure_renamed,
             bookmarks_dropped: applied.bookmarks_dropped,
         }
     }

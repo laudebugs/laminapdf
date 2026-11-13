@@ -421,6 +421,7 @@ mod conformance {
             ConformanceWarning::DuplicateTagsIncomplete,
             ConformanceWarning::ImportedTagsDropped,
             ConformanceWarning::ImportedPdfaUnchecked,
+            ConformanceWarning::ImportedPdfuaUnchecked,
             ConformanceWarning::AnnotWithoutContents {
                 annotations: Vec::new(),
             },
@@ -446,6 +447,7 @@ mod conformance {
             ConformanceWarning::DuplicateTagsIncomplete,
             ConformanceWarning::ImportedTagsDropped,
             ConformanceWarning::ImportedPdfaUnchecked,
+            ConformanceWarning::ImportedPdfuaUnchecked,
             ConformanceWarning::AnnotWithoutContents {
                 annotations: Vec::new(),
             },
