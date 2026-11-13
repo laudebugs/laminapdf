@@ -15,7 +15,7 @@ use crate::error::Result;
 
 /// What happened to one reference to a deleted page.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ReferenceOutcome {
@@ -31,7 +31,7 @@ pub enum ReferenceOutcome {
 
 /// A reference to a deleted page and what the deletion did to it.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct ReferenceChange {

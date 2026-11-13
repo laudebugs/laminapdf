@@ -18,7 +18,7 @@ use crate::wire;
 ///
 /// On the wire: `{ "op": "movePages", "args": { "pages": ["p7.0", "p8.0"], "to": "start" } }`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -40,7 +40,7 @@ pub struct MovePages {
 impl MovePages {
     /// The op that moves `pages` to `to`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn new(pages: Vec<PageId>, to: PagePosition) -> Self {
         Self { pages, to }
@@ -66,7 +66,7 @@ impl MovePages {
 ///
 /// On the wire: `{ "op": "reversePages", "args": { "pages": ["p3.0", "p4.0", "p5.0"] } }`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -81,7 +81,7 @@ pub struct ReversePages {
 impl ReversePages {
     /// The op that reverses `pages` within their places.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn new(pages: Vec<PageId>) -> Self {
         Self { pages }

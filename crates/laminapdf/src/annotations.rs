@@ -10,7 +10,7 @@ use crate::error::{Error, Result};
 
 /// One annotation on a page.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct PageAnnotation {
@@ -59,7 +59,7 @@ pub struct PageAnnotation {
 
 /// Where an annotation's own geometry puts it, in page space.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Default)]
 #[non_exhaustive]
 pub enum AnnotationGeometry {
@@ -104,7 +104,7 @@ impl Document {
     /// # Errors
     /// `page-index-out-of-range`; reading errors (the annotations, the page tree).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn page_annotations(&self, index: u32) -> Result<Vec<PageAnnotation>> {
         let pages = self.ops().pages()?;
         let page = usize::try_from(index)

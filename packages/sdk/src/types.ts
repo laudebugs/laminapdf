@@ -81,7 +81,7 @@ export type Op = OpJs;
  * bottom-left, y up): what a bookmark or a named destination goes to. Make one from a place in
  * the viewer with {@link Document.destinationAt}.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type ExplicitDestination = ExplicitDestinationJs;
 
@@ -91,7 +91,7 @@ export type ExplicitDestination = ExplicitDestinationJs;
  * `top`, `"fitV"` its height from `left`, `"fitR"` a rectangle, and `"fitB"`, `"fitBH"`,
  * `"fitBV"` the same for the page's drawn area. `null` keeps the viewer's current value.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type DestinationView = DestinationViewJs;
 
@@ -99,7 +99,7 @@ export type DestinationView = DestinationViewJs;
  * Where a bookmark goes: `{ destination }` (a page), `{ named }` (a named destination) or
  * `{ uri }` (an `http`, `https` or `mailto` address).
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type OutlineTarget = OutlineTargetJs;
 
@@ -107,7 +107,7 @@ export type OutlineTarget = OutlineTargetJs;
  * A bookmark's look: its `color` (`"#rrggbb"`, or `null` for the default black), `bold` and
  * `italic`.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type OutlineStyle = OutlineStyleJs;
 
@@ -115,7 +115,7 @@ export type OutlineStyle = OutlineStyleJs;
  * What deleting a bookmark does with its children: `"delete"` them with it, or `"promote"` them
  * into its place.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type ChildItems = ChildItemsJs;
 
@@ -123,7 +123,7 @@ export type ChildItems = ChildItemsJs;
  * Whether renaming a named destination renames the bookmarks and links that use it too
  * (`"follow"`, the default) or leaves them naming the old name (`"keep"`).
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type RenameLinks = RenameLinksJs;
 
@@ -131,7 +131,7 @@ export type RenameLinks = RenameLinksJs;
  * Something that still names a destination an edit deleted: a bookmark (`"outlineItem"`), a
  * link on a page (`"link"`) or what the file shows when it opens (`"openAction"`).
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type DestinationUse = DestinationUseJs;
 
@@ -139,7 +139,7 @@ export type DestinationUse = DestinationUseJs;
  * A named destination: a name links and bookmarks jump to, and where it goes (absent when it
  * names no page of this document).
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type NamedDestination = NamedDestinationJs;
 /**
@@ -169,27 +169,27 @@ export type DocumentMetadata = DocumentMetadataJs;
  * `uri`, `integer`, `real`, `boolean`, `date` (a PDF date, `D:20261110093000Z`), `langAlt` (a
  * list of {@link XmpLangText}), or `seq` and `bag` (lists of simple values of one type).
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type XmpValue = XmpValueJs;
 /**
  * One language's text in an XMP language alternative: `{ lang: "x-default", text: "…" }`.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type XmpLangText = XmpLangTextJs;
 /**
  * The document's XMP metadata as text: `status` (`absent`, `parsed` or `malformed`), the
  * packet's `xml` with the edits made so far, and the PDF/A level it claims (`pdfa`, e.g. `"2B"`).
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type XmpText = XmpTextJs;
 /**
  * An XMP property an edit declared in a PDF/A file's extension schemas, so the file keeps its
  * PDF/A claim: its `namespace`, `prefix`, `name` and `valueType` (`Text`, `Seq Integer`, …).
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type ExtensionProperty = ExtensionPropertyJs;
 /**
@@ -286,7 +286,7 @@ export type Edited = EditedJs;
  * a structure element or kid, or a form field's widget) and what the deletion did to it:
  * `retargeted` to the page `to`, or `removed`.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type ReferenceEdit = ReferenceEditJs;
 /**
@@ -294,7 +294,7 @@ export type ReferenceEdit = ReferenceEditJs;
  * (the copy's widget belongs to the new field `to`, fully named `name`) or `notCopied` (a
  * signature's widget).
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type FieldEdit = FieldEditJs;
 /**
@@ -386,7 +386,7 @@ export type PageLink = PageLinkJs;
  * geometry by `kind` (`"quads"`, `"ink"`, `"vertices"`, `"line"`, `"callout"` or `"none"`),
  * points as flat `[x, y, …]` lists.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type PageAnnotation = PageAnnotationJs;
 
@@ -424,7 +424,7 @@ export type TargetView = TargetViewJs;
  * pages out (`pageLayout`), absent when the file leaves them to the reader, and the window's
  * `preferences`.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type InitialView = InitialViewJs;
 
@@ -433,14 +433,14 @@ export type InitialView = InitialViewJs;
  * `null` removes it, a missing key leaves it alone. `open` names a page by its ID
  * ({@link PageInfo.id}) and a `zoom`: `"default"`, `"fitPage"`, `"fitWidth"` or a percentage.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type InitialViewPatch = SetInitialViewJs;
 
 /**
  * The page and zoom a document opens at, in an {@link InitialViewPatch}.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type OpenAt = OpenAtJs;
 
@@ -449,7 +449,7 @@ export type OpenAt = OpenAtJs;
  * (0-based) and a `rect` (`[x0, y0, x1, y1]` in page space), absent when the part names a page
  * the document lacks.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type ArticleThread = ThreadJs;
 /**
@@ -464,7 +464,7 @@ export type PageLabel = PageLabelInit;
  * `"upperLetters"`, `"lowerLetters"`; without one, the `prefix` alone), after a `prefix`,
  * numbered from `first` (1 when left out).
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type PageLabelRange = PageLabelRangeJs;
 /**
