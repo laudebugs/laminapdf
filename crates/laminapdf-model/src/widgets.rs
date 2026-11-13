@@ -62,7 +62,7 @@ impl Document {
 /// A widget annotation: `/Subtype /Widget`, or, as some writers leave the subtype out, an
 /// annotation without one that carries a field key.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[must_use]
 pub fn is_widget(dict: &Dict) -> bool {
     dict.get_name("Subtype").map_or_else(
@@ -126,7 +126,7 @@ impl FieldNames {
     /// `x`): fully qualified names must be unique (ISO 32000-2 §12.7.4.2), and a terminal field
     /// can't hold kids.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn clashes(&self, name: &str) -> bool {
         let below = format!("{name}.");
@@ -224,7 +224,7 @@ impl Document {
     /// # Errors
     /// Unavailable input and hard limits.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn field_by_name(&self, name: &str) -> Result<Option<ObjRef>> {
         Ok(self.named_fields()?.get(name).copied())
     }

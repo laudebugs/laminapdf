@@ -1089,7 +1089,7 @@ export class Document extends Handle<BaseGlue> {
    * @throws {@link LaminaPdfError} `wrong-password`, `password-required`, and the errors of a file
    *   that doesn't open.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   addSource(bytes: Uint8Array | ArrayBuffer, options?: { readonly password?: string }): AddedSource {
     const data = bytesOf(bytes);
@@ -1108,7 +1108,7 @@ export class Document extends Handle<BaseGlue> {
    *
    * @throws {@link LaminaPdfError} `unknown-source`, `unknown-page`; as {@link Document.apply}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   insertPagesFrom(source: string, pages: readonly string[], at: PagePosition, carry?: Carry): Edited {
     return this.apply([insertPagesFromOp(source, pages, at, carry)]);
@@ -1124,7 +1124,7 @@ export class Document extends Handle<BaseGlue> {
    * @throws {@link LaminaPdfError} `unknown-source`, `unknown-page`, `no-pages-left`; as
    *   {@link Document.apply}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   replacePages(targets: readonly string[], source: string, pages: readonly string[], carry?: Carry): Edited {
     return this.apply([replacePagesOp(targets, source, pages, carry)]);
@@ -1139,7 +1139,7 @@ export class Document extends Handle<BaseGlue> {
    *
    * @throws {@link LaminaPdfError} `unknown-page`; `no-pages-left` for no pages.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   extractPages(pages: readonly string[]): Document {
     const raw = this.call(() => this.#doc.extractPages([...pages]));
@@ -1152,7 +1152,7 @@ export class Document extends Handle<BaseGlue> {
    *
    * @throws {@link LaminaPdfError} as {@link Document.extractPages}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   exportRanges(ranges: readonly (readonly string[])[]): Document[] {
     const parts: Document[] = [];

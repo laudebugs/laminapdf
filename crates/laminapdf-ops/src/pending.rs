@@ -125,7 +125,7 @@ impl PendingChanges {
     /// ([`ConformanceWarning::ImportedTagsDropped`](crate::ConformanceWarning::ImportedTagsDropped))
     /// while any of them is still a page.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn tags_dropped(&self) -> &BTreeSet<PageId> {
         &self.tags_dropped

@@ -135,12 +135,12 @@ pub struct Applied {
     /// The page holding each link a page import removed because the page its destination
     /// named didn't come along (E2 plan §2.2): one entry per link.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub links_removed: Vec<PageId>,
     /// The pages brought in from another document whose source pages were tagged: they come
     /// without their tags (`TagsDropped`) until structure trees can be merged.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub tags_dropped: Vec<PageId>,
 }
 

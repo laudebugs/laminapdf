@@ -22,7 +22,7 @@ use crate::widgets::{TouchedWidget, WidgetChange};
 
 /// What comes along with pages copied from another document.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -54,7 +54,7 @@ impl Default for Carry {
 impl Carry {
     /// With `annotations` deciding whether annotations other than form fields come along.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn with_annotations(mut self, annotations: bool) -> Self {
         self.annotations = annotations;
@@ -63,7 +63,7 @@ impl Carry {
 
     /// With `fields` deciding what happens to a field whose name the target already uses.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn with_fields(mut self, fields: FieldClash) -> Self {
         self.fields = fields;
@@ -74,7 +74,7 @@ impl Carry {
 /// What happens to a copied form field whose fully qualified name the target already uses
 /// (E2 plan §11).
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]

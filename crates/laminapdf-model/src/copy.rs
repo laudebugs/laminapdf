@@ -202,7 +202,7 @@ impl<'s> ObjectCopier<'s> {
     /// # Errors
     /// As [`ObjectCopier::copy_pages`].
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn copy_value(&mut self, target: &mut CosMut<'_>, value: &Object) -> Result<Object> {
         let root: Dict = [("V", value.clone())].into_iter().collect();
         let walk = self.walk(std::slice::from_ref(&root), BTreeSet::new())?;

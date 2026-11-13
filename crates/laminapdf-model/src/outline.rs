@@ -440,7 +440,7 @@ impl<'d> Outline<'d> {
     /// # Errors
     /// As [`Outline::named_destination`].
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn named_destination_value(&self, name: &[u8]) -> Result<Option<Object>> {
         let Some(value) = self.named()?.get(name).cloned() else {
             return Ok(None);

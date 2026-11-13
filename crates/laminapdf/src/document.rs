@@ -168,13 +168,13 @@ pub struct Edited {
     /// The page holding each link a page copied in from another document lost because the
     /// page its destination named didn't come along: one entry per link.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub links_removed: Vec<PageId>,
     /// The pages copied in from another document whose source pages were tagged: they come
     /// without their tags. On a PDF/UA-1 file, [`Document::plan`] then warns
     /// `imported-tags-dropped`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub tags_dropped: Vec<PageId>,
 }
 

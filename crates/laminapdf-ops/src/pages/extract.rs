@@ -42,7 +42,7 @@ impl Document {
     /// one; [`Error::UnknownPage`](crate::Error::UnknownPage) for a page this document lacks;
     /// errors reading this document; [`Limits`](laminapdf_cos::Limits) passed by the copy.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn extract_pages(&self, pages: &[PageId]) -> Result<Self> {
         if pages.is_empty() {
             return Err(crate::Error::NoPagesLeft);
@@ -85,7 +85,7 @@ impl Document {
     /// # Errors
     /// As [`Document::extract_pages`], for the first range that fails.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn export_ranges(&self, ranges: &[Vec<PageId>]) -> Result<Vec<Self>> {
         ranges.iter().map(|pages| self.extract_pages(pages)).collect()
     }

@@ -18,7 +18,7 @@ impl Document {
     /// # Errors
     /// `wrong-password`, `password-required`, and the errors of a file that doesn't open.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn add_source(&mut self, bytes: Vec<u8>, password: Option<&str>) -> Result<SourceId> {
         Ok(self.inner.add_source(bytes, password)?)
     }
@@ -30,7 +30,7 @@ impl Document {
     /// # Errors
     /// `unknown-source` for a source this document wasn't given; reading errors.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn source_pages(&self, source: &SourceId) -> Result<Vec<PageId>> {
         let doc = self.inner.source_document(source)?;
         Ok(doc.pages()?.iter().map(|p| p.id().clone()).collect())
@@ -46,7 +46,7 @@ impl Document {
     /// # Errors
     /// `unknown-page`; reading errors; limits passed by the copy.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn extract_pages(&self, pages: &[PageId]) -> Result<Self> {
         Ok(Self::from(self.inner.extract_pages(pages)?))
     }
@@ -57,7 +57,7 @@ impl Document {
     /// # Errors
     /// As [`Document::extract_pages`], for the first range that fails.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn export_ranges(&self, ranges: &[Vec<PageId>]) -> Result<Vec<Self>> {
         self.export_ranges_with(ranges, &CancelToken::new())
     }
@@ -67,7 +67,7 @@ impl Document {
     /// # Errors
     /// `cancelled`; as [`Document::export_ranges`].
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn export_ranges_with(&self, ranges: &[Vec<PageId>], cancel: &CancelToken) -> Result<Vec<Self>> {
         let mut out = Vec::with_capacity(ranges.len());
         for pages in ranges {
@@ -79,7 +79,7 @@ impl Document {
 
     /// [`Document::export_ranges`] as a job ([`ExportJob`]), stepped one range per unit.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn export_job(&self, ranges: Vec<Vec<PageId>>) -> ExportJob {
         ExportJob {
@@ -115,7 +115,7 @@ impl Document {
 /// # Ok::<(), laminapdf::Error>(())
 /// ```
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug)]
 pub struct ExportJob {
     core: JobCore,
@@ -126,7 +126,7 @@ pub struct ExportJob {
 impl ExportJob {
     /// The job's cancel token (cancel it from anywhere that holds a clone).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn cancel_token(&self) -> CancelToken {
         self.core.cancel().clone()
@@ -138,7 +138,7 @@ impl ExportJob {
     /// `job-finished`, `cancelled` or `document-changed`, and the errors of
     /// [`Document::extract_pages`]; each finishes the job.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn step(&mut self, doc: &Document, budget: Budget) -> Result<Step<Vec<Document>>> {
         self.core.begin(doc)?;
         let outcome = self.run(doc, budget.get().max(1));

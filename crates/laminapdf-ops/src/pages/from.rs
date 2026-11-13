@@ -28,7 +28,7 @@ use crate::wire;
 /// On the wire: `{ "op": "insertPagesFrom", "args": { "source": "<64 hex digits>", "pages":
 /// ["p3.0"], "at": "end" } }`, with `carry` optional.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -57,7 +57,7 @@ pub struct InsertPagesFrom {
 impl InsertPagesFrom {
     /// The op that copies `pages` of `source` to `at`, with their annotations and fields.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn new(source: SourceId, pages: Vec<PageId>, at: PagePosition) -> Self {
         Self {
@@ -70,7 +70,7 @@ impl InsertPagesFrom {
 
     /// With `carry` deciding what comes along.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn with_carry(mut self, carry: Carry) -> Self {
         self.carry = carry;
@@ -140,7 +140,7 @@ fn effect(imported: Imported, copies: Vec<PageId>, after: Vec<PageId>) -> Effect
 /// On the wire: `{ "op": "replacePages", "args": { "targets": ["p7.0"], "source": "<64 hex
 /// digits>", "pages": ["p3.0"] } }`, with `carry` optional.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -166,7 +166,7 @@ pub struct ReplacePages {
 impl ReplacePages {
     /// The op that replaces `targets` with `pages` of `source`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn new(targets: Vec<PageId>, source: SourceId, pages: Vec<PageId>) -> Self {
         Self {
@@ -179,7 +179,7 @@ impl ReplacePages {
 
     /// With `carry` deciding what comes along.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn with_carry(mut self, carry: Carry) -> Self {
         self.carry = carry;

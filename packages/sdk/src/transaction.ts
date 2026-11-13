@@ -183,7 +183,7 @@ export const duplicatePagesOp = (pages: readonly string[], at: PagePosition): Op
  * document already uses (`fields`): `"rename"` (the default) gives it the next free `<name>#<n>`,
  * `"link"` makes it share the value of the field of that name when both are of one type and value.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export interface Carry {
   readonly annotations?: boolean;
@@ -193,7 +193,7 @@ export interface Carry {
 /**
  * A source document {@link Document.addSource} added: its ID and its page IDs in order.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export interface AddedSource {
   readonly id: string;
@@ -416,7 +416,7 @@ export class Transaction {
    * Copies `pages` of the source document `source` to `at` (`insertPagesFrom`), as
    * {@link Document.insertPagesFrom}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   insertPagesFrom(source: string, pages: readonly string[], at: PagePosition, carry?: Carry): this {
     return this.apply(insertPagesFromOp(source, pages, at, carry));
@@ -426,7 +426,7 @@ export class Transaction {
    * Replaces `targets` with `pages` of the source document `source` (`replacePages`), as
    * {@link Document.replacePages}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   replacePages(targets: readonly string[], source: string, pages: readonly string[], carry?: Carry): this {
     return this.apply(replacePagesOp(targets, source, pages, carry));
