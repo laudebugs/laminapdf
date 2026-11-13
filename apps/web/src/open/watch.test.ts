@@ -1,7 +1,8 @@
 import { ReaderController } from "@laminapdf/ui";
 import { fakePlatform } from "@laminapdf/ui/testing";
 import { describe, expect, it } from "vitest";
-import { type Engine, remoteFile } from "../session.ts";
+import type { Engine } from "../session.ts";
+import { remoteFile } from "./remote-file.ts";
 import { watchFragment } from "./watch.ts";
 
 const URL_A = "https://example.com/a.pdf";

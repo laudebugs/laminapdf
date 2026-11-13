@@ -61,6 +61,7 @@ import { clearDocumentCache } from "./offline/document-cache.ts";
 import { useInstall } from "./offline/install.tsx";
 import { useOffline } from "./offline/offline.tsx";
 import type { AppUpdates } from "./offline/updates.ts";
+import { remoteUrlOf } from "./open/remote-file.ts";
 import { type PageInfo, pageLabel } from "./outline.ts";
 import { type Output, type OutputCommand, useOutput } from "./output.tsx";
 import { usePageAppearance } from "./page-appearance.tsx";
@@ -69,7 +70,7 @@ import { type ReaderMode, useReaderMode } from "./reader-mode.tsx";
 import { type Recent, useRecent } from "./recent.tsx";
 import type { SelectionSurfaces } from "./selection.tsx";
 import { useSelection } from "./selection.tsx";
-import { type Engine, type EngineState, remoteUrlOf } from "./session.ts";
+import type { Engine, EngineState } from "./session.ts";
 import { type Settings, useSettings } from "./settings.tsx";
 
 /** The website's privacy page, which states the reader's privacy promises. */

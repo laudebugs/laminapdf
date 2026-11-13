@@ -9,9 +9,10 @@
 // the address it holds, so the address still names the open file.
 
 import type { ReaderState } from "@laminapdf/ui";
-import { type Engine, remoteUrlOf } from "../session.ts";
+import type { Engine } from "../session.ts";
 import { followHistory } from "./history.ts";
 import { fragmentAction } from "./navigation.ts";
+import { remoteUrlOf } from "./remote-file.ts";
 import { buildFragment, parseFragment, remoteUrl } from "./url-fragment.ts";
 
 /** Development builds accept `http://localhost` links (a local test server); production never does. */
