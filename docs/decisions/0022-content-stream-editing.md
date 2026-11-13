@@ -59,7 +59,7 @@ The IR goes no finer than objects. A finer IR would make every encode and hit te
 ### 4. Tagging survives an edit
 
 - **A moved or rewritten object keeps its marked content.** The `BDC … EMC` around it is written with it, with the same MCID, so its structure element still finds it.
-- **A deleted object takes its marked content with it** only when the sequence holds nothing else. Its MCID then leaves the structure element's `/K` and the page's `/ParentTree` entry, and an element left empty leaves its parent, as E2b's page deletion does.
+- **A deleted object takes its marked content with it** only when the sequence holds nothing else. Its MCID then leaves the structure element's `/K`, and its slot in the page's `/ParentTree` array is cleared (the page's key goes only when nothing on the page stays tagged), and an element left empty leaves its parent, as E2b's page deletion does.
 - **New text joins the element it was typed into,** under that element's MCID.
 - **Saving re-checks the claims.** A PDF/A or PDF/UA claim the edit breaks is a conformance warning, never a block (ADR 0007). E7i implements this section.
 
@@ -85,7 +85,7 @@ Each content edit reports its fidelity: exact (the same font, the glyphs placed 
 
 ### 8. What E12 builds on
 
-E12 removes glyphs from the IR's show operators and writes the remainder canonically with absolute positions, so no removed width survives in a `TJ` adjustment (E12a's rule). It removes or clips paths, and finds images (XObjects, inline images, shared images copied per page) through the IR's image objects. Read-only for editing doesn't mean out of reach for removal: Type 3 glyphs, invisible text (`Tr` 3 and 7) and white text are glyphs in the IR like any other, and removal ignores whether they show. Patterns, shadings and soft masks are reached through the resources of the objects that use them, so E12c finds what they draw from the IR's objects. Redaction then saves as a full rewrite with every earlier revision dropped, so span preservation matters there only for the content it keeps.
+E12 removes glyphs from the IR's show operators and writes the remainder canonically. Since the IR holds each glyph's position, it supports both ways [E12a](../todos/ready/E12a-redaction-feature-plan.md) is still choosing between to keep removed widths out of `TJ` adjustments: a fixed placeholder advance, or every remaining run placed absolutely. It removes or clips paths, and finds images (XObjects, inline images, shared images copied per page) through the IR's image objects. Read-only for editing doesn't mean out of reach for removal: Type 3 glyphs, invisible text (`Tr` 3 and 7) and white text are glyphs in the IR like any other, and removal ignores whether they show. Patterns, shadings and soft masks are reached through the resources of the objects that use them, so E12c finds what they draw from the IR's objects. Redaction then saves as a full rewrite with every earlier revision dropped, so span preservation matters there only for the content it keeps.
 
 ## Consequences
 
