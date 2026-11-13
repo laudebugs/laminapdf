@@ -1,0 +1,1 @@
+{ "op": "deletePages", "args": { "pages": ["p7.0", "p8.0"], "references": "retarget" } }
