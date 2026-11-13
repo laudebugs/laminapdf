@@ -29,10 +29,14 @@ export function isShallow(root) {
 export function commitDates(root) {
   const cwd = fileURLToPath(root);
   // Newest first: each commit is a NUL, its date, then the files it changed.
-  const log = execFileSync("git", ["log", "--no-renames", "--name-only", "--format=%x00%cI"], {
-    cwd,
-    maxBuffer: 256 * 1024 * 1024,
-  }).toString();
+  const log = execFileSync(
+    "git",
+    ["-c", "core.quotePath=false", "log", "--no-renames", "--name-only", "--format=%x00%cI"],
+    {
+      cwd,
+      maxBuffer: 256 * 1024 * 1024,
+    },
+  ).toString();
   /** @type {Map<string, string>} */
   const dates = new Map();
   for (const commit of log.split("\0").slice(1)) {
