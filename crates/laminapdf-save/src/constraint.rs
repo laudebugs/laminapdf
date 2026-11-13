@@ -182,14 +182,24 @@ pub enum RewriteReason {
 pub enum Restriction {
     /// The certification's `DocMDP` permission (§12.8.2.2).
     DocMdp(DocMdpPermission),
-    /// A `FieldMDP` lock (§12.8.2.4, a field's `/Lock` or a `/FieldMDP` transform): it covers
-    /// fields, and op classes don't name fields, so any form change counts.
+    /// A `FieldMDP` lock (§12.8.2.4, a field's `/Lock` or a `/FieldMDP` transform). Op classes
+    /// don't name fields, so any form change counts; a page op that deletes or reshows the
+    /// widget of a field the lock covers counts too, and names the field
+    /// ([`Violation::field`]).
     FieldMdp,
     /// A usage-rights signature (§12.8.2.3): a change outside the rights it grants.
     UsageRights,
     /// The signed bytes themselves: a change that needs a full rewrite moves them, which
     /// breaks every signature ([`SavePlanner::would_violate`](crate::SavePlanner::would_violate)).
     SignedBytes,
+    /// A page op that deletes or reshows the widget of a signed signature field
+    /// ([`Violation::field`]): the signature stays valid, but its visible appearance no longer
+    /// shows as signed. A rule stricter than ISO 32000-2 §12.8 ([ADR 0007] §11).
+    ///
+    /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
+    ///
+    /// Added in 0.2.0.
+    SignedWidget,
 }
 
 /// A pending change that a signature's restriction forbids: saving it, even incrementally,
@@ -205,6 +215,12 @@ pub struct Violation {
     pub restriction: Restriction,
     /// The signature that carries the restriction.
     pub signature: SignatureInfo,
+    /// The form field whose widget the change deletes or reshows, for the field-level
+    /// restrictions of page ops ([`Restriction::SignedWidget`], and [`Restriction::FieldMdp`]
+    /// when a page op breaks it); `None` for the others.
+    ///
+    /// Added in 0.2.0.
+    pub field: Option<FieldId>,
 }
 
 impl Violation {
@@ -217,7 +233,17 @@ impl Violation {
             class,
             restriction,
             signature,
+            field: None,
         }
+    }
+
+    /// With the form field whose widget the change touches.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub fn with_field(mut self, field: FieldId) -> Self {
+        self.field = Some(field);
+        self
     }
 }
 

@@ -49,7 +49,7 @@ impl From<&SignatureInfo> for SignatureJs {
 pub(crate) struct ViolationJs {
     /// The kind of change.
     pub class: ModificationClass,
-    /// `docMdp`, `fieldMdp`, `usageRights` or `signedBytes`.
+    /// `docMdp`, `fieldMdp`, `usageRights`, `signedBytes` or `signedWidget`.
     pub restriction: &'static str,
     /// The certification's `/P` (1, 2 or 3), for a `docMdp` restriction.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -57,6 +57,11 @@ pub(crate) struct ViolationJs {
     pub permission: Option<u8>,
     /// The signature that carries the restriction.
     pub signature: SignatureJs,
+    /// The form field whose widget a page edit deletes or reshows (its ID), for a
+    /// `signedWidget` restriction or a `fieldMdp` one that a page edit breaks.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub field: Option<String>,
 }
 
 impl From<&Violation> for ViolationJs {
@@ -65,6 +70,7 @@ impl From<&Violation> for ViolationJs {
             Restriction::DocMdp(p) => ("docMdp", Some(p.p())),
             Restriction::FieldMdp => ("fieldMdp", None),
             Restriction::UsageRights => ("usageRights", None),
+            Restriction::SignedWidget => ("signedWidget", None),
             _ => ("signedBytes", None),
         };
         Self {
@@ -72,6 +78,7 @@ impl From<&Violation> for ViolationJs {
             restriction,
             permission,
             signature: SignatureJs::from(&v.signature),
+            field: v.field.as_ref().map(ToString::to_string),
         }
     }
 }

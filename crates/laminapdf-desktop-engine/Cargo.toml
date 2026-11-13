@@ -31,7 +31,7 @@ selftest = ["laminapdf-desktop-sandbox/probe"]
 seccomp-trap = ["laminapdf-desktop-sandbox/seccomp-trap"]
 
 [dependencies]
-laminapdf = { workspace = true, features = ["saslprep"] }
+laminapdf = { workspace = true, features = ["saslprep", "page-checks"] }
 laminapdf-desktop-protocol = { workspace = true }
 # Its own half of the sandbox: the lock-down and the selftest's probes.
 laminapdf-desktop-sandbox = { workspace = true, features = ["engine"] }
