@@ -82,6 +82,7 @@ mod error;
 mod history;
 mod info;
 mod labels;
+mod link;
 mod metadata;
 mod op;
 mod outline;
@@ -113,6 +114,7 @@ pub use metadata::{
     pending_conformance_warnings, read_metadata,
 };
 pub use op::{Op, OpLog};
+pub use link::{AddLink, DeleteLink, UpdateLink};
 pub use outline::{
     AddOutlineItem, ChildItems, DeleteNamedDestination, DeleteOutlineItem, DestinationUse, DestinationView,
     ExplicitDestination, MoveOutlineItem, OutlineStyle, OutlineTarget, RenameLinks, RenameNamedDestination, Rgb,

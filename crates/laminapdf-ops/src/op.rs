@@ -8,6 +8,7 @@ use laminapdf_model::{OutlineItemId, PageId};
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::annot::{DeleteAnnot, UpdateAnnot};
+use crate::link::{AddLink, DeleteLink, UpdateLink};
 use crate::class::ModificationClass;
 use crate::error::{Error, Result};
 use crate::info::SetInfo;
@@ -106,6 +107,12 @@ pub enum Op {
     UpdateAnnot(UpdateAnnot),
     /// Delete an annotation with its Popup, replies and group.
     DeleteAnnot(DeleteAnnot),
+    /// Add a link on an area or on text.
+    AddLink(AddLink),
+    /// Change a link's area, quads, target or description.
+    UpdateLink(UpdateLink),
+    /// Delete a link, with its place in the structure tree.
+    DeleteLink(DeleteLink),
     /// Replace the document's page labels.
     SetPageLabels(SetPageLabels),
     /// An op that declares the widgets it touches, for the save planner's tests
@@ -143,7 +150,11 @@ impl Op {
             | Self::SetNamedDestination(_)
             | Self::RenameNamedDestination(_)
             | Self::DeleteNamedDestination(_) => ModificationClass::Document,
-            Self::UpdateAnnot(_) | Self::DeleteAnnot(_) => ModificationClass::Annotation,
+            Self::UpdateAnnot(_)
+            | Self::DeleteAnnot(_)
+            | Self::AddLink(_)
+            | Self::UpdateLink(_)
+            | Self::DeleteLink(_) => ModificationClass::Annotation,
             Self::SetPageLabels(_) => ModificationClass::Document,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.class(),
@@ -180,7 +191,10 @@ impl Op {
             | Self::DuplicatePages(_)
             | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
-            | Self::DeleteAnnot(_) => false,
+            | Self::DeleteAnnot(_)
+            | Self::AddLink(_)
+            | Self::UpdateLink(_)
+            | Self::DeleteLink(_) => false,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.requires_rewrite(),
         }
@@ -216,7 +230,10 @@ impl Op {
             | Self::DuplicatePages(_)
             | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
-            | Self::DeleteAnnot(_) => Vec::new(),
+            | Self::DeleteAnnot(_)
+            | Self::AddLink(_)
+            | Self::UpdateLink(_)
+            | Self::DeleteLink(_) => Vec::new(),
             Self::RotatePage(op) => vec![PageChange::new(op.page.clone(), WidgetChange::Reshown)],
             Self::RotatePages(op) => each(&op.pages, WidgetChange::Reshown),
             Self::DeletePages(op) => each(&op.pages, WidgetChange::Deleted),
@@ -263,6 +280,9 @@ impl Op {
             Self::DeleteNamedDestination(op) => op.apply_to(doc),
             Self::UpdateAnnot(op) => op.apply_to(doc),
             Self::DeleteAnnot(op) => op.apply_to(doc),
+            Self::AddLink(op) => op.apply_to(doc),
+            Self::UpdateLink(op) => op.apply_to(doc),
+            Self::DeleteLink(op) => op.apply_to(doc),
             Self::SetPageLabels(op) => op.apply_to(doc).map(|()| Effect::default()),
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.apply_to(doc, self.class()),
@@ -288,6 +308,8 @@ pub(crate) struct Effect {
     pub(crate) widgets: Vec<TouchedWidget>,
     /// The bookmarks it created.
     pub(crate) created_outline_items: Vec<OutlineItemId>,
+    /// The annotations it created.
+    pub(crate) created_annotations: Vec<laminapdf_model::AnnotId>,
     /// It rewrote an outline whose links were broken.
     pub(crate) outline_repaired: bool,
     /// What still names a destination it deleted.
@@ -354,7 +376,10 @@ op_from!(
     ReversePages,
     DuplicatePages,
     UpdateAnnot,
-    DeleteAnnot
+    DeleteAnnot,
+    AddLink,
+    UpdateLink,
+    DeleteLink
 );
 
 impl From<SetPageLabels> for Op {
