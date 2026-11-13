@@ -30,6 +30,9 @@ async function waitForShown(name: string): Promise<void> {
   await browser.waitUntil(async () => (await shownTab()) === name, { timeoutMsg: `${name} isn't the shown tab` });
 }
 
+/** The window the app started with, where every scenario before this one ran. */
+let home = "";
+
 /** Moves the shown tab to a new window and switches to it; resolves to this window's handle. */
 async function moveToNewWindow(): Promise<string> {
   const here = await browser.getWindowHandle();
@@ -57,8 +60,30 @@ async function closeWindowFor(handle: string): Promise<void> {
   await browser.switchToWindow(handle);
 }
 
-/** Moves the shown tab (flowing_report.pdf) to a new window, then invoice.pdf to that window from the strip's menu. */
+/**
+ * Leaves the window the scenarios began in, alone and on its start screen. The window tests start
+ * here so that each, and the retry of a failed attempt, opens its own files: an attempt that
+ * failed leaves windows and documents open (an encrypted one unlocked), and a retry built on them
+ * fails at once, hiding the first attempt's error behind its own.
+ */
+async function startOver(): Promise<void> {
+  for (const handle of await browser.getWindowHandles()) {
+    if (handle === home) continue;
+    await browser.switchToWindow(handle);
+    await closeWindowFor(home);
+  }
+  await browser.switchToWindow(home);
+  await closeAll();
+}
+
+/** Moves flowing_report.pdf, shown on its page 5, to a new window, then invoice.pdf to that window from the strip's menu. */
 async function movesToWindows(): Promise<void> {
+  await startOver();
+  await openAndWait(example("hello.pdf"));
+  await openAndWait(example("invoice.pdf"));
+  await openAndWait(example("flowing_report.pdf"));
+  await goToPage(5);
+  await waitForSharp(4);
   await zoomOnce("Zoom in");
   const { currentPage, percent } = await view();
   const main = await moveToNewWindow();
@@ -90,6 +115,7 @@ async function movesToWindows(): Promise<void> {
 
 /** Opens the encrypted fixture, moves it to a new window, then on to another, and closes the one between. */
 async function movesEncrypted(): Promise<void> {
+  await startOver();
   await open(fixture("fixtures", "encrypted", "r3-rc4-128-user.pdf"));
   await $('input[aria-label="Password"]').setValue("user-pw");
   await $("button=Open").click();
@@ -110,6 +136,10 @@ async function movesEncrypted(): Promise<void> {
 }
 
 describe("tabs and windows", () => {
+  before(async () => {
+    home = await browser.getWindowHandle();
+  });
+
   it("should open each file in its own tab, and show a file opened again in its tab", async () => {
     await openAndWait(example("hello.pdf"));
     await openAndWait(example("invoice.pdf"));
