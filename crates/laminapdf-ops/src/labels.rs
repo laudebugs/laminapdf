@@ -19,7 +19,7 @@ use crate::wire;
 /// On the wire:
 /// `{ "op": "setPageLabels", "args": { "ranges": [{ "page": "p3.0", "style": "lowerRoman" }] } }`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -32,7 +32,7 @@ pub struct SetPageLabels {
 impl SetPageLabels {
     /// The op that gives the document these label `ranges`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn new(ranges: Vec<PageLabelRange>) -> Self {
         Self { ranges }
@@ -78,7 +78,7 @@ fn invalid(what: &'static str) -> Error {
 
 /// One range of [`SetPageLabels`]: the labels from `page` up to the next range's page.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -113,7 +113,7 @@ pub struct PageLabelRange {
 impl PageLabelRange {
     /// A range from `page` numbered in `style` from 1, without a prefix.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn new(page: PageId, style: Option<LabelStyle>) -> Self {
         Self {
@@ -126,7 +126,7 @@ impl PageLabelRange {
 
     /// This range with `prefix` before each number.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn with_prefix(mut self, prefix: impl Into<String>) -> Self {
         self.prefix = prefix.into();
@@ -135,7 +135,7 @@ impl PageLabelRange {
 
     /// This range numbered from `first`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn with_first(mut self, first: u32) -> Self {
         self.first = first;

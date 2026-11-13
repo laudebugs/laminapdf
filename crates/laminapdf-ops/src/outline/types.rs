@@ -9,7 +9,7 @@ use crate::wire;
 /// A colour of 8 bits a channel, `"#rrggbb"` on the wire. A bookmark's `/C` (§12.3.3,
 /// Table 151) holds it as three numbers from 0 to 1.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[cfg_attr(feature = "tsify", tsify(type = "string"))]
@@ -25,7 +25,7 @@ pub struct Rgb {
 impl Rgb {
     /// The colour from its channels.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn new(r: u8, g: u8, b: u8) -> Self {
         Self { r, g, b }
@@ -34,7 +34,7 @@ impl Rgb {
     /// The colour of a `/C` array, each number clamped to 0–1 and rounded to 8 bits; `None`
     /// unless it holds three numbers.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn from_pdf(values: &[Object]) -> Option<Self> {
         let channel = |o: &Object| {
@@ -97,7 +97,7 @@ impl<'de> Deserialize<'de> for Rgb {
 /// A bookmark's look: its colour (`/C`; `None` is the viewer's default, black) and type style
 /// (`/F`: bit 1 italic, bit 2 bold).
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -120,7 +120,7 @@ pub struct OutlineStyle {
 impl OutlineStyle {
     /// The style with this colour, bold and italic.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn new(color: Option<Rgb>, bold: bool, italic: bool) -> Self {
         Self { color, bold, italic }
@@ -150,7 +150,7 @@ impl OutlineStyle {
 ///
 /// Every number must be finite: the ops refuse any other with `view-not-finite`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -300,7 +300,7 @@ impl DestinationView {
 
 /// A page of this document and how to show it: what `/Dest [page /XYZ …]` holds.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -317,7 +317,7 @@ pub struct ExplicitDestination {
 impl ExplicitDestination {
     /// `page`, shown as `view`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn new(page: PageId, view: DestinationView) -> Self {
         Self { page, view }
@@ -326,7 +326,7 @@ impl ExplicitDestination {
 
 /// Where a bookmark goes.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -343,7 +343,7 @@ pub enum OutlineTarget {
 
 /// What [`DeleteOutlineItem`](super::DeleteOutlineItem) does with the item's children.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -358,7 +358,7 @@ pub enum ChildItems {
 /// Whether [`RenameNamedDestination`](super::RenameNamedDestination) renames the uses of the
 /// name in this file too.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]

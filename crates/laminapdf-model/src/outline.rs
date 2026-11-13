@@ -441,7 +441,7 @@ impl<'d> Outline<'d> {
     /// # Errors
     /// Reading errors of the name tree and the catalog.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn destination_names(&self) -> Result<Vec<Vec<u8>>> {
         Ok(self.named()?.keys().cloned().collect())
     }
@@ -735,7 +735,7 @@ impl<'o, 'd> OutlineItem<'o, 'd> {
     /// # Errors
     /// As [`OutlineItem::title`].
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn uri(&self) -> Result<Option<String>> {
         let Some(action) = self.action_dict()? else {
             return Ok(None);
@@ -766,7 +766,7 @@ impl<'o, 'd> OutlineItem<'o, 'd> {
     /// # Errors
     /// As [`OutlineItem::title`].
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn color(&self) -> Result<Option<[f64; 3]>> {
         let Some(c) = self.get("C") else { return Ok(None) };
         let Some(c) = self.outline.doc.read(c)? else {
@@ -786,7 +786,7 @@ impl<'o, 'd> OutlineItem<'o, 'd> {
     /// # Errors
     /// As [`OutlineItem::title`].
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn flags(&self) -> Result<i64> {
         let Some(f) = self.get("F") else { return Ok(0) };
         Ok(self.outline.doc.read(f)?.and_then(|f| f.as_int()).unwrap_or(0))

@@ -75,7 +75,8 @@ Normal PR workflows use read-only contents permissions and checkouts without sto
 credentials. Docs and site deployment previews skip forks. Preview deployment uses
 the base branch's configuration, and publishing credentials stay in the release
 jobs. The daily release selector validates a completed full main nightly before
-checking out its code. No `pull_request_target` workflow executes PR code.
+checking out its code. No workflow uses `pull_request_target`, which GitHub blocks by
+default in public repositories from December 2, 2026; a test in `tools/xtask` keeps it out.
 
 The connected GitHub integration cannot inspect administration settings: workflow
 token defaults, outside-contributor approval and secret-scanning alerts returned

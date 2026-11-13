@@ -12,7 +12,7 @@ use crate::navigation::{PageTarget, target};
 
 /// How a document asks to be shown when it opens: [`Document::initial_view`].
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct OpeningView {
@@ -28,7 +28,7 @@ pub struct OpeningView {
 
 /// Where a document opens.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum OpenTarget {
@@ -44,7 +44,7 @@ pub enum OpenTarget {
 
 /// An article thread: the parts of one article spread over pages (ISO 32000-2 §12.4.3).
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct ArticleThread {
@@ -56,7 +56,7 @@ pub struct ArticleThread {
 
 /// One part of an article thread: a rectangle on a page.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[non_exhaustive]
 pub struct ThreadPart {
@@ -75,7 +75,7 @@ impl Document {
     /// # Errors
     /// Reading errors (the catalog, the page tree, named destinations).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn initial_view(&self) -> Result<OpeningView> {
         let view = self.ops().initial_view()?;
         let open = match view.open {
@@ -107,7 +107,7 @@ impl Document {
     /// # Errors
     /// Reading errors (the catalog, the page tree).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn threads(&self) -> Result<Vec<ArticleThread>> {
         let threads = self.ops().threads()?;
         if threads.is_empty() {

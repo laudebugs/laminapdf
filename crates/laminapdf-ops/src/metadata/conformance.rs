@@ -126,7 +126,7 @@ pub fn conformance_warnings(doc: &laminapdf_model::Document) -> Result<Vec<Confo
 /// # Errors
 /// As [`conformance_warnings`].
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 pub fn pending_conformance_warnings(
     doc: &laminapdf_model::Document,
     pending: &crate::PendingChanges,

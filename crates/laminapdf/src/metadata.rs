@@ -9,7 +9,7 @@ use crate::{DocumentMetadata, PacketStatus};
 
 /// The document's XMP packet as text, for an editor that shows or replaces it whole.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub struct XmpText {
