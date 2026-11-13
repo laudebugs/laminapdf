@@ -17,6 +17,21 @@ pub(crate) struct Preferences {
     pub remember_recent: bool,
     /// Reload an open document when its file changes on disk.
     pub reload_on_change: bool,
+    /// Where a file the OS hands the app opens: a new tab of the frontmost window, or a new window.
+    pub open_in: OpenIn,
+    /// Open a file that is open already again, in another tab, instead of showing its tab.
+    pub allow_duplicates: bool,
+}
+
+/// Where the files the OS hands the app open.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) enum OpenIn {
+    /// In a new tab of the frontmost window.
+    #[default]
+    Tabs,
+    /// Each in a new window of its own.
+    Windows,
 }
 
 impl Default for Preferences {
@@ -24,6 +39,8 @@ impl Default for Preferences {
         Self {
             remember_recent: true,
             reload_on_change: true,
+            open_in: OpenIn::Tabs,
+            allow_duplicates: false,
         }
     }
 }
@@ -80,7 +97,8 @@ mod tests {
             read,
             Preferences {
                 remember_recent: true,
-                reload_on_change: false
+                reload_on_change: false,
+                ..Preferences::default()
             }
         );
     }
@@ -107,7 +125,8 @@ mod tests {
         let file = std::env::temp_dir().join(format!("laminapdf-prefs-{}/preferences.json", std::process::id()));
         let off = Preferences {
             remember_recent: false,
-            reload_on_change: true,
+            open_in: OpenIn::Windows,
+            ..Preferences::default()
         };
         Prefs::load(file.clone()).set(off);
         let loaded = Prefs::load(file.clone()).get();

@@ -4,6 +4,7 @@
 - Date: 2026-11-09
 - Amended 2026-11-11 ([D2c](../todos/done/D2c-engine-sandbox.md)): §5 records what each OS's sandbox enforces, its gaps and the OS versions it needs. macOS uses a Seatbelt profile instead of App Sandbox, which left system files readable and process creation open, and a main-process watchdog for memory. The main process serves the engine the system's fonts.
 - Amended 2026-11-12 ([D3a](../todos/done/D3a-open-from-os.md)): §10 records how files the OS hands the app reach a window, that the app registers for PDFs without making itself the default (the desktop plan's open question 5), and that Tauri shows dropped files' paths to the webview.
+- Amended 2026-11-12 ([D4a](../todos/done/D4a-windows-tabs-and-session-restore.md)): §2 adds the engines' memory with documents spread over 1 and 4 windows, which keeps one engine per window.
 - Amended 2026-11-12 ([D3b](../todos/done/D3b-recent-files-and-file-watching.md)): §11 records where the recent list is kept and how it reaches the OS's lists, how open files are watched (the folder, matched by path), when a change counts as settled, and that a reload opens the changed file as a new document.
 
 ## Context
@@ -42,6 +43,18 @@ The owner decided the app's identity on 2026-11-09: product name "Lamina PDF", b
 | Links | Tauri, the protocol crate; never the render stack (§3) | The core crates, PDFium; never Tauri or the webview |
 
 - **Granularity:** one engine per window, the simplest design that keeps one window's crash out of the others. D2b's numbers keep it: an engine uses 11 MiB idle and 12 MiB with a one-page document open, far inside the plan's idle target (150 MB for the whole app with one 10-page document). A shared pool with per-document isolation would save little and is not planned; this answers the plan's [open question 3](../plans/desktop-app.md#8-open-questions).
+- **With many windows ([D4a](../todos/done/D4a-windows-tabs-and-session-restore.md)).** Each window's engine costs about 14 MiB on start; documents add little to it. Measured on macOS (Apple silicon) with release engines in their sandbox, each document a golden example with a 512 px tile of its first page drawn (`cargo run --release -p laminapdf-desktop-engine --example windows`):
+
+  | Windows | Documents | Engines started (MiB) | Documents open and drawn (MiB) |
+  | ---: | ---: | ---: | ---: |
+  | 1 | 1 | 14 | 18 |
+  | 1 | 5 | 14 | 23 |
+  | 1 | 20 | 14 | 26 |
+  | 4 | 1 | 57 | 59 |
+  | 4 | 5 | 57 | 74 |
+  | 4 | 20 | 57 | 80 |
+
+  Four windows cost about 55 MiB more than one, for any number of documents. A pool would save that at the price of one document's crash reaching other windows, so the app keeps one engine per window. A tab moved to another window reopens its document in that window's engine (§2 above), with its kept password.
 - **Restart policy:** an engine that exits unexpectedly or misses its heartbeats is respawned with backoff. Its window's documents are reopened, encrypted ones with the password the main process keeps for them, and the UI shows "document process restarted". A fourth crash within 60 s marks that window's engine failed, and the UI shows an error instead of looping.
   - **Timings** (D2b): the engine beats every second, and 6 s without a beat counts as a hang. The first restart waits 250 ms, doubling with each further crash in the 60 s window. The engine stops beating once a single job has run longer than 45 s, longer than a read may wait (30 s), so a file that sends the parser or PDFium into an endless loop gets its engine restarted.
   - **While reopening:** until the new engine's documents are reopened, other requests answer "restarted" instead of reaching an engine that doesn't know them yet.
@@ -260,7 +273,7 @@ A file reaches the app four ways: on the command line (how Windows and Linux sta
 
 - **One queue until the webview is ready.** A request can come before the webview can show anything: the command line is read during setup, and macOS can send `Opened` before setup ends. So `route_open` adds the paths to `PendingOpens` until the webview calls `take_pending_opens`, after it starts listening for `open://document`. That call drains the queue, and later requests open immediately; one lock covers the check and the push, so a request can't slip between them.
 - **The path stays in the main process.** The main process opens the file in the window's engine and sends `open://document` with the document's id and file name, or the name and why it failed. A missing file becomes a toast with its name; a file the engine refuses goes to the failure page, as from the open dialog.
-- **One document per window until tabs.** A request replaces what the window shows, and several files at once open the last; [D4a](../todos/ready/D4a-windows-tabs-and-session-restore.md) routes them to tabs and windows. The webview opens requests one at a time, so a quick second one can't close the first while it opens.
+- **One document per window until tabs.** A request replaces what the window shows, and several files at once open the last; [D4a](../todos/done/D4a-windows-tabs-and-session-restore.md) routes them to tabs and windows. The webview opens requests one at a time, so a quick second one can't close the first while it opens.
 - **A second launch hands over and exits.** `tauri-plugin-single-instance` (MIT OR Apache-2.0) is the first plugin registered, so a second process exits before anything else starts. It finds the running app through a named mutex on Windows, a socket in `/tmp` on macOS and the D-Bus session bus on Linux. Without a session bus it can't, and the second process starts a second app, which the plugin logs.
 - **Rust handles drops.** `WindowEvent::DragDrop` opens the dropped PDFs and names the other files in a toast; the app sends the webview only counts, for the overlay that says what a drop will do.
 
@@ -303,7 +316,7 @@ Network shares and cloud folders (OneDrive and Dropbox placeholders) report chan
 - **A Rust-native UI** (GPUI, Slint, egui, Iced). Rejected: each gives up the shared web UI; GPUI has no official crate and is pre-1.0, and Slint's royalty-free licence requires attribution.
 - **Tauri with the CEF runtime.** Uniform rendering inside Tauri, but not production-ready in 2026 and each app ships its own CEF. First in §7's fallback order.
 - **Re-executing the main binary with `--engine`** (Chrome-style). Rejected: the engine process would load the webview stack, which enlarges what an attacker reaches and complicates the sandbox.
-- **A shared engine pool.** Deferred, not rejected: it saves memory with many windows but lets one document's crash affect others. Revisited with D2b's memory numbers.
+- **A shared engine pool.** Deferred, not rejected: it saves memory with many windows but lets one document's crash affect others. Revisited with D2b's memory numbers, and again with D4a's for many windows (§2): about 14 MiB per window doesn't justify it.
 - **Memory-mapping documents in the main process,** as the research suggested. Rejected: a file truncated underneath crashes every window, and a Windows mapping blocks other apps from replacing the file. Mapping inside the engine stays the fallback.
 - **The parser in the main process** with only rendering isolated. Rejected: the parser reads untrusted bytes too.
 - **`tauri::ipc::Channel` or `ipc::Response` for tiles.** Both carry raw RGBA only, which was limited to about 160 MB/s on the Windows runner and 200 MB/s on Linux; the channel was also the slowest raw transport everywhere.
