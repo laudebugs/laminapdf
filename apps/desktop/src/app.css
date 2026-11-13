@@ -39,3 +39,18 @@ body {
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* The start window's line under the recent list: where the list is kept, or that it is off. */
+.desktop-privacy {
+  margin: 0;
+  color: var(--paper-text-3);
+  font: var(--paper-type-caption);
+  text-align: center;
+}
+
+/* The sentence under each choice in Settings. */
+.desktop-settings-help {
+  margin: 0 0 var(--paper-space-8);
+  color: var(--paper-text-3);
+  font: var(--paper-type-caption);
+}

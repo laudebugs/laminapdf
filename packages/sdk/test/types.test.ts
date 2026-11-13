@@ -27,6 +27,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "decompress":
     case "invalid-op-log":
     case "malformed-xmp":
+    case "invalid-xmp-packet":
     case "invalid-font":
     case "missing-glyph":
     case "invalid-image":
@@ -45,6 +46,8 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "unsupported-security-handler":
     case "unsupported-filter":
     case "direct-page":
+    case "direct-outline-item":
+    case "annotation-not-editable":
     case "unsupported-version":
     case "subset-failed":
     case "unsupported-layout-option":
@@ -64,6 +67,21 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "path-outside-roots":
       return "security";
     case "unknown-page":
+    case "no-pages-left":
+    case "invalid-op":
+    case "invalid-label-ranges":
+    case "unknown-source":
+    case "unknown-outline-item":
+    case "outline-not-a-sibling":
+    case "outline-move-into-itself":
+    case "unknown-named-destination":
+    case "named-destination-exists":
+    case "empty-destination-name":
+    case "link-uri-refused":
+    case "view-not-finite":
+    case "xmp-claim-read-only":
+    case "invalid-xmp-property":
+    case "unknown-annotation":
     case "sink-not-empty":
     case "collection-index":
     case "unknown-axis":
@@ -116,6 +134,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "template-data-missing":
     case "template-data-type":
     case "template-too-large":
+    case "open-action-not-destination":
       return "usage";
     case "data-pending":
     case "repaired-base":
@@ -123,6 +142,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "no-transaction":
     case "saved-not-rebased":
     case "no-pending-save":
+    case "annotation-locked":
     case "not-rebased":
     case "requires-rewrite":
     case "job-finished":
@@ -144,6 +164,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "wasm-trap":
     case "model-failed":
     case "flow-layout-unstable":
+    case "export-failed":
       return "internal";
     default: {
       const unhandled: never = code;

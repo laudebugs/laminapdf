@@ -180,13 +180,17 @@ fn docmdp_p2_forbids_rotate_page() {
     let mut doc = signed("certified-p2.pdf");
     rotate(&mut doc, 0, Rotation::Clockwise90);
     let v = planner(&doc).constraint().violations.clone();
+    // The page also holds the certification's widget, so rotating it is a SignedWidget
+    // violation too (ADR 0007 §11).
     assert_eq!(
-        (v.len(), v[0].class, v[0].restriction),
-        (
-            1,
-            ModificationClass::PageStructure,
-            Restriction::DocMdp(DocMdpPermission::FormFill)
-        )
+        v.iter().map(|v| (v.class, v.restriction)).collect::<Vec<_>>(),
+        [
+            (
+                ModificationClass::PageStructure,
+                Restriction::DocMdp(DocMdpPermission::FormFill)
+            ),
+            (ModificationClass::PageStructure, Restriction::SignedWidget),
+        ]
     );
 }
 
@@ -211,7 +215,14 @@ fn would_violate_checks_an_op_before_it_is_applied() {
     let doc = signed("certified-p1.pdf");
     let page = doc.pages().unwrap().get(0).unwrap().id().clone();
     let op = laminapdf_ops::RotatePage::new(page, Rotation::Half).into();
-    assert_eq!(planner(&doc).would_violate(&op).len(), 1);
+    let restrictions: Vec<Restriction> = planner(&doc).would_violate(&op).iter().map(|v| v.restriction).collect();
+    assert_eq!(
+        restrictions,
+        [
+            Restriction::DocMdp(DocMdpPermission::NoChanges),
+            Restriction::SignedWidget
+        ]
+    );
 }
 
 #[test]
@@ -466,5 +477,38 @@ fn planning_is_refused_while_a_transaction_is_open() {
     assert_eq!(
         SavePlanner::new(&doc).err(),
         Some(laminapdf_save::SaveError::Ops(laminapdf_ops::Error::NestedTransaction))
+    );
+}
+
+#[test]
+fn the_annotation_ops_are_refused_only_by_a_p1_or_p2_certification() {
+    let id: laminapdf_model::AnnotId = "a1.0".parse().unwrap();
+    let ops: [laminapdf_ops::Op; 2] = [
+        laminapdf_ops::UpdateAnnot::new(id.clone()).into(),
+        laminapdf_ops::DeleteAnnot::new(id).into(),
+    ];
+    let verdicts: Vec<(&str, [usize; 2])> = [
+        "approval.pdf",
+        "certified-p1.pdf",
+        "certified-p2.pdf",
+        "certified-p3.pdf",
+        "locked.pdf",
+    ]
+    .into_iter()
+    .map(|name| {
+        let doc = signed(name);
+        let p = planner(&doc);
+        (name, [p.would_violate(&ops[0]).len(), p.would_violate(&ops[1]).len()])
+    })
+    .collect();
+    assert_eq!(
+        verdicts,
+        [
+            ("approval.pdf", [0, 0]),
+            ("certified-p1.pdf", [1, 1]),
+            ("certified-p2.pdf", [1, 1]),
+            ("certified-p3.pdf", [0, 0]),
+            ("locked.pdf", [0, 0]),
+        ]
     );
 }

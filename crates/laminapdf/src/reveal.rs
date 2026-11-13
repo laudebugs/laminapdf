@@ -135,6 +135,8 @@ impl Reveal {
     /// per earlier revision with [`removed_words`](RevisionRecord::removed_words), newest first.
     /// It reads nothing again: when you need both a `Reveal` and these warnings, call
     /// [`Document::reveal`] and this, not `reveal` and `redaction_warnings`.
+    ///
+    /// Added in 0.2.0.
     #[must_use]
     pub fn redaction_warnings(&self) -> Vec<Warning> {
         let earlier = self

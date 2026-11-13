@@ -200,3 +200,91 @@
     margin-inline-end: auto;
   }
 }
+
+/* The XMP tab (O04): a toolbar (Properties / Raw XML, the filter, Add property…), then the tree of
+   schemas beside the selected property's detail; the raw XML is one monospace field. The dialog is
+   820 px wide on this tab; below it the panes stack. */
+@layer paper.components {
+  .paper-xmp {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-12);
+  }
+
+  .paper-xmp-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: var(--paper-space-12);
+  }
+
+  .paper-xmp-views {
+    display: flex;
+    gap: var(--paper-space-4);
+  }
+
+  .paper-xmp-toolbar .paper-field {
+    flex: 1;
+    min-inline-size: 12rem;
+  }
+
+  /* The tree beside the detail, stacked when the dialog is too narrow for both. */
+  .paper-xmp-panes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--paper-space-20);
+  }
+
+  /* Each pane scrolls on its own, so the footer never covers the detail's buttons. */
+  .paper-xmp-tree,
+  .paper-xmp-detail {
+    max-block-size: max(14rem, calc(100vh - var(--paper-properties-chrome-height) - 9rem));
+  }
+
+  .paper-xmp-tree {
+    flex: 1 1 16rem;
+    overflow-y: auto;
+  }
+
+  .paper-xmp-item[data-selected] .paper-outline-link {
+    background: var(--paper-accent-tint);
+    color: var(--paper-accent);
+  }
+
+  .paper-xmp-value {
+    overflow: hidden;
+    max-inline-size: 8rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .paper-xmp-detail {
+    flex: 2 1 20rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--paper-space-12);
+    overflow-y: auto;
+    padding-block-end: var(--paper-space-4);
+  }
+
+  .paper-xmp-detail > .paper-field {
+    align-self: stretch;
+  }
+
+  .paper-xmp .paper-textarea {
+    font: var(--paper-type-mono);
+  }
+
+  .paper-xmp > .paper-field .paper-textarea {
+    min-block-size: min(20rem, calc(100vh - var(--paper-properties-chrome-height) - 12rem));
+  }
+
+  @media (forced-colors: active) {
+    .paper-xmp-item[data-selected] .paper-outline-link {
+      forced-color-adjust: none;
+      background: Highlight;
+      color: HighlightText;
+    }
+  }
+}

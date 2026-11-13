@@ -64,7 +64,7 @@ ADRs go in `docs/decisions/`, one file per decision (`NNNN-title.md`). Each roun
 | [0010](../decisions/0010-platform-adapter.md) | Platform adapter and capability flags | Round C | Accepted |
 | [0011](../decisions/0011-cloudflare-topology-and-privacy.md) | Cloudflare topology, privacy/retention rules and the hosted service (accounts, cloud storage, sync) | Round C | Accepted (login stack by amendment after H1) |
 | [0008](../decisions/0008-desktop-shell.md) | Desktop shell: Tauri 2, process model, tile transport, Linux fallback | Round D (after IPC spike) | Accepted |
-| 0014 | Desktop distribution: update Worker + R2, channels, signing (the owner as publisher), key custody | Round D | Propose |
+| [0014](../decisions/0014-desktop-distribution.md) | Desktop distribution: update Worker + R2, channels, signing (the owner as publisher), key custody | Round D | Accepted |
 | [0024](../decisions/0024-app-shell-ux.md) | App shell UX: inverted-L layout, modes, one command registry, selection surfaces, page appearance modes, phone layout, token layers ([UI/UX plan](ui-ux.md)) | Round U (U1a) | Accepted |
 | 0025 | Mobile shell: Tauri 2 mobile vs UniFFI with native UI (after the `mobile-shell` spike) | Round U (U3b) | Defer |
 | 0012 | Collaboration: one Durable Object per document, last-writer-wins records | Later (with collaboration) | Defer |
@@ -157,6 +157,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [x] Linux CI on a self-hosted runner in a container on the Mac ([X5](../todos/done/X5-linux-ci-container.md))
 - [x] Windows CI coverage: the full check on hosted Windows ([X6](../todos/done/X6-windows-ci.md))
 - [x] A required check for the fast lane ([X7](../todos/done/X7-fast-lane-gate.md))
+- [ ] Compiled Rust shared between CI runs, through sccache on Cloudflare R2 ([CI caching plan](ci-caching.md): [X8a](../todos/done/X8a-rust-compile-cache-trial.md), [X8b](../todos/ready/X8b-rust-compile-cache-everywhere.md))
 - [x] Changesets + Cargo version sync; tag `0.1.0-alpha` locally (no registry publish yet) ([B7b](../todos/done/B7b-versioning-and-0-1-0-alpha.md): every crate and both packages at `0.1.0-alpha.0`, `cargo xtask version sync`, the release lane and `verify-install`; the `v0.1.0-alpha.0` tag is the owner's post-merge step; docs site [B7a](../todos/done/B7a-docs-site.md))
 
 ### Round C — Web reader
@@ -179,7 +180,7 @@ Todos: see the [desktop-app plan §6](desktop-app.md#6-rounds) (D1a–D7c).
 - [ ] `apps/desktop` (Tauri 2) reusing `@laminapdf/ui`. Process model: all parsing and rendering of untrusted files runs in a sandboxed engine process; the main process only does file I/O (mmap, file watching) and passes bytes and tiles across the boundary
 - [ ] `apps/updates`: Worker + R2 update manifests with channels and staged rollout
 - [ ] Signing: Apple notarisation, Windows Artifact Signing, Linux AppImage/deb; tauri-action release workflow
-- [ ] Write ADR 0014
+- [x] Write ADR 0014
 
 ### Publishing (later)
 

@@ -17,7 +17,14 @@
 //   fires and the caller opens again with the password.
 
 import type { RenderRequest } from "@laminapdf/render";
-import { type DocumentMetadata, isLaminaPdfError, type Op, type PlannedSave, type SaveOptions } from "@laminapdf/sdk";
+import {
+  type DocumentMetadata,
+  isLaminaPdfError,
+  type Op,
+  type PlannedSave,
+  type SaveOptions,
+  type XmpText,
+} from "@laminapdf/sdk";
 import {
   connect,
   Emitter,
@@ -395,6 +402,12 @@ export class ViewerClient {
     return this.call("metadata", [this.#document?.id ?? 0], call);
   }
 
+  /** The open document's XMP metadata as text, as its edits leave it. */
+  async xmpPacket(call?: ViewerCallOptions): Promise<XmpText> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("xmpPacket", [this.#document?.id ?? 0], call);
+  }
+
   /** How saving the open document with `options` would go: its constraint, signatures, mode and warnings. */
   async planSave(options: SaveOptions, call?: ViewerCallOptions): Promise<PlannedSave> {
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
@@ -532,6 +545,19 @@ export class ViewerClient {
   /** Where the named destination `name` goes, or `undefined` when the document has no such name. */
   namedDestination(name: string, options?: ViewerCallOptions) {
     return this.call("namedDestination", [name], options);
+  }
+
+  /**
+   * How the open document asks to be shown when it opens: the page and zoom, the panel, the page
+   * layout and the window preferences, as its edits leave them.
+   */
+  initialView(options?: ViewerCallOptions) {
+    return this.call("initialView", [], options);
+  }
+
+  /** The open document's article threads, each with its parts in reading order; empty without any. */
+  threads(options?: ViewerCallOptions) {
+    return this.call("threads", [], options);
   }
 
   /**

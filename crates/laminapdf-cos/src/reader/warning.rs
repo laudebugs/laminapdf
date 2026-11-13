@@ -140,6 +140,21 @@ pub enum Warning {
         /// or `no-rdf`.
         reason: &'static str,
     },
+    /// `annot-name-duplicate`: two annotations on one page have the same `/NM` (§12.5.2: it
+    /// shall be unique on its page); both are kept, and an annotation's ID never depends on it.
+    AnnotNameDuplicate {
+        /// The second annotation's object number (`None` for a direct one).
+        object: Option<u32>,
+    },
+    /// `xmp-repaired`: the catalog's XMP metadata packet had damage other readers read past, and
+    /// was read the same way: bytes that aren't UTF-8 in its `<?xpacket … ?>` header, or one of
+    /// XMP's standard prefixes (`dc`, `xmp`, `pdf`, …) used without its declaration.
+    XmpRepaired {
+        /// The metadata stream's object number (`None` for a direct one).
+        object: Option<u32>,
+        /// What was repaired: `header-encoding` or `undeclared-prefix`.
+        reason: &'static str,
+    },
     /// `invalid-page-label`: a `/PageLabels` entry is malformed: not a dictionary, a negative
     /// start, an unknown `/S` style (no numeric part), a `/P` that is not a string (no prefix)
     /// or `/St` below 1 (numbering from 1). The rest of the entry is kept.
@@ -355,6 +370,8 @@ impl Warning {
         "outline-item-skipped",
         "invalid-date",
         "xmp-invalid",
+        "annot-name-duplicate",
+        "xmp-repaired",
         "invalid-page-label",
         "invalid-entry",
         "content-unknown-operator",
@@ -406,6 +423,8 @@ impl Warning {
             Self::OutlineItemSkipped { .. } => "outline-item-skipped",
             Self::InvalidDate { .. } => "invalid-date",
             Self::XmpInvalid { .. } => "xmp-invalid",
+            Self::AnnotNameDuplicate { .. } => "annot-name-duplicate",
+            Self::XmpRepaired { .. } => "xmp-repaired",
             Self::InvalidPageLabel { .. } => "invalid-page-label",
             Self::InvalidEntry { .. } => "invalid-entry",
             Self::ContentUnknownOperator { .. } => "content-unknown-operator",
@@ -454,6 +473,8 @@ impl Warning {
             | Self::OutlineItemSkipped { object }
             | Self::InvalidDate { object, .. }
             | Self::XmpInvalid { object, .. }
+            | Self::AnnotNameDuplicate { object }
+            | Self::XmpRepaired { object, .. }
             | Self::InvalidEntry { object, .. }
             | Self::ContentUnknownOperator { object, .. }
             | Self::ContentBadOperands { object, .. }
@@ -509,6 +530,8 @@ impl Warning {
             | Self::OutlineItemSkipped { .. }
             | Self::InvalidDate { .. }
             | Self::XmpInvalid { .. }
+            | Self::AnnotNameDuplicate { .. }
+            | Self::XmpRepaired { .. }
             | Self::InvalidPageLabel { .. }
             | Self::InvalidEntry { .. }
             | Self::ContentUnknownOperator { .. }
@@ -612,7 +635,7 @@ impl Warning {
         let detail = match *self {
             Self::InvalidBox { key, .. } | Self::InvalidDate { key, .. } | Self::InvalidEntry { key, .. } => Some(key),
             Self::ContentResourceMissing { category, .. } => Some(category),
-            Self::XmpInvalid { reason, .. } => Some(reason),
+            Self::XmpInvalid { reason, .. } | Self::XmpRepaired { reason, .. } => Some(reason),
             _ => None,
         };
         (self.code(), self.object(), position, detail)
@@ -701,6 +724,11 @@ mod tests {
                 offset: Some(0),
                 reason: "dtd",
             },
+            Warning::AnnotNameDuplicate { object: None },
+            Warning::XmpRepaired {
+                object: None,
+                reason: "undeclared-prefix",
+            },
             Warning::InvalidPageLabel { start: 0 },
             Warning::InvalidEntry {
                 object: None,
@@ -787,6 +815,8 @@ mod tests {
                 | Warning::OutlineItemSkipped { .. }
                 | Warning::InvalidDate { .. }
                 | Warning::XmpInvalid { .. }
+                | Warning::AnnotNameDuplicate { .. }
+                | Warning::XmpRepaired { .. }
                 | Warning::InvalidPageLabel { .. }
                 | Warning::InvalidEntry { .. }
                 | Warning::ContentUnknownOperator { .. }

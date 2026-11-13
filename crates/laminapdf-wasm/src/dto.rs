@@ -331,6 +331,10 @@ impl From<laminapdf::DocumentInfo> for DocumentInfoJs {
 /// The pages an edit touched.
 #[derive(Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "a JSON record: one flag per fact the report states"
+)]
 pub(crate) struct EditedJs {
     /// IDs of the pages whose content or attributes changed.
     pub touched_pages: Vec<String>,
@@ -339,9 +343,128 @@ pub(crate) struct EditedJs {
     /// A metadata edit removed values the file's earlier revisions still hold, which only a
     /// full rewrite drops.
     pub still_in_earlier_revisions: bool,
+    /// IDs of annotations an annotation op deleted besides the one it names (Popups, replies,
+    /// the rest of a group); left out when there are none.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[tsify(optional)]
+    pub also_deleted: Vec<String>,
     /// Whether the edit changed the document: one that only set values they already had leaves
     /// no step to undo.
     pub changed: bool,
+    /// The IDs of the bookmarks the edit added, in order.
+    pub created_outline_items: Vec<String>,
+    /// An outline edit found the outline's links broken and rewrote them whole; bookmarks
+    /// stored inside others have new IDs.
+    pub outline_repaired: bool,
+    /// What still names a named destination the edit deleted.
+    pub destination_uses: Vec<laminapdf::DestinationUse>,
+    /// The XMP properties the edit declared in a PDF/A file's extension schemas.
+    pub declared: Vec<ExtensionPropertyJs>,
+    /// The page IDs in order after the edit, when it changed the page list.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub page_order: Option<Vec<String>>,
+    /// What a page deletion did to the references to the deleted pages.
+    pub references: Vec<ReferenceEditJs>,
+    /// What a page duplication did to the form fields whose widgets the copied pages show;
+    /// left out when there are none.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[tsify(optional)]
+    pub fields: Vec<FieldEditJs>,
+    /// The copies a page duplication made whose tags couldn't all be cloned; left out when
+    /// there are none.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[tsify(optional)]
+    pub tags_incomplete: Vec<String>,
+}
+
+/// What a page duplication did to one form field.
+#[derive(Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct FieldEditJs {
+    /// The field on the source page.
+    pub field: String,
+    /// The copy whose widget it concerns.
+    pub page: String,
+    /// `renamed` (the copy's widget belongs to a new field) or `notCopied` (a signature's
+    /// widget).
+    #[tsify(type = "\"renamed\" | \"notCopied\"")]
+    pub outcome: &'static str,
+    /// The new field's ID, when renamed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub to: Option<String>,
+    /// The new field's fully qualified name, when renamed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub name: Option<String>,
+}
+
+impl From<laminapdf::FieldChange> for FieldEditJs {
+    fn from(c: laminapdf::FieldChange) -> Self {
+        let (outcome, to, name) = match c.outcome {
+            laminapdf::FieldOutcome::Renamed { to, name } => ("renamed", Some(to.to_string()), Some(name)),
+            _ => ("notCopied", None, None),
+        };
+        Self {
+            field: c.field.to_string(),
+            page: c.page.to_string(),
+            outcome,
+            to,
+            name,
+        }
+    }
+}
+
+/// One reference to a deleted page and what the deletion did to it.
+#[derive(Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ReferenceEditJs {
+    /// The deleted page it named.
+    pub page: String,
+    /// `outlineItem`, `link`, `namedDestination`, `openAction`, `structureElement`,
+    /// `structureKid` or `widget`.
+    #[tsify(
+        type = "\"outlineItem\" | \"link\" | \"namedDestination\" | \"openAction\" | \"structureElement\" | \"structureKid\" | \"widget\""
+    )]
+    pub kind: &'static str,
+    /// The named destination's name, for a `namedDestination`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub name: Option<String>,
+    /// `retargeted` or `removed`.
+    #[tsify(type = "\"retargeted\" | \"removed\"")]
+    pub outcome: &'static str,
+    /// The surviving page it now names, when retargeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub to: Option<String>,
+}
+
+impl From<laminapdf::ReferenceEdit> for ReferenceEditJs {
+    fn from(r: laminapdf::ReferenceEdit) -> Self {
+        use laminapdf::{ReferenceEditKind as K, ReferenceOutcome as O};
+        let (kind, name) = match r.kind {
+            K::OutlineItem => ("outlineItem", None),
+            K::NamedDestination { name } => ("namedDestination", Some(name)),
+            K::OpenAction => ("openAction", None),
+            K::StructureElement => ("structureElement", None),
+            K::StructureKid => ("structureKid", None),
+            K::Widget => ("widget", None),
+            _ => ("link", None),
+        };
+        let (outcome, to) = match r.outcome {
+            O::Retargeted { to } => ("retargeted", Some(to.to_string())),
+            _ => ("removed", None),
+        };
+        Self {
+            page: r.page.to_string(),
+            kind,
+            name,
+            outcome,
+            to,
+        }
+    }
 }
 
 impl From<laminapdf::Edited> for EditedJs {
@@ -350,7 +473,67 @@ impl From<laminapdf::Edited> for EditedJs {
             touched_pages: e.touched_pages.iter().map(ToString::to_string).collect(),
             packet_rewritten: e.packet_rewritten,
             still_in_earlier_revisions: e.still_in_earlier_revisions,
+            also_deleted: e.also_deleted,
             changed: e.changed,
+            created_outline_items: e.created_outline_items.iter().map(ToString::to_string).collect(),
+            outline_repaired: e.outline_repaired,
+            destination_uses: e.destination_uses,
+            page_order: e.page_order.map(|o| o.iter().map(ToString::to_string).collect()),
+            references: e.references.into_iter().map(ReferenceEditJs::from).collect(),
+            fields: e.fields.into_iter().map(FieldEditJs::from).collect(),
+            tags_incomplete: e.tags_incomplete.iter().map(ToString::to_string).collect(),
+            declared: e.declared.into_iter().map(ExtensionPropertyJs::from).collect(),
+        }
+    }
+}
+
+/// An XMP property declared in a PDF/A file's extension schemas.
+#[derive(Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ExtensionPropertyJs {
+    /// The schema's namespace URI.
+    pub namespace: String,
+    /// The prefix the packet writes the namespace with.
+    pub prefix: String,
+    /// The property's local name.
+    pub name: String,
+    /// Its declared type, e.g. `Text` or `Seq Integer`.
+    pub value_type: String,
+}
+
+impl From<laminapdf::ExtensionProperty> for ExtensionPropertyJs {
+    fn from(p: laminapdf::ExtensionProperty) -> Self {
+        Self {
+            namespace: p.namespace,
+            prefix: p.prefix,
+            name: p.name,
+            value_type: p.value_type,
+        }
+    }
+}
+
+/// The document's XMP packet as text (`laminapdf::XmpText`).
+#[derive(Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct XmpTextJs {
+    /// Whether there is a packet, and whether it was read.
+    pub status: laminapdf::PacketStatus,
+    /// The packet's XML, with the edits made so far.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub xml: Option<String>,
+    /// The PDF/A part and conformance the packet claims, e.g. `"2B"`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub pdfa: Option<String>,
+}
+
+impl From<laminapdf::XmpText> for XmpTextJs {
+    fn from(p: laminapdf::XmpText) -> Self {
+        Self {
+            status: p.status,
+            xml: p.xml,
+            pdfa: p.pdfa,
         }
     }
 }

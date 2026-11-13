@@ -1,7 +1,7 @@
 ---
 title: "Inspect and check PDFs"
 description: "Describe a PDF with laminapdf info, find what Lamina PDF had to repair with check, and list what a file holds beyond its pages with reveal."
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/cli/inspect/"
 ---
 
@@ -28,7 +28,7 @@ With `--json`, it prints the same facts as JSON, and `--fields` keeps only the k
 
 ```console
 $ laminapdf info scan.pdf --json --fields pages,encrypted,warnings
-{"encrypted":false,"input":"scan.pdf","pages":1,"schema":"laminapdf.info/1","warnings":[{"code":"xref-repaired",…}]}
+{"encrypted":false,"input":"scan.pdf","pages":1,"schema":"laminapdf.info/1","warnings":[{"code":"xref-repaired","docsUrl":"https://docs.laminapdf.com/reference/codes/xref-repaired/","hint":"check the result; save with a full rewrite, since an incremental update refuses a repaired base","kind":"input","message":"the stored cross-reference data was unusable and was rebuilt by scanning"}]}
 ```
 
 ## Whether it's damaged: `check`
@@ -53,11 +53,11 @@ $ echo $?
 - `redaction-not-applied`: redaction marks that someone drew but never applied.
 - `text-in-earlier-revision`: words an earlier version of the file holds and the latest doesn't. An edited PDF keeps each earlier version inside it.
 
-These stay warnings under `--strict`, because they aren't damage. `--warnings-ok` hides them along with the repairs, so a job that must stop leaked redactions should read the warning codes from `--json`, not the exit code.
+These stay warnings under `--strict`, because they aren't damage. `--warnings-ok` hides them along with the repairs, so a job that must stop leaked redactions should read the warning codes from `--json`, not the exit code. To run the same checks from Rust, see [Check what a file hides](../../pages/guides/check-what-a-file-hides.md).
 
 ## What it holds beyond its pages: `reveal`
 
-A PDF can carry far more than its pages show: earlier versions of itself, metadata, attachments, scripts, comments, form values and text no one can see. `reveal` lists what a file holds in each of those categories, one line per category it found:
+A PDF can carry far more than its pages show: earlier versions of itself, metadata, attachments, scripts, comments, form values and text no one can see. `reveal` lists what a file holds in each of those categories, one line per category it found, and given several files it ends with a count of them:
 
 ```console
 $ laminapdf reveal letter.pdf brochure.pdf
@@ -69,6 +69,7 @@ letter.pdf: history
 brochure.pdf: metadata, hidden-content
   metadata        Info: Title; XMP (389 B, 3 namespaces)
   hidden-content  24 invisible characters on page 1
+2 ok, 0 with warnings, 0 failed, 0 skipped
 ```
 
 The letter was edited, and its first version still holds a word the final one removed. The brochure carries 24 characters of invisible text. The categories are:
@@ -95,12 +96,14 @@ laminapdf reveal dist/*.pdf --fail-on history,hidden-content,active-content,atta
 
 `--fail-on all` names every category. Most files carry some metadata, such as a title, so `--fail-on metadata` stops most files; leave it out unless you strip metadata before release.
 
+A Rust program gets the same report from `Document::reveal`: [Check what a file hides](../../pages/guides/check-what-a-file-hides.md) shows how.
+
 ## What a warning means: `explain`
 
-Every warning and error has a code, such as `xref-repaired`. `explain` prints that code's page: what happened, why, and how to fix it.
+Every warning and error has a code, such as `xref-repaired`. `explain` prints that code's page: what happened, why, and how to fix it. Here is the start of one:
 
 ```console
-$ laminapdf explain xref-repaired
+$ laminapdf explain xref-repaired | head -n 8
 # `xref-repaired`
 
 - Type: warning

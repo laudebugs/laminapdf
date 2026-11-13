@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "channel": "beta",
+  "paused": false,
+  "release": {
+    "version": "0.2.0",
+    "pub_date": "2027-01-15T10:00:00Z",
+    "notes": "https://laminapdf.com/desktop/releases/0.2.0",
+    "rollout_percent": 10,
+    "platforms": {
+      "darwin-aarch64": {
+        "url": "https://downloads.laminapdf.com/releases/0.2.0/darwin-aarch64/Lamina.PDF.app.tar.gz",
+        "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUZXN0MC4yLjBkYXJ3aW4="
+      },
+      "windows-x86_64": {
+        "url": "https://downloads.laminapdf.com/releases/0.2.0/windows-x86_64/Lamina.PDF_0.2.0_x64-setup.exe",
+        "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUZXN0MC4yLjB3aW5kb3dz"
+      },
+      "linux-x86_64": {
+        "url": "https://downloads.laminapdf.com/releases/0.2.0/linux-x86_64/Lamina.PDF_0.2.0_amd64.AppImage",
+        "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUZXN0MC4yLjBsaW51eA=="
+      }
+    }
+  },
+  "previous": {
+    "version": "0.1.3",
+    "pub_date": "2026-12-01T10:00:00Z",
+    "notes": "https://laminapdf.com/desktop/releases/0.1.3",
+    "rollout_percent": 100,
+    "platforms": {
+      "darwin-aarch64": {
+        "url": "https://downloads.laminapdf.com/releases/0.1.3/darwin-aarch64/Lamina.PDF.app.tar.gz",
+        "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUZXN0MC4xLjNkYXJ3aW4="
+      }
+    }
+  },
+  "bridges": [
+    {
+      "below": "0.1.0",
+      "release": {
+        "version": "0.1.0",
+        "pub_date": "2026-11-20T10:00:00Z",
+        "notes": "https://laminapdf.com/desktop/releases/0.1.0",
+        "platforms": {
+          "darwin-aarch64": {
+            "url": "https://downloads.laminapdf.com/releases/0.1.0/darwin-aarch64/Lamina.PDF.app.tar.gz",
+            "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUZXN0MC4xLjBicmlkZ2U="
+          }
+        }
+      }
+    }
+  ]
+}

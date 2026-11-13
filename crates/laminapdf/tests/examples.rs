@@ -10,8 +10,17 @@
 #[path = "../examples/check_what_a_file_hides.rs"]
 mod check_what_a_file_hides;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/duplicate_pages.rs"]
+mod duplicate_pages;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/edit_bookmarks.rs"]
+mod edit_bookmarks;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/edit_metadata.rs"]
 mod edit_metadata;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/edit_xmp.rs"]
+mod edit_xmp;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/element_flow.rs"]
 mod element_flow;
@@ -43,6 +52,9 @@ mod hello;
 #[path = "../examples/images_and_vectors.rs"]
 mod images_and_vectors;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/images_to_pdf.rs"]
+mod images_to_pdf;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/invoice.rs"]
 mod invoice;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -58,6 +70,12 @@ mod markdown_to_pdf;
 #[path = "../examples/multilingual.rs"]
 mod multilingual;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/organise_pages.rs"]
+mod organise_pages;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/page_labels.rs"]
+mod page_labels;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/pdf_a3_invoice_with_xml.rs"]
 mod pdf_a3_invoice_with_xml;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -69,6 +87,9 @@ mod pdf_ua_report;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/react_to_error_codes.rs"]
 mod react_to_error_codes;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/set_initial_view.rs"]
+mod set_initial_view;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/snapshot_test.rs"]
 mod snapshot_test;
@@ -93,11 +114,13 @@ const SCRIPT_FONTS: [&str; 5] = [
     "fonts/NotoSansSC-Regular.otf",
 ];
 const PHOTO: &str = "images/photo-rgb.jpg";
+const GRAY_PHOTO: &str = "images/photo-gray.jpg";
 /// Each example's fixed file ID (`/ID[0]`, 16 bytes).
 const HELLO_ID: &[u8; 16] = b"lamina-ex-hello!";
 const INVOICE_ID: &[u8; 16] = b"lamina-ex-invoic";
 const MULTILINGUAL_ID: &[u8; 16] = b"lamina-ex-multil";
 const IMAGES_AND_VECTORS_ID: &[u8; 16] = b"lamina-ex-vector";
+const IMAGES_TO_PDF_ID: &[u8; 16] = b"lamina-ex-images";
 const LINKS_ID: &[u8; 16] = b"lamina-ex-links!";
 const EDIT_ID: &[u8; 16] = b"lamina-ex-edit!!";
 const FLOW_ID: &[u8; 16] = b"lamina-ex-flow!!";
@@ -124,7 +147,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 17] = [
+const EXAMPLES: [(&str, Build); 24] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -132,6 +155,9 @@ const EXAMPLES: [(&str, Build); 17] = [
     }),
     ("images_and_vectors", || {
         images_and_vectors::build(options(IMAGES_AND_VECTORS_ID)?, fixture(PHOTO))
+    }),
+    ("images_to_pdf", || {
+        images_to_pdf::build(options(IMAGES_TO_PDF_ID)?, vec![fixture(PHOTO), fixture(GRAY_PHOTO)])
     }),
     ("links_and_outlines", || links_and_outlines::build(options(LINKS_ID)?)),
     ("generate_then_edit", || {
@@ -144,6 +170,26 @@ const EXAMPLES: [(&str, Build); 17] = [
     // validates every example's output) checks that an edit keeps both claims.
     ("edit_metadata-pdfa", || {
         edit_metadata::edit(fixture("golden/examples/pdf_a_archive-2u.pdf"), EDITED.parse()?)
+    }),
+    ("edit_bookmarks", || {
+        edit_bookmarks::edit(fixture("golden/links-and-outlines.pdf"))
+    }),
+    ("duplicate_pages", || {
+        duplicate_pages::duplicate(fixture("pages/forms.pdf"))
+    }),
+    // A review recorded in a PDF/A-2b file's XMP metadata: `cargo xtask verapdf` checks that the
+    // declared extension schemas keep the claim.
+    ("edit_xmp", || {
+        edit_xmp::edit(fixture("golden/examples/pdf_a_archive-2b.pdf"), EDITED.parse()?)
+    }),
+    ("organise_pages", || {
+        organise_pages::organise(fixture("pages/references.pdf"))
+    }),
+    ("set_initial_view", || {
+        set_initial_view::open_on(fixture("corpus/outline.pdf"), 1)
+    }),
+    ("page_labels", || {
+        page_labels::label(fixture("golden/examples/links_and_outlines.pdf"))
     }),
     ("pdf_ua_report", || pdf_ua_report::build(fixture(NOTO))),
     ("pdf_a_archive-2b", || {
@@ -467,4 +513,37 @@ fn snapshot_test_creates_matches_reports_and_updates_its_reference() {
     );
     assert!(!pending.exists());
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn set_initial_view_opens_on_the_page_at_its_width_and_keeps_a_script() {
+    use laminapdf::{Document, OpenOptions, OpenTarget, PageMode, PageTargetView};
+    let edited = set_initial_view::open_on(fixture("corpus/outline.pdf"), 1).unwrap_or_else(|e| panic!("{e}"));
+    let doc = Document::open_bytes(edited, OpenOptions::new()).unwrap_or_else(|e| panic!("{e}"));
+    let view = doc.initial_view().unwrap_or_else(|e| panic!("{e}"));
+    let OpenTarget::Page(target) = view.open else {
+        panic!("not a page: {:?}", view.open);
+    };
+    assert_eq!((target.page, target.view), (1, PageTargetView::FitWidth { y: None }));
+    assert_eq!(
+        (view.page_mode, view.preferences.display_doc_title),
+        (Some(PageMode::Outlines), true)
+    );
+    // A file that opens with a script keeps it, and still gets the panel.
+    let scripted = laminapdf_test_fixtures::classic_with_root(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction << /S /JavaScript /JS (app.alert(1)) >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 600 800] >>",
+            "<< /Type /Page /Parent 2 0 R >>",
+        ],
+        "",
+    );
+    let edited = set_initial_view::open_on(scripted, 0).unwrap_or_else(|e| panic!("{e}"));
+    let view = Document::open_bytes(edited, OpenOptions::new())
+        .and_then(|doc| doc.initial_view())
+        .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        (view.open, view.page_mode),
+        (OpenTarget::Action("JavaScript".to_owned()), Some(PageMode::Outlines))
+    );
 }

@@ -179,6 +179,29 @@ impl Engines {
         })
     }
 
+    /// Reopens `window`'s document `old` from `path`, whose file changed on disk: the new file opens
+    /// as a new document, unlocked with `old`'s kept password if it had one, and only then does
+    /// `old` close. On any failure `old` stays open as it was and the new one is closed.
+    pub(crate) fn reload(&self, window: &str, old: DocId, path: &Path) -> Result<DocumentMeta, DesktopError> {
+        self.check(window, old)?;
+        let password = self.registry.password_of(old);
+        let mut opened = self.open(window, path)?;
+        if let (true, Some(password)) = (opened.needs_password, password) {
+            match self.unlock(window, DocId(opened.doc), password.expose()) {
+                Ok(unlocked) => opened = unlocked,
+                Err(error) => {
+                    let _ = self.close(window, DocId(opened.doc));
+                    return Err(error);
+                }
+            }
+        }
+        if let Err(error) = self.close(window, old) {
+            let _ = self.close(window, DocId(opened.doc));
+            return Err(error);
+        }
+        Ok(opened)
+    }
+
     /// Draws one tile of `window`'s document: the engine's straight RGBA, checked against the
     /// size asked for (the engine reads untrusted files, so its answers are untrusted too).
     pub(crate) fn render_tile(&self, window: &str, query: &TileQuery) -> Result<Tile, DesktopError> {

@@ -115,17 +115,6 @@ test("the guide writes U+FFFD as its code point, which no font of the guide can 
   assert.match(markdown, /come out as `U\+FFFD`\./);
 });
 
-test("the guide turns tabs into spaces to the next multiple of four columns", () => {
-  const markdown = guideMarkdown({
-    version: "1",
-    site: SITE,
-    areas: [{ label: "A", routes: ["x/"] }],
-    twins: new Map([["x/", twinOf("X", "```text\nWidgets\t3\t€ 36.00\n```")]]),
-  });
-  assert.match(markdown, /\nWidgets 3 {3}€ 36\.00\n/);
-  assert.doesNotMatch(markdown, /\t/);
-});
-
 test("the guide fails on a page with no twin", () => {
   assert.throws(
     () => guideMarkdown({ version: "1", site: SITE, areas: [{ label: "A", routes: ["x/"] }], twins: new Map() }),

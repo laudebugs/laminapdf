@@ -634,6 +634,83 @@ The decisions and todos behind this code:
 
 - [E1b](../todos/done/E1b-xmp-packet-model.md): the XMP packet model
 "#,
+        "annot-name-duplicate" => r"# `annot-name-duplicate`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+Two annotations on the same page have the same name in their `/NM` entry. ISO 32000-2 §12.5.2 asks for that name to be unique on its page, because comment exchange files (XFDF, FDF) and replies match annotations by it.
+
+## Why
+
+A writer copied an annotation without giving the copy a new name, or gave every annotation it made the same name.
+
+## How to fix
+
+Nothing to do: both annotations are read and kept, and Lamina PDF tells annotations apart by their own IDs, never by `/NM`. An import that matches comments by name may match the wrong one of the two, so a writer that makes new annotations should give each its own name.
+
+## Example
+
+```text
+5 0 obj << /Type /Annot /Subtype /Text /NM (note-1) /Rect [72 700 92 720] >> endobj
+6 0 obj << /Type /Annot /Subtype /Text /NM (note-1) /Rect [72 650 92 670] >> endobj
+```
+
+Both are on one page, so object 6 raises the warning.
+
+## Data fields
+
+None. The `location` is the second annotation's `object`, none for a direct dictionary.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4b](../todos/done/E4b-annotation-model-and-overlay.md): the annotation model and the annotation ops' core
+",
+        "xmp-repaired" => r#"# `xmp-repaired`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+The document's XMP metadata has damage that ExifTool and pdf.js read past. Lamina PDF reads past it the same way, so it reads the values as the writer meant them.
+
+## Why
+
+`reason` says which damage:
+
+- `header-encoding`: the packet's `<?xpacket … ?>` header holds bytes that aren't UTF-8, most often a mangled byte-order mark. XML doesn't read inside that header, so Lamina PDF reads each such byte as `?`.
+- `undeclared-prefix`: the packet uses one of XMP's standard prefixes without declaring it, such as `dc:title` with no `xmlns:dc`. The prefixes read this way are `dc`, `xmp`, `pdf`, `xmpMM`, `pdfaid`, `pdfuaid`, and the older `xap` and `xapMM`, each in its standard namespace.
+
+## How to fix
+
+Nothing: Lamina PDF reads the file. In strict mode the warning is an error, so a strict reader refuses such a packet.
+
+An edit repairs the prefixes it touches. A metadata edit declares the prefix of each property it writes, and a packet rewritten whole declares the prefix of every property. A prefix used only inside a property's value, such as an `xmp:` field of an `xmpMM:History` entry, stays as the file wrote it.
+
+## Example
+
+```ts
+const doc = Document.open(bytes); // a packet that writes <dc:title> with no xmlns:dc
+doc.metadata().title; // read as written
+doc.warnings(); // xmp-repaired, reason "undeclared-prefix"
+```
+
+## Data fields
+
+- `reason`: `header-encoding` or `undeclared-prefix`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [`xmp-packets-other-readers-accept`](../bugs/xmp-packets-other-readers-accept/detail.md): the packets that needed it
+- [ADR 0003](../decisions/0003-reader-tolerance-and-limits.md): every repair is a warning
+"#,
         "invalid-page-label" => r#"# `invalid-page-label`
 
 - Type: warning
@@ -2313,6 +2390,699 @@ The decisions and todos behind this code:
 
 - [E1c](../todos/done/E1c-metadata-ops.md): the metadata ops
 "#,
+        "unknown-source" => r"# `unknown-source`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op, or a call that reads a source document, names a source by an ID that this session doesn't hold. A source document is another PDF that ops copy pages from, and the session only knows the ones added to it.
+
+## Why
+
+The source was never added, or it was added to another session. An op log names sources only by ID, so a log replayed in a new session (after the document reopens, or on another device) needs its sources added again first.
+
+## How to fix
+
+Add the source document's bytes with `add_source` (in Rust; the bindings come with the ops that copy pages) before applying ops that name it. The same bytes always give the same ID, so adding the file again restores the source the log names.
+
+## Example
+
+```rust
+let id = other_session.add_source(bytes, None)?;
+doc.source_document(&id)?; // unknown-source: `doc` never added these bytes
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E2p](../todos/done/E2p-source-documents-and-copier.md): source documents and the blob store
+",
+        "open-action-not-destination" => r"# `open-action-not-destination`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An edit to the initial view tried to set or remove the page the document opens at, but the document's open action isn't a page to open at. It runs something besides opening a page: a script, a named action, a link to another file, a page change followed by further actions, or an action whose type can't be read. Lamina PDF never replaces or removes such an action as a side effect, so it refused the whole edit and changed nothing.
+
+## Why
+
+A PDF's catalog holds one open action. It's either a destination, meaning a page and a zoom, or an action that a reader runs when the file opens. Setting the opening page writes a destination over that action, and removing it would delete the action. Both would lose what the file's author put there without saying so.
+
+## How to fix
+
+Leave the opening page out of the edit: in Rust, don't call `with_open` on `SetInitialView`; in TypeScript, leave `open` out of `setInitialView`. The page mode, page layout and window preferences still change, and the open action stays as it is. `initial_view()` (Rust) and `initialView()` (TypeScript) report the open action's type, so a dialog can say what the file runs and turn the page and zoom controls off.
+
+## Example
+
+```rust
+use laminapdf::{OpenAt, OpenZoom, Op, SetInitialView};
+
+// The file opens with JavaScript, so this edit is refused:
+let op = SetInitialView::default().with_open(Some(OpenAt::new(page, OpenZoom::FitPage)));
+doc.apply(vec![Op::from(op)])?; // open-action-not-destination
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3d](../todos/done/E3d-initial-view-and-threads.md): initial view, page display mode and article threads
+",
+        "unknown-outline-item" => r#"# `unknown-outline-item`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An outline op names a bookmark by an ID that the document's outline doesn't hold.
+
+## Why
+
+The ID came from another document or from an older read of this one. IDs belong to one file, and a deleted bookmark's ID is gone.
+
+## How to fix
+
+Read the outline again and take the item's ID from it. A bookmark an op adds reports its ID in the edit's result.
+
+## Example
+
+```rust
+doc.apply(vec![Op::from(DeleteOutlineItem::new("o999.0".parse()?, ChildItems::Delete))])?; // unknown-outline-item
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+"#,
+        "direct-outline-item" => r#"# `direct-outline-item`
+
+- Type: error
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
+
+## What happened
+
+The bookmark is stored as a dictionary inside another bookmark, not as an object of its own, so the outline ops can't change it.
+
+## Why
+
+PDF files usually store each bookmark as its own object, with a number. Bookmarks find their neighbours and parent by those numbers, and a bookmark stored inside another has none, so its ID is made of its path instead.
+
+## How to fix
+
+Apply another outline op first, such as moving any bookmark to where it already is. It rewrites the outline, gives every bookmark its own object and new ID, and reports that it repaired the outline. Then read the outline again for the new IDs.
+
+## Example
+
+```rust
+// The outline holds a bookmark as a dictionary inside its parent, so its ID is a path ID.
+let item: OutlineItemId = "o12.0/First".parse()?;
+doc.apply(vec![Op::from(DeleteOutlineItem::new(item, ChildItems::Delete))])?; // direct-outline-item
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+"#,
+        "outline-not-a-sibling" => r#"# `outline-not-a-sibling`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The op places a bookmark before or after another one, but that other bookmark isn't a child of the parent the op names.
+
+## Why
+
+A position is relative to the parent's children: `before` and `after` name one of them. A bookmark elsewhere in the outline can't mark a place under this parent.
+
+## How to fix
+
+Name a child of the same parent in `before` or `after`, or use `first` or `last`.
+
+## Example
+
+```rust
+// "o14.0" is a child of "o12.0", not of the top level.
+let op = MoveOutlineItem::new("o11.0".parse()?, None, SiblingPosition::After("o14.0".parse()?));
+doc.apply(vec![Op::from(op)])?; // outline-not-a-sibling
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+"#,
+        "outline-move-into-itself" => r#"# `outline-move-into-itself`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A move names the bookmark itself, or one of the bookmarks under it, as its new parent or as the place to put it next to.
+
+## Why
+
+A bookmark goes with its children when it moves, so it can't move into its own branch: the outline would become a loop.
+
+## How to fix
+
+Choose a parent outside the bookmark's branch. To move children up, move them one by one, or delete the bookmark with `children: promote`.
+
+## Example
+
+```rust
+// "o14.0" is one of "o12.0"'s children.
+let op = MoveOutlineItem::new("o12.0".parse()?, Some("o14.0".parse()?), SiblingPosition::Last);
+doc.apply(vec![Op::from(op)])?; // outline-move-into-itself
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+"#,
+        "unknown-named-destination" => r#"# `unknown-named-destination`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A rename or delete names a destination that the file doesn't define.
+
+## Why
+
+The name is spelled differently, or an earlier op renamed or deleted it. Names are case-sensitive.
+
+## How to fix
+
+Call `namedDestinations()` (`named_destinations()` in Rust) and use one of its names. To create a name, use `setNamedDestination`.
+
+## Example
+
+```rust
+doc.apply(vec![Op::from(DeleteNamedDestination::new("no-such-name"))])?; // unknown-named-destination
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+"#,
+        "named-destination-exists" => r#"# `named-destination-exists`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A rename gives a destination a name that another destination of the file already has.
+
+## Why
+
+Each name points at one place, so two destinations can't share it. Renaming onto a taken name would lose the destination that holds it.
+
+## How to fix
+
+Choose another name, or delete the other destination first if it is no longer needed.
+
+## Example
+
+```rust
+// The file defines both chapter-2 and appendix.
+doc.apply(vec![Op::from(RenameNamedDestination::new("chapter-2", "appendix"))])?; // named-destination-exists
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+"#,
+        "empty-destination-name" => r#"# `empty-destination-name`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op names a destination with an empty name.
+
+## Why
+
+Links and bookmarks find a named destination by its name, so it needs at least one character.
+
+## How to fix
+
+Give the destination a name. Names are case-sensitive and can hold any text.
+
+## Example
+
+```rust
+doc.apply(vec![Op::from(DeleteNamedDestination::new(""))])?; // empty-destination-name
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+"#,
+        "link-uri-refused" => r#"# `link-uri-refused`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A bookmark's web address isn't a full `http`, `https` or `mailto` address in plain ASCII.
+
+## Why
+
+Lamina PDF writes only addresses a PDF viewer can open safely. Other schemes, `javascript:` among them, can run code or open local files. The PDF standard also stores a web address as 7-bit ASCII.
+
+## How to fix
+
+Use the full address, with its scheme and host, such as `https://example.com/page`. Percent-encode spaces and characters outside ASCII (`%20`, `%C3%A9`).
+
+## Example
+
+```rust
+let target = OutlineTarget::Uri("javascript:alert(1)".into());
+doc.apply(vec![Op::from(AddOutlineItem::new(None, SiblingPosition::Last, "Run", target))])?; // link-uri-refused
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+"#,
+        "view-not-finite" => r#"# `view-not-finite`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A destination's view has a coordinate or zoom that isn't a finite number.
+
+## Why
+
+A PDF file can only hold finite numbers, so a view of infinity or NaN can't be written.
+
+## How to fix
+
+Pass finite numbers, in the page's user space, or `null` (`None` in Rust) for a coordinate the viewer should keep as it is.
+
+## Example
+
+```rust
+let view = DestinationView::Xyz { left: Some(f64::NAN), top: None, zoom: None };
+doc.apply(vec![Op::from(SetNamedDestination::new("here", ExplicitDestination::new(page, view)))])?; // view-not-finite
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+"#,
+        "xmp-claim-read-only" => r#"# `xmp-claim-read-only`
+
+- Type: error
+- Kind: `usage` (the call was made wrongly)
+
+## What happened
+
+An XMP edit tried to change the file's PDF/A or PDF/UA identification: the `pdfaid:` or `pdfuaid:` properties that say which standard the file claims to meet. Lamina PDF refused the edit, and nothing changed.
+
+## Why
+
+These properties are a promise that the whole file meets a standard. Only converting the file, or checking it against the standard, can make that promise. An edit to the metadata can't, so `setXmpProperty` and `removeXmpProperty` refuse these properties, and `replaceXmpPacket` refuses a packet whose `pdfaid:` or `pdfuaid:` properties differ from the file's.
+
+## How to fix
+
+Edit the other properties instead. When you replace the whole packet, copy the file's `pdfaid:` and `pdfuaid:` properties into the new packet unchanged, or leave them out of a file that has none.
+
+## Example
+
+```ts
+doc.setXmpProperty("http://www.aiim.org/pdfa/ns/id/", "pdfaid", "part", { type: "integer", value: 3 });
+// xmp-claim-read-only: the file's PDF/A part can't be edited
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3e](../todos/done/E3e-xmp-editor.md): the general XMP editor
+- [E3 plan §11](../plans/editor/e3-navigation-attachments-inspection.md#11-decisions-on-the-open-questions): why the identification is read-only
+"#,
+        "invalid-xmp-packet" => r#"# `invalid-xmp-packet`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+`replaceXmpPacket` was given XML that isn't an XMP packet Lamina PDF can read, so the document's packet was left as it was.
+
+## Why
+
+The new packet is read before it replaces the old one, with the same rules as a packet in a file. It must be well-formed XML in UTF-8 or UTF-16 with an `rdf:RDF` element, every prefix declared. It must not declare a DTD or use entities other than XML's five predefined ones, and it must stay within the limits on depth and attributes.
+
+## How to fix
+
+Fix the XML near the `offset` in the error's data; `reason` says what is wrong. Then replace the packet again.
+
+## Example
+
+```ts
+doc.replaceXmpPacket("<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF>");
+// invalid-xmp-packet: reason "prefix", the rdf: prefix isn't declared
+```
+
+## Data fields
+
+- `reason`: what is wrong: `encoding` (neither UTF-8 nor UTF-16), `dtd`, `entity` (an undefined entity), `prefix` (an undeclared prefix), `depth` (elements nested more than 64 deep), `limit` (too many attributes or namespaces), `syntax` (not well-formed XML) or `no-rdf` (no `rdf:RDF` element).
+- `offset`: the byte in the packet where the problem is, when there is one place.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3e](../todos/done/E3e-xmp-editor.md): the general XMP editor
+"#,
+        "invalid-xmp-property" => r#"# `invalid-xmp-property`
+
+- Type: error
+- Kind: `usage` (the call was made wrongly)
+
+## What happened
+
+`setXmpProperty` or `removeXmpProperty` named a property, or gave a value, that can't be written to the document's XMP metadata. Nothing changed.
+
+## Why
+
+An XMP property is named by a namespace URI and a local name, and written with a prefix for its namespace. A value can't be written when:
+
+- the namespace is empty, or is one the packet's own structure uses (RDF, `xml:`, `x:`, or the PDF/A extension schemas);
+- the prefix or name isn't an XML name without a colon, or the prefix starts with `xml`;
+- an array or a language alternative has no entries, an array mixes types or holds other arrays, or a language appears twice;
+- the property is one the document information dictionary mirrors (`dc:title`, `dc:creator`, `pdf:Producer`, the dates, …) and the value has the wrong shape for it.
+
+## How to fix
+
+Change the part `reason` names. For a property the information dictionary mirrors, give the title and subject as text, the authors (`dc:creator`) as an array of text, and the dates as dates. To write a structure, or the title in other languages, replace the whole packet with `replaceXmpPacket`.
+
+## Example
+
+```ts
+doc.setXmpProperty("http://purl.org/dc/elements/1.1/", "dc", "title", { type: "integer", value: 3 });
+// invalid-xmp-property: reason "shape", the title is text
+```
+
+## Data fields
+
+- `reason`: the part that can't be written: `namespace`, `prefix`, `name`, `value` (an empty, mixed or nested array, or a repeated language) or `shape` (the wrong shape for a mirrored property).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3e](../todos/done/E3e-xmp-editor.md): the general XMP editor
+"#,
+        "no-pages-left" => r"# `no-pages-left`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A page deletion named every page of the document. Lamina PDF refused it and changed nothing, because a PDF needs at least one page for a reader to show.
+
+## Why
+
+The pages given to the deletion cover the whole document. That can happen when someone selects every page and deletes the selection, or when a script deletes pages one batch at a time and the last batch takes the rest.
+
+## How to fix
+
+Keep at least one page. Delete all the pages but one, or insert a blank page first and then delete the others.
+
+## Example
+
+```rust
+let pages: Vec<_> = doc.page_infos()?.into_iter().map(|p| p.id).collect();
+doc.apply(vec![DeletePages::new(pages).into()])?; // no-pages-left
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E2b](../todos/done/E2b-page-structure-ops.md): the page-structure ops
+- [E2 plan §11](../plans/editor/e2-page-organisation.md#11-decisions-on-the-open-questions): deleting every page is refused
+",
+        "invalid-op" => r"# `invalid-op`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An edit carried a value Lamina PDF can't use, so Lamina PDF refused it and left the document unchanged. Inserting blank pages, for example, needs a page count from 1 to 10,000 and a size whose width and height are above 0 and at most 14,400 points.
+
+## Why
+
+The value came from the caller, often from an op log that a script built or that came from elsewhere. It was out of range: a count of 0 or millions of pages, or a size that is zero, negative or not a number.
+
+## How to fix
+
+Check the values before you apply the edit. Insert blank pages in batches of at most 10,000, and give each page a width and height in points, such as 612 by 792 for US Letter.
+
+## Example
+
+```rust
+let op = InsertBlankPages::new(PagePosition::End, 0, PageSize::LETTER);
+doc.apply(vec![op.into()])?; // invalid-op: insert at least one page
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E2b](../todos/done/E2b-page-structure-ops.md): the page-structure ops
+",
+        "unknown-annotation" => r#"# `unknown-annotation`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An annotation op names an annotation by an ID that no page of the document lists in its `/Annots`.
+
+## Why
+
+The annotation was deleted, by an earlier op or along with its parent comment, or the ID comes from another document. An ID read before an undo can also name an annotation that the undo took away.
+
+## How to fix
+
+Read the page's annotations again and take the ID from that list.
+
+## Example
+
+```json
+{ "op": "deleteAnnot", "args": { "id": "a99.0" } }
+```
+
+No page lists object 99 as an annotation.
+
+## Data fields
+
+None. The `location` is the annotation's `object` and `id`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4b](../todos/done/E4b-annotation-model-and-overlay.md): the annotation model and the annotation ops' core
+"#,
+        "annotation-locked" => r#"# `annotation-locked`
+
+- Type: error
+- Kind: `state` (the operation isn't valid in the current state)
+
+## What happened
+
+The annotation's flags forbid the change (ISO 32000-2 §12.5.3, Table 167). The `Locked` flag forbids deleting the annotation, moving it or changing its properties, though its contents may still change. The `LockedContents` flag forbids changing its contents. A delete also takes the annotation's pop-up, its replies and the rest of its group, so a lock on any of those refuses it too.
+
+## Why
+
+The file's author locked the annotation so that readers can't change it by accident, as some review and form tools do.
+
+## How to fix
+
+An update that changes only the annotation's flags is always allowed, so clearing the lock first lets the next edit through. Clear it only when you are allowed to change the annotation.
+
+## Example
+
+```json
+{ "op": "updateAnnot", "args": { "id": "a12.0", "translate": { "dx": 10, "dy": 0 } } }
+```
+
+The annotation has `/F 132` (Print and Locked), so it can't be moved.
+
+## Data fields
+
+None. The `location` is the annotation's `object` and `id`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4b](../todos/done/E4b-annotation-model-and-overlay.md): the annotation model and the annotation ops' core
+"#,
+        "annotation-not-editable" => r#"# `annotation-not-editable`
+
+- Type: error
+- Kind: `unsupported` (valid input that Lamina PDF does not support yet)
+
+## What happened
+
+The annotation can't be changed or deleted by the annotation ops. Either it is a widget, the part of a form field that shows on the page, or it is stored as a direct dictionary inside the page's `/Annots` array instead of as an object of its own.
+
+## Why
+
+Widgets belong to their form fields, and editing one on its own would leave the field inconsistent; the form ops edit them. ISO 32000-2 Table 31 asks for `/Annots` to hold references to annotation objects, and a direct dictionary has no object an edit could change in place.
+
+## How to fix
+
+Edit a widget through its form field. An annotation stored inside the page's list can't be edited yet: Lamina PDF reads it, shows it and keeps it as it is when saving.
+
+## Example
+
+```json
+{ "op": "deleteAnnot", "args": { "id": "a14.0" } }
+```
+
+Object 14 is a text field's widget.
+
+## Data fields
+
+None. The `location` is the annotation's `object` and `id` when it has an object.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4b](../todos/done/E4b-annotation-model-and-overlay.md): the annotation model and the annotation ops' core
+"#,
+        "invalid-label-ranges" => r"# `invalid-label-ranges`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A `SetPageLabels` op gave page label ranges that break a rule of the PDF standard, so nothing was changed.
+
+## Why
+
+A document's page labels are a list of ranges, each starting at a page (ISO 32000-2 §12.4.2). The list must start on the first page, so every page has a label. The ranges must follow the page order, with at most one starting on any page. Numbers start from 1, so a range can't number from 0.
+
+## How to fix
+
+Give the ranges in page order, put the first on the document's first page, and number each from 1 or more. To remove every label, give an empty list.
+
+## Example
+
+```rust
+let first = doc.page_info(0)?.id;
+let third = doc.page_info(2)?.id;
+let ranges = vec![
+    PageLabelRange::new(third, Some(LabelStyle::Decimal)),
+    PageLabelRange::new(first, Some(LabelStyle::LowerRoman)),
+];
+doc.apply(vec![Op::from(SetPageLabels::new(ranges))]); // invalid-label-ranges: out of page order
+```
+
+## Data fields
+
+- `what`: the rule that was broken: `first-page` (the first range isn't on the first page), `order` (ranges out of page order, or two on one page) or `first-number` (a range numbered from 0).
+",
         "pdfa-one-author" => r#"# `pdfa-one-author`
 
 - Type: warning
@@ -2406,6 +3176,38 @@ The decisions and todos behind this code:
 
 - [E1c](../todos/done/E1c-metadata-ops.md): the conformance warnings
 "#,
+        "duplicate-tags-incomplete" => r"# `duplicate-tags-incomplete`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file says it conforms to PDF/UA-1, and a duplicated page's copy is partly untagged. PDF/UA-1 requires every piece of real content to be tagged (ISO 14289-1 §7.1), so saving the file as it is writes one that no longer meets it.
+
+## Why
+
+A copy shares its page's content, so Lamina PDF tags it with copies of the page's structure elements. An element that also holds content on another page, such as a paragraph that runs over a page break, can't be copied for one page alone. The copy's share of that content is left untagged rather than tied to the original's element. The same holds for content drawn by a form XObject that carries tags of its own, since the copy shares that XObject with its page.
+
+## How to fix
+
+Tag the copy's untagged content in a tagging tool, or duplicate only pages whose elements end on the page. If the file needn't stay PDF/UA-1, save anyway: the warning never blocks a save.
+
+## Example
+
+Duplicating a page whose last paragraph continues on the next page, in a PDF/UA-1 file, then `doc.plan()`, lists `duplicate-tags-incomplete`. The edit's `tagsIncomplete` names the copy.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E2k](../todos/done/E2k-duplicate-pages.md): duplicating pages
+- [E2 plan §3](../plans/editor/e2-page-organisation.md#3-conformance-the-edits-must-keep): what page edits do to a PDF/UA claim
+",
         "sink" => r"# `sink`
 
 - Type: error
@@ -4335,6 +5137,39 @@ The decisions and todos behind this code:
 - [ADR 0004](../decisions/0004-render-backend.md) §3
 
 In a checkout of Lamina PDF, `cargo xtask fetch-pdfium` fetches the pinned build and prints its `LAMINA_PDF_PDFIUM_DIR`.
+",
+        "export-failed" => r"# `export-failed`
+
+- Type: error
+- Kind: `internal` (a bug in Lamina PDF)
+
+## What happened
+
+A page was drawn for an export, but the PNG, JPEG or TIFF encoder failed to write it.
+
+## Why
+
+The encoders write into memory, and the drawing gives them a valid image, so a failure is a bug in Lamina PDF or in the encoder, not a problem with the document. A page too big for the format is reported as `render-too-large` instead.
+
+## How to fix
+
+Report it with the format, the resolution and the page. Exporting in another format may work meanwhile.
+
+## Example
+
+```rust
+let files = export_pages(doc.as_ref(), &[0], &ExportOptions::new(ExportFormat::Png), &CancelToken::new())?; // export-failed only on a bug
+```
+
+## Data fields
+
+- `format`: `png`, `jpeg` or `tiff`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3h](../todos/done/E3h-images-to-pdf-and-page-export.md): page export
 ",
         "model-failed" => r"# `model-failed`
 

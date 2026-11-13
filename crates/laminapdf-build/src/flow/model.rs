@@ -4,10 +4,10 @@
 use laminapdf_text::Alignment;
 
 use crate::nav::LinkTarget;
-use crate::page::PageSize;
 use crate::surface::color::Color;
 use crate::surface::image::Image;
 use crate::surface::text::FontHandle;
+use laminapdf_model::PageSize;
 
 /// How a stretch of text looks: its fonts (the first, then fallbacks for characters it lacks),
 /// size, colour, baseline rise, language, and whether it is struck through.
@@ -485,7 +485,8 @@ pub enum FlowBlock {
     /// A block quotation (`BlockQuote`): its blocks indented 18 points.
     Quote(Vec<FlowBlock>),
     /// A block of computer code: its text in `style`, a line per line of the text, indented 12
-    /// points and wrapped at the body's width (a `P` holding a `Code` element).
+    /// points and wrapped at the body's width (a `P` holding a `Code` element). A tab becomes
+    /// spaces up to the next multiple of four columns; elsewhere in a flow a tab is one space.
     CodeBlock(String, TextStyle),
     /// A horizontal rule across the body (a `Layout` artifact), with 6 points above and below.
     Rule,

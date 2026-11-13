@@ -40,7 +40,7 @@ const BEFORE_MODIFIED: readonly EditableField[] = ["title", "authors", "subject"
 const AFTER_MODIFIED: readonly EditableField[] = ["creator", "producer"];
 
 /** `"2B"` as `"PDF/A-2b"`. */
-function pdfaLevel(pdfa: string): string {
+export function pdfaLevel(pdfa: string): string {
   const m = /^(\d+)([A-Za-z]*)$/.exec(pdfa);
   return m === null ? `PDF/A-${pdfa}` : `PDF/A-${m[1]}${(m[2] ?? "").toLowerCase()}`;
 }

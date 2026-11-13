@@ -138,12 +138,15 @@ round = "E6"
 [[op]]
 id = "B.01"
 name = "Insert, delete, replace images"
+# E6 adds images and changes the ones it added (E6 plan §2); E7d edits existing ones.
 round = "E6"
+target = "write"
 
 [[op]]
 id = "B.02"
 name = "Resize, rotate, crop, reposition"
 round = "E6"
+target = "write"
 
 [[op]]
 id = "B.03"
@@ -165,6 +168,7 @@ round = "E6"
 id = "B.06"
 name = "Arrows, paths, freehand drawing"
 round = "E4"
+target = "round-trip"
 
 [[op]]
 id = "B.07"
@@ -287,41 +291,49 @@ round = "E2"
 id = "D.01"
 name = "Highlight / underline / strike through"
 round = "E4"
+target = "round-trip"
 
 [[op]]
 id = "D.02"
 name = "Sticky notes & text comments"
 round = "E4"
+target = "round-trip"
 
 [[op]]
 id = "D.03"
 name = "Text-correction annotations"
 round = "E4"
+target = "round-trip"
 
 [[op]]
 id = "D.04"
 name = "Freehand ink"
 round = "E4"
+target = "round-trip"
 
 [[op]]
 id = "D.05"
 name = "Shapes, lines, arrows"
 round = "E4"
+target = "round-trip"
 
 [[op]]
 id = "D.06"
 name = "Callouts & text boxes"
 round = "E4"
+target = "round-trip"
 
 [[op]]
 id = "D.07"
 name = "Custom stamps"
 round = "E5"
+target = "round-trip"
 
 [[op]]
 id = "D.08"
 name = "Attach files as annotations"
 round = "E5"
+target = "round-trip"
 
 [[op]]
 id = "D.09"
@@ -333,11 +345,13 @@ target = "read"
 id = "D.10"
 name = "Replies to comments"
 round = "E5"
+target = "round-trip"
 
 [[op]]
 id = "D.11"
 name = "Status & review properties"
 round = "E5"
+target = "round-trip"
 
 [[op]]
 id = "D.12"
@@ -349,21 +363,25 @@ target = "read"
 id = "D.13"
 name = "Import & export annotation data"
 round = "E5"
+target = "round-trip"
 
 [[op]]
 id = "D.14"
 name = "Flatten annotations into content"
 round = "E5"
+target = "round-trip"
 
 [[op]]
 id = "D.15"
 name = "Delete or summarise annotations"
 round = "E5"
+target = "round-trip"
 
 [[op]]
 id = "D.16"
 name = "(cross-cutting) Generate appearance streams"
 round = "E4"
+target = "round-trip"
 
 # E. Interactive forms
 

@@ -224,6 +224,19 @@ impl<'d> Outline<'d> {
         }
     }
 
+    /// An outline without its items that walks the page tree only when a destination needs
+    /// it: for resolving one destination (the catalog's `/OpenAction`).
+    pub(crate) const fn destinations_only(doc: &'d Document) -> Self {
+        Self {
+            doc,
+            items: Vec::new(),
+            roots: Vec::new(),
+            by_id: BTreeMap::new(),
+            pages: PageSource::Lazy(OnceCell::new()),
+            names: OnceCell::new(),
+        }
+    }
+
     /// The document it reads.
     pub(crate) const fn doc(&self) -> &'d Document {
         self.doc
@@ -422,6 +435,17 @@ impl<'d> Outline<'d> {
 
     /// Named destinations: the `/Names /Dests` tree first, then the catalog's `/Dests`
     /// dictionary (PDF 1.1), keyed by name bytes.
+    /// The names of every named destination, from the `/Names /Dests` tree and the catalog's
+    /// `/Dests` (a name in both listed once), sorted by their bytes.
+    ///
+    /// # Errors
+    /// Reading errors of the name tree and the catalog.
+    ///
+    /// Added in 0.2.0.
+    pub fn destination_names(&self) -> Result<Vec<Vec<u8>>> {
+        Ok(self.named()?.keys().cloned().collect())
+    }
+
     fn named(&self) -> Result<&BTreeMap<Vec<u8>, Object>> {
         if let Some(names) = self.names.get() {
             return Ok(names);
@@ -587,6 +611,12 @@ impl<'o, 'd> OutlineItem<'o, 'd> {
         self.item().and_then(|i| i.node.as_dict()).and_then(|d| d.get(key))
     }
 
+    /// The item dictionary.
+    #[cfg(feature = "navigation")]
+    pub(crate) fn dict(&self) -> Option<&'o laminapdf_cos::Dict> {
+        self.item().and_then(|i| i.node.as_dict())
+    }
+
     /// The item's stable ID.
     ///
     /// Added in 0.2.0.
@@ -698,6 +728,68 @@ impl<'o, 'd> OutlineItem<'o, 'd> {
             Some(d) => self.outline.destination(d),
             None => Ok(None),
         }
+    }
+
+    /// The web address of a `URI` action (§12.6.4.8), lossily decoded from its ASCII bytes.
+    ///
+    /// # Errors
+    /// As [`OutlineItem::title`].
+    ///
+    /// Added in 0.2.0.
+    pub fn uri(&self) -> Result<Option<String>> {
+        let Some(action) = self.action_dict()? else {
+            return Ok(None);
+        };
+        let Some(action) = action.as_dict() else {
+            return Ok(None);
+        };
+        if self.action_kind(action)? != Some(ActionKind::Uri) {
+            return Ok(None);
+        }
+        Ok(
+            match action
+                .get("URI")
+                .map(|u| self.outline.doc.read(u))
+                .transpose()?
+                .flatten()
+                .as_deref()
+            {
+                Some(Object::String(s)) => Some(String::from_utf8_lossy(&s.bytes).into_owned()),
+                _ => None,
+            },
+        )
+    }
+
+    /// The colour (`/C`, §12.3.3 Table 151) as three numbers from 0 to 1, when it holds three
+    /// numbers.
+    ///
+    /// # Errors
+    /// As [`OutlineItem::title`].
+    ///
+    /// Added in 0.2.0.
+    pub fn color(&self) -> Result<Option<[f64; 3]>> {
+        let Some(c) = self.get("C") else { return Ok(None) };
+        let Some(c) = self.outline.doc.read(c)? else {
+            return Ok(None);
+        };
+        Ok(match c.as_array() {
+            Some([r, g, b]) => match (r.as_f64(), g.as_f64(), b.as_f64()) {
+                (Some(r), Some(g), Some(b)) => Some([r, g, b]),
+                _ => None,
+            },
+            _ => None,
+        })
+    }
+
+    /// The style flags (`/F`: bit 1 italic, bit 2 bold); 0 without them.
+    ///
+    /// # Errors
+    /// As [`OutlineItem::title`].
+    ///
+    /// Added in 0.2.0.
+    pub fn flags(&self) -> Result<i64> {
+        let Some(f) = self.get("F") else { return Ok(0) };
+        Ok(self.outline.doc.read(f)?.and_then(|f| f.as_int()).unwrap_or(0))
     }
 
     /// `/A`, resolved.

@@ -37,6 +37,8 @@ A PR that adds a code adds:
 | [`outline-item-skipped`](outline-item-skipped.md) | `input` | an outline item was missing, not a dictionary or too deep, and was skipped with its subtree |
 | [`invalid-date`](invalid-date.md) | `input` | an Info date is not a valid PDF date; the raw string is kept |
 | [`xmp-invalid`](xmp-invalid.md) | `input` | the XMP metadata packet is not readable XMP and reads as absent |
+| [`annot-name-duplicate`](annot-name-duplicate.md) | `input` | two annotations on one page have the same name (/NM), which should be unique on its page |
+| [`xmp-repaired`](xmp-repaired.md) | `input` | the XMP metadata packet had damage other readers read past, and was read the same way |
 | [`invalid-page-label`](invalid-page-label.md) | `input` | a /PageLabels entry is malformed; the malformed part is dropped |
 | [`invalid-entry`](invalid-entry.md) | `input` | an entry a view reads is unreadable or of the wrong type and reads as absent |
 | [`content-unknown-operator`](content-unknown-operator.md) | `input` | an operator the spec does not define was skipped outside a BX/EX section |
@@ -98,6 +100,26 @@ A PR that adds a code adds:
 | [`saved-not-rebased`](saved-not-rebased.md) | `state` | the document was saved to a sink Lamina PDF cannot read back and waits for rebase |
 | [`no-pending-save`](no-pending-save.md) | `state` | rebase was called without a save waiting for it |
 | [`malformed-xmp`](malformed-xmp.md) | `input` | a metadata edit would replace the document's XMP packet, which can't be read, losing what it holds |
+| [`unknown-source`](unknown-source.md) | `usage` | an op or a call names a source document that was not added to the session |
+| [`open-action-not-destination`](open-action-not-destination.md) | `usage` | an op would replace or remove the document's open action, which is an action other than a destination |
+| [`unknown-outline-item`](unknown-outline-item.md) | `usage` | an outline op names a bookmark the outline does not have |
+| [`direct-outline-item`](direct-outline-item.md) | `unsupported` | the bookmark is stored inside another item rather than as an object of its own, so outline ops can't name it yet |
+| [`outline-not-a-sibling`](outline-not-a-sibling.md) | `usage` | the position names a bookmark that is not a child of the parent the op names |
+| [`outline-move-into-itself`](outline-move-into-itself.md) | `usage` | a move would put a bookmark inside itself or one of its descendants |
+| [`unknown-named-destination`](unknown-named-destination.md) | `usage` | the op names a destination the file does not define |
+| [`named-destination-exists`](named-destination-exists.md) | `usage` | a rename to a name another destination already has |
+| [`empty-destination-name`](empty-destination-name.md) | `usage` | a destination name is empty |
+| [`link-uri-refused`](link-uri-refused.md) | `usage` | a web address that isn't an absolute http, https or mailto address in plain ASCII |
+| [`view-not-finite`](view-not-finite.md) | `usage` | a destination's coordinates and zoom must be finite numbers |
+| [`xmp-claim-read-only`](xmp-claim-read-only.md) | `usage` | an XMP edit would change the file's PDF/A or PDF/UA identification, which only conversion or a check may set |
+| [`invalid-xmp-packet`](invalid-xmp-packet.md) | `input` | the XMP packet given to replace the document's doesn't parse |
+| [`invalid-xmp-property`](invalid-xmp-property.md) | `usage` | an XMP property edit names a property, or gives a value, that can't be written |
+| [`no-pages-left`](no-pages-left.md) | `usage` | a page deletion would leave the document with no pages |
+| [`invalid-op`](invalid-op.md) | `usage` | an op's values are out of range, such as a page count or a page size |
+| [`unknown-annotation`](unknown-annotation.md) | `usage` | the op names an annotation that no page of the document lists |
+| [`annotation-locked`](annotation-locked.md) | `state` | the annotation's flags forbid the change: Locked forbids deleting it or changing its properties, LockedContents changing its contents |
+| [`annotation-not-editable`](annotation-not-editable.md) | `unsupported` | the annotation can't be edited by the annotation ops: it is a form field's widget, or a direct dictionary with no object of its own |
+| [`invalid-label-ranges`](invalid-label-ranges.md) | `usage` | page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0 |
 
 ## Op warnings
 
@@ -106,6 +128,7 @@ A PR that adds a code adds:
 | [`pdfa-one-author`](pdfa-one-author.md) | `usage` | the file claims PDF/A-1, which allows one author, and its metadata lists more |
 | [`pdfua-title-missing`](pdfua-title-missing.md) | `usage` | the file claims PDF/UA-1, which requires a title in its metadata, and it has none |
 | [`pdfa-info-mismatch`](pdfa-info-mismatch.md) | `input` | the file claims PDF/A, which requires the Info dictionary and the XMP packet to agree, and they differ |
+| [`duplicate-tags-incomplete`](duplicate-tags-incomplete.md) | `usage` | a duplicated page's content is partly untagged, which breaks the PDF/UA claim of the document's metadata |
 
 ## Save errors
 
@@ -201,6 +224,7 @@ A PR that adds a code adds:
 | [`render-too-large`](render-too-large.md) | `limit` | the requested tile is larger than the render limits allow; nothing was allocated |
 | [`render-failed`](render-failed.md) | `input` | the render engine could not open the document or draw the page |
 | [`render-backend-unavailable`](render-backend-unavailable.md) | `io` | the render engine is not available: its library or module could not be loaded |
+| [`export-failed`](export-failed.md) | `internal` | an export's PNG, JPEG or TIFF encoder failed on a page that was drawn |
 
 ## Extract errors (`laminapdf-extract`)
 

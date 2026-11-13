@@ -229,9 +229,11 @@ fn auto_saves_a_signed_file_incrementally_and_keeps_the_signed_bytes() {
     {
         let bytes = fixture(path);
         let mut doc = editable(&bytes);
-        rotate(&mut doc, 0, Rotation::Half);
+        // A title, not a rotation: rotating the page that holds the signed widget is a
+        // conflict of its own (ADR 0007 §11, `tests/widgets.rs`).
+        set_title(&mut doc, "Changed");
         if path.contains("certified") {
-            // Page structure is outside every DocMDP permission: refused without the override.
+            // Metadata is outside every DocMDP permission: refused without the override.
             assert_eq!(
                 doc.save(&mut Vec::new(), &SaveOptions::new()).map_err(|e| e.code()),
                 Err(REFUSED),

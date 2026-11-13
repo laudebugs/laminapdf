@@ -77,6 +77,7 @@ mod error;
 mod finish;
 #[cfg(feature = "text")]
 pub mod flow;
+mod images;
 #[cfg(feature = "markdown")]
 pub mod markdown;
 mod meta;
@@ -99,6 +100,8 @@ use laminapdf_test_fixtures::codes as test_codes;
 pub use attach::{AfRelationship, Attachment};
 pub use builder::{Appender, BuildOptions, Builder, PdfVersion};
 pub use error::{Error, ImageFormat, Result, Warning};
+pub use images::{ImagePages, ImagesOptions, images_to_pdf};
+pub use laminapdf_model::PageSize;
 pub use laminapdf_model::{
     BlendMode, Dash, FillRule, LabelStyle, Matrix, OutlineItemId, PageFrame, PageId, PdfDate, PointPt, Pt, RectPt,
     Rotation,
@@ -107,7 +110,7 @@ pub use laminapdf_model::{
 pub use laminapdf_text::{Alignment, Direction, EmbedPolicy, Feature, Standard14};
 pub use meta::{Metadata, PageLayout, PageMode, ViewerPreferences};
 pub use nav::{Fit, LinkTarget, OutlineEntry, PageLabel};
-pub use page::{PageBuilder, PageSize};
+pub use page::PageBuilder;
 pub use profile::Profile;
 pub use surface::color::{Color, IccProfile};
 pub use surface::image::{Image, MAX_DECODED_IMAGE_BYTES, PngOptions};
@@ -117,5 +120,5 @@ pub use surface::style::{LineCap, LineJoin, StrokeStyle};
 pub use surface::text::{FontHandle, TextRenderMode, TextRun};
 #[cfg(feature = "text")]
 pub use surface::textbox::{LineBox, Overflow, TextBoxOptions, TextLayout};
-pub use surface::{PendingPath, Surface};
+pub use surface::{Orientation, PendingPath, Surface};
 pub use tag::{Artifact, ArtifactKind, ContentKind, ElementId, PageEdge, TableScope, Tag, TagDiagnostic, TagKind};

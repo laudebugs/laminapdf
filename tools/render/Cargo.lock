@@ -594,7 +594,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-cos"
-version = "0.2.0-alpha.6"
+version = "0.2.0"
 dependencies = [
  "laminapdf-syntax",
  "thiserror",
@@ -602,17 +602,18 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-model"
-version = "0.2.0-alpha.6"
+version = "0.2.0"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-syntax",
  "quick-xml",
+ "sha2",
  "thiserror",
 ]
 
 [[package]]
 name = "laminapdf-render"
-version = "0.2.0-alpha.6"
+version = "0.2.0"
 dependencies = [
  "hayro",
  "laminapdf-cos",
@@ -624,7 +625,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-render-pdfium"
-version = "0.2.0-alpha.6"
+version = "0.2.0"
 dependencies = [
  "laminapdf-render",
  "pdfium-render",
@@ -632,7 +633,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-syntax"
-version = "0.2.0-alpha.6"
+version = "0.2.0"
 dependencies = [
  "aes",
  "md-5",

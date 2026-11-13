@@ -18,10 +18,27 @@ categories = ["parser-implementations"]
 [package.metadata.laminapdf]
 layer = "core"
 
+[features]
+default = ["edit"]
+# The write side the page ops build on: the page-tree editor, the name and number tree writers,
+# `PageLabels::remap`/`write` and `PageReferences`. Off for the workspace's other crates (their
+# dependency turns default features off), so crates that only read compile none of it: its
+# callers otherwise change how the shared read path is optimised.
+edit = ["navigation"]
+# The outline's tree editor (OutlineTree): what the outline and named-destination ops need,
+# without the page-tree editor and the reference index, whose code changes how the shared read
+# path is inlined. laminapdf-ops turns it on.
+navigation = ["tree-write"]
+# Only the name and number tree writers, `set_catalog_entry` and `PageLabels::write`/`remap`:
+# what `laminapdf-ops`' `SetPageLabels` calls, so the ops (and every WASM module) need neither
+# the page-tree editor nor `PageReferences`.
+tree-write = []
+
 [dependencies]
 laminapdf-cos = { workspace = true }
 laminapdf-syntax = { workspace = true }
 quick-xml = { workspace = true }
+sha2 = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
@@ -32,8 +49,26 @@ laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 # Builds test inputs with the writer. A dev-dependency cycle Cargo accepts; unit tests in `src/`
 # see a second copy of this crate through it, so they use only its writer (laminapdf-cos types).
 laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
+proptest = { workspace = true }
 serde_json = { workspace = true }
 toml = { workspace = true }
+
+# The write side's tests need its feature (on by default).
+[[test]]
+name = "page_tree"
+required-features = ["edit"]
+
+[[test]]
+name = "references"
+required-features = ["edit"]
+
+[[test]]
+name = "outline_tree"
+required-features = ["navigation"]
+
+[[test]]
+name = "trees"
+required-features = ["edit"]
 
 [lints]
 workspace = true

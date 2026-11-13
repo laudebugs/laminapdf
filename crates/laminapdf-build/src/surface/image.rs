@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 
+use super::exif::{Orientation, Shown};
 use crate::error::{Error, ImageFormat, Result};
 
 /// The most decoded bytes a PNG may need (256 MiB): larger images fail with
@@ -61,6 +62,9 @@ pub(crate) struct ImageData {
     pub(crate) inverted: bool,
     /// SHA-256 over everything above: equal images are written once per document.
     pub(crate) hash: [u8; 32],
+    /// How the file says to show it (not part of `hash`: it changes how the image is drawn,
+    /// not the image XObject).
+    pub(crate) shown: Shown,
 }
 
 /// Options for [`Image::png_with`].
@@ -110,15 +114,23 @@ pub struct Image {
     pub(crate) data: Arc<ImageData>,
 }
 
+/// How an image's samples are to be read: their colour space, bit depth, and whether they are
+/// stored inverted (an Adobe CMYK JPEG).
+#[derive(Clone, Copy)]
+struct Encoding {
+    color: ImageColor,
+    bits: u8,
+    inverted: bool,
+}
+
 impl Image {
     fn new(
         width: u32,
         height: u32,
-        color: ImageColor,
-        bits: u8,
+        Encoding { color, bits, inverted }: Encoding,
         samples: Samples,
         alpha: Option<Vec<u8>>,
-        inverted: bool,
+        shown: Shown,
     ) -> Self {
         let mut h = Sha256::new();
         h.update(width.to_be_bytes());
@@ -150,6 +162,7 @@ impl Image {
                 alpha,
                 inverted,
                 hash: h.finalize().into(),
+                shown,
             }),
         }
     }
@@ -168,6 +181,22 @@ impl Image {
     #[must_use]
     pub fn height(&self) -> u32 {
         self.data.height
+    }
+
+    /// How the file says the image is turned to be shown upright: a JPEG's or PNG's EXIF
+    /// `Orientation`, [`Orientation::Upright`] without one. [`Surface::image`](super::Surface::image)
+    /// draws the stored image as it is; [`images_to_pdf`](crate::images_to_pdf) applies this.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub fn orientation(&self) -> Orientation {
+        self.data.shown.orientation
+    }
+
+    /// The horizontal and vertical resolution, in dots per inch, that the file gives.
+    pub(crate) fn dpi(&self) -> Option<(f64, f64)> {
+        let to_dpi = |dpm: u32| f64::from(dpm) * super::exif::METRES_PER_INCH;
+        self.data.shown.dots_per_metre.map(|(x, y)| (to_dpi(x), to_dpi(y)))
     }
 
     /// Whether the image has an alpha channel that isn't fully opaque (written as `/SMask`).
@@ -206,11 +235,14 @@ impl Image {
         Ok(Self::new(
             header.width,
             header.height,
-            color,
-            8,
+            Encoding {
+                color,
+                bits: 8,
+                inverted,
+            },
             Samples::Jpeg(bytes),
             None,
-            inverted,
+            header.shown,
         ))
     }
 
@@ -245,11 +277,14 @@ impl Image {
         Ok(Self::new(
             png.width,
             png.height,
-            color,
-            png.bits,
+            Encoding {
+                color,
+                bits: png.bits,
+                inverted: false,
+            },
             Samples::Raw(samples),
             alpha,
-            false,
+            png.shown,
         ))
     }
 
@@ -285,11 +320,14 @@ impl Image {
         Ok(Self::new(
             width,
             height,
-            ImageColor::Rgb,
-            8,
+            Encoding {
+                color: ImageColor::Rgb,
+                bits: 8,
+                inverted: false,
+            },
             Samples::Raw(samples),
             alpha,
-            false,
+            Shown::default(),
         ))
     }
 }
@@ -322,6 +360,8 @@ pub(crate) struct JpegHeader {
     pub(crate) components: u8,
     /// An Adobe `APP14` segment was seen.
     pub(crate) adobe: bool,
+    /// What the `JFIF` and `Exif` segments say about showing it.
+    pub(crate) shown: Shown,
 }
 
 /// Walks the JPEG's marker segments (ITU-T T.81 §B.1) up to the frame header. Fill bytes
@@ -337,6 +377,7 @@ pub(crate) fn jpeg_header(bytes: &[u8]) -> Result<JpegHeader> {
     }
     let mut at = 2;
     let mut adobe = false;
+    let (mut jfif, mut exif) = (None, None);
     loop {
         if bytes.get(at) != Some(&0xFF) {
             return Err(invalid("a marker was expected"));
@@ -364,6 +405,8 @@ pub(crate) fn jpeg_header(bytes: &[u8]) -> Result<JpegHeader> {
         match marker {
             0xD9 | 0xDA => return Err(invalid("the scan starts before a frame header")),
             0xEE if segment.starts_with(b"Adobe") => adobe = true,
+            0xE0 if jfif.is_none() && segment.starts_with(b"JFIF\0") => jfif = Some(segment),
+            0xE1 if exif.is_none() && segment.starts_with(b"Exif\0\0") => exif = Some(segment),
             0xC0..=0xC2 => {
                 let [precision, h0, h1, w0, w1, components, ..] = *segment else {
                     return Err(invalid("the frame header is too short"));
@@ -380,6 +423,7 @@ pub(crate) fn jpeg_header(bytes: &[u8]) -> Result<JpegHeader> {
                     height: u32::from(height),
                     components,
                     adobe,
+                    shown: super::exif::from_jpeg_segments(jfif, exif),
                 });
             }
             0xC3 | 0xC5..=0xC7 | 0xC9..=0xCB | 0xCD..=0xCF => {
@@ -431,7 +475,8 @@ mod tests {
                     width: 3,
                     height: 2,
                     components: 3,
-                    adobe: false
+                    adobe: false,
+                    shown: Shown::default(),
                 }
             );
         }

@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 use laminapdf_cos::{CosMut, Dict, Name, ObjRef, Object, PdfString, Stream};
-use laminapdf_model::xmp::{MappedField, Packet, PacketState, Value};
+use laminapdf_model::xmp::{MAPPINGS, MappedField, PDFA_ID, PDFUA_ID, Packet, PacketState, RdfValue, Value};
 use laminapdf_syntax::text::encode_text_string;
 
 use crate::error::{Error, Result};
@@ -100,7 +100,8 @@ pub(crate) fn write(
         .collect();
     let pdf2 = policy.pdf2_info && doc.is_pdf2()?;
     let create = policy.create_packet || (pdf2 && policy.create_in_pdf2);
-    let packet = packet_to_edit(doc, &changes, create, policy.malformed)?;
+    let sets_a_value = changes.iter().any(|(_, v)| v.is_some());
+    let packet = packet_to_edit(doc, sets_a_value, create, policy.malformed)?;
     // A new packet starts from what Info holds, so the two agree on the fields the edit leaves.
     let seed = match &packet {
         Some((_, true)) => super::read::info_values(doc)?,
@@ -125,20 +126,169 @@ pub(crate) fn write(
         }
     }
     Ok(Effect {
-        pages: Vec::new(),
         packet_rewritten,
         removed,
+        ..Effect::default()
     })
+}
+
+/// Edits the XMP packet alone with `edit`, which returns whether it removed a property the
+/// packet held: properties the Info dictionary doesn't mirror. A missing or unreadable packet
+/// is handled as `policy` says; a new packet starts from Info's values, so the two agree.
+pub(crate) fn edit_packet(
+    doc: &mut laminapdf_model::Document,
+    sets_a_value: bool,
+    policy: Policy,
+    edit: impl FnOnce(&mut Packet) -> Result<bool>,
+) -> Result<Effect> {
+    let Some((mut packet, fresh)) = packet_to_edit(doc, sets_a_value, policy.create_packet, policy.malformed)? else {
+        return Ok(Effect::default());
+    };
+    if fresh {
+        for (field, value) in super::read::info_values(doc)? {
+            // Info's values are read in their field's shape, so this can't fail.
+            let _ = packet.set(field, Some(xml_value(&value)));
+        }
+    }
+    let removed = edit(&mut packet)?;
+    let written = packet.write();
+    // An edit that set a value the packet already held writes the same bytes: nothing changes.
+    if !packet.is_changed() || (!fresh && written.bytes == packet.original()) {
+        return Ok(Effect::default());
+    }
+    write_packet(&mut doc.cos_mut().edit(), written.bytes)?;
+    Ok(Effect {
+        packet_rewritten: written.canonical && !fresh,
+        removed,
+        declared: written.declared,
+        ..Effect::default()
+    })
+}
+
+/// Replaces the XMP packet with `xml` and brings Info's mirrored entries into step with it. A
+/// packet that claims PDF/A gets the extension schema entries its properties lack. Refused
+/// when `xml` doesn't parse, or changes the PDF/A or PDF/UA identification.
+pub(crate) fn replace_packet(doc: &mut laminapdf_model::Document, xml: &str) -> Result<Effect> {
+    let mut new = Packet::parse(xml.as_bytes()).map_err(Error::InvalidXmpPacket)?;
+    let old = doc.xmp()?;
+    let same_claims = match &old {
+        // A packet that can't be read can't be parsed for its claims: they are read from its
+        // text instead, and the new packet must claim the same parts and conformance.
+        PacketState::Malformed { bytes, .. } => {
+            let text = String::from_utf8_lossy(bytes);
+            [PDFA_ID, PDFUA_ID]
+                .into_iter()
+                .all(|ns| scanned_claims(&text, ns) == claimed_values(&new, ns))
+        }
+        _ => claims(old.packet()) == claims(Some(&new)),
+    };
+    if !same_claims {
+        return Err(Error::XmpClaimReadOnly);
+    }
+    new.declare_extensions();
+    let written = new.write();
+    if old.packet().is_some_and(|p| p.original() == written.bytes.as_slice()) {
+        return Ok(Effect::default());
+    }
+    let info = super::read::info_values(doc)?;
+    let changes: Vec<(MappedField, Option<Value>)> = MAPPINGS
+        .iter()
+        .filter(|m| m.info_key.is_some())
+        .filter_map(|m| {
+            let value = new.get(m.field).map(|v| xml_value(&v));
+            let held = info.iter().find(|(f, _)| *f == m.field).map(|(_, v)| v);
+            let same = match (&value, held) {
+                (Some(v), Some(h)) => super::read::same(h, v),
+                (None, None) => true,
+                _ => false,
+            };
+            (!same).then_some((m.field, value))
+        })
+        .collect();
+    let pdf2 = doc.is_pdf2()?;
+    let mut cos = doc.cos_mut().edit();
+    let removed_from_info = write_info(&mut cos, &changes, pdf2)?;
+    write_packet(&mut cos, written.bytes)?;
+    Ok(Effect {
+        removed: !matches!(old, PacketState::Absent) || removed_from_info,
+        declared: written.declared,
+        ..Effect::default()
+    })
+}
+
+/// The identification properties a claim is made of.
+const CLAIM_NAMES: [&str; 2] = ["part", "conformance"];
+
+/// `packet`'s `part` and `conformance` in `namespace`, trimmed, in [`CLAIM_NAMES`]' order.
+fn claimed_values(packet: &Packet, namespace: &str) -> Vec<(&'static str, String)> {
+    CLAIM_NAMES
+        .into_iter()
+        .filter_map(|name| match packet.property(namespace, name)? {
+            RdfValue::Text(t) => Some((name, t.trim().to_owned())),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The `part` and `conformance` in `namespace` that the text of a packet that can't be parsed
+/// shows: `<p:name>value</p:name>` or `p:name="value"` for each prefix `p` it binds to the
+/// namespace (the first value found for each), in [`CLAIM_NAMES`]' order.
+fn scanned_claims(text: &str, namespace: &str) -> Vec<(&'static str, String)> {
+    let prefixes: Vec<&str> = text
+        .match_indices(namespace)
+        .filter_map(|(at, _)| {
+            let before = text
+                .get(..at)?
+                .trim_end_matches(['"', '\'', '=', ' ', '\t', '\r', '\n']);
+            let start = before.rfind("xmlns:")?;
+            before.get(start + "xmlns:".len()..).filter(|p| !p.is_empty())
+        })
+        .collect();
+    CLAIM_NAMES
+        .into_iter()
+        .filter_map(|name| {
+            prefixes.iter().find_map(|prefix| {
+                let element = format!("<{prefix}:{name}>");
+                let attribute = format!("{prefix}:{name}=");
+                if let Some(at) = text.find(&element) {
+                    let rest = text.get(at + element.len()..)?;
+                    return Some((name, rest.get(..rest.find('<')?)?.trim().to_owned()));
+                }
+                let rest = text.get(text.find(&attribute)? + attribute.len()..)?;
+                let quote = rest.chars().next().filter(|q| matches!(q, '"' | '\''))?;
+                let value = rest.get(1..)?;
+                Some((name, value.get(..value.find(quote)?)?.trim().to_owned()))
+            })
+        })
+        .collect()
+}
+
+/// A packet's PDF/A and PDF/UA identification: its `pdfaid:` and `pdfuaid:` properties, text
+/// trimmed, in order.
+fn claims(packet: Option<&Packet>) -> Vec<(String, String, RdfValue)> {
+    let mut out: Vec<(String, String, RdfValue)> = packet
+        .into_iter()
+        .flat_map(Packet::properties)
+        .filter(|p| p.namespace == PDFA_ID || p.namespace == PDFUA_ID)
+        .map(|p| {
+            let value = match &p.value {
+                RdfValue::Text(t) => RdfValue::Text(t.trim().to_owned()),
+                other => other.clone(),
+            };
+            (p.namespace.clone(), p.name.clone(), value)
+        })
+        .collect();
+    out.sort_by(|a, b| (&a.0, &a.1).cmp(&(&b.0, &b.1)));
+    out
 }
 
 /// The packet the op edits, and whether it is a new one; `None` to leave XMP alone.
 fn packet_to_edit(
     doc: &laminapdf_model::Document,
-    changes: &[(MappedField, Option<Value>)],
+    sets_a_value: bool,
     create: bool,
     malformed: Malformed,
 ) -> Result<Option<(Packet, bool)>> {
-    let sets_a_value = changes.iter().any(|(_, v)| v.is_some());
     Ok(match doc.xmp()? {
         PacketState::Parsed(packet) => Some((packet, false)),
         PacketState::Absent if create && sets_a_value => Some((Packet::new_minimal(), true)),

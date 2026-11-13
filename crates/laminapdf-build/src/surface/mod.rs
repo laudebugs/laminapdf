@@ -4,6 +4,7 @@
 //! [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
 
 pub(crate) mod color;
+mod exif;
 pub(crate) mod image;
 pub(crate) mod path;
 mod pending;
@@ -14,6 +15,8 @@ pub(crate) mod text;
 #[cfg(feature = "text")]
 pub(crate) mod textbox;
 mod writer;
+pub use exif::Orientation;
+pub(crate) use exif::Shown;
 pub use pending::PendingPath;
 use writer::Writer;
 

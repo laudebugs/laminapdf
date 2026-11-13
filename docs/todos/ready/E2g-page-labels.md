@@ -6,16 +6,16 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §4](../../plans/editor/e2-page-organisation.md#4-crate-and-package-changes) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2h](./E2h-page-organiser-ui.md), [E2q](./E2q-page-labels-op.md), [E2s](./E2s-resize-and-orientation.md) |
+| Depends on | [E2h](./E2h-page-organiser-ui.md), [E2q](../done/E2q-page-labels-op.md), [E2s](./E2s-resize-and-orientation.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2g-page-labels` |
 | PR title | `feat(ui): page-setup dialogs and the labels editor` |
-| Size | L (400–800): five dialogs and their commands in `@laminapdf/ui`, the labels editor with its preview, and their Playwright tests; the ops are [E2f](E2f-page-geometry.md)'s, [E2q](E2q-page-labels-op.md)'s and [E2s](E2s-resize-and-orientation.md)'s |
+| Size | L (400–800): five dialogs and their commands in `@laminapdf/ui`, the labels editor with its preview, and their Playwright tests; the ops are [E2f](E2f-page-geometry.md)'s, [E2q](../done/E2q-page-labels-op.md)'s and [E2s](E2s-resize-and-orientation.md)'s |
 | PR | — |
 
 ## Goal
 
-Give Organise's Page setup ▾ its dialogs: page labels (O10), and crop, resize, page boxes and orientation (O09), over [E2f](E2f-page-geometry.md)'s, [E2s](E2s-resize-and-orientation.md)'s and [E2q](E2q-page-labels-op.md)'s ops, with each page's label shown under its thumbnail.
+Give Organise's Page setup ▾ its dialogs: page labels (O10), and crop, resize, page boxes and orientation (O09), over [E2f](E2f-page-geometry.md)'s, [E2s](E2s-resize-and-orientation.md)'s and [E2q](../done/E2q-page-labels-op.md)'s ops, with each page's label shown under its thumbnail.
 
 ## Context
 
@@ -33,7 +33,7 @@ Give Organise's Page setup ▾ its dialogs: page labels (O10), and crop, resize,
 
 **Out of scope** (and which todo covers it)
 
-- The ops → [E2f](E2f-page-geometry.md), [E2s](E2s-resize-and-orientation.md), [E2q](E2q-page-labels-op.md)
+- The ops → [E2f](E2f-page-geometry.md), [E2s](E2s-resize-and-orientation.md), [E2q](../done/E2q-page-labels-op.md)
 - The test that labels survive every page op, merge and extract → [E2i](E2i-signed-gating-and-close.md)
 - Headers, footers and page numbers stamped as content (the rest of `C.14`) → [E6d](E6d-watermarks-headers-footers.md)
 

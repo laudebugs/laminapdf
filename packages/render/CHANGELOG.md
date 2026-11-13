@@ -1,5 +1,14 @@
 # @laminapdf/render
 
+## 0.2.0
+
+### Patch Changes
+
+- 414a955: The Rust crate `laminapdf-content` can now add content to a page without changing what the page already draws. `PageContentWriter` wraps a page's content in `q … Q`, adds streams before or after it, and registers Form XObjects, graphics states and fonts under names the page doesn't use yet. A page that shares its resources or content streams with other pages keeps them unchanged.
+- 2e74d7d: Every error's and warning's `docsUrl` now opens its page on the docs site, `https://docs.laminapdf.com/reference/codes/<code>/`, instead of the Markdown file on GitHub. The code still ends the path.
+- 8ae1bae: `FlowTemplate` is now an interface rather than a type alias, with the same keys and the same checks, so the API reference names it where `builder.flow()` takes it instead of spelling out every key of every block. Its reference page explains the placeholders, with an example. Every type declaration in the TypeScript reference is now a code block, one key or union case to a line.
+- bd0148e: The packages' descriptions, keywords and README openings now say what each package does for you, and each package links to the issue tracker.
+
 ## 0.2.0-alpha.6
 
 No changes in this release.

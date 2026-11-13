@@ -1,5 +1,26 @@
 # @laminapdf/render-hayro
 
+## 0.2.0
+
+### Patch Changes
+
+- 2e74d7d: Every error's and warning's `docsUrl` now opens its page on the docs site, `https://docs.laminapdf.com/reference/codes/<code>/`, instead of the Markdown file on GitHub. The code still ends the path.
+- 8ae1bae: `FlowTemplate` is now an interface rather than a type alias, with the same keys and the same checks, so the API reference names it where `builder.flow()` takes it instead of spelling out every key of every block. Its reference page explains the placeholders, with an example. Every type declaration in the TypeScript reference is now a code block, one key or union case to a line.
+- bd0148e: The packages' descriptions, keywords and README openings now say what each package does for you, and each package links to the issue tracker.
+- Updated dependencies [e5fa57d]
+- Updated dependencies [414a955]
+- Updated dependencies [2e74d7d]
+- Updated dependencies [abd2520]
+- Updated dependencies [8ae1bae]
+- Updated dependencies [97cbf89]
+- Updated dependencies [cafed9f]
+- Updated dependencies [755d6ec]
+- Updated dependencies [bd0148e]
+- Updated dependencies [82d3c07]
+- Updated dependencies [9f555a2]
+  - @laminapdf/wasm@0.2.0
+  - @laminapdf/render@0.2.0
+
 ## 0.2.0-alpha.6
 
 ### Patch Changes

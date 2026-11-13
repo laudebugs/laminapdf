@@ -6,51 +6,142 @@ import type {
   AlignInit,
   AttachmentInit,
   BuildOptionsInit,
+  ChildItems as ChildItemsJs,
+  DestinationUse as DestinationUseJs,
+  DestinationView as DestinationViewJs,
   DirectionInit,
   DocumentInfoJs,
   DocumentMetadata as DocumentMetadataJs,
   EditedJs,
+  ExplicitDestination as ExplicitDestinationJs,
+  ExtensionPropertyJs,
+  FieldEditJs,
   FitInit,
+  InitialViewJs,
   LimitsInit,
   LineBoxJs,
   LinkTargetInit,
   MetadataInit,
   MetadataKey as MetadataKeyJs,
   MetadataPatch as MetadataPatchJs,
+  NamedDestinationJs,
+  OpenAt as OpenAtJs,
   Op as OpJs,
   OutlineEntryInit,
   OutlineNodeJs,
+  OutlineStyle as OutlineStyleJs,
+  OutlineTarget as OutlineTargetJs,
   OverflowInit,
+  PageAnnotationJs,
   PageInfoJs,
   PageLabelInit,
+  PageLabelRange as PageLabelRangeJs,
   PageLinkJs,
   PlannedSaveJs,
   ProfileInit,
   ProgressJs,
   PropertiesJs,
   RectJs,
+  ReferenceEditJs,
+  RenameLinks as RenameLinksJs,
   RenderModeInit,
   RevertedJs,
   SaveOptionsInit,
   SaveReportJs,
+  SetInitialView as SetInitialViewJs,
   StructureKidJs,
   StructureNodeJs,
   TargetJs,
   TargetViewJs,
   TextLayoutJs,
   TextRunJs,
+  ThreadJs,
   UndoOutcomeJs,
   ViewerPreferencesInit,
   ViolationJs,
+  XmpLangText as XmpLangTextJs,
+  XmpTextJs,
+  XmpValue as XmpValueJs,
 } from "@laminapdf/wasm/text";
 
 /**
- * An edit (`{ op, args }`): `setMetadata`, `removeMetadata`, `rotatePage`, or the deprecated
- * `setInfo` (use `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
+ * An edit (`{ op, args }`): `setMetadata`, `removeMetadata`, the XMP edits (`setXmpProperty`,
+ * `removeXmpProperty`, `replaceXmpPacket`), `setPageLabels`, the page ops (`insertBlankPages`, `deletePages`,
+ * `movePages`, `rotatePages`, `reversePages`, `duplicatePages`, `rotatePage`), the bookmark edits
+ * (`addOutlineItem`, `updateOutlineItem`, `moveOutlineItem`, `deleteOutlineItem`), the named-destination edits
+ * (`setNamedDestination`, `renameNamedDestination`, `deleteNamedDestination`), `setInitialView`, or the deprecated `setInfo` (use
+ * `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
  *
  * @since 0.2.0
  */
 export type Op = OpJs;
+
+/**
+ * A page of the document and how to show it, in the page's user space (PDF points from the
+ * bottom-left, y up): what a bookmark or a named destination goes to. Make one from a place in
+ * the viewer with {@link Document.destinationAt}.
+ *
+ * @since 0.2.0
+ */
+export type ExplicitDestination = ExplicitDestinationJs;
+
+/**
+ * How an {@link ExplicitDestination} shows its page, in user space, by `kind`: `"xyz"` puts
+ * (`left`, `top`) at the top-left at `zoom`, `"fit"` fits the page, `"fitH"` its width from
+ * `top`, `"fitV"` its height from `left`, `"fitR"` a rectangle, and `"fitB"`, `"fitBH"`,
+ * `"fitBV"` the same for the page's drawn area. `null` keeps the viewer's current value.
+ *
+ * @since 0.2.0
+ */
+export type DestinationView = DestinationViewJs;
+
+/**
+ * Where a bookmark goes: `{ destination }` (a page), `{ named }` (a named destination) or
+ * `{ uri }` (an `http`, `https` or `mailto` address).
+ *
+ * @since 0.2.0
+ */
+export type OutlineTarget = OutlineTargetJs;
+
+/**
+ * A bookmark's look: its `color` (`"#rrggbb"`, or `null` for the default black), `bold` and
+ * `italic`.
+ *
+ * @since 0.2.0
+ */
+export type OutlineStyle = OutlineStyleJs;
+
+/**
+ * What deleting a bookmark does with its children: `"delete"` them with it, or `"promote"` them
+ * into its place.
+ *
+ * @since 0.2.0
+ */
+export type ChildItems = ChildItemsJs;
+
+/**
+ * Whether renaming a named destination renames the bookmarks and links that use it too
+ * (`"follow"`, the default) or leaves them naming the old name (`"keep"`).
+ *
+ * @since 0.2.0
+ */
+export type RenameLinks = RenameLinksJs;
+
+/**
+ * Something that still names a destination an edit deleted: a bookmark (`"outlineItem"`), a
+ * link on a page (`"link"`) or what the file shows when it opens (`"openAction"`).
+ *
+ * @since 0.2.0
+ */
+export type DestinationUse = DestinationUseJs;
+
+/**
+ * A named destination: a name links and bookmarks jump to, and where it goes (absent when it
+ * names no page of this document).
+ *
+ * @since 0.2.0
+ */
+export type NamedDestination = NamedDestinationJs;
 /**
  * Changes to the document's metadata, written to its Info dictionary and its XMP metadata
  * together: a value sets the field, `null` removes it, a missing key leaves it alone. Dates are
@@ -73,6 +164,34 @@ export type MetadataKey = MetadataKeyJs;
  * @since 0.2.0
  */
 export type DocumentMetadata = DocumentMetadataJs;
+/**
+ * A value an XMP property can be set to, tagged with its type: `{ type: "text", value: "…" }`,
+ * `uri`, `integer`, `real`, `boolean`, `date` (a PDF date, `D:20261110093000Z`), `langAlt` (a
+ * list of {@link XmpLangText}), or `seq` and `bag` (lists of simple values of one type).
+ *
+ * @since 0.2.0
+ */
+export type XmpValue = XmpValueJs;
+/**
+ * One language's text in an XMP language alternative: `{ lang: "x-default", text: "…" }`.
+ *
+ * @since 0.2.0
+ */
+export type XmpLangText = XmpLangTextJs;
+/**
+ * The document's XMP metadata as text: `status` (`absent`, `parsed` or `malformed`), the
+ * packet's `xml` with the edits made so far, and the PDF/A level it claims (`pdfa`, e.g. `"2B"`).
+ *
+ * @since 0.2.0
+ */
+export type XmpText = XmpTextJs;
+/**
+ * An XMP property an edit declared in a PDF/A file's extension schemas, so the file keeps its
+ * PDF/A claim: its `namespace`, `prefix`, `name` and `valueType` (`Text`, `Seq Integer`, …).
+ *
+ * @since 0.2.0
+ */
+export type ExtensionProperty = ExtensionPropertyJs;
 /**
  * How a save would go, before it happens: what restricts it (`constraint`, the signatures and
  * the edits they forbid), the mode it resolves to or the code it would be refused with,
@@ -153,11 +272,31 @@ export type StructureNode = StructureNodeJs;
  */
 export type StructureKid = StructureKidJs;
 /**
- * The pages an edit touched.
+ * What an edit did: the pages it touched (`touchedPages`, IDs), whether it changed anything,
+ * the page IDs in their new order when it changed the page list (`pageOrder`), what a page
+ * deletion did to the references to the deleted pages (`references`), and what a page
+ * duplication did to form fields (`fields`) and which copies it couldn't tag whole
+ * (`tagsIncomplete`).
  *
  * @since 0.2.0
  */
 export type Edited = EditedJs;
+/**
+ * A reference to a deleted page (an outline item, a link, a named destination, the open action,
+ * a structure element or kid, or a form field's widget) and what the deletion did to it:
+ * `retargeted` to the page `to`, or `removed`.
+ *
+ * @since 0.2.0
+ */
+export type ReferenceEdit = ReferenceEditJs;
+/**
+ * A form field whose widget a duplicated page showed, and what the copy did with it: `renamed`
+ * (the copy's widget belongs to the new field `to`, fully named `name`) or `notCopied` (a
+ * signature's widget).
+ *
+ * @since 0.2.0
+ */
+export type FieldEdit = FieldEditJs;
 /**
  * How an undo or redo went.
  *
@@ -220,7 +359,10 @@ export type Fit = FitInit;
 export type OutlineEntry = OutlineEntryInit;
 
 /**
- * One item of a document's outline (its bookmarks), with where it goes and its children.
+ * One item of a document's outline (its bookmarks): its `id` (what the bookmark edits take), its
+ * title, where it goes (a page `target`, a `destinationName`, a `uri`, or an `otherAction` such
+ * as `JavaScript`, which Lamina PDF never runs), its `color`, `bold` and `italic` style, whether it
+ * shows its children (`open`) and the children.
  *
  * @since 0.2.0
  */
@@ -237,6 +379,16 @@ export type OutlineNode = OutlineNodeJs;
  * @since 0.2.0
  */
 export type PageLink = PageLinkJs;
+
+/**
+ * One annotation on a page, in page space: its ID (which the `updateAnnot` and `deleteAnnot`
+ * ops take), subtype, rectangle, text, author, dates, flags, colour, reply links and its own
+ * geometry by `kind` (`"quads"`, `"ink"`, `"vertices"`, `"line"`, `"callout"` or `"none"`),
+ * points as flat `[x, y, …]` lists.
+ *
+ * @since 0.2.0
+ */
+export type PageAnnotation = PageAnnotationJs;
 
 /**
  * What a properties view shows about a document: its Info entries and dates (ISO 8601), the
@@ -264,12 +416,57 @@ export type Target = TargetJs;
  * @since 0.2.0
  */
 export type TargetView = TargetViewJs;
+
+/**
+ * How a document asks to be shown when it opens: where it `open`s by `kind` (`"default"`: its
+ * first page at the reader's zoom; `"page"`: a {@link Target}; `"action"`: an `action` a reader
+ * runs, by its type, which Lamina PDF never runs), the panel to show (`pageMode`), how to lay the
+ * pages out (`pageLayout`), absent when the file leaves them to the reader, and the window's
+ * `preferences`.
+ *
+ * @since 0.2.0
+ */
+export type InitialView = InitialViewJs;
+
+/**
+ * Changes to how a document opens, for {@link Document.setInitialView}: a value sets the field,
+ * `null` removes it, a missing key leaves it alone. `open` names a page by its ID
+ * ({@link PageInfo.id}) and a `zoom`: `"default"`, `"fitPage"`, `"fitWidth"` or a percentage.
+ *
+ * @since 0.2.0
+ */
+export type InitialViewPatch = SetInitialViewJs;
+
+/**
+ * The page and zoom a document opens at, in an {@link InitialViewPatch}.
+ *
+ * @since 0.2.0
+ */
+export type OpenAt = OpenAtJs;
+
+/**
+ * An article thread: its `title` (document text) and its `parts` in reading order, each a `page`
+ * (0-based) and a `rect` (`[x0, y0, x1, y1]` in page space), absent when the part names a page
+ * the document lacks.
+ *
+ * @since 0.2.0
+ */
+export type ArticleThread = ThreadJs;
 /**
  * A page-label range, by its first page.
  *
  * @since 0.2.0
  */
 export type PageLabel = PageLabelInit;
+/**
+ * A page-label range for {@link Document.setPageLabels}: the labels from `page` (a page ID) up
+ * to the next range's page, in a `style` (`"decimal"`, `"upperRoman"`, `"lowerRoman"`,
+ * `"upperLetters"`, `"lowerLetters"`; without one, the `prefix` alone), after a `prefix`,
+ * numbered from `first` (1 when left out).
+ *
+ * @since 0.2.0
+ */
+export type PageLabelRange = PageLabelRangeJs;
 /**
  * The document's metadata (Info and XMP).
  *

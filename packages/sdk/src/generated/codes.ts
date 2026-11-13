@@ -51,6 +51,26 @@ export type ErrorCode =
   | "saved-not-rebased"
   | "no-pending-save"
   | "malformed-xmp"
+  | "unknown-source"
+  | "open-action-not-destination"
+  | "unknown-outline-item"
+  | "direct-outline-item"
+  | "outline-not-a-sibling"
+  | "outline-move-into-itself"
+  | "unknown-named-destination"
+  | "named-destination-exists"
+  | "empty-destination-name"
+  | "link-uri-refused"
+  | "view-not-finite"
+  | "xmp-claim-read-only"
+  | "invalid-xmp-packet"
+  | "invalid-xmp-property"
+  | "no-pages-left"
+  | "invalid-op"
+  | "unknown-annotation"
+  | "annotation-locked"
+  | "annotation-not-editable"
+  | "invalid-label-ranges"
   | "sink"
   | "not-rebased"
   | "sink-not-empty"
@@ -111,6 +131,7 @@ export type ErrorCode =
   | "render-too-large"
   | "render-failed"
   | "render-backend-unavailable"
+  | "export-failed"
   | "model-failed"
   | "model-result-unexpected"
   | "model-needs-host"
@@ -170,6 +191,8 @@ export type WarningCode =
   | "outline-item-skipped"
   | "invalid-date"
   | "xmp-invalid"
+  | "annot-name-duplicate"
+  | "xmp-repaired"
   | "invalid-page-label"
   | "invalid-entry"
   | "content-unknown-operator"
@@ -196,6 +219,7 @@ export type WarningCode =
   | "pdfa-one-author"
   | "pdfua-title-missing"
   | "pdfa-info-mismatch"
+  | "duplicate-tags-incomplete"
   | "tounicode-conflict"
   | "whole-font-rebuilt"
   | "flow-keep-broken"
@@ -258,6 +282,26 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "saved-not-rebased",
   "no-pending-save",
   "malformed-xmp",
+  "unknown-source",
+  "open-action-not-destination",
+  "unknown-outline-item",
+  "direct-outline-item",
+  "outline-not-a-sibling",
+  "outline-move-into-itself",
+  "unknown-named-destination",
+  "named-destination-exists",
+  "empty-destination-name",
+  "link-uri-refused",
+  "view-not-finite",
+  "xmp-claim-read-only",
+  "invalid-xmp-packet",
+  "invalid-xmp-property",
+  "no-pages-left",
+  "invalid-op",
+  "unknown-annotation",
+  "annotation-locked",
+  "annotation-not-editable",
+  "invalid-label-ranges",
   "sink",
   "not-rebased",
   "sink-not-empty",
@@ -318,6 +362,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "render-too-large",
   "render-failed",
   "render-backend-unavailable",
+  "export-failed",
   "model-failed",
   "model-result-unexpected",
   "model-needs-host",
@@ -378,6 +423,8 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "outline-item-skipped",
   "invalid-date",
   "xmp-invalid",
+  "annot-name-duplicate",
+  "xmp-repaired",
   "invalid-page-label",
   "invalid-entry",
   "content-unknown-operator",
@@ -404,6 +451,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "pdfa-one-author",
   "pdfua-title-missing",
   "pdfa-info-mismatch",
+  "duplicate-tags-incomplete",
   "tounicode-conflict",
   "whole-font-rebuilt",
   "flow-keep-broken",
@@ -440,6 +488,8 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "outline-item-skipped": "input",
   "invalid-date": "input",
   "xmp-invalid": "input",
+  "annot-name-duplicate": "input",
+  "xmp-repaired": "input",
   "invalid-page-label": "input",
   "invalid-entry": "input",
   "content-unknown-operator": "input",
@@ -491,9 +541,30 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "saved-not-rebased": "state",
   "no-pending-save": "state",
   "malformed-xmp": "input",
+  "unknown-source": "usage",
+  "open-action-not-destination": "usage",
+  "unknown-outline-item": "usage",
+  "direct-outline-item": "unsupported",
+  "outline-not-a-sibling": "usage",
+  "outline-move-into-itself": "usage",
+  "unknown-named-destination": "usage",
+  "named-destination-exists": "usage",
+  "empty-destination-name": "usage",
+  "link-uri-refused": "usage",
+  "view-not-finite": "usage",
+  "xmp-claim-read-only": "usage",
+  "invalid-xmp-packet": "input",
+  "invalid-xmp-property": "usage",
+  "no-pages-left": "usage",
+  "invalid-op": "usage",
+  "unknown-annotation": "usage",
+  "annotation-locked": "state",
+  "annotation-not-editable": "unsupported",
+  "invalid-label-ranges": "usage",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
   "pdfa-info-mismatch": "input",
+  "duplicate-tags-incomplete": "usage",
   "sink": "io",
   "not-rebased": "state",
   "sink-not-empty": "usage",
@@ -559,6 +630,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "render-too-large": "limit",
   "render-failed": "input",
   "render-backend-unavailable": "io",
+  "export-failed": "internal",
   "model-failed": "internal",
   "model-result-unexpected": "usage",
   "model-needs-host": "usage",
@@ -622,6 +694,8 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "outline-item-skipped": "check the outline: the skipped item and its children are missing",
   "invalid-date": "read the raw value from the Info view if you need it",
   "xmp-invalid": "nothing to do; a metadata edit asks before replacing it",
+  "annot-name-duplicate": "nothing to do; both are kept, and annotations are told apart by their own IDs",
+  "xmp-repaired": "nothing to do; a metadata edit writes the declarations the packet left out",
   "invalid-page-label": "nothing to do; affected pages fall back to decimal labels",
   "invalid-entry": "nothing to do; the view uses the entry's default",
   "content-unknown-operator": "nothing to do; check the page's rendering if the operator mattered",
@@ -673,9 +747,30 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "saved-not-rebased": "call rebase with the saved bytes before applying ops or saving again",
   "no-pending-save": "call rebase only after a save that returned SavedNotRebased",
   "malformed-xmp": "set replaceMalformed on the edit to replace the packet with a new one, or leave the metadata as it is",
+  "unknown-source": "add the source document's bytes with addSource before applying ops that name it",
+  "open-action-not-destination": "leave the open page out of the edit, which keeps the open action as it is",
+  "unknown-outline-item": "read the outline again and use one of its item IDs; an item a previous op deleted is gone",
+  "direct-outline-item": "apply any other outline op first: it rewrites the outline and gives every bookmark an object and an ID of its own",
+  "outline-not-a-sibling": "name a position among the parent's own children, or use first or last",
+  "outline-move-into-itself": "choose a parent outside the bookmark's own branch",
+  "unknown-named-destination": "list the file's named destinations and use one of their names",
+  "named-destination-exists": "choose a name no destination has, or delete the other one first",
+  "empty-destination-name": "give the destination a name of at least one character",
+  "link-uri-refused": "use a full address such as https://example.com/page; encode other characters with %",
+  "view-not-finite": "pass finite numbers, or null to keep the viewer's current value",
+  "xmp-claim-read-only": "leave the pdfaid: and pdfuaid: properties as they are; edit the other properties, or keep them unchanged in a replaced packet",
+  "invalid-xmp-packet": "fix the XML at the offset in the error's data (reason says what is wrong), then replace the packet again",
+  "invalid-xmp-property": "check the part the error's reason names: the namespace, prefix, name, value, or the shape a mirrored property needs",
+  "no-pages-left": "keep at least one page: delete all but one, or insert a blank page first",
+  "invalid-op": "insert between 1 and 10,000 pages at a time, each with a width and height above 0 and up to 14,400 points",
+  "unknown-annotation": "read the page's annotations again and use an ID from that list",
+  "annotation-locked": "clear the lock with an update of its flags first, if you may",
+  "annotation-not-editable": "edit a widget through its form field; an annotation stored inside the page's list can't be edited yet",
+  "invalid-label-ranges": "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
+  "duplicate-tags-incomplete": "retag the copy, or duplicate pages whose tagged elements lie on the page alone",
   "sink": "check the destination and retry the save; the document is unchanged",
   "not-rebased": "retry rebase with the saved output carried by the error",
   "sink-not-empty": "pass an empty sink: output offsets count from the sink's first byte",
@@ -741,6 +836,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "render-too-large": "request smaller tiles (256 to 512 pixels at high zoom) or raise RenderLimits if the larger bitmap is intended",
   "render-failed": "the file may be damaged or use a feature this engine can't draw; try the other backend, or report the file",
   "render-backend-unavailable": "run cargo xtask fetch-pdfium or set LAMINA_PDF_PDFIUM_DIR to the folder holding the PDFium library",
+  "export-failed": "report it with the format and the page: the encoder writes into memory, so this is a bug in Lamina PDF",
   "model-failed": "check the plug-in's own logs; extract without the model to get the rules-only result",
   "model-result-unexpected": "call provide only while request() returns a request, with the result its kind asks for",
   "model-needs-host": "step an extraction job and hand it each result with provide, or give the plug-in a page renderer",

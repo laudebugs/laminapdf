@@ -6,11 +6,11 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2e](./E2e-content-append-api.md), [E2f](./E2f-page-geometry.md), [E2r](./E2r-planner-page-checks.md) |
+| Depends on | [E2e](../done/E2e-content-append-api.md), [E2f](./E2f-page-geometry.md), [E2r](../done/E2r-planner-page-checks.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2s-resize-and-orientation` |
 | PR title | `feat(ops): resize pages and change orientation` |
-| Size | L (400–800): two ops that scale content through [E2e](E2e-content-append-api.md)'s writer and map annotations and destinations through one matrix, with bindings; the box ops are [E2f](E2f-page-geometry.md)'s |
+| Size | L (400–800): two ops that scale content through [E2e](../done/E2e-content-append-api.md)'s writer and map annotations and destinations through one matrix, with bindings; the box ops are [E2f](E2f-page-geometry.md)'s |
 | PR | — |
 
 ## Goal
@@ -27,9 +27,9 @@ Resize pages (scaling the content, or extending the page around an anchor) and s
 
 **In scope**
 
-- Ops, with the payloads of [E2 plan §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions): `ResizePages` and `SetOrientation`; each reports its touched widgets to [E2r](E2r-planner-page-checks.md)'s checks
+- Ops, with the payloads of [E2 plan §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions): `ResizePages` and `SetOrientation`; each reports its touched widgets to [E2r](../done/E2r-planner-page-checks.md)'s checks
 - Resize scales annotation `/Rect`, `/QuadPoints`, `/InkList`, `/Vertices`, `/CL`, `/L` and widget rects consistently
-- Resize maps every explicit destination that targets a resized page through the same matrix, wherever it lives: outline items (`/Dest` and `/A /GoTo /D`), link annotations, named destinations (the name tree and the PDF 1.1 `/Dests` dictionary), `/OpenAction`, and `GoTo` actions in other annotations and fields. Per ISO 32000-2 §12.3.2.2: `/XYZ left top` → the transformed point (null coordinates stay null, zoom unchanged); `/FitH top` and `/FitBH top` → the transformed `top`; `/FitV left` and `/FitBV left` → the transformed `left`; `/FitR l b r t` → the transformed, normalised rectangle; `/Fit` and `/FitB` unchanged. Structure-element `/BBox` attributes (Layout attributes, ISO 32000-2 §14.8.5.4) on elements whose `/Pg` is the page are transformed too. Named destinations are rewritten through [E2j](E2j-page-tree-and-tree-writers.md)'s name-tree writer; a destination shared by several pages is touched only for the resized ones
+- Resize maps every explicit destination that targets a resized page through the same matrix, wherever it lives: outline items (`/Dest` and `/A /GoTo /D`), link annotations, named destinations (the name tree and the PDF 1.1 `/Dests` dictionary), `/OpenAction`, and `GoTo` actions in other annotations and fields. Per ISO 32000-2 §12.3.2.2: `/XYZ left top` → the transformed point (null coordinates stay null, zoom unchanged); `/FitH top` and `/FitBH top` → the transformed `top`; `/FitV left` and `/FitBV left` → the transformed `left`; `/FitR l b r t` → the transformed, normalised rectangle; `/Fit` and `/FitB` unchanged. Structure-element `/BBox` attributes (Layout attributes, ISO 32000-2 §14.8.5.4) on elements whose `/Pg` is the page are transformed too. Named destinations are rewritten through [E2j](../done/E2j-page-tree-and-tree-writers.md)'s name-tree writer; a destination shared by several pages is touched only for the resized ones
 - `SetOrientation { swapBox }`, which changes `/MediaBox` rather than `/Rotate`, applies the same destination and `/BBox` mapping
 
 **Out of scope** (and which todo covers it)

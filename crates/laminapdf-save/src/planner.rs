@@ -10,6 +10,8 @@ use crate::detect::{self, Patches, Signatures};
 use crate::error::{Result, SaveError};
 use crate::options::{SaveMode, SaveOptions};
 use crate::resolve::resolve;
+#[cfg(feature = "page-checks")]
+use crate::widgets::WidgetIndex;
 
 /// Inspects a document for everything that restricts saving it ([ADR 0007] §2): its
 /// signatures and their `DocMDP`, `FieldMDP` and UR3 restrictions, why only a full rewrite would
@@ -43,6 +45,10 @@ use crate::resolve::resolve;
 #[derive(Debug, Clone)]
 pub struct SavePlanner {
     signatures: Signatures,
+    /// Which fields have widgets on which pages: read only when a signature has a field or a
+    /// field lock, for the field-level checks of page ops.
+    #[cfg(feature = "page-checks")]
+    widgets: Option<WidgetIndex>,
     constraint: SaveConstraint,
     conformance: Vec<ConformanceWarning>,
     packet_rewritten: bool,
@@ -81,14 +87,18 @@ impl SavePlanner {
         if dirty && pending.requires_rewrite() {
             rewrite_reasons.push(RewriteReason::OpRequiresRewrite);
         }
-        let violations = if dirty {
-            pending
-                .classes()
-                .iter()
-                .flat_map(|&class| signatures.violations(class))
-                .collect()
+        let mut violations: Vec<Violation> = Vec::new();
+        if dirty {
+            violations.extend(pending.classes().iter().flat_map(|&class| signatures.violations(class)));
+        }
+        #[cfg(feature = "page-checks")]
+        let widgets = if signatures.has_field_rules() {
+            if dirty {
+                pending_widget_violations(doc, &signatures, pending, &mut violations)?;
+            }
+            Some(WidgetIndex::new(doc)?)
         } else {
-            Vec::new()
+            None
         };
         let constraint = SaveConstraint {
             signatures: signatures.infos(),
@@ -101,12 +111,14 @@ impl SavePlanner {
         // Warnings only: a packet that can't be read (or read yet) claims nothing to break,
         // and the save itself reports any error reading the document.
         let conformance = if dirty {
-            laminapdf_ops::conformance_warnings(doc).unwrap_or_default()
+            laminapdf_ops::pending_conformance_warnings(doc, pending).unwrap_or_default()
         } else {
             Vec::new()
         };
         Ok(Self {
             signatures,
+            #[cfg(feature = "page-checks")]
+            widgets,
             constraint,
             conformance,
             packet_rewritten: dirty && pending.packet_rewritten(),
@@ -192,9 +204,11 @@ impl SavePlanner {
     }
 
     /// The restrictions `op` would break if it were applied and saved, for the editor to block
-    /// or warn before the edit ([ADR 0007] §2): those of its class, and, for an op that needs a
-    /// full rewrite ([`Op::requires_rewrite`]), every signature ([`Restriction::SignedBytes`]).
-    /// The planner stays the authority at save time.
+    /// or warn before the edit ([ADR 0007] §2): those of its class; for an op that needs a
+    /// full rewrite ([`Op::requires_rewrite`]), every signature ([`Restriction::SignedBytes`]);
+    /// and for a page op ([`Op::page_changes`]) that deletes or reshows a page, those of the
+    /// widgets on it ([`Restriction::SignedWidget`], [`Restriction::FieldMdp`]). The planner
+    /// stays the authority at save time.
     ///
     /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
     ///
@@ -210,6 +224,22 @@ impl SavePlanner {
                     .map(|s| Violation::new(op.class(), Restriction::SignedBytes, s.clone())),
             );
         }
+        #[cfg(feature = "page-checks")]
+        if let Some(index) = &self.widgets {
+            for change in op.page_changes() {
+                for field in index.on_page(&change.page) {
+                    let name = index.name(field);
+                    for v in self
+                        .signatures
+                        .widget_violations(field, name, change.change, op.class())
+                    {
+                        if !out.contains(&v) {
+                            out.push(v);
+                        }
+                    }
+                }
+            }
+        }
         out
     }
 
@@ -220,6 +250,30 @@ impl SavePlanner {
     pub fn would_violate_class(&self, class: ModificationClass) -> Vec<Violation> {
         self.signatures.violations(class).collect()
     }
+}
+
+/// Adds to `violations` those of the widgets the pending page ops touched. Names come from
+/// each field's own `/Parent` chain, not the pages: a deleted page's widgets are on no page any
+/// more.
+#[cfg(feature = "page-checks")]
+fn pending_widget_violations(
+    doc: &laminapdf_ops::Document,
+    signatures: &Signatures,
+    pending: &laminapdf_ops::PendingChanges,
+    violations: &mut Vec<Violation>,
+) -> Result<()> {
+    for w in pending.widgets() {
+        let name = match w.field.as_lamina_id().obj_ref() {
+            Some(r) => doc.field_name(r)?,
+            None => None,
+        };
+        for v in signatures.widget_violations(&w.field, name.as_deref(), w.change, w.class) {
+            if !violations.contains(&v) {
+                violations.push(v);
+            }
+        }
+    }
+    Ok(())
 }
 
 /// What a save does with the save-time metadata ([`SaveOptions::with_metadata_date`]).

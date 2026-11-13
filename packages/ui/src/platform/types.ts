@@ -121,6 +121,8 @@ export interface RecentFile {
   readonly hasHandle?: boolean | undefined;
   /** The document's fingerprint, the key its reading position is kept under (`Platform.positions`). */
   readonly fingerprint?: string | undefined;
+  /** The file is no longer where it was (the desktop checks): it can't reopen, only be removed. */
+  readonly missing?: boolean | undefined;
 }
 
 /** What `RecentFiles.add` keeps besides the file's name and size. */

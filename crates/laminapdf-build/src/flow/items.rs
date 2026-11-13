@@ -1,6 +1,8 @@
 //! A flow's blocks flattened into the items the paginator places, each with the structure
 //! element its content belongs to.
 
+use std::borrow::Cow;
+
 use super::contents::{Contents, Heading, destination, headings, plain_text};
 use super::measure::{Source, first_style};
 use super::model::{Figure, FlowBlock, Inline, List, ListKind, Paragraph, ParagraphStyle, TextStyle};
@@ -409,8 +411,9 @@ impl Items {
             if n > 0 {
                 paragraph = paragraph.line_break();
             }
+            let line = expand_tabs(line);
             // An empty line keeps its height: a no-break space, which draws nothing.
-            paragraph = paragraph.text(if line.is_empty() { "\u{a0}" } else { line }, style);
+            paragraph = paragraph.text(if line.is_empty() { "\u{a0}" } else { &line }, style);
         }
         self.paragraph(&paragraph, code, keep, indent + CODE_INDENT, None, None);
     }
@@ -445,6 +448,36 @@ impl Items {
     }
 }
 
+/// The columns between a code block's tab stops: `CommonMark`'s (spec §2.2).
+const TAB_STOP: usize = 4;
+
+/// `line` with each tab replaced by spaces up to the next tab stop, counting a column per
+/// grapheme cluster. A font has no tab glyph: the shaper draws a tab as a space, and a font with
+/// CFF outlines can't give the space glyph a second text, so the code's text and what it draws
+/// must agree.
+pub(crate) fn expand_tabs(line: &str) -> Cow<'_, str> {
+    if !line.contains('\t') {
+        return Cow::Borrowed(line);
+    }
+    let mut out = String::with_capacity(line.len() + TAB_STOP);
+    let mut column = 0;
+    let bounds = laminapdf_text::grapheme_boundaries(line);
+    for cluster in bounds
+        .windows(2)
+        .filter_map(|w| line.get(w.first().copied()?..w.get(1).copied()?))
+    {
+        if cluster == "\t" {
+            let spaces = TAB_STOP - column % TAB_STOP;
+            out.extend(std::iter::repeat_n(' ', spaces));
+            column += spaces;
+        } else {
+            out.push_str(cluster);
+            column += 1;
+        }
+    }
+    Cow::Owned(out)
+}
+
 /// A cell's element: `TH` heading its column in a header row, `TD` elsewhere.
 fn cell_tag(section: Section) -> Tag {
     if section == Section::Head {
@@ -464,4 +497,25 @@ fn note_body(body: &Paragraph, number: usize) -> Paragraph {
     out.inlines
         .extend(body.inlines.iter().filter(|i| !matches!(i, Inline::Note(_))).cloned());
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::expand_tabs;
+
+    #[test]
+    fn expand_tabs_should_fill_to_the_next_stop_of_four_columns() {
+        assert_eq!(expand_tabs("\ta\tbc\tdef\tg"), "    a   bc  def g");
+    }
+
+    #[test]
+    fn expand_tabs_should_count_a_base_and_its_marks_as_one_column() {
+        // "e" + U+0301 COMBINING ACUTE ACCENT is one grapheme, one column.
+        assert_eq!(expand_tabs("e\u{301}\tx"), "e\u{301}   x");
+    }
+
+    #[test]
+    fn expand_tabs_should_borrow_a_line_without_tabs() {
+        assert!(matches!(expand_tabs("plain"), std::borrow::Cow::Borrowed("plain")));
+    }
 }

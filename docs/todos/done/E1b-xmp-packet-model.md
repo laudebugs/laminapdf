@@ -39,7 +39,7 @@ Give `laminapdf-model` a typed view over the catalog's `/Metadata` XMP packet th
 **Out of scope** (and which todo covers it)
 
 - Metadata ops, save-time `MetadataDate`/`InstanceID` and PDF/A checks → [E1c](../done/E1c-metadata-ops.md)
-- Editing arbitrary/custom/extension schemas in the UI (J.04 write) → [E3e](../ready/E3e-xmp-editor.md)
+- Editing arbitrary/custom/extension schemas in the UI (J.04 write) → [E3e](../done/E3e-xmp-editor.md)
 
 **Editor facts**
 
@@ -49,7 +49,7 @@ Give `laminapdf-model` a typed view over the catalog's `/Metadata` XMP packet th
 - **`SaveConstraint`:** read-only here; the writer's output becomes a modified stream object in the overlay when an op uses it
 - **Web vs desktop:** identical (core only)
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `J.04` → `read` (core, pdf) (parse and typed read of the packet; `write`/`round-trip` comes with [E3e](../ready/E3e-xmp-editor.md))
+- **Capability-matrix rows to flip:** `J.04` → `read` (core, pdf) (parse and typed read of the packet; `write`/`round-trip` comes with [E3e](../done/E3e-xmp-editor.md))
 
 ## Tasks
 

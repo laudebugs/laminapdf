@@ -40,7 +40,7 @@
     block-size: var(--dot);
     border: var(--paper-border-width) solid var(--paper-control-border);
     border-radius: var(--paper-radius-pill);
-    background: var(--swatch);
+    background-color: var(--swatch);
   }
 
   .paper-swatch[data-selected] .paper-swatch-dot {

@@ -10,7 +10,7 @@
 //! | image | [`FlowBlock::Figure`], its text as alt text, its bytes from [`MarkdownBuildOptions::with_image`] | `Figure` |
 //! | list, task list | [`FlowBlock::List`] (an ordered list's start; ☐ and ☑) | `L`, `LI`, `Lbl`, `LBody` |
 //! | block quote | [`FlowBlock::Quote`] | `BlockQuote` |
-//! | code block | [`FlowBlock::CodeBlock`] | `P` holding `Code` |
+//! | code block | [`FlowBlock::CodeBlock`], a tab as spaces to the next multiple of four columns | `P` holding `Code` |
 //! | thematic break | [`FlowBlock::Rule`] | a `Layout` artifact |
 //! | table | [`FlowBlock::Table`], the first row as header | `Table`, `THead`, `TBody`, … |
 //! | footnote | a note ([`Paragraph::note`]) | `Reference`, `Note` |
@@ -51,9 +51,9 @@ use std::collections::BTreeMap;
 use crate::builder::Builder;
 use crate::error::Result;
 use crate::flow::{Flow, FlowBlock, FlowReport, Margins, PageRegion, PageTemplate, TextStyle};
-use crate::page::PageSize;
 use crate::surface::image::Image;
 use crate::surface::text::FontHandle;
+use laminapdf_model::PageSize;
 use laminapdf_text::Standard14;
 
 /// The fonts a Markdown document is set in, by role. Each falls back to `fallbacks`, in order,

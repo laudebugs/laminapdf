@@ -353,3 +353,55 @@ fn the_page_size_sets_the_default_template_s_pages() {
     let frame = doc.pages().unwrap().get(0).unwrap().frame().unwrap();
     assert_eq!((frame.width().get(), frame.height().get()), (612.0, 792.0));
 }
+
+/// `markdown` built with Noto Sans SC (CFF outlines: one CID per glyph) in every role, with
+/// the warnings embedding the fonts raised.
+fn build_cff(markdown: &str) -> (Vec<u8>, Vec<laminapdf_text::Warning>) {
+    let mut b = Builder::new(BuildOptions::new().with_id(*b"lamina-markdown!").with_compress(false));
+    let noto = b
+        .font(Font::from_bytes(fixture("fonts/NotoSansSC-Regular.otf")).unwrap())
+        .unwrap();
+    b.markdown(
+        markdown,
+        &MarkdownBuildOptions::new().with_fonts(MarkdownFonts::new(&noto)),
+    )
+    .unwrap();
+    let (doc, warnings) = b.finish_with_warnings().unwrap();
+    (save(doc), warnings)
+}
+
+#[test]
+fn a_tab_in_a_code_block_should_raise_no_tounicode_conflict_in_a_cff_font() {
+    let md = "```\na b\nc\td\n\tindented\n```\n\n    e\tf\n";
+    let (_, warnings) = build_cff(md);
+    assert_eq!(warnings, []);
+}
+
+#[test]
+fn a_tab_in_a_code_block_should_extract_as_spaces_to_the_next_tab_stop() {
+    // The extractor trims a line's leading spaces, so no line starts with a tab here.
+    let md = "```\nname\tqty\nab\t1\nabcd\tx\n```\n";
+    let (bytes, _) = build_cff(md);
+    assert!(
+        text(&bytes).contains("name    qty\nab  1\nabcd    x"),
+        "{}",
+        text(&bytes)
+    );
+}
+
+#[test]
+fn a_tab_outside_a_code_block_should_be_a_space() {
+    let md = "Before\tafter and `in\tcode`.\n";
+    let (bytes, warnings) = build_cff(md);
+    assert_eq!(warnings, []);
+    assert!(text(&bytes).contains("Before after and in code."), "{}", text(&bytes));
+}
+
+#[test]
+fn a_tab_in_a_code_block_in_a_list_item_should_extract_as_spaces_to_the_next_tab_stop() {
+    // An ordered list: Noto Sans SC has no bullet.
+    let md = "1. item\n\n   ```\n   ab\tc\n   ```\n";
+    let (bytes, warnings) = build_cff(md);
+    assert_eq!(warnings, []);
+    assert!(text(&bytes).contains("ab  c"), "{}", text(&bytes));
+}
