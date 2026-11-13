@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D6](../../plans/desktop-app.md#d6-signing-packaging-and-release-pipeline) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D6a](../ongoing/D6a-signing-runbook-and-owner-setup.md), [D6b](./D6b-release-workflow-and-linux-packages.md) |
+| Depends on | [D6a](../done/D6a-signing-runbook-and-owner-setup.md), [D6b](./D6b-release-workflow-and-linux-packages.md) |
 | ADRs | Implements ADR 0014 (macOS identity); respects ADR 0008 / D2c (engine helper entitlements) |
 | Branch | `ci/d6c-macos-signing` |
 | PR title | `ci(desktop): sign, notarise and staple macOS builds with the owner's Developer ID` |

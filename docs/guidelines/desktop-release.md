@@ -1,6 +1,6 @@
 # Desktop release and signing runbook
 
-This runbook tells the owner how to set up and look after the identities that sign Lamina PDF's desktop app, and tells the release workflows which secrets they may use. The owner signs every tagged release personally, as the publisher, on macOS, Windows and Linux ([architecture §8 Q5](../plans/architecture.md#8-open-questions-for-the-team), decided 2026-10-28). Sections 1 and 2 are the setup, section 3 checks each release, and sections 4 and 5 cover what happens later. Todo [D6a](../todos/ongoing/D6a-signing-runbook-and-owner-setup.md) wrote it; [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/ready/D6c-macos-signing-and-notarisation.md) and [D6d](../todos/ready/D6d-windows-signing.md) wire it into the workflows.
+This runbook tells the owner how to set up and look after the identities that sign Lamina PDF's desktop app, and tells the release workflows which secrets they may use. The owner signs every tagged release personally, as the publisher, on macOS, Windows and Linux ([architecture §8 Q5](../plans/architecture.md#8-open-questions-for-the-team), decided 2026-10-28). Sections 1 and 2 are the setup, section 3 checks each release, and sections 4 and 5 cover what happens later. Todo [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md) wrote it; [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/ready/D6c-macos-signing-and-notarisation.md) and [D6d](../todos/ready/D6d-windows-signing.md) wire it into the workflows.
 
 **Never write a secret value, private key, certificate file or recovery code into this repository**, a pull request, an issue or a screenshot. This page names secrets; it never holds them.
 
@@ -12,9 +12,9 @@ This runbook tells the owner how to set up and look after the identities that si
 | Publisher shown on every OS | The owner's legal name, as on their government ID |
 | Windows signing path | **Azure Artifact Signing**, Public Trust, individual developer. The owner lives in the US or Canada, the only places Microsoft accepts individuals. |
 | Apple account | Apple Developer Program, **individual** membership, Team ID `35KBR7UHPZ` |
-| Updater keys, R2 buckets, ADR 0014 | Keys (release `AF48D217C8FBC9BB`, nightly `D8B5180692ABC3EF`), buckets and tokens done 2026-11-12; ADR 0014 waits on [D5a](../todos/ready/D5a-update-worker-and-adr-0014.md), which hasn't started |
+| Updater keys, R2 buckets, ADR 0014 | Keys (release `AF48D217C8FBC9BB`, nightly `D8B5180692ABC3EF`), buckets and tokens done 2026-11-12; [ADR 0014](../decisions/0014-desktop-distribution.md) written by [D5a](../todos/done/D5a-update-worker-and-adr-0014.md) |
 
-D5a writes ADR 0014. Once it exists, these answers, the Apple Team ID and the GPG fingerprint go into it, before D6a merges.
+[ADR 0014 §6](../decisions/0014-desktop-distribution.md#6-signing-identities) records these answers, the Apple Team ID, the Azure account and profile, and the GPG fingerprints.
 
 The desktop app uses its own GitHub environments, `desktop-release`, `desktop-nightly` and `desktop-staging`. The repository's `release` environment belongs to the daily library and CLI releases, which publish with no approval step; adding a reviewer there would stop them, and their jobs must not read the desktop signing secrets.
 
@@ -101,7 +101,7 @@ One key signs the AppImage, `.deb`, `.rpm`, the detached `.asc` files and `SHA25
 - [x] Export **only the subkey** (`gpg --export-secret-subkeys --armor '<SUBKEY FPR>!'`, single-quoted so zsh leaves the `!` alone), protected by a passphrase. Add the `desktop-release` secrets `LINUX_SIGNING_KEY` (the armored export) and `LINUX_SIGNING_KEY_PASSPHRASE`.
 - [x] Publish the public key at `https://laminapdf.com/keys/lamina-release.asc` (the file `apps/site/public/keys/lamina-release.asc`, added by D6a; live once the website deploys it).
 - [x] Upload it to [keys.openpgp.org](https://keys.openpgp.org/upload) and click the link it sends to `releases@laminapdf.com`, so the key is found by its email address.
-- [x] Record the fingerprints here (and in ADR 0014 once D5a writes it):
+- [x] Record the fingerprints here (and in ADR 0014 §6):
   - primary (certify only, expires 2031-11-11): `FA00 7EB8 6046 1729 9F59  6FC5 B9FC 925D 5E53 7171`
   - signing subkey (expires 2028-11-11): `DD4D 8CE5 7C00 8BF6 05D4  73B6 7C7B 196F 2CB0 87F5`
 
@@ -113,12 +113,12 @@ One key signs the AppImage, `.deb`, `.rpm`, the detached `.asc` files and `SHA25
 | `.rpm` | `TAURI_SIGNING_RPM_KEY`, `TAURI_SIGNING_RPM_KEY_PASSPHRASE` | [Tauri RPM](https://v2.tauri.app/distribute/rpm/) |
 | `.deb` | none: Tauri doesn't sign it, so D6b signs it with `debsigs` | — |
 
-### 1.7 Updater keys (waits on D5a)
+### 1.7 Updater keys
 
 D5a's key ceremony makes two Tauri updater keys: one for releases and one for nightlies. Losing the release key strands every installed copy, because installed apps accept only updates that key signed.
 
 - [x] Confirm `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` exist in the `desktop-release` environment.
-- [ ] Confirm the release key's offline backups exist in two places.
+- [x] Confirm the release key's offline backups exist in two places (owner, 2026-11-13: both updater keys).
 - [x] Confirm the nightly key exists in the `desktop-nightly` environment under the same two names, with different values and one backup.
 
 ### 1.8 GitHub `desktop-release` environment
@@ -143,7 +143,7 @@ D5b's updater tests run in `desktop-staging` on every push to `main` and every n
 - [x] Create it with no reviewer, and limit deployment branches to `main`.
 - [x] Add only the two `desktop-staging` secrets in §2 (from D5a and D5b).
 
-### 1.11 Cloudflare (waits on D5a)
+### 1.11 Cloudflare
 
 - [x] Confirm the R2 buckets `lamina-pdf-releases`, `lamina-pdf-nightly` and `lamina-pdf-staging` and their download domains exist (D5a). The staging bucket and the `desktop-staging` environment in §2 serve D5b's updater tests and D6b–D6d's trial runs; they hold only a throwaway updater key and that bucket's token, so nothing in them can reach a user's install.
 - [x] Confirm each token is scoped to one bucket only, stored as in §2. The staging bucket has two separate tokens: one in `desktop-release`, for D6b–D6d's signed trial runs, and one in `desktop-staging`, for D5b's tests.
@@ -241,12 +241,12 @@ Fill in each date when the item is created, and add a calendar reminder as far a
 
 ### When a key or account is compromised
 
-1. **Stop new updates.** Pause the affected channels in the update Worker's manifests (ADR 0014's kill switch, once D5a writes it; effective within 60 seconds). A paused channel still serves bridge releases.
+1. **Stop new updates.** Pause the affected channels in the update Worker's manifests ([ADR 0014 §4](../decisions/0014-desktop-distribution.md#4-the-kill-switch-and-bridges)'s kill switch, effective within 60 seconds). A paused channel still serves bridge releases.
 2. **Revoke the identity.**
    - Apple: revoke the Developer ID certificate in the developer account, revoke the API key, and contact Apple Developer Support about the compromise so it can act on builds already signed.
    - Azure: remove the Signer role and the federated credential, then open an Azure support request to revoke the certificate profile's certificates (deleting the profile doesn't revoke them; [FAQ](https://learn.microsoft.com/azure/artifact-signing/faq)).
    - GPG: publish the revocation certificate for the subkey (or the primary key) to the website and keys.openpgp.org.
-   - Updater key: follow ADR 0014's rotation procedure (once D5a writes it): a bridge release signed with the old key that carries the new public key.
+   - Updater key: follow [ADR 0014 §7](../decisions/0014-desktop-distribution.md#7-the-updater-keys-custody-and-rotation)'s rotation procedure: a bridge release signed with the old key that carries the new public key.
    - Cloudflare or GitHub: revoke the token and delete the environment secret.
 3. **Make the new identity** with this runbook and replace the secrets.
 4. **Re-sign and republish** the current release with the new identity, verify it with §3, and lift the pause.

@@ -116,11 +116,15 @@ fn save(e: &laminapdf_save::SaveError) -> Data {
                     violations
                         .iter()
                         .map(|v| {
-                            json!({
+                            let mut out = json!({
                                 "class": format!("{:?}", v.class),
                                 "restriction": format!("{:?}", v.restriction),
                                 "signature": signature(&v.signature),
-                            })
+                            });
+                            if let (Some(field), Some(map)) = (&v.field, out.as_object_mut()) {
+                                map.insert("field".to_owned(), json!(field.to_string()));
+                            }
+                            out
                         })
                         .collect(),
                 ),
@@ -328,6 +332,7 @@ fn cos_warning(w: laminapdf_cos::Warning) -> Data {
             }
             d
         }
+        W::XmpRepaired { reason, .. } => data([("reason", json!(reason))]),
         W::ContentResourceMissing { offset, category, .. } => {
             data([("offset", json!(offset)), ("category", json!(category))])
         }

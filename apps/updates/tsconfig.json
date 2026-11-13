@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts", "vitest.config.ts"],
+  // The entry and the generated runtime types: tsconfig.worker.json checks them against workerd's
+  // globals, which clash with Node's and the DOM's.
+  "exclude": ["src/index.ts", "src/generated/**"]
+}

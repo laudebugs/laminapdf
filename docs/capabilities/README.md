@@ -40,8 +40,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| B.01 | Insert, delete, replace images | — | — | — | — | E6 round-trip |  |
-| B.02 | Resize, rotate, crop, reposition | — | — | — | — | E6 round-trip |  |
+| B.01 | Insert, delete, replace images | — | — | — | — | E6 write |  |
+| B.02 | Resize, rotate, crop, reposition | — | — | — | — | E6 write |  |
 | B.03 | Extract original embedded images | — | — | — | — | E3 read |  |
 | B.04 | Adjust transparency/opacity | — | — | — | — | E6 round-trip |  |
 | B.05 | Draw lines, rectangles, circles, polygons | — | — | — | — | E6 round-trip |  |

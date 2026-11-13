@@ -127,14 +127,14 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D5. Update service
 
-**Todos:** [D5a](../todos/ready/D5a-update-worker-and-adr-0014.md), [D5b](../todos/ready/D5b-updater-in-app.md)
+**Todos:** [D5a](../todos/done/D5a-update-worker-and-adr-0014.md), [D5b](../todos/ready/D5b-updater-in-app.md)
 
 **Deliverable:** ADR 0014; `apps/updates` Worker (channels, staged rollout, kill switch, 60 s cache) with tests; R2 layout and channel manifests; updater plugin wired in the app with settings.
 **Accepted when:** Worker unit tests cover 204/200, rollout bucketing from the `Lamina-Install-Id` header (present, absent, malformed) and kill switch; a test asserts the install ID never reaches logs; an app on `0.0.1-test` updates to `0.0.2-test` on each OS from a staging channel; a tampered bundle is rejected.
 
 ### D6. Signing, packaging and release pipeline
 
-**Todos:** [D6a](../todos/ongoing/D6a-signing-runbook-and-owner-setup.md), [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/ready/D6c-macos-signing-and-notarisation.md), [D6d](../todos/ready/D6d-windows-signing.md)
+**Todos:** [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md), [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/ready/D6c-macos-signing-and-notarisation.md), [D6d](../todos/ready/D6d-windows-signing.md)
 
 **Deliverable:** release workflow (tauri-action matrix) producing artefacts signed with the owner's identities as publisher: dmg (Developer ID + notarisation + stapling), MSI and NSIS (Azure Artifact Signing if the owner is eligible as an individual, otherwise an OV certificate in a cloud HSM), AppImage and deb (rpm optional); uploads to R2 with attestations; manifests updated per channel.
 **Accepted when:** Gatekeeper and `debsig`/AppImage signature checks pass on clean VMs; on Windows the Authenticode signature is valid and the owner is shown as publisher. SmartScreen may warn on the first downloads with either path, since no certificate (OV, EV or Artifact Signing) gets instant reputation ([Microsoft](https://learn.microsoft.com/windows/apps/package-and-deploy/smartscreen-reputation), checked 2026-11-12 by D6a); the prompt names the owner as publisher, a warning is acceptable for early releases, and the release notes document how reputation builds up; release artifacts carry GitHub attestations; a nightly channel build publishes automatically (nightlies are built in a separate `desktop-nightly` environment, are not OS-code-signed, and form their own install line: switching to beta or stable means reinstalling; see [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md)).
@@ -162,7 +162,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 1. Mac App Store, Microsoft Store, Flathub: in scope, and when?
 2. Crash backend: own Worker + R2, or Sentry (self-hosted or SaaS)?
 3. One engine process per window, or a shared pool with per-document isolation? *Answered by D2b:* one per window; an engine uses 11–12 MiB with a small document ([ADR 0008 §2](../decisions/0008-desktop-shell.md#2-process-model-a-main-process-that-owns-files-and-a-sandboxed-engine-per-window)).
-4. Default channel for new installs: stable only, or beta during 0.x?
+4. Default channel for new installs: stable only, or beta during 0.x? *Answered 2026-11-12 (owner):* an install follows the channel of the build it came from; the download page offers stable once a stable release exists, and Settings switches between stable and beta ([ADR 0014 §1](../decisions/0014-desktop-distribution.md#1-channels)).
 5. Do we register as the default PDF handler on install (opt-in prompt) or leave it to the user? *Answered by D3a:* the installers register Lamina PDF as able to open PDFs and leave the default to the user ([ADR 0008 §10](../decisions/0008-desktop-shell.md#10-opening-files-from-the-os)); an opt-in prompt, if wanted, comes with the settings (D7b).
 
 ## 9. To-dos
@@ -208,10 +208,10 @@ Ticked by the PR that completes them.
 
 ### D5. Update service
 
-- [ ] Write ADR 0014 (channels, rollout, signing identities with the owner as publisher, key custody and rotation)
-- [ ] Create `apps/updates` Worker: `/{channel}/{target}/{arch}/{current_version}` → 204 or 200 JSON
-- [ ] Implement rollout bucketing by install-ID hash (from the `Lamina-Install-Id` request header), kill switch, 60 s cache
-- [ ] Define the R2 layout and channel manifest schema; tests for every branch
+- [x] Write ADR 0014 (channels, rollout, signing identities with the owner as publisher, key custody and rotation) ([ADR 0014](../decisions/0014-desktop-distribution.md), D5a)
+- [x] Create `apps/updates` Worker: `/{channel}/{target}/{arch}/{current_version}` → 204 or 200 JSON
+- [x] Implement rollout bucketing by install-ID hash (from the `Lamina-Install-Id` request header), kill switch, 60 s cache (one 30 s cache layer)
+- [x] Define the R2 layout and channel manifest schema; tests for every branch
 - [ ] Wire the Tauri updater plugin with settings (channel, disable, check now, reset install ID); send the install ID header via `UpdaterBuilder::header`
 - [ ] End-to-end update test on a staging channel on three OSes; tampered bundle rejected
 
@@ -219,7 +219,7 @@ Ticked by the PR that completes them.
 
 - [ ] Release workflow with tauri-action matrix (macOS arm64/x64, Windows x64/arm64, Linux x64/arm64)
 - [ ] Apple Developer ID signing, notarisation and stapling
-- [x] Owner confirms Windows Artifact Signing individual eligibility (US/Canada only); otherwise obtain an OV certificate in a cloud HSM (confirmed eligible 2026-11-12, [D6a](../todos/ongoing/D6a-signing-runbook-and-owner-setup.md))
+- [x] Owner confirms Windows Artifact Signing individual eligibility (US/Canada only); otherwise obtain an OV certificate in a cloud HSM (confirmed eligible 2026-11-12, [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md))
 - [ ] Windows signing via `signCommand` (Artifact Signing or the OV certificate); MSI and NSIS outputs
 - [ ] Linux AppImage (updater) and deb; rpm if the matrix allows
 - [ ] Upload to R2 with `.sig` files and GitHub attestations; update channel manifests
