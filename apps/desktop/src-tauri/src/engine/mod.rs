@@ -9,7 +9,7 @@ mod documents;
 mod secret;
 mod tiles;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError, Weak};
 
@@ -122,7 +122,8 @@ pub(crate) struct Engines {
     tickets: Mutex<BTreeMap<(String, u64), ReqId>>,
     /// Held through a move and taken by a closing window, so a window that closes mid-move waits
     /// for it: the document then belongs to one window that is still open, or closes with it.
-    moving: Mutex<()>,
+    /// It guards the windows that have closed, which a move may not go to (labels aren't reused).
+    moving: Mutex<BTreeSet<String>>,
     launcher: Launcher,
     config: Config,
     notify: Arc<dyn Notify>,
@@ -135,7 +136,7 @@ impl Engines {
             registry: Arc::new(DocumentRegistry::default()),
             windows: Mutex::new(BTreeMap::new()),
             tickets: Mutex::new(BTreeMap::new()),
-            moving: Mutex::new(()),
+            moving: Mutex::new(BTreeSet::new()),
             launcher,
             config,
             notify,
@@ -323,6 +324,11 @@ impl Engines {
     }
 
     /// `doc`'s file, for the watcher; never sent to a webview or an engine.
+    pub(crate) fn holds_any(&self, window: &str) -> bool {
+        self.registry.holds_any(window)
+    }
+
+    /// The path `doc` was opened from.
     pub(crate) fn path_of(&self, doc: DocId) -> Option<std::path::PathBuf> {
         self.registry.path_of(doc)
     }
@@ -334,7 +340,10 @@ impl Engines {
     /// engine's alone: the registry keeps the entry and its password. On any failure `from`
     /// owns it again, `to`'s engine forgets it, and the tab stays where it was.
     pub(crate) fn move_doc(&self, doc: DocId, from: &str, to: &str) -> Result<DocumentMeta, DesktopError> {
-        let _moving = self.moving.lock().unwrap_or_else(PoisonError::into_inner);
+        let closed = self.moving.lock().unwrap_or_else(PoisonError::into_inner);
+        if closed.contains(to) {
+            return Err(DesktopError::UnknownWindow);
+        }
         self.check(from, doc)?;
         let len = self.registry.len_of(doc).ok_or(DesktopError::UnknownDocument)?;
         let password = self.registry.password_of(doc);
@@ -368,7 +377,10 @@ impl Engines {
 
     /// `window` closed: its documents close and its engine stops.
     pub(crate) fn close_window(&self, window: &str) {
-        let _moving = self.moving.lock().unwrap_or_else(PoisonError::into_inner);
+        self.moving
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .insert(window.to_owned());
         self.registry.remove_window(window);
         let engine = self.windows().remove(window);
         if let Some(engine) = engine {

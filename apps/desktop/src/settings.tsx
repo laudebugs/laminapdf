@@ -1,8 +1,8 @@
 // The desktop app's Settings dialog (S07): for now its Files section, with the choices the main
 // process keeps in preferences.json and acts on (src-tauri/src/prefs.rs): remembering recent
 // files, which turned off clears the app's and the OS's recent lists, reloading open files that
-// change on disk, opening files in tabs or windows, and opening a file that is open already. The settings page D5b and D7b build adds the other sections to the same
-// registry.
+// change on disk, opening files in tabs or windows, and opening a file that is open already. The
+// full settings page adds its other sections to the same registry.
 
 import { message, SettingsDialog, SettingsRegistry, Switch, useSettingsSection } from "@laminapdf/ui";
 import { type ReactNode, useCallback, useEffect, useState } from "react";

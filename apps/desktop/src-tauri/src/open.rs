@@ -2,7 +2,7 @@
 //! that the single-instance plugin forwards, macOS's `RunEvent::Opened` (Finder, the Dock icon),
 //! and files dropped on a window. Each source calls [`route_open`], and nothing else opens them.
 //!
-//! Requests go to the frontmost window, each file in a new tab there (todo D4a), or each in a new
+//! Requests go to the frontmost window, each file in a new tab there, or each in a new
 //! window when the user chose that; a file open already shows its tab instead. Until a window's
 //! webview has mounted, nothing could show a document, so [`route_open`] queues its paths in
 //! [`PendingOpens`]; the webview listens for [`OPEN_EVENT`], then calls `take_pending_opens`, which
@@ -109,6 +109,11 @@ impl PendingOpens {
         std::mem::take(&mut queue.paths)
     }
 
+    /// Whether paths wait for `window`'s webview.
+    pub(crate) fn waiting(&self, window: &str) -> bool {
+        self.queues().get(window).is_some_and(|queue| !queue.paths.is_empty())
+    }
+
     /// `window` closed: its queue goes (a reused label would start not ready).
     pub(crate) fn closed(&self, window: &str) {
         self.queues().remove(window);
@@ -192,8 +197,14 @@ pub(crate) fn route_open(app: &AppHandle, window: &str, paths: Vec<PathBuf>) {
         return;
     }
     if app.state::<crate::prefs::Prefs>().get().open_in == crate::prefs::OpenIn::Windows {
+        // The first file takes `window` if it shows nothing yet (a cold start, a window just made
+        // for these files), so no window is left empty.
+        let mut empty = Some(window).filter(|w| !app.state::<PendingOpens>().waiting(w) && !holds_any(app, w));
         for path in paths {
-            match crate::windows::new_window(app) {
+            match empty
+                .take()
+                .map_or_else(|| crate::windows::new_window(app), |w| Ok(w.to_owned()))
+            {
                 Ok(label) => queue_or_open(app, &label, vec![path]),
                 Err(error) => tracing::warn!("could not make a window for a document: {error}"),
             }
@@ -201,6 +212,10 @@ pub(crate) fn route_open(app: &AppHandle, window: &str, paths: Vec<PathBuf>) {
         return;
     }
     queue_or_open(app, window, paths);
+}
+
+fn holds_any(app: &AppHandle, window: &str) -> bool {
+    app.state::<std::sync::Arc<crate::engine::Engines>>().holds_any(window)
 }
 
 /// Opens `paths` in `window` now if its webview is ready, else when it is.

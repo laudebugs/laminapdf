@@ -1,11 +1,12 @@
 // The window's document tabs (desktop shell S02): a strip over the top bar, one tab per open
 // document, a close button on the active, hovered and focused tab, and a menu at the end that
-// lists every tab and moves the active one to another window. It is a tablist with a roving
+// lists every tab and moves the shown one to another window. A tab's context menu (right-click,
+// Shift+F10 or the menu key) shows that tab and opens the same menu. It is a tablist with a roving
 // tabindex: one Tab stop, the arrow keys move between tabs, Home and End jump, Enter or Space
 // shows the focused tab, Delete closes it. Tabs reorder by dragging within the strip.
 //
-// Shells with one window per document (the web reader) never render it; the desktop shell does,
-// from two tabs on (`Platform.capabilities.multiWindow`).
+// Only shells whose platform has `capabilities.multiWindow` render it (the desktop app); the web
+// reader has one document per browser tab.
 
 import { Icon } from "@laminapdf/icons/react";
 import { type DragEvent, type KeyboardEvent, type ReactNode, useRef, useState } from "react";
@@ -59,35 +60,17 @@ export function DocumentTabs({
   const [focused, setFocused] = useState<string>();
   const stop = tabs.find((t) => t.id === focused)?.id ?? active ?? tabs[0]?.id;
   const drag = useTabDrag(tabs, onReorder);
-
+  const [menuOpen, setMenuOpen] = useState(false);
+  // A tab's context menu: the tab shows, then the strip's menu opens with the moves for it.
+  const openMenuFor = (id: string) => {
+    onActivate(id);
+    setMenuOpen(true);
+  };
   const focusTab = (id: string) => {
     setFocused(id);
     strip.current?.querySelector<HTMLElement>(`[data-tab-id="${CSS.escape(id)}"]`)?.focus();
   };
-
-  const onKeyDown = (event: KeyboardEvent<HTMLElement>, id: string) => {
-    const index = tabs.findIndex((t) => t.id === id);
-    const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
-    const step = (by: number) => tabs[(index + by + tabs.length) % tabs.length]?.id;
-    const target = {
-      ArrowRight: step(rtl ? -1 : 1),
-      ArrowLeft: step(rtl ? 1 : -1),
-      Home: tabs[0]?.id,
-      End: tabs.at(-1)?.id,
-    }[event.key];
-    if (target !== undefined) {
-      event.preventDefault();
-      focusTab(target);
-    } else if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onActivate(id);
-    } else if (event.key === "Delete") {
-      event.preventDefault();
-      const next = step(1);
-      onClose(id);
-      if (next !== undefined && next !== id) focusTab(next);
-    }
-  };
+  const onKeyDown = tabKeys(tabs, { focusTab, onActivate, onClose, openMenuFor });
 
   const menu: MenuEntry<string>[] = [...tabs.map((t) => ({ id: `${TAB_ENTRY}${t.id}`, label: t.title })), ...moves];
   return (
@@ -104,10 +87,11 @@ export function DocumentTabs({
             onClose={onClose}
             onFocus={setFocused}
             onKeyDown={onKeyDown}
+            onContextMenu={openMenuFor}
           />
         ))}
       </div>
-      <MenuTrigger>
+      <MenuTrigger isOpen={menuOpen} onOpenChange={setMenuOpen}>
         <AriaButton className="paper-document-tabs-menu" aria-label={message("tabs.menu", { count: tabs.length })}>
           <Icon name="chevron-down" />
         </AriaButton>
@@ -124,6 +108,50 @@ export function DocumentTabs({
       </MenuTrigger>
     </div>
   );
+}
+
+/** What the strip's keys do to its tabs. */
+interface TabActions {
+  focusTab(id: string): void;
+  onActivate(id: string): void;
+  onClose(id: string): void;
+  openMenuFor(id: string): void;
+}
+
+/** The tabs' key handler: arrows (mirrored right to left), Home, End, Enter, Space, the context-menu keys, Delete. */
+function tabKeys(
+  tabs: readonly DocumentTab[],
+  act: TabActions,
+): (event: KeyboardEvent<HTMLElement>, id: string) => void {
+  return (event, id) => {
+    const index = tabs.findIndex((t) => t.id === id);
+    const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+    const step = (by: number) => tabs[(index + by + tabs.length) % tabs.length]?.id;
+    const target = {
+      ArrowRight: step(rtl ? -1 : 1),
+      ArrowLeft: step(rtl ? 1 : -1),
+      Home: tabs[0]?.id,
+      End: tabs.at(-1)?.id,
+    }[event.key];
+    const contextMenu = event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey);
+    const show = () => act.onActivate(id);
+    // Keyed by `KeyboardEvent.key` in lower case ("menu" for the context-menu keys).
+    const others: Record<string, () => void> = {
+      enter: show,
+      " ": show,
+      menu: () => act.openMenuFor(id),
+      delete: () => {
+        const next = step(1);
+        act.onClose(id);
+        if (next !== undefined && next !== id) act.focusTab(next);
+      },
+    };
+    const action =
+      target === undefined ? others[contextMenu ? "menu" : event.key.toLowerCase()] : () => act.focusTab(target);
+    if (action === undefined) return;
+    event.preventDefault();
+    action();
+  };
 }
 
 /** Reordering by drag within the strip: which tab is dragged, and the drop that reorders. */
@@ -160,8 +188,11 @@ function useTabDrag(tabs: readonly DocumentTab[], onReorder: DocumentTabsProps["
       const moving = draggedRef.current;
       setDragged(undefined);
       if (moving === undefined || moving === onto || onReorder === undefined) return;
-      const ids = tabs.map((t) => t.id).filter((id) => id !== moving);
-      ids.splice(ids.indexOf(onto), 0, moving);
+      const all = tabs.map((t) => t.id);
+      // Dropped on a tab after it: it goes after that tab; on one before it: before that tab.
+      const after = all.indexOf(moving) < all.indexOf(onto);
+      const ids = all.filter((id) => id !== moving);
+      ids.splice(ids.indexOf(onto) + (after ? 1 : 0), 0, moving);
       onReorder(ids);
     },
   };
@@ -177,6 +208,7 @@ function OneTab({
   onClose,
   onFocus,
   onKeyDown,
+  onContextMenu,
 }: {
   readonly tab: DocumentTab;
   readonly active: boolean;
@@ -187,6 +219,7 @@ function OneTab({
   readonly onClose: (id: string) => void;
   readonly onFocus: (id: string) => void;
   readonly onKeyDown: (event: KeyboardEvent<HTMLElement>, id: string) => void;
+  readonly onContextMenu: (id: string) => void;
 }): ReactNode {
   return (
     <div
@@ -214,6 +247,10 @@ function OneTab({
         onClick={() => onActivate(tab.id)}
         onFocus={() => onFocus(tab.id)}
         onKeyDown={(event) => onKeyDown(event, tab.id)}
+        onContextMenu={(event) => {
+          event.preventDefault();
+          onContextMenu(tab.id);
+        }}
       >
         {tab.title}
       </div>

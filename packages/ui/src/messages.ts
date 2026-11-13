@@ -133,6 +133,7 @@ const EN = {
   "tabs.close": "Close {name}",
   "tabs.menu": "All tabs, {count} open",
   "tabs.moveToWindow": "Move tab to {name}",
+  "tabs.lost": "{name} couldn't be reopened after its document process restarted",
   "announce.opened": "Opened {name}, {count} pages",
   "announce.opened.one": "Opened {name}, 1 page",
   "announce.resumed": "Opened at page {page}, where you stopped reading",

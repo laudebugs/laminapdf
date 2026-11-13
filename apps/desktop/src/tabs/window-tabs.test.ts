@@ -144,6 +144,17 @@ describe("a window's tabs", () => {
     expect(closed()).toEqual([]);
   });
 
+  it("close a locked document whose password prompt is cancelled, and show the tab before", async () => {
+    const { tabs, reader, closed } = harness();
+    await reader.open(desktopFile(doc(1, "a.pdf")));
+    await reader.open(desktopFile({ ...doc(2, "locked.pdf"), encrypted: true, needsPassword: true }));
+    expect(reader.getState().phase).toBe("needs-password");
+    reader.cancel();
+    await expect.poll(() => tabs.shown?.file.name).toBe("a.pdf");
+    expect(closed()).toEqual([2]);
+    expect(names(tabs)).toEqual(["a.pdf"]);
+  });
+
   it("step to the next and previous tab, wrapping round", async () => {
     const { tabs, reader } = harness();
     for (const [id, name] of [

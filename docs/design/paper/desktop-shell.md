@@ -94,6 +94,8 @@ Conventions on this canvas:
 
 - Closing the last tab shows the start screen (S01) in that window on every OS; the window stays open. The owner chose this on 2026-11-12. Closing the window itself works as the boards say: on macOS the app keeps running and the Dock makes a new window, elsewhere closing the last window quits.
 - The strip scrolls sideways when its tabs don't fit at 120 px, and a menu button at its end (a chevron named "All tabs, N open") is always there, in place of "+3". Its menu lists the tabs as plain items, then Move tab to new window and Move tab to *window*. Pages and "Not found" in it come with D4d.
+- A tab's context menu (right-click, `⇧F10` or the menu key) shows that tab and opens the same menu.
+- With one tab the strip also shows while other windows are open, so the tab can move to one of them.
 - No + button: Open (`⌘O` / `Ctrl O`) opens a new tab.
 - No title-bar colour token exists, so the strip sits on `ground` and the active tab takes the top bar's `surface`.
 - `tab.activate` and `tab.list` aren't commands: clicking a tab and the strip's menu do their work. `tab.move-to-window` is the strip's menu entry for each other window. `⇧⌘]` and `⇧⌘[` come with D4b's menus.

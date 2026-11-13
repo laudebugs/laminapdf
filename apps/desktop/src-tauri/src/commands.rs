@@ -226,40 +226,6 @@ pub(crate) fn debug_kill_engine(window: tauri::WebviewWindow, engines: tauri::St
     engines.kill(window.label());
 }
 
-#[cfg(test)]
-mod tests {
-    use super::AppInfo;
-    use crate::DesktopError;
-
-    /// The sample the frontend's test answers `app_info` with (apps/desktop/test/app-info.json), so
-    /// the Rust struct and the TypeScript `AppInfo` agree on the JSON.
-    const SAMPLE: &str = include_str!("../../test/app-info.json");
-
-    #[test]
-    fn app_info_should_serialise_as_the_frontend_expects() {
-        let info = AppInfo {
-            version: "1.2.3".into(),
-            os: "macos",
-            arch: "aarch64",
-            webview_version: Some("1".into()),
-        };
-        let expected: serde_json::Value = serde_json::from_str(SAMPLE).unwrap_or_default();
-        assert_eq!(serde_json::to_value(&info).unwrap_or_default(), expected);
-    }
-
-    #[test]
-    fn desktop_error_should_serialise_as_kind_and_message() {
-        let error = DesktopError::Tauri(tauri::Error::WebviewNotFound);
-        let json = serde_json::to_value(&error).unwrap_or_default();
-        assert_eq!(json["kind"], "tauri");
-        assert!(
-            json["message"]
-                .as_str()
-                .is_some_and(|m| m.starts_with("the desktop shell failed"))
-        );
-    }
-}
-
 /// Opens a new, empty window (File ▸ New Window) and returns its label.
 #[tauri::command]
 #[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its app by value")]
@@ -309,4 +275,38 @@ pub(crate) fn set_window_title(window: tauri::WebviewWindow, name: Option<String
 #[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window by value")]
 pub(crate) fn take_pending_tabs(window: tauri::WebviewWindow) {
     crate::windows::take_arrivals(window.app_handle(), window.label());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::AppInfo;
+    use crate::DesktopError;
+
+    /// The sample the frontend's test answers `app_info` with (apps/desktop/test/app-info.json), so
+    /// the Rust struct and the TypeScript `AppInfo` agree on the JSON.
+    const SAMPLE: &str = include_str!("../../test/app-info.json");
+
+    #[test]
+    fn app_info_should_serialise_as_the_frontend_expects() {
+        let info = AppInfo {
+            version: "1.2.3".into(),
+            os: "macos",
+            arch: "aarch64",
+            webview_version: Some("1".into()),
+        };
+        let expected: serde_json::Value = serde_json::from_str(SAMPLE).unwrap_or_default();
+        assert_eq!(serde_json::to_value(&info).unwrap_or_default(), expected);
+    }
+
+    #[test]
+    fn desktop_error_should_serialise_as_kind_and_message() {
+        let error = DesktopError::Tauri(tauri::Error::WebviewNotFound);
+        let json = serde_json::to_value(&error).unwrap_or_default();
+        assert_eq!(json["kind"], "tauri");
+        assert!(
+            json["message"]
+                .as_str()
+                .is_some_and(|m| m.starts_with("the desktop shell failed"))
+        );
+    }
 }

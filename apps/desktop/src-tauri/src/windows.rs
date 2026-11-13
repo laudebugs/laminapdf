@@ -122,7 +122,7 @@ impl Windows {
     }
 }
 
-/// The window the OS's open requests go to: the frontmost one, else any open window, else a new
+/// The window the OS's open requests go to: the frontmost one, else the first open window, else a new
 /// one (macOS keeps running with no windows).
 pub(crate) fn target_window(app: &AppHandle) -> Result<String, DesktopError> {
     let windows = app.state::<Windows>();
@@ -132,8 +132,12 @@ pub(crate) fn target_window(app: &AppHandle) -> Result<String, DesktopError> {
     {
         return Ok(label);
     }
-    if let Some(label) = app.webview_windows().keys().next() {
-        return Ok(label.clone());
+    if let Some(label) = app
+        .webview_windows()
+        .into_keys()
+        .min_by_key(|label| window_order(label))
+    {
+        return Ok(label);
     }
     new_window(app)
 }

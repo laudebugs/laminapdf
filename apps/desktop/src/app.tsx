@@ -2,10 +2,10 @@
 // from this window's engine process through `DesktopEngineClient` (ADR 0008). The Open button
 // runs the main process's file dialog; a locked document asks for its password; a restarted
 // engine shows "Document process restarted" and the view redraws by itself. Files the OS asks the
-// app to open (the command line, a second launch, Finder, the Dock, a drop on the window) replace
-// what the window shows in a new tab (tabs/), and a file opened again shows its tab. The start
-// window lists recent files; a document
-// whose file changes on disk reloads in place (file-changes.tsx); Settings holds the Files choices.
+// app to open (the command line, a second launch, Finder, the Dock, a drop on the window) open in
+// a new tab (tabs/), and a file opened again shows its tab. The start window lists recent files; a
+// document whose file changes on disk reloads in place (file-changes.tsx); Settings holds the Files
+// choices.
 
 import type { KeyPlatform, Platform, ReaderError, ReaderState } from "@laminapdf/ui";
 import {
@@ -90,7 +90,9 @@ const LOST_TEXT: Readonly<Record<Lost, { title: string; body: string }>> = {
 export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   // The tabs come first: the reader's opener tells them which document shows.
   const [tabs] = useState(() =>
-    engine === undefined ? undefined : new WindowTabs(engine.shell, engine.client, engine.viewer),
+    engine === undefined || !platform.capabilities.multiWindow
+      ? undefined
+      : new WindowTabs(engine.shell, engine.client, engine.viewer),
   );
   const [reader] = useState(
     () =>

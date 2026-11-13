@@ -36,8 +36,10 @@ interface OtherWindow {
   readonly title: string;
 }
 
-/** The strip's menu entry that moves the shown tab to a new window. */
-const NEW_WINDOW = "move:new";
+/** The prefix of the strip's menu entries that move the shown tab to the window labelled after it. */
+const MOVE_TO = "move:";
+/** The strip's menu entry that moves the shown tab to a new window (no window is labelled "new"). */
+const NEW_WINDOW = `${MOVE_TO}new`;
 
 /** The strip (or nothing) and the handlers of the tab and window commands. */
 export function useTabStrip(
@@ -72,13 +74,20 @@ export function useTabStrip(
       },
     };
   }, [tabs, shell, toasts, move]);
-  if (tabs === undefined || state.tabs.length < 2) return { strip: null, actions };
-  const moves = [
-    ...(state.active === undefined ? [] : [{ id: NEW_WINDOW, label: message("command.tab.move-to-new-window") }]),
-    ...(state.active === undefined
+  // From two tabs on (S02), or with one while other windows are open, so it can move there.
+  const shows = state.tabs.length >= 2 || (state.tabs.length === 1 && others.length > 0);
+  if (tabs === undefined || !shows) return { strip: null, actions };
+  // The moves act on the shown tab: none while nothing shows.
+  const moves =
+    state.active === undefined
       ? []
-      : others.map((w) => ({ id: `move:${w.label}`, label: message("tabs.moveToWindow", { name: w.title }) }))),
-  ];
+      : [
+          { id: NEW_WINDOW, label: message("command.tab.move-to-new-window") },
+          ...others.map((w) => ({
+            id: `${MOVE_TO}${w.label}`,
+            label: message("tabs.moveToWindow", { name: w.title }),
+          })),
+        ];
   const strip = (
     <DocumentTabs
       tabs={state.tabs.map((tab) => ({ id: tab.id, title: documentOf(tab.file)?.name ?? tab.file.name }))}
@@ -87,7 +96,7 @@ export function useTabStrip(
       onClose={(id) => void tabs.close(id)}
       onReorder={(ids) => tabs.reorder(ids)}
       moves={moves}
-      onMove={(id) => move(id === NEW_WINDOW ? { to: "newWindow" } : { to: "window", label: id.slice("move:".length) })}
+      onMove={(id) => move(id === NEW_WINDOW ? { to: "newWindow" } : { to: "window", label: id.slice(MOVE_TO.length) })}
       platform={keys}
     />
   );
@@ -122,7 +131,7 @@ function useTabEvents(
         }),
         shell.listen<RestartedPayload>(RESTARTED_EVENT, (payload) => {
           for (const name of tabs.restarted(payload)) {
-            toasts.add({ message: `${name} couldn't be reopened after its document process restarted` });
+            toasts.add({ message: message("tabs.lost", { name }) });
           }
         }),
       ]);

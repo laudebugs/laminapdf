@@ -63,6 +63,8 @@ export class WindowTabs implements ExternalStore<TabsState> {
   #lastPhase: ReaderState["phase"] = "empty";
   /** The tab the reader last let go of: closed if the reader closed it, else shown again. */
   #aside: string | undefined;
+  /** The document whose password the reader asks for: it has no tab until it unlocks. */
+  #locked: number | undefined;
 
   constructor(shell: DesktopShell, client: DesktopEngineClient, viewer: Viewer) {
     this.#shell = shell;
@@ -75,13 +77,29 @@ export class WindowTabs implements ExternalStore<TabsState> {
     this.#reader = reader;
     this.#lastPhase = reader.getState().phase;
     return reader.subscribe(() => {
-      const phase = reader.getState().phase;
+      const state = reader.getState();
+      const { phase } = state;
       const was = this.#lastPhase;
       this.#lastPhase = phase;
+      this.#leaveLocked(state);
       if (phase !== "empty" || was === "empty" || this.#driving) return;
       if (was === "open") void this.#closedByReader();
       else if (this.#aside !== undefined) void this.activate(this.#aside);
     });
+  }
+
+  /**
+   * Follows the document whose password the reader asks for. The main process holds it open (a
+   * second open of its file would show its tab), so once the reader leaves it without a tab
+   * (Escape, another file) it closes.
+   */
+  #leaveLocked(state: ReaderState): void {
+    const asked = state.phase === "needs-password" ? documentOf(state.file)?.doc : undefined;
+    const left = this.#locked;
+    this.#locked = asked ?? (state.phase === "opening" ? left : undefined);
+    if (left === undefined || left === this.#locked || this.tabOf(left) !== undefined) return;
+    if (this.#client.current?.doc === left) return;
+    void this.#shell.invoke("close_document", { doc: left }).catch(() => undefined);
   }
 
   getState(): TabsState {
@@ -145,9 +163,10 @@ export class WindowTabs implements ExternalStore<TabsState> {
   /** Shows tab `id`. */
   async activate(id: string): Promise<void> {
     const tab = this.#state.tabs.find((t) => t.id === id);
-    if (tab === undefined || this.#reader === undefined) return;
-    if (id === this.#state.active && this.#reader.getState().phase === "open") return;
-    await this.#drive(() => (this.#reader as ReaderController).open(tab.file));
+    const reader = this.#reader;
+    if (tab === undefined || reader === undefined) return;
+    if (id === this.#state.active && reader.getState().phase === "open") return;
+    await this.#drive(() => reader.open(tab.file));
   }
 
   /** Shows the tab after the shown one (`by` 1) or before it (-1), wrapping round. */
@@ -215,7 +234,8 @@ export class WindowTabs implements ExternalStore<TabsState> {
   async moveShown(to: MoveTarget): Promise<void> {
     const shown = this.shown;
     const doc = shown === undefined ? undefined : documentOf(shown.file)?.doc;
-    if (shown === undefined || doc === undefined || this.#reader === undefined) return;
+    const reader = this.#reader;
+    if (shown === undefined || doc === undefined || reader === undefined) return;
     const view = this.#viewer.viewPosition() ?? null;
     await this.#shell.invoke<string>("move_tab", { doc, to, view });
     const next = this.#neighbour(shown.id);
@@ -223,17 +243,18 @@ export class WindowTabs implements ExternalStore<TabsState> {
     // The document is the other window's now: the viewer lets go of it without closing it.
     this.#client.forget();
     if (next !== undefined) await this.activate(next);
-    else await this.#drive(() => (this.#reader as ReaderController).close());
+    else await this.#drive(() => reader.close());
   }
 
   /** A tab moved here from another window: it shows, at the view it had there. */
   async arrived({ document, view }: Arrived): Promise<void> {
-    if (this.#reader === undefined) return;
+    const reader = this.#reader;
+    if (reader === undefined) return;
     const file = desktopFile(document);
     const tab: Tab = { id: String(this.#next++), file, view: view ?? undefined };
     this.#keepView();
     this.#set({ tabs: [...this.#state.tabs, tab] });
-    await this.#drive(() => (this.#reader as ReaderController).open(file));
+    await this.#drive(() => reader.open(file));
   }
 
   /** The tab of `doc` reopened from its changed file as `document`, while not shown. */

@@ -685,6 +685,32 @@ fn a_move_the_new_window_refuses_should_leave_the_document_where_it_was() {
 }
 
 #[test]
+fn a_move_whose_unlock_fails_should_leave_the_document_unlocked_where_it_was() {
+    let mut f = Fixture::new(Mode::RefuseUnlockLater);
+    let path = f.file(ENCRYPTED);
+    let doc = DocId(f.engines.open("main", &path).unwrap().doc);
+    f.engines.unlock("main", doc, PASSWORD).unwrap();
+    // "doc-1" starts the second engine, which opens the document but refuses its password.
+    assert!(f.engines.move_doc(doc, "main", "doc-1").is_err());
+    assert!(f.engines.page_info("main", doc).is_ok());
+    assert!(f.engines.registry.owns("main", doc));
+    assert!(f.engines.registry.has_password(doc));
+}
+
+#[test]
+fn a_document_should_not_move_to_a_window_that_has_closed() {
+    let mut f = Fixture::new(Mode::Healthy);
+    let path = f.file(PLAIN);
+    let doc = DocId(f.engines.open("main", &path).unwrap().doc);
+    f.engines.close_window("doc-1");
+    assert!(matches!(
+        f.engines.move_doc(doc, "main", "doc-1"),
+        Err(DesktopError::UnknownWindow)
+    ));
+    assert!(f.engines.registry.owns("main", doc));
+}
+
+#[test]
 fn only_its_own_window_may_move_a_document() {
     let mut f = Fixture::new(Mode::Healthy);
     let path = f.file(PLAIN);

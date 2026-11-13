@@ -62,6 +62,11 @@ impl DocumentRegistry {
         Ok((doc, len))
     }
 
+    /// Whether `window` holds any document.
+    pub(crate) fn holds_any(&self, window: &str) -> bool {
+        self.lock().values().any(|e| e.window == window)
+    }
+
     /// Whether `doc` is open in `window`: a window may touch only its own documents.
     pub(crate) fn owns(&self, window: &str, doc: DocId) -> bool {
         self.lock().get(&doc).is_some_and(|e| e.window == window)

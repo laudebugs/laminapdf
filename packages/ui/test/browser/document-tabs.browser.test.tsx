@@ -89,6 +89,27 @@ describe("the document tabs", () => {
     expect(log).toEqual(["activate c", "move new"]);
   });
 
+  it("move a tab one step right when dropped on its right-hand neighbour", async () => {
+    const log: string[] = [];
+    renderIn(<Strip log={log} />);
+    const from = page.getByRole("tab", { name: "report.pdf" }).element();
+    const onto = page.getByRole("tab", { name: "notes.pdf" }).element();
+    const data = new DataTransfer();
+    from.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: data }));
+    onto.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: data }));
+    onto.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: data }));
+    await expect.poll(() => log).toEqual(["reorder bac"]);
+  });
+
+  it("open a tab's context menu with Shift+F10, showing that tab first", async () => {
+    const log: string[] = [];
+    renderIn(<Strip log={log} />);
+    await userEvent.click(page.getByRole("tab", { name: "report.pdf" }));
+    await userEvent.keyboard("{ArrowRight}{Shift>}{F10}{/Shift}");
+    await page.getByRole("menuitem", { name: "Move tab to new window" }).click();
+    expect(log).toEqual(["activate a", "activate b", "move new"]);
+  });
+
   it("reorder when a tab is dropped on another", async () => {
     const log: string[] = [];
     renderIn(<Strip log={log} />);

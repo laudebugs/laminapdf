@@ -61,6 +61,8 @@ async function movesToWindows(): Promise<void> {
   // Move tab to window ▸ the new one, from the strip's menu.
   await $('[role="tab"]=invoice.pdf').click();
   await waitForShown("invoice.pdf");
+  await zoomOnce("Zoom in");
+  const invoiceZoom = (await view()).percent;
   await $('button[aria-label="All tabs, 2 open"]').click();
   await $('[role="menuitem"]=Move tab to flowing_report.pdf — Lamina PDF').click();
   await browser.switchToWindow(other);
@@ -68,6 +70,7 @@ async function movesToWindows(): Promise<void> {
     timeoutMsg: "invoice.pdf didn't arrive",
   });
   expect(await tabNames()).toEqual(["flowing_report.pdf", "invoice.pdf"]);
+  expect((await view()).percent).toBe(invoiceZoom);
   await closeWindowFor(main);
 }
 
