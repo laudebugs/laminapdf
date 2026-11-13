@@ -10,7 +10,7 @@ use crate::detect::{self, Patches, Signatures};
 use crate::error::{Result, SaveError};
 use crate::options::{SaveMode, SaveOptions};
 use crate::resolve::resolve;
-use crate::widgets::WidgetIndex;
+use crate::widgets::{WidgetIndex, qualified_name};
 
 /// Inspects a document for everything that restricts saving it ([ADR 0007] §2): its
 /// signatures and their `DocMDP`, `FieldMDP` and UR3 restrictions, why only a full rewrite would
@@ -85,26 +85,31 @@ impl SavePlanner {
         if dirty && pending.requires_rewrite() {
             rewrite_reasons.push(RewriteReason::OpRequiresRewrite);
         }
-        let widgets = if signatures.has_field_rules() {
+        let field_rules = signatures.has_field_rules();
+        let mut violations: Vec<Violation> = Vec::new();
+        if dirty {
+            violations.extend(pending.classes().iter().flat_map(|&class| signatures.violations(class)));
+            if field_rules {
+                // Names come from each field's own `/Parent` chain, not the pages: a deleted
+                // page's widgets are on no page any more.
+                for w in pending.widgets() {
+                    let name = match w.field.as_lamina_id().obj_ref() {
+                        Some(r) => qualified_name(doc, r)?,
+                        None => None,
+                    };
+                    for v in signatures.widget_violations(&w.field, name.as_deref(), w.change, w.class) {
+                        if !violations.contains(&v) {
+                            violations.push(v);
+                        }
+                    }
+                }
+            }
+        }
+        let widgets = if field_rules {
             Some(WidgetIndex::new(doc)?)
         } else {
             None
         };
-        let mut violations: Vec<Violation> = Vec::new();
-        if dirty {
-            let by_class = pending.classes().iter().flat_map(|&class| signatures.violations(class));
-            let by_widget = widgets.iter().flat_map(|index| {
-                pending
-                    .widgets()
-                    .iter()
-                    .flat_map(|w| signatures.widget_violations(index, &w.field, w.change, w.class))
-            });
-            for v in by_class.chain(by_widget) {
-                if !violations.contains(&v) {
-                    violations.push(v);
-                }
-            }
-        }
         let constraint = SaveConstraint {
             signatures: signatures.infos(),
             doc_mdp: signatures.doc_mdp(),
@@ -231,9 +236,10 @@ impl SavePlanner {
         if let Some(index) = &self.widgets {
             for change in op.page_changes() {
                 for field in index.on_page(&change.page) {
+                    let name = index.name(field);
                     for v in self
                         .signatures
-                        .widget_violations(index, field, change.change, op.class())
+                        .widget_violations(field, name, change.change, op.class())
                     {
                         if !out.contains(&v) {
                             out.push(v);

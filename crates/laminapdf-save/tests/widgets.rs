@@ -189,3 +189,13 @@ fn undoing_every_change_forgets_the_widget_changes() {
     let constraint = SavePlanner::new(&doc).unwrap().constraint().clone();
     assert_eq!((constraint.unchanged, constraint.violations.len()), (true, 0));
 }
+
+#[test]
+fn a_lock_given_twice_is_reported_once() {
+    // pyHanko writes the lock both as the field's `/Lock` and as a `FieldMDP` transform.
+    let doc = signed("locked.pdf");
+    let violations = SavePlanner::new(&doc)
+        .unwrap()
+        .would_violate_class(ModificationClass::FormFill);
+    assert_eq!(restrictions(&violations), [(Restriction::FieldMdp, None)]);
+}

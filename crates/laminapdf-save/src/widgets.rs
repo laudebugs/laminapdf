@@ -3,11 +3,15 @@
 //! field each belongs to (the widget itself when it has a `/T`, else its `/Parent`, §12.7.4),
 //! and that field's fully qualified name (§12.7.4.2), which a `FieldMDP` lock's `/Fields` names.
 //!
+//! Reading is tolerant (ADR 0003): an annotation or field object that doesn't parse is skipped,
+//! and a name that can't be read whole is unknown, which every lock covers. Unavailable input
+//! and hard limits still fail.
+//!
 //! [E2 plan §6]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use laminapdf_cos::{Dict, ObjRef, Object};
+use laminapdf_cos::{Dict, ObjRef, Object, tolerant};
 use laminapdf_model::{FieldId, PageId};
 use laminapdf_syntax::text::decode_text_string;
 
@@ -17,39 +21,32 @@ use crate::error::Result;
 #[derive(Debug, Clone, Default)]
 pub(crate) struct WidgetIndex {
     pages: BTreeMap<PageId, BTreeSet<FieldId>>,
-    names: BTreeMap<FieldId, String>,
+    /// `None` for a name that couldn't be read whole.
+    names: BTreeMap<FieldId, Option<String>>,
 }
 
 impl WidgetIndex {
     /// Reads every page's widgets in `doc`.
     ///
     /// # Errors
-    /// Reading the page tree, an `/Annots` array or a widget's field chain.
+    /// Reading the page tree; unavailable input and hard limits reading an `/Annots` array, a
+    /// widget or its field chain.
     pub(crate) fn new(doc: &laminapdf_model::Document) -> Result<Self> {
         let mut index = Self::default();
-        let max_depth = doc.limits().max_tree_depth();
         for page in doc.pages()?.iter() {
-            for annot in page.annots()? {
+            for annot in tolerant(page.annots())?.unwrap_or_default() {
                 let Some(widget) = dict(doc, annot)? else { continue };
-                // Some writers leave a widget's `/Subtype` out; a field key marks it then.
-                let is_widget = widget.get_name("Subtype").map_or_else(
-                    || widget.contains_key("FT") || widget.contains_key("Parent"),
-                    |s| s == b"Widget",
-                );
-                if !is_widget {
+                if !is_widget(&widget) {
                     continue;
                 }
                 let field = if widget.contains_key("T") {
                     annot
                 } else {
-                    match widget.get("Parent").and_then(Object::as_ref) {
-                        Some(parent) => parent,
-                        None => annot,
-                    }
+                    widget.get("Parent").and_then(Object::as_ref).unwrap_or(annot)
                 };
                 let id = FieldId::object(field);
                 if !index.names.contains_key(&id) {
-                    let name = qualified_name(doc, field, max_depth)?;
+                    let name = qualified_name(doc, field)?;
                     index.names.insert(id.clone(), name);
                 }
                 index.pages.entry(page.id().clone()).or_default().insert(id);
@@ -63,33 +60,52 @@ impl WidgetIndex {
         self.pages.get(page).into_iter().flatten()
     }
 
-    /// `field`'s fully qualified name, when one of its widgets is on a page.
+    /// `field`'s fully qualified name; `None` when it couldn't be read whole.
     pub(crate) fn name(&self, field: &FieldId) -> Option<&str> {
-        self.names.get(field).map(String::as_str)
+        self.names.get(field).and_then(Option::as_deref)
     }
 }
 
-/// The dictionary of `r`, if it is one.
-fn dict(doc: &laminapdf_model::Document, r: ObjRef) -> Result<Option<Dict>> {
-    Ok(doc.object(r.num)?.as_dict().cloned())
+/// A widget annotation: `/Subtype /Widget`, or, as some writers leave the subtype out, an
+/// annotation without one that carries a field key.
+fn is_widget(dict: &Dict) -> bool {
+    dict.get_name("Subtype").map_or_else(
+        || dict.contains_key("FT") || dict.contains_key("Parent"),
+        |s| s == b"Widget",
+    )
 }
 
-/// The partial names (`/T`) from the root field down to `field`, joined by periods (§12.7.4.2);
-/// a field without a `/T` adds nothing. The chain stops at `max_depth` or a loop.
-fn qualified_name(doc: &laminapdf_model::Document, field: ObjRef, max_depth: usize) -> Result<String> {
+/// The dictionary `r` resolves to (§7.3.10: a reference to a free or replaced object is
+/// `null`), if it is one and can be read.
+fn dict(doc: &laminapdf_model::Document, r: ObjRef) -> Result<Option<Dict>> {
+    Ok(tolerant(doc.deref(&Object::Ref(r)))?.and_then(|o| o.as_dict().cloned()))
+}
+
+/// `field`'s fully qualified name: the partial names (`/T`) from the root field down, joined
+/// by periods (§12.7.4.2); a field without a `/T` adds nothing. `None` when the `/Parent`
+/// chain can't be followed to its end: deeper than `Limits::max_tree_depth`, a loop, or an
+/// object that can't be read.
+///
+/// # Errors
+/// Unavailable input and hard limits.
+pub(crate) fn qualified_name(doc: &laminapdf_model::Document, field: ObjRef) -> Result<Option<String>> {
+    let max_depth = doc.limits().max_tree_depth();
     let mut parts = Vec::new();
     let mut seen = BTreeSet::new();
     let mut next = Some(field);
     while let Some(r) = next {
-        if parts.len() > max_depth || !seen.insert(r.num) {
-            break;
+        if seen.len() >= max_depth || !seen.insert(r.num) {
+            return Ok(None);
         }
-        let Some(d) = dict(doc, r)? else { break };
-        if let Some(Object::String(t)) = d.get("T") {
-            parts.push(decode_text_string(&t.bytes));
+        let Some(d) = dict(doc, r)? else { return Ok(None) };
+        if let Some(t) = d.get("T") {
+            match tolerant(doc.deref(t))?.as_deref() {
+                Some(Object::String(t)) => parts.push(decode_text_string(&t.bytes)),
+                _ => return Ok(None),
+            }
         }
         next = d.get("Parent").and_then(Object::as_ref);
     }
     parts.reverse();
-    Ok(parts.join("."))
+    Ok(Some(parts.join(".")))
 }

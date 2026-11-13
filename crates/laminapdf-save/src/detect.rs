@@ -27,7 +27,6 @@ use laminapdf_syntax::text::decode_text_string;
 
 use crate::constraint::{DocMdp, DocMdpPermission, Restriction, SignatureInfo, SignatureKind, Violation};
 use crate::error::Result;
-use crate::widgets::WidgetIndex;
 
 /// What a signature forbids.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -77,37 +76,39 @@ enum Lock {
 
 impl Lock {
     /// The lock that `params` (a `/Lock` dictionary or `FieldMDP` transform parameters)
-    /// describes.
-    fn from_params(params: &Dict) -> Self {
-        let names = || {
-            params
-                .get("Fields")
-                .and_then(Object::as_array)
-                .unwrap_or_default()
-                .iter()
-                .filter_map(|o| match o {
-                    Object::String(s) => Some(decode_text_string(&s.bytes)),
-                    _ => None,
-                })
-                .collect()
-        };
-        match params.get_name("Action") {
-            Some(b"Include") => Self::Include(names()),
-            Some(b"Exclude") => Self::Exclude(names()),
-            _ => Self::All,
+    /// describes; `/Fields` and its names may be indirect.
+    ///
+    /// # Errors
+    /// Errors reading `/Fields` or a name in it.
+    fn from_params(doc: &Document, params: &Dict) -> Result<Self> {
+        let action = params.get_name("Action");
+        if !matches!(action, Some(b"Include" | b"Exclude")) {
+            return Ok(Self::All);
         }
+        let mut names = Vec::new();
+        if let Some(fields) = params.get("Fields") {
+            for item in doc.deref(fields)?.as_array().unwrap_or_default() {
+                if let Object::String(name) = &*doc.deref(item)? {
+                    names.push(decode_text_string(&name.bytes));
+                }
+            }
+        }
+        Ok(if action == Some(b"Include") {
+            Self::Include(names)
+        } else {
+            Self::Exclude(names)
+        })
     }
 
     /// Whether the lock covers the field named `name`: a listed name covers that field and
-    /// the fields below it. A field whose name isn't known is covered unless the lock covers
-    /// nothing but listed fields.
+    /// the fields below it. A field whose name couldn't be read (`None`) is covered by every
+    /// lock, since it may be one the lock names.
     fn covers(&self, name: Option<&str>) -> bool {
+        let Some(name) = name else { return true };
         let listed = |names: &[String]| {
-            name.is_some_and(|name| {
-                names.iter().any(|n| {
-                    name.strip_prefix(n.as_str())
-                        .is_some_and(|rest| rest.is_empty() || rest.starts_with('.'))
-                })
+            names.iter().any(|n| {
+                name.strip_prefix(n.as_str())
+                    .is_some_and(|rest| rest.is_empty() || rest.starts_with('.'))
             })
         };
         match self {
@@ -181,18 +182,24 @@ impl Signatures {
         })
     }
 
-    /// The restrictions a change of `class` breaks.
+    /// The restrictions a change of `class` breaks, each once per signature (a field's
+    /// `/Lock` and its value's `FieldMDP` transform are two rules with one restriction).
     pub(crate) fn violations(&self, class: ModificationClass) -> impl Iterator<Item = Violation> + '_ {
         self.found.iter().flat_map(move |f| {
-            f.rules
-                .iter()
-                .filter(move |rule| !rule.allows(class))
-                .map(move |rule| Violation::new(class, rule.restriction(), f.info.clone()))
+            let mut restrictions: Vec<Restriction> = Vec::new();
+            for rule in f.rules.iter().filter(|rule| !rule.allows(class)) {
+                if !restrictions.contains(&rule.restriction()) {
+                    restrictions.push(rule.restriction());
+                }
+            }
+            restrictions
+                .into_iter()
+                .map(move |restriction| Violation::new(class, restriction, f.info.clone()))
         })
     }
 
     /// Whether any signature has a field or a field lock: only then do the field-level checks
-    /// of page ops need the [`WidgetIndex`].
+    /// of page ops need to read widgets.
     pub(crate) fn has_field_rules(&self) -> bool {
         self.found
             .iter()
@@ -205,15 +212,15 @@ impl Signatures {
     /// ([`Restriction::FieldMdp`]). Moving a widget's page breaks neither.
     ///
     /// [E2 plan §6]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint
+    /// `name` is the field's fully qualified name, `None` when it couldn't be read.
     pub(crate) fn widget_violations<'a>(
         &'a self,
-        index: &'a WidgetIndex,
         field: &'a FieldId,
+        name: Option<&'a str>,
         change: WidgetChange,
         class: ModificationClass,
     ) -> impl Iterator<Item = Violation> + 'a {
         let alters = change.alters_appearance();
-        let name = index.name(field);
         self.found.iter().filter(move |_| alters).flat_map(move |f| {
             let signed = (f.info.field.as_ref() == Some(field)).then_some(Restriction::SignedWidget);
             let locked = f
@@ -584,7 +591,7 @@ fn lock_rules(doc: &Document, field: &Dict) -> Result<Vec<Rule>> {
     };
     let mut rules = Vec::new();
     if locks_fields(lock) {
-        rules.push(Rule::FieldMdp(Lock::from_params(lock)));
+        rules.push(Rule::FieldMdp(Lock::from_params(doc, lock)?));
     }
     if let Some(p) = lock.get("P") {
         rules.push(docmdp_rule(p.as_int()));
@@ -701,7 +708,11 @@ fn classify(doc: &Document, dict: &Dict, value: &Object, perms: &Perms) -> Resul
                     rules.push(Rule::UsageRights(params.as_ref().map(granted).unwrap_or_default()));
                 }
                 Some(b"FieldMDP") if params.as_ref().is_none_or(locks_fields) => {
-                    rules.push(Rule::FieldMdp(params.as_ref().map_or(Lock::All, Lock::from_params)));
+                    let lock = match &params {
+                        Some(p) => Lock::from_params(doc, p)?,
+                        None => Lock::All,
+                    };
+                    rules.push(Rule::FieldMdp(lock));
                 }
                 _ => {}
             }
@@ -847,7 +858,7 @@ mod tests {
         ]
         .into_iter()
         .collect();
-        Lock::from_params(&params)
+        Lock::from_params(&Document::empty(None, &laminapdf_cos::OpenOptions::default()), &params).unwrap()
     }
 
     #[test]
@@ -860,7 +871,7 @@ mod tests {
                 include.covers(Some("addresses")),
                 include.covers(None),
             ],
-            [true, true, false, false]
+            [true, true, false, true]
         );
     }
 
