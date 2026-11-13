@@ -10,6 +10,8 @@ import { editMetadata } from "../../examples/edit-metadata.js";
 import { editXmp } from "../../examples/edit-xmp.js";
 import { elementFlow, type Report } from "../../examples/element-flow.js";
 import { extractPages } from "../../examples/extract-pages.js";
+import { flowingInvoice } from "../../examples/flowing-invoice.js";
+import { flowingReport } from "../../examples/flowing-report.js";
 import { generateThenEdit } from "../../examples/generate-then-edit.js";
 import { hello } from "../../examples/hello.js";
 import { imagesAndVectors } from "../../examples/images-and-vectors.js";
@@ -107,6 +109,15 @@ function buildInvoiceFromJson(inputs: Inputs): Uint8Array {
   );
 }
 
+/** The four fonts of the Markdown and flowing reports, as the runner supplied them. */
+function reportFonts(inputs: Inputs): Record<"regular" | "bold" | "arabic" | "devanagari", Uint8Array> {
+  const [regular, bold, arabic, devanagari] = MARKDOWN_FONTS.map((f) => input(inputs, f));
+  if (regular === undefined || bold === undefined || arabic === undefined || devanagari === undefined) {
+    throw new Error("four fonts");
+  }
+  return { regular, bold, arabic, devanagari };
+}
+
 /** The report of `FLOW_REPORT`, as the runner supplied it. */
 function flowReport(inputs: Inputs): Report {
   return JSON.parse(new TextDecoder().decode(input(inputs, FLOW_REPORT))) as Report;
@@ -141,18 +152,13 @@ export const EXAMPLES: readonly Example[] = [
     name: "markdown-to-pdf",
     golden: "markdown_to_pdf",
     inputs: [MARKDOWN, ...MARKDOWN_FONTS, PHOTO],
-    build: (i) => {
-      const [regular, bold, arabic, devanagari] = MARKDOWN_FONTS.map((f) => input(i, f));
-      if (regular === undefined || bold === undefined || arabic === undefined || devanagari === undefined) {
-        throw new Error("four fonts");
-      }
-      return markdownToPdf(
+    build: (i) =>
+      markdownToPdf(
         new TextDecoder().decode(input(i, MARKDOWN)),
-        { regular, bold, arabic, devanagari },
+        reportFonts(i),
         input(i, PHOTO),
         exampleOptions("lamina-ex-mrkdwn"),
-      );
-    },
+      ),
   },
   {
     name: "images-and-vectors",
@@ -256,6 +262,19 @@ export const EXAMPLES: readonly Example[] = [
     golden: "invoice_from_json",
     inputs: [...JSON_INVOICE, NOTO, BOLD],
     build: buildInvoiceFromJson,
+  },
+  {
+    name: "flowing-report",
+    golden: "flowing_report",
+    inputs: [...MARKDOWN_FONTS, PHOTO],
+    // The example lists its fonts in the Rust example's order, which sets the PDF's object numbers.
+    build: (i) => flowingReport(reportFonts(i), input(i, PHOTO), exampleOptions("lamina-ex-flowng")),
+  },
+  {
+    name: "flowing-invoice",
+    golden: "flowing_invoice",
+    inputs: [NOTO, BOLD],
+    build: (i) => flowingInvoice(input(i, NOTO), input(i, BOLD), exampleOptions("lamina-ex-flowiv")),
   },
 ];
 
