@@ -7,14 +7,15 @@
 import type { Browser, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { BROWSER, launch } from "./browser.ts";
-import { clean, load, type Watched, WITHOUT_PICKER } from "./reader.ts";
+import { clean, load, opened, type Watched, WITHOUT_PICKER } from "./reader.ts";
 
 const origin = inject("origin");
 const APPEARANCE = new URL("../../../fixtures/appearance/", import.meta.url);
 const CORPUS = new URL("../../../fixtures/corpus/", import.meta.url);
 
 /** Opens `file` from the home screen (More › Choose a file goes back to it) and waits for it to show. */
-async function open({ page }: Watched, file: URL, title: string): Promise<void> {
+async function open(watched: Watched, file: URL, title: string): Promise<void> {
+  const { page } = watched;
   const home = page.getByRole("heading", { name: "Open a PDF" });
   if (!(await home.isVisible())) {
     await page.getByRole("button", { name: "More" }).first().click();
@@ -24,8 +25,9 @@ async function open({ page }: Watched, file: URL, title: string): Promise<void> 
   const chooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "Choose a file" }).first().click();
   await (await chooser).setFiles(file.pathname);
-  await expect.poll(() => page.title()).toBe(`${title} · Lamina PDF`);
-  await page.locator(".web-viewer canvas").first().waitFor();
+  // The viewer's first canvas, then the title: a cold first open (compiling the WebAssembly)
+  // can take longer than a title poll waits.
+  await opened(watched, title);
 }
 
 /** The first page's canvas pixel at (`x`, `y`) in points of a 300-point-wide page. */
