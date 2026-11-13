@@ -95,3 +95,156 @@
     }
   }
 }
+
+/* The bookmark editor (O11): the rail header with Add and Named destinations, the rename field in
+   place of a row's title, the drag grip, the keyboard hint and the selected bookmark's details; and
+   the named destinations dialog's table. */
+@layer paper.components {
+  .paper-bookmarks {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-bookmark-hint {
+    margin: 0;
+    color: var(--paper-text-3);
+    font: var(--paper-type-caption);
+    letter-spacing: var(--paper-type-caption-letter-spacing);
+  }
+
+  /* The rail's rows bring their own inset; the editor's other parts take the same. */
+  .paper-bookmarks-header,
+  .paper-bookmarks > .paper-bookmark-hint,
+  .paper-bookmark-details {
+    padding-inline: var(--paper-space-8);
+  }
+
+  .paper-bookmarks-header {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-4);
+  }
+
+  .paper-bookmarks-title {
+    flex: 1;
+    margin: 0;
+    font: var(--paper-type-label);
+    letter-spacing: var(--paper-type-label-letter-spacing);
+  }
+
+  .paper-outline-item[data-selected] .paper-outline-link {
+    background: var(--paper-accent-tint);
+  }
+
+  .paper-outline-item[data-drop-target] .paper-outline-link {
+    outline: var(--paper-focus-ring-width) solid var(--paper-accent);
+  }
+
+  .paper-outline-rename {
+    flex: 1;
+    min-inline-size: 0;
+    font: var(--paper-type-outline);
+    color: var(--paper-text);
+    background: var(--paper-surface);
+    border: var(--paper-border-width) solid var(--paper-control-border);
+    border-radius: var(--paper-radius-4);
+    padding-inline: var(--paper-space-4);
+  }
+
+  .paper-outline-rename:focus-visible {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset-tight);
+  }
+
+  .paper-outline-grip {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    inline-size: var(--ui-target);
+    block-size: var(--ui-target);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--paper-text-3);
+    opacity: 0;
+  }
+
+  .paper-outline-item[data-selected] .paper-outline-grip,
+  .paper-outline-item[data-hovered] .paper-outline-grip,
+  .paper-outline-grip[data-focus-visible] {
+    opacity: 1;
+  }
+
+  .paper-bookmark-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+    padding-block-start: var(--paper-space-8);
+    border-block-start: var(--paper-border-width) solid var(--paper-hairline);
+  }
+
+  .paper-bookmark-goes-to {
+    margin: 0;
+    font: var(--paper-type-body);
+  }
+
+  .paper-bookmark-style,
+  .paper-bookmark-actions,
+  .paper-named-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--paper-space-4);
+  }
+
+  .paper-named-table {
+    inline-size: 100%;
+    border-collapse: collapse;
+    font: var(--paper-type-body);
+  }
+
+  .paper-named-table th {
+    text-align: start;
+    font: var(--paper-type-label);
+    color: var(--paper-text-3);
+  }
+
+  .paper-named-table td,
+  .paper-named-table th {
+    padding: var(--paper-space-4);
+    border-block-end: var(--paper-border-width) solid var(--paper-hairline);
+  }
+
+  .paper-named-rename {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-4);
+  }
+
+  .paper-named-input {
+    font: var(--paper-type-body);
+    border: var(--paper-border-width) solid var(--paper-control-border);
+    border-radius: var(--paper-radius-4);
+    padding-inline: var(--paper-space-4);
+  }
+
+  .paper-named-input:focus-visible {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+  }
+
+  .paper-named-input[aria-invalid] {
+    border-color: var(--paper-danger);
+  }
+
+  .paper-named-hint {
+    color: var(--paper-text-3);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-named-add {
+    display: flex;
+    align-items: end;
+    gap: var(--paper-space-8);
+    margin-block-start: var(--paper-space-12);
+  }
+}

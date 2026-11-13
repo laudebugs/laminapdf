@@ -7,6 +7,7 @@
 export { PrintDialog, PrintProgressDialog } from "@laminapdf/ui/dialogs";
 export { EditArea } from "@laminapdf/ui/editing";
 export { ReaderSettingsPanel, ReaderView } from "@laminapdf/ui/reader-mode";
+export { OutlineEditing } from "./bookmarks.tsx";
 export { CapabilityRoutePage } from "./capability-page.tsx";
 export { editMenu } from "./edit-menu.ts";
 export { EditingRuntime, editActions, historyTab, SaveNotices } from "./editing-runtime.tsx";

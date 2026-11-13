@@ -29,4 +29,4 @@ None.
 
 The decisions and todos behind this code:
 
-- [E3b](../todos/ongoing/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+- [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations

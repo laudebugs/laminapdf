@@ -102,6 +102,10 @@ pub struct DocumentInfo {
 /// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[non_exhaustive]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "a report: one flag per fact the edit states, each independent of the others"
+)]
 pub struct Edited {
     /// IDs of the pages whose content or attributes changed, in ID order.
     pub touched_pages: Vec<PageId>,

@@ -2419,7 +2419,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E3b](../todos/ongoing/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+- [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
 "#,
         "direct-outline-item" => r"# `direct-outline-item`
 
@@ -2446,7 +2446,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E3b](../todos/ongoing/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+- [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
 ",
         "outline-not-a-sibling" => r"# `outline-not-a-sibling`
 
@@ -2473,7 +2473,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E3b](../todos/ongoing/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+- [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
 ",
         "outline-move-into-itself" => r"# `outline-move-into-itself`
 
@@ -2500,7 +2500,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E3b](../todos/ongoing/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+- [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
 ",
         "unknown-named-destination" => r"# `unknown-named-destination`
 
@@ -2527,7 +2527,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E3b](../todos/ongoing/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+- [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
 ",
         "named-destination-exists" => r"# `named-destination-exists`
 
@@ -2554,7 +2554,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E3b](../todos/ongoing/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+- [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
 ",
         "empty-destination-name" => r"# `empty-destination-name`
 
@@ -2581,7 +2581,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E3b](../todos/ongoing/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+- [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
 ",
         "link-uri-refused" => r"# `link-uri-refused`
 
@@ -2608,7 +2608,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E3b](../todos/ongoing/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+- [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
 ",
         "view-not-finite" => r"# `view-not-finite`
 
@@ -2635,7 +2635,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E3b](../todos/ongoing/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+- [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
 ",
         "pdfa-one-author" => r#"# `pdfa-one-author`
 

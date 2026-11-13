@@ -98,7 +98,12 @@ async function apply(ops: readonly Op[], id: number, signal: AbortSignal, label:
     pages.map((page) => page.index),
     Date.now(),
   );
-  return { pages, history: historyOf(edit.session, false) };
+  return {
+    pages,
+    history: historyOf(edit.session, false),
+    createdOutlineItems: edited.createdOutlineItems,
+    outlineRepaired: edited.outlineRepaired,
+  };
 }
 
 /**

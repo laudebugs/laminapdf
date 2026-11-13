@@ -331,6 +331,10 @@ impl From<laminapdf::DocumentInfo> for DocumentInfoJs {
 /// The pages an edit touched.
 #[derive(Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "a JSON record: one flag per fact the report states"
+)]
 pub(crate) struct EditedJs {
     /// IDs of the pages whose content or attributes changed.
     pub touched_pages: Vec<String>,

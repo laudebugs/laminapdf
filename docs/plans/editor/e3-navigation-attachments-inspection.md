@@ -87,6 +87,8 @@ Every edit of the open document is an `Op` ([full-editor §5](../full-editor.md#
 | `UpdateAttachment` | `{ attachment: AttachmentId, name?, description?, mime?, relationship? }` | `Document` | E3f |
 | `DeleteAttachment` | `{ attachment }`: removes it from the tree and from every `/AF` array that names it | `Document` | E3f |
 
+**As built (E3b).** In `laminapdf-ops`, `Destination` and `View` are `ExplicitDestination` and `DestinationView` (with `kind` on the wire, and only finite numbers: `view-not-finite`), since the model's read types already take those names; `Rgb` is `"#rrggbb"` on the wire; `delete | promote` is `ChildItems`, `keep | follow` is `RenameLinks`. `SiblingPosition` sits in `laminapdf-model` beside `OutlineTree`, the list writer. An item stored as a direct dictionary is refused by name (`direct-outline-item`) until another op rewrites the outline, which gives it an object and a new ID. The façade's `Document::destination_at` turns a page-space view into an `ExplicitDestination`, and `named_destinations` lists both stores.
+
 Three types are new: `AttachmentId`, a `LaminaPdfId` kind for a file specification; `UserSpaceQuad`, beside `UserSpaceRect` in `laminapdf-model`; and `SiblingPosition` (`first`, `last`, `{ before }`, `{ after }`), the outline's counterpart of E2's `PagePosition`. `AddLink` and its siblings are the only way to make a link: when E4b adds the generic annotation ops, they wrap these and keep their wire form (E3c).
 
 **Rules every op keeps:**
@@ -189,7 +191,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 
 | ID | Todo | Depends on |
 | --- | --- | --- |
-| [E3b](../../todos/ongoing/E3b-bookmarks-and-destinations.md) | Outline and named-destination ops, the editable Outline tab and the named destinations dialog | E2j |
+| [E3b](../../todos/done/E3b-bookmarks-and-destinations.md) | Outline and named-destination ops, the editable Outline tab and the named destinations dialog | E2j |
 | [E3c](../../todos/ready/E3c-links.md) | Link ops, tagged links, the link tool and popover | C5b, E2j |
 | [E3d](../../todos/ready/E3d-initial-view-and-threads.md) | `SetInitialView`, the initial view on open, and threads read | E3a |
 | [E3e](../../todos/ready/E3e-xmp-editor.md) | XMP property ops, extension schemas and the XMP editor | E1c, B8b, X3a |
