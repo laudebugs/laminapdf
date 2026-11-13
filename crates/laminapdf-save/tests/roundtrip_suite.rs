@@ -16,11 +16,13 @@ mod common;
 /// capability: C.04 core round-trip
 /// capability: C.08 core round-trip
 /// capability: C.13 core round-trip
+/// capability: C.05 core write
 /// capability: C.16 core round-trip
 /// capability: J.01 core round-trip
 /// capability: J.04 core round-trip
 /// capability: G.05 core round-trip
 /// capability: H.02 core write
+/// capability: H.10 core write
 /// capability: I.10 core round-trip
 #[test]
 fn every_case_saves_or_refuses_as_expected_and_reopens_in_lamina() {

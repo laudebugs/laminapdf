@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 12 | 6 | 16 | 0 | 135 | 18 |
+| core | 169 | 14 | 8 | 16 | 0 | 131 | 22 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
 | web | 168 | 5 | 0 | 0 | 0 | 163 | 5 |
 | desktop | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
@@ -58,10 +58,10 @@ Rows per surface by best proven status (of the rows that target the surface).
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | C.01 | Insert blank pages | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
-| C.02 | Insert pages from other PDFs | — | — | — | — | E2 round-trip |  |
+| C.02 | Insert pages from other PDFs | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | C.03 | Delete & duplicate pages | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | C.04 | Reorder pages | 🟢 round-trip | — | — | — | E2 round-trip | [`ids_are_the_page_objects`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
-| C.05 | Extract selected pages | — | — | — | — | E2 write |  |
+| C.05 | Extract selected pages | 🔵 write | — | — | — | E2 write | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
 | C.06 | Merge multiple documents | — | — | — | — | E2 round-trip |  |
 | C.07 | Split by count, ranges, bookmarks | — | — | — | — | E2 write |  |
 | C.08 | Rotate pages 90/180/270 | 🟢 round-trip | — | — | — | E2 round-trip | [`rotate_normalises_negative_multiples_of_90`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
@@ -72,7 +72,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | C.13 | Reverse page order | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | C.14 | Labels, page numbers, headers/footers | 🟡 read | — | — | — | E6 round-trip | [`labels_follow_the_ranges`](../../crates/laminapdf-model/tests/views.rs) core read |
 | C.15 | Booklet / N-up layouts | — | — | — | — | E16 round-trip |  |
-| C.16 | Replace pages, preserving the rest | — | — | — | — | E2 round-trip |  |
+| C.16 | Replace pages, preserving the rest | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 
 ## D. Comments & annotations
 
@@ -164,7 +164,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | H.07 | Extract text & images | — | — | — | — | E3 read |  |
 | H.08 | Extract hyperlinks & bookmarks | — | — | — | — | E3 read |  |
 | H.09 | Extract attachments | — | — | — | — | E3 read |  |
-| H.10 | Export pages/ranges | — | — | — | — | E2 write |  |
+| H.10 | Export pages/ranges | 🔵 write | — | — | — | E2 write | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
 | H.11 | Render pages to images | 🟡 read | — | — | — | E3 read | [`a_png_holds_the_drawn_pixels_with_the_resolution_in_its_header`](../../crates/laminapdf-render/tests/export.rs) core read |
 | H.12 | Convert to PDF/A, PDF/X, PDF/UA | — | — | — | — | E16 round-trip |  |
 | H.13 | Scanned → searchable PDF | — | — | — | — | E13 round-trip |  |

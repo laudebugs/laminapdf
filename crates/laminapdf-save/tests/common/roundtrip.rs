@@ -550,7 +550,70 @@ pub fn run(root: &Path) -> Suite {
     }
     copies(root, &mut suite);
     images(root, &mut suite);
+    extracted(root, &mut suite);
     suite
+}
+
+/// The new-document cases (C.05, H.10): every fixture's last page made into a new document with
+/// `extract_pages`, and its pages split in two with `export_ranges`, each saved (a full write)
+/// and reopened with the pages, rotations and labels it was given. The tools check them like any
+/// other output.
+fn extracted(root: &Path, suite: &mut Suite) {
+    for (name, bytes, _) in fixtures(root) {
+        let Ok(doc) = Document::open(bytes, OpenOptions::default()) else {
+            continue;
+        };
+        let (_, rotations, _, labels) = facts(&doc);
+        let ids: Vec<PageId> = doc.pages().unwrap().iter().map(|p| p.id().clone()).collect();
+        let half = ids.len().div_ceil(2);
+        let mut cases = vec![("extract", ids.len() - 1..ids.len())];
+        if ids.len() > 1 {
+            cases.push(("export-first", 0..half));
+            cases.push(("export-second", half..ids.len()));
+        }
+        for (case, range) in cases {
+            let id = format!("{}-{case}", name.replace(['/', '+'], "_").trim_end_matches(".pdf")).to_lowercase();
+            let mut part = doc.extract_pages(&ids[range.clone()]).unwrap();
+            let mut output = Vec::new();
+            let report = match part.save(&mut output, &SaveOptions::new()) {
+                Ok(report) => report,
+                Err(e) => {
+                    suite
+                        .failures
+                        .push(format!("{id}: lamina refused the save: {}", e.code()));
+                    continue;
+                }
+            };
+            suite.saved += 1;
+            let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
+            let (pages, got_rotations, _, got_labels) = facts(&reopened);
+            let want = (
+                range.len(),
+                rotations[range.clone()].to_vec(),
+                labels[range.clone()].to_vec(),
+            );
+            if (pages, got_rotations.clone(), got_labels) != want || reopened.was_repaired() || reopened.is_encrypted()
+            {
+                suite
+                    .failures
+                    .push(format!("{id}: lamina reopened {pages} pages, expected {want:?}"));
+            }
+            let file = format!("{id}.pdf");
+            suite.manifest.push(json!({
+                "file": &file,
+                "source": name,
+                "mode": format!("{:?}", report.mode()),
+                "pages": pages,
+                "rotations": got_rotations,
+                "title": null,
+                "info": null,
+                "encrypted": false,
+                "direct_info": false,
+                "invalidated": 0,
+            }));
+            suite.outputs.push((file, output));
+        }
+    }
 }
 
 /// The image cases (todo E3h): photos made into PDFs with `images_to_pdf`, a page per photo,

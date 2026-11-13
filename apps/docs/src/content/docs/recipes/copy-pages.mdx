@@ -1,0 +1,43 @@
+---
+title: Copy pages between PDFs
+description: Copy pages from another PDF into this one, replace a page with one from another file, or make a new PDF from some pages.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll copy a page from one PDF into another, then make a new PDF from three pages of a longer one. Use the first to add a cover page, an appendix or a signed form from another file, and the second to send someone only the chapter they need.
+
+## Copy a page in
+
+Add the other file as a source first. Lamina PDF names it by a hash of its bytes and gives you its page IDs, which the copy names its pages by. The program then copies the other file's third page to the end:
+
+<Example ts="packages/sdk/examples/insert-pages.ts" rust="crates/laminapdf/examples/insert_pages.rs" result="insert_pages" />
+
+The result has three pages, and the third is the copied one. Its text field was called `name`, which the form already used, so the copy's field is `name#2` and keeps a value of its own.
+
+## Make a new PDF from pages
+
+`extractPages` (`extract_pages` in Rust) takes page IDs and returns a new document holding only those pages:
+
+<Example ts="packages/sdk/examples/extract-pages.ts" rust="crates/laminapdf/examples/extract_pages.rs" result="extract_pages" />
+
+The new file's pages keep the labels they showed in the book, `iii`, `1` and `2`, and it holds only the fonts and images those pages use.
+
+## How it works
+
+- A copy is a new page with a new ID, listed in the edit's `pageOrder`. It shares nothing with the source file, so changing one never changes the other.
+- The copy's annotations come along. A link to a page that came too still works; a link to a page left behind is removed, and the edit's `linksRemoved` lists the page that held it.
+- Form fields keep their names. A name the document already uses gets the next free number, `<name>#2` and on, and the edit's `fields` lists each renamed field.
+- A signature's field isn't copied, since a signature signs one place in one file. The edit's `fields` lists it as `notCopied`.
+- Page labels continue the numbering where the copies land, and every other page keeps its label.
+
+## What to change
+
+- **Replace a page:** `replacePages(targets, source, pages)` puts each source page in a target's place. Bookmarks, links and named destinations that pointed at the old page point at the new one.
+- **Keep fields linked:** pass `{ fields: "link" }` as the last argument, and a copied field joins the document's field of the same name, so both show one value. That works only when both fields have the same type and value; otherwise the copy is renamed.
+- **Leave annotations behind:** pass `{ annotations: false }` to copy only the page content and its form fields.
+- **Split into several files:** `exportRanges([[a, b], [c]])` makes one document per list of pages.
+- **Tagged documents:** a copied page comes without its tags, and the edit's `tagsDropped` lists it. On a file that claims PDF/UA-1, saving then warns with [`imported-tags-dropped`](/reference/codes/imported-tags-dropped/).
+- **Undo:** one `undo()` removes every copied page and what came with it.
+
+Next: [duplicate pages](/recipes/duplicate-pages/), to copy a page within the same document.
