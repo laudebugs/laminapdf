@@ -63,6 +63,7 @@ mod multilingual;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/organise_pages.rs"]
 mod organise_pages;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/page_labels.rs"]
 mod page_labels;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
