@@ -9,7 +9,7 @@ The file says it conforms to PDF/UA-1, and pages copied in from another document
 
 ## Why
 
-Tags live in the document's structure tree, which ties each page's content to elements such as headings and paragraphs. A page copied from another document brings its content but not the elements of the other document's tree, so Lamina PDF leaves the copy's content untagged rather than tied to elements that aren't there.
+Tags live in the document's structure tree, which ties each page's content to elements such as headings and paragraphs. A page copied from another document brings its content but not the elements of the other document's tree. Lamina PDF therefore leaves the copy's content untagged rather than tied to elements the document lacks.
 
 ## How to fix
 
