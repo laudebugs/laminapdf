@@ -2399,7 +2399,7 @@ A page deletion named every page of the document. Lamina PDF refused it and chan
 
 ## Why
 
-The pages given to the deletion cover the whole document. That can happen when a selection of all pages is deleted, or when a script deletes pages one batch at a time and the last batch takes the rest.
+The pages given to the deletion cover the whole document. That can happen when someone selects every page and deletes the selection, or when a script deletes pages one batch at a time and the last batch takes the rest.
 
 ## How to fix
 
@@ -2430,7 +2430,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-An edit carried a value Lamina PDF can't use, so it was refused and the document was left unchanged. Inserting blank pages, for example, needs a page count from 1 to 10,000 and a size whose width and height are above 0 and at most 14,400 points.
+An edit carried a value Lamina PDF can't use, so Lamina PDF refused it and left the document unchanged. Inserting blank pages, for example, needs a page count from 1 to 10,000 and a size whose width and height are above 0 and at most 14,400 points.
 
 ## Why
 
