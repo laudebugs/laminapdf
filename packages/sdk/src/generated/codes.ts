@@ -221,6 +221,7 @@ export type WarningCode =
   | "pdfa-info-mismatch"
   | "duplicate-tags-incomplete"
   | "imported-tags-dropped"
+  | "imported-pdfa-unchecked"
   | "tounicode-conflict"
   | "whole-font-rebuilt"
   | "flow-keep-broken"
@@ -454,6 +455,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "pdfa-info-mismatch",
   "duplicate-tags-incomplete",
   "imported-tags-dropped",
+  "imported-pdfa-unchecked",
   "tounicode-conflict",
   "whole-font-rebuilt",
   "flow-keep-broken",
@@ -568,6 +570,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "pdfa-info-mismatch": "input",
   "duplicate-tags-incomplete": "usage",
   "imported-tags-dropped": "usage",
+  "imported-pdfa-unchecked": "usage",
   "sink": "io",
   "not-rebased": "state",
   "sink-not-empty": "usage",
@@ -775,6 +778,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
   "duplicate-tags-incomplete": "retag the copy, or duplicate pages whose tagged elements lie on the page alone",
   "imported-tags-dropped": "tag the copied pages in a tagging tool, or copy pages from a document without tags",
+  "imported-pdfa-unchecked": "check the saved file with a PDF/A validator such as veraPDF, or copy pages from a document that claims the same level",
   "sink": "check the destination and retry the save; the document is unchanged",
   "not-rebased": "retry rebase with the saved output carried by the error",
   "sink-not-empty": "pass an empty sink: output offsets count from the sink's first byte",
