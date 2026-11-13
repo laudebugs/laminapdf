@@ -11,7 +11,7 @@
 | Branch | `claude/dazzling-sagan-s9woz0` |
 | PR title | `feat(docs): wrap long lines in code blocks, and a Format button in "Edit and run"` |
 | Size | S–M |
-| PR | — |
+| PR | [laudebugs/laminapdf#549](https://github.com/laudebugs/laminapdf/pull/549) |
 
 ## Goal
 
