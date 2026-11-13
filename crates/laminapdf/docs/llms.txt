@@ -2,7 +2,7 @@
 
 > Lamina PDF creates, reads, edits and saves PDF files from TypeScript and Rust: one Rust core, run as WebAssembly in browsers, Node, Deno, Bun and Cloudflare Workers (`@laminapdf/sdk`), or natively from the `laminapdf` crate. Positions are top-left points of the displayed page and page indexes start at 0; every error has a stable code with its own page.
 
-These docs describe version 0.2.0, the version of this package. The same docs are online at https://docs.laminapdf.com/llms.txt.
+These docs describe version 0.3.0, the version of this package. The same docs are online at https://docs.laminapdf.com/llms.txt.
 
 - [Using Lamina PDF with coding agents](AGENTS.md)
 - [What old names became](renames.json)
@@ -83,10 +83,18 @@ These docs describe version 0.2.0, the version of this package. The same docs ar
 - [Turn Markdown into a PDF](pages/recipes/markdown-to-pdf.md): A report written in Markdown, as tagged pages that flow, from the command line, TypeScript or Rust, with tables, footnotes, images and a contents page.
 - [Multilingual text](pages/recipes/multilingual.md): Latin, Arabic, Devanagari, Hebrew and Chinese on one page, each in its own embedded font, as a shaped line and a wrapped paragraph.
 - [Images and vectors](pages/recipes/images-and-vectors.md): Shapes, a dashed curve, gray, RGB, CMYK and hex colour, transparency, a blend mode, a clip, a rotation, a JPEG and an RGBA image on one page.
+- [Turn photos into a PDF](pages/recipes/images-to-pdf.md): Photos into a PDF, one page each, fitted on A4 with margins, in TypeScript or Rust, with each JPEG embedded as it is.
 - [Element flow](pages/recipes/element-flow.md): A report whose title, paragraphs and photo each start below wherever the one before ended, with a body that continues on a new page.
 - [Links and outlines](pages/recipes/links-and-outlines.md): Four A5 pages joined by web, page and named links, with a nested outline, page labels that read i, ii, 1, 2 and the outline shown on open.
 - [Generate, then edit](pages/recipes/generate-then-edit.md): Build a one-page draft, open its bytes, retitle it in one transaction and save the edit as a revision after the original bytes.
 - [Edit the metadata](pages/recipes/edit-metadata.md): Change a PDF's title, authors and keywords in both of the places a PDF keeps them, check the save first, and stamp when it happened.
+- [Choose how a PDF opens](pages/recipes/set-initial-view.md): Set the page and zoom a PDF opens at, the panel beside it and the title in the window, for Lamina PDF and every other PDF reader.
+- [Edit the bookmarks](pages/recipes/edit-bookmarks.md): Add, move and style a PDF's bookmarks, name a place links can jump to, and rename a destination together with everything that uses it.
+- [Record your own metadata](pages/recipes/edit-xmp.md): Add properties of your own to a PDF's XMP metadata, such as a review's status and reviewers, and keep a PDF/A file valid while you do.
+- [Organise pages](pages/recipes/organise-pages.md): Delete, move, insert and rotate a PDF's pages in one edit, and see where the bookmarks and links that pointed at a deleted page now go.
+- [Duplicate pages](pages/recipes/duplicate-pages.md): Copy a page within a PDF so the copy has form fields of its own, and see what the copy renamed and left out.
+- [Copy pages between PDFs](pages/recipes/copy-pages.md): Copy pages from another PDF into this one, replace a page with one from another file, or make a new PDF from some pages.
+- [Merge and split PDFs](pages/recipes/merge-and-split.md): Merge several PDFs into one with a bookmark for each file, or split a PDF into one file per chapter.
 - [Extract text for an LLM](pages/recipes/extract-markdown.md): Turn a PDF into Markdown in reading order, JSON with a box for every block, and chunks sized for retrieval, in TypeScript and Rust.
 - [A PDF/UA report](pages/recipes/pdf-ua-report.md): A one-page sales report a screen reader can follow, with headings, a table, a described chart and a link, checked against PDF/UA-1 as it's built.
 - [A PDF/A archive](pages/recipes/pdf-a-archive.md): An order confirmation for long-term archiving, written as PDF/A-2b and as PDF/A-2u that is also PDF/UA-1, with an embedded font and a photo.

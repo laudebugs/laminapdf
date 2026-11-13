@@ -1,7 +1,7 @@
 ---
 title: "Using Builder"
 description: "The tasks a Builder is for, from a first page of text to accessible and archival PDFs, each with a short example, and the mistakes to avoid."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/reference/builder-usage/"
 ---
 

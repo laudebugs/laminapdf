@@ -1,5 +1,20 @@
 # @laminapdf/render-hayro
 
+## 0.3.0
+
+### Patch Changes
+
+- Updated dependencies [bc1bff5]
+- Updated dependencies [2948e3f]
+- Updated dependencies [6e9dd39]
+- Updated dependencies [d9b6acf]
+- Updated dependencies [e416ac6]
+- Updated dependencies [2081146]
+- Updated dependencies [8f21b98]
+- Updated dependencies [bab4c9f]
+  - @laminapdf/wasm@0.3.0
+  - @laminapdf/render@0.3.0
+
 ## 0.2.0
 
 ### Patch Changes

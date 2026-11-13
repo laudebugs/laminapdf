@@ -1,7 +1,7 @@
 ---
 title: "Fill an invoice from JSON"
 description: "An invoice template written as JSON and filled from data, its line items repeated into a table that runs across pages, in Rust and TypeScript."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/recipes/invoice-from-json/"
 ---
 

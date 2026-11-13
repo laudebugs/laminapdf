@@ -1,7 +1,7 @@
 ---
 title: "Using Document"
 description: "The tasks a Document is for, from reading pages to editing and saving, each with a short example, and the mistakes to avoid."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/reference/document-usage/"
 ---
 
