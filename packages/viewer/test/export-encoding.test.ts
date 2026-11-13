@@ -1,7 +1,7 @@
 // The export's encoding helpers: the scale a resolution gives the renderers, and the resolution
 // written into the canvas's PNG and JPEG files.
 import { describe, expect, it } from "vitest";
-import { scaleFor, withJpegDensity, withPngDensity } from "../src/worker/export.js";
+import { fittedDpi, scaleFor, withJpegDensity, withPngDensity } from "../src/worker/export.js";
 
 describe("scaleFor", () => {
   it.each([72, 96, 150, 200, 300, 600])("never gives fewer pixels than %s dpi asks for", (dpi) => {
@@ -27,6 +27,42 @@ describe("withPngDensity", () => {
     // CRC-32 of "pHYs" and its nine bytes, as zlib computes it.
     expect(view.getUint32(50)).toBe(0x78a53f76);
     expect(String.fromCharCode(...out.subarray(58, 62))).toBe("IEND");
+  });
+});
+
+describe("withPngDensity on a PNG that has a pHYs chunk", () => {
+  it("rewrites that chunk rather than adding a second", () => {
+    const once = withPngDensity(PNG, 300);
+    const twice = withPngDensity(once, 96);
+    const view = new DataView(twice.buffer);
+    expect(twice.length).toBe(once.length);
+    expect([view.getUint32(41), view.getUint32(45), twice[49]]).toEqual([3780, 3780, 1]);
+    // CRC-32 of "pHYs" and its nine bytes for 3,780 pixels per metre, as zlib computes it.
+    expect(view.getUint32(50)).toBe(0x952b0e1b);
+  });
+});
+
+describe("fittedDpi", () => {
+  /** Whether a page drawn at `dpi` stays within 16,777,216 pixels and 16,384 a side. */
+  const fits = (width: number, height: number, dpi: number) => {
+    const scale = scaleFor(dpi);
+    const [w, h] = [Math.floor(width * scale), Math.floor(height * scale)];
+    return w * h <= 16_777_216 && w <= 16_384 && h <= 16_384;
+  };
+
+  it("keeps a resolution the page fits at", () => {
+    expect(fittedDpi(612, 792, 300)).toBe(300);
+  });
+
+  it("lowers a long, narrow page to the side limit", () => {
+    const dpi = fittedDpi(72, 5000, 300);
+    expect(dpi).toBeLessThan(300);
+    expect(fits(72, 5000, dpi)).toBe(true);
+  });
+
+  it("lowers until the rounded-up scale fits, where the pixel limit alone would pass it", () => {
+    const dpi = fittedDpi(358.45, 2506.38, 320);
+    expect(fits(358.45, 2506.38, dpi)).toBe(true);
   });
 });
 

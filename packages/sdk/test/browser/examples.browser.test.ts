@@ -13,7 +13,7 @@ const urls = import.meta.glob<string>(
     "../../../../fixtures/golden/examples/*.pdf",
     "../../../../fixtures/golden/metadata.pdf",
     "../../../../fixtures/fonts/*.{ttf,otf,ttc}",
-    "../../../../fixtures/images/photo-rgb.jpg",
+    "../../../../fixtures/images/photo-{rgb,gray}.jpg",
     "../../../../fixtures/markdown/report.md",
     "../../../../fixtures/text/element-flow-report.json",
     "../../../../fixtures/documents/invoice{,-data}.json",

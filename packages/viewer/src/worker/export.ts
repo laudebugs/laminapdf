@@ -8,17 +8,19 @@ import type { ExportedPage, ExportPageOptions } from "../protocol.js";
 import { current, filling } from "./document.js";
 
 /**
- * The most pixels one exported page holds: the renderers' own limit (about 16.8 million, Letter
- * at 450 dpi), since a page is drawn as one tile.
+ * The most pixels one exported page holds, and the longest side: the renderers' own limits
+ * (about 16.8 million pixels, Letter at about 424 dpi; 16,384 pixels a side), since a page is
+ * drawn as one tile.
  */
 const MAX_EXPORT_PIXELS = DEFAULT_LIMITS.maxRenderPixels;
+const MAX_EXPORT_SIDE = DEFAULT_LIMITS.maxRenderSide;
 
 /** JPEG quality when none is given, on the 1–100 scale. */
 const DEFAULT_QUALITY = 90;
 
 /**
- * Page `index` drawn at `options.dpi` (lowered when the page would pass MAX_EXPORT_PIXELS; `dpi`
- * says what it was drawn at), on white, and encoded as `options.format`.
+ * Page `index` drawn at `options.dpi` (lowered when the page would pass the renderers' limits;
+ * `dpi` says what it was drawn at), on white, and encoded as `options.format`.
  */
 export async function exportPage(
   index: number,
@@ -42,14 +44,34 @@ export async function exportPage(
 }
 
 /**
- * The resolution page `index` is exported at when `wanted` is asked for: `wanted`, lowered when
- * the page would pass MAX_EXPORT_PIXELS.
+ * The resolution page `index` is exported at when `wanted` is asked for: see {@link fittedDpi}.
  */
 export function exportDpi(index: number, wanted: number): number {
   if (!(wanted > 0 && Number.isFinite(wanted))) throw new RangeError("dpi must be a positive number");
   const page = current().render.page(index);
-  const area = page.width * page.height;
-  return Math.min(wanted, 72 * Math.sqrt(MAX_EXPORT_PIXELS / Math.max(1, area)));
+  return fittedDpi(page.width, page.height, wanted);
+}
+
+/**
+ * `wanted`, lowered when a `width` × `height` point page drawn at it would pass the renderers'
+ * pixel or side limit. The renderers size a page as each side times {@link scaleFor}'s scale,
+ * rounded down, and that scale can round up: the result is checked as they will draw it, and
+ * lowered a hair at a time until it fits.
+ */
+export function fittedDpi(width: number, height: number, wanted: number): number {
+  const area = Math.max(1, width * height);
+  const side = Math.max(1, width, height);
+  let dpi = Math.min(wanted, 72 * Math.sqrt(MAX_EXPORT_PIXELS / area), (72 * MAX_EXPORT_SIDE) / side);
+  for (let tries = 0; tries < 64 && !fits(width, height, dpi); tries++) dpi *= 1 - 1e-6;
+  return dpi;
+}
+
+/** Whether a `width` × `height` point page drawn at `dpi` stays within the renderers' limits. */
+function fits(width: number, height: number, dpi: number): boolean {
+  const scale = scaleFor(dpi);
+  const w = Math.floor(width * scale);
+  const h = Math.floor(height * scale);
+  return w * h <= MAX_EXPORT_PIXELS && w <= MAX_EXPORT_SIDE && h <= MAX_EXPORT_SIDE;
 }
 
 /** Page `index` drawn on white at {@link exportDpi}`(index, wanted)`, and that resolution. */

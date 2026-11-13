@@ -13,6 +13,7 @@ import notoSansDevanagari from "../../../../fixtures/fonts/NotoSansDevanagari-Re
 import notoSansHebrew from "../../../../fixtures/fonts/NotoSansHebrew-Regular.ttf";
 import notoSansSC from "../../../../fixtures/fonts/NotoSansSC-Regular.otf";
 import metadataPdf from "../../../../fixtures/golden/metadata.pdf";
+import grayPhoto from "../../../../fixtures/images/photo-gray.jpg";
 import photo from "../../../../fixtures/images/photo-rgb.jpg";
 import report from "../../../../fixtures/markdown/report.md";
 import flowReport from "../../../../fixtures/text/element-flow-report.json" with { type: "json" };
@@ -30,6 +31,7 @@ const inputs: Inputs = {
       "fixtures/fonts/NotoSansHebrew-Regular.ttf": notoSansHebrew,
       "fixtures/fonts/NotoSansSC-Regular.otf": notoSansSC,
       "fixtures/images/photo-rgb.jpg": photo,
+      "fixtures/images/photo-gray.jpg": grayPhoto,
       "fixtures/fonts/NotoSans-RegularBold.ttc": notoSansCollection,
       "fixtures/markdown/report.md": report,
       "fixtures/golden/metadata.pdf": metadataPdf,
