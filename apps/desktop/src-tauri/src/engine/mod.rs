@@ -120,6 +120,9 @@ pub(crate) struct Engines {
     windows: Mutex<BTreeMap<String, Supervisor>>,
     /// Each window's tiles in flight: the viewer's ticket to the engine's request, for `cancel_tiles`.
     tickets: Mutex<BTreeMap<(String, u64), ReqId>>,
+    /// Held through a move and taken by a closing window, so a window that closes mid-move waits
+    /// for it: the document then belongs to one window that is still open, or closes with it.
+    moving: Mutex<()>,
     launcher: Launcher,
     config: Config,
     notify: Arc<dyn Notify>,
@@ -132,6 +135,7 @@ impl Engines {
             registry: Arc::new(DocumentRegistry::default()),
             windows: Mutex::new(BTreeMap::new()),
             tickets: Mutex::new(BTreeMap::new()),
+            moving: Mutex::new(()),
             launcher,
             config,
             notify,
@@ -330,6 +334,7 @@ impl Engines {
     /// engine's alone: the registry keeps the entry and its password. On any failure `from`
     /// owns it again, `to`'s engine forgets it, and the tab stays where it was.
     pub(crate) fn move_doc(&self, doc: DocId, from: &str, to: &str) -> Result<DocumentMeta, DesktopError> {
+        let _moving = self.moving.lock().unwrap_or_else(PoisonError::into_inner);
         self.check(from, doc)?;
         let len = self.registry.len_of(doc).ok_or(DesktopError::UnknownDocument)?;
         let password = self.registry.password_of(doc);
@@ -363,6 +368,7 @@ impl Engines {
 
     /// `window` closed: its documents close and its engine stops.
     pub(crate) fn close_window(&self, window: &str) {
+        let _moving = self.moving.lock().unwrap_or_else(PoisonError::into_inner);
         self.registry.remove_window(window);
         let engine = self.windows().remove(window);
         if let Some(engine) = engine {

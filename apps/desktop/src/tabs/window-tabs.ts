@@ -46,6 +46,7 @@ export interface Arrived {
 /** The main process's tab events, the same names as src-tauri/src/windows.rs's. */
 export const ARRIVED_EVENT = "tab://arrived";
 export const ACTIVATE_EVENT = "tab://activate";
+export const WINDOWS_CHANGED_EVENT = "windows://changed";
 
 /** The window's tabs. */
 export class WindowTabs implements ExternalStore<TabsState> {

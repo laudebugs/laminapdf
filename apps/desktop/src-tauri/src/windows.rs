@@ -21,6 +21,8 @@ use crate::{DesktopError, MAIN_WINDOW};
 pub(crate) const ARRIVED_EVENT: &str = "tab://arrived";
 /// Show the tab of this document (the same file was opened again).
 pub(crate) const ACTIVATE_EVENT: &str = "tab://activate";
+/// A window opened, closed or changed its title: every window reads `window_list` again.
+pub(crate) const CHANGED_EVENT: &str = "windows://changed";
 
 /// The view a tab had (page, offset, zoom, rotation), as the webview saved it: Rust passes it
 /// on to the tab's new window and never reads it.
@@ -158,6 +160,7 @@ pub(crate) fn build_window(app: &AppHandle, label: &str) -> Result<(), DesktopEr
 pub(crate) fn new_window(app: &AppHandle) -> Result<String, DesktopError> {
     let label = app.state::<Windows>().next_label();
     build_window(app, &label)?;
+    changed(app);
     Ok(label)
 }
 
@@ -240,6 +243,13 @@ fn window_order(label: &str) -> (u8, u32) {
     match label.strip_prefix("doc-").and_then(|n| n.parse().ok()) {
         Some(n) => (1, n),
         None => (0, 0),
+    }
+}
+
+/// Tells every window that the windows or their titles changed.
+pub(crate) fn changed(app: &AppHandle) {
+    if let Err(error) = app.emit(CHANGED_EVENT, ()) {
+        tracing::warn!("could not tell the windows they changed: {error}");
     }
 }
 

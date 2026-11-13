@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D4a](../ongoing/D4a-windows-tabs-and-session-restore.md) |
+| Depends on | [D4a](../done/D4a-windows-tabs-and-session-restore.md) |
 | ADRs | Follows ADR 0008 |
 | Branch | `feat/d4e-tab-drag-between-windows` |
 | PR title | `feat(desktop): drag tabs out of and between windows` |

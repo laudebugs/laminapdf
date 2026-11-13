@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `D4a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D3b](../done/D3b-recent-files-and-file-watching.md) |
+| Depends on | [D3b](./D3b-recent-files-and-file-watching.md) |
 | ADRs | Follows ADR 0008 (one engine per window; revisit pooling with numbers from here), ADR 0010 (`multiWindow: true`) |
 | Branch | `feat/d4a-windows-and-tabs` |
 | PR title | `feat(desktop): add multiple windows and tabs` |
@@ -48,20 +48,30 @@ Let power users work with many documents: each window holds tabs, a tab moves to
 
 ## Tasks
 
-- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
-- [ ] `WindowRegistry` + commands (manifest + capability): `new_window`, `close_tab`, `activate_tab`, `move_tab(doc, target_window | new)`, `reorder_tabs(order)`, and `session_state()` for D4d to persist.
-- [ ] Per-window engine lifecycle: spawn on window creation, shut down on close; document hand-over on moves (close in source engine after the target reports `Opened`).
-- [ ] Shared `Tabs` component in `@laminapdf/ui` (keyboard accessible: roving tabindex, `role="tablist"`, close buttons with labels), desktop-only via `Platform.multiWindow`.
-- [ ] Memory measurements; ADR 0008 amendment answering open question 3.
-- [ ] e2e scenarios: open 3 files → 3 tabs; move tab to new window (via context-menu command, deterministic); close all tabs → behaviour per OS.
+- [x] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
+- [x] `WindowRegistry` + commands (manifest + capability): `new_window`, `close_tab`, `activate_tab`, `move_tab(doc, target_window | new)`, `reorder_tabs(order)`, and `session_state()` for D4d to persist.
+- [x] Per-window engine lifecycle: spawn on window creation, shut down on close; document hand-over on moves (close in source engine after the target reports `Opened`).
+- [x] Shared `Tabs` component in `@laminapdf/ui` (keyboard accessible: roving tabindex, `role="tablist"`, close buttons with labels), desktop-only via `Platform.multiWindow`.
+- [x] Memory measurements; ADR 0008 amendment answering open question 3.
+- [x] e2e scenarios: open 3 files → 3 tabs; move tab to new window (via context-menu command, deterministic); close all tabs → behaviour per OS.
 
 ## Acceptance criteria
 
-- [ ] Opening three PDFs results in three tabs in one window; opening an already-open PDF focuses its tab (e2e).
-- [ ] "Move tab to new window" and "Move tab to window ▸ <name>" keep the page and zoom (e2e).
-- [ ] Moving an unlocked **encrypted** document's tab to another window shows it rendered in the target window with no password prompt, and closing the source window afterwards does not lock it (e2e with an encrypted fixture; registry unit test that the `SessionPassword` survives the move and is zeroised only when the document is finally closed).
-- [ ] Engine memory numbers for 1/5/20 documents recorded; ADR 0008 states the pooling decision.
-- [ ] Tab strip passes keyboard-only navigation and axe checks in the shared component tests.
+- [x] Opening three PDFs results in three tabs in one window; opening an already-open PDF focuses its tab (e2e).
+- [x] "Move tab to new window" and "Move tab to window ▸ <name>" keep the page and zoom (e2e).
+- [x] Moving an unlocked **encrypted** document's tab to another window shows it rendered in the target window with no password prompt, and closing the source window afterwards does not lock it (e2e with an encrypted fixture; registry unit test that the `SessionPassword` survives the move and is zeroised only when the document is finally closed).
+- [x] Engine memory numbers for 1/5/20 documents recorded; ADR 0008 states the pooling decision.
+- [x] Tab strip passes keyboard-only navigation and axe checks in the shared component tests.
+
+## Decisions and deviations
+
+- **Last tab.** Closing the last tab shows the start screen in that window on every OS, and the window stays open. The owner chose this on 2026-11-12. Closing the window itself follows the scope: macOS keeps the app running and the Dock makes a new window (`RunEvent::Reopen`); elsewhere closing the last window quits.
+- **Where tabs live.** The webview keeps a window's tabs (their order, the shown one, each one's view, `apps/desktop/src/tabs/`). Rust keeps which window owns each document (`DocumentRegistry`) and the windows (`src-tauri/src/windows.rs`). So the commands are `new_window`, `move_tab`, `window_list`, `set_window_title` and `take_pending_tabs`; `close_tab`, `activate_tab` and `reorder_tabs` aren't needed, since closing a tab closes its document (`close_document`). `session_state()` is left to D4d, which knows what it persists.
+- **Engines.** A window's engine still starts on first use (D2b) and stops when the window closes. A window that closes during a move waits for it.
+- **Settings.** Settings › Files has "Open each file in a new window" (off: tabs) and "Open a file again in another tab" (off: its tab shows).
+- **Titles.** "*name* — Lamina PDF", with the product's name. macOS's proxy icon is skipped: Tauri 2.12 doesn't expose `representedFilename`.
+- **Design.** The strip's differences from S02 are in [desktop-shell.md's As built note](../../design/paper/desktop-shell.md#s02-window-with-document-tabs-and-session-restore).
+- **Memory.** Each window's engine costs about 14 MiB; four windows with 20 documents use 80 MiB in all ([ADR 0008 §2](../../decisions/0008-desktop-shell.md#2-process-model-a-main-process-that-owns-files-and-a-sandboxed-engine-per-window)). One engine per window stays.
 
 ## Post-merge checks
 
@@ -85,8 +95,8 @@ None.
 - **macOS app lifecycle** (no windows but running) interacts with single-instance and `RunEvent::Opened`; test cold/warm open with zero windows.
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

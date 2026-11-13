@@ -287,6 +287,7 @@ fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
             window.state::<watch::Watcher>().unwatch_window(window.label());
             window.state::<windows::Windows>().closed(window.label());
             window.state::<open::PendingOpens>().closed(window.label());
+            windows::changed(window.app_handle());
         }
         // The OS's open requests go to the window focused last.
         WindowEvent::Focused(true) => window.state::<windows::Windows>().focused(window.label()),

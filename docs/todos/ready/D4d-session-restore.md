@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D4a](../ongoing/D4a-windows-tabs-and-session-restore.md) |
+| Depends on | [D4a](../done/D4a-windows-tabs-and-session-restore.md) |
 | ADRs | Follows ADR 0008, ADR 0010 |
 | Branch | `feat/d4d-session-restore` |
 | PR title | `feat(desktop): restore the last session's windows and tabs on launch` |
@@ -37,7 +37,7 @@ On relaunch, Lamina PDF brings back the last session: its windows with their siz
 
 **Out of scope** (and which todo covers it)
 
-- Windows, tabs and moves → [D4a](../ongoing/D4a-windows-tabs-and-session-restore.md)
+- Windows, tabs and moves → [D4a](../done/D4a-windows-tabs-and-session-restore.md)
 - Dragging tabs between windows → [D4e](D4e-tab-drag-between-windows.md)
 
 ## Tasks

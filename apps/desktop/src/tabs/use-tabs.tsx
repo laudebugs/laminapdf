@@ -21,7 +21,14 @@ import {
 } from "../engine/desktop-engine-client.ts";
 import { documentOf } from "../engine/open.ts";
 import { stopper } from "../engine/stopper.ts";
-import { ACTIVATE_EVENT, ARRIVED_EVENT, type Arrived, type MoveTarget, type WindowTabs } from "./window-tabs.ts";
+import {
+  ACTIVATE_EVENT,
+  ARRIVED_EVENT,
+  type Arrived,
+  type MoveTarget,
+  WINDOWS_CHANGED_EVENT,
+  type WindowTabs,
+} from "./window-tabs.ts";
 
 /** Another window, as `window_list` gives it. */
 interface OtherWindow {
@@ -128,7 +135,7 @@ function useTabEvents(
   }, [shell, tabs, toasts]);
 }
 
-/** The other windows, read again whenever this window's tabs change or it comes to the front. */
+/** The other windows, read again whenever one opens, closes or is retitled, or this one's tabs change. */
 function useOtherWindows(shell: DesktopShell | undefined, tabCount: number): readonly OtherWindow[] {
   const [others, setOthers] = useState<readonly OtherWindow[]>([]);
   useEffect(() => {
@@ -137,8 +144,7 @@ function useOtherWindows(shell: DesktopShell | undefined, tabCount: number): rea
       void shell.invoke<OtherWindow[]>("window_list").then(setOthers, () => undefined);
     };
     read();
-    window.addEventListener("focus", read);
-    return () => window.removeEventListener("focus", read);
+    return stopper(shell.listen(WINDOWS_CHANGED_EVENT, read), "listening for other windows");
   }, [shell, tabCount]);
   return others;
 }

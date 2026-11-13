@@ -530,6 +530,10 @@ const EN = {
   "settings.files.reloadOnChange": "Reload files that change on disk",
   "settings.files.reloadOnChange.help":
     "When another app saves a file you have open, Lamina PDF shows the new version at the same page and zoom.",
+  "settings.files.openInWindows": "Open each file in a new window",
+  "settings.files.openInWindows.help": "Off: files open as tabs in the window you used last.",
+  "settings.files.allowDuplicates": "Open a file again in another tab",
+  "settings.files.allowDuplicates.help": "Off: opening a file that is already open shows its tab.",
   "settings.files.summary.both": "Remembers recent files and reloads changed ones",
   "settings.files.summary.recent": "Remembers recent files",
   "settings.files.summary.reload": "Reloads changed files",

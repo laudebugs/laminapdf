@@ -298,6 +298,7 @@ pub(crate) fn window_list(window: tauri::WebviewWindow) -> Vec<crate::windows::W
 #[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window by value")]
 pub(crate) fn set_window_title(window: tauri::WebviewWindow, name: Option<String>) -> Result<(), DesktopError> {
     window.set_title(&crate::windows::title(name.as_deref()))?;
+    crate::windows::changed(window.app_handle());
     Ok(())
 }
 
