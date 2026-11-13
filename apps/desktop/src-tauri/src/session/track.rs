@@ -18,7 +18,12 @@ use super::{SessionFile, Stamp, TabRef, VERSION, WindowRecord};
 use crate::windows::View;
 
 /// How often a changed session is written while the app runs.
+#[cfg(not(feature = "e2e"))]
 pub(crate) const SAVE_EVERY: Duration = Duration::from_secs(30);
+/// End-to-end builds save every 2 s: a scenario's run can end with the app killed, which leaves
+/// no quit to save on, so it waits for the saver instead.
+#[cfg(feature = "e2e")]
+pub(crate) const SAVE_EVERY: Duration = Duration::from_secs(2);
 
 /// One tab as a window's webview reports it: its open document, or the token of a restored tab
 /// that hasn't opened yet, and its view.

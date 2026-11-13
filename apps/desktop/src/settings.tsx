@@ -1,6 +1,7 @@
 // The desktop app's Settings dialog (S07): for now its Files section, with the choices the main
 // process keeps in preferences.json and acts on (src-tauri/src/prefs.rs): remembering recent
-// files, which turned off clears the app's and the OS's recent lists, reloading open files that
+// files, which turned off clears the app's and the OS's recent lists and the last session,
+// reopening the last session (which needs the recent files remembered), reloading open files that
 // change on disk, opening files in tabs or windows, and opening a file that is open already. The
 // full settings page adds its other sections to the same registry.
 
@@ -16,10 +17,18 @@ interface Preferences {
   readonly openIn: "tabs" | "windows";
   /** Whether a file that is open already opens again, rather than showing its tab. */
   readonly allowDuplicates: boolean;
+  /** Whether the last session's windows and tabs come back on launch; kept only with `rememberRecent`. */
+  readonly reopenLast: boolean;
 }
 
 /** Until the main process answers, and outside the shell: its defaults. */
-const DEFAULTS: Preferences = { rememberRecent: true, reloadOnChange: true, openIn: "tabs", allowDuplicates: false };
+const DEFAULTS: Preferences = {
+  rememberRecent: true,
+  reloadOnChange: true,
+  openIn: "tabs",
+  allowDuplicates: false,
+  reopenLast: true,
+};
 
 /** What the settings give the app. */
 export interface DesktopSettings {
@@ -79,6 +88,18 @@ function FileSettings({
         {message("settings.files.rememberRecent")}
       </Switch>
       <p className="desktop-settings-help">{message("settings.files.rememberRecent.help")}</p>
+      <Switch
+        isSelected={preferences.rememberRecent && preferences.reopenLast}
+        isDisabled={!preferences.rememberRecent}
+        onChange={(on) => onChange({ ...preferences, reopenLast: on })}
+      >
+        {message("settings.files.reopenLast")}
+      </Switch>
+      <p className="desktop-settings-help">
+        {message(
+          preferences.rememberRecent ? "settings.files.reopenLast.help" : "settings.files.reopenLast.needsRecent",
+        )}
+      </p>
       <Switch
         isSelected={preferences.reloadOnChange}
         onChange={(on) => onChange({ ...preferences, reloadOnChange: on })}

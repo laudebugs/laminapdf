@@ -29,13 +29,13 @@ cargo xtask desktop-notices                           # target/desktop/THIRD_PAR
 
 ### End-to-end tests
 
-WebdriverIO drives the app's e2e build through the WebDriver server it embeds, so no driver needs installing ([ADR 0008 §8](../../docs/decisions/0008-desktop-shell.md#8-test-strategy-per-os)). The scenarios share one app and run in a fixed order. `e2e` runs them, then a second run that starts the app with a PDF's path, as a double-click does. Two scenarios need generated fixtures:
+WebdriverIO drives the app's e2e build through the WebDriver server it embeds, so no driver needs installing ([ADR 0008 §8](../../docs/decisions/0008-desktop-shell.md#8-test-strategy-per-os)). The scenarios share one app and run in a fixed order. `e2e` runs them, then four more runs, each a new launch of the app: one started with a PDF's path, as a double-click does, and three for the last session, which save it, bring it back and check that nothing is kept with the switches off. Two scenarios need generated fixtures:
 
 ```sh
 cargo xtask fixtures large-pdf --pages 1000 --out target/fixtures/1000-pages.pdf
 cargo xtask fixtures large-pdf                                     # target/fixtures/1gb.pdf
 pnpm --filter @laminapdf/desktop run desktop:build:e2e             # feature e2e + tauri.e2e.conf.json
-pnpm --filter @laminapdf/desktop run e2e                           # both runs (Linux: under dbus-run-session and xvfb-run)
+pnpm --filter @laminapdf/desktop run e2e                           # every run (Linux: under dbus-run-session and xvfb-run)
 pnpm --filter @laminapdf/desktop run cold-start                    # five launches, median time to the empty state
 ```
 
@@ -95,6 +95,12 @@ cargo run --release -p laminapdf-desktop-engine --example windows -- \
 
 Add `#raw` to the window's address (in the dev tools) to fetch tiles as raw RGBA instead of WebP, which ADR 0008 §4 keeps for diagnosis.
 
+### The last session
+
+When Lamina PDF starts, the windows and tabs it had when it last quit come back: each window at its size and place, each tab at its page and zoom ([ADR 0008 §11](../../docs/decisions/0008-desktop-shell.md#11-recent-files-and-files-that-change-on-disk)). Only each window's shown tab opens at once, and the others open when first shown, so a session of many large files starts fast. On macOS a bookmark finds a file that moved; a file that can't be found comes back as a tab that offers Locate…. The main process keeps the session in `session.json` in the app's config folder (`src-tauri/src/session/`) and writes it every 30 seconds while it changes and when the app quits. The webview gets each tab as a token and a name, never a path. `tauri-plugin-window-state` keeps the windows' sizes and places.
+
+Settings › Files has "Reopen last session", on by default. The session lists the same files as the recent list, so it is kept only while "Remember recent files" is on too: turning either off deletes `session.json`. "Clear recent" empties the recent list and leaves the session.
+
 ## How it fits together
 
 ```text
@@ -116,6 +122,7 @@ Add `#raw` to the window's address (in the dev tools) to fetch tiles as raw RGBA
 - **`src-tauri/`** is the Rust crate `laminapdf-desktop`, a member of the Cargo workspace. `src/lib.rs` builds the app and its main window; `src/commands.rs` holds the commands the webview may call; `src/error.rs` holds `DesktopError`, which reaches the UI as `{ kind, message }`.
 - **`src-tauri/src/open.rs`** opens what the OS asks: the command line, a second launch (`tauri-plugin-single-instance`, the first plugin registered), macOS's `RunEvent::Opened` and drops on the window. `route_open` queues the paths until the webview calls `take_pending_opens`, then opens each request's last path, in order, in the window's engine and sends `open://document` with its id and name. `src/engine/open.ts`'s `listenForOsOpens` shows each in turn, and the app shows the drop overlay from `open://drag-enter`.
 - **`src-tauri/src/opened.rs`** handles every open from a path, whether it came from the dialog, the OS or the recent list: the window's engine opens the file, `recent.rs` and the OS's list record it (through `crates/laminapdf-desktop-os`, the edge crate that holds the FFI), and `watch/` watches it. `prefs.rs` keeps the two switches in `preferences.json`, and `store.rs` writes both JSON files atomically.
+- **`src-tauri/src/session/`** keeps the last session. `track.rs` holds what each window reported through `session_tabs` and turns it into `session.json` (`mod.rs`); `restore.rs` plans the windows to make again at launch, each tab as a token its window takes with `take_session_tabs` and opens with `session_open`; `app.rs` saves every 30 seconds and on quit, and deletes the file when the preferences stop keeping it. `src/tabs/window-tabs.ts` reports the tabs and restores them, and `src/file-changes.tsx` shows a restored tab whose file is gone.
 - **`src-tauri/src/watch/`** watches each open document's folder with `notify`. `stamp.rs` decides when a change has settled; `mod.rs`'s thread waits for it and asks `app.rs` to reload, which opens the changed file as a new document, closes the old one and sends the window `document://reloaded`, `document://missing` or `document://unreadable`.
 - **`src-tauri/src/engine/tiles.rs`** answers the `lamina://` scheme (ADR 0008 §4). It parses the tile's address strictly, takes the window from the webview that asked (never from the address), has the window's engine draw the tile, checks the pixels against the size asked for, and sends them as lossless WebP, or raw RGBA when the address has no `fmt`. A failure answers `{ kind, message }` with a status the client maps back.
 - **`src-tauri/src/engine/`** runs documents in the engine process (ADR 0008 §2). Each window gets its own engine, `crates/laminapdf-desktop-engine`, started on its first document and sandboxed (`crates/laminapdf-desktop-sandbox`). The main process opens each file read-only and answers the engine's range requests with positioned reads (`bytesource.rs`), so neither the webview nor the engine ever sees a path. `documents.rs` maps each document to its file, its window and its kept password, and keeps each window's engine away from other windows' documents. When an engine crashes or stops answering, the protocol crate's supervisor starts a new one, and `mod.rs` reopens the window's documents, unlocking encrypted ones with the kept password (`secret.rs`). The window then gets `engine://restarted`, which says whether each document is open, locked or closed; a document that fails to reopen, or kills the new engine, is closed. A fourth crash within 60 s sends `engine://failed` instead.

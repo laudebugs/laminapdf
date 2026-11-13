@@ -7,31 +7,18 @@
 // recording; and the logs, which hold no file's path.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { $, browser, expect } from "@wdio/globals";
-import { fixture, inkedPixels, launchAgain, paintsSince, recentNames, runCommand, waitForDocument } from "../app.ts";
+import { browser, expect } from "@wdio/globals";
+import {
+  fixture,
+  inkedPixels,
+  launchAgain,
+  paintsSince,
+  recentNames,
+  runCommand,
+  toggleSetting,
+  waitForDocument,
+} from "../app.ts";
 import { output, root } from "../paths.ts";
-
-/**
- * Opens Settings from the More menu and flips "Remember recent files", then closes it. The switch is
- * flipped with its input's own `click()`: the embedded WebDriver's clicks and keys are synthetic
- * events, which reach React's handlers (so buttons work) but never run a checkbox's built-in
- * toggle, which a person's click or Space does; `click()` runs it.
- */
-async function toggleRememberRecent(): Promise<void> {
-  await $('button[aria-label="More"]').click();
-  await $('//*[@role="menuitem"][contains(., "Settings")]').click();
-  const input = $('//label[contains(., "Remember recent files")]//input[@role="switch"]');
-  await input.waitForExist();
-  const was = await input.isSelected();
-  await browser.execute(() => {
-    const label = [...globalThis.document.querySelectorAll("label")].find((l) =>
-      l.textContent?.includes("Remember recent files"),
-    );
-    label?.querySelector<HTMLInputElement>('input[role="switch"]')?.click();
-  });
-  await browser.waitUntil(async () => (await input.isSelected()) !== was, { timeoutMsg: "the switch didn't flip" });
-  await browser.keys("Escape");
-}
 
 describe("opening from the command line", () => {
   it("should open the file named when the app started", async () => {
@@ -50,7 +37,7 @@ describe("recent files across a restart", () => {
   });
 
   it("should clear the list, and record nothing, while Remember recent files is off", async () => {
-    await toggleRememberRecent();
+    await toggleSetting("Remember recent files");
     await browser.waitUntil(async () => (await recentNames()).length === 0, {
       timeoutMsg: "turning Remember recent files off didn't clear the list",
     });
@@ -58,7 +45,7 @@ describe("recent files across a restart", () => {
     expect(await launchAgain([fixture("fixtures", "golden", "examples", "hello.pdf")])).toBe(0);
     await waitForDocument(1);
     expect(await recentNames()).toEqual([]);
-    await toggleRememberRecent();
+    await toggleSetting("Remember recent files");
   });
 
   it("should empty the list with the palette's Clear recent", async () => {

@@ -37,7 +37,7 @@ import type { AppInfo } from "./app-info.ts";
 import { type DesktopEngineClient, DesktopEngineError, type DesktopShell } from "./engine/desktop-engine-client.ts";
 import { type Dragging, desktopOpener, listenForOsOpens } from "./engine/open.ts";
 import { stopper } from "./engine/stopper.ts";
-import { useFileChanges } from "./file-changes.tsx";
+import { MissingRestoredTab, useFileChanges } from "./file-changes.tsx";
 import { NotYetSupportedError } from "./platform/desktop.ts";
 import { type DesktopRecent, useDesktopRecent } from "./recent.tsx";
 import { type DesktopSettings, useDesktopSettings } from "./settings.tsx";
@@ -156,7 +156,9 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
           </OpenDropZone>
         ) : null}
         {open && lost === undefined ? fileProblem : null}
-        {state.phase === "error" ? <Failure error={state.error} reader={reader} platform={platform} /> : null}
+        {state.phase === "error" ? (
+          <ErrorPage state={state} engine={engine} tabs={tabs} reader={reader} platform={platform} toasts={toasts} />
+        ) : null}
         {open && lost !== undefined ? (
           <Notice title={LOST_TEXT[lost].title} tone="warning">
             {LOST_TEXT[lost].body}{" "}
@@ -297,6 +299,31 @@ function useEngineEvents(engine: DesktopEngine | undefined, toasts: ToastQueue, 
     if (!open) setLost(undefined);
   }, [open]);
   return lost;
+}
+
+/**
+ * What the window shows when the reader couldn't open its document: a tab of the last session
+ * whose file is gone offers Locate…; anything else gets the reader's failure page.
+ */
+function ErrorPage({
+  state,
+  engine,
+  tabs,
+  reader,
+  platform,
+  toasts,
+}: {
+  state: Extract<ReaderState, { phase: "error" }>;
+  engine: DesktopEngine | undefined;
+  tabs: WindowTabs | undefined;
+  reader: ReaderController;
+  platform: Platform;
+  toasts: ToastQueue;
+}): ReactNode {
+  if (engine !== undefined && tabs?.isUnopened(state.file) === true) {
+    return <MissingRestoredTab engine={engine} tabs={tabs} file={state.file} toasts={toasts} />;
+  }
+  return <Failure error={state.error} reader={reader} platform={platform} />;
 }
 
 /** The page that says why a document didn't open, with the reader's own failure layout. */

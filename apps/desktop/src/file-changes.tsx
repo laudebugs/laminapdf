@@ -2,9 +2,10 @@
 // the same page and zoom, with a toast; a file moved or deleted shows a strip under the top bar,
 // with Locate… (choose where it went: the view moves to that file) and Close, while the document
 // stays readable; a change the main process couldn't open shows the unreadable notice until the next good
-// reload. Each event names a document id, and only the one on screen counts.
+// reload. Each event names a document id, and only the one on screen counts. A tab of the last
+// session whose file is gone shows the same words in place of the document, with Locate… and Close.
 
-import { message, Notice, type ReaderController, type ToastQueue } from "@laminapdf/ui";
+import { message, Notice, type PlatformFile, type ReaderController, type ToastQueue } from "@laminapdf/ui";
 import { type ReactNode, useEffect, useState } from "react";
 import type { DesktopEngine } from "./app.tsx";
 import { type DesktopDocument, engineError } from "./engine/desktop-engine-client.ts";
@@ -105,4 +106,44 @@ async function locate(engine: DesktopEngine, reader: ReaderController): Promise<
   show(engine, reader, located);
   if (previous !== undefined && !located.needsPassword) await engine.shell.invoke("close_document", { doc: previous });
   return true;
+}
+
+/**
+ * The page a tab of the last session shows when its file couldn't be found (D4d): Locate… lets
+ * the user choose where it went, and the tab shows that file; Close closes the tab.
+ */
+export function MissingRestoredTab({
+  engine,
+  tabs,
+  file,
+  toasts,
+}: {
+  engine: DesktopEngine;
+  tabs: WindowTabs;
+  file: PlatformFile;
+  toasts: ToastQueue;
+}): ReactNode {
+  const id = tabs.getState().tabs.find((tab) => tab.file === file)?.id;
+  if (id === undefined) return null;
+  const locate = async () => {
+    const located = await engine.shell.invoke<DesktopDocument | null>("open_dialog");
+    if (located !== null) await tabs.located(id, located);
+  };
+  return (
+    <div className="desktop-missing">
+      <Notice title={message("reader.file.missing.title")} tone="warning">
+        {message("reader.file.missing.body")}{" "}
+        <button
+          type="button"
+          className="desktop-link"
+          onClick={() => void locate().catch((error: unknown) => toasts.add({ message: engineError(error).message }))}
+        >
+          {message("reader.file.missing.locate")}
+        </button>{" "}
+        <button type="button" className="desktop-link" onClick={() => void tabs.close(id)}>
+          {message("reader.file.missing.close")}
+        </button>
+      </Notice>
+    </div>
+  );
 }

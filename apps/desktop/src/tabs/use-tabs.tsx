@@ -1,6 +1,6 @@
 // The window's tab strip and what drives it from outside the webview: tabs moved here from other
 // windows (`tab://arrived`, with the ones that came before the webview was ready handed over by
-// `take_pending_tabs`), a second open of a file showing its tab (`tab://activate`), the other
+// `take_pending_tabs`), the last session's tabs (`take_session_tabs`), a second open of a file showing its tab (`tab://activate`), the other
 // windows for "Move tab to window ▸", the window's title, and tabs not shown when the engine
 // restarts. The strip shows from two tabs on (S02); with one, the title bar carries the name.
 import {
@@ -26,6 +26,7 @@ import {
   ARRIVED_EVENT,
   type Arrived,
   type MoveTarget,
+  type RestoredWindow,
   WINDOWS_CHANGED_EVENT,
   type WindowTabs,
 } from "./window-tabs.ts";
@@ -136,6 +137,11 @@ function useTabEvents(
         }),
       ]);
       await shell.invoke("take_pending_tabs");
+      // The last session's tabs for this window, once, when the app started with them (D4d).
+      const restored = await shell.invoke<RestoredWindow | null>("take_session_tabs");
+      if (restored !== null) {
+        turn = turn.then(() => tabs.restore(restored)).catch((error: unknown) => console.warn("restoring", error));
+      }
       return () => {
         for (const stop of off) stop();
       };
