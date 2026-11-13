@@ -464,4 +464,37 @@ mod review {
             (None, None, true)
         );
     }
+
+    #[test]
+    fn an_annots_array_two_pages_share_loses_the_annotation_once() {
+        let mut d = open(&classic_with_root(
+            &[
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots 5 0 R >>",
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots 5 0 R >>",
+                "[6 0 R 7 0 R 8 0 R]",
+                "<< /Type /Annot /Subtype /Square /Rect [0 0 10 10] >>",
+                "<< /Type /Annot /Subtype /Square /Rect [0 0 10 10] >>",
+                "<< /Type /Annot /Subtype /Square /Rect [0 0 10 10] >>",
+            ],
+            "",
+        ));
+        apply(&mut d, DeleteAnnot::new(id("a6.0"))).unwrap();
+        assert_eq!(listed(&d, 0), [7, 8]);
+    }
+
+    #[test]
+    fn a_locked_popup_allows_a_move_that_leaves_it_where_it_is() {
+        let mut d = one_page(
+            &[
+                "<< /Type /Annot /Subtype /Text /Rect [0 0 10 10] /Popup 5 0 R /Contents (a) >>",
+                "<< /Type /Annot /Subtype /Popup /Rect [20 20 80 80] /Parent 4 0 R /F 128 >>",
+            ],
+            "",
+        );
+        let mut op = UpdateAnnot::new(id("a4.0"));
+        op.translate = Offset::new(0.0, 0.0);
+        assert!(apply(&mut d, op).is_ok());
+    }
 }

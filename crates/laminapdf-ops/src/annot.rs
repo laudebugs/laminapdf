@@ -175,13 +175,13 @@ impl UpdateAnnot {
         // The Popup moves with its parent, unless it is locked, which refuses the move.
         let popup = match (self.translate, &found.annot.popup) {
             (Some(offset), Some(popup)) => match Found::locate(&all, popup) {
-                Ok(popup) if popup.annot.flags.has(AnnotFlags::LOCKED) => {
-                    return Err(Error::AnnotationLocked(popup.annot.id));
-                }
                 Ok(popup) => {
                     let mut moved = popup.dict(doc)?;
                     let was = moved.clone();
                     translate(&mut moved, offset);
+                    if moved != was && popup.annot.flags.has(AnnotFlags::LOCKED) {
+                        return Err(Error::AnnotationLocked(popup.annot.id));
+                    }
                     (moved != was).then_some((popup, moved))
                 }
                 Err(_) => None,
@@ -260,6 +260,7 @@ impl DeleteAnnot {
         }
         let parent_tree = parent_tree(doc)?;
         let mut pages = Vec::new();
+        let mut arrays = BTreeSet::new();
         for (page, annots) in &all {
             let gone: BTreeSet<usize> = annots
                 .iter()
@@ -267,7 +268,7 @@ impl DeleteAnnot {
                 .map(|a| a.index)
                 .collect();
             if !gone.is_empty() {
-                unlink(doc, page, &gone)?;
+                unlink(doc, page, &gone, &mut arrays)?;
                 pages.push(page.clone());
             }
             for annot in annots.iter().filter(|a| !doomed.contains(&a.id)) {
@@ -370,8 +371,14 @@ fn doomed(target: &Annot, all: &[(PageId, Vec<Annot>)]) -> BTreeSet<AnnotId> {
 
 /// Removes the entries at the positions `gone` from the page's `/Annots`, in the array object
 /// when it is indirect, else in the page's own dictionary. Positions, not references, so a
-/// direct dictionary goes too.
-fn unlink(doc: &mut laminapdf_model::Document, page: &PageId, gone: &BTreeSet<usize>) -> Result<()> {
+/// direct dictionary goes too. An indirect array that several pages share is edited once:
+/// `arrays` holds the ones already edited, since each page lists the same entries.
+fn unlink(
+    doc: &mut laminapdf_model::Document,
+    page: &PageId,
+    gone: &BTreeSet<usize>,
+    arrays: &mut BTreeSet<ObjRef>,
+) -> Result<()> {
     let page_ref = page
         .as_lamina_id()
         .obj_ref()
@@ -390,6 +397,9 @@ fn unlink(doc: &mut laminapdf_model::Document, page: &PageId, gone: &BTreeSet<us
     };
     match value {
         Object::Ref(array) => {
+            if !arrays.insert(array) {
+                return Ok(());
+            }
             let current = laminapdf_cos::tolerant(doc.cos().resolve(array))?;
             let items = current.as_deref().and_then(Object::as_array).unwrap_or_default();
             let items = kept(items);
