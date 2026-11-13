@@ -148,6 +148,13 @@ export const ROUTES: readonly Route[] = [
     states: ["popover", "sheet"],
   },
   {
+    id: "link-editor",
+    title: "Link editor",
+    components: [],
+    renders: ["LinkPanel", "LinkEditor"],
+    states: ["page", "web", "refused", "script"],
+  },
+  {
     id: "selection-toolbar",
     title: "Selection toolbar",
     components: [],

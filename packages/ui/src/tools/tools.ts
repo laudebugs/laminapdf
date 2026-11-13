@@ -18,13 +18,15 @@ import type { ExternalStore } from "../state/hooks.js";
 
 /**
  * The interaction modes, by name. `select`: choose objects on the page (text, until an object
- * layer exists); `hand`: drag to scroll; `textSelect`: select text only. Later rounds add
- * `annotate`, `formFill`, `formDesign`, `contentEdit`, `redact` and `measure`.
+ * layer exists); `hand`: drag to scroll; `textSelect`: select text only; `link`: select a link,
+ * or draw one (O12). Later rounds add `annotate`, `formFill`, `formDesign`, `contentEdit`,
+ * `redact` and `measure`.
  */
 export interface InteractionModes {
   select: true;
   hand: true;
   textSelect: true;
+  link: true;
 }
 
 /** An interaction mode's name: any key of `InteractionModes`. */

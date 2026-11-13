@@ -104,16 +104,16 @@ export function LinkEditor(props: LinkEditorProps): ReactNode {
       {goal?.kind === "script" ? <ScriptGoal action={goal.action} /> : null}
       <RadioGroup label={laterMessage("link.goesTo")} value={kind} onChange={(v) => setKind(v as Kind)}>
         <Radio value="page" className="paper-radio">
-          {laterMessage("link.page")}
+          {laterMessage("link.kind.page")}
         </Radio>
         <Radio value="named" className="paper-radio">
-          {laterMessage("link.named")}
+          {laterMessage("link.kind.named")}
         </Radio>
         <Radio value="web" className="paper-radio">
-          {laterMessage("link.web")}
+          {laterMessage("link.kind.web")}
         </Radio>
         <Radio value="email" className="paper-radio">
-          {laterMessage("link.email")}
+          {laterMessage("link.kind.email")}
         </Radio>
       </RadioGroup>
       <GoalFields kind={kind} {...props} />
@@ -270,38 +270,30 @@ function EmailFields({
   onEmail: (address: string, subject: string) => void;
 }): ReactNode {
   const [error, setError] = useState<string>();
-  const address = useRef(goal?.address ?? "");
-  const subject = useRef(goal?.subject ?? "");
-  const commit = () => {
-    if (address.current === "") return setError(undefined);
-    if (!EMAIL.test(address.current)) {
+  const [typed, setTyped] = useState({ address: goal?.address ?? "", subject: goal?.subject ?? "" });
+  const commit = (next: { address: string; subject: string }) => {
+    setTyped(next);
+    if (next.address === "") return setError(undefined);
+    if (!EMAIL.test(next.address)) {
       setError(laterMessage("link.emailInvalid"));
       return;
     }
     setError(undefined);
-    if (address.current !== goal?.address || subject.current !== goal?.subject) {
-      onEmail(address.current, subject.current);
-    }
+    if (next.address !== goal?.address || next.subject !== goal?.subject) onEmail(next.address, next.subject);
   };
   return (
     <>
       <TextInput
         label={laterMessage("link.emailAddress")}
         inputMode="email"
-        defaultValue={address.current}
+        defaultValue={typed.address}
         {...(error === undefined ? {} : { errorMessage: error })}
-        {...committing((v) => {
-          address.current = v.trim();
-          commit();
-        })}
+        {...committing((v) => commit({ ...typed, address: v.trim() }))}
       />
       <TextInput
         label={laterMessage("link.subject")}
-        defaultValue={subject.current}
-        {...committing((v) => {
-          subject.current = v;
-          commit();
-        })}
+        defaultValue={typed.subject}
+        {...committing((v) => commit({ ...typed, subject: v }))}
       />
     </>
   );

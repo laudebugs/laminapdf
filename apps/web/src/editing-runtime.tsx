@@ -25,12 +25,12 @@ import {
   RemoveSignaturesDialog,
   registerEditCommands,
   SaveStrip,
-  ToolRegistry,
 } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { showEditToasts } from "./edit-toasts.ts";
 import { type EditActions, HISTORY_TAB } from "./editing.tsx";
+import { LinkEditing, toolsOf } from "./links.tsx";
 import { type PageInfo, pageLabel } from "./outline.ts";
 import type { SaveFlow } from "./save-flow.ts";
 import type { Engine } from "./session.ts";
@@ -112,7 +112,7 @@ function CloseDialog({
 
 /** Passes pointer input on the view to the interaction mode on. */
 function useTools(viewer: Viewer, reader: ReaderController): void {
-  const [tools] = useState(() => new ToolRegistry());
+  const tools = toolsOf(viewer.edits);
   useEffect(() => {
     const element = viewer.element;
     return attachTools(tools, { element, scrollBy: (dx, dy) => element.scrollBy(dx, dy) });
@@ -169,6 +169,7 @@ export function EditingRuntime({ engine, viewer, registry, toasts, fileName, flo
   useBeforeUnload(unsaved > 0);
   return (
     <>
+      <LinkEditing engine={engine} viewer={viewer} registry={registry} toasts={toasts} />
       <CloseDialog
         isOpen={guard.asking}
         fileName={fileName}
