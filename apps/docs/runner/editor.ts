@@ -220,9 +220,7 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
     buttons.run.disabled = false;
     status.textContent = "";
     if (!reply.ok) {
-      problem.replaceChildren(element("strong", "", reply.code), document.createTextNode(`: ${reply.message}`));
-      if (reply.hint !== undefined) problem.append(element("p", "run-hint", reply.hint));
-      problem.hidden = false;
+      showProblem(problem, reply);
       return;
     }
     problem.hidden = true;
@@ -235,6 +233,13 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
     const shown = reply.pages.length < reply.pageCount ? `; the first ${reply.pages.length} are shown` : "";
     status.textContent = `Done: ${count}${shown}.`;
   });
+}
+
+/** A failed run's code, message and hint, in the bar's alert. */
+function showProblem(problem: HTMLElement, reply: Extract<RunReply, { ok: false }>): void {
+  problem.replaceChildren(element("strong", "", reply.code), document.createTextNode(`: ${reply.message}`));
+  if (reply.hint !== undefined) problem.append(element("p", "run-hint", reply.hint));
+  problem.hidden = false;
 }
 
 /** A runner's pages: the code that made them and the width they were drawn at, and whether a run is going. */
