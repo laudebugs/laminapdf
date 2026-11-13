@@ -34,6 +34,8 @@
             "no-pending-save",
             "malformed-xmp",
             "unknown-source",
+            "no-pages-left",
+            "invalid-op",
             "unknown-annotation",
             "annotation-locked",
             "annotation-not-editable",

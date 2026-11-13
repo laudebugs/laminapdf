@@ -52,6 +52,8 @@ export type ErrorCode =
   | "no-pending-save"
   | "malformed-xmp"
   | "unknown-source"
+  | "no-pages-left"
+  | "invalid-op"
   | "unknown-annotation"
   | "annotation-locked"
   | "annotation-not-editable"
@@ -267,6 +269,8 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "no-pending-save",
   "malformed-xmp",
   "unknown-source",
+  "no-pages-left",
+  "invalid-op",
   "unknown-annotation",
   "annotation-locked",
   "annotation-not-editable",
@@ -510,6 +514,8 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "no-pending-save": "state",
   "malformed-xmp": "input",
   "unknown-source": "usage",
+  "no-pages-left": "usage",
+  "invalid-op": "usage",
   "unknown-annotation": "usage",
   "annotation-locked": "state",
   "annotation-not-editable": "unsupported",
@@ -700,6 +706,8 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "no-pending-save": "call rebase only after a save that returned SavedNotRebased",
   "malformed-xmp": "set replaceMalformed on the edit to replace the packet with a new one, or leave the metadata as it is",
   "unknown-source": "add the source document's bytes with addSource before applying ops that name it",
+  "no-pages-left": "keep at least one page: delete all but one, or insert a blank page first",
+  "invalid-op": "insert between 1 and 10,000 pages at a time, each with a width and height above 0 and up to 14,400 points",
   "unknown-annotation": "read the page's annotations again and use an ID from that list",
   "annotation-locked": "clear the lock with an update of its flags first, if you may",
   "annotation-not-editable": "edit a widget through its form field; an annotation stored inside the page's list can't be edited yet",

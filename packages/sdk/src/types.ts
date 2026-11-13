@@ -31,6 +31,7 @@ import type {
   ProgressJs,
   PropertiesJs,
   RectJs,
+  ReferenceEditJs,
   RenderModeInit,
   RevertedJs,
   SaveOptionsInit,
@@ -47,7 +48,8 @@ import type {
 } from "@laminapdf/wasm/text";
 
 /**
- * An edit (`{ op, args }`): `setMetadata`, `removeMetadata`, `rotatePage`, `setPageLabels`, or the deprecated
+ * An edit (`{ op, args }`): `setMetadata`, `removeMetadata`, `setPageLabels`, the page ops (`insertBlankPages`,
+ * `deletePages`, `movePages`, `rotatePages`, `reversePages`, `rotatePage`), or the deprecated
  * `setInfo` (use `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
  *
  * @since 0.2.0
@@ -155,11 +157,21 @@ export type StructureNode = StructureNodeJs;
  */
 export type StructureKid = StructureKidJs;
 /**
- * The pages an edit touched.
+ * What an edit did: the pages it touched (`touchedPages`, IDs), whether it changed anything,
+ * the page IDs in their new order when it changed the page list (`pageOrder`), and what a page
+ * deletion did to the references to the deleted pages (`references`).
  *
  * @since 0.2.0
  */
 export type Edited = EditedJs;
+/**
+ * A reference to a deleted page (an outline item, a link, a named destination, the open action,
+ * a structure element or kid, or a form field's widget) and what the deletion did to it:
+ * `retargeted` to the page `to`, or `removed`.
+ *
+ * @since 0.2.0
+ */
+export type ReferenceEdit = ReferenceEditJs;
 /**
  * How an undo or redo went.
  *

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §2.2](../../plans/editor/e2-page-organisation.md#22-what-follows-a-page) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2b](./E2b-page-structure-ops.md) |
+| Depends on | [E2b](../done/E2b-page-structure-ops.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2k-duplicate-pages` |
 | PR title | `feat(ops): duplicate pages with fresh fields and structure` |
@@ -15,7 +15,7 @@
 
 ## Goal
 
-`DuplicatePages { pages, at: PagePosition }`: copy pages within a document so that the copy never shares structure keys or form fields with its source. Split out of [E2b](E2b-page-structure-ops.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos); with it, `C.03` (delete and duplicate) is complete.
+`DuplicatePages { pages, at: PagePosition }`: copy pages within a document so that the copy never shares structure keys or form fields with its source. Split out of [E2b](../done/E2b-page-structure-ops.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos); with it, `C.03` (delete and duplicate) is complete.
 
 ## Context
 

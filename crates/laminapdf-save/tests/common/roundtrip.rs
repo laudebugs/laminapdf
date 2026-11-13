@@ -28,12 +28,13 @@
 use std::path::Path;
 
 use laminapdf_cos::OpenOptions;
-use laminapdf_model::{LabelStyle, Rotation};
+use laminapdf_model::{LabelStyle, PageId, PagePosition, PageSize, Rotation};
 use laminapdf_ops::{
-    Document, InfoPatch, MetadataKey, MetadataPatch, Op, Origin, PageLabelRange, RemoveMetadata, RotatePage, SetInfo,
-    SetMetadata, SetPageLabels, read_metadata,
+    DeletePages, Document, InfoPatch, InsertBlankPages, MetadataKey, MetadataPatch, MovePages, Op, Origin,
+    PageLabelRange, RemoveMetadata, ReversePages, RotatePage, RotatePages, SetInfo, SetMetadata, SetPageLabels,
+    read_metadata,
 };
-use laminapdf_save::{Save, SaveError, SaveMode, SaveOptions, SaveReport};
+use laminapdf_save::{Restriction, Save, SaveError, SaveMode, SaveOptions, SavePlanner, SaveReport};
 use serde_json::{Value, json};
 
 use super::copy;
@@ -192,6 +193,22 @@ fn expected(category: Category, mode: SaveMode, invalidate: bool, remove: bool) 
     }
 }
 
+/// `category`, or [`Category::Certified`] for a signed file whose op reshows a signed
+/// signature's widget (rotating its page): that breaks the signature's appearance (ADR 0007
+/// §11), so it saves only with the override.
+fn with_widget_rule(doc: &Document, op: &Op, category: Category) -> Category {
+    let reshows_signed = SavePlanner::new(doc)
+        .unwrap()
+        .would_violate(op)
+        .iter()
+        .any(|v| v.restriction == Restriction::SignedWidget);
+    if reshows_signed && category == Category::Signed {
+        Category::Certified
+    } else {
+        category
+    }
+}
+
 /// The facts Lamina PDF compares after reopening: page count, rotations (degrees), the
 /// [`INFO`] keys' values and each page's label, in that order (the other tools compare the same
 /// ones; the labels only in the `setPageLabels` cases).
@@ -210,6 +227,17 @@ fn facts(doc: &laminapdf_model::Document) -> Facts {
     (pages.len(), rotations, values, labels)
 }
 
+/// The labels `doc` should show after `op_name` once saved: the `setPageLabels` cases' own, else
+/// the edited document's (the page ops keep each label with its page, and the save must keep
+/// them there).
+fn labels_after(doc: &laminapdf_model::Document, op_name: &str, pages: usize) -> Vec<Option<String>> {
+    if op_name == "setPageLabels" {
+        new_labels(pages)
+    } else {
+        facts(doc).3
+    }
+}
+
 /// The labels the `setPageLabels` cases give a document of `pages` pages: `i` for the first
 /// page, then `p. 1`, `p. 2`, … (I.10).
 fn new_labels(pages: usize) -> Vec<Option<String>> {
@@ -219,21 +247,30 @@ fn new_labels(pages: usize) -> Vec<Option<String>> {
 }
 
 /// The ops each fixture is saved with: a title through the deprecated `setInfo`, a rotation,
-/// the metadata ops (J.01–J.03, J.10) and page labels (I.10).
-const OPS: [&str; 5] = [
+/// the metadata ops (J.01–J.03, J.10), page labels (I.10) and the page ops (C.01, C.03, C.04,
+/// C.08, C.13).
+const OPS: [&str; 10] = [
     "setInfo",
     "rotatePage",
     "setMetadata",
     "removeMetadata",
+    "insertBlankPages",
+    "deletePages",
+    "reversePages",
+    "movePages",
+    "rotatePages",
     "setPageLabels",
 ];
 
 /// The save-time date the metadata cases stamp (J.02).
 const STAMP: &str = "D:20261110093000Z";
 
-fn op(doc: &Document, name: &str, rotation: Rotation) -> Op {
+/// The op `name`, or `None` for a deletion, a reversal or a move on a one-page file (a document
+/// keeps a page, and one page reversed or moved is no change).
+fn op(doc: &Document, name: &str, rotation: Rotation) -> Option<Op> {
     let [title, author, subject, keywords] = INFO.map(|(_, value)| Some(value));
-    match name {
+    let ids: Vec<PageId> = doc.pages().unwrap().iter().map(|p| p.id().clone()).collect();
+    Some(match name {
         "setInfo" => SetInfo::patch(
             InfoPatch::new()
                 .title(title)
@@ -260,6 +297,18 @@ fn op(doc: &Document, name: &str, rotation: Rotation) -> Op {
             MetadataKey::Keywords,
         ])
         .into(),
+        "insertBlankPages" => InsertBlankPages::new(PagePosition::End, 1, PageSize::LETTER)
+            .with_rotate(rotation)
+            .into(),
+        "deletePages" if ids.len() > 1 => DeletePages::new(ids.last().cloned().into_iter().collect()).into(),
+        "deletePages" => return None,
+        "reversePages" if ids.len() > 1 => ReversePages::new(ids).into(),
+        "reversePages" => return None,
+        "movePages" if ids.len() > 1 => {
+            MovePages::new(ids.last().cloned().into_iter().collect(), PagePosition::Start).into()
+        }
+        "movePages" => return None,
+        "rotatePages" => RotatePages::turn(ids, rotation).into(),
         "setPageLabels" => {
             let pages = doc.pages().unwrap();
             let mut ranges = vec![PageLabelRange::new(
@@ -271,25 +320,40 @@ fn op(doc: &Document, name: &str, rotation: Rotation) -> Op {
             }
             SetPageLabels::new(ranges).into()
         }
-        _ => {
-            let page = doc.pages().unwrap().get(0).unwrap().id().clone();
-            RotatePage::new(page, rotation).into()
-        }
-    }
+        _ => RotatePage::new(ids.first().cloned()?, rotation).into(),
+    })
 }
 
-/// The facts a document with `facts` shows after `op`.
-fn after(op: &Op, facts: Facts, rotation: Rotation) -> Facts {
-    let (pages, mut rotations, mut info, mut labels) = facts;
+/// The facts after `op` (page count, rotations in degrees, the [`INFO`] keys' values), from
+/// those before it.
+fn after_op(op: &Op, rotation: Rotation, pages: &mut usize, rotations: &mut Vec<u16>, info: &mut Vec<Option<String>>) {
     match op {
         Op::SetInfo(_) | Op::SetMetadata(_) => {
-            info = INFO.iter().map(|(_, v)| Some((*v).to_owned())).collect();
+            *info = INFO.iter().map(|(_, v)| Some((*v).to_owned())).collect();
         }
-        Op::RemoveMetadata(_) => info = vec![None; INFO.len()],
-        Op::SetPageLabels(_) => labels = new_labels(pages),
-        _ => rotations[0] = rotation.degrees(),
+        Op::RemoveMetadata(_) => *info = vec![None; INFO.len()],
+        Op::RotatePage(_) => {
+            if let Some(first) = rotations.first_mut() {
+                *first = rotation.degrees();
+            }
+        }
+        Op::InsertBlankPages(_) => {
+            *pages += 1;
+            rotations.push(rotation.degrees());
+        }
+        Op::DeletePages(_) => {
+            *pages -= 1;
+            rotations.pop();
+        }
+        Op::ReversePages(_) => rotations.reverse(),
+        Op::MovePages(_) => rotations.rotate_right(1),
+        Op::RotatePages(_) => {
+            for r in rotations.iter_mut() {
+                *r = (*r + rotation.degrees()) % 360;
+            }
+        }
+        _ => {}
     }
-    (pages, rotations, info, labels)
 }
 
 /// What a run produced.
@@ -323,17 +387,22 @@ pub fn run(root: &Path) -> Suite {
                     )
                     .to_lowercase();
                     let mut doc = Document::open(bytes.clone(), OpenOptions::default()).unwrap();
-                    let op = op(&doc, op_name, rotation);
-                    let (pages, rotations, info, labels) = after(&op, facts(&doc), rotation);
+                    let (mut pages, mut rotations, mut info, _) = facts(&doc);
+                    let Some(op) = op(&doc, op_name, rotation) else {
+                        continue;
+                    };
+                    let category = with_widget_rule(&doc, &op, category);
                     let metadata_op = matches!(op, Op::SetMetadata(_) | Op::RemoveMetadata(_));
+                    after_op(&op, rotation, &mut pages, &mut rotations, &mut info);
                     // A removal from a file with nothing to remove would change nothing: it
                     // follows the metadata edit, in the same transaction.
                     let ops = if op_name == "removeMetadata" {
-                        vec![self::op(&doc, "setMetadata", rotation), op]
+                        vec![self::op(&doc, "setMetadata", rotation).unwrap(), op]
                     } else {
                         vec![op]
                     };
                     doc.apply_all(Origin::Local, ops).unwrap();
+                    let labels = labels_after(&doc, op_name, pages);
                     let mut options = SaveOptions::new()
                         .with_mode(mode)
                         .with_invalidate_signatures(invalidate)
@@ -389,7 +458,7 @@ pub fn run(root: &Path) -> Suite {
                         "title": info[0],
                         // The other three keys the setInfo cases write (J.01), compared by the
                         // tools only there: elsewhere they are the fixture's own values.
-                        "info": (!matches!(op_name, "rotatePage" | "setPageLabels")).then(|| json!({
+                        "info": matches!(op_name, "setInfo" | "setMetadata" | "removeMetadata").then(|| json!({
                             "Author": info[1],
                             "Subject": info[2],
                             "Keywords": info[3],

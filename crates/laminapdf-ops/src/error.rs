@@ -60,6 +60,13 @@ pub enum Error {
     /// its sources before it replays the log).
     #[error("no source document with this ID was added to the session")]
     UnknownSource(crate::SourceId),
+    /// A [`DeletePages`](crate::DeletePages) would delete every page: a document needs a page
+    /// to show, so delete all but one, or insert a page first.
+    #[error("the edit would delete every page")]
+    NoPagesLeft,
+    /// An op's values are out of range: the reason names which (fixed text, never the op's).
+    #[error("the op's values are out of range: {0}")]
+    InvalidOp(&'static str),
     /// [`SetPageLabels`](crate::SetPageLabels)' ranges break a rule of ISO 32000-2 §12.4.2:
     /// `what` is `first-page` (the first range isn't on the first page), `order` (ranges out
     /// of page order, or two on one page) or `first-number` (a range numbered from 0).
@@ -107,6 +114,22 @@ impl fmt::Display for Shown<'_> {
     }
 }
 
+impl From<laminapdf_model::PageTreeError> for Error {
+    fn from(e: laminapdf_model::PageTreeError) -> Self {
+        use laminapdf_model::PageTreeError as E;
+        match e {
+            E::Cos(e) => Self::Cos(e),
+            E::UnknownPage(page) => Self::UnknownPage(page),
+            // The ops insert only pages they make, so these name a page tree that changed
+            // under them: report it as a broken structure.
+            _ => Self::Cos(laminapdf_cos::Error::InvalidStructure {
+                kind: "page tree",
+                message: "a page is listed twice or is not a page",
+            }),
+        }
+    }
+}
+
 impl From<laminapdf_cos::Error> for Error {
     fn from(e: laminapdf_cos::Error) -> Self {
         Self::Cos(e)
@@ -129,6 +152,8 @@ impl Error {
         "no-pending-save",
         "malformed-xmp",
         "unknown-source",
+        "no-pages-left",
+        "invalid-op",
         "unknown-annotation",
         "annotation-locked",
         "annotation-not-editable",
@@ -152,6 +177,8 @@ impl Error {
             Self::NoPendingSave => "no-pending-save",
             Self::MalformedXmp => "malformed-xmp",
             Self::UnknownSource(_) => "unknown-source",
+            Self::NoPagesLeft => "no-pages-left",
+            Self::InvalidOp(_) => "invalid-op",
             Self::UnknownAnnotation(_) => "unknown-annotation",
             Self::AnnotationLocked(_) => "annotation-locked",
             Self::AnnotationNotEditable(_) => "annotation-not-editable",
@@ -175,6 +202,8 @@ impl Error {
             }
             Self::UnknownPage(_)
             | Self::UnknownSource(_)
+            | Self::NoPagesLeft
+            | Self::InvalidOp(_)
             | Self::UnknownAnnotation(_)
             | Self::InvalidLabelRanges { .. } => ErrorKind::Usage,
             Self::AnnotationLocked(_) => ErrorKind::State,
@@ -220,6 +249,8 @@ impl Error {
             | Self::NoPendingSave
             | Self::MalformedXmp
             | Self::UnknownSource(_)
+            | Self::NoPagesLeft
+            | Self::InvalidOp(_)
             | Self::InvalidLabelRanges { .. } => Location::NONE,
         }
     }
@@ -250,6 +281,8 @@ mod tests {
             Error::NoPendingSave,
             Error::MalformedXmp,
             Error::UnknownSource(crate::SourceId::from_bytes([0; 32])),
+            Error::NoPagesLeft,
+            Error::InvalidOp("a reason"),
             Error::UnknownAnnotation("a7.0".parse().unwrap()),
             Error::AnnotationLocked("a7.0".parse().unwrap()),
             Error::AnnotationNotEditable("a7.0".parse().unwrap()),
