@@ -176,6 +176,15 @@ pub struct Edited {
     ///
     /// Added in 0.3.0.
     pub tags_dropped: Vec<PageId>,
+    /// The named destinations a merge or a page import brought in under another name, since
+    /// this document already used theirs.
+    ///
+    /// Added in 0.3.0.
+    pub renamed_destinations: Vec<laminapdf_ops::RenamedDestination>,
+    /// The bookmarks a merge left out because the pages they went to didn't come along.
+    ///
+    /// Added in 0.3.0.
+    pub bookmarks_dropped: usize,
 }
 
 /// One reference to a deleted page and what the deletion did to it.
@@ -539,6 +548,8 @@ impl Document {
             tags_incomplete: applied.tags_incomplete,
             links_removed: applied.links_removed,
             tags_dropped: applied.tags_dropped,
+            renamed_destinations: applied.renamed_destinations,
+            bookmarks_dropped: applied.bookmarks_dropped,
         })
     }
 

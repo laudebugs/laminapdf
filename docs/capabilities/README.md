@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 18 | 7 | 16 | 0 | 128 | 27 |
+| core | 169 | 19 | 8 | 16 | 0 | 126 | 29 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
 | web | 168 | 9 | 0 | 1 | 0 | 158 | 10 |
 | desktop | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
@@ -62,8 +62,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 | C.03 | Delete & duplicate pages | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | C.04 | Reorder pages | 🟢 round-trip | — | — | — | E2 round-trip | [`ids_are_the_page_objects`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | C.05 | Extract selected pages | 🔵 write | — | — | — | E2 write | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
-| C.06 | Merge multiple documents | — | — | — | — | E2 round-trip |  |
-| C.07 | Split by count, ranges, bookmarks | — | — | — | — | E2 write |  |
+| C.06 | Merge multiple documents | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| C.07 | Split by count, ranges, bookmarks | 🔵 write | — | — | — | E2 write | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
 | C.08 | Rotate pages 90/180/270 | 🟢 round-trip | — | — | — | E2 round-trip | [`rotate_normalises_negative_multiples_of_90`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | C.09 | Crop display area | 🟡 read | — | — | — | E2 round-trip | [`crop_box_is_clipped_to_the_media_box`](../../crates/laminapdf-model/tests/views.rs) core read |
 | C.10 | Resize page dimensions | — | — | — | — | E2 round-trip |  |

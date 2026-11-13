@@ -290,7 +290,7 @@ fn finish(doc: &mut laminapdf_model::Document, mut tree: OutlineTree, mut effect
     Ok(effect)
 }
 
-fn tree_error(e: OutlineTreeError) -> Error {
+pub(crate) fn tree_error(e: OutlineTreeError) -> Error {
     match e {
         OutlineTreeError::NotASibling(id) => Error::NotASibling(id),
         OutlineTreeError::IntoItself(id) => Error::OutlineIntoItself(id),
@@ -299,6 +299,6 @@ fn tree_error(e: OutlineTreeError) -> Error {
 }
 
 /// A text string (§7.9.2.2): PDFDocEncoding when it holds the text, else UTF-16BE.
-fn title(text: &str) -> Object {
+pub(crate) fn title(text: &str) -> Object {
     Object::String(PdfString::literal(encode_text_string(text)))
 }

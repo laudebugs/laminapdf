@@ -21,6 +21,7 @@ import { invoice } from "../../examples/invoice.js";
 import { invoiceFromJson } from "../../examples/invoice-from-json.js";
 import { linksAndOutlines } from "../../examples/links-and-outlines.js";
 import { markdownToPdf } from "../../examples/markdown-to-pdf.js";
+import { mergeDocuments } from "../../examples/merge-documents.js";
 import { multilingual } from "../../examples/multilingual.js";
 import { organisePages } from "../../examples/organise-pages.js";
 import { pageLabels } from "../../examples/page-labels.js";
@@ -29,6 +30,7 @@ import { pdfA3InvoiceWithXml } from "../../examples/pdf-a3-invoice-with-xml.js";
 import { pdfUaReport } from "../../examples/pdf-ua-report.js";
 import { report } from "../../examples/report.js";
 import { openOn } from "../../examples/set-initial-view.js";
+import { splitDocument } from "../../examples/split-document.js";
 import { exampleOptions, HELLO_OPTIONS } from "./hello-options.js";
 
 /** The fixture files an example reads, by path from the repository root. */
@@ -84,6 +86,10 @@ const FORMS_PDF = "fixtures/pages/forms.pdf";
 const LABELS_INPUT_PDF = "fixtures/golden/examples/links_and_outlines.pdf";
 /** The input of extract-pages: ten pages labelled i–iii, 1–4, A-1, A-2 and Back cover. */
 const LABELS_PDF = "fixtures/pages/labels.pdf";
+/** The second file merge-documents merges. */
+const HELLO_PDF = "fixtures/corpus/hello.pdf";
+/** The input of split-document: three chapters of four pages, each with a top-level bookmark. */
+const CHAPTERS_PDF = "fixtures/pages/chapters.pdf";
 
 /** An input the runner was asked for (`input` says which), else an error naming it. */
 function input(inputs: Inputs, path: string): Uint8Array {
@@ -214,6 +220,28 @@ export const EXAMPLES: readonly Example[] = [
     inputs: [LABELS_PDF],
     build: (i) => extractPages(input(i, LABELS_PDF)),
   },
+  {
+    name: "merge-documents",
+    golden: "merge_documents",
+    inputs: [REFERENCES_PDF, HELLO_PDF],
+    build: (i) =>
+      mergeDocuments([
+        ["references.pdf", input(i, REFERENCES_PDF)],
+        ["hello.pdf", input(i, HELLO_PDF)],
+      ]),
+  },
+  ...[1, 2, 3].map(
+    (n): Example => ({
+      name: `split-document-${n}`,
+      golden: `split_document-${n}`,
+      inputs: [CHAPTERS_PDF],
+      build: (i) => {
+        const part = splitDocument(input(i, CHAPTERS_PDF))[n - 1];
+        if (part === undefined) throw new Error(`split-document made no part ${n}`);
+        return part;
+      },
+    }),
+  ),
   {
     name: "edit-xmp",
     golden: "edit_xmp",
