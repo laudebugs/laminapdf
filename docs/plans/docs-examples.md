@@ -61,6 +61,12 @@ Only the first press loads anything: the editor (CodeMirror), then, on the first
 
 The first draft of this plan ran the code in a sandboxed iframe and drew it with `@laminapdf/viewer` (PDFium). The worker needs neither: it runs only the docs' own examples, as edited by the reader in their own tab, and its separate CSP keeps `'unsafe-eval'` off every page. hayro also keeps the drawn pages identical to the pictures and ships no third-party engine.
 
+### Completion and colours (Q4t, Q4u)
+
+The editor completes keywords, snippets and the names the file declares, but nothing of the SDK's API ([research](../research/docs-site/editor-completion.md)). Q4t runs TypeScript 6.0.3's language service in a worker of its own, over the SDK's `.d.ts` files, for completion, hover types and type errors. The worker weighs about 1.15 MB gzipped and starts on the editor's first focus or keystroke, so a reader who only runs an example loads none of it. Type errors show as marks and never stop a run: Sucrase still strips the types, and the SDK's own error still reports what the types miss. A key shows the type at the cursor, so hover types don't need a pointer.
+
+The editor keeps CodeMirror's own highlighting instead of offering Shiki. Both already use the same five `--paper-code-*` colours; Shiki would add 74 KB, retokenize on every keystroke, and need an extension of our own, since the existing one writes style attributes the CSP blocks. Q4u instead tests that every token of the runnable examples falls in the same kind in the editor as in the static block, and fixes the editor's map where it doesn't.
+
 ## 3. What this plan leaves out
 
 - **Hosted sandboxes** (StackBlitz, CodeSandbox, Sandpack): they break the site's headers and ADR 0011's same-site rule, and run the npm release instead of the docs' version ([research](../research/docs-site/live-examples.md)).
@@ -76,6 +82,8 @@ The first draft of this plan ran the code in a sandboxed iframe and drew it with
 | [Q4d](../todos/done/Q4d-result-beside-the-code.md) | The first page beside or below the code with no click, "Edit and run" under it, and "Your first PDF"'s Node quick start runnable (its `save` and `writeFile` hand the runner the PDF) |
 | [Q4q](../todos/done/Q4q-resizable-page-beside-the-code.md) | A divider between the code and the page beside it, dragged or moved by keys, its width kept for every example |
 | [Q4r](../todos/done/Q4r-wrap-and-format-code.md) | A "Wrap long lines" button beside every code block's Copy, and Format in "Edit and run" (Prettier, loaded on the first press) |
+| [Q4t](../todos/ready/Q4t-editor-type-completion.md) | Completion, hover types and type errors in "Edit and run" from TypeScript's language service in a worker, loaded on the first keystroke |
+| [Q4u](../todos/ready/Q4u-editor-colours-match-the-blocks.md) | The editor's colours tested against the static blocks' and matched, in place of a Shiki option |
 
 ## 5. To-dos
 
