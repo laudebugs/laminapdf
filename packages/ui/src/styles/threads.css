@@ -36,6 +36,8 @@
   .paper-thread-part {
     display: flex;
     inline-size: 100%;
+    /* A target at either density (design language §8.7). */
+    min-block-size: var(--ui-target);
     padding-block: var(--paper-space-6);
     padding-inline: var(--paper-space-8);
     border: 0;
@@ -64,6 +66,10 @@
 
   .paper-thread-parts {
     padding-inline-start: var(--paper-space-8);
+  }
+
+  .paper-thread-part {
+    align-items: center;
   }
 
   button.paper-thread-part {

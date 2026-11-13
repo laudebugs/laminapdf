@@ -58,39 +58,48 @@ function Thread({
   const id = `paper-thread-${index}`;
   return (
     <li className="paper-thread">
-      <button type="button" className="paper-thread-toggle" aria-expanded={open} aria-controls={id} onClick={onToggle}>
+      <button
+        type="button"
+        className="paper-thread-toggle"
+        aria-expanded={open}
+        aria-controls={open ? id : undefined}
+        onClick={onToggle}
+      >
         <span className="paper-thread-title">{threadTitle(thread)}</span>
         <span className="paper-thread-summary">{summary(thread, props.pageName)}</span>
       </button>
-      <ol id={id} className="paper-thread-parts" hidden={!open}>
-        {thread.parts.map((part, p) => {
-          const label =
-            part.page === undefined
-              ? laterMessage("threads.part.missing", { part: p + 1 })
-              : laterMessage("threads.part", { part: p + 1, page: props.pageName(part.page) });
-          const current = props.current?.thread === index && props.current.part === p;
-          return (
-            // Parts never move, so their index is their identity.
-            // biome-ignore lint/suspicious/noArrayIndexKey: a part's place in its thread is what names it
-            <li key={p}>
-              {part.page === undefined ? (
-                <span className="paper-thread-part" data-missing="">
-                  {label}
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  className="paper-thread-part"
-                  aria-current={current ? "location" : undefined}
-                  onClick={() => props.onGo({ thread: index, part: p })}
-                >
-                  {label}
-                </button>
-              )}
-            </li>
-          );
-        })}
-      </ol>
+      {/* A closed thread's parts aren't rendered: hidden buttons would still be in the page. */}
+      {open ? (
+        <ol id={id} className="paper-thread-parts">
+          {thread.parts.map((part, p) => {
+            const label =
+              part.page === undefined
+                ? laterMessage("threads.part.missing", { part: p + 1 })
+                : laterMessage("threads.part", { part: p + 1, page: props.pageName(part.page) });
+            const current = props.current?.thread === index && props.current.part === p;
+            return (
+              // Parts never move, so their index is their identity.
+              // biome-ignore lint/suspicious/noArrayIndexKey: a part's place in its thread is what names it
+              <li key={p}>
+                {part.page === undefined ? (
+                  <span className="paper-thread-part" data-missing="">
+                    {label}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className="paper-thread-part"
+                    aria-current={current ? "location" : undefined}
+                    onClick={() => props.onGo({ thread: index, part: p })}
+                  >
+                    {label}
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      ) : null}
     </li>
   );
 }
