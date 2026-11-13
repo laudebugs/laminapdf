@@ -32,7 +32,12 @@ export {
   useCommands,
   useShortcutMap,
 } from "./commands/react.js";
-export { readerCommands, registerReaderCommands } from "./commands/reader-commands.js";
+export {
+  readerCommands,
+  registerReaderCommands,
+  registerTabCommands,
+  tabCommands,
+} from "./commands/reader-commands.js";
 export { CommandError, CommandRegistry } from "./commands/registry.js";
 export { RegistryPalette, type RegistryPaletteProps } from "./commands/registry-palette.js";
 export {

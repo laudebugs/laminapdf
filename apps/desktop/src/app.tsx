@@ -25,6 +25,7 @@ import {
   RegistryPalette,
   RepairedNotice,
   registerReaderCommands,
+  registerTabCommands,
   StatusBarItem,
   ToastQueue,
   ToastRegion,
@@ -189,6 +190,7 @@ function useCommands(
   const [registry] = useState(() => {
     const commands = new CommandRegistry();
     registerReaderCommands(commands);
+    registerTabCommands(commands);
     return commands;
   });
   const [isOpen, setOpen] = useState(false);

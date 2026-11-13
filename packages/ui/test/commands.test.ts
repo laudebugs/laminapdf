@@ -8,7 +8,7 @@ import {
   parseZoomPercent,
 } from "../src/commands/args.ts";
 import { matchText, RecentCommands, rankCommands } from "../src/commands/rank.ts";
-import { readerCommands } from "../src/commands/reader-commands.ts";
+import { readerCommands, tabCommands } from "../src/commands/reader-commands.ts";
 import { CommandError, CommandRegistry } from "../src/commands/registry.ts";
 import { bindingKey, pressKey, shortcutProblems } from "../src/commands/shortcuts.ts";
 import type { AnyCommand, CommandContext } from "../src/commands/types.ts";
@@ -174,7 +174,8 @@ describe("CommandRegistry", () => {
 });
 
 describe("the reader's commands", () => {
-  const commands = readerCommands();
+  // The desktop's set: the reader's and the tab and window commands.
+  const commands = [...readerCommands(), ...tabCommands()];
 
   it("are ADR 0024's 48, reader mode's 7, Forget reading positions, Follow link, What Lamina PDF can do and the desktop's 5 tab and window commands, each with a visible home besides the palette", () => {
     expect(commands).toHaveLength(63);

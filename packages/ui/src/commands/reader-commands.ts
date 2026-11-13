@@ -334,10 +334,11 @@ function zoomModeCommands(): AnyCommand[] {
 }
 
 /**
- * Tabs and windows, in shells with more than one window (the desktop app): delegated, so a shell
- * without tabs never shows them. Their home is the tab strip; the native menus will list them too.
+ * Tabs and windows, for shells with more than one window (the desktop app), which register them
+ * with {@link registerTabCommands}: kept out of {@link readerCommands} so the web reader doesn't
+ * load them. Their home is the tab strip; the native menus will list them too.
  */
-function tabCommands(): AnyCommand[] {
+export function tabCommands(): AnyCommand[] {
   return [
     delegated({
       id: "tab.close",
@@ -693,7 +694,6 @@ export function readerCommands(): readonly AnyCommand[] {
     ...viewSettingCommands(),
     ...readerModeCommands(),
     ...settingsCommands(),
-    ...tabCommands(),
     ...findCommands(),
     ...appCommands(),
     ...selectionCommands(),
@@ -702,7 +702,16 @@ export function readerCommands(): readonly AnyCommand[] {
 
 /** Registers the reader's commands in `registry`; returns the function that removes them all. */
 export function registerReaderCommands(registry: CommandRegistry): () => void {
-  const removers = readerCommands().map((command) => registry.register(command));
+  return registerAll(registry, readerCommands());
+}
+
+/** Registers the tab and window commands in `registry`; returns the function that removes them. */
+export function registerTabCommands(registry: CommandRegistry): () => void {
+  return registerAll(registry, tabCommands());
+}
+
+function registerAll(registry: CommandRegistry, commands: readonly AnyCommand[]): () => void {
+  const removers = commands.map((command) => registry.register(command));
   return () => {
     for (const remove of removers) remove();
   };
