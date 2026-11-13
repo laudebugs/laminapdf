@@ -11,9 +11,9 @@ mod common;
 
 use common::{fixture, open, page_ids, rotations};
 use laminapdf_cos::{ObjRef, Object};
-use laminapdf_model::{PagePosition, ReferenceKind, Rotation};
+use laminapdf_model::{PagePosition, PageSize, ReferenceKind, Rotation};
 use laminapdf_ops::{
-    DeletePages, Document, Error, InsertBlankPages, MovePages, Op, Origin, PageSize, ReferenceOutcome, ReferencePolicy,
+    DeletePages, Document, Error, InsertBlankPages, MovePages, Op, Origin, ReferenceOutcome, ReferencePolicy,
     ReversePages, RotatePages, WidgetChange,
 };
 

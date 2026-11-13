@@ -13,10 +13,9 @@
 mod common;
 
 use common::{fixture, open, page_ids, snapshot};
-use laminapdf_model::{PagePosition, Rotation};
+use laminapdf_model::{PagePosition, PageSize, Rotation};
 use laminapdf_ops::{
-    DeletePages, Document, InsertBlankPages, MovePages, Op, Origin, PageSize, ReferencePolicy, ReversePages,
-    RotatePages,
+    DeletePages, Document, InsertBlankPages, MovePages, Op, Origin, ReferencePolicy, ReversePages, RotatePages,
 };
 use proptest::prelude::*;
 use proptest::test_runner::{Config, RngSeed, TestRunner};

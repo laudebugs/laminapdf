@@ -189,3 +189,31 @@ pub(crate) mod page_ids {
             .collect()
     }
 }
+
+/// A [`PageSize`](laminapdf_model::PageSize) as `{ "width": …, "height": … }` in points.
+pub(crate) mod page_size {
+    use laminapdf_model::{PageSize, Pt};
+    use serde::{Deserialize, Serialize};
+
+    use super::{Deserializer, Serializer};
+
+    #[derive(Serialize, Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Wire {
+        width: f64,
+        height: f64,
+    }
+
+    pub(crate) fn serialize<S: Serializer>(size: &PageSize, s: S) -> Result<S::Ok, S::Error> {
+        Wire {
+            width: size.width.get(),
+            height: size.height.get(),
+        }
+        .serialize(s)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<PageSize, D::Error> {
+        let w = Wire::deserialize(d)?;
+        Ok(PageSize::new(Pt::new(w.width), Pt::new(w.height)))
+    }
+}

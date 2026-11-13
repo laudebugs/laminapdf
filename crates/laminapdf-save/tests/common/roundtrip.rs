@@ -192,6 +192,22 @@ fn expected(category: Category, mode: SaveMode, invalidate: bool, remove: bool) 
     }
 }
 
+/// `category`, or [`Category::Certified`] for a signed file whose op reshows a signed
+/// signature's widget (rotating its page): that breaks the signature's appearance (ADR 0007
+/// §11), so it saves only with the override.
+fn with_widget_rule(doc: &Document, op: &Op, category: Category) -> Category {
+    let reshows_signed = SavePlanner::new(doc)
+        .unwrap()
+        .would_violate(op)
+        .iter()
+        .any(|v| v.restriction == Restriction::SignedWidget);
+    if reshows_signed && category == Category::Signed {
+        Category::Certified
+    } else {
+        category
+    }
+}
+
 /// The facts Lamina PDF compares after reopening: page count, rotations (degrees) and the
 /// [`INFO`] keys' values, in that order (the other tools compare the same ones).
 fn facts(doc: &laminapdf_model::Document) -> (usize, Vec<u16>, Vec<Option<String>>) {
@@ -281,19 +297,7 @@ pub fn run(root: &Path) -> Suite {
                     let mut doc = Document::open(bytes.clone(), OpenOptions::default()).unwrap();
                     let (pages, mut rotations, mut info) = facts(&doc);
                     let op = op(&doc, op_name, rotation);
-                    // Rotating the page that holds a signed signature's widget breaks the
-                    // signature's appearance (ADR 0007 §11): it saves like a certified file,
-                    // only with the override.
-                    let reshows_signed = SavePlanner::new(&doc)
-                        .unwrap()
-                        .would_violate(&op)
-                        .iter()
-                        .any(|v| v.restriction == Restriction::SignedWidget);
-                    let category = if reshows_signed && category == Category::Signed {
-                        Category::Certified
-                    } else {
-                        category
-                    };
+                    let category = with_widget_rule(&doc, &op, category);
                     let metadata_op = matches!(op, Op::SetMetadata(_) | Op::RemoveMetadata(_));
                     match op {
                         Op::SetInfo(_) | Op::SetMetadata(_) => {

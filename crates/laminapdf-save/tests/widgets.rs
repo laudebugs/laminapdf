@@ -15,9 +15,9 @@ mod common;
 
 use common::fixture;
 use common::save::{editable, page_ids};
-use laminapdf_model::{FieldId, PageId, PagePosition};
+use laminapdf_model::{FieldId, PageId, PagePosition, PageSize};
 use laminapdf_ops::test_support::Declared;
-use laminapdf_ops::{Document, InsertBlankPages, ModificationClass, Op, Origin, PageChange, PageSize, WidgetChange};
+use laminapdf_ops::{Document, InsertBlankPages, ModificationClass, Op, Origin, PageChange, WidgetChange};
 use laminapdf_save::{ConstraintKind, Restriction, Save, SaveOptions, SavePlanner, Violation};
 
 fn signed(name: &str) -> Document {

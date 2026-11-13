@@ -16,7 +16,7 @@ use laminapdf_model::{PageId, ReferenceKind};
 
 pub use cleanup::{ReferenceChange, ReferenceOutcome};
 pub use delete::{DeletePages, ReferencePolicy};
-pub use insert::{InsertBlankPages, PageSize};
+pub use insert::InsertBlankPages;
 pub use order::{MovePages, ReversePages};
 pub use rotate::{RotateMode, RotatePages};
 

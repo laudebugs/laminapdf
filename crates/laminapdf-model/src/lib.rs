@@ -104,7 +104,7 @@ pub use document::Document;
 #[cfg(feature = "edit")]
 pub use edit::set_catalog_entry;
 pub use fonts::{FontEncoding, FontResource};
-pub use geometry::{LETTER, PageFrame, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
+pub use geometry::{LETTER, PageFrame, PageSize, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
 pub use graphics::{BlendMode, Dash, FillRule, Matrix};
 pub use id::{AnnotId, FieldId, IdAllocator, Kind, LaminaPdfId, OutlineItemId, PageId, ParseIdError};
 pub use info::{Info, InfoDate};
