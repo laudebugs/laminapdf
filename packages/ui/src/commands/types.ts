@@ -67,7 +67,8 @@ export type CommandHome =
   | "history-panel"
   | "threads-panel"
   | "layer"
-  | "tab-strip";
+  | "tab-strip"
+  | "native-menu";
 
 /** What a parser made of typed arguments. */
 export type ParseResult<T> =
@@ -84,6 +85,11 @@ export interface ArgsSchema<Args> {
   readonly optional?: boolean;
   /** True for a secret (a password): never typed into the palette, whose text stays on screen. */
   readonly secret?: boolean;
+  /**
+   * The values it takes, when it takes one of a fixed few: what a native menu lists as a submenu.
+   * Each one's name is the message `choice.<value>`.
+   */
+  readonly choices?: readonly string[];
   /** Reads the typed text; the error says what to type instead. */
   parse(text: string, ctx: CommandContext): ParseResult<Args>;
 }
@@ -131,6 +137,11 @@ export interface Command<Args = undefined> {
   readonly args?: ArgsSchema<Args>;
   /** `true`, or why it can't run now ("Open a document first"). */
   enabled?(ctx: CommandContext): true | string;
+  /**
+   * For a toggle, whether it is on; for a command that takes one of fixed choices, the value
+   * chosen now. A native menu ticks its item, or the choice's, by it.
+   */
+  checked?(ctx: CommandContext): boolean | string | undefined;
   /** Does the command's work, with its parsed arguments. */
   run(ctx: CommandContext, args: Args): void | Promise<void>;
 }

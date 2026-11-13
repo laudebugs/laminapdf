@@ -3012,6 +3012,7 @@ dependencies = [
  "laminapdf-desktop-os",
  "laminapdf-desktop-protocol",
  "laminapdf-desktop-sandbox",
+ "muda",
  "notify",
  "region",
  "serde",

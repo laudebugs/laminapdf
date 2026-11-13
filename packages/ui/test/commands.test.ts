@@ -7,8 +7,9 @@ import {
   parseZoom,
   parseZoomPercent,
 } from "../src/commands/args.ts";
+import { desktopCommands } from "../src/commands/desktop-commands.ts";
 import { matchText, RecentCommands, rankCommands } from "../src/commands/rank.ts";
-import { readerCommands, tabCommands } from "../src/commands/reader-commands.ts";
+import { readerCommands } from "../src/commands/reader-commands.ts";
 import { CommandError, CommandRegistry } from "../src/commands/registry.ts";
 import { bindingKey, pressKey, shortcutProblems } from "../src/commands/shortcuts.ts";
 import type { AnyCommand, CommandContext } from "../src/commands/types.ts";
@@ -175,10 +176,10 @@ describe("CommandRegistry", () => {
 
 describe("the reader's commands", () => {
   // The desktop's set: the reader's and the tab and window commands.
-  const commands = [...readerCommands(), ...tabCommands()];
+  const commands = [...readerCommands(), ...desktopCommands()];
 
-  it("are ADR 0024's 48, reader mode's 7, Forget reading positions, Follow link, What Lamina PDF can do, Close document and the desktop's 5 tab and window commands, each with a visible home besides the palette", () => {
-    expect(commands).toHaveLength(64);
+  it("are ADR 0024's 48, reader mode's 7, Forget reading positions, Follow link, What Lamina PDF can do, Close document and the desktop's 7 tab, window and quit commands, each with a visible home besides the palette", () => {
+    expect(commands).toHaveLength(66);
     expect(commands.filter((c) => c.home.length === 0).map((c) => c.id)).toEqual([]);
   });
 

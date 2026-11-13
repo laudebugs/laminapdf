@@ -43,7 +43,7 @@ Make the design language's icons a typed, tested package so every screen uses th
 - Icons for editor modes (Comment, Organise, Fill & Sign, Edit, Sign, Redact …) → the todo that builds each screen draws its icons by these rules and adds them to the design language table and this package (the README list says which).
 - Icon buttons, toggles and their states → [U6d](../done/U6d-core-components.md).
 - Brand mark and app icon → [Paper design plan §8 open question 2](../../plans/paper-design.md#8-open-questions) (not a stroke icon).
-- Desktop native menu template images → [D4b](../ready/D4b-native-menus.md) (may use `iconSvg`).
+- Desktop native menu template images → [D4b](../done/D4b-native-menus.md) (may use `iconSvg`).
 - Screenshot tests of the icon gallery → [U6f](../done/U6f-gallery-and-visual-tests.md).
 
 ## Tasks

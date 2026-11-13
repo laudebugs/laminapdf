@@ -1233,7 +1233,9 @@ export class Document extends Handle<BaseGlue> {
    * `linksRemoved`), and the named destinations the other links use come along. A form field
    * keeps its name, or takes the next free `<name>#<n>` when the name is taken (`carry.fields`
    * `"link"` shares the value instead, where it can); a signature's widget is left off. The
-   * result's `fields` lists each. The copies come without tags (`tagsDropped`).
+   * result's `fields` lists each. In a tagged document the copies keep their tags, with any
+   * role, class or element ID already used another way renamed (`structureRenamed`); in an
+   * untagged one they come without them (`tagsDropped`).
    *
    * @throws {@link LaminaPdfError} `unknown-source`, `unknown-page`; as {@link Document.apply}.
    *
@@ -1280,9 +1282,9 @@ export class Document extends Handle<BaseGlue> {
   /**
    * A new document of `pages` of this one, each once and in the order given, as this document
    * stands now: the pages with their annotations, the links between them, their form fields
-   * (signature fields unsigned) and their page labels. Links to pages left behind are removed,
-   * and the pages come without tags. Saving it writes a whole file holding only what its pages
-   * use, with no password.
+   * (signature fields unsigned), their page labels, and their tags when this document is
+   * tagged. Links to pages left behind are removed. Saving it writes a whole file holding only
+   * what its pages use, with no password.
    *
    * @throws {@link LaminaPdfError} `unknown-page`; `no-pages-left` for no pages.
    *

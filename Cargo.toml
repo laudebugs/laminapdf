@@ -168,6 +168,7 @@ tauri-plugin-dialog = "=2.8.3"
 tauri-plugin-log = "=2.10.1"
 tauri-plugin-opener = "=2.7.2"
 tauri-plugin-single-instance = "=2.5.5"
+muda = { version = "=0.20.0", default-features = false }  # MIT OR Apache-2.0; Tauri's menus (the desktop app's tests)
 # The desktop reader's file watching (D3b): the OS's change events (FSEvents, inotify,
 # ReadDirectoryChangesW). CC0-1.0
 notify = { version = "=8.2.1", default-features = false, features = ["macos_fsevent"] }
