@@ -35,7 +35,7 @@ Give `laminapdf-model` the write side that every E2 page op needs, so the ops th
 
 **Out of scope** (and which todo covers it)
 
-- The ops that use them → [E2b](../done/E2b-page-structure-ops.md), [E2k](../ongoing/E2k-duplicate-pages.md)
+- The ops that use them → [E2b](../done/E2b-page-structure-ops.md), [E2k](../done/E2k-duplicate-pages.md)
 - Copying objects between documents → [E2c](../ready/E2c-cross-document-pages.md)
 
 **Editor facts**

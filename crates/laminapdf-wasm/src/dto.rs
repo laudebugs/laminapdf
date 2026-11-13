@@ -353,6 +353,54 @@ pub(crate) struct EditedJs {
     pub page_order: Option<Vec<String>>,
     /// What a page deletion did to the references to the deleted pages.
     pub references: Vec<ReferenceEditJs>,
+    /// What a page duplication did to the form fields whose widgets the copied pages show;
+    /// left out when there are none.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[tsify(optional)]
+    pub fields: Vec<FieldEditJs>,
+    /// The copies a page duplication made whose tags couldn't all be cloned; left out when
+    /// there are none.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[tsify(optional)]
+    pub tags_incomplete: Vec<String>,
+}
+
+/// What a page duplication did to one form field.
+#[derive(Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct FieldEditJs {
+    /// The field on the source page.
+    pub field: String,
+    /// The copy whose widget it concerns.
+    pub page: String,
+    /// `renamed` (the copy's widget belongs to a new field) or `notCopied` (a signature's
+    /// widget).
+    #[tsify(type = "\"renamed\" | \"notCopied\"")]
+    pub outcome: &'static str,
+    /// The new field's ID, when renamed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub to: Option<String>,
+    /// The new field's fully qualified name, when renamed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub name: Option<String>,
+}
+
+impl From<laminapdf::FieldChange> for FieldEditJs {
+    fn from(c: laminapdf::FieldChange) -> Self {
+        let (outcome, to, name) = match c.outcome {
+            laminapdf::FieldOutcome::Renamed { to, name } => ("renamed", Some(to.to_string()), Some(name)),
+            _ => ("notCopied", None, None),
+        };
+        Self {
+            field: c.field.to_string(),
+            page: c.page.to_string(),
+            outcome,
+            to,
+            name,
+        }
+    }
 }
 
 /// One reference to a deleted page and what the deletion did to it.
@@ -416,6 +464,8 @@ impl From<laminapdf::Edited> for EditedJs {
             changed: e.changed,
             page_order: e.page_order.map(|o| o.iter().map(ToString::to_string).collect()),
             references: e.references.into_iter().map(ReferenceEditJs::from).collect(),
+            fields: e.fields.into_iter().map(FieldEditJs::from).collect(),
+            tags_incomplete: e.tags_incomplete.iter().map(ToString::to_string).collect(),
         }
     }
 }

@@ -16,6 +16,7 @@ import { PageText, type TextOptions } from "./text.js";
 import {
   type DeletePagesOptions,
   deletePagesOp,
+  duplicatePagesOp,
   type InsertBlankPagesOptions,
   insertBlankPagesOp,
   type MetadataEditOptions,
@@ -910,6 +911,25 @@ export class Document extends Handle<BaseGlue> {
    */
   reversePages(pages: readonly string[]): Edited {
     return this.apply([reversePagesOp(pages)]);
+  }
+
+  /**
+   * Copies `pages`, by ID and in the order given, to `at` (`"start"`, `"end"`,
+   * `{ before: id }` or `{ after: id }`), in one transaction (`duplicatePages`). A copy shares
+   * its page's content and gets new IDs for itself and its annotations, listed in the result's
+   * `pageOrder`. A form field's widget becomes a new field named `<name>#2` (or the next free
+   * number) with its own value, and a signature's widget is not copied; the result's `fields`
+   * lists both. In a tagged document the copy gets its own tags, except for content of
+   * elements that run on to other pages, which stays untagged: the result's `tagsIncomplete`
+   * lists those copies.
+   *
+   * @throws {@link LaminaPdfError} `unknown-page` for an ID that isn't a page of the document; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.2.0
+   */
+  duplicatePages(pages: readonly string[], at: PagePosition): Edited {
+    return this.apply([duplicatePagesOp(pages, at)]);
   }
 
   /**

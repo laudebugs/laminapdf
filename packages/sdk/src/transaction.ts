@@ -136,6 +136,10 @@ export const rotatePagesOp = (pages: readonly string[], angle: Rotation, options
 /** @internal The `reversePages` op. */
 export const reversePagesOp = (pages: readonly string[]): Op => ({ op: "reversePages", args: { pages } }) as Op;
 
+/** @internal The `duplicatePages` op. */
+export const duplicatePagesOp = (pages: readonly string[], at: PagePosition): Op =>
+  ({ op: "duplicatePages", args: { pages, at } }) as Op;
+
 /** @internal The `setMetadata` op. */
 export const setMetadataOp = (patch: MetadataPatch, options?: MetadataEditOptions): Op =>
   ({ op: "setMetadata", args: { patch, ...options } }) as Op;
@@ -286,6 +290,16 @@ export class Transaction {
    */
   reversePages(pages: readonly string[]): this {
     return this.apply(reversePagesOp(pages));
+  }
+
+  /**
+   * Copies `pages`, by ID and in the order given, to `at` (`duplicatePages`), as
+   * {@link Document.duplicatePages}.
+   *
+   * @since 0.2.0
+   */
+  duplicatePages(pages: readonly string[], at: PagePosition): this {
+    return this.apply(duplicatePagesOp(pages, at));
   }
 
   /**

@@ -130,6 +130,18 @@ pub struct Edited {
     ///
     /// Added in 0.2.0.
     pub references: Vec<ReferenceEdit>,
+    /// What a page duplication did to the form fields whose widgets the copied pages show: each
+    /// copy's new field (named `<partial>#<n>`), or a signature field whose widget was not
+    /// copied.
+    ///
+    /// Added in 0.2.0.
+    pub fields: Vec<laminapdf_ops::FieldChange>,
+    /// The copies a page duplication made whose tags couldn't all be cloned: content of
+    /// elements that also hold content on other pages is left untagged on them. On a PDF/UA-1
+    /// file, [`Document::plan`] then warns `duplicate-tags-incomplete`.
+    ///
+    /// Added in 0.2.0.
+    pub tags_incomplete: Vec<PageId>,
 }
 
 /// One reference to a deleted page and what the deletion did to it.
@@ -482,6 +494,8 @@ impl Document {
             changed,
             page_order: applied.page_order,
             references: applied.references.into_iter().map(ReferenceEdit::from_change).collect(),
+            fields: applied.fields,
+            tags_incomplete: applied.tags_incomplete,
         })
     }
 

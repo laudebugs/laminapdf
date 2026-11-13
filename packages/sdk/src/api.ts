@@ -121,6 +121,7 @@ export type {
   DocumentMetadata,
   DocumentProperties,
   Edited,
+  FieldEdit,
   Fit,
   Limits,
   LineBox,

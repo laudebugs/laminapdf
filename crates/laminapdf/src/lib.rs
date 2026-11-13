@@ -177,14 +177,14 @@ pub use warning::{Warning, WarningCursor};
 
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};
 pub use laminapdf_model::{
-    AnnotId, LabelStyle, PageId, PagePosition, PageSize, PdfDate, PointPt, Pt, RectPt, Rotation,
+    AnnotId, FieldId, LabelStyle, PageId, PagePosition, PageSize, PdfDate, PointPt, Pt, RectPt, Rotation,
 };
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use laminapdf_ops::{
-    ConformanceWarning, DeleteAnnot, DeletePages, DocumentMetadata, InfoPatch, InsertBlankPages, MetadataKey,
-    MetadataPatch, MetadataSource, ModificationClass, MovePages, Offset, Op, OpLog, PacketStatus, PageLabelRange,
-    ReferenceOutcome, ReferencePolicy, RemoveMetadata, ReversePages, Reverted, RotateMode, RotatePage, RotatePages,
-    SetInfo, SetMetadata, SetPageLabels, UndoOutcome, UpdateAnnot,
+    ConformanceWarning, DeleteAnnot, DeletePages, DocumentMetadata, DuplicatePages, FieldChange, FieldOutcome,
+    InfoPatch, InsertBlankPages, MetadataKey, MetadataPatch, MetadataSource, ModificationClass, MovePages, Offset, Op,
+    OpLog, PacketStatus, PageLabelRange, ReferenceOutcome, ReferencePolicy, RemoveMetadata, ReversePages, Reverted,
+    RotateMode, RotatePage, RotatePages, SetInfo, SetMetadata, SetPageLabels, UndoOutcome, UpdateAnnot,
 };
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,

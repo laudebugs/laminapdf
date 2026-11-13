@@ -30,8 +30,8 @@ use std::path::Path;
 use laminapdf_cos::OpenOptions;
 use laminapdf_model::{LabelStyle, PageId, PagePosition, PageSize, Rotation};
 use laminapdf_ops::{
-    DeletePages, Document, InfoPatch, InsertBlankPages, MetadataKey, MetadataPatch, MovePages, Op, Origin,
-    PageLabelRange, RemoveMetadata, ReversePages, RotatePage, RotatePages, SetInfo, SetMetadata, SetPageLabels,
+    DeletePages, Document, DuplicatePages, InfoPatch, InsertBlankPages, MetadataKey, MetadataPatch, MovePages, Op,
+    Origin, PageLabelRange, RemoveMetadata, ReversePages, RotatePage, RotatePages, SetInfo, SetMetadata, SetPageLabels,
     read_metadata,
 };
 use laminapdf_save::{Restriction, Save, SaveError, SaveMode, SaveOptions, SavePlanner, SaveReport};
@@ -248,8 +248,8 @@ fn new_labels(pages: usize) -> Vec<Option<String>> {
 
 /// The ops each fixture is saved with: a title through the deprecated `setInfo`, a rotation,
 /// the metadata ops (J.01–J.03, J.10), page labels (I.10) and the page ops (C.01, C.03, C.04,
-/// C.08, C.13).
-const OPS: [&str; 10] = [
+/// C.08, C.13), duplicating included (C.03).
+const OPS: [&str; 11] = [
     "setInfo",
     "rotatePage",
     "setMetadata",
@@ -260,6 +260,7 @@ const OPS: [&str; 10] = [
     "movePages",
     "rotatePages",
     "setPageLabels",
+    "duplicatePages",
 ];
 
 /// The save-time date the metadata cases stamp (J.02).
@@ -309,6 +310,7 @@ fn op(doc: &Document, name: &str, rotation: Rotation) -> Option<Op> {
         }
         "movePages" => return None,
         "rotatePages" => RotatePages::turn(ids, rotation).into(),
+        "duplicatePages" => DuplicatePages::new(ids.first().cloned().into_iter().collect(), PagePosition::End).into(),
         "setPageLabels" => {
             let pages = doc.pages().unwrap();
             let mut ranges = vec![PageLabelRange::new(
@@ -347,6 +349,12 @@ fn after_op(op: &Op, rotation: Rotation, pages: &mut usize, rotations: &mut Vec<
         }
         Op::ReversePages(_) => rotations.reverse(),
         Op::MovePages(_) => rotations.rotate_right(1),
+        Op::DuplicatePages(_) => {
+            *pages += 1;
+            if let Some(&first) = rotations.first() {
+                rotations.push(first);
+            }
+        }
         Op::RotatePages(_) => {
             for r in rotations.iter_mut() {
                 *r = (*r + rotation.degrees()) % 360;

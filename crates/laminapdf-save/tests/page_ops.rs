@@ -2,8 +2,8 @@
 //! `PageStructure`, which no `DocMDP` level permits; on an approval-signed file, deleting or
 //! rotating the page that holds the signed widget is a `SignedWidget` conflict, and the same
 //! ops on another page save as an incremental update that keeps the signed bytes; on the locked
-//! file, deleting or rotating the locked field's page breaks the lock, and moving, reversing and
-//! inserting don't. A misclassified op is a security bug, so each op has its verdict here.
+//! file, deleting or rotating the locked field's page breaks the lock, and moving, reversing,
+//! inserting and duplicating don't (a copy's widgets belong to new fields). A misclassified op is a security bug, so each op has its verdict here.
 #![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,
@@ -16,7 +16,8 @@ use common::fixture;
 use common::save::{editable, page_ids};
 use laminapdf_model::{PageId, PagePosition, PageSize, Rotation};
 use laminapdf_ops::{
-    DeletePages, Document, InsertBlankPages, ModificationClass, MovePages, Op, Origin, ReversePages, RotatePages,
+    DeletePages, Document, DuplicatePages, InsertBlankPages, ModificationClass, MovePages, Op, Origin, ReversePages,
+    RotatePages,
 };
 use laminapdf_save::{ConstraintKind, Restriction, Save, SaveMode, SaveOptions, SavePlanner};
 
@@ -46,6 +47,10 @@ fn ops(page: &PageId) -> Vec<(&'static str, Op)> {
         ("move", MovePages::new(vec![page.clone()], PagePosition::End).into()),
         ("rotate", RotatePages::set(vec![page.clone()], Rotation::Half).into()),
         ("reverse", ReversePages::new(vec![page.clone()]).into()),
+        (
+            "duplicate",
+            DuplicatePages::new(vec![page.clone()], PagePosition::End).into(),
+        ),
     ]
 }
 

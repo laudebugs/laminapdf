@@ -10,6 +10,7 @@ import type {
   DocumentInfoJs,
   DocumentMetadata as DocumentMetadataJs,
   EditedJs,
+  FieldEditJs,
   FitInit,
   LimitsInit,
   LineBoxJs,
@@ -49,7 +50,7 @@ import type {
 
 /**
  * An edit (`{ op, args }`): `setMetadata`, `removeMetadata`, `setPageLabels`, the page ops (`insertBlankPages`,
- * `deletePages`, `movePages`, `rotatePages`, `reversePages`, `rotatePage`), or the deprecated
+ * `deletePages`, `movePages`, `rotatePages`, `reversePages`, `duplicatePages`, `rotatePage`), or the deprecated
  * `setInfo` (use `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
  *
  * @since 0.2.0
@@ -158,8 +159,10 @@ export type StructureNode = StructureNodeJs;
 export type StructureKid = StructureKidJs;
 /**
  * What an edit did: the pages it touched (`touchedPages`, IDs), whether it changed anything,
- * the page IDs in their new order when it changed the page list (`pageOrder`), and what a page
- * deletion did to the references to the deleted pages (`references`).
+ * the page IDs in their new order when it changed the page list (`pageOrder`), what a page
+ * deletion did to the references to the deleted pages (`references`), and what a page
+ * duplication did to form fields (`fields`) and which copies it couldn't tag whole
+ * (`tagsIncomplete`).
  *
  * @since 0.2.0
  */
@@ -172,6 +175,14 @@ export type Edited = EditedJs;
  * @since 0.2.0
  */
 export type ReferenceEdit = ReferenceEditJs;
+/**
+ * A form field whose widget a duplicated page showed, and what the copy did with it: `renamed`
+ * (the copy's widget belongs to the new field `to`, fully named `name`) or `notCopied` (a
+ * signature's widget).
+ *
+ * @since 0.2.0
+ */
+export type FieldEdit = FieldEditJs;
 /**
  * How an undo or redo went.
  *

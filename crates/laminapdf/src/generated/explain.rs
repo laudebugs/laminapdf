@@ -2753,7 +2753,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E2k](../todos/ongoing/E2k-duplicate-pages.md): duplicating pages
+- [E2k](../todos/done/E2k-duplicate-pages.md): duplicating pages
 - [E2 plan §3](../plans/editor/e2-page-organisation.md#3-conformance-the-edits-must-keep): what page edits do to a PDF/UA claim
 ",
         "sink" => r"# `sink`

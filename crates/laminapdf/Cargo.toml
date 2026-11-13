@@ -150,6 +150,9 @@ name = "generate_then_edit"
 required-features = ["text"]
 
 [[example]]
+name = "duplicate_pages"
+
+[[example]]
 name = "edit_metadata"
 
 [[example]]
