@@ -219,13 +219,14 @@ export async function menuClick(id: string): Promise<void> {
 /** Waits until the menu snapshot matches `pattern`; returns the snapshot. */
 export async function waitForMenus(pattern: RegExp, timeoutMsg: string): Promise<string> {
   let text = "";
-  await browser.waitUntil(
-    async () => {
-      text = await menuSnapshot();
+  try {
+    await browser.waitUntil(async () => {
+      text = await menuSnapshot().catch((error: unknown) => `(no snapshot: ${String(error)})`);
       return pattern.test(text);
-    },
-    { timeoutMsg: `${timeoutMsg}; the menus:\n${text}` },
-  );
+    });
+  } catch {
+    throw new Error(`${timeoutMsg}; the menus were:\n${text}`);
+  }
   return text;
 }
 

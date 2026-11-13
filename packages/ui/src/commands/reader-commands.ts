@@ -33,7 +33,8 @@ function documentOpen(ctx: CommandContext): true | string {
 
 /**
  * `true` while the window shows a file (open, opening, asking for its password, or failed to
- * open), else why not: a tab can close or move whatever its document's state.
+ * open), else why not: a tab can close, and the tabs can be stepped through, whatever its
+ * document's state. Moving a tab needs its document open.
  */
 function fileShown(ctx: CommandContext): true | string {
   const shown = ctx.reader === undefined ? ctx.viewer !== undefined : ctx.reader.getState().phase !== "empty";
@@ -382,7 +383,7 @@ export function desktopCommands(): AnyCommand[] {
       keywords: ["tab", "window", "move", "detach"],
       group: "file",
       home: ["tab-strip"],
-      enabled: fileShown,
+      enabled: documentOpen,
     }),
     delegated({
       id: "window.new",

@@ -61,13 +61,12 @@ pub(crate) fn e2e_menu_click(window: tauri::WebviewWindow, id: String) -> Result
     Ok(())
 }
 
-/// The native menus as this window shows them, one item a line (`menu::render`): titles, keys,
-/// enabled and ticked.
+/// The native menus as they show now, for the focused window, one item a line (`menu::render`):
+/// titles, keys, enabled and ticked. Reading them changes nothing, focus included.
 #[tauri::command]
-#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window by value")]
-pub(crate) fn e2e_menu_snapshot(window: tauri::WebviewWindow) -> Result<String, DesktopError> {
-    focus(&window)?;
-    Ok(crate::menu::snapshot(window.app_handle()))
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its app by value")]
+pub(crate) fn e2e_menu_snapshot(app: tauri::AppHandle) -> String {
+    crate::menu::snapshot(&app)
 }
 
 /// The path the next `open_dialog` opens instead of asking, per app.

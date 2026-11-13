@@ -3,12 +3,22 @@
 // time to the first sharp page, on the webview's clock (from its start, which follows the app's
 // own start-up: cold-start.ts's figure), is reported, never asserted (ADR 0018). Being a second
 // start of the app, it also checks what the first run left: the recent list kept across the
-// restart, cleared from the palette; "Remember recent files" turned off in Settings, which stops
+// restart, cleared from the palette and from File ▸ Open recent ▸ Clear menu; "Remember recent files" turned off in Settings, which stops
 // recording; and the logs, which hold no file's path.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { $, browser, expect } from "@wdio/globals";
-import { fixture, inkedPixels, launchAgain, paintsSince, recentNames, runCommand, waitForDocument } from "../app.ts";
+import {
+  fixture,
+  inkedPixels,
+  launchAgain,
+  menuClick,
+  paintsSince,
+  recentNames,
+  runCommand,
+  waitForDocument,
+  waitForMenus,
+} from "../app.ts";
 import { output, root } from "../paths.ts";
 
 /**
@@ -67,6 +77,15 @@ describe("recent files across a restart", () => {
     await browser.waitUntil(async () => (await recentNames()).length > 0, { timeoutMsg: "the open wasn't recorded" });
     await runCommand("Clear recent");
     await browser.waitUntil(async () => (await recentNames()).length === 0, { timeoutMsg: "the list wasn't cleared" });
+  });
+
+  it("should empty the list with File ▸ Open recent ▸ Clear menu", async () => {
+    // A file not open yet: one open already only shows its tab, and isn't recorded again.
+    expect(await launchAgain([fixture("fixtures", "golden", "examples", "flowing_report.pdf")])).toBe(0);
+    await waitForMenus(/flowing_report\.pdf {2}<recent:/, "Open recent doesn't list the file opened");
+    await menuClick("recent-clear");
+    await waitForMenus(/No recent files \(disabled\)/, "Clear menu didn't clear Open recent");
+    expect(await recentNames()).toEqual([]);
   });
 });
 

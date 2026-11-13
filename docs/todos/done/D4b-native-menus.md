@@ -57,22 +57,22 @@ A JSON export of U1b's command registry (no second map): per command `{ id, titl
 ## Tasks
 
 - [x] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
-- [x] Add the JSON export of U1b's registry (`pnpm --filter @laminapdf/ui build:shortcuts`), with a CI check that the generated JSON is up to date.
+- [x] Add the JSON export of U1b's registry (`pnpm --filter @laminapdf/ui build:shortcuts`), with a CI check that the generated JSON is up to date. Done otherwise: see Decisions and deviations.
 - [x] `menu.rs` builder + `on_menu_event` dispatch; `MenuContext` (recent files, windows, focus state); rebuild Open Recent and Window submenus on change.
 - [x] `menu_state` command (manifest + capability) and the UI side that reports state.
 - [x] Export Copy: Rust-side save dialog (`DialogExt::file().save_file`) and byte copy of the original file; never via the webview.
-- [x] Disable duplicate webview handlers for native accelerators.
-- [x] Settings route placeholder (`settings` window label, created on demand, own capability `capabilities/settings.json` (`"windows": ["settings"]`) with only the commands it needs — D5b fills it; add `"settings"` to `app.security.capabilities` in `tauri.conf.json` **and** to the full list in `tauri.e2e.conf.json` (D2a's guard test fails otherwise).
+- [x] Disable duplicate webview handlers for native accelerators. Done otherwise: see Decisions and deviations.
+- [x] Settings route placeholder (`settings` window label, created on demand, own capability `capabilities/settings.json` (`"windows": ["settings"]`) with only the commands it needs — D5b fills it; add `"settings"` to `app.security.capabilities` in `tauri.conf.json` **and** to the full list in `tauri.e2e.conf.json` (D2a's guard test fails otherwise). Done otherwise: see Decisions and deviations.
 - [ ] Tests (below); manual checklist per OS with screenshots of each top-level menu.
 
 ## Acceptance criteria
 
 - [x] A Rust test proves every menu item with an accelerator corresponds to a `ShortcutId` in the shared map and uses the map's accelerator for the current OS; and every map entry with `menu != null` appears in the menu.
 - [x] A TS test proves the help dialog lists exactly the map's entries.
-- [x] Each accelerator fires once (not twice) on Windows and Linux (e2e: press `Ctrl+=` and assert one zoom step).
+- [x] Each accelerator fires once (not twice) on Windows and Linux (e2e: press `Ctrl+=` and assert one zoom step). Done otherwise: see Decisions and deviations.
 - [x] Open Recent lists the D3b entries and "Clear Menu" clears them; Window menu lists open windows; Move Tab to Window works from the menu (e2e).
 - [ ] macOS app menu follows the HIG layout (manual screenshot); Windows/Linux show a menu bar per window.
-- [x] `CmdOrCtrl+,` opens the settings window on macOS, Windows and Linux (e2e), with Settings… under Edit on Windows/Linux.
+- [x] `CmdOrCtrl+,` opens the settings window on macOS, Windows and Linux (e2e), with Settings… under Edit on Windows/Linux. Done otherwise: see Decisions and deviations.
 - [x] Items are disabled when not applicable (no document → Print, Close Tab disabled) (e2e via `menu_state` assertions or a test-only `menu_snapshot` command under `e2e`).
 
 ## Decisions and deviations
@@ -84,6 +84,7 @@ A JSON export of U1b's command registry (no second map): per command `{ id, titl
 - **Export Copy is Save a copy… (`file.save-copy`),** the registry's command, done by the main process's `save_copy`. That command copies only a document the calling window holds.
 - **Labels and missing items.** Labels are sentence case on every platform. Save, Undo and Redo wait for the desktop's edit sessions. Items whose command the desktop app doesn't do yet are disabled: Print (D4c), Find, Sidebar, Focus mode, the view choices, Check for updates (D5b), View licences (D6b). The area document records this under S03.
 - **New commands.** Close window (`window.close`, ⇧⌘W / Ctrl+Shift+W) and Quit (`app.quit`, Ctrl+Q on Windows and Linux; macOS uses its app menu's Quit). Help ▸ Keyboard shortcuts (F1) opens the shared shortcut help in the desktop app.
+- **Ticks plumbed, not shown yet.** A command can say whether it is on, or which choice is chosen (`Command.checked`), and the menus tick its item by it. No command says so yet: the desktop app doesn't do the toggles and choices the View menu lists, so those items are disabled and unticked until it does.
 - **Not done here:** the manual screenshots of each OS's menus (macOS HIG layout, the Windows and Linux bar), and the German and French keyboard checks. Both need someone at each OS.
 
 ## Post-merge checks
