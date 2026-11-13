@@ -26,7 +26,7 @@ export type InitialMode =
   | "attachments";
 
 /** The window entries the dialog edits. */
-export interface InitialWindow {
+interface InitialWindow {
   readonly displayDocTitle: boolean;
   readonly fitWindow: boolean;
   /** `/HideToolbar`, `/HideMenubar` and `/HideWindowUI` together: the design's one choice. */

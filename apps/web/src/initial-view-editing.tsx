@@ -32,7 +32,7 @@ function zoomOf(view: TargetView): InitialZoom {
 }
 
 /** The file's initial view as the dialog reads it. */
-export function dialogData(view: InitialView): InitialViewData {
+function dialogData(view: InitialView): InitialViewData {
   const { open, preferences } = view;
   return {
     open:
@@ -48,7 +48,7 @@ export function dialogData(view: InitialView): InitialViewData {
 }
 
 /** The dialog's change as the op: the opening page, an index there, named by the page's ID. */
-export function initialViewOp(change: InitialViewChange, pages: readonly PageInfo[]): Op | undefined {
+function initialViewOp(change: InitialViewChange, pages: readonly PageInfo[]): Op | undefined {
   const { open, ...rest } = change;
   if (open === undefined || open === null)
     return { op: "setInitialView", args: { ...rest, ...(open === null ? { open } : {}) } };

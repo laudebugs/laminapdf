@@ -141,7 +141,7 @@ function ResultsPanel({ engine, viewer, layout }: { engine: Engine; viewer: View
 }
 
 /** The Threads tab's id in the rail. */
-export const THREADS_TAB = "threads";
+const THREADS_TAB = "threads";
 
 /** The Threads tab's panel, loaded with later.ts once a file with threads is open (#380). */
 const LazyThreadsTab = lazy(() => import("./later.ts").then((m) => ({ default: m.ThreadsTab })));
