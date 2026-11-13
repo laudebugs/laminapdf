@@ -52,7 +52,14 @@ for (const c of cases) {
     const encrypted = (await doc.getPermissions()) !== null || info.IsEncrypted === true;
     // The setInfo cases also wrote /Author, /Subject and /Keywords (c.info); null elsewhere.
     const keys = c.info === null ? null : Object.fromEntries(Object.keys(c.info).map((k) => [k, info[k] ?? null]));
-    const got = { pages: doc.numPages, rotations, title, encrypted, info: keys, initial_view: await initialView(doc, c) };
+    const got = {
+      pages: doc.numPages,
+      rotations,
+      title,
+      encrypted,
+      info: keys,
+      initial_view: await initialView(doc, c),
+    };
     const want = {
       pages: c.pages,
       rotations: c.rotations,
