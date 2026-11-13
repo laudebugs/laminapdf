@@ -299,6 +299,21 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   (the app_info sample both languages' tests read), about/
 │                        #   (cargo-about, MPL-2.0 accepted for Tauri's dependencies); Linux builds need WebKitGTK 4.1 and D-Bus
 │                        #   (.github/actions/linux-webkit); README.md
+├── apps/updates/        # the desktop update service (D5a; ADR 0014): a Cloudflare Worker (@laminapdf/updates, private) at
+│                        #   updates.laminapdf.com (env.staging: staging-updates.) answering the Tauri updater's
+│                        #   /{channel}/{target}/{arch}/{current_version} with 204 or 200 JSON from channels/{channel}.json in R2
+│                        #   (lamina-pdf-releases: stable, beta; lamina-pdf-nightly; lamina-pdf-staging); src/route.ts (allow-lists,
+│                        #   400/404), manifest.ts (types and validator; schemas/manifest.schema.json), rollout.ts (Lamina-Install-Id
+│                        #   as a UUID v4, SHA-256 buckets of 10 000), select.ts (bridges, whatever the pause; release in its rollout;
+│                        #   previous), cache.ts (one Cache API layer, 30 s, checked against the copy's read time), handler.ts,
+│                        #   index.ts (the only file on workerd's types, src/generated/ from `pnpm run types`); scripts/manifest.ts
+│                        #   (show, validate, put, pause, resume, set-rollout, promote over `wrangler r2 object`), smoke.sh;
+│                        #   src/channels.ts (the channels and their buckets, the one map; a test holds wrangler.jsonc to it);
+│                        #   unit tests beside their sources (src/*.test.ts, scripts/edits.test.ts), test/ (handle in Node, the
+│                        #   bundled Worker in workerd through Miniflare, a log-leak test); invocation logs and traces off;
+│                        #   deployed by .github/workflows/updates-deploy.yml (staging, then production in the
+│                        #   `updates-production` environment with a rollback on a failed smoke test, from main); README.md has the updater
+│                        #   public keys and the owner's setup
 ├── apps/docs/           # the docs site (Astro + Starlight, ADR 0015) in the Paper look (src/styles/paper.css over @laminapdf/tokens and
 │                        #   @laminapdf/fonts): quick starts, guides, recipes, troubleshooting, TypeDoc
 │                        #   reference for @laminapdf/sdk (generated, gitignored), rustdoc page; code from the tested example
@@ -638,7 +653,8 @@ cargo xtask fuzz cmin [<target>]      # minimise fuzz/corpus/ (the full lane doe
 cargo xtask changes [--base <rev>]    # paths changed since the merge base with <rev> (default origin/main, else main);
                                       #   code=true unless all are on the docs allowlist; gallery=true when they touch
                                       #   apps/gallery, packages/{ui,tokens,icons,fonts} or pnpm-lock.yaml; web=true unless all
-                                      #   are docs or outside what the reader is built from (OUTSIDE_WEB: web-deploy.yml's filter);
+                                      #   are docs or outside what the reader is built from (OUTSIDE_WEB: web-deploy.yml's filter;
+                                      #   apps/{docs,site,gallery,updates}, spikes/, fuzz/, tools/ but xtask, other workflows);
                                       #   desktop=true when they touch the crates and packages the desktop app builds (from
                                       #   cargo metadata and the package.json files), the manifests, lockfiles, toolchain, the
                                       #   fixtures its scenarios open, tools/xtask, or the full lane (changes/desktop.rs, X10a);
@@ -647,7 +663,7 @@ cargo xtask changes [--base <rev>]    # paths changed since the merge base with 
                                       #   the paths are in (X10c);
                                       #   render=true when they touch crates/, the example and render goldens, the corpus,
                                       #   tools/render, tools/xtask, the manifests and toolchain, or full.yml (RENDER_INPUTS, X9b);
-                                      #   rust=true unless all are docs, apps/{web,docs,site,gallery} or packages/ (packages/sdk
+                                      #   rust=true unless all are docs, apps/{web,docs,site,gallery,updates} or packages/ (packages/sdk
                                       #   and any package's src/ still count); ts=true unless all are docs or in fuzz/, spikes/,
                                       #   tools/ or other workflows (tools/xtask, cli-release, fonts, Biome-linted files and the
                                       #   two lanes still count). Each group of jobs runs on its flag, and both gates check it
@@ -722,6 +738,9 @@ cargo xtask release-guard [--run <id>] [--commit <rev>] [--version-only]  # fail
                              #   $GITHUB_OUTPUT when <rev> adds only a version bump to the commit that run tested (the changelogs, consumed
                              #   changesets and pre-mode files, and lines in manifests, lockfiles and version.ts whose only change is
                              #   the old version swapped for the new), else nightly=run
+pnpm --filter @laminapdf/updates manifest <show|validate|put|pause|resume|set-rollout|promote> …  # the desktop
+                             #   channel manifests in R2 (apps/updates/README.md; --local for wrangler dev's R2); every write checked
+pnpm --filter @laminapdf/updates dev # the update Worker on `wrangler dev` with local R2
 pnpm --filter @laminapdf/web dev     # the web reader (after `wasm` and the viewer's build:wasm; apps/web/README.md); `build`, then
                              #   `preview` serves dist/ through `wrangler dev` with the production headers on port 8788
 cargo xtask web build        # the reader into apps/web/dist/ from a fresh checkout: the WebAssembly modules without their tests,
