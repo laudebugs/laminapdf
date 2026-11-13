@@ -3,12 +3,12 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q4u` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Docs examples §2](../../plans/docs-examples.md#completion-and-colours-q4t-q4u) |
 | Round / milestone | Round Q (docs and code quality), Q4 docs redesign |
 | Depends on | [Q4i](../done/Q4i-code-colours-by-class.md) |
 | ADRs | [ADR 0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (no inline styles) |
-| Branch | `fix/q4u-editor-colours-match-the-blocks` |
+| Branch | `feat/q4t-editor-type-completion` |
 | PR title | `fix(docs): colour the editor's tokens as the static code blocks do` |
 | Size | S |
 | PR | — |

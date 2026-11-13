@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q4t` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Docs examples §2](../../plans/docs-examples.md#completion-and-colours-q4t-q4u) |
 | Round / milestone | Round Q (docs and code quality), Q4 docs redesign |
 | Depends on | [Q4r](../done/Q4r-wrap-and-format-code.md) |

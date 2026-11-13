@@ -83,8 +83,8 @@ The editor keeps CodeMirror's own highlighting instead of offering Shiki. Both a
 | [Q4q](../todos/done/Q4q-resizable-page-beside-the-code.md) | A divider between the code and the page beside it, dragged or moved by keys, its width kept for every example |
 | [Q4r](../todos/done/Q4r-wrap-and-format-code.md) | A "Wrap long lines" button beside every code block's Copy, and Format in "Edit and run" (Prettier, loaded on the first press) |
 | [Q4s](../todos/done/Q4s-editor-line-wrap.md) | The editor's lines unwrapped by default, with a Wrap lines toggle in the runner's bar |
-| [Q4t](../todos/ready/Q4t-editor-type-completion.md) | Completion, hover types and type errors in "Edit and run" from TypeScript's language service in a worker, loaded on the first keystroke |
-| [Q4u](../todos/ready/Q4u-editor-colours-match-the-blocks.md) | The editor's colours tested against the static blocks' and matched, in place of a Shiki option |
+| [Q4t](../todos/ongoing/Q4t-editor-type-completion.md) | Completion, hover types and type errors in "Edit and run" from TypeScript's language service in a worker, loaded on the first keystroke |
+| [Q4u](../todos/ongoing/Q4u-editor-colours-match-the-blocks.md) | The editor's colours tested against the static blocks' and matched, in place of a Shiki option |
 
 ## 5. To-dos
 
