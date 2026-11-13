@@ -26,7 +26,7 @@ Your edits live beside the bytes you opened and never change them. Nothing reach
 
 ## Name the pages
 
-A viewer's page box can show a page's label instead of its number: "Cover", "iv" or "A-3". `doc.setPageLabels(ranges)` replaces a document's labels. Each range starts at a page, named by its ID, and labels it and the pages after it until the next range, in a style (decimal, roman or letters, upper or lower case), after a prefix, from a first number. The first range must start on the first page and the rest must follow in page order, or the edit fails with `invalid-label-ranges`. No ranges remove the labels.
+A viewer's page box can show a page's label instead of its number: "Cover", "iv" or "A-3". `doc.setPageLabels(ranges)` replaces a document's labels. Each range starts at a page, named by its ID, and labels that page and the ones after it until the next range. A range has a style (decimal, roman or letters, upper or lower case), a prefix and a first number. The first range must start on the first page and the rest must follow in page order, or the edit fails with `invalid-label-ranges`. An empty list removes the labels.
 
 This example labels a cover, roman front matter and a numbered body:
 

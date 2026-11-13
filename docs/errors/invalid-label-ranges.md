@@ -13,7 +13,7 @@ A document's page labels are a list of ranges, each starting at a page (ISO 3200
 
 ## How to fix
 
-Give the ranges in page order, put the first on the document's first page, and number each from 1 or more. To remove every label, give no ranges at all.
+Give the ranges in page order, put the first on the document's first page, and number each from 1 or more. To remove every label, give an empty list.
 
 ## Example
 
