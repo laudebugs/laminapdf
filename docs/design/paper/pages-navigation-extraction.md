@@ -139,7 +139,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `O12-link-editor.dc.html` (text link to a page), `O12-link-editor-error.dc.html` (drawn area, rejected `javascript:` address).
 
-**Todos.** [E3c](../../todos/ready/E3c-links.md).
+**Todos.** [E3c](../../todos/ongoing/E3c-links.md).
 
 ## O13 Initial view and article threads
 

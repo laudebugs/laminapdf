@@ -35,7 +35,7 @@ Create and edit nested bookmarks (add, rename, retarget, move, nest, colour and 
 
 **Out of scope** (and which todo covers it)
 
-- Link annotations → [E3c](E3c-links.md)
+- Link annotations → [E3c](../ongoing/E3c-links.md)
 - The contents page → [E3l](E3l-contents-page.md)
 - Viewer preferences and page mode (`I.11`) → [E3d](E3d-initial-view-and-threads.md)
 - The desktop column → [E3k](E3k-desktop-navigation-and-export.md)

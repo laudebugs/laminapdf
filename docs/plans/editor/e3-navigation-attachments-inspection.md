@@ -190,7 +190,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | ID | Todo | Depends on |
 | --- | --- | --- |
 | [E3b](../../todos/ready/E3b-bookmarks-and-destinations.md) | Outline and named-destination ops, the editable Outline tab and the named destinations dialog | E2j |
-| [E3c](../../todos/ready/E3c-links.md) | Link ops, tagged links, the link tool and popover | C5b, E2j |
+| [E3c](../../todos/ongoing/E3c-links.md) | Link ops, tagged links, the link tool and popover | C5b, E2j |
 | [E3d](../../todos/ready/E3d-initial-view-and-threads.md) | `SetInitialView`, the initial view on open, and threads read | E3a |
 | [E3e](../../todos/ready/E3e-xmp-editor.md) | XMP property ops, extension schemas and the XMP editor | E1c, B8b, X3a |
 | [E3f](../../todos/ready/E3f-attachments-and-associated-files.md) | Attachment ops, `/AF`, portfolios read, and the Attachments tab | E2i, E2j, E2p, B8b, X3a |

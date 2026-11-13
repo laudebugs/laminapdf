@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E3c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E3 plan §2.1](../../plans/editor/e3-navigation-attachments-inspection.md#21-ops) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [C5b](../done/C5b-find-in-document.md), [E2j](../done/E2j-page-tree-and-tree-writers.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md) |
@@ -35,7 +35,7 @@ Create, edit and delete Link annotations: internal (GoTo/destination), external 
 
 **Out of scope** (and which todo covers it)
 
-- The desktop column → [E3k](E3k-desktop-navigation-and-export.md)
+- The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 
