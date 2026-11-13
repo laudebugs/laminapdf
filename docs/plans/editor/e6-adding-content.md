@@ -18,7 +18,7 @@ Two parts are hard. An object added today must still be found, moved and removed
 - **Drawing.** `laminapdf-build`'s `Surface` draws paths, colours, opacity, images and shaped text in page space, but only on pages the builder makes: `Builder::on` appends new pages to an open document and can't draw on an existing one. The builder writes image XObjects; Form XObjects arrive with E4c's appearances.
 - **Payloads.** `laminapdf_ops::BlobStore` holds images and fonts by SHA-256 (`BlobId`), so an op names its bytes instead of carrying them.
 - **Showing an edit.** The viewer's `applyEdit` (E1g) saves the appended revision into memory and reopens the render document over it. Nobody has measured how long that takes on a large file.
-- **The matrix.** A.01, A.12, B.01, B.02, B.04, B.05, B.09, B.10 and C.14 have `round = "E6"`; B.12 is E7's, since E7d transforms existing objects.
+- **The matrix.** A.01, A.12, B.04, B.05, B.09, B.10 and C.14 have `round = "E6"`. B.01, B.02 and B.12 are E7's rows ([E7 plan §1](e7-editing-existing-content.md#1-where-things-stand)): E6 takes B.01 and B.02 to `write` on the objects it adds, and E7 edits existing ones.
 
 ## 2. The operations
 

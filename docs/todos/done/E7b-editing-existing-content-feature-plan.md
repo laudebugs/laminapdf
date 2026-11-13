@@ -81,17 +81,17 @@ Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accep
 
 ## Risks and open questions
 
-- Open question: Line-level only, or a layout-aware "reflow edit" mode for paragraphs? (full-editor §9 Q4)
-- Open question: Which edit corpus (sources, licences) and what thresholds define "identical except edited regions"?
+- Answered: line-level only for E7, decided by the owner on 2026-11-13 ([E7 plan §10](../../plans/editor/e7-editing-existing-content.md#10-decisions-on-the-open-questions), question 1)
+- Answered: the edit corpus and its thresholds ([E7 plan §10](../../plans/editor/e7-editing-existing-content.md#10-decisions-on-the-open-questions), question 3)
 - The plan location `docs/plans/editor/` is a recommendation; if the plans README prescribes another place, use it and update this todo's links
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR's first commit moved this file `ready/` → `ongoing/` (Status `ongoing`, links updated)
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 
 ## As built
 
