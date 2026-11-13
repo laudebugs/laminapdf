@@ -38,7 +38,6 @@ import {
   type XmpEditOptions,
 } from "./transaction.js";
 import type {
-  OutlineTarget,
   AddLink,
   DocumentInfo,
   DocumentMetadata,
@@ -52,6 +51,7 @@ import type {
   OpenOptions,
   OpLog,
   OutlineNode,
+  OutlineTarget,
   PageAnnotation,
   PageInfo,
   PageLabelRange,

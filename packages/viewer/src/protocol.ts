@@ -12,6 +12,7 @@ import {
   type RenderRequest,
 } from "@laminapdf/render";
 import type {
+  AddLink,
   DocumentMetadata,
   DocumentProperties,
   ExplicitDestination,
@@ -19,6 +20,7 @@ import type {
   NamedDestination,
   Op,
   OutlineNode,
+  OutlineTarget,
   PageInfo,
   PageLink,
   PlannedSave,
@@ -108,6 +110,8 @@ export interface EditResult {
   readonly reverted?: readonly RevertedStep[];
   /** The IDs of the bookmarks the edit added, in order (none for an undo or redo). */
   readonly createdOutlineItems?: readonly string[];
+  /** The IDs of the links the edit added, in order (none for an undo or redo). */
+  readonly createdAnnotations?: readonly string[];
   /** The edit found the outline's links broken and rebuilt them. */
   readonly outlineRepaired?: boolean;
 }
@@ -244,6 +248,11 @@ export interface Methods {
   namedDestination: { params: [name: string]; result: Target | undefined };
   namedDestinations: { params: []; result: NamedDestination[] };
   destinationAt: { params: [page: number, view: TargetView]; result: ExplicitDestination };
+  linkOnArea: {
+    params: [page: number, area: [number, number, number, number], target: OutlineTarget];
+    result: AddLink;
+  };
+  linkOnText: { params: [page: number, lines: readonly number[], target: OutlineTarget]; result: AddLink };
   pageLinks: { params: [index: number]; result: readonly PageLink[] };
   properties: { params: []; result: DocumentProperties };
   printPage: { params: [index: number, options: PrintOptions]; result: PrintedPage };

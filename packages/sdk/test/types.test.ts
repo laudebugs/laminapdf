@@ -48,6 +48,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "direct-page":
     case "direct-outline-item":
     case "annotation-not-editable":
+    case "link-not-tagged":
     case "unsupported-version":
     case "subset-failed":
     case "unsupported-layout-option":
@@ -82,6 +83,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "xmp-claim-read-only":
     case "invalid-xmp-property":
     case "unknown-annotation":
+    case "not-a-link":
     case "sink-not-empty":
     case "collection-index":
     case "unknown-axis":

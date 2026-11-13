@@ -111,6 +111,7 @@ async function apply(ops: readonly Op[], id: number, signal: AbortSignal, label:
     pages,
     history: historyOf(edit.session, false),
     createdOutlineItems: edited.createdOutlineItems,
+    createdAnnotations: edited.createdAnnotations,
     outlineRepaired: edited.outlineRepaired,
   };
 }

@@ -43,6 +43,8 @@ export const DOCUMENT_METHODS = {
   insertBlankPages: 4,
   isEncrypted: 0,
   isTagged: 0,
+  linkOnArea: 3,
+  linkOnText: 3,
   metadata: 0,
   movePages: 2,
   namedDestination: 1,

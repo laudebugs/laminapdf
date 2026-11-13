@@ -16,6 +16,17 @@ export {
 export { EditArea } from "./edit/edit-area.js";
 export { HistoryPanel, type HistoryPanelProps } from "./edit/history-panel.js";
 export {
+  LinkEditor,
+  type LinkEditorProps,
+  type LinkGoal,
+  LinkPanel,
+  type LinkPanelProps,
+  type LinkWord,
+  linkWords,
+  mailParts,
+  mailUri,
+} from "./edit/link-editor.js";
+export {
   type NamedDestinationRow,
   NamedDestinationsDialog,
   type NamedDestinationsDialogProps,

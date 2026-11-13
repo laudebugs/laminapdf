@@ -111,6 +111,7 @@ export {
   type XmpEditOptions,
 } from "./transaction.js";
 export type {
+  AddLink,
   AfRelationship,
   Align,
   AttachmentOptions,
@@ -125,7 +126,6 @@ export type {
   DocumentMetadata,
   DocumentProperties,
   Edited,
-  AddLink,
   ExplicitDestination,
   ExtensionProperty,
   FieldEdit,
