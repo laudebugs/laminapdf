@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q4q` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Docs redesign §4](../../plans/docs-redesign.md#4-todos) |
 | Round / milestone | Round Q (docs and code quality), Q4 docs redesign |
-| Depends on | [Q4d](../done/Q4d-result-beside-the-code.md) |
+| Depends on | [Q4d](./Q4d-result-beside-the-code.md) |
 | ADRs | [ADR 0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (the CSP: no inline styles in markup) |
 | Branch | `claude/dazzling-sagan-s9woz0` |
 | PR title | `feat(docs): a divider to resize an example's page beside its code` |
@@ -41,16 +41,16 @@ Since Q4d, an example's first page sits beside its code on wide screens, in a co
 
 ## Tasks
 
-- [ ] The divider in `Example.astro`: a custom element with `role="separator"`, pointer and keyboard handling, the width as a custom property set through the CSSOM (the CSP blocks `style` attributes in markup).
-- [ ] The run's pages drawn at the column's width in `editor.ts`.
-- [ ] e2e tests: drag, keys, reset, the width kept after a reload, no divider with JavaScript off, axe with the divider.
-- [ ] The docs examples plan's notes.
+- [x] The divider in `Example.astro`: a custom element with `role="separator"`, pointer and keyboard handling, the width as a custom property set through the CSSOM (the CSP blocks `style` attributes in markup).
+- [x] The run's pages drawn at the column's width in `editor.ts`.
+- [x] e2e tests: drag, keys, reset, the width kept after a reload, no divider with JavaScript off, axe with the divider.
+- [x] The docs examples plan's notes.
 
 ## Acceptance criteria
 
-- [ ] At 1440 px, dragging the divider left widens the page and narrows the code, and the width is kept after a reload.
-- [ ] The divider works from the keyboard and has a name and value for screen readers.
-- [ ] No horizontal scroll at any width the divider allows.
+- [x] At 1440 px, dragging the divider left widens the page and narrows the code, and the width is kept after a reload.
+- [x] The divider works from the keyboard and has a name and value for screen readers.
+- [x] No horizontal scroll at any width the divider allows.
 
 ## Post-merge checks
 
@@ -71,7 +71,7 @@ The docs examples plan (§2's notes, §4's table).
 ## Definition of done
 
 - [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
