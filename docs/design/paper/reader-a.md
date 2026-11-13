@@ -377,7 +377,7 @@ Closing saves the reading position a last time, frees the document in the worker
 
 **Artboards.** `R19-close-button.dc.html`, `R19-close-more.dc.html`, `R19-closed-home.dc.html`.
 
-**Todos.** [C8a](../../todos/ready/C8a-every-close-asks-first.md), [C8b](../../todos/ready/C8b-close-button-and-command.md).
+**Todos.** [C8a](../../todos/ongoing/C8a-every-close-asks-first.md), [C8b](../../todos/ongoing/C8b-close-button-and-command.md).
 
 ## New components
 

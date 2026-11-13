@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `C8a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Close a document §4](../../plans/close-document.md#4-decisions) |
 | Round / milestone | Round C (web reader): C8, closing a document |
 | Depends on | None |

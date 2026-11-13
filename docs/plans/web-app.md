@@ -140,7 +140,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 **Deliverable:** a Close button beside the file name, `file.close` in the palette and More, Back to files on phone and tablet, and one close path that always asks about unsaved changes ([close-document plan](close-document.md), [Reader A R19](../design/paper/reader-a.md#r19-close-a-document)).
 **Accepted when:** each route closes to the home screen with focus on its heading; a document with unsaved changes never closes without O03's answer, from any route.
-**Todos:** [C8a](../todos/ready/C8a-every-close-asks-first.md), [C8b](../todos/ready/C8b-close-button-and-command.md)
+**Todos:** [C8a](../todos/ongoing/C8a-every-close-asks-first.md), [C8b](../todos/ongoing/C8b-close-button-and-command.md)
 
 ## 7. Risks
 
@@ -226,5 +226,5 @@ Ticked by the PR that completes them.
 - [ ] Publish the privacy page; tag `web v0.1` and deploy to production
 
 ### C8. Closing a document
-- [ ] Every close asks about unsaved changes first ([C8a](../todos/ready/C8a-every-close-asks-first.md))
-- [ ] The Close button, `file.close`, More's items and Back to files ([C8b](../todos/ready/C8b-close-button-and-command.md))
+- [ ] Every close asks about unsaved changes first ([C8a](../todos/ongoing/C8a-every-close-asks-first.md))
+- [ ] The Close button, `file.close`, More's items and Back to files ([C8b](../todos/ongoing/C8b-close-button-and-command.md))
