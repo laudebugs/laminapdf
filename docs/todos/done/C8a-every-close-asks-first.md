@@ -70,10 +70,10 @@ The plan's to-do; [Reader A R19](../../design/paper/reader-a.md#r19-close-a-docu
 
 ## As built
 
-- `watch.ts` sends the fragment's close and an unusable link through the guard; after a Cancel it writes the `url` key the reader holds back into the address (`writeUrl`), which `forget()` now uses too.
+- `watch.ts` asks about unsaved changes before closing for an address without `#url=` and before showing an unusable link's problem page. After a Cancel it writes the `url` key the reader holds back into the address with `writeUrl`; `forget()` now uses `writeUrl` too.
 - `Engine.showLinkProblem` resolves whether it closed; on Cancel the reader shows no problem page.
-- The audit of `reader.close()`: two calls are left, both closes the reader didn't ask for: `ReaderController.requestClose()` itself, and the `#debug` backend switch, which reopens the same file. `close()`'s doc comment now says so.
-- Not checked: Forward after a Cancel that followed Back. The restored entry is the one Back landed on, rewritten by `replaceState`, so Forward goes where it went before.
+- The audit of `reader.close()`: two calls remain, both deliberate: `ReaderController.requestClose()` itself, after the question is answered, and the `#debug` backend switch, which reopens the same file. `close()`'s doc comment now says so.
+- Not checked: Forward after a Cancel that followed Back. The restored entry is the one Back landed on, rewritten by `replaceState`, so Forward should go where it went before (reasoned from the code, not tried).
 
 ## Definition of done
 

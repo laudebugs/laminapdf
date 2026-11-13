@@ -160,7 +160,7 @@ const context = { platform, reader, viewer, actions: { ...shellActions(layout, m
 
 `ReaderTopBar` shows the file name, with "Loading pages…" or "Locked" while those apply. Once a document is open, the bar adds the page input and the zoom. The page input takes a page number or a page label, and announces one that doesn't exist. The zoom steps in and out, and its percentage opens a menu of the fit modes and presets. Every button runs a command from the registry (next section), so the bar must sit inside a `CommandsProvider`.
 
-When the shell handles `file.close`, an × follows the file name whenever a document is in the reader, and pressing it closes the document. The desktop app's tabs close documents, so it gives no handler and shows no ×.
+`ReaderTopBar` also puts an × after the file name while a document is in the reader and the shell handles `file.close`. The desktop app closes documents with its tabs, so it gives no handler and shows no ×.
 
 The sidebar toggle and Commands appear once the shell handles `view.toggle-sidebar` and `palette.open`. `shellActions` handles the sidebar only when the shell has rail tabs to show.
 
