@@ -126,7 +126,7 @@ pub struct Edited {
     pub changed: bool,
     /// The bookmarks the edit added, in order: their IDs, for the edits that follow.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub created_outline_items: Vec<OutlineItemId>,
     /// The links the edit added, in order: their IDs, for the edits that follow.
     ///
@@ -135,12 +135,12 @@ pub struct Edited {
     /// An outline edit found the outline's links broken and rewrote them whole. Bookmarks
     /// that were stored inside other bookmarks have new IDs: read the outline again.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub outline_repaired: bool,
     /// What still names a named destination the edit deleted: those bookmarks and links no
     /// longer go anywhere.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub destination_uses: Vec<DestinationUse>,
     /// The XMP properties the edit declared in a PDF/A file's extension schemas, so the file
     /// keeps its PDF/A claim ([`SetXmpProperty`](crate::SetXmpProperty),
@@ -149,30 +149,30 @@ pub struct Edited {
     /// The page IDs in order after the edit, when it inserted, deleted, moved or reversed
     /// pages; `None` when the page list didn't change.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub page_order: Option<Vec<PageId>>,
     /// What a page deletion did to the references to the deleted pages: each outline item,
     /// link, named destination, `/OpenAction` and structure element it retargeted or removed.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub references: Vec<ReferenceEdit>,
     /// What a page duplication did to the form fields whose widgets the copied pages show: each
     /// copy's new field (named `<partial>#<n>`), or a signature field whose widget was not
     /// copied.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fields: Vec<laminapdf_ops::FieldChange>,
     /// The copies a page duplication made whose tags couldn't all be cloned: content of
     /// elements that also hold content on other pages is left untagged on them. On a PDF/UA-1
     /// file, [`Document::plan`] then warns `duplicate-tags-incomplete`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub tags_incomplete: Vec<PageId>,
 }
 
 /// One reference to a deleted page and what the deletion did to it.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct ReferenceEdit {
@@ -186,7 +186,7 @@ pub struct ReferenceEdit {
 
 /// What held a reference to a deleted page.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ReferenceEditKind {

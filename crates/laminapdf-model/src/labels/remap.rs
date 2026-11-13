@@ -50,7 +50,7 @@ impl LabelRange {
     /// writes what it is given, so callers check that ranges start at page 0, increase and
     /// number from 1 (ISO 32000-2 §12.4.2).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn new(start: u64, style: Option<LabelStyle>, prefix: impl Into<String>, first: u64) -> Self {
         Self {
@@ -75,7 +75,7 @@ impl PageLabels {
     /// assert_eq!((labels.label(1).as_deref(), labels.label(2).as_deref()), (Some("ii"), Some("1")));
     /// ```
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn from_ranges(mut ranges: Vec<LabelRange>) -> Self {
         ranges.sort_by_key(|r| r.start);
@@ -146,7 +146,7 @@ impl PageLabels {
     /// stored any other way (several nodes, other values, damage) is `false`, so writing
     /// replaces it.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn is_written(&self, doc: &Document) -> bool {
         let Ok(catalog) = doc.catalog() else {
