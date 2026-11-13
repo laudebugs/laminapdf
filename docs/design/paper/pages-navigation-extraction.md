@@ -120,7 +120,7 @@ Differs from the boards:
 Not built yet:
 
 - The rail header's More menu (Expand all, Collapse all, Sort by page, Create a contents page…); the contents page is [E3l](../../todos/ready/E3l-contents-page.md)'s.
-- The destination marker on the page, and "Page removed" for a bookmark whose page was deleted (page deletion is [E2b](../../todos/ready/E2b-page-structure-ops.md)'s).
+- The destination marker on the page, and "Page removed" for a bookmark whose page was deleted (page deletion came with [E2b](../../todos/done/E2b-page-structure-ops.md), which sends a bookmark on to a surviving page).
 - The palette commands (`organise.add-bookmark`, `organise.named-destinations`, `organise.set-bookmark-destination`, `organise.delete-bookmark`) and the selection toolbar's Add bookmark here, which join Organise's commands.
 - The polite announcement of a move ("Moved under …"), and the phone's Edit button with its Move… sheets.
 
