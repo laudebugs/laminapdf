@@ -92,3 +92,7 @@ reason = "shows the options a reader's test passes in place of the clock and a r
 [[test-example]]
 path = "crates/laminapdf/examples/snapshot_test.rs"
 reason = "shows the options a reader's test passes in place of the clock and a random file ID"
+
+[[pair]]
+ts = "packages/sdk/examples/images-to-pdf.ts"
+rust = "crates/laminapdf/examples/images_to_pdf.rs"

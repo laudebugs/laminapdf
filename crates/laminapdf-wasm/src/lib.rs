@@ -52,7 +52,7 @@ mod source;
 mod text;
 
 #[cfg(feature = "build")]
-pub use builder::{WasmBuilder, WasmImage, WasmPageBuilder};
+pub use builder::{WasmBuilder, WasmImage, WasmImageList, WasmPageBuilder, images_to_pdf};
 #[cfg(feature = "text")]
 pub use builder::{WasmFlowResources, WasmFont, WasmMarkdownOptions};
 pub use document::{WasmDocument, WasmPage, WasmSaveJob, WasmWarningCursor};

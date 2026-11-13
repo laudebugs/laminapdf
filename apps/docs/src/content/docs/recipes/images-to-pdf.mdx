@@ -1,0 +1,30 @@
+---
+title: Turn photos into a PDF
+description: Photos into a PDF, one page each, fitted on A4 with margins, in TypeScript or Rust, with each JPEG embedded as it is.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll put photos into one PDF, one A4 page each, every photo fitted inside a 15 mm margin. Use it for scans from a phone, receipts for an expense claim, or pictures to print as one file.
+
+The function passes the photos to `imagesToPdf` (`images_to_pdf` in Rust) and returns the PDF's bytes. Both languages write the same bytes:
+
+<Example ts="packages/sdk/examples/images-to-pdf.ts" rust="crates/laminapdf/examples/images_to_pdf.rs" result="images_to_pdf" />
+
+The result has two pages: a colour photo and a greyscale one. The Result tab shows them, with a link to the PDF.
+
+## How it works
+
+- Each JPEG goes into the file as it is, without decoding or compressing it again, so the page keeps every pixel the camera wrote and the PDF is barely larger than the photos.
+- A PNG is decoded and kept with its transparency.
+- A page turns to landscape for a photo wider than it is tall, and the photo is scaled to fit inside the margins and centred.
+- A phone often stores a photo sideways and records which way is up in its EXIF data. The page shows it the way up the EXIF data says.
+
+## What to change
+
+- **Another paper size:** pass `fit: "Letter"`, or `[width, height]` in points (`ImagePages::Fit(PageSize::LETTER)` in Rust).
+- **Pages the photos' own size:** leave out `fit` (`ImagePages::ImageSize` in Rust). Each page is then its photo's size at the resolution its file records, or at `defaultDpi` (72 by default) when the file records none.
+- **No margin:** leave out `margin`, and each photo fills its page edge to edge in one direction.
+- **PNG images:** `Image.png(bytes)` in place of `Image.jpeg(bytes)` (`Image::png` in Rust).
+
+Next: [images and vectors](/recipes/images-and-vectors/), which draws images, paths and transparency on one page.

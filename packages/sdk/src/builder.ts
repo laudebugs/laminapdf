@@ -2,7 +2,7 @@
 // of the displayed page, y down; ADR 0027). Over WasmBuilder / WasmPageBuilder (ADR 0016 §7):
 // paths cross as flat Float64Arrays, colours as component arrays. Builders and pages are handles
 // (internal/handle.ts): a page is freed with its builder.
-import type { WasmBuilder as BaseBuilder, WasmDocument, WasmImage } from "@laminapdf/wasm/base";
+import type { WasmBuilder as BaseBuilder, ImagesOptionsInit, WasmDocument, WasmImage } from "@laminapdf/wasm/base";
 import type { WasmBuilder as TextBuilder, WasmPageBuilder as TextPageBuilder, WasmFont } from "@laminapdf/wasm/text";
 import { defined } from "./defined.js";
 import { Document } from "./document.js";
@@ -1241,4 +1241,62 @@ export class Builder extends Handle<BaseGlue> {
   protected release(): void {
     this.#close();
   }
+}
+
+/**
+ * How {@link imagesToPdf} lays its images out, and the new document's options.
+ *
+ * @since 0.2.0
+ */
+export interface ImagesToPdfOptions extends Omit<BuilderOptions, "text"> {
+  /**
+   * Each page this size, turned the image's way (landscape for an image wider than it is tall),
+   * the image fitted inside the margins and centred. Default: each page is its image's size at
+   * the image's resolution.
+   */
+  readonly fit?: PageSizeName | readonly [width: number, height: number];
+  /** The space around each image, in points (default 0). */
+  readonly margin?: number;
+  /** The resolution of an image whose file gives none, in dots per inch (default 72). */
+  readonly defaultDpi?: number;
+}
+
+/**
+ * A new document with one page per image, in order. A JPEG is embedded as it is, without
+ * decoding it; a PNG keeps its transparency; each image is drawn the way up its EXIF orientation
+ * says.
+ *
+ * @example
+ * ```ts
+ * using doc = imagesToPdf([Image.jpeg(photo)], { fit: "A4", margin: 42 });
+ * const pdf = doc.save();
+ * ```
+ * @param images - the pages' images, at least one.
+ * @param options - the page size to fit them in, the margin, the default resolution, and the
+ *   file ID, producer and creation date.
+ * @throws {@link LaminaPdfError} `not-initialized`; `invalid-geometry` for no images, a negative
+ *   margin or resolution, or a page too small for its margins; `unknown-option`,
+ *   `invalid-argument`.
+ * @since 0.2.0
+ */
+export function imagesToPdf(images: readonly Image[], options: ImagesToPdfOptions = {}): Document {
+  const instance = readingModule() as unknown as Instance<BaseGlue>;
+  const { fit, margin, defaultDpi, ...build } = options;
+  const buildInit = rest(build, ["id"]) ?? {};
+  const record = defined({
+    fit: fit === undefined ? undefined : [...(typeof fit === "string" ? namedSize(fit) : fit)],
+    margin,
+    defaultDpi,
+    build: build.id === undefined ? buildInit : { ...buildInit, id: hexId(build.id) },
+  });
+  const raw = instance.call((glue) => {
+    const list = new glue.WasmImageList();
+    try {
+      for (const image of images) list.push(image.in(instance));
+      return glue.imagesToPdf(list, record as ImagesOptionsInit);
+    } finally {
+      list.free();
+    }
+  });
+  return new Document(raw as unknown as WasmDocument, instance);
 }

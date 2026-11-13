@@ -12,6 +12,7 @@ mod document;
 #[cfg(feature = "text")]
 mod flow;
 mod image;
+mod images;
 #[cfg(feature = "text")]
 mod markdown;
 mod page;
@@ -22,6 +23,7 @@ pub use document::WasmBuilder;
 #[cfg(feature = "text")]
 pub use flow::WasmFlowResources;
 pub use image::WasmImage;
+pub use images::{WasmImageList, images_to_pdf};
 #[cfg(feature = "text")]
 pub use markdown::WasmMarkdownOptions;
 pub use page::WasmPageBuilder;
