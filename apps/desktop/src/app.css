@@ -54,3 +54,15 @@ body {
   color: var(--paper-text-3);
   font: var(--paper-type-caption);
 }
+
+/* Another window's tab dragged over this one: dropping it here moves the tab to this window. The
+   files overlay's inset dashed accent border (reader.css), without its tint, so the document stays
+   readable under it. */
+:root[data-tab-drop] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: var(--paper-z-toast);
+  border: var(--paper-drop-border-width) dashed var(--paper-accent);
+  pointer-events: none;
+}

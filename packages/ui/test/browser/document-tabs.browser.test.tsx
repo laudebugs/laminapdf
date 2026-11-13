@@ -1,6 +1,6 @@
 // The window's document tabs: one Tab stop that the arrow keys move along, Enter shows the focused
-// tab, Delete closes it, the close buttons and the strip's menu reach every tab, and dragging a tab
-// onto another reorders them.
+// tab, Delete closes it, the close buttons and the strip's menu reach every tab, dragging a tab
+// onto another reorders them, and a drag that ends anywhere else is handed to the shell.
 
 import { useState } from "react";
 import { afterEach, describe, expect, it } from "vitest";
@@ -38,6 +38,8 @@ function Strip({ log }: { log: string[] }) {
       }}
       moves={[{ id: "new", label: "Move tab to new window" }]}
       onMove={(id) => log.push(`move ${id}`)}
+      onDragStart={(id) => log.push(`drag ${id}`)}
+      onDragOut={(id, outside) => log.push(`out ${id} ${outside ? "outside" : "inside"}`)}
       platform="mac"
     />
   );
@@ -98,7 +100,7 @@ describe("the document tabs", () => {
     from.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: data }));
     onto.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: data }));
     onto.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: data }));
-    await expect.poll(() => log).toEqual(["reorder bac"]);
+    await expect.poll(() => log).toEqual(["drag a", "reorder bac"]);
   });
 
   it("open a tab's context menu with Shift+F10, showing that tab first", async () => {
@@ -119,6 +121,43 @@ describe("the document tabs", () => {
     from.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: data }));
     onto.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: data }));
     onto.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: data }));
-    await expect.poll(() => log).toEqual(["reorder cab"]);
+    await expect.poll(() => log).toEqual(["drag c", "reorder cab"]);
+  });
+
+  it("hand a drag that ends off the strip to the shell, inside the page or out of it", async () => {
+    const log: string[] = [];
+    renderIn(<Strip log={log} />);
+    const from = page.getByRole("tab", { name: "notes.pdf" }).element();
+    const data = new DataTransfer();
+    from.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: data }));
+    document.body.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: data }));
+    from.dispatchEvent(new DragEvent("dragend", { bubbles: true, dataTransfer: data }));
+    // No dragover for a while: the pointer has left the page.
+    from.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: data }));
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    from.dispatchEvent(new DragEvent("dragend", { bubbles: true, dataTransfer: data }));
+    await expect.poll(() => log).toEqual(["drag b", "out b inside", "drag b", "out b outside"]);
+  });
+
+  it("keep a drag that dropped on the strip to itself, and take no other strip's tab", async () => {
+    const log: string[] = [];
+    renderIn(
+      <>
+        <Strip log={log} />
+        <Strip log={[]} />
+      </>,
+    );
+    const mine = page.getByRole("tab", { name: "report.pdf" }).elements()[0];
+    const onto = page.getByRole("tab", { name: "notes.pdf" }).elements()[1];
+    if (mine === undefined || onto === undefined) throw new Error("two strips expected");
+    const data = new DataTransfer();
+    mine.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: data }));
+    mine.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: data }));
+    mine.dispatchEvent(new DragEvent("dragend", { bubbles: true, dataTransfer: data }));
+    // The other strip refuses this one's tab: its dragover isn't cancelled, so no drop happens there.
+    const foreign = new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: data });
+    onto.dispatchEvent(foreign);
+    expect(foreign.defaultPrevented).toBe(false);
+    expect(log).toEqual(["drag a"]);
   });
 });

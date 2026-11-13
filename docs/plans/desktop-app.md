@@ -202,7 +202,7 @@ Ticked by the PR that completes them.
 ### D4. Windows, tabs, menus and printing
 
 - [x] Multi-window and tabs ([D4a](../todos/done/D4a-windows-tabs-and-session-restore.md))
-- [ ] Drag a tab to a new window or another window's strip ([D4e](../todos/ongoing/D4e-tab-drag-between-windows.md))
+- [x] Drag a tab to a new window or another window's strip ([D4e](../todos/ongoing/D4e-tab-drag-between-windows.md))
 - [ ] Session restore ([D4d](../todos/ready/D4d-session-restore.md))
 - [ ] Native menus and accelerators generated from the shared shortcut map
 - [ ] Implement printing per the D1 recommendation

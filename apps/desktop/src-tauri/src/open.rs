@@ -213,7 +213,7 @@ pub(crate) fn route_open(app: &AppHandle, window: &str, paths: Vec<PathBuf>) {
         for path in paths {
             match empty
                 .take()
-                .map_or_else(|| crate::windows::new_window(app), |w| Ok(w.to_owned()))
+                .map_or_else(|| crate::windows::new_window(app, None), |w| Ok(w.to_owned()))
             {
                 Ok(label) => queue_or_open(app, &label, vec![path]),
                 Err(error) => tracing::warn!("could not make a window for a document: {error}"),

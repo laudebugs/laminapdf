@@ -19,6 +19,7 @@ mod recent;
 #[cfg(feature = "e2e")]
 mod startup;
 mod store;
+mod tab_drag;
 mod watch;
 mod windows;
 
@@ -142,8 +143,9 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     )))?);
     app.manage(open::OpenWorker::start(app.handle().clone())?);
     app.manage(windows::Windows::default());
+    app.manage(tab_drag::TabDrag::default());
     // Windows are made here, not in tauri.conf.json, so the app chooses every label.
-    windows::build_window(app.handle(), MAIN_WINDOW)?;
+    windows::build_window(app.handle(), MAIN_WINDOW, None)?;
     #[cfg(feature = "e2e")]
     startup::window();
     tracing::info!(version = %app.package_info().version, "Lamina PDF started");
@@ -186,6 +188,8 @@ pub fn run() -> Result<(), DesktopError> {
         commands::window_list,
         commands::set_window_title,
         commands::take_pending_tabs,
+        commands::tab_drag_start,
+        commands::tab_drag_end,
         open::take_pending_opens,
     ]);
     #[cfg(feature = "e2e")]
@@ -208,6 +212,10 @@ pub fn run() -> Result<(), DesktopError> {
             commands::window_list,
             commands::set_window_title,
             commands::take_pending_tabs,
+            commands::tab_drag_start,
+            commands::tab_drag_end,
+            commands::tab_drag_start,
+            commands::tab_drag_end,
             open::take_pending_opens,
             commands::debug_kill_engine,
             e2e::e2e_queue_pick,
@@ -315,7 +323,7 @@ fn on_run_event(app: &tauri::AppHandle, event: &RunEvent) {
             has_visible_windows: false,
             ..
         } => {
-            if let Err(error) = windows::new_window(app) {
+            if let Err(error) = windows::new_window(app, None) {
                 tracing::warn!("could not open a window from the Dock: {error}");
             }
         }

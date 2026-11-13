@@ -51,8 +51,11 @@ function harness() {
     );
     return () => open();
   };
+  // Where a drag's end sends its tab: `null`, it stays.
+  const drop = { to: "doc-1" as string | null };
   const answer = (command: string, args?: Record<string, unknown>): unknown => {
     if (command === "move_tab") return "doc-1";
+    if (command === "tab_drag_end") return drop.to;
     if (command === "unlock_document") return doc(Number(args?.doc), "locked.pdf");
     return undefined;
   };
@@ -88,7 +91,7 @@ function harness() {
     view = at(page);
   };
   const closed = () => invoked.filter((c) => c.command === "close_document").map((c) => c.args?.doc);
-  return { tabs, reader, client, invoked, restored, scrollTo, closed, gate };
+  return { tabs, reader, client, invoked, restored, scrollTo, closed, gate, drop };
 }
 
 const names = (tabs: WindowTabs) => tabs.getState().tabs.map((t) => t.file.name);
@@ -222,6 +225,42 @@ describe("a window's tabs", () => {
     expect(names(tabs)).toEqual([]);
     expect(reader.getState().phase).toBe("empty");
     expect(closed()).toEqual([]);
+  });
+
+  it("hand a dragged tab not shown to the window it was dropped on, with the view it kept", async () => {
+    const { tabs, reader, invoked, scrollTo, closed } = harness();
+    await reader.open(desktopFile(doc(1, "a.pdf")));
+    scrollTo(4);
+    await reader.open(desktopFile(doc(2, "b.pdf")));
+    const first = tabs.getState().tabs[0]?.id ?? "";
+    tabs.dragStarted(first);
+    await tabs.draggedOut(first, true);
+    expect(invoked.find((c) => c.command === "tab_drag_start")?.args).toEqual({ doc: 1 });
+    const end = invoked.find((c) => c.command === "tab_drag_end");
+    expect(end?.args).toMatchObject({ doc: 1, outside: true, view: { point: { page: 4 } } });
+    expect(names(tabs)).toEqual(["b.pdf"]);
+    expect(tabs.shown?.file.name).toBe("b.pdf");
+    expect(closed()).toEqual([]);
+  });
+
+  it("show the next tab when the shown one is dragged to another window", async () => {
+    const { tabs, reader, client } = harness();
+    await reader.open(desktopFile(doc(1, "a.pdf")));
+    await reader.open(desktopFile(doc(2, "b.pdf")));
+    await tabs.draggedOut(tabs.shown?.id ?? "", false);
+    expect(names(tabs)).toEqual(["a.pdf"]);
+    await expect.poll(() => tabs.shown?.file.name).toBe("a.pdf");
+    expect(client.current?.doc).toBe(1);
+  });
+
+  it("keep a dragged tab whose drop left it in this window", async () => {
+    const { tabs, reader, drop } = harness();
+    drop.to = null;
+    await reader.open(desktopFile(doc(1, "a.pdf")));
+    await reader.open(desktopFile(doc(2, "b.pdf")));
+    await tabs.draggedOut(tabs.shown?.id ?? "", false);
+    expect(names(tabs)).toEqual(["a.pdf", "b.pdf"]);
+    expect(tabs.shown?.file.name).toBe("b.pdf");
   });
 
   it("show a tab moved here at the view it had", async () => {

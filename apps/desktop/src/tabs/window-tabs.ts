@@ -47,6 +47,8 @@ export interface Arrived {
 export const ARRIVED_EVENT = "tab://arrived";
 export const ACTIVATE_EVENT = "tab://activate";
 export const WINDOWS_CHANGED_EVENT = "windows://changed";
+/** Whether another window's dragged tab is over this window (src-tauri/src/tab_drag.rs). */
+export const DRAG_OVER_EVENT = "tab://drag-over";
 
 /** The window's tabs. */
 export class WindowTabs implements ExternalStore<TabsState> {
@@ -247,13 +249,46 @@ export class WindowTabs implements ExternalStore<TabsState> {
    */
   async moveShown(to: MoveTarget): Promise<void> {
     const shown = this.shown;
-    const doc = shown === undefined ? undefined : documentOf(shown.file)?.doc;
+    if (shown !== undefined)
+      await this.#move(shown.id, (doc, view) => this.#shell.invoke<string>("move_tab", { doc, to, view }));
+  }
+
+  /** Tab `id` began to be dragged: Rust follows the cursor until the drag ends. */
+  dragStarted(id: string): void {
+    const doc = this.#docOf(id);
+    if (doc !== undefined) void this.#shell.invoke("tab_drag_start", { doc }).catch(() => undefined);
+  }
+
+  /**
+   * Tab `id`'s drag ended without a drop on this window's strip (`outside`: the pointer had left
+   * this window, as far as the page can tell). Rust moves it to the window under the cursor, or
+   * to a new one when the cursor is outside every window, or leaves it here. A move goes as
+   * {@link moveShown}'s does; on failure the tab stays and the error rejects.
+   */
+  async draggedOut(id: string, outside: boolean): Promise<void> {
+    await this.#move(id, (doc, view) => this.#shell.invoke<string | null>("tab_drag_end", { doc, view, outside }));
+  }
+
+  #docOf(id: string): number | undefined {
+    const tab = this.#state.tabs.find((t) => t.id === id);
+    return tab === undefined ? undefined : documentOf(tab.file)?.doc;
+  }
+
+  /**
+   * Hands tab `id`'s document and view to `send`, which moves it and answers where it went (`null`:
+   * it stayed). A moved tab leaves; when it was the shown one, the next shows, or the start screen.
+   */
+  async #move(id: string, send: (doc: number, view: ViewPosition | null) => Promise<string | null>): Promise<void> {
+    const tab = this.#state.tabs.find((t) => t.id === id);
+    const doc = this.#docOf(id);
     const reader = this.#reader;
-    if (shown === undefined || doc === undefined || reader === undefined) return;
-    const view = this.#viewer.viewPosition() ?? null;
-    await this.#shell.invoke<string>("move_tab", { doc, to, view });
-    const next = this.#neighbour(shown.id);
-    this.#remove(shown.id);
+    if (tab === undefined || doc === undefined || reader === undefined) return;
+    const shown = id === this.#state.active;
+    const view = (shown ? this.#viewer.viewPosition() : tab.view) ?? null;
+    if ((await send(doc, view)) === null) return;
+    const next = this.#neighbour(id);
+    this.#remove(id);
+    if (!shown) return;
     // The document is the other window's now: the viewer lets go of it without closing it.
     this.#client.forget();
     if (next !== undefined) await this.activate(next);

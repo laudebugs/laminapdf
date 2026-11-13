@@ -23,6 +23,8 @@ const COMMANDS: &[&str] = &[
     "window_list",
     "set_window_title",
     "take_pending_tabs",
+    "tab_drag_start",
+    "tab_drag_end",
 ];
 
 /// With the `e2e` feature: the end-to-end tests' commands too.
@@ -45,6 +47,8 @@ const E2E_COMMANDS: &[&str] = &[
     "window_list",
     "set_window_title",
     "take_pending_tabs",
+    "tab_drag_start",
+    "tab_drag_end",
     "debug_kill_engine",
     "e2e_queue_pick",
     "e2e_interactive",

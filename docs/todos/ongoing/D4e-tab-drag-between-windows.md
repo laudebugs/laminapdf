@@ -11,7 +11,7 @@
 | Branch | `feat/d4e-tab-drag-between-windows` |
 | PR title | `feat(desktop): drag tabs out of and between windows` |
 | Size | M (200–400): the drag detection, the cross-window drop, and the manual checks |
-| PR | — |
+| PR | [#574](https://github.com/laudebugs/laminapdf/pull/574) |
 
 ## Goal
 
