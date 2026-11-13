@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E4 plan §4](../../plans/editor/e4-markup-and-drawing-annotations.md#4-crate-and-package-changes) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E1e](../done/E1e-save-and-constraint-banner.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4c](./E4c-appearances-markup-notes-caret.md), [E4d](./E4d-appearances-ink-and-shapes.md), [E4i](./E4i-viewer-annotation-layer.md) |
+| Depends on | [E1e](../done/E1e-save-and-constraint-banner.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4c](../ongoing/E4c-appearances-markup-notes-caret.md), [E4d](./E4d-appearances-ink-and-shapes.md), [E4i](./E4i-viewer-annotation-layer.md) |
 | ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e4f-annotation-tools-ui` |
 | PR title | `feat(ui): Comment mode with its tools and the annotation inspector` |

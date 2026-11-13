@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E4 plan §10](../../plans/editor/e4-markup-and-drawing-annotations.md#10-tests) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4c](./E4c-appearances-markup-notes-caret.md), [E4d](./E4d-appearances-ink-and-shapes.md), [E4e](./E4e-freetext-callouts.md), [X3a](../done/X3a-nightly-lane.md) |
+| Depends on | [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4c](../ongoing/E4c-appearances-markup-notes-caret.md), [E4d](./E4d-appearances-ink-and-shapes.md), [E4e](./E4e-freetext-callouts.md), [X3a](../done/X3a-nightly-lane.md) |
 | ADRs | Follows [0004](../../decisions/0004-render-backend.md), [0018](../../decisions/0018-test-strategy.md) |
 | Branch | `test/e4g-appearance-parity-suite` |
 | PR title | `test(annots): cross-viewer appearance parity` |
