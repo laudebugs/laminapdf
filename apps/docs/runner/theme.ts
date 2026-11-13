@@ -12,15 +12,19 @@ const token = (name: string) => `var(--paper-${name})`;
 
 /** The editor's surfaces: the page's raised surface, its gutter, the accent for the cursor and selection. */
 const surfaces = EditorView.theme({
+  // At most 32rem tall; the scroller scrolls both ways, so with lines unwrapped the sideways
+  // scrollbar stays at the bottom of the box.
   "&": {
     color: token("text"),
     backgroundColor: token("raised"),
+    maxHeight: "32rem",
   },
   "&.cm-focused": {
     outline: `${token("focus-ring-width")} solid ${token("focus")}`,
     outlineOffset: token("focus-ring-offset-inset"),
   },
   ".cm-scroller": {
+    overflow: "auto",
     fontFamily: token("font-mono"),
     lineHeight: "1.6",
   },
