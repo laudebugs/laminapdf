@@ -50,7 +50,7 @@ The pictures come from the example goldens, rendered at 144 dpi (2× the render 
 
 An "Edit and run" button loads, on first press, a small runner of our own. Since Q4d the button sits under the first page's picture; the editor takes the code's place, and a run's pages take the picture's:
 
-- **Editor:** CodeMirror 6 (MIT) with TypeScript highlighting, holding the example's own file.
+- **Editor:** CodeMirror 6 (MIT) with TypeScript highlighting, holding the example's own file. Since Q4s, its lines start unwrapped and scroll sideways, as in an editor; a Wrap lines toggle beside Format, at the bar's far end, wraps them, and pressing it again unwraps them.
 - **Types:** stripped by Sucrase (MIT) in the runner, with no type check, so a typo shows as the error the SDK throws, not a compiler message.
 - **Run:** in a module worker the docs site serves at `/run/worker.js`. A worker's CSP comes from its own script's response, so `_headers` gives `/run/*` a policy of its own with `'unsafe-eval'`, and every page keeps ADR 0011's headers unchanged. The worker loads the docs' own build of `@laminapdf/sdk` and the fonts, images and data the example takes, all from the docs site, and passes the same fixed file ID and date as the SDK's tests, so an unchanged example gives its golden's bytes.
 - **Result:** `@laminapdf/render-hayro` draws each page in the worker, the same renderer as the Result tab's pictures, and the page shows them as canvases where the picture was. A Download button saves the PDF. An error shows its code and hint, as `LaminaPdfError` gives them.
@@ -82,6 +82,7 @@ The editor keeps CodeMirror's own highlighting instead of offering Shiki. Both a
 | [Q4d](../todos/done/Q4d-result-beside-the-code.md) | The first page beside or below the code with no click, "Edit and run" under it, and "Your first PDF"'s Node quick start runnable (its `save` and `writeFile` hand the runner the PDF) |
 | [Q4q](../todos/done/Q4q-resizable-page-beside-the-code.md) | A divider between the code and the page beside it, dragged or moved by keys, its width kept for every example |
 | [Q4r](../todos/done/Q4r-wrap-and-format-code.md) | A "Wrap long lines" button beside every code block's Copy, and Format in "Edit and run" (Prettier, loaded on the first press) |
+| [Q4s](../todos/done/Q4s-editor-line-wrap.md) | The editor's lines unwrapped by default, with a Wrap lines toggle in the runner's bar |
 | [Q4t](../todos/ready/Q4t-editor-type-completion.md) | Completion, hover types and type errors in "Edit and run" from TypeScript's language service in a worker, loaded on the first keystroke |
 | [Q4u](../todos/ready/Q4u-editor-colours-match-the-blocks.md) | The editor's colours tested against the static blocks' and matched, in place of a Shiki option |
 

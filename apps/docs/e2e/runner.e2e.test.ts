@@ -1,8 +1,9 @@
 // "Edit and run" against `wrangler dev` (e2e/server.ts), in one browser per run
 // (LAMINA_PDF_E2E_BROWSER): the runner's own headers and the pages' unchanged ones; each runnable
-// example (the six recipes and "Your first PDF"'s Node app) run unchanged gives its golden's bytes; an edit changes the PDF; a mistake shows its code
-// and hint. Nothing loads before the button is pressed, nothing from another origin, and no CSP
-// violation is reported.
+// example (the six recipes and "Your first PDF"'s Node app) run unchanged gives its golden's bytes;
+// an edit changes the PDF; a mistake shows its code and hint; the editor's lines stay unwrapped
+// until Wrap lines is pressed. Nothing loads before the button is pressed, nothing from another
+// origin, and no CSP violation is reported.
 
 import { readFileSync } from "node:fs";
 import { env } from "node:process";
@@ -105,6 +106,15 @@ async function edit(page: Page, text: string): Promise<void> {
   await page.keyboard.insertText(text);
 }
 
+/** Whether the editor's scroller scrolls sideways: a line longer than it is wide and unwrapped. */
+async function scrollsSideways(page: Page): Promise<boolean> {
+  return page.evaluate(() => {
+    const scroller = document.querySelector(".run-editor")?.shadowRoot?.querySelector(".cm-scroller");
+    if (scroller == null) throw new Error("no editor");
+    return scroller.scrollWidth > scroller.clientWidth + 1;
+  });
+}
+
 describe("headers", () => {
   it("the runner alone may eval", async () => {
     const worker = await getLocal(new URL("/run/worker.js", origin), ca);
@@ -195,6 +205,29 @@ describe(`edit and run in ${BROWSER}`, () => {
     expect(await editorText(page)).toBe("const x = ;");
     expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
     expect(foreign).toEqual([]);
+    await page.context().close();
+  });
+
+  it("keeps the editor's lines unwrapped until Wrap lines (todo Q4s) is pressed, and unwraps them on a second press", async () => {
+    const { page, errors } = await recipe("/recipes/hello/");
+    await page.getByRole("button", { name: "Edit and run" }).click();
+    const source = (await page.locator("lamina-run").getAttribute("data-source")) ?? "";
+    await edit(page, `// ${"a long comment ".repeat(30)}\n${source}`);
+    const wrap = page.getByRole("button", { name: "Wrap lines" });
+    expect(await wrap.getAttribute("aria-pressed")).toBe("false");
+    await expect.poll(() => scrollsSideways(page)).toBe(true);
+    await wrap.click();
+    expect(await wrap.getAttribute("aria-pressed")).toBe("true");
+    await expect.poll(() => scrollsSideways(page)).toBe(false);
+    // Reset puts back the code and leaves the choice: a long line still wraps.
+    await page.getByRole("button", { name: "Reset" }).click();
+    expect(await wrap.getAttribute("aria-pressed")).toBe("true");
+    await edit(page, `// ${"a long comment ".repeat(30)}`);
+    await expect.poll(() => scrollsSideways(page)).toBe(false);
+    await wrap.click();
+    expect(await wrap.getAttribute("aria-pressed")).toBe("false");
+    await expect.poll(() => scrollsSideways(page)).toBe(true);
+    expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
     await page.context().close();
   });
 });
