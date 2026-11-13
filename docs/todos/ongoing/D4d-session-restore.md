@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D4d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [D4a](../done/D4a-windows-tabs-and-session-restore.md) |

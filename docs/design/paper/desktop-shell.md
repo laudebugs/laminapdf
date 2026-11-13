@@ -90,7 +90,7 @@ Conventions on this canvas:
 
 **Platform differences.** macOS: closing the last tab closes the window but the app stays running; the Window menu lists windows and tabs. Windows/Linux: closing the last tab of the last window shows S01 (closing the window then quits). Wayland may place detached windows where the compositor chooses. Web: no tabs (one document per browser tab).
 
-**As built ([D4a](../../todos/done/D4a-windows-tabs-and-session-restore.md)).** Tabs, the strip's menu and moving a tab to a new or another window ship; the restore notice and missing-file state come with [D4d](../../todos/ready/D4d-session-restore.md), and dragging a tab out of its window with [D4e](../../todos/ready/D4e-tab-drag-between-windows.md). Differences from the boards:
+**As built ([D4a](../../todos/done/D4a-windows-tabs-and-session-restore.md)).** Tabs, the strip's menu and moving a tab to a new or another window ship; the restore notice and missing-file state come with [D4d](../../todos/ongoing/D4d-session-restore.md), and dragging a tab out of its window with [D4e](../../todos/ready/D4e-tab-drag-between-windows.md). Differences from the boards:
 
 - Closing the last tab shows the start screen (S01) in that window on every OS; the window stays open. The owner chose this on 2026-11-12. Closing the window itself works as the boards say: on macOS the app keeps running and the Dock makes a new window, elsewhere closing the last window quits.
 - The strip scrolls sideways when its tabs don't fit at 120 px, and a menu button at its end (a chevron named "All tabs, N open") is always there, in place of "+3". Its menu lists the tabs as plain items, then Move tab to new window and Move tab to *window*. Pages and "Not found" in it come with D4d.
