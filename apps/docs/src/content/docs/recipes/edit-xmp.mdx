@@ -23,8 +23,8 @@ The result is the original bytes followed by one revision. Its XMP metadata hold
 ## What to change
 
 - **Remove a property:** `removeXmpProperty(namespace, name)`. As with any removal, an [incremental save](/reference/glossary/#incremental-save) keeps the old value in the file's earlier revisions; save with `mode: "fullRewrite"` to drop it.
-- **Title, authors and dates:** use [`setMetadata`](/recipes/edit-metadata/). `setXmpProperty` on `dc:title` works too and keeps the Info dictionary in step, but it takes only the shape that field has.
+- **Title, authors and dates:** use [`setMetadata`](/recipes/edit-metadata/). `setXmpProperty` on `dc:title` works too and keeps the Info dictionary in step, but only with the value type the field needs: text for the title, a `seq` of text for the authors.
 - **Structures and comments:** read the metadata with `xmpPacket()`, change its XML, and write it back with `replaceXmpPacket(xml)`. XML that doesn't parse is refused with [`invalid-xmp-packet`](/reference/codes/invalid-xmp-packet/), and nothing changes.
-- **The PDF/A or PDF/UA claim itself:** an edit can't change it ([`xmp-claim-read-only`](/reference/codes/xmp-claim-read-only/)). Converting or checking the file is what makes that claim.
+- **The PDF/A or PDF/UA claim itself:** an edit can't change it ([`xmp-claim-read-only`](/reference/codes/xmp-claim-read-only/)). Only converting or checking the file makes that claim.
 
 Next: [save a PDF](/guides/save-a-pdf/), for what a signed or repaired file allows.

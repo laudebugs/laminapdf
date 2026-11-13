@@ -18,7 +18,7 @@ An XMP property is named by a namespace URI and a local name, and written with a
 
 ## How to fix
 
-Change the part `reason` names. For a property the information dictionary mirrors, give the title and subject as text, the authors (`dc:creator`) as an array of text, and the dates as dates. A structure, or the other languages of the title, can be written only by replacing the whole packet with `replaceXmpPacket`.
+Change the part `reason` names. For a property the information dictionary mirrors, give the title and subject as text, the authors (`dc:creator`) as an array of text, and the dates as dates. To write a structure, or the title in other languages, replace the whole packet with `replaceXmpPacket`.
 
 ## Example
 
