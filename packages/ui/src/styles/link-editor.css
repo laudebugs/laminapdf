@@ -1,0 +1,89 @@
+/* The link editor (O12): its panel floats by the link as a popover does (`raised`, the float
+   shadow, the popover layer), 320 wide, and the Link tool's outlines on the page: every link
+   dashed in `muted`, the selected one 2 px in `accent` with an accent tint, a script link dashed
+   in `danger`. While the Link tool is on, the viewer's own link anchors let the pointer through,
+   so a click selects a link instead of following it. */
+@layer paper.components {
+  .paper-link-panel {
+    position: fixed;
+    z-index: var(--paper-z-popover);
+    inline-size: min(20rem, calc(100vw - 2 * var(--paper-space-16)));
+    max-block-size: calc(100vh - 2 * var(--paper-space-16));
+    overflow-y: auto;
+    padding: var(--paper-space-12) var(--paper-space-16) var(--paper-space-16);
+    border: var(--paper-border-width) solid var(--paper-chip-border);
+    border-radius: var(--paper-radius-6);
+    background: var(--paper-raised);
+    box-shadow: var(--paper-shadow-float);
+    color: var(--paper-text);
+  }
+
+  .paper-link-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--paper-space-8);
+    margin-block-end: var(--paper-space-8);
+  }
+
+  .paper-link-panel-title {
+    margin: 0;
+    font: var(--paper-type-control);
+    font-weight: 600;
+  }
+
+  .paper-link-editor {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-12);
+  }
+
+  .paper-link-context,
+  .paper-link-hint {
+    margin: 0;
+    color: var(--paper-text-3);
+    font: var(--paper-type-caption);
+    letter-spacing: var(--paper-type-caption-letter-spacing);
+  }
+
+  .paper-link-script {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-link-script-action {
+    margin: 0;
+    font: var(--paper-type-mono);
+    letter-spacing: var(--paper-type-mono-letter-spacing);
+    overflow-wrap: anywhere;
+  }
+
+  .paper-link-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--paper-space-8);
+  }
+
+  /* The Link tool's outlines, in the page's own layer. */
+  .paper-link-box {
+    position: absolute;
+    box-sizing: border-box;
+    border: var(--paper-border-width) dashed var(--paper-muted);
+    pointer-events: none;
+  }
+
+  .paper-link-box[data-selected] {
+    border: var(--paper-focus-ring-width) solid var(--paper-accent);
+    background: color-mix(in srgb, var(--paper-accent) 8%, transparent);
+  }
+
+  .paper-link-box[data-script] {
+    border-color: var(--paper-danger);
+  }
+
+  [data-tool="link"] .lamina-link {
+    /* biome-ignore lint/complexity/noImportantStyles: the link layer sets pointer-events on each anchor inline. */
+    pointer-events: none !important;
+  }
+}

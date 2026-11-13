@@ -70,6 +70,8 @@ export type ErrorCode =
   | "unknown-annotation"
   | "annotation-locked"
   | "annotation-not-editable"
+  | "not-a-link"
+  | "link-not-tagged"
   | "invalid-label-ranges"
   | "sink"
   | "not-rebased"
@@ -304,6 +306,8 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "unknown-annotation",
   "annotation-locked",
   "annotation-not-editable",
+  "not-a-link",
+  "link-not-tagged",
   "invalid-label-ranges",
   "sink",
   "not-rebased",
@@ -566,6 +570,8 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "unknown-annotation": "usage",
   "annotation-locked": "state",
   "annotation-not-editable": "unsupported",
+  "not-a-link": "usage",
+  "link-not-tagged": "unsupported",
   "invalid-label-ranges": "usage",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
@@ -775,6 +781,8 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "unknown-annotation": "read the page's annotations again and use an ID from that list",
   "annotation-locked": "clear the lock with an update of its flags first, if you may",
   "annotation-not-editable": "edit a widget through its form field; an annotation stored inside the page's list can't be edited yet",
+  "not-a-link": "name a link from the page's links; change other annotations with updateAnnot and deleteAnnot",
+  "link-not-tagged": "tag the document first, or add the link to a copy that doesn't claim PDF/UA",
   "invalid-label-ranges": "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",

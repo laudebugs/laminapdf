@@ -58,6 +58,8 @@ export const DOCUMENT_METHODS = {
   insertPagesFrom: 4,
   isEncrypted: 0,
   isTagged: 0,
+  linkOnArea: 3,
+  linkOnText: 3,
   linksCsv: 0,
   linksJson: 0,
   mergeDocuments: 3,

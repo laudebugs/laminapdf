@@ -11,10 +11,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use laminapdf_cos::{Dict, ObjRef, Object};
-use laminapdf_model::TreeWriter;
 
 use super::cleanup::edit_dict;
 use crate::error::Result;
+use crate::parent_tree::ParentTree;
 
 /// One duplicated page: its source, its copy, and the annotations copied with it (source to
 /// copy).
@@ -31,19 +31,10 @@ pub(crate) struct Pair<'a> {
 /// cloned. An untagged document is left alone.
 pub(crate) fn clone_tags(doc: &mut laminapdf_model::Document, pairs: &[Pair<'_>]) -> Result<BTreeSet<ObjRef>> {
     let mut incomplete = BTreeSet::new();
-    let Some(Object::Ref(root)) = doc.catalog()?.get("StructTreeRoot").cloned() else {
+    let Some(mut tree) = ParentTree::read(doc)? else {
         return Ok(incomplete);
     };
-    let Some(root_dict) = doc.object(root.num)?.as_dict().cloned() else {
-        return Ok(incomplete);
-    };
-    let mut entries: BTreeMap<i64, Object> = match root_dict.get("ParentTree") {
-        Some(tree) => doc.number_tree(tree.clone()).entries()?.into_iter().collect(),
-        None => BTreeMap::new(),
-    };
-    let after_last = entries.keys().next_back().map_or(0, |k| k.saturating_add(1));
-    let mut next = root_dict.get_int("ParentTreeNextKey").unwrap_or(0).max(after_last);
-    let start = next;
+    let start = tree.next;
     let mut cloner = Cloner {
         clones: BTreeMap::new(),
     };
@@ -51,8 +42,13 @@ pub(crate) fn clone_tags(doc: &mut laminapdf_model::Document, pairs: &[Pair<'_>]
         let mut whole = !pair.shares_tags;
         let source = doc.object(pair.source.num)?.as_dict().cloned().unwrap_or_default();
         if let Some(key) = source.get_int("StructParents")
-            && let Some(Object::Array(owners)) =
-                entries.get(&key).map(|v| doc.deref(v)).transpose()?.as_deref().cloned()
+            && let Some(Object::Array(owners)) = tree
+                .entries
+                .get(&key)
+                .map(|v| doc.deref(v))
+                .transpose()?
+                .as_deref()
+                .cloned()
         {
             let mut mapped = Vec::with_capacity(owners.len());
             for owner in owners {
@@ -65,30 +61,26 @@ pub(crate) fn clone_tags(doc: &mut laminapdf_model::Document, pairs: &[Pair<'_>]
                 whole &= clone.is_some() || !matches!(owner, Object::Ref(_));
                 mapped.push(clone.map_or(Object::Null, Object::Ref));
             }
-            entries.insert(next, Object::Array(mapped));
-            let key = next;
+            let key = tree.add(Object::Array(mapped));
             edit_dict(doc, pair.copy, |d| {
                 d.insert("StructParents", Object::Integer(key));
             })?;
-            next += 1;
         }
         for (&old, &new) in pair.annots {
             let Some(key) = doc.object(old.num)?.as_dict().and_then(|d| d.get_int("StructParent")) else {
                 continue;
             };
-            let owner = entries.get(&key).cloned();
+            let owner = tree.entries.get(&key).cloned();
             let clone = match owner {
                 Some(Object::Ref(elem)) => cloner.clone_elem(doc, elem, pair)?,
                 _ => None,
             };
             match clone {
                 Some(c) => {
-                    entries.insert(next, Object::Ref(c));
-                    let key = next;
+                    let key = tree.add(Object::Ref(c));
                     edit_dict(doc, new, |d| {
                         d.insert("StructParent", Object::Integer(key));
                     })?;
-                    next += 1;
                 }
                 None => whole = false,
             }
@@ -97,12 +89,8 @@ pub(crate) fn clone_tags(doc: &mut laminapdf_model::Document, pairs: &[Pair<'_>]
             incomplete.insert(pair.copy);
         }
     }
-    if next != start {
-        let tree = TreeWriter::new().write_numbers(&mut doc.cos_mut().edit(), &entries)?;
-        edit_dict(doc, root, |d| {
-            d.insert("ParentTree", Object::Ref(tree));
-            d.insert("ParentTreeNextKey", Object::Integer(next));
-        })?;
+    if tree.next != start {
+        tree.write(doc)?;
     }
     Ok(incomplete)
 }

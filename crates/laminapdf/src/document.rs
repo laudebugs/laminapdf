@@ -128,6 +128,10 @@ pub struct Edited {
     ///
     /// Added in 0.3.0.
     pub created_outline_items: Vec<OutlineItemId>,
+    /// The links the edit added, in order: their IDs, for the edits that follow.
+    ///
+    /// Added in 0.3.0.
+    pub created_annotations: Vec<laminapdf_model::AnnotId>,
     /// An outline edit found the outline's links broken and rewrote them whole. Bookmarks
     /// that were stored inside other bookmarks have new IDs: read the outline again.
     ///
@@ -544,6 +548,7 @@ impl Document {
             also_deleted: applied.also_deleted.iter().map(ToString::to_string).collect(),
             changed,
             created_outline_items: applied.created_outline_items,
+            created_annotations: applied.created_annotations,
             outline_repaired: applied.outline_repaired,
             destination_uses: applied.destination_uses,
             declared: applied.declared,

@@ -14,6 +14,7 @@ import { createRoot } from "react-dom/client";
 import { Icons } from "./icons.tsx";
 import {
   Dialogs,
+  LinkEditors,
   LinkPreviews,
   Menus,
   Palette,
@@ -82,6 +83,8 @@ function Extra({ route, state, theme }: { route: Route; state: string; theme: st
       return <LinkPreviews state={open} />;
     case "selection-toolbar":
       return <Selection />;
+    case "link-editor":
+      return <LinkEditors state={open} />;
     case "palette":
       return <Palette state={open} />;
     case "toasts":

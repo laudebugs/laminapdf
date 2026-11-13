@@ -11,6 +11,7 @@ use laminapdf_cos::{Dict, Object, Result};
 
 use crate::document::Document;
 use crate::geometry::{UserSpacePoint, UserSpaceRect};
+use crate::id::AnnotId;
 use crate::outline::{ActionKind, Destination, Outline};
 use crate::page::{HIDDEN_ANNOT_FLAGS, Page, number, read_rect};
 use crate::values::{file_spec_name, read_name, text_of};
@@ -21,6 +22,9 @@ use crate::values::{file_spec_name, read_name, text_of};
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Link {
+    /// Its ID, when the annotation is an object of its own (a direct dictionary in `/Annots`
+    /// has none, and the link ops can't name it).
+    pub id: Option<AnnotId>,
     /// `/Rect`, in user space.
     pub rect: UserSpaceRect,
     /// `/QuadPoints` (§12.5.6.5, Table 179), four corners each, in user space: the areas that
@@ -71,14 +75,14 @@ impl Outline<'_> {
         for entry in annots.as_array().unwrap_or_default() {
             let Some(annot) = doc.read(entry)? else { continue };
             let Some(annot) = annot.as_dict() else { continue };
-            if let Some(link) = self.link(annot)? {
+            if let Some(link) = self.link(annot, entry.as_ref().map(AnnotId::object))? {
                 links.push(link);
             }
         }
         Ok(links)
     }
 
-    fn link(&self, annot: &Dict) -> Result<Option<Link>> {
+    fn link(&self, annot: &Dict, id: Option<AnnotId>) -> Result<Option<Link>> {
         let doc = self.doc();
         if !matches!(read_name(doc, annot.get("Subtype"))?.as_deref(), Some(b"Link")) {
             return Ok(None);
@@ -105,6 +109,7 @@ impl Outline<'_> {
             None => None,
         };
         Ok(Some(Link {
+            id,
             rect,
             quads: quads(doc, annot.get("QuadPoints"))?,
             contents,

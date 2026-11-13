@@ -84,10 +84,12 @@ mod history;
 mod info;
 mod initial_view;
 mod labels;
+mod link;
 mod metadata;
 mod op;
 mod outline;
 mod pages;
+mod parent_tree;
 mod pending;
 mod record;
 mod rotate;
@@ -110,6 +112,7 @@ pub use history::{History, Reverted, UndoOutcome};
 pub use info::{InfoPatch, SetInfo};
 pub use initial_view::{OpenAt, OpenZoom, SetInitialView, WindowPreferencesPatch};
 pub use labels::{PageLabelRange, SetPageLabels};
+pub use link::{AddLink, DeleteLink, UpdateLink};
 pub use metadata::{
     ConformanceWarning, DocumentMetadata, MetadataKey, MetadataPatch, MetadataSource, PacketStatus, RemoveMetadata,
     RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty, UpdateSaveMetadata, conformance_warnings,

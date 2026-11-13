@@ -2706,7 +2706,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-A bookmark's web address isn't a full `http`, `https` or `mailto` address in plain ASCII.
+The web address of a bookmark or link isn't a full `http`, `https` or `mailto` address in plain ASCII.
 
 ## Why
 
@@ -2732,6 +2732,7 @@ None.
 The decisions and todos behind this code:
 
 - [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+- [E3c](../todos/done/E3c-links.md): link annotations
 "#,
         "view-not-finite" => r#"# `view-not-finite`
 
@@ -3049,6 +3050,76 @@ None. The `location` is the annotation's `object` and `id` when it has an object
 The decisions and todos behind this code:
 
 - [E4b](../todos/done/E4b-annotation-model-and-overlay.md): the annotation model and the annotation ops' core
+"#,
+        "not-a-link" => r#"# `not-a-link`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A link op named an annotation that isn't a link, such as a comment or a highlight.
+
+## Why
+
+The link ops change what only a link has: where it goes, and the text it covers. A link op on another kind of annotation would write entries that annotation doesn't use.
+
+## How to fix
+
+Pass the ID of a link that `pageLinks` lists. Change or delete other annotations with `updateAnnot` and `deleteAnnot`.
+
+## Example
+
+```json
+{ "op": "deleteLink", "args": { "link": "a16.0" } }
+```
+
+Object 16 is a highlight, not a link.
+
+## Data fields
+
+None. The `location` is the annotation's `object` and `id`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3c](../todos/done/E3c-links.md): link annotations
+"#,
+        "link-not-tagged" => r#"# `link-not-tagged`
+
+- Type: error
+- Kind: `unsupported` (valid input that Lamina PDF does not support yet)
+
+## What happened
+
+The file claims PDF/UA-1, the standard for accessible PDFs, but it isn't tagged: it has no structure tree, so a new link has no element to join.
+
+## Why
+
+PDF/UA-1 asks for every link to be a `Link` element of the structure tree, which tells a screen reader what the link is and which text it covers. A link added outside the tree would break the file's claim, so Lamina PDF refuses it instead.
+
+## How to fix
+
+Export it again as a tagged PDF from the program that made it, then add the link. If the claim is wrong, remove it, or add the link to a copy that doesn't claim PDF/UA-1.
+
+## Example
+
+```json
+{ "op": "addLink", "args": { "page": "p3.0", "rect": { "x0": 72, "y0": 700, "x1": 180, "y1": 714 }, "target": { "uri": "https://example.com/" } } }
+```
+
+The file's XMP metadata has `pdfuaid:part` 1, but its catalog has no `/StructTreeRoot`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3c](../todos/done/E3c-links.md): link annotations
 "#,
         "invalid-label-ranges" => r"# `invalid-label-ranges`
 

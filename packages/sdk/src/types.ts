@@ -2,6 +2,7 @@
 // under @laminapdf/sdk's names. They are the Rust façade's records, camelCase; only `OpenOptions`
 // and `Color` are written here.
 import type {
+  AddLink as AddLinkJs,
   AfRelationshipInit,
   AlignInit,
   AttachmentInit,
@@ -73,7 +74,8 @@ import type {
  * `movePages`, `rotatePages`, `reversePages`, `duplicatePages`, `insertPagesFrom`, `replacePages`,
  * `rotatePage`), the bookmark edits
  * (`addOutlineItem`, `updateOutlineItem`, `moveOutlineItem`, `deleteOutlineItem`), the named-destination edits
- * (`setNamedDestination`, `renameNamedDestination`, `deleteNamedDestination`), `setInitialView`, or the deprecated `setInfo` (use
+ * (`setNamedDestination`, `renameNamedDestination`, `deleteNamedDestination`), `setInitialView`, the link
+ * edits (`addLink`, `updateLink`, `deleteLink`), or the deprecated `setInfo` (use
  * `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
  *
  * @since 0.2.0
@@ -100,12 +102,22 @@ export type ExplicitDestination = ExplicitDestinationJs;
 export type DestinationView = DestinationViewJs;
 
 /**
- * Where a bookmark goes: `{ destination }` (a page), `{ named }` (a named destination) or
- * `{ uri }` (an `http`, `https` or `mailto` address).
+ * Where a bookmark or a link goes: `{ destination }` (a page), `{ named }` (a named
+ * destination) or `{ uri }` (an `http`, `https` or `mailto` address).
  *
  * @since 0.3.0
  */
 export type OutlineTarget = OutlineTargetJs;
+
+/**
+ * An `addLink` edit's arguments: the `page`, its `rect` and `quads` in user space, where it goes
+ * (`target`), its description (`contents`) and, in a tagged document, the marked content it
+ * covers (`marked`). {@link Document.linkOnArea} and {@link Document.linkOnText} make one from
+ * page space.
+ *
+ * @since 0.3.0
+ */
+export type AddLink = AddLinkJs;
 
 /**
  * A bookmark's look: its `color` (`"#rrggbb"`, or `null` for the default black), `bold` and

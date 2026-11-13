@@ -52,6 +52,8 @@
             "unknown-annotation",
             "annotation-locked",
             "annotation-not-editable",
+            "not-a-link",
+            "link-not-tagged",
             "invalid-label-ranges",
             "sink",
             "not-rebased",
