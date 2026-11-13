@@ -140,6 +140,12 @@ pub enum Warning {
         /// or `no-rdf`.
         reason: &'static str,
     },
+    /// `annot-name-duplicate`: two annotations on one page have the same `/NM` (§12.5.2: it
+    /// shall be unique on its page); both are kept, and an annotation's ID never depends on it.
+    AnnotNameDuplicate {
+        /// The second annotation's object number (`None` for a direct one).
+        object: Option<u32>,
+    },
     /// `invalid-page-label`: a `/PageLabels` entry is malformed: not a dictionary, a negative
     /// start, an unknown `/S` style (no numeric part), a `/P` that is not a string (no prefix)
     /// or `/St` below 1 (numbering from 1). The rest of the entry is kept.
@@ -355,6 +361,7 @@ impl Warning {
         "outline-item-skipped",
         "invalid-date",
         "xmp-invalid",
+        "annot-name-duplicate",
         "invalid-page-label",
         "invalid-entry",
         "content-unknown-operator",
@@ -406,6 +413,7 @@ impl Warning {
             Self::OutlineItemSkipped { .. } => "outline-item-skipped",
             Self::InvalidDate { .. } => "invalid-date",
             Self::XmpInvalid { .. } => "xmp-invalid",
+            Self::AnnotNameDuplicate { .. } => "annot-name-duplicate",
             Self::InvalidPageLabel { .. } => "invalid-page-label",
             Self::InvalidEntry { .. } => "invalid-entry",
             Self::ContentUnknownOperator { .. } => "content-unknown-operator",
@@ -454,6 +462,7 @@ impl Warning {
             | Self::OutlineItemSkipped { object }
             | Self::InvalidDate { object, .. }
             | Self::XmpInvalid { object, .. }
+            | Self::AnnotNameDuplicate { object }
             | Self::InvalidEntry { object, .. }
             | Self::ContentUnknownOperator { object, .. }
             | Self::ContentBadOperands { object, .. }
@@ -509,6 +518,7 @@ impl Warning {
             | Self::OutlineItemSkipped { .. }
             | Self::InvalidDate { .. }
             | Self::XmpInvalid { .. }
+            | Self::AnnotNameDuplicate { .. }
             | Self::InvalidPageLabel { .. }
             | Self::InvalidEntry { .. }
             | Self::ContentUnknownOperator { .. }
@@ -701,6 +711,7 @@ mod tests {
                 offset: Some(0),
                 reason: "dtd",
             },
+            Warning::AnnotNameDuplicate { object: None },
             Warning::InvalidPageLabel { start: 0 },
             Warning::InvalidEntry {
                 object: None,
@@ -787,6 +798,7 @@ mod tests {
                 | Warning::OutlineItemSkipped { .. }
                 | Warning::InvalidDate { .. }
                 | Warning::XmpInvalid { .. }
+                | Warning::AnnotNameDuplicate { .. }
                 | Warning::InvalidPageLabel { .. }
                 | Warning::InvalidEntry { .. }
                 | Warning::ContentUnknownOperator { .. }

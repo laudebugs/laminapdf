@@ -1,0 +1,127 @@
+{
+  "pdfjs_version": "6.4.299",
+  "files": {
+    "every-subtype.pdf": [
+      [
+        {
+          "subtype": "Highlight",
+          "id": "10R"
+        },
+        {
+          "subtype": "Underline",
+          "id": "11R"
+        },
+        {
+          "subtype": "Text",
+          "id": "12R"
+        },
+        {
+          "subtype": "Ink",
+          "id": "14R"
+        },
+        {
+          "subtype": "Line",
+          "id": "15R"
+        },
+        {
+          "subtype": "Polygon",
+          "id": "16R"
+        },
+        {
+          "subtype": "FreeText",
+          "id": "17R"
+        },
+        {
+          "subtype": "Square",
+          "id": "annot_p0_1"
+        },
+        {
+          "subtype": "Widget",
+          "id": "18R"
+        },
+        {
+          "subtype": "Popup",
+          "id": "13R"
+        }
+      ]
+    ],
+    "flags.pdf": [
+      [
+        {
+          "subtype": "Square",
+          "id": "10R"
+        },
+        {
+          "subtype": "Text",
+          "id": "11R"
+        },
+        {
+          "subtype": "Square",
+          "id": "12R"
+        },
+        {
+          "subtype": "Text",
+          "id": "13R"
+        },
+        {
+          "subtype": "Text",
+          "id": "14R"
+        }
+      ]
+    ],
+    "tagged.pdf": [
+      [
+        {
+          "subtype": "Square",
+          "id": "10R"
+        },
+        {
+          "subtype": "Text",
+          "id": "11R"
+        }
+      ]
+    ],
+    "threads.pdf": [
+      [
+        {
+          "subtype": "Text",
+          "id": "10R"
+        },
+        {
+          "subtype": "Text",
+          "id": "12R"
+        },
+        {
+          "subtype": "Text",
+          "id": "13R"
+        },
+        {
+          "subtype": "Text",
+          "id": "14R"
+        },
+        {
+          "subtype": "Text",
+          "id": "15R"
+        },
+        {
+          "subtype": "StrikeOut",
+          "id": "16R"
+        },
+        {
+          "subtype": "Caret",
+          "id": "17R"
+        },
+        {
+          "subtype": "Popup",
+          "id": "11R"
+        }
+      ],
+      [
+        {
+          "subtype": "Text",
+          "id": "20R"
+        }
+      ]
+    ]
+  }
+}
