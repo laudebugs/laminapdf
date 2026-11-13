@@ -99,7 +99,10 @@ pub(crate) fn gray(layout: Layout, data: Vec<u8>) -> Pixels {
 /// c = m + (c − m) / α.
 pub(crate) fn pixels(raw: &[u16], layout: Layout, space: &Space, ranges: &[(f64, f64)], mask: Option<&Mask>) -> Pixels {
     let alpha = mask.map(|m| m.alpha.as_slice());
-    let matte = mask.and_then(|m| m.matte.as_deref());
+    // An Indexed image's samples are table indexes, which a matte can't be taken out of.
+    let matte = mask
+        .and_then(|m| m.matte.as_deref())
+        .filter(|_| !matches!(space, Space::Indexed { .. }));
     let n = space.components();
     let max = f64::from((1u32 << layout.bits) - 1);
     let color = space.output();

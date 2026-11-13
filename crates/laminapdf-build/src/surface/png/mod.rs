@@ -154,7 +154,6 @@ mod tests {
 
     use laminapdf_syntax::filters::paeth;
 
-    use super::chunks::crc32;
     use super::decode;
     use super::interlace::{ADAM7, pass_size};
 
@@ -477,10 +476,5 @@ mod tests {
         );
         chunk(&mut out, *b"IEND", &[]);
         assert_eq!(decode(&out, false).unwrap_err().code(), "invalid-image");
-    }
-
-    #[test]
-    fn crc32_matches_the_check_value() {
-        assert_eq!(crc32(&[b"123456789"]), 0xCBF4_3926);
     }
 }

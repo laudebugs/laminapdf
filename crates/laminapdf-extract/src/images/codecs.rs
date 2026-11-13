@@ -256,12 +256,13 @@ mod tests {
     #[test]
     #[cfg(feature = "jbig2")]
     fn bits_pack_runs_into_rows_that_start_on_a_byte() {
-        let mut bits = Bits::new(10, 2, 1);
+        // As jbig2() decodes: a black pixel is 0, so the rows start white (all ones).
+        let mut bits = Bits::new(10, 2, 0);
         hayro_jbig2::Decoder::push_pixel(&mut bits, true);
         hayro_jbig2::Decoder::push_pixel(&mut bits, false);
         hayro_jbig2::Decoder::next_line(&mut bits);
         hayro_jbig2::Decoder::push_pixel_chunk(&mut bits, true, 1);
-        assert_eq!(bits.data, vec![0x80, 0, 0xff, 0]);
+        assert_eq!(bits.data, vec![0x7f, 0xff, 0x00, 0xff]);
     }
 
     #[test]

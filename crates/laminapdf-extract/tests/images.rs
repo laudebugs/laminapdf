@@ -106,14 +106,19 @@ fn gives_as_many_images_as_pdfimages_lists_in_every_fixture() {
     );
     let mut with_images = 0;
     for (file, rows) in files {
-        let Some(rows) = rows.as_array() else { continue };
-        let Ok(doc) = Document::open(fixture(file), OpenOptions::default()) else {
-            continue;
+        let rows = rows
+            .as_array()
+            .unwrap_or_else(|| panic!("{file}: pdfimages couldn't read it: {rows}"));
+        let doc = Document::open(fixture(file), OpenOptions::default()).unwrap_or_else(|e| panic!("{file}: {e}"));
+        let out = extract_images(&doc, &ImageOptions::default()).unwrap_or_else(|e| panic!("{file}: {e}"));
+        // Only extract.pdf's two-colourant DeviceN image is skipped; pdfimages lists it too.
+        let skipped: Vec<_> = out.skipped.iter().map(|s| (s.page, s.object.map(|r| r.num))).collect();
+        let expected = if file == "images/extract.pdf" {
+            vec![(0, Some(58))]
+        } else {
+            vec![]
         };
-        let Ok(out) = extract_images(&doc, &ImageOptions::default()) else {
-            continue;
-        };
-        // A skipped image is one pdfimages lists too.
+        assert_eq!(skipped, expected, "{file}");
         assert_eq!(out.images.len() + out.skipped.len(), expected_count(rows), "{file}");
         let mut seen = BTreeSet::new();
         for image in out.images.iter().filter(|i| i.object.is_some()) {
@@ -132,7 +137,7 @@ fn gives_as_many_images_as_pdfimages_lists_in_every_fixture() {
 fn reports_each_image_as_pdfimages_describes_it() {
     let facts = json("images/extract-facts.json");
     for (file, rows) in facts["files"].as_object().unwrap() {
-        let Some(rows) = rows.as_array() else { continue };
+        let rows = rows.as_array().unwrap();
         let doc = Document::open(fixture(file), OpenOptions::default()).unwrap();
         let out = extract_images(&doc, &ImageOptions::default()).unwrap();
         for row in rows {
@@ -150,7 +155,12 @@ fn reports_each_image_as_pdfimages_describes_it() {
                 .iter()
                 .find(|i| i.object.is_some_and(|r| u64::from(r.num) == object) && i.kind == kind)
             else {
-                // Skipped: checked in the count above.
+                // Only a skipped image, which the count test pins, may be missing.
+                let skipped = out
+                    .skipped
+                    .iter()
+                    .any(|s| s.object.is_some_and(|r| u64::from(r.num) == object));
+                assert!(skipped, "{file}: object {object} missing");
                 continue;
             };
             let what = format!("{file} object {object}");

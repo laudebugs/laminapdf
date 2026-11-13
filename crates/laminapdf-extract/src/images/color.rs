@@ -227,9 +227,16 @@ fn family(doc: &Document, items: &[Object], resources: Option<&Object>, depth: u
                 Some(1) => Space::Icc(Box::new(Space::Gray)),
                 Some(3) => Space::Icc(Box::new(Space::Rgb)),
                 Some(4) => Space::Icc(Box::new(Space::Cmyk)),
-                _ => icc.dict.get("Alternate").map_or(Space::Unsupported("ICCBased"), |alt| {
-                    Space::Icc(Box::new(parse_at(doc, alt, resources, depth + 1)))
-                }),
+                // An alternate that can't be converted leaves the image unconvertible.
+                _ => match icc
+                    .dict
+                    .get("Alternate")
+                    .map(|alt| parse_at(doc, alt, resources, depth + 1))
+                {
+                    Some(unsupported @ Space::Unsupported(_)) => unsupported,
+                    Some(alternate) => Space::Icc(Box::new(alternate)),
+                    None => Space::Unsupported("ICCBased"),
+                },
             },
             _ => Space::Unsupported("ICCBased"),
         },
