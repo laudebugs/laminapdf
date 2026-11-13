@@ -274,6 +274,30 @@
         }
       ]
     },
+    "mark_up": {
+      "sha256": "9bd4c519f680d175c822de7ac0b0826eca4a47ab13fe5ebfa68610995f29f38f",
+      "bytes": 28543,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        },
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
+    "mark_up-pdfua": {
+      "sha256": "e45eab40e87b37f8c396b04856459a163ed8474b808175b1d1163f5bbfbe9f20",
+      "bytes": 14982,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
     "markdown_to_pdf": {
       "sha256": "ea7e21df505168652a806b3d6818da2526fea0db297f5321e7da12a75547c2cc",
       "bytes": 53639,
