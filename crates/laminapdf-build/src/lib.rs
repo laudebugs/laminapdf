@@ -97,6 +97,7 @@ pub(crate) fn text_string(s: &str) -> laminapdf_cos::PdfString {
 #[cfg(test)]
 use laminapdf_test_fixtures::codes as test_codes;
 
+pub use annot::appearance::AnnotationAppearances;
 pub use attach::{AfRelationship, Attachment};
 pub use builder::{Appender, BuildOptions, Builder, PdfVersion};
 pub use error::{Error, ImageFormat, Result, Warning};

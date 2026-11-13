@@ -12,11 +12,90 @@ use laminapdf_cos::{CosMut, Dict, Name, ObjRef, Object, Stream};
 use laminapdf_model::{UserSpacePoint, UserSpaceRect};
 use pdf_writer::Content;
 
-pub(crate) use markup::{MarkupStyle, markup};
-pub(crate) use note::{CaretStyle, NoteIconStyle, caret, note_icon};
+use markup::{MarkupStyle, markup};
+use note::{CaretStyle, NoteIconStyle, caret, note_icon};
 
 use crate::page::rect_object;
 use crate::surface::n;
+
+/// Draws the appearances of the annotations `laminapdf-ops` makes: text markup, notes and
+/// carets. Give it to a document with
+/// [`Document::with_appearances`](laminapdf_ops::Document::with_appearances); the `laminapdf`
+/// façade does so for every document it opens.
+///
+/// ```
+/// use laminapdf_build::AnnotationAppearances;
+///
+/// # fn open(bytes: Vec<u8>) -> Result<(), laminapdf_ops::Error> {
+/// let doc = laminapdf_ops::Document::open(bytes, Default::default())?.with_appearances(AnnotationAppearances);
+/// # drop(doc);
+/// # Ok(())
+/// # }
+/// ```
+///
+/// Added in 0.3.0.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+pub struct AnnotationAppearances;
+
+impl laminapdf_ops::Appearances for AnnotationAppearances {
+    fn normal(
+        &self,
+        cos: &mut CosMut<'_>,
+        request: &laminapdf_ops::AppearanceRequest<'_>,
+    ) -> laminapdf_cos::Result<laminapdf_ops::Appearance> {
+        let paint = Paint {
+            color: request
+                .color
+                .and_then(|c| DeviceColor::from_components(&c.components())),
+            opacity: request.opacity.get(),
+            intent: request.intent.map(|i| match i {
+                laminapdf_ops::IntentSpace::Cmyk => IntentSpace::Cmyk,
+                _ => IntentSpace::Rgb,
+            }),
+        };
+        let drawn = draw(request.spec, &paint);
+        let (form, rect) = drawn.write(cos)?;
+        Ok(laminapdf_ops::Appearance::new(form, rect))
+    }
+}
+
+/// The drawing for `spec`. A markup's quads are never empty (the op checks), but an empty list
+/// still gets an empty form at the origin rather than none.
+fn draw(spec: &laminapdf_ops::AnnotSpec, paint: &Paint) -> Drawn {
+    use laminapdf_ops::{AnnotSpec, CaretSymbol, MarkupKind, NoteIcon};
+    match spec {
+        AnnotSpec::TextMarkup(m) => {
+            let style = match m.kind {
+                MarkupKind::Highlight => MarkupStyle::Highlight,
+                MarkupKind::Underline => MarkupStyle::Underline,
+                MarkupKind::StrikeOut => MarkupStyle::StrikeOut,
+                _ => MarkupStyle::Squiggly,
+            };
+            markup(style, &m.quads, paint)
+                .unwrap_or_else(|| Drawn::new(UserSpaceRect::from_corners(0.0, 0.0, 0.0, 0.0), 1.0, false))
+        }
+        AnnotSpec::Note(n) => {
+            let icon = match n.icon {
+                NoteIcon::Comment => NoteIconStyle::Comment,
+                NoteIcon::Key => NoteIconStyle::Key,
+                NoteIcon::Help => NoteIconStyle::Help,
+                NoteIcon::Paragraph => NoteIconStyle::Paragraph,
+                NoteIcon::NewParagraph => NoteIconStyle::NewParagraph,
+                NoteIcon::Insert => NoteIconStyle::Insert,
+                _ => NoteIconStyle::Note,
+            };
+            note_icon(icon, n.at.x, n.at.y - note::ICON, paint)
+        }
+        AnnotSpec::Caret(c) => {
+            let style = match c.symbol {
+                CaretSymbol::Paragraph => CaretStyle::Paragraph,
+                _ => CaretStyle::Plain,
+            };
+            caret(style, c.rect, paint)
+        }
+        _ => Drawn::new(UserSpaceRect::from_corners(0.0, 0.0, 0.0, 0.0), 1.0, false),
+    }
+}
 
 /// A device colour as `/C` stores it: one component is gray, three RGB, four CMYK.
 #[derive(Debug, Clone, Copy, PartialEq)]

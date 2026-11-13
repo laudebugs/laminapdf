@@ -142,6 +142,8 @@ pub enum ErrorCode {
     NotALink,
     /// `link-not-tagged`: the file claims PDF/UA-1 but has no structure tree for a new link to join.
     LinkNotTagged,
+    /// `appearance-unavailable`: the document has no appearance generator, so it can't draw a new annotation.
+    AppearanceUnavailable,
     /// `invalid-label-ranges`: page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0.
     InvalidLabelRanges,
     /// `sink`: the sink failed to take the bytes or could not give them back.
@@ -362,6 +364,7 @@ impl ErrorCode {
         Self::AnnotationNotEditable,
         Self::NotALink,
         Self::LinkNotTagged,
+        Self::AppearanceUnavailable,
         Self::InvalidLabelRanges,
         Self::Sink,
         Self::NotRebased,
@@ -516,6 +519,7 @@ impl ErrorCode {
             Self::AnnotationNotEditable => "annotation-not-editable",
             Self::NotALink => "not-a-link",
             Self::LinkNotTagged => "link-not-tagged",
+            Self::AppearanceUnavailable => "appearance-unavailable",
             Self::InvalidLabelRanges => "invalid-label-ranges",
             Self::Sink => "sink",
             Self::NotRebased => "not-rebased",
@@ -656,6 +660,7 @@ impl ErrorCode {
             Self::AnnotationNotEditable => ErrorKind::Unsupported,
             Self::NotALink => ErrorKind::Usage,
             Self::LinkNotTagged => ErrorKind::Unsupported,
+            Self::AppearanceUnavailable => ErrorKind::Unsupported,
             Self::InvalidLabelRanges => ErrorKind::Usage,
             Self::Sink => ErrorKind::Io,
             Self::NotRebased => ErrorKind::State,
@@ -796,6 +801,7 @@ impl ErrorCode {
             Self::AnnotationNotEditable => "the annotation can't be edited by the annotation ops: it is a form field's widget, or a direct dictionary with no object of its own",
             Self::NotALink => "a link op names an annotation that isn't a link",
             Self::LinkNotTagged => "the file claims PDF/UA-1 but has no structure tree for a new link to join",
+            Self::AppearanceUnavailable => "the document has no appearance generator, so it can't draw a new annotation",
             Self::InvalidLabelRanges => "page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
@@ -936,6 +942,7 @@ impl ErrorCode {
             Self::AnnotationNotEditable => "edit a widget through its form field; an annotation stored inside the page's list can't be edited yet",
             Self::NotALink => "name a link from the page's links; change other annotations with updateAnnot and deleteAnnot",
             Self::LinkNotTagged => "tag the document first, or add the link to a copy that doesn't claim PDF/UA",
+            Self::AppearanceUnavailable => "edit through the laminapdf crate, which draws appearances, or give laminapdf-ops a generator with Document::with_appearances",
             Self::InvalidLabelRanges => "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",

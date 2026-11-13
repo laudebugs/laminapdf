@@ -1,18 +1,22 @@
 //! What kind of mark an [`AddAnnot`](super::AddAnnot) makes ([`AnnotSpec`]), and the changes an
-//! [`UpdateAnnot`](super::UpdateAnnot) can make to one ([`AnnotSpecPatch`]).
+//! [`UpdateAnnot`](super::UpdateAnnot) can make to one ([`AnnotSpecPatch`]). Geometry is in user
+//! space, so a later rotation or crop leaves a spec's meaning unchanged.
 
+use laminapdf_cos::Object;
+use laminapdf_model::{UserSpacePoint, UserSpaceRect};
 use serde::{Deserialize, Serialize};
 
-use super::geom::{Point, Quad, Rect};
+use super::geom::{self, Quad};
+use crate::wire;
 
 /// The kind of mark an annotation op makes, with its geometry. Every spec gets an appearance
-/// stream that Lamina PDF generates ([`Appearances`](crate::Appearances)).
+/// stream ([`Appearances`](crate::Appearances)).
 ///
 /// On the wire the kind is the `type` field: `{ "type": "textMarkup", "kind": "highlight",
 /// "quads": [ … ] }`.
 ///
-/// Added in 0.2.0.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Added in 0.3.0.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
@@ -25,9 +29,12 @@ pub enum AnnotSpec {
     Caret(Caret),
 }
 
+// Sound: an op holding a non-finite coordinate is refused before it writes (`invalid-op`), and
+// ops are compared only after they parse.
+impl Eq for AnnotSpec {}
+
 impl AnnotSpec {
     /// The `/Subtype` the spec writes.
-    #[must_use]
     pub(crate) const fn subtype(&self) -> &'static str {
         match self {
             Self::TextMarkup(m) => m.kind.subtype(),
@@ -35,53 +42,65 @@ impl AnnotSpec {
             Self::Caret(_) => "Caret",
         }
     }
+
+    /// Whether every coordinate is finite and the geometry is there: a markup has quads.
+    pub(crate) fn is_valid(&self) -> bool {
+        match self {
+            Self::TextMarkup(m) => !m.quads.is_empty() && geom::finite(m.quads.iter().flatten().copied()),
+            Self::Note(n) => geom::finite([n.at]),
+            Self::Caret(c) => geom::finite(geom::corners(&c.rect)),
+        }
+    }
 }
 
 /// Text markup over the quads of the text it marks.
 ///
-/// Added in 0.2.0.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Added in 0.3.0.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
 pub struct TextMarkup {
     /// Which mark.
     pub kind: MarkupKind,
-    /// One quad per piece of text, at least one: usually one per line.
-    pub quads: Vec<Quad>,
+    /// One quad per piece of text, at least one: usually one per line, four corners each in
+    /// user space, upper left, upper right, lower left, lower right.
+    #[serde(with = "wire::quads")]
+    #[cfg_attr(feature = "tsify", tsify(type = "{ x: number; y: number }[][]"))]
+    pub quads: Vec<[UserSpacePoint; 4]>,
 }
 
 impl TextMarkup {
     /// The mark `kind` over `quads`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
-    pub const fn new(kind: MarkupKind, quads: Vec<Quad>) -> Self {
+    pub const fn new(kind: MarkupKind, quads: Vec<[UserSpacePoint; 4]>) -> Self {
         Self { kind, quads }
     }
 }
 
-/// The four text-markup subtypes (Table 171).
+/// Which text markup.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub enum MarkupKind {
-    /// `Highlight`: colour behind the text, multiplied so the text stays legible.
+    /// A highlight, which multiplies with the text so it stays legible.
     Highlight,
-    /// `Underline`.
+    /// A line under the text.
     Underline,
-    /// `StrikeOut`: a line through the middle of the text.
+    /// A line through the text.
     StrikeOut,
-    /// `Squiggly`: a wavy underline.
+    /// A wavy line under the text.
     Squiggly,
 }
 
 impl MarkupKind {
-    /// The `/Subtype` name.
+    /// Its `/Subtype`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn subtype(self) -> &'static str {
         match self {
@@ -92,92 +111,93 @@ impl MarkupKind {
         }
     }
 
-    /// The kind whose `/Subtype` is `name`.
-    #[must_use]
+    /// The markup a `/Subtype` names.
     pub(crate) fn from_subtype(name: &[u8]) -> Option<Self> {
-        match name {
-            b"Highlight" => Some(Self::Highlight),
-            b"Underline" => Some(Self::Underline),
-            b"StrikeOut" => Some(Self::StrikeOut),
-            b"Squiggly" => Some(Self::Squiggly),
-            _ => None,
-        }
+        [Self::Highlight, Self::Underline, Self::StrikeOut, Self::Squiggly]
+            .into_iter()
+            .find(|k| k.subtype().as_bytes() == name)
     }
 }
 
-/// A sticky note: an icon on the page and a Popup that shows its text.
+/// A sticky note at a point: a 20-point icon whose upper-left corner is `at`, and a Popup to its
+/// right that shows the comment, open or closed.
 ///
-/// The icon is 20 by 20 user-space units with its upper-left corner at [`Note::at`], and stays
-/// that size and upright however the page is zoomed or turned (the NoZoom and NoRotate flags,
-/// as Acrobat writes them). The Popup sits to the icon's right.
-///
-/// Added in 0.2.0.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Added in 0.3.0.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
 pub struct Note {
-    /// The icon's upper-left corner.
-    pub at: Point,
-    /// The icon (`/Name`).
+    /// The icon's upper-left corner, in user space.
+    #[serde(with = "wire::user_space_point")]
+    #[cfg_attr(feature = "tsify", tsify(type = "{ x: number; y: number }"))]
+    pub at: UserSpacePoint,
+    /// The icon.
+    #[serde(default)]
     pub icon: NoteIcon,
-    /// Whether the Popup starts open (`/Open`).
+    /// Whether the Popup shows when the file opens (`/Open`).
+    #[serde(default)]
     pub open: bool,
 }
 
 impl Note {
+    /// The side of the icon, in points.
+    pub(crate) const ICON: f64 = 20.0;
+    /// The Popup's width and height, in points.
+    pub(crate) const POPUP: (f64, f64) = (180.0, 120.0);
+
     /// A closed note with `icon` at `at`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
-    pub const fn new(at: Point, icon: NoteIcon) -> Self {
+    pub const fn new(at: UserSpacePoint, icon: NoteIcon) -> Self {
         Self { at, icon, open: false }
     }
 
-    /// With the Popup open or closed.
+    /// The same note, its Popup open or closed.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn with_open(mut self, open: bool) -> Self {
         self.open = open;
         self
     }
 
-    /// The side of a note's icon, in user-space units.
-    pub(crate) const ICON: f64 = 20.0;
-
-    /// The Popup's size, in user-space units.
-    pub(crate) const POPUP: (f64, f64) = (180.0, 120.0);
+    /// The Popup's `/Rect`: beside the icon, its top level with the icon's.
+    pub(crate) const fn popup_rect(&self) -> UserSpaceRect {
+        let x = self.at.x + Self::ICON;
+        UserSpaceRect::from_corners(x, self.at.y - Self::POPUP.1, x + Self::POPUP.0, self.at.y)
+    }
 }
 
-/// The seven standard note icons (ISO 32000-2 §12.5.6.4).
+/// A note's icon: the seven standard names (ISO 32000-2 Table 183).
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub enum NoteIcon {
-    /// `Note`: a sheet with lines, the default.
+    /// A page of text, the default.
     #[default]
     Note,
-    /// `Comment`: a speech bubble.
+    /// A speech bubble.
     Comment,
-    /// `Key`.
+    /// A key.
     Key,
-    /// `Help`: a question mark.
+    /// A question mark.
     Help,
-    /// `Paragraph`: a pilcrow.
+    /// A paragraph sign.
     Paragraph,
-    /// `NewParagraph`: an upward arrow over "NP".
+    /// A new-paragraph mark.
     NewParagraph,
-    /// `Insert`: a caret.
+    /// An insertion caret.
     Insert,
 }
 
 impl NoteIcon {
-    /// The `/Name`.
+    /// Its `/Name`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn name(self) -> &'static str {
         match self {
@@ -191,9 +211,7 @@ impl NoteIcon {
         }
     }
 
-    /// The icon named `name`, `Note` for any other (§12.5.6.4: a reader may show its own
-    /// icon for a name it doesn't know).
-    #[must_use]
+    /// The icon a `/Name` names; any other name is drawn as a note, as readers do.
     pub(crate) fn from_name(name: &[u8]) -> Self {
         [
             Self::Comment,
@@ -209,17 +227,22 @@ impl NoteIcon {
     }
 }
 
-/// A caret: where text should go (Table 186).
+/// A caret filling `rect`, marking where text goes; with a paragraph sign, a new paragraph.
 ///
-/// Added in 0.2.0.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Added in 0.3.0.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
 pub struct Caret {
-    /// Where it is drawn: the caret fills the rectangle.
-    pub rect: Rect,
-    /// `/Sy`: nothing, or a paragraph symbol for a new paragraph.
+    /// The caret's box, in user space.
+    #[serde(with = "wire::user_space_rect")]
+    #[cfg_attr(
+        feature = "tsify",
+        tsify(type = "{ x0: number; y0: number; x1: number; y1: number }")
+    )]
+    pub rect: UserSpaceRect,
+    /// The symbol it carries (`/Sy`).
     #[serde(default)]
     pub symbol: CaretSymbol,
 }
@@ -227,9 +250,9 @@ pub struct Caret {
 impl Caret {
     /// A plain caret in `rect`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
-    pub const fn new(rect: Rect) -> Self {
+    pub const fn new(rect: UserSpaceRect) -> Self {
         Self {
             rect,
             symbol: CaretSymbol::None,
@@ -237,54 +260,57 @@ impl Caret {
     }
 }
 
-/// A caret's symbol (`/Sy`).
+/// What a caret carries (`/Sy`).
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub enum CaretSymbol {
-    /// `/None`.
+    /// Nothing: text goes here.
     #[default]
     None,
-    /// `/P`: a new paragraph.
+    /// A paragraph sign: a new paragraph starts here.
     Paragraph,
 }
 
-/// A change to the spec of an annotation, of the same `type` it has: absent fields are left
-/// alone. Applying it regenerates the appearance.
+/// A change to an annotation's spec: its geometry or icon. The appearance is drawn again. A patch
+/// of another type than the annotation's is `invalid-op`.
 ///
-/// Added in 0.2.0.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Added in 0.3.0.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
 pub enum AnnotSpecPatch {
-    /// For text markup.
+    /// New quads for a text markup.
     TextMarkup(TextMarkupPatch),
-    /// For a note.
+    /// A note's icon or whether its Popup is open.
     Note(NotePatch),
-    /// For a caret.
+    /// A caret's box or symbol.
     Caret(CaretPatch),
 }
 
-/// A change to text markup.
+// Sound: as for `AnnotSpec`.
+impl Eq for AnnotSpecPatch {}
+
+/// New quads for a text markup.
 ///
-/// Added in 0.2.0.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// Added in 0.3.0.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
 pub struct TextMarkupPatch {
-    /// The quads it marks.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "tsify", tsify(optional))]
-    pub quads: Option<Vec<Quad>>,
+    /// The quads, at least one.
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "wire::quads::opt")]
+    #[cfg_attr(feature = "tsify", tsify(optional, type = "{ x: number; y: number }[][]"))]
+    pub quads: Option<Vec<[UserSpacePoint; 4]>>,
 }
 
-/// A change to a note.
+/// A note's icon, or whether its Popup is open.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -300,19 +326,22 @@ pub struct NotePatch {
     pub open: Option<bool>,
 }
 
-/// A change to a caret.
+/// A caret's box or symbol.
 ///
-/// Added in 0.2.0.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// Added in 0.3.0.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
 pub struct CaretPatch {
-    /// Where it is drawn.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "tsify", tsify(optional))]
-    pub rect: Option<Rect>,
-    /// Its symbol.
+    /// The box.
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "wire::opt_user_space_rect")]
+    #[cfg_attr(
+        feature = "tsify",
+        tsify(optional, type = "{ x0: number; y0: number; x1: number; y1: number }")
+    )]
+    pub rect: Option<UserSpaceRect>,
+    /// The symbol.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub symbol: Option<CaretSymbol>,
@@ -320,7 +349,6 @@ pub struct CaretPatch {
 
 impl AnnotSpecPatch {
     /// `spec` with the patch applied; `None` when the patch is for another type.
-    #[must_use]
     pub(crate) fn applied_to(&self, spec: &AnnotSpec) -> Option<AnnotSpec> {
         match (self, spec) {
             (Self::TextMarkup(p), AnnotSpec::TextMarkup(m)) => Some(AnnotSpec::TextMarkup(TextMarkup {
@@ -341,14 +369,13 @@ impl AnnotSpecPatch {
     }
 }
 
-/// The quads `/QuadPoints` holds, as eight numbers each, in Acrobat's order.
-#[must_use]
-pub(crate) fn quad_points(quads: &[Quad]) -> laminapdf_cos::Object {
-    laminapdf_cos::Object::Array(
+/// `/QuadPoints`: eight numbers per quad, in Acrobat's order.
+pub(crate) fn quad_points(quads: &[Quad]) -> Object {
+    Object::Array(
         quads
             .iter()
-            .flat_map(|q| q.0)
-            .flat_map(|p| [laminapdf_cos::Object::number(p.x()), laminapdf_cos::Object::number(p.y())])
+            .flat_map(|q| geom::acrobat_order(*q))
+            .flat_map(|p| [Object::Real(p.x), Object::Real(p.y)])
             .collect(),
     )
 }
@@ -358,12 +385,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_spec_reads_its_type_from_the_wire_and_refuses_unknown_fields() {
-        let spec: AnnotSpec = serde_json::from_str(
-            r#"{ "type": "note", "at": { "x": 72, "y": 720 }, "icon": "comment", "open": true }"#,
-        )
-        .unwrap();
-        assert_eq!(spec.subtype(), "Text");
+    fn a_spec_reads_its_type_from_the_wire() {
+        let spec: AnnotSpec =
+            serde_json::from_str(r#"{ "type": "note", "at": { "x": 72, "y": 720 }, "icon": "comment", "open": true }"#)
+                .unwrap();
+        assert_eq!(
+            spec,
+            AnnotSpec::Note(Note::new(UserSpacePoint::new(72.0, 720.0), NoteIcon::Comment).with_open(true))
+        );
+    }
+
+    #[test]
+    fn a_spec_refuses_unknown_fields() {
         assert!(
             serde_json::from_str::<AnnotSpec>(
                 r#"{ "type": "caret", "rect": { "x0": 0, "y0": 0, "x1": 5, "y1": 8 }, "colour": "red" }"#
@@ -374,14 +407,29 @@ mod tests {
 
     #[test]
     fn an_unknown_icon_name_reads_as_a_note() {
-        assert_eq!(NoteIcon::from_name(b"Star"), NoteIcon::Note);
-        assert_eq!(NoteIcon::from_name(b"Help"), NoteIcon::Help);
+        assert_eq!(
+            (NoteIcon::from_name(b"Star"), NoteIcon::from_name(b"Help")),
+            (NoteIcon::Note, NoteIcon::Help)
+        );
     }
 
     #[test]
     fn a_patch_for_another_type_applies_to_nothing() {
-        let caret = AnnotSpec::Caret(Caret::new(Rect::from_corners(0.0, 0.0, 5.0, 8.0).unwrap()));
-        let patch = AnnotSpecPatch::Note(NotePatch::default());
-        assert_eq!(patch.applied_to(&caret), None);
+        let caret = AnnotSpec::Caret(Caret::new(UserSpaceRect::from_corners(0.0, 0.0, 5.0, 8.0)));
+        assert_eq!(AnnotSpecPatch::Note(NotePatch::default()).applied_to(&caret), None);
+    }
+
+    #[test]
+    fn markup_without_quads_is_invalid() {
+        assert!(!AnnotSpec::TextMarkup(TextMarkup::new(MarkupKind::Highlight, Vec::new())).is_valid());
+    }
+
+    #[test]
+    fn a_notes_popup_sits_right_of_its_icon() {
+        let note = Note::new(UserSpacePoint::new(100.0, 700.0), NoteIcon::Note);
+        assert_eq!(
+            note.popup_rect(),
+            UserSpaceRect::from_corners(120.0, 580.0, 300.0, 700.0)
+        );
     }
 }

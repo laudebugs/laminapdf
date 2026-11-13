@@ -1,221 +1,53 @@
-//! The values the annotation specs carry: points, rectangles and quads in user space, colours
-//! and opacity. Each is checked when it is made and when it is read from JSON, so an op never
-//! holds a number a PDF can't store (a NaN, an infinity, a colour component outside 0 to 1).
+//! The values an annotation op writes besides its geometry, and the quad helpers: an
+//! annotation's colour ([`AnnotColor`], `/C`) and opacity ([`Opacity`]), quads put in Acrobat's
+//! order whichever order a file stores them in.
+//!
+//! Geometry itself is the model's: [`UserSpacePoint`] and [`UserSpaceRect`], and a quad is four
+//! points, as links read them.
 
 use laminapdf_cos::Object;
 use laminapdf_model::{UserSpacePoint, UserSpaceRect};
 use serde::{Deserialize, Serialize};
 
-/// A point in user space (ISO 32000-2 §8.3.2.3: y up), in user-space units. Both coordinates
-/// are finite.
-///
-/// Added in 0.2.0.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
-#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
-pub struct Point {
-    x: f64,
-    y: f64,
-}
+/// A quad: four corners in user space.
+pub(crate) type Quad = [UserSpacePoint; 4];
 
-impl Point {
-    /// The point `(x, y)`; `None` unless both are finite.
-    ///
-    /// Added in 0.2.0.
-    #[must_use]
-    pub const fn new(x: f64, y: f64) -> Option<Self> {
-        if x.is_finite() && y.is_finite() {
-            Some(Self { x, y })
-        } else {
-            None
-        }
-    }
-
-    /// x.
-    ///
-    /// Added in 0.2.0.
-    #[must_use]
-    pub const fn x(self) -> f64 {
-        self.x
-    }
-
-    /// y (up is positive).
-    ///
-    /// Added in 0.2.0.
-    #[must_use]
-    pub const fn y(self) -> f64 {
-        self.y
-    }
-
-    /// The same point as the model's type.
-    ///
-    /// Added in 0.2.0.
-    #[must_use]
-    pub const fn to_user_space(self) -> UserSpacePoint {
-        UserSpacePoint::new(self.x, self.y)
-    }
-
-    /// The model's point, when both coordinates are finite.
-    ///
-    /// Added in 0.2.0.
-    #[must_use]
-    pub const fn from_user_space(p: UserSpacePoint) -> Option<Self> {
-        Self::new(p.x, p.y)
+/// The quad in Acrobat's order (upper left, upper right, lower left, lower right), which pdf.js,
+/// PDFium and Acrobat all read, from either that order or the standard's (counter-clockwise
+/// from the lower left, ISO 32000-2 Table 182). The standard's order goes around the quad, so its
+/// third corner is opposite the first; in Acrobat's the fourth is.
+pub(crate) fn acrobat_order(c: Quad) -> Quad {
+    let dist = |a: UserSpacePoint, b: UserSpacePoint| (a.x - b.x).hypot(a.y - b.y);
+    if dist(c[0], c[2]) > dist(c[0], c[3]) {
+        [c[3], c[2], c[0], c[1]]
+    } else {
+        c
     }
 }
 
-// Sound: both fields are finite, so no NaN breaks reflexivity.
-impl Eq for Point {}
-
-impl<'de> Deserialize<'de> for Point {
-    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        #[derive(Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct Wire {
-            x: f64,
-            y: f64,
-        }
-        let w = Wire::deserialize(d)?;
-        Self::new(w.x, w.y).ok_or_else(|| serde::de::Error::custom("a point must be finite"))
-    }
+/// Whether every coordinate of `points` is finite.
+pub(crate) fn finite(points: impl IntoIterator<Item = UserSpacePoint>) -> bool {
+    points.into_iter().all(|p| p.x.is_finite() && p.y.is_finite())
 }
 
-/// A rectangle in user space with its corners normalised: `x0 <= x1` and `y0 <= y1`, every
-/// coordinate finite. On the wire: `{ "x0": 72, "y0": 700, "x1": 90, "y1": 712 }`, corners in
-/// any order.
-///
-/// Added in 0.2.0.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
-#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
-pub struct Rect {
-    x0: f64,
-    y0: f64,
-    x1: f64,
-    y1: f64,
+/// The two corners of `rect`.
+pub(crate) const fn corners(r: &UserSpaceRect) -> [UserSpacePoint; 2] {
+    [UserSpacePoint::new(r.x0, r.y0), UserSpacePoint::new(r.x1, r.y1)]
 }
 
-impl Rect {
-    /// The rectangle with corners `(a, b)` and `(c, d)`, in any order; `None` unless all four
-    /// are finite.
-    ///
-    /// Added in 0.2.0.
-    #[must_use]
-    pub const fn from_corners(a: f64, b: f64, c: f64, d: f64) -> Option<Self> {
-        if a.is_finite() && b.is_finite() && c.is_finite() && d.is_finite() {
-            Some(Self {
-                x0: a.min(c),
-                y0: b.min(d),
-                x1: a.max(c),
-                y1: b.max(d),
-            })
-        } else {
-            None
-        }
-    }
-
-    /// The same rectangle as the model's type.
-    ///
-    /// Added in 0.2.0.
-    #[must_use]
-    pub const fn to_user_space(self) -> UserSpaceRect {
-        UserSpaceRect::from_corners(self.x0, self.y0, self.x1, self.y1)
-    }
-
-    /// The model's rectangle, when its corners are finite.
-    ///
-    /// Added in 0.2.0.
-    #[must_use]
-    pub const fn from_user_space(r: UserSpaceRect) -> Option<Self> {
-        Self::from_corners(r.x0, r.y0, r.x1, r.y1)
-    }
-
-    /// Whether it has a positive width and height.
-    pub(crate) fn has_area(self) -> bool {
-        self.x1 > self.x0 && self.y1 > self.y0
-    }
-}
-
-impl Eq for Rect {}
-
-impl<'de> Deserialize<'de> for Rect {
-    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        #[derive(Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct Wire {
-            x0: f64,
-            y0: f64,
-            x1: f64,
-            y1: f64,
-        }
-        let w = Wire::deserialize(d)?;
-        Self::from_corners(w.x0, w.y0, w.x1, w.y1).ok_or_else(|| serde::de::Error::custom("a rectangle must be finite"))
-    }
-}
-
-/// The four corners of a piece of marked text, in the order pdf.js, PDFium and Acrobat read
-/// `/QuadPoints`: upper left, upper right, lower left, lower right, where "upper" is the side
-/// of the text's ascenders (ISO 32000-2 Table 182 describes another order, which readers that
-/// follow Acrobat's files draw wrongly). Rotated text gives a rotated quad. On the wire: an
-/// array of four points.
-///
-/// Added in 0.2.0.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
-pub struct Quad(pub [Point; 4]);
-
-impl Quad {
-    /// The quad of an upright rectangle: its top edge is the text's top.
-    ///
-    /// Added in 0.2.0.
-    #[must_use]
-    pub fn from_rect(r: Rect) -> Self {
-        let p = |x, y| Point { x, y };
-        Self([p(r.x0, r.y1), p(r.x1, r.y1), p(r.x0, r.y0), p(r.x1, r.y0)])
-    }
-
-    /// The quad read from four stored corners in either order: the standard's (counter-clockwise
-    /// from the lower left) or Acrobat's. The standard's order goes around the quad, so its third
-    /// corner is opposite the first; in Acrobat's order the fourth is.
-    ///
-    /// Added in 0.2.0.
-    #[must_use]
-    pub fn from_stored(c: [Point; 4]) -> Self {
-        let dist = |a: Point, b: Point| (a.x - b.x).hypot(a.y - b.y);
-        // Acrobat: ul ur ll lr, whose diagonal is 0–3. The standard: ll lr ur ul around the
-        // quad, whose diagonal is 0–2.
-        if dist(c[0], c[2]) > dist(c[0], c[3]) {
-            Self([c[3], c[2], c[0], c[1]])
-        } else {
-            Self(c)
-        }
-    }
-
-    /// The smallest upright rectangle holding the quad.
-    #[must_use]
-    pub(crate) fn bounds(&self) -> Rect {
-        let xs = self.0.map(|p| p.x);
-        let ys = self.0.map(|p| p.y);
-        let (min, max) = (|v: [f64; 4]| v.iter().copied().fold(f64::INFINITY, f64::min), |v: [f64; 4]| {
-            v.iter().copied().fold(f64::NEG_INFINITY, f64::max)
-        });
-        Rect {
-            x0: min(xs),
-            y0: min(ys),
-            x1: max(xs),
-            y1: max(ys),
-        }
-    }
-}
-
-/// An annotation's colour (`/C`, ISO 32000-2 Table 166): gray, RGB or CMYK, each component in
+/// An annotation's colour (`/C`, ISO 32000-2 Table 166): gray, RGB or CMYK, each component from
 /// 0 to 1. On the wire it is `/C`'s own form, an array of one, three or four numbers.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 #[serde(into = "Vec<f64>")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
-#[cfg_attr(feature = "tsify", tsify(type = "[number] | [number, number, number] | [number, number, number, number]"))]
+#[cfg_attr(
+    feature = "tsify",
+    tsify(type = "[number] | [number, number, number] | [number, number, number, number]")
+)]
 #[non_exhaustive]
-pub enum Color {
+pub enum AnnotColor {
     /// `[gray]`.
     Gray(f64),
     /// `[r g b]`.
@@ -224,11 +56,11 @@ pub enum Color {
     Cmyk(f64, f64, f64, f64),
 }
 
-impl Color {
-    /// The colour of `/C`'s components, or `None` unless there are one, three or four, each
-    /// in 0 to 1.
+impl AnnotColor {
+    /// The colour of `/C`'s components; `None` unless there are one, three or four, each from 0
+    /// to 1.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn from_components(c: &[f64]) -> Option<Self> {
         if !c.iter().all(|v| (0.0..=1.0).contains(v)) {
@@ -244,7 +76,7 @@ impl Color {
 
     /// The components, as `/C` stores them.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn components(self) -> Vec<f64> {
         match self {
@@ -256,19 +88,21 @@ impl Color {
 
     /// `/C`'s array.
     pub(crate) fn to_object(self) -> Object {
-        Object::Array(self.components().into_iter().map(Object::number).collect())
+        Object::Array(self.components().into_iter().map(Object::Real).collect())
     }
 }
 
-impl Eq for Color {}
+// Sound: every component is in 0 to 1 (`from_components` and the deserialiser check), so no NaN
+// breaks reflexivity.
+impl Eq for AnnotColor {}
 
-impl From<Color> for Vec<f64> {
-    fn from(c: Color) -> Self {
+impl From<AnnotColor> for Vec<f64> {
+    fn from(c: AnnotColor) -> Self {
         c.components()
     }
 }
 
-impl<'de> Deserialize<'de> for Color {
+impl<'de> Deserialize<'de> for AnnotColor {
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         let c = Vec::<f64>::deserialize(d)?;
         Self::from_components(&c)
@@ -278,7 +112,7 @@ impl<'de> Deserialize<'de> for Color {
 
 /// A constant opacity from 0 (invisible) to 1 (opaque).
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize)]
 #[serde(transparent)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -288,12 +122,12 @@ pub struct Opacity(f64);
 impl Opacity {
     /// Fully opaque.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub const OPAQUE: Self = Self(1.0);
 
     /// The opacity `value`; `None` outside 0 to 1.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn new(value: f64) -> Option<Self> {
         (0.0..=1.0).contains(&value).then_some(Self(value))
@@ -301,21 +135,20 @@ impl Opacity {
 
     /// The value, from 0 to 1.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn get(self) -> f64 {
         self.0
     }
+}
 
-    /// Whether it is below 1.
-    ///
-    /// Added in 0.2.0.
-    #[must_use]
-    pub fn is_translucent(self) -> bool {
-        self.0 < 1.0
+impl Default for Opacity {
+    fn default() -> Self {
+        Self::OPAQUE
     }
 }
 
+// Sound: the value is in 0 to 1, never NaN.
 impl Eq for Opacity {}
 
 impl<'de> Deserialize<'de> for Opacity {
@@ -329,29 +162,33 @@ impl<'de> Deserialize<'de> for Opacity {
 mod tests {
     use super::*;
 
-    fn p(x: f64, y: f64) -> Point {
-        Point::new(x, y).unwrap()
+    fn p(x: f64, y: f64) -> UserSpacePoint {
+        UserSpacePoint::new(x, y)
     }
 
     #[test]
     fn quads_read_in_either_order_come_out_in_acrobats() {
         let acrobat = [p(0.0, 10.0), p(50.0, 10.0), p(0.0, 0.0), p(50.0, 0.0)];
         let standard = [p(0.0, 0.0), p(50.0, 0.0), p(50.0, 10.0), p(0.0, 10.0)];
-        assert_eq!(Quad::from_stored(acrobat), Quad(acrobat));
-        assert_eq!(Quad::from_stored(standard), Quad(acrobat));
+        assert_eq!((acrobat_order(acrobat), acrobat_order(standard)), (acrobat, acrobat));
     }
 
     #[test]
     fn a_colour_outside_zero_to_one_or_of_two_components_is_refused() {
-        assert_eq!(Color::from_components(&[1.0, 0.5, 0.0]), Some(Color::Rgb(1.0, 0.5, 0.0)));
-        assert_eq!(Color::from_components(&[1.2]), None);
-        assert_eq!(Color::from_components(&[0.0, 0.0]), None);
-        assert!(serde_json::from_str::<Color>("[0, 1]").is_err());
+        assert_eq!(
+            (
+                AnnotColor::from_components(&[1.0, 0.5, 0.0]),
+                AnnotColor::from_components(&[1.2]),
+                AnnotColor::from_components(&[0.0, 0.0]),
+            ),
+            (Some(AnnotColor::Rgb(1.0, 0.5, 0.0)), None, None)
+        );
     }
 
     #[test]
-    fn a_point_that_isnt_finite_is_refused_on_the_wire() {
-        assert!(serde_json::from_str::<Point>(r#"{ "x": 1, "y": 1e999 }"#).is_err());
-        assert!(serde_json::from_str::<Opacity>("1.5").is_err());
+    fn a_colour_or_opacity_out_of_range_is_refused_on_the_wire() {
+        assert!(
+            serde_json::from_str::<AnnotColor>("[0, 1]").is_err() && serde_json::from_str::<Opacity>("1.5").is_err()
+        );
     }
 }

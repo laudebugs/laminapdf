@@ -72,6 +72,7 @@ export type ErrorCode =
   | "annotation-not-editable"
   | "not-a-link"
   | "link-not-tagged"
+  | "appearance-unavailable"
   | "invalid-label-ranges"
   | "sink"
   | "not-rebased"
@@ -305,6 +306,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "annotation-not-editable",
   "not-a-link",
   "link-not-tagged",
+  "appearance-unavailable",
   "invalid-label-ranges",
   "sink",
   "not-rebased",
@@ -566,6 +568,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "annotation-not-editable": "unsupported",
   "not-a-link": "usage",
   "link-not-tagged": "unsupported",
+  "appearance-unavailable": "unsupported",
   "invalid-label-ranges": "usage",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
@@ -774,6 +777,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "annotation-not-editable": "edit a widget through its form field; an annotation stored inside the page's list can't be edited yet",
   "not-a-link": "name a link from the page's links; change other annotations with updateAnnot and deleteAnnot",
   "link-not-tagged": "tag the document first, or add the link to a copy that doesn't claim PDF/UA",
+  "appearance-unavailable": "edit through the laminapdf crate, which draws appearances, or give laminapdf-ops a generator with Document::with_appearances",
   "invalid-label-ranges": "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",

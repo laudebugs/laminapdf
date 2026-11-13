@@ -6,6 +6,22 @@
 //! and so its [`AnnotId`]), and a deleted one is unlinked from its page and freed. Keys the ops
 //! don't own are kept untouched.
 
+mod add;
+mod appearance;
+mod geom;
+mod redraw;
+mod spec;
+mod tags;
+
+pub use add::{AddAnnot, AnnotCommon};
+pub(crate) use appearance::Generator;
+pub use appearance::{Appearance, AppearanceRequest, Appearances, IntentSpace};
+pub use geom::{AnnotColor, Opacity};
+pub use spec::{
+    AnnotSpec, AnnotSpecPatch, Caret, CaretPatch, CaretSymbol, MarkupKind, Note, NoteIcon, NotePatch, TextMarkup,
+    TextMarkupPatch,
+};
+
 use laminapdf_cos::{Dict, ObjRef, Object, PdfString};
 use laminapdf_model::{AnnotFlags, AnnotId, AnnotLink, AnnotSubtype, PageId, PdfDate};
 use laminapdf_syntax::text::encode_text_string;
@@ -133,6 +149,35 @@ pub struct UpdateAnnot {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub translate: Option<Offset>,
+    /// `/C`; `null` removes it, and the mark is drawn in its usual colour. The appearance is
+    /// drawn again.
+    ///
+    /// Added in 0.3.0.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "wire::double_option::deserialize"
+    )]
+    #[cfg_attr(
+        feature = "tsify",
+        tsify(
+            optional,
+            type = "[number] | [number, number, number] | [number, number, number, number] | null"
+        )
+    )]
+    pub color: Option<Option<AnnotColor>>,
+    /// The opacity. The appearance is drawn again.
+    ///
+    /// Added in 0.3.0.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "tsify", tsify(optional))]
+    pub opacity: Option<Opacity>,
+    /// A change to the mark's geometry or icon. The appearance is drawn again.
+    ///
+    /// Added in 0.3.0.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "tsify", tsify(optional))]
+    pub spec: Option<AnnotSpecPatch>,
 }
 
 impl UpdateAnnot {
@@ -149,14 +194,26 @@ impl UpdateAnnot {
             modified: None,
             flags: None,
             translate: None,
+            color: None,
+            opacity: None,
+            spec: None,
         }
     }
 
-    pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Effect> {
+    pub(crate) fn apply_to(
+        &self,
+        doc: &mut laminapdf_model::Document,
+        appearances: Option<&dyn Appearances>,
+    ) -> Result<Effect> {
         let all = every_annotation(doc)?;
         let found = Found::locate(&all, &self.id)?;
         let flags = found.annot.flags;
-        let properties = self.author.is_some() || self.subject.is_some() || self.translate.is_some();
+        let redraw = redraw::Redraw {
+            color: self.color,
+            opacity: self.opacity,
+            spec: self.spec.as_ref(),
+        };
+        let properties = self.author.is_some() || self.subject.is_some() || self.translate.is_some() || redraw.any();
         if (properties && flags.has(AnnotFlags::LOCKED))
             || (self.contents.is_some() && flags.has(AnnotFlags::LOCKED_CONTENTS))
         {
@@ -169,6 +226,9 @@ impl UpdateAnnot {
         set_text(&mut dict, "Subj", self.subject.as_ref());
         if let Some(flags) = self.flags {
             dict.insert("F", Object::Integer(i64::from(flags)));
+        }
+        if redraw.any() {
+            redraw.apply(doc, &mut dict, appearances)?;
         }
         // The Popup moves with its parent, unless it is locked, which refuses the move.
         let popup = match (self.translate, &found.annot.popup) {

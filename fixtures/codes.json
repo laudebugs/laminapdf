@@ -682,6 +682,13 @@
       "since": "0.2.0"
     },
     {
+      "code": "appearance-unavailable",
+      "kind": "unsupported",
+      "summary": "the document has no appearance generator, so it can't draw a new annotation",
+      "hint": "edit through the laminapdf crate, which draws appearances, or give laminapdf-ops a generator with Document::with_appearances",
+      "since": "0.3.0"
+    },
+    {
       "code": "invalid-label-ranges",
       "kind": "usage",
       "summary": "page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0",

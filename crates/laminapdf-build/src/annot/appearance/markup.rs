@@ -2,7 +2,9 @@
 //! under it, so the text stays legible; underline, strike-out and squiggly lines follow each
 //! quad's baseline, so they lean with rotated text.
 
-use laminapdf_model::{UserSpacePoint, UserSpaceRect};
+use laminapdf_model::UserSpacePoint;
+#[cfg(test)]
+use laminapdf_model::UserSpaceRect;
 
 use super::{DeviceColor, Drawn, Paint, bounds};
 use crate::surface::n;

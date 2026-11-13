@@ -7,7 +7,7 @@
 use laminapdf_model::{OutlineItemId, PageId};
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::annot::{DeleteAnnot, UpdateAnnot};
+use crate::annot::{AddAnnot, Appearances, DeleteAnnot, UpdateAnnot};
 use crate::class::ModificationClass;
 use crate::error::{Error, Result};
 use crate::info::SetInfo;
@@ -106,6 +106,8 @@ pub enum Op {
     /// log can name it.
     #[serde(skip)]
     UpdateSaveMetadata(UpdateSaveMetadata),
+    /// Add a text markup, a note or a caret, with its appearance.
+    AddAnnot(AddAnnot),
     /// Change an annotation's common entries, or move it.
     UpdateAnnot(UpdateAnnot),
     /// Delete an annotation with its Popup, replies and group.
@@ -156,6 +158,7 @@ impl Op {
             | Self::DeleteNamedDestination(_) => ModificationClass::Document,
             Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_)
+            | Self::AddAnnot(_)
             | Self::AddLink(_)
             | Self::UpdateLink(_)
             | Self::DeleteLink(_) => ModificationClass::Annotation,
@@ -197,6 +200,7 @@ impl Op {
             | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_)
+            | Self::AddAnnot(_)
             | Self::AddLink(_)
             | Self::UpdateLink(_)
             | Self::DeleteLink(_) => false,
@@ -237,6 +241,7 @@ impl Op {
             | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_)
+            | Self::AddAnnot(_)
             | Self::AddLink(_)
             | Self::UpdateLink(_)
             | Self::DeleteLink(_) => Vec::new(),
@@ -252,7 +257,11 @@ impl Op {
 
     /// Applies the op's writes through the overlay; returns what it did. The caller
     /// ([`Tx::apply`](crate::Tx::apply)) rolls back on error and records the undo.
-    pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Effect> {
+    pub(crate) fn apply_to(
+        &self,
+        doc: &mut laminapdf_model::Document,
+        appearances: Option<&dyn Appearances>,
+    ) -> Result<Effect> {
         match self {
             Self::SetInfo(op) => op.apply_to(doc),
             Self::RotatePage(op) => {
@@ -285,7 +294,8 @@ impl Op {
             Self::SetNamedDestination(op) => op.apply_to(doc),
             Self::RenameNamedDestination(op) => op.apply_to(doc),
             Self::DeleteNamedDestination(op) => op.apply_to(doc),
-            Self::UpdateAnnot(op) => op.apply_to(doc),
+            Self::AddAnnot(op) => op.apply_to(doc, appearances),
+            Self::UpdateAnnot(op) => op.apply_to(doc, appearances),
             Self::DeleteAnnot(op) => op.apply_to(doc),
             Self::AddLink(op) => op.apply_to(doc),
             Self::UpdateLink(op) => op.apply_to(doc),
@@ -383,6 +393,7 @@ op_from!(
     RotatePages,
     ReversePages,
     DuplicatePages,
+    AddAnnot,
     UpdateAnnot,
     DeleteAnnot,
     AddLink,

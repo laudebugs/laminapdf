@@ -7,7 +7,7 @@
 //! one (`link-uri-refused`), so no op writes a link that runs a script. In a tagged document a
 //! new link joins the structure tree as a `Link` element ([`tags`]).
 
-mod tags;
+pub(crate) mod tags;
 
 use laminapdf_cos::{Dict, ObjRef, Object};
 use laminapdf_model::{AnnotFlags, AnnotId, AnnotSubtype, PageId, UserSpacePoint, UserSpaceRect};
@@ -349,7 +349,7 @@ fn quad_points(quads: &[[UserSpacePoint; 4]]) -> Object {
 }
 
 /// Appends `annot` to the page's `/Annots`, in the array object when the page names one.
-fn append_annot(doc: &mut laminapdf_model::Document, page: ObjRef, annot: ObjRef) -> Result<()> {
+pub(crate) fn append_annot(doc: &mut laminapdf_model::Document, page: ObjRef, annot: ObjRef) -> Result<()> {
     let page_dict = object_dict(doc, page)?.unwrap_or_default();
     if let Some(Object::Ref(array)) = page_dict.get("Annots") {
         let mut cos = doc.cos_mut().edit();
