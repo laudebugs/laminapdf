@@ -47,7 +47,7 @@ import {
   useSettingsSection,
   ViewSettingsButton,
 } from "@laminapdf/ui";
-import { PrintDialog, PrintProgressDialog, PropertiesDialog } from "@laminapdf/ui/dialogs";
+import { InitialViewDialog, PrintDialog, PrintProgressDialog, PropertiesDialog } from "@laminapdf/ui/dialogs";
 import { ConformanceDialog, RemoveSignaturesDialog } from "@laminapdf/ui/editing";
 import { fakeFile, fakePlatform } from "@laminapdf/ui/testing";
 import { type ReactNode, useEffect, useState } from "react";
@@ -108,6 +108,36 @@ function OutputDialog({ state }: { state: string }): ReactNode {
   );
 }
 
+/** Initial view (O13): a file that asks for its outline, or one whose open action runs a script. */
+function InitialView({ state }: { state: string }): ReactNode {
+  const preferences = {
+    hideToolbar: false,
+    hideMenubar: false,
+    hideWindowUi: false,
+    fitWindow: false,
+    displayDocTitle: true,
+  };
+  const view =
+    state === "initial-view-action"
+      ? { open: { kind: "action" as const, action: "JavaScript" }, preferences }
+      : {
+          open: { kind: "page" as const, page: 2, zoom: "fitWidth" as const },
+          pageMode: "outlines" as const,
+          preferences,
+        };
+  return (
+    <InitialViewDialog
+      isOpen
+      view={view}
+      pageCount={24}
+      current={() => ({ page: 4, zoom: 100 })}
+      fitWindowHasNoEffect
+      onApply={() => Promise.resolve()}
+      onClose={noop}
+    />
+  );
+}
+
 /** Settings, Keyboard shortcuts (inside the reader's commands) and the View settings popover. */
 function SettingsDialogs({ state }: { state: string }): ReactNode {
   const [appearance, setAppearance] = useState(DEFAULT_APPEARANCE);
@@ -147,6 +177,7 @@ function SettingsDialogs({ state }: { state: string }): ReactNode {
 export function Dialogs({ state }: { state: string }): ReactNode {
   if (state === "password") return <PasswordPrompt />;
   if (state.startsWith("print") || state === "properties") return <OutputDialog state={state} />;
+  if (state.startsWith("initial-view")) return <InitialView state={state} />;
   if (state === "settings" || state === "shortcuts" || state === "view-settings")
     return <SettingsDialogs state={state} />;
   if (state === "remove-signatures") {

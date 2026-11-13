@@ -51,7 +51,7 @@ export const ROUTES: readonly Route[] = [
   {
     id: "rail",
     title: "Thumbnails, outline and history",
-    components: ["Thumbnail", "OutlineRow", "OutlineTree", "HistoryPanel"],
+    components: ["Thumbnail", "OutlineRow", "OutlineTree", "HistoryPanel", "ThreadsPanel"],
     pageRelated: true,
   },
   {
@@ -98,6 +98,7 @@ export const ROUTES: readonly Route[] = [
       "PrintDialog",
       "PrintProgressDialog",
       "PropertiesDialog",
+      "InitialViewDialog",
       "InstallDialog",
       "SettingsDialog",
       "ShortcutsDialog",
@@ -116,6 +117,8 @@ export const ROUTES: readonly Route[] = [
       "print-restricted",
       "print-progress",
       "properties",
+      "initial-view",
+      "initial-view-action",
       "install",
       "settings",
       "shortcuts",
