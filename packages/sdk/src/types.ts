@@ -68,7 +68,8 @@ import type {
 /**
  * An edit (`{ op, args }`): `setMetadata`, `removeMetadata`, the XMP edits (`setXmpProperty`,
  * `removeXmpProperty`, `replaceXmpPacket`), `setPageLabels`, the page ops (`insertBlankPages`, `deletePages`,
- * `movePages`, `rotatePages`, `reversePages`, `duplicatePages`, `rotatePage`), the bookmark edits
+ * `movePages`, `rotatePages`, `reversePages`, `duplicatePages`, `insertPagesFrom`, `replacePages`,
+ * `rotatePage`), the bookmark edits
  * (`addOutlineItem`, `updateOutlineItem`, `moveOutlineItem`, `deleteOutlineItem`), the named-destination edits
  * (`setNamedDestination`, `renameNamedDestination`, `deleteNamedDestination`), `setInitialView`, the link
  * edits (`addLink`, `updateLink`, `deleteLink`), or the deprecated `setInfo` (use
@@ -287,8 +288,9 @@ export type StructureKid = StructureKidJs;
  * What an edit did: the pages it touched (`touchedPages`, IDs), whether it changed anything,
  * the page IDs in their new order when it changed the page list (`pageOrder`), what a page
  * deletion did to the references to the deleted pages (`references`), and what a page
- * duplication did to form fields (`fields`) and which copies it couldn't tag whole
- * (`tagsIncomplete`).
+ * duplication or a page copied in did to form fields (`fields`), which copies a duplication
+ * couldn't tag whole (`tagsIncomplete`), the page of each link a copied-in page lost
+ * (`linksRemoved`) and the copied-in pages that came without their tags (`tagsDropped`).
  *
  * @since 0.2.0
  */
@@ -302,8 +304,9 @@ export type Edited = EditedJs;
  */
 export type ReferenceEdit = ReferenceEditJs;
 /**
- * A form field whose widget a duplicated page showed, and what the copy did with it: `renamed`
- * (the copy's widget belongs to the new field `to`, fully named `name`) or `notCopied` (a
+ * A form field whose widget a duplicated or copied-in page showed, and what the copy did with it:
+ * `renamed` (the copy's widget belongs to the new field `to`, fully named `name`), `linked` (it
+ * joined the document's field `to` of the same name and shares its value) or `notCopied` (a
  * signature's widget).
  *
  * @since 0.3.0

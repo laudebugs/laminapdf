@@ -120,6 +120,7 @@ mod job;
 mod links;
 mod metadata;
 mod navigation;
+mod pages;
 mod properties;
 #[cfg(feature = "extract")]
 mod redaction;
@@ -174,6 +175,7 @@ pub use job::{Budget, CancelToken, Phase, SaveJob, Step};
 #[cfg(feature = "build")]
 pub use laminapdf_build::Error as BuildError;
 pub use laminapdf_syntax::{DOCS_URL_BASE, DOCS_URL_SUFFIX, Diagnostic, ErrorCode, WarningCode, did_you_mean};
+pub use pages::ExportJob;
 #[cfg(feature = "extract")]
 pub use redaction::RedactionWarning;
 pub use warning::{Warning, WarningCursor};
@@ -186,14 +188,15 @@ pub use laminapdf_model::{
 };
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use laminapdf_ops::{
-    AddLink, AddOutlineItem, ChildItems, ConformanceWarning, DeleteAnnot, DeleteLink, DeleteNamedDestination,
+    AddLink, AddOutlineItem, Carry, ChildItems, ConformanceWarning, DeleteAnnot, DeleteLink, DeleteNamedDestination,
     DeleteOutlineItem, DeletePages, DestinationUse, DestinationView, DocumentMetadata, DuplicatePages,
-    ExplicitDestination, FieldChange, FieldOutcome, InfoPatch, InsertBlankPages, MetadataKey, MetadataPatch,
-    MetadataSource, ModificationClass, MoveOutlineItem, MovePages, Offset, Op, OpLog, OpenAt, OpenZoom, OutlineStyle,
-    OutlineTarget, PacketStatus, PageLabelRange, ReferenceOutcome, ReferencePolicy, RemoveMetadata, RemoveXmpProperty,
-    RenameLinks, RenameNamedDestination, ReplaceXmpPacket, ReversePages, Reverted, Rgb, RotateMode, RotatePage,
-    RotatePages, SetInfo, SetInitialView, SetMetadata, SetNamedDestination, SetPageLabels, SetXmpProperty, UndoOutcome,
-    UpdateAnnot, UpdateLink, UpdateOutlineItem, WindowPreferencesPatch,
+    ExplicitDestination, FieldChange, FieldClash, FieldOutcome, InfoPatch, InsertBlankPages, InsertPagesFrom,
+    MetadataKey, MetadataPatch, MetadataSource, ModificationClass, MoveOutlineItem, MovePages, Offset, Op, OpLog,
+    OpenAt, OpenZoom, OutlineStyle, OutlineTarget, PacketStatus, PageLabelRange, ReferenceOutcome, ReferencePolicy,
+    RemoveMetadata, RemoveXmpProperty, RenameLinks, RenameNamedDestination, ReplacePages, ReplaceXmpPacket,
+    ReversePages, Reverted, Rgb, RotateMode, RotatePage, RotatePages, SetInfo, SetInitialView, SetMetadata,
+    SetNamedDestination, SetPageLabels, SetXmpProperty, SourceId, UndoOutcome, UpdateAnnot, UpdateLink,
+    UpdateOutlineItem, WindowPreferencesPatch,
 };
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,

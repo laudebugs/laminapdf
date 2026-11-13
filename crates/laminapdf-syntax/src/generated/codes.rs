@@ -1134,6 +1134,8 @@ pub enum WarningCode {
     PdfaInfoMismatch,
     /// `duplicate-tags-incomplete`: a duplicated page's content is partly untagged, which breaks the PDF/UA claim of the document's metadata.
     DuplicateTagsIncomplete,
+    /// `imported-tags-dropped`: pages copied in from another document came without their tags, which breaks the PDF/UA claim of the document's metadata.
+    ImportedTagsDropped,
     /// `tounicode-conflict`: one glyph was used for two different texts; ToUnicode keeps the first.
     TounicodeConflict,
     /// `whole-font-rebuilt`: a font that forbids subsetting was rebuilt with every glyph kept.
@@ -1206,6 +1208,7 @@ impl WarningCode {
         Self::PdfuaTitleMissing,
         Self::PdfaInfoMismatch,
         Self::DuplicateTagsIncomplete,
+        Self::ImportedTagsDropped,
         Self::TounicodeConflict,
         Self::WholeFontRebuilt,
         Self::FlowKeepBroken,
@@ -1286,6 +1289,7 @@ impl WarningCode {
             Self::PdfuaTitleMissing => "pdfua-title-missing",
             Self::PdfaInfoMismatch => "pdfa-info-mismatch",
             Self::DuplicateTagsIncomplete => "duplicate-tags-incomplete",
+            Self::ImportedTagsDropped => "imported-tags-dropped",
             Self::TounicodeConflict => "tounicode-conflict",
             Self::WholeFontRebuilt => "whole-font-rebuilt",
             Self::FlowKeepBroken => "flow-keep-broken",
@@ -1352,6 +1356,7 @@ impl WarningCode {
             Self::PdfuaTitleMissing => ErrorKind::Usage,
             Self::PdfaInfoMismatch => ErrorKind::Input,
             Self::DuplicateTagsIncomplete => ErrorKind::Usage,
+            Self::ImportedTagsDropped => ErrorKind::Usage,
             Self::TounicodeConflict => ErrorKind::Usage,
             Self::WholeFontRebuilt => ErrorKind::Usage,
             Self::FlowKeepBroken => ErrorKind::Usage,
@@ -1418,6 +1423,7 @@ impl WarningCode {
             Self::PdfuaTitleMissing => "the file claims PDF/UA-1, which requires a title in its metadata, and it has none",
             Self::PdfaInfoMismatch => "the file claims PDF/A, which requires the Info dictionary and the XMP packet to agree, and they differ",
             Self::DuplicateTagsIncomplete => "a duplicated page's content is partly untagged, which breaks the PDF/UA claim of the document's metadata",
+            Self::ImportedTagsDropped => "pages copied in from another document came without their tags, which breaks the PDF/UA claim of the document's metadata",
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
             Self::WholeFontRebuilt => "a font that forbids subsetting was rebuilt with every glyph kept",
             Self::FlowKeepBroken => "blocks kept together are taller than a page, so the flow split them",
@@ -1484,6 +1490,7 @@ impl WarningCode {
             Self::PdfuaTitleMissing => "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
             Self::PdfaInfoMismatch => "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
             Self::DuplicateTagsIncomplete => "retag the copy, or duplicate pages whose tagged elements lie on the page alone",
+            Self::ImportedTagsDropped => "tag the copied pages in a tagging tool, or copy pages from a document without tags",
             Self::TounicodeConflict => "mark the second occurrence with /ActualText so extraction gets its text",
             Self::WholeFontRebuilt => "check that the font's licence allows this, or use a static TrueType or CFF version",
             Self::FlowKeepBroken => "split the keep group or drop keep-with-next on a heading chain, or use a taller page",
