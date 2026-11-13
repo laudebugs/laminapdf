@@ -12,7 +12,7 @@
 | Branch | `docs/e7a-adr-0022-content-editing` |
 | PR title | `docs(adr): 0022 content-stream editing model` |
 | Size | M (200–600) |
-| PR | — |
+| PR | [#548](https://github.com/laudebugs/laminapdf/pull/548) |
 
 ## Goal
 
