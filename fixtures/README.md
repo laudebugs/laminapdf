@@ -184,6 +184,13 @@ Hand-written samples of the op JSON format, version 1, read by `crates/laminapdf
 | `update-annot.json` | One `updateAnnot` op (E4b): new contents, a modification date and a move by `translate`, on `a12.0` of `annotations/threads.pdf`; read by `crates/laminapdf-ops/tests/annotations.rs` |
 | `delete-annot.json` | One `deleteAnnot` op on `a10.0` of `annotations/threads.pdf`, which takes its Popup and every reply with it |
 | `mixed-log.json` | A v1 log mixing the deprecated `setInfo` with `setMetadata` and `removeMetadata`, applied as one transaction (adding ops kept `v` at 1, ADR 0006 §6) |
+| `add-outline-item.json` | One `addOutlineItem` op: a child of the chapter (`o12.0`) after its first child, to an `/XYZ` view of page 2, red and bold; applied to `corpus/outline.pdf` |
+| `update-outline-item.json` | One `updateOutlineItem` op: the appendix (`o13.0`) renamed, opened and pointed at a web address in place of its `GoTo` |
+| `move-outline-item.json` | One `moveOutlineItem` op: the appendix moved to the top of the outline |
+| `delete-outline-item.json` | One `deleteOutlineItem` op: the chapter deleted, its children moved up into its place |
+| `set-named-destination.json` | One `setNamedDestination` op: a new name, `results`, to a `/FitH` view of page 3 (it goes into the `/Names` tree) |
+| `rename-named-destination.json` | One `renameNamedDestination` op: `chapter2`, in the catalog's `/Dests`, renamed with its uses |
+| `delete-named-destination.json` | One `deleteNamedDestination` op: `appendix`, in the `/Names` tree, deleted (the appendix bookmark still names it) |
 
 ### `signed/`
 

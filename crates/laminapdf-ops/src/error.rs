@@ -3,7 +3,7 @@
 use core::fmt;
 
 use laminapdf_cos::{ErrorKind, Location};
-use laminapdf_model::{AnnotId, PageId};
+use laminapdf_model::{AnnotId, OutlineItemId, PageId};
 
 /// Everything that can go wrong while applying ops, running transactions or reading op logs.
 ///
@@ -60,6 +60,36 @@ pub enum Error {
     /// its sources before it replays the log).
     #[error("no source document with this ID was added to the session")]
     UnknownSource(crate::SourceId),
+    /// The op names a bookmark the outline does not have.
+    #[error("the outline has no item {}", ShownItem(.0))]
+    UnknownOutlineItem(OutlineItemId),
+    /// The bookmark is a direct dictionary inside another item; the outline ops edit it once
+    /// another outline op has rewritten the outline, which gives it an object of its own.
+    #[error("outline item {} is a direct dictionary, which the outline ops can't name", ShownItem(.0))]
+    DirectOutlineItem(OutlineItemId),
+    /// A position names a bookmark that is not a child of the parent the op names.
+    #[error("outline item {} is not a child of the given parent", ShownItem(.0))]
+    NotASibling(OutlineItemId),
+    /// A move would put a bookmark inside itself or one of its descendants.
+    #[error("outline item {} can't move inside itself", ShownItem(.0))]
+    OutlineIntoItself(OutlineItemId),
+    /// The op names a destination the file does not define. The name is kept here but never
+    /// formatted.
+    #[error("no named destination has this name")]
+    UnknownNamedDestination(String),
+    /// A rename to a name another destination already has. The name is kept here but never
+    /// formatted.
+    #[error("another named destination already has this name")]
+    NamedDestinationExists(String),
+    /// A destination name is empty.
+    #[error("a destination name can't be empty")]
+    EmptyDestinationName,
+    /// A web address that isn't an absolute `http`, `https` or `mailto` address in ASCII.
+    #[error("only absolute http, https and mailto addresses are allowed")]
+    LinkUriRefused,
+    /// A destination's view has a number that isn't finite.
+    #[error("a destination's coordinates and zoom must be finite numbers")]
+    ViewNotFinite,
     /// An XMP edit would change the file's PDF/A or PDF/UA identification (`pdfaid:`,
     /// `pdfuaid:`): a claim only conversion or a check can make, never an edit.
     #[error("the PDF/A and PDF/UA identification can't be edited")]
@@ -103,6 +133,18 @@ pub enum Error {
     /// by the form ops), or a direct dictionary in `/Annots`, which has no object to edit.
     #[error("annotation {} can't be edited by the annotation ops", ShownAnnot(.0))]
     AnnotationNotEditable(AnnotId),
+}
+
+/// An outline item ID as a message may show it, as [`Shown`] does pages.
+struct ShownItem<'a>(&'a OutlineItemId);
+
+impl fmt::Display for ShownItem<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.0.as_lamina_id().obj_ref() {
+            Some(_) => self.0.fmt(f),
+            None => f.write_str("(a path ID)"),
+        }
+    }
 }
 
 impl From<laminapdf_model::xmp::PropertyError> for Error {
@@ -182,6 +224,15 @@ impl Error {
         "no-pending-save",
         "malformed-xmp",
         "unknown-source",
+        "unknown-outline-item",
+        "direct-outline-item",
+        "outline-not-a-sibling",
+        "outline-move-into-itself",
+        "unknown-named-destination",
+        "named-destination-exists",
+        "empty-destination-name",
+        "link-uri-refused",
+        "view-not-finite",
         "xmp-claim-read-only",
         "invalid-xmp-packet",
         "invalid-xmp-property",
@@ -210,6 +261,15 @@ impl Error {
             Self::NoPendingSave => "no-pending-save",
             Self::MalformedXmp => "malformed-xmp",
             Self::UnknownSource(_) => "unknown-source",
+            Self::UnknownOutlineItem(_) => "unknown-outline-item",
+            Self::DirectOutlineItem(_) => "direct-outline-item",
+            Self::NotASibling(_) => "outline-not-a-sibling",
+            Self::OutlineIntoItself(_) => "outline-move-into-itself",
+            Self::UnknownNamedDestination(_) => "unknown-named-destination",
+            Self::NamedDestinationExists(_) => "named-destination-exists",
+            Self::EmptyDestinationName => "empty-destination-name",
+            Self::LinkUriRefused => "link-uri-refused",
+            Self::ViewNotFinite => "view-not-finite",
             Self::XmpClaimReadOnly => "xmp-claim-read-only",
             Self::InvalidXmpPacket(_) => "invalid-xmp-packet",
             Self::InvalidXmpProperty { .. } => "invalid-xmp-property",
@@ -238,6 +298,14 @@ impl Error {
             }
             Self::UnknownPage(_)
             | Self::UnknownSource(_)
+            | Self::UnknownOutlineItem(_)
+            | Self::NotASibling(_)
+            | Self::OutlineIntoItself(_)
+            | Self::UnknownNamedDestination(_)
+            | Self::NamedDestinationExists(_)
+            | Self::EmptyDestinationName
+            | Self::LinkUriRefused
+            | Self::ViewNotFinite
             | Self::NoPagesLeft
             | Self::InvalidOp(_)
             | Self::UnknownAnnotation(_)
@@ -245,9 +313,10 @@ impl Error {
             | Self::InvalidXmpProperty { .. }
             | Self::InvalidLabelRanges { .. } => ErrorKind::Usage,
             Self::AnnotationLocked(_) => ErrorKind::State,
-            Self::DirectPage(_) | Self::UnsupportedVersion(_) | Self::AnnotationNotEditable(_) => {
-                ErrorKind::Unsupported
-            }
+            Self::DirectPage(_)
+            | Self::UnsupportedVersion(_)
+            | Self::DirectOutlineItem(_)
+            | Self::AnnotationNotEditable(_) => ErrorKind::Unsupported,
             Self::InvalidLog(_) | Self::MalformedXmp | Self::InvalidXmpPacket(_) => ErrorKind::Input,
         }
     }
@@ -279,7 +348,23 @@ impl Error {
                     None => Location::NONE,
                 }
             }
-            Self::NestedTransaction
+            Self::UnknownOutlineItem(item)
+            | Self::DirectOutlineItem(item)
+            | Self::NotASibling(item)
+            | Self::OutlineIntoItself(item) => match item.as_lamina_id().obj_ref() {
+                Some(r) => Location {
+                    object: Some(r.num),
+                    id: Some(item.to_string()),
+                    ..Location::NONE
+                },
+                None => Location::NONE,
+            },
+            Self::UnknownNamedDestination(_)
+            | Self::NamedDestinationExists(_)
+            | Self::EmptyDestinationName
+            | Self::LinkUriRefused
+            | Self::ViewNotFinite
+            | Self::NestedTransaction
             | Self::NoTransaction
             | Self::UnsupportedVersion(_)
             | Self::InvalidLog(_)
@@ -311,6 +396,7 @@ mod tests {
     /// variant is a compile error there, and this list is what the tests compare.
     fn samples() -> Vec<Error> {
         let page: PageId = "p3.0".parse().unwrap();
+        let item: OutlineItemId = "o4.0".parse().unwrap();
         vec![
             Error::NestedTransaction,
             Error::NoTransaction,
@@ -322,6 +408,15 @@ mod tests {
             Error::NoPendingSave,
             Error::MalformedXmp,
             Error::UnknownSource(crate::SourceId::from_bytes([0; 32])),
+            Error::UnknownOutlineItem(item.clone()),
+            Error::DirectOutlineItem(item.clone()),
+            Error::NotASibling(item.clone()),
+            Error::OutlineIntoItself(item),
+            Error::UnknownNamedDestination(String::new()),
+            Error::NamedDestinationExists(String::new()),
+            Error::EmptyDestinationName,
+            Error::LinkUriRefused,
+            Error::ViewNotFinite,
             Error::XmpClaimReadOnly,
             Error::InvalidXmpPacket(laminapdf_model::xmp::ParseError::NoRdf),
             Error::InvalidXmpProperty { reason: "name" },

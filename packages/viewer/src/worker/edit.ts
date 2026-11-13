@@ -107,7 +107,12 @@ async function apply(ops: readonly Op[], id: number, signal: AbortSignal, label:
     pages.map((page) => page.index),
     Date.now(),
   );
-  return { pages, history: historyOf(edit.session, false) };
+  return {
+    pages,
+    history: historyOf(edit.session, false),
+    createdOutlineItems: edited.createdOutlineItems,
+    outlineRepaired: edited.outlineRepaired,
+  };
 }
 
 /**
@@ -337,7 +342,8 @@ export function planSave(options: SaveOptions, id: number, signal: AbortSignal):
 
 /**
  * Document `id`'s metadata as its edits leave it (Info and XMP read together), for the properties
- * dialog's form. Read from the edited document, never the text copy, which has none of the edits.
+ * dialog's form. Read from the edited document, never the text copy, which takes the edits only once it has
+ * replayed them.
  */
 export function readMetadata(id: number, signal: AbortSignal): Promise<DocumentMetadata> {
   const opened = current(id);

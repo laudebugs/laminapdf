@@ -35,7 +35,8 @@ pub fn set_catalog_entry(cos: &mut CosMut<'_>, key: &str, value: Option<Object>)
     }
 }
 
-fn put(dict: &mut laminapdf_cos::Dict, key: &str, value: Option<Object>) {
+/// Sets (`Some`) or removes (`None`) `dict`'s `key`.
+pub(crate) fn put(dict: &mut laminapdf_cos::Dict, key: &str, value: Option<Object>) {
     match value {
         Some(value) => dict.insert(key, value),
         None => {

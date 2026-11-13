@@ -13,6 +13,9 @@ mod check_what_a_file_hides;
 #[path = "../examples/duplicate_pages.rs"]
 mod duplicate_pages;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/edit_bookmarks.rs"]
+mod edit_bookmarks;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/edit_metadata.rs"]
 mod edit_metadata;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -147,7 +150,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 24] = [
+const EXAMPLES: [(&str, Build); 25] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -170,6 +173,9 @@ const EXAMPLES: [(&str, Build); 24] = [
     // validates every example's output) checks that an edit keeps both claims.
     ("edit_metadata-pdfa", || {
         edit_metadata::edit(fixture("golden/examples/pdf_a_archive-2u.pdf"), EDITED.parse()?)
+    }),
+    ("edit_bookmarks", || {
+        edit_bookmarks::edit(fixture("golden/links-and-outlines.pdf"))
     }),
     ("duplicate_pages", || {
         duplicate_pages::duplicate(fixture("pages/forms.pdf"))

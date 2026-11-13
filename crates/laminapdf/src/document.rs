@@ -5,8 +5,8 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 use laminapdf_cos::{ByteSource, OpenOptions};
-use laminapdf_model::PageId;
-use laminapdf_ops::{Op, OpLog, Origin, Reverted};
+use laminapdf_model::{OutlineItemId, PageId};
+use laminapdf_ops::{DestinationUse, Op, OpLog, Origin, Reverted};
 use laminapdf_save::{ReadableSink, Save as _, SaveOptions, SaveReport, SinkError, WriteSink};
 
 use crate::error::{Error, Result};
@@ -102,6 +102,10 @@ pub struct DocumentInfo {
 /// Added in 0.2.0.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[non_exhaustive]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "a report: one flag per fact the edit states, each independent of the others"
+)]
 pub struct Edited {
     /// IDs of the pages whose content or attributes changed, in ID order.
     pub touched_pages: Vec<PageId>,
@@ -120,6 +124,20 @@ pub struct Edited {
     /// Whether the edit changed the document. One that only set values they already had
     /// changes nothing and leaves no step to undo.
     pub changed: bool,
+    /// The bookmarks the edit added, in order: their IDs, for the edits that follow.
+    ///
+    /// Added in 0.2.0.
+    pub created_outline_items: Vec<OutlineItemId>,
+    /// An outline edit found the outline's links broken and rewrote them whole. Bookmarks
+    /// that were stored inside other bookmarks have new IDs: read the outline again.
+    ///
+    /// Added in 0.2.0.
+    pub outline_repaired: bool,
+    /// What still names a named destination the edit deleted: those bookmarks and links no
+    /// longer go anywhere.
+    ///
+    /// Added in 0.2.0.
+    pub destination_uses: Vec<DestinationUse>,
     /// The XMP properties the edit declared in a PDF/A file's extension schemas, so the file
     /// keeps its PDF/A claim ([`SetXmpProperty`](crate::SetXmpProperty),
     /// [`ReplaceXmpPacket`](crate::ReplaceXmpPacket)).
@@ -511,6 +529,9 @@ impl Document {
             still_in_earlier_revisions: applied.still_in_earlier_revisions,
             also_deleted: applied.also_deleted.iter().map(ToString::to_string).collect(),
             changed,
+            created_outline_items: applied.created_outline_items,
+            outline_repaired: applied.outline_repaired,
+            destination_uses: applied.destination_uses,
             declared: applied.declared,
             page_order: applied.page_order,
             references: applied.references.into_iter().map(ReferenceEdit::from_change).collect(),

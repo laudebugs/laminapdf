@@ -4,7 +4,7 @@
 // hold thousands of items. The last pages' links are kept, since a page scrolled back into view
 // asks again.
 
-import type { OutlineNode, PageLink, Target } from "@laminapdf/sdk";
+import type { ExplicitDestination, NamedDestination, OutlineNode, PageLink, Target, TargetView } from "@laminapdf/sdk";
 import { textModel } from "./document.js";
 import { CACHED_PAGES, RecentPages } from "./recent-pages.js";
 
@@ -21,6 +21,18 @@ export async function outline(signal: AbortSignal): Promise<OutlineNode[]> {
 export async function namedDestination(name: string, signal: AbortSignal): Promise<Target | undefined> {
   const model = await textModel(signal);
   return model.ensure(() => model.namedDestination(name), { signal });
+}
+
+/** Every named destination, sorted by name. */
+export async function namedDestinations(signal: AbortSignal): Promise<NamedDestination[]> {
+  const model = await textModel(signal);
+  return model.ensure(() => model.namedDestinations(), { signal });
+}
+
+/** Page `page` shown as `view` (page space), as the destination the outline ops take. */
+export async function destinationAt(page: number, view: TargetView, signal: AbortSignal): Promise<ExplicitDestination> {
+  const model = await textModel(signal);
+  return model.ensure(() => model.destinationAt(page, view), { signal });
 }
 
 /** Page `index`'s links, in annotation order (cached). */
