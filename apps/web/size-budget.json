@@ -1,6 +1,6 @@
 {
-  "$comment": "The reader's startup JavaScript, gzipped (cargo xtask web size). Web-app §4's target is 200000; 279100 is the waiver (web v0.1 set 270000; T5a's link previews raised it to 272000, U6k's phone Settings to 275000, the reader changes merged on 2026-11-12, #455 and #468, to 276000, E3b's bookmark editing (the Outline tab's hook for it) to 276500, the owner's call on 2026-11-13, E3d's opening view and article threads to 276900, E2c's page copying in the worker client to 277000, then the owner's call on 2026-11-13 to 279100 for C8's close button, found with main already over at 278646), issue #380, which brings it back to 200000.",
-  "startupJsGzip": 279100,
+  "$comment": "The reader's startup JavaScript, gzipped (cargo xtask web size). Web-app §4's target is 200000; 279600 is the waiver (web v0.1 set 270000; T5a's link previews raised it to 272000, U6k's phone Settings to 275000, the reader changes merged on 2026-11-12, #455 and #468, to 276000, E3b's bookmark editing (the Outline tab's hook for it) to 276500, the owner's call on 2026-11-13, E3d's opening view and article threads to 276900, E2c's page copying in the worker client to 277000, then the owner's call on 2026-11-13 to 279100 for C8's close button, found with main already over at 278646, and E4c's mark helpers on the SDK's Document (markText, noteAt, caretAt, replaceText) to 279600, the owner's call on 2026-11-13), issue #380, which brings it back to 200000.",
+  "startupJsGzip": 279600,
   "target": 200000,
   "waiver": "https://github.com/laudebugs/laminapdf/issues/380"
 }
