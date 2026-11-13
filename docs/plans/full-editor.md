@@ -148,7 +148,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Save:** incremental on `Free`; on signed files these are content changes and invalidate signatures (gated).
 - **Rendering:** touched pages reload in PDFium after an incremental update (the "two parsers" path in [architecture §6](architecture.md#6-risks)); measure and budget reload time.
 - **Web vs desktop:** desktop can use system fonts (font discovery at the edge, passed into the core as bytes); web uses bundled or user-supplied fonts.
-- **Todos:** [E6a](../todos/ready/E6a-adding-content-feature-plan.md) feature plan · [E6b](../todos/ready/E6b-place-images-and-shapes.md) Place images, shapes, logos and stamps as page content · [E6c](../todos/ready/E6c-add-text.md) Add text and special characters as page content · [E6d](../todos/ready/E6d-watermarks-headers-footers.md) Watermarks, backgrounds, headers/footers, page numbers and Bates numbering · [E6e](../todos/ready/E6e-content-tools-ui.md) Content insert tools and object handles · [E6f](../todos/ready/E6f-reload-budget.md) Touched-page reload time: measure and budget.
+- **Todos:** [E6a](../todos/ongoing/E6a-adding-content-feature-plan.md) feature plan · [E6b](../todos/ready/E6b-place-images-and-shapes.md) Place images, shapes, logos and stamps as page content · [E6c](../todos/ready/E6c-add-text.md) Add text and special characters as page content · [E6d](../todos/ready/E6d-watermarks-headers-footers.md) Watermarks, backgrounds, headers/footers, page numbers and Bates numbering · [E6e](../todos/ready/E6e-content-tools-ui.md) Content insert tools and object handles · [E6f](../todos/ready/E6f-reload-budget.md) Touched-page reload time: measure and budget.
 
 #### E7. Editing existing content
 

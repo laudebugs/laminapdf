@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E6a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [E2e](../done/E2e-content-append-api.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md) |
