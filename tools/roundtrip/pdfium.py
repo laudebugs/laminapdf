@@ -18,6 +18,7 @@ import sys
 from pathlib import Path
 
 import pypdfium2 as pdfium
+import pypdfium2.raw as c
 import pypdfium2.version as pdfium_version
 
 PINNED = "5.14.0"
@@ -91,6 +92,35 @@ def page_of(item) -> int | None:
     return None if dest is None else dest.get_index()
 
 
+def links_of(pdf: pdfium.PdfDocument) -> list:
+    """Each page's links, sorted: ["page", index], ["uri", address] or ["other"], as lamina lists them."""
+    def target(link) -> list:
+        dest = c.FPDFLink_GetDest(pdf.raw, link)
+        action = c.FPDFLink_GetAction(link)
+        if not dest and action and c.FPDFAction_GetType(action) == c.PDFACTION_GOTO:
+            dest = c.FPDFAction_GetDest(pdf.raw, action)
+        if dest:
+            index = c.FPDFDest_GetDestPageIndex(pdf.raw, dest)
+            return ["page", index] if index >= 0 else ["other"]
+        if action and c.FPDFAction_GetType(action) == c.PDFACTION_URI:
+            size = c.FPDFAction_GetURIPath(pdf.raw, action, None, 0)
+            buffer = ctypes.create_string_buffer(size)
+            c.FPDFAction_GetURIPath(pdf.raw, action, buffer, size)
+            return ["uri", buffer.value.decode("ascii", "replace")]
+        return ["other"]
+
+    pages = []
+    for i in range(len(pdf)):
+        page = pdf[i]
+        start = ctypes.c_int(0)
+        link = c.FPDF_LINK()
+        found = []
+        while c.FPDFLink_Enumerate(page.raw, ctypes.byref(start), ctypes.byref(link)):
+            found.append(target(link))
+        pages.append(sorted(found, key=lambda x: json.dumps(x, separators=(",", ":"))))
+    return pages
+
+
 def main() -> int:
     if len(sys.argv) != 2:
         raise SystemExit("usage: pdfium.py <out-dir>")
@@ -136,6 +166,9 @@ def main() -> int:
             if case.get("outline") is not None:
                 got["outline"] = outline_of(pdf)
                 want["outline"] = case["outline"]
+            if case.get("links") is not None:
+                got["links"] = links_of(pdf)
+                want["links"] = case["links"]
             if got != want:
                 failures.append(f"{case['file']}: got {got}, expected {want}")
             elif case.get("copy_of") is not None:

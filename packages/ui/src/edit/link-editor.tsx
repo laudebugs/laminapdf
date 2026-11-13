@@ -15,10 +15,9 @@ import {
   useRef,
   useState,
 } from "react";
-import { Radio } from "react-aria-components";
 import { createPortal } from "react-dom";
 import { Button } from "../components/button.js";
-import { RadioGroup } from "../components/choice.js";
+import { Radio, RadioGroup } from "../components/choice.js";
 import { Select, TextArea, TextInput } from "../components/field.js";
 import { Notice } from "../components/notice.js";
 import { type LaterMessageId, laterMessage } from "../later-messages.js";
@@ -54,6 +53,8 @@ type Kind = Exclude<LinkGoal["kind"], "script">;
 export interface LinkEditorProps {
   /** The linked text, for a link made on text; a drawn area has none. */
   readonly text?: string;
+  /** A new link on a box the user drew: the context line says so. */
+  readonly drawn?: boolean;
   /** Where it goes; undefined for a new link that doesn't go anywhere yet. */
   readonly goal: LinkGoal | undefined;
   /** The file's page count. */
@@ -98,23 +99,17 @@ export function LinkEditor(props: LinkEditorProps): ReactNode {
   const [kind, setKind] = useState<Kind>(goal === undefined || goal.kind === "script" ? "web" : goal.kind);
   return (
     <div className="paper-link-editor">
-      <p className="paper-link-context">
-        {props.text === undefined ? laterMessage("link.area") : laterMessage("link.text", { text: props.text })}
-      </p>
+      {props.text !== undefined || props.drawn === true ? (
+        <p className="paper-link-context">
+          {props.text === undefined ? laterMessage("link.area") : laterMessage("link.text", { text: props.text })}
+        </p>
+      ) : null}
       {goal?.kind === "script" ? <ScriptGoal action={goal.action} /> : null}
       <RadioGroup label={laterMessage("link.goesTo")} value={kind} onChange={(v) => setKind(v as Kind)}>
-        <Radio value="page" className="paper-radio">
-          {laterMessage("link.kind.page")}
-        </Radio>
-        <Radio value="named" className="paper-radio">
-          {laterMessage("link.kind.named")}
-        </Radio>
-        <Radio value="web" className="paper-radio">
-          {laterMessage("link.kind.web")}
-        </Radio>
-        <Radio value="email" className="paper-radio">
-          {laterMessage("link.kind.email")}
-        </Radio>
+        <Radio value="page">{laterMessage("link.kind.page")}</Radio>
+        <Radio value="named">{laterMessage("link.kind.named")}</Radio>
+        <Radio value="web">{laterMessage("link.kind.web")}</Radio>
+        <Radio value="email">{laterMessage("link.kind.email")}</Radio>
       </RadioGroup>
       <GoalFields kind={kind} {...props} />
       <TextArea

@@ -56,6 +56,8 @@ interface Editing {
   readonly lines?: readonly number[];
   /** The linked text, for the editor's context line. */
   readonly text?: string;
+  /** A new link on a box the user drew. */
+  readonly drawn?: boolean;
   readonly id?: string;
   readonly goal: LinkGoal | undefined;
   readonly contents: string;
@@ -118,6 +120,8 @@ class LinkBoxes {
   readonly #slots = new Map<number, HTMLElement>();
   /** The link selected, or the box being drawn: drawn solid. */
   marked: { readonly page: number; readonly box: Box; readonly id?: string } | undefined;
+  /** Whether the file's links show (the Link tool is on); the marked one always does. */
+  showLinks = false;
 
   constructor(viewer: Viewer, engine: Engine) {
     this.#viewer = viewer;
@@ -130,8 +134,9 @@ class LinkBoxes {
       this.#slots.set(page, slot);
       void this.#load(page);
     },
-    onUnmount: (page: number) => {
+    onUnmount: (page: number, slot: HTMLElement) => {
       this.#slots.delete(page);
+      slot.replaceChildren();
     },
   };
 
@@ -173,7 +178,7 @@ class LinkBoxes {
     };
     const marked = this.marked?.page === page ? this.marked : undefined;
     slot.replaceChildren(
-      ...this.links(page)
+      ...(this.showLinks ? this.links(page) : [])
         .filter((link) => marked?.id === undefined || link.id !== marked.id)
         .map((link) => box(link.rect, { script: link.kind === "unsupported" })),
       ...(marked === undefined ? [] : [box(marked.box, { selected: true })]),
@@ -356,6 +361,7 @@ export function LinkEditing({ engine, viewer, registry, toasts }: LinkEditingPro
       <LinkEditor
         key={editing.id ?? editing.box.join()}
         {...(editing.text === undefined ? {} : { text: editing.text })}
+        drawn={editing.drawn === true}
         goal={editing.goal}
         pageCount={engine.getState().pages.length}
         names={names}
@@ -404,15 +410,13 @@ function useLinkTool(
   useEffect(() => {
     const tools = toolsOf(viewer.edits);
     let drawing: { page: number; x: number; y: number } | undefined;
-    let off: (() => void) | undefined;
-    // The outlines show while the tool is on.
+    // The file's links show while the tool is on; the layer stays, for the link being edited.
+    const off = viewer.addLayer(boxes.layer);
     const follow = () => {
       const on = tools.getState().current === "link";
-      if (on && off === undefined) off = viewer.addLayer(boxes.layer);
-      if (!on && off !== undefined) {
-        off();
-        off = undefined;
-      }
+      if (on === boxes.showLinks) return;
+      boxes.showLinks = on;
+      boxes.reload();
     };
     const unregister = tools.register({
       name: "link",
@@ -446,7 +450,7 @@ function useLinkTool(
         if (drawing !== undefined && box !== undefined) {
           const [x0, y0, x1, y1] = box.box;
           if (x1 - x0 >= SMALLEST && y1 - y0 >= SMALLEST) {
-            select({ page: drawing.page, box: box.box, goal: undefined, contents: "" });
+            select({ page: drawing.page, box: box.box, drawn: true, goal: undefined, contents: "" });
           }
         }
         drawing = undefined;
@@ -457,7 +461,7 @@ function useLinkTool(
     return () => {
       stop();
       unregister();
-      off?.();
+      off();
     };
   }, [viewer, engine, boxes, select]);
 }

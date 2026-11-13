@@ -614,7 +614,7 @@ const links: Example[] = [
   {
     component: "LinkEditor",
     state: "a new drawn link with nowhere to go yet",
-    element: () => <LinkEditor goal={undefined} contents="" {...LINK_ACTIONS} />,
+    element: () => <LinkEditor drawn goal={undefined} contents="" {...LINK_ACTIONS} />,
   },
   {
     component: "LinkEditor",
