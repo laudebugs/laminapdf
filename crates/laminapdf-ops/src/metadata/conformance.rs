@@ -133,7 +133,10 @@ pub fn pending_conformance_warnings(
 ) -> Result<Vec<ConformanceWarning>> {
     let mut out = conformance_warnings(doc)?;
     if !pending.tags_incomplete().is_empty()
-        && doc.pages()?.iter().any(|p| pending.tags_incomplete().contains(p.id()))
+        // A page tree that can't be read can't show the copy gone: keep the warning.
+        && doc
+            .pages()
+            .map_or(true, |tree| tree.iter().any(|p| pending.tags_incomplete().contains(p.id())))
         && let PacketState::Parsed(packet) = doc.xmp()?
         && packet.pdfua_part() == Some(1)
     {
