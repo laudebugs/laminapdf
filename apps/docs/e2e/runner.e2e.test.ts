@@ -85,6 +85,20 @@ async function downloaded(page: Page): Promise<Buffer> {
   return readFileSync(await download.path());
 }
 
+/**
+ * The editor's whole text. CodeMirror draws only the lines in view, so the text comes from its
+ * state, reached as `EditorView.findFromDOM` reaches it (the content element's `cmTile.view`), which
+ * the page doesn't export.
+ */
+async function editorText(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const content = document.querySelector(".run-editor")?.shadowRoot?.querySelector(".cm-content");
+    const view = (content as { cmTile?: { view?: { state: { doc: { toString(): string } } } } } | null)?.cmTile?.view;
+    if (view === undefined) throw new Error("the editor's view isn't on its content element");
+    return view.state.doc.toString();
+  });
+}
+
 /** Replaces the editor's text with `text`. */
 async function edit(page: Page, text: string): Promise<void> {
   await page.locator(".cm-content").click();
@@ -163,6 +177,34 @@ describe(`edit and run in ${BROWSER}`, () => {
     await run(page);
     expect((await downloaded(page)).equals(golden)).toBe(true);
     expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
+    await page.context().close();
+  });
+
+  it("Format (todo Q4r) puts back the example's formatting, loading Prettier only then, and leaves a mistake alone", async () => {
+    const { page, errors, foreign, requests } = await recipe("/recipes/images-and-vectors/");
+    await page.getByRole("button", { name: "Edit and run" }).click();
+    const source = (await page.locator("lamina-run").getAttribute("data-source")) ?? "";
+    const prettier = () => requests.filter((url) => /\/(standalone|typescript|estree)\.[^/]*\.js$/.test(url));
+    expect(prettier()).toEqual([]);
+    // Every line's indentation taken out: Prettier at the examples' settings gives the file back.
+    await edit(page, source.replace(/\n +/g, "\n"));
+    await page.getByRole("button", { name: "Format" }).click();
+    await expect.poll(() => page.locator(".run-status").textContent()).toBe("Formatted.");
+    expect(prettier().length).toBeGreaterThan(0);
+    expect(await editorText(page)).toBe(source);
+    await run(page);
+    expect(
+      (await downloaded(page)).equals(readFileSync(new URL("fixtures/golden/examples/images_and_vectors.pdf", ROOT))),
+    ).toBe(true);
+
+    await edit(page, "const x = ;");
+    await page.getByRole("button", { name: "Format" }).click();
+    const problem = page.locator(".run-error");
+    await expect.poll(() => problem.isVisible()).toBe(true);
+    expect(await problem.locator("strong").textContent()).toBe("can't format");
+    expect(await editorText(page)).toBe("const x = ;");
+    expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
+    expect(foreign).toEqual([]);
     await page.context().close();
   });
 

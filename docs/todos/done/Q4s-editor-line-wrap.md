@@ -29,12 +29,11 @@ The "Edit and run" editor wraps every long line, so a line of code can break in 
 **In scope**
 
 - The editor starts with its lines unwrapped.
-- A "Wrap lines" toggle in the runner's bar, after Reset, pressed (`aria-pressed`) while lines wrap. Pressing it again unwraps them. Reset leaves the setting as it is.
+- A "Wrap lines" toggle in the runner's bar, beside Format at its far end once Q4r merged (with Q4r's `wrap-lines` icon), pressed (`aria-pressed`) while lines wrap. Pressing it again unwraps them. Reset leaves the setting as it is.
 
 **Out of scope**
 
 - The read-only code blocks' wrapping (Q4r).
-- An icon for the toggle: Q4r adds `wrap-lines`; once it merges, the toggle can take it.
 - Remembering the setting across pages.
 
 ## Tasks

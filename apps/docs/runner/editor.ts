@@ -5,6 +5,7 @@
 import { javascript } from "@codemirror/lang-javascript";
 import { Compartment } from "@codemirror/state";
 import { basicSetup, EditorView } from "codemirror";
+import { firstLine, formatCode } from "./format.js";
 import type { RunReply, RunRequest } from "./protocol.js";
 import { paperTheme } from "./theme.js";
 
@@ -156,15 +157,16 @@ function pageCanvas(bitmap: ImageBitmap, index: number): HTMLCanvasElement {
   return canvas;
 }
 
-/** The bar's buttons, which the page renders (Example.astro), hidden until now: Run, Reset and Download
- * with their icons, Wrap lines with its words alone. */
+/** The bar's buttons, which the page renders with their icons (Example.astro), hidden until now. */
 export interface RunButtons {
   readonly bar: HTMLElement;
   readonly run: HTMLButtonElement;
   readonly reset: HTMLButtonElement;
   readonly download: HTMLButtonElement;
-  /** Wraps the editor's long lines, or unwraps them (wrapOnPress). */
+  /** Wraps the editor's long lines, or unwraps them (wrapOnPress), beside Format at the bar's far end. */
   readonly wrap: HTMLButtonElement;
+  /** Formats the editor's code (format.ts), at the bar's far end. */
+  readonly format: HTMLButtonElement;
 }
 
 /** The example a runner edits. */
@@ -191,7 +193,7 @@ export interface RunPlaces {
  * Opens the example's editor in place of its TypeScript code, with the bar under it; a run's pages
  * go where the first page's picture was.
  *
- * @param buttons the bar with Run, Reset, Wrap lines and Download
+ * @param buttons the bar with Run, Reset, Download, Wrap lines and Format
  * @param example the example's file, code and PDF name
  * @param places the code's place, the picture and its column
  */
@@ -218,6 +220,7 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
   let pdf = "";
   const state: Shown = { drawn: undefined, running: false };
   keepSharp(state, file, places.pages, pages);
+  formatOnPress(view, buttons.format, status, problem);
 
   // Reset puts back the code and the picture of what it makes.
   buttons.reset.addEventListener("click", () => {
@@ -259,6 +262,39 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
     const count = reply.pageCount === 1 ? "1 page" : `${reply.pageCount} pages`;
     const shown = reply.pages.length < reply.pageCount ? `; the first ${reply.pages.length} are shown` : "";
     status.textContent = `Done: ${count}${shown}.`;
+  });
+}
+
+/**
+ * Format: the editor's code through Prettier (format.ts, which loads it on the first press), one change
+ * that Undo takes back, with the cursor where it was. Code that doesn't parse stays as typed, and
+ * the alert says where Prettier stopped.
+ */
+function formatOnPress(view: EditorView, button: HTMLButtonElement, status: HTMLElement, problem: HTMLElement): void {
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    status.textContent = "Formatting…";
+    try {
+      const code = view.state.doc.toString();
+      const formatted = await formatCode(code, view.state.selection.main.head);
+      problem.hidden = true;
+      if (formatted.code !== code) {
+        view.dispatch({
+          changes: { from: 0, to: view.state.doc.length, insert: formatted.code },
+          selection: { anchor: formatted.cursor },
+          scrollIntoView: true,
+          userEvent: "input.format",
+        });
+      }
+      status.textContent = formatted.code === code ? "Already formatted." : "Formatted.";
+    } catch (error) {
+      status.textContent = "";
+      problem.replaceChildren(element("strong", "", "can't format"), document.createTextNode(`: ${firstLine(error)}`));
+      problem.hidden = false;
+    } finally {
+      button.disabled = false;
+      view.focus();
+    }
   });
 }
 

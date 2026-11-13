@@ -40,13 +40,17 @@ Since Q4d, the first page of an example's PDF shows without a click, with the li
 
 Since Q4q, a divider sits between the code and the page wherever they are side by side. Readers drag it, or focus it and press the arrow keys, to give the page or the code more room. The code keeps at least 20rem and the page at least 12rem. Double-click or Enter puts back the 15rem default. The width applies to every example and stays in the browser's storage for the next page. With JavaScript off, the page keeps its 15rem and shows no divider. A run draws its pages at the column's width in device pixels, between 832 and 2,000, and draws them again when the divider widens the column, so the pages stay sharp.
 
+Since Q4r, every code block has a "Wrap long lines" button beside Copy. It wraps the lines of every block on the page at once, and the browser's storage keeps the choice for the next page. The docs build every block with Expressive Code's `wrap` and `preserveIndent`, so a wrapped line continues under its own indentation. Until a reader presses the button, the lines stay unwrapped and scroll.
+
+Since Q4r, "Edit and run" also has a Format button at the right end of its bar. Format runs the reader's TypeScript through Prettier with the examples' settings (Biome's: 2 spaces, 120 columns), so it leaves an unedited example exactly as written. Prettier loads on the first press and never before. Code that doesn't parse stays as typed, and the bar says where Prettier stopped.
+
 The pictures come from the example goldens, rendered at 144 dpi (2× the render goldens' 72 dpi) by the render tooling in `tools/render` (hayro), as PNG. They are committed to `apps/docs/public/examples/preview/`, next to a manifest of each golden PDF's SHA-256. `cargo xtask check docs` compares the manifest with `fixtures/golden/examples/`, so a changed example can't ship with old pictures; regenerating them is one command. The docs build stays as it is: no WebAssembly, no Python.
 
 ### Edit and run (B7e)
 
 An "Edit and run" button loads, on first press, a small runner of our own. Since Q4d the button sits under the first page's picture; the editor takes the code's place, and a run's pages take the picture's:
 
-- **Editor:** CodeMirror 6 (MIT) with TypeScript highlighting, holding the example's own file. Since Q4s, its lines start unwrapped and scroll sideways, as in an editor; a Wrap lines toggle in the bar wraps them, and pressing it again unwraps them.
+- **Editor:** CodeMirror 6 (MIT) with TypeScript highlighting, holding the example's own file. Since Q4s, its lines start unwrapped and scroll sideways, as in an editor; a Wrap lines toggle beside Format, at the bar's far end, wraps them, and pressing it again unwraps them.
 - **Types:** stripped by Sucrase (MIT) in the runner, with no type check, so a typo shows as the error the SDK throws, not a compiler message.
 - **Run:** in a module worker the docs site serves at `/run/worker.js`. A worker's CSP comes from its own script's response, so `_headers` gives `/run/*` a policy of its own with `'unsafe-eval'`, and every page keeps ADR 0011's headers unchanged. The worker loads the docs' own build of `@laminapdf/sdk` and the fonts, images and data the example takes, all from the docs site, and passes the same fixed file ID and date as the SDK's tests, so an unchanged example gives its golden's bytes.
 - **Result:** `@laminapdf/render-hayro` draws each page in the worker, the same renderer as the Result tab's pictures, and the page shows them as canvases where the picture was. A Download button saves the PDF. An error shows its code and hint, as `LaminaPdfError` gives them.
@@ -71,6 +75,7 @@ The first draft of this plan ran the code in a sandboxed iframe and drew it with
 | [B7e](../todos/done/B7e-docs-edit-and-run.md) | "Edit and run" for the six examples in §1: editor, runner worker, pages drawn by hayro, download, reset |
 | [Q4d](../todos/done/Q4d-result-beside-the-code.md) | The first page beside or below the code with no click, "Edit and run" under it, and "Your first PDF"'s Node quick start runnable (its `save` and `writeFile` hand the runner the PDF) |
 | [Q4q](../todos/done/Q4q-resizable-page-beside-the-code.md) | A divider between the code and the page beside it, dragged or moved by keys, its width kept for every example |
+| [Q4r](../todos/done/Q4r-wrap-and-format-code.md) | A "Wrap long lines" button beside every code block's Copy, and Format in "Edit and run" (Prettier, loaded on the first press) |
 | [Q4s](../todos/done/Q4s-editor-line-wrap.md) | The editor's lines unwrapped by default, with a Wrap lines toggle in the runner's bar |
 
 ## 5. To-dos
