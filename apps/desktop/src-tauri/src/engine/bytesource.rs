@@ -68,7 +68,7 @@ impl FileSource {
     ///
     /// # Errors
     /// `InvalidInput` for a read over [`MAX_READ`], `UnexpectedEof` for a read that starts past
-    /// the end or a file that has shrunk, `Other` for a file replaced since it opened, and the OS's
+    /// the end or a file that has shrunk, `Other` for a file replaced or grown since it opened, and the OS's
     /// own errors (`NotFound` for a file moved or deleted, on Windows).
     pub(crate) fn read(&self, offset: u64, len: u32) -> io::Result<Vec<u8>> {
         if len > MAX_READ {
@@ -84,10 +84,15 @@ impl FileSource {
             Access::Held(file) => self.read_from(file, offset, len),
             Access::Reopened { path, identity } => {
                 let file = open_shared(path)?;
-                // The same file, and its length unchanged: a file renamed over it has another
-                // identity, and one written in place to another length is no longer the same.
-                if file_identity(&file)? != *identity || file.metadata()?.len() != self.len {
+                // A file renamed over it has another identity, and one written in place to a
+                // greater length is no longer the file that opened. A shorter one fails as a held
+                // handle's read does.
+                let now = file.metadata()?.len();
+                if file_identity(&file)? != *identity || now > self.len {
                     return Err(io::Error::other("the file was replaced since it opened"));
+                }
+                if now < self.len {
+                    return Err(shorter());
                 }
                 self.read_from(&file, offset, len)
             }
@@ -100,12 +105,7 @@ impl FileSource {
         let mut filled = 0;
         while let Some(rest) = buf.get_mut(filled..).filter(|rest| !rest.is_empty()) {
             match read_at(file, rest, offset + filled as u64) {
-                Ok(0) => {
-                    return Err(io::Error::new(
-                        io::ErrorKind::UnexpectedEof,
-                        "the file is shorter than when it was opened",
-                    ));
-                }
+                Ok(0) => return Err(shorter()),
                 Ok(n) => filled += n,
                 Err(e) if e.kind() == io::ErrorKind::Interrupted => {}
                 Err(e) => return Err(e),
@@ -113,6 +113,13 @@ impl FileSource {
         }
         Ok(buf)
     }
+}
+
+fn shorter() -> io::Error {
+    io::Error::new(
+        io::ErrorKind::UnexpectedEof,
+        "the file is shorter than when it was opened",
+    )
 }
 
 /// `path` opened read-only. On Windows other apps may write, rename and delete it while it is open.
@@ -251,11 +258,19 @@ mod tests {
     }
 
     #[test]
-    fn a_reopening_source_should_refuse_a_file_written_to_another_length() {
+    fn a_reopening_source_should_refuse_a_file_written_longer() {
         let temp = Temp::new("regrown", b"0123456789");
         let src = FileSource::open_with(&temp.0, true).unwrap();
         std::fs::write(&temp.0, b"0123456789 and more").unwrap();
         assert_eq!(src.read(0, 4).unwrap_err().kind(), io::ErrorKind::Other);
+    }
+
+    #[test]
+    fn a_reopening_source_should_fail_cleanly_on_a_file_truncated_after_opening() {
+        let temp = Temp::new("retruncated", &[7; 4096]);
+        let src = FileSource::open_with(&temp.0, true).unwrap();
+        File::options().write(true).open(&temp.0).unwrap().set_len(100).unwrap();
+        assert_eq!(src.read(0, 4096).unwrap_err().kind(), io::ErrorKind::UnexpectedEof);
     }
 
     #[test]
