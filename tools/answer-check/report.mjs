@@ -1,6 +1,7 @@
 // What one answer says about Lamina PDF, and the report over every answer (todo W3i). Pure
-// functions over the Messages API's content blocks, so test/report.test.mjs can check them on
-// recorded answers without the network.
+// functions over an answer's parts: the Claude Messages API's content blocks or the OpenAI
+// Responses API's output items, so test/report.test.mjs can check them on recorded answers without
+// the network.
 
 /**
  * @typedef {object} Target - what counts as Lamina PDF (config.json's `target`)
@@ -127,7 +128,7 @@ export function analyse(
     run,
     model,
     fallback,
-    stopReason,
+    stopReason: parts.refused ? "refusal" : stopReason,
     text,
     queries: parts.queries,
     results,
@@ -140,10 +141,12 @@ export function analyse(
   };
 }
 
-/** @typedef {{ text: string[], queries: string[], results: string[], cited: string[], searchErrors: string[] }} Parts */
+/** @typedef {{ text: string[], queries: string[], results: string[], cited: string[], searchErrors: string[], refused?: boolean }} Parts */
 
 /**
- * What each kind of content block adds to an answer; other kinds add nothing.
+ * What each kind of part adds to an answer: Claude's content blocks (`text`, `server_tool_use`,
+ * `web_search_tool_result`) and OpenAI's output items (`message`, `web_search_call`), whose type
+ * names don't overlap. Other kinds add nothing.
  *
  * @type {Record<string, (block: any, parts: Parts) => void>}
  */
@@ -162,6 +165,29 @@ const READERS = {
     } else if (block.content?.error_code) {
       parts.searchErrors.push(block.content.error_code);
     }
+  },
+  // OpenAI: the answer's text with its URL citations, or a refusal.
+  message(block, parts) {
+    for (const content of block.content ?? []) {
+      if (content.type === "output_text") {
+        parts.text.push(content.text);
+        for (const note of content.annotations ?? []) {
+          if (note.type === "url_citation" && typeof note.url === "string") parts.cited.push(note.url);
+        }
+      } else if (content.type === "refusal") {
+        parts.refused = true;
+      }
+    }
+  },
+  // OpenAI: a search (its queries and, when asked for, its sources) or a page it opened.
+  web_search_call(block, parts) {
+    const action = block.action ?? {};
+    for (const query of [action.query, ...(action.queries ?? [])]) {
+      if (typeof query === "string" && !parts.queries.includes(query)) parts.queries.push(query);
+    }
+    for (const source of action.sources ?? []) if (typeof source.url === "string") parts.results.push(source.url);
+    if (typeof action.url === "string") parts.results.push(action.url);
+    if (block.status === "failed") parts.searchErrors.push("failed");
   },
 };
 
@@ -182,8 +208,11 @@ function urlsIn(value, into) {
   }
 }
 
-/** Why an answer counts as failed: a refusal, an unfinished turn, a cut-off text or a failed search. */
-const UNFINISHED = new Set(["refusal", "pause_turn", "max_tokens"]);
+/**
+ * Why an answer counts as failed: a refusal, an unfinished turn, a cut-off text or a failed search.
+ * Claude's stop reasons, then OpenAI's: an `incomplete` response's reason, or a `failed` one.
+ */
+const UNFINISHED = new Set(["refusal", "pause_turn", "max_tokens", "max_output_tokens", "content_filter", "failed"]);
 
 /**
  * Per question, how many runs mentioned, surfaced and cited Lamina PDF, and the hosts its answers

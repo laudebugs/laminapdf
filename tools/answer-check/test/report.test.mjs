@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { analyse, isTargetUrl, markdown, mentions, summarise } from "../report.mjs";
-import { parseArgs, request, selectQuestions } from "../run.mjs";
+import { claudeRequest, openaiRaw, openaiRequest, parseArgs, selectQuestions, settingsOf } from "../run.mjs";
 
 const config = JSON.parse(readFileSync(new URL("../config.json", import.meta.url), "utf8"));
 const target = config.target;
@@ -191,22 +191,42 @@ describe("the report", () => {
 });
 
 describe("the runner", () => {
-  it("asks the question alone, with web search and the pinned model", () => {
-    const params = request(config, "What PDF library?");
+  it("asks Claude the question alone, with web search and the pinned model", () => {
+    const { claude } = config.engines;
+    const params = claudeRequest(claude, "What PDF library?");
     assert.deepEqual(params.messages, [{ role: "user", content: "What PDF library?" }]);
-    assert.equal(params.model, config.model);
-    assert.deepEqual(params.tools, [{ type: "web_search_20260209", name: "web_search", max_uses: config.maxSearches }]);
+    assert.equal(params.model, claude.model);
+    assert.deepEqual(params.tools, [{ type: "web_search_20260209", name: "web_search", max_uses: claude.maxSearches }]);
     assert.equal("system" in params, false);
   });
 
+  it("asks OpenAI the question alone, with web search, its sources and the pinned model", () => {
+    const { openai } = config.engines;
+    const params = openaiRequest(openai, "What PDF library?");
+    assert.equal(params.input, "What PDF library?");
+    assert.equal(params.model, openai.model);
+    assert.deepEqual(params.tools, [{ type: "web_search" }]);
+    assert.equal(params.max_tool_calls, openai.maxSearches);
+    assert.deepEqual(params.include, ["web_search_call.action.sources"]);
+    assert.equal("instructions" in params, false);
+  });
+
+  it("records the engine and its model in the report's settings", () => {
+    assert.equal(settingsOf(config, "openai", 3).engine, "openai");
+    assert.equal(settingsOf(config, "openai", 3).model, config.engines.openai.model);
+    assert.equal(settingsOf(config, "claude", 1).model, config.engines.claude.model);
+  });
+
   it("reads its options and refuses unknown ones", () => {
-    assert.deepEqual(parseArgs(["--questions", "a,b", "--repeats", "2", "--dry-run"]), {
+    assert.deepEqual(parseArgs(["--engine", "openai", "--questions", "a,b", "--repeats", "2", "--dry-run"]), {
+      engine: "openai",
       questions: ["a", "b"],
       repeats: 2,
       dryRun: true,
     });
     assert.throws(() => parseArgs(["--repeats", "0"]), /whole number/);
     assert.throws(() => parseArgs(["--nope"]), /unknown argument/);
+    assert.throws(() => parseArgs(["--engine", "bing"]), /--engine takes one of/);
     assert.throws(() => parseArgs(["--questions", ""]), /one or more question ids/);
   });
 
@@ -227,5 +247,100 @@ describe("the runner", () => {
     const questions = JSON.parse(readFileSync(new URL("../questions.json", import.meta.url), "utf8"));
     assert.equal(new Set(questions.map((q) => q.id)).size, questions.length);
     for (const q of questions) assert.equal(mentions(q.question, target), false, q.id);
+  });
+});
+
+/** A recorded OpenAI response: a search with its sources, then text that cites one of them. */
+const openaiResponse = {
+  model: "gpt-6-astra",
+  status: "completed",
+  usage: { input_tokens: 1200, output_tokens: 300 },
+  output: [
+    { type: "reasoning", id: "rs_1", summary: [] },
+    {
+      type: "web_search_call",
+      id: "ws_1",
+      status: "completed",
+      action: {
+        type: "search",
+        query: "typescript pdf library",
+        sources: [
+          { type: "url", url: "https://pdf-lib.js.org/" },
+          { type: "url", url: "https://docs.laminapdf.com/start/first-pdf/" },
+        ],
+      },
+    },
+    {
+      type: "web_search_call",
+      id: "ws_2",
+      status: "completed",
+      action: { type: "open_page", url: "https://laminapdf.com/" },
+    },
+    {
+      type: "message",
+      role: "assistant",
+      content: [
+        {
+          type: "output_text",
+          text: "Try Lamina PDF or pdf-lib.",
+          annotations: [
+            {
+              type: "url_citation",
+              url: "https://docs.laminapdf.com/start/first-pdf/",
+              title: "x",
+              start_index: 4,
+              end_index: 14,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+describe("OpenAI answers", () => {
+  const answer = analyse({ question: "ts-generate", run: 1, ...openaiRaw(openaiResponse) }, target);
+
+  it("reads the text, the queries, the sources, the opened pages and the citations", () => {
+    assert.equal(answer.text, "Try Lamina PDF or pdf-lib.");
+    assert.deepEqual(answer.queries, ["typescript pdf library"]);
+    assert.deepEqual(answer.results, [
+      "https://pdf-lib.js.org/",
+      "https://docs.laminapdf.com/start/first-pdf/",
+      "https://laminapdf.com/",
+    ]);
+    assert.deepEqual(answer.cited, ["https://docs.laminapdf.com/start/first-pdf/"]);
+    assert.equal(answer.mentioned && answer.surfaced && answer.citedTarget, true);
+  });
+
+  it("counts the searches and the tokens, and serves no fallback", () => {
+    assert.deepEqual(answer.usage, { inputTokens: 1200, outputTokens: 300, searches: 2 });
+    assert.equal(answer.fallback, false);
+    assert.equal(answer.stopReason, "completed");
+  });
+
+  it("counts a refusal, a cut-off answer and a failed search as failed", () => {
+    const refused = openaiRaw({
+      model: "m",
+      status: "completed",
+      output: [{ type: "message", content: [{ type: "refusal", refusal: "no" }] }],
+    });
+    const cut = openaiRaw({
+      model: "m",
+      status: "incomplete",
+      incomplete_details: { reason: "max_output_tokens" },
+      output: [],
+    });
+    const search = openaiRaw({
+      model: "m",
+      status: "completed",
+      output: [{ type: "web_search_call", status: "failed", action: {} }],
+    });
+    const rows = summarise([
+      analyse({ question: "q", run: 1, ...refused }, target),
+      analyse({ question: "q", run: 2, ...cut }, target),
+      analyse({ question: "q", run: 3, ...search }, target),
+    ]);
+    assert.equal(rows[0]?.failed, 3);
   });
 });
