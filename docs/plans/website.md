@@ -56,7 +56,7 @@ Remote documents open from `https://app.laminapdf.com/#url=…`. The fragment ru
   | `/performance` | the reader benchmark | [U5b](../todos/ready/U5b-reader-benchmark.md) |
   | `/how-we-test` | the nightly's robustness figures, the licence and how the code is written | [T1b](../todos/done/T1b-how-we-test-page.md) |
   | `/desktop/releases/<version>` | desktop release notes, which the updater links to | [D5a](../todos/done/D5a-update-worker-and-adr-0014.md), [D7c](../todos/ready/D7c-desktop-beta-release.md) |
-  | `/keys/lamina-release.asc` | the public key that signs the Linux packages | [D6a](../todos/ready/D6a-signing-runbook-and-owner-setup.md) |
+  | `/keys/lamina-release.asc` | the public key that signs the Linux packages | [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md) |
 
 - **Look.** Paper, through `@laminapdf/tokens` and the self-hosted fonts of `@laminapdf/fonts` ([U6b](../todos/done/U6b-self-hosted-fonts.md)), the one copy that the reader, the desktop app and both sites share. The header is §7.39's: the wordmark, the links Download · Docs · Pricing · Performance · Privacy, and "Open the web app". [W1d](../todos/done/W1d-one-site-header.md) gives the website and the docs site one header, built from one list of links.
 - **Privacy.** The website keeps the reader's promises that apply to a page of text. It sets no cookies, loads nothing from a third party and sends no analytics. ADR 0011's amendment states these rules and the website's headers, and W1b checks every built page against them.

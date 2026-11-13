@@ -63,7 +63,7 @@ and the install gets the release when `bucket < rollout_percent × 100`. Hashing
 
 ### 6. Signing identities
 
-The owner, **Laurence Ininda**, is the publisher on every operating system. The setup, the secrets and their renewal are in the desktop release runbook, `docs/guidelines/desktop-release.md`, which [D6a](../todos/ready/D6a-signing-runbook-and-owner-setup.md) adds.
+The owner, **Laurence Ininda**, is the publisher on every operating system. The setup, the secrets and their renewal are in the desktop release runbook, `docs/guidelines/desktop-release.md`, which [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md) adds.
 
 | OS | Identity | Shown as |
 | --- | --- | --- |
