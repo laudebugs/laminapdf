@@ -26,6 +26,7 @@
 mod conformance;
 mod read;
 mod write;
+mod xmp;
 
 use laminapdf_model::PdfDate;
 use laminapdf_model::xmp::{MappedField, Value, is_xml_char};
@@ -35,9 +36,10 @@ use crate::error::Result;
 use crate::op::Effect;
 use crate::wire;
 
-pub use conformance::{ConformanceWarning, conformance_warnings};
+pub use conformance::{ConformanceWarning, conformance_warnings, pending_conformance_warnings};
 pub use read::{DocumentMetadata, MetadataSource, PacketStatus, read_metadata};
 pub(crate) use write::{Policy, write};
+pub use xmp::{RemoveXmpProperty, ReplaceXmpPacket, SetXmpProperty};
 
 /// A metadata field Lamina PDF keeps in step in the Info dictionary and the XMP packet: what
 /// [`RemoveMetadata`] removes and [`DocumentMetadata::disagreements`] names.

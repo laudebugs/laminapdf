@@ -2424,6 +2424,184 @@ The decisions and todos behind this code:
 
 - [E2p](../todos/done/E2p-source-documents-and-copier.md): source documents and the blob store
 ",
+        "xmp-claim-read-only" => r#"# `xmp-claim-read-only`
+
+- Type: error
+- Kind: `usage` (the call was made wrongly)
+
+## What happened
+
+An XMP edit tried to change the file's PDF/A or PDF/UA identification: the `pdfaid:` or `pdfuaid:` properties that say which standard the file claims to meet. Lamina PDF refused the edit, and nothing changed.
+
+## Why
+
+These properties are a promise that the whole file meets a standard. Only converting the file, or checking it against the standard, can make that promise. An edit to the metadata can't, so `setXmpProperty` and `removeXmpProperty` refuse these properties, and `replaceXmpPacket` refuses a packet whose `pdfaid:` or `pdfuaid:` properties differ from the file's.
+
+## How to fix
+
+Edit the other properties instead. When you replace the whole packet, copy the file's `pdfaid:` and `pdfuaid:` properties into the new packet unchanged, or leave them out of a file that has none.
+
+## Example
+
+```ts
+doc.setXmpProperty("http://www.aiim.org/pdfa/ns/id/", "pdfaid", "part", { type: "integer", value: 3 });
+// xmp-claim-read-only: the file's PDF/A part can't be edited
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3e](../todos/done/E3e-xmp-editor.md): the general XMP editor
+- [E3 plan §11](../plans/editor/e3-navigation-attachments-inspection.md#11-decisions-on-the-open-questions): why the identification is read-only
+"#,
+        "invalid-xmp-packet" => r#"# `invalid-xmp-packet`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+`replaceXmpPacket` was given XML that isn't an XMP packet Lamina PDF can read, so the document's packet was left as it was.
+
+## Why
+
+The new packet is read before it replaces the old one, with the same rules as a packet in a file. It must be well-formed XML in UTF-8 or UTF-16 with an `rdf:RDF` element, every prefix declared. It must not declare a DTD or use entities other than XML's five predefined ones, and it must stay within the limits on depth and attributes.
+
+## How to fix
+
+Fix the XML near the `offset` in the error's data; `reason` says what is wrong. Then replace the packet again.
+
+## Example
+
+```ts
+doc.replaceXmpPacket("<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF>");
+// invalid-xmp-packet: reason "prefix", the rdf: prefix isn't declared
+```
+
+## Data fields
+
+- `reason`: what is wrong: `encoding` (neither UTF-8 nor UTF-16), `dtd`, `entity` (an undefined entity), `prefix` (an undeclared prefix), `depth` (elements nested more than 64 deep), `limit` (too many attributes or namespaces), `syntax` (not well-formed XML) or `no-rdf` (no `rdf:RDF` element).
+- `offset`: the byte in the packet where the problem is, when there is one place.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3e](../todos/done/E3e-xmp-editor.md): the general XMP editor
+"#,
+        "invalid-xmp-property" => r#"# `invalid-xmp-property`
+
+- Type: error
+- Kind: `usage` (the call was made wrongly)
+
+## What happened
+
+`setXmpProperty` or `removeXmpProperty` named a property, or gave a value, that can't be written to the document's XMP metadata. Nothing changed.
+
+## Why
+
+An XMP property is named by a namespace URI and a local name, and written with a prefix for its namespace. A value can't be written when:
+
+- the namespace is empty, or is one the packet's own structure uses (RDF, `xml:`, `x:`, or the PDF/A extension schemas);
+- the prefix or name isn't an XML name without a colon, or the prefix starts with `xml`;
+- an array or a language alternative has no entries, an array mixes types or holds other arrays, or a language appears twice;
+- the property is one the document information dictionary mirrors (`dc:title`, `dc:creator`, `pdf:Producer`, the dates, …) and the value has the wrong shape for it.
+
+## How to fix
+
+Change the part `reason` names. For a property the information dictionary mirrors, give the title and subject as text, the authors (`dc:creator`) as an array of text, and the dates as dates. To write a structure, or the title in other languages, replace the whole packet with `replaceXmpPacket`.
+
+## Example
+
+```ts
+doc.setXmpProperty("http://purl.org/dc/elements/1.1/", "dc", "title", { type: "integer", value: 3 });
+// invalid-xmp-property: reason "shape", the title is text
+```
+
+## Data fields
+
+- `reason`: the part that can't be written: `namespace`, `prefix`, `name`, `value` (an empty, mixed or nested array, or a repeated language) or `shape` (the wrong shape for a mirrored property).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3e](../todos/done/E3e-xmp-editor.md): the general XMP editor
+"#,
+        "no-pages-left" => r"# `no-pages-left`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A page deletion named every page of the document. Lamina PDF refused it and changed nothing, because a PDF needs at least one page for a reader to show.
+
+## Why
+
+The pages given to the deletion cover the whole document. That can happen when someone selects every page and deletes the selection, or when a script deletes pages one batch at a time and the last batch takes the rest.
+
+## How to fix
+
+Keep at least one page. Delete all the pages but one, or insert a blank page first and then delete the others.
+
+## Example
+
+```rust
+let pages: Vec<_> = doc.page_infos()?.into_iter().map(|p| p.id).collect();
+doc.apply(vec![DeletePages::new(pages).into()])?; // no-pages-left
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E2b](../todos/done/E2b-page-structure-ops.md): the page-structure ops
+- [E2 plan §11](../plans/editor/e2-page-organisation.md#11-decisions-on-the-open-questions): deleting every page is refused
+",
+        "invalid-op" => r"# `invalid-op`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An edit carried a value Lamina PDF can't use, so Lamina PDF refused it and left the document unchanged. Inserting blank pages, for example, needs a page count from 1 to 10,000 and a size whose width and height are above 0 and at most 14,400 points.
+
+## Why
+
+The value came from the caller, often from an op log that a script built or that came from elsewhere. It was out of range: a count of 0 or millions of pages, or a size that is zero, negative or not a number.
+
+## How to fix
+
+Check the values before you apply the edit. Insert blank pages in batches of at most 10,000, and give each page a width and height in points, such as 612 by 792 for US Letter.
+
+## Example
+
+```rust
+let op = InsertBlankPages::new(PagePosition::End, 0, PageSize::LETTER);
+doc.apply(vec![op.into()])?; // invalid-op: insert at least one page
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E2b](../todos/done/E2b-page-structure-ops.md): the page-structure ops
+",
         "unknown-annotation" => r#"# `unknown-annotation`
 
 - Type: error
@@ -2529,6 +2707,39 @@ The decisions and todos behind this code:
 
 - [E4b](../todos/done/E4b-annotation-model-and-overlay.md): the annotation model and the annotation ops' core
 "#,
+        "invalid-label-ranges" => r"# `invalid-label-ranges`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A `SetPageLabels` op gave page label ranges that break a rule of the PDF standard, so nothing was changed.
+
+## Why
+
+A document's page labels are a list of ranges, each starting at a page (ISO 32000-2 §12.4.2). The list must start on the first page, so every page has a label. The ranges must follow the page order, with at most one starting on any page. Numbers start from 1, so a range can't number from 0.
+
+## How to fix
+
+Give the ranges in page order, put the first on the document's first page, and number each from 1 or more. To remove every label, give an empty list.
+
+## Example
+
+```rust
+let first = doc.page_info(0)?.id;
+let third = doc.page_info(2)?.id;
+let ranges = vec![
+    PageLabelRange::new(third, Some(LabelStyle::Decimal)),
+    PageLabelRange::new(first, Some(LabelStyle::LowerRoman)),
+];
+doc.apply(vec![Op::from(SetPageLabels::new(ranges))]); // invalid-label-ranges: out of page order
+```
+
+## Data fields
+
+- `what`: the rule that was broken: `first-page` (the first range isn't on the first page), `order` (ranges out of page order, or two on one page) or `first-number` (a range numbered from 0).
+",
         "pdfa-one-author" => r#"# `pdfa-one-author`
 
 - Type: warning
@@ -2622,6 +2833,38 @@ The decisions and todos behind this code:
 
 - [E1c](../todos/done/E1c-metadata-ops.md): the conformance warnings
 "#,
+        "duplicate-tags-incomplete" => r"# `duplicate-tags-incomplete`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file says it conforms to PDF/UA-1, and a duplicated page's copy is partly untagged. PDF/UA-1 requires every piece of real content to be tagged (ISO 14289-1 §7.1), so saving the file as it is writes one that no longer meets it.
+
+## Why
+
+A copy shares its page's content, so Lamina PDF tags it with copies of the page's structure elements. An element that also holds content on another page, such as a paragraph that runs over a page break, can't be copied for one page alone. The copy's share of that content is left untagged rather than tied to the original's element. The same holds for content drawn by a form XObject that carries tags of its own, since the copy shares that XObject with its page.
+
+## How to fix
+
+Tag the copy's untagged content in a tagging tool, or duplicate only pages whose elements end on the page. If the file needn't stay PDF/UA-1, save anyway: the warning never blocks a save.
+
+## Example
+
+Duplicating a page whose last paragraph continues on the next page, in a PDF/UA-1 file, then `doc.plan()`, lists `duplicate-tags-incomplete`. The edit's `tagsIncomplete` names the copy.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E2k](../todos/done/E2k-duplicate-pages.md): duplicating pages
+- [E2 plan §3](../plans/editor/e2-page-organisation.md#3-conformance-the-edits-must-keep): what page edits do to a PDF/UA claim
+",
         "sink" => r"# `sink`
 
 - Type: error

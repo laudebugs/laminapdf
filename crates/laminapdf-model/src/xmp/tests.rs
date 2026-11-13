@@ -741,6 +741,260 @@ fn characters_xml_cannot_hold_are_refused() {
     );
 }
 
+const ACME: &str = "http://example.com/acme/";
+
+/// A packet that claims PDF/A-2b, around `extra` properties in its description.
+fn pdfa(extra: &str) -> Packet {
+    packet(&format!(
+        r#"  <rdf:Description rdf:about="" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/">
+   <pdfaid:part>2</pdfaid:part>
+   <pdfaid:conformance>B</pdfaid:conformance>{extra}
+  </rdf:Description>"#
+    ))
+}
+
+fn declares(written: &Written, namespace: &str, name: &str) -> bool {
+    let reread = Packet::parse(&written.bytes).unwrap();
+    reread
+        .rdf
+        .extensions
+        .as_ref()
+        .is_some_and(|x| x.declares(namespace, name))
+}
+
+#[test]
+fn a_custom_property_is_added_with_its_namespace() {
+    let mut p = packet(r#"  <rdf:Description rdf:about=""/>"#);
+    p.set_property(ACME, "acme", "batch", Some(XmpValue::Integer(42)))
+        .unwrap();
+    let written = p.write();
+    let reread = Packet::parse(&written.bytes).unwrap();
+    assert_eq!(reread.property(ACME, "batch"), Some(&RdfValue::Text("42".into())));
+    assert!(!written.canonical && written.declared.is_empty());
+}
+
+#[test]
+fn a_custom_property_is_replaced_in_attribute_form() {
+    let mut p = packet(r#"  <rdf:Description rdf:about="" xmlns:acme="http://example.com/acme/" acme:ok='no'/>"#);
+    p.set_property(ACME, "acme", "ok", Some(XmpValue::Boolean(true)))
+        .unwrap();
+    let out = text(&p.write());
+    assert!(out.contains("acme:ok='True'"), "{out}");
+}
+
+#[test]
+fn arrays_uris_and_language_alternatives_are_written_as_rdf() {
+    let mut p = packet(r#"  <rdf:Description rdf:about=""/>"#);
+    let items = vec![XmpValue::Text("b".into()), XmpValue::Text("a".into())];
+    p.set_property(ACME, "acme", "tags", Some(XmpValue::Bag(items)))
+        .unwrap();
+    p.set_property(
+        ACME,
+        "acme",
+        "home",
+        Some(XmpValue::Uri("https://example.com/?a&b".into())),
+    )
+    .unwrap();
+    let alt = vec![LangText::new("fr", "Bonjour"), LangText::new("x-default", "Hello")];
+    p.set_property(ACME, "acme", "greeting", Some(XmpValue::LangAlt(alt)))
+        .unwrap();
+    let reread = Packet::parse(&p.write().bytes).unwrap();
+    let Some(RdfValue::Array { kind, items }) = reread.property(ACME, "tags") else {
+        panic!("tags is not an array");
+    };
+    assert_eq!((*kind, items.len()), (ArrayKind::Bag, 2));
+    let Some(RdfValue::Array { items, .. }) = reread.property(ACME, "greeting") else {
+        panic!("greeting is not an array");
+    };
+    assert_eq!(items.first().and_then(|i| i.lang.as_deref()), Some("x-default"));
+    let Some(RdfValue::Other(home)) = reread.property(ACME, "home") else {
+        panic!("home is not a resource");
+    };
+    assert!(
+        home.contains(r#"rdf:resource="https://example.com/?a&amp;b""#),
+        "{home}"
+    );
+}
+
+#[test]
+fn removing_a_custom_property_leaves_the_others() {
+    let mut p = packet(
+        r#"  <rdf:Description rdf:about="" xmlns:acme="http://example.com/acme/">
+   <acme:a>1</acme:a>
+   <acme:b>2</acme:b>
+  </rdf:Description>"#,
+    );
+    p.set_property(ACME, "acme", "a", None).unwrap();
+    let reread = Packet::parse(&p.write().bytes).unwrap();
+    assert_eq!(
+        (reread.property(ACME, "a"), reread.property(ACME, "b")),
+        (None, Some(&RdfValue::Text("2".into())))
+    );
+}
+
+#[test]
+fn a_taken_prefix_gets_a_fresh_one() {
+    let mut p = packet(r#"  <rdf:Description rdf:about="" xmlns:acme="http://example.com/other/"/>"#);
+    p.set_property(ACME, "acme", "x", Some(XmpValue::Text("y".into())))
+        .unwrap();
+    let out = text(&p.write());
+    assert!(out.contains(r#"xmlns:acme1="http://example.com/acme/""#) && out.contains("<acme1:x>y</acme1:x>"));
+}
+
+#[test]
+fn set_property_refuses_what_it_cannot_write() {
+    let mut p = Packet::new_minimal();
+    let v = || Some(XmpValue::Text("t".into()));
+    assert_eq!(p.set_property("", "a", "b", v()), Err(PropertyError::Namespace));
+    assert_eq!(p.set_property(RDF, "a", "b", v()), Err(PropertyError::Namespace));
+    assert_eq!(
+        p.set_property(PDFA_EXTENSION, "a", "b", v()),
+        Err(PropertyError::Namespace)
+    );
+    assert_eq!(p.set_property(ACME, "xmlns", "b", v()), Err(PropertyError::Prefix));
+    assert_eq!(p.set_property(ACME, "a:b", "b", v()), Err(PropertyError::Prefix));
+    assert_eq!(p.set_property(ACME, "a", "1b", v()), Err(PropertyError::Name));
+    assert_eq!(
+        p.set_property(DC, "dc", "title", v()),
+        Err(PropertyError::Mapped(MappedField::Title))
+    );
+    assert_eq!(
+        p.set_property(ACME, "a", "b", Some(XmpValue::Seq(vec![]))),
+        Err(PropertyError::Value(ValueError::Empty))
+    );
+    assert!(!p.is_changed());
+}
+
+#[test]
+fn a_pdfa_packet_declares_a_new_custom_property() {
+    let mut p = pdfa("");
+    p.set_property(ACME, "acme", "batch", Some(XmpValue::Integer(7)))
+        .unwrap();
+    let written = p.write();
+    assert_eq!(
+        written
+            .declared
+            .iter()
+            .map(|d| (d.name.as_str(), d.value_type.as_str()))
+            .collect::<Vec<_>>(),
+        [("batch", "Integer")]
+    );
+    assert!(declares(&written, ACME, "batch"));
+    let out = text(&written);
+    assert!(out.contains("<pdfaSchema:prefix>acme</pdfaSchema:prefix>"), "{out}");
+}
+
+#[test]
+fn a_packet_without_a_pdfa_claim_declares_nothing() {
+    let mut p = packet(r#"  <rdf:Description rdf:about=""/>"#);
+    p.set_property(ACME, "acme", "batch", Some(XmpValue::Integer(7)))
+        .unwrap();
+    assert!(!text(&p.write()).contains("pdfaExtension"));
+}
+
+#[test]
+fn predefined_schemas_and_declared_properties_need_no_declaration() {
+    let schemas = r#"
+   <pdfaExtension:schemas xmlns:pdfaExtension="http://www.aiim.org/pdfa/ns/extension/" xmlns:pdfaSchema="http://www.aiim.org/pdfa/ns/schema#" xmlns:pdfaProperty="http://www.aiim.org/pdfa/ns/property#">
+    <rdf:Bag>
+     <rdf:li rdf:parseType="Resource">
+      <pdfaSchema:namespaceURI>http://example.com/acme/</pdfaSchema:namespaceURI>
+      <pdfaSchema:prefix>acme</pdfaSchema:prefix>
+      <pdfaSchema:property>
+       <rdf:Seq>
+        <rdf:li rdf:parseType="Resource">
+         <pdfaProperty:name>batch</pdfaProperty:name>
+         <pdfaProperty:valueType>Integer</pdfaProperty:valueType>
+        </rdf:li>
+       </rdf:Seq>
+      </pdfaSchema:property>
+     </rdf:li>
+    </rdf:Bag>
+   </pdfaExtension:schemas>"#;
+    let mut p = pdfa(schemas);
+    p.set_property(ACME, "acme", "batch", Some(XmpValue::Integer(8)))
+        .unwrap();
+    p.set_property(
+        "http://ns.adobe.com/photoshop/1.0/",
+        "photoshop",
+        "City",
+        Some(XmpValue::Text("Oslo".into())),
+    )
+    .unwrap();
+    assert_eq!(p.write().declared, Vec::<ExtensionProperty>::new());
+}
+
+#[test]
+fn a_new_property_joins_its_schemas_list_of_properties() {
+    let mut p = pdfa(
+        r#"
+   <pdfaExtension:schemas xmlns:pdfaExtension="http://www.aiim.org/pdfa/ns/extension/" xmlns:pdfaSchema="http://www.aiim.org/pdfa/ns/schema#" xmlns:pdfaProperty="http://www.aiim.org/pdfa/ns/property#">
+    <rdf:Bag>
+     <rdf:li rdf:parseType="Resource">
+      <pdfaSchema:namespaceURI>http://example.com/acme/</pdfaSchema:namespaceURI>
+      <pdfaSchema:prefix>acme</pdfaSchema:prefix>
+      <pdfaSchema:property>
+       <rdf:Seq>
+        <rdf:li rdf:parseType="Resource"><pdfaProperty:name>batch</pdfaProperty:name></rdf:li>
+       </rdf:Seq>
+      </pdfaSchema:property>
+     </rdf:li>
+    </rdf:Bag>
+   </pdfaExtension:schemas>"#,
+    );
+    p.set_property(ACME, "acme", "lot", Some(XmpValue::Text("A".into())))
+        .unwrap();
+    p.set_property("http://example.com/other/", "o", "x", Some(XmpValue::Text("B".into())))
+        .unwrap();
+    let written = p.write();
+    assert!(declares(&written, ACME, "batch") && declares(&written, ACME, "lot"));
+    assert!(declares(&written, "http://example.com/other/", "x"));
+    assert_eq!(
+        text(&written).matches("pdfaExtension:schemas").count(),
+        2,
+        "one list, opened and closed"
+    );
+    assert!(!written.canonical);
+}
+
+#[test]
+fn a_read_only_pdfa_packet_declares_in_its_canonical_rewrite() {
+    let source =
+        wrapped(r#"  <rdf:Description rdf:about="" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/" pdfaid:part="2"/>"#)
+            .replace("end=\"w\"", "end=\"r\"");
+    let mut p = Packet::parse(source.as_bytes()).unwrap();
+    p.set_property(ACME, "acme", "batch", Some(XmpValue::Integer(7)))
+        .unwrap();
+    let written = p.write();
+    assert!(written.canonical && declares(&written, ACME, "batch"));
+}
+
+#[test]
+fn declare_extensions_declares_what_a_pdfa_packet_already_uses() {
+    let mut p = pdfa(
+        r#"
+   <acme:batch xmlns:acme="http://example.com/acme/">7</acme:batch>
+   <acme:tags xmlns:acme="http://example.com/acme/"><rdf:Seq><rdf:li>a</rdf:li></rdf:Seq></acme:tags>
+   <acme:point xmlns:acme="http://example.com/acme/" rdf:parseType="Resource"><acme:x>1</acme:x></acme:point>"#,
+    );
+    p.declare_extensions();
+    let written = p.write();
+    let types: Vec<(&str, &str)> = written
+        .declared
+        .iter()
+        .map(|d| (d.name.as_str(), d.value_type.as_str()))
+        .collect();
+    assert_eq!(
+        types,
+        [("batch", "Text"), ("tags", "Seq Text")],
+        "the structure is left out"
+    );
+    assert!(declares(&written, ACME, "tags"));
+    let mut plain = packet(r#"  <rdf:Description rdf:about=""/>"#);
+    plain.declare_extensions();
+    assert!(!plain.is_changed());
+}
+
 /// A packet whose header's byte-order mark is mangled as in PDFium's XFA test files: `begin="`
 /// then EF BB 3F, not EF BB BF.
 fn mangled(descriptions: &str) -> Vec<u8> {

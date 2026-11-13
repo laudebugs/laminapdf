@@ -5,7 +5,13 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { type DocumentMetadataData, type MetadataChange, PropertiesDialog } from "../../src/dialogs.ts";
+import {
+  type DocumentMetadataData,
+  type MetadataChange,
+  PropertiesDialog,
+  type XmpChange,
+  type XmpPacketData,
+} from "../../src/dialogs.ts";
 import type { CapabilityMatrix } from "../../src/help/capabilities.ts";
 import { CapabilityPage } from "../../src/help/capability-page.tsx";
 import { PlatformProvider } from "../../src/index.ts";
@@ -22,9 +28,13 @@ const META: DocumentMetadataData = {
   packet: "parsed",
 };
 
-/** The dialog over `metadata`, recording each Apply and close. */
-function dialog(metadata: DocumentMetadataData, options: { rewritesWhole?: boolean; fail?: boolean } = {}) {
+/** The dialog over `metadata`, recording each Apply (its XMP changes in `xmp`) and close. */
+function dialog(
+  metadata: DocumentMetadataData,
+  options: { rewritesWhole?: boolean; fail?: boolean; xmp?: XmpPacketData } = {},
+) {
   const applied: MetadataChange[] = [];
+  const xmp: XmpChange[][] = [];
   const onClose = vi.fn();
   renderIn(
     <PropertiesDialog
@@ -37,14 +47,16 @@ function dialog(metadata: DocumentMetadataData, options: { rewritesWhole?: boole
       editing={{
         metadata: { status: "ready", metadata },
         rewritesWhole: options.rewritesWhole ?? false,
-        onApply: async (change) => {
-          applied.push(change);
+        xmp: options.xmp ?? { status: "absent" },
+        onApply: async (change, changes) => {
+          if (change !== undefined) applied.push(change);
+          if (changes.length > 0) xmp.push([...changes]);
           if (options.fail === true) throw new Error("the worker refused");
         },
       }}
     />,
   );
-  return { applied, onClose };
+  return { applied, xmp, onClose };
 }
 
 const button = (name: string) => page.getByRole("button", { name, exact: true });
@@ -101,6 +113,127 @@ describe("the editable properties dialog", () => {
     await expect.element(page.getByText("Lamina PDF couldn't change the properties.")).toBeVisible();
     await expect.element(page.getByLabelText("Title")).toHaveValue("Changed");
     expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+const REVIEW = "https://example.com/ns/review/1.0/";
+
+/** A packet with a title, the PDF/A identification and a custom property in attribute form. */
+const PACKET = `<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+<rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/" xmlns:review="${REVIEW}" review:status="Draft">
+<dc:title><rdf:Alt><rdf:li xml:lang="x-default">Q3 Board Report</rdf:li></rdf:Alt></dc:title>
+<pdfaid:part>2</pdfaid:part>
+<review:reviewers><rdf:Seq><rdf:li>Ada Lovelace</rdf:li></rdf:Seq></review:reviewers>
+</rdf:Description></rdf:RDF></x:xmpmeta>`;
+
+const tree = () => page.getByRole("treegrid", { name: "XMP properties" });
+const item = (name: string) => tree().getByRole("row", { name: new RegExp(`^${name}`) });
+
+describe("the XMP tab", () => {
+  it("lists the schemas, edits a property's value and applies it", async () => {
+    const { xmp, onClose } = dialog(META, { xmp: { status: "parsed", xml: PACKET } });
+    await userEvent.click(page.getByRole("tab", { name: "XMP" }));
+    await expect.element(tree()).toBeVisible();
+    await userEvent.click(item("status"));
+    await expect.element(page.getByLabelText("Value")).toHaveValue("Draft");
+    await userEvent.fill(page.getByLabelText("Value"), "Approved");
+    await expect.element(page.getByText("1 property changed")).toBeVisible();
+    await userEvent.click(button("Apply"));
+    await vi.waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(xmp).toEqual([
+      [
+        {
+          kind: "set",
+          namespace: REVIEW,
+          prefix: "review",
+          name: "status",
+          value: { type: "text", value: "Approved" },
+        },
+      ],
+    ]);
+  });
+
+  it("refuses a value that doesn't fit its type until it does", async () => {
+    dialog(META, { xmp: { status: "parsed", xml: PACKET } });
+    await userEvent.click(page.getByRole("tab", { name: "XMP" }));
+    await userEvent.click(item("status"));
+    await userEvent.selectOptions(page.getByLabelText("Type"), "integer");
+    await expect.element(page.getByText("Enter a whole number, such as 42.")).toBeVisible();
+    await expect.element(button("Apply")).toBeDisabled();
+    await userEvent.fill(page.getByLabelText("Value"), "3");
+    await expect.element(button("Apply")).toBeEnabled();
+  });
+
+  it("sends a mirrored property to the Description tab and keeps the identification", async () => {
+    dialog(META, { xmp: { status: "parsed", xml: PACKET } });
+    await userEvent.click(page.getByRole("tab", { name: "XMP" }));
+    await userEvent.click(item("part"));
+    await expect.element(page.getByText(/Kept by Lamina PDF/)).toBeVisible();
+    await userEvent.click(item("title"));
+    await userEvent.click(button("Edit on the Description tab"));
+    await expect.element(page.getByLabelText("Title")).toHaveValue("Q3 Board Report");
+  });
+
+  it("closes on Escape from the tree, as from anywhere in the dialog", async () => {
+    const { onClose } = dialog(META, { xmp: { status: "parsed", xml: PACKET } });
+    await userEvent.click(page.getByRole("tab", { name: "XMP" }));
+    await userEvent.click(item("status"));
+    await userEvent.keyboard("{Escape}");
+    await vi.waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it("removes a property, and Keep takes it back", async () => {
+    dialog(META, { xmp: { status: "parsed", xml: PACKET } });
+    await userEvent.click(page.getByRole("tab", { name: "XMP" }));
+    await userEvent.click(item("reviewers"));
+    await userEvent.click(button("Remove property"));
+    await expect.element(page.getByText("Will be removed")).toBeVisible();
+    await expect.element(page.getByText("Removed values stay in earlier versions.")).toBeVisible();
+    await userEvent.click(button("Keep"));
+    await expect.element(button("Apply")).toBeDisabled();
+  });
+
+  it("adds a property in a new namespace", async () => {
+    const { xmp } = dialog(META, { xmp: { status: "absent" } });
+    await userEvent.click(page.getByRole("tab", { name: "XMP" }));
+    await expect.element(page.getByText(/has no XMP metadata yet/)).toBeVisible();
+    await userEvent.click(button("Add property…"));
+    await userEvent.fill(page.getByLabelText("Namespace URI"), REVIEW);
+    await userEvent.fill(page.getByLabelText("Prefix"), "review");
+    await userEvent.fill(page.getByLabelText("Name"), "round");
+    await userEvent.selectOptions(page.getByLabelText("Type"), "integer");
+    await userEvent.fill(page.getByLabelText("Value"), "2");
+    await userEvent.click(button("Add"));
+    await userEvent.click(button("Apply"));
+    await vi.waitFor(() => expect(xmp).toHaveLength(1));
+    expect(xmp[0]).toEqual([
+      { kind: "set", namespace: REVIEW, prefix: "review", name: "round", value: { type: "integer", value: 2 } },
+    ]);
+  });
+
+  it("keeps raw XML read-only while property changes wait to be applied", async () => {
+    dialog(META, { xmp: { status: "parsed", xml: PACKET } });
+    await userEvent.click(page.getByRole("tab", { name: "XMP" }));
+    await userEvent.click(item("status"));
+    await userEvent.fill(page.getByLabelText("Value"), "Approved");
+    await userEvent.click(button("Raw XML"));
+    await expect.element(page.getByText("Apply your property changes first.")).toBeVisible();
+    await expect.element(page.getByLabelText("XMP metadata")).toHaveAttribute("readonly");
+  });
+
+  it("checks raw XML as it is typed and replaces the packet once it parses", async () => {
+    const { xmp } = dialog(META, { xmp: { status: "parsed", xml: PACKET } });
+    await userEvent.click(page.getByRole("tab", { name: "XMP" }));
+    await userEvent.click(button("Raw XML"));
+    const raw = page.getByLabelText("XMP metadata");
+    await userEvent.fill(raw, PACKET.replace("</rdf:Description>", ""));
+    await expect.element(raw).toHaveAttribute("aria-invalid", "true");
+    await expect.element(button("Apply")).toBeDisabled();
+    const fixed = PACKET.replace('review:status="Draft"', 'review:status="Final"');
+    await userEvent.fill(raw, fixed);
+    await expect.element(button("Apply")).toBeEnabled();
+    await userEvent.click(button("Apply"));
+    await vi.waitFor(() => expect(xmp).toEqual([[{ kind: "replace", xml: fixed }]]));
   });
 });
 

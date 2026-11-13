@@ -81,8 +81,10 @@ mod document;
 mod error;
 mod history;
 mod info;
+mod labels;
 mod metadata;
 mod op;
+mod pages;
 mod pending;
 mod record;
 mod rotate;
@@ -103,11 +105,17 @@ pub use error::{Error, Result};
 pub use history::{History, Reverted, UndoOutcome};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use info::{InfoPatch, SetInfo};
+pub use labels::{PageLabelRange, SetPageLabels};
 pub use metadata::{
     ConformanceWarning, DocumentMetadata, MetadataKey, MetadataPatch, MetadataSource, PacketStatus, RemoveMetadata,
-    SetMetadata, UpdateSaveMetadata, conformance_warnings, read_metadata,
+    RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty, UpdateSaveMetadata, conformance_warnings,
+    pending_conformance_warnings, read_metadata,
 };
 pub use op::{Op, OpLog};
+pub use pages::{
+    DeletePages, DuplicatePages, FieldChange, FieldOutcome, InsertBlankPages, MovePages, ReferenceChange,
+    ReferenceOutcome, ReferencePolicy, ReversePages, RotateMode, RotatePages,
+};
 pub use pending::PendingChanges;
 pub use record::{Change, Field, Property, PropertyValue, SkipReason, Skipped, Target, UndoRecord};
 pub use rotate::RotatePage;

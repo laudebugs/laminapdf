@@ -12,6 +12,7 @@ its page as the page it was copied from draws. `cargo xtask roundtrip` runs it; 
 
 from __future__ import annotations
 
+import ctypes
 import json
 import sys
 from pathlib import Path
@@ -31,6 +32,20 @@ def title_of(pdf: pdfium.PdfDocument) -> str | None:
 def info_of(pdf: pdfium.PdfDocument, keys: list[str]) -> dict[str, str | None]:
     metadata = pdf.get_metadata_dict()
     return {key: metadata.get(key) or None for key in keys}
+
+
+def labels_of(pdf: pdfium.PdfDocument) -> list[str | None]:
+    """Each page's label (FPDF_GetPageLabel: UTF-16LE with a terminating NUL), None for none."""
+    labels = []
+    for index in range(len(pdf)):
+        size = pdfium.raw.FPDF_GetPageLabel(pdf, index, None, 0)
+        if size <= 2:
+            labels.append(None)
+            continue
+        buf = ctypes.create_string_buffer(size)
+        pdfium.raw.FPDF_GetPageLabel(pdf, index, buf, size)
+        labels.append(buf.raw[: size - 2].decode("utf-16-le"))
+    return labels
 
 
 def encrypted(pdf: pdfium.PdfDocument) -> bool:
@@ -97,6 +112,8 @@ def main() -> int:
                 "title": title,
                 "encrypted": encrypted(pdf),
                 "info": info,
+                # The setPageLabels cases list every page's label; None elsewhere.
+                "labels": None if case.get("labels") is None else labels_of(pdf),
             }
             want = {
                 "pages": case["pages"],
@@ -104,6 +121,7 @@ def main() -> int:
                 "title": want_title,
                 "encrypted": case["encrypted"],
                 "info": want_info,
+                "labels": case.get("labels"),
             }
             if got != want:
                 failures.append(f"{case['file']}: got {got}, expected {want}")

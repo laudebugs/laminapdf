@@ -60,6 +60,37 @@ pub enum Error {
     /// its sources before it replays the log).
     #[error("no source document with this ID was added to the session")]
     UnknownSource(crate::SourceId),
+    /// An XMP edit would change the file's PDF/A or PDF/UA identification (`pdfaid:`,
+    /// `pdfuaid:`): a claim only conversion or a check can make, never an edit.
+    #[error("the PDF/A and PDF/UA identification can't be edited")]
+    XmpClaimReadOnly,
+    /// The packet given to [`ReplaceXmpPacket`](crate::ReplaceXmpPacket) doesn't parse.
+    #[error("the XMP packet doesn't parse")]
+    InvalidXmpPacket(laminapdf_model::xmp::ParseError),
+    /// An XMP property edit names a property, or gives a value, that can't be written:
+    /// [`reason`](Error::InvalidXmpProperty::reason) says which part.
+    #[error("the XMP property or its value can't be written")]
+    InvalidXmpProperty {
+        /// `namespace`, `prefix`, `name`, `value` (an empty array, an array of mixed or nested
+        /// values, a repeated language) or `shape` (a value of the wrong shape for a property
+        /// the Info dictionary mirrors).
+        reason: &'static str,
+    },
+    /// A [`DeletePages`](crate::DeletePages) would delete every page: a document needs a page
+    /// to show, so delete all but one, or insert a page first.
+    #[error("the edit would delete every page")]
+    NoPagesLeft,
+    /// An op's values are out of range: the reason names which (fixed text, never the op's).
+    #[error("the op's values are out of range: {0}")]
+    InvalidOp(&'static str),
+    /// [`SetPageLabels`](crate::SetPageLabels)' ranges break a rule of ISO 32000-2 §12.4.2:
+    /// `what` is `first-page` (the first range isn't on the first page), `order` (ranges out
+    /// of page order, or two on one page) or `first-number` (a range numbered from 0).
+    #[error("page label ranges are invalid ({what})")]
+    InvalidLabelRanges {
+        /// Which rule.
+        what: &'static str,
+    },
     /// The op names an annotation that no page's `/Annots` lists.
     #[error("no annotation {}", ShownAnnot(.0))]
     UnknownAnnotation(AnnotId),
@@ -72,6 +103,20 @@ pub enum Error {
     /// by the form ops), or a direct dictionary in `/Annots`, which has no object to edit.
     #[error("annotation {} can't be edited by the annotation ops", ShownAnnot(.0))]
     AnnotationNotEditable(AnnotId),
+}
+
+impl From<laminapdf_model::xmp::PropertyError> for Error {
+    fn from(e: laminapdf_model::xmp::PropertyError) -> Self {
+        use laminapdf_model::xmp::PropertyError as P;
+        let reason = match e {
+            P::Namespace => "namespace",
+            P::Prefix => "prefix",
+            P::Name => "name",
+            P::Mapped(_) => "shape",
+            _ => "value",
+        };
+        Self::InvalidXmpProperty { reason }
+    }
 }
 
 /// An annotation ID as a message may show it, as [`Shown`] does for pages.
@@ -99,6 +144,22 @@ impl fmt::Display for Shown<'_> {
     }
 }
 
+impl From<laminapdf_model::PageTreeError> for Error {
+    fn from(e: laminapdf_model::PageTreeError) -> Self {
+        use laminapdf_model::PageTreeError as E;
+        match e {
+            E::Cos(e) => Self::Cos(e),
+            E::UnknownPage(page) => Self::UnknownPage(page),
+            // The ops insert only pages they make, so these name a page tree that changed
+            // under them: report it as a broken structure.
+            _ => Self::Cos(laminapdf_cos::Error::InvalidStructure {
+                kind: "page tree",
+                message: "a page is listed twice or is not a page",
+            }),
+        }
+    }
+}
+
 impl From<laminapdf_cos::Error> for Error {
     fn from(e: laminapdf_cos::Error) -> Self {
         Self::Cos(e)
@@ -121,9 +182,15 @@ impl Error {
         "no-pending-save",
         "malformed-xmp",
         "unknown-source",
+        "xmp-claim-read-only",
+        "invalid-xmp-packet",
+        "invalid-xmp-property",
+        "no-pages-left",
+        "invalid-op",
         "unknown-annotation",
         "annotation-locked",
         "annotation-not-editable",
+        "invalid-label-ranges",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -143,9 +210,15 @@ impl Error {
             Self::NoPendingSave => "no-pending-save",
             Self::MalformedXmp => "malformed-xmp",
             Self::UnknownSource(_) => "unknown-source",
+            Self::XmpClaimReadOnly => "xmp-claim-read-only",
+            Self::InvalidXmpPacket(_) => "invalid-xmp-packet",
+            Self::InvalidXmpProperty { .. } => "invalid-xmp-property",
+            Self::NoPagesLeft => "no-pages-left",
+            Self::InvalidOp(_) => "invalid-op",
             Self::UnknownAnnotation(_) => "unknown-annotation",
             Self::AnnotationLocked(_) => "annotation-locked",
             Self::AnnotationNotEditable(_) => "annotation-not-editable",
+            Self::InvalidLabelRanges { .. } => "invalid-label-ranges",
         }
     }
 
@@ -163,12 +236,19 @@ impl Error {
             Self::NestedTransaction | Self::NoTransaction | Self::SavedNotRebased | Self::NoPendingSave => {
                 ErrorKind::State
             }
-            Self::UnknownPage(_) | Self::UnknownSource(_) | Self::UnknownAnnotation(_) => ErrorKind::Usage,
+            Self::UnknownPage(_)
+            | Self::UnknownSource(_)
+            | Self::NoPagesLeft
+            | Self::InvalidOp(_)
+            | Self::UnknownAnnotation(_)
+            | Self::XmpClaimReadOnly
+            | Self::InvalidXmpProperty { .. }
+            | Self::InvalidLabelRanges { .. } => ErrorKind::Usage,
             Self::AnnotationLocked(_) => ErrorKind::State,
             Self::DirectPage(_) | Self::UnsupportedVersion(_) | Self::AnnotationNotEditable(_) => {
                 ErrorKind::Unsupported
             }
-            Self::InvalidLog(_) | Self::MalformedXmp => ErrorKind::Input,
+            Self::InvalidLog(_) | Self::MalformedXmp | Self::InvalidXmpPacket(_) => ErrorKind::Input,
         }
     }
 
@@ -206,7 +286,13 @@ impl Error {
             | Self::SavedNotRebased
             | Self::NoPendingSave
             | Self::MalformedXmp
-            | Self::UnknownSource(_) => Location::NONE,
+            | Self::UnknownSource(_)
+            | Self::XmpClaimReadOnly
+            | Self::InvalidXmpPacket(_)
+            | Self::InvalidXmpProperty { .. }
+            | Self::NoPagesLeft
+            | Self::InvalidOp(_)
+            | Self::InvalidLabelRanges { .. } => Location::NONE,
         }
     }
 }
@@ -236,9 +322,15 @@ mod tests {
             Error::NoPendingSave,
             Error::MalformedXmp,
             Error::UnknownSource(crate::SourceId::from_bytes([0; 32])),
+            Error::XmpClaimReadOnly,
+            Error::InvalidXmpPacket(laminapdf_model::xmp::ParseError::NoRdf),
+            Error::InvalidXmpProperty { reason: "name" },
+            Error::NoPagesLeft,
+            Error::InvalidOp("a reason"),
             Error::UnknownAnnotation("a7.0".parse().unwrap()),
             Error::AnnotationLocked("a7.0".parse().unwrap()),
             Error::AnnotationNotEditable("a7.0".parse().unwrap()),
+            Error::InvalidLabelRanges { what: "order" },
         ]
     }
 

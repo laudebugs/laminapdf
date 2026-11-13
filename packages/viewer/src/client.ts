@@ -17,7 +17,14 @@
 //   fires and the caller opens again with the password.
 
 import type { RenderRequest } from "@laminapdf/render";
-import { type DocumentMetadata, isLaminaPdfError, type Op, type PlannedSave, type SaveOptions } from "@laminapdf/sdk";
+import {
+  type DocumentMetadata,
+  isLaminaPdfError,
+  type Op,
+  type PlannedSave,
+  type SaveOptions,
+  type XmpText,
+} from "@laminapdf/sdk";
 import {
   connect,
   Emitter,
@@ -395,6 +402,12 @@ export class ViewerClient {
   async metadata(call?: ViewerCallOptions): Promise<DocumentMetadata> {
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
     return this.call("metadata", [this.#document?.id ?? 0], call);
+  }
+
+  /** The open document's XMP metadata as text, as its edits leave it. */
+  async xmpPacket(call?: ViewerCallOptions): Promise<XmpText> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("xmpPacket", [this.#document?.id ?? 0], call);
   }
 
   /** How saving the open document with `options` would go: its constraint, signatures, mode and warnings. */
