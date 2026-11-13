@@ -87,7 +87,7 @@ Delivered by [C4a](../todos/done/C4a-ui-chrome-and-platform.md) (shell and top b
 A command is `{ id, title, keywords, group, shortcut?, icon?, enabled(ctx), run(ctx, args), args? }`, where `args` is a typed schema (page range, zoom percentage, file). The registry lives in `@laminapdf/ui` and feeds:
 
 - the **palette** (cmdk, MIT): fuzzy search over titles and keywords, recents first, a shortcut chip on every row, argument parsing inline (`extract 4-8`, `zoom 150`, `go to 12`) and a pushed page for arguments typed afterwards; the APG combobox pattern (focus stays in the input, `aria-activedescendant` on the active row);
-- **native menus** on desktop ([D4b](../todos/ready/D4b-native-menus.md)) and the web overflow menu;
+- **native menus** on desktop ([D4b](../todos/ongoing/D4b-native-menus.md)) and the web overflow menu;
 - **toolbars and context menus** (buttons reference command ids, so labels, shortcuts and enabled state never drift);
 - the **shortcut help dialog** ([C7a](../todos/done/C7a-accessibility-and-theming.md)), generated, never hand-written.
 
@@ -229,7 +229,7 @@ The research and the owner's decisions on it change todos in other plans (each n
 | [C7c](../todos/done/C7c-performance-gates-and-launch.md) | Also depends on U2a, U2c, U3a and U4a; web gates unchanged (stretch goals are U5a's); launch copy states v0.1's pricing status |
 | [D2d](../todos/done/D2d-tile-transport-and-first-document.md), [D2e](../todos/done/D2e-desktop-e2e-webdriverio.md), [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md), [D7c](../todos/ready/D7c-desktop-beta-release.md) | Desktop gates (owner decisions 2026-10-29 and 2026-11-11): the cold-start gates measured in D2d and D2g and asserted by D2e on the reference runner, installer < 15 MB in D6b's budget step; a miss blocks D7c |
 | [D7a](../todos/ready/D7a-crash-reporting.md), [H1](../todos/ongoing/H1-auth-spike.md), [H2](../todos/ready/H2-accounts-and-login.md) | Usage analytics via U5c only; pricing questions decided once, in U5a |
-| [D4b](../todos/ready/D4b-native-menus.md) | Depends on U1b; native menus are generated from the command registry |
+| [D4b](../todos/ongoing/D4b-native-menus.md) | Depends on U1b; native menus are generated from the command registry |
 | [E2h](../todos/ready/E2h-page-organiser-ui.md) | Insertion bar, "Move to page…" dialog, one undo step per batch |
 | [E10j](../todos/ready/E10j-signature-ui.md) | Two named signing actions with plain-language explanations |
 | [E12d](../todos/ready/E12d-scrub-and-rewrite.md) | Saving is blocked while the verification report shows a leak |

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E4 plan §7](../../plans/editor/e4-markup-and-drawing-annotations.md#7-differences-between-the-shells) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [D4b](./D4b-native-menus.md), [E1i](./E1i-desktop-save-in-place.md), [E2i](./E2i-signed-gating-and-close.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4f](./E4f-annotation-tools-ui.md), [E4g](./E4g-appearance-parity-suite.md), [E4j](./E4j-text-box-tools.md), [E4k](./E4k-touch-and-stylus-annotating.md) |
+| Depends on | [D4b](../ongoing/D4b-native-menus.md), [E1i](./E1i-desktop-save-in-place.md), [E2i](./E2i-signed-gating-and-close.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4f](./E4f-annotation-tools-ui.md), [E4g](./E4g-appearance-parity-suite.md), [E4j](./E4j-text-box-tools.md), [E4k](./E4k-touch-and-stylus-annotating.md) |
 | ADRs | Follows [0008](../../decisions/0008-desktop-shell.md), [0010](../../decisions/0010-platform-adapter.md) |
 | Branch | `feat/e4h-desktop-annotations` |
 | PR title | `feat(desktop): Comment mode in the desktop app` |
@@ -22,7 +22,7 @@ The desktop part of round E4 ([full-editor §7](../../plans/full-editor.md#7-pha
 - **Design (Paper):** [C01](../../design/paper/comment-review.md#c01-comment-tools) to [C03](../../design/paper/comment-review.md#c03-free-text-and-callouts), [C09](../../design/paper/comment-review.md#c09-tablet-stylus), desktop artboards
 - [E4 plan §6 and §7](../../plans/editor/e4-markup-and-drawing-annotations.md#7-differences-between-the-shells)
 - [E1h](E1h-desktop-edit-session.md), [E1i](E1i-desktop-save-in-place.md): the engine's edit session and saving in place
-- [D4b](D4b-native-menus.md): the native menus
+- [D4b](../ongoing/D4b-native-menus.md): the native menus
 
 ## Scope
 

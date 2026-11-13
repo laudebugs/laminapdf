@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E1 editing foundation §8](../../plans/editor/e1-editing-foundation.md#8-differences-between-the-shells) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [D4b](./D4b-native-menus.md), [E1d](../done/E1d-edit-session-undo-ui.md) |
+| Depends on | [D4b](../ongoing/D4b-native-menus.md), [E1d](../done/E1d-edit-session-undo-ui.md) |
 | ADRs | Follows ADR 0006, 0008 |
 | Branch | `feat/e1h-desktop-edit-session` |
 | PR title | `feat(desktop): the edit session, the Edit menu and the close guard` |
@@ -20,7 +20,7 @@ The desktop part of E1d: the edit session runs in the engine process as it runs 
 ## Context
 
 - [E1d](../done/E1d-edit-session-undo-ui.md): the session's methods and events, the commands and the history panel this mirrors
-- [D4b](./D4b-native-menus.md): menus generated from the command registry, so registering `edit.undo` and `edit.redo` puts them in the Edit menu
+- [D4b](../ongoing/D4b-native-menus.md): menus generated from the command registry, so registering `edit.undo` and `edit.redo` puts them in the Edit menu
 - Load the `/tauri-v2` skill before any work
 
 ## Scope

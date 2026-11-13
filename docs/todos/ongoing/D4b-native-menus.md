@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D4b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [C7a](../done/C7a-accessibility-and-theming.md), [D4a](../done/D4a-windows-tabs-and-session-restore.md), [U1b](../done/U1b-command-registry-and-palette.md) |
@@ -48,9 +48,9 @@ A JSON export of U1b's command registry (no second map): per command `{ id, titl
 
 **Out of scope** (and which todo covers it)
 
-- Printing behaviour: [D4c](D4c-native-printing.md) (this PR adds the item and event).
-- "Check for Updates…" behaviour: [D5b](D5b-updater-in-app.md).
-- Settings window content: [D5b](D5b-updater-in-app.md) / [D7b](D7b-settings-renderer-switch-and-download-page.md) (this PR opens an empty settings route).
+- Printing behaviour: [D4c](../ready/D4c-native-printing.md) (this PR adds the item and event).
+- "Check for Updates…" behaviour: [D5b](../ready/D5b-updater-in-app.md).
+- Settings window content: [D5b](../ready/D5b-updater-in-app.md) / [D7b](../ready/D7b-settings-renderer-switch-and-download-page.md) (this PR opens an empty settings route).
 - Context menus in the document view (later, shared with the editor).
 - Tray icon (not planned).
 
