@@ -3,7 +3,8 @@
 // at, the date it was last opened at the end. Linked documents are never listed (ADR 0011). A local
 // document the reader can't read again without a picker says so; pressing it asks for the file.
 // Clear list empties the list in this browser; it sits beside Continue reading when that is the
-// only document. The document open when the app last closed comes first, under Continue reading,
+// only document. An entry whose file is gone (the desktop checks) says "File not found" in place of
+// a button, with Remove beside it when the app can remove one entry. The document open when the app last closed comes first, under Continue reading,
 // with its page. The list is hidden when empty: a first visit needs
 // no empty state.
 
@@ -28,6 +29,8 @@ export interface RecentListProps {
   onOpen: (entry: RecentFile) => void;
   /** Clear list was pressed. */
   onClear: () => void;
+  /** Remove was pressed on an entry whose file is missing; without it, missing entries show no Remove. */
+  onRemove?: (entry: RecentFile) => void;
   /** The page (0-based) each entry's reader stopped at, by entry id, where one is kept. */
   stoppedAt?: ReadonlyMap<string, number>;
   /** The document open when the app last closed, shown first under Continue reading. */
@@ -102,11 +105,33 @@ function ContinueSection({
   );
 }
 
+/** An entry whose file is gone: its name and "File not found", not a button, and Remove at the end. */
+function MissingRow({ entry, onRemove }: { entry: RecentFile; onRemove?: (entry: RecentFile) => void }): ReactNode {
+  return (
+    <div className="paper-recent-row" data-missing="">
+      <span className="paper-recent-name">{entry.name}</span>
+      <span className="paper-recent-meta">{`${message("recent.thisDevice")} · ${message("recent.notFound")}`}</span>
+      {onRemove === undefined ? null : (
+        <span className="paper-recent-date">
+          <Button
+            variant="ghost"
+            aria-label={message("recent.removeLabel", { name: entry.name })}
+            onPress={() => onRemove(entry)}
+          >
+            {message("recent.remove")}
+          </Button>
+        </span>
+      )}
+    </div>
+  );
+}
+
 /** The document to continue, the recent documents, and Clear list. */
 export function RecentList({
   entries,
   onOpen,
   onClear,
+  onRemove,
   stoppedAt,
   continueReading,
   locale,
@@ -141,12 +166,16 @@ export function RecentList({
           <ul className="paper-recent-list">
             {rest.map((entry) => (
               <li key={entry.id}>
-                <Row
-                  entry={entry}
-                  meta={recentMeta(entry, entry.hasHandle === true, stoppedAt?.get(entry.id))}
-                  date={date}
-                  onOpen={onOpen}
-                />
+                {entry.missing === true ? (
+                  <MissingRow entry={entry} {...(onRemove === undefined ? {} : { onRemove })} />
+                ) : (
+                  <Row
+                    entry={entry}
+                    meta={recentMeta(entry, entry.hasHandle === true, stoppedAt?.get(entry.id))}
+                    date={date}
+                    onOpen={onOpen}
+                  />
+                )}
               </li>
             ))}
           </ul>

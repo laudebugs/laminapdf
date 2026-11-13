@@ -132,6 +132,10 @@ name = "images_and_vectors"
 required-features = ["text"]
 
 [[example]]
+name = "images_to_pdf"
+required-features = ["build"]
+
+[[example]]
 name = "links_and_outlines"
 required-features = ["text"]
 

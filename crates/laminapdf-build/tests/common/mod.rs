@@ -71,6 +71,9 @@ pub struct Drawn {
     pub dict: laminapdf_cos::Dict,
     /// (0, 0) and (1, 1) of the unit square in default user space.
     pub corners: [(f64, f64); 2],
+    /// Where image space (1, 0), the stored image's bottom-right corner, lands: with the two
+    /// corners above, it tells a mirror from a turn.
+    pub bottom_right: (f64, f64),
 }
 
 /// Records what a page draws.
@@ -134,6 +137,7 @@ impl Visitor for Recorder {
             name: String::from_utf8_lossy(name.as_bytes()).into_owned(),
             dict: stream.dict.clone(),
             corners: [corner(0.0, 0.0), corner(1.0, 1.0)],
+            bottom_right: corner(1.0, 0.0),
         });
     }
 

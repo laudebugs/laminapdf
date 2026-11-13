@@ -100,16 +100,18 @@ Gzip bytes as `cargo xtask size` measures them (deflate level 9 plus the gzip he
 
 | Module | Measured (2026-10-30, after the review fixes and B9d; unchanged by B6b, whose TS-only codes stay out of the WASM) | Budget | Headroom |
 | --- | ---: | ---: | ---: |
-| base (`lamina_pdf_base.wasm`) | 458,144 (with the metadata ops and the XMP reader and writer, E1c, 2026-11-10) | **460,000** (amended 2026-11-10; was 410,000) | 0.4 % |
+| base (`lamina_pdf_base.wasm`) | 461,213 (with images' EXIF orientation and resolution and the `export-failed` code, E3h, 2026-11-12) | **464,000** (amended 2026-11-12; 460,000 from 2026-11-10; was 410,000) | 0.6 % |
 | text (`lamina_pdf_text.wasm`) | 1,446,960 (with the metadata ops, E1c, and JSON documents and `builder.flow`, T4j, 2026-11-11) | **1,460,000** (amended 2026-11-11; 1,400,000 with T4j alone, 1,375,000 with E1c alone; was 1,360,000) | 0.9 % |
 | JS glue per module (wasm-bindgen output, minified by esbuild) | 3,769 base, 5,158 text (T4i) | **5,000** each; text **6,000** (amended 2026-11-10) | |
 | `@laminapdf/sdk` JS: both glues + the TS API, bundled and minified by esbuild (B6b, `packages` in `size-budgets.json`) | 22,091 (with the metadata ops, E1c, and `builder.flow`, T4j, 2026-11-11) | **22,500** (amended 2026-11-11; 22,000 from 2026-11-10; was 21,000) | 1.8 % |
 | `@laminapdf/sdk/worker/entry` JS: the worker file, which bundles the whole TS API (`packages` in `size-budgets.json`) | 20,015 (with the metadata methods and the edit session, E1c and E1d, 2026-11-11) | **21,000** (amended 2026-11-11; was 20,000) | 4.9 % |
-| extract (`lamina_pdf_extract.wasm`, B9c) | 777,477 (with the metadata ops, E1c, 2026-11-10) | **780,000** (amended 2026-11-10; was 725,000) | 0.3 % |
+| extract (`lamina_pdf_extract.wasm`, B9c) | 781,324 (with E3h's image reading and code, 2026-11-12) | **784,000** (amended 2026-11-12; 780,000 from 2026-11-10; was 725,000) | 0.3 % |
 | render (C2) | — | placeholder: decided by C2's ADRs | |
 | sign (E10) | — | placeholder: decided by E10a | |
 
 The `@laminapdf/sdk` TS layer has its own budget (glue + API ≤ 20 KB min+gzip, plan §4), enforced by B6b. A module without a budget fails the check, so a new module can't ship unmeasured. A module that grows more than 5 % over the baseline in `size-budgets.json` gets a twiggy top-items diff against the baseline in the job summary; `cargo xtask size --update-baseline` records a new baseline when a growth is accepted. Raising a budget is an amendment of this table, approved by the owner.
+
+**Amendment (owner, 2026-11-12, [E3h](../todos/done/E3h-images-to-pdf-and-page-export.md)):** the base module's budget rises from 460,000 to 464,000 bytes and the extract module's from 780,000 to 784,000. On `main` they measured 459,804 and 779,723 bytes gzipped, 196 and 277 bytes under budget; with E3h they measure 461,213 and 781,324, about 1.5 KB more each. The builder's image loading, which every module links, now reads a JPEG's JFIF and Exif segments and a PNG's `pHYs` and `eXIf` chunks for the image's orientation and resolution, and the error table gains `export-failed` with its explanation. Page export itself stays out of the WebAssembly (`laminapdf-render`'s `export` feature). The owner chose 4 KB over the old budgets, which leaves about 2.8 KB of room in each.
 
 **Amendment (owner, 2026-11-11, E1c and T4j together):** the text module's budget rises to 1,460,000 bytes and `@laminapdf/sdk`'s JS to 22,500. Each of the two raised the budgets for itself (1,375,000 and 1,400,000); together the module is 1,446,960 bytes and the JS 22,091. The new budgets leave about 1 % of room.
 

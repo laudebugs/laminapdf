@@ -39,9 +39,8 @@ describe("the desktop platform", () => {
     await expect(desktop.openWindow?.({} as never)).rejects.toBeInstanceOf(NotYetSupportedError);
   });
 
-  it("throws when asked to watch a file", () => {
-    const desktop = createDesktopPlatform(fakePlatform());
-    expect(() => desktop.watch?.({} as never, () => undefined)).toThrow(NotYetSupportedError);
+  it("lets the main process reopen recent files without a dialog", () => {
+    expect(createDesktopPlatform(fakePlatform()).capabilities.canReopenRecent).toBe(true);
   });
 });
 

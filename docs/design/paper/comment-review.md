@@ -148,7 +148,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C04-comments-panel.dc.html`, `C04-comments-filter.dc.html`.
 
-**Todos.** [E5b](../../todos/ready/E5b-comment-threads-and-review.md).
+**Todos.** [E5b](../../todos/ready/E5b-comment-threads-and-review.md), [E5g](../../todos/ready/E5g-comments-panel.md).
 
 ## C05 Stamps and file attachments
 
@@ -176,7 +176,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C05-stamps.dc.html`, `C05-attachment.dc.html`.
 
-**Todos.** [E5c](../../todos/ready/E5c-stamps-and-attachments.md).
+**Todos.** [E5c](../../todos/ready/E5c-stamps-and-attachments.md), [E5h](../../todos/ready/E5h-stamps-and-attachments-ui.md).
 
 ## C06 Import and export comments
 
@@ -192,7 +192,7 @@ Rules that hold for every screen here:
 
 **States.** Import: the file was made for a different PDF (its `/F` or `/ID` differs): warning notice "This file was made for Q2-board-report.pdf. Comments may land in the wrong places." with Import anyway; comments for pages that don't exist are listed and skipped; a malformed file: error notice "lamina couldn’t read this file: it isn’t valid XFDF (line 41)" and the Import button disabled; duplicate IDs inside the file are reported (ADR 0005 §5). Export: no comments: the dialog's Save button is disabled with the reason "This file has no comments to export". After export, a toast "Comments exported" with Show file (desktop).
 
-**Behaviour.** Export never changes the PDF. Import is one composite `ImportAnnotations` op (one undo step) and marks the file changed; nothing is fetched from the network, and the XML parser refuses DTDs (E5d). Markdown is generated from the same model the summary uses: one heading per page with its section title, quotes as block quotes, notes as plain paragraphs.
+**Behaviour.** Export never changes the PDF. Import is one transaction of ordinary annotation ops (one undo step; [E5 plan §10](../../plans/editor/e5-review-stamps-interchange.md#10-decisions-on-the-open-questions)) and marks the file changed; nothing is fetched from the network, and the XML parser refuses DTDs (E5d). Markdown is generated from the same model the summary uses: one heading per page with its section title, quotes as block quotes, notes as plain paragraphs.
 
 **Accessibility.** Radio cards are labels wrapping real radios (`fieldset`/`legend`); the preview is focusable so it can be scrolled with the keyboard; the warning notice is `role="status"`.
 
@@ -200,7 +200,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C06-export.dc.html`, `C06-import.dc.html`.
 
-**Todos.** [E5d](../../todos/ready/E5d-xfdf-fdf.md).
+**Todos.** [E5d](../../todos/ready/E5d-xfdf-fdf.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md).
 
 ## C07 Flatten and comment summary
 
@@ -231,7 +231,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C07-flatten.dc.html`, `C07-summary.dc.html`, `C07-flatten-history.dc.html`.
 
-**Todos.** [E5e](../../todos/ready/E5e-flatten-and-summary.md).
+**Todos.** [E5e](../../todos/ready/E5e-flatten-and-summary.md), [E5f](../../todos/ready/E5f-comment-summary.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md).
 
 ## C08 Phone annotate
 
