@@ -6,7 +6,7 @@
 
 ## How many
 
-Comparing rustdoc's JSON of every published crate at the tag with `main` (each public item keyed by its path), 217 items carry the marker on `main` and have no counterpart at the tag:
+Comparing rustdoc's JSON of every published crate at the tag with `main` (each public item keyed by its path), 229 items carry the marker on `main` and have no counterpart at the tag:
 
 | Crate | Items |
 | --- | ---: |
@@ -14,7 +14,7 @@ Comparing rustdoc's JSON of every published crate at the tag with `main` (each p
 | `laminapdf-ops` | 94 |
 | `laminapdf` | 29 |
 
-Twelve of the model's are `PageSize` and its constants and methods, which moved from `laminapdf-build` to `laminapdf-model` in #534; they were in 0.2.0 under the builder, so they keep their marker. In `@laminapdf/sdk`, 56 exports and methods are new (the page, XMP, outline, label and initial-view edits and their types), and 21 codes are new in `codes.json`.
+Thirteen of the model's are `PageSize`, its constants and its methods, which moved from `laminapdf-build` to `laminapdf-model` in #534; they were in 0.2.0 under the builder, so they keep their marker. In `@laminapdf/sdk`, 56 exports and methods are new (the page, XMP, outline, label and initial-view edits and their types), and 21 codes are new in `codes.json`.
 
 ## Cause
 
