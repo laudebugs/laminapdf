@@ -1,0 +1,236 @@
+{
+  "comment": "pdfimages -list of extract.pdf (tools/fixtures/image_facts.py), page 0-based, object null for an inline image",
+  "poppler": "26.10.0",
+  "rows": [
+    {
+      "page": 0,
+      "type": "image",
+      "width": 192,
+      "height": 192,
+      "color": "rgb",
+      "bpc": 8,
+      "enc": "jpeg",
+      "object": 10
+    },
+    {
+      "page": 0,
+      "type": "image",
+      "width": 192,
+      "height": 192,
+      "color": "cmyk",
+      "bpc": 8,
+      "enc": "jpeg",
+      "object": 11
+    },
+    {
+      "page": 0,
+      "type": "image",
+      "width": 192,
+      "height": 192,
+      "color": "gray",
+      "bpc": 8,
+      "enc": "jpeg",
+      "object": 12
+    },
+    {
+      "page": 0,
+      "type": "smask",
+      "width": 16,
+      "height": 16,
+      "color": "gray",
+      "bpc": 8,
+      "enc": "image",
+      "object": 12
+    },
+    {
+      "page": 0,
+      "type": "image",
+      "width": 192,
+      "height": 192,
+      "color": "rgb",
+      "bpc": 8,
+      "enc": "jpx",
+      "object": 14
+    },
+    {
+      "page": 0,
+      "type": "image",
+      "width": 16,
+      "height": 16,
+      "color": "rgb",
+      "bpc": 8,
+      "enc": "image",
+      "object": 15
+    },
+    {
+      "page": 0,
+      "type": "image",
+      "width": 4,
+      "height": 8,
+      "color": "index",
+      "bpc": 2,
+      "enc": "image",
+      "object": 16
+    },
+    {
+      "page": 0,
+      "type": "image",
+      "width": 8,
+      "height": 8,
+      "color": "cmyk",
+      "bpc": 8,
+      "enc": "image",
+      "object": 17
+    },
+    {
+      "page": 0,
+      "type": "image",
+      "width": 16,
+      "height": 4,
+      "color": "gray",
+      "bpc": 16,
+      "enc": "image",
+      "object": 18
+    },
+    {
+      "page": 0,
+      "type": "image",
+      "width": 16,
+      "height": 16,
+      "color": "gray",
+      "bpc": 8,
+      "enc": "image",
+      "object": 19
+    },
+    {
+      "page": 0,
+      "type": "image",
+      "width": 4,
+      "height": 4,
+      "color": "lab",
+      "bpc": 8,
+      "enc": "image",
+      "object": 20
+    },
+    {
+      "page": 0,
+      "type": "image",
+      "width": 16,
+      "height": 16,
+      "color": "rgb",
+      "bpc": 8,
+      "enc": "image",
+      "object": 21
+    },
+    {
+      "page": 0,
+      "type": "mask",
+      "width": 8,
+      "height": 16,
+      "color": "-",
+      "bpc": 1,
+      "enc": "image",
+      "object": 21
+    },
+    {
+      "page": 0,
+      "type": "image",
+      "width": 16,
+      "height": 16,
+      "color": "rgb",
+      "bpc": 8,
+      "enc": "image",
+      "object": 23
+    },
+    {
+      "page": 0,
+      "type": "image",
+      "width": 16,
+      "height": 16,
+      "color": "rgb",
+      "bpc": 8,
+      "enc": "image",
+      "object": 24
+    },
+    {
+      "page": 0,
+      "type": "image",
+      "width": 16,
+      "height": 16,
+      "color": "gray",
+      "bpc": 8,
+      "enc": "image",
+      "object": 25
+    },
+    {
+      "page": 0,
+      "type": "image",
+      "width": 16,
+      "height": 16,
+      "color": "gray",
+      "bpc": 8,
+      "enc": "image",
+      "object": 26
+    },
+    {
+      "page": 0,
+      "type": "image",
+      "width": 8,
+      "height": 2,
+      "color": "gray",
+      "bpc": 1,
+      "enc": "ccitt",
+      "object": 27
+    },
+    {
+      "page": 0,
+      "type": "stencil",
+      "width": 8,
+      "height": 8,
+      "color": "-",
+      "bpc": 1,
+      "enc": "image",
+      "object": 28
+    },
+    {
+      "page": 0,
+      "type": "image",
+      "width": 4,
+      "height": 2,
+      "color": "gray",
+      "bpc": 8,
+      "enc": "image",
+      "object": null
+    },
+    {
+      "page": 0,
+      "type": "image",
+      "width": 2,
+      "height": 2,
+      "color": "gray",
+      "bpc": 8,
+      "enc": "image",
+      "object": 42
+    },
+    {
+      "page": 0,
+      "type": "image",
+      "width": 16,
+      "height": 16,
+      "color": "rgb",
+      "bpc": 8,
+      "enc": "image",
+      "object": 15
+    },
+    {
+      "page": 1,
+      "type": "image",
+      "width": 16,
+      "height": 16,
+      "color": "rgb",
+      "bpc": 8,
+      "enc": "image",
+      "object": 15
+    }
+  ]
+}

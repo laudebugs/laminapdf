@@ -41,6 +41,10 @@ laminapdf-cos = { workspace = true }
 laminapdf-model = { workspace = true }
 laminapdf-syntax = { workspace = true }
 laminapdf-text = { workspace = true }
+# Image extraction: PNG output and the fax and JBIG2 decoders (Apache-2.0 OR MIT, MIT OR Apache-2.0).
+hayro-ccitt = { workspace = true }
+hayro-jbig2 = { workspace = true }
+png = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }

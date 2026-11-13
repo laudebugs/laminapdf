@@ -38,6 +38,7 @@ mod error;
 mod furniture;
 mod headings;
 mod hidden;
+mod images;
 mod job;
 mod lines;
 mod lists;
@@ -61,6 +62,7 @@ mod xycut;
 
 pub use error::ExtractError;
 pub use hidden::hidden_text;
+pub use images::{ExtractedImage, ExtractedImages, ImageFormat, ImageKind, ImageOptions, SkippedImage, extract_images};
 pub use job::{ExtractJob, extract, extract_job};
 pub use model::{
     Block, BlockKind, Cell, Coordinates, DropReason, Dropped, ExtractedPage, ExtractedSource, Extraction, Flags,

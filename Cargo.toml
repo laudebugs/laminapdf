@@ -92,6 +92,10 @@ tiff = { version = "0.11.3", default-features = false, features = ["deflate"] }
 # tools/render and the hayro-parity spike. MIT OR Apache-2.0 (dependencies: kurbo, vello_cpu,
 # skrifa-family crates, moxcms, pic-scale, …: MIT/Apache/BSD/Zlib; cargo-deny checks them).
 hayro = { version = "=0.8.0" }
+# The fax and JBIG2 image decoders hayro uses, standalone for image extraction (laminapdf-extract).
+# Apache-2.0 OR MIT.
+hayro-ccitt = { version = "=0.4.0", default-features = false }
+hayro-jbig2 = { version = "=0.3.1", default-features = false }
 # ONNX Runtime bindings for laminapdf-layout-onnx only (edge, native): no default features, so
 # nothing is downloaded at build time; the app loads ONNX Runtime from a path (load-dynamic).
 ort = { version = "=2.0.0-rc.15", default-features = false, features = ["load-dynamic"] }

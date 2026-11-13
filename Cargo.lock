@@ -3080,6 +3080,8 @@ name = "laminapdf-extract"
 version = "0.2.0"
 dependencies = [
  "boon",
+ "hayro-ccitt",
+ "hayro-jbig2",
  "laminapdf-build",
  "laminapdf-content",
  "laminapdf-cos",
@@ -3088,6 +3090,7 @@ dependencies = [
  "laminapdf-syntax",
  "laminapdf-test-fixtures",
  "laminapdf-text",
+ "png",
  "schemars 1.2.3",
  "serde",
  "serde_json",
