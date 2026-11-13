@@ -556,6 +556,8 @@ const EN = {
   "reader.file.missing.title": "File was moved or deleted",
   "reader.file.missing.body":
     "Lamina PDF is still showing the version it opened. Locate the file to keep following its changes, or close the document.",
+  "reader.file.missing.restored":
+    "Lamina PDF couldn't find this file where it was when you last quit. Locate it to open it here, or close the tab.",
   "reader.file.missing.locate": "Locate…",
   "reader.file.missing.close": "Close",
   "reader.file.unreadable": "File changed but couldn't be read. Lamina PDF tries again when it next changes.",

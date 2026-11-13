@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex, PoisonError};
 
 use tauri::Manager as _;
+use tauri_plugin_window_state::{AppHandleExt as _, StateFlags};
 
 use super::restore::{RestoredWindow, last_number, plan};
 use super::track::{ReportedTab, SAVE_EVERY, Session};
@@ -14,6 +15,11 @@ use super::{Bookmarks, Resolved, delete, load, resolve, save, should_persist, to
 use crate::DesktopError;
 use crate::engine::{DocumentMeta, Engines};
 use crate::prefs::{Preferences, Prefs};
+
+/// What `tauri-plugin-window-state` keeps of each window: its size, position and maximised state.
+pub(crate) const WINDOW_STATE: StateFlags = StateFlags::SIZE
+    .union(StateFlags::POSITION)
+    .union(StateFlags::MAXIMIZED);
 
 /// The OS's bookmarks: macOS's, none elsewhere.
 struct OsBookmarks;
@@ -83,8 +89,13 @@ fn start_saver(handle: tauri::AppHandle, session: Arc<Session>) {
     }
 }
 
-/// Writes the session now, when the preferences keep it.
+/// Writes the windows' sizes and places, and the session when the preferences keep it. The
+/// window-state plugin saves on its own only when the app quits cleanly; saving with the session
+/// keeps them after a crash or a forced quit too.
 pub(crate) fn flush(app: &tauri::AppHandle) {
+    if let Err(error) = app.save_window_state(WINDOW_STATE) {
+        tracing::warn!("could not save the windows' sizes: {error}");
+    }
     if !keeps(app.state::<Prefs>().get()) {
         return;
     }

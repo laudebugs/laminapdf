@@ -132,7 +132,7 @@ export function MissingRestoredTab({
   return (
     <div className="desktop-missing">
       <Notice title={message("reader.file.missing.title")} tone="warning">
-        {message("reader.file.missing.body")}{" "}
+        {message("reader.file.missing.restored")}{" "}
         <button
           type="button"
           className="desktop-link"

@@ -14,9 +14,17 @@ describe("the last session after a relaunch", () => {
     await browser.waitUntil(async () => (await browser.getWindowHandles()).length === 2, {
       timeoutMsg: "the second window didn't come back",
     });
-    await browser.waitUntil(async () => JSON.stringify(await tabNames()) === JSON.stringify(MAIN_TABS), {
-      timeoutMsg: "the main window's tabs didn't come back",
-    });
+    // WebDriver may start on either window: the main one is the one with the main tabs.
+    await browser.waitUntil(
+      async () => {
+        for (const handle of await browser.getWindowHandles()) {
+          await browser.switchToWindow(handle);
+          if (JSON.stringify(await tabNames()) === JSON.stringify(MAIN_TABS)) return true;
+        }
+        return false;
+      },
+      { timeoutMsg: "the main window's tabs didn't come back" },
+    );
     await waitForShown("hello.pdf");
   });
 

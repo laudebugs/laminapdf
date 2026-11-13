@@ -31,7 +31,6 @@ pub use error::DesktopError;
 use laminapdf_desktop_protocol::supervisor::{Config, FontServer, Spawner};
 use laminapdf_desktop_sandbox::{BackgroundFonts, SandboxConfig, SandboxSpawner};
 use tauri::{Emitter as _, EventTarget, Manager as _, RunEvent, WindowEvent};
-use tauri_plugin_window_state::StateFlags;
 
 use crate::engine::{Engines, FAILED_EVENT, Failed, Launcher, Notify, RESTARTED_EVENT, Restarted};
 
@@ -279,7 +278,7 @@ pub fn run() -> Result<(), DesktopError> {
         // Rust's own: the webview is granted none of its commands.
         .plugin(
             tauri_plugin_window_state::Builder::new()
-                .with_state_flags(StateFlags::SIZE | StateFlags::POSITION | StateFlags::MAXIMIZED)
+                .with_state_flags(session::app::WINDOW_STATE)
                 .build(),
         )
         .setup(setup)
