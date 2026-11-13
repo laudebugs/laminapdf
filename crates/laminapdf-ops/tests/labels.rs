@@ -27,8 +27,8 @@ fn range(page: &PageId, style: Option<LabelStyle>) -> PageLabelRange {
     PageLabelRange::new(page.clone(), style)
 }
 
-fn invalid(result: laminapdf_ops::Result<()>) -> Option<&'static str> {
-    match result {
+fn invalid(result: &laminapdf_ops::Result<()>) -> Option<&'static str> {
+    match *result {
         Err(Error::InvalidLabelRanges { what }) => Some(what),
         _ => None,
     }
@@ -94,7 +94,7 @@ fn the_first_range_must_be_on_the_first_page() {
     let mut doc = labelled();
     let pages = page_ids(&doc);
     assert_eq!(
-        invalid(set(&mut doc, vec![range(&pages[1], Some(LabelStyle::Decimal))])),
+        invalid(&set(&mut doc, vec![range(&pages[1], Some(LabelStyle::Decimal))])),
         Some("first-page")
     );
 }
@@ -108,7 +108,7 @@ fn ranges_out_of_page_order_are_refused() {
         range(&pages[5], Some(LabelStyle::Decimal)),
         range(&pages[3], Some(LabelStyle::Decimal)),
     ];
-    assert_eq!(invalid(set(&mut doc, ranges)), Some("order"));
+    assert_eq!(invalid(&set(&mut doc, ranges)), Some("order"));
 }
 
 #[test]
@@ -119,7 +119,7 @@ fn two_ranges_on_one_page_are_refused() {
         range(&pages[0], Some(LabelStyle::LowerRoman)),
         range(&pages[0], Some(LabelStyle::Decimal)),
     ];
-    assert_eq!(invalid(set(&mut doc, ranges)), Some("order"));
+    assert_eq!(invalid(&set(&mut doc, ranges)), Some("order"));
 }
 
 #[test]
@@ -127,7 +127,7 @@ fn numbering_from_zero_is_refused() {
     let mut doc = labelled();
     let pages = page_ids(&doc);
     let ranges = vec![range(&pages[0], Some(LabelStyle::Decimal)).with_first(0)];
-    assert_eq!(invalid(set(&mut doc, ranges)), Some("first-number"));
+    assert_eq!(invalid(&set(&mut doc, ranges)), Some("first-number"));
 }
 
 #[test]

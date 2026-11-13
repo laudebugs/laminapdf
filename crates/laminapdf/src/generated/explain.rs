@@ -2408,11 +2408,11 @@ Give the ranges in page order, put the first on the document's first page, and n
 ## Example
 
 ```rust
-let first = doc.page_info(0)?.id.parse()?;
-let third = doc.page_info(2)?.id.parse()?;
+let first = doc.page_info(0)?.id;
+let third = doc.page_info(2)?.id;
 let ranges = vec![
-    PageLabelRange::new(third, Some(PageLabelStyle::Decimal)),
-    PageLabelRange::new(first, Some(PageLabelStyle::LowerRoman)),
+    PageLabelRange::new(third, Some(LabelStyle::Decimal)),
+    PageLabelRange::new(first, Some(LabelStyle::LowerRoman)),
 ];
 doc.apply(vec![Op::from(SetPageLabels::new(ranges))]); // invalid-label-ranges: out of page order
 ```

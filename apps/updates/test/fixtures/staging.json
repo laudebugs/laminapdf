@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "channel": "staging",
+  "paused": false,
+  "release": {
+    "version": "0.0.2",
+    "pub_date": "2026-11-12T12:00:00Z",
+    "notes": "Staging test release",
+    "rollout_percent": 100,
+    "platforms": {
+      "darwin-aarch64": {
+        "url": "https://staging-downloads.laminapdf.com/releases/0.0.2/darwin-aarch64/Lamina.PDF.app.tar.gz",
+        "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHN0YWdpbmcgdGVzdCBzaWduYXR1cmUKUlVTdGFnaW5nMC4wLjI="
+      }
+    }
+  }
+}

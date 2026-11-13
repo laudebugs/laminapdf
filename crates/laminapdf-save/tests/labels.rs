@@ -1,7 +1,11 @@
 //! `SetPageLabels` through the save planner and both writers: the planner's verdict on the
 //! signed fixtures (E2 plan §6), the labels after a save and reopen in each mode, qpdf's check
 //! when it is installed, and an undone edit saving no change.
-#![expect(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
+#![expect(
+    clippy::unwrap_used,
+    clippy::indexing_slicing,
+    reason = "tests: a panic is a test failure"
+)]
 
 mod common;
 
@@ -83,8 +87,8 @@ fn an_undone_edit_saves_the_original_bytes() {
     assert_eq!(out, bytes);
 }
 
-/// The E2 plan's §6 table: page labels are a `Document` change, which DocMDP forbids at every
-/// level (ISO 32000-2 §12.8.2.2); approval signatures and a FieldMDP lock forbid nothing a
+/// The E2 plan's §6 table: page labels are a `Document` change, which `DocMDP` forbids at every
+/// level (ISO 32000-2 §12.8.2.2); approval signatures and a `FieldMDP` lock forbid nothing a
 /// label touches.
 #[test]
 fn the_planner_refuses_labels_on_certified_files_only() {
