@@ -5,7 +5,7 @@
 
 ## What happened
 
-The file claims PDF/UA-1, the standard for accessible PDFs, but it has no structure tree, so a new link had nowhere to go in it.
+The file claims PDF/UA-1, the standard for accessible PDFs, but it isn't tagged: it has no structure tree, so a new link has no element to join.
 
 ## Why
 
@@ -13,7 +13,7 @@ PDF/UA-1 asks for every link to be a `Link` element of the structure tree, which
 
 ## How to fix
 
-Tag the document before adding links to it. If the claim is wrong, remove it, or add the link to a copy that doesn't claim PDF/UA-1.
+Export it again as a tagged PDF from the program that made it, then add the link. If the claim is wrong, remove it, or add the link to a copy that doesn't claim PDF/UA-1.
 
 ## Example
 

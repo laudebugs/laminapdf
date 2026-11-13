@@ -13,7 +13,7 @@ The link ops change what only a link has: where it goes, and the text it covers.
 
 ## How to fix
 
-Name a link from the page's links. Change or delete other annotations with `updateAnnot` and `deleteAnnot`.
+Pass the ID of a link that `pageLinks` lists. Change or delete other annotations with `updateAnnot` and `deleteAnnot`.
 
 ## Example
 

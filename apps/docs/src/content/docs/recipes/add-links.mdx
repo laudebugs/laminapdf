@@ -7,7 +7,7 @@ import Example from "../../../components/Example.astro";
 
 You'll add two links to a report's first page: one on a box over its chart, one on a line of text. You need this for a link tool in an editor, or a script that links every product name in a catalogue to its web page.
 
-Viewers report a drawn box or a text selection in page space: points from the page's top-left corner, as the rest of Lamina PDF's API uses them. `linkOnArea` and `linkOnText` turn those boxes into the edit that adds the link, in the page's [user space](/reference/glossary/#user-space). The example links the chart and the line "Widgets sold out in May." to two web pages, then changes the chart link's address:
+Viewers report a drawn box or a text selection in page space: points from the page's top-left corner. `linkOnArea` and `linkOnText` turn those boxes into the edit that adds the link, in the page's [user space](/reference/glossary/#user-space). The example links the chart and the line "Widgets sold out in May." to two web pages, then changes the chart link's address:
 
 <Example ts="packages/sdk/examples/add-links.ts" rust="crates/laminapdf/examples/add_links.rs" result="add_links" />
 
@@ -24,9 +24,9 @@ The result is the original bytes, unchanged, followed by two revisions. Neither 
 ## What to change
 
 - **A page of the file:** pass `{ destination: doc.destinationAt(page, view) }` as the target, with the view your reader shows.
-- **An email address:** pass `{ uri: "mailto:sales@example.com" }`. Only absolute `http`, `https` and `mailto` addresses are allowed; anything else, `javascript:` first, fails with [`link-uri-refused`](/reference/codes/link-uri-refused/).
+- **An email address:** pass `{ uri: "mailto:sales@example.com" }`. Only absolute `http`, `https` and `mailto` addresses are allowed. Any other address, such as a `javascript:` one, fails with [`link-uri-refused`](/reference/codes/link-uri-refused/).
 - **Several lines:** pass every line's box to `linkOnText`, each `[x0, y0, x1, y1]`, in reading order.
-- **A file that claims PDF/UA but has no structure:** the edit fails with [`link-not-tagged`](/reference/codes/link-not-tagged/), since an untagged link would break the claim.
-- **A signed file:** a [certified](/reference/glossary/#docmdp) file that allows comments, and a file with approval signatures only, take new links in an appended revision, and the signatures stay valid. A certification that forbids comments refuses the save.
+- **A file that claims PDF/UA but isn't tagged:** the edit fails with [`link-not-tagged`](/reference/codes/link-not-tagged/), since an untagged link would break the claim.
+- **A signed file:** you can add links to a [certified](/reference/glossary/#docmdp) file that allows comments, or to one with only approval signatures. Lamina PDF appends them as a new revision, and the signatures stay valid. A certification that forbids comments makes the save fail.
 
 Next: [edit the bookmarks](/recipes/edit-bookmarks/), which go to places in the same way.

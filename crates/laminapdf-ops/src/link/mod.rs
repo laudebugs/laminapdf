@@ -3,9 +3,9 @@
 //! removes it. All three are class `Annotation`.
 //!
 //! A link goes where an [`OutlineTarget`] says, as a bookmark does: a page, a named
-//! destination, or a web address, which must be an absolute `http`, `https` or `mailto` one
-//! (`link-uri-refused`), so no op ever writes a link that runs a script. In a tagged
-//! document a new link joins the structure tree as a `Link` element ([`tags`]).
+//! destination, or a web address. A web address must be an absolute `http`, `https` or `mailto`
+//! one (`link-uri-refused`), so no op writes a link that runs a script. In a tagged document a
+//! new link joins the structure tree as a `Link` element ([`tags`]).
 
 mod tags;
 
@@ -20,8 +20,8 @@ use crate::outline::OutlineTarget;
 use crate::outline::target;
 use crate::wire;
 
-/// Adds a link to `page`: on the area `rect`, or on text, whose `quads` (one per line of the
-/// text, as a selection gives them) are the areas that follow it; `/Rect` then bounds both.
+/// Adds a link to `page`: on the area `rect`, or on text, whose `quads` (one per line, as a
+/// selection gives them) are the areas a click follows; `/Rect` then bounds every quad.
 /// The link shows no border, prints with the page, and goes to `target`. `contents` is its
 /// description, which screen readers read (`/Contents`), and `nm` its `/NM`, a name for
 /// matching it in exchanged comments (never its identity, which is its [`AnnotId`]).
@@ -132,9 +132,8 @@ impl AddLink {
 /// alone, and so is everything the op doesn't name, its place in the structure tree
 /// included. `/Rect` always bounds the quads: new quads without a new area make it their bounds.
 ///
-/// A `Locked` link refuses a change of its area, quads or target, and a `LockedContents` one a
-/// change of its description (`annotation-locked`); an annotation that isn't a link is
-/// `not-a-link`.
+/// A `Locked` link refuses a new area, quads or target, and a `LockedContents` link refuses a new
+/// description (`annotation-locked`); an annotation that isn't a link is `not-a-link`.
 ///
 /// On the wire: `{ "op": "updateLink", "args": { "link": "a21.0", "target": { "named":
 /// "chapter-2" } } }`.

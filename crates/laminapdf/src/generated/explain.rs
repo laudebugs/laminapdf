@@ -2706,7 +2706,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-A bookmark's or link's web address isn't a full `http`, `https` or `mailto` address in plain ASCII.
+The web address of a bookmark or link isn't a full `http`, `https` or `mailto` address in plain ASCII.
 
 ## Why
 
@@ -3066,7 +3066,7 @@ The link ops change what only a link has: where it goes, and the text it covers.
 
 ## How to fix
 
-Name a link from the page's links. Change or delete other annotations with `updateAnnot` and `deleteAnnot`.
+Pass the ID of a link that `pageLinks` lists. Change or delete other annotations with `updateAnnot` and `deleteAnnot`.
 
 ## Example
 
@@ -3093,7 +3093,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-The file claims PDF/UA-1, the standard for accessible PDFs, but it has no structure tree, so a new link had nowhere to go in it.
+The file claims PDF/UA-1, the standard for accessible PDFs, but it isn't tagged: it has no structure tree, so a new link has no element to join.
 
 ## Why
 
@@ -3101,7 +3101,7 @@ PDF/UA-1 asks for every link to be a `Link` element of the structure tree, which
 
 ## How to fix
 
-Tag the document before adding links to it. If the claim is wrong, remove it, or add the link to a copy that doesn't claim PDF/UA-1.
+Export it again as a tagged PDF from the program that made it, then add the link. If the claim is wrong, remove it, or add the link to a copy that doesn't claim PDF/UA-1.
 
 ## Example
 

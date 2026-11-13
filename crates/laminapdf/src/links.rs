@@ -113,8 +113,8 @@ impl Document {
 }
 
 impl Document {
-    /// The edit that adds a link on `area` of page `page` (0-based), in page space (a box the
-    /// user drew), going to `target`. Apply it with [`Document::apply`]; its description and
+    /// The edit that adds a link going to `target` on `area`, a box the user drew in page space,
+    /// of page `page` (0-based). Apply it with [`Document::apply`]; its description and
     /// `/NM` are the caller's to set.
     ///
     /// # Errors
@@ -128,16 +128,19 @@ impl Document {
 
     /// The edit that adds a link on text of page `page` (0-based): `lines` are the boxes of
     /// the text, one per line, in page space, as a selection gives them. Each line becomes one
-    /// of the link's quads, and the marked content of the glyphs inside them (their MCIDs)
-    /// tells a tagged document where the link's text is, so the link joins the structure tree
-    /// around it ([`AddLink::marked`]).
+    /// of the link's quads. In a tagged document, the MCIDs of the glyphs inside them place the
+    /// link in the structure tree beside its text ([`AddLink::marked`]).
     ///
     /// # Errors
-    /// `page-index-out-of-range`; the reading errors of [`Document::page_text`].
+    /// `invalid-op` for no lines; `page-index-out-of-range`; the reading errors of
+    /// [`Document::page_text`].
     ///
     /// Added in 0.2.0.
     #[cfg(feature = "extract")]
     pub fn link_on_text(&self, page: u32, lines: &[RectPt], target: OutlineTarget) -> Result<AddLink> {
+        if lines.is_empty() {
+            return Err(laminapdf_ops::Error::InvalidOp("a link on text needs one line or more").into());
+        }
         let (id, frame) = self.page_frame(page)?;
         let text = self.page_text(page, &crate::extract::TextOptions::default())?;
         let mut marked: Vec<u32> = Vec::new();

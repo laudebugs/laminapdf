@@ -5,7 +5,7 @@
 
 ## What happened
 
-A bookmark's or link's web address isn't a full `http`, `https` or `mailto` address in plain ASCII.
+The web address of a bookmark or link isn't a full `http`, `https` or `mailto` address in plain ASCII.
 
 ## Why
 

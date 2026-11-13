@@ -103,9 +103,12 @@ fn place(doc: &laminapdf_model::Document, tree: &ParentTree, owners: &[Object], 
         });
     };
     let first_dict = object_dict(doc, first)?.unwrap_or_default();
-    if is_link(&first_dict)
-        && let Some(parent) = first_dict.get("P").and_then(Object::as_ref)
-    {
+    if is_link(&first_dict) {
+        // Beside that link, in its parent, or under the document element when it names none.
+        let parent = first_dict
+            .get("P")
+            .and_then(Object::as_ref)
+            .unwrap_or_else(|| document_element(tree));
         return Ok(Place {
             parent,
             after: Some(first),

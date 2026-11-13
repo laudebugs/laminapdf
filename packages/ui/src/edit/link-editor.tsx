@@ -85,8 +85,12 @@ export type AddressCheck =
   | { readonly ok: true; readonly address: string }
   | { readonly ok: false; readonly reason: "script" | "invalid" };
 
-/** An email address, loosely: something@something, with nothing a `mailto:` address could add to. */
-const EMAIL = /^[^\s@?&#]+@[^\s@?&#]+$/;
+/**
+ * An email address, loosely: something@something in printable ASCII (as a link's address is
+ * stored), with nothing a `mailto:` address could add to.
+ */
+const EMAIL = /^[!-~]+@[!-~]+$/;
+const MAIL_EXTRAS = /[@?&#].*@|@.*[@?&#]/;
 
 /** The parts of a `mailto:` address. */
 export function mailParts(uri: string): { address: string; subject: string } {
@@ -290,7 +294,7 @@ function EmailFields({
   const commit = (next: { address: string; subject: string }) => {
     setTyped(next);
     if (next.address === "") return setError(undefined);
-    if (!EMAIL.test(next.address) || !check(mailUri(next.address, next.subject)).ok) {
+    if (!EMAIL.test(next.address) || MAIL_EXTRAS.test(next.address) || !check(mailUri(next.address, next.subject)).ok) {
       setError(laterMessage("link.emailInvalid"));
       return;
     }

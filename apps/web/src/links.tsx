@@ -63,16 +63,18 @@ function turn(x: number, y: number, rotation: number): [number, number] {
 /** A point of the page as shown, turned back to the page's own orientation: the turn the other way. */
 const unturn = (x: number, y: number, rotation: number) => turn(x, y, (360 - rotation) % 360);
 
+/** A scheme whose address runs a script or opens a file, rather than a page. */
+const SCRIPT_SCHEME = /^\s*(javascript|vbscript|data|file|blob):/i;
+
 /**
  * What the reader makes of an address typed for a link, by the rule its links follow when they
- * open (`externalLink`): the address as it will open, a host in punycode; any scheme but the
- * web's counts as one that would run a script.
+ * open (`externalLink`): the address as it will open, a host in punycode. A refused address is a
+ * script when its scheme runs one, else just not an address a link can hold.
  */
 function checkAddress(address: string): AddressCheck {
   const link = externalLink(address);
   if (link.kind === "open") return { ok: true, address: link.href };
-  const scheme = /^\s*([a-z][a-z0-9+.-]*):/i.exec(address)?.[1]?.toLowerCase();
-  return { ok: false, reason: scheme === undefined || scheme === "http" || scheme === "https" ? "invalid" : "script" };
+  return { ok: false, reason: SCRIPT_SCHEME.test(address) ? "script" : "invalid" };
 }
 
 /** Whether a link read from the file would run a script, or open something the reader never opens. */
@@ -196,7 +198,9 @@ class LinkBoxes {
 
   async #load(page: number): Promise<void> {
     const { client } = await this.#engine.view();
-    const links = await client.pageLinks(page).catch(() => [] as const);
+    const links = await client.pageLinks(page).catch(() => undefined);
+    // A failed read keeps what was shown: it says nothing about which links went away.
+    if (links === undefined) return;
     this.#links.set(page, links);
     this.draw(page);
     this.onLoaded?.(page);
@@ -303,10 +307,10 @@ export function LinkEditing({ engine, viewer, registry, toasts }: LinkEditingPro
   }, [viewer, editing?.page, editing?.id, editing]);
   if (editing === undefined) return null;
 
-  const { onGoal, onContents, onDelete } = linkActions(engine, viewer, toasts, { current, queue }, setEditing);
+  const { onGoal, onContents, onDelete, onClose } = linkActions(engine, viewer, toasts, { current, queue }, setEditing);
   const onFollow = followOf(engine, viewer, editing);
   return (
-    <LinkPanel anchor={() => boxes.viewportBox(editing.page, editing.box)} onDismiss={() => setEditing(undefined)}>
+    <LinkPanel anchor={() => boxes.viewportBox(editing.page, editing.box)} onDismiss={onClose}>
       <LinkEditor
         key={editing.id ?? editing.box.join()}
         {...(editing.text === undefined ? {} : { text: editing.text })}
@@ -410,7 +414,10 @@ function linkActions(
       show(undefined);
       if (at?.id !== undefined) await apply([{ op: "deleteLink", args: { link: at.id } }], "edit.link.delete");
     });
-  return { onGoal, onContents, onDelete };
+  // Closing waits for the edits queued before it (a field's commit on blur among them), so none is
+  // lost and none reopens the panel.
+  const onClose = () => next(async () => show(undefined));
+  return { onGoal, onContents, onDelete, onClose };
 }
 
 const idOf = (editing: Editing) => (editing.id === undefined ? {} : { id: editing.id });

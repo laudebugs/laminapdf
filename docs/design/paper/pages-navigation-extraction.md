@@ -163,7 +163,8 @@ Differs from the boards:
 - A new link is written once it has somewhere to go, so a box closed without a target leaves nothing behind and needs no "Link removed" toast.
 - A page target goes to the whole page (`/Fit`): there is no "Zoom when followed" select and no "Pick a place on the page…".
 - Make link is a button of the selection toolbar, not an entry of its More menu.
-- The tool's note ("Draw a box, or select text…") is Make link's reason in the palette when no text is selected, not a line in a toolbar.
+- The tool's note shows in the palette, as why Make link is unavailable when no text is selected, not as a line in a toolbar.
+- "This address would run a script" is for script schemes (`javascript:`, `vbscript:`, `data:`, `file:`, `blob:`); another scheme, such as `ftp:`, gets "Links can go only to addresses that start with https:// or http://."
 
 Not built yet:
 

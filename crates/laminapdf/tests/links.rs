@@ -152,3 +152,11 @@ fn a_link_on_a_box_in_page_space_reads_back_on_that_box_at_every_rotation() {
         );
     }
 }
+
+#[test]
+fn a_link_on_no_lines_of_text_is_refused() {
+    use laminapdf::OutlineTarget;
+    let doc = turned(0);
+    let refused = doc.link_on_text(0, &[], OutlineTarget::Uri("https://example.com/".into()));
+    assert_eq!(refused.map_err(|e| e.code()).err(), Some("invalid-op"));
+}
