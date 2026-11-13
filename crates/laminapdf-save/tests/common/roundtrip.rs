@@ -548,11 +548,16 @@ pub fn run(root: &Path) -> Suite {
             }
         }
     }
-    copies(root, &mut suite);
-    images(root, &mut suite);
-    extracted(root, &mut suite);
-    outlines(root, &mut suite);
+    extra_cases(root, &mut suite);
     suite
+}
+
+/// The cases beyond one op on one fixture: page copies, images, new documents and outlines.
+fn extra_cases(root: &Path, suite: &mut Suite) {
+    copies(root, suite);
+    images(root, suite);
+    extracted(root, suite);
+    outlines(root, suite);
 }
 
 /// The outline as the tools list it: `[depth, title, page]` per item in document order, the
