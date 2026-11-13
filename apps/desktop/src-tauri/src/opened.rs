@@ -67,11 +67,14 @@ fn remember(app: &tauri::AppHandle, path: &Path, opened: &DocumentMeta) {
     );
     let path = path.to_owned();
     on_main_thread(app, move |_| laminapdf_desktop_os::note_recent(&path));
+    crate::menu::rebuild(app);
 }
 
 /// Removes `paths` from the OS's recent list: every one of them on Linux, the app's whole list on
 /// macOS and Windows when `all`, else each path where the OS can remove one.
 pub(crate) fn forget(app: &tauri::AppHandle, paths: Vec<PathBuf>, all: bool) {
+    // File ▸ Open recent lists the app's list, which changed.
+    crate::menu::rebuild(app);
     on_main_thread(app, move |app_id| {
         if all {
             laminapdf_desktop_os::clear_recent(app_id, &paths)

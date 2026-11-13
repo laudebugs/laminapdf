@@ -224,6 +224,7 @@ export type WarningCode =
   | "duplicate-tags-incomplete"
   | "imported-tags-dropped"
   | "imported-pdfa-unchecked"
+  | "imported-pdfua-unchecked"
   | "tounicode-conflict"
   | "whole-font-rebuilt"
   | "flow-keep-broken"
@@ -460,6 +461,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "duplicate-tags-incomplete",
   "imported-tags-dropped",
   "imported-pdfa-unchecked",
+  "imported-pdfua-unchecked",
   "tounicode-conflict",
   "whole-font-rebuilt",
   "flow-keep-broken",
@@ -577,6 +579,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "duplicate-tags-incomplete": "usage",
   "imported-tags-dropped": "usage",
   "imported-pdfa-unchecked": "usage",
+  "imported-pdfua-unchecked": "usage",
   "sink": "io",
   "not-rebased": "state",
   "sink-not-empty": "usage",
@@ -787,6 +790,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "duplicate-tags-incomplete": "retag the copy, or duplicate pages whose tagged elements lie on the page alone",
   "imported-tags-dropped": "tag the copied pages in a tagging tool, or copy pages from a document without tags",
   "imported-pdfa-unchecked": "check the saved file with a PDF/A validator such as veraPDF, or copy pages from a document that claims the same level",
+  "imported-pdfua-unchecked": "check the saved file's tags, alternate text and reading order with a PDF/UA checker such as veraPDF, or copy pages from a document that claims PDF/UA-1",
   "sink": "check the destination and retry the save; the document is unchanged",
   "not-rebased": "retry rebase with the saved output carried by the error",
   "sink-not-empty": "pass an empty sink: output offsets count from the sink's first byte",

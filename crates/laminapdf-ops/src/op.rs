@@ -23,7 +23,7 @@ use crate::outline::{
 };
 use crate::pages::{
     DeletePages, DuplicatePages, FieldChange, InsertBlankPages, InsertPagesFrom, MergeDocuments, MovePages,
-    ReferenceChange, RenamedDestination, ReplacePages, ReversePages, RotatePages,
+    ReferenceChange, RenamedDestination, ReplacePages, ReversePages, RotatePages, StructureRename,
 };
 use crate::rotate::RotatePage;
 #[cfg(feature = "test-support")]
@@ -358,10 +358,14 @@ pub(crate) struct Effect {
     pub(crate) tags_dropped: Vec<PageId>,
     /// The named destinations it brought in under another name.
     pub(crate) renamed_destinations: Vec<RenamedDestination>,
+    /// The role, class and element names it brought in under another name.
+    pub(crate) structure_renamed: Vec<StructureRename>,
     /// The bookmarks it left out because the pages they go to didn't come along.
     pub(crate) bookmarks_dropped: usize,
     /// The copies it brought into a file claiming PDF/A from a source without that claim.
     pub(crate) pdfa_unchecked: Vec<PageId>,
+    /// The copies it brought into a file claiming PDF/UA-1 from a source without that claim.
+    pub(crate) pdfua_unchecked: Vec<PageId>,
 }
 
 impl From<SetInfo> for Op {

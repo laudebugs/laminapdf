@@ -298,6 +298,7 @@
             "duplicate-tags-incomplete",
             "imported-tags-dropped",
             "imported-pdfa-unchecked",
+            "imported-pdfua-unchecked",
             "tounicode-conflict",
             "whole-font-rebuilt",
             "flow-keep-broken",

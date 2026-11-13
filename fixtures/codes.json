@@ -731,6 +731,13 @@
       "summary": "pages copied in from a document that doesn't claim the same PDF/A level may break the PDF/A claim of the document's metadata",
       "hint": "check the saved file with a PDF/A validator such as veraPDF, or copy pages from a document that claims the same level",
       "since": "0.3.0"
+    },
+    {
+      "code": "imported-pdfua-unchecked",
+      "kind": "usage",
+      "summary": "pages copied in from a document that doesn't claim PDF/UA-1 may break the PDF/UA claim of the document's metadata",
+      "hint": "check the saved file's tags, alternate text and reading order with a PDF/UA checker such as veraPDF, or copy pages from a document that claims PDF/UA-1",
+      "since": "0.3.0"
     }
   ],
   "saveErrors": [

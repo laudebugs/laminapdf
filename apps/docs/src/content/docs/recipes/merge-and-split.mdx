@@ -33,7 +33,9 @@ The book has three chapters of four pages, so the program makes three files. Eac
 
 ## Merge tagged PDFs
 
-Merged pages come without their tags, as copied pages do, so a merge of tagged PDFs makes an untagged file. On a document that claims PDF/UA-1, saving then warns with [`imported-tags-dropped`](/reference/codes/imported-tags-dropped/). A document that claims a PDF/A level warns with [`imported-pdfa-unchecked`](/reference/codes/imported-pdfa-unchecked/) when a merged file doesn't claim the same level, so check the saved file with a PDF/A validator.
+Merged pages keep their tags when the result can stay tagged throughout: when you merge into a tagged document, or make a new document from files that are all tagged. Each file's elements go under a `Part` element named after it, so a screen reader reads the files in order. When one of the files is untagged, a new document comes out untagged, since a tagged file must tag all its content.
+
+On a document that claims PDF/UA-1, merging a file without that claim warns with [`imported-pdfua-unchecked`](/reference/codes/imported-pdfua-unchecked/). A document that claims a PDF/A level warns with [`imported-pdfa-unchecked`](/reference/codes/imported-pdfa-unchecked/) when a merged file doesn't claim the same level, so check the saved file with a PDF/A validator.
 
 ## What to change
 

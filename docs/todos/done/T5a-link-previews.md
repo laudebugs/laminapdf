@@ -67,7 +67,7 @@ Readers of papers and manuals want to see where a link or a citation goes withou
 - Scrolling, zooming or pinning a preview (Sioyek's "portals"): not planned.
 - Previews of external pages: never fetched (ADR 0011 §3); C6b's dialog is the only surface.
 - Hover previews in the rail (outline, thumbnails): C6a's rail already shows them.
-- The desktop app: it reuses these packages; native menus are [D4b](../ready/D4b-native-menus.md).
+- The desktop app: it reuses these packages; native menus are [D4b](../done/D4b-native-menus.md).
 
 ## Tasks
 

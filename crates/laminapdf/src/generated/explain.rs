@@ -3286,19 +3286,19 @@ The decisions and todos behind this code:
 
 ## What happened
 
-The file says it conforms to PDF/UA-1, and pages copied in from another document came without the tags their source gave them. PDF/UA-1 requires every piece of real content to be tagged (ISO 14289-1 §7.1), so saving the file as it is writes one that no longer meets it.
+The file says it conforms to PDF/UA-1 but isn't tagged, and pages copied in from another document came without the tags their source gave them. PDF/UA-1 requires every piece of real content to be tagged (ISO 14289-1 §7.1), so saving the file as it is writes one that no longer meets it.
 
 ## Why
 
-Tags live in the document's structure tree, which ties each page's content to elements such as headings and paragraphs. A page copied from another document brings its content but not the elements of the other document's tree. Lamina PDF therefore leaves the copy's content untagged rather than tied to elements the document lacks.
+Tags live in the document's structure tree, which ties each page's content to elements such as headings and paragraphs. A page copied into a tagged document brings its elements along. A document that isn't tagged has no tree to take them, and a tagged file must tag all its content, so Lamina PDF leaves the copy's content untagged.
 
 ## How to fix
 
-Tag the copied pages in a tagging tool, or copy pages from a document that has no tags to lose. If the file needn't stay PDF/UA-1, save anyway: the warning never blocks a save.
+Tag the document, and the copied pages with it, in a tagging tool, or copy pages from a document that has no tags to lose. If the file needn't stay PDF/UA-1, save anyway: the warning never blocks a save.
 
 ## Example
 
-Copying a page of a tagged report into a PDF/UA-1 file with `insertPagesFrom`, then `doc.plan()`, lists `imported-tags-dropped`. The edit's `tagsDropped` names the copy.
+A file claims PDF/UA-1 in its metadata, but its catalog doesn't mark it tagged. Copying a page of a tagged report into it with `insertPagesFrom` makes `doc.plan()` list `imported-tags-dropped`, and the edit's `tagsDropped` names the copy.
 
 ## Data fields
 
@@ -3309,6 +3309,7 @@ None.
 The decisions and todos behind this code:
 
 - [E2c](../todos/done/E2c-cross-document-pages.md): importing, replacing and extracting pages
+- [E2o](../todos/done/E2o-structure-tree-merge.md): merging structure trees, for merged and imported pages
 - [E2 plan §3](../plans/editor/e2-page-organisation.md#3-conformance-the-edits-must-keep): what page edits do to a PDF/UA claim
 ",
         "imported-pdfa-unchecked" => r"# `imported-pdfa-unchecked`
@@ -3342,6 +3343,38 @@ The decisions and todos behind this code:
 
 - [E2d](../todos/done/E2d-merge-and-split.md): merging and splitting documents
 - [E2 plan §3](../plans/editor/e2-page-organisation.md#3-conformance-the-edits-must-keep): what page edits do to a PDF/A claim
+",
+        "imported-pdfua-unchecked" => r"# `imported-pdfua-unchecked`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file says it conforms to PDF/UA-1, and pages were copied in from a document that doesn't make that claim. Saving the file as it is may write one that no longer meets the claim.
+
+## Why
+
+PDF/UA-1 asks more of a file than tags: every image needs alternate text, headings must nest in order, tables need their headers, and the reading order must make sense (ISO 14289-1 §7). Pages copied from another document bring that document's tags with them, or no tags when it has none. When that document claims PDF/UA-1 too, its tags were made to meet these rules. When it doesn't, nothing checks them, and Lamina PDF can't tell whether the pages keep the claim.
+
+## How to fix
+
+Check the saved file with a PDF/UA checker such as veraPDF, or copy pages from a document that claims PDF/UA-1. If the file needn't stay PDF/UA, save anyway: the warning never blocks a save.
+
+## Example
+
+A PDF/UA-1 report copies in a tagged page from a draft that claims no standard with `insertPagesFrom`. Its `doc.plan()` then lists `imported-pdfua-unchecked`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E2o](../todos/done/E2o-structure-tree-merge.md): merging structure trees, for merged and imported pages
+- [E2 plan §3](../plans/editor/e2-page-organisation.md#3-conformance-the-edits-must-keep): what page edits do to a PDF/UA claim
 ",
         "sink" => r"# `sink`
 
