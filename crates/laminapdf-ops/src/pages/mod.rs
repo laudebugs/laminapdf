@@ -1,22 +1,28 @@
-//! The page-structure ops (E2 plan §2.1): insert blank pages, delete, move, rotate and reverse,
+//! The page-structure ops (E2 plan §2.1): insert blank pages, delete, move, rotate, reverse and
+//! duplicate,
 //! over the model's page-tree editor (ISO 32000-2 §7.7.3). Each keeps the page labels right
 //! (`PageLabels::remap`) and reports the form fields whose widgets it touched, for the save
 //! planner's field-level checks (ADR 0007 §11).
 
 mod cleanup;
+mod copies;
 mod delete;
+mod duplicate;
 mod forms;
 mod insert;
 mod order;
 mod rotate;
 mod structure;
+mod tags;
 
 use std::collections::BTreeSet;
 
 use laminapdf_model::PageId;
 
 pub use cleanup::{ReferenceChange, ReferenceOutcome};
+pub use copies::{FieldChange, FieldOutcome};
 pub use delete::{DeletePages, ReferencePolicy};
+pub use duplicate::DuplicatePages;
 pub use insert::InsertBlankPages;
 pub use order::{MovePages, ReversePages};
 pub use rotate::{RotateMode, RotatePages};

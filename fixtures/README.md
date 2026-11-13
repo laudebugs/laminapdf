@@ -235,6 +235,7 @@ python3 fixtures/pages/make.py
 | `forms.pdf` | Two pages: a merged text field and widget (`name`), a checkbox field (`agree`) with kid widgets on both pages, and an unsigned signature field; a second copy's field names clash with these |
 | `layers.pdf` | Two pages, each drawing a square in each of two optional content groups, `Draft` (on) and `Notes` (off) |
 | `chapters.pdf` | Twelve pages in three chapters of two sections each; the outline's three top-level items go to pages 1, 5 and 9, chapter 2's through the named destination `chapter-2` |
+| `tagged.pdf` | Two tagged pages whose metadata claims PDF/UA-1. Page 1 holds an `H1` and a `P` of its own, the start of a `P` that runs on to page 2 (an MCID here and an `MCR` there), a `Link` element holding the link's text and the link annotation (`OBJR`, `/StructParent 1`), and a `Form` element holding a merged text field (`OBJR`, `/StructParent 2`); `/ParentTreeNextKey 4` |
 
 ### `fonts/`
 

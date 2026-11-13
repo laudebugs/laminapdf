@@ -456,6 +456,8 @@ impl Document {
             page_order: None,
             references: Vec::new(),
             also_deleted: Vec::new(),
+            fields: Vec::new(),
+            tags_incomplete: Vec::new(),
         });
         Ok(())
     }
@@ -515,6 +517,8 @@ impl Document {
             widgets,
             page_order: state.page_order,
             references: state.references,
+            fields: state.fields,
+            tags_incomplete: state.tags_incomplete,
         })
     }
 

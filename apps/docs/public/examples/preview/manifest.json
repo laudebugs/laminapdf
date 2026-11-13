@@ -1,5 +1,23 @@
 {
   "examples": {
+    "duplicate_pages": {
+      "sha256": "5920e53b512d93aacd78406e3772eb25a929d510b3a443cb18cc0b6a04a40347",
+      "bytes": 3072,
+      "pages": [
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        }
+      ]
+    },
     "edit_metadata": {
       "sha256": "a6169a6dbc5a42136a03865ec8a00155a225b9cec01721fab7f6322c38e31ec6",
       "bytes": 6822,

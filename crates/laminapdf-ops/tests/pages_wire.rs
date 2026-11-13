@@ -8,12 +8,13 @@ use common::fixture;
 use laminapdf_model::{PagePosition, Rotation};
 use laminapdf_ops::{Op, ReferencePolicy, RotateMode};
 
-const SAMPLES: [&str; 5] = [
+const SAMPLES: [&str; 6] = [
     "insert-blank-pages",
     "delete-pages",
     "move-pages",
     "rotate-pages",
     "reverse-pages",
+    "duplicate-pages",
 ];
 
 fn sample(name: &str) -> Op {
@@ -80,8 +81,24 @@ fn unknown_fields_and_positions_are_rejected() {
         r#"{ "op": "movePages", "args": { "pages": ["p7.0"], "to": "start", "extra": 1 } }"#,
         r#"{ "op": "movePages", "args": { "pages": ["p7.0"], "to": { "beside": "p3.0" } } }"#,
         r#"{ "op": "rotatePages", "args": { "pages": ["p7.0"], "angle": 45 } }"#,
+        r#"{ "op": "duplicatePages", "args": { "pages": ["p7.0"], "at": "end", "count": 2 } }"#,
+        r#"{ "op": "duplicatePages", "args": { "pages": ["p7.0"] } }"#,
         r#"{ "op": "insertBlankPages", "args": { "at": "end", "count": 1, "size": { "width": 1, "height": 1, "depth": 1 }, "rotate": 0 } }"#,
     ] {
         assert!(serde_json::from_str::<Op>(json).is_err(), "{json}");
     }
+}
+
+#[test]
+fn the_duplicate_sample_names_its_pages_and_place() {
+    let Op::DuplicatePages(dup) = sample("duplicate-pages") else {
+        panic!("not duplicatePages");
+    };
+    assert_eq!(
+        (dup.pages, dup.at),
+        (
+            vec!["p7.0".parse().unwrap()],
+            PagePosition::After("p7.0".parse().unwrap())
+        )
+    );
 }

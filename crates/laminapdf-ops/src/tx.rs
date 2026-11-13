@@ -11,7 +11,7 @@ use laminapdf_model::PageId;
 
 use crate::error::Result;
 use crate::op::{Effect, Op};
-use crate::pages::ReferenceChange;
+use crate::pages::{FieldChange, ReferenceChange};
 use crate::pending::PendingChanges;
 use crate::record::UndoRecord;
 use crate::widgets::TouchedWidget;
@@ -105,6 +105,17 @@ pub struct Applied {
     ///
     /// Added in 0.2.0.
     pub references: Vec<ReferenceChange>,
+    /// The form fields whose widgets a duplicated page showed: each copy's new field, or a
+    /// signature field whose widget was not copied (E2 plan §2.2).
+    ///
+    /// Added in 0.2.0.
+    pub fields: Vec<FieldChange>,
+    /// The copies a page duplication made whose tags couldn't all be cloned: content of
+    /// elements that also hold content on other pages is left untagged on them
+    /// (`DuplicateTagsIncomplete`).
+    ///
+    /// Added in 0.2.0.
+    pub tags_incomplete: Vec<PageId>,
 }
 
 /// The state of the open transaction, kept on the [`Document`](crate::Document) so the
@@ -126,6 +137,10 @@ pub(crate) struct TxState {
     /// The references the ops so far retargeted or removed.
     pub(crate) references: Vec<ReferenceChange>,
     pub(crate) also_deleted: Vec<laminapdf_model::AnnotId>,
+    /// The fields the ops so far copied or left out.
+    pub(crate) fields: Vec<FieldChange>,
+    /// The copies the ops so far couldn't tag whole.
+    pub(crate) tags_incomplete: Vec<PageId>,
 }
 
 /// An open transaction ([ADR 0006] §2), handed to the closure of
@@ -189,6 +204,8 @@ impl Tx<'_> {
             widgets: effect.widgets,
             page_order: effect.page_order,
             references: effect.references,
+            fields: effect.fields,
+            tags_incomplete: effect.tags_incomplete,
         })
     }
 
@@ -213,6 +230,10 @@ impl Tx<'_> {
                 }
                 self.state.references.extend(effect.references.iter().cloned());
                 self.state.also_deleted.extend(effect.also_deleted.iter().cloned());
+                self.state.fields.extend(effect.fields.iter().cloned());
+                self.state
+                    .tags_incomplete
+                    .extend(effect.tags_incomplete.iter().cloned());
                 Ok(effect)
             }
             Err(e) => {
@@ -237,6 +258,8 @@ impl Tx<'_> {
         let pending = self.state.pending.clone();
         let page_order = self.state.page_order.clone();
         let references = self.state.references.len();
+        let fields = self.state.fields.len();
+        let tags_incomplete = self.state.tags_incomplete.len();
         let result = f(self);
         if result.is_err() {
             self.doc.cos_mut().rollback_to(mark)?;
@@ -244,6 +267,8 @@ impl Tx<'_> {
             self.state.pending = pending;
             self.state.page_order = page_order;
             self.state.references.truncate(references);
+            self.state.fields.truncate(fields);
+            self.state.tags_incomplete.truncate(tags_incomplete);
         }
         result
     }
@@ -298,6 +323,8 @@ mod tests {
             page_order: None,
             references: Vec::new(),
             also_deleted: Vec::new(),
+            fields: Vec::new(),
+            tags_incomplete: Vec::new(),
         }
     }
 

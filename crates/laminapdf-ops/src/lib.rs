@@ -109,12 +109,12 @@ pub use labels::{PageLabelRange, SetPageLabels};
 pub use metadata::{
     ConformanceWarning, DocumentMetadata, MetadataKey, MetadataPatch, MetadataSource, PacketStatus, RemoveMetadata,
     RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty, UpdateSaveMetadata, conformance_warnings,
-    read_metadata,
+    pending_conformance_warnings, read_metadata,
 };
 pub use op::{Op, OpLog};
 pub use pages::{
-    DeletePages, InsertBlankPages, MovePages, ReferenceChange, ReferenceOutcome, ReferencePolicy, ReversePages,
-    RotateMode, RotatePages,
+    DeletePages, DuplicatePages, FieldChange, FieldOutcome, InsertBlankPages, MovePages, ReferenceChange,
+    ReferenceOutcome, ReferencePolicy, ReversePages, RotateMode, RotatePages,
 };
 pub use pending::PendingChanges;
 pub use record::{Change, Field, Property, PropertyValue, SkipReason, Skipped, Target, UndoRecord};

@@ -4,6 +4,7 @@
 // Worker's bundled `INPUT_PATHS`) and the output is compared with the Rust golden, so every
 // runtime produces the same bytes.
 import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@laminapdf/sdk";
+import { duplicatePages } from "../../examples/duplicate-pages.js";
 import { editMetadata } from "../../examples/edit-metadata.js";
 import { editXmp } from "../../examples/edit-xmp.js";
 import { elementFlow, type Report } from "../../examples/element-flow.js";
@@ -65,6 +66,8 @@ const METADATA_PDF = "fixtures/golden/metadata.pdf";
 const PDFA_2B_PDF = "fixtures/golden/examples/pdf_a_archive-2b.pdf";
 /** The document organise-pages organises: five pages, with bookmarks, links and named destinations that point at the third. */
 const REFERENCES_PDF = "fixtures/pages/references.pdf";
+/** The input of duplicate-pages: two form pages, a text field, a checkbox field and a signature field. */
+const FORMS_PDF = "fixtures/pages/forms.pdf";
 /** The input of page-labels: an example golden of four pages. */
 const LABELS_INPUT_PDF = "fixtures/golden/examples/links_and_outlines.pdf";
 
@@ -156,6 +159,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "edit_metadata",
     inputs: [METADATA_PDF],
     build: (i) => editMetadata(input(i, METADATA_PDF), EDITED_AT),
+  },
+  {
+    name: "duplicate-pages",
+    golden: "duplicate_pages",
+    inputs: [FORMS_PDF],
+    build: (i) => duplicatePages(input(i, FORMS_PDF)),
   },
   {
     name: "edit-xmp",

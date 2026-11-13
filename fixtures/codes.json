@@ -626,6 +626,13 @@
       "summary": "the file claims PDF/A, which requires the Info dictionary and the XMP packet to agree, and they differ",
       "hint": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
       "since": "0.2.0"
+    },
+    {
+      "code": "duplicate-tags-incomplete",
+      "kind": "usage",
+      "summary": "a duplicated page's content is partly untagged, which breaks the PDF/UA claim of the document's metadata",
+      "hint": "retag the copy, or duplicate pages whose tagged elements lie on the page alone",
+      "since": "0.2.0"
     }
   ],
   "saveErrors": [

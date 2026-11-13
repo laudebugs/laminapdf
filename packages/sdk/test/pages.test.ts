@@ -1,4 +1,5 @@
-// The page ops: insertBlankPages, deletePages, movePages, rotatePages and reversePages on
+// The page ops: insertBlankPages, deletePages, movePages, rotatePages, reversePages and
+// duplicatePages on
 // fixtures/pages/, each saved and reopened, their `Edited` reports, the transaction handle's
 // twins and the refusal to delete every page. The names start with the capability each test
 // proves (C.01 and the rest); they become capability tags once `cargo xtask capabilities` runs
@@ -228,6 +229,51 @@ describe("reversePages", () => {
   });
 });
 
+describe("duplicatePages", () => {
+  it("C.03 (pdf, round-trip): copies a form page to the end with new fields, kept after a save", () => {
+    using doc = open("forms");
+    const [p1, p2] = ids(doc) as [string, string];
+    const edited = doc.duplicatePages([p1], "end");
+    const order = edited.pageOrder ?? [];
+    expect(order.slice(0, 2)).toEqual([p1, p2]);
+    expect(order).toHaveLength(3);
+    const copy = order[2] as string;
+    expect([p1, p2]).not.toContain(copy);
+    expect((edited.fields ?? []).map((f) => [f.outcome, f.name, f.page])).toEqual([
+      ["renamed", "name#2", copy],
+      ["renamed", "agree#2", copy],
+    ]);
+    using again = reopened(doc);
+    expect(markers(again)).toEqual(["Page 1", "Page 2", "Page 1"]);
+  });
+
+  it("leaves a signature's widget out of the copy and says so", () => {
+    using doc = open("forms");
+    const [, p2] = ids(doc) as [string, string];
+    const fields = doc.duplicatePages([p2], "start").fields ?? [];
+    expect(fields.map((f) => [f.outcome, f.name])).toEqual([
+      ["notCopied", undefined],
+      ["renamed", "agree#2"],
+    ]);
+  });
+
+  it("lists a copy whose tags it couldn't clone whole", () => {
+    using doc = open("tagged");
+    const [p1] = ids(doc) as [string];
+    const edited = doc.duplicatePages([p1], "end");
+    expect(edited.tagsIncomplete).toEqual([edited.pageOrder?.[2]]);
+  });
+
+  it("is undone as one step", () => {
+    using doc = open("forms");
+    const before = ids(doc);
+    doc.duplicatePages(before, { after: before[0] as string });
+    expect(doc.pageCount).toBe(4);
+    doc.undo();
+    expect(ids(doc)).toEqual(before);
+  });
+});
+
 describe("the transaction handle", () => {
   it("collects the page ops into one edit that one undo reverts", () => {
     using doc = open("references");
@@ -239,8 +285,9 @@ describe("the transaction handle", () => {
       tx.insertBlankPages("end", 1, LETTER);
       tx.rotatePages([p1, p2], 90, { mode: "turn" });
       tx.reversePages([p1, p2]);
+      tx.duplicatePages([p1], "end");
     });
-    expect(doc.pageCount).toBe(5);
+    expect(doc.pageCount).toBe(6);
     expect(ids(doc).slice(0, 3)).toEqual([p5, p2, p1]);
     expect(doc.pages.slice(1, 3).map((p) => p.rotation)).toEqual([90, 90]);
     doc.undo();

@@ -123,6 +123,7 @@ export type {
   DocumentProperties,
   Edited,
   ExtensionProperty,
+  FieldEdit,
   Fit,
   Limits,
   LineBox,

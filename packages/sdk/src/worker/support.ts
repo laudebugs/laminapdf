@@ -35,6 +35,7 @@ export const DOCUMENT_METHODS = {
   applyLog: 1,
   canExtractText: 0,
   deletePages: 2,
+  duplicatePages: 2,
   extract: 1,
   hasUnsavedChanges: 0,
   info: 0,
