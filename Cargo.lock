@@ -2918,6 +2918,7 @@ dependencies = [
  "laminapdf-syntax",
  "laminapdf-test-fixtures",
  "laminapdf-text",
+ "schemars 1.2.3",
  "serde",
  "serde_json",
  "sha2 0.11.1",
