@@ -120,6 +120,7 @@ mod job;
 mod links;
 mod metadata;
 mod navigation;
+mod navigation_export;
 mod pages;
 mod properties;
 #[cfg(feature = "extract")]
@@ -160,6 +161,9 @@ pub use laminapdf_model::FontEncoding;
 pub use links::{LinkTo, PageLink};
 pub use metadata::XmpText;
 pub use navigation::{NamedDestination, OutlineNode, PageTarget, PageTargetView};
+#[cfg(feature = "schema")]
+pub use navigation_export::navigation_schemas;
+pub use navigation_export::{DocumentLink, LINKS_SCHEMA, OUTLINE_SCHEMA};
 pub use properties::{DocumentContents, DocumentPermissions, DocumentProperties, EncryptionSummary, FontSummary};
 pub use structure::{StructureKid, StructureNode};
 

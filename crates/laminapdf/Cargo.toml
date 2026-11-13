@@ -51,6 +51,9 @@ document = ["text", "laminapdf-build/serde"]
 # The save planner's field-level checks of page ops (laminapdf-save's `page-checks`, ADR 0007 §11).
 # On by default; the WASM modules leave it out until their page ops report widgets.
 page-checks = ["laminapdf-save/page-checks"]
+# The JSON Schemas of the links and outline exports (schemars): tests/navigation_export.rs writes
+# and checks schemas/links.schema.json and schemas/outline.schema.json. No shipped surface needs it.
+schema = ["dep:schemars"]
 # `laminapdf::explain(code)`: every code's explain page (docs/errors/<code>.md, ADR 0026 §6), about
 # 80 KB of text. Off by default and in the WASM modules; the CLI turns it on.
 explain = []
@@ -66,6 +69,7 @@ laminapdf-extract = { workspace = true, optional = true, features = ["serde"] }
 laminapdf-build = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+schemars = { workspace = true, optional = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]

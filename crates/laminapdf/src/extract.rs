@@ -16,10 +16,11 @@
 
 pub use laminapdf_extract::{
     Block, BlockKind, Cell, Chunk, ChunkOptions, Coordinates, DropOptions, DropReason, Dropped, ExtractLimits,
-    ExtractOptions, ExtractedPage, ExtractedSource, Extraction, Flags, LayoutModel, LayoutRegion, MarkdownOptions,
-    ModelError, ModelInfo, ModelRequest, ModelResult, ModelSlot, Models, OcrEngine, OcrWord, PageRaster, PageRenderer,
-    ReadingOrder, Region, RegionLabel, Rendered, Span, SplitOn, StructRef, StructSource, TableDetector, TableMode,
-    TextLayer, TextLayerStatus, TextLayerThresholds, TextRange, chunks_jsonl, tokens_approx,
+    ExtractOptions, ExtractedImage, ExtractedImages, ExtractedPage, ExtractedSource, Extraction, Flags, ImageFormat,
+    ImageKind, ImageOptions, LayoutModel, LayoutRegion, MarkdownOptions, ModelError, ModelInfo, ModelRequest,
+    ModelResult, ModelSlot, Models, OcrEngine, OcrWord, PageRaster, PageRenderer, ReadingOrder, Region, RegionLabel,
+    Rendered, SkippedImage, Span, SplitOn, StructRef, StructSource, TableDetector, TableMode, TextLayer,
+    TextLayerStatus, TextLayerThresholds, TextRange, chunks_jsonl, tokens_approx,
 };
 #[cfg(feature = "reflow")]
 pub use laminapdf_extract::{
@@ -124,6 +125,19 @@ impl Document {
             core: JobCore::new(self, job.cancel_token()),
             job,
         })
+    }
+
+    /// The images the pages `options` asks for draw, as files: JPEG and JPEG 2000 images as
+    /// stored, byte for byte, the rest decoded to PNG with their `/Decode`, colour space and
+    /// mask applied. An image is given once, on the first page that draws it; one that can't
+    /// be decoded is listed in [`ExtractedImages::skipped`] with why.
+    ///
+    /// # Errors
+    /// `page-index-out-of-range`; the reading errors (`strict`, the limits, `data-pending`).
+    ///
+    /// Added in 0.3.0.
+    pub fn extract_images(&self, options: &ImageOptions) -> Result<ExtractedImages> {
+        Ok(laminapdf_extract::extract_images(self.ops(), options)?)
     }
 
     /// `extraction` as `laminapdf.extract/1` JSON with this document's warnings and, when

@@ -1,0 +1,188 @@
+{
+  "$defs": {
+    "Generator": {
+      "description": "Who wrote the file.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "type": "object"
+    },
+    "JsonLink": {
+      "description": "One link.",
+      "properties": {
+        "action": {
+          "description": "A named action (`NextPage`…), or the type of an action a reader never runs.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "contents": {
+          "description": "Its description (`/Contents`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "destination": {
+          "description": "The named destination it goes to.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "file": {
+          "description": "The other file a `GoToR` link opens.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "description": "`destination`, `uri`, `otherFile`, `namedAction` or `unsupported`.",
+          "type": "string"
+        },
+        "pageIndex": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "pageNumber": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rect": {
+          "description": "Left, top, right and bottom, in points from the displayed page's top-left, y down.",
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/JsonTarget"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Where it goes, when that is a page of this document."
+        },
+        "uri": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "pageIndex",
+        "pageNumber",
+        "rect",
+        "kind"
+      ],
+      "type": "object"
+    },
+    "JsonTarget": {
+      "description": "A page of this document and how to show it.",
+      "properties": {
+        "bottom": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "left": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "pageIndex": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "pageNumber": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "right": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "top": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "view": {
+          "description": "`at`, `fit`, `fitWidth`, `fitHeight` or `fitRect`.",
+          "type": "string"
+        },
+        "zoom": {
+          "description": "1 is 100 %.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "pageIndex",
+        "pageNumber",
+        "view"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf/schemas/links.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "`laminapdf.links/1`.",
+  "properties": {
+    "generator": {
+      "$ref": "#/$defs/Generator"
+    },
+    "links": {
+      "description": "Every page's links, page by page.",
+      "items": {
+        "$ref": "#/$defs/JsonLink"
+      },
+      "type": "array"
+    },
+    "schema": {
+      "description": "`laminapdf.links/1`.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema",
+    "generator",
+    "links"
+  ],
+  "title": "laminapdf.links/1",
+  "type": "object"
+}
