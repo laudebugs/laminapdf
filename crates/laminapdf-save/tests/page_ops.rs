@@ -17,8 +17,8 @@ use common::fixture;
 use common::save::{editable, page_ids};
 use laminapdf_model::{PageId, PagePosition, PageSize, Rotation};
 use laminapdf_ops::{
-    DeletePages, Document, DuplicatePages, InsertBlankPages, InsertPagesFrom, ModificationClass, MovePages, Op, Origin,
-    ReplacePages, ReversePages, RotatePages, SourceId,
+    DeletePages, Document, DuplicatePages, InsertBlankPages, InsertPagesFrom, MergeDocuments, MergeSource,
+    ModificationClass, MovePages, Op, Origin, ReplacePages, ReversePages, RotatePages, SourceId,
 };
 use laminapdf_save::{ConstraintKind, Restriction, Save, SaveMode, SaveOptions, SavePlanner};
 
@@ -59,6 +59,10 @@ fn ops(page: &PageId) -> Vec<(&'static str, Op)> {
         (
             "replace",
             ReplacePages::new(vec![page.clone()], source(), vec![first_page()]).into(),
+        ),
+        (
+            "merge",
+            MergeDocuments::new(vec![MergeSource::new(source())], PagePosition::After(page.clone())).into(),
         ),
     ]
 }
@@ -180,12 +184,13 @@ fn deleting_or_rotating_the_locked_fields_page_breaks_the_lock() {
 fn copying_pages_in_or_replacing_another_page_saves_incrementally_and_keeps_the_signed_bytes() {
     let bytes = fixture("signed/approval.pdf");
     let source_bytes = fixture("pages/forms.pdf");
-    for op_name in ["insert-from", "replace"] {
+    for op_name in ["insert-from", "replace", "merge"] {
         let (mut doc, second) = with_second_page(editable(&bytes));
         let source = doc.add_source(source_bytes.clone(), None).unwrap();
         let page = page_ids(doc.source_document(&source).unwrap())[0].clone();
         let op: Op = match op_name {
             "insert-from" => InsertPagesFrom::new(source, vec![page], PagePosition::End).into(),
+            "merge" => MergeDocuments::new(vec![MergeSource::new(source)], PagePosition::End).into(),
             _ => ReplacePages::new(vec![second], source, vec![page]).into(),
         };
         doc.apply_all(Origin::Local, [op]).unwrap();

@@ -22,8 +22,11 @@ import {
   type InsertBlankPagesOptions,
   insertBlankPagesOp,
   insertPagesFromOp,
+  type MergeOptions,
+  type MergeSource,
   type MetadataEditOptions,
   type MetadataRemoveOptions,
+  mergeDocumentsOp,
   movePagesOp,
   type PagePosition,
   type PageSize,
@@ -91,6 +94,29 @@ const WARNING_BATCH = 256;
 function bytesOf(input: Uint8Array | ArrayBuffer): Uint8Array {
   return input instanceof Uint8Array ? input : new Uint8Array(input);
 }
+
+/**
+ * One file {@link Document.merge} brings in: its bytes, its password when it is encrypted, and
+ * the name of the bookmark that holds its bookmarks (the file's own title when left out).
+ *
+ * @since 0.3.0
+ */
+export interface MergeInput {
+  readonly bytes: Uint8Array | ArrayBuffer;
+  readonly password?: string;
+  readonly title?: string;
+}
+
+/**
+ * Where {@link Document.split} cuts a document: every `count` pages, at the lists of page IDs in
+ * `ranges`, or where the bookmarks at depth `bookmarks` (1: the top level) begin.
+ *
+ * @since 0.3.0
+ */
+export type SplitBy =
+  | { readonly count: number }
+  | { readonly ranges: readonly (readonly string[])[] }
+  | { readonly bookmarks: number };
 
 /**
  * The open options to try, in order: as given, then, when the password's NFKC form differs, with
@@ -377,6 +403,42 @@ export class Document extends Handle<BaseGlue> {
       try {
         return new Document(
           instance.call((wasm) => wasm.WasmDocument.openBytes(data, attempts[i])),
+          instance,
+        );
+      } catch (e) {
+        if (!tryNext(e, i, attempts.length)) throw e;
+      }
+    }
+  }
+
+  /**
+   * A new document of `inputs` one after another: each file's pages with their annotations, form
+   * fields, named destinations, layers and page labels, and its bookmarks as `options.outline`
+   * says (by default under a bookmark named after the file: its `title`, else the file's own
+   * title). An encrypted file opens with its `password`. Saving it writes a whole file with no
+   * password.
+   *
+   * @throws {@link LaminaPdfError} `wrong-password`, `password-required`, and the errors of a file
+   *   that doesn't open.
+   *
+   * @since 0.3.0
+   */
+  static merge(inputs: readonly MergeInput[], options?: MergeOptions): Document {
+    const instance = readingModule();
+    const raw = (nfkc: boolean) =>
+      inputs.map((input) => ({
+        bytes: bytesOf(input.bytes),
+        ...(input.password === undefined ? {} : { password: nfkc ? input.password.normalize("NFKC") : input.password }),
+        ...(input.title === undefined ? {} : { title: input.title }),
+      }));
+    // As `open` does: the passwords as given, then in their NFKC form after `wrong-password`.
+    const retry = inputs.some((i) => i.password !== undefined && i.password.normalize("NFKC") !== i.password);
+    const attempts = retry ? [false, true] : [false];
+    for (let i = 0; ; i++) {
+      try {
+        const list = raw(attempts[i] ?? false);
+        return new Document(
+          instance.call((wasm) => wasm.WasmDocument.merge(list, options)),
           instance,
         );
       } catch (e) {
@@ -1169,6 +1231,24 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * Brings in every page of each of `sources` (IDs from {@link Document.addSource}, or a
+   * `{ source, pages, title }` to choose pages or name the document) at `at`, one source after
+   * another, in one transaction (`mergeDocuments`). Pages come in as with
+   * {@link Document.insertPagesFrom}, and so do the documents' bookmarks (as `options.outline`
+   * says), named destinations (renamed `<name>#<n>` when taken: the result's
+   * `renamedDestinations`), layers and page labels. Bookmarks to pages left behind are dropped
+   * (`bookmarksDropped`).
+   *
+   * @throws {@link LaminaPdfError} `unknown-source`, `unknown-page`; as {@link Document.apply}.
+   *
+   * @since 0.3.0
+   */
+  mergeDocuments(sources: readonly (string | MergeSource)[], at: PagePosition, options?: MergeOptions): Edited {
+    const list = sources.map((s) => (typeof s === "string" ? { source: s } : s));
+    return this.apply([mergeDocumentsOp(list, at, options)]);
+  }
+
+  /**
    * A new document of `pages` of this one, each once and in the order given, as this document
    * stands now: the pages with their annotations, the links between them, their form fields
    * (signature fields unsigned) and their page labels. Links to pages left behind are removed,
@@ -1202,6 +1282,22 @@ export class Document extends Handle<BaseGlue> {
       throw e;
     }
     return parts;
+  }
+
+  /**
+   * This document cut into new documents: `{ count }` pages each (the last holds what is left),
+   * one per list of page IDs in `{ ranges }`, or one from each bookmark at depth
+   * `{ bookmarks }` (1: the top level) to the next, the pages before the first making a part of
+   * their own. Each part is made as {@link Document.extractPages} makes one, with the bookmarks
+   * that go to its pages.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.extractPages}.
+   *
+   * @since 0.3.0
+   */
+  split(by: SplitBy): Document[] {
+    const raws = this.call(() => this.#doc.split(by));
+    return raws.map((raw) => new Document(raw, this.instance));
   }
 
   /**

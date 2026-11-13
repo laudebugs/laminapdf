@@ -13,8 +13,11 @@ mod forms;
 mod from;
 mod import;
 mod insert;
+mod merge;
+mod merge_parts;
 mod order;
 mod rotate;
+mod split;
 mod structure;
 mod tags;
 
@@ -31,8 +34,10 @@ pub use duplicate::DuplicatePages;
 pub use from::{InsertPagesFrom, ReplacePages};
 pub use import::{Carry, FieldClash};
 pub use insert::InsertBlankPages;
+pub use merge::{MergeDocuments, MergeInput, MergeOptions, MergeSource, OutlineMerge, RenamedDestination};
 pub use order::{MovePages, ReversePages};
 pub use rotate::{RotateMode, RotatePages};
+pub use split::SplitBy;
 
 use crate::class::ModificationClass;
 use crate::error::{Error, Result};

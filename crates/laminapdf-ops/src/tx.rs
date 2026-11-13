@@ -12,7 +12,7 @@ use laminapdf_model::{OutlineItemId, PageId};
 use crate::error::Result;
 use crate::op::{Effect, Op};
 use crate::outline::DestinationUse;
-use crate::pages::{FieldChange, ReferenceChange};
+use crate::pages::{FieldChange, ReferenceChange, RenamedDestination};
 use crate::pending::PendingChanges;
 use crate::record::UndoRecord;
 use crate::widgets::TouchedWidget;
@@ -146,6 +146,16 @@ pub struct Applied {
     ///
     /// Added in 0.3.0.
     pub tags_dropped: Vec<PageId>,
+    /// The named destinations a merge or a page import brought in under another name, since
+    /// the target already used theirs (E2 plan §2.2).
+    ///
+    /// Added in 0.3.0.
+    pub renamed_destinations: Vec<RenamedDestination>,
+    /// The bookmarks a merge left out because the pages they went to didn't come along (and
+    /// none of their children did either).
+    ///
+    /// Added in 0.3.0.
+    pub bookmarks_dropped: usize,
 }
 
 /// The state of the open transaction, kept on the [`Document`](crate::Document) so the
@@ -179,6 +189,10 @@ pub(crate) struct TxState {
     pub(crate) links_removed: Vec<PageId>,
     /// The imported pages the ops so far brought in without their tags.
     pub(crate) tags_dropped: Vec<PageId>,
+    /// The named destinations the ops so far brought in under another name.
+    pub(crate) renamed_destinations: Vec<RenamedDestination>,
+    /// The bookmarks the ops so far left out.
+    pub(crate) bookmarks_dropped: usize,
 }
 
 /// An open transaction ([ADR 0006] §2), handed to the closure of
@@ -252,6 +266,8 @@ impl Tx<'_> {
             tags_incomplete: effect.tags_incomplete,
             links_removed: effect.links_removed,
             tags_dropped: effect.tags_dropped,
+            renamed_destinations: effect.renamed_destinations,
+            bookmarks_dropped: effect.bookmarks_dropped,
         })
     }
 
@@ -292,6 +308,10 @@ impl Tx<'_> {
                     .extend(effect.tags_incomplete.iter().cloned());
                 self.state.links_removed.extend(effect.links_removed.iter().cloned());
                 self.state.tags_dropped.extend(effect.tags_dropped.iter().cloned());
+                self.state
+                    .renamed_destinations
+                    .extend(effect.renamed_destinations.iter().cloned());
+                self.state.bookmarks_dropped += effect.bookmarks_dropped;
                 Ok(effect)
             }
             Err(e) => {
@@ -326,6 +346,7 @@ impl Tx<'_> {
         let tags_incomplete = self.state.tags_incomplete.len();
         let links_removed = self.state.links_removed.len();
         let tags_dropped = self.state.tags_dropped.len();
+        let merged = (self.state.renamed_destinations.len(), self.state.bookmarks_dropped);
         let result = f(self);
         if result.is_err() {
             self.doc.cos_mut().rollback_to(mark)?;
@@ -342,6 +363,8 @@ impl Tx<'_> {
             self.state.tags_incomplete.truncate(tags_incomplete);
             self.state.links_removed.truncate(links_removed);
             self.state.tags_dropped.truncate(tags_dropped);
+            self.state.renamed_destinations.truncate(merged.0);
+            self.state.bookmarks_dropped = merged.1;
         }
         result
     }
@@ -404,6 +427,8 @@ mod tests {
             tags_incomplete: Vec::new(),
             links_removed: Vec::new(),
             tags_dropped: Vec::new(),
+            renamed_destinations: Vec::new(),
+            bookmarks_dropped: 0,
         }
     }
 

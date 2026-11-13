@@ -76,6 +76,9 @@ mod links_and_outlines;
 #[path = "../examples/markdown_to_pdf.rs"]
 mod markdown_to_pdf;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/merge_documents.rs"]
+mod merge_documents;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/multilingual.rs"]
 mod multilingual;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -102,6 +105,9 @@ mod set_initial_view;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/snapshot_test.rs"]
 mod snapshot_test;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/split_document.rs"]
+mod split_document;
 
 mod common;
 
@@ -156,7 +162,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 28] = [
+const EXAMPLES: [(&str, Build); 32] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -196,6 +202,15 @@ const EXAMPLES: [(&str, Build); 28] = [
         insert_pages::insert(fixture("pages/forms.pdf"), fixture("pages/references.pdf"))
     }),
     ("extract_pages", || extract_pages::extract(fixture("pages/labels.pdf"))),
+    ("merge_documents", || {
+        merge_documents::merge(vec![
+            ("references.pdf".to_owned(), fixture("pages/references.pdf")),
+            ("hello.pdf".to_owned(), fixture("corpus/hello.pdf")),
+        ])
+    }),
+    ("split_document-1", || part(0)),
+    ("split_document-2", || part(1)),
+    ("split_document-3", || part(2)),
     // A review recorded in a PDF/A-2b file's XMP metadata: `cargo xtask verapdf` checks that the
     // declared extension schemas keep the claim.
     ("edit_xmp", || {
@@ -249,6 +264,15 @@ const EXAMPLES: [(&str, Build); 28] = [
         markdown_to_pdf::build(options(MARKDOWN_ID)?, &markdown, fonts.map(fixture), fixture(PHOTO))
     }),
 ];
+
+/// The `index`th chapter `split_document` cuts `chapters.pdf` into.
+fn part(index: usize) -> Result<Vec<u8>, Box<dyn Error>> {
+    let mut parts = split_document::split(fixture("pages/chapters.pdf"))?;
+    if index >= parts.len() {
+        return Err(format!("split_document made {} parts", parts.len()).into());
+    }
+    Ok(parts.swap_remove(index))
+}
 
 fn golden(name: &str) -> Vec<u8> {
     let path = fixtures_dir().join(format!("golden/examples/{name}.pdf"));

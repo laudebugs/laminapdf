@@ -27,7 +27,7 @@ export type {
   TextOptions,
 } from "./builder.js";
 export { Builder, imagesToPdf, PAGE_SIZES, Page, PendingPath, Surface, TAG_NAMES } from "./builder.js";
-export { Document, PageRef, SaveJob } from "./document.js";
+export { Document, type MergeInput, PageRef, SaveJob, type SplitBy } from "./document.js";
 export type { Diagnostic, ErrorKind, LaminaPdfWarning, Location } from "./errors.js";
 export { isLaminaPdfError, LaminaPdfError } from "./errors.js";
 export type {
@@ -103,6 +103,8 @@ export {
   type Carry,
   type DeletePagesOptions,
   type InsertBlankPagesOptions,
+  type MergeOptions,
+  type MergeSource,
   type MetadataEditOptions,
   type MetadataRemoveOptions,
   type PagePosition,

@@ -13,7 +13,7 @@ import type { Document, PageRef } from "../document.js";
  * - `extractJob` returns a job whose model results the caller provides between steps: run the
  *   model in the worker's own context, or extract on the main thread;
  * - `ensure` fetches a range document's bytes: the worker does that for every call;
- * - `extractPages` and `exportRanges` return new documents, which stay in the worker: save one
+ * - `extractPages`, `exportRanges` and `split` return new documents, which stay in the worker: save one
  *   on the main thread, or open the saved bytes with the client;
  * - `free` and `Symbol.dispose`: the remote handle's `close()` and `Symbol.asyncDispose`.
  *
@@ -25,6 +25,7 @@ export type ExcludedDocumentMembers =
   | "extractJob"
   | "extractPages"
   | "exportRanges"
+  | "split"
   | "ensure"
   | "free"
   | typeof Symbol.dispose;
@@ -58,6 +59,7 @@ export const DOCUMENT_METHODS = {
   isTagged: 0,
   linkOnArea: 3,
   linkOnText: 3,
+  mergeDocuments: 3,
   metadata: 0,
   movePages: 2,
   namedDestination: 1,

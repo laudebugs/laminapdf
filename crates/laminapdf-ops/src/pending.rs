@@ -31,6 +31,7 @@ pub struct PendingChanges {
     widgets: BTreeSet<TouchedWidget>,
     tags_incomplete: BTreeSet<PageId>,
     tags_dropped: BTreeSet<PageId>,
+    pdfa_unchecked: BTreeSet<PageId>,
 }
 
 impl PendingChanges {
@@ -59,6 +60,7 @@ impl PendingChanges {
             widgets: BTreeSet::new(),
             tags_incomplete: BTreeSet::new(),
             tags_dropped: BTreeSet::new(),
+            pdfa_unchecked: BTreeSet::new(),
         }
     }
 
@@ -131,6 +133,17 @@ impl PendingChanges {
         &self.tags_dropped
     }
 
+    /// The pages copied in from a source that doesn't claim the PDF/A level this file claims,
+    /// which the save planner reports
+    /// ([`ConformanceWarning::ImportedPdfaUnchecked`](crate::ConformanceWarning::ImportedPdfaUnchecked))
+    /// while any of them is still a page.
+    ///
+    /// Added in 0.3.0.
+    #[must_use]
+    pub const fn pdfa_unchecked(&self) -> &BTreeSet<PageId> {
+        &self.pdfa_unchecked
+    }
+
     /// Whether there are none.
     ///
     /// Added in 0.2.0.
@@ -148,6 +161,7 @@ impl PendingChanges {
         self.widgets.extend(effect.widgets.iter().cloned());
         self.tags_incomplete.extend(effect.tags_incomplete.iter().cloned());
         self.tags_dropped.extend(effect.tags_dropped.iter().cloned());
+        self.pdfa_unchecked.extend(effect.pdfa_unchecked.iter().cloned());
     }
 
     /// Adds everything `other` holds.
@@ -159,6 +173,7 @@ impl PendingChanges {
         self.widgets.extend(other.widgets.iter().cloned());
         self.tags_incomplete.extend(other.tags_incomplete.iter().cloned());
         self.tags_dropped.extend(other.tags_dropped.iter().cloned());
+        self.pdfa_unchecked.extend(other.pdfa_unchecked.iter().cloned());
     }
 
     /// Forgets everything (after a rebase, or when the overlay is empty again).

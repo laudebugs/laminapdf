@@ -297,6 +297,7 @@
             "pdfa-info-mismatch",
             "duplicate-tags-incomplete",
             "imported-tags-dropped",
+            "imported-pdfa-unchecked",
             "tounicode-conflict",
             "whole-font-rebuilt",
             "flow-keep-broken",
