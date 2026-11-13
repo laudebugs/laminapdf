@@ -30,5 +30,5 @@ None.
 
 The decisions and todos behind this code:
 
-- [E2b](../todos/ongoing/E2b-page-structure-ops.md): the page-structure ops
+- [E2b](../todos/done/E2b-page-structure-ops.md): the page-structure ops
 - [E2 plan §11](../plans/editor/e2-page-organisation.md#11-decisions-on-the-open-questions): deleting every page is refused
