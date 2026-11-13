@@ -11,7 +11,7 @@
 | Branch | `claude/dazzling-sagan-s9woz0` |
 | PR title | `feat(docs): a divider to resize an example's page beside its code` |
 | Size | S |
-| PR | — |
+| PR | [laudebugs/laminapdf#537](https://github.com/laudebugs/laminapdf/pull/537) |
 
 ## Goal
 
