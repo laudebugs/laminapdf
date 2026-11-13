@@ -175,7 +175,7 @@ pub use job::{Budget, CancelToken, Phase, SaveJob, Step};
 #[cfg(feature = "build")]
 pub use laminapdf_build::Error as BuildError;
 pub use laminapdf_syntax::{DOCS_URL_BASE, DOCS_URL_SUFFIX, Diagnostic, ErrorCode, WarningCode, did_you_mean};
-pub use pages::ExportJob;
+pub use pages::{ExportJob, MergeJob};
 #[cfg(feature = "extract")]
 pub use redaction::RedactionWarning;
 pub use warning::{Warning, WarningCursor};
