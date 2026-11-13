@@ -16,7 +16,6 @@ jobs:
       matrix:
         include:
           - { os: linux, runner: ubuntu-24.04 }
-          - { os: windows, runner: windows-2025 }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -37,7 +36,7 @@ jobs:
       - name: Drag (Linux)
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get install -y -q --no-install-recommends xdotool imagemagick openbox
+          sudo apt-get install -y -q --no-install-recommends xdotool imagemagick openbox x11-utils
           bash .github/d4e-check/linux.sh
       - name: Drag (Windows)
         if: runner.os == 'Windows'

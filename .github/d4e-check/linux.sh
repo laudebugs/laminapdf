@@ -11,7 +11,8 @@ dbus-run-session -- target/debug/laminapdf-desktop "$ex/edit_bookmarks.pdf" "$ex
 sleep 20
 shot() { import -window root "$out/$1.png"; }
 windows() { for w in $(xdotool search --name "Lamina PDF" 2>/dev/null); do echo "$w $(xdotool getwindowname "$w") $(xdotool getwindowgeometry "$w" | tr '\n' ' ')"; done; }
-geom() { xdotool getwindowgeometry --shell "$1"; }
+# xdotool's geometry is off under a reparenting window manager; xwininfo's absolute corner isn't.
+geom() { xwininfo -id "$1" | awk '/Absolute upper-left X/ {print "X=" $NF} /Absolute upper-left Y/ {print "Y=" $NF}'; }
 drag() { # x1 y1 x2 y2
   xdotool mousemove "$1" "$2"; sleep 0.3; xdotool mousedown 1; sleep 0.3
   for i in $(seq 1 30); do xdotool mousemove $(( $1 + ($3 - $1) * i / 30 )) $(( $2 + ($4 - $2) * i / 30 )); sleep 0.04; done
