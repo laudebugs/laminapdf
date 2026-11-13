@@ -16,6 +16,10 @@ const PRODUCTS: readonly (readonly [string, number])[] = [
   ["Ballpoint pens, box of fifty", 1_875],
 ];
 const LINES = 60;
+const MARGIN = 56;
+const PADDING = 6;
+const RULE_WIDTH = 0.75;
+const ROW_RULE_WIDTH = 0.25;
 /** The frame and the rule under the header, the rules between rows, and the header row's shade. */
 const RULE = "#666666";
 const ROW_RULE = "#b3b3b3";
@@ -38,7 +42,7 @@ export function flowingInvoice(
     schema: "laminapdf.document/1",
     title: TITLE,
     lang: "en",
-    page: { size: "A4", margins: 56, footer: { center: "{title}, page {page} of {pages}" }, style: "small" },
+    page: { size: "A4", margins: MARGIN, footer: { center: "{title}, page {page} of {pages}" }, style: "small" },
     styles: {
       body: { font: "regular", size: 10 },
       strong: { font: "bold", size: 10 },
@@ -79,10 +83,10 @@ function table(): BlockSpec {
   return {
     type: "table",
     columns: ["auto", "auto", "auto", "auto"],
-    padding: 6,
-    frame: { width: 0.75, color: RULE },
-    headerRule: { width: 0.75, color: RULE },
-    rowRules: { width: 0.25, color: ROW_RULE },
+    padding: PADDING,
+    frame: { width: RULE_WIDTH, color: RULE },
+    headerRule: { width: RULE_WIDTH, color: RULE },
+    rowRules: { width: ROW_RULE_WIDTH, color: ROW_RULE },
     headerBackground: HEADER_SHADE,
     header: [{ cells: header }],
     rows,

@@ -35,8 +35,8 @@ The template gives the page size, the margins, a header and a footer, and option
 
 The flow lays out every page before it draws any, and it follows these rules:
 
-- **Paragraphs split only between lines,** leaving at least two lines at the foot of a page and two at the head of the next. When a page has room for only one line of a paragraph, the paragraph moves to the next page. Change the counts with `with_widows_and_orphans`.
-- **A heading stays with the block after it,** so a section never starts on the last line of a page. Any paragraph can do the same with `with_keep_with_next`.
+- **Paragraphs split only between lines,** leaving at least two lines at the foot of a page and two at the head of the next. When a page has room for only one line of a paragraph, the paragraph moves to the next page. Change the counts with `with_widows_and_orphans`, or a JSON paragraph's `widows` and `orphans`.
+- **A heading stays with the block after it,** so a section never starts on the last line of a page. Any paragraph can do the same with `with_keep_with_next`, or `keepWithNext` in JSON.
 - **Figures and keep groups move whole** to the next page when they don't fit.
 - **A paragraph continued on a page of another width** is broken again at that width.
 
@@ -58,17 +58,17 @@ A table follows three rules when it crosses a page:
 
 Columns get their widths once, for the whole table, so they line up from page to page. A column is `Fixed` (a width in points), `Auto` (as wide as its widest cell) or a `Fraction` (a share of the width the others leave). When automatic columns are too wide together, the widest ones narrow first, so a column of numbers keeps its width while the descriptions wrap.
 
-A cell holds one or more paragraphs. `with_align` lines its text up at the start, centre or end (numbers at the end), and `with_vertical_align` places it in the row. `with_span` stretches a cell over several columns, as the invoice's "Total" does. Rules come from `with_frame`, `with_header_rule` and `with_row_rules`, and `with_header_background` shades the header rows.
+A cell holds one or more paragraphs. `with_align` lines its text up at the start, centre or end (numbers at the end), and `with_vertical_align` places it in the row. `with_span` stretches a cell over several columns, as the invoice's "Total" does. Rules come from `with_frame`, `with_header_rule` and `with_row_rules`, and `with_header_background` shades the header rows. In a JSON document, as in the TypeScript invoice, these are a cell's `align`, `valign` and `span`, and the table's `padding`, `frame`, `headerRule`, `rowRules` and `headerBackground`, with colours written as `#rrggbb`.
 
 ## Footnotes, a contents page and bookmarks
 
-A footnote is part of a paragraph: `Paragraph::note(body)` puts a raised number where you add it and the note's body at the foot of the same page. Notes are numbered 1, 2, 3 through the flow. A short rule separates them from the text above, and the page's footer stays below them. When a line's notes don't fit at the foot of its page, the line moves to the next page with them.
+A footnote is part of a paragraph: `Paragraph::note(body)`, or a span's `note` in JSON, puts a raised number where you add it and the note's body at the foot of the same page. Notes are numbered 1, 2, 3 through the flow. A short rule separates them from the text above, and the page's footer stays below them. When a line's notes don't fit at the foot of its page, the line moves to the next page with them.
 
-A contents block, `FlowBlock::Contents`, lists the flow's headings with the page each one starts on. Each entry is indented by its heading's level, with dots leading to its number, and the entry links to its heading. By default it lists levels 1 and 2; `Contents::with_levels` changes that. The report in the example puts its contents on the cover.
+A contents block, `FlowBlock::Contents`, lists the flow's headings with the page each one starts on. Each entry is indented by its heading's level, with dots leading to its number, and the entry links to its heading. By default it lists levels 1 and 2; `Contents::with_levels` changes that, as does `levels` in JSON. The report in the example puts its contents on the cover.
 
 The flow can't know the page numbers before it has laid the pages out. So it lays everything out, writes the numbers it found into the contents page, and lays out again to check them. Each entry keeps room for a number of up to four digits, so the contents page keeps its length and the second layout confirms the numbers.
 
-Every heading also gets a bookmark. PDF readers list the bookmarks in their sidebar, nested by heading level, and each one goes to its heading. Turn them off with `Flow::with_outline(false)`.
+Every heading also gets a bookmark. PDF readers list the bookmarks in their sidebar, nested by heading level, and each one goes to its heading. Turn them off with `Flow::with_outline(false)`, or `outline: false` in JSON.
 
 ## Write it in Markdown
 

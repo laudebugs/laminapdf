@@ -2,9 +2,8 @@
 // paragraphs break between pages, footnotes at the foot of their page, the section's title in
 // a running header and "Page X of Y" in the footer.
 //
-// Lines split with at least two at the foot and the head of a page, headings stay with what
-// follows them, and the photo moves whole. The document is plain objects naming its fonts and photo,
-// whose bytes come beside it; the output is tagged, has bookmarks, and is checked against PDF/UA-1.
+// Lines split with at least two at a page's foot and head, headings stay with what follows, and the
+// photo moves whole. The document is plain objects; its fonts and photo come beside it by name.
 import { type BlockSpec, Builder, type BuilderOptions, type FlowDocument, Font, Image } from "@laminapdf/sdk";
 
 const TITLE = "Reading files offline: a year of the reader";
@@ -12,16 +11,11 @@ const ARABIC = "يعمل القارئ دون اتصال بالشبكة، فتُ�
 const HINDI = "नमस्ते दुनिया। हिन्दी पाठ का परीक्षण।";
 const TOPICS = ["Opening files", "Search", "Printing", "Signing", "What comes next"];
 const PHOTO_WIDTH = 200;
+const PARAGRAPH_SPACE = 8;
 const FOOTER = { center: "Page {page} of {pages}" };
 
-/** The fonts the report is set in: Latin, a bold face, Arabic and Devanagari. */
-export interface ReportFonts {
-  readonly regular: Uint8Array;
-  /** A collection whose second face (index 1) is the bold one. */
-  readonly bold: Uint8Array;
-  readonly arabic: Uint8Array;
-  readonly devanagari: Uint8Array;
-}
+/** The report's fonts: Latin, a collection whose second face is the bold one, Arabic and Devanagari. */
+export type FlowingReportFonts = Readonly<Record<"regular" | "bold" | "arabic" | "devanagari", Uint8Array>>;
 
 /**
  * The report's bytes. Needs `init({ text: true })`.
@@ -30,7 +24,11 @@ export interface ReportFonts {
  * @param photo - the JPEG each section shows.
  * @param options - can fix the file ID, the producer and the creation date.
  */
-export function flowingReport(fonts: ReportFonts, photo: Uint8Array, options: BuilderOptions = {}) {
+export function flowingReport(
+  fonts: FlowingReportFonts,
+  photo: Uint8Array,
+  options: BuilderOptions = {},
+): Uint8Array<ArrayBuffer> {
   using b = new Builder({ ...options, profiles: ["PDF/UA-1"] });
   b.flow(report(), {
     fonts: {
@@ -77,14 +75,13 @@ function report(): FlowDocument {
 function section(topic: string, i: number): BlockSpec[] {
   const sentence = `The ${topic.toLowerCase()} work of the year changed how readers use the app every day. `;
   const note = { text: `Measured on our test files for ${topic}.`, style: "note" };
-  const paragraphs = [0, 1, 2, 3].map(
-    (n): BlockSpec => ({
-      type: "paragraph",
-      text: sentence.repeat(n + 4),
-      spaceAfter: 8,
-      spans: n === 3 ? [{ note }] : [],
-    }),
-  );
+  const paragraph = (repeats: number, withNote = false): BlockSpec => ({
+    type: "paragraph",
+    text: sentence.repeat(repeats),
+    spaceAfter: PARAGRAPH_SPACE,
+    spans: withNote ? [{ note }] : null,
+  });
+  const paragraphs = [paragraph(4), paragraph(5), paragraph(6), paragraph(7, true)];
   const foreign: BlockSpec[] = []; // Section 2 has a paragraph in Arabic, section 4 one in Hindi.
   if (i === 1) foreign.push({ type: "paragraph", text: `${ARABIC} `.repeat(8).trimEnd(), style: "arabic" });
   if (i === 3) foreign.push({ type: "paragraph", text: `${HINDI} `.repeat(12).trimEnd(), style: "hindi" });
