@@ -5,7 +5,7 @@
 
 ## What happened
 
-An edit to the initial view tried to set or remove the page the document opens at, but the document's open action isn't a page to open at. It's another action, such as a script, a named action or a link to another file. Lamina PDF never replaces or removes such an action as a side effect, so it refused the whole edit and changed nothing.
+An edit to the initial view tried to set or remove the page the document opens at, but the document's open action isn't a page to open at. It runs something besides opening a page: a script, a named action, a link to another file, a page change followed by further actions, or an action whose type can't be read. Lamina PDF never replaces or removes such an action as a side effect, so it refused the whole edit and changed nothing.
 
 ## Why
 
