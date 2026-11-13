@@ -53,7 +53,7 @@ Both sites show the same header, from design language [§7.39](../../docs/design
 
 `src/lastmod.mjs` (`@laminapdf/site-kit/lastmod`) dates the sitemaps' entries by their sources' last commit:
 
-- **`lastCommitDate(root, sources)`** is the committer date of the last commit to any of `sources`, or none for a file never committed.
+- **`commitDates(root)`** reads the history in one `git log` pass and returns a function: the committer date of the last commit to any of the given files or folders, or none for a file never committed.
 - **`datesAvailable(root, production)`** refuses a shallow checkout in a production build, which would date every page by its one commit; other builds write no dates.
 - **`withLastmod(xml, dateOf)`** adds a `<lastmod>` to each entry of a built sitemap. The website looks its dates up in `astro.config.mjs`; the docs site rewrites Starlight's sitemap after the build (`plugins/sitemap.mjs`).
 
