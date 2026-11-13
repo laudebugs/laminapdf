@@ -1,0 +1,66 @@
+# Once a pull request merges, its runs still queued or running test a branch that is done: the
+# push to main runs the lanes again on the merged code. This cancels them, so they stop holding
+# runners the push to main and other PRs wait for. A PR closed without merging keeps its runs.
+#
+# It runs on the merge's push to main, not on `pull_request_target`, which GitHub blocks by default
+# in public repositories from December 2, 2026: the push is trusted, also for a fork's PR, and no
+# PR code is involved. The merge commit names its PR; a push that no PR merged cancels nothing.
+# Values read from the PR reach the script only through jq, never interpolated into it. A merge
+# whose message holds `[skip ci]` skips this as it skips every workflow on main: merge with your own
+# --body (git-workflow.md §5).
+name: Cancel a merged PR's runs
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+
+jobs:
+  cancel:
+    name: Cancel the merged PR's runs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Cancel its queued and running runs
+        # bash -eo pipefail: a failed listing fails the step instead of cancelling nothing silently.
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          # The PR this push merged: the one whose merge commit it is. GitHub may link the commit to
+          # its PR a few seconds after the push, so an empty answer is asked again once.
+          for attempt in 1 2; do
+            gh api "repos/$REPO/commits/$SHA/pulls" \
+              | jq -c --arg sha "$SHA" '[.[] | select(.merge_commit_sha == $sha)] | first // empty' > pr.json
+            if [ -s pr.json ] || [ "$attempt" = 2 ]; then break; fi
+            sleep 15
+          done
+          if [ ! -s pr.json ]; then
+            echo "GitHub names no pull request that merged $SHA: nothing to cancel." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          number=$(jq -r .number pr.json)
+          head_ref=$(jq -r .head.ref pr.json)
+          # The PR's runs: pull_request runs on its branch, from its repository (a fork may have a
+          # branch of the same name), started before the merge, and not finished.
+          gh api --paginate --method GET "repos/$REPO/actions/runs" \
+            -f event=pull_request -f branch="$head_ref" -F per_page=100 \
+            | jq -r --slurpfile pr pr.json '.workflow_runs[]
+              | select(.status != "completed" and .head_repository.full_name == $pr[0].head.repo.full_name)
+              | select(.created_at < $pr[0].merged_at)
+              | .id' > runs.txt
+          cancelled=0
+          while read -r run; do
+            # A run that finished meanwhile can't be cancelled (409): that is fine.
+            if gh api --method POST "repos/$REPO/actions/runs/$run/cancel" --silent; then
+              cancelled=$((cancelled + 1))
+              echo "Cancelled run $run"
+            fi
+          done < runs.txt
+          echo "Cancelled $cancelled of $(wc -l < runs.txt) unfinished runs of #$number." >> "$GITHUB_STEP_SUMMARY"

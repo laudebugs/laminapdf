@@ -59,6 +59,7 @@ export const ICONS = {
   "flatten": "<path d=\"M12 4.5l8 4-8 4-8-4z\"></path><path d=\"M4 15.5l8 4 8-4\"></path>",
   "focus-mode": "<path d=\"M4.5 9V4.5H9M15 4.5h4.5V9M19.5 15v4.5H15M9 19.5H4.5V15\"></path>",
   "folder": "<path d=\"M3.5 6.5h6l2 2h9v10h-17z\"></path>",
+  "format-code": "<path d=\"M4.5 6h9M8.5 10h11M8.5 14h7M4.5 18h9\"></path>",
   "forward": "<path d=\"M9 5l7 7-7 7\"></path>",
   "help": "<circle cx=\"12\" cy=\"12\" r=\"8\"></circle><path d=\"M9.8 9.5a2.3 2.3 0 1 1 3.2 2.1c-.6.3-1 .8-1 1.4v.5M12 16.5v.5\"></path>",
   "highlight": "<path d=\"M14.5 4.5l5 5L11 18H6v-5z\"></path><path d=\"M4 20.5h9\"></path>",
@@ -139,6 +140,7 @@ export const ICONS = {
   "upload": "<path d=\"M12 15V4.5M8 8l4-3.5L16 8\"></path><path d=\"M7 11H5.5v8.5h13V11H17\"></path>",
   "view-settings": "<circle cx=\"12\" cy=\"12\" r=\"7.5\"></circle><path d=\"M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5\"></path>",
   "warning": "<path d=\"M12 4l9 16H3z\"></path><path d=\"M12 10v4M12 17v.5\"></path>",
+  "wrap-lines": "<path d=\"M4.5 6.5h15M4.5 12h11a3 3 0 0 1 0 6h-4\"></path><path d=\"M13.5 16l-2 2 2 2\"></path><path d=\"M4.5 17.5h4\"></path>",
   "zoom-in": "<path d=\"M6 12h12M12 6v12\"></path>",
   "zoom-out": "<path d=\"M6 12h12\"></path>",
 } as const;

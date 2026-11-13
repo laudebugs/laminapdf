@@ -109,6 +109,7 @@ export function sidebar(typeDoc) {
         { label: "Markdown to PDF", slug: "recipes/markdown-to-pdf" },
         { label: "Multilingual text", slug: "recipes/multilingual" },
         { label: "Images and vectors", slug: "recipes/images-and-vectors" },
+        { label: "Photos to PDF", slug: "recipes/images-to-pdf" },
         { label: "Element flow", slug: "recipes/element-flow" },
         { label: "Links and outlines", slug: "recipes/links-and-outlines" },
         { label: "Generate, then edit", slug: "recipes/generate-then-edit" },

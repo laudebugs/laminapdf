@@ -36,7 +36,7 @@ Create a PDF from images (one page per image, JPEG passthrough, PNG → Flate + 
 
 **Out of scope** (and which todo covers it)
 
-- The TypeScript binding and example, the worker's export call (PNG and JPEG through the canvas) and the TIFF WebAssembly module → [E3m](../ready/E3m-web-image-export.md), split out on 2026-11-12 (the owner's choice) to keep this PR to the Rust core
+- The TypeScript binding and example, the worker's export call (PNG and JPEG through the canvas) and the TIFF WebAssembly module → [E3m](../done/E3m-web-image-export.md), split out on 2026-11-12 (the owner's choice) to keep this PR to the Rust core
 
 - The export dialog, the web zip and images → PDF in the interface → [E3j](../ready/E3j-export-dialog.md)
 - The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)

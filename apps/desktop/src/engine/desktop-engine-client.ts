@@ -172,6 +172,14 @@ export class DesktopEngineClient implements ViewerEngine {
     return this.#document;
   }
 
+  /** Lets go of the shown document without closing it (its tiles in flight are dropped): it is in
+      another tab now, or moved to another window. */
+  forget(): void {
+    this.#current = undefined;
+    this.#document = undefined;
+    this.#generation += 1;
+  }
+
   /** Forgets the shown document (its tiles in flight are dropped) and closes it in the main process. */
   async close(): Promise<void> {
     const doc = this.#current?.doc;

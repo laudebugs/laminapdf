@@ -18,7 +18,7 @@ Conventions on every board in this area:
 
 **Purpose.** The first screen of the web reader when no file is open: open a PDF from this device, by URL or from the recent list, and see in one line what happens to the file.
 
-**Entry points.** Loading the app without a `#url=` fragment; closing the last document; More › Open another file… (`file.open`); the phone’s Back to files.
+**Entry points.** Loading the app without a `#url=` fragment; closing the document (R19: Close beside the file name, More › Close document, the phone’s and tablet’s Back to files).
 
 **Layout.** Top bar without document controls: the wordmark “lamina” (Newsreader 18/500) left; Commands and More right. No rail or secondary toolbar. The body is `ground`, one centred column (max 720): Display heading, a drop zone, the Recent list and the privacy line. Status bar: network indicator, “No file open”.
 
@@ -342,6 +342,42 @@ The web More menu (drawn) holds Download a copy (`file.save-copy`) · Print… (
 **Artboards.** `R09-print.dc.html`, `R09-print-progress.dc.html`, `R09-print-restricted.dc.html`, `R09-download.dc.html`.
 
 **Todos.** [C6c](../../todos/done/C6c-print-download-properties.md).
+
+## R19 Close a document
+
+**Purpose.** Leave the open document and go back to the home screen (R01), from a control that sits where the reader looks for it, without ever losing unsaved changes.
+
+**Entry points.** The Close button beside the file name; More › Close document; the palette’s “Close document” (`file.close`); the phone’s and tablet’s Back to files. Removing `#url=` from the address, an unusable `#url=` link and the failure page’s Try another close through the same guarded path.
+
+**Layout.** In the top bar, a 24×24 icon button with the 14 px Close cross follows the file name, 2 px after it, inside the file area (design language [§7.1](design-language.md#71-top-bar)). A long file name is cut short with an ellipsis before the button, which never moves off the bar. In More, “Close document” follows “Open another file…” directly. The phone and tablet draw no new control: their top bars already start with Back to files (Reader B R17 and R18).
+
+**Content and controls.**
+
+| Control | Words | Command |
+| --- | --- | --- |
+| Close button | Name “Close Q3-board-report.pdf”; tooltip “Close document” | `file.close` |
+| More item | “Close document”, Close icon, no shortcut chip | `file.close` |
+| More item | “Open another file…”, `Ctrl O` chip: opens the file picker | `file.open` |
+| Back to files (phone, tablet) | Name “Back to files” | `file.close` |
+
+`file.close` has no shortcut on the web: `Ctrl W` and `⌘W` belong to the browser (design language [§8.8](design-language.md#88-keyboard-and-shortcuts)). The desktop app closes with its tab (`tab.close`, `Ctrl W`).
+
+**States.** The Close button shows in every phase but `empty`, so never on the home screen. At rest it is a muted cross; hover gives it the hover fill; keyboard focus draws the focus ring and the tooltip (drawn: *R19-close-button*). “Close document” in More is enabled in the same phases.
+
+**Behaviour.** Every route goes through `requestClose()`, which asks the close guard first:
+
+- With no unsaved changes, the document closes at once.
+- With unsaved changes, O03 asks: Save (then close), Don’t save, or Cancel. Cancel keeps the document, and when the close came from the address, the reader puts `#url=` back with `replaceState`.
+
+Closing saves the reading position a last time, frees the document in the worker, removes `#url=` from the address for a linked file, and shows the home screen (drawn: *R19-closed-home*). While “Remember recent local files” is on (the default), a local file is first in Recent, and with “Remember where I stopped reading” on too it reopens at its page; a linked file is never listed (ADR 0011). There is no undo: Recent, or the link, reopens it.
+
+**Accessibility.** The Close button is a `button` whose name includes the file name, so a screen-reader user hears what closes. After the close, focus moves to the home screen’s heading (`tabindex="-1"`), and a polite live region says “Closed Q3-board-report.pdf”. The window title returns to “lamina”. On the way to O03, focus moves into the dialog and returns to the control that asked when the reader cancels.
+
+**Platform differences.** *Web, desktop width:* drawn. *Phone and tablet:* Back to files, already in their top bars, is the control; More holds no Close item there. *Desktop app:* the tab’s close and `Ctrl W` (Desktop shell S02); this screen doesn’t apply.
+
+**Artboards.** `R19-close-button.dc.html`, `R19-close-more.dc.html`, `R19-closed-home.dc.html`.
+
+**Todos.** [C8a](../../todos/ready/C8a-every-close-asks-first.md), [C8b](../../todos/ready/C8b-close-button-and-command.md).
 
 ## New components
 

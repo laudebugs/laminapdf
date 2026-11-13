@@ -13,6 +13,7 @@ import { existsSync } from "node:fs";
 import { TabItem, Tabs } from "@astrojs/starlight/components";
 // @laminapdf/icons' own files, inlined at build time.
 import downloadIcon from "@laminapdf/icons/svg/download.svg?raw";
+import formatIcon from "@laminapdf/icons/svg/format-code.svg?raw";
 import playIcon from "@laminapdf/icons/svg/play.svg?raw";
 import resetIcon from "@laminapdf/icons/svg/reset.svg?raw";
 import { decorativeIcon } from "@laminapdf/site-kit/icon";
@@ -188,6 +189,11 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
                 <Fragment set:html={icon(downloadIcon)} />
                 Download PDF
               </button>
+              {/* At the bar's far end (todo Q4r): it changes the code, not the PDF. */}
+              <button type="button" class="run-format">
+                <Fragment set:html={icon(formatIcon)} />
+                Format
+              </button>
             </div>
           </lamina-run>
         )}
@@ -229,8 +235,10 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
       const run = this.querySelector<HTMLButtonElement>(".run-run");
       const reset = this.querySelector<HTMLButtonElement>(".run-reset");
       const download = this.querySelector<HTMLButtonElement>(".run-download");
+      const format = this.querySelector<HTMLButtonElement>(".run-format");
       const { file, source, name } = this.dataset;
-      if (button === null || bar === null || run === null || reset === null || download === null) return;
+      if (button === null || bar === null || run === null || reset === null || download === null || format === null)
+        return;
       if (file === undefined || source === undefined || name === undefined) return;
       // The TypeScript code, which the editor replaces; the page's own column, where a run's pages
       // take the place of the first page's picture.
@@ -261,7 +269,7 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
         const panel = code.closest<HTMLElement>("[role=tabpanel]");
         const tab = panel?.getAttribute("aria-labelledby");
         if (panel?.hidden === true && tab != null) document.getElementById(tab)?.click();
-        editor.openRunner({ bar, run, reset, download }, { file, source, name }, { code, picture, pages: side });
+        editor.openRunner({ bar, run, reset, download, format }, { file, source, name }, { code, picture, pages: side });
       };
       button.addEventListener("click", open);
     }
@@ -613,6 +621,9 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
     background: var(--paper-raised);
     color: var(--paper-text);
     cursor: pointer;
+  }
+  .run-bar .run-format {
+    margin-inline-start: auto;
   }
   .run-bar button[hidden],
   .run-bar[hidden] {

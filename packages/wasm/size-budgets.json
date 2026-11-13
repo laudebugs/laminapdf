@@ -320,6 +320,10 @@
       "glueGzip": 5000,
       "wasmGzip": 1855000
     },
+    "tiff": {
+      "glueGzip": 5000,
+      "wasmGzip": 70000
+    },
     "text": {
       "glueGzip": 6000,
       "wasmGzip": 1708000

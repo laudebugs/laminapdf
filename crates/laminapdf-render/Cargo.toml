@@ -25,7 +25,10 @@ layer = "core"
 hayro = ["dep:hayro"]
 # Page export to PNG, JPEG and TIFF (`export_pages`, todo E3h). Off by default, so the web
 # reader's renderer doesn't carry the encoders: the browser encodes PNG and JPEG there.
-export = ["dep:png", "dep:jpeg-encoder", "dep:tiff"]
+export = ["dep:png", "dep:jpeg-encoder", "tiff"]
+# TIFF files written a page at a time (`TiffWriter`), without the rest of the export: the web
+# reader's TIFF module needs only this.
+tiff = ["dep:tiff"]
 
 [dependencies]
 laminapdf-cos = { workspace = true }

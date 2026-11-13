@@ -14,6 +14,7 @@ import {
   type ToastQueue,
 } from "@laminapdf/ui";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { DesktopEngineError } from "./engine/desktop-engine-client.ts";
 
 /** What the hook gives the app. */
 export interface DesktopRecent {
@@ -44,7 +45,9 @@ export function useDesktopRecent(
   useEffect(refresh, [refresh, state.phase]);
   const open = useCallback(
     (entry: RecentFile) => {
-      reopen(entry, platform, reader).catch(() => {
+      reopen(entry, platform, reader).catch((error: unknown) => {
+        // Open already: its tab came to the front, and that is all there is to say.
+        if (error instanceof DesktopEngineError && error.code === "already-open") return;
         toasts.add({ message: message("reader.open.missing", { name: entry.name }) });
         refresh();
       });

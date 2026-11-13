@@ -1,13 +1,12 @@
 //! [`export_pages`]: pages drawn through a [`RenderDocument`] and encoded as PNG, JPEG or TIFF
 //! (the editor plan's operations H.06 and H.11). Feature `export`.
 
-use std::io::Cursor;
-
 use laminapdf_syntax::CancelToken;
 
 use crate::backend::RenderDocument;
 use crate::error::RenderError;
 use crate::request::{RenderFlags, RenderRequest, Rgba8};
+use crate::tiff_writer::TiffWriter;
 
 /// The file format pages are exported to.
 ///
@@ -180,13 +179,12 @@ pub fn export_pages(
         });
     }
     if let ExportFormat::Tiff { multi_page: true } = options.format {
-        let mut out = Cursor::new(Vec::new());
-        let mut tiff = tiff_encoder(&mut out)?;
+        let mut tiff = TiffWriter::new()?;
         for &page in pages {
             let (width, height, rgba) = draw(doc, page, options, cancel)?;
-            write_tiff_page(&mut tiff, width, height, &rgba, options.dpi)?;
+            tiff.add_page(width, height, &rgba, options.dpi)?;
         }
-        return Ok(vec![out.into_inner()]);
+        return Ok(vec![tiff.finish()]);
     }
     pages
         .iter()
@@ -217,9 +215,9 @@ fn encode(width: u32, height: u32, rgba: &[u8], options: &ExportOptions) -> Resu
         ExportFormat::Png => encode_png(width, height, rgba, dpi),
         ExportFormat::Jpeg { quality } => encode_jpeg(width, height, rgba, dpi, quality),
         ExportFormat::Tiff { .. } => {
-            let mut out = Cursor::new(Vec::new());
-            write_tiff_page(&mut tiff_encoder(&mut out)?, width, height, rgba, dpi)?;
-            Ok(out.into_inner())
+            let mut tiff = TiffWriter::new()?;
+            tiff.add_page(width, height, rgba, dpi)?;
+            Ok(tiff.finish())
         }
     }
 }
@@ -287,33 +285,4 @@ fn encode_jpeg(width: u32, height: u32, rgba: &[u8], dpi: f64, quality: u8) -> R
         .encode(rgba, w, h, jpeg_encoder::ColorType::Rgba)
         .map_err(|_| encode_failed("jpeg"))?;
     Ok(out)
-}
-
-/// A TIFF being written into a buffer it borrows.
-type Tiff<'a> = tiff::encoder::TiffEncoder<&'a mut Cursor<Vec<u8>>>;
-
-fn tiff_encoder(out: &mut Cursor<Vec<u8>>) -> Result<Tiff<'_>, RenderError> {
-    Ok(tiff::encoder::TiffEncoder::new(out)
-        .map_err(|_| encode_failed("tiff"))?
-        .with_compression(tiff::encoder::Compression::Deflate(
-            tiff::encoder::DeflateLevel::Balanced,
-        )))
-}
-
-fn write_tiff_page(tiff: &mut Tiff<'_>, width: u32, height: u32, rgba: &[u8], dpi: f64) -> Result<(), RenderError> {
-    let mut image = tiff
-        .new_image::<tiff::encoder::colortype::RGBA8>(width, height)
-        .map_err(|_| encode_failed("tiff"))?;
-    // TIFF resolutions are rationals: hundredths of a dot per inch.
-    #[expect(
-        clippy::cast_possible_truncation,
-        clippy::cast_sign_loss,
-        reason = "clamped to u32's range first"
-    )]
-    let hundredths = (dpi * 100.0).round().clamp(1.0, f64::from(u32::MAX)) as u32;
-    image.resolution(
-        tiff::tags::ResolutionUnit::Inch,
-        tiff::encoder::Rational { n: hundredths, d: 100 },
-    );
-    image.write_data(rgba).map_err(|_| encode_failed("tiff"))
 }

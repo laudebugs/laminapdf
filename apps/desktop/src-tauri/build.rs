@@ -18,6 +18,11 @@ const COMMANDS: &[&str] = &[
     "recent_clear",
     "preferences",
     "set_preferences",
+    "new_window",
+    "move_tab",
+    "window_list",
+    "set_window_title",
+    "take_pending_tabs",
 ];
 
 /// With the `e2e` feature: the end-to-end tests' commands too.
@@ -35,6 +40,11 @@ const E2E_COMMANDS: &[&str] = &[
     "recent_clear",
     "preferences",
     "set_preferences",
+    "new_window",
+    "move_tab",
+    "window_list",
+    "set_window_title",
+    "take_pending_tabs",
     "debug_kill_engine",
     "e2e_queue_pick",
     "e2e_replace",
