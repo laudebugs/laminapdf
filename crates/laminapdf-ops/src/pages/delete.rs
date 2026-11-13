@@ -12,7 +12,7 @@ use crate::wire;
 
 /// What [`DeletePages`] does with a destination that names a deleted page.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -36,7 +36,7 @@ pub enum ReferencePolicy {
 ///
 /// On the wire: `{ "op": "deletePages", "args": { "pages": ["p7.0"], "references": "retarget" } }`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -54,7 +54,7 @@ pub struct DeletePages {
 impl DeletePages {
     /// The op that deletes `pages`, retargeting what named them.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn new(pages: Vec<PageId>) -> Self {
         Self {
@@ -65,7 +65,7 @@ impl DeletePages {
 
     /// With `references` deciding what happens to destinations that name the pages.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn with_references(mut self, references: ReferencePolicy) -> Self {
         self.references = references;

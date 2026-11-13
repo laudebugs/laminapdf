@@ -475,7 +475,7 @@ impl PageFrame {
     /// coordinate that sets it is. On a page turned sideways the page's x runs along user y, so
     /// `x` sets the user-space top and `y` the left.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn to_user_space_unset(&self, x: Option<Pt>, y: Option<Pt>) -> (Option<f64>, Option<f64>) {
         let p = self.to_user_space(PointPt::new(x.unwrap_or(Pt::ZERO), y.unwrap_or(Pt::ZERO)));

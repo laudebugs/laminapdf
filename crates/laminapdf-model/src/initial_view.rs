@@ -8,7 +8,7 @@ use crate::outline::{ActionKind, Destination};
 
 /// Which panel a viewer shows when the document opens (`/PageMode`, Table 29).
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum PageMode {
@@ -29,7 +29,7 @@ pub enum PageMode {
 impl PageMode {
     /// Every page mode, in Table 29's order.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub const ALL: [Self; 6] = [
         Self::None,
         Self::Outlines,
@@ -41,7 +41,7 @@ impl PageMode {
 
     /// The name the catalog stores (`UseOutlines`).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn pdf_name(self) -> &'static str {
         match self {
@@ -56,7 +56,7 @@ impl PageMode {
 
     /// The page mode a catalog name stands for, if it is one of Table 29's.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn from_pdf_name(name: &[u8]) -> Option<Self> {
         Self::ALL.into_iter().find(|mode| mode.pdf_name().as_bytes() == name)
@@ -64,7 +64,7 @@ impl PageMode {
 
     /// The PDF version that introduced this mode, as `(major, minor)`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn since(self) -> (u8, u8) {
         match self {
@@ -77,7 +77,7 @@ impl PageMode {
 
 /// How a viewer lays pages out when the document opens (`/PageLayout`, Table 29).
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum PageLayout {
@@ -98,7 +98,7 @@ pub enum PageLayout {
 impl PageLayout {
     /// Every page layout, in Table 29's order.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub const ALL: [Self; 6] = [
         Self::SinglePage,
         Self::OneColumn,
@@ -110,7 +110,7 @@ impl PageLayout {
 
     /// The name the catalog stores (`OneColumn`).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn pdf_name(self) -> &'static str {
         match self {
@@ -125,7 +125,7 @@ impl PageLayout {
 
     /// The page layout a catalog name stands for, if it is one of Table 29's.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn from_pdf_name(name: &[u8]) -> Option<Self> {
         Self::ALL
@@ -135,7 +135,7 @@ impl PageLayout {
 
     /// The PDF version that introduced this layout, as `(major, minor)`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn since(self) -> (u8, u8) {
         match self {
@@ -149,7 +149,7 @@ impl PageLayout {
 /// shows the document (§12.2, Table 147). Each is `false` when the file leaves it out, as the
 /// specification's defaults are.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[expect(
     clippy::struct_excessive_bools,
@@ -174,7 +174,7 @@ pub struct WindowPreferences {
 impl WindowPreferences {
     /// Each entry's key in the viewer preferences dictionary, with a getter and a setter.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub const KEYS: [&'static str; 6] = [
         "HideToolbar",
         "HideMenubar",
@@ -186,7 +186,7 @@ impl WindowPreferences {
 
     /// The value of the entry stored under `key`, one of [`WindowPreferences::KEYS`].
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn get(&self, key: &str) -> Option<bool> {
         Some(match key {
@@ -216,7 +216,7 @@ impl WindowPreferences {
 
 /// What the catalog's `/OpenAction` asks for (§12.3.2, §12.6.4).
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum OpenAction {
@@ -233,7 +233,7 @@ pub enum OpenAction {
 
 /// How a document asks to be shown when it opens: [`Document::initial_view`].
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct InitialView {
@@ -257,7 +257,7 @@ impl Document {
     /// As [`Document::outline`]: strict mode, when a value raises a warning; reading errors
     /// of the catalog.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn initial_view(&self) -> Result<InitialView> {
         let catalog = self.catalog()?;
         Ok(InitialView {
@@ -309,7 +309,7 @@ impl Document {
     /// # Errors
     /// Reading errors (the catalog).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn open_action_kind(&self) -> Result<Option<ActionKind>> {
         let catalog = self.catalog()?;
         let Some(resolved) = self.open_action_value(&catalog)? else {

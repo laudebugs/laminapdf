@@ -39,7 +39,7 @@ use crate::wire;
 /// # Ok::<(), serde_json::Error>(())
 /// ```
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -64,7 +64,7 @@ pub struct SetXmpProperty {
 impl SetXmpProperty {
     /// The op that sets `name` in `namespace` to `value`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn new(
         namespace: impl Into<String>,
@@ -84,7 +84,7 @@ impl SetXmpProperty {
     /// The same op, replacing an XMP packet that can't be read
     /// ([`SetMetadata::replace_malformed`](crate::SetMetadata::replace_malformed)).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn replacing_malformed(mut self) -> Self {
         self.replace_malformed = true;
@@ -119,7 +119,7 @@ impl SetXmpProperty {
 /// # Ok::<(), serde_json::Error>(())
 /// ```
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -138,7 +138,7 @@ pub struct RemoveXmpProperty {
 impl RemoveXmpProperty {
     /// The op that removes `name` in `namespace`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn new(namespace: impl Into<String>, name: impl Into<String>) -> Self {
         Self {
@@ -151,7 +151,7 @@ impl RemoveXmpProperty {
     /// The same op, replacing an XMP packet that can't be read
     /// ([`SetMetadata::replace_malformed`](crate::SetMetadata::replace_malformed)).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn replacing_malformed(mut self) -> Self {
         self.replace_malformed = true;
@@ -188,7 +188,7 @@ impl RemoveXmpProperty {
 /// # Ok::<(), serde_json::Error>(())
 /// ```
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -201,7 +201,7 @@ pub struct ReplaceXmpPacket {
 impl ReplaceXmpPacket {
     /// The op that replaces the packet with `xml`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn new(xml: impl Into<String>) -> Self {
         Self { xml: xml.into() }

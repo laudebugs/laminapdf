@@ -18,7 +18,7 @@ use crate::op::Effect;
 /// On the wire: `{ "op": "setNamedDestination", "args": { "name": "results", "destination": {
 /// "page": "p7.0", "view": { "kind": "fitH", "top": 700 } } } }`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -33,7 +33,7 @@ pub struct SetNamedDestination {
 impl SetNamedDestination {
     /// The op that points `name` at `destination`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn new(name: impl Into<String>, destination: ExplicitDestination) -> Self {
         Self {
@@ -60,7 +60,7 @@ impl SetNamedDestination {
 ///
 /// On the wire: `{ "op": "renameNamedDestination", "args": { "from": "sec2", "to": "methods" } }`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -79,7 +79,7 @@ pub struct RenameNamedDestination {
 impl RenameNamedDestination {
     /// The op that renames `from` to `to`, and its uses with it.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn new(from: impl Into<String>, to: impl Into<String>) -> Self {
         Self {
@@ -119,7 +119,7 @@ impl RenameNamedDestination {
 ///
 /// On the wire: `{ "op": "deleteNamedDestination", "args": { "name": "draft-notes" } }`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -132,7 +132,7 @@ pub struct DeleteNamedDestination {
 impl DeleteNamedDestination {
     /// The op that deletes `name`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn new(name: impl Into<String>) -> Self {
         Self { name: name.into() }
@@ -163,7 +163,7 @@ impl DeleteNamedDestination {
 
 /// Something in the file that names a destination.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
