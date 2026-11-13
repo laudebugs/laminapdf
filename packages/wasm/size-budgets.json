@@ -2,23 +2,24 @@
   "baseline": {
     "base": {
       "top": [
-        [130747, "data segments"],
-        [18206, "<laminapdf_build::page::PageBuilder>::write"],
-        [14141, "laminapdf_build::finish::new_document"],
+        [125233, "data segments"],
+        [18100, "<laminapdf_build::page::PageBuilder>::write"],
+        [14155, "laminapdf_build::finish::new_document"],
         [10062, "sha2::sha512::compress512"],
-        [9269, "<laminapdf::error::Error>::diagnostic"],
-        [9011, "<laminapdf_model::xmp::Packet>::parse"],
-        [8852, "<laminapdf_ops::tx::Tx>::run_op"],
-        [8609, "<laminapdf_model::xmp::Packet>::write"],
         [8418, "<laminapdf_save::planner::SavePlanner>::new"],
         [7949, "sha2::sha256::compress256"],
+        [7841, "<laminapdf::error::Error>::diagnostic"],
+        [7684, "<laminapdf_model::xmp::Packet>::parse"],
         [7111, "miniz_oxide::inflate::core::decompress_with_limit"],
+        [6900, "<laminapdf_model::xmp::Packet>::write"],
         [5752, "core::num::imp::flt2dec::strategy::dragon::format_shortest"],
-        [5132, "<laminapdf_build::surface::image::Image>::png_with"],
         [4804, "core::num::imp::flt2dec::strategy::dragon::format_exact"],
-        [4561, "<laminapdf_cos::reader::Document>::pages"],
+        [4563, "<laminapdf_cos::reader::Document>::pages"],
+        [4546, "<laminapdf_build::surface::image::Image>::png_with"],
+        [4458, "laminapdf_ops::metadata::write::write"],
         [4447, "<laminapdf_cos::reader::Document>::read_security"],
         [4415, "miniz_oxide::deflate::core::compress_inner"],
+        [4002, "<laminapdf_ops::tx::Tx>::run_op"],
         [
           3857,
           "<&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::deserialize_struct::<<laminapdf_wasm::dto::LimitsInit as serde_core::de::Deserialize>::deserialize::__Visitor>"
@@ -35,8 +36,7 @@
           3048,
           "<&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::deserialize_struct::<<laminapdf_ops::metadata::MetadataPatch as serde_core::de::Deserialize>::deserialize::__Visitor>"
         ],
-        [2962, "<laminapdf_save::full::FullWriter>::write::<laminapdf::document::Output>"],
-        [2873, "\"data names\" subsection"],
+        [2946, "<laminapdf_save::full::FullWriter>::write::<laminapdf::document::Output>"],
         [2866, "<laminapdf_model::labels::PageLabels>::new"],
         [2792, "<laminapdf_ops::document::Document>::revert"],
         [2789, "<miniz_oxide::deflate::core::HuffmanOxide>::optimize_table"],
@@ -44,55 +44,56 @@
           2783,
           "laminapdf_cos::reader::window::parse_syntax_at::<core::option::Option<(alloc::collections::btree::map::BTreeMap<u32, laminapdf_cos::reader::xref::XrefEntry>, laminapdf_syntax::object::Dict, core::option::Option<u32>)>, laminapdf_cos::reader::xref::parse_section::{closure#0}>::{closure#0}"
         ],
-        [2772, "<laminapdf_cos::reader::Document>::load"],
+        [2771, "<laminapdf_cos::reader::Document>::load"],
         [
-          2741,
+          2677,
           "<&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::deserialize_struct::<<laminapdf_wasm::build_dto::OutlineEntryInit as serde_core::de::Deserialize>::deserialize::__Visitor>"
         ],
-        [2636, "<laminapdf_save::incremental::IncrementalWriter>::revision"],
+        [2635, "<laminapdf_save::incremental::IncrementalWriter>::revision"],
         [2618, "laminapdf_cos::reader::repair::scan"],
-        [2615, "laminapdf_ops::metadata::read::read_metadata"],
-        [2585, "<quick_xml::reader::Reader<&[u8]>>::read_event_impl::<()>"],
+        [2584, "<quick_xml::reader::Reader<&[u8]>>::read_event_impl::<()>"],
+        [2565, "\"data names\" subsection"],
         [2557, "<laminapdf::warning::Warning>::diagnostic"],
+        [2536, "<laminapdf_syntax::parser::Parser>::object_from"],
+        [2465, "<laminapdf_cos::reader::repair::Scan>::finish"],
         [
-          2556,
-          "<&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::deserialize_struct::<<laminapdf_ops::metadata::xmp::SetXmpProperty as serde_core::de::Deserialize>::deserialize::__Visitor>"
-        ],
-        [2552, "laminapdf_model::xmp::write::element"],
-        [2536, "<laminapdf_syntax::parser::Parser>::object_from"]
+          2405,
+          "<&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::deserialize_struct::<<laminapdf_wasm::build_dto::BuildOptionsInit as serde_core::de::Deserialize>::deserialize::__Visitor>"
+        ]
       ],
-      "wasmGzip": 494872
+      "wasmGzip": 458144
     },
     "extract": {
       "top": [
-        [347100, "data segments"],
-        [18210, "<laminapdf_build::page::PageBuilder>::write"],
+        [341570, "data segments"],
+        [18104, "<laminapdf_build::page::PageBuilder>::write"],
         [16498, "laminapdf_extract::page::layout"],
         [14816, "<laminapdf_extract::job::ExtractJob>::run"],
+        [14156, "laminapdf_build::finish::new_document"],
         [14153, "<laminapdf_model::document::Document>::disclosure"],
-        [14142, "laminapdf_build::finish::new_document"],
-        [12590, "<laminapdf::error::Error>::diagnostic"],
         [11904, "<laminapdf_text::extract::font::FontCache>::get"],
+        [11162, "<laminapdf::error::Error>::diagnostic"],
         [10062, "sha2::sha512::compress512"],
-        [9011, "<laminapdf_model::xmp::Packet>::parse"],
-        [8861, "<laminapdf_ops::tx::Tx>::run_op"],
-        [8795, "\"data names\" subsection"],
-        [8609, "<laminapdf_model::xmp::Packet>::write"],
+        [8445, "\"data names\" subsection"],
         [8418, "<laminapdf_save::planner::SavePlanner>::new"],
         [7949, "sha2::sha256::compress256"],
+        [7684, "<laminapdf_model::xmp::Packet>::parse"],
         [7115, "miniz_oxide::inflate::core::decompress_with_limit"],
+        [6902, "<laminapdf_model::xmp::Packet>::write"],
         [5936, "<laminapdf_extract::job::ExtractJob>::read"],
         [5756, "core::num::imp::flt2dec::strategy::dragon::format_shortest"],
         [5372, "laminapdf_extract::page::runs"],
-        [5132, "<laminapdf_build::surface::image::Image>::png_with"],
         [5086, "laminapdf_extract::reflow::reflow"],
         [5033, "<laminapdf_model::page::Pages>::links"],
         [4806, "core::num::imp::flt2dec::strategy::dragon::format_exact"],
         [4569, "<laminapdf_text::extract::Collector as laminapdf_content::visitor::Visitor>::show_text"],
-        [4561, "<laminapdf_cos::reader::Document>::pages"],
+        [4563, "<laminapdf_cos::reader::Document>::pages"],
+        [4546, "<laminapdf_build::surface::image::Image>::png_with"],
+        [4458, "laminapdf_ops::metadata::write::write"],
         [4448, "<laminapdf_cos::reader::Document>::read_security"],
         [4420, "miniz_oxide::deflate::core::compress_inner"],
-        [4220, "<laminapdf_content::lexer::ContentIter as core::iter::traits::iterator::Iterator>::next"],
+        [4233, "<laminapdf_content::lexer::ContentIter as core::iter::traits::iterator::Iterator>::next"],
+        [4002, "<laminapdf_ops::tx::Tx>::run_op"],
         [
           3857,
           "<&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::deserialize_struct::<<laminapdf_wasm::dto::LimitsInit as serde_core::de::Deserialize>::deserialize::__Visitor>"
@@ -109,14 +110,13 @@
         [
           3370,
           "<&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::deserialize_struct::<<laminapdf_wasm::build_dto::MetadataInit as serde_core::de::Deserialize>::deserialize::__Visitor>"
-        ],
-        [3138, "<laminapdf_syntax::lexer::Lexer>::next_token"]
+        ]
       ],
-      "wasmGzip": 814470
+      "wasmGzip": 777477
     },
     "render_hayro": {
       "top": [
-        [1209872, "data segments"],
+        [1208687, "data segments"],
         [
           453467,
           "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<<peniko::blend::BlendMode as vello_cpu::fine::lowp::compose::ComposeExt>::compose<fearless_simd::generated::fallback::Fallback>::{closure#0}, fearless_simd::generated::simd_types::u8x32<fearless_simd::generated::fallback::Fallback>>"
@@ -247,68 +247,74 @@
         [15804, "hayro_jbig2::decode::generic::decode_bitmap_arithmetic_coding"],
         [14616, "hayro_jbig2::decode::symbol::decode_refinement_bitmap"]
       ],
-      "wasmGzip": 1795182
+      "wasmGzip": 1794791
     },
     "text": {
       "top": [
-        [686586, "data segments"],
-        [28916, "<skrifa::outline::glyf::hint::engine::Engine>::dispatch_inner"],
-        [21169, "<laminapdf_build::page::PageBuilder>::write"],
-        [21139, "\"data names\" subsection"],
-        [17338, "<subsetter::Context>::process"],
-        [16588, "laminapdf_extract::page::layout"],
-        [14640, "<laminapdf_extract::job::ExtractJob>::run"],
-        [14273, "laminapdf_build::finish::new_document"],
-        [14240, "<laminapdf_model::document::Document>::disclosure"],
-        [13234, "<harfrust::hb::ot_shape::OtShapeContext>::shape_internal"],
-        [13191, "<harfrust::hb::ot_shape_plan::hb_ot_shape_plan_t>::new"],
-        [12699, "<laminapdf_text::embed::FontRegistry>::finish_fonts"],
-        [12343, "harfrust::hb::ot_shaper_vowel_constraints::preprocess_text_vowel_constraints"],
-        [12305, "<harfrust::hb::ot_shape::OtShapeContext>::position_by_plan"],
-        [11956, "<laminapdf_text::extract::font::FontCache>::get"],
-        [11625, "harfrust::hb::aat::layout::substitute"],
-        [11142, "<pulldown_cmark::firstpass::FirstPass>::parse_block"],
-        [10884, "skrifa::outline::autohint::hint::hint_outline"],
-        [10469, "harfrust::hb::tag_table::tags_from_complex_language"],
+        [675173, "data segments"],
+        [28913, "<skrifa::outline::glyf::hint::engine::Engine>::dispatch_inner"],
+        [20979, "<laminapdf_build::page::PageBuilder>::write"],
+        [20119, "\"data names\" subsection"],
+        [17247, "<subsetter::Context>::process"],
+        [16504, "laminapdf_extract::page::layout"],
+        [14572, "<laminapdf_extract::job::ExtractJob>::run"],
+        [14222, "laminapdf_build::finish::new_document"],
+        [14153, "<laminapdf_model::document::Document>::disclosure"],
+        [13206, "<harfrust::hb::ot_shape::OtShapeContext>::shape_internal"],
+        [13185, "<harfrust::hb::ot_shape_plan::hb_ot_shape_plan_t>::new"],
+        [12604, "<laminapdf_text::embed::FontRegistry>::finish_fonts"],
+        [12295, "harfrust::hb::ot_shaper_vowel_constraints::preprocess_text_vowel_constraints"],
+        [12257, "<harfrust::hb::ot_shape::OtShapeContext>::position_by_plan"],
+        [11909, "<laminapdf_text::extract::font::FontCache>::get"],
+        [11592, "harfrust::hb::aat::layout::substitute"],
+        [11110, "<pulldown_cmark::firstpass::FirstPass>::parse_block"],
+        [10881, "skrifa::outline::autohint::hint::hint_outline"],
+        [10461, "harfrust::hb::tag_table::tags_from_complex_language"],
         [10062, "sha2::sha512::compress512"],
-        [9429, "<laminapdf::error::Error>::diagnostic"],
-        [9153, "<write_fonts::graph::Graph>::pack_objects"],
-        [9060, "<laminapdf_model::xmp::Packet>::parse"],
-        [8906, "<laminapdf_ops::tx::Tx>::run_op"],
-        [8680, "<laminapdf_model::xmp::Packet>::write"],
-        [8474, "<laminapdf_save::planner::SavePlanner>::new"],
-        [8387, "skrifa::outline::autohint::metrics::scale::compute_unscaled_style_metrics"],
+        [9086, "<write_fonts::graph::Graph>::pack_objects"],
+        [8424, "<laminapdf_save::planner::SavePlanner>::new"],
+        [8372, "skrifa::outline::autohint::metrics::scale::compute_unscaled_style_metrics"],
         [7949, "sha2::sha256::compress256"],
-        [7314, "<laminapdf_build::markdown::convert::Converter>::run"],
-        [7207, "<laminapdf_build::builder::Builder>::flow::{closure#0}"],
-        [7207, "write_fonts::graph::splitting::pairpos::split_pair_pos_subtable"],
+        [7871, "<laminapdf::error::Error>::diagnostic"],
+        [7688, "<laminapdf_model::xmp::Packet>::parse"],
+        [7277, "<laminapdf_build::markdown::convert::Converter>::run"],
+        [7188, "<laminapdf_build::builder::Builder>::flow::{closure#0}"],
+        [7174, "write_fonts::graph::splitting::pairpos::split_pair_pos_subtable"],
         [7115, "miniz_oxide::inflate::core::decompress_with_limit"],
-        [6958, "laminapdf_build::flow::document::convert::convert_block"],
+        [6902, "<laminapdf_model::xmp::Packet>::write"],
         [6745, "unicase::unicode::map::lookup"],
-        [6653, "<laminapdf_build::builder::Builder>::flow"],
-        [6290, "<harfrust::hb::face::ShaperData>::new"],
-        [6259, "laminapdf_text::pdfpos::pdf_run"],
-        [5920, "<laminapdf_extract::job::ExtractJob>::read"],
+        [6617, "<laminapdf_build::builder::Builder>::flow"],
+        [6287, "<harfrust::hb::face::ShaperData>::new"],
+        [6235, "laminapdf_text::pdfpos::pdf_run"],
+        [5880, "<laminapdf_extract::job::ExtractJob>::read"],
         [
-          5840,
+          5836,
           "<read_fonts::ps::cs::Evaluator<skrifa::outline::cff::hint::HintingSink<read_fonts::ps::cs::NopFilterSink<skrifa::outline::cff::PenSink<read_fonts::model::pen::ControlBoundsPen>>>>>::evaluate_operator"
         ],
         [
-          5840,
+          5836,
           "<read_fonts::ps::cs::Evaluator<skrifa::outline::cff::hint::HintingSink<read_fonts::ps::cs::NopFilterSink<skrifa::outline::cff::PenSink<skrifa::outline::unscaled::UnscaledPenAdapter<skrifa::outline::autohint::outline::Outline>>>>>>::evaluate_operator"
+        ],
+        [
+          5836,
+          "<read_fonts::ps::cs::Evaluator<skrifa::outline::cff::hint::HintingSink<read_fonts::ps::cs::NopFilterSink<skrifa::outline::cff::PenSink<skrifa::outline::unscaled::UnscaledPenAdapter<skrifa::outline::unscaled::UnscaledOutlineBuf<256usize>>>>>>>::evaluate_operator"
+        ],
+        [
+          5836,
+          "<read_fonts::ps::cs::Evaluator<skrifa::outline::cff::hint::HintingSink<read_fonts::ps::cs::NopFilterSink<skrifa::outline::cff::PenSink<skrifa::outline::varc::TransformPen<dyn read_fonts::model::pen::OutlinePen>>>>>>::evaluate_operator"
         ]
       ],
-      "wasmGzip": 1484842
+      "wasmGzip": 1370896
     }
   },
   "budgets": {
     "base": {
       "glueGzip": 5000,
-      "wasmGzip": 496000
+      "wasmGzip": 657000
     },
     "extract": {
       "glueGzip": 5000,
-      "wasmGzip": 816000
+      "wasmGzip": 1003000
     },
     "render_hayro": {
       "glueGzip": 5000,
@@ -316,18 +322,18 @@
     },
     "text": {
       "glueGzip": 6000,
-      "wasmGzip": 1485000
+      "wasmGzip": 1708000
     }
   },
   "packages": {
     "@laminapdf/sdk": {
-      "jsGzip": 22500
+      "jsGzip": 24000
     },
     "@laminapdf/sdk/worker": {
-      "jsGzip": 5000
+      "jsGzip": 5200
     },
     "@laminapdf/sdk/worker/entry": {
-      "jsGzip": 21000
+      "jsGzip": 22000
     }
   },
   "thirdParty": {
