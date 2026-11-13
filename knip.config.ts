@@ -54,11 +54,11 @@ const config: KnipConfig = {
     ),
     // Its tests are named here: knip can't load its Vitest config, which loads Astro's whole config.
     "apps/site": { entry: ["test/**/*.test.ts", "vitest.config.ts"], vitest: false },
-    // The docs' example runner: scripts/build-runner.mjs builds runner/worker.ts by its path.
+    // The docs' example runner: scripts/build-runner.mjs builds runner/worker.ts and runner/types-worker.ts by their paths.
     // src/routeData.ts is Starlight's route middleware, which astro.config.mjs names by path.
     // The guide PDF's fonts (scripts/guide-pdf.mjs) are read as files from node_modules, not imported.
     "apps/docs": {
-      entry: ["runner/worker.ts", "src/routeData.ts"],
+      entry: ["runner/worker.ts", "runner/types-worker.ts", "src/routeData.ts"],
       ignoreDependencies: ["source-sans", "source-code-pro"],
     },
     // The desktop reader's e2e scenarios. WebdriverIO's config sits in e2e/, not the package root

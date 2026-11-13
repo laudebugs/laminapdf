@@ -12,6 +12,7 @@
     "node": ">=22"
   },
   "exports": {
+    "./code-kinds": "./src/code-kinds.mjs",
     "./integrations": "./src/integrations.mjs",
     "./inline-styles": "./src/inline-styles.mjs",
     "./markup": "./src/markup.mjs",
@@ -31,7 +32,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@laminapdf/icons": "workspace:*"
+    "@laminapdf/icons": "workspace:*",
+    "shiki": "catalog:"
   },
   "devDependencies": {
     "@laminapdf/fonts": "workspace:*",

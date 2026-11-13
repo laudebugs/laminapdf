@@ -237,7 +237,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   LAMINA_PDF_ENV=production, src/robots.mjs (W3a: the one robots.txt of the three sites, every crawler
 │                        #   let in, the sitemap named in production; robots, isProduction, robotsProblems), the website's checks of every built page (ADR 0011 §3: same-origin loads, no
 │                        #   inline styles, cookies or beacons, title, description, canonical URL, internal links), pageFiles, pageExists;
-│                        #   src/version.mjs (withVersion: the pages' `{{version}}`, P4);
+│                        #   src/version.mjs (withVersion: the pages' `{{version}}`, P4); src/code-kinds.mjs (Q4u: Shiki's TextMate scopes → the five
+│                        #   --paper-code-* kinds, for the website's code panel and the docs' code blocks);
 │                        #   the site header (W1d): src/nav.mjs (the one list of links, siteNav per site and page, APP_LAUNCHED),
 │                        #   src/SiteHeader.astro, SiteNav.astro (the links alone) + header.css (sized per site by CSS variables); the select (W1g):
 │                        #   src/Select.astro + select.css (design language §7.19: a native <select> in the Paper look, 44 px on touch), icon.mjs
@@ -331,7 +332,10 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   files (src/components/Snippet.astro; Example.astro adds a Result tab with pictures of each page, apps/docs/public/examples/preview/ from
 │                        #   `cargo xtask docs-previews`, checked against the goldens by `check docs`, or an Output tab; B7e: "Edit and run" on six TS examples,
 │                        #   runner/ (CodeMirror editor, a module worker at /run/worker.js running the edit with Sucrase, @laminapdf/sdk and
-│                        #   @laminapdf/render-hayro, its own CSP with 'unsafe-eval' in public/_headers), built by scripts/build-runner.mjs when
+│                        #   @laminapdf/render-hayro, its own CSP with 'unsafe-eval' in public/_headers; Q4t: /run/types.js, TypeScript's
+│                        #   language service over the SDK's .d.ts files for completion, types and errors, started on the first edit;
+│                        #   Q4u: the code blocks in the editor's five Paper colours, plugins/code-kinds.mjs in ec.config.mjs, held to
+│                        #   runner/kinds.ts by runner/colours.test.mjs), built by scripts/build-runner.mjs when
 │                        #   the WebAssembly is built; e2e/ against `wrangler dev`, run by `cargo xtask pdf-runtimes <browser>`), the code table from fixtures/codes.json, the Benchmarks page
 │                        #   from src/data/benchmarks.json (src/lib/benchmarks.ts checks it and makes the tables for the page's
 │                        #   src/components/Benchmarks.astro and its Markdown twin), code pages from

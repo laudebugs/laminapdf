@@ -19,6 +19,7 @@
         "astro.config.mjs",
         "plugins/**",
         "runner/editor.ts",
+        "runner/types.ts",
         "e2e/**",
         "vitest.*.config.ts",
         "test/browser/**"
