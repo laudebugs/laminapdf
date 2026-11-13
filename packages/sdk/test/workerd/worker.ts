@@ -6,6 +6,7 @@
 import { init } from "@laminapdf/sdk";
 import invoiceTemplate from "../../../../fixtures/documents/invoice.json" with { type: "json" };
 import invoiceData from "../../../../fixtures/documents/invoice-data.json" with { type: "json" };
+import outlinePdf from "../../../../fixtures/corpus/outline.pdf";
 import notoSans from "../../../../fixtures/fonts/NotoSans-Regular.ttf";
 import notoSansCollection from "../../../../fixtures/fonts/NotoSans-RegularBold.ttc";
 import notoSansArabic from "../../../../fixtures/fonts/NotoSansArabic-Regular.ttf";
@@ -33,6 +34,7 @@ const inputs: Inputs = {
       "fixtures/fonts/NotoSans-RegularBold.ttc": notoSansCollection,
       "fixtures/markdown/report.md": report,
       "fixtures/golden/metadata.pdf": metadataPdf,
+      "fixtures/corpus/outline.pdf": outlinePdf,
     }).map(([path, data]) => [path, new Uint8Array(data)]),
   ),
   // The element-flow report comes in as a JSON module; the suite reads every input as bytes.
