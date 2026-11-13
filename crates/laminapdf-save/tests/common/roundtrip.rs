@@ -31,10 +31,10 @@ use laminapdf_cos::OpenOptions;
 use laminapdf_model::xmp::{RdfValue, XmpValue};
 use laminapdf_model::{LabelStyle, OpenAction, PageId, PageLayout, PageMode, PagePosition, PageSize, Rotation};
 use laminapdf_ops::{
-    DeletePages, Document, DuplicatePages, InfoPatch, InsertBlankPages, InsertPagesFrom, MetadataKey, MetadataPatch,
-    MovePages, Op, OpenAt, OpenZoom, Origin, PageLabelRange, RemoveMetadata, ReplacePages, ReversePages, RotatePage,
-    RotatePages, SetInfo, SetInitialView, SetMetadata, SetPageLabels, SetXmpProperty, SourceId, WindowPreferencesPatch,
-    read_metadata,
+    DeletePages, Document, DuplicatePages, InfoPatch, InsertBlankPages, InsertPagesFrom, MergeDocuments, MergeSource,
+    MetadataKey, MetadataPatch, MovePages, Op, OpenAt, OpenZoom, Origin, PageLabelRange, RemoveMetadata, ReplacePages,
+    ReversePages, RotatePage, RotatePages, SetInfo, SetInitialView, SetMetadata, SetPageLabels, SetXmpProperty,
+    SourceId, SplitBy, WindowPreferencesPatch, read_metadata,
 };
 use laminapdf_save::{Restriction, Save, SaveError, SaveMode, SaveOptions, SavePlanner, SaveReport};
 use serde_json::{Value, json};
@@ -252,8 +252,9 @@ fn new_labels(pages: usize) -> Vec<Option<String>> {
 /// the metadata ops (J.01–J.03, J.10), the XMP property op (J.04: the title, mirrored in
 /// Info, and a custom property, [`CUSTOM`]), page labels (I.10) and the page ops (C.01, C.03,
 /// C.04, C.08, C.13), duplicating included (C.03), pages copied in from another document
-/// (C.02) or replacing the first page (C.16), from [`SOURCE`], and the initial view (I.06, I.11).
-const OPS: [&str; 15] = [
+/// (C.02) or replacing the first page (C.16), from [`SOURCE`], merged in as a whole document
+/// (C.06), and the initial view (I.06, I.11).
+const OPS: [&str; 16] = [
     "setInfo",
     "rotatePage",
     "setMetadata",
@@ -268,6 +269,7 @@ const OPS: [&str; 15] = [
     "duplicatePages",
     "insertPagesFrom",
     "replacePages",
+    "mergeDocuments",
     "setInitialView",
 ];
 
@@ -338,6 +340,9 @@ fn op(doc: &Document, name: &str, rotation: Rotation, source: SourceId) -> Optio
         "movePages" => return None,
         "rotatePages" => RotatePages::turn(ids, rotation).into(),
         "duplicatePages" => DuplicatePages::new(ids.first().cloned().into_iter().collect(), PagePosition::End).into(),
+        "mergeDocuments" => {
+            MergeDocuments::new(vec![MergeSource::new(source).with_title("Merged")], PagePosition::End).into()
+        }
         "insertPagesFrom" | "replacePages" => {
             let from = doc.source_document(&source).unwrap().pages().unwrap();
             let page = vec![from.get(0)?.id().clone()];
@@ -417,7 +422,7 @@ fn after_op(op: &Op, rotation: Rotation, pages: &mut usize, rotations: &mut Vec<
         }
         Op::ReversePages(_) => rotations.reverse(),
         Op::MovePages(_) => rotations.rotate_right(1),
-        Op::InsertPagesFrom(_) => {
+        Op::InsertPagesFrom(_) | Op::MergeDocuments(_) => {
             *pages += 1;
             rotations.push(0);
         }
@@ -739,9 +744,20 @@ fn extracted(root: &Path, suite: &mut Suite) {
             cases.push(("export-first", 0..half));
             cases.push(("export-second", half..ids.len()));
         }
-        for (case, range) in cases {
+        let mut parts: Vec<(String, std::ops::Range<usize>, Document)> = cases
+            .into_iter()
+            .map(|(case, range)| (case.to_owned(), range.clone(), doc.extract_pages(&ids[range]).unwrap()))
+            .collect();
+        // C.07: the document split in two by page count, each part checked as an export's is.
+        if ids.len() > 1 {
+            let count = std::num::NonZeroUsize::new(half).unwrap();
+            for (i, part) in doc.split(&SplitBy::Count(count)).unwrap().into_iter().enumerate() {
+                let range = i * half..((i + 1) * half).min(ids.len());
+                parts.push((format!("split-{}", i + 1), range, part));
+            }
+        }
+        for (case, range, mut part) in parts {
             let id = format!("{}-{case}", name.replace(['/', '+'], "_").trim_end_matches(".pdf")).to_lowercase();
-            let mut part = doc.extract_pages(&ids[range.clone()]).unwrap();
             let mut output = Vec::new();
             let report = match part.save(&mut output, &SaveOptions::new()) {
                 Ok(report) => report,

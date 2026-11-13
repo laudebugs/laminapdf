@@ -420,6 +420,7 @@ mod conformance {
             ConformanceWarning::PdfaInfoMismatch { keys: Vec::new() },
             ConformanceWarning::DuplicateTagsIncomplete,
             ConformanceWarning::ImportedTagsDropped,
+            ConformanceWarning::ImportedPdfaUnchecked,
             ConformanceWarning::AnnotWithoutContents {
                 annotations: Vec::new(),
             },
@@ -444,6 +445,7 @@ mod conformance {
             ConformanceWarning::PdfaInfoMismatch { keys: Vec::new() },
             ConformanceWarning::DuplicateTagsIncomplete,
             ConformanceWarning::ImportedTagsDropped,
+            ConformanceWarning::ImportedPdfaUnchecked,
             ConformanceWarning::AnnotWithoutContents {
                 annotations: Vec::new(),
             },

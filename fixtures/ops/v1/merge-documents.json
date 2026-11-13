@@ -1,0 +1,1 @@
+{ "op": "mergeDocuments", "args": { "sources": [{ "source": "f534f6f1a920e560dfd6103ae24af60e318d129a177a038366135afc943d058d", "title": "Chapters" }, { "source": "9b1f8a2d3c4e5f60718293a4b5c6d7e8f90112233445566778899aabbccddeef", "pages": ["p3.0", "p4.0"] }], "at": "end", "options": { "outline": "perFile", "fields": "rename" } } }

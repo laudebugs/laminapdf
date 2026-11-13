@@ -313,7 +313,7 @@
       "wasmGzip": 790000
     },
     "extract": {
-      "glueGzip": 5300,
+      "glueGzip": 5500,
       "wasmGzip": 1125000
     },
     "render_hayro": {
@@ -331,13 +331,13 @@
   },
   "packages": {
     "@laminapdf/sdk": {
-      "jsGzip": 24000
+      "jsGzip": 24500
     },
     "@laminapdf/sdk/worker": {
       "jsGzip": 5200
     },
     "@laminapdf/sdk/worker/entry": {
-      "jsGzip": 22000
+      "jsGzip": 22500
     }
   },
   "thirdParty": {

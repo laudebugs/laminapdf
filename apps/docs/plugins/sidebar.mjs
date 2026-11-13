@@ -122,6 +122,7 @@ export function sidebar(typeDoc) {
         { label: "Organise pages", slug: "recipes/organise-pages" },
         { label: "Duplicate pages", slug: "recipes/duplicate-pages" },
         { label: "Copy pages between PDFs", slug: "recipes/copy-pages" },
+        { label: "Merge and split PDFs", slug: "recipes/merge-and-split" },
         { label: "Extract text for an LLM", slug: "recipes/extract-markdown" },
         { label: "A PDF/UA report", slug: "recipes/pdf-ua-report" },
         { label: "A PDF/A archive", slug: "recipes/pdf-a-archive" },

@@ -176,7 +176,7 @@ pub use job::{Budget, CancelToken, Phase, SaveJob, Step};
 #[cfg(feature = "build")]
 pub use laminapdf_build::Error as BuildError;
 pub use laminapdf_syntax::{DOCS_URL_BASE, DOCS_URL_SUFFIX, Diagnostic, ErrorCode, WarningCode, did_you_mean};
-pub use pages::ExportJob;
+pub use pages::{ExportJob, MergeJob};
 #[cfg(feature = "extract")]
 pub use redaction::RedactionWarning;
 pub use warning::{Warning, WarningCursor};
@@ -193,12 +193,13 @@ pub use laminapdf_ops::{
     CaretSymbol, Carry, ChildItems, ConformanceWarning, DeleteAnnot, DeleteLink, DeleteNamedDestination,
     DeleteOutlineItem, DeletePages, DestinationUse, DestinationView, DocumentMetadata, DuplicatePages,
     ExplicitDestination, FieldChange, FieldClash, FieldOutcome, InfoPatch, InsertBlankPages, InsertPagesFrom,
-    MarkupKind, MetadataKey, MetadataPatch, MetadataSource, ModificationClass, MoveOutlineItem, MovePages, Note,
-    NoteIcon, NotePatch, Offset, Op, OpLog, Opacity, OpenAt, OpenZoom, OutlineStyle, OutlineTarget, PacketStatus,
-    PageLabelRange, ReferenceOutcome, ReferencePolicy, RemoveMetadata, RemoveXmpProperty, RenameLinks,
-    RenameNamedDestination, ReplacePages, ReplaceXmpPacket, ReversePages, Reverted, Rgb, RotateMode, RotatePage,
-    RotatePages, SetInfo, SetInitialView, SetMetadata, SetNamedDestination, SetPageLabels, SetXmpProperty, SourceId,
-    TextMarkup, TextMarkupPatch, UndoOutcome, UpdateAnnot, UpdateLink, UpdateOutlineItem, WindowPreferencesPatch,
+    MarkupKind, MergeDocuments, MergeInput, MergeOptions, MergeSource, MetadataKey, MetadataPatch, MetadataSource,
+    ModificationClass, MoveOutlineItem, MovePages, Note, NoteIcon, NotePatch, Offset, Op, OpLog, Opacity, OpenAt,
+    OpenZoom, OutlineMerge, OutlineStyle, OutlineTarget, PacketStatus, PageLabelRange, ReferenceOutcome,
+    ReferencePolicy, RemoveMetadata, RemoveXmpProperty, RenameLinks, RenameNamedDestination, RenamedDestination,
+    ReplacePages, ReplaceXmpPacket, ReversePages, Reverted, Rgb, RotateMode, RotatePage, RotatePages, SetInfo,
+    SetInitialView, SetMetadata, SetNamedDestination, SetPageLabels, SetXmpProperty, SourceId, SplitBy, TextMarkup,
+    TextMarkupPatch, UndoOutcome, UpdateAnnot, UpdateLink, UpdateOutlineItem, WindowPreferencesPatch,
 };
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,

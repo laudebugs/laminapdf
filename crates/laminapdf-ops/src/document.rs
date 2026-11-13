@@ -483,6 +483,8 @@ impl Document {
             tags_incomplete: Vec::new(),
             links_removed: Vec::new(),
             tags_dropped: Vec::new(),
+            renamed_destinations: Vec::new(),
+            bookmarks_dropped: 0,
         });
         Ok(())
     }
@@ -552,6 +554,8 @@ impl Document {
             tags_incomplete: state.tags_incomplete,
             links_removed: state.links_removed,
             tags_dropped: state.tags_dropped,
+            renamed_destinations: state.renamed_destinations,
+            bookmarks_dropped: state.bookmarks_dropped,
         })
     }
 

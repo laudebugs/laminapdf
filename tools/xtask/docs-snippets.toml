@@ -67,6 +67,14 @@ ts = "packages/sdk/examples/edit-xmp.ts"
 rust = "crates/laminapdf/examples/edit_xmp.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/flowing-report.ts"
+rust = "crates/laminapdf/examples/flowing_report.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/flowing-invoice.ts"
+rust = "crates/laminapdf/examples/flowing_invoice.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/organise-pages.ts"
 rust = "crates/laminapdf/examples/organise_pages.rs"
 
@@ -136,3 +144,11 @@ reason = "shows the options a reader's test passes in place of the clock and a r
 [[pair]]
 ts = "packages/sdk/examples/images-to-pdf.ts"
 rust = "crates/laminapdf/examples/images_to_pdf.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/merge-documents.ts"
+rust = "crates/laminapdf/examples/merge_documents.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/split-document.ts"
+rust = "crates/laminapdf/examples/split_document.rs"

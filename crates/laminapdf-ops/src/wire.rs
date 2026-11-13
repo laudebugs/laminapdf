@@ -325,6 +325,28 @@ pub(crate) mod page_ids {
     }
 }
 
+/// An optional list of page IDs, as [`page_ids`] writes one; absent when `None`.
+pub(crate) mod opt_page_ids {
+    use laminapdf_model::PageId;
+    use serde::{Deserialize, Serializer};
+
+    use super::{Deserializer, de};
+
+    #[expect(clippy::ref_option, reason = "serde's `with` passes the field by reference")]
+    pub(crate) fn serialize<S: Serializer>(ids: &Option<Vec<PageId>>, s: S) -> Result<S::Ok, S::Error> {
+        match ids {
+            Some(ids) => super::page_ids::serialize(ids, s),
+            None => s.serialize_none(),
+        }
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<Vec<PageId>>, D::Error> {
+        Option::<Vec<String>>::deserialize(d)?
+            .map(|ids| ids.into_iter().map(|s| s.parse().map_err(de::Error::custom)).collect())
+            .transpose()
+    }
+}
+
 /// A [`PageSize`](laminapdf_model::PageSize) as `{ "width": …, "height": … }` in points.
 pub(crate) mod page_size {
     use laminapdf_model::{PageSize, Pt};

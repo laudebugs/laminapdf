@@ -130,7 +130,8 @@ pub use outline::{
 };
 pub use pages::{
     Carry, DeletePages, DuplicatePages, FieldChange, FieldClash, FieldOutcome, InsertBlankPages, InsertPagesFrom,
-    MovePages, ReferenceChange, ReferenceOutcome, ReferencePolicy, ReplacePages, ReversePages, RotateMode, RotatePages,
+    MergeDocuments, MergeInput, MergeOptions, MergeSource, MovePages, OutlineMerge, ReferenceChange, ReferenceOutcome,
+    ReferencePolicy, RenamedDestination, ReplacePages, ReversePages, RotateMode, RotatePages, SplitBy,
 };
 pub use pending::PendingChanges;
 pub use record::{Change, Field, Property, PropertyValue, SkipReason, Skipped, Target, UndoRecord};

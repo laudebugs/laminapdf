@@ -127,8 +127,8 @@
       ]
     },
     "flowing_invoice": {
-      "sha256": "7a31cf0d6889c799b89431b7f9c67ca08b615d1e00fa43182bd0689b9306591e",
-      "bytes": 27911,
+      "sha256": "fe1f0353596448c2d252d96dddc7e03180dc64513d466b0b42fbda0538d9243a",
+      "bytes": 27963,
       "pages": [
         {
           "width": 1190,
@@ -356,6 +356,36 @@
         }
       ]
     },
+    "merge_documents": {
+      "sha256": "e0fd95e2a740424ed771a82a6fd590619d9b8906322436b52844d8f850365d3a",
+      "bytes": 1875,
+      "pages": [
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        }
+      ]
+    },
     "multilingual": {
       "sha256": "10a7f9769a9b59149bddfc4bf2a9d4bb3cf51b0aa6db0e5b9f95943e2a785ad8",
       "bytes": 27695,
@@ -458,6 +488,72 @@
       "sha256": "a0f3094d11caece50e7e872f6f0b1fb83de9de3c579f3db5c030a1c35778de19",
       "bytes": 3091,
       "pages": [
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        }
+      ]
+    },
+    "split_document-1": {
+      "sha256": "529f72592d649dcc83e49b6c26a0600a60f1bd45c74803e4a4193a385bde5b5f",
+      "bytes": 1118,
+      "pages": [
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        }
+      ]
+    },
+    "split_document-2": {
+      "sha256": "e41e610eec3579b1b038c5e673b09c6459f17105b9993f24520e1927cd4ddfaf",
+      "bytes": 1155,
+      "pages": [
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        }
+      ]
+    },
+    "split_document-3": {
+      "sha256": "09b9ce7fbdceeb0e45c9116cb239c6214092d90cc4fea71c111eff2d9c742b9a",
+      "bytes": 1124,
+      "pages": [
+        {
+          "width": 1224,
+          "height": 1584
+        },
         {
           "width": 1224,
           "height": 1584

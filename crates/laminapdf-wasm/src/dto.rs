@@ -388,6 +388,25 @@ pub(crate) struct EditedJs {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[tsify(optional)]
     pub tags_dropped: Vec<String>,
+    /// The named destinations a merge or a page import brought in under another name, because
+    /// the document already used theirs; left out when there are none.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[tsify(optional)]
+    pub renamed_destinations: Vec<RenamedDestinationJs>,
+    /// The bookmarks a merge left out because the pages they went to didn't come along; left
+    /// out when there are none.
+    #[serde(skip_serializing_if = "is_zero")]
+    #[tsify(optional)]
+    pub bookmarks_dropped: usize,
+}
+
+/// A named destination brought in under another name.
+#[derive(Debug, Serialize, Tsify)]
+pub(crate) struct RenamedDestinationJs {
+    /// Its name in the source.
+    pub from: String,
+    /// Its name in this document.
+    pub to: String,
 }
 
 /// What a page duplication or a page copied in did to one form field.
@@ -498,6 +517,12 @@ impl From<laminapdf::Edited> for EditedJs {
             tags_incomplete: e.tags_incomplete.iter().map(ToString::to_string).collect(),
             links_removed: e.links_removed.iter().map(ToString::to_string).collect(),
             tags_dropped: e.tags_dropped.iter().map(ToString::to_string).collect(),
+            renamed_destinations: e
+                .renamed_destinations
+                .into_iter()
+                .map(|r| RenamedDestinationJs { from: r.from, to: r.to })
+                .collect(),
+            bookmarks_dropped: e.bookmarks_dropped,
             declared: e.declared.into_iter().map(ExtensionPropertyJs::from).collect(),
         }
     }
@@ -679,4 +704,10 @@ pub(crate) fn phase_name(phase: laminapdf::Phase) -> &'static str {
         // A phase added to the non-exhaustive enum before this list learns it.
         _ => "other",
     }
+}
+
+/// Whether a count is zero, for `skip_serializing_if`.
+#[expect(clippy::trivially_copy_pass_by_ref, reason = "serde passes the field by reference")]
+const fn is_zero(n: &usize) -> bool {
+    *n == 0
 }

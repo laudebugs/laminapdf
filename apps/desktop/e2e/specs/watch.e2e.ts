@@ -2,10 +2,10 @@
 // atomic save (a new file renamed over it), and the file deleted. The scenario changes the file
 // from the test process, as another app would, and waits for the window to follow; it reports how
 // long the first reload took.
-import { copyFileSync, mkdirSync, rmSync, unlinkSync } from "node:fs";
+import { copyFileSync, mkdirSync, renameSync, rmSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { $, browser, expect } from "@wdio/globals";
-import { atomicReplace, fixture, goToPage, openAndWait, view, withText, zoomOnce } from "../app.ts";
+import { fixture, goToPage, openAndWait, view, withText, zoomOnce } from "../app.ts";
 import { workingCopies } from "../paths.ts";
 
 const dir = join(workingCopies, "watched");
@@ -45,7 +45,9 @@ describe("a file that changes on disk", () => {
   it("should reload an atomic save and never say the file is missing", async () => {
     const temp = join(dir, ".watched.pdf.tmp");
     copyFileSync(example("markdown_to_pdf.pdf"), temp);
-    await atomicReplace(temp, watched);
+    // On Windows Node's rename is MoveFileEx, which refuses a file any process holds open: it
+    // passes because the app holds no document open between reads (ADR 0008 §11).
+    renameSync(temp, watched);
     await waitForPageCount(4);
     expect((await view()).currentPage).toBe(2);
     await expect(withText("File was moved or deleted")).not.toExist();

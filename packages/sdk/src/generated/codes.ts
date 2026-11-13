@@ -224,6 +224,7 @@ export type WarningCode =
   | "pdfa-info-mismatch"
   | "duplicate-tags-incomplete"
   | "imported-tags-dropped"
+  | "imported-pdfa-unchecked"
   | "annot-without-contents"
   | "annot-not-tagged"
   | "pdfa-annot-flags"
@@ -464,6 +465,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "pdfa-info-mismatch",
   "duplicate-tags-incomplete",
   "imported-tags-dropped",
+  "imported-pdfa-unchecked",
   "annot-without-contents",
   "annot-not-tagged",
   "pdfa-annot-flags",
@@ -585,6 +587,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "pdfa-info-mismatch": "input",
   "duplicate-tags-incomplete": "usage",
   "imported-tags-dropped": "usage",
+  "imported-pdfa-unchecked": "usage",
   "annot-without-contents": "usage",
   "annot-not-tagged": "usage",
   "pdfa-annot-flags": "usage",
@@ -799,6 +802,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
   "duplicate-tags-incomplete": "retag the copy, or duplicate pages whose tagged elements lie on the page alone",
   "imported-tags-dropped": "tag the copied pages in a tagging tool, or copy pages from a document without tags",
+  "imported-pdfa-unchecked": "check the saved file with a PDF/A validator such as veraPDF, or copy pages from a document that claims the same level",
   "annot-without-contents": "give the annotation a description: the text it marks, or what the mark means",
   "annot-not-tagged": "tag the document first, or add the annotation to a copy that doesn't claim PDF/UA",
   "pdfa-annot-flags": "keep the annotation's Print flag and clear Hidden, Invisible, NoView and ToggleNoView",

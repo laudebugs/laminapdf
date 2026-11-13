@@ -3,9 +3,10 @@
 //! pages reach, so saving it writes a whole file with nothing of the rest.
 
 use laminapdf_cos::{Dict, Object, OpenOptions};
-use laminapdf_model::{FieldNames, PageId, PagePosition};
+use laminapdf_model::{FieldNames, OutlineTree, PageId, PagePosition, SiblingPosition};
 
-use super::import::{Carry, Signatures, import};
+use super::import::{Carry, Signatures, import_with};
+use super::merge_parts::{CopiedItem, copy_outline, merge_layers, source_layers};
 use super::page_ids;
 use crate::document::Document;
 use crate::error::Result;
@@ -15,7 +16,9 @@ impl Document {
     /// stands now, edits included. The pages are deep copies with their annotations, links
     /// between them, the named destinations those links use, form fields (signature fields
     /// unsigned: a signature covers the file it was made in) and the page labels they show
-    /// here. Links to pages left behind are removed, and the pages come without tags. The new
+    /// here, with the bookmarks that go to them (a bookmark whose page was left behind is left
+    /// out unless one of its children came) and the layers they use. Links to pages left behind
+    /// are removed, and the pages come without tags. The new
     /// document has the same PDF version and limits, no password, and a base that is empty, so
     /// saving it writes a whole file holding only what its pages reach.
     ///
@@ -50,14 +53,23 @@ impl Document {
         let source: &laminapdf_model::Document = self;
         let mut out = new_document(source)?;
         let mut names = FieldNames::default();
-        let imported = import(
+        let mut outline = Vec::new();
+        let mut layers = None;
+        let imported = import_with(
             &mut out,
             source,
             pages,
-            Carry::default(),
-            Signatures::Unsign,
+            (Carry::default(), Signatures::Unsign),
             &mut names,
+            |doc, copier, dests| {
+                outline = copy_outline(doc, source, dests)?.0;
+                layers = source_layers(source, copier)?;
+                Ok(CopiedItem::objects(&outline))
+            },
         )?;
+        if let Some(layers) = layers {
+            merge_layers(&mut out, &layers)?;
+        }
         {
             let mut editor = out.edit_page_tree()?;
             for &copy in &imported.copies {
@@ -75,6 +87,11 @@ impl Document {
             }
             let all = page_ids(source)?;
             labels.remap(&all, &chosen).write(&mut out.cos_mut().edit())?;
+        }
+        if !outline.is_empty() {
+            let mut tree = OutlineTree::read(&out)?;
+            add_items(&mut tree, None, outline)?;
+            tree.write(&mut out.cos_mut().edit())?;
         }
         Ok(Self::from(out))
     }
@@ -94,9 +111,17 @@ impl Document {
 /// An empty document of `like`'s version and limits: a catalog and an empty page tree,
 /// written in the overlay of an empty base.
 fn new_document(like: &laminapdf_model::Document) -> Result<laminapdf_model::Document> {
-    let version = like.version()?;
-    let options = OpenOptions::default().with_limits(*like.limits());
-    let mut cos = laminapdf_cos::Document::empty(version.as_deref(), &options);
+    empty_document(like.version()?.as_deref(), *like.limits())
+}
+
+/// An empty document of this `version` (the writer's default when `None`) and `limits`: a
+/// catalog and an empty page tree, written in the overlay of an empty base.
+pub(super) fn empty_document(
+    version: Option<&str>,
+    limits: laminapdf_cos::Limits,
+) -> Result<laminapdf_model::Document> {
+    let options = OpenOptions::default().with_limits(limits);
+    let mut cos = laminapdf_cos::Document::empty(version, &options);
     let catalog = cos.reserve_number()?;
     let pages = cos.reserve_number()?;
     {
@@ -116,4 +141,22 @@ fn new_document(like: &laminapdf_model::Document) -> Result<laminapdf_model::Doc
         edit.set_trailer([("Root", Object::Ref(catalog))].into_iter().collect());
     }
     Ok(laminapdf_model::Document::from(cos))
+}
+
+/// Inserts copied `items` under `parent`, last, with their children and open state.
+pub(super) fn add_items(
+    tree: &mut OutlineTree,
+    parent: Option<&laminapdf_model::OutlineItemId>,
+    items: Vec<CopiedItem>,
+) -> Result<()> {
+    for item in items {
+        let id = tree
+            .insert(item.item, parent, &SiblingPosition::Last)
+            .map_err(crate::outline::tree_error)?;
+        add_items(tree, Some(&id), item.children)?;
+        if item.open {
+            tree.set_open(&id, true).map_err(crate::outline::tree_error)?;
+        }
+    }
+    Ok(())
 }

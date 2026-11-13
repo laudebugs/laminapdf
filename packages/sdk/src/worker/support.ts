@@ -13,7 +13,7 @@ import type { Document, PageRef } from "../document.js";
  * - `extractJob` returns a job whose model results the caller provides between steps: run the
  *   model in the worker's own context, or extract on the main thread;
  * - `ensure` fetches a range document's bytes: the worker does that for every call;
- * - `extractPages` and `exportRanges` return new documents, which stay in the worker: save one
+ * - `extractPages`, `exportRanges` and `split` return new documents, which stay in the worker: save one
  *   on the main thread, or open the saved bytes with the client;
  * - `free` and `Symbol.dispose`: the remote handle's `close()` and `Symbol.asyncDispose`.
  *
@@ -25,6 +25,7 @@ export type ExcludedDocumentMembers =
   | "extractJob"
   | "extractPages"
   | "exportRanges"
+  | "split"
   | "ensure"
   | "free"
   | typeof Symbol.dispose;
@@ -41,12 +42,14 @@ export type RemotableDocumentMember = Exclude<keyof Document, ExcludedDocumentMe
 export type RemotablePageMember = Exclude<keyof PageRef, ExcludedPageMembers>;
 
 export const DOCUMENT_METHODS = {
-  apply: 1,
   addSource: 2,
+  adoptCopy: 2,
+  apply: 1,
   applyLog: 1,
   canExtractText: 0,
-  destinationAt: 2,
+  caretAt: 2,
   deletePages: 2,
+  destinationAt: 2,
   duplicatePages: 2,
   extract: 1,
   hasUnsavedChanges: 0,
@@ -56,15 +59,15 @@ export const DOCUMENT_METHODS = {
   insertPagesFrom: 4,
   isEncrypted: 0,
   isTagged: 0,
-  caretAt: 2,
   linkOnArea: 3,
   linkOnText: 3,
   markText: 3,
+  mergeDocuments: 3,
   metadata: 0,
   movePages: 2,
   namedDestination: 1,
-  noteAt: 4,
   namedDestinations: 0,
+  noteAt: 4,
   outline: 0,
   page: 1,
   pageAnnotations: 1,
@@ -78,21 +81,20 @@ export const DOCUMENT_METHODS = {
   rebase: 1,
   redo: 0,
   reflow: 0,
-  replacePages: 4,
   removeMetadata: 2,
   removeXmpProperty: 3,
+  replacePages: 4,
   replaceText: 4,
   replaceXmpPacket: 1,
   reversePages: 1,
   rotatePages: 3,
   save: 1,
-  saveWithReport: 1,
   saveCopy: 1,
-  adoptCopy: 2,
+  saveWithReport: 1,
   setInitialView: 1,
   setMetadata: 2,
-  setXmpProperty: 5,
   setPageLabels: 1,
+  setXmpProperty: 5,
   structureTree: 0,
   threads: 0,
   undo: 0,
