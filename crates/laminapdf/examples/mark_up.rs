@@ -47,7 +47,7 @@ pub(crate) fn mark_up(bytes: Vec<u8>, at: PdfDate) -> Result<Vec<u8>, Box<dyn Er
     let mut doc = Document::open_bytes(bytes, OpenOptions::new())?;
     let mut by_me = AnnotCommon::default();
     by_me.author = Some("Ada Lovelace".into());
-    by_me.created = Some(at.clone());
+    by_me.created = Some(at);
     by_me.modified = Some(at);
 
     // In a tagged document the highlight's description is already the marked text; add who

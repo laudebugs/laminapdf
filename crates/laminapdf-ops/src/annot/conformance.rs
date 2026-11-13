@@ -21,8 +21,8 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
     let PacketState::Parsed(packet) = doc.xmp()? else {
         return Ok(Vec::new());
     };
-    let (pdfa, pdfua) = (packet.pdfa_part(), packet.pdfua_part() == Some(1));
-    if pdfa.is_none() && !pdfua {
+    let (pdfa_part, claims_ua) = (packet.pdfa_part(), packet.pdfua_part() == Some(1));
+    if pdfa_part.is_none() && !claims_ua {
         return Ok(Vec::new());
     }
     let [mut untitled, mut untagged, mut flags, mut transparent] = [(); 4].map(|()| Vec::new());
@@ -43,7 +43,7 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
             }
             let Some(dict) = object_dict(doc, r)? else { continue };
             let id = annot.id.to_string();
-            if pdfua {
+            if claims_ua {
                 let empty = match dict.get("Contents") {
                     Some(Object::String(s)) => s.bytes.is_empty(),
                     _ => true,
@@ -58,10 +58,10 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
                     untagged.push(id.clone());
                 }
             }
-            if pdfa.is_some() && (!annot.flags.has(AnnotFlags::PRINT) || annot.flags.0 & PDFA_FORBIDDEN != 0) {
+            if pdfa_part.is_some() && (!annot.flags.has(AnnotFlags::PRINT) || annot.flags.0 & PDFA_FORBIDDEN != 0) {
                 flags.push(id.clone());
             }
-            if pdfa == Some(1) && is_transparent(doc, &dict)? {
+            if pdfa_part == Some(1) && is_transparent(doc, &dict)? {
                 transparent.push(id);
             }
         }

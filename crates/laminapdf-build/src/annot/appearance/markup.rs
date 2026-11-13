@@ -93,18 +93,19 @@ impl Frame {
 
 /// Underline, strike-out or squiggly along one quad, its width a fourteenth of the text's
 /// height (at least half a point), kept inside the quad.
-fn line(c: &mut pdf_writer::Content, kind: MarkupKind, f: &Frame) {
+fn line(content: &mut pdf_writer::Content, kind: MarkupKind, frame: &Frame) {
+    let (c, f) = (content, frame);
     let width = (f.height / 14.0).max(0.5);
     c.set_line_width(n(width));
     match kind {
         MarkupKind::Underline | MarkupKind::StrikeOut => {
-            let t = if kind == MarkupKind::Underline {
+            let above = if kind == MarkupKind::Underline {
                 width / 2.0
             } else {
                 f.height / 2.0
             };
-            let (x0, y0) = f.at(0.0, t);
-            let (x1, y1) = f.at(f.length, t);
+            let (x0, y0) = f.at(0.0, above);
+            let (x1, y1) = f.at(f.length, above);
             c.move_to(x0, y0);
             c.line_to(x1, y1);
         }
@@ -112,14 +113,14 @@ fn line(c: &mut pdf_writer::Content, kind: MarkupKind, f: &Frame) {
             // A zigzag in the quad's lowest sixth, one wave per third of the text's height.
             let wave = (f.height / 3.0).max(1.0);
             let (low, high) = (width / 2.0, f.height / 6.0);
-            let (x, y) = f.at(0.0, low);
-            c.move_to(x, y);
-            let mut s = 0.0;
+            let (x0, y0) = f.at(0.0, low);
+            c.move_to(x0, y0);
+            let mut along = 0.0;
             let mut up = true;
-            while s < f.length {
-                s = (s + wave / 2.0).min(f.length);
-                let (x, y) = f.at(s, if up { high } else { low });
-                c.line_to(x, y);
+            while along < f.length {
+                along = (along + wave / 2.0).min(f.length);
+                let (x1, y1) = f.at(along, if up { high } else { low });
+                c.line_to(x1, y1);
                 up = !up;
             }
         }

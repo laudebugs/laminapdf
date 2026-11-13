@@ -151,6 +151,15 @@ impl Opacity {
     pub const fn get(self) -> f64 {
         self.0
     }
+
+    /// Whether it is fully opaque. Takes a reference, as serde's `skip_serializing_if` passes
+    /// one.
+    ///
+    /// Added in 0.3.0.
+    #[must_use]
+    pub fn is_opaque(&self) -> bool {
+        *self == Self::OPAQUE
+    }
 }
 
 impl Default for Opacity {

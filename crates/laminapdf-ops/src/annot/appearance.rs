@@ -27,6 +27,8 @@ pub trait Appearances {
     ///
     /// # Errors
     /// The overlay's errors.
+    ///
+    /// Added in 0.3.0.
     fn normal(&self, cos: &mut CosMut<'_>, request: &AppearanceRequest<'_>) -> laminapdf_cos::Result<Appearance>;
 }
 

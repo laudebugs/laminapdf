@@ -4,6 +4,7 @@
 #![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,
+    clippy::panic,
     reason = "tests: a panic is a test failure"
 )]
 
@@ -259,7 +260,7 @@ mod add {
             .pop()
             .unwrap();
         let caret_dict = dict(&doc, obj(&caret));
-        let deleted = apply(&mut doc, DeleteAnnot::new(caret.clone())).also_deleted;
+        let deleted = apply(&mut doc, DeleteAnnot::new(caret)).also_deleted;
         assert_eq!(
             (
                 caret_dict.get("IRT").and_then(Object::as_ref),
@@ -358,7 +359,7 @@ mod tagged_popup {
         };
         let (note_elem, popup_elem) = (element_of(&note), element_of(&popup));
         let parent = dict(&doc, dict(&doc, note_elem).get("P").and_then(Object::as_ref).unwrap());
-        let kids: Vec<Option<laminapdf_cos::ObjRef>> = parent
+        let kids: Vec<Option<ObjRef>> = parent
             .get("K")
             .and_then(Object::as_array)
             .unwrap()

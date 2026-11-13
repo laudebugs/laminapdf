@@ -52,11 +52,11 @@ pub struct AnnotCommon {
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub color: Option<AnnotColor>,
     /// The opacity, opaque when absent.
-    #[serde(default, skip_serializing_if = "is_opaque")]
+    #[serde(default, skip_serializing_if = "Opacity::is_opaque")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub opacity: Opacity,
-    /// `/F`, all the flags at once (Table 167); Print when absent, and for a note NoZoom and
-    /// NoRotate too, as Acrobat writes them.
+    /// `/F`, all the flags at once (Table 167); Print when absent, and for a note `NoZoom` and
+    /// `NoRotate` too, as Acrobat writes them.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub flags: Option<u32>,
@@ -68,13 +68,6 @@ pub struct AnnotCommon {
     pub group_with: Option<AnnotId>,
 }
 
-#[expect(
-    clippy::trivially_copy_pass_by_ref,
-    reason = "serde's skip_serializing_if passes a reference"
-)]
-fn is_opaque(o: &Opacity) -> bool {
-    *o == Opacity::OPAQUE
-}
 
 /// Adds an annotation to `page`: a text markup, a note or a caret ([`AnnotSpec`]), with an
 /// appearance stream drawn by the document's [`Appearances`] and the common entries of
@@ -303,23 +296,23 @@ fn popup(
 
 /// Where a note's Popup goes, as the page is shown: right of the icon, its top level with the
 /// icon's, or left of it when the page has no room on the right, and never past the page's top
-/// or bottom. The icon keeps its upper-left corner at `at` however the page turns (NoRotate,
+/// or bottom. The icon keeps its upper-left corner at `at` however the page turns (`NoRotate`,
 /// ISO 32000-2 §12.5.3), so the Popup is placed from there in page space.
 fn popup_rect(frame: &PageFrame, note: &Note) -> UserSpaceRect {
-    let at = frame.to_page(note.at);
-    let (w, h) = Note::POPUP;
-    let (page_w, page_h) = (frame.width().get(), frame.height().get());
+    let corner = frame.to_page(note.at);
+    let (width, height) = Note::POPUP;
+    let (page_width, page_height) = (frame.width().get(), frame.height().get());
     // The icon is `ICON` user units wide, which a `/UserUnit` page shows larger.
-    let right = at.x.get() + Note::ICON * frame.user_unit();
-    let x = if right + w <= page_w {
+    let right = corner.x.get() + Note::ICON * frame.user_unit();
+    let left = if right + width <= page_width {
         right
     } else {
-        (at.x.get() - w).max(0.0)
+        (corner.x.get() - width).max(0.0)
     };
-    let y = at.y.get().clamp(0.0, (page_h - h).max(0.0));
-    let a = frame.to_user_space(PointPt::from_points(x, y));
-    let b = frame.to_user_space(PointPt::from_points(x + w, y + h));
-    UserSpaceRect::from_corners(a.x, a.y, b.x, b.y)
+    let top = corner.y.get().clamp(0.0, (page_height - height).max(0.0));
+    let start = frame.to_user_space(PointPt::from_points(left, top));
+    let end = frame.to_user_space(PointPt::from_points(left + width, top + height));
+    UserSpaceRect::from_corners(start.x, start.y, end.x, end.y)
 }
 
 /// The frame of the page `id`.

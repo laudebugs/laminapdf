@@ -23,15 +23,17 @@ const KINDS: [MarkupKind; 4] = [
 ];
 
 /// A bar's quad in user space, from its page-space box, in Acrobat's order.
-fn quad(x: f64, y: f64, w: f64, h: f64) -> [UserSpacePoint; 4] {
-    let p = |x: f64, y: f64| UserSpacePoint::new(x, HEIGHT - y);
-    [p(x, y), p(x + w, y), p(x, y + h), p(x + w, y + h)]
+fn quad(left: f64, top: f64, width: f64, height: f64) -> [UserSpacePoint; 4] {
+    let at = |x: f64, y: f64| UserSpacePoint::new(x, HEIGHT - y);
+    let (right, bottom) = (left + width, top + height);
+    [at(left, top), at(right, top), at(left, bottom), at(right, bottom)]
 }
 
 /// The same bar read top to bottom, as text turned a quarter clockwise runs.
-fn turned(x: f64, y: f64, w: f64, h: f64) -> [UserSpacePoint; 4] {
-    let p = |x: f64, y: f64| UserSpacePoint::new(x, HEIGHT - y);
-    [p(x + w, y), p(x + w, y + h), p(x, y), p(x, y + h)]
+fn turned(left: f64, top: f64, width: f64, height: f64) -> [UserSpacePoint; 4] {
+    let at = |x: f64, y: f64| UserSpacePoint::new(x, HEIGHT - y);
+    let (right, bottom) = (left + width, top + height);
+    [at(right, top), at(right, bottom), at(left, top), at(left, bottom)]
 }
 
 /// The bars, drawn as the page's content.
@@ -46,13 +48,13 @@ fn page_of_bars() -> laminapdf_ops::Document {
     let mut page = b.page(PageSize::A4);
     let s = page.surface();
     s.fill_color(Color::gray(0.75));
-    for (i, _) in KINDS.iter().enumerate() {
-        let y = 60.0 + 40.0 * i as f64;
+    for i in (0_u8..).take(KINDS.len()) {
+        let y = 60.0 + 40.0 * f64::from(i);
         s.path(|p| {
             p.rect(rect(60.0, y, 200.0, 14.0));
         })
         .fill(laminapdf_model::FillRule::NonZero);
-        let x = 320.0 + 40.0 * i as f64;
+        let x = 320.0 + 40.0 * f64::from(i);
         s.path(|p| {
             p.rect(rect(x, 60.0, 14.0, 140.0));
         })
@@ -73,8 +75,8 @@ fn marks(doc: &laminapdf_ops::Document) -> Vec<Op> {
     let page = doc.pages().unwrap().get(0).unwrap().id().clone();
     let add = |spec| Op::from(AddAnnot::new(page.clone(), spec));
     let mut ops = Vec::new();
-    for (i, kind) in KINDS.into_iter().enumerate() {
-        let i = i as f64;
+    for (i, kind) in (0_u8..).zip(KINDS) {
+        let i = f64::from(i);
         ops.push(add(AnnotSpec::TextMarkup(TextMarkup::new(
             kind,
             vec![quad(60.0, 60.0 + 40.0 * i, 200.0, 14.0)],
@@ -103,8 +105,8 @@ fn marks(doc: &laminapdf_ops::Document) -> Vec<Op> {
         NoteIcon::NewParagraph,
         NoteIcon::Insert,
     ];
-    for (i, icon) in icons.into_iter().enumerate() {
-        let at = UserSpacePoint::new(60.0 + 40.0 * i as f64, HEIGHT - 320.0);
+    for (i, icon) in (0_u8..).zip(icons) {
+        let at = UserSpacePoint::new(60.0 + 40.0 * f64::from(i), HEIGHT - 320.0);
         ops.push(add(AnnotSpec::Note(Note::new(at, icon))));
     }
     let caret = |x: f64, symbol| {

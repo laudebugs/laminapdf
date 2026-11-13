@@ -152,9 +152,8 @@ impl Paint {
         match self.intent {
             Some(IntentSpace::Cmyk) => color.to_cmyk(),
             Some(IntentSpace::Rgb) => color.to_rgb(),
-            None => color,
-            // An intent space this version doesn't know: the colour as given, the closest it can do.
-            Some(_) => color,
+            // No intent, or one this version doesn't know: the colour as given, the closest it can do.
+            None | Some(_) => color,
         }
     }
 

@@ -1,11 +1,7 @@
 //! Marking up a page through the façade: text marks from line boxes in page space at every
 //! rotation, notes, carets, `replace_text` as one undo step, a tagged file's default
 //! descriptions, and every mark saved and read back with its appearance.
-#![expect(
-    clippy::unwrap_used,
-    clippy::indexing_slicing,
-    reason = "test code: a panic is a test failure"
-)]
+#![expect(clippy::unwrap_used, reason = "test code: a panic is a test failure")]
 
 use laminapdf::{
     AnnotCommon, AnnotationGeometry, Document, MarkupKind, NoteIcon, OpenOptions, PageAnnotation, PointPt, Pt, RectPt,
@@ -213,7 +209,7 @@ fn replace_text_groups_a_caret_and_a_strike_out_in_one_undo_step() {
         (2, Some("new words"), Some(caret.id.as_str()), true)
     );
     doc.undo().unwrap();
-    assert!(doc.page_annotations(0).unwrap().is_empty());
+    assert_eq!(doc.page_annotations(0).unwrap().len(), 0);
 }
 
 #[test]
@@ -242,7 +238,7 @@ fn a_mark_in_a_tagged_file_is_described_by_the_text_it_marks() {
         .unwrap();
     let expected: String = glyphs.iter().map(|g| g.text.as_str()).collect();
     assert_eq!(op.common.contents.as_deref(), Some(expected.trim()));
-    assert!(!op.marked.is_empty());
+    assert_ne!(op.marked.len(), 0);
 }
 
 #[test]

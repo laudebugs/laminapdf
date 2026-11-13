@@ -14,6 +14,8 @@ use crate::error::{Error, Result};
 
 /// What an update changes in the drawing.
 pub(super) struct Redraw<'a> {
+    /// Absent to keep `/C`, `null` to remove it, or a colour: three cases.
+    #[expect(clippy::option_option, reason = "absent, null and a colour are three cases")]
     pub(super) color: Option<Option<AnnotColor>>,
     pub(super) opacity: Option<Opacity>,
     pub(super) spec: Option<&'a AnnotSpecPatch>,
@@ -101,11 +103,12 @@ pub(super) fn read_spec(dict: &Dict) -> Option<AnnotSpec> {
     });
     if let Some(kind) = MarkupKind::from_subtype(subtype) {
         let values = dict.get("QuadPoints").and_then(components)?;
-        let quads = values
-            .chunks_exact(8)
-            .map(|q| {
-                let p = |i: usize| UserSpacePoint::new(q[2 * i], q[2 * i + 1]);
-                geom::acrobat_order([p(0), p(1), p(2), p(3)])
+        let (quads, _) = values.as_chunks::<8>();
+        let quads = quads
+            .iter()
+            .map(|[ax, ay, bx, by, cx, cy, dx, dy]| {
+                let p = UserSpacePoint::new;
+                geom::acrobat_order([p(*ax, *ay), p(*bx, *by), p(*cx, *cy), p(*dx, *dy)])
             })
             .collect();
         return Some(AnnotSpec::TextMarkup(TextMarkup::new(kind, quads)));
@@ -143,7 +146,7 @@ fn current_opacity(doc: &laminapdf_model::Document, dict: &Dict) -> Result<Opaci
         .unwrap_or_default())
 }
 
-/// The ExtGStates of an annotation's normal appearance, in its resources' order; none when it
+/// The `ExtGState`s of an annotation's normal appearance, in its resources' order; none when it
 /// has no appearance or the appearance names none.
 pub(super) fn appearance_states(doc: &laminapdf_model::Document, dict: &Dict) -> Result<Vec<Dict>> {
     let resolve = |value: Option<&Object>| -> Result<Option<Dict>> {

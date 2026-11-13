@@ -253,6 +253,6 @@ mod tests {
     fn a_paragraph_caret_adds_the_sign_above() {
         let rect = UserSpaceRect::from_corners(10.0, 100.0, 20.0, 110.0);
         let drawn = text(caret(CaretSymbol::Paragraph, rect, &PAINT));
-        assert!(drawn.contains(" 15 105 c") && drawn.ends_with("S"));
+        assert!(drawn.contains(" 15 105 c") && drawn.ends_with('S'));
     }
 }
