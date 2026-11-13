@@ -12,6 +12,7 @@ import { elementFlow, type Report } from "../../examples/element-flow.js";
 import { generateThenEdit } from "../../examples/generate-then-edit.js";
 import { hello } from "../../examples/hello.js";
 import { imagesAndVectors } from "../../examples/images-and-vectors.js";
+import { imagesToPdfBytes } from "../../examples/images-to-pdf.js";
 import { invoice } from "../../examples/invoice.js";
 import { invoiceFromJson } from "../../examples/invoice-from-json.js";
 import { linksAndOutlines } from "../../examples/links-and-outlines.js";
@@ -47,6 +48,7 @@ const SCRIPT_FONTS = [
   "fixtures/fonts/NotoSansSC-Regular.otf",
 ] as const;
 const PHOTO = "fixtures/images/photo-rgb.jpg";
+const GRAY_PHOTO = "fixtures/images/photo-gray.jpg";
 /** The report the element-flow example lays out; its body runs onto a second page. */
 const FLOW_REPORT = "fixtures/text/element-flow-report.json";
 /** The Markdown report and the fonts it is set in (the bold face is the collection's second). */
@@ -124,6 +126,12 @@ export const EXAMPLES: readonly Example[] = [
         SCRIPT_FONTS.map((f) => input(i, f)),
         exampleOptions("lamina-ex-multil"),
       ),
+  },
+  {
+    name: "images-to-pdf",
+    golden: "images_to_pdf",
+    inputs: [PHOTO, GRAY_PHOTO],
+    build: (i) => imagesToPdfBytes([input(i, PHOTO), input(i, GRAY_PHOTO)], exampleOptions("lamina-ex-images")),
   },
   {
     name: "markdown-to-pdf",

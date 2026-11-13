@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E3 plan §7](../../plans/editor/e3-navigation-attachments-inspection.md#7-differences-between-the-shells) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2m](./E2m-document-dialogs.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md), [E3h](../done/E3h-images-to-pdf-and-page-export.md), [E3i](./E3i-extraction.md), [E3m](./E3m-web-image-export.md) |
+| Depends on | [E2m](./E2m-document-dialogs.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md), [E3h](../done/E3h-images-to-pdf-and-page-export.md), [E3i](./E3i-extraction.md), [E3m](../done/E3m-web-image-export.md) |
 | ADRs | Follows [0010](../../decisions/0010-platform-adapter.md), [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) |
 | Branch | `feat/e3j-export-dialog` |
 | PR title | `feat(web): export pages, text, images, links and bookmarks` |

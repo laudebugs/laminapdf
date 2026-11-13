@@ -20,6 +20,8 @@ mod export;
 mod hayro;
 mod request;
 mod source;
+#[cfg(feature = "tiff")]
+mod tiff_writer;
 
 pub use appearance::{Annotated, DARK, Kept, PageAppearance, PagePalette, Quad, SEPIA, mostly_changed, recolour_tile};
 pub use backend::{RenderBackend, RenderDocument};
@@ -36,3 +38,5 @@ pub use request::{
     TilePlan,
 };
 pub use source::read_all;
+#[cfg(feature = "tiff")]
+pub use tiff_writer::TiffWriter;
