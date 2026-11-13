@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q4r` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Docs redesign §4](../../plans/docs-redesign.md#4-todos) |
 | Round / milestone | Round Q (docs and code quality), Q4 docs redesign |
-| Depends on | [Q4q](../done/Q4q-resizable-page-beside-the-code.md) |
+| Depends on | [Q4q](./Q4q-resizable-page-beside-the-code.md) |
 | ADRs | [ADR 0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (the CSP the buttons work under), [ADR 0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (Prettier, MIT) |
 | Branch | `claude/dazzling-sagan-s9woz0` |
 | PR title | `feat(docs): wrap long lines in code blocks, and a Format button in "Edit and run"` |
@@ -47,9 +47,9 @@ The owner asked for two buttons. Long lines in the docs' code blocks scroll side
 
 ## Acceptance criteria
 
-- [ ] Wrap toggles every block's long lines with no horizontal scroll left, and is kept after a reload.
-- [ ] Format restores an example whose indentation was removed, byte for byte; a syntax error leaves the code as typed.
-- [ ] Nothing new loads before Format is pressed, and no CSP violation is reported.
+- [x] Wrap toggles every block's long lines with no horizontal scroll left, and is kept after a reload.
+- [x] Format restores an example whose indentation was removed, byte for byte; a syntax error leaves the code as typed.
+- [x] Nothing new loads before Format is pressed, and no CSP violation is reported.
 
 ## Post-merge checks
 
@@ -70,7 +70,7 @@ The docs examples plan (§2, §4).
 ## Definition of done
 
 - [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
