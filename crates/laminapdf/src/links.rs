@@ -3,7 +3,7 @@
 //! objects. Nothing here runs an action: a `Launch`, `JavaScript` or `SubmitForm` link is
 //! reported by its type, for the viewer to say it won't run it.
 
-use laminapdf_model::{AnnotId, Link, LinkAction, PageFrame, PointPt, Pt, RectPt};
+use laminapdf_model::{AnnotId, Link, LinkAction, PageFrame, PointPt, RectPt};
 use laminapdf_ops::{AddLink, OutlineTarget};
 
 use crate::document::Document;
@@ -142,25 +142,7 @@ impl Document {
             return Err(laminapdf_ops::Error::InvalidOp("a link on text needs one line or more").into());
         }
         let (id, frame) = self.page_frame(page)?;
-        let text = self.page_text(page, &crate::extract::TextOptions::default())?;
-        let mut marked: Vec<u32> = Vec::new();
-        for glyph in &text.glyphs {
-            let [a, _, c, _] = glyph.quad;
-            let centre = PointPt::new(
-                Pt::new(f64::midpoint(a.x.get(), c.x.get())),
-                Pt::new(f64::midpoint(a.y.get(), c.y.get())),
-            );
-            let inside = lines.iter().any(|l| {
-                (l.x0.get()..=l.x1.get()).contains(&centre.x.get())
-                    && (l.y0.get()..=l.y1.get()).contains(&centre.y.get())
-            });
-            if let Some(m) = glyph.mcid.and_then(|m| u32::try_from(m).ok())
-                && inside
-                && !marked.contains(&m)
-            {
-                marked.push(m);
-            }
-        }
+        let marked = self.text_under(page, lines)?.marked;
         let mut op = AddLink::new(id, user_rect(&frame, lines), target);
         op.quads = lines
             .iter()
@@ -179,7 +161,7 @@ impl Document {
     }
 
     /// Page `page`'s ID and frame.
-    fn page_frame(&self, page: u32) -> Result<(laminapdf_model::PageId, PageFrame)> {
+    pub(crate) fn page_frame(&self, page: u32) -> Result<(laminapdf_model::PageId, PageFrame)> {
         let pages = self.ops().pages()?;
         let p = usize::try_from(page)
             .ok()
@@ -193,7 +175,7 @@ impl Document {
 }
 
 /// The user-space rectangle that bounds `areas`, given in page space.
-fn user_rect(frame: &PageFrame, areas: &[RectPt]) -> laminapdf_model::UserSpaceRect {
+pub(crate) fn user_rect(frame: &PageFrame, areas: &[RectPt]) -> laminapdf_model::UserSpaceRect {
     let bounds = areas
         .iter()
         .skip(1)
