@@ -724,7 +724,8 @@ mod tests {
             "-f event=pull_request -f branch=\"$HEAD_REF\"",
             ".status != \"completed\"",
             ".head_repository.full_name == $repo",
-            ".id != $self",
+            ".created_at < $merged and .id != $self",
+            "shell: bash",
             "actions/runs/$run/cancel",
         ] {
             assert!(job.contains(part), "the cancel job lacks {part}");

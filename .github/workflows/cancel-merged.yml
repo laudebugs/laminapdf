@@ -22,19 +22,24 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Cancel its queued and running runs
+        # bash -eo pipefail: a failed listing fails the step instead of cancelling nothing silently.
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          MERGED_AT: ${{ github.event.pull_request.merged_at }}
           SELF: ${{ github.run_id }}
         run: |
           # The PR's runs: pull_request runs on its branch, from its repository (a fork may have a
-          # branch of the same name), not finished, and not this run.
+          # branch of the same name), started before the merge (a workflow on `closed` keeps its
+          # run), not finished, and not this run.
           gh api --paginate --method GET "repos/$REPO/actions/runs" \
             -f event=pull_request -f branch="$HEAD_REF" -F per_page=100 \
-            | jq -r --arg repo "$HEAD_REPO" --argjson self "$SELF" '.workflow_runs[]
-              | select(.status != "completed" and .head_repository.full_name == $repo and .id != $self)
+            | jq -r --arg repo "$HEAD_REPO" --arg merged "$MERGED_AT" --argjson self "$SELF" '.workflow_runs[]
+              | select(.status != "completed" and .head_repository.full_name == $repo)
+              | select(.created_at < $merged and .id != $self)
               | .id' > runs.txt
           cancelled=0
           while read -r run; do
