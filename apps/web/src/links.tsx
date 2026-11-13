@@ -11,6 +11,7 @@ import {
   LinkEditor,
   type LinkGoal,
   LinkPanel,
+  type LinkWord,
   linkWords,
   mailParts,
   mailUri,
@@ -43,7 +44,7 @@ export function EditArea({ edits, keys }: { edits: EditControls; keys: KeyPlatfo
 }
 
 /** The event the selection toolbar's Make link dispatches on the viewer's element. */
-export const MAKE_LINK = "lamina-make-link";
+const MAKE_LINK = "lamina-make-link";
 
 /** A box in page space: left, top, right, bottom, in points from the page's top-left. */
 type Box = readonly [number, number, number, number];
@@ -299,62 +300,7 @@ export function LinkEditing({ engine, viewer, registry, toasts }: LinkEditingPro
   }, [viewer, editing?.page, editing?.id, editing]);
   if (editing === undefined) return null;
 
-  const fail = (error: unknown) => {
-    const reason = error instanceof Error ? error.message : String(error);
-    toasts.add({ message: linkWords("link.failed", { reason }) });
-  };
-  const target = async (goal: LinkGoal): Promise<OutlineTarget | undefined> => {
-    switch (goal.kind) {
-      case "page":
-        return { destination: await (await engine.view()).client.call("destinationAt", [goal.page, { kind: "fit" }]) };
-      case "named":
-        return { named: goal.name };
-      case "web":
-        return { uri: goal.address };
-      case "email":
-        return { uri: mailUri(goal.address, goal.subject) };
-      default:
-        return undefined;
-    }
-  };
-  const apply = (ops: Op[], label: Parameters<typeof linkWords>[0]) => viewer.edits.apply(ops, linkWords(label));
-  const onGoal = (goal: LinkGoal) =>
-    void (async () => {
-      const at = current.current;
-      const to = await target(goal);
-      if (at === undefined || to === undefined) return;
-      if (at.id !== undefined) {
-        await apply([{ op: "updateLink", args: { link: at.id, target: to } }], "edit.link.target");
-        setEditing({ ...at, goal });
-        return;
-      }
-      const { client } = await engine.view();
-      const args =
-        at.lines === undefined
-          ? await client.call("linkOnArea", [at.page, [...at.box] as [number, number, number, number], to])
-          : await client.call("linkOnText", [at.page, at.lines, to]);
-      const made = await apply(
-        [{ op: "addLink", args: at.contents === "" ? args : { ...args, contents: at.contents } }],
-        "edit.link.add",
-      );
-      const id = made.createdAnnotations?.[0];
-      setEditing({ ...at, goal, ...(id === undefined ? {} : { id }) });
-    })().catch(fail);
-  const onContents = (contents: string) => {
-    const at = current.current;
-    if (at === undefined) return;
-    setEditing({ ...at, contents });
-    if (at.id === undefined) return;
-    void apply(
-      [{ op: "updateLink", args: { link: at.id, contents: contents === "" ? null : contents } }],
-      "edit.link.description",
-    ).catch(fail);
-  };
-  const onDelete = () => {
-    const at = current.current;
-    setEditing(undefined);
-    if (at?.id !== undefined) void apply([{ op: "deleteLink", args: { link: at.id } }], "edit.link.delete").catch(fail);
-  };
+  const { onGoal, onContents, onDelete } = linkActions(engine, viewer, toasts, current, setEditing);
   const onFollow = followOf(engine, viewer, editing);
   return (
     <LinkPanel anchor={() => boxes.viewportBox(editing.page, editing.box)} onDismiss={() => setEditing(undefined)}>
@@ -373,6 +319,78 @@ export function LinkEditing({ engine, viewer, registry, toasts }: LinkEditingPro
       />
     </LinkPanel>
   );
+}
+
+/** Where `goal` goes, as the link ops take it; a script goal is never written. */
+async function targetOf(engine: Engine, goal: LinkGoal): Promise<OutlineTarget | undefined> {
+  switch (goal.kind) {
+    case "page":
+      return { destination: await (await engine.view()).client.call("destinationAt", [goal.page, { kind: "fit" }]) };
+    case "named":
+      return { named: goal.name };
+    case "web":
+      return { uri: goal.address };
+    case "email":
+      return { uri: mailUri(goal.address, goal.subject) };
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * The editor's changes as edits, each one step: a new link is added on its first goal, and later
+ * goals, descriptions and Delete link change or remove it. A failure is a toast.
+ */
+function linkActions(
+  engine: Engine,
+  viewer: Viewer,
+  toasts: ToastQueue,
+  current: { readonly current: Editing | undefined },
+  setEditing: (editing: Editing | undefined) => void,
+) {
+  const fail = (error: unknown) => {
+    const reason = error instanceof Error ? error.message : String(error);
+    toasts.add({ message: linkWords("link.failed", { reason }) });
+  };
+  const apply = (ops: Op[], label: LinkWord) => viewer.edits.apply(ops, linkWords(label));
+  const add = async (at: Editing, goal: LinkGoal, to: OutlineTarget) => {
+    const { client } = await engine.view();
+    const args =
+      at.lines === undefined
+        ? await client.call("linkOnArea", [at.page, [...at.box] as [number, number, number, number], to])
+        : await client.call("linkOnText", [at.page, at.lines, to]);
+    const made = await apply(
+      [{ op: "addLink", args: at.contents === "" ? args : { ...args, contents: at.contents } }],
+      "edit.link.add",
+    );
+    const id = made.createdAnnotations?.[0];
+    setEditing({ ...at, goal, ...(id === undefined ? {} : { id }) });
+  };
+  const onGoal = (goal: LinkGoal) =>
+    void (async () => {
+      const at = current.current;
+      const to = await targetOf(engine, goal);
+      if (at === undefined || to === undefined) return;
+      if (at.id === undefined) return add(at, goal, to);
+      await apply([{ op: "updateLink", args: { link: at.id, target: to } }], "edit.link.target");
+      setEditing({ ...at, goal });
+    })().catch(fail);
+  const onContents = (contents: string) => {
+    const at = current.current;
+    if (at === undefined) return;
+    setEditing({ ...at, contents });
+    if (at.id === undefined) return;
+    void apply(
+      [{ op: "updateLink", args: { link: at.id, contents: contents === "" ? null : contents } }],
+      "edit.link.description",
+    ).catch(fail);
+  };
+  const onDelete = () => {
+    const at = current.current;
+    setEditing(undefined);
+    if (at?.id !== undefined) void apply([{ op: "deleteLink", args: { link: at.id } }], "edit.link.delete").catch(fail);
+  };
+  return { onGoal, onContents, onDelete };
 }
 
 const idOf = (editing: Editing) => (editing.id === undefined ? {} : { id: editing.id });

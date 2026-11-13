@@ -62,6 +62,11 @@ mod would_violate {
     }
 
     #[test]
+    fn a_fieldmdp_lock_allows_them_since_they_change_no_field() {
+        assert_eq!(verdicts("locked.pdf"), none());
+    }
+
+    #[test]
     fn a_certification_without_annotations_forbids_them() {
         let all = |p| (ConstraintKind::AppendOnly, vec![vec![Restriction::DocMdp(p)]; 3]);
         assert_eq!(verdicts("certified-p1.pdf"), all(DocMdpPermission::NoChanges));

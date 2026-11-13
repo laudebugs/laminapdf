@@ -694,7 +694,11 @@ fn links(root: &Path, suite: &mut Suite) {
             let first = first.id().clone();
             drop(all);
             let to_last = OutlineTarget::Destination(ExplicitDestination::new(last, DestinationView::Fit));
-            let area = AddLink::new(first.clone(), UserSpaceRect::from_corners(36.0, 36.0, 120.0, 60.0), to_last);
+            let area = AddLink::new(
+                first.clone(),
+                UserSpaceRect::from_corners(36.0, 36.0, 120.0, 60.0),
+                to_last,
+            );
             let mut on_text = AddLink::new(
                 first,
                 UserSpaceRect::from_corners(36.0, 80.0, 200.0, 94.0),

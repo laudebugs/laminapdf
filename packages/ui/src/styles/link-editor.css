@@ -83,6 +83,7 @@
   }
 
   [data-tool="link"] .lamina-link {
+    /* biome-ignore lint/complexity/noImportantStyles: the link layer sets pointer-events on each anchor inline. */
     pointer-events: none !important;
   }
 }

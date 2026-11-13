@@ -42,6 +42,16 @@ async function outlineOf(doc) {
   return out;
 }
 
+/** Where a Link annotation goes: ["uri", address], ["page", index] or ["other"]. */
+async function linkTarget(doc, annotation) {
+  if (typeof annotation.url === "string") return ["uri", annotation.url];
+  let dest = annotation.dest;
+  if (typeof dest === "string") dest = await doc.getDestination(dest);
+  if (!Array.isArray(dest) || dest[0] === null || typeof dest[0] !== "object") return ["other"];
+  const index = await doc.getPageIndex(dest[0]).catch(() => null);
+  return index === null ? ["other"] : ["page", index];
+}
+
 /** Each page's links, sorted: ["page", index], ["uri", address] or ["other"], as lamina lists them. */
 async function linksOf(doc) {
   const pages = [];
@@ -49,19 +59,7 @@ async function linksOf(doc) {
     const page = await doc.getPage(i);
     const found = [];
     for (const a of await page.getAnnotations()) {
-      if (a.subtype !== "Link") continue;
-      if (typeof a.url === "string") {
-        found.push(["uri", a.url]);
-        continue;
-      }
-      let dest = a.dest;
-      if (typeof dest === "string") dest = await doc.getDestination(dest);
-      if (Array.isArray(dest) && dest[0] !== null && typeof dest[0] === "object") {
-        const index = await doc.getPageIndex(dest[0]).catch(() => null);
-        found.push(index === null ? ["other"] : ["page", index]);
-      } else {
-        found.push(["other"]);
-      }
+      if (a.subtype === "Link") found.push(await linkTarget(doc, a));
     }
     const key = (x) => JSON.stringify(x);
     pages.push(found.sort((x, y) => (key(x) < key(y) ? -1 : key(x) > key(y) ? 1 : 0)));

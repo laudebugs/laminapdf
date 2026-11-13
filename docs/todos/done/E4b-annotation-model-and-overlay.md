@@ -22,7 +22,7 @@ Typed annotation views in `laminapdf-model`, `page_annotations` in the façade a
 - [E4 plan §2](../../plans/editor/e4-markup-and-drawing-annotations.md#2-the-operations), [§3](../../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep) and [§6](../../plans/editor/e4-markup-and-drawing-annotations.md#6-saving-and-the-save-constraint)
 - [04 §2.1 The common dictionary](../../research/pdf/04-interactive-security.md#21-the-common-dictionary) and [§2.3 Markup annotations](../../research/pdf/04-interactive-security.md#23-markup-annotations-replies-review-state-12562)
 - [ADR 0005](../../decisions/0005-document-model.md) §5: `/NM` is a hint, never the ID
-- [E3c](../ongoing/E3c-links.md): the link ops, which share this core
+- [E3c](../done/E3c-links.md): the link ops, which share this core
 
 ## Scope
 

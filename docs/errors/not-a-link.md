@@ -31,4 +31,4 @@ None. The `location` is the annotation's `object` and `id`.
 
 The decisions and todos behind this code:
 
-- [E3c](../todos/ongoing/E3c-links.md): link annotations
+- [E3c](../todos/done/E3c-links.md): link annotations

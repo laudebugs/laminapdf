@@ -156,7 +156,23 @@ Not built yet:
 
 **Artboards.** `O12-link-editor.dc.html` (text link to a page), `O12-link-editor-error.dc.html` (drawn area, rejected `javascript:` address).
 
-**Todos.** [E3c](../../todos/ongoing/E3c-links.md).
+**As built (web, E3c).** The reader has no Edit mode yet, so the Link tool's toggle sits in the top bar, after Undo and Redo, and the editor opens in a panel by the link rather than in an inspector.
+
+Differs from the boards:
+
+- A new link is written once it has somewhere to go, so a box closed without a target leaves nothing behind and needs no "Link removed" toast.
+- A page target goes to the whole page (`/Fit`): there is no "Zoom when followed" select and no "Pick a place on the page…".
+- Make link is a button of the selection toolbar, not an entry of its More menu.
+- The tool's note ("Draw a box, or select text…") is Make link's reason in the palette when no text is selected, not a line in a toolbar.
+
+Not built yet:
+
+- The palette's `edit.add-link` (a default box at the caret) and `tool.link`, and moving or resizing a drawn link with the arrow keys and its corner handles.
+- "New name…" in the named destination select.
+- The phone's Make link sheet.
+- A script link's `danger` outline outside the Link tool; in Read mode the link preview already says such a link never runs.
+
+**Todos.** [E3c](../../todos/done/E3c-links.md).
 
 ## O13 Initial view and article threads
 

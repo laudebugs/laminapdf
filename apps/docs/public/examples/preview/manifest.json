@@ -14,6 +14,16 @@
         }
       ]
     },
+    "add_links-pdfua": {
+      "sha256": "07e82ab2e230072cfdeead42eee9d658e48fbc5c5f2d058da4f2306fa597ec20",
+      "bytes": 12521,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
     "duplicate_pages": {
       "sha256": "5920e53b512d93aacd78406e3772eb25a929d510b3a443cb18cc0b6a04a40347",
       "bytes": 3072,

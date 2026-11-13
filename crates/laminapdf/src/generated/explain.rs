@@ -2695,7 +2695,7 @@ None.
 The decisions and todos behind this code:
 
 - [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
-- [E3c](../todos/ongoing/E3c-links.md): link annotations
+- [E3c](../todos/done/E3c-links.md): link annotations
 "#,
         "view-not-finite" => r#"# `view-not-finite`
 
@@ -3047,7 +3047,7 @@ None. The `location` is the annotation's `object` and `id`.
 
 The decisions and todos behind this code:
 
-- [E3c](../todos/ongoing/E3c-links.md): link annotations
+- [E3c](../todos/done/E3c-links.md): link annotations
 "#,
         "link-not-tagged" => r#"# `link-not-tagged`
 
@@ -3082,7 +3082,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E3c](../todos/ongoing/E3c-links.md): link annotations
+- [E3c](../todos/done/E3c-links.md): link annotations
 "#,
         "invalid-label-ranges" => r"# `invalid-label-ranges`
 
