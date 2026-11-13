@@ -153,8 +153,8 @@ export const ROUTES: readonly Route[] = [
   {
     id: "link-editor",
     title: "Link editor",
-    components: [],
-    renders: ["LinkPanel", "LinkEditor"],
+    components: ["LinkEditor"],
+    renders: ["LinkPanel"],
     states: ["page", "web", "refused", "script"],
   },
   {
