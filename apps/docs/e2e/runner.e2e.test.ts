@@ -2,7 +2,8 @@
 // (LAMINA_PDF_E2E_BROWSER): the runner's own headers and the pages' unchanged ones; each runnable
 // example (the six recipes and "Your first PDF"'s Node app) run unchanged gives its golden's bytes;
 // an edit changes the PDF; a mistake shows its code and hint; the editor's lines stay unwrapped
-// until Wrap lines is pressed. Nothing loads before the button is pressed, nothing from another
+// until Wrap lines is pressed; TypeScript completes the SDK's API, shows types and marks errors,
+// loaded only on the first edit. Nothing loads before the button is pressed, nothing from another
 // origin, and no CSP violation is reported.
 
 import { readFileSync } from "node:fs";
@@ -12,6 +13,7 @@ import { withoutSelectErrors } from "@laminapdf/test-utils/webkit-select";
 import { getLocal } from "@laminapdf/test-utils/wrangler-dev";
 import { type Browser, type BrowserType, chromium, firefox, type Page, webkit } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
+import { RUNNABLE } from "../runner/examples.js";
 
 const DOCS = new URL("../", import.meta.url);
 const ROOT = new URL("../../", DOCS);
@@ -19,6 +21,9 @@ const BROWSERS: Record<string, BrowserType> = { chromium, firefox, webkit };
 const BROWSER = env.LAMINA_PDF_E2E_BROWSER ?? "chromium";
 const origin = inject("origin");
 const ca = inject("ca");
+
+/** The editor's TypeScript worker (runner/types-worker.ts, todo Q4t). */
+const TYPES = "/run/types.js";
 
 /** The runnable examples: a page that shows each, and its golden. */
 const EXAMPLES = [
@@ -106,6 +111,56 @@ async function edit(page: Page, text: string): Promise<void> {
   await page.keyboard.insertText(text);
 }
 
+/** The runnable examples' files (runner/examples.ts's keys), from the repository root. */
+const RUNNABLE_FILES = Object.keys(RUNNABLE);
+
+/**
+ * Each file's type errors, as the editor's TypeScript worker reports them (types-protocol.ts's
+ * `lint`), asked of a worker of the page's own.
+ */
+async function typeErrors(page: Page, files: readonly string[]): Promise<string[][]> {
+  const sources = files.map((file) => readFileSync(new URL(file, ROOT), "utf8"));
+  return page.evaluate(
+    async ({ url, sources }) => {
+      const worker = new Worker(url, { type: "module" });
+      const answers: string[][] = [];
+      for (const [id, code] of sources.entries()) {
+        answers.push(
+          await new Promise<string[]>((resolve) => {
+            worker.onmessage = (event: MessageEvent<{ diagnostics: { message: string }[] }>) =>
+              resolve(event.data.diagnostics.map((d) => d.message));
+            worker.postMessage({ id, version: id, code, kind: "lint" });
+          }),
+        );
+      }
+      worker.terminate();
+      return answers;
+    },
+    { url: TYPES, sources },
+  );
+}
+
+/** The text of the editor's elements matching `selector`, in its shadow root. */
+async function editorTexts(page: Page, selector: string): Promise<string[]> {
+  return page.evaluate(
+    (selector) =>
+      [...(document.querySelector(".run-editor")?.shadowRoot?.querySelectorAll(selector) ?? [])].map(
+        (node) => node.textContent ?? "",
+      ),
+    selector,
+  );
+}
+
+/** Puts the editor's cursor at `offset`, as a click there would. */
+async function placeCursor(page: Page, offset: number): Promise<void> {
+  await page.evaluate((offset) => {
+    const content = document.querySelector(".run-editor")?.shadowRoot?.querySelector(".cm-content");
+    const view = (content as { cmTile?: { view?: { dispatch(spec: object): void } } } | null)?.cmTile?.view;
+    if (view === undefined) throw new Error("the editor's view isn't on its content element");
+    view.dispatch({ selection: { anchor: offset } });
+  }, offset);
+}
+
 /** Whether the editor's scroller scrolls sideways: a line longer than it is wide and unwrapped. */
 async function scrollsSideways(page: Page): Promise<boolean> {
   return page.evaluate(() => {
@@ -143,6 +198,8 @@ describe(`edit and run in ${BROWSER}`, () => {
     expect(download.suggestedFilename()).toBe(`${golden}.pdf`);
     const bytes = readFileSync(await download.path());
     expect(bytes.equals(readFileSync(new URL(`fixtures/golden/examples/${golden}.pdf`, ROOT)))).toBe(true);
+    // Opening the editor and running loads none of TypeScript (todo Q4t): only an edit does.
+    expect(requests.filter((url) => new URL(url).pathname === TYPES)).toEqual([]);
     expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
     expect(foreign).toEqual([]);
     await page.context().close();
@@ -228,6 +285,53 @@ describe(`edit and run in ${BROWSER}`, () => {
     expect(await wrap.getAttribute("aria-pressed")).toBe("false");
     await expect.poll(() => scrollsSideways(page)).toBe(true);
     expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
+    await page.context().close();
+  });
+
+  it("completes the SDK's API, shows a type by key and marks a mistake, with TypeScript loaded on the first edit (todo Q4t)", async () => {
+    const { page, errors, foreign, requests } = await recipe("/recipes/hello/");
+    await page.getByRole("button", { name: "Edit and run" }).click();
+    const source = (await page.locator("lamina-run").getAttribute("data-source")) ?? "";
+    const line = "using b = new Builder(options);";
+    expect(source).toContain(line);
+    const types = () => requests.filter((url) => new URL(url).pathname === TYPES);
+    expect(types()).toEqual([]);
+
+    // The cursor after the builder's line, then `b.`: TypeScript lists the builder's methods.
+    const edited = source.replace(line, `${line}\n  b`);
+    await edit(page, edited);
+    await expect.poll(() => types().length).toBe(1);
+    await placeCursor(page, edited.indexOf(line) + line.length + "\n  b".length);
+    await page.keyboard.type(".");
+    await expect.poll(() => editorTexts(page, ".cm-completionLabel"), { timeout: 30_000 }).toContain("page");
+    await page.keyboard.type("pag");
+    await expect
+      .poll(() => editorTexts(page, ".cm-completionInfo .cm-types-signature"), { timeout: 30_000 })
+      .toEqual([expect.stringContaining("Builder.page(")]);
+    await page.keyboard.press("Escape");
+
+    // The type key on `b`, with no pointer.
+    await page.keyboard.press("Backspace");
+    await page.keyboard.press("Backspace");
+    await page.keyboard.press("Backspace");
+    await page.keyboard.press("Backspace");
+    await page.keyboard.press("Control+Shift+Space");
+    await expect
+      .poll(() => editorTexts(page, ".cm-tooltip .cm-types-signature"), { timeout: 30_000 })
+      .toEqual([expect.stringContaining("Builder")]);
+
+    // A misspelt method is marked; the run still reports what the SDK throws.
+    await edit(page, source.replace('b.page("A4")', 'b.pgae("A4")'));
+    await expect.poll(() => page.locator(".cm-lintRange-error").count(), { timeout: 30_000 }).toBeGreaterThan(0);
+    await run(page);
+    expect(await page.locator(".run-error").isVisible()).toBe(true);
+    // Reset puts back the example, which has no type error; nor has any other runnable example.
+    await page.getByRole("button", { name: "Reset" }).click();
+    await expect.poll(() => page.locator(".cm-lintRange-error").count(), { timeout: 30_000 }).toBe(0);
+    expect(types().length).toBe(1);
+    expect(await typeErrors(page, RUNNABLE_FILES)).toEqual(RUNNABLE_FILES.map(() => []));
+    expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
+    expect(foreign).toEqual([]);
     await page.context().close();
   });
 });

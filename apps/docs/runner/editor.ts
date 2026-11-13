@@ -2,12 +2,13 @@
 // CodeMirror over the example's code in the Paper look (theme.ts), wires up the bar the page renders, sends the code to the runner (worker.ts, one per page, started
 // on the first run), and shows each page of the result, or the error with its code and hint.
 
-import { javascript } from "@codemirror/lang-javascript";
 import { Compartment } from "@codemirror/state";
 import { basicSetup, EditorView } from "codemirror";
 import { firstLine, formatCode } from "./format.js";
+import { typescript } from "./kinds.js";
 import type { RunReply, RunRequest } from "./protocol.js";
 import { paperTheme } from "./theme.js";
+import { typescriptHelp } from "./types.js";
 
 /** The runner's address: a fixed path, so its own headers (public/_headers' `/run/*`) apply. */
 const WORKER = "/run/worker.js";
@@ -21,6 +22,9 @@ function pagePixels(column: HTMLElement): number {
   const wanted = Math.ceil(column.getBoundingClientRect().width * devicePixelRatio);
   return Math.min(2000, Math.max(832, wanted));
 }
+
+/** The keys for TypeScript's help without a pointer (types.ts), named under the editor. */
+const KEYS = "Ctrl+Space lists what can go at the cursor; Ctrl+Shift+Space shows its type.";
 
 /** How long a run may take before the runner is stopped: an edit can loop forever. */
 const TIME_LIMIT_MS = 30_000;
@@ -65,7 +69,7 @@ function editor(host: HTMLElement, source: string, wrap: HTMLButtonElement): Edi
     parent: root,
     // Lines start unwrapped, as in an editor, so their indentation shows the code's shape; the
     // bar's Wrap lines toggle (wrapOnPress) puts EditorView.lineWrapping in this compartment.
-    extensions: [basicSetup, javascript({ typescript: true }), wrapping.of([]), paperTheme, typeOverLines],
+    extensions: [basicSetup, typescript(), typescriptHelp(), wrapping.of([]), paperTheme, typeOverLines],
   });
   wrapOnPress(view, wrapping, wrap);
   return view;
@@ -207,7 +211,7 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
   const pages = element("div", "run-pages");
   // Outside Starlight's content spacing, which would push CodeMirror's lines apart.
   const editorHost = element("div", "run-editor not-content");
-  places.code.append(editorHost, buttons.bar, status, problem);
+  places.code.append(editorHost, element("p", "run-keys", KEYS), buttons.bar, status, problem);
   places.pages.append(pages);
   buttons.bar.hidden = false;
   buttons.download.hidden = true;

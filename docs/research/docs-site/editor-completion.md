@@ -34,7 +34,7 @@ For scale, a reader's first run already loads about 3 MB gzipped: the SDK's text
 
 ## Shiki in the editor
 
-The static code blocks get their colours from Shiki at build time, through Expressive Code. Since [Q4i](../../todos/done/Q4i-code-colours-by-class.md), each token is a class coloured by one of five `--paper-code-*` tokens: keyword, string, comment, function and constant. The editor colours with CodeMirror's own parser (Lezer) and maps its tags to the same five tokens (`apps/docs/runner/theme.ts`). So both use the same five colours; they differ only where Shiki and Lezer put a token in different kinds, such as a property read or a type parameter.
+The static code blocks get their colours from Shiki at build time, through Expressive Code, in Starlight's default Night Owl themes; since [Q4i](../../todos/done/Q4i-code-colours-by-class.md), the build moves those colours from style attributes into classes. The editor colours with CodeMirror's own parser (Lezer) and maps its tags to the five Paper code tokens (`--paper-code-*`: keyword, string, comment, function and constant) that the website's code panel uses (`apps/docs/runner/theme.ts`). So a block changes colour when "Edit and run" replaces it with the editor. (The first version of this note said the blocks already used the five Paper tokens; they don't, and Q4u was changed to follow.)
 
 Shiki in the editor would cost three things:
 
@@ -42,9 +42,9 @@ Shiki in the editor would cost three things:
 - **The CSP.** The existing bridge, `codemirror-shiki` (MIT, 0.3.0), colours each token with a `style` attribute, which the docs' `style-src 'self'` blocks. The docs would need their own extension that turns Shiki's tokens into the five classes, as the build does.
 - **Typing speed.** TextMate grammars tokenize line by line from the top, while Lezer reparses only the edited part of its tree. A long example would retokenize from the edited line down on every keystroke.
 
-An option to switch between them would leave the reader choosing between two shades of the same five colours. The difference a reader can see is narrower: a token that changes colour when "Edit and run" swaps the static block for the editor.
+A reader's option to switch highlighters would not fix the visible problem, a block that changes colour when "Edit and run" swaps it for the editor. Both sides need the same colours, whichever highlighter draws them.
 
 ## Recommendations
 
 1. **Complete with TypeScript's language service in a worker** (todo Q4t). The worker loads on the editor's first keystroke or focus, never on the button press, so readers who only run an example pay nothing. Completions, hover types and errors use TypeScript 6.0.3 over the SDK's own `.d.ts` files. Errors show as lint marks and never stop a run: Sucrase still strips the types, so the reader still sees the SDK's own error for a mistake the types miss. Hover types also need a keyboard path, a key that shows the type at the cursor, since a tooltip shown on mouse hover alone leaves keyboard users out.
-2. **Make Lezer's colours match Shiki's instead of offering Shiki** (todo Q4u). A test tokenizes every runnable example with both, at build time, and lists each token that falls in a different one of the five kinds. `theme.ts`'s tag map then changes until the list is empty, or each remaining difference has a reason in the test. Shiki in the editor, with an extension of our own that writes classes, stays the fallback if a difference can't be fixed in the tag map. A reader-facing toggle is left out either way.
+2. **Colour the blocks and the editor alike, in place of a Shiki option** (todo Q4u). The owner chose to move the blocks to the five Paper tokens, as the website's code panel and the editor already colour code, rather than move the editor to Night Owl. A test tokenizes every runnable example with both highlighters and lists each token that falls in a different one of the five kinds; the rules on either side change until the list is empty. A reader-facing toggle is left out.
