@@ -13,8 +13,10 @@ import { existsSync } from "node:fs";
 import { TabItem, Tabs } from "@astrojs/starlight/components";
 // @laminapdf/icons' own files, inlined at build time.
 import downloadIcon from "@laminapdf/icons/svg/download.svg?raw";
+import formatIcon from "@laminapdf/icons/svg/format-code.svg?raw";
 import playIcon from "@laminapdf/icons/svg/play.svg?raw";
 import resetIcon from "@laminapdf/icons/svg/reset.svg?raw";
+import wrapIcon from "@laminapdf/icons/svg/wrap-lines.svg?raw";
 import { decorativeIcon } from "@laminapdf/site-kit/icon";
 import manifest from "../../public/examples/preview/manifest.json";
 import { RUNNABLE } from "../../runner/examples.ts";
@@ -188,6 +190,18 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
                 <Fragment set:html={icon(downloadIcon)} />
                 Download PDF
               </button>
+              {/* At the bar's far end (todos Q4r, Q4s): these two change the code, not the PDF, and wrap
+                  to the next row together. */}
+              <div class="run-code-tools">
+                <button type="button" class="run-wrap">
+                  <Fragment set:html={icon(wrapIcon)} />
+                  Wrap lines
+                </button>
+                <button type="button" class="run-format">
+                  <Fragment set:html={icon(formatIcon)} />
+                  Format
+                </button>
+              </div>
             </div>
           </lamina-run>
         )}
@@ -229,8 +243,19 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
       const run = this.querySelector<HTMLButtonElement>(".run-run");
       const reset = this.querySelector<HTMLButtonElement>(".run-reset");
       const download = this.querySelector<HTMLButtonElement>(".run-download");
+      const wrap = this.querySelector<HTMLButtonElement>(".run-wrap");
+      const format = this.querySelector<HTMLButtonElement>(".run-format");
       const { file, source, name } = this.dataset;
-      if (button === null || bar === null || run === null || reset === null || download === null) return;
+      if (
+        button === null ||
+        bar === null ||
+        run === null ||
+        reset === null ||
+        download === null ||
+        wrap === null ||
+        format === null
+      )
+        return;
       if (file === undefined || source === undefined || name === undefined) return;
       // The TypeScript code, which the editor replaces; the page's own column, where a run's pages
       // take the place of the first page's picture.
@@ -261,7 +286,11 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
         const panel = code.closest<HTMLElement>("[role=tabpanel]");
         const tab = panel?.getAttribute("aria-labelledby");
         if (panel?.hidden === true && tab != null) document.getElementById(tab)?.click();
-        editor.openRunner({ bar, run, reset, download }, { file, source, name }, { code, picture, pages: side });
+        editor.openRunner(
+          { bar, run, reset, download, wrap, format },
+          { file, source, name },
+          { code, picture, pages: side },
+        );
       };
       button.addEventListener("click", open);
     }
@@ -585,11 +614,11 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
   .example-run:not(:defined) {
     display: none;
   }
+  /* The editor's height limit and both scrollbars are CodeMirror's own (runner/theme.ts), so the
+     sideways one stays at the bottom of the box, not after the last line. */
   .example :global(.run-editor) {
     margin-top: 0;
     border: var(--paper-border-width) solid var(--paper-chip-border);
-    max-height: 32rem;
-    overflow: auto;
     font-size: var(--sl-text-sm);
   }
   .run-bar {
@@ -613,6 +642,21 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
     background: var(--paper-raised);
     color: var(--paper-text);
     cursor: pointer;
+  }
+  /* Wrap lines while pressed: the accent's tint and border, as a pressed tool toggle looks. A border,
+     not an outline, so the focus ring (the page's :focus-visible outline) still shows. */
+  .run-bar button[aria-pressed="true"] {
+    border-color: var(--paper-accent);
+    background: var(--paper-accent-tint);
+    color: var(--paper-accent);
+  }
+  /* Wrap lines and Format change the code, not the PDF: together at the bar's far end (todos Q4r, Q4s). */
+  .run-code-tools {
+    display: flex;
+    gap: var(--paper-space-8);
+    /* Starlight's content spacing would push it below the buttons beside it, as it would them. */
+    margin-block: 0;
+    margin-inline-start: auto;
   }
   .run-bar button[hidden],
   .run-bar[hidden] {

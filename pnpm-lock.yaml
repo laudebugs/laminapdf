@@ -276,6 +276,9 @@ importers:
       '@codemirror/language':
         specifier: 6.13.1
         version: 6.13.1
+      '@codemirror/state':
+        specifier: 6.7.6
+        version: 6.7.6
       '@laminapdf/fonts':
         specifier: workspace:*
         version: link:../../packages/fonts
@@ -321,6 +324,9 @@ importers:
       playwright:
         specifier: 'catalog:'
         version: 1.64.1
+      prettier:
+        specifier: 3.9.10
+        version: 3.9.10
       source-code-pro:
         specifier: 2.42.0
         version: 2.42.0
@@ -928,6 +934,9 @@ importers:
       '@laminapdf/sdk':
         specifier: workspace:*
         version: link:../sdk
+      '@laminapdf/wasm':
+        specifier: workspace:*
+        version: link:../wasm
     devDependencies:
       '@embedpdf/pdfium':
         specifier: 2.15.1
@@ -5954,6 +5963,11 @@ packages:
   powershell-utils@0.2.1:
     resolution: {integrity: sha512-C+y9x90UElAddDZmV4qOx9W53B61PO7cIqWz2dQsWlwswuq4mr8NEwytdGKboYbQlGZ3awrkTeNvcZiZNHnQ8A==}
     engines: {node: '>=20'}
+
+  prettier@3.9.10:
+    resolution: {integrity: sha512-skGHTH1Yb9QvaTC4hWnRTzEYtCpApF0UMBPz+t/0ZPzP8ihefo/btKd+QA7pUE0fEwA1SbS/NmhyEcstdXOIdA==}
+    engines: {node: '>=14'}
+    hasBin: true
 
   pretty-format@30.5.1:
     resolution: {integrity: sha512-byhRAPguVKMQIj4kjJwJ5lAskVhfuiSdiYl/aLTWpgkGEmic2jYhJh1yE9ih8Ox44Xg9ccCT11/S6QrzSJuNrg==}
@@ -12533,6 +12547,8 @@ snapshots:
       source-map-js: 1.2.2
 
   powershell-utils@0.2.1: {}
+
+  prettier@3.9.10: {}
 
   pretty-format@30.5.1:
     dependencies:

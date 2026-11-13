@@ -1,8 +1,9 @@
 // "Edit and run" against `wrangler dev` (e2e/server.ts), in one browser per run
 // (LAMINA_PDF_E2E_BROWSER): the runner's own headers and the pages' unchanged ones; each runnable
-// example (the six recipes and "Your first PDF"'s Node app) run unchanged gives its golden's bytes; an edit changes the PDF; a mistake shows its code
-// and hint. Nothing loads before the button is pressed, nothing from another origin, and no CSP
-// violation is reported.
+// example (the six recipes and "Your first PDF"'s Node app) run unchanged gives its golden's bytes;
+// an edit changes the PDF; a mistake shows its code and hint; the editor's lines stay unwrapped
+// until Wrap lines is pressed. Nothing loads before the button is pressed, nothing from another
+// origin, and no CSP violation is reported.
 
 import { readFileSync } from "node:fs";
 import { env } from "node:process";
@@ -84,11 +85,34 @@ async function downloaded(page: Page): Promise<Buffer> {
   return readFileSync(await download.path());
 }
 
+/**
+ * The editor's whole text. CodeMirror draws only the lines in view, so the text comes from its
+ * state, reached as `EditorView.findFromDOM` reaches it (the content element's `cmTile.view`), which
+ * the page doesn't export.
+ */
+async function editorText(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const content = document.querySelector(".run-editor")?.shadowRoot?.querySelector(".cm-content");
+    const view = (content as { cmTile?: { view?: { state: { doc: { toString(): string } } } } } | null)?.cmTile?.view;
+    if (view === undefined) throw new Error("the editor's view isn't on its content element");
+    return view.state.doc.toString();
+  });
+}
+
 /** Replaces the editor's text with `text`. */
 async function edit(page: Page, text: string): Promise<void> {
   await page.locator(".cm-content").click();
   await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.insertText(text);
+}
+
+/** Whether the editor's scroller scrolls sideways: a line longer than it is wide and unwrapped. */
+async function scrollsSideways(page: Page): Promise<boolean> {
+  return page.evaluate(() => {
+    const scroller = document.querySelector(".run-editor")?.shadowRoot?.querySelector(".cm-scroller");
+    if (scroller == null) throw new Error("no editor");
+    return scroller.scrollWidth > scroller.clientWidth + 1;
+  });
 }
 
 describe("headers", () => {
@@ -152,6 +176,57 @@ describe(`edit and run in ${BROWSER}`, () => {
     await page.getByRole("button", { name: "Reset" }).click();
     await run(page);
     expect((await downloaded(page)).equals(golden)).toBe(true);
+    expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
+    await page.context().close();
+  });
+
+  it("Format (todo Q4r) puts back the example's formatting, loading Prettier only then, and leaves a mistake alone", async () => {
+    const { page, errors, foreign, requests } = await recipe("/recipes/images-and-vectors/");
+    await page.getByRole("button", { name: "Edit and run" }).click();
+    const source = (await page.locator("lamina-run").getAttribute("data-source")) ?? "";
+    const prettier = () => requests.filter((url) => /\/(standalone|typescript|estree)\.[^/]*\.js$/.test(url));
+    expect(prettier()).toEqual([]);
+    // Every line's indentation taken out: Prettier at the examples' settings gives the file back.
+    await edit(page, source.replace(/\n +/g, "\n"));
+    await page.getByRole("button", { name: "Format" }).click();
+    await expect.poll(() => page.locator(".run-status").textContent()).toBe("Formatted.");
+    expect(prettier().length).toBeGreaterThan(0);
+    expect(await editorText(page)).toBe(source);
+    await run(page);
+    expect(
+      (await downloaded(page)).equals(readFileSync(new URL("fixtures/golden/examples/images_and_vectors.pdf", ROOT))),
+    ).toBe(true);
+
+    await edit(page, "const x = ;");
+    await page.getByRole("button", { name: "Format" }).click();
+    const problem = page.locator(".run-error");
+    await expect.poll(() => problem.isVisible()).toBe(true);
+    expect(await problem.locator("strong").textContent()).toBe("can't format");
+    expect(await editorText(page)).toBe("const x = ;");
+    expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
+    expect(foreign).toEqual([]);
+    await page.context().close();
+  });
+
+  it("keeps the editor's lines unwrapped until Wrap lines (todo Q4s) is pressed, and unwraps them on a second press", async () => {
+    const { page, errors } = await recipe("/recipes/hello/");
+    await page.getByRole("button", { name: "Edit and run" }).click();
+    const source = (await page.locator("lamina-run").getAttribute("data-source")) ?? "";
+    await edit(page, `// ${"a long comment ".repeat(30)}\n${source}`);
+    const wrap = page.getByRole("button", { name: "Wrap lines" });
+    expect(await wrap.getAttribute("aria-pressed")).toBe("false");
+    await expect.poll(() => scrollsSideways(page)).toBe(true);
+    await wrap.click();
+    expect(await wrap.getAttribute("aria-pressed")).toBe("true");
+    await expect.poll(() => scrollsSideways(page)).toBe(false);
+    // Reset puts back the code and leaves the choice: a long line still wraps.
+    await page.getByRole("button", { name: "Reset" }).click();
+    expect(await wrap.getAttribute("aria-pressed")).toBe("true");
+    await edit(page, `// ${"a long comment ".repeat(30)}`);
+    await expect.poll(() => scrollsSideways(page)).toBe(false);
+    await wrap.click();
+    expect(await wrap.getAttribute("aria-pressed")).toBe("false");
+    await expect.poll(() => scrollsSideways(page)).toBe(true);
     expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
     await page.context().close();
   });

@@ -24,6 +24,12 @@ pub enum DesktopError {
     /// The window named a document it doesn't have open.
     #[error("no such document in this window")]
     UnknownDocument,
+    /// A tab was to move to a window that isn't open (or to the one it is in).
+    #[error("no such window")]
+    UnknownWindow,
+    /// The file is open already: its tab was shown instead of opening it again.
+    #[error("the file is open already")]
+    AlreadyOpen,
     /// A background task of the shell failed (the file dialog's thread).
     #[error("the desktop shell failed: {0}")]
     Internal(String),
@@ -38,6 +44,8 @@ impl DesktopError {
             Self::Engine { kind, .. } => kind,
             Self::Io(_) => "io",
             Self::UnknownDocument => "unknown-document",
+            Self::UnknownWindow => "unknown-window",
+            Self::AlreadyOpen => "already-open",
             Self::Internal(_) => "internal",
         }
     }

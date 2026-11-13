@@ -3,7 +3,9 @@
 // on the first run), and shows each page of the result, or the error with its code and hint.
 
 import { javascript } from "@codemirror/lang-javascript";
+import { Compartment } from "@codemirror/state";
 import { basicSetup, EditorView } from "codemirror";
+import { firstLine, formatCode } from "./format.js";
 import type { RunReply, RunRequest } from "./protocol.js";
 import { paperTheme } from "./theme.js";
 
@@ -49,18 +51,41 @@ const typeOverLines = EditorView.domEventHandlers({
 });
 
 /**
- * The editor of `source`, in a shadow root on `host`. There CodeMirror's styles go into adopted
+ * The editor of `source`, in a shadow root on `host`, with `wrap` its Wrap lines toggle. There CodeMirror's styles go into adopted
  * style sheets, which the docs' CSP allows; on the page itself they would be a <style> element,
  * which `style-src 'self'` blocks (public/_headers). The --paper-* tokens are custom properties, so
  * they still reach the theme inside it.
  */
-function editor(host: HTMLElement, source: string): EditorView {
+function editor(host: HTMLElement, source: string, wrap: HTMLButtonElement): EditorView {
   const root = host.attachShadow({ mode: "open" });
-  return new EditorView({
+  const wrapping = new Compartment();
+  const view = new EditorView({
     doc: source,
     root,
     parent: root,
-    extensions: [basicSetup, javascript({ typescript: true }), EditorView.lineWrapping, paperTheme, typeOverLines],
+    // Lines start unwrapped, as in an editor, so their indentation shows the code's shape; the
+    // bar's Wrap lines toggle (wrapOnPress) puts EditorView.lineWrapping in this compartment.
+    extensions: [basicSetup, javascript({ typescript: true }), wrapping.of([]), paperTheme, typeOverLines],
+  });
+  wrapOnPress(view, wrapping, wrap);
+  return view;
+}
+
+/**
+ * Wrap lines: each press wraps the editor's long lines or unwraps them, keeping the cursor in view,
+ * and the button says which (aria-pressed). The compartment holds the state; Reset leaves it.
+ */
+function wrapOnPress(view: EditorView, wrapping: Compartment, button: HTMLButtonElement): void {
+  button.setAttribute("aria-pressed", "false");
+  button.addEventListener("click", () => {
+    const on = wrapping.get(view.state) !== EditorView.lineWrapping;
+    view.dispatch({
+      effects: [
+        wrapping.reconfigure(on ? EditorView.lineWrapping : []),
+        EditorView.scrollIntoView(view.state.selection.main.head),
+      ],
+    });
+    button.setAttribute("aria-pressed", String(on));
   });
 }
 
@@ -138,6 +163,10 @@ export interface RunButtons {
   readonly run: HTMLButtonElement;
   readonly reset: HTMLButtonElement;
   readonly download: HTMLButtonElement;
+  /** Wraps the editor's long lines, or unwraps them (wrapOnPress), beside Format at the bar's far end. */
+  readonly wrap: HTMLButtonElement;
+  /** Formats the editor's code (format.ts), at the bar's far end. */
+  readonly format: HTMLButtonElement;
 }
 
 /** The example a runner edits. */
@@ -164,7 +193,7 @@ export interface RunPlaces {
  * Opens the example's editor in place of its TypeScript code, with the bar under it; a run's pages
  * go where the first page's picture was.
  *
- * @param buttons the bar with Run, Reset and Download
+ * @param buttons the bar with Run, Reset, Download, Wrap lines and Format
  * @param example the example's file, code and PDF name
  * @param places the code's place, the picture and its column
  */
@@ -183,7 +212,7 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
   buttons.bar.hidden = false;
   buttons.download.hidden = true;
 
-  const view = editor(editorHost, source);
+  const view = editor(editorHost, source, buttons.wrap);
   // The pressed "Edit and run" is gone: focus goes to the editor, where the reader's work starts.
   view.focus();
   /** The last PDF as a data: URL: not a blob: one, since Chromium checks a blob: download against
@@ -191,6 +220,7 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
   let pdf = "";
   const state: Shown = { drawn: undefined, running: false };
   keepSharp(state, file, places.pages, pages);
+  formatOnPress(view, buttons.format, status, problem);
 
   // Reset puts back the code and the picture of what it makes.
   buttons.reset.addEventListener("click", () => {
@@ -232,6 +262,39 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
     const count = reply.pageCount === 1 ? "1 page" : `${reply.pageCount} pages`;
     const shown = reply.pages.length < reply.pageCount ? `; the first ${reply.pages.length} are shown` : "";
     status.textContent = `Done: ${count}${shown}.`;
+  });
+}
+
+/**
+ * Format: the editor's code through Prettier (format.ts, which loads it on the first press), one change
+ * that Undo takes back, with the cursor where it was. Code that doesn't parse stays as typed, and
+ * the alert says where Prettier stopped.
+ */
+function formatOnPress(view: EditorView, button: HTMLButtonElement, status: HTMLElement, problem: HTMLElement): void {
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    status.textContent = "Formatting…";
+    try {
+      const code = view.state.doc.toString();
+      const formatted = await formatCode(code, view.state.selection.main.head);
+      problem.hidden = true;
+      if (formatted.code !== code) {
+        view.dispatch({
+          changes: { from: 0, to: view.state.doc.length, insert: formatted.code },
+          selection: { anchor: formatted.cursor },
+          scrollIntoView: true,
+          userEvent: "input.format",
+        });
+      }
+      status.textContent = formatted.code === code ? "Already formatted." : "Formatted.";
+    } catch (error) {
+      status.textContent = "";
+      problem.replaceChildren(element("strong", "", "can't format"), document.createTextNode(`: ${firstLine(error)}`));
+      problem.hidden = false;
+    } finally {
+      button.disabled = false;
+      view.focus();
+    }
   });
 }
 

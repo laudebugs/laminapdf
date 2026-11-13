@@ -1,12 +1,15 @@
 ---
 // Starlight's `Head` override: Starlight's own head, then a link to the page's Markdown twin
 // (plugins/agent-docs.mjs writes `/guides/save-a-pdf.md` for `/guides/save-a-pdf/`), so a coding
-// agent that fetches the HTML finds the clean text.
+// agent that fetches the HTML finds the clean text. On every page, the code blocks' wrap button
+// (CodeWrap.astro).
 import Default from "@astrojs/starlight/components/Head.astro";
 import { pageTwin } from "../../plugins/markdown.mjs";
+import CodeWrap from "./CodeWrap.astro";
 
 const twin = pageTwin(Astro.url.pathname);
 ---
 
 <Default />
 {twin && <link rel="alternate" type="text/markdown" href={twin} />}
+<CodeWrap />
