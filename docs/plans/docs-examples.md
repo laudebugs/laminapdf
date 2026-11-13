@@ -38,6 +38,8 @@ An `Example` component in `apps/docs` wraps the language tabs that pages already
 
 Since Q4d, the first page of an example's PDF shows without a click, with the link and size under it. Like the tab's pictures, it loads lazily, as it nears the window. CSS alone places it: beside the code on screens 90rem (1440 px) and wider, below it on narrower ones. Side by side, the example grows into the margins around the content column and keeps 36rem (about 66 characters) for the code. A narrower screen would squeeze the code, so there the page goes below it. The Result tab stays only where there is more than that first page: two or more pages, or two PDFs.
 
+Since Q4q, a divider sits between the code and the page wherever they are side by side. Readers drag it, or focus it and press the arrow keys, to give the page more room, up to the point where the code keeps 20rem; the page keeps at least 12rem. Double-click or Enter puts back the 15rem default. The width applies to every example and stays in the browser's storage for the next page. With JavaScript off there is no divider, and the page keeps its 15rem. A run draws its pages at the column's width in device pixels, between 832 and 2,000, so a wider page stays sharp.
+
 The pictures come from the example goldens, rendered at 144 dpi (2× the render goldens' 72 dpi) by the render tooling in `tools/render` (hayro), as PNG. They are committed to `apps/docs/public/examples/preview/`, next to a manifest of each golden PDF's SHA-256. `cargo xtask check docs` compares the manifest with `fixtures/golden/examples/`, so a changed example can't ship with old pictures; regenerating them is one command. The docs build stays as it is: no WebAssembly, no Python.
 
 ### Edit and run (B7e)
@@ -68,6 +70,7 @@ The first draft of this plan ran the code in a sandboxed iframe and drew it with
 | [B7d](../todos/done/B7d-docs-example-results.md) | The `Example` component, Result and Output tabs, page pictures with their manifest and check, every page in §1 moved to it |
 | [B7e](../todos/done/B7e-docs-edit-and-run.md) | "Edit and run" for the six examples in §1: editor, runner worker, pages drawn by hayro, download, reset |
 | [Q4d](../todos/done/Q4d-result-beside-the-code.md) | The first page beside or below the code with no click, "Edit and run" under it, and "Your first PDF"'s Node quick start runnable (its `save` and `writeFile` hand the runner the PDF) |
+| [Q4q](../todos/ongoing/Q4q-resizable-page-beside-the-code.md) | A divider between the code and the page beside it, dragged or moved by keys, its width kept for every example |
 
 ## 5. To-dos
 

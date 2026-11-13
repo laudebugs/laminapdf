@@ -10,8 +10,15 @@ import { paperTheme } from "./theme.js";
 /** The runner's address: a fixed path, so its own headers (public/_headers' `/run/*`) apply. */
 const WORKER = "/run/worker.js";
 
-/** A page's width in pixels: about three times the 15rem the page shows it at, for zoom and dense screens. */
-const PAGE_PIXELS = 832;
+/**
+ * The width a run's pages are drawn at, in pixels: their column's width in device pixels, so a page
+ * widened by the divider (todo Q4q) stays sharp, but at least 832 (about three times the default
+ * 15rem, for zoom) and at most 2000 (the worker draws up to 20 pages, each held as a bitmap).
+ */
+function pagePixels(column: HTMLElement): number {
+  const wanted = Math.ceil(column.getBoundingClientRect().width * devicePixelRatio);
+  return Math.min(2000, Math.max(832, wanted));
+}
 
 /** How long a run may take before the runner is stopped: an edit can loop forever. */
 const TIME_LIMIT_MS = 30_000;
@@ -202,7 +209,8 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
   buttons.run.addEventListener("click", async () => {
     buttons.run.disabled = true;
     status.textContent = worker === undefined ? "Loading Lamina PDF (about 3 MB, once)…" : "Running…";
-    const reply = await run({ file, source: view.state.doc.toString(), width: PAGE_PIXELS });
+    const width = pagePixels(places.pages);
+    const reply = await run({ file, source: view.state.doc.toString(), width });
     buttons.run.disabled = false;
     status.textContent = "";
     if (!reply.ok) {
