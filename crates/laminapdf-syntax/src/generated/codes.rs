@@ -1141,6 +1141,8 @@ pub enum WarningCode {
     PdfaInfoMismatch,
     /// `duplicate-tags-incomplete`: a duplicated page's content is partly untagged, which breaks the PDF/UA claim of the document's metadata.
     DuplicateTagsIncomplete,
+    /// `imported-tags-dropped`: pages copied in from another document came without their tags, which breaks the PDF/UA claim of the document's metadata.
+    ImportedTagsDropped,
     /// `annot-without-contents`: a new or changed annotation has no description, which breaks the document's PDF/UA claim.
     AnnotWithoutContents,
     /// `annot-not-tagged`: a new annotation isn't in the structure tree, which breaks the document's PDF/UA claim.
@@ -1221,6 +1223,7 @@ impl WarningCode {
         Self::PdfuaTitleMissing,
         Self::PdfaInfoMismatch,
         Self::DuplicateTagsIncomplete,
+        Self::ImportedTagsDropped,
         Self::AnnotWithoutContents,
         Self::AnnotNotTagged,
         Self::PdfaAnnotFlags,
@@ -1305,6 +1308,7 @@ impl WarningCode {
             Self::PdfuaTitleMissing => "pdfua-title-missing",
             Self::PdfaInfoMismatch => "pdfa-info-mismatch",
             Self::DuplicateTagsIncomplete => "duplicate-tags-incomplete",
+            Self::ImportedTagsDropped => "imported-tags-dropped",
             Self::AnnotWithoutContents => "annot-without-contents",
             Self::AnnotNotTagged => "annot-not-tagged",
             Self::PdfaAnnotFlags => "pdfa-annot-flags",
@@ -1375,6 +1379,7 @@ impl WarningCode {
             Self::PdfuaTitleMissing => ErrorKind::Usage,
             Self::PdfaInfoMismatch => ErrorKind::Input,
             Self::DuplicateTagsIncomplete => ErrorKind::Usage,
+            Self::ImportedTagsDropped => ErrorKind::Usage,
             Self::AnnotWithoutContents => ErrorKind::Usage,
             Self::AnnotNotTagged => ErrorKind::Usage,
             Self::PdfaAnnotFlags => ErrorKind::Usage,
@@ -1445,6 +1450,7 @@ impl WarningCode {
             Self::PdfuaTitleMissing => "the file claims PDF/UA-1, which requires a title in its metadata, and it has none",
             Self::PdfaInfoMismatch => "the file claims PDF/A, which requires the Info dictionary and the XMP packet to agree, and they differ",
             Self::DuplicateTagsIncomplete => "a duplicated page's content is partly untagged, which breaks the PDF/UA claim of the document's metadata",
+            Self::ImportedTagsDropped => "pages copied in from another document came without their tags, which breaks the PDF/UA claim of the document's metadata",
             Self::AnnotWithoutContents => "a new or changed annotation has no description, which breaks the document's PDF/UA claim",
             Self::AnnotNotTagged => "a new annotation isn't in the structure tree, which breaks the document's PDF/UA claim",
             Self::PdfaAnnotFlags => "an annotation doesn't print or is hidden, which breaks the document's PDF/A claim",
@@ -1515,6 +1521,7 @@ impl WarningCode {
             Self::PdfuaTitleMissing => "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
             Self::PdfaInfoMismatch => "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
             Self::DuplicateTagsIncomplete => "retag the copy, or duplicate pages whose tagged elements lie on the page alone",
+            Self::ImportedTagsDropped => "tag the copied pages in a tagging tool, or copy pages from a document without tags",
             Self::AnnotWithoutContents => "give the annotation a description: the text it marks, or what the mark means",
             Self::AnnotNotTagged => "tag the document first, or add the annotation to a copy that doesn't claim PDF/UA",
             Self::PdfaAnnotFlags => "keep the annotation's Print flag and clear Hidden, Invisible, NoView and ToggleNoView",

@@ -45,8 +45,7 @@ impl WasmDocument {
         }
     }
 
-    /// The document, for the bindings that live in other modules (`extract`, `build`).
-    #[cfg(any(feature = "extract", feature = "build"))]
+    /// The document, for the bindings that live in other modules.
     pub(crate) const fn shared(&self) -> &Shared {
         &self.doc
     }

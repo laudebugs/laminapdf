@@ -484,6 +484,13 @@ Wrap each in:
 | Settings | `settings` | `<path d="M4.5 8h8M16.5 8h3M4.5 16h3M11.5 16h8"></path><circle cx="14.5" cy="8" r="2"></circle><circle cx="9.5" cy="16" r="2"></circle>` | Settings (two sliders, not a gear) |
 | Clear | `clear` | `<circle cx="12" cy="12" r="8"></circle><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"></path>` | Clear a search or text field |
 
+**Icons for the docs site's code blocks (Q4r).** Q4r drew these for the buttons beside a code block's Copy and in "Edit and run".
+
+| Name | File | Markup | Used for |
+| --- | --- | --- | --- |
+| Wrap lines | `wrap-lines` | `<path d="M4.5 6.5h15M4.5 12h11a3 3 0 0 1 0 6h-4"></path><path d="M13.5 16l-2 2 2 2"></path><path d="M4.5 17.5h4"></path>` | Wrap long lines in a code block |
+| Format code | `format-code` | `<path d="M4.5 6h9M8.5 10h11M8.5 14h7M4.5 18h9"></path>` | Format the code in an editor |
+
 Window caption glyphs (minimise, maximise, close) are drawn on a 10 × 10 grid with 1 px strokes and are mockup-only.
 
 ## 6. Layout

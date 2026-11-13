@@ -726,6 +726,13 @@
       "since": "0.3.0"
     },
     {
+      "code": "imported-tags-dropped",
+      "kind": "usage",
+      "summary": "pages copied in from another document came without their tags, which breaks the PDF/UA claim of the document's metadata",
+      "hint": "tag the copied pages in a tagging tool, or copy pages from a document without tags",
+      "since": "0.3.0"
+    },
+    {
       "code": "annot-without-contents",
       "kind": "usage",
       "summary": "a new or changed annotation has no description, which breaks the document's PDF/UA claim",

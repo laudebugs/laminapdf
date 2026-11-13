@@ -223,6 +223,7 @@ export type WarningCode =
   | "pdfua-title-missing"
   | "pdfa-info-mismatch"
   | "duplicate-tags-incomplete"
+  | "imported-tags-dropped"
   | "annot-without-contents"
   | "annot-not-tagged"
   | "pdfa-annot-flags"
@@ -462,6 +463,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "pdfua-title-missing",
   "pdfa-info-mismatch",
   "duplicate-tags-incomplete",
+  "imported-tags-dropped",
   "annot-without-contents",
   "annot-not-tagged",
   "pdfa-annot-flags",
@@ -582,6 +584,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "pdfua-title-missing": "usage",
   "pdfa-info-mismatch": "input",
   "duplicate-tags-incomplete": "usage",
+  "imported-tags-dropped": "usage",
   "annot-without-contents": "usage",
   "annot-not-tagged": "usage",
   "pdfa-annot-flags": "usage",
@@ -795,6 +798,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
   "duplicate-tags-incomplete": "retag the copy, or duplicate pages whose tagged elements lie on the page alone",
+  "imported-tags-dropped": "tag the copied pages in a tagging tool, or copy pages from a document without tags",
   "annot-without-contents": "give the annotation a description: the text it marks, or what the mark means",
   "annot-not-tagged": "tag the document first, or add the annotation to a copy that doesn't claim PDF/UA",
   "pdfa-annot-flags": "keep the annotation's Print flag and clear Hidden, Invisible, NoView and ToggleNoView",

@@ -419,6 +419,7 @@ mod conformance {
             ConformanceWarning::PdfuaTitleMissing,
             ConformanceWarning::PdfaInfoMismatch { keys: Vec::new() },
             ConformanceWarning::DuplicateTagsIncomplete,
+            ConformanceWarning::ImportedTagsDropped,
             ConformanceWarning::AnnotWithoutContents {
                 annotations: Vec::new(),
             },
@@ -442,6 +443,7 @@ mod conformance {
             ConformanceWarning::PdfuaTitleMissing,
             ConformanceWarning::PdfaInfoMismatch { keys: Vec::new() },
             ConformanceWarning::DuplicateTagsIncomplete,
+            ConformanceWarning::ImportedTagsDropped,
             ConformanceWarning::AnnotWithoutContents {
                 annotations: Vec::new(),
             },

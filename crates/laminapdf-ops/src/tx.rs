@@ -136,6 +136,16 @@ pub struct Applied {
     ///
     /// Added in 0.3.0.
     pub tags_incomplete: Vec<PageId>,
+    /// The page holding each link a page import removed because the page its destination
+    /// named didn't come along (E2 plan §2.2): one entry per link.
+    ///
+    /// Added in 0.3.0.
+    pub links_removed: Vec<PageId>,
+    /// The pages brought in from another document whose source pages were tagged: they come
+    /// without their tags (`TagsDropped`) until structure trees can be merged.
+    ///
+    /// Added in 0.3.0.
+    pub tags_dropped: Vec<PageId>,
 }
 
 /// The state of the open transaction, kept on the [`Document`](crate::Document) so the
@@ -165,6 +175,10 @@ pub(crate) struct TxState {
     pub(crate) fields: Vec<FieldChange>,
     /// The copies the ops so far couldn't tag whole.
     pub(crate) tags_incomplete: Vec<PageId>,
+    /// The pages holding links the ops so far removed, one per link.
+    pub(crate) links_removed: Vec<PageId>,
+    /// The imported pages the ops so far brought in without their tags.
+    pub(crate) tags_dropped: Vec<PageId>,
 }
 
 /// An open transaction ([ADR 0006] §2), handed to the closure of
@@ -180,6 +194,8 @@ pub(crate) struct TxState {
 /// Added in 0.2.0.
 pub struct Tx<'d> {
     pub(crate) doc: &'d mut laminapdf_model::Document,
+    /// The session's source documents, which ops that copy pages read.
+    pub(crate) sources: &'d crate::document::Sources,
     pub(crate) state: &'d mut TxState,
     /// What draws the appearances of the annotations the ops make.
     pub(crate) appearances: Option<&'d dyn crate::Appearances>,
@@ -236,6 +252,8 @@ impl Tx<'_> {
             references: effect.references,
             fields: effect.fields,
             tags_incomplete: effect.tags_incomplete,
+            links_removed: effect.links_removed,
+            tags_dropped: effect.tags_dropped,
         })
     }
 
@@ -248,7 +266,7 @@ impl Tx<'_> {
     /// Runs `op`, rolling back its own changes on error; returns what it did.
     fn run_op(&mut self, op: &Op) -> Result<Effect> {
         let mark = self.doc.journal_mark();
-        match op.apply_to(self.doc, self.appearances) {
+        match op.apply_to(self.doc, self.sources, self.appearances) {
             Ok(effect) => {
                 self.state.touched.extend(effect.pages.iter().cloned());
                 self.state.pending.record(op, &effect);
@@ -274,6 +292,8 @@ impl Tx<'_> {
                 self.state
                     .tags_incomplete
                     .extend(effect.tags_incomplete.iter().cloned());
+                self.state.links_removed.extend(effect.links_removed.iter().cloned());
+                self.state.tags_dropped.extend(effect.tags_dropped.iter().cloned());
                 Ok(effect)
             }
             Err(e) => {
@@ -306,6 +326,8 @@ impl Tx<'_> {
         let references = self.state.references.len();
         let fields = self.state.fields.len();
         let tags_incomplete = self.state.tags_incomplete.len();
+        let links_removed = self.state.links_removed.len();
+        let tags_dropped = self.state.tags_dropped.len();
         let result = f(self);
         if result.is_err() {
             self.doc.cos_mut().rollback_to(mark)?;
@@ -320,6 +342,8 @@ impl Tx<'_> {
             self.state.references.truncate(references);
             self.state.fields.truncate(fields);
             self.state.tags_incomplete.truncate(tags_incomplete);
+            self.state.links_removed.truncate(links_removed);
+            self.state.tags_dropped.truncate(tags_dropped);
         }
         result
     }
@@ -380,6 +404,8 @@ mod tests {
             also_deleted: Vec::new(),
             fields: Vec::new(),
             tags_incomplete: Vec::new(),
+            links_removed: Vec::new(),
+            tags_dropped: Vec::new(),
         }
     }
 
@@ -391,8 +417,10 @@ mod tests {
     fn apply_records_the_touched_page_on_the_transaction() {
         let mut doc = doc();
         let mut state = state(&doc);
+        let sources = crate::document::Sources::new();
         Tx {
             doc: &mut doc,
+            sources: &sources,
             state: &mut state,
             appearances: None,
         }
@@ -405,8 +433,10 @@ mod tests {
     fn a_failing_savepoint_forgets_the_pages_it_touched() {
         let mut doc = doc();
         let mut state = state(&doc);
+        let sources = crate::document::Sources::new();
         let mut tx = Tx {
             doc: &mut doc,
+            sources: &sources,
             state: &mut state,
             appearances: None,
         };
@@ -425,8 +455,10 @@ mod tests {
         let mut doc = doc();
         let mut state = state(&doc);
         let mark = doc.journal_mark();
+        let sources = crate::document::Sources::new();
         let err = Tx {
             doc: &mut doc,
+            sources: &sources,
             state: &mut state,
             appearances: None,
         }
@@ -438,8 +470,10 @@ mod tests {
     fn the_per_op_undo_record_covers_only_that_op() {
         let mut doc = doc();
         let mut state = state(&doc);
+        let sources = crate::document::Sources::new();
         let mut tx = Tx {
             doc: &mut doc,
+            sources: &sources,
             state: &mut state,
             appearances: None,
         };

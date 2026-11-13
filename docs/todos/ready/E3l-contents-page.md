@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E3 plan §2.2](../../plans/editor/e3-navigation-attachments-inspection.md#22-the-contents-page) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2c](./E2c-cross-document-pages.md), [E2o](./E2o-structure-tree-merge.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md), [E3b](../done/E3b-bookmarks-and-destinations.md), [E3c](../done/E3c-links.md) |
+| Depends on | [E2c](../done/E2c-cross-document-pages.md), [E2o](./E2o-structure-tree-merge.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md), [E3b](../done/E3b-bookmarks-and-destinations.md), [E3c](../done/E3c-links.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md), [0032](../../decisions/0032-flowing-layout-and-document-inputs.md) |
 | Branch | `feat/e3l-contents-page` |
 | PR title | `feat(ops): create a contents page from the bookmarks` |

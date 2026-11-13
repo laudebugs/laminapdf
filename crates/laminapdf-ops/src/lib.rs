@@ -129,8 +129,8 @@ pub use outline::{
     SetNamedDestination, UpdateOutlineItem,
 };
 pub use pages::{
-    DeletePages, DuplicatePages, FieldChange, FieldOutcome, InsertBlankPages, MovePages, ReferenceChange,
-    ReferenceOutcome, ReferencePolicy, ReversePages, RotateMode, RotatePages,
+    Carry, DeletePages, DuplicatePages, FieldChange, FieldClash, FieldOutcome, InsertBlankPages, InsertPagesFrom,
+    MovePages, ReferenceChange, ReferenceOutcome, ReferencePolicy, ReplacePages, ReversePages, RotateMode, RotatePages,
 };
 pub use pending::PendingChanges;
 pub use record::{Change, Field, Property, PropertyValue, SkipReason, Skipped, Target, UndoRecord};

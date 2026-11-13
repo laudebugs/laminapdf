@@ -1,14 +1,17 @@
-//! The page-structure ops (E2 plan §2.1): insert blank pages, delete, move, rotate, reverse and
-//! duplicate,
-//! over the model's page-tree editor (ISO 32000-2 §7.7.3). Each keeps the page labels right
+//! The page-structure ops (E2 plan §2.1): insert blank pages, delete, move, rotate, reverse,
+//! duplicate, and insert or replace pages from another document, over the model's page-tree editor (ISO 32000-2 §7.7.3). Each keeps the page labels right
 //! (`PageLabels::remap`) and reports the form fields whose widgets it touched, for the save
 //! planner's field-level checks (ADR 0007 §11).
 
 mod cleanup;
 mod copies;
 mod delete;
+mod dests;
 mod duplicate;
+mod extract;
 mod forms;
+mod from;
+mod import;
 mod insert;
 mod order;
 mod rotate;
@@ -25,6 +28,8 @@ pub use cleanup::{ReferenceChange, ReferenceOutcome};
 pub use copies::{FieldChange, FieldOutcome};
 pub use delete::{DeletePages, ReferencePolicy};
 pub use duplicate::DuplicatePages;
+pub use from::{InsertPagesFrom, ReplacePages};
+pub use import::{Carry, FieldClash};
 pub use insert::InsertBlankPages;
 pub use order::{MovePages, ReversePages};
 pub use rotate::{RotateMode, RotatePages};

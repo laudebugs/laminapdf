@@ -132,6 +132,7 @@ A PR that adds a code adds:
 | [`pdfua-title-missing`](pdfua-title-missing.md) | `usage` | the file claims PDF/UA-1, which requires a title in its metadata, and it has none |
 | [`pdfa-info-mismatch`](pdfa-info-mismatch.md) | `input` | the file claims PDF/A, which requires the Info dictionary and the XMP packet to agree, and they differ |
 | [`duplicate-tags-incomplete`](duplicate-tags-incomplete.md) | `usage` | a duplicated page's content is partly untagged, which breaks the PDF/UA claim of the document's metadata |
+| [`imported-tags-dropped`](imported-tags-dropped.md) | `usage` | pages copied in from another document came without their tags, which breaks the PDF/UA claim of the document's metadata |
 | [`annot-without-contents`](annot-without-contents.md) | `usage` | a new or changed annotation has no description, which breaks the document's PDF/UA claim |
 | [`annot-not-tagged`](annot-not-tagged.md) | `usage` | a new annotation isn't in the structure tree, which breaks the document's PDF/UA claim |
 | [`pdfa-annot-flags`](pdfa-annot-flags.md) | `usage` | an annotation doesn't print or is hidden, which breaks the document's PDF/A claim |

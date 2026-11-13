@@ -37,8 +37,13 @@ impl Declared {
         }
     }
 
-    pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document, class: ModificationClass) -> Result<Effect> {
-        let mut effect = self.op.apply_to(doc, None)?;
+    pub(crate) fn apply_to(
+        &self,
+        doc: &mut laminapdf_model::Document,
+        sources: &crate::document::Sources,
+        class: ModificationClass,
+    ) -> Result<Effect> {
+        let mut effect = self.op.apply_to(doc, sources, None)?;
         effect.widgets.extend(
             self.widgets
                 .iter()

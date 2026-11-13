@@ -38,6 +38,10 @@ pub enum ConformanceWarning {
     /// page's content is partly untagged: it belonged to elements that also hold content on
     /// other pages, which a copy can't share (`duplicate-tags-incomplete`).
     DuplicateTagsIncomplete,
+    /// PDF/UA-1 requires all real content to be tagged (ISO 14289-1 §7.1), and pages copied in
+    /// from another document came without the tags their source gave them
+    /// (`imported-tags-dropped`).
+    ImportedTagsDropped,
     /// PDF/UA-1 requires an annotation's `/Contents`, its alternative description (ISO 14289-1
     /// §7.18.1), and these new or changed annotations have none (`annot-without-contents`).
     ///
@@ -82,6 +86,7 @@ impl ConformanceWarning {
         "pdfua-title-missing",
         "pdfa-info-mismatch",
         "duplicate-tags-incomplete",
+        "imported-tags-dropped",
         "annot-without-contents",
         "annot-not-tagged",
         "pdfa-annot-flags",
@@ -98,6 +103,7 @@ impl ConformanceWarning {
             Self::PdfuaTitleMissing => "pdfua-title-missing",
             Self::PdfaInfoMismatch { .. } => "pdfa-info-mismatch",
             Self::DuplicateTagsIncomplete => "duplicate-tags-incomplete",
+            Self::ImportedTagsDropped => "imported-tags-dropped",
             Self::AnnotWithoutContents { .. } => "annot-without-contents",
             Self::AnnotNotTagged { .. } => "annot-not-tagged",
             Self::PdfaAnnotFlags { .. } => "pdfa-annot-flags",
@@ -119,6 +125,7 @@ impl ConformanceWarning {
             Self::PdfaOneAuthor { .. }
             | Self::PdfuaTitleMissing
             | Self::DuplicateTagsIncomplete
+            | Self::ImportedTagsDropped
             | Self::AnnotWithoutContents { .. }
             | Self::AnnotNotTagged { .. }
             | Self::PdfaAnnotFlags { .. }
@@ -166,10 +173,10 @@ pub fn conformance_warnings(doc: &laminapdf_model::Document) -> Result<Vec<Confo
     Ok(out)
 }
 
-/// [`conformance_warnings`], plus what `pending` (the changes not yet saved) breaks: a page
-/// duplication that left a copy, still in the document, partly untagged, on a file whose
-/// packet claims PDF/UA-1; and annotations the edits wrote that break the file's PDF/A or PDF/UA
-/// claim (Added in 0.3.0).
+/// [`conformance_warnings`], plus what `pending` (the changes not yet saved) breaks: annotations
+/// the edits wrote that break the file's PDF/A or PDF/UA claim, and on a file whose packet claims
+/// PDF/UA-1, a page duplication that left a copy, still in the document, partly untagged, and
+/// tagged pages copied in from another document without their tags.
 ///
 /// # Errors
 /// As [`conformance_warnings`].
@@ -180,18 +187,31 @@ pub fn pending_conformance_warnings(
     pending: &crate::PendingChanges,
 ) -> Result<Vec<ConformanceWarning>> {
     let mut out = conformance_warnings(doc)?;
-    if !pending.tags_incomplete().is_empty()
-        // A page tree that can't be read can't show the copy gone: keep the warning.
-        && doc
-            .pages()
-            .map_or(true, |tree| tree.iter().any(|p| pending.tags_incomplete().contains(p.id())))
-        && let PacketState::Parsed(packet) = doc.xmp()?
-        && packet.pdfua_part() == Some(1)
-    {
-        out.push(ConformanceWarning::DuplicateTagsIncomplete);
-    }
     if pending.classes().contains(&crate::ModificationClass::Annotation) {
         out.extend(crate::annot::conformance_warnings(doc)?);
+    }
+    let (incomplete, dropped) = (pending.tags_incomplete(), pending.tags_dropped());
+    if incomplete.is_empty() && dropped.is_empty() {
+        return Ok(out);
+    }
+    let PacketState::Parsed(packet) = doc.xmp()? else {
+        return Ok(out);
+    };
+    if packet.pdfua_part() != Some(1) {
+        return Ok(out);
+    }
+    // A page tree that can't be read can't show the pages gone: keep the warnings.
+    let still = |pages: &std::collections::BTreeSet<laminapdf_model::PageId>| {
+        !pages.is_empty()
+            && doc
+                .pages()
+                .map_or(true, |tree| tree.iter().any(|p| pages.contains(p.id())))
+    };
+    if still(incomplete) {
+        out.push(ConformanceWarning::DuplicateTagsIncomplete);
+    }
+    if still(dropped) {
+        out.push(ConformanceWarning::ImportedTagsDropped);
     }
     Ok(out)
 }

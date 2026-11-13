@@ -55,6 +55,14 @@ ts = "packages/sdk/examples/duplicate-pages.ts"
 rust = "crates/laminapdf/examples/duplicate_pages.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/insert-pages.ts"
+rust = "crates/laminapdf/examples/insert_pages.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/extract-pages.ts"
+rust = "crates/laminapdf/examples/extract_pages.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/edit-xmp.ts"
 rust = "crates/laminapdf/examples/edit_xmp.rs"
 

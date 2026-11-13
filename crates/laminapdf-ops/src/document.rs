@@ -15,6 +15,9 @@ use crate::pending::PendingChanges;
 use crate::record::{UndoRecord, revert};
 use crate::tx::{Applied, Origin, Tx, TxState};
 
+/// The source documents a session has opened with [`Document::add_source`], by ID.
+pub(crate) type Sources = BTreeMap<SourceId, laminapdf_model::Document>;
+
 /// An editable PDF ([ADR 0006]): a [`laminapdf_model::Document`] (it dereferences to one, for
 /// reading) whose only write path is a transaction.
 ///
@@ -54,7 +57,7 @@ pub struct Document {
     /// The bytes ops name by `BlobId`: source documents for now.
     blobs: BlobStore,
     /// The source documents added in this session, opened (and decrypted).
-    sources: BTreeMap<SourceId, laminapdf_model::Document>,
+    sources: Sources,
     /// What draws new annotations' appearances (E4 plan §2.2).
     appearances: Option<Generator>,
 }
@@ -478,6 +481,8 @@ impl Document {
             also_deleted: Vec::new(),
             fields: Vec::new(),
             tags_incomplete: Vec::new(),
+            links_removed: Vec::new(),
+            tags_dropped: Vec::new(),
         });
         Ok(())
     }
@@ -486,6 +491,7 @@ impl Document {
         let state = self.open.as_mut().ok_or(Error::NoTransaction)?;
         Ok(Tx {
             doc: &mut self.model,
+            sources: &self.sources,
             state,
             appearances: self.appearances.as_ref().map(|g| &*g.0 as &dyn Appearances),
         })
@@ -544,6 +550,8 @@ impl Document {
             references: state.references,
             fields: state.fields,
             tags_incomplete: state.tags_incomplete,
+            links_removed: state.links_removed,
+            tags_dropped: state.tags_dropped,
         })
     }
 

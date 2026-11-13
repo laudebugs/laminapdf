@@ -11,10 +11,13 @@
 mod common;
 
 /// capability: C.01 core round-trip
+/// capability: C.02 core round-trip
 /// capability: C.03 core round-trip
 /// capability: C.04 core round-trip
 /// capability: C.08 core round-trip
 /// capability: C.13 core round-trip
+/// capability: C.05 core write
+/// capability: C.16 core round-trip
 /// capability: J.01 core round-trip
 /// capability: I.01 core round-trip
 /// capability: I.04 core round-trip
@@ -24,6 +27,7 @@ mod common;
 /// capability: J.04 core round-trip
 /// capability: G.05 core round-trip
 /// capability: H.02 core write
+/// capability: H.10 core write
 /// capability: I.06 core round-trip
 /// capability: I.11 core round-trip
 /// capability: I.10 core round-trip
