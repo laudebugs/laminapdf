@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D4a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [D3b](../done/D3b-recent-files-and-file-watching.md) |
@@ -43,8 +43,8 @@ Let power users work with many documents: each window holds tabs, a tab can be d
 
 **Out of scope** (and which todo covers it)
 
-- Native menus and accelerators (New Window, Close Tab, Move Tab to Window, Window menu list): [D4b](D4b-native-menus.md).
-- Printing: [D4c](D4c-native-printing.md).
+- Native menus and accelerators (New Window, Close Tab, Move Tab to Window, Window menu list): [D4b](../ready/D4b-native-menus.md).
+- Printing: [D4c](../ready/D4c-native-printing.md).
 - Shared engine pool, if numbers argue for it: a follow-up todo (raise it in the PR if needed).
 
 ## Tasks

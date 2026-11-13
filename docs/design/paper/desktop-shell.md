@@ -11,7 +11,7 @@ Conventions on this canvas:
 - **Accent.** Every board has the `accent` tweak (Teal `#1F5C63`, Blue `#2D4A6B`, Plum `#5B3B6B`, Green `#495533`; design language [§2.8](design-language.md#28-accent-colours)); every accent-derived colour, link and focus ring follows it.
 - **Frames.** macOS boards draw the window frame from design language §6.1 (title bar 30 px, three 12 px controls, radius 10). The Windows boards (S03 right, S10) draw a 32 px title bar with the File glyph (§5), the title left-aligned and three 46×32 caption buttons (minimise, maximise, close) drawn as plain 1 px strokes, radius 8. The Linux board (S07 Advanced) draws a 36 px title bar with a centred title and one round close button, radius 8 like Windows (§4 keeps 10 for the macOS window only). These are schematic, not copies of any OS’s assets.
 - **Top bar.** Every document window uses the design language's **Reader v0.1** top bar ([§7.1](design-language.md#71-top-bar)): Sidebar · file name · History (Back, Forward) · page n/N · zoom −/%/+ · Find · View · Reader · Commands · More, with no mode switcher and no save state, because the desktop beta ships the reader only ([desktop plan §2](../../plans/desktop-app.md)). The one exception is `S04-file-changed`, which shows a later editor build and uses the **Editor** variant. The start window and the crash dialog use the **No document** variant.
-- **Window title** is `<file name> — Lamina PDF` ([D4a](../../todos/ready/D4a-windows-tabs-and-session-restore.md)); with no document, `Lamina PDF`.
+- **Window title** is `<file name> — Lamina PDF` ([D4a](../../todos/ongoing/D4a-windows-tabs-and-session-restore.md)); with no document, `Lamina PDF`.
 - **Native menus and the system print dialog are drawn by the OS.** The boards draw them schematically in Paper tokens to show structure, labels, shortcuts and states; real colours, fonts and spacing come from the system.
 - **Command ids** use the registry’s `namespace.verb-object` form ([U1b](../../todos/done/U1b-command-registry-and-palette.md), design language [Appendix: Command ids](design-language.md#appendix-command-ids)). Every command is in the palette and, per [D4b](../../todos/ready/D4b-native-menus.md), in a native menu; only those shown with a shortcut have one.
 - **Shortcuts.** macOS glyphs run together (`⇧⌘N`), Windows/Linux use words (`Ctrl Shift N`). The desktop app owns some keys the web app must avoid (design language [§8.8](design-language.md#88-keyboard-and-shortcuts) restricts `Mod W/T/N/Q` in the web app only): `⌘W`/`Ctrl W` close a tab, `⌘Q`/`Ctrl Q` quit, and `Ctrl Tab`/`Ctrl Shift Tab` move between tabs on Windows and Linux (`Mod Tab` is on the §8.8 collision list for the web), as D4b specifies, because no browser sits around the desktop window. The desktop app also binds `F1` to Keyboard shortcuts (`help.shortcuts`) next to the page-scope `?`. lamina never binds `⌘N`/`⌘T` (New window is `⇧⌘N`; there is no empty tab to create) or `Mod G`.
@@ -81,7 +81,7 @@ Conventions on this canvas:
 
 - **Tabs + overflow menu open** (S02-tabs): five tabs visible, menu listing all eight.
 - **Restored tab whose file is missing** (S02-tab-missing): the tab shows the warning glyph; the canvas holds an empty state “Q2-board-report.pdf was not found / It was in ~/Documents/Board papers when you last had it open. It may have been moved, renamed or deleted. / When you locate it, lamina opens it at page 9, where you left it.” with **Close tab** and **Locate…** (primary). Rail toggle disabled, no mode switcher, page or zoom. On macOS a renamed file is usually found through its bookmark and never shows this state.
-- **Encrypted document moved to another window:** no state change — it stays unlocked ([D4a](../../todos/ready/D4a-windows-tabs-and-session-restore.md)).
+- **Encrypted document moved to another window:** no state change — it stays unlocked ([D4a](../../todos/ongoing/D4a-windows-tabs-and-session-restore.md)).
 - **Remember recent files off:** no session is stored; relaunch shows S01.
 
 **Behaviour.** Session state is saved on quit and every 30 s. Restore reopens windows with their geometry, tabs in order, and each tab’s page, scroll offset and zoom. The notice disappears on Dismiss or after the first navigation; it never blocks reading. Locate… opens a file dialog filtered to PDFs; picking a file with a different size and date asks “This file looks different from the one you had open. Open it anyway?”.
@@ -92,7 +92,7 @@ Conventions on this canvas:
 
 **Artboards:** `S02-tabs.dc.html`, `S02-tab-missing.dc.html`.
 
-**Todos:** [D4a](../../todos/ready/D4a-windows-tabs-and-session-restore.md).
+**Todos:** [D4a](../../todos/ongoing/D4a-windows-tabs-and-session-restore.md).
 
 ## S03 Native menus
 
