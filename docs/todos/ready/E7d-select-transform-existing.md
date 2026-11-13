@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [E6e](./E6e-content-tools-ui.md), [E7c](./E7c-content-ir.md) |
+| Depends on | [E7c](./E7c-content-ir.md) |
 | ADRs | Implements ADR 0022; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e7d-select-transform-existing` |
 | PR title | `feat(content): transform, delete, replace and reorder existing objects` |
@@ -28,29 +28,30 @@ Edit existing objects: select (hit-test), move/resize/rotate (`cm` changes), del
 
 **In scope**
 
-- `EditContent { page, edits: Vec<ContentEdit> }` op with ContentEdit = Transform | Delete | ReplaceImage | Reorder | Clip
-- Copy-on-write for shared streams/XObjects
-- UI: selection of existing objects in `contentEdit` mode
+- `EditContent { page, edits: Vec<ContentEdit> }` op with `ContentEdit` = `Transform` | `Delete` | `ReplaceImage` | `Crop` | `Reorder` ([E7 plan](../../plans/editor/e7-editing-existing-content.md) §2.1)
+- Copy-on-write for shared streams/XObjects; resources no operator names any more are removed from the page's copy
+- The façade's `content_objects` and `hit_test`, and the SDK's `doc.content.objects`, `hitTest` and `edit`
 
 **Out of scope** (and which todo covers it)
 
-- None
+- The reader's selection, handles and inspectors → [E7k](./E7k-select-transform-ui.md)
+- Deleting text runs → [E7e](./E7e-text-runs-and-inline-edit.md) (`EditText` with empty text)
 
 **Editor facts**
 
-- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `A.07` move/resize/rotate text blocks; `B.01` insert, delete, replace images; `B.02` resize, rotate, crop, reposition; `B.08` change stacking order; `B.12` transformations on graphical objects; `A.03` delete or replace text
-- **Crates and packages:** `laminapdf-content`, `laminapdf-ops`, `@laminapdf/ui`
+- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `A.07` move/resize/rotate text blocks; `B.01` insert, delete, replace images; `B.02` resize, rotate, crop, reposition; `B.08` change stacking order; `B.12` transformations on graphical objects
+- **Crates and packages:** `laminapdf-content`, `laminapdf-ops`, `laminapdf`, `@laminapdf/sdk`
 - **`Op` variants:** `EditContent` (class `Content`)
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked unless the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock` (the signature panel, E10h, reports the later content change)
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `A.07` → `round-trip` (core, pdf, web, desktop); `B.01` → `round-trip` (core, pdf, web, desktop); `B.02` → `round-trip` (core, pdf, web, desktop); `B.08` → `round-trip` (core, pdf, web, desktop); `B.12` → `round-trip` (core, pdf, web, desktop); `A.03` → `write` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `A.07`, `B.01`, `B.02`, `B.08`, `B.12` → `round-trip` (core, pdf); web and desktop in [E7k](./E7k-select-transform-ui.md)
 
 ## Tasks
 
 - [ ] Op
 - [ ] Copy-on-write
-- [ ] UI
+- [ ] Façade and SDK
 - [ ] Tests
 
 ## Acceptance criteria
@@ -69,7 +70,6 @@ None.
 
 - Edit-corpus subset
 - Render diffs
-- e2e
 
 ## Docs to update
 

@@ -156,7 +156,7 @@ describe(`document properties in ${BROWSER}`, () => {
     ]);
     // Reopened in the reader, the dialog shows the saved values.
     const chooser = page.waitForEvent("filechooser");
-    await more(page, "Choose a file");
+    await more(page, "Close document");
     await page.getByRole("button", { name: "Choose a file" }).click();
     await (await chooser).setFiles({ name: "metadata.pdf", mimeType: "application/pdf", buffer: Buffer.from(saved) });
     await page.locator(".web-viewer canvas").first().waitFor();

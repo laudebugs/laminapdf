@@ -44,6 +44,7 @@ import { type DocumentWarning, repairsFrom } from "./document.ts";
 import type { NetworkMonitor } from "./network/monitor.ts";
 import { pageAddress } from "./open/history.ts";
 import type { FragmentPlace } from "./open/navigation.ts";
+import { remoteFile, remoteUrlOf } from "./open/remote-file.ts";
 import { type OutlineModel, outlineModel, type PageInfo, pageLabel } from "./outline.ts";
 import { type KeptView, keptPosition, type PositionRecorder, recordPosition } from "./reading/positions.ts";
 import { readChoices } from "./storage-choices.ts";
@@ -172,44 +173,9 @@ async function startSession(
   return { backend, client, viewer, strip: new ThumbnailStrip(client, viewer, { name: message("shell.rail.pages") }) };
 }
 
-/** Remote files by the PlatformFile that stands for each in the reader. */
-const remotes = new WeakMap<PlatformFile, string>();
-
-/** The file name a remote address shows: its last path segment, else its host. */
-function remoteName(url: string): string {
-  const { pathname, hostname } = new URL(url);
-  const last = pathname
-    .split("/")
-    .filter((part) => part !== "")
-    .at(-1);
-  if (last === undefined) return hostname;
-  try {
-    return decodeURIComponent(last);
-  } catch {
-    return last;
-  }
-}
-
-/** The PlatformFile that stands for the remote file at `url`. Only the document worker reads it. */
-function remoteFile(url: string): PlatformFile {
-  const file: PlatformFile = {
-    name: remoteName(url),
-    size: 0,
-    writable: false,
-    read: () => Promise.reject(new Error("a remote file is read by the document worker")),
-  };
-  remotes.set(file, url);
-  return file;
-}
-
-/** The address `file` stands for, when it is a remote file. */
-export function remoteUrlOf(file: PlatformFile | undefined): string | undefined {
-  return file === undefined ? undefined : remotes.get(file);
-}
-
 /** What the document worker opens for `file`: the File itself, never a copy of its bytes; a remote file's address. */
 async function sourceOf(file: PlatformFile): Promise<SourceInit> {
-  const url = remotes.get(file);
+  const url = remoteUrlOf(file);
   if (url !== undefined) return { url };
   const { handle } = file;
   if (handle instanceof Blob) return handle;
@@ -309,10 +275,14 @@ export class Engine implements ExternalStore<EngineState> {
     return this.reader.open(file);
   }
 
-  /** Shows why the address's link can't be opened, in place of the home screen. */
-  showLinkProblem(problem: Exclude<RemoteFailureReason, "cors">): void {
-    this.reader.close();
+  /**
+   * Shows why the address's link can't be opened, in place of the home screen, once the close
+   * guard lets the open document go; resolves whether it did.
+   */
+  async showLinkProblem(problem: Exclude<RemoteFailureReason, "cors">): Promise<boolean> {
+    if (!(await this.reader.requestClose())) return false;
     this.#set({ linkProblem: problem });
+    return true;
   }
 
   /** Asks the reader to confirm the web link `link`, as the link layer read it. */
@@ -398,7 +368,8 @@ export class Engine implements ExternalStore<EngineState> {
   async originalBytes(): Promise<{ readonly name: string; readonly bytes: Uint8Array }> {
     const file = this.#file;
     if (file === undefined) throw new Error("no document is open");
-    const bytes = remotes.has(file) ? await (await this.#session).client.fileBytes() : await file.read(0, file.size);
+    const bytes =
+      remoteUrlOf(file) !== undefined ? await (await this.#session).client.fileBytes() : await file.read(0, file.size);
     return { name: file.name, bytes };
   }
 

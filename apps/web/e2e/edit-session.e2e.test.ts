@@ -126,8 +126,8 @@ describe(`the edit session in ${BROWSER}`, () => {
     await more(page, "Rotate page right");
     await expect.poll(() => saveState(page)).toBe("1 unsaved change");
 
-    // In the reader: More › Choose a file would leave the document.
-    await more(page, "Choose a file");
+    // In the reader: More › Close document would leave the document.
+    await more(page, "Close document");
     const ask = page.getByRole("alertdialog", { name: `Save changes to ${NAME}?` });
     await ask.waitFor();
     await ask.getByRole("button", { name: "Cancel" }).click();
@@ -140,7 +140,7 @@ describe(`the edit session in ${BROWSER}`, () => {
     await page.locator(".lamina-viewer").focus();
     await page.keyboard.press("ControlOrMeta+Z");
     await expect.poll(() => saveState(page)).toBe("No unsaved changes");
-    await more(page, "Choose a file");
+    await more(page, "Close document");
     await page.getByRole("heading", { name: "Open a PDF" }).waitFor();
     expect(await page.getByRole("alertdialog").count()).toBe(0);
     expect(await asksBeforeUnload(page)).toBe(false);

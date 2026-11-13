@@ -80,6 +80,13 @@
     white-space: nowrap;
   }
 
+  /* R19: the × that closes the document follows the name 2 px after it and keeps its size; a long
+     name shrinks first. */
+  .paper-top-bar-name + .paper-icon-button {
+    flex-shrink: 0;
+    margin-inline-start: calc(var(--paper-space-2) - var(--paper-space-10));
+  }
+
   .paper-top-bar-note,
   .paper-top-bar-empty {
     font: var(--paper-type-caption);

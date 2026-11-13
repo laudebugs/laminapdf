@@ -5,7 +5,7 @@
 // density, and axe finds nothing serious.
 
 import axe from "axe-core";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Demo } from "../../examples/ui-demo.tsx";
 import {
@@ -14,13 +14,21 @@ import {
   PlatformProvider,
   ReaderController,
   ReaderTopBar,
+  registerReaderCommands,
 } from "../../src/index.ts";
-import { fakePlatform } from "../fakes.ts";
+import { fakeFile, fakePlatform } from "../fakes.ts";
 import { cleanup, renderIn, targets } from "./render.tsx";
 
 beforeEach(async () => {
   await page.viewport(390, 844);
 });
+
+/** A registry with the reader's commands. */
+function registered(): CommandRegistry {
+  const registry = new CommandRegistry();
+  registerReaderCommands(registry);
+  return registry;
+}
 
 afterEach(async () => {
   cleanup();
@@ -146,6 +154,27 @@ describe("the phone shell", () => {
 });
 
 describe("the phone's top bar", () => {
+  it("starts the top bar with Back to files, which runs file.close (R18, R19)", async () => {
+    const close = vi.fn();
+    const reader = new ReaderController(fakePlatform(), async () => ({ pageCount: 3 }));
+    await reader.open(fakeFile("Q3-board-report.pdf"));
+    renderIn(
+      <CommandsProvider
+        registry={registered()}
+        context={{ platform: fakePlatform(), reader, actions: { "file.close": close } }}
+        keys="other"
+      >
+        <ReaderTopBar reader={reader} keys="other" more={{ items: [], onAction: () => undefined }} />
+      </CommandsProvider>,
+    );
+    const back = document.querySelector('header [aria-label="Back to files"]') as HTMLButtonElement;
+    expect(back.closest(".paper-top-bar-file")?.firstElementChild).toBe(back);
+    // The phone has no room after the name: Back to files is its one way out.
+    expect(document.querySelector('[aria-label="Close Q3-board-report.pdf"]')).toBeNull();
+    await userEvent.click(back);
+    expect(close).toHaveBeenCalledOnce();
+  });
+
   it("slides away while the document scrolls down, and comes back as soon as it scrolls up", async () => {
     const reader = new ReaderController(fakePlatform(), async () => ({ pageCount: 3 }) as never);
     let state = { pageCount: 3, currentPage: 0, zoom: "fit-width" as const, percent: 100, scrollTop: 0 };

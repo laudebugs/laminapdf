@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E7b](./E7b-editing-existing-content-feature-plan.md) |
+| Depends on | [E7b](../done/E7b-editing-existing-content-feature-plan.md) |
 | ADRs | Writes ADR 0021 |
 | Branch | `docs/e8a-adr-0021-javascript-policy` |
 | PR title | `docs(adr): 0021 PDF JavaScript policy` |

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `W3i` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Discoverability §5](../../plans/discoverability.md#5-todos) |
 | Round / milestone | Round W (website), W3 discoverability |
 | Depends on | None |
@@ -11,7 +11,7 @@
 | Branch | `feat/w3i-answer-engine-check` |
 | PR title | `feat(tools): ask answer engines a fixed set of questions and record what they say` |
 | Size | M (a tool beside the agent eval, its questions, a first report) |
-| PR | — |
+| PR | [#437](https://github.com/laudebugs/laminapdf/pull/437) |
 
 ## Goal
 
@@ -37,15 +37,22 @@ Round W3 changes what engines can read, but nothing tells the project whether an
 
 ## Tasks
 
-- [ ] Read the current API docs for the search tool and pin the model and settings in a config file, as the agent eval does.
-- [ ] Questions file, runner, report (JSON and a Markdown table); `--dry-run` prints the requests.
-- [ ] Tests of the report from recorded answers (no network).
-- [ ] The owner runs the baseline; commit the note with the date and settings.
+- [x] Read the current API docs for the search tool and pin the model and settings in a config file, as the agent eval does.
+- [x] Questions file, runner, report (JSON and a Markdown table); `--dry-run` prints the requests.
+- [x] Tests of the report from recorded answers (no network).
+- [x] The owner runs the baseline; commit the note with the date and settings.
 
 ## Acceptance criteria
 
-- [ ] The tool runs with only an API key in the environment and writes its report under `target/answer-check/`.
-- [ ] A committed baseline note.
+- [x] The tool runs with only an API key in the environment and writes its report under `target/answer-check/`.
+- [x] A committed baseline note.
+
+## As built
+
+- **Two engines.** The tool asks Claude (the Messages API's web search tool) or OpenAI (the Responses API's `web_search` tool) and reads both answers into one report. The baseline uses OpenAI, because the session that ran it could reach OpenAI's API with the owner's key but not Anthropic's. Later runs compare with it only if they ask OpenAI with the same settings, so `config.json`'s default engine is OpenAI. The model is `gpt-6.1-sol`: a full run of 60 answers costs about $4, against about $13 with `gpt-6-astra`, whose first attempts ran out of the account's credit.
+- **Background mode for OpenAI.** The first run stopped on a question whose answer took over 30 seconds, where the session's proxy cut the request off. The tool now starts each OpenAI answer in background mode and reads it every three seconds, and retries a read that fails for a passing reason (the network, 408, 429, 5xx).
+- **Sources on every read.** A background response read back without `include[]=web_search_call.action.sources` has no search results, which made the first complete run's "in results" column meaningless; the code review caught it and the baseline was run again. The POST that starts an answer is sent once, since a retry could start a second, billed answer; an answer the run gives up on is cancelled.
+- **One folder per engine and run:** `target/answer-check/<date>-<engine>/`, so runs of the two engines on one day never overwrite each other.
 
 ## Post-merge checks
 
@@ -66,8 +73,8 @@ Unit tests of the report over recorded answers.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

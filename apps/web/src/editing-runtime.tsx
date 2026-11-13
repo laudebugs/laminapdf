@@ -60,15 +60,22 @@ function useEditToasts(viewer: Viewer, engine: Engine, toasts: ToastQueue): void
  */
 function useCloseGuard(reader: ReaderController, edits: EditControls) {
   const [asking, setAsking] = useState<((leave: boolean) => void) | undefined>(undefined);
+  // The question waiting for an answer: a second close while the dialog shows (the address
+  // changing twice) answers the first "stay", so no caller is left waiting for good.
+  const pending = useRef<((leave: boolean) => void) | undefined>(undefined);
   useEffect(() => {
-    return reader.setCloseGuard(() =>
-      edits.getState().history.unsaved === 0
-        ? Promise.resolve(true)
-        : new Promise<boolean>((resolve) => setAsking(() => resolve)),
-    );
+    return reader.setCloseGuard(() => {
+      if (edits.getState().history.unsaved === 0) return Promise.resolve(true);
+      pending.current?.(false);
+      return new Promise<boolean>((resolve) => {
+        pending.current = resolve;
+        setAsking(() => resolve);
+      });
+    });
   }, [reader, edits]);
   const answer = (leave: boolean) => {
     asking?.(leave);
+    pending.current = undefined;
     setAsking(undefined);
   };
   return { asking: asking !== undefined, answer };

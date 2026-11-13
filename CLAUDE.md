@@ -407,6 +407,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   the app against floor/ (a page that sends the first command at once) launched in turn; by hand
 ├── tools/agent-eval/     # L5a: fixed tasks for a pinned coding agent, with and without the shipped docs, checked by
 │                        #   @laminapdf/sdk and qpdf; run by hand with the owner's API key, never in CI (README.md)
+├── tools/answer-check/   # W3i: twenty developer questions asked to Claude or OpenAI with web search, three times each; whether answers
+│                        #   name, find and cite Lamina PDF (report.mjs); its own pnpm project; run by hand with the owner's API key,
+│                        #   never in CI (README.md)
 ├── tools/ci-runner/linux/  # the Linux CI runner container on the Mac (Dockerfile, up.sh, down.sh, loop.sh)
 ├── .github/             # CI fast lane (workflows/ci.yml), full lane + required `gate` (workflows/full.yml),
 │                        #   nightly lane (workflows/nightly.yml), release lane on v* tags (workflows/release.yml: every check, then the publish jobs),
@@ -771,6 +774,10 @@ node apps/docs/scripts/package-docs.mjs <out-dir> [--api]  # the docs/ folder th
                              #   `cargo package --list`, `publish npm-pack` checks the sdk tarball (tools/xtask/src/package_docs.rs)
 node tools/agent-eval/run.mjs [--tasks a,b] [--modes docs,no-docs] [--dry-run]  # the agent eval (after `publish npm-pack`;
                              #   ANTHROPIC_API_KEY from the environment); results in target/agent-eval/
+node tools/answer-check/run.mjs [--engine claude|openai] [--questions a,b] [--repeats N] [--dry-run]  # the answer-engine
+                             #   check (W3i; after `pnpm --dir tools/answer-check install`; Claude: ANTHROPIC_API_KEY or an `ant auth login`
+                             #   profile; OpenAI's Responses API: OPENAI_API_KEY, and NODE_USE_ENV_PROXY=1 behind a proxy); results in
+                             #   target/answer-check/<date>-<engine>/
 cargo xtask doctor           # are rustc, node, pnpm, cargo-deny, cargo-nextest, wasm-opt … at the pinned versions? On Linux,
                              #   are WebKitGTK 4.1 and D-Bus there (pkg-config), which building the workspace needs?
 cargo xtask doctor --install # install the pinned cargo tools

@@ -17,6 +17,7 @@ import {
 } from "@laminapdf/ui";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { remoteUrlOf } from "./open/remote-file.ts";
 import {
   choose,
   type DocumentPlace,
@@ -28,7 +29,6 @@ import {
   saveChoices,
   undo,
 } from "./page-appearance-choices.ts";
-import { remoteUrlOf } from "./session.ts";
 
 /** A system colour (`CanvasText`, `Canvas`) as the browser resolves it now. */
 function systemColour(keyword: string): { r: number; g: number; b: number; a: number } {

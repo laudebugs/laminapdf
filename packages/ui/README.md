@@ -155,10 +155,12 @@ const context = { platform, reader, viewer, actions: { ...shellActions(layout, m
 - `bottomBar` (a `PhoneBottomBar`) takes the status bar's place, within reach of a thumb: Search once find has a handler, Pages when the rail has tabs, and More.
 - Pages opens the rail as the Contents sheet, and the inspector is a sheet too.
 - More, in either bar, opens `MoreSheet`: the top bar's More items as rows sized for touch.
-- `ReaderTopBar` keeps the file name and More, and slides away while the document scrolls down.
+- `ReaderTopBar` keeps the file name and More, with Back to files before the name while the shell handles `file.close`, and slides away while the document scrolls down.
 - Both bars stay clear of the notch and the home indicator when the page's viewport meta sets `viewport-fit=cover`.
 
 `ReaderTopBar` shows the file name, with "Loading pages…" or "Locked" while those apply. Once a document is open, the bar adds the page input and the zoom. The page input takes a page number or a page label, and announces one that doesn't exist. The zoom steps in and out, and its percentage opens a menu of the fit modes and presets. Every button runs a command from the registry (next section), so the bar must sit inside a `CommandsProvider`.
+
+`ReaderTopBar` also puts an × after the file name while a document is in the reader and the shell handles `file.close`. The desktop app closes documents with its tabs, so it gives no handler and shows no ×.
 
 The sidebar toggle and Commands appear once the shell handles `view.toggle-sidebar` and `palette.open`. `shellActions` handles the sidebar only when the shell has rail tabs to show.
 
@@ -245,7 +247,7 @@ Wider than a phone, the sections are a list beside the chosen one's fields. On a
 
 ## The home screen, repairs and failures
 
-`OpenDropZone` is the home screen's way in. While the zone shows, the whole window takes a dropped or pasted PDF, and Choose a file asks the platform's picker. Whichever way a file arrives, it opens when its name ends in `.pdf` or "%PDF-" appears in its first kilobyte; anything else is refused with a message. The shell passes the recent list and the privacy line as its children.
+`OpenDropZone` is the home screen's way in. While the zone shows, the whole window takes a dropped or pasted PDF, and Choose a file asks the platform's picker. Whichever way a file arrives, it opens when its name ends in `.pdf` or "%PDF-" appears in its first kilobyte; anything else is refused with a message. The shell passes the recent list and the privacy line as its children. After a close, it passes `focusHeading`, so focus moves to the heading instead of vanishing with the control that closed the document.
 
 When the reader had to repair a damaged file to open it, `RepairDetails` goes in the inspector slot: one plain sentence for each kind of repair, over its code. When nothing could be recovered, `OpenFailure` takes the canvas and focuses Try another file. Every warning and error in `fixtures/codes.json` has a sentence, or shares its family's, and a test keeps it that way.
 
