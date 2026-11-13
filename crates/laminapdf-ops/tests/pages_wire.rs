@@ -8,7 +8,7 @@ use common::fixture;
 use laminapdf_model::{PagePosition, Rotation};
 use laminapdf_ops::{Op, ReferencePolicy, RotateMode};
 
-const SAMPLES: [&str; 8] = [
+const SAMPLES: [&str; 9] = [
     "insert-blank-pages",
     "delete-pages",
     "move-pages",
@@ -17,6 +17,7 @@ const SAMPLES: [&str; 8] = [
     "duplicate-pages",
     "insert-pages-from",
     "replace-pages",
+    "merge-documents",
 ];
 
 fn sample(name: &str) -> Op {
@@ -90,6 +91,9 @@ fn unknown_fields_and_positions_are_rejected() {
         r#"{ "op": "insertPagesFrom", "args": { "source": "f534f6f1a920e560dfd6103ae24af60e318d129a177a038366135afc943d058d", "pages": ["p3.0"], "at": "end", "carry": { "fields": "merge" } } }"#,
         r#"{ "op": "replacePages", "args": { "targets": ["p7.0"], "source": "f534f6f1a920e560dfd6103ae24af60e318d129a177a038366135afc943d058d" } }"#,
         r#"{ "op": "insertBlankPages", "args": { "at": "end", "count": 1, "size": { "width": 1, "height": 1, "depth": 1 }, "rotate": 0 } }"#,
+        r#"{ "op": "mergeDocuments", "args": { "sources": [{ "source": "f534f6f1a920e560dfd6103ae24af60e318d129a177a038366135afc943d058d", "name": "a.pdf" }], "at": "end" } }"#,
+        r#"{ "op": "mergeDocuments", "args": { "sources": [], "at": "end", "options": { "outline": "flat" } } }"#,
+        r#"{ "op": "mergeDocuments", "args": { "sources": [] } }"#,
     ] {
         assert!(serde_json::from_str::<Op>(json).is_err(), "{json}");
     }
@@ -128,5 +132,40 @@ fn the_import_samples_name_their_source_pages_and_carry() {
     assert_eq!(
         (replace.targets.len(), replace.carry, replace.pages.len()),
         (1, laminapdf_ops::Carry::default(), 1)
+    );
+}
+
+#[test]
+fn the_merge_sample_names_its_sources_titles_and_pages() {
+    let Op::MergeDocuments(merge) = sample("merge-documents") else {
+        panic!("not mergeDocuments");
+    };
+    let sources: Vec<(Option<&str>, Option<usize>)> = merge
+        .sources
+        .iter()
+        .map(|s| (s.title.as_deref(), s.pages.as_ref().map(Vec::len)))
+        .collect();
+    assert_eq!(
+        (sources, merge.at, merge.options.outline),
+        (
+            vec![(Some("Chapters"), None), (None, Some(2))],
+            PagePosition::End,
+            laminapdf_ops::OutlineMerge::PerFile
+        )
+    );
+}
+
+#[test]
+fn a_merge_without_options_or_pages_reads_with_the_defaults() {
+    let op: Op = serde_json::from_str(
+        r#"{ "op": "mergeDocuments", "args": { "sources": [{ "source": "f534f6f1a920e560dfd6103ae24af60e318d129a177a038366135afc943d058d" }], "at": "start" } }"#,
+    )
+    .unwrap();
+    let Op::MergeDocuments(merge) = op else {
+        panic!("not mergeDocuments");
+    };
+    assert_eq!(
+        (merge.sources[0].pages.clone(), merge.options),
+        (None, laminapdf_ops::MergeOptions::default())
     );
 }
