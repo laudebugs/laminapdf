@@ -120,7 +120,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D4. Windows, tabs, menus and printing
 
-**Todos:** [D4a](../todos/ongoing/D4a-windows-tabs-and-session-restore.md), [D4b](../todos/ready/D4b-native-menus.md), [D4c](../todos/ready/D4c-native-printing.md)
+**Todos:** [D4a](../todos/ongoing/D4a-windows-tabs-and-session-restore.md), [D4d](../todos/ready/D4d-session-restore.md), [D4e](../todos/ready/D4e-tab-drag-between-windows.md), [D4b](../todos/ready/D4b-native-menus.md), [D4c](../todos/ready/D4c-native-printing.md)
 
 **Deliverable:** multi-window, tabs with drag between windows, session restore, native menus and accelerators, native printing per the D1 result.
 **Accepted when:** menu items and shortcuts match the shared map (test); a 50-page document prints with page ranges on each OS (manual check recorded).
