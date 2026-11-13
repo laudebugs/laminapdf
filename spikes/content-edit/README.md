@@ -11,7 +11,7 @@ When Lamina PDF edits an existing page's content, should it write the whole page
 
 ## Answer in one paragraph
 
-**Copy what the edit didn't touch.** Moving one object and copying the rest kept 84 % of the corpus's content bytes as they were, and 5,643 of 5,655 edited pages read back as the edit meant. Writing every operator again changed numbers on 468 of 5,967 pages, because Lamina PDF's writer rounds reals to six decimals and writes `2.0` as `2`, and made the content 6.5 % larger. The editable list itself is cheap: tokenizing and grouping ran at 67 MB/s, and the slowest page took 73 ms. The one flaw the spike found is its own: it guessed where an inline image ends from the image data, and that guess caused 30 of its 33 mismatches. The tokenizer has to report the end itself.
+**Copy what the edit didn't touch.** Moving one object and copying the rest kept 84 % of the corpus's content bytes as they were, and 5,643 of 5,655 edited pages read back as the edit meant. Writing every operator again changed 447 of 5,967 pages by rounding numbers alone, because Lamina PDF's writer rounds reals to six decimals and writes `2.0` as `2`, and made the content 6.5 % larger. The editable list itself is cheap: tokenizing and grouping ran at 67 MB/s, and the slowest page took 73 ms. The one flaw the spike found is its own: it guessed where an inline image ends from the image data, and that guess caused 30 of its 33 mismatches. The tokenizer has to report the end itself.
 
 ## Method
 
@@ -45,7 +45,7 @@ Apple M1 Pro, release build, the corpus at the commits `fixtures/corpus-manifest
 | **All** | **5,967** | **26.02 MB** | **1,844,373** | **290,449 (48,202)** | **67 MB/s** | **106.5 %** | **5,499** | **5,946** | **84.3 %** | **5,643 / 5,655** |
 | Lamina PDF's fixtures | 110 | 0.47 MB | 16,667 | 1,915 (1,586) | 94 MB/s | 71.0 % | 99 | 110 | 97.4 % | 106 / 106 |
 
-The slowest page tokenized and grouped in 73 ms (pdf.js corpus); writing every operator again took 267 ms for all 26 MB. "Edit reads back" counts numbers within 10⁻⁶, since the moved object is itself written again. Pages with no object to move (312) aren't counted there.
+The slowest page tokenized and grouped in 73 ms (pdf.js corpus); writing every operator again took 267 ms for all 26 MB. "Edit reads back" counts a page when its numbers match within 10⁻⁶, since the moved object is itself written again. Pages with no object to move (312) aren't counted there.
 
 ### What the mismatches were
 
