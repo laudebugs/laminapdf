@@ -1,4 +1,4 @@
-// Tabs and windows (todo D4a): each file opens in a tab, a file opened again shows its tab, a tab
+// Tabs and windows: each file opens in a tab, a file opened again shows its tab, a tab
 // comes back where it was, a tab moves to a new window with its page and zoom (an encrypted one
 // without asking for its password again), and closing every tab leaves the start screen.
 import { $, browser, expect } from "@wdio/globals";

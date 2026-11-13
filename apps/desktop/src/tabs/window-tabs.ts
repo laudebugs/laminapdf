@@ -1,4 +1,4 @@
-// This window's tabs (todo D4a): one per open document, in order, and the one shown. The window
+// This window's tabs: one per open document, in order, and the one shown. The window
 // has one viewer and one reader controller; a tab that isn't shown keeps its document open in the
 // window's engine and remembers its view, so showing it again is the reader opening that file,
 // which the opener does at once (the document is open) and then puts the view back.

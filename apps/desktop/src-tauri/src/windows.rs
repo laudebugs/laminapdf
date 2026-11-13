@@ -1,4 +1,4 @@
-//! The app's windows (todo D4a): each shows the documents of its tabs, and a tab can move to a
+//! The app's windows: each shows the documents of its tabs, and a tab can move to a
 //! new window or another one. Rust makes every window, with the labels the capability allows
 //! (`main` first, then `doc-<n>`), keeps track of the frontmost one, which the OS's open requests
 //! go to, and hands a moved tab to its new window once that window's webview is ready.
@@ -17,7 +17,7 @@ use crate::engine::{DocumentMeta, Engines};
 use crate::{DesktopError, MAIN_WINDOW};
 
 /// A tab moved to this window: its document, opened in this window's engine, and the view it
-/// had. The event's name is repeated in `src/tabs/move.ts`.
+/// had. The event's name is repeated in `src/tabs/window-tabs.ts`.
 pub(crate) const ARRIVED_EVENT: &str = "tab://arrived";
 /// Show the tab of this document (the same file was opened again).
 pub(crate) const ACTIVATE_EVENT: &str = "tab://activate";

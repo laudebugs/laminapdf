@@ -335,7 +335,7 @@ function zoomModeCommands(): AnyCommand[] {
 
 /**
  * Tabs and windows, in shells with more than one window (the desktop app): delegated, so a shell
- * without tabs never shows them. Their home is the tab strip; the native menus (D4b) list them too.
+ * without tabs never shows them. Their home is the tab strip; the native menus will list them too.
  */
 function tabCommands(): AnyCommand[] {
   return [
