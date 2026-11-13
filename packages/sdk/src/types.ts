@@ -15,8 +15,10 @@ import type {
   EditedJs,
   ExplicitDestination as ExplicitDestinationJs,
   ExtensionPropertyJs,
+  ExtractedImageJs,
   FieldEditJs,
   FitInit,
+  ImageOptionsInit,
   InitialViewJs,
   LimitsInit,
   LineBoxJs,
@@ -49,6 +51,7 @@ import type {
   SaveOptionsInit,
   SaveReportJs,
   SetInitialView as SetInitialViewJs,
+  SkippedImageJs,
   StructureKidJs,
   StructureNodeJs,
   TargetJs,
@@ -455,6 +458,47 @@ export type OpenAt = OpenAtJs;
  * @since 0.3.0
  */
 export type ArticleThread = ThreadJs;
+
+/**
+ * One image a document draws, as a file: `format` `"jpeg"` or `"jpeg2000"` as stored, byte for
+ * byte, or `"png"` decoded with its `/Decode`, colour space and mask; `data` holds the file's
+ * bytes and `extension` its usual extension. `kind` is `"image"`, `"stencil"` (an image mask:
+ * painted black, the rest white), or `"softMask"` / `"mask"`: the mask of a JPEG or JPEG 2000
+ * image, which that file can't hold. `page` is the first page (0-based) that draws it, `object`
+ * its object number (absent for an inline image), and `colorSpace` its family as `pdfimages
+ * -list` names it.
+ *
+ * @since 0.3.0
+ */
+export type ExtractedImage = ExtractedImageJs & { data: Uint8Array<ArrayBuffer> };
+
+/**
+ * An image that couldn't be extracted: its `page`, its `object` when it has one, and why
+ * (`reason`, in English; never document content).
+ *
+ * @since 0.3.0
+ */
+export type SkippedImage = SkippedImageJs;
+
+/**
+ * What {@link Document.extractImages} gives: the `images`, page by page, each once on the first
+ * page that draws it, and the ones `skipped`.
+ *
+ * @since 0.3.0
+ */
+export interface ExtractedImages {
+  /** The images, page by page in the order each page draws them. */
+  readonly images: ExtractedImage[];
+  /** The images that couldn't be extracted, with why. */
+  readonly skipped: SkippedImage[];
+}
+
+/**
+ * Which pages {@link Document.extractImages} reads: `pages` (0-based), or every page.
+ *
+ * @since 0.3.0
+ */
+export type ImageOptions = ImageOptionsInit;
 /**
  * A page-label range, by its first page.
  *
