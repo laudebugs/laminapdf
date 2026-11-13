@@ -22,6 +22,7 @@
 @import "./find-bar.css";
 @import "./find-results.css";
 @import "./history.css";
+@import "./threads.css";
 @import "./shortcut-chip.css";
 @import "./dialog.css";
 @import "./external-link.css";
@@ -30,6 +31,7 @@
 @import "./offline.css";
 @import "./recent.css";
 @import "./print.css";
+@import "./initial-view.css";
 @import "./popover.css";
 @import "./tooltip.css";
 @import "./toast-region.css";

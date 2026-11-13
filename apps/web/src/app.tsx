@@ -596,10 +596,11 @@ function useRailTabs(
   editor: OutlineEditor | undefined,
 ) {
   const { strip, viewer } = useStoreState(engine, (s) => s);
+  const threaded = useStoreState(engine, (s) => s.threads.length > 0);
   return useMemo(() => {
-    const tabs = railTabs(engine, layout, open ? { strip, viewer, finding, editor } : undefined);
+    const tabs = railTabs(engine, layout, open ? { strip, viewer, finding, editor, threaded } : undefined);
     return tabs.length > 0 && history !== undefined ? [...tabs, history] : tabs;
-  }, [engine, layout, open, strip, viewer, finding, history, editor]);
+  }, [engine, layout, open, strip, viewer, finding, history, editor, threaded]);
 }
 
 /** The settings, with the page appearance of the document `viewer` shows, and the toasts they share. */

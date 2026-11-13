@@ -65,6 +65,7 @@ export type CommandHome =
   | "mini-toolbar"
   | "mode-switcher"
   | "history-panel"
+  | "threads-panel"
   | "layer"
   | "tab-strip";
 

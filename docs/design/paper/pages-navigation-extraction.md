@@ -182,7 +182,14 @@ Not built yet:
 
 **Artboards.** `O13-initial-view.dc.html`, `O13-article-threads.dc.html`.
 
-**Todos.** [E3d](../../todos/ready/E3d-initial-view-and-threads.md).
+**As built (web, E3d).** The reader has no Organise mode yet, so Initial view… sits in the More menu's edit items and the palette; Document properties doesn't show the initial view yet. Differences from the boards:
+
+- The viewer has one continuous column: the page layout is written and shown in the dialog but not obeyed.
+- The file's opening page and zoom apply once its first page painted, as a `#page=` address does. The panel it asks for opens only where the rail sits beside the page; on a phone or in a narrow window the rail stays shut, so the page stays in view.
+- The dialog's page field is a page number; the outline title beside it, the bead's outline and tag on the page, the status bar's "part 1 of 3" and View settings' "Use the file's initial view" aren't built yet.
+- Hide the reader's toolbar and menus sets or clears `/HideToolbar`, `/HideMenubar` and `/HideWindowUI` together.
+
+**Todos.** [E3d](../../todos/done/E3d-initial-view-and-threads.md).
 
 ## O14 Attachments panel
 

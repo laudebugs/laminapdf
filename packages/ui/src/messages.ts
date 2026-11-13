@@ -13,6 +13,7 @@ const EN = {
   "shell.rail.close": "Close the sidebar",
   "shell.rail.pages": "Pages",
   "shell.rail.outline": "Outline",
+  "shell.rail.threads": "Threads",
   "shell.rail.results": "Results",
   "reader.outline": "Document outline",
   "reader.outline.none": "This file has no outline",

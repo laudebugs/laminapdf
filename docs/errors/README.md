@@ -101,6 +101,7 @@ A PR that adds a code adds:
 | [`no-pending-save`](no-pending-save.md) | `state` | rebase was called without a save waiting for it |
 | [`malformed-xmp`](malformed-xmp.md) | `input` | a metadata edit would replace the document's XMP packet, which can't be read, losing what it holds |
 | [`unknown-source`](unknown-source.md) | `usage` | an op or a call names a source document that was not added to the session |
+| [`open-action-not-destination`](open-action-not-destination.md) | `usage` | an op would replace or remove the document's open action, which is an action other than a destination |
 | [`unknown-outline-item`](unknown-outline-item.md) | `usage` | an outline op names a bookmark the outline does not have |
 | [`direct-outline-item`](direct-outline-item.md) | `unsupported` | the bookmark is stored inside another item rather than as an object of its own, so outline ops can't name it yet |
 | [`outline-not-a-sibling`](outline-not-a-sibling.md) | `usage` | the position names a bookmark that is not a child of the parent the op names |

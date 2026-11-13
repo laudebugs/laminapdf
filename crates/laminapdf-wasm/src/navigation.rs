@@ -1,10 +1,13 @@
 //! Moving through a document across the boundary: `WasmDocument.outline()`,
-//! `namedDestination(name)`, `namedDestinations()` and `pageLinks(index)`, each target a page
-//! index and a view in page space, and `destinationAt(page, view)`, a page-space view as the
-//! destination the outline ops take (the extract and text modules, so the base module stays in
-//! its size budget).
+//! `namedDestination(name)`, `namedDestinations()`, `pageLinks(index)`, `initialView()` and
+//! `threads()`, each target a page index and a view in page space, and `destinationAt(page, view)`,
+//! a page-space view as the destination the outline ops take (the extract and text modules, so the
+//! base module stays in its size budget).
 
-use laminapdf::{LinkTo, NamedDestination, OutlineNode, PageLink, PageTarget, PageTargetView};
+use laminapdf::{
+    ArticleThread, LinkTo, NamedDestination, OpenTarget, OpeningView, OutlineNode, PageLayout, PageLink, PageMode,
+    PageTarget, PageTargetView,
+};
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
@@ -280,8 +283,181 @@ impl From<&PageLink> for PageLinkJs {
     }
 }
 
+/// How a document asks to be shown when it opens.
+#[derive(Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct InitialViewJs {
+    /// Where it opens.
+    pub open: OpenTargetJs,
+    /// The panel to show; left out when the file leaves it to the reader.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(
+        optional,
+        type = "\"none\" | \"outlines\" | \"thumbnails\" | \"fullScreen\" | \"optionalContent\" | \"attachments\""
+    )]
+    pub page_mode: Option<&'static str>,
+    /// How to lay the pages out; left out when the file leaves it to the reader.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(
+        optional,
+        type = "\"singlePage\" | \"oneColumn\" | \"twoColumnLeft\" | \"twoColumnRight\" | \"twoPageLeft\" | \"twoPageRight\""
+    )]
+    pub page_layout: Option<&'static str>,
+    /// The window's viewer preferences.
+    pub preferences: WindowPreferencesJs,
+}
+
+/// Where a document opens, by `kind`.
+#[derive(Debug, Serialize, Tsify)]
+#[serde(tag = "kind", rename_all = "kebab-case")]
+pub(crate) enum OpenTargetJs {
+    /// The first page at the reader's zoom.
+    Default,
+    /// A page and how to show it.
+    Page {
+        /// The page.
+        target: TargetJs,
+    },
+    /// An action a reader runs, which Lamina PDF never does, by its type (`JavaScript`, `Named`, …).
+    Action {
+        /// Its type.
+        action: String,
+    },
+}
+
+/// The yes-or-no window entries of the viewer preferences.
+#[derive(Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "the six booleans the file stores, one field each"
+)]
+pub(crate) struct WindowPreferencesJs {
+    /// Hide the reader's toolbars.
+    pub hide_toolbar: bool,
+    /// Hide the reader's menu bar.
+    pub hide_menubar: bool,
+    /// Hide the scroll bars and navigation controls.
+    #[serde(rename = "hideWindowUi")]
+    pub hide_window_ui: bool,
+    /// Resize the window to fit the first page.
+    pub fit_window: bool,
+    /// Put the window in the middle of the screen.
+    pub center_window: bool,
+    /// Show the document's title in the title bar.
+    pub display_doc_title: bool,
+}
+
+/// An article thread: its title and its parts in reading order.
+#[derive(Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ThreadJs {
+    /// Its title (document text), when it has one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// Its parts.
+    pub parts: Vec<ThreadPartJs>,
+}
+
+/// One part of an article thread.
+#[derive(Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ThreadPartJs {
+    /// The page's 0-based index; left out when the part names a page the document lacks.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub page: Option<u32>,
+    /// Its rectangle, `[x0, y0, x1, y1]` in page space; left out when unreadable.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rect: Option<[f64; 4]>,
+}
+
+/// A page mode's wire name, as `SetInitialView` takes it.
+const fn mode_name(mode: PageMode) -> &'static str {
+    match mode {
+        PageMode::Outlines => "outlines",
+        PageMode::Thumbnails => "thumbnails",
+        PageMode::FullScreen => "fullScreen",
+        PageMode::OptionalContent => "optionalContent",
+        PageMode::Attachments => "attachments",
+        _ => "none",
+    }
+}
+
+/// A page layout's wire name, as `SetInitialView` takes it.
+const fn layout_name(layout: PageLayout) -> &'static str {
+    match layout {
+        PageLayout::OneColumn => "oneColumn",
+        PageLayout::TwoColumnLeft => "twoColumnLeft",
+        PageLayout::TwoColumnRight => "twoColumnRight",
+        PageLayout::TwoPageLeft => "twoPageLeft",
+        PageLayout::TwoPageRight => "twoPageRight",
+        _ => "singlePage",
+    }
+}
+
+impl From<&OpeningView> for InitialViewJs {
+    fn from(view: &OpeningView) -> Self {
+        let p = view.preferences;
+        Self {
+            open: match &view.open {
+                OpenTarget::Page(target) => OpenTargetJs::Page {
+                    target: TargetJs::from(*target),
+                },
+                OpenTarget::Action(action) => OpenTargetJs::Action { action: action.clone() },
+                _ => OpenTargetJs::Default,
+            },
+            page_mode: view.page_mode.map(mode_name),
+            page_layout: view.page_layout.map(layout_name),
+            preferences: WindowPreferencesJs {
+                hide_toolbar: p.hide_toolbar,
+                hide_menubar: p.hide_menubar,
+                hide_window_ui: p.hide_window_ui,
+                fit_window: p.fit_window,
+                center_window: p.center_window,
+                display_doc_title: p.display_doc_title,
+            },
+        }
+    }
+}
+
+impl From<&ArticleThread> for ThreadJs {
+    fn from(thread: &ArticleThread) -> Self {
+        Self {
+            title: thread.title.clone(),
+            parts: thread
+                .parts
+                .iter()
+                .map(|part| ThreadPartJs {
+                    page: part.page,
+                    rect: part.rect.map(|r| [r.x0.get(), r.y0.get(), r.x1.get(), r.y1.get()]),
+                })
+                .collect(),
+        }
+    }
+}
+
 #[wasm_bindgen]
 impl WasmDocument {
+    /// How the document asks to be shown when it opens (the extract and text modules).
+    ///
+    /// # Errors
+    /// `data-pending` and the reading errors.
+    #[wasm_bindgen(js_name = initialView, unchecked_return_type = "InitialViewJs")]
+    pub fn initial_view(&self) -> JsResult<JsValue> {
+        let view = self.shared().borrow().initial_view().map_err(|e| lamina_error(&e))?;
+        Ok(to_js(&InitialViewJs::from(&view)))
+    }
+
+    /// The document's article threads; empty without any (the extract and text modules).
+    ///
+    /// # Errors
+    /// `data-pending` and the reading errors.
+    #[wasm_bindgen(unchecked_return_type = "ThreadJs[]")]
+    pub fn threads(&self) -> JsResult<JsValue> {
+        let threads = self.shared().borrow().threads().map_err(|e| lamina_error(&e))?;
+        Ok(to_js(&threads.iter().map(ThreadJs::from).collect::<Vec<_>>()))
+    }
+
     /// The visible links on page `index`, in annotation order (the extract and text modules).
     ///
     /// # Errors

@@ -320,6 +320,7 @@ export {
 } from "./reader/settings.js";
 export { ReaderShell, type ReaderShellProps } from "./reader/shell.js";
 export { ShortcutsDialog, type ShortcutsDialogProps } from "./reader/shortcuts-dialog.js";
+export { stepThreadPart, type ThreadData, type ThreadPartRef } from "./reader/threads.js";
 export { ReaderTopBar, type ReaderTopBarProps } from "./reader/top-bar.js";
 export {
   MAX_ZOOM,
