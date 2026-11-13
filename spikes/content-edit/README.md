@@ -1,8 +1,8 @@
 # Spike: `content-edit` (E7a)
 
 - **Date:** 2026-11-13
-- **Status:** done. Its recommendation is recorded in [ADR 0022](../../docs/decisions/0022-content-stream-editing.md), proposed and waiting for the owner's sign-off.
-- **Todo:** [E7a](../../docs/todos/ongoing/E7a-adr-0022-content-editing.md); plan [full editor §E7](../../docs/plans/full-editor.md#e7-editing-existing-content)
+- **Status:** done. Its recommendation is recorded in [ADR 0022](../../docs/decisions/0022-content-stream-editing.md), accepted by the owner on 2026-11-13.
+- **Todo:** [E7a](../../docs/todos/done/E7a-adr-0022-content-editing.md); plan [full editor §E7](../../docs/plans/full-editor.md#e7-editing-existing-content)
 - **Code:** throwaway quality, outside both workspaces, never imported by product code ([code organisation §12](../../docs/guidelines/code-organization.md#12-spikes-vs-product-code)).
 
 ## Question

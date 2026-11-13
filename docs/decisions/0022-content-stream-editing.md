@@ -1,6 +1,6 @@
 # 0022 — Content-stream editing: an IR with object identity and a span-preserving encoder
 
-- Status: Proposed
+- Status: Accepted (by the owner on 2026-11-13)
 - Date: 2026-11-13
 
 ## Context

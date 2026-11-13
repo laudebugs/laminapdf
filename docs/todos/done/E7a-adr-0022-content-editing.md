@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E7a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [E6a](../done/E6a-adding-content-feature-plan.md) |
+| Depends on | [B9c](./B9c-text-extraction-bindings-and-differential.md), [E6a](./E6a-adding-content-feature-plan.md) |
 | Dependency notes | [E6a](../done/E6a-adding-content-feature-plan.md), `B9` ([pdf-library §B9](../../plans/pdf-library.md#b9-text-extraction): content reading and text extraction) |
 | ADRs | Writes ADR 0022; builds on ADR 0023 (B9) and 0005 §6 |
 | Branch | `docs/e7a-adr-0022-content-editing` |
@@ -49,15 +49,15 @@ Decide how lamina edits existing content: the IR (operators with object identity
 
 ## Tasks
 
-- [ ] Spike and measurements
-- [ ] Write the ADR
-- [ ] Review with the owner
-- [ ] Index updates
+- [x] Spike and measurements
+- [x] Write the ADR
+- [x] Review with the owner
+- [x] Index updates
 
 ## Acceptance criteria
 
-- [ ] ADR accepted (owner sign-off) with measured numbers
-- [ ] Spike README states the recommendation and numbers
+- [x] ADR accepted (owner sign-off) with measured numbers
+- [x] Spike README states the recommendation and numbers
 
 ## Post-merge checks
 
@@ -85,3 +85,9 @@ Spike only; no production code.
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## As built
+
+- **ADR 0022** accepted by the owner on 2026-11-13. Beyond the todo's list it decides how tagging survives an edit (§4), since E7i builds on it, and what redaction reaches that editing leaves read-only (§8). E12a's choice between a placeholder advance and absolute positions stays open; the IR supports both.
+- **The spike** measured both encoders on the external corpus: 5,967 pages, 26 MB of content, 1.84 million operators. Copying unchanged spans kept 5,654 of 5,655 edited pages as meant and 84 % of the bytes. Writing every operator again changed 453 pages, 450 of them by rounding numbers to six decimals. Tokenizing and grouping ran at 67 MB/s. The code review caught a bug in the spike's inline-image span, and the numbers are from the rerun after the fix.
+- **Findings** are recorded in [02 §2.3](../../research/pdf/02-imaging-model.md#23-measured-editing-what-a-stream-already-holds).

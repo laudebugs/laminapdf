@@ -69,7 +69,7 @@ ADRs go in `docs/decisions/`, one file per decision (`NNNN-title.md`). Each roun
 | 0025 | Mobile shell: Tauri 2 mobile vs UniFFI with native UI (after the `mobile-shell` spike) | Round U (U3b) | Defer |
 | 0012 | Collaboration: one Durable Object per document, last-writer-wins records | Later (with collaboration) | Defer |
 | 0013 | Heavy jobs: Workflows + Containers; OCR/conversion engines and licences | Later (with OCR) | Defer |
-| [0022](../decisions/0022-content-stream-editing.md) | Content-stream editing: an IR with object identity and a span-preserving encoder (after the `content-edit` spike) | [Full editor](full-editor.md#e7-editing-existing-content) E7 (E7a) | Proposed |
+| [0022](../decisions/0022-content-stream-editing.md) | Content-stream editing: an IR with object identity and a span-preserving encoder (after the `content-edit` spike) | [Full editor](full-editor.md#e7-editing-existing-content) E7 (E7a) | Accepted |
 | [0026](../decisions/0026-error-and-diagnostic-contract.md) | Error and diagnostic contract | [Shareable libraries](shareable-libraries.md#6-decisions-to-record-adrs) L1 | Accepted |
 | [0027](../decisions/0027-coordinates-units-and-page-indexing.md) | Coordinates, units and page indexing in public APIs | Shareable libraries L1 | Accepted |
 | [0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) | Façade binding rules, jobs, cancellation and progress | Shareable libraries L1 | Accepted |
