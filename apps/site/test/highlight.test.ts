@@ -4,10 +4,11 @@
 // --paper-code-* token.
 
 import { readFileSync } from "node:fs";
+import { CODE_KINDS, type CodeKind, type CodeToken } from "@laminapdf/site-kit/code-kinds";
 import { experimental_AstroContainer as AstroContainer } from "astro/container";
 import { describe, expect, it } from "vitest";
 import Opening from "../src/components/home/Opening.astro";
-import { CODE_KINDS, type CodeKind, type CodeLanguage, type CodeToken, highlight } from "../src/data/highlight.js";
+import { type CodeLanguage, highlight } from "../src/data/highlight.js";
 import { cliCommands, rustFirstPdf, typescriptFirstPdf } from "../src/data/sources.js";
 
 /** The panes' code and language, in the order the opening shows them. */

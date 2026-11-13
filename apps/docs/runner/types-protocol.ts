@@ -1,6 +1,7 @@
 // The messages between the "Edit and run" editor (types.ts) and its TypeScript worker
-// (types-worker.ts, todo Q4t). Each request carries the editor's code and its version, so the
-// worker answers about the code the reader sees; positions are offsets into that code.
+// (types-worker.ts, todo Q4t). Each request names the version of the editor's code it asks about,
+// and carries that code when the worker hasn't been sent it yet, so the worker answers about the
+// code the reader sees; positions are offsets into that code.
 
 /** What the editor asks. */
 export type TypesQuery =
@@ -9,11 +10,11 @@ export type TypesQuery =
   | { readonly kind: "hover"; readonly pos: number }
   | { readonly kind: "lint" };
 
-/** A request: a query about the code at `version`. */
+/** A request: a query about the code at `version`, which comes with it unless it came with the last request. */
 export type TypesRequest = TypesQuery & {
   readonly id: number;
   readonly version: number;
-  readonly code: string;
+  readonly code?: string;
 };
 
 /** One completion: TypeScript's name, kind and sort order for it. */

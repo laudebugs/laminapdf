@@ -138,7 +138,7 @@ function answer(request: TypesRequest): TypesReply {
 
 addEventListener("message", (event: MessageEvent<TypesRequest>) => {
   const request = event.data;
-  if (request.version !== version) {
+  if (request.code !== undefined) {
     code = request.code;
     version = request.version;
   }

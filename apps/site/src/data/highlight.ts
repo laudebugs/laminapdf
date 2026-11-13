@@ -2,9 +2,7 @@
 // (@laminapdf/site-kit/code-kinds): five kinds, which site.css colours with the --paper-code-*
 // tokens. Here, a console's `$ ` prompts. The page ships no script for this.
 
-import { CODE_KINDS, type CodeKind, type CodeToken, joined, tokenize } from "@laminapdf/site-kit/code-kinds";
-
-export { CODE_KINDS, type CodeKind, type CodeToken };
+import { type CodeToken, joined, tokenize } from "@laminapdf/site-kit/code-kinds";
 
 /** The languages the panel shows: the two examples, and a console of `$ ` commands in bash. */
 export type CodeLanguage = "ts" | "rust" | "console";

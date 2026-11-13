@@ -6,10 +6,8 @@
 
 import { javascript, typescriptLanguage } from "@codemirror/lang-javascript";
 import { LanguageSupport } from "@codemirror/language";
+import type { CodeKind } from "@laminapdf/site-kit/code-kinds";
 import { styleTags, type Tag, tags as t } from "@lezer/highlight";
-
-/** The five kinds, as the code blocks and the website name them. */
-export type CodeKind = "keyword" | "string" | "comment" | "function" | "constant";
 
 /** Each kind's tags; any other token is plain text. */
 export const KIND_TAGS: Readonly<Record<CodeKind, readonly Tag[]>> = {

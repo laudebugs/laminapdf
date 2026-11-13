@@ -8,7 +8,7 @@ import { firstLine, formatCode } from "./format.js";
 import { typescript } from "./kinds.js";
 import type { RunReply, RunRequest } from "./protocol.js";
 import { paperTheme } from "./theme.js";
-import { typescriptHelp } from "./types.js";
+import { TYPES_KEYS_HINT, typescriptHelp } from "./types.js";
 
 /** The runner's address: a fixed path, so its own headers (public/_headers' `/run/*`) apply. */
 const WORKER = "/run/worker.js";
@@ -22,9 +22,6 @@ function pagePixels(column: HTMLElement): number {
   const wanted = Math.ceil(column.getBoundingClientRect().width * devicePixelRatio);
   return Math.min(2000, Math.max(832, wanted));
 }
-
-/** The keys for TypeScript's help without a pointer (types.ts), named under the editor. */
-const KEYS = "Ctrl+Space lists what can go at the cursor; Ctrl+Shift+Space shows its type.";
 
 /** How long a run may take before the runner is stopped: an edit can loop forever. */
 const TIME_LIMIT_MS = 30_000;
@@ -211,7 +208,7 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
   const pages = element("div", "run-pages");
   // Outside Starlight's content spacing, which would push CodeMirror's lines apart.
   const editorHost = element("div", "run-editor not-content");
-  places.code.append(editorHost, element("p", "run-keys", KEYS), buttons.bar, status, problem);
+  places.code.append(editorHost, element("p", "run-keys", TYPES_KEYS_HINT), buttons.bar, status, problem);
   places.pages.append(pages);
   buttons.bar.hidden = false;
   buttons.download.hidden = true;

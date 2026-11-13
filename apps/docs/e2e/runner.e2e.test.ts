@@ -295,6 +295,8 @@ describe(`edit and run in ${BROWSER}`, () => {
     const line = "using b = new Builder(options);";
     expect(source).toContain(line);
     const types = () => requests.filter((url) => new URL(url).pathname === TYPES);
+    // Reset puts back the example, which isn't an edit: still no TypeScript.
+    await page.getByRole("button", { name: "Reset" }).click();
     expect(types()).toEqual([]);
 
     // The cursor after the builder's line, then `b.`: TypeScript lists the builder's methods.
@@ -319,6 +321,8 @@ describe(`edit and run in ${BROWSER}`, () => {
     await expect
       .poll(() => editorTexts(page, ".cm-tooltip .cm-types-signature"), { timeout: 30_000 })
       .toEqual([expect.stringContaining("Builder")]);
+    // Screen readers hear it too, through CodeMirror's announcement region.
+    expect((await editorTexts(page, ".cm-announced")).join(" ")).toContain("Builder");
 
     // A misspelt method is marked; the run still reports what the SDK throws.
     await edit(page, source.replace('b.page("A4")', 'b.pgae("A4")'));
@@ -332,6 +336,23 @@ describe(`edit and run in ${BROWSER}`, () => {
     expect(await typeErrors(page, RUNNABLE_FILES)).toEqual(RUNNABLE_FILES.map(() => []));
     expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
     expect(foreign).toEqual([]);
+    await page.context().close();
+  });
+
+  it("completes the file's own names when TypeScript can't load (todo Q4t)", async () => {
+    const { page, errors } = await recipe("/recipes/hello/");
+    await page.route(`**${TYPES}`, (route) => route.abort());
+    await page.getByRole("button", { name: "Edit and run" }).click();
+    const source = (await page.locator("lamina-run").getAttribute("data-source")) ?? "";
+    const line = "using b = new Builder(options);";
+    const edited = source.replace(line, `${line}\n  Bu`);
+    await edit(page, edited);
+    await placeCursor(page, edited.indexOf(line) + line.length + "\n  Bu".length);
+    await page.keyboard.press("Control+Space");
+    await expect.poll(() => editorTexts(page, ".cm-completionLabel"), { timeout: 30_000 }).toContain("Builder");
+    // The failed load is the only error the page reports.
+    const reported = withoutSelectErrors(BROWSER, errors, await page.locator("select").count());
+    expect(reported.filter((error) => !error.includes(TYPES))).toEqual([]);
     await page.context().close();
   });
 });
