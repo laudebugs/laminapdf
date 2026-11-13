@@ -44,9 +44,16 @@ async function moveToNewWindow(): Promise<string> {
   return here;
 }
 
-/** Closes the window WebDriver is on and goes back to `handle`. */
+/**
+ * Closes the window WebDriver is on and goes back to `handle`, once the closed one is gone: until
+ * then it can still hold the keyboard, and a shortcut sent next goes to it.
+ */
 async function closeWindowFor(handle: string): Promise<void> {
+  const closing = await browser.getWindowHandle();
   await browser.closeWindow();
+  await browser.waitUntil(async () => !(await browser.getWindowHandles()).includes(closing), {
+    timeoutMsg: "the window didn't close",
+  });
   await browser.switchToWindow(handle);
 }
 
@@ -83,6 +90,8 @@ async function movesToWindows(): Promise<void> {
 
 /** Opens the encrypted fixture, moves it to a new window, then on to another, and closes the one between. */
 async function movesEncrypted(): Promise<void> {
+  // A click puts the keyboard in this window, for open's shortcut.
+  await $('[role="tab"][aria-selected="true"]').click();
   await open(fixture("fixtures", "encrypted", "r3-rc4-128-user.pdf"));
   await $('input[aria-label="Password"]').setValue("user-pw");
   await $("button=Open").click();
