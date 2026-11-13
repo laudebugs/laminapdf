@@ -125,7 +125,6 @@ pub(crate) fn write(
         }
     }
     Ok(Effect {
-        pages: Vec::new(),
         packet_rewritten,
         removed,
         ..Effect::default()

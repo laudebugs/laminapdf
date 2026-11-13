@@ -35,7 +35,7 @@ laminapdf-cos = { version = "0.2.0-alpha.6", path = "crates/laminapdf-cos", defa
 laminapdf-model = { version = "0.2.0-alpha.6", path = "crates/laminapdf-model", default-features = false }
 laminapdf-ops = { version = "0.2.0-alpha.6", path = "crates/laminapdf-ops" }
 laminapdf-source = { version = "0.2.0-alpha.6", path = "crates/laminapdf-source" }
-laminapdf-save = { version = "0.2.0-alpha.6", path = "crates/laminapdf-save" }
+laminapdf-save = { version = "0.2.0-alpha.6", path = "crates/laminapdf-save", default-features = false }
 laminapdf-content = { version = "0.2.0-alpha.6", path = "crates/laminapdf-content" }
 laminapdf-text = { version = "0.2.0-alpha.6", path = "crates/laminapdf-text" }
 laminapdf-extract = { version = "0.2.0-alpha.6", path = "crates/laminapdf-extract", default-features = false }

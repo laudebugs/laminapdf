@@ -13,6 +13,7 @@ use crate::error::Result;
 use crate::op::{Effect, Op};
 use crate::pending::PendingChanges;
 use crate::record::UndoRecord;
+use crate::widgets::TouchedWidget;
 
 /// The identity of a collaborator (ADR 0012), as sync assigns it.
 ///
@@ -82,6 +83,11 @@ pub struct Applied {
     /// Annotations an annotation op deleted besides the one it names: Popups, replies and the
     /// rest of a group.
     pub also_deleted: Vec<laminapdf_model::AnnotId>,
+    /// The form fields whose widgets it deleted, reshowed or moved, which the save planner
+    /// checks against signed signature fields and field locks (E2 plan §6).
+    ///
+    /// Added in 0.2.0.
+    pub widgets: Vec<TouchedWidget>,
 }
 
 /// The state of the open transaction, kept on the [`Document`](crate::Document) so the
@@ -157,6 +163,7 @@ impl Tx<'_> {
             packet_rewritten: effect.packet_rewritten,
             still_in_earlier_revisions: effect.removed,
             also_deleted: effect.also_deleted,
+            widgets: effect.widgets,
         })
     }
 
@@ -172,7 +179,7 @@ impl Tx<'_> {
         match op.apply_to(self.doc) {
             Ok(effect) => {
                 self.state.touched.extend(effect.pages.iter().cloned());
-                self.state.pending.record(op, effect.packet_rewritten);
+                self.state.pending.record(op, &effect);
                 self.state.packet_rewritten |= effect.packet_rewritten;
                 self.state.removed |= effect.removed;
                 self.state.also_deleted.extend(effect.also_deleted.iter().cloned());
