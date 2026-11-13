@@ -50,7 +50,10 @@ pub struct AddLink {
     pub page: PageId,
     /// The area, in user space.
     #[serde(with = "wire::user_space_rect")]
-    #[cfg_attr(feature = "tsify", tsify(type = "{ x0: number; y0: number; x1: number; y1: number }"))]
+    #[cfg_attr(
+        feature = "tsify",
+        tsify(type = "{ x0: number; y0: number; x1: number; y1: number }")
+    )]
     pub rect: UserSpaceRect,
     /// For a link on text, the areas that follow it, four corners each in user space.
     #[serde(default, skip_serializing_if = "Vec::is_empty", with = "wire::quads")]

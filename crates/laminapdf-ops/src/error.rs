@@ -354,16 +354,14 @@ impl Error {
             Self::UnknownAnnotation(annot)
             | Self::AnnotationLocked(annot)
             | Self::AnnotationNotEditable(annot)
-            | Self::NotALink(annot) => {
-                match annot.as_lamina_id().obj_ref() {
-                    Some(r) => Location {
-                        object: Some(r.num),
-                        id: Some(annot.to_string()),
-                        ..Location::NONE
-                    },
-                    None => Location::NONE,
-                }
-            }
+            | Self::NotALink(annot) => match annot.as_lamina_id().obj_ref() {
+                Some(r) => Location {
+                    object: Some(r.num),
+                    id: Some(annot.to_string()),
+                    ..Location::NONE
+                },
+                None => Location::NONE,
+            },
             Self::UnknownOutlineItem(item)
             | Self::DirectOutlineItem(item)
             | Self::NotASibling(item)

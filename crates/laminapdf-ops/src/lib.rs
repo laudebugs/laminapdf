@@ -108,13 +108,13 @@ pub use history::{History, Reverted, UndoOutcome};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use info::{InfoPatch, SetInfo};
 pub use labels::{PageLabelRange, SetPageLabels};
+pub use link::{AddLink, DeleteLink, UpdateLink};
 pub use metadata::{
     ConformanceWarning, DocumentMetadata, MetadataKey, MetadataPatch, MetadataSource, PacketStatus, RemoveMetadata,
     RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty, UpdateSaveMetadata, conformance_warnings,
     pending_conformance_warnings, read_metadata,
 };
 pub use op::{Op, OpLog};
-pub use link::{AddLink, DeleteLink, UpdateLink};
 pub use outline::{
     AddOutlineItem, ChildItems, DeleteNamedDestination, DeleteOutlineItem, DestinationUse, DestinationView,
     ExplicitDestination, MoveOutlineItem, OutlineStyle, OutlineTarget, RenameLinks, RenameNamedDestination, Rgb,

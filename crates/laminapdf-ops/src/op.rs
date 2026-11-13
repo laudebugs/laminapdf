@@ -8,11 +8,11 @@ use laminapdf_model::{OutlineItemId, PageId};
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::annot::{DeleteAnnot, UpdateAnnot};
-use crate::link::{AddLink, DeleteLink, UpdateLink};
 use crate::class::ModificationClass;
 use crate::error::{Error, Result};
 use crate::info::SetInfo;
 use crate::labels::SetPageLabels;
+use crate::link::{AddLink, DeleteLink, UpdateLink};
 use crate::metadata::{
     RemoveMetadata, RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty, UpdateSaveMetadata,
 };

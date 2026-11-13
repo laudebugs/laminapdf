@@ -52,11 +52,7 @@ impl Tree {
         let Some(value) = key.and_then(|k| self.entries.get(&k)) else {
             return Ok(Vec::new());
         };
-        Ok(doc
-            .deref(value)?
-            .as_array()
-            .map(<[Object]>::to_vec)
-            .unwrap_or_default())
+        Ok(doc.deref(value)?.as_array().map(<[Object]>::to_vec).unwrap_or_default())
     }
 
     /// The element a link with no content of its own joins: the document element (the
