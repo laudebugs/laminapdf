@@ -165,6 +165,12 @@ name = "extract_pages"
 name = "insert_pages"
 
 [[example]]
+name = "merge_documents"
+
+[[example]]
+name = "split_document"
+
+[[example]]
 name = "edit_metadata"
 
 [[example]]
