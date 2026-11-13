@@ -391,11 +391,28 @@ pub(crate) struct EditedJs {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[tsify(optional)]
     pub renamed_destinations: Vec<RenamedDestinationJs>,
+    /// The role, class and element ID names copied-in pages brought under another name, because
+    /// the document already used them another way; left out when there are none.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[tsify(optional)]
+    pub structure_renamed: Vec<StructureRenameJs>,
     /// The bookmarks a merge left out because the pages they went to didn't come along; left
     /// out when there are none.
     #[serde(skip_serializing_if = "is_zero")]
     #[tsify(optional)]
     pub bookmarks_dropped: usize,
+}
+
+/// A structure name brought in under another name: `kind` is `role`, `class` or `id`.
+#[derive(Debug, Serialize, Tsify)]
+pub(crate) struct StructureRenameJs {
+    /// `role`, `class` or `id`.
+    #[tsify(type = "\"role\" | \"class\" | \"id\"")]
+    pub kind: &'static str,
+    /// Its name in the source.
+    pub from: String,
+    /// Its name in this document.
+    pub to: String,
 }
 
 /// A named destination brought in under another name.
@@ -518,6 +535,19 @@ impl From<laminapdf::Edited> for EditedJs {
                 .renamed_destinations
                 .into_iter()
                 .map(|r| RenamedDestinationJs { from: r.from, to: r.to })
+                .collect(),
+            structure_renamed: e
+                .structure_renamed
+                .into_iter()
+                .map(|r| StructureRenameJs {
+                    kind: match r.kind {
+                        laminapdf::StructureName::Role => "role",
+                        laminapdf::StructureName::Class => "class",
+                        _ => "id",
+                    },
+                    from: r.from,
+                    to: r.to,
+                })
                 .collect(),
             bookmarks_dropped: e.bookmarks_dropped,
             declared: e.declared.into_iter().map(ExtensionPropertyJs::from).collect(),

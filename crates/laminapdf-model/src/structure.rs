@@ -1,6 +1,7 @@
 //! A minimal read-only view of the logical structure (ISO 32000-2 §14.7): the structure tree
-//! root's elements with their types, attributes and kids (child elements, marked-content
-//! references and object references), the `RoleMap` and the `ParentTree`.
+//! root's elements with their types, attributes, IDs, classes and kids (child elements,
+//! marked-content references and object references), the `RoleMap`, the `ClassMap`, the
+//! `IDTree`, the namespaces and the `ParentTree`.
 //!
 //! The walk is depth-first and tolerant: an element reached twice, or nested deeper than
 //! [`Limits::max_tree_depth`](laminapdf_cos::Limits::max_tree_depth), is skipped with
@@ -60,6 +61,14 @@ pub struct StructElem {
     pub lang: Option<String>,
     /// `/K`: the kids, in order.
     pub kids: Vec<StructKid>,
+    /// `/ID`: the element's identifier, which the `IDTree` maps to it (§14.7.2).
+    ///
+    /// Added in 0.3.0.
+    pub id: Option<Vec<u8>>,
+    /// `/C`: the attribute classes the element takes from the `ClassMap`, in order.
+    ///
+    /// Added in 0.3.0.
+    pub classes: Vec<Vec<u8>>,
 }
 
 impl StructElem {
@@ -106,6 +115,18 @@ pub struct StructTree {
     pub parent_tree: Option<Object>,
     /// `/ParentTreeNextKey`.
     pub parent_tree_next_key: Option<i64>,
+    /// `/ClassMap`: class name → its attribute object or array of them, as stored (§14.7.6.2).
+    ///
+    /// Added in 0.3.0.
+    pub class_map: BTreeMap<Vec<u8>, Object>,
+    /// `/IDTree`, as stored: a name tree from element IDs to elements (§14.7.2).
+    ///
+    /// Added in 0.3.0.
+    pub id_tree: Option<Object>,
+    /// `/Namespaces`: the namespace dictionaries the tree uses (PDF 2.0, §14.7.4), as stored.
+    ///
+    /// Added in 0.3.0.
+    pub namespaces: Vec<Object>,
 }
 
 impl StructTree {
@@ -192,6 +213,17 @@ impl Walk<'_> {
             expansion: doc.text_entry(dict, "E")?,
             lang: doc.text_entry(dict, "Lang")?,
             kids: Vec::new(),
+            id: match dict.get("ID") {
+                Some(id) => match doc.read(id)?.as_deref() {
+                    Some(Object::String(s)) => Some(s.bytes.clone()),
+                    _ => None,
+                },
+                None => None,
+            },
+            classes: match dict.get("C") {
+                Some(c) => classes_of(doc.read(c)?.as_deref()),
+                None => Vec::new(),
+            },
         };
         if let Some(k) = dict.get("K") {
             for item in kids_of(doc, k)? {
@@ -242,6 +274,22 @@ impl Walk<'_> {
     }
 }
 
+/// The class names in a `/C` value: one name, or an array of names (each optionally followed
+/// by a revision number, which is skipped).
+fn classes_of(value: Option<&Object>) -> Vec<Vec<u8>> {
+    match value {
+        Some(Object::Name(n)) => vec![n.as_bytes().to_vec()],
+        Some(Object::Array(items)) => items
+            .iter()
+            .filter_map(|i| match i {
+                Object::Name(n) => Some(n.as_bytes().to_vec()),
+                _ => None,
+            })
+            .collect(),
+        _ => Vec::new(),
+    }
+}
+
 /// The items of a `/K`: an array (direct or indirect), else the one value (a reference to an
 /// element stays a reference, so the element keeps its object).
 pub(crate) fn kids_of(doc: &Document, k: &Object) -> Result<Vec<Object>> {
@@ -288,6 +336,20 @@ pub(crate) fn read(doc: &Document) -> Result<Option<StructTree>> {
                 tree.role_map.insert(key.as_bytes().to_vec(), name.as_bytes().to_vec());
             }
         }
+    }
+    if let Some(map) = root.get("ClassMap")
+        && let Some(map) = doc.read(map)?
+        && let Some(map) = map.as_dict()
+    {
+        for (key, value) in map.iter() {
+            tree.class_map.insert(key.as_bytes().to_vec(), value.clone());
+        }
+    }
+    tree.id_tree = root.get("IDTree").cloned();
+    if let Some(ns) = root.get("Namespaces")
+        && let Some(Object::Array(items)) = doc.read(ns)?.as_deref()
+    {
+        tree.namespaces.clone_from(items);
     }
     if let Some(k) = root.get("K") {
         for item in kids_of(doc, k)? {

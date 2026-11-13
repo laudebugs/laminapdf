@@ -467,6 +467,7 @@ impl Document {
             links_removed: Vec::new(),
             tags_dropped: Vec::new(),
             renamed_destinations: Vec::new(),
+            structure_renamed: Vec::new(),
             bookmarks_dropped: 0,
         });
         Ok(())
@@ -536,6 +537,7 @@ impl Document {
             links_removed: state.links_removed,
             tags_dropped: state.tags_dropped,
             renamed_destinations: state.renamed_destinations,
+            structure_renamed: state.structure_renamed,
             bookmarks_dropped: state.bookmarks_dropped,
         })
     }
