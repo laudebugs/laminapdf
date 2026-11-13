@@ -36,7 +36,7 @@ The new file's pages keep the labels they showed in the book, `iii`, `1` and `2`
 - **Replace a page:** `replacePages(targets, source, pages)` puts each source page in a target's place. Bookmarks, links and named destinations that pointed at the old page point at the new one.
 - **Keep fields linked:** pass `{ fields: "link" }` as the last argument, and a copied field joins the document's field of the same name, so both show one value. Linking needs both fields to have the same type and value; otherwise the copy is renamed.
 - **Leave annotations behind:** pass `{ annotations: false }` to copy only the page content and its form fields.
-- **Split into several files:** `exportRanges([[a, b], [c]])` makes one document per list of pages.
+- **Split into several files:** `exportRanges([[a, b], [c]])` makes one document per list of pages, and [`split`](/recipes/merge-and-split/) cuts a file by chapter or page count.
 - **Tagged documents:** a copied page comes without its tags, and the edit's `tagsDropped` lists it. On a file that claims PDF/UA-1, saving then warns with [`imported-tags-dropped`](/reference/codes/imported-tags-dropped/).
 - **Undo:** one `undo()` removes every copied page and what came with it.
 

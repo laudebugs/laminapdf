@@ -1,0 +1,46 @@
+---
+title: Merge and split PDFs
+description: Merge several PDFs into one with a bookmark for each file, or split a PDF into one file per chapter.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll merge two PDFs into one, then split a book into one file per chapter. Use the first to send a report with its appendices as one file, and the second to send each reader only the chapter they need.
+
+## Merge files into one
+
+`Document.merge` (`Document::merge` in Rust) takes each file's bytes and a name for it, and returns a new document with every file's pages in order:
+
+<Example ts="packages/sdk/examples/merge-documents.ts" rust="crates/laminapdf/examples/merge_documents.rs" result="merge_documents" />
+
+The merged file has six pages: the five of `references.pdf`, then the one of `hello.pdf`. Its bookmarks start with one per file, named as you named the file, and `references.pdf`'s own bookmarks sit under its bookmark.
+
+## Split a file by chapter
+
+`split` cuts a document where each top-level bookmark's page begins and returns one new document per chapter:
+
+<Example ts="packages/sdk/examples/split-document.ts" rust="crates/laminapdf/examples/split_document.rs" result="split_document-1" />
+
+The book has three chapters of four pages, so the program makes three files. Each keeps its chapter's bookmark and the two section bookmarks under it.
+
+## How it works
+
+- Each file's pages come in as copied pages do: with their annotations, form fields and page labels, and with the named destinations their links use. [Copy pages between PDFs](/recipes/copy-pages/) explains the rules.
+- When two files use one form field name, the later file's field becomes `<name>#2`. A named destination that two files use is renamed the same way, and the bookmarks and links that used it follow the new name.
+- Layers keep the visibility each file gave them.
+- A merged file is a new document, so saving it writes a whole file with no password. An encrypted file needs its `password` beside its bytes.
+- A part of a split holds only what its pages use, as a document from `extractPages` does.
+
+## Merge tagged PDFs
+
+Merged pages come without their tags, as copied pages do, so a merge of tagged PDFs makes an untagged file. On a document that claims PDF/UA-1, saving then warns with [`imported-tags-dropped`](/reference/codes/imported-tags-dropped/). A document that claims a PDF/A level warns with [`imported-pdfa-unchecked`](/reference/codes/imported-pdfa-unchecked/) when a merged file doesn't claim the same level, so check the saved file with a PDF/A validator.
+
+## What to change
+
+- **Keep the files' bookmarks at the top level:** pass `{ outline: "keep" }` as the options. `{ outline: "none" }` leaves them out.
+- **Merge into an open document:** add each file with `addSource`, then call `doc.mergeDocuments([a.id, b.id], "end")`. The edit's `renamedDestinations` lists each renamed destination, and one `undo()` takes the whole merge back.
+- **Merge only some pages:** pass `{ source: a.id, pages: [...] }` in place of the source's ID. Bookmarks to pages left behind are dropped, and the edit's `bookmarksDropped` counts them.
+- **Split by page count:** `split({ count: 10 })` makes parts of ten pages. `split({ ranges: [[a, b], [c]] })` makes one part per list of page IDs.
+- **Split at sections:** `split({ bookmarks: 2 })` cuts at the second level of bookmarks.
+
+Next: [organise pages](/recipes/organise-pages/), to put the merged pages in the order you want.

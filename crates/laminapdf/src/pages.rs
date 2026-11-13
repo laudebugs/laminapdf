@@ -1,8 +1,11 @@
 //! Pages across documents (E2 plan §2.1): source documents for
-//! [`InsertPagesFrom`](crate::InsertPagesFrom) and [`ReplacePages`](crate::ReplacePages), and new
-//! documents made from pages, in one call or as a job.
+//! [`InsertPagesFrom`](crate::InsertPagesFrom), [`ReplacePages`](crate::ReplacePages) and
+//! [`MergeDocuments`](crate::MergeDocuments), and new documents made from pages (extracted,
+//! exported, split or merged), in one call or as a job.
 
-use laminapdf_ops::SourceId;
+use std::collections::VecDeque;
+
+use laminapdf_ops::{MergeDocuments, MergeInput, MergeOptions, MergeSource, Origin, SourceId, SplitBy};
 
 use crate::PageId;
 use crate::document::Document;
@@ -75,6 +78,99 @@ impl Document {
             out.push(self.extract_pages(pages)?);
         }
         Ok(out)
+    }
+
+    /// This document cut into new documents as `by` says: parts of a number of pages, lists of
+    /// pages, or a part from each bookmark at a depth to the next (the pages before the first
+    /// making a part of their own). Each part is made as [`Document::extract_pages`] makes a
+    /// new document, with the bookmarks that go to its pages, so a part cut at a chapter's
+    /// bookmark has that chapter's bookmarks.
+    ///
+    /// ```
+    /// use std::num::NonZeroUsize;
+    /// use laminapdf::{Document, SplitBy};
+    ///
+    /// # let bytes = include_bytes!("../../../fixtures/pages/chapters.pdf").to_vec();
+    /// let doc = Document::open_bytes(bytes, Default::default())?;
+    /// let chapters = doc.split(&SplitBy::Bookmarks { level: NonZeroUsize::MIN })?;
+    /// assert_eq!(chapters.len(), 3);
+    /// # Ok::<(), laminapdf::Error>(())
+    /// ```
+    ///
+    /// # Errors
+    /// As [`Document::extract_pages`], for the first part that fails.
+    ///
+    /// Added in 0.3.0.
+    pub fn split(&self, by: &SplitBy) -> Result<Vec<Self>> {
+        self.split_with(by, &CancelToken::new())
+    }
+
+    /// [`Document::split`], stopped between two parts once `cancel` is cancelled.
+    ///
+    /// # Errors
+    /// `cancelled`; as [`Document::split`].
+    ///
+    /// Added in 0.3.0.
+    pub fn split_with(&self, by: &SplitBy, cancel: &CancelToken) -> Result<Vec<Self>> {
+        self.export_ranges_with(&self.inner.split_ranges(by)?, cancel)
+    }
+
+    /// [`Document::split`] as a job ([`ExportJob`]), stepped one part per unit.
+    ///
+    /// # Errors
+    /// Errors reading the page tree or the outline, which say where the parts begin.
+    ///
+    /// Added in 0.3.0.
+    pub fn split_job(&self, by: &SplitBy) -> Result<ExportJob> {
+        Ok(self.export_job(self.inner.split_ranges(by)?))
+    }
+
+    /// A new document of `inputs`' pages, in order, with what belongs to each file: its
+    /// bookmarks (per file, under a bookmark named after its title, unless `options` says
+    /// otherwise), its form fields (renamed `<partial>#<n>` when a name is already used, or
+    /// linked on request), its layers and page labels. Signature fields are left off, since a
+    /// signature covers the file it was made in; tagged pages come without their tags.
+    ///
+    /// # Errors
+    /// `no-pages-left` for no inputs; `wrong-password`, `password-required` and the errors of a
+    /// file that doesn't open; limits passed by the copy.
+    ///
+    /// Added in 0.3.0.
+    pub fn merge(inputs: Vec<MergeInput>, options: MergeOptions) -> Result<Self> {
+        Self::merge_with(inputs, options, &CancelToken::new())
+    }
+
+    /// [`Document::merge`], stopped between two files once `cancel` is cancelled.
+    ///
+    /// # Errors
+    /// `cancelled`; as [`Document::merge`].
+    ///
+    /// Added in 0.3.0.
+    pub fn merge_with(inputs: Vec<MergeInput>, options: MergeOptions, cancel: &CancelToken) -> Result<Self> {
+        let mut job = Self::merge_job(inputs, options);
+        job.cancel = cancel.clone();
+        loop {
+            if let Step::Done(doc) = job.step(Budget::units(u32::MAX))? {
+                return Ok(doc);
+            }
+        }
+    }
+
+    /// [`Document::merge`] as a job ([`MergeJob`]): one unit per file opened, and one for the
+    /// merge.
+    ///
+    /// Added in 0.3.0.
+    #[must_use]
+    pub fn merge_job(inputs: Vec<MergeInput>, options: MergeOptions) -> MergeJob {
+        MergeJob {
+            cancel: CancelToken::new(),
+            total: u32::try_from(inputs.len()).unwrap_or(u32::MAX).saturating_add(1),
+            inputs: inputs.into(),
+            sources: Vec::new(),
+            options,
+            doc: None,
+            finished: false,
+        }
     }
 
     /// [`Document::export_ranges`] as a job ([`ExportJob`]), stepped one range per unit.
@@ -163,5 +259,112 @@ impl ExportJob {
             self.done.push(part);
         }
         Ok(Step::Done(std::mem::take(&mut self.done)))
+    }
+}
+
+/// Merging files into a new document, as a resumable job: created by [`Document::merge_job`].
+/// It owns the document it builds, so no document is passed to [`MergeJob::step`].
+///
+/// **Units:** each file is 1 unit ([`Phase::Parse`]: it is opened and kept as a source), and the
+/// merge itself 1 more ([`Phase::Write`]: every file's pages are copied in one edit, so a
+/// step overshoots its budget by at most one merge). Every step first checks that the job hasn't
+/// finished (`job-finished`) and its token (`cancelled`).
+///
+/// ```
+/// use laminapdf::{Budget, Document, MergeInput, MergeOptions, Step};
+///
+/// # let chapters = include_bytes!("../../../fixtures/pages/chapters.pdf").to_vec();
+/// # let labels = include_bytes!("../../../fixtures/pages/labels.pdf").to_vec();
+/// let inputs = vec![MergeInput::new(chapters), MergeInput::new(labels)];
+/// let mut job = Document::merge_job(inputs, MergeOptions::default());
+/// let merged = loop {
+///     if let Step::Done(doc) = job.step(Budget::units(1))? {
+///         break doc;
+///     }
+/// };
+/// assert_eq!(merged.page_count()?, 22);
+/// # Ok::<(), laminapdf::Error>(())
+/// ```
+///
+/// Added in 0.3.0.
+#[derive(Debug)]
+pub struct MergeJob {
+    cancel: CancelToken,
+    total: u32,
+    inputs: VecDeque<MergeInput>,
+    sources: Vec<MergeSource>,
+    options: MergeOptions,
+    doc: Option<laminapdf_ops::Document>,
+    finished: bool,
+}
+
+impl MergeJob {
+    /// The job's cancel token (cancel it from anywhere that holds a clone).
+    ///
+    /// Added in 0.3.0.
+    #[must_use]
+    pub fn cancel_token(&self) -> CancelToken {
+        self.cancel.clone()
+    }
+
+    /// Opens at most `budget` files (at least one), or merges them once all are open, then
+    /// returns progress or the new document.
+    ///
+    /// # Errors
+    /// `job-finished` or `cancelled`, and the errors of [`Document::merge`]; each finishes the
+    /// job.
+    ///
+    /// Added in 0.3.0.
+    pub fn step(&mut self, budget: Budget) -> Result<Step<Document>> {
+        if self.finished {
+            return Err(crate::Error::JobFinished);
+        }
+        let outcome = self.run(budget.get().max(1));
+        if !matches!(outcome, Ok(Step::Progress { .. })) {
+            self.finished = true;
+        }
+        outcome
+    }
+
+    fn run(&mut self, mut units: u32) -> Result<Step<Document>> {
+        check(&self.cancel)?;
+        let doc = match &mut self.doc {
+            Some(doc) => doc,
+            slot => slot.insert(laminapdf_ops::Document::empty()?),
+        };
+        while let Some(input) = self.inputs.front() {
+            if units == 0 {
+                return Ok(Step::Progress {
+                    done: u32::try_from(self.sources.len()).unwrap_or(u32::MAX),
+                    total: Some(self.total),
+                    phase: Phase::Parse,
+                });
+            }
+            check(&self.cancel)?;
+            units -= 1;
+            let id = doc.add_source(std::sync::Arc::clone(&input.bytes), input.password.as_deref())?;
+            let mut source = MergeSource::new(id);
+            if let Some(title) = &input.title {
+                source = source.with_title(title.clone());
+            }
+            self.sources.push(source);
+            self.inputs.pop_front();
+        }
+        if self.sources.is_empty() {
+            return Err(laminapdf_ops::Error::NoPagesLeft.into());
+        }
+        if units == 0 {
+            return Ok(Step::Progress {
+                done: self.total.saturating_sub(1),
+                total: Some(self.total),
+                phase: Phase::Write,
+            });
+        }
+        check(&self.cancel)?;
+        let op = MergeDocuments::new(std::mem::take(&mut self.sources), laminapdf_model::PagePosition::End)
+            .with_options(self.options);
+        doc.apply_all(Origin::Local, [op.into()])?;
+        let done = self.doc.take().map(Document::from);
+        done.map(Step::Done).ok_or(crate::Error::JobFinished)
     }
 }

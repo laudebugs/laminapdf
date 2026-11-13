@@ -71,10 +71,10 @@ fn table(body: &TextStyle, strong: &TextStyle) -> Table {
         });
     let mut table = Table::new([ColumnWidth::Auto; 4])
         .with_padding(6.0)
-        .with_frame(TableRule::new(0.75, Color::gray(0.4)))
-        .with_header_rule(TableRule::new(0.75, Color::gray(0.4)))
-        .with_row_rules(TableRule::new(0.25, Color::gray(0.7)))
-        .with_header_background(Color::gray(0.92))
+        .with_frame(TableRule::new(0.75, Color::rgb8(0x66, 0x66, 0x66)))
+        .with_header_rule(TableRule::new(0.75, Color::rgb8(0x66, 0x66, 0x66)))
+        .with_row_rules(TableRule::new(0.25, Color::rgb8(0xb3, 0xb3, 0xb3)))
+        .with_header_background(Color::rgb8(0xeb, 0xeb, 0xeb))
         .header(header);
     let mut total = 0;
     for (i, (name, cents)) in PRODUCTS.iter().cycle().take(60).enumerate() {

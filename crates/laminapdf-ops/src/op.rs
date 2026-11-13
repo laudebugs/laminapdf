@@ -22,8 +22,8 @@ use crate::outline::{
     SetNamedDestination, UpdateOutlineItem,
 };
 use crate::pages::{
-    DeletePages, DuplicatePages, FieldChange, InsertBlankPages, InsertPagesFrom, MovePages, ReferenceChange,
-    ReplacePages, ReversePages, RotatePages,
+    DeletePages, DuplicatePages, FieldChange, InsertBlankPages, InsertPagesFrom, MergeDocuments, MovePages,
+    ReferenceChange, RenamedDestination, ReplacePages, ReversePages, RotatePages,
 };
 use crate::rotate::RotatePage;
 #[cfg(feature = "test-support")]
@@ -106,6 +106,8 @@ pub enum Op {
     InsertPagesFrom(InsertPagesFrom),
     /// Replace pages with pages of a source document.
     ReplacePages(ReplacePages),
+    /// Merge other documents into this one.
+    MergeDocuments(MergeDocuments),
     /// The save-time metadata stamp, made only by the save planner. It never crosses the wire:
     /// serialising it fails with serde's error (`OpLog::to_json`: `invalid-op-log`), and no op
     /// log can name it.
@@ -152,7 +154,8 @@ impl Op {
             | Self::ReversePages(_)
             | Self::DuplicatePages(_)
             | Self::InsertPagesFrom(_)
-            | Self::ReplacePages(_) => ModificationClass::PageStructure,
+            | Self::ReplacePages(_)
+            | Self::MergeDocuments(_) => ModificationClass::PageStructure,
             Self::SetInitialView(_)
             | Self::AddOutlineItem(_)
             | Self::UpdateOutlineItem(_)
@@ -203,6 +206,7 @@ impl Op {
             | Self::DuplicatePages(_)
             | Self::InsertPagesFrom(_)
             | Self::ReplacePages(_)
+            | Self::MergeDocuments(_)
             | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_)
@@ -244,6 +248,7 @@ impl Op {
             | Self::InsertBlankPages(_)
             | Self::DuplicatePages(_)
             | Self::InsertPagesFrom(_)
+            | Self::MergeDocuments(_)
             | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_)
@@ -288,6 +293,7 @@ impl Op {
             Self::DuplicatePages(op) => op.apply_to(doc),
             Self::InsertPagesFrom(op) => op.apply_to(doc, sources),
             Self::ReplacePages(op) => op.apply_to(doc, sources),
+            Self::MergeDocuments(op) => op.apply_to(doc, sources),
             Self::SetMetadata(op) => op.apply_to(doc),
             Self::RemoveMetadata(op) => op.apply_to(doc),
             Self::SetInitialView(op) => op.apply_to(doc).map(|()| Effect::default()),
@@ -350,6 +356,12 @@ pub(crate) struct Effect {
     pub(crate) links_removed: Vec<PageId>,
     /// The copies of tagged pages it brought in from another document without their tags.
     pub(crate) tags_dropped: Vec<PageId>,
+    /// The named destinations it brought in under another name.
+    pub(crate) renamed_destinations: Vec<RenamedDestination>,
+    /// The bookmarks it left out because the pages they go to didn't come along.
+    pub(crate) bookmarks_dropped: usize,
+    /// The copies it brought into a file claiming PDF/A from a source without that claim.
+    pub(crate) pdfa_unchecked: Vec<PageId>,
 }
 
 impl From<SetInfo> for Op {
@@ -406,6 +418,7 @@ op_from!(
     DuplicatePages,
     InsertPagesFrom,
     ReplacePages,
+    MergeDocuments,
     UpdateAnnot,
     DeleteAnnot,
     AddLink,

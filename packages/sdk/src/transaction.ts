@@ -204,6 +204,36 @@ export interface AddedSource {
 export const insertPagesFromOp = (source: string, pages: readonly string[], at: PagePosition, carry?: Carry): Op =>
   ({ op: "insertPagesFrom", args: { source, pages, at, ...(carry ? { carry } : {}) } }) as Op;
 
+/**
+ * One document {@link Document.mergeDocuments} brings in: a source document's ID (from
+ * {@link Document.addSource}), the pages to bring in (all of them when left out), and the name of
+ * the bookmark that holds its bookmarks (its own title when left out).
+ *
+ * @since 0.3.0
+ */
+export interface MergeSource {
+  readonly source: string;
+  readonly pages?: readonly string[];
+  readonly title?: string;
+}
+
+/**
+ * How a merge brings in what the documents hold besides their pages. `outline` says what becomes
+ * of their bookmarks: `"perFile"` (the default) puts each document's bookmarks under a new
+ * bookmark named after it, `"keep"` adds them at the top level, and `"none"` leaves them out.
+ * `fields` is as {@link Carry}'s.
+ *
+ * @since 0.3.0
+ */
+export interface MergeOptions {
+  readonly outline?: "perFile" | "keep" | "none";
+  readonly fields?: "rename" | "link";
+}
+
+/** @internal The `mergeDocuments` op. */
+export const mergeDocumentsOp = (sources: readonly MergeSource[], at: PagePosition, options?: MergeOptions): Op =>
+  ({ op: "mergeDocuments", args: { sources, at, ...(options ? { options } : {}) } }) as Op;
+
 /** @internal The `replacePages` op. */
 export const replacePagesOp = (
   targets: readonly string[],
@@ -430,6 +460,16 @@ export class Transaction {
    */
   replacePages(targets: readonly string[], source: string, pages: readonly string[], carry?: Carry): this {
     return this.apply(replacePagesOp(targets, source, pages, carry));
+  }
+
+  /**
+   * Brings in every page of each of `sources` at `at` (`mergeDocuments`), as
+   * {@link Document.mergeDocuments}.
+   *
+   * @since 0.3.0
+   */
+  mergeDocuments(sources: readonly MergeSource[], at: PagePosition, options?: MergeOptions): this {
+    return this.apply(mergeDocumentsOp(sources, at, options));
   }
 
   /**
