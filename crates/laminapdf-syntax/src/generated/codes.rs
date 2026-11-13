@@ -126,6 +126,8 @@ pub enum ErrorCode {
     AnnotationLocked,
     /// `annotation-not-editable`: the annotation can't be edited by the annotation ops: it is a form field's widget, or a direct dictionary with no object of its own.
     AnnotationNotEditable,
+    /// `invalid-label-ranges`: page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0.
+    InvalidLabelRanges,
     /// `sink`: the sink failed to take the bytes or could not give them back.
     Sink,
     /// `not-rebased`: the output was written, but rebasing the document onto it failed.
@@ -336,6 +338,7 @@ impl ErrorCode {
         Self::UnknownAnnotation,
         Self::AnnotationLocked,
         Self::AnnotationNotEditable,
+        Self::InvalidLabelRanges,
         Self::Sink,
         Self::NotRebased,
         Self::SinkNotEmpty,
@@ -481,6 +484,7 @@ impl ErrorCode {
             Self::UnknownAnnotation => "unknown-annotation",
             Self::AnnotationLocked => "annotation-locked",
             Self::AnnotationNotEditable => "annotation-not-editable",
+            Self::InvalidLabelRanges => "invalid-label-ranges",
             Self::Sink => "sink",
             Self::NotRebased => "not-rebased",
             Self::SinkNotEmpty => "sink-not-empty",
@@ -612,6 +616,7 @@ impl ErrorCode {
             Self::UnknownAnnotation => ErrorKind::Usage,
             Self::AnnotationLocked => ErrorKind::State,
             Self::AnnotationNotEditable => ErrorKind::Unsupported,
+            Self::InvalidLabelRanges => ErrorKind::Usage,
             Self::Sink => ErrorKind::Io,
             Self::NotRebased => ErrorKind::State,
             Self::SinkNotEmpty => ErrorKind::Usage,
@@ -743,6 +748,7 @@ impl ErrorCode {
             Self::UnknownAnnotation => "the op names an annotation that no page of the document lists",
             Self::AnnotationLocked => "the annotation's flags forbid the change: Locked forbids deleting it or changing its properties, LockedContents changing its contents",
             Self::AnnotationNotEditable => "the annotation can't be edited by the annotation ops: it is a form field's widget, or a direct dictionary with no object of its own",
+            Self::InvalidLabelRanges => "page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
             Self::SinkNotEmpty => "the sink already held bytes before the save started",
@@ -874,6 +880,7 @@ impl ErrorCode {
             Self::UnknownAnnotation => "read the page's annotations again and use an ID from that list",
             Self::AnnotationLocked => "clear the lock with an update of its flags first, if you may",
             Self::AnnotationNotEditable => "edit a widget through its form field; an annotation stored inside the page's list can't be edited yet",
+            Self::InvalidLabelRanges => "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",
             Self::SinkNotEmpty => "pass an empty sink: output offsets count from the sink's first byte",

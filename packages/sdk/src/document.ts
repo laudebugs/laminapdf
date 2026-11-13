@@ -18,6 +18,7 @@ import {
   type MetadataRemoveOptions,
   removeMetadataOp,
   setMetadataOp,
+  setPageLabelsOp,
   Transaction,
 } from "./transaction.js";
 import type {
@@ -35,6 +36,7 @@ import type {
   OutlineNode,
   PageAnnotation,
   PageInfo,
+  PageLabelRange,
   PageLink,
   PlannedSave,
   Progress,
@@ -807,6 +809,31 @@ export class Document extends Handle<BaseGlue> {
    */
   setMetadata(patch: MetadataPatch, options?: MetadataEditOptions): Edited {
     return this.apply([setMetadataOp(patch, options)]);
+  }
+
+  /**
+   * Replaces the document's page labels, the names viewers show for pages ("iv", "A-3"), in one
+   * transaction (`setPageLabels`). Each range names its first page by ID and labels the pages up
+   * to the next range; the first must be on the first page, the rest follow in page order. No
+   * ranges remove the labels. The new labels are in `doc.pages[i].label`.
+   *
+   * ```ts
+   * const [cover, contents, body] = doc.pages;
+   * doc.setPageLabels([
+   *   { page: cover.id, prefix: "Cover" },
+   *   { page: contents.id, style: "lowerRoman" },
+   *   { page: body.id, style: "decimal" },
+   * ]);
+   * ```
+   *
+   * @throws {@link LaminaPdfError} `invalid-label-ranges` when the ranges break a rule (its
+   *   `data.what` says which); `unknown-page` for a page this document doesn't have; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.2.0
+   */
+  setPageLabels(ranges: readonly PageLabelRange[]): Edited {
+    return this.apply([setPageLabelsOp(ranges)]);
   }
 
   /**

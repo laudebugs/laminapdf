@@ -73,7 +73,7 @@ mod copy;
 mod date;
 mod disclosure;
 mod document;
-#[cfg(feature = "navigation")]
+#[cfg(feature = "tree-write")]
 mod edit;
 mod fonts;
 mod geometry;
@@ -93,7 +93,7 @@ mod page_tree;
 mod references;
 mod structure;
 mod tree;
-#[cfg(feature = "navigation")]
+#[cfg(feature = "tree-write")]
 mod tree_writer;
 mod values;
 pub mod xmp;
@@ -105,7 +105,7 @@ pub use disclosure::{
     Action, Annotation, Disclosure, EmbeddedFile, EmbeddedFileHolder, FormField, Owner, Trigger, XmpPacket,
 };
 pub use document::Document;
-#[cfg(feature = "navigation")]
+#[cfg(feature = "tree-write")]
 pub use edit::set_catalog_entry;
 pub use fonts::{FontEncoding, FontResource};
 pub use geometry::{LETTER, PageFrame, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
@@ -125,7 +125,7 @@ pub use page_tree::{PagePosition, PageTreeEditor, PageTreeError};
 pub use references::{NameStore, PageReference, PageReferences, ReferenceKind, Via, WidgetLink};
 pub use structure::{StructElem, StructKid, StructTree};
 pub use tree::{NameTree, NumberTree};
-#[cfg(feature = "navigation")]
+#[cfg(feature = "tree-write")]
 pub use tree_writer::TreeWriter;
 
 // The layers below, in façade order (ADR 0005 §1): what callers of the model need without

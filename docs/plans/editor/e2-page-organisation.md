@@ -169,7 +169,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E2r](../../todos/done/E2r-planner-page-checks.md) | The save planner's field-level checks for page ops | E2j |
 | [E2b](../../todos/ready/E2b-page-structure-ops.md) | Insert blank, delete, move, rotate and reverse pages, reference cleanup, bindings | E2j, E2r |
 | [E2k](../../todos/ready/E2k-duplicate-pages.md) | Duplicate pages, with their annotations, form fields and tags | E2b |
-| [E2q](../../todos/ready/E2q-page-labels-op.md) | The `SetPageLabels` op | E2j |
+| [E2q](../../todos/done/E2q-page-labels-op.md) | The `SetPageLabels` op | E2j |
 | [E2e](../../todos/done/E2e-content-append-api.md) | The `laminapdf-content` append API | E2a |
 | [E2p](../../todos/done/E2p-source-documents-and-copier.md) | Source documents, the blob store and the object copier | E2a |
 | [E2c](../../todos/ready/E2c-cross-document-pages.md) | Insert and replace from other files, extract and export | E2k, E2p |
