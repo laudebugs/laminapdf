@@ -752,14 +752,15 @@ mod tests {
     /// and it runs with a writable token for any fork's PR: no workflow uses it.
     #[test]
     fn no_workflow_should_trigger_on_pull_request_target() {
+        // Any form: `on: pull_request_target`, `on: [push, pull_request_target]` or a key under `on:`.
+        let triggers = |text: &str| {
+            text.lines()
+                .map(|line| line.split('#').next().unwrap_or_default())
+                .any(|code| code.contains("pull_request_target"))
+        };
         let using: Vec<String> = workflow_files()
             .into_iter()
-            .filter(|path| {
-                let text = repository_file(path).unwrap_or_default();
-                keys_under(&text, "on")
-                    .iter()
-                    .any(|(event, _)| *event == "pull_request_target")
-            })
+            .filter(|path| triggers(&repository_file(path).unwrap_or_default()))
             .collect();
         assert!(
             using.is_empty(),

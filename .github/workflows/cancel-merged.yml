@@ -5,7 +5,9 @@
 # It runs on the merge's push to main, not on `pull_request_target`, which GitHub blocks by default
 # in public repositories from December 2, 2026: the push is trusted, also for a fork's PR, and no
 # PR code is involved. The merge commit names its PR; a push that no PR merged cancels nothing.
-# Values read from the PR reach the script only through jq, never interpolated into it.
+# Values read from the PR reach the script only through jq, never interpolated into it. A merge
+# whose message holds `[skip ci]` skips this as it skips every workflow on main: merge with your own
+# --body (git-workflow.md §5).
 name: Cancel a merged PR's runs
 
 on:
@@ -31,11 +33,16 @@ jobs:
           REPO: ${{ github.repository }}
           SHA: ${{ github.sha }}
         run: |
-          # The PR this push merged: the one whose merge commit it is.
-          gh api "repos/$REPO/commits/$SHA/pulls" \
-            | jq -c --arg sha "$SHA" '[.[] | select(.merge_commit_sha == $sha)] | first // empty' > pr.json
+          # The PR this push merged: the one whose merge commit it is. GitHub may link the commit to
+          # its PR a few seconds after the push, so an empty answer is asked again once.
+          for attempt in 1 2; do
+            gh api "repos/$REPO/commits/$SHA/pulls" \
+              | jq -c --arg sha "$SHA" '[.[] | select(.merge_commit_sha == $sha)] | first // empty' > pr.json
+            if [ -s pr.json ] || [ "$attempt" = 2 ]; then break; fi
+            sleep 15
+          done
           if [ ! -s pr.json ]; then
-            echo "No pull request merged $SHA: nothing to cancel." >> "$GITHUB_STEP_SUMMARY"
+            echo "GitHub names no pull request that merged $SHA: nothing to cancel." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           number=$(jq -r .number pr.json)
