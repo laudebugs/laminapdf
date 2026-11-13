@@ -18,6 +18,8 @@ const HERE = fileURLToPath(new URL(".", import.meta.url));
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 /** Opts a Claude request into a fallback model when the pinned model declines the question. */
 const FALLBACK_BETA = "server-side-fallback-2026-07-01";
+/** How many times a request that failed for a passing reason is sent again, as the Anthropic SDK does. */
+const RETRIES = 3;
 /** The engines the check can ask. */
 const ENGINES = ["claude", "openai"];
 
@@ -198,14 +200,46 @@ export function openaiRaw(response) {
 async function askOpenAI(params) {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error("set OPENAI_API_KEY to ask OpenAI");
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-    body: JSON.stringify(params),
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`OpenAI answered ${response.status}: ${body.error?.message ?? "no message"}`);
-  return openaiRaw(body);
+  for (let attempt = 0; ; attempt += 1) {
+    const outcome = await postOnce(key, params);
+    if (outcome.body !== undefined) return openaiRaw(outcome.body);
+    if (!outcome.retry || attempt >= RETRIES) throw new Error(outcome.error);
+    await new Promise((resolve) => setTimeout(resolve, 2000 * 2 ** attempt));
+  }
+}
+
+/**
+ * One POST to the Responses API: its JSON body, or why it failed and whether a retry may help (the
+ * network, a timeout, a rate limit, a server error, or a body that isn't JSON, such as a proxy's
+ * "upstream request timeout").
+ *
+ * @param {string} key
+ * @param {Record<string, unknown>} params
+ * @returns {Promise<{ body: any, retry?: undefined, error?: undefined } | { body?: undefined, retry: boolean, error: string }>}
+ */
+async function postOnce(key, params) {
+  let response;
+  try {
+    response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+      body: JSON.stringify(params),
+    });
+  } catch (error) {
+    return { retry: true, error: `OpenAI unreachable: ${error instanceof Error ? error.message : String(error)}` };
+  }
+  const text = await response.text();
+  const passing = response.status === 408 || response.status === 429 || response.status >= 500;
+  let body;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    return { retry: true, error: `OpenAI answered ${response.status} with no JSON: ${text.slice(0, 80)}` };
+  }
+  if (!response.ok) {
+    return { retry: passing, error: `OpenAI answered ${response.status}: ${body.error?.message ?? "no message"}` };
+  }
+  return { body };
 }
 
 /**
