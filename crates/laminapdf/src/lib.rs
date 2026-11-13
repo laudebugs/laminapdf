@@ -179,10 +179,10 @@ pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOpti
 pub use laminapdf_model::{AnnotId, PageId, PagePosition, PageSize, PdfDate, PointPt, Pt, RectPt, Rotation};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use laminapdf_ops::{
-    ConformanceWarning, DeleteAnnot, DeletePages, DocumentMetadata, InfoPatch, InsertBlankPages, MetadataKey, MetadataPatch,
-    MetadataSource, ModificationClass, MovePages, Offset, Op, OpLog, PacketStatus, ReferenceOutcome, ReferencePolicy,
-    RemoveMetadata, ReversePages, Reverted, RotateMode, RotatePage, RotatePages, SetInfo, SetMetadata, UndoOutcome,
-    UpdateAnnot,
+    ConformanceWarning, DeleteAnnot, DeletePages, DocumentMetadata, InfoPatch, InsertBlankPages, MetadataKey,
+    MetadataPatch, MetadataSource, ModificationClass, MovePages, Offset, Op, OpLog, PacketStatus, ReferenceOutcome,
+    ReferencePolicy, RemoveMetadata, ReversePages, Reverted, RotateMode, RotatePage, RotatePages, SetInfo, SetMetadata,
+    UndoOutcome, UpdateAnnot,
 };
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,

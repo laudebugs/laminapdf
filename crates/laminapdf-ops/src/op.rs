@@ -242,7 +242,15 @@ macro_rules! op_from {
     };
 }
 
-op_from!(InsertBlankPages, DeletePages, MovePages, RotatePages, ReversePages, UpdateAnnot, DeleteAnnot);
+op_from!(
+    InsertBlankPages,
+    DeletePages,
+    MovePages,
+    RotatePages,
+    ReversePages,
+    UpdateAnnot,
+    DeleteAnnot
+);
 
 impl From<RotatePage> for Op {
     fn from(op: RotatePage) -> Self {
