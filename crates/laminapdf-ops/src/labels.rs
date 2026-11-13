@@ -13,7 +13,8 @@ use crate::wire;
 /// to the next range. The ranges must be in page order, two never on one page, the first on
 /// the document's first page (the number tree must have an entry for page 0, §12.4.2), and
 /// each numbered from 1 or more; otherwise the op fails with `invalid-label-ranges`. Nothing
-/// is written when the document already shows these labels.
+/// is written when the catalog already holds exactly these labels
+/// ([`PageLabels::is_written`]); any other tree, a damaged one included, is replaced.
 ///
 /// On the wire:
 /// `{ "op": "setPageLabels", "args": { "ranges": [{ "page": "p3.0", "style": "lowerRoman" }] } }`.
@@ -43,8 +44,7 @@ impl SetPageLabels {
         let mut previous: Option<u64> = None;
         for range in &self.ranges {
             let index = pages
-                .iter()
-                .position(|p| *p.id() == range.page)
+                .index_of(&range.page)
                 .ok_or_else(|| Error::UnknownPage(range.page.clone()))?;
             let start = u64::try_from(index).unwrap_or(u64::MAX);
             match previous {
@@ -56,10 +56,15 @@ impl SetPageLabels {
                 return Err(invalid("first-number"));
             }
             previous = Some(start);
-            ranges.push(LabelRange::new(start, range.style, range.prefix.clone(), range.first));
+            ranges.push(LabelRange::new(
+                start,
+                range.style,
+                range.prefix.clone(),
+                u64::from(range.first),
+            ));
         }
         let labels = PageLabels::from_ranges(ranges);
-        if doc.page_labels()? == labels {
+        if labels.is_written(doc) {
             return Ok(());
         }
         labels.write(&mut doc.cos_mut().edit())?;
@@ -98,10 +103,11 @@ pub struct PageLabelRange {
     #[serde(default, skip_serializing_if = "String::is_empty")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub prefix: String,
-    /// The number of the range's first page, 1 or more.
+    /// The number of the range's first page, 1 or more (a `u32`, as the builder's page labels
+    /// take).
     #[serde(default = "one", skip_serializing_if = "is_one")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
-    pub first: u64,
+    pub first: u32,
 }
 
 impl PageLabelRange {
@@ -131,13 +137,13 @@ impl PageLabelRange {
     ///
     /// Added in 0.2.0.
     #[must_use]
-    pub const fn with_first(mut self, first: u64) -> Self {
+    pub const fn with_first(mut self, first: u32) -> Self {
         self.first = first;
         self
     }
 }
 
-const fn one() -> u64 {
+const fn one() -> u32 {
     1
 }
 
@@ -145,6 +151,22 @@ const fn one() -> u64 {
     clippy::trivially_copy_pass_by_ref,
     reason = "serde's skip_serializing_if passes a reference"
 )]
-const fn is_one(n: &u64) -> bool {
+const fn is_one(n: &u32) -> bool {
     *n == 1
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::wire::label_style::NAMES;
+
+    /// `PageLabelRange::style`'s TypeScript type lists the wire names of [`NAMES`], in order.
+    #[test]
+    fn the_typescript_type_lists_every_style_name() {
+        let union = NAMES
+            .iter()
+            .map(|(_, name)| format!("\\\"{name}\\\""))
+            .collect::<Vec<_>>()
+            .join(" | ");
+        assert!(include_str!("labels.rs").contains(&union), "{union}");
+    }
 }

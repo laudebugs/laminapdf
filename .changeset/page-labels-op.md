@@ -9,4 +9,4 @@ Set a document's page labels, the names viewers show for its pages ("Cover", "iv
 - Ranges that don't start on the first page, are out of page order or number from 0 fail with `invalid-label-ranges`, whose `data.what` says which rule.
 - `doc.pages[i].label` reads the new labels.
 
-In Rust: the `SetPageLabels` op with `PageLabelRange`, and in `laminapdf-model` `LabelRange::new` and `PageLabels::from_ranges`.
+In Rust: the `SetPageLabels` op with `PageLabelRange`, `LabelStyle` exported in every build, and in `laminapdf-model` `LabelRange::new`, `PageLabels::from_ranges`, `PageLabels::is_written` and the `tree-write` feature.

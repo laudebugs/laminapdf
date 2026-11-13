@@ -84,7 +84,13 @@ mod samples {
 
     #[test]
     fn every_sample_round_trips() {
-        for name in ["set-info", "rotate-page", "set-metadata", "remove-metadata", "set-page-labels"] {
+        for name in [
+            "set-info",
+            "rotate-page",
+            "set-metadata",
+            "remove-metadata",
+            "set-page-labels",
+        ] {
             let op: Op = serde_json::from_slice(&fixture(&format!("ops/v1/{name}.json"))).unwrap();
             let again: Op = serde_json::from_str(&serde_json::to_string(&op).unwrap()).unwrap();
             assert_eq!(again, op, "{name}");

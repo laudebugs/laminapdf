@@ -41,10 +41,15 @@ fn qpdf_accepts(bytes: &[u8]) -> bool {
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("out.pdf");
     std::fs::write(&path, bytes).unwrap();
-    match std::process::Command::new("qpdf").arg("--check").arg(&path).output() {
-        Ok(out) => out.status.success(),
-        Err(_) => true,
+    if let Ok(out) = std::process::Command::new("qpdf").arg("--check").arg(&path).output() {
+        return out.status.success();
     }
+    // The full lane's round trip runs qpdf on these outputs; here the test says it skipped.
+    #[expect(clippy::print_stderr, reason = "the test says which check it skipped")]
+    {
+        eprintln!("qpdf not found: the qpdf --check of this test was skipped");
+    }
+    true
 }
 
 #[test]
@@ -120,7 +125,7 @@ fn the_planner_refuses_labels_on_certified_files_only() {
 
 /// The five files of `fixtures/pages/set-labels/`: `pages/labels.pdf` given new labels and
 /// saved incrementally. Each is `(file name, ranges as (page index, style, prefix, first))`.
-type Case = (&'static str, &'static [(usize, Option<LabelStyle>, &'static str, u64)]);
+type Case = (&'static str, &'static [(usize, Option<LabelStyle>, &'static str, u32)]);
 
 const CASES: [Case; 5] = [
     ("roman.pdf", &[(0, Some(LabelStyle::UpperRoman), "", 1)]),
@@ -146,7 +151,7 @@ const CASES: [Case; 5] = [
     ),
 ];
 
-fn case_bytes(ranges: &[(usize, Option<LabelStyle>, &str, u64)]) -> Vec<u8> {
+fn case_bytes(ranges: &[(usize, Option<LabelStyle>, &str, u32)]) -> Vec<u8> {
     let mut doc = editable(&fixture("pages/labels.pdf"));
     let pages = page_ids(&doc);
     let ranges = ranges

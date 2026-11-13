@@ -156,7 +156,9 @@ const EXAMPLES: [(&str, Build); 19] = [
     ("edit_metadata-pdfa", || {
         edit_metadata::edit(fixture("golden/examples/pdf_a_archive-2u.pdf"), EDITED.parse()?)
     }),
-    ("page_labels", || page_labels::label(fixture("golden/examples/links_and_outlines.pdf"))),
+    ("page_labels", || {
+        page_labels::label(fixture("golden/examples/links_and_outlines.pdf"))
+    }),
     ("pdf_ua_report", || pdf_ua_report::build(fixture(NOTO))),
     ("pdf_a_archive-2b", || {
         pdf_a_archive::build(Level::A2b, fixture(NOTO), fixture(PHOTO))

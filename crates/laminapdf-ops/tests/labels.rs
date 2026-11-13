@@ -67,7 +67,10 @@ fn no_ranges_remove_the_labels() {
     let mut doc = labelled();
     set(&mut doc, Vec::new()).unwrap();
     assert_eq!(
-        (doc.catalog().unwrap().get("PageLabels").is_none(), labels(&doc)[0].clone()),
+        (
+            doc.catalog().unwrap().get("PageLabels").is_none(),
+            labels(&doc)[0].clone()
+        ),
         (true, None)
     );
 }
@@ -176,7 +179,10 @@ fn redo_writes_the_same_entries_again() {
 #[test]
 fn labels_are_a_document_change_that_needs_no_rewrite() {
     let op = Op::from(SetPageLabels::new(Vec::new()));
-    assert_eq!((op.class(), op.requires_rewrite()), (ModificationClass::Document, false));
+    assert_eq!(
+        (op.class(), op.requires_rewrite()),
+        (ModificationClass::Document, false)
+    );
 }
 
 /// The frozen v1 sample (`fixtures/ops/v1/set-page-labels.json`) reads and writes back the
@@ -193,5 +199,58 @@ fn the_v1_sample_round_trips() {
 #[test]
 fn an_unknown_style_is_refused_on_the_wire() {
     let json = r#"{ "op": "setPageLabels", "args": { "ranges": [{ "page": "p3.0", "style": "hex" }] } }"#;
+    assert!(serde_json::from_str::<Op>(json).is_err());
+}
+
+/// Two pages whose `/PageLabels` has an unknown style (`/S /Bogus`, read as the prefix alone
+/// with an `invalid-page-label` warning).
+fn damaged_labels() -> Vec<u8> {
+    laminapdf_test_fixtures::classic_with_root(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R /PageLabels << /Nums [0 << /S /Bogus /P (X) >>] >> >>",
+            "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>",
+        ],
+        "",
+    )
+}
+
+#[test]
+fn damaged_labels_are_replaced_in_strict_mode() {
+    let mut doc = Document::open(
+        damaged_labels(),
+        laminapdf_cos::OpenOptions::default().with_strict(true),
+    )
+    .unwrap();
+    let pages = page_ids(&doc);
+    set(&mut doc, vec![range(&pages[0], Some(LabelStyle::Decimal))]).unwrap();
+    assert!(!doc.overlay().is_empty());
+}
+
+/// The damaged tree reads as "X" on every page; the same labels asked for again replace the
+/// damaged entry rather than keep it because it reads the same.
+#[test]
+fn a_damaged_tree_that_reads_the_same_is_still_rewritten() {
+    let mut doc = open(&damaged_labels());
+    let pages = page_ids(&doc);
+    set(&mut doc, vec![range(&pages[0], None).with_prefix("X")]).unwrap();
+    assert!(!doc.overlay().is_empty());
+}
+
+#[test]
+fn a_null_style_on_the_wire_means_no_style() {
+    let json =
+        r#"{ "op": "setPageLabels", "args": { "ranges": [{ "page": "p3.0", "style": null, "prefix": "Cover" }] } }"#;
+    let op: Op = serde_json::from_str(json).unwrap();
+    let expected = Op::from(SetPageLabels::new(vec![
+        PageLabelRange::new("p3.0".parse().unwrap(), None).with_prefix("Cover"),
+    ]));
+    assert_eq!(op, expected);
+}
+
+#[test]
+fn a_first_number_past_u32_is_refused_on_the_wire() {
+    let json = r#"{ "op": "setPageLabels", "args": { "ranges": [{ "page": "p3.0", "first": 10000000000 }] } }"#;
     assert!(serde_json::from_str::<Op>(json).is_err());
 }

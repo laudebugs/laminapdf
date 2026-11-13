@@ -23,9 +23,12 @@ default = ["edit"]
 # The write side the page ops build on: the page-tree editor, the name and number tree writers,
 # `PageLabels::remap`/`write` and `PageReferences`. Off for the workspace's other crates (their
 # dependency turns default features off), so crates that only read compile none of it: its
-# callers otherwise change how the shared read path is optimised. `laminapdf-ops` turns it on for
-# `SetPageLabels`, so the WASM modules link what that op calls (the labels and number-tree writers).
-edit = []
+# callers otherwise change how the shared read path is optimised.
+edit = ["tree-write"]
+# Only the name and number tree writers and `PageLabels::write`/`remap`: what `laminapdf-ops`'
+# `SetPageLabels` calls, so the ops (and every WASM module) need neither the page-tree editor
+# nor `PageReferences`.
+tree-write = []
 
 [dependencies]
 laminapdf-cos = { workspace = true }

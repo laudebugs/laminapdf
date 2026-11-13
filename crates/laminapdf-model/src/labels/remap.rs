@@ -7,6 +7,7 @@ use laminapdf_cos::{CosMut, Dict, Object, PdfString, Result};
 use laminapdf_syntax::text::encode_text_string;
 
 use super::{LabelRange, LabelStyle, PageLabels};
+use crate::document::Document;
 use crate::edit::set_catalog_entry;
 use crate::id::PageId;
 use crate::tree_writer::TreeWriter;
@@ -137,6 +138,44 @@ impl PageLabels {
             .collect();
         let root = TreeWriter::new().write_numbers(cos, &entries)?;
         set_catalog_entry(cos, "PageLabels", Some(Object::Ref(root)))
+    }
+
+    /// Whether the catalog's `/PageLabels` already holds exactly what [`PageLabels::write`]
+    /// would write: no entry for no labels, else one node whose `/Nums` lists these ranges'
+    /// dictionaries. Read without warnings, so a strict document never fails here; a tree
+    /// stored any other way (several nodes, other values, damage) is `false`, so writing
+    /// replaces it.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub fn is_written(&self, doc: &Document) -> bool {
+        let Ok(catalog) = doc.catalog() else {
+            return false;
+        };
+        let Some(root) = catalog.get("PageLabels") else {
+            return self.ranges.is_empty();
+        };
+        let nums = match doc.read(root) {
+            Ok(Some(node)) => match node.as_dict() {
+                Some(node) if node.len() == 1 => node.get("Nums").cloned(),
+                _ => None,
+            },
+            _ => None,
+        };
+        let Some(Ok(Some(nums))) = nums.map(|n| doc.read(&n)) else {
+            return false;
+        };
+        let Some(nums) = nums.as_array() else {
+            return false;
+        };
+        nums.len() == self.ranges.len() * 2
+            && self.ranges.iter().zip(nums.chunks(2)).all(|(range, pair)| match pair {
+                [Object::Integer(start), value] => {
+                    u64::try_from(*start).is_ok_and(|s| s == range.start)
+                        && matches!(doc.read(value), Ok(Some(v)) if *v == Object::Dict(range.to_dict()))
+                }
+                _ => false,
+            })
     }
 
     /// What page `index` shows: its label's parts, `None` before the first range.
