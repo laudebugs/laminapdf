@@ -21,7 +21,8 @@ use crate::outline::{
     SetNamedDestination, UpdateOutlineItem,
 };
 use crate::pages::{
-    DeletePages, DuplicatePages, FieldChange, InsertBlankPages, MovePages, ReferenceChange, ReversePages, RotatePages,
+    DeletePages, DuplicatePages, FieldChange, InsertBlankPages, InsertPagesFrom, MovePages, ReferenceChange,
+    ReplacePages, ReversePages, RotatePages,
 };
 use crate::rotate::RotatePage;
 #[cfg(feature = "test-support")]
@@ -100,6 +101,10 @@ pub enum Op {
     ReversePages(ReversePages),
     /// Copy pages within the document, with new annotations, fields and structure.
     DuplicatePages(DuplicatePages),
+    /// Copy pages of a source document into this one.
+    InsertPagesFrom(InsertPagesFrom),
+    /// Replace pages with pages of a source document.
+    ReplacePages(ReplacePages),
     /// The save-time metadata stamp, made only by the save planner. It never crosses the wire:
     /// serialising it fails with serde's error (`OpLog::to_json`: `invalid-op-log`), and no op
     /// log can name it.
@@ -138,7 +143,9 @@ impl Op {
             | Self::MovePages(_)
             | Self::RotatePages(_)
             | Self::ReversePages(_)
-            | Self::DuplicatePages(_) => ModificationClass::PageStructure,
+            | Self::DuplicatePages(_)
+            | Self::InsertPagesFrom(_)
+            | Self::ReplacePages(_) => ModificationClass::PageStructure,
             Self::SetInitialView(_)
             | Self::AddOutlineItem(_)
             | Self::UpdateOutlineItem(_)
@@ -183,6 +190,8 @@ impl Op {
             | Self::RotatePages(_)
             | Self::ReversePages(_)
             | Self::DuplicatePages(_)
+            | Self::InsertPagesFrom(_)
+            | Self::ReplacePages(_)
             | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_) => false,
@@ -220,9 +229,11 @@ impl Op {
             | Self::DeleteNamedDestination(_)
             | Self::InsertBlankPages(_)
             | Self::DuplicatePages(_)
+            | Self::InsertPagesFrom(_)
             | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_) => Vec::new(),
+            Self::ReplacePages(op) => each(&op.targets, WidgetChange::Deleted),
             Self::RotatePage(op) => vec![PageChange::new(op.page.clone(), WidgetChange::Reshown)],
             Self::RotatePages(op) => each(&op.pages, WidgetChange::Reshown),
             Self::DeletePages(op) => each(&op.pages, WidgetChange::Deleted),
@@ -235,7 +246,11 @@ impl Op {
 
     /// Applies the op's writes through the overlay; returns what it did. The caller
     /// ([`Tx::apply`](crate::Tx::apply)) rolls back on error and records the undo.
-    pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Effect> {
+    pub(crate) fn apply_to(
+        &self,
+        doc: &mut laminapdf_model::Document,
+        sources: &crate::document::Sources,
+    ) -> Result<Effect> {
         match self {
             Self::SetInfo(op) => op.apply_to(doc),
             Self::RotatePage(op) => {
@@ -254,6 +269,8 @@ impl Op {
             Self::RotatePages(op) => op.apply_to(doc),
             Self::ReversePages(op) => op.apply_to(doc),
             Self::DuplicatePages(op) => op.apply_to(doc),
+            Self::InsertPagesFrom(op) => op.apply_to(doc, sources),
+            Self::ReplacePages(op) => op.apply_to(doc, sources),
             Self::SetMetadata(op) => op.apply_to(doc),
             Self::RemoveMetadata(op) => op.apply_to(doc),
             Self::SetInitialView(op) => op.apply_to(doc).map(|()| Effect::default()),
@@ -272,7 +289,7 @@ impl Op {
             Self::DeleteAnnot(op) => op.apply_to(doc),
             Self::SetPageLabels(op) => op.apply_to(doc).map(|()| Effect::default()),
             #[cfg(feature = "test-support")]
-            Self::Declared(op) => op.apply_to(doc, self.class()),
+            Self::Declared(op) => op.apply_to(doc, sources, self.class()),
         }
     }
 }
@@ -307,6 +324,10 @@ pub(crate) struct Effect {
     pub(crate) fields: Vec<FieldChange>,
     /// The copies whose tags it couldn't clone whole (`DuplicateTagsIncomplete`).
     pub(crate) tags_incomplete: Vec<PageId>,
+    /// The copy holding each link it removed because the link's destination didn't come along.
+    pub(crate) links_removed: Vec<PageId>,
+    /// The copies of tagged pages it brought in from another document without their tags.
+    pub(crate) tags_dropped: Vec<PageId>,
 }
 
 impl From<SetInfo> for Op {
@@ -361,6 +382,8 @@ op_from!(
     RotatePages,
     ReversePages,
     DuplicatePages,
+    InsertPagesFrom,
+    ReplacePages,
     UpdateAnnot,
     DeleteAnnot
 );

@@ -74,7 +74,12 @@ fn the_identification_is_read_only() {
         Op::from(SetXmpProperty::new(PDFA_ID, "pdfaid", "part", XmpValue::Integer(3))),
         Op::from(RemoveXmpProperty::new(PDFUA_ID, "part")),
     ] {
-        assert_eq!(op.apply_to(&mut d).unwrap_err().code(), "xmp-claim-read-only");
+        assert_eq!(
+            op.apply_to(&mut d, &crate::document::Sources::new())
+                .unwrap_err()
+                .code(),
+            "xmp-claim-read-only"
+        );
     }
 }
 

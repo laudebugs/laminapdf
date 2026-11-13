@@ -177,6 +177,41 @@ export const reversePagesOp = (pages: readonly string[]): Op => ({ op: "reverseP
 export const duplicatePagesOp = (pages: readonly string[], at: PagePosition): Op =>
   ({ op: "duplicatePages", args: { pages, at } }) as Op;
 
+/**
+ * What comes along with pages copied in from another document: the annotations other than form
+ * fields (`annotations`, `true` when left out), and what happens to a form field whose name the
+ * document already uses (`fields`): `"rename"` (the default) gives it the next free `<name>#<n>`,
+ * `"link"` makes it share the value of the field of that name when both are of one type and value.
+ *
+ * @since 0.3.0
+ */
+export interface Carry {
+  readonly annotations?: boolean;
+  readonly fields?: "rename" | "link";
+}
+
+/**
+ * A source document {@link Document.addSource} added: its ID and its page IDs in order.
+ *
+ * @since 0.3.0
+ */
+export interface AddedSource {
+  readonly id: string;
+  readonly pages: readonly string[];
+}
+
+/** @internal The `insertPagesFrom` op. */
+export const insertPagesFromOp = (source: string, pages: readonly string[], at: PagePosition, carry?: Carry): Op =>
+  ({ op: "insertPagesFrom", args: { source, pages, at, ...(carry ? { carry } : {}) } }) as Op;
+
+/** @internal The `replacePages` op. */
+export const replacePagesOp = (
+  targets: readonly string[],
+  source: string,
+  pages: readonly string[],
+  carry?: Carry,
+): Op => ({ op: "replacePages", args: { targets, source, pages, ...(carry ? { carry } : {}) } }) as Op;
+
 /** @internal The `setMetadata` op. */
 export const setMetadataOp = (patch: MetadataPatch, options?: MetadataEditOptions): Op =>
   ({ op: "setMetadata", args: { patch, ...options } }) as Op;
@@ -375,6 +410,26 @@ export class Transaction {
    */
   duplicatePages(pages: readonly string[], at: PagePosition): this {
     return this.apply(duplicatePagesOp(pages, at));
+  }
+
+  /**
+   * Copies `pages` of the source document `source` to `at` (`insertPagesFrom`), as
+   * {@link Document.insertPagesFrom}.
+   *
+   * @since 0.3.0
+   */
+  insertPagesFrom(source: string, pages: readonly string[], at: PagePosition, carry?: Carry): this {
+    return this.apply(insertPagesFromOp(source, pages, at, carry));
+  }
+
+  /**
+   * Replaces `targets` with `pages` of the source document `source` (`replacePages`), as
+   * {@link Document.replacePages}.
+   *
+   * @since 0.3.0
+   */
+  replacePages(targets: readonly string[], source: string, pages: readonly string[], carry?: Carry): this {
+    return this.apply(replacePagesOp(targets, source, pages, carry));
   }
 
   /**

@@ -39,7 +39,7 @@ pub(crate) struct Instance;
 /// Added in 0.2.0.
 #[derive(Debug)]
 pub struct Document {
-    inner: laminapdf_ops::Document,
+    pub(crate) inner: laminapdf_ops::Document,
     instance: Arc<Instance>,
     revision: u64,
     /// Warnings raised while building it (font embedding), before it existed as a document.
@@ -152,9 +152,10 @@ pub struct Edited {
     ///
     /// Added in 0.3.0.
     pub references: Vec<ReferenceEdit>,
-    /// What a page duplication did to the form fields whose widgets the copied pages show: each
-    /// copy's new field (named `<partial>#<n>`), or a signature field whose widget was not
-    /// copied.
+    /// What a page duplication or a page copied in from another document did to the form fields
+    /// whose widgets the copied pages show: each new field's name (`<partial>#<n>` when the
+    /// name was taken), a field linked to one of the same name, or a signature field whose
+    /// widget was not copied.
     ///
     /// Added in 0.3.0.
     pub fields: Vec<laminapdf_ops::FieldChange>,
@@ -164,6 +165,17 @@ pub struct Edited {
     ///
     /// Added in 0.3.0.
     pub tags_incomplete: Vec<PageId>,
+    /// The page holding each link a page copied in from another document lost because the
+    /// page its destination named didn't come along: one entry per link.
+    ///
+    /// Added in 0.3.0.
+    pub links_removed: Vec<PageId>,
+    /// The pages copied in from another document whose source pages were tagged: they come
+    /// without their tags. On a PDF/UA-1 file, [`Document::plan`] then warns
+    /// `imported-tags-dropped`.
+    ///
+    /// Added in 0.3.0.
+    pub tags_dropped: Vec<PageId>,
 }
 
 /// One reference to a deleted page and what the deletion did to it.
@@ -491,12 +503,14 @@ impl Document {
 
     /// Applies `ops` in order as one transaction (ADR 0006): all of them or none. Each op is
     /// a value ([`Op`]: `SetMetadata`, `RemoveMetadata`, the XMP ops, `RotatePage`, the page ops
-    /// `InsertBlankPages`, `DeletePages`, `MovePages`, `RotatePages` and `ReversePages`, and
-    /// the deprecated `SetInfo`), so the edit is serialisable and replayable;
+    /// `InsertBlankPages`, `DeletePages`, `MovePages`, `RotatePages`, `ReversePages`,
+    /// `DuplicatePages`, `InsertPagesFrom` and `ReplacePages`, and the deprecated `SetInfo`), so
+    /// the edit is serialisable and replayable;
     /// no closure crosses the boundary (F3).
     ///
     /// # Errors
     /// The first op's error (the transaction is rolled back): `unknown-page`, `direct-page`,
+    /// `unknown-source`,
     /// `malformed-xmp`, `xmp-claim-read-only`, `invalid-xmp-packet`, `invalid-xmp-property`,
     /// `no-pages-left`, reading errors; `saved-not-rebased`.
     ///
@@ -523,6 +537,8 @@ impl Document {
             references: applied.references.into_iter().map(ReferenceEdit::from_change).collect(),
             fields: applied.fields,
             tags_incomplete: applied.tags_incomplete,
+            links_removed: applied.links_removed,
+            tags_dropped: applied.tags_dropped,
         })
     }
 

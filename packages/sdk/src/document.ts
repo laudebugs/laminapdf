@@ -14,11 +14,14 @@ import type { Reflow } from "./reflow.js";
 import { type RangeOptions, type RangeSource, type RangeState, settle, wholeBytes } from "./source/range.js";
 import { PageText, type TextOptions } from "./text.js";
 import {
+  type AddedSource,
+  type Carry,
   type DeletePagesOptions,
   deletePagesOp,
   duplicatePagesOp,
   type InsertBlankPagesOptions,
   insertBlankPagesOp,
+  insertPagesFromOp,
   type MetadataEditOptions,
   type MetadataRemoveOptions,
   movePagesOp,
@@ -28,6 +31,7 @@ import {
   type Rotation,
   removeMetadataOp,
   removeXmpPropertyOp,
+  replacePagesOp,
   replaceXmpPacketOp,
   reversePagesOp,
   rotatePagesOp,
@@ -1073,6 +1077,93 @@ export class Document extends Handle<BaseGlue> {
    */
   duplicatePages(pages: readonly string[], at: PagePosition): Edited {
     return this.apply([duplicatePagesOp(pages, at)]);
+  }
+
+  /**
+   * Adds another PDF as a source of pages for {@link Document.insertPagesFrom} and
+   * {@link Document.replacePages}: its ID (the SHA-256 of its bytes, so the same file gets the
+   * same ID everywhere and is added once) and its page IDs in order, which those ops name its
+   * pages by. An encrypted file opens with `options.password`, which no op ever holds. Adding a
+   * source changes nothing to save or undo.
+   *
+   * @throws {@link LaminaPdfError} `wrong-password`, `password-required`, and the errors of a file
+   *   that doesn't open.
+   *
+   * @since 0.3.0
+   */
+  addSource(bytes: Uint8Array | ArrayBuffer, options?: { readonly password?: string }): AddedSource {
+    const data = bytesOf(bytes);
+    return this.call(() => this.#doc.addSource(data, options?.password));
+  }
+
+  /**
+   * Copies `pages` of the source document `source` (IDs from {@link Document.addSource}), each
+   * once and in the order given, to `at`, in one transaction (`insertPagesFrom`). The copies are
+   * new pages with new IDs, listed in the result's `pageOrder`. Their annotations come along
+   * unless `carry.annotations` is `false`; a link to a page left behind is removed (the result's
+   * `linksRemoved`), and the named destinations the other links use come along. A form field
+   * keeps its name, or takes the next free `<name>#<n>` when the name is taken (`carry.fields`
+   * `"link"` shares the value instead, where it can); a signature's widget is left off. The
+   * result's `fields` lists each. The copies come without tags (`tagsDropped`).
+   *
+   * @throws {@link LaminaPdfError} `unknown-source`, `unknown-page`; as {@link Document.apply}.
+   *
+   * @since 0.3.0
+   */
+  insertPagesFrom(source: string, pages: readonly string[], at: PagePosition, carry?: Carry): Edited {
+    return this.apply([insertPagesFromOp(source, pages, at, carry)]);
+  }
+
+  /**
+   * Replaces `targets` with `pages` of the source document `source`, pair by pair, in one
+   * transaction (`replacePages`): bookmarks, links and named destinations that pointed at a
+   * replaced page point at the page that takes its place. Targets left over are deleted, and
+   * pages left over follow the last copy. The copies come in as with
+   * {@link Document.insertPagesFrom}.
+   *
+   * @throws {@link LaminaPdfError} `unknown-source`, `unknown-page`, `no-pages-left`; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.3.0
+   */
+  replacePages(targets: readonly string[], source: string, pages: readonly string[], carry?: Carry): Edited {
+    return this.apply([replacePagesOp(targets, source, pages, carry)]);
+  }
+
+  /**
+   * A new document of `pages` of this one, each once and in the order given, as this document
+   * stands now: the pages with their annotations, the links between them, their form fields
+   * (signature fields unsigned) and their page labels. Links to pages left behind are removed,
+   * and the pages come without tags. Saving it writes a whole file holding only what its pages
+   * use, with no password.
+   *
+   * @throws {@link LaminaPdfError} `unknown-page`; `no-pages-left` for no pages.
+   *
+   * @since 0.3.0
+   */
+  extractPages(pages: readonly string[]): Document {
+    const raw = this.call(() => this.#doc.extractPages([...pages]));
+    return new Document(raw, this.instance);
+  }
+
+  /**
+   * One new document per range of `ranges` (each a list of page IDs, as
+   * {@link Document.extractPages} takes), in order.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.extractPages}.
+   *
+   * @since 0.3.0
+   */
+  exportRanges(ranges: readonly (readonly string[])[]): Document[] {
+    const parts: Document[] = [];
+    try {
+      for (const pages of ranges) parts.push(this.extractPages(pages));
+    } catch (e) {
+      // The documents made before the failure have no other owner: free them now.
+      for (const part of parts) part.free();
+      throw e;
+    }
+    return parts;
   }
 
   /**

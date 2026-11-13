@@ -34,6 +34,9 @@ mod extract_chunks;
 #[path = "../examples/extract_markdown.rs"]
 mod extract_markdown;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/extract_pages.rs"]
+mod extract_pages;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/extract_text.rs"]
 mod extract_text;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -54,6 +57,9 @@ mod images_and_vectors;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/images_to_pdf.rs"]
 mod images_to_pdf;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/insert_pages.rs"]
+mod insert_pages;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/invoice.rs"]
 mod invoice;
@@ -147,7 +153,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 24] = [
+const EXAMPLES: [(&str, Build); 26] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -177,6 +183,10 @@ const EXAMPLES: [(&str, Build); 24] = [
     ("duplicate_pages", || {
         duplicate_pages::duplicate(fixture("pages/forms.pdf"))
     }),
+    ("insert_pages", || {
+        insert_pages::insert(fixture("pages/forms.pdf"), fixture("pages/references.pdf"))
+    }),
+    ("extract_pages", || extract_pages::extract(fixture("pages/labels.pdf"))),
     // A review recorded in a PDF/A-2b file's XMP metadata: `cargo xtask verapdf` checks that the
     // declared extension schemas keep the claim.
     ("edit_xmp", || {
