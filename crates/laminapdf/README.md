@@ -42,7 +42,7 @@ Edges should still adapt the next budget from the time the last step took (ADR 0
 
 ## Examples and goldens
 
-`examples/`: `hello`, `invoice`, `multilingual` (Latin, Arabic, Devanagari, Hebrew, CJK), `images_and_vectors` (paths, colour, opacity, blend, clip, images), `links_and_outlines`, `generate_then_edit` (build → save → open → `SetMetadata` → incremental save), `edit_metadata` (`metadata`, `SetMetadata`, `RemoveMetadata`, `plan`, a stamped save), `pdf_ua_report`, `pdf_a_archive`, `pdf_a3_invoice_with_xml`. Each takes its fonts and images as parameters (and, but for the PDF/A and PDF/UA ones, its `BuildOptions`), and its `main` reads them from the command line; the library never reads files. `tests/examples.rs` passes the fixed file IDs, dates and `fixtures/` files that make the reference PDFs.
+`examples/`: `hello`, `invoice`, `multilingual` (Latin, Arabic, Devanagari, Hebrew, CJK), `images_and_vectors` (paths, colour, opacity, blend, clip, images), `images_to_pdf` (photos onto A4 pages, fitted inside the margins), `links_and_outlines`, `generate_then_edit` (build → save → open → `SetMetadata` → incremental save), `edit_metadata` (`metadata`, `SetMetadata`, `RemoveMetadata`, `plan`, a stamped save), `pdf_ua_report`, `pdf_a_archive`, `pdf_a3_invoice_with_xml`. Each takes its fonts and images as parameters (and, but for the PDF/A and PDF/UA ones, its `BuildOptions`), and its `main` reads them from the command line; the library never reads files. `tests/examples.rs` passes the fixed file IDs, dates and `fixtures/` files that make the reference PDFs.
 
 ```sh
 cargo run -p laminapdf --example invoice -- fixtures/fonts/NotoSans-Regular.ttf   # writes target/examples-out/invoice.pdf

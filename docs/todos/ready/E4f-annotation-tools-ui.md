@@ -39,7 +39,7 @@ Comment mode in the web reader: its secondary toolbar, the Select, Highlight, Un
 
 - Text boxes and callouts → [E4j](E4j-text-box-tools.md)
 - The phone annotate bar and the tablet tool shelf → [E4k](E4k-touch-and-stylus-annotating.md)
-- Stamp and Attach file → [E5c](E5c-stamps-and-attachments.md); the Comments panel → [E5b](E5b-comment-threads-and-review.md)
+- Stamp and Attach file → [E5h](E5h-stamps-and-attachments-ui.md); the Comments panel → [E5g](E5g-comments-panel.md)
 - The desktop → [E4h](E4h-desktop-annotations.md)
 
 **Editor facts**
