@@ -2434,7 +2434,7 @@ An edit carried a value Lamina PDF can't use, so it was refused and the document
 
 ## Why
 
-The value came from the caller, often from an op log built by a script or received from elsewhere, and it was out of range: a count of 0 or millions of pages, or a size that is zero, negative or not a number.
+The value came from the caller, often from an op log that a script built or that came from elsewhere. It was out of range: a count of 0 or millions of pages, or a size that is zero, negative or not a number.
 
 ## How to fix
 
