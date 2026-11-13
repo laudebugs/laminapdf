@@ -90,8 +90,6 @@ async function movesToWindows(): Promise<void> {
 
 /** Opens the encrypted fixture, moves it to a new window, then on to another, and closes the one between. */
 async function movesEncrypted(): Promise<void> {
-  // A click puts the keyboard in this window, for open's shortcut.
-  await $('[role="tab"][aria-selected="true"]').click();
   await open(fixture("fixtures", "encrypted", "r3-rc4-128-user.pdf"));
   await $('input[aria-label="Password"]').setValue("user-pw");
   await $("button=Open").click();
