@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `W3d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Discoverability §5](../../plans/discoverability.md#5-todos) |
 | Round / milestone | Round W (website), W3 discoverability |
 | Depends on | [W3a](../done/W3a-crawl-and-index-rules.md), [W3i](../done/W3i-answer-engine-check.md) |
