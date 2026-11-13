@@ -38,7 +38,11 @@ fn merge_100_files(c: &mut Criterion) {
         .unwrap()
         .page_count()
         .unwrap();
-    assert_eq!(usize::try_from(pages).unwrap(), FILES * 10, "every page should be merged");
+    assert_eq!(
+        usize::try_from(pages).unwrap(),
+        FILES * 10,
+        "every page should be merged"
+    );
     let mut group = c.benchmark_group("merge");
     group.sample_size(10);
     group.bench_function("merge_100_files_of_10_pages", |b| {
