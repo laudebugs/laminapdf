@@ -3,7 +3,7 @@
 use core::fmt;
 
 use laminapdf_cos::{ErrorKind, Location};
-use laminapdf_model::PageId;
+use laminapdf_model::{AnnotId, PageId};
 
 /// Everything that can go wrong while applying ops, running transactions or reading op logs.
 ///
@@ -68,6 +68,30 @@ pub enum Error {
         /// Which rule.
         what: &'static str,
     },
+    /// The op names an annotation that no page's `/Annots` lists.
+    #[error("no annotation {}", ShownAnnot(.0))]
+    UnknownAnnotation(AnnotId),
+    /// The annotation's flags forbid the change (ISO 32000-2 Table 167): `Locked` forbids
+    /// deleting it or changing its properties, `LockedContents` changing its contents. A
+    /// change of the flags alone is always allowed, so a lock can be lifted.
+    #[error("annotation {} is locked", ShownAnnot(.0))]
+    AnnotationLocked(AnnotId),
+    /// The annotation can't be edited by the annotation ops: a widget (a form field's, edited
+    /// by the form ops), or a direct dictionary in `/Annots`, which has no object to edit.
+    #[error("annotation {} can't be edited by the annotation ops", ShownAnnot(.0))]
+    AnnotationNotEditable(AnnotId),
+}
+
+/// An annotation ID as a message may show it, as [`Shown`] does for pages.
+struct ShownAnnot<'a>(&'a AnnotId);
+
+impl fmt::Display for ShownAnnot<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.0.as_lamina_id().obj_ref() {
+            Some(_) => self.0.fmt(f),
+            None => f.write_str("(a path ID)"),
+        }
+    }
 }
 
 /// A page ID as a message may show it: an object ID in full (lamina-made: a kind and two
@@ -105,6 +129,9 @@ impl Error {
         "no-pending-save",
         "malformed-xmp",
         "unknown-source",
+        "unknown-annotation",
+        "annotation-locked",
+        "annotation-not-editable",
         "invalid-label-ranges",
     ];
 
@@ -125,6 +152,9 @@ impl Error {
             Self::NoPendingSave => "no-pending-save",
             Self::MalformedXmp => "malformed-xmp",
             Self::UnknownSource(_) => "unknown-source",
+            Self::UnknownAnnotation(_) => "unknown-annotation",
+            Self::AnnotationLocked(_) => "annotation-locked",
+            Self::AnnotationNotEditable(_) => "annotation-not-editable",
             Self::InvalidLabelRanges { .. } => "invalid-label-ranges",
         }
     }
@@ -143,8 +173,14 @@ impl Error {
             Self::NestedTransaction | Self::NoTransaction | Self::SavedNotRebased | Self::NoPendingSave => {
                 ErrorKind::State
             }
-            Self::UnknownPage(_) | Self::UnknownSource(_) | Self::InvalidLabelRanges { .. } => ErrorKind::Usage,
-            Self::DirectPage(_) | Self::UnsupportedVersion(_) => ErrorKind::Unsupported,
+            Self::UnknownPage(_)
+            | Self::UnknownSource(_)
+            | Self::UnknownAnnotation(_)
+            | Self::InvalidLabelRanges { .. } => ErrorKind::Usage,
+            Self::AnnotationLocked(_) => ErrorKind::State,
+            Self::DirectPage(_) | Self::UnsupportedVersion(_) | Self::AnnotationNotEditable(_) => {
+                ErrorKind::Unsupported
+            }
             Self::InvalidLog(_) | Self::MalformedXmp => ErrorKind::Input,
         }
     }
@@ -166,6 +202,16 @@ impl Error {
                 },
                 None => Location::NONE,
             },
+            Self::UnknownAnnotation(annot) | Self::AnnotationLocked(annot) | Self::AnnotationNotEditable(annot) => {
+                match annot.as_lamina_id().obj_ref() {
+                    Some(r) => Location {
+                        object: Some(r.num),
+                        id: Some(annot.to_string()),
+                        ..Location::NONE
+                    },
+                    None => Location::NONE,
+                }
+            }
             Self::NestedTransaction
             | Self::NoTransaction
             | Self::UnsupportedVersion(_)
@@ -204,6 +250,9 @@ mod tests {
             Error::NoPendingSave,
             Error::MalformedXmp,
             Error::UnknownSource(crate::SourceId::from_bytes([0; 32])),
+            Error::UnknownAnnotation("a7.0".parse().unwrap()),
+            Error::AnnotationLocked("a7.0".parse().unwrap()),
+            Error::AnnotationNotEditable("a7.0".parse().unwrap()),
             Error::InvalidLabelRanges { what: "order" },
         ]
     }

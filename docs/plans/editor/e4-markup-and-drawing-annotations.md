@@ -44,11 +44,11 @@ The round implements 8 rows of the [feature inventory](../../research/pdf/06-fea
 
 ### 2.1 Ops
 
-Every op is class `Annotation`, and none needs a full rewrite (`requires_rewrite` is false). Ops name pages by `PageId` and annotations by `AnnotId`, and carry every value they write: the `/NM`, the author, both dates and every coordinate come in the payload, never from a clock, the settings or the view. Geometry is in user space (`UserSpacePoint`, `UserSpaceRect`, and E3's `UserSpaceQuad`, which E4b adds if E3c hasn't), so a later rotation or crop leaves an op's meaning unchanged; the façade takes page space and converts (ADR 0027). An optional field is absent to leave a value alone and `null` to remove it.
+Every op is class `Annotation`, and none needs a full rewrite (`requires_rewrite` is false). Ops name pages by `PageId` and annotations by `AnnotId`, and carry every value they write: the `/NM`, the author, both dates and every coordinate come in the payload, never from a clock, the settings or the view. Geometry is in user space (`UserSpacePoint`, `UserSpaceRect`, and quads as four `UserSpacePoint`s, as links read them), so a later rotation or crop leaves an op's meaning unchanged; the façade takes page space and converts (ADR 0027). An optional field is absent to leave a value alone and `null` to remove it.
 
 | Op | Payload | Todo |
 | --- | --- | --- |
-| `AddAnnot` | `{ id: AnnotId, nm, page: PageId, common: AnnotCommon, spec: AnnotSpec }` | E4b (core), E4c–E4e (specs) |
+| `AddAnnot` | `{ id: AnnotId, nm, page: PageId, common: AnnotCommon, spec: AnnotSpec }` | E4c (core and the first specs), E4d, E4e |
 | `UpdateAnnot` | `{ id, common?: AnnotCommonPatch, spec?: AnnotSpecPatch, translate?: Vector }`; `translate` moves any subtype, its appearance kept | E4b |
 | `DeleteAnnot` | `{ id }`: removes it, its Popup, every reply to it and every other member of its group | E4b |
 
@@ -104,7 +104,7 @@ The generator is deterministic: the same op on the same document writes the same
 ## 4. Crate and package changes
 
 - **`laminapdf-model`**: the annotation views, the markup and Popup views, the `/NM` index, and writers for the geometry keys (E4b).
-- **`laminapdf-ops`**: `AddAnnot`, `UpdateAnnot`, `DeleteAnnot`, `AnnotSpec` and its patches, the `Appearances` trait, and `Applied`'s reports (E4b; specs in E4c–E4e).
+- **`laminapdf-ops`**: `UpdateAnnot`, `DeleteAnnot` and `Applied::also_deleted` (E4b); `AddAnnot`, `AnnotSpec` and its patches, and the `Appearances` trait (E4c; specs in E4c–E4e).
 - **`laminapdf-build`**: the generator for each spec: text markup, notes and caret (E4c); ink, shapes, lines and cloudy borders (E4d); FreeText layout, `/DA` and the rich-text subset (E4e).
 - **`laminapdf-render`, `@laminapdf/render-pdfium` and `-hayro`**: `RenderRequest::hidden_annotations`, a list of annotations left out of one render (E4i, §5).
 - **The façade and bindings.** Each op is a method on `laminapdf::Document` and on `@laminapdf/sdk`'s `Document`, with docs, a runnable example in Rust and TypeScript, tsify types and a frozen sample in `fixtures/ops/v1/` (requirement 7). In TypeScript they group as `doc.annotations`: `list(page)`, `add`, `update`, `move`, `delete` and `replaceText`.
@@ -138,7 +138,7 @@ Every save plans first, and the strip says what saving will do ([E1 plan §7](e1
 
 **Tagged annotations under P3.** In a tagged file an annotation also adds a structure element and a `/ParentTree` entry. E3c already checks, with pyHanko's DocMDP check on the certified-P3 fixture, whether a certifier counts these structure entries as a change. E4b follows E3c's answer, or runs the same check itself if E3c hasn't merged: if they count, annotations on certified tagged files are added untagged and raise `annot-not-tagged`.
 
-**Usage rights by op.** The planner grants the whole `Annotation` class when `/Annots` lists any right (`detect.rs`), which is looser than §12.8.2.3: a file that grants only `/Create` would let a delete through. E4b checks the right per op in `would_violate`, as E3f does for `/EF`, so each op is held to its own right.
+**Usage rights by op.** The planner grants the whole `Annotation` class when `/Annots` lists any right (`detect.rs`), which is looser than §12.8.2.3: a file that grants only `/Create` would let a delete through. E4c checks the right per op in `would_violate`, with `AddAnnot`,, as E3f does for `/EF`, so each op is held to its own right.
 
 **Annotations added after certification.** Annotations allowed at P3 can still change what a signed page appears to say, which the "Evil Annotation Attack" research showed. E10's signature panel lists annotations added after each signature; this round only keeps the revisions that make that list possible.
 
@@ -162,8 +162,8 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 
 | ID | Todo | Depends on |
 | --- | --- | --- |
-| [E4b](../../todos/ready/E4b-annotation-model-and-overlay.md) | Annotation views, `page_annotations`, the `/NM` index, `AddAnnot`'s core, `UpdateAnnot`, `DeleteAnnot` and the `Appearances` trait | E1d, E2j |
-| [E4c](../../todos/ready/E4c-appearances-markup-notes-caret.md) | Text markup, notes and caret with their appearances; `replace_text` | C5b, E4b |
+| [E4b](../../todos/done/E4b-annotation-model-and-overlay.md) | Annotation views, `page_annotations`, the `/NM` index, `UpdateAnnot` and `DeleteAnnot` | E1d, E2j |
+| [E4c](../../todos/ready/E4c-appearances-markup-notes-caret.md) | `AddAnnot` and the `Appearances` trait; text markup, notes and caret with their appearances; `replace_text` | C5b, E4b |
 | [E4d](../../todos/ready/E4d-appearances-ink-and-shapes.md) | Ink, shapes, lines, arrows, polygons and cloudy borders with their appearances | E4b |
 | [E4e](../../todos/ready/E4e-freetext-callouts.md) | FreeText text boxes, callouts and typewriter text: `/DA`, layout, the rich-text subset | B4b, B4c, E2p, E4b |
 | [E4i](../../todos/ready/E4i-viewer-annotation-layer.md) | The viewer's annotation layer: records, hit-testing, handles, previews, `hidden_annotations` | E1g, E4b |
@@ -179,7 +179,7 @@ Every todo also depends on this plan (E4a). E4b starts once E2j's tree writers m
 
 Every new fixture is written by Lamina PDF's own scripts and licensed like the rest of Lamina PDF, `MIT OR Apache-2.0`; provenance goes in `fixtures/README.md`.
 
-- **`fixtures/annotations/`** (new, E4b, from a dependency-free `tools/fixtures/annotations.py`): `every-subtype.pdf` (each subtype of the round with an appearance, and again without one), `quads.pdf` (text markup with quads in the standard's order and in Acrobat's), `threads.pdf` (Popups, replies, a group and an `/IRT` cycle), `unknown-keys.pdf` (private keys on each subtype), `flags.pdf` (Locked, LockedContents, NoZoom, NoRotate, Hidden) and `rotated.pdf` (notes and text boxes on pages turned 90°, 180° and 270°).
+- **`fixtures/annotations/`** (new, E4b, from a dependency-free `tools/fixtures/annotations.py`): `every-subtype.pdf` (each subtype of the round, with and without an appearance, quads in the standard's order and in Acrobat's, private keys, a widget and a direct dictionary), `threads.pdf` (Popups, replies, a group and an `/IRT` cycle), `flags.pdf` (Locked, LockedContents, duplicate names) and `tagged.pdf` (annotations in the structure tree), with pdf.js's reading of them in `pdfjs.json`. E4c adds `rotated.pdf` (notes and text boxes on pages turned 90°, 180° and 270°), whose appearances are the first to depend on rotation.
 - **Reference files from other apps.** A text correction and a FreeText with rich text made by Acrobat, and the same marks made by Preview, are needed to check the group's order and `/RC` reading. Lamina PDF can't make them; the owner is asked for them in [issue #521](https://github.com/laudebugs/laminapdf/issues/521), and until they arrive E4c and E4e test against the pdf.js test corpus's `annotation-*.pdf` files (caret, ink, FreeText, highlight and the rest, with and without appearances), which `cargo xtask corpus fetch` already pins.
 - **Signed files:** the pyHanko files in `fixtures/signed/` (approval, certified at P1, P2 and P3, a FieldMDP lock), with the usage-rights file E2i adds.
 - **PDF/A-1:** `fixtures/annotations/pdfa1.pdf`, a page with a PDF/A-1b claim in its XMP and a CMYK output intent, for `pdfa-transparency` and the colour conversion (E4b, from `annotations.py`).

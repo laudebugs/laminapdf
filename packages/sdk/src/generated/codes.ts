@@ -52,6 +52,9 @@ export type ErrorCode =
   | "no-pending-save"
   | "malformed-xmp"
   | "unknown-source"
+  | "unknown-annotation"
+  | "annotation-locked"
+  | "annotation-not-editable"
   | "invalid-label-ranges"
   | "sink"
   | "not-rebased"
@@ -173,6 +176,7 @@ export type WarningCode =
   | "outline-item-skipped"
   | "invalid-date"
   | "xmp-invalid"
+  | "annot-name-duplicate"
   | "xmp-repaired"
   | "invalid-page-label"
   | "invalid-entry"
@@ -263,6 +267,9 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "no-pending-save",
   "malformed-xmp",
   "unknown-source",
+  "unknown-annotation",
+  "annotation-locked",
+  "annotation-not-editable",
   "invalid-label-ranges",
   "sink",
   "not-rebased",
@@ -385,6 +392,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "outline-item-skipped",
   "invalid-date",
   "xmp-invalid",
+  "annot-name-duplicate",
   "xmp-repaired",
   "invalid-page-label",
   "invalid-entry",
@@ -448,6 +456,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "outline-item-skipped": "input",
   "invalid-date": "input",
   "xmp-invalid": "input",
+  "annot-name-duplicate": "input",
   "xmp-repaired": "input",
   "invalid-page-label": "input",
   "invalid-entry": "input",
@@ -501,6 +510,9 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "no-pending-save": "state",
   "malformed-xmp": "input",
   "unknown-source": "usage",
+  "unknown-annotation": "usage",
+  "annotation-locked": "state",
+  "annotation-not-editable": "unsupported",
   "invalid-label-ranges": "usage",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
@@ -634,6 +646,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "outline-item-skipped": "check the outline: the skipped item and its children are missing",
   "invalid-date": "read the raw value from the Info view if you need it",
   "xmp-invalid": "nothing to do; a metadata edit asks before replacing it",
+  "annot-name-duplicate": "nothing to do; both are kept, and annotations are told apart by their own IDs",
   "xmp-repaired": "nothing to do; a metadata edit writes the declarations the packet left out",
   "invalid-page-label": "nothing to do; affected pages fall back to decimal labels",
   "invalid-entry": "nothing to do; the view uses the entry's default",
@@ -687,6 +700,9 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "no-pending-save": "call rebase only after a save that returned SavedNotRebased",
   "malformed-xmp": "set replaceMalformed on the edit to replace the packet with a new one, or leave the metadata as it is",
   "unknown-source": "add the source document's bytes with addSource before applying ops that name it",
+  "unknown-annotation": "read the page's annotations again and use an ID from that list",
+  "annotation-locked": "clear the lock with an update of its flags first, if you may",
+  "annotation-not-editable": "edit a widget through its form field; an annotation stored inside the page's list can't be edited yet",
   "invalid-label-ranges": "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",

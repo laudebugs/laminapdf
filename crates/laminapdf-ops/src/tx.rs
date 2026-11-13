@@ -80,6 +80,9 @@ pub struct Applied {
     /// A metadata op removed values that the file's earlier revisions still hold: an
     /// incremental save keeps them in the file, a full rewrite drops them.
     pub still_in_earlier_revisions: bool,
+    /// Annotations an annotation op deleted besides the one it names: Popups, replies and the
+    /// rest of a group.
+    pub also_deleted: Vec<laminapdf_model::AnnotId>,
     /// The form fields whose widgets it deleted, reshowed or moved, which the save planner
     /// checks against signed signature fields and field locks (E2 plan §6).
     ///
@@ -100,6 +103,7 @@ pub(crate) struct TxState {
     /// What the ops applied so far did besides their changes (`Applied`'s flags).
     pub(crate) packet_rewritten: bool,
     pub(crate) removed: bool,
+    pub(crate) also_deleted: Vec<laminapdf_model::AnnotId>,
 }
 
 /// An open transaction ([ADR 0006] §2), handed to the closure of
@@ -158,6 +162,7 @@ impl Tx<'_> {
             touched_pages: effect.pages.into_iter().collect(),
             packet_rewritten: effect.packet_rewritten,
             still_in_earlier_revisions: effect.removed,
+            also_deleted: effect.also_deleted,
             widgets: effect.widgets,
         })
     }
@@ -177,6 +182,7 @@ impl Tx<'_> {
                 self.state.pending.record(op, &effect);
                 self.state.packet_rewritten |= effect.packet_rewritten;
                 self.state.removed |= effect.removed;
+                self.state.also_deleted.extend(effect.also_deleted.iter().cloned());
                 Ok(effect)
             }
             Err(e) => {
@@ -254,6 +260,7 @@ mod tests {
             coalesce: None,
             packet_rewritten: false,
             removed: false,
+            also_deleted: Vec::new(),
         }
     }
 
