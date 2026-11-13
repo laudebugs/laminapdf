@@ -28,7 +28,7 @@ Stamp watermarks (append) and backgrounds (prepend) as Form XObjects, optionally
 
 **In scope**
 
-- `AddWatermark`, `AddBackground`, `SetHeaderFooter { template, pages, tokens }`, `ApplyBates { spec }`, and their removal ops for lamina-added items
+- `AddWatermark`, `AddBackground`, `SetHeaderFooter`, `ApplyBates`, `UpdatePageMark` and `DeletePageMark`, with the payloads of the [E6 plan §2.1](../../plans/editor/e6-adding-content.md#21-ops)
 - Batch-ready: Bates across files uses the same op sequence (E14d)
 
 **Out of scope** (and which todo covers it)

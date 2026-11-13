@@ -29,7 +29,7 @@ Add text blocks anywhere: shaped and laid out by laminapdf-text, subset-embedded
 
 **In scope**
 
-- `AddText { page, rect, runs, style, tag }` building a Form XObject with text
+- `AddText { id, page, rect, runs, align, fonts, tag, modified }` building a Form XObject with text, as the [E6 plan §2.1](../../plans/editor/e6-adding-content.md#21-ops) gives it; editing and deleting added text through E6b's `UpdateContentObject` and `DeleteContentObject`
 - Font registry per session: bundled fonts and user-supplied files, as bytes into the core; fonts on the computer are E6h's
 - Symbol picker and fallback chain
 - Tagging: if the doc is tagged, add struct elements and MCIDs (B8 machinery)

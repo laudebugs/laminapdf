@@ -47,7 +47,7 @@ A03's Page marks dialog in the reader: the Watermark, Header & footer and Bates 
 ## Tasks
 
 - [ ] The dialog and its tabs
-- [ ] The preview, drawn through the viewer with the mark applied in a scratch transaction that is rolled back
+- [ ] The preview, drawn by the dialog over the page's rendered picture from the mark's settings (text in the chosen font through the browser, the image, colour, opacity and angle), so nothing is applied until the primary button; the dialog notes that the saved mark may differ slightly
 - [ ] The overlap notice from E6d's check
 - [ ] Manage page marks
 - [ ] e2e
@@ -74,7 +74,7 @@ None.
 
 ## Risks and open questions
 
-- The preview's scratch transaction must never reach the op log or the save count
+- The browser's text rendering can differ from the embedded font's; the preview is close, not exact
 
 ## Definition of done
 

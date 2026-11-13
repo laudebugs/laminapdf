@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [E2e](../done/E2e-content-append-api.md), [E6a](../done/E6a-adding-content-feature-plan.md) |
+| Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [E2e](../done/E2e-content-append-api.md), [E4c](./E4c-appearances-markup-notes-caret.md), [E6a](../done/E6a-adding-content-feature-plan.md) |
 | Dependency notes | [E6a](../done/E6a-adding-content-feature-plan.md), [E2e](../done/E2e-content-append-api.md), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate): builder and `laminapdf` crate) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e6b-place-images-and-shapes` |
@@ -29,9 +29,10 @@ Add new content objects to existing pages through the append API: images (JPEG p
 
 **In scope**
 
-- `AddContentObject { id, page, object: ContentObjectSpec, matrix, opacity, layer, alt }` where `ContentObjectSpec` = Image(BlobId, crop) | Shape(PathSpec, fill, stroke) | Form(BlobId, page), as the [E6 plan §2.1](../../plans/editor/e6-adding-content.md#21-ops) gives them, defined in `laminapdf-ops` (op payload). The name `ContentObject` is reserved for [E7c](E7c-content-ir.md)'s IR type in `laminapdf-content`, so the two never clash
+- `AddContentObject { id, page, object: ContentObjectSpec, matrix, opacity, layer, alt: Option<Alt>, modified }` where `ContentObjectSpec` = Image(BlobId, crop) | Shape(PathSpec, fill, stroke) | Form(BlobId, page), as the [E6 plan §2.1](../../plans/editor/e6-adding-content.md#21-ops) gives them, defined in `laminapdf-ops` (op payload). The name `ContentObject` is reserved for [E7c](E7c-content-ir.md)'s IR type in `laminapdf-content`, so the two never clash
 - `UpdateContentObject` / `DeleteContentObject` for objects Lamina PDF added, found again after a save through each form's `/PieceInfo` ([E6 plan §2.1](../../plans/editor/e6-adding-content.md#21-ops)); `Document::added_objects(page)`
-- `place_form`, the private function the round's ops and E5e, E8g and E2s share (E2e's `AppendContent` op is not added)
+- `place_form`, the private function the round's ops and E5e, E8g and E2s share (E2e's `AppendContent` op is not added), and the `Appearances` method that draws a spec into a Form XObject (E4c's trait)
+- `pdfa-transparency` in `codes.json` and `docs/errors/`: opacity or an alpha channel on a PDF/A-1 file
 - Each object is its own Form XObject with an appended `q cm /FmN Do Q` stream so it can be transformed or removed without parsing existing content
 - Crop of new images via clip in the form
 

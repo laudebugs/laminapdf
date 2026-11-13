@@ -38,24 +38,32 @@ B.01 and B.02 stay at `write`: E6 changes only what Lamina PDF added, and E7d's 
 
 ### 2.1 Ops
 
-Ops name pages by `PageId`, carry every value they write, and take geometry in page space (ADR 0027), converted once through the page's `PageFrame`. Every op is class `Content`; none needs a full rewrite.
+Ops name pages by `PageId`, carry every value they write, and take geometry in page space (ADR 0027), converted once through the page's `PageFrame`. Every adding or changing op carries `modified: PdfDate`, which goes into the form's `/LastModified` and its page-piece dictionary's, both required when `/PieceInfo` is present (ISO 32000-2 §14.5), so no op reads a clock and the output stays byte-deterministic. Every op is class `Content`; none needs a full rewrite.
 
 | Op | Payload | Todo |
 | --- | --- | --- |
-| `AddContentObject` | `{ id: ContentId, page: PageId, object: ContentObjectSpec, matrix, opacity, layer: Front \| Behind, alt: Option<String> }`; `ContentObjectSpec` is `Image { blob: BlobId, crop: Option<RectPt> }`, `Shape { path: PathSpec, fill, stroke }` or `Form { blob: BlobId, page: u32 }` (a page of a PDF in the blob store, drawn as a form) | E6b |
-| `UpdateContentObject` | `{ id: ContentId, matrix, opacity, crop, fill, stroke, alt, order: Option<i32> }`, each field optional; a replaced image is a new `blob` | E6b |
+| `AddContentObject` | `{ id: ContentId, page: PageId, object: ContentObjectSpec, matrix, opacity, layer: Front \| Behind, alt: Option<Alt>, modified }`; `Alt` is `Text(String)` or `Decorative`; `ContentObjectSpec` is `Image { blob: BlobId, crop: Option<RectPt> }`, `Shape { path: PathSpec, fill, stroke }` or `Form { blob: BlobId, page: u32 }` (a page of a PDF in the blob store, drawn as a form) | E6b |
+| `UpdateContentObject` | `{ id: ContentId, modified, matrix, opacity, crop, fill, stroke, alt, order: Option<i32> }`, each field optional; a replaced image is a new `blob` | E6b |
 | `DeleteContentObject` | `{ id: ContentId }` | E6b |
-| `AddText` | `{ id: ContentId, page: PageId, rect: RectPt, runs: Vec<TextRunSpec>, align, fonts: Vec<FontRef>, tag: Option<TagChoice> }`; a `FontRef` is `Blob(BlobId)` or `Standard(Standard14)`; editing and deleting added text is `UpdateContentObject` and `DeleteContentObject` | E6c |
-| `AddWatermark`, `AddBackground` | `{ id: ContentId, pages: Vec<PageId>, mark: Text { text, font: FontRef, size, colour } \| Image { blob: BlobId }, opacity, angle, hideable: bool }` | E6d |
-| `SetHeaderFooter` | `{ id: ContentId, pages: Vec<PageId>, slots: [Option<String>; 6], font: FontRef, size, margins, date: String, file: String }`; tokens are expanded when the op applies (§2.3) | E6d |
-| `ApplyBates` | `{ id: ContentId, pages: Vec<PageId>, prefix, start: u64, digits: u8, suffix, slot, font: FontRef, size }` | E6d |
+| `AddText` | `{ id: ContentId, page: PageId, rect: RectPt, runs: Vec<TextRunSpec>, align, fonts: Vec<FontRef>, tag: Option<TagChoice>, modified }`; a `FontRef` is `Blob(BlobId)` or `Standard(Standard14)`; editing and deleting added text is `UpdateContentObject` and `DeleteContentObject` | E6c |
+| `AddWatermark`, `AddBackground` | `{ id: ContentId, pages: Vec<PageId>, mark: Text { text, font: FontRef, size, colour } \| Image { blob: BlobId }, opacity, angle, hideable: bool, modified }` | E6d |
+| `SetHeaderFooter` | `{ id: ContentId, pages: Vec<PageId>, slots: [Option<String>; 6], font: FontRef, size, margins, date: String, file: String, modified }`; tokens are expanded when the op applies (§2.3) | E6d |
+| `ApplyBates` | `{ id: ContentId, pages: Vec<PageId>, prefix, start: u64, digits: u8, suffix, slot, font: FontRef, size, modified }` | E6d |
 | `UpdatePageMark`, `DeletePageMark` | `{ id: ContentId, … }`: a changed mark is the new payload in place of the old | E6d |
 
-**No `AppendContent` op.** E2e left an `AppendContent` op to this round. A wire op that carries raw content bytes would let any caller write unbalanced or unsafe operators, so there is none: every op is typed, and they share one private function in `laminapdf-ops`, `place_form(page, form, matrix, layer)`, which writes the Form XObject, wraps the page once and appends its drawing stream. E5e's flattening, E8g's form flattening and E2s's page resizing call it from their own ops; whichever of them lands before E6b writes it, and E6b reuses it. Images and fonts reach it as `BlobId`s from the blob store.
+**No `AppendContent` op.** E2e left an `AppendContent` op to this round. A wire op that carries raw content bytes would let any caller write unbalanced or unsafe operators, so there is none: every op is typed, and they share one private function in `laminapdf-ops`, `place_form(page, form, matrix, layer)`, which wraps the page once with E2e's `PageContentWriter` and appends the object's drawing stream; `laminapdf-ops` gains a dependency on `laminapdf-content` for it. E5e's flattening, E8g's form flattening and E2s's page resizing call it from their own ops; whichever of them lands before E6b writes it, and E6b reuses it. Images and fonts reach it as `BlobId`s from the blob store.
 
-**One object, one form, one stream.** Each added object is its own Form XObject (ISO 32000-2 §8.10), drawn by a stream of its own in the page's `/Contents`: `q <matrix> cm /FmN Do Q`, after the wrapped content for `Front` or before it for `Behind`. Moving, resizing or fading an object rewrites that one small stream or its `/ExtGState`; deleting it removes the stream from `/Contents` and the name from the resources. Nothing reads the page's own operators. Stacking order (Bring forward and the rest) reorders added streams among themselves; nothing goes behind original content except a `Behind` object, and E7 handles stacking among existing objects.
+**Drawing the form goes through a trait.** `laminapdf-build` depends on `laminapdf-ops`, so no op can call the builder's `Surface`, as the [E4 plan §2.2](e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated) found for appearances. E6b extends E4's `Appearances` trait, which `laminapdf-ops` defines and `laminapdf-build` implements, with a method that draws a `ContentObjectSpec`, a text block or a page mark into a new Form XObject through the op's `CosMut`; the façade passes the builder's implementation in, as it does for annotations. `laminapdf-text` stays out of `laminapdf-ops`: shaping happens inside the implementation.
 
-**Identity after a save.** Each form carries a page-piece dictionary (ISO 32000-2 §14.5): `/PieceInfo << /LaminaPDF << /LastModified … /Private << /Id (…) /Kind /Image >> >> >>`. A reopened file finds its added objects by scanning the forms that `/Contents` draws through these one-operator streams and reading their `/PieceInfo`; a stream or form someone else changed no longer matches and is left alone, as original content. Acrobat marks its watermarks and headers the same way (`/ADBE_CompoundType`), so the approach is one viewers already keep. `laminapdf reveal` lists these entries under metadata, as it lists anyone's `/PieceInfo`.
+**One object, one form, one stream.** Each added object is its own Form XObject (ISO 32000-2 §8.10), drawn by a stream of its own in the page's `/Contents`, after the wrapped content for `Front` or before it for `Behind`. The stream has exactly this grammar, and the scanner accepts nothing else:
+
+```
+q a b c d e f cm [/GSn gs] [/Tag <<…>> BDC] /FmN Do [EMC] Q
+```
+
+`gs` sets the opacity; `BDC … EMC` is the artifact or the structure element's marked content (§3). Moving, resizing or fading an object rewrites that one small stream; deleting it removes the stream from `/Contents` and the name from the resources. Nothing reads the page's own operators. Stacking order (Bring forward and the rest) reorders added streams among themselves; nothing goes behind original content except a `Behind` object, and E7 handles stacking among existing objects.
+
+**Identity after a save.** Each form carries a page-piece dictionary (ISO 32000-2 §14.5): `/PieceInfo << /LaminaPDF << /LastModified … /Private << /Id (…) /Kind /Image >> >> >>`. A reopened file finds its added objects by matching each stream of `/Contents` against that grammar and reading the `/PieceInfo` of the form it draws; a stream or form someone else changed no longer matches and is left alone, as original content. Acrobat marks the watermarks and headers it adds the same way (`/ADBE_CompoundType` in `/PieceInfo`). `laminapdf reveal` lists these entries under metadata, as it lists anyone's `/PieceInfo`.
 
 ### 2.2 Text
 
@@ -70,15 +78,14 @@ Ops name pages by `PageId`, carry every value they write, and take geometry in p
 
 ## 3. Conformance the edits must keep
 
-- **Tagged PDF and PDF/UA-1.** Added text becomes a `P` element (or an artifact when the user chooses), with MCIDs in its form and the page's `/StructParents`; an image gets a `Figure` with its alt text, or is an artifact when marked as decoration; shapes are artifacts unless given alt text. On a file that claims PDF/UA-1, an image without alt text or decoration is refused (`missing-alt-text`, B8b's code). Page marks are always artifacts.
-- **PDF/A.** Every font added is embedded, colours use the file's output intent or carry an ICC profile, and transparency is refused on PDF/A-1 (`pdfa-transparency`, new). An image with an alpha channel becomes an SMask, which PDF/A-2 and -3 allow.
+- **Tagged PDF and PDF/UA-1.** Added text becomes a `P` element (or an artifact when the user chooses), marked around the `Do` in its drawing stream, so its MCID is the page's and the page's `/StructParents` entry in the parent tree lists it (a marked-content sequence inside the form would need the form's own `/StructParents` and MCRs with `/Stm`, which the one-stream grammar avoids); an image gets a `Figure` with its alt text, or is an artifact when marked as decoration; shapes are artifacts unless given alt text. On a file that claims PDF/UA-1, an image whose `alt` is `None` is refused (`missing-alt-text`, B8b's code); `Decorative` makes it an artifact. Page marks are always artifacts.
+- **PDF/A.** Every font added is embedded, colours use the file's output intent or carry an ICC profile, and transparency is refused on PDF/A-1 (ISO 19005-1 §6.4): an opacity below 1 or an image with an alpha channel raises `pdfa-transparency`, a new code E6b adds to `codes.json` with its `docs/errors` page. On PDF/A-2 and -3 an alpha channel becomes an SMask, which they allow.
 - **Earlier revisions.** An incremental save keeps the page as it was in the previous revision, so `DeleteContentObject` and `DeletePageMark` set `still_in_earlier_revisions`, as every delete does.
 
 ## 4. Crate and package changes
 
-- **`laminapdf-build`**: a `Surface` over a Form XObject that the ops write into an existing document, sharing the page surface's paths, colours, images and text (E6b, E6c).
-- **`laminapdf-ops`**: `place_form`, the ops of §2.1, the added-object scanner and `ContentId` (E6b–E6d).
-- **`laminapdf-model`**: `Document::added_objects(page)`, read from the forms' `/PieceInfo` (E6b).
+- **`laminapdf-build`**: a `Surface` over a Form XObject in an existing document, sharing the page surface's paths, colours, images and text, behind the `Appearances` implementation (E6b, E6c).
+- **`laminapdf-ops`**: `place_form`, the ops of §2.1, `ContentId`, the `Appearances` method, and `Document::added_objects(page)`, the scanner over the drawing streams and the forms' `/PieceInfo`, all in one module (E6b–E6d); a new dependency on `laminapdf-content`.
 - **The façade and bindings.** Each op is on `laminapdf::Document` and `@laminapdf/sdk`'s `Document`, with docs, a Rust and TypeScript example and a frozen sample in `fixtures/ops/v1/` (requirement 7); in TypeScript they are `doc.content.add`, `update`, `remove`, `addText`, `addWatermark`, `addBackground`, `setHeaderFooter`, `applyBates` and `pageMarks`.
 - **`@laminapdf/ui`**: the Edit-mode tools, handles, snapping and inspectors (E6e); the Page marks dialog (E6g).
 - **`apps/desktop`**: fonts on the computer in the font picker, through the engine's existing `SystemFonts` (E6h).
@@ -112,13 +119,13 @@ No server feature: everything runs on the device.
 
 | Todo | What | Depends on |
 | --- | --- | --- |
-| [E6b](../../todos/ready/E6b-place-images-and-shapes.md) | `place_form`, `AddContentObject`, `UpdateContentObject`, `DeleteContentObject`, identity, `added_objects` | E2e, E6a |
+| [E6b](../../todos/ready/E6b-place-images-and-shapes.md) | `place_form`, `AddContentObject`, `UpdateContentObject`, `DeleteContentObject`, identity, `added_objects`, `pdfa-transparency` | E2e, E4c, E6a |
 | [E6c](../../todos/ready/E6c-add-text.md) | `AddText`, fallback, tagging, web font sources | E6b, E4e |
 | [E6d](../../todos/ready/E6d-watermarks-headers-footers.md) | The four page-mark ops with update and delete, tokens, OCG, overlap check | E6c |
 | [E6e](../../todos/ready/E6e-content-tools-ui.md) | Edit-mode tools, handles, snapping, inspectors | E6b, E6c |
 | [E6f](../../todos/ready/E6f-reload-budget.md) | Touched-page reload time measured and budgeted | E6b |
 | [E6g](../../todos/ready/E6g-page-marks-dialog.md) | The Page marks dialog and Manage page marks | E6d, E6e |
-| [E6h](../../todos/ready/E6h-desktop-system-fonts.md) | Fonts on the computer in the desktop font picker | E6c |
+| [E6h](../../todos/ready/E6h-desktop-system-fonts.md) | Fonts on the computer in the desktop font picker | E6c, E6e |
 
 ## 8. Fixtures
 

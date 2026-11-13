@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E6 plan §6](../../plans/editor/e6-adding-content.md#6-differences-between-the-shells) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [D2c](../done/D2c-engine-sandbox.md), [E6c](./E6c-add-text.md) |
+| Depends on | [D2c](../done/D2c-engine-sandbox.md), [E6c](./E6c-add-text.md), [E6e](./E6e-content-tools-ui.md) |
 | ADRs | Follows [0008](../../decisions/0008-desktop-shell.md), [0010](../../decisions/0010-platform-adapter.md) |
 | Branch | `feat/e6h-desktop-system-fonts` |
 | PR title | `feat(desktop): offer the computer's fonts when adding text` |
