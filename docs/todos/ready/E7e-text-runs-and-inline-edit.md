@@ -28,25 +28,26 @@ Detect editable text runs/lines (MCIDs where tagged, heuristics otherwise), edit
 
 **In scope**
 
-- Run detection API
+- Line grouping with glyph ranges in `laminapdf-text`, which `PageText::lines()` then builds on (ADR 0022 §5)
+- Run detection API (`text_runs(page)` in the façade, `doc.content.textRuns` in the SDK)
 - Glyph availability check via font program + encoding/ToUnicode inversion
-- Re-encode and reposition following glyphs on the same line
-- `EditText { run, new_text }` op
-- In-place editor UI with best-effort label
+- Re-encode and reposition following glyphs on the same line ([E7 plan](../../plans/editor/e7-editing-existing-content.md) §2.2)
+- `EditText { run, text }` op; empty text deletes the run
 
 **Out of scope** (and which todo covers it)
 
 - New subsets, substitution, font changes → [E7f](E7f-font-handling-and-styling.md)
+- The in-place editor in the reader → [E7l](E7l-inline-text-editor.md)
 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `A.02` edit existing text; `A.03` delete or replace text
-- **Crates and packages:** `laminapdf-content`, `laminapdf-text`, `@laminapdf/ui`
+- **Crates and packages:** `laminapdf-content`, `laminapdf-text`, `laminapdf-ops`, `laminapdf`, `@laminapdf/sdk`
 - **`Op` variants:** `EditText` (class `Content`)
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked unless the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock` (the signature panel, E10h, reports the later content change)
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `A.02` → `write` (core, pdf, web, desktop); `A.03` → `round-trip` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `A.02` → `write` (core, pdf); `A.03` → `round-trip` (core, pdf); web and desktop in [E7l](E7l-inline-text-editor.md)
 
 ## Tasks
 
@@ -54,7 +55,7 @@ Detect editable text runs/lines (MCIDs where tagged, heuristics otherwise), edit
 - [ ] Glyph check
 - [ ] Re-encode
 - [ ] Op
-- [ ] UI
+- [ ] Façade and SDK
 
 ## Acceptance criteria
 

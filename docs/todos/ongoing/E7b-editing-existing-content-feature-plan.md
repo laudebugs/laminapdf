@@ -11,7 +11,7 @@
 | Branch | `docs/e7b-editing-existing-content-feature-plan` |
 | PR title | `docs(editor): E7 feature plan (editing existing content)` |
 | Size | S (< 200 lines) |
-| PR | — |
+| PR | [#564](https://github.com/laudebugs/laminapdf/pull/564) |
 
 ## Goal
 

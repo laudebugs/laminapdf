@@ -56,9 +56,10 @@ Implement the ADR 0022 IR in `laminapdf-content`: parse a page's content (and Fo
 
 ## Acceptance criteria
 
-- [ ] Parse → encode of every corpus page renders identically (PDFium diff zero) and is byte-identical for ≥ the rate set in ADR 0022
+- [ ] Parse → encode with no edit is byte-identical on every corpus page (ADR 0022 §3 copies every untouched span)
 - [ ] Fuzz 10 min without panic
-- [ ] Parse time within the ADR's budget
+- [ ] Tokenizing and grouping on the external corpus stays within 25 % of the spike's 67 MB/s ([spike README](../../../spikes/content-edit/README.md)), reported, not a CI gate
+- [ ] `content-object-stale` and `content-not-editable` (reasons `type3-font`, `vertical-text`, `no-unicode-map`, `inside-shared-form`, `too-deep`) in `fixtures/codes.json` with their `docs/errors/` pages; `Op` reports an inline image's end offset ([E7 plan](../../plans/editor/e7-editing-existing-content.md) §2.1)
 
 ## Post-merge checks
 

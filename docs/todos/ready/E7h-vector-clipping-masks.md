@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [E7d](./E7d-select-transform-existing.md) |
+| Depends on | [E7d](./E7d-select-transform-existing.md), [E7k](./E7k-select-transform-ui.md) |
 | ADRs | Implements ADR 0022; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e7h-vector-clipping-masks` |
 | PR title | `feat(content): edit vector paths, clipping and masks` |

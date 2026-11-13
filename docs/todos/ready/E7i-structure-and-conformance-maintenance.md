@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E7e](./E7e-text-runs-and-inline-edit.md) |
+| Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E7d](./E7d-select-transform-existing.md), [E7e](./E7e-text-runs-and-inline-edit.md) |
 | Dependency notes | [E7e](E7e-text-runs-and-inline-edit.md), `B8` ([pdf-library §B8](../../plans/pdf-library.md#b8-tagged-pdf-pdfua-and-pdfa): tagged PDF, PDF/UA, PDF/A) |
 | ADRs | Implements ADR 0022; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e7i-structure-and-conformance-maintenance` |
@@ -31,6 +31,8 @@ Keep tagged documents valid across E6/E7 edits: update MCIDs, ParentTree, `/Actu
 - MCID/ParentTree maintenance hooks in `EditContent`/`EditText`
 - Conformance checks reuse B8 profiles
 - Warnings in the save banner
+- `RemoveConformanceClaims { pdfa, pdfua }` (class `Metadata`), the only op that may remove `pdfaid:` and `pdfuaid:`; A07's Save without the claim applies it ([E7 plan](../../plans/editor/e7-editing-existing-content.md) §3, §10)
+- A07's strip, claim badges and Check before saving dialog
 
 **Out of scope** (and which todo covers it)
 

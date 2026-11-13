@@ -138,15 +138,14 @@ round = "E6"
 [[op]]
 id = "B.01"
 name = "Insert, delete, replace images"
-# E6 adds images and changes the ones it added (E6 plan §2); E7d edits existing ones.
-round = "E6"
-target = "write"
+# E6 adds images and changes the ones it added (write, E6 plan §2); E7d and E7k edit existing ones.
+round = "E7"
 
 [[op]]
 id = "B.02"
 name = "Resize, rotate, crop, reposition"
-round = "E6"
-target = "write"
+# E6 reaches write on added objects; E7d and E7k reach round-trip on existing ones.
+round = "E7"
 
 [[op]]
 id = "B.03"
