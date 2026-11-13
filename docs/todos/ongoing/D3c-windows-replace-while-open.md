@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D3c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D3](../../plans/desktop-app.md#d3-files) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [D3b](../done/D3b-recent-files-and-file-watching.md) |
