@@ -250,6 +250,7 @@
             "invalid-date",
             "xmp-invalid",
             "annot-name-duplicate",
+            "xmp-repaired",
             "invalid-page-label",
             "invalid-entry",
             "content-unknown-operator",

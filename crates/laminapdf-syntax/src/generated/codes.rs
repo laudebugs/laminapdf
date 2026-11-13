@@ -952,6 +952,8 @@ pub enum WarningCode {
     XmpInvalid,
     /// `annot-name-duplicate`: two annotations on one page have the same name (/NM), which should be unique on its page.
     AnnotNameDuplicate,
+    /// `xmp-repaired`: the XMP metadata packet had damage other readers read past, and was read the same way.
+    XmpRepaired,
     /// `invalid-page-label`: a /PageLabels entry is malformed; the malformed part is dropped.
     InvalidPageLabel,
     /// `invalid-entry`: an entry a view reads is unreadable or of the wrong type and reads as absent.
@@ -1048,6 +1050,7 @@ impl WarningCode {
         Self::InvalidDate,
         Self::XmpInvalid,
         Self::AnnotNameDuplicate,
+        Self::XmpRepaired,
         Self::InvalidPageLabel,
         Self::InvalidEntry,
         Self::ContentUnknownOperator,
@@ -1126,6 +1129,7 @@ impl WarningCode {
             Self::InvalidDate => "invalid-date",
             Self::XmpInvalid => "xmp-invalid",
             Self::AnnotNameDuplicate => "annot-name-duplicate",
+            Self::XmpRepaired => "xmp-repaired",
             Self::InvalidPageLabel => "invalid-page-label",
             Self::InvalidEntry => "invalid-entry",
             Self::ContentUnknownOperator => "content-unknown-operator",
@@ -1190,6 +1194,7 @@ impl WarningCode {
             Self::InvalidDate => ErrorKind::Input,
             Self::XmpInvalid => ErrorKind::Input,
             Self::AnnotNameDuplicate => ErrorKind::Input,
+            Self::XmpRepaired => ErrorKind::Input,
             Self::InvalidPageLabel => ErrorKind::Input,
             Self::InvalidEntry => ErrorKind::Input,
             Self::ContentUnknownOperator => ErrorKind::Input,
@@ -1254,6 +1259,7 @@ impl WarningCode {
             Self::InvalidDate => "an Info date is not a valid PDF date; the raw string is kept",
             Self::XmpInvalid => "the XMP metadata packet is not readable XMP and reads as absent",
             Self::AnnotNameDuplicate => "two annotations on one page have the same name (/NM), which should be unique on its page",
+            Self::XmpRepaired => "the XMP metadata packet had damage other readers read past, and was read the same way",
             Self::InvalidPageLabel => "a /PageLabels entry is malformed; the malformed part is dropped",
             Self::InvalidEntry => "an entry a view reads is unreadable or of the wrong type and reads as absent",
             Self::ContentUnknownOperator => "an operator the spec does not define was skipped outside a BX/EX section",
@@ -1318,6 +1324,7 @@ impl WarningCode {
             Self::InvalidDate => "read the raw value from the Info view if you need it",
             Self::XmpInvalid => "nothing to do; a metadata edit asks before replacing it",
             Self::AnnotNameDuplicate => "nothing to do; both are kept, and annotations are told apart by their own IDs",
+            Self::XmpRepaired => "nothing to do; a metadata edit writes the declarations the packet left out",
             Self::InvalidPageLabel => "nothing to do; affected pages fall back to decimal labels",
             Self::InvalidEntry => "nothing to do; the view uses the entry's default",
             Self::ContentUnknownOperator => "nothing to do; check the page's rendering if the operator mattered",

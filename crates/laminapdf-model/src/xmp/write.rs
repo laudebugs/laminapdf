@@ -302,7 +302,11 @@ pub(super) fn in_place(text: &str, top: &[Node], rdf: &Rdf, changes: &[Change<'_
         match &p.place {
             Place::Element(span) => {
                 // The element's own declarations go on its replacement: its prefix may need them.
+                // A standard prefix the packet used undeclared gets its declaration there too.
                 let mut declarations = p.declarations.clone();
+                if description.scope.with(&declarations).resolve(&p.prefix).is_none() {
+                    declarations.push(Binding::new(&p.prefix, mapping.namespace));
+                }
                 let scope = description.scope.with(&declarations);
                 let rdf_name = rdf_prefix(&scope, &mut declarations);
                 let others = alternatives(rdf, mapping, value);
@@ -319,6 +323,11 @@ pub(super) fn in_place(text: &str, top: &[Node], rdf: &Rdf, changes: &[Change<'_
                     range: span.clone(),
                     text: format!("{name}={quote}{escaped}{quote}"),
                 });
+                // A standard prefix the packet used undeclared is declared on its description.
+                let added = additions.get_mut(p.description)?;
+                if description.scope.with(&added.declarations).resolve(&p.prefix).is_none() {
+                    added.declarations.push(Binding::new(&p.prefix, mapping.namespace));
+                }
             }
             Place::Attribute(_) => {
                 // An array can't be an attribute: the property becomes an element.
@@ -529,6 +538,15 @@ pub(super) fn canonical(text: &str, rdf: &Rdf, changes: &[Change<'_>]) -> String
         .into_iter()
         .filter(|b| b.prefix != "xml")
         .collect();
+    // A standard prefix the packet used undeclared is declared with the rest, so the
+    // properties copied as written keep their meaning for every reader.
+    for p in &rdf.properties {
+        let description = rdf.descriptions.get(p.description);
+        let bound = description.is_some_and(|d| d.scope.with(&p.declarations).resolve(&p.prefix).is_some());
+        if !bound && !root.iter().any(|b| b.prefix == p.prefix) {
+            root.push(Binding::new(&p.prefix, &p.property.namespace));
+        }
+    }
     let rdf_name = if let Some(p) = rdf.scope.prefix_for(RDF) {
         p.to_owned()
     } else {

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [B4b](../done/B4b-shaping-bidi-line-breaking.md), [B4c](../done/B4c-standard-14-and-simple-fonts.md), [B8a](../done/B8a-structure-tree.md), [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E6b](./E6b-place-images-and-shapes.md), [X3a](../done/X3a-nightly-lane.md) |
+| Depends on | [B4b](../done/B4b-shaping-bidi-line-breaking.md), [B4c](../done/B4c-standard-14-and-simple-fonts.md), [B8a](../done/B8a-structure-tree.md), [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E4e](./E4e-freetext-callouts.md), [E6b](./E6b-place-images-and-shapes.md), [X3a](../done/X3a-nightly-lane.md) |
 | Dependency notes | [E6b](E6b-place-images-and-shapes.md), `B4` ([pdf-library §B4](../../plans/pdf-library.md#b4-fonts-and-text): fonts, shaping, subsetting) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e6c-add-text` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Add text blocks anywhere: shaped and laid out by laminapdf-text, subset-embedded fonts with ToUnicode, font fallback for symbols and special characters, tagged as Span/P when the document is tagged (or as Artifact on request); desktop can use system fonts discovered at the edge and passed into the core as bytes.
+Add text blocks anywhere: shaped and laid out by laminapdf-text, subset-embedded fonts with ToUnicode, font fallback for symbols and special characters, tagged as Span/P when the document is tagged (or as Artifact on request); on the desktop, fonts on the computer join the list in [E6h](E6h-desktop-system-fonts.md).
 
 ## Context
 
@@ -29,32 +29,33 @@ Add text blocks anywhere: shaped and laid out by laminapdf-text, subset-embedded
 
 **In scope**
 
-- `AddText { page, rect, runs, style, tag }` building a Form XObject with text
-- Font registry per session: bundled fonts (web), user-supplied, system fonts (desktop edge discovery: CoreText, DirectWrite, fontconfig) → bytes into core
+- `AddText { id, page, rect, runs, align, fonts, tag, modified }` building a Form XObject with text, as the [E6 plan §2.1](../../plans/editor/e6-adding-content.md#21-ops) gives it; editing and deleting added text through E6b's `UpdateContentObject` and `DeleteContentObject`
+- Font registry per session: bundled fonts and user-supplied files, as bytes into the core; fonts on the computer are E6h's
 - Symbol picker and fallback chain
 - Tagging: if the doc is tagged, add struct elements and MCIDs (B8 machinery)
 
 **Out of scope** (and which todo covers it)
 
-- None
+- Fonts on the computer in the desktop font picker → [E6h](E6h-desktop-system-fonts.md)
+- The Add text tool → [E6e](E6e-content-tools-ui.md)
 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `A.01` add text anywhere on a page; `A.12` insert special characters and symbols
-- **Crates and packages:** `laminapdf-text`, `laminapdf-build`, `laminapdf-content`, `apps/desktop/src-tauri` (font discovery)
+- **Crates and packages:** `laminapdf-text`, `laminapdf-build`, `laminapdf-content`
 - **`Op` variants:** `AddText` (class `Content`)
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked unless the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock` (the signature panel, E10h, reports the later content change)
-- **Web vs desktop:** desktop: system fonts (respect `fsType` embedding permissions); web: bundled OFL fonts and user-supplied files
+- **Web vs desktop:** identical in the core: fonts arrive as bytes; which fonts each shell offers is [issue #532](https://github.com/laudebugs/laminapdf/issues/532) (web) and [E6h](E6h-desktop-system-fonts.md) (desktop)
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `A.01` → `round-trip` (core, pdf); `A.12` → `round-trip` (core, pdf) (web and desktop columns flip once, in [E6e](E6e-content-tools-ui.md), with the UI)
 
 ## Tasks
 
 - [ ] AddText op
-- [ ] Font registry and edge discovery (desktop, load `/tauri-v2`)
+- [ ] Font sources on web, as decided in [issue #532](https://github.com/laudebugs/laminapdf/issues/532) (fonts on the computer are [E6h](E6h-desktop-system-fonts.md)'s)
 - [ ] Fallback
 - [ ] Tagging integration
-- [ ] Text tool UI
+- [ ] `appearance-needs-text` in the base module; E4e's fonts in the extract module reused
 
 ## Acceptance criteria
 

@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 
 use laminapdf_model::xmp::{MAPPINGS, MappedField, Packet, PacketState, ParseError, RdfProperty, Value};
 use laminapdf_model::{Document, OpenOptions, PdfDate};
-use laminapdf_test_fixtures::{classic_with_root, fixture, fixtures_dir, stream_body};
+use laminapdf_test_fixtures::{classic, fixture, fixtures_dir, stream_body};
 
 /// The producers' packets: `fixtures/golden/xmp/<name>.xmp` (provenance in fixtures/README.md).
 const PRODUCERS: [&str; 5] = ["acrobat", "word", "libreoffice", "pdftex", "ghostscript"];
@@ -160,15 +160,13 @@ fn a_packet_with_a_dtd_is_refused() {
 }
 
 fn metadata_pdf(packet: &[u8]) -> Vec<u8> {
-    let stream = String::from_utf8(stream_body("/Type /Metadata /Subtype /XML", packet)).unwrap();
-    classic_with_root(
-        &[
-            "<< /Type /Catalog /Pages 2 0 R /Metadata 3 0 R >>",
-            "<< /Type /Pages /Kids [] /Count 0 >>",
-            &stream,
-        ],
-        "",
-    )
+    let stream = stream_body("/Type /Metadata /Subtype /XML", packet);
+    let bodies: [&[u8]; 3] = [
+        b"<< /Type /Catalog /Pages 2 0 R /Metadata 3 0 R >>",
+        b"<< /Type /Pages /Kids [] /Count 0 >>",
+        &stream,
+    ];
+    classic(&bodies, "<< /Size 4 /Root 1 0 R >>")
 }
 
 /// capability: J.04 core read
@@ -207,6 +205,33 @@ fn a_malformed_packet_raises_xmp_invalid_and_reads_as_absent() {
         (state.is_malformed(), state.packet().is_none(), codes),
         (true, true, vec!["xmp-invalid"])
     );
+}
+
+/// A packet with a mangled header byte-order mark (EF BB 3F) that writes `dc:title` without
+/// declaring `dc:`, as PDFium's XFA test files and pdf.js's issue20453.pdf do between them.
+const DAMAGED: &[u8] = b"<?xpacket begin=\"\xEF\xBB?\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?><x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"><rdf:Description rdf:about=\"\"><dc:title><rdf:Alt><rdf:li xml:lang=\"x-default\">Read</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end=\"w\"?>";
+
+#[test]
+fn a_repaired_packet_is_read_and_raises_xmp_repaired_for_each_repair() {
+    let doc = Document::open(metadata_pdf(DAMAGED), OpenOptions::default()).unwrap();
+    let state = doc.xmp().unwrap();
+    let reasons: Vec<&str> = doc
+        .warnings()
+        .iter()
+        .filter_map(|w| match w {
+            laminapdf_model::Warning::XmpRepaired { reason, .. } => Some(*reason),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(state.packet().and_then(Packet::title).as_deref(), Some("Read"));
+    assert_eq!(reasons, ["header-encoding", "undeclared-prefix"]);
+    assert_eq!(doc.warnings().len(), 2);
+}
+
+#[test]
+fn strict_mode_refuses_a_repaired_packet() {
+    let doc = Document::open(metadata_pdf(DAMAGED), OpenOptions::default().with_strict(true)).unwrap();
+    assert!(doc.xmp().is_err());
 }
 
 #[test]

@@ -176,6 +176,7 @@ export type WarningCode =
   | "invalid-date"
   | "xmp-invalid"
   | "annot-name-duplicate"
+  | "xmp-repaired"
   | "invalid-page-label"
   | "invalid-entry"
   | "content-unknown-operator"
@@ -390,6 +391,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "invalid-date",
   "xmp-invalid",
   "annot-name-duplicate",
+  "xmp-repaired",
   "invalid-page-label",
   "invalid-entry",
   "content-unknown-operator",
@@ -453,6 +455,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "invalid-date": "input",
   "xmp-invalid": "input",
   "annot-name-duplicate": "input",
+  "xmp-repaired": "input",
   "invalid-page-label": "input",
   "invalid-entry": "input",
   "content-unknown-operator": "input",
@@ -641,6 +644,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "invalid-date": "read the raw value from the Info view if you need it",
   "xmp-invalid": "nothing to do; a metadata edit asks before replacing it",
   "annot-name-duplicate": "nothing to do; both are kept, and annotations are told apart by their own IDs",
+  "xmp-repaired": "nothing to do; a metadata edit writes the declarations the packet left out",
   "invalid-page-label": "nothing to do; affected pages fall back to decimal labels",
   "invalid-entry": "nothing to do; the view uses the entry's default",
   "content-unknown-operator": "nothing to do; check the page's rendering if the operator mattered",
