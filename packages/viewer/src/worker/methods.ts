@@ -8,7 +8,9 @@ import type { FindOptions } from "../find/fold.js";
 import type {
   BackendInit,
   ExportedPage,
+  ExportedTiff,
   ExportPageOptions,
+  ExportTiffOptions,
   PrintOptions,
   ReplayedStep,
   SavedCopy,
@@ -36,6 +38,7 @@ import {
   stepEdit,
 } from "./edit.js";
 import { exportPage } from "./export.js";
+import { exportTiff } from "./export-tiff.js";
 import { find, forgetSearch } from "./find.js";
 import { forgetLinks, namedDestination, outline, pageLinks } from "./navigation.js";
 import { networkLog } from "./network.js";
@@ -128,6 +131,14 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   },
   printPage: {
     run: ([index, options], { signal }) => printPage(index as number, options as PrintOptions, signal),
+  },
+  exportTiff: {
+    run: ([indexes, options], { signal }) =>
+      exportTiff(indexes as readonly number[], options as ExportTiffOptions, signal),
+    reply: (tiff) => {
+      const exported = tiff as ExportedTiff;
+      return [exported, exported.files.map((file) => file.buffer)];
+    },
   },
   exportPage: {
     run: ([index, options], { signal }) => exportPage(index as number, options as ExportPageOptions, signal),

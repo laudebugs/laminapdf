@@ -313,12 +313,16 @@
       "wasmGzip": 657000
     },
     "extract": {
-      "glueGzip": 5000,
+      "glueGzip": 5200,
       "wasmGzip": 1003000
     },
     "render_hayro": {
       "glueGzip": 5000,
       "wasmGzip": 1855000
+    },
+    "tiff": {
+      "glueGzip": 5000,
+      "wasmGzip": 70000
     },
     "text": {
       "glueGzip": 6000,

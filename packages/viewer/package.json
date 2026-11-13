@@ -47,7 +47,8 @@
     "@laminapdf/sdk": "workspace:*",
     "@laminapdf/render": "workspace:*",
     "@laminapdf/render-hayro": "workspace:*",
-    "@laminapdf/render-pdfium": "workspace:*"
+    "@laminapdf/render-pdfium": "workspace:*",
+    "@laminapdf/wasm": "workspace:*"
   },
   "devDependencies": {
     "@embedpdf/pdfium": "2.15.1",

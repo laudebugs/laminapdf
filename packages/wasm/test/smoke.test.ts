@@ -10,6 +10,7 @@ import * as base from "../dist/lamina_pdf_base.js";
 import * as extract from "../dist/lamina_pdf_extract.js";
 import * as hayro from "../dist/lamina_pdf_render_hayro.js";
 import * as text from "../dist/lamina_pdf_text.js";
+import * as tiff from "../dist/lamina_pdf_tiff.js";
 
 const read = (path: string): Uint8Array => new Uint8Array(readFileSync(fromRoot(path)));
 
@@ -17,6 +18,7 @@ base.initSync({ module: read("packages/wasm/dist/lamina_pdf_base.wasm") });
 text.initSync({ module: read("packages/wasm/dist/lamina_pdf_text.wasm") });
 extract.initSync({ module: read("packages/wasm/dist/lamina_pdf_extract.wasm") });
 hayro.initSync({ module: read("packages/wasm/dist/lamina_pdf_render_hayro.wasm") });
+tiff.initSync({ module: read("packages/wasm/dist/lamina_pdf_tiff.wasm") });
 
 /** What a failed call threw: the ADR 0026 §1 object. */
 function thrown(f: () => unknown): Record<string, unknown> {
@@ -166,6 +168,36 @@ describe("lamina_pdf_render_hayro", () => {
   });
 });
 
+describe("lamina_pdf_tiff", () => {
+  /** The image file directories a little-endian TIFF chains, as their entry counts. */
+  function directories(file: Uint8Array): number[] {
+    const view = new DataView(file.buffer, file.byteOffset, file.byteLength);
+    const counts: number[] = [];
+    for (let at = view.getUint32(4, true); at !== 0; ) {
+      const entries = view.getUint16(at, true);
+      counts.push(entries);
+      at = view.getUint32(at + 2 + entries * 12, true);
+    }
+    return counts;
+  }
+
+  it("writes one page per addPage into one little-endian file", () => {
+    using file = new tiff.TiffFile();
+    file.addPage(2, 1, new Uint8Array([255, 0, 0, 255, 0, 0, 255, 255]), 300);
+    file.addPage(1, 1, new Uint8Array([0, 255, 0, 255]), 72);
+    const bytes = file.finish();
+    expect(Array.from(bytes.subarray(0, 4))).toEqual([0x49, 0x49, 42, 0]);
+    expect(directories(bytes)).toHaveLength(2);
+  });
+
+  it("takes no page after it finished", () => {
+    using file = new tiff.TiffFile();
+    file.addPage(1, 1, new Uint8Array(4), 72);
+    file.finish();
+    expect(thrown(() => file.addPage(1, 1, new Uint8Array(4), 72)).code).toBe("invalid-argument");
+  });
+});
+
 describe("errors thrown by both modules", () => {
   const schema = JSON.parse(readFileSync(fromRoot("crates/laminapdf/schemas/error.schema.json"), "utf8")) as object;
   const validate = new Ajv2020({ allErrors: true, strict: true }).compile(schema);
@@ -189,6 +221,7 @@ describe("errors thrown by both modules", () => {
     ["lamina_pdf_render_hayro", "invalid-argument", () => new hayro.InputBuffer(4).write(2, new Uint8Array(4))],
     ["lamina_pdf_render_hayro", "page-index-out-of-range", () => open(hello()).page(5)],
     ["lamina_pdf_render_hayro", "render-too-large", () => open(hello(), 0).plan(0, 1, 0, 0, 0, 0, 0, 0, undefined)],
+    ["lamina_pdf_tiff", "invalid-argument", () => new tiff.TiffFile().addPage(2, 2, new Uint8Array(4), 72)],
   ];
 
   for (const [module, code, call] of cases) {

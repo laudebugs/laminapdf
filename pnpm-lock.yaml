@@ -928,6 +928,9 @@ importers:
       '@laminapdf/sdk':
         specifier: workspace:*
         version: link:../sdk
+      '@laminapdf/wasm':
+        specifier: workspace:*
+        version: link:../wasm
     devDependencies:
       '@embedpdf/pdfium':
         specifier: 2.15.1

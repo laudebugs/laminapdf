@@ -3,7 +3,7 @@
 // density) as the Rust export writes it, so the image prints at the page's size. One page per
 // call: the pixels of the page before are released before the next is drawn.
 
-import type { RenderRequest } from "@laminapdf/render";
+import type { RenderedTile, RenderRequest } from "@laminapdf/render";
 import type { ExportedPage, ExportPageOptions } from "../protocol.js";
 import { current, filling } from "./document.js";
 
@@ -22,14 +22,7 @@ export async function exportPage(
   options: ExportPageOptions,
   signal: AbortSignal,
 ): Promise<ExportedPage> {
-  if (!(options.dpi > 0 && Number.isFinite(options.dpi))) throw new RangeError("dpi must be a positive number");
-  const doc = current();
-  const page = doc.render.page(index);
-  const area = page.width * page.height;
-  const dpi = Math.min(options.dpi, 72 * Math.sqrt(MAX_EXPORT_PIXELS / Math.max(1, area)));
-  const request: RenderRequest = { page: index, scale: scaleFor(dpi) };
-  const tile = await filling(doc.remote, () => doc.render.render(request, { signal }), signal);
-  signal.throwIfAborted();
+  const { tile, dpi } = await drawForExport(index, options.dpi, signal);
   const canvas = new OffscreenCanvas(tile.width, tile.height);
   const context = canvas.getContext("2d");
   if (context === null) throw new Error("no 2D context for exporting");
@@ -43,6 +36,31 @@ export async function exportPage(
   const bytes = new Uint8Array(await blob.arrayBuffer());
   const image = jpeg ? withJpegDensity(bytes, dpi) : withPngDensity(bytes, dpi);
   return { image, width: tile.width, height: tile.height, dpi };
+}
+
+/**
+ * The resolution page `index` is exported at when `wanted` is asked for: `wanted`, lowered when
+ * the page would pass MAX_EXPORT_PIXELS.
+ */
+export function exportDpi(index: number, wanted: number): number {
+  if (!(wanted > 0 && Number.isFinite(wanted))) throw new RangeError("dpi must be a positive number");
+  const page = current().render.page(index);
+  const area = page.width * page.height;
+  return Math.min(wanted, 72 * Math.sqrt(MAX_EXPORT_PIXELS / Math.max(1, area)));
+}
+
+/** Page `index` drawn on white at {@link exportDpi}`(index, wanted)`, and that resolution. */
+export async function drawForExport(
+  index: number,
+  wanted: number,
+  signal: AbortSignal,
+): Promise<{ tile: RenderedTile; dpi: number }> {
+  const dpi = exportDpi(index, wanted);
+  const doc = current();
+  const request: RenderRequest = { page: index, scale: scaleFor(dpi) };
+  const tile = await filling(doc.remote, () => doc.render.render(request, { signal }), signal);
+  signal.throwIfAborted();
+  return { tile, dpi };
 }
 
 /**

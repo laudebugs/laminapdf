@@ -45,6 +45,7 @@ laminapdf = { version = "0.2.0-alpha.6", path = "crates/laminapdf", default-feat
 laminapdf-render = { version = "0.2.0-alpha.6", path = "crates/laminapdf-render" }
 laminapdf-render-pdfium = { version = "0.2.0-alpha.6", path = "crates/laminapdf-render-pdfium" }
 laminapdf-render-wasm = { version = "0.2.0-alpha.6", path = "crates/laminapdf-render-wasm" }
+laminapdf-tiff-wasm = { version = "0.2.0-alpha.6", path = "crates/laminapdf-tiff-wasm" }
 # The desktop reader's engine process and its protocol (ADR 0008 §3): app crates, never published.
 laminapdf-desktop-protocol = { version = "0.2.0-alpha.6", path = "crates/laminapdf-desktop-protocol" }
 laminapdf-desktop-engine = { version = "0.2.0-alpha.6", path = "crates/laminapdf-desktop-engine" }

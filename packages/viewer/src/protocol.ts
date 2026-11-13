@@ -236,6 +236,7 @@ export interface Methods {
   properties: { params: []; result: DocumentProperties };
   printPage: { params: [index: number, options: PrintOptions]; result: PrintedPage };
   exportPage: { params: [index: number, options: ExportPageOptions]; result: ExportedPage };
+  exportTiff: { params: [indexes: readonly number[], options: ExportTiffOptions]; result: ExportedTiff };
   fileBytes: { params: []; result: Uint8Array };
   find: { params: [query: string, options: FindOptions, pages: readonly number[]]; result: FindPageResult[] };
   readingOrder: { params: [index: number]; result: ReadingBlock[] };
@@ -291,6 +292,25 @@ export interface ExportedPage {
   readonly height: number;
   /** The resolution it was drawn at: below the one asked for when the page was too large. */
   readonly dpi: number;
+}
+
+/** How pages are exported as TIFF. */
+export interface ExportTiffOptions {
+  /** Dots per inch. Lowered for a page too large to hold. */
+  readonly dpi: number;
+  /**
+   * Every page in one file. Pages whose pixels pass the export's memory budget (256 MiB) still
+   * come as a file each.
+   */
+  readonly multiPage: boolean;
+}
+
+/** Pages exported as TIFF. */
+export interface ExportedTiff {
+  /** One file, multi-page, or one file per page, in page order. */
+  readonly files: readonly Uint8Array<ArrayBuffer>[];
+  /** Each page's resolution, in page order: below the one asked for when a page was too large. */
+  readonly dpis: readonly number[];
 }
 
 /** One page's find results: each match as its quads (8 numbers per run it touches), in page space. */
