@@ -32,6 +32,6 @@ xdotool windowactivate --sync "$main" 2>/dev/null; sleep 1
 eval "$(geom "$new")"; nx=$X; ny=$Y
 echo "new window at $nx,$ny"
 # The main window's one tab, dropped on the new window's middle.
-drag $((mx + 108)) $((my + 40)) $((nx + 300)) $((ny + 300)) 1.2 4-mid-onto
+drag $((mx + 108)) $((my + 40)) $((nx + 1000)) $((ny + 300)) 1.2 4-mid-onto
 echo "## after drag onto"; windows; shot 5-after-onto
 grep -iv tile "$out/app.log" | tail -20

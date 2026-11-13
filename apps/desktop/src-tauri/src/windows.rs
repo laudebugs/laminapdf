@@ -178,6 +178,13 @@ pub(crate) fn build_window(app: &AppHandle, label: &str, corner: Option<Position
             let _ = window.destroy();
             return Err(error.into());
         }
+        // X11 window managers may place a window as it maps, whatever it asked for; a move once
+        // it shows is a request they follow.
+        if cfg!(target_os = "linux")
+            && let Err(error) = window.set_position(at)
+        {
+            tracing::warn!("could not place a new window under the cursor: {error}");
+        }
     }
     Ok(())
 }
