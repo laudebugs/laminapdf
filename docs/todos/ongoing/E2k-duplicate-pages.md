@@ -11,7 +11,7 @@
 | Branch | `feat/e2k-duplicate-pages` |
 | PR title | `feat(ops): duplicate pages with fresh fields and structure` |
 | Size | L (400–800): one op whose work is cloning annotations, widgets and structure elements, with bindings |
-| PR | — |
+| PR | [laudebugs/laminapdf#543](https://github.com/laudebugs/laminapdf/pull/543) |
 
 ## Goal
 
