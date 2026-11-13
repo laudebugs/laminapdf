@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 22 | 5 | 16 | 0 | 126 | 32 |
+| core | 169 | 25 | 5 | 16 | 0 | 123 | 35 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
 | web | 168 | 12 | 0 | 1 | 0 | 155 | 13 |
 | desktop | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
@@ -78,9 +78,9 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| D.01 | Highlight / underline / strike through | — | — | — | — | E4 round-trip |  |
-| D.02 | Sticky notes & text comments | — | — | — | — | E4 round-trip |  |
-| D.03 | Text-correction annotations | — | — | — | — | E4 round-trip |  |
+| D.01 | Highlight / underline / strike through | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| D.02 | Sticky notes & text comments | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| D.03 | Text-correction annotations | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | D.04 | Freehand ink | — | — | — | — | E4 round-trip |  |
 | D.05 | Shapes, lines, arrows | — | — | — | — | E4 round-trip |  |
 | D.06 | Callouts & text boxes | — | — | — | — | E4 round-trip |  |

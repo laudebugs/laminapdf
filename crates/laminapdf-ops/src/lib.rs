@@ -102,7 +102,11 @@ mod wire;
 #[cfg(test)]
 use laminapdf_test_fixtures::codes as test_codes;
 
-pub use annot::{DeleteAnnot, Offset, UpdateAnnot};
+pub use annot::{
+    AddAnnot, AnnotColor, AnnotCommon, AnnotSpec, AnnotSpecPatch, Appearance, AppearanceRequest, Appearances, Caret,
+    CaretPatch, CaretSymbol, DeleteAnnot, IntentSpace, MarkupKind, Note, NoteIcon, NotePatch, Offset, Opacity,
+    TextMarkup, TextMarkupPatch, UpdateAnnot,
+};
 pub use blob::{BlobId, BlobStore, ParseBlobIdError, SourceId};
 pub use class::ModificationClass;
 pub use document::{Document, PendingRebase, SaveState};

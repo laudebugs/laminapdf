@@ -7,13 +7,13 @@
 //! one (`link-uri-refused`), so no op writes a link that runs a script. In a tagged document a
 //! new link joins the structure tree as a `Link` element ([`tags`]).
 
-mod tags;
+pub(crate) mod tags;
 
 use laminapdf_cos::{Dict, ObjRef, Object};
 use laminapdf_model::{AnnotFlags, AnnotId, AnnotSubtype, PageId, UserSpacePoint, UserSpaceRect};
 use serde::{Deserialize, Serialize};
 
-use crate::annot::{DeleteAnnot, Found, every_annotation, object_dict, set_text};
+use crate::annot::{DeleteAnnot, Found, every_annotation, object_dict, quad_points, set_text};
 use crate::error::{Error, Result};
 use crate::op::Effect;
 use crate::outline::OutlineTarget;
@@ -337,19 +337,8 @@ fn numbers<const N: usize>(values: [f64; N]) -> Object {
     Object::Array(values.into_iter().map(Object::Real).collect())
 }
 
-/// `/QuadPoints`: eight numbers per quad, in the order given.
-fn quad_points(quads: &[[UserSpacePoint; 4]]) -> Object {
-    Object::Array(
-        quads
-            .iter()
-            .flatten()
-            .flat_map(|p| [Object::Real(p.x), Object::Real(p.y)])
-            .collect(),
-    )
-}
-
 /// Appends `annot` to the page's `/Annots`, in the array object when the page names one.
-fn append_annot(doc: &mut laminapdf_model::Document, page: ObjRef, annot: ObjRef) -> Result<()> {
+pub(crate) fn append_annot(doc: &mut laminapdf_model::Document, page: ObjRef, annot: ObjRef) -> Result<()> {
     let page_dict = object_dict(doc, page)?.unwrap_or_default();
     if let Some(Object::Ref(array)) = page_dict.get("Annots") {
         let mut cos = doc.cos_mut().edit();

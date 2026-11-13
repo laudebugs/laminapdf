@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use laminapdf_cos::{OpenOptions, Reserved, Source};
 
+use crate::annot::{Appearances, Generator};
 use crate::blob::{BlobStore, SourceId};
 use crate::error::{Error, Result};
 use crate::history::{Entry, History, Reverted, UndoOutcome};
@@ -57,6 +58,8 @@ pub struct Document {
     blobs: BlobStore,
     /// The source documents added in this session, opened (and decrypted).
     sources: Sources,
+    /// What draws new annotations' appearances (E4 plan §2.2).
+    appearances: Option<Generator>,
 }
 
 /// What a save that wrote its bytes means for the rebase onto them
@@ -117,6 +120,7 @@ impl From<laminapdf_model::Document> for Document {
             pending,
             blobs: BlobStore::default(),
             sources: BTreeMap::new(),
+            appearances: None,
         }
     }
 }
@@ -130,6 +134,18 @@ impl ops::Deref for Document {
 }
 
 impl Document {
+    /// The same document, drawing the appearances of the annotations its ops make with
+    /// `appearances` (`laminapdf-build`'s `AnnotationAppearances`). Without one, an op that
+    /// draws an annotation fails with [`Error::AppearanceUnavailable`]; the `laminapdf` façade
+    /// always sets it.
+    ///
+    /// Added in 0.3.0.
+    #[must_use]
+    pub fn with_appearances(mut self, appearances: impl Appearances + Send + 'static) -> Self {
+        self.appearances = Some(Generator(Box::new(appearances)));
+        self
+    }
+
     /// Opens a PDF for editing ([`laminapdf_cos::Document::open`]).
     ///
     /// # Errors
@@ -480,6 +496,7 @@ impl Document {
             doc: &mut self.model,
             sources: &self.sources,
             state,
+            appearances: self.appearances.as_ref().map(|g| &*g.0 as &dyn Appearances),
         })
     }
 

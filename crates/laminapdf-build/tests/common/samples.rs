@@ -14,7 +14,7 @@ use laminapdf_test_fixtures::fixture;
 pub type Build = fn() -> Vec<u8>;
 
 /// Every golden: its file name under `fixtures/golden/` and the code that builds it.
-pub const GOLDENS: [(&str, Build); 9] = [
+pub const GOLDENS: [(&str, Build); 10] = [
     ("vectors.pdf", vectors),
     ("images.pdf", images),
     ("build-text-latin.pdf", text_and_navigation::text_latin),
@@ -24,6 +24,7 @@ pub const GOLDENS: [(&str, Build); 9] = [
     ("tagged-report.pdf", tagged::tagged_report),
     ("tagged-across-pages.pdf", across_pages::tagged_across_pages),
     ("flow-table.pdf", flow_table::flow_table),
+    ("annots/markup.pdf", super::annots::markup),
 ];
 
 fn options() -> BuildOptions {

@@ -241,7 +241,7 @@ pub(super) fn untag(doc: &mut laminapdf_model::Document, annot: ObjRef) -> Resul
 }
 
 /// The owner of each MCID on the page whose `/StructParents` is `key`.
-fn owners(doc: &laminapdf_model::Document, tree: &ParentTree, key: Option<i64>) -> Result<Vec<Object>> {
+pub(crate) fn owners(doc: &laminapdf_model::Document, tree: &ParentTree, key: Option<i64>) -> Result<Vec<Object>> {
     let Some(value) = key.and_then(|k| tree.entries.get(&k)) else {
         return Ok(Vec::new());
     };
@@ -250,7 +250,7 @@ fn owners(doc: &laminapdf_model::Document, tree: &ParentTree, key: Option<i64>) 
 
 /// The element a link with no content of its own joins: the document element (the root's first
 /// child element), else the root.
-fn document_element(tree: &ParentTree) -> ObjRef {
+pub(crate) fn document_element(tree: &ParentTree) -> ObjRef {
     match tree.root_dict.get("K") {
         Some(Object::Ref(elem)) => *elem,
         Some(Object::Array(kids)) => kids.iter().find_map(Object::as_ref).unwrap_or(tree.root),
@@ -264,7 +264,7 @@ fn is_link(dict: &Dict) -> bool {
 }
 
 /// An element's `/K` as a list, an indirect array read through.
-fn kids_of(doc: &laminapdf_model::Document, dict: &Dict) -> Result<Vec<Object>> {
+pub(crate) fn kids_of(doc: &laminapdf_model::Document, dict: &Dict) -> Result<Vec<Object>> {
     Ok(match dict.get("K") {
         Some(Object::Array(kids)) => kids.clone(),
         Some(Object::Ref(r)) => match doc.deref(&Object::Ref(*r))?.as_array() {

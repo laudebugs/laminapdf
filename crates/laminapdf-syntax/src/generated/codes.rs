@@ -142,6 +142,8 @@ pub enum ErrorCode {
     NotALink,
     /// `link-not-tagged`: the file claims PDF/UA-1 but has no structure tree for a new link to join.
     LinkNotTagged,
+    /// `appearance-unavailable`: the document has no appearance generator, so it can't draw a new annotation.
+    AppearanceUnavailable,
     /// `invalid-label-ranges`: page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0.
     InvalidLabelRanges,
     /// `sink`: the sink failed to take the bytes or could not give them back.
@@ -362,6 +364,7 @@ impl ErrorCode {
         Self::AnnotationNotEditable,
         Self::NotALink,
         Self::LinkNotTagged,
+        Self::AppearanceUnavailable,
         Self::InvalidLabelRanges,
         Self::Sink,
         Self::NotRebased,
@@ -516,6 +519,7 @@ impl ErrorCode {
             Self::AnnotationNotEditable => "annotation-not-editable",
             Self::NotALink => "not-a-link",
             Self::LinkNotTagged => "link-not-tagged",
+            Self::AppearanceUnavailable => "appearance-unavailable",
             Self::InvalidLabelRanges => "invalid-label-ranges",
             Self::Sink => "sink",
             Self::NotRebased => "not-rebased",
@@ -656,6 +660,7 @@ impl ErrorCode {
             Self::AnnotationNotEditable => ErrorKind::Unsupported,
             Self::NotALink => ErrorKind::Usage,
             Self::LinkNotTagged => ErrorKind::Unsupported,
+            Self::AppearanceUnavailable => ErrorKind::Unsupported,
             Self::InvalidLabelRanges => ErrorKind::Usage,
             Self::Sink => ErrorKind::Io,
             Self::NotRebased => ErrorKind::State,
@@ -796,6 +801,7 @@ impl ErrorCode {
             Self::AnnotationNotEditable => "the annotation can't be edited by the annotation ops: it is a form field's widget, or a direct dictionary with no object of its own",
             Self::NotALink => "a link op names an annotation that isn't a link",
             Self::LinkNotTagged => "the file claims PDF/UA-1 but has no structure tree for a new link to join",
+            Self::AppearanceUnavailable => "the document has no appearance generator, so it can't draw a new annotation",
             Self::InvalidLabelRanges => "page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
@@ -936,6 +942,7 @@ impl ErrorCode {
             Self::AnnotationNotEditable => "edit a widget through its form field; an annotation stored inside the page's list can't be edited yet",
             Self::NotALink => "name a link from the page's links; change other annotations with updateAnnot and deleteAnnot",
             Self::LinkNotTagged => "tag the document first, or add the link to a copy that doesn't claim PDF/UA",
+            Self::AppearanceUnavailable => "edit through the laminapdf crate, which draws appearances, or give laminapdf-ops a generator with Document::with_appearances",
             Self::InvalidLabelRanges => "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",
@@ -1140,6 +1147,14 @@ pub enum WarningCode {
     ImportedPdfaUnchecked,
     /// `imported-pdfua-unchecked`: pages copied in from a document that doesn't claim PDF/UA-1 may break the PDF/UA claim of the document's metadata.
     ImportedPdfuaUnchecked,
+    /// `annot-without-contents`: a new or changed annotation has no description, which breaks the document's PDF/UA claim.
+    AnnotWithoutContents,
+    /// `annot-not-tagged`: a new annotation isn't in the structure tree, which breaks the document's PDF/UA claim.
+    AnnotNotTagged,
+    /// `pdfa-annot-flags`: an annotation doesn't print or is hidden, which breaks the document's PDF/A claim.
+    PdfaAnnotFlags,
+    /// `pdfa-transparency`: an annotation is translucent or blends, which PDF/A-1 forbids.
+    PdfaTransparency,
     /// `tounicode-conflict`: one glyph was used for two different texts; ToUnicode keeps the first.
     TounicodeConflict,
     /// `whole-font-rebuilt`: a font that forbids subsetting was rebuilt with every glyph kept.
@@ -1215,6 +1230,10 @@ impl WarningCode {
         Self::ImportedTagsDropped,
         Self::ImportedPdfaUnchecked,
         Self::ImportedPdfuaUnchecked,
+        Self::AnnotWithoutContents,
+        Self::AnnotNotTagged,
+        Self::PdfaAnnotFlags,
+        Self::PdfaTransparency,
         Self::TounicodeConflict,
         Self::WholeFontRebuilt,
         Self::FlowKeepBroken,
@@ -1298,6 +1317,10 @@ impl WarningCode {
             Self::ImportedTagsDropped => "imported-tags-dropped",
             Self::ImportedPdfaUnchecked => "imported-pdfa-unchecked",
             Self::ImportedPdfuaUnchecked => "imported-pdfua-unchecked",
+            Self::AnnotWithoutContents => "annot-without-contents",
+            Self::AnnotNotTagged => "annot-not-tagged",
+            Self::PdfaAnnotFlags => "pdfa-annot-flags",
+            Self::PdfaTransparency => "pdfa-transparency",
             Self::TounicodeConflict => "tounicode-conflict",
             Self::WholeFontRebuilt => "whole-font-rebuilt",
             Self::FlowKeepBroken => "flow-keep-broken",
@@ -1367,6 +1390,10 @@ impl WarningCode {
             Self::ImportedTagsDropped => ErrorKind::Usage,
             Self::ImportedPdfaUnchecked => ErrorKind::Usage,
             Self::ImportedPdfuaUnchecked => ErrorKind::Usage,
+            Self::AnnotWithoutContents => ErrorKind::Usage,
+            Self::AnnotNotTagged => ErrorKind::Usage,
+            Self::PdfaAnnotFlags => ErrorKind::Usage,
+            Self::PdfaTransparency => ErrorKind::Usage,
             Self::TounicodeConflict => ErrorKind::Usage,
             Self::WholeFontRebuilt => ErrorKind::Usage,
             Self::FlowKeepBroken => ErrorKind::Usage,
@@ -1436,6 +1463,10 @@ impl WarningCode {
             Self::ImportedTagsDropped => "pages copied in from another document came without their tags, which breaks the PDF/UA claim of the document's metadata",
             Self::ImportedPdfaUnchecked => "pages copied in from a document that doesn't claim the same PDF/A level may break the PDF/A claim of the document's metadata",
             Self::ImportedPdfuaUnchecked => "pages copied in from a document that doesn't claim PDF/UA-1 may break the PDF/UA claim of the document's metadata",
+            Self::AnnotWithoutContents => "a new or changed annotation has no description, which breaks the document's PDF/UA claim",
+            Self::AnnotNotTagged => "a new annotation isn't in the structure tree, which breaks the document's PDF/UA claim",
+            Self::PdfaAnnotFlags => "an annotation doesn't print or is hidden, which breaks the document's PDF/A claim",
+            Self::PdfaTransparency => "an annotation is translucent or blends, which PDF/A-1 forbids",
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
             Self::WholeFontRebuilt => "a font that forbids subsetting was rebuilt with every glyph kept",
             Self::FlowKeepBroken => "blocks kept together are taller than a page, so the flow split them",
@@ -1505,6 +1536,10 @@ impl WarningCode {
             Self::ImportedTagsDropped => "tag the copied pages in a tagging tool, or copy pages from a document without tags",
             Self::ImportedPdfaUnchecked => "check the saved file with a PDF/A validator such as veraPDF, or copy pages from a document that claims the same level",
             Self::ImportedPdfuaUnchecked => "check the saved file's tags, alternate text and reading order with a PDF/UA checker such as veraPDF, or copy pages from a document that claims PDF/UA-1",
+            Self::AnnotWithoutContents => "give the annotation a description: the text it marks, or what the mark means",
+            Self::AnnotNotTagged => "tag the document first, or add the annotation to a copy that doesn't claim PDF/UA",
+            Self::PdfaAnnotFlags => "keep the annotation's Print flag and clear Hidden, Invisible, NoView and ToggleNoView",
+            Self::PdfaTransparency => "make the mark opaque, or use an underline instead of a highlight",
             Self::TounicodeConflict => "mark the second occurrence with /ActualText so extraction gets its text",
             Self::WholeFontRebuilt => "check that the font's licence allows this, or use a static TrueType or CFF version",
             Self::FlowKeepBroken => "split the keep group or drop keep-with-next on a heading chain, or use a taller page",

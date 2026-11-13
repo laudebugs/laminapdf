@@ -616,6 +616,7 @@ fn extra_cases(root: &Path, suite: &mut Suite) {
     extracted(root, suite);
     outlines(root, suite);
     links(root, suite);
+    marks(root, suite);
 }
 
 /// Each page's links as the tools list them, sorted: `["page", index]` for a destination in the
@@ -1037,5 +1038,128 @@ fn copies(root: &Path, suite: &mut Suite) {
             "copy_of": { "path": path, "page": 0, "password": password },
         }));
         suite.outputs.push((file, output));
+    }
+}
+
+/// The subtypes the mark cases make, as the tools name them.
+const MARKS: [&[u8]; 6] = [b"Highlight", b"Underline", b"StrikeOut", b"Squiggly", b"Text", b"Caret"];
+
+/// Each page's text markup, notes and carets as the tools list them, sorted: `[subtype,
+/// contents]`, contents `""` when there are none. A group member's contents are its primary's
+/// (ISO 32000-2 §12.5.6.2: the group takes the primary's properties), as pdf.js reads them.
+pub fn mark_facts(doc: &laminapdf_model::Document) -> Vec<Vec<Value>> {
+    let pages = doc.pages().unwrap();
+    pages
+        .iter()
+        .map(|page| {
+            let annots = doc.annotations(&page).unwrap();
+            let contents = |a: &laminapdf_model::Annot| {
+                let primary = a
+                    .in_reply_to
+                    .as_ref()
+                    .filter(|_| a.reply_type == laminapdf_model::ReplyType::Group)
+                    .and_then(|p| annots.iter().find(|b| b.id == *p));
+                primary.unwrap_or(a).contents.clone().unwrap_or_default()
+            };
+            let mut found: Vec<Value> = annots
+                .iter()
+                .filter(|a| MARKS.contains(&a.subtype.name()))
+                .map(|a| json!([String::from_utf8_lossy(a.subtype.name()), contents(a)]))
+                .collect();
+            found.sort_by_key(ToString::to_string);
+            found
+        })
+        .collect()
+}
+
+/// The mark cases (todo E4c, D.01 to D.03): on every plain fixture, a highlight and an underline
+/// over two lines of the first page, a note, and a text replacement (a caret holding the new
+/// text, grouped with a strike-out), saved incrementally and as a full rewrite. Lamina reopens
+/// each with the same marks and pages, every mark with its appearance; the tools compare the
+/// marks they read (`marks`).
+fn marks(root: &Path, suite: &mut Suite) {
+    use laminapdf_model::{UserSpacePoint, UserSpaceRect};
+    use laminapdf_ops::{AddAnnot, AnnotSpec, Caret, MarkupKind, Note, NoteIcon, TextMarkup};
+    let names = PLAIN_CORPUS
+        .iter()
+        .map(|n| format!("corpus/{n}"))
+        .chain(PLAIN_BUILT.iter().map(|n| format!("golden/{n}")));
+    let line = |y: f64| {
+        let p = UserSpacePoint::new;
+        [p(36.0, y + 14.0), p(200.0, y + 14.0), p(36.0, y), p(200.0, y)]
+    };
+    for name in names {
+        let bytes = std::fs::read(root.join("fixtures").join(&name)).unwrap();
+        for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
+            let id = format!("marks-{}-{mode:?}", name.replace('/', "_").trim_end_matches(".pdf")).to_lowercase();
+            let mut doc = Document::open(bytes.clone(), OpenOptions::default())
+                .unwrap()
+                .with_appearances(laminapdf_build::AnnotationAppearances);
+            let (pages, rotations, info, labels) = facts(&doc);
+            let first = doc.pages().unwrap().get(0).unwrap().id().clone();
+            let markup =
+                |kind, quads| AddAnnot::new(first.clone(), AnnotSpec::TextMarkup(TextMarkup::new(kind, quads)));
+            let mut highlight = markup(MarkupKind::Highlight, vec![line(80.0), line(60.0)]);
+            highlight.common.contents = Some("Round trip".into());
+            let mut note = AddAnnot::new(
+                first.clone(),
+                AnnotSpec::Note(Note::new(UserSpacePoint::new(220.0, 94.0), NoteIcon::Comment)),
+            );
+            note.common.contents = Some("A note".into());
+            let mut caret = AddAnnot::new(
+                first.clone(),
+                AnnotSpec::Caret(Caret::new(UserSpaceRect::from_corners(198.0, 40.0, 204.0, 50.0))),
+            );
+            caret.common.contents = Some("replacement".into());
+            let ops = vec![
+                Op::from(highlight),
+                markup(MarkupKind::Underline, vec![line(100.0)]).into(),
+                note.into(),
+                caret.into(),
+            ];
+            let applied = doc.apply_all(Origin::Local, ops).unwrap();
+            let mut strike = markup(MarkupKind::StrikeOut, vec![line(40.0)]);
+            strike.common.group_with = applied.created_annotations.last().cloned();
+            doc.apply_all(Origin::Local, [Op::from(strike)]).unwrap();
+            let marks = mark_facts(&doc);
+            let mut output = Vec::new();
+            let report = doc.save(&mut output, &SaveOptions::new().with_mode(mode)).unwrap();
+            suite.saved += 1;
+            let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
+            let drawn = reopened.pages().unwrap().iter().all(|page| {
+                reopened
+                    .annotations(&page)
+                    .unwrap()
+                    .iter()
+                    .filter(|a| MARKS.contains(&a.subtype.name()) && a.contents.is_some())
+                    .all(|a| a.has_appearance)
+            });
+            if mark_facts(&reopened) != marks
+                || !drawn
+                || facts(&reopened) != (pages, rotations.clone(), info.clone(), labels.clone())
+                || reopened.was_repaired()
+            {
+                suite.failures.push(format!(
+                    "{id}: lamina reopened marks {:?} (drawn {drawn}, repaired {}), expected {marks:?}",
+                    mark_facts(&reopened),
+                    reopened.was_repaired()
+                ));
+            }
+            let file = format!("{id}.pdf");
+            suite.manifest.push(json!({
+                "file": &file,
+                "source": name,
+                "mode": format!("{:?}", report.mode()),
+                "pages": pages,
+                "rotations": rotations,
+                "title": info[0],
+                "info": null,
+                "encrypted": false,
+                "direct_info": matches!(reopened.trailer().get("Info"), Some(laminapdf_cos::Object::Dict(_))),
+                "invalidated": 0,
+                "marks": marks,
+            }));
+            suite.outputs.push((file, output));
+        }
     }
 }

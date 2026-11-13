@@ -3130,6 +3130,7 @@ dependencies = [
 name = "laminapdf-ops"
 version = "0.2.0"
 dependencies = [
+ "laminapdf-build",
  "laminapdf-cos",
  "laminapdf-model",
  "laminapdf-save",

@@ -422,6 +422,18 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         Warning::Conformance(laminapdf::ConformanceWarning::PdfaInfoMismatch {
             keys: vec![laminapdf::MetadataKey::Title],
         }),
+        Warning::Conformance(laminapdf::ConformanceWarning::AnnotWithoutContents {
+            annotations: vec!["a12.0".into()],
+        }),
+        Warning::Conformance(laminapdf::ConformanceWarning::AnnotNotTagged {
+            annotations: vec!["a12.0".into()],
+        }),
+        Warning::Conformance(laminapdf::ConformanceWarning::PdfaAnnotFlags {
+            annotations: vec!["a12.0".into()],
+        }),
+        Warning::Conformance(laminapdf::ConformanceWarning::PdfaTransparency {
+            annotations: vec!["a12.0".into()],
+        }),
     ];
     (errors, warnings)
 }
