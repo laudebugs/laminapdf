@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E7a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [E6a](../done/E6a-adding-content-feature-plan.md) |
