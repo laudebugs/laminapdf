@@ -49,7 +49,7 @@ Round W3 changes what engines can read, but nothing tells the project whether an
 
 ## As built
 
-- **Two engines.** The tool asks Claude (the Messages API's web search tool) or OpenAI (the Responses API's `web_search` tool) and reads both answers into one report. The baseline uses OpenAI, because the session that ran it could reach OpenAI's API with the owner's key but not Anthropic's; later runs compare with it only if they ask OpenAI with the same settings.
+- **Two engines.** The tool asks Claude (the Messages API's web search tool) or OpenAI (the Responses API's `web_search` tool) and reads both answers into one report. The baseline uses OpenAI, because the session that ran it could reach OpenAI's API with the owner's key but not Anthropic's; later runs compare with it only if they ask OpenAI with the same settings, so `config.json`'s default engine is OpenAI. The model is `gpt-6.1-sol`: a full run of 60 answers costs about $4.50, against about $13 with `gpt-6-astra`, whose first attempts ran out of the account's credit.
 - **Background mode for OpenAI.** The first run stopped on a question whose answer took over 30 seconds, where the session's proxy cut the request off. The tool now starts each OpenAI answer in background mode and reads it every three seconds, and retries a call that fails for a passing reason (network, 408, 429, 5xx, a body that isn't JSON).
 - **One folder per engine and run:** `target/answer-check/<date>-<engine>/`, so runs of the two engines on one day never overwrite each other.
 

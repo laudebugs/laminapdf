@@ -10,11 +10,11 @@ You need Node 22 or later and credentials for the engine you ask: an Anthropic k
 
 ```sh
 pnpm --dir tools/answer-check install --frozen-lockfile   # its own pnpm project, outside the workspace
-export ANTHROPIC_API_KEY=…                                # or sign in once with `ant auth login`
+export OPENAI_API_KEY=…
 node tools/answer-check/run.mjs --dry-run                 # the requests it would send, without sending any
-node tools/answer-check/run.mjs                           # every question, three times, to Claude
+node tools/answer-check/run.mjs                           # every question, three times, to OpenAI (as the baseline)
 node tools/answer-check/run.mjs --questions rag-ts,pdf-mcp --repeats 1
-OPENAI_API_KEY=… node tools/answer-check/run.mjs --engine openai   # every question to OpenAI
+ANTHROPIC_API_KEY=… node tools/answer-check/run.mjs --engine claude   # every question to Claude (or `ant auth login`)
 ```
 
 The credentials are read from the environment (or, for Claude, an `ant auth login` profile), never from a file in the repository. OpenAI is asked with Node's own `fetch`; behind an HTTPS proxy, set `NODE_USE_ENV_PROXY=1` so `fetch` uses it. Requests go one at a time, so a full run of 60 answers takes several minutes.
@@ -25,7 +25,7 @@ The credentials are read from the environment (or, for Claude, an `ant auth logi
 
 `config.json` pins the settings that make two runs comparable:
 
-- the default engine (`claude`), and for each engine its model and at most five searches per answer: Claude is `claude-opus-5-5` at effort `medium` with the `web_search_20260209` tool; OpenAI is `gpt-6.1-sol` with the `web_search` tool, its sources included;
+- the default engine (`openai`, the one the baseline asked), and for each engine its model and at most five searches per answer: Claude is `claude-opus-5-5` at effort `medium` with the `web_search_20260209` tool; OpenAI is `gpt-6.1-sol` with the `web_search` tool, its sources included;
 - three runs per question;
 - what counts as Lamina PDF: its names (`Lamina PDF`, `LaminaPDF`, `laminapdf`, `@laminapdf/`), its domain and subdomains, and its pages on GitHub, npm, crates.io, lib.rs and docs.rs.
 
