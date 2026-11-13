@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E3b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E3 plan §2.1](../../plans/editor/e3-navigation-attachments-inspection.md#21-ops) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E2j](../done/E2j-page-tree-and-tree-writers.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md) |
@@ -35,11 +35,11 @@ Create and edit nested bookmarks (add, rename, retarget, move, nest, colour and 
 
 **Out of scope** (and which todo covers it)
 
-- Link annotations → [E3c](E3c-links.md)
-- The contents page → [E3l](E3l-contents-page.md)
-- Viewer preferences and page mode (`I.11`) → [E3d](E3d-initial-view-and-threads.md)
-- The desktop column → [E3k](E3k-desktop-navigation-and-export.md)
-- TOC from struct-tree headings, if decided → [E15b](E15b-structure-tree-editing.md)
+- Link annotations → [E3c](../ready/E3c-links.md)
+- The contents page → [E3l](../ready/E3l-contents-page.md)
+- Viewer preferences and page mode (`I.11`) → [E3d](../ready/E3d-initial-view-and-threads.md)
+- The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
+- TOC from struct-tree headings, if decided → [E15b](../ready/E15b-structure-tree-editing.md)
 
 **Editor facts**
 

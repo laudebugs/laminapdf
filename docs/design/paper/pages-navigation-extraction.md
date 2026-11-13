@@ -107,7 +107,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `O11-bookmarks.dc.html` (editor with inline rename and inspector), `O11-bookmarks-toc.dc.html` (create a contents page), `O11-named-destinations.dc.html` (named destinations with an inline rename).
 
-**Todos.** [E3b](../../todos/ready/E3b-bookmarks-and-destinations.md).
+**Todos.** [E3b](../../todos/ongoing/E3b-bookmarks-and-destinations.md).
 
 ## O12 Link editor
 
