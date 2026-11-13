@@ -1,7 +1,7 @@
 ---
 title: "Archival PDFs"
 description: "Build PDF/A-2b, PDF/A-2u and PDF/A-3b documents that look the same in years to come, and attach files such as an e-invoice's XML."
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/guides/archival-pdfs/"
 ---
 

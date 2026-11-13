@@ -1,7 +1,7 @@
 ---
 title: "Rust"
 description: "Generate a PDF with the Lamina PDF crate."
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/quick-start/rust/"
 ---
 
@@ -9,7 +9,7 @@ url: "https://docs.laminapdf.com/quick-start/rust/"
 
 Generate a PDF with the Lamina PDF crate.
 
-The `laminapdf` crate is the one to depend on: it wraps Lamina PDF's core crates in one API. Add it with `cargo add laminapdf@=0.2.0-alpha.6`, then build a document. [Install](../../pages/install.md#rust-laminapdf) explains the version. This is the `hello` example, which is tested on every change:
+The `laminapdf` crate is the one to depend on: it wraps Lamina PDF's core crates in one API. Add it with `cargo add laminapdf@0.2.0`, then build a document. [Install](../../pages/install.md#rust-laminapdf) explains the version. This is the `hello` example, which is tested on every change:
 
 **Rust**
 
@@ -60,3 +60,4 @@ To run it, save it as `src/main.rs` in a project that depends on `laminapdf`, th
 - **Same input, same bytes:** `build` takes `BuildOptions`: fix the file ID, the producer and the creation date in them, and the output never changes; see [how Lamina PDF thinks about a PDF](../../pages/concepts/how-lamina-thinks.md#same-input-same-bytes).
 - **Stopping a save:** `save` runs to the end. To let another thread stop it, pass a `CancelToken` to `save_with`, or call `save_job` for a job that you step through with a work budget.
 - The [Rust API reference](../../pages/reference/rust.md) documents every public item.
+- When Cargo picks the wrong version or a feature is missing, [Troubleshooting Rust](../../pages/troubleshooting/rust.md) has the fix.

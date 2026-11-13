@@ -1,7 +1,7 @@
 ---
 title: "How a page is drawn"
 description: "A renderer turns a page into pixels; Lamina PDF reads the page's text, links and selection itself, from the same bytes."
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/concepts/drawing-pages/"
 ---
 
@@ -72,5 +72,7 @@ The two readers can still disagree on where a glyph sits, since each reads the f
 ## PDFium in the browser, hayro on servers
 
 PDFium, the engine behind Chrome's PDF viewer, draws the pages in the viewer. It runs in a Web Worker, away from your page, and only draws: it never changes the document. hayro is a renderer written in Rust. It's the lighter choice on a server or in a Cloudflare Worker, and it draws in the tests that compare pages. [What Lamina PDF writes and what it borrows](../../pages/concepts/dependencies.md) explains why each one is there.
+
+When a page draws wrong or a renderer fails, see [Troubleshooting rendering](../../pages/troubleshooting/rendering.md).
 
 Next, see [how to compare pages in tests](../../pages/guides/test-generated-pdfs.md), which draws two PDFs and counts the pixels that differ.

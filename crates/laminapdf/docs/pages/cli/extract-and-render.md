@@ -1,7 +1,7 @@
 ---
 title: "Extract text and render pages"
 description: "Read a PDF's text, or its blocks in reading order as Markdown, JSON or chunks for an LLM, and draw its pages as PNG images from the command line."
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/cli/extract-and-render/"
 ---
 
@@ -47,13 +47,16 @@ None of them contain hidden text: text under a box, white on white, off the page
 
 ### Scanned pages
 
-A scanned page is a picture of text, with no text to read. Each page in the JSON has a `textLayer` that says whether its text can be used or the page needs OCR, optical character recognition. A scanned page gives no Markdown and raises the `extract-needs-ocr` warning, so the command exits 3.
+A scanned page is a picture of text, with no text to read. Each page in the JSON has a `textLayer` that says whether its text can be used or the page needs OCR, optical character recognition. A scanned page gives no Markdown and raises the `extract-needs-ocr` warning, so the command exits 3. [Troubleshooting text extraction](../../pages/troubleshooting/extraction.md) covers this and other surprises, such as text in the wrong order.
+
+To extract from your own code instead, see [Extract text and Markdown](../../pages/guides/extract-text.md).
 
 ## Images: `render`
 
-`render` draws pages as PNG images, at 150 dots per inch unless `--dpi` or `--scale` (pixels per point) says otherwise. `-o` takes one file-name pattern for every file `render` writes, and `render` fills in its fields for each page:
+`render` draws pages as PNG images, at 150 dots per inch unless `--dpi` or `--scale` (pixels per point) says otherwise. `-o` takes one file-name pattern for every file `render` writes, and `render` fills in its fields for each page. The folders in the pattern must already exist:
 
 ```console
+$ mkdir -p thumbs
 $ laminapdf render report.pdf --pages 1-3 --dpi 72 -o 'thumbs/{stem}-{n:03}.png'
 page 1: 419 × 595 px → thumbs/report-001.png
 page 2: 419 × 595 px → thumbs/report-002.png
@@ -73,6 +76,6 @@ A width after a colon pads a number with zeros: `{n:03}` is `007`. `{{` and `}}`
 
 ### Choose the renderer
 
-The built-in renderer is hayro, written in Rust. `--backend pdfium` uses PDFium, the renderer in Chrome, loaded from the folder that the `LAMINA_PDF_PDFIUM_DIR` environment variable names. Use it when a file draws differently in hayro than in a browser.
+The built-in renderer is hayro, written in Rust. `--backend pdfium` uses PDFium, the renderer in Chrome, loaded from the folder that the `LAMINA_PDF_PDFIUM_DIR` environment variable names. Use it when a file draws differently in hayro than in a browser. [Troubleshooting rendering](../../pages/troubleshooting/rendering.md) covers a PDFium that won't load and images too large to draw.
 
 Next: [make and change PDFs](../../pages/cli/build-and-edit.md).

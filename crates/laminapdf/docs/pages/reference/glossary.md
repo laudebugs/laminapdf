@@ -1,7 +1,7 @@
 ---
 title: "Glossary"
 description: "The PDF and Lamina PDF terms the docs use, each in a sentence or two."
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/reference/glossary/"
 ---
 
@@ -9,47 +9,47 @@ url: "https://docs.laminapdf.com/reference/glossary/"
 
 The PDF and Lamina PDF terms the docs use, each in a sentence or two.
 
-The terms the docs use, in plain words. Each page links a term here the first time it uses one.
+The terms the docs use, in plain words, most with an example. A page links a term here the first time it uses one. The terms are grouped by where you meet them: in Lamina PDF itself, inside a PDF file, in fonts and text, and in signatures.
 
 ## How Lamina PDF works
 
 ### Overlay
 
-Where Lamina PDF keeps your edits. The bytes you opened never change; the overlay sits on top of them, and saving writes it out. See [how Lamina PDF thinks about a PDF](../../pages/concepts/how-lamina-thinks.md).
+Where Lamina PDF keeps your edits. The bytes you opened never change; the overlay sits on top of them, and saving writes it out. For example, when you rotate a page, the overlay holds the page's new rotation while the original page stays as it was in the file. See [how Lamina PDF thinks about a PDF](../../pages/concepts/how-lamina-thinks.md).
 
 ### Incremental save
 
-A save that keeps the original bytes as they are and appends a new revision with your edits after them. Signatures over the original stay valid.
+A save that keeps the original bytes as they are and appends a new revision with your edits after them. For example, rotating one page of a signed contract adds a short revision at the end of the file, and the signature over the original bytes stays valid.
 
 ### Full rewrite
 
-A save that writes the whole file again. The result is smaller and tidier, but it's no longer the original bytes, so it breaks any signature.
+A save that writes the whole file again. The result is smaller and tidier, but it's no longer the original bytes, so it breaks any signature. For example, removing a file's encryption needs a full rewrite, since every string and stream changes.
 
 ### Façade
 
-The `laminapdf` crate: one API in front of Lamina PDF's core crates, which most Rust code depends on alone.
+The `laminapdf` crate: one API in front of Lamina PDF's core crates, which most Rust code depends on alone. For example, `laminapdf::Document` opens, edits and saves a file without your code naming the crates that read and write it.
 
 ### Glue
 
-The JavaScript that sits next to each `.wasm` file. It loads the module and converts values between JavaScript and Rust.
+The JavaScript that sits next to each `.wasm` file. It loads the module and converts values between JavaScript and Rust. For example, it turns the `Uint8Array` you pass to `Document.open` into bytes the Rust code can read.
 
 ### Export condition
 
-A key in a package's `exports` map, such as `node`, `browser`, `deno` or `workerd`, that tells a runtime or bundler which file to load. `@laminapdf/sdk` has one per runtime.
+A key in a package's `exports` map, such as `node`, `browser`, `deno` or `workerd`, that tells a runtime or bundler which file to load. `@laminapdf/sdk` has one per runtime. For example, Node loads the file under `node`, which reads the WebAssembly from disk, while a browser loads the one under `browser`, which fetches it.
 
 ## Inside a PDF file
 
 ### COS
 
-PDF's object layer: the dictionaries, arrays, numbers, strings, names, streams and references a file is made of.
+PDF's object layer: the dictionaries, arrays, numbers, strings, names, streams and references a file is made of. For example, a page is a dictionary such as `<< /Type /Page /MediaBox [0 0 595 842] >>`.
 
 ### Content stream
 
-A stream of drawing instructions for a page: where to put text, which lines and shapes to draw, which images to place.
+A stream of drawing instructions for a page: where to put text, which lines and shapes to draw, which images to place. For example, `BT /F1 24 Tf 72 720 Td (Hello) Tj ET` draws the word Hello in 24-point type.
 
 ### XObject
 
-A reusable piece of content that a content stream draws by name: an image, or a form, which is a group of drawing instructions.
+A reusable piece of content that a content stream draws by name: an image, or a form, which is a group of drawing instructions. For example, a logo stored once as an image XObject can appear on every page of a report.
 
 ### Cross-reference table
 
@@ -65,11 +65,11 @@ A compressed stream that holds many small objects together, to make the file sma
 
 ### Page space
 
-Lamina PDF's coordinates: points from the top-left corner of the page as it's displayed, with y going down. See [pages and coordinates](../../pages/concepts/pages-and-coordinates.md).
+Lamina PDF's coordinates: points from the top-left corner of the page as it's displayed, with y going down. For example, `[72, 96]` is one inch from the left edge and one and a third inches from the top. See [pages and coordinates](../../pages/concepts/pages-and-coordinates.md).
 
 ### Crop box
 
-The part of a page a viewer shows; anything outside it is cut off. Page space starts at its top-left corner.
+The part of a page a viewer shows; anything outside it is cut off. Page space starts at its top-left corner. For example, a print-ready page may carry a bleed around a crop box the size of the trimmed sheet.
 
 ### User unit
 
@@ -77,13 +77,13 @@ A page entry that makes each user-space unit bigger than 1/72 of an inch, for ve
 
 ### User space
 
-PDF's own coordinates: points from the bottom-left corner of the page, with y going up, before any rotation. Lamina PDF's API uses page space instead; see [pages and coordinates](../../pages/concepts/pages-and-coordinates.md).
+PDF's own coordinates: points from the bottom-left corner of the page, with y going up, before any rotation. For example, on an A4 page 842 points tall whose crop box starts at the corner, page space's `[72, 96]` is `[72, 746]` in user space. Lamina PDF's API uses page space instead; see [pages and coordinates](../../pages/concepts/pages-and-coordinates.md).
 
 ## Fonts and text
 
 ### Standard 14 fonts
 
-The fourteen fonts every PDF reader supplies: Times, Helvetica and Courier, each in four styles, plus Symbol and ZapfDingbats. A PDF can use them without embedding them.
+The fourteen fonts every PDF reader supplies: Times, Helvetica and Courier, each in four styles, plus Symbol and ZapfDingbats. A PDF can use them without embedding them. For example, `Font.standard("Helvetica")` draws text with no font file at all, but only in Latin scripts.
 
 ### Type 0
 
@@ -91,17 +91,17 @@ A font type whose character codes can be more than one byte long, so a font can 
 
 ### CMap
 
-A table that maps a font's character codes to character IDs (CIDs), which pick its glyphs, or, in a ToUnicode CMap, to Unicode text.
+A table that maps a font's character codes to character IDs (CIDs), which pick its glyphs, or, in a ToUnicode CMap, to Unicode text. For example, a CMap can say that the two bytes `0x0041` select the glyph with CID 36.
 
 ### ToUnicode
 
-A CMap a font carries that maps its codes to Unicode, so a reader can copy, search and extract the text.
+A CMap a font carries that maps its codes to Unicode, so a reader can copy, search and extract the text. For example, it can map the code of a drawn "fi" ligature to the two letters `fi`, so a search for "file" finds the word.
 
 ## Signatures
 
 ### DocMDP
 
-The permissions of a certifying signature: which changes the signed document still allows, such as none, filling in forms, or comments. DocMDP stands for document modification detection and prevention.
+The permissions of a certifying signature: which changes the signed document still allows, such as none, filling in forms, or comments. DocMDP stands for document modification detection and prevention. For example, if a form is certified to allow only form filling, Lamina PDF refuses to save an edit that rotates one of its pages, unless you ask it to remove the signature with `invalidateSignatures: true`.
 
 ### UR3
 

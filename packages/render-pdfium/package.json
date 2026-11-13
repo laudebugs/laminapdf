@@ -1,6 +1,6 @@
 {
   "name": "@laminapdf/render-pdfium",
-  "version": "0.2.0-alpha.6",
+  "version": "0.2.0",
   "description": "Render PDF pages to RGBA pixels in the browser with PDFium compiled to WebAssembly, behind @laminapdf/render's interface: the default renderer of Lamina PDF's viewer.",
   "license": "MIT OR Apache-2.0",
   "homepage": "https://laminapdf.com",

@@ -1,7 +1,7 @@
 ---
 title: "Scripts and batch jobs"
 description: "Pipe PDFs through laminapdf, name pages with ranges, check thousands of files in parallel, and read its JSON reports and exit codes from a script."
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/cli/scripts/"
 ---
 
@@ -52,9 +52,9 @@ They run in parallel on `--jobs N` threads, one per processor core by default, u
 $ find . -name '*.pdf' -print0 | sort -z | laminapdf check --files-from - -0 --json
 {"index":0,"input":"./enc.pdf","objects":5,"pages":1,"schema":"laminapdf.check/1","status":"ok","type":"result","warnings":[]}
 {"index":1,"input":"./invoice.pdf","objects":39,"pages":1,"schema":"laminapdf.check/1","status":"ok","type":"result","warnings":[]}
-{"error":{"code":"not-pdf",…},"index":2,"input":"./notes.pdf","schema":"laminapdf.check/1","status":"error","type":"result"}
-{"index":3,"input":"./scan.pdf","objects":5,"pages":1,"schema":"laminapdf.check/1","status":"warnings","type":"result","warnings":[{"code":"xref-repaired",…}]}
-{"elapsedMs":71,"failed":1,"found":0,"ok":2,"skipped":0,"type":"summary","warnings":1}
+{"error":{"code":"not-pdf","docsUrl":"https://docs.laminapdf.com/reference/codes/not-pdf/","exitCode":1,"hint":"check that the bytes passed to open are a PDF file","input":"./notes.pdf","kind":"input","message":"not a PDF: no objects found"},"index":2,"input":"./notes.pdf","schema":"laminapdf.check/1","status":"error","type":"result"}
+{"index":3,"input":"./scan.pdf","objects":5,"pages":1,"schema":"laminapdf.check/1","status":"warnings","type":"result","warnings":[{"code":"xref-repaired","docsUrl":"https://docs.laminapdf.com/reference/codes/xref-repaired/","hint":"check the result; save with a full rewrite, since an incremental update refuses a repaired base","kind":"input","message":"the stored cross-reference data was unusable and was rebuilt by scanning"}]}
+{"elapsedMs":80,"failed":1,"found":0,"ok":2,"skipped":0,"type":"summary","warnings":1}
 ```
 
 `jq` picks out the files that need attention: `jq -c 'select(.type=="result" and .status!="ok")'`. Without `--json`, each report comes under a `==> file <==` line, and a progress bar shows on the terminal unless you pass `--quiet`. `--fail-fast` starts no new file after the first failure, and the summary counts those it skipped.
@@ -84,7 +84,7 @@ The message and hint never quote the document, so a title or a line of text can'
 | 5 | A password is required, or the one given is wrong |
 | 6 | `reveal --fail-on` found something in a category it names |
 
-When several codes apply, the tool exits with the one that comes first in this order: 2, 5, 4, 1, 6, 3, 0. A batch exits 1 if any file failed, or 5 if every failure was a missing or wrong password. Otherwise it follows the same order: 6, then 3, then 0. `laminapdf help exit-codes` prints the table.
+When several codes apply, the tool exits with the one that comes first in this order: 2, 5, 4, 1, 6, 3, 0. A batch exits 1 if any file failed, or 5 if every failure was a missing or wrong password. Otherwise it follows the same order: 6, then 3, then 0. `laminapdf help exit-codes` prints the table, and [Troubleshooting the command line](../../pages/troubleshooting/command-line.md) starts from each exit code a script meets.
 
 ## Passwords and limits
 

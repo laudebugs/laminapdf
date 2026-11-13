@@ -1,6 +1,6 @@
 {
   "name": "@laminapdf/viewer",
-  "version": "0.2.0-alpha.6",
+  "version": "0.2.0",
   "description": "A PDF viewer for the web with no UI framework inside: smooth scrolling through long documents, sharp pages at any zoom, and parsing and rendering in a Web Worker, off the main thread.",
   "license": "MIT OR Apache-2.0",
   "homepage": "https://laminapdf.com",

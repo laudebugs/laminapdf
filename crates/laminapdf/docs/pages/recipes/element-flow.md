@@ -1,7 +1,7 @@
 ---
 title: "Element flow"
 description: "A report whose title, paragraphs and photo each start below wherever the one before ended, with a body that continues on a new page."
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/recipes/element-flow/"
 ---
 
