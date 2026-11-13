@@ -11,7 +11,7 @@
 | Branch | `feat/e3b-bookmarks-and-destinations` |
 | PR title | `feat(ops): outline editing, named destinations and TOC generation` |
 | Size | L (400–800): seven ops over one list writer, and the Outline tab's editing |
-| PR | — |
+| PR | [#535](https://github.com/laudebugs/laminapdf/pull/535) |
 
 ## Goal
 
