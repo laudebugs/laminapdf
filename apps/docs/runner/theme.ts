@@ -1,11 +1,12 @@
 // The "Edit and run" editor in the Paper look: every colour and font is a `--paper-*` token, so the
 // editor follows the site's light, dark and high-contrast themes (and the header's switch) with no
-// code of its own. Syntax colours are the five code kinds the website's code panel uses
-// (apps/site/src/data/highlight.ts): keyword, string, comment, function, constant; the rest is text.
+// code of its own. Syntax colours are the five code kinds the docs' code blocks and the website's
+// code panel use (kinds.ts): keyword, string, comment, function, constant; the rest is text.
 
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
 import { EditorView } from "codemirror";
+import { KIND_TAGS } from "./kinds.js";
 
 /** A token as a CSS value. */
 const token = (name: string) => `var(--paper-${name})`;
@@ -64,22 +65,13 @@ const surfaces = EditorView.theme({
   ".cm-panels": { color: token("text"), backgroundColor: token("surface") },
 });
 
-/** TypeScript's tokens in the five code kinds, as the website's panel colours its Shiki scopes. */
+/** TypeScript's tokens in the five code kinds (kinds.ts), as the docs' code blocks colour them. */
 const syntax = HighlightStyle.define([
-  {
-    tag: [t.keyword, t.moduleKeyword, t.controlKeyword, t.operatorKeyword, t.definitionKeyword, t.modifier, t.self],
-    color: token("code-keyword"),
-  },
-  { tag: [t.string, t.special(t.string), t.regexp, t.escape], color: token("code-string") },
-  { tag: [t.comment, t.lineComment, t.blockComment, t.docComment], color: token("code-comment"), fontStyle: "italic" },
-  {
-    tag: [t.function(t.variableName), t.function(t.propertyName), t.function(t.definition(t.variableName))],
-    color: token("code-function"),
-  },
-  {
-    tag: [t.number, t.bool, t.null, t.atom, t.typeName, t.className, t.namespace, t.standard(t.variableName)],
-    color: token("code-constant"),
-  },
+  ...Object.entries(KIND_TAGS).map(([kind, tags]) => ({
+    tag: [...tags],
+    color: token(`code-${kind}`),
+    ...(kind === "comment" ? { fontStyle: "italic" } : {}),
+  })),
   { tag: t.invalid, color: token("danger") },
 ]);
 

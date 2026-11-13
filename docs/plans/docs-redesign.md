@@ -55,8 +55,8 @@ The work goes in four steps, so the cheap, well-evidenced fixes ship first and t
 | [Q4q](../todos/done/Q4q-resizable-page-beside-the-code.md) | A divider to resize the page beside the code | — |
 | [Q4r](../todos/done/Q4r-wrap-and-format-code.md) | Wrap long lines in code blocks; Format in "Edit and run" | — |
 | [Q4s](../todos/done/Q4s-editor-line-wrap.md) | Unwrapped lines in "Edit and run", with a Wrap lines toggle | — |
-| [Q4t](../todos/ready/Q4t-editor-type-completion.md) | Completion and hover types in "Edit and run" | — |
-| [Q4u](../todos/ready/Q4u-editor-colours-match-the-blocks.md) | The editor's colours matched to the static blocks' | — |
+| [Q4t](../todos/done/Q4t-editor-type-completion.md) | Completion and hover types in "Edit and run" | — |
+| [Q4u](../todos/done/Q4u-editor-colours-match-the-blocks.md) | The code blocks in the editor's Paper colours | — |
 
 The recommendation numbers are the report's. Two of them are too large for one pull request, so the reading path is Q4b and Q4c, and the sidebar is Q4f now and Q4g after Q4m.
 
@@ -94,5 +94,5 @@ The recommendation numbers are the report's. Two of them are too large for one p
 - [x] Q4q: a divider to resize the page beside the code
 - [x] Q4r: wrap long lines, and Format in "Edit and run"
 - [x] Q4s: unwrapped lines in "Edit and run", with a Wrap lines toggle
-- [ ] Q4t: completion and hover types in "Edit and run"
-- [ ] Q4u: the editor's colours matched to the static blocks'
+- [x] Q4t: completion and hover types in "Edit and run"
+- [x] Q4u: the code blocks in the editor's Paper colours
