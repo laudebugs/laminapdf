@@ -4,11 +4,17 @@
 - **Asked for by:** the [discoverability plan](../../plans/discoverability.md) (todo W3i)
 - **Tool:** [`tools/answer-check/`](../../../tools/answer-check/README.md)
 
-This note records what an AI answer engine says when a developer asks it for a PDF library or reader. On 2026-11-13, none of 60 answers from OpenAI's `gpt-6.1-sol` with web search named Lamina PDF, and none of their searches returned one of its pages. The run asked twenty questions that don't name Lamina PDF, three times each. Later runs, after W3d and W3e ship, are compared with it here.
+This note records what an AI answer engine says when a developer asks it for a PDF library or reader. On 2026-11-13, none of 60 answers from OpenAI's `gpt-6.1-sol` with web search named Lamina PDF, and none of their searches returned one of its pages. The run asked twenty questions that don't name Lamina PDF, three times each. Later runs, after W3d and W3e ship, go here beside it.
 
 ## Settings
 
-The check's `config.json` and `questions.json` as committed with this note, run with `--engine openai`: model `gpt-6.1-sol` through the Responses API at reasoning effort `medium`, at most 16,000 output tokens, the `web_search` tool with at most five tool calls per answer and its sources included, three runs per question, the question alone with no system prompt.
+The run used the check's `config.json` and `questions.json` as committed with this note, with `--engine openai`:
+
+- the model `gpt-6.1-sol` through the Responses API, at reasoning effort `medium`;
+- at most 16,000 output tokens;
+- the `web_search` tool, at most five tool calls per answer, its sources included;
+- three runs per question;
+- the question alone, with no system prompt.
 
 The baseline asks OpenAI rather than Claude because the session that ran it could reach OpenAI's API with the owner's key but not Anthropic's. A later run compares with this baseline only if it asks OpenAI with the same model and settings; a run of Claude starts a baseline of its own.
 
@@ -16,7 +22,7 @@ The baseline asks OpenAI rather than Claude because the session that ran it coul
 
 The run on 2026-11-13 used 1,244,532 input tokens, 45,624 output tokens and 90 searches, about $3.90 at OpenAI's list prices. Every answer completed. The searches returned 2,871 pages across the 60 answers: 23 for the answer that saw fewest, 108 for the one that saw most.
 
-Of 60 answers to 20 questions, 0 name Lamina PDF, 0 saw one of its pages in their search results, and 0 cite one. None of the 2,871 pages was Lamina PDF's, so the gap is in what search finds, not in what the model chooses to say. W3d and W3e, which make the pages easier to find and index, are the changes the next run measures.
+Of 60 answers to 20 questions, 0 name Lamina PDF, 0 saw one of its pages in their search results, and 0 cite one. Search never brought one of Lamina PDF's pages to the model, so its answers had nothing of Lamina PDF's to name or cite. W3d and W3e, which make the pages easier to find and index, are the changes the next run measures.
 
 | Question | Runs | Named | In results | Cited | Failed | By fallback | Most-cited hosts |
 | --- | --- | --- | --- | --- | --- | --- | --- |
