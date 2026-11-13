@@ -5,7 +5,16 @@ import type { RenderRequest } from "@laminapdf/render";
 import type { Op, SaveOptions } from "@laminapdf/sdk";
 import type { ExtensionMethod } from "@laminapdf/sdk/worker/server";
 import type { FindOptions } from "../find/fold.js";
-import type { BackendInit, PrintOptions, ReplayedStep, SavedCopy, SourceInit, ViewerOpenOptions } from "../protocol.js";
+import type {
+  BackendInit,
+  ExportedPage,
+  ExportPageOptions,
+  PrintOptions,
+  ReplayedStep,
+  SavedCopy,
+  SourceInit,
+  ViewerOpenOptions,
+} from "../protocol.js";
 import {
   closeDocument,
   current,
@@ -26,6 +35,7 @@ import {
   restoreEdits,
   stepEdit,
 } from "./edit.js";
+import { exportPage } from "./export.js";
 import { find, forgetSearch } from "./find.js";
 import { forgetLinks, namedDestination, outline, pageLinks } from "./navigation.js";
 import { networkLog } from "./network.js";
@@ -118,6 +128,13 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   },
   printPage: {
     run: ([index, options], { signal }) => printPage(index as number, options as PrintOptions, signal),
+  },
+  exportPage: {
+    run: ([index, options], { signal }) => exportPage(index as number, options as ExportPageOptions, signal),
+    reply: (page) => {
+      const exported = page as ExportedPage;
+      return [exported, [exported.image.buffer]];
+    },
   },
   fileBytes: {
     run: (_params, { signal }) => fileBytes(signal),

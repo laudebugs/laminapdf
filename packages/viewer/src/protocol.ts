@@ -235,6 +235,7 @@ export interface Methods {
   pageLinks: { params: [index: number]; result: readonly PageLink[] };
   properties: { params: []; result: DocumentProperties };
   printPage: { params: [index: number, options: PrintOptions]; result: PrintedPage };
+  exportPage: { params: [index: number, options: ExportPageOptions]; result: ExportedPage };
   fileBytes: { params: []; result: Uint8Array };
   find: { params: [query: string, options: FindOptions, pages: readonly number[]]; result: FindPageResult[] };
   readingOrder: { params: [index: number]; result: ReadingBlock[] };
@@ -265,6 +266,27 @@ export interface PrintedPage {
   /** The page as a PNG. */
   readonly image: Blob;
   /** Its displayed size in points (`/Rotate` applied), which the printed page takes. */
+  readonly width: number;
+  readonly height: number;
+  /** The resolution it was drawn at: below the one asked for when the page was too large. */
+  readonly dpi: number;
+}
+
+/** How a page is exported as an image. */
+export interface ExportPageOptions {
+  /** PNG (lossless) or JPEG (smaller, no transparency). */
+  readonly format: "png" | "jpeg";
+  /** Dots per inch. Lowered for a page too large to hold. */
+  readonly dpi: number;
+  /** JPEG quality, 1–100 (default 90). */
+  readonly quality?: number;
+}
+
+/** One page exported as an image. */
+export interface ExportedPage {
+  /** The image file's bytes, its resolution recorded (PNG `pHYs`, JFIF density). */
+  readonly image: Uint8Array<ArrayBuffer>;
+  /** Its size in pixels. */
   readonly width: number;
   readonly height: number;
   /** The resolution it was drawn at: below the one asked for when the page was too large. */

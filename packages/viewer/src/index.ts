@@ -45,6 +45,8 @@ export type {
   EditHistory,
   EditResult,
   EditStep,
+  ExportedPage,
+  ExportPageOptions,
   FindPageResult,
   LoadProgress,
   MethodName,

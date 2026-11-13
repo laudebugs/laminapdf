@@ -32,6 +32,7 @@ import {
   type BackendInit,
   type EditHistory,
   type EditResult,
+  type ExportPageOptions,
   type LoadProgress,
   type MethodName,
   type NetworkRecord,
@@ -548,6 +549,15 @@ export class ViewerClient {
    */
   printPage(index: number, print: PrintOptions, options: ViewerCallOptions = {}) {
     return this.call("printPage", [index, print], { priority: "background", ...options });
+  }
+
+  /**
+   * Page `index` drawn at `exported.dpi` and encoded as PNG or JPEG, its resolution recorded in
+   * the file, at `background` priority unless `options` says otherwise, so the pages in view draw
+   * first. One page per call: an export of many pages asks for them one after another.
+   */
+  exportPage(index: number, exported: ExportPageOptions, options: ViewerCallOptions = {}) {
+    return this.call("exportPage", [index, exported], { priority: "background", ...options });
   }
 
   /**
