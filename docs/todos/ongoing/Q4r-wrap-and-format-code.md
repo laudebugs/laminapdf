@@ -15,7 +15,7 @@
 
 ## Goal
 
-The owner asked for two buttons. Long lines in the docs' code blocks scroll sideways, more so since Q4q lets the page beside an example take room from the code; a reader should be able to wrap them instead, from a button beside Copy. And a reader who edits an example in "Edit and run" should be able to tidy the code they typed, from a Format button at the right end of the runner's bar.
+The owner asked for two buttons. Long lines in the docs' code blocks scroll sideways, more so since Q4q lets the page beside an example take room from the code. A reader should be able to wrap them instead, from a button beside Copy. And a reader who edits an example in "Edit and run" should be able to tidy the code they typed, from a Format button at the right end of the runner's bar.
 
 ## Context
 
