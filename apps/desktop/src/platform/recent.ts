@@ -22,7 +22,8 @@ export function desktopRecent(shell: DesktopShell): RecentFiles {
         return desktopFile(await shell.invoke<DesktopDocument>("recent_open", { id }));
       } catch (caught) {
         const error = engineError(caught);
-        if (error.code === "io") throw error;
+        // Missing, or open already (the main process showed its tab): nothing opens here.
+        if (error.code === "io" || error.code === "already-open") throw error;
         return failedFile("", error);
       }
     },

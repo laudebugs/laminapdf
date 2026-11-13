@@ -120,7 +120,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D4. Windows, tabs, menus and printing
 
-**Todos:** [D4a](../todos/ready/D4a-windows-tabs-and-session-restore.md), [D4b](../todos/ready/D4b-native-menus.md), [D4c](../todos/ready/D4c-native-printing.md)
+**Todos:** [D4a](../todos/done/D4a-windows-tabs-and-session-restore.md), [D4d](../todos/ready/D4d-session-restore.md), [D4e](../todos/ready/D4e-tab-drag-between-windows.md), [D4b](../todos/ready/D4b-native-menus.md), [D4c](../todos/ready/D4c-native-printing.md)
 
 **Deliverable:** multi-window, tabs with drag between windows, session restore, native menus and accelerators, native printing per the D1 result.
 **Accepted when:** menu items and shortcuts match the shared map (test); a 50-page document prints with page ranges on each OS (manual check recorded).
@@ -161,7 +161,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 1. Mac App Store, Microsoft Store, Flathub: in scope, and when?
 2. Crash backend: own Worker + R2, or Sentry (self-hosted or SaaS)?
-3. One engine process per window, or a shared pool with per-document isolation? *Answered by D2b:* one per window; an engine uses 11–12 MiB with a small document ([ADR 0008 §2](../decisions/0008-desktop-shell.md#2-process-model-a-main-process-that-owns-files-and-a-sandboxed-engine-per-window)).
+3. One engine process per window, or a shared pool with per-document isolation? *Answered by D2b:* one per window; an engine uses 11–12 MiB with a small document, and D4a measured about 14 MiB per extra window with up to 20 documents ([ADR 0008 §2](../decisions/0008-desktop-shell.md#2-process-model-a-main-process-that-owns-files-and-a-sandboxed-engine-per-window)).
 4. Default channel for new installs: stable only, or beta during 0.x? *Answered 2026-11-12 (owner):* an install follows the channel of the build it came from; the download page offers stable once a stable release exists, and Settings switches between stable and beta ([ADR 0014 §1](../decisions/0014-desktop-distribution.md#1-channels)).
 5. Do we register as the default PDF handler on install (opt-in prompt) or leave it to the user? *Answered by D3a:* the installers register Lamina PDF as able to open PDFs and leave the default to the user ([ADR 0008 §10](../decisions/0008-desktop-shell.md#10-opening-files-from-the-os)); an opt-in prompt, if wanted, comes with the settings (D7b).
 
@@ -201,7 +201,9 @@ Ticked by the PR that completes them.
 
 ### D4. Windows, tabs, menus and printing
 
-- [ ] Multi-window and tabs; drag a tab to a new window; session restore
+- [x] Multi-window and tabs ([D4a](../todos/done/D4a-windows-tabs-and-session-restore.md))
+- [ ] Drag a tab to a new window or another window's strip ([D4e](../todos/ready/D4e-tab-drag-between-windows.md))
+- [ ] Session restore ([D4d](../todos/ready/D4d-session-restore.md))
 - [ ] Native menus and accelerators generated from the shared shortcut map
 - [ ] Implement printing per the D1 recommendation
 - [ ] Record a manual print check per OS in the PR

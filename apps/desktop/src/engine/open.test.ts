@@ -3,7 +3,7 @@
 
 import type { PlatformFile } from "@laminapdf/ui";
 import { emit } from "@tauri-apps/api/event";
-import { clearMocks, mockConvertFileSrc, mockIPC } from "@tauri-apps/api/mocks";
+import { clearMocks, mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { DesktopDocument } from "./desktop-engine-client.ts";
 import {
@@ -61,6 +61,7 @@ beforeAll(() => {
 beforeEach(() => {
   commands = [];
   mockConvertFileSrc("macos");
+  mockWindows("main");
   mockIPC(
     (command) => {
       commands.push(command);

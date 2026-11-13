@@ -9,7 +9,7 @@ mod documents;
 mod secret;
 mod tiles;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError, Weak};
 
@@ -120,6 +120,10 @@ pub(crate) struct Engines {
     windows: Mutex<BTreeMap<String, Supervisor>>,
     /// Each window's tiles in flight: the viewer's ticket to the engine's request, for `cancel_tiles`.
     tickets: Mutex<BTreeMap<(String, u64), ReqId>>,
+    /// Held through a move and taken by a closing window, so a window that closes mid-move waits
+    /// for it: the document then belongs to one window that is still open, or closes with it.
+    /// It guards the windows that have closed, which a move may not go to (labels aren't reused).
+    moving: Mutex<BTreeSet<String>>,
     launcher: Launcher,
     config: Config,
     notify: Arc<dyn Notify>,
@@ -132,6 +136,7 @@ impl Engines {
             registry: Arc::new(DocumentRegistry::default()),
             windows: Mutex::new(BTreeMap::new()),
             tickets: Mutex::new(BTreeMap::new()),
+            moving: Mutex::new(BTreeSet::new()),
             launcher,
             config,
             notify,
@@ -313,6 +318,53 @@ impl Engines {
         })
     }
 
+    /// The document already open from `path`, and its window.
+    pub(crate) fn open_from(&self, path: &Path) -> Option<(DocId, String)> {
+        self.registry.open_from(path)
+    }
+
+    /// Whether `window` holds any document.
+    pub(crate) fn holds_any(&self, window: &str) -> bool {
+        self.registry.holds_any(window)
+    }
+
+    /// `doc`'s file, for the watcher; never sent to a webview or an engine.
+    pub(crate) fn path_of(&self, doc: DocId) -> Option<std::path::PathBuf> {
+        self.registry.path_of(doc)
+    }
+
+    /// Moves `doc` from window `from` to window `to` (a tab moved there): the same document, file
+    /// and kept password, opened in `to`'s engine. `to` becomes the owner first, so its engine may
+    /// read the file; the document opens there and, with a kept password, unlocks, so a moved
+    /// tab never asks for it again; only then does `from`'s engine forget it. That close is the
+    /// engine's alone: the registry keeps the entry and its password. On any failure `from`
+    /// owns it again, `to`'s engine forgets it, and the tab stays where it was.
+    pub(crate) fn move_doc(&self, doc: DocId, from: &str, to: &str) -> Result<DocumentMeta, DesktopError> {
+        let closed = self.moving.lock().unwrap_or_else(PoisonError::into_inner);
+        if closed.contains(to) || closed.contains(from) {
+            return Err(DesktopError::UnknownWindow);
+        }
+        self.check(from, doc)?;
+        let len = self.registry.len_of(doc).ok_or(DesktopError::UnknownDocument)?;
+        let password = self.registry.password_of(doc);
+        self.registry.set_window(doc, to);
+        let moved = self
+            .open_in(to, doc, len)
+            .and_then(|opened| match (opened.needs_password, password) {
+                (true, Some(password)) => self.unlock(to, doc, password.expose()),
+                _ => Ok(opened),
+            });
+        let (keep, drop_from) = match &moved {
+            Ok(_) => (to, from),
+            Err(_) => (from, to),
+        };
+        self.registry.set_window(doc, keep);
+        if let Some(engine) = self.windows().get(drop_from).cloned() {
+            engine.send(&ToEngine::CloseDocument { doc });
+        }
+        moved
+    }
+
     /// Closes `doc`: the engine forgets it, the file closes and its password is wiped.
     pub(crate) fn close(&self, window: &str, doc: DocId) -> Result<(), DesktopError> {
         self.check(window, doc)?;
@@ -325,8 +377,12 @@ impl Engines {
 
     /// `window` closed: its documents close and its engine stops.
     pub(crate) fn close_window(&self, window: &str) {
+        // Held to the end: a move in or out of `window` happens wholly before or not at all.
+        let mut closed = self.moving.lock().unwrap_or_else(PoisonError::into_inner);
+        closed.insert(window.to_owned());
         self.registry.remove_window(window);
         let engine = self.windows().remove(window);
+        drop(closed);
         if let Some(engine) = engine {
             engine.shutdown();
         }

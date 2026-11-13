@@ -209,3 +209,30 @@ export async function runCommand(title: string): Promise<void> {
   // Enter runs the active row, which typing doesn't choose (↓ does), so click the command's row.
   await $(`//*[@role="option"][normalize-space(.) = "${title}" or .//*[normalize-space(.) = "${title}"]]`).click();
 }
+
+/** The window's tabs' names, in order; the strip shows from two tabs on. */
+export async function tabNames(): Promise<string[]> {
+  return browser.execute(() =>
+    Array.from(globalThis.document.querySelectorAll('[role="tab"]'), (tab) => tab.textContent ?? ""),
+  );
+}
+
+/** The shown tab's name, if the strip shows. */
+export async function shownTab(): Promise<string | undefined> {
+  const tab = $('[role="tab"][aria-selected="true"]');
+  return (await tab.isExisting()) ? tab.getText() : undefined;
+}
+
+/**
+ * Closes every tab with Cmd+W or Ctrl+W until the start screen shows, so a scenario starts as if
+ * nothing were open (the scenarios share one app, and opening no longer replaces a document).
+ */
+export async function closeAll(): Promise<void> {
+  await browser.keys("Escape");
+  for (let presses = 0; presses < 40; presses++) {
+    if (await $("button=Choose a file").isExisting()) return;
+    await browser.keys([platform === "darwin" ? Key.Command : Key.Ctrl, "w"]);
+    await browser.pause(150);
+  }
+  throw new Error("the window didn't go back to its start screen");
+}

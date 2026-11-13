@@ -26,7 +26,11 @@ export const ROUTES: readonly Route[] = [
   { id: "icons", title: "Icons", components: [] },
   { id: "buttons", title: "Buttons", components: ["Button", "IconButton"] },
   { id: "toggles", title: "Toggles", components: ["ToggleButton", "ToolToggle"] },
-  { id: "modes-and-tabs", title: "Mode switcher and tabs", components: ["ModeSwitcher", "SegmentedTabs"] },
+  {
+    id: "modes-and-tabs",
+    title: "Mode switcher and tabs",
+    components: ["ModeSwitcher", "SegmentedTabs", "DocumentTabs"],
+  },
   {
     id: "fields",
     title: "Form controls",
