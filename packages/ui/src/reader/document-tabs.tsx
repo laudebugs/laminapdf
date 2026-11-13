@@ -6,9 +6,10 @@
 //
 // Shells with one window per document (the web reader) never render it; the desktop shell does,
 // from two tabs on (`Platform.capabilities.multiWindow`).
+
+import { Icon } from "@laminapdf/icons/react";
 import { type DragEvent, type KeyboardEvent, type ReactNode, useRef, useState } from "react";
 import { Button as AriaButton, MenuTrigger } from "react-aria-components";
-import { Icon } from "@laminapdf/icons/react";
 import type { KeyPlatform } from "../components/shortcut-chip.js";
 import { message } from "../messages.js";
 import { Menu, type MenuEntry } from "../overlays/popover.js";
@@ -57,14 +58,7 @@ export function DocumentTabs({
   // The roving tab stop: the focused tab, else the active one, else the first.
   const [focused, setFocused] = useState<string>();
   const stop = tabs.find((t) => t.id === focused)?.id ?? active ?? tabs[0]?.id;
-  // The dragged tab: a ref for the drop handlers, which can run before React renders again, and
-  // state for its dimmed look.
-  const draggedRef = useRef<string | undefined>(undefined);
-  const [dragged, setDraggedState] = useState<string>();
-  const setDragged = (id: string | undefined) => {
-    draggedRef.current = id;
-    setDraggedState(id);
-  };
+  const drag = useTabDrag(tabs, onReorder);
 
   const focusTab = (id: string) => {
     setFocused(id);
@@ -95,78 +89,26 @@ export function DocumentTabs({
     }
   };
 
-  const onDrop = (event: DragEvent, onto: string) => {
-    event.preventDefault();
-    const moving = draggedRef.current;
-    setDragged(undefined);
-    if (moving === undefined || moving === onto || onReorder === undefined) return;
-    const ids = tabs.map((t) => t.id).filter((id) => id !== moving);
-    ids.splice(ids.indexOf(onto), 0, moving);
-    onReorder(ids);
-  };
-
-  const menu: MenuEntry<string>[] = [
-    ...tabs.map((t) => ({ id: `${TAB_ENTRY}${t.id}`, label: t.title })),
-    ...moves,
-  ];
+  const menu: MenuEntry<string>[] = [...tabs.map((t) => ({ id: `${TAB_ENTRY}${t.id}`, label: t.title })), ...moves];
   return (
     <div className="paper-document-tabs">
       <div ref={strip} role="tablist" aria-label={message("tabs.label")} className="paper-document-tabs-list">
-        {tabs.map((tab) => {
-          const isActive = tab.id === active;
-          return (
-            <div
-              key={tab.id}
-              role="presentation"
-              className="paper-document-tab"
-              data-active={isActive || undefined}
-              data-dragging={dragged === tab.id || undefined}
-              onDragOver={(event) => {
-                if (draggedRef.current !== undefined) event.preventDefault();
-              }}
-              onDrop={(event) => onDrop(event, tab.id)}
-            >
-              <div
-                role="tab"
-                id={`paper-tab-${tab.id}`}
-                data-tab-id={tab.id}
-                aria-selected={isActive}
-                tabIndex={tab.id === stop ? 0 : -1}
-                title={tab.title}
-                className="paper-document-tab-label"
-                draggable={onReorder !== undefined}
-                onDragStart={(event) => {
-                  setDragged(tab.id);
-                  event.dataTransfer.effectAllowed = "move";
-                }}
-                onDragEnd={() => setDragged(undefined)}
-                onClick={() => onActivate(tab.id)}
-                onFocus={() => setFocused(tab.id)}
-                onKeyDown={(event) => onKeyDown(event, tab.id)}
-              >
-                {tab.title}
-              </div>
-              {/* Out of the tab (no control inside a tab) and out of the tab order: Delete on
-                  the focused tab and the strip's menu close tabs from the keyboard. */}
-              <button
-                type="button"
-                tabIndex={-1}
-                aria-hidden="true"
-                title={message("tabs.close", { name: tab.title })}
-                className="paper-document-tab-close"
-                onClick={() => onClose(tab.id)}
-              >
-                <Icon name="close" />
-              </button>
-            </div>
-          );
-        })}
+        {tabs.map((tab) => (
+          <OneTab
+            key={tab.id}
+            tab={tab}
+            active={tab.id === active}
+            stop={tab.id === stop}
+            drag={drag}
+            onActivate={onActivate}
+            onClose={onClose}
+            onFocus={setFocused}
+            onKeyDown={onKeyDown}
+          />
+        ))}
       </div>
       <MenuTrigger>
-        <AriaButton
-          className="paper-document-tabs-menu"
-          aria-label={message("tabs.menu", { count: tabs.length })}
-        >
+        <AriaButton className="paper-document-tabs-menu" aria-label={message("tabs.menu", { count: tabs.length })}>
           <Icon name="chevron-down" />
         </AriaButton>
         <Menu
@@ -180,6 +122,113 @@ export function DocumentTabs({
           }}
         />
       </MenuTrigger>
+    </div>
+  );
+}
+
+/** Reordering by drag within the strip: which tab is dragged, and the drop that reorders. */
+interface TabDrag {
+  readonly dragged: string | undefined;
+  /** Whether `onReorder` was given: tabs are draggable only then. */
+  readonly enabled: boolean;
+  start(id: string): void;
+  end(): void;
+  /** A drag over a tab may drop there while a tab of this strip is dragged. */
+  over(event: DragEvent): void;
+  drop(event: DragEvent, onto: string): void;
+}
+
+function useTabDrag(tabs: readonly DocumentTab[], onReorder: DocumentTabsProps["onReorder"]): TabDrag {
+  // A ref for the drop handlers, which can run before React renders again, and state for the
+  // dragged tab's dimmed look.
+  const draggedRef = useRef<string | undefined>(undefined);
+  const [dragged, setDraggedState] = useState<string>();
+  const setDragged = (id: string | undefined) => {
+    draggedRef.current = id;
+    setDraggedState(id);
+  };
+  return {
+    dragged,
+    enabled: onReorder !== undefined,
+    start: setDragged,
+    end: () => setDragged(undefined),
+    over: (event) => {
+      if (draggedRef.current !== undefined) event.preventDefault();
+    },
+    drop: (event, onto) => {
+      event.preventDefault();
+      const moving = draggedRef.current;
+      setDragged(undefined);
+      if (moving === undefined || moving === onto || onReorder === undefined) return;
+      const ids = tabs.map((t) => t.id).filter((id) => id !== moving);
+      ids.splice(ids.indexOf(onto), 0, moving);
+      onReorder(ids);
+    },
+  };
+}
+
+/** One tab and its close button. */
+function OneTab({
+  tab,
+  active,
+  stop,
+  drag,
+  onActivate,
+  onClose,
+  onFocus,
+  onKeyDown,
+}: {
+  readonly tab: DocumentTab;
+  readonly active: boolean;
+  /** Whether this tab is the strip's one Tab stop. */
+  readonly stop: boolean;
+  readonly drag: TabDrag;
+  readonly onActivate: (id: string) => void;
+  readonly onClose: (id: string) => void;
+  readonly onFocus: (id: string) => void;
+  readonly onKeyDown: (event: KeyboardEvent<HTMLElement>, id: string) => void;
+}): ReactNode {
+  return (
+    <div
+      role="presentation"
+      className="paper-document-tab"
+      data-active={active || undefined}
+      data-dragging={drag.dragged === tab.id || undefined}
+    >
+      <div
+        role="tab"
+        id={`paper-tab-${tab.id}`}
+        data-tab-id={tab.id}
+        aria-selected={active}
+        tabIndex={stop ? 0 : -1}
+        title={tab.title}
+        className="paper-document-tab-label"
+        draggable={drag.enabled}
+        onDragStart={(event) => {
+          drag.start(tab.id);
+          event.dataTransfer.effectAllowed = "move";
+        }}
+        onDragEnd={drag.end}
+        onDragOver={drag.over}
+        onDrop={(event) => drag.drop(event, tab.id)}
+        onClick={() => onActivate(tab.id)}
+        onFocus={() => onFocus(tab.id)}
+        onKeyDown={(event) => onKeyDown(event, tab.id)}
+      >
+        {tab.title}
+      </div>
+      {/* Out of the tab (no control inside a tab) and out of the tab order: Delete on the focused
+          tab and the strip's menu close tabs from the keyboard. */}
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-hidden="true"
+        title={message("tabs.close", { name: tab.title })}
+        className="paper-document-tab-close"
+        onClick={() => onClose(tab.id)}
+      >
+        <Icon name="close" />
+      </button>
     </div>
   );
 }

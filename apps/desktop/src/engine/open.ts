@@ -6,7 +6,7 @@
 // the main process once and isn't kept here.
 
 import type { Opener, PlatformFile } from "@laminapdf/ui";
-import type { Viewer } from "@laminapdf/viewer";
+import type { Viewer, ViewPosition } from "@laminapdf/viewer";
 import {
   type DesktopDocument,
   type DesktopEngineClient,
@@ -53,7 +53,10 @@ export async function pickDocument(shell: DesktopShell): Promise<PlatformFile[]>
     const opened = await shell.invoke<DesktopDocument | null>("open_dialog");
     return opened === null ? [] : [desktopFile(opened)];
   } catch (error) {
-    return [failedFile("", engineError(error))];
+    const failure = engineError(error);
+    // The file is open already: the main process showed its tab, so nothing opens here.
+    if (failure.code === "already-open") return [];
+    return [failedFile("", failure)];
   }
 }
 
@@ -125,12 +128,27 @@ export async function listenForOsOpens(shell: DesktopShell, handlers: OsOpenHand
   return unsubscribe;
 }
 
+/** What the opener tells the window's tabs (`tabs/window-tabs.ts`). */
+export interface OpenerTabs {
+  /** `file` is about to show: its tab becomes the shown one. Returns the view to put back. */
+  showing(file: PlatformFile): ViewPosition | undefined;
+  /** The reader lets go of the shown document (before it shows another): its tab keeps the view. */
+  setAside(): void;
+}
+
 /**
  * The reader's opener: shows the document `file` stands for in `viewer`, unlocking it first with
  * `password`. A locked document without one fails with `password-required` and a refused one with
- * `wrong-password`, which the reader's controller turns into its password prompt.
+ * `wrong-password`, which the reader's controller turns into its password prompt. With `tabs`, the
+ * shown document becomes a tab, comes back at the view it had, and is set aside rather than
+ * closed when another one shows: it closes with its tab.
  */
-export function desktopOpener(shell: DesktopShell, client: DesktopEngineClient, viewer: Viewer): Opener {
+export function desktopOpener(
+  shell: DesktopShell,
+  client: DesktopEngineClient,
+  viewer: Viewer,
+  tabs?: OpenerTabs,
+): Opener {
   return async (file, password) => {
     const failed = failures.get(file);
     if (failed !== undefined) throw failed;
@@ -150,10 +168,17 @@ export function desktopOpener(shell: DesktopShell, client: DesktopEngineClient, 
       opened = unlocked;
       documents.set(file, opened);
     }
+    const view = tabs?.showing(file);
     viewer.open(client.show(opened));
+    if (view !== undefined) viewer.restore(view);
     return {
       pageCount: opened.pageCount,
       close: () => {
+        if (tabs !== undefined) {
+          tabs.setAside();
+          client.forget();
+          return;
+        }
         void client.close().catch((error: unknown) => console.warn("closing the document failed", error));
       },
     };

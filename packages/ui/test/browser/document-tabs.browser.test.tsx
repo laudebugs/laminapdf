@@ -93,7 +93,7 @@ describe("the document tabs", () => {
     const log: string[] = [];
     renderIn(<Strip log={log} />);
     const from = page.getByRole("tab", { name: "minutes.pdf" }).element();
-    const onto = page.getByRole("tab", { name: "report.pdf" }).element().parentElement as HTMLElement;
+    const onto = page.getByRole("tab", { name: "report.pdf" }).element();
     const data = new DataTransfer();
     from.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: data }));
     onto.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: data }));

@@ -215,6 +215,7 @@ export {
 } from "./reader/appearance.js";
 export { formatBytes } from "./reader/bytes.js";
 export { type DebugBackend, DebugMenu, type DebugMenuProps } from "./reader/debug-menu.js";
+export { type DocumentTab, DocumentTabs, type DocumentTabsProps } from "./reader/document-tabs.js";
 export {
   ExternalLinkDialog,
   type ExternalLinkDialogProps,
@@ -312,7 +313,6 @@ export {
   ViewSettingsButton,
   type ViewSettingsButtonProps,
 } from "./reader/settings.js";
-export { type DocumentTab, DocumentTabs, type DocumentTabsProps } from "./reader/document-tabs.js";
 export { ReaderShell, type ReaderShellProps } from "./reader/shell.js";
 export { ShortcutsDialog, type ShortcutsDialogProps } from "./reader/shortcuts-dialog.js";
 export { ReaderTopBar, type ReaderTopBarProps } from "./reader/top-bar.js";
