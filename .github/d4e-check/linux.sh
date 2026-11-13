@@ -22,7 +22,7 @@ echo "## start"; windows; shot 1-start
 main=$(xdotool search --name "Lamina PDF" | head -1)
 xdotool windowsize --sync "$main" 900 650; xdotool windowmove --sync "$main" 0 0; sleep 1
 eval "$(geom "$main")"
-echo "main at $X,$Y ${WIDTH}x$HEIGHT"
+echo "main at $X,$Y"
 # The shown tab is the second; the strip is the webview's first ~30 px (no title bar inside X/Y).
 drag $((X + 301)) $((Y + 16)) 1200 200 0.8 2-mid-out
 echo "## after drag out"; windows; shot 3-after-out
