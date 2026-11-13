@@ -281,6 +281,29 @@ fn opens_as_set(doc: &laminapdf_model::Document) -> bool {
         && view.preferences.display_doc_title
 }
 
+/// What a reopened output got wrong beyond the facts every case compares: an encryption a
+/// decrypting save left behind, the initial view a `setInitialView` case wrote, or Info and XMP
+/// out of step after a metadata op.
+fn reopened_failures(id: &str, op_name: &str, remove: bool, reopened: &laminapdf_model::Document) -> Vec<String> {
+    let mut failures = Vec::new();
+    if remove && (reopened.is_encrypted() || reopened.trailer().contains_key("Encrypt")) {
+        failures.push(format!("{id}: removing the encryption left /Encrypt"));
+    }
+    if op_name == "setInitialView" && !opens_as_set(reopened) {
+        failures.push(format!(
+            "{id}: lamina reopened the initial view as {:?}",
+            reopened.initial_view()
+        ));
+    }
+    if matches!(op_name, "setMetadata" | "removeMetadata") {
+        let meta = read_metadata(reopened).unwrap();
+        if !meta.disagreements.is_empty() {
+            failures.push(format!("{id}: Info and XMP disagree on {:?}", meta.disagreements));
+        }
+    }
+    failures
+}
+
 /// What a run produced.
 #[derive(Debug, Default)]
 pub struct Suite {
@@ -355,11 +378,9 @@ pub fn run(root: &Path) -> Suite {
                     suite.saved += 1;
                     let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
                     let again = facts(&reopened);
-                    if remove && (reopened.is_encrypted() || reopened.trailer().contains_key("Encrypt")) {
-                        suite
-                            .failures
-                            .push(format!("{id}: removing the encryption left /Encrypt"));
-                    }
+                    suite
+                        .failures
+                        .extend(reopened_failures(&id, op_name, remove, &reopened));
                     if again != (pages, rotations.clone(), info.clone()) || reopened.was_repaired() {
                         suite.failures.push(format!(
                             "{id}: lamina reopened {again:?} (repaired {}), expected {:?}",
@@ -368,20 +389,6 @@ pub fn run(root: &Path) -> Suite {
                         ));
                     }
                     let initial_view = op_name == "setInitialView";
-                    if initial_view && !opens_as_set(&reopened) {
-                        suite.failures.push(format!(
-                            "{id}: lamina reopened the initial view as {:?}",
-                            reopened.initial_view()
-                        ));
-                    }
-                    if metadata_op {
-                        let meta = read_metadata(&reopened).unwrap();
-                        if !meta.disagreements.is_empty() {
-                            suite
-                                .failures
-                                .push(format!("{id}: Info and XMP disagree on {:?}", meta.disagreements));
-                        }
-                    }
                     let file = format!("{id}.pdf");
 
                     suite.manifest.push(json!({
