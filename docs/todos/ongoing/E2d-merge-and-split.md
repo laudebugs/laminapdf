@@ -11,7 +11,7 @@
 | Branch | `feat/e2d-merge-and-split` |
 | PR title | `feat(ops): merge documents with outline, destination and field remapping; split` |
 | Size | L (400–800): merge of the outline, the name trees, the AcroForm and the layers over [E2p](../done/E2p-source-documents-and-copier.md)'s copier, and split; the structure-tree merge is [E2o](../ready/E2o-structure-tree-merge.md)'s |
-| PR | — |
+| PR | [#566](https://github.com/laudebugs/laminapdf/pull/566) |
 
 ## Goal
 
