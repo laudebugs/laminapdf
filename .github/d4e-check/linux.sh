@@ -23,8 +23,8 @@ main=$(xdotool search --name "Lamina PDF" | head -1)
 xdotool windowsize --sync "$main" 900 650; xdotool windowmove --sync "$main" 0 0; sleep 1
 eval "$(geom "$main")"
 echo "main at $X,$Y"
-# The shown tab is the second; the strip is the webview's first ~30 px (no title bar inside X/Y).
-drag $((X + 301)) $((Y + 16)) 1200 200 0.8 2-mid-out
+# The shown tab is the second; the strip sits under the menu bar (about 25 px).
+drag $((X + 301)) $((Y + 40)) 1200 200 0.8 2-mid-out
 echo "## after drag out"; windows; shot 3-after-out
 new=$(xdotool search --name "edit_metadata.pdf" | head -1)
 eval "$(geom "$main")"; mx=$X; my=$Y
@@ -32,6 +32,6 @@ xdotool windowactivate --sync "$main" 2>/dev/null; sleep 1
 eval "$(geom "$new")"; nx=$X; ny=$Y
 echo "new window at $nx,$ny"
 # The main window's one tab, dropped on the new window's middle.
-drag $((mx + 108)) $((my + 16)) $((nx + 300)) $((ny + 300)) 1.2 4-mid-onto
+drag $((mx + 108)) $((my + 40)) $((nx + 300)) $((ny + 300)) 1.2 4-mid-onto
 echo "## after drag onto"; windows; shot 5-after-onto
 grep -iv tile "$out/app.log" | tail -20
