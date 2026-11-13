@@ -635,3 +635,62 @@ fn a_password_should_never_reach_the_log() {
         .collect();
     assert!(leaked.is_empty(), "{leaked:?}");
 }
+
+#[test]
+fn a_moved_document_should_open_in_its_new_window_and_leave_the_old_one() {
+    let mut f = Fixture::new(Mode::Healthy);
+    let path = f.file(PLAIN);
+    let doc = DocId(f.engines.open("main", &path).unwrap().doc);
+    let moved = f.engines.move_doc(doc, "main", "doc-1").unwrap();
+    assert_eq!((moved.doc, moved.page_count), (doc.0, 3));
+    assert!(f.engines.page_info("doc-1", doc).is_ok());
+    assert!(matches!(
+        f.engines.page_info("main", doc),
+        Err(DesktopError::UnknownDocument)
+    ));
+}
+
+#[test]
+fn a_moved_encrypted_document_should_keep_its_password_and_not_ask_again() {
+    let mut f = Fixture::new(Mode::Healthy);
+    let path = f.file(ENCRYPTED);
+    let doc = DocId(f.engines.open("main", &path).unwrap().doc);
+    f.engines.unlock("main", doc, PASSWORD).unwrap();
+    let moved = f.engines.move_doc(doc, "main", "doc-1").unwrap();
+    assert!(!moved.needs_password && moved.pages.len() == 3, "{moved:?}");
+    assert!(f.engines.registry.has_password(doc));
+    // The old window closing afterwards doesn't touch the moved document.
+    f.engines.close_window("main");
+    assert!(f.engines.registry.has_password(doc));
+    assert!(f.engines.page_info("doc-1", doc).is_ok());
+    // Closing it for good wipes the password.
+    f.engines.close("doc-1", doc).unwrap();
+    assert!(!f.engines.registry.has_password(doc));
+}
+
+#[test]
+fn a_move_the_new_window_refuses_should_leave_the_document_where_it_was() {
+    let mut f = Fixture::new(Mode::RefuseReopen);
+    let path = f.file(ENCRYPTED);
+    let doc = DocId(f.engines.open("main", &path).unwrap().doc);
+    f.engines.unlock("main", doc, PASSWORD).unwrap();
+    // "doc-1" starts the second engine, which refuses every document.
+    assert!(f.engines.move_doc(doc, "main", "doc-1").is_err());
+    assert!(f.engines.page_info("main", doc).is_ok());
+    assert!(matches!(
+        f.engines.page_info("doc-1", doc),
+        Err(DesktopError::UnknownDocument)
+    ));
+    assert!(f.engines.registry.has_password(doc));
+}
+
+#[test]
+fn only_its_own_window_may_move_a_document() {
+    let mut f = Fixture::new(Mode::Healthy);
+    let path = f.file(PLAIN);
+    let doc = DocId(f.engines.open("main", &path).unwrap().doc);
+    assert!(matches!(
+        f.engines.move_doc(doc, "doc-2", "doc-1"),
+        Err(DesktopError::UnknownDocument)
+    ));
+}

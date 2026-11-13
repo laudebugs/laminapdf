@@ -2,11 +2,14 @@
 //! that the single-instance plugin forwards, macOS's `RunEvent::Opened` (Finder, the Dock icon),
 //! and files dropped on a window. Each source calls [`route_open`], and nothing else opens them.
 //!
-//! Until the webview has mounted, nothing could show a document, so [`route_open`] queues the
-//! paths in [`PendingOpens`]; the webview listens for [`OPEN_EVENT`], then calls
-//! `take_pending_opens`, which drains the queue and lets later requests through at once. Paths
-//! stay in the main process (ADR 0008 §6): the webview gets the document's id and its file name.
+//! Requests go to the frontmost window, each file in a new tab there (todo D4a), or each in a new
+//! window when the user chose that; a file open already shows its tab instead. Until a window's
+//! webview has mounted, nothing could show a document, so [`route_open`] queues its paths in
+//! [`PendingOpens`]; the webview listens for [`OPEN_EVENT`], then calls `take_pending_opens`, which
+//! drains its queue and lets later requests through at once. Paths stay in the main process
+//! (ADR 0008 §6): the webview gets the document's id and its file name.
 
+use std::collections::BTreeMap;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, PoisonError, mpsc};
@@ -67,9 +70,9 @@ pub(crate) fn paths_from_urls(urls: &[tauri::Url]) -> Vec<PathBuf> {
         .collect()
 }
 
-/// The OS's open requests that came before the webview could show them.
+/// The OS's open requests that came before a window's webview could show them, by window.
 #[derive(Debug, Default)]
-pub(crate) struct PendingOpens(Mutex<Queue>);
+pub(crate) struct PendingOpens(Mutex<BTreeMap<String, Queue>>);
 
 #[derive(Debug, Default)]
 struct Queue {
@@ -79,16 +82,17 @@ struct Queue {
 }
 
 impl PendingOpens {
-    fn queue(&self) -> std::sync::MutexGuard<'_, Queue> {
-        // The queue holds no invariant a panic could break halfway.
+    fn queues(&self) -> std::sync::MutexGuard<'_, BTreeMap<String, Queue>> {
+        // The queues hold no invariant a panic could break halfway.
         self.0.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
-    /// Queues `paths` while the webview isn't ready (`None`); once it is, hands them back to open now.
-    /// The check and the push hold one lock, so a request can't slip between the webview's take
-    /// and its readiness.
-    pub(crate) fn offer(&self, paths: Vec<PathBuf>) -> Option<Vec<PathBuf>> {
-        let mut queue = self.queue();
+    /// Queues `paths` while `window`'s webview isn't ready (`None`); once it is, hands them back
+    /// to open now. The check and the push hold one lock, so a request can't slip between the
+    /// webview's take and its readiness.
+    pub(crate) fn offer(&self, window: &str, paths: Vec<PathBuf>) -> Option<Vec<PathBuf>> {
+        let mut queues = self.queues();
+        let queue = queues.entry(window.to_owned()).or_default();
         if queue.ready {
             return Some(paths);
         }
@@ -96,11 +100,18 @@ impl PendingOpens {
         None
     }
 
-    /// Everything queued, in arrival order; from now on [`Self::offer`] hands paths straight back.
-    pub(crate) fn take(&self) -> Vec<PathBuf> {
-        let mut queue = self.queue();
+    /// Everything queued for `window`, in arrival order; from now on [`Self::offer`] hands its
+    /// paths straight back.
+    pub(crate) fn take(&self, window: &str) -> Vec<PathBuf> {
+        let mut queues = self.queues();
+        let queue = queues.entry(window.to_owned()).or_default();
         queue.ready = true;
         std::mem::take(&mut queue.paths)
+    }
+
+    /// `window` closed: its queue goes (a reused label would start not ready).
+    pub(crate) fn closed(&self, window: &str) {
+        self.queues().remove(window);
     }
 }
 
@@ -173,41 +184,51 @@ pub(crate) fn bring_forward(app: &AppHandle, window: &str) {
     }
 }
 
-/// The one way an OS request opens documents: queued until the webview is ready, then opened in
-/// `window`, which comes to the front. Requests made before the webview was ready go to the main
-/// window, the only one there is until tabs and windows (D4a).
+/// The one way an OS request opens documents: each file in a new tab of `window` (the frontmost,
+/// [`crate::windows::target_window`]), or each in a new window of its own when the user chose
+/// that. A window's requests wait until its webview is ready, then open in order.
 pub(crate) fn route_open(app: &AppHandle, window: &str, paths: Vec<PathBuf>) {
     if paths.is_empty() {
         return;
     }
-    if let Some(paths) = app.state::<PendingOpens>().offer(paths) {
+    if app.state::<crate::prefs::Prefs>().get().open_in == crate::prefs::OpenIn::Windows {
+        for path in paths {
+            match crate::windows::new_window(app) {
+                Ok(label) => queue_or_open(app, &label, vec![path]),
+                Err(error) => tracing::warn!("could not make a window for a document: {error}"),
+            }
+        }
+        return;
+    }
+    queue_or_open(app, window, paths);
+}
+
+/// Opens `paths` in `window` now if its webview is ready, else when it is.
+fn queue_or_open(app: &AppHandle, window: &str, paths: Vec<PathBuf>) {
+    if let Some(paths) = app.state::<PendingOpens>().offer(window, paths) {
         open_now(app, window, paths);
     }
 }
 
-/// Opens the last of `paths` in `window`: it shows one document at a time until tabs (D4a), and
-/// the last one asked for is the one the user expects to see.
-fn open_now(app: &AppHandle, window: &str, mut paths: Vec<PathBuf>) {
-    let Some(path) = paths.pop() else {
+/// Opens each of `paths` in a tab of `window`, in order: the last becomes the shown tab.
+fn open_now(app: &AppHandle, window: &str, paths: Vec<PathBuf>) {
+    if paths.is_empty() {
         return;
-    };
-    if !paths.is_empty() {
-        tracing::info!(
-            skipped = paths.len(),
-            "several PDFs asked to open at once; the window shows the last until it has tabs"
-        );
     }
     bring_forward(app, window);
-    let job = OpenJob {
-        window: window.to_owned(),
-        path,
-    };
     let Some(worker) = app.try_state::<OpenWorker>() else {
         tracing::warn!("a document the OS asked for came before the app could open it");
         return;
     };
-    if worker.0.send(job).is_err() {
-        tracing::warn!("the worker that opens documents has stopped");
+    for path in paths {
+        let job = OpenJob {
+            window: window.to_owned(),
+            path,
+        };
+        if worker.0.send(job).is_err() {
+            tracing::warn!("the worker that opens documents has stopped");
+            return;
+        }
     }
 }
 
@@ -218,24 +239,28 @@ fn open_and_tell(app: &AppHandle, job: &OpenJob) {
         tracing::debug!("a document the OS asked for came after its window closed");
         return;
     }
-    let payload = opened(app, job);
+    let Some(payload) = opened(app, job) else {
+        return;
+    };
     if let Err(error) = app.emit_to(EventTarget::webview_window(&job.window), OPEN_EVENT, payload) {
         tracing::warn!("could not hand the window its document: {error}");
     }
 }
 
-/// Opens one job's file and says what came of it, by the file's name.
-fn opened(app: &AppHandle, job: &OpenJob) -> Opened {
+/// Opens one job's file and says what came of it, by the file's name; `None` when the file was
+/// open already and its tab came to the front instead.
+fn opened(app: &AppHandle, job: &OpenJob) -> Option<Opened> {
     let name = file_name(&job.path);
     tracing::debug!(path = %job.path.display(), "opening a document the OS asked for");
     match open_file(app, &job.window, &job.path) {
-        Ok(document) => Opened::Document { name, document },
+        Ok(document) => Some(Opened::Document { name, document }),
+        Err(DesktopError::AlreadyOpen) => None,
         Err(error) => {
             tracing::info!(kind = error.kind(), "a document the OS asked for didn't open");
-            Opened::Failed {
+            Some(Opened::Failed {
                 name,
                 error: Failure::from(&error),
-            }
+            })
         }
     }
 }
@@ -309,7 +334,7 @@ pub(crate) fn on_drag_drop(window: &tauri::Window, event: &tauri::DragDropEvent)
 #[tauri::command]
 #[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window by value")]
 pub(crate) fn take_pending_opens(window: tauri::WebviewWindow) {
-    let paths = window.state::<PendingOpens>().take();
+    let paths = window.state::<PendingOpens>().take(window.label());
     open_now(window.app_handle(), window.label(), paths);
 }
 
@@ -459,35 +484,46 @@ mod tests {
     #[test]
     fn offer_should_queue_until_the_webview_takes_the_queue() {
         let pending = PendingOpens::default();
-        assert_eq!(pending.offer(vec![PathBuf::from("a.pdf")]), None);
+        assert_eq!(pending.offer("main", vec![PathBuf::from("a.pdf")]), None);
     }
 
     #[test]
     fn take_should_return_queued_paths_in_arrival_order() {
         let pending = PendingOpens::default();
         // Cold-start argv first, then a second launch's paths, both before the webview is ready.
-        let _ = pending.offer(vec![PathBuf::from("argv.pdf")]);
-        let _ = pending.offer(vec![PathBuf::from("second.pdf"), PathBuf::from("third.pdf")]);
+        let _ = pending.offer("main", vec![PathBuf::from("argv.pdf")]);
+        let _ = pending.offer("main", vec![PathBuf::from("second.pdf"), PathBuf::from("third.pdf")]);
         let expected: Vec<PathBuf> = ["argv.pdf", "second.pdf", "third.pdf"].map(PathBuf::from).into();
-        assert_eq!(pending.take(), expected);
+        assert_eq!(pending.take("main"), expected);
     }
 
     #[test]
     fn take_should_drain_the_queue_once() {
         let pending = PendingOpens::default();
-        let _ = pending.offer(vec![PathBuf::from("a.pdf")]);
-        let _ = pending.take();
-        assert_eq!(pending.take(), Vec::<PathBuf>::new());
+        let _ = pending.offer("main", vec![PathBuf::from("a.pdf")]);
+        let _ = pending.take("main");
+        assert_eq!(pending.take("main"), Vec::<PathBuf>::new());
     }
 
     #[test]
     fn offer_should_hand_paths_back_once_the_webview_is_ready() {
         let pending = PendingOpens::default();
-        let _ = pending.take();
+        let _ = pending.take("main");
         assert_eq!(
-            pending.offer(vec![PathBuf::from("b.pdf")]),
+            pending.offer("main", vec![PathBuf::from("b.pdf")]),
             Some(vec![PathBuf::from("b.pdf")])
         );
+    }
+
+    #[test]
+    fn a_new_window_waits_for_its_own_webview() {
+        let pending = PendingOpens::default();
+        let _ = pending.take("main");
+        assert_eq!(pending.offer("doc-1", vec![PathBuf::from("c.pdf")]), None);
+        assert_eq!(pending.take("doc-1"), vec![PathBuf::from("c.pdf")]);
+        // A closed window's label starts over, not ready.
+        pending.closed("doc-1");
+        assert_eq!(pending.offer("doc-1", vec![PathBuf::from("d.pdf")]), None);
     }
 
     #[test]

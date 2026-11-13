@@ -313,6 +313,44 @@ impl Engines {
         })
     }
 
+    /// The document already open from `path`, and its window.
+    pub(crate) fn open_from(&self, path: &Path) -> Option<(DocId, String)> {
+        self.registry.open_from(path)
+    }
+
+    /// `doc`'s file, for the watcher; never sent to a webview or an engine.
+    pub(crate) fn path_of(&self, doc: DocId) -> Option<std::path::PathBuf> {
+        self.registry.path_of(doc)
+    }
+
+    /// Moves `doc` from window `from` to window `to` (a tab moved there): the same document, file
+    /// and kept password, opened in `to`'s engine. `to` becomes the owner first, so its engine may
+    /// read the file; the document opens there and, with a kept password, unlocks, so a moved
+    /// tab never asks for it again; only then does `from`'s engine forget it. That close is the
+    /// engine's alone: the registry keeps the entry and its password. On any failure `from`
+    /// owns it again, `to`'s engine forgets it, and the tab stays where it was.
+    pub(crate) fn move_doc(&self, doc: DocId, from: &str, to: &str) -> Result<DocumentMeta, DesktopError> {
+        self.check(from, doc)?;
+        let len = self.registry.len_of(doc).ok_or(DesktopError::UnknownDocument)?;
+        let password = self.registry.password_of(doc);
+        self.registry.set_window(doc, to);
+        let moved = self
+            .open_in(to, doc, len)
+            .and_then(|opened| match (opened.needs_password, password) {
+                (true, Some(password)) => self.unlock(to, doc, password.expose()),
+                _ => Ok(opened),
+            });
+        let (keep, drop_from) = match &moved {
+            Ok(_) => (to, from),
+            Err(_) => (from, to),
+        };
+        self.registry.set_window(doc, keep);
+        if let Some(engine) = self.windows().get(drop_from).cloned() {
+            engine.send(&ToEngine::CloseDocument { doc });
+        }
+        moved
+    }
+
     /// Closes `doc`: the engine forgets it, the file closes and its password is wiped.
     pub(crate) fn close(&self, window: &str, doc: DocId) -> Result<(), DesktopError> {
         self.check(window, doc)?;

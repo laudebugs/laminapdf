@@ -21,6 +21,9 @@ use super::secret::SessionPassword;
 struct Entry {
     /// The granted path, never sent anywhere: only its file name leaves the main process.
     path: PathBuf,
+    /// The same file's canonical path, which tells a second open of it (through a link, a
+    /// different spelling) from another file.
+    canonical: Option<PathBuf>,
     source: Arc<FileSource>,
     window: String,
     password: Option<SessionPassword>,
@@ -50,6 +53,7 @@ impl DocumentRegistry {
             doc,
             Entry {
                 path: path.to_owned(),
+                canonical: std::fs::canonicalize(path).ok(),
                 source: Arc::new(source),
                 window: window.to_owned(),
                 password: None,
@@ -61,6 +65,32 @@ impl DocumentRegistry {
     /// Whether `doc` is open in `window`: a window may touch only its own documents.
     pub(crate) fn owns(&self, window: &str, doc: DocId) -> bool {
         self.lock().get(&doc).is_some_and(|e| e.window == window)
+    }
+
+    /// Makes `window` `doc`'s owner: its engine may read the file, and only its webview may use
+    /// the document. A tab moving between windows takes its document, file and kept password
+    /// with it.
+    pub(crate) fn set_window(&self, doc: DocId, window: &str) {
+        if let Some(entry) = self.lock().get_mut(&doc) {
+            window.clone_into(&mut entry.window);
+        }
+    }
+
+    /// The document already open from `path`, and its window: opening the same file twice
+    /// focuses its tab instead. Files compare by canonical path, so a link or another spelling
+    /// of an open file is found too.
+    pub(crate) fn open_from(&self, path: &Path) -> Option<(DocId, String)> {
+        let wanted = std::fs::canonicalize(path).ok()?;
+        self.lock()
+            .iter()
+            .find(|(_, entry)| entry.canonical.as_ref() == Some(&wanted))
+            .map(|(doc, entry)| (*doc, entry.window.clone()))
+    }
+
+    /// `doc`'s file, while it is open: for the watcher, which follows a moved tab. Never sent to
+    /// a webview or an engine.
+    pub(crate) fn path_of(&self, doc: DocId) -> Option<PathBuf> {
+        self.lock().get(&doc).map(|entry| entry.path.clone())
     }
 
     /// `doc`'s file name without its folder, for the window's title, while it is open.

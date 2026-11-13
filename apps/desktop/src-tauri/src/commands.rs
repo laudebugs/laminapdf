@@ -259,3 +259,53 @@ mod tests {
         );
     }
 }
+
+/// Opens a new, empty window (File ▸ New Window) and returns its label.
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its app by value")]
+pub(crate) fn new_window(app: tauri::AppHandle) -> Result<String, DesktopError> {
+    crate::windows::new_window(&app)
+}
+
+/// Moves one of this window's tabs (its document `doc`, with `view`, the page, offset and zoom it
+/// showed) to a new window or another one, and returns the label of the window it went to. The
+/// document keeps its kept password, so a moved tab never asks for it again; on failure the tab
+/// stays here.
+#[tauri::command]
+pub(crate) async fn move_tab(
+    window: tauri::WebviewWindow,
+    doc: u32,
+    to: crate::windows::MoveTo,
+    view: crate::windows::View,
+) -> Result<String, DesktopError> {
+    let app = window.app_handle().clone();
+    let from = window.label().to_owned();
+    // The engines' answers come from other processes: never on the main thread.
+    tauri::async_runtime::spawn_blocking(move || crate::windows::move_tab(&app, &from, DocId(doc), &to, view))
+        .await
+        .map_err(|error| DesktopError::Internal(error.to_string()))?
+}
+
+/// The other windows and their titles, for "Move tab to window ▸".
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window by value")]
+pub(crate) fn window_list(window: tauri::WebviewWindow) -> Vec<crate::windows::WindowEntry> {
+    crate::windows::others(window.app_handle(), window.label())
+}
+
+/// Sets this window's title from the shown document's name (`None`: the start screen).
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window by value")]
+pub(crate) fn set_window_title(window: tauri::WebviewWindow, name: Option<String>) -> Result<(), DesktopError> {
+    window.set_title(&crate::windows::title(name.as_deref()))?;
+    Ok(())
+}
+
+/// Hands this window's webview the tabs moved to it before it was ready, through
+/// `tab://arrived`, and lets later ones through at once. The webview calls it once, after it
+/// listens for the event.
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window by value")]
+pub(crate) fn take_pending_tabs(window: tauri::WebviewWindow) {
+    crate::windows::take_arrivals(window.app_handle(), window.label());
+}
