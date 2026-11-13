@@ -3,7 +3,15 @@
 // the tests that need them, not from props, so shipped code carries nothing for tests.
 
 import type { ReactElement } from "react";
-import { EditArea, HistoryPanel, type SavePlanSlice, SaveStrip } from "../src/editing.ts";
+import { ThreadsPanel } from "../src/dialogs.ts";
+import {
+  BookmarkEditor,
+  type BookmarkItem,
+  EditArea,
+  HistoryPanel,
+  type SavePlanSlice,
+  SaveStrip,
+} from "../src/editing.ts";
 import {
   Badge,
   Button,
@@ -52,6 +60,7 @@ import {
   WholeFileDownload,
   ZoomControl,
 } from "../src/index.ts";
+import { stepThreadPart } from "../src/reader/threads.ts";
 import { ReaderSettingsPanel, ReaderView } from "../src/reader-mode.ts";
 import { WithCommands } from "./commands.tsx";
 import { FakeEdits, FakeFind, FakeViewer, fakeFile } from "./fakes.ts";
@@ -535,6 +544,73 @@ const history: Example[] = [
   },
 ];
 
+/** Two article threads, one with a part on a page the file lacks. */
+const THREADS = [
+  { title: "Repairs backlog in depth", parts: [{ page: 2 }, { page: 4 }, {}] },
+  { parts: [{ page: 7 }] },
+];
+
+const threads: Example[] = [
+  {
+    component: "ThreadsPanel",
+    state: "following the first thread, its second part current",
+    element: () => (
+      <ThreadsPanel
+        threads={THREADS}
+        current={{ thread: 0, part: 1 }}
+        pageName={(index) => String(index + 1)}
+        step={(direction) => stepThreadPart(THREADS, { thread: 0, part: 1 }, direction)}
+        onGo={() => undefined}
+      />
+    ),
+  },
+];
+
+/** O11's bookmarks: one styled red and bold, one nested, one that goes to a name. */
+const BOOKMARKS: BookmarkItem[] = [
+  { id: "o4.0", title: "Chair's summary", page: "2", bold: true, color: "#c00000", children: [] },
+  {
+    id: "o5.0",
+    title: "Repairs backlog",
+    page: "5",
+    open: true,
+    children: [{ id: "o6.0", title: "By region", page: "6", children: [] }],
+  },
+  { id: "o7.0", title: "Surveyor capacity", destinationName: "surveyor-capacity", children: [] },
+];
+
+/** The editor's callbacks, none of which the gallery acts on. */
+const BOOKMARK_ACTIONS = {
+  apple: false,
+  onNavigate: () => undefined,
+  onAdd: () => undefined,
+  onRename: () => undefined,
+  onMove: () => undefined,
+  onDelete: () => undefined,
+  onStyle: () => undefined,
+  onShowChildren: () => undefined,
+  onUseCurrentView: () => undefined,
+  onNamedDestinations: () => undefined,
+};
+
+const bookmarks: Example[] = [
+  {
+    component: "BookmarkEditor",
+    state: "three bookmarks, one nested",
+    element: () => <BookmarkEditor items={BOOKMARKS} current="o5.0" {...BOOKMARK_ACTIONS} />,
+  },
+  {
+    component: "BookmarkEditor",
+    state: "an outline the first edit rebuilt",
+    element: () => <BookmarkEditor items={BOOKMARKS} repaired {...BOOKMARK_ACTIONS} />,
+  },
+  {
+    component: "BookmarkEditor",
+    state: "no bookmarks yet",
+    element: () => <BookmarkEditor items={[]} {...BOOKMARK_ACTIONS} />,
+  },
+];
+
 const CERTIFICATION = { kind: "certification", field: "f7.0" };
 const APPROVAL = { kind: "approval", field: "f9.0" };
 
@@ -933,6 +1009,8 @@ export const EXAMPLES: readonly Example[] = [
   ...findBar,
   ...findResults,
   ...history,
+  ...threads,
+  ...bookmarks,
   ...saveStrip,
   ...buttons,
   ...toggles,

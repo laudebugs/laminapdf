@@ -470,6 +470,23 @@ impl PageFrame {
         UserSpacePoint::new(x, y)
     }
 
+    /// A page-space point whose coordinates may be unset, as a destination's are (§12.3.2.2: an
+    /// unset one keeps the viewer's), in user space: `(left, top)` with each set where the page
+    /// coordinate that sets it is. On a page turned sideways the page's x runs along user y, so
+    /// `x` sets the user-space top and `y` the left.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub fn to_user_space_unset(&self, x: Option<Pt>, y: Option<Pt>) -> (Option<f64>, Option<f64>) {
+        let p = self.to_user_space(PointPt::new(x.unwrap_or(Pt::ZERO), y.unwrap_or(Pt::ZERO)));
+        let (along_x, along_y) = if self.rotate.degrees().is_multiple_of(180) {
+            (x, y)
+        } else {
+            (y, x)
+        };
+        (along_x.map(|_| p.x), along_y.map(|_| p.y))
+    }
+
     /// [`PageFrame::to_user_space`] as a matrix (§8.3.4): page-space points to user space.
     ///
     /// Added in 0.2.0.
@@ -619,5 +636,80 @@ mod tests {
     fn rect_pt_normalises_its_corners() {
         let r = RectPt::from_xywh(Pt(10.0), Pt(10.0), Pt(-5.0), Pt(20.0));
         assert_eq!(r, rect(5.0, 10.0, 10.0, 30.0));
+    }
+}
+
+/// A page size in points: the width and height of a `/MediaBox` before `/Rotate`, physical
+/// (a builder applies `/UserUnit` when it writes the page).
+///
+/// Added in 0.2.0.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PageSize {
+    /// Width (before `/Rotate`).
+    pub width: Pt,
+    /// Height (before `/Rotate`).
+    pub height: Pt,
+}
+
+impl PageSize {
+    /// ISO 216 A0, 841 × 1189 mm.
+    ///
+    /// Added in 0.2.0.
+    pub const A0: Self = Self::mm(841.0, 1189.0);
+    /// ISO 216 A1, 594 × 841 mm.
+    ///
+    /// Added in 0.2.0.
+    pub const A1: Self = Self::mm(594.0, 841.0);
+    /// ISO 216 A2, 420 × 594 mm.
+    ///
+    /// Added in 0.2.0.
+    pub const A2: Self = Self::mm(420.0, 594.0);
+    /// ISO 216 A3, 297 × 420 mm.
+    ///
+    /// Added in 0.2.0.
+    pub const A3: Self = Self::mm(297.0, 420.0);
+    /// ISO 216 A4, 210 × 297 mm.
+    ///
+    /// Added in 0.2.0.
+    pub const A4: Self = Self::mm(210.0, 297.0);
+    /// ISO 216 A5, 148 × 210 mm.
+    ///
+    /// Added in 0.2.0.
+    pub const A5: Self = Self::mm(148.0, 210.0);
+    /// ISO 216 A6, 105 × 148 mm.
+    ///
+    /// Added in 0.2.0.
+    pub const A6: Self = Self::mm(105.0, 148.0);
+    /// US Letter, 8.5 × 11 in.
+    ///
+    /// Added in 0.2.0.
+    pub const LETTER: Self = Self::new(Pt::new(612.0), Pt::new(792.0));
+    /// US Legal, 8.5 × 14 in.
+    ///
+    /// Added in 0.2.0.
+    pub const LEGAL: Self = Self::new(Pt::new(612.0), Pt::new(1008.0));
+    /// Tabloid, 11 × 17 in.
+    ///
+    /// Added in 0.2.0.
+    pub const TABLOID: Self = Self::new(Pt::new(792.0), Pt::new(1224.0));
+
+    /// `width` × `height`.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub const fn new(width: Pt, height: Pt) -> Self {
+        Self { width, height }
+    }
+
+    const fn mm(width: f64, height: f64) -> Self {
+        Self::new(Pt::from_mm(width), Pt::from_mm(height))
+    }
+
+    /// The same size turned sideways (width and height swapped).
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub const fn landscape(self) -> Self {
+        Self::new(self.height, self.width)
     }
 }

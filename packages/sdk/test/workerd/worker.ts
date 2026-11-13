@@ -4,6 +4,7 @@
 // isolate: hello-first is then cold and the WebAssembly memory is the hello and report runs'
 // alone (memory never shrinks).
 import { init } from "@laminapdf/sdk";
+import outlinePdf from "../../../../fixtures/corpus/outline.pdf";
 import invoiceTemplate from "../../../../fixtures/documents/invoice.json" with { type: "json" };
 import invoiceData from "../../../../fixtures/documents/invoice-data.json" with { type: "json" };
 import notoSans from "../../../../fixtures/fonts/NotoSans-Regular.ttf";
@@ -12,9 +13,14 @@ import notoSansArabic from "../../../../fixtures/fonts/NotoSansArabic-Regular.tt
 import notoSansDevanagari from "../../../../fixtures/fonts/NotoSansDevanagari-Regular.ttf";
 import notoSansHebrew from "../../../../fixtures/fonts/NotoSansHebrew-Regular.ttf";
 import notoSansSC from "../../../../fixtures/fonts/NotoSansSC-Regular.otf";
+import linksAndOutlinesPdf from "../../../../fixtures/golden/examples/links_and_outlines.pdf";
+import pdfaArchive2b from "../../../../fixtures/golden/examples/pdf_a_archive-2b.pdf";
+import bookmarksPdf from "../../../../fixtures/golden/links-and-outlines.pdf";
 import metadataPdf from "../../../../fixtures/golden/metadata.pdf";
 import photo from "../../../../fixtures/images/photo-rgb.jpg";
 import report from "../../../../fixtures/markdown/report.md";
+import formsPdf from "../../../../fixtures/pages/forms.pdf";
+import referencesPdf from "../../../../fixtures/pages/references.pdf";
 import flowReport from "../../../../fixtures/text/element-flow-report.json" with { type: "json" };
 import { EXAMPLES, INPUT_PATHS, type Inputs, measure, missingInputs, sha256 } from "../suite/examples.js";
 
@@ -33,6 +39,12 @@ const inputs: Inputs = {
       "fixtures/fonts/NotoSans-RegularBold.ttc": notoSansCollection,
       "fixtures/markdown/report.md": report,
       "fixtures/golden/metadata.pdf": metadataPdf,
+      "fixtures/corpus/outline.pdf": outlinePdf,
+      "fixtures/golden/links-and-outlines.pdf": bookmarksPdf,
+      "fixtures/golden/examples/pdf_a_archive-2b.pdf": pdfaArchive2b,
+      "fixtures/pages/references.pdf": referencesPdf,
+      "fixtures/pages/forms.pdf": formsPdf,
+      "fixtures/golden/examples/links_and_outlines.pdf": linksAndOutlinesPdf,
     }).map(([path, data]) => [path, new Uint8Array(data)]),
   ),
   // The element-flow report comes in as a JSON module; the suite reads every input as bytes.

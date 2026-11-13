@@ -35,7 +35,8 @@
 //! clocks or threads.
 //!
 //! * [`Op`]: [`SetMetadata`] (with [`MetadataPatch`]), [`RemoveMetadata`] (with
-//!   [`MetadataKey`]), the save planner's [`UpdateSaveMetadata`], [`RotatePage`] and the
+//!   [`MetadataKey`]), the save planner's [`UpdateSaveMetadata`], [`RotatePage`],
+//!   [`SetInitialView`] (with [`OpenAt`], [`OpenZoom`], [`WindowPreferencesPatch`]) and the
 //!   deprecated [`SetInfo`] (with [`InfoPatch`]), each with a
 //!   [`ModificationClass`] and [`Op::requires_rewrite`]; [`OpLog`] is the versioned JSON
 //!   envelope `{ "v": 1, "ops": [ … ] }`.
@@ -81,8 +82,12 @@ mod document;
 mod error;
 mod history;
 mod info;
+mod initial_view;
+mod labels;
 mod metadata;
 mod op;
+mod outline;
+mod pages;
 mod pending;
 mod record;
 mod rotate;
@@ -103,11 +108,23 @@ pub use error::{Error, Result};
 pub use history::{History, Reverted, UndoOutcome};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use info::{InfoPatch, SetInfo};
+pub use initial_view::{OpenAt, OpenZoom, SetInitialView, WindowPreferencesPatch};
+pub use labels::{PageLabelRange, SetPageLabels};
 pub use metadata::{
     ConformanceWarning, DocumentMetadata, MetadataKey, MetadataPatch, MetadataSource, PacketStatus, RemoveMetadata,
-    SetMetadata, UpdateSaveMetadata, conformance_warnings, read_metadata,
+    RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty, UpdateSaveMetadata, conformance_warnings,
+    pending_conformance_warnings, read_metadata,
 };
 pub use op::{Op, OpLog};
+pub use outline::{
+    AddOutlineItem, ChildItems, DeleteNamedDestination, DeleteOutlineItem, DestinationUse, DestinationView,
+    ExplicitDestination, MoveOutlineItem, OutlineStyle, OutlineTarget, RenameLinks, RenameNamedDestination, Rgb,
+    SetNamedDestination, UpdateOutlineItem,
+};
+pub use pages::{
+    DeletePages, DuplicatePages, FieldChange, FieldOutcome, InsertBlankPages, MovePages, ReferenceChange,
+    ReferenceOutcome, ReferencePolicy, ReversePages, RotateMode, RotatePages,
+};
 pub use pending::PendingChanges;
 pub use record::{Change, Field, Property, PropertyValue, SkipReason, Skipped, Target, UndoRecord};
 pub use rotate::RotatePage;

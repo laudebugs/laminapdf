@@ -1,7 +1,7 @@
 ---
 title: "Open someone else's file"
 description: "Open an uploaded PDF with an optional password and tighter limits, and get its page count and warnings, or the error, back as a value."
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/recipes/open-untrusted/"
 ---
 

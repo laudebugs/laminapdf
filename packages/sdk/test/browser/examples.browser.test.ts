@@ -12,6 +12,9 @@ const urls = import.meta.glob<string>(
   [
     "../../../../fixtures/golden/examples/*.pdf",
     "../../../../fixtures/golden/metadata.pdf",
+    "../../../../fixtures/corpus/outline.pdf",
+    "../../../../fixtures/golden/links-and-outlines.pdf",
+    "../../../../fixtures/pages/{references,forms}.pdf",
     "../../../../fixtures/fonts/*.{ttf,otf,ttc}",
     "../../../../fixtures/images/photo-rgb.jpg",
     "../../../../fixtures/markdown/report.md",

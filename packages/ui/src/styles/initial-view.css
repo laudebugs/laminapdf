@@ -1,0 +1,38 @@
+/* The Initial view dialog (Paper O13): the fields in one column, 16 px apart, as Print's are; the
+   page and zoom side by side where the dialog is wide enough; the Reader window group a borderless
+   fieldset whose legend is a field label, its checkboxes one per line with their help under them. */
+@layer paper.components {
+  .paper-initial-view {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-16);
+  }
+
+  .paper-initial-view-open {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+    gap: var(--paper-space-16);
+    align-items: start;
+  }
+
+  .paper-initial-view-window {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+    min-inline-size: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .paper-initial-view-window legend {
+    margin-block-end: var(--paper-space-8);
+    padding: 0;
+    font: var(--paper-type-label);
+    color: var(--paper-text-3);
+  }
+
+  .paper-initial-view-window .paper-field-help {
+    margin: 0;
+  }
+}

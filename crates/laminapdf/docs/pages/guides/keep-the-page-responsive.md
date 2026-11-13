@@ -1,7 +1,7 @@
 ---
 title: "Keep the page responsive"
 description: "Run Lamina PDF in a Web Worker with @laminapdf/sdk/worker, so a large file never freezes the page."
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/guides/keep-the-page-responsive/"
 ---
 

@@ -311,7 +311,7 @@
           "round": "E2",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
+            "core": "round-trip",
             "pdf": null,
             "web": null,
             "desktop": null
@@ -335,7 +335,7 @@
           "round": "E2",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
+            "core": "round-trip",
             "pdf": null,
             "web": null,
             "desktop": null
@@ -347,7 +347,7 @@
           "round": "E2",
           "target": "round-trip",
           "surfaces": {
-            "core": "read",
+            "core": "round-trip",
             "pdf": null,
             "web": null,
             "desktop": null
@@ -455,7 +455,7 @@
           "round": "E2",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
+            "core": "round-trip",
             "pdf": null,
             "web": null,
             "desktop": null
@@ -1379,9 +1379,9 @@
           "round": "E3",
           "target": "round-trip",
           "surfaces": {
-            "core": "read",
+            "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -1415,9 +1415,9 @@
           "round": "E3",
           "target": "round-trip",
           "surfaces": {
-            "core": "write",
+            "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -1439,9 +1439,9 @@
           "round": "E3",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
+            "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -1475,9 +1475,9 @@
           "round": "E3",
           "target": "read",
           "surfaces": {
-            "core": null,
+            "core": "read",
             "pdf": null,
-            "web": null,
+            "web": "read",
             "desktop": null
           }
         },
@@ -1487,7 +1487,7 @@
           "round": "E2",
           "target": "round-trip",
           "surfaces": {
-            "core": "write",
+            "core": "round-trip",
             "pdf": null,
             "web": null,
             "desktop": null
@@ -1499,9 +1499,9 @@
           "round": "E3",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
+            "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         }
@@ -1553,9 +1553,9 @@
           "round": "E3",
           "target": "round-trip",
           "surfaces": {
-            "core": "write",
+            "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },

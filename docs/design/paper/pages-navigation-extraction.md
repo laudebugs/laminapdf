@@ -77,7 +77,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `O10-page-labels.dc.html`.
 
-**Todos.** [E2q](../../todos/ready/E2q-page-labels-op.md), [E2g](../../todos/ready/E2g-page-labels.md).
+**Todos.** [E2q](../../todos/done/E2q-page-labels-op.md), [E2g](../../todos/ready/E2g-page-labels.md).
 
 ## O11 Bookmarks editor
 
@@ -107,7 +107,24 @@ Rules that hold for every screen here:
 
 **Artboards.** `O11-bookmarks.dc.html` (editor with inline rename and inspector), `O11-bookmarks-toc.dc.html` (create a contents page), `O11-named-destinations.dc.html` (named destinations with an inline rename).
 
-**Todos.** [E3b](../../todos/ready/E3b-bookmarks-and-destinations.md).
+**As built (web, E3b).** Organise mode doesn't exist yet ([E2h](../../todos/ready/E2h-page-organiser-ui.md)), so the editor lives in the rail's Outline tab: Read shows the tree as before with an **Edit bookmarks** button at its foot, which turns the tab into the editor until **Done editing**.
+
+Differs from the boards:
+
+- The selected bookmark's details sit under the tree in the rail, not in an inspector, and have no "Zoom when opened" select: Use current view and Add bookmark store the place at the top of the view (`/XYZ` with the reader's zoom kept).
+- Titles show their bold, italic and colour only while editing, which keeps the reader's startup script within its budget. The colour is a dot before the title, not the text's colour: a file's colours are chosen for white paper and fail contrast on the dark theme.
+- "Used by" counts this file's bookmarks only, not its links, so every delete asks first: links and other files may use the name too. The rename field is named "New name for …", apart from the Rename button.
+- The rebuilt-outline notice shows after the first edit that rebuilds it, not on open, since reading a file changes nothing. A failed change, or Add bookmark with no page in view, shows a notice above the tree; deleting a bookmark has no toast, and Undo or the History tab takes it back.
+- The drag grip is a 44 px button at each row's end, shown on hover, focus or selection; dropping onto a row nests it, with React Aria's drop indicator in place of the indented accent line.
+
+Not built yet:
+
+- The rail header's More menu (Expand all, Collapse all, Sort by page, Create a contents page…); the contents page is [E3l](../../todos/ready/E3l-contents-page.md)'s.
+- The destination marker on the page, and "Page removed" for a bookmark whose page was deleted (page deletion came with [E2b](../../todos/done/E2b-page-structure-ops.md), which sends a bookmark on to a surviving page).
+- The palette commands (`organise.add-bookmark`, `organise.named-destinations`, `organise.set-bookmark-destination`, `organise.delete-bookmark`) and the selection toolbar's Add bookmark here, which join Organise's commands.
+- The polite announcement of a move ("Moved under …"), and the phone's Edit button with its Move… sheets.
+
+**Todos.** [E3b](../../todos/done/E3b-bookmarks-and-destinations.md).
 
 ## O12 Link editor
 
@@ -165,7 +182,14 @@ Rules that hold for every screen here:
 
 **Artboards.** `O13-initial-view.dc.html`, `O13-article-threads.dc.html`.
 
-**Todos.** [E3d](../../todos/ready/E3d-initial-view-and-threads.md).
+**As built (web, E3d).** The reader has no Organise mode yet, so Initial view… sits in the More menu's edit items and the palette; Document properties doesn't show the initial view yet. Differences from the boards:
+
+- The viewer has one continuous column: the page layout is written and shown in the dialog but not obeyed.
+- The file's opening page and zoom apply once its first page painted, as a `#page=` address does. The panel it asks for opens only where the rail sits beside the page; on a phone or in a narrow window the rail stays shut, so the page stays in view.
+- The dialog's page field is a page number; the outline title beside it, the bead's outline and tag on the page, the status bar's "part 1 of 3" and View settings' "Use the file's initial view" aren't built yet.
+- Hide the reader's toolbar and menus sets or clears `/HideToolbar`, `/HideMenubar` and `/HideWindowUI` together.
+
+**Todos.** [E3d](../../todos/done/E3d-initial-view-and-threads.md).
 
 ## O14 Attachments panel
 
