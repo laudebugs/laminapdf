@@ -33,4 +33,4 @@ None.
 
 The decisions and todos behind this code:
 
-- [E3d](../todos/ongoing/E3d-initial-view-and-threads.md): initial view, page display mode and article threads
+- [E3d](../todos/done/E3d-initial-view-and-threads.md): initial view, page display mode and article threads
