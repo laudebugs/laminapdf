@@ -1,0 +1,50 @@
+# Temporary (D4e): real mouse drags of a tab on hosted Linux (X11) and Windows, with screenshots.
+# Deleted before the PR merges.
+name: D4e drag check
+on:
+  push:
+    branches: [feat/d4e-tab-drag-between-windows]
+permissions:
+  contents: read
+jobs:
+  drag:
+    name: Drag check (${{ matrix.os }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: linux, runner: ubuntu-24.04 }
+          - { os: windows, runner: windows-2025 }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+        with:
+          cache: true
+          cache-save-if: false
+          cache-shared-key: desktop-e2e
+          cache-bin: false
+      - uses: ./.github/actions/node-pnpm
+      - uses: ./.github/actions/linux-webkit
+      - uses: ./.github/actions/install-tools
+        with:
+          tool: wasm-bindgen@0.2.129
+      - run: cargo xtask desktop-frontend
+      - run: pnpm --filter @laminapdf/desktop run desktop:build --debug --no-bundle
+      - name: Drag (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y -q --no-install-recommends xdotool imagemagick openbox
+          bash .github/d4e-check/linux.sh
+      - name: Drag (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./.github/d4e-check/windows.ps1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: d4e-drag-${{ matrix.os }}
+          path: target/d4e-check/
