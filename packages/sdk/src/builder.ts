@@ -1247,7 +1247,7 @@ export class Builder extends Handle<BaseGlue> {
 /**
  * How {@link imagesToPdf} lays its images out, and the new document's options.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export interface ImagesToPdfOptions extends Omit<BuilderOptions, "text"> {
   /**
@@ -1280,7 +1280,7 @@ export interface ImagesToPdfOptions extends Omit<BuilderOptions, "text"> {
  *   extract nor the text module is loaded; `invalid-geometry` for no images, a negative
  *   margin or resolution, or a page too small for its margins; `unknown-option`,
  *   `invalid-argument`.
- * @since 0.2.0
+ * @since 0.3.0
  */
 export function imagesToPdf(images: readonly Image[], options: ImagesToPdfOptions = {}): Document {
   const loaded = extractingModule();

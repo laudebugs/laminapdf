@@ -47,7 +47,7 @@ impl Seek for Shared {
 /// # Ok::<(), laminapdf_render::RenderError>(())
 /// ```
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 pub struct TiffWriter {
     encoder: TiffEncoder<Shared>,
     file: Shared,
@@ -67,7 +67,7 @@ impl TiffWriter {
     /// # Errors
     /// [`RenderError::ExportFailed`] if the encoder can't write the file's header.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn new() -> Result<Self, RenderError> {
         let file = Shared::default();
         let encoder = TiffEncoder::new(file.clone())
@@ -82,7 +82,7 @@ impl TiffWriter {
     /// [`RenderError::InvalidRequest`] when `rgba` isn't `width × height × 4` bytes or `dpi`
     /// isn't a positive finite number; [`RenderError::ExportFailed`] if the encoder fails.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn add_page(&mut self, width: u32, height: u32, rgba: &[u8], dpi: f64) -> Result<(), RenderError> {
         let expected = u64::from(width) * u64::from(height) * 4;
         if width == 0 || height == 0 || rgba.len() as u64 != expected {
@@ -109,7 +109,7 @@ impl TiffWriter {
 
     /// The file's bytes.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn finish(self) -> Vec<u8> {
         let Self { encoder, file } = self;
