@@ -25,7 +25,7 @@ categories = ["encoding", "parser-implementations", "text-processing", "wasm"]
 layer = "core"
 
 [features]
-default = ["text", "saslprep", "markdown", "document", "reflow", "page-checks"]
+default = ["text", "saslprep", "markdown", "document", "reflow", "page-checks", "jbig2"]
 # SASLprep for R5/R6 passwords (RFC 4013; laminapdf-syntax's `saslprep`). Left out of the WASM
 # base module (ADR 0016 §5).
 saslprep = ["laminapdf-cos/saslprep"]
@@ -38,6 +38,9 @@ build = ["dep:laminapdf-build"]
 extract = ["dep:laminapdf-text", "dep:laminapdf-extract"]
 # Reader mode (`Document::reflow`) on top of extraction. Left out of the WASM text module (ADR 0016 §6).
 reflow = ["extract", "laminapdf-extract/reflow"]
+# JBIG2 images decoded when extracting images (`Document::extract_images`). Left out of the WASM
+# modules (ADR 0016 §6), where such an image is listed as skipped.
+jbig2 = ["extract", "laminapdf-extract/jbig2"]
 # Fonts and text on top of the builder (laminapdf-text: shaping, bidi, line breaking, subsetting).
 text = ["build", "extract", "laminapdf-build/text"]
 # Markdown in, flowing pages out (ADR 0032 §5): `laminapdf::markdown` and `Builder::markdown`, over

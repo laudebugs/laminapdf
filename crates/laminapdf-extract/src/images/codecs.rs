@@ -168,6 +168,7 @@ impl hayro_ccitt::Decoder for Bits {
     }
 }
 
+#[cfg(feature = "jbig2")]
 impl hayro_jbig2::Decoder for Bits {
     fn push_pixel(&mut self, black: bool) {
         self.pixel(black);
@@ -228,6 +229,7 @@ pub(crate) fn ccitt(data: &[u8], parms: &Dict, width: u32, height: u32) -> Resul
 ///
 /// # Errors
 /// Data the decoder can't read.
+#[cfg(feature = "jbig2")]
 pub(crate) fn jbig2(doc: &Document, data: &[u8], parms: &Dict) -> Result<(u32, u32, Vec<u8>), String> {
     let globals = parms
         .get("JBIG2Globals")
@@ -246,11 +248,21 @@ pub(crate) fn jbig2(doc: &Document, data: &[u8], parms: &Dict) -> Result<(u32, u
     Ok((width, height, bits.data))
 }
 
+/// Without the `jbig2` feature (the WASM modules), a JBIG2 image isn't decoded.
+///
+/// # Errors
+/// Always: why the image is skipped.
+#[cfg(not(feature = "jbig2"))]
+pub(crate) fn jbig2(_: &Document, _: &[u8], _: &Dict) -> Result<(u32, u32, Vec<u8>), String> {
+    Err("a JBIG2 image, which this build doesn't decode".into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
+    #[cfg(feature = "jbig2")]
     fn bits_pack_runs_into_rows_that_start_on_a_byte() {
         let mut bits = Bits::new(10, 2, 1);
         hayro_jbig2::Decoder::push_pixel(&mut bits, true);
