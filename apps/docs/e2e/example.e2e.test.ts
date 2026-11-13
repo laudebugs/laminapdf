@@ -187,7 +187,16 @@ describe(`the divider between an example's code and page in ${BROWSER} (todo Q4q
     await layout(page);
     const before = await widths(page);
     const split = page.getByRole("separator", { name: "Resize the code and the page" }).first();
+    // It names the code and the page it resizes.
+    const controls = (await split.getAttribute("aria-controls"))?.split(" ") ?? [];
+    expect(controls).toHaveLength(2);
+    for (const id of controls) expect(await page.locator(`#${id}`).count()).toBe(1);
     await split.focus();
+    // Alt+← is the browser's (back): the divider leaves it alone.
+    await page.keyboard.down("Alt");
+    await split.dispatchEvent("keydown", { key: "ArrowLeft", altKey: true });
+    await page.keyboard.up("Alt");
+    expect((await widths(page)).picture).toBeCloseTo(before.picture, -1);
     await page.keyboard.press("ArrowLeft");
     expect((await widths(page)).picture).toBeCloseTo(before.picture + 16, -1);
     await page.keyboard.press("Shift+ArrowRight");

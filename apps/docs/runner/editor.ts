@@ -189,6 +189,8 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
   /** The last PDF as a data: URL: not a blob: one, since Chromium checks a blob: download against
    * the page's CSP, which lists no blob: (ADR 0011), and reports a violation though the file arrives. */
   let pdf = "";
+  const state: Shown = { drawn: undefined, running: false };
+  keepSharp(state, file, places.pages, pages);
 
   // Reset puts back the code and the picture of what it makes.
   buttons.reset.addEventListener("click", () => {
@@ -199,6 +201,7 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
     status.textContent = "";
     buttons.download.hidden = true;
     pdf = "";
+    state.drawn = undefined;
   });
   buttons.download.addEventListener("click", () => {
     const link = element("a", "");
@@ -208,9 +211,12 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
   });
   buttons.run.addEventListener("click", async () => {
     buttons.run.disabled = true;
+    state.running = true;
     status.textContent = worker === undefined ? "Loading Lamina PDF (about 3 MB, once)…" : "Running…";
     const width = pagePixels(places.pages);
-    const reply = await run({ file, source: view.state.doc.toString(), width });
+    const code = view.state.doc.toString();
+    const reply = await run({ file, source: code, width });
+    state.running = false;
     buttons.run.disabled = false;
     status.textContent = "";
     if (!reply.ok) {
@@ -222,10 +228,37 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
     problem.hidden = true;
     places.picture.hidden = true;
     pages.replaceChildren(...reply.pages.map(pageCanvas));
+    state.drawn = { source: code, width };
     pdf = await dataUrl(reply.bytes);
     buttons.download.hidden = false;
     const count = reply.pageCount === 1 ? "1 page" : `${reply.pageCount} pages`;
     const shown = reply.pages.length < reply.pageCount ? `; the first ${reply.pages.length} are shown` : "";
     status.textContent = `Done: ${count}${shown}.`;
+  });
+}
+
+/** A runner's pages: the code that made them and the width they were drawn at, and whether a run is going. */
+interface Shown {
+  drawn: { readonly source: string; readonly width: number } | undefined;
+  running: boolean;
+}
+
+/**
+ * Draws a run's pages again when the divider (Example.astro, todo Q4q) has widened their column
+ * past the width they were drawn at, from the same code, so they stay sharp; the status and the
+ * download don't change.
+ */
+function keepSharp(shown: Shown, file: string, column: HTMLElement, pages: HTMLElement): void {
+  addEventListener("lamina-example-page-resized", async () => {
+    const width = pagePixels(column);
+    const before = shown.drawn;
+    if (before === undefined || shown.running || width <= before.width) return;
+    shown.running = true;
+    const reply = await run({ file, source: before.source, width });
+    shown.running = false;
+    // A Reset or another run since then has its own pages.
+    if (!reply.ok || shown.drawn !== before) return;
+    pages.replaceChildren(...reply.pages.map(pageCanvas));
+    shown.drawn = { source: before.source, width };
   });
 }

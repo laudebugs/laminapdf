@@ -283,6 +283,15 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
   const root = document.documentElement;
   const remPx = () => Number.parseFloat(getComputedStyle(root).fontSize) || 16;
   const splits = new Set<LaminaSplit>();
+  let described = 0;
+  /** Updates every divider's value once the frame's changes are in: a drag sets the width on every move. */
+  const describeAll = () => {
+    if (described !== 0) return;
+    described = requestAnimationFrame(() => {
+      described = 0;
+      for (const split of splits) split.describe();
+    });
+  };
 
   /** Sets the page's width, in rem, for every example, or with `undefined` puts back the default. */
   const choose = (rem: number | undefined) => {
@@ -293,8 +302,10 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
       root.style.setProperty(CHOSEN, `${rem}rem`);
       root.dataset.examplePage = "";
     }
-    for (const split of splits) split.describe();
+    describeAll();
   };
+  /** Tells "Edit and run" the page's width has settled, so a run's pages can be drawn again to fit (editor.ts). */
+  const settled = () => dispatchEvent(new Event("lamina-example-page-resized"));
   /** Remembers the width, or forgets it; storage may be blocked (a private window), which changes nothing else. */
   const remember = (rem: number | undefined) => {
     try {
@@ -324,10 +335,17 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
       this.page = this.example?.querySelector<HTMLElement>(":scope > .example-page") ?? null;
       if (this.example === null || this.code === null || this.page === null) return;
       splits.add(this);
+      // The two panes it resizes, by ID (aria-controls), numbered in the order the dividers connect.
+      const n = splits.size;
+      this.code.id ||= `example-code-${n}`;
+      this.page.id ||= `example-page-${n}`;
+      this.setAttribute("aria-controls", `${this.code.id} ${this.page.id}`);
       this.addEventListener("pointerdown", this.down);
       this.addEventListener("pointermove", this.move);
       this.addEventListener("pointerup", this.up);
       this.addEventListener("pointercancel", this.up);
+      // Capture can end without a pointerup (the window loses focus): the drag ends with it.
+      this.addEventListener("lostpointercapture", this.up);
       this.addEventListener("keydown", this.key);
       this.addEventListener("dblclick", this.reset);
       this.describe();
@@ -383,9 +401,12 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
       this.dragging = undefined;
       root.classList.remove("example-resizing");
       if (root.dataset.examplePage !== undefined) remember(this.pageRem());
+      settled();
     };
 
     private key = (event: KeyboardEvent): void => {
+      // Alt, Ctrl and Meta with these keys are the browser's own (Alt+← goes back).
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
       const step = event.shiftKey ? BIG_STEP : STEP;
       // The divider sits after the code: left gives the page more room, right gives the code more.
       const moves: Record<string, () => number | undefined> = {
@@ -407,19 +428,19 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
       const chosen = this.clamp(rem);
       choose(chosen);
       remember(chosen);
+      settled();
     };
 
     /** Puts back the page's default width. */
     private reset = (): void => {
       choose(undefined);
       remember(undefined);
+      settled();
     };
   }
   customElements.define("lamina-split", LaminaSplit);
   // The window's width changes how much of the two each takes: the value follows.
-  addEventListener("resize", () => {
-    for (const split of splits) split.describe();
-  });
+  addEventListener("resize", describeAll);
 </script>
 
 <style>
