@@ -1,7 +1,8 @@
 //! What a page deletion does to the interactive form (ISO 32000-2 §12.7): a widget on a deleted
 //! page leaves its field's `/Kids`, and a field left with no widget (or a merged field and
 //! widget on a deleted page) leaves its parent's `/Kids` or the form's `/Fields`, so form tools
-//! don't list a field that no page shows.
+//! don't list a field that no page shows. Signature fields stay, so the signatures a save
+//! would invalidate stay visible.
 
 use laminapdf_cos::{ObjRef, Object};
 use laminapdf_model::{PageReference, ReferenceKind, set_catalog_entry};
@@ -19,6 +20,12 @@ pub(crate) fn drop_widgets(
         let ReferenceKind::Widget { widget, field, .. } = &reference.kind else {
             continue;
         };
+        if is_signature_field(doc, *field)? {
+            // A signature field stays in the form, signed or not: the save planner, validators
+            // and viewers find signatures through `/AcroForm /Fields`, and taking a signed one
+            // out would hide the signature its save invalidates.
+            continue;
+        }
         if widget == field {
             unlist_field(doc, *field)?;
         } else {
@@ -30,6 +37,25 @@ pub(crate) fn drop_widgets(
         changes.push(ReferenceChange::new(reference.clone(), ReferenceOutcome::Removed));
     }
     Ok(changes)
+}
+
+/// Whether `field` is a signature field: `/FT /Sig` on it or inherited from a parent
+/// (ISO 32000-2 §12.7.4.1, §12.7.5.5).
+fn is_signature_field(doc: &laminapdf_model::Document, field: ObjRef) -> Result<bool> {
+    let mut next = Some(field);
+    let mut seen = std::collections::BTreeSet::new();
+    while let Some(r) = next {
+        if !seen.insert(r.num) || seen.len() > doc.limits().max_tree_depth() {
+            break;
+        }
+        let object = doc.object(r.num)?;
+        let Some(dict) = object.as_dict() else { break };
+        if let Some(ft) = dict.get_name("FT") {
+            return Ok(ft == b"Sig");
+        }
+        next = dict.get("Parent").and_then(Object::as_ref);
+    }
+    Ok(false)
 }
 
 /// Whether `field` still lists a kid, following an indirect `/Kids` array.
