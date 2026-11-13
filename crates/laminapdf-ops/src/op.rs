@@ -10,6 +10,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use crate::class::ModificationClass;
 use crate::error::{Error, Result};
 use crate::info::SetInfo;
+use crate::labels::SetPageLabels;
 use crate::metadata::{RemoveMetadata, SetMetadata, UpdateSaveMetadata};
 use crate::rotate::RotatePage;
 
@@ -56,6 +57,8 @@ pub enum Op {
     /// log can name it.
     #[serde(skip)]
     UpdateSaveMetadata(UpdateSaveMetadata),
+    /// Replace the document's page labels.
+    SetPageLabels(SetPageLabels),
 }
 
 impl Op {
@@ -69,6 +72,7 @@ impl Op {
                 ModificationClass::Metadata
             }
             Self::RotatePage(_) => ModificationClass::PageStructure,
+            Self::SetPageLabels(_) => ModificationClass::Document,
         }
     }
 
@@ -83,7 +87,8 @@ impl Op {
             | Self::RotatePage(_)
             | Self::SetMetadata(_)
             | Self::RemoveMetadata(_)
-            | Self::UpdateSaveMetadata(_) => false,
+            | Self::UpdateSaveMetadata(_)
+            | Self::SetPageLabels(_) => false,
         }
     }
 
@@ -99,6 +104,7 @@ impl Op {
             Self::SetMetadata(op) => op.apply_to(doc),
             Self::RemoveMetadata(op) => op.apply_to(doc),
             Self::UpdateSaveMetadata(op) => op.apply_to(doc),
+            Self::SetPageLabels(op) => op.apply_to(doc).map(|()| Effect::default()),
         }
     }
 }
@@ -136,6 +142,12 @@ impl From<RemoveMetadata> for Op {
 impl From<UpdateSaveMetadata> for Op {
     fn from(op: UpdateSaveMetadata) -> Self {
         Self::UpdateSaveMetadata(op)
+    }
+}
+
+impl From<SetPageLabels> for Op {
+    fn from(op: SetPageLabels) -> Self {
+        Self::SetPageLabels(op)
     }
 }
 

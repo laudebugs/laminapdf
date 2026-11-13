@@ -127,3 +127,46 @@ pub(crate) mod double_date {
 pub(crate) const fn is_false(flag: &bool) -> bool {
     !*flag
 }
+
+/// An optional [`LabelStyle`](laminapdf_model::LabelStyle) by name: `decimal`, `upperRoman`,
+/// `lowerRoman`, `upperLetters` or `lowerLetters`.
+pub(crate) mod label_style {
+    use laminapdf_model::LabelStyle;
+    use serde::de::Error as _;
+
+    use super::{Deserialize, Deserializer, Serializer};
+
+    const NAMES: [(LabelStyle, &str); 5] = [
+        (LabelStyle::Decimal, "decimal"),
+        (LabelStyle::UpperRoman, "upperRoman"),
+        (LabelStyle::LowerRoman, "lowerRoman"),
+        (LabelStyle::UpperLetters, "upperLetters"),
+        (LabelStyle::LowerLetters, "lowerLetters"),
+    ];
+
+    #[expect(
+        clippy::ref_option,
+        clippy::trivially_copy_pass_by_ref,
+        reason = "serde's `with` passes the field by reference"
+    )]
+    pub(crate) fn serialize<S: Serializer>(style: &Option<LabelStyle>, s: S) -> Result<S::Ok, S::Error> {
+        match style.and_then(|style| NAMES.iter().find(|(st, _)| *st == style)) {
+            Some((_, name)) => s.serialize_str(name),
+            None => s.serialize_none(),
+        }
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<LabelStyle>, D::Error> {
+        let name = String::deserialize(d)?;
+        NAMES
+            .iter()
+            .find(|(_, n)| *n == name)
+            .map(|(style, _)| Some(*style))
+            .ok_or_else(|| {
+                D::Error::unknown_variant(
+                    &name,
+                    &["decimal", "upperRoman", "lowerRoman", "upperLetters", "lowerLetters"],
+                )
+            })
+    }
+}

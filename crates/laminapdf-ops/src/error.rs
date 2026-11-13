@@ -60,6 +60,14 @@ pub enum Error {
     /// its sources before it replays the log).
     #[error("no source document with this ID was added to the session")]
     UnknownSource(crate::SourceId),
+    /// [`SetPageLabels`](crate::SetPageLabels)' ranges break a rule of ISO 32000-2 §12.4.2:
+    /// `what` is `first-page` (the first range isn't on the first page), `order` (ranges out
+    /// of page order, or two on one page) or `first-number` (a range numbered from 0).
+    #[error("page label ranges are invalid ({what})")]
+    InvalidLabelRanges {
+        /// Which rule.
+        what: &'static str,
+    },
 }
 
 /// A page ID as a message may show it: an object ID in full (lamina-made: a kind and two
@@ -97,6 +105,7 @@ impl Error {
         "no-pending-save",
         "malformed-xmp",
         "unknown-source",
+        "invalid-label-ranges",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -116,6 +125,7 @@ impl Error {
             Self::NoPendingSave => "no-pending-save",
             Self::MalformedXmp => "malformed-xmp",
             Self::UnknownSource(_) => "unknown-source",
+            Self::InvalidLabelRanges { .. } => "invalid-label-ranges",
         }
     }
 
@@ -133,7 +143,7 @@ impl Error {
             Self::NestedTransaction | Self::NoTransaction | Self::SavedNotRebased | Self::NoPendingSave => {
                 ErrorKind::State
             }
-            Self::UnknownPage(_) | Self::UnknownSource(_) => ErrorKind::Usage,
+            Self::UnknownPage(_) | Self::UnknownSource(_) | Self::InvalidLabelRanges { .. } => ErrorKind::Usage,
             Self::DirectPage(_) | Self::UnsupportedVersion(_) => ErrorKind::Unsupported,
             Self::InvalidLog(_) | Self::MalformedXmp => ErrorKind::Input,
         }
@@ -163,7 +173,8 @@ impl Error {
             | Self::SavedNotRebased
             | Self::NoPendingSave
             | Self::MalformedXmp
-            | Self::UnknownSource(_) => Location::NONE,
+            | Self::UnknownSource(_)
+            | Self::InvalidLabelRanges { .. } => Location::NONE,
         }
     }
 }
@@ -193,6 +204,7 @@ mod tests {
             Error::NoPendingSave,
             Error::MalformedXmp,
             Error::UnknownSource(crate::SourceId::from_bytes([0; 32])),
+            Error::InvalidLabelRanges { what: "order" },
         ]
     }
 

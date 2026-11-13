@@ -178,7 +178,8 @@ pub use laminapdf_model::{PageId, PdfDate, PointPt, Pt, RectPt, Rotation};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use laminapdf_ops::{
     ConformanceWarning, DocumentMetadata, InfoPatch, MetadataKey, MetadataPatch, MetadataSource, ModificationClass, Op,
-    OpLog, PacketStatus, RemoveMetadata, Reverted, RotatePage, SetInfo, SetMetadata, UndoOutcome,
+    OpLog, PacketStatus, PageLabelRange, RemoveMetadata, Reverted, RotatePage, SetInfo, SetMetadata, SetPageLabels,
+    UndoOutcome,
 };
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,

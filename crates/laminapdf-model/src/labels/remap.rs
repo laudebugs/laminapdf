@@ -43,7 +43,44 @@ impl LabelRange {
     }
 }
 
+impl LabelRange {
+    /// A range starting at page `start` with this numbering `style` (`None`: the prefix
+    /// alone), `prefix` and `first` number. Nothing is checked here: [`PageLabels::write`]
+    /// writes what it is given, so callers check that ranges start at page 0, increase and
+    /// number from 1 (ISO 32000-2 §12.4.2).
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub fn new(start: u64, style: Option<LabelStyle>, prefix: impl Into<String>, first: u64) -> Self {
+        Self {
+            start,
+            style,
+            prefix: prefix.into(),
+            first,
+        }
+    }
+}
+
 impl PageLabels {
+    /// Labels made of these `ranges`, sorted by first page.
+    ///
+    /// ```
+    /// use laminapdf_model::{LabelRange, LabelStyle, PageLabels};
+    ///
+    /// let labels = PageLabels::from_ranges(vec![
+    ///     LabelRange::new(2, Some(LabelStyle::Decimal), "", 1),
+    ///     LabelRange::new(0, Some(LabelStyle::LowerRoman), "", 1),
+    /// ]);
+    /// assert_eq!((labels.label(1).as_deref(), labels.label(2).as_deref()), (Some("ii"), Some("1")));
+    /// ```
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub fn from_ranges(mut ranges: Vec<LabelRange>) -> Self {
+        ranges.sort_by_key(|r| r.start);
+        Self { ranges }
+    }
+
     /// The labels after a change to the page list: `before` is the list these labels
     /// describe, `after` the new one (each a list of page IDs, in order). Every page in both
     /// keeps its label; a page only in `after` continues the range it lands in (the label

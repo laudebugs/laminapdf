@@ -80,6 +80,7 @@ mod document;
 mod error;
 mod history;
 mod info;
+mod labels;
 mod metadata;
 mod op;
 mod pending;
@@ -98,6 +99,7 @@ pub use error::{Error, Result};
 pub use history::{History, Reverted, UndoOutcome};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use info::{InfoPatch, SetInfo};
+pub use labels::{PageLabelRange, SetPageLabels};
 pub use metadata::{
     ConformanceWarning, DocumentMetadata, MetadataKey, MetadataPatch, MetadataSource, PacketStatus, RemoveMetadata,
     SetMetadata, UpdateSaveMetadata, conformance_warnings, read_metadata,

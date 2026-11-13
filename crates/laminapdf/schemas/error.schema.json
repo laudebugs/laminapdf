@@ -34,6 +34,7 @@
             "no-pending-save",
             "malformed-xmp",
             "unknown-source",
+            "invalid-label-ranges",
             "sink",
             "not-rebased",
             "sink-not-empty",

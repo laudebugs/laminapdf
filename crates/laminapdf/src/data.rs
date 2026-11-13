@@ -89,6 +89,7 @@ fn ops(e: &laminapdf_ops::Error) -> Data {
         E::Cos(e) => cos(e),
         E::UnsupportedVersion(version) => data([("version", json!(version))]),
         E::InvalidLog(detail) => data([("detail", json!(detail))]),
+        E::InvalidLabelRanges { what } => data([("what", json!(what))]),
         _ => Data::new(),
     }
 }
