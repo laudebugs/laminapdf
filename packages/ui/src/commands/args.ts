@@ -132,6 +132,7 @@ export function choiceArgs<Value extends string>(
   return {
     prompt: message("command.args.choice.prompt", { choices: values.map(label).join(", ") }),
     ...(options.optional === true ? { optional: true } : {}),
+    choices: values.map((value) => ({ value, title: label(value) })),
     parse: (text) => parseChoice(text, values, label),
   };
 }

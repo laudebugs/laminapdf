@@ -5,6 +5,15 @@
 import { capabilityState } from "../platform/context.js";
 import type { AnyCommand, Availability, CommandContext, CommandId } from "./types.js";
 
+/** Where a run came from: a key press in the web view, or a native menu item or its keys. */
+export type RunSource = "keys" | "menu";
+
+/**
+ * How long after a run from one source the same command's run from the other is its echo: one
+ * key press reaching both the web view and a native menu's accelerator, never two choices.
+ */
+export const ECHO_MS = 300;
+
 /** Why `run` refused: the command is unknown, can't run now, or its arguments don't parse. */
 export class CommandError extends Error {
   readonly id: CommandId;
@@ -20,6 +29,7 @@ export class CommandRegistry {
   readonly #commands = new Map<CommandId, AnyCommand>();
   readonly #listeners = new Set<() => void>();
   #version = 0;
+  #lastRun: { readonly id: CommandId; readonly source: RunSource; readonly at: number } | undefined;
 
   /** Adds `command`; returns the function that removes it. An id can be registered once. */
   register(command: AnyCommand): () => void {
@@ -79,8 +89,17 @@ export class CommandRegistry {
   /**
    * Runs `id` with `args`, or with `text` parsed by its schema. Rejects with a `CommandError`
    * when the command can't run now or its arguments are missing or don't parse; nothing runs then.
+   *
+   * `source` says where the run came from. One key press can reach a command twice in the
+   * desktop app, through the web view's shortcut and the native menu's accelerator: a run from
+   * one source within {@link ECHO_MS} of the same command's run from the other is that echo,
+   * and does nothing.
    */
-  async run(id: CommandId, ctx: CommandContext, input: { args?: unknown; text?: string } = {}): Promise<void> {
+  async run(
+    id: CommandId,
+    ctx: CommandContext,
+    input: { args?: unknown; text?: string; source?: RunSource } = {},
+  ): Promise<void> {
     const command = this.#commands.get(id);
     if (command === undefined) throw new CommandError(id, `there is no command ${id}`);
     const available = this.availability(id, ctx);
@@ -95,7 +114,16 @@ export class CommandRegistry {
     if (args === undefined && command.args !== undefined && command.args.optional !== true) {
       throw new CommandError(id, command.args.prompt);
     }
+    if (input.source !== undefined && this.#echo(id, input.source)) return;
     await command.run(ctx, args);
+  }
+
+  /** Whether a run of `id` from `source` now is the echo of one from the other source just before. */
+  #echo(id: CommandId, source: RunSource): boolean {
+    const now = Date.now();
+    const last = this.#lastRun;
+    this.#lastRun = { id, source, at: now };
+    return last !== undefined && last.id === id && last.source !== source && now - last.at < ECHO_MS;
   }
 
   #changed(): void {

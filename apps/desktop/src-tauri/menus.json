@@ -1,0 +1,519 @@
+{
+  "$comment": "Generated from apps/desktop/src/menus/layout.ts and the command registry by `pnpm --filter @laminapdf/desktop menus`. Don't edit: test/menus-json.test.ts fails while this file is out of date.",
+  "menus": [
+    {
+      "id": "app",
+      "title": "Lamina PDF",
+      "on": "mac",
+      "items": [
+        {
+          "kind": "predefined",
+          "name": "about"
+        },
+        {
+          "kind": "placeholder",
+          "id": "check-for-updates",
+          "title": "Check for updates…"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "command",
+          "id": "app.settings",
+          "title": "Settings…",
+          "mac": "Mod+,",
+          "other": "Mod+,"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "predefined",
+          "name": "services"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "predefined",
+          "name": "hide"
+        },
+        {
+          "kind": "predefined",
+          "name": "hide-others"
+        },
+        {
+          "kind": "predefined",
+          "name": "show-all"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "predefined",
+          "name": "quit"
+        }
+      ]
+    },
+    {
+      "id": "file",
+      "title": "File",
+      "items": [
+        {
+          "kind": "command",
+          "id": "file.open",
+          "title": "Open a file…",
+          "mac": "Mod+O",
+          "other": "Mod+O"
+        },
+        {
+          "kind": "recent",
+          "title": "Open recent",
+          "empty": "No recent files",
+          "clear": "Clear menu"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "command",
+          "id": "window.new",
+          "title": "New window",
+          "mac": "Mod+Shift+N",
+          "other": "Mod+Shift+N"
+        },
+        {
+          "kind": "command",
+          "id": "tab.close",
+          "title": "Close tab",
+          "mac": "Mod+W",
+          "other": "Mod+W"
+        },
+        {
+          "kind": "command",
+          "id": "window.close",
+          "title": "Close window",
+          "mac": "Mod+Shift+W",
+          "other": "Mod+Shift+W"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "command",
+          "id": "file.save-copy",
+          "title": "Save a copy…"
+        },
+        {
+          "kind": "command",
+          "id": "file.properties",
+          "title": "Document properties…"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "command",
+          "id": "file.print",
+          "title": "Print…",
+          "mac": "Mod+P",
+          "other": "Mod+P"
+        },
+        {
+          "kind": "separator",
+          "on": "other"
+        },
+        {
+          "kind": "command",
+          "id": "app.quit",
+          "title": "Quit",
+          "other": "Ctrl+Q",
+          "on": "other"
+        }
+      ]
+    },
+    {
+      "id": "edit",
+      "title": "Edit",
+      "items": [
+        {
+          "kind": "predefined",
+          "name": "copy"
+        },
+        {
+          "kind": "predefined",
+          "name": "select-all"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "command",
+          "id": "find.open",
+          "title": "Find in document",
+          "mac": "Mod+F",
+          "other": "Mod+F"
+        },
+        {
+          "kind": "command",
+          "id": "find.next",
+          "title": "Next match"
+        },
+        {
+          "kind": "command",
+          "id": "find.previous",
+          "title": "Previous match"
+        },
+        {
+          "kind": "separator",
+          "on": "other"
+        },
+        {
+          "kind": "command",
+          "id": "app.settings",
+          "title": "Settings…",
+          "mac": "Mod+,",
+          "other": "Mod+,",
+          "on": "other"
+        }
+      ]
+    },
+    {
+      "id": "view",
+      "title": "View",
+      "items": [
+        {
+          "kind": "command",
+          "id": "view.zoom-in",
+          "title": "Zoom in",
+          "mac": "Mod++",
+          "other": "Mod++"
+        },
+        {
+          "kind": "command",
+          "id": "view.zoom-out",
+          "title": "Zoom out",
+          "mac": "Mod+-",
+          "other": "Mod+-"
+        },
+        {
+          "kind": "command",
+          "id": "view.actual-size",
+          "title": "Actual size",
+          "mac": "Mod+0",
+          "other": "Mod+0"
+        },
+        {
+          "kind": "command",
+          "id": "view.fit-width",
+          "title": "Fit width"
+        },
+        {
+          "kind": "command",
+          "id": "view.fit-page",
+          "title": "Fit page"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "command",
+          "id": "view.toggle-sidebar",
+          "title": "Show or hide sidebar",
+          "check": true
+        },
+        {
+          "kind": "command",
+          "id": "view.focus-mode",
+          "title": "Focus mode",
+          "mac": "Mod+\\",
+          "other": "Mod+\\",
+          "check": true
+        },
+        {
+          "kind": "command",
+          "id": "view.rotate-display",
+          "title": "Rotate view"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "choices",
+          "id": "view.page-layout",
+          "title": "Page layout",
+          "choices": [
+            {
+              "value": "single",
+              "title": "Single page"
+            },
+            {
+              "value": "two-up",
+              "title": "Two pages"
+            },
+            {
+              "value": "continuous",
+              "title": "Continuous"
+            }
+          ]
+        },
+        {
+          "kind": "choices",
+          "id": "view.page-appearance",
+          "title": "Page appearance",
+          "choices": [
+            {
+              "value": "original",
+              "title": "Original"
+            },
+            {
+              "value": "sepia",
+              "title": "Sepia"
+            },
+            {
+              "value": "dark",
+              "title": "Dark"
+            },
+            {
+              "value": "high-contrast",
+              "title": "High contrast"
+            }
+          ]
+        },
+        {
+          "kind": "choices",
+          "id": "view.theme",
+          "title": "Theme",
+          "choices": [
+            {
+              "value": "light",
+              "title": "Light"
+            },
+            {
+              "value": "dark",
+              "title": "Dark"
+            },
+            {
+              "value": "high-contrast",
+              "title": "High contrast"
+            },
+            {
+              "value": "system",
+              "title": "Match the system"
+            }
+          ]
+        },
+        {
+          "kind": "choices",
+          "id": "view.accent",
+          "title": "Accent colour",
+          "choices": [
+            {
+              "value": "teal",
+              "title": "Teal"
+            },
+            {
+              "value": "blue",
+              "title": "Blue"
+            },
+            {
+              "value": "plum",
+              "title": "Plum"
+            },
+            {
+              "value": "green",
+              "title": "Green"
+            }
+          ]
+        },
+        {
+          "kind": "separator",
+          "on": "mac"
+        },
+        {
+          "kind": "predefined",
+          "name": "full-screen",
+          "on": "mac"
+        }
+      ]
+    },
+    {
+      "id": "go",
+      "title": "Go",
+      "items": [
+        {
+          "kind": "command",
+          "id": "nav.next-page",
+          "title": "Next page"
+        },
+        {
+          "kind": "command",
+          "id": "nav.previous-page",
+          "title": "Previous page"
+        },
+        {
+          "kind": "command",
+          "id": "nav.first-page",
+          "title": "First page"
+        },
+        {
+          "kind": "command",
+          "id": "nav.last-page",
+          "title": "Last page"
+        },
+        {
+          "kind": "command",
+          "id": "nav.go-to-page",
+          "title": "Go to page…"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "command",
+          "id": "nav.back",
+          "title": "Back",
+          "mac": "Mod+[",
+          "other": "Alt+ArrowLeft"
+        },
+        {
+          "kind": "command",
+          "id": "nav.forward",
+          "title": "Forward",
+          "mac": "Mod+]",
+          "other": "Alt+ArrowRight"
+        }
+      ]
+    },
+    {
+      "id": "tools",
+      "title": "Tools",
+      "items": [
+        {
+          "kind": "command",
+          "id": "palette.open",
+          "title": "Command palette",
+          "mac": "Mod+K",
+          "other": "Mod+K"
+        },
+        {
+          "kind": "command",
+          "id": "view.reader-mode",
+          "title": "Reader mode"
+        },
+        {
+          "kind": "command",
+          "id": "privacy.network-activity",
+          "title": "Network activity"
+        }
+      ]
+    },
+    {
+      "id": "window",
+      "title": "Window",
+      "items": [
+        {
+          "kind": "predefined",
+          "name": "minimize"
+        },
+        {
+          "kind": "predefined",
+          "name": "zoom",
+          "on": "mac"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "command",
+          "id": "tab.next",
+          "title": "Next tab",
+          "mac": "Ctrl+Tab",
+          "other": "Ctrl+Tab"
+        },
+        {
+          "kind": "command",
+          "id": "tab.previous",
+          "title": "Previous tab",
+          "mac": "Ctrl+Shift+Tab",
+          "other": "Ctrl+Shift+Tab"
+        },
+        {
+          "kind": "command",
+          "id": "tab.move-to-new-window",
+          "title": "Move tab to new window"
+        },
+        {
+          "kind": "move-to-window",
+          "title": "Move tab to window",
+          "empty": "No other windows"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "predefined",
+          "name": "bring-all-to-front",
+          "on": "mac"
+        },
+        {
+          "kind": "windows"
+        }
+      ]
+    },
+    {
+      "id": "help",
+      "title": "Help",
+      "items": [
+        {
+          "kind": "link",
+          "id": "help",
+          "title": "Lamina PDF help",
+          "url": "https://docs.laminapdf.com/"
+        },
+        {
+          "kind": "command",
+          "id": "help.shortcuts",
+          "title": "Keyboard shortcuts",
+          "mac": "F1",
+          "other": "F1"
+        },
+        {
+          "kind": "command",
+          "id": "help.capabilities",
+          "title": "What Lamina PDF can do"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "link",
+          "id": "issues",
+          "title": "Report an issue",
+          "url": "https://github.com/laudebugs/laminapdf/issues/new/choose"
+        },
+        {
+          "kind": "placeholder",
+          "id": "licences",
+          "title": "View licences"
+        },
+        {
+          "kind": "separator",
+          "on": "other"
+        },
+        {
+          "kind": "placeholder",
+          "id": "check-for-updates",
+          "title": "Check for updates…",
+          "on": "other"
+        },
+        {
+          "kind": "predefined",
+          "name": "about",
+          "on": "other"
+        }
+      ]
+    }
+  ]
+}

@@ -334,11 +334,11 @@ function zoomModeCommands(): AnyCommand[] {
 }
 
 /**
- * Tabs and windows, for shells with more than one window (the desktop app), which register them
- * with {@link registerTabCommands}: kept out of {@link readerCommands} so the web reader doesn't
- * load them. Their home is the tab strip; the native menus will list them too.
+ * Tabs, windows and quitting, for shells with more than one window (the desktop app), which
+ * register them with {@link registerDesktopCommands}: kept out of {@link readerCommands} so the
+ * web reader doesn't load them. Their homes are the tab strip and the native menus.
  */
-export function tabCommands(): AnyCommand[] {
+export function desktopCommands(): AnyCommand[] {
   return [
     delegated({
       id: "tab.close",
@@ -346,7 +346,7 @@ export function tabCommands(): AnyCommand[] {
       keywords: ["close", "tab", "document"],
       group: "file",
       shortcuts: [desktop("Mod+W")],
-      home: ["tab-strip"],
+      home: ["tab-strip", "native-menu"],
     }),
     delegated({
       id: "tab.next",
@@ -377,7 +377,24 @@ export function tabCommands(): AnyCommand[] {
       keywords: ["window", "new"],
       group: "file",
       shortcuts: [desktop("Mod+Shift+N")],
-      home: ["tab-strip"],
+      home: ["tab-strip", "native-menu"],
+    }),
+    delegated({
+      id: "window.close",
+      title: title("window.close"),
+      keywords: ["window", "close"],
+      group: "file",
+      shortcuts: [desktop("Mod+Shift+W")],
+      home: ["native-menu"],
+    }),
+    // macOS quits from the app menu's own Quit (⌘Q), which the OS provides.
+    delegated({
+      id: "app.quit",
+      title: title("app.quit"),
+      keywords: ["quit", "exit", "close"],
+      group: "app",
+      shortcuts: [{ ...desktop("Ctrl+Q"), on: "other" }],
+      home: ["native-menu"],
     }),
   ];
 }
@@ -705,9 +722,9 @@ export function registerReaderCommands(registry: CommandRegistry): () => void {
   return registerAll(registry, readerCommands());
 }
 
-/** Registers the tab and window commands in `registry`; returns the function that removes them. */
-export function registerTabCommands(registry: CommandRegistry): () => void {
-  return registerAll(registry, tabCommands());
+/** Registers the desktop's commands in `registry`; returns the function that removes them. */
+export function registerDesktopCommands(registry: CommandRegistry): () => void {
+  return registerAll(registry, desktopCommands());
 }
 
 function registerAll(registry: CommandRegistry, commands: readonly AnyCommand[]): () => void {

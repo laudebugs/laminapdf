@@ -9,6 +9,8 @@
     "allow-e2e-queue-pick",
     "allow-e2e-replace",
     "allow-e2e-interactive",
+    "allow-e2e-menu-click",
+    "allow-e2e-menu-snapshot",
     "wdio:default"
   ]
 }

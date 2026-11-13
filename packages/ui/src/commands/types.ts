@@ -67,7 +67,8 @@ export type CommandHome =
   | "history-panel"
   | "threads-panel"
   | "layer"
-  | "tab-strip";
+  | "tab-strip"
+  | "native-menu";
 
 /** What a parser made of typed arguments. */
 export type ParseResult<T> =
@@ -84,6 +85,8 @@ export interface ArgsSchema<Args> {
   readonly optional?: boolean;
   /** True for a secret (a password): never typed into the palette, whose text stays on screen. */
   readonly secret?: boolean;
+  /** The values it takes, when it takes one of a fixed few: what a native menu lists as a submenu. */
+  readonly choices?: readonly { readonly value: string; readonly title: string }[];
   /** Reads the typed text; the error says what to type instead. */
   parse(text: string, ctx: CommandContext): ParseResult<Args>;
 }

@@ -8,7 +8,7 @@ import {
   parseZoomPercent,
 } from "../src/commands/args.ts";
 import { matchText, RecentCommands, rankCommands } from "../src/commands/rank.ts";
-import { readerCommands, tabCommands } from "../src/commands/reader-commands.ts";
+import { desktopCommands, readerCommands } from "../src/commands/reader-commands.ts";
 import { CommandError, CommandRegistry } from "../src/commands/registry.ts";
 import { bindingKey, pressKey, shortcutProblems } from "../src/commands/shortcuts.ts";
 import type { AnyCommand, CommandContext } from "../src/commands/types.ts";
@@ -121,6 +121,25 @@ describe("CommandRegistry", () => {
     ...over,
   });
 
+  it("runs a command once when one key press reaches it from the keys and the native menu", async () => {
+    vi.useFakeTimers();
+    try {
+      const run = vi.fn();
+      const registry = new CommandRegistry();
+      registry.register(command({ run }));
+      await registry.run("test.do-thing", opened(), { source: "keys" });
+      await registry.run("test.do-thing", opened(), { source: "menu" });
+      expect(run).toHaveBeenCalledTimes(1);
+      // The same source twice is two presses; the other source later is another choice.
+      await registry.run("test.do-thing", opened(), { source: "menu" });
+      vi.advanceTimersByTime(400);
+      await registry.run("test.do-thing", opened(), { source: "keys" });
+      expect(run).toHaveBeenCalledTimes(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("refuses an id twice, and an id that isn't namespace.verb-object", () => {
     const registry = new CommandRegistry();
     registry.register(command());
@@ -175,10 +194,10 @@ describe("CommandRegistry", () => {
 
 describe("the reader's commands", () => {
   // The desktop's set: the reader's and the tab and window commands.
-  const commands = [...readerCommands(), ...tabCommands()];
+  const commands = [...readerCommands(), ...desktopCommands()];
 
-  it("are ADR 0024's 48, reader mode's 7, Forget reading positions, Follow link, What Lamina PDF can do and the desktop's 5 tab and window commands, each with a visible home besides the palette", () => {
-    expect(commands).toHaveLength(63);
+  it("are ADR 0024's 48, reader mode's 7, Forget reading positions, Follow link, What Lamina PDF can do and the desktop's 7 tab, window and quit commands, each with a visible home besides the palette", () => {
+    expect(commands).toHaveLength(65);
     expect(commands.filter((c) => c.home.length === 0).map((c) => c.id)).toEqual([]);
   });
 

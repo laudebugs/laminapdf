@@ -5,7 +5,8 @@
 //! queued. `e2e_replace` moves one fixture copy over another with `std::fs::rename`, the replace
 //! Windows allows over a file another process holds open (ADR 0008 §11); the watch scenario uses it
 //! on Windows, where Node's rename can't. `e2e_interactive` reports the cold start: the time from `run()` to the empty state
-//! accepting input. Release builds have none of this; CI checks their binary (ADR 0008 §8).
+//! accepting input. `e2e_menu_click` and `e2e_menu_snapshot` choose a native menu item and read
+//! the menus, which `WebDriver` can't reach. Release builds have none of this; CI checks their binary (ADR 0008 §8).
 
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock, PoisonError};
@@ -29,6 +30,22 @@ pub(crate) fn e2e_interactive() -> u128 {
     let ms = STARTED.get().map_or(0, |started| started.elapsed().as_millis());
     println!("e2e: interactive {ms} ms");
     ms
+}
+
+/// Chooses the native menu item `id` as a click would (`cmd:view.zoom-in`, `recent:<id>`,
+/// `window:doc-1`): `WebDriver` can't reach the OS's menus.
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its app by value")]
+pub(crate) fn e2e_menu_click(app: tauri::AppHandle, id: String) {
+    crate::menu::run(&app, crate::menu::action(&id));
+}
+
+/// The native menus as they show now, one item a line (`menu::render`): titles, keys, enabled
+/// and ticked.
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its app by value")]
+pub(crate) fn e2e_menu_snapshot(app: tauri::AppHandle) -> String {
+    crate::menu::snapshot(&app)
 }
 
 /// The path the next `open_dialog` opens instead of asking, per app.

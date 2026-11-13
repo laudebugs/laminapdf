@@ -24,8 +24,9 @@ import {
   ReaderTopBar,
   RegistryPalette,
   RepairedNotice,
+  registerDesktopCommands,
   registerReaderCommands,
-  registerTabCommands,
+  ShortcutsDialog,
   StatusBarItem,
   ToastQueue,
   ToastRegion,
@@ -38,6 +39,7 @@ import { type DesktopEngineClient, DesktopEngineError, type DesktopShell } from 
 import { type Dragging, desktopOpener, listenForOsOpens } from "./engine/open.ts";
 import { stopper } from "./engine/stopper.ts";
 import { useFileChanges } from "./file-changes.tsx";
+import { useNativeMenus } from "./menus/use-native-menus.tsx";
 import { NotYetSupportedError } from "./platform/desktop.ts";
 import { type DesktopRecent, useDesktopRecent } from "./recent.tsx";
 import { type DesktopSettings, useDesktopSettings } from "./settings.tsx";
@@ -114,10 +116,11 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const shows = useShownParts(state.phase, tabs);
   // The page input, zoom and the viewer's commands work while a document is on screen.
   const viewer = open && lost === undefined ? engine?.viewer : undefined;
-  const { registry, context, palette } = useCommands(platform, reader, actions, viewer);
+  const { registry, context, palette, singleKeys } = useCommands(platform, reader, actions, viewer);
+  useNativeMenus(engine?.shell, registry, context);
   const repaired = open && engine?.client.current?.repaired === true;
   return (
-    <CommandsProvider registry={registry} context={context} keys={keys}>
+    <CommandsProvider registry={registry} context={context} keys={keys} singleKeys={singleKeys}>
       <ReaderShell
         tabs={strip}
         topBar={
@@ -179,31 +182,55 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
 /**
  * The reader's commands (open, the shortcuts) and the context they run in, with the command palette
  * (⌘K or Ctrl+K) as in the web reader: it reaches every command with a handler here, among them
- * Open recent and Clear recent while a document is open.
+ * Open recent and Clear recent while a document is open. Help ▸ Keyboard shortcuts (F1) shows the
+ * shortcut help, which lists the same keys as the native menus.
  */
 function useCommands(
   platform: Platform,
   reader: ReaderController,
   actions: CommandContext["actions"],
   viewer: Viewer | undefined,
-): { registry: CommandRegistry; context: CommandContext; palette: ReactNode } {
+): { registry: CommandRegistry; context: CommandContext; palette: ReactNode; singleKeys: boolean } {
   const [registry] = useState(() => {
     const commands = new CommandRegistry();
     registerReaderCommands(commands);
-    registerTabCommands(commands);
+    registerDesktopCommands(commands);
     return commands;
   });
   const [isOpen, setOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  // Single-key shortcuts, which the shortcut help can turn off (WCAG 2.1.4), for this window's session.
+  const [singleKeys, setSingleKeys] = useState(true);
   const context = useMemo<CommandContext>(
     () => ({
       platform,
       reader,
-      actions: { ...actions, "palette.open": () => setOpen(true) },
+      actions: {
+        ...actions,
+        "palette.open": () => setOpen(true),
+        "help.shortcuts": () => setShortcutsOpen(true),
+      },
       ...(viewer === undefined ? {} : { viewer }),
     }),
     [platform, reader, actions, viewer],
   );
-  return { registry, context, palette: <RegistryPalette isOpen={isOpen} onOpenChange={setOpen} /> };
+  return {
+    registry,
+    context,
+    palette: (
+      <>
+        <RegistryPalette isOpen={isOpen} onOpenChange={setOpen} />
+        <ShortcutsDialog
+          isOpen={shortcutsOpen}
+          onOpenChange={setShortcutsOpen}
+          singleKeys={singleKeys}
+          onSingleKeysChange={setSingleKeys}
+          onOpenPalette={() => setOpen(true)}
+        />
+      </>
+    ),
+    singleKeys,
+  };
 }
 
 /**

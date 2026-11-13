@@ -201,6 +201,29 @@ export async function recentNames(): Promise<string[]> {
   return entries.map((entry) => entry.name);
 }
 
+/** The native menus as they show now, one item a line (src-tauri/src/menu.rs's `render`). */
+export async function menuSnapshot(): Promise<string> {
+  return (await invoke("e2e_menu_snapshot")) as string;
+}
+
+/** Chooses the native menu item `id` (`cmd:view.zoom-in`, `recent:<id>`): WebDriver can't reach the OS's menus. */
+export async function menuClick(id: string): Promise<void> {
+  await invoke("e2e_menu_click", { id });
+}
+
+/** Waits until the menu snapshot matches `pattern`; returns the snapshot. */
+export async function waitForMenus(pattern: RegExp, timeoutMsg: string): Promise<string> {
+  let text = "";
+  await browser.waitUntil(
+    async () => {
+      text = await menuSnapshot();
+      return pattern.test(text);
+    },
+    { timeoutMsg: `${timeoutMsg}; the menus:\n${text}` },
+  );
+  return text;
+}
+
 /** Runs the command palette's command named `title`: ⌘K or Ctrl+K, its title, its row. */
 export async function runCommand(title: string): Promise<void> {
   await browser.keys([platform === "darwin" ? Key.Command : Key.Ctrl, "k"]);

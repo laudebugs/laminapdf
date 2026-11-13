@@ -33,18 +33,19 @@ export {
   useShortcutMap,
 } from "./commands/react.js";
 export {
+  desktopCommands,
   readerCommands,
+  registerDesktopCommands,
   registerReaderCommands,
-  registerTabCommands,
-  tabCommands,
 } from "./commands/reader-commands.js";
-export { CommandError, CommandRegistry } from "./commands/registry.js";
+export { CommandError, CommandRegistry, ECHO_MS, type RunSource } from "./commands/registry.js";
 export { RegistryPalette, type RegistryPaletteProps } from "./commands/registry-palette.js";
 export {
   BROWSER_KEYS,
   bindingKey,
   type DispatcherOptions,
   type KeyPress,
+  menuAccelerator,
   NEVER_BIND,
   OVERRIDES,
   pressKey,
