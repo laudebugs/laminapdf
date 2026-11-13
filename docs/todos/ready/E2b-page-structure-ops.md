@@ -6,16 +6,16 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B8a](../done/B8a-structure-tree.md), [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E1c](../done/E1c-metadata-ops.md), [E2j](../done/E2j-page-tree-and-tree-writers.md), [E2r](../ongoing/E2r-planner-page-checks.md) |
+| Depends on | [B8a](../done/B8a-structure-tree.md), [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E1c](../done/E1c-metadata-ops.md), [E2j](../done/E2j-page-tree-and-tree-writers.md), [E2r](../done/E2r-planner-page-checks.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2b-page-structure-ops` |
 | PR title | `feat(ops): page structure ops with reference cleanup` |
-| Size | L (400–800): five ops over E2j's page-tree editor, the reference cleanup and one new code, with bindings; the planner's checks are [E2r](../ongoing/E2r-planner-page-checks.md)'s and duplicating is [E2k](E2k-duplicate-pages.md)'s |
+| Size | L (400–800): five ops over E2j's page-tree editor, the reference cleanup and one new code, with bindings; the planner's checks are [E2r](../done/E2r-planner-page-checks.md)'s and duplicating is [E2k](E2k-duplicate-pages.md)'s |
 | PR | — |
 
 ## Goal
 
-Implement the single-document page ops as view-level mapping of `PageId`s (no re-parse of content) over [E2j](../done/E2j-page-tree-and-tree-writers.md)'s page-tree editor: insert blank pages, delete, move (reorder), rotate (batch, generalising B3's `RotatePage`) and reverse, with cleanup of references to deleted pages (outline items, link destinations, named destinations, struct-tree `/Pg`, `/OpenAction`). Each op reports the widgets it touches, which [E2r](../ongoing/E2r-planner-page-checks.md)'s checks judge. Duplicating pages is [E2k](E2k-duplicate-pages.md).
+Implement the single-document page ops as view-level mapping of `PageId`s (no re-parse of content) over [E2j](../done/E2j-page-tree-and-tree-writers.md)'s page-tree editor: insert blank pages, delete, move (reorder), rotate (batch, generalising B3's `RotatePage`) and reverse, with cleanup of references to deleted pages (outline items, link destinations, named destinations, struct-tree `/Pg`, `/OpenAction`). Each op reports the widgets it touches, which [E2r](../done/E2r-planner-page-checks.md)'s checks judge. Duplicating pages is [E2k](E2k-duplicate-pages.md).
 
 ## Context
 
@@ -34,12 +34,12 @@ Implement the single-document page ops as view-level mapping of `PageId`s (no re
 - Each op edits the tree through E2j's page-tree editor and calls E2j's `PageLabels::remap`, so every surviving page keeps its label and inserted blank pages continue the range they land in
 - Reference cleanup on delete per the [E2 plan's decision](../../plans/editor/e2-page-organisation.md#11-decisions-on-the-open-questions): `retarget` (default) sends each destination naming a deleted page to the nearest surviving page (next, else previous) with `/Fit`; `remove` removes it. It covers outline items, named destinations (name tree and PDF 1.1 `/Dests`, written with E2j's name-tree writer), links and `GoTo` actions on surviving pages and `/OpenAction`, found through E2j's `PageReferences`. Structure elements whose content was all on deleted pages are removed with their `/ParentTree` entries. Deleting every page is refused with a new code (one `codes.json` entry and its `docs/errors/` page)
 - Reports: `Applied` and the façade's `Edited` gain `references` (each retargeted or removed reference), `page_order` (the page IDs in order, when the list changed) and set `still_in_earlier_revisions` for `DeletePages`
-- Each op reports the fields whose widgets it deleted, rotated or moved on the page, for [E2r](../ongoing/E2r-planner-page-checks.md)'s checks: `Effect::widgets` as it applies, `Op::page_changes()` before. `RotatePage` reports its page too (`WidgetChange::Reshown`), which turns the approval fixture's rotation in `crates/laminapdf-save/tests/planner.rs` (`auto_saves_a_signed_file_incrementally_and_keeps_the_signed_bytes`) into a `Conflict`
+- Each op reports the fields whose widgets it deleted, rotated or moved on the page, for [E2r](../done/E2r-planner-page-checks.md)'s checks: `Effect::widgets` as it applies, `Op::page_changes()` before. `RotatePage` reports its page too (`WidgetChange::Reshown`), which turns the approval fixture's rotation in `crates/laminapdf-save/tests/planner.rs` (`auto_saves_a_signed_file_incrementally_and_keeps_the_signed_bytes`) into a `Conflict`
 
 **Out of scope** (and which todo covers it)
 
 - Page-tree editing, the tree writers, `PageLabels::remap` and the reference index → [E2j](../done/E2j-page-tree-and-tree-writers.md)
-- The planner's field-level checks → [E2r](../ongoing/E2r-planner-page-checks.md)
+- The planner's field-level checks → [E2r](../done/E2r-planner-page-checks.md)
 - Duplicating pages (tags and widgets) → [E2k](E2k-duplicate-pages.md)
 - Pages from other documents, replace, extract → [E2c](E2c-cross-document-pages.md)
 - Merge and split → [E2d](E2d-merge-and-split.md)
