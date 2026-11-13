@@ -1,0 +1,62 @@
+---
+// "Wrap long lines" beside each code block's Copy button (todo Q4r). Expressive Code draws the
+// blocks and their Copy; this adds one button next to it that wraps the long lines of every block
+// on the page at once, as an editor's word wrap does, and remembers the choice in localStorage (a
+// per-reader convenience: without storage, blocks start unwrapped). The lines wrap by the style
+// Expressive Code ships for its own `wrap` option (paper.css, `data-code-wrap`).
+---
+
+<script>
+  import wrapIcon from "@laminapdf/icons/svg/wrap-lines.svg?raw";
+  import { decorativeIcon } from "@laminapdf/site-kit/icon";
+
+  const KEY = "lamina-docs-code-wrap";
+  const LABEL = "Wrap long lines";
+  const root = document.documentElement;
+
+  const wrapped = () => root.dataset.codeWrap !== undefined;
+
+  /** Wraps every block's lines, or stops, and marks every button pressed or not. */
+  const apply = (on: boolean) => {
+    if (on) root.dataset.codeWrap = "";
+    else delete root.dataset.codeWrap;
+    for (const button of document.querySelectorAll(".expressive-code .lamina-wrap")) {
+      button.setAttribute("aria-pressed", String(on));
+    }
+  };
+
+  /** A button like Copy's: the inner div is the background Expressive Code's styles fade in. */
+  const button = (): HTMLButtonElement => {
+    const node = document.createElement("button");
+    node.type = "button";
+    node.className = "lamina-wrap";
+    node.title = LABEL;
+    node.setAttribute("aria-label", LABEL);
+    node.setAttribute("aria-pressed", String(wrapped()));
+    node.innerHTML = `<div></div>${decorativeIcon(wrapIcon, "lamina-wrap-icon")}`;
+    return node;
+  };
+
+  try {
+    if (localStorage.getItem(KEY) === "on") apply(true);
+  } catch {
+    // No storage (a private window): blocks start unwrapped.
+  }
+  // Module scripts run once the page is parsed, so every block is there.
+  for (const copy of document.querySelectorAll(".expressive-code .copy")) {
+    const added = button();
+    const copyButton = copy.querySelector("button");
+    if (copyButton === null) copy.append(added);
+    else copyButton.before(added);
+  }
+  document.addEventListener("click", (event) => {
+    if (!(event.target instanceof Element) || event.target.closest(".lamina-wrap") === null) return;
+    const on = !wrapped();
+    apply(on);
+    try {
+      localStorage.setItem(KEY, on ? "on" : "off");
+    } catch {
+      // The choice then lasts until the page is left.
+    }
+  });
+</script>

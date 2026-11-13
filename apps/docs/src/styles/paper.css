@@ -323,3 +323,32 @@ button[data-open-modal][disabled] > kbd.lamina-search-shortcut {
   color: inherit;
   text-decoration: none;
 }
+
+/* Code blocks' "Wrap long lines" (src/components/CodeWrap.astro, todo Q4r). The lines wrap by the
+   style Expressive Code ships for its `wrap` option. The button takes Copy's look from Expressive
+   Code's own rules for `.copy button`, with the Paper icon in place of Copy's masked one, and the
+   accent while pressed. The first line keeps room for both buttons. The selectors carry `.frame` so
+   they outrank Expressive Code's, whose style sheet loads after this one. */
+.expressive-code .frame:has(.lamina-wrap) :nth-child(1 of .ec-line) .code {
+  padding-inline-end: calc(4.25rem + var(--ec-codePadInl));
+}
+:root[data-code-wrap] .expressive-code .frame pre .ec-line .code {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  min-width: min(20ch, var(--ecMaxLine, 20ch));
+}
+.expressive-code .frame .copy button.lamina-wrap {
+  color: var(--ec-frm-inlBtnFg);
+}
+.expressive-code .frame .copy button.lamina-wrap::after {
+  content: none;
+}
+.expressive-code .frame .copy button.lamina-wrap[aria-pressed="true"] {
+  color: var(--paper-accent);
+}
+.expressive-code .frame .lamina-wrap-icon {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  pointer-events: none;
+}
