@@ -122,6 +122,35 @@ describe("ReaderTopBar", () => {
     expect(openPalette).toHaveBeenCalledOnce();
   });
 
+  it("puts an × named for the file after its name, which runs file.close, while the shell handles it (R19)", async () => {
+    const close = vi.fn();
+    const host = renderIn(<TopBar reader={await openedController()} actions={{ "file.close": close }} />);
+    const x = button("Close Q3-board-report.pdf") as HTMLButtonElement;
+    // Right after the name, so the name and its × read as one, like a tab.
+    expect(host.querySelector(".paper-top-bar-name")?.nextElementSibling).toBe(x);
+    await userEvent.hover(x);
+    await expect.poll(() => document.querySelector('[role="tooltip"]')?.textContent).toBe("Close document");
+    await userEvent.click(x);
+    expect(close).toHaveBeenCalledOnce();
+  });
+
+  it("shows the × while a document opens or asks for a password, never without one or without a handler", async () => {
+    const actions = { "file.close": () => {} };
+    renderIn(<TopBar reader={await openedController("opening")} actions={actions} />);
+    expect(button("Close Q3-board-report.pdf")).toBeDefined();
+    cleanup();
+    renderIn(<TopBar reader={await openedController("needs-password")} actions={actions} />);
+    expect(button("Close Q3-board-report.pdf")).toBeDefined();
+    cleanup();
+    const empty = new ReaderController(fakePlatform(), async () => ({ pageCount: 1 }));
+    const home = renderIn(<TopBar reader={empty} actions={actions} />);
+    expect(home.querySelector('[aria-label^="Close"]')).toBeNull();
+    cleanup();
+    // The desktop app gives no handler: its tabs close documents.
+    renderIn(<TopBar reader={await openedController()} />);
+    expect(button("Close Q3-board-report.pdf")).toBeUndefined();
+  });
+
   it("runs More's items, which open from the keyboard", async () => {
     const onAction = vi.fn();
     renderIn(<TopBar reader={await openedController()} more={{ items: MORE, onAction }} />);
@@ -138,7 +167,7 @@ describe("ReaderTopBar", () => {
         reader={await openedController()}
         viewer={new FakeViewer()}
         sidebarOpen={false}
-        actions={{ "view.toggle-sidebar": () => {}, "palette.open": () => {} }}
+        actions={{ "view.toggle-sidebar": () => {}, "palette.open": () => {}, "file.close": () => {} }}
       />,
     );
     const { violations } = await axe.run(host, { resultTypes: ["violations"] });
@@ -510,7 +539,7 @@ function dropFiles(...files: File[]) {
 describe("OpenDropZone", () => {
   const pdf = new File(["%PDF-1.7\n%…"], "Q3-board-report.pdf", { type: "application/pdf" });
 
-  function home(platform = fakePlatform()) {
+  function home(platform = fakePlatform(), focusHeading = false) {
     const opened: string[] = [];
     const reader = new ReaderController(platform, async (file) => {
       opened.push(file.name);
@@ -518,7 +547,7 @@ describe("OpenDropZone", () => {
     });
     renderIn(
       <PlatformProvider platform={platform}>
-        <OpenDropZone reader={reader} keys="other">
+        <OpenDropZone reader={reader} keys="other" focusHeading={focusHeading}>
           <p>Lamina PDF reads PDFs inside this browser tab.</p>
         </OpenDropZone>
       </PlatformProvider>,
@@ -536,6 +565,17 @@ describe("OpenDropZone", () => {
     await userEvent.keyboard("{Enter}");
     expect(platform.calls.openFiles).toEqual([{ multiple: false }]);
     await expect.poll(() => opened).toEqual(["report.pdf"]);
+  });
+
+  it("moves focus to its heading only when the shell asks, after a close (R19), with Choose a file still the next stop", async () => {
+    home();
+    expect(document.activeElement).toBe(document.body);
+    cleanup();
+    home(fakePlatform(), true);
+    const heading = document.querySelector(".paper-open-heading");
+    await expect.poll(() => document.activeElement).toBe(heading);
+    await userEvent.tab();
+    expect(focused().textContent).toBe("Choose a file");
   });
 
   it("covers the window while a file is dragged over it, and opens a dropped PDF", async () => {

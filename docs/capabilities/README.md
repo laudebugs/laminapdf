@@ -28,7 +28,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | A.03 | Delete or replace text | — | — | — | — | E7 round-trip |  |
 | A.04 | Change font family/size/colour/style | — | — | — | — | E7 round-trip |  |
 | A.05 | Bold, italic, underline, super/subscript | — | — | — | — | E7 round-trip |  |
-| A.06 | Alignment & line spacing | — | — | — | — | E7 round-trip |  |
+| A.06 | Alignment & line spacing | — | — | — | — | E7 write |  |
 | A.07 | Move/resize/rotate text blocks | — | — | — | — | E7 round-trip |  |
 | A.08 | Search & replace throughout document | — | — | — | — | E7 round-trip |  |
 | A.09 | Add hyperlinks to text | 🟢 round-trip | — | 🟢 round-trip | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[draws a link to a page, refuses a script address and makes a web link on text](../../apps/web/e2e/link-editing.e2e.test.ts) web round-trip |
@@ -40,8 +40,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| B.01 | Insert, delete, replace images | — | — | — | — | E6 write |  |
-| B.02 | Resize, rotate, crop, reposition | — | — | — | — | E6 write |  |
+| B.01 | Insert, delete, replace images | — | — | — | — | E7 round-trip |  |
+| B.02 | Resize, rotate, crop, reposition | — | — | — | — | E7 round-trip |  |
 | B.03 | Extract original embedded images | — | — | — | — | E3 read |  |
 | B.04 | Adjust transparency/opacity | — | — | — | — | E6 round-trip |  |
 | B.05 | Draw lines, rectangles, circles, polygons | — | — | — | — | E6 round-trip |  |

@@ -127,10 +127,8 @@ export default defineConfig({
         PageTitle: "./src/components/PageTitle.astro",
         ThemeSelect: "./src/components/ThemeSelect.astro",
       },
-      // Every block is built to wrap with its indentation kept (Expressive Code's `wrap` and
-      // `preserveIndent`), so a wrapped line continues under its own indentation; paper.css keeps
-      // the lines unwrapped until the reader presses "Wrap long lines" (CodeWrap.astro, todo Q4r).
-      expressiveCode: { defaultProps: { wrap: true, preserveIndent: true } },
+      // Expressive Code's options are in ec.config.mjs: its plugin can't be serialised into the
+      // `<Code>` component's settings.
       // The Paper design language (docs/design/paper/design-language.md): its tokens, its fonts,
       // then Starlight's colours and fonts mapped onto them.
       customCss: [

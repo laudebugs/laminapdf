@@ -28,7 +28,7 @@ When the original subset lacks glyphs, add a new subset of the same font (if the
 **In scope**
 
 - Font resolution chain
-- Style ops: `SetTextStyle { runs, style }`
+- Style op: `SetTextStyle { runs, font, size, colour, bold, italic, underline, baseline, align, line_spacing }`, each field optional ([E7 plan](../../plans/editor/e7-editing-existing-content.md) §2.1)
 - Line-level layout for alignment/spacing
 - Synthetic bold/italic only as fallback
 - Never substitute silently: when the original subset lacks a glyph the edit needs and no full copy of the font is available, the op's report names the missing characters and the substitute font, and the editor shows that before the edit is committed ([Hacker News research](../../research/hacker-news/pdf-users-on-hacker-news.md#four-things-the-evidence-argues-against): users mock editors that promise Word-style editing and quietly change fonts)
@@ -45,7 +45,7 @@ When the original subset lacks glyphs, add a new subset of the same font (if the
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked unless the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock` (the signature panel, E10h, reports the later content change)
 - **Web vs desktop:** desktop substitution may use system fonts; web bundled/user fonts
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `A.02` → `round-trip` (core, pdf, web, desktop); `A.04` → `round-trip` (core, pdf, web, desktop); `A.05` → `round-trip` (core, pdf, web, desktop); `A.06` → `write` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `A.02`, `A.04`, `A.05` → `round-trip` (core, pdf); `A.06` → `write` (core, pdf); web and desktop in [E7l](./E7l-inline-text-editor.md)
 
 ## Tasks
 

@@ -51,7 +51,7 @@ async function choose(page: Page, path: string): Promise<void> {
   const home = page.getByRole("button", { name: "Choose a file" }).first();
   if (!(await home.isVisible())) {
     await page.getByRole("button", { name: "More" }).first().click();
-    await page.getByRole("menuitem", { name: "Choose a file" }).click();
+    await page.getByRole("menuitem", { name: "Close document" }).click();
   }
   const chooser = page.waitForEvent("filechooser");
   await home.click();

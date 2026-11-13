@@ -270,15 +270,27 @@ importers:
       '@astrojs/starlight':
         specifier: 0.42.8
         version: 0.42.8(astro@7.4.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(supports-color@10.2.2)(typescript@6.0.3)
+      '@codemirror/autocomplete':
+        specifier: 6.20.4
+        version: 6.20.4
       '@codemirror/lang-javascript':
         specifier: 6.2.5
         version: 6.2.5
       '@codemirror/language':
         specifier: 6.13.1
         version: 6.13.1
+      '@codemirror/lint':
+        specifier: 6.9.7
+        version: 6.9.7
       '@codemirror/state':
         specifier: 6.7.6
         version: 6.7.6
+      '@codemirror/view':
+        specifier: 6.43.15
+        version: 6.43.15
+      '@expressive-code/core':
+        specifier: 0.44.3
+        version: 0.44.3
       '@laminapdf/fonts':
         specifier: workspace:*
         version: link:../../packages/fonts
@@ -439,9 +451,6 @@ importers:
       playwright:
         specifier: 'catalog:'
         version: 1.64.1
-      shiki:
-        specifier: 'catalog:'
-        version: 4.6.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -788,6 +797,9 @@ importers:
       '@laminapdf/icons':
         specifier: workspace:*
         version: link:../icons
+      shiki:
+        specifier: 'catalog:'
+        version: 4.6.0
     devDependencies:
       '@laminapdf/fonts':
         specifier: workspace:*
@@ -4817,9 +4829,6 @@ packages:
 
   hast-util-whitespace@3.0.0:
     resolution: {integrity: sha512-88JUN06ipLwsnv+dVn+OIYOvAuvBMy/Qoi6O7mQHxdPXpjy+Cd6xRkWwux7DKO+4sYILtLBRIKgsdpS2gQc7qw==}
-
-  hastscript@9.0.2:
-    resolution: {integrity: sha512-ghcIWJlrROwOddvAvbt0AAnLTyt/Xt02Ucc6VfXejSPESai+q24iROd0MjOYUEhJiI/b4vokkm9ZHb4MNOOizA==}
 
   hastscript@9.0.3:
     resolution: {integrity: sha512-1ALZXSmCGmW3h8AMz4R4+QKSKFi7sNgXLVwmwB8FYVtl1CwQ3WDkSAEY/d5tp1g/vbQgq2s1WlHgfO3jbw1TsA==}
@@ -11113,7 +11122,7 @@ snapshots:
       '@types/hast': 3.0.5
       '@types/unist': 3.0.3
       devlop: 1.1.0
-      hastscript: 9.0.2
+      hastscript: 9.0.3
       property-information: 7.2.0
       vfile: 6.0.3
       vfile-location: 5.0.3
@@ -11194,14 +11203,6 @@ snapshots:
   hast-util-whitespace@3.0.0:
     dependencies:
       '@types/hast': 3.0.5
-
-  hastscript@9.0.2:
-    dependencies:
-      '@types/hast': 3.0.5
-      comma-separated-tokens: 2.0.3
-      hast-util-parse-selector: 4.0.0
-      property-information: 7.2.0
-      space-separated-tokens: 2.0.2
 
   hastscript@9.0.3:
     dependencies:

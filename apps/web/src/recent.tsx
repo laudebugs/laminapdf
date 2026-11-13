@@ -23,8 +23,9 @@ import {
   useSettingsSection,
 } from "@laminapdf/ui";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { remoteUrlOf } from "./open/remote-file.ts";
 import { SESSION_KEY, stoppedAt } from "./reading/positions.ts";
-import { type Engine, remoteUrlOf } from "./session.ts";
+import type { Engine } from "./session.ts";
 import { readChoices, type StorageChoices, saveChoices } from "./storage-choices.ts";
 
 /** What the hook gives the app. */

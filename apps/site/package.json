@@ -24,7 +24,6 @@
     "@types/node": "catalog:",
     "astro": "7.4.5",
     "playwright": "catalog:",
-    "shiki": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
     "wrangler": "catalog:"

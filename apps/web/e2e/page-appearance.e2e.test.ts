@@ -13,13 +13,13 @@ const origin = inject("origin");
 const APPEARANCE = new URL("../../../fixtures/appearance/", import.meta.url);
 const CORPUS = new URL("../../../fixtures/corpus/", import.meta.url);
 
-/** Opens `file` from the home screen (More › Choose a file goes back to it) and waits for it to show. */
+/** Opens `file` from the home screen (More › Close document goes back to it) and waits for it to show. */
 async function open(watched: Watched, file: URL, title: string): Promise<void> {
   const { page } = watched;
   const home = page.getByRole("heading", { name: "Open a PDF" });
   if (!(await home.isVisible())) {
     await page.getByRole("button", { name: "More" }).first().click();
-    await page.getByRole("menuitem", { name: "Choose a file" }).click();
+    await page.getByRole("menuitem", { name: "Close document" }).click();
     await home.waitFor();
   }
   const chooser = page.waitForEvent("filechooser");

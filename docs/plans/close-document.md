@@ -46,8 +46,8 @@ O03 over the reader and the phone's and tablet's Back to files are drawn already
 
 ## 6. Todos
 
-- [ ] Every close asks about unsaved changes: the fragment watcher, `showLinkProblem` and "Try another" through `requestClose()`, with the fragment restored on Cancel ([C8a](../todos/ready/C8a-every-close-asks-first.md))
-- [ ] `file.close`, the Close button, More's two items, Back to files on phone and tablet, focus and announcement ([C8b](../todos/ready/C8b-close-button-and-command.md))
+- [x] Every close asks about unsaved changes: the fragment watcher, `showLinkProblem` and "Try another" through `requestClose()`, with the fragment restored on Cancel ([C8a](../todos/done/C8a-every-close-asks-first.md))
+- [x] `file.close`, the Close button, More's two items, Back to files on phone and tablet, focus and announcement ([C8b](../todos/done/C8b-close-button-and-command.md))
 
 ## 7. Risks and open questions
 
