@@ -134,6 +134,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "template-data-missing":
     case "template-data-type":
     case "template-too-large":
+    case "open-action-not-destination":
       return "usage";
     case "data-pending":
     case "repaired-base":

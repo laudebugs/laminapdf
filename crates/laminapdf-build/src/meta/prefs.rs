@@ -1,87 +1,7 @@
 //! Viewer preferences (§12.2), the page mode and the page layout (§7.7.2, Table 29).
 
 use laminapdf_cos::{Dict, Name};
-
-/// Which panel a viewer shows when the document opens (`/PageMode`).
-///
-/// Added in 0.2.0.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum PageMode {
-    /// No panel (`UseNone`).
-    None,
-    /// The outline (`UseOutlines`).
-    Outlines,
-    /// Page thumbnails (`UseThumbs`).
-    Thumbnails,
-    /// Full screen (`FullScreen`).
-    FullScreen,
-    /// The optional content panel (`UseOC`, PDF 1.5).
-    OptionalContent,
-    /// The attachments panel (`UseAttachments`, PDF 1.6).
-    Attachments,
-}
-
-impl PageMode {
-    pub(crate) const fn pdf_name(self) -> &'static str {
-        match self {
-            Self::None => "UseNone",
-            Self::Outlines => "UseOutlines",
-            Self::Thumbnails => "UseThumbs",
-            Self::FullScreen => "FullScreen",
-            Self::OptionalContent => "UseOC",
-            Self::Attachments => "UseAttachments",
-        }
-    }
-
-    pub(crate) const fn version(self) -> (u8, u8) {
-        match self {
-            Self::OptionalContent => (1, 5),
-            Self::Attachments => (1, 6),
-            _ => (1, 0),
-        }
-    }
-}
-
-/// How a viewer lays pages out when the document opens (`/PageLayout`).
-///
-/// Added in 0.2.0.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum PageLayout {
-    /// One page at a time.
-    SinglePage,
-    /// One continuous column.
-    OneColumn,
-    /// Two columns, odd pages on the left.
-    TwoColumnLeft,
-    /// Two columns, odd pages on the right.
-    TwoColumnRight,
-    /// Two pages at a time, odd pages on the left (PDF 1.5).
-    TwoPageLeft,
-    /// Two pages at a time, odd pages on the right (PDF 1.5).
-    TwoPageRight,
-}
-
-impl PageLayout {
-    pub(crate) const fn pdf_name(self) -> &'static str {
-        match self {
-            Self::SinglePage => "SinglePage",
-            Self::OneColumn => "OneColumn",
-            Self::TwoColumnLeft => "TwoColumnLeft",
-            Self::TwoColumnRight => "TwoColumnRight",
-            Self::TwoPageLeft => "TwoPageLeft",
-            Self::TwoPageRight => "TwoPageRight",
-        }
-    }
-
-    pub(crate) const fn version(self) -> (u8, u8) {
-        match self {
-            Self::TwoPageLeft | Self::TwoPageRight => (1, 5),
-            _ => (1, 0),
-        }
-    }
-}
+use laminapdf_model::{PageLayout, PageMode};
 
 /// How a viewer presents the document when it opens.
 ///
@@ -161,10 +81,10 @@ impl ViewerPreferences {
     pub(crate) fn version(self) -> (u8, u8) {
         let mut version = if self.display_doc_title { (1, 4) } else { (1, 0) };
         if let Some(mode) = self.page_mode {
-            version = version.max(mode.version());
+            version = version.max(mode.since());
         }
         if let Some(layout) = self.page_layout {
-            version = version.max(layout.version());
+            version = version.max(layout.since());
         }
         version
     }

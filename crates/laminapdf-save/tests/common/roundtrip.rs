@@ -29,11 +29,12 @@ use std::path::Path;
 
 use laminapdf_cos::OpenOptions;
 use laminapdf_model::xmp::{RdfValue, XmpValue};
-use laminapdf_model::{LabelStyle, PageId, PagePosition, PageSize, Rotation};
+use laminapdf_model::{LabelStyle, OpenAction, PageId, PageLayout, PageMode, PagePosition, PageSize, Rotation};
 use laminapdf_ops::{
     DeletePages, Document, DuplicatePages, InfoPatch, InsertBlankPages, InsertPagesFrom, MetadataKey, MetadataPatch,
-    MovePages, Op, Origin, PageLabelRange, RemoveMetadata, ReplacePages, ReversePages, RotatePage, RotatePages,
-    SetInfo, SetMetadata, SetPageLabels, SetXmpProperty, SourceId, read_metadata,
+    MovePages, Op, OpenAt, OpenZoom, Origin, PageLabelRange, RemoveMetadata, ReplacePages, ReversePages, RotatePage,
+    RotatePages, SetInfo, SetInitialView, SetMetadata, SetPageLabels, SetXmpProperty, SourceId, WindowPreferencesPatch,
+    read_metadata,
 };
 use laminapdf_save::{Restriction, Save, SaveError, SaveMode, SaveOptions, SavePlanner, SaveReport};
 use serde_json::{Value, json};
@@ -250,9 +251,9 @@ fn new_labels(pages: usize) -> Vec<Option<String>> {
 /// The ops each fixture is saved with: a title through the deprecated `setInfo`, a rotation,
 /// the metadata ops (J.01–J.03, J.10), the XMP property op (J.04: the title, mirrored in
 /// Info, and a custom property, [`CUSTOM`]), page labels (I.10) and the page ops (C.01, C.03,
-/// C.04, C.08, C.13), duplicating included (C.03), and pages copied in from another document
-/// (C.02) or replacing the first page (C.16), from [`SOURCE`].
-const OPS: [&str; 14] = [
+/// C.04, C.08, C.13), duplicating included (C.03), pages copied in from another document
+/// (C.02) or replacing the first page (C.16), from [`SOURCE`], and the initial view (I.06, I.11).
+const OPS: [&str; 15] = [
     "setInfo",
     "rotatePage",
     "setMetadata",
@@ -267,10 +268,17 @@ const OPS: [&str; 14] = [
     "duplicatePages",
     "insertPagesFrom",
     "replacePages",
+    "setInitialView",
 ];
 
 /// The source document the import cases copy their page from: one upright page.
 const SOURCE: &str = "fixtures/corpus/hello.pdf";
+
+/// What the `setInitialView` cases write: open on the last page at its width, with the
+/// thumbnails panel, two pages side by side (PDF 1.5, so older files' `/Version` rises) and the title in
+/// the window. The tools check the page mode by its PDF name.
+const INITIAL_MODE: PageMode = PageMode::Thumbnails;
+const INITIAL_LAYOUT: PageLayout = PageLayout::TwoPageLeft;
 
 /// The custom XMP property the `setXmpProperty` cases add: namespace and name.
 const CUSTOM: (&str, &str) = ("http://example.com/roundtrip/", "batch");
@@ -350,6 +358,12 @@ fn op(doc: &Document, name: &str, rotation: Rotation, source: SourceId) -> Optio
             }
             SetPageLabels::new(ranges).into()
         }
+        "setInitialView" => SetInitialView::default()
+            .with_open(Some(OpenAt::new(ids.last().cloned()?, OpenZoom::FitWidth)))
+            .with_page_mode(Some(INITIAL_MODE))
+            .with_page_layout(Some(INITIAL_LAYOUT))
+            .with_preferences(WindowPreferencesPatch::default().with_display_doc_title(true))
+            .into(),
         _ => RotatePage::new(ids.first().cloned()?, rotation).into(),
     })
 }
@@ -427,6 +441,49 @@ fn after_op(op: &Op, rotation: Rotation, pages: &mut usize, rotations: &mut Vec<
     }
 }
 
+/// Whether `doc` opens as the `setInitialView` cases ask: on the last page, with the panel,
+/// layout and title preference they set.
+fn opens_as_set(doc: &laminapdf_model::Document) -> bool {
+    let view = doc.initial_view().unwrap();
+    let last = doc.pages().unwrap().len().checked_sub(1);
+    matches!(&view.open, OpenAction::Destination(dest) if dest.page_index == last)
+        && view.page_mode == Some(INITIAL_MODE)
+        && view.page_layout == Some(INITIAL_LAYOUT)
+        && view.preferences.display_doc_title
+}
+
+/// What a reopened output got wrong beyond the facts every case compares: an encryption a
+/// decrypting save left behind, Info and XMP out of step after a metadata op, the custom XMP
+/// property, or the initial view a `setInitialView` case wrote.
+fn reopened_failures(
+    id: &str,
+    op_name: &str,
+    remove: bool,
+    metadata_op: bool,
+    reopened: &laminapdf_model::Document,
+) -> Vec<String> {
+    let mut failures = Vec::new();
+    if remove && (reopened.is_encrypted() || reopened.trailer().contains_key("Encrypt")) {
+        failures.push(format!("{id}: removing the encryption left /Encrypt"));
+    }
+    if metadata_op {
+        let meta = read_metadata(reopened).unwrap();
+        if !meta.disagreements.is_empty() {
+            failures.push(format!("{id}: Info and XMP disagree on {:?}", meta.disagreements));
+        }
+    }
+    if op_name == "setXmpProperty" {
+        failures.extend(custom_property_problem(id, reopened));
+    }
+    if op_name == "setInitialView" && !opens_as_set(reopened) {
+        failures.push(format!(
+            "{id}: lamina reopened the initial view as {:?}",
+            reopened.initial_view()
+        ));
+    }
+    failures
+}
+
 /// What a run produced.
 #[derive(Debug, Default)]
 pub struct Suite {
@@ -495,11 +552,9 @@ pub fn run(root: &Path) -> Suite {
                     suite.saved += 1;
                     let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
                     let again = facts(&reopened);
-                    if remove && (reopened.is_encrypted() || reopened.trailer().contains_key("Encrypt")) {
-                        suite
-                            .failures
-                            .push(format!("{id}: removing the encryption left /Encrypt"));
-                    }
+                    suite
+                        .failures
+                        .extend(reopened_failures(&id, op_name, remove, metadata_op, &reopened));
                     if again != (pages, rotations.clone(), info.clone(), labels.clone()) || reopened.was_repaired() {
                         suite.failures.push(format!(
                             "{id}: lamina reopened {again:?} (repaired {}), expected {:?}",
@@ -507,17 +562,7 @@ pub fn run(root: &Path) -> Suite {
                             (pages, &rotations, &info, &labels)
                         ));
                     }
-                    if metadata_op {
-                        let meta = read_metadata(&reopened).unwrap();
-                        if !meta.disagreements.is_empty() {
-                            suite
-                                .failures
-                                .push(format!("{id}: Info and XMP disagree on {:?}", meta.disagreements));
-                        }
-                    }
-                    if op_name == "setXmpProperty" {
-                        suite.failures.extend(custom_property_problem(&id, &reopened));
-                    }
+                    let initial_view = op_name == "setInitialView";
                     let file = format!("{id}.pdf");
 
                     suite.manifest.push(json!({
@@ -542,6 +587,13 @@ pub fn run(root: &Path) -> Suite {
                         // PDFium reads no `/Title` from a direct `/Info` dictionary.
                         "direct_info": matches!(reopened.trailer().get("Info"), Some(laminapdf_cos::Object::Dict(_))),
                         "invalidated": report.invalidated().len(),
+                        // The setInitialView cases' open page (0-based), page mode and layout,
+                        // by their PDF names; null elsewhere, where the fixture keeps its own.
+                        "initial_view": initial_view.then(|| json!({
+                            "open_page": pages - 1,
+                            "page_mode": INITIAL_MODE.pdf_name(),
+                            "page_layout": INITIAL_LAYOUT.pdf_name(),
+                        })),
                     }));
                     suite.outputs.push((file, output));
                 }

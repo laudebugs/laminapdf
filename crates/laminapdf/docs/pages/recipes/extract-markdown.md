@@ -1,7 +1,7 @@
 ---
 title: "Extract text for an LLM"
 description: "Turn a PDF into Markdown in reading order, JSON with a box for every block, and chunks sized for retrieval, in TypeScript and Rust."
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/recipes/extract-markdown/"
 ---
 
@@ -9,7 +9,7 @@ url: "https://docs.laminapdf.com/recipes/extract-markdown/"
 
 Turn a PDF into Markdown in reading order, JSON with a box for every block, and chunks sized for retrieval, in TypeScript and Rust.
 
-You'll turn a PDF into three outputs an LLM or a search index can use: Markdown in reading order, JSON giving every paragraph and table its page and box, and 400-token chunks.
+The [Extract text and Markdown](../../pages/guides/extract-text.md) guide explains each output and its options. Here you'll turn a PDF into three outputs an LLM or a search index can use: Markdown in reading order, JSON giving every paragraph and table its page and box, and 400-token chunks.
 
 In TypeScript the function returns the three outputs and needs the extract module, `init({ extract: true })`. In Rust, the program instead extracts once and writes the three files. Both give the same JSON:
 
@@ -58,7 +58,7 @@ export function extractForAnLlm(bytes: Uint8Array): ForAnLlm {
 //! invisible or off the page) is left out of all three.
 //!
 //! ```sh
-//! cargo run -p laminapdf --example extract_markdown -- <file.pdf> [out-dir]
+//! cargo run -p laminapdf --features extract --example extract_markdown -- <file.pdf> [out-dir]
 //! # writes <out-dir>/<file>.md, <file>.json and <file>.chunks.jsonl
 //! ```
 
@@ -145,6 +145,7 @@ A page has a title across both columns and three blocks in each column. Extracti
 - **Overlap between chunks:** `overlap: 80` (`.with_overlap(80)`) repeats up to about 80 tokens of whole paragraphs from the end of the previous chunk.
 - **One output (TypeScript):** set `format` to `"markdown"`, `"text"`, `"json"` or `"chunks"`.
 - **Pages that need OCR:** a scanned page has no text to extract, so its Markdown is empty. Each page in the JSON has a `textLayer` whose `status` says so: `pages.filter(p => p.textLayer.status === "needs-ocr")` in TypeScript, `extraction.pages.iter().filter(|p| p.text_layer.status == TextLayerStatus::NeedsOcr)` in Rust. Send those pages to OCR or a vision model. A page made searchable by OCR is `ocr-layer`, since extraction leaves its invisible text out; the file's warnings name both kinds.
+- **When the text looks wrong:** [Troubleshooting text extraction](../../pages/troubleshooting/extraction.md) starts from what you see, such as columns read across or characters that come out as `�`.
 - **A long file in steps (Rust):** `doc.extract_job(&options)` and `step` do a page per unit of work, so a long file can report progress or stop between steps.
 
 [Benchmarks](../../pages/reference/benchmarks.md) has extraction's scores on a public benchmark and how many pages a second it reads.

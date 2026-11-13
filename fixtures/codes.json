@@ -542,6 +542,13 @@
       "since": "0.2.0"
     },
     {
+      "code": "open-action-not-destination",
+      "kind": "usage",
+      "summary": "an op would replace or remove the document's open action, which is an action other than a destination",
+      "hint": "leave the open page out of the edit, which keeps the open action as it is",
+      "since": "0.2.0"
+    },
+    {
       "code": "unknown-outline-item",
       "kind": "usage",
       "summary": "an outline op names a bookmark the outline does not have",

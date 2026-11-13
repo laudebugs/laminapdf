@@ -1,6 +1,6 @@
 ---
 title: "Error and warning codes"
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/reference/codes/"
 ---
 
@@ -33,6 +33,7 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`embedded-file-without-mime-type`](embedded-file-without-mime-type.md)
 - [`encoding-full`](encoding-full.md)
 - [`encrypted-base`](encrypted-base.md)
+- [`export-failed`](export-failed.md)
 - [`extract-column-order-uncertain`](extract-column-order-uncertain.md)
 - [`extract-limit-blocks`](extract-limit-blocks.md)
 - [`extract-module-not-loaded`](extract-module-not-loaded.md)
@@ -86,6 +87,7 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`limit-exceeded`](limit-exceeded.md)
 - [`link-without-contents`](link-without-contents.md)
 - [`link-without-structure`](link-without-structure.md)
+- [`malformed-xmp`](malformed-xmp.md)
 - [`markdown-html-ignored`](markdown-html-ignored.md)
 - [`markdown-image-missing`](markdown-image-missing.md)
 - [`missing-alt-text`](missing-alt-text.md)
@@ -116,6 +118,9 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`page-tree-node-skipped`](page-tree-node-skipped.md)
 - [`password-required`](password-required.md)
 - [`path-outside-roots`](path-outside-roots.md)
+- [`pdfa-info-mismatch`](pdfa-info-mismatch.md)
+- [`pdfa-one-author`](pdfa-one-author.md)
+- [`pdfua-title-missing`](pdfua-title-missing.md)
 - [`perms-mismatch`](perms-mismatch.md)
 - [`profile-version-conflict`](profile-version-conflict.md)
 - [`redaction-not-applied`](redaction-not-applied.md)
@@ -154,6 +159,7 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`unknown-font`](unknown-font.md)
 - [`unknown-option`](unknown-option.md)
 - [`unknown-page`](unknown-page.md)
+- [`unknown-source`](unknown-source.md)
 - [`unmapped-glyph`](unmapped-glyph.md)
 - [`unnumbered-heading-misused`](unnumbered-heading-misused.md)
 - [`unset-object`](unset-object.md)
@@ -173,6 +179,7 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`wrong-document`](wrong-document.md)
 - [`wrong-password`](wrong-password.md)
 - [`xmp-invalid`](xmp-invalid.md)
+- [`xmp-repaired`](xmp-repaired.md)
 - [`xobject-cycle`](xobject-cycle.md)
 - [`xref-repaired`](xref-repaired.md)
 - [`xrefstm-ignored`](xrefstm-ignored.md)

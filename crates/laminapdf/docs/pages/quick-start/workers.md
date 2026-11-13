@@ -1,7 +1,7 @@
 ---
 title: "Cloudflare Workers"
 description: "Generate PDFs per request in a Cloudflare Worker."
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/quick-start/workers/"
 ---
 
@@ -131,9 +131,9 @@ declare module "*.otf" {
 }
 ```
 
-To run it, install `@laminapdf/sdk` and `wrangler` in the Cloudflare Worker's folder (`npm install @laminapdf/sdk@0.2.0-alpha.6 wrangler`), put a copy of [Noto Sans](https://fonts.google.com/noto/specimen/Noto+Sans) at `src/fonts/NotoSans-Regular.ttf`, and run `npx wrangler dev`.
+To run it, install `@laminapdf/sdk` and `wrangler` in the Cloudflare Worker's folder (`npm install @laminapdf/sdk@0.2.0 wrangler`), put a copy of [Noto Sans](https://fonts.google.com/noto/specimen/Noto+Sans) at `src/fonts/NotoSans-Regular.ttf`, and run `npx wrangler dev`.
 
 - **Errors the caller caused** become a `400` with the error's JSON: a name the font can't draw (`missing-glyph`, `encoding-full`). Anything else, such as a broken font file, stays a `500`. See [Errors and warnings](../../pages/concepts/errors-and-warnings.md).
 - **Memory:** the letter frees its builder and document as soon as the bytes are saved, because one isolate serves many requests.
 
-Next: the [Cloudflare Worker recipe](../../pages/recipes/cloudflare-worker.md) says what to change in it, and [Troubleshooting](../../pages/troubleshooting.md) covers a Cloudflare Worker that can't load the WebAssembly.
+Next: the [Cloudflare Worker recipe](../../pages/recipes/cloudflare-worker.md) says what to change in it, and [Troubleshooting](../../pages/troubleshooting/javascript.md#init-fails-in-a-cloudflare-worker) covers a Cloudflare Worker that can't load the WebAssembly.

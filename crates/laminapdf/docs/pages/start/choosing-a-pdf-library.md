@@ -1,0 +1,107 @@
+---
+title: "Choosing a PDF library for TypeScript or Rust"
+description: "Which PDF library should you use in TypeScript or Rust? What pdf-lib, PDF.js, PDFKit, lopdf, krilla and others do, with sources, and where Lamina PDF fits."
+version: "0.2.0"
+url: "https://docs.laminapdf.com/start/choosing-a-pdf-library/"
+---
+
+# Choosing a PDF library for TypeScript or Rust
+
+Which PDF library should you use in TypeScript or Rust? What pdf-lib, PDF.js, PDFKit, lopdf, krilla and others do, with sources, and where Lamina PDF fits.
+
+Which PDF library to use depends on the job: making new PDFs, reading text out of them, showing pages on screen, or changing files someone sent you. Most libraries do one or two of these jobs well. This page lists what the common TypeScript and Rust libraries do, by their own documentation, so you can pick the one that fits.
+
+Every fact about another library links to that library's own docs, README or registry entry, as checked on 11 November 2026. Libraries change, so follow the link before you rely on a cell. If a fact here is wrong or out of date, [open an issue](https://github.com/laudebugs/laminapdf/issues) and we'll correct it.
+
+## What the columns mean
+
+Each table has one row per library and one column per job:
+
+- **Make:** create new PDFs with text, shapes and images.
+- **Read:** open existing PDFs and walk their pages and objects.
+- **Text:** extract the text of a page.
+- **Render:** draw pages as images or onto a canvas.
+- **Edit:** change an existing PDF and save it again.
+- **Forms:** create form fields, or fill in the fields of an existing PDF.
+- **Sign:** add a digital signature, or verify one.
+- **PDF/A, PDF/UA:** write PDF/A, the archival standard whose files look the same in years to come, or PDF/UA, the standard for files screen readers can follow.
+
+A cell says **Yes**; **Partly**, with a note on what's missing; or **No**, when the library's docs say it doesn't do the job or is built for something else. A dash means its docs don't say either way.
+
+## TypeScript and JavaScript
+
+| Library | Make | Read | Text | Render | Edit | Forms | Sign | PDF/A, PDF/UA |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| [pdf-lib](https://github.com/Hopding/pdf-lib) | [Yes](https://github.com/Hopding/pdf-lib#features) | [Yes, not encrypted files](https://github.com/Hopding/pdf-lib#encryption-handling) | [No](https://github.com/Hopding/pdf-lib#limitations) | — | [Partly: pages, not their text](https://github.com/Hopding/pdf-lib#limitations) | [Yes: create and fill](https://github.com/Hopding/pdf-lib#creating-and-filling-forms) | [No](https://pdf-lib.js.org/docs/api/classes/pdfsignature) | — |
+| [LibPDF](https://github.com/LibPDF-js/core) | [Yes](https://github.com/LibPDF-js/core#features) | [Yes](https://github.com/LibPDF-js/core#features) | [Yes](https://libpdf.documenso.com/docs/guides/text-extraction) | — | [Yes](https://github.com/LibPDF-js/core#features) | [Yes: create and fill](https://libpdf.documenso.com/docs/api/pdf-form) | [Partly: signs, doesn't verify](https://github.com/LibPDF-js/core#known-limitations) | — |
+| [PDFKit](https://github.com/foliojs/pdfkit) | [Yes](https://github.com/foliojs/pdfkit#description) | [No](https://github.com/foliojs/pdfkit#pdfkit) | [No](https://github.com/foliojs/pdfkit#pdfkit) | [No](https://github.com/foliojs/pdfkit#pdfkit) | [No](https://github.com/foliojs/pdfkit#pdfkit) | [Partly: create only](https://pdfkit.org/docs/forms.html) | — | [Yes](https://pdfkit.org/docs/accessibility.html) |
+| [jsPDF](https://github.com/parallax/jsPDF) | [Yes](https://github.com/parallax/jsPDF#readme) | [No](https://github.com/parallax/jsPDF#readme) | [No](https://github.com/parallax/jsPDF#readme) | [No](https://github.com/parallax/jsPDF#readme) | [No](https://github.com/parallax/jsPDF#readme) | [Partly: create only](https://parallax.github.io/jsPDF/docs/module-AcroForm.html) | — | — |
+| [pdfmake](https://github.com/bpampuch/pdfmake) | [Yes](https://github.com/bpampuch/pdfmake#features) | [No](https://github.com/bpampuch/pdfmake#readme) | [No](https://github.com/bpampuch/pdfmake#readme) | [No](https://github.com/bpampuch/pdfmake#readme) | [No](https://github.com/bpampuch/pdfmake#readme) | — | — | [Partly: PDF/A, and PDF/UA as a flag](https://pdfmake.github.io/docs/0.3/document-definition-object/pdfa/) |
+| [PDF.js](https://github.com/mozilla/pdf.js) | [No](https://github.com/mozilla/pdf.js#readme) | [Yes](https://mozilla.github.io/pdf.js/examples/) | [Yes](https://github.com/mozilla/pdf.js/blob/master/src/display/api.js) | [Yes](https://mozilla.github.io/pdf.js/examples/) | [Partly: annotations and form values](https://github.com/mozilla/pdf.js/wiki/Frequently-Asked-Questions#faq-annotations) | [Partly: fill only](https://github.com/mozilla/pdf.js/blob/master/src/display/api.js) | — | [No](https://github.com/mozilla/pdf.js#readme) |
+| Lamina PDF | [Yes](../../pages/start/first-pdf.md) | [Yes](../../pages/guides/untrusted-files.md) | [Yes](../../pages/recipes/extract-markdown.md) | [Yes, with a renderer package](../../pages/install.md#every-published-package) | [Partly: document info and page rotation](../../pages/guides/edit-a-pdf.md) | No | No | [Yes](../../pages/guides/accessible-pdfs.md) |
+
+Licences, versions and runtimes, from each package's npm entry and README:
+
+| Library | Licence | Latest release | Runtimes its docs name |
+| --- | --- | --- | --- |
+| pdf-lib | [MIT](https://www.npmjs.com/package/pdf-lib) | [1.17.1, 6 November 2021](https://www.npmjs.com/package/pdf-lib?activeTab=versions) | [Node, browsers, Deno, React Native](https://github.com/Hopding/pdf-lib#readme) |
+| LibPDF | [MIT](https://www.npmjs.com/package/@libpdf/core) | [0.5.3, 16 October 2026](https://www.npmjs.com/package/@libpdf/core?activeTab=versions), marked beta | [Node 20 or later, Bun, browsers](https://github.com/LibPDF-js/core#runtime-support) |
+| PDFKit | [MIT](https://www.npmjs.com/package/pdfkit) | [0.20.2, 30 August 2026](https://www.npmjs.com/package/pdfkit?activeTab=versions) | [Node, browsers](https://github.com/foliojs/pdfkit#pdfkit) |
+| jsPDF | [MIT](https://www.npmjs.com/package/jspdf) | [4.2.1, 17 March 2026](https://www.npmjs.com/package/jspdf?activeTab=versions) | [Browsers, Node](https://github.com/parallax/jsPDF#install) |
+| pdfmake | [MIT](https://www.npmjs.com/package/pdfmake) | [0.3.14, 8 November 2026](https://www.npmjs.com/package/pdfmake?activeTab=versions) | [Node 20 or later, browsers](https://pdfmake.github.io/docs/0.3/getting-started/server-side/supported-nodejs-versions/) |
+| PDF.js | [Apache-2.0](https://www.npmjs.com/package/pdfjs-dist) | [6.5.438, 1 November 2026](https://www.npmjs.com/package/pdfjs-dist?activeTab=versions) | [Browsers; Node 22 or later, "mostly"](https://github.com/mozilla/pdf.js/wiki/Frequently-Asked-Questions#faq-support) |
+| Lamina PDF | MIT or Apache-2.0 | 0.2.0 | Browsers, Node, Deno, Bun, Cloudflare Workers |
+
+A few details the tables leave out:
+
+- **pdf-lib** has had no release since November 2021, and it can't open encrypted files. It reads the values of form fields, but no other text.
+- **LibPDF** describes itself as beta software whose APIs "may change between minor versions". Its saves can append changes, which keeps existing signatures valid.
+- **PDFKit, jsPDF and pdfmake** make new documents only; pdfmake is built on PDFKit. For PDF/A, PDFKit needs fonts you embed, since its built-in fonts don't meet the standard.
+- **PDF.js** reads and draws PDFs, mainly in the browser. It fills in forms and adds some annotations, but it doesn't make new PDFs.
+
+## Rust
+
+| Crate | Make | Read | Text | Render | Edit | Forms | Sign | PDF/A, PDF/UA |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| [lopdf](https://crates.io/crates/lopdf) | [Partly: you build the objects](https://docs.rs/crate/lopdf/0.47.0/source/README.md) | [Yes](https://docs.rs/lopdf/0.47.0/lopdf/struct.Document.html) | [Yes](https://docs.rs/lopdf/0.47.0/lopdf/struct.Document.html#method.extract_text) | — | [Yes](https://docs.rs/lopdf/0.47.0/lopdf/struct.IncrementalDocument.html) | — | — | — |
+| [printpdf](https://crates.io/crates/printpdf) | [Yes](https://docs.rs/crate/printpdf/0.12.8/source/README.md) | [Partly: experimental](https://docs.rs/crate/printpdf/0.12.8/source/README.md) | [Partly: experimental](https://docs.rs/crate/printpdf/0.12.8/source/README.md) | [Partly: to SVG, experimental](https://docs.rs/crate/printpdf/0.12.8/source/README.md) | [Partly: re-save after parsing](https://docs.rs/crate/printpdf/0.12.8/source/src/deserialize.rs) | — | — | [No: PDF/X-3 only](https://docs.rs/crate/printpdf/0.12.8/source/README.md) |
+| [pdf-writer](https://crates.io/crates/pdf-writer) | [Partly: you build the objects](https://docs.rs/pdf-writer/0.15.0/pdf_writer/) | [No](https://docs.rs/pdf-writer/0.15.0/pdf_writer/) | — | — | [No](https://docs.rs/pdf-writer/0.15.0/pdf_writer/) | [Partly: writes new fields](https://docs.rs/pdf-writer/0.15.0/pdf_writer/writers/struct.Field.html) | — | [Partly: you build the structure](https://docs.rs/pdf-writer/0.15.0/pdf_writer/writers/struct.StructTreeRoot.html) |
+| [krilla](https://crates.io/crates/krilla) | [Yes](https://docs.rs/krilla/0.8.2/krilla/) | [Partly: embeds pages of other PDFs](https://docs.rs/crate/krilla/0.8.2/source/src/surface.rs) | — | — | — | — | [No](https://docs.rs/crate/krilla/0.8.2/source/src/configure/PDF_UA1.md) | [Yes](https://docs.rs/krilla/0.8.2/krilla/configure/index.html) |
+| [hayro](https://crates.io/crates/hayro) | — | [Yes, not encrypted files](https://docs.rs/hayro-syntax/0.9.0/hayro_syntax/) | — | [Yes](https://docs.rs/hayro/0.9.0/hayro/) | [No](https://github.com/LaurenzV/hayro/blob/hayro-v0.9.0/README.md) | — | — | — |
+| [pdfium-render](https://crates.io/crates/pdfium-render) | [Yes](https://docs.rs/crate/pdfium-render/0.9.5/source/README.md) | [Yes](https://docs.rs/crate/pdfium-render/0.9.5/source/README.md) | [Yes](https://docs.rs/crate/pdfium-render/0.9.5/source/README.md) | [Yes](https://docs.rs/crate/pdfium-render/0.9.5/source/README.md) | [Yes](https://docs.rs/pdfium-render/0.9.5/pdfium_render/pdf/document/struct.PdfDocument.html) | [Yes: fill](https://docs.rs/pdfium-render/0.9.5/pdfium_render/pdf/document/page/field/text/struct.PdfFormTextField.html) | [Partly: reads signatures](https://docs.rs/pdfium-render/0.9.5/pdfium_render/pdf/document/signature/struct.PdfSignature.html) | — |
+| Lamina PDF | [Yes](../../pages/quick-start/rust.md) | [Yes](../../pages/guides/untrusted-files.md) | [Yes](../../pages/recipes/extract-markdown.md) | [Yes, with a renderer crate](../../pages/install.md#every-published-package) | [Partly: document info and page rotation](../../pages/guides/edit-a-pdf.md) | No | No | [Yes](../../pages/guides/archival-pdfs.md) |
+
+Licences, versions and what each crate needs, from crates.io and each README:
+
+| Crate | Licence | Latest release | What it needs |
+| --- | --- | --- | --- |
+| lopdf | [MIT](https://crates.io/crates/lopdf) | [0.47.0, 4 November 2026](https://crates.io/crates/lopdf/versions) | No C library named in its docs |
+| printpdf | [MIT](https://crates.io/crates/printpdf) | [0.12.8, 5 September 2026](https://crates.io/crates/printpdf/versions) | Reads PDFs through lopdf; [runs in WebAssembly](https://docs.rs/crate/printpdf/0.12.8/source/README.md) |
+| pdf-writer | [MIT or Apache-2.0](https://crates.io/crates/pdf-writer) | [0.15.0, 27 May 2026](https://crates.io/crates/pdf-writer/versions) | [Rust only, no unsafe code](https://docs.rs/crate/pdf-writer/0.15.0/source/README.md) |
+| krilla | [MIT or Apache-2.0](https://crates.io/crates/krilla) | [0.8.2, 4 June 2026](https://crates.io/crates/krilla/versions) | Built on pdf-writer |
+| hayro | [MIT or Apache-2.0](https://crates.io/crates/hayro) | [0.9.0, 2 November 2026](https://crates.io/crates/hayro/versions) | [Pure Rust, renders on the CPU](https://docs.rs/hayro/0.9.0/hayro/) |
+| pdfium-render | [MIT or Apache-2.0](https://crates.io/crates/pdfium-render) | [0.9.5, 1 November 2026](https://crates.io/crates/pdfium-render/versions) | [The PDFium C++ library, which you ship](https://docs.rs/crate/pdfium-render/0.9.5/source/README.md) |
+| Lamina PDF | MIT or Apache-2.0 | 0.2.0 | Pure Rust; PDFium only for the PDFium renderer |
+
+A few details the tables leave out:
+
+- **lopdf and pdf-writer** work at the level of PDF objects. You write the page dictionaries and drawing operators yourself, so you need to know the PDF format.
+- **krilla** checks PDF/A and PDF/UA rules it can test, and leaves the rest to you: its docs say some requirements "are semantic in nature".
+- **hayro** is a renderer only: its README calls document changes "out-of-scope". It also says untrusted files can still cause timeouts and out-of-memory errors.
+- **pdfium-render** gives you most of Google's PDFium library from Rust. In return you ship a PDFium binary for each platform, and calls run one at a time, since PDFium "makes no guarantees about thread safety".
+
+## Where Lamina PDF fits
+
+Lamina PDF is one Rust core that makes, reads, extracts, renders and saves PDFs. It runs natively and as WebAssembly in every runtime the TypeScript table lists. It reads damaged files and reports what it repaired, saves your changes after the original bytes as an [incremental save](../../pages/reference/glossary.md#incremental-save), and writes PDF/A and PDF/UA files that its tests check with veraPDF, the reference checker for PDF/A and PDF/UA. Its tests check that every runtime writes the same bytes for the same input.
+
+It isn't the right choice for every job today:
+
+- **It's at `0.x`.** A new minor version can still change its API; the [stability policy](../../pages/reference/stability.md) says what each version promises and what stays fixed.
+- **It doesn't fill forms or sign.** LibPDF and pdfium-render fill form fields today, and LibPDF signs.
+- **Its editing is narrow.** It changes document info, such as the title and author, and page rotation. It can't yet edit the text or images already on a page.
+
+For every operation, the reader's [capability page](https://app.laminapdf.com/capabilities) shows what Lamina PDF reads, writes and round-trips today in the Rust core, the TypeScript library, the web reader and the desktop app. A status appears there only when a test proves it.
+
+To see how Lamina PDF is checked, read [How we test](https://laminapdf.com/how-we-test/). [Benchmarks](../../pages/reference/benchmarks.md) has its timings and download sizes in each runtime.
+
+Next: [Install](../../pages/install.md) Lamina PDF, or make [your first PDF](../../pages/start/first-pdf.md).

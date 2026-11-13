@@ -4,6 +4,7 @@
 // Save); saving's questions and its strip (save-flow.ts, O02); and the interaction mode that reads
 // pointer input on the page (select, unless a later tool is chosen).
 
+import type { ArticleThread } from "@laminapdf/sdk";
 import {
   Button,
   type CommandRegistry,
@@ -12,10 +13,13 @@ import {
   type EditControls,
   message,
   Notice,
+  RAIL_DRAWER_QUERY,
   type RailTab,
   type ReaderController,
   type ShellLayout,
+  stepThreadPart,
   type ToastQueue,
+  useMediaQuery,
   useStoreState,
 } from "@laminapdf/ui";
 import {
@@ -31,9 +35,11 @@ import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { showEditToasts } from "./edit-toasts.ts";
 import { type EditActions, HISTORY_TAB } from "./editing.tsx";
+import { InitialViewEditing, showInitialView } from "./initial-view-editing.tsx";
 import { type PageInfo, pageLabel } from "./outline.ts";
 import type { SaveFlow } from "./save-flow.ts";
 import type { Engine } from "./session.ts";
+import { followedPart, goToThreadPart } from "./thread-parts.ts";
 
 /** Toasts after undos and redos, and when a restarted worker lost the edits. */
 function useEditToasts(viewer: Viewer, engine: Engine, toasts: ToastQueue): void {
@@ -110,6 +116,43 @@ function CloseDialog({
   );
 }
 
+/**
+ * Shows the panel the open document asks for when it opens (O13, E3 plan §5): Outline for
+ * /UseOutlines, Pages for /UseThumbs, focus mode for /FullScreen; /UseAttachments and /UseOC open
+ * nothing until the reader has those panels. The engine reads it once the first page painted.
+ * Where the rail covers the page (a drawer, the phone's sheet) it stays shut: opening it there
+ * would hide the page the person just opened.
+ */
+function useOpeningPanel(engine: Engine, layout: ShellLayout): void {
+  // The compiler can't follow the latest-value ref kept here for effects (useEffectEvent could replace it).
+  "use no memo";
+  const opening = useStoreState(engine, (s) => s.opening);
+  const covers = useMediaQuery(RAIL_DRAWER_QUERY);
+  // Read when the document opens, not followed: resizing the window later opens nothing.
+  const covering = useRef(covers);
+  covering.current = covers;
+  useEffect(() => {
+    const show = (tab: string) => {
+      if (covering.current) return;
+      layout.setRailTab(tab);
+      layout.setRailOpen(true);
+    };
+    switch (opening?.pageMode) {
+      case "outlines":
+        show("outline");
+        break;
+      case "thumbnails":
+        show("pages");
+        break;
+      case "fullScreen":
+        if (!layout.getState().focus) layout.toggleFocus();
+        break;
+      default:
+        break;
+    }
+  }, [opening, layout]);
+}
+
 /** Passes pointer input on the view to the interaction mode on. */
 function useTools(viewer: Viewer, reader: ReaderController): void {
   const [tools] = useState(() => new ToolRegistry());
@@ -141,6 +184,8 @@ export interface EditingRuntimeProps {
   readonly toasts: ToastQueue;
   readonly fileName: string;
   readonly flow: SaveFlow;
+  /** The shell's layout: the panel the document asks for opens in it. */
+  readonly layout: ShellLayout;
 }
 
 /** Asks the browser to confirm closing the tab while `unsaved`; its own prompt, whose words can't be set. */
@@ -158,11 +203,20 @@ function useBeforeUnload(unsaved: boolean): void {
 }
 
 /** The edit session's runtime for the document `viewer` shows; draws the close confirmation and saving's questions. */
-export function EditingRuntime({ engine, viewer, registry, toasts, fileName, flow }: EditingRuntimeProps): ReactNode {
+export function EditingRuntime({
+  engine,
+  viewer,
+  registry,
+  toasts,
+  fileName,
+  flow,
+  layout,
+}: EditingRuntimeProps): ReactNode {
   useEffect(() => registerEditCommands(registry), [registry]);
   useEffect(() => flow.start(), [flow]);
   useEditToasts(viewer, engine, toasts);
   useTools(viewer, engine.reader);
+  useOpeningPanel(engine, layout);
   const guard = useCloseGuard(engine.reader, viewer.edits);
   const unsaved = useStoreState(viewer.edits, (s) => s.history.unsaved);
   const asking = useStoreState(flow, (s) => s.asking);
@@ -184,6 +238,7 @@ export function EditingRuntime({ engine, viewer, registry, toasts, fileName, flo
         warnings={asking?.kind === "conformance" ? asking.warnings : undefined}
         onAnswer={(yes) => flow.answer(yes)}
       />
+      <InitialViewEditing engine={engine} viewer={viewer} />
     </>
   );
 }
@@ -230,16 +285,23 @@ export function historyTab(edits: EditControls, pages: readonly PageInfo[], open
 }
 
 /**
- * The delegated edit commands' handlers for the document `viewer` shows: Show history, the page
- * turns, the saves, and Download a copy with the edits while there are any (`unsaved`).
+ * The delegated edit commands' handlers for the document `viewer` shows: Show history, Initial
+ * view…, the page turns, the saves, Download a copy with the edits while there are any
+ * (`unsaved`), and Next and Previous thread part while the file has threads.
  */
 export function editActions(
   engine: Engine,
   layout: ShellLayout,
   viewer: Viewer,
   flow: SaveFlow,
-  unsaved: boolean,
+  state: { readonly unsaved: boolean; readonly threads: readonly ArticleThread[] },
 ): EditActions {
+  const { unsaved, threads } = state;
+  // Next and Previous thread part only while the file has threads: without, they stay out of view.
+  const step = (direction: 1 | -1) => () => {
+    const part = stepThreadPart(threads, followedPart(threads), direction);
+    if (part !== undefined) goToThreadPart(viewer, threads, part);
+  };
   // A failed turn is said by the session's failure toast (edit-toasts.ts).
   const rotate = (delta: 90 | -90) => () =>
     void engine.rotatePage(viewer.getState().currentPage, delta).catch(() => undefined);
@@ -248,11 +310,13 @@ export function editActions(
       layout.setRailTab(HISTORY_TAB);
       layout.setRailOpen(true);
     },
+    "organise.initial-view": () => showInitialView(true),
     "pages.rotate-right": rotate(90),
     "pages.rotate-left": rotate(-90),
     "file.save": () => void flow.save("save"),
     "file.save-as": () => void flow.save("save-as"),
     "file.save-optimised": () => void flow.save("optimised"),
     ...(unsaved ? { "file.save-copy": () => void flow.copy() } : {}),
+    ...(threads.length === 0 ? {} : { "nav.next-thread-part": step(1), "nav.previous-thread-part": step(-1) }),
   };
 }

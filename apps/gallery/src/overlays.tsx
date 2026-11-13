@@ -47,7 +47,7 @@ import {
   useSettingsSection,
   ViewSettingsButton,
 } from "@laminapdf/ui";
-import { PrintDialog, PrintProgressDialog, PropertiesDialog } from "@laminapdf/ui/dialogs";
+import { InitialViewDialog, PrintDialog, PrintProgressDialog, PropertiesDialog } from "@laminapdf/ui/dialogs";
 import { ConformanceDialog, NamedDestinationsDialog, RemoveSignaturesDialog } from "@laminapdf/ui/editing";
 import { fakeFile, fakePlatform } from "@laminapdf/ui/testing";
 import { type ReactNode, useEffect, useState } from "react";
@@ -80,8 +80,9 @@ const PAGES = Array.from({ length: 24 }, (_, i) =>
   i < 22 ? { width: 612, height: 792 } : { width: 792, height: 1224 },
 );
 
-/** Print (R09), restricted or not, and its progress; Document properties (R08). */
+/** Print (R09), restricted or not, and its progress; Document properties (R08); Initial view (O13). */
 function OutputDialog({ state }: { state: string }): ReactNode {
+  if (state.startsWith("initial-view")) return <InitialView state={state} />;
   if (state === "print-progress") return <PrintProgressDialog progress={{ ready: 8, total: 24 }} onCancel={noop} />;
   if (state === "properties") {
     return (
@@ -103,6 +104,36 @@ function OutputDialog({ state }: { state: string }): ReactNode {
       labels={LABELS}
       {...(state === "print-restricted" ? { permissions: { print: false, printHighQuality: false } } : {})}
       onPrint={noop}
+      onClose={noop}
+    />
+  );
+}
+
+/** Initial view (O13): a file that asks for its outline, or one whose open action runs a script. */
+function InitialView({ state }: { state: string }): ReactNode {
+  const preferences = {
+    hideToolbar: false,
+    hideMenubar: false,
+    hideWindowUi: false,
+    fitWindow: false,
+    displayDocTitle: true,
+  };
+  const view =
+    state === "initial-view-action"
+      ? { open: { kind: "action" as const, action: "JavaScript" }, preferences }
+      : {
+          open: { kind: "page" as const, page: 2, zoom: "fitWidth" as const },
+          pageMode: "outlines" as const,
+          preferences,
+        };
+  return (
+    <InitialViewDialog
+      isOpen
+      view={view}
+      pageCount={24}
+      current={() => ({ page: 4, zoom: 100 })}
+      fitWindowHasNoEffect
+      onApply={() => Promise.resolve()}
       onClose={noop}
     />
   );
@@ -183,7 +214,9 @@ function EditingDialogs({ state }: { state: string }): ReactNode {
 /** The dialogs: the three widths, a destructive confirm, the reader's password prompt, print, properties and the save confirmations. */
 export function Dialogs({ state }: { state: string }): ReactNode {
   if (state === "password") return <PasswordPrompt />;
-  if (state.startsWith("print") || state === "properties") return <OutputDialog state={state} />;
+  if (state.startsWith("print") || state === "properties" || state.startsWith("initial-view")) {
+    return <OutputDialog state={state} />;
+  }
   if (state === "settings" || state === "shortcuts" || state === "view-settings")
     return <SettingsDialogs state={state} />;
   if (EDITING_DIALOGS.has(state)) return <EditingDialogs state={state} />;

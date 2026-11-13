@@ -12,9 +12,11 @@ import {
   type RenderRequest,
 } from "@laminapdf/render";
 import type {
+  ArticleThread,
   DocumentMetadata,
   DocumentProperties,
   ExplicitDestination,
+  InitialView,
   Limits,
   NamedDestination,
   Op,
@@ -244,6 +246,8 @@ export interface Methods {
   namedDestination: { params: [name: string]; result: Target | undefined };
   namedDestinations: { params: []; result: NamedDestination[] };
   destinationAt: { params: [page: number, view: TargetView]; result: ExplicitDestination };
+  initialView: { params: []; result: InitialView };
+  threads: { params: []; result: ArticleThread[] };
   pageLinks: { params: [index: number]; result: readonly PageLink[] };
   properties: { params: []; result: DocumentProperties };
   printPage: { params: [index: number, options: PrintOptions]; result: PrintedPage };

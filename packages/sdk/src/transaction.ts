@@ -1,7 +1,15 @@
 // The handle `Document.transact` passes to its callback (ADR 0006 §2): a closure can't cross the
 // WASM boundary, so the handle collects ops and the document applies them as one transaction.
 import { packageError } from "./errors.js";
-import type { DocumentInfo, MetadataKey, MetadataPatch, Op, PageLabelRange, XmpValue } from "./types.js";
+import type {
+  DocumentInfo,
+  InitialViewPatch,
+  MetadataKey,
+  MetadataPatch,
+  Op,
+  PageLabelRange,
+  XmpValue,
+} from "./types.js";
 
 /**
  * The rotations `/Rotate` allows.
@@ -38,6 +46,9 @@ export interface MetadataRemoveOptions {
   /** As {@link MetadataEditOptions.replaceMalformed}. */
   readonly replaceMalformed?: boolean;
 }
+
+/** @internal The `setInitialView` op. */
+export const setInitialViewOp = (patch: InitialViewPatch): Op => ({ op: "setInitialView", args: patch }) as Op;
 
 /**
  * Options for the XMP property edits, `setXmpProperty` and `removeXmpProperty`.
@@ -327,6 +338,17 @@ export class Transaction {
    */
   rotatePage(page: string, rotate: Rotation): this {
     return this.apply({ op: "rotatePage", args: { page, rotate } } as Op);
+  }
+
+  /**
+   * Changes how the document opens (`setInitialView`).
+   *
+   * @param patch - as {@link Document.setInitialView}.
+   *
+   * @since 0.2.0
+   */
+  setInitialView(patch: InitialViewPatch): this {
+    return this.apply(setInitialViewOp(patch));
   }
 
   /**

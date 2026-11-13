@@ -331,7 +331,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-cos"
-version = "0.2.0-alpha.6"
+version = "0.2.0"
 dependencies = [
  "laminapdf-syntax",
  "thiserror",
@@ -354,7 +354,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-model"
-version = "0.2.0-alpha.6"
+version = "0.2.0"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-syntax",
@@ -363,7 +363,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-ops"
-version = "0.2.0-alpha.6"
+version = "0.2.0"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-model",
@@ -375,7 +375,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-save"
-version = "0.2.0-alpha.6"
+version = "0.2.0"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-model",
@@ -387,7 +387,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-syntax"
-version = "0.2.0-alpha.6"
+version = "0.2.0"
 dependencies = [
  "aes",
  "md-5",

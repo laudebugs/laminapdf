@@ -405,6 +405,24 @@
           "height": 1683
         }
       ]
+    },
+    "set_initial_view": {
+      "sha256": "a0f3094d11caece50e7e872f6f0b1fb83de9de3c579f3db5c030a1c35778de19",
+      "bytes": 3091,
+      "pages": [
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        }
+      ]
     }
   }
 }

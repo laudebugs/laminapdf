@@ -39,6 +39,10 @@ ts = "packages/sdk/examples/edit-metadata.ts"
 rust = "crates/laminapdf/examples/edit_metadata.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/set-initial-view.ts"
+rust = "crates/laminapdf/examples/set_initial_view.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/duplicate-pages.ts"
 rust = "crates/laminapdf/examples/duplicate_pages.rs"
 

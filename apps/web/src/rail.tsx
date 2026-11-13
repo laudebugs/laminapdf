@@ -5,6 +5,7 @@
 // somewhere from it closes it, so the page shows. While find is open, a Results tab lists its
 // matches. Once later.ts has loaded, the Outline tab's editing part (bookmarks.tsx, O11) adds Edit
 // bookmarks and reads the outline again after every edit, undo or redo.
+// A file with article threads gets a Threads tab (O13), which follows them part by part.
 
 import {
   currentOutlineItem,
@@ -20,7 +21,7 @@ import {
   useStoreState,
 } from "@laminapdf/ui";
 import type { ThumbnailStrip, Viewer } from "@laminapdf/viewer";
-import { type ComponentType, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ComponentType, lazy, type ReactNode, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { resultHeadings } from "./find-headings.ts";
 import { downThePage, TOP_PROBE } from "./outline.ts";
 import type { Engine } from "./session.ts";
@@ -161,6 +162,12 @@ function ResultsPanel({ engine, viewer, layout }: { engine: Engine; viewer: View
   return <FindResults find={viewer.find} heading={heading} onNavigate={closeIfCovering} />;
 }
 
+/** The Threads tab's id in the rail. */
+const THREADS_TAB = "threads";
+
+/** The Threads tab's panel, loaded with later.ts once a file with threads is open (#380). */
+const LazyThreadsTab = lazy(() => import("./later.ts").then((m) => ({ default: m.ThreadsTab })));
+
 /** The rail's tabs while a document is open; none otherwise. */
 export function railTabs(
   engine: Engine,
@@ -173,6 +180,8 @@ export function railTabs(
         readonly finding: boolean;
         /** The bookmark editor, once later.ts has loaded. */
         readonly editor: OutlineEditor | undefined;
+        /** The file has article threads: the Threads tab shows. */
+        readonly threaded: boolean;
       }
     | undefined,
 ): RailTab[] {
@@ -186,6 +195,20 @@ export function railTabs(
       label: message("shell.rail.outline"),
       panel: <OutlinePanel engine={engine} viewer={viewer} layout={layout} editor={view?.editor} />,
     },
+    // Only for a file with article threads (O13).
+    ...(view?.threaded === true
+      ? [
+          {
+            id: THREADS_TAB,
+            label: message("shell.rail.threads"),
+            panel: (
+              <Suspense fallback={null}>
+                <LazyThreadsTab engine={engine} layout={layout} />
+              </Suspense>
+            ),
+          },
+        ]
+      : []),
     // Find's contextual tab, while find is open (R05); closing find takes it away.
     ...(view?.finding === true
       ? [

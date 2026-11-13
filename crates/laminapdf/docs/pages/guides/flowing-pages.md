@@ -1,7 +1,7 @@
 ---
 title: "Pages that flow"
 description: "Pour headings, paragraphs, tables and images, or a Markdown file, into as many pages as they need, with footnotes, a contents page and \"Page X of Y\" footers."
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/guides/flowing-pages/"
 ---
 
@@ -11,7 +11,7 @@ Pour headings, paragraphs, tables and images, or a Markdown file, into as many p
 
 This guide lays out a document whose length you don't know in advance, such as a report or a contract. You give Lamina PDF blocks and a page template, and it makes as many pages as they need, with a header and a footer on each.
 
-It keeps headings with their text and never leaves a single line of a paragraph alone at a page's foot or head, and it tags the result so screen readers can follow it. Flowing layout is in the Rust crate today; the TypeScript package will follow.
+It keeps headings with their text and never leaves a single line of a paragraph alone at a page's foot or head, and it tags the result so screen readers can follow it. In TypeScript, you give it the same document as plain objects or Markdown; the [JSON section](#write-it-as-json) shows how.
 
 ## The example
 
@@ -423,6 +423,8 @@ You can also describe the document as JSON, in the format `laminapdf.document/1`
 A format with a schema suits programs and language models: they write the document, and the schema checks it before anything is drawn. Lamina PDF reads only the keys the format defines. A misspelt one fails with `invalid-document`, whose `data.pointer` names the value and whose `didYouMean` suggests the key it was close to.
 
 A template is the same JSON with placeholders that `fill` replaces from your data. `$data` puts in a value and `$each` repeats a block or table row per item, with `$item` for a value of the current item. `$if` keeps a block only when a value is there. The [Fill an invoice from JSON](../../pages/recipes/invoice-from-json.md) recipe builds a two-page invoice this way.
+
+In TypeScript, `builder.flow(document, { data, fonts, images })` takes the same document as plain objects, with the fonts as `Font`s and the images as `Image`s by name. The package's types follow the format, so your editor flags a misspelt key or an unknown block `type` before anything runs. Type a document as `FlowDocument`, and a template with placeholders as `FlowTemplate`. Given `data`, `flow` fills the template first. It needs the text module, `init({ text: true })`.
 
 ## Fields in headers and footers
 

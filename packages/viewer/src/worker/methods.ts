@@ -28,7 +28,16 @@ import {
   stepEdit,
 } from "./edit.js";
 import { find, forgetSearch } from "./find.js";
-import { destinationAt, forgetLinks, namedDestination, namedDestinations, outline, pageLinks } from "./navigation.js";
+import {
+  destinationAt,
+  forgetLinks,
+  initialView,
+  namedDestination,
+  namedDestinations,
+  outline,
+  pageLinks,
+  threads,
+} from "./navigation.js";
 import { networkLog } from "./network.js";
 import { fileBytes, printPage, replyBytes } from "./print.js";
 import { render, reply } from "./render.js";
@@ -111,6 +120,8 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   },
   outline: { run: (_params, { signal }) => outline(signal) },
   namedDestination: { run: ([name], { signal }) => namedDestination(name as string, signal) },
+  initialView: { run: (_params, { signal }) => initialView(signal) },
+  threads: { run: (_params, { signal }) => threads(signal) },
   namedDestinations: { run: (_, { signal }) => namedDestinations(signal) },
   destinationAt: { run: ([page, view], { signal }) => destinationAt(page as number, view as TargetView, signal) },
   pageLinks: { run: ([index], { signal }) => pageLinks(index as number, signal) },
