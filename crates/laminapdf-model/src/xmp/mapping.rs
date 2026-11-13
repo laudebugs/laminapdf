@@ -227,7 +227,7 @@ impl MappedField {
 
     /// The field whose XMP property is `name` in `namespace`, e.g. `dc:title`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn from_property(namespace: &str, name: &str) -> Option<Self> {
         MAPPINGS

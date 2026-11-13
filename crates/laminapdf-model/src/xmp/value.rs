@@ -7,14 +7,14 @@ use crate::date::PdfDate;
 /// A real number for [`XmpValue::Real`]: finite, so it always has a decimal form, and compared
 /// by its bits, so values can be `Eq`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy)]
 pub struct XmpReal(f64);
 
 impl XmpReal {
     /// `value`, or `None` when it is infinite or NaN, which XMP can't write.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn new(value: f64) -> Option<Self> {
         value.is_finite().then_some(Self(value))
@@ -22,7 +22,7 @@ impl XmpReal {
 
     /// The number.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn get(self) -> f64 {
         self.0
@@ -39,7 +39,7 @@ impl Eq for XmpReal {}
 
 /// One entry of a language alternative: its `xml:lang` and its text.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct LangText {
@@ -52,7 +52,7 @@ pub struct LangText {
 impl LangText {
     /// `text` in `lang`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn new(lang: impl Into<String>, text: impl Into<String>) -> Self {
         Self {
@@ -72,7 +72,7 @@ impl LangText {
 /// assert_eq!(XmpValue::Seq(vec![XmpValue::Integer(3)]).value_type(), "Seq Integer");
 /// ```
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum XmpValue {
@@ -98,7 +98,7 @@ pub enum XmpValue {
 
 /// Why an [`XmpValue`] can't be written.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum ValueError {
@@ -119,7 +119,7 @@ pub enum ValueError {
 impl XmpValue {
     /// Whether the value is simple: text, a URI, a number, a boolean or a date.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn is_simple(&self) -> bool {
         !matches!(self, Self::LangAlt(_) | Self::Seq(_) | Self::Bag(_))
@@ -129,7 +129,7 @@ impl XmpValue {
     /// `Text`, `URI`, `Integer`, `Real`, `Boolean`, `Date`, `Lang Alt`, or `Seq` or `Bag` and
     /// the items' type.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn value_type(&self) -> String {
         match self {
@@ -156,7 +156,7 @@ impl XmpValue {
     /// # Errors
     /// The [`ValueError`] that says what is wrong.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn check(&self) -> Result<(), ValueError> {
         match self {
             Self::LangAlt(entries) => {

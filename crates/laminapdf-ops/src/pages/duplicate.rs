@@ -23,7 +23,7 @@ use crate::wire;
 ///
 /// On the wire: `{ "op": "duplicatePages", "args": { "pages": ["p7.0"], "at": { "after": "p7.0" } } }`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -45,7 +45,7 @@ pub struct DuplicatePages {
 impl DuplicatePages {
     /// The op that copies `pages` to `at`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn new(pages: Vec<PageId>, at: PagePosition) -> Self {
         Self { pages, at }

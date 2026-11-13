@@ -17,7 +17,7 @@ use crate::error::Result;
 pub struct OutlineNode {
     /// Its ID, which the outline ops ([`crate::UpdateOutlineItem`], …) take.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub id: OutlineItemId,
     /// Its title (document text).
     pub title: String,
@@ -28,28 +28,28 @@ pub struct OutlineNode {
     /// The named destination it goes to (`/Dest (name)` or a `GoTo` naming one), when it names
     /// one.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub destination_name: Option<String>,
     /// The web address it opens (a `URI` action), when it has one.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub uri: Option<String>,
     /// The type of its action when that is neither a `GoTo` nor a `URI` (`JavaScript`,
     /// `Launch`, …): an edit replaces it only when it sets a new target.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub other_action: Option<String>,
     /// Its colour (`/C`), when it isn't the default black.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub color: Option<Rgb>,
     /// Shown in bold (`/F` bit 2).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub bold: bool,
     /// Shown in italic (`/F` bit 1).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub italic: bool,
     /// Its children, in order.
     pub children: Vec<OutlineNode>,
@@ -57,7 +57,7 @@ pub struct OutlineNode {
 
 /// One named destination: a name links can jump to, and where it goes.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct NamedDestination {
@@ -165,7 +165,7 @@ impl Document {
     /// # Errors
     /// Reading errors (the names, the page tree).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn named_destinations(&self) -> Result<Vec<NamedDestination>> {
         let outline = self.ops().outline()?;
         let frames = self.frames()?;
@@ -188,7 +188,7 @@ impl Document {
     /// # Errors
     /// `page-index-out-of-range`; reading errors (the page tree).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn destination_at(&self, page: u32, view: PageTargetView) -> Result<ExplicitDestination> {
         let pages = self.ops().pages()?;
         let index = usize::try_from(page).unwrap_or(usize::MAX);
