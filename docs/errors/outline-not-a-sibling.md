@@ -19,7 +19,7 @@ Name a child of the same parent in `before` or `after`, or use `first` or `last`
 
 ```rust
 // "o14.0" is a child of "o12.0", not of the top level.
-let op = MoveOutlineItem::new(intro, None, SiblingPosition::After("o14.0".parse()?));
+let op = MoveOutlineItem::new("o11.0".parse()?, None, SiblingPosition::After("o14.0".parse()?));
 doc.apply(vec![Op::from(op)])?; // outline-not-a-sibling
 ```
 

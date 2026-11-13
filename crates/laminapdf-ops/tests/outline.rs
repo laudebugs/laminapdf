@@ -522,3 +522,17 @@ fn a_name_in_both_stores_is_set_where_readers_find_it() {
     let tree = doc.name_tree("Dests").unwrap().unwrap().get(b"x").unwrap().unwrap();
     assert_eq!(tree.as_array().unwrap().get(1), Some(&Object::name("FitH")));
 }
+
+#[test]
+fn a_name_in_both_stores_is_deleted_from_both() {
+    let mut doc = common::open(&common::classic_with_root(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R /Names << /Dests << /Names [(x) [3 0 R /Fit]] >> >> /Dests << /x [3 0 R /FitH 10] >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>",
+        ],
+        "",
+    ));
+    apply(&mut doc, DeleteNamedDestination::new("x"));
+    assert!(doc.outline().unwrap().named_destination(b"x").unwrap().is_none());
+}

@@ -9,7 +9,7 @@ An outline op names a bookmark by an ID that the document's outline doesn't hold
 
 ## Why
 
-The ID came from another document, or from an older read of this one: a bookmark that an earlier op deleted is gone, and the IDs a file's bookmarks have depend on that file.
+The ID came from another document or from an older read of this one. IDs belong to one file, and a deleted bookmark's ID is gone.
 
 ## How to fix
 
@@ -18,7 +18,7 @@ Read the outline again and take the item's ID from it. A bookmark an op adds rep
 ## Example
 
 ```rust
-doc.apply(vec![Op::DeleteOutlineItem(DeleteOutlineItem::new("o999.0".parse()?, ChildItems::Delete))])?; // unknown-outline-item
+doc.apply(vec![Op::from(DeleteOutlineItem::new("o999.0".parse()?, ChildItems::Delete))])?; // unknown-outline-item
 ```
 
 ## Data fields

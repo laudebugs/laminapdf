@@ -9,7 +9,7 @@ A rename gives a destination a name that another destination of the file already
 
 ## Why
 
-Each name points at one place, so two destinations can't share it. Renaming over it would lose the other destination.
+Each name points at one place, so two destinations can't share it. Renaming onto a taken name would lose the destination that holds it.
 
 ## How to fix
 

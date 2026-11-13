@@ -13,7 +13,7 @@ A PDF file can only hold finite numbers, so a view of infinity or NaN can't be w
 
 ## How to fix
 
-Pass finite numbers, in the page's user space, or `null` for a coordinate the viewer should keep as it is.
+Pass finite numbers, in the page's user space, or `null` (`None` in Rust) for a coordinate the viewer should keep as it is.
 
 ## Example
 

@@ -113,7 +113,7 @@ impl RenameNamedDestination {
     }
 }
 
-/// Deletes a named destination. Its uses in this file are left as they are and reported
+/// Deletes a named destination, from both stores when both hold it. Its uses in this file are left as they are and reported
 /// ([`Applied::destination_uses`](crate::Applied::destination_uses)): a bookmark or link that
 /// names it no longer goes anywhere.
 ///
@@ -141,14 +141,21 @@ impl DeleteNamedDestination {
     pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Effect> {
         let key = non_empty(&self.name)?;
         let mut stores = Stores::read(doc)?;
-        let store = stores
-            .find(key)
-            .ok_or_else(|| Error::UnknownNamedDestination(self.name.clone()))?;
-        stores.take(store, key);
-        stores.write(doc, store)?;
-        let found = uses(doc, key, store)?;
+        // From both stores when both hold it: the other would still resolve the name.
+        let held: Vec<Store> = [Store::Tree, Store::DestsDict]
+            .into_iter()
+            .filter(|&store| stores.take(store, key).is_some())
+            .collect();
+        if held.is_empty() {
+            return Err(Error::UnknownNamedDestination(self.name.clone()));
+        }
+        let mut destination_uses = Vec::new();
+        for &store in &held {
+            stores.write(doc, store)?;
+            destination_uses.extend(uses(doc, key, store)?.into_iter().map(|u| u.holder));
+        }
         Ok(Effect {
-            destination_uses: found.into_iter().map(|u| u.holder).collect(),
+            destination_uses,
             ..Effect::default()
         })
     }
@@ -381,16 +388,17 @@ struct Finder<'a> {
 
 impl Finder<'_> {
     /// The uses inside `dict` (the object `r`, or a dictionary at `path` in it) through `/Dest`,
-    /// `/A` and each `/AA` trigger, for `holder`.
-    fn holder(&mut self, holder: &DestinationUse, r: ObjRef, dict: &Dict, path: &[Step], keys: &[&str]) -> Result<()> {
+    /// the action under `key` (`/A`, or the catalog's `/OpenAction`) and each `/AA` trigger, for
+    /// `holder`. Each holder starts a fresh walk, so an action two holders share is reported for
+    /// both; `seen` only ends a `/Next` cycle within one.
+    fn holder(&mut self, holder: &DestinationUse, r: ObjRef, dict: &Dict, path: &[Step], key: &str) -> Result<()> {
+        self.seen.clear();
         let at = |key: &str| [path, &[Step::Key(key.as_bytes().to_vec())]].concat();
         if names(dict.get("Dest"), self.name, self.store) {
             self.found(holder, r, at("Dest"));
         }
-        for key in keys {
-            if let Some(action) = dict.get(key) {
-                self.action(holder, r, action, &at(key), 0)?;
-            }
+        if let Some(action) = dict.get(key) {
+            self.action(holder, r, action, &at(key), 0)?;
         }
         // `/AA` holds one action per trigger, inside this object or in its own.
         let triggers = match dict.get("AA") {
@@ -480,7 +488,7 @@ fn uses(doc: &laminapdf_model::Document, name: &[u8], store: Store) -> Result<Ve
         let Some(dict) = doc.resolve(r)?.as_dict().cloned() else {
             continue;
         };
-        finder.holder(&DestinationUse::OutlineItem { item: id.clone() }, r, &dict, &[], &["A"])?;
+        finder.holder(&DestinationUse::OutlineItem { item: id.clone() }, r, &dict, &[], "A")?;
     }
     let pages = doc.pages()?;
     for page in pages.iter() {
@@ -492,12 +500,12 @@ fn uses(doc: &laminapdf_model::Document, name: &[u8], store: Store) -> Result<Ve
                 page: page.id().clone(),
                 annot: AnnotId::object(annot),
             };
-            finder.holder(&holder, annot, &dict, &[], &["A"])?;
+            finder.holder(&holder, annot, &dict, &[], "A")?;
         }
     }
     if let Some(Object::Ref(root)) = doc.trailer().get("Root").cloned() {
         let catalog = doc.catalog()?;
-        finder.holder(&DestinationUse::Catalog, root, &catalog, &[], &["OpenAction"])?;
+        finder.holder(&DestinationUse::Catalog, root, &catalog, &[], "OpenAction")?;
     }
     Ok(finder.out)
 }

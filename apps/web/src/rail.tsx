@@ -19,7 +19,6 @@ import {
   useMediaQuery,
   useStoreState,
 } from "@laminapdf/ui";
-import type { BookmarkItem } from "@laminapdf/ui/editing";
 import type { ThumbnailStrip, Viewer } from "@laminapdf/viewer";
 import { type ComponentType, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { resultHeadings } from "./find-headings.ts";
@@ -96,11 +95,9 @@ function useCurrentSection(viewer: Viewer, items: readonly OutlineTreeItem[]): s
  */
 export type OutlineEditor = ComponentType<OutlineEditingProps>;
 
-/** What the Outline tab hands its editing part. */
+/** What the Outline tab hands its editing part, which reads the view and the outline from the engine. */
 export interface OutlineEditingProps {
   readonly engine: Engine;
-  readonly viewer: Viewer;
-  readonly items: readonly BookmarkItem[];
   readonly current: string | undefined;
   readonly onNavigate: (id: string) => void;
   /** The read view: the tree, or the empty state. */
@@ -148,11 +145,7 @@ function OutlinePanel({
       <OutlineTree items={items} {...(current === undefined ? {} : { current })} onNavigate={go} />
     );
   const Editor = editor;
-  return Editor === undefined ? (
-    view
-  ) : (
-    <Editor engine={engine} viewer={viewer} items={items} current={current} onNavigate={go} view={view} />
-  );
+  return Editor === undefined ? view : <Editor engine={engine} current={current} onNavigate={go} view={view} />;
 }
 
 /** Find's results, headed by page label and outline section; the outline is read for the headings. */

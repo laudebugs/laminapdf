@@ -9,7 +9,7 @@ The bookmark is stored as a dictionary inside another bookmark, not as an object
 
 ## Why
 
-PDF files usually store each bookmark as its own object, which links can point to. A few writers put one inside another. Such a bookmark has an ID made of its path, and the outline's links (`/Prev`, `/Parent`) can't point at it.
+PDF files usually store each bookmark as its own object, with a number. Bookmarks find their neighbours and parent by those numbers, and a bookmark stored inside another has none, so its ID is made of its path instead.
 
 ## How to fix
 

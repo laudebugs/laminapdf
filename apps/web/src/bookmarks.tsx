@@ -4,7 +4,7 @@
 // startup script. "Use current view" and the new bookmarks take the place at the top of the view.
 
 import type { ExplicitDestination, Op } from "@laminapdf/sdk";
-import { Button, type KeyPlatform } from "@laminapdf/ui";
+import { Button, type KeyPlatform, useStoreState } from "@laminapdf/ui";
 import {
   BookmarkEditor,
   type BookmarkItem,
@@ -265,7 +265,11 @@ function useEditStep(viewer: Viewer): string {
  * editing; the outline reads again after every edit, undo or redo, which may change the bookmarks.
  */
 export function OutlineEditing(props: OutlineEditingProps): ReactNode {
-  const { engine, viewer } = props;
+  const { engine } = props;
+  // The Outline tab shows only while a view is open, so the view is there.
+  const viewer = useStoreState(engine, (s) => s.viewer) as Viewer;
+  const outline = useStoreState(engine, (s) => s.outline);
+  const items = typeof outline === "object" ? outline.items : [];
   const [on, setOn] = useState(false);
   const step = useEditStep(viewer);
   useEffect(() => {
@@ -276,7 +280,7 @@ export function OutlineEditing(props: OutlineEditingProps): ReactNode {
       {on ? (
         <BookmarkPanel
           engine={engine}
-          items={props.items}
+          items={items}
           current={props.current}
           onNavigate={props.onNavigate}
           keys={KEYS}

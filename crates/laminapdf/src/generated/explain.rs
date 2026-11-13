@@ -2435,7 +2435,7 @@ An outline op names a bookmark by an ID that the document's outline doesn't hold
 
 ## Why
 
-The ID came from another document, or from an older read of this one: a bookmark that an earlier op deleted is gone, and the IDs a file's bookmarks have depend on that file.
+The ID came from another document or from an older read of this one. IDs belong to one file, and a deleted bookmark's ID is gone.
 
 ## How to fix
 
@@ -2444,7 +2444,7 @@ Read the outline again and take the item's ID from it. A bookmark an op adds rep
 ## Example
 
 ```rust
-doc.apply(vec![Op::DeleteOutlineItem(DeleteOutlineItem::new("o999.0".parse()?, ChildItems::Delete))])?; // unknown-outline-item
+doc.apply(vec![Op::from(DeleteOutlineItem::new("o999.0".parse()?, ChildItems::Delete))])?; // unknown-outline-item
 ```
 
 ## Data fields
@@ -2468,7 +2468,7 @@ The bookmark is stored as a dictionary inside another bookmark, not as an object
 
 ## Why
 
-PDF files usually store each bookmark as its own object, which links can point to. A few writers put one inside another. Such a bookmark has an ID made of its path, and the outline's links (`/Prev`, `/Parent`) can't point at it.
+PDF files usually store each bookmark as its own object, with a number. Bookmarks find their neighbours and parent by those numbers, and a bookmark stored inside another has none, so its ID is made of its path instead.
 
 ## How to fix
 
@@ -2513,7 +2513,7 @@ Name a child of the same parent in `before` or `after`, or use `first` or `last`
 
 ```rust
 // "o14.0" is a child of "o12.0", not of the top level.
-let op = MoveOutlineItem::new(intro, None, SiblingPosition::After("o14.0".parse()?));
+let op = MoveOutlineItem::new("o11.0".parse()?, None, SiblingPosition::After("o14.0".parse()?));
 doc.apply(vec![Op::from(op)])?; // outline-not-a-sibling
 ```
 
@@ -2577,7 +2577,7 @@ The name is spelled differently, or an earlier op renamed or deleted it. Names a
 
 ## How to fix
 
-List the document's named destinations and use one of the names it shows. To create a name, use `setNamedDestination`.
+Call `namedDestinations()` (`named_destinations()` in Rust) and use one of its names. To create a name, use `setNamedDestination`.
 
 ## Example
 
@@ -2606,7 +2606,7 @@ A rename gives a destination a name that another destination of the file already
 
 ## Why
 
-Each name points at one place, so two destinations can't share it. Renaming over it would lose the other destination.
+Each name points at one place, so two destinations can't share it. Renaming onto a taken name would lose the destination that holds it.
 
 ## How to fix
 
@@ -2673,7 +2673,7 @@ A bookmark's web address isn't a full `http`, `https` or `mailto` address in pla
 
 ## Why
 
-Lamina PDF writes only addresses that a reader can open safely. Other schemes, `javascript:` among them, can run code or open local files. The PDF standard also stores a web address as 7-bit ASCII.
+Lamina PDF writes only addresses a PDF viewer can open safely. Other schemes, `javascript:` among them, can run code or open local files. The PDF standard also stores a web address as 7-bit ASCII.
 
 ## How to fix
 
@@ -2711,7 +2711,7 @@ A PDF file can only hold finite numbers, so a view of infinity or NaN can't be w
 
 ## How to fix
 
-Pass finite numbers, in the page's user space, or `null` for a coordinate the viewer should keep as it is.
+Pass finite numbers, in the page's user space, or `null` (`None` in Rust) for a coordinate the viewer should keep as it is.
 
 ## Example
 

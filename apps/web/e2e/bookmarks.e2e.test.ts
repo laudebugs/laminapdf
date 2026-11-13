@@ -115,8 +115,8 @@ describe(`bookmarks in ${BROWSER}`, () => {
     // Rename a named destination a bookmark uses.
     await page.getByRole("button", { name: "Named destinations" }).click();
     const dialog = page.getByRole("dialog", { name: "Named destinations" });
-    await dialog.getByRole("button", { name: "Rename chapter-2" }).click();
-    const name = dialog.getByRole("textbox", { name: "New name for chapter-2" });
+    await dialog.getByRole("button", { name: "Rename “chapter-2”" }).click();
+    const name = dialog.getByRole("textbox", { name: "New name for “chapter-2”" });
     await name.fill("methods");
     await name.press("Enter");
     await unsaved(page, 6);

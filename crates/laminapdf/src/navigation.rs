@@ -213,17 +213,15 @@ impl Document {
 const ITALIC: i64 = 1;
 const BOLD: i64 = 2;
 
-/// The item as an `OutlineNode`; `None` for one without an ID (the walk gives every item one).
+/// The item as an `OutlineNode`; `None`, with its children, for one without an ID (the walk gives
+/// every item one).
 fn node(item: &laminapdf_model::OutlineItem<'_, '_>, frames: &[PageFrame]) -> Result<Option<OutlineNode>> {
     let Some(id) = item.id().cloned() else { return Ok(None) };
-    let target = match item.target()? {
-        Some(dest) => dest.page_index.and_then(|index| target(&dest, frames.get(index)?)),
-        None => None,
-    };
-    let name = match item.target()? {
-        Some(dest) => dest.name.and_then(|n| String::from_utf8(n).ok()),
-        None => None,
-    };
+    let dest = item.target()?;
+    let target = dest
+        .as_ref()
+        .and_then(|dest| target(dest, frames.get(dest.page_index?)?));
+    let name = dest.and_then(|dest| dest.name).and_then(|n| String::from_utf8(n).ok());
     let other_action = item
         .action()?
         .filter(|a| !matches!(a, ActionKind::GoTo | ActionKind::Uri))

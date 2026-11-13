@@ -9,7 +9,7 @@ A bookmark's web address isn't a full `http`, `https` or `mailto` address in pla
 
 ## Why
 
-Lamina PDF writes only addresses that a reader can open safely. Other schemes, `javascript:` among them, can run code or open local files. The PDF standard also stores a web address as 7-bit ASCII.
+Lamina PDF writes only addresses a PDF viewer can open safely. Other schemes, `javascript:` among them, can run code or open local files. The PDF standard also stores a web address as 7-bit ASCII.
 
 ## How to fix
 

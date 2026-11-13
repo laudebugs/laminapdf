@@ -304,11 +304,12 @@ export class Engine implements ExternalStore<EngineState> {
   /**
    * Reads the open document's outline, once: the Outline tab shows it. `again` reads it after an
    * edit, undo or redo that may have changed it, keeping the last one shown while it reads (and
-   * doing nothing before the tab read one).
+   * doing nothing before the tab read one); a read that fails says so either way.
    */
   async loadOutline(again = false): Promise<void> {
-    const shown = typeof this.#state.outline === "object";
-    if (again ? !shown : this.#state.outline !== undefined || this.reader.getState().phase !== "open") return;
+    const { outline } = this.#state;
+    if ((again ? typeof outline !== "object" : outline !== undefined) || this.reader.getState().phase !== "open")
+      return;
     const turn = this.#turn;
     if (!again) this.#set({ outline: "loading" });
     const session = await this.#session;
@@ -317,16 +318,16 @@ export class Engine implements ExternalStore<EngineState> {
       // Another document opened meanwhile: its own tab asks again.
       if (turn === this.#turn) this.#set({ outline: outlineModel(nodes, this.#state.pages) });
     } catch (error) {
-      // The tab says the outline couldn't be read, rather than that there is none.
-      if (turn === this.#turn && !again) this.#set({ outline: "failed" });
+      // The tab says the outline couldn't be read, rather than that there is none (after an edit
+      // too: the outline it shows would be out of date).
+      if (turn === this.#turn) this.#set({ outline: "failed" });
       reportError(error);
     }
   }
 
   /** The open document's view and its worker client, for the parts that load later (bookmarks.tsx). */
-  async view(): Promise<{ readonly viewer: Viewer; readonly client: ViewerClient }> {
-    const { viewer, client } = await this.#session;
-    return { viewer, client };
+  view(): Promise<{ readonly viewer: Viewer; readonly client: ViewerClient }> {
+    return this.#session;
   }
 
   /** `read` once per open document under `key`; a failed read isn't kept, so the next caller asks again. */

@@ -13,7 +13,7 @@ The name is spelled differently, or an earlier op renamed or deleted it. Names a
 
 ## How to fix
 
-List the document's named destinations and use one of the names it shows. To create a name, use `setNamedDestination`.
+Call `namedDestinations()` (`named_destinations()` in Rust) and use one of its names. To create a name, use `setNamedDestination`.
 
 ## Example
 
