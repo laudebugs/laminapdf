@@ -63,6 +63,7 @@ export const DOCUMENT_METHODS = {
   adoptCopy: 2,
   setMetadata: 2,
   setXmpProperty: 5,
+  setPageLabels: 1,
   structureTree: 0,
   undo: 0,
   warnings: 0,

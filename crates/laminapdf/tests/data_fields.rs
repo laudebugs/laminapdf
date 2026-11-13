@@ -151,6 +151,7 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
             laminapdf_model::xmp::ParseError::Syntax { offset: 0 },
         )),
         Error::from(laminapdf_ops::Error::InvalidXmpProperty { reason: "name" }),
+        Error::from(laminapdf_ops::Error::InvalidLabelRanges { what: "order" }),
         Error::from(laminapdf_save::SaveError::RequiresRewrite { reasons: vec![] }),
         Error::from(laminapdf_save::SaveError::WouldInvalidateSignatures {
             signatures: vec![],

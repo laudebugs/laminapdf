@@ -25,6 +25,7 @@ import type {
   PageAnnotationJs,
   PageInfoJs,
   PageLabelInit,
+  PageLabelRange as PageLabelRangeJs,
   PageLinkJs,
   PlannedSaveJs,
   ProfileInit,
@@ -51,7 +52,7 @@ import type {
 
 /**
  * An edit (`{ op, args }`): `setMetadata`, `removeMetadata`, the XMP edits (`setXmpProperty`,
- * `removeXmpProperty`, `replaceXmpPacket`), `rotatePage`, or the deprecated `setInfo` (use
+ * `removeXmpProperty`, `replaceXmpPacket`), `rotatePage`, `setPageLabels`, or the deprecated `setInfo` (use
  * `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
  *
  * @since 0.2.0
@@ -314,6 +315,15 @@ export type TargetView = TargetViewJs;
  * @since 0.2.0
  */
 export type PageLabel = PageLabelInit;
+/**
+ * A page-label range for {@link Document.setPageLabels}: the labels from `page` (a page ID) up
+ * to the next range's page, in a `style` (`"decimal"`, `"upperRoman"`, `"lowerRoman"`,
+ * `"upperLetters"`, `"lowerLetters"`; without one, the `prefix` alone), after a `prefix`,
+ * numbered from `first` (1 when left out).
+ *
+ * @since 0.2.0
+ */
+export type PageLabelRange = PageLabelRangeJs;
 /**
  * The document's metadata (Info and XMP).
  *

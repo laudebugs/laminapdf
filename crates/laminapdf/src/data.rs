@@ -94,6 +94,7 @@ fn ops(e: &laminapdf_ops::Error) -> Data {
             None => data([("reason", json!(e.reason()))]),
         },
         E::InvalidXmpProperty { reason } => data([("reason", json!(reason))]),
+        E::InvalidLabelRanges { what } => data([("what", json!(what))]),
         _ => Data::new(),
     }
 }

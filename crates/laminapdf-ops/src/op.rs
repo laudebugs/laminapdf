@@ -11,6 +11,7 @@ use crate::annot::{DeleteAnnot, UpdateAnnot};
 use crate::class::ModificationClass;
 use crate::error::{Error, Result};
 use crate::info::SetInfo;
+use crate::labels::SetPageLabels;
 use crate::metadata::{
     RemoveMetadata, RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty, UpdateSaveMetadata,
 };
@@ -72,6 +73,8 @@ pub enum Op {
     UpdateAnnot(UpdateAnnot),
     /// Delete an annotation with its Popup, replies and group.
     DeleteAnnot(DeleteAnnot),
+    /// Replace the document's page labels.
+    SetPageLabels(SetPageLabels),
     /// An op that declares the widgets it touches, for the save planner's tests
     /// ([`test_support::Declared`](crate::test_support::Declared)); never on the wire.
     #[cfg(feature = "test-support")]
@@ -95,6 +98,7 @@ impl Op {
             | Self::UpdateSaveMetadata(_) => ModificationClass::Metadata,
             Self::RotatePage(_) => ModificationClass::PageStructure,
             Self::UpdateAnnot(_) | Self::DeleteAnnot(_) => ModificationClass::Annotation,
+            Self::SetPageLabels(_) => ModificationClass::Document,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.class(),
         }
@@ -115,6 +119,7 @@ impl Op {
             | Self::RemoveXmpProperty(_)
             | Self::ReplaceXmpPacket(_)
             | Self::UpdateSaveMetadata(_)
+            | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_) => false,
             #[cfg(feature = "test-support")]
@@ -141,6 +146,7 @@ impl Op {
             | Self::RemoveXmpProperty(_)
             | Self::ReplaceXmpPacket(_)
             | Self::UpdateSaveMetadata(_)
+            | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_) => Vec::new(),
             #[cfg(feature = "test-support")]
@@ -165,6 +171,7 @@ impl Op {
             Self::UpdateSaveMetadata(op) => op.apply_to(doc),
             Self::UpdateAnnot(op) => op.apply_to(doc),
             Self::DeleteAnnot(op) => op.apply_to(doc),
+            Self::SetPageLabels(op) => op.apply_to(doc).map(|()| Effect::default()),
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.apply_to(doc, self.class()),
         }
@@ -240,6 +247,12 @@ impl From<UpdateAnnot> for Op {
 impl From<DeleteAnnot> for Op {
     fn from(op: DeleteAnnot) -> Self {
         Self::DeleteAnnot(op)
+    }
+}
+
+impl From<SetPageLabels> for Op {
+    fn from(op: SetPageLabels) -> Self {
+        Self::SetPageLabels(op)
     }
 }
 
