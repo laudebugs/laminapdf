@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2o` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E2 page organisation §2.2](../../plans/editor/e2-page-organisation.md#22-what-follows-a-page) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E2d](../done/E2d-merge-and-split.md) |
