@@ -95,6 +95,9 @@ pub(super) fn extract(doc: &Document, input: &Input<'_>) -> Result<Vec<Extracted
         _ => None,
     };
     if let Some(format) = format {
+        if data.is_empty() {
+            return Err("no image data".into());
+        }
         // Kept as stored; its mask, which the file can't hold, follows as an image of its own.
         let mut out = vec![record(ImageKind::Image, format, data, entries.layout, family)];
         out.extend(passthrough_mask(doc, input)?);
