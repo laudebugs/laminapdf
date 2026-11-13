@@ -23,7 +23,8 @@ from pathlib import Path
 
 OUT = Path(__file__).resolve().parents[2] / "fixtures" / "annotations"
 
-MEDIA = "/MediaBox [0 0 300 300]"
+# Every page has /Resources (ISO 32000-2 §7.7.3.3: required, here empty), so qpdf --check passes.
+MEDIA = "/MediaBox [0 0 300 300] /Resources << >>"
 
 
 def write(name, objects, streams=None, catalog_extra=""):
