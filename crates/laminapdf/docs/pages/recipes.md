@@ -1,7 +1,7 @@
 ---
 title: "Recipes"
 description: "Complete Lamina PDF programs, from one page of text to an archived invoice, each with its code and the PDF it writes."
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/recipes/"
 ---
 
@@ -29,6 +29,7 @@ To run a Rust recipe from a checkout of Lamina PDF, use `cargo run -p laminapdf 
 ## Edit a PDF
 
 - [Generate, then edit](../pages/recipes/generate-then-edit.md): open a file's bytes, change its metadata and save incrementally.
+- [Edit the metadata](../pages/recipes/edit-metadata.md): a title, authors and keywords in both copies a PDF keeps, checked before the save.
 
 ## Read a PDF
 
