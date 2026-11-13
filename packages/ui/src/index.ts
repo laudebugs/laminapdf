@@ -28,6 +28,7 @@ export {
   type CommandView,
   chipKeys,
   type ShortcutGroup,
+  shortcutMap,
   useCommand,
   useCommands,
   useShortcutMap,

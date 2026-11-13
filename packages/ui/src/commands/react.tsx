@@ -16,7 +16,7 @@ import {
 import type { KeyPlatform, ShortcutKeys } from "../components/shortcut-chip.js";
 import { message } from "../messages.js";
 import type { CommandRegistry } from "./registry.js";
-import { isBound, type Shell, shellOf, shortcutDispatcher } from "./shortcuts.js";
+import { isBound, shortcutDispatcher } from "./shortcuts.js";
 import type { AnyCommand, Availability, CommandContext, CommandGroup, CommandId } from "./types.js";
 
 interface CommandsValue {
@@ -155,10 +155,27 @@ export interface ShortcutGroup {
 }
 
 /**
- * Every shortcut bound in this shell, by group in registry order: what the shortcut help lists
- * (only this platform's keys) and what the desktop app's menus take their accelerators from.
- * Commands this shell leaves out are left out here too.
+ * Every shortcut bound in `ctx`, by group in registry order: what the shortcut help lists (only
+ * this platform's keys) and what the desktop app's menus take their accelerators from. Commands
+ * the shell leaves out are left out here too.
  */
+export function shortcutMap(registry: CommandRegistry, context: CommandContext): readonly ShortcutGroup[] {
+  const groups = new Map<CommandGroup, ShortcutGroup["commands"][number][]>();
+  for (const command of registry.list()) {
+    if (registry.availability(command.id, context).state === "hidden") continue;
+    const keys = (command.shortcuts ?? [])
+      .filter((b) => isBound(b, context))
+      .map((b) => ({ mac: b.mac, other: b.other, ...(b.on === undefined ? {} : { on: b.on }) }));
+    if (keys.length === 0) continue;
+    groups.set(command.group, [
+      ...(groups.get(command.group) ?? []),
+      { id: command.id, title: registry.title(command, context), keys },
+    ]);
+  }
+  return [...groups].map(([group, commands]) => ({ group, title: message(`commandGroup.${group}`), commands }));
+}
+
+/** {@link shortcutMap} of the provider's registry and context, kept current. */
 export function useShortcutMap(): readonly ShortcutGroup[] {
   const value = useCommands();
   const { registry, context } = value;
@@ -168,21 +185,6 @@ export function useShortcutMap(): readonly ShortcutGroup[] {
     () => registry.version,
     () => registry.version,
   );
-  const shell: Shell = shellOf(context);
   // biome-ignore lint/correctness/useExhaustiveDependencies: the registry's version stands for its commands
-  return useMemo(() => {
-    const groups = new Map<CommandGroup, ShortcutGroup["commands"][number][]>();
-    for (const command of registry.list()) {
-      if (registry.availability(command.id, context).state === "hidden") continue;
-      const keys = (command.shortcuts ?? [])
-        .filter((b) => isBound(b, context))
-        .map((b) => ({ mac: b.mac, other: b.other, ...(b.on === undefined ? {} : { on: b.on }) }));
-      if (keys.length === 0) continue;
-      groups.set(command.group, [
-        ...(groups.get(command.group) ?? []),
-        { id: command.id, title: registry.title(command, context), keys },
-      ]);
-    }
-    return [...groups].map(([group, commands]) => ({ group, title: message(`commandGroup.${group}`), commands }));
-  }, [version, registry, context, shell]);
+  return useMemo(() => shortcutMap(registry, context), [version, registry, context]);
 }

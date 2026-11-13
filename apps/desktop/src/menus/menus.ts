@@ -1,4 +1,4 @@
-// The native menus as data (todo D4b): `MENU_LAYOUT` with each command's title and shortcut read
+// The native menus as data: `MENU_LAYOUT` with each command's title and shortcut read
 // from the command registry. `test/menus-json.test.ts` writes it to `src-tauri/menus.json`, which the main
 // process embeds and builds the menus from (src-tauri/src/menu.rs), and fails while the file
 // there is out of date.

@@ -31,6 +31,15 @@ function documentOpen(ctx: CommandContext): true | string {
   return open ? true : message("command.reason.noDocument");
 }
 
+/**
+ * `true` while the window shows a file (open, opening, asking for its password, or failed to
+ * open), else why not: a tab can close or move whatever its document's state.
+ */
+function fileShown(ctx: CommandContext): true | string {
+  const shown = ctx.reader === undefined ? ctx.viewer !== undefined : ctx.reader.getState().phase !== "empty";
+  return shown ? true : message("command.reason.noDocument");
+}
+
 /** `documentOpen`, then `check` on the viewer's state. */
 function withViewer(check: (state: ViewerSlice) => true | string) {
   return (ctx: CommandContext) => {
@@ -347,6 +356,7 @@ export function desktopCommands(): AnyCommand[] {
       group: "file",
       shortcuts: [desktop("Mod+W")],
       home: ["tab-strip", "native-menu"],
+      enabled: fileShown,
     }),
     delegated({
       id: "tab.next",
@@ -355,6 +365,7 @@ export function desktopCommands(): AnyCommand[] {
       group: "navigate",
       shortcuts: [desktop("Ctrl+Tab")],
       home: ["tab-strip"],
+      enabled: fileShown,
     }),
     delegated({
       id: "tab.previous",
@@ -363,6 +374,7 @@ export function desktopCommands(): AnyCommand[] {
       group: "navigate",
       shortcuts: [desktop("Ctrl+Shift+Tab")],
       home: ["tab-strip"],
+      enabled: fileShown,
     }),
     delegated({
       id: "tab.move-to-new-window",
@@ -370,6 +382,7 @@ export function desktopCommands(): AnyCommand[] {
       keywords: ["tab", "window", "move", "detach"],
       group: "file",
       home: ["tab-strip"],
+      enabled: fileShown,
     }),
     delegated({
       id: "window.new",

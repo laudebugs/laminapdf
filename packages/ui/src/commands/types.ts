@@ -134,6 +134,11 @@ export interface Command<Args = undefined> {
   readonly args?: ArgsSchema<Args>;
   /** `true`, or why it can't run now ("Open a document first"). */
   enabled?(ctx: CommandContext): true | string;
+  /**
+   * For a toggle, whether it is on; for a command that takes one of fixed choices, the value
+   * chosen now. A native menu ticks its item, or the choice's, by it.
+   */
+  checked?(ctx: CommandContext): boolean | string | undefined;
   /** Does the command's work, with its parsed arguments. */
   run(ctx: CommandContext, args: Args): void | Promise<void>;
 }

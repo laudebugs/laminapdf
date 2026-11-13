@@ -1,4 +1,4 @@
-// The native menus' layout (todo D4b, Paper S03): which commands each menu lists, in order. It
+// The native menus' layout (Paper S03): which commands each menu lists, in order. It
 // names commands by id only: their titles and shortcuts come from the command registry, so the
 // menus, the palette and the shortcut help can't disagree. `menus.ts` turns this layout and the
 // registry into `src-tauri/menus.json`, which the main process builds the menus from.

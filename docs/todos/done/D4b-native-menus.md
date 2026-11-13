@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D4b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [C7a](../done/C7a-accessibility-and-theming.md), [D4a](../done/D4a-windows-tabs-and-session-restore.md), [U1b](../done/U1b-command-registry-and-palette.md) |
@@ -12,7 +12,7 @@
 | Branch | `feat/d4b-native-menus` |
 | PR title | `feat(desktop): generate native menus and accelerators from the shared shortcut map` |
 | Size | M–L (500–900 lines) |
-| PR | — |
+| PR | [#560](https://github.com/laudebugs/laminapdf/pull/560) |
 
 ## Goal
 
@@ -56,24 +56,35 @@ A JSON export of U1b's command registry (no second map): per command `{ id, titl
 
 ## Tasks
 
-- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
-- [ ] Add the JSON export of U1b's registry (`pnpm --filter @laminapdf/ui build:shortcuts`), with a CI check that the generated JSON is up to date.
-- [ ] `menu.rs` builder + `on_menu_event` dispatch; `MenuContext` (recent files, windows, focus state); rebuild Open Recent and Window submenus on change.
-- [ ] `menu_state` command (manifest + capability) and the UI side that reports state.
-- [ ] Export Copy: Rust-side save dialog (`DialogExt::file().save_file`) and byte copy of the original file; never via the webview.
-- [ ] Disable duplicate webview handlers for native accelerators.
-- [ ] Settings route placeholder (`settings` window label, created on demand, own capability `capabilities/settings.json` (`"windows": ["settings"]`) with only the commands it needs — D5b fills it; add `"settings"` to `app.security.capabilities` in `tauri.conf.json` **and** to the full list in `tauri.e2e.conf.json` (D2a's guard test fails otherwise).
+- [x] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
+- [x] Add the JSON export of U1b's registry (`pnpm --filter @laminapdf/ui build:shortcuts`), with a CI check that the generated JSON is up to date.
+- [x] `menu.rs` builder + `on_menu_event` dispatch; `MenuContext` (recent files, windows, focus state); rebuild Open Recent and Window submenus on change.
+- [x] `menu_state` command (manifest + capability) and the UI side that reports state.
+- [x] Export Copy: Rust-side save dialog (`DialogExt::file().save_file`) and byte copy of the original file; never via the webview.
+- [x] Disable duplicate webview handlers for native accelerators.
+- [x] Settings route placeholder (`settings` window label, created on demand, own capability `capabilities/settings.json` (`"windows": ["settings"]`) with only the commands it needs — D5b fills it; add `"settings"` to `app.security.capabilities` in `tauri.conf.json` **and** to the full list in `tauri.e2e.conf.json` (D2a's guard test fails otherwise).
 - [ ] Tests (below); manual checklist per OS with screenshots of each top-level menu.
 
 ## Acceptance criteria
 
-- [ ] A Rust test proves every menu item with an accelerator corresponds to a `ShortcutId` in the shared map and uses the map's accelerator for the current OS; and every map entry with `menu != null` appears in the menu.
-- [ ] A TS test proves the help dialog lists exactly the map's entries.
-- [ ] Each accelerator fires once (not twice) on Windows and Linux (e2e: press `Ctrl+=` and assert one zoom step).
-- [ ] Open Recent lists the D3b entries and "Clear Menu" clears them; Window menu lists open windows; Move Tab to Window works from the menu (e2e).
+- [x] A Rust test proves every menu item with an accelerator corresponds to a `ShortcutId` in the shared map and uses the map's accelerator for the current OS; and every map entry with `menu != null` appears in the menu.
+- [x] A TS test proves the help dialog lists exactly the map's entries.
+- [x] Each accelerator fires once (not twice) on Windows and Linux (e2e: press `Ctrl+=` and assert one zoom step).
+- [x] Open Recent lists the D3b entries and "Clear Menu" clears them; Window menu lists open windows; Move Tab to Window works from the menu (e2e).
 - [ ] macOS app menu follows the HIG layout (manual screenshot); Windows/Linux show a menu bar per window.
-- [ ] `CmdOrCtrl+,` opens the settings window on macOS, Windows and Linux (e2e), with Settings… under Edit on Windows/Linux.
-- [ ] Items are disabled when not applicable (no document → Print, Close Tab disabled) (e2e via `menu_state` assertions or a test-only `menu_snapshot` command under `e2e`).
+- [x] `CmdOrCtrl+,` opens the settings window on macOS, Windows and Linux (e2e), with Settings… under Edit on Windows/Linux.
+- [x] Items are disabled when not applicable (no document → Print, Close Tab disabled) (e2e via `menu_state` assertions or a test-only `menu_snapshot` command under `e2e`).
+
+## Decisions and deviations
+
+- **No second map.** The registry stays the one source of titles and keys. `apps/desktop/src/menus/layout.ts` lists which commands each menu holds, by id, in place of a `menu` field on `Command`, because a menu needs an order, separators and submenus a field can't carry. `menus.ts` writes `src-tauri/menus.json` from the layout and the registry (`pnpm --filter @laminapdf/desktop menus`, not `build:shortcuts` in `@laminapdf/ui`). `test/menus-json.test.ts` fails while the file is out of date, so CI's TypeScript tests catch a stale file. Tests check both directions: every command whose home is a menu is listed, and the shortcut help lists every key a menu shows.
+- **Keys handled once, without disabling the web view's handlers.** The web view keeps handling every shortcut, scopes and text-field rules included. WebDriver's key presses never reach a native menu, and on macOS the web view sees a key first. The command registry instead drops a run from one source (`keys` or `menu`) within 300 ms of the same command's run from the other (`ECHO_MS`), one echo per run. A unit test covers it. The end-to-end scenario can only show that one synthetic press zooms once, since synthetic keys never reach the accelerator; the real double press needs a manual check on Windows and Linux.
+- **One app-wide menu.** `app.set_menu` everywhere: Tauri attaches the app's menu to every window on Windows and Linux, so each window shows a menu bar, driven by the focused window's state.
+- **No settings window.** Settings… (`⌘,`, `Ctrl+,` at the end of Edit off macOS) opens the reader's Settings dialog in the window, which already exists. A window of its own, and its capability, wait for a need (D5b, D7b).
+- **Export Copy is Save a copy… (`file.save-copy`),** the registry's command, done by the main process's `save_copy`. That command copies only a document the calling window holds.
+- **Labels and missing items.** Labels are sentence case on every platform. Save, Undo and Redo wait for the desktop's edit sessions. Items whose command the desktop app doesn't do yet are disabled: Print (D4c), Find, Sidebar, Focus mode, the view choices, Check for updates (D5b), View licences (D6b). The area document records this under S03.
+- **New commands.** Close window (`window.close`, ⇧⌘W / Ctrl+Shift+W) and Quit (`app.quit`, Ctrl+Q on Windows and Linux; macOS uses its app menu's Quit). Help ▸ Keyboard shortcuts (F1) opens the shared shortcut help in the desktop app.
+- **Not done here:** the manual screenshots of each OS's menus (macOS HIG layout, the Windows and Linux bar), and the German and French keyboard checks. Both need someone at each OS.
 
 ## Post-merge checks
 
@@ -100,8 +111,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

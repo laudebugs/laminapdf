@@ -1,4 +1,4 @@
-//! The native menus (todo D4b, Paper S03), built from `menus.json`, which the webview's menu
+//! The native menus (Paper S03), built from `menus.json`, which the webview's menu
 //! layout and command registry generate (`apps/desktop/src/menus`): an item's title and keys are
 //! the registry's, so the menus, the palette and the shortcut help can't disagree.
 //!
@@ -311,44 +311,14 @@ fn nodes(kind: &KindJson, ctx: &Context<'_>) -> Vec<Node> {
         KindJson::Predefined { name } => vec![Node::Predefined(*name)],
         KindJson::Link { title, url } => vec![plain(format!("link:{url}"), title, true)],
         KindJson::Placeholder { title } => vec![plain(format!("later:{title}"), title, false)],
-        KindJson::Recent { title, empty, clear } => {
-            let items = if ctx.recent.is_empty() {
-                vec![plain("recent:none".to_owned(), empty, false)]
-            } else {
-                let mut items: Vec<Node> = ctx
-                    .recent
-                    .iter()
-                    .map(|(id, name)| plain(format!("recent:{id}"), name, true))
-                    .collect();
-                items.push(Node::Separator);
-                items.push(plain("recent-clear".to_owned(), clear, true));
-                items
-            };
-            vec![Node::Submenu {
-                title: title.clone(),
-                items,
-            }]
-        }
-        KindJson::MoveToWindow { title, empty } => {
-            // The tab can go where "Move tab to new window" could take it from. Every window is
-            // listed and the focused one disabled, so focusing another changes no item's place.
-            let can_move = ctx.enabled("tab.move-to-new-window");
-            let items = if ctx.windows.len() < 2 {
-                vec![plain("move:none".to_owned(), empty, false)]
-            } else {
-                ctx.windows
-                    .iter()
-                    .map(|window| {
-                        let here = Some(window.label.as_str()) == ctx.focused;
-                        plain(format!("move:{}", window.label), &window.title, can_move && !here)
-                    })
-                    .collect()
-            };
-            vec![Node::Submenu {
-                title: title.clone(),
-                items,
-            }]
-        }
+        KindJson::Recent { title, empty, clear } => vec![Node::Submenu {
+            title: title.clone(),
+            items: recent_items(ctx, empty, clear),
+        }],
+        KindJson::MoveToWindow { title, empty } => vec![Node::Submenu {
+            title: title.clone(),
+            items: move_items(ctx, empty),
+        }],
         KindJson::Windows => ctx
             .windows
             .iter()
@@ -364,6 +334,38 @@ fn nodes(kind: &KindJson, ctx: &Context<'_>) -> Vec<Node> {
             .collect(),
         KindJson::Separator => vec![Node::Separator],
     }
+}
+
+/// Open recent's items: the files, then Clear menu; or one disabled "No recent files".
+fn recent_items(ctx: &Context<'_>, empty: &str, clear: &str) -> Vec<Node> {
+    if ctx.recent.is_empty() {
+        return vec![plain("recent:none".to_owned(), empty, false)];
+    }
+    let mut items: Vec<Node> = ctx
+        .recent
+        .iter()
+        .map(|(id, name)| plain(format!("recent:{id}"), name, true))
+        .collect();
+    items.push(Node::Separator);
+    items.push(plain("recent-clear".to_owned(), clear, true));
+    items
+}
+
+/// Move tab to window's items. The tab can go where "Move tab to new window" could take it
+/// from. Every window is listed and the focused one disabled, so focusing another changes no
+/// item's place.
+fn move_items(ctx: &Context<'_>, empty: &str) -> Vec<Node> {
+    if ctx.windows.len() < 2 {
+        return vec![plain("move:none".to_owned(), empty, false)];
+    }
+    let can_move = ctx.enabled("tab.move-to-new-window");
+    ctx.windows
+        .iter()
+        .map(|window| {
+            let here = Some(window.label.as_str()) == ctx.focused;
+            plain(format!("move:{}", window.label), &window.title, can_move && !here)
+        })
+        .collect()
 }
 
 fn plain(id: String, title: &str, enabled: bool) -> Node {
@@ -482,7 +484,7 @@ pub(crate) struct NativeMenus(Mutex<Inner>);
 struct Inner {
     states: BTreeMap<String, Vec<CommandState>>,
     /// The built items, by id, with what each shows now (enabled, ticked).
-    items: BTreeMap<String, (MenuItemKind<Wry>, bool, Option<bool>)>,
+    items: Built,
 }
 
 impl NativeMenus {
@@ -524,39 +526,40 @@ fn current(app: &AppHandle, menus: &MenusJson, states: &BTreeMap<String, Vec<Com
     menu_bar(menus, &ctx)
 }
 
-/// Builds the menus again (the windows or the recent list changed) and shows them.
-pub(crate) fn rebuild(app: &AppHandle) {
+/// On the main thread: the menu bar the app should show now, with the menus' state.
+fn with_bar(app: &AppHandle, work: impl FnOnce(&AppHandle, &mut Inner, &[TopMenu]) + Send + 'static) {
     on_main(app, |app| {
         let menus = app.state::<MenusJson>();
         let native = app.state::<NativeMenus>();
         let mut inner = native.lock();
         let bar = current(app, &menus, &inner.states);
-        match build(app, &bar) {
-            Ok((menu, items)) => {
-                if let Err(error) = app.set_menu(menu) {
-                    tracing::warn!("could not show the menus: {error}");
-                }
-                inner.items = items;
+        work(app, &mut inner, &bar);
+    });
+}
+
+/// Builds the menus again (the windows or the recent list changed) and shows them.
+pub(crate) fn rebuild(app: &AppHandle) {
+    with_bar(app, |app, inner, bar| match build(app, bar) {
+        Ok((menu, items)) => {
+            if let Err(error) = app.set_menu(menu) {
+                tracing::warn!("could not show the menus: {error}");
             }
-            Err(error) => tracing::warn!("could not build the menus: {error}"),
+            inner.items = items;
         }
+        Err(error) => tracing::warn!("could not build the menus: {error}"),
     });
 }
 
 /// Shows the focused window's state in the menus as they are: what is enabled and ticked.
 pub(crate) fn refresh(app: &AppHandle) {
-    on_main(app, |app| {
-        let menus = app.state::<MenusJson>();
-        let native = app.state::<NativeMenus>();
-        let mut inner = native.lock();
-        let bar = current(app, &menus, &inner.states);
+    with_bar(app, |_, inner, bar| {
         let mut stack: Vec<&Node> = bar.iter().flat_map(|menu| menu.items.iter()).collect();
         while let Some(node) = stack.pop() {
             match node {
                 Node::Submenu { items, .. } => stack.extend(items.iter()),
                 Node::Item(item) => {
-                    if let Some((built, enabled, checked)) = inner.items.get_mut(&item.id) {
-                        show(built, item, enabled, checked);
+                    if let Some(shown) = inner.items.get_mut(&item.id) {
+                        shown.show(item);
                     }
                 }
                 Node::Predefined(_) | Node::Separator => {}
@@ -565,27 +568,36 @@ pub(crate) fn refresh(app: &AppHandle) {
     });
 }
 
-/// Brings `built` to `item`'s enabled and ticked state, calling the OS only for a change.
-fn show(built: &MenuItemKind<Wry>, item: &Item, enabled: &mut bool, checked: &mut Option<bool>) {
-    let result = (|| {
-        if *enabled != item.enabled {
-            match built {
-                MenuItemKind::MenuItem(menu_item) => menu_item.set_enabled(item.enabled)?,
-                MenuItemKind::Check(check) => check.set_enabled(item.enabled)?,
-                _ => {}
+/// A built item and what it shows now.
+struct Shown {
+    built: MenuItemKind<Wry>,
+    enabled: bool,
+    checked: Option<bool>,
+}
+
+impl Shown {
+    /// Brings the item to `item`'s enabled and ticked state, calling the OS only for a change.
+    fn show(&mut self, item: &Item) {
+        let result = (|| {
+            if self.enabled != item.enabled {
+                match &self.built {
+                    MenuItemKind::MenuItem(menu_item) => menu_item.set_enabled(item.enabled)?,
+                    MenuItemKind::Check(check) => check.set_enabled(item.enabled)?,
+                    _ => {}
+                }
+                self.enabled = item.enabled;
             }
-            *enabled = item.enabled;
-        }
-        if *checked != item.checked {
-            if let (MenuItemKind::Check(check), Some(on)) = (built, item.checked) {
-                check.set_checked(on)?;
+            if self.checked != item.checked {
+                if let (MenuItemKind::Check(check), Some(on)) = (&self.built, item.checked) {
+                    check.set_checked(on)?;
+                }
+                self.checked = item.checked;
             }
-            *checked = item.checked;
+            tauri::Result::Ok(())
+        })();
+        if let Err(error) = result {
+            tracing::warn!("could not update a menu item: {error}");
         }
-        tauri::Result::Ok(())
-    })();
-    if let Err(error) = result {
-        tracing::warn!("could not update a menu item: {error}");
     }
 }
 
@@ -613,7 +625,8 @@ fn on_main(app: &AppHandle, work: impl FnOnce(&AppHandle) + Send + 'static) {
     }
 }
 
-type Built = BTreeMap<String, (MenuItemKind<Wry>, bool, Option<bool>)>;
+/// The built items by id.
+type Built = BTreeMap<String, Shown>;
 
 /// The menu bar as Tauri menus, and its items by id.
 fn build(app: &AppHandle, bar: &[TopMenu]) -> tauri::Result<(Menu<Wry>, Built)> {
@@ -655,7 +668,14 @@ fn append(app: &AppHandle, parent: &Submenu<Wry>, nodes: &[Node], items: &mut Bu
                     MenuItemKind::Check(check) => parent.append(check)?,
                     _ => {}
                 }
-                items.insert(item.id.clone(), (built, item.enabled, item.checked));
+                items.insert(
+                    item.id.clone(),
+                    Shown {
+                        built,
+                        enabled: item.enabled,
+                        checked: item.checked,
+                    },
+                );
             }
         }
     }
@@ -949,6 +969,40 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn the_strings_shared_with_the_webview_match_its_own() {
+        // The event's name, and the commands Rust names, are the webview's.
+        let hook = include_str!("../../src/menus/use-native-menus.tsx");
+        assert!(
+            hook.contains(&format!("\"{COMMAND_EVENT}\"")),
+            "use-native-menus.tsx names another event"
+        );
+        let tabs = include_str!("../../src/tabs/use-tabs.tsx");
+        assert!(
+            tabs.contains("\"tab.move-to-window\""),
+            "use-tabs.tsx handles no tab.move-to-window"
+        );
+        let ids: Vec<String> = MenusJson::embedded()
+            .menus
+            .iter()
+            .flat_map(|menu| &menu.items)
+            .filter_map(|item| match &item.kind {
+                KindJson::Command { id, .. } => Some(id.clone()),
+                _ => None,
+            })
+            .collect();
+        for id in WITHOUT_WINDOW.iter().chain(&["tab.move-to-new-window"]) {
+            assert!(ids.iter().any(|known| known == id), "{id} isn't a menu command");
+        }
+        assert_eq!(
+            action("recent-clear"),
+            Action::Command(MenuCommand {
+                id: "file.clear-recent".to_owned(),
+                arg: None
+            })
+        );
     }
 
     #[test]

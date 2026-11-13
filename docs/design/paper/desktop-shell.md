@@ -13,7 +13,7 @@ Conventions on this canvas:
 - **Top bar.** Every document window uses the design language's **Reader v0.1** top bar ([§7.1](design-language.md#71-top-bar)): Sidebar · file name · History (Back, Forward) · page n/N · zoom −/%/+ · Find · View · Reader · Commands · More, with no mode switcher and no save state, because the desktop beta ships the reader only ([desktop plan §2](../../plans/desktop-app.md)). The one exception is `S04-file-changed`, which shows a later editor build and uses the **Editor** variant. The start window and the crash dialog use the **No document** variant.
 - **Window title** is `<file name> — Lamina PDF` ([D4a](../../todos/done/D4a-windows-tabs-and-session-restore.md)); with no document, `Lamina PDF`.
 - **Native menus and the system print dialog are drawn by the OS.** The boards draw them schematically in Paper tokens to show structure, labels, shortcuts and states; real colours, fonts and spacing come from the system.
-- **Command ids** use the registry’s `namespace.verb-object` form ([U1b](../../todos/done/U1b-command-registry-and-palette.md), design language [Appendix: Command ids](design-language.md#appendix-command-ids)). Every command is in the palette and, per [D4b](../../todos/ongoing/D4b-native-menus.md), in a native menu; only those shown with a shortcut have one.
+- **Command ids** use the registry’s `namespace.verb-object` form ([U1b](../../todos/done/U1b-command-registry-and-palette.md), design language [Appendix: Command ids](design-language.md#appendix-command-ids)). Every command is in the palette and, per [D4b](../../todos/done/D4b-native-menus.md), in a native menu; only those shown with a shortcut have one.
 - **Shortcuts.** macOS glyphs run together (`⇧⌘N`), Windows/Linux use words (`Ctrl Shift N`). The desktop app owns some keys the web app must avoid (design language [§8.8](design-language.md#88-keyboard-and-shortcuts) restricts `Mod W/T/N/Q` in the web app only): `⌘W`/`Ctrl W` close a tab, `⌘Q`/`Ctrl Q` quit, and `Ctrl Tab`/`Ctrl Shift Tab` move between tabs on Windows and Linux (`Mod Tab` is on the §8.8 collision list for the web), as D4b specifies, because no browser sits around the desktop window. The desktop app also binds `F1` to Keyboard shortcuts (`help.shortcuts`) next to the page-scope `?`. lamina never binds `⌘N`/`⌘T` (New window is `⇧⌘N`; there is no empty tab to create) or `Mod G`.
 
 ## S01 Start window
@@ -134,9 +134,18 @@ Conventions on this canvas:
 
 **Platform differences.** macOS: one app-wide menu bar; app menu holds About, Settings, Quit; Check for updates sits in the app menu. Windows: menu bar per window; Settings at the end of Edit; About and Check for updates in Help. Linux: the GTK menu bar is visible by default in each window (same placement as Windows). Web: the More menu and the palette carry the same commands; browser-reserved keys are not used.
 
+**As built (D4b, 2026-11-13).** The menus follow the table above, with these differences:
+
+- **Labels** are the registry's sentence-case titles on every platform, with "…" on items that open a dialog ("Open a file…", "Settings…").
+- **Not yet listed:** Save, Undo and Redo, which need an edit session the desktop app doesn't have yet. Find in document is under Edit only, as one key takes one item.
+- **Page layout** offers Single page, Two pages and Continuous, the command's three choices; there is no separate Continuous scrolling check item.
+- **Disabled until built:** items whose command the desktop app doesn't do yet (Print, Find, Sidebar, Focus mode, the view choices, Check for updates, View licences).
+- **One menu for the app:** on Windows and Linux every window shows the same menu bar, which the focused window's state drives.
+- **Settings… (`⌘,` / `Ctrl ,`)** opens the reader's Settings dialog in the window, not a window of its own.
+
 **Artboards:** `S03-menus-macos.dc.html`, `S03-menus-windows.dc.html`.
 
-**Todos:** [D4b](../../todos/ongoing/D4b-native-menus.md).
+**Todos:** [D4b](../../todos/done/D4b-native-menus.md).
 
 ## S04 File changed on disk
 
@@ -376,7 +385,7 @@ Sizes, hashes and the publisher name are placeholders (`[SIZE]`, `[PUBLISHER NAM
 
 **Artboards:** `S10-windows-frame.dc.html`.
 
-**Todos:** [D4b](../../todos/ongoing/D4b-native-menus.md).
+**Todos:** [D4b](../../todos/done/D4b-native-menus.md).
 
 ## New components
 
@@ -384,7 +393,7 @@ Merged into the [design language](design-language.md#decisions-on-area-proposals
 
 ### Open points for review
 
-- **Menu label case.** Sentence case follows design language §9 but differs from the macOS HIG (Title Case). Decide per platform when D4b lands; the registry can hold one title and the macOS menu builder can title-case it.
+- **Menu label case.** Sentence case follows design language §9 but differs from the macOS HIG (Title Case). D4b uses sentence case on every platform; the macOS menu builder could title-case the registry's titles if the owner wants the HIG's case there.
 - **Go and Tools menus** are in the screen inventory but not in D4b’s list; their contents here are a proposal.
 - **Close tab `⌘W` and Quit `⌘Q`** are desktop-only exceptions to the web collision list (see Conventions); the shortcut help must show them only in the desktop app.
 - **Crash dialog merges two questions** (which tabs to reopen, whether to report) that D7a describes as one consent dialog; D7a’s wording (“Send”, “Don’t send”, “Always send”) is kept in the report preview.

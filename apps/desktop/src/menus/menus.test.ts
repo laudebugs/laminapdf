@@ -1,6 +1,7 @@
-import { type CommandContext, createWebPlatform } from "@laminapdf/ui";
+import { type CommandContext, createWebPlatform, menuAccelerator, shortcutMap } from "@laminapdf/ui";
 import { describe, expect, it } from "vitest";
 import { createDesktopPlatform } from "../platform/desktop.ts";
+import { MENU_LAYOUT } from "./layout.ts";
 import { desktopRegistry, type MenusJson, menuCommandIds, nativeMenus } from "./menus.ts";
 
 /** The desktop's context, as the commands read their titles and shortcuts in it. */
@@ -58,6 +59,54 @@ describe("the native menus' data", () => {
       ["app", undefined],
       ["edit", "other"],
     ]);
+  });
+
+  it("shows the keys the shortcut help lists, and the help lists every key a menu shows", () => {
+    // A window with a handler for every command the shell does: none is left out of the help.
+    const registry = desktopRegistry();
+    const actions = Object.fromEntries(registry.list().map((c) => [c.id, () => undefined]));
+    const ctx: CommandContext = { ...desktopContext(), actions };
+    const help = new Map(shortcutMap(registry, ctx).flatMap((g) => g.commands.map((c) => [c.id as string, c.keys])));
+    const items = commandItems();
+    for (const item of items) {
+      if (item.mac !== undefined)
+        expect(
+          help.get(item.id)?.map((k) => k.mac),
+          item.id,
+        ).toContain(item.mac);
+      if (item.other !== undefined)
+        expect(
+          help.get(item.id)?.map((k) => k.other),
+          item.id,
+        ).toContain(item.other);
+    }
+    // Every command the help lists with keys a menu can bind has a menu item showing them.
+    const inMenus = new Set(items.map((i) => i.id));
+    const missing = [...help.keys()].filter((id) => {
+      const command = registry.get(id as never);
+      const keys =
+        command === undefined
+          ? undefined
+          : (menuAccelerator(command, ctx, "mac") ?? menuAccelerator(command, ctx, "other"));
+      return keys !== undefined && !inMenus.has(id);
+    });
+    expect(missing).toEqual([]);
+  });
+
+  it("lists every command whose home is a menu", () => {
+    const listed = new Set(
+      MENU_LAYOUT.flatMap((m) =>
+        m.entries.flatMap((e) => ("command" in e ? [e.command] : "choices" in e ? [e.choices] : [])),
+      ),
+    );
+    // Open recent is a submenu of its files; Install is the web reader's.
+    const elsewhere = new Set(["file.open-recent", "app.install"]);
+    const menuHomes = new Set(["file-menu", "edit-menu", "view-menu", "help-menu", "native-menu"]);
+    const unlisted = desktopRegistry()
+      .list()
+      .filter((c) => c.home.some((h) => menuHomes.has(h)) && !listed.has(c.id) && !elsewhere.has(c.id))
+      .map((c) => c.id);
+    expect(unlisted).toEqual([]);
   });
 
   it("names the registry commands it reports state for once each", () => {

@@ -1,4 +1,4 @@
-// The window's side of the native menus (todo D4b): it tells the main process which of the menus'
+// The window's side of the native menus: it tells the main process which of the menus'
 // commands it can run now, so the menus show the focused window's state, and runs the commands
 // chosen from the menus through the registry, as a key press or the palette would. A key press
 // that reaches a command through both the web view and a menu's accelerator runs it once (the
@@ -21,18 +21,26 @@ interface MenuCommand {
   readonly arg?: string;
 }
 
-/** One command's state, as `menu_state` takes it. */
+/** One command's state, as `menu_state` takes it: `checked` for a toggle or a choice that has one. */
 export interface CommandState {
   readonly id: string;
   readonly enabled: boolean;
+  readonly checked?: boolean | string;
 }
 
 /** The ids of the commands the menus list. */
 const IDS = menuCommandIds(MENUS as MenusJson) as readonly CommandId[];
 
-/** Which of the menus' commands can run in `context` now. */
+/** Which of the menus' commands can run in `context` now, and which toggles and choices are on. */
 export function menuState(registry: CommandRegistry, context: CommandContext): CommandState[] {
-  return IDS.map((id) => ({ id, enabled: registry.availability(id, context).state === "available" }));
+  return IDS.map((id) => {
+    const checked = registry.get(id)?.checked?.(context);
+    return {
+      id,
+      enabled: registry.availability(id, context).state === "available",
+      ...(checked === undefined ? {} : { checked }),
+    };
+  });
 }
 
 /**

@@ -50,9 +50,9 @@ export const DESKTOP_FLAGS = {
   canWatchFiles: true,
   hasNativePrint: true,
   multiWindow: true,
-  // The main process builds the menu bar from the registry (src/menus, todo D4b).
+  // The main process builds the menu bar from the registry (src/menus).
   hasNativeMenus: true,
-  // The main process asks where to save a copy (File ▸ Save a copy…, todo D4b).
+  // The main process asks where to save a copy (File ▸ Save a copy…).
   canSaveAsDialog: true,
   // The main process keeps each recent file's path, so an entry reopens with no dialog.
   canReopenRecent: true,

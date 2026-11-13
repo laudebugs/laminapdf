@@ -201,6 +201,11 @@ export async function recentNames(): Promise<string[]> {
   return entries.map((entry) => entry.name);
 }
 
+/** Brings the window WebDriver is on to the front, as a click on it would. */
+export async function focusWindow(): Promise<void> {
+  await invoke("e2e_focus");
+}
+
 /** The native menus as they show now, one item a line (src-tauri/src/menu.rs's `render`). */
 export async function menuSnapshot(): Promise<string> {
   return (await invoke("e2e_menu_snapshot")) as string;

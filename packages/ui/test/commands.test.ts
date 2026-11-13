@@ -135,6 +135,14 @@ describe("CommandRegistry", () => {
       vi.advanceTimersByTime(400);
       await registry.run("test.do-thing", opened(), { source: "keys" });
       expect(run).toHaveBeenCalledTimes(3);
+      // Two quick presses, each echoed by the menu: two runs.
+      vi.advanceTimersByTime(400);
+      await registry.run("test.do-thing", opened(), { source: "keys" });
+      await registry.run("test.do-thing", opened(), { source: "menu" });
+      vi.advanceTimersByTime(150);
+      await registry.run("test.do-thing", opened(), { source: "keys" });
+      await registry.run("test.do-thing", opened(), { source: "menu" });
+      expect(run).toHaveBeenCalledTimes(5);
     } finally {
       vi.useRealTimers();
     }

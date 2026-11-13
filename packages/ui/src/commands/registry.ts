@@ -29,7 +29,9 @@ export class CommandRegistry {
   readonly #commands = new Map<CommandId, AnyCommand>();
   readonly #listeners = new Set<() => void>();
   #version = 0;
-  #lastRun: { readonly id: CommandId; readonly source: RunSource; readonly at: number } | undefined;
+  #lastRun:
+    | { readonly id: CommandId; readonly source: RunSource; readonly at: number; readonly echoed: boolean }
+    | undefined;
 
   /** Adds `command`; returns the function that removes it. An id can be registered once. */
   register(command: AnyCommand): () => void {
@@ -122,8 +124,11 @@ export class CommandRegistry {
   #echo(id: CommandId, source: RunSource): boolean {
     const now = Date.now();
     const last = this.#lastRun;
-    this.#lastRun = { id, source, at: now };
-    return last !== undefined && last.id === id && last.source !== source && now - last.at < ECHO_MS;
+    const echo =
+      last !== undefined && !last.echoed && last.id === id && last.source !== source && now - last.at < ECHO_MS;
+    // A run has one echo at most: after it, the next run from either source is another press.
+    this.#lastRun = echo ? { ...last, echoed: true } : { id, source, at: now, echoed: false };
+    return echo;
   }
 
   #changed(): void {

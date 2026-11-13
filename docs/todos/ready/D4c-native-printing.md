@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [C6c](../done/C6c-print-download-properties.md), [D1b](../done/D1b-desktop-print-spike.md), [D4b](../ongoing/D4b-native-menus.md) |
-| Dependency notes | [D4b](../ongoing/D4b-native-menus.md) (Print menu item), [D1b](../done/D1b-desktop-print-spike.md) (recommended path). Cross-plan: web **C6** ([web-app §C6](../../plans/web-app.md#c6-navigation-print-and-properties)) only if D1b recommends the webview raster path, which reuses C6's print-at-print-DPI code. |
+| Depends on | [C6c](../done/C6c-print-download-properties.md), [D1b](../done/D1b-desktop-print-spike.md), [D4b](../done/D4b-native-menus.md) |
+| Dependency notes | [D4b](../done/D4b-native-menus.md) (Print menu item), [D1b](../done/D1b-desktop-print-spike.md) (recommended path). Cross-plan: web **C6** ([web-app §C6](../../plans/web-app.md#c6-navigation-print-and-properties)) only if D1b recommends the webview raster path, which reuses C6's print-at-print-DPI code. |
 | ADRs | Follows ADR 0008 (engine renders, main owns printer handles), ADR 0010 (`hasNativePrint`) |
 | Branch | `feat/d4c-native-printing` |
 | PR title | `feat(desktop): print documents through the native print path on each OS` |
