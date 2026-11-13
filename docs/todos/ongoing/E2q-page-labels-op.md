@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2q` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E2 page organisation §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E2j](../done/E2j-page-tree-and-tree-writers.md) |
@@ -15,7 +15,7 @@
 
 ## Goal
 
-Edit a document's page labels (style, prefix and first number per range) as one op, in core and the TypeScript library, without waiting for the interface. Split out of [E2g](E2g-page-labels.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos), so the core and `pdf` columns of `I.10` don't wait on the page-setup dialogs.
+Edit a document's page labels (style, prefix and first number per range) as one op, in core and the TypeScript library, without waiting for the interface. Split out of [E2g](../ready/E2g-page-labels.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos), so the core and `pdf` columns of `I.10` don't wait on the page-setup dialogs.
 
 ## Context
 
@@ -33,8 +33,8 @@ Edit a document's page labels (style, prefix and first number per range) as one 
 **Out of scope** (and which todo covers it)
 
 - Keeping labels right as pages move is E2j's `PageLabels::remap`, which every page op calls
-- The labels editor dialog and thumbnail captions → [E2g](E2g-page-labels.md)
-- The test that labels survive every page op, merge and extract → [E2i](E2i-signed-gating-and-close.md)
+- The labels editor dialog and thumbnail captions → [E2g](../ready/E2g-page-labels.md)
+- The test that labels survive every page op, merge and extract → [E2i](../ready/E2i-signed-gating-and-close.md)
 
 **Editor facts**
 
