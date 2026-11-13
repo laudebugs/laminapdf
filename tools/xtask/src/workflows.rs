@@ -11,7 +11,8 @@
 //! install-action, so its pin lives in one place. cli-release.yml publishes
 //! only on a CLI tag push with the owner's variable, in the `release` environment, with no stored
 //! secret, from GitHub-hosted runners only (todo L4d). Both lanes cancel a superseded run (X9d),
-//! and cancel-merged.yml cancels a merged PR's unfinished runs without running its code;
+//! and cancel-merged.yml cancels a merged PR's unfinished runs on the merge's push (no workflow
+//! uses `pull_request_target`);
 //! ci.yml checks Rust on macOS x64 only on pushes to main, and the nightly checks it too (X9a);
 //! each job runs on the `changes` flag its gate holds it to (X9b, X9c); and every workflow
 //! installs the cargo-nextest and cargo-deny that `doctor.rs` pins.
@@ -708,29 +709,29 @@ mod tests {
         assert_eq!(values, [Some("true".to_owned()), Some("true".to_owned())]);
     }
 
-    /// A merged PR's runs that haven't finished are cancelled, its own branch's only, never this run.
-    /// `pull_request_target` gives the token its write access even for a fork's PR, so the
-    /// workflow must run none of the PR's code and must never put an event field in its script.
+    /// The merge's push to main cancels the merged PR's unfinished runs: its own branch's, from its
+    /// own repository, started before the merge. It runs none of the PR's code, puts no event field
+    /// in its script, and its token may cancel runs and read the PR, nothing more.
     #[test]
-    fn a_merged_prs_unfinished_runs_should_be_cancelled_without_running_its_code() {
-        let trigger = lines_of(CANCEL_MERGED, "on", "pull_request_target").join("\n");
+    fn a_merged_prs_unfinished_runs_should_be_cancelled_on_the_merges_push() {
+        let trigger = lines_of(CANCEL_MERGED, "on", "push").join("\n");
         assert!(
-            trigger.contains("types: [closed]"),
-            "the workflow runs when a PR closes"
+            trigger.contains("branches: [main]"),
+            "the workflow runs on pushes to main"
         );
         let job = lines_of(CANCEL_MERGED, "jobs", "cancel").join("\n");
         for part in [
-            "if: github.event.pull_request.merged == true",
-            "-f event=pull_request -f branch=\"$HEAD_REF\"",
-            ".status != \"completed\"",
-            ".head_repository.full_name == $repo",
-            ".created_at < $merged and .id != $self",
             "shell: bash",
+            r#"select(.merge_commit_sha == $sha)"#,
+            r#"-f event=pull_request -f branch="$head_ref""#,
+            r#".status != "completed""#,
+            ".head_repository.full_name == $pr[0].head.repo.full_name",
+            ".created_at < $pr[0].merged_at",
             "actions/runs/$run/cancel",
         ] {
             assert!(job.contains(part), "the cancel job lacks {part}");
         }
-        assert!(!CANCEL_MERGED.contains("actions/checkout"), "the PR's code never runs");
+        assert!(!CANCEL_MERGED.contains("actions/checkout"), "no code is checked out");
         let script = job.split_once("run: |").map_or("", |(_, script)| script);
         assert!(
             !script.contains("${{"),
@@ -742,8 +743,27 @@ mod tests {
                 .map(|line| line.trim())
                 .filter(|line| !line.is_empty() && !line.starts_with('#'))
                 .collect::<Vec<_>>(),
-            ["actions: write"],
-            "the token may cancel runs and nothing else"
+            ["actions: write", "contents: read", "pull-requests: read"],
+            "the token may cancel runs and read the merged PR, nothing more"
+        );
+    }
+
+    /// GitHub blocks `pull_request_target` by default in public repositories from December 2, 2026,
+    /// and it runs with a writable token for any fork's PR: no workflow uses it.
+    #[test]
+    fn no_workflow_should_trigger_on_pull_request_target() {
+        let using: Vec<String> = workflow_files()
+            .into_iter()
+            .filter(|path| {
+                let text = repository_file(path).unwrap_or_default();
+                keys_under(&text, "on")
+                    .iter()
+                    .any(|(event, _)| *event == "pull_request_target")
+            })
+            .collect();
+        assert!(
+            using.is_empty(),
+            "these workflows trigger on pull_request_target: {using:?}"
         );
     }
 
