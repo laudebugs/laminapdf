@@ -588,11 +588,11 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
   .example-run:not(:defined) {
     display: none;
   }
+  /* The editor's height limit and both scrollbars are CodeMirror's own (runner/theme.ts), so the
+     sideways one stays at the bottom of the box, not after the last line. */
   .example :global(.run-editor) {
     margin-top: 0;
     border: var(--paper-border-width) solid var(--paper-chip-border);
-    max-height: 32rem;
-    overflow: auto;
     font-size: var(--sl-text-sm);
   }
   .run-bar {
@@ -617,10 +617,10 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
     color: var(--paper-text);
     cursor: pointer;
   }
-  /* Wrap lines while pressed: a tool toggle's pressed look (packages/ui's button.css). */
+  /* Wrap lines while pressed: the accent's tint and border, as a pressed tool toggle looks. A border,
+     not an outline, so the focus ring (the page's :focus-visible outline) still shows. */
   .run-bar button[aria-pressed="true"] {
-    outline: var(--paper-border-width) solid var(--paper-accent);
-    outline-offset: calc(-1 * var(--paper-border-width));
+    border-color: var(--paper-accent);
     background: var(--paper-accent-tint);
     color: var(--paper-accent);
   }

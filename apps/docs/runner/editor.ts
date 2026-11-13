@@ -71,14 +71,19 @@ function editor(host: HTMLElement, source: string, wrap: HTMLButtonElement): Edi
 }
 
 /**
- * Wrap lines: each press wraps the editor's long lines or unwraps them, and the button says which
- * (aria-pressed). Reset leaves it as it is.
+ * Wrap lines: each press wraps the editor's long lines or unwraps them, keeping the cursor in view,
+ * and the button says which (aria-pressed). The compartment holds the state; Reset leaves it.
  */
 function wrapOnPress(view: EditorView, wrapping: Compartment, button: HTMLButtonElement): void {
   button.setAttribute("aria-pressed", "false");
   button.addEventListener("click", () => {
-    const on = button.getAttribute("aria-pressed") !== "true";
-    view.dispatch({ effects: wrapping.reconfigure(on ? EditorView.lineWrapping : []) });
+    const on = wrapping.get(view.state) !== EditorView.lineWrapping;
+    view.dispatch({
+      effects: [
+        wrapping.reconfigure(on ? EditorView.lineWrapping : []),
+        EditorView.scrollIntoView(view.state.selection.main.head),
+      ],
+    });
     button.setAttribute("aria-pressed", String(on));
   });
 }
@@ -151,7 +156,8 @@ function pageCanvas(bitmap: ImageBitmap, index: number): HTMLCanvasElement {
   return canvas;
 }
 
-/** The bar's buttons, which the page renders with their icons (Example.astro), hidden until now. */
+/** The bar's buttons, which the page renders (Example.astro), hidden until now: Run, Reset and Download
+ * with their icons, Wrap lines with its words alone. */
 export interface RunButtons {
   readonly bar: HTMLElement;
   readonly run: HTMLButtonElement;
@@ -185,7 +191,7 @@ export interface RunPlaces {
  * Opens the example's editor in place of its TypeScript code, with the bar under it; a run's pages
  * go where the first page's picture was.
  *
- * @param buttons the bar with Run, Reset and Download
+ * @param buttons the bar with Run, Reset, Wrap lines and Download
  * @param example the example's file, code and PDF name
  * @param places the code's place, the picture and its column
  */

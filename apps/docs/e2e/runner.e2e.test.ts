@@ -173,16 +173,17 @@ describe(`edit and run in ${BROWSER}`, () => {
     await edit(page, `// ${"a long comment ".repeat(30)}\n${source}`);
     const wrap = page.getByRole("button", { name: "Wrap lines" });
     expect(await wrap.getAttribute("aria-pressed")).toBe("false");
-    expect(await scrollsSideways(page)).toBe(true);
+    await expect.poll(() => scrollsSideways(page)).toBe(true);
     await wrap.click();
     expect(await wrap.getAttribute("aria-pressed")).toBe("true");
     await expect.poll(() => scrollsSideways(page)).toBe(false);
-    // Reset puts back the code and leaves the choice.
+    // Reset puts back the code and leaves the choice: a long line still wraps.
     await page.getByRole("button", { name: "Reset" }).click();
     expect(await wrap.getAttribute("aria-pressed")).toBe("true");
+    await edit(page, `// ${"a long comment ".repeat(30)}`);
+    await expect.poll(() => scrollsSideways(page)).toBe(false);
     await wrap.click();
     expect(await wrap.getAttribute("aria-pressed")).toBe("false");
-    await edit(page, `// ${"a long comment ".repeat(30)}`);
     await expect.poll(() => scrollsSideways(page)).toBe(true);
     expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
     await page.context().close();
