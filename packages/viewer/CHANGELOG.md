@@ -1,5 +1,34 @@
 # @laminapdf/viewer
 
+## 0.2.0
+
+### Minor Changes
+
+- f49cfd9: `client.metadata()` reads the open document's metadata as its edits leave it: the title, authors, subject, keywords, the creating and producing applications and the dates, from the Info dictionary and the XMP metadata together, with the fields where they disagree. A properties form can show it, then apply its changes with `viewer.edits.apply` as `setMetadata` and `removeMetadata` ops.
+
+### Patch Changes
+
+- 2e74d7d: Every error's and warning's `docsUrl` now opens its page on the docs site, `https://docs.laminapdf.com/reference/codes/<code>/`, instead of the Markdown file on GitHub. The code still ends the path.
+- 8ae1bae: `FlowTemplate` is now an interface rather than a type alias, with the same keys and the same checks, so the API reference names it where `builder.flow()` takes it instead of spelling out every key of every block. Its reference page explains the placeholders, with an example. Every type declaration in the TypeScript reference is now a code block, one key or union case to a line.
+- bd0148e: The packages' descriptions, keywords and README openings now say what each package does for you, and each package links to the issue tracker.
+- 1ad4b68: After the document worker crashes, or `stop()` ends it, `render()` sends each render that was waiting again, once, in the restarted worker. ADR 0009 §3.6 describes this. The pages and thumbnails those renders were for are drawn again. Before, they stayed blank, and the thumbnail strip reported "the worker stopped" to the page as an unhandled error. The render that was drawing when the worker was lost still fails, so a page that crashes the engine can't loop. When the restart can't reopen the document (an encrypted one waits for its password), a waiting render rejects with an `AbortError`.
+- Updated dependencies [7a59051]
+- Updated dependencies [e5fa57d]
+- Updated dependencies [414a955]
+- Updated dependencies [2e74d7d]
+- Updated dependencies [abd2520]
+- Updated dependencies [8ae1bae]
+- Updated dependencies [97cbf89]
+- Updated dependencies [cafed9f]
+- Updated dependencies [755d6ec]
+- Updated dependencies [bd0148e]
+- Updated dependencies [55fc5eb]
+- Updated dependencies [9f555a2]
+  - @laminapdf/sdk@0.2.0
+  - @laminapdf/render@0.2.0
+  - @laminapdf/render-hayro@0.2.0
+  - @laminapdf/render-pdfium@0.2.0
+
 ## 0.2.0-alpha.6
 
 ### Minor Changes

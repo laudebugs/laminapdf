@@ -1,7 +1,7 @@
 {
   "$defs": {
     "AlignSpec": {
-      "description": "Where a line's text sits.",
+      "description": "Where a line's text sits.\n\nAdded in 0.2.0.",
       "oneOf": [
         {
           "const": "start",
@@ -31,7 +31,7 @@
       ]
     },
     "BlockSpec": {
-      "description": "One block of the flow, tagged by `type`.",
+      "description": "One block of the flow, tagged by `type`.\n\nAdded in 0.2.0.",
       "oneOf": [
         {
           "additionalProperties": false,
@@ -611,7 +611,7 @@
     },
     "CellSpec": {
       "additionalProperties": false,
-      "description": "A table cell.",
+      "description": "A table cell.\n\nAdded in 0.2.0.",
       "properties": {
         "align": {
           "anyOf": [
@@ -676,7 +676,7 @@
       "type": "object"
     },
     "ColumnSpec": {
-      "description": "A column's width.",
+      "description": "A column's width.\n\nAdded in 0.2.0.",
       "oneOf": [
         {
           "const": "auto",
@@ -715,7 +715,7 @@
     },
     "ListItemSpec": {
       "additionalProperties": false,
-      "description": "A list item: a paragraph, and a list nested under it.",
+      "description": "A list item: a paragraph, and a list nested under it.\n\nAdded in 0.2.0.",
       "properties": {
         "list": {
           "anyOf": [
@@ -767,7 +767,7 @@
       "type": "object"
     },
     "ListKindSpec": {
-      "description": "A list's kind.",
+      "description": "A list's kind.\n\nAdded in 0.2.0.",
       "oneOf": [
         {
           "const": "bullet",
@@ -783,7 +783,7 @@
     },
     "ListSpec": {
       "additionalProperties": false,
-      "description": "A list.",
+      "description": "A list.\n\nAdded in 0.2.0.",
       "properties": {
         "indent": {
           "description": "Points the items are indented.",
@@ -845,7 +845,7 @@
           "type": "array"
         }
       ],
-      "description": "Margins."
+      "description": "Margins.\n\nAdded in 0.2.0."
     },
     "PageSizeSpec": {
       "anyOf": [
@@ -864,11 +864,11 @@
           "type": "array"
         }
       ],
-      "description": "A page size."
+      "description": "A page size.\n\nAdded in 0.2.0."
     },
     "PageSpec": {
       "additionalProperties": false,
-      "description": "The pages a document flows through.",
+      "description": "The pages a document flows through.\n\nAdded in 0.2.0.",
       "properties": {
         "first": {
           "anyOf": [
@@ -933,7 +933,7 @@
     },
     "ParagraphSpec": {
       "additionalProperties": false,
-      "description": "A paragraph or a heading: its text as one string, or as spans of different styles.",
+      "description": "A paragraph or a heading: its text as one string, or as spans of different styles.\n\nAdded in 0.2.0.",
       "properties": {
         "align": {
           "anyOf": [
@@ -1038,7 +1038,7 @@
       "type": "object"
     },
     "ProfileName": {
-      "description": "A conformance profile, by its usual name.",
+      "description": "A conformance profile, by its usual name.\n\nAdded in 0.2.0.",
       "oneOf": [
         {
           "const": "PDF/UA-1",
@@ -1064,7 +1064,7 @@
     },
     "RegionSpec": {
       "additionalProperties": false,
-      "description": "A header or footer: `{page}`, `{pages}`, `{section}` and `{title}` are filled in.",
+      "description": "A header or footer: `{page}`, `{pages}`, `{section}` and `{title}` are filled in.\n\nAdded in 0.2.0.",
       "properties": {
         "center": {
           "anyOf": [
@@ -1104,7 +1104,7 @@
     },
     "RowSpec": {
       "additionalProperties": false,
-      "description": "A table row.",
+      "description": "A table row.\n\nAdded in 0.2.0.",
       "properties": {
         "cells": {
           "description": "The cells, left to right.",
@@ -1121,7 +1121,7 @@
     },
     "RuleSpec": {
       "additionalProperties": false,
-      "description": "A rule: its width in points and its colour.",
+      "description": "A rule: its width in points and its colour.\n\nAdded in 0.2.0.",
       "properties": {
         "color": {
           "description": "The colour, as `#rrggbb`.",
@@ -1141,7 +1141,7 @@
     },
     "SpanSpec": {
       "additionalProperties": false,
-      "description": "A piece of a paragraph: text in a style, a link, code, a line break or a footnote.",
+      "description": "A piece of a paragraph: text in a style, a link, code, a line break or a footnote.\n\nAdded in 0.2.0.",
       "properties": {
         "code": {
           "description": "The text is code.",
@@ -1192,7 +1192,7 @@
     },
     "StyleSpec": {
       "additionalProperties": false,
-      "description": "A text style: a font and a size, and what else the text takes.",
+      "description": "A text style: a font and a size, and what else the text takes.\n\nAdded in 0.2.0.",
       "properties": {
         "color": {
           "description": "The colour, as `#rrggbb`.",
@@ -1259,10 +1259,10 @@
           "type": "boolean"
         }
       ],
-      "description": "Text, or a number or `true`/`false` written as text: what a template's `$data` may put where\nthe document takes text."
+      "description": "Text, or a number or `true`/`false` written as text: what a template's `$data` may put where\nthe document takes text.\n\nAdded in 0.2.0."
     },
     "VAlignSpec": {
-      "description": "Where a cell's text sits in its row.",
+      "description": "Where a cell's text sits in its row.\n\nAdded in 0.2.0.",
       "oneOf": [
         {
           "const": "top",
@@ -1285,7 +1285,7 @@
   "$id": "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf-build/schemas/document.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "A `laminapdf.document/1` document.",
+  "description": "A `laminapdf.document/1` document.\n\nAdded in 0.2.0.",
   "properties": {
     "author": {
       "anyOf": [
@@ -1331,7 +1331,7 @@
       "description": "The pages the blocks flow through (A4 with 72-point margins when left out)."
     },
     "profiles": {
-      "description": "The profiles the PDF must meet: `PDF/UA-1`, and at most one of `PDF/A-2b`, `PDF/A-2u`\nand `PDF/A-3b`. The caller passes them to the builder's options\n([`FlowDocument::profiles`]).",
+      "description": "The profiles the PDF must meet: `PDF/UA-1`, and at most one of `PDF/A-2b`, `PDF/A-2u`\nand `PDF/A-3b`. The caller passes them to the builder's options, as they are checked\nthere.",
       "items": {
         "$ref": "#/$defs/ProfileName"
       },
