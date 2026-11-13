@@ -470,6 +470,23 @@ impl PageFrame {
         UserSpacePoint::new(x, y)
     }
 
+    /// A page-space point whose coordinates may be unset, as a destination's are (§12.3.2.2: an
+    /// unset one keeps the viewer's), in user space: `(left, top)` with each set where the page
+    /// coordinate that sets it is. On a page turned sideways the page's x runs along user y, so
+    /// `x` sets the user-space top and `y` the left.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub fn to_user_space_unset(&self, x: Option<Pt>, y: Option<Pt>) -> (Option<f64>, Option<f64>) {
+        let p = self.to_user_space(PointPt::new(x.unwrap_or(Pt::ZERO), y.unwrap_or(Pt::ZERO)));
+        let (along_x, along_y) = if self.rotate.degrees().is_multiple_of(180) {
+            (x, y)
+        } else {
+            (y, x)
+        };
+        (along_x.map(|_| p.x), along_y.map(|_| p.y))
+    }
+
     /// [`PageFrame::to_user_space`] as a matrix (§8.3.4): page-space points to user space.
     ///
     /// Added in 0.2.0.

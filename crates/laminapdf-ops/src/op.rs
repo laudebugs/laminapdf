@@ -4,7 +4,7 @@
     reason = "SetInfo is defined and dispatched here; it stays, deprecated, so v1 op logs still apply"
 )]
 
-use laminapdf_model::PageId;
+use laminapdf_model::{OutlineItemId, PageId};
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::annot::{DeleteAnnot, UpdateAnnot};
@@ -14,6 +14,10 @@ use crate::info::SetInfo;
 use crate::labels::SetPageLabels;
 use crate::metadata::{
     RemoveMetadata, RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty, UpdateSaveMetadata,
+};
+use crate::outline::{
+    AddOutlineItem, DeleteNamedDestination, DeleteOutlineItem, DestinationUse, MoveOutlineItem, RenameNamedDestination,
+    SetNamedDestination, UpdateOutlineItem,
 };
 use crate::pages::{
     DeletePages, DuplicatePages, FieldChange, InsertBlankPages, MovePages, ReferenceChange, ReversePages, RotatePages,
@@ -61,6 +65,20 @@ pub enum Op {
     SetMetadata(SetMetadata),
     /// Remove metadata fields from Info and XMP.
     RemoveMetadata(RemoveMetadata),
+    /// Add a bookmark.
+    AddOutlineItem(AddOutlineItem),
+    /// Change a bookmark's title, target, style or open state.
+    UpdateOutlineItem(UpdateOutlineItem),
+    /// Move a bookmark with its children.
+    MoveOutlineItem(MoveOutlineItem),
+    /// Delete a bookmark.
+    DeleteOutlineItem(DeleteOutlineItem),
+    /// Add a named destination or point it elsewhere.
+    SetNamedDestination(SetNamedDestination),
+    /// Rename a named destination (and, by default, its uses).
+    RenameNamedDestination(RenameNamedDestination),
+    /// Delete a named destination.
+    DeleteNamedDestination(DeleteNamedDestination),
     /// Set any XMP property.
     SetXmpProperty(SetXmpProperty),
     /// Remove an XMP property.
@@ -118,6 +136,13 @@ impl Op {
             | Self::RotatePages(_)
             | Self::ReversePages(_)
             | Self::DuplicatePages(_) => ModificationClass::PageStructure,
+            Self::AddOutlineItem(_)
+            | Self::UpdateOutlineItem(_)
+            | Self::MoveOutlineItem(_)
+            | Self::DeleteOutlineItem(_)
+            | Self::SetNamedDestination(_)
+            | Self::RenameNamedDestination(_)
+            | Self::DeleteNamedDestination(_) => ModificationClass::Document,
             Self::UpdateAnnot(_) | Self::DeleteAnnot(_) => ModificationClass::Annotation,
             Self::SetPageLabels(_) => ModificationClass::Document,
             #[cfg(feature = "test-support")]
@@ -140,6 +165,13 @@ impl Op {
             | Self::RemoveXmpProperty(_)
             | Self::ReplaceXmpPacket(_)
             | Self::UpdateSaveMetadata(_)
+            | Self::AddOutlineItem(_)
+            | Self::UpdateOutlineItem(_)
+            | Self::MoveOutlineItem(_)
+            | Self::DeleteOutlineItem(_)
+            | Self::SetNamedDestination(_)
+            | Self::RenameNamedDestination(_)
+            | Self::DeleteNamedDestination(_)
             | Self::InsertBlankPages(_)
             | Self::DeletePages(_)
             | Self::MovePages(_)
@@ -173,6 +205,13 @@ impl Op {
             | Self::RemoveXmpProperty(_)
             | Self::ReplaceXmpPacket(_)
             | Self::UpdateSaveMetadata(_)
+            | Self::AddOutlineItem(_)
+            | Self::UpdateOutlineItem(_)
+            | Self::MoveOutlineItem(_)
+            | Self::DeleteOutlineItem(_)
+            | Self::SetNamedDestination(_)
+            | Self::RenameNamedDestination(_)
+            | Self::DeleteNamedDestination(_)
             | Self::InsertBlankPages(_)
             | Self::DuplicatePages(_)
             | Self::SetPageLabels(_)
@@ -215,6 +254,13 @@ impl Op {
             Self::RemoveXmpProperty(op) => op.apply_to(doc),
             Self::ReplaceXmpPacket(op) => op.apply_to(doc),
             Self::UpdateSaveMetadata(op) => op.apply_to(doc),
+            Self::AddOutlineItem(op) => op.apply_to(doc),
+            Self::UpdateOutlineItem(op) => op.apply_to(doc),
+            Self::MoveOutlineItem(op) => op.apply_to(doc),
+            Self::DeleteOutlineItem(op) => op.apply_to(doc),
+            Self::SetNamedDestination(op) => op.apply_to(doc),
+            Self::RenameNamedDestination(op) => op.apply_to(doc),
+            Self::DeleteNamedDestination(op) => op.apply_to(doc),
             Self::UpdateAnnot(op) => op.apply_to(doc),
             Self::DeleteAnnot(op) => op.apply_to(doc),
             Self::SetPageLabels(op) => op.apply_to(doc).map(|()| Effect::default()),
@@ -240,6 +286,12 @@ pub(crate) struct Effect {
     pub(crate) also_deleted: Vec<laminapdf_model::AnnotId>,
     /// The form fields whose widgets it deleted, reshowed or moved.
     pub(crate) widgets: Vec<TouchedWidget>,
+    /// The bookmarks it created.
+    pub(crate) created_outline_items: Vec<OutlineItemId>,
+    /// It rewrote an outline whose links were broken.
+    pub(crate) outline_repaired: bool,
+    /// What still names a destination it deleted.
+    pub(crate) destination_uses: Vec<DestinationUse>,
     /// The page IDs in order, when it changed the page list.
     pub(crate) page_order: Option<Vec<PageId>>,
     /// The references to deleted pages it retargeted or removed.
@@ -285,6 +337,13 @@ macro_rules! op_from {
 }
 
 op_from!(
+    AddOutlineItem,
+    UpdateOutlineItem,
+    MoveOutlineItem,
+    DeleteOutlineItem,
+    SetNamedDestination,
+    RenameNamedDestination,
+    DeleteNamedDestination,
     SetXmpProperty,
     RemoveXmpProperty,
     ReplaceXmpPacket,

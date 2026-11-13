@@ -14,9 +14,9 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 12 | 6 | 16 | 0 | 135 | 18 |
+| core | 169 | 14 | 5 | 15 | 0 | 135 | 20 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
-| web | 168 | 5 | 0 | 0 | 0 | 163 | 5 |
+| web | 168 | 7 | 0 | 0 | 0 | 161 | 7 |
 | desktop | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
 
 ## A. Text & typography
@@ -173,10 +173,10 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| I.01 | Create/edit bookmarks; nested trees | 🟡 read | — | — | — | E3 round-trip | [`outline_titles_match_pypdf`](../../crates/laminapdf-model/tests/corpus.rs) core read<br>[`items_nest_as_in_the_file`](../../crates/laminapdf-model/tests/views.rs) core read |
+| I.01 | Create/edit bookmarks; nested trees | 🟢 round-trip | — | 🟢 round-trip | — | E3 round-trip | [`outline_titles_match_pypdf`](../../crates/laminapdf-model/tests/corpus.rs) core read<br>[`items_nest_as_in_the_file`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[adds, renames, nests and moves a bookmark and renames a destination](../../apps/web/e2e/bookmarks.e2e.test.ts) web round-trip |
 | I.02 | Internal page links | 🔵 write | — | — | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
 | I.03 | External hyperlinks | 🔵 write | — | — | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
-| I.04 | Named destinations | 🔵 write | — | — | — | E3 round-trip | [`a_goto_action_resolves_through_the_names_tree`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`a_named_destination_resolves_through_the_catalog_dests`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
+| I.04 | Named destinations | 🟢 round-trip | — | 🟢 round-trip | — | E3 round-trip | [`a_goto_action_resolves_through_the_names_tree`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`a_named_destination_resolves_through_the_catalog_dests`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[adds, renames, nests and moves a bookmark and renames a destination](../../apps/web/e2e/bookmarks.e2e.test.ts) web round-trip |
 | I.05 | Clickable table of contents | — | — | — | — | E3 round-trip |  |
 | I.06 | Initial view & zoom; page display mode | — | — | — | — | E3 round-trip |  |
 | I.07 | Define reading order; logical structure tags | — | — | — | — | E15 round-trip |  |

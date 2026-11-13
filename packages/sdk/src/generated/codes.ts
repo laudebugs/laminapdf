@@ -52,6 +52,15 @@ export type ErrorCode =
   | "no-pending-save"
   | "malformed-xmp"
   | "unknown-source"
+  | "unknown-outline-item"
+  | "direct-outline-item"
+  | "outline-not-a-sibling"
+  | "outline-move-into-itself"
+  | "unknown-named-destination"
+  | "named-destination-exists"
+  | "empty-destination-name"
+  | "link-uri-refused"
+  | "view-not-finite"
   | "xmp-claim-read-only"
   | "invalid-xmp-packet"
   | "invalid-xmp-property"
@@ -273,6 +282,15 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "no-pending-save",
   "malformed-xmp",
   "unknown-source",
+  "unknown-outline-item",
+  "direct-outline-item",
+  "outline-not-a-sibling",
+  "outline-move-into-itself",
+  "unknown-named-destination",
+  "named-destination-exists",
+  "empty-destination-name",
+  "link-uri-refused",
+  "view-not-finite",
   "xmp-claim-read-only",
   "invalid-xmp-packet",
   "invalid-xmp-property",
@@ -522,6 +540,15 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "no-pending-save": "state",
   "malformed-xmp": "input",
   "unknown-source": "usage",
+  "unknown-outline-item": "usage",
+  "direct-outline-item": "unsupported",
+  "outline-not-a-sibling": "usage",
+  "outline-move-into-itself": "usage",
+  "unknown-named-destination": "usage",
+  "named-destination-exists": "usage",
+  "empty-destination-name": "usage",
+  "link-uri-refused": "usage",
+  "view-not-finite": "usage",
   "xmp-claim-read-only": "usage",
   "invalid-xmp-packet": "input",
   "invalid-xmp-property": "usage",
@@ -718,6 +745,15 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "no-pending-save": "call rebase only after a save that returned SavedNotRebased",
   "malformed-xmp": "set replaceMalformed on the edit to replace the packet with a new one, or leave the metadata as it is",
   "unknown-source": "add the source document's bytes with addSource before applying ops that name it",
+  "unknown-outline-item": "read the outline again and use one of its item IDs; an item a previous op deleted is gone",
+  "direct-outline-item": "apply any other outline op first: it rewrites the outline and gives every bookmark an object and an ID of its own",
+  "outline-not-a-sibling": "name a position among the parent's own children, or use first or last",
+  "outline-move-into-itself": "choose a parent outside the bookmark's own branch",
+  "unknown-named-destination": "list the file's named destinations and use one of their names",
+  "named-destination-exists": "choose a name no destination has, or delete the other one first",
+  "empty-destination-name": "give the destination a name of at least one character",
+  "link-uri-refused": "use a full address such as https://example.com/page; encode other characters with %",
+  "view-not-finite": "pass finite numbers, or null to keep the viewer's current value",
   "xmp-claim-read-only": "leave the pdfaid: and pdfuaid: properties as they are; edit the other properties, or keep them unchanged in a replaced packet",
   "invalid-xmp-packet": "fix the XML at the offset in the error's data (reason says what is wrong), then replace the packet again",
   "invalid-xmp-property": "check the part the error's reason names: the namespace, prefix, name, value, or the shape a mirrored property needs",

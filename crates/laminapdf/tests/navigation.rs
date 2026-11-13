@@ -262,3 +262,113 @@ fn destinations_on_turned_pages_come_back_in_page_space() {
         );
     }
 }
+
+mod editing {
+    use laminapdf::{
+        AddOutlineItem, NamedDestination, Op, OutlineTarget, PageTargetView, Rgb, SiblingPosition, UpdateOutlineItem,
+    };
+
+    use super::*;
+
+    fn outline_pdf() -> Document {
+        Document::open_bytes(fixture("corpus/outline.pdf"), OpenOptions::default()).unwrap()
+    }
+
+    #[test]
+    fn each_item_has_its_id_and_the_name_or_address_it_goes_to() {
+        let outline = outline_pdf().outline().unwrap();
+        let ids: Vec<String> = outline.iter().map(|n| n.id.to_string()).collect();
+        assert_eq!(ids, ["o11.0", "o12.0", "o13.0"]);
+        let names: Vec<Option<&str>> = outline.iter().map(|n| n.destination_name.as_deref()).collect();
+        assert_eq!(names, [None, Some("chapter2"), Some("appendix")]);
+        assert!(outline.iter().all(|n| n.uri.is_none() && n.other_action.is_none()));
+    }
+
+    #[test]
+    fn an_edited_item_reads_back_with_its_style_and_address() {
+        let mut doc = outline_pdf();
+        let mut op = UpdateOutlineItem::new("o11.0".parse().unwrap());
+        op.target = Some(OutlineTarget::Uri("https://laminapdf.com".into()));
+        op.style = Some(laminapdf::OutlineStyle::new(Some(Rgb::new(0, 102, 204)), true, true));
+        doc.apply(vec![Op::from(op)]).unwrap();
+        let intro = doc.outline().unwrap().into_iter().next().unwrap();
+        assert_eq!(intro.uri.as_deref(), Some("https://laminapdf.com"));
+        assert_eq!(
+            (intro.color, intro.bold, intro.italic),
+            (Some(Rgb::new(0, 102, 204)), true, true)
+        );
+        assert_eq!(intro.target, None);
+    }
+
+    #[test]
+    fn named_destinations_list_both_stores_sorted() {
+        let names = outline_pdf().named_destinations().unwrap();
+        let listed: Vec<(&str, Option<u32>)> = names
+            .iter()
+            .map(|NamedDestination { name, target, .. }| (name.as_str(), target.map(|t| t.page)))
+            .collect();
+        assert_eq!(listed, [("appendix", Some(2)), ("chapter2", Some(1))]);
+    }
+
+    #[test]
+    fn a_destination_made_from_page_space_reads_back_where_it_was_given() {
+        for rotation in [
+            Rotation::None,
+            Rotation::Clockwise90,
+            Rotation::Half,
+            Rotation::Clockwise270,
+        ] {
+            let mut doc = turned(rotation);
+            let upright = matches!(rotation, Rotation::None | Rotation::Half);
+            let views = [
+                PageTargetView::At {
+                    x: Some(40.0),
+                    y: Some(120.0),
+                    zoom: Some(1.5),
+                },
+                PageTargetView::At {
+                    x: None,
+                    y: Some(200.0),
+                    zoom: None,
+                },
+                PageTargetView::Fit,
+                PageTargetView::FitWidth { y: Some(72.0) },
+                PageTargetView::FitRect {
+                    x0: 10.0,
+                    y0: 20.0,
+                    x1: 110.0,
+                    y1: 220.0,
+                },
+            ];
+            for view in views {
+                let dest = doc.destination_at(0, view).unwrap();
+                let edited = doc
+                    .apply(vec![Op::from(AddOutlineItem::new(
+                        None,
+                        SiblingPosition::Last,
+                        "here",
+                        OutlineTarget::Destination(dest),
+                    ))])
+                    .unwrap();
+                let id = edited.created_outline_items.first().unwrap().clone();
+                let node = doc.outline().unwrap().into_iter().find(|n| n.id == id).unwrap();
+                // Sideways, `/FitH` can't name the displayed top, as the builder writes it.
+                let want = match view {
+                    PageTargetView::FitWidth { .. } if !upright => PageTargetView::FitWidth { y: None },
+                    other => other,
+                };
+                assert_eq!(
+                    node.target.map(|t| rounded(t.view)),
+                    Some(want),
+                    "{rotation:?} {view:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn a_page_past_the_last_is_out_of_range() {
+        let err = outline_pdf().destination_at(3, PageTargetView::Fit).unwrap_err();
+        assert_eq!(err.code(), "page-index-out-of-range");
+    }
+}
