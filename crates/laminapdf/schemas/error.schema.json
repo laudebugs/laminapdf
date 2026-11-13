@@ -294,6 +294,7 @@
             "pdfua-title-missing",
             "pdfa-info-mismatch",
             "duplicate-tags-incomplete",
+            "imported-tags-dropped",
             "tounicode-conflict",
             "whole-font-rebuilt",
             "flow-keep-broken",

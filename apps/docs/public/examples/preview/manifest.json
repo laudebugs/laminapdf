@@ -84,6 +84,24 @@
         }
       ]
     },
+    "extract_pages": {
+      "sha256": "8e72ce3becd682447fce01d2c6315f45c479343947a6b2ecaaa002c2453ccbd4",
+      "bytes": 912,
+      "pages": [
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        }
+      ]
+    },
     "flowing_invoice": {
       "sha256": "7a31cf0d6889c799b89431b7f9c67ca08b615d1e00fa43182bd0689b9306591e",
       "bytes": 27911,
@@ -201,6 +219,24 @@
         {
           "width": 1190,
           "height": 1683
+        }
+      ]
+    },
+    "insert_pages": {
+      "sha256": "9540aa8859176c36b5907861334592bb98bc12b41b2d5cc04691a3421378562e",
+      "bytes": 3764,
+      "pages": [
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
         }
       ]
     },

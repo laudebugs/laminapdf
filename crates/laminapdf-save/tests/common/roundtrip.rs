@@ -31,9 +31,10 @@ use laminapdf_cos::OpenOptions;
 use laminapdf_model::xmp::{RdfValue, XmpValue};
 use laminapdf_model::{LabelStyle, OpenAction, PageId, PageLayout, PageMode, PagePosition, PageSize, Rotation};
 use laminapdf_ops::{
-    DeletePages, Document, DuplicatePages, InfoPatch, InsertBlankPages, MetadataKey, MetadataPatch, MovePages, Op,
-    OpenAt, OpenZoom, Origin, PageLabelRange, RemoveMetadata, ReversePages, RotatePage, RotatePages, SetInfo,
-    SetInitialView, SetMetadata, SetPageLabels, SetXmpProperty, WindowPreferencesPatch, read_metadata,
+    DeletePages, Document, DuplicatePages, InfoPatch, InsertBlankPages, InsertPagesFrom, MetadataKey, MetadataPatch,
+    MovePages, Op, OpenAt, OpenZoom, Origin, PageLabelRange, RemoveMetadata, ReplacePages, ReversePages, RotatePage,
+    RotatePages, SetInfo, SetInitialView, SetMetadata, SetPageLabels, SetXmpProperty, SourceId, WindowPreferencesPatch,
+    read_metadata,
 };
 use laminapdf_save::{Restriction, Save, SaveError, SaveMode, SaveOptions, SavePlanner, SaveReport};
 use serde_json::{Value, json};
@@ -250,8 +251,9 @@ fn new_labels(pages: usize) -> Vec<Option<String>> {
 /// The ops each fixture is saved with: a title through the deprecated `setInfo`, a rotation,
 /// the metadata ops (J.01–J.03, J.10), the XMP property op (J.04: the title, mirrored in
 /// Info, and a custom property, [`CUSTOM`]), page labels (I.10) and the page ops (C.01, C.03,
-/// C.04, C.08, C.13), duplicating included (C.03), and the initial view (I.06, I.11).
-const OPS: [&str; 13] = [
+/// C.04, C.08, C.13), duplicating included (C.03), pages copied in from another document
+/// (C.02) or replacing the first page (C.16), from [`SOURCE`], and the initial view (I.06, I.11).
+const OPS: [&str; 15] = [
     "setInfo",
     "rotatePage",
     "setMetadata",
@@ -264,8 +266,13 @@ const OPS: [&str; 13] = [
     "rotatePages",
     "setPageLabels",
     "duplicatePages",
+    "insertPagesFrom",
+    "replacePages",
     "setInitialView",
 ];
+
+/// The source document the import cases copy their page from: one upright page.
+const SOURCE: &str = "fixtures/corpus/hello.pdf";
 
 /// What the `setInitialView` cases write: open on the last page at its width, with the
 /// thumbnails panel, two pages side by side (PDF 1.5, so older files' `/Version` rises) and the title in
@@ -281,7 +288,7 @@ const STAMP: &str = "D:20261110093000Z";
 
 /// The op `name`, or `None` for a deletion, a reversal or a move on a one-page file (a document
 /// keeps a page, and one page reversed or moved is no change).
-fn op(doc: &Document, name: &str, rotation: Rotation) -> Option<Op> {
+fn op(doc: &Document, name: &str, rotation: Rotation, source: SourceId) -> Option<Op> {
     let [title, author, subject, keywords] = INFO.map(|(_, value)| Some(value));
     let ids: Vec<PageId> = doc.pages().unwrap().iter().map(|p| p.id().clone()).collect();
     Some(match name {
@@ -331,6 +338,15 @@ fn op(doc: &Document, name: &str, rotation: Rotation) -> Option<Op> {
         "movePages" => return None,
         "rotatePages" => RotatePages::turn(ids, rotation).into(),
         "duplicatePages" => DuplicatePages::new(ids.first().cloned().into_iter().collect(), PagePosition::End).into(),
+        "insertPagesFrom" | "replacePages" => {
+            let from = doc.source_document(&source).unwrap().pages().unwrap();
+            let page = vec![from.get(0)?.id().clone()];
+            if name == "insertPagesFrom" {
+                InsertPagesFrom::new(source, page, PagePosition::End).into()
+            } else {
+                ReplacePages::new(vec![ids.first().cloned()?], source, page).into()
+            }
+        }
         "setPageLabels" => {
             let pages = doc.pages().unwrap();
             let mut ranges = vec![PageLabelRange::new(
@@ -357,7 +373,7 @@ fn op(doc: &Document, name: &str, rotation: Rotation) -> Option<Op> {
 /// nothing, so it follows the metadata edit, in the same transaction.
 fn case_ops(doc: &Document, op_name: &str, op: Op, rotation: Rotation) -> Vec<Op> {
     match op_name {
-        "removeMetadata" => vec![self::op(doc, "setMetadata", rotation).unwrap(), op],
+        "removeMetadata" => vec![self::op(doc, "setMetadata", rotation, SourceId::of(&[])).unwrap(), op],
         "setXmpProperty" => vec![
             op,
             SetXmpProperty::new(CUSTOM.0, "rt", CUSTOM.1, XmpValue::Integer(7)).into(),
@@ -401,6 +417,15 @@ fn after_op(op: &Op, rotation: Rotation, pages: &mut usize, rotations: &mut Vec<
         }
         Op::ReversePages(_) => rotations.reverse(),
         Op::MovePages(_) => rotations.rotate_right(1),
+        Op::InsertPagesFrom(_) => {
+            *pages += 1;
+            rotations.push(0);
+        }
+        Op::ReplacePages(_) => {
+            if let Some(first) = rotations.first_mut() {
+                *first = 0;
+            }
+        }
         Op::DuplicatePages(_) => {
             *pages += 1;
             if let Some(&first) = rotations.first() {
@@ -477,6 +502,7 @@ pub struct Suite {
 /// Runs every case over the fixtures under `root` (the repository root).
 pub fn run(root: &Path) -> Suite {
     let mut suite = Suite::default();
+    let source_bytes = std::fs::read(root.join(SOURCE)).unwrap();
     for (index, (name, bytes, category)) in fixtures(root).into_iter().enumerate() {
         let rotation = ROTATIONS[index % ROTATIONS.len()];
         for op_name in OPS {
@@ -490,8 +516,10 @@ pub fn run(root: &Path) -> Suite {
                     )
                     .to_lowercase();
                     let mut doc = Document::open(bytes.clone(), OpenOptions::default()).unwrap();
+                    // Adding a source changes nothing to save.
+                    let source = doc.add_source(source_bytes.clone(), None).unwrap();
                     let (mut pages, mut rotations, mut info, _) = facts(&doc);
-                    let Some(op) = op(&doc, op_name, rotation) else {
+                    let Some(op) = op(&doc, op_name, rotation, source) else {
                         continue;
                     };
                     let category = with_widget_rule(&doc, &op, category);
@@ -572,10 +600,16 @@ pub fn run(root: &Path) -> Suite {
             }
         }
     }
-    copies(root, &mut suite);
-    images(root, &mut suite);
-    outlines(root, &mut suite);
+    extra_cases(root, &mut suite);
     suite
+}
+
+/// The cases beyond one op on one fixture: page copies, images, new documents and outlines.
+fn extra_cases(root: &Path, suite: &mut Suite) {
+    copies(root, suite);
+    images(root, suite);
+    extracted(root, suite);
+    outlines(root, suite);
 }
 
 /// The outline as the tools list it: `[depth, title, page]` per item in document order, the
@@ -680,6 +714,68 @@ fn outlines(root: &Path, suite: &mut Suite) {
                 "direct_info": matches!(reopened.trailer().get("Info"), Some(laminapdf_cos::Object::Dict(_))),
                 "invalidated": 0,
                 "outline": outline,
+            }));
+            suite.outputs.push((file, output));
+        }
+    }
+}
+
+/// The new-document cases (C.05, H.10): every fixture's last page made into a new document with
+/// `extract_pages`, and its pages split in two with `export_ranges`, each saved (a full write)
+/// and reopened with the pages, rotations and labels it was given. The tools check them like any
+/// other output.
+fn extracted(root: &Path, suite: &mut Suite) {
+    for (name, bytes, _) in fixtures(root) {
+        let Ok(doc) = Document::open(bytes, OpenOptions::default()) else {
+            continue;
+        };
+        let (_, rotations, _, labels) = facts(&doc);
+        let ids: Vec<PageId> = doc.pages().unwrap().iter().map(|p| p.id().clone()).collect();
+        let half = ids.len().div_ceil(2);
+        let mut cases = vec![("extract", ids.len() - 1..ids.len())];
+        if ids.len() > 1 {
+            cases.push(("export-first", 0..half));
+            cases.push(("export-second", half..ids.len()));
+        }
+        for (case, range) in cases {
+            let id = format!("{}-{case}", name.replace(['/', '+'], "_").trim_end_matches(".pdf")).to_lowercase();
+            let mut part = doc.extract_pages(&ids[range.clone()]).unwrap();
+            let mut output = Vec::new();
+            let report = match part.save(&mut output, &SaveOptions::new()) {
+                Ok(report) => report,
+                Err(e) => {
+                    suite
+                        .failures
+                        .push(format!("{id}: lamina refused the save: {}", e.code()));
+                    continue;
+                }
+            };
+            suite.saved += 1;
+            let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
+            let (pages, got_rotations, _, got_labels) = facts(&reopened);
+            let want = (
+                range.len(),
+                rotations[range.clone()].to_vec(),
+                labels[range.clone()].to_vec(),
+            );
+            if (pages, got_rotations.clone(), got_labels) != want || reopened.was_repaired() || reopened.is_encrypted()
+            {
+                suite
+                    .failures
+                    .push(format!("{id}: lamina reopened {pages} pages, expected {want:?}"));
+            }
+            let file = format!("{id}.pdf");
+            suite.manifest.push(json!({
+                "file": &file,
+                "source": name,
+                "mode": format!("{:?}", report.mode()),
+                "pages": pages,
+                "rotations": got_rotations,
+                "title": null,
+                "info": null,
+                "encrypted": false,
+                "direct_info": false,
+                "invalidated": 0,
             }));
             suite.outputs.push((file, output));
         }

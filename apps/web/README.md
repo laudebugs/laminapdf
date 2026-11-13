@@ -22,7 +22,11 @@ pnpm --filter @laminapdf/web build      # dist/: what deploys
 pnpm --filter @laminapdf/web preview    # dist/ through `wrangler dev`, with the production headers, on port 8788
 ```
 
-Open a PDF with **Choose a file**, by dropping it anywhere in the window, or by pasting it. Add `#debug` to the address for the debug menu, which switches the render backend between PDFium and hayro, and for the first page's render time in the status bar.
+Open a PDF with **Choose a file**, by dropping it anywhere in the window, or by pasting it.
+
+To close it, press the × after its name, or choose **Close document** from **More** or the palette; on a phone, press **Back to files**. The reader goes back to the home screen, and screen readers hear which file closed. With unsaved changes it asks first, even when you press the browser's Back and the address loses its `#url=` link: **Cancel** keeps the document and puts the link back.
+
+Add `#debug` to the address for the debug menu, which switches the render backend between PDFium and hayro, and for the first page's render time in the status bar.
 
 ## How it fits together
 

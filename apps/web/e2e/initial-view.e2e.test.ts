@@ -88,7 +88,7 @@ describe(`how a file opens, and its threads, in ${BROWSER}`, () => {
   /** Opens `bytes` as `name` with Choose a file, from the home screen or over an open document. */
   async function openBytes(page: Page, name: string, bytes: Buffer): Promise<void> {
     const chooser = page.waitForEvent("filechooser");
-    if ((await page.getByRole("button", { name: "Choose a file" }).count()) === 0) await more(page, "Choose a file");
+    if ((await page.getByRole("button", { name: "Choose a file" }).count()) === 0) await more(page, "Close document");
     await page.getByRole("button", { name: "Choose a file" }).click();
     await (await chooser).setFiles({ name, mimeType: "application/pdf", buffer: bytes });
     await page.locator(".web-viewer canvas").first().waitFor();
@@ -176,7 +176,7 @@ describe(`how a file opens, and its threads, in ${BROWSER}`, () => {
     await expect.poll(() => shownPage(page)).toBe("4");
 
     // A file without threads has no Threads tab.
-    await more(page, "Choose a file");
+    await more(page, "Close document");
     await chooseFile(watched, "outline.pdf");
     await expect.poll(() => page.getByRole("tab", { name: "Outline" }).count()).toBe(1);
     expect(await page.getByRole("tab", { name: "Threads" }).count()).toBe(0);

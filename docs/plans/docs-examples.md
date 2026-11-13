@@ -51,7 +51,7 @@ The pictures come from the example goldens, rendered at 144 dpi (2× the render 
 An "Edit and run" button loads, on first press, a small runner of our own. Since Q4d the button sits under the first page's picture; the editor takes the code's place, and a run's pages take the picture's:
 
 - **Editor:** CodeMirror 6 (MIT) with TypeScript highlighting, holding the example's own file. Since Q4s, its lines start unwrapped and scroll sideways, as in an editor; a Wrap lines toggle beside Format, at the bar's far end, wraps them, and pressing it again unwraps them.
-- **Types:** stripped by Sucrase (MIT) in the runner, with no type check, so a typo shows as the error the SDK throws, not a compiler message.
+- **Types:** stripped by Sucrase (MIT) in the runner, with no type check, so a typo shows as the error the SDK throws, not a compiler message. Since Q4t the editor also marks type errors, but a run never waits for them.
 - **Run:** in a module worker the docs site serves at `/run/worker.js`. A worker's CSP comes from its own script's response, so `_headers` gives `/run/*` a policy of its own with `'unsafe-eval'`, and every page keeps ADR 0011's headers unchanged. The worker loads the docs' own build of `@laminapdf/sdk` and the fonts, images and data the example takes, all from the docs site, and passes the same fixed file ID and date as the SDK's tests, so an unchanged example gives its golden's bytes.
 - **Result:** `@laminapdf/render-hayro` draws each page in the worker, the same renderer as the Result tab's pictures, and the page shows them as canvases where the picture was. A Download button saves the PDF. An error shows its code and hint, as `LaminaPdfError` gives them.
 - **Reset:** puts the example's file back.
@@ -63,9 +63,9 @@ The first draft of this plan ran the code in a sandboxed iframe and drew it with
 
 ### Completion and colours (Q4t, Q4u)
 
-The editor completes keywords, snippets and the names the file declares, but nothing of the SDK's API ([research](../research/docs-site/editor-completion.md)). Q4t runs TypeScript 6.0.3's language service in a worker of its own, over the SDK's `.d.ts` files, for completion, hover types and type errors. The worker weighs about 1.15 MB gzipped and starts on the editor's first focus or keystroke, so a reader who only runs an example loads none of it. Type errors show as marks and never stop a run: Sucrase still strips the types, and the SDK's own error still reports what the types miss. A key shows the type at the cursor, so hover types don't need a pointer.
+Before Q4t, the editor completed keywords, snippets and the names the file declares, but nothing of the SDK's API ([research](../research/docs-site/editor-completion.md)). Q4t runs TypeScript 6.0.3's language service in a worker of its own, `/run/types.js` (1.17 MB gzipped). The runner's build bundles in the files it reads: the ES library declarations and the `.d.ts` files of the SDK and its WebAssembly bindings. It gives completion with each item's signature and first doc sentence, types on hover, and type errors as marks. The worker starts on the reader's first edit, a completion they ask for (Ctrl+Space) or the type key (Ctrl+Shift+Space; Ctrl+K opens the docs' search). A reader who only runs an example loads none of it. Type errors never stop a run: Sucrase still strips the types, and the SDK's own error still reports what they miss. A line under the editor names both keys.
 
-The editor keeps CodeMirror's own highlighting instead of offering Shiki. Both already use the same five `--paper-code-*` colours; Shiki would add 74 KB, retokenize on every keystroke, and need an extension of our own, since the existing one writes style attributes the CSP blocks. Q4u instead tests that every token of the runnable examples falls in the same kind in the editor as in the static block, and fixes the editor's map where it doesn't.
+The code blocks and the editor colour code alike, in place of a Shiki option (Q4u). The blocks used Starlight's Night Owl themes, so a block changed colour when the editor replaced it; now both use the five `--paper-code-*` colours the website's code panel uses. The blocks get them from the shared rules in `@laminapdf/site-kit/code-kinds`, applied by an Expressive Code plugin of the docs' own (`apps/docs/plugins/code-kinds.mjs`, with Shiki's colouring off). The editor gets them from its tag map (`apps/docs/runner/kinds.ts`). A test tokenizes every runnable example both ways and fails where a token's kind differs.
 
 ## 3. What this plan leaves out
 
@@ -83,8 +83,8 @@ The editor keeps CodeMirror's own highlighting instead of offering Shiki. Both a
 | [Q4q](../todos/done/Q4q-resizable-page-beside-the-code.md) | A divider between the code and the page beside it, dragged or moved by keys, its width kept for every example |
 | [Q4r](../todos/done/Q4r-wrap-and-format-code.md) | A "Wrap long lines" button beside every code block's Copy, and Format in "Edit and run" (Prettier, loaded on the first press) |
 | [Q4s](../todos/done/Q4s-editor-line-wrap.md) | The editor's lines unwrapped by default, with a Wrap lines toggle in the runner's bar |
-| [Q4t](../todos/ready/Q4t-editor-type-completion.md) | Completion, hover types and type errors in "Edit and run" from TypeScript's language service in a worker, loaded on the first keystroke |
-| [Q4u](../todos/ready/Q4u-editor-colours-match-the-blocks.md) | The editor's colours tested against the static blocks' and matched, in place of a Shiki option |
+| [Q4t](../todos/done/Q4t-editor-type-completion.md) | Completion, hover types and type errors in "Edit and run" from TypeScript's language service in a worker, loaded on the first edit |
+| [Q4u](../todos/done/Q4u-editor-colours-match-the-blocks.md) | The code blocks in the editor's five Paper colours, held to the editor's by a test, in place of a Shiki option |
 
 ## 5. To-dos
 

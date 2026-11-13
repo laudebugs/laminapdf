@@ -134,7 +134,7 @@ pub use threads::{Bead, Thread};
 pub use tree::{NameTree, NumberTree};
 #[cfg(feature = "tree-write")]
 pub use tree_writer::TreeWriter;
-pub use widgets::{FieldNames, PageWidget};
+pub use widgets::{FieldNames, PageWidget, is_widget};
 
 // The layers below, in façade order (ADR 0005 §1): what callers of the model need without
 // naming `laminapdf-cos`.

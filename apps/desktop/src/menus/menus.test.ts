@@ -99,8 +99,9 @@ describe("the native menus' data", () => {
         m.entries.flatMap((e) => ("command" in e ? [e.command] : "choices" in e ? [e.choices] : [])),
       ),
     );
-    // Open recent is a submenu of its files; Install is the web reader's.
-    const elsewhere = new Set(["file.open-recent", "app.install"]);
+    // Open recent is a submenu of its files; Install and Close document are the web reader's
+    // (the desktop closes a document with its tab: Close tab).
+    const elsewhere = new Set(["file.open-recent", "app.install", "file.close"]);
     const menuHomes = new Set(["file-menu", "edit-menu", "view-menu", "help-menu", "native-menu"]);
     const unlisted = desktopRegistry()
       .list()

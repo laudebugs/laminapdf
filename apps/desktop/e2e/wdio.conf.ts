@@ -36,7 +36,9 @@ export function e2eConfig(names: readonly string[], args: readonly string[] = []
     // One retry, and a pass on it reported as flaky, never hidden (ADR 0018 §4).
     mochaOpts: { ui: "bdd", timeout: 60_000, retries: 1 },
     afterTest: async (test, _context, { passed, retries }) => {
-      if (!passed) await browser.saveScreenshot(join(output, `${test.title.replace(/\W+/g, "-")}.png`));
+      // One picture per attempt: the retry's would otherwise replace the first attempt's.
+      const attempt = retries.attempts + 1;
+      if (!passed) await browser.saveScreenshot(join(output, `${test.title.replace(/\W+/g, "-")}-${attempt}.png`));
       if (passed && retries.attempts > 0) reportFlaky(test.file, test.fullTitle);
     },
   };

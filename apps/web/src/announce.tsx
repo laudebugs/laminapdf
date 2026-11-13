@@ -1,5 +1,5 @@
 // What the reader says to a screen reader without moving focus (WCAG 4.1.3): the document that
-// opened, the page in view once scrolling settles, and the zoom. Find says its own counts; failures
+// opened or closed, the page in view once scrolling settles, and the zoom. Find says its own counts; failures
 // are alerts where they show.
 
 import { Announcer, LiveRegions, message } from "@laminapdf/ui";
@@ -17,12 +17,14 @@ export function spokenPage(pages: readonly PageInfo[], index: number): string {
 /**
  * Announces `viewer`'s page and zoom changes, and `file` with its page count each time a document
  * opens (`opened.pages`), or, when it came back where its reader stopped (`opened.resumedAt`,
- * 0-based), that page; returns the live regions to render once.
+ * 0-based), that page; and "Closed {name}" when the reader goes back to the home screen (`empty`)
+ * straight from an open document (R19). Returns the live regions to render once.
  */
 export function useAnnouncements(
   viewer: Viewer | undefined,
   file: { readonly name: string } | undefined,
   opened: { readonly pages: readonly PageInfo[]; readonly resumedAt?: number | undefined },
+  empty: boolean,
 ): ReactNode {
   const { pages } = opened;
   // Only while a document is open: the engine clears it when one closes.
@@ -35,6 +37,18 @@ export function useAnnouncements(
     latest.current = pages;
   });
   const fileName = file?.name;
+  // The open document's name, read when the reader turns empty. This effect runs before the next
+  // one clears it, so only a document that was open when the reader closed is announced.
+  const openName = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!empty) return;
+    const name = openName.current;
+    openName.current = undefined;
+    if (name !== undefined) announcer.polite(message("announce.closed", { name }), "open");
+  }, [announcer, empty]);
+  useEffect(() => {
+    openName.current = fileName;
+  }, [fileName]);
   useEffect(() => {
     if (file === undefined || fileName === undefined || count === 0) return;
     if (resumedAt !== undefined) {

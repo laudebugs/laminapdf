@@ -178,8 +178,8 @@ describe("the reader's commands", () => {
   // The desktop's set: the reader's and the tab and window commands.
   const commands = [...readerCommands(), ...desktopCommands()];
 
-  it("are ADR 0024's 48, reader mode's 7, Forget reading positions, Follow link, What Lamina PDF can do and the desktop's 7 tab, window and quit commands, each with a visible home besides the palette", () => {
-    expect(commands).toHaveLength(65);
+  it("are ADR 0024's 48, reader mode's 7, Forget reading positions, Follow link, What Lamina PDF can do, Close document and the desktop's 7 tab, window and quit commands, each with a visible home besides the palette", () => {
+    expect(commands).toHaveLength(66);
     expect(commands.filter((c) => c.home.length === 0).map((c) => c.id)).toEqual([]);
   });
 
@@ -226,6 +226,30 @@ describe("the reader's commands", () => {
       state: "disabled",
       reason: "Open a document first.",
     });
+  });
+
+  it("leave Close document to a shell that closes to a home screen, and only while it holds a document", async () => {
+    const registry = new CommandRegistry();
+    for (const c of commands) registry.register(c);
+    const closes: string[] = [];
+    const actions = { "file.close": () => closes.push("closed") };
+    const file = fakeFile("a.pdf");
+    const states = {
+      empty: { phase: "empty" },
+      opening: { phase: "opening", file },
+      open: { phase: "open", file, pageCount: 3, mode: "select" },
+    } as const;
+    const holding = (phase: keyof typeof states) =>
+      readerCommandsFor({ reader: { getState: () => states[phase], subscribe: () => () => true }, actions }).context;
+    // The desktop app gives no handler: its tabs close documents, so the command never shows there.
+    expect(registry.availability("file.close", readerCommandsFor({}).context).state).toBe("hidden");
+    expect(registry.availability("file.close", holding("empty"))).toEqual({
+      state: "disabled",
+      reason: "Open a document first.",
+    });
+    expect(registry.availability("file.close", holding("opening")).state).toBe("available");
+    await registry.run("file.close", holding("open"));
+    expect(closes).toEqual(["closed"]);
   });
 
   it("leave Open from URL to a platform that can open URLs", () => {

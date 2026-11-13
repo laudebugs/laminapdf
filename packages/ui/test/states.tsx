@@ -719,6 +719,19 @@ const topBar: Example[] = [
     },
   },
   {
+    component: "ReaderTopBar",
+    state: "a document open, with the × that closes it (the web, R19)",
+    element: () => {
+      const reader = holding({ phase: "open", file, pageCount: 24, mode: "select" });
+      const viewer = new FakeViewer();
+      return (
+        <WithCommands reader={reader} viewer={viewer} actions={{ ...SHELL, "file.close": noop }}>
+          <ReaderTopBar reader={reader} viewer={viewer} keys="other" sidebarOpen more={MORE} />
+        </WithCommands>
+      );
+    },
+  },
+  {
     component: "EditArea",
     state: "the editor's top bar: two unsaved changes, one to redo",
     element: () => {

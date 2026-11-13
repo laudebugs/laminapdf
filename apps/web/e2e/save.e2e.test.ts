@@ -151,7 +151,7 @@ describe(`saving in ${BROWSER}`, () => {
     await page.getByRole("button", { name: "Download", exact: true }).click();
     const path = await (await download).path();
     await expect.poll(() => saveState(page)).toBe("No unsaved changes");
-    await more(page, "Choose a file");
+    await more(page, "Close document");
     const chooser = page.waitForEvent("filechooser");
     await page.getByRole("button", { name: "Choose a file" }).click();
     await (await chooser).setFiles({ name: NAME, mimeType: "application/pdf", buffer: readFileSync(path) });

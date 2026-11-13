@@ -69,7 +69,7 @@
           "id": "A.06",
           "name": "Alignment & line spacing",
           "round": "E7",
-          "target": "round-trip",
+          "target": "write",
           "surfaces": {
             "core": null,
             "pdf": null,
@@ -158,8 +158,8 @@
         {
           "id": "B.01",
           "name": "Insert, delete, replace images",
-          "round": "E6",
-          "target": "write",
+          "round": "E7",
+          "target": "round-trip",
           "surfaces": {
             "core": null,
             "pdf": null,
@@ -170,8 +170,8 @@
         {
           "id": "B.02",
           "name": "Resize, rotate, crop, reposition",
-          "round": "E6",
-          "target": "write",
+          "round": "E7",
+          "target": "round-trip",
           "surfaces": {
             "core": null,
             "pdf": null,
@@ -323,7 +323,7 @@
           "round": "E2",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
+            "core": "round-trip",
             "pdf": null,
             "web": null,
             "desktop": null
@@ -359,7 +359,7 @@
           "round": "E2",
           "target": "write",
           "surfaces": {
-            "core": null,
+            "core": "write",
             "pdf": null,
             "web": null,
             "desktop": null
@@ -491,7 +491,7 @@
           "round": "E2",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
+            "core": "round-trip",
             "pdf": null,
             "web": null,
             "desktop": null
@@ -1325,7 +1325,7 @@
           "round": "E2",
           "target": "write",
           "surfaces": {
-            "core": null,
+            "core": "write",
             "pdf": null,
             "web": null,
             "desktop": null

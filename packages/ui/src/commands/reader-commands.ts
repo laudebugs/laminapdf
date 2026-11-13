@@ -72,6 +72,20 @@ function fileOpenCommands(): AnyCommand[] {
       enabled: (ctx) => (ctx.reader === undefined ? message("command.reason.noReader") : true),
       run: (ctx) => ctx.reader?.openFromPicker(),
     },
+    // Delegated: only a shell that closes to a home screen handles it (the web reader); the
+    // desktop app closes a document with its tab, so there the command, and the ×, never show.
+    delegated({
+      id: "file.close",
+      title: title("file.close"),
+      keywords: ["file", "home", "back"],
+      group: "file",
+      icon: "close",
+      home: ["top-bar", "file-menu"],
+      enabled: (ctx) =>
+        ctx.reader === undefined || ctx.reader.getState().phase === "empty"
+          ? message("command.reason.noDocument")
+          : true,
+    }),
     delegated({
       id: "file.open-url",
       title: title("file.open-url"),

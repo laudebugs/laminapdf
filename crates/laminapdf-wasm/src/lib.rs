@@ -40,6 +40,7 @@ mod extract;
 mod memory;
 #[cfg(feature = "extract")]
 mod navigation;
+mod pages;
 mod plan;
 #[cfg(feature = "extract")]
 mod properties;

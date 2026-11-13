@@ -1,6 +1,8 @@
 // The reader's top bar (§7.1, Reader v0.1): the sidebar toggle and the file name on the left, with
 // "Loading pages…" or "Locked" while those apply; the page input, zoom, Commands and More on the
 // right. Without a document the file area shows what the shell gives it (the wordmark, or Back).
+// With one, an × after the file name closes it (R19), where the shell handles `file.close`; on a
+// phone, Back to files at the start of the bar does the same.
 // It reads the reader controller and the viewer; its buttons run registered commands
 // (`view.toggle-sidebar`, `palette.open`), whose handlers are the shell's. On a phone (§6.2) it keeps
 // the file name and More, which opens the More sheet; the bottom bar holds the rest, pinch replaces
@@ -14,6 +16,7 @@ import { type KeyPlatform, ShortcutChip } from "../components/shortcut-chip.js";
 import { ToggleButton } from "../components/toggle.js";
 import { message } from "../messages.js";
 import { Menu, type MenuEntry, MenuTrigger } from "../overlays/popover.js";
+import { Tooltip } from "../overlays/tooltip.js";
 import { MoreSheet, usePhone } from "../shell/phone.js";
 import { type ExternalStore, useStoreState } from "../state/hooks.js";
 import type { ReaderState } from "../state/reader-machine.js";
@@ -127,6 +130,7 @@ function PhoneTopBar<Id extends string>(props: ReaderTopBarProps<Id> & { hidden:
     // Hidden, the bar is inert, so focus never rests in it out of sight.
     <header className="paper-top-bar" data-phone="" data-hidden={props.hidden || undefined} inert={props.hidden}>
       <div className="paper-top-bar-file">
+        <BackToFiles state={state} />
         <FileArea state={state} isLoading={props.isLoading === true} home={props.home} />
       </div>
       {props.debug}
@@ -200,7 +204,7 @@ function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNo
             onChange={() => sidebar.run()}
           />
         )}
-        <FileArea state={state} isLoading={props.isLoading === true} home={props.home} />
+        <FileArea state={state} isLoading={props.isLoading === true} home={props.home} closable />
         {props.editArea}
       </div>
       <div className="paper-top-bar-tools">
@@ -281,8 +285,37 @@ function HistoryButtons({ history }: { history: NonNullable<ReaderTopBarProps<st
   );
 }
 
+/** The × after the file name (R19): runs `file.close`, and shows only where the shell handles it. */
+function CloseButton({ name }: { name: string }): ReactNode {
+  const close = useCommand("file.close");
+  if (close.availability.state === "hidden") return null;
+  return (
+    <Tooltip text={message("command.file.close")}>
+      <IconButton icon="close" size={26} label={message("reader.close.named", { name })} onPress={() => close.run()} />
+    </Tooltip>
+  );
+}
+
+/** The phone's Back to files (R18, R19): `file.close`, at the start of the bar while there is a document. */
+function BackToFiles({ state }: { state: ReaderState }): ReactNode {
+  const close = useCommand("file.close");
+  if (state.phase === "empty" || close.availability.state === "hidden") return null;
+  return <IconButton icon="back" label={message("reader.backToFiles")} onPress={() => close.run()} />;
+}
+
 /** The file name and what is happening to it, or the shell's home content without a document. */
-function FileArea({ state, isLoading, home }: { state: ReaderState; isLoading: boolean; home: ReactNode }): ReactNode {
+function FileArea({
+  state,
+  isLoading,
+  home,
+  closable = false,
+}: {
+  state: ReaderState;
+  isLoading: boolean;
+  home: ReactNode;
+  /** Whether the × that closes the document follows its name (the desktop-width bar). */
+  closable?: boolean;
+}): ReactNode {
   if (state.phase === "empty")
     return home ?? <span className="paper-top-bar-empty">{message("reader.noDocument")}</span>;
   const loading = state.phase === "opening" || (state.phase === "open" && isLoading);
@@ -293,6 +326,7 @@ function FileArea({ state, isLoading, home }: { state: ReaderState; isLoading: b
       <span className="paper-top-bar-name" title={state.file.name}>
         {state.file.name}
       </span>
+      {closable ? <CloseButton name={state.file.name} /> : null}
       {note === undefined ? null : <span className="paper-top-bar-note">{note}</span>}
     </>
   );

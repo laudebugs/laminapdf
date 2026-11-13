@@ -50,8 +50,10 @@ def write(name, objects, streams=None, catalog_extra=""):
     (OUT / name).write_bytes(bytes(out))
 
 
-def page(num, annots, extra=""):
-    return {num: f"<< /Type /Page /Parent 2 0 R {MEDIA} /Annots {annots} {extra}>>"}
+def page(num, annots, extra="", resources="<< >>"):
+    # Every page has /Resources (ISO 32000-2 §7.7.3.3), empty unless its content uses some, so
+    # qpdf --check passes.
+    return {num: f"<< /Type /Page /Parent 2 0 R {MEDIA} /Resources {resources} /Annots {annots} {extra}>>"}
 
 
 def every_subtype():
@@ -120,7 +122,12 @@ def flags():
 def tagged():
     objects = {
         2: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-        **page(3, "[10 0 R 11 0 R 12 0 R]", "/StructParents 0 /Tabs /S /Contents 30 0 R "),
+        **page(
+            3,
+            "[10 0 R 11 0 R 12 0 R]",
+            "/StructParents 0 /Tabs /S /Contents 30 0 R ",
+            "<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>",
+        ),
         10: "<< /Type /Annot /Subtype /Square /Rect [20 20 80 80] /StructParent 1 /Contents (Square) >>",
         11: "<< /Type /Annot /Subtype /Text /Rect [100 200 120 220] /StructParent 2 /Contents (Note) >>",
         12: "<< /Type /Annot /Subtype /Line /Rect [150 150 250 250] /L [150 150 250 250] /StructParent 3 /Contents (Line) >>",
