@@ -558,7 +558,7 @@ function Canvas({
 }): ReactNode {
   const { reader } = engine;
   const linkProblem = useStoreState(engine, (s) => s.linkProblem);
-  const closed = useClosed(state.phase);
+  const closed = useClosed(state.phase, linkProblem !== undefined);
   return (
     <>
       {state.phase === "empty" && linkProblem === undefined ? (
@@ -582,15 +582,17 @@ function Canvas({
 }
 
 /**
- * Whether the home screen shows because a document closed (R19), not because the app started:
- * set when `phase` turns `empty` from any other phase, cleared when it leaves `empty`.
+ * Whether the home screen shows because a document just closed (R19), not because the app started
+ * or a link's problem page gave way to it: set when `phase` turns `empty` with the home screen
+ * showing, cleared whenever the home screen comes or goes any other way.
  */
-function useClosed(phase: ReaderState["phase"]): boolean {
-  const [previous, setPrevious] = useState(phase);
+function useClosed(phase: ReaderState["phase"], linkProblem: boolean): boolean {
+  const home = phase === "empty" && !linkProblem;
+  const [previous, setPrevious] = useState({ phase, home });
   const [closed, setClosed] = useState(false);
-  if (phase !== previous) {
-    setPrevious(phase);
-    setClosed(phase === "empty");
+  if (phase !== previous.phase || home !== previous.home) {
+    setPrevious({ phase, home });
+    setClosed(home && phase !== previous.phase);
   }
   return closed;
 }

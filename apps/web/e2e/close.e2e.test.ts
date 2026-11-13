@@ -77,6 +77,8 @@ describe(`closing a document in ${BROWSER}`, () => {
     const chooser = page.waitForEvent("filechooser");
     await more(page, "Open another file…");
     await (await chooser).setFiles(new URL("outline.pdf", CORPUS).pathname);
+    // Opened again before closing: a close while it opens says nothing, as only an open document is announced.
+    await opened(watched, "Outline fixture");
     await more(page, "Close document");
     await home(page, "outline.pdf");
     await chooseFile(watched, "outline.pdf");
