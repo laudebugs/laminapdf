@@ -5,7 +5,7 @@
 
 ## What happened
 
-The annotation's flags forbid the change (ISO 32000-2 §12.5.3, Table 167). The `Locked` flag forbids deleting the annotation, moving it or changing its properties, though its contents may still change. The `LockedContents` flag forbids changing its contents.
+The annotation's flags forbid the change (ISO 32000-2 §12.5.3, Table 167). The `Locked` flag forbids deleting the annotation, moving it or changing its properties, though its contents may still change. The `LockedContents` flag forbids changing its contents. A delete also takes the annotation's pop-up, its replies and the rest of its group, so a lock on any of those refuses it too.
 
 ## Why
 
