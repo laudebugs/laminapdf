@@ -191,8 +191,8 @@ pub use laminapdf_ops::{
     FieldOutcome, InfoPatch, InsertBlankPages, MetadataKey, MetadataPatch, MetadataSource, ModificationClass,
     MoveOutlineItem, MovePages, Offset, Op, OpLog, OpenAt, OpenZoom, OutlineStyle, OutlineTarget, PacketStatus,
     PageLabelRange, ReferenceOutcome, ReferencePolicy, RemoveMetadata, RemoveXmpProperty, RenameLinks,
-    RenameNamedDestination, ReplaceXmpPacket, ReversePages, Reverted, Rgb, RotateMode, RotatePage, RotatePages, SetInfo,
-    SetInitialView, SetMetadata, SetNamedDestination, SetPageLabels, SetXmpProperty, UndoOutcome, UpdateAnnot,
+    RenameNamedDestination, ReplaceXmpPacket, ReversePages, Reverted, Rgb, RotateMode, RotatePage, RotatePages,
+    SetInfo, SetInitialView, SetMetadata, SetNamedDestination, SetPageLabels, SetXmpProperty, UndoOutcome, UpdateAnnot,
     UpdateOutlineItem, WindowPreferencesPatch,
 };
 pub use laminapdf_save::{
