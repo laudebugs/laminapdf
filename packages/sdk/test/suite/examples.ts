@@ -5,6 +5,7 @@
 // runtime produces the same bytes.
 import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@laminapdf/sdk";
 import { duplicatePages } from "../../examples/duplicate-pages.js";
+import { editBookmarks } from "../../examples/edit-bookmarks.js";
 import { editMetadata } from "../../examples/edit-metadata.js";
 import { editXmp } from "../../examples/edit-xmp.js";
 import { elementFlow, type Report } from "../../examples/element-flow.js";
@@ -23,6 +24,7 @@ import { pdfAArchive } from "../../examples/pdf-a-archive.js";
 import { pdfA3InvoiceWithXml } from "../../examples/pdf-a3-invoice-with-xml.js";
 import { pdfUaReport } from "../../examples/pdf-ua-report.js";
 import { report } from "../../examples/report.js";
+import { openOn } from "../../examples/set-initial-view.js";
 import { exampleOptions, HELLO_OPTIONS } from "./hello-options.js";
 
 /** The fixture files an example reads, by path from the repository root. */
@@ -64,6 +66,10 @@ const BOLD = "fixtures/fonts/NotoSans-RegularBold.ttc";
 const EDITED_AT = "D:20261030130000Z";
 /** The document edit-metadata edits. */
 const METADATA_PDF = "fixtures/golden/metadata.pdf";
+/** The document set-initial-view edits: three pages with an outline. */
+const OUTLINE_PDF = "fixtures/corpus/outline.pdf";
+/** The document edit-bookmarks edits. */
+const BOOKMARKS_PDF = "fixtures/golden/links-and-outlines.pdf";
 /** The PDF/A-2b file edit-xmp records a review in. */
 const PDFA_2B_PDF = "fixtures/golden/examples/pdf_a_archive-2b.pdf";
 /** The document organise-pages organises: five pages, with bookmarks, links and named destinations that point at the third. */
@@ -167,6 +173,18 @@ export const EXAMPLES: readonly Example[] = [
     golden: "edit_metadata",
     inputs: [METADATA_PDF],
     build: (i) => editMetadata(input(i, METADATA_PDF), EDITED_AT),
+  },
+  {
+    name: "set-initial-view",
+    golden: "set_initial_view",
+    inputs: [OUTLINE_PDF],
+    build: (i) => openOn(input(i, OUTLINE_PDF), 1),
+  },
+  {
+    name: "edit-bookmarks",
+    golden: "edit_bookmarks",
+    inputs: [BOOKMARKS_PDF],
+    build: (i) => editBookmarks(input(i, BOOKMARKS_PDF)),
   },
   {
     name: "duplicate-pages",

@@ -46,6 +46,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "unsupported-security-handler":
     case "unsupported-filter":
     case "direct-page":
+    case "direct-outline-item":
     case "annotation-not-editable":
     case "unsupported-version":
     case "subset-failed":
@@ -70,6 +71,14 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "invalid-op":
     case "invalid-label-ranges":
     case "unknown-source":
+    case "unknown-outline-item":
+    case "outline-not-a-sibling":
+    case "outline-move-into-itself":
+    case "unknown-named-destination":
+    case "named-destination-exists":
+    case "empty-destination-name":
+    case "link-uri-refused":
+    case "view-not-finite":
     case "xmp-claim-read-only":
     case "invalid-xmp-property":
     case "unknown-annotation":
@@ -125,6 +134,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "template-data-missing":
     case "template-data-type":
     case "template-too-large":
+    case "open-action-not-destination":
       return "usage";
     case "data-pending":
     case "repaired-base":

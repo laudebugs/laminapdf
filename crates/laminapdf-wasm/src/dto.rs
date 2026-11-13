@@ -331,6 +331,10 @@ impl From<laminapdf::DocumentInfo> for DocumentInfoJs {
 /// The pages an edit touched.
 #[derive(Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "a JSON record: one flag per fact the report states"
+)]
 pub(crate) struct EditedJs {
     /// IDs of the pages whose content or attributes changed.
     pub touched_pages: Vec<String>,
@@ -347,6 +351,13 @@ pub(crate) struct EditedJs {
     /// Whether the edit changed the document: one that only set values they already had leaves
     /// no step to undo.
     pub changed: bool,
+    /// The IDs of the bookmarks the edit added, in order.
+    pub created_outline_items: Vec<String>,
+    /// An outline edit found the outline's links broken and rewrote them whole; bookmarks
+    /// stored inside others have new IDs.
+    pub outline_repaired: bool,
+    /// What still names a named destination the edit deleted.
+    pub destination_uses: Vec<laminapdf::DestinationUse>,
     /// The XMP properties the edit declared in a PDF/A file's extension schemas.
     pub declared: Vec<ExtensionPropertyJs>,
     /// The page IDs in order after the edit, when it changed the page list.
@@ -464,6 +475,9 @@ impl From<laminapdf::Edited> for EditedJs {
             still_in_earlier_revisions: e.still_in_earlier_revisions,
             also_deleted: e.also_deleted,
             changed: e.changed,
+            created_outline_items: e.created_outline_items.iter().map(ToString::to_string).collect(),
+            outline_repaired: e.outline_repaired,
+            destination_uses: e.destination_uses,
             page_order: e.page_order.map(|o| o.iter().map(ToString::to_string).collect()),
             references: e.references.into_iter().map(ReferenceEditJs::from).collect(),
             fields: e.fields.into_iter().map(FieldEditJs::from).collect(),

@@ -31,6 +31,7 @@ import {
   replaceXmpPacketOp,
   reversePagesOp,
   rotatePagesOp,
+  setInitialViewOp,
   setMetadataOp,
   setPageLabelsOp,
   setXmpPropertyOp,
@@ -38,12 +39,17 @@ import {
   type XmpEditOptions,
 } from "./transaction.js";
 import type {
+  ArticleThread,
   DocumentInfo,
   DocumentMetadata,
   DocumentProperties,
   Edited,
+  ExplicitDestination,
+  InitialView,
+  InitialViewPatch,
   MetadataKey,
   MetadataPatch,
+  NamedDestination,
   Op,
   OpenOptions,
   OpLog,
@@ -59,6 +65,7 @@ import type {
   SaveReport,
   StructureNode,
   Target,
+  TargetView,
   Violation,
   XmpText,
   XmpValue,
@@ -471,6 +478,57 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * How the document asks to be shown when it opens: the page and zoom, the panel, the page
+   * layout and the window preferences. Needs a document opened while the extract or text module
+   * was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   *
+   * @since 0.2.0
+   */
+  initialView(): InitialView {
+    return this.call(() => this.#extracting("doc.initialView()").initialView());
+  }
+
+  /**
+   * The document's article threads in the catalog's order, each with its parts in reading
+   * order; empty without any. Needs a document opened while the extract or text module was
+   * loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   *
+   * @since 0.2.0
+   */
+  threads(): ArticleThread[] {
+    return this.call(() => this.#extracting("doc.threads()").threads());
+  }
+
+  /**
+   * Every named destination, sorted by name, with where each goes. Needs a document opened while
+   * the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   *
+   * @since 0.2.0
+   */
+  namedDestinations(): NamedDestination[] {
+    return this.call(() => this.#extracting("doc.namedDestinations()").namedDestinations());
+  }
+
+  /**
+   * A place in the viewer, page `page` (0-based) shown as `view` in page space, as the
+   * destination a bookmark or a named destination takes: "set the destination to the current
+   * view". Needs a document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `page-index-out-of-range`; as {@link Document.outline}.
+   *
+   * @since 0.2.0
+   */
+  destinationAt(page: number, view: TargetView): ExplicitDestination {
+    return this.call(() => this.#extracting("doc.destinationAt()").destinationAt(page, view));
+  }
+
+  /**
    * What a properties view shows about the document: Info entries and dates, version, pages,
    * size, tagging, encryption and permissions, fonts, signatures (counted, not verified) and
    * whether it holds JavaScript, attachments or a form. It reads every object once, so call it
@@ -799,6 +857,20 @@ export class Document extends Handle<BaseGlue> {
    */
   setMetadata(patch: MetadataPatch, options?: MetadataEditOptions): Edited {
     return this.apply([setMetadataOp(patch, options)]);
+  }
+
+  /**
+   * Changes how the document opens, in one transaction (`setInitialView`): the page and zoom, the
+   * panel, the page layout and the window preferences. What the patch leaves out stays as it is;
+   * a value newer than the file raises its PDF version.
+   *
+   * @throws {@link LaminaPdfError} `open-action-not-destination` when `open` would replace an
+   *   open action that runs a script or another action; as {@link Document.apply}.
+   *
+   * @since 0.2.0
+   */
+  setInitialView(patch: InitialViewPatch): Edited {
+    return this.apply([setInitialViewOp(patch)]);
   }
 
   /**

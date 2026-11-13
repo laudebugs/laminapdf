@@ -52,17 +52,20 @@ function useLater(open: boolean): Later | undefined {
 /** A store's subscribe with nothing to hear, for the session while no document is open. */
 const NOTHING_TO_HEAR = () => () => undefined;
 
-/** The delegated edit commands' handlers: Show history, turning the current page, and the saves. */
+/** The delegated edit commands' handlers: Show history, Initial view…, the thread parts, turning the current page, and the saves. */
 export type EditActions = Readonly<
   Partial<
     Record<
       | "edit.history"
+      | "organise.initial-view"
       | "pages.rotate-right"
       | "pages.rotate-left"
       | "file.save"
       | "file.save-as"
       | "file.save-optimised"
-      | "file.save-copy",
+      | "file.save-copy"
+      | "nav.next-thread-part"
+      | "nav.previous-thread-part",
       () => void
     >
   >
@@ -154,6 +157,7 @@ export function useEditing(options: {
   const started = slice !== undefined && sessionStarted(slice);
   const unsaved = slice?.history.unsaved ?? 0;
   const openedAt = useStoreState(engine, (s) => s.openedAt);
+  const threads = useStoreState(engine, (s) => s.threads);
   const { fileName } = options;
   const flow = useSaveFlow({ engine, viewer, platform, toasts, fileName }, later);
   // With the commands they run, which register once later.ts has loaded. Download a copy is the
@@ -162,8 +166,8 @@ export function useEditing(options: {
     () =>
       later === undefined || viewer === undefined || flow === undefined
         ? NO_ACTIONS
-        : later.editActions(engine, layout, viewer, flow, unsaved > 0),
-    [engine, layout, viewer, later, flow, unsaved],
+        : later.editActions(engine, layout, viewer, flow, { unsaved: unsaved > 0, threads }),
+    [engine, layout, viewer, later, flow, unsaved, threads],
   );
   const tab = useMemo<RailTab | undefined>(
     () =>
@@ -190,6 +194,7 @@ export function useEditing(options: {
           toasts={toasts}
           fileName={fileName}
           flow={flow}
+          layout={layout}
         />
       ),
   };

@@ -89,15 +89,63 @@ mod samples {
             "rotate-page",
             "set-metadata",
             "remove-metadata",
+            "set-initial-view",
             "set-xmp-property",
             "remove-xmp-property",
             "replace-xmp-packet",
             "set-page-labels",
-        ] {
+        ]
+        .into_iter()
+        .chain(OUTLINE_SAMPLES)
+        {
             let op: Op = serde_json::from_slice(&fixture(&format!("ops/v1/{name}.json"))).unwrap();
             let again: Op = serde_json::from_str(&serde_json::to_string(&op).unwrap()).unwrap();
             assert_eq!(again, op, "{name}");
         }
+    }
+
+    /// The outline and named-destination samples, written for `corpus/outline.pdf`'s items,
+    /// pages and names.
+    const OUTLINE_SAMPLES: [&str; 7] = [
+        "add-outline-item",
+        "update-outline-item",
+        "move-outline-item",
+        "delete-outline-item",
+        "set-named-destination",
+        "rename-named-destination",
+        "delete-named-destination",
+    ];
+
+    #[test]
+    fn every_outline_sample_deserialises_and_applies_to_the_outline_fixture() {
+        for name in OUTLINE_SAMPLES {
+            let op: Op = serde_json::from_slice(&fixture(&format!("ops/v1/{name}.json"))).unwrap();
+            let mut doc = corpus("outline.pdf");
+            let applied = doc.apply_all(Origin::Local, [op]).unwrap();
+            assert!(!applied.undo.is_empty(), "{name} changed nothing");
+        }
+    }
+
+    #[test]
+    fn an_outline_position_names_first_last_or_a_sibling() {
+        for at in [r#""sideways""#, r#"{ "before": "p3.0" }"#, r#"{ "beside": "o3.0" }"#] {
+            let json = format!(r#"{{ "op": "moveOutlineItem", "args": {{ "item": "o3.0", "at": {at} }} }}"#);
+            assert!(op(&json).is_err(), "{at}");
+        }
+    }
+
+    #[test]
+    fn a_colour_is_hex_and_a_view_has_a_known_kind() {
+        let add = |extra: &str| {
+            format!(
+                r#"{{ "op": "addOutlineItem", "args": {{ "at": "last", "title": "x", "target": {{ "destination": {{ "page": "p3.0", "view": {extra} }} }} }} }}"#
+            )
+        };
+        assert!(op(&add(r#"{ "kind": "fit" }"#)).is_ok());
+        assert!(op(&add(r#"{ "kind": "zoomed" }"#)).is_err());
+        assert!(op(&add(r#"{ "kind": "fit", "top": 3 }"#)).is_err());
+        let styled = r#"{ "op": "addOutlineItem", "args": { "at": "last", "title": "x", "target": { "named": "a" }, "style": { "color": "red" } } }"#;
+        assert!(op(styled).is_err());
     }
 
     #[test]

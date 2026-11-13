@@ -29,11 +29,11 @@ use std::path::Path;
 
 use laminapdf_cos::OpenOptions;
 use laminapdf_model::xmp::{RdfValue, XmpValue};
-use laminapdf_model::{LabelStyle, PageId, PagePosition, PageSize, Rotation};
+use laminapdf_model::{LabelStyle, OpenAction, PageId, PageLayout, PageMode, PagePosition, PageSize, Rotation};
 use laminapdf_ops::{
     DeletePages, Document, DuplicatePages, InfoPatch, InsertBlankPages, MetadataKey, MetadataPatch, MovePages, Op,
-    Origin, PageLabelRange, RemoveMetadata, ReversePages, RotatePage, RotatePages, SetInfo, SetMetadata, SetPageLabels,
-    SetXmpProperty, read_metadata,
+    OpenAt, OpenZoom, Origin, PageLabelRange, RemoveMetadata, ReversePages, RotatePage, RotatePages, SetInfo,
+    SetInitialView, SetMetadata, SetPageLabels, SetXmpProperty, WindowPreferencesPatch, read_metadata,
 };
 use laminapdf_save::{Restriction, Save, SaveError, SaveMode, SaveOptions, SavePlanner, SaveReport};
 use serde_json::{Value, json};
@@ -250,8 +250,8 @@ fn new_labels(pages: usize) -> Vec<Option<String>> {
 /// The ops each fixture is saved with: a title through the deprecated `setInfo`, a rotation,
 /// the metadata ops (J.01–J.03, J.10), the XMP property op (J.04: the title, mirrored in
 /// Info, and a custom property, [`CUSTOM`]), page labels (I.10) and the page ops (C.01, C.03,
-/// C.04, C.08, C.13), duplicating included (C.03).
-const OPS: [&str; 12] = [
+/// C.04, C.08, C.13), duplicating included (C.03), and the initial view (I.06, I.11).
+const OPS: [&str; 13] = [
     "setInfo",
     "rotatePage",
     "setMetadata",
@@ -264,7 +264,14 @@ const OPS: [&str; 12] = [
     "rotatePages",
     "setPageLabels",
     "duplicatePages",
+    "setInitialView",
 ];
+
+/// What the `setInitialView` cases write: open on the last page at its width, with the
+/// thumbnails panel, two pages side by side (PDF 1.5, so older files' `/Version` rises) and the title in
+/// the window. The tools check the page mode by its PDF name.
+const INITIAL_MODE: PageMode = PageMode::Thumbnails;
+const INITIAL_LAYOUT: PageLayout = PageLayout::TwoPageLeft;
 
 /// The custom XMP property the `setXmpProperty` cases add: namespace and name.
 const CUSTOM: (&str, &str) = ("http://example.com/roundtrip/", "batch");
@@ -335,6 +342,12 @@ fn op(doc: &Document, name: &str, rotation: Rotation) -> Option<Op> {
             }
             SetPageLabels::new(ranges).into()
         }
+        "setInitialView" => SetInitialView::default()
+            .with_open(Some(OpenAt::new(ids.last().cloned()?, OpenZoom::FitWidth)))
+            .with_page_mode(Some(INITIAL_MODE))
+            .with_page_layout(Some(INITIAL_LAYOUT))
+            .with_preferences(WindowPreferencesPatch::default().with_display_doc_title(true))
+            .into(),
         _ => RotatePage::new(ids.first().cloned()?, rotation).into(),
     })
 }
@@ -403,6 +416,49 @@ fn after_op(op: &Op, rotation: Rotation, pages: &mut usize, rotations: &mut Vec<
     }
 }
 
+/// Whether `doc` opens as the `setInitialView` cases ask: on the last page, with the panel,
+/// layout and title preference they set.
+fn opens_as_set(doc: &laminapdf_model::Document) -> bool {
+    let view = doc.initial_view().unwrap();
+    let last = doc.pages().unwrap().len().checked_sub(1);
+    matches!(&view.open, OpenAction::Destination(dest) if dest.page_index == last)
+        && view.page_mode == Some(INITIAL_MODE)
+        && view.page_layout == Some(INITIAL_LAYOUT)
+        && view.preferences.display_doc_title
+}
+
+/// What a reopened output got wrong beyond the facts every case compares: an encryption a
+/// decrypting save left behind, Info and XMP out of step after a metadata op, the custom XMP
+/// property, or the initial view a `setInitialView` case wrote.
+fn reopened_failures(
+    id: &str,
+    op_name: &str,
+    remove: bool,
+    metadata_op: bool,
+    reopened: &laminapdf_model::Document,
+) -> Vec<String> {
+    let mut failures = Vec::new();
+    if remove && (reopened.is_encrypted() || reopened.trailer().contains_key("Encrypt")) {
+        failures.push(format!("{id}: removing the encryption left /Encrypt"));
+    }
+    if metadata_op {
+        let meta = read_metadata(reopened).unwrap();
+        if !meta.disagreements.is_empty() {
+            failures.push(format!("{id}: Info and XMP disagree on {:?}", meta.disagreements));
+        }
+    }
+    if op_name == "setXmpProperty" {
+        failures.extend(custom_property_problem(id, reopened));
+    }
+    if op_name == "setInitialView" && !opens_as_set(reopened) {
+        failures.push(format!(
+            "{id}: lamina reopened the initial view as {:?}",
+            reopened.initial_view()
+        ));
+    }
+    failures
+}
+
 /// What a run produced.
 #[derive(Debug, Default)]
 pub struct Suite {
@@ -468,11 +524,9 @@ pub fn run(root: &Path) -> Suite {
                     suite.saved += 1;
                     let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
                     let again = facts(&reopened);
-                    if remove && (reopened.is_encrypted() || reopened.trailer().contains_key("Encrypt")) {
-                        suite
-                            .failures
-                            .push(format!("{id}: removing the encryption left /Encrypt"));
-                    }
+                    suite
+                        .failures
+                        .extend(reopened_failures(&id, op_name, remove, metadata_op, &reopened));
                     if again != (pages, rotations.clone(), info.clone(), labels.clone()) || reopened.was_repaired() {
                         suite.failures.push(format!(
                             "{id}: lamina reopened {again:?} (repaired {}), expected {:?}",
@@ -480,17 +534,7 @@ pub fn run(root: &Path) -> Suite {
                             (pages, &rotations, &info, &labels)
                         ));
                     }
-                    if metadata_op {
-                        let meta = read_metadata(&reopened).unwrap();
-                        if !meta.disagreements.is_empty() {
-                            suite
-                                .failures
-                                .push(format!("{id}: Info and XMP disagree on {:?}", meta.disagreements));
-                        }
-                    }
-                    if op_name == "setXmpProperty" {
-                        suite.failures.extend(custom_property_problem(&id, &reopened));
-                    }
+                    let initial_view = op_name == "setInitialView";
                     let file = format!("{id}.pdf");
 
                     suite.manifest.push(json!({
@@ -515,6 +559,13 @@ pub fn run(root: &Path) -> Suite {
                         // PDFium reads no `/Title` from a direct `/Info` dictionary.
                         "direct_info": matches!(reopened.trailer().get("Info"), Some(laminapdf_cos::Object::Dict(_))),
                         "invalidated": report.invalidated().len(),
+                        // The setInitialView cases' open page (0-based), page mode and layout,
+                        // by their PDF names; null elsewhere, where the fixture keeps its own.
+                        "initial_view": initial_view.then(|| json!({
+                            "open_page": pages - 1,
+                            "page_mode": INITIAL_MODE.pdf_name(),
+                            "page_layout": INITIAL_LAYOUT.pdf_name(),
+                        })),
                     }));
                     suite.outputs.push((file, output));
                 }
@@ -523,7 +574,116 @@ pub fn run(root: &Path) -> Suite {
     }
     copies(root, &mut suite);
     images(root, &mut suite);
+    outlines(root, &mut suite);
     suite
+}
+
+/// The outline as the tools list it: `[depth, title, page]` per item in document order, the
+/// depth from 0, the page `null` when the item goes to no page of the file.
+pub fn outline_facts(doc: &laminapdf_model::Document) -> Vec<Value> {
+    let outline = doc.outline().unwrap();
+    outline
+        .iter()
+        .map(|item| {
+            let page = item.target().unwrap().and_then(|d| d.page_index);
+            json!([item.depth() - 1, item.title().unwrap(), page])
+        })
+        .collect()
+}
+
+/// The outline cases (todo E3b, I.01 and I.04): on every plain fixture, a bookmark added at the
+/// top, styled, with a child that goes to a new named destination, then opened; the first old
+/// bookmark renamed, and a named destination a bookmark uses renamed with its uses (its page must
+/// still resolve), saved incrementally and as a full rewrite. Lamina reopens each with the
+/// same outline and pages; the tools compare the outline they read (`outline`).
+fn outlines(root: &Path, suite: &mut Suite) {
+    use laminapdf_model::SiblingPosition;
+    use laminapdf_ops::{
+        AddOutlineItem, DestinationView, ExplicitDestination, OutlineStyle, OutlineTarget, RenameNamedDestination, Rgb,
+        SetNamedDestination, UpdateOutlineItem,
+    };
+    let names = PLAIN_CORPUS
+        .iter()
+        .map(|n| format!("corpus/{n}"))
+        .chain(PLAIN_BUILT.iter().map(|n| format!("golden/{n}")));
+    for name in names {
+        let bytes = std::fs::read(root.join("fixtures").join(&name)).unwrap();
+        for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
+            let id = format!("outline-{}-{mode:?}", name.replace('/', "_").trim_end_matches(".pdf")).to_lowercase();
+            let mut doc = Document::open(bytes.clone(), OpenOptions::default()).unwrap();
+            let (pages, rotations, info, labels) = facts(&doc);
+            let first_old = doc.outline().unwrap().roots().next().and_then(|i| i.id().cloned());
+            let page = |doc: &Document, i: usize| doc.pages().unwrap().get(i).unwrap().id().clone();
+            let fit = ExplicitDestination::new(page(&doc, 0), DestinationView::Fit);
+            let last = ExplicitDestination::new(page(&doc, pages - 1), DestinationView::FitH { top: None });
+            let mut top = AddOutlineItem::new(
+                None,
+                SiblingPosition::First,
+                "Round trip",
+                OutlineTarget::Destination(fit),
+            );
+            top.style = OutlineStyle::new(Some(Rgb::new(192, 0, 0)), true, false);
+            let mut ops = vec![Op::from(top), Op::from(SetNamedDestination::new("round-trip", last))];
+            if let Some(old) = first_old {
+                let mut rename = UpdateOutlineItem::new(old);
+                rename.title = Some("Renamed by the round trip".into());
+                ops.push(rename.into());
+            }
+            let created = doc.apply_all(Origin::Local, ops).unwrap().created_outline_items;
+            let child = AddOutlineItem::new(
+                created.first().cloned(),
+                SiblingPosition::Last,
+                "Last page, by name",
+                OutlineTarget::Named("round-trip".into()),
+            );
+            // With a child, the new bookmark can hold its open state; an existing name the file's
+            // bookmarks use is renamed with its uses, which must still go to their pages.
+            let mut open = UpdateOutlineItem::new(created.first().cloned().unwrap());
+            open.open = Some(true);
+            let mut more = vec![Op::from(child), Op::from(open)];
+            let used = doc
+                .outline()
+                .unwrap()
+                .iter()
+                .find_map(|i| i.target().unwrap().and_then(|d| d.name))
+                .and_then(|n| String::from_utf8(n).ok())
+                .filter(|n| n != "round-trip");
+            if let Some(used) = used {
+                more.push(RenameNamedDestination::new(used, "renamed-by-the-round-trip").into());
+            }
+            doc.apply_all(Origin::Local, more).unwrap();
+            let outline = outline_facts(&doc);
+            let mut output = Vec::new();
+            let report = doc.save(&mut output, &SaveOptions::new().with_mode(mode)).unwrap();
+            suite.saved += 1;
+            let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
+            if outline_facts(&reopened) != outline
+                || facts(&reopened) != (pages, rotations.clone(), info.clone(), labels.clone())
+                || reopened.was_repaired()
+            {
+                suite.failures.push(format!(
+                    "{id}: lamina reopened outline {:?} (repaired {}), expected {outline:?}",
+                    outline_facts(&reopened),
+                    reopened.was_repaired()
+                ));
+            }
+            let file = format!("{id}.pdf");
+            suite.manifest.push(json!({
+                "file": &file,
+                "source": name,
+                "mode": format!("{:?}", report.mode()),
+                "pages": pages,
+                "rotations": rotations,
+                "title": info[0],
+                "info": null,
+                "encrypted": false,
+                "direct_info": matches!(reopened.trailer().get("Info"), Some(laminapdf_cos::Object::Dict(_))),
+                "invalidated": 0,
+                "outline": outline,
+            }));
+            suite.outputs.push((file, output));
+        }
+    }
 }
 
 /// The image cases (todo E3h): photos made into PDFs with `images_to_pdf`, a page per photo,

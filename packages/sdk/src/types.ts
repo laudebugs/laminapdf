@@ -6,22 +6,31 @@ import type {
   AlignInit,
   AttachmentInit,
   BuildOptionsInit,
+  ChildItems as ChildItemsJs,
+  DestinationUse as DestinationUseJs,
+  DestinationView as DestinationViewJs,
   DirectionInit,
   DocumentInfoJs,
   DocumentMetadata as DocumentMetadataJs,
   EditedJs,
+  ExplicitDestination as ExplicitDestinationJs,
   ExtensionPropertyJs,
   FieldEditJs,
   FitInit,
+  InitialViewJs,
   LimitsInit,
   LineBoxJs,
   LinkTargetInit,
   MetadataInit,
   MetadataKey as MetadataKeyJs,
   MetadataPatch as MetadataPatchJs,
+  NamedDestinationJs,
+  OpenAt as OpenAtJs,
   Op as OpJs,
   OutlineEntryInit,
   OutlineNodeJs,
+  OutlineStyle as OutlineStyleJs,
+  OutlineTarget as OutlineTargetJs,
   OverflowInit,
   PageAnnotationJs,
   PageInfoJs,
@@ -34,16 +43,19 @@ import type {
   PropertiesJs,
   RectJs,
   ReferenceEditJs,
+  RenameLinks as RenameLinksJs,
   RenderModeInit,
   RevertedJs,
   SaveOptionsInit,
   SaveReportJs,
+  SetInitialView as SetInitialViewJs,
   StructureKidJs,
   StructureNodeJs,
   TargetJs,
   TargetViewJs,
   TextLayoutJs,
   TextRunJs,
+  ThreadJs,
   UndoOutcomeJs,
   ViewerPreferencesInit,
   ViolationJs,
@@ -55,12 +67,81 @@ import type {
 /**
  * An edit (`{ op, args }`): `setMetadata`, `removeMetadata`, the XMP edits (`setXmpProperty`,
  * `removeXmpProperty`, `replaceXmpPacket`), `setPageLabels`, the page ops (`insertBlankPages`, `deletePages`,
- * `movePages`, `rotatePages`, `reversePages`, `duplicatePages`, `rotatePage`), or the deprecated `setInfo` (use
+ * `movePages`, `rotatePages`, `reversePages`, `duplicatePages`, `rotatePage`), the bookmark edits
+ * (`addOutlineItem`, `updateOutlineItem`, `moveOutlineItem`, `deleteOutlineItem`), the named-destination edits
+ * (`setNamedDestination`, `renameNamedDestination`, `deleteNamedDestination`), `setInitialView`, or the deprecated `setInfo` (use
  * `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
  *
  * @since 0.2.0
  */
 export type Op = OpJs;
+
+/**
+ * A page of the document and how to show it, in the page's user space (PDF points from the
+ * bottom-left, y up): what a bookmark or a named destination goes to. Make one from a place in
+ * the viewer with {@link Document.destinationAt}.
+ *
+ * @since 0.2.0
+ */
+export type ExplicitDestination = ExplicitDestinationJs;
+
+/**
+ * How an {@link ExplicitDestination} shows its page, in user space, by `kind`: `"xyz"` puts
+ * (`left`, `top`) at the top-left at `zoom`, `"fit"` fits the page, `"fitH"` its width from
+ * `top`, `"fitV"` its height from `left`, `"fitR"` a rectangle, and `"fitB"`, `"fitBH"`,
+ * `"fitBV"` the same for the page's drawn area. `null` keeps the viewer's current value.
+ *
+ * @since 0.2.0
+ */
+export type DestinationView = DestinationViewJs;
+
+/**
+ * Where a bookmark goes: `{ destination }` (a page), `{ named }` (a named destination) or
+ * `{ uri }` (an `http`, `https` or `mailto` address).
+ *
+ * @since 0.2.0
+ */
+export type OutlineTarget = OutlineTargetJs;
+
+/**
+ * A bookmark's look: its `color` (`"#rrggbb"`, or `null` for the default black), `bold` and
+ * `italic`.
+ *
+ * @since 0.2.0
+ */
+export type OutlineStyle = OutlineStyleJs;
+
+/**
+ * What deleting a bookmark does with its children: `"delete"` them with it, or `"promote"` them
+ * into its place.
+ *
+ * @since 0.2.0
+ */
+export type ChildItems = ChildItemsJs;
+
+/**
+ * Whether renaming a named destination renames the bookmarks and links that use it too
+ * (`"follow"`, the default) or leaves them naming the old name (`"keep"`).
+ *
+ * @since 0.2.0
+ */
+export type RenameLinks = RenameLinksJs;
+
+/**
+ * Something that still names a destination an edit deleted: a bookmark (`"outlineItem"`), a
+ * link on a page (`"link"`) or what the file shows when it opens (`"openAction"`).
+ *
+ * @since 0.2.0
+ */
+export type DestinationUse = DestinationUseJs;
+
+/**
+ * A named destination: a name links and bookmarks jump to, and where it goes (absent when it
+ * names no page of this document).
+ *
+ * @since 0.2.0
+ */
+export type NamedDestination = NamedDestinationJs;
 /**
  * Changes to the document's metadata, written to its Info dictionary and its XMP metadata
  * together: a value sets the field, `null` removes it, a missing key leaves it alone. Dates are
@@ -278,7 +359,10 @@ export type Fit = FitInit;
 export type OutlineEntry = OutlineEntryInit;
 
 /**
- * One item of a document's outline (its bookmarks), with where it goes and its children.
+ * One item of a document's outline (its bookmarks): its `id` (what the bookmark edits take), its
+ * title, where it goes (a page `target`, a `destinationName`, a `uri`, or an `otherAction` such
+ * as `JavaScript`, which Lamina PDF never runs), its `color`, `bold` and `italic` style, whether it
+ * shows its children (`open`) and the children.
  *
  * @since 0.2.0
  */
@@ -332,6 +416,42 @@ export type Target = TargetJs;
  * @since 0.2.0
  */
 export type TargetView = TargetViewJs;
+
+/**
+ * How a document asks to be shown when it opens: where it `open`s by `kind` (`"default"`: its
+ * first page at the reader's zoom; `"page"`: a {@link Target}; `"action"`: an `action` a reader
+ * runs, by its type, which Lamina PDF never runs), the panel to show (`pageMode`), how to lay the
+ * pages out (`pageLayout`), absent when the file leaves them to the reader, and the window's
+ * `preferences`.
+ *
+ * @since 0.2.0
+ */
+export type InitialView = InitialViewJs;
+
+/**
+ * Changes to how a document opens, for {@link Document.setInitialView}: a value sets the field,
+ * `null` removes it, a missing key leaves it alone. `open` names a page by its ID
+ * ({@link PageInfo.id}) and a `zoom`: `"default"`, `"fitPage"`, `"fitWidth"` or a percentage.
+ *
+ * @since 0.2.0
+ */
+export type InitialViewPatch = SetInitialViewJs;
+
+/**
+ * The page and zoom a document opens at, in an {@link InitialViewPatch}.
+ *
+ * @since 0.2.0
+ */
+export type OpenAt = OpenAtJs;
+
+/**
+ * An article thread: its `title` (document text) and its `parts` in reading order, each a `page`
+ * (0-based) and a `rect` (`[x0, y0, x1, y1]` in page space), absent when the part names a page
+ * the document lacks.
+ *
+ * @since 0.2.0
+ */
+export type ArticleThread = ThreadJs;
 /**
  * A page-label range, by its first page.
  *

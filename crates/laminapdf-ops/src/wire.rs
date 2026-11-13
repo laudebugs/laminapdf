@@ -143,6 +143,126 @@ pub(crate) const fn is_false(flag: &bool) -> bool {
     !*flag
 }
 
+/// An [`OutlineItemId`](laminapdf_model::OutlineItemId) as its string form (`"o12.0"`).
+pub(crate) mod outline_item_id {
+    use laminapdf_model::OutlineItemId;
+
+    use super::{Deserializer, Serializer};
+
+    pub(crate) fn serialize<S: Serializer>(id: &OutlineItemId, s: S) -> Result<S::Ok, S::Error> {
+        s.collect_str(id)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<OutlineItemId, D::Error> {
+        super::parse(d)
+    }
+}
+
+/// An optional [`OutlineItemId`](laminapdf_model::OutlineItemId): `null` (or absent) for the
+/// top level.
+pub(crate) mod opt_outline_item_id {
+    use laminapdf_model::OutlineItemId;
+
+    use super::{Deserialize, Deserializer, Serializer, de};
+
+    #[expect(clippy::ref_option, reason = "serde's `with` passes the field by reference")]
+    pub(crate) fn serialize<S: Serializer>(id: &Option<OutlineItemId>, s: S) -> Result<S::Ok, S::Error> {
+        match id {
+            Some(id) => s.collect_str(id),
+            None => s.serialize_none(),
+        }
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<OutlineItemId>, D::Error> {
+        Option::<String>::deserialize(d)?
+            .map(|s| s.parse().map_err(de::Error::custom))
+            .transpose()
+    }
+}
+
+/// An optional [`LabelStyle`](laminapdf_model::LabelStyle) by name: `decimal`, `upperRoman`,
+/// `lowerRoman`, `upperLetters` or `lowerLetters` (`null` or no value: no style). The names are
+/// listed once, in [`label_style::NAMES`]; `PageLabelRange::style`'s TypeScript type spells them
+/// out for tsify, and a test checks it against this list.
+pub(crate) mod label_style {
+    use laminapdf_model::LabelStyle;
+    use serde::de::Error as _;
+
+    use super::{Deserialize, Deserializer, Serializer};
+
+    /// Each style and its name on the wire.
+    pub(crate) const NAMES: [(LabelStyle, &str); 5] = [
+        (LabelStyle::Decimal, "decimal"),
+        (LabelStyle::UpperRoman, "upperRoman"),
+        (LabelStyle::LowerRoman, "lowerRoman"),
+        (LabelStyle::UpperLetters, "upperLetters"),
+        (LabelStyle::LowerLetters, "lowerLetters"),
+    ];
+
+    const EXPECTED: [&str; 5] = [NAMES[0].1, NAMES[1].1, NAMES[2].1, NAMES[3].1, NAMES[4].1];
+
+    #[expect(
+        clippy::ref_option,
+        clippy::trivially_copy_pass_by_ref,
+        reason = "serde's `with` passes the field by reference"
+    )]
+    pub(crate) fn serialize<S: Serializer>(style: &Option<LabelStyle>, s: S) -> Result<S::Ok, S::Error> {
+        match style.and_then(|style| NAMES.iter().find(|(st, _)| *st == style)) {
+            Some((_, name)) => s.serialize_str(name),
+            None => s.serialize_none(),
+        }
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<LabelStyle>, D::Error> {
+        let Some(name) = Option::<String>::deserialize(d)? else {
+            return Ok(None);
+        };
+        NAMES
+            .iter()
+            .find(|(_, n)| *n == name)
+            .map(|(style, _)| Some(*style))
+            .ok_or_else(|| D::Error::unknown_variant(&name, &EXPECTED))
+    }
+}
+
+/// A [`SiblingPosition`](laminapdf_model::SiblingPosition): `"first"`, `"last"`,
+/// `{ "before": "o12.0" }` or `{ "after": "o12.0" }`.
+pub(crate) mod sibling_position {
+    use laminapdf_model::{OutlineItemId, SiblingPosition};
+    use serde::{Deserialize, Serialize};
+
+    use super::{Deserializer, Serializer, de};
+
+    #[derive(Serialize, Deserialize)]
+    #[serde(rename_all = "camelCase", deny_unknown_fields)]
+    enum Wire {
+        First,
+        Last,
+        Before(String),
+        After(String),
+    }
+
+    pub(crate) fn serialize<S: Serializer>(at: &SiblingPosition, s: S) -> Result<S::Ok, S::Error> {
+        match at {
+            SiblingPosition::First => Wire::First,
+            SiblingPosition::Before(id) => Wire::Before(id.to_string()),
+            SiblingPosition::After(id) => Wire::After(id.to_string()),
+            _ => Wire::Last,
+        }
+        .serialize(s)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<SiblingPosition, D::Error> {
+        let id = |s: String| s.parse::<OutlineItemId>().map_err(de::Error::custom);
+        Ok(match Wire::deserialize(d)? {
+            Wire::First => SiblingPosition::First,
+            Wire::Last => SiblingPosition::Last,
+            Wire::Before(s) => SiblingPosition::Before(id(s)?),
+            Wire::After(s) => SiblingPosition::After(id(s)?),
+        })
+    }
+}
+
 /// A [`PagePosition`](laminapdf_model::PagePosition) on the wire: `"start"`, `"end"`,
 /// `{ "before": "p12.0" }` or `{ "after": "p12.0" }` (E2 plan §2.1: positions name pages,
 /// never indices).
@@ -230,51 +350,6 @@ pub(crate) mod page_size {
     pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<PageSize, D::Error> {
         let w = Wire::deserialize(d)?;
         Ok(PageSize::new(Pt::new(w.width), Pt::new(w.height)))
-    }
-}
-
-/// An optional [`LabelStyle`](laminapdf_model::LabelStyle) by name: `decimal`, `upperRoman`,
-/// `lowerRoman`, `upperLetters` or `lowerLetters` (`null` or no value: no style). The names are
-/// listed once, in [`label_style::NAMES`]; `PageLabelRange::style`'s TypeScript type spells them
-/// out for tsify, and a test checks it against this list.
-pub(crate) mod label_style {
-    use laminapdf_model::LabelStyle;
-    use serde::de::Error as _;
-
-    use super::{Deserialize, Deserializer, Serializer};
-
-    /// Each style and its name on the wire.
-    pub(crate) const NAMES: [(LabelStyle, &str); 5] = [
-        (LabelStyle::Decimal, "decimal"),
-        (LabelStyle::UpperRoman, "upperRoman"),
-        (LabelStyle::LowerRoman, "lowerRoman"),
-        (LabelStyle::UpperLetters, "upperLetters"),
-        (LabelStyle::LowerLetters, "lowerLetters"),
-    ];
-
-    const EXPECTED: [&str; 5] = [NAMES[0].1, NAMES[1].1, NAMES[2].1, NAMES[3].1, NAMES[4].1];
-
-    #[expect(
-        clippy::ref_option,
-        clippy::trivially_copy_pass_by_ref,
-        reason = "serde's `with` passes the field by reference"
-    )]
-    pub(crate) fn serialize<S: Serializer>(style: &Option<LabelStyle>, s: S) -> Result<S::Ok, S::Error> {
-        match style.and_then(|style| NAMES.iter().find(|(st, _)| *st == style)) {
-            Some((_, name)) => s.serialize_str(name),
-            None => s.serialize_none(),
-        }
-    }
-
-    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<LabelStyle>, D::Error> {
-        let Some(name) = Option::<String>::deserialize(d)? else {
-            return Ok(None);
-        };
-        NAMES
-            .iter()
-            .find(|(_, n)| *n == name)
-            .map(|(style, _)| Some(*style))
-            .ok_or_else(|| D::Error::unknown_variant(&name, &EXPECTED))
     }
 }
 

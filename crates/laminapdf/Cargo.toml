@@ -119,6 +119,9 @@ required-features = ["extract"]
 name = "react_to_error_codes"
 
 [[example]]
+name = "set_initial_view"
+
+[[example]]
 name = "snapshot_test"
 required-features = ["text"]
 
@@ -148,6 +151,9 @@ required-features = ["text"]
 [[example]]
 name = "generate_then_edit"
 required-features = ["text"]
+
+[[example]]
+name = "edit_bookmarks"
 
 [[example]]
 name = "duplicate_pages"

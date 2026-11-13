@@ -542,6 +542,76 @@
       "since": "0.2.0"
     },
     {
+      "code": "open-action-not-destination",
+      "kind": "usage",
+      "summary": "an op would replace or remove the document's open action, which is an action other than a destination",
+      "hint": "leave the open page out of the edit, which keeps the open action as it is",
+      "since": "0.2.0"
+    },
+    {
+      "code": "unknown-outline-item",
+      "kind": "usage",
+      "summary": "an outline op names a bookmark the outline does not have",
+      "hint": "read the outline again and use one of its item IDs; an item a previous op deleted is gone",
+      "since": "0.2.0"
+    },
+    {
+      "code": "direct-outline-item",
+      "kind": "unsupported",
+      "summary": "the bookmark is stored inside another item rather than as an object of its own, so outline ops can't name it yet",
+      "hint": "apply any other outline op first: it rewrites the outline and gives every bookmark an object and an ID of its own",
+      "since": "0.2.0"
+    },
+    {
+      "code": "outline-not-a-sibling",
+      "kind": "usage",
+      "summary": "the position names a bookmark that is not a child of the parent the op names",
+      "hint": "name a position among the parent's own children, or use first or last",
+      "since": "0.2.0"
+    },
+    {
+      "code": "outline-move-into-itself",
+      "kind": "usage",
+      "summary": "a move would put a bookmark inside itself or one of its descendants",
+      "hint": "choose a parent outside the bookmark's own branch",
+      "since": "0.2.0"
+    },
+    {
+      "code": "unknown-named-destination",
+      "kind": "usage",
+      "summary": "the op names a destination the file does not define",
+      "hint": "list the file's named destinations and use one of their names",
+      "since": "0.2.0"
+    },
+    {
+      "code": "named-destination-exists",
+      "kind": "usage",
+      "summary": "a rename to a name another destination already has",
+      "hint": "choose a name no destination has, or delete the other one first",
+      "since": "0.2.0"
+    },
+    {
+      "code": "empty-destination-name",
+      "kind": "usage",
+      "summary": "a destination name is empty",
+      "hint": "give the destination a name of at least one character",
+      "since": "0.2.0"
+    },
+    {
+      "code": "link-uri-refused",
+      "kind": "usage",
+      "summary": "a web address that isn't an absolute http, https or mailto address in plain ASCII",
+      "hint": "use a full address such as https://example.com/page; encode other characters with %",
+      "since": "0.2.0"
+    },
+    {
+      "code": "view-not-finite",
+      "kind": "usage",
+      "summary": "a destination's coordinates and zoom must be finite numbers",
+      "hint": "pass finite numbers, or null to keep the viewer's current value",
+      "since": "0.2.0"
+    },
+    {
       "code": "xmp-claim-read-only",
       "kind": "usage",
       "summary": "an XMP edit would change the file's PDF/A or PDF/UA identification, which only conversion or a check may set",

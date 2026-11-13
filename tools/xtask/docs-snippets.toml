@@ -31,8 +31,16 @@ ts = "packages/sdk/examples/generate-then-edit.ts"
 rust = "crates/laminapdf/examples/generate_then_edit.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/edit-bookmarks.ts"
+rust = "crates/laminapdf/examples/edit_bookmarks.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/edit-metadata.ts"
 rust = "crates/laminapdf/examples/edit_metadata.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/set-initial-view.ts"
+rust = "crates/laminapdf/examples/set_initial_view.rs"
 
 [[pair]]
 ts = "packages/sdk/examples/duplicate-pages.ts"
