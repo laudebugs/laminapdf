@@ -2,7 +2,7 @@
 
 **Status:** Draft
 
-The sixth editor round puts new things on existing pages as page content, not as comments: text, symbols, images, shapes, logos, stamps, watermarks, backgrounds, headers, footers, page numbers and Bates numbers. This plan fixes the ops, how each added object keeps its identity so it can be changed after a save, how the save planner gates content changes, and the 8 pull requests that build the round.
+The sixth editor round puts new things on existing pages as page content, not as comments: text, symbols, images, shapes, logos, stamps, watermarks, backgrounds, headers, footers, page numbers and Bates numbers. This plan fixes the ops, how each added object keeps its identity so it can be changed after a save, how the save planner gates content changes, and the 7 pull requests that build the round after this one.
 
 Two parts are hard. An object added today must still be found, moved and removed after the file is saved and reopened, without parsing the page's own content. And every change to a page must reach the screen quickly, through a save and a reload in a second parser (PDFium).
 
@@ -38,7 +38,7 @@ B.01 and B.02 stay at `write`: E6 changes only what Lamina PDF added, and E7d's 
 
 ### 2.1 Ops
 
-Ops name pages by `PageId`, carry every value they write, and take geometry in page space (ADR 0027), converted once through the page's `PageFrame`. Every adding or changing op carries `modified: PdfDate`, which goes into the form's `/LastModified` and its page-piece dictionary's, both required when `/PieceInfo` is present (ISO 32000-2 §14.5), so no op reads a clock and the output stays byte-deterministic. Every op is class `Content`; none needs a full rewrite.
+Ops name pages by `PageId`, carry every value they write, and take geometry in page space (ADR 0027), converted once through the page's `PageFrame`. Every adding or changing op carries `modified: PdfDate`. It goes into the form's `/LastModified` and its page-piece dictionary's, both required when `/PieceInfo` is present (ISO 32000-2 §14.5), so no op reads a clock and the output stays byte-deterministic. Every op is class `Content`; none needs a full rewrite.
 
 | Op | Payload | Todo |
 | --- | --- | --- |
@@ -51,7 +51,7 @@ Ops name pages by `PageId`, carry every value they write, and take geometry in p
 | `ApplyBates` | `{ id: ContentId, pages: Vec<PageId>, prefix, start: u64, digits: u8, suffix, slot, font: FontRef, size, modified }` | E6d |
 | `UpdatePageMark`, `DeletePageMark` | `{ id: ContentId, … }`: a changed mark is the new payload in place of the old | E6d |
 
-**No `AppendContent` op.** E2e left an `AppendContent` op to this round. A wire op that carries raw content bytes would let any caller write unbalanced or unsafe operators, so there is none: every op is typed, and they share one private function in `laminapdf-ops`, `place_form(page, form, matrix, layer)`, which wraps the page once with E2e's `PageContentWriter` and appends the object's drawing stream; `laminapdf-ops` gains a dependency on `laminapdf-content` for it. E5e's flattening, E8g's form flattening and E2s's page resizing call it from their own ops; whichever of them lands before E6b writes it, and E6b reuses it. Images and fonts reach it as `BlobId`s from the blob store.
+**No `AppendContent` op.** E2e left an `AppendContent` op to this round. A wire op that carries raw content bytes would let any caller write unbalanced or unsafe operators, so there is none: every op is typed. The ops share one private function in `laminapdf-ops`, `place_form(page, form, matrix, layer)`. It wraps the page once with E2e's `PageContentWriter` and appends the object's drawing stream, so `laminapdf-ops` gains a dependency on `laminapdf-content`. E5e's flattening, E8g's form flattening and E2s's page resizing call it from their own ops; whichever of them lands before E6b writes it, and E6b reuses it. Images and fonts reach it as `BlobId`s from the blob store.
 
 **Drawing the form goes through a trait.** `laminapdf-build` depends on `laminapdf-ops`, so no op can call the builder's `Surface`, as the [E4 plan §2.2](e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated) found for appearances. E6b extends E4's `Appearances` trait, which `laminapdf-ops` defines and `laminapdf-build` implements, with a method that draws a `ContentObjectSpec`, a text block or a page mark into a new Form XObject through the op's `CosMut`; the façade passes the builder's implementation in, as it does for annotations. `laminapdf-text` stays out of `laminapdf-ops`: shaping happens inside the implementation.
 
@@ -63,11 +63,11 @@ q a b c d e f cm [/GSn gs] [/Tag <<…>> BDC] /FmN Do [EMC] Q
 
 `gs` sets the opacity; `BDC … EMC` is the artifact or the structure element's marked content (§3). Moving, resizing or fading an object rewrites that one small stream; deleting it removes the stream from `/Contents` and the name from the resources. Nothing reads the page's own operators. Stacking order (Bring forward and the rest) reorders added streams among themselves; nothing goes behind original content except a `Behind` object, and E7 handles stacking among existing objects.
 
-**Identity after a save.** Each form carries a page-piece dictionary (ISO 32000-2 §14.5): `/PieceInfo << /LaminaPDF << /LastModified … /Private << /Id (…) /Kind /Image >> >> >>`. A reopened file finds its added objects by matching each stream of `/Contents` against that grammar and reading the `/PieceInfo` of the form it draws; a stream or form someone else changed no longer matches and is left alone, as original content. Acrobat marks the watermarks and headers it adds the same way (`/ADBE_CompoundType` in `/PieceInfo`). `laminapdf reveal` lists these entries under metadata, as it lists anyone's `/PieceInfo`.
+**Identity after a save.** Each form carries a page-piece dictionary (ISO 32000-2 §14.5): `/PieceInfo << /LaminaPDF << /LastModified … /Private << /Id (…) /Kind /Image >> >> >>`. When a file is reopened, the scanner matches each stream of `/Contents` against that grammar and reads the `/PieceInfo` of the form it draws. A stream or form someone else changed no longer matches, so it is left alone as original content. Acrobat marks the watermarks and headers it adds the same way (`/ADBE_CompoundType` in `/PieceInfo`). `laminapdf reveal` lists these entries under metadata, as it lists anyone's `/PieceInfo`.
 
 ### 2.2 Text
 
-`AddText` lays out its runs with `laminapdf-text` (`break_spans`, shaping, bidi) inside the form, embeds subset fonts with ToUnicode maps, and falls back along `fonts` for characters the first font lacks; a character no font has is `missing-glyph`, never a silent `.notdef`. A font whose `fsType` forbids embedding is refused with `font-not-embeddable`. Shaping needs the text module's code, so `AddText` in a document opened in the base module fails with `appearance-needs-text`, E4's code; E4e adds the builder's fonts to the extract module, where the viewer opens documents, and E6c reuses them.
+`AddText` lays out its runs with `laminapdf-text` (`break_spans`, shaping, bidi) inside the form, embeds subset fonts with ToUnicode maps, and falls back along `fonts` for characters the first font lacks; a character no font has is `missing-glyph`, never a silent `.notdef`. A font whose `fsType` forbids embedding is refused with `font-not-embeddable`. Shaping needs the text module's code, so `AddText` in a document opened in the base module fails with `appearance-needs-text`, E4's code. The viewer opens documents in the extract module, which E4e gives the builder's fonts; E6c reuses them.
 
 ### 2.3 Page marks
 
@@ -78,7 +78,7 @@ q a b c d e f cm [/GSn gs] [/Tag <<…>> BDC] /FmN Do [EMC] Q
 
 ## 3. Conformance the edits must keep
 
-- **Tagged PDF and PDF/UA-1.** Added text becomes a `P` element (or an artifact when the user chooses), marked around the `Do` in its drawing stream, so its MCID is the page's and the page's `/StructParents` entry in the parent tree lists it (a marked-content sequence inside the form would need the form's own `/StructParents` and MCRs with `/Stm`, which the one-stream grammar avoids); an image gets a `Figure` with its alt text, or is an artifact when marked as decoration; shapes are artifacts unless given alt text. On a file that claims PDF/UA-1, an image whose `alt` is `None` is refused (`missing-alt-text`, B8b's code); `Decorative` makes it an artifact. Page marks are always artifacts.
+- **Tagged PDF and PDF/UA-1.** Added text becomes a `P` element, or an artifact when the user chooses. Its marked content sits around the `Do` in its drawing stream, so its MCID is the page's and the page's `/StructParents` entry in the parent tree lists it. Marked content inside the form would need the form's own `/StructParents` and MCRs with `/Stm`, which the one-stream grammar avoids. An image gets a `Figure` with its alt text, or is an artifact when marked as decoration; shapes are artifacts unless given alt text. On a file that claims PDF/UA-1, an image whose `alt` is `None` is refused (`missing-alt-text`, B8b's code); `Decorative` makes it an artifact. Page marks are always artifacts.
 - **PDF/A.** Every font added is embedded, colours use the file's output intent or carry an ICC profile, and transparency is refused on PDF/A-1 (ISO 19005-1 §6.4): an opacity below 1 or an image with an alpha channel raises `pdfa-transparency`, a new code E6b adds to `codes.json` with its `docs/errors` page. On PDF/A-2 and -3 an alpha channel becomes an SMask, which they allow.
 - **Earlier revisions.** An incremental save keeps the page as it was in the previous revision, so `DeleteContentObject` and `DeletePageMark` set `still_in_earlier_revisions`, as every delete does.
 
