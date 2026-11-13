@@ -349,6 +349,63 @@ pub(crate) struct EditedJs {
     pub changed: bool,
     /// The XMP properties the edit declared in a PDF/A file's extension schemas.
     pub declared: Vec<ExtensionPropertyJs>,
+    /// The page IDs in order after the edit, when it changed the page list.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub page_order: Option<Vec<String>>,
+    /// What a page deletion did to the references to the deleted pages.
+    pub references: Vec<ReferenceEditJs>,
+}
+
+/// One reference to a deleted page and what the deletion did to it.
+#[derive(Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ReferenceEditJs {
+    /// The deleted page it named.
+    pub page: String,
+    /// `outlineItem`, `link`, `namedDestination`, `openAction`, `structureElement`,
+    /// `structureKid` or `widget`.
+    #[tsify(
+        type = "\"outlineItem\" | \"link\" | \"namedDestination\" | \"openAction\" | \"structureElement\" | \"structureKid\" | \"widget\""
+    )]
+    pub kind: &'static str,
+    /// The named destination's name, for a `namedDestination`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub name: Option<String>,
+    /// `retargeted` or `removed`.
+    #[tsify(type = "\"retargeted\" | \"removed\"")]
+    pub outcome: &'static str,
+    /// The surviving page it now names, when retargeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub to: Option<String>,
+}
+
+impl From<laminapdf::ReferenceEdit> for ReferenceEditJs {
+    fn from(r: laminapdf::ReferenceEdit) -> Self {
+        use laminapdf::{ReferenceEditKind as K, ReferenceOutcome as O};
+        let (kind, name) = match r.kind {
+            K::OutlineItem => ("outlineItem", None),
+            K::NamedDestination { name } => ("namedDestination", Some(name)),
+            K::OpenAction => ("openAction", None),
+            K::StructureElement => ("structureElement", None),
+            K::StructureKid => ("structureKid", None),
+            K::Widget => ("widget", None),
+            _ => ("link", None),
+        };
+        let (outcome, to) = match r.outcome {
+            O::Retargeted { to } => ("retargeted", Some(to.to_string())),
+            _ => ("removed", None),
+        };
+        Self {
+            page: r.page.to_string(),
+            kind,
+            name,
+            outcome,
+            to,
+        }
+    }
 }
 
 impl From<laminapdf::Edited> for EditedJs {
@@ -359,6 +416,8 @@ impl From<laminapdf::Edited> for EditedJs {
             still_in_earlier_revisions: e.still_in_earlier_revisions,
             also_deleted: e.also_deleted,
             changed: e.changed,
+            page_order: e.page_order.map(|o| o.iter().map(ToString::to_string).collect()),
+            references: e.references.into_iter().map(ReferenceEditJs::from).collect(),
             declared: e.declared.into_iter().map(ExtensionPropertyJs::from).collect(),
         }
     }

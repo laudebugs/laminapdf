@@ -212,7 +212,13 @@ describe(`saving in ${BROWSER}`, () => {
   it("says a signed file's changes go after the signature, and won't rewrite it", async () => {
     const watched = await opened(NO_PICKERS, new URL("signed/approval.pdf", FIXTURES));
     const { page } = watched;
-    await turn(page);
+    // A metadata edit leaves the signed page as it was; rotating that page would reshow the
+    // signature's widget, which the next test covers.
+    await more(page, "Document properties…");
+    const dialog = page.getByRole("dialog", { name: "Document properties" });
+    await dialog.getByLabel("Title").fill("Approved budget");
+    await page.getByRole("button", { name: "Apply" }).click();
+    await expect.poll(() => saveState(page)).toBe("1 unsaved change");
     await page
       .getByText("Signed file. Saving adds your changes after the signature; the signature stays valid.")
       .waitFor();
@@ -220,6 +226,14 @@ describe(`saving in ${BROWSER}`, () => {
     await page.getByRole("menuitem", { name: "Save as optimised" }).click();
     await page.getByText("Not available for this file: a full rewrite would invalidate the signature.").waitFor();
     expect(await saveState(page)).toBe("1 unsaved change");
+    await clean(watched);
+  });
+
+  it("says rotating the page a signature is shown on would invalidate it", async () => {
+    const watched = await opened(NO_PICKERS, new URL("signed/approval.pdf", FIXTURES));
+    const { page } = watched;
+    await turn(page);
+    await page.getByText("Saving will invalidate the signature.").waitFor();
     await clean(watched);
   });
 });

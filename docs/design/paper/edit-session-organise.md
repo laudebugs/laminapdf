@@ -269,7 +269,7 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 
 - **Nothing selected:** no inspector; toolbar actions that need a selection are disabled; note “24 pages”.
 - **Dragging:** drawn in `O06-organise`.
-- **Approval-signed file, deleting or rotating the signature's page:** [E2r](../../todos/done/E2r-planner-page-checks.md)'s checks report `Restriction::SignedWidget { field }` for [E2b](../../todos/ready/E2b-page-structure-ops.md)'s `DeletePages` and `RotatePages` on the page that holds a signed signature's widget (deleting removes the signature's appearance and leaves its widget pointing at a missing page; rotating turns the signed appearance), so the save would be `Conflict`. The op is refused before applying and the `alertdialog` drawn in `O06-delete-signed` names the signature and offers “Delete page 23 only” (primary), Cancel (focus) and “Remove signature and delete…” (danger ghost, leads to the O02 confirm). For a rotate the same dialog reads “Rotate page 23 only” and “Remove signature and rotate…”. Moving, inserting or duplicating pages, and deleting or rotating other pages, on an approval-only file is `AppendOnly` and needs no dialog ([E2i](../../todos/ready/E2i-signed-gating-and-close.md)).
+- **Approval-signed file, deleting or rotating the signature's page:** [E2r](../../todos/done/E2r-planner-page-checks.md)'s checks report `Restriction::SignedWidget { field }` for [E2b](../../todos/done/E2b-page-structure-ops.md)'s `DeletePages` and `RotatePages` on the page that holds a signed signature's widget (deleting removes the signature's appearance and leaves its widget pointing at a missing page; rotating turns the signed appearance), so the save would be `Conflict`. The op is refused before applying and the `alertdialog` drawn in `O06-delete-signed` names the signature and offers “Delete page 23 only” (primary), Cancel (focus) and “Remove signature and delete…” (danger ghost, leads to the O02 confirm). For a rotate the same dialog reads “Rotate page 23 only” and “Remove signature and rotate…”. Moving, inserting or duplicating pages, and deleting or rotating other pages, on an approval-only file is `AppendOnly` and needs no dialog ([E2i](../../todos/ready/E2i-signed-gating-and-close.md)).
 - **Certified file, any page change:** refused before applying (`would_violate`, the area's signed-file rule): a drop, delete, rotate or insert changes nothing and shows the banner “**Moving pages would invalidate the certification.** … nothing has been moved.” with Save a copy · Apply anyway… · Details. A dropped drag animates back to its place. Apply anyway… confirms and then applies the change as one undo step.
 - **Delete with references:** the toast after deleting says what changed: “Deleted 2 pages. 1 bookmark now points to page 4.” with Undo.
 - **Duplicate on a form:** toast “Duplicated page 6. Its 2 fields were copied as new fields; the signature field wasn’t copied.”
@@ -283,7 +283,7 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 
 **Artboards:** `O06-organise.dc.html` (drag with insertion bar), `O06-organise-menu.dc.html` (page context menu), `O06-move-dialog.dc.html` (Move to page…, 440 px), `O06-delete-signed.dc.html` (approval signature, 560 px).
 
-**Todos:** [E2h](../../todos/ready/E2h-page-organiser-ui.md), [E2b](../../todos/ready/E2b-page-structure-ops.md).
+**Todos:** [E2h](../../todos/ready/E2h-page-organiser-ui.md), [E2b](../../todos/done/E2b-page-structure-ops.md).
 
 ## O07 Insert pages and merge documents
 

@@ -114,6 +114,7 @@ export function sidebar(typeDoc) {
         { label: "Generate, then edit", slug: "recipes/generate-then-edit" },
         { label: "Edit the metadata", slug: "recipes/edit-metadata" },
         { label: "Record your own metadata", slug: "recipes/edit-xmp" },
+        { label: "Organise pages", slug: "recipes/organise-pages" },
         { label: "Extract text for an LLM", slug: "recipes/extract-markdown" },
         { label: "A PDF/UA report", slug: "recipes/pdf-ua-report" },
         { label: "A PDF/A archive", slug: "recipes/pdf-a-archive" },

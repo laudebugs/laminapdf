@@ -15,10 +15,11 @@ use crate::labels::SetPageLabels;
 use crate::metadata::{
     RemoveMetadata, RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty, UpdateSaveMetadata,
 };
+use crate::pages::{DeletePages, InsertBlankPages, MovePages, ReferenceChange, ReversePages, RotatePages};
 use crate::rotate::RotatePage;
 #[cfg(feature = "test-support")]
 use crate::test_support::Declared;
-use crate::widgets::{PageChange, TouchedWidget};
+use crate::widgets::{PageChange, TouchedWidget, WidgetChange};
 
 /// An editing operation ([ADR 0006] §1): typed and semantic (it names things by
 /// [`LaminaPdfId`](laminapdf_model::LaminaPdfId), never by object reference), serialisable, and free
@@ -64,6 +65,16 @@ pub enum Op {
     RemoveXmpProperty(RemoveXmpProperty),
     /// Replace the whole XMP packet.
     ReplaceXmpPacket(ReplaceXmpPacket),
+    /// Insert blank pages.
+    InsertBlankPages(InsertBlankPages),
+    /// Delete pages, cleaning up what named them.
+    DeletePages(DeletePages),
+    /// Move pages to another position.
+    MovePages(MovePages),
+    /// Rotate pages, set or turned.
+    RotatePages(RotatePages),
+    /// Reverse pages within the places they hold.
+    ReversePages(ReversePages),
     /// The save-time metadata stamp, made only by the save planner. It never crosses the wire:
     /// serialising it fails with serde's error (`OpLog::to_json`: `invalid-op-log`), and no op
     /// log can name it.
@@ -96,7 +107,12 @@ impl Op {
             | Self::RemoveXmpProperty(_)
             | Self::ReplaceXmpPacket(_)
             | Self::UpdateSaveMetadata(_) => ModificationClass::Metadata,
-            Self::RotatePage(_) => ModificationClass::PageStructure,
+            Self::RotatePage(_)
+            | Self::InsertBlankPages(_)
+            | Self::DeletePages(_)
+            | Self::MovePages(_)
+            | Self::RotatePages(_)
+            | Self::ReversePages(_) => ModificationClass::PageStructure,
             Self::UpdateAnnot(_) | Self::DeleteAnnot(_) => ModificationClass::Annotation,
             Self::SetPageLabels(_) => ModificationClass::Document,
             #[cfg(feature = "test-support")]
@@ -119,6 +135,11 @@ impl Op {
             | Self::RemoveXmpProperty(_)
             | Self::ReplaceXmpPacket(_)
             | Self::UpdateSaveMetadata(_)
+            | Self::InsertBlankPages(_)
+            | Self::DeletePages(_)
+            | Self::MovePages(_)
+            | Self::RotatePages(_)
+            | Self::ReversePages(_)
             | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_) => false,
@@ -129,26 +150,32 @@ impl Op {
 
     /// The pages this op would delete, replace, reshow or move: what `laminapdf-save`'s
     /// `SavePlanner::would_violate` checks against the widgets on them before the op applies
-    /// ([E2 plan §6]). None of these ops reports a page yet: [`Op::RotatePage`] starts
-    /// reporting its page along with the page ops that delete, move and reverse pages.
+    /// ([E2 plan §6]): deleted pages, rotated ones and moved or reversed ones. Inserting
+    /// pages and metadata edits change none.
     ///
     /// [E2 plan §6]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint
     ///
     /// Added in 0.2.0.
     #[must_use]
     pub fn page_changes(&self) -> Vec<PageChange> {
+        let each = |pages: &[PageId], change| pages.iter().map(|p| PageChange::new(p.clone(), change)).collect();
         match self {
             Self::SetInfo(_)
-            | Self::RotatePage(_)
             | Self::SetMetadata(_)
             | Self::RemoveMetadata(_)
             | Self::SetXmpProperty(_)
             | Self::RemoveXmpProperty(_)
             | Self::ReplaceXmpPacket(_)
             | Self::UpdateSaveMetadata(_)
+            | Self::InsertBlankPages(_)
             | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_) => Vec::new(),
+            Self::RotatePage(op) => vec![PageChange::new(op.page.clone(), WidgetChange::Reshown)],
+            Self::RotatePages(op) => each(&op.pages, WidgetChange::Reshown),
+            Self::DeletePages(op) => each(&op.pages, WidgetChange::Deleted),
+            Self::MovePages(op) => each(&op.pages, WidgetChange::Moved),
+            Self::ReversePages(op) => each(&op.pages, WidgetChange::Moved),
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.pages.clone(),
         }
@@ -159,10 +186,21 @@ impl Op {
     pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Effect> {
         match self {
             Self::SetInfo(op) => op.apply_to(doc),
-            Self::RotatePage(op) => op.apply_to(doc).map(|pages| Effect {
-                pages,
-                ..Effect::default()
-            }),
+            Self::RotatePage(op) => {
+                let pages = op.apply_to(doc)?;
+                let widgets =
+                    crate::pages::widgets_on(doc, &pages, WidgetChange::Reshown, ModificationClass::PageStructure)?;
+                Ok(Effect {
+                    pages,
+                    widgets,
+                    ..Effect::default()
+                })
+            }
+            Self::InsertBlankPages(op) => op.apply_to(doc),
+            Self::DeletePages(op) => op.apply_to(doc),
+            Self::MovePages(op) => op.apply_to(doc),
+            Self::RotatePages(op) => op.apply_to(doc),
+            Self::ReversePages(op) => op.apply_to(doc),
             Self::SetMetadata(op) => op.apply_to(doc),
             Self::RemoveMetadata(op) => op.apply_to(doc),
             Self::SetXmpProperty(op) => op.apply_to(doc),
@@ -194,6 +232,10 @@ pub(crate) struct Effect {
     pub(crate) also_deleted: Vec<laminapdf_model::AnnotId>,
     /// The form fields whose widgets it deleted, reshowed or moved.
     pub(crate) widgets: Vec<TouchedWidget>,
+    /// The page IDs in order, when it changed the page list.
+    pub(crate) page_order: Option<Vec<PageId>>,
+    /// The references to deleted pages it retargeted or removed.
+    pub(crate) references: Vec<ReferenceChange>,
 }
 
 impl From<SetInfo> for Op {
@@ -220,35 +262,28 @@ impl From<UpdateSaveMetadata> for Op {
     }
 }
 
-impl From<SetXmpProperty> for Op {
-    fn from(op: SetXmpProperty) -> Self {
-        Self::SetXmpProperty(op)
-    }
+macro_rules! op_from {
+    ($($name:ident),*) => {
+        $(impl From<$name> for Op {
+            fn from(op: $name) -> Self {
+                Self::$name(op)
+            }
+        })*
+    };
 }
 
-impl From<RemoveXmpProperty> for Op {
-    fn from(op: RemoveXmpProperty) -> Self {
-        Self::RemoveXmpProperty(op)
-    }
-}
-
-impl From<ReplaceXmpPacket> for Op {
-    fn from(op: ReplaceXmpPacket) -> Self {
-        Self::ReplaceXmpPacket(op)
-    }
-}
-
-impl From<UpdateAnnot> for Op {
-    fn from(op: UpdateAnnot) -> Self {
-        Self::UpdateAnnot(op)
-    }
-}
-
-impl From<DeleteAnnot> for Op {
-    fn from(op: DeleteAnnot) -> Self {
-        Self::DeleteAnnot(op)
-    }
-}
+op_from!(
+    SetXmpProperty,
+    RemoveXmpProperty,
+    ReplaceXmpPacket,
+    InsertBlankPages,
+    DeletePages,
+    MovePages,
+    RotatePages,
+    ReversePages,
+    UpdateAnnot,
+    DeleteAnnot
+);
 
 impl From<SetPageLabels> for Op {
     fn from(op: SetPageLabels) -> Self {

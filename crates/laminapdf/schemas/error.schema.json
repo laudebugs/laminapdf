@@ -37,6 +37,8 @@
             "xmp-claim-read-only",
             "invalid-xmp-packet",
             "invalid-xmp-property",
+            "no-pages-left",
+            "invalid-op",
             "unknown-annotation",
             "annotation-locked",
             "annotation-not-editable",

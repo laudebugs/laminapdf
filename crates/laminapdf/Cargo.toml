@@ -156,6 +156,9 @@ name = "edit_metadata"
 name = "edit_xmp"
 
 [[example]]
+name = "organise_pages"
+
+[[example]]
 name = "pdf_ua_report"
 required-features = ["text"]
 

@@ -55,6 +55,8 @@ export type ErrorCode =
   | "xmp-claim-read-only"
   | "invalid-xmp-packet"
   | "invalid-xmp-property"
+  | "no-pages-left"
+  | "invalid-op"
   | "unknown-annotation"
   | "annotation-locked"
   | "annotation-not-editable"
@@ -273,6 +275,8 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "xmp-claim-read-only",
   "invalid-xmp-packet",
   "invalid-xmp-property",
+  "no-pages-left",
+  "invalid-op",
   "unknown-annotation",
   "annotation-locked",
   "annotation-not-editable",
@@ -519,6 +523,8 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "xmp-claim-read-only": "usage",
   "invalid-xmp-packet": "input",
   "invalid-xmp-property": "usage",
+  "no-pages-left": "usage",
+  "invalid-op": "usage",
   "unknown-annotation": "usage",
   "annotation-locked": "state",
   "annotation-not-editable": "unsupported",
@@ -712,6 +718,8 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "xmp-claim-read-only": "leave the pdfaid: and pdfuaid: properties as they are; edit the other properties, or keep them unchanged in a replaced packet",
   "invalid-xmp-packet": "fix the XML at the offset in the error's data (reason says what is wrong), then replace the packet again",
   "invalid-xmp-property": "check the part the error's reason names: the namespace, prefix, name, value, or the shape a mirrored property needs",
+  "no-pages-left": "keep at least one page: delete all but one, or insert a blank page first",
+  "invalid-op": "insert between 1 and 10,000 pages at a time, each with a width and height above 0 and up to 14,400 points",
   "unknown-annotation": "read the page's annotations again and use an ID from that list",
   "annotation-locked": "clear the lock with an update of its flags first, if you may",
   "annotation-not-editable": "edit a widget through its form field; an annotation stored inside the page's list can't be edited yet",

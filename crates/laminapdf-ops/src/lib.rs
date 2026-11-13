@@ -84,6 +84,7 @@ mod info;
 mod labels;
 mod metadata;
 mod op;
+mod pages;
 mod pending;
 mod record;
 mod rotate;
@@ -111,6 +112,10 @@ pub use metadata::{
     read_metadata,
 };
 pub use op::{Op, OpLog};
+pub use pages::{
+    DeletePages, InsertBlankPages, MovePages, ReferenceChange, ReferenceOutcome, ReferencePolicy, ReversePages,
+    RotateMode, RotatePages,
+};
 pub use pending::PendingChanges;
 pub use record::{Change, Field, Property, PropertyValue, SkipReason, Skipped, Target, UndoRecord};
 pub use rotate::RotatePage;

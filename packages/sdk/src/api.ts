@@ -98,8 +98,15 @@ export type { GlyphQuad, QuadPoint, TextGlyph, TextOptions as PageTextOptions } 
 export { PageText, PageTextRun } from "./text.js";
 export type { InfoPatch, Rotation } from "./transaction.js";
 export {
+  type DeletePagesOptions,
+  type InsertBlankPagesOptions,
   type MetadataEditOptions,
   type MetadataRemoveOptions,
+  type PagePosition,
+  type PageSize,
+  type ReferencePolicy,
+  type RotateMode,
+  type RotatePagesOptions,
   Transaction,
   type XmpEditOptions,
 } from "./transaction.js";
@@ -139,6 +146,7 @@ export type {
   Profile,
   Progress,
   Rect,
+  ReferenceEdit,
   RenderMode,
   Reverted,
   SaveOptions,

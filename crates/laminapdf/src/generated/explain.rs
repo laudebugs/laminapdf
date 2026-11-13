@@ -2533,6 +2533,75 @@ The decisions and todos behind this code:
 
 - [E3e](../todos/done/E3e-xmp-editor.md): the general XMP editor
 "#,
+        "no-pages-left" => r"# `no-pages-left`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A page deletion named every page of the document. Lamina PDF refused it and changed nothing, because a PDF needs at least one page for a reader to show.
+
+## Why
+
+The pages given to the deletion cover the whole document. That can happen when someone selects every page and deletes the selection, or when a script deletes pages one batch at a time and the last batch takes the rest.
+
+## How to fix
+
+Keep at least one page. Delete all the pages but one, or insert a blank page first and then delete the others.
+
+## Example
+
+```rust
+let pages: Vec<_> = doc.page_infos()?.into_iter().map(|p| p.id).collect();
+doc.apply(vec![DeletePages::new(pages).into()])?; // no-pages-left
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E2b](../todos/done/E2b-page-structure-ops.md): the page-structure ops
+- [E2 plan §11](../plans/editor/e2-page-organisation.md#11-decisions-on-the-open-questions): deleting every page is refused
+",
+        "invalid-op" => r"# `invalid-op`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An edit carried a value Lamina PDF can't use, so Lamina PDF refused it and left the document unchanged. Inserting blank pages, for example, needs a page count from 1 to 10,000 and a size whose width and height are above 0 and at most 14,400 points.
+
+## Why
+
+The value came from the caller, often from an op log that a script built or that came from elsewhere. It was out of range: a count of 0 or millions of pages, or a size that is zero, negative or not a number.
+
+## How to fix
+
+Check the values before you apply the edit. Insert blank pages in batches of at most 10,000, and give each page a width and height in points, such as 612 by 792 for US Letter.
+
+## Example
+
+```rust
+let op = InsertBlankPages::new(PagePosition::End, 0, PageSize::LETTER);
+doc.apply(vec![op.into()])?; // invalid-op: insert at least one page
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E2b](../todos/done/E2b-page-structure-ops.md): the page-structure ops
+",
         "unknown-annotation" => r#"# `unknown-annotation`
 
 - Type: error

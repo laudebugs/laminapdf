@@ -108,6 +108,10 @@ pub enum ErrorCode {
     InvalidXmpPacket,
     /// `invalid-xmp-property`: an XMP property edit names a property, or gives a value, that can't be written.
     InvalidXmpProperty,
+    /// `no-pages-left`: a page deletion would leave the document with no pages.
+    NoPagesLeft,
+    /// `invalid-op`: an op's values are out of range, such as a page count or a page size.
+    InvalidOp,
     /// `unknown-annotation`: the op names an annotation that no page of the document lists.
     UnknownAnnotation,
     /// `annotation-locked`: the annotation's flags forbid the change: Locked forbids deleting it or changing its properties, LockedContents changing its contents.
@@ -317,6 +321,8 @@ impl ErrorCode {
         Self::XmpClaimReadOnly,
         Self::InvalidXmpPacket,
         Self::InvalidXmpProperty,
+        Self::NoPagesLeft,
+        Self::InvalidOp,
         Self::UnknownAnnotation,
         Self::AnnotationLocked,
         Self::AnnotationNotEditable,
@@ -457,6 +463,8 @@ impl ErrorCode {
             Self::XmpClaimReadOnly => "xmp-claim-read-only",
             Self::InvalidXmpPacket => "invalid-xmp-packet",
             Self::InvalidXmpProperty => "invalid-xmp-property",
+            Self::NoPagesLeft => "no-pages-left",
+            Self::InvalidOp => "invalid-op",
             Self::UnknownAnnotation => "unknown-annotation",
             Self::AnnotationLocked => "annotation-locked",
             Self::AnnotationNotEditable => "annotation-not-editable",
@@ -583,6 +591,8 @@ impl ErrorCode {
             Self::XmpClaimReadOnly => ErrorKind::Usage,
             Self::InvalidXmpPacket => ErrorKind::Input,
             Self::InvalidXmpProperty => ErrorKind::Usage,
+            Self::NoPagesLeft => ErrorKind::Usage,
+            Self::InvalidOp => ErrorKind::Usage,
             Self::UnknownAnnotation => ErrorKind::Usage,
             Self::AnnotationLocked => ErrorKind::State,
             Self::AnnotationNotEditable => ErrorKind::Unsupported,
@@ -709,6 +719,8 @@ impl ErrorCode {
             Self::XmpClaimReadOnly => "an XMP edit would change the file's PDF/A or PDF/UA identification, which only conversion or a check may set",
             Self::InvalidXmpPacket => "the XMP packet given to replace the document's doesn't parse",
             Self::InvalidXmpProperty => "an XMP property edit names a property, or gives a value, that can't be written",
+            Self::NoPagesLeft => "a page deletion would leave the document with no pages",
+            Self::InvalidOp => "an op's values are out of range, such as a page count or a page size",
             Self::UnknownAnnotation => "the op names an annotation that no page of the document lists",
             Self::AnnotationLocked => "the annotation's flags forbid the change: Locked forbids deleting it or changing its properties, LockedContents changing its contents",
             Self::AnnotationNotEditable => "the annotation can't be edited by the annotation ops: it is a form field's widget, or a direct dictionary with no object of its own",
@@ -835,6 +847,8 @@ impl ErrorCode {
             Self::XmpClaimReadOnly => "leave the pdfaid: and pdfuaid: properties as they are; edit the other properties, or keep them unchanged in a replaced packet",
             Self::InvalidXmpPacket => "fix the XML at the offset in the error's data (reason says what is wrong), then replace the packet again",
             Self::InvalidXmpProperty => "check the part the error's reason names: the namespace, prefix, name, value, or the shape a mirrored property needs",
+            Self::NoPagesLeft => "keep at least one page: delete all but one, or insert a blank page first",
+            Self::InvalidOp => "insert between 1 and 10,000 pages at a time, each with a width and height above 0 and up to 14,400 points",
             Self::UnknownAnnotation => "read the page's annotations again and use an ID from that list",
             Self::AnnotationLocked => "clear the lock with an update of its flags first, if you may",
             Self::AnnotationNotEditable => "edit a widget through its form field; an annotation stored inside the page's list can't be edited yet",

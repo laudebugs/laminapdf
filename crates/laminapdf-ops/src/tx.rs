@@ -11,6 +11,7 @@ use laminapdf_model::PageId;
 
 use crate::error::Result;
 use crate::op::{Effect, Op};
+use crate::pages::ReferenceChange;
 use crate::pending::PendingChanges;
 use crate::record::UndoRecord;
 use crate::widgets::TouchedWidget;
@@ -94,6 +95,16 @@ pub struct Applied {
     ///
     /// Added in 0.2.0.
     pub widgets: Vec<TouchedWidget>,
+    /// The page IDs in order after the edit, when it changed the page list (inserted,
+    /// deleted, moved or reversed pages); `None` otherwise.
+    ///
+    /// Added in 0.2.0.
+    pub page_order: Option<Vec<PageId>>,
+    /// The references to deleted pages that the edit retargeted or removed (E2 plan §11):
+    /// outline items, links, named destinations, `/OpenAction` and structure elements.
+    ///
+    /// Added in 0.2.0.
+    pub references: Vec<ReferenceChange>,
 }
 
 /// The state of the open transaction, kept on the [`Document`](crate::Document) so the
@@ -110,6 +121,10 @@ pub(crate) struct TxState {
     pub(crate) packet_rewritten: bool,
     pub(crate) removed: bool,
     pub(crate) declared: Vec<laminapdf_model::xmp::ExtensionProperty>,
+    /// The page order after the last op that changed it.
+    pub(crate) page_order: Option<Vec<PageId>>,
+    /// The references the ops so far retargeted or removed.
+    pub(crate) references: Vec<ReferenceChange>,
     pub(crate) also_deleted: Vec<laminapdf_model::AnnotId>,
 }
 
@@ -172,6 +187,8 @@ impl Tx<'_> {
             declared: effect.declared,
             also_deleted: effect.also_deleted,
             widgets: effect.widgets,
+            page_order: effect.page_order,
+            references: effect.references,
         })
     }
 
@@ -191,6 +208,10 @@ impl Tx<'_> {
                 self.state.packet_rewritten |= effect.packet_rewritten;
                 self.state.removed |= effect.removed;
                 self.state.declared.extend(effect.declared.iter().cloned());
+                if effect.page_order.is_some() {
+                    self.state.page_order.clone_from(&effect.page_order);
+                }
+                self.state.references.extend(effect.references.iter().cloned());
                 self.state.also_deleted.extend(effect.also_deleted.iter().cloned());
                 Ok(effect)
             }
@@ -214,11 +235,15 @@ impl Tx<'_> {
         let mark = self.doc.journal_mark();
         let touched = self.state.touched.clone();
         let pending = self.state.pending.clone();
+        let page_order = self.state.page_order.clone();
+        let references = self.state.references.len();
         let result = f(self);
         if result.is_err() {
             self.doc.cos_mut().rollback_to(mark)?;
             self.state.touched = touched;
             self.state.pending = pending;
+            self.state.page_order = page_order;
+            self.state.references.truncate(references);
         }
         result
     }
@@ -270,6 +295,8 @@ mod tests {
             packet_rewritten: false,
             removed: false,
             declared: Vec::new(),
+            page_order: None,
+            references: Vec::new(),
             also_deleted: Vec::new(),
         }
     }

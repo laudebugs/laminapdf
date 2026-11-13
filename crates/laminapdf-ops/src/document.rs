@@ -453,6 +453,8 @@ impl Document {
             packet_rewritten: false,
             removed: false,
             declared: Vec::new(),
+            page_order: None,
+            references: Vec::new(),
             also_deleted: Vec::new(),
         });
         Ok(())
@@ -511,6 +513,8 @@ impl Document {
             declared: state.declared,
             also_deleted: state.also_deleted,
             widgets,
+            page_order: state.page_order,
+            references: state.references,
         })
     }
 
