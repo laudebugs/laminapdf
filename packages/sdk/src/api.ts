@@ -130,6 +130,7 @@ export type {
   PageAnnotation,
   PageInfo,
   PageLabel,
+  PageLabelRange,
   PageLink,
   PlannedSave,
   Point,

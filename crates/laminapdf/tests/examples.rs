@@ -61,6 +61,9 @@ mod markdown_to_pdf;
 #[path = "../examples/multilingual.rs"]
 mod multilingual;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/page_labels.rs"]
+mod page_labels;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/pdf_a3_invoice_with_xml.rs"]
 mod pdf_a3_invoice_with_xml;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -132,7 +135,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 19] = [
+const EXAMPLES: [(&str, Build); 20] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -158,6 +161,9 @@ const EXAMPLES: [(&str, Build); 19] = [
     }),
     ("set_initial_view", || {
         set_initial_view::open_on(fixture("corpus/outline.pdf"), 1)
+    }),
+    ("page_labels", || {
+        page_labels::label(fixture("golden/examples/links_and_outlines.pdf"))
     }),
     ("pdf_ua_report", || pdf_ua_report::build(fixture(NOTO))),
     ("pdf_a_archive-2b", || {

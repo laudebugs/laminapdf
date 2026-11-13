@@ -1,0 +1,147 @@
+{
+ "pdfjs_version": "6.4.299",
+ "pypdfium2_version": "5.14.0",
+ "qpdf_version": "11.9.0",
+ "files": {
+  "alpha.pdf": {
+   "sha256": "67a983704607c48679d8969913b41459cccfaece49ff239bba5a13ab330679d0",
+   "qpdf_check": true,
+   "pdfjs": [
+    "Y",
+    "Z",
+    "AA",
+    "BB",
+    "CC",
+    "DD",
+    "EE",
+    "FF",
+    "GG",
+    "HH"
+   ],
+   "pdfium": [
+    "Y",
+    "Z",
+    "AA",
+    "BB",
+    "CC",
+    "DD",
+    "EE",
+    "FF",
+    "GG",
+    "HH"
+   ]
+  },
+  "mixed.pdf": {
+   "sha256": "ee20c995d42b1d735b94d89c460c6674618e3bed2ded04009eb7c952bd62a127",
+   "qpdf_check": true,
+   "pdfjs": [
+    "i",
+    "ii",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "App. a",
+    "Back cover"
+   ],
+   "pdfium": [
+    "i",
+    "ii",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "App. a",
+    "Back cover"
+   ]
+  },
+  "prefixed.pdf": {
+   "sha256": "69ca10dbadb4a445d86abafa67ed7d8e8d0db4c11ccb1d95777f0ca2c7155df5",
+   "qpdf_check": true,
+   "pdfjs": [
+    "Ch-1",
+    "Ch-2",
+    "Ch-3",
+    "Ch-4",
+    "Ch-5",
+    "Ch-6",
+    "Ch-7",
+    "Ch-8",
+    "Ch-9",
+    "Ch-10"
+   ],
+   "pdfium": [
+    "Ch-1",
+    "Ch-2",
+    "Ch-3",
+    "Ch-4",
+    "Ch-5",
+    "Ch-6",
+    "Ch-7",
+    "Ch-8",
+    "Ch-9",
+    "Ch-10"
+   ]
+  },
+  "restarts.pdf": {
+   "sha256": "adbec9242da1e33bb53608685cd5e7d1e11755106d376309459d29af72fde527",
+   "qpdf_check": true,
+   "pdfjs": [
+    "1",
+    "2",
+    "3",
+    "1",
+    "2",
+    "3",
+    "4",
+    "10",
+    "11",
+    "12"
+   ],
+   "pdfium": [
+    "1",
+    "2",
+    "3",
+    "1",
+    "2",
+    "3",
+    "4",
+    "10",
+    "11",
+    "12"
+   ]
+  },
+  "roman.pdf": {
+   "sha256": "c5bacf32e6748c561a1387c2431b7d7853d1a9b206de70c03559fb4ef8f0530c",
+   "qpdf_check": true,
+   "pdfjs": [
+    "I",
+    "II",
+    "III",
+    "IV",
+    "V",
+    "VI",
+    "VII",
+    "VIII",
+    "IX",
+    "X"
+   ],
+   "pdfium": [
+    "I",
+    "II",
+    "III",
+    "IV",
+    "V",
+    "VI",
+    "VII",
+    "VIII",
+    "IX",
+    "X"
+   ]
+  }
+ }
+}

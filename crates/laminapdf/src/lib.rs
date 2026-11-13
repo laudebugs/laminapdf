@@ -179,13 +179,13 @@ pub use warning::{Warning, WarningCursor};
 
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};
 pub use laminapdf_model::{
-    AnnotId, PageId, PageLayout, PageMode, PdfDate, PointPt, Pt, RectPt, Rotation, WindowPreferences,
+    AnnotId, LabelStyle, PageId, PageLayout, PageMode, PdfDate, PointPt, Pt, RectPt, Rotation, WindowPreferences,
 };
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use laminapdf_ops::{
     ConformanceWarning, DeleteAnnot, DocumentMetadata, InfoPatch, MetadataKey, MetadataPatch, MetadataSource,
-    ModificationClass, Offset, Op, OpLog, OpenAt, OpenZoom, PacketStatus, RemoveMetadata, Reverted, RotatePage,
-    SetInfo, SetInitialView, SetMetadata, UndoOutcome, UpdateAnnot, WindowPreferencesPatch,
+    ModificationClass, Offset, Op, OpLog, OpenAt, OpenZoom, PacketStatus, PageLabelRange, RemoveMetadata, Reverted,
+    RotatePage, SetInfo, SetInitialView, SetMetadata, SetPageLabels, UndoOutcome, UpdateAnnot, WindowPreferencesPatch,
 };
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,
@@ -201,10 +201,10 @@ pub use laminapdf_build::FontHandle;
 #[cfg(feature = "build")]
 pub use laminapdf_build::{
     AfRelationship, Artifact, ArtifactKind, Attachment, BlendMode, BuildOptions, Color, ContentKind, Dash, ElementId,
-    FillRule, Fit, IccProfile, Image, ImageFormat, ImagePages, ImagesOptions, LabelStyle, LineCap, LineJoin,
-    LinkTarget, Matrix, Metadata, Orientation, OutlineEntry, OutlineItemId, PageBuilder, PageEdge, PageLabel, PageSize,
-    PathBuilder, PdfVersion, PendingPath, PngOptions, Profile, StrokeStyle, Surface, TableScope, Tag, TagDiagnostic,
-    TagKind, ViewerPreferences,
+    FillRule, Fit, IccProfile, Image, ImageFormat, ImagePages, ImagesOptions, LineCap, LineJoin, LinkTarget, Matrix,
+    Metadata, Orientation, OutlineEntry, OutlineItemId, PageBuilder, PageEdge, PageLabel, PageSize, PathBuilder,
+    PdfVersion, PendingPath, PngOptions, Profile, StrokeStyle, Surface, TableScope, Tag, TagDiagnostic, TagKind,
+    ViewerPreferences,
 };
 #[cfg(feature = "text")]
 pub use laminapdf_build::{

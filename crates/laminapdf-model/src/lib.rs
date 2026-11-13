@@ -75,7 +75,7 @@ mod copy;
 mod date;
 mod disclosure;
 mod document;
-#[cfg(feature = "edit")]
+#[cfg(feature = "tree-write")]
 mod edit;
 mod fonts;
 mod geometry;
@@ -95,7 +95,7 @@ mod references;
 mod structure;
 mod threads;
 mod tree;
-#[cfg(feature = "edit")]
+#[cfg(feature = "tree-write")]
 mod tree_writer;
 mod values;
 pub mod xmp;
@@ -125,7 +125,7 @@ pub use references::{NameStore, PageReference, PageReferences, ReferenceKind, Vi
 pub use structure::{StructElem, StructKid, StructTree};
 pub use threads::{Bead, Thread};
 pub use tree::{NameTree, NumberTree};
-#[cfg(feature = "edit")]
+#[cfg(feature = "tree-write")]
 pub use tree_writer::TreeWriter;
 
 // The layers below, in façade order (ADR 0005 §1): what callers of the model need without

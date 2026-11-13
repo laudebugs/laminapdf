@@ -62,6 +62,7 @@ export const DOCUMENT_METHODS = {
   adoptCopy: 2,
   setInitialView: 1,
   setMetadata: 2,
+  setPageLabels: 1,
   structureTree: 0,
   threads: 0,
   undo: 0,

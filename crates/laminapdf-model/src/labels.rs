@@ -1,7 +1,7 @@
 //! Page labels (ISO 32000-2 §12.4.2): the catalog's `/PageLabels` number tree, from page
 //! index to label ranges.
 
-#[cfg(feature = "edit")]
+#[cfg(feature = "tree-write")]
 mod remap;
 
 use laminapdf_cos::{Object, Result, Warning};

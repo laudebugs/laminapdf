@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 8 | 8 | 18 | 0 | 135 | 15 |
+| core | 169 | 9 | 7 | 18 | 0 | 135 | 16 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
 | web | 168 | 6 | 0 | 1 | 0 | 161 | 7 |
 | desktop | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
@@ -182,7 +182,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | I.07 | Define reading order; logical structure tags | — | — | — | — | E15 round-trip |  |
 | I.08 | Optional content groups (layers) | — | — | — | — | E17 round-trip |  |
 | I.09 | Article threads | 🟡 read | — | 🟡 read | — | E3 read | [`thread_parts_are_rectangles_in_page_space`](../../crates/laminapdf/tests/initial_view.rs) core read<br>[`a_thread_lists_its_beads_in_order_and_stops_where_the_circle_closes`](../../crates/laminapdf-model/tests/initial_view.rs) core read<br>[lists a file's article threads and follows them part by part](../../apps/web/e2e/initial-view.e2e.test.ts) web read |
-| I.10 | Page labels | 🔵 write | — | — | — | E2 round-trip | [`labels_follow_the_ranges`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
+| I.10 | Page labels | 🟢 round-trip | — | — | — | E2 round-trip | [`labels_follow_the_ranges`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | I.11 | Outline & navigation preferences | 🟢 round-trip | — | 🟢 round-trip | — | E3 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[sets where the file opens, its panel and window title, and opens there](../../apps/web/e2e/initial-view.e2e.test.ts) web round-trip |
 
 ## J. Metadata & attachments

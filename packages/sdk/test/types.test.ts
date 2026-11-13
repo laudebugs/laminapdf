@@ -65,6 +65,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "path-outside-roots":
       return "security";
     case "unknown-page":
+    case "invalid-label-ranges":
     case "unknown-source":
     case "unknown-annotation":
     case "sink-not-empty":

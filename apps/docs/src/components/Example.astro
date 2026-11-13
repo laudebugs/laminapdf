@@ -7,6 +7,8 @@
 // `cargo xtask docs-previews`, which renders the example goldens; `cargo xtask check docs` keeps them
 // in step. The examples in runner/examples.ts also get "Edit and run" under the picture (todo
 // B7e), when the runner was built (scripts/build-runner.mjs); it loads nothing until it is pressed.
+// Where the page is beside the code, a divider between them sets the page's width for every example
+// (todo Q4q); it is shown only once its script runs.
 import { existsSync } from "node:fs";
 import { TabItem, Tabs } from "@astrojs/starlight/components";
 // @laminapdf/icons' own files, inlined at build time.
@@ -134,6 +136,23 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
     }
   </div>
   {
+    /* The divider between the code and the page (todo Q4q), shown where they sit side by side, once
+       its script has run: without it, the page keeps its width. */
+    first !== undefined && (
+      <lamina-split
+        class="example-split"
+        role="separator"
+        tabindex="0"
+        aria-orientation="vertical"
+        aria-label="Resize the code and the page"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="50"
+        title="Drag to resize; double-click to reset"
+      />
+    )
+  }
+  {
     first !== undefined && (
       <div class="example-page not-content">
         <figure class="example-first">
@@ -248,6 +267,187 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
     }
   }
   customElements.define("lamina-run", LaminaRun);
+
+  // The divider between the code and the page (todo Q4q). The width it sets is one custom property
+  // on the root element, so every example on the page follows, and it is kept for the next page in
+  // localStorage (a per-reader convenience: without storage, every page opens at the default). It
+  // is set through the CSSOM, which the docs' CSP allows; a `style` attribute in markup it blocks.
+  const PAGE_KEY = "lamina-docs-example-page";
+  const CHOSEN = "--example-page-chosen";
+  /** The narrowest page and code the divider allows, in rem (the CSS keeps the same bounds). */
+  const MIN_PAGE = 12;
+  const MIN_CODE = 20;
+  /** How far one arrow key moves the divider, and with Shift, in rem. */
+  const STEP = 1;
+  const BIG_STEP = 4;
+  const root = document.documentElement;
+  const remPx = () => Number.parseFloat(getComputedStyle(root).fontSize) || 16;
+  const splits = new Set<LaminaSplit>();
+  let described = 0;
+  /** Updates every divider's value once the frame's changes are in: a drag sets the width on every move. */
+  const describeAll = () => {
+    if (described !== 0) return;
+    described = requestAnimationFrame(() => {
+      described = 0;
+      for (const split of splits) split.describe();
+    });
+  };
+
+  /** Updates every divider's value now: after a key or a reset, which assistive technology reads at once. */
+  const describeNow = () => {
+    for (const split of splits) split.describe();
+  };
+
+  /** Sets the page's width, in rem, for every example, or with `undefined` puts back the default. */
+  const choose = (rem: number | undefined) => {
+    if (rem === undefined) {
+      root.style.removeProperty(CHOSEN);
+      delete root.dataset.examplePage;
+    } else {
+      root.style.setProperty(CHOSEN, `${rem}rem`);
+      root.dataset.examplePage = "";
+    }
+    describeAll();
+  };
+  /** Tells "Edit and run" the page's width has settled, so a run's pages can be drawn again to fit (editor.ts). */
+  const settled = () => dispatchEvent(new Event("lamina-example-page-resized"));
+  /** Remembers the width, or forgets it; storage may be blocked (a private window), which changes nothing else. */
+  const remember = (rem: number | undefined) => {
+    try {
+      if (rem === undefined) localStorage.removeItem(PAGE_KEY);
+      else localStorage.setItem(PAGE_KEY, String(rem));
+    } catch {
+      // The width then lasts until the page is left.
+    }
+  };
+  try {
+    const stored = Number.parseFloat(localStorage.getItem(PAGE_KEY) ?? "");
+    if (Number.isFinite(stored) && stored >= MIN_PAGE) choose(stored);
+  } catch {
+    // No storage: the default width.
+  }
+
+  class LaminaSplit extends HTMLElement {
+    private example: HTMLElement | null = null;
+    private code: HTMLElement | null = null;
+    private page: HTMLElement | null = null;
+    /** The pointer that moves the divider, while one does. */
+    private dragging: number | undefined;
+
+    connectedCallback(): void {
+      this.example = this.closest<HTMLElement>(".example");
+      this.code = this.example?.querySelector<HTMLElement>(":scope > .example-code") ?? null;
+      this.page = this.example?.querySelector<HTMLElement>(":scope > .example-page") ?? null;
+      if (this.example === null || this.code === null || this.page === null) return;
+      splits.add(this);
+      // The two panes it resizes, by ID (aria-controls), numbered in the order the dividers connect.
+      const n = splits.size;
+      this.code.id ||= `example-code-${n}`;
+      this.page.id ||= `example-page-${n}`;
+      this.setAttribute("aria-controls", `${this.code.id} ${this.page.id}`);
+      this.addEventListener("pointerdown", this.down);
+      this.addEventListener("pointermove", this.move);
+      this.addEventListener("pointerup", this.up);
+      this.addEventListener("pointercancel", this.up);
+      // Capture can end without a pointerup (the window loses focus): the drag ends with it.
+      this.addEventListener("lostpointercapture", this.up);
+      this.addEventListener("keydown", this.key);
+      this.addEventListener("dblclick", this.reset);
+      this.describe();
+    }
+
+    disconnectedCallback(): void {
+      splits.delete(this);
+    }
+
+    /** The page's width the divider may set here, in rem: from 12rem up to what leaves the code 20rem. */
+    private clamp(rem: number): number {
+      const example = this.example?.getBoundingClientRect().width ?? 0;
+      const most = (example - this.getBoundingClientRect().width) / remPx() - MIN_CODE;
+      return Math.round(Math.max(MIN_PAGE, Math.min(rem, most)) * 100) / 100;
+    }
+
+    /** The page's width now, in rem. */
+    private pageRem(): number {
+      return (this.page?.getBoundingClientRect().width ?? 0) / remPx();
+    }
+
+    /** The divider's value for assistive technology: the code's share of the two, in percent. */
+    describe(): void {
+      const code = this.code?.getBoundingClientRect().width ?? 0;
+      const page = this.page?.getBoundingClientRect().width ?? 0;
+      if (code + page === 0) return;
+      const share = Math.round((code / (code + page)) * 100);
+      this.setAttribute("aria-valuenow", String(share));
+      this.setAttribute("aria-valuetext", `The code takes ${share}% of the width, the page ${100 - share}%`);
+    }
+
+    private down = (event: PointerEvent): void => {
+      if (event.button !== 0) return;
+      // No text selection while it moves, and no focus ring: that is for the keyboard.
+      event.preventDefault();
+      this.dragging = event.pointerId;
+      this.setPointerCapture(event.pointerId);
+      root.classList.add("example-resizing");
+    };
+
+    private move = (event: PointerEvent): void => {
+      if (this.dragging !== event.pointerId) return;
+      // Once moved, the example takes all the room (the CSS), so its right edge stays put: the page
+      // is what lies right of the pointer, less half the divider.
+      if (root.dataset.examplePage === undefined) choose(this.pageRem());
+      const right = this.example?.getBoundingClientRect().right ?? 0;
+      const half = this.getBoundingClientRect().width / 2;
+      choose(this.clamp((right - event.clientX - half) / remPx()));
+    };
+
+    private up = (event: PointerEvent): void => {
+      if (this.dragging !== event.pointerId) return;
+      this.dragging = undefined;
+      root.classList.remove("example-resizing");
+      if (root.dataset.examplePage !== undefined) remember(this.pageRem());
+      settled();
+    };
+
+    private key = (event: KeyboardEvent): void => {
+      // Alt, Ctrl and Meta with these keys are the browser's own (Alt+← goes back).
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      const step = event.shiftKey ? BIG_STEP : STEP;
+      // The divider sits after the code: left gives the page more room, right gives the code more.
+      const moves: Record<string, () => number | undefined> = {
+        ArrowLeft: () => this.pageRem() + step,
+        ArrowRight: () => this.pageRem() - step,
+        Home: () => Number.POSITIVE_INFINITY,
+        End: () => MIN_PAGE,
+        Enter: () => undefined,
+      };
+      const to = moves[event.key];
+      if (to === undefined) return;
+      event.preventDefault();
+      const rem = to();
+      if (rem === undefined) {
+        this.reset();
+        return;
+      }
+      if (root.dataset.examplePage === undefined) choose(this.pageRem());
+      const chosen = this.clamp(rem);
+      choose(chosen);
+      remember(chosen);
+      describeNow();
+      settled();
+    };
+
+    /** Puts back the page's default width. */
+    private reset = (): void => {
+      choose(undefined);
+      remember(undefined);
+      describeNow();
+      settled();
+    };
+  }
+  customElements.define("lamina-split", LaminaSplit);
+  // The window's width changes how much of the two each takes: the value follows.
+  addEventListener("resize", describeAll);
 </script>
 
 <style>
@@ -271,14 +471,39 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
      often to read, so the page goes below it. */
   @media (min-width: 90rem) {
     .example-with-page {
-      --example-width: min(
-        100vw - var(--sl-sidebar-width) - var(--docs-toc-width, 0rem) - 2 * var(--sl-content-pad-x) - 1rem,
-        45rem + var(--paper-space-24) + var(--example-page-width)
+      /* The room the example may take: the window less the sidebars, the padding and a scroll bar. */
+      --example-room: calc(
+        100vw - var(--sl-sidebar-width) - var(--docs-toc-width, 0rem) - 2 * var(--sl-content-pad-x) - 1rem
       );
+      /* The divider's width (todo Q4q) sets the page's (--example-page-chosen, on the root element, for
+         every example); the code keeps 20rem and the page 12rem whatever was chosen, in this window. */
+      --example-page-width: clamp(
+        12rem,
+        var(--example-page-chosen, 15rem),
+        var(--example-room) - 20rem - var(--paper-space-24)
+      );
+      --example-width: min(var(--example-room), 45rem + var(--paper-space-24) + var(--example-page-width));
 
-      grid-template-columns: minmax(0, 1fr) var(--example-page-width);
+      grid-template-columns: minmax(0, 1fr) var(--paper-space-24) var(--example-page-width);
+      column-gap: 0;
       width: var(--example-width);
       margin-inline: calc((100% - var(--example-width)) / 2);
+    }
+    /* Once a reader has moved the divider, the example takes all the room, so the divider stays
+       under the pointer as it moves; the page's column has the width they chose. */
+    :global(:root[data-example-page]) .example-with-page {
+      --example-width: var(--example-room);
+    }
+    /* Each in its own column: without its script the divider isn't shown, and the page keeps its
+       place after the gap. */
+    .example-with-page > .example-code {
+      grid-column: 1;
+    }
+    .example-split {
+      grid-column: 2;
+    }
+    .example-with-page > .example-page {
+      grid-column: 3;
     }
     .example-page {
       position: sticky;
@@ -290,6 +515,42 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
     .example-page:has(:global(.run-page)) {
       position: static;
     }
+  }
+  /* The divider: a hairline in the middle of the gap, which turns to the accent on hover, while
+     dragged and when focused, where the whole gap can be grabbed. */
+  .example-split {
+    display: none;
+  }
+  @media (min-width: 90rem) {
+    .example-split:defined {
+      display: block;
+      position: relative;
+      margin: 0;
+      align-self: stretch;
+      cursor: col-resize;
+      touch-action: none;
+    }
+  }
+  .example-split::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    left: 50%;
+    width: var(--paper-border-width);
+    background: var(--paper-hairline);
+    transform: translateX(-50%);
+  }
+  .example-split:hover::before,
+  .example-split:focus-visible::before,
+  :global(.example-resizing) .example-split::before {
+    width: 3px;
+    background: var(--paper-accent);
+  }
+  /* While the divider moves, the pointer keeps its shape over the code and the page, and no text gets selected. */
+  :global(.example-resizing),
+  :global(.example-resizing) * {
+    cursor: col-resize;
+    user-select: none;
   }
   .example-first {
     margin: 0;

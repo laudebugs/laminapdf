@@ -83,6 +83,7 @@ mod error;
 mod history;
 mod info;
 mod initial_view;
+mod labels;
 mod metadata;
 mod op;
 mod pending;
@@ -106,6 +107,7 @@ pub use history::{History, Reverted, UndoOutcome};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use info::{InfoPatch, SetInfo};
 pub use initial_view::{OpenAt, OpenZoom, SetInitialView, WindowPreferencesPatch};
+pub use labels::{PageLabelRange, SetPageLabels};
 pub use metadata::{
     ConformanceWarning, DocumentMetadata, MetadataKey, MetadataPatch, MetadataSource, PacketStatus, RemoveMetadata,
     SetMetadata, UpdateSaveMetadata, conformance_warnings, read_metadata,

@@ -90,6 +90,7 @@ mod samples {
             "set-metadata",
             "remove-metadata",
             "set-initial-view",
+            "set-page-labels",
         ] {
             let op: Op = serde_json::from_slice(&fixture(&format!("ops/v1/{name}.json"))).unwrap();
             let again: Op = serde_json::from_str(&serde_json::to_string(&op).unwrap()).unwrap();

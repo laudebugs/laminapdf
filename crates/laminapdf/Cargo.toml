@@ -134,6 +134,9 @@ name = "multilingual"
 required-features = ["text"]
 
 [[example]]
+name = "page_labels"
+
+[[example]]
 name = "images_and_vectors"
 required-features = ["text"]
 
