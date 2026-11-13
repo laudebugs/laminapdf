@@ -127,13 +127,14 @@ impl Document {
         tolerant(self.decode_stream(stream))
     }
 
-    /// The XMP metadata packet, parsed ([`xmp::Packet`]); [`xmp::PacketState::Malformed`]
-    /// with [`Warning::XmpInvalid`] raised when the packet can't be read, so it counts as
-    /// absent until an edit chooses to replace it.
+    /// The XMP metadata packet, parsed ([`xmp::Packet`]), with [`Warning::XmpRepaired`] raised
+    /// for each kind of damage it was read through ([`xmp::Repairs`]);
+    /// [`xmp::PacketState::Malformed`] with [`Warning::XmpInvalid`] raised when the packet can't
+    /// be read, so it counts as absent until an edit chooses to replace it.
     ///
     /// # Errors
     /// As [`Document::xmp_packet`]; [`Error::Strict`](laminapdf_cos::Error::Strict) in strict
-    /// mode for a malformed packet.
+    /// mode for a malformed or repaired packet.
     ///
     /// Added in 0.2.0.
     pub fn xmp(&self) -> Result<xmp::PacketState> {
@@ -141,7 +142,19 @@ impl Document {
             return Ok(xmp::PacketState::Absent);
         };
         match xmp::Packet::parse(&bytes) {
-            Ok(packet) => Ok(xmp::PacketState::Parsed(packet)),
+            Ok(packet) => {
+                let repairs = packet.repairs();
+                for (repaired, reason) in [
+                    (repairs.header_encoding, "header-encoding"),
+                    (repairs.undeclared_prefix, "undeclared-prefix"),
+                ] {
+                    if repaired {
+                        let object = self.catalog()?.get("Metadata").and_then(Object::as_ref).map(|r| r.num);
+                        self.warn(Warning::XmpRepaired { object, reason })?;
+                    }
+                }
+                Ok(xmp::PacketState::Parsed(packet))
+            }
             Err(error) => {
                 let object = self.catalog()?.get("Metadata").and_then(Object::as_ref).map(|r| r.num);
                 self.warn(Warning::XmpInvalid {

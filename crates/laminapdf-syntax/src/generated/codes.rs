@@ -936,6 +936,8 @@ pub enum WarningCode {
     InvalidDate,
     /// `xmp-invalid`: the XMP metadata packet is not readable XMP and reads as absent.
     XmpInvalid,
+    /// `xmp-repaired`: the XMP metadata packet had damage other readers read past, and was read the same way.
+    XmpRepaired,
     /// `invalid-page-label`: a /PageLabels entry is malformed; the malformed part is dropped.
     InvalidPageLabel,
     /// `invalid-entry`: an entry a view reads is unreadable or of the wrong type and reads as absent.
@@ -1031,6 +1033,7 @@ impl WarningCode {
         Self::OutlineItemSkipped,
         Self::InvalidDate,
         Self::XmpInvalid,
+        Self::XmpRepaired,
         Self::InvalidPageLabel,
         Self::InvalidEntry,
         Self::ContentUnknownOperator,
@@ -1108,6 +1111,7 @@ impl WarningCode {
             Self::OutlineItemSkipped => "outline-item-skipped",
             Self::InvalidDate => "invalid-date",
             Self::XmpInvalid => "xmp-invalid",
+            Self::XmpRepaired => "xmp-repaired",
             Self::InvalidPageLabel => "invalid-page-label",
             Self::InvalidEntry => "invalid-entry",
             Self::ContentUnknownOperator => "content-unknown-operator",
@@ -1171,6 +1175,7 @@ impl WarningCode {
             Self::OutlineItemSkipped => ErrorKind::Input,
             Self::InvalidDate => ErrorKind::Input,
             Self::XmpInvalid => ErrorKind::Input,
+            Self::XmpRepaired => ErrorKind::Input,
             Self::InvalidPageLabel => ErrorKind::Input,
             Self::InvalidEntry => ErrorKind::Input,
             Self::ContentUnknownOperator => ErrorKind::Input,
@@ -1234,6 +1239,7 @@ impl WarningCode {
             Self::OutlineItemSkipped => "an outline item was missing, not a dictionary or too deep, and was skipped with its subtree",
             Self::InvalidDate => "an Info date is not a valid PDF date; the raw string is kept",
             Self::XmpInvalid => "the XMP metadata packet is not readable XMP and reads as absent",
+            Self::XmpRepaired => "the XMP metadata packet had damage other readers read past, and was read the same way",
             Self::InvalidPageLabel => "a /PageLabels entry is malformed; the malformed part is dropped",
             Self::InvalidEntry => "an entry a view reads is unreadable or of the wrong type and reads as absent",
             Self::ContentUnknownOperator => "an operator the spec does not define was skipped outside a BX/EX section",
@@ -1297,6 +1303,7 @@ impl WarningCode {
             Self::OutlineItemSkipped => "check the outline: the skipped item and its children are missing",
             Self::InvalidDate => "read the raw value from the Info view if you need it",
             Self::XmpInvalid => "nothing to do; a metadata edit asks before replacing it",
+            Self::XmpRepaired => "nothing to do; a metadata edit writes the declarations the packet left out",
             Self::InvalidPageLabel => "nothing to do; affected pages fall back to decimal labels",
             Self::InvalidEntry => "nothing to do; the view uses the entry's default",
             Self::ContentUnknownOperator => "nothing to do; check the page's rendering if the operator mattered",

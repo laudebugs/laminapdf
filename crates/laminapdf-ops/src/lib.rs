@@ -87,7 +87,10 @@ mod op;
 mod pending;
 mod record;
 mod rotate;
+#[cfg(feature = "test-support")]
+pub mod test_support;
 mod tx;
+mod widgets;
 mod wire;
 // What `fixtures/codes.json` lists, for the kind tests.
 #[cfg(test)]
@@ -110,3 +113,4 @@ pub use pending::PendingChanges;
 pub use record::{Change, Field, Property, PropertyValue, SkipReason, Skipped, Target, UndoRecord};
 pub use rotate::RotatePage;
 pub use tx::{Applied, Origin, PeerId, Tx};
+pub use widgets::{PageChange, TouchedWidget, WidgetChange};

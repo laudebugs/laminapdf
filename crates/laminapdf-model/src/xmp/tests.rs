@@ -740,3 +740,115 @@ fn characters_xml_cannot_hold_are_refused() {
         ParseError::Syntax { offset }
     );
 }
+
+/// A packet whose header's byte-order mark is mangled as in PDFium's XFA test files: `begin="`
+/// then EF BB 3F, not EF BB BF.
+fn mangled(descriptions: &str) -> Vec<u8> {
+    let mut bytes = wrapped(descriptions).into_bytes();
+    if let Some(bom) = bytes.windows(3).position(|w| w == [0xEF, 0xBB, 0xBF]) {
+        bytes.splice(bom..bom + 3, [0xEF, 0xBB, b'?']);
+    }
+    bytes
+}
+
+#[test]
+fn a_header_whose_byte_order_mark_was_mangled_is_read() {
+    let bytes =
+        mangled(r#"  <rdf:Description rdf:about="" xmlns:pdf="http://ns.adobe.com/pdf/1.3/" pdf:Producer="P"/>"#);
+    let p = Packet::parse(&bytes).unwrap();
+    assert_eq!(
+        (
+            p.producer().as_deref(),
+            p.repairs().header_encoding,
+            p.write().bytes == bytes
+        ),
+        (Some("P"), true, true)
+    );
+    let mut edited = p;
+    edited.set_title(Some("T"));
+    let written = edited.write();
+    assert_eq!(Packet::parse(&written.bytes).unwrap().title().as_deref(), Some("T"));
+    assert_eq!(written.bytes.len(), bytes.len(), "the bad bytes are read one for one");
+}
+
+#[test]
+fn offsets_after_a_repaired_header_are_those_of_the_bytes_given() {
+    let bytes = mangled(r#"  <rdf:Description rdf:about=""><rdf:li></rdf:Description>"#);
+    let Err(ParseError::Syntax { offset }) = Packet::parse(&bytes) else {
+        panic!("not a syntax error");
+    };
+    let clean = wrapped(r#"  <rdf:Description rdf:about=""><rdf:li></rdf:Description>"#);
+    let Err(ParseError::Syntax { offset: expected }) = Packet::parse(clean.as_bytes()) else {
+        panic!("not a syntax error");
+    };
+    assert_eq!(offset, expected);
+}
+
+#[test]
+fn bytes_that_are_not_utf8_outside_the_header_are_still_refused() {
+    let mut bytes =
+        wrapped(r#"  <rdf:Description rdf:about="" xmlns:pdf="http://ns.adobe.com/pdf/1.3/" pdf:Producer="P"/>"#)
+            .into_bytes();
+    let at = bytes.windows(3).position(|w| w == b"\"P\"").unwrap() + 1;
+    bytes[at] = 0xFF;
+    assert_eq!(Packet::parse(&bytes).unwrap_err(), ParseError::Encoding);
+}
+
+#[test]
+fn undeclared_standard_prefixes_name_their_standard_namespaces() {
+    // pdf.js's bug854315.pdf (`xmp:` beside a declared `xap:`) and issue20453.pdf (`dc:`).
+    let p = packet(
+        r#"  <rdf:Description rdf:about="" xmlns:xap="http://ns.adobe.com/xap/1.0/">
+   <xap:CreatorTool>Printer</xap:CreatorTool>
+   <xmp:ModifyDate>2011-01-17T23:52:40+01:00</xmp:ModifyDate>
+   <dc:title><rdf:Alt><rdf:li xml:lang="x-default">T</rdf:li></rdf:Alt></dc:title>
+  </rdf:Description>"#,
+    );
+    assert_eq!(
+        (
+            p.creator_tool().as_deref(),
+            p.title().as_deref(),
+            p.modify_date().is_some()
+        ),
+        (Some("Printer"), Some("T"), true)
+    );
+}
+
+#[test]
+fn an_undeclared_unknown_prefix_is_still_refused_and_a_declaration_wins() {
+    let unknown = wrapped(r#"  <rdf:Description rdf:about=""><acme:x>1</acme:x></rdf:Description>"#);
+    assert!(matches!(
+        Packet::parse(unknown.as_bytes()),
+        Err(ParseError::UnboundPrefix { .. })
+    ));
+    let rebound = packet(
+        r#"  <rdf:Description rdf:about="" xmlns:dc="http://example.com/other/"><dc:title>X</dc:title></rdf:Description>"#,
+    );
+    assert_eq!(rebound.title(), None);
+}
+
+/// A packet that writes `dc:title` with no declaration of `dc:`, with trailer `end`.
+fn undeclared_dc(end: &str) -> Packet {
+    let source = wrapped(
+        r#"  <rdf:Description rdf:about="">
+   <dc:title><rdf:Alt><rdf:li xml:lang="x-default">Old</rdf:li></rdf:Alt></dc:title>
+  </rdf:Description>"#,
+    )
+    .replace("end=\"w\"", end);
+    Packet::parse(source.as_bytes()).unwrap()
+}
+
+#[test]
+fn an_edit_declares_the_standard_prefix_the_packet_left_undeclared() {
+    assert!(undeclared_dc("end=\"w\"").repairs().undeclared_prefix);
+    for end in ["end=\"w\"", "end=\"r\""] {
+        let mut p = undeclared_dc(end);
+        p.set_title(Some("New"));
+        let reread = Packet::parse(&p.write().bytes).unwrap();
+        assert_eq!(
+            (reread.title().as_deref(), reread.repairs().undeclared_prefix),
+            (Some("New"), false),
+            "{end}"
+        );
+    }
+}

@@ -16,7 +16,7 @@
 
 ## Goal
 
-Add the minimal write API to `laminapdf-content` that never interprets existing operators (the only change to existing content is blanking unmatched `Q` tokens): wrap a page's existing content in `q … Q` by adding new streams to its `/Contents` array, append new streams (e.g. `q <cm> /Fm1 Do Q`), register Form XObjects under unused resource names, and balance `q`/`Q` by a token scan. Resize (E2f), flattening (E5e, E8g) and adding content (E6) use it. The `AppendContent` op is not here: no E2 op appends arbitrary content, and its payload depends on how E6 carries images and fonts, so [E6a](../ready/E6a-adding-content-feature-plan.md) defines it ([E2 plan §8](../../plans/editor/e2-page-organisation.md#8-todos)).
+Add the minimal write API to `laminapdf-content` that never interprets existing operators (the only change to existing content is blanking unmatched `Q` tokens): wrap a page's existing content in `q … Q` by adding new streams to its `/Contents` array, append new streams (e.g. `q <cm> /Fm1 Do Q`), register Form XObjects under unused resource names, and balance `q`/`Q` by a token scan. Resize (E2f), flattening (E5e, E8g) and adding content (E6) use it. The `AppendContent` op is not here: no E2 op appends arbitrary content, and its payload depends on how E6 carries images and fonts, so [E6a](../done/E6a-adding-content-feature-plan.md) defines it ([E2 plan §8](../../plans/editor/e2-page-organisation.md#8-todos)).
 
 ## Context
 
@@ -40,7 +40,7 @@ Add the minimal write API to `laminapdf-content` that never interprets existing 
 **Out of scope** (and which todo covers it)
 
 - Parsing/editing existing operators → [E7c](../ready/E7c-content-ir.md)
-- The `AppendContent` op and its payload → [E6a](../ready/E6a-adding-content-feature-plan.md) (the writer's callers in E2s, E5e and E8g call it from their own ops)
+- The `AppendContent` op and its payload → [E6a](../done/E6a-adding-content-feature-plan.md) (the writer's callers in E2s, E5e and E8g call it from their own ops)
 
 **Editor facts**
 
