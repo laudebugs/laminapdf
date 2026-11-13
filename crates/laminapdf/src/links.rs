@@ -3,7 +3,7 @@
 //! objects. Nothing here runs an action: a `Launch`, `JavaScript` or `SubmitForm` link is
 //! reported by its type, for the viewer to say it won't run it.
 
-use laminapdf_model::{AnnotId, Link, LinkAction, PageFrame, PointPt, Pt, RectPt};
+use laminapdf_model::{AnnotId, Link, LinkAction, PageFrame, PointPt, RectPt};
 use laminapdf_ops::{AddLink, OutlineTarget};
 
 use crate::document::Document;
@@ -147,8 +147,8 @@ impl Document {
         for glyph in &text.glyphs {
             let [a, _, c, _] = glyph.quad;
             let centre = PointPt::new(
-                Pt::new(f64::midpoint(a.x.get(), c.x.get())),
-                Pt::new(f64::midpoint(a.y.get(), c.y.get())),
+                laminapdf_model::Pt::new(f64::midpoint(a.x.get(), c.x.get())),
+                laminapdf_model::Pt::new(f64::midpoint(a.y.get(), c.y.get())),
             );
             let inside = lines.iter().any(|l| {
                 (l.x0.get()..=l.x1.get()).contains(&centre.x.get())
