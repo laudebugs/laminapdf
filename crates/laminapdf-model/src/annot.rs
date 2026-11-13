@@ -66,6 +66,31 @@ pub struct Annot {
     pub geometry: AnnotGeometry,
 }
 
+/// What an annotation op needs of an annotation, read without its text or geometry: its ID and
+/// place, subtype, flags, and its links to other annotations ([`Document::annotation_links`]).
+///
+/// Added in 0.2.0.
+#[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub struct AnnotLink {
+    /// Its ID, as [`Annot::id`].
+    pub id: AnnotId,
+    /// Its position in the page's `/Annots`.
+    pub index: usize,
+    /// `/Subtype`.
+    pub subtype: AnnotSubtype,
+    /// `/F`.
+    pub flags: AnnotFlags,
+    /// `/IRT`.
+    pub in_reply_to: Option<AnnotId>,
+    /// `/RT`.
+    pub reply_type: ReplyType,
+    /// Its Popup, as [`Annot::popup`].
+    pub popup: Option<AnnotId>,
+    /// For a Popup, its `/Parent`.
+    pub parent: Option<AnnotId>,
+}
+
 /// An annotation's `/Subtype` (Table 171).
 ///
 /// Added in 0.2.0.
@@ -277,28 +302,45 @@ impl Document {
     ///
     /// Added in 0.2.0.
     pub fn annotations(&self, page: &Page<'_>) -> Result<Vec<Annot>> {
-        let found = self.annotations_quietly(page)?;
+        let mut found = Vec::new();
+        self.each_annotation(page, |id, index, dict| {
+            let link = self.link(id, index, dict)?;
+            found.push(self.annotation(link, dict)?);
+            Ok(())
+        })?;
+        pair_popups(&mut found, |a| (&a.id, a.parent.as_ref(), &mut a.popup));
         self.check_names(&found)?;
         Ok(found)
     }
 
-    /// [`Document::annotations`] without its warning, for the ops, which read every page's
-    /// annotations to find one: a duplicate name elsewhere must not stop an edit, strict mode
-    /// included.
+    /// The annotations of `page` as [`AnnotLink`]s: their IDs, subtypes, flags and links, without
+    /// their text or geometry, and without [`Document::annotations`]' warning. The annotation
+    /// ops read every page this way to find one, so a duplicate name elsewhere never stops an
+    /// edit, strict mode included.
     ///
     /// # Errors
     /// As [`Document::annotations`].
     ///
     /// Added in 0.2.0.
-    pub fn annotations_quietly(&self, page: &Page<'_>) -> Result<Vec<Annot>> {
+    pub fn annotation_links(&self, page: &Page<'_>) -> Result<Vec<AnnotLink>> {
+        let mut found = Vec::new();
+        self.each_annotation(page, |id, index, dict| {
+            found.push(self.link(id, index, dict)?);
+            Ok(())
+        })?;
+        pair_popups(&mut found, |a| (&a.id, a.parent.as_ref(), &mut a.popup));
+        Ok(found)
+    }
+
+    /// Calls `f` with each dictionary of the page's `/Annots`, its ID and its position.
+    fn each_annotation(&self, page: &Page<'_>, mut f: impl FnMut(AnnotId, usize, &Dict) -> Result<()>) -> Result<()> {
         let Some(value) = page.dict().get("Annots") else {
-            return Ok(Vec::new());
+            return Ok(());
         };
         let Some(array) = self.read(value)? else {
-            return Ok(Vec::new());
+            return Ok(());
         };
         let array_ref = value.as_ref();
-        let mut found = Vec::new();
         for (index, entry) in array.as_array().unwrap_or_default().iter().enumerate() {
             let Some(dict) = self.read(entry)? else { continue };
             let Some(dict) = dict.as_dict() else { continue };
@@ -306,38 +348,21 @@ impl Document {
                 Some(r) => AnnotId::object(r),
                 None => AnnotId::path(&direct_path(page, array_ref, index)),
             };
-            found.push(self.annotation(id, index, dict)?);
+            f(id, index, dict)?;
         }
-        pair_popups(&mut found);
-        Ok(found)
+        Ok(())
     }
 
-    fn annotation(&self, id: AnnotId, index: usize, dict: &Dict) -> Result<Annot> {
+    fn link(&self, id: AnnotId, index: usize, dict: &Dict) -> Result<AnnotLink> {
         let subtype = AnnotSubtype::from_name(&read_name(self, dict.get("Subtype"))?.unwrap_or_default());
         let flags = match dict.get("F") {
             Some(f) => self.read(f)?.and_then(|f| f.as_int()).unwrap_or(0),
             None => 0,
         };
-        let geometry = self.geometry(&subtype, dict)?;
-        Ok(Annot {
+        Ok(AnnotLink {
             id,
             index,
-            rect: match dict.get("Rect") {
-                Some(rect) => read_rect(self, rect)?,
-                None => None,
-            },
-            contents: self.text_entry(dict, "Contents")?,
-            name: self.text_entry(dict, "NM")?,
-            modified: self.text_entry(dict, "M")?,
             flags: AnnotFlags(u32::try_from(flags).unwrap_or(0)),
-            color: self.numbers(dict.get("C"))?.unwrap_or_default(),
-            opacity: match dict.get("CA") {
-                Some(ca) => number(self, ca)?,
-                None => None,
-            },
-            author: self.text_entry(dict, "T")?,
-            subject: self.text_entry(dict, "Subj")?,
-            created: self.text_entry(dict, "CreationDate")?,
             in_reply_to: dict.get("IRT").and_then(Object::as_ref).map(AnnotId::object),
             reply_type: match read_name(self, dict.get("RT"))?.as_deref() {
                 Some(b"Group") => ReplyType::Group,
@@ -349,9 +374,38 @@ impl Document {
             } else {
                 None
             },
+            subtype,
+        })
+    }
+
+    fn annotation(&self, link: AnnotLink, dict: &Dict) -> Result<Annot> {
+        let geometry = self.geometry(&link.subtype, dict)?;
+        Ok(Annot {
+            rect: match dict.get("Rect") {
+                Some(rect) => read_rect(self, rect)?,
+                None => None,
+            },
+            contents: self.text_entry(dict, "Contents")?,
+            name: self.text_entry(dict, "NM")?,
+            modified: self.text_entry(dict, "M")?,
+            color: self.numbers(dict.get("C"))?.unwrap_or_default(),
+            opacity: match dict.get("CA") {
+                Some(ca) => number(self, ca)?,
+                None => None,
+            },
+            author: self.text_entry(dict, "T")?,
+            subject: self.text_entry(dict, "Subj")?,
+            created: self.text_entry(dict, "CreationDate")?,
             has_appearance: self.has_normal_appearance(dict)?,
             has_rich_text: dict.get("RC").is_some(),
-            subtype,
+            id: link.id,
+            index: link.index,
+            subtype: link.subtype,
+            flags: link.flags,
+            in_reply_to: link.in_reply_to,
+            reply_type: link.reply_type,
+            popup: link.popup,
+            parent: link.parent,
             geometry,
         })
     }
@@ -448,14 +502,21 @@ fn direct_path(page: &Page<'_>, array: Option<ObjRef>, index: usize) -> DirectPa
 }
 
 /// Gives each annotation without a `/Popup` the Popup on the page whose `/Parent` names it.
-fn pair_popups(found: &mut [Annot]) {
-    let pairs: Vec<(AnnotId, AnnotId)> = found
-        .iter()
-        .filter_map(|a| Some((a.parent.clone()?, a.id.clone())))
-        .collect();
+fn pair_popups<T>(found: &mut [T], fields: impl Fn(&mut T) -> (&AnnotId, Option<&AnnotId>, &mut Option<AnnotId>)) {
+    let mut pairs = Vec::new();
+    for a in found.iter_mut() {
+        let (id, parent, _) = fields(a);
+        if let Some(parent) = parent {
+            pairs.push((parent.clone(), id.clone()));
+        }
+    }
     for (parent, popup) in pairs {
-        if let Some(owner) = found.iter_mut().find(|a| a.id == parent && a.popup.is_none()) {
-            owner.popup = Some(popup);
+        for a in found.iter_mut() {
+            let (id, _, slot) = fields(a);
+            if *id == parent && slot.is_none() {
+                *slot = Some(popup);
+                break;
+            }
         }
     }
 }

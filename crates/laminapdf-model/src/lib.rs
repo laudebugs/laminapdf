@@ -96,7 +96,7 @@ mod tree_writer;
 mod values;
 pub mod xmp;
 
-pub use annot::{Annot, AnnotFlags, AnnotGeometry, AnnotSubtype, ReplyType};
+pub use annot::{Annot, AnnotFlags, AnnotGeometry, AnnotLink, AnnotSubtype, ReplyType};
 pub use copy::{Copied, ObjectCopier};
 pub use date::{InvalidDate, PdfDate};
 pub use disclosure::{

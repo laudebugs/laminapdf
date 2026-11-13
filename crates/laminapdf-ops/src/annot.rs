@@ -6,10 +6,8 @@
 //! and so its [`AnnotId`]), and a deleted one is unlinked from its page and freed. Keys the ops
 //! don't own are kept untouched.
 
-use std::collections::{BTreeMap, BTreeSet};
-
 use laminapdf_cos::{Dict, ObjRef, Object, PdfString};
-use laminapdf_model::{Annot, AnnotFlags, AnnotId, AnnotSubtype, PageId, PdfDate};
+use laminapdf_model::{AnnotFlags, AnnotId, AnnotLink, AnnotSubtype, PageId, PdfDate};
 use laminapdf_syntax::text::encode_text_string;
 use serde::{Deserialize, Serialize};
 
@@ -260,9 +258,9 @@ impl DeleteAnnot {
         }
         let parent_tree = parent_tree(doc)?;
         let mut pages = Vec::new();
-        let mut arrays = BTreeSet::new();
+        let mut arrays = Vec::new();
         for (page, annots) in &all {
-            let gone: BTreeSet<usize> = annots
+            let gone: Vec<usize> = annots
                 .iter()
                 .filter(|a| doomed.contains(&a.id))
                 .map(|a| a.index)
@@ -277,11 +275,11 @@ impl DeleteAnnot {
                 }
             }
         }
-        let mut freed_keys = BTreeSet::new();
+        let mut freed_keys = Vec::new();
         for id in &doomed {
             if let Some(r) = id.as_lamina_id().obj_ref() {
                 if let Some(key) = untag(doc, parent_tree.as_ref(), r)? {
-                    freed_keys.insert(key);
+                    freed_keys.push(key);
                 }
                 doc.cos_mut().edit().delete(r)?;
             }
@@ -302,11 +300,11 @@ impl DeleteAnnot {
 struct Found {
     page: PageId,
     object: ObjRef,
-    annot: Annot,
+    annot: AnnotLink,
 }
 
 impl Found {
-    fn locate(all: &[(PageId, Vec<Annot>)], id: &AnnotId) -> Result<Self> {
+    fn locate(all: &[(PageId, Vec<AnnotLink>)], id: &AnnotId) -> Result<Self> {
         for (page, annots) in all {
             if let Some(annot) = annots.iter().find(|a| a.id == *id) {
                 let (page, annot) = (page.clone(), annot.clone());
@@ -327,40 +325,42 @@ impl Found {
 }
 
 /// Every page's annotations, in page order.
-fn every_annotation(doc: &laminapdf_model::Document) -> Result<Vec<(PageId, Vec<Annot>)>> {
+fn every_annotation(doc: &laminapdf_model::Document) -> Result<Vec<(PageId, Vec<AnnotLink>)>> {
     let pages = doc.pages()?;
     let mut all = Vec::with_capacity(pages.len());
     for page in pages.iter() {
-        all.push((page.id().clone(), doc.annotations_quietly(&page)?));
+        all.push((page.id().clone(), doc.annotation_links(&page)?));
     }
     Ok(all)
 }
 
 /// The annotation, the group it belongs to, and everything that replies to or pops up for
 /// any of them, followed to a fixed point (so cycles end).
-fn doomed(target: &Annot, all: &[(PageId, Vec<Annot>)]) -> BTreeSet<AnnotId> {
-    let annots: Vec<&Annot> = all.iter().flat_map(|(_, a)| a).collect();
+fn doomed(target: &AnnotLink, all: &[(PageId, Vec<AnnotLink>)]) -> Vec<AnnotId> {
+    let annots: Vec<&AnnotLink> = all.iter().flat_map(|(_, a)| a).collect();
     // Only annotations some page lists are deleted: an `/IRT` or `/Popup` that names any other
     // object (a page, a font, in a malformed file) is ignored, never freed.
-    let listed: BTreeSet<&AnnotId> = annots.iter().map(|a| &a.id).collect();
-    let mut doomed = BTreeSet::from([target.id.clone()]);
+    let listed = |id: &AnnotId| annots.iter().any(|a| a.id == *id);
+    let mut doomed = vec![target.id.clone()];
     if target.reply_type == laminapdf_model::ReplyType::Group
-        && let Some(primary) = target.in_reply_to.as_ref().filter(|p| listed.contains(p))
+        && let Some(primary) = target.in_reply_to.as_ref().filter(|p| listed(p))
+        && *primary != target.id
     {
-        doomed.insert(primary.clone());
+        doomed.push(primary.clone());
     }
     loop {
         let before = doomed.len();
         for annot in &annots {
             let follows = annot.in_reply_to.as_ref().is_some_and(|p| doomed.contains(p))
                 || annot.parent.as_ref().is_some_and(|p| doomed.contains(p));
-            if follows {
-                doomed.insert(annot.id.clone());
+            if follows && !doomed.contains(&annot.id) {
+                doomed.push(annot.id.clone());
             }
             if doomed.contains(&annot.id)
-                && let Some(popup) = annot.popup.as_ref().filter(|p| listed.contains(p))
+                && let Some(popup) = annot.popup.as_ref().filter(|p| listed(p))
+                && !doomed.contains(popup)
             {
-                doomed.insert(popup.clone());
+                doomed.push(popup.clone());
             }
         }
         if doomed.len() == before {
@@ -373,12 +373,7 @@ fn doomed(target: &Annot, all: &[(PageId, Vec<Annot>)]) -> BTreeSet<AnnotId> {
 /// when it is indirect, else in the page's own dictionary. Positions, not references, so a
 /// direct dictionary goes too. An indirect array that several pages share is edited once:
 /// `arrays` holds the ones already edited, since each page lists the same entries.
-fn unlink(
-    doc: &mut laminapdf_model::Document,
-    page: &PageId,
-    gone: &BTreeSet<usize>,
-    arrays: &mut BTreeSet<ObjRef>,
-) -> Result<()> {
+fn unlink(doc: &mut laminapdf_model::Document, page: &PageId, gone: &[usize], arrays: &mut Vec<ObjRef>) -> Result<()> {
     let page_ref = page
         .as_lamina_id()
         .obj_ref()
@@ -397,9 +392,10 @@ fn unlink(
     };
     match value {
         Object::Ref(array) => {
-            if !arrays.insert(array) {
+            if arrays.contains(&array) {
                 return Ok(());
             }
+            arrays.push(array);
             let current = laminapdf_cos::tolerant(doc.cos().resolve(array))?;
             let items = current.as_deref().and_then(Object::as_array).unwrap_or_default();
             let items = kept(items);
@@ -415,7 +411,7 @@ fn unlink(
 }
 
 /// Removes `key` from a surviving annotation's dictionary.
-fn drop_entry(doc: &mut laminapdf_model::Document, annot: &Annot, key: &str) -> Result<()> {
+fn drop_entry(doc: &mut laminapdf_model::Document, annot: &AnnotLink, key: &str) -> Result<()> {
     let Some(r) = annot.id.as_lamina_id().obj_ref() else {
         return Ok(());
     };
@@ -429,7 +425,7 @@ fn drop_entry(doc: &mut laminapdf_model::Document, annot: &Annot, key: &str) -> 
 
 /// The structure tree's parent tree, read once per op: the `/ParentTree` reference of the
 /// catalog's `/StructTreeRoot`, and its entries.
-type ParentTree = (ObjRef, BTreeMap<i64, Object>);
+type ParentTree = (ObjRef, Vec<(i64, Object)>);
 
 fn parent_tree(doc: &laminapdf_model::Document) -> Result<Option<ParentTree>> {
     let catalog = doc.catalog()?;
@@ -442,7 +438,7 @@ fn parent_tree(doc: &laminapdf_model::Document) -> Result<Option<ParentTree>> {
     let Some(tree) = root.get("ParentTree").and_then(Object::as_ref) else {
         return Ok(None);
     };
-    let entries = doc.number_tree(Object::Ref(tree)).entries()?.into_iter().collect();
+    let entries = doc.number_tree(Object::Ref(tree)).entries()?;
     Ok(Some((tree, entries)))
 }
 
@@ -458,7 +454,7 @@ fn untag(doc: &mut laminapdf_model::Document, tree: Option<&ParentTree>, r: ObjR
     let Some(key) = annot.get("StructParent").and_then(Object::as_int) else {
         return Ok(None);
     };
-    let Some(elem) = entries.get(&key).and_then(Object::as_ref) else {
+    let Some(elem) = entries.iter().find(|(k, _)| *k == key).and_then(|(_, e)| e.as_ref()) else {
         return Ok(Some(key));
     };
     let Some(mut dict) = object_dict(doc, elem)? else {
@@ -516,19 +512,20 @@ fn untag(doc: &mut laminapdf_model::Document, tree: Option<&ParentTree>, r: ObjR
 fn drop_parent_tree_keys(
     doc: &mut laminapdf_model::Document,
     root: ObjRef,
-    entries: &BTreeMap<i64, Object>,
-    keys: &BTreeSet<i64>,
+    entries: &[(i64, Object)],
+    keys: &[i64],
 ) -> Result<()> {
-    if !keys.iter().any(|k| entries.contains_key(k)) {
+    if !entries.iter().any(|(k, _)| keys.contains(k)) {
         return Ok(());
     }
     let depth = doc.cos().limits().max_nesting_depth();
-    let mut seen = BTreeSet::new();
+    let mut seen: Vec<ObjRef> = Vec::new();
     let mut next = vec![(root, 0_usize)];
     while let Some((node, level)) = next.pop() {
-        if level > depth || !seen.insert(node) {
+        if level > depth || seen.contains(&node) {
             continue;
         }
+        seen.push(node);
         let Some(mut dict) = object_dict(doc, node)? else {
             continue;
         };
