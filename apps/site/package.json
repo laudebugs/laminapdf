@@ -22,7 +22,7 @@
     "@laminapdf/site-kit": "workspace:*",
     "@laminapdf/tokens": "workspace:*",
     "@types/node": "catalog:",
-    "astro": "7.4.5",
+    "astro": "7.4.7",
     "playwright": "catalog:",
     "shiki": "catalog:",
     "typescript": "catalog:",
