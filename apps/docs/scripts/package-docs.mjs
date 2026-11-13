@@ -37,7 +37,8 @@ const SITE = "https://docs.laminapdf.com";
 
 /**
  * A site link as a link inside the package folder, from a file `depth` folders below its root:
- * `/guides/x/#a` → `../pages/guides/x.md#a`, a code page → `../errors/<code>.md`. Links outside
+ * `/guides/x/#a` → `../pages/guides/x.md#a`, a code page → `../errors/<code>.md`, the code list
+ * → `../errors/README.md` (a section of the codes page → that page). Links outside
  * the site stay; other site links point at the site, as do the one-page views. The API reference's start page is
  * `api/README.md` when the folder has one (`api`); its other pages, named differently by the
  * Markdown TypeDoc, point at the site.
@@ -54,7 +55,9 @@ export function packageHref(href, depth, api = false) {
   const [, path = "", anchor = ""] = match;
   const code = /^reference\/codes\/([a-z0-9-]+)$/.exec(path);
   if (code) return `${up}errors/${code[1]}.md${anchor}`;
-  if (path === "reference/codes") return `${up}errors/README.md${anchor}`;
+  // The list of codes is errors/README.md; a link into the page's own sections (`#react-to-a-code`)
+  // goes to the page, since the list has no such headings.
+  if (path === "reference/codes") return anchor ? `${up}pages/reference/codes.md${anchor}` : `${up}errors/README.md`;
   if (path === "reference/sdk/readme" && api) return `${up}api/README.md`;
   if (path.startsWith("reference/sdk/")) return `${SITE}/${path}/${anchor}`;
   // The one-page views repeat pages the folder already has, so they stay on the site.
