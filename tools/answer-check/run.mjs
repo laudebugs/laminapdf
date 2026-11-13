@@ -211,6 +211,11 @@ async function askOpenAI(params) {
     await sleep(POLL_MS);
     body = await callWithRetries(key, "GET", `responses/${body.id}`);
   }
+  // A failed response (no credit left, a server error) stops the run, as a failed call does, so a
+  // run never records a string of empty answers as if the engine had answered.
+  if (body.status === "failed") {
+    throw new Error(`OpenAI's response ${body.id} failed: ${body.error?.message ?? "no message"}`);
+  }
   return openaiRaw(body);
 }
 
