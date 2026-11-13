@@ -371,3 +371,32 @@ fn rotation_comes_with_the_copy() {
     assert_eq!(r[4..], r[..4]);
     assert_eq!(r[1], Rotation::Clockwise90);
 }
+
+#[test]
+fn a_copy_of_a_copy_continues_the_series() {
+    let mut doc = pages("forms.pdf");
+    let before = page_ids(&doc);
+    duplicate(&mut doc, &before[..1], PagePosition::End);
+    let copy = page_ids(&doc)[2].clone();
+    let applied = duplicate(&mut doc, &[copy], PagePosition::End);
+    let names: Vec<_> = applied
+        .fields
+        .iter()
+        .filter_map(|c| match &c.outcome {
+            FieldOutcome::Renamed { name, .. } => Some(name.clone()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(names, ["name#3", "agree#3"]);
+}
+
+#[test]
+fn an_undone_duplication_raises_no_warning() {
+    let mut doc = pages("tagged.pdf");
+    let before = page_ids(&doc);
+    common::set_title(&mut doc, Origin::Local, Some("Edited"));
+    duplicate(&mut doc, &before[..1], PagePosition::End);
+    doc.undo().unwrap().unwrap();
+    let warnings = pending_conformance_warnings(&doc, doc.pending_changes()).unwrap();
+    assert_eq!(warnings, []);
+}

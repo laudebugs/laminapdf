@@ -118,13 +118,26 @@ impl FieldNames {
         self.names.contains(name)
     }
 
+    /// Records `name`, a fully qualified name in use that [`Document::field_names`] doesn't
+    /// list (a field the form's `/Fields` doesn't reach, for one).
+    ///
+    /// Added in 0.2.0.
+    pub fn insert(&mut self, name: String) {
+        self.names.insert(name);
+    }
+
     /// The partial name for a copy of field `partial` under the field whose fully qualified
     /// name is `parent` (`None` for a top-level field): `<partial>#<n>`, `n` the smallest number
-    /// from 2 that no field uses. The new name is recorded, so the next call picks another.
+    /// from 2 that no field uses. A copy of a copy continues the series: the copy of `total#2`
+    /// is `total#3`, not `total#2#2`. The new name is recorded, so the next call picks another.
     ///
     /// Added in 0.2.0.
     pub fn unique_partial(&mut self, parent: Option<&str>, partial: &str) -> String {
         let full = |p: &str| parent.map_or_else(|| p.to_owned(), |parent| format!("{parent}.{p}"));
+        let partial = match partial.rsplit_once('#') {
+            Some((base, n)) if !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()) => base,
+            _ => partial,
+        };
         let mut n: u64 = 2;
         loop {
             let candidate = format!("{partial}#{n}");

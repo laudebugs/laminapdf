@@ -58,19 +58,18 @@ pub(crate) struct CopiedAnnots {
 /// The keys of a field dictionary that belong to the field, not its place in the tree.
 const NOT_COPIED_FROM_FIELD: [&str; 3] = ["Kids", "Parent", "T"];
 
-/// Copies `source`'s annotations onto its copy `copy` (`copy_id`), naming new fields from
-/// `names`; returns what it copied. The copy's `/Annots` is written as a new direct array.
+/// Copies `source`'s annotations (`annots`, the references its `/Annots` lists: an annotation
+/// dictionary stored directly in the array has no object to copy, and stays off the copy) onto
+/// its copy `copy` (`copy_id`), naming new fields from `names`; returns what it copied. The
+/// copy's `/Annots` is written as a new direct array.
 pub(crate) fn copy_annotations(
     doc: &mut laminapdf_model::Document,
     source: &PageId,
+    annots: &[ObjRef],
     copy: ObjRef,
     copy_id: &PageId,
     names: &mut FieldNames,
 ) -> Result<CopiedAnnots> {
-    let Some(source_ref) = source.as_lamina_id().obj_ref() else {
-        return Ok(CopiedAnnots::default());
-    };
-    let annots = annots_of(doc, source_ref)?;
     if annots.is_empty() {
         return Ok(CopiedAnnots::default());
     }
@@ -93,7 +92,7 @@ pub(crate) fn copy_annotations(
         }
         field_of.insert(w.widget, w.field);
     }
-    for annot in annots.iter().filter_map(Object::as_ref) {
+    for &annot in annots {
         if !skipped_widgets.contains(&annot)
             && !out.map.contains_key(&annot)
             && doc.object(annot.num)?.as_dict().is_some()
@@ -103,37 +102,25 @@ pub(crate) fn copy_annotations(
     }
     let new_fields = fields_for(doc, &field_of, &out.map, copy_id, names, &mut out.fields)?;
     let mut list = Vec::with_capacity(annots.len());
-    for annot in &annots {
-        match annot {
-            Object::Ref(old) => {
-                let Some(&new) = out.map.get(old) else { continue };
-                let Some(mut dict) = doc.object(old.num)?.as_dict().cloned() else {
-                    continue;
-                };
-                rewrite(&mut dict, copy, new, &out.map);
-                if let Some(&field) = field_of.get(old) {
-                    match new_fields.get(&field) {
-                        Some(NewField::Merged { partial }) => {
-                            dict.insert("T", text(partial));
-                        }
-                        Some(NewField::Kid { field: new_field }) => {
-                            dict.insert("Parent", Object::Ref(*new_field));
-                        }
-                        None => {}
-                    }
+    for old in annots {
+        let Some(&new) = out.map.get(old) else { continue };
+        let Some(mut dict) = doc.object(old.num)?.as_dict().cloned() else {
+            continue;
+        };
+        rewrite(&mut dict, copy, new, &out.map);
+        if let Some(&field) = field_of.get(old) {
+            match new_fields.get(&field) {
+                Some(NewField::Merged { partial }) => {
+                    dict.insert("T", text(partial));
                 }
-                doc.cos_mut().edit().set(new, Object::Dict(dict))?;
-                list.push(Object::Ref(new));
+                Some(NewField::Kid { field: new_field }) => {
+                    dict.insert("Parent", Object::Ref(*new_field));
+                }
+                None => {}
             }
-            // A direct annotation dictionary is copied in place; a direct widget can't be a
-            // field's kid, so it is left out rather than tied to the source's field.
-            Object::Dict(d) if !d.contains_key("Parent") && !d.contains_key("FT") => {
-                let mut dict = d.clone();
-                rewrite(&mut dict, copy, copy, &out.map);
-                list.push(Object::Dict(dict));
-            }
-            _ => {}
         }
+        doc.cos_mut().edit().set(new, Object::Dict(dict))?;
+        list.push(Object::Ref(new));
     }
     super::cleanup::edit_dict(doc, copy, |d| {
         d.insert("Annots", Object::Array(list));
@@ -245,20 +232,4 @@ fn rewrite(dict: &mut Dict, page: ObjRef, new: ObjRef, copied: &BTreeMap<ObjRef,
 /// `s` as a text string (PDFDocEncoding, else UTF-16BE).
 fn text(s: &str) -> Object {
     Object::String(PdfString::literal(encode_text_string(s)))
-}
-
-/// The items of page `page`'s `/Annots` (the array may be indirect).
-fn annots_of(doc: &laminapdf_model::Document, page: ObjRef) -> Result<Vec<Object>> {
-    let Some(annots) = doc.object(page.num)?.as_dict().and_then(|d| d.get("Annots").cloned()) else {
-        return Ok(Vec::new());
-    };
-    Ok(match annots {
-        Object::Ref(list) => doc
-            .object(list.num)?
-            .as_array()
-            .map(<[Object]>::to_vec)
-            .unwrap_or_default(),
-        Object::Array(items) => items,
-        _ => Vec::new(),
-    })
 }

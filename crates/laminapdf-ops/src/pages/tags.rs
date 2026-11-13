@@ -22,6 +22,9 @@ pub(crate) struct Pair<'a> {
     pub(crate) source: ObjRef,
     pub(crate) copy: ObjRef,
     pub(crate) annots: &'a BTreeMap<ObjRef, ObjRef>,
+    /// The source draws a Form XObject with its own `/StructParents`, which the copy shares:
+    /// its tags can't be whole.
+    pub(crate) shares_tags: bool,
 }
 
 /// Gives each copy in `pairs` its structure; returns the copies whose tags couldn't all be
@@ -45,7 +48,7 @@ pub(crate) fn clone_tags(doc: &mut laminapdf_model::Document, pairs: &[Pair<'_>]
         clones: BTreeMap::new(),
     };
     for pair in pairs {
-        let mut whole = true;
+        let mut whole = !pair.shares_tags;
         let source = doc.object(pair.source.num)?.as_dict().cloned().unwrap_or_default();
         if let Some(key) = source.get_int("StructParents")
             && let Some(Object::Array(owners)) =
@@ -166,19 +169,35 @@ fn make_clone(doc: &mut laminapdf_model::Document, elem: ObjRef, pair: &Pair<'_>
         }
     }
     let new = doc.cos_mut().edit().create(Object::Dict(clone))?;
-    edit_dict(doc, parent, |d| {
-        let mut items = match d.get("K") {
-            Some(Object::Array(items)) => items.clone(),
-            Some(single) => vec![single.clone()],
-            None => Vec::new(),
-        };
+    let insert = |items: &mut Vec<Object>| {
         let at = items
             .iter()
             .position(|k| k.as_ref() == Some(elem))
             .map_or(items.len(), |i| i + 1);
         items.insert(at, Object::Ref(new));
-        d.insert("K", Object::Array(items));
-    })?;
+    };
+    // `/K` may refer to an array object (any value may be indirect): the clone goes into it.
+    let indirect = match doc.object(parent.num)?.as_dict().and_then(|d| d.get("K")) {
+        Some(Object::Ref(r)) if doc.object(r.num)?.as_array().is_some() => Some(*r),
+        _ => None,
+    };
+    if let Some(list) = indirect {
+        super::cleanup::edit_object(doc, list, |o| {
+            if let Object::Array(items) = o {
+                insert(items);
+            }
+        })?;
+    } else {
+        edit_dict(doc, parent, |d| {
+            let mut items = match d.get("K") {
+                Some(Object::Array(items)) => items.clone(),
+                Some(single) => vec![single.clone()],
+                None => Vec::new(),
+            };
+            insert(&mut items);
+            d.insert("K", Object::Array(items));
+        })?;
+    }
     Ok(Some(new))
 }
 

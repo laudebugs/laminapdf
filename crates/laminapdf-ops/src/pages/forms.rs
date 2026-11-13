@@ -85,7 +85,7 @@ fn unlist_field(doc: &mut laminapdf_model::Document, field: ObjRef) -> Result<()
         }
         field = parent;
     }
-    edit_form_fields(doc, |items| items.retain(|o| o.as_ref() != Some(field)))
+    edit_form_fields(doc, false, |items| items.retain(|o| o.as_ref() != Some(field)))
 }
 
 /// Puts `field` in its parent's `/Kids`, or in `/AcroForm /Fields` when it has no `parent`:
@@ -93,18 +93,34 @@ fn unlist_field(doc: &mut laminapdf_model::Document, field: ObjRef) -> Result<()
 pub(crate) fn list_field(doc: &mut laminapdf_model::Document, parent: Option<ObjRef>, field: ObjRef) -> Result<()> {
     match parent {
         Some(parent) => edit_list(doc, parent, "Kids", |items| items.push(Object::Ref(field))),
-        None => edit_form_fields(doc, |items| items.push(Object::Ref(field))),
+        None => edit_form_fields(doc, true, |items| items.push(Object::Ref(field))),
     }
 }
 
 /// Edits `/AcroForm /Fields` with `f`, wherever the form and the array are stored (direct or
-/// indirect). A document without a form, or a form without `/Fields`, is left alone.
-fn edit_form_fields(doc: &mut laminapdf_model::Document, f: impl FnOnce(&mut Vec<Object>)) -> Result<()> {
+/// indirect). A document without a form is left alone; a form without `/Fields` gets one only
+/// when `create` (a field being added), and is left alone otherwise.
+fn edit_form_fields(doc: &mut laminapdf_model::Document, create: bool, f: impl FnOnce(&mut Vec<Object>)) -> Result<()> {
     match doc.catalog()?.get("AcroForm").cloned() {
-        Some(Object::Ref(form)) => edit_list(doc, form, "Fields", f),
+        Some(Object::Ref(form)) => {
+            if create
+                || doc
+                    .object(form.num)?
+                    .as_dict()
+                    .is_some_and(|d| d.contains_key("Fields"))
+            {
+                edit_list(doc, form, "Fields", f)
+            } else {
+                Ok(())
+            }
+        }
         Some(Object::Dict(mut form)) => match form.get("Fields").cloned() {
             Some(Object::Ref(list)) => edit_array(doc, list, f),
-            Some(Object::Array(mut items)) => {
+            fields @ (Some(Object::Array(_)) | None) if create || fields.is_some() => {
+                let mut items = match fields {
+                    Some(Object::Array(items)) => items,
+                    _ => Vec::new(),
+                };
                 f(&mut items);
                 form.insert("Fields", Object::Array(items));
                 Ok(set_catalog_entry(

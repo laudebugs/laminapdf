@@ -106,14 +106,16 @@ impl PendingChanges {
         &self.widgets
     }
 
-    /// Whether a page duplication left a copy's content partly untagged
-    /// (`DuplicateTagsIncomplete`), which the save planner reports on a file that claims PDF/UA
-    /// ([`ConformanceWarning::DuplicateTagsIncomplete`](crate::ConformanceWarning::DuplicateTagsIncomplete)).
+    /// The copies page duplications left partly untagged (`DuplicateTagsIncomplete`), which
+    /// the save planner reports on a file that claims PDF/UA
+    /// ([`ConformanceWarning::DuplicateTagsIncomplete`](crate::ConformanceWarning::DuplicateTagsIncomplete))
+    /// while any of them is still a page: like the rest of these changes, the set only grows
+    /// until a save, so an undone duplication stays listed.
     ///
     /// Added in 0.2.0.
     #[must_use]
-    pub fn tags_incomplete(&self) -> bool {
-        !self.tags_incomplete.is_empty()
+    pub const fn tags_incomplete(&self) -> &BTreeSet<PageId> {
+        &self.tags_incomplete
     }
 
     /// Whether there are none.
