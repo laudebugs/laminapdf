@@ -31,7 +31,7 @@ The credentials are read from the environment (or, for Claude, an `ant auth logi
 
 URLs are matched without the scheme, `www.`, query, fragment or case.
 
-Each request holds the question alone, with no system prompt. When Claude's server pauses a turn after many searches, the tool resumes it, at most three times.
+Each request holds the question alone, with no system prompt. When Claude's server pauses a turn after many searches, the tool resumes it, at most three times. OpenAI is asked in background mode: the request returns at once, and the tool reads the response every three seconds until it is done, so no single HTTP request lasts as long as the answer takes. A proxy that cuts long requests off (the first baseline run met one at 30 seconds) can't stop a run that way. A failed call is sent again up to three times.
 
 Claude's requests also opt into the API's fallback model: if the pinned model declines a question, another model answers it instead. The answer records which model served it, and the report counts those answers apart, since a run with more of them isn't comparable with one with fewer.
 

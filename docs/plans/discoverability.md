@@ -52,7 +52,7 @@ Round W3 closes those gaps in order of reach, then adds the pages and the measur
 | [W3f](../todos/done/W3f-agent-discovery.md) | Coding agents find the docs: a Context7 listing claimed with `context7.json`, llms.txt linked from the website and the README, L5a's production check ticked | W3b |
 | [W3g](../todos/done/W3g-choosing-a-pdf-library.md) | A page that answers "which PDF library should I use?": what Lamina PDF does and doesn't do beside the common libraries, with sources, approved by the owner | W3c |
 | [W3h](../todos/ready/W3h-docs-titles-for-questions.md) | Docs titles and descriptions that match the questions people ask, checked against the page each one leads to | W3e, W3g |
-| [W3i](../todos/ongoing/W3i-answer-engine-check.md) | The answer-engine check: a fixed set of questions asked to answer engines by hand, with Lamina PDF's mentions and citations recorded, a baseline now and a run after each step | — |
+| [W3i](../todos/done/W3i-answer-engine-check.md) | The answer-engine check: a fixed set of questions asked to answer engines by hand, with Lamina PDF's mentions and citations recorded, a baseline now and a run after each step | — |
 | [W3j](../todos/done/W3j-context7-rules.md) | Context7's rules match the snippet the packages ship for coding agents, with extraction and the command line added; a root `AGENTS.md` links to `CLAUDE.md` | W3f |
 
 ## 6. Sequence
@@ -69,7 +69,7 @@ W3a, W3b, W3c and W3i depend on nothing and can start at once, but W3a should me
 - [x] List the docs with Context7 and link llms.txt where agents look ([W3f](../todos/done/W3f-agent-discovery.md))
 - [x] Publish a page that helps a developer choose a PDF library ([W3g](../todos/done/W3g-choosing-a-pdf-library.md))
 - [ ] Title the docs pages for the questions people ask ([W3h](../todos/ready/W3h-docs-titles-for-questions.md))
-- [ ] Ask answer engines a fixed set of questions, and record what they say ([W3i](../todos/ongoing/W3i-answer-engine-check.md))
+- [x] Ask answer engines a fixed set of questions, and record what they say ([W3i](../todos/done/W3i-answer-engine-check.md))
 - [x] Bring Context7's rules in line with the agent snippet ([W3j](../todos/done/W3j-context7-rules.md))
 
 With these done, each host serves its pages once and says what they are, the packages describe themselves in their users' words, the engines hear about every change, coding agents can fetch the current docs, and the project can see whether answer engines recommend it.
