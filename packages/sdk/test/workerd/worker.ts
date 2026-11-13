@@ -4,6 +4,7 @@
 // isolate: hello-first is then cold and the WebAssembly memory is the hello and report runs'
 // alone (memory never shrinks).
 import { init } from "@laminapdf/sdk";
+import helloPdf from "../../../../fixtures/corpus/hello.pdf";
 import outlinePdf from "../../../../fixtures/corpus/outline.pdf";
 import invoiceTemplate from "../../../../fixtures/documents/invoice.json" with { type: "json" };
 import invoiceData from "../../../../fixtures/documents/invoice-data.json" with { type: "json" };
@@ -20,6 +21,7 @@ import metadataPdf from "../../../../fixtures/golden/metadata.pdf";
 import grayPhoto from "../../../../fixtures/images/photo-gray.jpg";
 import photo from "../../../../fixtures/images/photo-rgb.jpg";
 import report from "../../../../fixtures/markdown/report.md";
+import chaptersPdf from "../../../../fixtures/pages/chapters.pdf";
 import formsPdf from "../../../../fixtures/pages/forms.pdf";
 import labelsPdf from "../../../../fixtures/pages/labels.pdf";
 import referencesPdf from "../../../../fixtures/pages/references.pdf";
@@ -48,6 +50,8 @@ const inputs: Inputs = {
       "fixtures/pages/references.pdf": referencesPdf,
       "fixtures/pages/forms.pdf": formsPdf,
       "fixtures/pages/labels.pdf": labelsPdf,
+      "fixtures/pages/chapters.pdf": chaptersPdf,
+      "fixtures/corpus/hello.pdf": helloPdf,
       "fixtures/golden/examples/links_and_outlines.pdf": linksAndOutlinesPdf,
     }).map(([path, data]) => [path, new Uint8Array(data)]),
   ),

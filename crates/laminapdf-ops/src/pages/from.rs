@@ -94,7 +94,7 @@ impl InsertPagesFrom {
 
 /// Puts each copy in the page tree in order: copy `i` before the page `at(i)` names when it
 /// names one, else the first at `at(0)` and each other after the copy before it.
-fn insert(
+pub(super) fn insert(
     doc: &mut laminapdf_model::Document,
     imported: &Imported,
     at: impl Fn(usize) -> PagePosition,
@@ -116,7 +116,7 @@ fn insert(
 }
 
 /// The effect of an import whose copies are now `copies`, the page list `after`.
-fn effect(imported: Imported, copies: Vec<PageId>, after: Vec<PageId>) -> Effect {
+pub(super) fn effect(imported: Imported, copies: Vec<PageId>, after: Vec<PageId>) -> Effect {
     Effect {
         pages: copies,
         page_order: Some(after),
@@ -124,6 +124,8 @@ fn effect(imported: Imported, copies: Vec<PageId>, after: Vec<PageId>) -> Effect
         links_removed: imported.links_removed,
         tags_dropped: imported.tags_dropped,
         widgets: imported.widgets,
+        renamed_destinations: super::merge::RenamedDestination::of(&imported.destinations_renamed),
+        pdfa_unchecked: imported.pdfa_unchecked,
         ..Effect::default()
     }
 }

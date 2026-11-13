@@ -10,6 +10,8 @@ import { editMetadata } from "../../examples/edit-metadata.js";
 import { editXmp } from "../../examples/edit-xmp.js";
 import { elementFlow, type Report } from "../../examples/element-flow.js";
 import { extractPages } from "../../examples/extract-pages.js";
+import { flowingInvoice } from "../../examples/flowing-invoice.js";
+import { flowingReport } from "../../examples/flowing-report.js";
 import { generateThenEdit } from "../../examples/generate-then-edit.js";
 import { hello } from "../../examples/hello.js";
 import { imagesAndVectors } from "../../examples/images-and-vectors.js";
@@ -19,6 +21,7 @@ import { invoice } from "../../examples/invoice.js";
 import { invoiceFromJson } from "../../examples/invoice-from-json.js";
 import { linksAndOutlines } from "../../examples/links-and-outlines.js";
 import { markdownToPdf } from "../../examples/markdown-to-pdf.js";
+import { mergeDocuments } from "../../examples/merge-documents.js";
 import { multilingual } from "../../examples/multilingual.js";
 import { organisePages } from "../../examples/organise-pages.js";
 import { pageLabels } from "../../examples/page-labels.js";
@@ -27,6 +30,7 @@ import { pdfA3InvoiceWithXml } from "../../examples/pdf-a3-invoice-with-xml.js";
 import { pdfUaReport } from "../../examples/pdf-ua-report.js";
 import { report } from "../../examples/report.js";
 import { openOn } from "../../examples/set-initial-view.js";
+import { splitDocument } from "../../examples/split-document.js";
 import { exampleOptions, HELLO_OPTIONS } from "./hello-options.js";
 
 /** The fixture files an example reads, by path from the repository root. */
@@ -82,6 +86,10 @@ const FORMS_PDF = "fixtures/pages/forms.pdf";
 const LABELS_INPUT_PDF = "fixtures/golden/examples/links_and_outlines.pdf";
 /** The input of extract-pages: ten pages labelled i–iii, 1–4, A-1, A-2 and Back cover. */
 const LABELS_PDF = "fixtures/pages/labels.pdf";
+/** The second file merge-documents merges. */
+const HELLO_PDF = "fixtures/corpus/hello.pdf";
+/** The input of split-document: three chapters of four pages, each with a top-level bookmark. */
+const CHAPTERS_PDF = "fixtures/pages/chapters.pdf";
 
 /** An input the runner was asked for (`input` says which), else an error naming it. */
 function input(inputs: Inputs, path: string): Uint8Array {
@@ -105,6 +113,15 @@ function buildInvoiceFromJson(inputs: Inputs): Uint8Array {
     input(inputs, BOLD),
     exampleOptions("lamina-ex-jsoniv"),
   );
+}
+
+/** The four fonts of the Markdown and flowing reports, as the runner supplied them. */
+function reportFonts(inputs: Inputs): Record<"regular" | "bold" | "arabic" | "devanagari", Uint8Array> {
+  const [regular, bold, arabic, devanagari] = MARKDOWN_FONTS.map((f) => input(inputs, f));
+  if (regular === undefined || bold === undefined || arabic === undefined || devanagari === undefined) {
+    throw new Error("four fonts");
+  }
+  return { regular, bold, arabic, devanagari };
 }
 
 /** The report of `FLOW_REPORT`, as the runner supplied it. */
@@ -141,18 +158,13 @@ export const EXAMPLES: readonly Example[] = [
     name: "markdown-to-pdf",
     golden: "markdown_to_pdf",
     inputs: [MARKDOWN, ...MARKDOWN_FONTS, PHOTO],
-    build: (i) => {
-      const [regular, bold, arabic, devanagari] = MARKDOWN_FONTS.map((f) => input(i, f));
-      if (regular === undefined || bold === undefined || arabic === undefined || devanagari === undefined) {
-        throw new Error("four fonts");
-      }
-      return markdownToPdf(
+    build: (i) =>
+      markdownToPdf(
         new TextDecoder().decode(input(i, MARKDOWN)),
-        { regular, bold, arabic, devanagari },
+        reportFonts(i),
         input(i, PHOTO),
         exampleOptions("lamina-ex-mrkdwn"),
-      );
-    },
+      ),
   },
   {
     name: "images-and-vectors",
@@ -209,6 +221,28 @@ export const EXAMPLES: readonly Example[] = [
     build: (i) => extractPages(input(i, LABELS_PDF)),
   },
   {
+    name: "merge-documents",
+    golden: "merge_documents",
+    inputs: [REFERENCES_PDF, HELLO_PDF],
+    build: (i) =>
+      mergeDocuments([
+        ["references.pdf", input(i, REFERENCES_PDF)],
+        ["hello.pdf", input(i, HELLO_PDF)],
+      ]),
+  },
+  ...[1, 2, 3].map(
+    (n): Example => ({
+      name: `split-document-${n}`,
+      golden: `split_document-${n}`,
+      inputs: [CHAPTERS_PDF],
+      build: (i) => {
+        const part = splitDocument(input(i, CHAPTERS_PDF))[n - 1];
+        if (part === undefined) throw new Error(`split-document made no part ${n}`);
+        return part;
+      },
+    }),
+  ),
+  {
     name: "edit-xmp",
     golden: "edit_xmp",
     inputs: [PDFA_2B_PDF],
@@ -256,6 +290,19 @@ export const EXAMPLES: readonly Example[] = [
     golden: "invoice_from_json",
     inputs: [...JSON_INVOICE, NOTO, BOLD],
     build: buildInvoiceFromJson,
+  },
+  {
+    name: "flowing-report",
+    golden: "flowing_report",
+    inputs: [...MARKDOWN_FONTS, PHOTO],
+    // The example lists its fonts in the Rust example's order, which sets the PDF's object numbers.
+    build: (i) => flowingReport(reportFonts(i), input(i, PHOTO), exampleOptions("lamina-ex-flowng")),
+  },
+  {
+    name: "flowing-invoice",
+    golden: "flowing_invoice",
+    inputs: [NOTO, BOLD],
+    build: (i) => flowingInvoice(input(i, NOTO), input(i, BOLD), exampleOptions("lamina-ex-flowiv")),
   },
 ];
 

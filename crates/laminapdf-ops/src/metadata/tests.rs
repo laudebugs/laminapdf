@@ -420,6 +420,7 @@ mod conformance {
             ConformanceWarning::PdfaInfoMismatch { keys: Vec::new() },
             ConformanceWarning::DuplicateTagsIncomplete,
             ConformanceWarning::ImportedTagsDropped,
+            ConformanceWarning::ImportedPdfaUnchecked,
         ];
         assert_eq!(samples.map(|w| w.code()), ConformanceWarning::CODES);
     }
@@ -432,6 +433,7 @@ mod conformance {
             ConformanceWarning::PdfaInfoMismatch { keys: Vec::new() },
             ConformanceWarning::DuplicateTagsIncomplete,
             ConformanceWarning::ImportedTagsDropped,
+            ConformanceWarning::ImportedPdfaUnchecked,
         ];
         crate::test_codes::assert_kinds_match(samples.iter().map(|w| (w.code(), w.kind().as_str())));
     }
