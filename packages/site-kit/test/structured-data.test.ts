@@ -17,6 +17,11 @@ describe("projectFacts", () => {
     });
   });
 
+  it("refuses a licence that isn't a list of alternatives", () => {
+    const cargo = CARGO.replace('license = "MIT OR Apache-2.0"', 'license = "MIT AND Apache-2.0"');
+    expect(() => projectFacts(cargo)).toThrow("as alternatives");
+  });
+
   it("fails when a fact is missing, rather than describe the project wrongly", () => {
     expect(() => projectFacts('[workspace.package]\nlicense = "MIT"\n')).toThrow("has no repository");
   });
@@ -74,6 +79,15 @@ describe("structuredDataProblems", () => {
       "url is http://laminapdf.com/, not an https: address",
       "refers to https://example.com/#nobody, which the graph doesn't define",
     ]);
+  });
+});
+
+describe("structuredDataProblems on text", () => {
+  it("reads only address properties as addresses, so text with a colon passes", () => {
+    const data = structuredData({ site: "docs", cargoToml: CARGO });
+    const graph = data["@graph"] as Record<string, unknown>[];
+    graph[2] = { ...graph[2], description: "TypeScript: PDFs from code" };
+    expect(structuredDataProblems(data)).toEqual([]);
   });
 });
 

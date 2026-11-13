@@ -9,7 +9,7 @@
 // other value, or none (a local build, a PR preview), adds `X-Robots-Tag: noindex`.
 import { existsSync } from "node:fs";
 import { inlineScriptHashes, pageFiles, previewNoindex, siteChecks } from "@laminapdf/site-kit/integrations";
-import { datesAvailable, lastCommitDate } from "@laminapdf/site-kit/lastmod";
+import { commitDates, datesAvailable } from "@laminapdf/site-kit/lastmod";
 import { isProduction, robots } from "@laminapdf/site-kit/robots";
 import { defineConfig } from "astro/config";
 
@@ -24,8 +24,9 @@ const ORIGIN = "https://laminapdf.com";
 const PAGES = pageFiles(new URL("./src/pages/", import.meta.url));
 
 /**
- * What a page is made from, for its sitemap date: its file, and the components folder named
- * after it (`home` for the home page) when there is one.
+ * What a page is made from, for its sitemap date: its file, the components folder named after it
+ * (`home` for the home page) when there is one, and what every page shares: the layout and the
+ * words (`src/data/copy.ts`).
  *
  * @param {string} file a page as `/src/pages/…`
  * @returns {URL[]}
@@ -33,14 +34,22 @@ const PAGES = pageFiles(new URL("./src/pages/", import.meta.url));
 function pageSources(file) {
   const name = file.replace(/^\/src\/pages\//, "").replace(/\.astro$/, "");
   const components = new URL(`./src/components/${name === "index" ? "home" : name}/`, import.meta.url);
-  return [new URL(`.${file}`, import.meta.url), ...(existsSync(components) ? [components] : [])];
+  return [
+    new URL(`.${file}`, import.meta.url),
+    ...(existsSync(components) ? [components] : []),
+    new URL("./src/layouts/", import.meta.url),
+    new URL("./src/data/copy.ts", import.meta.url),
+  ];
 }
 
 /** Each page's last commit date by file, for the sitemap; none from a shallow checkout. */
 const ROOT = new URL("../../", import.meta.url);
-const LASTMOD = datesAvailable(ROOT, isProduction(process.env.LAMINA_PDF_ENV))
-  ? Object.fromEntries(PAGES.map((file) => [file, lastCommitDate(ROOT, pageSources(file))]))
-  : {};
+function pageDates() {
+  if (!datesAvailable(ROOT, isProduction(process.env.LAMINA_PDF_ENV))) return {};
+  const dateOf = commitDates(ROOT);
+  return Object.fromEntries(PAGES.map((file) => [file, dateOf(pageSources(file))]));
+}
+const LASTMOD = pageDates();
 
 // A default export because that is how Astro reads its configuration.
 export default defineConfig({

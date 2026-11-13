@@ -57,7 +57,9 @@ function tomlString(toml, table, key) {
  */
 export function projectFacts(cargoToml) {
   const licence = tomlString(cargoToml, "workspace.package", "license");
-  // An SPDX expression of alternatives, such as `MIT OR Apache-2.0`: a page for each.
+  // An SPDX expression of alternatives, such as `MIT OR Apache-2.0`: a page for each. Any other
+  // expression would need more than a list of licences to describe.
+  if (/\s(AND|WITH)\s/.test(licence)) throw new Error(`can't describe the licence ${licence} as alternatives`);
   const licences = licence.split(/\s+OR\s+/).map((id) => `${SPDX}${id.replace(/[()]/g, "")}.html`);
   return {
     licence,
@@ -109,7 +111,6 @@ export function structuredData({ site, cargoToml }) {
         programmingLanguage: LANGUAGES,
         runtimePlatform: PLATFORMS,
         author: { "@id": organization },
-        documentation: DOCS,
       },
     ],
   };
@@ -121,6 +122,9 @@ const REQUIRED = {
   WebSite: ["@id", "name", "url", "publisher"],
   SoftwareSourceCode: ["@id", "name", "codeRepository", "license", "programmingLanguage", "author"],
 };
+
+/** The properties that hold addresses, which must be absolute `https:` ones. */
+const ADDRESSES = ["@id", "url", "logo", "sameAs", "codeRepository", "license"];
 
 /** Properties that claim what Lamina PDF doesn't have, which no node may carry. */
 const FORBIDDEN = ["aggregateRating", "review", "offers"];
@@ -152,8 +156,10 @@ export function structuredDataProblems(data) {
   }
   walk(data, (key, value) => {
     if (FORBIDDEN.includes(key)) problems.push(`carries ${key}, which Lamina PDF doesn't have`);
-    if (typeof value === "string" && /^[a-z]+:/i.test(value) && key !== "@context" && !value.startsWith("https://")) {
-      problems.push(`${key} is ${value}, not an https: address`);
+    for (const address of ADDRESSES.includes(key) ? [value].flat() : []) {
+      if (typeof address === "string" && !address.startsWith("https://")) {
+        problems.push(`${key} is ${address}, not an https: address`);
+      }
     }
     if (key === "@id" && typeof value === "string" && !ids.has(value)) {
       problems.push(`refers to ${value}, which the graph doesn't define`);

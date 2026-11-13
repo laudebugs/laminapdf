@@ -3,7 +3,7 @@
 // each page is dated by the last commit to its sources (@laminapdf/site-kit's lastmod.mjs). A page
 // with no committed source, such as a one-page view, gets no date; the field is optional.
 import { readdir, readFile, writeFile } from "node:fs/promises";
-import { datesAvailable, lastCommitDate, withLastmod } from "@laminapdf/site-kit/lastmod";
+import { commitDates, datesAvailable, withLastmod } from "@laminapdf/site-kit/lastmod";
 import { contentFiles } from "./agent-docs.mjs";
 
 const ROOT = new URL("../../../", import.meta.url);
@@ -40,10 +40,9 @@ export function sitemapDates({ production, site }) {
       "astro:build:done": async ({ dir }) => {
         if (!datesAvailable(ROOT, production)) return;
         const content = await contentFiles();
-        const dateOf = (/** @type {string} */ loc) => {
-          if (!loc.startsWith(`${site}/`)) return undefined;
-          return lastCommitDate(ROOT, routeSources(loc.slice(site.length + 1), content));
-        };
+        const datesOf = commitDates(ROOT);
+        const dateOf = (/** @type {string} */ loc) =>
+          loc.startsWith(`${site}/`) ? datesOf(routeSources(loc.slice(site.length + 1), content)) : undefined;
         const sitemaps = (await readdir(dir)).filter((name) => /^sitemap-\d+\.xml$/.test(name));
         if (sitemaps.length === 0) throw new Error("sitemap dates: the build wrote no sitemap-<n>.xml");
         for (const name of sitemaps) {

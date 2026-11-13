@@ -3,13 +3,13 @@
 // repository made for the test, and a shallow clone of it, whatever this checkout's depth.
 
 import { execFileSync } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { env as environment } from "node:process";
 import { pathToFileURL } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { datesAvailable, isShallow, lastCommitDate, withLastmod } from "../src/lastmod.mjs";
+import { commitDates, datesAvailable, isShallow, withLastmod } from "../src/lastmod.mjs";
 
 describe("withLastmod", () => {
   const xml =
@@ -45,6 +45,8 @@ describe("dates from git", () => {
     execFileSync("git", ["init", "-q", repo]);
     await commit(repo, "a.md", "a", "2026-01-02T03:04:05Z");
     await commit(repo, "b.md", "b", "2026-02-03T04:05:06Z");
+    await mkdir(join(repo, "docs"));
+    await commit(repo, "docs/c.md", "c", "2026-03-04T05:06:07Z");
     execFileSync("git", ["clone", "-q", "--depth", "1", pathToFileURL(repo).href, join(dir, "shallow")]);
     full = pathToFileURL(`${repo}/`);
     shallow = pathToFileURL(`${join(dir, "shallow")}/`);
@@ -54,19 +56,19 @@ describe("dates from git", () => {
     await rm(dir, { recursive: true, force: true });
   });
 
-  it("dates each file by the last commit that changed it, and a set by the newest", () => {
-    const date = (names: string[]) =>
-      lastCommitDate(
-        full,
-        names.map((name) => new URL(name, full)),
-      );
+  it("dates each file by the last commit that changed it, a set and a folder by the newest", () => {
+    const dateOf = commitDates(full);
+    const date = (names: string[]) => dateOf(names.map((name) => new URL(name, full)));
     expect(date(["a.md"])).toBe("2026-01-02T03:04:05+00:00");
     expect(date(["a.md", "b.md"])).toBe("2026-02-03T04:05:06+00:00");
+    expect(date(["docs/"])).toBe("2026-03-04T05:06:07+00:00");
+    expect(date(["doc"])).toBeUndefined();
   });
 
   it("gives no date for a file that was never committed, or for no files", () => {
-    expect(lastCommitDate(full, [new URL("never.md", full)])).toBeUndefined();
-    expect(lastCommitDate(full, [])).toBeUndefined();
+    const dateOf = commitDates(full);
+    expect(dateOf([new URL("never.md", full)])).toBeUndefined();
+    expect(dateOf([])).toBeUndefined();
   });
 
   it("writes dates from a full history, in production or not", () => {

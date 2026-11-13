@@ -3,6 +3,7 @@
 // would give every page its one commit's date, so a production build refuses one rather than
 // write wrong dates; other builds, which name no sitemap in robots.txt, leave the dates out.
 import { execFileSync } from "node:child_process";
+import { relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
@@ -17,19 +18,38 @@ export function isShallow(root) {
 }
 
 /**
- * The committer date (ISO 8601) of the last commit that changed any of `sources`, or `undefined`
- * when none is in the history (a file the build generates).
+ * The dates of the history at `root`, read in one `git log` pass: a function that gives the
+ * committer date (ISO 8601) of the last commit that changed any of `sources` (files, or folders
+ * for every file under them), or `undefined` when none is in the history (a file the build
+ * generates).
  *
  * @param {URL} root the repository's root folder
- * @param {URL[]} sources files or folders
- * @returns {string | undefined}
+ * @returns {(sources: URL[]) => string | undefined}
  */
-export function lastCommitDate(root, sources) {
-  if (sources.length === 0) return undefined;
-  const paths = sources.map((source) => fileURLToPath(source));
-  const out = execFileSync("git", ["log", "-1", "--format=%cI", "--", ...paths], { cwd: fileURLToPath(root) });
-  const date = out.toString().trim();
-  return date === "" ? undefined : date;
+export function commitDates(root) {
+  const cwd = fileURLToPath(root);
+  // Newest first: each commit is a NUL, its date, then the files it changed.
+  const log = execFileSync("git", ["log", "--no-renames", "--name-only", "--format=%x00%cI"], {
+    cwd,
+    maxBuffer: 256 * 1024 * 1024,
+  }).toString();
+  /** @type {Map<string, string>} */
+  const dates = new Map();
+  for (const commit of log.split("\0").slice(1)) {
+    const [date = "", ...files] = commit.split("\n").filter((line) => line !== "");
+    for (const file of files) if (!dates.has(file)) dates.set(file, date);
+  }
+  return (sources) => {
+    let newest;
+    for (const source of sources) {
+      const path = relative(cwd, fileURLToPath(source)).replaceAll("\\", "/").replace(/\/$/, "");
+      for (const [file, date] of dates) {
+        if (file !== path && !file.startsWith(`${path}/`)) continue;
+        if (newest === undefined || Date.parse(date) > Date.parse(newest)) newest = date;
+      }
+    }
+    return newest;
+  };
 }
 
 /**
