@@ -14,7 +14,7 @@ use common::save::editable;
 use laminapdf_cos::OpenOptions;
 use laminapdf_model::{LabelStyle, PageId};
 use laminapdf_ops::{Document, Op, Origin, PageLabelRange, SetPageLabels};
-use laminapdf_save::{Save as _, SaveMode, SavePlanner, SaveOptions};
+use laminapdf_save::{Save as _, SaveMode, SaveOptions, SavePlanner};
 
 fn page_ids(doc: &Document) -> Vec<PageId> {
     doc.pages().unwrap().iter().map(|p| p.id().clone()).collect()
@@ -184,7 +184,11 @@ fn pdfjs_and_pdfium_show_the_labels_the_op_wrote() {
             std::fs::write(dir.join(name), &bytes).unwrap();
             continue;
         }
-        assert_eq!(bytes, fixture(&format!("pages/set-labels/{name}")), "{name}: run with UPDATE_GOLDEN=1");
+        assert_eq!(
+            bytes,
+            fixture(&format!("pages/set-labels/{name}")),
+            "{name}: run with UPDATE_GOLDEN=1"
+        );
         let file = &facts["files"][name];
         let ours = serde_json::to_value(labels_of(bytes)).unwrap();
         assert_eq!(

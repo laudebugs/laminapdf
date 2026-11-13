@@ -232,6 +232,28 @@
         }
       ]
     },
+    "page_labels": {
+      "sha256": "da4c3e7f53ec6ef93bfa9130735371e892e0b048f24266db505bdb19c62a06a5",
+      "bytes": 3118,
+      "pages": [
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        }
+      ]
+    },
     "pdf_a3_invoice_with_xml": {
       "sha256": "7f6e9fdfb6dedf0cf70ed22de3798100f3136ef8977b672686653758b01c2163",
       "bytes": 10362,

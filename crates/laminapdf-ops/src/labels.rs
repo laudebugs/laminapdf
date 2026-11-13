@@ -15,9 +15,6 @@ use crate::wire;
 /// each numbered from 1 or more; otherwise the op fails with `invalid-label-ranges`. Nothing
 /// is written when the document already shows these labels.
 ///
-/// Labels move with their pages afterwards: every page op rebuilds the tree from page IDs
-/// ([`PageLabels::remap`]).
-///
 /// On the wire:
 /// `{ "op": "setPageLabels", "args": { "ranges": [{ "page": "p3.0", "style": "lowerRoman" }] } }`.
 ///

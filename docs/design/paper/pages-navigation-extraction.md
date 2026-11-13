@@ -77,7 +77,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `O10-page-labels.dc.html`.
 
-**Todos.** [E2q](../../todos/ongoing/E2q-page-labels-op.md), [E2g](../../todos/ready/E2g-page-labels.md).
+**Todos.** [E2q](../../todos/done/E2q-page-labels-op.md), [E2g](../../todos/ready/E2g-page-labels.md).
 
 ## O11 Bookmarks editor
 

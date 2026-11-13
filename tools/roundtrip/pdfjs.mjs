@@ -23,6 +23,12 @@ if (version !== PINNED) {
 const pdfjs = await import(pathToFileURL(join(pdfjsDir, "legacy/build/pdf.mjs")).href);
 const { cases } = JSON.parse(readFileSync(join(outDir, "manifest.json"), "utf8"));
 
+// Each page's label (getPageLabels() is null for a document without labels).
+async function pageLabels(doc) {
+  const labels = await doc.getPageLabels();
+  return Array.from({ length: doc.numPages }, (_, i) => labels?.[i] ?? null);
+}
+
 const failures = [];
 for (const c of cases) {
   try {
@@ -39,8 +45,17 @@ for (const c of cases) {
     const encrypted = (await doc.getPermissions()) !== null || info.IsEncrypted === true;
     // The setInfo cases also wrote /Author, /Subject and /Keywords (c.info); null elsewhere.
     const keys = c.info === null ? null : Object.fromEntries(Object.keys(c.info).map((k) => [k, info[k] ?? null]));
-    const got = { pages: doc.numPages, rotations, title, encrypted, info: keys };
-    const want = { pages: c.pages, rotations: c.rotations, title: c.title, encrypted: c.encrypted, info: c.info };
+    // The setPageLabels cases list every page's label (c.labels, null for none); null elsewhere.
+    const labels = c.labels == null ? null : await pageLabels(doc);
+    const got = { pages: doc.numPages, rotations, title, encrypted, info: keys, labels };
+    const want = {
+      pages: c.pages,
+      rotations: c.rotations,
+      title: c.title,
+      encrypted: c.encrypted,
+      info: c.info,
+      labels: c.labels ?? null,
+    };
     if (JSON.stringify(got) !== JSON.stringify(want)) {
       failures.push(`${c.file}: got ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`);
     }

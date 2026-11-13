@@ -125,6 +125,7 @@ export type {
   Overflow,
   PageInfo,
   PageLabel,
+  PageLabelRange,
   PageLink,
   PlannedSave,
   Point,
