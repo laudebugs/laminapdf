@@ -169,8 +169,15 @@ pub(crate) fn build_window(app: &AppHandle, label: &str, corner: Option<Position
     };
     let window = builder.build()?;
     if let Some(at @ Position::Physical(_)) = corner {
-        window.set_position(at)?;
-        window.show()?;
+        // A window that can't be placed still shows, where the OS put it: a hidden one would
+        // count as a window ("Move tab to window ▸") that nobody can see.
+        if let Err(error) = window.set_position(at) {
+            tracing::warn!("could not place a new window under the cursor: {error}");
+        }
+        if let Err(error) = window.show() {
+            let _ = window.destroy();
+            return Err(error.into());
+        }
     }
     Ok(())
 }
