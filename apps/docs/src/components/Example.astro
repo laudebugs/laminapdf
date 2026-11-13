@@ -184,6 +184,7 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
                 <Fragment set:html={icon(resetIcon)} />
                 Reset
               </button>
+              <button type="button" class="run-wrap">Wrap lines</button>
               <button type="button" class="run-download" hidden>
                 <Fragment set:html={icon(downloadIcon)} />
                 Download PDF
@@ -229,8 +230,10 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
       const run = this.querySelector<HTMLButtonElement>(".run-run");
       const reset = this.querySelector<HTMLButtonElement>(".run-reset");
       const download = this.querySelector<HTMLButtonElement>(".run-download");
+      const wrap = this.querySelector<HTMLButtonElement>(".run-wrap");
       const { file, source, name } = this.dataset;
-      if (button === null || bar === null || run === null || reset === null || download === null) return;
+      if (button === null || bar === null || run === null || reset === null || download === null || wrap === null)
+        return;
       if (file === undefined || source === undefined || name === undefined) return;
       // The TypeScript code, which the editor replaces; the page's own column, where a run's pages
       // take the place of the first page's picture.
@@ -261,7 +264,7 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
         const panel = code.closest<HTMLElement>("[role=tabpanel]");
         const tab = panel?.getAttribute("aria-labelledby");
         if (panel?.hidden === true && tab != null) document.getElementById(tab)?.click();
-        editor.openRunner({ bar, run, reset, download }, { file, source, name }, { code, picture, pages: side });
+        editor.openRunner({ bar, run, reset, download, wrap }, { file, source, name }, { code, picture, pages: side });
       };
       button.addEventListener("click", open);
     }
@@ -613,6 +616,13 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
     background: var(--paper-raised);
     color: var(--paper-text);
     cursor: pointer;
+  }
+  /* Wrap lines while pressed: a tool toggle's pressed look (packages/ui's button.css). */
+  .run-bar button[aria-pressed="true"] {
+    outline: var(--paper-border-width) solid var(--paper-accent);
+    outline-offset: calc(-1 * var(--paper-border-width));
+    background: var(--paper-accent-tint);
+    color: var(--paper-accent);
   }
   .run-bar button[hidden],
   .run-bar[hidden] {

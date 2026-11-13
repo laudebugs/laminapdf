@@ -11,7 +11,7 @@
 | Branch | `claude/inspiring-lamport-q8469n` (this session's branch) |
 | PR title | `feat(docs): unwrapped lines in "Edit and run", with a Wrap lines toggle` |
 | Size | S |
-| PR | — |
+| PR | [#558](https://github.com/laudebugs/laminapdf/pull/558) |
 
 ## Goal
 

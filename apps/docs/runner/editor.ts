@@ -3,6 +3,7 @@
 // on the first run), and shows each page of the result, or the error with its code and hint.
 
 import { javascript } from "@codemirror/lang-javascript";
+import { Compartment } from "@codemirror/state";
 import { basicSetup, EditorView } from "codemirror";
 import type { RunReply, RunRequest } from "./protocol.js";
 import { paperTheme } from "./theme.js";
@@ -49,18 +50,36 @@ const typeOverLines = EditorView.domEventHandlers({
 });
 
 /**
- * The editor of `source`, in a shadow root on `host`. There CodeMirror's styles go into adopted
+ * The editor of `source`, in a shadow root on `host`, with `wrap` its Wrap lines toggle. There CodeMirror's styles go into adopted
  * style sheets, which the docs' CSP allows; on the page itself they would be a <style> element,
  * which `style-src 'self'` blocks (public/_headers). The --paper-* tokens are custom properties, so
  * they still reach the theme inside it.
  */
-function editor(host: HTMLElement, source: string): EditorView {
+function editor(host: HTMLElement, source: string, wrap: HTMLButtonElement): EditorView {
   const root = host.attachShadow({ mode: "open" });
-  return new EditorView({
+  const wrapping = new Compartment();
+  const view = new EditorView({
     doc: source,
     root,
     parent: root,
-    extensions: [basicSetup, javascript({ typescript: true }), EditorView.lineWrapping, paperTheme, typeOverLines],
+    // Lines start unwrapped, as in an editor, so their indentation shows the code's shape; the
+    // bar's Wrap lines toggle (wrapOnPress) puts EditorView.lineWrapping in this compartment.
+    extensions: [basicSetup, javascript({ typescript: true }), wrapping.of([]), paperTheme, typeOverLines],
+  });
+  wrapOnPress(view, wrapping, wrap);
+  return view;
+}
+
+/**
+ * Wrap lines: each press wraps the editor's long lines or unwraps them, and the button says which
+ * (aria-pressed). Reset leaves it as it is.
+ */
+function wrapOnPress(view: EditorView, wrapping: Compartment, button: HTMLButtonElement): void {
+  button.setAttribute("aria-pressed", "false");
+  button.addEventListener("click", () => {
+    const on = button.getAttribute("aria-pressed") !== "true";
+    view.dispatch({ effects: wrapping.reconfigure(on ? EditorView.lineWrapping : []) });
+    button.setAttribute("aria-pressed", String(on));
   });
 }
 
@@ -138,6 +157,8 @@ export interface RunButtons {
   readonly run: HTMLButtonElement;
   readonly reset: HTMLButtonElement;
   readonly download: HTMLButtonElement;
+  /** Wraps the editor's long lines, or unwraps them (wrapOnPress). */
+  readonly wrap: HTMLButtonElement;
 }
 
 /** The example a runner edits. */
@@ -183,7 +204,7 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
   buttons.bar.hidden = false;
   buttons.download.hidden = true;
 
-  const view = editor(editorHost, source);
+  const view = editor(editorHost, source, buttons.wrap);
   // The pressed "Edit and run" is gone: focus goes to the editor, where the reader's work starts.
   view.focus();
   /** The last PDF as a data: URL: not a blob: one, since Chromium checks a blob: download against
