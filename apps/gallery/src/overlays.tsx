@@ -80,8 +80,9 @@ const PAGES = Array.from({ length: 24 }, (_, i) =>
   i < 22 ? { width: 612, height: 792 } : { width: 792, height: 1224 },
 );
 
-/** Print (R09), restricted or not, and its progress; Document properties (R08). */
+/** Print (R09), restricted or not, and its progress; Document properties (R08); Initial view (O13). */
 function OutputDialog({ state }: { state: string }): ReactNode {
+  if (state.startsWith("initial-view")) return <InitialView state={state} />;
   if (state === "print-progress") return <PrintProgressDialog progress={{ ready: 8, total: 24 }} onCancel={noop} />;
   if (state === "properties") {
     return (
@@ -176,8 +177,9 @@ function SettingsDialogs({ state }: { state: string }): ReactNode {
 /** The dialogs: the three widths, a destructive confirm, the reader's password prompt, print, properties and the save confirmations. */
 export function Dialogs({ state }: { state: string }): ReactNode {
   if (state === "password") return <PasswordPrompt />;
-  if (state.startsWith("print") || state === "properties") return <OutputDialog state={state} />;
-  if (state.startsWith("initial-view")) return <InitialView state={state} />;
+  if (state.startsWith("print") || state === "properties" || state.startsWith("initial-view")) {
+    return <OutputDialog state={state} />;
+  }
   if (state === "settings" || state === "shortcuts" || state === "view-settings")
     return <SettingsDialogs state={state} />;
   if (state === "remove-signatures") {
