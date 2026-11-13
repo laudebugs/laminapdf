@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { env } from "node:process";
 import { fileURLToPath } from "node:url";
 import { describeFlaky, warningLine } from "@laminapdf/test-utils/flaky";
+import { closeAll } from "./app.ts";
 import { appBinary, output } from "./paths.ts";
 
 const specs = join(fileURLToPath(new URL(".", import.meta.url)), "specs");
@@ -45,19 +46,25 @@ export function e2eConfig(names: readonly string[], args: readonly string[] = []
 // order: the empty state while nothing is open first, then the rest, each opening its own file,
 // which replaces the one before (ADR 0018 §4's ordering exception). The cold start with a file
 // needs its own launch: wdio.cold-open.conf.ts.
-export const config = e2eConfig([
-  "start",
-  "open",
-  "forward",
-  "watch",
-  "recent",
-  "scroll",
-  "zoom",
-  "password",
-  "repaired",
-  "restart",
-  "large",
-]);
+export const config: WebdriverIO.Config = {
+  ...e2eConfig([
+    "start",
+    "open",
+    "forward",
+    "watch",
+    "recent",
+    "scroll",
+    "zoom",
+    "password",
+    "repaired",
+    "restart",
+    "large",
+    "tabs",
+  ]),
+  // Opening no longer replaces the document before (each opens a tab), so each scenario starts
+  // with every tab closed, as if it had the app to itself.
+  beforeSuite: closeAll,
+};
 
 /** A test that passed only on its retry: a warning annotation on Actions, a console warning elsewhere. */
 function reportFlaky(file: string, name: string): void {

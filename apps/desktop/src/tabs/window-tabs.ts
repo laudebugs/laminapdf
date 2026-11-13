@@ -6,9 +6,10 @@
 // The reader's own paths stay as they are: the Open button, the recent list and the OS's requests
 // call `reader.open`, and the opener (`engine/open.ts`) tells the tabs through `showing`, which
 // adds the tab or finds it. The document the window stops showing is set aside, never closed; it
-// closes only with its tab. A reader that goes back to its start screen (Close, or Escape at the
-// password prompt) closes the shown tab, and the next tab shows, or the start screen when it was
-// the last.
+// closes only with its tab. A reader that closes its open document closes that tab, and the next
+// tab shows, or the start screen when it was the last. One that goes back to its start screen from
+// anywhere else (an open that failed, Escape at a password prompt) closes nothing: the tab shown
+// before shows again.
 import type { ExternalStore, PlatformFile, ReaderController, ReaderState } from "@laminapdf/ui";
 import type { Viewer, ViewPosition } from "@laminapdf/viewer";
 import type {
@@ -59,6 +60,8 @@ export class WindowTabs implements ExternalStore<TabsState> {
       back to the start screen then closes nothing. */
   #driving = false;
   #lastPhase: ReaderState["phase"] = "empty";
+  /** The tab the reader last let go of: closed if the reader closed it, else shown again. */
+  #aside: string | undefined;
 
   constructor(shell: DesktopShell, client: DesktopEngineClient, viewer: Viewer) {
     this.#shell = shell;
@@ -72,9 +75,11 @@ export class WindowTabs implements ExternalStore<TabsState> {
     this.#lastPhase = reader.getState().phase;
     return reader.subscribe(() => {
       const phase = reader.getState().phase;
-      const wasShowing = this.#lastPhase !== "empty";
+      const was = this.#lastPhase;
       this.#lastPhase = phase;
-      if (phase === "empty" && wasShowing && !this.#driving) void this.#closedByReader();
+      if (phase !== "empty" || was === "empty" || this.#driving) return;
+      if (was === "open") void this.#closedByReader();
+      else if (this.#aside !== undefined) void this.activate(this.#aside);
     });
   }
 
@@ -110,6 +115,7 @@ export class WindowTabs implements ExternalStore<TabsState> {
     this.#keepView();
     const doc = documentOf(file)?.doc;
     const existing = doc === undefined ? undefined : this.tabOf(doc);
+    this.#aside = undefined;
     if (existing !== undefined) {
       this.#set({ active: existing.id });
       return existing.view;
@@ -122,6 +128,9 @@ export class WindowTabs implements ExternalStore<TabsState> {
   /** The reader lets go of the shown document: its tab keeps the view, for when it shows again. */
   setAside(): void {
     this.#keepView();
+    this.#aside = this.#state.active;
+    // Nothing shows until the reader shows a document again (or an error, or a password prompt).
+    if (this.#state.active !== undefined) this.#set({ active: undefined });
   }
 
   /** Puts the viewer's view into the shown tab, before the viewer shows another document. */
@@ -169,9 +178,10 @@ export class WindowTabs implements ExternalStore<TabsState> {
     if (doc !== undefined) await this.#shell.invoke("close_document", { doc });
   }
 
-  /** The reader went back to its start screen on its own: the shown tab's document closes. */
+  /** The reader closed its open document: that tab and its document close. */
   async #closedByReader(): Promise<void> {
-    const shown = this.shown;
+    const shown = this.#state.tabs.find((tab) => tab.id === this.#aside);
+    this.#aside = undefined;
     if (shown === undefined) return;
     const doc = documentOf(shown.file)?.doc;
     const next = this.#neighbour(shown.id);

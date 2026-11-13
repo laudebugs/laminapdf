@@ -6,8 +6,13 @@
 import { type Platform, ReaderController } from "@laminapdf/ui";
 import type { Viewer, ViewPosition } from "@laminapdf/viewer";
 import { describe, expect, it } from "vitest";
-import { type DesktopDocument, DesktopEngineClient, type DesktopShell } from "../engine/desktop-engine-client.ts";
-import { desktopFile, desktopOpener } from "../engine/open.ts";
+import {
+  type DesktopDocument,
+  DesktopEngineClient,
+  DesktopEngineError,
+  type DesktopShell,
+} from "../engine/desktop-engine-client.ts";
+import { desktopFile, desktopOpener, failedFile } from "../engine/open.ts";
 import { WindowTabs } from "./window-tabs.ts";
 
 function doc(id: number, name: string): DesktopDocument {
@@ -125,6 +130,18 @@ describe("a window's tabs", () => {
     await expect.poll(() => names(tabs)).toEqual([]);
     expect(closed()).toEqual([2, 1]);
     expect(reader.getState().phase).toBe("empty");
+  });
+
+  it("show the tab before again, closing nothing, when an open that failed is dismissed", async () => {
+    const { tabs, reader, closed } = harness();
+    await reader.open(desktopFile(doc(1, "a.pdf")));
+    await reader.open(failedFile("broken.pdf", new DesktopEngineError("not-a-pdf", "not a PDF")));
+    expect(reader.getState().phase).toBe("error");
+    expect(tabs.getState().active).toBeUndefined();
+    reader.close();
+    await expect.poll(() => tabs.shown?.file.name).toBe("a.pdf");
+    expect(reader.getState().phase).toBe("open");
+    expect(closed()).toEqual([]);
   });
 
   it("step to the next and previous tab, wrapping round", async () => {
