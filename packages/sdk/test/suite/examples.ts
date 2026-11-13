@@ -18,6 +18,7 @@ import { pdfAArchive } from "../../examples/pdf-a-archive.js";
 import { pdfA3InvoiceWithXml } from "../../examples/pdf-a3-invoice-with-xml.js";
 import { pdfUaReport } from "../../examples/pdf-ua-report.js";
 import { report } from "../../examples/report.js";
+import { openOn } from "../../examples/set-initial-view.js";
 import { exampleOptions, HELLO_OPTIONS } from "./hello-options.js";
 
 /** The fixture files an example reads, by path from the repository root. */
@@ -58,6 +59,8 @@ const BOLD = "fixtures/fonts/NotoSans-RegularBold.ttc";
 const EDITED_AT = "D:20261030130000Z";
 /** The document edit-metadata edits. */
 const METADATA_PDF = "fixtures/golden/metadata.pdf";
+/** The document set-initial-view edits: three pages with an outline. */
+const OUTLINE_PDF = "fixtures/corpus/outline.pdf";
 
 /** An input the runner was asked for (`input` says which), else an error naming it. */
 function input(inputs: Inputs, path: string): Uint8Array {
@@ -147,6 +150,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "edit_metadata",
     inputs: [METADATA_PDF],
     build: (i) => editMetadata(input(i, METADATA_PDF), EDITED_AT),
+  },
+  {
+    name: "set-initial-view",
+    golden: "set_initial_view",
+    inputs: [OUTLINE_PDF],
+    build: (i) => openOn(input(i, OUTLINE_PDF), 1),
   },
   { name: "pdf-ua-report", golden: "pdf_ua_report", inputs: [NOTO], build: (i) => pdfUaReport(input(i, NOTO)) },
   {

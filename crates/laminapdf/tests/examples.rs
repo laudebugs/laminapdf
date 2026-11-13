@@ -132,7 +132,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 18] = [
+const EXAMPLES: [(&str, Build); 19] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -156,6 +156,7 @@ const EXAMPLES: [(&str, Build); 18] = [
     ("edit_metadata-pdfa", || {
         edit_metadata::edit(fixture("golden/examples/pdf_a_archive-2u.pdf"), EDITED.parse()?)
     }),
+    ("set_initial_view", || set_initial_view::open_on(fixture("corpus/outline.pdf"), 1)),
     ("pdf_ua_report", || pdf_ua_report::build(fixture(NOTO))),
     ("pdf_a_archive-2b", || {
         pdf_a_archive::build(Level::A2b, fixture(NOTO), fixture(PHOTO))
@@ -329,14 +330,13 @@ fn check_text_golden(path: &str, text: &str) {
 }
 
 /// The examples that read a PDF instead of building one.
-const READERS: [&str; 8] = [
+const READERS: [&str; 7] = [
     "check_what_a_file_hides",
     "extract_blocks",
     "extract_chunks",
     "extract_markdown",
     "extract_text",
     "react_to_error_codes",
-    "set_initial_view",
     "snapshot_test",
 ];
 
