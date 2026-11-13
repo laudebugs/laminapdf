@@ -11,7 +11,7 @@ When Lamina PDF edits an existing page's content, should it write the whole page
 
 ## Answer in one paragraph
 
-**Copy what the edit didn't touch.** Moving one object and copying the rest kept 84 % of the corpus's content bytes as they were, and 5,643 of 5,655 edited pages read back as the edit meant. Writing every operator again changed 447 of 5,967 pages by rounding numbers alone, because Lamina PDF's writer rounds reals to six decimals and writes `2.0` as `2`, and made the content 6.5 % larger. The editable list itself is cheap: tokenizing and grouping ran at 67 MB/s, and the slowest page took 73 ms. The one flaw the spike found is its own: it guessed where an inline image ends from the image data, and that guess caused 30 of its 33 mismatches. The tokenizer has to report the end itself.
+**Copy what the edit didn't touch.** Moving one object and copying the rest kept 84 % of the corpus's content bytes as they were, and 5,654 of 5,655 edited pages read back as the edit meant. Writing every operator again changed 453 of 5,967 pages: 450 only because Lamina PDF's writer rounds reals to six decimals and writes `2.0` as `2`, and 3 because it drops stray operands in front of an inline image. The editable list itself is cheap: tokenizing and grouping ran at 67 MB/s, and the slowest page took 73 ms.
 
 ## Method
 
@@ -36,23 +36,23 @@ SPIKE_DEBUG=1 …                              # also prints each mismatch on st
 
 Apple M1 Pro, release build, the corpus at the commits `fixtures/corpus-manifest.toml` pins. Files Lamina PDF can't open (103 of 2,161, mostly deliberately broken ones) are left out.
 
-| Source | Pages | Content | Operators | Objects (text) | Tokenize | Re-serialise: size | Identical | Within 10⁻⁶ | Verbatim after one edit | Edit reads back |
+| Source | Pages | Content | Operators | Objects (text) | Tokenize and group | Re-serialise: size | Identical | Within 10⁻⁶ | Verbatim after one edit | Edit reads back |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| pdf.js | 1,829 | 18.58 MB | 1,516,062 | 203,165 (40,734) | 59 MB/s | 102.8 % | 1,605 | 1,821 | 81.6 % | 1,696 / 1,698 |
-| PDFBox | 307 | 2.65 MB | 180,442 | 65,842 (2,110) | 75 MB/s | 102.6 % | 260 | 306 | 83.2 % | 259 / 260 |
-| PDFium | 351 | 0.16 MB | 12,117 | 1,696 (408) | 60 MB/s | 86.3 % | 333 | 351 | 78.7 % | 241 / 241 |
-| qpdf | 3,480 | 4.63 MB | 135,752 | 19,746 (4,950) | 133 MB/s | 124.2 % | 3,301 | 3,468 | 96.3 % | 3,447 / 3,456 |
-| **All** | **5,967** | **26.02 MB** | **1,844,373** | **290,449 (48,202)** | **67 MB/s** | **106.5 %** | **5,499** | **5,946** | **84.3 %** | **5,643 / 5,655** |
-| Lamina PDF's fixtures | 110 | 0.47 MB | 16,667 | 1,915 (1,586) | 94 MB/s | 71.0 % | 99 | 110 | 97.4 % | 106 / 106 |
+| pdf.js | 1,829 | 18.58 MB | 1,516,062 | 203,165 (40,734) | 59 MB/s | 101.6 % | 1,612 | 1,829 | 81.6 % | 1,698 / 1,698 |
+| PDFBox | 307 | 2.65 MB | 180,442 | 65,842 (2,110) | 72 MB/s | 102.6 % | 260 | 307 | 83.2 % | 260 / 260 |
+| PDFium | 351 | 0.16 MB | 12,117 | 1,696 (408) | 58 MB/s | 86.3 % | 333 | 351 | 78.7 % | 241 / 241 |
+| qpdf | 3,480 | 4.63 MB | 135,752 | 19,746 (4,950) | 134 MB/s | 99.0 % | 3,309 | 3,477 | 96.3 % | 3,455 / 3,456 |
+| **All** | **5,967** | **26.02 MB** | **1,844,373** | **290,449 (48,202)** | **67 MB/s** | **101.1 %** | **5,514** | **5,964** | **84.3 %** | **5,654 / 5,655** |
+| Lamina PDF's fixtures | 110 | 0.47 MB | 16,667 | 1,915 (1,586) | 96 MB/s | 71.0 % | 99 | 110 | 97.4 % | 106 / 106 |
 
-The slowest page tokenized and grouped in 73 ms (pdf.js corpus); writing every operator again took 267 ms for all 26 MB. "Edit reads back" counts a page when its numbers match within 10⁻⁶, since the moved object is itself written again. Pages with no object to move (312) aren't counted there.
+The slowest page tokenized and grouped in 73 ms (pdf.js corpus); writing every operator again took 264 ms for all 26 MB. "Edit reads back" counts a page when its numbers match within 10⁻⁶, since the moved object is itself written again. Pages with no object to move (312) aren't counted there. "Verbatim" depends on the object moved: the spike always moved the page's first text object, which on many pages is most of the page.
 
 ### What the mismatches were
 
-- **Numbers (447 pages).** Every re-serialise difference within 10⁻⁶ comes from `format_real`: six decimals at most, and no `.0` on whole numbers. A page re-read after it holds the same values to within 5 × 10⁻⁷.
-- **Inline images (30 of the 33 others).** The spike finds an inline image's end by searching for `EI` after the data and its start by searching back for `BI`. On binary data both searches can land in the wrong place. `InlineImage` reports where the data starts but not where `EI` ends, so the IR needs `Op` to carry that offset.
-- **Three it didn't explain.** Two edited text objects that round-trip correctly on their own failed in their page, and one re-serialised page gained four operators. The ADR leaves them to E7c's tests and the `content` fuzz target.
+- **Numbers (450 pages).** Every re-serialise difference within 10⁻⁶ comes from `format_real`: six decimals at most, and no `.0` on whole numbers. A page re-read after it holds the same values to within 5 × 10⁻⁷.
+- **Stray operands before `BI` (3 pages, one of them also the one edit).** A few qpdf test files put operands such as `/potato` in front of an inline image, which `BI` doesn't take (`content-bad-operands`). The spike writes the image from its source bytes without them. Copying unchanged spans keeps them, as it keeps everything it doesn't touch.
+- **A bug of the spike's own, fixed.** The first run searched for an inline image's start from the byte after `B`, so it found the previous image's `BI`; that caused 30 mismatches, and the two text objects that seemed not to round-trip sat after such images. `Op::offset` is `BI`'s own offset. The image's end comes from searching for `EI` after the data the tokenizer reports, which held on every page; the tokenizer knows where it resumed, so the IR should take the end from it rather than search.
 
 ## Recommendation
 
-Build `ContentOps` with a span per operator and copy unchanged spans on encode ([ADR 0022 §1 and §3](../../docs/decisions/0022-content-stream-editing.md#decision)). Add the inline image's end offset to `Op` with it.
+Build `ContentOps` with a span per operator and copy unchanged spans on encode ([ADR 0022 §1 and §3](../../docs/decisions/0022-content-stream-editing.md#decision)). Take each inline image's span from the tokenizer, not from a search.

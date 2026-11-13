@@ -154,6 +154,16 @@ Rules that bite:
 - Marked-content `BDC/EMC` must nest properly and must not straddle `BT/ET` boundaries asymmetrically.
 - Historic limit: `q`/`Q` nesting depth 28 (ISO 32000-1 Annex C, Table C.1 — confirmed; the spec's own note says it "is not a limit as such" but stems from mapping `q`/`Q` to PostScript `gsave`/`grestore` when generating PostScript). Not a PDF 2.0 rule, but stay well under it.
 
+### 2.3 Measured: editing what a stream already holds
+
+The `content-edit` spike ([README](../../../spikes/content-edit/README.md), E7a) tokenized every page of the pinned external corpus (pdf.js, PDFBox, PDFium and qpdf: 5,967 pages, 26 MB of decoded content, 1.84 million operators) and grouped the operators into the objects an editor selects: text objects, paths, images, forms and shadings, 290,449 of them, 48,202 text objects. Three findings bear on any editor:
+
+- **Writing operators again changes bytes, not drawing.** Lamina PDF's writer keeps six decimals and drops `.0`, so 450 pages read back with numbers off by at most 5 × 10⁻⁷. The operators mean the same; the bytes differ, and a diff or a comparison with the source shows every one.
+- **Untouched operators can be copied exactly.** Keeping each operator's source bytes and writing only the edited object again kept 84 % of the bytes after one move, and 5,654 of 5,655 pages read back as meant.
+- **Stray operands survive only by copying.** A few files put operands an operator doesn't take in front of it (`/potato BI` in qpdf's tests); writing operators from their parsed form drops them, copying keeps them.
+
+ADR 0022 records what Lamina PDF does with this.
+
 ---
 
 ## 3. Coordinate systems and transformations

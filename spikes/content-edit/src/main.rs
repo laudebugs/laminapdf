@@ -244,10 +244,8 @@ fn parse(content: &[u8]) -> Vec<IrOp> {
                     .windows(2)
                     .position(|w| w == b"EI")
                     .map_or(content.len(), |p| after + p + 2);
-                let start = content[..op.offset + 1]
-                    .windows(2)
-                    .rposition(|w| w == b"BI")
-                    .unwrap_or(op.offset);
+                // The tokenizer reports BI's own offset.
+                let start = op.offset;
                 (ei, Some(content[start..ei].to_vec()))
             }
             None => (op.offset + keyword.len(), None),
@@ -361,9 +359,9 @@ fn summary(t: &Totals) {
         t.files, t.unreadable, t.pages, mb, t.ops, t.objects, t.text_objects
     );
     println!(
-        "parse {:.1} ms ({:.1} MB/s), group {:.1} ms, canonical encode {:.1} ms; slowest page {:.2} ms",
+        "parse {:.1} ms (with grouping {:.1} MB/s), group {:.1} ms, canonical encode {:.1} ms; slowest page {:.2} ms",
         ms(t.parse),
-        mb / t.parse.as_secs_f64().max(1e-9),
+        mb / (t.parse + t.group).as_secs_f64().max(1e-9),
         ms(t.group),
         ms(t.encode),
         ms(t.slowest_page)

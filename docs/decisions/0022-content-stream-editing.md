@@ -17,14 +17,14 @@ The E7a spike ([`spikes/content-edit/`](../../spikes/content-edit/README.md)) me
 
 | Measure | Full re-serialise | Span-preserving |
 | --- | --- | --- |
-| Pages whose operators read back identical | 5,499 of 5,967 (92.2 %) | — |
-| Pages equal within 10⁻⁶ per number | 5,946 of 5,967 (99.6 %) | — |
-| Pages that read back as the edit meant (one object moved) | — | 5,643 of 5,655 (99.8 %) |
+| Pages whose operators read back identical | 5,514 of 5,967 (92.4 %) | — |
+| Pages equal within 10⁻⁶ per number | 5,964 of 5,967 (99.95 %) | — |
+| Pages that read back as the edit meant (one object moved) | — | 5,654 of 5,655 |
 | Content bytes copied from the source after that edit | 0 % | 84.3 % |
-| Size against the original | 106.5 % | the original, plus the moved object's change |
+| Size against the original | 101.1 % | the original, plus the moved object's change |
 | Tokenizing and grouping into objects | 67 MB/s; the slowest page 73 ms | the same |
 
-Re-serialising changed 468 pages: 447 only by rounding numbers, and 21 through the spike's own inline-image guess and one case it didn't explain. Lamina PDF's writer rounds reals to six decimals (`0.8509804` becomes `0.85098`) and writes `2.0` as `2`. Neither rounding is visible on the page, but both change the bytes, so a page nobody edited would still differ from its source. The 84.3 % is a lower bound: the spike always moved the page's first text object, which on many pages is most of the page.
+Re-serialising changed 453 pages: 450 only by rounding numbers, and 3 because it drops stray operands that a few test files put in front of an inline image. Lamina PDF's writer rounds reals to six decimals (`0.8509804` becomes `0.85098`) and writes `2.0` as `2`. Neither rounding is visible on the page, but both change the bytes, so a page nobody edited would still differ from its source. The 84.3 % depends on the object moved: the spike always moved the page's first text object, which on many pages is most of the page.
 
 ## Decision
 
@@ -34,7 +34,7 @@ Edit content through a per-page IR of operators grouped into objects, and encode
 
 `laminapdf-content` gains `ContentOps`, the editable intermediate representation (IR) that ADR 0023 §2 reserved. It is built from `ContentIter` for one content owner: a page (its `/Contents` streams, which §7.8.2 reads as one program) or a Form XObject.
 
-- **Operators keep their source.** Each operator records its operands, its keyword and its span: which `/Contents` part it came from, and the bytes from the end of the previous operator through its own keyword. An inline image's span runs from `BI` through `EI`. `Op` gains that end offset: the spike guessed it from the image data, and the guess caused 30 of its 33 mismatches, so the tokenizer must report where it stopped.
+- **Operators keep their source.** Each operator records its operands, its keyword and its span: which `/Contents` part it came from, and the bytes from the end of the previous operator through its own keyword. An inline image's span runs from `BI` through `EI`. The tokenizer knows where `EI` ends, since it resumes there, so `Op` reports that end instead of leaving the IR to search the image data for `EI`.
 - **Objects are operator ranges.** A text object (`BT … ET`), a path (construction through its painting operator, clipping included), an image (`Do` of an image XObject, or an inline image), a form (`Do` of a Form XObject) and a shading (`sh`). Marked-content sequences (`BMC`/`BDC … EMC`) are containers around objects, not objects. On the corpus, 1.84 million operators grouped into 290,449 objects, 48,202 of them text objects.
 - **Each object carries its state.** The interpreter's `GraphicsState` at the object's first operator is recorded with it (ADR 0023's visitor fills it), with its bounding box in page space ([ADR 0027](0027-coordinates-units-and-page-indexing.md)). An object can then be moved, deleted or written again without the `q`, `cm` and colour operators before it.
 - **Text objects go down to glyphs.** Each show operator lists its glyphs with their positions, from `laminapdf-text`'s extraction. E7e edits and E12 removes at that level; selection works on whole objects.
@@ -45,7 +45,7 @@ The IR goes no finer than objects. A finer IR would make every encode and hit te
 ### 2. Identity
 
 - **Within a session,** `ContentObjectId` is allocated when the IR is built, and edits update the IR instead of reparsing it, so an ID stays valid across edits to its page.
-- **On the wire,** an op names an object by its owner (a `PageId`, or the Form XObject's reference), its ordinal among the owner's objects, and a 64-bit hash of its source bytes. Replaying a log into a reopened document rebuilds the IR, finds the ordinal and checks the hash. A mismatch fails with a new error, `content-object-stale`, rather than editing the wrong object.
+- **On the wire,** an op names an object by its owner (a `PageId`, or the Form XObject's reference), its ordinal among the owner's objects, and a 64-bit hash of its source bytes. Replaying a log into a reopened document rebuilds the IR, finds the ordinal and checks the hash. A mismatch fails with a new error, `content-object-stale` (an entry in `fixtures/codes.json` and a page in `docs/errors/`, per [ADR 0026](0026-error-and-diagnostic-contract.md)), rather than editing the wrong object. E7c's `ObjId` is this `ContentObjectId`.
 - **After a save,** IDs are recomputed from the saved content. An object an edit wrote again gets a new hash, and each undo entry in the op log records the hash its edit wrote, so undo can find the object again.
 
 ### 3. Encoder: copy what didn't change
@@ -56,13 +56,20 @@ The IR goes no finer than objects. A finer IR would make every encode and hit te
 - **Copy on write for what is shared.** A content stream or Form XObject used by more than one page or form is copied for the owner being edited, and the others keep the original. Editing inside a shared form copies the form and gives the copy a fresh name in this owner's resources, as E2e's `add_xobject` names new ones.
 - **The save planner sees one class.** Content edits are `ModificationClass::Content`. They save incrementally on a `Free` document; a certification signature at any DocMDP level forbids them ([ADR 0007](0007-save-planner.md)), which makes the save constraint's kind `Conflict`.
 
-### 4. Finding text runs: marked content first, layout second
+### 4. Tagging survives an edit
+
+- **A moved or rewritten object keeps its marked content.** The `BDC … EMC` around it is written with it, with the same MCID, so its structure element still finds it.
+- **A deleted object takes its marked content with it** only when the sequence holds nothing else. Its MCID then leaves the structure element's `/K` and the page's `/ParentTree` entry, and an element left empty leaves its parent, as E2b's page deletion does.
+- **New text joins the element it was typed into,** under that element's MCID.
+- **Saving re-checks the claims.** A PDF/A or PDF/UA claim the edit breaks is a conformance warning, never a block (ADR 0007). E7i implements this section.
+
+### 5. Finding text runs: marked content first, layout second
 
 - **In a tagged document,** a run is the glyphs of one marked-content sequence (one MCID) within one text object, in content order. The structure tree already says which text belongs together and in what order.
-- **Otherwise,** runs and lines come from extraction's own grouping (`PageText::runs` and `lines()`): one font and size on one baseline, joined into lines by gap. One home per concept ([maintainability](../guidelines/maintainability.md)): the editor doesn't keep a second line finder.
+- **Otherwise,** runs come from extraction's own grouping (`PageText::runs`: one font and size on one baseline). Lines join runs by gap. Today `PageText::lines()` gives only strings, so E7e adds line grouping with glyph ranges to `laminapdf-text`, and extraction's `lines()` is built on it. One home per concept ([maintainability](../guidelines/maintainability.md)): the editor doesn't keep a second line finder.
 - **A run that can't be found** reliably (rotated glyphs within one run, a show operator that writes glyphs out of order) is read-only, and the reason is reported.
 
-### 5. Fonts: reuse, then subset again, then substitute
+### 6. Fonts: reuse, then subset again, then substitute
 
 For each edit, in order:
 
@@ -72,26 +79,26 @@ For each edit, in order:
 
 A missing glyph is an error (`missing-glyph`, as the builder raises it), never a silent `.notdef`. Type 3 fonts, vertical writing (`Identity-V`), and fonts with neither ToUnicode nor a usable `cmap` make their runs read-only.
 
-### 6. Best effort, labelled
+### 7. Best effort, labelled
 
 Each content edit reports its fidelity: exact (the same font, the glyphs placed as they were), reflowed (the following glyphs on the line moved), or substituted (another font). The UI shows that label (E7e), and the editor says plainly that editing existing content is best effort ([§E7](../plans/full-editor.md#e7-editing-existing-content)). What can't be edited stays selectable and readable, with its reason: a read-only run, an object inside a form too deep for `max_xobject_depth`, a page whose content fails to tokenize.
 
-### 7. What E12 builds on
+### 8. What E12 builds on
 
-E12 removes glyphs from the IR's show operators and writes the remainder canonically with absolute positions, so no removed width survives in a `TJ` adjustment (E12a's rule). It removes or clips paths, and finds images (XObjects, inline images, shared images copied per page) through the IR's image objects. Redaction then saves as a full rewrite with every earlier revision dropped, so span preservation matters there only for the content it keeps.
+E12 removes glyphs from the IR's show operators and writes the remainder canonically with absolute positions, so no removed width survives in a `TJ` adjustment (E12a's rule). It removes or clips paths, and finds images (XObjects, inline images, shared images copied per page) through the IR's image objects. Read-only for editing doesn't mean out of reach for removal: Type 3 glyphs, invisible text (`Tr` 3 and 7) and white text are glyphs in the IR like any other, and removal ignores whether they show. Patterns, shadings and soft masks are reached through the resources of the objects that use them, so E12c finds what they draw from the IR's objects. Redaction then saves as a full rewrite with every earlier revision dropped, so span preservation matters there only for the content it keeps.
 
 ## Consequences
 
-- An untouched operator never changes, so a one-object edit leaves most of a page's bytes as they were (84 % across the corpus, a lower bound since the spike moved each page's first text object), and a diff of the edited revision shows the edit.
+- An untouched operator never changes, so a one-object edit leaves most of a page's bytes as they were (84 % across the corpus when the spike moved each page's first text object), and a diff of the edited revision shows the edit.
 - Numbers an edit writes again are rounded to six decimals. That changes values by at most 5 × 10⁻⁷, below anything a renderer shows; E7j's edit corpus checks that edited pages render the same outside the edited region.
 - `Op` gains an inline image's end offset; E7c adds it with the IR.
 - On a certified document, content edits make the save constraint's kind `Conflict`, as any content change does today.
-- The IR costs a tokenize per edited page (67 MB/s; 73 ms for the slowest corpus page). Pages that aren't edited cost nothing.
-- Twelve edited pages in the spike didn't read back as meant: ten are the spike's inline-image guess, which the tokenizer's end offset replaces, and two are text objects that round-trip correctly on their own. Of the 21 pages a re-serialise changed by more than 10⁻⁶, 20 are the same guess and one gained operators for a reason the spike didn't find. E7c's tests and the `content` fuzz target must cover both unexplained cases before the encoder ships.
+- The IR costs a tokenize and grouping per edited page (67 MB/s; 73 ms for the slowest corpus page). Pages that aren't edited cost nothing.
+- The one edited page that didn't read back as meant moved an inline image with stray operands before it. Copying spans keeps such operands everywhere an edit doesn't reach; an edited object loses them, which drops nothing that draws.
 
 ## Alternatives considered
 
-- **Re-serialise every operator (a display list).** Simpler, since no spans are kept. It changed 7.5 % of the corpus's pages by rounding numbers alone, made content 6.5 % larger, drops comments and odd spacing, and rewrites every stream of an edited page, shared ones included.
+- **Re-serialise every operator (a display list).** Simpler, since no spans are kept. It changed 7.5 % of the corpus's pages by rounding numbers alone, drops stray operands, comments and odd spacing, and rewrites every stream of an edited page, shared ones included.
 - **Patch tokens without an IR.** Keeps bytes like the chosen encoder, but without objects, state or glyph positions nothing can be selected, moved safely or redacted.
 - **Cover and add.** Some editors paint a box over the old content and draw the new on top. It isn't editing, extraction still finds the old text, and for redaction it is the failure [04 §10.1](../research/pdf/04-interactive-security.md#101-drawing-a-black-box-is-not-redaction) describes.
 - **Glyph-level objects everywhere.** Makes selection and encoding slower on every page for detail only text editing and redaction need; §1 keeps glyphs inside text objects instead.
