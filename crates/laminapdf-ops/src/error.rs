@@ -60,6 +60,10 @@ pub enum Error {
     /// its sources before it replays the log).
     #[error("no source document with this ID was added to the session")]
     UnknownSource(crate::SourceId),
+    /// A [`DeletePages`](crate::DeletePages) would delete every page: a document needs a page
+    /// to show, so delete all but one, or insert a page first.
+    #[error("the edit would delete every page")]
+    NoPagesLeft,
 }
 
 /// A page ID as a message may show it: an object ID in full (lamina-made: a kind and two
@@ -71,6 +75,22 @@ impl fmt::Display for Shown<'_> {
         match self.0.as_lamina_id().obj_ref() {
             Some(_) => self.0.fmt(f),
             None => f.write_str("(a path ID)"),
+        }
+    }
+}
+
+impl From<laminapdf_model::PageTreeError> for Error {
+    fn from(e: laminapdf_model::PageTreeError) -> Self {
+        use laminapdf_model::PageTreeError as E;
+        match e {
+            E::Cos(e) => Self::Cos(e),
+            E::UnknownPage(page) => Self::UnknownPage(page),
+            // The ops insert only pages they make, so these name a page tree that changed
+            // under them: report it as a broken structure.
+            _ => Self::Cos(laminapdf_cos::Error::InvalidStructure {
+                kind: "page tree",
+                message: "a page is listed twice or is not a page",
+            }),
         }
     }
 }
@@ -97,6 +117,7 @@ impl Error {
         "no-pending-save",
         "malformed-xmp",
         "unknown-source",
+        "no-pages-left",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -116,6 +137,7 @@ impl Error {
             Self::NoPendingSave => "no-pending-save",
             Self::MalformedXmp => "malformed-xmp",
             Self::UnknownSource(_) => "unknown-source",
+            Self::NoPagesLeft => "no-pages-left",
         }
     }
 
@@ -133,7 +155,7 @@ impl Error {
             Self::NestedTransaction | Self::NoTransaction | Self::SavedNotRebased | Self::NoPendingSave => {
                 ErrorKind::State
             }
-            Self::UnknownPage(_) | Self::UnknownSource(_) => ErrorKind::Usage,
+            Self::UnknownPage(_) | Self::UnknownSource(_) | Self::NoPagesLeft => ErrorKind::Usage,
             Self::DirectPage(_) | Self::UnsupportedVersion(_) => ErrorKind::Unsupported,
             Self::InvalidLog(_) | Self::MalformedXmp => ErrorKind::Input,
         }
@@ -163,7 +185,8 @@ impl Error {
             | Self::SavedNotRebased
             | Self::NoPendingSave
             | Self::MalformedXmp
-            | Self::UnknownSource(_) => Location::NONE,
+            | Self::UnknownSource(_)
+            | Self::NoPagesLeft => Location::NONE,
         }
     }
 }
@@ -193,6 +216,7 @@ mod tests {
             Error::NoPendingSave,
             Error::MalformedXmp,
             Error::UnknownSource(crate::SourceId::from_bytes([0; 32])),
+            Error::NoPagesLeft,
         ]
     }
 

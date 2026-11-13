@@ -33,7 +33,7 @@ use laminapdf_ops::{
     Document, InfoPatch, MetadataKey, MetadataPatch, Op, Origin, RemoveMetadata, RotatePage, SetInfo, SetMetadata,
     read_metadata,
 };
-use laminapdf_save::{Save, SaveError, SaveMode, SaveOptions, SaveReport};
+use laminapdf_save::{Restriction, Save, SaveError, SaveMode, SaveOptions, SavePlanner, SaveReport};
 use serde_json::{Value, json};
 
 use super::copy;
@@ -281,6 +281,19 @@ pub fn run(root: &Path) -> Suite {
                     let mut doc = Document::open(bytes.clone(), OpenOptions::default()).unwrap();
                     let (pages, mut rotations, mut info) = facts(&doc);
                     let op = op(&doc, op_name, rotation);
+                    // Rotating the page that holds a signed signature's widget breaks the
+                    // signature's appearance (ADR 0007 §11): it saves like a certified file,
+                    // only with the override.
+                    let reshows_signed = SavePlanner::new(&doc)
+                        .unwrap()
+                        .would_violate(&op)
+                        .iter()
+                        .any(|v| v.restriction == Restriction::SignedWidget);
+                    let category = if reshows_signed && category == Category::Signed {
+                        Category::Certified
+                    } else {
+                        category
+                    };
                     let metadata_op = matches!(op, Op::SetMetadata(_) | Op::RemoveMetadata(_));
                     match op {
                         Op::SetInfo(_) | Op::SetMetadata(_) => {

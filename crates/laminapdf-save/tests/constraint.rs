@@ -180,13 +180,17 @@ fn docmdp_p2_forbids_rotate_page() {
     let mut doc = signed("certified-p2.pdf");
     rotate(&mut doc, 0, Rotation::Clockwise90);
     let v = planner(&doc).constraint().violations.clone();
+    // The page also holds the certification's widget, so rotating it is a SignedWidget
+    // violation too (ADR 0007 §11).
     assert_eq!(
-        (v.len(), v[0].class, v[0].restriction),
-        (
-            1,
-            ModificationClass::PageStructure,
-            Restriction::DocMdp(DocMdpPermission::FormFill)
-        )
+        v.iter().map(|v| (v.class, v.restriction)).collect::<Vec<_>>(),
+        [
+            (
+                ModificationClass::PageStructure,
+                Restriction::DocMdp(DocMdpPermission::FormFill)
+            ),
+            (ModificationClass::PageStructure, Restriction::SignedWidget),
+        ]
     );
 }
 
@@ -211,7 +215,14 @@ fn would_violate_checks_an_op_before_it_is_applied() {
     let doc = signed("certified-p1.pdf");
     let page = doc.pages().unwrap().get(0).unwrap().id().clone();
     let op = laminapdf_ops::RotatePage::new(page, Rotation::Half).into();
-    assert_eq!(planner(&doc).would_violate(&op).len(), 1);
+    let restrictions: Vec<Restriction> = planner(&doc).would_violate(&op).iter().map(|v| v.restriction).collect();
+    assert_eq!(
+        restrictions,
+        [
+            Restriction::DocMdp(DocMdpPermission::NoChanges),
+            Restriction::SignedWidget
+        ]
+    );
 }
 
 #[test]

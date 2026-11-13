@@ -127,3 +127,65 @@ pub(crate) mod double_date {
 pub(crate) const fn is_false(flag: &bool) -> bool {
     !*flag
 }
+
+/// A [`PagePosition`](laminapdf_model::PagePosition) on the wire: `"start"`, `"end"`,
+/// `{ "before": "p12.0" }` or `{ "after": "p12.0" }` (E2 plan §2.1: positions name pages,
+/// never indices).
+pub(crate) mod position {
+    use laminapdf_model::{PageId, PagePosition};
+    use serde::{Deserialize, Serialize};
+
+    use super::{Deserializer, Serializer, de};
+
+    #[derive(Serialize, Deserialize)]
+    #[serde(rename_all = "camelCase", deny_unknown_fields)]
+    enum Wire {
+        Start,
+        End,
+        Before(#[serde(with = "super::page_id")] PageId),
+        After(#[serde(with = "super::page_id")] PageId),
+    }
+
+    pub(crate) fn serialize<S: Serializer>(at: &PagePosition, s: S) -> Result<S::Ok, S::Error> {
+        let wire = match at {
+            PagePosition::Start => Wire::Start,
+            PagePosition::End => Wire::End,
+            PagePosition::Before(id) => Wire::Before(id.clone()),
+            PagePosition::After(id) => Wire::After(id.clone()),
+            _ => return Err(serde::ser::Error::custom("a page position this version can't write")),
+        };
+        wire.serialize(s)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<PagePosition, D::Error> {
+        Ok(match Wire::deserialize(d).map_err(de::Error::custom)? {
+            Wire::Start => PagePosition::Start,
+            Wire::End => PagePosition::End,
+            Wire::Before(id) => PagePosition::Before(id),
+            Wire::After(id) => PagePosition::After(id),
+        })
+    }
+}
+
+/// A list of [`PageId`](laminapdf_model::PageId)s as their string forms.
+pub(crate) mod page_ids {
+    use laminapdf_model::PageId;
+    use serde::{Deserialize, Serializer, ser::SerializeSeq};
+
+    use super::{Deserializer, de};
+
+    pub(crate) fn serialize<S: Serializer>(ids: &[PageId], s: S) -> Result<S::Ok, S::Error> {
+        let mut seq = s.serialize_seq(Some(ids.len()))?;
+        for id in ids {
+            seq.serialize_element(&id.to_string())?;
+        }
+        seq.end()
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<PageId>, D::Error> {
+        Vec::<String>::deserialize(d)?
+            .into_iter()
+            .map(|s| s.parse().map_err(de::Error::custom))
+            .collect()
+    }
+}

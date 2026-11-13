@@ -11,10 +11,11 @@ use crate::class::ModificationClass;
 use crate::error::{Error, Result};
 use crate::info::SetInfo;
 use crate::metadata::{RemoveMetadata, SetMetadata, UpdateSaveMetadata};
+use crate::pages::{DeletePages, InsertBlankPages, MovePages, ReferenceChange, ReversePages, RotatePages};
 use crate::rotate::RotatePage;
 #[cfg(feature = "test-support")]
 use crate::test_support::Declared;
-use crate::widgets::{PageChange, TouchedWidget};
+use crate::widgets::{PageChange, TouchedWidget, WidgetChange};
 
 /// An editing operation ([ADR 0006] §1): typed and semantic (it names things by
 /// [`LaminaPdfId`](laminapdf_model::LaminaPdfId), never by object reference), serialisable, and free
@@ -54,6 +55,16 @@ pub enum Op {
     SetMetadata(SetMetadata),
     /// Remove metadata fields from Info and XMP.
     RemoveMetadata(RemoveMetadata),
+    /// Insert blank pages.
+    InsertBlankPages(InsertBlankPages),
+    /// Delete pages, cleaning up what named them.
+    DeletePages(DeletePages),
+    /// Move pages to another position.
+    MovePages(MovePages),
+    /// Rotate pages, set or turned.
+    RotatePages(RotatePages),
+    /// Reverse pages within the places they hold.
+    ReversePages(ReversePages),
     /// The save-time metadata stamp, made only by the save planner. It never crosses the wire:
     /// serialising it fails with serde's error (`OpLog::to_json`: `invalid-op-log`), and no op
     /// log can name it.
@@ -76,7 +87,12 @@ impl Op {
             Self::SetInfo(_) | Self::SetMetadata(_) | Self::RemoveMetadata(_) | Self::UpdateSaveMetadata(_) => {
                 ModificationClass::Metadata
             }
-            Self::RotatePage(_) => ModificationClass::PageStructure,
+            Self::RotatePage(_)
+            | Self::InsertBlankPages(_)
+            | Self::DeletePages(_)
+            | Self::MovePages(_)
+            | Self::RotatePages(_)
+            | Self::ReversePages(_) => ModificationClass::PageStructure,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.class(),
         }
@@ -93,7 +109,12 @@ impl Op {
             | Self::RotatePage(_)
             | Self::SetMetadata(_)
             | Self::RemoveMetadata(_)
-            | Self::UpdateSaveMetadata(_) => false,
+            | Self::UpdateSaveMetadata(_)
+            | Self::InsertBlankPages(_)
+            | Self::DeletePages(_)
+            | Self::MovePages(_)
+            | Self::RotatePages(_)
+            | Self::ReversePages(_) => false,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.requires_rewrite(),
         }
@@ -101,20 +122,26 @@ impl Op {
 
     /// The pages this op would delete, replace, reshow or move: what `laminapdf-save`'s
     /// `SavePlanner::would_violate` checks against the widgets on them before the op applies
-    /// ([E2 plan §6]). None of these ops reports a page yet: [`Op::RotatePage`] starts
-    /// reporting its page along with the page ops that delete, move and reverse pages.
+    /// ([E2 plan §6]): deleted pages, rotated ones and moved or reversed ones. Inserting
+    /// pages and metadata edits change none.
     ///
     /// [E2 plan §6]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint
     ///
     /// Added in 0.2.0.
     #[must_use]
     pub fn page_changes(&self) -> Vec<PageChange> {
+        let each = |pages: &[PageId], change| pages.iter().map(|p| PageChange::new(p.clone(), change)).collect();
         match self {
             Self::SetInfo(_)
-            | Self::RotatePage(_)
             | Self::SetMetadata(_)
             | Self::RemoveMetadata(_)
-            | Self::UpdateSaveMetadata(_) => Vec::new(),
+            | Self::UpdateSaveMetadata(_)
+            | Self::InsertBlankPages(_) => Vec::new(),
+            Self::RotatePage(op) => vec![PageChange::new(op.page.clone(), WidgetChange::Reshown)],
+            Self::RotatePages(op) => each(&op.pages, WidgetChange::Reshown),
+            Self::DeletePages(op) => each(&op.pages, WidgetChange::Deleted),
+            Self::MovePages(op) => each(&op.pages, WidgetChange::Moved),
+            Self::ReversePages(op) => each(&op.pages, WidgetChange::Moved),
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.pages.clone(),
         }
@@ -125,10 +152,21 @@ impl Op {
     pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Effect> {
         match self {
             Self::SetInfo(op) => op.apply_to(doc),
-            Self::RotatePage(op) => op.apply_to(doc).map(|pages| Effect {
-                pages,
-                ..Effect::default()
-            }),
+            Self::RotatePage(op) => {
+                let pages = op.apply_to(doc)?;
+                let widgets =
+                    crate::pages::widgets_on(doc, &pages, WidgetChange::Reshown, ModificationClass::PageStructure)?;
+                Ok(Effect {
+                    pages,
+                    widgets,
+                    ..Effect::default()
+                })
+            }
+            Self::InsertBlankPages(op) => op.apply_to(doc),
+            Self::DeletePages(op) => op.apply_to(doc),
+            Self::MovePages(op) => op.apply_to(doc),
+            Self::RotatePages(op) => op.apply_to(doc),
+            Self::ReversePages(op) => op.apply_to(doc),
             Self::SetMetadata(op) => op.apply_to(doc),
             Self::RemoveMetadata(op) => op.apply_to(doc),
             Self::UpdateSaveMetadata(op) => op.apply_to(doc),
@@ -150,6 +188,10 @@ pub(crate) struct Effect {
     pub(crate) removed: bool,
     /// The form fields whose widgets it deleted, reshowed or moved.
     pub(crate) widgets: Vec<TouchedWidget>,
+    /// The page IDs in order, when it changed the page list.
+    pub(crate) page_order: Option<Vec<PageId>>,
+    /// The references to deleted pages it retargeted or removed.
+    pub(crate) references: Vec<ReferenceChange>,
 }
 
 impl From<SetInfo> for Op {
@@ -175,6 +217,18 @@ impl From<UpdateSaveMetadata> for Op {
         Self::UpdateSaveMetadata(op)
     }
 }
+
+macro_rules! op_from {
+    ($($name:ident),*) => {
+        $(impl From<$name> for Op {
+            fn from(op: $name) -> Self {
+                Self::$name(op)
+            }
+        })*
+    };
+}
+
+op_from!(InsertBlankPages, DeletePages, MovePages, RotatePages, ReversePages);
 
 impl From<RotatePage> for Op {
     fn from(op: RotatePage) -> Self {
