@@ -1,10 +1,20 @@
-// Moving through the open document: its outline, named destinations and each page's links, read
+// Moving through the open document: its outline, named destinations, each page's links, where it
+// asks to open and its article threads, read
 // by Lamina PDF in the worker (the extract module, which the text layer loads too), each target a
 // page and a view in page space. The outline is read when a reader first asks for it, since it can
 // hold thousands of items. The last pages' links are kept, since a page scrolled back into view
 // asks again.
 
-import type { OutlineNode, PageLink, Target } from "@laminapdf/sdk";
+import type {
+  ArticleThread,
+  ExplicitDestination,
+  InitialView,
+  NamedDestination,
+  OutlineNode,
+  PageLink,
+  Target,
+  TargetView,
+} from "@laminapdf/sdk";
 import { textModel } from "./document.js";
 import { CACHED_PAGES, RecentPages } from "./recent-pages.js";
 
@@ -21,6 +31,30 @@ export async function outline(signal: AbortSignal): Promise<OutlineNode[]> {
 export async function namedDestination(name: string, signal: AbortSignal): Promise<Target | undefined> {
   const model = await textModel(signal);
   return model.ensure(() => model.namedDestination(name), { signal });
+}
+
+/** How the document asks to be shown when it opens: page and zoom, panel, layout, window. */
+export async function initialView(signal: AbortSignal): Promise<InitialView> {
+  const model = await textModel(signal);
+  return model.ensure(() => model.initialView(), { signal });
+}
+
+/** The document's article threads, each with its parts in reading order; empty without any. */
+export async function threads(signal: AbortSignal): Promise<ArticleThread[]> {
+  const model = await textModel(signal);
+  return model.ensure(() => model.threads(), { signal });
+}
+
+/** Every named destination, sorted by name. */
+export async function namedDestinations(signal: AbortSignal): Promise<NamedDestination[]> {
+  const model = await textModel(signal);
+  return model.ensure(() => model.namedDestinations(), { signal });
+}
+
+/** Page `page` shown as `view` (page space), as the destination the outline ops take. */
+export async function destinationAt(page: number, view: TargetView, signal: AbortSignal): Promise<ExplicitDestination> {
+  const model = await textModel(signal);
+  return model.ensure(() => model.destinationAt(page, view), { signal });
 }
 
 /** Page `index`'s links, in annotation order (cached). */

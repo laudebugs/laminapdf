@@ -7,10 +7,12 @@ use std::collections::BTreeSet;
 use std::fmt;
 
 use laminapdf_cos::JournalMark;
-use laminapdf_model::PageId;
+use laminapdf_model::{OutlineItemId, PageId};
 
 use crate::error::Result;
 use crate::op::{Effect, Op};
+use crate::outline::DestinationUse;
+use crate::pages::{FieldChange, ReferenceChange};
 use crate::pending::PendingChanges;
 use crate::record::UndoRecord;
 use crate::widgets::TouchedWidget;
@@ -80,6 +82,12 @@ pub struct Applied {
     /// A metadata op removed values that the file's earlier revisions still hold: an
     /// incremental save keeps them in the file, a full rewrite drops them.
     pub still_in_earlier_revisions: bool,
+    /// The properties an XMP op declared in a PDF/A packet's extension schemas, so it stays
+    /// valid PDF/A ([`SetXmpProperty`](crate::SetXmpProperty),
+    /// [`ReplaceXmpPacket`](crate::ReplaceXmpPacket)).
+    ///
+    /// Added in 0.2.0.
+    pub declared: Vec<laminapdf_model::xmp::ExtensionProperty>,
     /// Annotations an annotation op deleted besides the one it names: Popups, replies and the
     /// rest of a group.
     pub also_deleted: Vec<laminapdf_model::AnnotId>,
@@ -88,6 +96,42 @@ pub struct Applied {
     ///
     /// Added in 0.2.0.
     pub widgets: Vec<TouchedWidget>,
+    /// The bookmarks [`AddOutlineItem`](crate::AddOutlineItem) created, in order.
+    ///
+    /// Added in 0.2.0.
+    pub created_outline_items: Vec<OutlineItemId>,
+    /// An outline op found the outline's links broken (a cycle, a wrong `/Last`, an item
+    /// stored as a direct dictionary) and rewrote them whole; items that were direct have new
+    /// IDs.
+    ///
+    /// Added in 0.2.0.
+    pub outline_repaired: bool,
+    /// What still names a destination that [`DeleteNamedDestination`](crate::DeleteNamedDestination)
+    /// deleted: those bookmarks and links no longer go anywhere.
+    ///
+    /// Added in 0.2.0.
+    pub destination_uses: Vec<DestinationUse>,
+    /// The page IDs in order after the edit, when it changed the page list (inserted,
+    /// deleted, moved or reversed pages); `None` otherwise.
+    ///
+    /// Added in 0.2.0.
+    pub page_order: Option<Vec<PageId>>,
+    /// The references to deleted pages that the edit retargeted or removed (E2 plan §11):
+    /// outline items, links, named destinations, `/OpenAction` and structure elements.
+    ///
+    /// Added in 0.2.0.
+    pub references: Vec<ReferenceChange>,
+    /// The form fields whose widgets a duplicated page showed: each copy's new field, or a
+    /// signature field whose widget was not copied (E2 plan §2.2).
+    ///
+    /// Added in 0.2.0.
+    pub fields: Vec<FieldChange>,
+    /// The copies a page duplication made whose tags couldn't all be cloned: content of
+    /// elements that also hold content on other pages is left untagged on them
+    /// (`DuplicateTagsIncomplete`).
+    ///
+    /// Added in 0.2.0.
+    pub tags_incomplete: Vec<PageId>,
 }
 
 /// The state of the open transaction, kept on the [`Document`](crate::Document) so the
@@ -103,7 +147,19 @@ pub(crate) struct TxState {
     /// What the ops applied so far did besides their changes (`Applied`'s flags).
     pub(crate) packet_rewritten: bool,
     pub(crate) removed: bool,
+    pub(crate) outline_repaired: bool,
+    pub(crate) created_outline_items: Vec<OutlineItemId>,
+    pub(crate) destination_uses: Vec<DestinationUse>,
+    pub(crate) declared: Vec<laminapdf_model::xmp::ExtensionProperty>,
+    /// The page order after the last op that changed it.
+    pub(crate) page_order: Option<Vec<PageId>>,
+    /// The references the ops so far retargeted or removed.
+    pub(crate) references: Vec<ReferenceChange>,
     pub(crate) also_deleted: Vec<laminapdf_model::AnnotId>,
+    /// The fields the ops so far copied or left out.
+    pub(crate) fields: Vec<FieldChange>,
+    /// The copies the ops so far couldn't tag whole.
+    pub(crate) tags_incomplete: Vec<PageId>,
 }
 
 /// An open transaction ([ADR 0006] §2), handed to the closure of
@@ -162,8 +218,16 @@ impl Tx<'_> {
             touched_pages: effect.pages.into_iter().collect(),
             packet_rewritten: effect.packet_rewritten,
             still_in_earlier_revisions: effect.removed,
+            declared: effect.declared,
             also_deleted: effect.also_deleted,
             widgets: effect.widgets,
+            created_outline_items: effect.created_outline_items,
+            outline_repaired: effect.outline_repaired,
+            destination_uses: effect.destination_uses,
+            page_order: effect.page_order,
+            references: effect.references,
+            fields: effect.fields,
+            tags_incomplete: effect.tags_incomplete,
         })
     }
 
@@ -182,7 +246,23 @@ impl Tx<'_> {
                 self.state.pending.record(op, &effect);
                 self.state.packet_rewritten |= effect.packet_rewritten;
                 self.state.removed |= effect.removed;
+                self.state.outline_repaired |= effect.outline_repaired;
+                self.state
+                    .created_outline_items
+                    .extend(effect.created_outline_items.iter().cloned());
+                self.state
+                    .destination_uses
+                    .extend(effect.destination_uses.iter().cloned());
+                self.state.declared.extend(effect.declared.iter().cloned());
+                if effect.page_order.is_some() {
+                    self.state.page_order.clone_from(&effect.page_order);
+                }
+                self.state.references.extend(effect.references.iter().cloned());
                 self.state.also_deleted.extend(effect.also_deleted.iter().cloned());
+                self.state.fields.extend(effect.fields.iter().cloned());
+                self.state
+                    .tags_incomplete
+                    .extend(effect.tags_incomplete.iter().cloned());
                 Ok(effect)
             }
             Err(e) => {
@@ -205,11 +285,28 @@ impl Tx<'_> {
         let mark = self.doc.journal_mark();
         let touched = self.state.touched.clone();
         let pending = self.state.pending.clone();
+        let reports = (
+            self.state.outline_repaired,
+            self.state.created_outline_items.len(),
+            self.state.destination_uses.len(),
+        );
+        let page_order = self.state.page_order.clone();
+        let references = self.state.references.len();
+        let fields = self.state.fields.len();
+        let tags_incomplete = self.state.tags_incomplete.len();
         let result = f(self);
         if result.is_err() {
             self.doc.cos_mut().rollback_to(mark)?;
             self.state.touched = touched;
             self.state.pending = pending;
+            // What the rolled-back ops reported goes with them.
+            self.state.outline_repaired = reports.0;
+            self.state.created_outline_items.truncate(reports.1);
+            self.state.destination_uses.truncate(reports.2);
+            self.state.page_order = page_order;
+            self.state.references.truncate(references);
+            self.state.fields.truncate(fields);
+            self.state.tags_incomplete.truncate(tags_incomplete);
         }
         result
     }
@@ -260,7 +357,15 @@ mod tests {
             coalesce: None,
             packet_rewritten: false,
             removed: false,
+            outline_repaired: false,
+            created_outline_items: Vec::new(),
+            destination_uses: Vec::new(),
+            declared: Vec::new(),
+            page_order: None,
+            references: Vec::new(),
             also_deleted: Vec::new(),
+            fields: Vec::new(),
+            tags_incomplete: Vec::new(),
         }
     }
 

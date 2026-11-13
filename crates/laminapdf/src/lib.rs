@@ -115,6 +115,7 @@ mod generated {
     #[rustfmt::skip]
     pub(crate) mod explain;
 }
+mod initial_view;
 mod job;
 mod links;
 mod metadata;
@@ -148,14 +149,16 @@ mod warning;
 use laminapdf_test_fixtures::codes as test_codes;
 
 pub use annotations::{AnnotationGeometry, PageAnnotation};
-pub use document::{Document, DocumentInfo, Edited, PageInfo, Saved};
+pub use document::{Document, DocumentInfo, Edited, PageInfo, ReferenceEdit, ReferenceEditKind, Saved};
 pub use error::{CoreError, Error, Result};
 #[cfg(feature = "explain")]
 pub use generated::explain::explain;
+pub use initial_view::{ArticleThread, OpenTarget, OpeningView, ThreadPart};
 pub use laminapdf_cos::Cipher;
 pub use laminapdf_model::FontEncoding;
 pub use links::{LinkTo, PageLink};
-pub use navigation::{OutlineNode, PageTarget, PageTargetView};
+pub use metadata::XmpText;
+pub use navigation::{NamedDestination, OutlineNode, PageTarget, PageTargetView};
 pub use properties::{DocumentContents, DocumentPermissions, DocumentProperties, EncryptionSummary, FontSummary};
 pub use structure::{StructureKid, StructureNode};
 
@@ -176,12 +179,21 @@ pub use redaction::RedactionWarning;
 pub use warning::{Warning, WarningCursor};
 
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};
-pub use laminapdf_model::{AnnotId, PageId, PdfDate, PointPt, Pt, RectPt, Rotation};
+pub use laminapdf_model::xmp::{ExtensionProperty, LangText, XmpReal, XmpValue};
+pub use laminapdf_model::{
+    AnnotId, FieldId, LabelStyle, PageId, PageLayout, PageMode, PagePosition, PageSize, PdfDate, PointPt, Pt, RectPt,
+    Rotation, SiblingPosition, WindowPreferences,
+};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use laminapdf_ops::{
-    ConformanceWarning, DeleteAnnot, DocumentMetadata, InfoPatch, MetadataKey, MetadataPatch, MetadataSource,
-    ModificationClass, Offset, Op, OpLog, PacketStatus, RemoveMetadata, Reverted, RotatePage, SetInfo, SetMetadata,
-    UndoOutcome, UpdateAnnot,
+    AddOutlineItem, ChildItems, ConformanceWarning, DeleteAnnot, DeleteNamedDestination, DeleteOutlineItem,
+    DeletePages, DestinationUse, DestinationView, DocumentMetadata, DuplicatePages, ExplicitDestination, FieldChange,
+    FieldOutcome, InfoPatch, InsertBlankPages, MetadataKey, MetadataPatch, MetadataSource, ModificationClass,
+    MoveOutlineItem, MovePages, Offset, Op, OpLog, OpenAt, OpenZoom, OutlineStyle, OutlineTarget, PacketStatus,
+    PageLabelRange, ReferenceOutcome, ReferencePolicy, RemoveMetadata, RemoveXmpProperty, RenameLinks,
+    RenameNamedDestination, ReplaceXmpPacket, ReversePages, Reverted, Rgb, RotateMode, RotatePage, RotatePages,
+    SetInfo, SetInitialView, SetMetadata, SetNamedDestination, SetPageLabels, SetXmpProperty, UndoOutcome, UpdateAnnot,
+    UpdateOutlineItem, WindowPreferencesPatch,
 };
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,
@@ -197,10 +209,9 @@ pub use laminapdf_build::FontHandle;
 #[cfg(feature = "build")]
 pub use laminapdf_build::{
     AfRelationship, Artifact, ArtifactKind, Attachment, BlendMode, BuildOptions, Color, ContentKind, Dash, ElementId,
-    FillRule, Fit, IccProfile, Image, ImageFormat, ImagePages, ImagesOptions, LabelStyle, LineCap, LineJoin,
-    LinkTarget, Matrix, Metadata, Orientation, OutlineEntry, OutlineItemId, PageBuilder, PageEdge, PageLabel,
-    PageLayout, PageMode, PageSize, PathBuilder, PdfVersion, PendingPath, PngOptions, Profile, StrokeStyle, Surface,
-    TableScope, Tag, TagDiagnostic, TagKind, ViewerPreferences,
+    FillRule, Fit, IccProfile, Image, ImageFormat, ImagePages, ImagesOptions, LineCap, LineJoin, LinkTarget, Matrix,
+    Metadata, Orientation, OutlineEntry, OutlineItemId, PageBuilder, PageEdge, PageLabel, PathBuilder, PdfVersion,
+    PendingPath, PngOptions, Profile, StrokeStyle, Surface, TableScope, Tag, TagDiagnostic, TagKind, ViewerPreferences,
 };
 #[cfg(feature = "text")]
 pub use laminapdf_build::{

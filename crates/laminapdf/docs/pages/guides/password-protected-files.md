@@ -1,7 +1,7 @@
 ---
 title: "Open password-protected files"
 description: "Open PDFs that need a password, ask again when it is missing or wrong, and save them afterwards."
-version: "0.2.0-alpha.6"
+version: "0.2.0"
 url: "https://docs.laminapdf.com/guides/password-protected-files/"
 ---
 

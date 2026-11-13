@@ -4,7 +4,13 @@ use laminapdf_cos::{CosMut, Error, Object, Result};
 
 /// Sets (`Some`) or removes (`None`) the catalog's `key`, in the catalog object or, when the
 /// trailer holds the catalog directly, in the trailer.
-pub(crate) fn set_catalog_entry(cos: &mut CosMut<'_>, key: &str, value: Option<Object>) -> Result<()> {
+///
+/// # Errors
+/// Errors of the overlay; [`Error::MissingRoot`] without a catalog, and [`Error::Type`] when
+/// `/Root` is not a dictionary.
+///
+/// Added in 0.2.0.
+pub fn set_catalog_entry(cos: &mut CosMut<'_>, key: &str, value: Option<Object>) -> Result<()> {
     let root = cos.trailer().get("Root").cloned();
     match root {
         Some(Object::Ref(r)) => {
@@ -29,7 +35,8 @@ pub(crate) fn set_catalog_entry(cos: &mut CosMut<'_>, key: &str, value: Option<O
     }
 }
 
-fn put(dict: &mut laminapdf_cos::Dict, key: &str, value: Option<Object>) {
+/// Sets (`Some`) or removes (`None`) `dict`'s `key`.
+pub(crate) fn put(dict: &mut laminapdf_cos::Dict, key: &str, value: Option<Object>) {
     match value {
         Some(value) => dict.insert(key, value),
         None => {

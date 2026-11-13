@@ -1,9 +1,10 @@
 // Moving through a document in the built reader (todo C6a), in this run's browser, over the corpus's
 // outline.pdf (page labels i, A-1, A-2; a nested outline whose items go to pages 1–3, one by a
-// named destination and one to a website): the rail's Pages tab names each thumbnail by its label
-// and goes to the page clicked; the Outline tab is a tree that goes to an item by click or keyboard
-// and marks the section in view; the page box takes a label or a number and refuses a page that
-// isn't there; and the rail passes axe. No CSP violation or other origin throughout.
+// named destination and one to a website; it asks to open with its outline shown): the rail's
+// Pages tab names each thumbnail by its label and goes to the page clicked; the Outline tab is a
+// tree that goes to an item by click or keyboard and marks the section in view; the page box takes
+// a label or a number and refuses a page that isn't there; and the rail passes axe. No CSP
+// violation or other origin throughout.
 
 import type { Browser, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
@@ -38,7 +39,8 @@ describe(`moving through a document in ${BROWSER}`, () => {
     // The window takes the file's metadata title.
     await page.locator(".web-viewer canvas").first().waitFor();
     await expect.poll(() => page.title()).toBe("Outline fixture · Lamina PDF");
-    await page.getByRole("button", { name: "Sidebar" }).click();
+    // The file asks for its outline when it opens (/PageMode /UseOutlines): the rail opens on it.
+    await expect.poll(() => page.getByRole("tab", { name: "Outline" }).getAttribute("aria-selected")).toBe("true");
     await page.getByRole("tab", { name: tab }).click();
     return watched;
   }

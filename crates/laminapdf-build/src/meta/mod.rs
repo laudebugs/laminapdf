@@ -6,4 +6,5 @@ pub(crate) mod prefs;
 pub(crate) mod xmp;
 
 pub use info::Metadata;
-pub use prefs::{PageLayout, PageMode, ViewerPreferences};
+pub use laminapdf_model::{PageLayout, PageMode};
+pub use prefs::ViewerPreferences;

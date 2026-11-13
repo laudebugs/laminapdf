@@ -51,9 +51,9 @@ use std::collections::BTreeMap;
 use crate::builder::Builder;
 use crate::error::Result;
 use crate::flow::{Flow, FlowBlock, FlowReport, Margins, PageRegion, PageTemplate, TextStyle};
-use crate::page::PageSize;
 use crate::surface::image::Image;
 use crate::surface::text::FontHandle;
+use laminapdf_model::PageSize;
 use laminapdf_text::Standard14;
 
 /// The fonts a Markdown document is set in, by role. Each falls back to `fallbacks`, in order,

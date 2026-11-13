@@ -4,8 +4,8 @@ use laminapdf_model::{Matrix, Pt, RectPt};
 
 use crate::builder::{BuildOptions, Builder};
 use crate::error::{Error, Result};
-use crate::page::PageSize;
 use crate::surface::image::Image;
+use laminapdf_model::PageSize;
 
 /// How [`images_to_pdf`] sizes each page.
 ///

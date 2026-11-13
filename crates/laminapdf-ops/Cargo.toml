@@ -27,7 +27,7 @@ test-support = []
 
 [dependencies]
 laminapdf-cos = { workspace = true }
-laminapdf-model = { workspace = true }
+laminapdf-model = { workspace = true, features = ["edit"] }
 laminapdf-syntax = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

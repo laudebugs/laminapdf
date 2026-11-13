@@ -100,7 +100,7 @@ Gzip bytes as `cargo xtask size` measures them (deflate level 9 plus the gzip he
 
 | Module | Measured (2026-10-30, after the review fixes and B9d; unchanged by B6b, whose TS-only codes stay out of the WASM) | Budget | Headroom |
 | --- | ---: | ---: | ---: |
-| base (`lamina_pdf_base.wasm`) | 464,334 on `main` (with the page ops' planner checks, E2r, 2026-11-13); about 626,000 with the open PRs below | **657,000** (amended 2026-11-13; 464,000 from 2026-11-12; 460,000 from 2026-11-10; was 410,000) | 5 % over the open PRs |
+| base (`lamina_pdf_base.wasm`) | 464,334 on `main` (with the page ops' planner checks, E2r, 2026-11-13); about 626,000 with the open PRs below | **658,000** (amended 2026-11-13, twice; 657,000 earlier that day; 464,000 from 2026-11-12; 460,000 from 2026-11-10; was 410,000) | 5 % over the open PRs |
 | text (`lamina_pdf_text.wasm`) | 1,452,686 on `main` (2026-11-13); about 1,626,000 with the open PRs below | **1,708,000** (amended 2026-11-13; 1,460,000 from 2026-11-11; 1,400,000 with T4j alone, 1,375,000 with E1c alone; was 1,360,000) | 5 % over the open PRs |
 | JS glue per module (wasm-bindgen output, minified by esbuild) | 3,769 base, 5,158 text (T4i) | **5,000** each; text **6,000** (amended 2026-11-10) | |
 | `@laminapdf/sdk` JS: both glues + the TS API, bundled and minified by esbuild (B6b, `packages` in `size-budgets.json`) | 22,192 on `main` (2026-11-13); about 22,900 with the open PRs below | **24,000** (amended 2026-11-13; 22,500 from 2026-11-11; 22,000 from 2026-11-10; was 21,000) | 5 % over the open PRs |
@@ -110,6 +110,8 @@ Gzip bytes as `cargo xtask size` measures them (deflate level 9 plus the gzip he
 | sign (E10) | — | placeholder: decided by E10a | |
 
 The `@laminapdf/sdk` TS layer has its own budget (glue + API ≤ 20 KB min+gzip, plan §4), enforced by B6b. A module without a budget fails the check, so a new module can't ship unmeasured. A module that grows more than 5 % over the baseline in `size-budgets.json` gets a twiggy top-items diff against the baseline in the job summary; `cargo xtask size --update-baseline` records a new baseline when a growth is accepted. Raising a budget is an amendment of this table, approved by the owner.
+
+**Amendment (owner, 2026-11-13, E3d after E3b):** the base module's budget rises from 657,000 to 658,000 bytes. Once E3b (#535) merged, `main` measured 650,089 bytes, more than the shared raise below expected, because E3b grew past its 20,000-byte allowance. E3d (#516) then measured 657,446 bytes, 446 over the budget, though it adds 7,357 bytes, under the 8,463 set aside for it. The extract and text modules stay within their budgets.
 
 **Amendment (owner, 2026-11-13, one raise for the open editor PRs):** the base module's budget rises from 464,000 to 657,000 bytes, the extract module's from 784,000 to 1,003,000, the text module's from 1,460,000 to 1,708,000, `@laminapdf/sdk`'s JS from 22,500 to 24,000, the worker file's from 21,000 to 22,000 and the worker client's from 5,000 to 5,200. `main` itself was over budget after E2r (base 464,334, extract 784,655), and six open PRs each raised the same numbers for themselves, so the owner asked for one raise that covers them all, each PR's own amendment then dropped. Every module can edit, so each new op joins all three modules. The growth against `main`, gzipped, as each PR's CI or its session measured it:
 

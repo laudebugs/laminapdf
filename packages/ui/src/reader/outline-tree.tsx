@@ -3,9 +3,12 @@
 // typing finds an item by its title, Enter goes to it. Each row shows its page label at the far
 // end, in the outline row's look (§7.7). The section that holds the reading position is marked
 // `aria-current` and tinted, and its ancestors open so it shows. A long outline is virtualised.
+// With `editing` (the bookmark editor, O11), the editor adds selection, its rows' titles (styled
+// as the file styles them, or the rename field), double clicks and drag grips; it holds every rule,
+// so none of that code is in the reader's startup.
 
 import { Icon } from "@laminapdf/icons/react";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type HTMLAttributes, type ReactNode, useEffect, useMemo, useState } from "react";
 import {
   Button as AriaButton,
   Collection,
@@ -14,6 +17,7 @@ import {
   Tree,
   TreeItem,
   TreeItemContent,
+  type TreeProps,
   Virtualizer,
 } from "react-aria-components";
 import { message } from "../messages.js";
@@ -38,6 +42,19 @@ export interface OutlineTreeItem {
   readonly children: readonly OutlineTreeItem[];
 }
 
+/**
+ * What the bookmark editor adds to the tree: props for the tree (selection, drag and drop) and for
+ * each row (a double click), a title in place of the row's (the rename field), and what follows the
+ * page number (the drag grip). The editor holds every rule, so they load with it.
+ */
+export interface OutlineTreeEditing {
+  readonly tree: Partial<TreeProps<OutlineTreeItem>>;
+  readonly row: (item: OutlineTreeItem) => HTMLAttributes<HTMLDivElement>;
+  /** The row's title: styled as the file styles it, or the rename field. */
+  readonly title: (item: OutlineTreeItem) => ReactNode;
+  readonly after: (item: OutlineTreeItem) => ReactNode;
+}
+
 /** Props of `OutlineTree`. */
 export interface OutlineTreeProps {
   readonly items: readonly OutlineTreeItem[];
@@ -45,6 +62,8 @@ export interface OutlineTreeProps {
   readonly current?: string;
   /** An item was chosen (click, tap or Enter). */
   readonly onNavigate: (id: string) => void;
+  /** Editing, in the bookmark editor; read-only without. */
+  readonly editing?: OutlineTreeEditing;
 }
 
 /** Above this many items the tree draws only the rows in view. */
@@ -94,43 +113,69 @@ function openIds(all: readonly (readonly [OutlineTreeItem, readonly string[]])[]
   return new Set(all.filter(([i]) => i.open).map(([i]) => i.id));
 }
 
-/** One row, then its children. */
-function Item({ item, current }: { item: OutlineTreeItem; current: string | undefined }): ReactNode {
+/** What a row shows: the chevron, the title, the page, and what the editor adds. */
+function RowContent({
+  item,
+  current,
+  editing,
+  state,
+}: {
+  item: OutlineTreeItem;
+  current: string | undefined;
+  editing: OutlineTreeEditing | undefined;
+  state: { hasChildItems: boolean; isExpanded: boolean; level: number };
+}): ReactNode {
+  const { hasChildItems, isExpanded, level } = state;
   const isCurrent = item.id === current;
+  return (
+    <div
+      className="paper-outline-row"
+      data-level={Math.min(level, 2)}
+      data-current={isCurrent || undefined}
+      {...editing?.row(item)}
+      // Levels past two step in further, by the nested indent each time.
+      {...(level > 2 ? { style: { marginInlineStart: `calc(${level - 2} * var(--paper-space-22))` } } : {})}
+    >
+      {hasChildItems ? (
+        <AriaButton slot="chevron" className="paper-outline-toggle" excludeFromTabOrder>
+          <Icon name={isExpanded ? "chevron-down" : "chevron-right"} />
+        </AriaButton>
+      ) : (
+        <span className="paper-outline-toggle" aria-hidden="true" />
+      )}
+      <span className="paper-outline-link" {...(isCurrent ? { "aria-current": "location" } : {})}>
+        {editing === undefined ? <span className="paper-outline-title">{item.title}</span> : editing.title(item)}
+        {item.page === undefined ? null : <span className="paper-outline-page">{item.page}</span>}
+      </span>
+      {editing?.after(item)}
+    </div>
+  );
+}
+
+/** One row, then its children. */
+function Item({
+  item,
+  current,
+  editing,
+}: {
+  item: OutlineTreeItem;
+  current: string | undefined;
+  editing: OutlineTreeEditing | undefined;
+}): ReactNode {
   return (
     <TreeItem id={item.id} textValue={item.title} className="paper-outline-item">
       <TreeItemContent>
-        {({ hasChildItems, isExpanded, level }) => (
-          <div
-            className="paper-outline-row"
-            data-level={Math.min(level, 2)}
-            data-current={isCurrent || undefined}
-            // Levels past two step in further, by the nested indent each time.
-            {...(level > 2 ? { style: { marginInlineStart: `calc(${level - 2} * var(--paper-space-22))` } } : {})}
-          >
-            {hasChildItems ? (
-              <AriaButton slot="chevron" className="paper-outline-toggle" excludeFromTabOrder>
-                <Icon name={isExpanded ? "chevron-down" : "chevron-right"} />
-              </AriaButton>
-            ) : (
-              <span className="paper-outline-toggle" aria-hidden="true" />
-            )}
-            <span className="paper-outline-link" {...(isCurrent ? { "aria-current": "location" } : {})}>
-              <span className="paper-outline-title">{item.title}</span>
-              {item.page === undefined ? null : <span className="paper-outline-page">{item.page}</span>}
-            </span>
-          </div>
-        )}
+        {(state) => <RowContent item={item} current={current} editing={editing} state={state} />}
       </TreeItemContent>
-      <Collection items={item.children} dependencies={[current]}>
-        {(child) => <Item item={child} current={current} />}
+      <Collection items={item.children} dependencies={[current, editing]}>
+        {(child) => <Item item={child} current={current} editing={editing} />}
       </Collection>
     </TreeItem>
   );
 }
 
 /** The document outline as a tree, inside the rail's Outline tab. */
-export function OutlineTree({ items, current, onNavigate }: OutlineTreeProps): ReactNode {
+export function OutlineTree({ items, current, onNavigate, editing }: OutlineTreeProps): ReactNode {
   const all = useMemo(() => [...walk(items)], [items]);
   const [expanded, setExpanded] = useState<Set<Key>>(() => openIds(all));
   // A new outline starts as the file says.
@@ -148,10 +193,11 @@ export function OutlineTree({ items, current, onNavigate }: OutlineTreeProps): R
       expandedKeys={expanded}
       onExpandedChange={setExpanded}
       onAction={(key) => onNavigate(String(key))}
-      // The rows are cached by item: a new current section must draw them again.
-      dependencies={[current]}
+      {...editing?.tree}
+      // The rows are cached by item: a new current section, or the editor's state, must draw them again.
+      dependencies={[current, editing]}
     >
-      {(item) => <Item item={item} current={current} />}
+      {(item) => <Item item={item} current={current} editing={editing} />}
     </Tree>
   );
   return all.length > VIRTUAL_FROM ? (

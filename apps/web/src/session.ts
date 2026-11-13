@@ -6,7 +6,15 @@
 // it, so its bytes never reach this page.
 
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
-import type { DocumentMetadata, Op, SaveOptions, SaveReport } from "@laminapdf/sdk";
+import type {
+  ArticleThread,
+  DocumentMetadata,
+  InitialView,
+  Op,
+  SaveOptions,
+  SaveReport,
+  XmpText,
+} from "@laminapdf/sdk";
 import type {
   DebugBackend,
   ExternalStore,
@@ -94,7 +102,26 @@ export interface EngineState {
   readonly openedAt: number | undefined;
   /** The document worker restarted and couldn't apply the unsaved edits again; counts each time. */
   readonly editsLost: number;
+  /**
+   * How the open document asked to be shown when it opened (O13), read once its first page
+   * painted: the shell shows the panel it asks for. Undefined until read, and when it can't be.
+   */
+  readonly opening: InitialView | undefined;
+  /**
+   * The open document's article threads, read with `opening`; empty without any. Each document's
+   * threads are a new list, which thread-parts.ts keys the part followed last by.
+   */
+  readonly threads: readonly ArticleThread[];
 }
+
+/** Reports a failed read, which the reader goes on without (the worker says why). */
+function reportAndForget(error: unknown): undefined {
+  reportError(error);
+  return undefined;
+}
+
+/** No threads: the Threads tab stays away. */
+const NO_THREADS: readonly ArticleThread[] = [];
 
 /** An edit, as the view applies it. */
 type Ops = Parameters<Viewer["applyEdit"]>[0];
@@ -261,6 +288,8 @@ export class Engine implements ExternalStore<EngineState> {
       resumedAt: undefined,
       openedAt: undefined,
       editsLost: 0,
+      opening: undefined,
+      threads: NO_THREADS,
     };
     this.#platform = platform;
     this.#session = this.#start(backend);
@@ -301,21 +330,33 @@ export class Engine implements ExternalStore<EngineState> {
     this.#set({ linkProblem: undefined });
   }
 
-  /** Reads the open document's outline, once: the Outline tab shows it. */
-  async loadOutline(): Promise<void> {
-    if (this.#state.outline !== undefined || this.reader.getState().phase !== "open") return;
+  /**
+   * Reads the open document's outline, once: the Outline tab shows it. `again` reads it after an
+   * edit, undo or redo that may have changed it, keeping the last one shown while it reads (and
+   * doing nothing before the tab read one); a read that fails says so either way.
+   */
+  async loadOutline(again = false): Promise<void> {
+    const { outline } = this.#state;
+    if ((again ? typeof outline !== "object" : outline !== undefined) || this.reader.getState().phase !== "open")
+      return;
     const turn = this.#turn;
-    this.#set({ outline: "loading" });
+    if (!again) this.#set({ outline: "loading" });
     const session = await this.#session;
     try {
       const nodes = await session.client.outline();
       // Another document opened meanwhile: its own tab asks again.
       if (turn === this.#turn) this.#set({ outline: outlineModel(nodes, this.#state.pages) });
     } catch (error) {
-      // The tab says the outline couldn't be read, rather than that there is none.
+      // The tab says the outline couldn't be read, rather than that there is none (after an edit
+      // too: the outline it shows would be out of date).
       if (turn === this.#turn) this.#set({ outline: "failed" });
       reportError(error);
     }
+  }
+
+  /** The open document's view and its worker client, for the parts that load later (bookmarks.tsx). */
+  view(): Promise<{ readonly viewer: Viewer; readonly client: ViewerClient }> {
+    return this.#session;
   }
 
   /** `read` once per open document under `key`; a failed read isn't kept, so the next caller asks again. */
@@ -458,11 +499,11 @@ export class Engine implements ExternalStore<EngineState> {
    * and whether a save rewrites the whole file (so a removed value keeps no earlier version).
    * Undefined when the document can't be edited (encrypted, or its edits diverged).
    */
-  async editableMetadata(): Promise<{ metadata: DocumentMetadata; rewritesWhole: boolean } | undefined> {
+  async editableMetadata(): Promise<{ metadata: DocumentMetadata; xmp: XmpText; rewritesWhole: boolean } | undefined> {
     const { client, viewer } = await this.#session;
     if (viewer.edits.getState().blocked !== undefined) return undefined;
-    const [metadata, plan] = await Promise.all([client.metadata(), viewer.edits.plan({})]);
-    return { metadata, rewritesWhole: plan.mode === "fullRewrite" || plan.constraint === "requiresRewrite" };
+    const [metadata, xmp, plan] = await Promise.all([client.metadata(), client.xmpPacket(), viewer.edits.plan({})]);
+    return { metadata, xmp, rewritesWhole: plan.mode === "fullRewrite" || plan.constraint === "requiresRewrite" };
   }
 
   /**
@@ -472,6 +513,34 @@ export class Engine implements ExternalStore<EngineState> {
   async applyEdits(ops: Op[], label: string): Promise<void> {
     const session = await this.#session;
     await session.viewer.edits.apply(ops, label);
+  }
+
+  /**
+   * Reads how the open document asks to be shown and its article threads, once its first page
+   * painted (O13, E3 plan §5), and goes to its opening page and zoom when `go`: no address
+   * fragment named a place and no kept position wins, and the reader hasn't moved since.
+   */
+  async #readOpening(session: Session, latest: () => boolean, go: boolean): Promise<void> {
+    // Apart, so a file whose threads can't be read still opens as it asks, and the reverse.
+    const [opening, threads] = await Promise.all([
+      session.client.initialView().catch(reportAndForget),
+      session.client.threads().catch(reportAndForget),
+    ]);
+    if (!latest()) return;
+    this.#set({
+      ...(opening === undefined ? {} : { opening }),
+      ...(threads === undefined ? {} : { threads }),
+    });
+    const state = session.viewer.getState();
+    if (go && opening?.open.kind === "page" && state.currentPage === 0 && state.scrollTop === 0) {
+      session.viewer.goToDestination(opening.open.target);
+    }
+  }
+
+  /** The open document's initial view as its edits leave it, for the dialog. */
+  async initialView(): Promise<InitialView> {
+    const session = await this.#session;
+    return session.client.initialView();
   }
 
   /** Moves to `backend`: a new document worker, and the open file reopened in it. */
@@ -603,6 +672,8 @@ export class Engine implements ExternalStore<EngineState> {
       fingerprint: opened.fingerprint,
       resumedAt: resume === undefined ? undefined : shownFirst,
       openedAt: Date.now(),
+      opening: undefined,
+      threads: NO_THREADS,
     });
     const firstPage = () => {
       const state = session.viewer.stats().pages[shownFirst];
@@ -612,6 +683,7 @@ export class Engine implements ExternalStore<EngineState> {
     void whenPainted(firstPage, () => !latest()).then((painted) => {
       if (!painted) return;
       if (place !== undefined) void this.#goTo(place);
+      void this.#readOpening(session, latest, place === undefined && resume === undefined);
       const backend = `${opened.backend.name} ${opened.backend.version}`;
       this.#set({ timing: { backend, firstPageMs: Math.round(performance.now() - started) } });
     });
@@ -648,6 +720,8 @@ export class Engine implements ExternalStore<EngineState> {
       fingerprint: undefined,
       resumedAt: undefined,
       openedAt: undefined,
+      opening: undefined,
+      threads: NO_THREADS,
     });
     if (session.client.document?.id === opened.id) void session.client.close().catch(() => undefined);
   }

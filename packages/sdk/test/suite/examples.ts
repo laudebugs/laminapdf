@@ -4,7 +4,10 @@
 // Worker's bundled `INPUT_PATHS`) and the output is compared with the Rust golden, so every
 // runtime produces the same bytes.
 import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@laminapdf/sdk";
+import { duplicatePages } from "../../examples/duplicate-pages.js";
+import { editBookmarks } from "../../examples/edit-bookmarks.js";
 import { editMetadata } from "../../examples/edit-metadata.js";
+import { editXmp } from "../../examples/edit-xmp.js";
 import { elementFlow, type Report } from "../../examples/element-flow.js";
 import { generateThenEdit } from "../../examples/generate-then-edit.js";
 import { hello } from "../../examples/hello.js";
@@ -14,10 +17,13 @@ import { invoiceFromJson } from "../../examples/invoice-from-json.js";
 import { linksAndOutlines } from "../../examples/links-and-outlines.js";
 import { markdownToPdf } from "../../examples/markdown-to-pdf.js";
 import { multilingual } from "../../examples/multilingual.js";
+import { organisePages } from "../../examples/organise-pages.js";
+import { pageLabels } from "../../examples/page-labels.js";
 import { pdfAArchive } from "../../examples/pdf-a-archive.js";
 import { pdfA3InvoiceWithXml } from "../../examples/pdf-a3-invoice-with-xml.js";
 import { pdfUaReport } from "../../examples/pdf-ua-report.js";
 import { report } from "../../examples/report.js";
+import { openOn } from "../../examples/set-initial-view.js";
 import { exampleOptions, HELLO_OPTIONS } from "./hello-options.js";
 
 /** The fixture files an example reads, by path from the repository root. */
@@ -58,6 +64,18 @@ const BOLD = "fixtures/fonts/NotoSans-RegularBold.ttc";
 const EDITED_AT = "D:20261030130000Z";
 /** The document edit-metadata edits. */
 const METADATA_PDF = "fixtures/golden/metadata.pdf";
+/** The document set-initial-view edits: three pages with an outline. */
+const OUTLINE_PDF = "fixtures/corpus/outline.pdf";
+/** The document edit-bookmarks edits. */
+const BOOKMARKS_PDF = "fixtures/golden/links-and-outlines.pdf";
+/** The PDF/A-2b file edit-xmp records a review in. */
+const PDFA_2B_PDF = "fixtures/golden/examples/pdf_a_archive-2b.pdf";
+/** The document organise-pages organises: five pages, with bookmarks, links and named destinations that point at the third. */
+const REFERENCES_PDF = "fixtures/pages/references.pdf";
+/** The input of duplicate-pages: two form pages, a text field, a checkbox field and a signature field. */
+const FORMS_PDF = "fixtures/pages/forms.pdf";
+/** The input of page-labels: an example golden of four pages. */
+const LABELS_INPUT_PDF = "fixtures/golden/examples/links_and_outlines.pdf";
 
 /** An input the runner was asked for (`input` says which), else an error naming it. */
 function input(inputs: Inputs, path: string): Uint8Array {
@@ -147,6 +165,42 @@ export const EXAMPLES: readonly Example[] = [
     golden: "edit_metadata",
     inputs: [METADATA_PDF],
     build: (i) => editMetadata(input(i, METADATA_PDF), EDITED_AT),
+  },
+  {
+    name: "set-initial-view",
+    golden: "set_initial_view",
+    inputs: [OUTLINE_PDF],
+    build: (i) => openOn(input(i, OUTLINE_PDF), 1),
+  },
+  {
+    name: "edit-bookmarks",
+    golden: "edit_bookmarks",
+    inputs: [BOOKMARKS_PDF],
+    build: (i) => editBookmarks(input(i, BOOKMARKS_PDF)),
+  },
+  {
+    name: "duplicate-pages",
+    golden: "duplicate_pages",
+    inputs: [FORMS_PDF],
+    build: (i) => duplicatePages(input(i, FORMS_PDF)),
+  },
+  {
+    name: "edit-xmp",
+    golden: "edit_xmp",
+    inputs: [PDFA_2B_PDF],
+    build: (i) => editXmp(input(i, PDFA_2B_PDF), EDITED_AT),
+  },
+  {
+    name: "organise-pages",
+    golden: "organise_pages",
+    inputs: [REFERENCES_PDF],
+    build: (i) => organisePages(input(i, REFERENCES_PDF)),
+  },
+  {
+    name: "page-labels",
+    golden: "page_labels",
+    inputs: [LABELS_INPUT_PDF],
+    build: (i) => pageLabels(input(i, LABELS_INPUT_PDF)),
   },
   { name: "pdf-ua-report", golden: "pdf_ua_report", inputs: [NOTO], build: (i) => pdfUaReport(input(i, NOTO)) },
   {

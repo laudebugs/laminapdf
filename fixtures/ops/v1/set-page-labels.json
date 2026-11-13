@@ -1,0 +1,11 @@
+{
+  "op": "setPageLabels",
+  "args": {
+    "ranges": [
+      { "page": "p3.0", "style": "lowerRoman" },
+      { "page": "p7.0", "style": "decimal" },
+      { "page": "p12.0", "style": "decimal", "prefix": "A-", "first": 3 },
+      { "page": "p14.0", "prefix": "Back cover" }
+    ]
+  }
+}

@@ -4,10 +4,10 @@
 use laminapdf_text::Alignment;
 
 use crate::nav::LinkTarget;
-use crate::page::PageSize;
 use crate::surface::color::Color;
 use crate::surface::image::Image;
 use crate::surface::text::FontHandle;
+use laminapdf_model::PageSize;
 
 /// How a stretch of text looks: its fonts (the first, then fallbacks for characters it lacks),
 /// size, colour, baseline rise, language, and whether it is struck through.
