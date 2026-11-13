@@ -95,6 +95,7 @@
             "render-too-large",
             "render-failed",
             "render-backend-unavailable",
+            "export-failed",
             "model-failed",
             "model-result-unexpected",
             "model-needs-host",

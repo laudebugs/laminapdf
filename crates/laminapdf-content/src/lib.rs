@@ -51,6 +51,7 @@ mod operator;
 mod resources;
 mod state;
 mod visitor;
+mod write;
 
 pub use interp::{Summary, interpret_content, interpret_page};
 pub use laminapdf_model::{Dash, FillRule, Matrix};
@@ -61,6 +62,7 @@ pub use visitor::{
     FormXObject, GraphicsStateParams, ImageDraw, ImageSource, MarkedContent, Paint, PathPaint, PathSegment,
     ShadingPaint, TextItem, TextShow, Visitor,
 };
+pub use write::{Balance, PageContentWriter, StreamOffset, Wrapped, scan_balance};
 
 // The layers below, in façade order: what callers need without naming `laminapdf-cos`.
 pub use laminapdf_cos::{Error, Limit, Limits, Position, Result, Warning};

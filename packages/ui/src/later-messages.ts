@@ -9,6 +9,8 @@
 import { type CountIds, countId, ENGLISH, fill, type MessageId } from "./messages.js";
 
 const EN = {
+  "command.nav.next-thread-part": "Next thread part",
+  "command.nav.previous-thread-part": "Previous thread part",
   "threads.title": "Article threads",
   "threads.untitled": "Untitled thread",
   "threads.parts": "{count} parts",

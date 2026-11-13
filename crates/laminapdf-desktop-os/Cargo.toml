@@ -1,0 +1,34 @@
+[package]
+name = "laminapdf-desktop-os"
+description = "The calls Lamina PDF's desktop reader makes into the OS's shell: its recent-documents lists and Windows' app ID."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+# Part of the desktop app, never on crates.io.
+publish = false
+homepage.workspace = true
+
+# Read by `cargo xtask`: an edge crate, since it calls AppKit and Windows' Shell through FFI (rust.md:
+# `unsafe` only in edge crates), each `unsafe` block in a module that opts in with
+# `#![expect(unsafe_code)]`. Only the desktop app's main process links it.
+[package.metadata.laminapdf]
+layer = "edge"
+
+[dependencies]
+thiserror = { workspace = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = { workspace = true }
+objc2-app-kit = { workspace = true }
+objc2-foundation = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = { workspace = true }
+
+[lints]
+workspace = true

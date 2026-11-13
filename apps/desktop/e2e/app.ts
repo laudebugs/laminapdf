@@ -1,5 +1,6 @@
 // The desktop reader as the scenarios see it: open a fixture, read the view, wait for paint.
 import { spawn } from "node:child_process";
+import { renameSync } from "node:fs";
 import { join } from "node:path";
 import { platform } from "node:process";
 import type { ViewState } from "@laminapdf/viewer";
@@ -192,4 +193,31 @@ export async function waitForDocument(pages: number, timeout = 20_000): Promise<
     timeoutMsg: `no ${pages}-page document opened`,
   });
   await waitForSharp(0, timeout);
+}
+
+/** The names in the recent files list, newest first, as the main process keeps it. */
+export async function recentNames(): Promise<string[]> {
+  const entries = (await invoke("recent_list")) as { name: string }[];
+  return entries.map((entry) => entry.name);
+}
+
+/** Runs the command palette's command named `title`: ⌘K or Ctrl+K, its title, its row. */
+export async function runCommand(title: string): Promise<void> {
+  await browser.keys([platform === "darwin" ? Key.Command : Key.Ctrl, "k"]);
+  const input = $('input[role="combobox"]');
+  await input.waitForExist();
+  await input.setValue(title);
+  // Enter runs the active row, which typing doesn't choose (↓ does), so click the command's row.
+  await $(`//*[@role="option"][normalize-space(.) = "${title}" or .//*[normalize-space(.) = "${title}"]]`).click();
+}
+
+/**
+ * Moves `from` over `to`, as an editor's atomic save does. On Windows the app does it
+ * (`e2e_replace`, Rust's POSIX-semantics rename): Node's rename uses `MoveFileEx`, which Windows
+ * refuses over a file another process holds open, as the main process holds a document (ADR 0008
+ * §11).
+ */
+export async function atomicReplace(from: string, to: string): Promise<void> {
+  if (platform === "win32") await invoke("e2e_replace", { from, to });
+  else renameSync(from, to);
 }

@@ -600,6 +600,12 @@ impl<'o, 'd> OutlineItem<'o, 'd> {
         self.item().and_then(|i| i.node.as_dict()).and_then(|d| d.get(key))
     }
 
+    /// The item dictionary.
+    #[cfg(feature = "edit")]
+    pub(crate) fn dict(&self) -> Option<&'o laminapdf_cos::Dict> {
+        self.item().and_then(|i| i.node.as_dict())
+    }
+
     /// The item's stable ID.
     ///
     /// Added in 0.2.0.

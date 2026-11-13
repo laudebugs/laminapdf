@@ -255,7 +255,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `O16-export.dc.html` (desktop dialog), `O16-export-web.dc.html` (web, zipping in progress).
 
-**Todos.** [E3h](../../todos/ready/E3h-images-to-pdf-and-page-export.md), [E3i](../../todos/ready/E3i-extraction.md), [L3b](../../todos/done/L3b-extract-tables-and-serialisers.md) (Markdown).
+**Todos.** [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md), [E3i](../../todos/ready/E3i-extraction.md), [L3b](../../todos/done/L3b-extract-tables-and-serialisers.md) (Markdown).
 
 ## O17 Phone: organise pages
 

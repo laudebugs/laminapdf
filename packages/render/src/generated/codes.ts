@@ -10,6 +10,7 @@ export type RenderErrorCode =
   | "render-too-large"
   | "render-failed"
   | "render-backend-unavailable"
+  | "export-failed"
   | "invalid-argument"
   | "page-index-out-of-range"
   | "password-required"
@@ -28,6 +29,7 @@ export type RenderErrorKind =
   | "limit"
   | "input"
   | "io"
+  | "internal"
   | "usage"
   | "security"
   | "state"
@@ -38,6 +40,7 @@ export const KINDS: { readonly [C in RenderErrorCode]: RenderErrorKind } = {
   "render-too-large": "limit",
   "render-failed": "input",
   "render-backend-unavailable": "io",
+  "export-failed": "internal",
   "invalid-argument": "usage",
   "page-index-out-of-range": "usage",
   "password-required": "security",

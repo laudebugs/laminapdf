@@ -43,6 +43,9 @@ mod hello;
 #[path = "../examples/images_and_vectors.rs"]
 mod images_and_vectors;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/images_to_pdf.rs"]
+mod images_to_pdf;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/invoice.rs"]
 mod invoice;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -96,11 +99,13 @@ const SCRIPT_FONTS: [&str; 5] = [
     "fonts/NotoSansSC-Regular.otf",
 ];
 const PHOTO: &str = "images/photo-rgb.jpg";
+const GRAY_PHOTO: &str = "images/photo-gray.jpg";
 /// Each example's fixed file ID (`/ID[0]`, 16 bytes).
 const HELLO_ID: &[u8; 16] = b"lamina-ex-hello!";
 const INVOICE_ID: &[u8; 16] = b"lamina-ex-invoic";
 const MULTILINGUAL_ID: &[u8; 16] = b"lamina-ex-multil";
 const IMAGES_AND_VECTORS_ID: &[u8; 16] = b"lamina-ex-vector";
+const IMAGES_TO_PDF_ID: &[u8; 16] = b"lamina-ex-images";
 const LINKS_ID: &[u8; 16] = b"lamina-ex-links!";
 const EDIT_ID: &[u8; 16] = b"lamina-ex-edit!!";
 const FLOW_ID: &[u8; 16] = b"lamina-ex-flow!!";
@@ -127,7 +132,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 17] = [
+const EXAMPLES: [(&str, Build); 18] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -135,6 +140,9 @@ const EXAMPLES: [(&str, Build); 17] = [
     }),
     ("images_and_vectors", || {
         images_and_vectors::build(options(IMAGES_AND_VECTORS_ID)?, fixture(PHOTO))
+    }),
+    ("images_to_pdf", || {
+        images_to_pdf::build(options(IMAGES_TO_PDF_ID)?, vec![fixture(PHOTO), fixture(GRAY_PHOTO)])
     }),
     ("links_and_outlines", || links_and_outlines::build(options(LINKS_ID)?)),
     ("generate_then_edit", || {

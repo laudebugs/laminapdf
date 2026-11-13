@@ -144,7 +144,7 @@ The pipeline for every page view ([C3b](../todos/done/C3b-viewer-virtualiser-and
 | Metric | Release gate | Stretch goal (research) |
 | --- | --- | --- |
 | Web: first page, 10-page 1 MB PDF, warm cache | ≤ 700 ms ([web-app §4](web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward)) | ≤ 500 ms for a 10 MB PDF |
-| Desktop: cold start to interactive window | < 300 ms, macOS, Windows and Linux ([desktop-app §4](desktop-app.md#non-functional-targets-and-release-gates); was ≤ 1 s) | — |
+| Desktop: cold start | Window built and shown < 300 ms, first command within 75 ms of the floor build; macOS, Windows and Linux ([desktop-app §4](desktop-app.md#non-functional-targets-and-release-gates); owner decision 2026-11-11, was < 300 ms to the first command) | — |
 | Desktop installer | < 15 MB per platform, PDFium included (was ≤ 40 MB) | — |
 | Interaction responsiveness | No main-thread task > 50 ms while scrolling ([web-app §4](web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward)) | INP ≤ 200 ms (p75); every command answers in ≤ 100 ms |
 | Crash-free sessions (opt-in reports) | — | ≥ 99.95% (vendor median) |
@@ -227,7 +227,7 @@ The research and the owner's decisions on it change todos in other plans (each n
 | [C7a](../todos/done/C7a-accessibility-and-theming.md) | Depends on U1b and U1c; the keymap and help dialog come from the command registry; the "night reading" filter is replaced by U2c's page modes |
 | [C2a](../todos/done/C2a-render-adrs.md) (ADR 0011) | Telemetry optional, opt-in and off by default (owner decision 2026-10-29) |
 | [C7c](../todos/done/C7c-performance-gates-and-launch.md) | Also depends on U2a, U2c, U3a and U4a; web gates unchanged (stretch goals are U5a's); launch copy states v0.1's pricing status |
-| [D2d](../todos/done/D2d-tile-transport-and-first-document.md), [D2e](../todos/done/D2e-desktop-e2e-webdriverio.md), [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md), [D7c](../todos/ready/D7c-desktop-beta-release.md) | Desktop gates (owner decision 2026-10-29): cold start < 300 ms measured in D2d and asserted by D2e on the reference runner, installer < 15 MB in D6b's budget step; a miss blocks D7c |
+| [D2d](../todos/done/D2d-tile-transport-and-first-document.md), [D2e](../todos/done/D2e-desktop-e2e-webdriverio.md), [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md), [D7c](../todos/ready/D7c-desktop-beta-release.md) | Desktop gates (owner decisions 2026-10-29 and 2026-11-11): the cold-start gates measured in D2d and D2g and asserted by D2e on the reference runner, installer < 15 MB in D6b's budget step; a miss blocks D7c |
 | [D7a](../todos/ready/D7a-crash-reporting.md), [H1](../todos/ongoing/H1-auth-spike.md), [H2](../todos/ready/H2-accounts-and-login.md) | Usage analytics via U5c only; pricing questions decided once, in U5a |
 | [D4b](../todos/ready/D4b-native-menus.md) | Depends on U1b; native menus are generated from the command registry |
 | [E2h](../todos/ready/E2h-page-organiser-ui.md) | Insertion bar, "Move to page…" dialog, one undo step per batch |
@@ -246,7 +246,7 @@ The research and the owner's decisions on it change todos in other plans (each n
 | Page-mode recolouring differs between PDFium and hayro | Render-diff the modes in the nightly lane; Original stays the default |
 | Telemetry erodes the privacy promise | Off by default, aggregate counts only, documented payload, a test that it carries no document data, visible in the network indicator |
 | Pricing reads as the paywalls users complained about | Price and tier shown before work starts; no feature locked after the user has invested work; honour existing purchases (principle 10) |
-| < 300 ms cold start and < 15 MB installer are hard with a sandboxed engine process and PDFium (macOS universal builds double PDFium) | Measure from D2a/D2d onward; per-arch macOS builds if universal breaks 15 MB; show the window before the engine process is ready; Linux (WebKitGTK) is the likeliest miss, so measure it first |
+| The cold-start gates (window shown < 300 ms, first command within 75 ms of the floor build) and < 15 MB installer are hard with a sandboxed engine process and PDFium (macOS universal builds double PDFium) | Measure from D2a/D2d onward; per-arch macOS builds if universal breaks 15 MB; show the window before the engine process is ready; Linux (WebKitGTK) is the likeliest miss, so measure it first |
 
 ## 8. Open questions
 

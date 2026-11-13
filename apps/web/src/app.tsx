@@ -60,7 +60,6 @@ import { clearDocumentCache } from "./offline/document-cache.ts";
 import { useInstall } from "./offline/install.tsx";
 import { useOffline } from "./offline/offline.tsx";
 import type { AppUpdates } from "./offline/updates.ts";
-import { type ThreadActions, useThreadActions } from "./opening.ts";
 import { type PageInfo, pageLabel } from "./outline.ts";
 import { type Output, type OutputCommand, useOutput } from "./output.tsx";
 import { usePageAppearance } from "./page-appearance.tsx";
@@ -219,8 +218,7 @@ function useReaderCommands(
     ReturnType<typeof useHistory>["actions"] &
     Output["actions"] &
     SelectionSurfaces["actions"] &
-    ReaderMode["actions"] &
-    ThreadActions,
+    ReaderMode["actions"],
   /** The handlers that work with or without a document: the settings'. */
   appActions: Settings["actions"],
   edits: Editing["edits"],
@@ -639,9 +637,7 @@ function useDocumentChrome(options: {
   const history = useHistory(shown, pages);
   const selection = useSelection(shown, find, platform, KEYS);
   const reading = useReaderMode(engine, shell.layout, platform, shown, open ? state.file : undefined);
-  const threads = useThreadActions(engine);
   const actions = {
-    ...threads,
     ...find.actions,
     ...history.actions,
     ...output.actions,

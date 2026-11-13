@@ -16,6 +16,8 @@ import {
   type RailTab,
   type ReaderController,
   type ShellLayout,
+  stepThreadPart,
+  type ThreadData,
   type ToastQueue,
   useMediaQuery,
   useStoreState,
@@ -283,15 +285,22 @@ export function historyTab(edits: EditControls, pages: readonly PageInfo[], open
 
 /**
  * The delegated edit commands' handlers for the document `viewer` shows: Show history, Initial
- * view…, the page turns, the saves, and Download a copy with the edits while there are any (`unsaved`).
+ * view…, the page turns, the saves, Download a copy with the edits while there are any
+ * (`unsaved`), and Next and Previous thread part while the file has threads.
  */
 export function editActions(
   engine: Engine,
   layout: ShellLayout,
   viewer: Viewer,
   flow: SaveFlow,
-  unsaved: boolean,
+  state: { readonly unsaved: boolean; readonly threads: readonly ThreadData[] },
 ): EditActions {
+  const { unsaved, threads } = state;
+  // Next and Previous thread part only while the file has threads: without, they stay out of view.
+  const step = (direction: 1 | -1) => () => {
+    const part = stepThreadPart(threads, engine.getState().threadPart, direction);
+    if (part !== undefined) void engine.goToThreadPart(part);
+  };
   // A failed turn is said by the session's failure toast (edit-toasts.ts).
   const rotate = (delta: 90 | -90) => () =>
     void engine.rotatePage(viewer.getState().currentPage, delta).catch(() => undefined);
@@ -307,5 +316,6 @@ export function editActions(
     "file.save-as": () => void flow.save("save-as"),
     "file.save-optimised": () => void flow.save("optimised"),
     ...(unsaved ? { "file.save-copy": () => void flow.copy() } : {}),
+    ...(threads.length === 0 ? {} : { "nav.next-thread-part": step(1), "nav.previous-thread-part": step(-1) }),
   };
 }
