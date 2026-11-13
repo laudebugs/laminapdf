@@ -84,6 +84,13 @@ doc = false
 bench = false
 
 [[bin]]
+name = "annots"
+path = "fuzz_targets/annots.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
 name = "content_append_scan"
 path = "fuzz_targets/content_append_scan.rs"
 test = false

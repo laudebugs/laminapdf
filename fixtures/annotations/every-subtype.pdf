@@ -1,0 +1,82 @@
+%PDF-1.7
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [10 0 R 11 0 R 12 0 R 13 0 R 14 0 R 15 0 R 16 0 R 17 0 R 18 0 R << /Type /Annot /Subtype /Square /Rect [200 200 220 220] >>] >>
+endobj
+10 0 obj
+<< /Type /Annot /Subtype /Highlight /Rect [20 260 120 275] /NM (hl-1) /C [1 1 0] /CA 0.5 /QuadPoints [20 260 120 260 120 275 20 275] /T (Ada) /Subj (Highlight) /CreationDate (D:20261101090000Z) /M (D:20261102090000Z) /F 4 /AP << /N 30 0 R >> >>
+endobj
+11 0 obj
+<< /Type /Annot /Subtype /Underline /Rect [20 240 120 255] /C [0 0 1] /QuadPoints [20 255 120 255 20 240 120 240] /F 4 >>
+endobj
+12 0 obj
+<< /Type /Annot /Subtype /Text /Rect [150 260 170 280] /Contents (Check this) /T (Ada) /Name /Comment /Popup 13 0 R /F 28 >>
+endobj
+13 0 obj
+<< /Type /Annot /Subtype /Popup /Rect [180 200 280 260] /Parent 12 0 R /Open false >>
+endobj
+14 0 obj
+<< /Type /Annot /Subtype /Ink /Rect [20 150 120 200] /InkList [[20 150 70 200 120 150] [30 160 40 170]] /BS << /W 2 >> /C [1 0 0] >>
+endobj
+15 0 obj
+<< /Type /Annot /Subtype /Line /Rect [20 100 120 140] /L [20 100 120 140] /LE [/None /OpenArrow] >>
+endobj
+16 0 obj
+<< /Type /Annot /Subtype /Polygon /Rect [150 100 250 160] /Vertices [150 100 250 100 200 160] /IC [0 1 0] >>
+endobj
+17 0 obj
+<< /Type /Annot /Subtype /FreeText /Rect [150 20 280 80] /Contents (Callout) /DA (/Helv 10 Tf 0 g) /IT /FreeTextCallout /CL [140 90 160 70 170 50] /RC (<?xml version="1.0"?><body xmlns="http://www.w3.org/1999/xhtml"><p><b>Callout</b></p></body>) >>
+endobj
+18 0 obj
+<< /Type /Annot /Subtype /Widget /Rect [20 20 120 40] /FT /Tx /T (name) >>
+endobj
+30 0 obj
+<< /Type /XObject /Subtype /Form /BBox [0 0 100 15] /Resources << >> /Length 24 >>
+stream
+1 1 0 rg 0 0 100 15 re f
+endstream
+endobj
+xref
+0 31
+0000000000 65535 f
+0000000015 00000 n
+0000000064 00000 n
+0000000121 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000325 00000 n
+0000000586 00000 n
+0000000724 00000 n
+0000000865 00000 n
+0000000967 00000 n
+0000001116 00000 n
+0000001232 00000 n
+0000001357 00000 n
+0000001622 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000001713 00000 n
+trailer
+<< /Size 31 /Root 1 0 R >>
+startxref
+1854
+%%EOF

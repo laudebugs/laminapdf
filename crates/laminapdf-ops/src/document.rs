@@ -452,6 +452,7 @@ impl Document {
             coalesce,
             packet_rewritten: false,
             removed: false,
+            also_deleted: Vec::new(),
         });
         Ok(())
     }
@@ -506,6 +507,7 @@ impl Document {
             touched_pages: state.touched,
             packet_rewritten: state.packet_rewritten,
             still_in_earlier_revisions: state.removed,
+            also_deleted: state.also_deleted,
             widgets,
         })
     }

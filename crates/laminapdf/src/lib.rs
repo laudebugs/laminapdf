@@ -100,6 +100,7 @@
 //! [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
 #![forbid(unsafe_code)]
 
+mod annotations;
 #[cfg(feature = "build")]
 mod builder;
 mod codes;
@@ -146,6 +147,7 @@ mod warning;
 #[cfg(test)]
 use laminapdf_test_fixtures::codes as test_codes;
 
+pub use annotations::{AnnotationGeometry, PageAnnotation};
 pub use document::{Document, DocumentInfo, Edited, PageInfo, Saved};
 pub use error::{CoreError, Error, Result};
 #[cfg(feature = "explain")]
@@ -174,11 +176,12 @@ pub use redaction::RedactionWarning;
 pub use warning::{Warning, WarningCursor};
 
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};
-pub use laminapdf_model::{PageId, PdfDate, PointPt, Pt, RectPt, Rotation};
+pub use laminapdf_model::{AnnotId, PageId, PdfDate, PointPt, Pt, RectPt, Rotation};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use laminapdf_ops::{
-    ConformanceWarning, DocumentMetadata, InfoPatch, MetadataKey, MetadataPatch, MetadataSource, ModificationClass, Op,
-    OpLog, PacketStatus, RemoveMetadata, Reverted, RotatePage, SetInfo, SetMetadata, UndoOutcome,
+    ConformanceWarning, DeleteAnnot, DocumentMetadata, InfoPatch, MetadataKey, MetadataPatch, MetadataSource,
+    ModificationClass, Offset, Op, OpLog, PacketStatus, RemoveMetadata, Reverted, RotatePage, SetInfo, SetMetadata,
+    UndoOutcome, UpdateAnnot,
 };
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,

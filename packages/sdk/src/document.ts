@@ -31,6 +31,7 @@ import type {
   OpenOptions,
   OpLog,
   OutlineNode,
+  PageAnnotation,
   PageInfo,
   PageLink,
   PlannedSave,
@@ -474,6 +475,21 @@ export class Document extends Handle<BaseGlue> {
    */
   pageLinks(index: number): PageLink[] {
     return this.call(() => this.#extracting("doc.pageLinks()").pageLinks(index));
+  }
+
+  /**
+   * The annotations on page `index` (0-based), in the order of the page's annotation list, every
+   * subtype included. Change one with the `updateAnnot` op (its text, author, flags, or a move by
+   * `translate`) and delete one with `deleteAnnot`, which also deletes its pop-up, its replies
+   * and the rest of its group. Needs a document opened while the extract or text module was
+   * loaded.
+   *
+   * @throws {@link LaminaPdfError} `page-index-out-of-range`; as {@link Document.outline}.
+   *
+   * @since 0.2.0
+   */
+  pageAnnotations(index: number): PageAnnotation[] {
+    return this.call(() => this.#extracting("doc.pageAnnotations()").pageAnnotations(index));
   }
 
   /**

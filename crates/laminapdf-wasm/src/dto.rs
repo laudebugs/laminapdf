@@ -339,6 +339,11 @@ pub(crate) struct EditedJs {
     /// A metadata edit removed values the file's earlier revisions still hold, which only a
     /// full rewrite drops.
     pub still_in_earlier_revisions: bool,
+    /// IDs of annotations an annotation op deleted besides the one it names (Popups, replies,
+    /// the rest of a group); left out when there are none.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[tsify(optional)]
+    pub also_deleted: Vec<String>,
     /// Whether the edit changed the document: one that only set values they already had leaves
     /// no step to undo.
     pub changed: bool,
@@ -350,6 +355,7 @@ impl From<laminapdf::Edited> for EditedJs {
             touched_pages: e.touched_pages.iter().map(ToString::to_string).collect(),
             packet_rewritten: e.packet_rewritten,
             still_in_earlier_revisions: e.still_in_earlier_revisions,
+            also_deleted: e.also_deleted,
             changed: e.changed,
         }
     }
