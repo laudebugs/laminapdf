@@ -96,7 +96,7 @@ Conventions on this canvas:
 - The strip scrolls sideways when its tabs don't fit at 120 px, and a menu button at its end (a chevron named "All tabs, N open") is always there, in place of "+3". Its menu lists the tabs as plain items, then Move tab to new window and Move tab to *window*. Pages and "Not found" in it come with D4d.
 - A tab's context menu (right-click, `⇧F10` or the menu key) shows that tab and opens the same menu.
 - With one tab the strip also shows while other windows are open, so the tab can move to one of them.
-- A tab dropped anywhere on another window moves there, not only on its strip, which a window shows only from two tabs on. While a tab is dragged over a window, a dashed accent border lines that window. The moved tab joins the end of the strip.
+- A tab moves to another window when dropped anywhere on it, not only on its strip, because a window shows its strip only once it has two tabs. While a tab is dragged over a window, a dashed accent border lines that window. The moved tab joins the end of the strip.
 - No + button: Open (`⌘O` / `Ctrl O`) opens a new tab.
 - No title-bar colour token exists, so the strip sits on `ground` and the active tab takes the top bar's `surface`.
 - `tab.activate` and `tab.list` aren't commands: clicking a tab and the strip's menu do their work. `tab.move-to-window` is the strip's menu entry for each other window. `⇧⌘]` and `⇧⌘[` come with D4b's menus.

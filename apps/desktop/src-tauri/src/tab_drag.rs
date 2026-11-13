@@ -1,17 +1,17 @@
-//! Dragging a tab out of its window or onto another one. A webview's drag can't cross into
-//! another window as a drop it can read, so Rust follows the drag instead: the tab's window calls
-//! [`start`] when the drag begins and [`end`] when it ends. In between, a thread reads the OS's
-//! cursor and tells the window under it that a tab may drop there ([`DRAG_OVER_EVENT`]). At the end
-//! Rust looks where the cursor is: over another window, the tab moves there; outside every window, a
-//! new window opens under the cursor with the tab; over its own window, nothing happens (the strip's
-//! own drop reorders). Both moves are [`crate::windows::move_tab`], as the tab menu's are.
+//! Dragging a tab out of its window or onto another one. A webview can't read a drop that lands
+//! in another window, so Rust follows the drag instead: the tab's window calls [`start`] when the
+//! drag begins and [`end`] when it ends. In between, a thread reads the OS's cursor and tells the
+//! window under it that a tab may drop there ([`DRAG_OVER_EVENT`]). At the end Rust looks where the
+//! cursor is: over another window, the tab moves there; outside every window, a new window opens
+//! under the cursor with the tab; over its own window, nothing happens (the strip's own drop
+//! reorders). Both moves go through [`crate::windows::move_tab`], as the tab menu's do.
 //!
-//! Under Wayland the compositor keeps windows' positions to itself, so the webview's own account is
-//! used: a drag that left its window opens a new one, wherever the compositor puts it, and no
-//! other window can be found under the cursor.
+//! Under Wayland the compositor keeps windows' positions to itself, so Rust relies on the webview's
+//! report of whether the drag left its window: if it did, a new window opens wherever the
+//! compositor puts it, and no other window can be found under the cursor.
 //!
 //! The end of a drag can't tell a drop from a cancel (Escape): a cancelled drag whose cursor is
-//! outside its window moves the tab too. Windows of other apps are invisible here, so a drop on one
+//! outside its window moves the tab too. Other apps' windows are invisible here, so a drop on one
 //! that covers a Lamina PDF window moves the tab to the covered window.
 
 use std::sync::atomic::{AtomicBool, Ordering};
