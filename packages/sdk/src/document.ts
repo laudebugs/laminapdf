@@ -540,7 +540,7 @@ export class Document extends Handle<BaseGlue> {
    * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`; as
    * {@link Document.outline}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   linkOnArea(page: number, area: readonly [number, number, number, number], target: OutlineTarget): AddLink {
     return this.call(() => this.#extracting("doc.linkOnArea()").linkOnArea(page, [...area], target));
@@ -555,7 +555,7 @@ export class Document extends Handle<BaseGlue> {
    * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`; as
    * {@link Document.outline}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   linkOnText(
     page: number,

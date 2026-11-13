@@ -102,7 +102,7 @@ pub struct Applied {
     pub created_outline_items: Vec<OutlineItemId>,
     /// The links [`AddLink`](crate::AddLink) created, in order.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub created_annotations: Vec<laminapdf_model::AnnotId>,
     /// An outline op found the outline's links broken (a cycle, a wrong `/Last`, an item
     /// stored as a direct dictionary) and rewrote them whole; items that were direct have new

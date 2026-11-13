@@ -120,7 +120,7 @@ impl Document {
     /// # Errors
     /// `page-index-out-of-range`; reading errors (the page tree).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn link_on_area(&self, page: u32, area: RectPt, target: OutlineTarget) -> Result<AddLink> {
         let (id, frame) = self.page_frame(page)?;
         Ok(AddLink::new(id, user_rect(&frame, &[area]), target))
@@ -135,7 +135,7 @@ impl Document {
     /// `invalid-op` for no lines; `page-index-out-of-range`; the reading errors of
     /// [`Document::page_text`].
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[cfg(feature = "extract")]
     pub fn link_on_text(&self, page: u32, lines: &[RectPt], target: OutlineTarget) -> Result<AddLink> {
         if lines.is_empty() {

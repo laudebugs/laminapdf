@@ -111,7 +111,7 @@ export type OutlineTarget = OutlineTargetJs;
  * covers (`marked`). {@link Document.linkOnArea} and {@link Document.linkOnText} make one from
  * page space.
  *
- * @since 0.2.0
+ * @since 0.3.0
  */
 export type AddLink = AddLinkJs;
 

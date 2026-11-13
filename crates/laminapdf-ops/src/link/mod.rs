@@ -38,7 +38,7 @@ use crate::wire;
 /// On the wire: `{ "op": "addLink", "args": { "page": "p3.0", "rect": { "x0": 72, "y0": 700,
 /// "x1": 180, "y1": 714 }, "target": { "uri": "https://example.com/" } } }`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -81,7 +81,7 @@ impl AddLink {
     /// The op that adds a link on `rect` of `page` going to `target`, with no quads,
     /// description, `/NM` or marked content.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn new(page: PageId, rect: UserSpaceRect, target: OutlineTarget) -> Self {
         Self {
@@ -138,7 +138,7 @@ impl AddLink {
 /// On the wire: `{ "op": "updateLink", "args": { "link": "a21.0", "target": { "named":
 /// "chapter-2" } } }`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -178,7 +178,7 @@ impl Eq for UpdateLink {}
 impl UpdateLink {
     /// The op that changes nothing yet on `link`; set the fields to change.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn new(link: AnnotId) -> Self {
         Self {
@@ -242,7 +242,7 @@ impl UpdateLink {
 ///
 /// On the wire: `{ "op": "deleteLink", "args": { "link": "a21.0" } }`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -257,7 +257,7 @@ pub struct DeleteLink {
 impl DeleteLink {
     /// The op that deletes `link`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn new(link: AnnotId) -> Self {
         Self { link }

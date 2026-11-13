@@ -130,7 +130,7 @@ pub struct Edited {
     pub created_outline_items: Vec<OutlineItemId>,
     /// The links the edit added, in order: their IDs, for the edits that follow.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub created_annotations: Vec<laminapdf_model::AnnotId>,
     /// An outline edit found the outline's links broken and rewrote them whole. Bookmarks
     /// that were stored inside other bookmarks have new IDs: read the outline again.
