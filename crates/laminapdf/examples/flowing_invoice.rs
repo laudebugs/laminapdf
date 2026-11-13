@@ -22,6 +22,11 @@ const PRODUCTS: [(&str, usize); 6] = [
     ("Archive boxes, set of ten, with lids", 3_150),
     ("Ballpoint pens, box of fifty", 1_875),
 ];
+/// The greys, as levels of red, green and blue: the frame and the rule under the header, the
+/// rules between rows, and the header row's shade.
+const RULE: u8 = 0x66;
+const ROW_RULE: u8 = 0xb3;
+const HEADER_SHADE: u8 = 0xeb;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let paths: Vec<String> = std::env::args().skip(1).collect();
@@ -71,10 +76,10 @@ fn table(body: &TextStyle, strong: &TextStyle) -> Table {
         });
     let mut table = Table::new([ColumnWidth::Auto; 4])
         .with_padding(6.0)
-        .with_frame(TableRule::new(0.75, Color::gray(0.4)))
-        .with_header_rule(TableRule::new(0.75, Color::gray(0.4)))
-        .with_row_rules(TableRule::new(0.25, Color::gray(0.7)))
-        .with_header_background(Color::gray(0.92))
+        .with_frame(TableRule::new(0.75, grey(RULE)))
+        .with_header_rule(TableRule::new(0.75, grey(RULE)))
+        .with_row_rules(TableRule::new(0.25, grey(ROW_RULE)))
+        .with_header_background(grey(HEADER_SHADE))
         .header(header);
     let mut total = 0;
     for (i, (name, cents)) in PRODUCTS.iter().cycle().take(60).enumerate() {
@@ -92,6 +97,10 @@ fn table(body: &TextStyle, strong: &TextStyle) -> Table {
         .cell(TableCell::plain("Total", strong).with_span(3))
         .cell(number(money(total), strong));
     table.footer(total_row)
+}
+
+fn grey(level: u8) -> Color {
+    Color::rgb8(level, level, level)
 }
 
 fn money(cents: usize) -> String {

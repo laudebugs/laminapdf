@@ -4,17 +4,18 @@ description: Pour headings, paragraphs, tables and images, or a Markdown file, i
 ---
 
 import Example from "../../../components/Example.astro";
-import Snippet from "../../../components/Snippet.astro";
 
 This guide lays out a document whose length you don't know in advance, such as a report or a contract. You give Lamina PDF blocks and a page template, and it makes as many pages as they need, with a header and a footer on each.
 
-It keeps headings with their text and never leaves a single line of a paragraph alone at a page's foot or head, and it tags the result so screen readers can follow it. In TypeScript, you give it the same document as plain objects or Markdown; the [JSON section](#write-it-as-json) shows how.
+It keeps headings with their text and never leaves a single line of a paragraph alone at a page's foot or head, and it tags the result so screen readers can follow it. In Rust you build the blocks with types such as `Flow`, `Paragraph` and `Table`. In TypeScript you give it the same document as plain objects, or as Markdown; the [JSON section](#write-it-as-json) explains the format.
 
 ## The example
 
 The example builds a 13-page report: a cover with a contents page, then five sections of headings, paragraphs, a footnote, a bulleted list and a photo. One paragraph is in Arabic and one in Hindi, and each is split by a page break. Every page after the cover names its section in the header and says "Page 3 of 13" in the footer, and every section has a bookmark. The report is built under PDF/UA-1, the accessibility standard, so the build fails if the output breaks one of its rules.
 
-<Snippet file="crates/laminapdf/examples/flowing_report.rs" />
+The TypeScript version writes the same report as a JSON document of plain objects, with a style for each kind of text, and passes the fonts and the photo by the names the document gives them. Both languages write the same bytes:
+
+<Example ts="packages/sdk/examples/flowing-report.ts" rust="crates/laminapdf/examples/flowing_report.rs" result="flowing_report" />
 
 The result is thirteen A5 pages: [open the reference PDF](/examples/pdf/flowing_report.pdf).
 
@@ -43,9 +44,9 @@ When blocks you asked to keep together are taller than a page, the flow splits t
 
 ## Tables across pages
 
-A table can run over as many pages as its rows need, with its header on each page and every row whole. The second example builds a three-page invoice of 60 rows with a total at the end:
+A table can run over as many pages as its rows need, with its header on each page and every row whole. The second example builds a three-page invoice of 60 rows with a total at the end. Again, both languages write the same bytes:
 
-<Snippet file="crates/laminapdf/examples/flowing_invoice.rs" />
+<Example ts="packages/sdk/examples/flowing-invoice.ts" rust="crates/laminapdf/examples/flowing_invoice.rs" result="flowing_invoice" />
 
 The result is three A4 pages: [open the reference PDF](/examples/pdf/flowing_invoice.pdf).
 

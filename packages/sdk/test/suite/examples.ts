@@ -10,6 +10,8 @@ import { editMetadata } from "../../examples/edit-metadata.js";
 import { editXmp } from "../../examples/edit-xmp.js";
 import { elementFlow, type Report } from "../../examples/element-flow.js";
 import { extractPages } from "../../examples/extract-pages.js";
+import { flowingInvoice } from "../../examples/flowing-invoice.js";
+import { flowingReport } from "../../examples/flowing-report.js";
 import { generateThenEdit } from "../../examples/generate-then-edit.js";
 import { hello } from "../../examples/hello.js";
 import { imagesAndVectors } from "../../examples/images-and-vectors.js";
@@ -256,6 +258,24 @@ export const EXAMPLES: readonly Example[] = [
     golden: "invoice_from_json",
     inputs: [...JSON_INVOICE, NOTO, BOLD],
     build: buildInvoiceFromJson,
+  },
+  {
+    name: "flowing-report",
+    golden: "flowing_report",
+    inputs: [...MARKDOWN_FONTS, PHOTO],
+    build: (i) => {
+      const [regular, bold, arabic, devanagari] = MARKDOWN_FONTS.map((f) => input(i, f));
+      if (regular === undefined || bold === undefined || arabic === undefined || devanagari === undefined) {
+        throw new Error("four fonts");
+      }
+      return flowingReport({ regular, bold, arabic, devanagari }, input(i, PHOTO), exampleOptions("lamina-ex-flowng"));
+    },
+  },
+  {
+    name: "flowing-invoice",
+    golden: "flowing_invoice",
+    inputs: [NOTO, BOLD],
+    build: (i) => flowingInvoice(input(i, NOTO), input(i, BOLD), exampleOptions("lamina-ex-flowiv")),
   },
 ];
 
