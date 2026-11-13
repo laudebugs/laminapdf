@@ -245,6 +245,7 @@
             "outline-item-skipped",
             "invalid-date",
             "xmp-invalid",
+            "xmp-repaired",
             "invalid-page-label",
             "invalid-entry",
             "content-unknown-operator",

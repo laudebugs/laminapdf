@@ -8,14 +8,18 @@
 //! and `rdf:Bag` with `xml:lang`, namespaces by URI whatever their prefix. It refuses a DTD,
 //! so no entity expands (XXE, billion laughs), and decodes only XML's predefined and numeric
 //! character references. A packet it can't read is a [`ParseError`]; the document raises
-//! `xmp-invalid` for it and reports [`PacketState::Malformed`] ([`Document::xmp`]).
+//! `xmp-invalid` for it and reports [`PacketState::Malformed`] ([`Document::xmp`]). Two kinds of
+//! damage other readers read past are read the same way and reported ([`Repairs`], the
+//! document's `xmp-repaired`): bytes that aren't UTF-8 in the `<?xpacket … ?>` header, and a
+//! standard prefix used without its declaration.
 //!
 //! The typed getters and setters cover the fields of [`MAPPINGS`], the one table that also
 //! drives the builder's packet. [`Packet::write`] gives the packet back:
 //!
 //! * unchanged, the bytes it was parsed from;
 //! * changed, the same bytes with only the changed properties' text replaced, removed or
-//!   added to a description (declaring a namespace when the packet hasn't bound it), and the
+//!   added to a description (declaring a namespace when the packet hasn't bound it, an
+//!   undeclared standard prefix included), a repaired header's bad bytes written as `?`, and the
 //!   padding before `<?xpacket end … ?>` shortened or lengthened so the packet keeps its
 //!   length when it fits (else 2 KB of fresh padding);
 //! * when that can't be done in place (a packet in UTF-16, or one whose trailer says
@@ -261,13 +265,31 @@ pub struct Written {
 #[derive(Debug, Clone)]
 pub struct Packet {
     original: Vec<u8>,
-    /// The packet as UTF-8: `original` itself, or decoded from UTF-16.
+    /// The packet as UTF-8: `original` itself, decoded from UTF-16, or with each byte of its
+    /// header that isn't UTF-8 read as `?` ([`Repairs::header_encoding`]).
     text: String,
     /// Whether `original` is UTF-16, which only a canonical rewrite can edit.
     utf16: bool,
     top: Vec<Node>,
     rdf: Rdf,
     changes: BTreeMap<MappedField, Option<Value>>,
+    repairs: Repairs,
+}
+
+/// Damage a packet was read through, which other readers read past too
+/// ([`Packet::repairs`]); the document raises `xmp-repaired` for each.
+///
+/// Added in 0.2.0.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct Repairs {
+    /// Bytes that aren't UTF-8 in the leading `<?xpacket … ?>` header, whose content XML doesn't
+    /// read (some writers mangle its byte-order mark): each was read as `?`, so offsets and the
+    /// packet's length are those of the bytes given.
+    pub header_encoding: bool,
+    /// One of XMP's standard prefixes (`dc`, `xmp`, `pdf`, `xmpMM`, `pdfaid`, `pdfuaid`, and the
+    /// older `xap` and `xapMM`) used without its declaration, read in its standard namespace.
+    pub undeclared_prefix: bool,
 }
 
 impl Packet {
@@ -280,15 +302,15 @@ impl Packet {
     /// Added in 0.2.0.
     pub fn parse(bytes: &[u8]) -> Result<Self, ParseError> {
         let utf16 = utf16(bytes)?;
-        let text = match &utf16 {
-            Some(decoded) => decoded.clone(),
+        let (text, header_encoding) = match &utf16 {
+            Some(decoded) => (decoded.clone(), false),
             None => utf8(bytes)?,
         };
         let back = |offset: u64| match utf16 {
             Some(_) => utf16_offset(bytes, &text, offset),
             None => offset,
         };
-        let top = tree::parse(&text).map_err(|e| e.map_offset(back))?;
+        let (top, undeclared_prefix) = tree::parse(&text).map_err(|e| e.map_offset(back))?;
         let rdf = rdf::read(&text, &top).map_err(|e| e.map_offset(back))?;
         Ok(Self {
             original: bytes.to_vec(),
@@ -296,6 +318,10 @@ impl Packet {
             utf16: utf16.is_some(),
             top,
             rdf,
+            repairs: Repairs {
+                header_encoding,
+                undeclared_prefix,
+            },
             changes: BTreeMap::new(),
         })
     }
@@ -326,7 +352,16 @@ impl Packet {
             top: Vec::new(),
             rdf: Rdf::default(),
             changes: BTreeMap::new(),
+            repairs: Repairs::default(),
         })
+    }
+
+    /// The damage the packet was read through ([`Repairs`]); none for a well-formed one.
+    ///
+    /// Added in 0.2.0.
+    #[must_use]
+    pub const fn repairs(&self) -> Repairs {
+        self.repairs
     }
 
     /// The bytes the packet was parsed from.
@@ -683,12 +718,13 @@ fn text_of(value: &RdfValue) -> Option<String> {
     }
 }
 
-/// The packet as UTF-8 text. Bytes that aren't UTF-8 are refused, except inside the leading
-/// `<?xpacket … ?>` header, whose content XML doesn't read: some writers mangle its byte-order
-/// mark (`begin="\xEF\xBB?"`), and the header is read with U+FFFD in its place.
-fn utf8(bytes: &[u8]) -> Result<String, ParseError> {
+/// The packet as UTF-8 text, and whether its header was repaired. Bytes that aren't UTF-8 are
+/// refused, except inside the leading `<?xpacket … ?>` header, whose content XML doesn't read:
+/// some writers mangle its byte-order mark (`begin="\xEF\xBB?"`), and each such byte is read as
+/// `?`, one byte for one, so offsets and lengths stay those of the bytes given.
+fn utf8(bytes: &[u8]) -> Result<(String, bool), ParseError> {
     if let Ok(text) = std::str::from_utf8(bytes) {
-        return Ok(text.to_owned());
+        return Ok((text.to_owned(), false));
     }
     let header_end = bytes
         .starts_with(b"<?xpacket")
@@ -697,7 +733,15 @@ fn utf8(bytes: &[u8]) -> Result<String, ParseError> {
         .ok_or(ParseError::Encoding)?;
     let (header, rest) = bytes.split_at(header_end);
     let rest = std::str::from_utf8(rest).map_err(|_| ParseError::Encoding)?;
-    Ok(format!("{}{rest}", String::from_utf8_lossy(header)))
+    let mut header = header.to_vec();
+    while let Err(e) = std::str::from_utf8(&header) {
+        let bad = e.error_len().unwrap_or(header.len() - e.valid_up_to());
+        for b in header.iter_mut().skip(e.valid_up_to()).take(bad) {
+            *b = b'?';
+        }
+    }
+    let header = String::from_utf8(header).map_err(|_| ParseError::Encoding)?;
+    Ok((format!("{header}{rest}"), true))
 }
 
 /// The packet decoded, when it is UTF-16: by its byte-order mark, or by a first `<` with a

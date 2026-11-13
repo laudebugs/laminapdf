@@ -146,6 +146,13 @@
       "since": "0.2.0"
     },
     {
+      "code": "xmp-repaired",
+      "kind": "input",
+      "summary": "the XMP metadata packet had damage other readers read past, and was read the same way",
+      "hint": "nothing to do; a metadata edit writes the declarations the packet left out",
+      "since": "0.2.0"
+    },
+    {
       "code": "invalid-page-label",
       "kind": "input",
       "summary": "a /PageLabels entry is malformed; the malformed part is dropped",

@@ -171,6 +171,7 @@ export type WarningCode =
   | "outline-item-skipped"
   | "invalid-date"
   | "xmp-invalid"
+  | "xmp-repaired"
   | "invalid-page-label"
   | "invalid-entry"
   | "content-unknown-operator"
@@ -380,6 +381,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "outline-item-skipped",
   "invalid-date",
   "xmp-invalid",
+  "xmp-repaired",
   "invalid-page-label",
   "invalid-entry",
   "content-unknown-operator",
@@ -442,6 +444,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "outline-item-skipped": "input",
   "invalid-date": "input",
   "xmp-invalid": "input",
+  "xmp-repaired": "input",
   "invalid-page-label": "input",
   "invalid-entry": "input",
   "content-unknown-operator": "input",
@@ -625,6 +628,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "outline-item-skipped": "check the outline: the skipped item and its children are missing",
   "invalid-date": "read the raw value from the Info view if you need it",
   "xmp-invalid": "nothing to do; a metadata edit asks before replacing it",
+  "xmp-repaired": "nothing to do; a metadata edit writes the declarations the packet left out",
   "invalid-page-label": "nothing to do; affected pages fall back to decimal labels",
   "invalid-entry": "nothing to do; the view uses the entry's default",
   "content-unknown-operator": "nothing to do; check the page's rendering if the operator mattered",

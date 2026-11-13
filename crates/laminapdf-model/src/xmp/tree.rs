@@ -193,8 +193,9 @@ impl Scope {
     }
 }
 
-/// The top-level nodes of `text`.
-pub(super) fn parse(text: &str) -> Result<Vec<Node>, ParseError> {
+/// The top-level nodes of `text`, and whether a standard prefix had to be taken without its
+/// declaration ([`well_known`]).
+pub(super) fn parse(text: &str) -> Result<(Vec<Node>, bool), ParseError> {
     // XML 1.0 §2.2: a document holds only `Char`s. quick-xml lets a NUL or other C0 control
     // through, and the writer, which never writes one, would then change what a value or a
     // namespace URI says on a rewrite.
@@ -244,7 +245,8 @@ pub(super) fn parse(text: &str) -> Result<Vec<Node>, ParseError> {
             Event::Eof => break,
         }
     }
-    builder.finish(text.len())
+    let undeclared = builder.undeclared;
+    Ok((builder.finish(text.len())?, undeclared))
 }
 
 fn position(p: u64) -> usize {
@@ -285,6 +287,8 @@ struct Builder {
     scope: Scope,
     /// The declarations of the open elements, which are the ones in scope.
     in_scope: usize,
+    /// A standard prefix was read without its declaration.
+    undeclared: bool,
 }
 
 impl Builder {
@@ -388,7 +392,7 @@ impl Builder {
 
     /// `qualified` with its prefix resolved. A colon must separate a non-empty prefix from a
     /// non-empty local name (Namespaces in XML 1.0 §4), so `:x` and `a:b:c` are refused.
-    fn resolve(&self, qualified: &str, attribute: bool, offset: u64) -> Result<Name, ParseError> {
+    fn resolve(&mut self, qualified: &str, attribute: bool, offset: u64) -> Result<Name, ParseError> {
         let (prefix, local) = qualified.split_once(':').unwrap_or(("", qualified));
         if local.is_empty() || local.contains(':') || (prefix.is_empty() && qualified.contains(':')) {
             return Err(ParseError::Syntax { offset });
@@ -396,11 +400,11 @@ impl Builder {
         // An unprefixed attribute is in no namespace (Namespaces in XML §6.2).
         let namespace = if attribute && prefix.is_empty() {
             ""
+        } else if let Some(namespace) = self.scope.resolve(prefix) {
+            namespace
         } else {
-            self.scope
-                .resolve(prefix)
-                .or_else(|| well_known(prefix))
-                .ok_or(ParseError::UnboundPrefix { offset })?
+            self.undeclared = true;
+            well_known(prefix).ok_or(ParseError::UnboundPrefix { offset })?
         };
         Ok(Name {
             prefix: prefix.to_owned(),
