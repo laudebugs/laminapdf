@@ -37,6 +37,7 @@
             "unknown-annotation",
             "annotation-locked",
             "annotation-not-editable",
+            "invalid-label-ranges",
             "sink",
             "not-rebased",
             "sink-not-empty",

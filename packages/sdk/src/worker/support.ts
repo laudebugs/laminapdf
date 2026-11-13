@@ -60,6 +60,7 @@ export const DOCUMENT_METHODS = {
   saveCopy: 1,
   adoptCopy: 2,
   setMetadata: 2,
+  setPageLabels: 1,
   structureTree: 0,
   undo: 0,
   warnings: 0,

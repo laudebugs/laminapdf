@@ -35,6 +35,10 @@ ts = "packages/sdk/examples/edit-metadata.ts"
 rust = "crates/laminapdf/examples/edit_metadata.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/page-labels.ts"
+rust = "crates/laminapdf/examples/page_labels.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/pdf-ua-report.ts"
 rust = "crates/laminapdf/examples/pdf_ua_report.rs"
 
