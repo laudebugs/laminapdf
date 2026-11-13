@@ -18,6 +18,7 @@ import pdfaArchive2b from "../../../../fixtures/golden/examples/pdf_a_archive-2b
 import bookmarksPdf from "../../../../fixtures/golden/links-and-outlines.pdf";
 import metadataPdf from "../../../../fixtures/golden/metadata.pdf";
 import taggedPdf from "../../../../fixtures/golden/tagged-report.pdf";
+import grayPhoto from "../../../../fixtures/images/photo-gray.jpg";
 import photo from "../../../../fixtures/images/photo-rgb.jpg";
 import report from "../../../../fixtures/markdown/report.md";
 import formsPdf from "../../../../fixtures/pages/forms.pdf";
@@ -37,6 +38,7 @@ const inputs: Inputs = {
       "fixtures/fonts/NotoSansHebrew-Regular.ttf": notoSansHebrew,
       "fixtures/fonts/NotoSansSC-Regular.otf": notoSansSC,
       "fixtures/images/photo-rgb.jpg": photo,
+      "fixtures/images/photo-gray.jpg": grayPhoto,
       "fixtures/fonts/NotoSans-RegularBold.ttc": notoSansCollection,
       "fixtures/markdown/report.md": report,
       "fixtures/golden/metadata.pdf": metadataPdf,

@@ -161,6 +161,11 @@
   --paper-capability-legend-width: 220px;
   --paper-dialog-width-wide: 820px;
   --paper-menu-width: 260px;
+  --paper-document-tab-strip-height: 34px;
+  --paper-document-tab-min-width: 120px;
+  --paper-document-tab-max-width: 220px;
+  --paper-document-tab-close-size: 24px;
+  --paper-document-tab-close-icon-size: 14px;
   --paper-menu-item-height: 32px;
   --paper-tooltip-offset: 6px;
   --paper-link-preview-width: 248px;

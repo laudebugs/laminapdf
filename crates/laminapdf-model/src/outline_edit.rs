@@ -19,7 +19,7 @@ use crate::id::OutlineItemId;
 /// Where an item goes among its siblings. Positions name items, never indices, since indices
 /// shift while an edit runs.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum SiblingPosition {
@@ -35,7 +35,7 @@ pub enum SiblingPosition {
 
 /// Why an outline edit failed.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum OutlineTreeError {
@@ -53,7 +53,7 @@ pub enum OutlineTreeError {
 impl OutlineTreeError {
     /// The item the error names.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn item(&self) -> &OutlineItemId {
         match self {
@@ -101,7 +101,7 @@ struct Node {
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone)]
 pub struct OutlineTree {
     /// The `/Outlines` dictionary, when the catalog points at one.
@@ -117,7 +117,7 @@ impl OutlineTree {
     /// # Errors
     /// Reading errors of the outline ([`Document::outline`]).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn read(doc: &Document) -> Result<Self> {
         let catalog = doc.catalog()?;
         let root = match catalog.get("Outlines") {
@@ -170,7 +170,7 @@ impl OutlineTree {
     /// [`OutlineTree::write`] rewrites them whole. A wrong `/Count` alone doesn't count: the
     /// write corrects it without a report, since many writers get it wrong harmlessly.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn repaired(&self) -> bool {
         self.repaired
@@ -178,7 +178,7 @@ impl OutlineTree {
 
     /// Whether the tree has this item.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn contains(&self, id: &OutlineItemId) -> bool {
         self.find(id).is_some()
@@ -186,7 +186,7 @@ impl OutlineTree {
 
     /// The item's parent (`None` at the top level), or `None` for an unknown item.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn parent(&self, id: &OutlineItemId) -> Option<Option<&OutlineItemId>> {
         let node = self.nodes.get(self.find(id)?)?;
@@ -195,7 +195,7 @@ impl OutlineTree {
 
     /// The item and every item under it, the item first.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn subtree(&self, id: &OutlineItemId) -> Vec<OutlineItemId> {
         let Some(index) = self.find(id) else { return Vec::new() };
@@ -207,7 +207,7 @@ impl OutlineTree {
 
     /// Every item, depth-first.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn items(&self) -> Vec<OutlineItemId> {
         let mut out = Vec::new();
@@ -228,7 +228,7 @@ impl OutlineTree {
     /// [`OutlineTreeError::UnknownItem`] for a parent the tree hasn't; `NotASibling` for a
     /// position naming an item outside the parent's children.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn insert(
         &mut self,
         item: ObjRef,
@@ -257,7 +257,7 @@ impl OutlineTree {
     /// `UnknownItem`, `NotASibling`; `IntoItself` when `parent` is the item or under it, or
     /// the position names the item itself.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn move_item(
         &mut self,
         item: &OutlineItemId,
@@ -289,7 +289,7 @@ impl OutlineTree {
     /// # Errors
     /// `UnknownItem`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn remove(
         &mut self,
         item: &OutlineItemId,
@@ -334,7 +334,7 @@ impl OutlineTree {
     /// # Errors
     /// `UnknownItem`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn set_open(&mut self, item: &OutlineItemId, open: bool) -> core::result::Result<(), OutlineTreeError> {
         let index = self.require(item)?;
         if let Some(n) = self.nodes.get_mut(index) {
@@ -350,7 +350,7 @@ impl OutlineTree {
     /// # Errors
     /// Errors of the overlay.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn write(&mut self, cos: &mut CosMut<'_>) -> Result<()> {
         for node in &mut self.nodes {
             if let Slot::Direct(dict) = &node.slot {

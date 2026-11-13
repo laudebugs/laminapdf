@@ -81,7 +81,7 @@ const SMALL_MAX_MEMORY: u64 = 64 << 20;
 
 /// One module of `@laminapdf/wasm`.
 pub(crate) struct Module {
-    /// `base`, `text`, `extract` or `render_hayro`: the files are `lamina_pdf_<name>.{js,d.ts,wasm}`.
+    /// `base`, `text`, `extract`, `render_hayro` or `tiff`: the files are `lamina_pdf_<name>.{js,d.ts,wasm}`.
     pub(crate) name: &'static str,
     /// The crate built (`laminapdf-wasm` for Lamina PDF's three modules).
     pub(crate) krate: &'static str,
@@ -104,7 +104,7 @@ impl Module {
 }
 
 /// The modules, in build order.
-pub(crate) const MODULES: [Module; 4] = [
+pub(crate) const MODULES: [Module; 5] = [
     Module {
         name: "base",
         krate: "laminapdf-wasm",
@@ -131,6 +131,14 @@ pub(crate) const MODULES: [Module; 4] = [
         name: "render_hayro",
         krate: "laminapdf-render-wasm",
         artefact: "laminapdf_render_wasm",
+        features: &[],
+    },
+    // laminapdf-render's TIFF writer: the web reader's document worker loads it when a
+    // TIFF export starts, so it is never part of the reader's startup.
+    Module {
+        name: "tiff",
+        krate: "laminapdf-tiff-wasm",
+        artefact: "laminapdf_tiff_wasm",
         features: &[],
     },
 ];

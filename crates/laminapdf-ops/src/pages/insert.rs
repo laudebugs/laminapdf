@@ -17,7 +17,7 @@ use crate::wire;
 /// On the wire: `{ "op": "insertBlankPages", "args": { "at": { "after": "p3.0" }, "count": 2,
 /// "size": { "width": 612, "height": 792 }, "rotate": 0 } }`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -49,7 +49,7 @@ impl Eq for InsertBlankPages {}
 impl InsertBlankPages {
     /// The op that inserts `count` pages of `size` at `at`, upright.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn new(at: PagePosition, count: u32, size: PageSize) -> Self {
         Self {
@@ -62,7 +62,7 @@ impl InsertBlankPages {
 
     /// With the pages shown at `rotate`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn with_rotate(mut self, rotate: Rotation) -> Self {
         self.rotate = rotate;

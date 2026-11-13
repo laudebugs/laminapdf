@@ -8,6 +8,7 @@ export type {
   FlowOptions,
   FlowReport,
   FlowTemplate,
+  ImagesToPdfOptions,
   LineCap,
   LineJoin,
   MarkdownFonts,
@@ -25,7 +26,7 @@ export type {
   TextBoxOptions,
   TextOptions,
 } from "./builder.js";
-export { Builder, PAGE_SIZES, Page, PendingPath, Surface, TAG_NAMES } from "./builder.js";
+export { Builder, imagesToPdf, PAGE_SIZES, Page, PendingPath, Surface, TAG_NAMES } from "./builder.js";
 export { Document, PageRef, SaveJob } from "./document.js";
 export type { Diagnostic, ErrorKind, LaminaPdfWarning, Location } from "./errors.js";
 export { isLaminaPdfError, LaminaPdfError } from "./errors.js";

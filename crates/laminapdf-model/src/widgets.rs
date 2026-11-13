@@ -12,7 +12,7 @@ use crate::id::PageId;
 
 /// A widget annotation on a page and the field it belongs to.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[non_exhaustive]
 pub struct PageWidget {
@@ -33,7 +33,7 @@ impl Document {
     /// # Errors
     /// Unavailable input and hard limits.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn page_widgets(&self, page: &PageId) -> Result<Vec<PageWidget>> {
         let Some(r) = page.as_lamina_id().obj_ref() else {
             return Ok(Vec::new());
@@ -103,7 +103,7 @@ fn dict(doc: &Document, r: ObjRef) -> Result<Option<Dict>> {
 /// number from 2 that makes its fully qualified name unique (E2 plan §11). `#` may appear in a
 /// partial name; only a period may not.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct FieldNames {
     names: BTreeSet<String>,
@@ -112,7 +112,7 @@ pub struct FieldNames {
 impl FieldNames {
     /// Whether some field has the fully qualified name `name`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub fn contains(&self, name: &str) -> bool {
         self.names.contains(name)
@@ -121,7 +121,7 @@ impl FieldNames {
     /// Records `name`, a fully qualified name in use that [`Document::field_names`] doesn't
     /// list (a field the form's `/Fields` doesn't reach, for one).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn insert(&mut self, name: String) {
         self.names.insert(name);
     }
@@ -131,7 +131,7 @@ impl FieldNames {
     /// from 2 that no field uses. A copy of a copy continues the series: the copy of `total#2`
     /// is `total#3`, not `total#2#2`. The new name is recorded, so the next call picks another.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn unique_partial(&mut self, parent: Option<&str>, partial: &str) -> String {
         let full = |p: &str| parent.map_or_else(|| p.to_owned(), |parent| format!("{parent}.{p}"));
         let partial = match partial.rsplit_once('#') {
@@ -158,7 +158,7 @@ impl Document {
     /// # Errors
     /// Unavailable input and hard limits.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn field_name(&self, field: ObjRef) -> Result<Option<String>> {
         let max_depth = self.limits().max_tree_depth();
         let mut parts = Vec::new();
@@ -188,7 +188,7 @@ impl Document {
     /// # Errors
     /// Unavailable input and hard limits.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fn field_names(&self) -> Result<FieldNames> {
         let mut names = FieldNames::default();
         let Some(form) = self.catalog()?.get("AcroForm").cloned() else {

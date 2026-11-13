@@ -486,7 +486,7 @@ export class Document extends Handle<BaseGlue> {
    *
    * @throws {@link LaminaPdfError} as {@link Document.outline}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   initialView(): InitialView {
     return this.call(() => this.#extracting("doc.initialView()").initialView());
@@ -499,7 +499,7 @@ export class Document extends Handle<BaseGlue> {
    *
    * @throws {@link LaminaPdfError} as {@link Document.outline}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   threads(): ArticleThread[] {
     return this.call(() => this.#extracting("doc.threads()").threads());
@@ -511,7 +511,7 @@ export class Document extends Handle<BaseGlue> {
    *
    * @throws {@link LaminaPdfError} as {@link Document.outline}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   namedDestinations(): NamedDestination[] {
     return this.call(() => this.#extracting("doc.namedDestinations()").namedDestinations());
@@ -524,7 +524,7 @@ export class Document extends Handle<BaseGlue> {
    *
    * @throws {@link LaminaPdfError} `page-index-out-of-range`; as {@link Document.outline}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   destinationAt(page: number, view: TargetView): ExplicitDestination {
     return this.call(() => this.#extracting("doc.destinationAt()").destinationAt(page, view));
@@ -602,7 +602,7 @@ export class Document extends Handle<BaseGlue> {
    *
    * @throws {@link LaminaPdfError} `page-index-out-of-range`; as {@link Document.outline}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   pageAnnotations(index: number): PageAnnotation[] {
     return this.call(() => this.#extracting("doc.pageAnnotations()").pageAnnotations(index));
@@ -905,7 +905,7 @@ export class Document extends Handle<BaseGlue> {
    * @throws {@link LaminaPdfError} `open-action-not-destination` when `open` would replace an
    *   open action that runs a script or another action; as {@link Document.apply}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   setInitialView(patch: InitialViewPatch): Edited {
     return this.apply([setInitialViewOp(patch)]);
@@ -930,7 +930,7 @@ export class Document extends Handle<BaseGlue> {
    *   `data.what` says which); `unknown-page` for a page this document doesn't have; as
    *   {@link Document.apply}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   setPageLabels(ranges: readonly PageLabelRange[]): Edited {
     return this.apply([setPageLabelsOp(ranges)]);
@@ -956,7 +956,7 @@ export class Document extends Handle<BaseGlue> {
    *
    * @throws {@link LaminaPdfError} reading errors.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   xmpPacket(): XmpText {
     return this.call(() => this.#doc.xmpPacket());
@@ -979,7 +979,7 @@ export class Document extends Handle<BaseGlue> {
    *   written; `xmp-claim-read-only` for the PDF/A or PDF/UA identification; `malformed-xmp`; as
    *   {@link Document.apply}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   setXmpProperty(namespace: string, prefix: string, name: string, value: XmpValue, options?: XmpEditOptions): Edited {
     return this.apply([setXmpPropertyOp(namespace, prefix, name, value, options)]);
@@ -992,7 +992,7 @@ export class Document extends Handle<BaseGlue> {
    *
    * @throws {@link LaminaPdfError} as {@link Document.setXmpProperty}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   removeXmpProperty(namespace: string, name: string, options?: XmpEditOptions): Edited {
     return this.apply([removeXmpPropertyOp(namespace, name, options)]);
@@ -1008,7 +1008,7 @@ export class Document extends Handle<BaseGlue> {
    *   doesn't parse; `xmp-claim-read-only` when it changes the PDF/A or PDF/UA identification; as
    *   {@link Document.apply}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   replaceXmpPacket(xml: string): Edited {
     return this.apply([replaceXmpPacketOp(xml)]);
@@ -1026,7 +1026,7 @@ export class Document extends Handle<BaseGlue> {
    * @throws {@link LaminaPdfError} `unknown-page` for an anchor that isn't a page of the
    *   document; as {@link Document.apply}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   insertBlankPages(at: PagePosition, count: number, size: PageSize, options?: InsertBlankPagesOptions): Edited {
     return this.apply([insertBlankPagesOp(at, count, size, options)]);
@@ -1044,7 +1044,7 @@ export class Document extends Handle<BaseGlue> {
    * @throws {@link LaminaPdfError} `no-pages-left` when `pages` is every page of the document;
    *   `unknown-page` for an ID that isn't a page of it; as {@link Document.apply}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   deletePages(pages: readonly string[], options?: DeletePagesOptions): Edited {
     return this.apply([deletePagesOp(pages, options)]);
@@ -1059,7 +1059,7 @@ export class Document extends Handle<BaseGlue> {
    * @throws {@link LaminaPdfError} `unknown-page` for an ID that isn't a page of the document; as
    *   {@link Document.apply}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   movePages(pages: readonly string[], to: PagePosition): Edited {
     return this.apply([movePagesOp(pages, to)]);
@@ -1074,7 +1074,7 @@ export class Document extends Handle<BaseGlue> {
    * @throws {@link LaminaPdfError} `unknown-page` for an ID that isn't a page of the document; as
    *   {@link Document.apply}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   rotatePages(pages: readonly string[], angle: Rotation, options?: RotatePagesOptions): Edited {
     return this.apply([rotatePagesOp(pages, angle, options)]);
@@ -1088,7 +1088,7 @@ export class Document extends Handle<BaseGlue> {
    * @throws {@link LaminaPdfError} `unknown-page` for an ID that isn't a page of the document; as
    *   {@link Document.apply}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   reversePages(pages: readonly string[]): Edited {
     return this.apply([reversePagesOp(pages)]);
@@ -1107,7 +1107,7 @@ export class Document extends Handle<BaseGlue> {
    * @throws {@link LaminaPdfError} `unknown-page` for an ID that isn't a page of the document; as
    *   {@link Document.apply}.
    *
-   * @since 0.2.0
+   * @since 0.3.0
    */
   duplicatePages(pages: readonly string[], at: PagePosition): Edited {
     return this.apply([duplicatePagesOp(pages, at)]);

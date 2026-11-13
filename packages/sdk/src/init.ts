@@ -13,7 +13,7 @@ export type BaseGlue = typeof baseGlue;
 /** The text module's wasm-bindgen glue (a superset of the base module's API). */
 export type TextGlue = typeof import("@laminapdf/wasm/text");
 /** The extract module's wasm-bindgen glue (the base module's API plus `WasmPage.text`). */
-type ExtractGlue = typeof import("@laminapdf/wasm/extract");
+export type ExtractGlue = typeof import("@laminapdf/wasm/extract");
 
 /**
  * Where a module comes from: a URL (or URL string) to fetch, a `Response` (or a promise of one),
@@ -192,6 +192,11 @@ export function extractsText(doc: object): boolean {
 /** The text module, when loaded. */
 export function textModule(): Instance<TextGlue> | undefined {
   return text.loaded;
+}
+
+/** @internal The text module when it is loaded, else the extract module, else none. */
+export function extractingModule(): Instance<ExtractGlue> | undefined {
+  return (text.loaded ?? extract.loaded) as unknown as Instance<ExtractGlue> | undefined;
 }
 
 /**

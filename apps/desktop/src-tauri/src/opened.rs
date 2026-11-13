@@ -1,6 +1,8 @@
 //! What happens around a document that opens from a path, whoever asked (the open dialog, the
 //! OS, the recent list): its window's engine opens it, the app's and the OS's recent lists record
 //! it (unless the user turned that off), and the watcher watches its file. Closing undoes the watch.
+//! A file that is open already isn't opened twice (unless the user allows it): its tab comes to the
+//! front instead.
 
 use std::fmt::Write as _;
 use std::fs::File;
@@ -18,12 +20,29 @@ use crate::prefs::Prefs;
 use crate::recent::{self, RecentFiles};
 use crate::watch::Watcher;
 
-/// Opens `path` in `window`, then records and watches it.
+/// Opens `path` in `window`, then records and watches it. A file open already, in any window,
+/// shows its tab instead and reports [`DesktopError::AlreadyOpen`], unless duplicates are allowed.
 pub(crate) fn open_path(app: &tauri::AppHandle, window: &str, path: &Path) -> Result<DocumentMeta, DesktopError> {
-    let opened = app.state::<Arc<Engines>>().open(window, path)?;
+    let engines = Arc::clone(&app.state::<Arc<Engines>>());
+    if !app.state::<Prefs>().get().allow_duplicates
+        && let Some((doc, owner)) = engines.open_from(path)
+    {
+        crate::windows::activate(app, &owner, doc);
+        return Err(DesktopError::AlreadyOpen);
+    }
+    let opened = engines.open(window, path)?;
     remember(app, path, &opened);
     app.state::<Watcher>().watch(path, window, DocId(opened.doc));
     Ok(opened)
+}
+
+/// `doc`'s tab moved from `from` to `to`: its file's changes now go to `to`.
+pub(crate) fn move_watch(app: &tauri::AppHandle, doc: DocId, from: &str, to: &str) {
+    let watcher = app.state::<Watcher>();
+    watcher.unwatch(from, doc);
+    if let Some(path) = app.state::<Arc<Engines>>().path_of(doc) {
+        watcher.watch(&path, to, doc);
+    }
 }
 
 /// `window`'s document `doc` closed: its file is no longer watched for it.

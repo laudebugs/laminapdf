@@ -19,7 +19,7 @@ use crate::wire;
 /// finite: [`Offset::new`] and the wire form refuse anything else, so a move never writes a
 /// coordinate a PDF can't hold.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -31,7 +31,7 @@ pub struct Offset {
 impl Offset {
     /// The move by `(dx, dy)`; `None` unless both are finite.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn new(dx: f64, dy: f64) -> Option<Self> {
         if dx.is_finite() && dy.is_finite() {
@@ -43,7 +43,7 @@ impl Offset {
 
     /// Along x.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn dx(self) -> f64 {
         self.dx
@@ -51,7 +51,7 @@ impl Offset {
 
     /// Along y (up is positive).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn dy(self) -> f64 {
         self.dy
@@ -87,7 +87,7 @@ impl<'de> Deserialize<'de> for Offset {
 /// On the wire: `{ "op": "updateAnnot", "args": { "id": "a12.0", "contents": "Checked",
 /// "translate": { "dx": 0, "dy": -10 } } }`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -138,7 +138,7 @@ pub struct UpdateAnnot {
 impl UpdateAnnot {
     /// The op that changes nothing yet on `id`; set the fields to change.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn new(id: AnnotId) -> Self {
         Self {
@@ -224,7 +224,7 @@ impl UpdateAnnot {
 ///
 /// On the wire: `{ "op": "deleteAnnot", "args": { "id": "a12.0" } }`.
 ///
-/// Added in 0.2.0.
+/// Added in 0.3.0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -239,7 +239,7 @@ pub struct DeleteAnnot {
 impl DeleteAnnot {
     /// The op that deletes `id`.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     #[must_use]
     pub const fn new(id: AnnotId) -> Self {
         Self { id }

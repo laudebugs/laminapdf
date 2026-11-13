@@ -8,13 +8,15 @@
   "excludeFolders": ["apps/docs/src/content/docs/reference/sdk", "crates/laminapdf/examples/differential"],
   "excludeFiles": ["CHANGELOG.md"],
   "rules": [
+    "Read the docs that ship with the installed package first: node_modules/@laminapdf/sdk/docs/llms.txt lists every page and docs/api/ holds the API reference (Rust: the laminapdf crate's docs/ folder). They match the installed version; https://docs.laminapdf.com/llms.txt is the latest.",
     "Call `await init()` once before using @laminapdf/sdk; every call after it is synchronous. Fonts and text need `init({ text: true })`, reading text needs `init({ extract: true })` or `{ text: true }`. Rust needs no setup.",
     "Positions are points from the top-left corner of the page as displayed, with y going down. A text position is its baseline. Page indexes start at 0.",
-    "Branch on an error's `code`, never its message: every error is a LaminaPdfError with a stable code and a hint, explained at its docsUrl.",
+    "Branch on an error's `code`, never its message: every error is a LaminaPdfError with a stable code and a hint, and docs/errors/<code>.md explains each one. Warnings about repaired files use the same codes.",
     "Free what you open: a Document or Builder holds WebAssembly memory, so declare it with `using` or call `free()`.",
-    "Prefer the docs in the installed package (node_modules/@laminapdf/sdk/docs/, or the laminapdf crate's docs/ folder): they match the installed version.",
     "When a name from older code doesn't exist, look it up in docs/renames.json, which says what each renamed item is called now.",
-    "Turn prose into tagged pages with `builder.markdown(text, { fonts, images })` (Rust: Builder::markdown). Pass embedded fonts for text beyond Latin and for PDF/UA-1.",
-    "Lay out data-driven documents with `builder.flow(document, { data, fonts, images })` over the laminapdf.document/1 JSON format; put totals and dates in the data already formatted."
+    "Turn prose into tagged pages with `builder.markdown(text, { fonts, images })` (Rust: Builder::markdown). Images go by the name the Markdown uses and nothing is fetched. Pass embedded fonts for text beyond Latin and for PDF/UA-1. Without code: `laminapdf build report.md -o report.pdf --font regular=FILE`.",
+    "Lay out data-driven documents with `builder.flow(document, { data, fonts, images })` over the laminapdf.document/1 JSON format, typed as FlowDocument, or FlowTemplate when it holds `$data`, `$item`, `$each` or `$if` placeholders. Check it against docs/schemas/document.schema.json. Its `profiles` are not applied for you: pass them to `new Builder({ profiles })`. Put totals and dates in the data already formatted.",
+    "Get text out in reading order with `doc.extract({ format })`: \"text\" or \"markdown\" as a string, \"json\" with each block's kind, page and box, \"chunks\" for retrieval. Hidden text never reaches the output. Rust: Document::extract and extract_json.",
+    "The `laminapdf` command line does this without code: info, check, extract, render (PNG), reveal (what a file holds beyond its pages; `--fail-on` exits 6), build and pages rotate, each with `--json`. `laminapdf mcp --root DIR` serves read-only tools to MCP agents; `--allow-write` adds build, rotate and render."
   ]
 }

@@ -45,10 +45,15 @@
       "types": "./dist/lamina_pdf_render_hayro.d.ts",
       "default": "./dist/lamina_pdf_render_hayro.js"
     },
+    "./tiff": {
+      "types": "./dist/lamina_pdf_tiff.d.ts",
+      "default": "./dist/lamina_pdf_tiff.js"
+    },
     "./lamina_pdf_base.wasm": "./dist/lamina_pdf_base.wasm",
     "./lamina_pdf_text.wasm": "./dist/lamina_pdf_text.wasm",
     "./lamina_pdf_extract.wasm": "./dist/lamina_pdf_extract.wasm",
     "./lamina_pdf_render_hayro.wasm": "./dist/lamina_pdf_render_hayro.wasm",
+    "./lamina_pdf_tiff.wasm": "./dist/lamina_pdf_tiff.wasm",
     "./package.json": "./package.json"
   },
   "scripts": {

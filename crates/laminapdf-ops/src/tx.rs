@@ -86,7 +86,7 @@ pub struct Applied {
     /// valid PDF/A ([`SetXmpProperty`](crate::SetXmpProperty),
     /// [`ReplaceXmpPacket`](crate::ReplaceXmpPacket)).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub declared: Vec<laminapdf_model::xmp::ExtensionProperty>,
     /// Annotations an annotation op deleted besides the one it names: Popups, replies and the
     /// rest of a group.
@@ -98,7 +98,7 @@ pub struct Applied {
     pub widgets: Vec<TouchedWidget>,
     /// The bookmarks [`AddOutlineItem`](crate::AddOutlineItem) created, in order.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub created_outline_items: Vec<OutlineItemId>,
     /// The links [`AddLink`](crate::AddLink) created, in order.
     ///
@@ -108,33 +108,33 @@ pub struct Applied {
     /// stored as a direct dictionary) and rewrote them whole; items that were direct have new
     /// IDs.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub outline_repaired: bool,
     /// What still names a destination that [`DeleteNamedDestination`](crate::DeleteNamedDestination)
     /// deleted: those bookmarks and links no longer go anywhere.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub destination_uses: Vec<DestinationUse>,
     /// The page IDs in order after the edit, when it changed the page list (inserted,
     /// deleted, moved or reversed pages); `None` otherwise.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub page_order: Option<Vec<PageId>>,
     /// The references to deleted pages that the edit retargeted or removed (E2 plan §11):
     /// outline items, links, named destinations, `/OpenAction` and structure elements.
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub references: Vec<ReferenceChange>,
     /// The form fields whose widgets a duplicated page showed: each copy's new field, or a
     /// signature field whose widget was not copied (E2 plan §2.2).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub fields: Vec<FieldChange>,
     /// The copies a page duplication made whose tags couldn't all be cloned: content of
     /// elements that also hold content on other pages is left untagged on them
     /// (`DuplicateTagsIncomplete`).
     ///
-    /// Added in 0.2.0.
+    /// Added in 0.3.0.
     pub tags_incomplete: Vec<PageId>,
 }
 
