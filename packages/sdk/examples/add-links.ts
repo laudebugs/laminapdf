@@ -13,7 +13,7 @@ export function addLinks(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
   onChart.contents = "Sales figures";
 
   // The line "Widgets sold out in May.", as a selection gives it.
-  const onText = doc.linkOnText(0, [56, 358.241, 196.335, 373.223], { uri: "https://example.com/widgets" });
+  const onText = doc.linkOnText(0, [[56, 358.241, 196.335, 373.223]], { uri: "https://example.com/widgets" });
   onText.contents = "Widget stock";
 
   const added = doc.apply([

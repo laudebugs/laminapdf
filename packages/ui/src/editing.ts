@@ -16,6 +16,7 @@ export {
 export { EditArea } from "./edit/edit-area.js";
 export { HistoryPanel, type HistoryPanelProps } from "./edit/history-panel.js";
 export {
+  type AddressCheck,
   LinkEditor,
   type LinkEditorProps,
   type LinkGoal,

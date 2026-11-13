@@ -151,6 +151,24 @@ mod update_and_delete {
     }
 
     #[test]
+    fn new_quads_alone_make_the_area_their_bounds() {
+        let (mut doc, id) = with_link();
+        let quad = [
+            UserSpacePoint::new(80.0, 704.0),
+            UserSpacePoint::new(120.0, 704.0),
+            UserSpacePoint::new(80.0, 702.0),
+            UserSpacePoint::new(120.0, 702.0),
+        ];
+        let mut update = UpdateLink::new(id);
+        update.quads = Some(vec![quad]);
+        apply(&mut doc, update);
+        assert_eq!(
+            links(&doc, 0).pop().unwrap().rect,
+            UserSpaceRect::from_corners(80.0, 702.0, 120.0, 704.0)
+        );
+    }
+
+    #[test]
     fn an_update_that_changes_nothing_leaves_no_step() {
         let (mut doc, id) = with_link();
         let mut update = UpdateLink::new(id);
@@ -245,6 +263,32 @@ mod tagged {
             (Some(b"Link".to_vec()), Some(owner), Some(link), 2, before.len(), true,),
             "the link {id} is {elem:?}"
         );
+    }
+
+    #[test]
+    fn a_link_on_linked_text_goes_after_that_link_and_not_inside_it() {
+        let (mut doc, owner) = file();
+        let (_, first) = add(&mut doc);
+        let (_, second) = add(&mut doc);
+        let after = kids(&doc, owner);
+        let at = |r: ObjRef| after.iter().position(|k| k.as_ref() == Some(r));
+        assert_eq!(
+            (
+                dict(&doc, second).get("P").and_then(Object::as_ref),
+                at(second).zip(at(first)).map(|(s, f)| s - f),
+                owners(&doc)[0].as_ref(),
+            ),
+            (Some(owner), Some(1), Some(first))
+        );
+    }
+
+    #[test]
+    fn a_delete_leaves_no_element_naming_a_deleted_parent() {
+        let (mut doc, owner) = file();
+        let (first_id, _) = add(&mut doc);
+        let (_, second) = add(&mut doc);
+        apply(&mut doc, DeleteLink::new(first_id));
+        assert_eq!(dict(&doc, second).get("P").and_then(Object::as_ref), Some(owner));
     }
 
     #[test]

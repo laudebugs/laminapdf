@@ -130,7 +130,7 @@ impl AddLink {
 /// Changes a link: its area, its quads (an empty list removes them, making it a link on its
 /// area), where it goes, or its description (`null` removes it). An absent field is left
 /// alone, and so is everything the op doesn't name, its place in the structure tree
-/// included. `/Rect` always bounds the quads.
+/// included. `/Rect` always bounds the quads: new quads without a new area make it their bounds.
 ///
 /// A `Locked` link refuses a change of its area, quads or target, and a `LockedContents` one a
 /// change of its description (`annotation-locked`); an annotation that isn't a link is
@@ -207,7 +207,14 @@ impl UpdateLink {
                 Some(q) => q.clone(),
                 None => read_quads(&before),
             };
-            let rect = bounds(self.rect.or_else(|| read_rect(&before)).unwrap_or(ZERO), &quads)?;
+            // A new rectangle, or new quads alone, set the area; the old one is kept only when
+            // neither changes it, so a moved text link doesn't keep its old area.
+            let base = match (self.rect, self.quads.as_deref()) {
+                (Some(rect), _) => rect,
+                (None, Some([[first, ..], ..])) => UserSpaceRect::from_corners(first.x, first.y, first.x, first.y),
+                _ => read_rect(&before).unwrap_or(ZERO),
+            };
+            let rect = bounds(base, &quads)?;
             dict.insert("Rect", numbers([rect.x0, rect.y0, rect.x1, rect.y1]));
             if quads.is_empty() {
                 dict.remove("QuadPoints");

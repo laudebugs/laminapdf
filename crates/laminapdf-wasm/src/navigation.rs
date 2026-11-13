@@ -544,9 +544,9 @@ impl WasmDocument {
     }
 
     /// The edit that adds a link on text of page `page`: `lines` are the text's boxes, one per
-    /// line, four numbers each (`x0, y0, x1, y1` in page space), as a selection gives them; the
-    /// link takes their quads and, in a tagged document, the marked content under them (the
-    /// extract and text modules).
+    /// line, each `[x0, y0, x1, y1]` in page space, as a selection gives them; the link takes their
+    /// quads and, in a tagged document, the marked content under them (the extract and text
+    /// modules).
     ///
     /// # Errors
     /// `invalid-argument` for lines or a target that aren't ones; `page-index-out-of-range`;
@@ -555,18 +555,10 @@ impl WasmDocument {
     pub fn link_on_text(
         &self,
         page: u32,
-        #[wasm_bindgen(unchecked_param_type = "number[]")] lines: &JsValue,
+        #[wasm_bindgen(unchecked_param_type = "[number, number, number, number][]")] lines: &JsValue,
         #[wasm_bindgen(unchecked_param_type = "OutlineTarget")] target: &JsValue,
     ) -> JsResult<JsValue> {
-        let numbers: Vec<f64> = from_js(lines, "lines")?;
-        let (boxes, rest) = numbers.as_chunks::<4>();
-        if !rest.is_empty() || boxes.is_empty() {
-            return Err(crate::error::invalid_argument(
-                "lines",
-                "four numbers per line, one line or more".to_owned(),
-                Vec::new(),
-            ));
-        }
+        let boxes: Vec<[f64; 4]> = from_js(lines, "lines")?;
         let lines: Vec<_> = boxes.iter().map(|&[x0, y0, x1, y1]| rect(x0, y0, x1, y1)).collect();
         let target = from_js(target, "target")?;
         let op = self

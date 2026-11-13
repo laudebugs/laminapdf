@@ -71,14 +71,22 @@ export interface LinkEditorProps {
   readonly onFollow?: () => void;
   /** Deletes the link (a new one is dropped). */
   readonly onDelete: () => void;
+  /** Checks a web or `mailto:` address before it is written. */
+  readonly checkAddress: (address: string) => AddressCheck;
 }
 
-/** An `http` or `https` address with a host. */
-const WEB = /^https?:\/\/[^\s/?#]+/i;
-/** A scheme that would run a script. */
-const SCRIPT = /^\s*(javascript|vbscript|data):/i;
-/** An email address, loosely: something@something, no spaces. */
-const EMAIL = /^[^\s@]+@[^\s@]+$/;
+/**
+ * What the app makes of an address typed for a link: the address to write (normalised, such as
+ * a host in punycode), or why it can't be one. `script` is any scheme but the web's (a script
+ * would run, or a file would open); `invalid` is text that isn't an address at all. The app owns
+ * the rule, so the editor and the reader's links agree.
+ */
+export type AddressCheck =
+  | { readonly ok: true; readonly address: string }
+  | { readonly ok: false; readonly reason: "script" | "invalid" };
+
+/** An email address, loosely: something@something, with nothing a `mailto:` address could add to. */
+const EMAIL = /^[^\s@?&#]+@[^\s@?&#]+$/;
 
 /** The parts of a `mailto:` address. */
 export function mailParts(uri: string): { address: string; subject: string } {
@@ -176,6 +184,7 @@ function GoalFields({ kind, ...props }: LinkEditorProps & { kind: Kind }): React
       return (
         <WebField
           address={goal?.kind === "web" ? goal.address : ""}
+          check={props.checkAddress}
           onAddress={(address) => props.onGoal({ kind: "web", address })}
         />
       );
@@ -183,6 +192,7 @@ function GoalFields({ kind, ...props }: LinkEditorProps & { kind: Kind }): React
       return (
         <EmailFields
           goal={goal?.kind === "email" ? goal : undefined}
+          check={props.checkAddress}
           onEmail={(address, subject) => props.onGoal({ kind: "email", address, subject })}
         />
       );
@@ -230,17 +240,26 @@ function PageField({
   );
 }
 
-function WebField({ address, onAddress }: { address: string; onAddress: (address: string) => void }): ReactNode {
+function WebField({
+  address,
+  check,
+  onAddress,
+}: {
+  address: string;
+  check: (address: string) => AddressCheck;
+  onAddress: (address: string) => void;
+}): ReactNode {
   const [error, setError] = useState<string>();
   const commit = (value: string) => {
     const typed = value.trim();
     if (typed === "" || typed === address) return setError(undefined);
-    if (!WEB.test(typed)) {
-      setError(laterMessage(SCRIPT.test(typed) ? "link.addressRefused" : "link.addressInvalid"));
+    const checked = /^mailto:/i.test(typed) ? ({ ok: false, reason: "invalid" } as const) : check(typed);
+    if (!checked.ok) {
+      setError(laterMessage(checked.reason === "script" ? "link.addressRefused" : "link.addressInvalid"));
       return;
     }
     setError(undefined);
-    onAddress(typed);
+    if (checked.address !== address) onAddress(checked.address);
   };
   return (
     <>
@@ -259,9 +278,11 @@ function WebField({ address, onAddress }: { address: string; onAddress: (address
 
 function EmailFields({
   goal,
+  check,
   onEmail,
 }: {
   goal: { address: string; subject: string } | undefined;
+  check: (address: string) => AddressCheck;
   onEmail: (address: string, subject: string) => void;
 }): ReactNode {
   const [error, setError] = useState<string>();
@@ -269,7 +290,7 @@ function EmailFields({
   const commit = (next: { address: string; subject: string }) => {
     setTyped(next);
     if (next.address === "") return setError(undefined);
-    if (!EMAIL.test(next.address)) {
+    if (!EMAIL.test(next.address) || !check(mailUri(next.address, next.subject)).ok) {
       setError(laterMessage("link.emailInvalid"));
       return;
     }
@@ -316,8 +337,14 @@ export function LinkPanel({ anchor, onDismiss, children }: LinkPanelProps): Reac
   const ref = useRef<HTMLElement>(null);
   const place = useAnchoredPlacement(ref, { anchor, place: placeBelow, gap: GAP });
   useFocusOnOpen(ref);
+  // A field commits on blur: closing blurs the one in focus first, so Escape or Done keeps what was typed.
+  const dismiss = () => {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && ref.current?.contains(active) === true) active.blur();
+    onDismiss();
+  };
   return createPortal(
-    <LayerScope dismiss={onDismiss}>
+    <LayerScope dismiss={dismiss}>
       <section
         ref={ref}
         role="dialog"
@@ -328,7 +355,7 @@ export function LinkPanel({ anchor, onDismiss, children }: LinkPanelProps): Reac
       >
         <header className="paper-link-panel-header">
           <h2 className="paper-link-panel-title">{laterMessage("link.panel")}</h2>
-          <Button variant="ghost" size={30} onPress={onDismiss}>
+          <Button variant="ghost" size={30} onPress={dismiss}>
             {laterMessage("link.done")}
           </Button>
         </header>

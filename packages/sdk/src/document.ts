@@ -542,23 +542,28 @@ export class Document extends Handle<BaseGlue> {
    *
    * @since 0.2.0
    */
-  linkOnArea(page: number, area: [number, number, number, number], target: OutlineTarget): AddLink {
-    return this.call(() => this.#extracting("doc.linkOnArea()").linkOnArea(page, area, target));
+  linkOnArea(page: number, area: readonly [number, number, number, number], target: OutlineTarget): AddLink {
+    return this.call(() => this.#extracting("doc.linkOnArea()").linkOnArea(page, [...area], target));
   }
 
   /**
    * The edit that adds a link on text of page `page`: `lines` are the text's boxes, one per line,
-   * as a selection gives them, four numbers each in page space (`x0, y0, x1, y1`). The link takes
-   * one area per line, and in a tagged document it joins the structure tree around that text.
-   * Needs a document opened while the extract or text module was loaded.
+   * as a selection gives them, each `[x0, y0, x1, y1]` in page space. The link takes one area per
+   * line, and in a tagged document it joins the structure tree around that text. Needs a document
+   * opened while the extract or text module was loaded.
    *
    * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`; as
    * {@link Document.outline}.
    *
    * @since 0.2.0
    */
-  linkOnText(page: number, lines: readonly number[], target: OutlineTarget): AddLink {
-    return this.call(() => this.#extracting("doc.linkOnText()").linkOnText(page, [...lines], target));
+  linkOnText(
+    page: number,
+    lines: readonly (readonly [number, number, number, number])[],
+    target: OutlineTarget,
+  ): AddLink {
+    const boxes = lines.map((line) => [...line] as [number, number, number, number]);
+    return this.call(() => this.#extracting("doc.linkOnText()").linkOnText(page, boxes, target));
   }
 
   /**

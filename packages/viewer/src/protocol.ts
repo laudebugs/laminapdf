@@ -251,10 +251,13 @@ export interface Methods {
   namedDestinations: { params: []; result: NamedDestination[] };
   destinationAt: { params: [page: number, view: TargetView]; result: ExplicitDestination };
   linkOnArea: {
-    params: [page: number, area: [number, number, number, number], target: OutlineTarget];
+    params: [page: number, area: readonly [number, number, number, number], target: OutlineTarget];
     result: AddLink;
   };
-  linkOnText: { params: [page: number, lines: readonly number[], target: OutlineTarget]; result: AddLink };
+  linkOnText: {
+    params: [page: number, lines: readonly (readonly [number, number, number, number])[], target: OutlineTarget];
+    result: AddLink;
+  };
   initialView: { params: []; result: InitialView };
   threads: { params: []; result: ArticleThread[] };
   pageLinks: { params: [index: number]; result: readonly PageLink[] };

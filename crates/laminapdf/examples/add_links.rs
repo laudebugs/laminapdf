@@ -26,6 +26,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// The document with two links added to its first page, saved incrementally.
 pub(crate) fn add(bytes: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut doc = Document::open_bytes(bytes, OpenOptions::new())?;
+    // These boxes fit the example's input, the quarterly report; for your own file, take them
+    // from your viewer's drawn box and selection, or from `page_text`'s lines.
     let points = |x0, y0, x1, y1| RectPt::new(Pt::new(x0), Pt::new(y0), Pt::new(x1), Pt::new(y1));
 
     // A box drawn over the chart.

@@ -6,8 +6,9 @@
 // open, so none of it is in the reader's startup script.
 
 import type { Op, OutlineTarget, PageLink } from "@laminapdf/sdk";
-import { type CommandRegistry, type EditControls, type KeyPlatform, message, type ToastQueue } from "@laminapdf/ui";
+import { type CommandRegistry, message, type ToastQueue } from "@laminapdf/ui";
 import {
+  type AddressCheck,
   LinkEditor,
   type LinkGoal,
   LinkPanel,
@@ -15,33 +16,11 @@ import {
   linkWords,
   mailParts,
   mailUri,
-  ToolRegistry,
-  EditArea as UiEditArea,
 } from "@laminapdf/ui/editing";
 import { externalLink, type Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { toolsOf } from "./edit-tools.tsx";
 import type { Engine } from "./session.ts";
-
-/**
- * The tool registry of each edit session (a viewer's `edits`): the edit runtime's pointer handling
- * and the top bar's Link toggle share it.
- */
-const registries = new WeakMap<object, ToolRegistry>();
-
-/** The tool registry of the edit session `edits`, made the first time it is asked for. */
-export function toolsOf(edits: object): ToolRegistry {
-  let tools = registries.get(edits);
-  if (tools === undefined) {
-    tools = new ToolRegistry();
-    registries.set(edits, tools);
-  }
-  return tools;
-}
-
-/** The top bar's edit area, with the Link tool of its session. */
-export function EditArea({ edits, keys }: { edits: EditControls; keys: KeyPlatform }): ReactNode {
-  return <UiEditArea edits={edits} keys={keys} tools={toolsOf(edits)} />;
-}
 
 /** The event the selection toolbar's Make link dispatches on the viewer's element. */
 const MAKE_LINK = "lamina-make-link";
@@ -53,8 +32,8 @@ type Box = readonly [number, number, number, number];
 interface Editing {
   readonly page: number;
   readonly box: Box;
-  /** A new link on text: its lines' boxes, four numbers each. */
-  readonly lines?: readonly number[];
+  /** A new link on text: its lines' boxes. */
+  readonly lines?: readonly Box[];
   /** The linked text, for the editor's context line. */
   readonly text?: string;
   /** A new link on a box the user drew. */
@@ -67,21 +46,7 @@ interface Editing {
 /** Smaller than this (in points) is a click, not a drawn box. */
 const SMALLEST = 4;
 
-/** A point of the page as shown, turned back to the page's own orientation (fractions 0 to 1). */
-function unturn(x: number, y: number, rotation: number): [number, number] {
-  switch (rotation) {
-    case 90:
-      return [y, 1 - x];
-    case 180:
-      return [1 - x, 1 - y];
-    case 270:
-      return [1 - y, x];
-    default:
-      return [x, y];
-  }
-}
-
-/** A point of the page (fractions) as shown in a view turned clockwise by `rotation`. */
+/** A point of the page (fractions 0 to 1) as shown in a view turned clockwise by `rotation`. */
 function turn(x: number, y: number, rotation: number): [number, number] {
   switch (rotation) {
     case 90:
@@ -95,6 +60,25 @@ function turn(x: number, y: number, rotation: number): [number, number] {
   }
 }
 
+/** A point of the page as shown, turned back to the page's own orientation: the turn the other way. */
+const unturn = (x: number, y: number, rotation: number) => turn(x, y, (360 - rotation) % 360);
+
+/**
+ * What the reader makes of an address typed for a link, by the rule its links follow when they
+ * open (`externalLink`): the address as it will open, a host in punycode; any scheme but the
+ * web's counts as one that would run a script.
+ */
+function checkAddress(address: string): AddressCheck {
+  const link = externalLink(address);
+  if (link.kind === "open") return { ok: true, address: link.href };
+  const scheme = /^\s*([a-z][a-z0-9+.-]*):/i.exec(address)?.[1]?.toLowerCase();
+  return { ok: false, reason: scheme === undefined || scheme === "http" || scheme === "https" ? "invalid" : "script" };
+}
+
+/** Whether a link read from the file would run a script, or open something the reader never opens. */
+const runsScript = (link: PageLink) =>
+  link.kind === "unsupported" || (link.kind === "uri" && externalLink(link.uri).kind === "refused");
+
 /** The goal a link read from the file has, for the editor. */
 function goalOf(link: PageLink): LinkGoal | undefined {
   switch (link.kind) {
@@ -103,6 +87,7 @@ function goalOf(link: PageLink): LinkGoal | undefined {
     case "named":
       return { kind: "named", name: link.name };
     case "uri":
+      if (runsScript(link)) return { kind: "script", action: link.uri };
       return /^mailto:/i.test(link.uri)
         ? { kind: "email", ...mailParts(link.uri) }
         : { kind: "web", address: link.uri };
@@ -152,6 +137,9 @@ class LinkBoxes {
     return hits[hits.length - 1];
   }
 
+  /** Called with each page once its links are read again. */
+  onLoaded: ((page: number) => void) | undefined;
+
   /** Reads the mounted pages' links again (an edit, undo or redo may have changed them). */
   reload(): void {
     for (const page of this.#slots.keys()) void this.#load(page);
@@ -181,7 +169,7 @@ class LinkBoxes {
     slot.replaceChildren(
       ...(this.showLinks ? this.links(page) : [])
         .filter((link) => marked?.id === undefined || link.id !== marked.id)
-        .map((link) => box(link.rect, { script: link.kind === "unsupported" })),
+        .map((link) => box(link.rect, { script: runsScript(link) })),
       ...(marked === undefined ? [] : [box(marked.box, { selected: true })]),
     );
   }
@@ -211,6 +199,7 @@ class LinkBoxes {
     const links = await client.pageLinks(page).catch(() => [] as const);
     this.#links.set(page, links);
     this.draw(page);
+    this.onLoaded?.(page);
   }
 }
 
@@ -224,7 +213,7 @@ function pointOn(viewer: Viewer, engine: Engine, event: PointerEvent) {
   return { page: at.page, x: x * size.width, y: y * size.height };
 }
 
-/** The selected text's lines on its first page, in page space, four numbers each. */
+/** The selected text's lines on its first page, in page space. */
 function selectedLines(viewer: Viewer, engine: Engine, rects: readonly DOMRect[]) {
   const r = viewer.element.getBoundingClientRect();
   const rotation = viewer.getState().rotation;
@@ -264,7 +253,7 @@ function selectedLines(viewer: Viewer, engine: Engine, rects: readonly DOMRect[]
     Math.max(...lines.map((l) => l[2])),
     Math.max(...lines.map((l) => l[3])),
   ];
-  return { page, box: bounds, lines: lines.flat() };
+  return { page, box: bounds, lines };
 }
 
 /** Props of `LinkEditing`. */
@@ -282,6 +271,8 @@ export function LinkEditing({ engine, viewer, registry, toasts }: LinkEditingPro
   const [boxes] = useState(() => new LinkBoxes(viewer, engine));
   const current = useRef(editing);
   current.current = editing;
+  // The editor's edits run one at a time, so a second goal waits for the link the first one adds.
+  const queue = useRef(Promise.resolve());
   useLinkTool(viewer, engine, boxes, setEditing);
   useMakeLink(viewer, engine, registry, setEditing);
   // The outlines follow the selection, and every edit, undo or redo reads the links again.
@@ -290,6 +281,18 @@ export function LinkEditing({ engine, viewer, registry, toasts }: LinkEditingPro
     boxes.reload();
   }, [boxes, editing]);
   useEffect(() => viewer.edits.subscribe(() => boxes.reload()), [viewer, boxes]);
+  // An undo that took the link away closes its editor.
+  useEffect(() => {
+    boxes.onLoaded = (page) => {
+      const at = current.current;
+      if (at?.id !== undefined && at.page === page && !boxes.links(page).some((l) => l.id === at.id)) {
+        setEditing(undefined);
+      }
+    };
+    return () => {
+      boxes.onLoaded = undefined;
+    };
+  }, [boxes]);
   useEffect(() => {
     if (editing === undefined) return;
     void engine
@@ -300,7 +303,7 @@ export function LinkEditing({ engine, viewer, registry, toasts }: LinkEditingPro
   }, [viewer, editing?.page, editing?.id, editing]);
   if (editing === undefined) return null;
 
-  const { onGoal, onContents, onDelete } = linkActions(engine, viewer, toasts, current, setEditing);
+  const { onGoal, onContents, onDelete } = linkActions(engine, viewer, toasts, { current, queue }, setEditing);
   const onFollow = followOf(engine, viewer, editing);
   return (
     <LinkPanel anchor={() => boxes.viewportBox(editing.page, editing.box)} onDismiss={() => setEditing(undefined)}>
@@ -315,6 +318,7 @@ export function LinkEditing({ engine, viewer, registry, toasts }: LinkEditingPro
         onGoal={onGoal}
         onContents={onContents}
         onDelete={onDelete}
+        checkAddress={checkAddress}
         {...(onFollow === undefined ? {} : { onFollow })}
       />
     </LinkPanel>
@@ -338,19 +342,29 @@ async function targetOf(engine: Engine, goal: LinkGoal): Promise<OutlineTarget |
 }
 
 /**
- * The editor's changes as edits, each one step: a new link is added on its first goal, and later
- * goals, descriptions and Delete link change or remove it. A failure is a toast.
+ * The editor's changes as edits, each one step and one at a time: a new link is added on its
+ * first goal, and later goals, descriptions and Delete link change or remove it. A failure is a
+ * toast.
  */
 function linkActions(
   engine: Engine,
   viewer: Viewer,
   toasts: ToastQueue,
-  current: { readonly current: Editing | undefined },
+  refs: { readonly current: { current: Editing | undefined }; readonly queue: { current: Promise<void> } },
   setEditing: (editing: Editing | undefined) => void,
 ) {
+  const { current, queue } = refs;
   const fail = (error: unknown) => {
     const reason = error instanceof Error ? error.message : String(error);
     toasts.add({ message: linkWords("link.failed", { reason }) });
+  };
+  const next = (work: () => Promise<unknown>) => {
+    queue.current = queue.current.then(work).then(() => undefined, fail);
+  };
+  // Seen at once by the next queued edit, before React renders the change.
+  const show = (editing: Editing | undefined) => {
+    current.current = editing;
+    setEditing(editing);
   };
   const apply = (ops: Op[], label: LinkWord) => viewer.edits.apply(ops, linkWords(label));
   const add = async (at: Editing, goal: LinkGoal, to: OutlineTarget) => {
@@ -358,38 +372,44 @@ function linkActions(
     const args =
       at.lines === undefined
         ? await client.call("linkOnArea", [at.page, [...at.box] as [number, number, number, number], to])
-        : await client.call("linkOnText", [at.page, at.lines, to]);
+        : await client.call("linkOnText", [
+            at.page,
+            at.lines.map((l) => [...l] as [number, number, number, number]),
+            to,
+          ]);
     const made = await apply(
       [{ op: "addLink", args: at.contents === "" ? args : { ...args, contents: at.contents } }],
       "edit.link.add",
     );
     const id = made.createdAnnotations?.[0];
-    setEditing({ ...at, goal, ...(id === undefined ? {} : { id }) });
+    show({ ...at, goal, ...(id === undefined ? {} : { id }) });
   };
   const onGoal = (goal: LinkGoal) =>
-    void (async () => {
+    next(async () => {
       const at = current.current;
       const to = await targetOf(engine, goal);
       if (at === undefined || to === undefined) return;
       if (at.id === undefined) return add(at, goal, to);
       await apply([{ op: "updateLink", args: { link: at.id, target: to } }], "edit.link.target");
-      setEditing({ ...at, goal });
-    })().catch(fail);
-  const onContents = (contents: string) => {
-    const at = current.current;
-    if (at === undefined) return;
-    setEditing({ ...at, contents });
-    if (at.id === undefined) return;
-    void apply(
-      [{ op: "updateLink", args: { link: at.id, contents: contents === "" ? null : contents } }],
-      "edit.link.description",
-    ).catch(fail);
-  };
-  const onDelete = () => {
-    const at = current.current;
-    setEditing(undefined);
-    if (at?.id !== undefined) void apply([{ op: "deleteLink", args: { link: at.id } }], "edit.link.delete").catch(fail);
-  };
+      show({ ...at, goal });
+    });
+  const onContents = (contents: string) =>
+    next(async () => {
+      const at = current.current;
+      if (at === undefined) return;
+      show({ ...at, contents });
+      if (at.id === undefined) return;
+      await apply(
+        [{ op: "updateLink", args: { link: at.id, contents: contents === "" ? null : contents } }],
+        "edit.link.description",
+      );
+    });
+  const onDelete = () =>
+    next(async () => {
+      const at = current.current;
+      show(undefined);
+      if (at?.id !== undefined) await apply([{ op: "deleteLink", args: { link: at.id } }], "edit.link.delete");
+    });
   return { onGoal, onContents, onDelete };
 }
 
@@ -500,7 +520,9 @@ function useMakeLink(
       if (selection === undefined) return;
       const on = selectedLines(viewer, engine, selection.rects);
       if (on === undefined) return;
-      select({ ...on, text: selection.text, goal: undefined, contents: "" });
+      // The linked text is the link's description until it gets another: PDF/UA asks every link for one.
+      const text = selection.text.replace(/\s+/g, " ").trim();
+      select({ ...on, text, goal: undefined, contents: text });
     };
     viewer.element.addEventListener(MAKE_LINK, make);
     const stopCommand = registry.register({

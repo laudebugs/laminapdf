@@ -89,6 +89,7 @@ mod metadata;
 mod op;
 mod outline;
 mod pages;
+mod parent_tree;
 mod pending;
 mod record;
 mod rotate;

@@ -191,14 +191,11 @@ impl Document {
 
 /// The user-space rectangle that bounds `areas`, given in page space.
 fn user_rect(frame: &PageFrame, areas: &[RectPt]) -> laminapdf_model::UserSpaceRect {
-    let corners: Vec<_> = areas
+    let bounds = areas
         .iter()
-        .flat_map(|a| [PointPt::new(a.x0, a.y0), PointPt::new(a.x1, a.y1)])
-        .map(|p| frame.to_user_space(p))
-        .collect();
-    let first = corners.first().copied().unwrap_or_default();
-    corners.iter().fold(
-        laminapdf_model::UserSpaceRect::from_corners(first.x, first.y, first.x, first.y),
-        |r, p| laminapdf_model::UserSpaceRect::from_corners(r.x0.min(p.x), r.y0.min(p.y), r.x1.max(p.x), r.y1.max(p.y)),
-    )
+        .skip(1)
+        .fold(areas.first().copied().unwrap_or_default(), |r, a| r.union(a));
+    let a = frame.to_user_space(PointPt::new(bounds.x0, bounds.y0));
+    let b = frame.to_user_space(PointPt::new(bounds.x1, bounds.y1));
+    laminapdf_model::UserSpaceRect::from_corners(a.x, a.y, b.x, b.y)
 }

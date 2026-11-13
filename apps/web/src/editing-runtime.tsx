@@ -33,9 +33,10 @@ import {
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { showEditToasts } from "./edit-toasts.ts";
+import { toolsOf } from "./edit-tools.tsx";
 import { type EditActions, HISTORY_TAB } from "./editing.tsx";
 import { InitialViewEditing, showInitialView } from "./initial-view-editing.tsx";
-import { LinkEditing, toolsOf } from "./links.tsx";
+import { LinkEditing } from "./links.tsx";
 import { type PageInfo, pageLabel } from "./outline.ts";
 import type { SaveFlow } from "./save-flow.ts";
 import type { Engine } from "./session.ts";

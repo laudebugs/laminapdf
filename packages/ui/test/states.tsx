@@ -619,6 +619,7 @@ const LINK_ACTIONS = {
   onGoal: () => undefined,
   onContents: () => undefined,
   onDelete: () => undefined,
+  checkAddress: (address: string) => ({ ok: true, address }) as const,
 };
 
 const links: Example[] = [

@@ -128,11 +128,16 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   destinationAt: { run: ([page, view], { signal }) => destinationAt(page as number, view as TargetView, signal) },
   linkOnArea: {
     run: ([page, area, target], { signal }) =>
-      linkOnArea(page as number, area as [number, number, number, number], target as OutlineTarget, signal),
+      linkOnArea(page as number, area as readonly [number, number, number, number], target as OutlineTarget, signal),
   },
   linkOnText: {
     run: ([page, lines, target], { signal }) =>
-      linkOnText(page as number, lines as readonly number[], target as OutlineTarget, signal),
+      linkOnText(
+        page as number,
+        lines as readonly (readonly [number, number, number, number])[],
+        target as OutlineTarget,
+        signal,
+      ),
   },
   pageLinks: { run: ([index], { signal }) => pageLinks(index as number, signal) },
   properties: {

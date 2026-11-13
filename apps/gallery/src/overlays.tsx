@@ -49,6 +49,7 @@ import {
 } from "@laminapdf/ui";
 import { InitialViewDialog, PrintDialog, PrintProgressDialog, PropertiesDialog } from "@laminapdf/ui/dialogs";
 import {
+  type AddressCheck,
   ConformanceDialog,
   LinkEditor,
   type LinkGoal,
@@ -393,6 +394,11 @@ export function Selection(): ReactNode {
   );
 }
 
+/** The gallery's stand-in for the reader's address check: web addresses only. */
+function checkAddress(address: string): AddressCheck {
+  return /^https?:\/\/\S+$/i.test(address) ? { ok: true, address } : { ok: false, reason: "script" };
+}
+
 /** The goal each link editor state shows. */
 const LINK_GOALS: Record<string, LinkGoal | undefined> = {
   page: { kind: "page", page: 4 },
@@ -423,6 +429,7 @@ export function LinkEditors({ state }: { state: string }): ReactNode {
           onGoal={noop}
           onContents={noop}
           onDelete={noop}
+          checkAddress={checkAddress}
           {...(state === "page" || state === "web" ? { onFollow: noop } : {})}
         />
       </LinkPanel>

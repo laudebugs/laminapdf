@@ -7,83 +7,35 @@
 //! [`tag`] puts a new link there, taking the content the link covers out of the element that
 //! held it; [`untag`] puts that content back before a link is deleted.
 
-use std::collections::BTreeMap;
-
 use laminapdf_cos::{Dict, ObjRef, Object};
-use laminapdf_model::TreeWriter;
 
 use crate::annot::object_dict;
 use crate::error::{Error, Result};
 use crate::pages::edit_dict;
+use crate::parent_tree::ParentTree;
 
-/// The structure tree's root and its parent tree, read once per op.
-struct Tree {
-    root: ObjRef,
-    root_dict: Dict,
-    entries: BTreeMap<i64, Object>,
-    /// The next free parent tree key.
-    next: i64,
-}
-
-impl Tree {
-    fn read(doc: &laminapdf_model::Document) -> Result<Option<Self>> {
-        let Some(Object::Ref(root)) = doc.catalog()?.get("StructTreeRoot").cloned() else {
-            return Ok(None);
-        };
-        let Some(root_dict) = object_dict(doc, root)? else {
-            return Ok(None);
-        };
-        let entries: BTreeMap<i64, Object> = match root_dict.get("ParentTree") {
-            Some(tree) => doc.number_tree(tree.clone()).entries()?.into_iter().collect(),
-            None => BTreeMap::new(),
-        };
-        let after_last = entries.keys().next_back().map_or(0, |k| k.saturating_add(1));
-        let next = root_dict.get_int("ParentTreeNextKey").unwrap_or(0).max(after_last);
-        Ok(Some(Self {
-            root,
-            root_dict,
-            entries,
-            next,
-        }))
-    }
-
-    /// The owner of each MCID on the page whose `/StructParents` is `key`.
-    fn owners(&self, doc: &laminapdf_model::Document, key: Option<i64>) -> Result<Vec<Object>> {
-        let Some(value) = key.and_then(|k| self.entries.get(&k)) else {
-            return Ok(Vec::new());
-        };
-        Ok(doc.deref(value)?.as_array().map(<[Object]>::to_vec).unwrap_or_default())
-    }
-
-    /// The element a link with no content of its own joins: the document element (the
-    /// root's first child element), else the root.
-    fn document_element(&self) -> ObjRef {
-        match self.root_dict.get("K") {
-            Some(Object::Ref(elem)) => *elem,
-            Some(Object::Array(kids)) => kids.iter().find_map(Object::as_ref).unwrap_or(self.root),
-            _ => self.root,
-        }
-    }
-
-    fn write(self, doc: &mut laminapdf_model::Document) -> Result<()> {
-        let tree = TreeWriter::new().write_numbers(&mut doc.cos_mut().edit(), &self.entries)?;
-        edit_dict(doc, self.root, |d| {
-            d.insert("ParentTree", Object::Ref(tree));
-            d.insert("ParentTreeNextKey", Object::Integer(self.next));
-        })
-    }
+/// The element a new link joins, and the covered content of it that moves into the link.
+struct Place {
+    parent: ObjRef,
+    /// The parent's kid the new `Link` element goes after, when it doesn't take the covered
+    /// content's place (a link on text another link already covers).
+    after: Option<ObjRef>,
+    /// The MCIDs whose content moves into the new `Link` element.
+    covered: Vec<u32>,
 }
 
 /// Puts the new link `annot` on `page` into the structure tree, as a `Link` element under the
 /// element that owns the first of `marked` (the MCIDs of the page's content the link covers),
-/// else under the document element. The covered content that element holds moves into the
-/// `Link` element, which takes its place. The page gets `/Tabs /S`, the tab order a tagged
-/// page with annotations needs (ISO 14289-1 §7.18.3).
+/// else under the document element. The content among `marked` that this element owns moves into
+/// the `Link` element, which takes its place; content another element owns stays where it is.
+/// Text another link already covers stays in that link, and the new `Link` element goes after it,
+/// since a link can't hold a link. The page gets `/Tabs /S`, the tab order a tagged page with
+/// annotations needs (ISO 14289-1 §7.18.3).
 ///
 /// An untagged document is left alone, unless it claims PDF/UA-1:
 /// [`Error::LinkNotTagged`].
 pub(super) fn tag(doc: &mut laminapdf_model::Document, page: ObjRef, annot: ObjRef, marked: &[u32]) -> Result<()> {
-    let Some(mut tree) = Tree::read(doc)? else {
+    let Some(mut tree) = ParentTree::read(doc)? else {
         return if crate::metadata::read_metadata(doc)?.pdfua.is_some() {
             Err(Error::LinkNotTagged)
         } else {
@@ -92,35 +44,10 @@ pub(super) fn tag(doc: &mut laminapdf_model::Document, page: ObjRef, annot: ObjR
     };
     let page_dict = object_dict(doc, page)?.unwrap_or_default();
     let page_key = page_dict.get_int("StructParents");
-    let mut owners = tree.owners(doc, page_key)?;
-    let owner = |mcid: u32| owners.get(mcid as usize).and_then(Object::as_ref);
-    let parent = marked
-        .iter()
-        .find_map(|&m| owner(m))
-        .unwrap_or_else(|| tree.document_element());
-    let covered: Vec<u32> = marked.iter().copied().filter(|&m| owner(m) == Some(parent)).collect();
-
+    let mut owners = owners(doc, &tree, page_key)?;
+    let place = place(doc, &tree, &owners, marked)?;
     let link = doc.cos_mut().edit().create(Object::Null)?;
-    let mut parent_dict = object_dict(doc, parent)?.unwrap_or_default();
-    let parent_page = parent_dict.get("Pg").and_then(Object::as_ref);
-    let mut kept = Vec::new();
-    let mut moved = Vec::new();
-    for kid in kids_of(&parent_dict) {
-        if mcid_on(doc, &kid, parent_page, page)?.is_some_and(|m| covered.contains(&m)) {
-            if moved.is_empty() {
-                kept.push(Object::Ref(link));
-            }
-            moved.push(kid);
-        } else {
-            kept.push(kid);
-        }
-    }
-    if moved.is_empty() {
-        kept.push(Object::Ref(link));
-    }
-    parent_dict.insert("K", Object::Array(kept));
-    doc.cos_mut().edit().set(parent, Object::Dict(parent_dict))?;
-
+    let mut moved = take_covered(doc, &place, page, link)?;
     for kid in &moved {
         if let Some(m) = mcid_on(doc, kid, Some(page), page)?
             && let Some(slot) = owners.get_mut(m as usize)
@@ -128,18 +55,19 @@ pub(super) fn tag(doc: &mut laminapdf_model::Document, page: ObjRef, annot: ObjR
             *slot = Object::Ref(link);
         }
     }
-    let objr: Dict = [
-        ("Type", Object::name("OBJR")),
-        ("Obj", Object::Ref(annot)),
-        ("Pg", Object::Ref(page)),
-    ]
-    .into_iter()
-    .collect();
-    moved.push(Object::Dict(objr));
+    moved.push(Object::Dict(
+        [
+            ("Type", Object::name("OBJR")),
+            ("Obj", Object::Ref(annot)),
+            ("Pg", Object::Ref(page)),
+        ]
+        .into_iter()
+        .collect(),
+    ));
     let elem: Dict = [
         ("Type", Object::name("StructElem")),
         ("S", Object::name("Link")),
-        ("P", Object::Ref(parent)),
+        ("P", Object::Ref(place.parent)),
         ("Pg", Object::Ref(page)),
         ("K", Object::Array(moved)),
     ]
@@ -148,13 +76,11 @@ pub(super) fn tag(doc: &mut laminapdf_model::Document, page: ObjRef, annot: ObjR
     doc.cos_mut().edit().set(link, Object::Dict(elem))?;
 
     if let Some(k) = page_key
-        && !covered.is_empty()
+        && !place.covered.is_empty()
     {
         tree.entries.insert(k, Object::Array(owners));
     }
-    let key = tree.next;
-    tree.next += 1;
-    tree.entries.insert(key, Object::Ref(link));
+    let key = tree.add(Object::Ref(link));
     edit_dict(doc, annot, |d| {
         d.insert("StructParent", Object::Integer(key));
     })?;
@@ -166,12 +92,75 @@ pub(super) fn tag(doc: &mut laminapdf_model::Document, page: ObjRef, annot: ObjR
     tree.write(doc)
 }
 
+/// Where a new link on the content `marked` goes.
+fn place(doc: &laminapdf_model::Document, tree: &ParentTree, owners: &[Object], marked: &[u32]) -> Result<Place> {
+    let owner = |mcid: u32| owners.get(mcid as usize).and_then(Object::as_ref);
+    let Some(first) = marked.iter().find_map(|&m| owner(m)) else {
+        return Ok(Place {
+            parent: document_element(tree),
+            after: None,
+            covered: Vec::new(),
+        });
+    };
+    let first_dict = object_dict(doc, first)?.unwrap_or_default();
+    if is_link(&first_dict)
+        && let Some(parent) = first_dict.get("P").and_then(Object::as_ref)
+    {
+        return Ok(Place {
+            parent,
+            after: Some(first),
+            covered: Vec::new(),
+        });
+    }
+    let covered = marked.iter().copied().filter(|&m| owner(m) == Some(first)).collect();
+    Ok(Place {
+        parent: first,
+        after: None,
+        covered,
+    })
+}
+
+/// Takes the covered content out of the parent's `/K`, the new `Link` element `link` in its place
+/// (or after `place.after`, or last); returns that content, in order.
+fn take_covered(doc: &mut laminapdf_model::Document, place: &Place, page: ObjRef, link: ObjRef) -> Result<Vec<Object>> {
+    let mut parent_dict = object_dict(doc, place.parent)?.unwrap_or_default();
+    let parent_page = parent_dict.get("Pg").and_then(Object::as_ref);
+    let mut kept = Vec::new();
+    let mut moved = Vec::new();
+    let mut placed = false;
+    for kid in kids_of(doc, &parent_dict)? {
+        if !place.covered.is_empty()
+            && mcid_on(doc, &kid, parent_page, page)?.is_some_and(|m| place.covered.contains(&m))
+        {
+            if !placed {
+                kept.push(Object::Ref(link));
+                placed = true;
+            }
+            moved.push(kid);
+            continue;
+        }
+        let after = place.after.is_some() && kid.as_ref() == place.after;
+        kept.push(kid);
+        if after {
+            kept.push(Object::Ref(link));
+            placed = true;
+        }
+    }
+    if !placed {
+        kept.push(Object::Ref(link));
+    }
+    parent_dict.insert("K", Object::Array(kept));
+    doc.cos_mut().edit().set(place.parent, Object::Dict(parent_dict))?;
+    Ok(moved)
+}
+
 /// Takes the `Link` element of the link `annot` out of the structure tree before the link is
-/// deleted: the content it held goes back to its parent, in its place, and the page's parent
-/// tree names that parent as its owner again. Anything else (an untagged link, a link whose
-/// owner isn't a `Link` element) is left to the annotation delete, which removes the `OBJR`.
+/// deleted: the content it held goes back to its parent, in its place (an element among it names
+/// that parent as its own), and the page's parent tree names that parent as its owner again.
+/// Anything else (an untagged link, a link whose owner isn't a `Link` element) is left to the
+/// annotation delete, which removes the `OBJR`.
 pub(super) fn untag(doc: &mut laminapdf_model::Document, annot: ObjRef) -> Result<()> {
-    let Some(mut tree) = Tree::read(doc)? else {
+    let Some(mut tree) = ParentTree::read(doc)? else {
         return Ok(());
     };
     let Some(key) = object_dict(doc, annot)?.and_then(|d| d.get_int("StructParent")) else {
@@ -180,24 +169,28 @@ pub(super) fn untag(doc: &mut laminapdf_model::Document, annot: ObjRef) -> Resul
     let Some(elem) = tree.entries.get(&key).and_then(Object::as_ref) else {
         return Ok(());
     };
-    let Some(elem_dict) = object_dict(doc, elem)? else {
+    let Some(elem_dict) = object_dict(doc, elem)?.filter(is_link) else {
         return Ok(());
     };
     let Some(parent) = elem_dict.get("P").and_then(Object::as_ref) else {
         return Ok(());
     };
-    if elem_dict.get_name("S") != Some(b"Link".as_slice()) {
-        return Ok(());
-    }
     let Some(mut parent_dict) = object_dict(doc, parent)? else {
         return Ok(());
     };
     let page = elem_dict.get("Pg").and_then(Object::as_ref);
     let parent_page = parent_dict.get("Pg").and_then(Object::as_ref);
     let mut content = Vec::new();
-    for kid in kids_of(&elem_dict) {
+    for kid in kids_of(doc, &elem_dict)? {
         if is_objr(doc, &kid)? {
             continue;
+        }
+        if let Some(child) = kid.as_ref()
+            && object_dict(doc, child)?.is_some_and(|d| d.get("S").is_some())
+        {
+            edit_dict(doc, child, |d| {
+                d.insert("P", Object::Ref(parent));
+            })?;
         }
         // An MCID kid takes its element's page; one that moves to a parent on another page
         // names its own.
@@ -215,7 +208,7 @@ pub(super) fn untag(doc: &mut laminapdf_model::Document, annot: ObjRef) -> Resul
         });
     }
     let mut kids = Vec::new();
-    for kid in kids_of(&parent_dict) {
+    for kid in kids_of(doc, &parent_dict)? {
         if kid.as_ref() == Some(elem) {
             kids.extend(content.iter().cloned());
         } else {
@@ -228,7 +221,7 @@ pub(super) fn untag(doc: &mut laminapdf_model::Document, annot: ObjRef) -> Resul
     if let Some(page) = page
         && let Some(page_key) = object_dict(doc, page)?.and_then(|d| d.get_int("StructParents"))
     {
-        let mut owners = tree.owners(doc, Some(page_key))?;
+        let mut owners = owners(doc, &tree, Some(page_key))?;
         for slot in &mut owners {
             if slot.as_ref() == Some(elem) {
                 *slot = Object::Ref(parent);
@@ -244,13 +237,40 @@ pub(super) fn untag(doc: &mut laminapdf_model::Document, annot: ObjRef) -> Resul
     tree.write(doc)
 }
 
-/// An element's `/K` as a list.
-fn kids_of(dict: &Dict) -> Vec<Object> {
-    match dict.get("K") {
+/// The owner of each MCID on the page whose `/StructParents` is `key`.
+fn owners(doc: &laminapdf_model::Document, tree: &ParentTree, key: Option<i64>) -> Result<Vec<Object>> {
+    let Some(value) = key.and_then(|k| tree.entries.get(&k)) else {
+        return Ok(Vec::new());
+    };
+    Ok(doc.deref(value)?.as_array().map(<[Object]>::to_vec).unwrap_or_default())
+}
+
+/// The element a link with no content of its own joins: the document element (the root's first
+/// child element), else the root.
+fn document_element(tree: &ParentTree) -> ObjRef {
+    match tree.root_dict.get("K") {
+        Some(Object::Ref(elem)) => *elem,
+        Some(Object::Array(kids)) => kids.iter().find_map(Object::as_ref).unwrap_or(tree.root),
+        _ => tree.root,
+    }
+}
+
+/// Whether `dict` is a `Link` element.
+fn is_link(dict: &Dict) -> bool {
+    dict.get_name("S") == Some(b"Link".as_slice())
+}
+
+/// An element's `/K` as a list, an indirect array read through.
+fn kids_of(doc: &laminapdf_model::Document, dict: &Dict) -> Result<Vec<Object>> {
+    Ok(match dict.get("K") {
         Some(Object::Array(kids)) => kids.clone(),
+        Some(Object::Ref(r)) => match doc.deref(&Object::Ref(*r))?.as_array() {
+            Some(kids) => kids.to_vec(),
+            None => vec![Object::Ref(*r)],
+        },
         Some(kid) => vec![kid.clone()],
         None => Vec::new(),
-    }
+    })
 }
 
 /// The MCID of marked-content kid `kid` when its content is on `page`: an integer on an

@@ -119,3 +119,36 @@ fn a_page_past_the_end_is_refused() {
     let err = open("links/links.pdf").page_links(3).unwrap_err();
     assert_eq!(err.code(), "page-index-out-of-range");
 }
+
+/// A one-page document whose page is turned by `rotate` (`/Rotate`), 612 × 792 points unturned.
+fn turned(rotate: u16) -> Document {
+    let page = format!("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Rotate {rotate} >>");
+    let bytes = laminapdf_test_fixtures::classic_with_root(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            &page,
+        ],
+        "",
+    );
+    Document::open_bytes(bytes, OpenOptions::default()).unwrap()
+}
+
+#[test]
+fn a_link_on_a_box_in_page_space_reads_back_on_that_box_at_every_rotation() {
+    use laminapdf::{OutlineTarget, Pt, RectPt};
+    for rotate in [0, 90, 180, 270] {
+        let mut doc = turned(rotate);
+        let area = RectPt::new(Pt::new(40.0), Pt::new(60.0), Pt::new(200.0), Pt::new(90.0));
+        let op = doc
+            .link_on_area(0, area, OutlineTarget::Uri("https://example.com/".into()))
+            .unwrap();
+        doc.apply(vec![op.into()]).unwrap();
+        let rect = doc.page_links(0).unwrap().pop().unwrap().rect;
+        let near = |a: Pt, b: Pt| (a.get() - b.get()).abs() < 1e-6;
+        assert!(
+            near(rect.x0, area.x0) && near(rect.y0, area.y0) && near(rect.x1, area.x1) && near(rect.y1, area.y1),
+            "/Rotate {rotate}: {rect:?}"
+        );
+    }
+}
