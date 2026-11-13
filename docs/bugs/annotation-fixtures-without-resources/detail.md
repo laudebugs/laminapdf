@@ -12,6 +12,6 @@ With qpdf on `PATH`, `cargo test -p laminapdf-save --all-features --test annotat
 
 ## Cause
 
-The fixtures, not the save. `tools/fixtures/annotations.py` writes every page without `/Resources`, which ISO 32000-2 §7.7.3.3 requires of a page (its own or inherited, an empty dictionary when it uses none). qpdf warns about such a page whatever Lamina PDF does to the file, so the test's check could never pass where qpdf is installed.
+The fixtures, not the save. `tools/fixtures/annotations.py` writes every page without `/Resources`, which ISO 32000-2 §7.7.3.3 requires of a page (its own or inherited, an empty dictionary when it uses none). `tagged.pdf`'s page also draws text in a font `/F1` that no resource named. qpdf warns about such a page whatever Lamina PDF does to the file, so the test's check could never pass where qpdf is installed.
 
 CI didn't catch it because `qpdf_accepts` counts a missing qpdf as acceptance, and the jobs that run the Rust tests don't install qpdf.
