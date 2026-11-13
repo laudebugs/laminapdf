@@ -38,7 +38,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | R16 | Focus mode (rails hidden; inspector returns on selection) | W | [U1c](../../todos/done/U1c-inverted-l-shell-and-modes.md) |
 | R17 | Tablet reading: rail as sheet, pen hover | T | [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md) |
 | R18 | Phone: outline, find, more (outline sheet, find, more menu, view settings sheet) | M | [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md) |
-| R19 | Close a document: Close beside the file name, More › Close document, Back to files on phone and tablet, home after a close | W, T, M | [C8a](../../todos/ready/C8a-every-close-asks-first.md), [C8b](../../todos/ready/C8b-close-button-and-command.md) |
+| R19 | Close a document: Close beside the file name, More › Close document, Back to files on phone and tablet, home after a close | W, T, M | [C8a](../../todos/done/C8a-every-close-asks-first.md), [C8b](../../todos/done/C8b-close-button-and-command.md) |
 
 ## S. Desktop shell
 
