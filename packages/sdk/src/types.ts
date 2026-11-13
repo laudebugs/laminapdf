@@ -489,9 +489,9 @@ export type SkippedImage = SkippedImageJs;
  */
 export interface ExtractedImages {
   /** The images, page by page in the order each page draws them. */
-  readonly images: ExtractedImage[];
+  readonly images: readonly ExtractedImage[];
   /** The images that couldn't be extracted, with why. */
-  readonly skipped: SkippedImage[];
+  readonly skipped: readonly SkippedImage[];
 }
 
 /**

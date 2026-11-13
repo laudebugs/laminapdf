@@ -25,10 +25,15 @@ pub(crate) enum Space {
         high: u16,
         table: Vec<u8>,
     },
-    /// `/Separation` (one tint) or `/DeviceN` with one colourant.
-    Tint,
-    /// A space extraction can't convert (`/DeviceN` with several colourants, `/Pattern`).
-    Unsupported(String),
+    /// An `/ICCBased` space, converted as the device space its components make.
+    Icc(Box<Self>),
+    /// `/Separation` (one tint), or `/DeviceN` with one colourant (`device_n`).
+    Tint {
+        device_n: bool,
+    },
+    /// A space extraction can't convert, by a fixed English name (never the file's own text):
+    /// `/DeviceN` with several colourants, `/Pattern`, one it can't find or read.
+    Unsupported(&'static str),
 }
 
 /// What a space's components turn into.
@@ -42,7 +47,8 @@ impl Space {
     /// The number of components a sample has.
     pub(crate) fn components(&self) -> usize {
         match self {
-            Self::Gray | Self::Indexed { .. } | Self::Tint | Self::Unsupported(_) => 1,
+            Self::Gray | Self::Indexed { .. } | Self::Tint { .. } | Self::Unsupported(_) => 1,
+            Self::Icc(device) => device.components(),
             Self::Rgb | Self::Lab { .. } => 3,
             Self::Cmyk => 4,
         }
@@ -51,7 +57,8 @@ impl Space {
     /// What the components turn into.
     pub(crate) fn output(&self) -> Output {
         match self {
-            Self::Gray | Self::Tint | Self::Unsupported(_) => Output::Gray,
+            Self::Gray | Self::Tint { .. } | Self::Unsupported(_) => Output::Gray,
+            Self::Icc(device) => device.output(),
             Self::Rgb | Self::Cmyk | Self::Lab { .. } => Output::Rgb,
             Self::Indexed { base, .. } => base.output(),
         }
@@ -60,6 +67,7 @@ impl Space {
     /// The default `/Decode` range of component `i`.
     pub(crate) fn decode_default(&self, i: usize, bits: u8) -> (f64, f64) {
         match self {
+            Self::Icc(device) => device.decode_default(i, bits),
             Self::Indexed { .. } => (0.0, f64::from((1u32 << bits) - 1)),
             Self::Lab { range, .. } => match i {
                 0 => (0.0, 100.0),
@@ -75,7 +83,8 @@ impl Space {
         let at = |i: usize| values.get(i).copied().unwrap_or(0.0);
         match self {
             Self::Gray | Self::Unsupported(_) => out.push(at(0).clamp(0.0, 1.0)),
-            Self::Tint => out.push((1.0 - at(0)).clamp(0.0, 1.0)),
+            Self::Tint { .. } => out.push((1.0 - at(0)).clamp(0.0, 1.0)),
+            Self::Icc(device) => device.convert(values, out),
             Self::Rgb => out.extend((0..3).map(|i| at(i).clamp(0.0, 1.0))),
             Self::Cmyk => {
                 let k = 1.0 - at(3).clamp(0.0, 1.0);
@@ -111,8 +120,10 @@ impl Space {
             Self::Cmyk => "cmyk".into(),
             Self::Lab { .. } => "lab".into(),
             Self::Indexed { .. } => "index".into(),
-            Self::Tint => "sep".into(),
-            Self::Unsupported(name) => name.clone(),
+            Self::Icc(_) => "icc".into(),
+            Self::Tint { device_n: false } => "sep".into(),
+            Self::Tint { device_n: true } => "devn".into(),
+            Self::Unsupported(name) => (*name).into(),
         }
     }
 }
@@ -159,6 +170,17 @@ fn lab_to_srgb(lightness: f64, a_star: f64, b_star: f64) -> [f64; 3] {
     [curve(red), curve(green), curve(blue)]
 }
 
+/// The device space a family name stands for (the inline abbreviations and the CIE-based spaces
+/// a simple conversion treats as their device space included).
+fn device(name: &[u8]) -> Option<Space> {
+    match name {
+        b"DeviceGray" | b"G" | b"CalGray" => Some(Space::Gray),
+        b"DeviceRGB" | b"RGB" | b"CalRGB" => Some(Space::Rgb),
+        b"DeviceCMYK" | b"CMYK" => Some(Space::Cmyk),
+        _ => None,
+    }
+}
+
 /// The colour space `object` names, resolved in `doc`; a name not among the device spaces is
 /// looked up in `resources`' `/ColorSpace` (an inline image's `/CS /CS0`).
 pub(crate) fn parse(doc: &Document, object: &Object, resources: Option<&Object>) -> Space {
@@ -167,21 +189,19 @@ pub(crate) fn parse(doc: &Document, object: &Object, resources: Option<&Object>)
 
 fn parse_at(doc: &Document, object: &Object, resources: Option<&Object>, depth: u8) -> Space {
     let Ok(resolved) = doc.deref(object) else {
-        return Space::Unsupported("unreadable".into());
+        return Space::Unsupported("an unreadable colour space");
     };
     match &*resolved {
-        Object::Name(name) => match name.as_bytes() {
-            b"DeviceGray" | b"G" | b"CalGray" => Space::Gray,
-            b"DeviceRGB" | b"RGB" | b"CalRGB" => Space::Rgb,
-            b"DeviceCMYK" | b"CMYK" => Space::Cmyk,
-            other if depth < MAX_DEPTH => match named(doc, resources, other) {
-                Some(found) => parse_at(doc, &found, None, depth + 1),
-                None => Space::Unsupported(String::from_utf8_lossy(other).into_owned()),
-            },
-            other => Space::Unsupported(String::from_utf8_lossy(other).into_owned()),
+        Object::Name(name) => match device(name.as_bytes()) {
+            Some(space) => space,
+            None if depth < MAX_DEPTH => named(doc, resources, name.as_bytes())
+                .map_or(Space::Unsupported("a colour space the page doesn't define"), |found| {
+                    parse_at(doc, &found, None, depth + 1)
+                }),
+            None => Space::Unsupported("colour spaces nested too deep"),
         },
         Object::Array(items) if depth < MAX_DEPTH => family(doc, items, resources, depth),
-        _ => Space::Unsupported("unknown".into()),
+        _ => Space::Unsupported("an unknown colour space"),
     }
 }
 
@@ -195,24 +215,23 @@ fn named(doc: &Document, resources: Option<&Object>, name: &[u8]) -> Option<Obje
 
 fn family(doc: &Document, items: &[Object], resources: Option<&Object>, depth: u8) -> Space {
     let Some(Object::Name(head)) = items.first() else {
-        return Space::Unsupported("unknown".into());
+        return Space::Unsupported("an unknown colour space");
     };
     let arg = |i: usize| items.get(i).and_then(|o| doc.deref(o).ok().map(|r| (*r).clone()));
+    if let Some(space) = device(head.as_bytes()) {
+        return space;
+    }
     match head.as_bytes() {
-        b"DeviceGray" | b"CalGray" | b"G" => Space::Gray,
-        b"DeviceRGB" | b"CalRGB" | b"RGB" => Space::Rgb,
-        b"DeviceCMYK" | b"CMYK" => Space::Cmyk,
         b"ICCBased" => match arg(1) {
             Some(Object::Stream(icc)) => match icc.dict.get_int("N") {
-                Some(1) => Space::Gray,
-                Some(3) => Space::Rgb,
-                Some(4) => Space::Cmyk,
-                _ => icc.dict.get("Alternate").map_or_else(
-                    || Space::Unsupported("ICCBased".into()),
-                    |alt| parse_at(doc, alt, resources, depth + 1),
-                ),
+                Some(1) => Space::Icc(Box::new(Space::Gray)),
+                Some(3) => Space::Icc(Box::new(Space::Rgb)),
+                Some(4) => Space::Icc(Box::new(Space::Cmyk)),
+                _ => icc.dict.get("Alternate").map_or(Space::Unsupported("ICCBased"), |alt| {
+                    Space::Icc(Box::new(parse_at(doc, alt, resources, depth + 1)))
+                }),
             },
-            _ => Space::Unsupported("ICCBased".into()),
+            _ => Space::Unsupported("ICCBased"),
         },
         b"Lab" => {
             let dict = arg(1).and_then(|o| o.as_dict().cloned()).unwrap_or_default();
@@ -226,19 +245,20 @@ fn family(doc: &Document, items: &[Object], resources: Option<&Object>, depth: u
             Space::Lab { range }
         }
         b"Indexed" | b"I" => indexed(doc, items, resources, depth),
-        b"Separation" => Space::Tint,
+        b"Separation" => Space::Tint { device_n: false },
         b"DeviceN" => match arg(1) {
-            Some(Object::Array(names)) if names.len() == 1 => Space::Tint,
-            _ => Space::Unsupported("DeviceN".into()),
+            Some(Object::Array(names)) if names.len() == 1 => Space::Tint { device_n: true },
+            _ => Space::Unsupported("DeviceN"),
         },
-        other => Space::Unsupported(String::from_utf8_lossy(other).into_owned()),
+        b"Pattern" => Space::Unsupported("Pattern"),
+        _ => Space::Unsupported("an unknown colour space"),
     }
 }
 
 /// `[/Indexed base hival lookup]`, the lookup a string or a stream.
 fn indexed(doc: &Document, items: &[Object], resources: Option<&Object>, depth: u8) -> Space {
     let Some(base) = items.get(1).map(|b| parse_at(doc, b, resources, depth + 1)) else {
-        return Space::Unsupported("Indexed".into());
+        return Space::Unsupported("Indexed");
     };
     let high = items
         .get(2)
@@ -251,7 +271,7 @@ fn indexed(doc: &Document, items: &[Object], resources: Option<&Object>, depth: 
         _ => Vec::new(),
     };
     if matches!(base, Space::Indexed { .. } | Space::Unsupported(_)) {
-        return Space::Unsupported("Indexed".into());
+        return Space::Unsupported("Indexed");
     }
     Space::Indexed {
         base: Box::new(base),
@@ -274,7 +294,7 @@ mod tests {
     #[test]
     fn a_tint_is_darker_with_more_ink() {
         let mut out = Vec::new();
-        Space::Tint.convert(&[0.25], &mut out);
+        Space::Tint { device_n: false }.convert(&[0.25], &mut out);
         assert_eq!(out, vec![0.75]);
     }
 

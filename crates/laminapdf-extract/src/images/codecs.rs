@@ -40,19 +40,9 @@ pub(crate) fn filter_names(doc: &Document, dict: &Dict) -> Vec<String> {
         .unwrap_or_default()
 }
 
-/// An inline image's abbreviated filter name, written out (§8.9.7, Table 92).
+/// A filter's full name, an inline image's abbreviation written out.
 fn full_name(name: &[u8]) -> String {
-    let full: &[u8] = match name {
-        b"AHx" => b"ASCIIHexDecode",
-        b"A85" => b"ASCII85Decode",
-        b"LZW" => b"LZWDecode",
-        b"Fl" => b"FlateDecode",
-        b"RL" => b"RunLengthDecode",
-        b"CCF" => b"CCITTFaxDecode",
-        b"DCT" => b"DCTDecode",
-        other => other,
-    };
-    String::from_utf8_lossy(full).into_owned()
+    String::from_utf8_lossy(laminapdf_syntax::filters::full_name(name)).into_owned()
 }
 
 fn codec_of(name: &str) -> Codec {
@@ -225,7 +215,9 @@ pub(crate) fn ccitt(data: &[u8], parms: &Dict, width: u32, height: u32) -> Resul
     Ok(bits.data)
 }
 
-/// JBIG2 data, with its `/JBIG2Globals`, as 1-bit rows in which a black pixel is 1 (§7.4.7).
+/// JBIG2 data, with its `/JBIG2Globals`, as 1-bit rows in which a black pixel is 0, as the filter
+/// gives them to a `DeviceGray` image or a stencil (§7.4.7; pdf.js and Poppler flip JBIG2's own
+/// polarity the same way).
 ///
 /// # Errors
 /// Data the decoder can't read.
@@ -241,7 +233,7 @@ pub(crate) fn jbig2(doc: &Document, data: &[u8], parms: &Dict) -> Result<(u32, u
     let image = hayro_jbig2::Image::new_embedded(data, globals.as_deref())
         .map_err(|_| "the JBIG2 data doesn't decode".to_owned())?;
     let (width, height) = (image.width(), image.height());
-    let mut bits = Bits::new(width as usize, height as usize, 1);
+    let mut bits = Bits::new(width as usize, height as usize, 0);
     image
         .decode(&mut bits)
         .map_err(|_| "the JBIG2 data doesn't decode".to_owned())?;

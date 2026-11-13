@@ -56,9 +56,9 @@ A token here is about four characters. That count runs low for code, numbers and
 
 Each image carries its page, its size, its colour space and its file's `extension`. An image Lamina PDF can't decode is listed in `skipped` with the reason, and the rest still come out. In TypeScript that includes JBIG2 images (scanned text), which the WebAssembly modules leave out for their size.
 
-## Get the links and bookmarks
+## Get the links and the outline
 
-`linksJson()` and `outlineJson()` give every page's links and the bookmarks as JSON, in the formats `laminapdf.links/1` and `laminapdf.outline/1`. A link's page and rectangle are in points from the page's top-left, and each says where it goes: a page here, a web address or another file. `linksCsv()` and `outlineCsv()` give the same as CSV for a spreadsheet, one row a link or a bookmark, each bookmark with its level. In Rust they are `links_json`, `outline_json`, `links_csv` and `outline_csv` on `Document`.
+`linksJson()` and `outlineJson()` give every page's links and the outline (the bookmarks a reader lists in its sidebar) as JSON, in the formats `laminapdf.links/1` and `laminapdf.outline/1`. A link's page and rectangle are in points from the page's top-left, and each says where it goes: a page here, a web address or another file. `linksCsv()` and `outlineCsv()` give the same as CSV for a spreadsheet, one row a link or an outline item, each item with its level. In Rust they are `links_json`, `outline_json`, `links_csv` and `outline_csv` on `Document`.
 
 ## Reading order
 

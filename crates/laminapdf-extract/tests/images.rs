@@ -68,97 +68,101 @@ fn jpegs_and_jpeg_2000_come_out_byte_for_byte() {
     );
 }
 
-/// capability: H.07 core read
-#[test]
-fn lists_the_images_pdfimages_lists() {
-    let images = extracted();
-    let facts = json("images/extract-facts.json");
-    // pdfimages lists an image each time a page draws it, and every mask; extraction gives an
-    // image once, on its first page, and a mask as an image of its own only for a JPEG or
-    // JPEG 2000 image, the other images carrying theirs as transparency.
-    let mut theirs = BTreeSet::new();
-    let mut decoded_masks = 0;
-    for row in facts["rows"].as_array().unwrap() {
-        let object = row["object"].as_u64();
+/// How many images `pdfimages -list`'s `rows` stand for, as extraction gives them: an image once
+/// per object (pdfimages lists one each time a page draws it), each inline image, and a mask as
+/// an image of its own only for a JPEG or JPEG 2000 image (the others carry theirs as
+/// transparency).
+fn expected_count(rows: &[serde_json::Value]) -> usize {
+    let kept = |object: &serde_json::Value| {
+        rows.iter().any(|r| {
+            r["object"] == *object && r["type"] == "image" && matches!(r["enc"].as_str(), Some("jpeg" | "jpx"))
+        })
+    };
+    let mut objects = BTreeSet::new();
+    let mut inline = 0;
+    for row in rows {
         let kind = row["type"].as_str().unwrap();
-        let parent_is_kept = matches!(row["enc"].as_str(), Some("jpeg" | "jpx"))
-            || facts["rows"].as_array().unwrap().iter().any(|r| {
-                r["object"] == row["object"]
-                    && r["type"] == "image"
-                    && matches!(r["enc"].as_str(), Some("jpeg" | "jpx"))
-            });
-        match (kind, object) {
-            ("smask" | "mask", _) if !parent_is_kept => decoded_masks += 1,
-            (_, Some(object)) => {
-                theirs.insert((object, kind.to_owned()));
+        if matches!(kind, "smask" | "mask") && !kept(&row["object"]) {
+            continue;
+        }
+        match row["object"].as_u64() {
+            Some(object) => {
+                objects.insert((object, kind.to_owned()));
             }
-            (_, None) => {
-                theirs.insert((u64::MAX, format!("inline {}", row["page"])));
-            }
+            None => inline += 1,
         }
     }
-    // pdfimages names a mask by the image it masks; extraction by the mask's own object.
-    let doc = open();
-    let parent_of = |mask: u32| -> u32 {
-        images
-            .images
-            .iter()
-            .filter_map(|i| i.object.filter(|_| i.kind == ImageKind::Image))
-            .find(|r| {
-                let object = doc.resolve(*r).unwrap();
-                let dict = object.as_dict().unwrap();
-                ["SMask", "Mask"]
-                    .iter()
-                    .any(|k| dict.get(k).and_then(Object::as_ref).is_some_and(|m| m.num == mask))
-            })
-            .map_or(mask, |r| r.num)
-    };
-    let ours: BTreeSet<(u64, String)> = images
-        .images
-        .iter()
-        .map(|i| match i.object {
-            Some(r) => (
-                u64::from(if matches!(i.kind, ImageKind::SoftMask | ImageKind::Mask) {
-                    parent_of(r.num)
-                } else {
-                    r.num
-                }),
-                match i.kind {
-                    ImageKind::Stencil => "stencil",
-                    ImageKind::SoftMask => "smask",
-                    ImageKind::Mask => "mask",
-                    _ => "image",
-                }
-                .to_owned(),
-            ),
-            None => (u64::MAX, format!("inline {}", i.page)),
-        })
-        .collect();
-    assert_eq!(ours, theirs);
-    assert_eq!(
-        decoded_masks, 1,
-        "the RGB image's /Mask stencil, applied as its transparency"
+    objects.len() + inline
+}
+
+/// capability: H.07 core read
+#[test]
+fn gives_as_many_images_as_pdfimages_lists_in_every_fixture() {
+    let facts = json("images/extract-facts.json");
+    let files = facts["files"].as_object().unwrap();
+    assert!(
+        files.len() > 50,
+        "the facts cover the fixture, the corpus and the goldens"
     );
-    assert_eq!(images.skipped, vec![]);
+    let mut with_images = 0;
+    for (file, rows) in files {
+        let Some(rows) = rows.as_array() else { continue };
+        let Ok(doc) = Document::open(fixture(file), OpenOptions::default()) else {
+            continue;
+        };
+        let Ok(out) = extract_images(&doc, &ImageOptions::default()) else {
+            continue;
+        };
+        // A skipped image is one pdfimages lists too.
+        assert_eq!(out.images.len() + out.skipped.len(), expected_count(rows), "{file}");
+        let mut seen = BTreeSet::new();
+        for image in out.images.iter().filter(|i| i.object.is_some()) {
+            assert!(
+                seen.insert((image.object, format!("{:?}", image.kind))),
+                "{file}: {:?} twice",
+                image.object
+            );
+        }
+        with_images += usize::from(!rows.is_empty());
+    }
+    assert!(with_images >= 10, "{with_images} fixtures with images");
 }
 
 #[test]
 fn reports_each_image_as_pdfimages_describes_it() {
-    let images = extracted();
     let facts = json("images/extract-facts.json");
-    for row in facts["rows"].as_array().unwrap() {
-        let (Some(object), "image") = (row["object"].as_u64(), row["type"].as_str().unwrap()) else {
-            continue;
-        };
-        let image = by_object(&images, u32::try_from(object).unwrap(), ImageKind::Image);
-        assert_eq!(u64::from(image.width), row["width"].as_u64().unwrap(), "{object}");
-        assert_eq!(u64::from(image.height), row["height"].as_u64().unwrap(), "{object}");
-        assert_eq!(
-            u64::from(image.bits_per_component),
-            row["bpc"].as_u64().unwrap(),
-            "{object}"
-        );
-        assert_eq!(image.color_space, row["color"].as_str().unwrap(), "{object}");
+    for (file, rows) in facts["files"].as_object().unwrap() {
+        let Some(rows) = rows.as_array() else { continue };
+        let doc = Document::open(fixture(file), OpenOptions::default()).unwrap();
+        let out = extract_images(&doc, &ImageOptions::default()).unwrap();
+        for row in rows {
+            let (Some(object), kind @ ("image" | "stencil")) = (row["object"].as_u64(), row["type"].as_str().unwrap())
+            else {
+                continue;
+            };
+            let kind = if kind == "image" {
+                ImageKind::Image
+            } else {
+                ImageKind::Stencil
+            };
+            let Some(image) = out
+                .images
+                .iter()
+                .find(|i| i.object.is_some_and(|r| u64::from(r.num) == object) && i.kind == kind)
+            else {
+                // Skipped: checked in the count above.
+                continue;
+            };
+            let what = format!("{file} object {object}");
+            assert_eq!(u64::from(image.width), row["width"].as_u64().unwrap(), "{what}");
+            assert_eq!(u64::from(image.height), row["height"].as_u64().unwrap(), "{what}");
+            assert_eq!(
+                u64::from(image.bits_per_component),
+                row["bpc"].as_u64().unwrap(),
+                "{what}"
+            );
+            assert_eq!(image.color_space, row["color"].as_str().unwrap(), "{what}");
+        }
     }
 }
 
@@ -172,6 +176,8 @@ fn extracts_an_image_once_on_the_first_page_that_draws_it() {
         .collect();
     assert_eq!(flate.len(), 1);
     assert_eq!(flate[0].page, 0);
+    // Two inline images on page 1, each its own.
+    assert_eq!(images.images.iter().filter(|i| i.object.is_none()).count(), 2);
     // Page 2 alone gives it, as its first page there.
     let second = extract_images(&open(), &ImageOptions::default().with_pages(vec![1])).unwrap();
     assert_eq!(second.images.len(), 1);
@@ -183,7 +189,11 @@ fn finds_images_in_nested_forms_and_inline() {
     let images = extracted();
     let deep = by_object(&images, 42, ImageKind::Image);
     assert_eq!(pixels(&deep.data).3, vec![0, 255, 255, 0]);
-    let inline = images.images.iter().find(|i| i.object.is_none()).unwrap();
+    let inline = images
+        .images
+        .iter()
+        .find(|i| i.object.is_none() && i.filters.len() == 1)
+        .unwrap();
     assert_eq!(inline.filters, vec!["ASCIIHexDecode"]);
     assert_eq!(
         pixels(&inline.data).3,
@@ -254,4 +264,41 @@ fn decodes_ccitt_fax_and_stencils() {
     // A stencil: its 0 bits painted, black.
     let stencil = by_object(&images, 28, ImageKind::Stencil);
     assert_eq!(pixels(&stencil.data).3[..8], [255, 0, 255, 0, 255, 0, 255, 0]);
+}
+
+#[test]
+fn takes_a_soft_masks_matte_out_and_resamples_a_smaller_one() {
+    let images = extracted();
+    // Red premultiplied by half opacity over black comes out red, at half opacity.
+    let (_, _, channels, matted) = pixels(&by_object(&images, 50, ImageKind::Image).data);
+    assert_eq!(channels, 4);
+    assert!(matted[0] >= 254 && matted[1] == 0 && matted[3] == 128, "{matted:?}");
+    assert_eq!(matted[4..8], [255, 0, 0, 255]);
+    // An 8 × 8 mask on a 16 × 16 image: each mask pixel covers two by two.
+    let (width, _, _, soft) = pixels(&by_object(&images, 52, ImageKind::Image).data);
+    let alpha = |x: usize, y: usize| soft[(y * width as usize + x) * 4 + 3];
+    assert_eq!((alpha(0, 0), alpha(1, 1), alpha(2, 0)), (0, 0, 4));
+}
+
+#[test]
+fn converts_icc_based_and_separation_and_skips_device_n() {
+    let images = extracted();
+    let icc = by_object(&images, 54, ImageKind::Image);
+    assert_eq!(icc.color_space, "icc");
+    assert_eq!(pixels(&icc.data).3[..3], [0, 16, 32]);
+    // A tint is darker with more ink.
+    let sep = by_object(&images, 56, ImageKind::Image);
+    assert_eq!(sep.color_space, "sep");
+    assert_eq!(pixels(&sep.data).3, vec![255, 191, 127, 0]);
+    let skipped: Vec<_> = images.skipped.iter().filter_map(|s| s.object.map(|r| r.num)).collect();
+    assert_eq!(skipped, vec![58]);
+    // The reason names the colour space's family, never the file's own names.
+    assert_eq!(images.skipped[0].reason, "its colour space: DeviceN");
+}
+
+#[test]
+fn honours_black_is_1() {
+    let images = extracted();
+    let fax = pixels(&by_object(&images, 59, ImageKind::Image).data).3;
+    assert_eq!(fax, vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255]);
 }

@@ -169,12 +169,7 @@ mod tests {
         }
     }
 
-    fn chunk(out: &mut Vec<u8>, kind: [u8; 4], data: &[u8]) {
-        out.extend_from_slice(&u32::try_from(data.len()).unwrap().to_be_bytes());
-        out.extend_from_slice(&kind);
-        out.extend_from_slice(data);
-        out.extend_from_slice(&crc32(&[&kind, data]).to_be_bytes());
-    }
+    use laminapdf_syntax::png::write_chunk as chunk;
 
     /// Packs `samples` (one row) at `depth` bits.
     fn pack(samples: &[u16], depth: u8) -> Vec<u8> {

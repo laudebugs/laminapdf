@@ -33,8 +33,7 @@ pub(crate) struct ExtractedImageJs {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[tsify(optional)]
     pub object: Option<u32>,
-    /// `image`, `stencil`, `softMask` (a JPEG's soft mask) or `mask` (a JPEG's stencil mask).
-    pub kind: &'static str,
+    pub kind: ImageKindJs,
     pub width: u32,
     pub height: u32,
     pub bits_per_component: u8,
@@ -42,10 +41,29 @@ pub(crate) struct ExtractedImageJs {
     pub color_space: String,
     /// Its filters, by their full names.
     pub filters: Vec<String>,
-    /// `jpeg`, `jpeg2000` or `png`.
-    pub format: &'static str,
+    pub format: ImageFormatJs,
     /// The file extension: `jpg`, `jp2` or `png`.
     pub extension: &'static str,
+}
+
+/// What an extracted image is: an image, a stencil (an image mask), or a JPEG's or JPEG 2000's
+/// soft mask or stencil mask, which that file can't hold.
+#[derive(Debug, Clone, Copy, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub(crate) enum ImageKindJs {
+    Image,
+    Stencil,
+    SoftMask,
+    Mask,
+}
+
+/// The file an image is written as.
+#[derive(Debug, Clone, Copy, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub(crate) enum ImageFormatJs {
+    Jpeg,
+    Jpeg2000,
+    Png,
 }
 
 /// An image that couldn't be extracted, and why.
@@ -66,10 +84,10 @@ impl From<&ExtractedImage> for ExtractedImageJs {
             page: image.page,
             object: image.object.map(|r| r.num),
             kind: match image.kind {
-                ImageKind::Stencil => "stencil",
-                ImageKind::SoftMask => "softMask",
-                ImageKind::Mask => "mask",
-                _ => "image",
+                ImageKind::Stencil => ImageKindJs::Stencil,
+                ImageKind::SoftMask => ImageKindJs::SoftMask,
+                ImageKind::Mask => ImageKindJs::Mask,
+                _ => ImageKindJs::Image,
             },
             width: image.width,
             height: image.height,
@@ -77,9 +95,9 @@ impl From<&ExtractedImage> for ExtractedImageJs {
             color_space: image.color_space.clone(),
             filters: image.filters.clone(),
             format: match image.format {
-                ImageFormat::Jpeg => "jpeg",
-                ImageFormat::Jpeg2000 => "jpeg2000",
-                _ => "png",
+                ImageFormat::Jpeg => ImageFormatJs::Jpeg,
+                ImageFormat::Jpeg2000 => ImageFormatJs::Jpeg2000,
+                _ => ImageFormatJs::Png,
             },
             extension: image.format.extension(),
         }

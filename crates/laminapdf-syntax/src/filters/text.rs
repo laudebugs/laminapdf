@@ -1,15 +1,9 @@
 //! The filters that turn text back into bytes, and run-length: `ASCIIHexDecode`,
 //! `ASCII85Decode` and `RunLengthDecode` (ISO 32000-2 §7.4.2, §7.4.3, §7.4.5).
 
-use super::Output;
-use crate::error::{Error, Result};
-
-const fn bad(message: &'static str) -> Error {
-    Error::InvalidStructure {
-        kind: "stream filter",
-        message,
-    }
-}
+use super::{Output, bad};
+use crate::error::Result;
+use crate::lexer::hex_value;
 
 /// `ASCIIHexDecode`: pairs of hex digits, white space ignored, `>` ends the data; a last
 /// unpaired digit counts as followed by 0.
@@ -22,7 +16,7 @@ pub(super) fn ascii_hex(data: &[u8], out: &mut Output) -> Result<()> {
         if byte.is_ascii_whitespace() || byte == 0 {
             continue;
         }
-        let digit = hex_digit(byte).ok_or(bad("ASCIIHexDecode: not a hex digit"))?;
+        let digit = hex_value(byte).ok_or(bad("ASCIIHexDecode: not a hex digit"))?;
         match high.take() {
             None => high = Some(digit),
             Some(h) => out.push(h << 4 | digit)?,
@@ -32,15 +26,6 @@ pub(super) fn ascii_hex(data: &[u8], out: &mut Output) -> Result<()> {
         out.push(h << 4)?;
     }
     Ok(())
-}
-
-const fn hex_digit(byte: u8) -> Option<u8> {
-    match byte {
-        b'0'..=b'9' => Some(byte - b'0'),
-        b'a'..=b'f' => Some(byte - b'a' + 10),
-        b'A'..=b'F' => Some(byte - b'A' + 10),
-        _ => None,
-    }
 }
 
 /// `ASCII85Decode`: groups of five characters `!`–`u` for four bytes, `z` for four zeros,

@@ -74,15 +74,32 @@ pub(crate) fn decode_ranges(space: &Space, decode: Option<&[f64]>, bits: u8) -> 
         .collect()
 }
 
-/// The pixels of `raw` (from [`unpack`]) in `space`, mapped by `ranges`; `alpha` gives each
-/// pixel's opacity (0–255) when the image has a mask.
-pub(crate) fn pixels(
-    raw: &[u16],
-    layout: Layout,
-    space: &Space,
-    ranges: &[(f64, f64)],
-    alpha: Option<&[u8]>,
-) -> Pixels {
+/// An image's mask, resampled to the image: each pixel's opacity (0–255), and a soft mask's
+/// `/Matte`, the colour the image was blended with (§11.6.5.3), in the image's components.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct Mask {
+    pub(crate) alpha: Vec<u8>,
+    pub(crate) matte: Option<Vec<f64>>,
+}
+
+/// Grey pixels, 8 bits, no alpha.
+pub(crate) fn gray(layout: Layout, data: Vec<u8>) -> Pixels {
+    Pixels {
+        width: layout.width,
+        height: layout.height,
+        color: Output::Gray,
+        alpha: false,
+        sixteen: false,
+        data,
+    }
+}
+
+/// The pixels of `raw` (from [`unpack`]) in `space`, mapped by `ranges`, with `mask`'s opacity
+/// when the image has one. A soft mask's matte is taken out of each component first:
+/// c = m + (c − m) / α.
+pub(crate) fn pixels(raw: &[u16], layout: Layout, space: &Space, ranges: &[(f64, f64)], mask: Option<&Mask>) -> Pixels {
+    let alpha = mask.map(|m| m.alpha.as_slice());
+    let matte = mask.and_then(|m| m.matte.as_deref());
     let n = space.components();
     let max = f64::from((1u32 << layout.bits) - 1);
     let color = space.output();
@@ -103,6 +120,14 @@ pub(crate) fn pixels(
                 .zip(ranges)
                 .map(|(&v, &(lo, hi))| lo + f64::from(v) * (hi - lo) / max),
         );
+        if let (Some(matte), Some(alpha)) = (matte, alpha) {
+            let opacity = f64::from(alpha.get(p).copied().unwrap_or(255)) / 255.0;
+            if opacity > 0.0 {
+                for (v, &m) in values.iter_mut().zip(matte) {
+                    *v = m + (*v - m) / opacity;
+                }
+            }
+        }
         converted.clear();
         space.convert(&values, &mut converted);
         for &c in &converted {

@@ -17,8 +17,8 @@ describe("extractImages", () => {
   it("B.03 (pdf, read): gives each image once, JPEGs and JPEG 2000 byte for byte, the rest as PNG", () => {
     using doc = Document.open(read("fixtures/images/extract.pdf"));
     const { images, skipped } = doc.extractImages();
-    // Every image of the fixture but JBIG2-free: nothing is skipped.
-    expect(skipped).toEqual([]);
+    // The two-colourant DeviceN image is skipped, its reason naming the family only.
+    expect(skipped).toEqual([{ page: 0, object: 58, reason: "its colour space: DeviceN" }]);
     const jpeg = images.find((i) => i.object === 10);
     expect(jpeg?.format).toBe("jpeg");
     expect(jpeg?.extension).toBe("jpg");

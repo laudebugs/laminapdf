@@ -36,10 +36,10 @@ mod document;
 mod dto;
 mod error;
 #[cfg(feature = "extract")]
+mod exports;
+#[cfg(feature = "extract")]
 mod extract;
 mod memory;
-#[cfg(feature = "extract")]
-mod exports;
 #[cfg(feature = "extract")]
 mod navigation;
 mod pages;

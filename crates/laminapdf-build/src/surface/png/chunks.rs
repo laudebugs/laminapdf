@@ -3,42 +3,7 @@
 use super::invalid;
 use crate::error::Result;
 
-pub(super) const SIGNATURE: [u8; 8] = [0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A];
-
-/// The CRC-32 table (ISO 3309, as PNG §5.5 specifies), computed at compile time.
-#[expect(
-    clippy::cast_possible_truncation,
-    clippy::indexing_slicing,
-    reason = "const evaluation: n < 256 indexes the 256-entry table"
-)]
-pub(super) const CRC_TABLE: [u32; 256] = {
-    let mut table = [0u32; 256];
-    let mut n = 0;
-    while n < 256 {
-        let mut c = n as u32;
-        let mut k = 0;
-        while k < 8 {
-            c = if c & 1 == 1 { 0xEDB8_8320 ^ (c >> 1) } else { c >> 1 };
-            k += 1;
-        }
-        table[n] = c;
-        n += 1;
-    }
-    table
-};
-
-/// CRC-32 over `parts` in order.
-pub(super) fn crc32(parts: &[&[u8]]) -> u32 {
-    let mut crc = !0u32;
-    for part in parts {
-        for &byte in *part {
-            let [low, ..] = crc.to_le_bytes();
-            let index = usize::from(low ^ byte);
-            crc = CRC_TABLE.get(index).copied().unwrap_or(0) ^ (crc >> 8);
-        }
-    }
-    !crc
-}
+pub(super) use laminapdf_syntax::png::{SIGNATURE, crc32};
 
 pub(super) fn be32(b: &[u8]) -> Option<u32> {
     Some(u32::from_be_bytes(b.get(..4)?.try_into().ok()?))

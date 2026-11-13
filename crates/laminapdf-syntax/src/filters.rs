@@ -1,6 +1,7 @@
 //! Stream filters (ISO 32000-1 §7.4): `FlateDecode` (via `miniz_oxide`), `LZWDecode`,
-//! `ASCIIHexDecode`, `ASCII85Decode` and `RunLengthDecode`, with the PNG and TIFF predictors. The image codecs (DCT, JPX, CCITT, JBIG2) are
-//! left to their readers: [`decode`] reports them as unsupported.
+//! `ASCIIHexDecode`, `ASCII85Decode` and `RunLengthDecode`, with the PNG and TIFF predictors.
+//! The image codecs (DCT, JPX, CCITT, JBIG2) are left to their readers: [`decode`] reports them
+//! as unsupported.
 //!
 //! Decoding is bounded by [`Limits`]: every filter stage's output is capped by
 //! [`Limits::max_stream_decoded`] and charged to the call's [`DecodeBudget`]
@@ -29,6 +30,14 @@ use crate::object::{Dict, Object};
 
 mod lzw;
 mod text;
+
+/// A filter's data that can't be decoded, with what is wrong.
+const fn bad(message: &'static str) -> Error {
+    Error::InvalidStructure {
+        kind: "stream filter",
+        message,
+    }
+}
 
 /// A filter stage's output, refused past its cap with the limit it would break.
 struct Output {
@@ -163,6 +172,24 @@ pub fn flate_decode(data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -> 
     Ok(Decoded { data, flate_truncated })
 }
 
+/// A filter's full name for its inline-image abbreviation (ISO 32000-2 §8.9.7, Table 92):
+/// `AHx` is `ASCIIHexDecode`, `CCF` is `CCITTFaxDecode`…; a full name comes back as it is.
+///
+/// Added in 0.3.0.
+#[must_use]
+pub fn full_name(name: &[u8]) -> &[u8] {
+    match name {
+        b"AHx" => b"ASCIIHexDecode",
+        b"A85" => b"ASCII85Decode",
+        b"LZW" => b"LZWDecode",
+        b"Fl" => b"FlateDecode",
+        b"RL" => b"RunLengthDecode",
+        b"CCF" => b"CCITTFaxDecode",
+        b"DCT" => b"DCTDecode",
+        other => other,
+    }
+}
+
 /// Decodes stream `data` according to `/Filter` and `/DecodeParms` in `dict`, within
 /// `limits` and `budget` (see the [module docs](self)).
 ///
@@ -210,20 +237,20 @@ pub fn decode(dict: &Dict, data: &[u8], limits: &Limits, budget: &mut DecodeBudg
             Some(o) if i == 0 => o.as_dict(),
             _ => None,
         };
-        let decoded = match *filter {
-            b"FlateDecode" | b"Fl" => {
+        let decoded = match full_name(filter) {
+            b"FlateDecode" => {
                 let raw = flate_decode(input, limits, budget)?;
                 flate_truncated |= raw.flate_truncated;
                 apply_predictor(raw.data, parms)?
             }
-            b"LZWDecode" | b"LZW" => {
+            b"LZWDecode" => {
                 let early = int_param(parms, "EarlyChange", 1) != 0;
                 let raw = stage(input, limits, budget, |data, out| lzw::decode(data, early, out))?;
                 apply_predictor(raw, parms)?
             }
-            b"ASCIIHexDecode" | b"AHx" => stage(input, limits, budget, text::ascii_hex)?,
-            b"ASCII85Decode" | b"A85" => stage(input, limits, budget, text::ascii85)?,
-            b"RunLengthDecode" | b"RL" => stage(input, limits, budget, text::run_length)?,
+            b"ASCIIHexDecode" => stage(input, limits, budget, text::ascii_hex)?,
+            b"ASCII85Decode" => stage(input, limits, budget, text::ascii85)?,
+            b"RunLengthDecode" => stage(input, limits, budget, text::run_length)?,
             other => return Err(Error::UnsupportedFilter(String::from_utf8_lossy(other).into_owned())),
         };
         current = Some(decoded);

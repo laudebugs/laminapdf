@@ -6,7 +6,7 @@ use laminapdf_syntax::{ObjRef, Object, Stream};
 
 use super::codecs::{self, Codec};
 use super::color::{self, Space};
-use super::samples::{self, Layout, Pixels};
+use super::samples::{self, Layout, Mask, Pixels};
 use super::{ExtractedImage, ImageFormat, ImageKind, png};
 
 /// The most pixels an image may have: past it the image is skipped rather than decoded.
@@ -18,6 +18,12 @@ pub(super) struct Input<'a> {
     pub(super) object: Option<ObjRef>,
     pub(super) page: usize,
     pub(super) resources: Option<&'a Object>,
+}
+
+/// The numbers of array `key` in `dict`, resolved.
+fn numbers(doc: &Document, dict: &laminapdf_syntax::Dict, key: &str) -> Option<Vec<f64>> {
+    let array = doc.deref(dict.get(key)?).ok()?;
+    Some(array.as_array()?.iter().filter_map(Object::as_f64).collect())
 }
 
 /// The image's own entries.
@@ -127,12 +133,12 @@ pub(super) fn extract(doc: &Document, input: &Input<'_>) -> Result<Vec<Extracted
         return Err("no colour space".into());
     };
     if let Space::Unsupported(name) = &space {
-        return Err(format!("an unsupported colour space {name}"));
+        return Err(format!("its colour space: {name}"));
     }
     let raw = samples::unpack(&samples, entries.layout, space.components());
-    let alpha = alpha(doc, input, entries.layout, &raw, space.components())?;
+    let mask = alpha(doc, input, entries.layout, &raw, space.components())?;
     let ranges = samples::decode_ranges(&space, entries.decode.as_deref(), entries.layout.bits);
-    let pixels = samples::pixels(&raw, entries.layout, &space, &ranges, alpha.as_deref());
+    let pixels = samples::pixels(&raw, entries.layout, &space, &ranges, mask.as_ref());
     let png = png::encode(&pixels)?;
     Ok(vec![record(
         ImageKind::Image,
@@ -150,14 +156,7 @@ fn inverted(decode: Option<&[f64]>) -> bool {
 
 /// A stencil as grey pixels: painted black, the rest white.
 fn stencil_pixels(alpha: &[u8], layout: Layout) -> Pixels {
-    Pixels {
-        width: layout.width,
-        height: layout.height,
-        color: color::Output::Gray,
-        alpha: false,
-        sixteen: false,
-        data: alpha.iter().map(|a| 255 - a).collect(),
-    }
+    samples::gray(layout, alpha.iter().map(|a| 255 - a).collect())
 }
 
 /// The image's opacity from its `/SMask`, `/Mask` stream or `/Mask` colour key, when it has one.
@@ -167,20 +166,24 @@ fn alpha(
     layout: Layout,
     raw: &[u16],
     components: usize,
-) -> Result<Option<Vec<u8>>, String> {
+) -> Result<Option<Mask>, String> {
     let dict = &input.stream.dict;
     if let Some((mask, mask_layout)) = mask_stream(doc, input, "SMask")? {
-        let decode = mask_decode(doc, &mask);
-        return Ok(Some(samples::resample(
-            &samples::soft_alpha(&mask_data(doc, &mask)?, mask_layout, decode.as_deref()),
-            mask_layout,
-            layout,
-        )));
+        let decode = numbers(doc, &mask.dict, "Decode");
+        let alpha = samples::soft_alpha(&mask_data(doc, &mask)?, mask_layout, decode.as_deref());
+        let matte = numbers(doc, &mask.dict, "Matte").filter(|m| m.len() == components);
+        return Ok(Some(Mask {
+            alpha: samples::resample(&alpha, mask_layout, layout),
+            matte,
+        }));
     }
     if let Some((mask, mask_layout)) = mask_stream(doc, input, "Mask")? {
-        let decode = mask_decode(doc, &mask);
+        let decode = numbers(doc, &mask.dict, "Decode");
         let alpha = samples::stencil_alpha(&mask_data(doc, &mask)?, mask_layout, inverted(decode.as_deref()));
-        return Ok(Some(samples::resample(&alpha, mask_layout, layout)));
+        return Ok(Some(Mask {
+            alpha: samples::resample(&alpha, mask_layout, layout),
+            matte: None,
+        }));
     }
     let key = dict.get("Mask").and_then(|m| doc.deref(m).ok());
     if let Some(Object::Array(items)) = key.as_deref() {
@@ -193,7 +196,10 @@ fn alpha(
             .filter_map(|p| Some((*p.first()?, *p.get(1)?)))
             .collect();
         if ranges.len() == components {
-            return Ok(Some(samples::color_key_alpha(raw, components, &ranges)));
+            return Ok(Some(Mask {
+                alpha: samples::color_key_alpha(raw, components, &ranges),
+                matte: None,
+            }));
         }
     }
     Ok(None)
@@ -218,13 +224,6 @@ fn mask_stream(doc: &Document, input: &Input<'_>, key: &str) -> Result<Option<(S
     Ok(Some((mask, layout)))
 }
 
-fn mask_decode(doc: &Document, mask: &Stream) -> Option<Vec<f64>> {
-    mask.dict.get("Decode").and_then(|d| doc.deref(d).ok()).and_then(|d| {
-        d.as_array()
-            .map(|items| items.iter().filter_map(Object::as_f64).collect())
-    })
-}
-
 /// A mask's samples: decoded through its filters, a CCITT or JBIG2 mask included.
 fn mask_data(doc: &Document, mask: &Stream) -> Result<Vec<u8>, String> {
     let (data, codec, parms) = codecs::decode_to_codec(doc, mask)?;
@@ -244,17 +243,9 @@ fn passthrough_mask(doc: &Document, input: &Input<'_>) -> Result<Option<Extracte
             continue;
         };
         let data = mask_data(doc, &mask)?;
-        let decode = mask_decode(doc, &mask);
+        let decode = numbers(doc, &mask.dict, "Decode");
         let pixels = if kind == ImageKind::SoftMask {
-            let alpha = samples::soft_alpha(&data, layout, decode.as_deref());
-            Pixels {
-                width: layout.width,
-                height: layout.height,
-                color: color::Output::Gray,
-                alpha: false,
-                sixteen: false,
-                data: alpha,
-            }
+            samples::gray(layout, samples::soft_alpha(&data, layout, decode.as_deref()))
         } else {
             stencil_pixels(
                 &samples::stencil_alpha(&data, layout, inverted(decode.as_deref())),

@@ -1,8 +1,9 @@
 //! Pixels as a PNG file (PNG §11): the signature, `IHDR`, one `IDAT` of the zlib-compressed rows
-//! (each with filter 0), and `IEND`. Written here with the Flate encoder the core already has,
-//! so extraction carries no PNG library.
+//! (each with filter 0), and `IEND`. Written here with the core's Flate encoder and PNG chunks
+//! (`laminapdf_syntax::png`), so extraction carries no PNG library.
 
 use laminapdf_syntax::filters::flate_encode;
+use laminapdf_syntax::png::{SIGNATURE, write_chunk};
 
 use super::color::Output;
 use super::samples::Pixels;
@@ -38,38 +39,11 @@ pub(crate) fn encode(pixels: &Pixels) -> Result<Vec<u8>, String> {
     header.extend_from_slice(&pixels.width.to_be_bytes());
     header.extend_from_slice(&pixels.height.to_be_bytes());
     header.extend_from_slice(&[if pixels.sixteen { 16 } else { 8 }, color_type, 0, 0, 0]);
-    let mut out = b"\x89PNG\r\n\x1a\n".to_vec();
-    chunk(&mut out, *b"IHDR", &header);
-    chunk(&mut out, *b"IDAT", &flate_encode(&raw));
-    chunk(&mut out, *b"IEND", &[]);
+    let mut out = SIGNATURE.to_vec();
+    write_chunk(&mut out, *b"IHDR", &header);
+    write_chunk(&mut out, *b"IDAT", &flate_encode(&raw));
+    write_chunk(&mut out, *b"IEND", &[]);
     Ok(out)
-}
-
-/// Appends chunk `kind` holding `data`: its length, type, data and CRC.
-fn chunk(out: &mut Vec<u8>, kind: [u8; 4], data: &[u8]) {
-    let len = u32::try_from(data.len()).unwrap_or(u32::MAX);
-    out.extend_from_slice(&len.to_be_bytes());
-    let start = out.len();
-    out.extend_from_slice(&kind);
-    out.extend_from_slice(data);
-    let crc = crc32(out.get(start..).unwrap_or_default());
-    out.extend_from_slice(&crc.to_be_bytes());
-}
-
-/// CRC-32 (ISO 3309, as PNG §D computes it).
-fn crc32(bytes: &[u8]) -> u32 {
-    let mut crc = u32::MAX;
-    for &byte in bytes {
-        crc ^= u32::from(byte);
-        for _ in 0..8 {
-            crc = if crc & 1 == 1 {
-                (crc >> 1) ^ 0xEDB8_8320
-            } else {
-                crc >> 1
-            };
-        }
-    }
-    !crc
 }
 
 #[cfg(test)]
@@ -90,12 +64,6 @@ mod tests {
         assert_eq!(png.get(..8), Some(&b"\x89PNG\r\n\x1a\n"[..]));
         // IHDR's width and height, big-endian, then 8 bits of RGBA.
         assert_eq!(png.get(16..26), Some(&[0, 0, 0, 2, 0, 0, 0, 1, 8, 6][..]));
-    }
-
-    #[test]
-    fn crc32_is_the_png_one() {
-        // The CRC of IEND with no data, as every PNG ends.
-        assert_eq!(crc32(b"IEND"), 0xAE42_6082);
     }
 
     #[test]

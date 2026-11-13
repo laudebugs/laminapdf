@@ -2,8 +2,8 @@
 //! clears the table, 257 ends the data. With `/EarlyChange 1` (the default) the code width
 //! grows one code early, as the encoders PDF's LZW comes from do.
 
-use super::Output;
-use crate::error::{Error, Result};
+use super::{Output, bad};
+use crate::error::Result;
 
 const CLEAR: u16 = 256;
 const END: u16 = 257;
@@ -135,10 +135,7 @@ pub(super) fn decode(data: &[u8], early: bool, out: &mut Output) -> Result<()> {
         match previous {
             None => {
                 if code >= FIRST {
-                    return Err(Error::InvalidStructure {
-                        kind: "stream filter",
-                        message: "LZWDecode: a first code that isn't a byte",
-                    });
+                    return Err(bad("LZWDecode: a first code that isn't a byte"));
                 }
                 table.write(code, out)?;
             }
@@ -154,10 +151,7 @@ pub(super) fn decode(data: &[u8], early: bool, out: &mut Output) -> Result<()> {
                 table.write(code, out)?;
             }
             Some(_) => {
-                return Err(Error::InvalidStructure {
-                    kind: "stream filter",
-                    message: "LZWDecode: a code past the table",
-                });
+                return Err(bad("LZWDecode: a code past the table"));
             }
         }
         previous = Some(code);

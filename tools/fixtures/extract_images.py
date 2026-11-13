@@ -10,7 +10,10 @@ Two pages. Page 1 draws one image of each kind extraction handles:
   RGB with a /Mask stencil, RGB with a colour-key /Mask, a stencil (/ImageMask), LZW,
   ASCII85 then Flate, RunLength, and a CCITT fax image encoded here by T.4's code tables;
 * an inline image (ASCIIHex) and a Form XObject that runs another, which draws its own image
-  and the Flate RGB image again.
+  and the Flate RGB image again;
+* soft masks on decoded images (one with /Matte, one half the image's size), an ICCBased
+  image, a Separation image, a two-colourant DeviceN image (skipped), a CCITT image with
+  /BlackIs1 true, and a second inline image.
 
 Page 2 draws the Flate RGB image once more: an image is extracted once, on its first page.
 
@@ -110,6 +113,8 @@ PAGE1 = b"""q
 0 0 1 rg /Stencil Do
 BI /W 4 /H 2 /BPC 8 /CS /G /F /AHx ID 00 40 80 C0 FF C0 80 40 > EI
 /Outer Do
+/Matted Do /SoftSmall Do /Icc Do /Sep Do /DevN Do /FaxInv Do
+BI /W 2 /H 1 /BPC 8 /CS /RGB ID \xff\x00\x00\x00\x00\xff EI
 Q"""
 
 PAGE2 = b"/Flate Do"
@@ -121,7 +126,8 @@ OBJECTS = {
     4: stream(b"", PAGE1),
     5: b"""<< /XObject << /Jpg 10 0 R /Cmyk 11 0 R /Soft 12 0 R /Jpx 14 0 R /Flate 15 0 R /Idx 16 0 R
       /Cmyk8 17 0 R /Gray16 18 0 R /Inv 19 0 R /Lab 20 0 R /Masked 21 0 R /Keyed 23 0 R /Lzw 24 0 R
-      /A85 25 0 R /Rl 26 0 R /Fax 27 0 R /Stencil 28 0 R /Outer 40 0 R >> >>""",
+      /A85 25 0 R /Rl 26 0 R /Fax 27 0 R /Stencil 28 0 R /Outer 40 0 R /Matted 50 0 R /SoftSmall 52 0 R
+      /Icc 54 0 R /Sep 56 0 R /DevN 58 0 R /FaxInv 59 0 R >> >>""",
     10: image(b"/Width 192 /Height 192 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode",
               (IMAGES / "photo-rgb.jpg").read_bytes()),
     11: image(b"/Width 192 /Height 192 /ColorSpace /DeviceCMYK /BitsPerComponent 8 /Filter /DCTDecode"
@@ -161,6 +167,23 @@ OBJECTS = {
     41: stream(b"/Type /XObject /Subtype /Form /BBox [0 0 100 100]"
                b" /Resources << /XObject << /Deep 42 0 R /Flate 15 0 R >> >>", b"/Deep Do /Flate Do"),
     42: image(b"/Width 2 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8", b"\x00\xff\xff\x00"),
+    # Red blended with black at half opacity (premultiplied, /Matte [0 0 0]): extraction takes the
+    # matte out, giving red at half opacity.
+    50: image(b"/Width 2 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /SMask 51 0 R", bytes([128, 0, 0, 255, 0, 0])),
+    51: image(b"/Width 2 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /Matte [0 0 0]", bytes([128, 255])),
+    # A decoded image with a soft mask of half its size, which is resampled.
+    52: image(b"/Width 16 /Height 16 /ColorSpace /DeviceRGB /BitsPerComponent 8 /SMask 53 0 R", RGB),
+    53: image(b"/Width 8 /Height 8 /ColorSpace /DeviceGray /BitsPerComponent 8", bytes(range(0, 256, 4))),
+    54: image(b"/Width 16 /Height 16 /ColorSpace [/ICCBased 55 0 R] /BitsPerComponent 8", GRAY),
+    55: stream(b"/N 1", (IMAGES / "gray-gamma22.icc").read_bytes()),
+    56: image(b"/Width 4 /Height 1 /ColorSpace [/Separation /Spot /DeviceCMYK 57 0 R] /BitsPerComponent 8",
+              bytes([0, 64, 128, 255])),
+    57: b"<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [0 1 0 0] /N 1 >>",
+    # DeviceN with two colourants: its tint transform isn't evaluated, so it is skipped.
+    58: image(b"/Width 2 /Height 1 /ColorSpace [/DeviceN [/A /B] /DeviceCMYK 57 0 R] /BitsPerComponent 8",
+              bytes([0, 0, 255, 255])),
+    59: image(b"/Width 8 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 1 /Filter /CCITTFaxDecode"
+              b" /DecodeParms << /K 0 /Columns 8 /Rows 2 /EndOfBlock false /BlackIs1 true >>", ccitt_g3()),
 }
 
 
