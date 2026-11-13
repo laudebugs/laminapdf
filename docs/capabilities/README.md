@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 7 | 7 | 17 | 0 | 138 | 13 |
+| core | 169 | 8 | 6 | 17 | 0 | 138 | 14 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
 | web | 168 | 5 | 0 | 0 | 0 | 163 | 5 |
 | desktop | 168 | 0 | 0 | 0 | 0 | 168 | 0 |

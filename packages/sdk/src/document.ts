@@ -20,8 +20,8 @@ import {
   removeXmpPropertyOp,
   replaceXmpPacketOp,
   setMetadataOp,
-  setXmpPropertyOp,
   setPageLabelsOp,
+  setXmpPropertyOp,
   Transaction,
   type XmpEditOptions,
 } from "./transaction.js";
