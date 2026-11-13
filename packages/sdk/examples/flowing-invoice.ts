@@ -28,7 +28,11 @@ const HEADER_SHADE = "#ebebeb";
  * @param bold - a collection whose second face (index 1) is the bold one.
  * @param options - can fix the file ID, the producer and the creation date.
  */
-export function flowingInvoice(regular: Uint8Array, bold: Uint8Array, options: BuilderOptions = {}): Uint8Array<ArrayBuffer> {
+export function flowingInvoice(
+  regular: Uint8Array,
+  bold: Uint8Array,
+  options: BuilderOptions = {},
+): Uint8Array<ArrayBuffer> {
   using b = new Builder({ ...options, profiles: ["PDF/UA-1"] });
   const document: FlowDocument = {
     schema: "laminapdf.document/1",
@@ -63,7 +67,14 @@ function table(): BlockSpec {
     const [name, cents] = PRODUCTS[i % PRODUCTS.length] ?? ["", 0];
     const qty = (i % 5) + 1;
     total += qty * cents;
-    return { cells: [{ text: String(i + 1).padStart(3, "0") }, { text: name }, number(String(qty)), number(money(qty * cents))] };
+    return {
+      cells: [
+        { text: String(i + 1).padStart(3, "0") },
+        { text: name },
+        number(String(qty)),
+        number(money(qty * cents)),
+      ],
+    };
   });
   return {
     type: "table",
