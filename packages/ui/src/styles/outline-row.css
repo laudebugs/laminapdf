@@ -106,6 +106,17 @@
     gap: var(--paper-space-8);
   }
 
+  /* A bookmark's colour, before its title, edged so a white or near-background colour still shows. */
+  .paper-bookmark-colour {
+    display: inline-block;
+    inline-size: var(--paper-space-8);
+    block-size: var(--paper-space-8);
+    margin-inline-end: var(--paper-space-6);
+    border: var(--paper-border-width) solid var(--paper-control-border);
+    border-radius: var(--paper-radius-pill);
+    vertical-align: middle;
+  }
+
   .paper-bookmark-hint {
     margin: 0;
     color: var(--paper-text-3);

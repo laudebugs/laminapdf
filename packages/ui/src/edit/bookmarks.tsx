@@ -62,15 +62,23 @@ export interface BookmarkEditorProps {
   readonly failure?: string;
   /** Whether ⌘ (Apple) or Ctrl moves bookmarks with Shift and the arrows. */
   readonly apple: boolean;
+  /** Go to where bookmark `id` points. */
   readonly onNavigate: (id: string) => void;
   /** Add a bookmark for the current view, after `after` (at its level) or at the end. */
   readonly onAdd: (after: string | undefined) => void;
+  /** Give bookmark `id` a new title. */
   readonly onRename: (id: string, title: string) => void;
+  /** Move a bookmark (with its children) by keyboard or drag. */
   readonly onMove: (move: BookmarkMove) => void;
+  /** Delete bookmark `id` and its children. */
   readonly onDelete: (id: string) => void;
+  /** Set bookmark `id`'s bold, italic and colour. */
   readonly onStyle: (id: string, style: BookmarkStyle) => void;
+  /** Show (`open`) or hide bookmark `id`'s children when the file opens. */
   readonly onShowChildren: (id: string, open: boolean) => void;
+  /** Point bookmark `id` at the current view. */
   readonly onUseCurrentView: (id: string) => void;
+  /** Open the named destinations dialog. */
   readonly onNamedDestinations: () => void;
 }
 
@@ -193,15 +201,21 @@ function keyAction(e: KeyboardEvent, items: readonly BookmarkItem[], id: string,
   return undefined;
 }
 
-/** A bookmark's title as the file styles it (§12.3.3 `/C`, `/F`). */
+/**
+ * A bookmark's title as the file styles it (§12.3.3 `/C`, `/F`). The colour shows as a dot before
+ * the title, not on its text: a file's colour is chosen for white paper and can't be read on the
+ * dark theme.
+ */
 function StyledTitle({ item }: { item: BookmarkItem }): ReactNode {
   const style = {
     ...(item.bold === true ? { fontWeight: 600 } : {}),
     ...(item.italic === true ? { fontStyle: "italic" } : {}),
-    ...(item.color === undefined ? {} : { color: item.color }),
   };
   return (
     <span className="paper-outline-title" style={style}>
+      {item.color === undefined ? null : (
+        <span className="paper-bookmark-colour" style={{ backgroundColor: item.color }} aria-hidden />
+      )}
       {item.title}
     </span>
   );

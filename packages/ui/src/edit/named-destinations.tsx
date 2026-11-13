@@ -21,11 +21,17 @@ export interface NamedDestinationRow {
 
 /** Props of `NamedDestinationsDialog`. */
 export interface NamedDestinationsDialogProps {
+  /** Whether the dialog shows. */
   readonly isOpen: boolean;
+  /** The dialog asks to open or close. */
   readonly onOpenChange: (isOpen: boolean) => void;
+  /** The file's names, in order. */
   readonly destinations: readonly NamedDestinationRow[];
+  /** Go to where `name` points. */
   readonly onGoTo: (name: string) => void;
+  /** Rename `from` to `to`, with the links that use it. */
   readonly onRename: (from: string, to: string) => void;
+  /** Delete `name`, after the user confirms. */
   readonly onDelete: (name: string) => void;
   /** Add `name` for the current view. */
   readonly onAdd: (name: string) => void;

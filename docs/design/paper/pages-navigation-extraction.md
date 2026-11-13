@@ -112,7 +112,7 @@ Rules that hold for every screen here:
 Differs from the boards:
 
 - The selected bookmark's details sit under the tree in the rail, not in an inspector, and have no "Zoom when opened" select: Use current view and Add bookmark store the place at the top of the view (`/XYZ` with the reader's zoom kept).
-- Titles show their bold, italic and colour only while editing, which keeps the reader's startup script within its budget.
+- Titles show their bold, italic and colour only while editing, which keeps the reader's startup script within its budget. The colour is a dot before the title, not the text's colour: a file's colours are chosen for white paper and fail contrast on the dark theme.
 - "Used by" counts this file's bookmarks only, not its links, so every delete asks first: links and other files may use the name too. The rename field is named "New name for …", apart from the Rename button.
 - The rebuilt-outline notice shows after the first edit that rebuilds it, not on open, since reading a file changes nothing. A failed change, or Add bookmark with no page in view, shows a notice above the tree; deleting a bookmark has no toast, and Undo or the History tab takes it back.
 - The drag grip is a 44 px button at each row's end, shown on hover, focus or selection; dropping onto a row nests it, with React Aria's drop indicator in place of the indented accent line.
