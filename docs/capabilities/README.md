@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 6 | 8 | 17 | 0 | 138 | 12 |
+| core | 169 | 9 | 8 | 16 | 0 | 136 | 15 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
 | web | 168 | 4 | 0 | 0 | 0 | 164 | 4 |
 | desktop | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
@@ -57,10 +57,10 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| C.01 | Insert blank pages | — | — | — | — | E2 round-trip |  |
+| C.01 | Insert blank pages | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | C.02 | Insert pages from other PDFs | — | — | — | — | E2 round-trip |  |
 | C.03 | Delete & duplicate pages | — | — | — | — | E2 round-trip |  |
-| C.04 | Reorder pages | 🟡 read | — | — | — | E2 round-trip | [`ids_are_the_page_objects`](../../crates/laminapdf-model/tests/views.rs) core read |
+| C.04 | Reorder pages | 🟢 round-trip | — | — | — | E2 round-trip | [`ids_are_the_page_objects`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | C.05 | Extract selected pages | — | — | — | — | E2 write |  |
 | C.06 | Merge multiple documents | — | — | — | — | E2 round-trip |  |
 | C.07 | Split by count, ranges, bookmarks | — | — | — | — | E2 write |  |
@@ -69,7 +69,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | C.10 | Resize page dimensions | — | — | — | — | E2 round-trip |  |
 | C.11 | Modify margins & page boxes | 🟡 read | — | — | — | E2 round-trip | [`art_and_bleed_boxes_are_read_from_the_page`](../../crates/laminapdf-model/tests/views.rs) core read |
 | C.12 | Portrait ↔ landscape | — | — | — | — | E2 round-trip |  |
-| C.13 | Reverse page order | — | — | — | — | E2 round-trip |  |
+| C.13 | Reverse page order | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | C.14 | Labels, page numbers, headers/footers | 🟡 read | — | — | — | E6 round-trip | [`labels_follow_the_ranges`](../../crates/laminapdf-model/tests/views.rs) core read |
 | C.15 | Booklet / N-up layouts | — | — | — | — | E16 round-trip |  |
 | C.16 | Replace pages, preserving the rest | — | — | — | — | E2 round-trip |  |

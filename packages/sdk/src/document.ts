@@ -14,9 +14,20 @@ import type { Reflow } from "./reflow.js";
 import { type RangeOptions, type RangeSource, type RangeState, settle, wholeBytes } from "./source/range.js";
 import { PageText, type TextOptions } from "./text.js";
 import {
+  type DeletePagesOptions,
+  deletePagesOp,
+  type InsertBlankPagesOptions,
+  insertBlankPagesOp,
   type MetadataEditOptions,
   type MetadataRemoveOptions,
+  movePagesOp,
+  type PagePosition,
+  type PageSize,
+  type RotatePagesOptions,
+  type Rotation,
   removeMetadataOp,
+  reversePagesOp,
+  rotatePagesOp,
   setMetadataOp,
   Transaction,
 } from "./transaction.js";
@@ -776,6 +787,86 @@ export class Document extends Handle<BaseGlue> {
    */
   removeMetadata(keys: readonly MetadataKey[], options?: MetadataRemoveOptions): Edited {
     return this.apply([removeMetadataOp(keys, options)]);
+  }
+
+  /**
+   * Inserts `count` blank pages of `size` at `at`, in one transaction (`insertBlankPages`). Each
+   * new page gets a new ID, listed in the result's `pageOrder`; in a document with page labels
+   * the new pages continue the label range they land in.
+   *
+   * @param at - `"start"`, `"end"`, or `{ before: id }` / `{ after: id }` of a page.
+   * @param count - how many pages; 0 changes nothing.
+   * @param size - their size in points (`{ width: 612, height: 792 }` is US Letter).
+   * @param options - `rotate`: their rotation in degrees clockwise, 0 when left out.
+   * @throws {@link LaminaPdfError} `unknown-page` for an anchor that isn't a page of the
+   *   document; as {@link Document.apply}.
+   *
+   * @since 0.2.0
+   */
+  insertBlankPages(at: PagePosition, count: number, size: PageSize, options?: InsertBlankPagesOptions): Edited {
+    return this.apply([insertBlankPagesOp(at, count, size, options)]);
+  }
+
+  /**
+   * Deletes `pages`, by ID, in one transaction (`deletePages`). The outline items, links, named
+   * destinations and open action that pointed at a deleted page point at the nearest page left
+   * (the next one, else the one before), or are removed with `references: "remove"`; the
+   * result's `references` lists each one. The deleted pages stay in the file's earlier revisions
+   * until a full rewrite (`save({ mode: "fullRewrite" })`).
+   *
+   * @param pages - the pages' IDs, each once.
+   * @param options - `references`: `"retarget"` (the default) or `"remove"`.
+   * @throws {@link LaminaPdfError} `no-pages-left` when `pages` is every page of the document;
+   *   `unknown-page` for an ID that isn't a page of it; as {@link Document.apply}.
+   *
+   * @since 0.2.0
+   */
+  deletePages(pages: readonly string[], options?: DeletePagesOptions): Edited {
+    return this.apply([deletePagesOp(pages, options)]);
+  }
+
+  /**
+   * Moves `pages`, by ID, to `to` in one transaction (`movePages`). They take the order given
+   * and keep their IDs; an anchor that is itself moved stands for the nearest page that stays.
+   *
+   * @param pages - the pages' IDs, each once, in the order they take.
+   * @param to - `"start"`, `"end"`, or `{ before: id }` / `{ after: id }` of a page.
+   * @throws {@link LaminaPdfError} `unknown-page` for an ID that isn't a page of the document; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.2.0
+   */
+  movePages(pages: readonly string[], to: PagePosition): Edited {
+    return this.apply([movePagesOp(pages, to)]);
+  }
+
+  /**
+   * Rotates `pages`, by ID, in one transaction (`rotatePages`): each shows at `angle`, or with
+   * `mode: "turn"` turns by `angle` from the rotation it has.
+   *
+   * @param angle - degrees clockwise: 0, 90, 180 or 270.
+   * @param options - `mode`: `"set"` (the default) or `"turn"`.
+   * @throws {@link LaminaPdfError} `unknown-page` for an ID that isn't a page of the document; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.2.0
+   */
+  rotatePages(pages: readonly string[], angle: Rotation, options?: RotatePagesOptions): Edited {
+    return this.apply([rotatePagesOp(pages, angle, options)]);
+  }
+
+  /**
+   * Reverses the order of `pages`, by ID, among the places they hold, in one transaction
+   * (`reversePages`): the first of them takes the last one's place, and so on, and the other
+   * pages stay where they are. Pass every page's ID to reverse the whole document.
+   *
+   * @throws {@link LaminaPdfError} `unknown-page` for an ID that isn't a page of the document; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.2.0
+   */
+  reversePages(pages: readonly string[]): Edited {
+    return this.apply([reversePagesOp(pages)]);
   }
 
   /**

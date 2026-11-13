@@ -39,6 +39,103 @@ export interface MetadataRemoveOptions {
   readonly replaceMalformed?: boolean;
 }
 
+/**
+ * Where pages go: before the first page, after the last, or before or after a page named by its ID.
+ *
+ * @since 0.2.0
+ */
+export type PagePosition = "start" | "end" | { readonly before: string } | { readonly after: string };
+
+/**
+ * A page size in points (1/72 inch): `{ width: 612, height: 792 }` is US Letter.
+ *
+ * @since 0.2.0
+ */
+export interface PageSize {
+  readonly width: number;
+  readonly height: number;
+}
+
+/**
+ * What deleting pages does to the outline items, links, named destinations and open action
+ * that point at them: `retarget` points each at the nearest page left (the next one, else the
+ * one before), showing the whole page; `remove` removes it.
+ *
+ * @since 0.2.0
+ */
+export type ReferencePolicy = "retarget" | "remove";
+
+/**
+ * How `rotatePages` uses its angle: `set` shows each page at the angle; `turn` adds it to each
+ * page's own rotation, as rotate left and rotate right do.
+ *
+ * @since 0.2.0
+ */
+export type RotateMode = "set" | "turn";
+
+/**
+ * Options for `insertBlankPages`.
+ *
+ * @since 0.2.0
+ */
+export interface InsertBlankPagesOptions {
+  /** The new pages' rotation in degrees clockwise; 0 when left out. */
+  readonly rotate?: Rotation;
+}
+
+/**
+ * Options for `deletePages`.
+ *
+ * @since 0.2.0
+ */
+export interface DeletePagesOptions {
+  /** What happens to what points at the deleted pages; `retarget` when left out. */
+  readonly references?: ReferencePolicy;
+}
+
+/**
+ * Options for `rotatePages`.
+ *
+ * @since 0.2.0
+ */
+export interface RotatePagesOptions {
+  /** Whether the angle is set or added to each page's rotation; `set` when left out. */
+  readonly mode?: RotateMode;
+}
+
+/** @internal The `insertBlankPages` op. */
+export const insertBlankPagesOp = (
+  at: PagePosition,
+  count: number,
+  size: PageSize,
+  options?: InsertBlankPagesOptions,
+): Op =>
+  ({
+    op: "insertBlankPages",
+    args: { at, count, size: { width: size.width, height: size.height }, rotate: options?.rotate ?? 0 },
+  }) as Op;
+
+/** @internal The `deletePages` op. */
+export const deletePagesOp = (pages: readonly string[], options?: DeletePagesOptions): Op =>
+  ({
+    op: "deletePages",
+    args: options?.references === undefined ? { pages } : { pages, references: options.references },
+  }) as Op;
+
+/** @internal The `movePages` op. */
+export const movePagesOp = (pages: readonly string[], to: PagePosition): Op =>
+  ({ op: "movePages", args: { pages, to } }) as Op;
+
+/** @internal The `rotatePages` op. */
+export const rotatePagesOp = (pages: readonly string[], angle: Rotation, options?: RotatePagesOptions): Op =>
+  ({
+    op: "rotatePages",
+    args: options?.mode === undefined ? { pages, angle } : { pages, angle, mode: options.mode },
+  }) as Op;
+
+/** @internal The `reversePages` op. */
+export const reversePagesOp = (pages: readonly string[]): Op => ({ op: "reversePages", args: { pages } }) as Op;
+
 /** @internal The `setMetadata` op. */
 export const setMetadataOp = (patch: MetadataPatch, options?: MetadataEditOptions): Op =>
   ({ op: "setMetadata", args: { patch, ...options } }) as Op;
@@ -134,5 +231,56 @@ export class Transaction {
    */
   rotatePage(page: string, rotate: Rotation): this {
     return this.apply({ op: "rotatePage", args: { page, rotate } } as Op);
+  }
+
+  /**
+   * Inserts `count` blank pages of `size` at `at` (`insertBlankPages`).
+   *
+   * @param options - as {@link Document.insertBlankPages}: `rotate`.
+   *
+   * @since 0.2.0
+   */
+  insertBlankPages(at: PagePosition, count: number, size: PageSize, options?: InsertBlankPagesOptions): this {
+    return this.apply(insertBlankPagesOp(at, count, size, options));
+  }
+
+  /**
+   * Deletes `pages`, by ID (`deletePages`).
+   *
+   * @param options - as {@link Document.deletePages}: `references`.
+   *
+   * @since 0.2.0
+   */
+  deletePages(pages: readonly string[], options?: DeletePagesOptions): this {
+    return this.apply(deletePagesOp(pages, options));
+  }
+
+  /**
+   * Moves `pages`, by ID and in the order given, to `to` (`movePages`).
+   *
+   * @since 0.2.0
+   */
+  movePages(pages: readonly string[], to: PagePosition): this {
+    return this.apply(movePagesOp(pages, to));
+  }
+
+  /**
+   * Rotates `pages`, by ID, by `angle` degrees clockwise (`rotatePages`).
+   *
+   * @param options - as {@link Document.rotatePages}: `mode`.
+   *
+   * @since 0.2.0
+   */
+  rotatePages(pages: readonly string[], angle: Rotation, options?: RotatePagesOptions): this {
+    return this.apply(rotatePagesOp(pages, angle, options));
+  }
+
+  /**
+   * Reverses the order of `pages`, by ID, among the places they hold (`reversePages`).
+   *
+   * @since 0.2.0
+   */
+  reversePages(pages: readonly string[]): this {
+    return this.apply(reversePagesOp(pages));
   }
 }

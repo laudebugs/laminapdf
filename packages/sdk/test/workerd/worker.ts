@@ -15,6 +15,7 @@ import notoSansSC from "../../../../fixtures/fonts/NotoSansSC-Regular.otf";
 import metadataPdf from "../../../../fixtures/golden/metadata.pdf";
 import photo from "../../../../fixtures/images/photo-rgb.jpg";
 import report from "../../../../fixtures/markdown/report.md";
+import referencesPdf from "../../../../fixtures/pages/references.pdf";
 import flowReport from "../../../../fixtures/text/element-flow-report.json" with { type: "json" };
 import { EXAMPLES, INPUT_PATHS, type Inputs, measure, missingInputs, sha256 } from "../suite/examples.js";
 
@@ -33,6 +34,7 @@ const inputs: Inputs = {
       "fixtures/fonts/NotoSans-RegularBold.ttc": notoSansCollection,
       "fixtures/markdown/report.md": report,
       "fixtures/golden/metadata.pdf": metadataPdf,
+      "fixtures/pages/references.pdf": referencesPdf,
     }).map(([path, data]) => [path, new Uint8Array(data)]),
   ),
   // The element-flow report comes in as a JSON module; the suite reads every input as bytes.

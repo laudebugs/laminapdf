@@ -1,0 +1,33 @@
+---
+title: Organise pages
+description: Delete, move, insert and rotate a PDF's pages in one edit, and see where the bookmarks and links that pointed at a deleted page now go.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll delete a PDF's third page, move its last page to the front, add a blank page at the end and turn two pages a quarter clockwise, in one edit. You need this for a page organiser, a scan out of order, or a pipeline that drops cover pages.
+
+Each page has an ID, such as `p12.0`, that stays the same while other pages move, so each step names its pages by the IDs read before the edit:
+
+<Example ts="packages/sdk/examples/organise-pages.ts" rust="crates/laminapdf/examples/organise_pages.rs" result="organise_pages" />
+
+The result has five pages: the old last page, then the old first and second pages turned on their side, then the old fourth page, then a blank Letter page. The bookmarks, links and named destinations that went to the deleted page now go to the old fourth page, and the program prints each one.
+
+## How it works
+
+- `doc.pages` lists the pages in order, each with its `id`. A page keeps its ID when it moves, and a new blank page gets a new one.
+- `deletePages` (`DeletePages` in Rust) deletes pages by ID. The bookmarks, links, named destinations and opening view that pointed at a deleted page now point at the nearest page left, the next one or else the one before, showing the whole page. The edit's `references` lists each of them with where it now goes.
+- `movePages` (`MovePages`) moves pages to `"start"`, `"end"`, or before or after another page, in the order you list them.
+- `insertBlankPages` (`InsertBlankPages`) adds pages of a size in points: 612 × 792 is US Letter. In a document with page labels, such as roman numerals for the front matter, the new pages continue the numbering where they land, and every other page keeps its label.
+- `rotatePages` (`RotatePages`) with `mode: "turn"` adds the angle to each page's own rotation, as rotate left and rotate right do. Without it, each page shows at the angle you give.
+- `apply` runs the steps in order as one edit: if one fails, none of them apply, and one `undo()` reverts them all. The edit's `pageOrder` lists the page IDs in their new order.
+
+## What to change
+
+- **Remove what pointed at a deleted page:** pass `references: "remove"` to `deletePages`. A bookmark keeps its title but goes nowhere, and a link to the page is removed from its own page.
+- **Reverse the order:** `reversePages` with every page's ID reverses the document. With some of them, those pages swap places and the others stay put.
+- **One step at a time:** `doc.deletePages(ids)`, `doc.movePages(ids, "start")` and the others each apply one step as its own edit, and `doc.transact(tx => …)` collects several of them into one.
+- **Delete every page:** you can't. A PDF needs at least one page, so the edit refuses with [`no-pages-left`](/reference/codes/no-pages-left/) and changes nothing.
+- **Delete pages for good:** an [incremental save](/reference/glossary/#incremental-save) keeps the deleted pages in the file's earlier revisions. Save with `mode: "fullRewrite"` to drop them; the edit's `stillInEarlierRevisions` says when it matters.
+
+Next: [save a PDF](/guides/save-a-pdf/), for what a signed file allows.
