@@ -331,13 +331,13 @@
   },
   "packages": {
     "@laminapdf/sdk": {
-      "jsGzip": 24500
+      "jsGzip": 25500
     },
     "@laminapdf/sdk/worker": {
       "jsGzip": 5200
     },
     "@laminapdf/sdk/worker/entry": {
-      "jsGzip": 22500
+      "jsGzip": 23400
     }
   },
   "thirdParty": {
