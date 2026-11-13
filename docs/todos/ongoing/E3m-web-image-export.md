@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E3m` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E3 plan §2.3](../../plans/editor/e3-navigation-attachments-inspection.md#23-functions-that-only-read-or-write-new-files) and [§7](../../plans/editor/e3-navigation-attachments-inspection.md#7-differences-between-the-shells) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E3h](../done/E3h-images-to-pdf-and-page-export.md) |
