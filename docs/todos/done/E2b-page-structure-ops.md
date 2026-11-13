@@ -42,7 +42,7 @@ Implement the single-document page ops as view-level mapping of `PageId`s (no re
 - The planner's field-level checks → [E2r](../done/E2r-planner-page-checks.md)
 - Duplicating pages (tags and widgets) → [E2k](../done/E2k-duplicate-pages.md)
 - Pages from other documents, replace, extract → [E2c](../done/E2c-cross-document-pages.md)
-- Merge and split → [E2d](../ongoing/E2d-merge-and-split.md)
+- Merge and split → [E2d](../done/E2d-merge-and-split.md)
 - The viewer across page-list changes → [E2l](../ready/E2l-viewer-across-page-edits.md); the Organise UI → [E2h](../ready/E2h-page-organiser-ui.md)
 - The CLI's page commands (`laminapdf pages delete`, `extract`, `reorder`, `insert`, `merge`, `split`) → [T6a](../ready/T6a-cli-page-commands.md)
 

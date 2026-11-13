@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2d` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E2 page organisation §2.2](../../plans/editor/e2-page-organisation.md#22-what-follows-a-page) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E2c](../done/E2c-cross-document-pages.md) |
+| Depends on | [B8b](./B8b-conformance-profiles-and-verapdf.md), [E2c](./E2c-cross-document-pages.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2d-merge-and-split` |
 | PR title | `feat(ops): merge documents with outline, destination and field remapping; split` |
@@ -50,21 +50,32 @@ Merge whole documents with the hard parts done: outlines appended as subtrees, n
 
 ## Tasks
 
-- [ ] Outline merge: append each source's outline as a child of a new item titled with the source's title/filename (option)
-- [ ] Named destinations: rename on clash with a suffix and rewrite references in the imported pages
-- [ ] AcroForm merge per the [E2 plan §11](../../plans/editor/e2-page-organisation.md#11-decisions-on-the-open-questions) rule; `/DR` font resources merged by hash
-- [ ] OCG merge (`/OCGs`, `/D` arrays)
-- [ ] Split implementations and tests incl. bookmarks pointing at named destinations
+- [x] Outline merge: append each source's outline as a child of a new item titled with the source's title/filename (option)
+- [x] Named destinations: rename on clash with a suffix and rewrite references in the imported pages
+- [x] AcroForm merge per the [E2 plan §11](../../plans/editor/e2-page-organisation.md#11-decisions-on-the-open-questions) rule; `/DR` font resources merged by hash
+- [x] OCG merge (`/OCGs`, `/D` arrays)
+- [x] Split implementations and tests incl. bookmarks pointing at named destinations
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
-- [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
-- [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
-- [ ] Merging a tagged fixture reports `TagsDropped` and a PDF/UA `ConformanceWarning` (E2o keeps the tags)
-- [ ] Merged forms: fields from both sources fillable in pdf.js and PDFium; clashing names handled per rule
-- [ ] Split by bookmarks on a 3-chapter fixture yields 3 files whose outlines are the chapter subtrees
-- [ ] Merge of 100 files of 10 pages each completes within the [E2 plan §10](../../plans/editor/e2-page-organisation.md#10-tests) budget, or the PR records what it measured and adjusts the budget in the plan
+- [x] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [x] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
+- [x] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
+- [x] Merging a tagged fixture reports `TagsDropped` and a PDF/UA `ConformanceWarning` (E2o keeps the tags)
+- [x] Merged forms: fields from both sources fillable in pdf.js and PDFium; clashing names handled per rule
+- [x] Split by bookmarks on a 3-chapter fixture yields 3 files whose outlines are the chapter subtrees
+- [x] Merge of 100 files of 10 pages each completes within the [E2 plan §10](../../plans/editor/e2-page-organisation.md#10-tests) budget, or the PR records what it measured and adjusts the budget in the plan
+
+## As built
+
+- **Op:** `MergeDocuments { sources, at, options }` in `laminapdf-ops`' `src/pages/merge.rs`, class `PageStructure`, with no `page_changes` (it only adds pages). Each source goes through E2c's import with a hook that runs after the pages are fitted and before the destinations are written. The hook copies the source's bookmarks (`merge_parts.rs`'s `copy_outline`, destinations through `Dests::fit_source` so named ones follow a rename), its layers (`/OCGs`, the default configuration's `/ON`/`/OFF` by its `/BaseState`, `/Order`) and its page labels. It returns the copied bookmark objects so the import's sweep keeps them.
+- **Bookmarks:** `OutlineMerge::PerFile` (the default) puts each source's bookmarks under a new item titled `MergeSource::title`, else the source's Info `/Title`, opening its first copied page. A source with neither name adds its bookmarks at the top level, as `Keep` does. `None` leaves them out. Bookmarks to pages left behind are dropped with their children and counted in `Applied::bookmarks_dropped`.
+- **Report:** `Applied::renamed_destinations` (also filled by `InsertPagesFrom` and `ReplacePages`) and `bookmarks_dropped`, on the façade's `Edited` and the WASM `EditedJs`. The PDF/A check is a new `ConformanceWarning::ImportedPdfaUnchecked` (`imported-pdfa-unchecked`, `opWarnings`), raised from `PendingChanges::pdfa_unchecked` when the target claims PDF/A and a source claims another level or none. The PDF/UA check is E2c's `imported-tags-dropped`.
+- **New documents:** `Document::empty` and `Document::merge(Vec<MergeInput>, MergeOptions)` (an empty base plus `MergeDocuments`, the sources added as in-memory sources). `Document::split(&SplitBy)` makes each part with `extract_pages`, which now carries the outline items that go to its pages and the layers its pages use. A bookmark split cuts at each bookmark of the given depth, and the pages before the first make a part of their own.
+- **Façade:** `merge`/`merge_with`/`merge_job` → `MergeJob` (one unit per file opened, then one for the merge; `Phase::Parse` then `Phase::Write`; cancelled between units), `split`/`split_with`/`split_job` (an `ExportJob`).
+- **Bindings:** `WasmDocument.merge(inputs, options)` (each input read field by field, so the bytes aren't copied through JSON) and `split(by)`; `@laminapdf/sdk`'s `Document.merge`, `doc.split`, `doc.mergeDocuments` and `Transaction.mergeDocuments`. The worker client serves `mergeDocuments` and leaves `split` out, as it does `extractPages`.
+- **Examples:** `merge_documents` and `split_document` in Rust and TypeScript, byte goldens and render goldens; the docs recipe "Merge and split PDFs" and a paragraph in the editing guide, which says merged tagged pages lose their tags until E2o.
+- **Benchmark:** `crates/laminapdf/benches/merge.rs` merges 100 copies of the ten-page `labels.pdf` with a bookmark per file and saves: 84 ms on the Linux dev container, against the plan's 1 s budget. It joins `cargo xtask bench`.
 
 ## Post-merge checks
 
@@ -89,8 +100,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

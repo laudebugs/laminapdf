@@ -27,5 +27,5 @@ None.
 
 The decisions and todos behind this code:
 
-- [E2d](../todos/ongoing/E2d-merge-and-split.md): merging and splitting documents
+- [E2d](../todos/done/E2d-merge-and-split.md): merging and splitting documents
 - [E2 plan §3](../plans/editor/e2-page-organisation.md#3-conformance-the-edits-must-keep): what page edits do to a PDF/A claim
