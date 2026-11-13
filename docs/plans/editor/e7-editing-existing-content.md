@@ -2,7 +2,7 @@
 
 **Status:** Draft
 
-The seventh editor round changes what a PDF already draws: the text, images and vector graphics that were on the page when it was opened. Text can be retyped, restyled and replaced across the document. Images and drawings can be moved, resized, rotated, cropped, recoloured, reordered, unclipped or deleted. This plan fixes the ops, how the save planner gates them, the tests and fixtures, and the ten pull requests that build the round after this one.
+The seventh editor round changes what a PDF already draws: the text, images and vector graphics that were on the page when it was opened. Text can be retyped, restyled and replaced across the document. Images and drawings can be moved, resized, rotated, cropped, recoloured, reordered, unclipped or deleted. This plan sets the ops, how the save planner gates them, the tests and fixtures, and the ten pull requests that build the round after this one.
 
 [ADR 0022](../../decisions/0022-content-stream-editing.md) settled the hard part, how to edit a content stream at all. Its intermediate representation (IR), `ContentOps`, keeps every operator's source bytes, groups operators into objects with their graphics state, and writes back only what an edit changed. This round builds on it, and its own hard part is text: an edit has to work with the font that is already embedded, or say plainly when it can't.
 
@@ -17,7 +17,7 @@ The seventh editor round changes what a PDF already draws: the text, images and 
 - **Reading content.** `laminapdf-content` tokenizes and interprets content with full graphics state, Form XObjects and marked content (ADR 0023). It has no editable form yet.
 - **Writing content.** E2e's `PageContentWriter` wraps a page and appends streams without parsing what is there. E6's ops place new objects as Form XObjects through it and find them again by their `/PieceInfo`; they never touch original content.
 - **Text.** Extraction gives every glyph its code, Unicode, position, quad, MCID and font (`PageText::glyphs`) and groups glyphs into runs (`PageText::runs`); `lines()` gives only strings. `laminapdf-text` can shape, subset and embed new fonts; it can't yet tell whether an embedded subset holds a glyph for a new character.
-- **The matrix.** A.02–A.08, B.07, B.08, B.11 and B.12 have `round = "E7"`. B.01 and B.02 have `round = "E6"` with `target = "write"`, since E6 changes only what it added; this PR moves them to E7 at `round-trip`, which E7d reaches by editing existing images.
+- **The matrix.** A.02–A.08, B.07, B.08, B.11 and B.12 have `round = "E7"`. B.01 and B.02 had `round = "E6"` with `target = "write"`, since E6 changes only what it added; E7b moves them to E7 at `round-trip`, which E7d reaches by editing existing images.
 
 ## 2. The operations
 
@@ -39,7 +39,7 @@ The seventh editor round changes what a PDF already draws: the text, images and 
 
 ### 2.1 Ops
 
-Every op names objects by `ContentObjectRef`: the owner (`PageId`, or a Form XObject's `LaminaPdfId`), the object's ordinal among the owner's objects, and the 64-bit hash of its source bytes (ADR 0022 §2), written as 16 hex digits on the wire. A text run is a `TextRunRef`: a text object's `ContentObjectRef` and a glyph range in it. Geometry is in page space (ADR 0027), converted once through the page's `PageFrame`. Every op is class `Content` and none needs a full rewrite, except E7i's claim op, which is class `Metadata`.
+Every op names objects by `ContentObjectRef`: the owner (`PageId`, or a Form XObject's `LaminaPdfId`), the object's ordinal among the owner's objects, and the 64-bit hash of its source bytes (ADR 0022 §2), written as 16 hex digits on the wire. A text run is a `TextRunRef`: a text object's `ContentObjectRef` and a glyph range in it. Geometry is in page space (ADR 0027), converted once through the page's `PageFrame`. Every op except E7i's claim op (class `Metadata`) is class `Content`; none needs a full rewrite.
 
 | Op | Payload | Todo |
 | --- | --- | --- |
@@ -48,7 +48,7 @@ Every op names objects by `ContentObjectRef`: the owner (`PageId`, or a Form XOb
 | `EditText` | `{ run: TextRunRef, text: String }`; an empty `text` deletes the run | E7e |
 | `SetTextStyle` | `{ runs: Vec<TextRunRef>, font: Option<FontRef>, size, colour, bold, italic, underline, baseline: Normal \| Super \| Sub, align, line_spacing }`, each field optional | E7f |
 | `ReplaceText` | `{ edits: Vec<{ run: TextRunRef, range, text }> }`, one transaction, a report of skipped matches | E7g |
-| `RemoveConformanceClaims` | `{ pdfa: bool, pdfua: bool }`: removes `pdfaid:` and `pdfuaid:` from the XMP packet, which every other op refuses (`xmp-claim-read-only`) | E7i |
+| `RemoveConformanceClaims` | `{ pdfa: bool, pdfua: bool }`: removes `pdfaid:` and `pdfuaid:` from the XMP packet; every other op refuses to touch them (`xmp-claim-read-only`) | E7i |
 
 **Each op reports what it did.** `Applied::content` carries each edit's fidelity (ADR 0022 §7: exact, reflowed or substituted), the objects it created, the objects it copied on write (a shared stream or form), and for `ReplaceText` the matches it skipped with their reasons. A reference whose hash no longer matches fails with `content-object-stale`; an object that can't be edited fails with `content-not-editable` and a reason (`type3-font`, `vertical-text`, `no-unicode-map`, `inside-shared-form`, `too-deep`), a new code E7c adds with its error page.
 
@@ -56,17 +56,17 @@ Every op names objects by `ContentObjectRef`: the owner (`PageId`, or a Form XOb
 
 ### 2.2 Text
 
-`EditText` follows ADR 0022 §6's order. It re-encodes with the embedded subset when every new character has a glyph in it (E7e); otherwise E7f's chain applies: a new subset of the same font when the full font is available, then a metrics-matched substitute for the missing characters only, never silently. Reflow stays on the edited line: glyphs after the edit on the same line move by the width difference, and the line's later lines don't move. A line that would overflow its text block is reported (`reflowed`, with the overflow in points), not wrapped. Paragraph reflow is a later round's (§10, question 1).
+`EditText` follows ADR 0022 §6's order. It re-encodes with the embedded subset when every new character has a glyph in it (E7e); otherwise E7f's chain applies: a new subset of the same font when the full font is available, then a metrics-matched substitute for the missing characters only, which the edit reports as `substituted`. Reflow stays on the edited line: glyphs after the edit on the same line move by the width difference, and the lines below it don't move. A line that would overflow its text block is reported (`reflowed`, with the overflow in points), not wrapped. Paragraph reflow is a later round's (§10, question 1).
 
-The glyph check needs the font program, so `EditText`, `SetTextStyle` and `ReplaceText` work in the text and extract modules; in the base module they fail with `appearance-needs-text`, the code E4's plan adds for the same split ([E4 §2.2](e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated)); whichever of E4 and E7e lands first adds it. The viewer opens documents in the extract module.
+The glyph check needs the font program, so `EditText`, `SetTextStyle` and `ReplaceText` work in the text and extract modules; In the base module they fail with `appearance-needs-text`, the code [E4's plan](e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated) defines for the same split. Whichever of E4 and E7e lands first adds it. The viewer opens documents in the extract module.
 
 ### 2.3 Objects
 
-`EditContent` rewrites only the objects it names, through the IR's encoder, and copies on write any content stream or Form XObject another page or form also uses (ADR 0022 §3). Deleting an object removes its operators; a resource no operator names any more leaves the page's own copy of its resources. A replaced image is a new XObject from the blob store under a fresh name, so a shared original stays where else it is drawn.
+`EditContent` rewrites only the objects it names, through the IR's encoder, and copies on write any content stream or Form XObject another page or form also uses (ADR 0022 §3). Deleting an object removes its operators; a resource no operator names any more is removed from the page's own copy of its resources. A replaced image is a new XObject from the blob store under a fresh name, so other uses of the original are unchanged.
 
 ## 3. Conformance the edits must keep
 
-- **Tagging.** ADR 0022 §4's rules, implemented by E7i: a moved or rewritten object keeps its marked content and MCID; a deleted one clears its MCID's slot in the page's `/ParentTree` array and leaves its structure element's `/K`; an element left empty leaves its parent. Edited text keeps its `/ActualText` and `/Alt` in step: a span whose text changes gets the new text, and an image replaced in a `Figure` keeps the element and asks for new alternative text.
+- **Tagging.** ADR 0022 §4's rules, implemented by E7i: a moved or rewritten object keeps its marked content and MCID; a deleted one clears its MCID's slot in the page's `/ParentTree` array and is removed from its structure element's `/K`; an element left empty is removed from its parent. Edited text keeps its `/ActualText` and `/Alt` in step: a span whose text changes gets the new text, and an image replaced in a `Figure` keeps the element and asks for new alternative text.
 - **PDF/A and PDF/UA.** Every font an edit adds is embedded; a substitute is subset and embedded like any other. After each edit, `pending_conformance_warnings` lists the claims the edit breaks, as the save planner already does for metadata (ADR 0007). A07 shows them before saving: **Fix it first**, or **Save without the claim**, which applies `RemoveConformanceClaims` (§10, question 2).
 - **Earlier revisions.** An incremental save keeps the old content in the previous revision, so `EditContent`'s `Delete` and `EditText`'s deletions set `still_in_earlier_revisions`. Removing text for good is redaction (E12), not editing.
 
@@ -82,7 +82,7 @@ The glyph check needs the font program, so `EditText`, `SetTextStyle` and `Repla
 
 ## 5. Saving and the save constraint
 
-Every op but `RemoveConformanceClaims` is class `Content`. DocMDP permits no content change at any level: P1 allows none, P2 form filling and signing, P3 also annotations (ISO 32000-2 §12.8.2.2). `RemoveConformanceClaims` is class `Metadata`, which DocMDP forbids too.
+DocMDP permits no content change at any level: P1 allows none, P2 form filling and signing, P3 also annotations (ISO 32000-2 §12.8.2.2). `RemoveConformanceClaims` is class `Metadata`, which DocMDP forbids too.
 
 | Constraint | When | What Save does | What the user sees |
 | --- | --- | --- | --- |
@@ -108,7 +108,7 @@ So substitution is more common on the web, and A04's notice says when a font "is
 
 ## 7. Todos
 
-E7d and E7e each lose their reader UI to a todo of their own, so the core can land while E6's Edit-mode tools (E6e) are still in progress, and each PR stays under ~1,500 lines.
+E7d and E7e hand their reader UI to E7k and E7l, so the core can land while E6's Edit-mode tools (E6e) are still in progress, and each PR stays under ~1,500 lines.
 
 | Todo | What | Depends on |
 | --- | --- | --- |
@@ -148,5 +148,5 @@ Fonts come from `fixtures/fonts/` (OFL Noto subsets). Reopened outputs of each o
 
 1. **Line-level editing, or paragraph reflow?** ([full-editor §9](../full-editor.md#9-open-questions), question 4.) Line-level for this round (§2.2): a later glyph on the same line moves, and nothing wraps. Paragraph reflow means finding a paragraph's lines, its measure and its alignment from positioned glyphs, which E7e's line grouping makes possible later. **Decided by the owner on 2026-11-13.**
 2. **Saving a claim the edits broke** ([the area's open question 1](../../design/paper/add-edit-content.md#open-questions)). The reader never saves a claim it has just found false: Fix it first, or Save without the claim. No "keep the claim" option in the reader; the library keeps ADR 0007's rule that conformance warnings never block, so a caller can still save. A removed claim doesn't come back on its own: a file that passes again can be claimed by the Accessibility tool's checks (X06/X07). **Decided by the owner on 2026-11-13.**
-3. **The edit corpus and "identical except edited regions".** The corpus is a list of files from the pinned external corpus (pdf.js, PDFBox, PDFium and qpdf; their licences in `fixtures/corpus-manifest.toml`), never committed, with an edit script per file as an ADR 0006 op log, committed. Each page renders before and after the script in PDFium and hayro at 96 dpi. Outside the old and new boxes of the edited objects, grown by 2 px for anti-aliasing, the two renders must match pixel for pixel. Files Lamina PDF refuses to edit are listed with their `content-not-editable` reasons. E7j owns the list, in the nightly lane.
-4. **Synthetic bold and italic** ([the area's open question 2](../../design/paper/add-edit-content.md#open-questions)): whether the page shows a badge is a design question for E7l, with the design owner.
+3. **The edit corpus and "identical except edited regions".** The corpus is a list of files from the pinned external corpus (pdf.js, PDFBox, PDFium and qpdf; their licences in `fixtures/corpus-manifest.toml`). The files stay outside the repository; each file's edit script, an ADR 0006 op log, is committed. Each page renders before and after the script in PDFium and hayro at 96 dpi. Outside the old and new boxes of the edited objects, grown by 2 px for anti-aliasing, the two renders must match pixel for pixel. Files Lamina PDF refuses to edit are listed with their `content-not-editable` reasons. E7j owns the list, in the nightly lane.
+4. **Should synthetic bold and italic show a badge on the page?** ([The area's open question 2](../../design/paper/add-edit-content.md#open-questions).) E7l decides with the design owner.

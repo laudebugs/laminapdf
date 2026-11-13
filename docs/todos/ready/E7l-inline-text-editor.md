@@ -15,7 +15,7 @@
 
 ## Goal
 
-A04 in the web and desktop readers: the Edit text tool turns a paragraph into a text editor over its runs; typing applies E7e's `EditText` and the Paragraph inspector E7f's `SetTextStyle`, with the notices A04 draws when a font lacks letters or text can't be edited in place.
+A04 in the web and desktop readers: the Edit text tool turns a text block into an editor over its lines; typing applies E7e's `EditText`, and the Paragraph inspector applies E7f's `SetTextStyle`, with the notices A04 draws when a font lacks letters or text can't be edited in place.
 
 ## Context
 
@@ -28,9 +28,9 @@ A04 in the web and desktop readers: the Edit text tool turns a paragraph into a 
 **In scope**
 
 - The Edit text tool (`tool.edit-text`, `E`), double-click with Select, and Edit text in A05's Text block inspector
-- The inline editor over a run's lines, committing one op per edit as A04's history rules say
+- The inline editor over a text block's lines, committing one op per edit as A04's history rules say
 - The Paragraph inspector: font, size, colour, style, alignment, spacing
-- A04's states: the original font is enough, substitution with the missing characters named, can't edit in place with the reason, reverted
+- A04's states: original font, substituted (missing characters named), not editable in place (with the reason), reverted
 
 **Out of scope** (and which todo covers it)
 

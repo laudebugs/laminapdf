@@ -15,7 +15,7 @@
 
 ## Goal
 
-A05 in the web and desktop readers: select images, paths and text blocks that were already in the file with E6e's Select tool, then move, resize, rotate, crop, reorder or delete them through E7d's `EditContent`, with the inspectors, context menu and states A05 draws.
+A05 in the web and desktop readers. With E6e's Select tool, people select the images, paths and text blocks the file already had. Then they move, resize, rotate, crop, reorder or delete them through E7d's `EditContent`, with the inspectors, context menu and states A05 draws.
 
 ## Context
 

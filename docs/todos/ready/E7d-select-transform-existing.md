@@ -29,7 +29,7 @@ Edit existing objects: select (hit-test), move/resize/rotate (`cm` changes), del
 **In scope**
 
 - `EditContent { page, edits: Vec<ContentEdit> }` op with `ContentEdit` = `Transform` | `Delete` | `ReplaceImage` | `Crop` | `Reorder` ([E7 plan](../../plans/editor/e7-editing-existing-content.md) §2.1)
-- Copy-on-write for shared streams/XObjects; resources no operator names any more leave the page's copy
+- Copy-on-write for shared streams/XObjects; resources no operator names any more are removed from the page's copy
 - The façade's `content_objects` and `hit_test`, and the SDK's `doc.content.objects`, `hitTest` and `edit`
 
 **Out of scope** (and which todo covers it)
