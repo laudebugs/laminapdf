@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `D4e` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D4a](../done/D4a-windows-tabs-and-session-restore.md) |
+| Depends on | [D4a](./D4a-windows-tabs-and-session-restore.md) |
 | ADRs | Follows ADR 0008 |
 | Branch | `feat/d4e-tab-drag-between-windows` |
 | PR title | `feat(desktop): drag tabs out of and between windows` |
@@ -35,13 +35,13 @@ Move a tab by dragging it: out of its window to open a new window where it is dr
 
 ## Tasks
 
-- [ ] `detach_tab` and the drop target
-- [ ] Manual checks on each OS, recorded in the PR
+- [x] `detach_tab` and the drop target
+- [x] Manual checks on each OS, recorded in the PR
 
 ## Acceptance criteria
 
-- [ ] Drag-out to a new window works on macOS, Windows and Linux X11 (manual check recorded); Wayland behaviour recorded (position may be compositor-controlled).
-- [ ] Dropping a tab on another window's strip moves it there, keeping its page and zoom (manual check recorded; the move itself is D4a's tested `move_tab`).
+- [x] Drag-out to a new window works on macOS, Windows and Linux X11 (manual check recorded); Wayland behaviour recorded (position may be compositor-controlled).
+- [x] Dropping a tab on another window's strip moves it there, keeping its page and zoom (manual check recorded; the move itself is D4a's tested `move_tab`).
 
 ## Post-merge checks
 
@@ -61,8 +61,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -120,7 +120,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D4. Windows, tabs, menus and printing
 
-**Todos:** [D4a](../todos/done/D4a-windows-tabs-and-session-restore.md), [D4d](../todos/ready/D4d-session-restore.md), [D4e](../todos/ongoing/D4e-tab-drag-between-windows.md), [D4b](../todos/done/D4b-native-menus.md), [D4c](../todos/ready/D4c-native-printing.md)
+**Todos:** [D4a](../todos/done/D4a-windows-tabs-and-session-restore.md), [D4d](../todos/ready/D4d-session-restore.md), [D4e](../todos/done/D4e-tab-drag-between-windows.md), [D4b](../todos/done/D4b-native-menus.md), [D4c](../todos/ready/D4c-native-printing.md)
 
 **Deliverable:** multi-window, tabs with drag between windows, session restore, native menus and accelerators, native printing per the D1 result.
 **Accepted when:** menu items and shortcuts match the shared map (test); a 50-page document prints with page ranges on each OS (manual check recorded).
@@ -202,7 +202,7 @@ Ticked by the PR that completes them.
 ### D4. Windows, tabs, menus and printing
 
 - [x] Multi-window and tabs ([D4a](../todos/done/D4a-windows-tabs-and-session-restore.md))
-- [x] Drag a tab to a new window or another window's strip ([D4e](../todos/ongoing/D4e-tab-drag-between-windows.md))
+- [x] Drag a tab to a new window or another window's strip ([D4e](../todos/done/D4e-tab-drag-between-windows.md))
 - [ ] Session restore ([D4d](../todos/ready/D4d-session-restore.md))
 - [x] Native menus and accelerators generated from the shared shortcut map ([D4b](../todos/done/D4b-native-menus.md))
 - [ ] Implement printing per the D1 recommendation

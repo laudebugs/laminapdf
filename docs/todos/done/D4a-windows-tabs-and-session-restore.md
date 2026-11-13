@@ -15,7 +15,7 @@
 
 ## Goal
 
-Let power users work with many documents: each window holds tabs, a tab moves to a new window or to another window ("Move tab to new window", "Move tab to window ▸") keeping its view, and File ▸ New Window opens an empty window. Requirement 5 of the [desktop plan](../../plans/desktop-app.md#functional). It also answers the plan's open question 3 (engine per window vs pool) with real memory numbers. On 2026-11-12 the owner split session restore into [D4d](../ready/D4d-session-restore.md) and dragging tabs between windows into [D4e](../ongoing/D4e-tab-drag-between-windows.md), both of which build on this.
+Let power users work with many documents: each window holds tabs, a tab moves to a new window or to another window ("Move tab to new window", "Move tab to window ▸") keeping its view, and File ▸ New Window opens an empty window. Requirement 5 of the [desktop plan](../../plans/desktop-app.md#functional). It also answers the plan's open question 3 (engine per window vs pool) with real memory numbers. On 2026-11-12 the owner split session restore into [D4d](../ready/D4d-session-restore.md) and dragging tabs between windows into [D4e](../done/D4e-tab-drag-between-windows.md), both of which build on this.
 
 ## Context
 
@@ -40,7 +40,7 @@ Let power users work with many documents: each window holds tabs, a tab moves to
 **Out of scope** (and which todo covers it)
 
 - Session restore (`session.json`, window geometry, macOS bookmarks, the privacy rule): [D4d](../ready/D4d-session-restore.md).
-- Dragging a tab out of its window or onto another window's strip: [D4e](../ongoing/D4e-tab-drag-between-windows.md).
+- Dragging a tab out of its window or onto another window's strip: [D4e](../done/D4e-tab-drag-between-windows.md).
 
 - Native menus and accelerators (New Window, Close Tab, Move Tab to Window, Window menu list): [D4b](../done/D4b-native-menus.md).
 - Printing: [D4c](../ready/D4c-native-printing.md).
