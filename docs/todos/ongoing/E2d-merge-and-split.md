@@ -10,12 +10,12 @@
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2d-merge-and-split` |
 | PR title | `feat(ops): merge documents with outline, destination and field remapping; split` |
-| Size | L (400–800): merge of the outline, the name trees, the AcroForm and the layers over [E2p](../done/E2p-source-documents-and-copier.md)'s copier, and split; the structure-tree merge is [E2o](E2o-structure-tree-merge.md)'s |
+| Size | L (400–800): merge of the outline, the name trees, the AcroForm and the layers over [E2p](../done/E2p-source-documents-and-copier.md)'s copier, and split; the structure-tree merge is [E2o](../ready/E2o-structure-tree-merge.md)'s |
 | PR | — |
 
 ## Goal
 
-Merge whole documents with the hard parts done: outlines appended as subtrees, named destinations renamed on clash, AcroForm fields merged with the [E2 plan's clash rule](../../plans/editor/e2-page-organisation.md#11-decisions-on-the-open-questions) (rename `<partial>#<n>` by default, or link same-named fields of the same type and value; [E2 plan §11](../../plans/editor/e2-page-organisation.md#11-decisions-on-the-open-questions)), OCGs merged; and split a document by page count, explicit ranges or top-level bookmarks. Merging structure trees is [E2o](E2o-structure-tree-merge.md); until it lands, merged pages lose their tags with `TagsDropped`.
+Merge whole documents with the hard parts done: outlines appended as subtrees, named destinations renamed on clash, AcroForm fields merged with the [E2 plan's clash rule](../../plans/editor/e2-page-organisation.md#11-decisions-on-the-open-questions) (rename `<partial>#<n>` by default, or link same-named fields of the same type and value; [E2 plan §11](../../plans/editor/e2-page-organisation.md#11-decisions-on-the-open-questions)), OCGs merged; and split a document by page count, explicit ranges or top-level bookmarks. Merging structure trees is [E2o](../ready/E2o-structure-tree-merge.md); until it lands, merged pages lose their tags with `TagsDropped`.
 
 ## Context
 
@@ -35,8 +35,8 @@ Merge whole documents with the hard parts done: outlines appended as subtrees, n
 
 **Out of scope** (and which todo covers it)
 
-- UI (multi-file merge, split dialog) → [E2m](E2m-document-dialogs.md); desktop folder output and Finder/Explorer selections → [E2n](E2n-desktop-organise.md)
-- The CLI's page commands (`laminapdf pages delete`, `extract`, `reorder`, `insert`, `merge`, `split`) → [T6a](./T6a-cli-page-commands.md)
+- UI (multi-file merge, split dialog) → [E2m](../ready/E2m-document-dialogs.md); desktop folder output and Finder/Explorer selections → [E2n](../ready/E2n-desktop-organise.md)
+- The CLI's page commands (`laminapdf pages delete`, `extract`, `reorder`, `insert`, `merge`, `split`) → [T6a](../ready/T6a-cli-page-commands.md)
 
 **Editor facts**
 
@@ -44,7 +44,7 @@ Merge whole documents with the hard parts done: outlines appended as subtrees, n
 - **Crates and packages:** `laminapdf-model` (outline, names, AcroForm and layer merge helpers), `laminapdf-ops`
 - **`Op` variants:** `MergeDocuments` op (composite; exactly one class per ADR 0006 §1: `PageStructure`, the most restrictive of the changes it makes, since it inserts pages and is forbidden at every DocMDP level; its document-level merges (outline, names, AcroForm, layers) are covered by that verdict); split is a pure function producing new documents
 - **`SaveConstraint`:** class `PageStructure`; the verdicts per constraint are the [E2 plan §6 table](../../plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint)
-- **Web vs desktop:** identical (core); several files opened together from the OS offer a merge where `hasFileHandlers` ([E2m](E2m-document-dialogs.md), [E2n](E2n-desktop-organise.md))
+- **Web vs desktop:** identical (core); several files opened together from the OS offer a merge where `hasFileHandlers` ([E2m](../ready/E2m-document-dialogs.md), [E2n](../ready/E2n-desktop-organise.md))
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `C.06` → `round-trip` (core, pdf); `C.07` → `write` (core, pdf)
 

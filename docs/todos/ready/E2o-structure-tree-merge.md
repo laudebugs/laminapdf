@@ -15,7 +15,7 @@
 
 ## Goal
 
-Keep tags when pages come from another document. Until this todo, `InsertPagesFrom`, `ReplacePages` and `MergeDocuments` drop the imported pages' structure and report `TagsDropped`; here the source's elements join the target's `/StructTreeRoot`. Most mergers drop tags, which destroys PDF/UA conformance ([05 §3.1](../../research/pdf/05-creating-pdfs-from-code.md#31-merge-and-split)). Split out of [E2d](E2d-merge-and-split.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos).
+Keep tags when pages come from another document. Until this todo, `InsertPagesFrom`, `ReplacePages` and `MergeDocuments` drop the imported pages' structure and report `TagsDropped`; here the source's elements join the target's `/StructTreeRoot`. Most mergers drop tags, which destroys PDF/UA conformance ([05 §3.1](../../research/pdf/05-creating-pdfs-from-code.md#31-merge-and-split)). Split out of [E2d](../ongoing/E2d-merge-and-split.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos).
 
 ## Context
 
