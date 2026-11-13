@@ -333,6 +333,7 @@ fn cos_warning(w: laminapdf_cos::Warning) -> Data {
             }
             d
         }
+        W::XmpRepaired { reason, .. } => data([("reason", json!(reason))]),
         W::ContentResourceMissing { offset, category, .. } => {
             data([("offset", json!(offset)), ("category", json!(category))])
         }

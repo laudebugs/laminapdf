@@ -193,8 +193,9 @@ impl Scope {
     }
 }
 
-/// The top-level nodes of `text`.
-pub(super) fn parse(text: &str) -> Result<Vec<Node>, ParseError> {
+/// The top-level nodes of `text`, and whether a standard prefix had to be taken without its
+/// declaration ([`well_known`]).
+pub(super) fn parse(text: &str) -> Result<(Vec<Node>, bool), ParseError> {
     // XML 1.0 §2.2: a document holds only `Char`s. quick-xml lets a NUL or other C0 control
     // through, and the writer, which never writes one, would then change what a value or a
     // namespace URI says on a rewrite.
@@ -244,12 +245,25 @@ pub(super) fn parse(text: &str) -> Result<Vec<Node>, ParseError> {
             Event::Eof => break,
         }
     }
-    builder.finish(text.len())
+    let undeclared = builder.undeclared;
+    Ok((builder.finish(text.len())?, undeclared))
 }
 
 fn position(p: u64) -> usize {
     // Positions are within a &str, so they fit; a huge one only fails the slice that uses it.
     usize::try_from(p).unwrap_or(usize::MAX / 2)
+}
+
+/// The namespace of a prefix XMP writers use without declaring it, as `ExifTool` and `pdf.js` read
+/// them: the standard prefixes (ISO 16684-1) and the old `xap`/`xapMM` of the XMP basic and
+/// media-management schemas. Only an undeclared prefix falls back here; a declaration wins.
+fn well_known(prefix: &str) -> Option<&'static str> {
+    use super::mapping::{STANDARD_PREFIXES, XMP, XMP_MM};
+    match prefix {
+        "xap" => Some(XMP),
+        "xapMM" => Some(XMP_MM),
+        _ => STANDARD_PREFIXES.iter().find(|(p, _)| *p == prefix).map(|(_, ns)| *ns),
+    }
 }
 
 /// The five entities XML predefines (XML 1.0 §4.6).
@@ -273,6 +287,8 @@ struct Builder {
     scope: Scope,
     /// The declarations of the open elements, which are the ones in scope.
     in_scope: usize,
+    /// A standard prefix was read without its declaration.
+    undeclared: bool,
 }
 
 impl Builder {
@@ -376,7 +392,7 @@ impl Builder {
 
     /// `qualified` with its prefix resolved. A colon must separate a non-empty prefix from a
     /// non-empty local name (Namespaces in XML 1.0 §4), so `:x` and `a:b:c` are refused.
-    fn resolve(&self, qualified: &str, attribute: bool, offset: u64) -> Result<Name, ParseError> {
+    fn resolve(&mut self, qualified: &str, attribute: bool, offset: u64) -> Result<Name, ParseError> {
         let (prefix, local) = qualified.split_once(':').unwrap_or(("", qualified));
         if local.is_empty() || local.contains(':') || (prefix.is_empty() && qualified.contains(':')) {
             return Err(ParseError::Syntax { offset });
@@ -384,8 +400,11 @@ impl Builder {
         // An unprefixed attribute is in no namespace (Namespaces in XML §6.2).
         let namespace = if attribute && prefix.is_empty() {
             ""
+        } else if let Some(namespace) = self.scope.resolve(prefix) {
+            namespace
         } else {
-            self.scope.resolve(prefix).ok_or(ParseError::UnboundPrefix { offset })?
+            self.undeclared = true;
+            well_known(prefix).ok_or(ParseError::UnboundPrefix { offset })?
         };
         Ok(Name {
             prefix: prefix.to_owned(),

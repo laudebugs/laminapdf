@@ -415,7 +415,11 @@ pub(super) fn in_place(
         match (&p.place, body.attribute_text()) {
             (Place::Element(span), _) => {
                 // The element's own declarations go on its replacement: its prefix may need them.
+                // A standard prefix the packet used undeclared gets its declaration there too.
                 let mut declarations = p.declarations.clone();
+                if description.scope.with(&declarations).resolve(&p.prefix).is_none() {
+                    declarations.push(Binding::new(&p.prefix, change.namespace));
+                }
                 let scope = description.scope.with(&declarations);
                 let rdf_name = body.rdf_name(&scope, &mut declarations);
                 edits.push(Edit {
@@ -440,6 +444,11 @@ pub(super) fn in_place(
                     text: format!("{name}={quote}{escaped}{quote}"),
                 });
                 written.push((change, p.prefix.clone()));
+                // A standard prefix the packet used undeclared is declared on its description.
+                let added = additions.get_mut(p.description)?;
+                if description.scope.with(&added.declarations).resolve(&p.prefix).is_none() {
+                    added.declarations.push(Binding::new(&p.prefix, change.namespace));
+                }
             }
             (Place::Attribute(_), None) => {
                 // An array can't be an attribute: the property becomes an element.

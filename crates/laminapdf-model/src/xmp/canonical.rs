@@ -31,14 +31,7 @@ pub(super) fn canonical(
             Place::Attribute(span) | Place::Element(span) => span,
         })
         .collect();
-    // Every binding in scope at `rdf:RDF`, so the descriptions copied as written keep their
-    // meaning, and a real prefix for the RDF namespace, which `about` needs.
-    let mut root: Vec<Binding> = rdf
-        .scope
-        .effective()
-        .into_iter()
-        .filter(|b| b.prefix != "xml")
-        .collect();
+    let mut root = root_bindings(rdf);
     let rdf_name = if let Some(p) = rdf.scope.prefix_for(RDF) {
         p.to_owned()
     } else {
@@ -144,4 +137,24 @@ fn copy(text: &str, span: &Range<usize>, inserts: &[Insert]) -> String {
     }
     out.push_str(text.get(at..span.end).unwrap_or_default());
     out
+}
+
+/// The declarations the rewritten `rdf:RDF` carries: every binding in scope there, so the
+/// descriptions copied as written keep their meaning, and each standard prefix the packet used
+/// undeclared, so the properties copied as written keep it for every reader.
+fn root_bindings(rdf: &Rdf) -> Vec<Binding> {
+    let mut root: Vec<Binding> = rdf
+        .scope
+        .effective()
+        .into_iter()
+        .filter(|b| b.prefix != "xml")
+        .collect();
+    for p in &rdf.properties {
+        let description = rdf.descriptions.get(p.description);
+        let bound = description.is_some_and(|d| d.scope.with(&p.declarations).resolve(&p.prefix).is_some());
+        if !bound && !root.iter().any(|b| b.prefix == p.prefix) {
+            root.push(Binding::new(&p.prefix, &p.property.namespace));
+        }
+    }
+    root
 }
