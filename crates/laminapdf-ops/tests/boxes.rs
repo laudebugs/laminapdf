@@ -77,7 +77,7 @@ fn zero_margins_hide_nothing() {
     let mut doc = pages("boxes.pdf");
     let ids = page_ids(&doc);
     let applied = apply(&mut doc, CropPages::new(ids, Margins::default())).unwrap();
-    assert!(applied.cropped_content_remains.is_empty());
+    assert_eq!(applied.cropped_content_remains, Vec::<laminapdf_model::PageId>::new());
 }
 
 #[test]
