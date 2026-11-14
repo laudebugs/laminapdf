@@ -213,7 +213,7 @@ A new fuzz target's `fixtures/regressions/<target>` folder must also join `lamin
 
 ## 11. Decisions on the open questions
 
-These are the round's defaults, and the owner is asked to confirm them in [issue #521](https://github.com/laudebugs/laminapdf/issues/521); the todos follow any change.
+These are the round's defaults. The owner confirmed every one as written on 2026-11-14 ([issue #521](https://github.com/laudebugs/laminapdf/issues/521)).
 
 - **Rich text is a small subset, read wider than written.** E4e writes `/RC` only for text with bold or italic: an XHTML `body` of `p` elements holding `span`s styled by `font-weight` and `font-style`, the subset C03 offers, with `/DA` and `/DS` carrying the font, size, colour and alignment. It reads `b`, `i`, `span` and `p` with those properties and `font-size`, `color`, `font-family` and `text-align`, so an Acrobat-made box keeps its look when Lamina PDF lays it out. When a box is edited, styles outside the subset are dropped with `rich-text-simplified`, and the inspector says so before the first change. Lamina PDF never renders `/RC` directly: the appearance it generates is what every viewer shows. Reasoning (a recommendation): a wider subset needs a CSS engine for little gain, and C03's note already tells users that viewers which ignore `/RC` show plain text.
 - **Ink keeps the captured points; smoothing is in the appearance.** `/InkList` holds each stroke's points as captured, thinned to 0.25 pt, so every reader can redraw them. With smoothing on (C02's default), the appearance draws Bézier curves through them; with it off, straight segments. PDF 2.0's `/Path` is not written, since readers before 2.0 ignore it and `/InkList` already says the same.

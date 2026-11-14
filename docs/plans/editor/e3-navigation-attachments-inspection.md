@@ -247,7 +247,7 @@ A new fuzz target's `fixtures/regressions/<target>` folder must also join `lamin
 
 ## 11. Decisions on the open questions
 
-These are the round's defaults, and the owner is asked to confirm them in [issue #511](https://github.com/laudebugs/laminapdf/issues/511); the todos follow any change.
+These are the round's defaults. The owner confirmed every one as written on 2026-11-14 ([issue #511](https://github.com/laudebugs/laminapdf/issues/511)).
 
 - **The contents page comes from bookmarks only.** E3l builds it from the outline, one or two levels deep. A contents page from the headings of a tagged file's structure tree comes with [E15b](../../todos/ready/E15b-structure-tree-editing.md), as O11 already says for "Bookmarks from headings". Headings guessed from font sizes are not offered. Reasoning (a recommendation): `laminapdf-extract` does detect headings by size and weight, but a guessed heading that is wrong puts a wrong entry on a page the person then saves, where a missed bookmark only leaves one out.
 - **TIFF export uses the `tiff` crate, with multi-page files on both shells.** It is pure Rust and MIT-licensed, writes Deflate- and LZW-compressed files, and writes several pages into one file. Multi-page TIFF is offered on the web too, held to the export's memory budget: a file that would exceed it is written as one file per page instead, and the dialog says so. On the web the encoder is a small WebAssembly module of its own, loaded only when a TIFF export starts, so the reader's startup size doesn't change; PNG and JPEG need no module, since the browser's canvas encodes them.
