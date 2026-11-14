@@ -1,0 +1,66 @@
+# Regenerates the files a Dependabot update leaves stale (contributing.md, "Dependency updates"):
+#
+# - .github/workflows/actions.lock, when an action a composite action calls is bumped;
+# - apps/updates/src/generated/worker-configuration.d.ts, when Wrangler is bumped.
+#
+# This job runs the PR's packages, so it holds no secret and a read-only token. It uploads the
+# regenerated files, and dependabot-fixup-commit.yml commits them to Dependabot's branch through
+# the release bot (whose commit starts CI again, which the default token's could not). Only
+# Dependabot's own pushes run it, so the bot's commit doesn't start it again.
+name: Dependabot fixup
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependabot-fixup-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  regenerate:
+    name: Regenerate files
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      # The version is tools/xtask/src/doctor.rs's GH_ACTIONS_LOCK_VERSION (a test holds them together).
+      - name: Install gh-actions-lock
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh extension install github/gh-actions-lock --pin v0.4.1
+      - name: Regenerate actions.lock
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh actions-lock
+      - uses: $/.github/actions/node-pnpm
+      - name: Regenerate the updates Worker's Wrangler types
+        run: pnpm --filter @laminapdf/updates run types
+      # The allow-list dependabot-fixup-commit.yml takes, and nothing else: each changed file is
+      # copied under fixup/ at its path.
+      - name: Collect the regenerated files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p fixup
+          for path in .github/workflows/actions.lock apps/updates/src/generated/worker-configuration.d.ts; do
+            if ! git diff --quiet -- "$path"; then
+              mkdir -p "fixup/$(dirname "$path")"
+              cp "$path" "fixup/$path"
+              echo "regenerated: $path"
+            fi
+          done
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: dependabot-fixup
+          path: fixup/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 1

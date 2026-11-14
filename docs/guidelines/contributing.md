@@ -38,6 +38,15 @@ Lamina PDF has one version for every crate and every npm package: `@laminapdf/wa
 
 Check the licence of every new dependency, fixture PDF and font before adding it. No AGPL/GPL/LGPL code goes into shipped artefacts. See [research ch. 05 §8.4](../research/pdf/05-creating-pdfs-from-code.md#84-licensing-traps-to-avoid).
 
+## Dependency updates
+
+Dependabot (`.github/dependabot.yml`, [ADR 0019](../decisions/0019-supply-chain-and-licence-hygiene.md)) opens its PRs weekly.
+
+- **Age:** Cargo and npm updates wait 14 days after a release, the age this repository asks of any version it adds. The npm wait also covers pnpm's `minimumReleaseAge` (1 day unless `pnpm-workspace.yaml` sets it), so Dependabot never proposes a version pnpm refuses; `cargo nextest run -p xtask` fails if the two drift apart.
+- **Groups:** packages that must move together share a group, majors included, so the PR can pass CI: Tauri with muda, hayro and its decoders, the fontations crates, the wasm-bindgen crates, WebdriverIO, Wrangler with Miniflare, Vite with Vitest and Playwright, Starlight with Astro. Biome has a group of its own, since its new lint rules usually need code changes.
+- **By hand:** `pdfjs-dist`, pinned with `tools/roundtrip`, `tools/corpus-facts` and the differential facts, and `tauri-plugin-wdio` with `@wdio/tauri-*`, one release across two ecosystems.
+- **Generated files:** `dependabot-fixup.yml` regenerates `.github/workflows/actions.lock` and the updates Worker's Wrangler types on Dependabot's branch, with no secret. `dependabot-fixup-commit.yml` then commits only those files, as the release bot, so CI runs again. A PR that still fails needs a code change: push it to Dependabot's branch, or close the PR and make the update in a PR of your own.
+
 ## Lock the actions
 
 The workflows name each action by its release tag (`actions/checkout@v7.0.1`), and `.github/workflows/actions.lock` records the commit that tag resolved to and the repository that owns it ([ADR 0019](../decisions/0019-supply-chain-and-licence-hygiene.md)). GitHub refuses to run an action the lockfile doesn't cover, so after adding a workflow or changing a `uses:` line:
@@ -46,6 +55,6 @@ The workflows name each action by its release tag (`actions/checkout@v7.0.1`), a
 2. Install the extension at the pinned version: `cargo xtask doctor --install` (or the `gh extension install` command `cargo xtask doctor` prints).
 3. Run `gh actions-lock` at the repository root and commit `.github/workflows/actions.lock` with the workflow change.
 
-The fast lane's `lockfile` job runs `gh actions-lock --verify` on every pull request. When Dependabot bumps an action a workflow calls, it updates the tag and the lockfile entry together. If it bumps one that a composite action calls and the `lockfile` job fails, run `gh actions-lock` on Dependabot's branch.
+The fast lane's `lockfile` job runs `gh actions-lock --verify` on every pull request. When Dependabot bumps an action a workflow calls, it updates the tag and the lockfile entry together. If it bumps one that a composite action calls, `dependabot-fixup.yml` regenerates the lockfile on Dependabot's branch (see [Dependency updates](#dependency-updates)).
 
 When the job reports that a locked commit has moved, the action's maintainer has moved its tag to a different commit. Find out why before relocking: compare the old and new commits in the action's repository. `gh actions-lock --relock` and `--accept-moved` take the new commit; use either only in a reviewed PR whose description says why, never in automation.

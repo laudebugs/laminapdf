@@ -1,0 +1,84 @@
+# Commits the files dependabot-fixup.yml regenerated to Dependabot's branch, as the release bot,
+# so CI runs again on the commit (a commit made with the default token starts no workflow).
+#
+# It holds the bot's token, so it runs nothing from the PR: no checkout, no install. It reads only
+# the fixed allow-list of paths from the artifact, builds the commit through the API on the exact
+# commit dependabot-fixup.yml read, and moves the branch only if it is still there (no force).
+name: Dependabot fixup commit
+
+on:
+  workflow_run:
+    workflows: [Dependabot fixup]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  commit:
+    name: Commit the regenerated files
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      startsWith(github.event.workflow_run.head_branch, 'dependabot/')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Download the regenerated files
+        id: files
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          if gh run download "$RUN_ID" --name dependabot-fixup --dir "$RUNNER_TEMP/fixup"; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Nothing was regenerated."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/create-github-app-token@v3.3.0
+        id: bot
+        if: steps.files.outputs.found == 'true'
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+      - name: Commit to Dependabot's branch
+        if: steps.files.outputs.found == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          tree='[]'
+          for path in .github/workflows/actions.lock apps/updates/src/generated/worker-configuration.d.ts; do
+            file="$RUNNER_TEMP/fixup/$path"
+            if [ -f "$file" ]; then
+              tree=$(jq --arg path "$path" --rawfile content "$file" \
+                '. + [{path: $path, mode: "100644", type: "blob", content: $content}]' <<< "$tree")
+            fi
+          done
+          if [ "$tree" = '[]' ]; then
+            echo "Nothing to commit."
+            exit 0
+          fi
+          base=$(gh api "repos/$GH_REPO/git/commits/$SHA" --jq .tree.sha)
+          new_tree=$(jq -n --arg base "$base" --argjson tree "$tree" '{base_tree: $base, tree: $tree}' |
+            gh api "repos/$GH_REPO/git/trees" --input - --jq .sha)
+          message='build: regenerate the files the update leaves stale (dependabot-fixup.yml)'
+          commit=$(jq -n --arg message "$message" --arg tree "$new_tree" --arg parent "$SHA" \
+            '{message: $message, tree: $tree, parents: [$parent]}' |
+            gh api "repos/$GH_REPO/git/commits" --input - --jq .sha)
+          # Not forced: if Dependabot moved the branch since, this fails and its new push starts over.
+          gh api "repos/$GH_REPO/git/refs/heads/$BRANCH" --method PATCH \
+            --field sha="$commit" --field force=false
+          echo "Committed $commit to $BRANCH."
