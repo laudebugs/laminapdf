@@ -20,7 +20,7 @@
     "e2e": "vitest run -c vitest.e2e.config.ts"
   },
   "devDependencies": {
-    "@astrojs/starlight": "0.42.8",
+    "@astrojs/starlight": "0.42.10",
     "@codemirror/autocomplete": "6.20.4",
     "@codemirror/lang-javascript": "6.2.5",
     "@codemirror/language": "6.13.1",
@@ -39,7 +39,7 @@
     "@lezer/highlight": "1.2.5",
     "@types/node": "catalog:",
     "@vitest/browser-playwright": "catalog:",
-    "astro": "7.4.5",
+    "astro": "7.4.7",
     "axe-core": "catalog:",
     "codemirror": "6.0.2",
     "playwright": "catalog:",
