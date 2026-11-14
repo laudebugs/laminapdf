@@ -88,3 +88,4 @@ __diff_output__/
 /crates/laminapdf/docs/
 # The docs' example runner, built before `astro build` by apps/docs/scripts/build-runner.mjs.
 apps/docs/public/run/
+.aider*
