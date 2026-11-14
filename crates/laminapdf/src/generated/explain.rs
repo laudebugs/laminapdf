@@ -2706,7 +2706,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-A bookmark's web address isn't a full `http`, `https` or `mailto` address in plain ASCII.
+The web address of a bookmark or link isn't a full `http`, `https` or `mailto` address in plain ASCII.
 
 ## Why
 
@@ -2732,6 +2732,7 @@ None.
 The decisions and todos behind this code:
 
 - [E3b](../todos/done/E3b-bookmarks-and-destinations.md): the bookmark editor and named destinations
+- [E3c](../todos/done/E3c-links.md): link annotations
 "#,
         "view-not-finite" => r#"# `view-not-finite`
 
@@ -3050,6 +3051,114 @@ The decisions and todos behind this code:
 
 - [E4b](../todos/done/E4b-annotation-model-and-overlay.md): the annotation model and the annotation ops' core
 "#,
+        "not-a-link" => r#"# `not-a-link`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A link op named an annotation that isn't a link, such as a comment or a highlight.
+
+## Why
+
+The link ops change what only a link has: where it goes, and the text it covers. A link op on another kind of annotation would write entries that annotation doesn't use.
+
+## How to fix
+
+Pass the ID of a link that `pageLinks` lists. Change or delete other annotations with `updateAnnot` and `deleteAnnot`.
+
+## Example
+
+```json
+{ "op": "deleteLink", "args": { "link": "a16.0" } }
+```
+
+Object 16 is a highlight, not a link.
+
+## Data fields
+
+None. The `location` is the annotation's `object` and `id`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3c](../todos/done/E3c-links.md): link annotations
+"#,
+        "link-not-tagged" => r#"# `link-not-tagged`
+
+- Type: error
+- Kind: `unsupported` (valid input that Lamina PDF does not support yet)
+
+## What happened
+
+The file claims PDF/UA-1, the standard for accessible PDFs, but it isn't tagged: it has no structure tree, so a new link has no element to join.
+
+## Why
+
+PDF/UA-1 asks for every link to be a `Link` element of the structure tree, which tells a screen reader what the link is and which text it covers. A link added outside the tree would break the file's claim, so Lamina PDF refuses it instead.
+
+## How to fix
+
+Export it again as a tagged PDF from the program that made it, then add the link. If the claim is wrong, remove it, or add the link to a copy that doesn't claim PDF/UA-1.
+
+## Example
+
+```json
+{ "op": "addLink", "args": { "page": "p3.0", "rect": { "x0": 72, "y0": 700, "x1": 180, "y1": 714 }, "target": { "uri": "https://example.com/" } } }
+```
+
+The file's XMP metadata has `pdfuaid:part` 1, but its catalog has no `/StructTreeRoot`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3c](../todos/done/E3c-links.md): link annotations
+"#,
+        "appearance-unavailable" => r#"# `appearance-unavailable`
+
+- Type: error
+- Kind: `unsupported` (valid input that Lamina PDF does not support yet)
+
+## What happened
+
+An edit adds an annotation, or changes what one draws, but the document has nothing to draw the annotation's appearance with.
+
+## Why
+
+Every annotation Lamina PDF makes carries its own appearance: the drawing that PDF readers show. Readers that find none either draw their own version or draw nothing, so the same file looks different from one reader to the next. Lamina PDF refuses the edit instead of writing an annotation without one.
+
+The drawing code is in the `laminapdf-build` crate. The `laminapdf` crate and the `@laminapdf/sdk` package always connect it, so only code that uses `laminapdf-ops` directly meets this error.
+
+## How to fix
+
+Edit through the `laminapdf` crate or `@laminapdf/sdk`. If you use `laminapdf-ops` directly, give the document a generator first: `Document::with_appearances` with `laminapdf-build`'s `AnnotationAppearances`.
+
+## Example
+
+```json
+{ "op": "addAnnot", "args": { "page": "p3.0", "spec": { "type": "note", "at": { "x": 72, "y": 720 } } } }
+```
+
+Applied to a `laminapdf_ops::Document` opened without `with_appearances`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4c](../todos/done/E4c-appearances-markup-notes-caret.md): appearances for text markup, notes and carets
+- [E4 plan §2.2](../plans/editor/e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated): where appearances are generated
+"#,
         "invalid-label-ranges" => r"# `invalid-label-ranges`
 
 - Type: error
@@ -3304,6 +3413,134 @@ The decisions and todos behind this code:
 
 - [E2o](../todos/done/E2o-structure-tree-merge.md): merging structure trees, for merged and imported pages
 - [E2 plan §3](../plans/editor/e2-page-organisation.md#3-conformance-the-edits-must-keep): what page edits do to a PDF/UA claim
+",
+        "annot-without-contents" => r#"# `annot-without-contents`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file says it conforms to PDF/UA-1, and an annotation the edits added or changed has no description (`/Contents`). Saving the file as it is writes one that no longer meets PDF/UA-1.
+
+## Why
+
+PDF/UA-1 asks every annotation for a description that a screen reader can read in place of the mark (ISO 14289-1 §7.18.1). A highlight without one is silent: the reader hears that something is marked, not what. In a tagged file, Lamina PDF fills the description with the marked text when the edit comes from a text selection, so there this warning means the edit gave an empty one or removed it.
+
+## How to fix
+
+Give the annotation a description: for a highlight, underline or strike-out, the text it marks; for a note, its comment; for a caret, what goes there. If the file needn't stay PDF/UA-1, save anyway: the warning never blocks a save.
+
+## Example
+
+A highlight added to a PDF/UA-1 report with `"contents": ""`, then `doc.plan()`, lists `annot-without-contents` with the highlight's ID in `annotations`.
+
+## Data fields
+
+- `annotations`: the IDs of the annotations without a description, in page order.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4c](../todos/done/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
+- [E4 plan §3](../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep): conformance the edits must keep
+"#,
+        "annot-not-tagged" => r"# `annot-not-tagged`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file says it conforms to PDF/UA-1, but it isn't tagged: it has no structure tree, so a new annotation has no element to join. Saving the file as it is writes one that no longer meets PDF/UA-1.
+
+## Why
+
+PDF/UA-1 asks for every annotation to be an `Annot` element of the structure tree (ISO 14289-1 §7.18.1), which places it in the reading order next to the text it is about. In a tagged file Lamina PDF adds that element itself; a file without a tree gives it nowhere to go.
+
+## How to fix
+
+Export the file again as a tagged PDF from the program that made it, then add the annotation. If the claim is wrong, remove it. The warning never blocks a save.
+
+## Example
+
+A note added to a file whose XMP metadata has `pdfuaid:part` 1 but whose catalog has no `/StructTreeRoot`, then `doc.plan()`, lists `annot-not-tagged`.
+
+## Data fields
+
+- `annotations`: the IDs of the untagged annotations, in page order.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4c](../todos/done/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
+- [E4 plan §3](../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep): conformance the edits must keep
+",
+        "pdfa-annot-flags" => r#"# `pdfa-annot-flags`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file says it conforms to PDF/A, and an annotation the edits added or changed doesn't print, or is hidden. Saving the file as it is writes one that no longer meets PDF/A.
+
+## Why
+
+PDF/A keeps a document looking the same wherever it is shown or printed, so every annotation must print and none may be hidden (ISO 19005-2 §6.3.2). The annotation's flags (`/F`) control both: the Print flag must be set, and Hidden, Invisible, NoView and ToggleNoView must be clear.
+
+## How to fix
+
+Change the annotation's flags back: set Print and clear the hiding flags. Lamina PDF's new annotations have the right flags unless the edit names others. If the file needn't stay PDF/A, save anyway: the warning never blocks a save.
+
+## Example
+
+`{ "op": "updateAnnot", "args": { "id": "a12.0", "flags": 2 } }` on a PDF/A-2b file hides the annotation, and `doc.plan()` lists `pdfa-annot-flags`.
+
+## Data fields
+
+- `annotations`: the IDs of the annotations with flags PDF/A forbids, in page order.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4c](../todos/done/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
+- [E4 plan §3](../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep): conformance the edits must keep
+"#,
+        "pdfa-transparency" => r"# `pdfa-transparency`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file says it conforms to PDF/A-1, and an annotation the edits added or changed is translucent, or blends with the page as a highlight does. Saving the file as it is writes one that no longer meets PDF/A-1.
+
+## Why
+
+PDF/A-1 predates transparency in PDF and forbids it (ISO 19005-1 §6.4). A highlight multiplies its colour with the text under it so the text stays legible, and that blending is transparency. Later parts of PDF/A, PDF/A-2 and PDF/A-3, allow it.
+
+## How to fix
+
+Mark the text another way, with an underline or a strike-out, or make the mark opaque. If the file needn't stay PDF/A-1, save anyway: the warning never blocks a save.
+
+## Example
+
+A highlight added to a PDF/A-1b file, then `doc.plan()`, lists `pdfa-transparency`.
+
+## Data fields
+
+- `annotations`: the IDs of the translucent or blending annotations, in page order.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4c](../todos/done/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
+- [E4 plan §3](../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep): conformance the edits must keep
 ",
         "sink" => r"# `sink`
 

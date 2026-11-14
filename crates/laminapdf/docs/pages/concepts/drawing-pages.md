@@ -1,7 +1,7 @@
 ---
 title: "How a page is drawn"
 description: "A renderer turns a page into pixels; Lamina PDF reads the page's text, links and selection itself, from the same bytes."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/concepts/drawing-pages/"
 ---
 

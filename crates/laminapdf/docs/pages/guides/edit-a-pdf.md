@@ -1,7 +1,7 @@
 ---
 title: "Edit a PDF"
 description: "Change an existing PDF in transactions you can undo, and replay edits stored as JSON."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/guides/edit-a-pdf/"
 ---
 
@@ -137,6 +137,102 @@ Your edits live beside the bytes you opened and never change them. Nothing reach
 ## Change the metadata
 
 `doc.setMetadata({ title, authors })` changes a document's title, authors, subject, keywords, dates, and the creating and producing applications, and `doc.removeMetadata(["keywords"])` removes fields. A PDF keeps these facts twice, in its Info dictionary and its XMP metadata, and each edit writes both. `doc.metadata()` reads them back. [Edit the metadata](../../pages/recipes/edit-metadata.md) has the whole program.
+
+## Organise the pages
+
+Five calls change which pages a document has and their order: `doc.deletePages(ids)`, `doc.movePages(ids, "start")`, `doc.insertBlankPages("end", 1, { width: 612, height: 792 })`, `doc.rotatePages(ids, 90, { mode: "turn" })` and `doc.reversePages(ids)`. They name pages by ID, and a page keeps its ID when it moves. Deleting a page sends the bookmarks and links that pointed at it to the nearest page left, and deleting every page is refused. [Organise pages](../../pages/recipes/organise-pages.md) has the whole program.
+
+`doc.duplicatePages(ids, "end")` copies pages. A copy shares its page's content but gets annotations and form fields of its own, so filling in the copy leaves the original alone. [Duplicate pages](../../pages/recipes/duplicate-pages.md) shows a form page copied.
+
+`doc.addSource(bytes)` opens another PDF as a source of pages. `doc.insertPagesFrom(source.id, pages, "end")` copies its pages in, and `doc.replacePages(targets, source.id, pages)` puts them in other pages' places. `doc.extractPages(ids)` makes a new PDF from some pages. [Copy pages between PDFs](../../pages/recipes/copy-pages.md) shows each.
+
+`Document.merge(files)` makes one document from several files, with a bookmark for each, and `doc.mergeDocuments(sources, "end")` merges sources into an open document as one edit. `doc.split({ bookmarks: 1 })` makes one document per chapter. Merged pages come without their tags, so a merge of tagged PDFs makes an untagged file. [Merge and split PDFs](../../pages/recipes/merge-and-split.md) shows both.
+
+## Name the pages
+
+A viewer's page box can show a page's label instead of its number: "Cover", "iv" or "A-3". `doc.setPageLabels(ranges)` replaces a document's labels. Each range starts at a page, named by its ID, and labels that page and the ones after it until the next range. A range has a style (decimal, roman or letters, upper or lower case), a prefix and a first number. The first range must start on the first page and the rest must follow in page order, or the edit fails with `invalid-label-ranges`. An empty list removes the labels.
+
+This example labels a cover, roman front matter and a numbered body:
+
+**TypeScript**
+
+`packages/sdk/examples/page-labels.ts`:
+
+```ts
+// Give a document page labels, the names viewers show for its pages: "Cover" for the first,
+// lowercase roman numerals for the front matter, and numbers from 1 where the body starts.
+// A range names its first page by ID and labels the pages up to the next range. The edit is one
+// op, saved incrementally after the original bytes.
+import { Document } from "@laminapdf/sdk";
+
+/** The document with a cover, roman front matter from its second page and numbers from its third. */
+export function pageLabels(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
+  using doc = Document.open(bytes);
+  const [cover, contents, body] = doc.pages;
+  if (cover === undefined || contents === undefined || body === undefined) {
+    throw new Error("the example needs three pages or more");
+  }
+
+  doc.setPageLabels([
+    { page: cover.id, prefix: "Cover" },
+    { page: contents.id, style: "lowerRoman" },
+    { page: body.id, style: "decimal" },
+  ]);
+
+  // `doc.pages[i].label` now reads "Cover", "i", "1", "2", …
+  return doc.save({ mode: "incremental" });
+}
+```
+
+**Rust**
+
+`crates/laminapdf/examples/page_labels.rs`:
+
+````rust
+//! Give a document page labels, the names viewers show for its pages: "Cover" for the first,
+//! lowercase roman numerals for the front matter, and numbers from 1 where the body starts.
+//!
+//! A range names its first page by ID and labels the pages up to the next range. The edit is
+//! one op, saved incrementally after the original bytes.
+//!
+//! ```sh
+//! cargo run -p laminapdf --example page_labels -- in.pdf [out-dir]   # a file of three pages or more
+//! ```
+
+use std::error::Error;
+use std::path::PathBuf;
+
+use laminapdf::{Document, LabelStyle, Op, OpenOptions, PageLabelRange, SaveMode, SaveOptions, SetPageLabels};
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let mut args = std::env::args().skip(1);
+    let input = PathBuf::from(args.next().ok_or("usage: page_labels in.pdf [out-dir]")?);
+    let out = PathBuf::from(args.next().unwrap_or_else(|| "target/examples-out".into()));
+    std::fs::create_dir_all(&out)?;
+    let labelled = label(std::fs::read(input)?)?;
+    std::fs::write(out.join("page_labels.pdf"), labelled)?;
+    Ok(())
+}
+
+/// The document with a cover, roman front matter from its second page and numbers from its
+/// third, saved incrementally.
+pub(crate) fn label(bytes: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
+    let mut doc = Document::open_bytes(bytes, OpenOptions::new())?;
+    if doc.page_count()? < 3 {
+        return Err("the example needs three pages or more".into());
+    }
+    let [cover, contents, body] = [0, 1, 2].map(|index| doc.page_info(index).map(|page| page.id));
+
+    doc.apply(vec![Op::from(SetPageLabels::new(vec![
+        PageLabelRange::new(cover?, None).with_prefix("Cover"),
+        PageLabelRange::new(contents?, Some(LabelStyle::LowerRoman)),
+        PageLabelRange::new(body?, Some(LabelStyle::Decimal)),
+    ]))])?;
+
+    // `doc.page_info(i)?.label` now reads "Cover", "i", "1", "2", …
+    Ok(doc.save(&SaveOptions::new().with_mode(SaveMode::Incremental))?.bytes)
+}
+````
 
 ## Undo and redo
 

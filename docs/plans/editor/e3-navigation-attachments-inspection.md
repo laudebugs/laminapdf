@@ -89,6 +89,8 @@ Every edit of the open document is an `Op` ([full-editor §5](../full-editor.md#
 
 **As built (E3b).** In `laminapdf-ops`, `Destination` is `ExplicitDestination` and `View` is `DestinationView`, since the model's read types already take those names. A `DestinationView` has `kind` on the wire and takes only finite numbers (`view-not-finite`). `Rgb` is `"#rrggbb"` on the wire. `delete | promote` is `ChildItems`, and `keep | follow` is `RenameLinks`. `SiblingPosition` sits in `laminapdf-model` beside `OutlineTree`, the list writer. `AddOutlineItem` has no `open`: a new bookmark has no children, and only `/Count` holds the open state (§12.3.3), so `UpdateOutlineItem`'s `open` sets it once there are children. `OutlineRepaired` reports stored links that disagree with the walk; a wrong `/Count` alone is corrected without a report, since many writers get it wrong harmlessly. A delete removes a name from both stores when both hold it. A rename follows the name through every `GoTo` action of the file's bookmarks, annotations (`/A`, `/AA`) and catalog (`/OpenAction`, `/AA`), with the actions each runs after through `/Next`. An item stored as a direct dictionary is refused by name (`direct-outline-item`) until another op rewrites the outline, which gives it an object and a new ID. The façade's `Document::destination_at` turns a page-space view into an `ExplicitDestination`, and `named_destinations` lists both stores.
 
+**As built (E3c).** `AddLink` makes its own ID, reported in `Applied::created_annotations`, and takes `marked`, the MCIDs under the link, in place of the plan's `id`: `laminapdf-ops` can't read content, so the façade's `link_on_text` finds them. Its target is `OutlineTarget`, since the builder already exports a `LinkTarget`. A tagged link holds the covered content of the element owning the first covered MCID, in that content's place, and `DeleteLink` puts it back; an annotation that isn't a link is `not-a-link`. pyHanko's standard difference policy rejects any new annotation at P3, tagged or not. Leaving links untagged would gain nothing, so they stay tagged on certified files (§6).
+
 Three types are new: `AttachmentId`, a `LaminaPdfId` kind for a file specification; `UserSpaceQuad`, beside `UserSpaceRect` in `laminapdf-model`; and `SiblingPosition` (`first`, `last`, `{ before }`, `{ after }`), the outline's counterpart of E2's `PagePosition`. `AddLink` and its siblings are the only way to make a link: when E4b adds the generic annotation ops, they wrap these and keep their wire form (E3c).
 
 **Rules every op keeps:**
@@ -192,7 +194,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | ID | Todo | Depends on |
 | --- | --- | --- |
 | [E3b](../../todos/done/E3b-bookmarks-and-destinations.md) | Outline and named-destination ops, the editable Outline tab and the named destinations dialog | E2j |
-| [E3c](../../todos/ready/E3c-links.md) | Link ops, tagged links, the link tool and popover | C5b, E2j |
+| [E3c](../../todos/done/E3c-links.md) | Link ops, tagged links, the link tool and popover | C5b, E2j |
 | [E3d](../../todos/done/E3d-initial-view-and-threads.md) | `SetInitialView`, the initial view on open, and threads read | E3a |
 | [E3e](../../todos/done/E3e-xmp-editor.md) | XMP property ops, extension schemas and the XMP editor | E1c, B8b, X3a |
 | [E3f](../../todos/ready/E3f-attachments-and-associated-files.md) | Attachment ops, `/AF`, portfolios read, and the Attachments tab | E2i, E2j, E2p, B8b, X3a |

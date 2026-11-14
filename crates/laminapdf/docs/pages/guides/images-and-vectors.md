@@ -1,7 +1,7 @@
 ---
 title: "Shapes, colour and images"
 description: "Draw lines, shapes and images on a page, in any colour, with transparency, clipping and transforms."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/guides/images-and-vectors/"
 ---
 
