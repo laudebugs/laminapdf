@@ -177,6 +177,9 @@ name = "duplicate_pages"
 name = "crop_pages"
 
 [[example]]
+name = "resize_pages"
+
+[[example]]
 name = "extract_pages"
 
 [[example]]

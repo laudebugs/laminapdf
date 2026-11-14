@@ -129,10 +129,11 @@ pub use outline::{
     SetNamedDestination, UpdateOutlineItem,
 };
 pub use pages::{
-    Carry, CropMargins, CropPages, DeletePages, DuplicatePages, FieldChange, FieldClash, FieldOutcome,
-    InsertBlankPages, InsertPagesFrom, MergeDocuments, MergeInput, MergeOptions, MergeSource, MovePages, OutlineMerge,
-    PageBoxes, ReferenceChange, ReferenceOutcome, ReferencePolicy, RenamedDestination, ReplacePages, ReversePages,
-    RotateMode, RotatePages, SetPageBoxes, SplitBy, StructureName, StructureRename,
+    Anchor, Carry, CropMargins, CropPages, DeletePages, DuplicatePages, FieldChange, FieldClash, FieldOutcome,
+    InsertBlankPages, InsertPagesFrom, MergeDocuments, MergeInput, MergeOptions, MergeSource, MovePages,
+    OrientationMethod, OutlineMerge, PageBoxes, PageOrientation, ReferenceChange, ReferenceOutcome, ReferencePolicy,
+    RenamedDestination, ReplacePages, ResizeMode, ResizePages, ReversePages, RotateMode, RotatePages, SetOrientation,
+    SetPageBoxes, SplitBy, StructureName, StructureRename,
 };
 pub use pending::PendingChanges;
 pub use record::{Change, Field, Property, PropertyValue, SkipReason, Skipped, Target, UndoRecord};

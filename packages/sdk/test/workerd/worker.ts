@@ -25,6 +25,7 @@ import report from "../../../../fixtures/markdown/report.md";
 import boxesPdf from "../../../../fixtures/pages/boxes.pdf";
 import chaptersPdf from "../../../../fixtures/pages/chapters.pdf";
 import formsPdf from "../../../../fixtures/pages/forms.pdf";
+import geometryPdf from "../../../../fixtures/pages/geometry.pdf";
 import labelsPdf from "../../../../fixtures/pages/labels.pdf";
 import referencesPdf from "../../../../fixtures/pages/references.pdf";
 import flowReport from "../../../../fixtures/text/element-flow-report.json" with { type: "json" };
@@ -55,6 +56,7 @@ const inputs: Inputs = {
       "fixtures/pages/labels.pdf": labelsPdf,
       "fixtures/pages/chapters.pdf": chaptersPdf,
       "fixtures/pages/boxes.pdf": boxesPdf,
+      "fixtures/pages/geometry.pdf": geometryPdf,
       "fixtures/corpus/hello.pdf": helloPdf,
       "fixtures/golden/examples/links_and_outlines.pdf": linksAndOutlinesPdf,
     }).map(([path, data]) => [path, new Uint8Array(data)]),

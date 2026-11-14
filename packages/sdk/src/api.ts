@@ -100,6 +100,7 @@ export { PageText, PageTextRun } from "./text.js";
 export type { InfoPatch, Rotation } from "./transaction.js";
 export {
   type AddedSource,
+  type Anchor,
   type Carry,
   type CropMargins,
   type DeletePagesOptions,
@@ -108,11 +109,14 @@ export {
   type MergeSource,
   type MetadataEditOptions,
   type MetadataRemoveOptions,
+  type OrientationMethod,
   type PageBox,
   type PageBoxes,
+  type PageOrientation,
   type PagePosition,
   type PageSize,
   type ReferencePolicy,
+  type ResizePagesOptions,
   type RotateMode,
   type RotatePagesOptions,
   Transaction,

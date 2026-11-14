@@ -78,7 +78,7 @@ import type {
  * An edit (`{ op, args }`): `setMetadata`, `removeMetadata`, the XMP edits (`setXmpProperty`,
  * `removeXmpProperty`, `replaceXmpPacket`), `setPageLabels`, the page ops (`insertBlankPages`, `deletePages`,
  * `movePages`, `rotatePages`, `reversePages`, `duplicatePages`, `insertPagesFrom`, `replacePages`,
- * `setPageBoxes`, `cropPages`, `rotatePage`), the bookmark edits
+ * `setPageBoxes`, `cropPages`, `resizePages`, `setOrientation`, `rotatePage`), the bookmark edits
  * (`addOutlineItem`, `updateOutlineItem`, `moveOutlineItem`, `deleteOutlineItem`), the named-destination edits
  * (`setNamedDestination`, `renameNamedDestination`, `deleteNamedDestination`), `setInitialView`, the link
  * edits (`addLink`, `updateLink`, `deleteLink`), the annotation edits (`addAnnot`, `updateAnnot`,

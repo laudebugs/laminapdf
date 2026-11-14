@@ -8,7 +8,7 @@ use common::fixture;
 use laminapdf_model::{PagePosition, Rotation};
 use laminapdf_ops::{Op, ReferencePolicy, RotateMode};
 
-const SAMPLES: [&str; 11] = [
+const SAMPLES: [&str; 13] = [
     "insert-blank-pages",
     "delete-pages",
     "move-pages",
@@ -20,6 +20,8 @@ const SAMPLES: [&str; 11] = [
     "merge-documents",
     "set-page-boxes",
     "crop-pages",
+    "resize-pages",
+    "set-orientation",
 ];
 
 fn sample(name: &str) -> Op {
@@ -100,6 +102,10 @@ fn unknown_fields_and_positions_are_rejected() {
         r#"{ "op": "setPageBoxes", "args": { "pages": ["p7.0"], "boxes": { "crop": [0, 0, 1] } } }"#,
         r#"{ "op": "setPageBoxes", "args": { "pages": ["p7.0"], "boxes": { "bleed": [0, 0, 1, 1], "slug": null } } }"#,
         r#"{ "op": "cropPages", "args": { "pages": ["p7.0"], "margins": { "inside": 10 } } }"#,
+        r#"{ "op": "resizePages", "args": { "pages": ["p7.0"], "size": { "width": 612, "height": 792 }, "mode": "stretch" } }"#,
+        r#"{ "op": "resizePages", "args": { "pages": ["p7.0"], "size": { "width": 612, "height": 792 }, "mode": { "extend": { "anchor": "middle" } } } }"#,
+        r#"{ "op": "setOrientation", "args": { "pages": ["p7.0"], "orientation": "sideways" } }"#,
+        r#"{ "op": "setOrientation", "args": { "pages": ["p7.0"], "orientation": "portrait", "turn": 90 } }"#,
     ] {
         assert!(serde_json::from_str::<Op>(json).is_err(), "{json}");
     }
@@ -201,4 +207,30 @@ fn the_box_samples_tell_a_box_left_alone_from_one_removed() {
             (36.0, 18.0, 18.0)
         )
     );
+}
+
+#[test]
+fn the_geometry_samples_read_their_mode_and_method() {
+    let Op::ResizePages(resize) = sample("resize-pages") else {
+        panic!("not resizePages");
+    };
+    let Op::SetOrientation(turn) = sample("set-orientation") else {
+        panic!("not setOrientation");
+    };
+    let defaults: Op = serde_json::from_str(
+        r#"{ "op": "resizePages", "args": { "pages": ["p7.0"], "size": { "width": 612, "height": 792 } } }"#,
+    )
+    .unwrap();
+    assert_eq!(
+        (resize.mode, resize.size.width.get(), turn.orientation, turn.method),
+        (
+            laminapdf_ops::ResizeMode::Extend {
+                anchor: laminapdf_ops::Anchor::TopLeft
+            },
+            612.0,
+            laminapdf_ops::PageOrientation::Landscape,
+            laminapdf_ops::OrientationMethod::SwapBox
+        )
+    );
+    assert!(matches!(defaults, Op::ResizePages(r) if r.mode == laminapdf_ops::ResizeMode::Scale));
 }

@@ -1,5 +1,5 @@
 // The page ops: insertBlankPages, deletePages, movePages, rotatePages, reversePages and
-// duplicatePages, cropPages and setPageBoxes on
+// duplicatePages, cropPages, setPageBoxes, resizePages and setOrientation on
 // fixtures/pages/, each saved and reopened, their `Edited` reports, the transaction handle's
 // twins and the refusal to delete every page. The names start with the capability each test
 // proves (C.01 and the rest); they become capability tags once `cargo xtask capabilities` runs
@@ -401,5 +401,50 @@ describe("cropPages and setPageBoxes", () => {
     });
     doc.undo();
     expect(doc.pages.map((p) => [p.width, p.height])).toEqual(before);
+  });
+});
+
+describe("resizePages and setOrientation", () => {
+  it("C.10 (pdf, round-trip): puts an A4 page on Letter, scaled to fit, kept after a save", () => {
+    using doc = open("geometry");
+    const [p1] = ids(doc) as [string];
+    const edited = doc.resizePages([p1], LETTER);
+    expect(edited.touchedPages).toEqual([p1]);
+    using again = reopened(doc);
+    expect([again.pages[0]?.width, again.pages[0]?.height]).toEqual([612, 792]);
+    // The text is still there, scaled with the page.
+    expect(markers(again)).toEqual(["Page 1", "Page 2"]);
+  });
+
+  it("extends a page around an anchor and refuses a size of 0", () => {
+    using doc = open("geometry");
+    const [p1] = ids(doc) as [string];
+    doc.resizePages([p1], { width: 700, height: 900 }, { mode: "extend", anchor: "topLeft" });
+    expect([doc.pages[0]?.width, doc.pages[0]?.height]).toEqual([700, 900]);
+    const error = thrown(() => doc.resizePages([p1], { width: 0, height: 900 }));
+    expect(isLaminaPdfError(error, "invalid-op")).toBe(true);
+  });
+
+  it("C.12 (pdf, round-trip): turns portrait pages to landscape by rotate or by swapping the paper", () => {
+    using doc = open("geometry");
+    const [p1, p2] = ids(doc) as [string, string];
+    doc.setOrientation([p1], "landscape");
+    doc.setOrientation([p2], "landscape", "swapBox");
+    using again = reopened(doc);
+    expect(again.pages.map((p) => [p.width > p.height, p.rotation])).toEqual([
+      [true, 90],
+      [true, 0],
+    ]);
+  });
+
+  it("has transaction twins, undone together", () => {
+    using doc = open("geometry");
+    const before = doc.pages.map((p) => [p.width, p.height, p.rotation]);
+    doc.transact((tx) => {
+      tx.resizePages(ids(doc), A5);
+      tx.setOrientation(ids(doc), "landscape", "swapBox");
+    });
+    doc.undo();
+    expect(doc.pages.map((p) => [p.width, p.height, p.rotation])).toEqual(before);
   });
 });

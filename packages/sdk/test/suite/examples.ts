@@ -32,6 +32,7 @@ import { pdfAArchive } from "../../examples/pdf-a-archive.js";
 import { pdfA3InvoiceWithXml } from "../../examples/pdf-a3-invoice-with-xml.js";
 import { pdfUaReport } from "../../examples/pdf-ua-report.js";
 import { report } from "../../examples/report.js";
+import { resizePages } from "../../examples/resize-pages.js";
 import { openOn } from "../../examples/set-initial-view.js";
 import { splitDocument } from "../../examples/split-document.js";
 import { exampleOptions, HELLO_OPTIONS } from "./hello-options.js";
@@ -89,6 +90,8 @@ const REFERENCES_PDF = "fixtures/pages/references.pdf";
 const FORMS_PDF = "fixtures/pages/forms.pdf";
 /** The input of crop-pages: four pages, one per rotation, the second with a user unit of 2. */
 const BOXES_PDF = "fixtures/pages/boxes.pdf";
+/** The input of resize-pages: an A4 page with every kind of destination aimed at it, and a Letter page. */
+const GEOMETRY_PDF = "fixtures/pages/geometry.pdf";
 /** The input of page-labels: an example golden of four pages. */
 const LABELS_INPUT_PDF = "fixtures/golden/examples/links_and_outlines.pdf";
 /** The input of extract-pages: ten pages labelled i–iii, 1–4, A-1, A-2 and Back cover. */
@@ -232,6 +235,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "crop_pages",
     inputs: [BOXES_PDF],
     build: (i) => cropPages(input(i, BOXES_PDF)),
+  },
+  {
+    name: "resize-pages",
+    golden: "resize_pages",
+    inputs: [GEOMETRY_PDF],
+    build: (i) => resizePages(input(i, GEOMETRY_PDF)),
   },
   {
     name: "insert-pages",

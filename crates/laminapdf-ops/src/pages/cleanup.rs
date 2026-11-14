@@ -136,7 +136,7 @@ fn outcome(new: Option<&Object>, target: Option<&PageId>) -> ReferenceOutcome {
 
 /// The named destination a destination goes through, if any (that entry is retargeted on its
 /// own, so links from other files keep working).
-fn named(via: &Via) -> Option<&[u8]> {
+pub(super) fn named(via: &Via) -> Option<&[u8]> {
     match via {
         Via::Dest { name } | Via::GoTo { name, .. } => name.as_deref(),
         _ => None,
@@ -145,7 +145,7 @@ fn named(via: &Via) -> Option<&[u8]> {
 
 /// `NameStore` with an order, for the map key.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-enum NameStoreKey {
+pub(super) enum NameStoreKey {
     NameTree,
     DestsDict,
 }
@@ -161,14 +161,14 @@ impl From<NameStore> for NameStoreKey {
 
 /// Where a destination is held: an object, or the catalog (`/OpenAction`).
 #[derive(Clone, Copy)]
-enum Holder {
+pub(super) enum Holder {
     Object(ObjRef),
     Catalog,
 }
 
 /// Writes `new` (or removes the destination, with `None`) where `via` says the holder keeps
 /// it. On removal, `remove_keys` are taken off the holder (an outline item's `/Dest` and `/A`).
-fn write_dest(
+pub(super) fn write_dest(
     doc: &mut laminapdf_model::Document,
     holder: Holder,
     via: &Via,
@@ -220,7 +220,7 @@ fn write_dest(
 /// Sets each named destination of `changes` in the `/Names /Dests` tree to its new
 /// destination, or removes it with `None`, writing the tree again once. A destination
 /// dictionary (`<< /D [...] >>`) keeps its other entries.
-fn set_tree_destinations(
+pub(super) fn set_tree_destinations(
     doc: &mut laminapdf_model::Document,
     changes: &BTreeMap<Vec<u8>, Option<Object>>,
 ) -> Result<()> {
@@ -250,7 +250,11 @@ fn set_tree_destinations(
 /// Sets the named destination `name` in the catalog's PDF 1.1 `/Dests` dictionary to `new`,
 /// or removes it with `None`. Names are matched byte for byte (a name need not be UTF-8), and
 /// a destination dictionary keeps its other entries.
-fn set_old_destination(doc: &mut laminapdf_model::Document, name: &[u8], new: Option<&Object>) -> Result<()> {
+pub(super) fn set_old_destination(
+    doc: &mut laminapdf_model::Document,
+    name: &[u8],
+    new: Option<&Object>,
+) -> Result<()> {
     let Some(dests) = doc.catalog()?.get("Dests").cloned() else {
         return Ok(());
     };
@@ -292,7 +296,7 @@ fn with_dest(doc: &laminapdf_model::Document, old: &Object, dest: Object) -> Res
 }
 
 /// `value` with one reference followed.
-fn resolve(doc: &laminapdf_model::Document, value: Option<Object>) -> Result<Option<Object>> {
+pub(super) fn resolve(doc: &laminapdf_model::Document, value: Option<Object>) -> Result<Option<Object>> {
     Ok(match value {
         Some(Object::Ref(r)) => Some((*doc.object(r.num)?).clone()),
         other => other,

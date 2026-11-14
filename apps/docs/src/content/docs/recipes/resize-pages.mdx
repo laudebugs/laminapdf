@@ -1,0 +1,30 @@
+---
+title: Resize pages
+description: Put every page of a PDF on new paper, scaling the content to fit or extending the page around it, and turn pages to portrait or landscape.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll put every page of a document on Letter paper, scaling each page's content to fit. Use it to print a document made on A4 in North America, to make a mixed stack of scans one size, or to give slides the same paper as the report they go in.
+
+A page keeps its proportions. An A4 page is a little taller and narrower than Letter, so it is scaled down to Letter's height and centred, with a thin margin on each side:
+
+<Example ts="packages/sdk/examples/resize-pages.ts" rust="crates/laminapdf/examples/resize_pages.rs" result="resize_pages" />
+
+The input has an A4 page and a Letter page. In the result both are Letter. The first page's text is a little smaller and its highlight still covers the same words, and the second page is as it was.
+
+## How it works
+
+- `resizePages` (`ResizePages` in Rust) takes the new paper's width and height in points. The size is the paper's before any rotation, so a page turned on its side stays turned.
+- The page's content moves as one piece, and everything that points into the page moves with it. That covers links, notes, highlights and form fields, bookmarks and named places, the view the document opens at, and the boxes a screen reader uses to find a figure. A bookmark that showed a paragraph at the top of the window still does.
+- The page shows its whole new paper: a crop box goes, and the bleed, trim and art boxes move with the content.
+- **Undo:** one `undo()` puts every page back.
+
+## What to change
+
+- **Keep the content's size:** pass `{ mode: "extend", anchor: "topLeft" }` (`ResizePages::extend` in Rust). The paper grows around the content, or is cut down to the part of it the new paper covers. The anchor says where the old page sits: `"center"` by default, or a corner or an edge.
+- **Turn pages to portrait or landscape:** `setOrientation(ids, "landscape")` turns each page shown the other way a quarter turn clockwise, and leaves the rest alone. It turns the page as readers show it (`/Rotate`). For a printer or tool that ignores that, pass `"swapBox"`: the paper's sides swap and the content, annotations and bookmarks turn into it.
+- **Signed forms:** resizing or turning a page that shows a signed field breaks the signature, so saving refuses the edit unless you allow the save to break it.
+- **Files a resize refuses:** to move a page's content, Lamina PDF reads it. A page whose content Lamina PDF can't decode is refused with `unsupported-filter`, and the document is left as it was.
+
+Next: [crop pages](/recipes/crop-pages/), to hide part of a page instead.
