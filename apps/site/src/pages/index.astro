@@ -1,6 +1,9 @@
 ---
 // The home page (W1c): for now the roadmap and what's coming next, from the progress snapshot
-// that `cargo xtask progress` writes (src/data/progress.json).
+// that `cargo xtask progress` writes (src/data/progress.json). Its head describes the project for
+// search engines as JSON-LD (@laminapdf/site-kit's structured-data.mjs).
+import { structuredData } from "@laminapdf/site-kit/structured-data";
+import cargoToml from "../../../../Cargo.toml?raw";
 import Home from "../components/home/Home.astro";
 import { META } from "../data/copy.js";
 import { readProgress } from "../data/progress.js";
@@ -10,6 +13,10 @@ import Base from "../layouts/Base.astro";
 const progress = readProgress(snapshot);
 ---
 
-<Base title={META.title} description={META.description}>
+<Base
+  title={META.title}
+  description={META.description}
+  structuredData={structuredData({ site: "website", cargoToml })}
+>
   <Home progress={progress} />
 </Base>

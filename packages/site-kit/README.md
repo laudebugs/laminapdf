@@ -28,7 +28,7 @@ Both sites show the same header, from design language [§7.39](../../docs/design
 `src/integrations.mjs` holds the Astro integrations that run after a build, on the files in `dist/`:
 
 - **`siteChecks({ origin })`** fails the website's build when a page breaks [the website's privacy rules](../../docs/decisions/0011-cloudflare-topology-and-privacy.md#3-the-v01-privacy-guarantees-testable). A page breaks them when it loads a file from another origin or one the build didn't write, links to a missing page, has an inline style, sets a cookie or sends a beacon. It also fails when a page lacks a title, a description or a canonical URL. The [website's README](../../apps/site/README.md#what-every-build-checks) lists each rule.
-- **`inlineScriptHashes`** puts the SHA-256 of each inline script into the CSP in `dist/_headers`, for both sites.
+- **`inlineScriptHashes`** puts the SHA-256 of each inline script into the CSP in `dist/_headers`, for both sites. It leaves out data blocks, such as JSON-LD: a `<script>` whose `type` isn't JavaScript, `module` or `importmap` never runs, so the CSP doesn't apply to it (`isDataBlock`).
 - **`previewNoindex(env)`** adds `X-Robots-Tag: noindex` to every build except production's (`LAMINA_PDF_ENV=production`).
 - **`pageFiles(dir)`** lists a pages folder for the header, and **`pageExists(dir, path)`** says whether a build serves a path. The docs site's link check uses `pageExists` too.
 
@@ -44,6 +44,18 @@ Both sites show the same header, from design language [§7.39](../../docs/design
 - **`robots({ env, sitemap })`** writes it into an Astro build's `dist/` for the build's `LAMINA_PDF_ENV`; the reader's Vite build emits the same file (`apps/web/plugins/search.ts`).
 - **`isProduction(env)`** is the one test of `LAMINA_PDF_ENV` that robots.txt and `markNoindex` share, so the two rules can't disagree.
 - **`robotsProblems(text, build)`** names what is wrong with a built file; the docs site's release checks call it.
+
+`src/structured-data.mjs` (`@laminapdf/site-kit/structured-data`) describes Lamina PDF to search engines, as JSON-LD in the website's and the docs' home pages:
+
+- **`structuredData({ site, cargoToml })`** builds one schema.org graph: the publisher (`Organization`), the site (`WebSite`) and the code (`SoftwareSourceCode`). The licence, the repository and the home page come from the workspace's `Cargo.toml` (`projectFacts`), so they can't drift from what the crates publish. It carries no rating, review or offer: Lamina PDF has none, and Google treats invented ones as spam.
+- **`structuredDataProblems(data)`** checks a graph's shape: known types, their required properties, `https:` addresses, references that resolve, and no rating, review or offer. Nothing is fetched.
+- **`jsonLd(data)`** writes the graph for a `<script type="application/ld+json">`, with `<` escaped so no string can close the element.
+
+`src/lastmod.mjs` (`@laminapdf/site-kit/lastmod`) dates the sitemaps' entries by their sources' last commit:
+
+- **`commitDates(root)`** reads the history in one `git log` pass and returns a function: the committer date of the last commit to any of the given files or folders, or none for a file never committed.
+- **`datesAvailable(root, production)`** refuses a shallow checkout in a production build, which would date every page by its one commit; other builds write no dates.
+- **`withLastmod(xml, dateOf)`** adds a `<lastmod>` to each entry of a built sitemap. The website looks its dates up in `astro.config.mjs`; the docs site rewrites Starlight's sitemap after the build (`plugins/sitemap.mjs`).
 
 ## Tests
 

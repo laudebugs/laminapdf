@@ -36,6 +36,8 @@ mod document;
 mod dto;
 mod error;
 #[cfg(feature = "extract")]
+mod exports;
+#[cfg(feature = "extract")]
 mod extract;
 #[cfg(feature = "build")]
 mod marks;

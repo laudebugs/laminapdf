@@ -9,6 +9,7 @@ import "../styles/site.css";
 import sans from "@laminapdf/fonts/files/lamina-sans-latin-wght-normal.woff2?url";
 import { siteNav } from "@laminapdf/site-kit/nav";
 import SiteHeader from "@laminapdf/site-kit/SiteHeader.astro";
+import { jsonLd } from "@laminapdf/site-kit/structured-data";
 import SiteFooter from "../components/SiteFooter.astro";
 import { OPENING } from "../data/copy.js";
 
@@ -19,9 +20,11 @@ interface Props {
   description: string;
   /** Keeps the page out of search results, with no canonical URL: the 404 page. */
   noindex?: boolean;
+  /** schema.org JSON-LD for the head, as a data block the browser never runs: the home page's. */
+  structuredData?: Record<string, unknown>;
 }
 
-const { title, description, noindex = false } = Astro.props;
+const { title, description, noindex = false, structuredData } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const links = siteNav(__SITE_PAGES__, { site: "website", path: Astro.url.pathname });
 // The share image and the favicons, written by scripts/share-image.mjs. The image shows the
@@ -52,6 +55,7 @@ const shareAlt = `Lamina PDF: ${OPENING.headline}`;
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content={shareAlt} />
     <meta name="twitter:card" content="summary_large_image" />
+    {structuredData && <script type="application/ld+json" set:html={jsonLd(structuredData)} />}
   </head>
   <body>
     <a class="skip-link" href="#content">Skip to the content</a>

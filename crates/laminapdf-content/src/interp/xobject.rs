@@ -17,6 +17,7 @@ impl<V: Visitor + ?Sized> Interpreter<'_, '_, V> {
             self.visitor.image(&ImageDraw {
                 source: ImageSource::Inline(image),
                 state: &frame.gs,
+                resources: frame.resources.as_deref(),
             });
         }
     }
@@ -51,6 +52,7 @@ impl<V: Visitor + ?Sized> Interpreter<'_, '_, V> {
                         stream: &found.value,
                     },
                     state: &frame.gs,
+                    resources: frame.resources.as_deref(),
                 });
                 Ok(())
             }

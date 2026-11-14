@@ -1,0 +1,90 @@
+// Sitemap dates from git: each entry dated by its sources' last commit, and a production build
+// refusing a shallow checkout rather than write wrong dates. The git cases run on a small
+// repository made for the test, and a shallow clone of it, whatever this checkout's depth.
+
+import { execFileSync } from "node:child_process";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { env as environment } from "node:process";
+import { pathToFileURL } from "node:url";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { commitDates, datesAvailable, isShallow, withLastmod } from "../src/lastmod.mjs";
+
+describe("withLastmod", () => {
+  const xml =
+    "<urlset><url><loc>https://a.example/</loc></url><url><loc>https://a.example/b/</loc></url>" +
+    "<url><loc>https://a.example/c/</loc><lastmod>2026-01-01</lastmod></url></urlset>";
+
+  it("dates the entries it has a date for, and leaves the others and existing dates alone", () => {
+    const dates: Record<string, string> = { "https://a.example/": "2026-11-12T10:00:00Z", "https://a.example/c/": "x" };
+    expect(withLastmod(xml, (loc) => dates[loc])).toBe(
+      "<urlset><url><loc>https://a.example/</loc><lastmod>2026-11-12T10:00:00Z</lastmod></url>" +
+        "<url><loc>https://a.example/b/</loc></url>" +
+        "<url><loc>https://a.example/c/</loc><lastmod>2026-01-01</lastmod></url></urlset>",
+    );
+  });
+});
+
+/** `date` as an instant: git writes UTC as `Z` or `+00:00` by version, both valid sitemap dates. */
+function instant(date: string | undefined): string | undefined {
+  return date === undefined ? undefined : new Date(date).toISOString();
+}
+
+describe("dates from git", () => {
+  let dir = "";
+  let full: URL;
+  let shallow: URL;
+
+  /** Commits `file` with `text` at `date` in the repository at `cwd`. */
+  async function commit(cwd: string, file: string, text: string, date: string): Promise<void> {
+    await writeFile(join(cwd, file), text);
+    const env = { ...environment, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date };
+    execFileSync("git", ["add", file], { cwd });
+    execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-qm", file], { cwd, env });
+  }
+
+  beforeAll(async () => {
+    dir = await mkdtemp(join(tmpdir(), "lamina-lastmod-"));
+    const repo = join(dir, "repo");
+    execFileSync("git", ["init", "-q", repo]);
+    await commit(repo, "a.md", "a", "2026-01-02T03:04:05Z");
+    await commit(repo, "b.md", "b", "2026-02-03T04:05:06Z");
+    await mkdir(join(repo, "docs"));
+    await commit(repo, "docs/c.md", "c", "2026-03-04T05:06:07Z");
+    execFileSync("git", ["clone", "-q", "--depth", "1", pathToFileURL(repo).href, join(dir, "shallow")]);
+    full = pathToFileURL(`${repo}/`);
+    shallow = pathToFileURL(`${join(dir, "shallow")}/`);
+  });
+
+  afterAll(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it("dates each file by the last commit that changed it, a set and a folder by the newest", () => {
+    const dateOf = commitDates(full);
+    const date = (names: string[]) => dateOf(names.map((name) => new URL(name, full)));
+    expect(instant(date(["a.md"]))).toBe("2026-01-02T03:04:05.000Z");
+    expect(instant(date(["a.md", "b.md"]))).toBe("2026-02-03T04:05:06.000Z");
+    expect(instant(date(["docs/"]))).toBe("2026-03-04T05:06:07.000Z");
+    expect(date(["doc"])).toBeUndefined();
+  });
+
+  it("gives no date for a file that was never committed, or for no files", () => {
+    const dateOf = commitDates(full);
+    expect(dateOf([new URL("never.md", full)])).toBeUndefined();
+    expect(dateOf([])).toBeUndefined();
+  });
+
+  it("writes dates from a full history, in production or not", () => {
+    expect(isShallow(full)).toBe(false);
+    expect(datesAvailable(full, true)).toBe(true);
+    expect(datesAvailable(full, false)).toBe(true);
+  });
+
+  it("refuses a shallow checkout in production, and writes no dates elsewhere", () => {
+    expect(isShallow(shallow)).toBe(true);
+    expect(() => datesAvailable(shallow, true)).toThrow("fetch-depth: 0");
+    expect(datesAvailable(shallow, false)).toBe(false);
+  });
+});

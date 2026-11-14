@@ -1,4 +1,7 @@
-//! Stream filters: Flate (via `miniz_oxide`) and PNG predictors (ISO 32000-1 §7.4.4).
+//! Stream filters (ISO 32000-1 §7.4): `FlateDecode` (via `miniz_oxide`), `LZWDecode`,
+//! `ASCIIHexDecode`, `ASCII85Decode` and `RunLengthDecode`, with the PNG and TIFF predictors.
+//! The image codecs (DCT, JPX, CCITT, JBIG2) are left to their readers: [`decode`] reports them
+//! as unsupported.
 //!
 //! Decoding is bounded by [`Limits`]: every filter stage's output is capped by
 //! [`Limits::max_stream_decoded`] and charged to the call's [`DecodeBudget`]
@@ -24,6 +27,97 @@ use miniz_oxide::inflate::TINFLStatus;
 use crate::error::{Error, Result};
 use crate::limits::{DecodeBudget, Limit, Limits};
 use crate::object::{Dict, Object};
+
+mod lzw;
+mod text;
+
+/// A filter's data that can't be decoded, with what is wrong.
+const fn bad(message: &'static str) -> Error {
+    Error::InvalidStructure {
+        kind: "stream filter",
+        message,
+    }
+}
+
+/// A filter stage's output, refused past its cap with the limit it would break.
+struct Output {
+    data: Vec<u8>,
+    cap: usize,
+    over: Limit,
+}
+
+impl Output {
+    const fn new(cap: usize, over: Limit) -> Self {
+        Self {
+            data: Vec::new(),
+            cap,
+            over,
+        }
+    }
+
+    /// The cap for a stage of a call within `limits`, with `budget` left.
+    fn within(limits: &Limits, budget: DecodeBudget) -> Self {
+        let stream_cap = limits.max_stream_decoded();
+        if budget.remaining() < stream_cap {
+            Self::new(budget.remaining(), Limit::DecodedTotal)
+        } else {
+            Self::new(stream_cap, Limit::StreamDecoded)
+        }
+    }
+
+    fn room(&self, more: usize) -> Result<()> {
+        if self.data.len().saturating_add(more) > self.cap {
+            return Err(Error::limit(self.over, None));
+        }
+        Ok(())
+    }
+
+    fn push(&mut self, byte: u8) -> Result<()> {
+        self.room(1)?;
+        self.data.push(byte);
+        Ok(())
+    }
+
+    fn extend(&mut self, bytes: &[u8]) -> Result<()> {
+        self.room(bytes.len())?;
+        self.data.extend_from_slice(bytes);
+        Ok(())
+    }
+
+    fn fill(&mut self, byte: u8, count: usize) -> Result<()> {
+        self.room(count)?;
+        self.data.resize(self.data.len() + count, byte);
+        Ok(())
+    }
+
+    fn set(&mut self, at: usize, byte: u8) {
+        if let Some(slot) = self.data.get_mut(at) {
+            *slot = byte;
+        }
+    }
+
+    const fn len(&self) -> usize {
+        self.data.len()
+    }
+
+    fn into_inner(self) -> Vec<u8> {
+        self.data
+    }
+}
+
+/// Runs `filter` on `input` within `limits`, charging its output to `budget`.
+fn stage(
+    input: &[u8],
+    limits: &Limits,
+    budget: &mut DecodeBudget,
+    filter: impl FnOnce(&[u8], &mut Output) -> Result<()>,
+) -> Result<Vec<u8>> {
+    let mut out = Output::within(limits, *budget);
+    filter(input, &mut out)?;
+    let data = out.into_inner();
+    budget.spend(data.len());
+    Ok(data)
+}
 
 /// Decoded stream data.
 ///
@@ -78,6 +172,24 @@ pub fn flate_decode(data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -> 
     Ok(Decoded { data, flate_truncated })
 }
 
+/// A filter's full name for its inline-image abbreviation (ISO 32000-2 §8.9.7, Table 92):
+/// `AHx` is `ASCIIHexDecode`, `CCF` is `CCITTFaxDecode`…; a full name comes back as it is.
+///
+/// Added in 0.4.0.
+#[must_use]
+pub fn full_name(name: &[u8]) -> &[u8] {
+    match name {
+        b"AHx" => b"ASCIIHexDecode",
+        b"A85" => b"ASCII85Decode",
+        b"LZW" => b"LZWDecode",
+        b"Fl" => b"FlateDecode",
+        b"RL" => b"RunLengthDecode",
+        b"CCF" => b"CCITTFaxDecode",
+        b"DCT" => b"DCTDecode",
+        other => other,
+    }
+}
+
 /// Decodes stream `data` according to `/Filter` and `/DecodeParms` in `dict`, within
 /// `limits` and `budget` (see the [module docs](self)).
 ///
@@ -85,7 +197,7 @@ pub fn flate_decode(data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -> 
 /// without a filter is returned as is and costs no budget.
 ///
 /// # Errors
-/// [`Error::UnsupportedFilter`] for anything but Flate (including `/Crypt`: decryption needs
+/// [`Error::UnsupportedFilter`] for the image codecs (DCT, JPX, CCITT, JBIG2) and `/Crypt` (decryption needs
 /// the file key, so the reader decrypts the stream when it loads it and removes `/Crypt` from
 /// the chain before calling this), [`Error::LimitExceeded`] for a chain longer than
 /// [`Limits::max_filter_chain`] or output over a decode limit, plus any decode error.
@@ -125,12 +237,20 @@ pub fn decode(dict: &Dict, data: &[u8], limits: &Limits, budget: &mut DecodeBudg
             Some(o) if i == 0 => o.as_dict(),
             _ => None,
         };
-        let decoded = match *filter {
-            b"FlateDecode" | b"Fl" => {
+        let decoded = match full_name(filter) {
+            b"FlateDecode" => {
                 let raw = flate_decode(input, limits, budget)?;
                 flate_truncated |= raw.flate_truncated;
                 apply_predictor(raw.data, parms)?
             }
+            b"LZWDecode" => {
+                let early = int_param(parms, "EarlyChange", 1) != 0;
+                let raw = stage(input, limits, budget, |data, out| lzw::decode(data, early, out))?;
+                apply_predictor(raw, parms)?
+            }
+            b"ASCIIHexDecode" => stage(input, limits, budget, text::ascii_hex)?,
+            b"ASCII85Decode" => stage(input, limits, budget, text::ascii85)?,
+            b"RunLengthDecode" => stage(input, limits, budget, text::run_length)?,
             other => return Err(Error::UnsupportedFilter(String::from_utf8_lossy(other).into_owned())),
         };
         current = Some(decoded);
@@ -150,10 +270,11 @@ fn apply_predictor(data: Vec<u8>, parms: Option<&Dict>) -> Result<Vec<u8>> {
     if predictor <= 1 {
         return Ok(data);
     }
+    if predictor == 2 {
+        return tiff_unpredict(data, parms);
+    }
     if !(10..=15).contains(&predictor) {
-        return Err(Error::UnsupportedFilter(format!(
-            "FlateDecode with /Predictor {predictor}"
-        )));
+        return Err(Error::UnsupportedFilter(format!("/Predictor {predictor}")));
     }
     let colors = int_param(parms, "Colors", 1);
     let bpc = int_param(parms, "BitsPerComponent", 8);
@@ -181,6 +302,58 @@ fn apply_predictor(data: Vec<u8>, parms: Option<&Dict>) -> Result<Vec<u8>> {
     let row_len = usize::try_from(row_len).map_err(|_| bad("overflow"))?;
     let bpp = usize::try_from(bits_per_pixel.div_ceil(8).max(1)).map_err(|_| bad("overflow"))?;
     png_unpredict(&data, row_len, bpp)
+}
+
+/// Reverses TIFF predictor 2 (horizontal differencing): each sample is the difference from the
+/// same component of the pixel to its left, for 8- and 16-bit samples.
+fn tiff_unpredict(mut data: Vec<u8>, parms: Option<&Dict>) -> Result<Vec<u8>> {
+    let colors = int_param(parms, "Colors", 1);
+    let bpc = int_param(parms, "BitsPerComponent", 8);
+    let columns = int_param(parms, "Columns", 1);
+    let bad = |message| Error::InvalidStructure {
+        kind: "TIFF predictor",
+        message,
+    };
+    if !(1..=32).contains(&colors) || !(1..=1 << 24).contains(&columns) {
+        return Err(bad("parameters out of range"));
+    }
+    let bytes = match bpc {
+        8 => 1,
+        16 => 2,
+        _ => {
+            return Err(Error::UnsupportedFilter(format!(
+                "/Predictor 2 with {bpc} bits per component"
+            )));
+        }
+    };
+    let colors = usize::try_from(colors).map_err(|_| bad("overflow"))?;
+    let columns = usize::try_from(columns).map_err(|_| bad("overflow"))?;
+    let pixel = colors * bytes;
+    let row = pixel.checked_mul(columns).ok_or(bad("overflow"))?;
+    for line in data.chunks_mut(row) {
+        for at in (pixel..line.len()).step_by(bytes) {
+            let left = at - pixel;
+            if bytes == 1 {
+                let value = line
+                    .get(at)
+                    .copied()
+                    .unwrap_or(0)
+                    .wrapping_add(line.get(left).copied().unwrap_or(0));
+                if let Some(slot) = line.get_mut(at) {
+                    *slot = value;
+                }
+            } else {
+                let read = |line: &[u8], i: usize| {
+                    u16::from_be_bytes([line.get(i).copied().unwrap_or(0), line.get(i + 1).copied().unwrap_or(0)])
+                };
+                let value = read(line, at).wrapping_add(read(line, left)).to_be_bytes();
+                if let Some(slot) = line.get_mut(at..at + 2) {
+                    slot.copy_from_slice(&value);
+                }
+            }
+        }
+    }
+    Ok(data)
 }
 
 /// Reverses PNG row filters. Each input row is a filter-type byte followed by `row_len`
@@ -452,6 +625,33 @@ mod tests {
         .into_iter()
         .collect();
         assert!(decode_with(&dict, &flate_encode(&[0, 1]), 1024).is_err());
+    }
+
+    #[test]
+    fn decode_runs_a_chain_of_text_and_lzw_filters() {
+        // "Hello" as hex, then that text as ASCII85: decoded in the chain's order.
+        let dict: Dict = [("Filter", Object::Array(vec![Object::name("A85"), Object::name("AHx")]))]
+            .into_iter()
+            .collect();
+        assert_eq!(decode_with(&dict, b"1cRBN2IeXT2J,,~>", 100), Ok(b"Hello".to_vec()));
+    }
+
+    #[test]
+    fn decode_charges_a_text_filter_to_the_limits() {
+        let dict: Dict = [("Filter", Object::name("RunLengthDecode"))].into_iter().collect();
+        assert!(matches!(
+            decode_with(&dict, &[200, b'x'], 10),
+            Err(Error::LimitExceeded { .. })
+        ));
+    }
+
+    #[test]
+    fn tiff_predictor_adds_the_pixel_to_the_left() {
+        let parms: Dict = [("Predictor", 2), ("Colors", 2), ("Columns", 3)].into_iter().collect();
+        assert_eq!(
+            apply_predictor(vec![1, 10, 1, 1, 1, 1, 5, 5, 0, 0, 1, 2], Some(&parms)),
+            Ok(vec![1, 10, 2, 11, 3, 12, 5, 5, 5, 5, 6, 7])
+        );
     }
 
     #[test]

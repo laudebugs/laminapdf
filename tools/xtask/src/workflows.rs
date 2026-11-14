@@ -362,6 +362,18 @@ mod tests {
     /// main's docs go to next.docs.laminapdf.com as unreleased (no `LAMINA_PDF_ENV=production`, so
     /// noindex and the notice); docs.laminapdf.com gets only a release tag's, built as production,
     /// when the release lane calls with the tag (or by hand with one). Only that build is indexed.
+    /// The released docs' sitemap dates each page by its last commit, which needs the whole history:
+    /// the production build refuses a shallow checkout (apps/docs/plugins/sitemap.mjs), so the
+    /// job that makes it checks out everything.
+    #[test]
+    fn docs_production_should_check_out_the_whole_history() {
+        let production = lines_of(DOCS, "jobs", "production");
+        assert!(
+            production.iter().any(|l| l.trim() == "fetch-depth: 0"),
+            "docs.yml's production job checks out a shallow history"
+        );
+    }
+
     #[test]
     fn docs_should_deploy_main_to_next_and_only_release_tags_to_production() {
         let next = lines_of(DOCS, "jobs", "next");
