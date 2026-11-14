@@ -11,7 +11,7 @@
 | Branch | `feat/e2s-resize-and-orientation` |
 | PR title | `feat(ops): resize pages and change orientation` |
 | Size | L (400–800): two ops that scale content through [E2e](../done/E2e-content-append-api.md)'s writer and map annotations and destinations through one matrix, with bindings; the box ops are [E2f](../done/E2f-page-geometry.md)'s |
-| PR | — |
+| PR | [#582](https://github.com/laudebugs/laminapdf/pull/582) |
 
 ## Goal
 

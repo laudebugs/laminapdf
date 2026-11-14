@@ -19,6 +19,10 @@ layers.pdf       two optional content groups
 chapters.pdf     three top-level bookmarks with sections, one through a named destination
 tagged.pdf       a tagged form page claiming PDF/UA-1: a heading and a paragraph on page 1, a
                  paragraph that runs on to page 2, a tagged link and a tagged text field
+geometry.pdf     an A4 page 1 with every kind of destination aimed at it (outline /XYZ, link
+                 /FitR, named /FitH, /OpenAction /FitV), a Layout /BBox, a highlight with an
+                 appearance stream and an ink annotation; and a Letter page 2 with destinations of
+                 its own
 """
 
 from pathlib import Path
@@ -363,6 +367,40 @@ def tagged():
     pdf.write("tagged.pdf", cat, "80A829FA3B4C5D6E7F8091A2B3C4D5E6")
 
 
+def geometry():
+    """Two pages: A4 page 1 (everything below aims at it unless it says otherwise) and Letter
+    page 2. A resize of page 1 must move each of page 1's destinations and leave page 2's."""
+    pdf = Pdf()
+    f = font(pdf)
+    root = pdf.reserve()
+    p1, p2 = pdf.reserve(), pdf.reserve()
+    catalog, outlines, o1, o2 = (pdf.reserve() for _ in range(4))
+    link = pdf.add(f"<< /Type /Annot /Subtype /Link /Rect [72 690 200 730] /Border [0 0 0]"
+                   f" /A << /S /GoTo /D [{p1} 0 R /FitR 72 690 200 730] >> >>")
+    look = pdf.stream(b"1 1 0 rg 0 0 128 40 re f", "/Type /XObject /Subtype /Form /BBox [0 0 128 40] ")
+    mark = pdf.add(f"<< /Type /Annot /Subtype /Highlight /Rect [72 690 200 730] /QuadPoints [72 730 200 730 72 690 200 690]"
+                   f" /C [1 1 0] /AP << /N {look} 0 R >> >>")
+    ink = pdf.add("<< /Type /Annot /Subtype /Ink /Rect [300 300 400 400] /InkList [[300 300 350 380 400 300]] /C [0 0 1] >>")
+    struct_root, doc_elem, para = (pdf.reserve() for _ in range(3))
+    content = b"\n/P <</MCID 0>> BDC EMC\n0 0 1 RG 72 600 m 523 600 l S"
+    pdf.set(p1, page(root, marker(pdf, 1, content),
+                     f" /MediaBox [0 0 595.28 841.89] /Annots {kids([link, mark, ink])} /StructParents 0"))
+    pdf.set(p2, page(root, marker(pdf, 2), " /MediaBox [0 0 612 792]"))
+    pdf.set(root, f"<< /Type /Pages /Kids {kids([p1, p2])} /Count 2 /Resources {resources(f)} >>")
+    pdf.set(para, f"<< /Type /StructElem /S /P /P {doc_elem} 0 R /Pg {p1} 0 R /K 0"
+            " /A << /O /Layout /BBox [72 690 200 730] >> >>")
+    pdf.set(doc_elem, f"<< /Type /StructElem /S /Document /P {struct_root} 0 R /K [{para} 0 R] >>")
+    pdf.set(struct_root, f"<< /Type /StructTreeRoot /K {doc_elem} 0 R /ParentTree << /Nums [0 [{para} 0 R]] >>"
+            " /ParentTreeNextKey 1 >>")
+    pdf.set(o1, f"<< /Title (Page 1) /Parent {outlines} 0 R /Next {o2} 0 R /Dest [{p1} 0 R /XYZ 72 700 0] >>")
+    pdf.set(o2, f"<< /Title (Page 2) /Parent {outlines} 0 R /Prev {o1} 0 R /Dest [{p2} 0 R /XYZ 72 700 0] >>")
+    pdf.set(outlines, f"<< /Type /Outlines /First {o1} 0 R /Last {o2} 0 R /Count 2 >>")
+    names = pdf.add(f"<< /Names [(one) [{p1} 0 R /FitH 700] (two) [{p2} 0 R /FitH 700]] >>")
+    pdf.set(catalog, f"<< /Type /Catalog /Pages {root} 0 R /Outlines {outlines} 0 R /Names << /Dests {names} 0 R >>"
+            f" /OpenAction [{p1} 0 R /FitV 72] /MarkInfo << /Marked true >> /StructTreeRoot {struct_root} 0 R >>")
+    pdf.write("geometry.pdf", catalog, "6E86A7B8C9DA0B1C2D3E4F5061728394")
+
+
 def main():
     inherited()
     unbalanced()
@@ -373,6 +411,7 @@ def main():
     layers()
     chapters()
     tagged()
+    geometry()
 
 
 if __name__ == "__main__":

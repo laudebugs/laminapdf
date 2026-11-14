@@ -26,6 +26,7 @@ tsify = ["dep:tsify", "dep:wasm-bindgen"]
 test-support = []
 
 [dependencies]
+laminapdf-content = { workspace = true }
 laminapdf-cos = { workspace = true }
 laminapdf-model = { workspace = true, features = ["edit"] }
 laminapdf-syntax = { workspace = true }

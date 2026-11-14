@@ -1,5 +1,5 @@
 //! The page-structure ops (E2 plan §2.1): insert blank pages, delete, move, rotate, reverse,
-//! duplicate, set boxes and crop, and insert or replace pages from another document, over the model's page-tree editor (ISO 32000-2 §7.7.3). Each keeps the page labels right
+//! duplicate, set boxes and crop, resize and turn, and insert or replace pages from another document, over the model's page-tree editor (ISO 32000-2 §7.7.3). Each keeps the page labels right
 //! (`PageLabels::remap`) and reports the form fields whose widgets it touched, for the save
 //! planner's field-level checks (ADR 0007 §11).
 
@@ -7,6 +7,7 @@ mod boxes;
 mod cleanup;
 mod copies;
 mod delete;
+mod dest_map;
 mod dests;
 mod duplicate;
 mod extract;
@@ -18,6 +19,8 @@ mod insert;
 mod merge;
 mod merge_parts;
 mod order;
+mod reshape;
+mod resize;
 mod rotate;
 mod split;
 mod structure;
@@ -40,6 +43,7 @@ pub use import_tags::{StructureName, StructureRename};
 pub use insert::InsertBlankPages;
 pub use merge::{MergeDocuments, MergeInput, MergeOptions, MergeSource, OutlineMerge, RenamedDestination};
 pub use order::{MovePages, ReversePages};
+pub use resize::{Anchor, Orientation, OrientationMethod, ResizeMode, ResizePages, SetOrientation};
 pub use rotate::{RotateMode, RotatePages};
 pub use split::SplitBy;
 
