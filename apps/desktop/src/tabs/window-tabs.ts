@@ -44,7 +44,7 @@ export interface Arrived {
 }
 
 /** A tab of the last session, as `take_session_tabs` gives it: a token, never a path. */
-export interface RestoredTab {
+interface RestoredTab {
   readonly token: string;
   readonly name: string;
   readonly view: ViewPosition | null;
