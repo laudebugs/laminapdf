@@ -1,8 +1,8 @@
 //! The page ops on the signed fixtures (E2 plan §6, ADR 0007 §11): every op's class is
-//! `PageStructure`, which no `DocMDP` level permits; on an approval-signed file, deleting or
-//! rotating the page that holds the signed widget is a `SignedWidget` conflict, and the same
+//! `PageStructure`, which no `DocMDP` level permits; on an approval-signed file, deleting,
+//! rotating or cropping the page that holds the signed widget is a `SignedWidget` conflict, and the same
 //! ops on another page save as an incremental update that keeps the signed bytes; on the locked
-//! file, deleting, replacing or rotating the locked field's page breaks the lock, and moving,
+//! file, deleting, replacing, rotating or cropping the locked field's page breaks the lock, and moving,
 //! reversing, inserting, copying in and duplicating don't (a copy's widgets belong to new
 //! fields). A misclassified op is a security bug, so each op has its verdict here.
 #![allow(
@@ -17,8 +17,9 @@ use common::fixture;
 use common::save::{editable, page_ids};
 use laminapdf_model::{PageId, PagePosition, PageSize, Rotation};
 use laminapdf_ops::{
-    DeletePages, Document, DuplicatePages, InsertBlankPages, InsertPagesFrom, MergeDocuments, MergeSource,
-    ModificationClass, MovePages, Op, Origin, ReplacePages, ReversePages, RotatePages, SourceId,
+    CropMargins, CropPages, DeletePages, Document, DuplicatePages, InsertBlankPages, InsertPagesFrom, MergeDocuments,
+    MergeSource, ModificationClass, MovePages, Op, Origin, PageBoxes, ReplacePages, ReversePages, RotatePages,
+    SetPageBoxes, SourceId,
 };
 use laminapdf_save::{ConstraintKind, Restriction, Save, SaveMode, SaveOptions, SavePlanner};
 
@@ -48,6 +49,14 @@ fn ops(page: &PageId) -> Vec<(&'static str, Op)> {
         ("move", MovePages::new(vec![page.clone()], PagePosition::End).into()),
         ("rotate", RotatePages::set(vec![page.clone()], Rotation::Half).into()),
         ("reverse", ReversePages::new(vec![page.clone()]).into()),
+        (
+            "crop",
+            CropPages::new(vec![page.clone()], CropMargins::all(18.0)).into(),
+        ),
+        (
+            "boxes",
+            SetPageBoxes::new(vec![page.clone()], PageBoxes::default().with_trim(None)).into(),
+        ),
         (
             "duplicate",
             DuplicatePages::new(vec![page.clone()], PagePosition::End).into(),
@@ -126,7 +135,7 @@ fn deleting_or_rotating_the_signed_widgets_page_is_a_conflict() {
     let first = page_ids(&doc)[0].clone();
     for (name, op) in ops(&first) {
         let expected: &[Restriction] = match name {
-            "delete" | "rotate" | "replace" => &[Restriction::SignedWidget],
+            "delete" | "rotate" | "crop" | "boxes" | "replace" => &[Restriction::SignedWidget],
             _ => &[],
         };
         assert_eq!(restrictions(&doc, &op), expected, "{name}");
@@ -150,7 +159,7 @@ fn a_conflicting_page_op_is_refused_without_the_override() {
 #[test]
 fn page_ops_on_another_page_save_incrementally_and_keep_the_signed_bytes() {
     let bytes = fixture("signed/approval.pdf");
-    for op_name in ["delete", "rotate", "move", "reverse", "insert"] {
+    for op_name in ["delete", "rotate", "crop", "boxes", "move", "reverse", "insert"] {
         let (mut doc, second) = with_second_page(editable(&bytes));
         let op = ops(&second).into_iter().find(|(n, _)| *n == op_name).unwrap().1;
         doc.apply_all(Origin::Local, [op]).unwrap();
@@ -174,7 +183,7 @@ fn deleting_or_rotating_the_locked_fields_page_breaks_the_lock() {
         let breaks_lock = found.contains(&Restriction::FieldMdp);
         assert_eq!(
             breaks_lock,
-            matches!(name, "delete" | "rotate" | "replace"),
+            matches!(name, "delete" | "rotate" | "crop" | "boxes" | "replace"),
             "{name}: {found:?}"
         );
     }

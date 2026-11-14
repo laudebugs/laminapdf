@@ -310,7 +310,7 @@
   "budgets": {
     "base": {
       "glueGzip": 5000,
-      "wasmGzip": 820000
+      "wasmGzip": 830000
     },
     "extract": {
       "glueGzip": 5700,

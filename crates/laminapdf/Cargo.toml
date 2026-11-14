@@ -167,6 +167,9 @@ required-features = ["extract"]
 name = "duplicate_pages"
 
 [[example]]
+name = "crop_pages"
+
+[[example]]
 name = "extract_pages"
 
 [[example]]

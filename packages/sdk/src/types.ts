@@ -75,7 +75,7 @@ import type {
  * An edit (`{ op, args }`): `setMetadata`, `removeMetadata`, the XMP edits (`setXmpProperty`,
  * `removeXmpProperty`, `replaceXmpPacket`), `setPageLabels`, the page ops (`insertBlankPages`, `deletePages`,
  * `movePages`, `rotatePages`, `reversePages`, `duplicatePages`, `insertPagesFrom`, `replacePages`,
- * `rotatePage`), the bookmark edits
+ * `setPageBoxes`, `cropPages`, `rotatePage`), the bookmark edits
  * (`addOutlineItem`, `updateOutlineItem`, `moveOutlineItem`, `deleteOutlineItem`), the named-destination edits
  * (`setNamedDestination`, `renameNamedDestination`, `deleteNamedDestination`), `setInitialView`, the link
  * edits (`addLink`, `updateLink`, `deleteLink`), the annotation edits (`addAnnot`, `updateAnnot`,
@@ -347,8 +347,9 @@ export type StructureKid = StructureKidJs;
  * deletion did to the references to the deleted pages (`references`), and what a page
  * duplication or a page copied in did to form fields (`fields`), which copies a duplication
  * couldn't tag whole (`tagsIncomplete`), the page of each link a copied-in page lost
- * (`linksRemoved`), the copied-in pages that came without their tags (`tagsDropped`) and the
- * structure names copied-in pages brought under another name (`structureRenamed`).
+ * (`linksRemoved`), the copied-in pages that came without their tags (`tagsDropped`), the
+ * structure names copied-in pages brought under another name (`structureRenamed`) and the pages
+ * whose new crop box hides content that stays in the file (`croppedContentRemains`).
  *
  * @since 0.2.0
  */

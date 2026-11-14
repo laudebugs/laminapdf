@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 25 | 5 | 16 | 0 | 123 | 35 |
+| core | 169 | 27 | 5 | 14 | 0 | 123 | 37 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
 | web | 168 | 12 | 0 | 1 | 0 | 155 | 13 |
 | desktop | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
@@ -65,9 +65,9 @@ Rows per surface by best proven status (of the rows that target the surface).
 | C.06 | Merge multiple documents | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | C.07 | Split by count, ranges, bookmarks | 🔵 write | — | — | — | E2 write | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
 | C.08 | Rotate pages 90/180/270 | 🟢 round-trip | — | — | — | E2 round-trip | [`rotate_normalises_negative_multiples_of_90`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
-| C.09 | Crop display area | 🟡 read | — | — | — | E2 round-trip | [`crop_box_is_clipped_to_the_media_box`](../../crates/laminapdf-model/tests/views.rs) core read |
+| C.09 | Crop display area | 🟢 round-trip | — | — | — | E2 round-trip | [`crop_box_is_clipped_to_the_media_box`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | C.10 | Resize page dimensions | — | — | — | — | E2 round-trip |  |
-| C.11 | Modify margins & page boxes | 🟡 read | — | — | — | E2 round-trip | [`art_and_bleed_boxes_are_read_from_the_page`](../../crates/laminapdf-model/tests/views.rs) core read |
+| C.11 | Modify margins & page boxes | 🟢 round-trip | — | — | — | E2 round-trip | [`art_and_bleed_boxes_are_read_from_the_page`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | C.12 | Portrait ↔ landscape | — | — | — | — | E2 round-trip |  |
 | C.13 | Reverse page order | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | C.14 | Labels, page numbers, headers/footers | 🟡 read | — | — | — | E6 round-trip | [`labels_follow_the_ranges`](../../crates/laminapdf-model/tests/views.rs) core read |
