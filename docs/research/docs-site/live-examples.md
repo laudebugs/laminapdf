@@ -45,6 +45,6 @@ Do option 1 for every example that makes a document, now: it answers "what does 
 - Kotlin: [Kotlin Playground on npm](https://npmjs.com/package/kotlin-playground), [mkdocs-kotlin-playground](https://github.com/twangodev/mkdocs-kotlin-playground).
 - React: [Sandpack: hosting the bundler](https://sandpack.codesandbox.io/docs/guides/hosting-the-bundler), [Josh Comeau's playground](https://joshwcomeau.com/react/next-level-playground).
 - MDN: [Live samples](https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Page_structures/Live_samples), [Introducing the MDN Playground](https://developer.mozilla.org/en-US/blog/introducing-the-mdn-playground/).
-- Vue: [`@vue/repl`](https://cdn.jsdelivr.net/npm/@vue/repl@4.7.2/README.md); LiveCodes, a self-hostable playground: [github.com/tianheg/livecodes](https://github.com/tianheg/livecodes).
+- Vue: [`@vue/repl`](https://cdn.jsdelivr.net/npm/@vue/repl@4.7.2/README.md); LiveCodes, a self-hostable playground: [github.com/live-codes/livecodes](https://github.com/live-codes/livecodes).
 - PDF tools: [pdfmake](https://github.com/covera/pdfmake) (playground link in its README), [PDF Playground](https://dubroy.com/pdf-playground/).
 - Typst: [mdbook-typst-doc](https://github.com/fenjalien/mdbook-typst-doc) and [showman](https://typst.app/universe/package/showman), code and its rendered output together.

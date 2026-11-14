@@ -20,11 +20,11 @@ qpdf is the best model for *machine contracts* (versioned JSON with a `--json-he
 - JSON compatibility contract: top-level `"version"` integer bumped only on incompatible change (key removal, format change, semantic change); also in `qpdf[0].jsonversion`; within a version new keys may be added, so "consumers … should ignore keys they don't know about"; `--json-help` prints a JSON object of identical shape whose leaves are descriptions, with `<placeholder>` keys for maps keyed by object IDs — [json.rst §JSON Compatibility Guarantees](https://raw.githubusercontent.com/qpdf/qpdf/main/manual/json.rst).
 
 **mutool (MuPDF)**
-- One binary with subcommands: `audit, bake, barcode, clean, convert, create, draw, extract, info, merge, pages, poster, recolor, run, show, sign, trace, trim` — [mutool.1 man page](https://raw.githubusercontent.com/ArtifexSoftware/mupdf/master/docs/man/mutool.1).
-- Page lists: comma-separated numbers and ranges, e.g. `1,5,10-15,20-N`, where `N` is the last page — [mutool.1](https://raw.githubusercontent.com/ArtifexSoftware/mupdf/master/docs/man/mutool.1).
-- `mutool show file.pdf [object-number …]` prints objects/streams to stdout (decoded by default; `-e` raw, `-b` binary, `-o file`) — a good model for an object-level `inspect` — [mutool.1 SHOW](https://raw.githubusercontent.com/ArtifexSoftware/mupdf/master/docs/man/mutool.1).
-- `mutool merge [options] file1 [pages1] [file2 [pages2] …]` — positional file/range pairs — [mutool.1 MERGE](https://raw.githubusercontent.com/ArtifexSoftware/mupdf/master/docs/man/mutool.1).
-- Exit status only "0 upon successful execution and non-zero upon error" (no warning code) — [mutool.1 EXIT STATUS](https://raw.githubusercontent.com/ArtifexSoftware/mupdf/master/docs/man/mutool.1).
+- One binary with subcommands: `audit, bake, barcode, clean, convert, create, draw, extract, info, merge, pages, poster, recolor, run, show, sign, trace, trim` — [mutool.1 man page](https://raw.githubusercontent.com/ArtifexSoftware/mupdf/1.28.6/docs/man/mutool.1).
+- Page lists: comma-separated numbers and ranges, e.g. `1,5,10-15,20-N`, where `N` is the last page — [mutool.1](https://raw.githubusercontent.com/ArtifexSoftware/mupdf/1.28.6/docs/man/mutool.1).
+- `mutool show file.pdf [object-number …]` prints objects/streams to stdout (decoded by default; `-e` raw, `-b` binary, `-o file`) — a good model for an object-level `inspect` — [mutool.1 SHOW](https://raw.githubusercontent.com/ArtifexSoftware/mupdf/1.28.6/docs/man/mutool.1).
+- `mutool merge [options] file1 [pages1] [file2 [pages2] …]` — positional file/range pairs — [mutool.1 MERGE](https://raw.githubusercontent.com/ArtifexSoftware/mupdf/1.28.6/docs/man/mutool.1).
+- Exit status only "0 upon successful execution and non-zero upon error" (no warning code) — [mutool.1 EXIT STATUS](https://raw.githubusercontent.com/ArtifexSoftware/mupdf/1.28.6/docs/man/mutool.1).
 - `mutool draw` vs `convert`: draw's "options are harder to use and follow a different syntax", users told to try `convert` first (2019 article, older version) — [Hoekwater, MAPS 49 (2019)](http://www.ntg.nl/maps/49/11.pdf). `clean -g/-gg/-ggg` = increasing garbage collection/renumbering/dedup (same source + [Ubuntu manpage](https://manpages.ubuntu.com/manpages/jammy/man1/mutool.1.html)).
 - Licence: MuPDF is AGPL/commercial (repo note in lamina CLAUDE.md); grammar can be borrowed, code cannot.
 
@@ -156,7 +156,7 @@ clap 4 derive + clap_complete + clap_mangen, annotate-snippets/miette-style diag
 A verb-first single binary, `laminapdf <command> [inputs…] [-o OUT|--in-place] [--json]`, with qpdf page ranges, qpdf-style versioned JSON, and the same commands exposed over `laminapdf mcp`.
 
 ### Cited Findings
-- Grammar precedents: mutool verbs (`info`, `pages`, `merge`, `extract`, `show`, `sign`, `clean`, `draw/convert`) — [mutool.1](https://raw.githubusercontent.com/ArtifexSoftware/mupdf/master/docs/man/mutool.1); qpdf ranges/`--split-pages`/`--rotate=+90:1-3`/`--replace-input` — [qpdf cli.rst](https://raw.githubusercontent.com/qpdf/qpdf/main/manual/cli.rst); pdftk handles and `shuffle` — [pdftk man](https://leancrew.com/all-this/man/man1/pdftk.html); `-` for stdio, `--force`, `--dry-run`, `--no-input` — [clig.dev](https://raw.githubusercontent.com/cli-guidelines/cli-guidelines/main/content/_index.md).
+- Grammar precedents: mutool verbs (`info`, `pages`, `merge`, `extract`, `show`, `sign`, `clean`, `draw/convert`) — [mutool.1](https://raw.githubusercontent.com/ArtifexSoftware/mupdf/1.28.6/docs/man/mutool.1); qpdf ranges/`--split-pages`/`--rotate=+90:1-3`/`--replace-input` — [qpdf cli.rst](https://raw.githubusercontent.com/qpdf/qpdf/main/manual/cli.rst); pdftk handles and `shuffle` — [pdftk man](https://leancrew.com/all-this/man/man1/pdftk.html); `-` for stdio, `--force`, `--dry-run`, `--no-input` — [clig.dev](https://raw.githubusercontent.com/cli-guidelines/cli-guidelines/main/content/_index.md).
 
 ### Inferences
 Command set (all accept `-` for stdin input and `-o -` for stdout; never write to stdout when it is a TTY and output is binary — print an error instead):

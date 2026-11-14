@@ -21,7 +21,6 @@ External specifications, standards, tools and reading material we rely on. Group
 | --- | --- |
 | PDF format internals (pypdf docs) | https://pypdf.readthedocs.io/en/5.3.1/dev/pdf-format.html |
 | PDF file structure explained (Mapsoft) | https://mapsoft.com/posts/pdf-structure.html |
-| Object model & stream codecs (NoWaterProgramming) | https://nowaterprogramming.com/blog/pdf-tools-guide |
 | Multiple trailers & incremental updates (IDR Solutions) | https://blog.idrsolutions.com/multiple-trailers-in-a-pdf-file/ |
 | OCR & text-layer architecture (LlamaIndex) | https://www.llamaindex.ai/blog/pdf-character-recognition |
 | Annotations & appearance streams (Nutrient / PSPDFKit) | https://www.nutrient.io/blog/what-are-annotations/ |
