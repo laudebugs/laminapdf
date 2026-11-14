@@ -1,6 +1,6 @@
 ---
 title: "text-in-earlier-revision"
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/reference/codes/text-in-earlier-revision/"
 ---
 

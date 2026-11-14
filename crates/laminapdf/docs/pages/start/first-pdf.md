@@ -1,7 +1,7 @@
 ---
 title: "Your first PDF"
 description: "Write hello.pdf from Node in five minutes."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/start/first-pdf/"
 ---
 
@@ -18,7 +18,7 @@ You need Node 24.2 or newer, which runs `.ts` files directly. Create a folder an
 ```sh
 mkdir hello-pdf && cd hello-pdf
 npm init -y && npm pkg set type=module
-npm install @laminapdf/sdk@0.3.0
+npm install @laminapdf/sdk@0.4.0
 ```
 
 The install names the version these docs describe, so the code below matches the package you get. `@laminapdf/sdk` brings its WebAssembly modules, `@laminapdf/wasm`, with it. [Install](../../pages/install.md) covers other package managers and Rust.

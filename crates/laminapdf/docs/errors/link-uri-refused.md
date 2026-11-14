@@ -1,6 +1,6 @@
 ---
 title: "link-uri-refused"
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/reference/codes/link-uri-refused/"
 ---
 
@@ -11,7 +11,7 @@ url: "https://docs.laminapdf.com/reference/codes/link-uri-refused/"
 
 ## What happened
 
-A bookmark's web address isn't a full `http`, `https` or `mailto` address in plain ASCII.
+The web address of a bookmark or link isn't a full `http`, `https` or `mailto` address in plain ASCII.
 
 ## Why
 

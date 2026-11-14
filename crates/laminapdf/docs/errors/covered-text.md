@@ -1,6 +1,6 @@
 ---
 title: "covered-text"
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/reference/codes/covered-text/"
 ---
 

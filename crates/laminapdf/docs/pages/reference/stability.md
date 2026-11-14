@@ -1,7 +1,7 @@
 ---
 title: "Stability policy"
 description: "What a Lamina PDF version number promises, and what stays the same in every version."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/reference/stability/"
 ---
 
@@ -18,7 +18,7 @@ Every crate and every npm package shares one version, and they are released toge
 ## What a version number tells you
 
 - **From `0.2.0` on, `0.x` versions follow SemVer as Cargo reads it.** A breaking change raises the minor version (`0.2` to `0.3`), and features and fixes raise the patch (`0.2.0` to `0.2.1`). So an upgrade within one `0.x` line never needs a code change.
-- **A plain install gets the newest release.** `npm install @laminapdf/sdk` and `cargo add laminapdf` take it. To match these docs, name their version: `npm install @laminapdf/sdk@0.3.0` and `cargo add laminapdf@0.3.0`.
+- **A plain install gets the newest release.** `npm install @laminapdf/sdk` and `cargo add laminapdf` take it. To match these docs, name their version: `npm install @laminapdf/sdk@0.4.0` and `cargo add laminapdf@0.4.0`.
 - **The alphas promised nothing to each other.** Anything could change between `0.2.0-alpha.1` and `0.2.0-alpha.6`, the last of them, which `npm install @laminapdf/sdk@alpha` still installs.
 
 ## What counts as a breaking change

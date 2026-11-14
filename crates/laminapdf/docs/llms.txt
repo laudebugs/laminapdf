@@ -2,7 +2,7 @@
 
 > Lamina PDF creates, reads, edits and saves PDF files from TypeScript and Rust: one Rust core, run as WebAssembly in browsers, Node, Deno, Bun and Cloudflare Workers (`@laminapdf/sdk`), or natively from the `laminapdf` crate. Positions are top-left points of the displayed page and page indexes start at 0; every error has a stable code with its own page.
 
-These docs describe version 0.3.0, the version of this package. The same docs are online at https://docs.laminapdf.com/llms.txt.
+These docs describe version 0.4.0, the version of this package. The same docs are online at https://docs.laminapdf.com/llms.txt.
 
 - [Using Lamina PDF with coding agents](AGENTS.md)
 - [What old names became](renames.json)
@@ -90,9 +90,13 @@ These docs describe version 0.3.0, the version of this package. The same docs ar
 - [Edit the metadata](pages/recipes/edit-metadata.md): Change a PDF's title, authors and keywords in both of the places a PDF keeps them, check the save first, and stamp when it happened.
 - [Choose how a PDF opens](pages/recipes/set-initial-view.md): Set the page and zoom a PDF opens at, the panel beside it and the title in the window, for Lamina PDF and every other PDF reader.
 - [Edit the bookmarks](pages/recipes/edit-bookmarks.md): Add, move and style a PDF's bookmarks, name a place links can jump to, and rename a destination together with everything that uses it.
+- [Add links](pages/recipes/add-links.md): Add links to a PDF page on a drawn box or on a line of text, give each a description screen readers read, and change where a link goes.
+- [Mark up a page](pages/recipes/mark-up.md): Highlight text in a PDF, leave a sticky note and propose a replacement word, each mark drawn the same in every PDF reader.
 - [Record your own metadata](pages/recipes/edit-xmp.md): Add properties of your own to a PDF's XMP metadata, such as a review's status and reviewers, and keep a PDF/A file valid while you do.
 - [Organise pages](pages/recipes/organise-pages.md): Delete, move, insert and rotate a PDF's pages in one edit, and see where the bookmarks and links that pointed at a deleted page now go.
 - [Duplicate pages](pages/recipes/duplicate-pages.md): Copy a page within a PDF so the copy has form fields of its own, and see what the copy renamed and left out.
+- [Crop pages](pages/recipes/crop-pages.md): Crop every page of a PDF by the same margins whatever its size or rotation, and see which pages still hold the content the crop hides.
+- [Resize pages](pages/recipes/resize-pages.md): Put every page of a PDF on new paper, scaling the content to fit or extending the page around it, and turn pages to portrait or landscape.
 - [Copy pages between PDFs](pages/recipes/copy-pages.md): Copy pages from another PDF into this one, replace a page with one from another file, or make a new PDF from some pages.
 - [Merge and split PDFs](pages/recipes/merge-and-split.md): Merge several PDFs into one with a bookmark for each file, or split a PDF into one file per chapter.
 - [Extract text for an LLM](pages/recipes/extract-markdown.md): Turn a PDF into Markdown in reading order, JSON with a box for every block, and chunks sized for retrieval, in TypeScript and Rust.

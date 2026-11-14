@@ -4,6 +4,40 @@
 
 Lamina PDF is versioned in lockstep (ADR 0017): every crate and every npm package (`@laminapdf/wasm`, `@laminapdf/sdk`, `@laminapdf/render`, `@laminapdf/render-hayro`, `@laminapdf/render-pdfium`, `@laminapdf/viewer`) share one version, so these entries cover all of them. Versions from 0.2.0-alpha.2 on are published to crates.io and npm; earlier ones were only tagged (0.2.0-alpha.1's release run failed its checks, so nothing was published from it).
 
+## 0.4.0
+
+### Minor Changes
+
+- 690f036: Crop pages and set page boxes. `doc.cropPages(ids, { top, right, bottom, left })` crops pages by margins of the page as it shows, so one set crops pages of mixed sizes and rotations by the same visible amount. `doc.setPageBoxes(ids, { media, crop, bleed, trim, art })` writes or removes (`null`) any of a page's five boxes in its own coordinates; each must lie inside the media box. A crop only hides content: the edit's `croppedContentRemains` lists the pages whose hidden text is still in the file, where extraction finds it.
+  
+  In Rust: the ops `CropPages` (with `CropMargins`) and `SetPageBoxes` (with `PageBoxes`), and `Applied::cropped_content_remains` and `Edited::cropped_content_remains`.
+- 4037b81: Extract a document's images, links and outline as files:
+  
+  - `doc.extractImages(options)` (`extract_images` in Rust) gives the images the pages draw. JPEG and JPEG 2000 images come out as stored, byte for byte; every other image is decoded to a PNG with its `/Decode`, its colour space (grey, RGB, CMYK, Lab, Indexed, ICC-based, Separation) and its mask applied. Each image comes out once, on the first page that draws it, and one that can't be decoded is listed in `skipped` with why. In TypeScript it needs the extract or the text module; JBIG2 images, which the WebAssembly modules don't decode, are skipped there.
+  - `doc.linksJson()` and `doc.outlineJson()` give the links and the outline in the formats `laminapdf.links/1` and `laminapdf.outline/1`, with their JSON Schemas in the `laminapdf` crate; `linksCsv()` and `outlineCsv()` give them as CSV. In Rust, `Document::links()` lists every page's links.
+  - Streams filtered with `LZWDecode`, `ASCIIHexDecode`, `ASCII85Decode` or `RunLengthDecode` now decode: a page whose content uses one now has text, and its images come out.
+- 1d12ce8: Add, change and delete links: `addLink` makes a link on an area or on lines of text, going to a page, a named destination or an `http`, `https` or `mailto` address, and `updateLink` and `deleteLink` change and remove one. `linkOnArea(page, area, target)` and `linkOnText(page, lines, target)` turn a drawn box or a selection's line boxes in page space into that edit. In a tagged document a new link joins the structure tree around the text it covers, and a file that claims PDF/UA-1 but isn't tagged refuses one (`link-not-tagged`). `pageLinks()` now gives each link's `id`, and an edit's `createdAnnotations` lists the links it added. The Rust crates have the same ops (`laminapdf::AddLink` and the rest) and methods.
+- 2a11350: Highlight, underline, strike out and squiggle text, leave sticky notes and mark insertions with carets.
+  
+  `addAnnot` makes each mark with an appearance Lamina PDF draws itself, so every reader that draws stored appearances shows it the same. `markText(page, kind, lines)`, `noteAt(page, at, comment, icon)` and `caretAt(page, area)` turn a selection's line boxes, a click or a box in page space into that edit, and `replaceText(page, lines, replacement)` proposes a replacement as a strike-out and a caret grouped in one undo step. In a tagged document a mark joins the structure tree after its text, and its description is the text it marks. `updateAnnot` now changes a mark's `color`, `opacity` and geometry (`spec`), drawing it again. Saving warns when a mark breaks a PDF/A or PDF/UA claim: `annot-without-contents`, `annot-not-tagged`, `pdfa-annot-flags` and `pdfa-transparency`. The Rust crates have the same ops (`laminapdf::AddAnnot` and the rest) and methods; `laminapdf-build`'s `AnnotationAppearances` draws the appearances for code that uses `laminapdf-ops` directly.
+- e183d4c: Copied and merged pages keep their tags. When you copy pages into a tagged document with `insertPagesFrom` or `replacePages`, or merge into one with `mergeDocuments`, the elements that hold their content join the document's structure tree, so a screen reader still reads them in order. A merge puts each file's elements under a `Part` element named after it, and `Document.merge` makes a tagged file when every input is tagged. A role, class or element ID the document already uses another way comes in as `<name>#2`, listed in the edit's `structureRenamed`. Copying pages into a file that claims PDF/UA-1 from one that doesn't warns with the new code `imported-pdfua-unchecked`. `extractPages` and `split` keep the tags of a tagged document too.
+  
+  In Rust: `Applied::structure_renamed` and `Edited::structure_renamed` with `StructureRename` and `StructureName`, `PendingChanges::pdfua_unchecked`, and `ConformanceWarning::ImportedPdfuaUnchecked`. `laminapdf-model`'s `StructTree` reads `/ClassMap`, `/IDTree` and `/Namespaces`, and each `StructElem` its `/ID` and classes.
+- 6d048db: Resize pages and turn them to portrait or landscape. `doc.resizePages(ids, { width, height })` puts pages on new paper, scaling the page to fit and centring it, or with `{ mode: "extend", anchor }` keeping the content's size and placing it at an anchor. `doc.setOrientation(ids, "portrait" | "landscape", method)` turns each page shown the other way a quarter turn, by `/Rotate` (`"rotate"`, the default) or by swapping the paper's sides and turning the content into it (`"swapBox"`). The content moves as one piece, and everything that points into the page moves with it: annotations and form fields, outline items, named destinations, links' destinations and `/OpenAction`, and structure elements' Layout `/BBox`. A page whose content uses a filter Lamina PDF can't decode yet is refused with `unsupported-filter`.
+  
+  In Rust: the ops `ResizePages` (with `ResizeMode` and `Anchor`) and `SetOrientation` (with `PageOrientation` and `OrientationMethod`).
+
+### Patch Changes
+
+- 64bcf88: A stream encoded with `ASCIIHexDecode` or `ASCII85Decode` that holds characters outside the filter's alphabet now decodes: Lamina PDF skips those characters, as other PDF readers do, and raises the `filter-characters-skipped` warning. Before, the whole stream failed, so a page drawn from it had no text.
+  
+  When a text string, such as an outline title, holds a byte that PDFDocEncoding (PDF's default text encoding) leaves undefined, such as 0x11, Lamina PDF now reads it as that control character (U+0011), as pdf.js, qpdf and pypdf do, instead of U+FFFD.
+  
+  Lamina PDF now reads a dictionary that has a stray token, such as a number or `)`, where a key belongs. It skips the token, as pdf.js and PDFium do, and raises the `dictionary-key-skipped` warning. Before, the object failed to parse, and a damaged `/Encrypt` dictionary or page could stop the whole file from opening.
+  
+  An AES-256 file with a damaged `/OE` or `/UE` entry now opens with the password that doesn't use that entry: the user password when `/OE` is damaged, the owner password when `/UE` is.
+- 482607e: A document opened into a view that was hidden and shown again before the browser's next frame, as the reader does while a quick open runs, is now drawn. Before, the view stayed empty until it was resized.
+
 ## 0.3.0
 
 ### Minor Changes

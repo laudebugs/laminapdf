@@ -1,6 +1,6 @@
 ---
 title: "Error and warning codes"
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/reference/codes/"
 ---
 
@@ -9,8 +9,11 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`aes-padding-invalid`](aes-padding-invalid.md)
 - [`already-initialized`](already-initialized.md)
 - [`annot-name-duplicate`](annot-name-duplicate.md)
+- [`annot-not-tagged`](annot-not-tagged.md)
+- [`annot-without-contents`](annot-without-contents.md)
 - [`annotation-locked`](annotation-locked.md)
 - [`annotation-not-editable`](annotation-not-editable.md)
+- [`appearance-unavailable`](appearance-unavailable.md)
 - [`binary-output-to-terminal`](binary-output-to-terminal.md)
 - [`builder-finished`](builder-finished.md)
 - [`cancelled`](cancelled.md)
@@ -29,6 +32,7 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`data-pending`](data-pending.md)
 - [`decompress`](decompress.md)
 - [`device-color-without-output-intent`](device-color-without-output-intent.md)
+- [`dictionary-key-skipped`](dictionary-key-skipped.md)
 - [`direct-outline-item`](direct-outline-item.md)
 - [`direct-page`](direct-page.md)
 - [`disposed`](disposed.md)
@@ -50,6 +54,7 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`extract-table-limit`](extract-table-limit.md)
 - [`extract-untagged-content`](extract-untagged-content.md)
 - [`fetch-failed`](fetch-failed.md)
+- [`filter-characters-skipped`](filter-characters-skipped.md)
 - [`flate-truncated`](flate-truncated.md)
 - [`flow-content-too-large`](flow-content-too-large.md)
 - [`flow-keep-broken`](flow-keep-broken.md)
@@ -65,6 +70,7 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`image-data-length`](image-data-length.md)
 - [`image-too-large`](image-too-large.md)
 - [`imported-pdfa-unchecked`](imported-pdfa-unchecked.md)
+- [`imported-pdfua-unchecked`](imported-pdfua-unchecked.md)
 - [`imported-tags-dropped`](imported-tags-dropped.md)
 - [`inline-image-unterminated`](inline-image-unterminated.md)
 - [`input-unreadable`](input-unreadable.md)
@@ -97,6 +103,7 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`invalid-xmp-property`](invalid-xmp-property.md)
 - [`job-finished`](job-finished.md)
 - [`limit-exceeded`](limit-exceeded.md)
+- [`link-not-tagged`](link-not-tagged.md)
 - [`link-uri-refused`](link-uri-refused.md)
 - [`link-without-contents`](link-without-contents.md)
 - [`link-without-structure`](link-without-structure.md)
@@ -118,6 +125,7 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`no-pages-left`](no-pages-left.md)
 - [`no-pending-save`](no-pending-save.md)
 - [`no-transaction`](no-transaction.md)
+- [`not-a-link`](not-a-link.md)
 - [`not-initialized`](not-initialized.md)
 - [`not-pdf`](not-pdf.md)
 - [`not-rebased`](not-rebased.md)
@@ -136,8 +144,10 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`page-tree-node-skipped`](page-tree-node-skipped.md)
 - [`password-required`](password-required.md)
 - [`path-outside-roots`](path-outside-roots.md)
+- [`pdfa-annot-flags`](pdfa-annot-flags.md)
 - [`pdfa-info-mismatch`](pdfa-info-mismatch.md)
 - [`pdfa-one-author`](pdfa-one-author.md)
+- [`pdfa-transparency`](pdfa-transparency.md)
 - [`pdfua-title-missing`](pdfua-title-missing.md)
 - [`perms-mismatch`](perms-mismatch.md)
 - [`profile-version-conflict`](profile-version-conflict.md)

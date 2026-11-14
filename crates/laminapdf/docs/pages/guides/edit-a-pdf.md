@@ -1,7 +1,7 @@
 ---
 title: "Edit a PDF"
 description: "Change an existing PDF in transactions you can undo, and replay edits stored as JSON."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/guides/edit-a-pdf/"
 ---
 
@@ -144,9 +144,13 @@ Five calls change which pages a document has and their order: `doc.deletePages(i
 
 `doc.duplicatePages(ids, "end")` copies pages. A copy shares its page's content but gets annotations and form fields of its own, so filling in the copy leaves the original alone. [Duplicate pages](../../pages/recipes/duplicate-pages.md) shows a form page copied.
 
+`doc.cropPages(ids, { top: 36, left: 36 })` crops pages by margins of the page as it shows, so one set suits every size and rotation, and `doc.setPageBoxes(ids, { trim: [x0, y0, x1, y1] })` sets any of a page's five boxes. A crop only hides content: the edit's `croppedContentRemains` lists the pages whose hidden text is still in the file. [Crop pages](../../pages/recipes/crop-pages.md) has the whole program.
+
+`doc.resizePages(ids, { width: 612, height: 792 })` puts pages on new paper, scaling their content to fit, and `doc.setOrientation(ids, "landscape")` turns pages shown the other way. Links, notes, bookmarks and the opening view move with the content. [Resize pages](../../pages/recipes/resize-pages.md) has the whole program.
+
 `doc.addSource(bytes)` opens another PDF as a source of pages. `doc.insertPagesFrom(source.id, pages, "end")` copies its pages in, and `doc.replacePages(targets, source.id, pages)` puts them in other pages' places. `doc.extractPages(ids)` makes a new PDF from some pages. [Copy pages between PDFs](../../pages/recipes/copy-pages.md) shows each.
 
-`Document.merge(files)` makes one document from several files, with a bookmark for each, and `doc.mergeDocuments(sources, "end")` merges sources into an open document as one edit. `doc.split({ bookmarks: 1 })` makes one document per chapter. Merged pages come without their tags, so a merge of tagged PDFs makes an untagged file. [Merge and split PDFs](../../pages/recipes/merge-and-split.md) shows both.
+`Document.merge(files)` makes one document from several files, with a bookmark for each, and `doc.mergeDocuments(sources, "end")` merges sources into an open document as one edit. `doc.split({ bookmarks: 1 })` makes one document per chapter. A merge of tagged PDFs makes a tagged file, each file's tags under a `Part` named after it. [Merge and split PDFs](../../pages/recipes/merge-and-split.md) shows both.
 
 ## Name the pages
 

@@ -1,7 +1,7 @@
 ---
 title: "Your first PDF on the command line"
 description: "Install the laminapdf command, turn a Markdown file into a PDF, then inspect it and read it back."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/start/first-pdf-cli/"
 ---
 
@@ -20,14 +20,14 @@ brew install laudebugs/tap/laminapdf
 ```
 
 ```sh
-npm install -g @laminapdf/cli@0.3.0
+npm install -g @laminapdf/cli@0.4.0
 ```
 
 [Install the tool](../../pages/cli/install.md) has downloads for every system and how to check them. Check that it runs:
 
 ```console
 $ laminapdf --version
-laminapdf 0.3.0
+laminapdf 0.4.0
 ```
 
 ## Make a PDF
