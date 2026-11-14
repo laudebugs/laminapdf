@@ -490,6 +490,11 @@ pub(crate) fn run(ws: &Workspace, install: bool) -> Result<()> {
             }
             Action::Install => {
                 println!("… {:<17} installing: {}", tool.name, tool.fix);
+                // gh won't install over another version of an extension: remove it first.
+                if let (Probe::OffPin(_), Some(("gh", _))) = (&probe, &install_command) {
+                    let short = tool.name.strip_prefix("gh-").unwrap_or(tool.name);
+                    crate::run(&ws.root, "gh", &["extension", "remove", short])?;
+                }
                 if let Some((program, args)) = &install_command {
                     crate::run(&ws.root, program, args)?;
                 }

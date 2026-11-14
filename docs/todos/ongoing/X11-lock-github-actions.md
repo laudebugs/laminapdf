@@ -71,7 +71,7 @@ Checked against `gh-actions-lock` v0.4.1's README and troubleshooting guide on 2
 ## Owner's steps
 
 1. Check out this PR's branch, apply `x11-workflows.patch` (attached in the session) with `git apply`, and check that `git diff --stat` lists only `.github/workflows/`.
-2. `cargo xtask doctor --install`, which installs `gh-actions-lock` v0.4.1; then `gh actions-lock --migrate-local-actions` at the repository root. It should rewrite nothing and write `.github/workflows/actions.lock`. Note any warning in the PR.
+2. `cargo xtask doctor --install`, which installs `gh-actions-lock` v0.4.1, and then `cargo xtask doctor`, which should list it at v0.4.1 (it reads the version from `gh extension list`, whose column for a pinned extension this session couldn't see); then `gh actions-lock --migrate-local-actions` at the repository root. It should rewrite nothing and write `.github/workflows/actions.lock`. Note any warning in the PR.
 3. Commit the workflows and the lockfile, and push.
 4. Watch the `lockfile` job and one job of each kind find its `$/` action: a fast-lane Rust leg, the full lane's `check-windows`, then a nightly dispatch and a dry-run release dispatch after merge.
 

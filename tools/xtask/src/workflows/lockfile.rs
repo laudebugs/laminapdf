@@ -3,30 +3,15 @@
 //! So `uses:` lines name release tags, never bare commit SHAs, and this repository's own actions
 //! are written `$/`, which the lockfile follows, not `./`, which it doesn't.
 
+use super::compile_cache::uses;
 use super::{action_files, lines_of, needs, repository_file, workflow_files};
 use crate::doctor::GH_ACTIONS_LOCK_VERSION;
 
 const CI: &str = include_str!("../../../../.github/workflows/ci.yml");
 
-/// The value of each `uses:` line of `text` (a `- uses:` one too), without a trailing comment
-/// or quotes; whole-line comments are skipped.
+/// The value of each `uses:` line of `text`, as the compile cache's checks read one.
 fn uses_values(text: &str) -> impl Iterator<Item = &str> {
-    text.lines().filter_map(|line| {
-        let line = line.trim_start();
-        let value = line
-            .strip_prefix("- ")
-            .unwrap_or(line)
-            .trim_start()
-            .strip_prefix("uses:")?;
-        Some(
-            value
-                .split(" #")
-                .next()
-                .unwrap_or_default()
-                .trim()
-                .trim_matches(['"', '\'']),
-        )
-    })
+    text.lines().filter_map(uses)
 }
 
 /// Whether a `uses:` value pins a full commit SHA (`owner/repo@<40 hex digits>`).

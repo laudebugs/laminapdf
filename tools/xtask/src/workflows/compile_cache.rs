@@ -35,7 +35,7 @@ const NEVER_CACHED: [&str; 8] = [
 
 /// The value of a `uses:` line (a `- uses:` one too), without a trailing comment or quotes;
 /// `None` for any other line, comments included.
-fn uses(line: &str) -> Option<&str> {
+pub(super) fn uses(line: &str) -> Option<&str> {
     let line = line.trim_start();
     let line = line.strip_prefix("- ").unwrap_or(line).trim_start();
     let value = line.strip_prefix("uses:")?;
