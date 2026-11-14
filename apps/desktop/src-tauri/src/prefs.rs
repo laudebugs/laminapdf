@@ -12,6 +12,10 @@ use crate::store::{read_json, write_json};
 /// The preferences, as the webview reads and sets them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "each is one independent switch in Settings, not a state an enum would name"
+)]
 pub(crate) struct Preferences {
     /// Record opened files in the app's and the OS's recent lists. Off clears both.
     pub remember_recent: bool,
@@ -21,6 +25,9 @@ pub(crate) struct Preferences {
     pub open_in: OpenIn,
     /// Open a file that is open already again, in another tab, instead of showing its tab.
     pub allow_duplicates: bool,
+    /// Bring back the last session's windows and tabs on launch; kept only while
+    /// `remember_recent` is on too (D4d's privacy rule).
+    pub reopen_last: bool,
 }
 
 /// Where the files the OS hands the app open.
@@ -41,6 +48,7 @@ impl Default for Preferences {
             reload_on_change: true,
             open_in: OpenIn::Tabs,
             allow_duplicates: false,
+            reopen_last: true,
         }
     }
 }

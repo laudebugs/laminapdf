@@ -84,6 +84,12 @@ Every page names the version it documents: the fixed group's version (`packages/
 
 Every build lets crawlers in (`@laminapdf/site-kit/robots`), so they can read the `noindex` on unreleased docs; only the released docs name `sitemap-index.xml`.
 
+What search engines and link previews read, besides the titles and descriptions:
+
+- **Each sitemap entry has a `<lastmod>`**: the date of the last commit to the page's source (`plugins/sitemap.mjs`, over `@laminapdf/site-kit/lastmod`). A page is dated by its file under `src/content/docs/`, a code page by `docs/errors/<code>.md`, and the API reference by `packages/sdk/src/`. The one-page views have no source of their own and no date. The released docs' build fails on a shallow checkout, so `docs.yml`'s production job must check out the whole history (`fetch-depth: 0`).
+- **Every page has the website's share image** (`og:image`, copied from the website's `public/og.png` with its icons), from `src/components/Head.astro`.
+- **The home page describes the project as JSON-LD** (`@laminapdf/site-kit/structured-data`), a data block that adds nothing to the CSP.
+
 ## Upgrading Starlight and Astro
 
 Starlight is still at 0.x, and any minor release can change the markup or the components the site overrides. Astro, which it runs on, shipped two majors in 2026. Small upgrades keep each break easy to find:

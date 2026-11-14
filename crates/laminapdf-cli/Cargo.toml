@@ -39,7 +39,7 @@ default = []
 mcp = ["dep:rmcp", "dep:tokio"]
 
 [dependencies]
-laminapdf = { workspace = true, features = ["extract", "explain", "markdown", "document", "page-checks"] }
+laminapdf = { workspace = true, features = ["extract", "explain", "markdown", "document", "page-checks", "jbig2"] }
 # Only for the `laminapdf_build` tool's schema, which inlines `laminapdf.document/1`'s.
 laminapdf-build = { workspace = true, features = ["schema"] }
 # Only for `laminapdf schema extract`, which embeds `laminapdf.extract/1`'s schema.

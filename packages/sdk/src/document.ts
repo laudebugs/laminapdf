@@ -64,6 +64,8 @@ import type {
   DocumentProperties,
   Edited,
   ExplicitDestination,
+  ExtractedImages,
+  ImageOptions,
   InitialView,
   InitialViewPatch,
   MarkupKind,
@@ -582,6 +584,71 @@ export class Document extends Handle<BaseGlue> {
    */
   threads(): ArticleThread[] {
     return this.call(() => this.#extracting("doc.threads()").threads());
+  }
+
+  /**
+   * The images the pages draw, as files: JPEG and JPEG 2000 images as stored, byte for byte, the
+   * rest decoded to PNG with their `/Decode`, colour space and mask applied. An image is given
+   * once, on the first page that draws it; one that can't be decoded (a JBIG2 image, which the
+   * modules don't decode, or an unsupported colour space) is in `skipped`, with why. Needs a
+   * document opened while the extract or text module was loaded.
+   *
+   * @param options - `pages` (0-based) to read; every page by default.
+   * @throws {@link LaminaPdfError} `page-index-out-of-range`, and as {@link Document.outline}.
+   *
+   * @since 0.4.0
+   */
+  extractImages(options: ImageOptions = {}): ExtractedImages {
+    return this.call(() => this.#extracting("doc.extractImages()").extractImages(options));
+  }
+
+  /**
+   * Every page's visible links as `laminapdf.links/1` JSON: each with its page, its rectangle in
+   * page space, its `kind` and where it goes. Needs a document opened while the extract or text
+   * module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   *
+   * @since 0.4.0
+   */
+  linksJson(): string {
+    return this.call(() => this.#extracting("doc.linksJson()").linksJson());
+  }
+
+  /**
+   * Every page's visible links as CSV (RFC 4180), a header row then a row a link. Needs a
+   * document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   *
+   * @since 0.4.0
+   */
+  linksCsv(): string {
+    return this.call(() => this.#extracting("doc.linksCsv()").linksCsv());
+  }
+
+  /**
+   * The outline as `laminapdf.outline/1` JSON, its items nested as the outline is. Needs a
+   * document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   *
+   * @since 0.4.0
+   */
+  outlineJson(): string {
+    return this.call(() => this.#extracting("doc.outlineJson()").outlineJson());
+  }
+
+  /**
+   * The outline as CSV (RFC 4180), a header row then a row an item in reading order, its depth
+   * in `level`. Needs a document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   *
+   * @since 0.4.0
+   */
+  outlineCsv(): string {
+    return this.call(() => this.#extracting("doc.outlineCsv()").outlineCsv());
   }
 
   /**

@@ -8,13 +8,14 @@ import {
   fixture,
   focusWindow,
   goToPage,
+  moveToNewWindow,
   open,
   openAndWait,
-  runCommand,
   shownTab,
   tabNames,
   view,
   waitForSharp,
+  waitForShown,
   withText,
   zoomOnce,
 } from "../app.ts";
@@ -26,27 +27,8 @@ function pagesShown(): Promise<number> {
   return browser.execute(() => globalThis.__laminaE2e?.view()?.pageCount ?? 0);
 }
 
-/** Waits until the strip shows `name` as the shown tab. */
-async function waitForShown(name: string): Promise<void> {
-  await browser.waitUntil(async () => (await shownTab()) === name, { timeoutMsg: `${name} isn't the shown tab` });
-}
-
 /** The window the app started with, where every scenario before this one ran. */
 let home = "";
-
-/** Moves the shown tab to a new window and switches to it; resolves to this window's handle. */
-async function moveToNewWindow(): Promise<string> {
-  const here = await browser.getWindowHandle();
-  const before = await browser.getWindowHandles();
-  await runCommand("Move tab to new window");
-  await browser.waitUntil(async () => (await browser.getWindowHandles()).length > before.length, {
-    timeoutMsg: "no new window",
-  });
-  const added = (await browser.getWindowHandles()).find((handle) => !before.includes(handle));
-  if (added === undefined) throw new Error("no new window handle");
-  await browser.switchToWindow(added);
-  return here;
-}
 
 /**
  * Closes the window WebDriver is on and goes back to `handle`, once the closed one is gone: until

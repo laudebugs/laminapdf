@@ -11,7 +11,7 @@ A job calls the action twice:
     environment: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'rust-compile-cache' || '' }}
     steps:
       # … checkout, then the toolchain step (actions-rust-lang/setup-rust-toolchain or ./.github/actions/host-rust)
-      - uses: ./.github/actions/rust-compile-cache
+      - uses: $/.github/actions/rust-compile-cache
         with:
           endpoint: ${{ vars.SCCACHE_R2_ENDPOINT }}
           bucket: ${{ vars.SCCACHE_R2_BUCKET }}
@@ -19,7 +19,7 @@ A job calls the action twice:
           secret-access-key: ${{ secrets.SCCACHE_R2_SECRET_ACCESS_KEY }}
       # … the build
       - if: ${{ !cancelled() }}
-        uses: ./.github/actions/rust-compile-cache
+        uses: $/.github/actions/rust-compile-cache
         with:
           stats: "true"
 ```

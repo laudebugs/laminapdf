@@ -1191,7 +1191,12 @@ export class Viewer {
     this.#frame = requestAnimationFrame(() => {
       this.#frame = undefined;
       // A view waiting for its size has only an old scroll to go by: it draws once it is placed.
+      // Its size usually comes through the ResizeObserver, which only reports a size that differs
+      // from the one it last saw at a frame: a container hidden and shown again between two
+      // frames (an open that finishes before the next frame) comes back at the size it had, so
+      // nothing is reported, and the view is placed here instead (#578).
       if (this.#pending === undefined) this.#update();
+      else if (this.#sized()) this.#showPending(this.#pending);
     });
   }
 

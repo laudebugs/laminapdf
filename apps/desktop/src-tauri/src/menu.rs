@@ -528,18 +528,32 @@ fn current(app: &AppHandle, menus: &MenusJson, states: &BTreeMap<String, Vec<Com
 
 /// On the main thread: the menu bar the app should show now, with the menus' state.
 fn with_bar(app: &AppHandle, work: impl FnOnce(&AppHandle, &mut Inner, &[TopMenu]) + Send + 'static) {
-    on_main(app, |app| {
-        let menus = app.state::<MenusJson>();
-        let native = app.state::<NativeMenus>();
-        let mut inner = native.lock();
-        let bar = current(app, &menus, &inner.states);
-        work(app, &mut inner, &bar);
-    });
+    on_main(app, |app| with_bar_here(app, work));
+}
+
+/// `with_bar`'s work, on the thread it is called from: the main thread's own callers only.
+fn with_bar_here(app: &AppHandle, work: impl FnOnce(&AppHandle, &mut Inner, &[TopMenu])) {
+    let menus = app.state::<MenusJson>();
+    let native = app.state::<NativeMenus>();
+    let mut inner = native.lock();
+    let bar = current(app, &menus, &inner.states);
+    work(app, &mut inner, &bar);
 }
 
 /// Builds the menus again (the windows or the recent list changed) and shows them.
 pub(crate) fn rebuild(app: &AppHandle) {
-    with_bar(app, |app, inner, bar| match build(app, bar) {
+    with_bar(app, show_built);
+}
+
+/// [`rebuild`] at once, for the app's setup, which runs on the main thread: the windows made after
+/// it are made with the menus.
+pub(crate) fn rebuild_now(app: &AppHandle) {
+    with_bar_here(app, show_built);
+}
+
+/// Builds the menus from `bar` and shows them.
+fn show_built(app: &AppHandle, inner: &mut Inner, bar: &[TopMenu]) {
+    match build(app, bar) {
         Ok((menu, items)) => {
             if let Err(error) = app.set_menu(menu) {
                 tracing::warn!("could not show the menus: {error}");
@@ -547,7 +561,7 @@ pub(crate) fn rebuild(app: &AppHandle) {
             inner.items = items;
         }
         Err(error) => tracing::warn!("could not build the menus: {error}"),
-    });
+    }
 }
 
 /// Shows the focused window's state in the menus as they are: what is enabled and ticked.

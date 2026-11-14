@@ -12,7 +12,7 @@ runs:
       # fails with no retry), so each apt call ends itself first, under `sudo timeout` (KILL 30 s
       # after TERM), all of them inside one try. A try cut off mid-install leaves dpkg half done:
       # the next one finishes it first (docs/bugs/ci-apt-retry-kill-eperm).
-      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+      uses: nick-fields/retry@v4.0.0
       with:
         timeout_minutes: 15
         max_attempts: 3

@@ -1,0 +1,93 @@
+{
+  "schema": "laminapdf.outline/1",
+  "generator": {
+    "name": "laminapdf",
+    "version": "x.y.z"
+  },
+  "items": [
+    {
+      "title": "Title page",
+      "open": false,
+      "bold": false,
+      "italic": false,
+      "target": {
+        "pageIndex": 0,
+        "pageNumber": 1,
+        "view": "fit"
+      },
+      "children": []
+    },
+    {
+      "title": "Contents",
+      "open": false,
+      "bold": false,
+      "italic": false,
+      "color": "#000099",
+      "destination": "contents",
+      "target": {
+        "pageIndex": 1,
+        "pageNumber": 2,
+        "view": "fit"
+      },
+      "children": []
+    },
+    {
+      "title": "Chapters",
+      "open": true,
+      "bold": true,
+      "italic": false,
+      "children": [
+        {
+          "title": "Chapter 1",
+          "open": false,
+          "bold": false,
+          "italic": false,
+          "target": {
+            "pageIndex": 2,
+            "pageNumber": 3,
+            "view": "fit"
+          },
+          "children": []
+        },
+        {
+          "title": "Chapter 2",
+          "open": false,
+          "bold": false,
+          "italic": false,
+          "destination": "chapter-2",
+          "target": {
+            "pageIndex": 3,
+            "pageNumber": 4,
+            "view": "at",
+            "left": 0.0,
+            "top": 100.0
+          },
+          "children": [
+            {
+              "title": "Appendix",
+              "open": false,
+              "bold": false,
+              "italic": true,
+              "destination": "appendix",
+              "target": {
+                "pageIndex": 3,
+                "pageNumber": 4,
+                "view": "fitWidth",
+                "top": 72.0
+              },
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Website",
+      "open": false,
+      "bold": false,
+      "italic": false,
+      "uri": "https://example.com/lamina?q=links&lang=en",
+      "children": []
+    }
+  ]
+}

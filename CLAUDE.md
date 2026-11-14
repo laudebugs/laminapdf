@@ -240,7 +240,10 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   LAMINA_PDF_ENV=production, src/robots.mjs (W3a: the one robots.txt of the three sites, every crawler
 │                        #   let in, the sitemap named in production; robots, isProduction, robotsProblems), the website's checks of every built page (ADR 0011 §3: same-origin loads, no
 │                        #   inline styles, cookies or beacons, title, description, canonical URL, internal links), pageFiles, pageExists;
-│                        #   src/version.mjs (withVersion: the pages' `{{version}}`, P4); src/code-kinds.mjs (Q4u: Shiki's TextMate scopes → the five
+│                        #   src/version.mjs (withVersion: the pages' `{{version}}`, P4); src/structured-data.mjs (W3d: the
+│                        #   home pages' JSON-LD, Organization/WebSite/SoftwareSourceCode from Cargo.toml, no rating, review or
+│                        #   offer; data blocks stay out of the CSP's hashes) and src/lastmod.mjs (the sitemaps' dates from git,
+│                        #   a production build refusing a shallow checkout); src/code-kinds.mjs (Q4u: Shiki's TextMate scopes → the five
 │                        #   --paper-code-* kinds, for the website's code panel and the docs' code blocks);
 │                        #   the site header (W1d): src/nav.mjs (the one list of links, siteNav per site and page, APP_LAUNCHED),
 │                        #   src/SiteHeader.astro, SiteNav.astro (the links alone) + header.css (sized per site by CSS variables); the select (W1g):
@@ -275,7 +278,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   wrangler.jsonc (lamina-pdf-web at app.laminapdf.com, env.staging lamina-pdf-web-staging at
 │                        #   staging-app.laminapdf.com; static assets only, SPA fallback), public/_headers (ADR 0011 §4 exactly);
 │                        #   plugins/search.ts (W3a: robots.txt, and X-Robots-Tag noindex unless LAMINA_PDF_ENV=production, which only
-│                        #   web-deploy.yml's production-checks sets);
+│                        #   web-deploy.yml's production-checks sets; W3d: that build alone gets a canonical link to / and share tags);
 │                        #   e2e/ (Vitest + Playwright against `wrangler dev`: headers, opening four ways, no CSP violation or other
 │                        #   origin; remote-host.ts, an HTTPS fixture host with CORS and ranges per path, for remote, encrypted and
 │                        #   privacy suites), run by `cargo xtask pdf-runtimes <browser>`; e2e/smoke.test.ts (the deployed reader at
@@ -420,7 +423,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── .github/             # CI fast lane (workflows/ci.yml), full lane + required `gate` (workflows/full.yml),
 │                        #   nightly lane (workflows/nightly.yml), release lane on v* tags (workflows/release.yml: every check, then the publish jobs),
 │                        #   docs deploys (workflows/docs.yml), the CLI's release (workflows/cli-release.yml), Dependabot;
-│                        #   shared setup in actions/ (rust-compile-cache: sccache over R2, README.md has the owner's setup)
+│                        #   shared setup in actions/ (rust-compile-cache: sccache over R2, README.md has the owner's setup),
+│                        #   written `$/.github/actions/<name>`; every action locked by workflows/actions.lock (X11, ADR 0019:
+│                        #   tags in `uses:`, `gh actions-lock` after a change, the fast lane's `lockfile` job runs --verify)
 ├── spikes/              # research spikes (throwaway code that informs decisions), outside both workspaces
 │   ├── pdf-basics/      # minimal PDF core in Rust + TypeScript, its own frozen fixtures and spec (ported to crates/)
 │   ├── krilla-fit/      # Round B1: can krilla generate into Lamina PDF's object graph? (answer + measurements in its README)

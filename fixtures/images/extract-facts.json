@@ -1,0 +1,705 @@
+{
+  "comment": "pdfimages -list of extract.pdf, the corpus and the goldens (tools/fixtures/image_facts.py), by file under fixtures/; page 0-based, object null for an inline image",
+  "poppler": "26.10.0",
+  "files": {
+    "images/extract.pdf": [
+      {
+        "page": 0,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 10
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "cmyk",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 11
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "gray",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 12
+      },
+      {
+        "page": 0,
+        "type": "smask",
+        "width": 16,
+        "height": 16,
+        "color": "gray",
+        "bpc": 8,
+        "enc": "image",
+        "object": 12
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "jpx",
+        "object": 14
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 16,
+        "height": 16,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "image",
+        "object": 15
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 4,
+        "height": 8,
+        "color": "index",
+        "bpc": 2,
+        "enc": "image",
+        "object": 16
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 8,
+        "height": 8,
+        "color": "cmyk",
+        "bpc": 8,
+        "enc": "image",
+        "object": 17
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 16,
+        "height": 4,
+        "color": "gray",
+        "bpc": 16,
+        "enc": "image",
+        "object": 18
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 16,
+        "height": 16,
+        "color": "gray",
+        "bpc": 8,
+        "enc": "image",
+        "object": 19
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 4,
+        "height": 4,
+        "color": "lab",
+        "bpc": 8,
+        "enc": "image",
+        "object": 20
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 16,
+        "height": 16,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "image",
+        "object": 21
+      },
+      {
+        "page": 0,
+        "type": "mask",
+        "width": 8,
+        "height": 16,
+        "color": "-",
+        "bpc": 1,
+        "enc": "image",
+        "object": 21
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 16,
+        "height": 16,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "image",
+        "object": 23
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 16,
+        "height": 16,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "image",
+        "object": 24
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 16,
+        "height": 16,
+        "color": "gray",
+        "bpc": 8,
+        "enc": "image",
+        "object": 25
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 16,
+        "height": 16,
+        "color": "gray",
+        "bpc": 8,
+        "enc": "image",
+        "object": 26
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 8,
+        "height": 2,
+        "color": "gray",
+        "bpc": 1,
+        "enc": "ccitt",
+        "object": 27
+      },
+      {
+        "page": 0,
+        "type": "stencil",
+        "width": 8,
+        "height": 8,
+        "color": "-",
+        "bpc": 1,
+        "enc": "image",
+        "object": 28
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 4,
+        "height": 2,
+        "color": "gray",
+        "bpc": 8,
+        "enc": "image",
+        "object": null
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 2,
+        "height": 2,
+        "color": "gray",
+        "bpc": 8,
+        "enc": "image",
+        "object": 42
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 16,
+        "height": 16,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "image",
+        "object": 15
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 2,
+        "height": 1,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "image",
+        "object": 50
+      },
+      {
+        "page": 0,
+        "type": "smask",
+        "width": 2,
+        "height": 1,
+        "color": "gray",
+        "bpc": 8,
+        "enc": "image",
+        "object": 50
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 16,
+        "height": 16,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "image",
+        "object": 52
+      },
+      {
+        "page": 0,
+        "type": "smask",
+        "width": 8,
+        "height": 8,
+        "color": "gray",
+        "bpc": 8,
+        "enc": "image",
+        "object": 52
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 16,
+        "height": 16,
+        "color": "icc",
+        "bpc": 8,
+        "enc": "image",
+        "object": 54
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 4,
+        "height": 1,
+        "color": "sep",
+        "bpc": 8,
+        "enc": "image",
+        "object": 56
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 2,
+        "height": 1,
+        "color": "devn",
+        "bpc": 8,
+        "enc": "image",
+        "object": 58
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 8,
+        "height": 2,
+        "color": "gray",
+        "bpc": 1,
+        "enc": "ccitt",
+        "object": 59
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 2,
+        "height": 1,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "image",
+        "object": null
+      },
+      {
+        "page": 1,
+        "type": "image",
+        "width": 16,
+        "height": 16,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "image",
+        "object": 15
+      }
+    ],
+    "corpus/enc.pdf": [],
+    "corpus/fpdf2.pdf": [],
+    "corpus/hello-broken.pdf": [],
+    "corpus/hello-incremental.pdf": [],
+    "corpus/hello-xrefstm.pdf": [],
+    "corpus/hello.pdf": [],
+    "corpus/imaging-demo.pdf": [],
+    "corpus/outline.pdf": [],
+    "corpus/pdflib.pdf": [],
+    "corpus/raw.pdf": [],
+    "corpus/reportlab.pdf": [],
+    "corpus/signed.pdf": [],
+    "corpus/tampered.pdf": [],
+    "corpus/text-example.pdf": [],
+    "golden/build-text-latin.pdf": [],
+    "golden/build-text-multiscript.pdf": [],
+    "golden/cli-build-invoice.pdf": [],
+    "golden/cli-build-report.pdf": [
+      {
+        "page": 0,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 18
+      }
+    ],
+    "golden/cli-rotate-hello.pdf": [],
+    "golden/examples/duplicate_pages.pdf": [],
+    "golden/examples/edit_bookmarks.pdf": [],
+    "golden/examples/edit_metadata-pdfa.pdf": [
+      {
+        "page": 0,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 11
+      }
+    ],
+    "golden/examples/edit_metadata.pdf": [],
+    "golden/examples/edit_xmp.pdf": [
+      {
+        "page": 0,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 11
+      }
+    ],
+    "golden/examples/element_flow.pdf": [
+      {
+        "page": 0,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 5
+      }
+    ],
+    "golden/examples/extract_pages.pdf": [],
+    "golden/examples/flowing_invoice.pdf": [],
+    "golden/examples/flowing_report.pdf": [
+      {
+        "page": 3,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 62
+      },
+      {
+        "page": 6,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 62
+      },
+      {
+        "page": 8,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 62
+      },
+      {
+        "page": 10,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 62
+      },
+      {
+        "page": 12,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 62
+      }
+    ],
+    "golden/examples/generate_then_edit.pdf": [],
+    "golden/examples/hello.pdf": [],
+    "golden/examples/images_and_vectors.pdf": [
+      {
+        "page": 0,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 5
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 16,
+        "height": 16,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "image",
+        "object": 7
+      },
+      {
+        "page": 0,
+        "type": "smask",
+        "width": 16,
+        "height": 16,
+        "color": "gray",
+        "bpc": 8,
+        "enc": "image",
+        "object": 7
+      }
+    ],
+    "golden/examples/images_to_pdf.pdf": [
+      {
+        "page": 0,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 3
+      },
+      {
+        "page": 1,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "gray",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 6
+      }
+    ],
+    "golden/examples/insert_pages.pdf": [],
+    "golden/examples/invoice.pdf": [],
+    "golden/examples/invoice_from_json.pdf": [],
+    "golden/examples/links_and_outlines.pdf": [],
+    "golden/examples/markdown_to_pdf.pdf": [
+      {
+        "page": 1,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 80
+      }
+    ],
+    "golden/examples/merge_documents.pdf": [],
+    "golden/examples/multilingual.pdf": [],
+    "golden/examples/organise_pages.pdf": [],
+    "golden/examples/page_labels.pdf": [],
+    "golden/examples/pdf_a3_invoice_with_xml.pdf": [],
+    "golden/examples/pdf_a_archive-2b.pdf": [
+      {
+        "page": 0,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 11
+      }
+    ],
+    "golden/examples/pdf_a_archive-2u.pdf": [
+      {
+        "page": 0,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 11
+      }
+    ],
+    "golden/examples/pdf_ua_report.pdf": [],
+    "golden/examples/set_initial_view.pdf": [],
+    "golden/examples/split_document-1.pdf": [],
+    "golden/examples/split_document-2.pdf": [],
+    "golden/examples/split_document-3.pdf": [],
+    "golden/flow-table.pdf": [],
+    "golden/full-rewrite-hello.pdf": [],
+    "golden/hello.pdf": [],
+    "golden/images.pdf": [
+      {
+        "page": 0,
+        "type": "image",
+        "width": 64,
+        "height": 64,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "image",
+        "object": 4
+      },
+      {
+        "page": 0,
+        "type": "smask",
+        "width": 64,
+        "height": 64,
+        "color": "gray",
+        "bpc": 8,
+        "enc": "image",
+        "object": 4
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 32,
+        "height": 32,
+        "color": "gray",
+        "bpc": 16,
+        "enc": "image",
+        "object": 5
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 32,
+        "height": 32,
+        "color": "gray",
+        "bpc": 8,
+        "enc": "image",
+        "object": 6
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 16,
+        "height": 16,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "image",
+        "object": 8
+      },
+      {
+        "page": 0,
+        "type": "smask",
+        "width": 16,
+        "height": 16,
+        "color": "gray",
+        "bpc": 8,
+        "enc": "image",
+        "object": 8
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 2,
+        "height": 2,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "image",
+        "object": 10
+      },
+      {
+        "page": 0,
+        "type": "smask",
+        "width": 2,
+        "height": 2,
+        "color": "gray",
+        "bpc": 8,
+        "enc": "image",
+        "object": 10
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 11
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "gray",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 12
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "cmyk",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 13
+      },
+      {
+        "page": 0,
+        "type": "image",
+        "width": 192,
+        "height": 192,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "jpeg",
+        "object": 11
+      }
+    ],
+    "golden/imaging-demo.pdf": [],
+    "golden/incremental-set-info.pdf": [],
+    "golden/links-and-outlines.pdf": [],
+    "golden/metadata.pdf": [],
+    "golden/tagged-across-pages.pdf": [],
+    "golden/tagged-report.pdf": [
+      {
+        "page": 0,
+        "type": "image",
+        "width": 4,
+        "height": 1,
+        "color": "rgb",
+        "bpc": 8,
+        "enc": "image",
+        "object": 35
+      }
+    ],
+    "golden/text-cff.pdf": [],
+    "golden/text-latin.pdf": [],
+    "golden/text-shaped.pdf": [],
+    "golden/text-std14.pdf": [],
+    "golden/text-variable-collection.pdf": [],
+    "golden/vectors.pdf": []
+  }
+}

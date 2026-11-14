@@ -100,7 +100,7 @@ fn only_a_prepared_release_should_create_a_verified_app_commit_and_tag() {
     let after = prepare.split("name: Create the release bot's token").nth(1).unwrap();
     assert_eq!(after.matches("if: steps.version.outputs.ready == 'true'").count(), 2);
     for part in [
-        "actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510",
+        "actions/create-github-app-token@v3.3.0",
         "GH_TOKEN: ${{ steps.bot.outputs.token }}",
         "content: $content}",
         "git --literal-pathspecs ls-tree HEAD",

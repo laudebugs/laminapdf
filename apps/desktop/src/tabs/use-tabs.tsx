@@ -1,9 +1,11 @@
 // The window's tab strip and what drives it from outside the webview: tabs moved here from other
 // windows (`tab://arrived`, with the ones that came before the webview was ready handed over by
-// `take_pending_tabs`), a second open of a file showing its tab (`tab://activate`), the other
-// windows for "Move tab to window ▸", the window's title, tabs not shown when the engine
-// restarts, and another window's tab dragged over this one (`tab://drag-over`). A tab dragged
-// off the strip goes where Rust finds the cursor when the drag ends (`tab_drag_end`). The strip shows from two tabs on (S02); with one, the title bar carries the name.
+// `take_pending_tabs`), the last session's tabs (`take_session_tabs`), a second open of a file
+// showing its tab (`tab://activate`), the other windows for "Move tab to window ▸", the window's
+// title, tabs not shown when the engine restarts, and another window's tab dragged over this one
+// (`tab://drag-over`). A tab dragged off the strip goes where Rust finds the cursor when the drag
+// ends (`tab_drag_end`). The strip shows from two tabs on (S02); with one, the title bar carries the
+// name.
 import {
   type CommandContext,
   DocumentTabs,
@@ -28,6 +30,7 @@ import {
   type Arrived,
   DRAG_OVER_EVENT,
   type MoveTarget,
+  type RestoredWindow,
   WINDOWS_CHANGED_EVENT,
   type WindowTabs,
 } from "./window-tabs.ts";
@@ -182,11 +185,20 @@ function useTabEvents(
         }),
       ]);
       await shell.invoke("take_pending_tabs");
+      // The last session's tabs for this window, once, when the app started with them (D4d).
+      const restored = await shell.invoke<RestoredWindow | null>("take_session_tabs").catch(() => null);
+      if (restored === null) tabs.noRestore();
+      else turn = turn.then(() => tabs.restore(restored)).catch((error: unknown) => console.warn("restoring", error));
       return () => {
         for (const stop of off) stop();
       };
     };
-    return stopper(listening(), "listening for tabs moved to this window");
+    // Whatever fails first, the OS's opens waiting on the restore go ahead.
+    const started = listening().catch((error: unknown) => {
+      tabs.noRestore();
+      throw error;
+    });
+    return stopper(started, "listening for tabs moved to this window");
   }, [shell, tabs, toasts]);
 }
 

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-take-session-tabs"
+description = "Enables the take_session_tabs command without any pre-configured scope."
+commands.allow = ["take_session_tabs"]
+
+[[permission]]
+identifier = "deny-take-session-tabs"
+description = "Denies the take_session_tabs command without any pre-configured scope."
+commands.deny = ["take_session_tabs"]

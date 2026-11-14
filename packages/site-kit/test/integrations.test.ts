@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   builtSiteProblems,
   fillInlineScriptHashes,
+  isDataBlock,
   markNoindex,
   pageExists,
   pageProblems,
@@ -252,6 +253,20 @@ describe("fillInlineScriptHashes", () => {
     expect(headers).toContain(`script-src 'self' ${[sha256(a), sha256(b)].sort().join(" ")}; style-src`);
   });
 
+  it("hashes scripts that run, whatever their type, and leaves data blocks out", async () => {
+    const run = ["f(1)", "f(2)", "f(3)", "f(4)"];
+    const dir = await site({
+      "index.html": page(
+        `<script type="module">${run[0]}</script><script type="text/javascript">${run[1]}</script>` +
+          `<script type="">${run[2]}</script><script type="importmap">${run[3]}</script>` +
+          '<script type="application/ld+json">{"@context":"https://schema.org"}</script>',
+      ),
+    });
+    await fillInlineScriptHashes(dir);
+    const headers = await readFile(new URL("_headers", dir), "utf8");
+    expect(headers).toContain(`script-src 'self' ${run.map(sha256).sort().join(" ")}; style-src`);
+  });
+
   it("removes the token when the build wrote no inline script", async () => {
     const dir = await site({ "index.html": page() });
     await fillInlineScriptHashes(dir);
@@ -273,6 +288,23 @@ describe("fillInlineScriptHashes", () => {
     const scripts = Array.from({ length: 40 }, (_, i) => `<script>f(${i})</script>`).join("");
     const many = await site({ "index.html": page(scripts) });
     await expect(fillInlineScriptHashes(many)).rejects.toThrow("40 inline-script hashes");
+  });
+});
+
+describe("isDataBlock", () => {
+  it("is true only for a type the browser doesn't run", () => {
+    const cases: [string, boolean][] = [
+      ["", false],
+      [' type="module"', false],
+      [" type=importmap", false],
+      [' type="text/javascript; charset=utf-8"', false],
+      [" type='application/ECMAScript'", false],
+      [' type=""', false],
+      [' type="application/ld+json"', true],
+      [' type="application/json" id="data"', true],
+      [' type="text/plain"', true],
+    ];
+    expect(cases.map(([attributes]) => [attributes, isDataBlock(attributes)])).toEqual(cases);
   });
 });
 

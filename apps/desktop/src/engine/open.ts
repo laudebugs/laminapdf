@@ -21,6 +21,9 @@ const documents = new WeakMap<PlatformFile, DesktopDocument>();
 /** Why the main process couldn't open the file a PlatformFile stands for. */
 const failures = new WeakMap<PlatformFile, DesktopEngineError>();
 
+/** The last session's tabs not opened yet, by the PlatformFile that stands for each: its token. */
+const restored = new WeakMap<PlatformFile, string>();
+
 /** The PlatformFile that stands for `opened`: its name and size; its bytes stay in the main process. */
 export function desktopFile(opened: DesktopDocument): PlatformFile {
   const file: PlatformFile = {
@@ -33,6 +36,26 @@ export function desktopFile(opened: DesktopDocument): PlatformFile {
   return file;
 }
 
+/**
+ * The PlatformFile for a tab of the last session that hasn't opened yet: its name, and the token
+ * the main process opens it by (`session_open`) when it first shows. Its path stays there.
+ */
+export function restoredFile(token: string, name: string): PlatformFile {
+  const file: PlatformFile = {
+    name,
+    size: 0,
+    writable: false,
+    read: () => Promise.reject(new DesktopEngineError("unsupported", "the document process reads the file")),
+  };
+  restored.set(file, token);
+  return file;
+}
+
+/** The token of the last session's tab `file` stands for, while it hasn't opened. */
+export function restoredToken(file: PlatformFile): string | undefined {
+  return restored.get(file);
+}
+
 /** The document `file` stands for, when the main process opened it. */
 export function documentOf(file: PlatformFile): DesktopDocument | undefined {
   return documents.get(file);
@@ -41,6 +64,7 @@ export function documentOf(file: PlatformFile): DesktopDocument | undefined {
 /** Makes `file` stand for `opened` from now on: its file changed on disk and reopened, or was located again. */
 export function rebind(file: PlatformFile, opened: DesktopDocument): void {
   documents.set(file, opened);
+  restored.delete(file);
 }
 
 /**
@@ -164,6 +188,29 @@ export interface OpenerTabs {
 }
 
 /**
+ * Opens the last session's tab `file` stands for, the first time it shows; `undefined` for any
+ * other file. Its tab shows before the file opens, so a file that is gone fails on its own tab,
+ * which offers Locate….
+ */
+async function openRestored(
+  shell: DesktopShell,
+  file: PlatformFile,
+  tabs: OpenerTabs | undefined,
+): Promise<DesktopDocument | undefined> {
+  const token = restored.get(file);
+  if (token === undefined) return undefined;
+  tabs?.showing(file);
+  let opened: DesktopDocument;
+  try {
+    opened = await shell.invoke<DesktopDocument>("session_open", { token });
+  } catch (error) {
+    throw engineError(error);
+  }
+  rebind(file, opened);
+  return opened;
+}
+
+/**
  * The reader's opener: shows the document `file` stands for in `viewer`, unlocking it first with
  * `password`. A locked document without one fails with `password-required` and a refused one with
  * `wrong-password`, which the reader's controller turns into its password prompt. With `tabs`, the
@@ -179,7 +226,7 @@ export function desktopOpener(
   return async (file, password) => {
     const failed = failures.get(file);
     if (failed !== undefined) throw failed;
-    const known = documentOf(file);
+    const known = documentOf(file) ?? (await openRestored(shell, file, tabs));
     if (known === undefined) {
       // A pasted file: the webview has its bytes but no path, and only the main process opens files.
       throw new DesktopEngineError("not-yet-supported", "open documents with the Open button or by dropping them");

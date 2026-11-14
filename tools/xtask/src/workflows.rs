@@ -23,6 +23,8 @@
 //! reported missing. The module is compiled only for tests (`main.rs`).
 
 mod compile_cache;
+#[cfg(test)]
+mod lockfile;
 
 use std::path::{Path, PathBuf};
 
@@ -360,6 +362,18 @@ mod tests {
     /// main's docs go to next.docs.laminapdf.com as unreleased (no `LAMINA_PDF_ENV=production`, so
     /// noindex and the notice); docs.laminapdf.com gets only a release tag's, built as production,
     /// when the release lane calls with the tag (or by hand with one). Only that build is indexed.
+    /// The released docs' sitemap dates each page by its last commit, which needs the whole history:
+    /// the production build refuses a shallow checkout (apps/docs/plugins/sitemap.mjs), so the
+    /// job that makes it checks out everything.
+    #[test]
+    fn docs_production_should_check_out_the_whole_history() {
+        let production = lines_of(DOCS, "jobs", "production");
+        assert!(
+            production.iter().any(|l| l.trim() == "fetch-depth: 0"),
+            "docs.yml's production job checks out a shallow history"
+        );
+    }
+
     #[test]
     fn docs_should_deploy_main_to_next_and_only_release_tags_to_production() {
         let next = lines_of(DOCS, "jobs", "next");
@@ -924,7 +938,8 @@ mod tests {
     }
 
     /// The flag `gate` holds each job of `workflow` to, read from its shell: the `case` lines
-    /// (`a | b) needed=$FLAG ;;`), then its default (a `*)` line, or `needed=$FLAG` before the `case`).
+    /// (`a | b) needed=$FLAG ;;`, or none for `needed=true`), then its default (a `*)` line, or
+    /// `needed=$FLAG` before the `case`).
     fn gate_flag(workflow: &str, gate: &str, job: &str) -> Option<String> {
         let lines = lines_of(workflow, "jobs", gate);
         let flag_of = |line: &str| {
@@ -936,16 +951,17 @@ mod tests {
                     .collect::<String>()
             })
         };
+        // A job listed with `needed=true` (the lockfile check, todo X11) runs on no flag.
         let listed = lines.iter().find_map(|l| {
-            let (jobs, _) = l.trim().split_once(") needed=$")?;
-            jobs.split('|').any(|j| j.trim() == job).then(|| flag_of(l)).flatten()
+            let (jobs, _) = l.trim().split_once(") needed=")?;
+            jobs.split('|').any(|j| j.trim() == job).then(|| flag_of(l))
         });
         let default = lines
             .iter()
             .find(|l| l.trim().starts_with("*) needed=$"))
             .or_else(|| lines.iter().find(|l| l.trim().starts_with("needed=$")))
             .and_then(|l| flag_of(l));
-        listed.or(default)
+        listed.unwrap_or(default)
     }
 
     /// Todos X9b, X9c: every job a gate needs runs on the one flag that gate holds it to, so a
@@ -965,6 +981,12 @@ mod tests {
             }
         }
         assert_eq!(wrong, Vec::<String>::new());
+    }
+
+    #[test]
+    fn gate_flag_should_hold_an_always_needed_job_to_no_flag() {
+        let workflow = "jobs:\n  g:\n    steps:\n      - run: |\n          case \"$job\" in\n            lockfile) needed=true ;;\n            *) needed=$TS ;;\n          esac\n";
+        assert_eq!(gate_flag(workflow, "g", "lockfile"), None);
     }
 
     #[test]

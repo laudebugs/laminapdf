@@ -11,7 +11,8 @@
 # desktop jobs also leave out each leg that already passed on the same inputs (todo X10b). All
 # suites are required, including the hosted Linux Arm64 and Windows x64 checks.
 # Fresh hosted VMs replace the persistent Mac runners and Linux container.
-# Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
+# Actions are locked by .github/workflows/actions.lock (ADR 0019, todo X11): `uses:` names a release
+# tag, and `gh actions-lock` rewrites the lockfile after a `uses:` line changes; Dependabot bumps both.
 name: Full lane
 
 on:
@@ -78,13 +79,13 @@ jobs:
             echo "ts=true"
           } >> "$GITHUB_OUTPUT"
       - if: github.event_name == 'pull_request'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
           # Full history, so the merge base with the base branch is always present.
           fetch-depth: 0
       - if: github.event_name == 'pull_request'
-        uses: ./.github/actions/host-rust
+        uses: $/.github/actions/host-rust
         with:
           cache: true
           shared-key: xtask
@@ -156,11 +157,11 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       # The pinned stable toolchain (rust-toolchain.toml) builds xtask; fuzz/ needs nightly.
-      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
@@ -169,11 +170,11 @@ jobs:
       - name: Install nightly Rust
         run: rustup toolchain install nightly --profile minimal
       # Same version as tools/xtask/src/doctor.rs; xtask fails if it drifts.
-      - uses: ./.github/actions/install-tools
+      - uses: $/.github/actions/install-tools
         with:
           tool: cargo-fuzz@0.13.2
       - name: Restore the fuzz corpus saved on main
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/restore@v6.1.0
         with:
           path: fuzz/corpus
           key: fuzz-corpus-main-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
@@ -191,13 +192,13 @@ jobs:
         run: cargo xtask fuzz cmin
       - name: Save the fuzz corpus
         if: github.event_name == 'push'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/save@v6.1.0
         with:
           path: fuzz/corpus
           key: fuzz-corpus-main-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
       - name: Upload crashes
         if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: fuzz-artifacts
           path: fuzz/artifacts/
@@ -206,7 +207,7 @@ jobs:
       # timed-out job still shows how far every target got.
       - name: Upload the fuzz logs
         if: ${{ failure() || cancelled() }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: fuzz-logs
           path: target/xtask/fuzz/
@@ -221,12 +222,12 @@ jobs:
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
       # Installs exactly what rust-toolchain.toml pins.
-      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           # ci.yml's Rust job's linux-arm64 leg builds the same and saves this cache on main; this
           # job only restores it (one cache, not two copies of about 600 MB).
@@ -236,14 +237,14 @@ jobs:
           # The tools come from install-tools below on every run.
           cache-bin: false
       # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
-      - uses: ./.github/actions/install-tools
+      - uses: $/.github/actions/install-tools
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
       # Versions come from package.json and .nvmrc.
       # The pnpm store is restored on every run and saved only on pushes to main (node-pnpm).
-      - uses: ./.github/actions/node-pnpm
+      - uses: $/.github/actions/node-pnpm
       # Tauri (apps/desktop/src-tauri) is a workspace member: Linux needs WebKitGTK to build it.
-      - uses: ./.github/actions/linux-webkit
+      - uses: $/.github/actions/linux-webkit
       - run: cargo xtask check
 
   # The desktop app (apps/desktop, ADR 0008) built on each OS the way `tauri build` builds it, without
@@ -263,20 +264,20 @@ jobs:
         # The `changes` job's list: Linux, macOS and Windows, less those that passed on these inputs.
         include: ${{ fromJSON(needs.changes.outputs.desktop-build-legs) }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       # Installs exactly what rust-toolchain.toml pins. Its own cache: only this job builds the
       # app's debug binary with Tauri's tree, saved on pushes to main.
-      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           cache-shared-key: desktop
           cache-bin: false
-      - uses: ./.github/actions/node-pnpm
-      - uses: ./.github/actions/linux-webkit
-      - uses: ./.github/actions/install-tools
+      - uses: $/.github/actions/node-pnpm
+      - uses: $/.github/actions/linux-webkit
+      - uses: $/.github/actions/install-tools
         with:
           tool: wasm-bindgen@0.2.129
       # The frontend imports the built @laminapdf/ui, tokens, fonts and icons, and the viewer over
@@ -351,7 +352,7 @@ jobs:
           echo "$GITHUB_RUN_ID" > target/desktop-passed/run
           echo "key=desktop-passed-$(cargo xtask desktop-key)-build-$OS" >> "$GITHUB_OUTPUT"
       - name: Save this leg's pass
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/save@v6.1.0
         with:
           path: target/desktop-passed
           key: ${{ steps.passed.outputs.key }}
@@ -372,18 +373,18 @@ jobs:
         # The `changes` job's list: Linux, macOS and Windows, less those that passed on these inputs.
         include: ${{ fromJSON(needs.changes.outputs.desktop-e2e-legs) }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           cache-shared-key: desktop-e2e
           cache-bin: false
-      - uses: ./.github/actions/node-pnpm
-      - uses: ./.github/actions/linux-webkit
-      - uses: ./.github/actions/install-tools
+      - uses: $/.github/actions/node-pnpm
+      - uses: $/.github/actions/linux-webkit
+      - uses: $/.github/actions/install-tools
         with:
           tool: wasm-bindgen@0.2.129
       - name: Build the packages the frontend imports
@@ -396,7 +397,7 @@ jobs:
       # like the other caches, it is saved only from main.
       - name: Restore the large fixtures
         id: fixtures
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/restore@v6.1.0
         with:
           path: target/fixtures
           key: desktop-e2e-fixtures-${{ hashFiles('crates/laminapdf-desktop-engine/examples/large_pdf.rs', 'crates/laminapdf/src/**', 'crates/laminapdf-build/src/**', 'crates/laminapdf-cos/src/**', 'crates/laminapdf-model/src/**', 'crates/laminapdf-ops/src/**', 'crates/laminapdf-save/src/**', 'crates/laminapdf-syntax/src/**', 'crates/laminapdf-text/src/**', 'crates/laminapdf-test-fixtures/src/**', 'tools/xtask/src/fixtures.rs', 'Cargo.lock') }}
@@ -410,7 +411,7 @@ jobs:
           cargo xtask fixtures large-pdf
       - name: Save the large fixtures
         if: steps.fixtures.outputs.cache-hit != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.os == 'linux'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/save@v6.1.0
         with:
           path: target/fixtures
           key: ${{ steps.fixtures.outputs.cache-primary-key }}
@@ -452,13 +453,13 @@ jobs:
           echo "$GITHUB_RUN_ID" > target/desktop-passed/run
           echo "key=desktop-passed-$(cargo xtask desktop-key)-e2e-$OS" >> "$GITHUB_OUTPUT"
       - name: Save this leg's pass
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/save@v6.1.0
         with:
           path: target/desktop-passed
           key: ${{ steps.passed.outputs.key }}
       - name: Upload the failed scenarios' screenshots and logs
         if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: desktop-e2e-${{ matrix.os }}
           path: target/desktop-e2e/
@@ -476,24 +477,24 @@ jobs:
     steps:
       # node_modules and the docs build nest deeper than Windows' 260-character path limit.
       - run: git config --global core.longpaths true
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
       # Installs exactly what rust-toolchain.toml pins.
-      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: ${{ github.ref == 'refs/heads/main' }}
           cache-key: ${{ runner.os }}-${{ runner.arch }}
           cache-bin: false
       # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
-      - uses: ./.github/actions/install-tools
+      - uses: $/.github/actions/install-tools
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
       # Versions come from package.json and .nvmrc.
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: pnpm/action-setup@v6.1.1
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -524,24 +525,24 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/qpdf
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      - uses: $/.github/actions/qpdf
+      - uses: actions/setup-python@v7.1.0
         with:
           python-version: "3.13"
-      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           cache-key: ${{ runner.os }}-${{ runner.arch }}
           cache-bin: false
       # Same version as tools/xtask/src/doctor.rs; xtask fails if it drifts.
-      - uses: ./.github/actions/install-tools
+      - uses: $/.github/actions/install-tools
         with:
           tool: cargo-nextest@0.9.150
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: .nvmrc
           package-manager-cache: false
@@ -565,14 +566,14 @@ jobs:
         run: cargo xtask examples
       - name: Upload the round-trip outputs
         if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: roundtrip-outputs
           path: target/xtask/roundtrip/
           if-no-files-found: ignore
       - name: Upload the example outputs
         if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: examples-outputs
           path: target/examples-out/
@@ -588,13 +589,13 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      - uses: actions/setup-python@v7.1.0
         with:
           python-version: "3.13"
-      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
@@ -610,7 +611,7 @@ jobs:
         run: cargo xtask render-golden
       - name: Upload the diff images
         if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: render-golden-diff
           path: target/xtask/render-golden/diff/

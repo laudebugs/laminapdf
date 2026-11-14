@@ -42,3 +42,35 @@ describe("what the reader tells search engines", () => {
     },
   );
 });
+
+const INDEX = await readFile(new URL("../index.html", import.meta.url), "utf8");
+
+describe("the reader's canonical link and share tags", () => {
+  const html = INDEX;
+  const tags = (environment: string | undefined) => {
+    const hook = searchRules(environment).transformIndexHtml as unknown as (
+      html: string,
+    ) => { attrs: Record<string, string> }[];
+    return hook(html).map(({ attrs }) => attrs);
+  };
+
+  it("production names / as canonical and describes the page from its own title and description", () => {
+    const attrs = tags("production");
+    expect(attrs[0]).toEqual({ rel: "canonical", href: "https://app.laminapdf.com/" });
+    const content = (name: string) => attrs.find((a) => a.property === name || a.name === name)?.content;
+    expect(content("og:title")).toBe("Lamina PDF");
+    expect(content("og:description")).toBe(html.match(/<meta name="description" content="([^"]+)"/)?.[1]);
+    expect(content("og:url")).toBe("https://app.laminapdf.com/");
+    expect(content("og:image")).toBe("https://laminapdf.com/og.png");
+    expect(content("twitter:card")).toBe("summary_large_image");
+  });
+
+  it.each([["staging"], [undefined]])("%s adds no canonical link or share tag", (environment) => {
+    expect(tags(environment)).toEqual([]);
+  });
+
+  it("fails on a page without a description, rather than share an empty card", () => {
+    const hook = searchRules("production").transformIndexHtml as unknown as (html: string) => unknown;
+    expect(() => hook("<title>Lamina PDF</title>")).toThrow("needs a <title> and a description");
+  });
+});

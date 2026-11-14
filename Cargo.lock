@@ -2918,6 +2918,7 @@ dependencies = [
  "laminapdf-syntax",
  "laminapdf-test-fixtures",
  "laminapdf-text",
+ "schemars 1.2.3",
  "serde",
  "serde_json",
  "sha2 0.11.1",
@@ -3025,6 +3026,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tauri-plugin-wdio",
  "tauri-plugin-wdio-webdriver",
+ "tauri-plugin-window-state",
  "thiserror 2.0.21",
  "tracing",
  "zeroize",
@@ -3081,6 +3083,8 @@ name = "laminapdf-extract"
 version = "0.3.0"
 dependencies = [
  "boon",
+ "hayro-ccitt",
+ "hayro-jbig2",
  "laminapdf-build",
  "laminapdf-content",
  "laminapdf-cos",
@@ -3089,6 +3093,7 @@ dependencies = [
  "laminapdf-syntax",
  "laminapdf-test-fixtures",
  "laminapdf-text",
+ "png",
  "schemars 1.2.3",
  "serde",
  "serde_json",
@@ -5754,6 +5759,21 @@ dependencies = [
  "webview2-com",
  "windows",
  "windows-core",
+]
+
+[[package]]
+name = "tauri-plugin-window-state"
+version = "2.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d6815cab7b212f9cfe16a9d79d8d22f9e14159e4a9460f7dec1467167a008e3"
+dependencies = [
+ "bitflags 2.13.2",
+ "log",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
