@@ -46,6 +46,51 @@ export interface Watched {
   violations(): Promise<string[]>;
   /** Requests to an origin other than the app's. */
   readonly foreign: string[];
+  /**
+   * The page's and its workers' console errors and warnings and its uncaught errors, newest last:
+   * what {@link stuck} reports when a wait times out.
+   */
+  readonly log: string[];
+}
+
+/** How many console lines {@link stuck} reports. */
+const LOG_TAIL = 40;
+
+/**
+ * Runs `wait`; when it throws (a locator's timeout), throws instead an error that also says what
+ * the reader showed: its title, phase-bearing parts (the viewer's box, the top bar, any dialog),
+ * what it last said and the page's last console errors. A failure that happens only on CI then
+ * says where the reader stopped, which a bare timeout doesn't.
+ */
+export async function stuck<T>(watched: Watched, step: string, wait: () => Promise<T>): Promise<T> {
+  try {
+    return await wait();
+  } catch (error) {
+    const shown = await watched.page
+      .evaluate(() => {
+        const text = (selector: string) =>
+          Array.from(document.querySelectorAll(selector), (e) => (e.textContent ?? "").trim().slice(0, 200));
+        const viewer = document.querySelector(".web-viewer");
+        return {
+          title: document.title,
+          hash: location.hash.slice(0, 120),
+          viewer:
+            viewer === null
+              ? "absent"
+              : `hidden=${viewer.hasAttribute("hidden")} covered=${viewer.hasAttribute("data-covered")} canvases=${viewer.querySelectorAll("canvas").length}`,
+          headings: text("h1, h2"),
+          dialogs: text('[role="dialog"], [role="alertdialog"]'),
+          said: text("[aria-live]"),
+          status: text('[role="status"], [role="alert"], .paper-top-bar-save-state'),
+        };
+      })
+      .catch((e: unknown) => ({ unreadable: String(e) }));
+    const log = watched.log.slice(-LOG_TAIL);
+    const detail = JSON.stringify({ shown, log }, null, 2);
+    throw new Error(`${step}: ${error instanceof Error ? error.message : String(error)}\nthe page: ${detail}`, {
+      cause: error,
+    });
+  }
 }
 
 /** An init script (runs before the page's own) and its argument. */
@@ -71,6 +116,18 @@ export async function load(
   const { home = true, ...pageOptions } = options;
   const page = await browser.newPage(pageOptions);
   const foreign: string[] = [];
+  const log: string[] = [];
+  const at = () => new Date().toISOString().slice(11, 23);
+  page.on("console", (message) => {
+    if (message.type() === "error" || message.type() === "warning")
+      log.push(`${at()} console.${message.type()}: ${message.text().slice(0, 500)}`);
+  });
+  page.on("pageerror", (error) => log.push(`${at()} pageerror: ${error.message.slice(0, 500)}`));
+  page.on("crash", () => log.push(`${at()} the page crashed`));
+  page.on("worker", (worker) => {
+    log.push(`${at()} worker started: ${worker.url().slice(-80)}`);
+    worker.on("close", () => log.push(`${at()} worker closed: ${worker.url().slice(-80)}`));
+  });
   page.on("request", (request) => {
     const url = new URL(request.url());
     if (url.protocol.startsWith("http") && url.origin !== new URL(origin).origin) foreign.push(url.href);
@@ -93,6 +150,7 @@ export async function load(
   return {
     page,
     foreign,
+    log,
     violations: async () => {
       const seen = await page.evaluate(
         () => (window as unknown as { cspViolations: { text: string; target: string; at: string }[] }).cspViolations,
@@ -123,8 +181,9 @@ export async function chooseFile({ page }: Watched, name: string): Promise<void>
 }
 
 /** Waits for the viewer's first canvas and the window title that names `fileName`. */
-export async function opened({ page }: Watched, fileName: string): Promise<void> {
-  await page.locator(".web-viewer canvas").first().waitFor();
+export async function opened(watched: Watched, fileName: string): Promise<void> {
+  const { page } = watched;
+  await stuck(watched, `opening ${fileName}`, () => page.locator(".web-viewer canvas").first().waitFor());
   await expect.poll(() => page.title()).toBe(`${fileName} · Lamina PDF`);
 }
 
