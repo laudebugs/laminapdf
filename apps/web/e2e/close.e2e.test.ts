@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import type { Browser, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { BROWSER, launch } from "./browser.ts";
-import { chooseFile, clean, load, opened, type Watched, WITHOUT_PICKER } from "./reader.ts";
+import { chooseFile, clean, load, opened, stuck, type Watched, WITHOUT_PICKER } from "./reader.ts";
 import { type RemoteHost, startRemoteHost } from "./remote-host.ts";
 
 const origin = inject("origin");
@@ -122,14 +122,14 @@ describe(`closing a document in ${BROWSER}`, () => {
       viewport: { width: 1280, height: 800 },
     });
     const { page } = watched;
-    await page.locator(".web-viewer canvas").first().waitFor();
+    await stuck(watched, "opening the #url= link", () => page.locator(".web-viewer canvas").first().waitFor());
     await more(page, "Rotate page right");
     await recorded(page);
     await page.evaluate(() => {
       location.hash = "";
     });
     const ask = page.getByRole("alertdialog", { name: "Save changes to links-and-outlines.pdf?" });
-    await ask.getByRole("button", { name: "Cancel" }).click();
+    await stuck(watched, "asking after #url= went", () => ask.getByRole("button", { name: "Cancel" }).click());
     await expect.poll(() => page.evaluate(() => location.hash)).toBe(`#url=${encodeURIComponent(url)}`);
     expect(await page.locator(".web-viewer canvas").count()).toBeGreaterThan(0);
     await page.evaluate(() => {

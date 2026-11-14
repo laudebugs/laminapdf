@@ -286,6 +286,28 @@ describe("a view opened while hidden", () => {
     }
   });
 
+  it("draws the new document when it is hidden and shown again before the next frame (#578)", async () => {
+    // The reader hides its view while a document opens and shows it once the open is done; a
+    // quick open does both between two frames, so the ResizeObserver sees no change of size.
+    const host = box(800, 600, 170);
+    const viewer = createViewer({ client: rpc });
+    viewer.mount(host);
+    try {
+      viewer.open(await rpc.open(thousand));
+      await until(() => host.querySelectorAll("canvas").length > 0);
+      await frame();
+      const next = await rpc.open(await read("fixtures/golden/links-and-outlines.pdf"));
+      host.style.display = "none";
+      viewer.open(next);
+      host.style.display = "";
+      // Its first page is drawn: the view was placed, not left waiting for a size.
+      await until(() => viewer.getState().pageCount === next.pageCount && viewer.stats().pages[0] === "sharp");
+    } finally {
+      viewer.destroy();
+      host.remove();
+    }
+  });
+
   it("restores a kept position once it shows, painting no other page first", async () => {
     const host = box(800, 600, 170);
     host.style.display = "none";

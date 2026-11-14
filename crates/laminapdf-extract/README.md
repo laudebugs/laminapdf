@@ -96,7 +96,7 @@ The docs site's [Benchmarks](https://docs.laminapdf.com/reference/benchmarks/) p
 
 Three things explain most of the failures:
 
-- **Pages with no text.** Most are scans, which need OCR; they stay in the benchmark's subsets and count against the score, as they would for any user, and their text-layer status says so. A few others store their content with a filter this crate can't decode yet (ASCII85 or LZW), and one such page stops the whole extraction.
+- **Pages with no text.** Most are scans, which need OCR; they stay in the benchmark's subsets and count against the score, as they would for any user, and their text-layer status says so. A few others stored their content with ASCII85 or LZW, which decode since E3i.
 - **Single-page files.** Each of the benchmark's files is one page, so the running-header rule, which needs three pages, never applies. Page numbers and artifact-marked text are still dropped, which is most of what the header and footer subset passes; a header or footer that is neither stays in the text.
 - **Tables without lines.** Most of the benchmark's tables have no ruling lines, so the default finds few of them. Looking for text in columns finds many more, but reads multi-column pages as tables, which wrecks their reading order. That trade is why it stays off by default.
 

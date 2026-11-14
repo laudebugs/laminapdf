@@ -1,0 +1,258 @@
+{
+  "schema": "laminapdf.links/1",
+  "generator": {
+    "name": "laminapdf",
+    "version": "x.y.z"
+  },
+  "links": [
+    {
+      "pageIndex": 0,
+      "pageNumber": 1,
+      "rect": [
+        72.0,
+        38.0,
+        400.0,
+        56.0
+      ],
+      "kind": "destination",
+      "target": {
+        "pageIndex": 2,
+        "pageNumber": 3,
+        "view": "at",
+        "left": 72.0,
+        "top": 92.0
+      }
+    },
+    {
+      "pageIndex": 0,
+      "pageNumber": 1,
+      "rect": [
+        72.0,
+        74.0,
+        400.0,
+        92.0
+      ],
+      "kind": "destination",
+      "destination": "chapter",
+      "target": {
+        "pageIndex": 1,
+        "pageNumber": 2,
+        "view": "fitWidth",
+        "top": 192.0
+      }
+    },
+    {
+      "pageIndex": 0,
+      "pageNumber": 1,
+      "rect": [
+        72.0,
+        110.0,
+        400.0,
+        128.0
+      ],
+      "kind": "destination",
+      "destination": "appendix",
+      "target": {
+        "pageIndex": 2,
+        "pageNumber": 3,
+        "view": "fit"
+      }
+    },
+    {
+      "pageIndex": 0,
+      "pageNumber": 1,
+      "rect": [
+        72.0,
+        146.0,
+        400.0,
+        164.0
+      ],
+      "kind": "uri",
+      "uri": "https://example.com/a?b=c#d",
+      "contents": "The project site"
+    },
+    {
+      "pageIndex": 0,
+      "pageNumber": 1,
+      "rect": [
+        72.0,
+        182.0,
+        400.0,
+        200.0
+      ],
+      "kind": "uri",
+      "uri": "mailto:someone@example.com"
+    },
+    {
+      "pageIndex": 0,
+      "pageNumber": 1,
+      "rect": [
+        72.0,
+        218.0,
+        400.0,
+        236.0
+      ],
+      "kind": "uri",
+      "uri": "https://bücher.example/"
+    },
+    {
+      "pageIndex": 0,
+      "pageNumber": 1,
+      "rect": [
+        72.0,
+        254.0,
+        400.0,
+        272.0
+      ],
+      "kind": "uri",
+      "uri": "javascript:alert(1)"
+    },
+    {
+      "pageIndex": 0,
+      "pageNumber": 1,
+      "rect": [
+        72.0,
+        290.0,
+        400.0,
+        308.0
+      ],
+      "kind": "uri",
+      "uri": "file:///etc/passwd"
+    },
+    {
+      "pageIndex": 0,
+      "pageNumber": 1,
+      "rect": [
+        72.0,
+        326.0,
+        400.0,
+        344.0
+      ],
+      "kind": "uri",
+      "uri": "data:text/html,hi"
+    },
+    {
+      "pageIndex": 0,
+      "pageNumber": 1,
+      "rect": [
+        72.0,
+        362.0,
+        400.0,
+        380.0
+      ],
+      "kind": "otherFile",
+      "file": "budget-2026.pdf"
+    },
+    {
+      "pageIndex": 0,
+      "pageNumber": 1,
+      "rect": [
+        72.0,
+        398.0,
+        400.0,
+        416.0
+      ],
+      "kind": "namedAction",
+      "action": "NextPage"
+    },
+    {
+      "pageIndex": 0,
+      "pageNumber": 1,
+      "rect": [
+        72.0,
+        434.0,
+        400.0,
+        452.0
+      ],
+      "kind": "namedAction",
+      "action": "LastPage"
+    },
+    {
+      "pageIndex": 0,
+      "pageNumber": 1,
+      "rect": [
+        72.0,
+        470.0,
+        400.0,
+        488.0
+      ],
+      "kind": "unsupported",
+      "action": "Launch"
+    },
+    {
+      "pageIndex": 0,
+      "pageNumber": 1,
+      "rect": [
+        72.0,
+        506.0,
+        400.0,
+        524.0
+      ],
+      "kind": "unsupported",
+      "action": "JavaScript"
+    },
+    {
+      "pageIndex": 0,
+      "pageNumber": 1,
+      "rect": [
+        72.0,
+        542.0,
+        400.0,
+        560.0
+      ],
+      "kind": "unsupported",
+      "action": "SubmitForm"
+    },
+    {
+      "pageIndex": 0,
+      "pageNumber": 1,
+      "rect": [
+        72.0,
+        578.0,
+        400.0,
+        596.0
+      ],
+      "kind": "destination",
+      "target": {
+        "pageIndex": 1,
+        "pageNumber": 2,
+        "view": "fit"
+      }
+    },
+    {
+      "pageIndex": 0,
+      "pageNumber": 1,
+      "rect": [
+        72.0,
+        614.0,
+        400.0,
+        632.0
+      ],
+      "kind": "destination"
+    },
+    {
+      "pageIndex": 1,
+      "pageNumber": 2,
+      "rect": [
+        72.0,
+        138.0,
+        400.0,
+        156.0
+      ],
+      "kind": "namedAction",
+      "action": "FirstPage"
+    },
+    {
+      "pageIndex": 2,
+      "pageNumber": 3,
+      "rect": [
+        72.0,
+        138.0,
+        400.0,
+        156.0
+      ],
+      "kind": "namedAction",
+      "action": "PrevPage"
+    }
+  ]
+}

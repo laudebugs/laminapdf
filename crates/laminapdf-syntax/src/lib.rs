@@ -50,6 +50,7 @@ mod lexer;
 mod limits;
 mod object;
 mod parser;
+pub mod png;
 #[cfg(feature = "json")]
 mod record;
 mod rotation;

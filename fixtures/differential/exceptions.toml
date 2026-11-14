@@ -263,7 +263,7 @@ facts = ["text"]
 lamina = ""
 lamina_facts = { page_error = "unsupported-filter" }
 rule = "ADR 0003 §1: Unsupported filter (the document opens; only decoding that stream fails)"
-reason = "a content stream of the page uses a filter lamina doesn't decode (ASCIIHexDecode, ASCII85Decode, BrotliDecode, an image filter in /Contents), so the page's extraction fails and it has no text; the tool decodes it. The missing standard filters are https://github.com/laudebugs/laminapdf/issues/108"
+reason = "a content stream of the page uses a filter lamina doesn't decode (BrotliDecode, an image filter in /Contents; ASCIIHex, ASCII85, LZW and RunLength decode since todo E3i), so the page's extraction fails and it has no text; the tool decodes it. The missing standard filters are https://github.com/laudebugs/laminapdf/issues/108"
 
 [[class]]
 facts = ["text"]

@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 27 | 5 | 14 | 0 | 123 | 37 |
+| core | 169 | 27 | 5 | 17 | 0 | 120 | 40 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
 | web | 168 | 12 | 0 | 1 | 0 | 155 | 13 |
 | desktop | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
@@ -42,7 +42,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | B.01 | Insert, delete, replace images | — | — | — | — | E7 round-trip |  |
 | B.02 | Resize, rotate, crop, reposition | — | — | — | — | E7 round-trip |  |
-| B.03 | Extract original embedded images | — | — | — | — | E3 read |  |
+| B.03 | Extract original embedded images | 🟡 read | — | — | — | E3 read | [`jpegs_and_jpeg_2000_come_out_byte_for_byte`](../../crates/laminapdf-extract/tests/images.rs) core read |
 | B.04 | Adjust transparency/opacity | — | — | — | — | E6 round-trip |  |
 | B.05 | Draw lines, rectangles, circles, polygons | — | — | — | — | E6 round-trip |  |
 | B.06 | Arrows, paths, freehand drawing | — | — | — | — | E4 round-trip |  |
@@ -161,8 +161,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 | H.04 | PDF → Word | — | — | — | — | E13 read |  |
 | H.05 | PDF tables → Excel | — | — | — | — | E13 read |  |
 | H.06 | Pages → PNG/JPEG/TIFF | 🟡 read | — | — | — | E3 read | [`a_png_holds_the_drawn_pixels_with_the_resolution_in_its_header`](../../crates/laminapdf-render/tests/export.rs) core read |
-| H.07 | Extract text & images | — | — | — | — | E3 read |  |
-| H.08 | Extract hyperlinks & bookmarks | — | — | — | — | E3 read |  |
+| H.07 | Extract text & images | 🟡 read | — | — | — | E3 read | [`page_text_agrees_with_pdfjs_and_pdftotext`](../../crates/laminapdf/tests/text_differential.rs) core read<br>[`gives_as_many_images_as_pdfimages_lists_in_every_fixture`](../../crates/laminapdf-extract/tests/images.rs) core read |
+| H.08 | Extract hyperlinks & bookmarks | 🟡 read | — | — | — | E3 read | [`every_link_kind_goes_out_as_json_and_csv`](../../crates/laminapdf/tests/navigation_export.rs) core read<br>[`the_outline_goes_out_as_json_and_csv`](../../crates/laminapdf/tests/navigation_export.rs) core read |
 | H.09 | Extract attachments | — | — | — | — | E3 read |  |
 | H.10 | Export pages/ranges | 🔵 write | — | — | — | E2 write | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
 | H.11 | Render pages to images | 🟡 read | — | — | — | E3 read | [`a_png_holds_the_drawn_pixels_with_the_resolution_in_its_header`](../../crates/laminapdf-render/tests/export.rs) core read |

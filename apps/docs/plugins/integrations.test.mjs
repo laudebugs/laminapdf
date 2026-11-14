@@ -10,16 +10,18 @@ import {
   codePagePaths,
   copyWebsiteIcons,
   missingRepositoryLinks,
+  SHARE_IMAGE,
   WEBSITE_ICON_FILES,
   WEBSITE_ICONS,
 } from "./integrations.mjs";
 
 const WEBSITE = new URL("../../site/", import.meta.url);
 
-test("the docs site links the icons the website's pages link, and no others", async () => {
+test("the docs site links the icons and the share image the website's pages use, and no others", async () => {
   const base = await readFile(new URL("src/layouts/Base.astro", WEBSITE), "utf8");
   const linked = [...base.matchAll(/<link rel="(?:icon|apple-touch-icon)" href="\/([^"]+)"/g)].map(([, file]) => file);
-  assert.deepEqual([...WEBSITE_ICON_FILES].sort(), linked.sort());
+  assert.ok(base.includes(`new URL("${SHARE_IMAGE}", Astro.site)`), `Base.astro's share image is ${SHARE_IMAGE}`);
+  assert.deepEqual([...WEBSITE_ICON_FILES].sort(), [...linked, SHARE_IMAGE.slice(1)].sort());
   for (const { attrs } of WEBSITE_ICONS.head) {
     assert.ok(
       base.includes(`rel="${attrs.rel}" href="${attrs.href}"`),
