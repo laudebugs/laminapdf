@@ -44,6 +44,8 @@ struct Output {
     data: Vec<u8>,
     cap: usize,
     over: Limit,
+    /// The filter skipped characters outside its alphabet ([`Decoded::characters_skipped`]).
+    skipped: bool,
 }
 
 impl Output {
@@ -52,6 +54,7 @@ impl Output {
             data: Vec::new(),
             cap,
             over,
+            skipped: false,
         }
     }
 
@@ -100,20 +103,28 @@ impl Output {
         self.data.len()
     }
 
+    /// Notes that the filter skipped a character outside its alphabet.
+    const fn skip(&mut self) {
+        self.skipped = true;
+    }
+
     fn into_inner(self) -> Vec<u8> {
         self.data
     }
 }
 
-/// Runs `filter` on `input` within `limits`, charging its output to `budget`.
+/// Runs `filter` on `input` within `limits`, charging its output to `budget`; sets `skipped`
+/// when the filter skipped characters outside its alphabet.
 fn stage(
     input: &[u8],
     limits: &Limits,
     budget: &mut DecodeBudget,
+    skipped: &mut bool,
     filter: impl FnOnce(&[u8], &mut Output) -> Result<()>,
 ) -> Result<Vec<u8>> {
     let mut out = Output::within(limits, *budget);
     filter(input, &mut out)?;
+    *skipped |= out.skipped;
     let data = out.into_inner();
     budget.spend(data.len());
     Ok(data)
@@ -130,6 +141,12 @@ pub struct Decoded {
     /// True when Flate data was truncated or had a bad checksum and the partial output was
     /// kept (the reader reports it as the `flate-truncated` warning).
     pub flate_truncated: bool,
+    /// True when `ASCIIHexDecode` or `ASCII85Decode` data held characters outside the filter's
+    /// alphabet, which were skipped as other readers skip them (the reader reports it as the
+    /// `filter-characters-skipped` warning).
+    ///
+    /// Added in 0.4.0.
+    pub characters_skipped: bool,
 }
 
 /// Zlib-compresses `data` at the default level (6).
@@ -169,7 +186,11 @@ pub fn flate_decode(data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -> 
         },
     };
     budget.spend(data.len());
-    Ok(Decoded { data, flate_truncated })
+    Ok(Decoded {
+        data,
+        flate_truncated,
+        characters_skipped: false,
+    })
 }
 
 /// A filter's full name for its inline-image abbreviation (ISO 32000-2 §8.9.7, Table 92):
@@ -230,6 +251,7 @@ pub fn decode(dict: &Dict, data: &[u8], limits: &Limits, budget: &mut DecodeBudg
     let all_parms = dict.get("DecodeParms");
     let mut current: Option<Vec<u8>> = None;
     let mut flate_truncated = false;
+    let mut skipped = false;
     for (i, filter) in filters.iter().enumerate() {
         let input = current.as_deref().unwrap_or(data);
         let parms = match all_parms {
@@ -245,12 +267,14 @@ pub fn decode(dict: &Dict, data: &[u8], limits: &Limits, budget: &mut DecodeBudg
             }
             b"LZWDecode" => {
                 let early = int_param(parms, "EarlyChange", 1) != 0;
-                let raw = stage(input, limits, budget, |data, out| lzw::decode(data, early, out))?;
+                let raw = stage(input, limits, budget, &mut skipped, |data, out| {
+                    lzw::decode(data, early, out)
+                })?;
                 apply_predictor(raw, parms)?
             }
-            b"ASCIIHexDecode" => stage(input, limits, budget, text::ascii_hex)?,
-            b"ASCII85Decode" => stage(input, limits, budget, text::ascii85)?,
-            b"RunLengthDecode" => stage(input, limits, budget, text::run_length)?,
+            b"ASCIIHexDecode" => stage(input, limits, budget, &mut skipped, text::ascii_hex)?,
+            b"ASCII85Decode" => stage(input, limits, budget, &mut skipped, text::ascii85)?,
+            b"RunLengthDecode" => stage(input, limits, budget, &mut skipped, text::run_length)?,
             other => return Err(Error::UnsupportedFilter(String::from_utf8_lossy(other).into_owned())),
         };
         current = Some(decoded);
@@ -258,6 +282,7 @@ pub fn decode(dict: &Dict, data: &[u8], limits: &Limits, budget: &mut DecodeBudg
     Ok(Decoded {
         data: current.unwrap_or_else(|| data.to_vec()),
         flate_truncated,
+        characters_skipped: skipped,
     })
 }
 

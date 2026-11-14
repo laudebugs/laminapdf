@@ -25,6 +25,7 @@ A PR that adds a code adds:
 | [`page-tree-node-skipped`](page-tree-node-skipped.md) | `input` | a page-tree node was missing, malformed or too deep, and was skipped |
 | [`page-count-mismatch`](page-count-mismatch.md) | `input` | the page tree's /Count differs from the number of pages walked |
 | [`flate-truncated`](flate-truncated.md) | `input` | Flate data was truncated or had a bad checksum; the partial output was kept |
+| [`filter-characters-skipped`](filter-characters-skipped.md) | `input` | ASCIIHex or ASCII85 data held characters outside the filter's alphabet; they were skipped |
 | [`objstm-index-mismatch`](objstm-index-mismatch.md) | `input` | an object stream's index was stale and the object was found by searching |
 | [`object-number-out-of-range`](object-number-out-of-range.md) | `limit` | an xref entry above max_object_number was dropped |
 | [`aes-padding-invalid`](aes-padding-invalid.md) | `security` | AES-encrypted data had a bad length or padding and was kept as stored |

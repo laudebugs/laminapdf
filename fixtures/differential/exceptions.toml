@@ -239,18 +239,6 @@ issue = "https://github.com/laudebugs/laminapdf/issues/37"
 reason = "lamina fails with `syntax` where pdf.js and PDFium open the file and qpdf and pypdf repair it"
 
 [[known]]
-file = "pdfjs/test/pdfs/issue14267.pdf"
-facts = ["outline_titles"]
-issue = "https://github.com/laudebugs/laminapdf/issues/37"
-reason = "an undefined PDFDocEncoding byte (0x11) becomes U+FFFD in lamina; pdf.js, qpdf and pypdf keep U+0011, PDFium a space"
-
-[[known]]
-file = "pdfjs/test/pdfs/xfa_filled_imm1344e.pdf"
-facts = ["outline_titles"]
-issue = "https://github.com/laudebugs/laminapdf/issues/37"
-reason = "an undefined PDFDocEncoding byte (0x00) at the end of each title becomes U+FFFD in lamina; pdf.js, qpdf and pypdf keep U+0000, PDFium a space"
-
-[[known]]
 file = "pdfjs/test/pdfs/issue22011.pdf"
 facts = ["page_count"]
 issue = "https://github.com/laudebugs/laminapdf/issues/37"
@@ -533,3 +521,11 @@ reason = "page text differs from both tools for reasons still to triage (order o
 "qpdf/qpdf/qtest/qpdf/fx-overlay-64.pdf" = "1"
 "qpdf/qpdf/qtest/qpdf/fx-overlay-66.pdf" = "1"
 "qpdf/qpdf/qtest/qpdf/stream-line-enders.pdf" = "0"
+
+[[known]]
+facts = ["text"]
+issue = "https://github.com/laudebugs/laminapdf/issues/597"
+reason = "a fuzzed file: lamina decodes its ASCIIHex and ASCII85 content and keeps reading past content errors that make pdf.js stop the page, so its text runs on with damaged bytes (and keeps a ﬁ ligature on page 0)"
+
+[known.pages]
+"pdfjs/test/pdfs/poppler-90-0-fuzzed.pdf" = "0-1, 9, 13"

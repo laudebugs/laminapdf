@@ -1059,6 +1059,8 @@ pub enum WarningCode {
     PageCountMismatch,
     /// `flate-truncated`: Flate data was truncated or had a bad checksum; the partial output was kept.
     FlateTruncated,
+    /// `filter-characters-skipped`: ASCIIHex or ASCII85 data held characters outside the filter's alphabet; they were skipped.
+    FilterCharactersSkipped,
     /// `objstm-index-mismatch`: an object stream's index was stale and the object was found by searching.
     ObjstmIndexMismatch,
     /// `object-number-out-of-range`: an xref entry above max_object_number was dropped.
@@ -1186,6 +1188,7 @@ impl WarningCode {
         Self::PageTreeNodeSkipped,
         Self::PageCountMismatch,
         Self::FlateTruncated,
+        Self::FilterCharactersSkipped,
         Self::ObjstmIndexMismatch,
         Self::ObjectNumberOutOfRange,
         Self::AesPaddingInvalid,
@@ -1273,6 +1276,7 @@ impl WarningCode {
             Self::PageTreeNodeSkipped => "page-tree-node-skipped",
             Self::PageCountMismatch => "page-count-mismatch",
             Self::FlateTruncated => "flate-truncated",
+            Self::FilterCharactersSkipped => "filter-characters-skipped",
             Self::ObjstmIndexMismatch => "objstm-index-mismatch",
             Self::ObjectNumberOutOfRange => "object-number-out-of-range",
             Self::AesPaddingInvalid => "aes-padding-invalid",
@@ -1346,6 +1350,7 @@ impl WarningCode {
             Self::PageTreeNodeSkipped => ErrorKind::Input,
             Self::PageCountMismatch => ErrorKind::Input,
             Self::FlateTruncated => ErrorKind::Input,
+            Self::FilterCharactersSkipped => ErrorKind::Input,
             Self::ObjstmIndexMismatch => ErrorKind::Input,
             Self::ObjectNumberOutOfRange => ErrorKind::Limit,
             Self::AesPaddingInvalid => ErrorKind::Security,
@@ -1419,6 +1424,7 @@ impl WarningCode {
             Self::PageTreeNodeSkipped => "a page-tree node was missing, malformed or too deep, and was skipped",
             Self::PageCountMismatch => "the page tree's /Count differs from the number of pages walked",
             Self::FlateTruncated => "Flate data was truncated or had a bad checksum; the partial output was kept",
+            Self::FilterCharactersSkipped => "ASCIIHex or ASCII85 data held characters outside the filter's alphabet; they were skipped",
             Self::ObjstmIndexMismatch => "an object stream's index was stale and the object was found by searching",
             Self::ObjectNumberOutOfRange => "an xref entry above max_object_number was dropped",
             Self::AesPaddingInvalid => "AES-encrypted data had a bad length or padding and was kept as stored",
@@ -1492,6 +1498,7 @@ impl WarningCode {
             Self::PageTreeNodeSkipped => "check the page count: pages under the skipped node are missing",
             Self::PageCountMismatch => "nothing to do; Lamina PDF uses the walked page count",
             Self::FlateTruncated => "check the affected content: the end of the stream may be missing",
+            Self::FilterCharactersSkipped => "check the affected content: the stream is damaged, and what decoded may differ from what was written",
             Self::ObjstmIndexMismatch => "nothing to do; a full rewrite writes a correct index",
             Self::ObjectNumberOutOfRange => "raise max_object_number in Limits only if you trust the input",
             Self::AesPaddingInvalid => "treat the affected strings and streams as suspect: they may have been tampered with",

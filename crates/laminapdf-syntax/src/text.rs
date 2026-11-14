@@ -14,7 +14,7 @@
 //! assert_eq!(decode_text_string(b"\xef\xbb\xbfna\xc3\xafve"), "naïve");
 //! ```
 
-/// The Unicode replacement character, produced for undefined codes and invalid sequences.
+/// The Unicode replacement character, produced for invalid UTF-16 and UTF-8 sequences.
 ///
 /// Added in 0.2.0.
 pub const REPLACEMENT: char = '\u{FFFD}';
@@ -131,7 +131,10 @@ pub fn pdf_doc_encode(c: char) -> Option<u8> {
 ///   become U+FFFD; language escape sequences (`U+001B`, a language code, `U+001B`,
 ///   §7.9.2.2.1) are removed.
 /// * Bytes starting with `EF BB BF` are UTF-8 (PDF 2.0); invalid sequences become U+FFFD.
-/// * Anything else is `PDFDocEncoding`; undefined codes become U+FFFD.
+/// * Anything else is `PDFDocEncoding`. An undefined code (a C0 control other than tab, line
+///   feed and carriage return, 0x7F, 0x9F, 0xAD) keeps its own scalar, U+0000–U+00FF, as
+///   pdf.js, qpdf and pypdf read it: nothing is lost, and a caller that shows the text can
+///   drop control characters (ADR 0003 §1).
 ///
 /// Never fails: text strings are display data, and a damaged one is still worth showing.
 ///
@@ -145,7 +148,7 @@ pub fn decode_text_string(bytes: &[u8]) -> String {
     } else {
         bytes
             .iter()
-            .map(|&b| pdf_doc_decode(b).unwrap_or(REPLACEMENT))
+            .map(|&b| pdf_doc_decode(b).unwrap_or_else(|| char::from(b)))
             .collect()
     }
 }
@@ -316,9 +319,9 @@ mod tests {
     }
 
     #[test]
-    fn decode_text_string_replaces_undefined_pdfdoc_codes() {
-        for code in UNDEFINED {
-            assert_eq!(decode_text_string(&[b'a', code]), "a\u{FFFD}");
+    fn decode_text_string_keeps_an_undefined_pdfdoc_code_as_its_own_scalar() {
+        for code in UNDEFINED.into_iter().chain([0x11]) {
+            assert_eq!(decode_text_string(&[b'a', code]), format!("a{}", char::from(code)));
         }
     }
 

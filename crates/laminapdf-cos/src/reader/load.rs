@@ -335,6 +335,9 @@ impl Document {
         if decoded.flate_truncated {
             self.warn(Warning::FlateTruncated { object })?;
         }
+        if decoded.characters_skipped {
+            self.warn(Warning::FilterCharactersSkipped { object })?;
+        }
         Ok(decoded.data)
     }
 

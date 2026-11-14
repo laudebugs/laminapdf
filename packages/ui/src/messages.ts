@@ -198,6 +198,7 @@ const EN = {
   "repairCode.page-tree-node-skipped": "Left out part of the list of pages that couldn't be read",
   "repairCode.page-count-mismatch": "Counted the pages again, since the stated count was wrong",
   "repairCode.flate-truncated": "Read as much as possible of compressed data that ended early",
+  "repairCode.filter-characters-skipped": "Skipped characters that don't belong in encoded data",
   "repairCode.objstm-index-mismatch": "Read objects from a container whose index was wrong",
   "repairCode.object-number-out-of-range": "Ignored references to objects the file doesn't have",
   "repairCode.aes-padding-invalid": "Decrypted data whose padding was wrong",

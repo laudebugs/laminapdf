@@ -62,6 +62,13 @@
       "since": "0.1.0"
     },
     {
+      "code": "filter-characters-skipped",
+      "kind": "input",
+      "summary": "ASCIIHex or ASCII85 data held characters outside the filter's alphabet; they were skipped",
+      "hint": "check the affected content: the stream is damaged, and what decoded may differ from what was written",
+      "since": "0.4.0"
+    },
+    {
       "code": "objstm-index-mismatch",
       "kind": "input",
       "summary": "an object stream's index was stale and the object was found by searching",

@@ -61,6 +61,14 @@ pub enum Warning {
         /// The stream's object number, when known.
         object: Option<u32>,
     },
+    /// `filter-characters-skipped`: `ASCIIHexDecode` or `ASCII85Decode` data held characters
+    /// outside the filter's alphabet, which were skipped.
+    ///
+    /// Added in 0.4.0.
+    FilterCharactersSkipped {
+        /// The stream's object number, when known.
+        object: Option<u32>,
+    },
     /// `objstm-index-mismatch`: an object-stream index was stale and a search found the object.
     ObjStmIndexMismatch {
         /// The object found by searching.
@@ -358,6 +366,7 @@ impl Warning {
         "page-tree-node-skipped",
         "page-count-mismatch",
         "flate-truncated",
+        "filter-characters-skipped",
         "objstm-index-mismatch",
         "object-number-out-of-range",
         "aes-padding-invalid",
@@ -411,6 +420,7 @@ impl Warning {
             Self::PageTreeNodeSkipped { .. } => "page-tree-node-skipped",
             Self::PageCountMismatch { .. } => "page-count-mismatch",
             Self::FlateTruncated { .. } => "flate-truncated",
+            Self::FilterCharactersSkipped { .. } => "filter-characters-skipped",
             Self::ObjStmIndexMismatch { .. } => "objstm-index-mismatch",
             Self::ObjectNumberOutOfRange { .. } => "object-number-out-of-range",
             Self::AesPaddingInvalid { .. } => "aes-padding-invalid",
@@ -467,6 +477,7 @@ impl Warning {
             Self::PageTreeNodeSkipped { object }
             | Self::PageCountMismatch { object, .. }
             | Self::FlateTruncated { object }
+            | Self::FilterCharactersSkipped { object }
             | Self::InvalidBox { object, .. }
             | Self::InvalidRotate { object, .. }
             | Self::NameTreeNodeSkipped { object }
@@ -522,6 +533,7 @@ impl Warning {
             | Self::PageTreeNodeSkipped { .. }
             | Self::PageCountMismatch { .. }
             | Self::FlateTruncated { .. }
+            | Self::FilterCharactersSkipped { .. }
             | Self::ObjStmIndexMismatch { .. }
             | Self::InvalidBox { .. }
             | Self::InvalidRotate { .. }
@@ -701,6 +713,7 @@ mod tests {
                 walked: 0,
             },
             Warning::FlateTruncated { object: None },
+            Warning::FilterCharactersSkipped { object: None },
             Warning::ObjStmIndexMismatch { object: 1 },
             Warning::ObjectNumberOutOfRange { object: 1 },
             Warning::AesPaddingInvalid { object: 1 },
@@ -803,6 +816,7 @@ mod tests {
                 | Warning::PageTreeNodeSkipped { .. }
                 | Warning::PageCountMismatch { .. }
                 | Warning::FlateTruncated { .. }
+                | Warning::FilterCharactersSkipped { .. }
                 | Warning::ObjStmIndexMismatch { .. }
                 | Warning::ObjectNumberOutOfRange { .. }
                 | Warning::AesPaddingInvalid { .. }

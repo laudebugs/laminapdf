@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-28
+- Amended 2026-11-14: §1 skips characters outside the ASCIIHex and ASCII85 alphabets with a warning (`filter-characters-skipped`), as other readers do, instead of failing the stream; a text string's undefined PDFDocEncoding byte keeps its own scalar instead of becoming U+FFFD.
 
 ## Context
 
@@ -29,6 +30,8 @@ The policy already exists in code, ported from the spike and fixed in review of 
 | Integer too large for `i64` | Becomes a `Real` (§7.3.3); integers up to `i64::MAX` stay exact | `lexer::parse_number` |
 | Truncated Flate data or bad Adler-32 | Partial output is kept if non-empty; no output → `Error::Decompress` | `filters::flate_decode` |
 | Unsupported filter | The document opens; only decoding that stream fails (`Error::UnsupportedFilter`) | `filters::decode` |
+| ASCIIHex or ASCII85 data with characters outside the filter's alphabet, or an ASCII85 last group of one character | Skipped, and the rest decodes, as pdf.js and poppler do (§7.4.2 and §7.4.3 call them errors); warning `filter-characters-skipped` | `filters::text` |
+| A text string's byte that PDFDocEncoding leaves undefined (a C0 control but tab, line feed and carriage return; 0x7F, 0x9F, 0xAD) | Kept as its own scalar, U+0000–U+00FF, as pdf.js, qpdf and pypdf read it, so nothing is lost; a caller that shows the text may drop control characters | `text::decode_text_string` |
 | Encrypted file (standard security handler, R2–R6) | Opens and decrypts given its user or owner password (the empty user password is tried when none is given); strings and streams are decrypted as objects load. Exempt: the `/Encrypt` dictionary, xref streams, the trailer `/ID`, a signature's `/Contents`, object-stream members (their container is decrypted once), and the XMP metadata stream when `/EncryptMetadata` is false. AES data that isn't `IV ‖ whole blocks` is kept as stored and bad padding is kept unstripped (`aes-padding-invalid`); a plaintext object spliced into an encrypted file (PDFex) is decrypted like any other, i.e. to garbage. An R5/R6 `/Perms` that disagrees with `/P` → `perms-mismatch`. No password or a wrong one → `PasswordRequired` / `WrongPassword`; another handler (public key) or an unknown `/V`/`/R`/`/CFM` → `UnsupportedSecurityHandler` | `reader/encrypt.rs`, `Document::load_in_file`, `laminapdf_syntax::crypt` |
 
 **Rejected** (errors, never repaired): empty input or no `n g obj` anywhere (`NotPdf`); no catalog even after repair (`MissingRoot`); an encrypted file without the right password (`PasswordRequired`, `WrongPassword`) or with a handler lamina can't decrypt (`UnsupportedSecurityHandler`); reference and page-tree cycles (`ReferenceCycle`); exceeding a **hard** limit (§3) outside a tolerant path. Soft limits, and hard limits hit inside a tolerant path, degrade with a warning instead (§3). A malformed object is an error *for the call that resolves it*, not for `open`; errors are not cached. **Writing is strict:** an incremental update refuses a repaired base (`RepairedBase`) or an encrypted one (`EncryptedBase`, until full-editor E11), never shrinks `/Size`, and appends a section of the same kind as the newest.
@@ -47,6 +50,7 @@ Every repair or substitution the caller might care about is a `Warning`, never s
 | `page-tree-node-skipped` | A kid or `/Kids` was missing, unparsable or the wrong type | exists |
 | `page-count-mismatch` | A `/Count` differs from the walked page count | exists |
 | `flate-truncated` | Flate output was kept despite truncation or a bad checksum | exists |
+| `filter-characters-skipped` | ASCIIHex or ASCII85 characters outside the alphabet were skipped | exists (2026-11-14) |
 | `objstm-index-mismatch` | An object-stream index was stale and a search found the object | exists |
 | `object-number-out-of-range` | An entry above `Limits::max_object_number` was dropped | exists |
 | `aes-padding-invalid` | AES data was not `IV ‖ whole blocks` (kept as stored) or had invalid PKCS#5 padding (kept unstripped) | exists |
