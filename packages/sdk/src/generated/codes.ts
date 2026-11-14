@@ -178,10 +178,12 @@ export type WarningCode =
   | "xref-repaired"
   | "xrefstm-ignored"
   | "stream-length-recovered"
+  | "dictionary-key-skipped"
   | "stale-generation"
   | "page-tree-node-skipped"
   | "page-count-mismatch"
   | "flate-truncated"
+  | "filter-characters-skipped"
   | "objstm-index-mismatch"
   | "object-number-out-of-range"
   | "aes-padding-invalid"
@@ -420,10 +422,12 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "xref-repaired",
   "xrefstm-ignored",
   "stream-length-recovered",
+  "dictionary-key-skipped",
   "stale-generation",
   "page-tree-node-skipped",
   "page-count-mismatch",
   "flate-truncated",
+  "filter-characters-skipped",
   "objstm-index-mismatch",
   "object-number-out-of-range",
   "aes-padding-invalid",
@@ -492,10 +496,12 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "xref-repaired": "input",
   "xrefstm-ignored": "input",
   "stream-length-recovered": "input",
+  "dictionary-key-skipped": "input",
   "stale-generation": "input",
   "page-tree-node-skipped": "input",
   "page-count-mismatch": "input",
   "flate-truncated": "input",
+  "filter-characters-skipped": "input",
   "objstm-index-mismatch": "input",
   "object-number-out-of-range": "limit",
   "aes-padding-invalid": "security",
@@ -708,10 +714,12 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "xref-repaired": "check the result; save with a full rewrite, since an incremental update refuses a repaired base",
   "xrefstm-ignored": "nothing to do; the classic xref table is used instead",
   "stream-length-recovered": "nothing to do; a full rewrite writes the correct length",
+  "dictionary-key-skipped": "nothing to do if the document reads correctly; open in strict mode to refuse such files",
   "stale-generation": "nothing to do; the reference is treated as missing",
   "page-tree-node-skipped": "check the page count: pages under the skipped node are missing",
   "page-count-mismatch": "nothing to do; Lamina PDF uses the walked page count",
   "flate-truncated": "check the affected content: the end of the stream may be missing",
+  "filter-characters-skipped": "check the affected content: the stream is damaged, and what decoded may differ from what was written",
   "objstm-index-mismatch": "nothing to do; a full rewrite writes a correct index",
   "object-number-out-of-range": "raise max_object_number in Limits only if you trust the input",
   "aes-padding-invalid": "treat the affected strings and streams as suspect: they may have been tampered with",

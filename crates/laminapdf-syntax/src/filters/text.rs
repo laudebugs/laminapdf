@@ -6,7 +6,8 @@ use crate::error::Result;
 use crate::lexer::hex_value;
 
 /// `ASCIIHexDecode`: pairs of hex digits, white space ignored, `>` ends the data; a last
-/// unpaired digit counts as followed by 0.
+/// unpaired digit counts as followed by 0. Any other character is an error to ISO 32000-2
+/// §7.4.2; it is skipped, as pdf.js and poppler skip it, and noted on `out` (ADR 0003 §1).
 pub(super) fn ascii_hex(data: &[u8], out: &mut Output) -> Result<()> {
     let mut high: Option<u8> = None;
     for &byte in data {
@@ -16,7 +17,10 @@ pub(super) fn ascii_hex(data: &[u8], out: &mut Output) -> Result<()> {
         if byte.is_ascii_whitespace() || byte == 0 {
             continue;
         }
-        let digit = hex_value(byte).ok_or(bad("ASCIIHexDecode: not a hex digit"))?;
+        let Some(digit) = hex_value(byte) else {
+            out.skip();
+            continue;
+        };
         match high.take() {
             None => high = Some(digit),
             Some(h) => out.push(h << 4 | digit)?,
@@ -30,7 +34,8 @@ pub(super) fn ascii_hex(data: &[u8], out: &mut Output) -> Result<()> {
 
 /// `ASCII85Decode`: groups of five characters `!`–`u` for four bytes, `z` for four zeros,
 /// white space ignored, `~>` ends the data; a last group of two to four characters gives one
-/// to three bytes.
+/// to three bytes. A character outside the alphabet, and a last group of one character, are
+/// errors to ISO 32000-2 §7.4.3; they are skipped, as pdf.js skips them, and noted on `out`.
 pub(super) fn ascii85(data: &[u8], out: &mut Output) -> Result<()> {
     let mut group = [0u8; 5];
     let mut len = 0;
@@ -49,12 +54,15 @@ pub(super) fn ascii85(data: &[u8], out: &mut Output) -> Result<()> {
                 }
             }
             _ if byte.is_ascii_whitespace() || byte == 0 => {}
-            _ => return Err(bad("ASCII85Decode: a character outside the alphabet")),
+            _ => out.skip(),
         }
     }
     match len {
         0 => Ok(()),
-        1 => Err(bad("ASCII85Decode: a last group of one character")),
+        1 => {
+            out.skip();
+            Ok(())
+        }
         _ => {
             // Pad with `u` (84), the largest digit, and keep the first len - 1 bytes.
             group.iter_mut().skip(len).for_each(|slot| *slot = 84);
@@ -109,9 +117,33 @@ mod tests {
         assert_eq!(run(ascii_hex, b"48 65\n6c6C6f 7>ignored"), Ok(b"Hello\x70".to_vec()));
     }
 
+    /// The decoded bytes and whether the filter skipped characters.
+    fn run_skipping(filter: fn(&[u8], &mut Output) -> Result<()>, data: &[u8]) -> Result<(Vec<u8>, bool)> {
+        let mut out = Output::new(1 << 20, crate::limits::Limit::StreamDecoded);
+        filter(data, &mut out)?;
+        let skipped = out.skipped;
+        Ok((out.into_inner(), skipped))
+    }
+
     #[test]
-    fn ascii_hex_refuses_a_letter_past_f() {
-        assert!(run(ascii_hex, b"4G").is_err());
+    fn ascii_hex_skips_a_character_that_is_not_a_hex_digit_and_says_so() {
+        assert_eq!(run_skipping(ascii_hex, b"4G8 6@5>"), Ok((b"He".to_vec(), true)));
+    }
+
+    #[test]
+    fn ascii_hex_says_nothing_was_skipped_for_clean_data() {
+        assert_eq!(run_skipping(ascii_hex, b"48 65>"), Ok((b"He".to_vec(), false)));
+    }
+
+    #[test]
+    fn ascii85_skips_a_character_outside_its_alphabet_and_says_so() {
+        // "Man " is 9jqo^; `{` (past `u`) is skipped.
+        assert_eq!(run_skipping(ascii85, b"9j{qo^~>"), Ok((b"Man ".to_vec(), true)));
+    }
+
+    #[test]
+    fn ascii85_drops_a_last_group_of_one_character_and_says_so() {
+        assert_eq!(run_skipping(ascii85, b"9jqo^9~>"), Ok((b"Man ".to_vec(), true)));
     }
 
     #[test]

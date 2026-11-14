@@ -34,6 +34,13 @@
       "since": "0.1.0"
     },
     {
+      "code": "dictionary-key-skipped",
+      "kind": "input",
+      "summary": "a dictionary had something other than a name where a key belongs, and it was skipped",
+      "hint": "nothing to do if the document reads correctly; open in strict mode to refuse such files",
+      "since": "0.4.0"
+    },
+    {
       "code": "stale-generation",
       "kind": "input",
       "summary": "a reference's generation did not match its xref entry, so it resolved to null",
@@ -60,6 +67,13 @@
       "summary": "Flate data was truncated or had a bad checksum; the partial output was kept",
       "hint": "check the affected content: the end of the stream may be missing",
       "since": "0.1.0"
+    },
+    {
+      "code": "filter-characters-skipped",
+      "kind": "input",
+      "summary": "ASCIIHex or ASCII85 data held characters outside the filter's alphabet; they were skipped",
+      "hint": "check the affected content: the stream is damaged, and what decoded may differ from what was written",
+      "since": "0.4.0"
     },
     {
       "code": "objstm-index-mismatch",

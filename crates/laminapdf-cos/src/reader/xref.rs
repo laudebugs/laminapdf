@@ -80,6 +80,8 @@ pub(crate) struct XrefTable {
     pub(crate) ignored_xref_streams: Vec<u64>,
     /// Entries dropped for exceeding `Limits::max_object_number` (`object-number-out-of-range`).
     pub(crate) dropped_objects: BTreeSet<u32>,
+    /// What reading the chain's sections skipped, each a warning when the file opens.
+    pub(crate) skipped: ChainSkips,
     /// The head of the free list (§7.5.4): object 0's next-free number in the newest section
     /// that lists object 0.
     pub(crate) free_head: Option<u32>,
@@ -153,17 +155,29 @@ pub(crate) fn load(source: &Source, start: usize, limits: &Limits, budget: &mut 
         if table.sections >= limits.max_xref_sections() {
             return Err(invalid("more /Prev sections than Limits::max_xref_sections"));
         }
-        let (mut entries, trailer, is_stream, head) = parse_section(source, offset, limits, budget)?;
+        let Section {
+            mut entries,
+            trailer,
+            is_stream,
+            free_head,
+            skipped_keys,
+            characters_skipped,
+        } = parse_section(source, offset, limits, budget)?;
         if table.free_head.is_none() {
-            table.free_head = head;
+            table.free_head = free_head;
         }
+        table.skipped.trailer_keys |= skipped_keys;
+        table.skipped.xref_characters |= characters_skipped;
         table.has_xref_stream |= is_stream;
         if let Some(stm) = trailer.get_int("XRefStm").and_then(|o| usize::try_from(o).ok()) {
             // Hybrid file: the classic table's in-use entries win; the stream only fills in
             // numbers the table omits or marks free (compressed objects are typically
             // hidden from pre-1.5 readers that way). A broken XRefStm is ignored.
             match parse_section(source, stm, limits, budget) {
-                Ok((stream_entries, _, _, _)) => {
+                Ok(Section {
+                    entries: stream_entries,
+                    ..
+                }) => {
                     table.has_xref_stream = true;
                     for (num, entry) in stream_entries {
                         if matches!(entries.get(&num), None | Some(XrefEntry::Free)) {
@@ -194,9 +208,33 @@ pub(crate) fn load(source: &Source, start: usize, limits: &Limits, budget: &mut 
     Ok(table)
 }
 
-/// A section's entries, trailer, whether it is an xref stream, and object 0's next-free
-/// number when the section lists object 0 as free.
-type Section = (BTreeMap<u32, XrefEntry>, Dict, bool, Option<u32>);
+/// What one cross-reference section holds.
+#[derive(Debug)]
+struct Section {
+    entries: BTreeMap<u32, XrefEntry>,
+    /// The trailer, or the xref stream's dictionary.
+    trailer: Dict,
+    is_stream: bool,
+    /// Object 0's next-free number, when the section lists object 0 as free.
+    free_head: Option<u32>,
+    /// Whether the trailer or stream dictionary had something other than a name where a key
+    /// belongs, which was skipped (`dictionary-key-skipped`).
+    skipped_keys: bool,
+    /// Whether the xref stream's data held characters its filter skipped
+    /// (`filter-characters-skipped`).
+    characters_skipped: bool,
+}
+
+/// What reading an xref chain's sections skipped.
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct ChainSkips {
+    /// A trailer or xref-stream dictionary had something other than a name where a key
+    /// belongs (`dictionary-key-skipped`).
+    pub(crate) trailer_keys: bool,
+    /// An xref stream's `ASCIIHexDecode` or `ASCII85Decode` data held characters outside the
+    /// filter's alphabet (`filter-characters-skipped`).
+    pub(crate) xref_characters: bool,
+}
 
 /// Reads the classic table or the xref stream at `offset`.
 fn parse_section(source: &Source, offset: usize, limits: &Limits, budget: &mut DecodeBudget) -> Result<Section> {
@@ -205,13 +243,20 @@ fn parse_section(source: &Source, offset: usize, limits: &Limits, budget: &mut D
         lex.skip_whitespace();
         let pos = lex.pos();
         if let Ok(Token::Keyword(b"xref")) = lex.next_token() {
-            return parse_table(p).map(Some);
+            return parse_table(p).map(|table| Some((table, p.skipped_keys())));
         }
         p.lexer().set_pos(pos);
         Ok(None)
     })??;
-    if let Some((entries, trailer, head)) = table {
-        return Ok((entries, trailer, false, head));
+    if let Some(((entries, trailer, free_head), skipped_keys)) = table {
+        return Ok(Section {
+            entries,
+            trailer,
+            is_stream: false,
+            free_head,
+            skipped_keys,
+            characters_skipped: false,
+        });
     }
     // Decoding happens after the (possibly repeated) windowed parse, so the budget is
     // charged once.
@@ -223,8 +268,15 @@ fn parse_section(source: &Source, offset: usize, limits: &Limits, budget: &mut D
         return Err(invalid("stream at startxref is not /Type /XRef"));
     }
     let decoded = filters::decode(&stream.dict, &stream.data, limits, budget)?;
-    let (entries, head) = parse_stream_entries(&stream.dict, &decoded.data)?;
-    Ok((entries, stream.dict, true, head))
+    let (entries, free_head) = parse_stream_entries(&stream.dict, &decoded.data)?;
+    Ok(Section {
+        entries,
+        trailer: stream.dict,
+        is_stream: true,
+        free_head,
+        skipped_keys: parsed.skipped_keys,
+        characters_skipped: decoded.characters_skipped,
+    })
 }
 
 /// Reads the subsections and the trailer after `xref`, with `parser`'s lexer just past it.
@@ -432,7 +484,7 @@ mod tests {
     #[test]
     fn parse_table_accepts_mixed_eols() {
         let input = b"xref\n0 2\n0000000000 65535 f\r\n0000000017 00000 n \ntrailer\n<< /Size 2 >>";
-        let (entries, _, _, _) = section(input).unwrap();
+        let entries = section(input).unwrap().entries;
         assert_eq!(entries.get(&1), Some(&XrefEntry::InFile { offset: 17, gen_nr: 0 }));
     }
 

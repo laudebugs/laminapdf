@@ -13,6 +13,11 @@ issue = "https://github.com/laudebugs/laminapdf/issues/527"
 reason = "ExifTool reads no XMP from this file, whose startxref is wrong (lamina and pypdf repair it); pypdf reads lamina's dates"
 
 [[known]]
+file = "pdfjs/test/pdfs/issue18529.pdf"
+issue = "https://github.com/laudebugs/laminapdf/issues/527"
+reason = "the metadata stream is ASCIIHexDecode-encoded, which ExifTool doesn't decode, so it reads no XMP; lamina decodes it (since 0.4.0) and reads the packet's dates, creator tool and IDs"
+
+[[known]]
 file = "pdfjs/test/pdfs/highlights.pdf"
 issue = "https://github.com/laudebugs/laminapdf/issues/527"
 reason = "ExifTool reads no XMP from this file (object streams over four revisions); pypdf reads lamina's dates, creator tool and producer"

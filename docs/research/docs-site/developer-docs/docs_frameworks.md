@@ -79,7 +79,7 @@ Sources: [npm downloads API](https://api.npmjs.org/downloads/point/last-week/@do
 - llms.txt is mentioned for Fumapress, a separate Waku-based generator.
 - Fumadocs' own guide says a migration from Docusaurus needs more changes because the architectures differ.
 
-— [Fumadocs docs](https://fumadocs.dev/docs), [Fumadocs migration guide (mirror)](https://www.mintlify.com/fuma-nama/fumadocs/guides/migration-guide)
+— [Fumadocs docs](https://fumadocs.dev/docs); the Fumadocs migration guide was read on a Mintlify mirror that has since gone, with no archived copy
 
 **Nextra:** The last npm release is 4.6.1 (2025-12-04) and the repo was last pushed 2026-07-31: nearly a year with no release. — [npm](https://registry.npmjs.org/nextra), [ungh.cc](https://ungh.cc/repos/shuding/nextra)
 
@@ -108,7 +108,7 @@ Sources: [npm downloads API](https://api.npmjs.org/downloads/point/last-week/@do
 
 **CSP with Astro:** Astro 6 made CSP stable. Options include `security.csp.scriptDirective.hashes` and `security.csp.styleDirective.hashes`. Astro sends the policy as a `<meta http-equiv>` element, which works in build and preview but not in dev. — [Report URI's Astro docs](https://docs.report-uri.com/frameworks/astro/), [Astro v5 experimental CSP reference](https://v5.docs.astro.build/en/reference/experimental-flags/csp/)
 
-**Syntax highlighting and CSP:** Highlighters such as Shiki and astro-expressive-code emit `style` attributes on tokens, which a strict `style-src` blocks. The usual workaround keeps `'unsafe-inline'` for styles. — [astro-shield issue (polar.sh)](https://polar.sh/kindspells/astro-shield/issues/140)
+**Syntax highlighting and CSP:** Highlighters such as Shiki and astro-expressive-code emit `style` attributes on tokens, which a strict `style-src` blocks. The usual workaround keeps `'unsafe-inline'` for styles. — [astro-shield issue (polar.sh)](https://github.com/kindspells/astro-shield/issues/140)
 
 **CSP mechanics:** Inline `style=` attributes fall under `style-src-attr`. Once a hash or nonce is present, browsers ignore `'unsafe-inline'`. CSP Level 3's `'unsafe-hashes'` can allow specific attribute values. — [MDN style-src](https://developer.mozilla.org/docs/Web/HTTP/Headers/Content-Security-Policy/style-src)
 
@@ -164,7 +164,7 @@ Astro islands are the best fit for a light page with a few heavy widgets, such a
 ### Cited Findings
 - Fumadocs on Astro renders MDX as React islands. — [Fumadocs docs](https://fumadocs.dev/docs)
 - Starlight tabs sync across a page and across pages through `syncKey` (from Starlight's docs; I did not re-fetch it this session). — [Starlight Tabs](https://starlight.astro.build/components/tabs/)
-- Code blocks: Starlight uses Expressive Code, a Shiki-based engine with plugins. Its token colours are inline styles, which force `style-src 'unsafe-inline'` on this site (`apps/docs/README.md`, Headers section). — [astro-shield issue](https://polar.sh/kindspells/astro-shield/issues/140)
+- Code blocks: Starlight uses Expressive Code, a Shiki-based engine with plugins. Its token colours are inline styles, which force `style-src 'unsafe-inline'` on this site (`apps/docs/README.md`, Headers section). — [astro-shield issue](https://github.com/kindspells/astro-shield/issues/140)
 
 ### Inferences
 - A live PDF playground fits Starlight now: an MDX page imports a framework component and renders it with `client:visible`. The component loads `@laminapdf/sdk` and the WASM from `'self'`. That needs `'wasm-unsafe-eval'`, which the docs CSP already allows for Pagefind, and `worker-src 'self'`.
@@ -181,10 +181,10 @@ Astro islands are the best fit for a light page with a few heavy widgets, such a
 The migration evidence is thin and mostly anecdotal. Teams leave Docusaurus for Starlight or Fumadocs mainly over dev-server speed and developer experience. Material for MkDocs users are being pushed toward Zensical by its maintenance mode. I found no well-documented recent case of a team leaving Starlight.
 
 ### Cited Findings
-- An HN commenter in a Starlight-switch thread called Docusaurus very slow. — [HN thread mirror](https://brios-git-crit-brianlovin.vercel.app/hn/44074626)
+- An HN commenter in a Starlight-switch thread called Docusaurus very slow. — [HN thread](https://news.ycombinator.com/item?id=44074626)
 - One ADR describes a Docusaurus migration (the sv0 project, ADR 014). — [sv0 ADR 014](https://sv0-docs.pages.dev/docs/architecture/decisions/adr-014-docusaurus-migration) (not read in full)
-- A project's issue says it will likely have to change its static site generator within a year because of the Material for MkDocs maintenance mode. — [L5lua website issue #20](https://gh.r-mj.com/L5lua/L5-website/issues/20)
-- Official migration guides exist for Docusaurus → Astro/Starlight and Docusaurus → Fumadocs. — [Astro guide](https://docs.astro.build/en/guides/migrate-to-astro/from-docusaurus/), [Fumadocs guide](https://www.mintlify.com/fuma-nama/fumadocs/guides/migration-guide)
+- A project's issue says it will likely have to change its static site generator within a year because of the Material for MkDocs maintenance mode. — [L5lua website issue #20](https://github.com/L5lua/L5-website/issues/20)
+- Official migration guides exist for Docusaurus → Astro/Starlight and Docusaurus → Fumadocs. — [Astro guide](https://docs.astro.build/en/guides/migrate-to-astro/from-docusaurus/); the Fumadocs guide was read on a Mintlify mirror that has since gone, with no archived copy
 
 ### Gaps
 - I did not find named, high-profile migrations with published reasons that I could verify in this budget, such as GitBook → Mintlify or Docusaurus → Starlight by a well-known project. The report should not cite specific company migrations from this note.

@@ -30,7 +30,7 @@ This research report provides a deep technical and academic analysis of the Port
 
 | # | Title | Source | Date |
 |---|-------|--------|------|
-| 1 | [What PDF Tools Actually Do: Object Model & Stream Codecs](https://nowaterprogramming.com/blog/pdf-tools-guide) | NoWaterProgramming | 2026 |
+| 1 | What PDF Tools Actually Do: Object Model & Stream Codecs (the domain has expired; no archived copy) | NoWaterProgramming | 2026 |
 | 2 | [ToUnicode Mapping File Tutorial](https://pdfa.org/norm-refs/5411.ToUnicode.pdf) | PDF Association | 2020 |
 | 3 | [PDF Character Recognition & Text Layer Architecture](https://www.llamaindex.ai/blog/pdf-character-recognition) | LlamaIndex | 2024 |
 

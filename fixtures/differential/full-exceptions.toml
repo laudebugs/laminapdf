@@ -173,11 +173,9 @@ files = [
   "fpdf2-f25.pdf",
   "fpdf2-f29.pdf",
   "fpdf2-f31.pdf",
-  "fpdf2-f35.pdf",
   "fpdf2-f9.pdf",
   "hello-f1.pdf",
   "hello-f17.pdf",
-  "hello-incremental-f27.pdf",
   "hello-incremental-f31.pdf",
   "imaging-demo-f13.pdf",
   "outline-f19.pdf",
@@ -203,7 +201,6 @@ reason = "lamina's checks pass: /Root resolves to a dictionary (its /Type is not
 
 [[exception]]
 files = [
-  "fpdf2-f19.pdf",
   "text-example-f33.pdf",
 ]
 facts = ["outcome", "page_count", "outline_titles"]
@@ -213,7 +210,6 @@ reason = "the catalog no longer parses; lamina fails with missing-root, pypdf re
 [[exception]]
 files = [
   "enc-f19.pdf",
-  "enc-f5.pdf",
 ]
 facts = ["outcome", "page_count", "outline_titles"]
 rule = "ADR 0003 §1: Rejected (a malformed object is an error for the call that resolves it)"
@@ -221,28 +217,18 @@ reason = "the damage is inside the /Encrypt dictionary, which open must read to 
 
 [[exception]]
 files = [
-  "enc-f17.pdf",
   "enc-f30.pdf",
   "fpdf2-f25.pdf",
   "fpdf2-f33.pdf",
-  "hello-broken-f1.pdf",
-  "hello-broken-f11.pdf",
   "hello-broken-f33.pdf",
   "hello-broken-f5.pdf",
-  "hello-broken-f7.pdf",
-  "hello-broken-f9.pdf",
   "hello-f1.pdf",
   "hello-f19.pdf",
   "hello-f21.pdf",
   "hello-f29.pdf",
   "hello-f33.pdf",
-  "hello-f5.pdf",
   "hello-incremental-f10.pdf",
-  "hello-incremental-f14.pdf",
   "hello-incremental-f17.pdf",
-  "hello-incremental-f25.pdf",
-  "hello-incremental-f5.pdf",
-  "imaging-demo-f1.pdf",
   "imaging-demo-f14.pdf",
   "imaging-demo-f2.pdf",
   "imaging-demo-f35.pdf",
@@ -251,10 +237,7 @@ files = [
   "raw-f19.pdf",
   "raw-f26.pdf",
   "raw-f3.pdf",
-  "raw-f9.pdf",
-  "reportlab-f2.pdf",
   "reportlab-f31.pdf",
-  "reportlab-f35.pdf",
 ]
 facts = ["page_count"]
 rule = "ADR 0003 §1: Page tree"
@@ -262,13 +245,21 @@ reason = "the mutation leaves a page or tree node unparsable or not a dictionary
 
 [[exception]]
 files = [
-  "outline-f22.pdf",
   "outline-f29.pdf",
-  "outline-f30.pdf",
   "outline-f33.pdf",
-  "outline-f6.pdf",
-  "outline-f9.pdf",
 ]
 facts = ["outline_titles"]
 rule = "ADR 0003 §2: outline-item-skipped"
 reason = "the mutation damages an outline item or the link to it; lamina skips the item and its subtree (outline-item-skipped), pypdf still lists it (sometimes with an empty title)"
+
+[[exception]]
+files = ["enc-f18.pdf", "outline-f10.pdf"]
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Dictionary key that is not a name"
+reason = "the mutation leaves a stray token where a dictionary key belongs (`32`, `>`, `0 R`); lamina skips it and reads the file, pypdf fails or counts no pages"
+
+[[exception]]
+file = "hello-f11.pdf"
+facts = ["page_count"]
+rule = "ADR 0003 §1: Dictionary key that is not a name"
+reason = "the mutation leaves a stray token where a dictionary key belongs; lamina skips it and reads the page, pypdf counts no pages"
