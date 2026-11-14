@@ -408,7 +408,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-build"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-model",
@@ -427,7 +427,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-content"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-model",
@@ -436,7 +436,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-cos"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "laminapdf-syntax",
  "thiserror",
@@ -444,7 +444,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-desktop-protocol"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "postcard",
  "serde",
@@ -454,7 +454,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-extract"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "hayro-ccitt",
  "hayro-jbig2",
@@ -487,7 +487,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-model"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-syntax",
@@ -498,7 +498,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-ops"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-model",
@@ -511,7 +511,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-save"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-model",
@@ -523,7 +523,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-syntax"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "aes",
  "md-5",
@@ -535,7 +535,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-text"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "harfrust",
  "icu_properties",
