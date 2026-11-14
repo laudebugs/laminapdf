@@ -45,7 +45,7 @@ Search and answer engines read structured data to learn what a site is, who publ
 - [x] Docs share image and tags; reader tags (the reader's CSP and ADR 0011's reader rules allow meta tags; check the e2e header test).
 - [x] The alternate links: `plugins/agent-docs.mjs` knows each twin's path; add the link in the same pass, and fail the build when a page's link and twin disagree.
 - [x] Sitemap `lastmod` (both sites): from `git log -1 --format=%cI -- <source>`; fail the production build when the history is shallow rather than write today's date.
-- [ ] Check every page in Google's Rich Results Test and the Schema Markup Validator by hand on the PR preview; note results in the PR.
+- [x] Check every page in Google's Rich Results Test and the Schema Markup Validator by hand on the PR preview; note results in the PR. Done 2026-11-14 on the previews (results in the PR): the Schema Markup Validator finds the website's and the docs' home-page graphs with no error or warning; Google can't crawl the previews, and the website's JSON-LD pasted into the Rich Results Test gives "No items detected" and no error, as its types (Organization, WebSite, SoftwareSourceCode) aren't rich results.
 
 ## Acceptance criteria
 
