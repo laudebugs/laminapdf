@@ -170,7 +170,7 @@ tauri-plugin-opener = "=2.7.2"
 tauri-plugin-single-instance = "=2.5.5"
 # Each window's size, position and maximised state across launches (D4d). MIT OR Apache-2.0
 tauri-plugin-window-state = "=2.5.0"
-muda = { version = "=0.20.0", default-features = false }  # MIT OR Apache-2.0; Tauri's menus (the desktop app's tests)
+muda = { version = "=0.21.2", default-features = false }  # MIT OR Apache-2.0; Tauri's menus (the desktop app's tests)
 # The desktop reader's file watching (D3b): the OS's change events (FSEvents, inotify,
 # ReadDirectoryChangesW). CC0-1.0
 notify = { version = "=8.2.1", default-features = false, features = ["macos_fsevent"] }
