@@ -51,6 +51,8 @@ pub(crate) struct Reported {
 struct Restored {
     window: String,
     tab: TabRef,
+    /// Opened, so not opened again; kept until the window's report names its document instead.
+    opened: bool,
 }
 
 /// A copy of the reports, taken under the lock, from which a save builds the file.
@@ -72,6 +74,10 @@ pub(crate) struct Tracker {
 impl Tracker {
     /// `label`'s tabs now, and the shown one's index.
     pub(crate) fn report(&mut self, label: &str, tabs: Vec<ReportedTab>, active: Option<usize>) {
+        // An opened token leaves once the window reports its document in its place.
+        self.reports.restored.retain(|token, kept| {
+            !kept.opened || kept.window != label || tabs.iter().any(|tab| tab.token.as_deref() == Some(token))
+        });
         self.reports.windows.insert(label.to_owned(), Reported { tabs, active });
         self.dirty = true;
     }
@@ -109,6 +115,7 @@ impl Tracker {
             Restored {
                 window: window.to_owned(),
                 tab,
+                opened: false,
             },
         );
     }
@@ -118,13 +125,15 @@ impl Tracker {
         self.reports
             .restored
             .get(token)
-            .filter(|kept| kept.window == window)
+            .filter(|kept| kept.window == window && !kept.opened)
             .map(|kept| &kept.tab)
     }
 
     /// Restored tab `token` opened: its document stands for it from now on.
     pub(crate) fn opened(&mut self, token: &str) {
-        self.reports.restored.remove(token);
+        if let Some(kept) = self.reports.restored.get_mut(token) {
+            kept.opened = true;
+        }
     }
 
     /// Whether something changed since the last call; clears the mark.
@@ -329,6 +338,23 @@ mod tests {
         tracker.report("main", vec![reported], None);
         let snap = snapshot(&tracker.reports(), order, |_| None, |_| Some("new".into()));
         assert_eq!(snap.windows[0].tabs[0].bookmark.as_deref(), Some("new"));
+    }
+
+    #[test]
+    fn an_opened_restored_tab_should_stay_saved_until_its_window_reports_its_document() {
+        let a = temp_file("opened.pdf");
+        let mut tracker = Tracker::default();
+        tracker.restored("t1".into(), "main", kept(&a));
+        let token_tab = ReportedTab {
+            doc: None,
+            token: Some("t1".into()),
+            view: View::Null,
+        };
+        tracker.report("main", vec![token_tab], Some(0));
+        tracker.opened("t1");
+        let before = snap(&tracker, |_| None).windows[0].tabs.len();
+        tracker.report("main", vec![doc_tab(4, 1)], Some(0));
+        assert_eq!((before, tracker.reports.restored.len()), (1, 0));
     }
 
     #[test]

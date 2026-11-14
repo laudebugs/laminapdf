@@ -237,7 +237,9 @@ pub(crate) fn session_open(window: tauri::WebviewWindow, token: String) -> Resul
         Resolved::Missing => return Err(missing()),
     };
     let opened = crate::opened::open_path(window.app_handle(), window.label(), &path)?;
-    session.tracker().opened(&token);
+    let mut tracker = session.tracker();
+    tracker.remember(DocId(opened.doc), path);
+    tracker.opened(&token);
     Ok(opened)
 }
 

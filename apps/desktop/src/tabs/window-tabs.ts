@@ -105,7 +105,7 @@ export class WindowTabs implements ExternalStore<TabsState> {
     return this.#restored;
   }
 
-  /** This window had no tabs in the last session. */
+  /** No restored tabs are coming: the window had none in the last session, or asking failed. */
   noRestore(): void {
     this.#restoredNow();
   }

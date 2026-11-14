@@ -193,7 +193,12 @@ function useTabEvents(
         for (const stop of off) stop();
       };
     };
-    return stopper(listening(), "listening for tabs moved to this window");
+    // Whatever fails first, the OS's opens waiting on the restore go ahead.
+    const started = listening().catch((error: unknown) => {
+      tabs.noRestore();
+      throw error;
+    });
+    return stopper(started, "listening for tabs moved to this window");
   }, [shell, tabs, toasts]);
 }
 
