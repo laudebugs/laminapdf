@@ -64,7 +64,7 @@ Better Auth keeps every account in Lamina PDF's own D1 database, behind first-pa
 
 ## Questions for the owner
 
-The stack works for any answer to these, but the first round of accounts (H2) needs them:
+Answered on 2026-11-14 ([#483](https://github.com/laudebugs/laminapdf/issues/483)): Better Auth is approved; email magic links and passkeys come first; Cloudflare Email Service sends the links; the D1 database goes in the EU jurisdiction. [ADR 0011 §6](../../docs/decisions/0011-cloudflare-topology-and-privacy.md#6-the-hosted-service-and-later-server-features) now holds the amendment below with those answers. The questions were:
 
 1. **Sign-in methods:** email magic link and passkeys first, with GitHub and Google added later (the recommendation), or passkeys only?
 2. **Email sending:** magic links need an email provider (Resend or Postmark, for example), a new vendor with its own privacy note.
