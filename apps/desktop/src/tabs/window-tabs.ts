@@ -48,8 +48,6 @@ export interface RestoredTab {
   readonly token: string;
   readonly name: string;
   readonly view: ViewPosition | null;
-  /** Neither its bookmark nor its path found the file when the app started. */
-  readonly missing: boolean;
 }
 
 /** This window's tabs in the last session, and the shown one's index. */
@@ -85,14 +83,27 @@ export class WindowTabs implements ExternalStore<TabsState> {
   #locked: number | undefined;
   /** The pending report of the tabs to the main process (the session it brings back). */
   #report: ReturnType<typeof setTimeout> | undefined;
+  /** Settles once the last session's tabs are here: the OS's opens wait for it, to come after them. */
+  readonly #restored: Promise<void>;
+  #restoredNow: () => void = () => undefined;
 
   constructor(shell: DesktopShell, client: DesktopEngineClient, viewer: Viewer) {
     this.#shell = shell;
     this.#client = client;
     this.#viewer = viewer;
-    // The view moving (a page turned, a zoom) is part of the session too.
-    viewer.subscribe(() => this.#scheduleReport());
-    this.#scheduleReport();
+    this.#restored = new Promise((resolve) => {
+      this.#restoredNow = resolve;
+    });
+  }
+
+  /** Resolves once this window has taken its tabs of the last session, or found it had none. */
+  whenRestored(): Promise<void> {
+    return this.#restored;
+  }
+
+  /** This window had no tabs in the last session. */
+  noRestore(): void {
+    this.#restoredNow();
   }
 
   /** Tells the main process the tabs and views a little after they stop changing. */
@@ -119,6 +130,18 @@ export class WindowTabs implements ExternalStore<TabsState> {
   attach(reader: ReaderController): () => void {
     this.#reader = reader;
     this.#lastPhase = reader.getState().phase;
+    // The view moving (a page turned, a zoom) is part of the session too.
+    const offViewer = this.#viewer.subscribe(() => this.#scheduleReport());
+    this.#scheduleReport();
+    const offReader = this.#followReader(reader);
+    return () => {
+      offViewer();
+      offReader();
+      clearTimeout(this.#report);
+    };
+  }
+
+  #followReader(reader: ReaderController): () => void {
     return reader.subscribe(() => {
       const state = reader.getState();
       const { phase } = state;
@@ -165,16 +188,20 @@ export class WindowTabs implements ExternalStore<TabsState> {
    * shows, and the one shown then shows now.
    */
   async restore(restored: RestoredWindow): Promise<void> {
-    const tabs = restored.tabs.map(
-      (t): Tab => ({ id: String(this.#next++), file: restoredFile(t.token, t.name), view: t.view ?? undefined }),
-    );
-    if (tabs.length === 0) return;
-    this.#set({ tabs: [...this.#state.tabs, ...tabs] });
-    const shown = tabs[restored.active ?? 0] ?? tabs[0];
-    if (shown !== undefined) await this.activate(shown.id);
+    try {
+      const tabs = restored.tabs.map(
+        (t): Tab => ({ id: String(this.#next++), file: restoredFile(t.token, t.name), view: t.view ?? undefined }),
+      );
+      if (tabs.length === 0) return;
+      this.#set({ tabs: [...this.#state.tabs, ...tabs] });
+      const shown = tabs[restored.active ?? 0] ?? tabs[0];
+      if (shown !== undefined) await this.activate(shown.id);
+    } finally {
+      this.#restoredNow();
+    }
   }
 
-  /** Whether `file` is the last session's tab that hasn't opened: its file couldn't be found. */
+  /** Whether `file` stands for a tab of the last session that hasn't opened (yet, or at all). */
   isUnopened(file: PlatformFile): boolean {
     return restoredToken(file) !== undefined;
   }

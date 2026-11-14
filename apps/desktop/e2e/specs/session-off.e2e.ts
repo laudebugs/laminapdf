@@ -1,6 +1,6 @@
 // The last session, third run (D4d): with "Reopen last session" off the app starts with one empty
 // window; with "Remember recent files" off, "Reopen last session" can't be turned on and no
-// session file is written, whatever opens.
+// session file is written, whatever opens. The fourth run (session-empty) relaunches with it off.
 import { existsSync } from "node:fs";
 import { $, browser, expect } from "@wdio/globals";
 import { openAndWait, settingDisabled, tabNames, toggleSetting } from "../app.ts";
@@ -21,6 +21,5 @@ describe("no session", () => {
     // Longer than the e2e build's save interval (2 s) and the tabs' report (0.5 s).
     await browser.pause(4000);
     expect(existsSync(sessionFile)).toBe(false);
-    await toggleSetting("Remember recent files");
   });
 });

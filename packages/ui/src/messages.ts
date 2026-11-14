@@ -540,7 +540,7 @@ const EN = {
   "settings.files.reopenLast.help":
     "When Lamina PDF starts, the windows and tabs you had open come back, each at its page and zoom.",
   "settings.files.reopenLast.needsRecent":
-    'Needs "Remember recent files": the last session lists the same files, so it is kept only while they are.',
+    'Needs "Remember recent files": the last session lists the same files, so Lamina PDF keeps it only while that switch is on.',
   "settings.files.reloadOnChange": "Reload files that change on disk",
   "settings.files.reloadOnChange.help":
     "When another app saves a file you have open, Lamina PDF shows the new version at the same page and zoom.",

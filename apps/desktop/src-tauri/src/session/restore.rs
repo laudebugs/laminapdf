@@ -2,7 +2,7 @@
 //! webview gets ([`plan`]). A tab reaches the webview as a token, its file's name and its view,
 //! never its path; the webview opens the shown tab at once and the others when they are first
 //! shown (`session_open`), so a session of many large files starts fast. A file neither its
-//! bookmark nor its path finds comes back as a missing tab, which offers Locate….
+//! bookmark nor its path finds still comes back as a tab: opening it fails, and it offers Locate….
 
 use serde::Serialize;
 
@@ -17,8 +17,6 @@ pub(crate) struct RestoredTab {
     pub token: String,
     pub name: String,
     pub view: View,
-    /// Neither the bookmark nor the path found the file.
-    pub missing: bool,
 }
 
 /// A window to make again, with its tabs.
@@ -52,14 +50,10 @@ pub(crate) fn plan(session: SessionFile, bookmarks: &dyn Bookmarks, tracker: &mu
         }
         let mut tabs = Vec::with_capacity(record.tabs.len());
         for mut tab in record.tabs {
-            let missing = match resolve(&tab, bookmarks) {
-                Resolved::Found(_) => false,
-                Resolved::Moved(path) => {
-                    tab.path = path;
-                    false
-                }
-                Resolved::Missing => true,
-            };
+            // A file found elsewhere through its bookmark is restored from there.
+            if let Resolved::Moved(path) = resolve(&tab, bookmarks) {
+                tab.path = path;
+            }
             let name = tab
                 .path
                 .file_name()
@@ -71,9 +65,8 @@ pub(crate) fn plan(session: SessionFile, bookmarks: &dyn Bookmarks, tracker: &mu
                 token: token.clone(),
                 name,
                 view: tab.view.clone(),
-                missing,
             });
-            tracker.restored(token, tab);
+            tracker.restored(token, &record.label, tab);
         }
         let active = record.active.filter(|&index| index < tabs.len());
         windows.push(RestoredWindow {
@@ -147,25 +140,21 @@ mod tests {
         assert_eq!(
             (
                 planned[0].tabs[0].name.as_str(),
-                planned[0].tabs[0].missing,
-                tracker.restored_tab("t1").map(|t| t.path.clone()),
+                tracker.restored_tab("t1", "main").map(|t| t.path.clone()),
                 shown.contains(&*a.to_string_lossy()),
             ),
-            ("report.pdf", false, Some(a), false)
+            ("report.pdf", Some(a), false)
         );
     }
 
     #[test]
-    fn a_file_that_is_gone_should_come_back_missing() {
+    fn a_file_that_is_gone_should_still_come_back_as_a_tab() {
         let session = SessionFile {
             v: VERSION,
             windows: vec![window("main", vec![tab(Path::new("/nowhere/gone.pdf"), 1)], Some(0))],
         };
         let planned = plan(session, &NoBookmarks, &mut Tracker::default());
-        assert_eq!(
-            (planned[0].tabs[0].missing, planned[0].tabs[0].name.as_str()),
-            (true, "gone.pdf")
-        );
+        assert_eq!(planned[0].tabs[0].name.as_str(), "gone.pdf");
     }
 
     #[test]

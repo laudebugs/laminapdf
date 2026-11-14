@@ -268,8 +268,8 @@ describe("a window's tabs", () => {
 describe("the last session's tabs", () => {
   const restoredWindow = (active: number | null) => ({
     tabs: [
-      { token: "t1", name: "a.pdf", view: at(4), missing: false },
-      { token: "t2", name: "b.pdf", view: at(6), missing: false },
+      { token: "t1", name: "a.pdf", view: at(4) },
+      { token: "t2", name: "b.pdf", view: at(6) },
     ],
     active,
   });
@@ -294,14 +294,15 @@ describe("the last session's tabs", () => {
 
   it("show a tab whose file is gone on its own tab, unopened, and let Locate… show the file chosen", async () => {
     const { tabs, reader } = harness();
-    await tabs.restore({ tabs: [{ token: "gone", name: "gone.pdf", view: null, missing: true }], active: 0 });
+    await tabs.restore({ tabs: [{ token: "gone", name: "gone.pdf", view: null }], active: 0 });
     const state = reader.getState();
     const file = state.phase === "error" ? state.file : undefined;
-    expect([state.phase, tabs.shown?.file.name, file === undefined ? false : tabs.isUnopened(file)]).toEqual([
-      "error",
-      "gone.pdf",
-      true,
-    ]);
+    expect([
+      state.phase,
+      state.phase === "error" ? state.error.code : undefined,
+      tabs.shown?.file.name,
+      file === undefined ? false : tabs.isUnopened(file),
+    ]).toEqual(["error", "io", "gone.pdf", true]);
     await tabs.located(tabs.shown?.id ?? "", doc(7, "found.pdf"));
     expect([reader.getState().phase, tabs.tabOf(7)?.file.name]).toEqual(["open", "gone.pdf"]);
   });

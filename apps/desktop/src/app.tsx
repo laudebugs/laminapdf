@@ -105,7 +105,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const state = useStoreState(reader, (s) => s);
   const [toasts] = useState(() => new ToastQueue());
   const lost = useEngineEvents(engine, toasts, state.phase === "open");
-  const dragging = useOsOpens(engine, reader, toasts);
+  const dragging = useOsOpens(engine, reader, toasts, tabs);
   const fileProblem = useFileChanges(engine, reader, toasts, tabs);
   const { strip, actions: tabActions } = useTabStrip(engine?.shell, tabs, reader, toasts, keys);
   const { settings, recent, actions: homeActions } = useHome(engine, platform, reader, state, toasts);
@@ -250,20 +250,25 @@ function useOsOpens(
   engine: DesktopEngine | undefined,
   reader: ReaderController,
   toasts: ToastQueue,
+  tabs: WindowTabs | undefined,
 ): Dragging | undefined {
   const [dragging, setDragging] = useState<Dragging>();
   useEffect(() => {
     if (engine === undefined) return;
     return stopper(
       listenForOsOpens(engine.shell, {
-        open: (file) => reader.open(file),
+        // After the last session's tabs, so a file named at launch opens last and shows.
+        open: async (file) => {
+          await tabs?.whenRestored();
+          await reader.open(file);
+        },
         unreadable: (name) => toasts.add({ message: message("reader.open.missing", { name }) }),
         dragging: setDragging,
         refused: (names) => toasts.add({ message: `${message("reader.open.droppingNone")}: ${names.join(", ")}` }),
       }),
       "listening for the OS's open requests",
     );
-  }, [engine, reader, toasts]);
+  }, [engine, reader, toasts, tabs]);
   return dragging;
 }
 
@@ -320,7 +325,8 @@ function ErrorPage({
   platform: Platform;
   toasts: ToastQueue;
 }): ReactNode {
-  if (engine !== undefined && tabs?.isUnopened(state.file) === true) {
+  // A restored tab whose file is gone; any other failure (a damaged file) gets the failure page.
+  if (engine !== undefined && state.error.code === "io" && tabs?.isUnopened(state.file) === true) {
     return <MissingRestoredTab engine={engine} tabs={tabs} file={state.file} toasts={toasts} />;
   }
   return <Failure error={state.error} reader={reader} platform={platform} />;

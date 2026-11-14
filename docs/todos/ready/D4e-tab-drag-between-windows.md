@@ -31,7 +31,7 @@ Move a tab by dragging it: out of its window to open a new window where it is dr
 
 **Out of scope** (and which todo covers it)
 
-- Session restore → [D4d](D4d-session-restore.md)
+- Session restore → [D4d](../done/D4d-session-restore.md)
 
 ## Tasks
 

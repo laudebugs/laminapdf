@@ -328,6 +328,11 @@ impl Engines {
         self.registry.holds_any(window)
     }
 
+    /// Whether `doc` is open in `window`.
+    pub(crate) fn owns(&self, window: &str, doc: DocId) -> bool {
+        self.registry.owns(window, doc)
+    }
+
     /// `doc`'s file, for the watcher; never sent to a webview or an engine.
     pub(crate) fn path_of(&self, doc: DocId) -> Option<std::path::PathBuf> {
         self.registry.path_of(doc)

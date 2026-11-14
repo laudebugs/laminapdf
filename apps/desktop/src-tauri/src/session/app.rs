@@ -6,11 +6,12 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, PoisonError};
 
+use laminapdf_desktop_protocol::DocId;
 use tauri::Manager as _;
 use tauri_plugin_window_state::{AppHandleExt as _, StateFlags};
 
 use super::restore::{RestoredWindow, last_number, plan};
-use super::track::{ReportedTab, SAVE_EVERY, Session};
+use super::track::{ReportedTab, SAVE_EVERY, Session, snapshot};
 use super::{Bookmarks, Resolved, delete, load, resolve, save, should_persist, to_hex};
 use crate::DesktopError;
 use crate::engine::{DocumentMeta, Engines};
@@ -34,7 +35,7 @@ impl Bookmarks for OsBookmarks {
 #[derive(Default)]
 pub(crate) struct Pending(Mutex<BTreeMap<String, RestoredWindow>>);
 
-fn keeps(prefs: Preferences) -> bool {
+const fn keeps(prefs: Preferences) -> bool {
     should_persist(prefs.remember_recent, prefs.reopen_last)
 }
 
@@ -101,11 +102,21 @@ pub(crate) fn flush(app: &tauri::AppHandle) {
     }
     let session = app.state::<Arc<Session>>();
     let engines = Arc::clone(&app.state::<Arc<Engines>>());
-    let file = session.tracker().snapshot(
+    // The reports are copied under the lock; the file system is read outside it.
+    let reports = session.tracker().reports();
+    let mut bookmarks = session.bookmarks();
+    let file = snapshot(
+        &reports,
         crate::windows::window_order,
         |doc| engines.path_of(doc),
-        |path| laminapdf_desktop_os::file_bookmark(path).map(|bytes| to_hex(&bytes)),
+        |path| {
+            bookmarks
+                .entry(path.to_owned())
+                .or_insert_with(|| laminapdf_desktop_os::file_bookmark(path).map(|bytes| to_hex(&bytes)))
+                .clone()
+        },
     );
+    drop(bookmarks);
     if let Err(error) = save(session.dir(), &file) {
         tracing::warn!("could not save the session: {error}");
     }
@@ -124,18 +135,43 @@ pub(crate) fn window_closed(app: &tauri::AppHandle, label: &str) {
         .closed(label, !cfg!(target_os = "macos"));
 }
 
+/// What a change of the preferences does to the session file.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum OnChange {
+    /// They no longer keep it: it goes.
+    Delete,
+    /// They keep it again: the next save writes it.
+    Resume,
+    Nothing,
+}
+
+const fn on_change(was: Preferences, now: Preferences) -> OnChange {
+    if !keeps(now) {
+        OnChange::Delete
+    } else if !keeps(was) {
+        OnChange::Resume
+    } else {
+        OnChange::Nothing
+    }
+}
+
 /// The preferences went from `was` to `now`: a session they no longer keep is deleted; one they
 /// keep again is written at the next save.
 pub(crate) fn preferences_changed(app: &tauri::AppHandle, was: Preferences, now: Preferences) {
     let session = app.state::<Arc<Session>>();
-    if !keeps(now) {
-        if let Err(error) = delete(session.dir()) {
-            tracing::warn!("could not delete the session file: {error}");
+    match on_change(was, now) {
+        OnChange::Delete => {
+            if let Err(error) = delete(session.dir()) {
+                tracing::warn!("could not delete the session file: {error}");
+            }
         }
-    } else if !keeps(was) {
-        session.tracker().report_changed();
+        OnChange::Resume => session.tracker().report_changed(),
+        OnChange::Nothing => {}
     }
 }
+
+/// The most of a tab's view a report keeps: the viewer's is far smaller; more is dropped.
+const MAX_VIEW: usize = 4096;
 
 /// This window's tabs now, and the shown one's index: what a relaunch brings back.
 #[tauri::command]
@@ -143,9 +179,28 @@ pub(crate) fn preferences_changed(app: &tauri::AppHandle, was: Preferences, now:
     clippy::needless_pass_by_value,
     reason = "Tauri hands a command its window and arguments by value"
 )]
-pub(crate) fn session_tabs(window: tauri::WebviewWindow, tabs: Vec<ReportedTab>, active: Option<usize>) {
+pub(crate) fn session_tabs(window: tauri::WebviewWindow, mut tabs: Vec<ReportedTab>, active: Option<usize>) {
+    let label = window.label();
+    let engines = window.state::<Arc<Engines>>();
+    // A window reports only its own documents, and a view of a sensible size.
+    let mut paths = Vec::new();
+    for tab in &mut tabs {
+        if let Some(doc) = tab.doc.map(DocId) {
+            match engines.path_of(doc).filter(|_| engines.owns(label, doc)) {
+                Some(path) => paths.push((doc, path)),
+                None => tab.doc = None,
+            }
+        }
+        if serde_json::to_string(&tab.view).map_or(true, |json| json.len() > MAX_VIEW) {
+            tab.view = serde_json::Value::Null;
+        }
+    }
     let session = window.state::<Arc<Session>>();
-    session.tracker().report(window.label(), tabs, active);
+    let mut tracker = session.tracker();
+    for (doc, path) in paths {
+        tracker.remember(doc, path);
+    }
+    tracker.report(label, tabs, active);
 }
 
 /// The tabs this window had in the last session, once; `None` for a window that had none.
@@ -171,19 +226,54 @@ pub(crate) fn take_session_tabs(window: tauri::WebviewWindow) -> Option<Restored
     reason = "Tauri hands a command its window and arguments by value"
 )]
 pub(crate) fn session_open(window: tauri::WebviewWindow, token: String) -> Result<DocumentMeta, DesktopError> {
-    let tab = window
-        .state::<Arc<Session>>()
+    let session = window.state::<Arc<Session>>();
+    let tab = session
         .tracker()
-        .restored_tab(&token)
+        .restored_tab(&token, window.label())
         .cloned()
         .ok_or_else(missing)?;
     let path = match resolve(&tab, &OsBookmarks) {
         Resolved::Found(path) | Resolved::Moved(path) => path,
         Resolved::Missing => return Err(missing()),
     };
-    crate::opened::open_path(window.app_handle(), window.label(), &path)
+    let opened = crate::opened::open_path(window.app_handle(), window.label(), &path)?;
+    session.tracker().opened(&token);
+    Ok(opened)
 }
 
 fn missing() -> DesktopError {
     DesktopError::Io(std::io::Error::from(std::io::ErrorKind::NotFound))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn prefs(remember_recent: bool, reopen_last: bool) -> Preferences {
+        Preferences {
+            remember_recent,
+            reopen_last,
+            ..Preferences::default()
+        }
+    }
+
+    #[test]
+    fn turning_either_switch_off_should_delete_the_session() {
+        let on = prefs(true, true);
+        assert_eq!(
+            [on_change(on, prefs(false, true)), on_change(on, prefs(true, false))],
+            [OnChange::Delete, OnChange::Delete]
+        );
+    }
+
+    #[test]
+    fn turning_the_last_switch_back_on_should_resume_saving() {
+        assert_eq!(
+            [
+                on_change(prefs(false, true), prefs(true, true)),
+                on_change(prefs(true, true), prefs(true, true))
+            ],
+            [OnChange::Resume, OnChange::Nothing]
+        );
+    }
 }

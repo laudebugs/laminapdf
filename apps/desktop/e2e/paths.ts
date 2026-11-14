@@ -48,3 +48,6 @@ const configDir = join(
 
 /** The last session, as the app writes it (src-tauri/src/session/mod.rs). */
 export const sessionFile = join(configDir, "session.json");
+
+/** The app's preferences (src-tauri/src/prefs.rs). */
+export const preferencesFile = join(configDir, "preferences.json");

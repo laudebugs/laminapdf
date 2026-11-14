@@ -15,14 +15,14 @@
 
 ## Goal
 
-Let power users work with many documents: each window holds tabs, a tab moves to a new window or to another window ("Move tab to new window", "Move tab to window ▸") keeping its view, and File ▸ New Window opens an empty window. Requirement 5 of the [desktop plan](../../plans/desktop-app.md#functional). It also answers the plan's open question 3 (engine per window vs pool) with real memory numbers. On 2026-11-12 the owner split session restore into [D4d](../ready/D4d-session-restore.md) and dragging tabs between windows into [D4e](../ready/D4e-tab-drag-between-windows.md), both of which build on this.
+Let power users work with many documents: each window holds tabs, a tab moves to a new window or to another window ("Move tab to new window", "Move tab to window ▸") keeping its view, and File ▸ New Window opens an empty window. Requirement 5 of the [desktop plan](../../plans/desktop-app.md#functional). It also answers the plan's open question 3 (engine per window vs pool) with real memory numbers. On 2026-11-12 the owner split session restore into [D4d](D4d-session-restore.md) and dragging tabs between windows into [D4e](../ready/D4e-tab-drag-between-windows.md), both of which build on this.
 
 ## Context
 
 - **Design (Paper):** [S02 Window with document tabs and session restore](../../design/paper/desktop-shell.md#s02-window-with-document-tabs-and-session-restore). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [Desktop plan §4 req. 5](../../plans/desktop-app.md#functional) and §6 D4.
 - Tauri: `WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))`, `app.webview_windows()`, `Emitter::emit_to(EventTarget::webview_window(label), …)`, `WindowEvent::CloseRequested { api }` (`api.prevent_close()`), capabilities targeting windows by glob (`"windows": ["main", "doc-*"]`), [`tauri-plugin-window-state`](https://v2.tauri.app/plugin/window-state/) for geometry (`StateFlags`).
-- D2b: `EngineSupervisor` per window label, `DocumentRegistry` (trusted path sources); D3a: open routing; D3b: the "Remember recent files" privacy setting ([D4d](../ready/D4d-session-restore.md)'s session restore follows it).
+- D2b: `EngineSupervisor` per window label, `DocumentRegistry` (trusted path sources); D3a: open routing; D3b: the "Remember recent files" privacy setting ([D4d](D4d-session-restore.md)'s session restore follows it).
 - `@laminapdf/ui` (web C4): tab strip doesn't exist on web (`multiWindow: false`); add a shared `Tabs` component rendered only when the `Platform` reports `multiWindow` — no `isTauri` checks.
 - [T5b](../done/T5b-reopen-at-last-position.md) keeps each document's reading position in `Platform.positions` by fingerprint. Restored tabs keep their own view; a document opened outside a restored tab comes back at its position from `Platform.positions` (`Viewer.restore`).
 
@@ -39,7 +39,7 @@ Let power users work with many documents: each window holds tabs, a tab moves to
 
 **Out of scope** (and which todo covers it)
 
-- Session restore (`session.json`, window geometry, macOS bookmarks, the privacy rule): [D4d](../ready/D4d-session-restore.md).
+- Session restore (`session.json`, window geometry, macOS bookmarks, the privacy rule): [D4d](D4d-session-restore.md).
 - Dragging a tab out of its window or onto another window's strip: [D4e](../ready/D4e-tab-drag-between-windows.md).
 
 - Native menus and accelerators (New Window, Close Tab, Move Tab to Window, Window menu list): [D4b](../ready/D4b-native-menus.md).

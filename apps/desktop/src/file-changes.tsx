@@ -61,21 +61,40 @@ export function useFileChanges(
   if (problem === undefined || engine === undefined || problem.doc !== doc) return null;
   if (problem.kind === "unreadable") return <Notice title={message("reader.file.unreadable")} tone="warning" />;
   return (
+    <MissingNotice
+      body={message("reader.file.missing.body")}
+      onLocate={async () => {
+        if (await locate(engine, reader)) setProblem(undefined);
+      }}
+      onClose={() => reader.close()}
+      toasts={toasts}
+    />
+  );
+}
+
+/** "File was moved or deleted", with Locate… and Close; a failed locate becomes a toast. */
+function MissingNotice({
+  body,
+  onLocate,
+  onClose,
+  toasts,
+}: {
+  body: string;
+  onLocate: () => Promise<void>;
+  onClose: () => void;
+  toasts: ToastQueue;
+}): ReactNode {
+  return (
     <Notice title={message("reader.file.missing.title")} tone="warning">
-      {message("reader.file.missing.body")}{" "}
+      {body}{" "}
       <button
         type="button"
         className="desktop-link"
-        onClick={() =>
-          void locate(engine, reader).then(
-            (located) => located && setProblem(undefined),
-            (error: unknown) => toasts.add({ message: engineError(error).message }),
-          )
-        }
+        onClick={() => void onLocate().catch((error: unknown) => toasts.add({ message: engineError(error).message }))}
       >
         {message("reader.file.missing.locate")}
       </button>{" "}
-      <button type="button" className="desktop-link" onClick={() => reader.close()}>
+      <button type="button" className="desktop-link" onClick={onClose}>
         {message("reader.file.missing.close")}
       </button>
     </Notice>
@@ -125,25 +144,17 @@ export function MissingRestoredTab({
 }): ReactNode {
   const id = tabs.getState().tabs.find((tab) => tab.file === file)?.id;
   if (id === undefined) return null;
-  const locate = async () => {
-    const located = await engine.shell.invoke<DesktopDocument | null>("open_dialog");
-    if (located !== null) await tabs.located(id, located);
-  };
   return (
     <div className="desktop-missing">
-      <Notice title={message("reader.file.missing.title")} tone="warning">
-        {message("reader.file.missing.restored")}{" "}
-        <button
-          type="button"
-          className="desktop-link"
-          onClick={() => void locate().catch((error: unknown) => toasts.add({ message: engineError(error).message }))}
-        >
-          {message("reader.file.missing.locate")}
-        </button>{" "}
-        <button type="button" className="desktop-link" onClick={() => void tabs.close(id)}>
-          {message("reader.file.missing.close")}
-        </button>
-      </Notice>
+      <MissingNotice
+        body={message("reader.file.missing.restored")}
+        onLocate={async () => {
+          const located = await engine.shell.invoke<DesktopDocument | null>("open_dialog");
+          if (located !== null) await tabs.located(id, located);
+        }}
+        onClose={() => void tabs.close(id)}
+        toasts={toasts}
+      />
     </div>
   );
 }

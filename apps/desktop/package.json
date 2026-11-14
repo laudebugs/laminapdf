@@ -17,7 +17,7 @@
     "typecheck:wasm": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p e2e/tsconfig.json",
     "test": "vitest run -c vitest.config.ts",
     "desktop:build:e2e": "tauri build --debug --no-bundle --features e2e --config src-tauri/tauri.bundle.conf.json --config src-tauri/tauri.e2e.conf.json",
-    "e2e": "wdio run e2e/wdio.conf.ts && wdio run e2e/wdio.cold-open.conf.ts && wdio run e2e/wdio.session-save.conf.ts && wdio run e2e/wdio.session-restore.conf.ts && wdio run e2e/wdio.session-off.conf.ts",
+    "e2e": "wdio run e2e/wdio.conf.ts && wdio run e2e/wdio.cold-open.conf.ts && wdio run e2e/wdio.session-save.conf.ts && wdio run e2e/wdio.session-restore.conf.ts && wdio run e2e/wdio.session-off.conf.ts && wdio run e2e/wdio.session-empty.conf.ts",
     "cold-start": "node e2e/cold-start.ts"
   },
   "dependencies": {

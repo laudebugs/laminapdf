@@ -29,7 +29,7 @@ cargo xtask desktop-notices                           # target/desktop/THIRD_PAR
 
 ### End-to-end tests
 
-WebdriverIO drives the app's e2e build through the WebDriver server it embeds, so no driver needs installing ([ADR 0008 §8](../../docs/decisions/0008-desktop-shell.md#8-test-strategy-per-os)). The scenarios share one app and run in a fixed order. `e2e` runs them, then four more runs, each a new launch of the app: one started with a PDF's path, as a double-click does, and three for the last session, which save it, bring it back and check that nothing is kept with the switches off. Two scenarios need generated fixtures:
+WebdriverIO drives the app's e2e build through the WebDriver server it embeds, so no driver needs installing ([ADR 0008 §8](../../docs/decisions/0008-desktop-shell.md#8-test-strategy-per-os)). The scenarios share one app and run in a fixed order. `e2e` runs them, then four more runs, each a new launch of the app: one started with a PDF's path, as a double-click does, and four for the last session, which save it, bring it back, and check that nothing is kept, or brought back, with the switches off. Two scenarios need generated fixtures:
 
 ```sh
 cargo xtask fixtures large-pdf --pages 1000 --out target/fixtures/1000-pages.pdf
@@ -97,7 +97,7 @@ Add `#raw` to the window's address (in the dev tools) to fetch tiles as raw RGBA
 
 ### The last session
 
-When Lamina PDF starts, the windows and tabs it had when it last quit come back: each window at its size and place, each tab at its page and zoom ([ADR 0008 §11](../../docs/decisions/0008-desktop-shell.md#11-recent-files-and-files-that-change-on-disk)). Only each window's shown tab opens at once, and the others open when first shown, so a session of many large files starts fast. On macOS a bookmark finds a file that moved; a file that can't be found comes back as a tab that offers Locate…. The main process keeps the session in `session.json` in the app's config folder (`src-tauri/src/session/`) and writes it every 30 seconds while it changes and when the app quits. The webview gets each tab as a token and a name, never a path. `tauri-plugin-window-state` keeps the windows' sizes and places.
+When Lamina PDF starts, the windows and tabs it had when it last quit come back: each window at its size and place, each tab at its page and zoom ([ADR 0008 §11](../../docs/decisions/0008-desktop-shell.md#11-recent-files-and-files-that-change-on-disk)). Only each window's shown tab opens at once, and the others open when first shown, so a session of many large files starts fast. On macOS a bookmark finds a file that moved; a file that can't be found comes back as a tab that offers Locate…. The main process keeps the session in `session.json` in the app's config folder (`src-tauri/src/session/`) and writes it every 30 seconds while it changes and when the app quits. The webview gets each tab as a token and a name, never a path. `tauri-plugin-window-state` keeps the windows' sizes and places, saved with the session, so a crash keeps them too.
 
 Settings › Files has "Reopen last session", on by default. The session lists the same files as the recent list, so it is kept only while "Remember recent files" is on too: turning either off deletes `session.json`. "Clear recent" empties the recent list and leaves the session.
 
