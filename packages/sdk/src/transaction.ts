@@ -140,6 +140,48 @@ export interface RotatePagesOptions {
   readonly mode?: RotateMode;
 }
 
+/**
+ * A page box in the page's own user space: `[x0, y0, x1, y1]`, in PDF points from the
+ * bottom-left of the page as drawn, before any rotation, corners in either order.
+ *
+ * @since 0.4.0
+ */
+export type PageBox = readonly [number, number, number, number];
+
+/**
+ * The boxes `setPageBoxes` writes. Each box left out stays as it is; `null` removes it, so
+ * the page uses the box it inherits or the default (the media box for the crop box, the crop
+ * box for the others). The media box can be set but never removed.
+ *
+ * @since 0.4.0
+ */
+export interface PageBoxes {
+  /** The page's physical size. */
+  readonly media?: PageBox;
+  /** What a viewer shows and prints. */
+  readonly crop?: PageBox | null;
+  /** Where a print shop's bleed ends. */
+  readonly bleed?: PageBox | null;
+  /** The finished page after trimming. */
+  readonly trim?: PageBox | null;
+  /** The meaningful content of the page. */
+  readonly art?: PageBox | null;
+}
+
+/**
+ * Margins `cropPages` takes off, in points of the page as it shows (rotation and user unit
+ * applied), so one set crops pages of any size or rotation by the same visible amount. Each side
+ * left out is 0.
+ *
+ * @since 0.4.0
+ */
+export interface Margins {
+  readonly top?: number;
+  readonly right?: number;
+  readonly bottom?: number;
+  readonly left?: number;
+}
+
 /** @internal The `insertBlankPages` op. */
 export const insertBlankPagesOp = (
   at: PagePosition,
@@ -172,6 +214,14 @@ export const rotatePagesOp = (pages: readonly string[], angle: Rotation, options
 
 /** @internal The `reversePages` op. */
 export const reversePagesOp = (pages: readonly string[]): Op => ({ op: "reversePages", args: { pages } }) as Op;
+
+/** @internal The `setPageBoxes` op. */
+export const setPageBoxesOp = (pages: readonly string[], boxes: PageBoxes): Op =>
+  ({ op: "setPageBoxes", args: { pages, boxes } }) as Op;
+
+/** @internal The `cropPages` op. */
+export const cropPagesOp = (pages: readonly string[], margins: Margins): Op =>
+  ({ op: "cropPages", args: { pages, margins } }) as Op;
 
 /** @internal The `duplicatePages` op. */
 export const duplicatePagesOp = (pages: readonly string[], at: PagePosition): Op =>
@@ -430,6 +480,25 @@ export class Transaction {
    */
   reversePages(pages: readonly string[]): this {
     return this.apply(reversePagesOp(pages));
+  }
+
+  /**
+   * Sets or removes boxes of `pages` (`setPageBoxes`), as {@link Document.setPageBoxes}.
+   *
+   * @since 0.4.0
+   */
+  setPageBoxes(pages: readonly string[], boxes: PageBoxes): this {
+    return this.apply(setPageBoxesOp(pages, boxes));
+  }
+
+  /**
+   * Crops `pages` by `margins` of each page as it shows (`cropPages`), as
+   * {@link Document.cropPages}.
+   *
+   * @since 0.4.0
+   */
+  cropPages(pages: readonly string[], margins: Margins): this {
+    return this.apply(cropPagesOp(pages, margins));
   }
 
   /**

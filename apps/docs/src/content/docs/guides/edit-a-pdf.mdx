@@ -30,6 +30,8 @@ Five calls change which pages a document has and their order: `doc.deletePages(i
 
 `doc.duplicatePages(ids, "end")` copies pages. A copy shares its page's content but gets annotations and form fields of its own, so filling in the copy leaves the original alone. [Duplicate pages](/recipes/duplicate-pages/) shows a form page copied.
 
+`doc.cropPages(ids, { top: 36, left: 36 })` crops pages by margins of the page as it shows, so one set suits every size and rotation, and `doc.setPageBoxes(ids, { trim: [x0, y0, x1, y1] })` sets any of a page's five boxes. A crop only hides content: the edit's `croppedContentRemains` lists the pages whose hidden text is still in the file. [Crop pages](/recipes/crop-pages/) has the whole program.
+
 `doc.addSource(bytes)` opens another PDF as a source of pages. `doc.insertPagesFrom(source.id, pages, "end")` copies its pages in, and `doc.replacePages(targets, source.id, pages)` puts them in other pages' places. `doc.extractPages(ids)` makes a new PDF from some pages. [Copy pages between PDFs](/recipes/copy-pages/) shows each.
 
 `Document.merge(files)` makes one document from several files, with a bookmark for each, and `doc.mergeDocuments(sources, "end")` merges sources into an open document as one edit. `doc.split({ bookmarks: 1 })` makes one document per chapter. A merge of tagged PDFs makes a tagged file, each file's tags under a `Part` named after it. [Merge and split PDFs](/recipes/merge-and-split/) shows both.

@@ -175,7 +175,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E2c](../../todos/done/E2c-cross-document-pages.md) | Insert and replace from other files, extract and export | E2k, E2p |
 | [E2d](../../todos/done/E2d-merge-and-split.md) | Merge with outlines, destinations, fields and layers; split by count, ranges and bookmarks | E2c |
 | [E2o](../../todos/done/E2o-structure-tree-merge.md) | Merge structure trees, for merged and imported pages | E2d |
-| [E2f](../../todos/ongoing/E2f-page-geometry.md) | Crop pages and set their boxes | E2r |
+| [E2f](../../todos/done/E2f-page-geometry.md) | Crop pages and set their boxes | E2r |
 | [E2s](../../todos/ready/E2s-resize-and-orientation.md) | Resize pages and change their orientation | E2e, E2f |
 | [E2l](../../todos/ready/E2l-viewer-across-page-edits.md) | The viewer and edit session across edits that change the page list | E2b |
 | [E2h](../../todos/ready/E2h-page-organiser-ui.md) | The Organise mode: page grid, selection, drag, Move to page… and the single-document commands | E2k, E2l |
