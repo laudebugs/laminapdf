@@ -5,6 +5,7 @@
 // runtime produces the same bytes.
 import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@laminapdf/sdk";
 import { addLinks } from "../../examples/add-links.js";
+import { cropPages } from "../../examples/crop-pages.js";
 import { duplicatePages } from "../../examples/duplicate-pages.js";
 import { editBookmarks } from "../../examples/edit-bookmarks.js";
 import { editMetadata } from "../../examples/edit-metadata.js";
@@ -86,6 +87,8 @@ const PDFA_2B_PDF = "fixtures/golden/examples/pdf_a_archive-2b.pdf";
 const REFERENCES_PDF = "fixtures/pages/references.pdf";
 /** The input of duplicate-pages: two form pages, a text field, a checkbox field and a signature field. */
 const FORMS_PDF = "fixtures/pages/forms.pdf";
+/** The input of crop-pages: four pages, one per rotation, the second with a user unit of 2. */
+const BOXES_PDF = "fixtures/pages/boxes.pdf";
 /** The input of page-labels: an example golden of four pages. */
 const LABELS_INPUT_PDF = "fixtures/golden/examples/links_and_outlines.pdf";
 /** The input of extract-pages: ten pages labelled i–iii, 1–4, A-1, A-2 and Back cover. */
@@ -223,6 +226,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "duplicate_pages",
     inputs: [FORMS_PDF],
     build: (i) => duplicatePages(input(i, FORMS_PDF)),
+  },
+  {
+    name: "crop-pages",
+    golden: "crop_pages",
+    inputs: [BOXES_PDF],
+    build: (i) => cropPages(input(i, BOXES_PDF)),
   },
   {
     name: "insert-pages",

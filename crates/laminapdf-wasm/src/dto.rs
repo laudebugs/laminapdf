@@ -398,6 +398,11 @@ pub(crate) struct EditedJs {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[tsify(optional)]
     pub structure_renamed: Vec<StructureRenameJs>,
+    /// The pages whose new crop box hides some of what they showed: that content stays in the
+    /// file, and text extraction still reads it; left out when there are none.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[tsify(optional)]
+    pub cropped_content_remains: Vec<String>,
     /// The bookmarks a merge left out because the pages they went to didn't come along; left
     /// out when there are none.
     #[serde(skip_serializing_if = "is_zero")]
@@ -552,6 +557,7 @@ impl From<laminapdf::Edited> for EditedJs {
                     to: r.to,
                 })
                 .collect(),
+            cropped_content_remains: e.cropped_content_remains.iter().map(ToString::to_string).collect(),
             bookmarks_dropped: e.bookmarks_dropped,
             declared: e.declared.into_iter().map(ExtensionPropertyJs::from).collect(),
         }

@@ -67,7 +67,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | O06 | Organise mode: page grid, multi-select, insertion bar, rotate, delete, duplicate, "Move to page…" | D, W | [E2h](../../todos/ready/E2h-page-organiser-ui.md), [E2b](../../todos/done/E2b-page-structure-ops.md) |
 | O07 | Insert pages and merge documents (from another PDF, images, blank) | D | [E2c](../../todos/done/E2c-cross-document-pages.md), [E2d](../../todos/done/E2d-merge-and-split.md), [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md) |
 | O08 | Split document (by count, ranges, bookmarks) | D | [E2d](../../todos/done/E2d-merge-and-split.md) |
-| O09 | Page geometry: crop and page boxes, resize, warning that cropped content remains | D | [E2f](../../todos/ready/E2f-page-geometry.md), [E2s](../../todos/ready/E2s-resize-and-orientation.md), [E2g](../../todos/ready/E2g-page-labels.md) |
+| O09 | Page geometry: crop and page boxes, resize, warning that cropped content remains | D | [E2f](../../todos/done/E2f-page-geometry.md), [E2s](../../todos/ready/E2s-resize-and-orientation.md), [E2g](../../todos/ready/E2g-page-labels.md) |
 | O10 | Page labels editor (roman front matter, numbering ranges) | D | [E2q](../../todos/done/E2q-page-labels-op.md), [E2g](../../todos/ready/E2g-page-labels.md) |
 | O11 | Bookmarks editor (nested, drag and keyboard reorder, from headings) | D | [E3b](../../todos/done/E3b-bookmarks-and-destinations.md) |
 | O12 | Link editor: link selected text or draw a link area; target page, named destination, web or email address; script address rejected | D | [E3c](../../todos/done/E3c-links.md) |

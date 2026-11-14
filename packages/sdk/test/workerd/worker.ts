@@ -22,6 +22,7 @@ import taggedPdf from "../../../../fixtures/golden/tagged-report.pdf";
 import grayPhoto from "../../../../fixtures/images/photo-gray.jpg";
 import photo from "../../../../fixtures/images/photo-rgb.jpg";
 import report from "../../../../fixtures/markdown/report.md";
+import boxesPdf from "../../../../fixtures/pages/boxes.pdf";
 import chaptersPdf from "../../../../fixtures/pages/chapters.pdf";
 import formsPdf from "../../../../fixtures/pages/forms.pdf";
 import labelsPdf from "../../../../fixtures/pages/labels.pdf";
@@ -53,6 +54,7 @@ const inputs: Inputs = {
       "fixtures/pages/forms.pdf": formsPdf,
       "fixtures/pages/labels.pdf": labelsPdf,
       "fixtures/pages/chapters.pdf": chaptersPdf,
+      "fixtures/pages/boxes.pdf": boxesPdf,
       "fixtures/corpus/hello.pdf": helloPdf,
       "fixtures/golden/examples/links_and_outlines.pdf": linksAndOutlinesPdf,
     }).map(([path, data]) => [path, new Uint8Array(data)]),

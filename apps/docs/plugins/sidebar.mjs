@@ -121,6 +121,7 @@ export function sidebar(typeDoc) {
         { label: "Record your own metadata", slug: "recipes/edit-xmp" },
         { label: "Organise pages", slug: "recipes/organise-pages" },
         { label: "Duplicate pages", slug: "recipes/duplicate-pages" },
+        { label: "Crop pages", slug: "recipes/crop-pages" },
         { label: "Copy pages between PDFs", slug: "recipes/copy-pages" },
         { label: "Merge and split PDFs", slug: "recipes/merge-and-split" },
         { label: "Extract text for an LLM", slug: "recipes/extract-markdown" },

@@ -190,6 +190,11 @@ pub struct Edited {
     ///
     /// Added in 0.3.0.
     pub structure_renamed: Vec<laminapdf_ops::StructureRename>,
+    /// The pages whose new crop box hides some of what they showed. Cropping only hides: the
+    /// content stays in the file and text extraction still reads it.
+    ///
+    /// Added in 0.4.0.
+    pub cropped_content_remains: Vec<PageId>,
     /// The bookmarks a merge left out because the pages they went to didn't come along.
     ///
     /// Added in 0.3.0.
@@ -522,7 +527,8 @@ impl Document {
     /// Applies `ops` in order as one transaction (ADR 0006): all of them or none. Each op is
     /// a value ([`Op`]: `SetMetadata`, `RemoveMetadata`, the XMP ops, `RotatePage`, the page ops
     /// `InsertBlankPages`, `DeletePages`, `MovePages`, `RotatePages`, `ReversePages`,
-    /// `DuplicatePages`, `InsertPagesFrom` and `ReplacePages`, and the deprecated `SetInfo`), so
+    /// `DuplicatePages`, `InsertPagesFrom`, `ReplacePages`, `SetPageBoxes` and `CropPages`, and the
+    /// deprecated `SetInfo`), so
     /// the edit is serialisable and replayable;
     /// no closure crosses the boundary (F3).
     ///
@@ -566,6 +572,7 @@ impl Document {
             tags_dropped: applied.tags_dropped,
             renamed_destinations: applied.renamed_destinations,
             structure_renamed: applied.structure_renamed,
+            cropped_content_remains: applied.cropped_content_remains,
             bookmarks_dropped: applied.bookmarks_dropped,
         }
     }

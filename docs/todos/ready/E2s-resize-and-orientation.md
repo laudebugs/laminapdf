@@ -6,16 +6,16 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2e](../done/E2e-content-append-api.md), [E2f](./E2f-page-geometry.md), [E2r](../done/E2r-planner-page-checks.md) |
+| Depends on | [E2e](../done/E2e-content-append-api.md), [E2f](../done/E2f-page-geometry.md), [E2r](../done/E2r-planner-page-checks.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2s-resize-and-orientation` |
 | PR title | `feat(ops): resize pages and change orientation` |
-| Size | L (400–800): two ops that scale content through [E2e](../done/E2e-content-append-api.md)'s writer and map annotations and destinations through one matrix, with bindings; the box ops are [E2f](E2f-page-geometry.md)'s |
+| Size | L (400–800): two ops that scale content through [E2e](../done/E2e-content-append-api.md)'s writer and map annotations and destinations through one matrix, with bindings; the box ops are [E2f](../done/E2f-page-geometry.md)'s |
 | PR | — |
 
 ## Goal
 
-Resize pages (scaling the content, or extending the page around an anchor) and switch them between portrait and landscape, with annotations, destinations and structure boxes following the content. Split out of [E2f](E2f-page-geometry.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos) so each fits one reviewable PR.
+Resize pages (scaling the content, or extending the page around an anchor) and switch them between portrait and landscape, with annotations, destinations and structure boxes following the content. Split out of [E2f](../done/E2f-page-geometry.md) by the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos) so each fits one reviewable PR.
 
 ## Context
 
@@ -34,7 +34,7 @@ Resize pages (scaling the content, or extending the page around an anchor) and s
 
 **Out of scope** (and which todo covers it)
 
-- Setting boxes and cropping → [E2f](E2f-page-geometry.md)
+- Setting boxes and cropping → [E2f](../done/E2f-page-geometry.md)
 - The page-setup dialogs → [E2g](E2g-page-labels.md)
 
 **Editor facts**

@@ -1,8 +1,9 @@
 //! The page-structure ops (E2 plan §2.1): insert blank pages, delete, move, rotate, reverse,
-//! duplicate, and insert or replace pages from another document, over the model's page-tree editor (ISO 32000-2 §7.7.3). Each keeps the page labels right
+//! duplicate, set boxes and crop, and insert or replace pages from another document, over the model's page-tree editor (ISO 32000-2 §7.7.3). Each keeps the page labels right
 //! (`PageLabels::remap`) and reports the form fields whose widgets it touched, for the save
 //! planner's field-level checks (ADR 0007 §11).
 
+mod boxes;
 mod cleanup;
 mod copies;
 mod delete;
@@ -28,6 +29,7 @@ use std::collections::BTreeSet;
 
 use laminapdf_model::PageId;
 
+pub use boxes::{CropMargins, CropPages, PageBoxes, SetPageBoxes};
 pub use cleanup::{ReferenceChange, ReferenceOutcome};
 pub use copies::{FieldChange, FieldOutcome};
 pub use delete::{DeletePages, ReferencePolicy};

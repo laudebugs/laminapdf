@@ -157,6 +157,11 @@ pub struct Applied {
     ///
     /// Added in 0.3.0.
     pub structure_renamed: Vec<StructureRename>,
+    /// The pages whose new crop box hides some of what they showed: the hidden content stays
+    /// in the file, and text extraction still reads it (`SetPageBoxes`, `CropPages`).
+    ///
+    /// Added in 0.4.0.
+    pub cropped_content_remains: Vec<PageId>,
     /// The bookmarks a merge left out because the pages they went to didn't come along (and
     /// none of their children did either).
     ///
@@ -199,6 +204,8 @@ pub(crate) struct TxState {
     pub(crate) renamed_destinations: Vec<RenamedDestination>,
     /// The structure names the ops so far brought in under another name.
     pub(crate) structure_renamed: Vec<StructureRename>,
+    /// The pages the ops so far cropped over content.
+    pub(crate) cropped_content_remains: Vec<PageId>,
     /// The bookmarks the ops so far left out.
     pub(crate) bookmarks_dropped: usize,
 }
@@ -278,6 +285,7 @@ impl Tx<'_> {
             tags_dropped: effect.tags_dropped,
             renamed_destinations: effect.renamed_destinations,
             structure_renamed: effect.structure_renamed,
+            cropped_content_remains: effect.cropped_content_remains,
             bookmarks_dropped: effect.bookmarks_dropped,
         })
     }
@@ -325,6 +333,9 @@ impl Tx<'_> {
                 self.state
                     .structure_renamed
                     .extend(effect.structure_renamed.iter().cloned());
+                self.state
+                    .cropped_content_remains
+                    .extend(effect.cropped_content_remains.iter().cloned());
                 self.state.bookmarks_dropped += effect.bookmarks_dropped;
                 Ok(effect)
             }
@@ -364,6 +375,7 @@ impl Tx<'_> {
             self.state.renamed_destinations.len(),
             self.state.bookmarks_dropped,
             self.state.structure_renamed.len(),
+            self.state.cropped_content_remains.len(),
         );
         let result = f(self);
         if result.is_err() {
@@ -384,6 +396,7 @@ impl Tx<'_> {
             self.state.renamed_destinations.truncate(merged.0);
             self.state.bookmarks_dropped = merged.1;
             self.state.structure_renamed.truncate(merged.2);
+            self.state.cropped_content_remains.truncate(merged.3);
         }
         result
     }
@@ -448,6 +461,7 @@ mod tests {
             tags_dropped: Vec::new(),
             renamed_destinations: Vec::new(),
             structure_renamed: Vec::new(),
+            cropped_content_remains: Vec::new(),
             bookmarks_dropped: 0,
         }
     }
