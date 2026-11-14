@@ -232,6 +232,7 @@ jobs:
             open,
             page_tree,
             content,
+            content_append_scan,
             ops_json,
             save_roundtrip,
             copy_pages,

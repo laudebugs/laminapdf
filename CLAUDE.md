@@ -672,8 +672,8 @@ cargo xtask differential --full [--update]  # the full lane's set: 36 mutants pe
 cargo xtask roundtrip [--tools qpdf,pdfjs,pdfium]  # Lamina PDF saves fixtures x ops x modes, reopens each output; qpdf --check,
                              #   pdf.js and PDFium check them (needs qpdf, Node, Python with tools/roundtrip/requirements.txt)
 cargo xtask fuzz <target> [--time N]  # cargo +nightly fuzz: lex, parse_object, flate_decode, open, page_tree, content,
-                                      #   ops_json, save_roundtrip, extract_text, extract, markdown, document, xmp_parse,
-                                      #   engine_protocol_decode
+                                      #   content_append_scan, ops_json, save_roundtrip, copy_pages, extract_text, extract,
+                                      #   markdown, document, xmp_parse, engine_protocol_decode
 cargo xtask fuzz --all [--time N] [--jobs N]  # every fuzz target, N at once (the full lane: --jobs 4,
                                       #   30 s per target on PRs, 120 s on pushes to main)
 cargo xtask fuzz cmin [<target>]      # minimise fuzz/corpus/ (the full lane does this before caching it on main)
