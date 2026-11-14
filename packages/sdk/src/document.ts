@@ -587,7 +587,7 @@ export class Document extends Handle<BaseGlue> {
    * @param options - `pages` (0-based) to read; every page by default.
    * @throws {@link LaminaPdfError} `page-index-out-of-range`, and as {@link Document.outline}.
    *
-   * @since 0.3.0
+   * @since 0.4.0
    */
   extractImages(options: ImageOptions = {}): ExtractedImages {
     return this.call(() => this.#extracting("doc.extractImages()").extractImages(options));
@@ -600,7 +600,7 @@ export class Document extends Handle<BaseGlue> {
    *
    * @throws {@link LaminaPdfError} as {@link Document.outline}.
    *
-   * @since 0.3.0
+   * @since 0.4.0
    */
   linksJson(): string {
     return this.call(() => this.#extracting("doc.linksJson()").linksJson());
@@ -612,7 +612,7 @@ export class Document extends Handle<BaseGlue> {
    *
    * @throws {@link LaminaPdfError} as {@link Document.outline}.
    *
-   * @since 0.3.0
+   * @since 0.4.0
    */
   linksCsv(): string {
     return this.call(() => this.#extracting("doc.linksCsv()").linksCsv());
@@ -624,7 +624,7 @@ export class Document extends Handle<BaseGlue> {
    *
    * @throws {@link LaminaPdfError} as {@link Document.outline}.
    *
-   * @since 0.3.0
+   * @since 0.4.0
    */
   outlineJson(): string {
     return this.call(() => this.#extracting("doc.outlineJson()").outlineJson());
@@ -636,7 +636,7 @@ export class Document extends Handle<BaseGlue> {
    *
    * @throws {@link LaminaPdfError} as {@link Document.outline}.
    *
-   * @since 0.3.0
+   * @since 0.4.0
    */
   outlineCsv(): string {
     return this.call(() => this.#extracting("doc.outlineCsv()").outlineCsv());

@@ -1,7 +1,7 @@
 ---
 title: "Troubleshooting JavaScript and TypeScript"
 description: "The problems people hit with @laminapdf/sdk, from a missing init() to a bundler that loses the WebAssembly, with the cause and the fix of each."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/troubleshooting/javascript/"
 ---
 
@@ -15,7 +15,7 @@ These entries cover `@laminapdf/sdk` in Node, browsers, bundlers and Cloudflare 
 
 **Cause:** your project is on version `0.0.0`, a placeholder that only reserves the name. npm installs the `latest` tag unless you name a version or another tag, and before `0.2.0` Lamina PDF published only alphas, under the `alpha` tag, so a plain `npm install @laminapdf/sdk` picked the placeholder.
 
-**Fix:** install the version these docs describe: `npm install @laminapdf/sdk@0.2.0`. See [Install](../../pages/install.md#typescript-laminapdfsdk).
+**Fix:** install the version these docs describe: `npm install @laminapdf/sdk@0.3.0`. See [Install](../../pages/install.md#typescript-laminapdfsdk).
 
 ## Every call throws `not-initialized`
 

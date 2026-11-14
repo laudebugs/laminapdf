@@ -1,7 +1,7 @@
 ---
 title: "Lamina PDF"
 description: "Create, read, edit and save PDFs from Rust and TypeScript, with one Rust core that runs natively and as WebAssembly."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/"
 ---
 
@@ -14,7 +14,7 @@ Lamina PDF creates, reads, edits and saves PDFs. One Rust core does the work, an
 - **[`laminapdf`](https://crates.io/crates/laminapdf)** on crates.io is the Rust crate. Its [API reference](../pages/reference/rust.md) is on docs.rs.
 - **[`@laminapdf/sdk`](https://www.npmjs.com/package/@laminapdf/sdk)** on npm is the TypeScript API over the WebAssembly build. After one `await init()`, every call is synchronous, and the API is the same in every runtime. Its [API reference](https://docs.laminapdf.com/reference/sdk/readme/) is on this site.
 
-> **Versions:** Install the version these docs describe: `npm install @laminapdf/sdk@0.2.0` and `cargo add laminapdf@0.2.0`. From `0.2.0` on, both follow SemVer, so later releases in the same `0.x` line need no change to your code. [Install](../pages/install.md) lists every published package.
+> **Versions:** Install the version these docs describe: `npm install @laminapdf/sdk@0.3.0` and `cargo add laminapdf@0.3.0`. From `0.2.0` on, both follow SemVer, so later releases in the same `0.x` line need no change to your code. [Install](../pages/install.md) lists every published package.
 
 ## What works today
 

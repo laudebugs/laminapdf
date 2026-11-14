@@ -1,7 +1,7 @@
 ---
 title: "Element flow"
 description: "A report whose title, paragraphs and photo each start below wherever the one before ended, with a body that continues on a new page."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/recipes/element-flow/"
 ---
 
@@ -237,7 +237,7 @@ In TypeScript you pass a box as a tuple, `[x, y, width, height]`. The lines a te
 
 ## What stays your job
 
-Page breaks stay your decision: the code here makes each one from `overflow`. The builder's surface doesn't paginate, float an image beside text, or lay out tables. In Rust, [Pages that flow](../../pages/guides/flowing-pages.md) paginates for you: headings kept with their text, running headers and "Page X of Y" footers.
+Page breaks stay your decision: the code here makes each one from `overflow`. The builder's surface doesn't paginate, float an image beside text, or lay out tables. [Pages that flow](../../pages/guides/flowing-pages.md) paginates for you, in both languages: headings kept with their text, running headers and "Page X of Y" footers.
 
 ## What to change
 

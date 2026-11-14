@@ -538,7 +538,7 @@ export type ArticleThread = ThreadJs;
  * its object number (absent for an inline image), and `colorSpace` its family as `pdfimages
  * -list` names it.
  *
- * @since 0.3.0
+ * @since 0.4.0
  */
 export type ExtractedImage = ExtractedImageJs & { data: Uint8Array<ArrayBuffer> };
 
@@ -546,7 +546,7 @@ export type ExtractedImage = ExtractedImageJs & { data: Uint8Array<ArrayBuffer> 
  * An image that couldn't be extracted: its `page`, its `object` when it has one, and why
  * (`reason`, in English; never document content).
  *
- * @since 0.3.0
+ * @since 0.4.0
  */
 export type SkippedImage = SkippedImageJs;
 
@@ -554,7 +554,7 @@ export type SkippedImage = SkippedImageJs;
  * What {@link Document.extractImages} gives: the `images`, page by page, each once on the first
  * page that draws it, and the ones `skipped`.
  *
- * @since 0.3.0
+ * @since 0.4.0
  */
 export interface ExtractedImages {
   /** The images, page by page in the order each page draws them. */
@@ -566,7 +566,7 @@ export interface ExtractedImages {
 /**
  * Which pages {@link Document.extractImages} reads: `pages` (0-based), or every page.
  *
- * @since 0.3.0
+ * @since 0.4.0
  */
 export type ImageOptions = ImageOptionsInit;
 /**

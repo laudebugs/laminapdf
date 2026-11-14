@@ -1,7 +1,7 @@
 ---
 title: "Errors and warnings"
 description: "One coded error shape on every surface, and warnings for what Lamina PDF repaired."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/concepts/errors-and-warnings/"
 ---
 

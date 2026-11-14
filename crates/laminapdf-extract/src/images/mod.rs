@@ -23,7 +23,7 @@ use crate::error::ExtractError;
 
 /// Which pages [`extract_images`] reads.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.0.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct ImageOptions {
@@ -35,7 +35,7 @@ pub struct ImageOptions {
 impl ImageOptions {
     /// Reads only `pages`.
     ///
-    /// Added in 0.3.0.
+    /// Added in 0.4.0.
     #[must_use]
     pub fn with_pages(mut self, pages: Vec<usize>) -> Self {
         self.pages = Some(pages);
@@ -45,7 +45,7 @@ impl ImageOptions {
 
 /// What an extracted image is.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ImageKind {
@@ -61,7 +61,7 @@ pub enum ImageKind {
 
 /// The file an image is written as.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ImageFileFormat {
@@ -76,7 +76,7 @@ pub enum ImageFileFormat {
 impl ImageFileFormat {
     /// The file extension: `jpg`, `jp2` or `png`.
     ///
-    /// Added in 0.3.0.
+    /// Added in 0.4.0.
     #[must_use]
     pub const fn extension(self) -> &'static str {
         match self {
@@ -89,7 +89,7 @@ impl ImageFileFormat {
 
 /// One extracted image.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct ExtractedImage {
@@ -118,7 +118,7 @@ pub struct ExtractedImage {
 
 /// An image that couldn't be extracted, and why.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct SkippedImage {
@@ -132,7 +132,7 @@ pub struct SkippedImage {
 
 /// The images of a document.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.0.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct ExtractedImages {
@@ -149,7 +149,7 @@ pub struct ExtractedImages {
 /// when a page's content can't be read. An image that can't be decoded doesn't stop the rest:
 /// it is listed in [`ExtractedImages::skipped`].
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.0.
 pub fn extract_images(doc: &Document, options: &ImageOptions) -> Result<ExtractedImages, ExtractError> {
     let pages = doc.pages()?;
     let count = pages.len();

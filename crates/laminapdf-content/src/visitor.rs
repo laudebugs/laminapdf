@@ -327,7 +327,7 @@ pub struct ImageDraw<'s> {
     /// The resource dictionary the image is drawn with: where an inline image's named colour
     /// space (`/CS /CS0`) is defined.
     ///
-    /// Added in 0.3.0.
+    /// Added in 0.4.0.
     pub resources: Option<&'s Object>,
 }
 

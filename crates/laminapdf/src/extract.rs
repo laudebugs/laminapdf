@@ -135,7 +135,7 @@ impl Document {
     /// # Errors
     /// `page-index-out-of-range`; the reading errors (`strict`, the limits, `data-pending`).
     ///
-    /// Added in 0.3.0.
+    /// Added in 0.4.0.
     pub fn extract_images(&self, options: &ImageOptions) -> Result<ExtractedImages> {
         Ok(laminapdf_extract::extract_images(self.ops(), options)?)
     }
