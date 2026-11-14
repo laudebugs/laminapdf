@@ -72,7 +72,7 @@ stringprep = { version = "0.1.5", default-features = false }
 # Fonts (laminapdf-text, B4a; ADR 0005 §6). skrifa: font loading, cmap and metrics over read-fonts
 # (re-exported as `skrifa::raw`); pinned to the version subsetter's `variable-fonts` feature uses,
 # so the graph has one copy. MIT OR Apache-2.0 (read-fonts, font-types, bytemuck: likewise)
-skrifa = { version = "=0.42.0", default-features = false, features = ["std"] }
+skrifa = { version = "=0.46.2", default-features = false, features = ["std"] }
 # Subsetting TrueType/CFF/CFF2 into PDF-ready font programs, with variable-font instancing
 # (`variable-fonts`, its default feature: write-fonts, kurbo). MIT OR Apache-2.0
 subsetter = { version = "=0.2.6" }
@@ -107,7 +107,7 @@ pdfium-render = { version = "=0.9.4", default-features = false, features = ["pdf
 # algorithm in Rust. Pinned to 0.8.0, the last release on read-fonts 0.39 (skrifa 0.42's, see
 # above), so the graph keeps one read-fonts; move it with skrifa/subsetter. Its own Unicode
 # tables (no `icu` feature). MIT (bitflags, bytemuck, smallvec: MIT OR Apache-2.0 / Zlib)
-harfrust = { version = "=0.8.0", default-features = false, features = ["std"] }
+harfrust = { version = "=0.15.0", default-features = false, features = ["std"] }
 # UAX #14 line breaking and UAX #29 grapheme clusters with compiled (baked) data; no `auto`/`lstm`
 # (dictionary and LSTM models for Thai, Lao, Khmer, Burmese: out of scope, and most of the size).
 # `unstable` for `LineSegmenter::new_17_for_non_complex_scripts`, the Unicode 17 rules (the stable
