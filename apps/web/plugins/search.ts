@@ -7,7 +7,7 @@ import type { HtmlTagDescriptor, Plugin } from "vite";
 import { OPENING } from "../../site/src/data/copy.ts";
 
 /** The production reader's one page to index: every path serves the same index.html. */
-export const READER_URL = "https://app.laminapdf.com/";
+const READER_URL = "https://app.laminapdf.com/";
 
 /** The website's share image, by its full address: a meta tag loads nothing, so the CSP is not involved. */
 const SHARE_IMAGE = "https://laminapdf.com/og.png";
@@ -28,7 +28,7 @@ function decoded(text: string): string {
  * single-page fallback serves this page for any address, and the link keeps those addresses from
  * being indexed as copies of `/`.
  */
-export function shareTags(html: string): HtmlTagDescriptor[] {
+function shareTags(html: string): HtmlTagDescriptor[] {
   const title = html.match(/<title>([^<]+)<\/title>/)?.[1];
   const description = html.match(/<meta name="description" content="([^"]+)"/)?.[1];
   if (title === undefined || description === undefined) {
