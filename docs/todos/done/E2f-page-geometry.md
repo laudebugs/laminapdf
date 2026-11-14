@@ -10,12 +10,12 @@
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2f-page-geometry` |
 | PR title | `feat(ops): page boxes, and crop with its warning` |
-| Size | M (200–400): two ops that write page-dictionary keys, box validation and the crop warning, with bindings; resize and orientation, which scale content, are [E2s](../ongoing/E2s-resize-and-orientation.md)'s |
+| Size | M (200–400): two ops that write page-dictionary keys, box validation and the crop warning, with bindings; resize and orientation, which scale content, are [E2s](../done/E2s-resize-and-orientation.md)'s |
 | PR | [#576](https://github.com/laudebugs/laminapdf/pull/576) |
 
 ## Goal
 
-Set any page box (Media, Crop, Bleed, Trim, Art) and crop pages by margins, with a warning that content outside the crop stays in the file. Resizing and orientation, which split off to [E2s](../ongoing/E2s-resize-and-orientation.md) in the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos), build on these.
+Set any page box (Media, Crop, Bleed, Trim, Art) and crop pages by margins, with a warning that content outside the crop stays in the file. Resizing and orientation, which split off to [E2s](../done/E2s-resize-and-orientation.md) in the [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos), build on these.
 
 ## Context
 
@@ -33,7 +33,7 @@ Set any page box (Media, Crop, Bleed, Trim, Art) and crop pages by margins, with
 
 **Out of scope** (and which todo covers it)
 
-- Resize and orientation → [E2s](../ongoing/E2s-resize-and-orientation.md)
+- Resize and orientation → [E2s](../done/E2s-resize-and-orientation.md)
 - The dialogs → [E2g](../ready/E2g-page-labels.md)
 
 **Editor facts**

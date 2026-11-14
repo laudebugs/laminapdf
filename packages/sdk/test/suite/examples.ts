@@ -7,7 +7,6 @@ import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@lamin
 import { addLinks } from "../../examples/add-links.js";
 import { cropPages } from "../../examples/crop-pages.js";
 import { duplicatePages } from "../../examples/duplicate-pages.js";
-import { resizePages } from "../../examples/resize-pages.js";
 import { editBookmarks } from "../../examples/edit-bookmarks.js";
 import { editMetadata } from "../../examples/edit-metadata.js";
 import { editXmp } from "../../examples/edit-xmp.js";
@@ -33,6 +32,7 @@ import { pdfAArchive } from "../../examples/pdf-a-archive.js";
 import { pdfA3InvoiceWithXml } from "../../examples/pdf-a3-invoice-with-xml.js";
 import { pdfUaReport } from "../../examples/pdf-ua-report.js";
 import { report } from "../../examples/report.js";
+import { resizePages } from "../../examples/resize-pages.js";
 import { openOn } from "../../examples/set-initial-view.js";
 import { splitDocument } from "../../examples/split-document.js";
 import { exampleOptions, HELLO_OPTIONS } from "./hello-options.js";
