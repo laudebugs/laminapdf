@@ -13,7 +13,7 @@ Damage inside the file: bytes overwritten or spliced in, so a stray word, number
 
 ## How to fix
 
-Nothing, if the document reads correctly: re-saving writes the dictionary without the stray token. In strict mode the warning is an error, so a strict reader refuses such a file.
+Nothing, if the document reads correctly: re-saving writes the dictionary without the stray token. In strict mode the warning is an error, so the file doesn't open.
 
 ## Example
 

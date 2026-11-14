@@ -191,11 +191,12 @@ impl<'a> Parser<'a> {
     }
 
     /// Whether a dictionary parsed so far by this parser, in any object, had something other
-    /// than a name where a key belongs: it is never reset. Such a token is skipped, as pdf.js and PDFium do, and parsing goes on with
-    /// the next one: a number, string or other keyword, a whole array or dictionary (with a
-    /// reference `n g R` as one), a stray `]`, or an unbalanced `)` or `>`. An object keyword
-    /// (`obj`, `endobj`, `stream`, `endstream`) still ends the parse with an error: the
-    /// dictionary was never closed. Callers report it (ADR 0003 §1).
+    /// than a name where a key belongs; it is never reset. Such a token is skipped, as pdf.js
+    /// and PDFium do, and parsing goes on with the next one: a number, string or other keyword,
+    /// a whole array or dictionary (with a reference `n g R` as one), a stray `]`, or an
+    /// unbalanced `)` or `>`. An object keyword (`obj`, `endobj`, `stream`, `endstream`) still
+    /// ends the parse with an error: the dictionary was never closed. Callers report it
+    /// (ADR 0003 §1).
     ///
     /// Added in 0.4.0.
     pub const fn skipped_keys(&self) -> bool {

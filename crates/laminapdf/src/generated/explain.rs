@@ -158,7 +158,7 @@ Damage inside the file: bytes overwritten or spliced in, so a stray word, number
 
 ## How to fix
 
-Nothing, if the document reads correctly: re-saving writes the dictionary without the stray token. In strict mode the warning is an error, so a strict reader refuses such a file.
+Nothing, if the document reads correctly: re-saving writes the dictionary without the stray token. In strict mode the warning is an error, so the file doesn't open.
 
 ## Example
 
@@ -302,15 +302,15 @@ None.
 
 ## What happened
 
-ASCIIHex or ASCII85 data held characters outside the filter's alphabet; they were skipped.
+A stream stored as text, as hex digits (`ASCIIHexDecode`) or as ASCII85 characters (`ASCII85Decode`), held characters that its encoding doesn't use. Lamina PDF skipped them.
 
 ## Why
 
-A damaged stream, or one written by a tool that put other characters in its text-encoded data.
+The stream is damaged, or the tool that wrote it put other characters in its encoded data.
 
 ## How to fix
 
-Nothing, if the content looks right; if it doesn't, the stream is damaged and another copy of the file may read better.
+Nothing, if the content looks right; if it doesn't, the stream is damaged and another copy of the file may read better. In strict mode the warning is an error, so the file doesn't open.
 
 ## Example
 

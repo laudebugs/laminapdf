@@ -4,18 +4,20 @@
 
 ## The fix
 
-Three reading rules change, each recorded in ADR 0003 §1. The owner chose the first and the third; the second follows from #37's question of why two mutants failed to open, and is the rule pdf.js and PDFium follow:
+Three reading rules change, each recorded in ADR 0003 §1:
 
 - **ASCIIHex and ASCII85.** A character outside the filter's alphabet, and an ASCII85 last group of one character, are skipped and the rest decodes, as pdf.js and poppler do. The reader raises the new warning `filter-characters-skipped`.
-- **Dictionary keys.** Something other than a name where a key belongs (a number, string or keyword, a whole array or dictionary, a stray `]`, an unbalanced `)` or `>`) is skipped and the rest of the dictionary is read, as pdf.js and PDFium do, with the new warning `dictionary-key-skipped`. An object keyword (`obj`, `endobj`, `stream`, `endstream`) is still an error. An `/Encrypt` or catalog read by skipping counts as damaged, so repair still prefers an intact older definition. Strict mode refuses it.
+- **Dictionary keys.** Something other than a name where a key belongs (a number, string or keyword, a whole array or dictionary, a stray `]`, an unbalanced `)` or `>`) is skipped and the rest of the dictionary is read, as pdf.js and PDFium do, with the new warning `dictionary-key-skipped`. An object keyword (`obj`, `endobj`, `stream`, `endstream`) is still an error. An `/Encrypt` or catalog read by skipping counts as damaged, so repair still prefers an intact older definition. Strict mode refuses any dictionary read by skipping a key.
 - **PDFDocEncoding.** A text string's undefined byte keeps its own scalar (U+0000–U+00FF), as pdf.js, qpdf and pypdf read it, instead of U+FFFD.
 
-An AES-256 file whose `/OE` or `/UE` is damaged now opens with a password that doesn't need it; it fails only when no password works without it.
+The owner chose the first and the third. The second answers #37's question of why two mutants failed to open.
+
+An AES-256 file with a damaged `/OE` or `/UE` entry now opens with the password that doesn't use that entry: the user password when `/OE` is damaged, the owner password when `/UE` is. It fails only when no password works without the damaged entry.
 
 The differential's exception files follow:
 
 - `issue18529.pdf` is a `[[known]]` XMP entry under #527, with the other files ExifTool can't read.
-- Four pages of `poppler-90-0-fuzzed.pdf` still differ, because Lamina PDF's content interpreter keeps reading past content errors that make pdf.js stop the page. They are a `[[known]]` text entry tracked by #597.
+- Four pages of `poppler-90-0-fuzzed.pdf` still differ (the three that failed, and page 0, which now decodes too), because Lamina PDF's content interpreter keeps reading past content errors that make pdf.js stop the page. They are a `[[known]]` text entry tracked by #597.
 - The `[[known]]` entries of #37 are gone: both mutants open, the outline titles agree, and `issue22011.pdf` reads 57 pages as PDFium, qpdf and pypdf do. The pinned pdf.js 6.4.299 still reads 40, a bug it fixed in 6.5, so that file is an `[[exception]]` for pdf.js alone.
 - Two PR-lane and 21 full-lane exceptions are no longer needed and are removed. Three full-lane mutants now read where pypdf fails, and are excused under the dictionary-key rule.
 
