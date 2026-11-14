@@ -263,6 +263,14 @@ lamina_warning = "unmapped-glyph"
 rule = "ADR 0003 §2: warnings (unmapped-glyph: a glyph without a Unicode value is U+FFFD, with the warning)"
 reason = "the texts differ only where lamina writes U+FFFD for a glyph that has no Unicode value (no ToUnicode entry, glyph name or cmap), and the tool writes nothing or a control character for it"
 
+[[class]]
+file = "pdfbox/pdfbox-layout-*/src/test/resources/pdf/GlyphLayoutDIN91379*_ActualText.pdf"
+facts = ["text"]
+tools = ["pdftotext"]
+relation = "pdfdoc-9f-replaced"
+rule = "ADR 0003 §1: an undefined PDFDocEncoding byte keeps its own scalar"
+reason = "the files end an /ActualText string with undefined byte 0x9F; lamina preserves U+009F, while pdftotext displays U+FFFD"
+
 [[known]]
 facts = ["text"]
 issue = "https://github.com/laudebugs/laminapdf/issues/106"
@@ -440,10 +448,13 @@ reason = "lamina fails with password-required where pdf.js and pdftotext open th
 [[known]]
 facts = ["text"]
 issue = "https://github.com/laudebugs/laminapdf/issues/110"
-reason = "page text differs from both tools for reasons still to triage (order of RTL, bidi or vertical text; text outside the crop box or invisible; text in Form XObjects or widgets; other encodings)"
+reason = "page text differs from a tool for reasons still to triage (order of RTL, bidi or vertical text; text outside the crop box or invisible; text in Form XObjects or widgets; other encodings)"
 
 [known.pages]
 "pdfbox/pdfbox-layout-awt/src/test/resources/pdf/GlyphLayoutBidi_ActualText.pdf" = "0"
+"pdfbox/pdfbox-layout-awt/src/test/resources/pdf/GlyphLayoutDIN91379Form_ActualText.pdf" = { pages = "0", tools = ["pdfjs"] }
+"pdfbox/pdfbox-layout-awt/src/test/resources/pdf/GlyphLayoutDIN91379_ActualText.pdf" = { pages = "0", tools = ["pdfjs"] }
+"pdfbox/pdfbox-layout-fop/src/test/resources/pdf/GlyphLayoutDIN91379_ActualText.pdf" = { pages = "0", tools = ["pdfjs"] }
 "pdfbox/pdfbox/src/test/resources/input/FC60_Times.pdf" = "0"
 "pdfbox/pdfbox/src/test/resources/input/PDFBOX-4531-bidi-ligature-2.pdf" = "0"
 "pdfbox/pdfbox/src/test/resources/input/PDFBOX-5838-0024320-reduced.pdf" = "0"

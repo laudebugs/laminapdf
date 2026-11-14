@@ -879,6 +879,15 @@ mod tests {
     }
 
     #[test]
+    fn undefined_pdfdoc_replacement_should_only_allow_the_9f_substitution() {
+        let replacement = Relation::PdfDoc9fReplaced;
+        assert!(replacement.holds(&json!("a\u{009F}b"), &json!("a\u{FFFD}b")));
+        assert!(!replacement.holds(&json!("a\u{009F}b"), &json!("a\u{FFFD}c")));
+        assert!(!replacement.holds(&json!("a\u{009F}b"), &json!("ab")));
+        assert!(!replacement.holds(&json!("ab"), &json!("ab")));
+    }
+
+    #[test]
     fn rate_should_show_a_percentage() {
         let tally = Tally {
             agree: 3,
