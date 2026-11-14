@@ -3,7 +3,7 @@
 #![allow(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 
 use laminapdf::extract::TextOptions;
-use laminapdf::{CropPages, Document, Margins, OpenOptions, SaveOptions};
+use laminapdf::{CropMargins, CropPages, Document, OpenOptions, SaveOptions};
 use laminapdf_test_fixtures::fixture;
 
 fn text(doc: &Document) -> Vec<String> {
@@ -22,7 +22,7 @@ fn text_a_crop_hides_is_still_extracted_and_the_edit_says_so() {
     // A narrow strip in the middle of each page: "Page n", near the top, is cut off.
     let edited = doc
         .apply(vec![
-            CropPages::new(pages.clone(), Margins::new(250.0, 100.0, 250.0, 100.0)).into(),
+            CropPages::new(pages.clone(), CropMargins::new(250.0, 100.0, 250.0, 100.0)).into(),
         ])
         .unwrap();
     let saved = doc.save(&SaveOptions::new()).unwrap().bytes;

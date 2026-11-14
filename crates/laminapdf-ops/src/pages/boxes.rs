@@ -188,7 +188,7 @@ impl SetPageBoxes {
     }
 }
 
-/// Margins to crop, in points of the page as displayed (ADR 0027 page space: rotation and
+/// CropMargins to crop, in points of the page as displayed (ADR 0027 page space: rotation and
 /// `/UserUnit` applied), so one set fits pages of mixed sizes and rotations. Each defaults to 0.
 ///
 /// Added in 0.4.0.
@@ -196,7 +196,7 @@ impl SetPageBoxes {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
-pub struct Margins {
+pub struct CropMargins {
     /// From the top edge as displayed.
     #[serde(default)]
     pub top: f64,
@@ -211,7 +211,7 @@ pub struct Margins {
     pub left: f64,
 }
 
-impl Margins {
+impl CropMargins {
     /// The margins `top`, `right`, `bottom` and `left`, in points.
     ///
     /// Added in 0.4.0.
@@ -255,7 +255,7 @@ pub struct CropPages {
     #[cfg_attr(feature = "tsify", tsify(type = "string[]"))]
     pub pages: Vec<PageId>,
     /// The margins to take off.
-    pub margins: Margins,
+    pub margins: CropMargins,
 }
 
 // As for `SetPageBoxes`.
@@ -266,12 +266,12 @@ impl CropPages {
     ///
     /// Added in 0.4.0.
     #[must_use]
-    pub const fn new(pages: Vec<PageId>, margins: Margins) -> Self {
+    pub const fn new(pages: Vec<PageId>, margins: CropMargins) -> Self {
         Self { pages, margins }
     }
 
     pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Effect> {
-        let Margins {
+        let CropMargins {
             top,
             right,
             bottom,

@@ -129,8 +129,8 @@ pub use outline::{
     SetNamedDestination, UpdateOutlineItem,
 };
 pub use pages::{
-    Carry, CropPages, DeletePages, DuplicatePages, FieldChange, FieldClash, FieldOutcome, InsertBlankPages,
-    InsertPagesFrom, Margins, MergeDocuments, MergeInput, MergeOptions, MergeSource, MovePages, OutlineMerge,
+    Carry, CropMargins, CropPages, DeletePages, DuplicatePages, FieldChange, FieldClash, FieldOutcome,
+    InsertBlankPages, InsertPagesFrom, MergeDocuments, MergeInput, MergeOptions, MergeSource, MovePages, OutlineMerge,
     PageBoxes, ReferenceChange, ReferenceOutcome, ReferencePolicy, RenamedDestination, ReplacePages, ReversePages,
     RotateMode, RotatePages, SetPageBoxes, SplitBy, StructureName, StructureRename,
 };

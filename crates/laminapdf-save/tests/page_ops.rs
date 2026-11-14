@@ -17,7 +17,7 @@ use common::fixture;
 use common::save::{editable, page_ids};
 use laminapdf_model::{PageId, PagePosition, PageSize, Rotation};
 use laminapdf_ops::{
-    CropPages, DeletePages, Document, DuplicatePages, InsertBlankPages, InsertPagesFrom, Margins, MergeDocuments,
+    CropMargins, CropPages, DeletePages, Document, DuplicatePages, InsertBlankPages, InsertPagesFrom, MergeDocuments,
     MergeSource, ModificationClass, MovePages, Op, Origin, PageBoxes, ReplacePages, ReversePages, RotatePages,
     SetPageBoxes, SourceId,
 };
@@ -49,7 +49,10 @@ fn ops(page: &PageId) -> Vec<(&'static str, Op)> {
         ("move", MovePages::new(vec![page.clone()], PagePosition::End).into()),
         ("rotate", RotatePages::set(vec![page.clone()], Rotation::Half).into()),
         ("reverse", ReversePages::new(vec![page.clone()]).into()),
-        ("crop", CropPages::new(vec![page.clone()], Margins::all(18.0)).into()),
+        (
+            "crop",
+            CropPages::new(vec![page.clone()], CropMargins::all(18.0)).into(),
+        ),
         (
             "boxes",
             SetPageBoxes::new(vec![page.clone()], PageBoxes::default().with_trim(None)).into(),

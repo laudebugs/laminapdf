@@ -16,6 +16,7 @@ import { PageText, type TextOptions } from "./text.js";
 import {
   type AddedSource,
   type Carry,
+  type CropMargins,
   cropPagesOp,
   type DeletePagesOptions,
   deletePagesOp,
@@ -23,7 +24,6 @@ import {
   type InsertBlankPagesOptions,
   insertBlankPagesOp,
   insertPagesFromOp,
-  type Margins,
   type MergeOptions,
   type MergeSource,
   type MetadataEditOptions,
@@ -1258,7 +1258,7 @@ export class Document extends Handle<BaseGlue> {
    *
    * @since 0.4.0
    */
-  cropPages(pages: readonly string[], margins: Margins): Edited {
+  cropPages(pages: readonly string[], margins: CropMargins): Edited {
     return this.apply([cropPagesOp(pages, margins)]);
   }
 

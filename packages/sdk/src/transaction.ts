@@ -169,13 +169,13 @@ export interface PageBoxes {
 }
 
 /**
- * Margins `cropPages` takes off, in points of the page as it shows (rotation and user unit
+ * CropMargins `cropPages` takes off, in points of the page as it shows (rotation and user unit
  * applied), so one set crops pages of any size or rotation by the same visible amount. Each side
  * left out is 0.
  *
  * @since 0.4.0
  */
-export interface Margins {
+export interface CropMargins {
   /** Points off the top edge as the page shows. */
   readonly top?: number;
   /** Points off the right edge as the page shows. */
@@ -224,7 +224,7 @@ export const setPageBoxesOp = (pages: readonly string[], boxes: PageBoxes): Op =
   ({ op: "setPageBoxes", args: { pages, boxes } }) as Op;
 
 /** @internal The `cropPages` op. */
-export const cropPagesOp = (pages: readonly string[], margins: Margins): Op =>
+export const cropPagesOp = (pages: readonly string[], margins: CropMargins): Op =>
   ({ op: "cropPages", args: { pages, margins } }) as Op;
 
 /** @internal The `duplicatePages` op. */
@@ -501,7 +501,7 @@ export class Transaction {
    *
    * @since 0.4.0
    */
-  cropPages(pages: readonly string[], margins: Margins): this {
+  cropPages(pages: readonly string[], margins: CropMargins): this {
     return this.apply(cropPagesOp(pages, margins));
   }
 

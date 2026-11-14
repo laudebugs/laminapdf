@@ -33,7 +33,7 @@ use laminapdf_model::{
     LabelStyle, OpenAction, PageId, PageLayout, PageMode, PagePosition, PageSize, Rotation, UserSpaceRect,
 };
 use laminapdf_ops::{
-    CropPages, DeletePages, Document, DuplicatePages, InfoPatch, InsertBlankPages, InsertPagesFrom, Margins,
+    CropMargins, CropPages, DeletePages, Document, DuplicatePages, InfoPatch, InsertBlankPages, InsertPagesFrom,
     MergeDocuments, MergeSource, MetadataKey, MetadataPatch, MovePages, Op, OpenAt, OpenZoom, Origin, PageBoxes,
     PageLabelRange, RemoveMetadata, ReplacePages, ReversePages, RotatePage, RotatePages, SetInfo, SetInitialView,
     SetMetadata, SetPageBoxes, SetPageLabels, SetXmpProperty, SourceId, SplitBy, WindowPreferencesPatch, read_metadata,
@@ -350,7 +350,7 @@ fn op(doc: &Document, name: &str, rotation: Rotation, source: SourceId) -> Optio
             let trim = UserSpaceRect::from_corners(media.x0 + 1.0, media.y0 + 1.0, media.x1 - 1.0, media.y1 - 1.0);
             SetPageBoxes::new(vec![first], PageBoxes::default().with_trim(Some(trim))).into()
         }
-        "cropPages" => CropPages::new(ids, Margins::new(1.0, 2.0, 3.0, 4.0)).into(),
+        "cropPages" => CropPages::new(ids, CropMargins::new(1.0, 2.0, 3.0, 4.0)).into(),
         "duplicatePages" => DuplicatePages::new(ids.first().cloned().into_iter().collect(), PagePosition::End).into(),
         "mergeDocuments" => {
             MergeDocuments::new(vec![MergeSource::new(source).with_title("Merged")], PagePosition::End).into()

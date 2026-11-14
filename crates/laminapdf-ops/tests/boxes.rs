@@ -11,7 +11,7 @@ mod common;
 
 use common::{fixture, open, page_ids, snapshot};
 use laminapdf_model::{PageFrame, PointPt, Pt, UserSpaceRect};
-use laminapdf_ops::{CropPages, Document, Error, Margins, Op, Origin, PageBoxes, SetPageBoxes, WidgetChange};
+use laminapdf_ops::{CropMargins, CropPages, Document, Error, Op, Origin, PageBoxes, SetPageBoxes, WidgetChange};
 
 fn pages(name: &str) -> Document {
     open(&fixture(&format!("pages/{name}")))
@@ -38,7 +38,7 @@ fn one_set_of_margins_crops_every_rotation_by_the_same_visible_amount() {
     let mut doc = pages("boxes.pdf");
     let ids = page_ids(&doc);
     let before = frames(&doc);
-    let margins = Margins::new(10.0, 20.0, 30.0, 40.0);
+    let margins = CropMargins::new(10.0, 20.0, 30.0, 40.0);
     let applied = apply(&mut doc, CropPages::new(ids.clone(), margins)).unwrap();
     let after = frames(&doc);
     for (i, (old, new)) in before.iter().zip(&after).enumerate() {
@@ -62,9 +62,9 @@ fn margins_that_leave_nothing_or_are_negative_are_refused() {
     let ids = page_ids(&doc);
     let before = snapshot(&doc);
     for margins in [
-        Margins::new(0.0, 300.0, 0.0, 300.0),
-        Margins::all(-1.0),
-        Margins::new(f64::NAN, 0.0, 0.0, 0.0),
+        CropMargins::new(0.0, 300.0, 0.0, 300.0),
+        CropMargins::all(-1.0),
+        CropMargins::new(f64::NAN, 0.0, 0.0, 0.0),
     ] {
         let err = apply(&mut doc, CropPages::new(ids.clone(), margins)).unwrap_err();
         assert!(matches!(err, Error::InvalidOp(_)), "{margins:?}: {err:?}");
@@ -76,7 +76,7 @@ fn margins_that_leave_nothing_or_are_negative_are_refused() {
 fn zero_margins_hide_nothing() {
     let mut doc = pages("boxes.pdf");
     let ids = page_ids(&doc);
-    let applied = apply(&mut doc, CropPages::new(ids, Margins::default())).unwrap();
+    let applied = apply(&mut doc, CropPages::new(ids, CropMargins::default())).unwrap();
     assert_eq!(applied.cropped_content_remains, Vec::<laminapdf_model::PageId>::new());
 }
 
@@ -172,7 +172,7 @@ fn undo_puts_every_box_back() {
     let mut doc = pages("boxes.pdf");
     let ids = page_ids(&doc);
     let before = frames(&doc);
-    apply(&mut doc, CropPages::new(ids.clone(), Margins::all(36.0))).unwrap();
+    apply(&mut doc, CropPages::new(ids.clone(), CropMargins::all(36.0))).unwrap();
     apply(
         &mut doc,
         SetPageBoxes::new(ids, PageBoxes::default().with_art(None).with_trim(None)),
@@ -192,7 +192,7 @@ fn undo_puts_every_box_back() {
 fn both_ops_reshow_the_widgets_on_their_pages() {
     let mut doc = pages("forms.pdf");
     let ids = page_ids(&doc);
-    let cropped = apply(&mut doc, CropPages::new(vec![ids[0].clone()], Margins::all(10.0))).unwrap();
+    let cropped = apply(&mut doc, CropPages::new(vec![ids[0].clone()], CropMargins::all(10.0))).unwrap();
     let boxed = apply(
         &mut doc,
         SetPageBoxes::new(vec![ids[1].clone()], PageBoxes::default().with_trim(None)),
@@ -203,7 +203,7 @@ fn both_ops_reshow_the_widgets_on_their_pages() {
         (changes(&cropped), changes(&boxed)),
         (vec![WidgetChange::Reshown; 2], vec![WidgetChange::Reshown; 2])
     );
-    let op: Op = CropPages::new(vec![ids[0].clone()], Margins::all(10.0)).into();
+    let op: Op = CropPages::new(vec![ids[0].clone()], CropMargins::all(10.0)).into();
     assert_eq!(op.page_changes().len(), 1);
 }
 

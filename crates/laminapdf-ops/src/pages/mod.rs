@@ -29,7 +29,7 @@ use std::collections::BTreeSet;
 
 use laminapdf_model::PageId;
 
-pub use boxes::{CropPages, Margins, PageBoxes, SetPageBoxes};
+pub use boxes::{CropMargins, CropPages, PageBoxes, SetPageBoxes};
 pub use cleanup::{ReferenceChange, ReferenceOutcome};
 pub use copies::{FieldChange, FieldOutcome};
 pub use delete::{DeletePages, ReferencePolicy};

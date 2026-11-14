@@ -101,9 +101,9 @@ export type { InfoPatch, Rotation } from "./transaction.js";
 export {
   type AddedSource,
   type Carry,
+  type CropMargins,
   type DeletePagesOptions,
   type InsertBlankPagesOptions,
-  type Margins,
   type MergeOptions,
   type MergeSource,
   type MetadataEditOptions,
