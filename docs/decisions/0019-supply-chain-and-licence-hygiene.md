@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-28
+- Amended 2026-11-14 ([X11](../todos/ongoing/X11-lock-github-actions.md)): GitHub Actions are locked by a workflow lockfile, `.github/workflows/actions.lock`, instead of pinned by commit SHA in the workflow files. GitHub made workflow lockfiles [generally available on 2026-10-28](https://github.blog/changelog/2026-10-28-github-actions-workflow-lockfiles-are-generally-available/).
 
 ## Context
 
@@ -35,14 +36,14 @@ An xtask subcommand reads `pnpm licenses list --json` (production dependencies o
 
 - `rust-toolchain.toml` pins the Rust toolchain and targets; `packageManager` in the root `package.json` pins pnpm (via Corepack); Node's version is pinned in `.nvmrc` (used by CI's `setup-node` and by version managers) and declared in `engines`, with `engine-strict=true` in `.npmrc` so pnpm refuses a mismatched Node. `wasm-bindgen-cli` and `wasm-opt` are pinned in xtask ([ADR 0002](0002-binding-strategy.md)).
 - `Cargo.lock` and `pnpm-lock.yaml` are committed. CI runs `cargo … --locked` and `pnpm install --frozen-lockfile`.
-- GitHub Actions are pinned by commit SHA, with the version in a comment.
+- GitHub Actions are locked by `.github/workflows/actions.lock`, GitHub's [workflow dependency lockfile](https://docs.github.com/en/actions/concepts/security/workflow-dependency-lockfiles) (amended 2026-11-14, [X11](../todos/ongoing/X11-lock-github-actions.md)). The workflow files name release tags (`actions/checkout@v7.0.1`); the lockfile records the commit each tag resolves to, the repository that owns it, and the actions those actions use in turn, which a SHA in a workflow file never covered. GitHub refuses to run an action that isn't in the lockfile, whose locked commit its tag no longer reaches, or whose repository changed owner. This repository's own composite actions are written `$/.github/actions/<name>`, so the lockfile follows them too; `./` references aren't followed. `gh actions-lock` (the `github/gh-actions-lock` extension, pinned in `tools/xtask/src/doctor.rs`) rewrites the lockfile after a workflow is added or a `uses:` line changes, and the fast lane's `lockfile` job runs `gh actions-lock --verify` on every pull request. Before the amendment, actions were pinned by commit SHA with the version in a comment.
 
 ### Dependency updates: Dependabot
 
 We use **Dependabot** (decided by the project owner), configured in `.github/dependabot.yml`, with security alerts and security updates on. Reasons:
 
 - Built into GitHub: nothing to install or grant, no third-party app with write access to the repository.
-- It covers our ecosystems: `cargo`, `npm` (pnpm lockfiles), `github-actions`, with one entry per directory.
+- It covers our ecosystems: `cargo`, `npm` (pnpm lockfiles), `github-actions`, with one entry per directory. For `github-actions` it updates a workflow's `uses:` tag and its lockfile entry in one PR, but doesn't onboard a workflow that has no lockfile entries yet: `gh actions-lock` does that.
 - `groups` keep coupled upgrades in one PR (the wasm-bindgen crate; `@tauri-apps/*`; dev tooling), and `cooldown` delays brand-new releases for a few days, which reduces exposure to compromised releases that get yanked quickly.
 
 What Dependabot does not track, xtask does: the pinned `wasm-bindgen-cli` must match the crate version in `Cargo.lock` (checked by `cargo xtask wasm`, [ADR 0002](0002-binding-strategy.md)), and binaryen, cargo-deny and the toolchain in `rust-toolchain.toml` are bumped by hand in a reviewed PR. Check the exact Dependabot options (pnpm catalog support, grouping syntax) against GitHub's docs when the config is written.

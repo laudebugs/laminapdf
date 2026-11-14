@@ -52,7 +52,7 @@ runs:
         fi
     # Same version as tools/xtask/src/doctor.rs (SCCACHE_VERSION); a test checks it.
     - if: steps.check.outputs.enabled == 'true'
-      uses: ./.github/actions/install-tools
+      uses: $/.github/actions/install-tools
       with:
         tool: sccache@0.19.0
     # The credentials live in this step's environment only. The server keeps them and starts each

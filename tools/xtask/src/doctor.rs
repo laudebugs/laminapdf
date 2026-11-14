@@ -28,6 +28,10 @@ const CARGO_ABOUT_VERSION: &str = "0.9.2";
 const CARGO_SEMVER_CHECKS_VERSION: &str = "0.51.0";
 /// cargo-fuzz release (`cargo xtask fuzz`, `.github/workflows/nightly.yml`); it runs on nightly.
 const CARGO_FUZZ_VERSION: &str = "0.13.2";
+/// gh-actions-lock release, the `gh actions-lock` extension that writes and checks
+/// `.github/workflows/actions.lock` (todo X11; MIT; pre-1.0, so bumped in a reviewed PR). The fast
+/// lane's `lockfile` job installs the same pin (a test in workflows.rs checks it).
+pub(crate) const GH_ACTIONS_LOCK_VERSION: &str = "0.4.1";
 /// sccache release, CI's compile cache (`.github/actions/rust-compile-cache`, which installs this
 /// version; docs/plans/ci-caching.md; Apache-2.0). Optional locally.
 pub(crate) const SCCACHE_VERSION: &str = "0.19.0";
@@ -121,6 +125,15 @@ impl Tool {
             Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout).trim().to_owned(),
             _ => return Probe::Missing,
         };
+        // A gh extension has no version flag: its version is on its line of `gh extension list`.
+        let version = if self.version_command == GH_EXTENSION_LIST {
+            match extension_line(&version, self.name) {
+                Some(line) => line.to_owned(),
+                None => return Probe::Missing,
+            }
+        } else {
+            version
+        };
         if self.accepts(&version) {
             Probe::Ok(version)
         } else {
@@ -155,10 +168,41 @@ impl Tool {
         }
     }
 
-    /// The `cargo install …` arguments of the fix, if the fix is a cargo install.
-    fn cargo_install_args(&self) -> Option<Vec<&str>> {
-        let rest = self.fix.strip_prefix("cargo ")?;
-        rest.starts_with("install ").then(|| rest.split_whitespace().collect())
+    /// The program and arguments of the fix, if `doctor --install` may run it: a `cargo install …`
+    /// or a `gh extension install …`.
+    fn install_command(&self) -> Option<(&str, Vec<&str>)> {
+        let (program, rest) = self.fix.split_once(' ')?;
+        let installs = match program {
+            "cargo" => rest.starts_with("install "),
+            "gh" => rest.starts_with("extension install "),
+            _ => false,
+        };
+        installs.then(|| (program, rest.split_whitespace().collect()))
+    }
+}
+
+/// How a gh extension's version is read: the line naming it in `gh extension list`.
+const GH_EXTENSION_LIST: &[&str] = &["gh", "extension", "list"];
+
+/// The line of `gh extension list`'s output for the extension `name` (`gh-actions-lock` is on
+/// `gh actions-lock  github/gh-actions-lock  v0.4.1`, tab-separated).
+fn extension_line<'a>(list: &'a str, name: &str) -> Option<&'a str> {
+    list.lines().find(|line| {
+        line.split_whitespace()
+            .any(|field| field.rsplit('/').next() == Some(name))
+    })
+}
+
+pub(crate) fn gh_actions_lock() -> Tool {
+    Tool {
+        name: "gh-actions-lock",
+        version_command: GH_EXTENSION_LIST,
+        pin: Pin::Exact(GH_ACTIONS_LOCK_VERSION.to_owned()),
+        fix: format!("gh extension install github/gh-actions-lock --pin v{GH_ACTIONS_LOCK_VERSION}"),
+        optional_for: Some(
+            "gh actions-lock: rewriting .github/workflows/actions.lock after a `uses:` line changes \
+             (docs/guidelines/contributing.md)",
+        ),
     }
 }
 
@@ -289,6 +333,7 @@ fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
         cargo_about(),
         cargo_semver_checks(),
         cargo_fuzz(),
+        gh_actions_lock(),
         sccache(),
         qpdf(),
         pdftotext(),
@@ -436,8 +481,8 @@ pub(crate) fn run(ws: &Workspace, install: bool) -> Result<()> {
     let mut failures = Vec::new();
     for tool in all_tools(ws)? {
         let probe = tool.probe(ws);
-        let install_args = tool.cargo_install_args();
-        match action(&probe, tool.optional_for.is_some(), install, install_args.is_some()) {
+        let install_command = tool.install_command();
+        match action(&probe, tool.optional_for.is_some(), install, install_command.is_some()) {
             Action::Ok => {
                 if let Probe::Ok(version) = &probe {
                     println!("✓ {:<17} {version}", tool.name);
@@ -445,7 +490,9 @@ pub(crate) fn run(ws: &Workspace, install: bool) -> Result<()> {
             }
             Action::Install => {
                 println!("… {:<17} installing: {}", tool.name, tool.fix);
-                crate::run(&ws.root, "cargo", &install_args.unwrap_or_default())?;
+                if let Some((program, args)) = &install_command {
+                    crate::run(&ws.root, program, args)?;
+                }
             }
             Action::Note => {
                 let why = tool.optional_for.unwrap_or_default();
@@ -555,7 +602,7 @@ fn major(version: &str) -> Option<u32> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Action, Pin, Probe, Tool, action, parse_channel, version_token};
+    use super::{Action, Pin, Probe, Tool, action, extension_line, gh_actions_lock, parse_channel, version_token};
 
     /// The packages on the line after each `apt-get install` of `workflow` that names `WebKitGTK`.
     fn webkit_installs(workflow: &str) -> Vec<String> {
@@ -594,6 +641,39 @@ mod tests {
     #[test]
     fn version_token_skips_hash_and_date() {
         assert_eq!(version_token("rustc 1.99.1 (58cf8f9c3 2026-10-13)"), Some("1.99.1"));
+    }
+
+    #[test]
+    fn extension_line_finds_the_extension_among_others() {
+        let list = "gh copilot\tgithub/gh-copilot\tv1.0.0\ngh actions-lock\tgithub/gh-actions-lock\tv0.4.1\n";
+        assert_eq!(
+            extension_line(list, "gh-actions-lock"),
+            Some("gh actions-lock\tgithub/gh-actions-lock\tv0.4.1")
+        );
+    }
+
+    #[test]
+    fn extension_line_is_none_when_the_extension_is_not_installed() {
+        assert_eq!(
+            extension_line("gh copilot\tgithub/gh-copilot\tv1.0.0", "gh-actions-lock"),
+            None
+        );
+    }
+
+    #[test]
+    fn gh_actions_lock_pin_accepts_its_pinned_line() {
+        assert!(gh_actions_lock().accepts("gh actions-lock\tgithub/gh-actions-lock\tv0.4.1"));
+    }
+
+    #[test]
+    fn gh_actions_lock_fix_is_an_install_doctor_may_run() {
+        assert_eq!(
+            gh_actions_lock().install_command(),
+            Some((
+                "gh",
+                vec!["extension", "install", "github/gh-actions-lock", "--pin", "v0.4.1"]
+            ))
+        );
     }
 
     #[test]

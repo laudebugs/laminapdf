@@ -13,12 +13,13 @@ use std::collections::VecDeque;
 
 use super::{jobs, repository_file, workflow_files};
 
-/// The action, as a step's `uses:` names it.
-const ACTION: &str = "./.github/actions/rust-compile-cache";
+/// The action, as a step's `uses:` names it: `$/`, this repository's own action at the workflow's
+/// commit, which the lockfile covers (todo X11).
+const ACTION: &str = "$/.github/actions/rust-compile-cache";
 
 /// The steps that install the toolchain and restore the Rust cache: a local action by its path,
 /// a pinned one by the part before its `@`.
-const TOOLCHAIN_STEPS: [&str; 2] = ["actions-rust-lang/setup-rust-toolchain", "./.github/actions/host-rust"];
+const TOOLCHAIN_STEPS: [&str; 2] = ["actions-rust-lang/setup-rust-toolchain", "$/.github/actions/host-rust"];
 
 /// The workflows that publish, deploy or gate a release (plan §4.3).
 const NEVER_CACHED: [&str; 8] = [
@@ -74,9 +75,10 @@ fn set_up_before_the_toolchain(workflow: &str) -> Vec<&str> {
 }
 
 /// The file a local `uses:` value loads, relative to the repository root: a reusable workflow
-/// itself, or a local action's `action.yml`. `None` for an action from another repository.
+/// itself (`./`), or a local action's `action.yml` (`$/`, todo X11; `./` before it). `None` for an
+/// action from another repository.
 fn local_file(value: &str) -> Option<String> {
-    let path = value.strip_prefix("./")?;
+    let path = value.strip_prefix("$/").or_else(|| value.strip_prefix("./"))?;
     let workflow = std::path::Path::new(path)
         .extension()
         .is_some_and(|e| e == "yml" || e == "yaml");
@@ -170,6 +172,16 @@ mod tests {
         );
     }
 
+    /// The checks above look for ACTION by name: if no workflow names it (it was renamed, or its
+    /// spelling changed, as `./` became `$/` in todo X11), they would pass by finding nothing.
+    #[test]
+    fn some_workflow_should_name_the_action_as_the_checks_spell_it() {
+        let named = workflow_files().iter().any(|path| {
+            repository_file(path).is_some_and(|text| text.lines().filter_map(uses).any(|v| names(v, ACTION)))
+        });
+        assert!(named, "no workflow names {ACTION}; update ACTION and TOOLCHAIN_STEPS");
+    }
+
     #[test]
     fn nothing_published_deployed_or_released_should_use_sccache() {
         let all = workflow_files();
@@ -188,23 +200,23 @@ mod tests {
   rust:
     steps:
       - uses: actions/checkout@abc # v7
-      - uses: \"./.github/actions/rust-compile-cache\"
+      - uses: \"$/.github/actions/rust-compile-cache\"
         with:
           bucket: b
       - uses: actions-rust-lang/setup-rust-toolchain@a188e68d # v2.0.1
   after:
     steps:
-      - uses: ./.github/actions/host-rust
-      - uses: ./.github/actions/rust-compile-cache
+      - uses: $/.github/actions/host-rust
+      - uses: $/.github/actions/rust-compile-cache
   second-toolchain:
     steps:
-      - uses: ./.github/actions/host-rust
-      - uses: ./.github/actions/rust-compile-cache
-      - uses: ./.github/actions/host-rust
+      - uses: $/.github/actions/host-rust
+      - uses: $/.github/actions/rust-compile-cache
+      - uses: $/.github/actions/host-rust
   without:
     steps:
-      - uses: ./.github/actions/rust-compile-cache
-  # - uses: ./.github/actions/rust-compile-cache
+      - uses: $/.github/actions/rust-compile-cache
+  # - uses: $/.github/actions/rust-compile-cache
   none:
     steps:
       - run: cargo build
@@ -220,8 +232,8 @@ mod tests {
         assert_eq!(
             [
                 names("actions-rust-lang/setup-rust-toolchain@a188e68d", TOOLCHAIN_STEPS[0]),
-                names("./.github/actions/host-rust", TOOLCHAIN_STEPS[1]),
-                names("./.github/actions/host-rust-x", TOOLCHAIN_STEPS[1]),
+                names("$/.github/actions/host-rust", TOOLCHAIN_STEPS[1]),
+                names("$/.github/actions/host-rust-x", TOOLCHAIN_STEPS[1]),
             ],
             [true, true, false]
         );
@@ -229,7 +241,7 @@ mod tests {
 
     #[test]
     fn a_comment_should_not_count_as_a_step() {
-        assert_eq!(uses("      # - uses: ./.github/actions/rust-compile-cache"), None);
+        assert_eq!(uses("      # - uses: $/.github/actions/rust-compile-cache"), None);
     }
 
     #[test]
@@ -241,7 +253,7 @@ mod tests {
             ),
             (
                 ".github/workflows/nightly.yml",
-                "jobs:\n  fuzz:\n    steps:\n      - uses: ./.github/actions/host-rust\n      - uses: ./.github/actions/rust-compile-cache\n",
+                "jobs:\n  fuzz:\n    steps:\n      - uses: $/.github/actions/host-rust\n      - uses: $/.github/actions/rust-compile-cache\n",
             ),
         ];
         assert_eq!(
@@ -258,7 +270,7 @@ mod tests {
         let files = [
             (
                 ".github/workflows/docs.yml",
-                "jobs:\n  build:\n    steps:\n      - uses: ./.github/actions/build-rust\n",
+                "jobs:\n  build:\n    steps:\n      - uses: $/.github/actions/build-rust\n",
             ),
             (
                 ".github/actions/build-rust/action.yml",

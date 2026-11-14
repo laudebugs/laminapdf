@@ -43,7 +43,9 @@ updates:
       include: scope
 
   - package-ecosystem: github-actions
-    # The workflows, and the actions our composite actions pin (.github/actions/*/action.yml).
+    # The workflows and our composite actions (.github/actions/*/action.yml). A workflow's update also
+    # rewrites its entry in .github/workflows/actions.lock (ADR 0019, todo X11); whether a composite
+    # action's does is X11's post-merge check, and the `lockfile` job fails until it's relocked.
     directories: ["/", "/.github/actions/*"]
     schedule:
       interval: weekly

@@ -11,7 +11,7 @@
 | Branch | `ci/x11-lock-github-actions` |
 | PR title | `ci: lock the workflows' actions with a lockfile, and check it on every pull request` |
 | Size | M (the rewritten `uses:` lines and the generated lockfile don't count) |
-| PR | — |
+| PR | [laudebugs/laminapdf#564](https://github.com/laudebugs/laminapdf/pull/564) |
 
 ## Goal
 
@@ -59,23 +59,39 @@ These facts, from GitHub's docs as of 2026-11-14, shape the tasks. Check them ag
 - Renovate: ADR 0019 keeps Dependabot.
 - Container images (`tools/ci-runner/linux`) and the actions in `spikes/`, which no workflow runs.
 
+## Found while building it
+
+Checked against `gh-actions-lock` v0.4.1's README and troubleshooting guide on 2026-11-14:
+
+- **The extension keeps SHA pins.** It locks a `uses:` line that names a full SHA as it stands, with a `not-pinned` warning, rather than turning it back into a tag. So the PR rewrites every `@<sha> # vX.Y.Z` to `@vX.Y.Z` itself. Each of the 17 pinned SHAs was first checked against its tag in the action's own repository with `git ls-remote`, and all matched.
+- **`--migrate-local-actions` is applied by hand too.** Every `./.github/actions/<name>` in the workflows and composite actions is written `$/.github/actions/<name>`, so the extension finds nothing left to migrate. Calls of reusable workflows (`./.github/workflows/nightly.yml`, `docs.yml`) stay `./`, as the docs say.
+- **Container images:** the extension warns on an image without an `@sha256:` digest. No workflow uses a container.
+- **This session couldn't finish it.** GitHub refuses its pushes to `.github/workflows/` (its token has no `workflow` scope), and the extension needs GitHub's API for every action's repository, which the session can't reach. So the workflow changes travel as a patch, and the owner runs the extension (below).
+
+## Owner's steps
+
+1. Check out this PR's branch, apply `x11-workflows.patch` (attached in the session) with `git apply`, and check that `git diff --stat` lists only `.github/workflows/`.
+2. `cargo xtask doctor --install`, which installs `gh-actions-lock` v0.4.1; then `gh actions-lock --migrate-local-actions` at the repository root. It should rewrite nothing and write `.github/workflows/actions.lock`. Note any warning in the PR.
+3. Commit the workflows and the lockfile, and push.
+4. Watch the `lockfile` job and one job of each kind find its `$/` action: a fast-lane Rust leg, the full lane's `check-windows`, then a nightly dispatch and a dry-run release dispatch after merge.
+
 ## Tasks
 
-- [ ] Read `gh actions-lock --help` and the troubleshooting guide at the version you pin. Note in the PR anything that differs from "What the lockfile does and doesn't cover" above.
-- [ ] Pin the extension in `tools/xtask/src/doctor.rs` (`GH_ACTIONS_LOCK_VERSION`), with `doctor` checking `gh extension list` and `doctor --install` running `gh extension install github/gh-actions-lock --pin <version>`.
+- [x] Read `gh actions-lock --help` and the troubleshooting guide at the version you pin. Note in the PR anything that differs from "What the lockfile does and doesn't cover" above.
+- [x] Pin the extension in `tools/xtask/src/doctor.rs` (`GH_ACTIONS_LOCK_VERSION`), with `doctor` checking `gh extension list` and `doctor --install` running `gh extension install github/gh-actions-lock --pin <version>`.
 - [ ] Run `gh actions-lock --migrate-local-actions`. Review every rewritten line: each `./.github/actions/<name>` should now read `$/.github/actions/<name>`, and each pinned SHA its tag.
 - [ ] Run a branch push and check that one job of each kind still finds its local action at the right commit: a fast-lane Rust leg, the full lane's `check-windows`, a nightly job by `workflow_dispatch`, and `release.yml` dispatched as a dry run.
 - [ ] Commit the rewritten workflows, the composite actions and `.github/workflows/actions.lock`.
-- [ ] Add a `lockfile` job to `ci.yml`, modelled on the extension's `verify-lockfile.yml`:
+- [x] Add a `lockfile` job to `ci.yml`, modelled on the extension's `verify-lockfile.yml`:
   - on `ubuntu-24.04`, as the repository's other Linux jobs, with `permissions: contents: read`;
   - `actions/checkout` with `persist-credentials: false`;
   - the extension installed at the `doctor.rs` pin;
   - `gh actions-lock --verify`, with `GH_TOKEN: ${{ github.token }}`.
   Add it to `fast-gate`'s `needs`, and give it its own line in the gate's `case` (`lockfile) needed=true ;;`). Without that line the gate reads it under the `ts` flag, so on a PR where `ts` is false the job's `success` fails the gate. Keep it out of `cargo xtask changes`' skips: a workflow edit is the one change it exists to catch.
-- [ ] Update `tools/xtask/src/workflows.rs` and `workflows/compile_cache.rs`: their path matches, plus new tests that the `lockfile` job exists, runs `--verify`, is in `fast-gate`'s `needs` with `needed=true` and installs the `doctor.rs` pin.
+- [x] Update `tools/xtask/src/workflows.rs` and `workflows/compile_cache.rs`: their path matches, plus new tests that the `lockfile` job exists, runs `--verify`, is in `fast-gate`'s `needs` with `needed=true` and installs the `doctor.rs` pin.
 - [ ] Check that Dependabot still updates the actions the composite actions call. Its `/.github/actions/*` directories stay; it should regenerate their lockfile entries in the same PR. If it can't, write down how those updates happen.
-- [ ] Amend ADR 0019: actions are locked by `.github/workflows/actions.lock`, with tags in the workflow files; `gh actions-lock` after adding a workflow or changing a `uses:` line; the `lockfile` job. Leave the date of the change and a link to this todo.
-- [ ] Add a "Lock the actions" note for contributors to `docs/guidelines/contributing.md`: when to run `gh actions-lock`, and that `--relock` and `--accept-moved` need a reviewed reason.
+- [x] Amend ADR 0019: actions are locked by `.github/workflows/actions.lock`, with tags in the workflow files; `gh actions-lock` after adding a workflow or changing a `uses:` line; the `lockfile` job. Leave the date of the change and a link to this todo.
+- [x] Add a "Lock the actions" note for contributors to `docs/guidelines/contributing.md`: when to run `gh actions-lock`, and that `--relock` and `--accept-moved` need a reviewed reason.
 
 ## Acceptance criteria
 
