@@ -164,7 +164,7 @@ tauri = "=2.12.5"
 tauri-build = "=2.7.4"
 # Rust-side plugins only: no permission of theirs reaches the webview (ADR 0008 §6). Each a release
 # at least two weeks old when added. MIT OR Apache-2.0.
-tauri-plugin-dialog = "=2.8.3"
+tauri-plugin-dialog = "=2.8.4"
 tauri-plugin-log = "=2.10.1"
 tauri-plugin-opener = "=2.7.2"
 tauri-plugin-single-instance = "=2.5.5"
