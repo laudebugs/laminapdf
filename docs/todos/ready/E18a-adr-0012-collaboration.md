@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E18](../../plans/full-editor.md#e18-collaboration-hosted-service) |
 | Round / milestone | Editor phase 6 (E18) — M10 Collaboration |
-| Depends on | [E17a](./E17a-advanced-interactions-feature-plan.md), [H1](../ongoing/H1-auth-spike.md) |
+| Depends on | [E17a](./E17a-advanced-interactions-feature-plan.md), [H1](../done/H1-auth-spike.md) |
 | ADRs | Writes ADR 0012; builds on ADR 0006 (ops, origins, versioning) and 0005 §5 (IDs) |
 | Branch | `docs/e18a-adr-0012-collaboration` |
 | PR title | `docs(adr): 0012 collaboration on Durable Objects` |

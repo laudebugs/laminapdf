@@ -93,6 +93,7 @@ export const PROMISES: readonly Promise[] = [
     body: [
       "The reader keeps copies of the files you opened, so they open again without a connection. It also keeps a list of recent files: their names, sizes, page counts and when you opened them, never their contents or addresses. It also keeps your settings and its own files, so it works offline.",
       "Settings › Storage and privacy › Clear recent files and cached documents removes the copies and the list. Your browser's settings for this site remove everything.",
+      "The desktop app keeps a list of the files you opened on this computer (their names, sizes and when you opened them) and adds them to your system's recent files. Clear list on its start window, or turning off Settings › Files › Remember recent files, empties both.",
     ],
     rules: ["9"],
     proofs: [
@@ -103,6 +104,10 @@ export const PROMISES: readonly Promise[] = [
       {
         file: "apps/web/e2e/recent-files.e2e.test.ts",
         test: "empties the list and the cached documents from Settings",
+      },
+      {
+        file: "apps/desktop/e2e/specs/cold-open.e2e.ts",
+        test: "should clear the list, and record nothing, while Remember recent files is off",
       },
     ],
   },

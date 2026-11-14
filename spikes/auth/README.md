@@ -1,6 +1,6 @@
 # `auth` spike (H1): Better Auth on D1 fits Lamina PDF's hosted service best
 
-Lamina PDF's hosted service needs a login stack before any round ships sign-in ([ADR 0011 §6.5](../../docs/decisions/0011-cloudflare-topology-and-privacy.md#6-the-hosted-service-and-later-server-features)). That stack has to keep the ADR's privacy rules, run on Workers with D1, let forks deploy without a vendor account, and sign in the desktop app through the system browser. This spike built three prototypes and measured each against the [H1 criteria](../../docs/todos/ongoing/H1-auth-spike.md): Better Auth and Auth.js, each on a Worker with D1, and Clerk as the hosted vendor. **Recommendation: Better Auth 1.7 on a Worker with D1.** It needs a Lax OAuth state cookie and a 90-line desktop sign-in with an approval page, and it starts with email magic links and passkeys.
+Lamina PDF's hosted service needs a login stack before any round ships sign-in ([ADR 0011 §6.5](../../docs/decisions/0011-cloudflare-topology-and-privacy.md#6-the-hosted-service-and-later-server-features)). That stack has to keep the ADR's privacy rules, run on Workers with D1, let forks deploy without a vendor account, and sign in the desktop app through the system browser. This spike built three prototypes and measured each against the [H1 criteria](../../docs/todos/done/H1-auth-spike.md): Better Auth and Auth.js, each on a Worker with D1, and Clerk as the hosted vendor. **Recommendation: Better Auth 1.7 on a Worker with D1.** It needs a Lax OAuth state cookie and a 90-line desktop sign-in with an approval page, and it starts with email magic links and passkeys.
 
 Run on 2026-11-12, on Linux x64, against `wrangler dev --local` 4.157.0 (workerd with local D1) and Playwright's Chromium. Nothing here touched Cloudflare, GitHub or Clerk accounts: the checks stop at the edge of what a local run can prove, and the README says where.
 
@@ -64,7 +64,7 @@ Better Auth keeps every account in Lamina PDF's own D1 database, behind first-pa
 
 ## Questions for the owner
 
-The stack works for any answer to these, but the first round of accounts (H2) needs them:
+Answered on 2026-11-14 ([#483](https://github.com/laudebugs/laminapdf/issues/483)): Better Auth is approved; email magic links and passkeys come first; Cloudflare Email Service sends the links; the D1 database goes in the EU jurisdiction. [ADR 0011 §6](../../docs/decisions/0011-cloudflare-topology-and-privacy.md#6-the-hosted-service-and-later-server-features) now holds the amendment below with those answers. The questions were:
 
 1. **Sign-in methods:** email magic link and passkeys first, with GitHub and Google added later (the recommendation), or passkeys only?
 2. **Email sending:** magic links need an email provider (Resend or Postmark, for example), a new vendor with its own privacy note.

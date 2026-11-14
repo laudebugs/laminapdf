@@ -1,7 +1,8 @@
 # 0011 — Cloudflare topology, privacy guarantees and the hosted service
 
-- Status: Accepted (2026-10-31, when C2a's PR merges). The login stack is added by amendment after the [`auth` spike (H1)](../todos/ongoing/H1-auth-spike.md).
+- Status: Accepted (2026-10-31, when C2a's PR merges). The login stack was added by amendment after the [`auth` spike (H1)](../todos/done/H1-auth-spike.md).
 - Date: 2026-10-31
+- Amended 2026-11-14 (owner, [H1](../todos/done/H1-auth-spike.md), [the `auth` spike](../../spikes/auth/README.md)): the login stack is Better Auth on a Worker with D1. Sign-in starts with email magic links and passkeys, the links are sent by Cloudflare Email Service, and the database is created in D1's EU jurisdiction. Only the OAuth state cookie is `SameSite=Lax`, for at most 10 minutes, because a provider's redirect back is cross-site. This amendment rewrites §6's accounts item.
 - Amended 2026-11-10 (owner): the reader's releases are automatic but stay apart from the packages'. Once a day, after the full nightly passes on `main`, a release train tags `web-v<next>` on the nightly's commit when what the reader ships changed since its last release; production still deploys only from `web-v*` tags, behind the release gates. The reader keeps its own version (`apps/web/package.json`: the train raises the patch, the owner the minor and major). [C7e](../todos/done/C7e-automated-web-releases.md) implements it.
 - Amended 2026-11-05 (owner; the [releases plan](../plans/releases.md)): `docs.laminapdf.com` deploys from each release instead of from `main`, and `main`'s docs move to `next.docs.laminapdf.com` (the Worker `lamina-pdf-docs-next`). This amendment edits §1's host table; [P4](../todos/done/P4-docs-match-the-release.md) implements it.
 - Amended 2026-11-10 ([T5b](../todos/done/T5b-reopen-at-last-position.md)): guarantee 9 lists reading positions, kept by document fingerprint, and the recent-list ID of the document open now.
@@ -156,9 +157,13 @@ These rules bind every later round that adds a server feature: telemetry (U5c), 
    - **Endpoint:** sent to our own origin (`/api/telemetry`), so the CSP doesn't change.
    - **Retention:** raw batches are deleted within 7 days, and aggregates are kept for 13 months.
    - **Error reports** are a separate opt-in. They hold ADR 0026 codes and kinds, which are content-free by design, plus stack frames of lamina's own code. They never carry messages that contain document text, file names or URLs, and they follow the same retention.
-5. **Accounts:**
-   - The login stack is chosen by H1 and added to this ADR by amendment. Until then, no round may ship sign-in.
-   - Session cookies exist only for signed-in users, only on `/api` routes, as first-party `HttpOnly; Secure; SameSite=Strict` cookies. Anonymous use stays cookie-free (§3.4).
+5. **Accounts** (amended 2026-11-14 after the [`auth` spike](../../spikes/auth/README.md), H1):
+   - The login stack is **Better Auth** (MIT) on a Worker under `/api`, with users, sessions and passkeys in D1. Its telemetry stays off.
+   - The D1 database is created in the **EU jurisdiction**, so account data stays in the EU.
+   - Sign-in starts with **email magic links and passkeys**; GitHub and Google come later, each by its own change. Magic links are sent by **Cloudflare Email Service**, so email adds no vendor beyond Cloudflare.
+   - Session cookies exist only for signed-in users, only on `/api` routes, as first-party `HttpOnly; Secure; SameSite=Strict` cookies. The OAuth state cookie alone is `SameSite=Lax` and lives at most 10 minutes, because a provider's redirect back is cross-site. Anonymous use stays cookie-free (§3.4).
+   - The desktop app signs in through the system browser: a loopback redirect with PKCE (RFC 8252, RFC 7636), opened from Rust, that sends a code only after the user approves on the page, with the session token kept in the OS keychain. The device authorization grant (RFC 8628) is the fallback.
+   - Sessions are read from D1 on every check (no cookie cache), so account deletion ends every session at once; the account's rows go within 24 hours (§6.3). A signed-in user can export the rows D1 keeps for the account as one JSON file.
    - Sign-in flows must work without COOP/COEP on the main app (ADR 0009 §5).
 
 ### Implementation note (2026-11-08): the docs' example runner

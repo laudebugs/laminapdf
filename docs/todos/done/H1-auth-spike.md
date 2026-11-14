@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `H1` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [architecture §4 Spikes](../../plans/architecture.md#4-spikes-to-close-open-questions) (`auth`) |
 | Round / milestone | Hosted service foundation (accounts, cloud storage, sync) — before the first round that needs accounts |
-| Depends on | [C2b](../done/C2b-lamina-render-crate.md), [C4d](../done/C4d-deploy-previews-and-production.md), [D2e](../done/D2e-desktop-e2e-webdriverio.md) |
+| Depends on | [C2b](./C2b-lamina-render-crate.md), [C4d](./C4d-deploy-previews-and-production.md), [D2e](./D2e-desktop-e2e-webdriverio.md) |
 | Dependency notes | `C4` ([web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare): `@laminapdf/ui`, `apps/web`), `C2` ([web-app §C2](../../plans/web-app.md#c2-render-backend-and-adrs): `laminapdf-render`, ADR 0011), `D2` ([desktop-app §D2](../../plans/desktop-app.md#d2-shell-and-native-core): Tauri shell and engine process) |
 | ADRs | Feeds ADR 0011 (amends it with the login stack) |
 | Branch | `spike/h1-auth-spike` |
 | PR title | `spike(auth): compare login stacks for the hosted service` |
 | Size | M (200–600) |
-| PR | — |
+| PR | [laudebugs/laminapdf#482](https://github.com/laudebugs/laminapdf/pull/482) (the spike); the decision's PR follows it |
 
 ## Goal
 
@@ -49,16 +49,16 @@ Answer the architecture's open spike: which login stack for lamina's hosted serv
 
 ## Tasks
 
-- [ ] Build the three prototypes
-- [ ] Desktop flow prototype
-- [ ] Score against criteria
-- [ ] Write README and recommendation
-- [ ] Owner decision recorded in ADR 0011
+- [x] Build the three prototypes
+- [x] Desktop flow prototype
+- [x] Score against criteria
+- [x] Write README and recommendation
+- [x] Owner decision recorded in ADR 0011
 
 ## Acceptance criteria
 
-- [ ] README compares all options with evidence
-- [ ] ADR 0011 records the chosen stack (owner sign-off)
+- [x] README compares all options with evidence
+- [x] ADR 0011 records the chosen stack (owner sign-off)
 
 ## Post-merge checks
 
@@ -76,12 +76,12 @@ Spike: manual and scripted checks recorded in the README.
 
 ## Risks and open questions
 
-- Open product questions for the owner: which sign-in methods (passkeys only? email? Google/GitHub/Apple?), whether accounts are free (lamina will be priced, owner decision 2026-10-29; the model is set later in [U5a](../ready/U5a-pricing-and-promises-page.md), so pick a login stack that works either way and can carry an entitlements claim), and data residency (EU?)
+- **Answered by the owner on 2026-11-14 ([#483](https://github.com/laudebugs/laminapdf/issues/483)):** Better Auth on D1 is approved; sign-in starts with email magic links and passkeys, GitHub and Google later; Cloudflare Email Service sends the links; the D1 database goes in the EU jurisdiction. Pricing still comes later in U5a, and the session can carry an entitlements claim either way. The questions were: which sign-in methods (passkeys only? email? Google/GitHub/Apple?), whether accounts are free (lamina will be priced, owner decision 2026-10-29; the model is set later in [U5a](../ready/U5a-pricing-and-promises-page.md), so pick a login stack that works either way and can carry an entitlements claim), and data residency (EU?)
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
