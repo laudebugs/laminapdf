@@ -1,7 +1,7 @@
 ---
 title: "Inspect and check PDFs"
 description: "Describe a PDF with laminapdf info, find what Lamina PDF had to repair with check, and list what a file holds beyond its pages with reveal."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/cli/inspect/"
 ---
 
