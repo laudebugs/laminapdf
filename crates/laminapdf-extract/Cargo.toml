@@ -23,7 +23,7 @@ all-features = true
 layer = "core"
 
 [features]
-default = ["reflow"]
+default = ["reflow", "jbig2"]
 # serde derives on the output types (laminapdf.extract/1 names) and the JSON serialiser.
 serde = ["dep:serde", "dep:serde_json"]
 # JSON Schema derives (schemars) on the output types: tests/json_schema.rs writes and checks
@@ -34,6 +34,9 @@ schema = ["serde", "dep:schemars"]
 # façade's `reflow` feature decides, and the WASM text module, which builders load, leaves it out
 # (ADR 0016 §6).
 reflow = []
+# Decoding JBIG2 images when extracting them (hayro-jbig2). On by default; the WASM modules leave it
+# out for their size (ADR 0016 §6), and list a JBIG2 image as skipped.
+jbig2 = ["dep:hayro-jbig2"]
 
 [dependencies]
 laminapdf-content = { workspace = true }
@@ -41,6 +44,9 @@ laminapdf-cos = { workspace = true }
 laminapdf-model = { workspace = true }
 laminapdf-syntax = { workspace = true }
 laminapdf-text = { workspace = true }
+# Image extraction: the fax and JBIG2 decoders (Apache-2.0 OR MIT).
+hayro-ccitt = { workspace = true }
+hayro-jbig2 = { workspace = true, optional = true }
 thiserror = { workspace = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
@@ -52,6 +58,8 @@ laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 laminapdf-build = { path = "../laminapdf-build", features = ["text"] }
 laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
 boon = { workspace = true }
+# Reads the extracted PNGs back in tests/images.rs.
+png = { workspace = true }
 serde_json = { workspace = true }
 
 [lints]

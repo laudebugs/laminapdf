@@ -126,6 +126,13 @@ doc = false
 bench = false
 
 [[bin]]
+name = "extract_images"
+path = "fuzz_targets/extract_images.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
 name = "markdown"
 path = "fuzz_targets/markdown.rs"
 test = false

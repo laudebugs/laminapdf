@@ -1,0 +1,175 @@
+{
+  "$defs": {
+    "Generator": {
+      "description": "Who wrote the file.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "type": "object"
+    },
+    "JsonItem": {
+      "description": "One outline item.",
+      "properties": {
+        "action": {
+          "description": "The type of an action that is neither a `GoTo` nor a `URI`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "bold": {
+          "type": "boolean"
+        },
+        "children": {
+          "items": {
+            "$ref": "#/$defs/JsonItem"
+          },
+          "type": "array"
+        },
+        "color": {
+          "description": "`#rrggbb`, when it isn't the default black.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "destination": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "italic": {
+          "type": "boolean"
+        },
+        "open": {
+          "description": "Whether it opens with its children shown.",
+          "type": "boolean"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/JsonTarget"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "uri": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "title",
+        "open",
+        "bold",
+        "italic",
+        "children"
+      ],
+      "type": "object"
+    },
+    "JsonTarget": {
+      "description": "A page of this document and how to show it.",
+      "properties": {
+        "bottom": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "left": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "pageIndex": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "pageNumber": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "right": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "top": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "view": {
+          "description": "`at`, `fit`, `fitWidth`, `fitHeight` or `fitRect`.",
+          "type": "string"
+        },
+        "zoom": {
+          "description": "1 is 100 %.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "pageIndex",
+        "pageNumber",
+        "view"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf/schemas/outline.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "`laminapdf.outline/1`.",
+  "properties": {
+    "generator": {
+      "$ref": "#/$defs/Generator"
+    },
+    "items": {
+      "description": "The top-level items, each with its children.",
+      "items": {
+        "$ref": "#/$defs/JsonItem"
+      },
+      "type": "array"
+    },
+    "schema": {
+      "description": "`laminapdf.outline/1`.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema",
+    "generator",
+    "items"
+  ],
+  "title": "laminapdf.outline/1",
+  "type": "object"
+}

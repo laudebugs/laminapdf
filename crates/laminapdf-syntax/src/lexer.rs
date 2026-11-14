@@ -88,7 +88,7 @@ pub const fn is_regular(b: u8) -> bool {
     !is_whitespace(b) && !is_delimiter(b)
 }
 
-const fn hex_value(b: u8) -> Option<u8> {
+pub(crate) const fn hex_value(b: u8) -> Option<u8> {
     match b {
         b'0'..=b'9' => Some(b - b'0'),
         b'a'..=b'f' => Some(b - b'a' + 10),

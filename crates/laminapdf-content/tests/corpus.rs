@@ -235,9 +235,12 @@ fn every_page_interprets_or_fails_with_an_excused_error() {
 fn exceptions() -> Vec<(String, String)> {
     let text = std::fs::read_to_string(fixtures_dir().join("corpus/pdfjs-exceptions.toml")).unwrap();
     let table: toml::Table = text.parse().unwrap();
-    table["exception"]
-        .as_array()
-        .unwrap()
+    // None at the moment: every fixture interprets.
+    table
+        .get("exception")
+        .and_then(toml::Value::as_array)
+        .map(Vec::as_slice)
+        .unwrap_or_default()
         .iter()
         .map(|e| {
             assert!(e["rule"].as_str().unwrap().starts_with("ADR 0003"), "{e:?}");
