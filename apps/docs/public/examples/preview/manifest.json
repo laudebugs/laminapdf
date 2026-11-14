@@ -24,6 +24,28 @@
         }
       ]
     },
+    "crop_pages": {
+      "sha256": "8c2c71ebcc80eb8271370f12b4900789c0bdfa6997241c504ee9e2e2c565fa29",
+      "bytes": 2890,
+      "pages": [
+        {
+          "width": 1008,
+          "height": 1368
+        },
+        {
+          "width": 1440,
+          "height": 1080
+        },
+        {
+          "width": 1008,
+          "height": 1368
+        },
+        {
+          "width": 1368,
+          "height": 1008
+        }
+      ]
+    },
     "duplicate_pages": {
       "sha256": "5920e53b512d93aacd78406e3772eb25a929d510b3a443cb18cc0b6a04a40347",
       "bytes": 3072,

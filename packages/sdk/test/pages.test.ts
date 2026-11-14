@@ -1,5 +1,5 @@
 // The page ops: insertBlankPages, deletePages, movePages, rotatePages, reversePages and
-// duplicatePages on
+// duplicatePages, cropPages and setPageBoxes on
 // fixtures/pages/, each saved and reopened, their `Edited` reports, the transaction handle's
 // twins and the refusal to delete every page. The names start with the capability each test
 // proves (C.01 and the rest); they become capability tags once `cargo xtask capabilities` runs
@@ -366,5 +366,40 @@ describe("pages from other documents", () => {
     expect(thrown(() => doc.insertPagesFrom(missing, ["p3.0"], "end"))).toMatchObject({
       code: "unknown-source",
     });
+  });
+});
+
+describe("cropPages and setPageBoxes", () => {
+  it("C.09 (pdf, round-trip): crops every rotation by the same visible amount, kept after a save", () => {
+    using doc = open("boxes");
+    const before = doc.pages.map((p) => [p.width, p.height]);
+    const edited = doc.cropPages(ids(doc), { top: 10, right: 20, bottom: 30, left: 40 });
+    expect(edited.croppedContentRemains).toEqual(ids(doc));
+    using again = reopened(doc);
+    expect(again.pages.map((p) => [p.width, p.height])).toEqual(before.map(([w, h]) => [(w ?? 0) - 60, (h ?? 0) - 40]));
+    // Cropping hides: the text the margins cut off is still read.
+    expect(markers(again)).toEqual(["Page 1", "Page 2", "Page 3", "Page 4"]);
+  });
+
+  it("C.11 (pdf, round-trip): sets and removes boxes, refusing one outside the media box", () => {
+    using doc = open("boxes");
+    const [p1] = ids(doc) as [string];
+    const edited = doc.setPageBoxes([p1], { crop: [0, 0, 612, 792], art: null });
+    expect(edited.croppedContentRemains).toBeUndefined();
+    using again = reopened(doc);
+    expect([again.pages[0]?.width, again.pages[0]?.height]).toEqual([612, 792]);
+    const error = thrown(() => doc.setPageBoxes([p1], { trim: [-1, 0, 100, 100] }));
+    expect(isLaminaPdfError(error, "invalid-op")).toBe(true);
+  });
+
+  it("has transaction twins, undone together", () => {
+    using doc = open("boxes");
+    const before = doc.pages.map((p) => [p.width, p.height]);
+    doc.transact((tx) => {
+      tx.cropPages(ids(doc), { top: 36 });
+      tx.setPageBoxes(ids(doc), { trim: null });
+    });
+    doc.undo();
+    expect(doc.pages.map((p) => [p.width, p.height])).toEqual(before);
   });
 });

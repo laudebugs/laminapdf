@@ -407,7 +407,7 @@
           "round": "E2",
           "target": "round-trip",
           "surfaces": {
-            "core": "read",
+            "core": "round-trip",
             "pdf": null,
             "web": null,
             "desktop": null
@@ -431,7 +431,7 @@
           "round": "E2",
           "target": "round-trip",
           "surfaces": {
-            "core": "read",
+            "core": "round-trip",
             "pdf": null,
             "web": null,
             "desktop": null
