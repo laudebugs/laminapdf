@@ -228,7 +228,7 @@ fn the_geometry_samples_read_their_mode_and_method() {
                 anchor: laminapdf_ops::Anchor::TopLeft
             },
             612.0,
-            laminapdf_ops::Orientation::Landscape,
+            laminapdf_ops::PageOrientation::Landscape,
             laminapdf_ops::OrientationMethod::SwapBox
         )
     );

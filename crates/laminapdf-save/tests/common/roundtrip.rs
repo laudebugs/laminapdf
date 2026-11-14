@@ -34,8 +34,8 @@ use laminapdf_model::{
 };
 use laminapdf_ops::{
     CropMargins, CropPages, DeletePages, Document, DuplicatePages, InfoPatch, InsertBlankPages, InsertPagesFrom,
-    MergeDocuments, MergeSource, MetadataKey, MetadataPatch, MovePages, Op, OpenAt, OpenZoom, Orientation,
-    OrientationMethod, Origin, PageBoxes, PageLabelRange, RemoveMetadata, ReplacePages, ResizePages, ReversePages,
+    MergeDocuments, MergeSource, MetadataKey, MetadataPatch, MovePages, Op, OpenAt, OpenZoom, OrientationMethod,
+    Origin, PageBoxes, PageLabelRange, PageOrientation, RemoveMetadata, ReplacePages, ResizePages, ReversePages,
     RotatePage, RotatePages, SetInfo, SetInitialView, SetMetadata, SetOrientation, SetPageBoxes, SetPageLabels,
     SetXmpProperty, SourceId, SplitBy, WindowPreferencesPatch, read_metadata,
 };
@@ -359,7 +359,7 @@ fn op(doc: &Document, name: &str, rotation: Rotation, source: SourceId) -> Optio
         // own in laminapdf-ops' tests/resize.rs.
         "resizePages" | "setOrientation" if !contents_decode(doc) => return None,
         "resizePages" => ResizePages::scale(ids, PageSize::A4).into(),
-        "setOrientation" => SetOrientation::new(ids, Orientation::Landscape, OrientationMethod::SwapBox).into(),
+        "setOrientation" => SetOrientation::new(ids, PageOrientation::Landscape, OrientationMethod::SwapBox).into(),
         "cropPages" => CropPages::new(ids, CropMargins::new(1.0, 2.0, 3.0, 4.0)).into(),
         "duplicatePages" => DuplicatePages::new(ids.first().cloned().into_iter().collect(), PagePosition::End).into(),
         "mergeDocuments" => {

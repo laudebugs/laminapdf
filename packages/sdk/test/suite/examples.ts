@@ -7,6 +7,7 @@ import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@lamin
 import { addLinks } from "../../examples/add-links.js";
 import { cropPages } from "../../examples/crop-pages.js";
 import { duplicatePages } from "../../examples/duplicate-pages.js";
+import { resizePages } from "../../examples/resize-pages.js";
 import { editBookmarks } from "../../examples/edit-bookmarks.js";
 import { editMetadata } from "../../examples/edit-metadata.js";
 import { editXmp } from "../../examples/edit-xmp.js";
@@ -89,6 +90,8 @@ const REFERENCES_PDF = "fixtures/pages/references.pdf";
 const FORMS_PDF = "fixtures/pages/forms.pdf";
 /** The input of crop-pages: four pages, one per rotation, the second with a user unit of 2. */
 const BOXES_PDF = "fixtures/pages/boxes.pdf";
+/** The input of resize-pages: an A4 page with every kind of destination aimed at it, and a Letter page. */
+const GEOMETRY_PDF = "fixtures/pages/geometry.pdf";
 /** The input of page-labels: an example golden of four pages. */
 const LABELS_INPUT_PDF = "fixtures/golden/examples/links_and_outlines.pdf";
 /** The input of extract-pages: ten pages labelled i–iii, 1–4, A-1, A-2 and Back cover. */
@@ -232,6 +235,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "crop_pages",
     inputs: [BOXES_PDF],
     build: (i) => cropPages(input(i, BOXES_PDF)),
+  },
+  {
+    name: "resize-pages",
+    golden: "resize_pages",
+    inputs: [GEOMETRY_PDF],
+    build: (i) => resizePages(input(i, GEOMETRY_PDF)),
   },
   {
     name: "insert-pages",

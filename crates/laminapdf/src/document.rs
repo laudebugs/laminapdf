@@ -527,7 +527,8 @@ impl Document {
     /// Applies `ops` in order as one transaction (ADR 0006): all of them or none. Each op is
     /// a value ([`Op`]: `SetMetadata`, `RemoveMetadata`, the XMP ops, `RotatePage`, the page ops
     /// `InsertBlankPages`, `DeletePages`, `MovePages`, `RotatePages`, `ReversePages`,
-    /// `DuplicatePages`, `InsertPagesFrom`, `ReplacePages`, `SetPageBoxes` and `CropPages`, and the
+    /// `DuplicatePages`, `InsertPagesFrom`, `ReplacePages`, `SetPageBoxes`, `CropPages`,
+    /// `ResizePages` and `SetOrientation`, and the
     /// deprecated `SetInfo`), so
     /// the edit is serialisable and replayable;
     /// no closure crosses the boundary (F3).

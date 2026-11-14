@@ -30,19 +30,24 @@ import {
   type MetadataRemoveOptions,
   mergeDocumentsOp,
   movePagesOp,
+  type OrientationMethod,
   type PageBoxes,
+  type PageOrientation,
   type PagePosition,
   type PageSize,
+  type ResizePagesOptions,
   type RotatePagesOptions,
   type Rotation,
   removeMetadataOp,
   removeXmpPropertyOp,
   replacePagesOp,
   replaceXmpPacketOp,
+  resizePagesOp,
   reversePagesOp,
   rotatePagesOp,
   setInitialViewOp,
   setMetadataOp,
+  setOrientationOp,
   setPageBoxesOp,
   setPageLabelsOp,
   setXmpPropertyOp,
@@ -1260,6 +1265,39 @@ export class Document extends Handle<BaseGlue> {
    */
   cropPages(pages: readonly string[], margins: CropMargins): Edited {
     return this.apply([cropPagesOp(pages, margins)]);
+  }
+
+  /**
+   * Gives `pages`, by ID, new paper of `size` in one transaction (`resizePages`). `size` is the
+   * paper before `/Rotate`, as for `insertBlankPages`, so a page turned on its side stays turned.
+   * By default the page as shown is scaled to fit and centred; `{ mode: "extend", anchor }`
+   * keeps the content's size and places it at `anchor`. The links, notes, form fields, bookmarks,
+   * named destinations and opening view that point into the page move with its content.
+   *
+   * @param options - `mode`: `"scale"` (the default) or `"extend"`; `anchor` for `"extend"`.
+   * @throws {@link LaminaPdfError} `invalid-op` for a side not above 0 and at most 14,400 points;
+   *   `unsupported-filter` for a page whose content uses a filter Lamina PDF can't decode;
+   *   `unknown-page` for an ID that isn't a page of the document; as {@link Document.apply}.
+   *
+   * @since 0.4.0
+   */
+  resizePages(pages: readonly string[], size: PageSize, options?: ResizePagesOptions): Edited {
+    return this.apply([resizePagesOp(pages, size, options)]);
+  }
+
+  /**
+   * Shows `pages`, by ID, in `orientation` in one transaction (`setOrientation`): each page shown
+   * the other way turns a quarter clockwise, and the rest, square ones included, stay as they
+   * are. `"rotate"` (the default) turns it with `/Rotate`; `"swapBox"` swaps the paper's sides
+   * and turns the content, annotations and destinations into it, for printers and tools that
+   * ignore `/Rotate`.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.resizePages}.
+   *
+   * @since 0.4.0
+   */
+  setOrientation(pages: readonly string[], orientation: PageOrientation, method?: OrientationMethod): Edited {
+    return this.apply([setOrientationOp(pages, orientation, method)]);
   }
 
   /**

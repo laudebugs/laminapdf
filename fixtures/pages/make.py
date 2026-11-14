@@ -377,7 +377,9 @@ def geometry():
     catalog, outlines, o1, o2 = (pdf.reserve() for _ in range(4))
     link = pdf.add(f"<< /Type /Annot /Subtype /Link /Rect [72 690 200 730] /Border [0 0 0]"
                    f" /A << /S /GoTo /D [{p1} 0 R /FitR 72 690 200 730] >> >>")
-    look = pdf.stream(b"1 1 0 rg 0 0 128 40 re f", "/Type /XObject /Subtype /Form /BBox [0 0 128 40] ")
+    # Multiplied over the page, as a highlight is, so the text under it shows.
+    look = pdf.stream(b"/M gs 1 1 0 rg 0 0 128 40 re f", "/Type /XObject /Subtype /Form /BBox [0 0 128 40]"
+                      " /Resources << /ExtGState << /M << /BM /Multiply >> >> >> ")
     mark = pdf.add(f"<< /Type /Annot /Subtype /Highlight /Rect [72 690 200 730] /QuadPoints [72 730 200 730 72 690 200 690]"
                    f" /C [1 1 0] /AP << /N {look} 0 R >> >>")
     ink = pdf.add("<< /Type /Annot /Subtype /Ink /Rect [300 300 400 400] /InkList [[300 300 350 380 400 300]] /C [0 0 1] >>")

@@ -506,6 +506,20 @@
         }
       ]
     },
+    "resize_pages": {
+      "sha256": "150d8b4b688610e6e2097be92cbe2946101e6131f9bf2c9933221e336b7397d7",
+      "bytes": 4897,
+      "pages": [
+        {
+          "width": 1224,
+          "height": 1584
+        },
+        {
+          "width": 1224,
+          "height": 1584
+        }
+      ]
+    },
     "set_initial_view": {
       "sha256": "a0f3094d11caece50e7e872f6f0b1fb83de9de3c579f3db5c030a1c35778de19",
       "bytes": 3091,

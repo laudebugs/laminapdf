@@ -18,7 +18,7 @@ use common::save::{editable, page_ids};
 use laminapdf_model::{PageId, PagePosition, PageSize, Rotation};
 use laminapdf_ops::{
     CropMargins, CropPages, DeletePages, Document, DuplicatePages, InsertBlankPages, InsertPagesFrom, MergeDocuments,
-    MergeSource, ModificationClass, MovePages, Op, Orientation, OrientationMethod, Origin, PageBoxes, ReplacePages,
+    MergeSource, ModificationClass, MovePages, Op, OrientationMethod, Origin, PageBoxes, PageOrientation, ReplacePages,
     ResizePages, ReversePages, RotatePages, SetOrientation, SetPageBoxes, SourceId,
 };
 use laminapdf_save::{ConstraintKind, Restriction, Save, SaveMode, SaveOptions, SavePlanner};
@@ -60,7 +60,12 @@ fn ops(page: &PageId) -> Vec<(&'static str, Op)> {
         ("resize", ResizePages::scale(vec![page.clone()], PageSize::A4).into()),
         (
             "orientation",
-            SetOrientation::new(vec![page.clone()], Orientation::Landscape, OrientationMethod::SwapBox).into(),
+            SetOrientation::new(
+                vec![page.clone()],
+                PageOrientation::Landscape,
+                OrientationMethod::SwapBox,
+            )
+            .into(),
         ),
         (
             "duplicate",

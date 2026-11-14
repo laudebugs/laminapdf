@@ -15,7 +15,7 @@ use common::{fixture, open, page_ids, snapshot};
 use laminapdf_cos::{ObjRef, Object};
 use laminapdf_model::{PageSize, Pt, Rotation};
 use laminapdf_ops::{
-    Anchor, Document, Error, Op, Orientation, OrientationMethod, Origin, ResizePages, SetOrientation, WidgetChange,
+    Anchor, Document, Error, Op, OrientationMethod, Origin, PageOrientation, ResizePages, SetOrientation, WidgetChange,
 };
 
 const A4: (f64, f64) = (595.28, 841.89);
@@ -276,7 +276,7 @@ fn swapping_the_box_turns_the_page_and_everything_on_it_a_quarter_clockwise() {
     let ids = page_ids(&doc);
     let applied = apply(
         &mut doc,
-        SetOrientation::new(ids, Orientation::Landscape, OrientationMethod::SwapBox),
+        SetOrientation::new(ids, PageOrientation::Landscape, OrientationMethod::SwapBox),
     )
     .unwrap();
     // Both pages were portrait; each turns, keeping /Rotate.
@@ -315,7 +315,7 @@ fn setting_the_orientation_by_rotate_turns_only_the_pages_shown_the_other_way() 
     // Pages 1 and 3 show portrait (0°, 180°), pages 2 and 4 landscape (90°, 270°).
     let applied = apply(
         &mut doc,
-        SetOrientation::new(ids.clone(), Orientation::Landscape, OrientationMethod::Rotate),
+        SetOrientation::new(ids.clone(), PageOrientation::Landscape, OrientationMethod::Rotate),
     )
     .unwrap();
     let rotations: Vec<_> = doc.pages().unwrap().iter().map(|p| p.rotate().unwrap()).collect();
@@ -357,7 +357,7 @@ fn undo_takes_back_a_resize_and_a_turn() {
     apply(&mut doc, ResizePages::scale(ids.clone(), PageSize::LETTER)).unwrap();
     apply(
         &mut doc,
-        SetOrientation::new(ids, Orientation::Landscape, OrientationMethod::SwapBox),
+        SetOrientation::new(ids, PageOrientation::Landscape, OrientationMethod::SwapBox),
     )
     .unwrap();
     doc.undo().unwrap();
@@ -372,7 +372,11 @@ fn both_ops_reshow_the_widgets_on_their_pages() {
     let resized = apply(&mut doc, ResizePages::scale(vec![ids[0].clone()], PageSize::A4)).unwrap();
     let turned = apply(
         &mut doc,
-        SetOrientation::new(vec![ids[1].clone()], Orientation::Landscape, OrientationMethod::SwapBox),
+        SetOrientation::new(
+            vec![ids[1].clone()],
+            PageOrientation::Landscape,
+            OrientationMethod::SwapBox,
+        ),
     )
     .unwrap();
     let changes = |a: &laminapdf_ops::Applied| a.widgets.iter().map(|w| w.change).collect::<Vec<_>>();

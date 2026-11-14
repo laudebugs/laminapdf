@@ -15,8 +15,8 @@ mod common;
 use common::{fixture, open, page_ids, snapshot};
 use laminapdf_model::{PagePosition, PageSize, Rotation};
 use laminapdf_ops::{
-    Anchor, CropMargins, CropPages, DeletePages, Document, InsertBlankPages, MovePages, Op, Orientation,
-    OrientationMethod, Origin, ReferencePolicy, ResizePages, ReversePages, RotatePages, SetOrientation,
+    Anchor, CropMargins, CropPages, DeletePages, Document, InsertBlankPages, MovePages, Op, OrientationMethod, Origin,
+    PageOrientation, ReferencePolicy, ResizePages, ReversePages, RotatePages, SetOrientation,
 };
 use proptest::prelude::*;
 use proptest::test_runner::{Config, RngSeed, TestRunner};
@@ -98,7 +98,7 @@ fn to_op(doc: &Document, recipe: &Recipe) -> Option<Op> {
             } else {
                 OrientationMethod::Rotate
             };
-            SetOrientation::new(picks(p), Orientation::Landscape, method).into()
+            SetOrientation::new(picks(p), PageOrientation::Landscape, method).into()
         }
     })
 }

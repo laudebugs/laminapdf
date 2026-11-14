@@ -59,6 +59,10 @@ ts = "packages/sdk/examples/crop-pages.ts"
 rust = "crates/laminapdf/examples/crop_pages.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/resize-pages.ts"
+rust = "crates/laminapdf/examples/resize_pages.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/insert-pages.ts"
 rust = "crates/laminapdf/examples/insert_pages.rs"
 

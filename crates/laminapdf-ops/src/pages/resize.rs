@@ -202,7 +202,7 @@ impl ResizePages {
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
-pub enum Orientation {
+pub enum PageOrientation {
     /// Taller than wide.
     Portrait,
     /// Wider than tall.
@@ -246,7 +246,7 @@ pub struct SetOrientation {
     #[cfg_attr(feature = "tsify", tsify(type = "string[]"))]
     pub pages: Vec<PageId>,
     /// How the pages should be shown.
-    pub orientation: Orientation,
+    pub orientation: PageOrientation,
     /// How a page is turned; `rotate` when left out.
     #[serde(default)]
     pub method: OrientationMethod,
@@ -257,7 +257,7 @@ impl SetOrientation {
     ///
     /// Added in 0.4.0.
     #[must_use]
-    pub const fn new(pages: Vec<PageId>, orientation: Orientation, method: OrientationMethod) -> Self {
+    pub const fn new(pages: Vec<PageId>, orientation: PageOrientation, method: OrientationMethod) -> Self {
         Self {
             pages,
             orientation,
@@ -276,8 +276,8 @@ impl SetOrientation {
                 let frame = page.frame()?;
                 let (w, h) = (frame.width().get(), frame.height().get());
                 let wrong = match self.orientation {
-                    Orientation::Portrait => w > h,
-                    Orientation::Landscape => h > w,
+                    PageOrientation::Portrait => w > h,
+                    PageOrientation::Landscape => h > w,
                 };
                 if wrong {
                     turning.push((id.clone(), w, h, frame.rotate()));

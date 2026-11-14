@@ -186,6 +186,53 @@ export interface CropMargins {
   readonly left?: number;
 }
 
+/**
+ * Where `resizePages` puts the old page on the new one when it extends it, on the page as shown.
+ *
+ * @since 0.4.0
+ */
+export type Anchor =
+  | "topLeft"
+  | "top"
+  | "topRight"
+  | "left"
+  | "center"
+  | "right"
+  | "bottomLeft"
+  | "bottom"
+  | "bottomRight";
+
+/**
+ * Options for `resizePages`.
+ *
+ * @since 0.4.0
+ */
+export interface ResizePagesOptions {
+  /**
+   * `"scale"` (the default) scales the page as shown to fit the new paper, keeping its
+   * proportions, and centres it; `"extend"` keeps the content's size and places it at `anchor`.
+   */
+  readonly mode?: "scale" | "extend";
+  /** Where `"extend"` puts the old page; `"center"` when left out. */
+  readonly anchor?: Anchor;
+}
+
+/**
+ * How a page is shown: taller than wide, or wider than tall.
+ *
+ * @since 0.4.0
+ */
+export type PageOrientation = "portrait" | "landscape";
+
+/**
+ * How `setOrientation` turns a page: `"rotate"` (the default) adds a quarter turn to `/Rotate`;
+ * `"swapBox"` swaps the paper's sides and turns the content into it, for tools that ignore
+ * `/Rotate`.
+ *
+ * @since 0.4.0
+ */
+export type OrientationMethod = "rotate" | "swapBox";
+
 /** @internal The `insertBlankPages` op. */
 export const insertBlankPagesOp = (
   at: PagePosition,
@@ -226,6 +273,24 @@ export const setPageBoxesOp = (pages: readonly string[], boxes: PageBoxes): Op =
 /** @internal The `cropPages` op. */
 export const cropPagesOp = (pages: readonly string[], margins: CropMargins): Op =>
   ({ op: "cropPages", args: { pages, margins } }) as Op;
+
+/** @internal The `resizePages` op. */
+export const resizePagesOp = (pages: readonly string[], size: PageSize, options?: ResizePagesOptions): Op =>
+  ({
+    op: "resizePages",
+    args: {
+      pages,
+      size,
+      mode: options?.mode === "extend" ? { extend: { anchor: options.anchor ?? "center" } } : "scale",
+    },
+  }) as Op;
+
+/** @internal The `setOrientation` op. */
+export const setOrientationOp = (
+  pages: readonly string[],
+  orientation: PageOrientation,
+  method: OrientationMethod = "rotate",
+): Op => ({ op: "setOrientation", args: { pages, orientation, method } }) as Op;
 
 /** @internal The `duplicatePages` op. */
 export const duplicatePagesOp = (pages: readonly string[], at: PagePosition): Op =>
@@ -503,6 +568,24 @@ export class Transaction {
    */
   cropPages(pages: readonly string[], margins: CropMargins): this {
     return this.apply(cropPagesOp(pages, margins));
+  }
+
+  /**
+   * Gives `pages` new paper of `size` (`resizePages`), as {@link Document.resizePages}.
+   *
+   * @since 0.4.0
+   */
+  resizePages(pages: readonly string[], size: PageSize, options?: ResizePagesOptions): this {
+    return this.apply(resizePagesOp(pages, size, options));
+  }
+
+  /**
+   * Shows `pages` in `orientation` (`setOrientation`), as {@link Document.setOrientation}.
+   *
+   * @since 0.4.0
+   */
+  setOrientation(pages: readonly string[], orientation: PageOrientation, method?: OrientationMethod): this {
+    return this.apply(setOrientationOp(pages, orientation, method));
   }
 
   /**

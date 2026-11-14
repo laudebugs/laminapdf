@@ -43,7 +43,7 @@ pub use import_tags::{StructureName, StructureRename};
 pub use insert::InsertBlankPages;
 pub use merge::{MergeDocuments, MergeInput, MergeOptions, MergeSource, OutlineMerge, RenamedDestination};
 pub use order::{MovePages, ReversePages};
-pub use resize::{Anchor, Orientation, OrientationMethod, ResizeMode, ResizePages, SetOrientation};
+pub use resize::{Anchor, OrientationMethod, PageOrientation, ResizeMode, ResizePages, SetOrientation};
 pub use rotate::{RotateMode, RotatePages};
 pub use split::SplitBy;
 
