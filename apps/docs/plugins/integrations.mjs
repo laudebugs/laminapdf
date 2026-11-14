@@ -19,10 +19,15 @@ export const WEBSITE_ICONS = {
   ],
 };
 
-/** The file names `WEBSITE_ICONS` links, at the root of the site. */
-export const WEBSITE_ICON_FILES = [WEBSITE_ICONS.favicon, ...WEBSITE_ICONS.head.map(({ attrs }) => attrs.href)].map(
-  (href) => href.slice(1),
-);
+/** The website's share image, which every docs page's `og:image` names (src/components/Head.astro). */
+export const SHARE_IMAGE = "/og.png";
+
+/** The file names `WEBSITE_ICONS` links, and the share image, at the root of the site. */
+export const WEBSITE_ICON_FILES = [
+  WEBSITE_ICONS.favicon,
+  ...WEBSITE_ICONS.head.map(({ attrs }) => attrs.href),
+  SHARE_IMAGE,
+].map((href) => href.slice(1));
 
 /**
  * Copies `names` from the directory `from` into the directory `to`, which it creates.

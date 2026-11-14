@@ -2,14 +2,28 @@
 // Starlight's `Head` override: Starlight's own head, then a link to the page's Markdown twin
 // (plugins/agent-docs.mjs writes `/guides/save-a-pdf.md` for `/guides/save-a-pdf/`), so a coding
 // agent that fetches the HTML finds the clean text. On every page, the code blocks' wrap button
-// (CodeWrap.astro).
+// (CodeWrap.astro). The home page also describes the project for search engines as JSON-LD
+// (@laminapdf/site-kit's structured-data.mjs), a data block the CSP leaves out.
 import Default from "@astrojs/starlight/components/Head.astro";
+import { jsonLd, structuredData } from "@laminapdf/site-kit/structured-data";
+import cargoToml from "../../../../Cargo.toml?raw";
+import { OPENING } from "../../../site/src/data/copy.ts";
+import { SHARE_IMAGE } from "../../plugins/integrations.mjs";
 import { pageTwin } from "../../plugins/markdown.mjs";
 import CodeWrap from "./CodeWrap.astro";
 
 const twin = pageTwin(Astro.url.pathname);
+const home = Astro.url.pathname === "/";
+// The website's share image, copied into this site (plugins/integrations.mjs): it shows the
+// wordmark and the website's headline, so its alt text says the same, as the website's does.
+const shareImage = new URL(SHARE_IMAGE, Astro.site);
 ---
 
 <Default />
+<meta property="og:image" content={shareImage.href} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content={`Lamina PDF: ${OPENING.headline}`} />
 {twin && <link rel="alternate" type="text/markdown" href={twin} />}
+{home && <script type="application/ld+json" set:html={jsonLd(structuredData({ site: "docs", cargoToml }))} />}
 <CodeWrap />

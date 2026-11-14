@@ -354,6 +354,9 @@ jobs:
         with:
           ref: refs/tags/${{ inputs.tag }}
           persist-credentials: false
+          # The sitemap dates each page by its last commit, which a shallow checkout can't tell;
+          # the production build refuses one (apps/docs/plugins/sitemap.mjs).
+          fetch-depth: 0
       - if: steps.mode.outputs.mode != 'skip'
         uses: ./.github/actions/node-pnpm
       - name: Check that the tag names the docs' version

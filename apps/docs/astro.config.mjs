@@ -34,6 +34,7 @@ import {
 import { releaseChecks, versionInPages } from "./plugins/release.mjs";
 import { EDIT_BASE, REPOSITORY } from "./plugins/repository.mjs";
 import { sidebar, sidebarRoutes } from "./plugins/sidebar.mjs";
+import { sitemapDates } from "./plugins/sitemap.mjs";
 import { sourceRevision, TYPEDOC_OUTPUT } from "./plugins/typedoc-sources.mjs";
 
 const ROOT = new URL("../../", import.meta.url);
@@ -164,6 +165,8 @@ export default defineConfig({
     previewNoindex(process.env.LAMINA_PDF_ENV),
     // Starlight writes sitemap-index.xml from `site`; only the released docs name it.
     robots({ env: process.env.LAMINA_PDF_ENV, sitemap: "https://docs.laminapdf.com/sitemap-index.xml" }),
+    // Each sitemap entry dated by its sources' last commit (W3e's IndexNow pings read the dates).
+    sitemapDates({ production: DOCS_RELEASE.release, site: SITE }),
     agentDocs(sidebarRoutes, { guidePdf: GUIDE_PDF }),
     // The one-page views' ids and heading levels, after agentDocs, which reads the built pages.
     onePageViews,
