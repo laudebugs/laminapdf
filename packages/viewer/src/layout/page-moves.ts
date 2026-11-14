@@ -2,7 +2,7 @@
 // its state by page index, so it follows the pages from their IDs before and after the edit.
 
 /** Where a page that was at some index before the edit is now. */
-export interface PageAt {
+interface PageAt {
   /** Its index now; for a deleted page, its nearest surviving page's. */
   readonly page: number;
   /** False for a deleted page, which `page` stands in for. */
