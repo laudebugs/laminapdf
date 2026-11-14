@@ -123,18 +123,6 @@ rule = "ADR 0003 §1: Repair"
 reason = "the truncated file has no usable xref; lamina rebuilds it by scanning object headers and reads the document, pypdf gives up"
 
 [[exception]]
-file = "fpdf2-m3.pdf"
-facts = ["page_count"]
-rule = "ADR 0003 §1: Page tree"
-reason = "the mutation leaves the only page object unparsable; lamina's walk skips that kid (page-tree-node-skipped), pypdf still counts it"
-
-[[exception]]
-file = "hello-incremental-m2.pdf"
-facts = ["page_count"]
-rule = "ADR 0003 §1: Page tree"
-reason = "the mutation leaves the only page object unparsable; lamina's walk skips that kid (page-tree-node-skipped), pypdf still counts it"
-
-[[exception]]
 file = "hello-m1.pdf"
 facts = ["page_count"]
 rule = "ADR 0003 §1: Page tree"
@@ -226,23 +214,12 @@ reason = "in mutants of outline.pdf with a damaged item, pdf.js drops the whole 
 
 # ---- Nightly lane: known disagreements (lamina bugs or open questions, each tracked) ----
 
-[[known]]
-file = "enc-m95.pdf"
-facts = ["outcome"]
-issue = "https://github.com/laudebugs/laminapdf/issues/37"
-reason = "lamina fails with `syntax` where pdf.js and PDFium open the file and qpdf and pypdf repair it"
-
-[[known]]
-file = "enc-m163.pdf"
-facts = ["outcome"]
-issue = "https://github.com/laudebugs/laminapdf/issues/37"
-reason = "lamina fails with `syntax` where pdf.js and PDFium open the file and qpdf and pypdf repair it"
-
-[[known]]
+[[exception]]
 file = "pdfjs/test/pdfs/issue22011.pdf"
 facts = ["page_count"]
-issue = "https://github.com/laudebugs/laminapdf/issues/37"
-reason = "lamina walks 56 pages, PDFium, qpdf and pypdf 57 (a skipped kid, excused by the lamina-skips class) and pdf.js 40"
+tools = ["pdfjs"]
+rule = "ADR 0003 §1: Dictionary key that is not a name"
+reason = "the 40th page's dictionary has a stray `)`, which lamina, PDFium, qpdf and pypdf read past (57 pages); the pinned pdfjs-dist 6.4.299 stops the page walk there (40 pages), a bug pdf.js fixed in 6.5 (mozilla/pdf.js#22013)"
 
 # ---- Nightly lane: page text (`differential --live --text`, todo B9f) ----
 
