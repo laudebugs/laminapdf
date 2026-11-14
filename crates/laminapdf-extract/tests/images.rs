@@ -7,7 +7,7 @@
 
 use std::collections::BTreeSet;
 
-use laminapdf_extract::{ExtractedImage, ExtractedImages, ImageFormat, ImageKind, ImageOptions, extract_images};
+use laminapdf_extract::{ExtractedImage, ExtractedImages, ImageFileFormat, ImageKind, ImageOptions, extract_images};
 use laminapdf_model::{Document, OpenOptions};
 use laminapdf_syntax::Object;
 use laminapdf_test_fixtures::{fixture, json};
@@ -55,11 +55,11 @@ fn jpegs_and_jpeg_2000_come_out_byte_for_byte() {
     let doc = open();
     for num in [10, 11, 12] {
         let image = by_object(&images, num, ImageKind::Image);
-        assert_eq!(image.format, ImageFormat::Jpeg, "{num}");
+        assert_eq!(image.format, ImageFileFormat::Jpeg, "{num}");
         assert_eq!(image.data, stored(&doc, num), "{num}");
     }
     let jpx = by_object(&images, 14, ImageKind::Image);
-    assert_eq!(jpx.format, ImageFormat::Jpeg2000);
+    assert_eq!(jpx.format, ImageFileFormat::Jpeg2000);
     assert_eq!(jpx.data, stored(&doc, 14));
     // The photo fixtures are the JPEGs the file embeds.
     assert_eq!(
@@ -258,7 +258,7 @@ fn applies_masks_as_transparency() {
     assert_eq!(keyed[7], 255);
     // A JPEG's soft mask is its own image.
     let smask = by_object(&images, 13, ImageKind::SoftMask);
-    assert_eq!(smask.format, ImageFormat::Png);
+    assert_eq!(smask.format, ImageFileFormat::Png);
     assert_eq!(pixels(&smask.data).3[..3], [0, 16, 32]);
 }
 

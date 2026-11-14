@@ -16,10 +16,10 @@
 
 pub use laminapdf_extract::{
     Block, BlockKind, Cell, Chunk, ChunkOptions, Coordinates, DropOptions, DropReason, Dropped, ExtractLimits,
-    ExtractOptions, ExtractedImage, ExtractedImages, ExtractedPage, ExtractedSource, Extraction, Flags, ImageFormat,
-    ImageKind, ImageOptions, LayoutModel, LayoutRegion, MarkdownOptions, ModelError, ModelInfo, ModelRequest,
-    ModelResult, ModelSlot, Models, OcrEngine, OcrWord, PageRaster, PageRenderer, ReadingOrder, Region, RegionLabel,
-    Rendered, SkippedImage, Span, SplitOn, StructRef, StructSource, TableDetector, TableMode, TextLayer,
+    ExtractOptions, ExtractedImage, ExtractedImages, ExtractedPage, ExtractedSource, Extraction, Flags,
+    ImageFileFormat, ImageKind, ImageOptions, LayoutModel, LayoutRegion, MarkdownOptions, ModelError, ModelInfo,
+    ModelRequest, ModelResult, ModelSlot, Models, OcrEngine, OcrWord, PageRaster, PageRenderer, ReadingOrder, Region,
+    RegionLabel, Rendered, SkippedImage, Span, SplitOn, StructRef, StructSource, TableDetector, TableMode, TextLayer,
     TextLayerStatus, TextLayerThresholds, TextRange, chunks_jsonl, tokens_approx,
 };
 #[cfg(feature = "reflow")]

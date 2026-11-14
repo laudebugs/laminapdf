@@ -4,7 +4,7 @@
 //! An image's bytes cross as a `Uint8Array`, not through JSON.
 
 use js_sys::{Array, Reflect, Uint8Array};
-use laminapdf::extract::{ExtractedImage, ImageFormat, ImageKind, ImageOptions, SkippedImage};
+use laminapdf::extract::{ExtractedImage, ImageFileFormat, ImageKind, ImageOptions, SkippedImage};
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
@@ -95,8 +95,8 @@ impl From<&ExtractedImage> for ExtractedImageJs {
             color_space: image.color_space.clone(),
             filters: image.filters.clone(),
             format: match image.format {
-                ImageFormat::Jpeg => ImageFormatJs::Jpeg,
-                ImageFormat::Jpeg2000 => ImageFormatJs::Jpeg2000,
+                ImageFileFormat::Jpeg => ImageFormatJs::Jpeg,
+                ImageFileFormat::Jpeg2000 => ImageFormatJs::Jpeg2000,
                 _ => ImageFormatJs::Png,
             },
             extension: image.format.extension(),

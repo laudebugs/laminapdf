@@ -64,7 +64,7 @@ pub enum ImageKind {
 /// Added in 0.3.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
-pub enum ImageFormat {
+pub enum ImageFileFormat {
     /// A JPEG (`DCTDecode` data), as stored.
     Jpeg,
     /// A JPEG 2000 codestream or file (`JPXDecode` data), as stored.
@@ -73,7 +73,7 @@ pub enum ImageFormat {
     Png,
 }
 
-impl ImageFormat {
+impl ImageFileFormat {
     /// The file extension: `jpg`, `jp2` or `png`.
     ///
     /// Added in 0.3.0.
@@ -111,7 +111,7 @@ pub struct ExtractedImage {
     /// Its filters, by their full names, in order.
     pub filters: Vec<String>,
     /// The file it is written as.
-    pub format: ImageFormat,
+    pub format: ImageFileFormat,
     /// The file's bytes.
     pub data: Vec<u8>,
 }

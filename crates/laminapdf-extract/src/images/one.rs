@@ -7,7 +7,7 @@ use laminapdf_syntax::{ObjRef, Object, Stream};
 use super::codecs::{self, Codec};
 use super::color::{self, Space};
 use super::samples::{self, Layout, Mask, Pixels};
-use super::{ExtractedImage, ImageFormat, ImageKind, png};
+use super::{ExtractedImage, ImageFileFormat, ImageKind, png};
 
 /// The most pixels an image may have: past it the image is skipped rather than decoded.
 const MAX_PIXELS: u64 = 1 << 28;
@@ -96,8 +96,8 @@ pub(super) fn extract(doc: &Document, input: &Input<'_>) -> Result<Vec<Extracted
         data,
     };
     let format = match codec {
-        Codec::Dct => Some(ImageFormat::Jpeg),
-        Codec::Jpx => Some(ImageFormat::Jpeg2000),
+        Codec::Dct => Some(ImageFileFormat::Jpeg),
+        Codec::Jpx => Some(ImageFileFormat::Jpeg2000),
         _ => None,
     };
     if let Some(format) = format {
@@ -123,7 +123,7 @@ pub(super) fn extract(doc: &Document, input: &Input<'_>) -> Result<Vec<Extracted
         let png = png::encode(&stencil_pixels(&alpha, entries.layout))?;
         return Ok(vec![record(
             ImageKind::Stencil,
-            ImageFormat::Png,
+            ImageFileFormat::Png,
             png,
             entries.layout,
             family,
@@ -142,7 +142,7 @@ pub(super) fn extract(doc: &Document, input: &Input<'_>) -> Result<Vec<Extracted
     let png = png::encode(&pixels)?;
     Ok(vec![record(
         ImageKind::Image,
-        ImageFormat::Png,
+        ImageFileFormat::Png,
         png,
         entries.layout,
         family,
@@ -262,7 +262,7 @@ fn passthrough_mask(doc: &Document, input: &Input<'_>) -> Result<Option<Extracte
             bits_per_component: layout.bits,
             color_space: "gray".into(),
             filters: codecs::filter_names(doc, &mask.dict),
-            format: ImageFormat::Png,
+            format: ImageFileFormat::Png,
             data: png::encode(&pixels)?,
         }));
     }

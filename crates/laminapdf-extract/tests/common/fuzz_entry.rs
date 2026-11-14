@@ -142,7 +142,7 @@ pub fn extract_images(data: &[u8]) {
             );
         }
         match image.format {
-            laminapdf_extract::ImageFormat::Png => {
+            laminapdf_extract::ImageFileFormat::Png => {
                 assert!(
                     image.data.starts_with(b"\x89PNG\r\n\x1a\n"),
                     "a PNG without its signature"
