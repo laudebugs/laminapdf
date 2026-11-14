@@ -31,13 +31,7 @@ describe("the last session after a relaunch", () => {
   it("should bring back the main window's size", async () => {
     const { width, height } = await browser.getWindowSize();
     const want = measured();
-    const screen = await browser.execute(() => [window.screen.availWidth, window.screen.availHeight]);
-    // The sizes in the failure, so a runner's screen that can't hold the window shows as such.
-    expect({ width, height, screen }).toEqual({
-      width: Math.abs(width - want.width) <= 2 ? width : want.width,
-      height: Math.abs(height - want.height) <= 2 ? height : want.height,
-      screen,
-    });
+    expect([Math.abs(width - want.width) <= 2, Math.abs(height - want.height) <= 2]).toEqual([true, true]);
   });
 
   it("should show the other window's tab at its page and zoom", async () => {

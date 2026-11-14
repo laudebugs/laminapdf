@@ -17,7 +17,9 @@ describe("the session as the app runs", () => {
     const main = await moveToNewWindow();
     await browser.switchToWindow(main);
     await openAndWait(example("hello.pdf"));
-    await browser.setWindowSize(1000, 700);
+    // Small enough for CI's screens (681 px high on macOS, 720 on Windows): the OS shrinks a
+    // window taller than its screen when it comes back, which is no loss of the size.
+    await browser.setWindowSize(900, 560);
     const { width, height } = await browser.getWindowSize();
     const measured: Expected = { percent, width, height };
     writeFileSync(expected, JSON.stringify(measured));
