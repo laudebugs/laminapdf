@@ -167,6 +167,10 @@ name = "add_links"
 required-features = ["extract"]
 
 [[example]]
+name = "mark_up"
+required-features = ["extract"]
+
+[[example]]
 name = "duplicate_pages"
 
 [[example]]

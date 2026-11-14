@@ -80,6 +80,24 @@ async function linksOf(doc) {
   return pages;
 }
 
+/** The subtypes lamina's mark cases make. */
+const MARKS = new Set(["Highlight", "Underline", "StrikeOut", "Squiggly", "Text", "Caret"]);
+
+/** Each page's text markup, notes and carets, sorted: [subtype, contents], as lamina lists them. */
+async function marksOf(doc) {
+  const pages = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const found = [];
+    for (const a of await page.getAnnotations()) {
+      if (MARKS.has(a.subtype)) found.push([a.subtype, a.contentsObj?.str ?? ""]);
+    }
+    const key = (x) => JSON.stringify(x);
+    pages.push(found.sort((x, y) => (key(x) < key(y) ? -1 : key(x) > key(y) ? 1 : 0)));
+  }
+  return pages;
+}
+
 // Each page's label (getPageLabels() is null for a document without labels).
 async function pageLabels(doc) {
   const labels = await doc.getPageLabels();
@@ -137,6 +155,10 @@ for (const c of cases) {
     if (c.links !== undefined) {
       got.links = await linksOf(doc);
       want.links = c.links;
+    }
+    if (c.marks !== undefined) {
+      got.marks = await marksOf(doc);
+      want.marks = c.marks;
     }
     if (JSON.stringify(got) !== JSON.stringify(want)) {
       failures.push(`${c.file}: got ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`);

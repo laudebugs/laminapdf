@@ -292,6 +292,10 @@ fn conformance_warning(w: &laminapdf_ops::ConformanceWarning) -> Data {
     match w {
         W::PdfaOneAuthor { authors } => data([("authors", json!(authors))]),
         W::PdfaInfoMismatch { keys } => data([("keys", json!(keys))]),
+        W::AnnotWithoutContents { annotations }
+        | W::AnnotNotTagged { annotations }
+        | W::PdfaAnnotFlags { annotations }
+        | W::PdfaTransparency { annotations } => data([("annotations", json!(annotations))]),
         _ => Data::new(),
     }
 }

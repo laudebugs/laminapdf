@@ -145,6 +145,11 @@ pub enum Error {
     /// without its `Link` element would break the claim (ISO 14289-1 §7.18.5).
     #[error("the link can't join the structure tree that a PDF/UA file needs")]
     LinkNotTagged,
+    /// An annotation op needs an appearance stream drawn, and the document has no generator
+    /// ([`Document::with_appearances`](crate::Document::with_appearances)): the `laminapdf`
+    /// façade always sets one.
+    #[error("the document has no appearance generator for annotations")]
+    AppearanceUnavailable,
 }
 
 /// An outline item ID as a message may show it, as [`Shown`] does pages.
@@ -256,6 +261,7 @@ impl Error {
         "annotation-not-editable",
         "not-a-link",
         "link-not-tagged",
+        "appearance-unavailable",
         "invalid-label-ranges",
     ];
 
@@ -296,6 +302,7 @@ impl Error {
             Self::AnnotationNotEditable(_) => "annotation-not-editable",
             Self::NotALink(_) => "not-a-link",
             Self::LinkNotTagged => "link-not-tagged",
+            Self::AppearanceUnavailable => "appearance-unavailable",
             Self::InvalidLabelRanges { .. } => "invalid-label-ranges",
         }
     }
@@ -337,7 +344,8 @@ impl Error {
             | Self::UnsupportedVersion(_)
             | Self::DirectOutlineItem(_)
             | Self::AnnotationNotEditable(_)
-            | Self::LinkNotTagged => ErrorKind::Unsupported,
+            | Self::LinkNotTagged
+            | Self::AppearanceUnavailable => ErrorKind::Unsupported,
             Self::InvalidLog(_) | Self::MalformedXmp | Self::InvalidXmpPacket(_) => ErrorKind::Input,
         }
     }
@@ -386,6 +394,7 @@ impl Error {
             | Self::EmptyDestinationName
             | Self::LinkUriRefused
             | Self::LinkNotTagged
+            | Self::AppearanceUnavailable
             | Self::ViewNotFinite
             | Self::NestedTransaction
             | Self::NoTransaction
@@ -452,6 +461,7 @@ mod tests {
             Error::AnnotationNotEditable("a7.0".parse().unwrap()),
             Error::NotALink("a7.0".parse().unwrap()),
             Error::LinkNotTagged,
+            Error::AppearanceUnavailable,
             Error::InvalidLabelRanges { what: "order" },
         ]
     }

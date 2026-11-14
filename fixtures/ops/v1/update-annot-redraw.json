@@ -1,0 +1,1 @@
+{ "op": "updateAnnot", "args": { "id": "a12.0", "modified": "D:20261113120000Z", "color": [0, 0.6, 0], "opacity": 0.5, "spec": { "type": "textMarkup", "quads": [[{ "x": 36, "y": 394 }, { "x": 136, "y": 394 }, { "x": 36, "y": 380 }, { "x": 136, "y": 380 }]] } } }

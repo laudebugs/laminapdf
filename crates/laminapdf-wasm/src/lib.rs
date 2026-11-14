@@ -39,6 +39,8 @@ mod error;
 mod exports;
 #[cfg(feature = "extract")]
 mod extract;
+#[cfg(feature = "build")]
+mod marks;
 mod memory;
 #[cfg(feature = "extract")]
 mod navigation;
