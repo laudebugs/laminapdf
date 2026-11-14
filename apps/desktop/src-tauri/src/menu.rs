@@ -811,7 +811,7 @@ fn send(app: &AppHandle, command: &MenuCommand) {
             }
         }
         None if WITHOUT_WINDOW.contains(&command.id.as_str()) => {
-            if let Err(error) = windows::new_window(app) {
+            if let Err(error) = windows::new_window(app, None) {
                 tracing::warn!("could not open a window from the menu: {error}");
             }
         }
