@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E17](../../plans/full-editor.md#e17-advanced-interactions) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [E3c](./E3c-links.md), [E9c](./E9c-form-design-mode.md), [E17a](./E17a-advanced-interactions-feature-plan.md), [E17c](./E17c-layers.md) |
+| Depends on | [E3c](../done/E3c-links.md), [E9c](./E9c-form-design-mode.md), [E17a](./E17a-advanced-interactions-feature-plan.md), [E17c](./E17c-layers.md) |
 | ADRs | Follows ADR 0021; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e17b-action-editor` |
 | PR title | `feat(actions): action editor for links, buttons, events and open actions` |

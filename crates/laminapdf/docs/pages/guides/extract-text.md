@@ -1,7 +1,7 @@
 ---
 title: "Extract text and Markdown"
 description: "Get a PDF's text out in reading order as plain text, Markdown, JSON with a box for every block, or chunks for retrieval, in TypeScript and Rust."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/guides/extract-text/"
 ---
 

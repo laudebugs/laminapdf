@@ -22,6 +22,8 @@ mod split;
 mod structure;
 mod tags;
 
+pub(crate) use cleanup::edit_dict;
+
 use std::collections::BTreeSet;
 
 use laminapdf_model::PageId;

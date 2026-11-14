@@ -128,6 +128,10 @@ pub struct Edited {
     ///
     /// Added in 0.3.0.
     pub created_outline_items: Vec<OutlineItemId>,
+    /// The links the edit added, in order: their IDs, for the edits that follow.
+    ///
+    /// Added in 0.3.0.
+    pub created_annotations: Vec<laminapdf_model::AnnotId>,
     /// An outline edit found the outline's links broken and rewrote them whole. Bookmarks
     /// that were stored inside other bookmarks have new IDs: read the outline again.
     ///
@@ -531,19 +535,26 @@ impl Document {
     /// Added in 0.2.0.
     pub fn apply(&mut self, ops: Vec<Op>) -> Result<Edited> {
         let applied = self.inner.apply_all(Origin::Local, ops)?;
+        Ok(self.edited(applied))
+    }
+
+    /// What a committed transaction did, as [`Document::apply`] reports it; a transaction that
+    /// changed something starts a new revision.
+    pub(crate) fn edited(&mut self, applied: laminapdf_ops::Applied) -> Edited {
         // An edit that changed nothing (setting a value it already had) commits no record:
         // the document is unchanged, so running jobs stay valid.
         let changed = !applied.undo.is_empty();
         if changed {
             self.bump();
         }
-        Ok(Edited {
+        Edited {
             touched_pages: applied.touched_pages.into_iter().collect(),
             packet_rewritten: applied.packet_rewritten,
             still_in_earlier_revisions: applied.still_in_earlier_revisions,
             also_deleted: applied.also_deleted.iter().map(ToString::to_string).collect(),
             changed,
             created_outline_items: applied.created_outline_items,
+            created_annotations: applied.created_annotations,
             outline_repaired: applied.outline_repaired,
             destination_uses: applied.destination_uses,
             declared: applied.declared,
@@ -556,7 +567,7 @@ impl Document {
             renamed_destinations: applied.renamed_destinations,
             structure_renamed: applied.structure_renamed,
             bookmarks_dropped: applied.bookmarks_dropped,
-        })
+        }
     }
 
     /// Applies an op log (`{ "v": 1, "ops": [ … ] }`, ADR 0006 §6) as one transaction.
@@ -713,6 +724,12 @@ impl Document {
         &self.inner
     }
 
+    /// The editing document, for the façade's own multi-op edits; each must report what it did
+    /// through [`Document::edited`].
+    pub(crate) fn ops_mut(&mut self) -> &mut laminapdf_ops::Document {
+        &mut self.inner
+    }
+
     /// The `laminapdf-ops` document, giving up the façade. Hidden from the docs, like
     /// [`Document::ops`].
     #[doc(hidden)]
@@ -762,6 +779,9 @@ impl Document {
 
 impl From<laminapdf_ops::Document> for Document {
     fn from(inner: laminapdf_ops::Document) -> Self {
+        // Every annotation an edit makes gets its appearance drawn (E4 plan §2.2).
+        #[cfg(feature = "build")]
+        let inner = inner.with_appearances(laminapdf_build::AnnotationAppearances);
         Self {
             inner,
             instance: Arc::new(Instance),

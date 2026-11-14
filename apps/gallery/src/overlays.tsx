@@ -48,7 +48,15 @@ import {
   ViewSettingsButton,
 } from "@laminapdf/ui";
 import { InitialViewDialog, PrintDialog, PrintProgressDialog, PropertiesDialog } from "@laminapdf/ui/dialogs";
-import { ConformanceDialog, NamedDestinationsDialog, RemoveSignaturesDialog } from "@laminapdf/ui/editing";
+import {
+  type AddressCheck,
+  ConformanceDialog,
+  LinkEditor,
+  type LinkGoal,
+  LinkPanel,
+  NamedDestinationsDialog,
+  RemoveSignaturesDialog,
+} from "@laminapdf/ui/editing";
 import { fakeFile, fakePlatform } from "@laminapdf/ui/testing";
 import { type ReactNode, useEffect, useState } from "react";
 
@@ -382,6 +390,49 @@ export function Selection(): ReactNode {
         <SelectionToolbarDivider />
         <IconButton label="Comment" icon="comment" />
       </SelectionToolbar>
+    </div>
+  );
+}
+
+/** The gallery's stand-in for the reader's address check: web addresses only. */
+function checkAddress(address: string): AddressCheck {
+  return /^https?:\/\/\S+$/i.test(address) ? { ok: true, address } : { ok: false, reason: "script" };
+}
+
+/** The goal each link editor state shows. */
+const LINK_GOALS: Record<string, LinkGoal | undefined> = {
+  page: { kind: "page", page: 4 },
+  web: { kind: "web", address: "https://example.com/report" },
+  refused: { kind: "web", address: "https://example.com/report" },
+  script: { kind: "script", action: "JavaScript" },
+};
+
+/**
+ * O12's link editor by a link on text: a page target, a web address, a refused `javascript:`
+ * address (type it in the field and leave it to see the error), and a script link read from a file.
+ */
+export function LinkEditors({ state }: { state: string }): ReactNode {
+  const goal = LINK_GOALS[state];
+  return (
+    <div className="g-selection">
+      <p>
+        Read the <mark className="g-selected">full report</mark> online.
+      </p>
+      <LinkPanel anchor={() => ({ top: 160, left: 120, width: 90, height: 22 })} onDismiss={noop}>
+        <LinkEditor
+          key={state}
+          text="full report"
+          goal={goal}
+          pageCount={12}
+          names={["chapter-2", "summary"]}
+          contents={state === "script" ? "" : "The full report"}
+          onGoal={noop}
+          onContents={noop}
+          onDelete={noop}
+          checkAddress={checkAddress}
+          {...(state === "page" || state === "web" ? { onFollow: noop } : {})}
+        />
+      </LinkPanel>
     </div>
   );
 }

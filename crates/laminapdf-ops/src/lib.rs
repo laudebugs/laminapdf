@@ -84,10 +84,12 @@ mod history;
 mod info;
 mod initial_view;
 mod labels;
+mod link;
 mod metadata;
 mod op;
 mod outline;
 mod pages;
+mod parent_tree;
 mod pending;
 mod record;
 mod rotate;
@@ -100,7 +102,11 @@ mod wire;
 #[cfg(test)]
 use laminapdf_test_fixtures::codes as test_codes;
 
-pub use annot::{DeleteAnnot, Offset, UpdateAnnot};
+pub use annot::{
+    AddAnnot, AnnotColor, AnnotCommon, AnnotSpec, AnnotSpecPatch, Appearance, AppearanceRequest, Appearances, Caret,
+    CaretPatch, CaretSymbol, DeleteAnnot, IntentSpace, MarkupKind, Note, NoteIcon, NotePatch, Offset, Opacity,
+    TextMarkup, TextMarkupPatch, UpdateAnnot,
+};
 pub use blob::{BlobId, BlobStore, ParseBlobIdError, SourceId};
 pub use class::ModificationClass;
 pub use document::{Document, PendingRebase, SaveState};
@@ -110,6 +116,7 @@ pub use history::{History, Reverted, UndoOutcome};
 pub use info::{InfoPatch, SetInfo};
 pub use initial_view::{OpenAt, OpenZoom, SetInitialView, WindowPreferencesPatch};
 pub use labels::{PageLabelRange, SetPageLabels};
+pub use link::{AddLink, DeleteLink, UpdateLink};
 pub use metadata::{
     ConformanceWarning, DocumentMetadata, MetadataKey, MetadataPatch, MetadataSource, PacketStatus, RemoveMetadata,
     RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty, UpdateSaveMetadata, conformance_warnings,

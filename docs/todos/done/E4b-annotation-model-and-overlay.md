@@ -22,7 +22,7 @@ Typed annotation views in `laminapdf-model`, `page_annotations` in the façade a
 - [E4 plan §2](../../plans/editor/e4-markup-and-drawing-annotations.md#2-the-operations), [§3](../../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep) and [§6](../../plans/editor/e4-markup-and-drawing-annotations.md#6-saving-and-the-save-constraint)
 - [04 §2.1 The common dictionary](../../research/pdf/04-interactive-security.md#21-the-common-dictionary) and [§2.3 Markup annotations](../../research/pdf/04-interactive-security.md#23-markup-annotations-replies-review-state-12562)
 - [ADR 0005](../../decisions/0005-document-model.md) §5: `/NM` is a hint, never the ID
-- [E3c](../ready/E3c-links.md): the link ops, which share this core
+- [E3c](../done/E3c-links.md): the link ops, which share this core
 
 ## Scope
 
@@ -34,7 +34,7 @@ Typed annotation views in `laminapdf-model`, `page_annotations` in the façade a
 - `fixtures/annotations/` and `tools/fixtures/annotations.py` ([E4 plan §9](../../plans/editor/e4-markup-and-drawing-annotations.md#9-fixtures)); `fixtures/ops/v1/update-annot.json` and `delete-annot.json`
 - The `annots` fuzz target and its seeds (not yet in `cargo xtask fuzz` or the nightly lane, which only the owner can change: [issue #491](https://github.com/laudebugs/laminapdf/issues/491))
 
-**Moved to [E4c](../ready/E4c-appearances-markup-notes-caret.md)**, which adds the first ops that make annotations, so each of these has something to act on:
+**Moved to [E4c](../done/E4c-appearances-markup-notes-caret.md)**, which adds the first ops that make annotations, so each of these has something to act on:
 
 - `AddAnnot`'s common part and the `Appearances` trait (no spec exists until E4c, and the trait has no implementation before the first generator)
 - Tagged files' new `Annot` elements, `/Tabs /S`, `annot-without-contents` and `annot-not-tagged`, with E3c's pyHanko check
@@ -43,7 +43,7 @@ Typed annotation views in `laminapdf-model`, `page_annotations` in the façade a
 
 **Out of scope** (and which todo covers it)
 
-- Each subtype's spec and appearance → [E4c](../ready/E4c-appearances-markup-notes-caret.md), [E4d](../ready/E4d-appearances-ink-and-shapes.md), [E4e](../ready/E4e-freetext-callouts.md)
+- Each subtype's spec and appearance → [E4c](../done/E4c-appearances-markup-notes-caret.md), [E4d](../ready/E4d-appearances-ink-and-shapes.md), [E4e](../ready/E4e-freetext-callouts.md)
 - The viewer's annotation layer → [E4i](../ready/E4i-viewer-annotation-layer.md)
 
 **Editor facts**
@@ -60,7 +60,7 @@ Typed annotation views in `laminapdf-model`, `page_annotations` in the façade a
 - [x] Views, unknown-key passthrough and the `/NM` index
 - [x] `page_annotations` in the façade, WASM and SDK
 - [x] `UpdateAnnot` and `DeleteAnnot` with undo
-- The `Appearances` trait and `AddAnnot`: moved to [E4c](../ready/E4c-appearances-markup-notes-caret.md)
+- The `Appearances` trait and `AddAnnot`: moved to [E4c](../done/E4c-appearances-markup-notes-caret.md)
 - [x] Fixtures and the fuzz target
 
 ## Acceptance criteria
@@ -71,7 +71,7 @@ Typed annotation views in `laminapdf-model`, `page_annotations` in the façade a
 - [x] Unknown annotation keys survive an update and a translate (round-trip test)
 - [x] `page_annotations` agrees with pdf.js's `getAnnotations` on every page of `fixtures/annotations/` (`pdfjs.json`); the pinned corpus's `annotation-*.pdf` files join in [E4g](../ready/E4g-appearance-parity-suite.md)'s corpus test
 - [x] `DeleteAnnot` on `threads.pdf` removes the reply chain through its cycle, and deleting either member of a group removes both
-- Usage rights per op: moved to [E4c](../ready/E4c-appearances-markup-notes-caret.md), with `AddAnnot` and E2i's usage-rights file
+- Usage rights per op: moved to [E4c](../done/E4c-appearances-markup-notes-caret.md), with `AddAnnot` and E2i's usage-rights file
 - veraPDF on `golden/examples/pdf_ua_report.pdf` after an annotation is added: moved to E4c, which adds annotations
 
 ## Post-merge checks

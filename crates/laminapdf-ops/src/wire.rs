@@ -458,3 +458,164 @@ pub(crate) mod xmp_value {
         from_wire(XmpValue::deserialize(d)?).map_err(de::Error::custom)
     }
 }
+
+/// A [`UserSpaceRect`](laminapdf_model::UserSpaceRect) as `{ "x0", "y0", "x1", "y1" }`.
+pub(crate) mod user_space_rect {
+    use laminapdf_model::UserSpaceRect;
+    use serde::{Deserialize, Serialize};
+
+    use super::{Deserializer, Serializer};
+
+    #[derive(Serialize, Deserialize)]
+    #[serde(deny_unknown_fields)]
+    pub(crate) struct Wire {
+        x0: f64,
+        y0: f64,
+        x1: f64,
+        y1: f64,
+    }
+
+    impl From<&UserSpaceRect> for Wire {
+        fn from(r: &UserSpaceRect) -> Self {
+            Self {
+                x0: r.x0,
+                y0: r.y0,
+                x1: r.x1,
+                y1: r.y1,
+            }
+        }
+    }
+
+    impl From<Wire> for UserSpaceRect {
+        fn from(w: Wire) -> Self {
+            Self::from_corners(w.x0, w.y0, w.x1, w.y1)
+        }
+    }
+
+    pub(crate) fn serialize<S: Serializer>(rect: &UserSpaceRect, s: S) -> Result<S::Ok, S::Error> {
+        Wire::from(rect).serialize(s)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<UserSpaceRect, D::Error> {
+        Wire::deserialize(d).map(UserSpaceRect::from)
+    }
+}
+
+/// An optional [`UserSpaceRect`](laminapdf_model::UserSpaceRect): absent to leave it alone.
+pub(crate) mod opt_user_space_rect {
+    use laminapdf_model::UserSpaceRect;
+    use serde::{Deserialize, Serialize};
+
+    use super::user_space_rect::Wire;
+    use super::{Deserializer, Serializer};
+
+    #[expect(clippy::ref_option, reason = "serde's `with` passes the field by reference")]
+    pub(crate) fn serialize<S: Serializer>(rect: &Option<UserSpaceRect>, s: S) -> Result<S::Ok, S::Error> {
+        rect.as_ref().map(Wire::from).serialize(s)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<UserSpaceRect>, D::Error> {
+        Ok(Option::<Wire>::deserialize(d)?.map(UserSpaceRect::from))
+    }
+}
+
+/// Quadrilaterals, each four [`UserSpacePoint`](laminapdf_model::UserSpacePoint)s as
+/// `{ "x", "y" }`, in `/QuadPoints` order.
+pub(crate) mod quads {
+    use laminapdf_model::UserSpacePoint;
+    use serde::{Deserialize, Serialize};
+
+    use super::{Deserializer, Serializer};
+
+    #[derive(Clone, Copy, Serialize, Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Point {
+        x: f64,
+        y: f64,
+    }
+
+    pub(crate) fn serialize<S: Serializer>(quads: &[[UserSpacePoint; 4]], s: S) -> Result<S::Ok, S::Error> {
+        let wire: Vec<[Point; 4]> = quads.iter().map(|q| q.map(|p| Point { x: p.x, y: p.y })).collect();
+        wire.serialize(s)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<[UserSpacePoint; 4]>, D::Error> {
+        let wire = Vec::<[Point; 4]>::deserialize(d)?;
+        Ok(wire
+            .into_iter()
+            .map(|q| q.map(|p| UserSpacePoint::new(p.x, p.y)))
+            .collect())
+    }
+
+    /// Absent to leave the quads alone; an empty list removes them.
+    pub(crate) mod opt {
+        use laminapdf_model::UserSpacePoint;
+        use serde::Deserialize;
+
+        use super::super::{Deserializer, Serializer};
+
+        #[expect(clippy::ref_option, reason = "serde's `with` passes the field by reference")]
+        pub(crate) fn serialize<S: Serializer>(
+            quads: &Option<Vec<[UserSpacePoint; 4]>>,
+            s: S,
+        ) -> Result<S::Ok, S::Error> {
+            match quads {
+                Some(q) => super::serialize(q, s),
+                None => s.serialize_none(),
+            }
+        }
+
+        pub(crate) fn deserialize<'de, D: Deserializer<'de>>(
+            d: D,
+        ) -> Result<Option<Vec<[UserSpacePoint; 4]>>, D::Error> {
+            #[derive(Deserialize)]
+            struct Quads(#[serde(with = "super")] Vec<[UserSpacePoint; 4]>);
+            Ok(Option::<Quads>::deserialize(d)?.map(|q| q.0))
+        }
+    }
+}
+
+/// A [`UserSpacePoint`](laminapdf_model::UserSpacePoint) as `{ "x", "y" }`.
+pub(crate) mod user_space_point {
+    use laminapdf_model::UserSpacePoint;
+    use serde::{Deserialize, Serialize};
+
+    use super::{Deserializer, Serializer};
+
+    #[derive(Serialize, Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Wire {
+        x: f64,
+        y: f64,
+    }
+
+    pub(crate) fn serialize<S: Serializer>(p: &UserSpacePoint, s: S) -> Result<S::Ok, S::Error> {
+        Wire { x: p.x, y: p.y }.serialize(s)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<UserSpacePoint, D::Error> {
+        Wire::deserialize(d).map(|w| UserSpacePoint::new(w.x, w.y))
+    }
+}
+
+/// An optional [`AnnotId`](laminapdf_model::AnnotId) as its string.
+pub(crate) mod opt_annot_id {
+    use laminapdf_model::AnnotId;
+    use serde::Deserialize;
+
+    use super::{Deserializer, Serializer};
+
+    #[expect(clippy::ref_option, reason = "serde's `with` passes the field by reference")]
+    pub(crate) fn serialize<S: Serializer>(id: &Option<AnnotId>, s: S) -> Result<S::Ok, S::Error> {
+        match id {
+            Some(id) => super::annot_id::serialize(id, s),
+            None => s.serialize_none(),
+        }
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<AnnotId>, D::Error> {
+        #[derive(Deserialize)]
+        struct Id(#[serde(with = "super::annot_id")] AnnotId);
+        Ok(Option::<Id>::deserialize(d)?.map(|id| id.0))
+    }
+}

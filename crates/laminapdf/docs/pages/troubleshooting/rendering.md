@@ -1,7 +1,7 @@
 ---
 title: "Troubleshooting rendering"
 description: "Fixes for rendering pages when PDFium isn't found, an image is too large, a page draws wrong, or laminapdf render refuses its output names."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/troubleshooting/rendering/"
 ---
 

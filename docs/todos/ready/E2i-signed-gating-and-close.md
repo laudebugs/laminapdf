@@ -33,6 +33,7 @@ Prove, across all E2 ops, that signed documents are protected exactly as ADR 000
 - The fixtures of the [E2 plan §9](../../plans/editor/e2-page-organisation.md#9-fixtures): approval-signed with a visible widget on page 2, an outline, a form and tags; certified P2 with an outline; a FieldMDP lock whose widget is on page 1; a usage-rights file whose `/Perms /UR3` is written by the script (it can't be validly signed without Adobe's key; the planner reads only its structure)
 - Validation of overridden outputs: pyHanko/`pdfsig` show no broken signatures, fields remain unsigned
 - Capability-matrix check: every E2 row at its target status in the core, pdf and web columns
+- With the usage-rights file: the annotation ops' rights checked per op in `would_violate` (`/Create` for `AddAnnot`, `/Modify` for `UpdateAnnot`, `/Delete` for `DeleteAnnot`), which E4c left for this fixture ([E4 plan §6](../../plans/editor/e4-markup-and-drawing-annotations.md#6-saving-and-the-save-constraint))
 
 **Out of scope** (and which todo covers it)
 
