@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2l` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E2 page organisation §5](../../plans/editor/e2-page-organisation.md#5-the-viewer-across-page-structure-edits) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E1d](../done/E1d-edit-session-undo-ui.md), [E1g](../done/E1g-redraw-after-edit.md), [E2b](../done/E2b-page-structure-ops.md) |
@@ -35,8 +35,8 @@ Let the reader show edits that insert, delete or move pages. Today the document 
 
 **Out of scope** (and which todo covers it)
 
-- Commands and the page grid → [E2h](E2h-page-organiser-ui.md)
-- Replaying source documents into a restarted worker → [E2m](E2m-document-dialogs.md)
+- Commands and the page grid → [E2h](../ready/E2h-page-organiser-ui.md)
+- Replaying source documents into a restarted worker → [E2m](../ready/E2m-document-dialogs.md)
 
 **Editor facts**
 
@@ -44,7 +44,7 @@ Let the reader show edits that insert, delete or move pages. Today the document 
 - **Crates and packages:** `@laminapdf/viewer`, `@laminapdf/sdk` (`Edited.pageOrder`)
 - **`Op` variants:** none
 - **`SaveConstraint`:** not applicable
-- **Web vs desktop:** the viewer is shared; the desktop engine's session follows in [E2n](E2n-desktop-organise.md)
+- **Web vs desktop:** the viewer is shared; the desktop engine's session follows in [E2n](../ready/E2n-desktop-organise.md)
 - **Server features:** none
 - **Capability-matrix rows to flip:** none
 

@@ -27,7 +27,7 @@ The desktop part of round E2 ([full-editor §7](../../plans/full-editor.md#7-pha
 
 **In scope**
 
-- The engine's edit session reports the new page order as the worker does ([E2l](E2l-viewer-across-page-edits.md)), so the shared viewer follows page-list edits on the desktop
+- The engine's edit session reports the new page order as the worker does ([E2l](../ongoing/E2l-viewer-across-page-edits.md)), so the shared viewer follows page-list edits on the desktop
 - `canWriteDirectory` true on the desktop, through the dialog plugin; split and export write into the chosen folder, with Replace / Keep both for existing names and Show in Finder or Explorer
 - An open request with several PDFs offers "Merge into one document" or "Open each"
 - Source documents read through the engine's file access, never a path from the webview (ADR 0008)
