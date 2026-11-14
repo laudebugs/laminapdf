@@ -74,7 +74,7 @@ catalog:
   "@wdio/spec-reporter": 9.31.2
   "@wdio/tauri-plugin": 1.5.1
   "@wdio/tauri-service": 1.5.1
-  webdriverio: 9.31.9
+  webdriverio: 10.1.0
   deno: 2.9.6
   # Maintainability checks in `cargo xtask check ts` (Q2u): import cycles and cross-package
   # imports, duplicated blocks, unused exports and files. Dev-only. dependency-cruiser and jscpd:
