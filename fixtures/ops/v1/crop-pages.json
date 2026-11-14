@@ -1,0 +1,1 @@
+{ "op": "cropPages", "args": { "pages": ["p3.0"], "margins": { "top": 36, "right": 18, "bottom": 36, "left": 18 } } }

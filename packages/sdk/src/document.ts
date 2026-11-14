@@ -16,6 +16,8 @@ import { PageText, type TextOptions } from "./text.js";
 import {
   type AddedSource,
   type Carry,
+  type CropMargins,
+  cropPagesOp,
   type DeletePagesOptions,
   deletePagesOp,
   duplicatePagesOp,
@@ -28,6 +30,7 @@ import {
   type MetadataRemoveOptions,
   mergeDocumentsOp,
   movePagesOp,
+  type PageBoxes,
   type PagePosition,
   type PageSize,
   type RotatePagesOptions,
@@ -40,6 +43,7 @@ import {
   rotatePagesOp,
   setInitialViewOp,
   setMetadataOp,
+  setPageBoxesOp,
   setPageLabelsOp,
   setXmpPropertyOp,
   Transaction,
@@ -1291,6 +1295,38 @@ export class Document extends Handle<BaseGlue> {
    */
   reversePages(pages: readonly string[]): Edited {
     return this.apply([reversePagesOp(pages)]);
+  }
+
+  /**
+   * Sets or removes boxes of `pages`, by ID, in one transaction (`setPageBoxes`). Each box is in
+   * the page's own user space and must lie inside its media box (the new one, when `boxes` sets
+   * it). A smaller crop box only hides content: the result's `croppedContentRemains` lists the
+   * pages whose content is now partly hidden but still in the file, where text extraction finds
+   * it. To remove it, redact it.
+   *
+   * @throws {@link LaminaPdfError} `invalid-op` for a box without an area, outside the media box
+   *   or with a value that isn't finite; `unknown-page` for an ID that isn't a page of the
+   *   document; as {@link Document.apply}.
+   *
+   * @since 0.4.0
+   */
+  setPageBoxes(pages: readonly string[], boxes: PageBoxes): Edited {
+    return this.apply([setPageBoxesOp(pages, boxes)]);
+  }
+
+  /**
+   * Crops `pages`, by ID, by `margins` of each page as it shows, in one transaction
+   * (`cropPages`): rotation and user unit are taken into account, so one set of margins
+   * crops pages of mixed sizes and rotations by the same visible amount. The result's
+   * `croppedContentRemains` lists the pages whose cropped-away content is still in the file.
+   *
+   * @throws {@link LaminaPdfError} `invalid-op` for a negative margin or margins that leave no
+   *   page; `unknown-page` for an ID that isn't a page of the document; as {@link Document.apply}.
+   *
+   * @since 0.4.0
+   */
+  cropPages(pages: readonly string[], margins: CropMargins): Edited {
+    return this.apply([cropPagesOp(pages, margins)]);
   }
 
   /**
