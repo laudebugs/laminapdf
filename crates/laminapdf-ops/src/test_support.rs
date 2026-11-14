@@ -43,7 +43,7 @@ impl Declared {
         sources: &crate::document::Sources,
         class: ModificationClass,
     ) -> Result<Effect> {
-        let mut effect = self.op.apply_to(doc, sources)?;
+        let mut effect = self.op.apply_to(doc, sources, None)?;
         effect.widgets.extend(
             self.widgets
                 .iter()

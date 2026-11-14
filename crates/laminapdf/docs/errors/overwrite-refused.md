@@ -1,6 +1,6 @@
 ---
 title: "overwrite-refused"
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/reference/codes/overwrite-refused/"
 ---
 

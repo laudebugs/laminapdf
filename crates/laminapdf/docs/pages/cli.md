@@ -1,7 +1,7 @@
 ---
 title: "The command line"
 description: "Inspect, check, extract, render and build PDFs from a terminal, a build script or an AI agent with the laminapdf command."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/cli/"
 ---
 

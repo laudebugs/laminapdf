@@ -1,7 +1,7 @@
 ---
 title: "Changelog"
 description: "What changed in each Lamina PDF release, newest first."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/reference/changelog/"
 ---
 
@@ -17,6 +17,42 @@ Each entry lists its changes under two headings:
 - **Patch Changes** holds fixes and, from `0.2.0` on, new features. Neither needs a change to your code.
 
 For example, to move from `0.2.0` to `0.3.1`, read the Minor Changes of `0.3.0`; `0.3.1` needs no code change. To move from an alpha to `0.2.0`, read both headings of every entry after your alpha: the alphas promised nothing to each other.
+
+## 0.3.0
+
+### Minor Changes
+
+- [`bc1bff5`](https://github.com/laudebugs/laminapdf/commit/bc1bff5): Copy pages between documents. `doc.addSource(bytes)` opens another PDF as a source and returns its ID and page IDs. `doc.insertPagesFrom(id, pages, at)` copies its pages in, and `doc.replacePages(targets, id, pages)` puts them in other pages' places, keeping the bookmarks, links and named destinations that pointed at the old pages. A copy keeps its annotations and form fields. A field whose name is taken becomes `<name>#2`, or shares the value with `{ fields: "link" }`. A link to a page left behind is removed (`linksRemoved`). Copies come without tags (`tagsDropped`), and on a PDF/UA-1 file saving then warns with the new code `imported-tags-dropped`. `doc.extractPages(ids)` makes a new document from pages, with their labels, and `doc.exportRanges(ranges)` makes one per range.
+  
+In Rust: `InsertPagesFrom`, `ReplacePages`, `Carry`, `FieldClash`, `Document::add_source`, `source_pages`, `extract_pages`, `export_ranges`, `export_ranges_with` and `ExportJob`, with `Edited::links_removed` and `Edited::tags_dropped`. `laminapdf-model` gains `FieldNames::clashes`, `Document::field_by_name` and `Outline::named_destination_value`.
+- [`2948e3f`](https://github.com/laudebugs/laminapdf/commit/2948e3f): Duplicate pages: `doc.duplicatePages(ids, at)` copies pages to a place in the document, as one edit that undo reverts. A copy shares its page's content but gets annotations of its own, and each form field it shows becomes a new field named `<name>#2` (or the next free number) with its own value. A signature's field isn't copied. The edit's `fields` lists each field the copy renamed or left out. In a tagged document the copy gets tags of its own. Content of an element that continues onto another page stays untagged on the copy, and the edit's `tagsIncomplete` lists that copy. On a PDF/UA-1 file, the save plan then warns with the new code `duplicate-tags-incomplete`.
+  
+In Rust: `DuplicatePages`, with `Edited::fields` (`FieldChange`, `FieldOutcome`) and `Edited::tags_incomplete`. `laminapdf-model` gains `Document::field_name`, `Document::field_names` and `FieldNames::unique_partial`, the rule that names a copied field (a copy of `total#2` is `total#3`).
+- [`6e9dd39`](https://github.com/laudebugs/laminapdf/commit/6e9dd39): Turn images into a PDF and export pages as PNG, JPEG or TIFF from TypeScript, as Rust already can:
+  
+- `imagesToPdf(images, options)` makes a document with one page per image, as `laminapdf::images_to_pdf` does: JPEGs embedded as they are, each image drawn upright, and pages the image's size or a paper size (`fit: "A4"`, or `[width, height]` in points) with the image fitted inside the margins. It needs the extract or the text module (`init({ extract: true })`).
+- In the web reader's worker, `ViewerClient.exportPage(index, { format, dpi, quality })` draws a page as PNG or JPEG, and `exportTiff(indexes, { dpi, multiPage })` as TIFF, every page in one file or one file each. The resolution is recorded in each file. The TIFF writer is a WebAssembly module of its own, `@laminapdf/wasm/tiff`, loaded the first time a TIFF export starts.
+- In Rust, `laminapdf_render::TiffWriter` (feature `tiff`) writes a TIFF from pixels you drew yourself, a page at a time.
+- [`d9b6acf`](https://github.com/laudebugs/laminapdf/commit/d9b6acf): Choose how a PDF opens, and read its article threads. `doc.setInitialView(patch)` sets the page and zoom a file opens at, the panel beside the page (bookmarks, thumbnails, attachments, layers or full screen), the page layout and the reader window's requests, such as the title in the title bar. Every PDF reader reads these choices. `doc.initialView()` reads them back, page targets in page space, and `doc.threads()` lists the file's article threads with each part's page and rectangle. An open action that runs a script is reported, never run, and never replaced: an edit that names the opening page fails with `open-action-not-destination`. In Rust: the `SetInitialView` op, `Document::initial_view` and `Document::threads`.
+- [`e416ac6`](https://github.com/laudebugs/laminapdf/commit/e416ac6): Merge and split documents. `Document.merge(files)` makes one document from several files. Each file gets a bookmark named by its `title`, holding the file's own bookmarks, and `{ outline: "keep" }` or `"none"` changes that. `doc.mergeDocuments(sources, at)` merges source documents into an open one as one edit. The files' form fields, named destinations, layers and page labels come along; a destination whose name is taken becomes `<name>#2` (`renamedDestinations`), and bookmarks to pages left behind are dropped (`bookmarksDropped`). Merging into a file that claims a PDF/A level from one that doesn't claim it warns with the new code `imported-pdfa-unchecked`. `doc.split({ count })`, `split({ ranges })` and `split({ bookmarks: level })` cut a document into new ones, each with the bookmarks that go to its pages.
+  
+In Rust: `MergeDocuments`, `MergeSource`, `MergeOptions`, `OutlineMerge`, `MergeInput`, `RenamedDestination`, `SplitBy`, `Document::merge`, `merge_with`, `merge_job` and `MergeJob`, `Document::split`, `split_with` and `split_job`, with `Edited::renamed_destinations` and `Edited::bookmarks_dropped`. `Document::extract_pages` now carries the bookmarks that go to its pages and the layers.
+- [`2081146`](https://github.com/laudebugs/laminapdf/commit/2081146): Edit bookmarks and named destinations: `addOutlineItem`, `updateOutlineItem`, `moveOutlineItem` and `deleteOutlineItem` add, change, move and delete bookmarks, with their colour and bold or italic style, and `setNamedDestination`, `renameNamedDestination` and `deleteNamedDestination` manage the names links jump to. A rename follows the bookmarks and links that use the name. The outline's links and counts stay consistent after every edit, and a broken outline is rewritten whole by the first edit. `outline()` now gives each bookmark's `id`, the name or web address it goes to, and its style; `namedDestinations()` lists every name; `destinationAt(page, view)` turns a place in the viewer into a destination. The Rust crates have the same ops (`laminapdf::AddOutlineItem` and the rest) and methods.
+- [`8f21b98`](https://github.com/laudebugs/laminapdf/commit/8f21b98): Set a document's page labels, the names viewers show for its pages ("Cover", "iv", "A-3"):
+  
+- `doc.setPageLabels(ranges)` replaces them in one edit, and `Transaction.setPageLabels` adds the same edit to a transaction. Each range names its first page by ID, with a style (`decimal`, `upperRoman`, `lowerRoman`, `upperLetters`, `lowerLetters`), a prefix and a first number; no ranges remove the labels.
+- Ranges that don't start on the first page, are out of page order or number from 0 fail with `invalid-label-ranges`, whose `data.what` says which rule.
+- `doc.pages[i].label` reads the new labels.
+  
+In Rust: the `SetPageLabels` op with `PageLabelRange`, `LabelStyle` exported in every build, and in `laminapdf-model` `LabelRange::new`, `PageLabels::from_ranges`, `PageLabels::is_written` and the `tree-write` feature.
+- [`bab4c9f`](https://github.com/laudebugs/laminapdf/commit/bab4c9f): Organise a document's pages: insert blank pages, delete pages, move them, rotate them (to an angle, or by an angle from where each one stands) and reverse their order, each as one edit that undo reverts. Pages keep their IDs while they move. Deleting a page sends the bookmarks, links, named destinations and opening view that went to it to the nearest page left, showing the whole page. Ask instead and they lose their destination. Either way, the edit lists each one. The accessibility tags and form fields that only a deleted page used go with it; signature fields stay, so their signatures still count when you save. Page labels stay with their pages. Deleting every page is refused with the new code `no-pages-left`. A blank-page count or size out of range is refused with `invalid-op`.
+  
+In Rust: `InsertBlankPages`, `DeletePages`, `MovePages`, `RotatePages` and `ReversePages`, applied with `Document::apply`; `Edited` gains `page_order` and `references`. `PageSize` moves to `laminapdf-model`, and `laminapdf-build` re-exports it, so its path through the builder and the façade is unchanged. Rotating the page that holds a signed signature's widget now makes the save a conflict, as deleting that page does.
+
+### Patch Changes
+
+- [`a815a29`](https://github.com/laudebugs/laminapdf/commit/a815a29): Documents can now list a page's annotations and change or delete them. `doc.pageAnnotations(index)` returns each annotation in page space: its ID, subtype, rectangle, text, author, dates, flags, colour, reply and group links, and its own geometry (highlight areas, ink strokes, a polygon's vertices, a line, a callout). The new `updateAnnot` op changes an annotation's text, author, subject, flags or position, keeping its appearance; `deleteAnnot` deletes it together with its pop-up, its replies and the rest of its group, and the edit lists what went with it in `alsoDeleted`. A locked annotation refuses the change.
+- [`1f0cd41`](https://github.com/laudebugs/laminapdf/commit/1f0cd41): The thumbnail strip no longer raises "the worker stopped" as an unhandled error when the document worker crashes, is stopped or is terminated while a thumbnail is drawing. The thumbnail keeps its placeholder. The client's `crashed` and `restarted` events already report a crash or a restart.
 
 ## 0.2.0
 

@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use laminapdf_desktop_protocol::DocId;
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter as _, EventTarget, Manager as _, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter as _, EventTarget, Manager as _, Position, WebviewUrl, WebviewWindowBuilder};
 
 use crate::engine::{DocumentMeta, Engines};
 use crate::{DesktopError, MAIN_WINDOW};
@@ -60,8 +60,9 @@ pub(crate) struct Windows(Mutex<State>);
 struct State {
     /// The last number given to a `doc-<n>` window.
     last: u32,
-    /// The window focused last: open requests go there.
-    frontmost: Option<String>,
+    /// The windows by when they were last focused, the last one first: open requests go to the
+    /// first, and a dragged tab's drop finds the window in front where windows overlap.
+    focus: Vec<String>,
     /// Tabs moved to windows whose webview hasn't taken them yet.
     arriving: BTreeMap<String, Vec<Arrived>>,
     /// Windows whose webview has taken its arrivals: later ones are sent at once.
@@ -89,22 +90,27 @@ impl Windows {
 
     /// `label` came to the front.
     pub(crate) fn focused(&self, label: &str) {
-        self.state().frontmost = Some(label.to_owned());
+        let mut state = self.state();
+        state.focus.retain(|focused| focused != label);
+        state.focus.insert(0, label.to_owned());
     }
 
     /// `label` closed: it is no longer frontmost, and anything waiting for it is dropped.
     pub(crate) fn closed(&self, label: &str) {
         let mut state = self.state();
-        if state.frontmost.as_deref() == Some(label) {
-            state.frontmost = None;
-        }
+        state.focus.retain(|focused| focused != label);
         state.arriving.remove(label);
         state.ready.retain(|ready| ready != label);
     }
 
-    /// The window focused last, if it is still open; else `None`.
+    /// The open window focused last; `None` before any was focused or once all closed.
     pub(crate) fn frontmost(&self) -> Option<String> {
-        self.state().frontmost.clone()
+        self.state().focus.first().cloned()
+    }
+
+    /// The windows focused so far, the one focused last first.
+    pub(crate) fn front_to_back(&self) -> Vec<String> {
+        self.state().focus.clone()
     }
 
     /// Queues `arrived` for `label` until its webview takes it (`None`), or hands it back to send
@@ -145,31 +151,55 @@ pub(crate) fn target_window(app: &AppHandle) -> Result<String, DesktopError> {
     {
         return Ok(label);
     }
-    new_window(app)
+    new_window(app, None)
 }
 
-/// Makes a window labelled `label`: the app's page, a title, a size that fits the screen.
-pub(crate) fn build_window(app: &AppHandle, label: &str) -> Result<(), DesktopError> {
+/// Makes a window labelled `label`: the app's page, a title, a size that fits the screen, and its
+/// top-left corner at `corner` when given.
+pub(crate) fn build_window(app: &AppHandle, label: &str, corner: Option<Position>) -> Result<(), DesktopError> {
     let monitor = app.primary_monitor().ok().flatten();
     let (width, height) = crate::first_window_size(monitor);
     let builder = WebviewWindowBuilder::new(app, label, WebviewUrl::default())
         .title(title(None))
         .inner_size(width, height)
         .min_inner_size(640.0, 480.0);
-    // The first window is centred; later ones open where the OS cascades them.
-    let builder = if label == MAIN_WINDOW {
-        builder.center()
-    } else {
-        builder
+    // The first window is centred; a tab dropped outside every window opens one where it was
+    // dropped; other windows open where the OS cascades them.
+    let builder = match corner {
+        Some(Position::Logical(at)) => builder.position(at.x, at.y),
+        // The builder takes logical pixels at a scale it guesses before the window has a screen:
+        // a physical corner is set once it has one, before it shows.
+        Some(Position::Physical(_)) => builder.visible(false),
+        None if label == MAIN_WINDOW => builder.center(),
+        None => builder,
     };
-    builder.build()?;
+    let window = builder.build()?;
+    if let Some(at @ Position::Physical(_)) = corner {
+        // A window that can't be placed still shows, where the OS put it: a hidden one would
+        // count as a window ("Move tab to window ▸") that nobody can see.
+        if let Err(error) = window.set_position(at) {
+            tracing::warn!("could not place a new window under the cursor: {error}");
+        }
+        if let Err(error) = window.show() {
+            let _ = window.destroy();
+            return Err(error.into());
+        }
+        // X11 window managers may place a window as it maps, whatever it asked for; a move once
+        // it shows is a request they follow.
+        if cfg!(target_os = "linux")
+            && let Err(error) = window.set_position(at)
+        {
+            tracing::warn!("could not place a new window under the cursor: {error}");
+        }
+    }
     Ok(())
 }
 
-/// A new, empty window (File ▸ New Window, or a tab moved out). Returns its label.
-pub(crate) fn new_window(app: &AppHandle) -> Result<String, DesktopError> {
+/// A new, empty window (File ▸ New Window, or a tab moved out), with its corner at `corner` when
+/// given. Returns its label.
+pub(crate) fn new_window(app: &AppHandle, corner: Option<Position>) -> Result<String, DesktopError> {
     let label = app.state::<Windows>().next_label();
-    build_window(app, &label)?;
+    build_window(app, &label, corner)?;
     changed(app);
     Ok(label)
 }
@@ -184,16 +214,18 @@ pub(crate) fn title(document: Option<&str>) -> String {
 
 /// Moves `doc` from `from` to `to`: the engine re-homes it (keeping a kept password), the file
 /// watch follows it, and the new window gets it with `view`, at once or when its webview is
-/// ready. Returns the label of the window the tab went to.
+/// ready. A new window opens with its corner at `corner` when given (a tab dropped outside every
+/// window). Returns the label of the window the tab went to.
 pub(crate) fn move_tab(
     app: &AppHandle,
     from: &str,
     doc: DocId,
     to: &MoveTo,
     view: View,
+    corner: Option<Position>,
 ) -> Result<String, DesktopError> {
     let target = match to {
-        MoveTo::NewWindow => new_window(app)?,
+        MoveTo::NewWindow => new_window(app, corner)?,
         MoveTo::Window(label) if label != from && app.get_webview_window(label).is_some() => label.clone(),
         MoveTo::Window(_) => return Err(DesktopError::UnknownWindow),
     };
@@ -256,8 +288,9 @@ pub(crate) fn window_order(label: &str) -> (u8, u32) {
     }
 }
 
-/// Tells every window that the windows or their titles changed.
+/// Tells every window, and the Window menu, that the windows or their titles changed.
 pub(crate) fn changed(app: &AppHandle) {
+    crate::menu::rebuild(app);
     if let Err(error) = app.emit(CHANGED_EVENT, ()) {
         tracing::warn!("could not tell the windows they changed: {error}");
     }
@@ -299,13 +332,26 @@ mod tests {
     }
 
     #[test]
-    fn a_closed_frontmost_window_is_frontmost_no_more() {
+    fn a_closed_frontmost_window_hands_the_front_to_the_one_focused_before() {
         let windows = Windows::default();
         windows.focused("doc-1");
         windows.focused("main");
         assert_eq!(windows.frontmost().as_deref(), Some("main"));
         windows.closed("main");
+        assert_eq!(windows.frontmost().as_deref(), Some("doc-1"));
+        windows.closed("doc-1");
         assert_eq!(windows.frontmost(), None);
+    }
+
+    #[test]
+    fn windows_go_front_to_back_by_when_they_were_focused() {
+        let windows = Windows::default();
+        windows.focused("main");
+        windows.focused("doc-1");
+        windows.focused("doc-2");
+        windows.focused("doc-1");
+        windows.closed("doc-2");
+        assert_eq!(windows.front_to_back(), ["doc-1", "main"]);
     }
 
     #[test]

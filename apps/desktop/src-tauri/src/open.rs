@@ -213,7 +213,7 @@ pub(crate) fn route_open(app: &AppHandle, window: &str, paths: Vec<PathBuf>) {
         for path in paths {
             match empty
                 .take()
-                .map_or_else(|| crate::windows::new_window(app), |w| Ok(w.to_owned()))
+                .map_or_else(|| crate::windows::new_window(app, None), |w| Ok(w.to_owned()))
             {
                 Ok(label) => queue_or_open(app, &label, vec![path]),
                 Err(error) => tracing::warn!("could not make a window for a document: {error}"),
@@ -327,6 +327,9 @@ struct Dragging {
 pub(crate) fn on_drag_drop(window: &tauri::Window, event: &tauri::DragDropEvent) {
     let target = EventTarget::webview_window(window.label());
     let sent = match event {
+        // A drag that carries no files (a tab dragged from a window's strip) is no open: the
+        // overlay stays away, and the tab's own drop is Rust's (tab_drag.rs).
+        tauri::DragDropEvent::Enter { paths, .. } if paths.is_empty() => Ok(()),
         tauri::DragDropEvent::Enter { paths, .. } => {
             let (pdfs, others) = split_drop(paths);
             let payload = Dragging {

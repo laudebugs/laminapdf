@@ -1,0 +1,1 @@
+{ "op": "addAnnot", "args": { "page": "p9.0", "spec": { "type": "caret", "rect": { "x0": 234, "y0": 376, "x1": 242, "y1": 386 }, "symbol": "paragraph" }, "common": { "contents": "new paragraph", "color": [0, 0, 1], "groupWith": "a5.0" } } }

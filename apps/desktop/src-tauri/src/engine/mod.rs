@@ -338,6 +338,15 @@ impl Engines {
         self.registry.path_of(doc)
     }
 
+    /// `doc`'s file when `window` holds it, for a copy the main process saves (File ▸ Save a
+    /// copy…): a window reaches only its own documents' files, as it does their tiles.
+    pub(crate) fn path_in(&self, window: &str, doc: DocId) -> Option<std::path::PathBuf> {
+        self.registry
+            .owns(window, doc)
+            .then(|| self.registry.path_of(doc))
+            .flatten()
+    }
+
     /// Moves `doc` from window `from` to window `to` (a tab moved there): the same document, file
     /// and kept password, opened in `to`'s engine. `to` becomes the owner first, so its engine may
     /// read the file; the document opens there and, with a kept password, unlocks, so a moved

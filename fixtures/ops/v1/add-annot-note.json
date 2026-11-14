@@ -1,0 +1,1 @@
+{ "op": "addAnnot", "args": { "page": "p9.0", "spec": { "type": "note", "at": { "x": 540, "y": 760 }, "icon": "comment", "open": true }, "common": { "contents": "Check this figure", "author": "Ada", "subject": "Comment", "flags": 28 }, "nm": "note-1" } }

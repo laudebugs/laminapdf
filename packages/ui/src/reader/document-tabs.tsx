@@ -3,13 +3,15 @@
 // lists every tab and moves the shown one to another window. A tab's context menu (right-click,
 // Shift+F10 or the menu key) shows that tab and opens the same menu. It is a tablist with a roving
 // tabindex: one Tab stop, the arrow keys move between tabs, Home and End jump, Enter or Space
-// shows the focused tab, Delete closes it. Tabs reorder by dragging within the strip.
+// shows the focused tab, Delete closes it. Tabs reorder by dragging within the strip; a drag that
+// ends anywhere else is the shell's (`onDragOut`): the desktop app moves the tab to the window it
+// was dropped on, or to a new one.
 //
 // Only shells whose platform has `capabilities.multiWindow` render it (the desktop app); the web
 // reader has one document per browser tab.
 
 import { Icon } from "@laminapdf/icons/react";
-import { type DragEvent, type KeyboardEvent, type ReactNode, useState } from "react";
+import { type DragEvent, type KeyboardEvent, type ReactNode, useRef, useState } from "react";
 import { Button as AriaButton, MenuTrigger } from "react-aria-components";
 import type { KeyPlatform } from "../components/shortcut-chip.js";
 import { message } from "../messages.js";
@@ -33,6 +35,13 @@ export interface DocumentTabsProps {
   readonly onClose: (id: string) => void;
   /** The tabs' new order, after one was dragged within the strip. */
   readonly onReorder?: (ids: readonly string[]) => void;
+  /** A tab began to be dragged. */
+  readonly onDragStart?: (id: string) => void;
+  /**
+   * A tab's drag ended without a drop on this strip: on another window, outside every window, or
+   * cancelled. `outside` says whether the pointer had left this page, as far as the page can tell.
+   */
+  readonly onDragOut?: (id: string, outside: boolean) => void;
   /** Entries after the tab list in the strip's menu, such as "Move tab to new window". */
   readonly moves?: readonly MenuEntry<string>[];
   /** One of `moves` was chosen. */
@@ -41,8 +50,13 @@ export interface DocumentTabsProps {
   readonly platform: KeyPlatform;
 }
 
-/** The drag data type that carries a dragged tab's id. */
+/** The drag data type that carries a dragged tab's id, followed by its strip's own suffix, so a
+    strip takes only its own tabs: another window's strip has ids of its own. */
 const TAB_DRAG_TYPE = "application/x-laminapdf-tab";
+
+/** How recently the page must have had a `dragover` for a drag's end to count as inside it: the
+    events come every 50 ms or so while the pointer is over the page, even when it stands still. */
+const OVER_RECENTLY_MS = 250;
 
 /** The prefix that tells a tab's entry in the strip's menu from the move entries. */
 const TAB_ENTRY = "tab:";
@@ -54,6 +68,8 @@ export function DocumentTabs({
   onActivate,
   onClose,
   onReorder,
+  onDragStart,
+  onDragOut,
   moves = [],
   onMove,
   platform,
@@ -61,7 +77,7 @@ export function DocumentTabs({
   // The roving tab stop: the focused tab, else the active one, else the first.
   const [focused, setFocused] = useState<string>();
   const stop = tabs.find((t) => t.id === focused)?.id ?? active ?? tabs[0]?.id;
-  const drag = useTabDrag(tabs, onReorder);
+  const drag = useTabDrag(tabs, { onReorder, onDragStart, onDragOut });
   const [menuOpen, setMenuOpen] = useState(false);
   // A tab's context menu: the tab shows, then the strip's menu opens with the moves for it.
   const openMenuFor = (id: string) => {
@@ -161,39 +177,67 @@ function tabKeys(
   };
 }
 
-/** Reordering by drag within the strip: which tab is dragged, and the drop that reorders. */
+/** Dragging a tab: which tab is dragged, the drop within the strip that reorders, and the end of
+    a drag that dropped elsewhere. */
 interface TabDrag {
   readonly dragged: string | undefined;
-  /** Whether `onReorder` was given: tabs are draggable only then. */
+  /** Whether `onReorder` or `onDragOut` was given: tabs are draggable only then. */
   readonly enabled: boolean;
   start(event: DragEvent, id: string): void;
-  end(): void;
+  end(id: string): void;
   /** A drag over a tab may drop there while a tab of this strip is dragged. */
   over(event: DragEvent): void;
   drop(event: DragEvent, onto: string): void;
 }
 
-function useTabDrag(tabs: readonly DocumentTab[], onReorder: DocumentTabsProps["onReorder"]): TabDrag {
+function useTabDrag(
+  tabs: readonly DocumentTab[],
+  on: {
+    readonly onReorder: DocumentTabsProps["onReorder"] | undefined;
+    readonly onDragStart: DocumentTabsProps["onDragStart"] | undefined;
+    readonly onDragOut: DocumentTabsProps["onDragOut"] | undefined;
+  },
+): TabDrag {
+  const { onReorder, onDragStart, onDragOut } = on;
   // The dragged tab's id travels in the drag's data, which the drop reads; the state only dims it.
   const [dragged, setDragged] = useState<string>();
+  // This strip's drag type: its own tabs only, never another window's (whose ids may be the same).
+  const [type] = useState(() => `${TAB_DRAG_TYPE}-${Math.random().toString(36).slice(2)}`);
+  // Whether the drag dropped on this strip, and when the page last had the pointer over it.
+  const drop = useRef({ done: false, lastOver: 0, stop: () => {} });
   return {
     dragged,
-    enabled: onReorder !== undefined,
+    enabled: onReorder !== undefined || onDragOut !== undefined,
     start: (event, id) => {
-      event.dataTransfer.setData(TAB_DRAG_TYPE, id);
+      event.dataTransfer.setData(type, id);
       event.dataTransfer.effectAllowed = "move";
       setDragged(id);
+      const over = () => {
+        drop.current.lastOver = performance.now();
+      };
+      over();
+      document.addEventListener("dragover", over, true);
+      drop.current.done = false;
+      drop.current.stop = () => document.removeEventListener("dragover", over, true);
+      onDragStart?.(id);
     },
-    end: () => setDragged(undefined),
+    end: (id) => {
+      setDragged(undefined);
+      drop.current.stop();
+      if (drop.current.done) return;
+      onDragOut?.(id, performance.now() - drop.current.lastOver > OVER_RECENTLY_MS);
+    },
     over: (event) => {
-      // Only this strip's tabs drop here: not files, not text.
-      if (event.dataTransfer.types.includes(TAB_DRAG_TYPE)) event.preventDefault();
+      // Only this strip's tabs drop here: not files, not text, not another window's tabs.
+      if (event.dataTransfer.types.includes(type)) event.preventDefault();
     },
     drop: (event, onto) => {
       event.preventDefault();
-      const moving = event.dataTransfer.getData(TAB_DRAG_TYPE);
+      const moving = event.dataTransfer.getData(type);
       setDragged(undefined);
-      if (moving === "" || moving === onto || onReorder === undefined || !tabs.some((t) => t.id === moving)) return;
+      if (moving === "" || !tabs.some((t) => t.id === moving)) return;
+      drop.current.done = true;
+      if (moving === onto || onReorder === undefined) return;
       const all = tabs.map((t) => t.id);
       // Dropped on a tab after it: it goes after that tab; on one before it: before that tab.
       const after = all.indexOf(moving) < all.indexOf(onto);
@@ -244,7 +288,7 @@ function OneTab({
         className="paper-document-tab-label"
         draggable={drag.enabled}
         onDragStart={(event) => drag.start(event, tab.id)}
-        onDragEnd={drag.end}
+        onDragEnd={() => drag.end(tab.id)}
         onDragOver={drag.over}
         onDrop={(event) => drag.drop(event, tab.id)}
         onClick={() => onActivate(tab.id)}

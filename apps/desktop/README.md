@@ -85,7 +85,9 @@ cargo run --release -p laminapdf-desktop-engine --example measure -- \
 
 ### Windows and tabs
 
-Each window holds tabs, one per open document; the strip shows from two tabs on. Opening a file adds a tab to the frontmost window (Settings › Files can open each file in its own window instead), and opening a file that is already open shows its tab. Rust makes every window (`src-tauri/src/windows.rs`, labels `main` then `doc-1`, `doc-2`, …) and knows which window owns each document. The tabs themselves (their order, the shown one, each one's view) live in the webview (`src/tabs/`). Each window has its own engine, so moving a tab to another window reopens its document in that window's engine, keeping its password, page and zoom ([ADR 0008 §2](../../docs/decisions/0008-desktop-shell.md#2-process-model-a-main-process-that-owns-files-and-a-sandboxed-engine-per-window)). To measure the engines with documents spread over windows:
+Each window holds tabs, one per open document; the tab strip appears once a window has two tabs. Opening a file adds a tab to the frontmost window (Settings › Files can open each file in its own window instead), and opening a file that is already open shows its tab. Rust makes every window (`src-tauri/src/windows.rs`, labels `main` then `doc-1`, `doc-2`, …) and knows which window owns each document. The tabs themselves (their order, the shown one, each one's view) live in the webview (`src/tabs/`). Each window has its own engine, so moving a tab to another window reopens its document in that window's engine, keeping its password, page and zoom.
+
+Dragging a tab moves it too: dropped on another window, the tab moves there; dropped outside every window, it opens in a new window under the cursor. Rust decides where the tab goes from the OS's cursor and window positions (`src-tauri/src/tab_drag.rs`), because a webview can't read a drop that lands in another window ([ADR 0008 §2](../../docs/decisions/0008-desktop-shell.md#2-process-model-a-main-process-that-owns-files-and-a-sandboxed-engine-per-window)). To measure the engines with documents spread over windows:
 
 ```sh
 cargo run --release -p laminapdf-desktop-engine --example windows -- \
@@ -100,6 +102,18 @@ Add `#raw` to the window's address (in the dev tools) to fetch tiles as raw RGBA
 When Lamina PDF starts, the windows and tabs it had when it last quit come back: each window at its size and place, each tab at its page and zoom ([ADR 0008 §11](../../docs/decisions/0008-desktop-shell.md#11-recent-files-and-files-that-change-on-disk)). Only each window's shown tab opens at once, and the others open when first shown, so a session of many large files starts fast. On macOS a bookmark finds a file that moved; a file that can't be found comes back as a tab that offers Locate…. The main process keeps the session in `session.json` in the app's config folder (`src-tauri/src/session/`) and writes it every 30 seconds while it changes and when the app quits. The webview gets each tab as a token and a name, never a path. `tauri-plugin-window-state` keeps the windows' sizes and places, saved with the session, so a crash keeps them too.
 
 Settings › Files has "Reopen last session", on by default. The session lists the same files as the recent list, so it is kept only while "Remember recent files" is on too: turning either off deletes `session.json`. "Clear recent" empties the recent list and leaves the session.
+
+### Native menus
+
+The menus (Paper [S03](../../docs/design/paper/desktop-shell.md#s03-native-menus)) come from the command registry, so a menu item's title and keys are the palette's and the shortcut help's:
+
+- `src/menus/layout.ts` lists which commands each menu holds, in order, by id; nothing else. The words that aren't a command's title (the menus' names, Open recent's) are in its `MENU_WORDS`.
+- `src/menus/menus.ts` reads each command's title and its menu keys (`menuAccelerator` in `@laminapdf/ui`: the first binding that holds Ctrl, Alt or ⌘, or is a function key) into `src-tauri/menus.json`. Run `pnpm --filter @laminapdf/desktop menus` after changing the layout or a command's title or keys; `test/menus-json.test.ts` fails while the file is out of date.
+- `src-tauri/src/menu.rs` embeds the file and builds the menus for the OS it runs on. macOS has one menu bar, with the app menu. Windows and Linux show the same menus in every window, with Settings at the end of Edit, Quit in File and About in Help. The snapshots in `src-tauri/tests/menus/` show both (`LAMINA_UPDATE_MENUS=1 cargo test -p laminapdf-desktop menu` writes them).
+- Each window reports which of the menus' commands it can run now (`menu_state`), and the menus show the focused window's. Choosing a command sends it to that window (`menu://command`), which runs it through its registry. Rust does the rest: the OS's own items, the window list, Open recent's files and the Help menu's links.
+- A key press can reach a command through the web view's shortcut and the menu's accelerator. The desktop's registry (`src/menus/echo-registry.ts`) runs it once.
+
+The end-to-end scenarios choose menu items with `e2e_menu_click` and read the menus with `e2e_menu_snapshot`, since WebDriver can't reach the OS's menus. WebDriver's key presses reach the web view only, never a menu's accelerator, so whether one press runs a command once is checked by `EchoRegistry`'s unit test, not end to end.
 
 ## How it fits together
 

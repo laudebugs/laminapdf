@@ -18,7 +18,7 @@
 //!   anything else (`javascript:` first) fails with `link-uri-refused`.
 
 mod names;
-mod target;
+pub(crate) mod target;
 #[cfg(test)]
 mod tests;
 mod types;

@@ -12,7 +12,7 @@ use laminapdf_model::{OutlineItemId, PageId};
 use crate::error::Result;
 use crate::op::{Effect, Op};
 use crate::outline::DestinationUse;
-use crate::pages::{FieldChange, ReferenceChange, RenamedDestination};
+use crate::pages::{FieldChange, ReferenceChange, RenamedDestination, StructureRename};
 use crate::pending::PendingChanges;
 use crate::record::UndoRecord;
 use crate::widgets::TouchedWidget;
@@ -100,6 +100,10 @@ pub struct Applied {
     ///
     /// Added in 0.3.0.
     pub created_outline_items: Vec<OutlineItemId>,
+    /// The links [`AddLink`](crate::AddLink) created, in order.
+    ///
+    /// Added in 0.3.0.
+    pub created_annotations: Vec<laminapdf_model::AnnotId>,
     /// An outline op found the outline's links broken (a cycle, a wrong `/Last`, an item
     /// stored as a direct dictionary) and rewrote them whole; items that were direct have new
     /// IDs.
@@ -137,8 +141,9 @@ pub struct Applied {
     ///
     /// Added in 0.3.0.
     pub links_removed: Vec<PageId>,
-    /// The pages brought in from another document whose source pages were tagged: they come
-    /// without their tags (`TagsDropped`) until structure trees can be merged.
+    /// The pages brought in from another document whose source pages were tagged but came
+    /// without their tags, because this document isn't tagged (or a new document's other
+    /// sources aren't): a tagged file must tag all its content.
     ///
     /// Added in 0.3.0.
     pub tags_dropped: Vec<PageId>,
@@ -147,6 +152,11 @@ pub struct Applied {
     ///
     /// Added in 0.3.0.
     pub renamed_destinations: Vec<RenamedDestination>,
+    /// The role, class and element ID names that pages copied in from another document
+    /// brought under another name, because the document already used them another way (E2 plan §2.2).
+    ///
+    /// Added in 0.3.0.
+    pub structure_renamed: Vec<StructureRename>,
     /// The bookmarks a merge left out because the pages they went to didn't come along (and
     /// none of their children did either).
     ///
@@ -169,6 +179,7 @@ pub(crate) struct TxState {
     pub(crate) removed: bool,
     pub(crate) outline_repaired: bool,
     pub(crate) created_outline_items: Vec<OutlineItemId>,
+    pub(crate) created_annotations: Vec<laminapdf_model::AnnotId>,
     pub(crate) destination_uses: Vec<DestinationUse>,
     pub(crate) declared: Vec<laminapdf_model::xmp::ExtensionProperty>,
     /// The page order after the last op that changed it.
@@ -186,6 +197,8 @@ pub(crate) struct TxState {
     pub(crate) tags_dropped: Vec<PageId>,
     /// The named destinations the ops so far brought in under another name.
     pub(crate) renamed_destinations: Vec<RenamedDestination>,
+    /// The structure names the ops so far brought in under another name.
+    pub(crate) structure_renamed: Vec<StructureRename>,
     /// The bookmarks the ops so far left out.
     pub(crate) bookmarks_dropped: usize,
 }
@@ -206,6 +219,8 @@ pub struct Tx<'d> {
     /// The session's source documents, which ops that copy pages read.
     pub(crate) sources: &'d crate::document::Sources,
     pub(crate) state: &'d mut TxState,
+    /// What draws the appearances of the annotations the ops make.
+    pub(crate) appearances: Option<&'d dyn crate::Appearances>,
 }
 
 impl fmt::Debug for Tx<'_> {
@@ -252,6 +267,7 @@ impl Tx<'_> {
             also_deleted: effect.also_deleted,
             widgets: effect.widgets,
             created_outline_items: effect.created_outline_items,
+            created_annotations: effect.created_annotations,
             outline_repaired: effect.outline_repaired,
             destination_uses: effect.destination_uses,
             page_order: effect.page_order,
@@ -261,6 +277,7 @@ impl Tx<'_> {
             links_removed: effect.links_removed,
             tags_dropped: effect.tags_dropped,
             renamed_destinations: effect.renamed_destinations,
+            structure_renamed: effect.structure_renamed,
             bookmarks_dropped: effect.bookmarks_dropped,
         })
     }
@@ -274,7 +291,7 @@ impl Tx<'_> {
     /// Runs `op`, rolling back its own changes on error; returns what it did.
     fn run_op(&mut self, op: &Op) -> Result<Effect> {
         let mark = self.doc.journal_mark();
-        match op.apply_to(self.doc, self.sources) {
+        match op.apply_to(self.doc, self.sources, self.appearances) {
             Ok(effect) => {
                 self.state.touched.extend(effect.pages.iter().cloned());
                 self.state.pending.record(op, &effect);
@@ -284,6 +301,9 @@ impl Tx<'_> {
                 self.state
                     .created_outline_items
                     .extend(effect.created_outline_items.iter().cloned());
+                self.state
+                    .created_annotations
+                    .extend(effect.created_annotations.iter().cloned());
                 self.state
                     .destination_uses
                     .extend(effect.destination_uses.iter().cloned());
@@ -302,6 +322,9 @@ impl Tx<'_> {
                 self.state
                     .renamed_destinations
                     .extend(effect.renamed_destinations.iter().cloned());
+                self.state
+                    .structure_renamed
+                    .extend(effect.structure_renamed.iter().cloned());
                 self.state.bookmarks_dropped += effect.bookmarks_dropped;
                 Ok(effect)
             }
@@ -329,6 +352,7 @@ impl Tx<'_> {
             self.state.outline_repaired,
             self.state.created_outline_items.len(),
             self.state.destination_uses.len(),
+            self.state.created_annotations.len(),
         );
         let page_order = self.state.page_order.clone();
         let references = self.state.references.len();
@@ -336,7 +360,11 @@ impl Tx<'_> {
         let tags_incomplete = self.state.tags_incomplete.len();
         let links_removed = self.state.links_removed.len();
         let tags_dropped = self.state.tags_dropped.len();
-        let merged = (self.state.renamed_destinations.len(), self.state.bookmarks_dropped);
+        let merged = (
+            self.state.renamed_destinations.len(),
+            self.state.bookmarks_dropped,
+            self.state.structure_renamed.len(),
+        );
         let result = f(self);
         if result.is_err() {
             self.doc.cos_mut().rollback_to(mark)?;
@@ -346,6 +374,7 @@ impl Tx<'_> {
             self.state.outline_repaired = reports.0;
             self.state.created_outline_items.truncate(reports.1);
             self.state.destination_uses.truncate(reports.2);
+            self.state.created_annotations.truncate(reports.3);
             self.state.page_order = page_order;
             self.state.references.truncate(references);
             self.state.fields.truncate(fields);
@@ -354,6 +383,7 @@ impl Tx<'_> {
             self.state.tags_dropped.truncate(tags_dropped);
             self.state.renamed_destinations.truncate(merged.0);
             self.state.bookmarks_dropped = merged.1;
+            self.state.structure_renamed.truncate(merged.2);
         }
         result
     }
@@ -406,6 +436,7 @@ mod tests {
             removed: false,
             outline_repaired: false,
             created_outline_items: Vec::new(),
+            created_annotations: Vec::new(),
             destination_uses: Vec::new(),
             declared: Vec::new(),
             page_order: None,
@@ -416,6 +447,7 @@ mod tests {
             links_removed: Vec::new(),
             tags_dropped: Vec::new(),
             renamed_destinations: Vec::new(),
+            structure_renamed: Vec::new(),
             bookmarks_dropped: 0,
         }
     }
@@ -433,6 +465,7 @@ mod tests {
             doc: &mut doc,
             sources: &sources,
             state: &mut state,
+            appearances: None,
         }
         .apply(rotate("p2.0"))
         .unwrap();
@@ -448,6 +481,7 @@ mod tests {
             doc: &mut doc,
             sources: &sources,
             state: &mut state,
+            appearances: None,
         };
         let result = tx.savepoint(|tx| {
             tx.apply(rotate("p2.0"))?;
@@ -469,6 +503,7 @@ mod tests {
             doc: &mut doc,
             sources: &sources,
             state: &mut state,
+            appearances: None,
         }
         .apply(rotate("p9.0"));
         assert_eq!((err.is_err(), doc.journal_mark()), (true, mark));
@@ -483,6 +518,7 @@ mod tests {
             doc: &mut doc,
             sources: &sources,
             state: &mut state,
+            appearances: None,
         };
         tx.apply(rotate("p2.0")).unwrap();
         let second = tx

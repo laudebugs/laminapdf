@@ -38,7 +38,7 @@ On relaunch, Lamina PDF brings back the last session: its windows with their siz
 **Out of scope** (and which todo covers it)
 
 - Windows, tabs and moves → [D4a](../done/D4a-windows-tabs-and-session-restore.md)
-- Dragging tabs between windows → [D4e](../ready/D4e-tab-drag-between-windows.md)
+- Dragging tabs between windows → [D4e](../done/D4e-tab-drag-between-windows.md)
 
 ## Tasks
 

@@ -1,5 +1,33 @@
 # @laminapdf/viewer
 
+## 0.3.0
+
+### Minor Changes
+
+- 6e9dd39: Turn images into a PDF and export pages as PNG, JPEG or TIFF from TypeScript, as Rust already can:
+  
+  - `imagesToPdf(images, options)` makes a document with one page per image, as `laminapdf::images_to_pdf` does: JPEGs embedded as they are, each image drawn upright, and pages the image's size or a paper size (`fit: "A4"`, or `[width, height]` in points) with the image fitted inside the margins. It needs the extract or the text module (`init({ extract: true })`).
+  - In the web reader's worker, `ViewerClient.exportPage(index, { format, dpi, quality })` draws a page as PNG or JPEG, and `exportTiff(indexes, { dpi, multiPage })` as TIFF, every page in one file or one file each. The resolution is recorded in each file. The TIFF writer is a WebAssembly module of its own, `@laminapdf/wasm/tiff`, loaded the first time a TIFF export starts.
+  - In Rust, `laminapdf_render::TiffWriter` (feature `tiff`) writes a TIFF from pixels you drew yourself, a page at a time.
+
+### Patch Changes
+
+- 1f0cd41: The thumbnail strip no longer raises "the worker stopped" as an unhandled error when the document worker crashes, is stopped or is terminated while a thumbnail is drawing. The thumbnail keeps its placeholder. The client's `crashed` and `restarted` events already report a crash or a restart.
+- Updated dependencies [a815a29]
+- Updated dependencies [bc1bff5]
+- Updated dependencies [2948e3f]
+- Updated dependencies [6e9dd39]
+- Updated dependencies [d9b6acf]
+- Updated dependencies [e416ac6]
+- Updated dependencies [2081146]
+- Updated dependencies [8f21b98]
+- Updated dependencies [bab4c9f]
+  - @laminapdf/sdk@0.3.0
+  - @laminapdf/wasm@0.3.0
+  - @laminapdf/render-hayro@0.3.0
+  - @laminapdf/render@0.3.0
+  - @laminapdf/render-pdfium@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes

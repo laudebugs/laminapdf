@@ -1,7 +1,7 @@
 ---
 title: "Save in a Web Worker"
 description: "Open and save a PDF in a Web Worker, so a large file never freezes the page, with progress as it saves and a signal that stops the work."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/recipes/web-worker-client/"
 ---
 

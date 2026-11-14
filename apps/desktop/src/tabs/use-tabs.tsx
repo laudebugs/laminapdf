@@ -2,7 +2,10 @@
 // windows (`tab://arrived`, with the ones that came before the webview was ready handed over by
 // `take_pending_tabs`), the last session's tabs (`take_session_tabs`), a second open of a file
 // showing its tab (`tab://activate`), the other windows for "Move tab to window ▸", the window's
-// title, and tabs not shown when the engine restarts. The strip shows from two tabs on (S02); with one, the title bar carries the name.
+// title, tabs not shown when the engine restarts, and another window's tab dragged over this one
+// (`tab://drag-over`). A tab dragged off the strip goes where Rust finds the cursor when the drag
+// ends (`tab_drag_end`). The strip shows from two tabs on (S02); with one, the title bar carries the
+// name.
 import {
   type CommandContext,
   DocumentTabs,
@@ -25,6 +28,7 @@ import {
   ACTIVATE_EVENT,
   ARRIVED_EVENT,
   type Arrived,
+  DRAG_OVER_EVENT,
   type MoveTarget,
   type RestoredWindow,
   WINDOWS_CHANGED_EVENT,
@@ -42,18 +46,15 @@ const MOVE_TO = "move:";
 /** The strip's menu entry that moves the shown tab to a new window (no window is labelled "new"). */
 const NEW_WINDOW = `${MOVE_TO}new`;
 
-/** The strip (or nothing) and the handlers of the tab and window commands. */
-export function useTabStrip(
+/**
+ * The handlers of the tab and window commands (and of the Window menu's Move tab to window ▸),
+ * and the shown tab's move, which the strip's menu uses too.
+ */
+function useTabActions(
   shell: DesktopShell | undefined,
   tabs: WindowTabs | undefined,
-  reader: ReaderController,
   toasts: ToastQueue,
-  keys: KeyPlatform,
-): { strip: ReactNode; actions: NonNullable<CommandContext["actions"]> } {
-  useTabEvents(shell, tabs, reader, toasts);
-  const state = useStoreState(tabs ?? NO_TABS, (s) => s);
-  const others = useOtherWindows(shell, state.tabs.length);
-  useWindowTitle(shell, tabs, state.active);
+): { move: (to: MoveTarget) => void; actions: NonNullable<CommandContext["actions"]> } {
   const move = useMemo(
     () => (to: MoveTarget) => {
       void tabs?.moveShown(to).catch((error: unknown) => toasts.add({ message: engineError(error).message }));
@@ -73,8 +74,45 @@ export function useTabStrip(
       "window.new": () => {
         void shell.invoke("new_window").catch((error: unknown) => toasts.add({ message: engineError(error).message }));
       },
+      "window.close": () => {
+        void shell
+          .invoke("close_window")
+          .catch((error: unknown) => toasts.add({ message: engineError(error).message }));
+      },
+      "app.quit": () => void shell.invoke("quit"),
+      // The Window menu's "Move tab to window ▸": not a command of its own, as its targets come and go.
+      "tab.move-to-window": (label: unknown) => {
+        if (typeof label === "string") move({ to: "window", label });
+      },
+      // The main process asks where and copies the file's bytes (File ▸ Save a copy…).
+      "file.save-copy": () => {
+        const doc = tabs.shown === undefined ? undefined : documentOf(tabs.shown.file)?.doc;
+        if (doc === undefined) return;
+        void shell
+          .invoke<string | null>("save_copy", { doc })
+          .then((name) => {
+            if (name !== null) toasts.add({ message: `Saved a copy as ${name}` });
+          })
+          .catch((error: unknown) => toasts.add({ message: engineError(error).message }));
+      },
     };
   }, [tabs, shell, toasts, move]);
+  return { move, actions };
+}
+
+/** The strip (or nothing) and the handlers of the tab and window commands. */
+export function useTabStrip(
+  shell: DesktopShell | undefined,
+  tabs: WindowTabs | undefined,
+  reader: ReaderController,
+  toasts: ToastQueue,
+  keys: KeyPlatform,
+): { strip: ReactNode; actions: NonNullable<CommandContext["actions"]> } {
+  useTabEvents(shell, tabs, reader, toasts);
+  const state = useStoreState(tabs ?? NO_TABS, (s) => s);
+  const others = useOtherWindows(shell, state.tabs.length);
+  useWindowTitle(shell, tabs, state.active);
+  const { move, actions } = useTabActions(shell, tabs, toasts);
   // From two tabs on (S02), or with one while other windows are open, so it can move there.
   const shows = state.tabs.length >= 2 || (state.tabs.length === 1 && others.length > 0);
   if (tabs === undefined || !shows) return { strip: null, actions };
@@ -96,6 +134,12 @@ export function useTabStrip(
       onActivate={(id) => void tabs.activate(id)}
       onClose={(id) => void tabs.close(id)}
       onReorder={(ids) => tabs.reorder(ids)}
+      onDragStart={(id) => tabs.dragStarted(id)}
+      onDragOut={(id, outside) => {
+        void tabs
+          .draggedOut(id, outside)
+          .catch((error: unknown) => toasts.add({ message: engineError(error).message }));
+      }}
       moves={moves}
       onMove={(id) => move(id === NEW_WINDOW ? { to: "newWindow" } : { to: "window", label: id.slice(MOVE_TO.length) })}
       platform={keys}
@@ -129,6 +173,10 @@ function useTabEvents(
         shell.listen<number>(ACTIVATE_EVENT, (doc) => {
           const tab = tabs.tabOf(doc);
           if (tab !== undefined) void tabs.activate(tab.id);
+        }),
+        shell.listen<boolean>(DRAG_OVER_EVENT, (over) => {
+          if (over) document.documentElement.dataset.tabDrop = "";
+          else delete document.documentElement.dataset.tabDrop;
         }),
         shell.listen<RestartedPayload>(RESTARTED_EVENT, (payload) => {
           for (const name of tabs.restarted(payload)) {
