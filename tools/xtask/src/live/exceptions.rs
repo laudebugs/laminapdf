@@ -19,6 +19,9 @@ pub(super) enum Relation {
     /// Page text that differs from the tool's only by lamina's U+FFFD for glyphs without a
     /// Unicode value, where the tool writes nothing or a C0 control character.
     Unmapped,
+    /// A reader displays the undefined PDFDocEncoding byte 0x9F as U+FFFD, while lamina
+    /// preserves its scalar under ADR 0003 §1.
+    PdfDocUndefinedReplaced,
 }
 
 impl Relation {
@@ -40,6 +43,12 @@ impl Relation {
                         .filter(|c| *c != '\u{FFFD}' && !c.is_ascii_control())
                         .collect();
                     ours.len() < a.len() && ours == theirs
+                }
+                _ => false,
+            },
+            Self::PdfDocUndefinedReplaced => match (ours, theirs) {
+                (Value::String(a), Value::String(b)) => {
+                    a.contains('\u{009F}') && a.replace('\u{009F}', "\u{FFFD}") == *b
                 }
                 _ => false,
             },
@@ -74,7 +83,10 @@ impl Class {
             None => None,
             Some("lamina-skips") => Some(Relation::LaminaPdfSkips),
             Some("unmapped") => Some(Relation::Unmapped),
-            Some(other) => bail!("[[class]] relation {other:?}: \"lamina-skips\" or \"unmapped\""),
+            Some("pdfdoc-undefined-replaced") => Some(Relation::PdfDocUndefinedReplaced),
+            Some(other) => {
+                bail!("[[class]] relation {other:?}: \"lamina-skips\", \"unmapped\" or \"pdfdoc-undefined-replaced\"")
+            }
         };
         let file = match e.files.as_slice() {
             [] => "*".to_owned(),
