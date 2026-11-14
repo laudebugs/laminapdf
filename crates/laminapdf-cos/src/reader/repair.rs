@@ -16,7 +16,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use super::encrypt::{self, Security};
 use super::objstm;
 use super::window::{Reach, View, for_each_chunk, parse_syntax_at, read_indirect, rfind_input, within_read_window};
-use super::xref::{XREF_STREAM_KEYS, XrefEntry, XrefTable};
+use super::xref::{ChainSkips, XREF_STREAM_KEYS, XrefEntry, XrefTable};
 use laminapdf_syntax::{DecodeBudget, Dict, Limits, ObjRef, Object, Token, filters, find, is_regular, is_whitespace};
 
 use crate::error::{Error, Result};
@@ -187,10 +187,25 @@ struct Summary {
     intact: bool,
 }
 
+/// How whole a definition is, worst first: repair prefers the wholest.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum Integrity {
+    /// It doesn't parse.
+    Unparsable,
+    /// It parsed only by skipping a dictionary key.
+    KeySkipped,
+    /// It parsed as written.
+    Intact,
+}
+
 impl Summary {
-    /// How whole a definition is: unparsable (0), parsed by skipping a key (1), intact (2).
-    fn rank(summary: Option<Self>) -> u8 {
-        summary.map_or(0, |s| if s.intact { 2 } else { 1 })
+    /// How whole the definition `summary` describes is (`None`: it didn't parse).
+    fn integrity(summary: Option<Self>) -> Integrity {
+        match summary {
+            None => Integrity::Unparsable,
+            Some(s) if s.intact => Integrity::Intact,
+            Some(_) => Integrity::KeySkipped,
+        }
     }
 }
 
@@ -209,7 +224,7 @@ impl Candidate {
     /// only by skipping a dictionary key, which beats an unparsable one; otherwise the later
     /// one in the file wins.
     fn beats(&self, current: &Self) -> bool {
-        (Summary::rank(self.summary), self.position) > (Summary::rank(current.summary), current.position)
+        (Summary::integrity(self.summary), self.position) > (Summary::integrity(current.summary), current.position)
     }
 }
 
@@ -460,7 +475,7 @@ impl Scan {
             ignored_xref_streams: Vec::new(),
             dropped_objects: BTreeSet::new(),
             free_head: None,
-            skipped_trailer_keys: false,
+            skipped: ChainSkips::default(),
         }
     }
 
@@ -537,7 +552,7 @@ impl Scan {
             free_head: None,
             // The scanned trailers merge into one; a repaired file reports `xref-repaired`,
             // and each object with a skipped key warns again when it is loaded.
-            skipped_trailer_keys: false,
+            skipped: ChainSkips::default(),
         };
         Ok((table, malformed))
     }

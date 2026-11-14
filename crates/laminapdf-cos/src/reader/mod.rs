@@ -364,9 +364,10 @@ impl Document {
                 budget = doc.budget.get();
                 checked
             });
-            // A skipped dictionary key in `/Encrypt` or the catalog marks it damaged, like a
-            // syntax error: repair may find an intact definition. (A trailer has no other
-            // definition to find, so a skipped key there only warns.)
+            // A skipped dictionary key in an object read so far (at this point only `/Encrypt`
+            // and the catalog) marks the file damaged, like a syntax error: repair may find an
+            // intact definition. (A trailer has no other definition to find, so a skipped key
+            // there only warns.)
             let damaged = || {
                 doc.warnings()
                     .iter()
@@ -436,8 +437,12 @@ impl Document {
         for object in dropped {
             log.raise(Warning::ObjectNumberOutOfRange { object }, &limits, strict)?;
         }
-        if std::mem::take(&mut table.skipped_trailer_keys) {
+        let skipped = std::mem::take(&mut table.skipped);
+        if skipped.trailer_keys {
             log.raise(Warning::DictionaryKeySkipped { object: None }, &limits, strict)?;
+        }
+        if skipped.xref_characters {
+            log.raise(Warning::FilterCharactersSkipped { object: None }, &limits, strict)?;
         }
         let free_head = table.free_head.unwrap_or(0);
         Ok(Self::from_parts(

@@ -52,7 +52,7 @@ Every repair or substitution the caller might care about is a `Warning`, never s
 | `page-tree-node-skipped` | A kid or `/Kids` was missing, unparsable or the wrong type | exists |
 | `page-count-mismatch` | A `/Count` differs from the walked page count | exists |
 | `flate-truncated` | Flate output was kept despite truncation or a bad checksum | exists |
-| `filter-characters-skipped` | ASCIIHex or ASCII85 characters outside the alphabet were skipped | exists (2026-11-14) |
+| `filter-characters-skipped` | ASCIIHex or ASCII85 characters outside the alphabet were skipped | new (amendment, 2026-11-14) |
 | `objstm-index-mismatch` | An object-stream index was stale and a search found the object | exists |
 | `object-number-out-of-range` | An entry above `Limits::max_object_number` was dropped | exists |
 | `aes-padding-invalid` | AES data was not `IV ‖ whole blocks` (kept as stored) or had invalid PKCS#5 padding (kept unstripped) | exists |

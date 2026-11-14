@@ -432,3 +432,83 @@ fn warning_codes_are_kebab_case() {
             .all(|c| c.bytes().all(|b| b.is_ascii_lowercase() || b == b'-'))
     );
 }
+
+mod filter_characters_skipped {
+    use super::*;
+    use std::fmt::Write as _;
+
+    /// A one-page file whose xref stream (object 3) is ASCIIHex-encoded, with `G`, which is
+    /// not a hex digit, in its data.
+    fn hex_xref_with_a_stray_character() -> Vec<u8> {
+        let mut out = b"%PDF-1.5\n".to_vec();
+        let catalog = out.len();
+        out.extend_from_slice(b"1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n");
+        let pages = out.len();
+        out.extend_from_slice(b"2 0 obj << /Type /Pages /Kids [] /Count 0 >> endobj\n");
+        let xref = out.len();
+        let mut hex = String::new();
+        for (kind, offset) in [(0u8, 0usize), (1, catalog), (1, pages), (1, xref)] {
+            let offset = u32::try_from(offset).unwrap();
+            write!(hex, "{kind:02X}{offset:08X}00 ").unwrap();
+        }
+        hex.insert(1, 'G');
+        hex.push('>');
+        out.extend_from_slice(b"3 0 obj ");
+        out.extend_from_slice(&stream_body(
+            "/Type /XRef /W [1 4 1] /Size 4 /Root 1 0 R /Filter /ASCIIHexDecode",
+            hex.as_bytes(),
+        ));
+        out.extend_from_slice(format!(" endobj\nstartxref\n{xref}\n%%EOF\n").as_bytes());
+        out
+    }
+
+    /// A page whose content stream (object 4) is ASCIIHex-encoded `BT ET`, with `G` and `!`,
+    /// which aren't hex digits, among the digits.
+    fn hex_content_with_stray_characters() -> Vec<u8> {
+        let content = stream_body("/Filter /ASCIIHexDecode", b"4254 G20!4554>");
+        file(
+            b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            &[b"<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>", &content],
+        )
+    }
+
+    fn first_page_content(doc: &Document) -> laminapdf_cos::Result<Vec<u8>> {
+        let page = doc.pages()?.remove(0);
+        doc.page_content(&page)
+    }
+
+    #[test]
+    fn is_raised_with_the_stream_object_and_the_rest_decodes() {
+        let doc = open(&hex_content_with_stray_characters()).unwrap();
+        assert_eq!(
+            (first_page_content(&doc), doc.warnings()),
+            (
+                Ok(b"BT ET".to_vec()),
+                vec![Warning::FilterCharactersSkipped { object: Some(4) }]
+            )
+        );
+    }
+
+    #[test]
+    fn is_an_error_in_strict_mode_for_a_content_stream() {
+        let doc = open_with(&hex_content_with_stray_characters(), strict()).unwrap();
+        assert_eq!(strict_code(first_page_content(&doc)), Some("filter-characters-skipped"));
+    }
+
+    #[test]
+    fn is_raised_for_an_xref_stream_and_the_xref_still_reads() {
+        let doc = open(&hex_xref_with_a_stray_character()).unwrap();
+        assert_eq!(
+            (doc.was_repaired(), doc.warnings()),
+            (false, vec![Warning::FilterCharactersSkipped { object: None }])
+        );
+    }
+
+    #[test]
+    fn is_an_error_in_strict_mode() {
+        assert_eq!(
+            strict_code(open_with(&hex_xref_with_a_stray_character(), strict())),
+            Some("filter-characters-skipped")
+        );
+    }
+}

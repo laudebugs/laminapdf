@@ -80,9 +80,8 @@ pub(crate) struct XrefTable {
     pub(crate) ignored_xref_streams: Vec<u64>,
     /// Entries dropped for exceeding `Limits::max_object_number` (`object-number-out-of-range`).
     pub(crate) dropped_objects: BTreeSet<u32>,
-    /// Whether a trailer or xref-stream dictionary in the chain had something other than a
-    /// name where a key belongs, which was skipped (`dictionary-key-skipped`).
-    pub(crate) skipped_trailer_keys: bool,
+    /// What reading the chain's sections skipped, each a warning when the file opens.
+    pub(crate) skipped: ChainSkips,
     /// The head of the free list (§7.5.4): object 0's next-free number in the newest section
     /// that lists object 0.
     pub(crate) free_head: Option<u32>,
@@ -162,11 +161,13 @@ pub(crate) fn load(source: &Source, start: usize, limits: &Limits, budget: &mut 
             is_stream,
             free_head,
             skipped_keys,
+            characters_skipped,
         } = parse_section(source, offset, limits, budget)?;
         if table.free_head.is_none() {
             table.free_head = free_head;
         }
-        table.skipped_trailer_keys |= skipped_keys;
+        table.skipped.trailer_keys |= skipped_keys;
+        table.skipped.xref_characters |= characters_skipped;
         table.has_xref_stream |= is_stream;
         if let Some(stm) = trailer.get_int("XRefStm").and_then(|o| usize::try_from(o).ok()) {
             // Hybrid file: the classic table's in-use entries win; the stream only fills in
@@ -219,6 +220,20 @@ struct Section {
     /// Whether the trailer or stream dictionary had something other than a name where a key
     /// belongs, which was skipped (`dictionary-key-skipped`).
     skipped_keys: bool,
+    /// Whether the xref stream's data held characters its filter skipped
+    /// (`filter-characters-skipped`).
+    characters_skipped: bool,
+}
+
+/// What reading an xref chain's sections skipped.
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct ChainSkips {
+    /// A trailer or xref-stream dictionary had something other than a name where a key
+    /// belongs (`dictionary-key-skipped`).
+    pub(crate) trailer_keys: bool,
+    /// An xref stream's `ASCIIHexDecode` or `ASCII85Decode` data held characters outside the
+    /// filter's alphabet (`filter-characters-skipped`).
+    pub(crate) xref_characters: bool,
 }
 
 /// Reads the classic table or the xref stream at `offset`.
@@ -240,6 +255,7 @@ fn parse_section(source: &Source, offset: usize, limits: &Limits, budget: &mut D
             is_stream: false,
             free_head,
             skipped_keys,
+            characters_skipped: false,
         });
     }
     // Decoding happens after the (possibly repeated) windowed parse, so the budget is
@@ -259,6 +275,7 @@ fn parse_section(source: &Source, offset: usize, limits: &Limits, budget: &mut D
         is_stream: true,
         free_head,
         skipped_keys: parsed.skipped_keys,
+        characters_skipped: decoded.characters_skipped,
     })
 }
 
