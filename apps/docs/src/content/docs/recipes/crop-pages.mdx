@@ -17,13 +17,13 @@ The input has four pages, one at each rotation, and the second is drawn at twice
 
 - `cropPages` (`CropPages` in Rust) sets each page's crop box: the part of the page a reader shows and prints. It takes `top`, `right`, `bottom` and `left` in points, and a side you leave out is 0.
 - Cropping hides content but keeps it. Text outside the crop box stays in the file, and copying or extracting text still finds it. The edit's `croppedContentRemains` lists the pages where that is true.
-- Form fields on a cropped page are reported as shown again, so a signed form refuses the crop unless you allow the save to break the signature.
+- **Signed forms:** cropping a page that shows a signed field breaks the signature, so saving refuses the edit unless you allow the save to break it.
 - **Undo:** one `undo()` puts every page's crop box back.
 
 ## What to change
 
 - **Set a box exactly:** `setPageBoxes` (`SetPageBoxes` in Rust) writes any of a page's five boxes in the page's own coordinates: `media` (the paper), `crop`, `bleed`, `trim` and `art`. `null` removes a box, so the page uses its default, which is the media box for the crop box and the crop box for the others. Each box must lie inside the media box.
-- **Crop only some pages:** pass their IDs. To crop the pages one at a time with different margins, put the calls in one `transact` so one undo reverts them all.
-- **Remove what the crop hides:** a crop isn't a redaction. To remove text or images for good, redact them instead.
+- **Crop only some pages:** pass their IDs. To give pages different margins, crop each group in its own call inside one `transact`, and one undo reverts them all.
+- **Private content:** a crop isn't a redaction. Anyone with another tool can read what it hides, so don't crop a page to remove something private.
 
 Next: [organise pages](/recipes/organise-pages/), to delete, move and rotate them too.
