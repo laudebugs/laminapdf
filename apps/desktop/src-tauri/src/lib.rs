@@ -151,6 +151,10 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // The last session's windows (D4d), else one window. Windows are made here, not in
     // tauri.conf.json, so the app chooses every label.
     let restored = session::app::start(app, config);
+    // The menus first: each window is made with them, so the window-state plugin puts its size
+    // back with the menu bar already in it. On Windows a menu bar added later takes its height
+    // out of the restored size, and the window came back 20 px shorter at each launch.
+    menu::rebuild_now(app.handle());
     let labels: Vec<String> = if restored.is_empty() {
         vec![MAIN_WINDOW.to_owned()]
     } else {
@@ -159,7 +163,8 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     for label in &labels {
         windows::build_window(app.handle(), label, None)?;
     }
-    // The menu bar (macOS) or each window's menus (Windows, Linux), from the shared shortcut map.
+    // The menu bar (macOS) or each window's menus (Windows, Linux), from the shared shortcut map,
+    // again now that the Window menu can list the windows.
     menu::rebuild(app.handle());
     #[cfg(feature = "e2e")]
     startup::window();
