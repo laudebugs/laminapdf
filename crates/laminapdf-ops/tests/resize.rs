@@ -388,13 +388,42 @@ fn both_ops_reshow_the_widgets_on_their_pages() {
 
 #[test]
 fn a_page_whose_content_lamina_pdf_cant_decode_is_refused_and_left_alone() {
-    // ReportLab writes its content streams ASCII85-encoded, a filter Lamina PDF doesn't decode:
-    // the content must be read to be wrapped, so the resize stops before changing anything.
-    let mut doc = common::corpus("reportlab.pdf");
+    // The content must be read to be wrapped; a content stream behind an image codec can't be,
+    // so the resize stops before changing anything.
+    let content = common::stream_body("/Filter /DCTDecode", b"\xff\xd8\xff\xd9");
+    let bytes = common::classic(
+        &[
+            b"<< /Type /Catalog /Pages 2 0 R >>",
+            b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >>",
+            &content,
+        ],
+        "<< /Size 5 /Root 1 0 R >>",
+    );
+    let mut doc = open(&bytes);
     let ids = page_ids(&doc);
     let before = snapshot(&doc);
     let err = apply(&mut doc, ResizePages::scale(ids, PageSize::A4)).unwrap_err();
     assert_eq!((err.code(), snapshot(&doc) == before), ("unsupported-filter", true));
+}
+
+#[test]
+fn ascii85_content_is_read_and_wrapped() {
+    // ReportLab writes its content streams ASCII85-encoded.
+    let mut doc = common::corpus("reportlab.pdf");
+    let ids = page_ids(&doc);
+    apply(&mut doc, ResizePages::scale(ids.clone(), PageSize::A4)).unwrap();
+    let pages = doc.pages().unwrap();
+    for id in &ids {
+        let page = pages.by_id(id).unwrap();
+        let media = page.media_box().unwrap().unwrap();
+        let a4 = (PageSize::A4.width.get(), PageSize::A4.height.get());
+        assert!(
+            close(media.x1 - media.x0, a4.0) && close(media.y1 - media.y0, a4.1),
+            "{media:?}"
+        );
+        assert!(page.contents().unwrap().len() >= 3, "the content is wrapped");
+    }
 }
 
 #[test]

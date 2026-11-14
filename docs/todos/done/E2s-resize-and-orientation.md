@@ -77,7 +77,7 @@ Resize pages (scaling the content, or extending the page around an anchor) and s
 - **Destinations** (`pages/dest_map.rs`, reusing `cleanup.rs`'s writers):
   - `map_dest` maps every explicit destination kind of ISO 32000-2 §12.3.2.2;
   - it rewrites outline items, annotations' `/Dest` and `GoTo` actions, the name tree, the PDF 1.1 `/Dests` dictionary and `/OpenAction`, plus structure elements' Layout `/BBox`, and only for the moved pages.
-- **A known gap:** a page whose content uses a filter Lamina PDF can't decode (`reportlab.pdf`'s ASCII85, excused earlier by B9a and B9f) is refused with `unsupported-filter`, nothing changed, since the content must be read to be wrapped. The round-trip suite skips the two ops on such a file.
+- **Content Lamina PDF can't decode:** a page whose content can't be read (a content stream behind an image codec) is refused with `unsupported-filter`, nothing changed, since the content must be read to be wrapped. ASCII85 content (`reportlab.pdf`) is read since E3i added the decoder, so the round-trip suite runs both ops on every fixture.
 - **Tests:**
   - `tests/resize.rs`: destinations on `fixtures/pages/geometry.pdf`, annotations, the anchor in four rotations with `/UserUnit`, the quarter turn, the refusals, undo and widgets;
   - `dest_map.rs`' unit tests on the arrays;

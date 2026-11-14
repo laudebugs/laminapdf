@@ -25,6 +25,6 @@ The input has an A4 page and a Letter page. In the result both are Letter. The f
 - **Keep the content's size:** pass `{ mode: "extend", anchor: "topLeft" }` (`ResizePages::extend` in Rust). The paper grows around the content, or is cut down to the part of it the new paper covers. The anchor says where the old page sits: `"center"` by default, or a corner or an edge.
 - **Turn pages to portrait or landscape:** `setOrientation(ids, "landscape")` turns each page shown the other way a quarter turn clockwise, and leaves the rest alone. It turns the page as readers show it (`/Rotate`). For a printer or tool that ignores that, pass `"swapBox"`: the paper's sides swap and the content, annotations and bookmarks turn into it.
 - **Signed forms:** resizing or turning a page that shows a signed field breaks the signature, so saving refuses the edit unless you allow the save to break it.
-- **Files a resize refuses:** to move a page's content, Lamina PDF reads it. A page whose content uses a compression Lamina PDF can't read yet, such as the ASCII85 encoding some generators use, is refused with `unsupported-filter`, and the document is left as it was.
+- **Files a resize refuses:** to move a page's content, Lamina PDF reads it. A page whose content Lamina PDF can't decode is refused with `unsupported-filter`, and the document is left as it was.
 
 Next: [crop pages](/recipes/crop-pages/), to hide part of a page instead.
