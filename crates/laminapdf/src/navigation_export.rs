@@ -14,17 +14,17 @@ use crate::navigation::{OutlineNode, PageTarget, PageTargetView};
 
 /// The links JSON's format.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.0.
 pub const LINKS_SCHEMA: &str = "laminapdf.links/1";
 
 /// The outline JSON's format.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.0.
 pub const OUTLINE_SCHEMA: &str = "laminapdf.outline/1";
 
 /// A link and the page it is on.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct DocumentLink {
@@ -41,7 +41,7 @@ impl Document {
     /// # Errors
     /// Reading errors (the annotations, named destinations, the page tree).
     ///
-    /// Added in 0.3.0.
+    /// Added in 0.4.0.
     pub fn links(&self) -> Result<Vec<DocumentLink>> {
         let count = self.page_count()?;
         let mut out = Vec::new();
@@ -60,7 +60,7 @@ impl Document {
     /// # Errors
     /// As [`Document::links`].
     ///
-    /// Added in 0.3.0.
+    /// Added in 0.4.0.
     pub fn links_json(&self) -> Result<String> {
         let links: Vec<JsonLink> = self.links()?.iter().map(JsonLink::from).collect();
         Ok(to_json(&JsonLinks {
@@ -75,7 +75,7 @@ impl Document {
     /// # Errors
     /// As [`Document::links`].
     ///
-    /// Added in 0.3.0.
+    /// Added in 0.4.0.
     pub fn links_csv(&self) -> Result<String> {
         let mut csv = Csv::new(&[
             "pageNumber",
@@ -115,7 +115,7 @@ impl Document {
     /// # Errors
     /// As [`Document::outline`].
     ///
-    /// Added in 0.3.0.
+    /// Added in 0.4.0.
     pub fn outline_json(&self) -> Result<String> {
         let items: Vec<JsonItem> = self.outline()?.iter().map(JsonItem::from).collect();
         Ok(to_json(&JsonOutline {
@@ -131,7 +131,7 @@ impl Document {
     /// # Errors
     /// As [`Document::outline`].
     ///
-    /// Added in 0.3.0.
+    /// Added in 0.4.0.
     pub fn outline_csv(&self) -> Result<String> {
         let mut csv = Csv::new(&[
             "level",
@@ -427,7 +427,7 @@ impl Csv {
 /// `tests/navigation_export.rs` commits them: `schemas/links.schema.json` and
 /// `schemas/outline.schema.json`.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.0.
 #[cfg(feature = "schema")]
 #[must_use]
 pub fn navigation_schemas() -> [(&'static str, serde_json::Value); 2] {

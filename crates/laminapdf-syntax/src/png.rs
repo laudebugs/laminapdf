@@ -4,7 +4,7 @@
 
 /// The eight bytes every PNG starts with.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.0.
 pub const SIGNATURE: [u8; 8] = [0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A];
 
 /// The CRC-32 table (ISO 3309, as PNG §5.5 specifies), computed at compile time.
@@ -31,7 +31,7 @@ const CRC_TABLE: [u32; 256] = {
 
 /// CRC-32 over `parts` in order, as a chunk's CRC covers its type and data.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.0.
 #[must_use]
 pub fn crc32(parts: &[&[u8]]) -> u32 {
     let mut crc = !0u32;
@@ -47,7 +47,7 @@ pub fn crc32(parts: &[&[u8]]) -> u32 {
 
 /// Appends chunk `kind` holding `data` to `out`: its length, type, data and CRC.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.0.
 pub fn write_chunk(out: &mut Vec<u8>, kind: [u8; 4], data: &[u8]) {
     out.extend_from_slice(&u32::try_from(data.len()).unwrap_or(u32::MAX).to_be_bytes());
     out.extend_from_slice(&kind);

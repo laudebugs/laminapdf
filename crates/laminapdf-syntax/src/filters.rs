@@ -175,7 +175,7 @@ pub fn flate_decode(data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -> 
 /// A filter's full name for its inline-image abbreviation (ISO 32000-2 §8.9.7, Table 92):
 /// `AHx` is `ASCIIHexDecode`, `CCF` is `CCITTFaxDecode`…; a full name comes back as it is.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.0.
 #[must_use]
 pub fn full_name(name: &[u8]) -> &[u8] {
     match name {
