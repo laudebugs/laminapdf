@@ -11,7 +11,7 @@
 | Branch | `feat/e2l-viewer-across-page-edits` |
 | PR title | `feat(viewer): follow inserted, deleted and moved pages by ID` |
 | Size | L (400–800): the viewer's state mapped by page ID instead of index, the worker's guard and the history steps, with browser and performance tests |
-| PR | — |
+| PR | [laudebugs/laminapdf#604](https://github.com/laudebugs/laminapdf/pull/604) |
 
 ## Goal
 
