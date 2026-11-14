@@ -5,7 +5,7 @@
 
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
 import { createViewer, type LinkPreviewRequest, ViewerClient, type Zoom } from "@laminapdf/viewer";
-import type { EditTiming, FindTiming, MemorySample, PerfHook, Recording } from "../types.ts";
+import type { EditTiming, FindTiming, MemorySample, PageEditKind, PerfHook, Recording } from "../types.ts";
 
 const host = document.querySelector<HTMLDivElement>("#viewer");
 if (host === null) throw new Error("the page has no #viewer");
@@ -117,6 +117,47 @@ async function edit(): Promise<EditTiming> {
   return { applyMs, firstPixelsMs: firstPixels - start, sharpMs: sharp - start };
 }
 
+/** The page-list edit `kind` at the page in view: the ops, and their label. */
+function pageEditOps(kind: PageEditKind, index: number): unknown[] {
+  const pages = client.document?.pages ?? [];
+  const page = pages[index];
+  if (page === undefined) throw new Error(`page ${index} isn't open`);
+  if (kind === "delete") return [{ op: "deletePages", args: { pages: [page.id], references: "retarget" } }];
+  // The 200 pages after the one in view go to the end, so the pages below it change.
+  if (kind === "move") {
+    const moved = pages.slice(index + 1, index + 201).map((p) => p.id);
+    return [{ op: "movePages", args: { pages: moved, to: "end" } }];
+  }
+  return [
+    {
+      op: "insertBlankPages",
+      args: { at: { before: page.id }, count: 10, size: { width: page.width, height: page.height }, rotate: 0 },
+    },
+  ];
+}
+
+/** Edits the page list at the page in view and times the call, the visible pages' first new pixels and sharp. */
+async function pageEdit(kind: PageEditKind): Promise<EditTiming> {
+  const ops = pageEditOps(kind, viewer.getState().currentPage);
+  const start = performance.now();
+  await viewer.applyEdit(ops as Parameters<typeof viewer.applyEdit>[0]);
+  const applyMs = performance.now() - start;
+  const visible = () => {
+    const { first, last } = viewer.getState().visibleRange;
+    const states = viewer.stats().pages;
+    const shown: string[] = [];
+    for (let page = first; page <= last; page++) shown.push(states[page] ?? "unmounted");
+    return shown;
+  };
+  const firstPixels = await at(
+    () => visible().every((s) => s === "low" || s === "sharp"),
+    20_000,
+    "the pages didn't redraw",
+  );
+  const sharp = await at(() => visible().every((s) => s === "sharp"), 20_000, "the pages weren't sharp again");
+  return { applyMs, firstPixelsMs: firstPixels - start, sharpMs: sharp - start };
+}
+
 async function memory(): Promise<MemorySample> {
   const reported = (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory;
   const heap = reported?.usedJSHeapSize ?? null;
@@ -206,6 +247,7 @@ const hook: PerfHook = {
   },
   goToPage: (index) => viewer.goToPage(index),
   edit,
+  pageEdit,
   scroll: () => ({ top: viewer.element.scrollTop, max: viewer.element.scrollHeight - viewer.element.clientHeight }),
   record() {
     live = { frames: [], longTasks: [], last: undefined, peak: undefined, sampler: setInterval(sample, 500) };

@@ -104,6 +104,7 @@ export class ThumbnailStrip {
     on("keydown", (e) => this.#key(e));
     this.#cleanup.push(viewer.subscribe(() => this.#viewChanged()));
     this.#cleanup.push(viewer.on("invalidate", ({ pages }) => this.#invalidate(pages)));
+    this.#cleanup.push(viewer.on("reorder", ({ from }) => this.#reorder(from)));
     // A strip shown later (its tab opened, its sheet raised) mounts what it now shows.
     const resized = new ResizeObserver(() => this.#schedule());
     resized.observe(root);
@@ -177,6 +178,33 @@ export class ThumbnailStrip {
     }
     if (resized) this.#relayout();
     else this.#schedule();
+  }
+
+  /**
+   * An edit inserted, deleted or moved pages (page `i` now was page `from[i]`): the thumbnails
+   * follow their pages, a moved one keeping its picture, and the strip takes the new page list.
+   */
+  #reorder(from: readonly (number | undefined)[]): void {
+    const document = this.#client.document;
+    if (document === undefined || this.#document?.id !== document.id) return;
+    const to = new Map<number, number>();
+    from.forEach((old, index) => {
+      if (old !== undefined) to.set(old, index);
+    });
+    this.#unmountAll();
+    this.#cache.remap(
+      (page) => to.get(page),
+      (key, page) => {
+        const fields = key.split(":");
+        fields[1] = String(page);
+        return fields.join(":");
+      },
+    );
+    this.#document = document;
+    const last = Math.max(0, document.pages.length - 1);
+    this.#focus = Math.min(to.get(this.#focus) ?? this.#focus, last);
+    this.#current = Math.min(this.#viewer.getState().currentPage, last);
+    this.#relayout();
   }
 
   #viewChanged(): void {

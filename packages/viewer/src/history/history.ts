@@ -104,6 +104,20 @@ export class NavigationHistory {
   }
 
   /**
+   * Moves every entry to where its page went after an edit inserted, deleted or moved pages:
+   * `page` gives each old page's index now (a deleted page's nearest surviving page, whose top an
+   * entry on it goes to). Entries keep their ids.
+   */
+  remap(page: (old: number) => { readonly page: number; readonly kept: boolean }): void {
+    this.#entries = this.#entries.map((entry) => {
+      const to = page(entry.point.page);
+      const point = to.kept ? { ...entry.point, page: to.page } : { page: to.page, x: 0, y: 0 };
+      return { ...entry, point };
+    });
+    this.#changed();
+  }
+
+  /**
    * Runs `go` (which moves the view) as a jump: where the view was is kept for Back, and where it
    * lands is the new current entry, with nothing left for Forward. Landing where it was adds
    * nothing.

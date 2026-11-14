@@ -31,6 +31,8 @@ import {
   clearRedo,
   historyOf,
   markSaved,
+  orderOf,
+  placed,
   record,
   removeStep,
   restore,
@@ -50,7 +52,7 @@ const ENCRYPTED = "an encrypted document can't be edited yet: its edits can't be
 /** The edit session's history of document `id`. */
 export function editHistory(id: number): EditHistory {
   const { edit } = current(id);
-  return historyOf(edit.session, edit.diverged);
+  return historyOf(edit.session, edit.diverged, edit.order);
 }
 
 /** Throws why document `opened` can't take an edit, undo or redo now, if it can't. */
@@ -81,35 +83,31 @@ async function apply(ops: readonly Op[], id: number, signal: AbortSignal, label:
   const opened = current(id);
   editable(opened);
   const { model, edit } = opened;
-  const count = await model.ensure(() => model.pageCount, { signal });
+  const before = await model.ensure(() => model.pages, { signal });
   const edited = await model.ensure(() => model.apply(ops), { signal });
-  if (!edited.changed) return { pages: [], history: historyOf(edit.session, false) };
+  if (!edited.changed) return { pages: [], history: historyOf(edit.session, false, edit.order) };
   edit.copy = undefined;
   // The transaction cleared the model's redo stack, whatever happens next.
   clearRedo(edit.session);
-  if (edited.touchedPages.length > 0) {
-    try {
-      await samePages(model, count);
-      await redraw(opened);
-    } catch (e) {
-      // The edit never reached the screen: take it back out of the model, so the model matches
-      // what is drawn. The undone transaction is left on the model's redo stack, but the session
-      // has no step for it, so nothing redoes it, and the next edit clears it.
-      await revert(model, edit, "undo", e);
-      throw e;
-    }
+  let after: PagesNow = { list: before, moved: false };
+  try {
+    after = await pagesAfter(model, before);
+    checkOrder(after, edited.pageOrder);
+    if (edited.touchedPages.length > 0 || after.moved) await redraw(opened);
+  } catch (e) {
+    // The edit never reached the screen: take it back out of the model, so the model matches
+    // what is drawn. The undone transaction is left on the model's redo stack, but the session
+    // has no step for it, so nothing redoes it, and the next edit clears it.
+    await revert(model, edit, "undo", e);
+    throw e;
   }
   followEdit(opened, ops);
-  const pages = await touched(opened, edited.touchedPages);
-  record(
-    edit.session,
-    label,
-    pages.map((page) => page.index),
-    Date.now(),
-  );
+  const pages = touched(opened, after, edited.touchedPages);
+  record(edit.session, label, pages, Date.now());
   return {
     pages,
-    history: historyOf(edit.session, false),
+    history: historyOf(edit.session, false, edit.order),
+    ...(after.moved ? { order: after.list } : {}),
     createdOutlineItems: edited.createdOutlineItems,
     createdAnnotations: edited.createdAnnotations,
     outlineRepaired: edited.outlineRepaired,
@@ -154,6 +152,8 @@ async function moveTo(position: () => number, id: number, signal: AbortSignal): 
   edit.copy = undefined;
   const done: RevertedStep[] = [];
   const ids = new Set<string>();
+  const before = await model.ensure(() => model.pages, { signal });
+  let after: PagesNow = { list: before, moved: false };
   try {
     await walkTo(
       session,
@@ -168,13 +168,19 @@ async function moveTo(position: () => number, id: number, signal: AbortSignal): 
       },
       done,
     );
-    if (ids.size > 0) await redraw(opened);
+    after = await pagesAfter(model, before);
+    if (ids.size > 0 || after.moved) await redraw(opened);
   } catch (e) {
     await takeBack(opened, kept, done, e);
     throw e;
   }
-  const pages = await touched(opened, [...ids]);
-  return { pages, history: historyOf(session, false), reverted: done };
+  const pages = touched(opened, after, [...ids]);
+  return {
+    pages,
+    history: historyOf(session, false, edit.order),
+    reverted: done.map((move) => ({ ...move, step: placed(move.step, edit.order) })),
+    ...(after.moved ? { order: after.list } : {}),
+  };
 }
 
 /**
@@ -225,8 +231,10 @@ async function replay(
   const { model, edit } = opened;
   const ids = new Set<string>();
   edit.copy = undefined;
+  let before: readonly PageInfo[] = [];
+  let after: PagesNow = { list: before, moved: false };
   try {
-    const count = await model.ensure(() => model.pageCount, { signal });
+    before = await model.ensure(() => model.pages, { signal });
     for (const step of steps) {
       const edited = await model.ensure(() => model.apply(step.ops), { signal });
       if (!edited.changed) continue;
@@ -234,8 +242,12 @@ async function replay(
       followEdit(opened, step.ops);
       const pages = await model.ensure(() => model.pages);
       const wanted = new Set(edited.touchedPages);
-      const indices = pages.filter((page) => wanted.has(page.id)).map((page) => page.index);
-      record(edit.session, step.label, indices, step.at);
+      record(
+        edit.session,
+        step.label,
+        pages.filter((page) => wanted.has(page.id)),
+        step.at,
+      );
     }
     for (let i = 0; i < undone && edit.session.position > 0; i++) {
       const reverted = await model.ensure(() => model.undo(), { signal });
@@ -243,15 +255,19 @@ async function replay(
       stepBack(edit.session, reverted.outcome);
       followEdit(opened, "undo");
     }
-    await samePages(model, count);
-    if (ids.size > 0) await redraw(opened);
+    after = await pagesAfter(model, before);
+    if (ids.size > 0 || after.moved) await redraw(opened);
   } catch (e) {
     edit.diverged = true;
     throw new Error(DIVERGED, { cause: e });
   }
   // The file reopened as it was: the saved document is the one opened.
   edit.session.saved = 0;
-  return { pages: await touched(opened, [...ids]), history: historyOf(edit.session, false) };
+  return {
+    pages: touched(opened, after, [...ids]),
+    history: historyOf(edit.session, false, edit.order),
+    ...(after.moved ? { order: after.list } : {}),
+  };
 }
 
 /** A label for an edit whose caller gave none: its ops' names. */
@@ -259,14 +275,33 @@ function describe(ops: readonly Op[]): string {
   return ops.map((op) => op.op).join(", ");
 }
 
+/** The pages after an edit, undo or redo, and whether it inserted, deleted or moved any. */
+interface PagesNow {
+  readonly list: readonly PageInfo[];
+  readonly moved: boolean;
+}
+
+/** The pages after an edit, undo or redo, and whether they are other pages, or in another order, than `before`. */
+async function pagesAfter(model: Document, before: readonly PageInfo[]): Promise<PagesNow> {
+  const list = await model.ensure(() => model.pages);
+  const moved = list.length !== before.length || list.some((page, i) => page.id !== before[i]?.id);
+  return { list, moved };
+}
+
 /**
- * Refuses an edit that added, removed or moved pages: the view finds pages by index, and
- * `EditResult` names pages by their indices after the edit.
+ * Refuses an edit whose pages aren't in the order it reported (the façade's `Edited::page_order`),
+ * or that changed the page list and reported no order: the view follows the pages by what the edit
+ * says it did, and would otherwise show some pages in another's place.
  */
-async function samePages(model: Document, before: number): Promise<void> {
-  const after = await model.ensure(() => model.pageCount);
-  if (after !== before)
-    throw new Error(`an edit that changes the page count (${before} → ${after}) can't be shown yet`);
+function checkOrder(after: PagesNow, reported?: readonly string[]): void {
+  if (reported === undefined) {
+    if (after.moved) throw new Error("the edit changed the page list without reporting its order");
+    return;
+  }
+  const { list } = after;
+  if (list.length !== reported.length || list.some((page, i) => page.id !== reported[i])) {
+    throw new Error("the edit left the pages in another order than it reported");
+  }
 }
 
 /**
@@ -288,13 +323,17 @@ async function revert(model: Document, edit: EditState, way: "undo" | "redo", fa
   }
 }
 
-/** The pages with these IDs, as they are now, in index order; what the worker kept of them is forgotten. */
-async function touched(opened: Open, ids: readonly string[]): Promise<PageInfo[]> {
-  if (ids.length === 0) return [];
+/**
+ * The pages with these IDs among `after`, in index order. What the worker kept of them is
+ * forgotten: of every page when the page list changed, since it is kept by index. The edit session
+ * names its steps' pages from `after` from now on.
+ */
+function touched(opened: Open, after: PagesNow, ids: readonly string[]): PageInfo[] {
+  const { edit } = opened;
+  if (after.moved || edit.order === undefined) edit.order = orderOf(after.list.map((page) => page.id));
   const wanted = new Set(ids);
-  const { model } = opened;
-  const pages = (await model.ensure(() => model.pages)).filter((page) => wanted.has(page.id));
-  const indices = pages.map((page) => page.index);
+  const pages = after.list.filter((page) => wanted.has(page.id));
+  const indices = after.moved ? undefined : pages.map((page) => page.index);
   forgetText(indices);
   forgetSearch(indices);
   forgetLinks(indices);
@@ -401,7 +440,7 @@ export function adoptEdits(token: number, id: number): Promise<EditHistory> {
     if (copy.historyCleared) clearHistory(edit.session);
     else markSaved(edit.session);
     await reopen(opened);
-    return historyOf(edit.session, false);
+    return historyOf(edit.session, false, edit.order);
   });
 }
 

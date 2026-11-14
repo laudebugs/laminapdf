@@ -39,7 +39,7 @@ import { HttpRangeByteSource } from "../source/http-range.js";
 import { COPY_ABOVE, OpfsByteSource } from "../source/opfs.js";
 import { blobSource, readAll } from "../source.js";
 import { documentFingerprint, HEAD_BYTES } from "./fingerprint.js";
-import { newSession, type Session } from "./session.js";
+import { newSession, type PageOrder, type Session } from "./session.js";
 
 let backend: RenderBackend | undefined;
 /** Backends loaded or loading, by name; a failed load is forgotten, so the next call retries. */
@@ -77,6 +77,7 @@ function newEditState(source: RenderSource, renderLimits: RenderOpenOptions["lim
     pending: [],
     diverged: false,
     session: newSession(),
+    order: undefined,
     queue: Promise.resolve(),
   };
 }
@@ -110,6 +111,11 @@ export interface EditState {
   diverged: boolean;
   /** The edit session's history (session.ts). */
   readonly session: Session;
+  /**
+   * Where each page is, as the last edit, undo or redo left the pages: the history names its steps'
+   * pages from it. Undefined until the first edit reads it.
+   */
+  order: PageOrder | undefined;
   /** The edit calls running and waiting, one after another (edit.ts's `serial`). */
   queue: Promise<unknown>;
 }

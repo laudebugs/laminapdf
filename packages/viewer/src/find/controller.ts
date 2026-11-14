@@ -185,6 +185,51 @@ export class FindController {
       .catch((error) => reportError(error));
   }
 
+  /**
+   * Follows an edit that inserted, deleted or moved pages: each page's matches move to its index
+   * now (`to`; a deleted page's go, and its nearest surviving page is where the current match
+   * moves on from), the current match stays on its page where it can, and pages
+   * that weren't searched (`added`, new ones) are searched. A search under way starts again from
+   * the current page, since the pages it has left to read moved.
+   */
+  remap(
+    to: (page: number) => { readonly page: number; readonly kept: boolean },
+    pageCount: number,
+    added: readonly number[],
+  ): void {
+    const { query, options, done } = this.#state;
+    if (query.trim() === "") {
+      this.#set({ pageCount });
+      return;
+    }
+    if (!done) {
+      this.find(query, options);
+      return;
+    }
+    const moved = <T>(map: ReadonlyMap<number, T>) => {
+      const next = new Map<number, T>();
+      for (const [page, value] of map) {
+        const at = to(page);
+        if (at.kept) next.set(at.page, value);
+      }
+      return next;
+    };
+    const painted = new Set([...this.#byPage.keys()]);
+    this.#byPage = moved(this.#byPage);
+    this.#snippets = moved(this.#snippets);
+    const current = this.#current;
+    const at = current === undefined ? undefined : to(current.page);
+    this.#current = this.#kept(
+      current === undefined || at === undefined ? undefined : { page: at.page, index: at.kept ? current.index : 0 },
+    );
+    let total = 0;
+    for (const matches of this.#byPage.values()) total += matches.length;
+    this.#set({ total, pageCount, current: this.#current === undefined ? undefined : this.#ordinal(this.#current) });
+    for (const p of this.#byPage.keys()) painted.add(p);
+    this.#host.redraw(painted);
+    this.refresh(added);
+  }
+
   /** Stops the search and drops the results: a new document opened. */
   reset(): void {
     this.#stop();

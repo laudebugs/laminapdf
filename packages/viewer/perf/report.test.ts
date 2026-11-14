@@ -43,6 +43,11 @@ function result(over: Partial<BrowserResult> = {}): BrowserResult {
       { pages: 100, applyMs: 30, firstPixelsMs: 60, sharpMs: 110, lastOf: 20, lastFirstPixelsMs: 75 },
       { pages: 1000, applyMs: 80, firstPixelsMs: 120, sharpMs: 170 },
     ],
+    pageEdits: [
+      { kind: "delete", applyMs: 70, firstPixelsMs: 110, sharpMs: 160 },
+      { kind: "move", applyMs: 75, firstPixelsMs: 115, sharpMs: 165 },
+      { kind: "insert", applyMs: 72, firstPixelsMs: 112, sharpMs: 162 },
+    ],
     mobile: {
       device: "Pixel 8",
       peakMemory: { ...memory(150 * MB), canvases: 80 * MB, bitmaps: 60 * MB },
@@ -61,6 +66,17 @@ describe("edit check", () => {
     expect(byName(result())[name]).toMatchObject({ value: "40 ms / 60 ms / 120 ms", pass: true });
     const slow = result({ edit: [{ pages: 100, applyMs: 100, firstPixelsMs: 151, sharpMs: 200 }] });
     expect(checks(slow).find((c) => c.name.startsWith("Edit"))?.pass).toBe(false);
+  });
+
+  it("checks each page-list edit on the 1,000-page file against the same budget", () => {
+    const rows = checks(result()).filter((c) => c.name.endsWith("1,000 pages: first new pixels"));
+    expect(rows.map((c) => [c.name, c.value, c.pass])).toEqual([
+      ["Delete one page, 1,000 pages: first new pixels", "110 ms", true],
+      ["Move 200 pages, 1,000 pages: first new pixels", "115 ms", true],
+      ["Insert 10 blank pages, 1,000 pages: first new pixels", "112 ms", true],
+    ]);
+    const slow = result({ pageEdits: [{ kind: "move", applyMs: 100, firstPixelsMs: 151, sharpMs: 200 }] });
+    expect(checks(slow).find((c) => c.name.startsWith("Move 200"))?.pass).toBe(false);
   });
 
   it("reports the last of a file's edits in a row", () => {
@@ -205,6 +221,9 @@ describe("historyEntries", () => {
       "edit-first-pixels-10": 40_000_000,
       "edit-first-pixels-100": 60_000_000,
       "edit-first-pixels-1000": 120_000_000,
+      "page-edit-first-pixels-delete": 110_000_000,
+      "page-edit-first-pixels-move": 115_000_000,
+      "page-edit-first-pixels-insert": 112_000_000,
     });
     expect(historyEntries(result({ firstPage: { warmMs: 1, coldMs: null, coldLinkMs: null } }))).not.toHaveProperty(
       "first-page-cold",

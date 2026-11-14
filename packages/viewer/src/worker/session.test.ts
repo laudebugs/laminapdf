@@ -4,6 +4,7 @@ import {
   historyOf,
   markSaved,
   newSession,
+  orderOf,
   record,
   removeStep,
   stepBack,
@@ -14,7 +15,7 @@ import {
 /** A session with `n` steps done, labelled "1", "2", …. */
 function withSteps(n: number, depth?: number) {
   const session = newSession(depth);
-  for (let i = 1; i <= n; i++) record(session, String(i), [i - 1], i);
+  for (let i = 1; i <= n; i++) record(session, String(i), [{ id: `p${i}.0`, index: i - 1 }], i);
   return session;
 }
 
@@ -40,7 +41,7 @@ describe("the edit session's history", () => {
     const session = withSteps(3);
     stepBack(session, "applied");
     const kept = labels(session);
-    record(session, "4", [0], 4);
+    record(session, "4", [{ id: "p1.0", index: 0 }], 4);
     expect([kept, labels(session)]).toEqual([
       ["1", "2", "3"],
       ["1", "2", "4"],
@@ -74,7 +75,7 @@ describe("the edit session's history", () => {
   it("measures the distance from the last save", () => {
     const session = withSteps(2);
     markSaved(session);
-    record(session, "3", [0], 3);
+    record(session, "3", [{ id: "p1.0", index: 0 }], 3);
     stepBack(session, "applied");
     stepBack(session, "applied");
     expect(historyOf(session, false).unsaved).toBe(1);
@@ -150,5 +151,22 @@ describe("the edit session's history", () => {
 
   it("refuses to undo with nothing done", () => {
     expect(() => stepBack(newSession(), "applied")).toThrow();
+  });
+
+  it("names a step's pages where they are now: moved ones at their new place, deleted ones left out", () => {
+    const session = newSession();
+    record(
+      session,
+      "Rotate pages 1 and 3",
+      [
+        { id: "a", index: 0 },
+        { id: "c", index: 2 },
+      ],
+      1,
+    );
+    // c moved to the front, a was deleted.
+    const history = historyOf(session, false, orderOf(["c", "b"]));
+    expect(history.steps[0]?.pages).toEqual([0]);
+    expect(history.steps[0]?.pageIds).toEqual(["a", "c"]);
   });
 });
