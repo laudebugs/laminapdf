@@ -70,7 +70,7 @@ Site-kit unit tests; the docs plugin tests for alternate links; the reader's e2e
 
 - **The Markdown twin links were already there.** L5a had added `<link rel="alternate" type="text/markdown">` to every docs page (`src/components/Head.astro`), and `plugins/agent-docs.mjs` already fails the build on a page without it. This todo changed neither.
 - **The docs' sitemap is rewritten after the build.** Starlight writes it through `@astrojs/sitemap` and takes no `serialize` option, so `plugins/sitemap.mjs` adds the dates to its files. The one-page views have no source of their own and get no date.
-- **The released docs need the whole history.** `docs.yml`'s production job must check out with `fetch-depth: 0`. An agent's token can't change workflow files, so the PR gives that change, and a `tools/xtask/src/workflows.rs` test that holds the job to it, as a patch for the owner to commit before merging.
+- **The released docs need the whole history.** `docs.yml`'s production job checks out with `fetch-depth: 0`, and a `tools/xtask/src/workflows.rs` test holds the job to it.
 - **The reader shares the website's image** by its full address: a meta tag loads nothing, so the reader's CSP is not involved.
 
 ## Risks and open questions

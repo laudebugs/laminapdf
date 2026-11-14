@@ -60,7 +60,7 @@ export function projectFacts(cargoToml) {
   // An SPDX expression of alternatives, such as `MIT OR Apache-2.0`: a page for each. Any other
   // expression would need more than a list of licences to describe.
   if (/\s(AND|WITH)\s/.test(licence)) throw new Error(`can't describe the licence ${licence} as alternatives`);
-  const licences = licence.split(/\s+OR\s+/).map((id) => `${SPDX}${id.replace(/[()]/g, "")}.html`);
+  const licences = licence.split(" OR ").map((id) => `${SPDX}${id.replace(/[()]/g, "").trim()}.html`);
   return {
     licence,
     licences,

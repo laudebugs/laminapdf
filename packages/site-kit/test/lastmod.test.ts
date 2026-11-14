@@ -26,6 +26,11 @@ describe("withLastmod", () => {
   });
 });
 
+/** `date` as an instant: git writes UTC as `Z` or `+00:00` by version, both valid sitemap dates. */
+function instant(date: string | undefined): string | undefined {
+  return date === undefined ? undefined : new Date(date).toISOString();
+}
+
 describe("dates from git", () => {
   let dir = "";
   let full: URL;
@@ -59,9 +64,9 @@ describe("dates from git", () => {
   it("dates each file by the last commit that changed it, a set and a folder by the newest", () => {
     const dateOf = commitDates(full);
     const date = (names: string[]) => dateOf(names.map((name) => new URL(name, full)));
-    expect(date(["a.md"])).toBe("2026-01-02T03:04:05+00:00");
-    expect(date(["a.md", "b.md"])).toBe("2026-02-03T04:05:06+00:00");
-    expect(date(["docs/"])).toBe("2026-03-04T05:06:07+00:00");
+    expect(instant(date(["a.md"]))).toBe("2026-01-02T03:04:05.000Z");
+    expect(instant(date(["a.md", "b.md"]))).toBe("2026-02-03T04:05:06.000Z");
+    expect(instant(date(["docs/"]))).toBe("2026-03-04T05:06:07.000Z");
     expect(date(["doc"])).toBeUndefined();
   });
 

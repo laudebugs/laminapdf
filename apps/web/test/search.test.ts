@@ -48,7 +48,9 @@ const INDEX = await readFile(new URL("../index.html", import.meta.url), "utf8");
 describe("the reader's canonical link and share tags", () => {
   const html = INDEX;
   const tags = (environment: string | undefined) => {
-    const hook = searchRules(environment).transformIndexHtml as unknown as (html: string) => { attrs: Record<string, string> }[];
+    const hook = searchRules(environment).transformIndexHtml as unknown as (
+      html: string,
+    ) => { attrs: Record<string, string> }[];
     return hook(html).map(({ attrs }) => attrs);
   };
 

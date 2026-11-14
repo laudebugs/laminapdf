@@ -1,5 +1,5 @@
 // `<lastmod>` for the sitemaps: each page's date is the last commit that changed its sources, so
-// search engines (and IndexNow's pings, W3e) can tell which pages changed. A shallow checkout
+// search engines (and the IndexNow pings planned for them) can tell which pages changed. A shallow checkout
 // would give every page its one commit's date, so a production build refuses one rather than
 // write wrong dates; other builds, which name no sitemap in robots.txt, leave the dates out.
 import { execFileSync } from "node:child_process";
