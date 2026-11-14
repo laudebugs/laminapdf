@@ -1,7 +1,7 @@
 ---
 title: "Connect an AI agent (MCP)"
 description: "Serve the laminapdf commands as tools for Claude and other AI agents over the Model Context Protocol, limited to the folders you choose."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/cli/mcp/"
 ---
 

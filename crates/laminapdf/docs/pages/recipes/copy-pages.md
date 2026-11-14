@@ -1,7 +1,7 @@
 ---
 title: "Copy pages between PDFs"
 description: "Copy pages from another PDF into this one, replace a page with one from another file, or make a new PDF from some pages."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/recipes/copy-pages/"
 ---
 
@@ -183,7 +183,7 @@ The new file's pages keep the labels they showed in the book, `iii`, `1` and `2`
 - **Keep fields linked:** pass `{ fields: "link" }` as the last argument, and a copied field joins the document's field of the same name, so both show one value. Linking needs both fields to have the same type and value; otherwise the copy is renamed.
 - **Leave annotations behind:** pass `{ annotations: false }` to copy only the page content and its form fields.
 - **Split into several files:** `exportRanges([[a, b], [c]])` makes one document per list of pages, and [`split`](../../pages/recipes/merge-and-split.md) cuts a file by chapter or page count.
-- **Tagged documents:** a copied page comes without its tags, and the edit's `tagsDropped` lists it. On a file that claims PDF/UA-1, saving then warns with [`imported-tags-dropped`](../../errors/imported-tags-dropped.md).
+- **Tagged documents:** a copied page keeps its tags when the document is tagged: the elements that hold its content join the document's structure tree, so a screen reader still reads it in order. A role, class or element ID the document already uses another way is renamed `<name>#2`, and the edit's `structureRenamed` lists it. Copied into an untagged document, the page comes without its tags, and the edit's `tagsDropped` lists it. On a file that claims PDF/UA-1, copying from a file without that claim warns with [`imported-pdfua-unchecked`](../../errors/imported-pdfua-unchecked.md).
 - **Undo:** one `undo()` removes every copied page and what came with it.
 
 Next: [duplicate pages](../../pages/recipes/duplicate-pages.md), to copy a page within the same document.

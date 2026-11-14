@@ -1,7 +1,7 @@
 ---
 title: "Choosing a PDF library for TypeScript or Rust"
 description: "Which PDF library should you use in TypeScript or Rust? What pdf-lib, PDF.js, PDFKit, lopdf, krilla and others do, with sources, and where Lamina PDF fits."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/start/choosing-a-pdf-library/"
 ---
 
@@ -50,7 +50,7 @@ Licences, versions and runtimes, from each package's npm entry and README:
 | jsPDF | [MIT](https://www.npmjs.com/package/jspdf) | [4.2.1, 17 March 2026](https://www.npmjs.com/package/jspdf?activeTab=versions) | [Browsers, Node](https://github.com/parallax/jsPDF#install) |
 | pdfmake | [MIT](https://www.npmjs.com/package/pdfmake) | [0.3.14, 8 November 2026](https://www.npmjs.com/package/pdfmake?activeTab=versions) | [Node 20 or later, browsers](https://pdfmake.github.io/docs/0.3/getting-started/server-side/supported-nodejs-versions/) |
 | PDF.js | [Apache-2.0](https://www.npmjs.com/package/pdfjs-dist) | [6.5.438, 1 November 2026](https://www.npmjs.com/package/pdfjs-dist?activeTab=versions) | [Browsers; Node 22 or later, "mostly"](https://github.com/mozilla/pdf.js/wiki/Frequently-Asked-Questions#faq-support) |
-| Lamina PDF | MIT or Apache-2.0 | 0.3.0 | Browsers, Node, Deno, Bun, Cloudflare Workers |
+| Lamina PDF | MIT or Apache-2.0 | 0.4.0 | Browsers, Node, Deno, Bun, Cloudflare Workers |
 
 A few details the tables leave out:
 
@@ -81,7 +81,7 @@ Licences, versions and what each crate needs, from crates.io and each README:
 | krilla | [MIT or Apache-2.0](https://crates.io/crates/krilla) | [0.8.2, 4 June 2026](https://crates.io/crates/krilla/versions) | Built on pdf-writer |
 | hayro | [MIT or Apache-2.0](https://crates.io/crates/hayro) | [0.9.0, 2 November 2026](https://crates.io/crates/hayro/versions) | [Pure Rust, renders on the CPU](https://docs.rs/hayro/0.9.0/hayro/) |
 | pdfium-render | [MIT or Apache-2.0](https://crates.io/crates/pdfium-render) | [0.9.5, 1 November 2026](https://crates.io/crates/pdfium-render/versions) | [The PDFium C++ library, which you ship](https://docs.rs/crate/pdfium-render/0.9.5/source/README.md) |
-| Lamina PDF | MIT or Apache-2.0 | 0.3.0 | Pure Rust; PDFium only for the PDFium renderer |
+| Lamina PDF | MIT or Apache-2.0 | 0.4.0 | Pure Rust; PDFium only for the PDFium renderer |
 
 A few details the tables leave out:
 

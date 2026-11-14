@@ -1,6 +1,6 @@
 {
   "name": "@laminapdf/wasm",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "The WebAssembly build of Lamina PDF's Rust core, which @laminapdf/sdk runs on: create, read, edit and save PDFs and extract their text. Use @laminapdf/sdk; this package holds its compiled modules.",
   "license": "MIT OR Apache-2.0",
   "homepage": "https://laminapdf.com",

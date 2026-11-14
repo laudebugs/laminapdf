@@ -1,7 +1,7 @@
 ---
 title: "Merge and split PDFs"
 description: "Merge several PDFs into one with a bookmark for each file, or split a PDF into one file per chapter."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/recipes/merge-and-split/"
 ---
 
@@ -174,7 +174,9 @@ The book has three chapters of four pages, so the program makes three files. Eac
 
 ## Merge tagged PDFs
 
-Merged pages come without their tags, as copied pages do, so a merge of tagged PDFs makes an untagged file. On a document that claims PDF/UA-1, saving then warns with [`imported-tags-dropped`](../../errors/imported-tags-dropped.md). A document that claims a PDF/A level warns with [`imported-pdfa-unchecked`](../../errors/imported-pdfa-unchecked.md) when a merged file doesn't claim the same level, so check the saved file with a PDF/A validator.
+Merged pages keep their tags when the result can stay tagged throughout: when you merge into a tagged document, or make a new document from files that are all tagged. Each file's elements go under a `Part` element named after it, so a screen reader reads the files in order. When one of the files is untagged, a new document comes out untagged, since a tagged file must tag all its content.
+
+On a document that claims PDF/UA-1, merging a file without that claim warns with [`imported-pdfua-unchecked`](../../errors/imported-pdfua-unchecked.md). A document that claims a PDF/A level warns with [`imported-pdfa-unchecked`](../../errors/imported-pdfa-unchecked.md) when a merged file doesn't claim the same level, so check the saved file with a PDF/A validator.
 
 ## What to change
 

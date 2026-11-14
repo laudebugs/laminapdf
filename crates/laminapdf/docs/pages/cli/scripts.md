@@ -1,7 +1,7 @@
 ---
 title: "Scripts and batch jobs"
 description: "Pipe PDFs through laminapdf, name pages with ranges, check thousands of files in parallel, and read its JSON reports and exit codes from a script."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/cli/scripts/"
 ---
 

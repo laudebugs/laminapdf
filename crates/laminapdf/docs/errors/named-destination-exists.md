@@ -1,6 +1,6 @@
 ---
 title: "named-destination-exists"
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/reference/codes/named-destination-exists/"
 ---
 

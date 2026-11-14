@@ -1,7 +1,7 @@
 ---
 title: "Bun"
 description: "Use @laminapdf/sdk in Bun."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/quick-start/bun/"
 ---
 

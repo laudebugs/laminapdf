@@ -1,7 +1,7 @@
 ---
 title: "Duplicate pages"
 description: "Copy a page within a PDF so the copy has form fields of its own, and see what the copy renamed and left out."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/recipes/duplicate-pages/"
 ---
 

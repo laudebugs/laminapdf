@@ -1,7 +1,7 @@
 ---
 title: "Choose how a PDF opens"
 description: "Set the page and zoom a PDF opens at, the panel beside it and the title in the window, for Lamina PDF and every other PDF reader."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/recipes/set-initial-view/"
 ---
 
