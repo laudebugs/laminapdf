@@ -4,7 +4,7 @@
 # - apps/updates/src/generated/worker-configuration.d.ts, when Wrangler is bumped.
 #
 # This job runs the PR's packages, so it holds no secret and a read-only token. It uploads the
-# regenerated files, and dependabot-fixup-commit.yml commits them to Dependabot's branch through
+# regenerated files. dependabot-fixup-commit.yml verifies and commits only actions.lock through
 # the release bot (whose commit starts CI again, which the default token's could not). Only
 # Dependabot's own pushes run it, so the bot's commit doesn't start it again.
 name: Dependabot fixup
@@ -43,8 +43,7 @@ jobs:
       - uses: $/.github/actions/node-pnpm
       - name: Regenerate the updates Worker's Wrangler types
         run: pnpm --filter @laminapdf/updates run types
-      # The allow-list dependabot-fixup-commit.yml takes, and nothing else: each changed file is
-      # copied under fixup/ at its path.
+      # The paths collected into the artifact. Only actions.lock may be committed automatically.
       - name: Collect the regenerated files
         shell: bash
         run: |

@@ -1,9 +1,9 @@
-# Commits the files dependabot-fixup.yml regenerated to Dependabot's branch, as the release bot,
+# Commits the lockfile dependabot-fixup.yml regenerated to Dependabot's branch, as the release bot,
 # so CI runs again on the commit (a commit made with the default token starts no workflow).
 #
 # It holds the bot's token, so it executes nothing from the PR. Before issuing that token, it
 # regenerates any artifact lockfile from the exact PR commit with a pinned tool and compares the
-# bytes. It reads only the fixed allow-list of paths from the artifact, builds the commit through
+# bytes. It reads only the lockfile from the artifact, builds the commit through
 # the API on the commit dependabot-fixup.yml read, and moves the branch only if it is still there.
 name: Dependabot fixup commit
 
@@ -86,7 +86,7 @@ jobs:
         run: |
           set -euo pipefail
           tree='[]'
-          for path in .github/workflows/actions.lock apps/updates/src/generated/worker-configuration.d.ts; do
+          for path in .github/workflows/actions.lock; do
             file="$RUNNER_TEMP/fixup/$path"
             if [ -f "$file" ]; then
               tree=$(jq --arg path "$path" --rawfile content "$file" \
@@ -100,7 +100,7 @@ jobs:
           base=$(gh api "repos/$GH_REPO/git/commits/$SHA" --jq .tree.sha)
           new_tree=$(jq -n --arg base "$base" --argjson tree "$tree" '{base_tree: $base, tree: $tree}' |
             gh api "repos/$GH_REPO/git/trees" --input - --jq .sha)
-          message='build: regenerate the files the update leaves stale (dependabot-fixup.yml)'
+          message='build: regenerate actions.lock after a Dependabot update'
           commit=$(jq -n --arg message "$message" --arg tree "$new_tree" --arg parent "$SHA" \
             '{message: $message, tree: $tree, parents: [$parent]}' |
             gh api "repos/$GH_REPO/git/commits" --input - --jq .sha)

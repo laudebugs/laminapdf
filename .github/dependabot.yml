@@ -7,9 +7,8 @@
 # `minimumReleaseAge` (pnpm 11's default: 1 day), or pnpm would refuse the version Dependabot
 # proposes; a test in tools/xtask/src/workflows/dependabot.rs holds the two together.
 #
-# Files generated from a dependency (actions.lock, the updates Worker's Wrangler types) are
-# regenerated on Dependabot's branch by dependabot-fixup.yml and committed by
-# dependabot-fixup-commit.yml (contributing.md, "Dependency updates").
+# The fixup workflow regenerates actions.lock and the updates Worker's Wrangler types. Only
+# actions.lock is verified and committed automatically; generated types need review.
 #
 # Only the root workspaces are covered: spikes/ is frozen research code. The docker entry bumps
 # the Linux CI runner's base image (tools/ci-runner/linux); the runner's agent rebuilds from main.
