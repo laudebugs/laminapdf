@@ -184,7 +184,7 @@ Across every op: apply then undo leaves the overlay empty and the next save byte
 
 ## 10. Decisions on the open questions
 
-These are the round's defaults, and the owner is asked to confirm them in [issue #524](https://github.com/laudebugs/laminapdf/issues/524); the todos follow any change.
+These are the round's defaults. The owner confirmed every one as written on 2026-11-14 ([issue #524](https://github.com/laudebugs/laminapdf/issues/524)).
 
 - **Deleting a parent deletes its replies.** E4 already decided it: `DeleteAnnot` removes the replies and the group with the parent, and C04's dialog says "Delete 3 comments and their replies?". Keeping orphaned replies would make broken threads the next reader has to make sense of.
 - **The summary offers both layouts and is tagged.** Beside its page is the default, as C07 lists it first and Acrobat's summary looks; the list layout is for long reviews. Both are PDF/UA-1, since a summary is a document people read and send on. The page beside its comments is a vector copy, not a picture.
