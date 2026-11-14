@@ -142,7 +142,11 @@ pub struct ExtractedImages {
     pub skipped: Vec<SkippedImage>,
 }
 
-/// The images `doc`'s pages draw (see the [module docs](self)).
+/// The images `doc`'s pages draw, as files: JPEG and JPEG 2000 images as stored, byte for byte,
+/// every other image decoded to a PNG with its `/Decode`, its colour space and its mask applied.
+/// Each page's content is walked with its Form XObjects and inline images; an image XObject is
+/// given once, on the first page that draws it, and the mask of a JPEG or JPEG 2000 image, which
+/// that file can't hold, as an image of its own.
 ///
 /// # Errors
 /// [`ExtractError::PageIndexOutOfRange`] for a page past the last; [`ExtractError::Document`]
