@@ -42,10 +42,10 @@ Check the licence of every new dependency, fixture PDF and font before adding it
 
 The workflows name each action by its release tag (`actions/checkout@v7.0.1`), and `.github/workflows/actions.lock` records the commit that tag resolved to and the repository that owns it ([ADR 0019](../decisions/0019-supply-chain-and-licence-hygiene.md)). GitHub refuses to run an action the lockfile doesn't cover, so after adding a workflow or changing a `uses:` line:
 
-1. Install the extension at the pinned version: `cargo xtask doctor --install` (or the `gh extension install` command `cargo xtask doctor` prints).
-2. Run `gh actions-lock` at the repository root and commit `.github/workflows/actions.lock` with the workflow change.
-3. Write this repository's own actions as `$/.github/actions/<name>`, never `./`: the lockfile doesn't follow `./` references, and a test fails on one.
+1. Write this repository's own actions as `$/.github/actions/<name>`, never `./`: the lockfile doesn't follow `./` references, and `cargo nextest run -p xtask` fails on one.
+2. Install the extension at the pinned version: `cargo xtask doctor --install` (or the `gh extension install` command `cargo xtask doctor` prints).
+3. Run `gh actions-lock` at the repository root and commit `.github/workflows/actions.lock` with the workflow change.
 
-The fast lane's `lockfile` job runs `gh actions-lock --verify` on every pull request. Dependabot's update of an action a workflow names changes the tag and its lockfile entry together; if its update of an action a composite action names fails the job, run `gh actions-lock` on its branch.
+The fast lane's `lockfile` job runs `gh actions-lock --verify` on every pull request. When Dependabot bumps an action a workflow calls, it updates the tag and the lockfile entry together. If it bumps one that a composite action calls and the `lockfile` job fails, run `gh actions-lock` on Dependabot's branch.
 
-When the job reports that a locked commit has moved, an upstream maintainer retagged a release. Find out why before relocking: compare the old and new commits in the action's repository. `gh actions-lock --relock` and `--accept-moved` take the new commit; use either only in a reviewed PR whose description says why, never in automation.
+When the job reports that a locked commit has moved, the action's maintainer has moved its tag to a different commit. Find out why before relocking: compare the old and new commits in the action's repository. `gh actions-lock --relock` and `--accept-moved` take the new commit; use either only in a reviewed PR whose description says why, never in automation.

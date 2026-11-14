@@ -63,23 +63,23 @@ These facts, from GitHub's docs as of 2026-11-13, shape the tasks. Check them ag
 
 Checked against `gh-actions-lock` v0.4.1's README and troubleshooting guide on 2026-11-13:
 
-- **The extension keeps SHA pins.** It locks a `uses:` line that names a full SHA as it stands, with a `not-pinned` warning, rather than turning it back into a tag. So the PR rewrites every `@<sha> # vX.Y.Z` to `@vX.Y.Z` itself. Each pinned SHA was first checked against its tag in the action's own repository with `git ls-remote`, and all matched.
-- **`--migrate-local-actions` is applied by hand too.** Every `./.github/actions/<name>` in the workflows and composite actions is written `$/.github/actions/<name>`, so the extension finds nothing left to migrate. Calls of reusable workflows (`./.github/workflows/nightly.yml`, `docs.yml`) stay `./`, as the docs say.
+- **The extension keeps SHA pins.** It locks a full-SHA `uses:` line unchanged, with a `not-pinned` warning, rather than turning it back into a tag. So the PR rewrites every `@<sha> # vX.Y.Z` to `@vX.Y.Z` itself. Each pinned SHA was first checked against its tag in the action's own repository with `git ls-remote`, and all matched.
+- **Local actions were rewritten by hand first.** Every `./.github/actions/<name>` in the workflows and composite actions is written `$/.github/actions/<name>`, so `--migrate-local-actions` found nothing to change. Calls of reusable workflows (`./.github/workflows/nightly.yml`, `docs.yml`) stay `./`, as the docs say.
 - **Container images:** the extension warns on an image without an `@sha256:` digest. No workflow uses a container.
-- **Two sessions finished it.** The first couldn't push to `.github/workflows/` (its token had no `workflow` scope) or reach GitHub's API for the extension, so it pushed everything but the workflows. The second, on a machine with a token that has the `workflow` scope, rewrote the 14 workflows (its 15 SHA and tag pairs checked again with `git ls-remote`; all matched), added the `lockfile` job and ran `gh actions-lock --migrate-local-actions` at v0.4.1. That run wrote only `.github/workflows/actions.lock`, rewrote nothing and warned about nothing.
+- **Two sessions finished it.** The first couldn't push to `.github/workflows/` (its token had no `workflow` scope) or reach GitHub's API for the extension, so it pushed everything but the workflows. The second session had a token with the `workflow` scope. It rechecked the 15 SHA and tag pairs with `git ls-remote` (all matched), rewrote the 14 workflows, added the `lockfile` job and ran `gh actions-lock --migrate-local-actions` at v0.4.1. That run wrote only `.github/workflows/actions.lock`, rewrote nothing and warned about nothing.
 - **The lockfile follows the composite actions.** Through the `$/` references it locks what they call (`pnpm/action-setup`, `nick-fields/retry`, `taiki-e/install-action`, `actions/setup-node`, `actions/cache`), and two transitive actions: `Swatinem/rust-cache` through `actions-rust-lang/setup-rust-toolchain`, and `actions/attest` through `actions/attest-build-provenance`. `cancel-merged.yml` uses no action and is onboarded with an empty list.
 - **Checked locally:** `gh actions-lock --verify` passes on all 14 workflows, and fails (exit 1) when one `uses:` tag changes without relocking.
 
 ## Owner's steps
 
-After merge, the post-merge checks below: turn on **Require lockfile** once the first push to `main` passes with the lockfile, and check the allowed-actions list.
+After merge, do the first two post-merge checks below: turn on **Require lockfile** once the first push to `main` passes with the lockfile, then check the allowed-actions list.
 
 ## Tasks
 
 - [x] Read `gh actions-lock --help` and the troubleshooting guide at the version you pin. Note in the PR anything that differs from "What the lockfile does and doesn't cover" above.
 - [x] Pin the extension in `tools/xtask/src/doctor.rs` (`GH_ACTIONS_LOCK_VERSION`), with `doctor` checking `gh extension list` and `doctor --install` running `gh extension install github/gh-actions-lock --pin <version>`.
 - [x] Run `gh actions-lock --migrate-local-actions`. Review every rewritten line: each `./.github/actions/<name>` should now read `$/.github/actions/<name>`, and each pinned SHA its tag.
-- [ ] Run a branch push and check that one job of each kind still finds its local action at the right commit: a fast-lane Rust leg, the full lane's `check-windows`, a nightly job by `workflow_dispatch`, and `release.yml` dispatched as a dry run.
+- [ ] Run a branch push and check that one job of each kind still finds its local action at the right commit: a fast-lane Rust leg and the full lane's `check-windows`. The nightly and release dispatches need `main`: see Post-merge checks.
 - [x] Commit the rewritten workflows, the composite actions and `.github/workflows/actions.lock`.
 - [x] Add a `lockfile` job to `ci.yml`, modelled on the extension's `verify-lockfile.yml`:
   - on `ubuntu-24.04`, as the repository's other Linux jobs, with `permissions: contents: read`;
@@ -88,7 +88,7 @@ After merge, the post-merge checks below: turn on **Require lockfile** once the 
   - `gh actions-lock --verify`, with `GH_TOKEN: ${{ github.token }}`.
   Add it to `fast-gate`'s `needs`, and give it its own line in the gate's `case` (`lockfile) needed=true ;;`). Without that line the gate reads it under the `ts` flag, so on a PR where `ts` is false the job's `success` fails the gate. Keep it out of `cargo xtask changes`' skips: a workflow edit is the one change it exists to catch.
 - [x] Update `tools/xtask/src/workflows.rs` and `workflows/compile_cache.rs`: their path matches, plus new tests that the `lockfile` job exists, runs `--verify`, is in `fast-gate`'s `needs` with `needed=true` and installs the `doctor.rs` pin.
-- [x] Check that Dependabot still updates the actions the composite actions call. Its `/.github/actions/*` directories stay; it should regenerate their lockfile entries in the same PR. If it can't, write down how those updates happen. Its `/.github/actions/*` directories stay. Whether its update of a composite action's `uses:` line also rewrites the lockfile is unconfirmed until its first weekly PR (a post-merge check); if not, the `lockfile` job fails and `contributing.md` says to run `gh actions-lock` on its branch.
+- [x] Check that Dependabot still updates the actions the composite actions call. Its `/.github/actions/*` directories stay. Whether its update of a composite action's `uses:` line also rewrites the lockfile is unconfirmed until its first weekly PR (a post-merge check); if not, the `lockfile` job fails and `contributing.md` says to run `gh actions-lock` on its branch.
 - [x] Amend ADR 0019: actions are locked by `.github/workflows/actions.lock`, with tags in the workflow files; `gh actions-lock` after adding a workflow or changing a `uses:` line; the `lockfile` job. Leave the date of the change and a link to this todo.
 - [x] Add a "Lock the actions" note for contributors to `docs/guidelines/contributing.md`: when to run `gh actions-lock`, and that `--relock` and `--accept-moved` need a reviewed reason.
 
