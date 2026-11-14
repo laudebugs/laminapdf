@@ -271,8 +271,8 @@ tasks:
   fuzz <target> [--time <seconds>]
                     run a fuzz target (lex, parse_object, flate_decode, open, page_tree, content,
                     content_append_scan, ops_json, save_roundtrip, copy_pages, extract_text,
-                    extract, markdown, document, xmp_parse, engine_protocol_decode) with cargo +nightly fuzz (default 60 s); seeds come from fixtures/
-                    and fuzz/seeds/
+                    extract, markdown, document, xmp_parse, engine_protocol_decode) with
+                    cargo +nightly fuzz (default 60 s); seeds come from fixtures/ and fuzz/seeds/
   fuzz --all [--time <seconds>] [--jobs <n>]
                     run every fuzz target, <n> at once (default 1: in turn; at most 8); built
                     once first, each run logged to target/xtask/fuzz/<target>.log and printed
