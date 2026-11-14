@@ -27,7 +27,7 @@ import { HighlightLayer } from "../layers/highlight-layer.js";
 import { LinkLayer, type LinkLayerOptions, type LinkPreviewRequest } from "../layers/link-layer.js";
 import { TextLayer, type TextLayerOptions, type TextSelection } from "../layers/text-layer.js";
 import { isRotation, keptTop, PageLayout, type PageSize, type Rotation, rotated } from "../layout/page-layout.js";
-import { type PageMoves, pageMoves } from "../layout/page-moves.js";
+import { keptPage, movedKeys, type PageMoves, pageMoves, samePageIds } from "../layout/page-moves.js";
 import { range } from "../layout/range.js";
 import {
   appearanceField,
@@ -114,10 +114,11 @@ export interface ViewerEventMap {
   /** `invalidate` redrew these pages; each has its displayed size in points now. */
   invalidate: { readonly pages: readonly InvalidatedPage[] };
   /**
-   * An edit inserted, deleted or moved pages: each page now, by index, was at index `from[i]`
-   * before, or is new (`undefined`). The pages' sizes are `pageSizes()`.
+   * An edit, undo or redo inserted, deleted or moved pages: `moves` says where each page went
+   * (`from[i]`: the index page `i` had, or `undefined` for a new page). The pages' sizes are
+   * `pageSizes()`.
    */
-  reorder: { readonly from: readonly (number | undefined)[] };
+  reorder: { readonly moves: PageMoves };
 }
 
 /** A page `invalidate` redrew: its index and its displayed size in points now. */
@@ -476,7 +477,13 @@ export class Viewer {
         if (reopened) this.#reopened();
         if (replay === "lost") edits.reset(this.#client.document);
       }),
-      this.#client.on("edit", ({ history }) => edits.follow(history)),
+      this.#client.on("edit", ({ history, order }) => {
+        // Every edit call that changed the page list, whoever made it, moves the view's pages
+        // before its pages are drawn again. A restarted worker's document has a new ID: the
+        // restart (`#reopened`) follows its pages.
+        if (order !== undefined && this.#client.document?.id === this.#documentId) this.#reorder(order);
+        edits.follow(history);
+      }),
     );
     return edits;
   }
@@ -765,7 +772,7 @@ export class Viewer {
     const result = await call();
     // Another document opened meanwhile: these pages aren't its pages.
     if (this.#opens === opens) {
-      if (result.order !== undefined) this.#reorder(result.order);
+      // The client's `edit` event moved the view's pages already, when the list changed.
       this.invalidate(
         result.pages.map((page) => page.index),
         new Map(result.pages.map((page) => [page.index, page])),
@@ -998,9 +1005,8 @@ export class Viewer {
     if (document === undefined) return;
     this.#documentId = document.id;
     // The edits came back in another page list, or didn't: the view follows its pages.
-    if (document.pages.length !== this.#ids.length || document.pages.some((page, i) => page.id !== this.#ids[i])) {
-      this.#reorder(document.pages);
-    }
+    const ids = document.pages.map((page) => page.id);
+    if (!samePageIds(ids, this.#ids)) this.#reorder(document.pages);
     const edited = [...this.#revisions.keys()];
     const sizes = new Map(edited.map((index) => [index, document.pages[index] as PageSize]));
     this.invalidate(edited, sizes);
@@ -1022,7 +1028,7 @@ export class Viewer {
     const top = this.#place();
     this.#unmountAll();
     this.#cache.remap(moves.to, viewKeyAt);
-    this.#revisions = remapKeys(this.#revisions, moves);
+    this.#revisions = movedKeys(this.#revisions, moves);
     this.#pinned = new Set([...this.#pinned].flatMap((page) => keptPage(moves, page)));
     if (this.#focusTarget !== undefined) this.#focusTarget = moves.at(this.#focusTarget).page;
     const pending = this.#pending;
@@ -1030,11 +1036,13 @@ export class Viewer {
       this.#pending = { ...pending, point: movedPoint(moves, pending.point) };
     this.#ids = order.map((page) => page.id);
     this.#sizes = order.map((page) => ({ width: page.width, height: page.height }));
+    // The current page first: a fit zoom fits it, and find starts a search under way from it.
+    const current = order.length === 0 ? 0 : moves.at(this.#state.currentPage).page;
+    this.#setState({ pageCount: order.length, currentPage: current });
     this.#text?.open();
     this.#previews?.clear();
     this.history.remap((page) => moves.at(page));
-    this.find.remap((page) => moves.at(page), order.length, moves.added);
-    this.#setState({ pageCount: order.length });
+    this.find.remap(moves);
     if (this.#layout !== undefined) {
       this.#relayout(this.#viewport());
       if (top !== undefined && order.length > 0) this.#show({ ...top, point: movedPoint(moves, top.point) });
@@ -1042,7 +1050,7 @@ export class Viewer {
       // edit as its call answers.
       this.#update();
     }
-    this.#emit("reorder", { from: moves.from });
+    this.#emit("reorder", { moves });
     this.#emit("renderstats", this.stats());
     this.#schedule();
   }
@@ -2025,22 +2033,6 @@ export class Viewer {
 /** Creates a viewer over `options.client`'s document worker. */
 export function createViewer(options: CreateViewerOptions): Viewer {
   return new Viewer(options);
-}
-
-/** `map`'s entries at their pages' indices after `moves`; a deleted page's go. */
-function remapKeys<T>(map: ReadonlyMap<number, T>, moves: PageMoves): Map<number, T> {
-  const next = new Map<number, T>();
-  for (const [page, value] of map) {
-    const to = moves.to(page);
-    if (to !== undefined) next.set(to, value);
-  }
-  return next;
-}
-
-/** `page`'s index after `moves`, as a list: empty when it was deleted. */
-function keptPage(moves: PageMoves, page: number): number[] {
-  const to = moves.to(page);
-  return to === undefined ? [] : [to];
 }
 
 /** Where `point` is after `moves`: on its page, or at the top of the page that took a deleted one's place. */

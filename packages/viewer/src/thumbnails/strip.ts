@@ -12,6 +12,7 @@ import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool } from "../canvas/pool.js";
 import type { ViewerClient } from "../client.js";
 import { PageLayout, type PageSize, type Rotation, rotated } from "../layout/page-layout.js";
+import type { PageMoves } from "../layout/page-moves.js";
 import { appearanceField, appearanceKey, type OpenedDocument } from "../protocol.js";
 import type { InvalidatedPage, Viewer } from "../view/viewer.js";
 
@@ -104,7 +105,7 @@ export class ThumbnailStrip {
     on("keydown", (e) => this.#key(e));
     this.#cleanup.push(viewer.subscribe(() => this.#viewChanged()));
     this.#cleanup.push(viewer.on("invalidate", ({ pages }) => this.#invalidate(pages)));
-    this.#cleanup.push(viewer.on("reorder", ({ from }) => this.#reorder(from)));
+    this.#cleanup.push(viewer.on("reorder", ({ moves }) => this.#reorder(moves)));
     // A strip shown later (its tab opened, its sheet raised) mounts what it now shows.
     const resized = new ResizeObserver(() => this.#schedule());
     resized.observe(root);
@@ -181,28 +182,26 @@ export class ThumbnailStrip {
   }
 
   /**
-   * An edit inserted, deleted or moved pages (page `i` now was page `from[i]`): the thumbnails
-   * follow their pages, a moved one keeping its picture, and the strip takes the new page list.
+   * An edit inserted, deleted or moved pages (`moves`): the thumbnails follow their pages, a moved
+   * one keeping its picture, and the strip takes the new page list. After a worker restart the
+   * document is a new one (a new ID), whose pictures start afresh.
    */
-  #reorder(from: readonly (number | undefined)[]): void {
+  #reorder(moves: PageMoves): void {
     const document = this.#client.document;
-    if (document === undefined || this.#document?.id !== document.id) return;
-    const to = new Map<number, number>();
-    from.forEach((old, index) => {
-      if (old !== undefined) to.set(old, index);
-    });
+    if (document === undefined) return;
     this.#unmountAll();
-    this.#cache.remap(
-      (page) => to.get(page),
-      (key, page) => {
+    if (this.#document?.id === document.id) {
+      this.#cache.remap(moves.to, (key, page) => {
         const fields = key.split(":");
         fields[1] = String(page);
         return fields.join(":");
-      },
-    );
+      });
+    } else {
+      this.#cache.clear();
+    }
     this.#document = document;
     const last = Math.max(0, document.pages.length - 1);
-    this.#focus = Math.min(to.get(this.#focus) ?? this.#focus, last);
+    this.#focus = Math.min(moves.at(this.#focus).page, last);
     this.#current = Math.min(this.#viewer.getState().currentPage, last);
     this.#relayout();
   }

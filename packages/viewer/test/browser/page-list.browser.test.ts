@@ -231,4 +231,25 @@ describe("edits that change the page list", () => {
     expect(v.edits.getState().history.steps[0]?.pages).toEqual([0]);
     expect(v.edits.getState().history.steps[0]?.pageIds).toEqual([charlie]);
   });
+
+  it("keeps the pictures of a page that moved", async () => {
+    const { client, v, ids } = await showing();
+    v.goToPage(2);
+    await expect.poll(() => v.stats().pages[2], { timeout: 20_000 }).toBe("sharp");
+    // The page at the top of the view, drawn, goes to the front: the view follows it there.
+    const top = v.getState().visibleRange.first;
+    await expect.poll(() => v.stats().pages[top], { timeout: 20_000 }).toBe("sharp");
+    const started: number[] = [];
+    client.on("render-start", ({ page }) => started.push(page));
+    await v.edits.apply([move([ids[top] as string], "start")], "Move a page");
+    expect(v.getState().visibleRange.first).toBe(0);
+    await expect.poll(() => v.stats().pages[0], { timeout: 20_000 }).toBe("sharp");
+    expect(started).not.toContain(0);
+  });
+
+  it("follows an edit made through the client, whoever made it", async () => {
+    const { client, v, ids } = await showing();
+    await client.applyEdit([del([ids[0] as string])]);
+    await expectPages(client, v, ["Bravo", "Charlie", "Delta"]);
+  });
 });

@@ -78,6 +78,7 @@ function newEditState(source: RenderSource, renderLimits: RenderOpenOptions["lim
     diverged: false,
     session: newSession(),
     order: undefined,
+    reorders: new Map(),
     queue: Promise.resolve(),
   };
 }
@@ -116,6 +117,11 @@ export interface EditState {
    * pages from it. Undefined until the first edit reads it.
    */
   order: PageOrder | undefined;
+  /**
+   * The steps that changed the page list, by ID: `true` for those that only moved pages, which
+   * draw as they did. Undo and redo report no page order, so these say when to read it.
+   */
+  readonly reorders: Map<number, boolean>;
   /** The edit calls running and waiting, one after another (edit.ts's `serial`). */
   queue: Promise<unknown>;
 }

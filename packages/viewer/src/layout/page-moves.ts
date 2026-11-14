@@ -63,3 +63,24 @@ function nearest(now: readonly (number | undefined)[], direction: 1 | -1): (numb
   }
   return out;
 }
+
+/** `map`'s entries at their pages' indices after `moves`; a deleted page's go. */
+export function movedKeys<T>(map: ReadonlyMap<number, T>, moves: PageMoves): Map<number, T> {
+  const next = new Map<number, T>();
+  for (const [page, value] of map) {
+    const to = moves.to(page);
+    if (to !== undefined) next.set(to, value);
+  }
+  return next;
+}
+
+/** Whether `a` and `b` list the same page IDs in the same order. */
+export function samePageIds(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((id, i) => id === b[i]);
+}
+
+/** `page`'s index after `moves`, as a list: empty when it was deleted. */
+export function keptPage(moves: PageMoves, page: number): number[] {
+  const to = moves.to(page);
+  return to === undefined ? [] : [to];
+}
