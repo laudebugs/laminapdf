@@ -81,7 +81,14 @@ fn start_saver(handle: tauri::AppHandle, session: Arc<Session>) {
         loop {
             std::thread::sleep(SAVE_EVERY);
             if session.tracker().take_dirty() {
-                flush(&handle);
+                // The window-state plugin asks each window for its size while it holds its cache's
+                // lock, and its move and resize handlers on the main thread take that lock; off
+                // the main thread, Windows sends those questions to it and waits, so both stall.
+                let on_main = handle.clone();
+                if let Err(error) = handle.run_on_main_thread(move || save_windows(&on_main)) {
+                    tracing::warn!("could not reach the main thread to save the windows: {error}");
+                }
+                save_session(&handle);
             }
         }
     });
@@ -90,13 +97,23 @@ fn start_saver(handle: tauri::AppHandle, session: Arc<Session>) {
     }
 }
 
-/// Writes the windows' sizes and places, and the session when the preferences keep it. The
-/// window-state plugin saves on its own only when the app quits cleanly; saving with the session
-/// keeps them after a crash or a forced quit too.
+/// Writes the windows' sizes and places, and the session when the preferences keep it; on the
+/// main thread (the app quitting). The window-state plugin saves on its own only when the app
+/// quits cleanly; saving with the session keeps them after a crash or a forced quit too.
 pub(crate) fn flush(app: &tauri::AppHandle) {
+    save_windows(app);
+    save_session(app);
+}
+
+/// Writes the windows' sizes and places. On the main thread only: see the saver.
+fn save_windows(app: &tauri::AppHandle) {
     if let Err(error) = app.save_window_state(WINDOW_STATE) {
         tracing::warn!("could not save the windows' sizes: {error}");
     }
+}
+
+/// Writes the session, when the preferences keep it.
+fn save_session(app: &tauri::AppHandle) {
     if !keeps(app.state::<Prefs>().get()) {
         return;
     }
