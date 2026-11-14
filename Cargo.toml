@@ -168,6 +168,8 @@ tauri-plugin-dialog = "=2.8.3"
 tauri-plugin-log = "=2.10.1"
 tauri-plugin-opener = "=2.7.2"
 tauri-plugin-single-instance = "=2.5.5"
+# Each window's size, position and maximised state across launches (D4d). MIT OR Apache-2.0
+tauri-plugin-window-state = "=2.5.0"
 muda = { version = "=0.20.0", default-features = false }  # MIT OR Apache-2.0; Tauri's menus (the desktop app's tests)
 # The desktop reader's file watching (D3b): the OS's change events (FSEvents, inotify,
 # ReadDirectoryChangesW). CC0-1.0
@@ -179,7 +181,7 @@ file-id = "=0.2.3"
 # RecentManager (MIT).
 objc2 = "=0.6.5"
 objc2-app-kit = { version = "=0.3.2", default-features = false, features = ["std", "NSDocumentController"] }
-objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std", "NSString", "NSURL"] }
+objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std", "NSArray", "NSData", "NSError", "NSString", "NSURL"] }
 windows = { version = "=0.62.2", default-features = false, features = ["std", "Win32_Foundation", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_UI_Shell", "Win32_UI_Shell_Common"] }
 gtk = { version = "=0.18.2", default-features = false }
 # The desktop end-to-end tests' plugins (D2e), only in `laminapdf-desktop`'s `e2e` builds: the

@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `D4d` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Desktop app §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D4a](../done/D4a-windows-tabs-and-session-restore.md) |
+| Depends on | [D4a](./D4a-windows-tabs-and-session-restore.md) |
 | ADRs | Follows ADR 0008, ADR 0010 |
 | Branch | `feat/d4d-session-restore` |
 | PR title | `feat(desktop): restore the last session's windows and tabs on launch` |
 | Size | L (400–800): the session file and its resolver, window geometry, the macOS bookmark helper, the privacy rule and their tests |
-| PR | — |
+| PR | [#573](https://github.com/laudebugs/laminapdf/pull/573) |
 
 ## Goal
 
@@ -42,18 +42,18 @@ On relaunch, Lamina PDF brings back the last session: its windows with their siz
 
 ## Tasks
 
-- [ ] `src-tauri/src/session.rs`: `SessionFile`, `TabRef`, `fn load(dir) -> Result<Option<SessionFile>, SessionError>`, `fn save(dir, &SessionFile)`, `fn resolve(tab: &TabRef) -> Resolved { Found(PathBuf) | Moved(PathBuf) | Missing }`
-- [ ] The macOS bookmark helper
-- [ ] The window-state plugin and its off-screen check
-- [ ] The privacy rule, the two settings and their link
-- [ ] Lazy restore, and the "missing" tab with "Locate…"
+- [x] `src-tauri/src/session.rs`: `SessionFile`, `TabRef`, `fn load(dir) -> Result<Option<SessionFile>, SessionError>`, `fn save(dir, &SessionFile)`, `fn resolve(tab: &TabRef) -> Resolved { Found(PathBuf) | Moved(PathBuf) | Missing }`
+- [x] The macOS bookmark helper
+- [x] The window-state plugin and its off-screen check
+- [x] The privacy rule, the two settings and their link
+- [x] Lazy restore, and the "missing" tab with "Locate…"
 
 ## Acceptance criteria
 
-- [ ] Quit + relaunch restores windows (geometry), tabs and per-tab page and zoom (e2e); disabling "Reopen last session" starts empty.
-- [ ] Session restore works after the recent list is cleared (e2e: open 3 files, "Clear recent files", quit, relaunch → the 3 tabs come back).
-- [ ] With "Remember recent files" off, quitting leaves no `session.json` in `app_config_dir()` and relaunch starts empty (e2e + unit).
-- [ ] On macOS, a file renamed between sessions is restored through its bookmark (manual check recorded; unit test of the resolve order with a fake resolver).
+- [x] Quit + relaunch restores windows (geometry), tabs and per-tab page and zoom (e2e); disabling "Reopen last session" starts empty.
+- [x] Session restore works after the recent list is cleared (e2e: open 3 files, "Clear recent files", quit, relaunch → the 3 tabs come back).
+- [x] With "Remember recent files" off, quitting leaves no `session.json` in `app_config_dir()` and relaunch starts empty (e2e + unit).
+- [x] On macOS, a file renamed between sessions is restored through its bookmark (manual check recorded; unit test of the resolve order with a fake resolver): `laminapdf-desktop-os`'s `a_bookmark_should_find_its_file_after_a_rename` renames a real file on macOS and finds it again, and `session::resolve`'s order has fake-resolver tests.
 
 ## Post-merge checks
 
@@ -75,8 +75,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
 - [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

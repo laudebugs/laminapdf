@@ -2,6 +2,8 @@
 // records the main process's commands and a viewer that records what it shows: opening adds tabs,
 // showing another sets the first aside with its view, closing closes its document only, the
 // reader's own Close closes the shown tab and shows the next, and a move hands the document over.
+// The last session's tabs come back unopened, the shown one opening at once, the others when shown,
+// a gone file offering Locate…, and the tabs and views are reported to the main process.
 
 import { type Platform, ReaderController } from "@laminapdf/ui";
 import type { Viewer, ViewPosition } from "@laminapdf/viewer";
@@ -57,6 +59,11 @@ function harness() {
     if (command === "move_tab") return "doc-1";
     if (command === "tab_drag_end") return drop.to;
     if (command === "unlock_document") return doc(Number(args?.doc), "locked.pdf");
+    if (command === "session_open") {
+      const token = String(args?.token);
+      if (token === "gone") throw new DesktopEngineError("io", "the file could not be opened");
+      return doc(100 + Number(token.slice(1)), `${token}.pdf`);
+    }
     return undefined;
   };
   const shell: DesktopShell = {
@@ -83,6 +90,7 @@ function harness() {
       restored.push((position as unknown as { point: { page: number } }).point.page);
     },
     viewPosition: () => view,
+    subscribe: () => () => undefined,
   } as unknown as Viewer;
   const tabs = new WindowTabs(shell, client, viewer);
   const reader = new ReaderController({} as Platform, desktopOpener(shell, client, viewer, tabs));
@@ -293,5 +301,69 @@ describe("a window's tabs", () => {
     });
     expect(lost).toEqual(["a.pdf"]);
     expect(names(tabs)).toEqual(["b.pdf"]);
+  });
+});
+
+describe("the last session's tabs", () => {
+  const restoredWindow = (active: number | null) => ({
+    tabs: [
+      { token: "t1", name: "a.pdf", view: at(4) },
+      { token: "t2", name: "b.pdf", view: at(6) },
+    ],
+    active,
+  });
+  const opened = (invoked: { command: string; args?: Record<string, unknown> }[]) =>
+    invoked.filter((c) => c.command === "session_open").map((c) => c.args?.token);
+
+  it("come back unopened, and the shown one opens at once at its view", async () => {
+    const { tabs, invoked, restored } = harness();
+    await tabs.restore(restoredWindow(1));
+    expect(names(tabs)).toEqual(["a.pdf", "b.pdf"]);
+    expect(opened(invoked)).toEqual(["t2"]);
+    expect([tabs.shown?.file.name, restored.at(-1)]).toEqual(["b.pdf", 6]);
+  });
+
+  it("open the others when they are first shown", async () => {
+    const { tabs, invoked, client } = harness();
+    await tabs.restore(restoredWindow(0));
+    await tabs.activate(tabs.getState().tabs[1]?.id ?? "");
+    expect(opened(invoked)).toEqual(["t1", "t2"]);
+    expect(client.current?.doc).toBe(102);
+  });
+
+  it("show a tab whose file is gone on its own tab, unopened, and let Locate… show the file chosen", async () => {
+    const { tabs, reader } = harness();
+    await tabs.restore({ tabs: [{ token: "gone", name: "gone.pdf", view: null }], active: 0 });
+    const state = reader.getState();
+    const file = state.phase === "error" ? state.file : undefined;
+    expect([
+      state.phase,
+      state.phase === "error" ? state.error.code : undefined,
+      tabs.shown?.file.name,
+      file === undefined ? false : tabs.isUnopened(file),
+    ]).toEqual(["error", "io", "gone.pdf", true]);
+    await tabs.located(tabs.shown?.id ?? "", doc(7, "found.pdf"));
+    expect([reader.getState().phase, tabs.tabOf(7)?.file.name]).toEqual(["open", "gone.pdf"]);
+  });
+
+  it("close a tab that never opened without closing a document", async () => {
+    const { tabs, closed } = harness();
+    await tabs.restore(restoredWindow(0));
+    await tabs.close(tabs.getState().tabs[1]?.id ?? "");
+    expect([names(tabs), closed()]).toEqual([["a.pdf"], []]);
+  });
+
+  it("are reported to the main process with their documents, tokens, views and the shown one", async () => {
+    const { tabs, invoked, scrollTo } = harness();
+    await tabs.restore(restoredWindow(0));
+    scrollTo(9);
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    type Reported = { doc: number | null; token: string | null; view: ViewPosition };
+    const report = invoked.filter((c) => c.command === "session_tabs").at(-1)?.args as
+      | { active: number | null; tabs: Reported[] }
+      | undefined;
+    const reported = report?.tabs ?? [];
+    const pages = reported.map((t) => (t.view as unknown as { point: { page: number } }).point.page);
+    expect([report?.active, pages, reported[1]]).toEqual([0, [9, 6], { doc: null, token: "t2", view: at(6) }]);
   });
 });

@@ -65,7 +65,7 @@ const config: KnipConfig = {
     // where knip's plugin looks, and it builds the specs' paths, which knip can't follow.
     "apps/desktop": {
       entry: ["e2e/specs/*.e2e.ts"],
-      "webdriver-io": { config: ["e2e/wdio.conf.ts", "e2e/wdio.cold-open.conf.ts"] },
+      "webdriver-io": { config: ["e2e/wdio*.conf.ts"] },
       // The config's `runner: "local"` loads it; knip's plugin doesn't map the name to the package.
       ignoreDependencies: ["@wdio/local-runner"],
     },

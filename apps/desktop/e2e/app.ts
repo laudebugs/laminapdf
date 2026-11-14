@@ -265,3 +265,60 @@ export async function closeAll(): Promise<void> {
   }
   throw new Error("the window didn't go back to its start screen");
 }
+
+/** Waits until the strip shows `name` as the shown tab. */
+export async function waitForShown(name: string): Promise<void> {
+  await browser.waitUntil(async () => (await shownTab()) === name, { timeoutMsg: `${name} isn't the shown tab` });
+}
+
+/** Moves the shown tab to a new window and switches to it; resolves to this window's handle. */
+export async function moveToNewWindow(): Promise<string> {
+  const here = await browser.getWindowHandle();
+  const before = await browser.getWindowHandles();
+  await runCommand("Move tab to new window");
+  await browser.waitUntil(async () => (await browser.getWindowHandles()).length > before.length, {
+    timeoutMsg: "no new window",
+  });
+  const added = (await browser.getWindowHandles()).find((handle) => !before.includes(handle));
+  if (added === undefined) throw new Error("no new window handle");
+  await browser.switchToWindow(added);
+  return here;
+}
+
+/**
+ * Opens Settings from the More menu, flips the switch labelled `label`, and closes it. The switch
+ * is flipped with its input's own `click()`: the embedded WebDriver's clicks and keys are synthetic
+ * events, which reach React's handlers (so buttons work) but never run a checkbox's built-in
+ * toggle, which a person's click or Space does; `click()` runs it.
+ */
+export async function toggleSetting(label: string): Promise<void> {
+  await openSetting(label);
+  const input = settingSwitch(label);
+  const was = await input.isSelected();
+  await browser.execute((text) => {
+    const found = [...globalThis.document.querySelectorAll("label")].find((l) => l.textContent?.includes(text));
+    found?.querySelector<HTMLInputElement>('input[role="switch"]')?.click();
+  }, label);
+  await browser.waitUntil(async () => (await input.isSelected()) !== was, { timeoutMsg: `${label} didn't flip` });
+  await browser.keys("Escape");
+}
+
+/** Whether the switch labelled `label` in Settings can't be changed now. */
+export async function settingDisabled(label: string): Promise<boolean> {
+  await openSetting(label);
+  const disabled = (await settingSwitch(label).getAttribute("disabled")) !== null;
+  await browser.keys("Escape");
+  return disabled;
+}
+
+/** Opens Settings and waits for the switch labelled `label`. */
+async function openSetting(label: string): Promise<void> {
+  await $('button[aria-label="More"]').click();
+  await $('//*[@role="menuitem"][contains(., "Settings")]').click();
+  await settingSwitch(label).waitForExist();
+}
+
+/** The switch labelled `label` in the open Settings dialog. */
+function settingSwitch(label: string): ChainablePromiseElement {
+  return $(`//label[contains(., "${label}")]//input[@role="switch"]`);
+}

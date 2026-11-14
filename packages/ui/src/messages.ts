@@ -536,6 +536,11 @@ const EN = {
   "settings.files.rememberRecent": "Remember recent files",
   "settings.files.rememberRecent.help":
     "The start window, the Dock or taskbar and your file manager's Recent list show the files you open. The list stays on this computer. Turning it off clears Lamina PDF's lists. On Windows, File Explorer's Recent items keep the files until you remove them there.",
+  "settings.files.reopenLast": "Reopen last session",
+  "settings.files.reopenLast.help":
+    "When Lamina PDF starts, the windows and tabs you had open come back, each at its page and zoom.",
+  "settings.files.reopenLast.needsRecent":
+    'Needs "Remember recent files": the last session lists the same files, so Lamina PDF keeps it only while that switch is on.',
   "settings.files.reloadOnChange": "Reload files that change on disk",
   "settings.files.reloadOnChange.help":
     "When another app saves a file you have open, Lamina PDF shows the new version at the same page and zoom.",
@@ -551,6 +556,8 @@ const EN = {
   "reader.file.missing.title": "File was moved or deleted",
   "reader.file.missing.body":
     "Lamina PDF is still showing the version it opened. Locate the file to keep following its changes, or close the document.",
+  "reader.file.missing.restored":
+    "Lamina PDF couldn't find this file where it was when you last quit. Locate it to open it here, or close the tab.",
   "reader.file.missing.locate": "Locate…",
   "reader.file.missing.close": "Close",
   "reader.file.unreadable": "File changed but couldn't be read. Lamina PDF tries again when it next changes.",

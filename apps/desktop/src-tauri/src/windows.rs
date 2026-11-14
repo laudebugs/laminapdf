@@ -82,6 +82,12 @@ impl Windows {
         format!("doc-{}", state.last)
     }
 
+    /// New windows' numbers count on from `last` (the restored windows' highest).
+    pub(crate) fn count_from(&self, last: u32) {
+        let mut state = self.state();
+        state.last = state.last.max(last);
+    }
+
     /// `label` came to the front.
     pub(crate) fn focused(&self, label: &str) {
         let mut state = self.state();
@@ -275,7 +281,7 @@ pub(crate) fn others(app: &AppHandle, except: &str) -> Vec<WindowEntry> {
 }
 
 /// `main` first, then `doc-<n>` by number.
-fn window_order(label: &str) -> (u8, u32) {
+pub(crate) fn window_order(label: &str) -> (u8, u32) {
     match label.strip_prefix("doc-").and_then(|n| n.parse().ok()) {
         Some(n) => (1, n),
         None => (0, 0),

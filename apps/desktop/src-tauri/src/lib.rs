@@ -17,6 +17,7 @@ mod open;
 mod opened;
 mod prefs;
 mod recent;
+mod session;
 #[cfg(feature = "e2e")]
 mod startup;
 mod store;
@@ -147,17 +148,33 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(tab_drag::TabDrag::default());
     app.manage(menu::MenusJson::embedded());
     app.manage(menu::NativeMenus::default());
-    // Windows are made here, not in tauri.conf.json, so the app chooses every label.
-    windows::build_window(app.handle(), MAIN_WINDOW, None)?;
-    // The menu bar (macOS) or each window's menus (Windows, Linux), from the shared shortcut map.
+    // The last session's windows (D4d), else one window. Windows are made here, not in
+    // tauri.conf.json, so the app chooses every label.
+    let restored = session::app::start(app, config);
+    // The menus first: each window is made with them, so the window-state plugin puts its size
+    // back with the menu bar already in it. On Windows a menu bar added later takes its height
+    // out of the restored size, and the window came back 20 px shorter at each launch.
+    menu::rebuild_now(app.handle());
+    let labels: Vec<String> = if restored.is_empty() {
+        vec![MAIN_WINDOW.to_owned()]
+    } else {
+        restored.into_iter().map(|window| window.label).collect()
+    };
+    for label in &labels {
+        windows::build_window(app.handle(), label, None)?;
+    }
+    // The menu bar (macOS) or each window's menus (Windows, Linux), from the shared shortcut map,
+    // again now that the Window menu can list the windows.
     menu::rebuild(app.handle());
     #[cfg(feature = "e2e")]
     startup::window();
     tracing::info!(version = %app.package_info().version, "Lamina PDF started");
-    // A cold start's PDFs (Windows, Linux, a macOS terminal): queued until the webview takes them.
+    // A cold start's PDFs (Windows, Linux, a macOS terminal), after the restored tabs, in the
+    // first window: queued until its webview takes them.
+    let first = labels.first().map_or(MAIN_WINDOW, String::as_str);
     let cwd = std::env::current_dir().unwrap_or_default();
     let args: Vec<OsString> = std::env::args_os().collect();
-    open::route_open(app.handle(), MAIN_WINDOW, open::paths_from_args(&args, &cwd));
+    open::route_open(app.handle(), first, open::paths_from_args(&args, &cwd));
     Ok(())
 }
 
@@ -183,6 +200,9 @@ macro_rules! app_commands {
             commands::window_list,
             commands::set_window_title,
             commands::take_pending_tabs,
+            session::app::session_tabs,
+            session::app::take_session_tabs,
+            session::app::session_open,
             commands::menu_state,
             commands::close_window,
             commands::quit,
@@ -262,6 +282,14 @@ pub fn run() -> Result<(), DesktopError> {
         })
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        // Each window's size, position and maximised state, kept by its label and put back when a
+        // window of that label opens (D4d); a position on a monitor that went away isn't restored.
+        // Rust's own: the webview is granted none of its commands.
+        .plugin(
+            tauri_plugin_window_state::Builder::new()
+                .with_state_flags(session::app::WINDOW_STATE)
+                .build(),
+        )
         .setup(setup)
         .on_window_event(on_window_event)
         .on_menu_event(|app, event| menu::on_menu_event(app, &event))
@@ -290,6 +318,7 @@ fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
         // A closed window's documents close, their passwords are wiped, its engine stops, and
         // their files are no longer watched.
         WindowEvent::Destroyed => {
+            session::app::window_closed(window.app_handle(), window.label());
             window.state::<Arc<Engines>>().close_window(window.label());
             window.state::<watch::Watcher>().unwatch_window(window.label());
             window.state::<windows::Windows>().closed(window.label());
@@ -311,7 +340,10 @@ fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
 
 fn on_run_event(app: &tauri::AppHandle, event: &RunEvent) {
     match event {
-        RunEvent::Exit => app.state::<Arc<Engines>>().shutdown(),
+        RunEvent::Exit => {
+            session::app::flush(app);
+            app.state::<Arc<Engines>>().shutdown();
+        }
         // macOS hands Finder's, the Dock's and `open`'s files to the running app, cold or warm,
         // with or without a window.
         #[cfg(target_os = "macos")]
@@ -322,6 +354,9 @@ fn on_run_event(app: &tauri::AppHandle, event: &RunEvent) {
         // A macOS app keeps running when its last window closes; quitting is the user's (⌘Q).
         #[cfg(target_os = "macos")]
         RunEvent::ExitRequested { code: None, api, .. } => api.prevent_exit(),
+        // The app quits (⌘Q, or the last window closed outside macOS): the windows that close now
+        // stay in the session, which is written before they go.
+        RunEvent::ExitRequested { .. } => session::app::quitting(app),
         // The Dock icon clicked with no window open: a new, empty one.
         #[cfg(target_os = "macos")]
         RunEvent::Reopen {

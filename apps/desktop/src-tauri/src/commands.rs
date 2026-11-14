@@ -213,6 +213,7 @@ pub(crate) fn set_preferences(
     if was.stops_remembering(value) {
         opened::forget(&app, recent.clear(), true);
     }
+    crate::session::app::preferences_changed(&app, was, value);
 }
 
 /// This window's commands' state for the native menus: which are enabled, and which toggles and
