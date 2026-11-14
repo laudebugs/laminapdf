@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2s` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E2 page organisation §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E2e](../done/E2e-content-append-api.md), [E2f](../done/E2f-page-geometry.md), [E2r](../done/E2r-planner-page-checks.md) |
@@ -35,7 +35,7 @@ Resize pages (scaling the content, or extending the page around an anchor) and s
 **Out of scope** (and which todo covers it)
 
 - Setting boxes and cropping → [E2f](../done/E2f-page-geometry.md)
-- The page-setup dialogs → [E2g](E2g-page-labels.md)
+- The page-setup dialogs → [E2g](../ready/E2g-page-labels.md)
 
 **Editor facts**
 
