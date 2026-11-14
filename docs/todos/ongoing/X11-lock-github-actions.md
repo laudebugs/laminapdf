@@ -11,7 +11,7 @@
 | Branch | `ci/x11-lock-github-actions` |
 | PR title | `ci: lock the workflows' actions with a lockfile, and check it on every pull request` |
 | Size | M (the rewritten `uses:` lines and the generated lockfile don't count) |
-| PR | [laudebugs/laminapdf#564](https://github.com/laudebugs/laminapdf/pull/564) |
+| PR | [laudebugs/laminapdf#580](https://github.com/laudebugs/laminapdf/pull/580) |
 
 ## Goal
 
