@@ -169,7 +169,7 @@ export interface PageBoxes {
 }
 
 /**
- * CropMargins `cropPages` takes off, in points of the page as it shows (rotation and user unit
+ * Margins `cropPages` takes off, in points of the page as it shows (rotation and user unit
  * applied), so one set crops pages of any size or rotation by the same visible amount. Each side
  * left out is 0.
  *

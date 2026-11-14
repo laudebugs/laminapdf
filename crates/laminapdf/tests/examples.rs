@@ -12,6 +12,7 @@ mod add_links;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/check_what_a_file_hides.rs"]
 mod check_what_a_file_hides;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/crop_pages.rs"]
 mod crop_pages;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]

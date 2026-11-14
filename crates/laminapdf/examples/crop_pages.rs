@@ -1,6 +1,6 @@
 //! Crop every page by half an inch on each side, whatever its size or rotation.
 //!
-//! CropMargins are measured on the page as it shows, so a page turned on its side loses the same
+//! Margins are measured on the page as it shows, so a page turned on its side loses the same
 //! strip from its visible top as an upright one. Cropping only hides content: the edit lists the
 //! pages whose hidden content stays in the file, where text extraction still finds it.
 //!

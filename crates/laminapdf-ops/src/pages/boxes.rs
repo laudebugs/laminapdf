@@ -188,7 +188,7 @@ impl SetPageBoxes {
     }
 }
 
-/// CropMargins to crop, in points of the page as displayed (ADR 0027 page space: rotation and
+/// Margins to crop, in points of the page as displayed (ADR 0027 page space: rotation and
 /// `/UserUnit` applied), so one set fits pages of mixed sizes and rotations. Each defaults to 0.
 ///
 /// Added in 0.4.0.
