@@ -396,3 +396,36 @@ fn a_page_whose_content_lamina_pdf_cant_decode_is_refused_and_left_alone() {
     let err = apply(&mut doc, ResizePages::scale(ids, PageSize::A4)).unwrap_err();
     assert_eq!((err.code(), snapshot(&doc) == before), ("unsupported-filter", true));
 }
+
+#[test]
+fn a_page_that_inherits_its_crop_box_shows_its_whole_new_paper() {
+    // inherited.pdf's pages inherit /MediaBox, /CropBox and /Rotate from their /Pages nodes.
+    let mut doc = pages("inherited.pdf");
+    let ids = page_ids(&doc);
+    apply(&mut doc, ResizePages::scale(vec![ids[0].clone()], PageSize::A5)).unwrap();
+    let pages = doc.pages().unwrap();
+    let page = pages.get(0).unwrap();
+    assert_eq!(page.crop_box().unwrap(), page.media_box().unwrap());
+}
+
+#[test]
+fn a_no_rotate_annotation_keeps_its_size_on_a_quarter_turn() {
+    let mut doc = pages("geometry.pdf");
+    let ids = page_ids(&doc);
+    // geometry.pdf's ink annotation is NoRotate.
+    apply(
+        &mut doc,
+        SetOrientation::new(
+            vec![ids[0].clone()],
+            PageOrientation::Landscape,
+            OrientationMethod::SwapBox,
+        ),
+    )
+    .unwrap();
+    // [300 300 400 400], 100 × 100: its top-left (300, 400) goes to (400, 595.28 − 300).
+    assert_numbers(
+        &numbers(&get(&doc, &annots(&doc, 0)[2], "Rect")),
+        &[Some(400.0), Some(A4.0 - 400.0), Some(500.0), Some(A4.0 - 300.0)],
+        "NoRotate rect",
+    );
+}

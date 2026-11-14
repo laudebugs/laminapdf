@@ -81,6 +81,9 @@ pub(crate) fn reshape(
         writer.wrap_existing()?;
         writer.prepend(cm(&m).as_bytes())?;
     }
+    // A crop box inherited from a `/Pages` node is in the old user space: the page gets one of
+    // its own, its whole new paper, so the inherited one no longer applies.
+    let inherits_crop = inherited(doc, r, "CropBox")?;
     let annots = doc.resolve(r)?.as_dict().and_then(|d| d.get("Annots").cloned());
     let turns = m.b.abs() > EPS || m.c.abs() > EPS;
     // Direct annotation dictionaries live in the array, held by the page or as their own object.
@@ -108,7 +111,11 @@ pub(crate) fn reshape(
     }
     edit_dict(doc, r, |d| {
         d.insert("MediaBox", rect_object(&media));
-        d.remove("CropBox");
+        if inherits_crop {
+            d.insert("CropBox", rect_object(&media));
+        } else {
+            d.remove("CropBox");
+        }
         for key in ["BleedBox", "TrimBox", "ArtBox"] {
             let mapped = d
                 .get(key)
@@ -132,8 +139,14 @@ pub(crate) fn reshape(
     for annot in annot_refs {
         let mut turned = Vec::new();
         edit_dict(doc, annot, |d| {
-            map_annotation(d, &m);
             let upright = d.get("F").and_then(Object::as_int).is_some_and(|f| f & NO_ROTATE != 0);
+            if turns && upright {
+                // A NoRotate annotation keeps its size and turns about its top-left corner
+                // (§12.5.3), so only that corner moves.
+                keep_upright(d, &m);
+            } else {
+                map_annotation(d, &m);
+            }
             if turns && !upright {
                 turned = appearance_streams(d);
             }
@@ -221,6 +234,41 @@ fn map_annotation(d: &mut Dict, m: &Matrix) {
             map_points(path, m);
         }
     }
+}
+
+/// A `NoRotate` annotation through `m`: its `/Rect` keeps its size, moved so its top-left corner
+/// is where `m` puts the old one.
+fn keep_upright(annot: &mut Dict, m: &Matrix) {
+    let Some(rect) = annot.get("Rect").and_then(rect_of) else {
+        return;
+    };
+    let (left, top) = m.apply(rect.x0, rect.y1);
+    let (width, height) = (rect.width(), rect.height());
+    let moved = UserSpaceRect::from_corners(left, top - height, left + width, top);
+    annot.insert("Rect", rect_object(&moved));
+}
+
+/// Whether a `/Pages` node above page `r` sets `key` (an inheritable entry the page then shows
+/// unless it has its own). A loop in `/Parent` stops the walk.
+fn inherited(doc: &laminapdf_model::Document, r: ObjRef, key: &str) -> Result<bool> {
+    let mut seen = BTreeSet::from([r]);
+    let mut at = doc
+        .resolve(r)?
+        .as_dict()
+        .and_then(|d| d.get("Parent"))
+        .and_then(Object::as_ref);
+    while let Some(node) = at {
+        if !seen.insert(node) {
+            break;
+        }
+        let object = doc.resolve(node)?;
+        let Some(dict) = object.as_dict() else { break };
+        if dict.get(key).is_some() {
+            return Ok(true);
+        }
+        at = dict.get("Parent").and_then(Object::as_ref);
+    }
+    Ok(false)
 }
 
 /// The appearance streams an annotation's `/AP` names directly (`/N`, `/R`, `/D`, each a stream

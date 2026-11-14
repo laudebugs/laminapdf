@@ -21,7 +21,7 @@ tagged.pdf       a tagged form page claiming PDF/UA-1: a heading and a paragraph
                  paragraph that runs on to page 2, a tagged link and a tagged text field
 geometry.pdf     an A4 page 1 with every kind of destination aimed at it (outline /XYZ, link
                  /FitR, named /FitH, /OpenAction /FitV), a Layout /BBox, a highlight with an
-                 appearance stream and an ink annotation; and a Letter page 2 with destinations of
+                 appearance stream and a NoRotate ink annotation; and a Letter page 2 with destinations of
                  its own
 """
 
@@ -382,7 +382,9 @@ def geometry():
                       " /Resources << /ExtGState << /M << /BM /Multiply >> >> >> ")
     mark = pdf.add(f"<< /Type /Annot /Subtype /Highlight /Rect [72 690 200 730] /QuadPoints [72 730 200 730 72 690 200 690]"
                    f" /C [1 1 0] /AP << /N {look} 0 R >> >>")
-    ink = pdf.add("<< /Type /Annot /Subtype /Ink /Rect [300 300 400 400] /InkList [[300 300 350 380 400 300]] /C [0 0 1] >>")
+    # NoRotate (flag 5): a quarter turn of the page keeps its size, moving only its corner.
+    ink = pdf.add("<< /Type /Annot /Subtype /Ink /Rect [300 300 400 400] /InkList [[300 300 350 380 400 300]] /C [0 0 1]"
+                  " /F 16 >>")
     struct_root, doc_elem, para = (pdf.reserve() for _ in range(3))
     content = b"\n/P <</MCID 0>> BDC EMC\n0 0 1 RG 72 600 m 523 600 l S"
     pdf.set(p1, page(root, marker(pdf, 1, content),
