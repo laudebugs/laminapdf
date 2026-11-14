@@ -12,7 +12,8 @@
 # fresh hosted VM.
 # Rust caches are saved only on main; fork PRs have read-only tokens and no secrets.
 # Cargo tools install through .github/actions/install-tools.
-# Actions are pinned by full commit SHA with the release in a comment (ADR 0019); Dependabot bumps them.
+# Actions are locked by .github/workflows/actions.lock (ADR 0019, todo X11): `uses:` names a release
+# tag, and `gh actions-lock` rewrites the lockfile after a `uses:` line changes; Dependabot bumps both.
 name: CI
 
 on:
@@ -82,12 +83,12 @@ jobs:
             echo "ts=true"
           } >> "$GITHUB_OUTPUT"
       - if: github.event_name == 'pull_request'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
       - if: github.event_name == 'pull_request'
-        uses: ./.github/actions/host-rust
+        uses: $/.github/actions/host-rust
         with:
           cache: true
           # Runs only on pull requests; the typescript job saves this cache on main.
@@ -116,14 +117,14 @@ jobs:
         # The `changes` job's list: every leg, but macOS x64 only on pushes to main (todo X9a).
         include: ${{ fromJSON(needs.changes.outputs.rust-legs) }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
           # The merge base with main: `check maintainability` compares its record files with
           # main's, and clippy-examples is strict on the examples a PR changes.
           fetch-depth: 0
       # No `toolchain` input: installs exactly what rust-toolchain.toml pins (version, components, targets).
-      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
@@ -142,14 +143,14 @@ jobs:
       # After the toolchain step, so the Rust cache's key doesn't change (docs/plans/ci-caching.md §4.1).
       - name: Set up the compile cache
         if: matrix.compile-cache
-        uses: ./.github/actions/rust-compile-cache
+        uses: $/.github/actions/rust-compile-cache
         with:
           endpoint: ${{ vars.SCCACHE_R2_ENDPOINT }}
           bucket: ${{ vars.SCCACHE_R2_BUCKET }}
           access-key-id: ${{ secrets.SCCACHE_R2_ACCESS_KEY_ID }}
           secret-access-key: ${{ secrets.SCCACHE_R2_SECRET_ACCESS_KEY }}
       # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
-      - uses: ./.github/actions/install-tools
+      - uses: $/.github/actions/install-tools
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
       # On PRs the full lane's `changes` job runs these checks; it skips them on pushes to main,
@@ -164,14 +165,14 @@ jobs:
         if: github.event_name == 'push' && matrix.platform == 'linux-x64'
         run: cargo clean --doc
       # Tauri (apps/desktop/src-tauri) is a workspace member: Linux needs WebKitGTK to build it.
-      - uses: ./.github/actions/linux-webkit
+      - uses: $/.github/actions/linux-webkit
       - run: cargo xtask check rust
       # The rendered rustdoc of every workspace crate (`check rust` builds it with warnings
       # denied), from main only: the docs site's Rust API page points here until the crates are
       # on docs.rs (B7a).
       - name: Upload the rustdoc
         if: github.event_name == 'push' && matrix.platform == 'linux-x64'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: rustdoc
           path: ${{ env.CARGO_TARGET_DIR }}/doc/
@@ -179,7 +180,7 @@ jobs:
           retention-days: 30
       - name: Compile cache statistics
         if: ${{ !cancelled() && matrix.compile-cache }}
-        uses: ./.github/actions/rust-compile-cache
+        uses: $/.github/actions/rust-compile-cache
         with:
           stats: "true"
 
@@ -196,10 +197,10 @@ jobs:
       # the whole job (a size-budget failure after the upload still lets them run).
       dist: ${{ steps.dist.outputs.uploaded }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
@@ -208,15 +209,15 @@ jobs:
       # Same versions as tools/xtask/src/doctor.rs (wasm-bindgen-cli = the crate in Cargo.lock);
       # xtask fails if they drift. binaryen's wasm-opt is fetched by `cargo xtask wasm` itself
       # (pinned release, SHA-256 checked) into target/tools/.
-      - uses: ./.github/actions/install-tools
+      - uses: $/.github/actions/install-tools
         with:
           tool: wasm-bindgen@0.2.129,twiggy@0.8.0
-      - uses: ./.github/actions/node-pnpm
+      - uses: $/.github/actions/node-pnpm
       - run: cargo xtask wasm
       # The built modules and @laminapdf/sdk's dist/ for the pdf-runtimes jobs (paths are kept
       # relative to packages/).
       - name: Upload the built packages
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: lamina-pdf-dist
           path: |
@@ -229,7 +230,7 @@ jobs:
       - run: cargo xtask size
       - name: Upload the size report
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: size-report
           path: target/size-report.json
@@ -263,25 +264,25 @@ jobs:
               runner: ubuntu-24.04,
             }
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - name: Download the built packages
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        uses: actions/download-artifact@v8.0.2
         with:
           name: lamina-pdf-dist
           path: packages/
-      - uses: ./.github/actions/host-rust
+      - uses: $/.github/actions/host-rust
         with:
           cache: true
           shared-key: xtask
           save: "false"
       # Deno, Bun and wrangler (workerd) are dev dependencies of @laminapdf/sdk.
-      - uses: ./.github/actions/node-pnpm
+      - uses: $/.github/actions/node-pnpm
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
       - if: matrix.group == 'browsers'
-        uses: ./.github/actions/playwright-deps
+        uses: $/.github/actions/playwright-deps
         with:
           browsers: chromium firefox
       # Every runtime runs even when one before it failed (`!cancelled()`); the Node runs come
@@ -295,7 +296,7 @@ jobs:
           # shellcheck disable=SC2086 # one argument per runtime
           cargo xtask pdf-runtimes $RUNTIMES --label "$GROUP"
       - if: ${{ !cancelled() && matrix.group == 'servers' }}
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        uses: actions/setup-node@v7.1.0
         with:
           node-version: "22"
           package-manager-cache: false
@@ -303,7 +304,7 @@ jobs:
         if: ${{ !cancelled() && matrix.group == 'servers' }}
         run: cargo xtask pdf-runtimes node --label node22
       - if: ${{ !cancelled() && matrix.group == 'servers' }}
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        uses: actions/setup-node@v7.1.0
         with:
           node-version: "26"
           package-manager-cache: false
@@ -312,7 +313,7 @@ jobs:
         run: cargo xtask pdf-runtimes node --label node26
       - name: Upload the measurements
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: pdf-runtimes-${{ matrix.group }}
           path: target/xtask/pdf-runtimes/
@@ -329,22 +330,22 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - name: Download the built packages
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        uses: actions/download-artifact@v8.0.2
         with:
           name: lamina-pdf-dist
           path: packages/
-      - uses: ./.github/actions/host-rust
+      - uses: $/.github/actions/host-rust
         with:
           cache: true
       # Same version as tools/xtask/src/doctor.rs.
-      - uses: ./.github/actions/install-tools
+      - uses: $/.github/actions/install-tools
         with:
           tool: cargo-semver-checks@0.51.0
-      - uses: ./.github/actions/node-pnpm
+      - uses: $/.github/actions/node-pnpm
       - run: cargo xtask semver
 
   # Two short checks in one job, since each takes about a minute, less than waiting for a runner.
@@ -359,7 +360,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - name: Read the declared rust-version
@@ -373,7 +374,7 @@ jobs:
           echo "MSRV: $msrv"
           echo "version=$msrv" >> "$GITHUB_OUTPUT"
       # The MSRV check names its toolchain explicitly; the next step restores the pinned one.
-      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
@@ -384,14 +385,14 @@ jobs:
           target: ""
           override: false
       # Tauri (apps/desktop/src-tauri) is a workspace member: Linux needs WebKitGTK to build it.
-      - uses: ./.github/actions/linux-webkit
+      - uses: $/.github/actions/linux-webkit
       - name: Check the workspace on the declared rust-version
         env:
           MSRV: ${{ steps.msrv.outputs.version }}
         run: cargo +"$MSRV" check --locked --workspace --all-targets --all-features
       # The pinned toolchain with rust-toolchain.toml's components and targets, for the spike.
       - if: ${{ !cancelled() }}
-        uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+        uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
@@ -405,7 +406,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: env -u CARGO_TARGET_DIR spikes/pdf-basics/rust/scripts/check-targets.sh
       - if: ${{ !cancelled() }}
-        uses: ./.github/actions/node-pnpm
+        uses: $/.github/actions/node-pnpm
         with:
           install: spikes/pdf-basics/ts
       - name: TypeScript spike (typecheck, lint, tests incl. WASM interop)
@@ -423,17 +424,40 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/node-pnpm
+      - uses: $/.github/actions/node-pnpm
       # xtask is the entry point for the TS checks too, but it only needs to build for the host.
-      - uses: ./.github/actions/host-rust
+      - uses: $/.github/actions/host-rust
         with:
           cache: true
           # Builds only xtask, and runs on pushes to main: it saves the `xtask` cache.
           shared-key: xtask
       - run: cargo xtask check ts
+
+  # Todo X11 (ADR 0019): .github/workflows/actions.lock still locks every action the workflows
+  # use, direct and transitive. It runs on every PR, docs-only ones included, so no `if:`: a
+  # workflow edit is the change it exists to catch. fast-gate always needs it.
+  lockfile:
+    name: Workflow lockfile (gh actions-lock --verify)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      # The version is tools/xtask/src/doctor.rs's GH_ACTIONS_LOCK_VERSION (a test holds them together).
+      - name: Install gh-actions-lock
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh extension install github/gh-actions-lock --pin v0.4.1
+      - name: Verify the lockfile
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh actions-lock --verify
 
   # The fast lane's required check (todo X7): every job above passed, or was skipped on a
   # PR its paths can't affect (its flag false). Rules for new jobs: see the header
@@ -442,7 +466,7 @@ jobs:
   fast-gate:
     name: fast-gate
     if: always()
-    needs: [changes, rust, wasm, pdf-runtimes, semver, msrv-and-spike, typescript]
+    needs: [changes, rust, wasm, pdf-runtimes, semver, msrv-and-spike, typescript, lockfile]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -471,9 +495,11 @@ jobs:
           for job in $(jq -r 'del(.changes) | keys[]' <<<"$NEEDS"); do
             result=$(jq -r --arg job "$job" '.[$job].result' <<<"$NEEDS")
             # Each job follows its group's flag (todo X9c): the native Rust jobs `rust`, the
-            # TypeScript and WebAssembly ones `ts`.
+            # TypeScript and WebAssembly ones `ts`; the lockfile check none.
             case "$job" in
               rust | msrv-and-spike) needed=$RUST ;;
+              # Runs on every PR (todo X11).
+              lockfile) needed=true ;;
               *) needed=$TS ;;
             esac
             echo "$job: $result"

@@ -43,7 +43,8 @@
 # hosted Linux x64 (macOS Arm64 for WebKit and the render goldens) with explicit tool setup and
 # main-only Rust cache writes. Artifacts are prefixed `release-` so they never clash with the
 # nightly jobs' in the same run.
-# Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
+# Actions are locked by .github/workflows/actions.lock (ADR 0019, todo X11): `uses:` names a release
+# tag, and `gh actions-lock` rewrites the lockfile after a `uses:` line changes; Dependabot bumps both.
 name: Release
 
 on:
@@ -129,12 +130,12 @@ jobs:
           echo "ref=$ref" >> "$GITHUB_OUTPUT"
           echo "Testing $ref"
       # Full history: the guard checks the nightly run's commit is an ancestor of this one.
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ steps.ref.outputs.ref }}
           persist-credentials: false
           fetch-depth: 0
-      - uses: ./.github/actions/host-rust
+      - uses: $/.github/actions/host-rust
         with:
           cache: true
       # --version-only: `nightly=skip` when HEAD adds only the version bump and packaged docs to
@@ -161,21 +162,21 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: false
           cache-key: ${{ runner.os }}-${{ runner.arch }}
           cache-bin: false
       # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
-      - uses: ./.github/actions/install-tools
+      - uses: $/.github/actions/install-tools
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2,wasm-bindgen@0.2.129,twiggy@0.8.0
-      - uses: ./.github/actions/node-pnpm
+      - uses: $/.github/actions/node-pnpm
       # Tauri (apps/desktop/src-tauri) is a workspace member: Linux needs WebKitGTK to build it.
       # Inline, not .github/actions/linux-webkit: a dispatch checks out another ref, whose local
       # actions this lane must not run. The list matches the action's (doctor.rs tests both).
@@ -189,7 +190,7 @@ jobs:
       # --strict and attw --pack on the package (the packaging checks).
       - run: cargo xtask wasm
       - name: Upload the built packages
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: release-lamina-pdf-dist
           path: |
@@ -205,17 +206,17 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: false
           cache-key: ${{ runner.os }}-${{ runner.arch }}
           cache-bin: false
-      - uses: ./.github/actions/install-tools
+      - uses: $/.github/actions/install-tools
         with:
           tool: cargo-nextest@0.9.150
       - run: cargo xtask differential --full
@@ -228,11 +229,11 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: false
@@ -240,11 +241,11 @@ jobs:
           cache-bin: false
       - name: Install nightly Rust
         run: rustup toolchain install nightly --profile minimal
-      - uses: ./.github/actions/install-tools
+      - uses: $/.github/actions/install-tools
         with:
           tool: cargo-fuzz@0.13.2
       - name: Restore the fuzz corpus saved on main
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/restore@v6.1.0
         with:
           path: fuzz/corpus
           key: fuzz-corpus-main-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
@@ -252,7 +253,7 @@ jobs:
       - run: cargo xtask fuzz --all --time 120 --jobs 2
       - name: Upload crashes
         if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: release-fuzz-artifacts
           path: fuzz/artifacts/
@@ -264,21 +265,21 @@ jobs:
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           # Restores main's cache; a tag run never saves one.
           cache: true
           cache-save-if: false
           cache-bin: false
-      - uses: ./.github/actions/install-tools
+      - uses: $/.github/actions/install-tools
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: pnpm/action-setup@v6.1.1
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -299,21 +300,21 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: ./.github/actions/qpdf
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      - uses: $/.github/actions/qpdf
+      - uses: actions/setup-python@v7.1.0
         with:
           python-version: "3.13"
-      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: false
           cache-key: ${{ runner.os }}-${{ runner.arch }}
           cache-bin: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: .nvmrc
       - name: qpdf and a Python venv with pypdfium2
@@ -331,15 +332,15 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: ./.github/actions/qpdf
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      - uses: $/.github/actions/qpdf
+      - uses: actions/setup-python@v7.1.0
         with:
           python-version: "3.13"
-      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: false
@@ -361,11 +362,11 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: false
@@ -395,24 +396,24 @@ jobs:
           - { runtime: bun, node: "" }
           - { runtime: workerd, node: "" }
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      - uses: actions/download-artifact@v8.0.2
         with:
           name: release-lamina-pdf-dist
           path: packages/
-      - uses: ./.github/actions/host-rust
+      - uses: $/.github/actions/host-rust
         with:
           cache: true
-      - uses: ./.github/actions/node-pnpm
+      - uses: $/.github/actions/node-pnpm
         with:
           node-version: ${{ matrix.node }}
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
       - if: matrix.runtime == 'chromium' || matrix.runtime == 'firefox'
-        uses: ./.github/actions/playwright-deps
+        uses: $/.github/actions/playwright-deps
         with:
           browsers: ${{ matrix.runtime }}
       - env:
@@ -454,24 +455,24 @@ jobs:
           - { name: Node 26, node: "26", runtimes: node }
           - { name: "Deno, Bun, Chromium, workerd, Rust", node: "", runtimes: deno bun chromium workerd rust }
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
           fetch-depth: 0
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      - uses: actions/download-artifact@v8.0.2
         with:
           name: release-lamina-pdf-dist
           path: packages/
-      - uses: ./.github/actions/host-rust
+      - uses: $/.github/actions/host-rust
         with:
           cache: true
       # Deno, Bun, Vite, Playwright and wrangler are @laminapdf/sdk's pinned dev dependencies.
-      - uses: ./.github/actions/node-pnpm
+      - uses: $/.github/actions/node-pnpm
         with:
           node-version: ${{ matrix.node }}
       # verify-install's Chromium check (a Vite app in Playwright's Chromium).
-      - uses: ./.github/actions/playwright-deps
+      - uses: $/.github/actions/playwright-deps
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
       # The temporary projects go in runner.temp, outside the checkout.
@@ -542,21 +543,21 @@ jobs:
       # For rust-lang/crates-io-auth-action's token exchange (crates.io trusted publishing).
       id-token: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: ./.github/actions/host-rust
+      - uses: $/.github/actions/host-rust
         with:
           cache: true
       # `publish crates` regenerates the crate's docs/ with apps/docs/scripts/package-docs.mjs,
       # which imports @laminapdf/site-kit from the pnpm workspace. On a release commit the output
       # equals the committed snapshot, so Cargo publishes a clean tree.
-      - uses: ./.github/actions/node-pnpm
+      - uses: $/.github/actions/node-pnpm
       - name: Get a crates.io token (trusted publishing)
         if: github.event_name == 'push' && github.ref_type == 'tag'
         id: crates-io
-        uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
+        uses: rust-lang/crates-io-auth-action@v1.0.6
       - name: cargo xtask publish crates
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.crates-io.outputs.token }}
@@ -573,22 +574,22 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      - uses: actions/download-artifact@v8.0.2
         with:
           name: release-lamina-pdf-dist
           path: packages/
-      - uses: ./.github/actions/host-rust
+      - uses: $/.github/actions/host-rust
         with:
           cache: true
-      - uses: ./.github/actions/node-pnpm
+      - uses: $/.github/actions/node-pnpm
       - run: pnpm install --frozen-lockfile
       # The tarballs and publish.json (the version, its dist-tag and the order).
       - run: cargo xtask publish npm-pack
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: release-npm-packs
           path: target/xtask/npm-packs/
@@ -611,11 +612,11 @@ jobs:
       # npm's trusted publishing.
       id-token: write
     steps:
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      - uses: actions/download-artifact@v8.0.2
         with:
           name: release-npm-packs
           path: packs/
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: 24
       # Trusted publishing needs npm 11.5.1 or later, newer than the npm some Node releases bundle.
@@ -661,21 +662,21 @@ jobs:
       # gh release create.
       contents: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: ./.github/actions/host-rust
+      - uses: $/.github/actions/host-rust
         with:
           cache: true
       # Same version as tools/xtask/src/doctor.rs.
-      - uses: ./.github/actions/install-tools
+      - uses: $/.github/actions/install-tools
         with:
           tool: cargo-cyclonedx@0.5.9
-      - uses: ./.github/actions/node-pnpm
+      - uses: $/.github/actions/node-pnpm
       - run: pnpm install --frozen-lockfile
       - run: cargo xtask sbom target/sbom
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: release-sbom
           path: target/sbom/
@@ -706,14 +707,14 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: ./.github/actions/host-rust
+      - uses: $/.github/actions/host-rust
         with:
           cache: true
-      - uses: ./.github/actions/node-pnpm
+      - uses: $/.github/actions/node-pnpm
       - env:
           TMPDIR: ${{ runner.temp }}
         run: cargo xtask verify-install rust --from-registry --wait 120
@@ -733,19 +734,19 @@ jobs:
           - { name: Node 26, node: "26", runtimes: node }
           - { name: "Deno, Bun, Chromium, workerd", node: "", runtimes: deno bun chromium workerd }
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: ./.github/actions/host-rust
+      - uses: $/.github/actions/host-rust
         with:
           cache: true
       # Deno, Bun, Vite, Playwright and wrangler are @laminapdf/sdk's pinned dev dependencies.
-      - uses: ./.github/actions/node-pnpm
+      - uses: $/.github/actions/node-pnpm
         with:
           node-version: ${{ matrix.node }}
       # verify-install's Chromium check (a Vite app in Playwright's Chromium).
-      - uses: ./.github/actions/playwright-deps
+      - uses: $/.github/actions/playwright-deps
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
       - env:
@@ -795,13 +796,13 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
       - name: Create the release bot's token
         id: bot
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        uses: actions/create-github-app-token@v3.3.0
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}

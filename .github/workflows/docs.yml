@@ -21,7 +21,8 @@
 # the secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, the deploy steps are skipped with a
 # notice and the jobs pass. The fast lane checks the build on every PR anyway (`cargo xtask check
 # ts`). Nothing a PR controls is interpolated into a script: values reach `run:` through `env:`.
-# Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
+# Actions are locked by .github/workflows/actions.lock (ADR 0019, todo X11): `uses:` names a release
+# tag, and `gh actions-lock` rewrites the lockfile after a `uses:` line changes; Dependabot bumps both.
 name: Docs site
 
 on:
@@ -110,18 +111,18 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/node-pnpm
-      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - uses: $/.github/actions/node-pnpm
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: false
           cache-shared-key: wasm
           cache-bin: false
       # Same version as ci.yml's wasm job and tools/xtask/src/doctor.rs; xtask fails if they drift.
-      - uses: ./.github/actions/install-tools
+      - uses: $/.github/actions/install-tools
         with:
           tool: wasm-bindgen@0.2.129
       # "Edit and run" (B7e): the docs build makes the example runner from these.
@@ -129,7 +130,7 @@ jobs:
         run: cargo xtask web docs-runner
       # Without LAMINA_PDF_ENV=production the build marks every response noindex (ADR 0011 §1).
       - run: pnpm --filter @laminapdf/docs build
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: docs-preview-dist
           path: apps/docs/dist/
@@ -163,7 +164,7 @@ jobs:
       # Use the default branch's deploy configuration, never the PR's.
       - name: Check out the default branch's deploy configuration
         if: steps.secrets.outputs.enabled == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.event.repository.default_branch }}
           path: .docs-base
@@ -191,12 +192,12 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "ready=true" >> "$GITHUB_OUTPUT"
       - if: steps.tooling.outputs.ready == 'true'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        uses: actions/setup-node@v7.1.0
         with:
           node-version-file: .docs-base/.nvmrc
       - name: Download the preview build
         if: steps.tooling.outputs.ready == 'true'
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        uses: actions/download-artifact@v8.0.2
         with:
           name: docs-preview-dist
           path: .docs-base/apps/docs/dist/
@@ -274,13 +275,13 @@ jobs:
             echo "mode=skip" >> "$GITHUB_OUTPUT"
           fi
       - if: steps.mode.outputs.mode != 'skip'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - if: steps.mode.outputs.mode != 'skip'
-        uses: ./.github/actions/node-pnpm
+        uses: $/.github/actions/node-pnpm
       - if: steps.mode.outputs.mode != 'skip'
-        uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+        uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: false
@@ -288,7 +289,7 @@ jobs:
           cache-bin: false
       # Same version as ci.yml's wasm job and tools/xtask/src/doctor.rs; xtask fails if they drift.
       - if: steps.mode.outputs.mode != 'skip'
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           tool: wasm-bindgen@0.2.129
       # "Edit and run" (B7e): the docs build makes the example runner from these.
@@ -350,12 +351,12 @@ jobs:
             exit 1
           fi
       - if: steps.mode.outputs.mode != 'skip'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: refs/tags/${{ inputs.tag }}
           persist-credentials: false
       - if: steps.mode.outputs.mode != 'skip'
-        uses: ./.github/actions/node-pnpm
+        uses: $/.github/actions/node-pnpm
       - name: Check that the tag names the docs' version
         if: steps.mode.outputs.mode != 'skip'
         env:
@@ -367,7 +368,7 @@ jobs:
             exit 1
           fi
       - if: steps.mode.outputs.mode != 'skip'
-        uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+        uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: false
@@ -375,7 +376,7 @@ jobs:
           cache-bin: false
       # Same version as ci.yml's wasm job and tools/xtask/src/doctor.rs; xtask fails if they drift.
       - if: steps.mode.outputs.mode != 'skip'
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           tool: wasm-bindgen@0.2.129
       # "Edit and run" (B7e): the docs build makes the example runner from these.
