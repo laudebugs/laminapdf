@@ -288,7 +288,7 @@ pub(crate) fn debug_kill_engine(window: tauri::WebviewWindow, engines: tauri::St
 /// synchronous command runs on the main thread, where making a window deadlocks.
 #[tauri::command]
 pub(crate) async fn new_window(app: tauri::AppHandle) -> Result<String, DesktopError> {
-    crate::windows::new_window(&app)
+    crate::windows::new_window(&app, None)
 }
 
 /// Moves one of this window's tabs (its document `doc`, with `view`, the page, offset and zoom it
@@ -305,7 +305,35 @@ pub(crate) async fn move_tab(
     let app = window.app_handle().clone();
     let from = window.label().to_owned();
     // The engines' answers come from other processes: never on the main thread.
-    tauri::async_runtime::spawn_blocking(move || crate::windows::move_tab(&app, &from, DocId(doc), &to, view))
+    tauri::async_runtime::spawn_blocking(move || crate::windows::move_tab(&app, &from, DocId(doc), &to, view, None))
+        .await
+        .map_err(|error| DesktopError::Internal(error.to_string()))?
+}
+
+/// One of this window's tabs, its document `doc`, began to be dragged: until the drag ends, the
+/// window under the cursor hears that a tab may drop on it (`tab://drag-over`).
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window by value")]
+pub(crate) fn tab_drag_start(window: tauri::WebviewWindow, doc: u32) {
+    crate::tab_drag::start(window.app_handle(), window.label(), DocId(doc));
+}
+
+/// The drag of this window's tab of `doc` ended without a drop on this window's strip (`outside`:
+/// the pointer had left the window, by the webview's account). Where the cursor is decides: over
+/// another window the tab moves there, outside every window it opens in a new one under the
+/// cursor, both with `view`. Returns the label of the window the tab went to, or `null` when it
+/// stays; on failure it stays too.
+#[tauri::command]
+pub(crate) async fn tab_drag_end(
+    window: tauri::WebviewWindow,
+    doc: u32,
+    view: crate::windows::View,
+    outside: bool,
+) -> Result<Option<String>, DesktopError> {
+    let app = window.app_handle().clone();
+    let from = window.label().to_owned();
+    // A move waits on the engines' answers: never on the main thread.
+    tauri::async_runtime::spawn_blocking(move || crate::tab_drag::end(&app, &from, DocId(doc), view, outside))
         .await
         .map_err(|error| DesktopError::Internal(error.to_string()))?
 }

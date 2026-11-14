@@ -20,6 +20,7 @@ mod recent;
 #[cfg(feature = "e2e")]
 mod startup;
 mod store;
+mod tab_drag;
 mod watch;
 mod windows;
 
@@ -143,10 +144,11 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     )))?);
     app.manage(open::OpenWorker::start(app.handle().clone())?);
     app.manage(windows::Windows::default());
+    app.manage(tab_drag::TabDrag::default());
     app.manage(menu::MenusJson::embedded());
     app.manage(menu::NativeMenus::default());
     // Windows are made here, not in tauri.conf.json, so the app chooses every label.
-    windows::build_window(app.handle(), MAIN_WINDOW)?;
+    windows::build_window(app.handle(), MAIN_WINDOW, None)?;
     // The menu bar (macOS) or each window's menus (Windows, Linux), from the shared shortcut map.
     menu::rebuild(app.handle());
     #[cfg(feature = "e2e")]
@@ -159,47 +161,11 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-/// Builds and runs the app until its last window closes.
-///
-/// # Errors
-/// [`DesktopError::Tauri`] when the app or its main window can't be created.
-#[expect(
-    clippy::disallowed_types,
-    reason = "tauri::generate_context! builds a HashMap of the bundled assets"
-)]
-pub fn run() -> Result<(), DesktopError> {
-    #[cfg(feature = "e2e")]
-    e2e::start_clock();
-    // The test commands and WebdriverIO's plugins exist only in e2e builds; generate_handler!
-    // takes no cfg per command.
-    #[cfg(not(feature = "e2e"))]
-    let builder = tauri::Builder::default().invoke_handler(tauri::generate_handler![
-        commands::app_info,
-        commands::open_dialog,
-        commands::page_info,
-        commands::close_document,
-        commands::unlock_document,
-        commands::cancel_tiles,
-        commands::recent_list,
-        commands::recent_open,
-        commands::recent_remove,
-        commands::recent_clear,
-        commands::preferences,
-        commands::set_preferences,
-        commands::new_window,
-        commands::move_tab,
-        commands::window_list,
-        commands::set_window_title,
-        commands::take_pending_tabs,
-        commands::menu_state,
-        commands::close_window,
-        commands::quit,
-        commands::save_copy,
-        open::take_pending_opens,
-    ]);
-    #[cfg(feature = "e2e")]
-    let builder = tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![
+/// The invoke handler of every command a release build has, then `extra`'s (the e2e build's);
+/// build.rs lists the same names for their permissions.
+macro_rules! app_commands {
+    ($($extra:path),* $(,)?) => {
+        tauri::generate_handler![
             commands::app_info,
             commands::open_dialog,
             commands::page_info,
@@ -221,7 +187,32 @@ pub fn run() -> Result<(), DesktopError> {
             commands::close_window,
             commands::quit,
             commands::save_copy,
+            commands::tab_drag_start,
+            commands::tab_drag_end,
             open::take_pending_opens,
+            $($extra),*
+        ]
+    };
+}
+
+/// Builds and runs the app until its last window closes.
+///
+/// # Errors
+/// [`DesktopError::Tauri`] when the app or its main window can't be created.
+#[expect(
+    clippy::disallowed_types,
+    reason = "tauri::generate_context! builds a HashMap of the bundled assets"
+)]
+pub fn run() -> Result<(), DesktopError> {
+    #[cfg(feature = "e2e")]
+    e2e::start_clock();
+    // The test commands and WebdriverIO's plugins exist only in e2e builds; generate_handler!
+    // takes no cfg per command, so `app_commands!` lists the app's once and adds those.
+    #[cfg(not(feature = "e2e"))]
+    let builder = tauri::Builder::default().invoke_handler(app_commands![]);
+    #[cfg(feature = "e2e")]
+    let builder = tauri::Builder::default()
+        .invoke_handler(app_commands![
             commands::debug_kill_engine,
             e2e::e2e_queue_pick,
             e2e::e2e_interactive,
@@ -337,7 +328,7 @@ fn on_run_event(app: &tauri::AppHandle, event: &RunEvent) {
             has_visible_windows: false,
             ..
         } => {
-            if let Err(error) = windows::new_window(app) {
+            if let Err(error) = windows::new_window(app, None) {
                 tracing::warn!("could not open a window from the Dock: {error}");
             }
         }
