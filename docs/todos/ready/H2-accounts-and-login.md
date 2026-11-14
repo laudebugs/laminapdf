@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [full-editor: optional Cloudflare server features](../../plans/full-editor.md#optional-cloudflare-server-features) (accounts) |
 | Round / milestone | Hosted service foundation (accounts, cloud storage, sync) — before the first round that needs accounts |
-| Depends on | [C7c](../done/C7c-performance-gates-and-launch.md), [D5b](./D5b-updater-in-app.md), [H1](../ongoing/H1-auth-spike.md) |
-| Dependency notes | [H1](../ongoing/H1-auth-spike.md), `C7` ([web-app §C7](../../plans/web-app.md#c7-accessibility-offline-and-launch): web reader v0.1), `D5` ([desktop-app §D5](../../plans/desktop-app.md#d5-update-service): update Worker) |
+| Depends on | [C7c](../done/C7c-performance-gates-and-launch.md), [D5b](./D5b-updater-in-app.md), [H1](../done/H1-auth-spike.md) |
+| Dependency notes | [H1](../done/H1-auth-spike.md), `C7` ([web-app §C7](../../plans/web-app.md#c7-accessibility-offline-and-launch): web reader v0.1), `D5` ([desktop-app §D5](../../plans/desktop-app.md#d5-update-service): update Worker) |
 | ADRs | Implements ADR 0011 (as amended by H1) |
 | Branch | `feat/h2-accounts-and-login` |
 | PR title | `feat(hosted): user accounts and sign-in on web and desktop` |
@@ -26,6 +26,15 @@ Ship opt-in accounts: sign-up/sign-in/sign-out with the H1 stack on the `apps/we
 - ADR 0011 (topology, privacy, retention) and the H1 result
 - [report: Cloudflare section](../../research/architecture/app-and-package-architecture.md#cloudflare-hosts-everything-for-about-5-a-month-with-heavy-jobs-in-containers) (`run_worker_first: ["/api/*"]`)
 - [desktop D5](../../plans/desktop-app.md#d5-update-service): the Worker/R2 setup patterns
+
+## Owner's decisions (2026-11-14, [#483](https://github.com/laudebugs/laminapdf/issues/483))
+
+The login stack and these answers are in [ADR 0011 §6](../../decisions/0011-cloudflare-topology-and-privacy.md#6-the-hosted-service-and-later-server-features):
+
+- **Stack:** Better Auth on the Worker with D1. Only the OAuth state cookie is `SameSite=Lax`, for at most 10 minutes.
+- **Sign-in:** email magic links and passkeys first. GitHub and Google come later, each in its own change.
+- **Email:** Cloudflare Email Service sends the magic links.
+- **Data residency:** create the D1 database in the EU jurisdiction. This can only be set at creation.
 
 ## Scope
 
@@ -84,7 +93,7 @@ Ship opt-in accounts: sign-up/sign-in/sign-out with the H1 stack on the `apps/we
 
 ## Risks and open questions
 
-- Open product questions: pricing/plans (lamina will be priced, owner decision 2026-10-29; the model and tiers are decided in [U5a](./U5a-pricing-and-promises-page.md), which may come after this todo, so keep the account model pricing-neutral: an entitlements field can be added later, and nothing here may make on-device features need an account), age requirements, terms of service, data residency — decide before launch
+- Open product questions: pricing/plans (lamina will be priced, owner decision 2026-10-29; the model and tiers are decided in [U5a](./U5a-pricing-and-promises-page.md), which may come after this todo, so keep the account model pricing-neutral: an entitlements field can be added later, and nothing here may make on-device features need an account), age requirements and terms of service — decide before launch (data residency is decided: the EU)
 - Desktop deep links differ per OS; test each
 
 ## Definition of done

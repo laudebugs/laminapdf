@@ -44,7 +44,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards (900 high; t
 - Wrong or expired code: error text under the field in `danger` ("That code has expired. Send a new one."), `aria-invalid`.
 - Offline: the dialog explains "Signing in needs a connection. Everything on this device keeps working." and "Continue" is disabled with that reason.
 - Signed in: the dialog closes, a toast says "Signed in as r.osei@northwind.example"; the top bar of the home shows the bell and the account avatar.
-- The sign-in method (email code, password, passkey, providers) depends on the [H1 auth spike](../../todos/ongoing/H1-auth-spike.md); the drawing assumes an email code, the layout takes extra provider buttons above the email field.
+- The sign-in method (email code, password, passkey, providers) depends on the [H1 auth spike](../../todos/done/H1-auth-spike.md); the drawing assumes an email code, the layout takes extra provider buttons above the email field.
 
 **Behaviour.** Sign-in never touches the open file and never reloads the page. Requests go to our origin only (`/api/auth/*`) and are counted by the network indicator. Escape or "Not now" closes and returns focus to the opener.
 
