@@ -206,3 +206,26 @@ fn both_ops_reshow_the_widgets_on_their_pages() {
     let op: Op = CropPages::new(vec![ids[0].clone()], Margins::all(10.0)).into();
     assert_eq!(op.page_changes().len(), 1);
 }
+
+#[test]
+fn removing_a_crop_box_reports_the_inherited_one_it_uncovers() {
+    // The page's own crop box shows the whole page; its parent's shows less.
+    let mut doc = open(&common::classic_with_root(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 100 100] /CropBox [10 10 90 90] >>",
+            "<< /Type /Page /Parent 2 0 R /CropBox [0 0 100 100] >>",
+        ],
+        "",
+    ));
+    let ids = page_ids(&doc);
+    let applied = apply(
+        &mut doc,
+        SetPageBoxes::new(ids.clone(), PageBoxes::default().with_crop(None)),
+    )
+    .unwrap();
+    assert_eq!(
+        (applied.cropped_content_remains, frames(&doc)[0].crop_box()),
+        (ids, rect(10.0, 10.0, 90.0, 90.0))
+    );
+}

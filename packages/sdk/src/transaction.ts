@@ -176,9 +176,13 @@ export interface PageBoxes {
  * @since 0.4.0
  */
 export interface Margins {
+  /** Points off the top edge as the page shows. */
   readonly top?: number;
+  /** Points off the right edge as the page shows. */
   readonly right?: number;
+  /** Points off the bottom edge as the page shows. */
   readonly bottom?: number;
+  /** Points off the left edge as the page shows. */
   readonly left?: number;
 }
 

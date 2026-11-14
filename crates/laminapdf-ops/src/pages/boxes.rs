@@ -6,6 +6,8 @@
 //!
 //! [`Applied::cropped_content_remains`]: crate::Applied::cropped_content_remains
 
+use std::collections::{BTreeMap, BTreeSet};
+
 use laminapdf_cos::Object;
 use laminapdf_model::{PageId, PointPt, Pt, UserSpaceRect};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -145,29 +147,27 @@ impl SetPageBoxes {
     pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Effect> {
         let all = pages_before(doc)?;
         let pages = checked(&all, &self.pages)?;
-        let mut writes = Vec::with_capacity(pages.len());
-        for id in &pages {
-            let (media, crop) = current(doc, id)?;
-            let media = self.boxes.media.unwrap_or(media);
-            check_box(&media, None)?;
-            for (_, rect) in self.boxes.others() {
-                if let Some(Some(rect)) = rect {
-                    check_box(&rect, Some(&media))?;
+        let before = shown_crops(doc, &pages)?;
+        {
+            let view = doc.pages()?;
+            for id in &pages {
+                let page = view.by_id(id).ok_or_else(|| Error::UnknownPage(id.clone()))?;
+                // A page without a usable media box shows its crop box, or US Letter.
+                let shown = page.frame()?.crop_box();
+                let media = match self.boxes.media {
+                    Some(media) => media,
+                    None => page.media_box()?.filter(UserSpaceRect::has_area).unwrap_or(shown),
+                };
+                check_box(&media, None)?;
+                for (_, rect) in self.boxes.others() {
+                    if let Some(Some(rect)) = rect {
+                        check_box(&rect, Some(&media))?;
+                    }
                 }
             }
-            // A page without its own crop box shows its media box (§14.11.2).
-            let new_crop = match self.boxes.crop {
-                Some(Some(rect)) => rect,
-                Some(None) => media,
-                None => crop.intersect(&media).unwrap_or(media),
-            };
-            writes.push((id.clone(), hides(&crop, &new_crop)));
         }
-        let mut cropped = Vec::new();
-        for (id, hidden) in writes {
-            let Some(r) = id.as_lamina_id().obj_ref() else {
-                return Err(Error::DirectPage(id));
-            };
+        for id in &pages {
+            let r = obj_ref(id)?;
             let boxes = &self.boxes;
             edit_dict(doc, r, |d| {
                 if let Some(media) = boxes.media {
@@ -183,17 +183,8 @@ impl SetPageBoxes {
                     }
                 }
             })?;
-            if hidden {
-                cropped.push(id);
-            }
         }
-        let widgets = widgets_on(doc, &pages, WidgetChange::Reshown, ModificationClass::PageStructure)?;
-        Ok(Effect {
-            pages,
-            widgets,
-            cropped_content_remains: cropped,
-            ..Effect::default()
-        })
+        finish(doc, pages, &before)
     }
 }
 
@@ -291,51 +282,67 @@ impl CropPages {
         }
         let all = pages_before(doc)?;
         let pages = checked(&all, &self.pages)?;
+        let before = shown_crops(doc, &pages)?;
         let mut crops = Vec::with_capacity(pages.len());
-        for id in &pages {
-            let all_pages = doc.pages()?;
-            let page = all_pages.by_id(id).ok_or_else(|| Error::UnknownPage(id.clone()))?;
-            let frame = page.frame()?;
-            let (w, h) = (frame.width().get(), frame.height().get());
-            if left + right >= w || top + bottom >= h {
-                return Err(Error::InvalidOp("the margins leave no page to show"));
+        {
+            let view = doc.pages()?;
+            for id in &pages {
+                let page = view.by_id(id).ok_or_else(|| Error::UnknownPage(id.clone()))?;
+                let frame = page.frame()?;
+                let (w, h) = (frame.width().get(), frame.height().get());
+                if left + right >= w || top + bottom >= h {
+                    return Err(Error::InvalidOp("the margins leave no page to show"));
+                }
+                let a = frame.to_user_space(PointPt::new(Pt::new(left), Pt::new(top)));
+                let b = frame.to_user_space(PointPt::new(Pt::new(w - right), Pt::new(h - bottom)));
+                crops.push((obj_ref(id)?, UserSpaceRect::from_corners(a.x, a.y, b.x, b.y)));
             }
-            let a = frame.to_user_space(PointPt::new(Pt::new(left), Pt::new(top)));
-            let b = frame.to_user_space(PointPt::new(Pt::new(w - right), Pt::new(h - bottom)));
-            crops.push((
-                id.clone(),
-                UserSpaceRect::from_corners(a.x, a.y, b.x, b.y),
-                frame.crop_box(),
-            ));
         }
-        let mut cropped = Vec::new();
-        for (id, crop, before) in crops {
-            let Some(r) = id.as_lamina_id().obj_ref() else {
-                return Err(Error::DirectPage(id));
-            };
+        for (r, crop) in crops {
             edit_dict(doc, r, |d| d.insert("CropBox", rect_object(&crop)))?;
-            if hides(&before, &crop) {
-                cropped.push(id);
-            }
         }
-        let widgets = widgets_on(doc, &pages, WidgetChange::Reshown, ModificationClass::PageStructure)?;
-        Ok(Effect {
-            pages,
-            widgets,
-            cropped_content_remains: cropped,
-            ..Effect::default()
-        })
+        finish(doc, pages, &before)
     }
 }
 
-/// The page's media box and the crop box it shows now (the media box when it has none, US
-/// Letter when it has no usable box).
-fn current(doc: &laminapdf_model::Document, id: &PageId) -> Result<(UserSpaceRect, UserSpaceRect)> {
-    let pages = doc.pages()?;
-    let page = pages.by_id(id).ok_or_else(|| Error::UnknownPage(id.clone()))?;
-    let crop = page.frame()?.crop_box();
-    let media = page.media_box()?.filter(UserSpaceRect::has_area).unwrap_or(crop);
-    Ok((media, crop))
+/// The crop box each of `pages` shows (own or inherited, cut to the media box), read in one walk
+/// of the page tree.
+fn shown_crops(doc: &laminapdf_model::Document, pages: &[PageId]) -> Result<BTreeMap<PageId, UserSpaceRect>> {
+    let wanted: BTreeSet<&PageId> = pages.iter().collect();
+    let mut out = BTreeMap::new();
+    for page in doc.pages()?.iter() {
+        if wanted.contains(page.id()) {
+            out.insert(page.id().clone(), page.frame()?.crop_box());
+        }
+    }
+    Ok(out)
+}
+
+/// The effect of a box op on `pages`: the widgets it reshows, and the pages whose crop box, read
+/// again after the write (so inherited boxes count), no longer shows all it showed `before`.
+fn finish(
+    doc: &laminapdf_model::Document,
+    pages: Vec<PageId>,
+    before: &BTreeMap<PageId, UserSpaceRect>,
+) -> Result<Effect> {
+    let after = shown_crops(doc, &pages)?;
+    let cropped = pages
+        .iter()
+        .filter(|id| matches!((before.get(*id), after.get(*id)), (Some(b), Some(a)) if hides(b, a)))
+        .cloned()
+        .collect();
+    let widgets = widgets_on(doc, &pages, WidgetChange::Reshown, ModificationClass::PageStructure)?;
+    Ok(Effect {
+        pages,
+        widgets,
+        cropped_content_remains: cropped,
+        ..Effect::default()
+    })
+}
+
+/// The page's object; a page dictionary held directly in its parent is refused.
+fn obj_ref(id: &PageId) -> Result<laminapdf_cos::ObjRef> {
+    id.as_lamina_id().obj_ref().ok_or_else(|| Error::DirectPage(id.clone()))
 }
 
 /// Refuses a box without an area, with a value that isn't finite, or outside `within`.
