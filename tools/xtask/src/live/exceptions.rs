@@ -21,7 +21,7 @@ pub(super) enum Relation {
     Unmapped,
     /// A reader displays the undefined PDFDocEncoding byte 0x9F as U+FFFD, while lamina
     /// preserves its scalar under ADR 0003 §1.
-    PdfDocUndefinedReplaced,
+    PdfDoc9fReplaced,
 }
 
 impl Relation {
@@ -46,7 +46,7 @@ impl Relation {
                 }
                 _ => false,
             },
-            Self::PdfDocUndefinedReplaced => match (ours, theirs) {
+            Self::PdfDoc9fReplaced => match (ours, theirs) {
                 (Value::String(a), Value::String(b)) => {
                     a.contains('\u{009F}') && a.replace('\u{009F}', "\u{FFFD}") == *b
                 }
@@ -83,9 +83,9 @@ impl Class {
             None => None,
             Some("lamina-skips") => Some(Relation::LaminaPdfSkips),
             Some("unmapped") => Some(Relation::Unmapped),
-            Some("pdfdoc-undefined-replaced") => Some(Relation::PdfDocUndefinedReplaced),
+            Some("pdfdoc-9f-replaced") => Some(Relation::PdfDoc9fReplaced),
             Some(other) => {
-                bail!("[[class]] relation {other:?}: \"lamina-skips\", \"unmapped\" or \"pdfdoc-undefined-replaced\"")
+                bail!("[[class]] relation {other:?}: \"lamina-skips\", \"unmapped\" or \"pdfdoc-9f-replaced\"")
             }
         };
         let file = match e.files.as_slice() {

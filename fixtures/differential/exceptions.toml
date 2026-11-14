@@ -267,7 +267,7 @@ reason = "the texts differ only where lamina writes U+FFFD for a glyph that has 
 file = "pdfbox/pdfbox-layout-*/src/test/resources/pdf/GlyphLayoutDIN91379*_ActualText.pdf"
 facts = ["text"]
 tools = ["pdftotext"]
-relation = "pdfdoc-undefined-replaced"
+relation = "pdfdoc-9f-replaced"
 rule = "ADR 0003 §1: an undefined PDFDocEncoding byte keeps its own scalar"
 reason = "the files end an /ActualText string with undefined byte 0x9F; lamina preserves U+009F, while pdftotext displays U+FFFD"
 
