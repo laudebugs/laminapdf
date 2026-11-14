@@ -44,6 +44,9 @@ laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 # Builds test inputs with the writer. A dev-dependency cycle Cargo accepts; unit tests in `src/`
 # see a second copy of this crate through it, so they use only its writer (laminapdf-cos types).
 laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
+# Draws annotation appearances for the integration tests (E4 plan §2.2); another dev-dependency
+# cycle, which only `tests/` uses, so they see one copy of this crate.
+laminapdf-build = { path = "../laminapdf-build" }
 proptest = { workspace = true }
 
 [lints]

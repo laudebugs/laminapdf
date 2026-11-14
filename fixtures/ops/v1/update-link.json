@@ -1,0 +1,1 @@
+{ "op": "updateLink", "args": { "link": "a5.0", "rect": { "x0": 36, "y0": 490, "x1": 300, "y1": 515 }, "quads": [], "target": { "uri": "https://example.com/about" }, "contents": null } }

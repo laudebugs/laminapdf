@@ -224,8 +224,39 @@ fn a_signature_widget_is_left_off_and_reported() {
 }
 
 #[test]
-fn tagged_pages_come_without_their_tags_and_warn_on_a_pdf_ua_file() {
+fn tagged_pages_keep_their_tags_in_a_tagged_file() {
     let mut doc = pages("tagged.pdf");
+    let (src, ids) = with_source(&mut doc, "pages/references.pdf");
+    let applied = apply(
+        &mut doc,
+        InsertPagesFrom::new(src, vec![ids[2].clone()], PagePosition::End),
+    );
+    let copy = page_ids(&doc).last().unwrap().clone();
+    assert_eq!(applied.tags_dropped, []);
+    let key = dict(&doc, obj(&copy)).get_int("StructParents").unwrap();
+    let tree = doc.structure().unwrap().unwrap();
+    let on_copy = tree
+        .elements()
+        .iter()
+        .filter(|e| e.page.as_ref() == Some(&copy))
+        .count();
+    assert!(on_copy > 0, "no element is on the copy");
+    assert!(tree.parent_tree_next_key.unwrap() > key);
+    // tagged.pdf claims PDF/UA-1 and references.pdf doesn't: its tags came along unchecked.
+    let warnings = pending_conformance_warnings(&doc, doc.pending_changes()).unwrap();
+    assert!(
+        warnings.contains(&ConformanceWarning::ImportedPdfuaUnchecked),
+        "{warnings:?}"
+    );
+    assert!(
+        !warnings.contains(&ConformanceWarning::ImportedTagsDropped),
+        "{warnings:?}"
+    );
+}
+
+#[test]
+fn tagged_pages_lose_their_tags_in_an_untagged_file() {
+    let mut doc = pages("forms.pdf");
     let (src, ids) = with_source(&mut doc, "pages/references.pdf");
     let applied = apply(
         &mut doc,
@@ -234,12 +265,7 @@ fn tagged_pages_come_without_their_tags_and_warn_on_a_pdf_ua_file() {
     let copy = page_ids(&doc).last().unwrap().clone();
     assert_eq!(applied.tags_dropped, vec![copy.clone()]);
     assert!(dict(&doc, obj(&copy)).get("StructParents").is_none());
-    let warnings = pending_conformance_warnings(&doc, doc.pending_changes()).unwrap();
-    let claims_ua = matches!(
-        doc.xmp(),
-        Ok(laminapdf_model::xmp::PacketState::Parsed(p)) if p.pdfua_part() == Some(1)
-    );
-    assert_eq!(warnings.contains(&ConformanceWarning::ImportedTagsDropped), claims_ua);
+    assert!(doc.structure().unwrap().is_none());
 }
 
 #[test]

@@ -21,12 +21,14 @@ mod common;
 
 use common::{corpus, fixture, inherited_rotate, open, page_ids, snapshot};
 use laminapdf_model::xmp::{LangText, XmpValue};
-use laminapdf_model::{OutlineTree, PdfDate, Rotation, SiblingPosition};
+use laminapdf_model::{
+    AnnotId, AnnotSubtype, OutlineTree, PdfDate, Rotation, SiblingPosition, UserSpacePoint, UserSpaceRect,
+};
 use laminapdf_ops::{
-    AddOutlineItem, ChildItems, DeleteNamedDestination, DeleteOutlineItem, DestinationView, Document,
-    ExplicitDestination, InfoPatch, MetadataKey, MetadataPatch, MoveOutlineItem, Op, Origin, OutlineStyle,
+    AddLink, AddOutlineItem, ChildItems, DeleteLink, DeleteNamedDestination, DeleteOutlineItem, DestinationView,
+    Document, ExplicitDestination, InfoPatch, MetadataKey, MetadataPatch, MoveOutlineItem, Op, Origin, OutlineStyle,
     OutlineTarget, RemoveMetadata, RemoveXmpProperty, RenameNamedDestination, ReplaceXmpPacket, Rgb, RotatePage,
-    SetInfo, SetMetadata, SetNamedDestination, SetXmpProperty, UndoOutcome, UpdateOutlineItem,
+    SetInfo, SetMetadata, SetNamedDestination, SetXmpProperty, UndoOutcome, UpdateLink, UpdateOutlineItem,
 };
 use proptest::prelude::*;
 use proptest::test_runner::{Config, RngSeed, TestRunner};
@@ -60,6 +62,12 @@ enum Recipe {
     XmpRemove(usize),
     /// `ReplaceXmpPacket` with one of [`PACKETS`].
     XmpPacket(usize),
+    /// Add a link to the nth page, on text (quads, the page's first MCID) or on an area.
+    AddLink(usize, bool),
+    /// Move the nth link and retarget it, or change only its description.
+    UpdateLink(usize, bool),
+    /// Delete the nth link.
+    DeleteLink(usize),
 }
 
 const ACME: &str = "http://example.com/acme/";
@@ -126,6 +134,9 @@ fn recipe() -> impl Strategy<Value = Recipe> {
         (0usize..4).prop_map(Recipe::Xmp),
         (0usize..4).prop_map(Recipe::XmpRemove),
         (0usize..2).prop_map(Recipe::XmpPacket),
+        (0usize..8, any::<bool>()).prop_map(|(p, t)| Recipe::AddLink(p, t)),
+        (0usize..8, any::<bool>()).prop_map(|(i, m)| Recipe::UpdateLink(i, m)),
+        (0usize..8).prop_map(Recipe::DeleteLink),
     ]
 }
 
@@ -228,8 +239,68 @@ fn outline_op(doc: &laminapdf_model::Document, recipe: &Recipe) -> Option<Op> {
     })
 }
 
+/// The document's links, in page order.
+fn link_ids(doc: &laminapdf_model::Document) -> Vec<AnnotId> {
+    let pages = doc.pages().unwrap();
+    pages
+        .iter()
+        .flat_map(|page| doc.annotations(&page).unwrap())
+        .filter(|a| a.subtype == AnnotSubtype::Link)
+        .map(|a| a.id)
+        .collect()
+}
+
+/// A link recipe as an op; an update or delete with no link to name adds one instead.
+fn link_op(doc: &laminapdf_model::Document, recipe: &Recipe) -> Option<Op> {
+    let ids = page_ids(doc);
+    let links = link_ids(doc);
+    let rect = UserSpaceRect::from_corners(72.0, 700.0, 180.0, 714.0);
+    let add = |p: usize, on_text: bool| {
+        let mut op = AddLink::new(
+            ids[p % ids.len()].clone(),
+            rect,
+            OutlineTarget::Uri("https://example.com/".into()),
+        );
+        if on_text {
+            op.quads = vec![[
+                UserSpacePoint::new(72.0, 714.0),
+                UserSpacePoint::new(180.0, 714.0),
+                UserSpacePoint::new(72.0, 700.0),
+                UserSpacePoint::new(180.0, 700.0),
+            ]];
+            op.marked = vec![0];
+        }
+        Op::from(op)
+    };
+    Some(match recipe {
+        Recipe::AddLink(p, on_text) => add(*p, *on_text),
+        Recipe::UpdateLink(i, moves) => {
+            let Some(link) = links.get(i % links.len().max(1)) else {
+                return Some(add(*i, false));
+            };
+            let mut op = UpdateLink::new(link.clone());
+            if *moves {
+                op.rect = Some(UserSpaceRect::from_corners(36.0, 36.0, 120.0, 60.0));
+                op.quads = Some(Vec::new());
+                op.target = Some(OutlineTarget::Destination(ExplicitDestination::new(
+                    ids[i % ids.len()].clone(),
+                    DestinationView::Fit,
+                )));
+            } else {
+                op.contents = Some(Some("Changed".into()));
+            }
+            op.into()
+        }
+        Recipe::DeleteLink(i) => match links.get(i % links.len().max(1)) {
+            Some(link) => DeleteLink::new(link.clone()).into(),
+            None => add(*i, true),
+        },
+        _ => return None,
+    })
+}
+
 fn to_op(doc: &laminapdf_model::Document, recipe: &Recipe) -> Op {
-    if let Some(op) = outline_op(doc, recipe) {
+    if let Some(op) = outline_op(doc, recipe).or_else(|| link_op(doc, recipe)) {
         return op;
     }
     match recipe {
@@ -287,6 +358,10 @@ fn documents() -> Vec<Make> {
         ("outline.pdf", || corpus("outline.pdf")),
         ("metadata.pdf (Info and XMP)", || open(&fixture("golden/metadata.pdf"))),
         ("pdf20-xmp-only.pdf", || open(&fixture("metadata/pdf20-xmp-only.pdf"))),
+        ("links-and-outlines.pdf", || {
+            open(&fixture("golden/links-and-outlines.pdf"))
+        }),
+        ("tagged-report.pdf", || open(&fixture("golden/tagged-report.pdf"))),
     ]
 }
 

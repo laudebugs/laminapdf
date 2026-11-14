@@ -1,0 +1,34 @@
+---
+title: Mark up a page
+description: Highlight text in a PDF, leave a sticky note and propose a replacement word, each mark drawn the same in every PDF reader.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll mark up a report's first page the way a reviewer does: highlight a line, leave a note beside the chart, and propose a better word. You need this for a review tool in an editor, or a script that flags every sentence a checker finds.
+
+Viewers report a text selection as one box per line, and a click as a point, in page space: points from the page's top-left corner. `markText`, `noteAt` and `caretAt` turn those into the edit that adds the mark, in the page's [user space](/reference/glossary/#user-space). `replaceText` adds a strike-out and a caret together:
+
+<Example ts="packages/sdk/examples/mark-up.ts" rust="crates/laminapdf/examples/mark_up.rs" result="mark_up" />
+
+The result is the original bytes, unchanged, followed by two revisions. "Widgets sold out in May." is highlighted in yellow, a speech-bubble note sits right of the chart, and "sold out" is struck through with a caret after it that holds "ran out".
+
+## How it works
+
+- `markText` takes one box per line of the selected text and a kind: `highlight`, `underline`, `strikeOut` or `squiggly`. Each box becomes one of the mark's quadrilaterals, so a mark over three lines covers only those lines.
+- Lamina PDF draws every mark itself and stores the drawing in the file, so every reader that draws stored appearances, as pdf.js, PDFium and Acrobat do, shows the same mark. A highlight multiplies its colour with the page, which keeps the text under it legible.
+- The report is a tagged PDF, the kind screen readers follow. In a tagged file, a mark's description (`contents`) is the text it marks, or the kind of mark when its boxes hold no text. The mark joins the document's structure right after that text.
+- `noteAt` puts a 20-point icon with its top-left corner on the point, and a pop-up beside it that shows the comment. The note keeps its size at any zoom and stays upright when the page turns, as Acrobat's notes do.
+- `replaceText` groups the strike-out with a caret, so a reader shows, moves and deletes them as one correction. The caret holds the replacement text. Both edits are one step: a single undo removes both.
+- The author and dates come from your code, never from a clock inside Lamina PDF, so the same edit gives the same file wherever it runs.
+
+## What to change
+
+- **Another mark:** pass `"underline"`, `"strikeOut"` or `"squiggly"` to `markText`.
+- **A colour or opacity:** set `common.color` (`[r, g, b]` from 0 to 1) and `common.opacity` before applying the edit.
+- **A note's icon:** pass `"note"`, `"comment"`, `"key"`, `"help"`, `"paragraph"`, `"newParagraph"` or `"insert"`.
+- **Change a mark later:** `updateAnnot` takes the ID from `createdAnnotations` and a new `color`, `opacity` or `spec`. Lamina PDF draws the mark again. `deleteAnnot` removes a mark, with its pop-up and the rest of its group.
+- **A PDF/A or PDF/UA file:** the marks keep the file's claims, and `doc.plan()` warns before you save when an edit breaks one. A highlight breaks PDF/A-1, which forbids transparency ([`pdfa-transparency`](/reference/codes/pdfa-transparency/)). A mark with an empty description breaks PDF/UA ([`annot-without-contents`](/reference/codes/annot-without-contents/)).
+- **A signed file:** you can mark up a [certified](/reference/glossary/#docmdp) file that allows comments, or one with only approval signatures. Lamina PDF appends the marks as a new revision, and the signatures stay valid.
+
+Next: [add links](/recipes/add-links/), another kind of annotation made the same way.

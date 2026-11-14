@@ -353,6 +353,8 @@ pub(crate) struct EditedJs {
     pub changed: bool,
     /// The IDs of the bookmarks the edit added, in order.
     pub created_outline_items: Vec<String>,
+    /// The IDs of the links the edit added, in order.
+    pub created_annotations: Vec<String>,
     /// An outline edit found the outline's links broken and rewrote them whole; bookmarks
     /// stored inside others have new IDs.
     pub outline_repaired: bool,
@@ -391,11 +393,28 @@ pub(crate) struct EditedJs {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[tsify(optional)]
     pub renamed_destinations: Vec<RenamedDestinationJs>,
+    /// The role, class and element ID names copied-in pages brought under another name, because
+    /// the document already used them another way; left out when there are none.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[tsify(optional)]
+    pub structure_renamed: Vec<StructureRenameJs>,
     /// The bookmarks a merge left out because the pages they went to didn't come along; left
     /// out when there are none.
     #[serde(skip_serializing_if = "is_zero")]
     #[tsify(optional)]
     pub bookmarks_dropped: usize,
+}
+
+/// A structure name brought in under another name: `kind` is `role`, `class` or `id`.
+#[derive(Debug, Serialize, Tsify)]
+pub(crate) struct StructureRenameJs {
+    /// `role`, `class` or `id`.
+    #[tsify(type = "\"role\" | \"class\" | \"id\"")]
+    pub kind: &'static str,
+    /// Its name in the source.
+    pub from: String,
+    /// Its name in this document.
+    pub to: String,
 }
 
 /// A named destination brought in under another name.
@@ -506,6 +525,7 @@ impl From<laminapdf::Edited> for EditedJs {
             also_deleted: e.also_deleted,
             changed: e.changed,
             created_outline_items: e.created_outline_items.iter().map(ToString::to_string).collect(),
+            created_annotations: e.created_annotations.iter().map(ToString::to_string).collect(),
             outline_repaired: e.outline_repaired,
             destination_uses: e.destination_uses,
             page_order: e.page_order.map(|o| o.iter().map(ToString::to_string).collect()),
@@ -518,6 +538,19 @@ impl From<laminapdf::Edited> for EditedJs {
                 .renamed_destinations
                 .into_iter()
                 .map(|r| RenamedDestinationJs { from: r.from, to: r.to })
+                .collect(),
+            structure_renamed: e
+                .structure_renamed
+                .into_iter()
+                .map(|r| StructureRenameJs {
+                    kind: match r.kind {
+                        laminapdf::StructureName::Role => "role",
+                        laminapdf::StructureName::Class => "class",
+                        _ => "id",
+                    },
+                    from: r.from,
+                    to: r.to,
+                })
                 .collect(),
             bookmarks_dropped: e.bookmarks_dropped,
             declared: e.declared.into_iter().map(ExtensionPropertyJs::from).collect(),

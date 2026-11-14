@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §6](../../plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2g](./E2g-page-labels.md), [E2m](./E2m-document-dialogs.md), [E2o](./E2o-structure-tree-merge.md) |
+| Depends on | [E2g](./E2g-page-labels.md), [E2m](./E2m-document-dialogs.md), [E2o](../done/E2o-structure-tree-merge.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `test/e2i-signed-gating-and-close` |
 | PR title | `test(editor): signed-document gating suite for page operations` |
@@ -33,6 +33,7 @@ Prove, across all E2 ops, that signed documents are protected exactly as ADR 000
 - The fixtures of the [E2 plan §9](../../plans/editor/e2-page-organisation.md#9-fixtures): approval-signed with a visible widget on page 2, an outline, a form and tags; certified P2 with an outline; a FieldMDP lock whose widget is on page 1; a usage-rights file whose `/Perms /UR3` is written by the script (it can't be validly signed without Adobe's key; the planner reads only its structure)
 - Validation of overridden outputs: pyHanko/`pdfsig` show no broken signatures, fields remain unsigned
 - Capability-matrix check: every E2 row at its target status in the core, pdf and web columns
+- With the usage-rights file: the annotation ops' rights checked per op in `would_violate` (`/Create` for `AddAnnot`, `/Modify` for `UpdateAnnot`, `/Delete` for `DeleteAnnot`), which E4c left for this fixture ([E4 plan §6](../../plans/editor/e4-markup-and-drawing-annotations.md#6-saving-and-the-save-constraint))
 
 **Out of scope** (and which todo covers it)
 

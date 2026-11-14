@@ -1,7 +1,7 @@
 ---
 title: "Pages that flow"
 description: "Pour headings, paragraphs, tables and images, or a Markdown file, into as many pages as they need, with footnotes, a contents page and \"Page X of Y\" footers."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/guides/flowing-pages/"
 ---
 
@@ -11,11 +11,119 @@ Pour headings, paragraphs, tables and images, or a Markdown file, into as many p
 
 This guide lays out a document whose length you don't know in advance, such as a report or a contract. You give Lamina PDF blocks and a page template, and it makes as many pages as they need, with a header and a footer on each.
 
-It keeps headings with their text and never leaves a single line of a paragraph alone at a page's foot or head, and it tags the result so screen readers can follow it. In TypeScript, you give it the same document as plain objects or Markdown; the [JSON section](#write-it-as-json) shows how.
+It keeps headings with their text and never leaves a single line of a paragraph alone at a page's foot or head, and it tags the result so screen readers can follow it. In Rust you build the blocks with types such as `Flow`, `Paragraph` and `Table`. In TypeScript you give it the same document as plain objects, or as Markdown; the [JSON section](#write-it-as-json) explains the format.
 
 ## The example
 
 The example builds a 13-page report: a cover with a contents page, then five sections of headings, paragraphs, a footnote, a bulleted list and a photo. One paragraph is in Arabic and one in Hindi, and each is split by a page break. Every page after the cover names its section in the header and says "Page 3 of 13" in the footer, and every section has a bookmark. The report is built under PDF/UA-1, the accessibility standard, so the build fails if the output breaks one of its rules.
+
+The TypeScript version describes the same report in plain objects, in the `laminapdf.document/1` format, with a named style for each kind of text. It passes the fonts and the photo beside the document, by the names the document uses. Both languages write the same bytes:
+
+**TypeScript**
+
+`packages/sdk/examples/flowing-report.ts`:
+
+```ts
+// A report that flows across pages: a cover with a contents page, then sections whose
+// paragraphs break between pages, footnotes at the foot of their page, the section's title in
+// a running header and "Page X of Y" in the footer.
+//
+// Lines split with at least two at a page's foot and head, headings stay with what follows, and the
+// photo moves whole. The document is plain objects; its fonts and photo come beside it by name.
+import { type BlockSpec, Builder, type BuilderOptions, type FlowDocument, Font, Image } from "@laminapdf/sdk";
+
+const TITLE = "Reading files offline: a year of the reader";
+const ARABIC = "يعمل القارئ دون اتصال بالشبكة، فتُفتح الملفات وتُقرأ وتُبحث على الجهاز نفسه، ولا يغادر أي منها الحاسوب.";
+const HINDI = "नमस्ते दुनिया। हिन्दी पाठ का परीक्षण।";
+const TOPICS = ["Opening files", "Search", "Printing", "Signing", "What comes next"];
+const PHOTO_WIDTH = 200;
+const PARAGRAPH_SPACE = 8;
+const FOOTER = { center: "Page {page} of {pages}" };
+
+/** The report's fonts: Latin, a collection whose second face is the bold one, Arabic and Devanagari. */
+export type FlowingReportFonts = Readonly<Record<"regular" | "bold" | "arabic" | "devanagari", Uint8Array>>;
+
+/**
+ * The report's bytes. Needs `init({ text: true })`.
+ *
+ * @param fonts - the fonts to set it in.
+ * @param photo - the JPEG each section shows.
+ * @param options - can fix the file ID, the producer and the creation date.
+ */
+export function flowingReport(
+  fonts: FlowingReportFonts,
+  photo: Uint8Array,
+  options: BuilderOptions = {},
+): Uint8Array<ArrayBuffer> {
+  using b = new Builder({ ...options, profiles: ["PDF/UA-1"] });
+  b.flow(report(), {
+    fonts: {
+      regular: Font.fromBytes(fonts.regular),
+      arabic: Font.fromBytes(fonts.arabic),
+      devanagari: Font.fromBytes(fonts.devanagari),
+      bold: Font.fromCollection(fonts.bold, 1),
+    },
+    images: { photo: Image.jpeg(photo) },
+  });
+  using doc = b.finish();
+  return doc.save();
+}
+
+/** The whole report: a cover with the contents, then a section per topic. */
+function report(): FlowDocument {
+  const body = { font: "regular", size: 11, fallbacks: ["arabic", "devanagari"] };
+  return {
+    schema: "laminapdf.document/1",
+    title: TITLE,
+    lang: "en",
+    // The cover is a plain A5 page; the others name their section and their number.
+    page: { size: "A5", first: { size: "A5" }, style: "small", header: { end: "{section}" }, footer: FOOTER },
+    styles: {
+      body,
+      note: { ...body, size: 9 },
+      arabic: { ...body, language: "ar" },
+      hindi: { ...body, language: "hi" },
+      heading: { font: "bold", size: 16 },
+      cover: { font: "bold", size: 24 },
+      small: { font: "regular", size: 9 },
+    },
+    blocks: [
+      { type: "paragraph", text: TITLE, style: "cover" },
+      { type: "paragraph", text: "A report from the reader's team." },
+      { type: "contents" },
+      { type: "pageBreak" },
+      ...TOPICS.flatMap(section),
+    ],
+  };
+}
+
+/** A section: its heading, paragraphs (one in Arabic, one in Hindi), a list and a photo. */
+function section(topic: string, i: number): BlockSpec[] {
+  const sentence = `The ${topic.toLowerCase()} work of the year changed how readers use the app every day. `;
+  const note = { text: `Measured on our test files for ${topic}.`, style: "note" };
+  const paragraph = (repeats: number, withNote = false): BlockSpec => ({
+    type: "paragraph",
+    text: sentence.repeat(repeats),
+    spaceAfter: PARAGRAPH_SPACE,
+    spans: withNote ? [{ note }] : null,
+  });
+  const paragraphs = [paragraph(4), paragraph(5), paragraph(6), paragraph(7, true)];
+  const foreign: BlockSpec[] = []; // Section 2 has a paragraph in Arabic, section 4 one in Hindi.
+  if (i === 1) foreign.push({ type: "paragraph", text: `${ARABIC} `.repeat(8).trimEnd(), style: "arabic" });
+  if (i === 3) foreign.push({ type: "paragraph", text: `${HINDI} `.repeat(12).trimEnd(), style: "hindi" });
+  const items = ["faster", "smaller", "easier to share"].map((word) => ({ text: `Files are ${word}.` }));
+  const alt = `A photo of the team working on ${topic.toLowerCase()}`;
+  return [
+    { type: "heading", level: 1, text: topic, style: "heading" },
+    ...paragraphs,
+    ...foreign,
+    { type: "list", kind: "bullet", items },
+    { type: "figure", image: "photo", alt, width: PHOTO_WIDTH },
+  ];
+}
+```
+
+**Rust**
 
 `crates/laminapdf/examples/flowing_report.rs`:
 
@@ -121,6 +229,8 @@ fn section(flow: Flow, i: usize, topic: &str, body: &TextStyle, heading: &TextSt
 }
 ```
 
+**Result:** [flowing_report.pdf](https://docs.laminapdf.com/examples/pdf/flowing_report.pdf)
+
 The result is thirteen A5 pages: [open the reference PDF](https://docs.laminapdf.com/examples/pdf/flowing_report.pdf).
 
 ## Blocks, styles and the template
@@ -139,8 +249,8 @@ The template gives the page size, the margins, a header and a footer, and option
 
 The flow lays out every page before it draws any, and it follows these rules:
 
-- **Paragraphs split only between lines,** leaving at least two lines at the foot of a page and two at the head of the next. When a page has room for only one line of a paragraph, the paragraph moves to the next page. Change the counts with `with_widows_and_orphans`.
-- **A heading stays with the block after it,** so a section never starts on the last line of a page. Any paragraph can do the same with `with_keep_with_next`.
+- **Paragraphs split only between lines,** leaving at least two lines at the foot of a page and two at the head of the next. When a page has room for only one line of a paragraph, the paragraph moves to the next page. Change the counts with `with_widows_and_orphans`, or a JSON paragraph's `widows` and `orphans`.
+- **A heading stays with the block after it,** so a section never starts on the last line of a page. Any paragraph can do the same with `with_keep_with_next`, or `keepWithNext` in JSON.
 - **Figures and keep groups move whole** to the next page when they don't fit.
 - **A paragraph continued on a page of another width** is broken again at that width.
 
@@ -148,7 +258,115 @@ When blocks you asked to keep together are taller than a page, the flow splits t
 
 ## Tables across pages
 
-A table can run over as many pages as its rows need, with its header on each page and every row whole. The second example builds a three-page invoice of 60 rows with a total at the end:
+A table can run over as many pages as its rows need, with its header on each page and every row whole. The second example builds a three-page invoice of 60 rows with a total at the end. Again, both languages write the same bytes:
+
+**TypeScript**
+
+`packages/sdk/examples/flowing-invoice.ts`:
+
+```ts
+// An invoice whose table runs over three pages: its header row repeats at the top of each
+// page, no row is split between pages, and the total stays on the page of the last row.
+//
+// The columns fit their widest cell, and numbers line up on the right. The document is plain
+// objects in the `laminapdf.document/1` format, which names its two fonts; their bytes come beside
+// it. The output is tagged (one `Table` element across the pages) and checked against PDF/UA-1.
+import { type BlockSpec, Builder, type BuilderOptions, type CellSpec, type FlowDocument, Font } from "@laminapdf/sdk";
+
+const TITLE = "Invoice 2026-114";
+const PRODUCTS: readonly (readonly [string, number])[] = [
+  ["Paper, A4, 80 g, box of 2,500 sheets", 2_450],
+  ["Toner cartridge, black", 6_900],
+  ["Desk lamp with a weighted base and an adjustable arm", 4_275],
+  ["Stapler", 1_290],
+  ["Archive boxes, set of ten, with lids", 3_150],
+  ["Ballpoint pens, box of fifty", 1_875],
+];
+const LINES = 60;
+const MARGIN = 56;
+const PADDING = 6;
+const RULE_WIDTH = 0.75;
+const ROW_RULE_WIDTH = 0.25;
+/** The frame and the rule under the header, the rules between rows, and the header row's shade. */
+const RULE = "#666666";
+const ROW_RULE = "#b3b3b3";
+const HEADER_SHADE = "#ebebeb";
+
+/**
+ * The invoice's bytes. Needs `init({ text: true })`.
+ *
+ * @param regular - the body's font.
+ * @param bold - a collection whose second face (index 1) is the bold one.
+ * @param options - can fix the file ID, the producer and the creation date.
+ */
+export function flowingInvoice(
+  regular: Uint8Array,
+  bold: Uint8Array,
+  options: BuilderOptions = {},
+): Uint8Array<ArrayBuffer> {
+  using b = new Builder({ ...options, profiles: ["PDF/UA-1"] });
+  const document: FlowDocument = {
+    schema: "laminapdf.document/1",
+    title: TITLE,
+    lang: "en",
+    page: { size: "A4", margins: MARGIN, footer: { center: "{title}, page {page} of {pages}" }, style: "small" },
+    styles: {
+      body: { font: "regular", size: 10 },
+      strong: { font: "bold", size: 10 },
+      title: { font: "bold", size: 18 },
+      small: { font: "regular", size: 8 },
+    },
+    blocks: [
+      { type: "heading", level: 1, text: TITLE, style: "title" },
+      { type: "paragraph", text: "Office supplies delivered in October, to be paid within 30 days." },
+      table(),
+    ],
+  };
+  b.flow(document, { fonts: { regular: Font.fromBytes(regular), bold: Font.fromCollection(bold, 1) } });
+  using doc = b.finish();
+  return doc.save();
+}
+
+/** Sixty lines of products, a header row and a footer row with the total. */
+function table(): BlockSpec {
+  const number = (text: string, style = "body"): CellSpec => ({ text, style, align: "end" });
+  const header = ["Item", "Description", "Qty", "Amount"].map(
+    (text, i): CellSpec => ({ text, style: "strong", ...(i >= 2 ? { align: "end" } : {}) }),
+  );
+  let total = 0;
+  const rows = Array.from({ length: LINES }, (_, i) => {
+    const [name, cents] = PRODUCTS[i % PRODUCTS.length] ?? ["", 0];
+    const qty = (i % 5) + 1;
+    total += qty * cents;
+    return {
+      cells: [
+        { text: String(i + 1).padStart(3, "0") },
+        { text: name },
+        number(String(qty)),
+        number(money(qty * cents)),
+      ],
+    };
+  });
+  return {
+    type: "table",
+    columns: ["auto", "auto", "auto", "auto"],
+    padding: PADDING,
+    frame: { width: RULE_WIDTH, color: RULE },
+    headerRule: { width: RULE_WIDTH, color: RULE },
+    rowRules: { width: ROW_RULE_WIDTH, color: ROW_RULE },
+    headerBackground: HEADER_SHADE,
+    header: [{ cells: header }],
+    rows,
+    footer: [{ cells: [{ text: "Total", style: "strong", span: 3 }, number(money(total), "strong")] }],
+  };
+}
+
+function money(cents: number): string {
+  return `${Math.floor(cents / 100)}.${String(cents % 100).padStart(2, "0")}`;
+}
+```
+
+**Rust**
 
 `crates/laminapdf/examples/flowing_invoice.rs`:
 
@@ -226,10 +444,10 @@ fn table(body: &TextStyle, strong: &TextStyle) -> Table {
         });
     let mut table = Table::new([ColumnWidth::Auto; 4])
         .with_padding(6.0)
-        .with_frame(TableRule::new(0.75, Color::gray(0.4)))
-        .with_header_rule(TableRule::new(0.75, Color::gray(0.4)))
-        .with_row_rules(TableRule::new(0.25, Color::gray(0.7)))
-        .with_header_background(Color::gray(0.92))
+        .with_frame(TableRule::new(0.75, Color::rgb8(0x66, 0x66, 0x66)))
+        .with_header_rule(TableRule::new(0.75, Color::rgb8(0x66, 0x66, 0x66)))
+        .with_row_rules(TableRule::new(0.25, Color::rgb8(0xb3, 0xb3, 0xb3)))
+        .with_header_background(Color::rgb8(0xeb, 0xeb, 0xeb))
         .header(header);
     let mut total = 0;
     for (i, (name, cents)) in PRODUCTS.iter().cycle().take(60).enumerate() {
@@ -254,6 +472,8 @@ fn money(cents: usize) -> String {
 }
 ```
 
+**Result:** [flowing_invoice.pdf](https://docs.laminapdf.com/examples/pdf/flowing_invoice.pdf)
+
 The result is three A4 pages: [open the reference PDF](https://docs.laminapdf.com/examples/pdf/flowing_invoice.pdf).
 
 A table follows three rules when it crosses a page:
@@ -264,17 +484,17 @@ A table follows three rules when it crosses a page:
 
 Columns get their widths once, for the whole table, so they line up from page to page. A column is `Fixed` (a width in points), `Auto` (as wide as its widest cell) or a `Fraction` (a share of the width the others leave). When automatic columns are too wide together, the widest ones narrow first, so a column of numbers keeps its width while the descriptions wrap.
 
-A cell holds one or more paragraphs. `with_align` lines its text up at the start, centre or end (numbers at the end), and `with_vertical_align` places it in the row. `with_span` stretches a cell over several columns, as the invoice's "Total" does. Rules come from `with_frame`, `with_header_rule` and `with_row_rules`, and `with_header_background` shades the header rows.
+A cell holds one or more paragraphs. `with_align` lines its text up at the start, centre or end (numbers at the end), and `with_vertical_align` places it in the row. `with_span` stretches a cell over several columns, as the invoice's "Total" does. Rules come from `with_frame`, `with_header_rule` and `with_row_rules`, and `with_header_background` shades the header rows. In a JSON document, as in the TypeScript invoice, a cell takes `align`, `valign` and `span`. The table takes `padding`, `frame`, `headerRule`, `rowRules` and `headerBackground`, with colours written as `#rrggbb`.
 
 ## Footnotes, a contents page and bookmarks
 
-A footnote is part of a paragraph: `Paragraph::note(body)` puts a raised number where you add it and the note's body at the foot of the same page. Notes are numbered 1, 2, 3 through the flow. A short rule separates them from the text above, and the page's footer stays below them. When a line's notes don't fit at the foot of its page, the line moves to the next page with them.
+A footnote is part of a paragraph: `Paragraph::note(body)` puts a raised number where you add it and the note's body at the foot of the same page. In JSON, a span's `note` does the same. Notes are numbered 1, 2, 3 through the flow. A short rule separates them from the text above, and the page's footer stays below them. When a line's notes don't fit at the foot of its page, the line moves to the next page with them.
 
-A contents block, `FlowBlock::Contents`, lists the flow's headings with the page each one starts on. Each entry is indented by its heading's level, with dots leading to its number, and the entry links to its heading. By default it lists levels 1 and 2; `Contents::with_levels` changes that. The report in the example puts its contents on the cover.
+A contents block, `FlowBlock::Contents`, lists the flow's headings with the page each one starts on. Each entry is indented by its heading's level, with dots leading to its number, and the entry links to its heading. By default it lists levels 1 and 2; `Contents::with_levels` changes that, as does `levels` in JSON. The report in the example puts its contents on the cover.
 
 The flow can't know the page numbers before it has laid the pages out. So it lays everything out, writes the numbers it found into the contents page, and lays out again to check them. Each entry keeps room for a number of up to four digits, so the contents page keeps its length and the second layout confirms the numbers.
 
-Every heading also gets a bookmark. PDF readers list the bookmarks in their sidebar, nested by heading level, and each one goes to its heading. Turn them off with `Flow::with_outline(false)`.
+Every heading also gets a bookmark. PDF readers list the bookmarks in their sidebar, nested by heading level, and each one goes to its heading. Turn them off with `Flow::with_outline(false)`, or `outline: false` in JSON.
 
 ## Write it in Markdown
 

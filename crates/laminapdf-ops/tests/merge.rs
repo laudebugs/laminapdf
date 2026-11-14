@@ -71,6 +71,10 @@ fn labels(doc: &laminapdf_model::Document) -> Vec<String> {
         .collect()
 }
 
+fn titled_id(id: SourceId, title: &str) -> MergeSource {
+    MergeSource::new(id).with_title(title)
+}
+
 fn titled(doc: &mut Document, name: &str, title: &str) -> MergeSource {
     MergeSource::new(source(doc, name)).with_title(title)
 }
@@ -279,16 +283,59 @@ fn copied_pages_keep_the_labels_their_file_gave_them() {
 }
 
 #[test]
-fn merged_tagged_pages_lose_their_tags_and_warn_on_a_pdf_ua_file() {
+fn merged_tagged_pages_keep_their_tags_in_a_part_named_after_the_file() {
     let mut doc = pages("tagged.pdf");
+    let before = doc.structure().unwrap().unwrap().elements().len();
     let id = source(&mut doc, "tagged.pdf");
-    let applied = merge(&mut doc, vec![MergeSource::new(id)], MergeOptions::default());
-    assert_ne!(applied.tags_dropped, []);
+    let applied = merge(&mut doc, vec![titled_id(id, "Again")], MergeOptions::default());
+    assert_eq!(applied.tags_dropped, []);
+    let tree = doc.structure().unwrap().unwrap();
+    let document = &tree.roots[0];
+    let part = document.children().last().unwrap();
+    assert_eq!(part.kind, b"Part");
+    // The source's Document element isn't copied: its five children sit in the Part.
+    assert_eq!(part.children().count(), 5);
+    assert_eq!(tree.elements().len(), before + 1 + 5);
     let warnings = pending_conformance_warnings(&doc, doc.pending_changes()).unwrap();
     assert!(
-        warnings.contains(&ConformanceWarning::ImportedTagsDropped),
+        !warnings.contains(&ConformanceWarning::ImportedTagsDropped),
         "{warnings:?}"
     );
+    // Both claim PDF/UA-1.
+    assert!(
+        !warnings.contains(&ConformanceWarning::ImportedPdfuaUnchecked),
+        "{warnings:?}"
+    );
+}
+
+#[test]
+fn a_merge_with_an_untagged_file_into_a_new_document_drops_every_tag() {
+    let merged = Document::merge(
+        vec![
+            MergeInput::new(fixture("pages/tagged.pdf")),
+            MergeInput::new(fixture("pages/labels.pdf")),
+        ],
+        MergeOptions::default(),
+    )
+    .unwrap();
+    assert!(merged.structure().unwrap().is_none());
+    assert!(!merged.is_tagged().unwrap());
+}
+
+#[test]
+fn a_merge_of_tagged_files_into_a_new_document_is_tagged() {
+    let merged = Document::merge(
+        vec![
+            MergeInput::new(fixture("pages/tagged.pdf")).with_title("One"),
+            MergeInput::new(fixture("pages/references.pdf")).with_title("Two"),
+        ],
+        MergeOptions::default(),
+    )
+    .unwrap();
+    assert!(merged.is_tagged().unwrap());
+    let tree = merged.structure().unwrap().unwrap();
+    let parts: Vec<&[u8]> = tree.roots[0].children().map(|e| e.kind.as_slice()).collect();
+    assert_eq!(parts, [&b"Part"[..], b"Part"]);
 }
 
 #[test]

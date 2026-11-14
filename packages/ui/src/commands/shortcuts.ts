@@ -199,6 +199,7 @@ export const OVERRIDES: Readonly<Record<Shell, readonly KeyRule[]>> = {
     { keys: "Mod+Shift+Z", why: "redo" },
     { keys: "Mod+Y", why: "redo on Windows and Linux" },
     { keys: "Mod+W", why: "closes the tab, as in other tabbed apps" },
+    { keys: "Ctrl+Q", why: "quits on Windows and Linux, as the File menu's Quit does" },
     { keys: "Mod+[", why: "back, as in other apps with history" },
     { keys: "Mod+]", why: "forward" },
     { keys: "Alt+ArrowLeft", why: "back on Windows and Linux" },
@@ -237,6 +238,24 @@ export const onPlatform = (binding: Shortcut, platform: KeyPlatform): boolean =>
 /** Whether `binding` is bound in `ctx`: it needs no capability, or the platform has it. */
 export function isBound(binding: Shortcut, ctx: CommandContext): boolean {
   return binding.requires === undefined || ctx.platform.capabilities[binding.requires];
+}
+
+/**
+ * The keys a native menu shows and binds for `command` on `platform`: its first binding that acts
+ * anywhere (scope `global`), is dispatched, is bound in `ctx` and exists on `platform`, and holds
+ * Ctrl, Alt or ⌘ or is a function key. A single key or a key that acts only in one part of the
+ * window (the page's `+`, the find field's Enter) stays the web view's alone.
+ */
+export function menuAccelerator(command: AnyCommand, ctx: CommandContext, platform: KeyPlatform): string | undefined {
+  const binding = command.shortcuts?.find(
+    (b) =>
+      b.scope === "global" &&
+      b.dispatch !== false &&
+      isBound(b, ctx) &&
+      onPlatform(b, platform) &&
+      (!isSingleKey(b[platform], platform) || /^F\d+$/.test(b[platform])),
+  );
+  return binding?.[platform];
 }
 
 /** The keys a check reads on one platform in one shell. */
@@ -350,7 +369,7 @@ export function shortcutDispatcher(options: DispatcherOptions): (event: Keyboard
     if (options.registry.availability(found.command.id, ctx).state !== "available") return;
     event.preventDefault();
     // A shortcut has no arguments to get wrong, and a refusal has nowhere to show.
-    options.registry.run(found.command.id, ctx).catch(() => undefined);
+    options.registry.run(found.command.id, ctx, { source: "keys" }).catch(() => undefined);
   };
 }
 

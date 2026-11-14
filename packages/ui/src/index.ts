@@ -14,6 +14,7 @@ export {
   urlArgs,
   zoomArgs,
 } from "./commands/args.js";
+export { desktopCommands, registerDesktopCommands } from "./commands/desktop-commands.js";
 export {
   matchText,
   type Rankable,
@@ -28,6 +29,7 @@ export {
   type CommandView,
   chipKeys,
   type ShortcutGroup,
+  shortcutMap,
   useCommand,
   useCommands,
   useShortcutMap,
@@ -35,16 +37,15 @@ export {
 export {
   readerCommands,
   registerReaderCommands,
-  registerTabCommands,
-  tabCommands,
 } from "./commands/reader-commands.js";
-export { CommandError, CommandRegistry } from "./commands/registry.js";
+export { CommandError, CommandRegistry, type RunSource } from "./commands/registry.js";
 export { RegistryPalette, type RegistryPaletteProps } from "./commands/registry-palette.js";
 export {
   BROWSER_KEYS,
   bindingKey,
   type DispatcherOptions,
   type KeyPress,
+  menuAccelerator,
   NEVER_BIND,
   OVERRIDES,
   pressKey,
