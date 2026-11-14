@@ -78,6 +78,10 @@
 //!   page attribute that is `null` keeps the inherited value, and `/Contents` that is `null`
 //!   contributes no content. The page-tree walk skips children that are missing, unparsable
 //!   or not dictionaries; reference cycles are [`Error::ReferenceCycle`].
+//! * A dictionary token that is not a name where a key belongs (a stray keyword, number,
+//!   string, array or unbalanced `)` or `>`) is skipped and the rest read, as pdf.js and
+//!   PDFium do ([`Warning::DictionaryKeySkipped`]). An `/Encrypt` or catalog read that way
+//!   counts as damaged, so the xref is rebuilt in case an intact definition exists.
 //! * The `%PDF-` header is optional: it is looked for in the first 1 024 bytes, and its
 //!   absence is reported as [`Warning::MissingHeader`].
 //! * The stored xref is used only when every in-file entry points at a matching `n g obj`

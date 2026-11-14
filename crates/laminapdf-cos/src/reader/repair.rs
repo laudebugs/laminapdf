@@ -4,8 +4,9 @@
 //! `stream`; stream data is never copied, except for object streams, which are decoded one at
 //! a time). For each object number the definition that appears **last in the file** wins:
 //! an in-file object by its header offset, an object-stream member by its container's offset
-//! (then by its index in the container). Definitions that do not parse lose to any that do;
-//! an unparsable one is kept only when there is nothing better. Every `trailer` dictionary and
+//! (then by its index in the container). Definitions that do not parse lose to any that do,
+//! and one that parsed only by skipping a dictionary key (`dictionary-key-skipped`) loses to
+//! any that parsed without; a damaged one is kept only when there is nothing better. Every `trailer` dictionary and
 //! every xref-stream dictionary is merged in file order. The newest `/Root` that points at a
 //! dictionary wins; if none does, the newest `/Type /Catalog` object (by the same file order)
 //! is adopted.
@@ -182,6 +183,15 @@ struct Summary {
     root_candidate: bool,
     /// `/Type /Catalog`.
     catalog: bool,
+    /// It parsed without skipping a dictionary key.
+    intact: bool,
+}
+
+impl Summary {
+    /// How whole a definition is: unparsable (0), parsed by skipping a key (1), intact (2).
+    fn rank(summary: Option<Self>) -> u8 {
+        summary.map_or(0, |s| if s.intact { 2 } else { 1 })
+    }
 }
 
 /// A definition of one object number found by the scan.
@@ -195,26 +205,19 @@ struct Candidate {
 }
 
 impl Candidate {
-    /// Whether `self` should replace `current`: a parsed definition beats an unparsable one,
-    /// and otherwise the later one in the file wins.
+    /// Whether `self` should replace `current`: an intact definition beats one that parsed
+    /// only by skipping a dictionary key, which beats an unparsable one; otherwise the later
+    /// one in the file wins.
     fn beats(&self, current: &Self) -> bool {
-        match (self.summary.is_some(), current.summary.is_some()) {
-            (true, false) => true,
-            (false, true) => false,
-            _ => self.position > current.position,
-        }
+        (Summary::rank(self.summary), self.position) > (Summary::rank(current.summary), current.position)
     }
 }
 
 /// What repair keeps of an object's head (its value without stream data).
 #[derive(Debug)]
 struct ScannedHead {
-    /// The value is a reference.
-    is_ref: bool,
-    /// The value is a dictionary (and maybe a stream's).
-    is_dict: bool,
-    /// `/Type /Catalog`.
-    catalog: bool,
+    /// The value's summary, as if it were not a stream.
+    value: Summary,
     /// For a dictionary followed by `stream`: where the data starts. The object is a complete
     /// stream when an `endstream` follows somewhere.
     stream_data: Option<usize>,
@@ -231,9 +234,10 @@ impl ScannedHead {
     }
 
     fn summary(&self, last_endstream: Option<usize>) -> Summary {
+        // Only a dictionary is followed by `stream`, so this never drops a reference.
         Summary {
-            root_candidate: self.is_ref || (self.is_dict && !self.is_stream(last_endstream)),
-            catalog: self.catalog,
+            root_candidate: self.value.root_candidate && !self.is_stream(last_endstream),
+            ..self.value
         }
     }
 }
@@ -258,9 +262,7 @@ fn parse_head(source: &Source, offset: usize, limits: &Limits) -> Result<Option<
         let dict = value.as_dict();
         let kind = dict.and_then(|d| d.get_name("Type"));
         Ok(ScannedHead {
-            is_ref: matches!(value, Object::Ref(_)),
-            is_dict: dict.is_some(),
-            catalog: kind == Some(b"Catalog"),
+            value: summarize(&value, parser.skipped_keys()),
             stream_data,
             kept: dict.filter(|_| matches!(kind, Some(b"XRef" | b"ObjStm"))).cloned(),
         })
@@ -268,10 +270,13 @@ fn parse_head(source: &Source, offset: usize, limits: &Limits) -> Result<Option<
     Ok(within_read_window(head)?.and_then(Result::ok))
 }
 
-fn summarize(obj: &Object, is_stream: bool) -> Summary {
+/// The summary of a definition whose value is `obj` (a stream's head is adjusted by
+/// [`ScannedHead::summary`]).
+fn summarize(obj: &Object, skipped_keys: bool) -> Summary {
     Summary {
-        root_candidate: matches!(obj, Object::Ref(_)) || (matches!(obj, Object::Dict(_)) && !is_stream),
+        root_candidate: matches!(obj, Object::Ref(_) | Object::Dict(_)),
         catalog: obj.as_dict().and_then(|d| d.get_name("Type")) == Some(b"Catalog"),
+        intact: !skipped_keys,
     }
 }
 
@@ -323,15 +328,24 @@ fn object_stream_members(
     };
     Ok((0u32..)
         .zip(objs)
-        .map(|(index, (member, obj))| {
-            let candidate = Candidate {
-                entry: XrefEntry::InStream { stream, index },
-                position: (offset, index),
-                // A member that does not parse loses to any definition that does.
-                summary: obj.as_ref().ok().map(|obj| summarize(obj, false)),
-            };
-            (member, candidate)
-        })
+        .map(
+            |(
+                index,
+                objstm::Member {
+                    num: member,
+                    object: obj,
+                    skipped_keys,
+                },
+            )| {
+                let candidate = Candidate {
+                    entry: XrefEntry::InStream { stream, index },
+                    position: (offset, index),
+                    // A member that does not parse loses to any definition that does.
+                    summary: obj.as_ref().ok().map(|obj| summarize(obj, skipped_keys)),
+                };
+                (member, candidate)
+            },
+        )
         .collect())
 }
 
@@ -446,6 +460,7 @@ impl Scan {
             ignored_xref_streams: Vec::new(),
             dropped_objects: BTreeSet::new(),
             free_head: None,
+            skipped_trailer_keys: false,
         }
     }
 
@@ -520,6 +535,9 @@ impl Scan {
             ignored_xref_streams: Vec::new(),
             dropped_objects: self.dropped_objects,
             free_head: None,
+            // The scanned trailers merge into one; a repaired file reports `xref-repaired`,
+            // and each object with a skipped key warns again when it is loaded.
+            skipped_trailer_keys: false,
         };
         Ok((table, malformed))
     }

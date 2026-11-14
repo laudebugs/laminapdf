@@ -198,17 +198,14 @@ impl Security {
         let user = string(encrypt, "U")
             .filter(|u| u.len() >= need)
             .ok_or_else(|| invalid("bad /U"))?;
+        // R5/R6: the user password unwraps the file key from `/UE`, the owner password from
+        // `/OE` (Algorithm 2.A), so a missing or short one only matters when no password
+        // opens the file without it, as in pdf.js and PDFium.
+        let wrapped_key = |key: &str| string(encrypt, key).filter(|v| v.len() >= 32);
         let (owner_encryption, user_encryption) = if modern {
-            (
-                string(encrypt, "OE")
-                    .filter(|v| v.len() >= 32)
-                    .ok_or_else(|| invalid("bad /OE"))?,
-                string(encrypt, "UE")
-                    .filter(|v| v.len() >= 32)
-                    .ok_or_else(|| invalid("bad /UE"))?,
-            )
+            (wrapped_key("OE"), wrapped_key("UE"))
         } else {
-            (&[][..], &[][..])
+            (Some(&[][..]), Some(&[][..]))
         };
         let p = encrypt.get_int("P").ok_or_else(|| invalid("missing /P"))?;
         let permissions = Permissions::new(p, r);
@@ -221,17 +218,23 @@ impl Security {
             key_length,
             owner,
             user,
-            owner_encryption,
-            user_encryption,
+            owner_encryption: owner_encryption.unwrap_or_default(),
+            user_encryption: user_encryption.unwrap_or_default(),
             perms: string(encrypt, "Perms"),
             permissions: permissions.raw(),
             id0,
             encrypt_metadata,
         };
-        let auth = crypt::authenticate(&sec, password.unwrap_or_default()).ok_or(if password.is_some() {
-            Error::WrongPassword
-        } else {
-            Error::PasswordRequired
+        let auth = crypt::authenticate(&sec, password.unwrap_or_default()).ok_or_else(|| {
+            if user_encryption.is_none() {
+                invalid("bad /UE")
+            } else if owner_encryption.is_none() {
+                invalid("bad /OE")
+            } else if password.is_some() {
+                Error::WrongPassword
+            } else {
+                Error::PasswordRequired
+            }
         })?;
         let key_bits = u16::try_from(auth.key.bits()).unwrap_or(u16::MAX);
         Ok(Self {

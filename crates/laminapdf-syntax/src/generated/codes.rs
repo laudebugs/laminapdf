@@ -1051,6 +1051,8 @@ pub enum WarningCode {
     XrefstmIgnored,
     /// `stream-length-recovered`: a stream's /Length was wrong, so its end was found by scanning for endstream.
     StreamLengthRecovered,
+    /// `dictionary-key-skipped`: a dictionary had something other than a name where a key belongs, and it was skipped.
+    DictionaryKeySkipped,
     /// `stale-generation`: a reference's generation did not match its xref entry, so it resolved to null.
     StaleGeneration,
     /// `page-tree-node-skipped`: a page-tree node was missing, malformed or too deep, and was skipped.
@@ -1184,6 +1186,7 @@ impl WarningCode {
         Self::XrefRepaired,
         Self::XrefstmIgnored,
         Self::StreamLengthRecovered,
+        Self::DictionaryKeySkipped,
         Self::StaleGeneration,
         Self::PageTreeNodeSkipped,
         Self::PageCountMismatch,
@@ -1272,6 +1275,7 @@ impl WarningCode {
             Self::XrefRepaired => "xref-repaired",
             Self::XrefstmIgnored => "xrefstm-ignored",
             Self::StreamLengthRecovered => "stream-length-recovered",
+            Self::DictionaryKeySkipped => "dictionary-key-skipped",
             Self::StaleGeneration => "stale-generation",
             Self::PageTreeNodeSkipped => "page-tree-node-skipped",
             Self::PageCountMismatch => "page-count-mismatch",
@@ -1346,6 +1350,7 @@ impl WarningCode {
             Self::XrefRepaired => ErrorKind::Input,
             Self::XrefstmIgnored => ErrorKind::Input,
             Self::StreamLengthRecovered => ErrorKind::Input,
+            Self::DictionaryKeySkipped => ErrorKind::Input,
             Self::StaleGeneration => ErrorKind::Input,
             Self::PageTreeNodeSkipped => ErrorKind::Input,
             Self::PageCountMismatch => ErrorKind::Input,
@@ -1420,6 +1425,7 @@ impl WarningCode {
             Self::XrefRepaired => "the stored cross-reference data was unusable and was rebuilt by scanning",
             Self::XrefstmIgnored => "a hybrid file's /XRefStm could not be read and was ignored",
             Self::StreamLengthRecovered => "a stream's /Length was wrong, so its end was found by scanning for endstream",
+            Self::DictionaryKeySkipped => "a dictionary had something other than a name where a key belongs, and it was skipped",
             Self::StaleGeneration => "a reference's generation did not match its xref entry, so it resolved to null",
             Self::PageTreeNodeSkipped => "a page-tree node was missing, malformed or too deep, and was skipped",
             Self::PageCountMismatch => "the page tree's /Count differs from the number of pages walked",
@@ -1494,6 +1500,7 @@ impl WarningCode {
             Self::XrefRepaired => "check the result; save with a full rewrite, since an incremental update refuses a repaired base",
             Self::XrefstmIgnored => "nothing to do; the classic xref table is used instead",
             Self::StreamLengthRecovered => "nothing to do; a full rewrite writes the correct length",
+            Self::DictionaryKeySkipped => "nothing to do if the document reads correctly; open in strict mode to refuse such files",
             Self::StaleGeneration => "nothing to do; the reference is treated as missing",
             Self::PageTreeNodeSkipped => "check the page count: pages under the skipped node are missing",
             Self::PageCountMismatch => "nothing to do; Lamina PDF uses the walked page count",

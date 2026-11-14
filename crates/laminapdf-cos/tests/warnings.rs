@@ -165,6 +165,67 @@ mod stream_length_recovered {
     }
 }
 
+mod dictionary_key_skipped {
+    use super::*;
+
+    /// A page whose dictionary has a stray `)` and keyword where keys belong.
+    fn stray_tokens() -> Vec<u8> {
+        file(
+            b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            &[b"<< /Type /Page ) /Parent 2 0 R Rotate 90 /Rotate 180 >>"],
+        )
+    }
+
+    #[test]
+    fn is_raised_when_the_object_is_resolved_and_keeps_the_other_keys() {
+        let doc = open(&stray_tokens()).unwrap();
+        let page = doc.resolve(ObjRef::new(3, 0)).unwrap();
+        assert_eq!(
+            (page.as_dict().and_then(|d| d.get_int("Rotate")), doc.warnings()),
+            (Some(180), vec![Warning::DictionaryKeySkipped { object: Some(3) }])
+        );
+    }
+
+    #[test]
+    fn is_an_error_in_strict_mode() {
+        let doc = open_with(&stray_tokens(), strict()).unwrap();
+        assert_eq!(
+            strict_code(doc.resolve(ObjRef::new(3, 0))),
+            Some("dictionary-key-skipped")
+        );
+    }
+
+    #[test]
+    fn is_raised_for_a_trailer_without_an_object() {
+        let objects: [&[u8]; 2] = [
+            b"<< /Type /Catalog /Pages 2 0 R >>",
+            b"<< /Type /Pages /Kids [] /Count 0 >>",
+        ];
+        let doc = open(&classic(&objects, "<< /Size 3 ID /Root 1 0 R >>")).unwrap();
+        assert!(doc.warnings().contains(&Warning::DictionaryKeySkipped { object: None }));
+    }
+
+    #[test]
+    fn an_intact_older_definition_wins_in_repair() {
+        // The newer catalog parses only by skipping `0 ]`; repair keeps the older one.
+        let mut bytes = one_page();
+        let end = bytes.windows(9).rposition(|w| w == b"startxref").unwrap();
+        bytes.truncate(end);
+        bytes.extend_from_slice(b"1 0 obj\n<< /Type /Catalog /Pages 2 0 ] >>\nendobj\n");
+        let doc = open(&bytes).unwrap();
+        assert_eq!(
+            (
+                doc.was_repaired(),
+                doc.resolve(ObjRef::new(1, 0))
+                    .unwrap()
+                    .as_dict()
+                    .map(|d| d.get("Pages").cloned())
+            ),
+            (true, Some(Some(laminapdf_cos::Object::Ref(ObjRef::new(2, 0)))))
+        );
+    }
+}
+
 mod stale_generation {
     use super::*;
 

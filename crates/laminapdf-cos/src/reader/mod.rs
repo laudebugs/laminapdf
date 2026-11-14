@@ -364,12 +364,20 @@ impl Document {
                 budget = doc.budget.get();
                 checked
             });
+            // A skipped dictionary key in `/Encrypt` or the catalog marks it damaged, like a
+            // syntax error: repair may find an intact definition. (A trailer has no other
+            // definition to find, so a skipped key there only warns.)
+            let damaged = || {
+                doc.warnings()
+                    .iter()
+                    .any(|w| matches!(w, Warning::DictionaryKeySkipped { object: Some(_) }))
+            };
             match checked {
-                Ok(_) => return Ok(doc),
+                Ok(_) if !damaged() => return Ok(doc),
                 // A cycle is a broken catalog like any other: repair may still find one.
                 // Strict refusals, missing data and source failures are never repaired around.
                 Err(e) if e.must_propagate() || e.is_security_refusal() => return Err(e),
-                Err(_) => {}
+                Ok(_) | Err(_) => {}
             }
         }
         log.raise(Warning::XrefRepaired, &limits, strict)?;
@@ -379,7 +387,12 @@ impl Document {
         let scan = repair::scan(&source, &limits)?;
         let security = {
             let in_file = Self::new(base(), scan.in_file_table(), None, WarningLog::default())?;
-            in_file.read_security(options.password())?
+            let security = in_file.read_security(options.password())?;
+            // Reading `/Encrypt` may have warned (a skipped key, a recovered length).
+            for warning in in_file.warnings() {
+                log.raise(warning, &limits, strict)?;
+            }
+            security
         };
         let (table, malformed) = scan.finish(&source, &limits, &mut budget, security.as_ref())?;
         let mut doc = Self::new(base(), table, None, log)?;
@@ -422,6 +435,9 @@ impl Document {
         let max_object_number = table.entries.keys().chain(&dropped).max().copied();
         for object in dropped {
             log.raise(Warning::ObjectNumberOutOfRange { object }, &limits, strict)?;
+        }
+        if std::mem::take(&mut table.skipped_trailer_keys) {
+            log.raise(Warning::DictionaryKeySkipped { object: None }, &limits, strict)?;
         }
         let free_head = table.free_head.unwrap_or(0);
         Ok(Self::from_parts(

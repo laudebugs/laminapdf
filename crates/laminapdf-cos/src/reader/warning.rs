@@ -33,6 +33,13 @@ pub enum Warning {
         /// The stream's object number.
         object: u32,
     },
+    /// `dictionary-key-skipped`: a dictionary had something other than a name where a key
+    /// belongs (a stray keyword, number, string, array or unbalanced `)` or `>`); it was
+    /// skipped and the rest of the dictionary read, as pdf.js and PDFium do.
+    DictionaryKeySkipped {
+        /// The object holding the dictionary (`None` for a trailer or xref-stream dictionary).
+        object: Option<u32>,
+    },
     /// `stale-generation`: a reference's generation did not match its xref entry, so it
     /// resolved to `null` (§7.3.10).
     StaleGeneration {
@@ -362,6 +369,7 @@ impl Warning {
         "xref-repaired",
         "xrefstm-ignored",
         "stream-length-recovered",
+        "dictionary-key-skipped",
         "stale-generation",
         "page-tree-node-skipped",
         "page-count-mismatch",
@@ -416,6 +424,7 @@ impl Warning {
             Self::XrefRepaired => "xref-repaired",
             Self::XrefStmIgnored { .. } => "xrefstm-ignored",
             Self::StreamLengthRecovered { .. } => "stream-length-recovered",
+            Self::DictionaryKeySkipped { .. } => "dictionary-key-skipped",
             Self::StaleGeneration { .. } => "stale-generation",
             Self::PageTreeNodeSkipped { .. } => "page-tree-node-skipped",
             Self::PageCountMismatch { .. } => "page-count-mismatch",
@@ -475,6 +484,7 @@ impl Warning {
             | Self::AesPaddingInvalid { object }
             | Self::XObjectCycle { object } => Some(object),
             Self::PageTreeNodeSkipped { object }
+            | Self::DictionaryKeySkipped { object }
             | Self::PageCountMismatch { object, .. }
             | Self::FlateTruncated { object }
             | Self::FilterCharactersSkipped { object }
@@ -529,6 +539,7 @@ impl Warning {
             | Self::XrefRepaired
             | Self::XrefStmIgnored { .. }
             | Self::StreamLengthRecovered { .. }
+            | Self::DictionaryKeySkipped { .. }
             | Self::StaleGeneration { .. }
             | Self::PageTreeNodeSkipped { .. }
             | Self::PageCountMismatch { .. }
@@ -702,6 +713,7 @@ mod tests {
             Warning::XrefRepaired,
             Warning::XrefStmIgnored { offset: 1 },
             Warning::StreamLengthRecovered { object: 1 },
+            Warning::DictionaryKeySkipped { object: None },
             Warning::StaleGeneration {
                 object: 1,
                 generation: 1,
@@ -812,6 +824,7 @@ mod tests {
                 | Warning::XrefRepaired
                 | Warning::XrefStmIgnored { .. }
                 | Warning::StreamLengthRecovered { .. }
+                | Warning::DictionaryKeySkipped { .. }
                 | Warning::StaleGeneration { .. }
                 | Warning::PageTreeNodeSkipped { .. }
                 | Warning::PageCountMismatch { .. }

@@ -34,6 +34,13 @@
       "since": "0.1.0"
     },
     {
+      "code": "dictionary-key-skipped",
+      "kind": "input",
+      "summary": "a dictionary had something other than a name where a key belongs, and it was skipped",
+      "hint": "nothing to do if the document reads correctly; open in strict mode to refuse such files",
+      "since": "0.4.0"
+    },
+    {
       "code": "stale-generation",
       "kind": "input",
       "summary": "a reference's generation did not match its xref entry, so it resolved to null",

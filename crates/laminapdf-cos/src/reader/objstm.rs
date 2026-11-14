@@ -11,7 +11,17 @@ fn invalid(message: &'static str) -> Error {
     }
 }
 
-/// Parses decoded object-stream bytes into `(object number, object)` pairs, in order.
+/// One object of an object stream, as [`parse`] read it.
+#[derive(Debug)]
+pub(crate) struct Member {
+    pub(crate) num: u32,
+    pub(crate) object: laminapdf_syntax::Result<Object>,
+    /// Whether a dictionary in it had something other than a name where a key belongs, which
+    /// was skipped (`dictionary-key-skipped`).
+    pub(crate) skipped_keys: bool,
+}
+
+/// Parses decoded object-stream bytes into its members, in order.
 /// A member that fails to parse (malformed, or over a hard limit such as
 /// [`Limits::max_string_length`]) keeps its error, so one bad member does not hide the others
 /// and resolving it fails exactly as it would for an object stored in the file (ADR 0003 §1).
@@ -20,11 +30,7 @@ fn invalid(message: &'static str) -> Error {
 /// # Errors
 /// [`Error::InvalidStructure`] for a missing or negative `/N` or `/First`, a `/First` past the
 /// end of the data, or a header without any pair when `/N` is positive.
-pub(crate) fn parse(
-    dict: &Dict,
-    decoded: &[u8],
-    limits: &Limits,
-) -> Result<Vec<(u32, laminapdf_syntax::Result<Object>)>> {
+pub(crate) fn parse(dict: &Dict, decoded: &[u8], limits: &Limits) -> Result<Vec<Member>> {
     let n = dict
         .get_int("N")
         .and_then(|n| usize::try_from(n).ok())
@@ -57,8 +63,13 @@ pub(crate) fn parse(
     Ok(pairs
         .into_iter()
         .map(|(num, off)| {
-            let pos = first.saturating_add(off);
-            (num, Parser::new(decoded, pos).with_limits(limits).object())
+            let mut parser = Parser::new(decoded, first.saturating_add(off)).with_limits(limits);
+            let object = parser.object();
+            Member {
+                num,
+                object,
+                skipped_keys: parser.skipped_keys(),
+            }
         })
         .collect())
 }
@@ -71,7 +82,7 @@ mod tests {
     fn parse_reads_members_relative_to_first() {
         let dict: Dict = [("N", 2), ("First", 8)].into_iter().collect();
         let members = parse(&dict, b"1 0 2 2 7 (x)", &Limits::default()).unwrap();
-        let members: Vec<_> = members.into_iter().map(|(n, m)| (n, m.unwrap())).collect();
+        let members: Vec<_> = members.into_iter().map(|m| (m.num, m.object.unwrap())).collect();
         assert_eq!(
             members,
             vec![
@@ -86,7 +97,7 @@ mod tests {
         // The header holds 2 pairs; /N claims 3, so lexing past /First would read `7 8`.
         let dict: Dict = [("N", 3), ("First", 8)].into_iter().collect();
         let members = parse(&dict, b"1 0 2 2 7 8", &Limits::default()).unwrap();
-        let members: Vec<_> = members.into_iter().map(|(n, m)| (n, m.unwrap())).collect();
+        let members: Vec<_> = members.into_iter().map(|m| (m.num, m.object.unwrap())).collect();
         assert_eq!(members, vec![(1, Object::Integer(7)), (2, Object::Integer(8))]);
     }
 
@@ -94,7 +105,11 @@ mod tests {
     fn parse_should_keep_the_limit_error_of_a_member_over_a_hard_limit() {
         let dict: Dict = [("N", 2), ("First", 8)].into_iter().collect();
         let limits = Limits::default().with_max_string_length(2);
-        let members = parse(&dict, b"1 0 2 6 (abc) 7", &limits).unwrap();
+        let members: Vec<_> = parse(&dict, b"1 0 2 6 (abc) 7", &limits)
+            .unwrap()
+            .into_iter()
+            .map(|m| (m.num, m.object))
+            .collect();
         assert_eq!(
             members,
             vec![
@@ -108,6 +123,14 @@ mod tests {
                 (2, Ok(Object::Integer(7)))
             ]
         );
+    }
+
+    #[test]
+    fn parse_should_report_a_member_with_a_skipped_dictionary_key() {
+        let dict: Dict = [("N", 2), ("First", 8)].into_iter().collect();
+        let members = parse(&dict, b"1 0 2 13 << x /A 1 >> 7", &Limits::default()).unwrap();
+        let skipped: Vec<_> = members.iter().map(|m| (m.num, m.skipped_keys)).collect();
+        assert_eq!(skipped, vec![(1, true), (2, false)]);
     }
 
     #[test]

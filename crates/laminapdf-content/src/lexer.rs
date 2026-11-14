@@ -215,6 +215,9 @@ impl<'a> ContentIter<'a> {
             Token::ArrayOpen | Token::DictOpen => {
                 let mut parser = Parser::new(self.data(), start).with_limits(&self.limits);
                 match parser.object() {
+                    // Content keeps its own rule (ADR 0023): an operand with a skipped
+                    // dictionary key is malformed, and skipped as `content-syntax`.
+                    Ok(_) if parser.skipped_keys() => self.skip(start, start, parser.pos()),
                     Ok(object) => {
                         self.lexer.set_pos(parser.pos());
                         Step::Operand(object)

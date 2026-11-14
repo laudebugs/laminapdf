@@ -21,6 +21,7 @@ A PR that adds a code adds:
 | [`xref-repaired`](xref-repaired.md) | `input` | the stored cross-reference data was unusable and was rebuilt by scanning |
 | [`xrefstm-ignored`](xrefstm-ignored.md) | `input` | a hybrid file's /XRefStm could not be read and was ignored |
 | [`stream-length-recovered`](stream-length-recovered.md) | `input` | a stream's /Length was wrong, so its end was found by scanning for endstream |
+| [`dictionary-key-skipped`](dictionary-key-skipped.md) | `input` | a dictionary had something other than a name where a key belongs, and it was skipped |
 | [`stale-generation`](stale-generation.md) | `input` | a reference's generation did not match its xref entry, so it resolved to null |
 | [`page-tree-node-skipped`](page-tree-node-skipped.md) | `input` | a page-tree node was missing, malformed or too deep, and was skipped |
 | [`page-count-mismatch`](page-count-mismatch.md) | `input` | the page tree's /Count differs from the number of pages walked |

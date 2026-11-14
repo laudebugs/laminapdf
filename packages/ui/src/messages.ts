@@ -194,6 +194,7 @@ const EN = {
   "repairCode.missing-header": "Read the file although its PDF header was missing",
   "repairCode.xrefstm-ignored": "Ignored a broken table of objects and used a rebuilt one",
   "repairCode.stream-length-recovered": "Measured page data whose stated length was wrong",
+  "repairCode.dictionary-key-skipped": "Read past stray characters inside the file's objects",
   "repairCode.stale-generation": "Used objects whose version numbers didn't match their references",
   "repairCode.page-tree-node-skipped": "Left out part of the list of pages that couldn't be read",
   "repairCode.page-count-mismatch": "Counted the pages again, since the stated count was wrong",

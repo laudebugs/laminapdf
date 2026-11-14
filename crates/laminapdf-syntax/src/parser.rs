@@ -68,6 +68,9 @@ pub struct Parser<'a> {
     /// Whether a stream-extent check looked past the end of the input (the lexer tracks its
     /// own reads; see [`Parser::reached_end`]).
     reached_end: bool,
+    /// Whether a dictionary had something other than a name where a key belongs, which was
+    /// skipped ([`Parser::skipped_keys`]).
+    skipped_keys: bool,
 }
 
 /// The result of [`Parser::indirect_object`].
@@ -83,6 +86,9 @@ pub struct IndirectObject {
     /// True when the object is a stream whose `/Length` was missing, wrong or unresolvable,
     /// so its extent was recovered by scanning for `endstream`.
     pub length_recovered: bool,
+    /// True when a dictionary in the object had something other than a name where a key
+    /// belongs, and it was skipped ([`Parser::skipped_keys`]).
+    pub skipped_keys: bool,
 }
 
 /// What [`Parser::indirect_head`] read.
@@ -110,6 +116,9 @@ pub struct StreamHead {
     pub data_start: usize,
     /// `/Length` as declared (resolved when indirect); `None` when missing or unresolvable.
     pub declared_length: Option<i64>,
+    /// True when the stream dictionary had something other than a name where a key belongs,
+    /// and it was skipped ([`Parser::skipped_keys`]).
+    pub skipped_keys: bool,
 }
 
 impl StreamHead {
@@ -134,6 +143,7 @@ impl StreamHead {
             id: self.id,
             object: Object::Stream(Stream { dict: self.dict, data }),
             length_recovered,
+            skipped_keys: self.skipped_keys,
         }
     }
 }
@@ -147,6 +157,7 @@ impl<'a> Parser<'a> {
             lex: Lexer::new(data, pos),
             max_nesting_depth: Limits::new().max_nesting_depth(),
             reached_end: false,
+            skipped_keys: false,
         }
     }
 
@@ -177,6 +188,18 @@ impl<'a> Parser<'a> {
     /// Added in 0.2.0.
     pub const fn reached_end(&self) -> bool {
         self.reached_end || self.lex.reached_end()
+    }
+
+    /// Whether a dictionary parsed so far had something other than a name where a key
+    /// belongs. Such a token is skipped, as pdf.js and PDFium do, and parsing goes on with
+    /// the next one: a number, string or other keyword, a whole array or dictionary (with a
+    /// reference `n g R` as one), a stray `]`, or an unbalanced `)` or `>`. An object keyword
+    /// (`obj`, `endobj`, `stream`, `endstream`) still ends the parse with an error: the
+    /// dictionary was never closed. Callers report it (ADR 0003 §1).
+    ///
+    /// Added in 0.4.0.
+    pub const fn skipped_keys(&self) -> bool {
+        self.skipped_keys
     }
 
     /// Parses one direct object (references resolved lexically as `n g R`).
@@ -212,33 +235,7 @@ impl<'a> Parser<'a> {
             }
             Token::DictOpen => {
                 let depth = self.enter(depth, start)?;
-                let mut dict = Dict::new();
-                loop {
-                    match self.lex.next_token()? {
-                        Token::DictClose => return Ok(Object::Dict(dict)),
-                        Token::Name(key) => {
-                            let value_tok = self.lex.next_token()?;
-                            if value_tok == Token::DictClose {
-                                // `<< /Key >>`: tolerate a missing value as null and stop.
-                                dict.insert(Name(key), Object::Null);
-                                return Ok(Object::Dict(dict));
-                            }
-                            let value = self.object_from(value_tok, depth)?;
-                            dict.insert(Name(key), value);
-                        }
-                        Token::Eof => {
-                            return Err(Error::UnexpectedEof {
-                                at: Position::offset(self.lex.pos()),
-                            });
-                        }
-                        _ => {
-                            return Err(Error::Syntax {
-                                at: Position::offset(start),
-                                message: "dictionary key must be a name",
-                            });
-                        }
-                    }
-                }
+                self.dictionary(depth).map(Object::Dict)
             }
             Token::Eof => Err(Error::UnexpectedEof {
                 at: Position::offset(start),
@@ -248,6 +245,70 @@ impl<'a> Parser<'a> {
                 message: "unexpected token",
             }),
         }
+    }
+
+    /// The entries of a dictionary whose `<<` was just read, up to and including its `>>`.
+    /// Something other than a name where a key belongs is skipped ([`Parser::skipped_keys`]).
+    fn dictionary(&mut self, depth: usize) -> Result<Dict> {
+        let mut dict = Dict::new();
+        loop {
+            if self.skip_unbalanced_delimiter() {
+                continue;
+            }
+            let start = self.lex.pos();
+            match self.lex.next_token()? {
+                Token::DictClose => return Ok(dict),
+                Token::Name(key) => {
+                    let value_tok = self.lex.next_token()?;
+                    if value_tok == Token::DictClose {
+                        // `<< /Key >>`: tolerate a missing value as null and stop.
+                        dict.insert(Name(key), Object::Null);
+                        return Ok(dict);
+                    }
+                    let value = self.object_from(value_tok, depth)?;
+                    dict.insert(Name(key), value);
+                }
+                Token::Eof => {
+                    return Err(Error::UnexpectedEof {
+                        at: Position::offset(self.lex.pos()),
+                    });
+                }
+                Token::Keyword(b"obj" | b"endobj" | b"stream" | b"endstream") => {
+                    return Err(Error::Syntax {
+                        at: Position::offset(start),
+                        message: "dictionary key must be a name",
+                    });
+                }
+                Token::Keyword(_) | Token::ArrayClose => self.skipped_keys = true,
+                other => {
+                    self.object_from(other, depth)?;
+                    self.skipped_keys = true;
+                }
+            }
+        }
+    }
+
+    /// Skips an unbalanced `)` or a `>` that does not start `>>` where a dictionary key
+    /// belongs: the lexer rejects both, as neither can start a token.
+    fn skip_unbalanced_delimiter(&mut self) -> bool {
+        self.lex.skip_whitespace();
+        let pos = self.lex.pos();
+        let data = self.lex.data();
+        let unbalanced = match data.get(pos) {
+            Some(b')') => true,
+            Some(b'>') => {
+                // Whether it is `>>` depends on the next byte: past the end, the caller
+                // reading a window must retry with a larger one (`Parser::reached_end`).
+                self.reached_end |= pos + 1 >= data.len();
+                data.get(pos + 1) != Some(&b'>')
+            }
+            _ => false,
+        };
+        if unbalanced {
+            self.lex.set_pos(pos + 1);
+            self.skipped_keys = true;
+        }
+        unbalanced
     }
 
     /// After an integer, looks ahead for `gen R`; rewinds if it is not a reference. An
@@ -346,11 +407,13 @@ impl<'a> Parser<'a> {
         let id = self.object_header()?;
         let obj = self.object()?;
         let after_obj = self.lex.pos();
+        let skipped_keys = self.skipped_keys;
         let plain = |object| {
             IndirectHead::Object(IndirectObject {
                 id,
                 object,
                 length_recovered: false,
+                skipped_keys,
             })
         };
         let Object::Dict(dict) = obj else {
@@ -371,6 +434,7 @@ impl<'a> Parser<'a> {
             dict,
             data_start,
             declared_length,
+            skipped_keys,
         }))
     }
 
@@ -479,6 +543,72 @@ mod tests {
             parse_object(b"[1 2 3]"),
             Ok(Object::Array(vec![1.into(), 2.into(), 3.into()]))
         );
+    }
+
+    /// The dictionary `input` parses to and whether a key was skipped.
+    fn dict_and_skipped(input: &[u8]) -> (Result<Object>, bool) {
+        let mut parser = Parser::new(input, 0);
+        let obj = parser.object();
+        (obj, parser.skipped_keys())
+    }
+
+    fn ab() -> Object {
+        Object::Dict([("A", 1), ("B", 2)].into_iter().collect())
+    }
+
+    #[test]
+    fn a_well_formed_dictionary_skips_no_keys() {
+        assert_eq!(dict_and_skipped(b"<< /A 1 /B 2 >>"), (Ok(ab()), false));
+    }
+
+    #[test]
+    fn parse_object_skips_what_is_not_a_name_where_a_key_belongs() {
+        let inputs: [&[u8]; 7] = [
+            b"<< /A 1 Size 6 /B 2 >>",
+            b"<< /A 1 (x) <0f> /B 2 >>",
+            b"<< /A 1 3 0 R /B 2 >>",
+            b"<< /A 1 [/C 3] << /D 4 >> /B 2 >>",
+            b"<< /A 1 ] /B 2 >>",
+            b"<< /A 1 f08d> /B 2 >>",
+            b"<< /A 1 ) /B 2 >>",
+        ];
+        for input in inputs {
+            assert_eq!(
+                dict_and_skipped(input),
+                (Ok(ab()), true),
+                "{}",
+                String::from_utf8_lossy(input)
+            );
+        }
+    }
+
+    #[test]
+    fn an_object_keyword_where_a_key_belongs_still_fails() {
+        assert!(matches!(
+            parse_object(b"<< /A 1 endobj"),
+            Err(Error::Syntax {
+                message: "dictionary key must be a name",
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn a_close_angle_at_the_end_reaches_it() {
+        // `>` followed by the end may be the first half of `>>` in a larger window.
+        assert!(object_reached_end(b"<< /A 1 >"));
+    }
+
+    #[test]
+    fn indirect_object_reports_skipped_keys() {
+        let mut parser = Parser::new(b"5 0 obj << /A 1 Size 6 /B 2 >> endobj", 0);
+        assert!(parser.indirect_object(&mut no_length).unwrap().skipped_keys);
+    }
+
+    #[test]
+    fn a_stream_reports_skipped_keys_in_its_dictionary() {
+        let mut parser = Parser::new(b"5 0 obj << /Length 2 x >> stream\nab\nendstream endobj", 0);
+        assert!(parser.indirect_object(&mut no_length).unwrap().skipped_keys);
     }
 
     const MAX_DEPTH: usize = Limits::new().max_nesting_depth();

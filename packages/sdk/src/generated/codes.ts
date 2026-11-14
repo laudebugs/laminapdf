@@ -178,6 +178,7 @@ export type WarningCode =
   | "xref-repaired"
   | "xrefstm-ignored"
   | "stream-length-recovered"
+  | "dictionary-key-skipped"
   | "stale-generation"
   | "page-tree-node-skipped"
   | "page-count-mismatch"
@@ -421,6 +422,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "xref-repaired",
   "xrefstm-ignored",
   "stream-length-recovered",
+  "dictionary-key-skipped",
   "stale-generation",
   "page-tree-node-skipped",
   "page-count-mismatch",
@@ -494,6 +496,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "xref-repaired": "input",
   "xrefstm-ignored": "input",
   "stream-length-recovered": "input",
+  "dictionary-key-skipped": "input",
   "stale-generation": "input",
   "page-tree-node-skipped": "input",
   "page-count-mismatch": "input",
@@ -711,6 +714,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "xref-repaired": "check the result; save with a full rewrite, since an incremental update refuses a repaired base",
   "xrefstm-ignored": "nothing to do; the classic xref table is used instead",
   "stream-length-recovered": "nothing to do; a full rewrite writes the correct length",
+  "dictionary-key-skipped": "nothing to do if the document reads correctly; open in strict mode to refuse such files",
   "stale-generation": "nothing to do; the reference is treated as missing",
   "page-tree-node-skipped": "check the page count: pages under the skipped node are missing",
   "page-count-mismatch": "nothing to do; Lamina PDF uses the walked page count",
