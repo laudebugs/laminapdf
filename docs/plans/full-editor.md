@@ -444,7 +444,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 
 ### E18. Collaboration
 - [ ] Write ADR 0012 (Durable Object per document, LWW records, leases)
-- [ ] Run the `auth` spike ([H1](../todos/done/H1-auth-spike.md)) and record the result in ADR 0011 (before the first round that needs accounts, which may be earlier than E18)
+- [x] Run the `auth` spike ([H1](../todos/done/H1-auth-spike.md)) and record the result in ADR 0011 (before the first round that needs accounts, which may be earlier than E18)
 - [ ] Feature-plan PR for E18
 - [ ] Layer-document schema for annotations, field values and page order
 - [ ] Durable Object with SQLite storage and WebSocket hibernation; R2 base revisions; D1 index
@@ -453,7 +453,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 
 ### Hosted service: accounts, cloud storage and sync
 Todos: [H1](../todos/done/H1-auth-spike.md), [H2](../todos/ready/H2-accounts-and-login.md), [H3](../todos/ready/H3-cloud-document-storage.md), [H4](../todos/ready/H4-document-sync.md)
-- [ ] `auth` spike: login stack recorded in ADR 0011 ([H1](../todos/done/H1-auth-spike.md))
+- [x] `auth` spike: login stack recorded in ADR 0011 ([H1](../todos/done/H1-auth-spike.md))
 - [ ] Opt-in accounts and sign-in on web and desktop ([H2](../todos/ready/H2-accounts-and-login.md))
 - [ ] Opt-in cloud storage of documents: R2 blobs, D1 index, per-user access ([H3](../todos/ready/H3-cloud-document-storage.md))
 - [ ] Sync of cloud documents across devices ([H4](../todos/ready/H4-document-sync.md))
