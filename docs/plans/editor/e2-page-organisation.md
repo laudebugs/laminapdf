@@ -108,7 +108,7 @@ Each op that removes, copies or moves pages reports what it changed to things th
 - **`laminapdf-ops`**: the ops of §2.1, `Applied`'s new reports, and the blob store with `add_source` (E2p). `PendingChanges` also records, per transaction, the fields whose widgets an op deleted, rotated or moved on the page ([E2r](../../todos/done/E2r-planner-page-checks.md)), which the planner checks (§6).
 - **`laminapdf-save`**: field-level checks for page ops: the planner indexes the pages that hold widgets of signed signature fields and of locked fields, and reports `Restriction::SignedWidget { field }` and `Restriction::FieldMdp` for the ops of §6 that touch them (E2r). Extract, split and merge write new documents with the full writer, keeping only reachable objects.
 - **The façade and bindings.** Each op is a method on `laminapdf::Document` and on `@laminapdf/sdk`'s `Document`, with docs, a runnable example in Rust and TypeScript, tsify types and a frozen sample (requirement 7). In TypeScript the page ops sit together under `doc.pages`: `insertBlank`, `delete`, `move`, `rotate`, `reverse`, `duplicate`, `insertFrom`, `replace`, `setBoxes`, `crop`, `resize`, `setOrientation`, `setLabels`; and on the document: `addSource`, `extractPages`, `exportRanges`, `merge`, `split`. `Edited` carries `pageOrder`, `references`, `fields` and `stillInEarlierRevisions`. The CLI's page commands are [T6a](../../todos/ready/T6a-cli-page-commands.md), which waits for E2d.
-- **`@laminapdf/viewer`** ([E2l](../../todos/ready/E2l-viewer-across-page-edits.md)): edits that change the page list (§5).
+- **`@laminapdf/viewer`** ([E2l](../../todos/ongoing/E2l-viewer-across-page-edits.md)): edits that change the page list (§5).
 - **`@laminapdf/ui`**: the Organise mode (`mode.organise`, ADR 0024 §2) with its page grid, selection, drag with an insertion bar, Move to page…, and the single-document commands (E2h); the documents dialogs: insert from a file, replace, extract, export, merge and split (E2m); the page-setup dialogs: crop, resize, page boxes, orientation and page labels (E2g). Every command is in the command registry with its `pages.*` or `document.*` ID from O06, so the palette, the toolbar and the context menu share it. The new interaction is all in the Organise mode; no new interaction mode is needed.
 
 ## 5. The viewer across page-structure edits
@@ -177,7 +177,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E2o](../../todos/done/E2o-structure-tree-merge.md) | Merge structure trees, for merged and imported pages | E2d |
 | [E2f](../../todos/done/E2f-page-geometry.md) | Crop pages and set their boxes | E2r |
 | [E2s](../../todos/done/E2s-resize-and-orientation.md) | Resize pages and change their orientation | E2e, E2f |
-| [E2l](../../todos/ready/E2l-viewer-across-page-edits.md) | The viewer and edit session across edits that change the page list | E2b |
+| [E2l](../../todos/ongoing/E2l-viewer-across-page-edits.md) | The viewer and edit session across edits that change the page list | E2b |
 | [E2h](../../todos/ready/E2h-page-organiser-ui.md) | The Organise mode: page grid, selection, drag, Move to page… and the single-document commands | E2k, E2l |
 | [E2m](../../todos/ready/E2m-document-dialogs.md) | Insert from a file, replace, extract, export, merge and split in the interface | E2d, E2h |
 | [E2g](../../todos/ready/E2g-page-labels.md) | The page-setup dialogs: page labels, crop, resize, page boxes and orientation | E2h, E2q, E2s |

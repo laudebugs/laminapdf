@@ -91,6 +91,25 @@ export class BitmapCache {
     }
   }
 
+  /**
+   * Follows an edit that inserted, deleted or moved pages: each bitmap moves to its page's index
+   * now (`to`), under the key `rekey` makes for it there, or is closed when its page is gone. A
+   * moved page draws as it did, so its bitmaps stay good.
+   */
+  remap(to: (page: number) => number | undefined, rekey: (key: string, page: number) => string): void {
+    const entries = [...this.#entries];
+    this.#entries.clear();
+    for (const [key, entry] of entries) {
+      const page = to(entry.page);
+      if (page === undefined) {
+        this.#bytes -= entry.bytes;
+        entry.bitmap.close();
+      } else {
+        this.#entries.set(page === entry.page ? key : rekey(key, page), { ...entry, page });
+      }
+    }
+  }
+
   /** Closes everything. */
   clear(): void {
     for (const key of [...this.#entries.keys()]) this.delete(key);

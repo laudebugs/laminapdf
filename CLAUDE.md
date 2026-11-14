@@ -159,6 +159,10 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   goToStep (one redraw, taken back on failure)/editHistory/restoreEdits, src/edit-log.ts (the page's copy of each
 │                        #   step's ops, replayed into a restarted worker), edit/session.ts (EditSession, viewer.edits: calls in order, busy,
 │                        #   blocked, the partial undo's notice), client `edit` event, OpenedDocument.encrypted, fit modes refit after a resize;
+│                        #   E2l: edits that change the page list (the worker checks the order against `Edited.pageOrder`; `EditResult.order`,
+│                        #   `EditStep.pageIds`), layout/page-moves.ts (pageMoves: old index → new, a deleted page's nearest survivor),
+│                        #   the viewer's `#reorder` (bitmaps rekeyed by `viewKeyAt`, revisions, find.remap, history.remap, the top page kept)
+│                        #   and its `reorder` event, which the thumbnail strip follows;
 │                        #   C3b: createViewer (src/layout/, view/, canvas/,
 │                        #   render/, zoom/), demo/viewer-demo.html, examples/show-a-pdf.ts (the docs site's example); test/browser/ (Chromium, Firefox, WebKit);
 │                        #   C3c: perf/ (the performance harness: seeded fixtures, page/ with globalThis.__laminaPerf,
