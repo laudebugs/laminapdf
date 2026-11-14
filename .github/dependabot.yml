@@ -44,8 +44,8 @@ updates:
 
   - package-ecosystem: github-actions
     # The workflows and our composite actions (.github/actions/*/action.yml). A workflow's update also
-    # rewrites its entry in .github/workflows/actions.lock (ADR 0019, todo X11); whether a composite
-    # action's does is X11's post-merge check, and the `lockfile` job fails until it's relocked.
+    # rewrites its entry in .github/workflows/actions.lock (ADR 0019). If an update leaves the lockfile
+    # behind, the `lockfile` job fails: run `gh actions-lock` on Dependabot's branch (contributing.md).
     directories: ["/", "/.github/actions/*"]
     schedule:
       interval: weekly

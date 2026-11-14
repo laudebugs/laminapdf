@@ -6,6 +6,8 @@
 #     if: ${{ !cancelled() && needs.changes.outputs.rust == 'true' }}
 # and TypeScript and WebAssembly jobs on `ts`. Both flags are false on docs-only PRs. Add the job to
 # `fast-gate`'s `needs`; a Rust job also needs a line in fast-gate's `case`, which defaults to `ts`.
+# A job that must run on every PR, docs-only ones included, has no `if:` and a `<job>) needed=true ;;`
+# line in that `case` (the `lockfile` job).
 # Native Rust checks cover Linux, macOS and Windows on x64 and Arm64 (macOS x64 on pushes to main
 # and in the nightly only, todo X9a). Everything else runs on
 # Linux x64, except WebKit, which runs on macOS Arm64 (closest to Safari). Each job gets a
@@ -436,7 +438,7 @@ jobs:
           shared-key: xtask
       - run: cargo xtask check ts
 
-  # Todo X11 (ADR 0019): .github/workflows/actions.lock still locks every action the workflows
+  # Todo X11 (ADR 0019): .github/workflows/actions.lock locks every action the workflows
   # use, direct and transitive. It runs on every PR, docs-only ones included, so no `if:`: a
   # workflow edit is the change it exists to catch. fast-gate always needs it.
   lockfile:

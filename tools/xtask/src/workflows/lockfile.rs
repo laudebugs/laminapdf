@@ -9,11 +9,6 @@ use crate::doctor::GH_ACTIONS_LOCK_VERSION;
 
 const CI: &str = include_str!("../../../../.github/workflows/ci.yml");
 
-/// The value of each `uses:` line of `text`, as the compile cache's checks read one.
-fn uses_values(text: &str) -> impl Iterator<Item = &str> {
-    text.lines().filter_map(uses)
-}
-
 /// Whether a `uses:` value pins a full commit SHA (`owner/repo@<40 hex digits>`).
 fn pins_a_sha(value: &str) -> bool {
     value
@@ -29,6 +24,19 @@ fn workflows_and_actions() -> Vec<(String, String)> {
         .map(|path| {
             let text = repository_file(&path).unwrap_or_default();
             (path, text)
+        })
+        .collect()
+}
+
+/// Every `uses:` value in a workflow or local action that `offends`, as `path: value`.
+fn uses_lines_where(offends: impl Fn(&str) -> bool) -> Vec<String> {
+    workflows_and_actions()
+        .iter()
+        .flat_map(|(path, text)| {
+            text.lines()
+                .filter_map(uses)
+                .filter(|v| offends(v))
+                .map(move |v| format!("{path}: {v}"))
         })
         .collect()
 }
@@ -74,16 +82,8 @@ fn fast_gate_should_always_need_the_lockfile_job() {
 
 #[test]
 fn no_uses_line_should_pin_a_bare_sha() {
-    let pinned: Vec<String> = workflows_and_actions()
-        .iter()
-        .flat_map(|(path, text)| {
-            uses_values(text)
-                .filter(|v| pins_a_sha(v))
-                .map(move |v| format!("{path}: {v}"))
-        })
-        .collect();
     assert_eq!(
-        pinned,
+        uses_lines_where(pins_a_sha),
         Vec::<String>::new(),
         "name the release tag; the lockfile holds the SHA"
     );
@@ -91,15 +91,11 @@ fn no_uses_line_should_pin_a_bare_sha() {
 
 #[test]
 fn local_actions_should_be_written_so_the_lockfile_follows_them() {
-    let unfollowed: Vec<String> = workflows_and_actions()
-        .iter()
-        .flat_map(|(path, text)| {
-            uses_values(text)
-                .filter(|v| v.starts_with("./.github/actions/"))
-                .map(move |v| format!("{path}: {v}"))
-        })
-        .collect();
-    assert_eq!(unfollowed, Vec::<String>::new(), "write $/.github/actions/…, not ./");
+    assert_eq!(
+        uses_lines_where(|v| v.starts_with("./.github/actions/")),
+        Vec::<String>::new(),
+        "write $/.github/actions/…, not ./"
+    );
 }
 
 #[test]

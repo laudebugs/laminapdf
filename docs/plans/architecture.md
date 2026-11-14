@@ -206,7 +206,7 @@ Todos: [P1](../todos/done/P1-reserve-names-and-trusted-publishing.md) (the publi
 - [x] Nightly lane: hayro-vs-PDFium render diffs ([X3b](../todos/done/X3b-render-diff-nightly.md), `cargo xtask render-diff`)
 - [ ] Nightly lane: veraPDF ([B8b](../todos/done/B8b-conformance-profiles-and-verapdf.md))
 - [x] Docs link checker in `cargo xtask`, run in CI, so links to todos survive their moves between folders ([X1](../todos/done/X1-docs-link-checker.md))
-- [ ] Lock the workflows' actions with GitHub's workflow lockfile, checked on every pull request ([X11](../todos/ongoing/X11-lock-github-actions.md))
+- [x] Lock the workflows' actions with GitHub's workflow lockfile, checked on every pull request ([X11](../todos/done/X11-lock-github-actions.md))
 - [ ] Decide product questions (§8; Q2 and Q5 answered 2026-10-28)
 
 ## 8. Open questions for the team

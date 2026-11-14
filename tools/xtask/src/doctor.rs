@@ -30,7 +30,7 @@ const CARGO_SEMVER_CHECKS_VERSION: &str = "0.51.0";
 const CARGO_FUZZ_VERSION: &str = "0.13.2";
 /// gh-actions-lock release, the `gh actions-lock` extension that writes and checks
 /// `.github/workflows/actions.lock` (todo X11; MIT; pre-1.0, so bumped in a reviewed PR). The fast
-/// lane's `lockfile` job installs the same pin (a test in workflows.rs checks it).
+/// lane's `lockfile` job installs the same pin (a test in workflows/lockfile.rs checks it).
 pub(crate) const GH_ACTIONS_LOCK_VERSION: &str = "0.4.1";
 /// sccache release, CI's compile cache (`.github/actions/rust-compile-cache`, which installs this
 /// version; docs/plans/ci-caching.md; Apache-2.0). Optional locally.
@@ -492,8 +492,8 @@ pub(crate) fn run(ws: &Workspace, install: bool) -> Result<()> {
                 println!("… {:<17} installing: {}", tool.name, tool.fix);
                 // gh won't install over another version of an extension: remove it first.
                 if let (Probe::OffPin(_), Some(("gh", _))) = (&probe, &install_command) {
-                    let short = tool.name.strip_prefix("gh-").unwrap_or(tool.name);
-                    crate::run(&ws.root, "gh", &["extension", "remove", short])?;
+                    let extension = tool.name.strip_prefix("gh-").unwrap_or(tool.name);
+                    crate::run(&ws.root, "gh", &["extension", "remove", extension])?;
                 }
                 if let Some((program, args)) = &install_command {
                     crate::run(&ws.root, program, args)?;
