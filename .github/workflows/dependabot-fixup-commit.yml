@@ -1,9 +1,10 @@
 # Commits the files dependabot-fixup.yml regenerated to Dependabot's branch, as the release bot,
 # so CI runs again on the commit (a commit made with the default token starts no workflow).
 #
-# It holds the bot's token, so it runs nothing from the PR: no checkout, no install. It reads only
-# the fixed allow-list of paths from the artifact, builds the commit through the API on the exact
-# commit dependabot-fixup.yml read, and moves the branch only if it is still there (no force).
+# It holds the bot's token, so it executes nothing from the PR. Before issuing that token, it
+# regenerates any artifact lockfile from the exact PR commit with a pinned tool and compares the
+# bytes. It reads only the fixed allow-list of paths from the artifact, builds the commit through
+# the API on the commit dependabot-fixup.yml read, and moves the branch only if it is still there.
 name: Dependabot fixup commit
 
 on:
@@ -41,6 +42,31 @@ jobs:
           else
             echo "Nothing was regenerated."
             echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Verify regenerated actions.lock
+        if: steps.files.outputs.found == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          artifact="$RUNNER_TEMP/fixup/.github/workflows/actions.lock"
+          if [ ! -f "$artifact" ]; then
+            exit 0
+          fi
+          # The generator reads the PR's workflows as data; no PR action or script runs here.
+          verify_dir=$(mktemp -d "$RUNNER_TEMP/actions-lock.XXXXXX")
+          git init -q "$verify_dir"
+          git -C "$verify_dir" fetch -q --depth=1 "https://github.com/$GH_REPO.git" "$SHA"
+          git -C "$verify_dir" checkout -q --detach FETCH_HEAD
+          test "$(git -C "$verify_dir" rev-parse HEAD)" = "$SHA"
+          gh extension install github/gh-actions-lock --pin v0.4.1
+          (cd "$verify_dir" && gh actions-lock)
+          if ! cmp -s "$verify_dir/.github/workflows/actions.lock" "$artifact"; then
+            echo "Regenerated actions.lock does not match the target commit's workflows." >&2
+            exit 1
           fi
       - uses: actions/create-github-app-token@v3.3.0
         id: bot
