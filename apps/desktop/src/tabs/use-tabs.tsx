@@ -1,8 +1,9 @@
 // The window's tab strip and what drives it from outside the webview: tabs moved here from other
 // windows (`tab://arrived`, with the ones that came before the webview was ready handed over by
 // `take_pending_tabs`), a second open of a file showing its tab (`tab://activate`), the other
-// windows for "Move tab to window ▸", the window's title, and tabs not shown when the engine
-// restarts. The strip shows from two tabs on (S02); with one, the title bar carries the name.
+// windows for "Move tab to window ▸", the window's title, tabs not shown when the engine
+// restarts, and another window's tab dragged over this one (`tab://drag-over`). A tab dragged
+// off the strip goes where Rust finds the cursor when the drag ends (`tab_drag_end`). The strip shows from two tabs on (S02); with one, the title bar carries the name.
 import {
   type CommandContext,
   DocumentTabs,
@@ -25,6 +26,7 @@ import {
   ACTIVATE_EVENT,
   ARRIVED_EVENT,
   type Arrived,
+  DRAG_OVER_EVENT,
   type MoveTarget,
   WINDOWS_CHANGED_EVENT,
   type WindowTabs,
@@ -129,6 +131,12 @@ export function useTabStrip(
       onActivate={(id) => void tabs.activate(id)}
       onClose={(id) => void tabs.close(id)}
       onReorder={(ids) => tabs.reorder(ids)}
+      onDragStart={(id) => tabs.dragStarted(id)}
+      onDragOut={(id, outside) => {
+        void tabs
+          .draggedOut(id, outside)
+          .catch((error: unknown) => toasts.add({ message: engineError(error).message }));
+      }}
       moves={moves}
       onMove={(id) => move(id === NEW_WINDOW ? { to: "newWindow" } : { to: "window", label: id.slice(MOVE_TO.length) })}
       platform={keys}
@@ -162,6 +170,10 @@ function useTabEvents(
         shell.listen<number>(ACTIVATE_EVENT, (doc) => {
           const tab = tabs.tabOf(doc);
           if (tab !== undefined) void tabs.activate(tab.id);
+        }),
+        shell.listen<boolean>(DRAG_OVER_EVENT, (over) => {
+          if (over) document.documentElement.dataset.tabDrop = "";
+          else delete document.documentElement.dataset.tabDrop;
         }),
         shell.listen<RestartedPayload>(RESTARTED_EVENT, (payload) => {
           for (const name of tabs.restarted(payload)) {
