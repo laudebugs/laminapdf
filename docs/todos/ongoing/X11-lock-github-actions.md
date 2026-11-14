@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `X11` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [architecture §7 Cross-cutting](../../plans/architecture.md#cross-cutting) |
 | Round / milestone | Round X (cross-cutting): CI |
 | Depends on | None |
