@@ -1,6 +1,6 @@
 ---
 title: "page-tree-node-skipped"
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/reference/codes/page-tree-node-skipped/"
 ---
 

@@ -6,7 +6,7 @@
 - Amended 2026-11-12 ([D3a](../todos/done/D3a-open-from-os.md)): §10 records how files the OS hands the app reach a window, that the app registers for PDFs without making itself the default (the desktop plan's open question 5), and that Tauri shows dropped files' paths to the webview.
 - Amended 2026-11-12 ([D4a](../todos/done/D4a-windows-tabs-and-session-restore.md)): §2 adds the engines' memory with documents spread over 1 and 4 windows, which keeps one engine per window.
 - Amended 2026-11-12 ([D3b](../todos/done/D3b-recent-files-and-file-watching.md)): §11 records where the recent list is kept and how it reaches the OS's lists, how open files are watched (the folder, matched by path), when a change counts as settled, and that a reload opens the changed file as a new document.
-- Amended 2026-11-13 ([D4d](../todos/done/D4d-session-restore.md)): §11 records the last session: what `session.json` keeps for each tab, when it is written, how a tab's file is found again, and that it follows the recent list's switch.
+- Amended 2026-11-13 ([D4d](../todos/ongoing/D4d-session-restore.md)): §11 records the last session: what `session.json` keeps for each tab, when it is written, how a tab's file is found again, and that it follows the recent list's switch.
 - Amended 2026-11-13 ([D3c](../todos/done/D3c-windows-replace-while-open.md)): §2 and §11. On Windows the main process holds no handle on a document between reads, so another app's atomic save can replace the file, and each read checks that it still reads the file that opened. §11 records the cost, measured on a Windows runner.
 
 ## Context

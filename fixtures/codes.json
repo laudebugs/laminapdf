@@ -668,6 +668,27 @@
       "since": "0.3.0"
     },
     {
+      "code": "not-a-link",
+      "kind": "usage",
+      "summary": "a link op names an annotation that isn't a link",
+      "hint": "name a link from the page's links; change other annotations with updateAnnot and deleteAnnot",
+      "since": "0.2.0"
+    },
+    {
+      "code": "link-not-tagged",
+      "kind": "unsupported",
+      "summary": "the file claims PDF/UA-1 but has no structure tree for a new link to join",
+      "hint": "tag the document first, or add the link to a copy that doesn't claim PDF/UA",
+      "since": "0.2.0"
+    },
+    {
+      "code": "appearance-unavailable",
+      "kind": "unsupported",
+      "summary": "the document has no appearance generator, so it can't draw a new annotation",
+      "hint": "edit through the laminapdf crate, which draws appearances, or give laminapdf-ops a generator with Document::with_appearances",
+      "since": "0.3.0"
+    },
+    {
       "code": "invalid-label-ranges",
       "kind": "usage",
       "summary": "page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0",
@@ -716,6 +737,41 @@
       "kind": "usage",
       "summary": "pages copied in from a document that doesn't claim the same PDF/A level may break the PDF/A claim of the document's metadata",
       "hint": "check the saved file with a PDF/A validator such as veraPDF, or copy pages from a document that claims the same level",
+      "since": "0.3.0"
+    },
+    {
+      "code": "imported-pdfua-unchecked",
+      "kind": "usage",
+      "summary": "pages copied in from a document that doesn't claim PDF/UA-1 may break the PDF/UA claim of the document's metadata",
+      "hint": "check the saved file's tags, alternate text and reading order with a PDF/UA checker such as veraPDF, or copy pages from a document that claims PDF/UA-1",
+      "since": "0.3.0"
+    },
+    {
+      "code": "annot-without-contents",
+      "kind": "usage",
+      "summary": "a new or changed annotation has no description, which breaks the document's PDF/UA claim",
+      "hint": "give the annotation a description: the text it marks, or what the mark means",
+      "since": "0.3.0"
+    },
+    {
+      "code": "annot-not-tagged",
+      "kind": "usage",
+      "summary": "a new annotation isn't in the structure tree, which breaks the document's PDF/UA claim",
+      "hint": "tag the document first, or add the annotation to a copy that doesn't claim PDF/UA",
+      "since": "0.3.0"
+    },
+    {
+      "code": "pdfa-annot-flags",
+      "kind": "usage",
+      "summary": "an annotation doesn't print or is hidden, which breaks the document's PDF/A claim",
+      "hint": "keep the annotation's Print flag and clear Hidden, Invisible, NoView and ToggleNoView",
+      "since": "0.3.0"
+    },
+    {
+      "code": "pdfa-transparency",
+      "kind": "usage",
+      "summary": "an annotation is translucent or blends, which PDF/A-1 forbids",
+      "hint": "make the mark opaque, or use an underline instead of a highlight",
       "since": "0.3.0"
     }
   ],

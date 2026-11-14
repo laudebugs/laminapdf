@@ -3,8 +3,8 @@
 //! copy (`/P`) and get a new `/NM`; links to pages that didn't come along are removed and
 //! reported, and the named destinations the others use come with them, renamed on a clash;
 //! form fields join the target's form under their own name, renamed `<partial>#<n>` on a clash
-//! or, on request, linked to the target's field of that name; the pages lose their tags
-//! (`/StructParents`, ISO 32000-2 §14.7.5.4) until the structure trees can be merged.
+//! or, on request, linked to the target's field of that name; the pages' tags join the target's
+//! structure tree or are dropped, as the caller's [`Tags`] says ([`import_tags`]).
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -16,6 +16,7 @@ use super::cleanup::{edit_dict, edit_object};
 use super::copies::{FieldChange, FieldOutcome, renew_nm, text};
 use super::dests::Dests;
 use super::forms::{edit_list, is_signature_field, list_field};
+use super::import_tags::{StructureRename, Tags, import_tags};
 use crate::class::ModificationClass;
 use crate::error::{Error, Result};
 use crate::widgets::{TouchedWidget, WidgetChange};
@@ -112,12 +113,17 @@ pub(crate) struct Imported {
     /// The target's fields that copied widgets joined ([`FieldClash::Link`]): their `/Kids`
     /// changed, which the save planner checks against field locks.
     pub(crate) widgets: Vec<TouchedWidget>,
+    /// The structure names that came along under another name.
+    pub(crate) structure_renamed: Vec<StructureRename>,
     /// The source's named destinations that came along under another name: (source name,
     /// name in the target).
     pub(crate) destinations_renamed: Vec<(Vec<u8>, Vec<u8>)>,
     /// The copies brought into a file that claims PDF/A from a source that doesn't make the same
     /// claim: nothing checks what they bring (fonts, colour spaces) against it.
     pub(crate) pdfa_unchecked: Vec<PageId>,
+    /// The copies brought into a file that claims PDF/UA-1 from a source that doesn't:
+    /// nothing checks their tags against the claim.
+    pub(crate) pdfua_unchecked: Vec<PageId>,
 }
 
 /// Copies `pages` (each once, in the order given) of `src` into `doc` as new page objects,
@@ -128,9 +134,12 @@ pub(crate) fn import(
     pages: &[PageId],
     carry: Carry,
     signatures: Signatures,
+    tags: &Tags,
     names: &mut FieldNames,
 ) -> Result<Imported> {
-    import_with(doc, src, pages, (carry, signatures), names, |_, _, _| Ok(Vec::new()))
+    import_with(doc, src, pages, (carry, signatures, tags), names, |_, _, _| {
+        Ok(Vec::new())
+    })
 }
 
 /// [`import`], then `after` while the copier and the destinations are still at hand, before
@@ -141,7 +150,7 @@ pub(crate) fn import_with<F>(
     doc: &mut laminapdf_model::Document,
     src: &laminapdf_model::Document,
     pages: &[PageId],
-    (carry, signatures): (Carry, Signatures),
+    (carry, signatures, tags): (Carry, Signatures, &Tags),
     names: &mut FieldNames,
     after: F,
 ) -> Result<Imported>
@@ -191,6 +200,9 @@ where
     let kept = after(doc, &copy, &mut dests)?;
     out.destinations_renamed = dests.renamed();
     dests.write(doc)?;
+    let tagged = import_tags(doc, src, &mut copy, (first_new, &copies), tags)?;
+    out.tags_dropped = tagged.dropped;
+    out.structure_renamed = tagged.renamed;
     sweep(doc, first_new, &[copies.as_slice(), kept.as_slice()].concat())?;
     raise_version(doc, src)?;
     if let Some(claim) = pdfa_claim(doc)?
@@ -198,7 +210,18 @@ where
     {
         out.pdfa_unchecked = copies.iter().map(|&c| PageId::object(c)).collect();
     }
+    if tags != &Tags::Drop && claims_pdfua(doc)? && !claims_pdfua(src)? {
+        out.pdfua_unchecked = copies.iter().map(|&c| PageId::object(c)).collect();
+    }
     Ok(out)
+}
+
+/// Whether `doc`'s XMP metadata claims PDF/UA-1.
+fn claims_pdfua(doc: &laminapdf_model::Document) -> Result<bool> {
+    Ok(match doc.xmp()? {
+        laminapdf_model::xmp::PacketState::Parsed(packet) => packet.pdfua_part() == Some(1),
+        _ => false,
+    })
 }
 
 /// The PDF/A part and conformance level `doc`'s XMP metadata claims, when it claims one.
@@ -295,8 +318,7 @@ fn form_of(doc: &laminapdf_model::Document) -> Result<Option<Dict>> {
 
 /// Deletes the objects this import created that nothing reaches any more (annotations, fields
 /// and signatures left off, links removed), so a save never writes what the caller left out,
-/// and takes `/StructParents` and `/StructParent` off copied objects (Form XObjects carry them
-/// too), whose keys would name the target's structure elements.
+///.
 fn sweep(doc: &mut laminapdf_model::Document, first_new: u64, copies: &[ObjRef]) -> Result<()> {
     let created: BTreeSet<u32> = doc
         .overlay()
@@ -326,28 +348,8 @@ fn sweep(doc: &mut laminapdf_model::Document, first_new: u64, copies: &[ObjRef])
         refs_in(&object, 0, &mut |r| queue.push(r.num));
     }
     for &num in &created {
-        let r = ObjRef::new(num, 0);
         if !reached.contains(&num) {
-            doc.cos_mut().edit().delete(r)?;
-            continue;
-        }
-        let object = doc.object(num)?;
-        let dict = match &*object {
-            Object::Stream(stream) => &stream.dict,
-            Object::Dict(dict) => dict,
-            _ => continue,
-        };
-        let page = dict.get_name("Type") == Some(b"Page");
-        if !page && (dict.contains_key("StructParents") || dict.contains_key("StructParent")) {
-            edit_object(doc, r, |o| {
-                let dict = match o {
-                    Object::Stream(stream) => &mut stream.dict,
-                    Object::Dict(dict) => dict,
-                    _ => return,
-                };
-                dict.remove("StructParents");
-                dict.remove("StructParent");
-            })?;
+            doc.cos_mut().edit().delete(ObjRef::new(num, 0))?;
         }
     }
     Ok(())
@@ -615,9 +617,9 @@ fn link(doc: &mut laminapdf_model::Document, root: ObjRef, existing: ObjRef) -> 
     })
 }
 
-/// What a copied page's annotations need: `/P`, a new `/NM`, no `/StructParent`; links whose
-/// destination didn't come along removed. The page loses `/StructParents` and its article
-/// beads (`/B`, which belong to threads the target doesn't have).
+/// What a copied page's annotations need: `/P`, a new `/NM`; links whose destination didn't
+/// come along removed. The page loses its article beads (`/B`, which belong to threads the
+/// target doesn't have). Structure keys stay for [`import_tags`] to renumber or remove.
 fn fit_page(
     doc: &mut laminapdf_model::Document,
     copy: ObjRef,
@@ -630,7 +632,6 @@ fn fit_page(
     let Some(mut dict) = doc.object(copy.num)?.as_dict().cloned() else {
         return Ok(());
     };
-    let mut tagged = dict.remove("StructParents").is_some();
     dict.remove("B");
     dests.fit_triggers(doc, &mut dict)?;
     let annots = match dict.get("Annots") {
@@ -655,7 +656,6 @@ fn fit_page(
         if !is_widget(&annot) && !carry.annotations {
             continue;
         }
-        tagged |= annot.remove("StructParent").is_some();
         annot.insert("P", Object::Ref(copy));
         renew_nm(&mut annot, held.map_or(copy.num, |r| r.num));
         let is_link = annot.get_name("Subtype") == Some(b"Link");
@@ -686,9 +686,6 @@ fn fit_page(
         dict.insert("Annots", Object::Array(list));
     }
     doc.cos_mut().edit().set(copy, Object::Dict(dict))?;
-    if tagged {
-        out.tags_dropped.push(page);
-    }
     Ok(())
 }
 

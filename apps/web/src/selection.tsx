@@ -142,6 +142,15 @@ export function useSelection(
         <Button size={32} icon="find" preventFocusOnPress onPress={() => actions["selection.search"]?.()}>
           {message("selection.search")}
         </Button>
+        {/* links.tsx (later.ts) listens for it and opens the link editor on the selected text. */}
+        <Button
+          size={32}
+          icon="link"
+          preventFocusOnPress
+          onPress={() => viewer.element.dispatchEvent(new Event("lamina-make-link"))}
+        >
+          {message("command.edit.make-link")}
+        </Button>
       </SelectionToolbar>
     ) : undefined,
     bar: touch ? <SelectionActionBar more={more} keys={keys} /> : undefined,

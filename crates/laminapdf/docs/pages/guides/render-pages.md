@@ -1,7 +1,7 @@
 ---
 title: "Render pages to images"
 description: "Draw a PDF's pages as pixels, for thumbnails, previews or tests, in JavaScript and from the command line."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/guides/render-pages/"
 ---
 

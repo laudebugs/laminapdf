@@ -46,14 +46,14 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | --- | --- | --- | --- |
 | S01 | Start window: recent files with thumbnails, open, drop zone | D | [D3a](../../todos/done/D3a-open-from-os.md), [D3b](../../todos/done/D3b-recent-files-and-file-watching.md) |
 | S02 | Window with document tabs and session restore: tab overflow, session restore notice | D | [D4a](../../todos/done/D4a-windows-tabs-and-session-restore.md) |
-| S03 | Native menus: macOS menu bar (File, Edit, View, Go, Tools, Window, Help) and Windows/Linux in-window menu | D | [D4b](../../todos/ready/D4b-native-menus.md) |
+| S03 | Native menus: macOS menu bar (File, Edit, View, Go, Tools, Window, Help) and Windows/Linux in-window menu | D | [D4b](../../todos/done/D4b-native-menus.md) |
 | S04 | File changed on disk: strip (Compare · Keep mine · Reload from disk); the next Save asks | D | [D3b](../../todos/done/D3b-recent-files-and-file-watching.md) |
 | S05 | Print: native print dialog hand-off, printing progress | D | [D4c](../../todos/ready/D4c-native-printing.md) |
 | S06 | Updates: update available / downloading / restart to update; channel note | D | [D5b](../../todos/ready/D5b-updater-in-app.md) |
 | S07 | Settings window: General, Appearance, Privacy (telemetry opt-in, crash reports), Shortcuts (single-key on/off), Advanced (renderer switch) | D | [D7b](../../todos/ready/D7b-settings-renderer-switch-and-download-page.md), [D7a](../../todos/ready/D7a-crash-reporting.md), [U5c](../../todos/ready/U5c-opt-in-usage-telemetry.md) |
 | S08 | Crash recovered: restore session and optional report preview | D | [D7a](../../todos/ready/D7a-crash-reporting.md) |
 | S09 | Download page (web): per-OS download, checksums, system requirements | W | [D7b](../../todos/ready/D7b-settings-renderer-switch-and-download-page.md) |
-| S10 | Windows window frame (title bar controls, menu bar) | D | [D4b](../../todos/ready/D4b-native-menus.md) |
+| S10 | Windows window frame (title bar controls, menu bar) | D | [D4b](../../todos/done/D4b-native-menus.md) |
 
 ## O. Edit session, organise, navigation and extraction (E1–E3)
 
@@ -70,7 +70,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | O09 | Page geometry: crop and page boxes, resize, warning that cropped content remains | D | [E2f](../../todos/ready/E2f-page-geometry.md), [E2s](../../todos/ready/E2s-resize-and-orientation.md), [E2g](../../todos/ready/E2g-page-labels.md) |
 | O10 | Page labels editor (roman front matter, numbering ranges) | D | [E2q](../../todos/done/E2q-page-labels-op.md), [E2g](../../todos/ready/E2g-page-labels.md) |
 | O11 | Bookmarks editor (nested, drag and keyboard reorder, from headings) | D | [E3b](../../todos/done/E3b-bookmarks-and-destinations.md) |
-| O12 | Link editor: link selected text or draw a link area; target page, named destination, web or email address; script address rejected | D | [E3c](../../todos/ready/E3c-links.md) |
+| O12 | Link editor: link selected text or draw a link area; target page, named destination, web or email address; script address rejected | D | [E3c](../../todos/done/E3c-links.md) |
 | O13 | Initial view and article threads | D | [E3d](../../todos/done/E3d-initial-view-and-threads.md) |
 | O14 | Attachments panel (add, extract, associated files) | D | [E3f](../../todos/ready/E3f-attachments-and-associated-files.md) |
 | O15 | Object inspector (object tree / COS inspector, advanced) | D | [E3g](../../todos/ready/E3g-inspectors.md) |

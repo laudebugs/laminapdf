@@ -1,7 +1,7 @@
 ---
 title: "Check what a file hides"
 description: "Find what a PDF holds beyond its visible pages, from earlier revisions to hidden text, and redactions that only covered text instead of removing it."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/guides/check-what-a-file-hides/"
 ---
 

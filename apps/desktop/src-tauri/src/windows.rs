@@ -256,8 +256,9 @@ pub(crate) fn window_order(label: &str) -> (u8, u32) {
     }
 }
 
-/// Tells every window that the windows or their titles changed.
+/// Tells every window, and the Window menu, that the windows or their titles changed.
 pub(crate) fn changed(app: &AppHandle) {
+    crate::menu::rebuild(app);
     if let Err(error) = app.emit(CHANGED_EVENT, ()) {
         tracing::warn!("could not tell the windows they changed: {error}");
     }

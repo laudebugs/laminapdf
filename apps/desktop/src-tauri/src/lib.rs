@@ -12,6 +12,7 @@ mod commands;
 mod e2e;
 mod engine;
 mod error;
+mod menu;
 mod open;
 mod opened;
 mod prefs;
@@ -143,6 +144,8 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     )))?);
     app.manage(open::OpenWorker::start(app.handle().clone())?);
     app.manage(windows::Windows::default());
+    app.manage(menu::MenusJson::embedded());
+    app.manage(menu::NativeMenus::default());
     // The last session's windows (D4d), else one window. Windows are made here, not in
     // tauri.conf.json, so the app chooses every label.
     let restored = session::app::start(app, config);
@@ -154,6 +157,8 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     for label in &labels {
         windows::build_window(app.handle(), label)?;
     }
+    // The menu bar (macOS) or each window's menus (Windows, Linux), from the shared shortcut map.
+    menu::rebuild(app.handle());
     #[cfg(feature = "e2e")]
     startup::window();
     tracing::info!(version = %app.package_info().version, "Lamina PDF started");
@@ -201,6 +206,10 @@ pub fn run() -> Result<(), DesktopError> {
         session::app::session_tabs,
         session::app::take_session_tabs,
         session::app::session_open,
+        commands::menu_state,
+        commands::close_window,
+        commands::quit,
+        commands::save_copy,
         open::take_pending_opens,
     ]);
     #[cfg(feature = "e2e")]
@@ -226,10 +235,17 @@ pub fn run() -> Result<(), DesktopError> {
             session::app::session_tabs,
             session::app::take_session_tabs,
             session::app::session_open,
+            commands::menu_state,
+            commands::close_window,
+            commands::quit,
+            commands::save_copy,
             open::take_pending_opens,
             commands::debug_kill_engine,
             e2e::e2e_queue_pick,
             e2e::e2e_interactive,
+            e2e::e2e_focus,
+            e2e::e2e_menu_click,
+            e2e::e2e_menu_snapshot,
         ])
         .manage(e2e::QueuedPick::default());
     // First of all plugins: a second launch hands its paths to the running app and exits before
@@ -283,6 +299,7 @@ pub fn run() -> Result<(), DesktopError> {
         )
         .setup(setup)
         .on_window_event(on_window_event)
+        .on_menu_event(|app, event| menu::on_menu_event(app, &event))
         .build(tauri::generate_context!())?;
     app.run(|app, event| on_run_event(app, &event));
     Ok(())
@@ -313,10 +330,15 @@ fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
             window.state::<watch::Watcher>().unwatch_window(window.label());
             window.state::<windows::Windows>().closed(window.label());
             window.state::<open::PendingOpens>().closed(window.label());
+            menu::closed(window.app_handle(), window.label());
             windows::changed(window.app_handle());
         }
         // The OS's open requests go to the window focused last.
-        WindowEvent::Focused(true) => window.state::<windows::Windows>().focused(window.label()),
+        // The menus show the focused window's commands.
+        WindowEvent::Focused(true) => {
+            window.state::<windows::Windows>().focused(window.label());
+            menu::refresh(window.app_handle());
+        }
         // Files dragged over or dropped on the window: Rust opens them, never the webview.
         WindowEvent::DragDrop(drag) => open::on_drag_drop(window, drag),
         _ => {}

@@ -32,7 +32,7 @@ Five calls change which pages a document has and their order: `doc.deletePages(i
 
 `doc.addSource(bytes)` opens another PDF as a source of pages. `doc.insertPagesFrom(source.id, pages, "end")` copies its pages in, and `doc.replacePages(targets, source.id, pages)` puts them in other pages' places. `doc.extractPages(ids)` makes a new PDF from some pages. [Copy pages between PDFs](/recipes/copy-pages/) shows each.
 
-`Document.merge(files)` makes one document from several files, with a bookmark for each, and `doc.mergeDocuments(sources, "end")` merges sources into an open document as one edit. `doc.split({ bookmarks: 1 })` makes one document per chapter. Merged pages come without their tags, so a merge of tagged PDFs makes an untagged file. [Merge and split PDFs](/recipes/merge-and-split/) shows both.
+`Document.merge(files)` makes one document from several files, with a bookmark for each, and `doc.mergeDocuments(sources, "end")` merges sources into an open document as one edit. `doc.split({ bookmarks: 1 })` makes one document per chapter. A merge of tagged PDFs makes a tagged file, each file's tags under a `Part` named after it. [Merge and split PDFs](/recipes/merge-and-split/) shows both.
 
 ## Name the pages
 

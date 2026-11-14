@@ -1,7 +1,7 @@
 ---
 title: "Edit the metadata"
 description: "Change a PDF's title, authors and keywords in both of the places a PDF keeps them, check the save first, and stamp when it happened."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/recipes/edit-metadata/"
 ---
 

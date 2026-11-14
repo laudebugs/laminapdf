@@ -70,6 +70,9 @@ export type ErrorCode =
   | "unknown-annotation"
   | "annotation-locked"
   | "annotation-not-editable"
+  | "not-a-link"
+  | "link-not-tagged"
+  | "appearance-unavailable"
   | "invalid-label-ranges"
   | "sink"
   | "not-rebased"
@@ -222,6 +225,11 @@ export type WarningCode =
   | "duplicate-tags-incomplete"
   | "imported-tags-dropped"
   | "imported-pdfa-unchecked"
+  | "imported-pdfua-unchecked"
+  | "annot-without-contents"
+  | "annot-not-tagged"
+  | "pdfa-annot-flags"
+  | "pdfa-transparency"
   | "tounicode-conflict"
   | "whole-font-rebuilt"
   | "flow-keep-broken"
@@ -303,6 +311,9 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "unknown-annotation",
   "annotation-locked",
   "annotation-not-editable",
+  "not-a-link",
+  "link-not-tagged",
+  "appearance-unavailable",
   "invalid-label-ranges",
   "sink",
   "not-rebased",
@@ -456,6 +467,11 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "duplicate-tags-incomplete",
   "imported-tags-dropped",
   "imported-pdfa-unchecked",
+  "imported-pdfua-unchecked",
+  "annot-without-contents",
+  "annot-not-tagged",
+  "pdfa-annot-flags",
+  "pdfa-transparency",
   "tounicode-conflict",
   "whole-font-rebuilt",
   "flow-keep-broken",
@@ -564,6 +580,9 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "unknown-annotation": "usage",
   "annotation-locked": "state",
   "annotation-not-editable": "unsupported",
+  "not-a-link": "usage",
+  "link-not-tagged": "unsupported",
+  "appearance-unavailable": "unsupported",
   "invalid-label-ranges": "usage",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
@@ -571,6 +590,11 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "duplicate-tags-incomplete": "usage",
   "imported-tags-dropped": "usage",
   "imported-pdfa-unchecked": "usage",
+  "imported-pdfua-unchecked": "usage",
+  "annot-without-contents": "usage",
+  "annot-not-tagged": "usage",
+  "pdfa-annot-flags": "usage",
+  "pdfa-transparency": "usage",
   "sink": "io",
   "not-rebased": "state",
   "sink-not-empty": "usage",
@@ -772,6 +796,9 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "unknown-annotation": "read the page's annotations again and use an ID from that list",
   "annotation-locked": "clear the lock with an update of its flags first, if you may",
   "annotation-not-editable": "edit a widget through its form field; an annotation stored inside the page's list can't be edited yet",
+  "not-a-link": "name a link from the page's links; change other annotations with updateAnnot and deleteAnnot",
+  "link-not-tagged": "tag the document first, or add the link to a copy that doesn't claim PDF/UA",
+  "appearance-unavailable": "edit through the laminapdf crate, which draws appearances, or give laminapdf-ops a generator with Document::with_appearances",
   "invalid-label-ranges": "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
@@ -779,6 +806,11 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "duplicate-tags-incomplete": "retag the copy, or duplicate pages whose tagged elements lie on the page alone",
   "imported-tags-dropped": "tag the copied pages in a tagging tool, or copy pages from a document without tags",
   "imported-pdfa-unchecked": "check the saved file with a PDF/A validator such as veraPDF, or copy pages from a document that claims the same level",
+  "imported-pdfua-unchecked": "check the saved file's tags, alternate text and reading order with a PDF/UA checker such as veraPDF, or copy pages from a document that claims PDF/UA-1",
+  "annot-without-contents": "give the annotation a description: the text it marks, or what the mark means",
+  "annot-not-tagged": "tag the document first, or add the annotation to a copy that doesn't claim PDF/UA",
+  "pdfa-annot-flags": "keep the annotation's Print flag and clear Hidden, Invisible, NoView and ToggleNoView",
+  "pdfa-transparency": "make the mark opaque, or use an underline instead of a highlight",
   "sink": "check the destination and retry the save; the document is unchanged",
   "not-rebased": "retry rebase with the saved output carried by the error",
   "sink-not-empty": "pass an empty sink: output offsets count from the sink's first byte",

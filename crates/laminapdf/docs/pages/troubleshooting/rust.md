@@ -1,7 +1,7 @@
 ---
 title: "Troubleshooting Rust"
 description: "Fixes for the laminapdf crate when Cargo picks the wrong version, a feature is missing, or your Rust is too old."
-version: "0.2.0"
+version: "0.3.0"
 url: "https://docs.laminapdf.com/troubleshooting/rust/"
 ---
 
@@ -15,13 +15,13 @@ These entries cover the `laminapdf` crate: the version Cargo picks, the features
 
 **Cause:** your project is on version `0.0.0`, a placeholder that only reserves the name. Every release before `0.2.0` was an alpha, and Cargo never picks an alpha unless you name it, so a plain `cargo add laminapdf` picked the placeholder.
 
-**Fix:** add the version these docs describe: `cargo add laminapdf@0.2.0`. See [Install](../../pages/install.md#rust-laminapdf).
+**Fix:** add the version these docs describe: `cargo add laminapdf@0.3.0`. See [Install](../../pages/install.md#rust-laminapdf).
 
 ## Cargo finds no version that matches your requirement
 
 **Cause:** Lamina PDF's releases before `0.2.0` were alphas, whose versions end in `-alpha` and a number, and Cargo treats them as pre-releases. A requirement such as `"0.1"` matches only full releases, so Cargo's error lists the alphas as "candidate versions found which didn't match".
 
-**Fix:** require `0.2.0` or later, as `cargo add` writes it: `laminapdf = "0.2.0"`. Cargo then takes later releases in the same `0.x` line, which the [stability policy](../../pages/reference/stability.md) promises need no change to your code. Read the [changelog](../../pages/reference/changelog.md) before you move to a new `0.x` line.
+**Fix:** require `0.2.0` or later, as `cargo add` writes it: `laminapdf = "0.3.0"`. Cargo then takes later releases in the same `0.x` line, which the [stability policy](../../pages/reference/stability.md) promises need no change to your code. Read the [changelog](../../pages/reference/changelog.md) before you move to a new `0.x` line.
 
 ## `Builder` or `page_text` is not found in `laminapdf`
 
@@ -33,7 +33,7 @@ These entries cover the `laminapdf` crate: the version Cargo picks, the features
 
 **Cause:** `explain` returns each code's page from these docs as text, which adds about 80 KB to your program. The function is behind the `explain` feature, which is off by default.
 
-**Fix:** turn the feature on: `cargo add laminapdf@0.2.0 --features explain`. Or link to the page instead: every error's `docs_url()` gives its address.
+**Fix:** turn the feature on: `cargo add laminapdf@0.3.0 --features explain`. Or link to the page instead: every error's `docs_url()` gives its address.
 
 ## Cargo says the crate requires a newer rustc
 

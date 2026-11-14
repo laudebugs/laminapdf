@@ -24,6 +24,14 @@ async function more(page: Page, name: string): Promise<void> {
   await page.getByRole("menuitem", { name }).click();
 }
 
+/**
+ * Waits until the rotation just made is recorded. Before that nothing is unsaved, so closing,
+ * by the × or by the address, asks nothing.
+ */
+async function recorded(page: Page): Promise<void> {
+  await expect.poll(() => page.locator(".paper-top-bar-save-state").textContent()).toBe("1 unsaved change");
+}
+
 /** Whether the home screen shows with focus on its heading, the document closed and said to be. */
 async function home(page: Page, name: string): Promise<void> {
   const heading = page.getByRole("heading", { name: "Open a PDF" });
@@ -94,6 +102,7 @@ describe(`closing a document in ${BROWSER}`, () => {
     const watched = await local();
     const { page } = watched;
     await more(page, "Rotate page right");
+    await recorded(page);
     const close = page.getByRole("button", { name: "Close outline.pdf" });
     await close.click();
     const ask = page.getByRole("alertdialog", { name: "Save changes to outline.pdf?" });
@@ -115,6 +124,7 @@ describe(`closing a document in ${BROWSER}`, () => {
     const { page } = watched;
     await page.locator(".web-viewer canvas").first().waitFor();
     await more(page, "Rotate page right");
+    await recorded(page);
     await page.evaluate(() => {
       location.hash = "";
     });

@@ -158,8 +158,12 @@ pub fn op_log(data: &[u8]) -> Option<OpLog> {
         .or_else(|| serde_json::from_str::<Op>(json).ok().map(|op| OpLog::new(vec![op])))
 }
 
+/// A fixture opened for editing, drawing annotations' appearances as the façade does, so a
+/// fuzzed `addAnnot` applies (E4 plan §2.2).
 fn open(bytes: &[u8]) -> Document {
-    Document::open(bytes.to_vec(), OpenOptions::default()).unwrap_or_else(|e| panic!("fixture: {e}"))
+    Document::open(bytes.to_vec(), OpenOptions::default())
+        .unwrap_or_else(|e| panic!("fixture: {e}"))
+        .with_appearances(laminapdf_build::AnnotationAppearances)
 }
 
 fn rotate(doc: &mut Document, index: usize, quarters: u8) -> laminapdf_ops::Result<()> {

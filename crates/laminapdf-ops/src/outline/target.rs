@@ -8,7 +8,7 @@ use super::types::{ExplicitDestination, OutlineTarget};
 use crate::error::{Error, Result};
 
 /// Sets `dict`'s target: `/Dest` or `/A`, removing the other.
-pub(super) fn write(doc: &laminapdf_model::Document, dict: &mut Dict, target: &OutlineTarget) -> Result<()> {
+pub(crate) fn write(doc: &laminapdf_model::Document, dict: &mut Dict, target: &OutlineTarget) -> Result<()> {
     match target {
         OutlineTarget::Destination(dest) => {
             dict.insert("Dest", explicit(doc, dest)?);
@@ -51,7 +51,7 @@ pub(super) fn explicit(doc: &laminapdf_model::Document, dest: &ExplicitDestinati
     Ok(Object::Array(array))
 }
 
-fn page_ref(doc: &laminapdf_model::Document, id: &PageId) -> Result<ObjRef> {
+pub(crate) fn page_ref(doc: &laminapdf_model::Document, id: &PageId) -> Result<ObjRef> {
     let pages = doc.pages()?;
     let page = pages.by_id(id).ok_or_else(|| Error::UnknownPage(id.clone()))?;
     page.obj_ref().ok_or_else(|| Error::DirectPage(id.clone()))

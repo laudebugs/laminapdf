@@ -421,6 +421,19 @@ mod conformance {
             ConformanceWarning::DuplicateTagsIncomplete,
             ConformanceWarning::ImportedTagsDropped,
             ConformanceWarning::ImportedPdfaUnchecked,
+            ConformanceWarning::ImportedPdfuaUnchecked,
+            ConformanceWarning::AnnotWithoutContents {
+                annotations: Vec::new(),
+            },
+            ConformanceWarning::AnnotNotTagged {
+                annotations: Vec::new(),
+            },
+            ConformanceWarning::PdfaAnnotFlags {
+                annotations: Vec::new(),
+            },
+            ConformanceWarning::PdfaTransparency {
+                annotations: Vec::new(),
+            },
         ];
         assert_eq!(samples.map(|w| w.code()), ConformanceWarning::CODES);
     }
@@ -434,6 +447,19 @@ mod conformance {
             ConformanceWarning::DuplicateTagsIncomplete,
             ConformanceWarning::ImportedTagsDropped,
             ConformanceWarning::ImportedPdfaUnchecked,
+            ConformanceWarning::ImportedPdfuaUnchecked,
+            ConformanceWarning::AnnotWithoutContents {
+                annotations: Vec::new(),
+            },
+            ConformanceWarning::AnnotNotTagged {
+                annotations: Vec::new(),
+            },
+            ConformanceWarning::PdfaAnnotFlags {
+                annotations: Vec::new(),
+            },
+            ConformanceWarning::PdfaTransparency {
+                annotations: Vec::new(),
+            },
         ];
         crate::test_codes::assert_kinds_match(samples.iter().map(|w| (w.code(), w.kind().as_str())));
     }
