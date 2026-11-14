@@ -1,0 +1,1 @@
+{ "op": "setOrientation", "args": { "pages": ["p3.0"], "orientation": "landscape", "method": "swapBox" } }

@@ -381,3 +381,14 @@ fn both_ops_reshow_the_widgets_on_their_pages() {
         (vec![WidgetChange::Reshown; 2], vec![WidgetChange::Reshown; 2])
     );
 }
+
+#[test]
+fn a_page_whose_content_lamina_pdf_cant_decode_is_refused_and_left_alone() {
+    // ReportLab writes its content streams ASCII85-encoded, a filter Lamina PDF doesn't decode:
+    // the content must be read to be wrapped, so the resize stops before changing anything.
+    let mut doc = common::corpus("reportlab.pdf");
+    let ids = page_ids(&doc);
+    let before = snapshot(&doc);
+    let err = apply(&mut doc, ResizePages::scale(ids, PageSize::A4)).unwrap_err();
+    assert_eq!((err.code(), snapshot(&doc) == before), ("unsupported-filter", true));
+}

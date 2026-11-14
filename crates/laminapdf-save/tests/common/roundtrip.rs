@@ -34,9 +34,10 @@ use laminapdf_model::{
 };
 use laminapdf_ops::{
     CropMargins, CropPages, DeletePages, Document, DuplicatePages, InfoPatch, InsertBlankPages, InsertPagesFrom,
-    MergeDocuments, MergeSource, MetadataKey, MetadataPatch, MovePages, Op, OpenAt, OpenZoom, Origin, PageBoxes,
-    PageLabelRange, RemoveMetadata, ReplacePages, ReversePages, RotatePage, RotatePages, SetInfo, SetInitialView,
-    SetMetadata, SetPageBoxes, SetPageLabels, SetXmpProperty, SourceId, SplitBy, WindowPreferencesPatch, read_metadata,
+    MergeDocuments, MergeSource, MetadataKey, MetadataPatch, MovePages, Op, OpenAt, OpenZoom, Orientation,
+    OrientationMethod, Origin, PageBoxes, PageLabelRange, RemoveMetadata, ReplacePages, ResizePages, ReversePages,
+    RotatePage, RotatePages, SetInfo, SetInitialView, SetMetadata, SetOrientation, SetPageBoxes, SetPageLabels,
+    SetXmpProperty, SourceId, SplitBy, WindowPreferencesPatch, read_metadata,
 };
 use laminapdf_save::{Restriction, Save, SaveError, SaveMode, SaveOptions, SavePlanner, SaveReport};
 use serde_json::{Value, json};
@@ -255,8 +256,9 @@ fn new_labels(pages: usize) -> Vec<Option<String>> {
 /// Info, and a custom property, [`CUSTOM`]), page labels (I.10) and the page ops (C.01, C.03,
 /// C.04, C.08, C.13), duplicating included (C.03), pages copied in from another document
 /// (C.02) or replacing the first page (C.16), from [`SOURCE`], merged in as a whole document
-/// (C.06), the initial view (I.06, I.11), and page boxes set (C.09) and cropped (C.11).
-const OPS: [&str; 18] = [
+/// (C.06), the initial view (I.06, I.11), page boxes set (C.09) and cropped (C.11), and pages
+/// resized (C.10) and turned to landscape by swapping their paper's sides (C.12).
+const OPS: [&str; 20] = [
     "setInfo",
     "rotatePage",
     "setMetadata",
@@ -275,6 +277,8 @@ const OPS: [&str; 18] = [
     "setInitialView",
     "setPageBoxes",
     "cropPages",
+    "resizePages",
+    "setOrientation",
 ];
 
 /// The source document the import cases copy their page from: one upright page.
@@ -350,6 +354,12 @@ fn op(doc: &Document, name: &str, rotation: Rotation, source: SourceId) -> Optio
             let trim = UserSpaceRect::from_corners(media.x0 + 1.0, media.y0 + 1.0, media.x1 - 1.0, media.y1 - 1.0);
             SetPageBoxes::new(vec![first], PageBoxes::default().with_trim(Some(trim))).into()
         }
+        // Moving content wraps it, which reads it: a page whose content uses a filter Lamina PDF
+        // can't decode (reportlab.pdf's ASCII85) refuses with `unsupported-filter`, tested on its
+        // own in laminapdf-ops' tests/resize.rs.
+        "resizePages" | "setOrientation" if !contents_decode(doc) => return None,
+        "resizePages" => ResizePages::scale(ids, PageSize::A4).into(),
+        "setOrientation" => SetOrientation::new(ids, Orientation::Landscape, OrientationMethod::SwapBox).into(),
         "cropPages" => CropPages::new(ids, CropMargins::new(1.0, 2.0, 3.0, 4.0)).into(),
         "duplicatePages" => DuplicatePages::new(ids.first().cloned().into_iter().collect(), PagePosition::End).into(),
         "mergeDocuments" => {
@@ -382,6 +392,20 @@ fn op(doc: &Document, name: &str, rotation: Rotation, source: SourceId) -> Optio
             .with_preferences(WindowPreferencesPatch::default().with_display_doc_title(true))
             .into(),
         _ => RotatePage::new(ids.first().cloned()?, rotation).into(),
+    })
+}
+
+/// Whether every content stream of every page decodes.
+fn contents_decode(doc: &Document) -> bool {
+    doc.pages().is_ok_and(|pages| {
+        pages.iter().all(|page| {
+            page.contents().is_ok_and(|refs| {
+                refs.iter().all(|r| match doc.resolve(*r).as_deref() {
+                    Ok(laminapdf_cos::Object::Stream(s)) => doc.decode_stream(s).is_ok(),
+                    _ => true,
+                })
+            })
+        })
     })
 }
 
