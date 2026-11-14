@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `X11` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [architecture §7 Cross-cutting](../../plans/architecture.md#cross-cutting) |
 | Round / milestone | Round X (cross-cutting): CI |
 | Depends on | None |
@@ -11,7 +11,7 @@
 | Branch | `ci/x11-lock-github-actions` |
 | PR title | `ci: lock the workflows' actions with a lockfile, and check it on every pull request` |
 | Size | M (the rewritten `uses:` lines and the generated lockfile don't count) |
-| PR | — |
+| PR | [laudebugs/laminapdf#580](https://github.com/laudebugs/laminapdf/pull/580) |
 
 ## Goal
 
@@ -33,7 +33,7 @@ Every action the workflows use is pinned to a full commit SHA with its version i
 
 ## What the lockfile does and doesn't cover
 
-These facts, from GitHub's docs as of 2026-11-14, shape the tasks. Check them against the docs and `gh actions-lock --help` when the work starts.
+These facts, from GitHub's docs as of 2026-11-13, shape the tasks. Check them against the docs and `gh actions-lock --help` when the work starts.
 
 - **Covered:** every `owner/repo@ref` action in an onboarded workflow and the actions those actions use. GitHub refuses a run when an action isn't in the lockfile, when the locked commit isn't reachable from its tag in the action's own repository, or when the repository behind the name has changed (`owner_id`, `repo_id`).
 - **Local actions written `./…` are not covered.** `gh actions-lock` doesn't follow them. When one calls an action from another repository, it stops with a `local-action` error and writes nothing. It offers two ways out:
@@ -59,31 +59,46 @@ These facts, from GitHub's docs as of 2026-11-14, shape the tasks. Check them ag
 - Renovate: ADR 0019 keeps Dependabot.
 - Container images (`tools/ci-runner/linux`) and the actions in `spikes/`, which no workflow runs.
 
+## Found while building it
+
+Checked against `gh-actions-lock` v0.4.1's README and troubleshooting guide on 2026-11-13:
+
+- **The extension keeps SHA pins.** It locks a full-SHA `uses:` line unchanged, with a `not-pinned` warning, rather than turning it back into a tag. So the PR rewrites every `@<sha> # vX.Y.Z` to `@vX.Y.Z` itself. Each pinned SHA was first checked against its tag in the action's own repository with `git ls-remote`, and all matched.
+- **Local actions were rewritten by hand first.** Every `./.github/actions/<name>` in the workflows and composite actions is written `$/.github/actions/<name>`, so `--migrate-local-actions` found nothing to change. Calls of reusable workflows (`./.github/workflows/nightly.yml`, `docs.yml`) stay `./`, as the docs say.
+- **Container images:** the extension warns on an image without an `@sha256:` digest. No workflow uses a container.
+- **Two sessions finished it.** The first couldn't push to `.github/workflows/` (its token had no `workflow` scope) or reach GitHub's API for the extension, so it pushed everything but the workflows. The second session had a token with the `workflow` scope. It rechecked the 15 SHA and tag pairs with `git ls-remote` (all matched), rewrote the 14 workflows, added the `lockfile` job and ran `gh actions-lock --migrate-local-actions` at v0.4.1. That run wrote only `.github/workflows/actions.lock`, rewrote nothing and warned about nothing.
+- **The lockfile follows the composite actions.** Through the `$/` references it locks what they call (`pnpm/action-setup`, `nick-fields/retry`, `taiki-e/install-action`, `actions/setup-node`, `actions/cache`), and two transitive actions: `Swatinem/rust-cache` through `actions-rust-lang/setup-rust-toolchain`, and `actions/attest` through `actions/attest-build-provenance`. `cancel-merged.yml` uses no action and is onboarded with an empty list.
+- **Checked locally:** `gh actions-lock --verify` passes on all 14 workflows, and fails (exit 1) when one `uses:` tag changes without relocking.
+
+## Owner's steps
+
+After merge, do the first two post-merge checks below: turn on **Require lockfile** once the first push to `main` passes with the lockfile, then check the allowed-actions list.
+
 ## Tasks
 
-- [ ] Read `gh actions-lock --help` and the troubleshooting guide at the version you pin. Note in the PR anything that differs from "What the lockfile does and doesn't cover" above.
-- [ ] Pin the extension in `tools/xtask/src/doctor.rs` (`GH_ACTIONS_LOCK_VERSION`), with `doctor` checking `gh extension list` and `doctor --install` running `gh extension install github/gh-actions-lock --pin <version>`.
-- [ ] Run `gh actions-lock --migrate-local-actions`. Review every rewritten line: each `./.github/actions/<name>` should now read `$/.github/actions/<name>`, and each pinned SHA its tag.
-- [ ] Run a branch push and check that one job of each kind still finds its local action at the right commit: a fast-lane Rust leg, the full lane's `check-windows`, a nightly job by `workflow_dispatch`, and `release.yml` dispatched as a dry run.
-- [ ] Commit the rewritten workflows, the composite actions and `.github/workflows/actions.lock`.
-- [ ] Add a `lockfile` job to `ci.yml`, modelled on the extension's `verify-lockfile.yml`:
+- [x] Read `gh actions-lock --help` and the troubleshooting guide at the version you pin. Note in the PR anything that differs from "What the lockfile does and doesn't cover" above.
+- [x] Pin the extension in `tools/xtask/src/doctor.rs` (`GH_ACTIONS_LOCK_VERSION`), with `doctor` checking `gh extension list` and `doctor --install` running `gh extension install github/gh-actions-lock --pin <version>`.
+- [x] Run `gh actions-lock --migrate-local-actions`. Review every rewritten line: each `./.github/actions/<name>` should now read `$/.github/actions/<name>`, and each pinned SHA its tag.
+- [x] Run a branch push and check that one job of each kind still finds its local action at the right commit: a fast-lane Rust leg and the full lane's `check-windows`. The nightly and release dispatches need `main`: see Post-merge checks.
+- [x] Commit the rewritten workflows, the composite actions and `.github/workflows/actions.lock`.
+- [x] Add a `lockfile` job to `ci.yml`, modelled on the extension's `verify-lockfile.yml`:
   - on `ubuntu-24.04`, as the repository's other Linux jobs, with `permissions: contents: read`;
   - `actions/checkout` with `persist-credentials: false`;
   - the extension installed at the `doctor.rs` pin;
   - `gh actions-lock --verify`, with `GH_TOKEN: ${{ github.token }}`.
   Add it to `fast-gate`'s `needs`, and give it its own line in the gate's `case` (`lockfile) needed=true ;;`). Without that line the gate reads it under the `ts` flag, so on a PR where `ts` is false the job's `success` fails the gate. Keep it out of `cargo xtask changes`' skips: a workflow edit is the one change it exists to catch.
-- [ ] Update `tools/xtask/src/workflows.rs` and `workflows/compile_cache.rs`: their path matches, plus new tests that the `lockfile` job exists, runs `--verify`, is in `fast-gate`'s `needs` with `needed=true` and installs the `doctor.rs` pin.
-- [ ] Check that Dependabot still updates the actions the composite actions call. Its `/.github/actions/*` directories stay; it should regenerate their lockfile entries in the same PR. If it can't, write down how those updates happen.
-- [ ] Amend ADR 0019: actions are locked by `.github/workflows/actions.lock`, with tags in the workflow files; `gh actions-lock` after adding a workflow or changing a `uses:` line; the `lockfile` job. Leave the date of the change and a link to this todo.
-- [ ] Add a "Lock the actions" note for contributors to `docs/guidelines/contributing.md`: when to run `gh actions-lock`, and that `--relock` and `--accept-moved` need a reviewed reason.
+- [x] Update `tools/xtask/src/workflows.rs` and `workflows/compile_cache.rs`: their path matches, plus new tests that the `lockfile` job exists, runs `--verify`, is in `fast-gate`'s `needs` with `needed=true` and installs the `doctor.rs` pin.
+- [x] Check that Dependabot still updates the actions the composite actions call. Its `/.github/actions/*` directories stay. Whether its update of a composite action's `uses:` line also rewrites the lockfile is unconfirmed until its first weekly PR (a post-merge check); if not, the `lockfile` job fails and `contributing.md` says to run `gh actions-lock` on its branch.
+- [x] Amend ADR 0019: actions are locked by `.github/workflows/actions.lock`, with tags in the workflow files; `gh actions-lock` after adding a workflow or changing a `uses:` line; the `lockfile` job. Leave the date of the change and a link to this todo.
+- [x] Add a "Lock the actions" note for contributors to `docs/guidelines/contributing.md`: when to run `gh actions-lock`, and that `--relock` and `--accept-moved` need a reviewed reason.
 
 ## Acceptance criteria
 
-- [ ] `.github/workflows/actions.lock` exists and `gh actions-lock --verify` passes on the PR's head.
-- [ ] Every workflow under `.github/workflows/` is onboarded; no `uses:` line names a bare SHA, and no local action is written `./`.
-- [ ] The `lockfile` job runs on the PR and is required by `fast-gate`, which passes on a docs-only PR too.
-- [ ] A test branch that changes one `uses:` tag without relocking fails the `lockfile` job.
-- [ ] The workflow tests pass, including the new ones.
+- [x] `.github/workflows/actions.lock` exists and `gh actions-lock --verify` passes on the PR's head.
+- [x] Every workflow under `.github/workflows/` is onboarded; no `uses:` line names a bare SHA, and no local action is written `./`.
+- [x] The `lockfile` job runs on the PR and is required by `fast-gate`, which passes on a docs-only PR too.
+- [x] A test branch that changes one `uses:` tag without relocking fails the `lockfile` job. (Checked locally: `gh actions-lock --verify` exits 1.)
+- [x] The workflow tests pass, including the new ones.
 
 ## Post-merge checks
 
@@ -110,8 +125,8 @@ ADR 0019 (the amendment), the architecture plan's §7 Cross-cutting (tick X11), 
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -43,7 +43,9 @@ updates:
       include: scope
 
   - package-ecosystem: github-actions
-    # The workflows, and the actions our composite actions pin (.github/actions/*/action.yml).
+    # The workflows and our composite actions (.github/actions/*/action.yml). A workflow's update also
+    # rewrites its entry in .github/workflows/actions.lock (ADR 0019). If an update leaves the lockfile
+    # behind, the `lockfile` job fails: run `gh actions-lock` on Dependabot's branch (contributing.md).
     directories: ["/", "/.github/actions/*"]
     schedule:
       interval: weekly

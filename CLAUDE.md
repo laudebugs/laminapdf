@@ -423,7 +423,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── .github/             # CI fast lane (workflows/ci.yml), full lane + required `gate` (workflows/full.yml),
 │                        #   nightly lane (workflows/nightly.yml), release lane on v* tags (workflows/release.yml: every check, then the publish jobs),
 │                        #   docs deploys (workflows/docs.yml), the CLI's release (workflows/cli-release.yml), Dependabot;
-│                        #   shared setup in actions/ (rust-compile-cache: sccache over R2, README.md has the owner's setup)
+│                        #   shared setup in actions/ (rust-compile-cache: sccache over R2, README.md has the owner's setup),
+│                        #   written `$/.github/actions/<name>`; every action locked by workflows/actions.lock (X11, ADR 0019:
+│                        #   tags in `uses:`, `gh actions-lock` after a change, the fast lane's `lockfile` job runs --verify)
 ├── spikes/              # research spikes (throwaway code that informs decisions), outside both workspaces
 │   ├── pdf-basics/      # minimal PDF core in Rust + TypeScript, its own frozen fixtures and spec (ported to crates/)
 │   ├── krilla-fit/      # Round B1: can krilla generate into Lamina PDF's object graph? (answer + measurements in its README)

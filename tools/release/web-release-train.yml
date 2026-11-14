@@ -77,14 +77,14 @@ jobs:
           fi
           echo "id=$NIGHTLY_RUN" >> "$GITHUB_OUTPUT"
           echo "sha=$nightly_sha" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ steps.nightly.outputs.sha }}
           persist-credentials: false
           # Every web-v tag, to find the last release.
           fetch-depth: 0
           fetch-tags: true
-      - uses: ./.github/actions/host-rust
+      - uses: $/.github/actions/host-rust
         with:
           cache: true
       # The last release that deployed is the newest web-v tag with a GitHub release (the deploy
@@ -115,7 +115,7 @@ jobs:
       - name: Create the release bot's token
         if: steps.next.outputs.ready == 'true'
         id: bot
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        uses: actions/create-github-app-token@v3.3.0
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}

@@ -39,8 +39,9 @@
 #
 # Fork PRs are skipped, as in docs.yml and site.yml: they must never see the secrets. Without the secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, the
 # deploy steps skip with a notice and the jobs pass (.github/actions/cloudflare-secrets). Nothing
-# a PR controls is interpolated into a script: values reach `run:` through `env:`. Actions are
-# pinned by full commit SHA with the release in a comment (ADR 0019).
+# a PR controls is interpolated into a script: values reach `run:` through `env:`.
+# Actions are locked by .github/workflows/actions.lock (ADR 0019, todo X11): `uses:` names a release
+# tag, and `gh actions-lock` rewrites the lockfile after a `uses:` line changes; Dependabot bumps both.
 name: Web reader
 
 on:
@@ -81,11 +82,11 @@ jobs:
     outputs:
       web: ${{ steps.changes.outputs.web }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
-      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: false
@@ -98,16 +99,16 @@ jobs:
         run: cargo xtask changes --base "$BASE"
       # Same versions as ci.yml's wasm job and tools/xtask/src/doctor.rs; xtask fails if they drift.
       - if: steps.changes.outputs.web == 'true'
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           tool: wasm-bindgen@0.2.129
       - if: steps.changes.outputs.web == 'true'
-        uses: ./.github/actions/node-pnpm
+        uses: $/.github/actions/node-pnpm
       - name: Build the reader
         if: steps.changes.outputs.web == 'true'
         run: cargo xtask web build
       - if: steps.changes.outputs.web == 'true'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: web-preview-dist
           path: apps/web/dist/
@@ -165,7 +166,7 @@ jobs:
       # sparse checkout of the job's workspace would leave the runner's shared checkout sparse.
       - name: Check out the default branch's deploy configuration
         if: steps.secrets.outputs.enabled == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.event.repository.default_branch }}
           path: .web-base
@@ -188,12 +189,12 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           cp apps/web/wrangler.jsonc .nvmrc "$WORK/"
       - if: steps.secrets.outputs.enabled == 'true'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        uses: actions/setup-node@v7.1.0
         with:
           node-version-file: ${{ runner.temp }}/web-preview/.nvmrc
       - name: Download the preview build
         if: steps.secrets.outputs.enabled == 'true'
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        uses: actions/download-artifact@v8.0.2
         with:
           name: web-preview-dist
           path: ${{ runner.temp }}/web-preview/dist/
@@ -305,11 +306,11 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/node-pnpm
-      - uses: ./.github/actions/playwright-chromium
+      - uses: $/.github/actions/node-pnpm
+      - uses: $/.github/actions/playwright-chromium
       - name: Smoke-test the preview
         env:
           LAMINA_PDF_SMOKE_URL: ${{ needs.preview-deploy.outputs.url }}
@@ -318,7 +319,7 @@ jobs:
         env:
           URL: ${{ needs.preview-deploy.outputs.url }}
         run: pnpm --filter @laminapdf/web run lighthouse --collect.url="$URL"
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
           name: web-preview-lighthouse
@@ -339,18 +340,18 @@ jobs:
       URL: https://staging-app.laminapdf.com
     steps:
       # First, since the local actions below load from the checkout (main's, which is trusted).
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
       - id: secrets
-        uses: ./.github/actions/cloudflare-secrets
+        uses: $/.github/actions/cloudflare-secrets
         with:
           api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           setup: apps/web/DEPLOY.md
       - if: steps.secrets.outputs.enabled == 'true'
-        uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+        uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: false
@@ -379,16 +380,16 @@ jobs:
             echo "web=true" >> "$GITHUB_OUTPUT"
           fi
       - if: steps.changes.outputs.web == 'true'
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           tool: wasm-bindgen@0.2.129
       - if: steps.changes.outputs.web == 'true'
-        uses: ./.github/actions/node-pnpm
+        uses: $/.github/actions/node-pnpm
       - name: Build the reader
         if: steps.changes.outputs.web == 'true'
         run: cargo xtask web build
       - if: steps.changes.outputs.web == 'true'
-        uses: ./.github/actions/playwright-chromium
+        uses: $/.github/actions/playwright-chromium
       - name: Deploy staging
         if: steps.changes.outputs.web == 'true'
         working-directory: apps/web
@@ -428,7 +429,7 @@ jobs:
             echo "::error::'$TAG' is not a reader release tag (web-v<version>)"
             exit 1
           fi
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -442,16 +443,16 @@ jobs:
             echo "::error::$TAG is on $GITHUB_SHA, which isn't a commit of main"
             exit 1
           fi
-      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
           cache-save-if: false
           cache-shared-key: wasm
           cache-bin: false
-      - uses: ./.github/actions/install-tools
+      - uses: $/.github/actions/install-tools
         with:
           tool: wasm-bindgen@0.2.129
-      - uses: ./.github/actions/node-pnpm
+      - uses: $/.github/actions/node-pnpm
       - name: Check the tag against the reader's version
         env:
           TAG: ${{ github.ref_name }}
@@ -466,7 +467,7 @@ jobs:
         run: LAMINA_PDF_WEB_VERSION="${TAG#web-v}" cargo xtask web build
       - name: Typecheck the reader
         run: pnpm --filter @laminapdf/web run typecheck:wasm
-      - uses: ./.github/actions/playwright-chromium
+      - uses: $/.github/actions/playwright-chromium
       # The same version and environment the build was given: Settings › About must show the
       # version, and a production build sends no noindex.
       - name: The reader's e2e suite in Chromium
@@ -481,7 +482,7 @@ jobs:
         run: pnpm --filter @laminapdf/web run lighthouse:local
       - name: Release gate - viewer performance (median of three runs)
         run: cargo xtask viewer-perf --gate
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
           name: web-release-gates
@@ -491,7 +492,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
       # The build these checks passed is the one production deploys.
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: web-production-dist
           path: apps/web/dist/
@@ -514,24 +515,24 @@ jobs:
       URL: https://app.laminapdf.com
     steps:
       # First, since the local actions below load from the checkout (the tag's, which is on main).
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - id: secrets
-        uses: ./.github/actions/cloudflare-secrets
+        uses: $/.github/actions/cloudflare-secrets
         with:
           api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           setup: apps/web/DEPLOY.md
       # The install is for the smoke test (Vitest, Playwright) and the pinned Wrangler.
       - if: steps.secrets.outputs.enabled == 'true'
-        uses: ./.github/actions/node-pnpm
+        uses: $/.github/actions/node-pnpm
       # Before the deploy, so nothing that could fail is left between the deploy and its check.
       - if: steps.secrets.outputs.enabled == 'true'
-        uses: ./.github/actions/playwright-chromium
+        uses: $/.github/actions/playwright-chromium
       - name: Download the checked build
         if: steps.secrets.outputs.enabled == 'true'
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        uses: actions/download-artifact@v8.0.2
         with:
           name: web-production-dist
           path: apps/web/dist/

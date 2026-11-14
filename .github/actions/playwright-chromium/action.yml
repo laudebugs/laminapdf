@@ -13,9 +13,9 @@ runs:
   steps:
     - shell: bash
       run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
-    - uses: ./.github/actions/apt-fail-fast
+    - uses: $/.github/actions/apt-fail-fast
     # The download can fail on a CDN hiccup: three tries, each retry a warning (ADR 0018 §4).
-    - uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+    - uses: nick-fields/retry@v4.0.0
       env:
         PACKAGE: ${{ inputs.package }}
       with:

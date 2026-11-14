@@ -23,11 +23,11 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+    - uses: pnpm/action-setup@v6.1.1
       with:
         dest: ${{ runner.temp }}/setup-pnpm
         package_json_file: ${{ inputs.package-json-file }}
-    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+    - uses: actions/setup-node@v7.1.0
       with:
         # An empty node-version falls back to node-version-file.
         node-version: ${{ inputs.node-version }}
@@ -44,7 +44,7 @@ runs:
     - name: Restore the pnpm store
       id: restore
       if: inputs.install != ''
-      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      uses: actions/cache/restore@v6.1.0
       with:
         path: ${{ steps.store.outputs.path }}
         key: pnpm-store-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles(format('{0}/pnpm-lock.yaml', inputs.install)) }}
@@ -52,7 +52,7 @@ runs:
     # A download can fail on a registry hiccup: three tries, each retry a warning (ADR 0018 §4).
     - name: pnpm install
       if: inputs.install != ''
-      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+      uses: nick-fields/retry@v4.0.0
       env:
         INSTALL_DIR: ${{ inputs.install }}
       with:
@@ -62,7 +62,7 @@ runs:
         command: cd "$INSTALL_DIR" && pnpm install --frozen-lockfile
     - name: Save the pnpm store (pushes to main only)
       if: inputs.install != '' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.restore.outputs.cache-hit != 'true'
-      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      uses: actions/cache/save@v6.1.0
       with:
         path: ${{ steps.store.outputs.path }}
         key: ${{ steps.restore.outputs.cache-primary-key }}

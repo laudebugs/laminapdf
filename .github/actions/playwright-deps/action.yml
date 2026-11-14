@@ -15,7 +15,7 @@ runs:
     # EPERM": the step fails with no retry), so Playwright runs as root under `sudo timeout` (KILL
     # 30 s after TERM) and ends itself first (docs/bugs/ci-apt-retry-kill-eperm).
     - if: runner.os == 'Linux'
-      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+      uses: nick-fields/retry@v4.0.0
       env:
         BROWSERS: ${{ inputs.browsers }}
       with:
