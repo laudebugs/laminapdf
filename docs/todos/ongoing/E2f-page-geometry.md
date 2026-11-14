@@ -11,7 +11,7 @@
 | Branch | `feat/e2f-page-geometry` |
 | PR title | `feat(ops): page boxes, and crop with its warning` |
 | Size | M (200–400): two ops that write page-dictionary keys, box validation and the crop warning, with bindings; resize and orientation, which scale content, are [E2s](E2s-resize-and-orientation.md)'s |
-| PR | — |
+| PR | [#576](https://github.com/laudebugs/laminapdf/pull/576) |
 
 ## Goal
 

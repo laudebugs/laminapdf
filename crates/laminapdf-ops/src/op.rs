@@ -22,8 +22,8 @@ use crate::outline::{
     SetNamedDestination, UpdateOutlineItem,
 };
 use crate::pages::{
-    DeletePages, DuplicatePages, FieldChange, InsertBlankPages, InsertPagesFrom, MergeDocuments, MovePages,
-    ReferenceChange, RenamedDestination, ReplacePages, ReversePages, RotatePages, StructureRename,
+    CropPages, DeletePages, DuplicatePages, FieldChange, InsertBlankPages, InsertPagesFrom, MergeDocuments, MovePages,
+    ReferenceChange, RenamedDestination, ReplacePages, ReversePages, RotatePages, SetPageBoxes, StructureRename,
 };
 use crate::rotate::RotatePage;
 #[cfg(feature = "test-support")]
@@ -108,6 +108,10 @@ pub enum Op {
     ReplacePages(ReplacePages),
     /// Merge other documents into this one.
     MergeDocuments(MergeDocuments),
+    /// Set or remove page boxes (media, crop, bleed, trim, art).
+    SetPageBoxes(SetPageBoxes),
+    /// Crop pages by margins of the page as displayed.
+    CropPages(CropPages),
     /// The save-time metadata stamp, made only by the save planner. It never crosses the wire:
     /// serialising it fails with serde's error (`OpLog::to_json`: `invalid-op-log`), and no op
     /// log can name it.
@@ -157,7 +161,9 @@ impl Op {
             | Self::DuplicatePages(_)
             | Self::InsertPagesFrom(_)
             | Self::ReplacePages(_)
-            | Self::MergeDocuments(_) => ModificationClass::PageStructure,
+            | Self::MergeDocuments(_)
+            | Self::SetPageBoxes(_)
+            | Self::CropPages(_) => ModificationClass::PageStructure,
             Self::SetInitialView(_)
             | Self::AddOutlineItem(_)
             | Self::UpdateOutlineItem(_)
@@ -210,6 +216,8 @@ impl Op {
             | Self::InsertPagesFrom(_)
             | Self::ReplacePages(_)
             | Self::MergeDocuments(_)
+            | Self::SetPageBoxes(_)
+            | Self::CropPages(_)
             | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_)
@@ -263,6 +271,8 @@ impl Op {
             Self::ReplacePages(op) => each(&op.targets, WidgetChange::Deleted),
             Self::RotatePage(op) => vec![PageChange::new(op.page.clone(), WidgetChange::Reshown)],
             Self::RotatePages(op) => each(&op.pages, WidgetChange::Reshown),
+            Self::SetPageBoxes(op) => each(&op.pages, WidgetChange::Reshown),
+            Self::CropPages(op) => each(&op.pages, WidgetChange::Reshown),
             Self::DeletePages(op) => each(&op.pages, WidgetChange::Deleted),
             Self::MovePages(op) => each(&op.pages, WidgetChange::Moved),
             Self::ReversePages(op) => each(&op.pages, WidgetChange::Moved),
@@ -295,6 +305,8 @@ impl Op {
             Self::DeletePages(op) => op.apply_to(doc),
             Self::MovePages(op) => op.apply_to(doc),
             Self::RotatePages(op) => op.apply_to(doc),
+            Self::SetPageBoxes(op) => op.apply_to(doc),
+            Self::CropPages(op) => op.apply_to(doc),
             Self::ReversePages(op) => op.apply_to(doc),
             Self::DuplicatePages(op) => op.apply_to(doc),
             Self::InsertPagesFrom(op) => op.apply_to(doc, sources),
@@ -367,6 +379,8 @@ pub(crate) struct Effect {
     pub(crate) renamed_destinations: Vec<RenamedDestination>,
     /// The role, class and element names it brought in under another name.
     pub(crate) structure_renamed: Vec<StructureRename>,
+    /// The pages whose new crop box hides content that stays in the file.
+    pub(crate) cropped_content_remains: Vec<PageId>,
     /// The bookmarks it left out because the pages they go to didn't come along.
     pub(crate) bookmarks_dropped: usize,
     /// The copies it brought into a file claiming PDF/A from a source without that claim.
@@ -431,6 +445,8 @@ op_from!(
     InsertPagesFrom,
     ReplacePages,
     MergeDocuments,
+    SetPageBoxes,
+    CropPages,
     UpdateAnnot,
     DeleteAnnot,
     AddLink,

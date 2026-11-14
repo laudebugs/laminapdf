@@ -8,7 +8,7 @@ use common::fixture;
 use laminapdf_model::{PagePosition, Rotation};
 use laminapdf_ops::{Op, ReferencePolicy, RotateMode};
 
-const SAMPLES: [&str; 9] = [
+const SAMPLES: [&str; 11] = [
     "insert-blank-pages",
     "delete-pages",
     "move-pages",
@@ -18,6 +18,8 @@ const SAMPLES: [&str; 9] = [
     "insert-pages-from",
     "replace-pages",
     "merge-documents",
+    "set-page-boxes",
+    "crop-pages",
 ];
 
 fn sample(name: &str) -> Op {
@@ -94,6 +96,10 @@ fn unknown_fields_and_positions_are_rejected() {
         r#"{ "op": "mergeDocuments", "args": { "sources": [{ "source": "f534f6f1a920e560dfd6103ae24af60e318d129a177a038366135afc943d058d", "name": "a.pdf" }], "at": "end" } }"#,
         r#"{ "op": "mergeDocuments", "args": { "sources": [], "at": "end", "options": { "outline": "flat" } } }"#,
         r#"{ "op": "mergeDocuments", "args": { "sources": [] } }"#,
+        r#"{ "op": "setPageBoxes", "args": { "pages": ["p7.0"], "boxes": { "media": null } } }"#,
+        r#"{ "op": "setPageBoxes", "args": { "pages": ["p7.0"], "boxes": { "crop": [0, 0, 1] } } }"#,
+        r#"{ "op": "setPageBoxes", "args": { "pages": ["p7.0"], "boxes": { "bleed": [0, 0, 1, 1], "slug": null } } }"#,
+        r#"{ "op": "cropPages", "args": { "pages": ["p7.0"], "margins": { "inside": 10 } } }"#,
     ] {
         assert!(serde_json::from_str::<Op>(json).is_err(), "{json}");
     }
@@ -167,5 +173,32 @@ fn a_merge_without_options_or_pages_reads_with_the_defaults() {
     assert_eq!(
         (merge.sources[0].pages.clone(), merge.options),
         (None, laminapdf_ops::MergeOptions::default())
+    );
+}
+
+#[test]
+fn the_box_samples_tell_a_box_left_alone_from_one_removed() {
+    let Op::SetPageBoxes(set) = sample("set-page-boxes") else {
+        panic!("not setPageBoxes");
+    };
+    let Op::CropPages(crop) = sample("crop-pages") else {
+        panic!("not cropPages");
+    };
+    let b = &set.boxes;
+    assert_eq!(
+        (
+            b.media,
+            b.crop.map(|c| c.map(|r| r.to_array())),
+            b.bleed,
+            b.art,
+            (crop.margins.top, crop.margins.right, crop.margins.left)
+        ),
+        (
+            None,
+            Some(Some([36.0, 36.0, 576.0, 756.0])),
+            None,
+            Some(None),
+            (36.0, 18.0, 18.0)
+        )
     );
 }

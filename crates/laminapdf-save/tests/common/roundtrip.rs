@@ -29,12 +29,14 @@ use std::path::Path;
 
 use laminapdf_cos::OpenOptions;
 use laminapdf_model::xmp::{RdfValue, XmpValue};
-use laminapdf_model::{LabelStyle, OpenAction, PageId, PageLayout, PageMode, PagePosition, PageSize, Rotation};
+use laminapdf_model::{
+    LabelStyle, OpenAction, PageId, PageLayout, PageMode, PagePosition, PageSize, Rotation, UserSpaceRect,
+};
 use laminapdf_ops::{
-    DeletePages, Document, DuplicatePages, InfoPatch, InsertBlankPages, InsertPagesFrom, MergeDocuments, MergeSource,
-    MetadataKey, MetadataPatch, MovePages, Op, OpenAt, OpenZoom, Origin, PageLabelRange, RemoveMetadata, ReplacePages,
-    ReversePages, RotatePage, RotatePages, SetInfo, SetInitialView, SetMetadata, SetPageLabels, SetXmpProperty,
-    SourceId, SplitBy, WindowPreferencesPatch, read_metadata,
+    CropPages, DeletePages, Document, DuplicatePages, InfoPatch, InsertBlankPages, InsertPagesFrom, Margins,
+    MergeDocuments, MergeSource, MetadataKey, MetadataPatch, MovePages, Op, OpenAt, OpenZoom, Origin, PageBoxes,
+    PageLabelRange, RemoveMetadata, ReplacePages, ReversePages, RotatePage, RotatePages, SetInfo, SetInitialView,
+    SetMetadata, SetPageBoxes, SetPageLabels, SetXmpProperty, SourceId, SplitBy, WindowPreferencesPatch, read_metadata,
 };
 use laminapdf_save::{Restriction, Save, SaveError, SaveMode, SaveOptions, SavePlanner, SaveReport};
 use serde_json::{Value, json};
@@ -253,8 +255,8 @@ fn new_labels(pages: usize) -> Vec<Option<String>> {
 /// Info, and a custom property, [`CUSTOM`]), page labels (I.10) and the page ops (C.01, C.03,
 /// C.04, C.08, C.13), duplicating included (C.03), pages copied in from another document
 /// (C.02) or replacing the first page (C.16), from [`SOURCE`], merged in as a whole document
-/// (C.06), and the initial view (I.06, I.11).
-const OPS: [&str; 16] = [
+/// (C.06), the initial view (I.06, I.11), and page boxes set (C.09) and cropped (C.11).
+const OPS: [&str; 18] = [
     "setInfo",
     "rotatePage",
     "setMetadata",
@@ -271,6 +273,8 @@ const OPS: [&str; 16] = [
     "replacePages",
     "mergeDocuments",
     "setInitialView",
+    "setPageBoxes",
+    "cropPages",
 ];
 
 /// The source document the import cases copy their page from: one upright page.
@@ -339,6 +343,14 @@ fn op(doc: &Document, name: &str, rotation: Rotation, source: SourceId) -> Optio
         }
         "movePages" => return None,
         "rotatePages" => RotatePages::turn(ids, rotation).into(),
+        "setPageBoxes" => {
+            // A trim box 1 point inside the first page's media box: every fixture's page has room.
+            let first = ids.first().cloned()?;
+            let media = doc.pages().unwrap().by_id(&first)?.media_box().ok()??;
+            let trim = UserSpaceRect::from_corners(media.x0 + 1.0, media.y0 + 1.0, media.x1 - 1.0, media.y1 - 1.0);
+            SetPageBoxes::new(vec![first], PageBoxes::default().with_trim(Some(trim))).into()
+        }
+        "cropPages" => CropPages::new(ids, Margins::new(1.0, 2.0, 3.0, 4.0)).into(),
         "duplicatePages" => DuplicatePages::new(ids.first().cloned().into_iter().collect(), PagePosition::End).into(),
         "mergeDocuments" => {
             MergeDocuments::new(vec![MergeSource::new(source).with_title("Merged")], PagePosition::End).into()

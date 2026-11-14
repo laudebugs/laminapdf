@@ -15,7 +15,8 @@ mod common;
 use common::{fixture, open, page_ids, snapshot};
 use laminapdf_model::{PagePosition, PageSize, Rotation};
 use laminapdf_ops::{
-    DeletePages, Document, InsertBlankPages, MovePages, Op, Origin, ReferencePolicy, ReversePages, RotatePages,
+    CropPages, DeletePages, Document, InsertBlankPages, Margins, MovePages, Op, Origin, ReferencePolicy, ReversePages,
+    RotatePages,
 };
 use proptest::prelude::*;
 use proptest::test_runner::{Config, RngSeed, TestRunner};
@@ -31,6 +32,7 @@ enum Recipe {
     Move(Vec<usize>, usize),
     Rotate(Vec<usize>, Rotation, bool),
     Reverse(Vec<usize>),
+    Crop(Vec<usize>, u8),
 }
 
 fn recipe() -> impl Strategy<Value = Recipe> {
@@ -46,7 +48,8 @@ fn recipe() -> impl Strategy<Value = Recipe> {
         (picks.clone(), any::<bool>()).prop_map(|(p, r)| Recipe::Delete(p, r)),
         (picks.clone(), 0usize..64).prop_map(|(p, to)| Recipe::Move(p, to)),
         (picks.clone(), rotation, any::<bool>()).prop_map(|(p, r, t)| Recipe::Rotate(p, r, t)),
-        picks.prop_map(Recipe::Reverse),
+        picks.clone().prop_map(Recipe::Reverse),
+        (picks, 0u8..20).prop_map(|(p, m)| Recipe::Crop(p, m)),
     ]
 }
 
@@ -77,6 +80,7 @@ fn to_op(doc: &Document, recipe: &Recipe) -> Option<Op> {
             }
         }
         Recipe::Reverse(p) => ReversePages::new(picks(p)).into(),
+        Recipe::Crop(p, m) => CropPages::new(picks(p), Margins::all(f64::from(*m))).into(),
     })
 }
 
