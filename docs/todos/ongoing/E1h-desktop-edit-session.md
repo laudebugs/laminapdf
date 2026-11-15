@@ -11,7 +11,7 @@
 | Branch | `feat/e1h-desktop-edit-session` |
 | PR title | `feat(desktop): the edit session, the Edit menu and the close guard` |
 | Size | M (200–400) |
-| PR | — |
+| PR | [#632](https://github.com/laudebugs/laminapdf/pull/632) |
 
 ## Goal
 
