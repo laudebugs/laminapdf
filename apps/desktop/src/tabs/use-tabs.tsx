@@ -187,7 +187,7 @@ function stripTab(tab: Tab, page: number | undefined): DocumentTab {
 
 /**
  * The restore notice under the top bar while it shows, with Show missing file (the first missing
- * tab) while `anyMissing`.
+ * tab) while `anyMissing`, when the restore found any: a file found gone later has its own tab's page.
  */
 function useRestoreNotice(tabs: WindowTabs | undefined, anyMissing: boolean): ReactNode {
   const summary = useStoreState(tabs?.notice ?? NO_NOTICE, (s) => s);
@@ -196,7 +196,7 @@ function useRestoreNotice(tabs: WindowTabs | undefined, anyMissing: boolean): Re
     <RestoreNotice
       tabs={summary.tabs}
       missing={summary.missing}
-      {...(anyMissing ? { onShowMissing: () => void tabs.showMissing() } : {})}
+      {...(anyMissing && summary.missing > 0 ? { onShowMissing: () => void tabs.showMissing() } : {})}
       onDismiss={() => tabs.notice.dismiss()}
     />
   );

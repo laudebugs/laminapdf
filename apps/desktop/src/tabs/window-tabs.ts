@@ -227,7 +227,11 @@ export class WindowTabs implements ExternalStore<TabsState> {
   /** The missing file of tab `id` was found at `document`'s file: the tab shows it from now on. */
   async located(id: string, document: DesktopDocument): Promise<void> {
     const tab = this.#state.tabs.find((t) => t.id === id);
-    if (tab === undefined) return;
+    if (tab === undefined) {
+      // The tab closed while its file was being located: nothing holds the document.
+      await this.#shell.invoke("close_document", { doc: document.doc }).catch(() => undefined);
+      return;
+    }
     rebind(tab.file, document);
     tab.view = undefined;
     this.#setMissing(id, false);
@@ -265,7 +269,8 @@ export class WindowTabs implements ExternalStore<TabsState> {
    * one it kept. Undefined for a tab never shown.
    */
   pageOf(tab: Tab): number | undefined {
-    const live = tab.id === this.#state.active && this.#client.current?.doc === documentOf(tab.file)?.doc;
+    const doc = documentOf(tab.file)?.doc;
+    const live = doc !== undefined && tab.id === this.#state.active && this.#client.current?.doc === doc;
     return (live ? this.#viewer.viewPosition() : tab.view)?.point.page;
   }
 

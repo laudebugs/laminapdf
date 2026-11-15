@@ -99,6 +99,10 @@ pub(crate) async fn session_locate(
             .file_name()
             .map(|name| name.to_string_lossy().into_owned())
             .unwrap_or_default();
+        // A window that closed while its picker was up holds nothing: Held::closed has run.
+        if window.app_handle().get_webview_window(window.label()).is_none() {
+            return Ok(None);
+        }
         window.state::<Held>().hold(window.label(), &token, path);
         Ok(Some(Located::Different { name }))
     })

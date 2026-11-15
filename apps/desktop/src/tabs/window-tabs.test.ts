@@ -453,4 +453,10 @@ describe("the last session's tabs", () => {
     await tabs.choose(tabs.getState().tabs[2]?.id ?? "");
     expect(tabs.notice.getState()).toBeUndefined();
   });
+
+  it("close a located document whose tab closed while its file was being located", async () => {
+    const { tabs, closed } = harness();
+    await tabs.located("no-such-tab", doc(9, "found.pdf"));
+    expect(closed()).toEqual([9]);
+  });
 });
