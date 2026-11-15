@@ -1,10 +1,11 @@
-// The behaviour of MenuSelect.astro (todo Q4w): ARIA's select-only combobox
+// The behaviour of MenuSelect.astro: ARIA's select-only combobox
 // (https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-select-only/). The button
 // keeps the focus while the list is open and points at the active option with
 // aria-activedescendant. Closed, Down, Up, Enter, Space or a letter opens it; open, Down and Up
 // move (Home and End to the ends, a letter to the next option it starts), Enter, Space or Tab
-// chooses, and Escape closes. A pointer chooses with a click; a click outside closes. Choosing sets
-// `value` and dispatches `change`, which bubbles.
+// chooses, and Escape closes. A pointer chooses with a click; hovering highlights an option but
+// never moves the keyboard's, so Tab never chooses what the pointer passed over. A click outside
+// closes. Choosing sets `value` and dispatches `change`, which bubbles.
 
 let count = 0;
 
@@ -35,21 +36,24 @@ export class SiteMenuSelect extends Element_ {
     if (this.#button !== null) return;
     this.#button = this.querySelector(".site-menu-select-button");
     this.#list = this.querySelector(".site-menu-select-list");
-    const label = this.querySelector(".site-menu-select-label");
-    if (this.#button === null || this.#list === null || label === null) return;
+    if (this.#button === null || this.#list === null) return;
+    const button = this.#button;
     // Ids are given here, not in the markup: a page can hold the same select twice (the docs
     // site's header and phone menu), and only a working select needs them.
     count += 1;
     const id = `site-menu-select-${count}`;
-    label.id = `${id}-label`;
     this.#list.id = `${id}-list`;
     for (const [index, option] of this.#options().entries()) option.id = `${id}-option-${index}`;
-    this.#button.setAttribute("aria-labelledby", label.id);
-    this.#button.setAttribute("aria-controls", this.#list.id);
-    this.#list.setAttribute("aria-labelledby", label.id);
+    button.setAttribute("aria-controls", this.#list.id);
 
-    this.#button.addEventListener("click", () => (this.#isOpen() ? this.#close() : this.#open(this.#selected())));
-    this.#button.addEventListener("keydown", (event) => this.#key(event));
+    button.addEventListener("click", () => (this.#isOpen() ? this.#close() : this.#open(this.#selected())));
+    button.addEventListener("keydown", (event) => this.#key(event));
+    // Space is handled on keydown; its keyup would click the button again (Firefox does).
+    button.addEventListener("keyup", (event) => {
+      if (event.key === " ") event.preventDefault();
+    });
+    // A press on a shown label reaches the button, as a <label>'s would.
+    this.querySelector(".site-menu-select-label")?.addEventListener("click", () => button.focus());
     this.#button.addEventListener("blur", () => this.#close());
     // The button keeps the focus: a press on the list must not take it.
     this.#list.addEventListener("pointerdown", (event) => event.preventDefault());
@@ -57,15 +61,11 @@ export class SiteMenuSelect extends Element_ {
       const option = event.target instanceof Element ? event.target.closest("[role=option]") : null;
       if (option instanceof HTMLElement) this.#choose(this.#options().indexOf(option));
     });
-    this.#list.addEventListener("pointermove", (event) => {
-      const option = event.target instanceof Element ? event.target.closest("[role=option]") : null;
-      if (option instanceof HTMLElement) this.#activate(this.#options().indexOf(option));
-    });
     this.#show();
   }
 
   disconnectedCallback(): void {
-    document.removeEventListener("pointerdown", this.#outside);
+    this.#close();
   }
 
   attributeChangedCallback(): void {
@@ -108,6 +108,9 @@ export class SiteMenuSelect extends Element_ {
     if (button.bottom + height > innerHeight && button.top > innerHeight - button.bottom) {
       this.classList.add("site-menu-select-up");
     }
+    // Under the button's start when, under its end, the list would cross the window's start.
+    this.classList.remove("site-menu-select-start");
+    if (this.#list.getBoundingClientRect().left < 0) this.classList.add("site-menu-select-start");
     this.#activate(active);
     document.addEventListener("pointerdown", this.#outside);
   }

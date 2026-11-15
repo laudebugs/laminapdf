@@ -1,5 +1,5 @@
 ---
-// The sites' select (todo Q4w): a button that opens a list of choices, each with its Paper icon,
+// The sites' select: a button that opens a list of choices, each with its Paper icon,
 // drawn as design language §7.26's listbox popup instead of the platform's own list. It is ARIA's
 // select-only combobox: the button keeps the focus, the arrow keys move through the list, Enter or
 // Space chooses, Escape closes. menu-select.ts gives it that behaviour (<site-menu-select>); the
@@ -34,8 +34,18 @@ const { label, hideLabel = false, options, value } = Astro.props;
 ---
 
 <site-menu-select class="site-menu-select" value={value}>
-  <span class:list={["site-menu-select-label", { "site-menu-select-label-hidden": hideLabel }]}>{label}</span>
-  <button type="button" role="combobox" class="site-menu-select-button" aria-haspopup="listbox" aria-expanded="false">
+  <span class:list={["site-menu-select-label", { "site-menu-select-label-hidden": hideLabel }]} aria-hidden="true"
+    >{label}</span
+  >
+  {/* Named by aria-label, the label's own text, so it has its name before the script runs. */}
+  <button
+    type="button"
+    role="combobox"
+    class="site-menu-select-button"
+    aria-label={label}
+    aria-haspopup="listbox"
+    aria-expanded="false"
+  >
     {
       options.map((option) => (
         <span class="site-menu-select-current" data-for={option.value} hidden={option.value !== value}>
@@ -46,7 +56,7 @@ const { label, hideLabel = false, options, value } = Astro.props;
     }
     <Fragment set:html={decorativeIcon(chevron, "site-menu-select-chevron")} />
   </button>
-  <ul role="listbox" class="site-menu-select-list" hidden>
+  <ul role="listbox" class="site-menu-select-list" aria-label={label} hidden>
     {
       options.map((option) => (
         <li

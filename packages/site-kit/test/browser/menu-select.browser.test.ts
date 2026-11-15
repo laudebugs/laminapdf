@@ -64,6 +64,10 @@ describe("the select's markup", () => {
   it("carries no inline style, which the website's checks refuse", () => {
     for (const html of [SELECTS.shown, SELECTS.hidden]) expect(html).not.toMatch(/\sstyle=/);
   });
+
+  it("names the button as served, before its script runs", () => {
+    expect(SELECTS.hidden).toMatch(/role="combobox"[^>]*aria-label="Select theme"/);
+  });
 });
 
 for (const theme of ["light", "dark"] as const) {
@@ -106,6 +110,32 @@ for (const theme of ["light", "dark"] as const) {
       await userEvent.keyboard("{Escape}");
       expect(select.value).toBe("dark");
       expect(changes).toEqual(["dark"]);
+    });
+
+    it("opens with Space and chooses with Space, the key's release clicking nothing", async () => {
+      const select = mount(SELECTS.hidden, theme);
+      await userEvent.tab();
+      await userEvent.keyboard(" ");
+      expect(button().getAttribute("aria-expanded")).toBe("true");
+      await userEvent.keyboard("{ArrowUp}");
+      await userEvent.keyboard(" ");
+      expect(button().getAttribute("aria-expanded")).toBe("false");
+      expect(select.value).toBe("dark");
+    });
+
+    it("chooses on Tab only the keyboard's option, not one the pointer passed over", async () => {
+      const select = mount(SELECTS.hidden, theme);
+      await userEvent.tab();
+      await userEvent.keyboard("{ArrowDown}");
+      await userEvent.hover(page.getByRole("option", { name: "Light" }));
+      await userEvent.tab();
+      expect(select.value).toBe("auto");
+    });
+
+    it("focuses the button when its shown label is pressed", async () => {
+      mount(SELECTS.shown, theme);
+      await userEvent.click(page.getByText("Theme"));
+      expect(document.activeElement).toBe(button());
     });
 
     it("chooses with the pointer and closes on a click outside", async () => {

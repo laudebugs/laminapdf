@@ -31,7 +31,8 @@ const t = Astro.locals.t;
   />
 </starlight-theme-select>
 
-{/* Inline, before the first paint: every switch shows the stored choice, as MenuSelect shows a value. */}
+{/* Inline, before the first paint: every switch shows the stored choice, as MenuSelect's element
+    shows its value once its module has loaded (`value` and the `data-for` labels' `hidden`). */}
 <script is:inline>
   (() => {
     let theme = "auto";
@@ -40,6 +41,8 @@ const t = Astro.locals.t;
     } catch {
       // No storage: Auto.
     }
+    // Anything else (a hand edit, a later Starlight's value) is Auto, as parseTheme reads it.
+    if (theme !== "dark" && theme !== "light") theme = "auto";
     for (const menu of document.querySelectorAll("starlight-theme-select site-menu-select")) {
       menu.setAttribute("value", theme);
       for (const current of menu.querySelectorAll("[data-for]")) current.hidden = current.dataset.for !== theme;

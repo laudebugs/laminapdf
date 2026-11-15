@@ -25,7 +25,6 @@
     "./header.css": "./src/header.css",
     "./icon": "./src/icon.mjs",
     "./MenuSelect.astro": "./src/MenuSelect.astro",
-    "./menu-select": "./src/menu-select.ts",
     "./menu-select.css": "./src/menu-select.css",
     "./version": "./src/version.mjs",
     "./package.json": "./package.json"
