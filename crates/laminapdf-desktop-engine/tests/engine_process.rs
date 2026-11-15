@@ -19,8 +19,8 @@ use std::time::{Duration, Instant};
 
 use laminapdf_desktop_protocol::supervisor::{Config, Event, FontServer, RangeServer, Supervisor, SupervisorError};
 use laminapdf_desktop_protocol::{
-    DocId, FailureKind, FromEngine, Password, PrintBandRequest, Priority, ReqId, TileAppearance, TileFormat,
-    TileRequest, ToEngine, ViewRotation,
+    DocId, EditCall, EditReport, FailureKind, FromEngine, Password, PrintBandRequest, Priority, ReqId, TileAppearance,
+    TileFormat, TileRequest, ToEngine, ViewRotation,
 };
 use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner, SystemFonts};
 use laminapdf_test_fixtures::{fixture, read_at};
@@ -566,4 +566,73 @@ fn cjk_text_in_a_font_the_file_does_not_embed_should_render_in_the_sandbox() {
     // Six glyphs at 40 pt cover thousands of pixels; a missing font leaves the page blank.
     let dark = pixels.as_chunks::<4>().0.iter().filter(|[r, ..]| *r < 128).count();
     assert!(dark > 1500, "only {dark} dark pixels: the glyphs didn't render");
+}
+
+/// The report of an edit call on `doc`.
+fn edit(engine: &Engine, doc: DocId, call: &EditCall) -> EditReport {
+    match engine.ask(|req| ToEngine::Edit {
+        req,
+        doc,
+        call: call.clone(),
+    }) {
+        FromEngine::Edited { report, .. } => *report,
+        other => panic!("expected Edited, got {other:?}"),
+    }
+}
+
+/// An op log rotating page `id` to `rotate` degrees.
+fn rotate(id: &str, rotate: u16) -> EditCall {
+    EditCall::Apply {
+        log: format!(r#"{{"v":1,"ops":[{{"op":"rotatePage","args":{{"page":"{id}","rotate":{rotate}}}}}]}}"#),
+    }
+}
+
+#[test]
+fn an_edit_should_turn_a_page_and_undo_and_redo_should_take_it_back_and_again() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("corpus/fpdf2.pdf"));
+    engine.open(doc, len);
+    let FromEngine::PageInfo { ids, sizes, .. } = engine.ask(|req| ToEngine::GetPageInfo { req, doc }) else {
+        panic!("expected PageInfo");
+    };
+    let first = ids[0].clone();
+    let turned = edit(&engine, doc, &rotate(&first, 90));
+    let undone = edit(&engine, doc, &EditCall::Undo);
+    let redone = edit(&engine, doc, &EditCall::Redo);
+    let rotation = |report: &EditReport| report.pages[0].size.rotate;
+    assert_eq!(
+        (
+            turned.changed,
+            turned.touched.clone(),
+            rotation(&turned),
+            rotation(&undone),
+            rotation(&redone)
+        ),
+        (true, vec![first], 90, sizes[0].rotate, 90)
+    );
+}
+
+#[test]
+fn an_undo_with_nothing_to_undo_should_change_nothing() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("corpus/fpdf2.pdf"));
+    engine.open(doc, len);
+    let report = edit(&engine, doc, &EditCall::Undo);
+    assert!(!report.changed && report.reversal.is_none());
+}
+
+#[test]
+fn an_op_on_a_page_that_does_not_exist_should_be_refused_with_its_code() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("corpus/fpdf2.pdf"));
+    engine.open(doc, len);
+    let reply = engine.ask(|req| ToEngine::Edit {
+        req,
+        doc,
+        call: rotate("p9999.0", 90),
+    });
+    assert!(
+        matches!(&reply, FromEngine::Error { kind: FailureKind::EditRefused, message, .. } if message == "unknown-page"),
+        "{reply:?}"
+    );
 }

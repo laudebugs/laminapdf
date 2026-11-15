@@ -212,6 +212,64 @@ pub struct PageDimensions {
     pub rotate: u16,
 }
 
+/// What an edit call asks of a document's edit session.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EditCall {
+    /// Apply an op log (`{ "v": 1, "ops": [ … ] }`, ADR 0006 §6) as one transaction.
+    Apply {
+        /// The op log as JSON: ops are tagged values, which only a self-describing format carries.
+        log: String,
+    },
+    /// Undo the newest transaction.
+    Undo,
+    /// Redo the newest undone transaction.
+    Redo,
+}
+
+/// How an undo or redo went (the façade's `UndoOutcome`). Its names are camelCase for the
+/// webview, which reads them as JSON; the pipe's format numbers the variants.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Reversal {
+    /// Every property was restored.
+    Applied,
+    /// Some were; another change replaced the rest since, or their target is gone.
+    Partial,
+    /// None could be.
+    Skipped,
+}
+
+/// A page after an edit: its stable ID and its size.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EditedPage {
+    /// The page's stable ID (`p12.0`), kept across page moves.
+    pub id: String,
+    /// Its size and rotation.
+    pub size: PageDimensions,
+}
+
+/// What an edit call did. The pages it touched are drawn from the edited file from then on.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EditReport {
+    /// Whether the document changed: false for an op log that only set what was there, and
+    /// for an undo or redo with nothing to undo or redo (`reversal` is then `None`).
+    pub changed: bool,
+    /// How an undo or redo went.
+    pub reversal: Option<Reversal>,
+    /// The IDs of the pages whose content or attributes changed.
+    pub touched: Vec<String>,
+    /// The page order an applied op log reports, when it changed the page list.
+    pub page_order: Option<Vec<String>>,
+    /// Every page after the call, in page order.
+    pub pages: Vec<EditedPage>,
+    /// The bookmarks the op log added, by ID.
+    pub created_outline_items: Vec<String>,
+    /// The annotations the op log added, by ID.
+    pub created_annotations: Vec<String>,
+    /// The op log found the outline's links broken and rewrote them: read it again.
+    pub outline_repaired: bool,
+}
+
 /// Why a request failed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FailureKind {
@@ -233,6 +291,12 @@ pub enum FailureKind {
     TooLarge,
     /// The request was cancelled.
     Cancelled,
+    /// The document can't take an edit (it is encrypted), or an op refused it; nothing changed.
+    /// The message is the error's code.
+    EditRefused,
+    /// An edit failed and couldn't be taken back: the document and the pages drawn may differ,
+    /// and it takes no more edits until it opens again.
+    EditDiverged,
     /// The engine has no renderer (PDFium wasn't found).
     RenderUnavailable,
     /// The renderer failed on this page.
@@ -348,6 +412,16 @@ pub enum ToEngine {
     },
     /// Render a tile. Answered by [`FromEngine::Tile`].
     RenderTile(TileRequest),
+    /// Apply, undo or redo an edit of the document. Answered by [`FromEngine::Edited`], or a
+    /// [`FromEngine::Error`] after which the document and its pages are as they were.
+    Edit {
+        /// The request.
+        req: ReqId,
+        /// The document.
+        doc: DocId,
+        /// What to do.
+        call: EditCall,
+    },
     /// Drop a queued request, or skip sending a running one's result. The engine still
     /// answers it, with [`FailureKind::Cancelled`].
     Cancel {
@@ -458,6 +532,17 @@ pub enum FromEngine {
         doc: DocId,
         /// One entry per page.
         sizes: Vec<PageDimensions>,
+        /// Each page's stable ID (`p12.0`), in the same order.
+        ids: Vec<String>,
+    },
+    /// What an edit call did.
+    Edited {
+        /// The request.
+        req: ReqId,
+        /// The document.
+        doc: DocId,
+        /// What changed (boxed: the other messages are small).
+        report: Box<EditReport>,
     },
     /// A rendered tile; its pixels follow the header as the frame's payload.
     Tile {

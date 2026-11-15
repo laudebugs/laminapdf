@@ -50,13 +50,13 @@ Ops follow E4's rules ([E4 plan §2.1](e4-markup-and-drawing-annotations.md#21-o
 
 | Op | Payload | Class | Todo |
 | --- | --- | --- | --- |
-| `AddReply` | `{ id: AnnotId, nm, parent: AnnotId, author, created, contents, rich: Option<RichText> }` | `Annotation` | E5b |
-| `SetReviewState` | `{ id: AnnotId, nm, target: AnnotId, model: Review \| Marked, state, author, created }`; `state` is `None`, `Accepted`, `Rejected`, `Cancelled` or `Completed` for `Review`, `Marked` or `Unmarked` for `Marked` | `Annotation` | E5b |
+| `AddReply` | `{ parent: AnnotId, contents, author, created, nm }`; the new reply's ID is in `Applied::created_annotations`, as `AddAnnot`'s is | `Annotation` | E5b |
+| `SetReviewState` | `{ target: AnnotId, state, author, created, nm }`; `state` is one of `none`, `accepted`, `rejected`, `cancelled`, `completed` (model `Review`), `marked` or `unmarked` (model `Marked`), so the model follows from the state | `Annotation` | E5b |
 | `AddAnnot` with `Stamp` | `{ rect, rotation, stamp: Standard(StampName) \| Image(BlobId) \| Dynamic { lines: Vec<String>, style: StampStyle } }`; a dynamic stamp's lines come resolved in the payload ("Approved by A. Mensah, 12 Nov 2026") | `Annotation` | E5c |
 | `AddAnnot` with `FileAttachment` | `{ at: UserSpacePoint, icon: AttachmentIcon, file: BlobId, name, mime, description, created, modified }` | `Annotation` | E5c |
 | `FlattenAnnots` | `{ annots: Vec<AnnotId>, intent: View \| Print }`; the façade picks the IDs from C07's scope (all, a page, shown, selected) | `Content` | E5e |
 
-**Replies and states are annotations of their own.** A reply is a Text annotation with `/IRT` pointing at its parent and `/RT /R`. A review state is another Text annotation with `/IRT` pointing at its target, `/StateModel` and `/State` (ISO 32000-2 §12.5.6.2, §12.5.6.4). Each change of status adds a new state annotation, so the thread keeps its history, as Acrobat's do. Both kinds take their parent's `/Rect`, carry an appearance that draws nothing, and leave every hiding flag clear, so a PDF/A file stays valid (ISO 19005-2 §6.3.2) and no viewer draws a second icon over the parent. E5b checks this against how pdf.js, PDFium and Acrobat show replies, using Acrobat-made reference files requested in [issue #524](https://github.com/laudebugs/laminapdf/issues/524). Editing a reply's text and deleting a reply or a state are E4b's `UpdateAnnot` and `DeleteAnnot`.
+**Replies and states are annotations of their own.** A reply is a Text annotation with `/IRT` pointing at its parent and `/RT /R`. A review state is another Text annotation with `/IRT` pointing at its target, `/StateModel` and `/State` (ISO 32000-2 §12.5.6.2, §12.5.6.4). Each change of status adds a new state annotation, so the thread keeps its history, as Acrobat's do. Both kinds take their parent's `/Rect`, carry an appearance that draws nothing, and leave every hiding flag clear, so a PDF/A file stays valid (ISO 19005-2 §6.3.2) and no viewer draws a second icon over the parent. E5b checks this against how pdf.js and PDFium show replies: both read them as replies and states and draw nothing for them. The Acrobat-made reference files requested in [issue #524](https://github.com/laudebugs/laminapdf/issues/524) haven't arrived; the check against Acrobat waits for them. Editing a reply's text and deleting a reply or a state are E4b's `UpdateAnnot` and `DeleteAnnot`.
 
 **Deleting several comments is one transaction.** C04's "Delete 3…" runs one `DeleteAnnot` per selected comment in one transaction, so it is one undo step, through the façade's `delete_annotations(ids)`. `DeleteAnnot` already removes a comment's replies and group, so the helper first drops every selected ID that another selected ID's cascade covers. Selecting a comment and its reply then deletes both, and the second delete never fails. C04 names a `DeleteAnnots` op; the plan uses a helper instead, so the wire format keeps one way to delete.
 
@@ -146,7 +146,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 
 | ID | Todo | Depends on |
 | --- | --- | --- |
-| [E5b](../../todos/ready/E5b-comment-threads-and-review.md) | The thread model, `comment_threads`, `AddReply`, `SetReviewState` and `delete_annotations` | E4b |
+| [E5b](../../todos/done/E5b-comment-threads-and-review.md) | The thread model, `comment_threads`, `AddReply`, `SetReviewState` and `delete_annotations` | E4b |
 | [E5c](../../todos/ready/E5c-stamps-and-attachments.md) | Stamps, file-attachment annotations, and audio comments read | E3f, E4b, E4e |
 | [E5d](../../todos/ready/E5d-xfdf-fdf.md) | `laminapdf-interchange`: XFDF, FDF and Markdown export, and import | E4c, E4d, E5b, E5c |
 | [E5e](../../todos/ready/E5e-flatten-and-summary.md) | `FlattenAnnots` | E2e, E4c, E4d |

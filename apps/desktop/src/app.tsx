@@ -13,6 +13,7 @@ import {
   type CommandRegistry,
   CommandsProvider,
   DropOverlay,
+  type EditControls,
   message,
   Notice,
   OpenDropZone,
@@ -32,15 +33,18 @@ import {
   ToastRegion,
   useStoreState,
 } from "@laminapdf/ui";
+import { registerEditCommands } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AppInfo } from "./app-info.ts";
 import { useCrashReports } from "./crashes.tsx";
+import { useDesktopEditing } from "./editing.tsx";
 import { type DesktopEngineClient, DesktopEngineError, type DesktopShell } from "./engine/desktop-engine-client.ts";
 import { type Dragging, desktopOpener, listenForOsOpens } from "./engine/open.ts";
 import { stopper } from "./engine/stopper.ts";
 import { MissingRestoredTab, useFileChanges } from "./file-changes.tsx";
 import { EchoRegistry } from "./menus/echo-registry.ts";
+import { DESKTOP_EDIT_COMMANDS } from "./menus/menus.ts";
 import { useNativeMenus } from "./menus/use-native-menus.tsx";
 import { NotYetSupportedError } from "./platform/desktop.ts";
 import { usePrint } from "./print.tsx";
@@ -93,8 +97,13 @@ const LOST_TEXT: Readonly<Record<Lost, { title: string; body: string }>> = {
 type CommandActions = NonNullable<CommandContext["actions"]>;
 
 /** The window's command handlers in one object, the same object while each part is. */
-function useMergedActions(home: CommandActions, tabs: CommandActions, print: CommandActions): CommandActions {
-  return useMemo(() => ({ ...home, ...tabs, ...print }), [home, tabs, print]);
+function useMergedActions(
+  home: CommandActions,
+  tabs: CommandActions,
+  print: CommandActions,
+  edits: CommandActions,
+): CommandActions {
+  return useMemo(() => ({ ...home, ...tabs, ...print, ...edits }), [home, tabs, print, edits]);
 }
 
 /** {@link WindowStatus}'s props. */
@@ -161,22 +170,24 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const lost = useEngineEvents(engine, toasts, state.phase === "open");
   const dragging = useOsOpens(engine, reader, toasts, tabs);
   const fileProblem = useFileChanges(engine, reader, toasts, tabs);
-  const { strip, notice, actions: tabActions } = useTabStrip(engine?.shell, tabs, reader, toasts, keys, engine?.viewer);
+  const editing = useDesktopEditing(engine, reader, engine?.client.current?.name);
+  const strip = useTabStrip(engine?.shell, tabs, reader, toasts, keys, engine?.viewer, editing.unsaved);
+  const { notice, actions: tabActions } = strip;
   const { settings, recent, updates, actions: homeActions } = useHome(engine, platform, reader, state, toasts);
   const print = usePrint(engine, toasts);
   const crashes = useCrashReports(engine?.shell);
-  const actions = useMergedActions(homeActions, tabActions, print.actions);
+  const actions = useMergedActions(homeActions, tabActions, print.actions, editing.actions);
   const open = state.phase === "open";
   const shows = useShownParts(state.phase, tabs);
   // The page input, zoom and the viewer's commands work while a document is on screen.
   const viewer = open && lost === undefined ? engine?.viewer : undefined;
-  const { registry, context, palette, singleKeys } = useCommands(platform, reader, actions, viewer);
+  const { registry, context, palette, singleKeys } = useCommands(platform, reader, actions, viewer, editing.edits);
   useNativeMenus(engine?.shell, registry, context);
   const repaired = open && engine?.client.current?.repaired === true;
   return (
     <CommandsProvider registry={registry} context={context} keys={keys} singleKeys={singleKeys}>
       <ReaderShell
-        tabs={strip}
+        tabs={strip.strip}
         notice={crashes.notice ?? notice}
         topBar={
           <ReaderTopBar
@@ -213,6 +224,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
       </ReaderShell>
       {dragging === undefined ? null : <DropOverlay>{dropText(dragging)}</DropOverlay>}
       <PasswordDialog reader={reader} />
+      {editing.dialog}
       {settings.dialog}
       {crashes.dialog}
       {palette}
@@ -232,12 +244,14 @@ function useCommands(
   reader: ReaderController,
   actions: CommandContext["actions"],
   viewer: Viewer | undefined,
+  edits: EditControls | undefined,
 ): { registry: CommandRegistry; context: CommandContext; palette: ReactNode; singleKeys: boolean } {
   const [registry] = useState(() => {
     // The menus' accelerators and the web view's shortcuts can both see one key press.
     const commands = new EchoRegistry();
     registerReaderCommands(commands);
     registerDesktopCommands(commands);
+    registerEditCommands(commands, DESKTOP_EDIT_COMMANDS);
     return commands;
   });
   const [isOpen, setOpen] = useState(false);
@@ -254,8 +268,9 @@ function useCommands(
         "help.shortcuts": () => setShortcutsOpen(true),
       },
       ...(viewer === undefined ? {} : { viewer }),
+      ...(viewer === undefined || edits === undefined ? {} : { edits }),
     }),
-    [platform, reader, actions, viewer],
+    [platform, reader, actions, viewer, edits],
   );
   return {
     registry,

@@ -75,13 +75,14 @@ export function desktopCommands(): AnyCommand[] {
       shortcuts: [desktop("Mod+Shift+W")],
       home: ["native-menu"],
     }),
-    // macOS quits from the app menu's own Quit (⌘Q), which the OS provides.
+    // Ours on macOS too, not the OS's Quit, which ends the app at once: a window with unsaved
+    // edits asks first.
     delegated({
       id: "app.quit",
       title: laterMessage("command.app.quit"),
       keywords: ["quit", "exit", "close"],
       group: "app",
-      shortcuts: [{ ...desktop("Ctrl+Q"), on: "other" }],
+      shortcuts: [desktop("Mod+Q")],
       home: ["native-menu"],
     }),
   ];

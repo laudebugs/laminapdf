@@ -15,6 +15,7 @@
 //!   PDFium) stops the beats, and the main process kills and restarts the engine.
 
 pub mod crash;
+mod edit;
 pub mod fonts;
 mod limits;
 mod outbox;
@@ -170,6 +171,7 @@ fn route<R: Read>(
             ToEngine::UnlockDocument { req, doc, password } => queue.push(Job::Unlock { req, doc, password }),
             ToEngine::GetPageInfo { req, doc } => queue.push(Job::PageInfo { req, doc }),
             ToEngine::RenderTile(tile) => queue.push(Job::Render(tile)),
+            ToEngine::Edit { req, doc, call } => queue.push(Job::Edit { req, doc, call }),
             ToEngine::RenderPrintBand(band) => queue.push(Job::Print(band)),
             ToEngine::CloseDocument { doc } => queue.push(Job::Close { doc }),
             #[cfg(feature = "e2e")]

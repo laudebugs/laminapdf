@@ -15,8 +15,11 @@
   ---
   Print… [Ctrl+P] (disabled)  <cmd:file.print>
   ---
-  Quit [Ctrl+Q]  <cmd:app.quit>
+  Quit Lamina PDF [Ctrl+Q]  <cmd:app.quit>
 &Edit
+  Undo [Ctrl+Z] (disabled)  <cmd:edit.undo>
+  Redo [Ctrl+Y] (disabled)  <cmd:edit.redo>
+  ---
   (Copy)
   (SelectAll)
   ---
@@ -35,6 +38,8 @@
   Show or hide sidebar ☐ (disabled)  <cmd:view.toggle-sidebar>
   Focus mode [Ctrl+Backslash] ✓  <cmd:view.focus-mode>
   Rotate view (disabled)  <cmd:view.rotate-display>
+  Rotate page right (disabled)  <cmd:pages.rotate-right>
+  Rotate page left (disabled)  <cmd:pages.rotate-left>
   ---
   Page layout ▸
     Single page ☐  <cmd:view.page-layout=single>

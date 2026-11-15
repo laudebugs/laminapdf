@@ -33,6 +33,7 @@ import { pdfA3InvoiceWithXml } from "../../examples/pdf-a3-invoice-with-xml.js";
 import { pdfUaReport } from "../../examples/pdf-ua-report.js";
 import { report } from "../../examples/report.js";
 import { resizePages } from "../../examples/resize-pages.js";
+import { reviewComments } from "../../examples/review-comments.js";
 import { openOn } from "../../examples/set-initial-view.js";
 import { splitDocument } from "../../examples/split-document.js";
 import { exampleOptions, HELLO_OPTIONS } from "./hello-options.js";
@@ -78,6 +79,10 @@ const EDITED_AT = "D:20261030130000Z";
 const METADATA_PDF = "fixtures/golden/metadata.pdf";
 /** The tagged document add-links adds links to. */
 const TAGGED_PDF = "fixtures/golden/tagged-report.pdf";
+/** The marked-up report review-comments answers: mark-up's output. */
+const MARKED_PDF = "fixtures/golden/examples/mark_up.pdf";
+/** When review-comments answers the review. */
+const ANSWERED_AT = "D:20261031090000Z";
 /** The document set-initial-view edits: three pages with an outline. */
 const OUTLINE_PDF = "fixtures/corpus/outline.pdf";
 /** The document edit-bookmarks edits. */
@@ -211,6 +216,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "mark_up",
     inputs: [TAGGED_PDF],
     build: (i) => markUp(input(i, TAGGED_PDF), EDITED_AT),
+  },
+  {
+    name: "review-comments",
+    golden: "review_comments",
+    inputs: [MARKED_PDF],
+    build: (i) => reviewComments(input(i, MARKED_PDF), ANSWERED_AT),
   },
   {
     name: "set-initial-view",

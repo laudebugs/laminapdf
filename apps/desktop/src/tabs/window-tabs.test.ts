@@ -27,7 +27,7 @@ function doc(id: number, name: string): DesktopDocument {
     encrypted: false,
     needsPassword: false,
     repaired: false,
-    pages: [1, 2, 3].map(() => ({ width: 612, height: 792, rotate: 0 })),
+    pages: [1, 2, 3].map((n) => ({ id: `p${n}.0`, width: 612, height: 792, rotate: 0 })),
   };
 }
 
