@@ -32,13 +32,18 @@ async function invoke(command: string, args: object = {}): Promise<unknown> {
   );
 }
 
+/** Makes the next file dialog (Open, Locate…) pick `path`, which must be under the fixtures. */
+export async function queuePick(path: string): Promise<void> {
+  await invoke("e2e_queue_pick", { path });
+}
+
 /**
  * Opens `path` as a user does: Choose a file on the home screen, else the open shortcut (⌘O or
  * Ctrl+O). The e2e build opens the queued path instead of showing the dialog.
  * @returns When the open began, on the app's clock.
  */
 export async function open(path: string): Promise<number> {
-  await invoke("e2e_queue_pick", { path });
+  await queuePick(path);
   const since = await now();
   const choose = $("button=Choose a file");
   if (await choose.isExisting()) await choose.click();
