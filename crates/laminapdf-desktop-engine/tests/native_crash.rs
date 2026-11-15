@@ -1,7 +1,9 @@
 //! Native crashes of the sandboxed engine (ADR 0014 §10): the built engine, started as the app
 //! starts it and connected to a crash-dump server, faults; the server's minidump reads into a
 //! summary that names the faulting module, and the engine's `--summarize-dump` mode reads a dump
-//! sandboxed. The engine is the e2e one, which obeys `DebugSegv` and `DebugPanic`.
+//! sandboxed. The engine is the e2e one, which obeys `DebugSegv` and `DebugPanic`. Unix only:
+//! Windows has no native capture yet (ADR 0014 §10).
+#![cfg(unix)]
 #![allow(clippy::unwrap_used, clippy::panic, reason = "tests: a panic is a test failure")]
 
 use std::io::{Read as _, Write as _};
@@ -71,13 +73,24 @@ fn crash(message: &ToEngine) -> (DumpSummary, Option<u32>, Option<u32>, Vec<u8>)
     let dir = std::env::temp_dir().join(format!("laminapdf-native-crash-{}", std::process::id()));
     let _ = std::fs::create_dir_all(&dir);
     let server = TestDumpServer::start(dir.clone()).unwrap();
+    // The server runs in this test, the engine's parent; in the app it runs in the monitor, which is
+    // not. The engine is told a pid that is not its parent's, as the app tells it the monitor's, so
+    // its seccomp must allow `PR_SET_PTRACER` for exactly that pid (a rule naming the parent would
+    // kill it with SIGSYS on Linux and leave no dump). The parent may still trace it under Yama.
+    let mut stand_in = Command::new("sleep")
+        .arg("120")
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap();
     let spawner = SandboxSpawner::new(
         engine(),
         vec![
             CRASH_SOCKET_ARG.into(),
             server.socket().into(),
             CRASH_SERVER_PID_ARG.into(),
-            std::process::id().to_string().into(),
+            stand_in.id().to_string().into(),
         ],
         SandboxConfig::default(),
         |line| eprintln!("engine: {line}"),
@@ -119,6 +132,8 @@ fn crash(message: &ToEngine) -> (DumpSummary, Option<u32>, Option<u32>, Vec<u8>)
     };
     supervisor.shutdown();
     drop(server);
+    let _ = stand_in.kill();
+    let _ = stand_in.wait();
     let summary = summarize_bytes(raw.clone()).unwrap();
     (summary, crashed, engine_pid, raw)
 }

@@ -75,13 +75,11 @@ fn main() -> ExitCode {
         return summarize_dump();
     }
     // Kept to the end: dropping it would detach the handler.
-    let capture = args
-        .crash_socket
-        .as_deref()
-        .and_then(|socket| connect_crash_server(socket, args.crash_server));
-    args.config.crash_socket = capture
-        .as_ref()
-        .and_then(laminapdf_desktop_crash::CrashCapture::descriptor);
+    let capture = connect_crash_server(args.crash_socket.as_deref(), args.crash_server);
+    if capture.is_some() {
+        args.config.crash_socket = capture.as_ref().and_then(Capture::descriptor);
+        args.config.crash_server = args.crash_server;
+    }
     let fonts = Arc::new(Fonts::default());
     let backend: Option<Box<dyn RenderBackend>> = match bind(args.pdfium.as_deref(), &fonts) {
         Ok(backend) => Some(Box::new(backend)),
@@ -153,17 +151,54 @@ fn summarize_dump() -> ExitCode {
     }
 }
 
+#[cfg(unix)]
+use laminapdf_desktop_crash::CrashCapture as Capture;
+
+/// No native capture off Unix in this version (ADR 0014 §10).
+#[cfg(not(unix))]
+struct Capture;
+
+#[cfg(not(unix))]
+impl Capture {
+    #[expect(clippy::unused_self, reason = "the Unix capture's method, which reads its socket")]
+    const fn descriptor(&self) -> Option<i32> {
+        None
+    }
+}
+
 /// Connects to the monitor's crash-dump server at `socket` and installs the crash handler; `server`
-/// is the monitor's process id, which on Linux is allowed to trace this process while it writes the
-/// dump.
-fn connect_crash_server(socket: &Path, server: Option<u32>) -> Option<laminapdf_desktop_crash::CrashCapture> {
+/// is the monitor's process id, the one process allowed to trace this one while it writes the dump
+/// (Linux). Without both there is no capture at all, never a handler that lets any process trace it.
+/// On Linux a capture whose socket descriptor couldn't be identified is dropped, closing the socket:
+/// the lock-down would count it as a leaked descriptor and refuse to start, so the engine runs
+/// without capture instead.
+#[cfg(unix)]
+fn connect_crash_server(socket: Option<&Path>, server: Option<u32>) -> Option<Capture> {
+    let (socket, server) = match (socket, server) {
+        (Some(socket), Some(server)) => (socket, server),
+        (None, None) => return None,
+        _ => {
+            log("native crashes won't leave a dump: --crash-socket and --crash-server-pid go together");
+            return None;
+        }
+    };
     match laminapdf_desktop_crash::capture_crashes(socket, server) {
+        Ok(capture) if cfg!(target_os = "linux") && capture.descriptor().is_none() => {
+            log("native crashes won't leave a dump: the crash socket's descriptor is unknown");
+            drop(capture);
+            None
+        }
         Ok(capture) => Some(capture),
         Err(error) => {
             log(&format!("native crashes won't leave a dump: {}", report(&error)));
             None
         }
     }
+}
+
+#[cfg(not(unix))]
+fn connect_crash_server(_socket: Option<&Path>, _server: Option<u32>) -> Option<Capture> {
+    None
 }
 
 /// Binds PDFium in `dir` (or `LAMINA_PDF_PDFIUM_DIR`) with its system fonts coming from the main

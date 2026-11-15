@@ -45,7 +45,7 @@ fn subprocess_role() {
             let socket = env(FAULT_SOCK);
             let server: u32 = std::env::var(FAULT_PID).unwrap().parse().unwrap();
             // Kept alive until the fault; dropping it would detach the handler.
-            let _capture = capture_crashes(std::path::Path::new(&socket), Some(server)).unwrap();
+            let _capture = capture_crashes(std::path::Path::new(&socket), server).unwrap();
             laminapdf_desktop_crash::fault();
         }
         _ => {}

@@ -15,8 +15,8 @@
 //!      font lookup finds nothing instead of killing the engine, Landlock or not; so does
 //!      `sysinfo`;
 //!    - with crash capture, the crash handler's calls: send and receive on its socket, which
-//!      was connected before the lock-down, and the `prctl`s that let the main process trace the
-//!      engine while it writes the dump;
+//!      was connected before the lock-down, and the `prctl`s that let the dump server (the monitor,
+//!      `SandboxConfig::crash_server`, and no other process) trace the engine while it writes the dump;
 //!    - `clone3` fails with `ENOSYS`: its flags sit behind a pointer the filter can't read, and
 //!      glibc (≥ 2.34) and Rust's std then fall back to `clone`, which the first filter checks.
 //!
@@ -83,7 +83,8 @@ pub(super) fn apply(config: SandboxConfig) -> Result<SandboxLevel, SandboxError>
     }
     #[cfg(feature = "seccomp-trap")]
     trap::install();
-    for filter in filters(config.crash_socket)? {
+    let crash = config.crash_socket.zip(config.crash_server);
+    for filter in filters(crash)? {
         seccompiler::apply_filter_all_threads(&filter)?;
     }
     let mut layers = vec![Layer::NoNewPrivs];
@@ -211,9 +212,9 @@ const PATHS: &[libc::c_long] = &[
 ];
 
 /// The three filters, in the order they are installed. Which filter comes first doesn't change
-/// the answer: the kernel takes the strictest. With a crash socket (`crash`), the crash path's
-/// calls are allowed too ([`crash_rules`]).
-fn filters(crash: Option<i32>) -> Result<Vec<BpfProgram>, seccompiler::Error> {
+/// the answer: the kernel takes the strictest. With a crash socket and its server's pid (`crash`),
+/// the crash path's calls are allowed too ([`crash_rules`]).
+fn filters(crash: Option<(i32, u32)>) -> Result<Vec<BpfProgram>, seccompiler::Error> {
     let pid = u64::from(std::process::id());
     let mut allow: BTreeMap<i64, Vec<SeccompRule>> = ALLOWED.iter().chain(PATHS).map(|&nr| (nr, Vec::new())).collect();
     let no_exec = || masked(2, libc::PROT_EXEC as u64, 0);
@@ -228,8 +229,8 @@ fn filters(crash: Option<i32>) -> Result<Vec<BpfProgram>, seccompiler::Error> {
         // glibc (2.39 and later) names its malloc arenas and thread stacks.
         rule(vec![equal(0, PR_SET_VMA)?])?,
     ];
-    if let Some(socket) = crash {
-        prctl.extend(crash_rules(&mut allow, socket)?);
+    if let Some((socket, server)) = crash {
+        prctl.extend(crash_rules(&mut allow, socket, server)?);
     }
     allow.insert(libc::SYS_prctl, prctl);
     // The selftest's descriptor probe: whether a descriptor is open, nothing else. Test builds only.
@@ -263,18 +264,19 @@ fn filters(crash: Option<i32>) -> Result<Vec<BpfProgram>, seccompiler::Error> {
 /// What the crash handler (crash-handler, minidumper's client) calls once the engine faults, beyond
 /// what it always may (signals, `gettid`, `tgkill` to itself): the request and its answer on the
 /// crash socket, already connected before the lock-down, and no other descriptor; and the `prctl`s
-/// that let the main process trace the engine while it writes the dump (`PR_GET_DUMPABLE`,
-/// `PR_SET_DUMPABLE`, `PR_SET_PTRACER` naming the main process or no one). Returns the `prctl`
-/// rules; inserts the socket's.
+/// that let the dump server, the monitor process (`server`), trace the engine while it writes the
+/// dump (`PR_GET_DUMPABLE`, `PR_SET_DUMPABLE`, and `PR_SET_PTRACER` naming exactly `server` or no
+/// one: never `PR_SET_PTRACER_ANY`). Returns the `prctl` rules; inserts the socket's.
 fn crash_rules(
     allow: &mut BTreeMap<i64, Vec<SeccompRule>>,
     socket: i32,
+    server: u32,
 ) -> Result<Vec<SeccompRule>, seccompiler::Error> {
     let fd = u64::try_from(socket).unwrap_or(u64::MAX);
     for call in [libc::SYS_sendmsg, libc::SYS_recvfrom, libc::SYS_recvmsg] {
         allow.insert(call, vec![rule(vec![equal(0, fd)?])?]);
     }
-    let server = u64::from(std::os::unix::process::parent_id());
+    let server = u64::from(server);
     Ok(vec![
         rule(vec![equal(0, PR_GET_DUMPABLE)?])?,
         rule(vec![equal(0, PR_SET_DUMPABLE)?, equal(1, 1)?])?,

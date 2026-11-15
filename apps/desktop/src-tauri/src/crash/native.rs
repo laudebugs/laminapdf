@@ -5,7 +5,8 @@
 //! under the full sandbox, so the main process never links the minidump parser either.
 //!
 //! - **The monitor** hosts two servers: one for the main process, one for its engines. The main
-//!   process spawns it, restarts it if it dies (a hostile message can crash only the monitor), and
+//!   process spawns it, restarts it if it dies, at most [`MAX_MONITOR_RESTARTS`] times (a hostile
+//!   message can crash only the monitor), and
 //!   gives each engine the current engine socket at spawn.
 //! - **Engines**: the monitor writes their dumps into `dumps/engines`. A polling thread
 //!   ([`EngineDumps`]) picks up each new dump, reads it (size cap, delete, summarise sandboxed), and
@@ -30,7 +31,8 @@ use std::time::{Duration, Instant};
 
 use laminapdf_desktop_crash::summary::DumpSummary;
 use laminapdf_desktop_crash::{
-    CRASH_SERVER_PID_ARG, CRASH_SOCKET_ARG, CrashCapture, MonitorPaths, SUMMARIZE_DUMP_ARG, capture_crashes,
+    CRASH_SERVER_PID_ARG, CRASH_SOCKET_ARG, CrashCapture, DUMP_EXTENSION, MonitorPaths, SUMMARIZE_DUMP_ARG,
+    capture_crashes,
 };
 use laminapdf_desktop_protocol::crash::truncate_on_char_boundary;
 use laminapdf_desktop_protocol::supervisor::Process as _;
@@ -44,6 +46,10 @@ const MAX_DUMP_BYTES: u64 = 64 << 20;
 
 /// How long the reader subprocess may run before the parent ends it (the real 10 s cap).
 const MAX_READING: Duration = Duration::from_secs(10);
+
+/// The most bytes of summary JSON read from the reader subprocess: an allow-listed summary of 64
+/// frames and 64 modules is a few kilobytes, so anything longer is a misbehaving reader and dropped.
+const MAX_SUMMARY_BYTES: u64 = 1 << 20;
 
 /// The longest a crash report waits for its engine's dump to be read into a summary.
 const WAIT_FOR_DUMP: Duration = Duration::from_secs(8);
@@ -114,20 +120,26 @@ impl DumpReader {
         let mut stdout = child.stdout;
         let (tx, rx) = std::sync::mpsc::channel();
         let reader = std::thread::spawn(move || {
-            let mut out = Vec::new();
-            let _ = stdout.read_to_end(&mut out);
-            let _ = tx.send(out);
+            let _ = tx.send(read_capped(&mut stdout, MAX_SUMMARY_BYTES));
         });
-        let answer = rx.recv_timeout(MAX_READING);
-        if answer.is_err() {
-            // Over time: end the child so the cap is real.
+        let answer = rx.recv_timeout(MAX_READING).ok().flatten();
+        // Over time or over size: end the child, so neither cap waits on it.
+        if answer.is_none() {
             child.process.kill();
         }
         let _ = child.process.wait();
         let _ = feeder.join();
         let _ = reader.join();
-        serde_json::from_slice(&answer.ok()?).ok()
+        serde_json::from_slice(&answer?).ok()
     }
+}
+
+/// Everything `from` gives, at most `cap` bytes; `None` when there is more than that (or reading
+/// fails), so an oversized answer is dropped rather than cut.
+fn read_capped(from: &mut impl std::io::Read, cap: u64) -> Option<Vec<u8>> {
+    let mut out = Vec::new();
+    from.take(cap.saturating_add(1)).read_to_end(&mut out).ok()?;
+    (out.len() as u64 <= cap).then_some(out)
 }
 
 /// The engines' dumps, read as they come, waiting for their crash by pid.
@@ -261,7 +273,8 @@ fn dumps_in(dir: &Path) -> Vec<PathBuf> {
         .flatten()
         .filter_map(|entry| {
             let path = entry.path();
-            let dump = path.extension().is_some_and(|ext| ext == "dmp");
+            // Only complete dumps: the monitor writes `.tmp` and renames when done.
+            let dump = path.extension().is_some_and(|ext| ext == DUMP_EXTENSION);
             let when = entry.metadata().ok()?.modified().ok()?;
             dump.then_some((when, path))
         })
@@ -336,7 +349,7 @@ impl Monitor {
     fn connect_main(&self, paths: &MonitorPaths, monitor_pid: u32) {
         let mut capture = self.capture.lock().unwrap_or_else(PoisonError::into_inner);
         *capture = None;
-        match capture_crashes(&paths.main_socket, Some(monitor_pid)) {
+        match capture_crashes(&paths.main_socket, monitor_pid) {
             Ok(installed) => *capture = Some(installed),
             Err(error) => tracing::warn!("the main process's native crashes won't leave a dump: {error}"),
         }
@@ -525,6 +538,36 @@ mod tests {
         let native = crashes.take_for_report(7);
         let _ = pusher.join();
         assert!(native.is_some());
+    }
+
+    #[test]
+    fn an_answer_within_the_cap_should_be_read_whole() {
+        let answer = read_capped(&mut std::io::Cursor::new(vec![b'x'; 10]), 10);
+        assert_eq!(answer.map(|bytes| bytes.len()), Some(10));
+    }
+
+    #[test]
+    fn an_answer_over_the_cap_should_be_dropped() {
+        // An endless reader: only the cap and one byte more are ever read.
+        let answer = read_capped(
+            &mut std::io::Read::take(std::io::repeat(b'x'), 1 << 30),
+            MAX_SUMMARY_BYTES,
+        );
+        assert!(answer.is_none());
+    }
+
+    #[test]
+    fn the_poller_should_see_only_complete_dumps() {
+        let dir = std::env::temp_dir().join(format!("laminapdf-native-poll-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        std::fs::write(dir.join("a.tmp"), b"half written").unwrap_or_default();
+        std::fs::write(dir.join("b.dmp"), b"complete").unwrap_or_default();
+        let seen: Vec<String> = dumps_in(&dir)
+            .iter()
+            .filter_map(|path| path.file_name()?.to_str().map(str::to_owned))
+            .collect();
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(seen, ["b.dmp"]);
     }
 
     #[test]

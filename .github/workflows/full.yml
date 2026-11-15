@@ -312,7 +312,7 @@ jobs:
       # ADR 0008 §3: the main process never links the PDF parser or PDFium. ADR 0014 §10: nor the
       # minidump parser — it reads dumps by spawning a sandboxed engine, so only the dump writer
       # (minidump-writer, through minidumper, for the monitor the app binary also is) may appear,
-      # never minidump-processor or minidump-unwind. Exact names; the app and protocol crate are
+      # never minidump, minidump-processor or minidump-unwind. Exact names; the app and protocol crate are
       # expected.
       - name: Check the main process links no parser or renderer
         shell: bash
@@ -321,7 +321,7 @@ jobs:
           found=$(cargo tree --locked -p laminapdf-desktop -e normal --prefix none --format '{p}' \
             | awk '{print $1}' | sort -u \
             | grep -Fx -e laminapdf -e laminapdf-render -e laminapdf-render-pdfium -e laminapdf-desktop-engine \
-                -e pdfium-render -e minidump-processor -e minidump-unwind || true)
+                -e pdfium-render -e minidump -e minidump-processor -e minidump-unwind || true)
           if [ -n "$found" ]; then
             echo "::error::laminapdf-desktop depends on $found"
             exit 1

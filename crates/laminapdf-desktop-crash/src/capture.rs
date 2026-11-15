@@ -8,6 +8,7 @@
     reason = "FFI: crash-handler's unsafe callback and the open-socket probe"
 )]
 
+use std::collections::VecDeque;
 use std::ffi::OsString;
 use std::fs::File;
 use std::io;
@@ -15,10 +16,10 @@ use std::os::fd::RawFd;
 use std::os::unix::fs::{OpenOptionsExt as _, PermissionsExt as _};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::{Arc, Mutex, PoisonError};
 use std::thread::JoinHandle;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crash_handler::{CrashEventResult, CrashHandler, make_crash_event};
 use minidumper::{Client, LoopAction, MinidumpBinary, Server, ServerHandler, SocketName};
@@ -28,8 +29,26 @@ use minidumper::{Client, LoopAction, MinidumpBinary, Server, ServerHandler, Sock
 pub const MONITOR_ARG: &str = "--crash-monitor";
 
 /// How many times a server loop that fails (a client that broke the protocol ends `minidumper`'s
-/// `run`) is started again before the monitor gives up on it.
+/// `run`) is started again within [`RESTART_WINDOW`] before the server stops; a quiet window resets
+/// the count. When the engines' server stops this way the monitor exits, and the main process
+/// starts a new one (at most 5 times a session: the app's `MAX_MONITOR_RESTARTS`).
 const MAX_RESTARTS: u32 = 16;
+
+/// The window [`MAX_RESTARTS`] counts in.
+const RESTART_WINDOW: Duration = Duration::from_secs(60);
+
+/// The most dumps a folder may hold (written or being written) before a new one is refused: a
+/// compromised engine asking for dump after dump can't fill the disk or keep the reader busy.
+const MAX_DUMPS_IN_FOLDER: usize = 4;
+
+/// The most dumps one server writes per minute, whatever the folder holds.
+const MAX_DUMPS_PER_MINUTE: usize = 6;
+
+/// A dump being written: renamed to `.dmp` only once complete, so a reader never sees a partial one.
+const WRITING_EXTENSION: &str = "tmp";
+
+/// A complete dump, the only kind the main process reads.
+pub const DUMP_EXTENSION: &str = "dmp";
 
 /// How long the monitor waits for the main process to connect before it gives up and exits.
 const MONITOR_WAIT: Duration = Duration::from_secs(30);
@@ -105,9 +124,20 @@ pub fn run_monitor(mut args: impl Iterator<Item = OsString>) -> Option<ExitCode>
     let Ok(main) = DumpServer::start(main_socket, main_dir, Role::One) else {
         return Some(ExitCode::FAILURE);
     };
-    main.wait();
+    // Until the main process goes (the main server stops), or the engines' server gives up after
+    // too many protocol failures: then the monitor exits and the main process starts a fresh one.
+    let code = loop {
+        if main.finished() {
+            break ExitCode::SUCCESS;
+        }
+        if engines.finished() {
+            break ExitCode::FAILURE;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    };
+    drop(main);
     drop(engines);
-    Some(ExitCode::SUCCESS)
+    Some(code)
 }
 
 /// A `minidumper` server on a thread, writing dumps into a private folder. Used only by the monitor.
@@ -120,6 +150,10 @@ pub(crate) struct DumpServer {
 impl DumpServer {
     fn start(socket: PathBuf, dir: PathBuf, role: Role) -> io::Result<Self> {
         private_dir(&dir)?;
+        // A dump an earlier monitor left half written is never read: delete it.
+        for path in files_with(&dir, WRITING_EXTENSION) {
+            let _ = std::fs::remove_file(path);
+        }
         // Bind once up front so a failure is reported before the thread starts.
         let server = bind(&socket)?;
         let stop = Arc::new(AtomicBool::new(false));
@@ -137,7 +171,13 @@ impl DumpServer {
                     }
                 })?;
         }
-        let handler = Handler { dir, one, connected };
+        let handler = Handler {
+            dir,
+            one,
+            connected,
+            writing: Arc::new(Mutex::new(None)),
+            written: Arc::new(Mutex::new(VecDeque::new())),
+        };
         let thread = {
             let (socket, stop) = (socket.clone(), Arc::clone(&stop));
             std::thread::Builder::new()
@@ -157,11 +197,9 @@ impl DumpServer {
         &self.socket
     }
 
-    /// Waits until the server stops by itself (a [`Role::One`] server, when its client disconnects).
-    fn wait(mut self) {
-        if let Some(thread) = self.thread.take() {
-            let _ = thread.join();
-        }
+    /// Whether the server's thread has ended (stopped by itself, or given up).
+    fn finished(&self) -> bool {
+        self.thread.as_ref().is_none_or(JoinHandle::is_finished)
     }
 }
 
@@ -177,17 +215,20 @@ impl Drop for DumpServer {
 }
 
 /// Runs the server until stopped. A loop that fails — a client broke the protocol, which ends
-/// `minidumper`'s `run` — is started again, bounded. The old `Server` is dropped **before** the new
-/// one binds, so the new socket file the bind just made is never removed by the old one's `Drop`.
+/// `minidumper`'s `run` — is started again, at most [`MAX_RESTARTS`] times in [`RESTART_WINDOW`];
+/// past that the loop ends (and the monitor with it). The old `Server` is dropped **before** the
+/// new one binds, so the new socket file the bind just made is never removed by the old one's `Drop`.
 fn serve_loop(mut server: Server, socket: &Path, handler: &Handler, stop: &AtomicBool) {
-    let mut restarts = 0u32;
+    let mut budget = RestartBudget::new(Instant::now());
     loop {
         let handler = Box::new(Shared(handler.clone()));
         match server.run(handler, stop, Some(Duration::from_secs(60))) {
             Ok(()) => return,
-            Err(_) if stop.load(Ordering::SeqCst) || restarts >= MAX_RESTARTS => return,
+            Err(_) if stop.load(Ordering::SeqCst) => return,
             Err(_) => {
-                restarts += 1;
+                if !budget.allow(Instant::now()) {
+                    return;
+                }
                 drop(server);
                 match bind(socket) {
                     Ok(again) => server = again,
@@ -195,6 +236,31 @@ fn serve_loop(mut server: Server, socket: &Path, handler: &Handler, stop: &Atomi
                 }
             }
         }
+    }
+}
+
+/// [`MAX_RESTARTS`] restarts per [`RESTART_WINDOW`]: a window with none left ends the server; a new
+/// window starts the count again.
+struct RestartBudget {
+    used: u32,
+    since: Instant,
+}
+
+impl RestartBudget {
+    const fn new(now: Instant) -> Self {
+        Self { used: 0, since: now }
+    }
+
+    /// Whether one more restart is allowed at `now`, counting it if so.
+    fn allow(&mut self, now: Instant) -> bool {
+        if now.duration_since(self.since) > RESTART_WINDOW {
+            *self = Self::new(now);
+        }
+        if self.used >= MAX_RESTARTS {
+            return false;
+        }
+        self.used += 1;
+        true
     }
 }
 
@@ -207,6 +273,44 @@ struct Handler {
     dir: PathBuf,
     one: bool,
     connected: Arc<AtomicBool>,
+    /// The `.tmp` file of the dump being written, removed if writing fails.
+    writing: Arc<Mutex<Option<PathBuf>>>,
+    /// When the last dumps were started, for [`MAX_DUMPS_PER_MINUTE`].
+    written: Arc<Mutex<VecDeque<Instant>>>,
+}
+
+impl Handler {
+    /// Whether one more dump may be written now: few enough in the folder and in the last minute.
+    fn may_write(&self) -> bool {
+        let held = files_with(&self.dir, DUMP_EXTENSION).len() + files_with(&self.dir, WRITING_EXTENSION).len();
+        if held >= MAX_DUMPS_IN_FOLDER {
+            return false;
+        }
+        let mut written = self.written.lock().unwrap_or_else(PoisonError::into_inner);
+        let now = Instant::now();
+        while written
+            .front()
+            .is_some_and(|at| now.duration_since(*at) > Duration::from_secs(60))
+        {
+            written.pop_front();
+        }
+        if written.len() >= MAX_DUMPS_PER_MINUTE {
+            return false;
+        }
+        written.push_back(now);
+        true
+    }
+}
+
+/// The files in `dir` with extension `ext`.
+fn files_with(dir: &Path, ext: &str) -> Vec<PathBuf> {
+    std::fs::read_dir(dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|path| path.extension().is_some_and(|e| e == ext))
+        .collect()
 }
 
 /// `minidumper` takes a boxed handler each `run`; this shares one across restarts.
@@ -214,21 +318,35 @@ struct Shared(Handler);
 
 impl ServerHandler for Shared {
     fn create_minidump_file(&self) -> Result<(File, PathBuf), io::Error> {
-        let path = self.0.dir.join(unique_name("dmp"));
+        // Refused (minidumper logs it and answers the client) past the folder's or the minute's cap.
+        if !self.0.may_write() {
+            return Err(io::Error::other("too many crash dumps"));
+        }
+        let path = self.0.dir.join(unique_name(WRITING_EXTENSION));
         let file = File::options()
             .write(true)
             .read(true)
             .create_new(true)
             .mode(0o600)
             .open(&path)?;
+        *self.0.writing.lock().unwrap_or_else(PoisonError::into_inner) = Some(path.clone());
         Ok((file, path))
     }
 
     fn on_minidump_created(&self, result: Result<MinidumpBinary, minidumper::Error>) -> LoopAction {
-        // On success flush the file; on failure the server removes the unfinished file itself, and
-        // a short or missing dump the main process can't read is deleted when it reads it.
-        if let Ok(binary) = result {
-            let _ = binary.file.sync_all();
+        let writing = self.0.writing.lock().unwrap_or_else(PoisonError::into_inner).take();
+        match result {
+            // Complete: flushed, then renamed to `.dmp`, the only name the main process reads.
+            Ok(binary) => {
+                let _ = binary.file.sync_all();
+                drop(binary.file);
+                let _ = std::fs::rename(&binary.path, binary.path.with_extension(DUMP_EXTENSION));
+            }
+            Err(_) => {
+                if let Some(path) = writing {
+                    let _ = std::fs::remove_file(path);
+                }
+            }
         }
         LoopAction::Continue
     }
@@ -304,8 +422,9 @@ pub struct CrashCapture {
 
 impl CrashCapture {
     /// The crash socket's descriptor: the one descriptor, besides its pipes, the engine's sandbox
-    /// must let it send and receive on. `None` when it could not be identified (capture then still
-    /// works unsandboxed, but the engine refuses to lock down with it, so it logs and runs without).
+    /// must let it send and receive on. `None` when it could not be identified: then the engine
+    /// drops this capture (closing the socket, which the lock-down would otherwise count as a
+    /// leaked descriptor) and runs without capture.
     #[must_use]
     pub const fn descriptor(&self) -> Option<RawFd> {
         self.descriptor
@@ -333,13 +452,14 @@ pub enum CaptureError {
 }
 
 /// Connects to the server at `socket` and installs the crash handler that asks it for a dump.
-/// `ptracer` is the server process's pid: on Linux it is allowed to trace this process while it
-/// writes the dump (`PR_SET_PTRACER`, for Yama's `ptrace_scope` 1). Call it before the sandbox goes
-/// on, from the only thread (the engine) or early (the main process).
+/// `server` is the server process's pid (the monitor): on Linux it alone may trace this process
+/// while it writes the dump (`PR_SET_PTRACER`, for Yama's `ptrace_scope` 1; never
+/// `PR_SET_PTRACER_ANY`, and the engine's seccomp allows exactly this pid). Call it before the
+/// sandbox goes on, from the only thread (the engine) or early (the main process).
 ///
 /// # Errors
 /// [`CaptureError`] when the server can't be reached or the handler can't be installed.
-pub fn capture_crashes(socket: &Path, ptracer: Option<u32>) -> Result<CrashCapture, CaptureError> {
+pub fn capture_crashes(socket: &Path, server: u32) -> Result<CrashCapture, CaptureError> {
     let before = open_sockets();
     let client = Arc::new(Client::with_name(SocketName::Path(socket)).map_err(|_| CaptureError::Connect)?);
     // minidumper gives no accessor for the client's socket fd, so the one new connected socket this
@@ -365,9 +485,9 @@ pub fn capture_crashes(socket: &Path, ptracer: Option<u32>) -> Result<CrashCaptu
     };
     let handler = CrashHandler::attach(event).map_err(|error| CaptureError::Handler(error.to_string()))?;
     #[cfg(target_os = "linux")]
-    handler.set_ptracer(ptracer);
+    handler.set_ptracer(Some(server));
     #[cfg(not(target_os = "linux"))]
-    let _ = ptracer;
+    let _ = server;
     Ok(CrashCapture {
         _handler: handler,
         _client: client,
@@ -431,7 +551,6 @@ pub mod test_support {
 )]
 mod tests {
     use std::os::fd::AsRawFd as _;
-    use std::time::Instant;
 
     use super::*;
 
@@ -486,8 +605,96 @@ mod tests {
         let client = Client::with_name(SocketName::Path(server.socket())).unwrap();
         let started = Instant::now();
         drop(client);
-        server.wait();
-        assert!(started.elapsed() < Duration::from_secs(10));
+        while !server.finished() && started.elapsed() < Duration::from_secs(10) {
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        assert!(server.finished());
+    }
+
+    #[test]
+    fn restarts_should_be_bounded_per_window_and_reset_after_a_quiet_one() {
+        let start = Instant::now();
+        let mut budget = RestartBudget::new(start);
+        let burst = (0..=MAX_RESTARTS).filter(|_| budget.allow(start)).count();
+        let after_quiet = budget.allow(start + RESTART_WINDOW + Duration::from_secs(1));
+        assert_eq!((burst, after_quiet), (MAX_RESTARTS as usize, true));
+    }
+
+    fn handler_for(dir: PathBuf) -> Shared {
+        Shared(Handler {
+            dir,
+            one: false,
+            connected: Arc::new(AtomicBool::new(false)),
+            writing: Arc::new(Mutex::new(None)),
+            written: Arc::new(Mutex::new(VecDeque::new())),
+        })
+    }
+
+    #[test]
+    fn a_dump_should_be_written_as_tmp_and_renamed_to_dmp_only_when_complete() {
+        let dir = scratch("rename");
+        for path in files_with(&dir, DUMP_EXTENSION) {
+            let _ = std::fs::remove_file(path);
+        }
+        let handler = handler_for(dir.clone());
+        let (file, path) = handler.create_minidump_file().unwrap();
+        // While it is written, the reader's `.dmp` glob sees nothing.
+        let during = (
+            path.extension().is_some_and(|e| e == WRITING_EXTENSION),
+            files_with(&dir, DUMP_EXTENSION).len(),
+        );
+        let action = handler.on_minidump_created(Ok(MinidumpBinary {
+            file,
+            path: path.clone(),
+            contents: None,
+        }));
+        assert_eq!(
+            (
+                during,
+                action == LoopAction::Continue,
+                path.exists(),
+                path.with_extension(DUMP_EXTENSION).exists()
+            ),
+            ((true, 0), true, false, true)
+        );
+    }
+
+    #[test]
+    fn a_failed_dump_should_leave_no_file() {
+        let dir = scratch("failed");
+        let handler = handler_for(dir);
+        let (_file, path) = handler.create_minidump_file().unwrap();
+        handler.on_minidump_created(Err(minidumper::Error::ProtocolError("test")));
+        assert!(!path.exists());
+    }
+
+    #[test]
+    fn new_dumps_should_be_refused_once_the_folder_holds_its_cap() {
+        let dir = scratch("cap");
+        let handler = handler_for(dir.clone());
+        let made: Vec<bool> = (0..MAX_DUMPS_IN_FOLDER + 2)
+            .map(|_| handler.create_minidump_file().is_ok())
+            .collect();
+        for path in files_with(&dir, WRITING_EXTENSION) {
+            let _ = std::fs::remove_file(path);
+        }
+        assert_eq!(made.iter().filter(|ok| **ok).count(), MAX_DUMPS_IN_FOLDER);
+    }
+
+    #[test]
+    fn new_dumps_should_be_refused_past_the_per_minute_cap() {
+        let handler = handler_for(scratch("rate"));
+        // Each dump is completed and taken away, so only the rate can refuse.
+        let made: Vec<bool> = (0..MAX_DUMPS_PER_MINUTE + 2)
+            .map(|_| {
+                let made = handler.create_minidump_file();
+                if let Ok((_, path)) = &made {
+                    let _ = std::fs::remove_file(path);
+                }
+                made.is_ok()
+            })
+            .collect();
+        assert_eq!(made.iter().filter(|ok| **ok).count(), MAX_DUMPS_PER_MINUTE);
     }
 
     #[test]
@@ -560,7 +767,7 @@ mod tests {
         // reliable only in the single-threaded engine with an out-of-process monitor, so here we
         // check only that capture connects and installs its handler.
         let server = DumpServer::start(socket_path("fd"), scratch("fd"), Role::Many).unwrap();
-        let capture = capture_crashes(server.socket(), Some(std::process::id()));
+        let capture = capture_crashes(server.socket(), std::process::id());
         assert!(capture.is_ok());
         drop(server);
     }

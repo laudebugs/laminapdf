@@ -54,6 +54,10 @@ pub struct SandboxConfig {
     /// The crash socket's descriptor (`laminapdf_desktop_crash::CrashCapture::descriptor`, Unix),
     /// which the lock-down lets the engine keep and use besides its pipes; `None` without capture.
     pub crash_socket: Option<i32>,
+    /// The process id of the dump server (the monitor), the one process the crash handler may name
+    /// with `PR_SET_PTRACER` (Linux). Both this and `crash_socket` are needed for the crash path to
+    /// be allowed; without it the lock-down allows neither.
+    pub crash_server: Option<u32>,
 }
 
 impl SandboxConfig {
@@ -67,6 +71,7 @@ impl Default for SandboxConfig {
         Self {
             memory_limit: Self::DEFAULT_MEMORY_LIMIT,
             crash_socket: None,
+            crash_server: None,
         }
     }
 }

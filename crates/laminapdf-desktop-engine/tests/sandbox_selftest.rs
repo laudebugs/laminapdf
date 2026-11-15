@@ -11,11 +11,15 @@ use std::io::Read as _;
 use std::net::TcpListener;
 use std::path::PathBuf;
 use std::process::Command;
-use std::sync::{Arc, Mutex, OnceLock, mpsc};
+#[cfg(unix)]
+use std::sync::OnceLock;
+use std::sync::{Arc, Mutex, mpsc};
 use std::time::Duration;
 
-use laminapdf_desktop_crash::CRASH_SOCKET_ARG;
+#[cfg(unix)]
 use laminapdf_desktop_crash::test_support::TestDumpServer;
+#[cfg(unix)]
+use laminapdf_desktop_crash::{CRASH_SERVER_PID_ARG, CRASH_SOCKET_ARG};
 use laminapdf_desktop_protocol::supervisor::{Config, Event, Process as _, RangeServer, Supervisor};
 use laminapdf_desktop_protocol::{DocId, Layer};
 use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner, spawn_sandboxed};
@@ -25,14 +29,35 @@ fn engine() -> PathBuf {
 }
 
 /// One crash-dump server for every engine these tests start, as the monitor has; the dumps an
-/// engine leaves (an abort past the memory limit) stay in the server's temporary folder.
-fn crash_args() -> [OsString; 2] {
-    static SERVER: OnceLock<TestDumpServer> = OnceLock::new();
-    let server = SERVER.get_or_init(|| {
+/// engine leaves (an abort past the memory limit) stay in the server's temporary folder. The server
+/// pid the engines are given is a stand-in process's, not their parent's, as in the app.
+#[cfg(unix)]
+fn crash_args() -> [OsString; 4] {
+    // The stand-in is kept here for the test process's life; `sleep` ends on its own.
+    static SERVER: OnceLock<(TestDumpServer, std::process::Child)> = OnceLock::new();
+    let (server, stand_in) = SERVER.get_or_init(|| {
         let dumps = std::env::temp_dir().join(format!("laminapdf-selftest-dumps-{}", std::process::id()));
-        TestDumpServer::start(dumps).unwrap()
+        let stand_in = Command::new("sleep")
+            .arg("300")
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .unwrap();
+        (TestDumpServer::start(dumps).unwrap(), stand_in)
     });
-    [CRASH_SOCKET_ARG.into(), server.socket().into()]
+    [
+        CRASH_SOCKET_ARG.into(),
+        server.socket().into(),
+        CRASH_SERVER_PID_ARG.into(),
+        stand_in.id().to_string().into(),
+    ]
+}
+
+/// No native capture off Unix (ADR 0014 §10): the engines start without a crash server.
+#[cfg(not(unix))]
+fn crash_args() -> [OsString; 0] {
+    []
 }
 
 /// What one selftest run printed on stdout and how it ended.
