@@ -17,8 +17,8 @@ afterEach(cleanup);
 
 declare module "vitest/browser" {
   interface BrowserCommands {
-    /** Makes the page prefer reduced motion, or stop preferring it with `null`. */
-    reducedMotion: (value: "reduce" | null) => Promise<void>;
+    /** Makes the page prefer reduced motion or not, whatever the system says, or follow the system again with `null`. */
+    reducedMotion: (value: "reduce" | "no-preference" | null) => Promise<void>;
   }
 }
 
@@ -155,6 +155,47 @@ describe("ProgressBar", () => {
     await commands.reducedMotion("reduce");
     onTestFinished(() => commands.reducedMotion(null));
     expect(getComputedStyle(fill).animationName).toBe("none");
+  });
+});
+
+describe("reduced motion", () => {
+  /** A control that fades its fill and grows from the overlays' scale, as the components will. */
+  const control = () => {
+    const host = renderIn(<span className="paper-button">Fade</span>);
+    const el = get(host, ".paper-button");
+    el.style.transition = "background-color var(--paper-duration-state-in) var(--paper-ease-standard)";
+    el.style.transform = "scale(var(--paper-motion-scale))";
+    return el;
+  };
+  const scaleOf = (el: Element) => new DOMMatrixReadOnly(getComputedStyle(el).transform).a;
+
+  it("keeps fades and drops movement when the system asks", async () => {
+    const el = control();
+    // The runner's own setting may already ask for reduced motion (CI's macOS WebKit did): start
+    // from no preference, so the scale has something to drop from.
+    await commands.reducedMotion("no-preference");
+    onTestFinished(() => commands.reducedMotion(null));
+    expect(scaleOf(el)).toBeCloseTo(0.97);
+    await commands.reducedMotion("reduce");
+    expect(getComputedStyle(el).transitionDuration).toBe("0.08s");
+    expect(scaleOf(el)).toBe(1);
+  });
+
+  it("keeps fades and drops movement when Settings asks, and stops keyframes", () => {
+    const el = control();
+    document.documentElement.setAttribute("data-motion", "reduce");
+    onTestFinished(() => document.documentElement.removeAttribute("data-motion"));
+    expect(getComputedStyle(el).transitionDuration).toBe("0.08s");
+    expect(scaleOf(el)).toBe(1);
+    const fill = get(renderIn(<ProgressBar label="Opening…" />), ".paper-progress-fill");
+    expect(getComputedStyle(fill).animationName).toBe("none");
+  });
+
+  it("turns every transition off while a switch of look draws", () => {
+    const el = control();
+    document.documentElement.setAttribute("data-motion-suppressed", "");
+    onTestFinished(() => document.documentElement.removeAttribute("data-motion-suppressed"));
+    expect(getComputedStyle(el).transitionDuration).toBe("0s");
   });
 });
 

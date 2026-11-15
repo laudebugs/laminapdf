@@ -71,6 +71,23 @@
   --paper-duration-pill-fade: 1500ms;
   --paper-duration-progress-cycle: 1200ms;
   --paper-duration-tooltip-delay: 500ms;
+  --paper-duration-state-in: 80ms;
+  --paper-duration-state-out: 150ms;
+  --paper-duration-enter-small: 120ms;
+  --paper-duration-exit-small: 80ms;
+  --paper-duration-enter-panel: 200ms;
+  --paper-duration-exit-panel: 150ms;
+  --paper-duration-view: 250ms;
+  --paper-duration-link-preview-delay: 300ms;
+  --paper-motion-scale: 0.97;
+  --paper-motion-travel: 1;
+  --paper-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --paper-ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --paper-ease-exit: cubic-bezier(0.3, 0, 1, 1);
+  --paper-cursor-action: pointer;
+  --paper-cursor-link: pointer;
+  --paper-cursor-disabled: default;
+  --paper-cursor-pending: progress;
   --paper-z-page: 0;
   --paper-z-page-overlay: 1;
   --paper-z-chrome: 10;
@@ -639,5 +656,14 @@
 @media (prefers-reduced-motion: reduce) {
   :where(:root) {
     --paper-duration-progress-cycle: 0ms;
+    --paper-motion-scale: 1;
+    --paper-motion-travel: 0;
   }
+}
+
+/* Reduced motion chosen in Settings: the same values as the system preference */
+:where([data-motion="reduce"]) {
+  --paper-duration-progress-cycle: 0ms;
+  --paper-motion-scale: 1;
+  --paper-motion-travel: 0;
 }
