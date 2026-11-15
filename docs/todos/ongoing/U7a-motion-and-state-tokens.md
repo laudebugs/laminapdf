@@ -11,7 +11,7 @@
 | Branch | `feat/u7a-motion-and-state-tokens` |
 | PR title | `feat(tokens): motion, cursor and state rules for Paper` |
 | Size | M (200–400) |
-| PR | — |
+| PR | [#622](https://github.com/laudebugs/laminapdf/pull/622) |
 
 ## Goal
 
