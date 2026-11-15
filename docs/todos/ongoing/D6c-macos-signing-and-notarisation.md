@@ -11,7 +11,7 @@
 | Branch | `ci/d6c-macos-signing` |
 | PR title | `ci(desktop): sign, notarise and staple macOS builds with the owner's Developer ID` |
 | Size | M (200–600 lines) |
-| PR | — |
+| PR | [#658](https://github.com/laudebugs/laminapdf/pull/658) |
 
 ## Goal
 
