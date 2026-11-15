@@ -21,6 +21,8 @@ document.head.append(ground);
 
 /** `html` on a fresh body in `theme`, and its select. */
 function mount(html: string, theme: "light" | "dark"): SiteMenuSelect {
+  // A fresh start for Tab: the last test's focused element is gone with the body it replaced.
+  if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   document.documentElement.dataset.theme = theme;
   document.body.innerHTML = "<main><h1>Page</h1></main>";
   // Parsed in a template, whose scripts never run, and the rendered module script dropped: this
@@ -68,6 +70,10 @@ afterEach(() => {
 describe("the select's markup", () => {
   it("carries no inline style, which the website's checks refuse", () => {
     for (const html of [SELECTS.shown, SELECTS.hidden]) expect(html).not.toMatch(/\sstyle=/);
+  });
+
+  it("keeps the button in the Tab order, Safari's on macOS included", () => {
+    expect(SELECTS.hidden).toMatch(/role="combobox"[^>]*tabindex="0"/);
   });
 
   it("names the button as served, before its script runs", () => {

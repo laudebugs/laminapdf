@@ -37,10 +37,15 @@ const { label, hideLabel = false, options, value } = Astro.props;
   <span class:list={["site-menu-select-label", { "site-menu-select-label-hidden": hideLabel }]} aria-hidden="true"
     >{label}</span
   >
-  {/* Named by aria-label, the label's own text, so it has its name before the script runs. */}
+  {
+    /* Named by aria-label, the label's own text, so it has its name before the script runs. The
+       tabindex keeps it in Safari's Tab order on macOS, which leaves buttons out by default but
+       took the native <select> this replaced. */
+  }
   <button
     type="button"
     role="combobox"
+    tabindex="0"
     class="site-menu-select-button"
     aria-label={label}
     aria-haspopup="listbox"
