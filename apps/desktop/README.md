@@ -138,6 +138,8 @@ The webview keeps the history: each step's name, its pages, and how many steps a
 
 While a document has unsaved edits, the window's title starts with "•", and closing its tab, closing the window or quitting asks first, offering to save. The window reports which of its documents have unsaved edits to the main process (`set_unsaved`), which holds back a close or a quit and asks the window (`src-tauri/src/unsaved.rs`).
 
+Each window's engine holds its own edits, so a tab with unsaved edits can't move to another window yet: undo them to move it.
+
 ### Saving
 
 File ▸ Save (⌘S or Ctrl+S) writes the document's file in place, and File ▸ Save as… (⇧⌘S or Ctrl+Shift+S) writes a new file, which the document reads and saves to from then on. Like the web reader, a save plans first and asks before removing signatures or breaking a standard the file claims (`src/saving.tsx`).
@@ -149,11 +151,11 @@ No file's bytes pass through the webview. The engine writes the save and keeps t
 
 The engine takes the written file as the document's saved one only after the write worked, so a failed save leaves the edits unsaved and the file as it was. After a save, a restarted engine opens the saved file and makes only the later edits again.
 
-While the app writes, the watcher holds off looking at the file, then takes the written file as the one its documents read, so the app's own save never reloads the document. When another app changes the file of a document with unsaved edits, the window asks instead of reloading: Reload drops the edits and shows the other app's version, Save as… keeps both, and Overwrite replaces the other app's version with a full rewrite. A save that finds the file changed asks the same question. The main process compares the file's size, modification time, identity and a hash of its ends with what the document last read, and checks again just before it writes, so a change made during the save stops it.
+While a window saves, the watcher holds off looking at the file. It then takes the written file as the one that window's document reads, so a save never reloads its own document. Another window showing the same file reloads it, as it would after any outside change.
 
-Overwrite needs the bytes the edits build on. After an editor's atomic save, macOS and Linux still read the old file through the handle the document holds, so Overwrite works. A file written in place has lost those bytes, and on Windows the app reads documents by path, so a replaced file has lost them too: there Overwrite says so, and Reload or Save as… are left. When another window shows the same file, its document reloads after this window's save.
+When another app changes the file of a document with unsaved edits, the window asks instead of reloading. Reload drops the edits and shows the other app's version, Save as… keeps both, and Overwrite replaces the other app's version with a full rewrite. A save that finds the file changed asks the same question. To tell, the main process compares the file's size, modification time, identity and a hash of its ends with what the document last read. It checks again just before it writes, so a change made during the save stops it.
 
-Each window's engine holds its own edits, so a tab with unsaved edits can't move to another window yet: undo them to move it.
+Overwrite needs the bytes the edits build on. After an editor's atomic save, macOS and Linux still read the old file through the handle the document holds, so Overwrite works. A file written in place has lost those bytes. So has a replaced file on Windows, where the app reads documents by path. In both cases Overwrite says it can't save, and Reload or Save as… remain.
 
 ### Updates
 
