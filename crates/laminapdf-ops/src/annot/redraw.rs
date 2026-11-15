@@ -37,7 +37,7 @@ impl Redraw<'_> {
         appearances: Option<&dyn Appearances>,
     ) -> Result<()> {
         let current = read_spec(dict).ok_or(Error::InvalidOp(
-            "only text markup, notes and carets have their appearance drawn again",
+            "only text markup, notes, carets, ink, shapes, lines and polygons have their appearance drawn again",
         ))?;
         let spec = match self.spec {
             Some(patch) => patch
@@ -47,9 +47,7 @@ impl Redraw<'_> {
         }
         .normalised();
         if !spec.is_valid() {
-            return Err(Error::InvalidOp(
-                "an annotation needs quads, and every coordinate finite",
-            ));
+            return Err(Error::InvalidOp(super::add::INVALID_GEOMETRY));
         }
         let appearances = appearances.ok_or(Error::AppearanceUnavailable)?;
         let color = match self.color {
@@ -129,7 +127,7 @@ pub(super) fn read_spec(dict: &Dict) -> Option<AnnotSpec> {
             }
             Some(AnnotSpec::Caret(caret))
         }
-        _ => None,
+        other => super::drawing::read(other, dict, rect),
     }
 }
 
@@ -227,9 +225,9 @@ mod tests {
     }
 
     #[test]
-    fn a_square_has_no_spec_to_draw_again() {
+    fn a_stamp_has_no_spec_to_draw_again() {
         let d = dict(vec![
-            ("Subtype", Object::name("Square")),
+            ("Subtype", Object::name("Stamp")),
             ("Rect", numbers(&[0.0, 0.0, 1.0, 1.0])),
         ]);
         assert_eq!(read_spec(&d), None);

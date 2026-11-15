@@ -11,7 +11,7 @@
 | Branch | `feat/e4d-appearances-ink-and-shapes` |
 | PR title | `feat(build): ink and drawing annotations with their appearances` |
 | Size | L (400–800): four specs, every line ending, the cloudy border and pressure widths |
-| PR | — |
+| PR | [#661](https://github.com/laudebugs/laminapdf/pull/661) |
 
 ## Goal
 
