@@ -135,7 +135,7 @@ React Aria's `data-hovered` ignores touch emulation, so the rules below that use
 
 ## 5. Measured in the built reader
 
-Setup: `cargo xtask web build`, then `pnpm --filter @laminapdf/web preview` (wrangler, port 8788). Playwright Chromium 1440×900 opened `fixtures/corpus/outline.pdf` and `fixtures/links/links.pdf` by Choose a file. The script read `getComputedStyle(el).cursor` for every visible `button, a, [role=button|tab|menuitem|option|switch|checkbox|radio|slider|separator|row], input, select`. The throwaway scripts aren't kept; [U7d](../../../todos/ready/U7d-reader-surfaces-motion.md) turns this measurement into the reader's cursor test. The server was stopped afterwards.
+Setup: `cargo xtask web build`, then `pnpm --filter @laminapdf/web preview` (wrangler, port 8788). Playwright Chromium 1440×900 opened `fixtures/corpus/outline.pdf` and `fixtures/links/links.pdf` by Choose a file. The script read `getComputedStyle(el).cursor` for every visible `button, a, [role=button|tab|menuitem|option|switch|checkbox|radio|slider|separator|row], input, select`. The throwaway scripts aren't kept; [U7d](../../../todos/ongoing/U7d-reader-surfaces-motion.md) turns this measurement into the reader's cursor test. The server was stopped afterwards.
 
 | Screen | Total | `default` | `pointer` | Other |
 | --- | --- | --- | --- | --- |
