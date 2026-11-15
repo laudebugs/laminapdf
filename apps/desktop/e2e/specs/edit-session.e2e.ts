@@ -7,7 +7,16 @@
 import { platform } from "node:process";
 import { $, browser, expect } from "@wdio/globals";
 import { Key } from "webdriverio";
-import { fixture, focusWindow, menuClick, now, openAndWait, waitForMenus, waitForSharpSince } from "../app.ts";
+import {
+  fixture,
+  focusWindow,
+  menuClick,
+  menuClickAndGo,
+  now,
+  openAndWait,
+  waitForMenus,
+  waitForSharpSince,
+} from "../app.ts";
 
 const HELLO = fixture("fixtures", "golden", "examples", "hello.pdf");
 /** The new windows' file: one open in another window would show there, in its tab. */
@@ -47,7 +56,7 @@ async function turnsTo(degrees: number, why: string, step: () => Promise<unknown
 /** Opens a new window from the File menu, switches to it and opens `path` there; its handle. */
 async function newWindowWith(path: string): Promise<string> {
   const before = await browser.getWindowHandles();
-  await menuClick("cmd:window.new");
+  await menuClickAndGo("cmd:window.new");
   await browser.waitUntil(async () => (await browser.getWindowHandles()).length > before.length, {
     timeoutMsg: "New window opened none",
   });
@@ -101,7 +110,7 @@ describe("the edit session", () => {
   it("closes a window with no unsaved edits without asking, and one with them once told to", async () => {
     const main = await browser.getWindowHandle();
     const clean = await newWindowWith(INVOICE);
-    await menuClick("cmd:window.close");
+    await menuClickAndGo("cmd:window.close");
     await browser.waitUntil(async () => !(await browser.getWindowHandles()).includes(clean), {
       timeoutMsg: "the window with no edits didn't close at once",
     });
@@ -110,7 +119,11 @@ describe("the edit session", () => {
     await turnsTo(90, "Rotate page right in the new window", () => menuClick("cmd:pages.rotate-right"), "invoice.pdf");
     await menuClick("cmd:window.close");
     await $("[role=alertdialog]").waitForDisplayed({ timeoutMsg: "closing the edited window didn't ask" });
-    await $("button=Close without saving").click();
+    // The click closes the window it is in: its answer can't come back.
+    await browser.execute(() => {
+      const buttons = Array.from(globalThis.document.querySelectorAll("button"));
+      buttons.find((button) => button.textContent === "Close without saving")?.click();
+    });
     await browser.waitUntil(async () => !(await browser.getWindowHandles()).includes(edited), {
       timeoutMsg: "Close without saving didn't close the window",
     });

@@ -271,6 +271,17 @@ export async function menuClick(id: string): Promise<void> {
   await invoke("e2e_menu_click", { id });
 }
 
+/**
+ * Chooses menu item `id` and returns at once, without waiting for the choice to finish: for an
+ * item that opens or closes a window, whose answer the embedded WebDriver server can lose as the
+ * windows change, after which WebdriverIO would send the choice again into another window.
+ */
+export async function menuClickAndGo(id: string): Promise<void> {
+  await browser.execute((item) => {
+    void (globalThis as unknown as TauriGlobal).__TAURI__.core.invoke("e2e_menu_click", { id: item });
+  }, id);
+}
+
 /** Waits until the menu snapshot matches `pattern`; returns the snapshot. */
 export async function waitForMenus(pattern: RegExp, timeoutMsg: string): Promise<string> {
   let text = "";
