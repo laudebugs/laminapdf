@@ -2,7 +2,7 @@
   "name": "@laminapdf/site-kit",
   "version": "0.0.0",
   "private": true,
-  "description": "What Lamina PDF's two Astro sites share: the build steps (the CSP's inline-script hashes, noindex outside production, one robots.txt for every host, the website's checks of every built page) and the site header with its one list of links. Runs at build time only; workspace-only, consumed as source.",
+  "description": "What Lamina PDF's two Astro sites share: the build steps (the CSP's inline-script hashes, noindex outside production, one robots.txt for every host, the website's checks of every built page) and the site header with its one list of links, and the select with an icon per choice. Runs at build time, but for the select's script; workspace-only, consumed as source.",
   "license": "MIT OR Apache-2.0",
   "type": "module",
   "sideEffects": [
@@ -24,8 +24,9 @@
     "./SiteNav.astro": "./src/SiteNav.astro",
     "./header.css": "./src/header.css",
     "./icon": "./src/icon.mjs",
-    "./Select.astro": "./src/Select.astro",
-    "./select.css": "./src/select.css",
+    "./MenuSelect.astro": "./src/MenuSelect.astro",
+    "./menu-select": "./src/menu-select.ts",
+    "./menu-select.css": "./src/menu-select.css",
     "./version": "./src/version.mjs",
     "./package.json": "./package.json"
   },

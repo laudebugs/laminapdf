@@ -1,32 +1,50 @@
 ---
-// The docs site's theme switch (Starlight's `ThemeSelect` override, W1g) on the sites' Paper select
-// (@laminapdf/site-kit). It keeps Starlight's contract: a <starlight-theme-select> around a <select>
-// of `dark`, `light` and `auto`, whose value Starlight's theme provider (an inline script in the
-// head, which sets the theme before the first paint) fills in through `updatePickers`, and the
-// choice in localStorage under `starlight-theme`. The script below is Starlight's own switching
-// logic (@astrojs/starlight/components/ThemeSelect.astro), under its names so the two diff easily,
-// with localStorage wrapped for browsers that refuse it; a Starlight update that changes that
-// contract needs a look here. The header and the phone menu both use this switch.
-import Select from "@laminapdf/site-kit/Select.astro";
+// The docs site's theme switch (Starlight's `ThemeSelect` override, W1g; Q4w) on the sites' Paper
+// select (@laminapdf/site-kit's MenuSelect): a button that opens a list of Light, Dark and Auto,
+// each with its icon (Sun, Moon, Laptop), instead of the platform's own list. It keeps Starlight's
+// contract: a <starlight-theme-select> around the switch, the values `dark`, `light` and `auto`,
+// and the choice in localStorage under `starlight-theme`. Starlight's theme provider (an inline
+// script in the head) sets the theme before the first paint; its `updatePickers` fills in only a
+// native <select>, so the inline script below shows the stored choice in the switch instead. The
+// module script is Starlight's own switching logic (@astrojs/starlight/components/ThemeSelect.astro),
+// under its names so the two diff easily, with localStorage wrapped for browsers that refuse it; a
+// Starlight update that changes that contract needs a look here. The header and the phone menu both
+// use this switch.
+import laptop from "@laminapdf/icons/svg/laptop.svg?raw";
+import moon from "@laminapdf/icons/svg/moon.svg?raw";
+import sun from "@laminapdf/icons/svg/sun.svg?raw";
+import MenuSelect from "@laminapdf/site-kit/MenuSelect.astro";
 
 const t = Astro.locals.t;
 ---
 
 <starlight-theme-select>
-  <Select
+  <MenuSelect
     label={t("themeSelect.accessibleLabel")}
     hideLabel
+    value="auto"
     options={[
-      { value: "dark", label: t("themeSelect.dark") },
-      { value: "light", label: t("themeSelect.light") },
-      { value: "auto", label: t("themeSelect.auto"), selected: true },
+      { value: "light", label: t("themeSelect.light"), icon: sun },
+      { value: "dark", label: t("themeSelect.dark"), icon: moon },
+      { value: "auto", label: t("themeSelect.auto"), icon: laptop },
     ]}
   />
 </starlight-theme-select>
 
-{/* Inline, as Starlight's is: the stored choice shows before the first paint. */}
+{/* Inline, before the first paint: every switch shows the stored choice, as MenuSelect shows a value. */}
 <script is:inline>
-  StarlightThemeProvider.updatePickers();
+  (() => {
+    let theme = "auto";
+    try {
+      theme = localStorage.getItem("starlight-theme") || "auto";
+    } catch {
+      // No storage: Auto.
+    }
+    for (const menu of document.querySelectorAll("starlight-theme-select site-menu-select")) {
+      menu.setAttribute("value", theme);
+      for (const current of menu.querySelectorAll("[data-for]")) current.hidden = current.dataset.for !== theme;
+    }
+  })();
 </script>
 
 <script>
@@ -61,7 +79,9 @@ const t = Astro.locals.t;
 
   /** Shows `theme` on the page and in every switch on it, and stores it. */
   function onThemeChange(theme: Theme): void {
-    StarlightThemeProvider.updatePickers(theme);
+    for (const menu of document.querySelectorAll("starlight-theme-select site-menu-select")) {
+      menu.setAttribute("value", theme);
+    }
     document.documentElement.dataset.theme = theme === "auto" ? getPreferredColorScheme() : theme;
     storeTheme(theme);
   }
@@ -75,8 +95,8 @@ const t = Astro.locals.t;
     constructor() {
       super();
       onThemeChange(loadTheme());
-      this.querySelector("select")?.addEventListener("change", (event) => {
-        if (event.currentTarget instanceof HTMLSelectElement) onThemeChange(parseTheme(event.currentTarget.value));
+      this.addEventListener("change", (event) => {
+        if (event.target instanceof Element) onThemeChange(parseTheme(event.target.getAttribute("value")));
       });
     }
   }

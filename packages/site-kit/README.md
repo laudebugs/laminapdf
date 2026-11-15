@@ -1,6 +1,6 @@
 # @laminapdf/site-kit
 
-This package holds what Lamina PDF's two Astro sites share: the website (`apps/site`, laminapdf.com) and the docs site (`apps/docs`, docs.laminapdf.com). It has three parts, all used at build time only: the build steps that check and finish each site's output, the site header with its one list of links, and the select. It is private to the workspace, and the sites import its source files directly.
+This package holds what Lamina PDF's two Astro sites share: the website (`apps/site`, laminapdf.com) and the docs site (`apps/docs`, docs.laminapdf.com). It has three parts: the build steps that check and finish each site's output, the site header with its one list of links, and the select. All three run at build time, but the select also has a script that runs in the browser. It is private to the workspace, and the sites import its source files directly.
 
 ## The site header
 
@@ -16,12 +16,14 @@ Both sites show the same header, from design language [§7.39](../../docs/design
 
 ## The select
 
-`src/Select.astro` draws design language [§7.19](../../docs/design/paper/design-language.md#719-form-controls-consistent-with-the-page-input-and-note-field)'s Select for both sites: a native `<select>` in the Paper look. The platform opens its own list, so the keyboard and touch work as in any other select.
+`src/MenuSelect.astro` draws the sites' select: a button that opens a list of choices, each with its Paper icon, drawn as design language [§7.26](../../docs/design/paper/design-language.md#726-menu)'s listbox popup rather than the platform's own list.
 
-- **What it takes.** It takes a `label` and the `options`. The label shows above the field (12/600 `text-3`, as §7.19 places a field's label), or with `hideLabel` only names it for assistive technology. Each option has a `value`, a `label` and whether it starts `selected`. A site's script listens to the `<select>` inside.
-- **Its look.** `src/select.css` draws it from the Paper tokens, so it follows the site's `data-theme`: the field's fill and edge, 32 px high, with the Paper chevron from `@laminapdf/icons/svg/`. On a touch screen it is 44 px high with 16 px text, as `@laminapdf/ui`'s fields are. It has no inline style, which the website's checks refuse. It repeats `@laminapdf/ui`'s `field.css`, which is React-only and layered and so can't be shared; a change to §7.19 changes both.
-- **Icons.** `decorativeIcon(svg, className)` in `src/icon.mjs` turns a Paper icon's file, imported with `?raw`, into HTML hidden from assistive technology. The select's chevron and the docs site's example buttons use it.
-- **Where it is used.** The docs site's theme switch (`apps/docs/src/components/ThemeSelect.astro`, Starlight's `ThemeSelect` override), in the header and the phone menu. It keeps Starlight's theme contract: the `<starlight-theme-select>` element, the values `dark`, `light` and `auto`, and the choice in `localStorage` under `starlight-theme`.
+- **What it takes.** It takes a `label`, the `options` and the `value` shown at first. The label shows before the button (12/600 `text-3`), or with `hideLabel` only names it for assistive technology. Each option has a `value`, a `label` and an `icon`: a Paper icon's file from `@laminapdf/icons/svg/`, imported with `?raw`.
+- **How it behaves.** `src/menu-select.ts` defines `<site-menu-select>`, ARIA's [select-only combobox](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-select-only/). The button keeps the focus while the list is open. Down, Up, Enter, Space or a letter opens the list; Down, Up, Home, End and letters move through it; Enter, Space or Tab chooses; Escape closes it, as does a click outside. Choosing sets the element's `value` attribute and dispatches `change`, which bubbles. The list opens upwards when the window has no room below.
+- **Showing a stored value.** Every element marked `data-for` shows only for its value. So a page's inline script can show a stored value before the first paint: it sets the attribute and those elements' `hidden`.
+- **Its look.** `src/menu-select.css` draws it from the Paper tokens, so it follows the site's `data-theme`. The button is §7.19's select field (32 px high, the field's fill and edge, the Paper chevron), with the value's icon before its label. The list is §7.26's listbox popup: 28 px items with their icon, the active one in `accent-tint` with an `accent` ring, the chosen one marked with the Check icon. On a touch screen the button and the items are 44 px high with 16 px text, as `@laminapdf/ui`'s fields are. It has no inline style, which the website's checks refuse.
+- **Icons.** `decorativeIcon(svg, className)` in `src/icon.mjs` turns a Paper icon's file, imported with `?raw`, into HTML hidden from assistive technology. The select's icons and the docs site's example buttons use it.
+- **Where it is used.** The docs site's theme switch (`apps/docs/src/components/ThemeSelect.astro`, Starlight's `ThemeSelect` override), in the header and the phone menu, with Light (Sun), Dark (Moon) and Auto (Laptop). It keeps Starlight's theme contract: the `<starlight-theme-select>` element, the values `dark`, `light` and `auto`, and the choice in `localStorage` under `starlight-theme`.
 
 ## The build steps
 
@@ -64,4 +66,4 @@ pnpm --filter @laminapdf/site-kit test                                         #
 pnpm --filter @laminapdf/site-kit exec vitest run -c vitest.browser.config.ts  # the header and the select in Chromium, Firefox and WebKit
 ```
 
-The browser tests render the header and the select with Astro's container API in Node, before the tests start (`test/browser/render.ts`). They then check them in each browser, in light and dark: the header's tab order, current page's underline and phone width; the select's name, label, keyboard and pointer use, focus ring and colours; and axe for both. `cargo xtask pdf-runtimes chromium|firefox|webkit` runs them on every pull request, along with the docs site's e2e suite, which tries the theme switch built on the select (`apps/docs/e2e/theme.e2e.test.ts`).
+The browser tests render the header and the select with Astro's container API in Node, before the tests start (`test/browser/render.ts`). They then check them in each browser, in light and dark: the header's tab order, current page's underline and phone width; the select's name, label, keyboard and pointer use, a click outside, focus ring and colours. Axe checks both, the select open and closed. `cargo xtask pdf-runtimes chromium|firefox|webkit` runs them on every pull request, along with the docs site's e2e suite, which tries the theme switch built on the select (`apps/docs/e2e/theme.e2e.test.ts`).
