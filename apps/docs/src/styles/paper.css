@@ -368,6 +368,16 @@ mobile-starlight-toc :is(summary, a):focus-visible {
   border-color: var(--paper-primary-pressed);
   background-color: var(--paper-primary-pressed);
 }
+/* The minimal hero button is a ghost button here (§7.0): its hover and pressed fills need room
+   round the label. Starlight 0.42.8 (LinkButton.astro) sets `padding-inline: 0` on it, as a text
+   link, so the fill touched the label's ends; it gets back the other buttons' padding. */
+.sl-link-button.minimal {
+  padding-inline: 1.125rem;
+
+  @media (min-width: 50rem) {
+    padding-inline: 1.25rem;
+  }
+}
 
 /* Search is a disabled button until Pagefind has loaded (always, under `astro dev`): the arrow,
    the disabled text, and no hover (Search.astro in Starlight 0.42.8 gives it the hand and a hover

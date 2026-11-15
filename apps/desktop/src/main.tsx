@@ -16,6 +16,7 @@ import { type AppInfo, loadAppInfo } from "./app-info.ts";
 import { DesktopEngineClient, type DesktopShell } from "./engine/desktop-engine-client.ts";
 import { tauriShell } from "./engine/tauri-shell.ts";
 import { createDesktopPlatform } from "./platform/desktop.ts";
+import { watchWindowState } from "./window-state.ts";
 
 /**
  * This window's engine client and its view. The text and link layers stay off until the engine
@@ -54,6 +55,9 @@ const keys = /Mac|iPhone|iPad/.test(navigator.platform) ? "mac" : "other";
 // Inside the shell, one engine client for this window and the view it draws; the platform's
 // open dialog runs in the main process.
 const shell = desktop ? tauriShell() : undefined;
+// In the shell, a window rather than a web page: no webview context menu on the chrome, and dimmed
+// bars while another window is in front. A browser (`pnpm dev`) keeps its own.
+if (desktop) watchWindowState(window);
 const engine = startEngine(shell);
 // End-to-end test builds only: Vite drops this branch, and the module, from every other build.
 if (import.meta.env.MODE === "e2e") void import("../e2e/probe/probe.ts").then(({ exposeProbe }) => exposeProbe(engine));

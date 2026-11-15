@@ -6,10 +6,10 @@
 // tab's page; the restore notice counts what came back and shows a missing file.
 
 import { useState } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, onTestFinished } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { type DocumentTab, DocumentTabs, LocateDifferentDialog, RestoreNotice } from "../../src/index.ts";
-import { cleanup, renderIn } from "./render.tsx";
+import { cleanup, renderIn, settled } from "./render.tsx";
 
 afterEach(() => cleanup());
 
@@ -246,6 +246,76 @@ describe("the restore notice", () => {
     await expect.element(ask.getByRole("button", { name: "Cancel" })).toHaveFocus();
     await ask.getByRole("button", { name: "Open anyway" }).click();
     expect(answers).toEqual([true]);
+  });
+});
+
+/** The strip over tabs the test sets: Reverse reorders them, Add opens a fourth. */
+function Moving() {
+  const [tabs, setTabs] = useState(TABS);
+  return (
+    <>
+      <DocumentTabs tabs={tabs} active="a" onActivate={() => {}} onClose={() => {}} platform="mac" />
+      <button type="button" onClick={() => setTabs((all) => [...all].reverse())}>
+        Reverse
+      </button>
+      <button type="button" onClick={() => setTabs((all) => [...all, { id: "d", title: "budget.pdf" }])}>
+        Add
+      </button>
+    </>
+  );
+}
+
+/** The keyframes of the animations running on tab `id`'s box. */
+const motion = (id: string) =>
+  (document.querySelector(`[data-tab-box="${id}"]`) as HTMLElement)
+    .getAnimations()
+    .map((a) => (a.effect as KeyframeEffect).getKeyframes());
+
+describe("the document tabs' motion", () => {
+  it("draws the strip still when it appears", () => {
+    renderIn(<Moving />);
+    expect(["a", "b", "c"].flatMap(motion)).toEqual([]);
+  });
+
+  it("slides tabs to their new places, and fades a new tab in, growing", async () => {
+    renderIn(<Moving />);
+    await userEvent.click(page.getByRole("button", { name: "Reverse" }));
+    // The first and last tabs swap, so both slide; the middle one stays.
+    for (const id of ["a", "c"]) expect(motion(id)[0]?.[0]?.transform).toMatch(/^translateX\(-?\d/);
+    expect(motion("b")).toEqual([]);
+    await userEvent.click(page.getByRole("button", { name: "Add" }));
+    const [from] = motion("d")[0] ?? [];
+    expect(Number(from?.opacity)).toBe(0);
+    expect(from?.transform).toBe("scale(0.97)");
+  });
+
+  it("under reduced motion slides nothing, and a new tab only fades", async () => {
+    document.documentElement.setAttribute("data-motion", "reduce");
+    onTestFinished(() => document.documentElement.removeAttribute("data-motion"));
+    renderIn(<Moving />);
+    await userEvent.click(page.getByRole("button", { name: "Reverse" }));
+    expect(["a", "b", "c"].flatMap(motion)).toEqual([]);
+    await userEvent.click(page.getByRole("button", { name: "Add" }));
+    const [from] = motion("d")[0] ?? [];
+    expect(Number(from?.opacity)).toBe(0);
+    expect(from?.transform).toBe("scale(1)");
+  });
+});
+
+describe("the document tabs' motion after a resize", () => {
+  it("slides tabs from where they are after the strip shrank, not from before it", async () => {
+    const host = renderIn(<Moving />);
+    host.style.inlineSize = "900px";
+    await settled();
+    host.style.inlineSize = "420px";
+    // The resize observer measures again before the next change.
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const before = (document.querySelector('[data-tab-box="b"]') as HTMLElement).offsetLeft;
+    await userEvent.click(page.getByRole("button", { name: "Reverse" }));
+    const after = (document.querySelector('[data-tab-box="b"]') as HTMLElement).offsetLeft;
+    // The middle tab stays in the middle: no slide from its place in the wider strip.
+    expect(after).toBe(before);
+    expect(motion("b")).toEqual([]);
   });
 });
 

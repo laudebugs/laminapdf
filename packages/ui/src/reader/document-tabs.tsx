@@ -6,18 +6,19 @@
 // shows the focused tab, Delete closes it. Tabs reorder by dragging within the strip, with a mark
 // where the tab will go; a drag released anywhere else is the shell's (`onDragOut`): the desktop app
 // moves the tab to the window it was dropped on, or to a new one. Dragging uses pointer events
-// (`tab-drag.ts`).
+// (`tab-drag.ts`). Tabs open, close and reorder with motion (`tab-motion.ts`).
 //
 // Only shells whose platform has `capabilities.multiWindow` render it (the desktop app); the web
 // reader has one document per browser tab.
 
 import { Icon } from "@laminapdf/icons/react";
-import { type KeyboardEvent, type ReactNode, useState } from "react";
+import { type KeyboardEvent, type ReactNode, useRef, useState } from "react";
 import { Button as AriaButton, MenuTrigger } from "react-aria-components";
 import type { KeyPlatform } from "../components/shortcut-chip.js";
 import { message } from "../messages.js";
 import { Menu, type MenuEntry } from "../overlays/popover.js";
 import { type TabDrag, type TabDragHandlers, useTabDrag } from "./tab-drag.js";
+import { useTabMotion } from "./tab-motion.js";
 
 /** One tab: the id the shell knows it by and the document's name. */
 export interface DocumentTab {
@@ -87,11 +88,16 @@ export function DocumentTabs({
       ?.focus();
   };
   const onKeyDown = tabKeys(tabs, { focusTab, onActivate, onClose, openMenuFor });
+  const list = useRef<HTMLDivElement>(null);
+  useTabMotion(
+    list,
+    tabs.map((t) => t.id),
+  );
 
   const menu: MenuEntry<string>[] = [...tabs.map(tabEntry), ...moves];
   return (
     <div className="paper-document-tabs">
-      <div role="tablist" aria-label={message("tabs.label")} className="paper-document-tabs-list">
+      <div ref={list} role="tablist" aria-label={message("tabs.label")} className="paper-document-tabs-list">
         {tabs.map((tab, index) => (
           <OneTab
             key={tab.id}
@@ -218,6 +224,7 @@ function OneTab({
     <div
       role="presentation"
       className="paper-document-tab"
+      data-tab-box={tab.id}
       data-active={active || undefined}
       data-dragging={drag.dragged === tab.id || undefined}
       data-drop={drop}
