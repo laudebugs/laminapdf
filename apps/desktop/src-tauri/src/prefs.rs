@@ -1,5 +1,6 @@
 //! The desktop app's own preferences, kept in `preferences.json` in the app's config folder:
-//! whether it remembers recent files and whether it reloads files that change on disk. The
+//! whether it remembers recent files and whether it reloads files that change on disk, where files
+//! open, and Settings › Motion. The
 //! settings page (D5b, D7b) will show them; until then the Recent popover holds the toggles.
 
 use std::path::PathBuf;
@@ -28,6 +29,19 @@ pub(crate) struct Preferences {
     /// Bring back the last session's windows and tabs on launch; kept only while
     /// `remember_recent` is on too (D4d's privacy rule).
     pub reopen_last: bool,
+    /// Settings › Motion: follow the system, or reduce motion whatever it says.
+    pub motion: Motion,
+}
+
+/// Settings › Motion (motion plan §5).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) enum Motion {
+    /// The system's setting, read by the webview and, where it misses it, by `motion.rs`.
+    #[default]
+    System,
+    /// Nothing slides or grows; fades stay.
+    Reduce,
 }
 
 /// Where the files the OS hands the app open.
@@ -49,6 +63,7 @@ impl Default for Preferences {
             open_in: OpenIn::Tabs,
             allow_duplicates: false,
             reopen_last: true,
+            motion: Motion::System,
         }
     }
 }
@@ -134,6 +149,7 @@ mod tests {
         let off = Preferences {
             remember_recent: false,
             open_in: OpenIn::Windows,
+            motion: Motion::Reduce,
             ..Preferences::default()
         };
         Prefs::load(file.clone()).set(off);

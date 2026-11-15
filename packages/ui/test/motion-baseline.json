@@ -1,10 +1,4 @@
 {
-  "packages/ui/src/styles/document-tabs.css": [
-    "cursor: default",
-    "hover: .paper-document-tab-close:hover",
-    "hover: .paper-document-tab:hover",
-    "hover: .paper-document-tab[data-active] .paper-document-tab-close, .paper-document-tab:hover .paper-document-tab-close, .paper-document-tab:focus-within .paper-document-tab-close"
-  ],
   "packages/ui/src/styles/history.css": ["cursor: default", "hover: .paper-history-row:hover"],
   "packages/ui/src/styles/notice.css": ["cursor: default"],
   "packages/ui/src/styles/phone.css": [
@@ -42,7 +36,6 @@
     "hover: .site-wordmark:hover"
   ],
   "apps/web/src/app.css": ["duration: animation: 2s", "easing: animation: ease-out"],
-  "apps/desktop/src/app.css": ["cursor: pointer"],
   "apps/docs/src/components/CopyMarkdown.astro": [
     "cursor: pointer",
     "cursor: progress",

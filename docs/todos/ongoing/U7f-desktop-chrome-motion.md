@@ -11,7 +11,7 @@
 | Branch | `claude/dazzling-sagan-s9woz0` |
 | PR title | `feat(desktop): tab motion, Reduce motion and a window that feels native` |
 | Size | M (200–400) |
-| PR | — |
+| PR | [laudebugs/laminapdf#638](https://github.com/laudebugs/laminapdf/pull/638) |
 
 ## Goal
 

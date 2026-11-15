@@ -3,7 +3,8 @@
 // lists every tab and moves the shown one to another window. A tab's context menu (right-click,
 // Shift+F10 or the menu key) shows that tab and opens the same menu. It is a tablist with a roving
 // tabindex: one Tab stop, the arrow keys move between tabs, Home and End jump, Enter or Space
-// shows the focused tab, Delete closes it. Tabs reorder by dragging within the strip; a drag that
+// shows the focused tab, Delete closes it. Tabs open, close and reorder with motion (tab-motion.ts).
+// Tabs reorder by dragging within the strip; a drag that
 // ends anywhere else is the shell's (`onDragOut`): the desktop app moves the tab to the window it
 // was dropped on, or to a new one.
 //
@@ -16,6 +17,7 @@ import { Button as AriaButton, MenuTrigger } from "react-aria-components";
 import type { KeyPlatform } from "../components/shortcut-chip.js";
 import { message } from "../messages.js";
 import { Menu, type MenuEntry } from "../overlays/popover.js";
+import { useTabMotion } from "./tab-motion.js";
 
 /** One tab: the id the shell knows it by and the document's name. */
 export interface DocumentTab {
@@ -97,11 +99,16 @@ export function DocumentTabs({
       ?.focus();
   };
   const onKeyDown = tabKeys(tabs, { focusTab, onActivate, onClose, openMenuFor });
+  const list = useRef<HTMLDivElement>(null);
+  useTabMotion(
+    list,
+    tabs.map((t) => t.id),
+  );
 
   const menu: MenuEntry<string>[] = [...tabs.map(tabEntry), ...moves];
   return (
     <div className="paper-document-tabs">
-      <div role="tablist" aria-label={message("tabs.label")} className="paper-document-tabs-list">
+      <div ref={list} role="tablist" aria-label={message("tabs.label")} className="paper-document-tabs-list">
         {tabs.map((tab) => (
           <OneTab
             key={tab.id}
@@ -286,6 +293,7 @@ function OneTab({
     <div
       role="presentation"
       className="paper-document-tab"
+      data-tab-box={tab.id}
       data-active={active || undefined}
       data-dragging={drag.dragged === tab.id || undefined}
     >

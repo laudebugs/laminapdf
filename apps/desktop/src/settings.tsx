@@ -1,13 +1,25 @@
-// The desktop app's Settings dialog (S07): for now its Files section, with the choices the main
-// process keeps in preferences.json and acts on (src-tauri/src/prefs.rs): remembering recent
-// files, which turned off clears the app's and the OS's recent lists and the last session,
-// reopening the last session (which needs the recent files remembered), reloading open files that
-// change on disk, opening files in tabs or windows, and opening a file that is open already. The
-// full settings page adds its other sections to the same registry.
+// The desktop app's Settings dialog (S07): its Files section, with the choices the main process
+// keeps in preferences.json and acts on (src-tauri/src/prefs.rs): remembering recent files, which
+// turned off clears the app's and the OS's recent lists and the last session, reopening the last
+// session (which needs the recent files remembered), reloading open files that change on disk,
+// opening files in tabs or windows, and opening a file that is open already; and Motion, kept
+// beside them so every window shares it (motion.ts applies it). The full settings page adds its
+// other sections to the same registry.
 
-import { message, SettingsDialog, SettingsRegistry, Switch, useSettingsSection } from "@laminapdf/ui";
+import {
+  MOTIONS,
+  type Motion,
+  message,
+  Radio,
+  RadioGroup,
+  SettingsDialog,
+  SettingsRegistry,
+  Switch,
+  useSettingsSection,
+} from "@laminapdf/ui";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import type { DesktopShell } from "./engine/desktop-engine-client.ts";
+import { useMotion } from "./motion.ts";
 import { words } from "./update-words.ts";
 import { type DesktopUpdates, UpdateSettings, updatesSummary } from "./updates.tsx";
 
@@ -21,6 +33,8 @@ interface Preferences {
   readonly allowDuplicates: boolean;
   /** Whether the last session's windows and tabs come back on launch; kept only with `rememberRecent`. */
   readonly reopenLast: boolean;
+  /** Settings › Motion: the system's, or reduced whatever it says. */
+  readonly motion: Motion;
 }
 
 /** Until the main process answers, and outside the shell: its defaults. */
@@ -30,6 +44,7 @@ const DEFAULTS: Preferences = {
   openIn: "tabs",
   allowDuplicates: false,
   reopenLast: true,
+  motion: "system",
 };
 
 /** What the settings give the app. */
@@ -72,6 +87,14 @@ export function useDesktopSettings(
     message("settings.files"),
     () => <FileSettings preferences={preferences} onChange={change} />,
     { shows: [preferences], summary: () => filesSummary(preferences) },
+  );
+  useMotion(shell, preferences.motion);
+  useSettingsSection(
+    registry,
+    "motion",
+    message("appearance.motion"),
+    () => <MotionSettings preferences={preferences} onChange={change} />,
+    { shows: [preferences], summary: () => message(`appearance.motion.${preferences.motion}`) },
   );
   // S06: Settings › Updates, inside the shell only (the main process owns updates).
   useSettingsSection(
@@ -142,6 +165,32 @@ function FileSettings({
         {message("settings.files.allowDuplicates")}
       </Switch>
       <p className="desktop-settings-help">{message("settings.files.allowDuplicates.help")}</p>
+    </div>
+  );
+}
+
+/** Settings › Motion: follow the system, or reduce motion in every window. */
+function MotionSettings({
+  preferences,
+  onChange,
+}: {
+  preferences: Preferences;
+  onChange: (value: Preferences) => void;
+}): ReactNode {
+  return (
+    <div className="paper-settings-fields">
+      <RadioGroup
+        label={message("appearance.motion")}
+        value={preferences.motion}
+        description={message("appearance.motion.help")}
+        onChange={(motion) => onChange({ ...preferences, motion: motion as Motion })}
+      >
+        {MOTIONS.map((motion) => (
+          <Radio key={motion} value={motion}>
+            {message(`appearance.motion.${motion}`)}
+          </Radio>
+        ))}
+      </RadioGroup>
     </div>
   );
 }

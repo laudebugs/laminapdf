@@ -221,6 +221,16 @@ pub(crate) fn set_preferences(
     crate::session::app::preferences_changed(&app, was, value);
 }
 
+/// Whether the system asks for reduced motion where the webview can't tell (`motion.rs`): `None`
+/// where the webview reads it itself, or the setting can't be read.
+#[tauri::command]
+pub(crate) async fn system_motion() -> Option<bool> {
+    tauri::async_runtime::spawn_blocking(crate::motion::system_reduces_motion)
+        .await
+        .ok()
+        .flatten()
+}
+
 /// This window's commands' state for the native menus: which are enabled, and which toggles and
 /// choices are on. The menus show the focused window's (src/menus/use-native-menus.tsx sends it).
 #[tauri::command]

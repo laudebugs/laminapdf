@@ -11,7 +11,8 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use laminapdf_desktop_protocol::DocId;
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter as _, EventTarget, Manager as _, Position, WebviewUrl, WebviewWindowBuilder};
+use tauri::window::Color;
+use tauri::{AppHandle, Emitter as _, EventTarget, Manager as _, Position, Theme, WebviewUrl, WebviewWindowBuilder};
 
 use crate::engine::{DocumentMeta, Engines};
 use crate::{DesktopError, MAIN_WINDOW};
@@ -174,6 +175,9 @@ pub(crate) fn build_window(app: &AppHandle, label: &str, corner: Option<Position
         None => builder,
     };
     let window = builder.build()?;
+    if let Err(error) = window.set_background_color(Some(ground(window.theme().unwrap_or(Theme::Light)))) {
+        tracing::warn!("could not set the window's background colour: {error}");
+    }
     if let Some(at @ Position::Physical(_)) = corner {
         // A window that can't be placed still shows, where the OS put it: a hidden one would
         // count as a window ("Move tab to window ▸") that nobody can see.
@@ -193,6 +197,17 @@ pub(crate) fn build_window(app: &AppHandle, label: &str, corner: Option<Position
         }
     }
     Ok(())
+}
+
+/// Paper's `ground` (packages/tokens) in the light and dark themes, which the window shows until
+/// the webview paints: a dark window then opens dark, not white (motion plan §5).
+const GROUND_LIGHT: Color = Color(0xF7, 0xF4, 0xEE, 0xFF);
+const GROUND_DARK: Color = Color(0x1E, 0x1D, 0x1A, 0xFF);
+
+/// The ground colour a window shows under the OS's `theme`: set as it is built, and again when the
+/// OS's theme changes (`lib.rs`'s window events). The webview paints over it with the app's theme.
+pub(crate) fn ground(theme: Theme) -> Color {
+    if theme == Theme::Dark { GROUND_DARK } else { GROUND_LIGHT }
 }
 
 /// A new, empty window (File ▸ New Window, or a tab moved out), with its corner at `corner` when
@@ -393,5 +408,15 @@ mod tests {
         let new: MoveTo = serde_json::from_str(r#"{ "to": "newWindow" }"#).unwrap();
         let other: MoveTo = serde_json::from_str(r#"{ "to": "window", "label": "doc-3" }"#).unwrap();
         assert_eq!((new, other), (MoveTo::NewWindow, MoveTo::Window("doc-3".into())));
+    }
+
+    #[test]
+    fn the_window_ground_should_be_the_tokens_ground() {
+        let tokens = include_str!("../../../../packages/tokens/src/generated/tokens.css");
+        let hex = |Color(r, g, b, _): Color| format!("--paper-ground: #{r:02X}{g:02X}{b:02X};");
+        for theme in [Theme::Light, Theme::Dark] {
+            let wanted = hex(ground(theme));
+            assert!(tokens.contains(&wanted), "tokens.css has no {wanted}");
+        }
     }
 }

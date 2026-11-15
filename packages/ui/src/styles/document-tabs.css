@@ -3,7 +3,8 @@
    active tab takes the top bar's `surface` and drops its bottom rule, so it joins the bar. The
    close button shows on the active, hovered and focused tab. The strip scrolls sideways when the
    tabs don't fit; its menu at the end lists them all. On touch every target grows to the touch
-   minimum (`--ui-target`). */
+   minimum (`--ui-target`). Tabs open, close and reorder with motion (tab-motion.ts); hover fades in
+   and out on the state tokens and applies only to a pointer that hovers (design language §7.0). */
 @layer paper.components {
   .paper-reader-head {
     grid-row: 1;
@@ -35,10 +36,7 @@
     margin-block-end: calc(-1 * var(--paper-border-width));
     border-inline-end: var(--paper-border-width) solid var(--paper-hairline);
     border-block-end: var(--paper-border-width) solid var(--paper-hairline);
-  }
-
-  .paper-document-tab:hover {
-    background: var(--paper-hover);
+    transition: background-color var(--paper-duration-state-out) var(--paper-ease-standard);
   }
 
   .paper-document-tab[data-active] {
@@ -62,7 +60,7 @@
     color: var(--paper-muted);
     text-overflow: ellipsis;
     white-space: nowrap;
-    cursor: default;
+    cursor: var(--paper-cursor-action);
   }
 
   /* The title takes the ellipsis: the label is a flex row, with a missing file's mark before it. */
@@ -101,6 +99,10 @@
     background: none;
     color: var(--paper-muted);
     visibility: hidden;
+    cursor: var(--paper-cursor-action);
+    transition:
+      background-color var(--paper-duration-state-out) var(--paper-ease-standard),
+      color var(--paper-duration-state-out) var(--paper-ease-standard);
   }
 
   .paper-document-tab-close svg {
@@ -109,14 +111,25 @@
   }
 
   .paper-document-tab[data-active] .paper-document-tab-close,
-  .paper-document-tab:hover .paper-document-tab-close,
   .paper-document-tab:focus-within .paper-document-tab-close {
     visibility: visible;
   }
 
-  .paper-document-tab-close:hover {
-    background: var(--paper-hover);
-    color: var(--paper-text);
+  @media (hover: hover) and (pointer: fine) {
+    .paper-document-tab:hover {
+      background: var(--paper-hover);
+      transition-duration: var(--paper-duration-state-in);
+    }
+
+    .paper-document-tab:hover .paper-document-tab-close {
+      visibility: visible;
+    }
+
+    .paper-document-tab-close:hover {
+      background: var(--paper-hover);
+      color: var(--paper-text);
+      transition-duration: var(--paper-duration-state-in);
+    }
   }
 
   .paper-document-tabs-menu {
@@ -127,6 +140,7 @@
     border: 0;
     background: none;
     color: var(--paper-muted);
+    cursor: var(--paper-cursor-action);
   }
 
   .paper-document-tabs-menu[data-hovered] {

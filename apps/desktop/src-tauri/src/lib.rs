@@ -13,6 +13,7 @@ mod e2e;
 mod engine;
 mod error;
 mod menu;
+mod motion;
 mod open;
 mod opened;
 mod prefs;
@@ -206,6 +207,7 @@ macro_rules! app_commands {
             commands::recent_clear,
             commands::preferences,
             commands::set_preferences,
+            commands::system_motion,
             commands::new_window,
             commands::move_tab,
             commands::window_list,
@@ -361,6 +363,12 @@ fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
         }
         // Files dragged over or dropped on the window: Rust opens them, never the webview.
         WindowEvent::DragDrop(drag) => open::on_drag_drop(window, drag),
+        // The window's own colour, under the webview, follows the OS's light or dark.
+        WindowEvent::ThemeChanged(theme) => {
+            if let Err(error) = window.set_background_color(Some(windows::ground(*theme))) {
+                tracing::warn!("could not set the window's background colour: {error}");
+            }
+        }
         _ => {}
     }
 }
