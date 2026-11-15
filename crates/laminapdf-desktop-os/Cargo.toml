@@ -21,11 +21,28 @@ thiserror = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = { workspace = true }
-objc2-app-kit = { workspace = true }
-objc2-foundation = { workspace = true }
+# Printing (D4c): the print operation and info, a view to draw pages from, and bitmap images.
+objc2-app-kit = { workspace = true, features = [
+    "NSBitmapImageRep",
+    "NSGraphics",
+    "NSImage",
+    "NSImageRep",
+    "NSPrintInfo",
+    "NSPrintOperation",
+    "NSResponder",
+    "NSView",
+    "objc2-core-foundation",
+] }
+objc2-foundation = { workspace = true, features = ["NSDictionary", "NSGeometry", "NSRange"] }
 
 [target.'cfg(windows)'.dependencies]
-windows = { workspace = true }
+# Printing (D4c): the print dialog, its global memory, and GDI's printer device context.
+windows = { workspace = true, features = [
+    "Win32_Graphics_Gdi",
+    "Win32_Storage_Xps",
+    "Win32_System_Memory",
+    "Win32_UI_Controls_Dialogs",
+] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = { workspace = true }
