@@ -232,7 +232,7 @@ Ticked by the PR that completes them.
 
 - [x] Decide the crash backend (record in ADR 0014 or a short ADR) ([D7a](../todos/done/D7a-crash-reporting.md): ADR 0014 §10)
 - [x] Implement opt-in crash/panic capture with scrubbing; test that no paths or content leak ([D7a](../todos/done/D7a-crash-reporting.md); native crashes from minidumps: [D7d](../todos/ongoing/D7d-native-crash-minidumps-and-symbols.md))
-- [ ] Native crash minidumps processed on the computer, and debug symbols ([D7d](../todos/ongoing/D7d-native-crash-minidumps-and-symbols.md))
+- [x] Native crash minidumps processed on the computer, and debug symbols ([D7d](../todos/ongoing/D7d-native-crash-minidumps-and-symbols.md))
 - [ ] Choose which tabs to reopen after an unexpected quit, S08 ([D7e](../todos/ready/D7e-crash-recovered-tab-choice.md))
 - [ ] Settings page: updates, channel, crash reports, renderer backend switch
 - [ ] Download page on the web app with per-OS links from R2

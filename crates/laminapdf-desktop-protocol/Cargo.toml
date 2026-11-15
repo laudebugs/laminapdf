@@ -18,8 +18,9 @@ layer = "app"
 [features]
 # `supervisor::fake`: an in-process fake engine for the main process's tests.
 test-support = []
-# `ToEngine::DebugPanic`: the end-to-end tests' forced engine panic. Only the e2e builds of the main
-# process and the engine turn it on, so no shipped engine understands the message.
+# `ToEngine::DebugPanic` and `DebugSegv`: the end-to-end tests' forced engine panic and native
+# fault. Only the e2e builds of the main process and the engine turn it on, so no shipped engine
+# understands either message.
 debug-crash = []
 
 [dependencies]

@@ -8,10 +8,14 @@
 //!   engine still opens documents and reports their pages, and answers every tile with
 //!   `RenderUnavailable`.
 //! - `--memory-limit <bytes>`: the sandbox's memory limit, which the main process passes.
+//! - `--crash-socket <path>`: the main process's crash-dump server. The engine connects to it
+//!   and installs its crash handler first of all, before PDFium and the sandbox, so a native crash
+//!   leaves a minidump; the sandbox then lets the handler use that one socket. Without it, or if
+//!   the server can't be reached, the engine runs without capture.
 //! - `--sandbox-selftest[=<probe>]` (feature `selftest`, which the tests and CI turn on): lock
 //!   down, try what the sandbox must stop, print the results and exit (`selftest.rs`).
 //!
-//! The start-up order is the sandbox's (ADR 0008 §5): PDFium is loaded first, then the engine
+//! The start-up order is the sandbox's (ADR 0008 §5): crash capture, then PDFium, then the engine
 //! locks itself down, and only then reads its stdin, so no document is read before the sandbox is
 //! on. `Ready` carries the sandbox's layers.
 
@@ -24,6 +28,7 @@ use std::sync::Arc;
 
 use laminapdf_desktop_engine::fonts::{FontSource, Fonts};
 use laminapdf_desktop_engine::{Setup, log};
+use laminapdf_desktop_sandbox::capture::{CRASH_SOCKET_ARG, CrashCapture, capture_crashes};
 use laminapdf_desktop_sandbox::{MEMORY_LIMIT_ARG, SandboxConfig, apply_engine_sandbox};
 use laminapdf_render::{RenderBackend, RenderError};
 use laminapdf_render_pdfium::{PDFIUM_DIR_ENV, PdfiumBackend};
@@ -32,6 +37,7 @@ use laminapdf_render_pdfium::{PDFIUM_DIR_ENV, PdfiumBackend};
 #[derive(Default)]
 struct Args {
     pdfium: Option<PathBuf>,
+    crash_socket: Option<PathBuf>,
     config: SandboxConfig,
     mode: Mode,
 }
@@ -48,13 +54,16 @@ enum Mode {
 }
 
 fn main() -> ExitCode {
-    let args = match parse_args() {
+    let mut args = match parse_args() {
         Ok(args) => args,
         Err(message) => {
             log(&message);
             return ExitCode::FAILURE;
         }
     };
+    // Kept to the end: dropping it would detach the handler.
+    let capture = args.crash_socket.as_deref().and_then(connect_crash_server);
+    args.config.crash_socket = capture.as_ref().and_then(CrashCapture::descriptor);
     let fonts = Arc::new(Fonts::default());
     let backend: Option<Box<dyn RenderBackend>> = match bind(args.pdfium.as_deref(), &fonts) {
         Ok(backend) => Some(Box::new(backend)),
@@ -99,6 +108,22 @@ fn main() -> ExitCode {
     }
 }
 
+/// Connects to the main process's crash-dump server at `socket` and installs the crash handler;
+/// on Linux the server, the main process, is this process's parent.
+fn connect_crash_server(socket: &Path) -> Option<CrashCapture> {
+    #[cfg(unix)]
+    let server = Some(std::os::unix::process::parent_id());
+    #[cfg(not(unix))]
+    let server = None;
+    match capture_crashes(socket, server) {
+        Ok(capture) => Some(capture),
+        Err(error) => {
+            log(&format!("native crashes won't leave a dump: {}", report(&error)));
+            None
+        }
+    }
+}
+
 /// Binds PDFium in `dir` (or `LAMINA_PDF_PDFIUM_DIR`) with its system fonts coming from the main
 /// process. Windows keeps PDFium's own font mapper, which asks GDI and needs no file access.
 fn bind(dir: Option<&Path>, fonts: &Arc<Fonts>) -> Result<PdfiumBackend, RenderError> {
@@ -131,6 +156,8 @@ fn parse_args() -> Result<Args, String> {
         let text = arg.to_string_lossy();
         if arg == "--pdfium" {
             parsed.pdfium = Some(PathBuf::from(args.next().ok_or("--pdfium needs a folder")?));
+        } else if arg == CRASH_SOCKET_ARG {
+            parsed.crash_socket = Some(PathBuf::from(args.next().ok_or("--crash-socket needs a path")?));
         } else if arg == MEMORY_LIMIT_ARG {
             let value = args.next().ok_or("--memory-limit needs a number of bytes")?;
             parsed.config.memory_limit = value

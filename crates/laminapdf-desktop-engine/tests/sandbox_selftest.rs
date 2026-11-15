@@ -2,7 +2,8 @@
 //! starts it (`spawn_sandboxed`), running `--sandbox-selftest=<probe>`, one probe per run. What
 //! must be blocked is blocked on every OS; on Linux a forbidden system call kills the engine
 //! (SIGSYS) rather than failing. Threads and rendering keep working. With PDFium in
-//! `LAMINA_PDF_PDFIUM_DIR` the thread probe renders too.
+//! `LAMINA_PDF_PDFIUM_DIR` the thread probe renders too. Every engine here is connected to a
+//! crash-dump server, as the app's are: the sandbox holds with the crash handler on.
 #![allow(clippy::unwrap_used, clippy::panic, reason = "tests: a panic is a test failure")]
 
 use std::ffi::OsString;
@@ -10,15 +11,32 @@ use std::io::Read as _;
 use std::net::TcpListener;
 use std::path::PathBuf;
 use std::process::Command;
-use std::sync::{Arc, Mutex, mpsc};
+use std::sync::{Arc, Mutex, OnceLock, mpsc};
 use std::time::Duration;
 
 use laminapdf_desktop_protocol::supervisor::{Config, Event, Process as _, RangeServer, Supervisor};
 use laminapdf_desktop_protocol::{DocId, Layer};
+use laminapdf_desktop_sandbox::capture::{CRASH_SOCKET_ARG, DumpEvent, DumpServer, Serve, socket_path};
 use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner, spawn_sandboxed};
 
 fn engine() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_laminapdf-desktop-engine"))
+}
+
+/// One crash-dump server for every engine these tests start, as the app has; the dumps an
+/// engine leaves (an abort past the memory limit) are deleted.
+fn crash_args() -> [OsString; 2] {
+    static SERVER: OnceLock<DumpServer> = OnceLock::new();
+    let server = SERVER.get_or_init(|| {
+        let dumps = std::env::temp_dir().join(format!("laminapdf-selftest-dumps-{}", std::process::id()));
+        DumpServer::start(socket_path("selftest"), dumps, Serve::Many, |event| {
+            if let DumpEvent::Written(path) = event {
+                let _ = std::fs::remove_file(path);
+            }
+        })
+        .unwrap()
+    });
+    [CRASH_SOCKET_ARG.into(), server.socket().into()]
 }
 
 /// What one selftest run printed on stdout and how it ended.
@@ -44,7 +62,7 @@ impl Run {
 
 fn selftest_with(probe: &str, config: SandboxConfig) -> Run {
     let mut command = Command::new(engine());
-    command.arg(format!("--sandbox-selftest={probe}"));
+    command.args(crash_args()).arg(format!("--sandbox-selftest={probe}"));
     let mut child = spawn_sandboxed(
         command,
         &config,
@@ -148,6 +166,7 @@ fn memory_past_the_limit_should_be_refused_where_the_os_enforces_one() {
         "memory",
         SandboxConfig {
             memory_limit: 256 << 20,
+            ..SandboxConfig::default()
         },
     );
     let outcome = run.outcome("memory");
@@ -264,7 +283,10 @@ impl RangeServer for NoFiles {
 fn supervised(args: &[&str], sandbox: SandboxConfig) -> (Supervisor, mpsc::Receiver<Event>) {
     let (tx, events) = mpsc::channel();
     let tx = Mutex::new(tx);
-    let args = args.iter().map(OsString::from).collect();
+    let args = crash_args()
+        .into_iter()
+        .chain(args.iter().map(OsString::from))
+        .collect();
     let spawner = SandboxSpawner::new(engine(), args, sandbox, |line| eprintln!("engine: {line}"));
     let config = Config {
         backoff: Duration::from_millis(10),
@@ -299,6 +321,7 @@ fn restart_logging(events: &mpsc::Receiver<Event>, logged: &str) -> (Option<u32>
 fn an_engine_past_its_memory_limit_should_be_stopped_and_restarted() {
     let sandbox = SandboxConfig {
         memory_limit: 256 << 20,
+        ..SandboxConfig::default()
     };
     let (supervisor, events) = supervised(&["--sandbox-selftest=exhaust"], sandbox);
     let first = supervisor.pid();

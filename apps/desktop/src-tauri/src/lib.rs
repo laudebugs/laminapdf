@@ -35,6 +35,7 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+pub use crash::monitor_main;
 pub use error::DesktopError;
 use laminapdf_desktop_protocol::supervisor::{Config, FontServer, Spawner};
 use laminapdf_desktop_sandbox::{BackgroundFonts, SandboxConfig, SandboxSpawner};
@@ -79,15 +80,20 @@ fn engine_program() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from(name))
 }
 
-/// The engine's arguments: the PDFium folder among the app's resources, when it is there.
+/// The engine's arguments: the PDFium folder among the app's resources, when it is there, and
+/// the crash-dump server's socket, when it runs.
 fn engine_args(app: &tauri::AppHandle) -> Vec<OsString> {
-    match app.path().resource_dir().map(|dir| dir.join("pdfium")) {
+    let mut args = match app.path().resource_dir().map(|dir| dir.join("pdfium")) {
         Ok(dir) if dir.is_dir() => vec!["--pdfium".into(), dir.into_os_string()],
         _ => {
             tracing::warn!("PDFium is not among the app's resources; pages won't render");
             Vec::new()
         }
+    };
+    if let Some(dumps) = app.try_state::<crash::EngineDumps>() {
+        args.extend(dumps.engine_args());
     }
+    args
 }
 
 /// Sends engine events to the one window they concern.
@@ -101,10 +107,14 @@ impl Notify for WindowEvents {
         }
     }
 
-    fn crashed(&self, window: &str, crash: crash::Crash) {
-        // Off the supervisor's thread: writing the report mustn't hold up the engine's restart.
+    fn crashed(&self, window: &str, pid: u32, mut crash: crash::Crash) {
+        // Off the supervisor's thread: waiting for the engine's minidump and writing the report
+        // mustn't hold up the engine's restart.
         let (app, window) = (self.0.clone(), window.to_owned());
         tauri::async_runtime::spawn_blocking(move || {
+            if let Some(dumps) = app.try_state::<crash::EngineDumps>() {
+                crash.native = dumps.crashes.take_for_report(pid);
+            }
             if let Some(reports) = app.try_state::<Arc<crash::CrashReports>>() {
                 reports.record(&app, Some(&window), crash);
             }
@@ -153,15 +163,17 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         tracing::warn!("could not set the app's ID: {error}");
     }
     let config = app.path().app_config_dir()?;
-    // Crash reports first, so a panic in the rest of the start-up leaves one.
-    let crashes = crash::CrashReports::new(
-        &config,
-        &app.path().app_data_dir()?,
-        &app.package_info().version.to_string(),
-    );
+    let data = app.path().app_data_dir()?;
+    // Crash reports first, so a panic in the rest of the start-up leaves one; then the native
+    // crashes' monitor (the main process's) and dump server (the engines'), before any engine.
+    let crashes = crash::CrashReports::new(&config, &data, &app.package_info().version.to_string());
     crash::report_panics(&crashes);
     crashes.resume();
     app.manage(crashes);
+    crash::capture_main(&data);
+    if let Some(dumps) = crash::EngineDumps::start(&data) {
+        app.manage(dumps);
+    }
     app.manage(prefs::Prefs::load(config.join("preferences.json")));
     app.manage(recent::RecentFiles::load(config.join("recent.json")));
     app.manage(engines(app.handle()));

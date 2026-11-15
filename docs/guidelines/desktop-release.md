@@ -1,6 +1,6 @@
 # Desktop release and signing runbook
 
-This runbook tells the owner how to set up and look after the identities that sign Lamina PDF's desktop app, and tells the release workflows which secrets they may use. The owner signs every tagged release personally, as the publisher, on macOS, Windows and Linux ([architecture §8 Q5](../plans/architecture.md#8-open-questions-for-the-team), decided 2026-10-28). Sections 1 and 2 are the setup, section 3 checks each release, sections 4 and 5 cover what happens later, and section 6 cuts a release. Todo [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md) wrote it; [D6b](../todos/done/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/ready/D6c-macos-signing-and-notarisation.md) and [D6d](../todos/ready/D6d-windows-signing.md) wire it into the workflows.
+This runbook tells the owner how to set up and look after the identities that sign Lamina PDF's desktop app, and tells the release workflows which secrets they may use. The owner signs every tagged release personally, as the publisher, on macOS, Windows and Linux ([architecture §8 Q5](../plans/architecture.md#8-open-questions-for-the-team), decided 2026-10-28). Sections 1 and 2 are the setup, section 3 checks each release, sections 4 and 5 cover what happens later, section 6 cuts a release, and section 7 archives each release's crash symbols and reads a crash report with them. Todo [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md) wrote it; [D6b](../todos/done/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/ready/D6c-macos-signing-and-notarisation.md) and [D6d](../todos/ready/D6d-windows-signing.md) wire it into the workflows.
 
 **Never write a secret value, private key, certificate file or recovery code into this repository**, a pull request, an issue or a screenshot. This page names secrets; it never holds them.
 
@@ -146,6 +146,7 @@ D5b's updater tests run in `desktop-staging` on every push to `main` and every n
 ### 1.11 Cloudflare
 
 - [x] Confirm the R2 buckets `lamina-pdf-releases`, `lamina-pdf-nightly` and `lamina-pdf-staging` and their download domains exist (D5a). The staging bucket and the `desktop-staging` environment in §2 serve D5b's updater tests and D6b–D6d's trial runs; they hold only a throwaway updater key and that bucket's token, so nothing in them can reach a user's install.
+- [ ] Create the private symbols bucket `lamina-pdf-symbols` and its two tokens (§7.3).
 - [x] Confirm each token is scoped to one bucket only, stored as in §2. The staging bucket has two separate tokens: one in `desktop-release`, for D6b–D6d's signed trial runs, and one in `desktop-staging`, for D5b's tests.
 
 ## 2. Secrets inventory
@@ -171,6 +172,8 @@ Every secret is an **environment** secret; the repository level holds none. "Rea
 | `CLOUDFLARE_API_TOKEN` | `desktop-release` | write to `lamina-pdf-releases` only | `Lamina PDF / Cloudflare R2 release` | publish job (D6b) | yearly |
 | `R2_ACCESS_KEY_ID` | `desktop-release` | that token's S3 Access Key ID (R2's S3 API; the secret is the token's SHA-256) | `Lamina PDF / Cloudflare R2 release` | same | with the token |
 | `CLOUDFLARE_ACCOUNT_ID` | `desktop-release` | Cloudflare account | `Lamina PDF / Cloudflare R2 release` | same | never |
+| `SYMBOLS_R2_TOKEN` | `desktop-release` | write to the private `lamina-pdf-symbols` only (§7.3) | `Lamina PDF / Cloudflare R2 symbols` | `archive-symbols` job (D7d), tag pushes only | yearly |
+| `SYMBOLS_R2_ACCESS_KEY_ID` | `desktop-release` | that token's S3 Access Key ID | `Lamina PDF / Cloudflare R2 symbols` | same | with the token |
 | `CLOUDFLARE_STAGING_R2_TOKEN` | `desktop-release` | write to `lamina-pdf-staging`, for signed staging dispatch runs | `Lamina PDF / Cloudflare R2 staging` | D6b–D6d staging runs | yearly |
 | `STAGING_R2_ACCESS_KEY_ID` | `desktop-release` | that token's S3 Access Key ID | `Lamina PDF / Cloudflare R2 staging` | same | with the token |
 | `TAURI_SIGNING_PRIVATE_KEY` | `desktop-nightly` | nightly-only updater key (D5a) | `Lamina PDF / updater key (nightly)` | nightly bundle jobs | only on compromise |
@@ -330,6 +333,64 @@ Every beta install now offers the release.
 ### Promote, roll out, pause
 
 Stable releases come from beta. Promote a beta release to stable at 1 %, then raise the rollout, and pause at once if something goes wrong. The update service's README has the commands and the rules for each step: [Operations](../../apps/updates/README.md#operations).
+
+## 7. Crash symbols
+
+A native crash report names its frames by module and offset only, so each tagged release archives the debug symbols that turn those offsets back into function names and source lines. The app processes a crash's minidump on the user's computer and uploads only the frames and the modules' debug IDs ([D7d](../todos/ongoing/D7d-native-crash-minidumps-and-symbols.md)). The symbols stay in a private bucket, because they describe the app's code rather than anyone's documents, and only maintainers read them.
+
+### 7.1 What each release archives
+
+Every build leg writes the symbols of the app's two binaries, the main process (`laminapdf-desktop`) and the engine sidecar (`laminapdf-desktop-engine`), with `.github/actions/desktop-build/symbols.sh`. PDFium has none: it is a prebuilt third-party library built without our symbols, so its frames print as module and offset.
+
+The release build keeps line tables (`CARGO_PROFILE_RELEASE_DEBUG=line-tables-only`): function names, source lines and inlined calls, at a fraction of full debug information's size. The shipped binaries still carry none of it, because each OS moves it out:
+
+| OS | Debug information | How it leaves the binary |
+| --- | --- | --- |
+| macOS | a dSYM bundle | `split-debuginfo = packed`: rustc runs `dsymutil`, then strips the binary |
+| Windows | a PDB | the linker writes it beside the executable |
+| Linux | DWARF in the binary | `symbols.sh`, which the Tauri CLI runs before it bundles: `objcopy --only-keep-debug` into a `.debug` file, then `objcopy --strip-all` with a debug link |
+
+Mozilla's `dump_syms` (MIT OR Apache-2.0, pinned with its checksums in `.github/actions/dump-syms`, version in `tools/xtask/src/doctor.rs`) turns each into a Breakpad `.sym` file. Each leg uploads them as the workflow artifact `symbols-desktop-<platform>-<mode>`, apart from the files that are attested and published. Dry runs make them too, so a pull request that changes the build shows whether the symbols still come out.
+
+### 7.2 The bucket's layout and retention
+
+The `archive-symbols` job uploads a tagged release's symbols to `lamina-pdf-symbols` in Breakpad's layout, which rust-minidump's symbol suppliers read:
+
+```text
+<debug file>/<debug ID>/<debug file without .pdb>.sym
+<debug file>/<debug ID>/<raw debug file>
+```
+
+The debug file is the binary's name on macOS and Linux (`laminapdf-desktop-engine`) and the PDB's on Windows (`laminapdf_desktop_engine.pdb`). Beside each `.sym` file sits the raw debug file it came from: `<binary>.dSYM.tar.gz`, the `.pdb`, or `<binary>.debug`. They let a maintainer run a newer `dump_syms` later, or open a debugger on a crash they reproduce.
+
+Only a `desktop-v*` tag push archives anything. Nightlies would add a set every day, and staging trials never reach a user's install. Until macOS and Windows are signed, `plan` refuses a tag (§6), so the first archive comes with the first tagged release. Keep every release's symbols for as long as any install of it can still send a report: so the bucket gets no lifecycle rule. The job's summary lists each file it uploads with its size.
+
+### 7.3 Owner setup
+
+The job needs one bucket and two tokens. Without them it uploads nothing, leaves a notice in the run, and the release still publishes.
+
+- [ ] In Cloudflare R2, create the bucket `lamina-pdf-symbols`. Leave it private: no public access, no custom domain, no `r2.dev` address.
+- [ ] Create an R2 API token with Object Read & Write on `lamina-pdf-symbols` only. Store its value as `SYMBOLS_R2_TOKEN` and its Access Key ID as `SYMBOLS_R2_ACCESS_KEY_ID` in the `desktop-release` environment (§2). The job reads the account from the environment's `CLOUDFLARE_ACCOUNT_ID`.
+- [ ] Give each maintainer who reads crash reports a Cloudflare account on Lamina PDF's account with read access to R2. `wrangler login` then gives their Wrangler access. Wrangler's `r2 object` commands call Cloudflare's REST API, which a token scoped to one bucket can't use. A maintainer who prefers a token creates an account API token with the Workers R2 Storage Read permission and sets it as `CLOUDFLARE_API_TOKEN` in their own shell.
+
+### 7.4 Symbolicating a crash report
+
+Save the report's JSON, as the crash reports bucket holds it, and run:
+
+```sh
+cargo xtask crash symbolicate report.json
+```
+
+The command reads the report's `native` object. For each module a frame names, it fetches the module's `.sym` file from `lamina-pdf-symbols` with the repository's Wrangler (`wrangler r2 object get … --remote`, under your own login) into `target/crash-symbols/`, which later runs reuse. It then prints the crash reason and one line per frame, innermost first:
+
+```text
+Crash reason: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS
+#0 laminapdf-desktop-engine engine::draw (crates/…/render.rs:30) [inlined]
+#0 laminapdf-desktop-engine engine::render (crates/…/render.rs:12)
+#1 libpdfium.dylib FPDF_LoadPage +0x4d2
+```
+
+A function inlined into a frame gets a line of its own, marked `[inlined]`, above the frame it was inlined into. A frame whose module has no symbols, such as PDFium's or the OS's, prints its module and offset, with any name the app found on the computer. To read symbols from a folder in the same layout instead of the bucket, for example a dry run's `symbols-desktop-*` artifact, add `--symbols <dir>`.
 
 ## Sources
 

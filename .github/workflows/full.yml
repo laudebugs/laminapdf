@@ -336,11 +336,13 @@ jobs:
               exit 1
             fi
           done
-          # The engine obeys the tests' forced panic only when built for them (desktop-sidecar --e2e).
-          if grep -aq DebugPanic "target/debug/laminapdf-desktop-engine$exe"; then
-            echo "::error::the engine holds DebugPanic without its e2e feature"
-            exit 1
-          fi
+          # The engine obeys the tests' forced panic and fault only when built for them (desktop-sidecar --e2e).
+          for name in DebugPanic DebugSegv; do
+            if grep -aq "$name" "target/debug/laminapdf-desktop-engine$exe"; then
+              echo "::error::the engine holds $name without its e2e feature"
+              exit 1
+            fi
+          done
           if grep -rlq -e __laminaE2e -e __wdio apps/desktop/dist; then
             echo "::error::the frontend bundle holds the e2e probe or WebdriverIO's plugin"
             exit 1

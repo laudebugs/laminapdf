@@ -15,6 +15,8 @@
 #   attest         build provenance and SBOM attestations for every file (public repository only)
 #   publish-*      the files to R2 under releases/<version>/<platform>/, the channel's manifest
 #                  (apps/updates/scripts/manifest.ts), then the update Worker asked for each platform
+#   archive-symbols  tags only: each build's Breakpad symbols to the private R2 bucket
+#                  lamina-pdf-symbols, for `cargo xtask crash symbolicate` (todo D7d)
 #
 # Each build job reads only its environment's secrets, and no job in `desktop-nightly` may name an
 # APPLE_*, AZURE_* or LINUX_SIGNING_* secret (tools/xtask/src/workflows/desktop_release.rs checks it).
@@ -53,6 +55,7 @@ on:
     paths:
       - .github/workflows/desktop-release.yml
       - .github/actions/desktop-build/**
+      - .github/actions/dump-syms/**
       - .github/actions/desktop-publish/**
       - apps/desktop/src-tauri/tauri*.conf.json
       - apps/updates/scripts/edits.ts
@@ -318,3 +321,64 @@ jobs:
           version: ${{ needs.plan.outputs.version }}
           downloads: ${{ needs.plan.outputs.downloads }}
           mode: tag
+
+  # The Breakpad symbols of a tagged release's builds (todo D7d; docs/guidelines/desktop-release.md
+  # §7) into the private bucket lamina-pdf-symbols, which `cargo xtask crash symbolicate` reads.
+  # Only a tag push: nightlies would add a set every day, and staging trials reach no user's install.
+  # It waits for what publish-release waits for, so the owner approves both at once. Without the
+  # bucket's token it uploads nothing and says so; it never fails the release for that.
+  archive-symbols:
+    name: Archive the symbols
+    needs: [plan, build-release, attest]
+    if: >-
+      !cancelled() && needs.plan.outputs.environment == 'desktop-release' && needs.build-release.result == 'success'
+      && (needs.attest.result == 'success' || needs.attest.result == 'skipped')
+      && github.event_name == 'push' && github.ref_type == 'tag'
+    environment: desktop-release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # The symbols bucket's own token, under the names apps/updates/scripts/r2.ts reads for a bucket
+    # other than staging's; this job holds no other bucket's.
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.SYMBOLS_R2_TOKEN }}
+      R2_ACCESS_KEY_ID: ${{ secrets.SYMBOLS_R2_ACCESS_KEY_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Whether the symbols bucket's token is set
+        id: token
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$R2_ACCESS_KEY_ID" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "set=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::desktop-release has no token for lamina-pdf-symbols (runbook §7.3): this release's symbols are not archived"
+            echo "set=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v7.0.1
+        if: steps.token.outputs.set == 'true'
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/node-pnpm
+        if: steps.token.outputs.set == 'true'
+      # Each artifact holds <debug file>/<debug ID>/ folders, the bucket's layout, so they merge.
+      - uses: actions/download-artifact@v8.0.2
+        if: steps.token.outputs.set == 'true'
+        with:
+          pattern: symbols-desktop-*-tag
+          path: ${{ runner.temp }}/symbols
+          merge-multiple: true
+      - name: Upload the symbols
+        if: steps.token.outputs.set == 'true'
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/symbols"
+          {
+            echo "## Symbols archived in lamina-pdf-symbols"
+            echo
+            echo "| Key | Size |"
+            echo "| --- | ---: |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          find . -type f | sed 's|^\./||' | sort | while read -r key; do
+            case "$key" in *.sym) type=text/plain ;; *.tar.gz) type=application/gzip ;; *) type=application/octet-stream ;; esac
+            pnpm --filter @laminapdf/updates r2 put lamina-pdf-symbols "$key" "$RUNNER_TEMP/symbols/$key" --content-type "$type"
+            echo "| \`$key\` | $(wc -c < "$key" | tr -d ' ') B |" >> "$GITHUB_STEP_SUMMARY"
+          done

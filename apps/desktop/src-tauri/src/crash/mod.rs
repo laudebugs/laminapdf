@@ -12,10 +12,13 @@
 //!   ask: a notice in its status bar, not a dialog, since the engine has already restarted.
 //! - **The webview's uncaught errors**: `report_ui_error`, with the stack parsed here, in Rust.
 //!
-//! Native crashes, without a panic, report only how the engine ended: minidumps come later.
+//! - **Native crashes** (D7d, [`native`]): a minidump, written by another process and read here
+//!   into the report's `native` part, then deleted; never sent itself. An engine's joins its
+//!   `Crashed` by pid; the main process's waits for the next launch.
 
 pub(crate) mod commands;
 mod consent;
+mod native;
 mod queue;
 mod report;
 mod scrub;
@@ -31,6 +34,8 @@ use serde::Serialize;
 use tauri::{Emitter as _, EventTarget};
 
 use self::consent::{ConsentState, ConsentStore};
+pub use self::native::monitor_main;
+pub(crate) use self::native::{EngineDumps, capture_main};
 use self::queue::{Queue, Shelf};
 use self::report::{AppFacts, Report, ReportChannel};
 pub(crate) use self::report::{Crash, ProcessKind};
@@ -68,13 +73,14 @@ pub(crate) struct CrashReports {
 
 impl CrashReports {
     /// The reports of the app of `version`, its consent in `config_dir`, its reports in
-    /// `data_dir/crashes`; reports past their age go now.
+    /// `data_dir/crashes`; reports past their age go now. A native crash of the main process in
+    /// an earlier run, which left only its minidump, becomes a report now, as its panic would have.
     pub(crate) fn new(config_dir: &Path, data_dir: &Path, version: &str) -> Arc<Self> {
         let queue = Queue::new(data_dir.join("crashes"));
         let now = std::time::SystemTime::now();
         queue.prune(Shelf::Held, now);
         queue.prune(Shelf::Outbox, now);
-        Arc::new(Self {
+        let reports = Arc::new(Self {
             consent: ConsentStore::load(config_dir.join("crash.json")),
             queue,
             facts: AppFacts {
@@ -86,7 +92,14 @@ impl CrashReports {
             endpoint: endpoint(),
             sending: AtomicBool::new(false),
             webview_reports: AtomicU32::new(0),
-        })
+        });
+        for native in native::leftover_main_crashes(data_dir) {
+            let shelf = Shelf::for_consent(reports.consent.get());
+            if let Err(error) = reports.queue.put(shelf, &reports.build(Crash::main_native(native))) {
+                tracing::warn!("could not keep a crash report: {error}");
+            }
+        }
+        reports
     }
 
     fn build(&self, crash: Crash) -> Report {
@@ -149,9 +162,11 @@ impl CrashReports {
         }
     }
 
-    /// A report as this app would send one, for "See a sample report".
+    /// A report as this app would send one, for "See a sample report": an engine's native crash,
+    /// with the stack its minidump gives.
     pub(crate) fn sample(&self) -> String {
-        let crash = Crash::engine_exit("crash: signal: 11 (SIGSEGV)".into(), None);
+        let mut crash = Crash::engine_exit("crash: signal: 11 (SIGSEGV)".into(), None);
+        crash.native = Some(native::sample());
         serde_json::to_string_pretty(&self.build(crash)).unwrap_or_default()
     }
 
@@ -198,6 +213,8 @@ pub(crate) fn report_panics(reports: &Arc<CrashReports>) {
     }
     let previous = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
+        // This report is the crash's: the abort a panic may end in asks the monitor for no dump.
+        native::skip_main_dumps();
         if let Some(reports) = FOR_PANICS.get() {
             let crash = Crash::panic(ProcessKind::Main, summarize(info, "laminapdf-desktop"), None);
             // A panic while the consent is being changed counts as not yet allowed.
@@ -244,6 +261,7 @@ fn endpoint() -> String {
 #[cfg(test)]
 mod tests {
     use laminapdf_desktop_protocol::crash::{NativeFrame, PanicSummary, SourceLocation};
+    use laminapdf_desktop_sandbox::capture::summary::{DumpFrame, DumpModule, DumpSummary};
 
     use super::*;
 
@@ -279,7 +297,25 @@ mod tests {
             }],
         };
         let stack = format!("draw@file://{path}:1:2\nat x (C:\\Users\\ana\\{FOLDER}\\{NAME}.js:3:4)");
+        let dump = DumpSummary {
+            pid: Some(7),
+            crash_reason: format!("SIGSEGV reading {path}"),
+            frames: vec![DumpFrame {
+                module: format!("/Users/ana/{FOLDER}/lib.so"),
+                offset: 1,
+                function: Some(format!("open::<{path}> {CONTENT}")),
+            }],
+            modules: vec![DumpModule {
+                name: format!("/Users/ana/{FOLDER}/{NAME}.dylib"),
+                version: Some(format!("1.0/{FOLDER}")),
+                debug_id: "5887580E1F1A3CE2BEAB358DCFAA73030".into(),
+            }],
+        };
+        let mut engine_segv = Crash::engine_exit("crash: signal: 11 (SIGSEGV)".into(), None);
+        engine_segv.native = Some(native::allow_list(&dump));
         vec![
+            Crash::main_native(native::allow_list(&dump)),
+            engine_segv,
             Crash::panic(ProcessKind::Main, summary.clone(), None),
             Crash::panic(ProcessKind::Engine, summary, None),
             Crash::engine_exit(format!("crash: {path}"), None),

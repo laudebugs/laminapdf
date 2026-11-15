@@ -41,7 +41,8 @@ tauri-build = { workspace = true }
 image-webp = { workspace = true }
 laminapdf-desktop-protocol = { workspace = true }
 # Starts each engine inside its sandbox; its lock-down half (feature `engine`) is the engine's.
-laminapdf-desktop-sandbox = { workspace = true }
+# `summary`: native crashes' minidumps read on this computer into the report (D7d).
+laminapdf-desktop-sandbox = { workspace = true, features = ["summary"] }
 # The OS's recent-documents lists and Windows' app ID: the FFI lives there, not here.
 laminapdf-desktop-os = { workspace = true }
 # Crash reports (D7a): the OS version, the scrubber, and the upload over the updater's client.

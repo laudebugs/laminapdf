@@ -184,6 +184,23 @@ rustls = { version = "0.23.46", default-features = false, features = ["ring"] }
 os_info = { version = "3.15.0", default-features = false }
 # The crash reporter's scrubber (D7a). MIT OR Apache-2.0.
 regex = "1.13.1"
+# Native crash capture (D7d), in laminapdf-desktop-sandbox: a crashing process asks another one,
+# unsandboxed, to write its minidump (minidumper's server and client), from the crash handler
+# crash-handler installs (signals, Mach exceptions, Windows exceptions). Embark, MIT OR Apache-2.0
+# (their dependencies, crash-context, minidump-writer, polling, uds, scroll, goblin and others:
+# licences cargo-deny allows).
+crash-handler = { version = "=0.8.1", default-features = false }
+minidumper = { version = "=0.11.0", default-features = false }
+# Reading a minidump on the computer (D7d, the desktop's main process only): the crashing thread's
+# frames and the loaded modules, never the raw dump. rust-minidump, MIT. No default features: no
+# symbol server client (`http`), no disassembler; symbols are looked up only by maintainers
+# (`cargo xtask crash symbolicate`).
+minidump = { version = "=0.27.0", default-features = false }
+minidump-processor = { version = "=0.27.0", default-features = false }
+minidump-unwind = { version = "=0.27.0", default-features = false }
+# Breakpad symbol files read by `cargo xtask crash symbolicate` (D7d), xtask only: a report's native
+# frames looked up in the symbols the desktop release archives. rust-minidump, MIT; no `http`.
+breakpad-symbols = { version = "=0.27.0", default-features = false }
 # The desktop reader's anonymous install ID (ADR 0014 §3): a random UUID v4. MIT OR Apache-2.0.
 uuid = { version = "1.29.0", default-features = false, features = ["std", "v4"] }
 muda = { version = "=0.20.0", default-features = false }  # MIT OR Apache-2.0; Tauri's menus (the desktop app's tests)
