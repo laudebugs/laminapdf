@@ -220,12 +220,12 @@ Ticked by the PR that completes them.
 
 ### D6. Signing, packaging and release pipeline
 
-- [ ] Release workflow with tauri-action matrix (macOS arm64/x64, Windows x64/arm64, Linux x64/arm64)
+- [x] Release workflow with tauri-action matrix (macOS arm64/x64, Windows x64/arm64, Linux x64/arm64) (the Tauri CLI itself, [D6b](../todos/ongoing/D6b-release-workflow-and-linux-packages.md))
 - [ ] Apple Developer ID signing, notarisation and stapling
 - [x] Owner confirms Windows Artifact Signing individual eligibility (US/Canada only); otherwise obtain an OV certificate in a cloud HSM (confirmed eligible 2026-11-12, [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md))
 - [ ] Windows signing via `signCommand` (Artifact Signing or the OV certificate); MSI and NSIS outputs
-- [ ] Linux AppImage (updater) and deb; rpm if the matrix allows
-- [ ] Upload to R2 with `.sig` files and GitHub attestations; update channel manifests
+- [x] Linux AppImage (updater) and deb; rpm if the matrix allows (all three, signed; [D6b](../todos/ongoing/D6b-release-workflow-and-linux-packages.md))
+- [x] Upload to R2 with `.sig` files and GitHub attestations; update channel manifests ([D6b](../todos/ongoing/D6b-release-workflow-and-linux-packages.md))
 - [ ] Verify installs on clean VMs (Gatekeeper, Windows signature and publisher, SmartScreen behaviour recorded, Linux signature checks)
 
 ### D7. Crash reporting and beta

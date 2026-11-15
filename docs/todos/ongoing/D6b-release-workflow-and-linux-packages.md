@@ -110,6 +110,18 @@ The workflow is new, so `schedule` and `workflow_dispatch` can't run it until it
 - **Secret exposure in PR workflows**: the release workflow must never run on `pull_request` from forks; the `desktop-release` environment's reviewer gate protects production secrets; the `desktop-nightly` environment is limited to `main` and holds nothing that can sign as the owner or reach beta/stable installs.
 - **Nightly UX without OS signing**: Gatekeeper/SmartScreen warnings on every nightly install; acceptable for a testers-only channel — revisit if nightly users grow (would need a reviewer-free path to OS signing, which this design deliberately avoids).
 
+## Decided while building it
+
+- **The Tauri CLI, not `tauri-action`.** The workflow runs `tauri build` itself (`.github/actions/desktop-build`). `tauri-action` adds GitHub Release creation, which this workflow doesn't use, and it would be one more third-party action holding the signing keys.
+- **Per-architecture macOS builds, not universal**, on `macos-15` and `macos-15-intel`: a universal build doubles the engine and PDFium, which the 15 MB budget can't hold.
+- **Windows on `windows-2025` and `windows-11-arm`**, as the CLI's release uses; PDFium's Windows arm64 build is pinned beside the others (`tools/xtask/src/pdfium.rs`).
+- **Three build jobs** (`build-dry-run`, `build-nightly`, `build-release`), each with a fixed environment, instead of one job whose environment is an expression. Each job's secrets are then visible in the file, so a test can check that no `desktop-nightly` job names an `APPLE_*`, `AZURE_*` or `LINUX_SIGNING_*` secret (`tools/xtask/src/workflows/desktop_release.rs`).
+- **SBOMs in each build**, not a separate job: they depend on the target. The app's and the engine's come from cargo-cyclonedx for that target, the frontend's from `pnpm sbom`. The notices come before the build, since the bundle carries them.
+- **Bundle targets in `tauri.{macos,windows,linux}.conf.json`**, which Tauri merges for each OS, instead of per-OS lists in `tauri.conf.json`, which has one list for every OS.
+- **Help ▸ View licences opens `THIRD_PARTY_NOTICES.txt` in the OS's text viewer.** A `.txt` opens everywhere; a `.md` has no default viewer on Windows.
+- **The pull-request dry run follows the release files only** (the workflow, its actions, the Tauri configs, the plan and notices code, the manifest tool's publish code). The app's own changes are built on every OS by `full.yml`'s desktop job, and every night by the schedule; seven release builds on every desktop PR would cost more than they find.
+- **Tags publish to beta at 100 %**; stable comes from `manifest promote`, which starts at 1 % (ADR 0014 §2).
+
 ## Definition of done
 
 - [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started

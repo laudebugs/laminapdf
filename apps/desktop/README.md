@@ -142,6 +142,16 @@ The app updates itself from the update Worker (`apps/updates`, [ADR 0014](../../
 
 A development build checks the production Worker's beta channel, which offers nothing to a version newer than every release. Testing an update end to end, with a local Worker and a throwaway key, is D5c's workflow.
 
+### Releases
+
+`.github/workflows/desktop-release.yml` builds and publishes the app: nightlies every night, staging trials by hand, and beta releases from `desktop-v*` tags. The release runbook, [Cutting a release](../../docs/guidelines/desktop-release.md#6-cutting-a-release), has the steps. Release builds add three configs to `tauri.bundle.conf.json`:
+
+- `tauri.release.conf.json` bundles the third-party notices (`cargo xtask desktop-notices --bundle`: the Rust crates, the npm packages and the fonts), which Help › View licences opens in the OS's text viewer. A development build bundles none, so the item does nothing there.
+- `tauri.nightly.conf.json` puts the nightly updater key in nightlies, so they update only to nightlies.
+- A config the workflow writes sets the version and turns on the updater's bundles.
+
+`tauri.macos.conf.json`, `tauri.windows.conf.json` and `tauri.linux.conf.json` name each OS's bundles, which Tauri merges on its own: the `.dmg`, NSIS and MSI, the AppImage, `.deb` and `.rpm`.
+
 ## How it fits together
 
 ```text
