@@ -1,25 +1,26 @@
-// Switches of look (theme, accent, page appearance, density) apply without transitions (design
-// language §7.0, motion plan §3, 5): for one frame around the switch, the root carries
-// `data-motion-suppressed`, which base.css reads to turn every transition off, so nothing fades
-// from the old colours to the new.
+// Switches of look (theme, accent, page appearance, density, direction) apply without transitions
+// (design language §7.0, motion plan §3, 5): the root carries `data-motion-suppressed` from the
+// switch until the frame after the switch draws, and base.css turns every transition off under
+// it, so nothing fades from the old colours to the new.
 
 /**
- * Turns transitions off on `root` until the frame after the next, around a switch of look made
- * now. Calling it again before then extends the window.
+ * Turns transitions off on `root` (the document element when left out) around a switch of look
+ * made now, until two animation frames have passed: the switch's styles apply in the first, and
+ * transitions may start from the second. Calling it again before then extends the window. Without
+ * a document or a window nothing draws, so it does nothing.
  */
-export function suppressMotion(root: HTMLElement = document.documentElement): void {
-  // Without a window nothing draws, so nothing could transition: leave the root alone.
-  const view = root.ownerDocument.defaultView;
-  if (view === null) return;
-  root.setAttribute("data-motion-suppressed", "");
-  // Two frames: the switch's styles apply in the first, and transitions start from the second.
+export function suppressMotion(root?: HTMLElement): void {
+  const target = root ?? (typeof document === "undefined" ? undefined : document.documentElement);
+  const view = target?.ownerDocument.defaultView;
+  if (target === undefined || view == null) return;
+  target.setAttribute("data-motion-suppressed", "");
   const token = Symbol();
-  pending.set(root, token);
+  pending.set(target, token);
   view.requestAnimationFrame(() =>
     view.requestAnimationFrame(() => {
-      if (pending.get(root) !== token) return;
-      pending.delete(root);
-      root.removeAttribute("data-motion-suppressed");
+      if (pending.get(target) !== token) return;
+      pending.delete(target);
+      target.removeAttribute("data-motion-suppressed");
     }),
   );
 }

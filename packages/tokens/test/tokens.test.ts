@@ -13,7 +13,7 @@ import {
   resolve,
   themeContext,
 } from "../scripts/model.ts";
-import { ANNOTATION_COLOURS, cssVar, THEMES } from "../src/index.ts";
+import { ANNOTATION_COLOURS, CURSOR, cssVar, EASING, MOTION, THEMES } from "../src/index.ts";
 import { loadTokens, readRepo } from "./helpers.ts";
 
 const tokens = loadTokens();
@@ -143,6 +143,36 @@ describe("generated output", () => {
       expect(css).toContain(`  :where(:root:not([data-theme])[data-accent="${accent}"]) {`);
     }
     expect(css).toContain("@media (forced-colors: active) {");
+  });
+
+  it("declares the motion, easing and cursor tokens once, at the root, for every theme", () => {
+    for (const name of ["duration-state-in", "ease-standard", "cursor-action", "motion-scale"]) {
+      expect(css.match(new RegExp(`--paper-${name}:`, "g"))?.length, name).toBeGreaterThanOrEqual(1);
+    }
+    expect(css).toContain("--paper-ease-enter: cubic-bezier(0, 0, 0.2, 1);");
+    expect(css).toContain("--paper-cursor-action: pointer;");
+  });
+
+  it("gives the reduced-motion values under the system preference and under Settings alike", () => {
+    const block = (opening: string) => {
+      const start = css.indexOf(opening);
+      return css.slice(start, css.indexOf("}", start));
+    };
+    for (const opening of ["@media (prefers-reduced-motion: reduce) {", ':where([data-motion="reduce"]) {']) {
+      const decls = block(opening);
+      expect(decls, opening).toContain("--paper-motion-scale: 1;");
+      expect(decls, opening).toContain("--paper-motion-travel: 0;");
+      expect(decls, opening).toContain("--paper-duration-progress-cycle: 0ms;");
+      // Fades stay: a state duration keeps its value.
+      expect(decls, opening).not.toContain("--paper-duration-state-in");
+    }
+  });
+
+  it("types the motion constants", () => {
+    expect(MOTION["state-in"]).toBe(80);
+    expect(MOTION["motion-scale"]).toBe(0.97);
+    expect(EASING.standard).toBe("cubic-bezier(0.2, 0, 0, 1)");
+    expect(CURSOR.disabled).toBe("default");
   });
 
   it("types the constants and the CSS reference", () => {
