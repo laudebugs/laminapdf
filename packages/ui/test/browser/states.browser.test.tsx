@@ -35,10 +35,12 @@ const pressDown = async (el: HTMLElement) => {
 };
 /** A computed colour as linear-ready sRGB channels and alpha, from rgb(), rgba() or color(srgb …). */
 const channels = (css: string): [number, number, number, number] => {
-  const srgb = css.match(/color\(srgb ([\d.]+) ([\d.]+) ([\d.]+)(?: \/ ([\d.]+))?\)/);
+  const num = String.raw`(\d*\.?\d+(?:e-?\d+)?)`;
+  const srgb = css.match(new RegExp(String.raw`^color\(srgb ${num} ${num} ${num}(?: / ${num})?\)$`));
   if (srgb) return [Number(srgb[1]), Number(srgb[2]), Number(srgb[3]), Number(srgb[4] ?? 1)];
-  const [r = 0, g = 0, b = 0, a = 1] = (css.match(/[\d.]+/g) ?? []).map(Number);
-  return [r / 255, g / 255, b / 255, a];
+  const rgb = css.match(new RegExp(String.raw`^rgba?\(${num}, ${num}, ${num}(?:, ${num})?\)$`));
+  if (rgb) return [Number(rgb[1]) / 255, Number(rgb[2]) / 255, Number(rgb[3]) / 255, Number(rgb[4] ?? 1)];
+  throw new Error(`a colour this test can't read: ${css}`);
 };
 /** WCAG contrast of `el`'s text on its fill with the state layer composited over it. */
 const contrast = (el: HTMLElement) => {
@@ -162,25 +164,30 @@ describe("hover and press", () => {
 });
 
 describe("contrast of the state fills", () => {
+  const accents = ["teal", "blue", "plum", "green"] as const;
   for (const theme of ["light", "dark"] as const) {
-    it(`keeps every label at 4.5:1 or more when hovered and pressed, in the ${theme} theme`, async () => {
+    it(`keeps every label at 4.5:1 or more when hovered and pressed, in the ${theme} theme, every accent`, async () => {
       instant();
-      const host = renderIn(
-        <>
-          <Button variant="primary">Save</Button>
-          <Button variant="danger-filled">Delete</Button>
-          <ToggleButton isSelected>Sidebar</ToggleButton>
-          <Button variant="secondary">Open</Button>
-        </>,
-        { theme },
-      );
-      for (const button of host.querySelectorAll("button")) {
-        await userEvent.hover(button);
-        expect(contrast(button), `${button.innerText} hovered`).toBeGreaterThanOrEqual(4.5);
-        const lift = await pressDown(button);
-        expect(contrast(button), `${button.innerText} pressed`).toBeGreaterThanOrEqual(4.5);
-        await lift();
-        await userEvent.unhover(button);
+      for (const accent of accents) {
+        const host = renderIn(
+          <>
+            <Button variant="primary">Save</Button>
+            <Button variant="danger-filled">Delete</Button>
+            <ToggleButton isSelected>Sidebar</ToggleButton>
+            <Button variant="secondary">Open</Button>
+          </>,
+          { theme },
+        );
+        host.dataset.accent = accent;
+        for (const button of host.querySelectorAll("button")) {
+          const label = `${accent} ${button.innerText}`;
+          await userEvent.hover(button);
+          expect(contrast(button), `${label} hovered`).toBeGreaterThanOrEqual(4.5);
+          const lift = await pressDown(button);
+          expect(contrast(button), `${label} pressed`).toBeGreaterThanOrEqual(4.5);
+          await lift();
+          await userEvent.unhover(button);
+        }
       }
     });
   }

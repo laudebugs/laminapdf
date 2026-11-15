@@ -52,7 +52,7 @@
 
   /* The focused item's tint marks the item under the pointer too (no hover layer, states.css). It
      moves with keyboard focus, so it appears at once: only the press layer changes. */
-  .paper-menu-item {
+  .paper-menu-item:not([data-pressed]) {
     transition-property: --ui-state-layer;
   }
 

@@ -138,7 +138,7 @@
 
   /* As in a menu: the active row's tint marks the row under the pointer and moves at once with
      the arrow keys; only the press layer changes. */
-  .paper-palette-row {
+  .paper-palette-row:not([data-pressed]) {
     transition-property: --ui-state-layer;
   }
 
