@@ -22,16 +22,26 @@ export function reducesMotion(choice: Motion, system: boolean | null): boolean {
 /**
  * Sets `data-motion` on the document's root from `choice` and the system's setting, which the main
  * process reads at start and whenever the window comes to the front (GNOME's setting may have
- * changed meanwhile).
+ * changed meanwhile). Where it answers `null` (the webview reads the setting itself) it is never
+ * asked again; an answer to an earlier read that arrives after a later one is dropped.
  */
 export function useMotion(shell: DesktopShell | undefined, choice: Motion): void {
   const [system, setSystem] = useState<boolean | null>(null);
   useEffect(() => {
     if (shell === undefined) return;
+    let asked = 0;
+    let answered = 0;
     const read = () => {
-      shell.invoke<boolean | null>("system_motion").then(setSystem, (error: unknown) => {
-        console.error("reading the system's motion setting failed", error);
-      });
+      const ask = ++asked;
+      shell.invoke<boolean | null>("system_motion").then(
+        (reduces) => {
+          if (ask < answered) return;
+          answered = ask;
+          if (reduces === null) window.removeEventListener("focus", read);
+          setSystem(reduces);
+        },
+        (error: unknown) => console.error("reading the system's motion setting failed", error),
+      );
     };
     read();
     window.addEventListener("focus", read);

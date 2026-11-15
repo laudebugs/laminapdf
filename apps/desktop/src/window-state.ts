@@ -1,19 +1,27 @@
 // What makes the desktop window behave as a window rather than a web page (motion plan §5): the
 // webview's own context menu (Back, Reload, Inspect Element) never opens on the chrome, and the
 // root carries `data-window-inactive` while another window has the focus, which app.css dims the
-// bars by. The document, the reader view's column and fields keep their context menu, with Copy
-// and Paste.
+// bars by. The chrome is where app.css turns selection off, so the two never disagree: the
+// document, the reader view, Document properties, the failure page and fields keep their menu,
+// with Copy and Paste.
 
-/** Where the webview's own context menu still opens: text people select, copy or edit. */
-const KEEPS_MENU = ".desktop-viewer, .paper-reader-column, input, textarea, [contenteditable]";
+/** The page's own background (the root, the body, the app's root): no text there, and no menu. */
+const BACKGROUND = new Set(["HTML", "BODY"]);
 
 /**
- * Whether a right-click on `target` may show the webview's context menu.
- * @param target - The event's target.
- * @returns True inside the document, the reader view's column and fields.
+ * Whether a right-click on `target` may show the webview's context menu: where its text can be
+ * selected (app.css), as computed in `view`. `auto` takes its parent's, so the nearest element that
+ * sets a value decides; the page's background never keeps the menu.
  */
-export function keepsContextMenu(target: EventTarget | null): boolean {
-  return target instanceof Element && target.closest(KEEPS_MENU) !== null;
+export function keepsContextMenu(target: EventTarget | null, view: Window): boolean {
+  if (!(target instanceof Element) || BACKGROUND.has(target.tagName) || target.id === "app") return false;
+  for (let at: Element | null = target; at !== null; at = at.parentElement) {
+    const style = view.getComputedStyle(at);
+    const select = style.userSelect || style.getPropertyValue("-webkit-user-select");
+    if (select === "none") return false;
+    if (select !== "" && select !== "auto") return true;
+  }
+  return true;
 }
 
 /**
@@ -24,7 +32,7 @@ export function keepsContextMenu(target: EventTarget | null): boolean {
 export function watchWindowState(view: Window): () => void {
   const root = view.document.documentElement;
   const menu = (event: MouseEvent) => {
-    if (!keepsContextMenu(event.target)) event.preventDefault();
+    if (!keepsContextMenu(event.target, view)) event.preventDefault();
   };
   const show = () => {
     if (view.document.hasFocus()) root.removeAttribute("data-window-inactive");

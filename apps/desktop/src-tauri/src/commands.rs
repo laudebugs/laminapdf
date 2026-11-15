@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use laminapdf_desktop_protocol::DocId;
 use serde::Serialize;
-use tauri::Manager as _;
+use tauri::{Emitter as _, Manager as _};
 use tauri_plugin_dialog::DialogExt as _;
 use zeroize::Zeroizing;
 
@@ -201,6 +201,10 @@ pub(crate) fn preferences(prefs: tauri::State<'_, Prefs>) -> Preferences {
     prefs.get()
 }
 
+/// The preferences changed, with their new value: every window reads it. The event's name is
+/// repeated in `src/settings.tsx`.
+pub(crate) const PREFERENCES_EVENT: &str = "preferences://changed";
+
 /// Sets the app's preferences. Turning "Remember recent files" off clears both recent lists.
 #[tauri::command]
 #[expect(
@@ -215,6 +219,10 @@ pub(crate) fn set_preferences(
 ) {
     let was = prefs.get();
     prefs.set(value);
+    // Every window shows them (Settings, Motion), not only the one that changed them.
+    if let Err(error) = app.emit(PREFERENCES_EVENT, value) {
+        tracing::warn!("could not tell the windows the preferences changed: {error}");
+    }
     if was.stops_remembering(value) {
         opened::forget(&app, recent.clear(), true);
     }

@@ -8,7 +8,7 @@ import { useState } from "react";
 import { afterEach, describe, expect, it, onTestFinished } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { type DocumentTab, DocumentTabs, LocateDifferentDialog, RestoreNotice } from "../../src/index.ts";
-import { cleanup, renderIn } from "./render.tsx";
+import { cleanup, renderIn, settled } from "./render.tsx";
 
 afterEach(() => cleanup());
 
@@ -273,5 +273,22 @@ describe("the document tabs' motion", () => {
     const [from] = motion("d")[0] ?? [];
     expect(Number(from?.opacity)).toBe(0);
     expect(from?.transform).toBe("scale(1)");
+  });
+});
+
+describe("the document tabs' motion after a resize", () => {
+  it("slides tabs from where they are after the strip shrank, not from before it", async () => {
+    const host = renderIn(<Moving />);
+    host.style.inlineSize = "900px";
+    await settled();
+    host.style.inlineSize = "420px";
+    // The resize observer measures again before the next change.
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const before = (document.querySelector('[data-tab-box="b"]') as HTMLElement).offsetLeft;
+    await userEvent.click(page.getByRole("button", { name: "Reverse" }));
+    const after = (document.querySelector('[data-tab-box="b"]') as HTMLElement).offsetLeft;
+    // The middle tab stays in the middle: no slide from its place in the wider strip.
+    expect(after).toBe(before);
+    expect(motion("b")).toEqual([]);
   });
 });

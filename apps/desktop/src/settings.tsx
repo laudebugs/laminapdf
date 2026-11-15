@@ -7,11 +7,9 @@
 // other sections to the same registry.
 
 import {
-  MOTIONS,
   type Motion,
+  MotionField,
   message,
-  Radio,
-  RadioGroup,
   SettingsDialog,
   SettingsRegistry,
   Switch,
@@ -36,6 +34,9 @@ interface Preferences {
   /** Settings › Motion: the system's, or reduced whatever it says. */
   readonly motion: Motion;
 }
+
+/** The main process's event with the preferences, after any window changed them (`commands.rs`). */
+const PREFERENCES_EVENT = "preferences://changed";
 
 /** Until the main process answers, and outside the shell: its defaults. */
 const DEFAULTS: Preferences = {
@@ -72,7 +73,11 @@ export function useDesktopSettings(
   // Outside the shell nothing updates, so the Updates section goes to a registry nobody shows.
   const [unshown] = useState(() => new SettingsRegistry());
   useEffect(() => {
-    shell?.invoke<Preferences>("preferences").then(setPreferences, reportError);
+    if (shell === undefined) return;
+    shell.invoke<Preferences>("preferences").then(setPreferences, reportError);
+    // A change made in another window (src-tauri's PREFERENCES_EVENT) shows here too.
+    const unlisten = shell.listen<Preferences>(PREFERENCES_EVENT, setPreferences);
+    return () => void unlisten.then((stop) => stop(), reportError);
   }, [shell]);
   const change = useCallback(
     (value: Preferences) => {
@@ -93,7 +98,11 @@ export function useDesktopSettings(
     registry,
     "appearance",
     message("settings.appearance"),
-    () => <MotionSettings preferences={preferences} onChange={change} />,
+    () => (
+      <div className="paper-settings-fields">
+        <MotionField value={preferences.motion} onChange={(motion) => change({ ...preferences, motion })} />
+      </div>
+    ),
     { shows: [preferences], summary: () => message(`appearance.motion.${preferences.motion}`) },
   );
   // S06: Settings › Updates, inside the shell only (the main process owns updates).
@@ -165,32 +174,6 @@ function FileSettings({
         {message("settings.files.allowDuplicates")}
       </Switch>
       <p className="desktop-settings-help">{message("settings.files.allowDuplicates.help")}</p>
-    </div>
-  );
-}
-
-/** Settings › Appearance and accessibility: Motion, the system's or reduced in every window. */
-function MotionSettings({
-  preferences,
-  onChange,
-}: {
-  preferences: Preferences;
-  onChange: (value: Preferences) => void;
-}): ReactNode {
-  return (
-    <div className="paper-settings-fields">
-      <RadioGroup
-        label={message("appearance.motion")}
-        value={preferences.motion}
-        description={message("appearance.motion.help")}
-        onChange={(motion) => onChange({ ...preferences, motion: motion as Motion })}
-      >
-        {MOTIONS.map((motion) => (
-          <Radio key={motion} value={motion}>
-            {message(`appearance.motion.${motion}`)}
-          </Radio>
-        ))}
-      </RadioGroup>
     </div>
   );
 }

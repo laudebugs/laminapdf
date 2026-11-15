@@ -63,12 +63,19 @@ function animateTab(box: HTMLElement, was: number | undefined, at: number, motio
   }
 }
 
+/** Where each tab's box in `list` is, by its id, from the strip's start edge. */
+function measure(list: HTMLElement): Map<string, number> {
+  const boxes = list.querySelectorAll<HTMLElement>(`[${TAB_BOX}]`);
+  return new Map([...boxes].map((box) => [box.getAttribute(TAB_BOX) ?? "", box.offsetLeft]));
+}
+
 /**
  * Animates the tabs inside `list` whenever `ids` (the tabs in order) change. The first layout
- * draws still: tabs that were there when the strip appeared don't move in.
+ * draws still: tabs that were there when the strip appeared don't move in. When the strip changes
+ * size (the window resized, so the tabs shrank or grew), the places are measured again without
+ * moving anything, so the next change slides tabs from where they really are.
  */
 export function useTabMotion(list: RefObject<HTMLElement | null>, ids: readonly string[]): void {
-  // Where each tab's box was at the last layout, from the strip's start edge.
   const places = useRef<Map<string, number> | undefined>(undefined);
   const key = ids.join("\n");
   // biome-ignore lint/correctness/useExhaustiveDependencies: `key` is what changes the layout to animate
@@ -76,15 +83,24 @@ export function useTabMotion(list: RefObject<HTMLElement | null>, ids: readonly 
     const element = list.current;
     if (element === null) return;
     const before = places.current;
-    const boxes = [...element.querySelectorAll<HTMLElement>(`[${TAB_BOX}]`)];
-    const now = new Map(boxes.map((box) => [box.getAttribute(TAB_BOX) ?? "", box.offsetLeft]));
+    const now = measure(element);
     places.current = now;
+    const boxes = [...element.querySelectorAll<HTMLElement>(`[${TAB_BOX}]`)];
     // The first layout, and a webview without the Web Animations API, draw still.
     if (before === undefined || boxes[0]?.animate === undefined) return;
     const motion = motionOf(getComputedStyle(element));
-    for (const [id, at] of now) {
-      const box = boxes.find((b) => b.getAttribute(TAB_BOX) === id);
-      if (box !== undefined) animateTab(box, before.get(id), at, motion);
+    for (const box of boxes) {
+      const id = box.getAttribute(TAB_BOX) ?? "";
+      animateTab(box, before.get(id), now.get(id) ?? 0, motion);
     }
   }, [key, list]);
+  useLayoutEffect(() => {
+    const element = list.current;
+    if (element === null || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      if (places.current !== undefined) places.current = measure(element);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [list]);
 }

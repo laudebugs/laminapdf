@@ -13,28 +13,38 @@ body {
 }
 
 /* A window, not a web page (motion plan §5): the content doesn't bounce past its ends, and the
-   chrome's labels can't be selected, as a native app's can't. The document, the reader view's
-   column, the values in Document properties and every field stay selectable. WebKit stops editing
-   in a field whose ancestor turns selection off, so fields turn it back on themselves. */
+   chrome's labels can't be selected, as a native app's can't: the bars, the tab strip, the start
+   screen, and every button, label and menu item. Anything else, the document, the reader view,
+   Document properties, the failure page, notices and toasts, stays selectable. window-state.ts
+   refuses the webview's context menu exactly where selection is off. WebKit stops editing in a
+   field whose ancestor turns selection off, so fields turn it back on themselves. */
 html,
 body {
   overscroll-behavior: none;
 }
 
-body {
+:is(
+  .paper-top-bar,
+  .paper-reader-secondary,
+  .paper-document-tabs,
+  .paper-reader-status,
+  .paper-left-rail,
+  .paper-bottom-bar,
+  .paper-open,
+  .paper-recent,
+  button,
+  label,
+  [role="tab"],
+  [role="menuitem"],
+  [role="menuitemradio"],
+  [role="menuitemcheckbox"],
+  [role="option"]
+) {
   -webkit-user-select: none;
   user-select: none;
 }
 
-:is(
-  .desktop-viewer,
-  .paper-reader-column,
-  .paper-properties-value,
-  .paper-repair-code,
-  input,
-  textarea,
-  [contenteditable]
-) {
+:is(input, textarea, [contenteditable]) {
   -webkit-user-select: text;
   user-select: text;
 }

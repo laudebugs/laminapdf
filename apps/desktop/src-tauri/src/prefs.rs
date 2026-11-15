@@ -37,11 +37,14 @@ pub(crate) struct Preferences {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum Motion {
-    /// The system's setting, read by the webview and, where it misses it, by `motion.rs`.
-    #[default]
-    System,
     /// Nothing slides or grows; fades stay.
     Reduce,
+    /// The system's setting, read by the webview and, where it misses it, by `motion.rs`; also
+    /// any value a later version wrote, so the other preferences still load (serde's `other`
+    /// variant, which must come last).
+    #[default]
+    #[serde(other)]
+    System,
 }
 
 /// Where the files the OS hands the app open.
@@ -124,6 +127,12 @@ mod tests {
                 ..Preferences::default()
             }
         );
+    }
+
+    #[test]
+    fn an_unknown_motion_should_read_as_the_system_and_keep_the_rest() {
+        let read: Preferences = serde_json::from_str(r#"{ "rememberRecent": false, "motion": "full" }"#).unwrap();
+        assert_eq!((read.motion, read.remember_recent), (Motion::System, false));
     }
 
     #[test]

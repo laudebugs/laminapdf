@@ -363,10 +363,10 @@ fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
         }
         // Files dragged over or dropped on the window: Rust opens them, never the webview.
         WindowEvent::DragDrop(drag) => open::on_drag_drop(window, drag),
-        // The window's own colour, under the webview, follows the OS's light or dark.
-        WindowEvent::ThemeChanged(theme) => {
-            if let Err(error) = window.set_background_color(Some(windows::ground(*theme))) {
-                tracing::warn!("could not set the window's background colour: {error}");
+        // The window's and its webview's own colour, under the page, follow the OS's light or dark.
+        WindowEvent::ThemeChanged(_) => {
+            if let Some(webview) = window.app_handle().get_webview_window(window.label()) {
+                windows::show_ground(&webview);
             }
         }
         _ => {}

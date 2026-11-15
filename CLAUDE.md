@@ -322,7 +322,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   (preferences.json, Settings › Motion among them), motion.rs (U7f: GNOME's reduce-motion setting, which
 │                        #   WebKitGTK misses under Wayland, read by gsettings for `system_motion`; src/motion.ts applies it), store.rs (atomic JSON), watch/ (notify on each open file's folder,
 │                        #   stamp.rs's settle rule, app.rs's reload as a new document; document://reloaded|missing|
-│                        #   unreadable); src/recent.tsx, settings.tsx (Settings › Files), file-changes.tsx,
+│                        #   unreadable); src/recent.tsx, settings.tsx (Settings › Files and Appearance and accessibility's Motion), motion.ts, window-state.ts
+│                        #   (the webview's context menu off the chrome, dimmed bars in an inactive window), file-changes.tsx,
 │                        #   error.rs (DesktopError as { kind, message }), build.rs (app manifest: each command needs an allow-*
 │                        #   permission), tauri.conf.json (Lamina PDF, com.laminapdf.desktop, strict CSP, frozen prototype,
 │                        #   capabilities ["main"]; no externalBin), tauri.bundle.conf.json (the engine sidecar and PDFium, merged
