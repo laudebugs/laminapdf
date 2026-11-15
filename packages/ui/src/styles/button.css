@@ -84,16 +84,14 @@
     font-weight: 600;
   }
 
-  /* Danger's hover and press move toward the text colour, as accent-strong and primary-pressed do
-     for the primary: darker in light, lighter in dark, so the label's contrast only grows. */
   .paper-button[data-variant="danger-filled"][data-hovered] {
-    background-color: color-mix(in srgb, var(--paper-danger), var(--paper-text) 15%);
-    border-color: color-mix(in srgb, var(--paper-danger), var(--paper-text) 15%);
+    background-color: var(--paper-danger-strong);
+    border-color: var(--paper-danger-strong);
   }
 
   .paper-button[data-variant="danger-filled"][data-pressed] {
-    background-color: color-mix(in srgb, var(--paper-danger), var(--paper-text) 28%);
-    border-color: color-mix(in srgb, var(--paper-danger), var(--paper-text) 28%);
+    background-color: var(--paper-danger-pressed);
+    border-color: var(--paper-danger-pressed);
   }
 
   /* Disabled or pending: the disabled text, no hover (states.css); filled buttons lose their fill. */

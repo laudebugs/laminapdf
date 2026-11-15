@@ -40,6 +40,8 @@ Contrast ratios are WCAG 2.x relative-luminance ratios. `@laminapdf/tokens` reco
 | `selection-tint` | `#CEDBDD` | Text selection on an Original page (= `accent` 22% over white) | page ink 10.91 · ⚠ vs white page 1.42 (see note 1) |
 | `focus` | `#1F5C63` | Focus ring: same as `accent` | ground 6.91 · surface 7.21 · gutter 6.16 · accent-tint 6.00 |
 | `danger` | `#9B2335` | Destructive actions ("Delete highlight"), errors | ground 7.12 · surface 7.44 · white 7.82 |
+| `danger-strong` | `#882231` | The filled danger button's hover (`danger` 15% toward `text`) | white 9.05 |
+| `danger-pressed` | `#78212D` | Its pressed fill (28% toward `text`) | white 10.22 |
 | `positive` | `#2F6A45` | Success, valid signature | ground 5.85 · surface 6.11 · white 6.43 |
 | `warning` | `#8A5300` | Warnings: approximate reflow, signature that saving would break | ground 5.77 · surface 6.02 · white 6.33 · gutter 5.14 |
 | `danger-tint` / `positive-tint` / `warning-tint` | `#F1E4E2` / `#E7EBE3` / `#F0E8DC` | Backgrounds of badges and notices (10% over `surface`) | own colour on tint 6.31 / 5.32 / 5.21; text ≥ 13.5 |
@@ -94,6 +96,8 @@ The same warm family, inverted: chrome is warm charcoal, never pure black, and t
 | `on-accent` | `#1E1D1A` | on accent 7.97 |
 | `accent-tint` | `#343C3B` (16% over surface) | text 9.19 · accent 5.35 |
 | `danger` | `#EE8C98` | ground 7.10 · surface 6.52 · raised 5.87 |
+| `danger-strong` | `#EE9AA2` | on-accent 7.85 |
+| `danger-pressed` | `#EDA5AC` | on-accent 8.49 |
 | `positive` | `#86C49A` | ground 8.33 · surface 7.65 |
 | `warning` | `#E0AE5A` | ground 8.32 · surface 7.64 |
 | `danger-tint` / `positive-tint` / `warning-tint` | `#463534` / `#353E34` / `#443A2A` (16% over surface, the dark `accent-tint` rule) | own colour on tint 4.86 / 5.49 / 5.50; text ≥ 9.0 |
@@ -110,7 +114,7 @@ A high-contrast UI theme follows `forced-colors` system colours (plan §5.5), no
 | Tokens | System colour |
 | --- | --- |
 | `ground`, `surface`, `raised`, `field`, `gutter`, the three tints, `accent-tint`, `field-tint`, `hover`, `pressed`, `pill`, `scrim`, `on-accent` | `Canvas` |
-| `text`, `text-2`, `text-3`, `muted`, `hairline`, `chip-border`, `control-border`, `danger`, `positive`, `warning`, `focus`, `on-pill` | `CanvasText` |
+| `text`, `text-2`, `text-3`, `muted`, `hairline`, `chip-border`, `control-border`, `danger`, `danger-strong`, `danger-pressed`, `positive`, `warning`, `focus`, `on-pill` | `CanvasText` |
 | `accent`, `accent-strong`, primary pressed, the outline Blue | `LinkText` |
 | `disabled` | `GrayText` |
 
@@ -645,7 +649,7 @@ Heights: 32 (default, padding 0 16), 30 (inspector, padding 0 14), 26 (top bar, 
 <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Reply</button>
 <button style="height: 32px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; color: #1F5C63; font-weight: 600">Export highlights</button>
 <button style="height: 32px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; color: #9B2335">Delete highlight</button>
-<!-- danger, filled (proposed; only as the confirm button of a destructive dialog; white on it 7.82). Hover mixes the fill 15% toward `text` (white on it 9.02; dark 7.83); pressed mixes it 28% (10.18; dark 8.53), as `accent-strong` and `primary-pressed` do for the primary -->
+<!-- danger, filled (proposed; only as the confirm button of a destructive dialog; white on it 7.82). Hover takes `danger-strong` (`danger` 15% toward `text`; white on it 9.05, dark 7.85) and pressed `danger-pressed` (28%; 10.22, dark 8.49), as the primary takes `accent-strong` and `primary-pressed` -->
 <button style="height: 32px; padding: 0 16px; border: 1px solid #9B2335; background: #9B2335; color: #FFFFFF; border-radius: 4px; font-weight: 600">Delete 3 pages</button>
 ```
 
