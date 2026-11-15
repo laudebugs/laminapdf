@@ -39,7 +39,7 @@ Add the minimal write API to `laminapdf-content` that never interprets existing 
 
 **Out of scope** (and which todo covers it)
 
-- Parsing/editing existing operators → [E7c](../ready/E7c-content-ir.md)
+- Parsing/editing existing operators → [E7c](../ongoing/E7c-content-ir.md)
 - The `AppendContent` op and its payload → [E6a](../done/E6a-adding-content-feature-plan.md) (the writer's callers in E2s, E5e and E8g call it from their own ops)
 
 **Editor facts**

@@ -113,7 +113,7 @@ E7d and E7e hand their reader UI to E7k and E7l, so the core can land while E6's
 
 | Todo | What | Depends on |
 | --- | --- | --- |
-| [E7c](../../todos/ready/E7c-content-ir.md) | `ContentOps`, identity, hit testing, the encoder, `content-object-stale`, `content-not-editable`, fuzzing | E7b |
+| [E7c](../../todos/ongoing/E7c-content-ir.md) | `ContentOps`, identity, hit testing, the encoder, `content-object-stale`, `content-not-editable`, fuzzing | E7b |
 | [E7d](../../todos/ready/E7d-select-transform-existing.md) | `EditContent` (`Transform`, `Delete`, `ReplaceImage`, `Crop`, `Reorder`), copy on write, resources dropped, the façade and SDK | E7c |
 | [E7e](../../todos/ready/E7e-text-runs-and-inline-edit.md) | Line grouping, run detection, glyph availability, `EditText` with the embedded subset, the façade and SDK | E7c |
 | [E7f](../../todos/ready/E7f-font-handling-and-styling.md) | The font chain, `SetTextStyle`, line-level alignment and spacing | E6c, E7e |
