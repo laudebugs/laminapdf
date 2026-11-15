@@ -181,7 +181,7 @@ The desktop jobs and CodeQL ran more than a pull request's changes needed. The o
 
 ### 8.3 Browser suites by the dependency graph (X12)
 
-The owner asked for CI to stop building and testing apps a pull request can't change (2026-11-15): "we don't need to build a website if nothing the website has changed", with "a graph or something" to tell. The fast lane's runtime legs are where that costs most. Each of Chromium, Firefox and WebKit runs the SDK's examples, nine packages' browser tests, and the reader's, the docs site's and the website's builds and e2e suites, whatever the pull request changed. On `main`'s run 43751465593 those legs took 16, 12 and 40 minutes, WebKit on a macOS runner, the slowest job of the lane. A change to the CLI's code reaches none of those suites, and a change to the website's copy reaches one.
+The owner asked for CI to stop building and testing apps a pull request can't change (2026-11-15): "we don't need to build a website if nothing the website has changed", with "a graph or something" to tell. The fast lane's runtime legs are where that costs most. Each of Chromium, Firefox and WebKit runs the SDK's examples, nine packages' browser tests, and the reader's, the docs site's and the website's builds and e2e suites, whatever the pull request changed. On `main`'s run 43751465593 those legs took 16, 12 and 40 minutes. WebKit, on a macOS runner, was the lane's slowest job. A change to the CLI's code reaches none of those suites, and a change to the website's copy reaches one.
 
 `cargo xtask changes` already walks two graphs for the desktop app (§8.2): the crates reached through path dependencies, and the packages reached through `workspace:` dependencies. X12 moves that walk into `changes/graph.rs` and gives each browser suite its inputs from it:
 
@@ -195,19 +195,21 @@ The owner asked for CI to stop building and testing apps a pull request can't ch
 
 A suite whose packages reach `packages/wasm/` or `packages/render-hayro/` reads the WebAssembly too, so it also counts the crates `wasm::MODULES` reach. Every suite counts what every leg uses: the manifests and lockfiles, the toolchain, `fixtures/`, `tools/xtask/` and `ci.yml` with its actions. A suite's own extra inputs count even when they are docs by [`is_docs`](../../tools/xtask/src/changes.rs), since the docs site builds pages from `docs/errors/` and `CHANGELOG.md`, and the reader bundles `docs/capabilities/matrix.json`. A pull request with docs only still runs no leg (`ts=false`), and `docs.yml`'s preview builds the site for it.
 
-The `changes` job prints `runtime-legs`, the runtime matrix with only the legs some suite needs, each with its list. The server leg runs only for `examples`. `cargo xtask pdf-runtimes --suites` runs the listed suites alone, and with no list every suite, as the nightly and release lanes do. Pushes to `main` run every leg and every suite. `fast-gate` expects the runtime job when `runtime-legs` isn't empty.
+The `changes` job prints `runtime-legs`, the runtime matrix with only the legs some suite needs, each with its list. The server leg runs only for `examples`. `cargo xtask pdf-runtimes --suites` runs the listed suites alone, and with no list every suite, as the nightly and release lanes do. Pushes to `main` run every leg and every suite. `fast-gate` expects the runtime job when `runtimes` is true: `ts` is, and `runtime-legs` isn't empty.
 
-The reader's deploy flag (`web`, which `web-deploy.yml` reads) comes from the `web` suite's inputs too, in place of the list of places the reader can't depend on (`OUTSIDE_WEB`). So does the daily reader release (`cargo xtask web next-release`), which asked the same question: a change to the CLI no longer releases the reader. It reads a past commit's paths against today's graph. A test holds `docs.yml`'s and `site.yml`'s path filters to their suites' graph inputs. It found seven gaps: `docs.yml` lacked `CHANGELOG.md` (the changelog page), `packages/viewer/examples/` (shown on its pages), `packages/icons/` (it listed only the SVG files) and `packages/test-utils/`, and `site.yml` lacked `packages/icons/`, which the website reaches through `@laminapdf/site-kit`, `packages/test-utils/` and `packages/render/`.
+The reader's deploy flag (`web`, which `web-deploy.yml` reads) comes from the `web` suite's inputs too, in place of the list of places the reader can't depend on (`OUTSIDE_WEB`). So does the daily reader release (`cargo xtask web next-release`), which asked the same question: a change to the CLI no longer releases the reader. The release reads a past commit's paths against today's graph.
+
+A test holds `docs.yml`'s and `site.yml`'s path filters to their suites' graph inputs. It found seven gaps: `docs.yml` lacked `CHANGELOG.md` (the changelog page), `packages/viewer/examples/` (shown on its pages), `packages/icons/` (it listed only the SVG files) and `packages/test-utils/`, and `site.yml` lacked `packages/test-utils/`, `packages/render/` and `packages/icons/`, the last of which the website reaches through `@laminapdf/site-kit`.
 
 What this leaves out:
 
 - `wasm`, `typescript` and `semver` stay on `ts`. Together they take about 12 minutes, on Linux.
 - Turborepo's and Nx's "affected" commands see only the pnpm graph. They miss the crates the WebAssembly is built from and the files a site reads outside its packages, and would add a tool for a walk xtask already makes.
-- The risk is X10a's. A file a suite reads that no graph or list names skips that suite on a pull request, until the next push to `main` runs it. When unsure, a path counts.
+- The risk is the one X10a took: a file a suite reads that no graph or list names skips that suite on a pull request, until the next push to `main` runs it. When unsure, a path counts.
 
 Expected savings, per pull request:
 
-| A pull request that changes | Runs today | Runs with X12 |
+| A pull request that changes | Before X12 | With X12 |
 | --- | --- | --- |
 | `crates/laminapdf-cli/src/` | every leg, every suite | no leg |
 | the website's copy (`apps/site/src/data/`) | every leg, every suite | `site` in each browser |
