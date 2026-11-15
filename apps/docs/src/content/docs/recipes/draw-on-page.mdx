@@ -5,7 +5,7 @@ description: Draw freehand ink, boxes, clouds, arrows and polygons on a PDF page
 
 import Example from "../../../components/Example.astro";
 
-You'll draw on a report's first page the way a reviewer does with a pen: a cloud around a row of the table, an arrow pointing at the chart, and a wavy line under the total. You need this for a drawing tool in an editor, or a script that circles what a checker finds.
+You'll draw on a report's first page as a reviewer does: a cloud around a row of the table, an arrow at the chart and a wavy line under the total. You need this for a drawing tool in an editor, or a script that circles what a checker finds.
 
 Viewers report where a pointer went as points in page space: points from the page's top-left corner. `inkAt`, `shapeAt`, `lineAt` and `polyAt` turn those points into the edit that adds the drawing, in the page's [user space](/reference/glossary/#user-space):
 

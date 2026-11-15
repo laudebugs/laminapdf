@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 31 | 5 | 18 | 0 | 115 | 45 |
+| core | 169 | 34 | 5 | 18 | 0 | 112 | 48 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
 | web | 168 | 22 | 0 | 1 | 0 | 145 | 23 |
 | desktop | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
@@ -45,7 +45,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | B.03 | Extract original embedded images | 🟡 read | — | — | — | E3 read | [`jpegs_and_jpeg_2000_come_out_byte_for_byte`](../../crates/laminapdf-extract/tests/images.rs) core read |
 | B.04 | Adjust transparency/opacity | — | — | — | — | E6 round-trip |  |
 | B.05 | Draw lines, rectangles, circles, polygons | — | — | — | — | E6 round-trip |  |
-| B.06 | Arrows, paths, freehand drawing | — | — | — | — | E4 round-trip |  |
+| B.06 | Arrows, paths, freehand drawing | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | B.07 | Edit vector paths, fills, strokes | — | — | — | — | E7 round-trip |  |
 | B.08 | Change stacking order | — | — | — | — | E7 round-trip |  |
 | B.09 | Add logos, icons, stamps | — | — | — | — | E6 round-trip |  |
@@ -81,8 +81,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 | D.01 | Highlight / underline / strike through | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | D.02 | Sticky notes & text comments | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | D.03 | Text-correction annotations | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
-| D.04 | Freehand ink | — | — | — | — | E4 round-trip |  |
-| D.05 | Shapes, lines, arrows | — | — | — | — | E4 round-trip |  |
+| D.04 | Freehand ink | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| D.05 | Shapes, lines, arrows | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | D.06 | Callouts & text boxes | — | — | — | — | E4 round-trip |  |
 | D.07 | Custom stamps | — | — | — | — | E5 round-trip |  |
 | D.08 | Attach files as annotations | — | — | — | — | E5 round-trip |  |
