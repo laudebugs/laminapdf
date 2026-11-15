@@ -70,7 +70,7 @@ export interface ContentsPageJs {
 impl WasmDocument {
     /// What a contents page made with `options` lists (every module), as JSON: the bookmarks
     /// that go to a page, under `entries`, each with its `level`, `title` and the `labels` its
-    /// page will show when the contents page takes one, two or three pages. Lay it out with
+    /// page will show when the contents page takes one page, two, and so on up to ten. Lay it out with
     /// `layOutContentsPage` (text module), then insert it with `insertContentsPage`.
     ///
     /// # Errors

@@ -264,3 +264,51 @@ fn create_contents_page_should_refuse_a_standard_font_given_on_a_pdf_ua_file() {
     let err = doc.create_contents_page(&options(), &helvetica).unwrap_err();
     assert_eq!(err.code(), "font-not-embedded");
 }
+
+/// An untagged document of `count` pages, each headed "Chapter n" (a bookmark per page).
+fn chapters(count: usize) -> Document {
+    use laminapdf::flow::{Flow, FlowBlock, PageTemplate, Paragraph, TextStyle};
+    use laminapdf::{BuildOptions, Builder, PageSize};
+    let mut b = Builder::new(BuildOptions::new());
+    let font = b.font(noto()).unwrap();
+    let body = TextStyle::new(&font, 11.0);
+    let mut flow = Flow::new(PageTemplate::new(PageSize::A4)).with_tagged(false);
+    for n in 1..=count {
+        if n > 1 {
+            flow = flow.block(FlowBlock::PageBreak);
+        }
+        flow = flow.block(FlowBlock::Heading(1, Paragraph::plain(format!("Chapter {n}"), &body)));
+    }
+    b.flow(&flow).unwrap();
+    let bytes = b.finish().unwrap().save(&SaveOptions::default()).unwrap().bytes;
+    Document::open_bytes(bytes, OpenOptions::default()).unwrap()
+}
+
+#[test]
+fn a_contents_page_over_several_pages_should_print_the_pages_its_links_go_to() {
+    let mut doc = chapters(120);
+    doc.create_contents_page(&options(), &fonts()).unwrap();
+    let added = doc.page_count().unwrap() - 120;
+    let mut printed = Vec::new();
+    let mut linked = Vec::new();
+    for page in 0..added {
+        let lines = text(&doc, page);
+        // Each entry's line ends with the number it prints; the heading's has none.
+        printed.extend(lines.lines().filter_map(|l| l.split_whitespace().last()?.parse::<u32>().ok()));
+        linked.extend(link_pages(&doc, page).into_iter().map(|p| p + 1));
+    }
+    assert_eq!((added > 1, printed.len(), printed), (true, 120, linked));
+}
+
+#[test]
+fn contents_listing_should_refuse_an_entry_size_that_is_not_a_size() {
+    let doc = outline();
+    let codes: Vec<String> = [0.0, -11.0, f64::NAN, 500.0]
+        .into_iter()
+        .map(|size| {
+            let error = doc.contents_listing(&options().with_size(size)).unwrap_err();
+            error.code().to_owned()
+        })
+        .collect();
+    assert_eq!(codes, ["invalid-op"; 4]);
+}

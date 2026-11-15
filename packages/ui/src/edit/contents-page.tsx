@@ -115,8 +115,24 @@ function consequence(insert: ContentsInsert, firstPage: string): string {
   return laterMessage(id, { page: firstPage });
 }
 
-/** The contents page dialog. */
+/**
+ * The contents page dialog. Each time it opens it starts from O11's defaults: before the first
+ * page, two levels, titled "Contents", with its bookmark.
+ */
 export function ContentsPageDialog(props: ContentsPageDialogProps): ReactNode {
+  // Counts openings: a new count remounts the form, which drops the last opening's choices. It
+  // changes only as the dialog opens, so a closing dialog keeps its form while it fades out.
+  const [opening, setOpening] = useState(0);
+  const [wasOpen, setWasOpen] = useState(props.isOpen);
+  if (props.isOpen !== wasOpen) {
+    setWasOpen(props.isOpen);
+    if (props.isOpen) setOpening(opening + 1);
+  }
+  return <ContentsForm key={opening} {...props} />;
+}
+
+/** The dialog with its choices, from the defaults. */
+function ContentsForm(props: ContentsPageDialogProps): ReactNode {
   const fallback = laterMessage("contents.pageTitle.default");
   const [insert, setInsert] = useState<ContentsInsert>("start");
   const [levels, setLevels] = useState<1 | 2>(2);

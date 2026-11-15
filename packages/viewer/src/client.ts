@@ -18,7 +18,6 @@
 
 import type { RenderRequest } from "@laminapdf/render";
 import {
-  type ContentsListing,
   type ContentsPlacement,
   type DocumentMetadata,
   isLaminaPdfError,
@@ -42,6 +41,7 @@ import type { FindOptions } from "./find/fold.js";
 import { FirstDraw } from "./first-draw.js";
 import {
   type BackendInit,
+  type ContentsPreview,
   type EditHistory,
   type EditResult,
   type ExportPageOptions,
@@ -405,10 +405,19 @@ export class ViewerClient {
     );
   }
 
-  /** What a contents page placed as `placement` would list: the entries and their labels, for a preview. */
-  async contentsListing(placement: ContentsPlacement, call?: ViewerCallOptions): Promise<ContentsListing> {
+  /**
+   * What a contents page placed as `placement` would list, for a preview: the entries and their
+   * labels and, given the `font` it will be set in, how many pages it takes (laid out in the text
+   * module, which loads for it), so the preview can show the labels it will print.
+   */
+  async contentsListing(
+    placement: ContentsPlacement,
+    font?: Uint8Array,
+    call?: ViewerCallOptions,
+  ): Promise<ContentsPreview> {
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
-    return this.call("contentsListing", [placement, this.#document?.id ?? 0], call);
+    const id = this.#document?.id ?? 0;
+    return this.call("contentsListing", font === undefined ? [placement, id] : [placement, id, font], call);
   }
 
   /** Undoes the newest step of the edit session; the pages it touched are drawn as they were. */

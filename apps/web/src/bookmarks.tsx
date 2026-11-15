@@ -202,18 +202,33 @@ function placementOf(engine: Engine, choice: ContentsChoice): ContentsPlacement 
  * The contents page dialog's state: open or not, its preview (what the page would list, with the
  * label each entry's page shows after a one-page insert) and Create, one step of the edit session.
  */
-function useContentsPage(engine: Engine, setFailure: (failure: string | undefined) => void) {
+function useContentsPage(
+  engine: Engine,
+  setFailure: (failure: string | undefined) => void,
+  setInFlight: (change: (n: number) => number) => void,
+) {
   const [open, setOpen] = useState(false);
   const preview = useCallback(
     async (choice: ContentsChoice): Promise<readonly ContentsPreviewEntry[]> => {
-      const { client } = await engine.view();
-      const listing = await client.contentsListing(placementOf(engine, choice));
-      return listing.entries.map((e) => ({ level: e.level, title: e.title, label: e.labels[0] ?? "" }));
+      const [{ client }, font] = await Promise.all([engine.view(), readContentsFont()]);
+      try {
+        // Laid out in its font, the listing says how many pages the page takes, and so which
+        // label each entry prints.
+        const listing = await client.contentsListing(placementOf(engine, choice), font);
+        const at = listing.pages - 1;
+        return listing.entries.map((e) => ({ level: e.level, title: e.title, label: e.labels[at] ?? "" }));
+      } catch (error) {
+        // Bookmarks that all open web addresses or other files leave nothing to list.
+        if ((error as { code?: unknown }).code === "no-bookmarks") return [];
+        throw error;
+      }
     },
     [engine],
   );
+  // An edit in flight from the click, so the editor waits while the font loads and the page is made.
   const create = async (choice: ContentsChoice) => {
     setFailure(undefined);
+    setInFlight((n) => n + 1);
     try {
       const [{ viewer }, font] = await Promise.all([engine.view(), readContentsFont()]);
       const before = new Set(engine.getState().pages.map((p) => p.id));
@@ -226,6 +241,8 @@ function useContentsPage(engine: Engine, setFailure: (failure: string | undefine
     } catch (error) {
       setFailure(bookmarkWords("contents.failed"));
       reportError(error);
+    } finally {
+      setInFlight((n) => n - 1);
     }
   };
   return { open, setOpen, preview, create };
@@ -277,7 +294,7 @@ function BookmarkPanel({ engine, items, current, onNavigate, keys }: BookmarkPan
   };
   const actions = bookmarkActions(items, apply, here);
   const names = useNamedDestinations(engine, items, apply);
-  const contents = useContentsPage(engine, setFailure);
+  const contents = useContentsPage(engine, setFailure, setInFlight);
   return (
     <>
       <BookmarkEditor

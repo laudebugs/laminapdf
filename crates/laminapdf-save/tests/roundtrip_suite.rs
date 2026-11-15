@@ -95,7 +95,7 @@ fn built_features(doc: &laminapdf_model::Document) -> Vec<String> {
                 .and_then(Object::as_dict)
                 .and_then(|a| a.get("URI"))
                 .map(|u| format!("{u:?}"));
-            let page = dict.get("Dest").and_then(|d| dest_page(doc, d));
+            let page = link_page(doc, dict);
             out.push(format!("link uri={uri:?} page={page:?} rect={:?}", dict.get("Rect")));
         }
     }
@@ -178,10 +178,17 @@ fn built_text_links_outlines_labels_and_xmp_survive_a_save() {
     }
 }
 
-/// The pages page `index`'s links go to, in annotation order: a `/Dest`, or a `GoTo` action's
-/// `/D`, resolved by [`dest_page`].
-fn link_pages(doc: &laminapdf_model::Document, index: usize) -> Vec<Option<usize>> {
+/// The page a link goes to: its `/Dest`, or its `GoTo` action's `/D`, resolved by [`dest_page`].
+fn link_page(doc: &laminapdf_model::Document, link: &laminapdf_cos::Dict) -> Option<usize> {
     use laminapdf_cos::Object;
+    let dest = link
+        .get("Dest")
+        .or_else(|| link.get("A").and_then(Object::as_dict).and_then(|a| a.get("D")))?;
+    dest_page(doc, dest)
+}
+
+/// The pages page `index`'s links go to, in annotation order ([`link_page`]).
+fn link_pages(doc: &laminapdf_model::Document, index: usize) -> Vec<Option<usize>> {
     let pages = doc.pages().unwrap();
     pages
         .get(index)
@@ -189,14 +196,7 @@ fn link_pages(doc: &laminapdf_model::Document, index: usize) -> Vec<Option<usize
         .annots()
         .unwrap()
         .into_iter()
-        .map(|annot| {
-            let annot = doc.resolve(annot).unwrap();
-            let dict = annot.as_dict().unwrap();
-            let dest = dict
-                .get("Dest")
-                .or_else(|| dict.get("A").and_then(Object::as_dict).and_then(|a| a.get("D")));
-            dest.and_then(|d| dest_page(doc, d))
-        })
+        .map(|annot| link_page(doc, doc.resolve(annot).unwrap().as_dict().unwrap()))
         .collect()
 }
 

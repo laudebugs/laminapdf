@@ -39,6 +39,12 @@ describe("a contents page", () => {
     ]);
   });
 
+  it("says how many pages the page takes when given its font", async () => {
+    const client = await opened();
+    const [plain, laid] = [await client.contentsListing({}), await client.contentsListing({}, await font())];
+    expect([plain.pages, laid.pages, laid.entries.length]).toEqual([1, 1, 4]);
+  });
+
   it("inserts the page as one step, which undo takes back", async () => {
     const client = await opened();
     const first = client.document?.pages[0];

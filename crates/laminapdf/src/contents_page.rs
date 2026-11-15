@@ -102,7 +102,7 @@ impl ContentsOptions {
         self
     }
 
-    /// The entries at `size` points.
+    /// The entries at `size` points, from 4 to 72 ([`Document::contents_listing`] refuses others).
     ///
     /// Added in 0.5.0.
     #[must_use]
@@ -249,9 +249,13 @@ struct Listed {
     target: OutlineTarget,
 }
 
-/// The most pages a contents page is laid out for while its page count, and so the labels it
-/// prints, settle: each page pushes the bookmarks' pages along by one.
-const MAX_PAGES: usize = 3;
+/// The most pages a contents page may take: the listing holds each entry's label for every
+/// count up to it, since each page pushes the bookmarks' pages along by one. Ten pages hold some
+/// 400 entries at the default size.
+const MAX_PAGES: usize = 10;
+
+/// The smallest and largest entry size, points.
+const SIZES: std::ops::RangeInclusive<f64> = 4.0..=72.0;
 
 impl Document {
     /// What a contents page made with `options` lists: each bookmark up to `options.levels`
@@ -261,10 +265,15 @@ impl Document {
     ///
     /// # Errors
     /// `no-bookmarks` when no bookmark goes to a page of this document; `unknown-page` for an
-    /// `at` that names no page; reading errors.
+    /// `at` that names no page; `invalid-op` for an entry size outside 4 to 72 points (or not a
+    /// number); reading errors.
     ///
     /// Added in 0.5.0.
     pub fn contents_listing(&self, options: &ContentsOptions) -> Result<ContentsListing> {
+        if !SIZES.contains(&options.size) {
+            let reason = "a contents page's entry size is from 4 to 72 points";
+            return Err(laminapdf_ops::Error::InvalidOp(reason).into());
+        }
         let listed = self.listed(options.levels.clamp(1, 2))?;
         if listed.is_empty() {
             return Err(crate::Error::NoBookmarks);
@@ -511,27 +520,34 @@ mod layout {
     impl ContentsListing {
         /// The contents page laid out in `fonts` as a document of its own, for
         /// [`Document::insert_contents_page`]: the heading, then each entry indented by its
-        /// level, with dot leaders to its label. Laid out again with the labels for two or three
-        /// pages when it takes more than one. On a tagged document it is tagged (`TOC`, `TOCI`).
+        /// level, with dot leaders to its label. When it takes more than one page it is laid out
+        /// again with the labels for that many, until the count it prints for is the count it
+        /// takes. On a tagged document it is tagged (`TOC`, `TOCI`).
         ///
         /// # Errors
         /// `font-not-embedded` for a font that isn't embedded (the default Helvetica) when the
         /// file claims PDF/A or PDF/UA-1; `missing-glyph` for a character of a title that
-        /// neither the font nor its fallbacks have, and the other errors of laying text out.
+        /// neither the font nor its fallbacks have; `invalid-op` for a page that would take more
+        /// than ten pages (list one level, or a smaller size); the other errors of laying text out.
         ///
         /// Added in 0.5.0.
         pub fn lay_out(&self, fonts: &ContentsFonts) -> Result<ContentsPage> {
             self.refuse_unembedded(fonts)?;
-            let mut laid = None;
-            for count in 1..=MAX_PAGES {
-                let page = self.lay_out_for(fonts, count)?;
-                let pages = page.1;
-                laid = Some(page.0);
-                if pages <= count {
-                    break;
+            let too_long = || laminapdf_ops::Error::InvalidOp("a contents page takes at most ten pages").into();
+            let mut count = 1;
+            // Longer labels can add a page, and the labels for more pages can be longer again:
+            // each pass prints the count the last one took, which settles in a pass or two.
+            for _ in 0..=MAX_PAGES {
+                let (page, pages) = self.lay_out_for(fonts, count)?;
+                if pages == count {
+                    return Ok(page);
                 }
+                if pages > MAX_PAGES {
+                    return Err(too_long());
+                }
+                count = pages.max(1);
             }
-            laid.ok_or(crate::Error::NoBookmarks)
+            Err(too_long())
         }
 
         /// The page laid out with the labels for `count` pages, and how many it took.

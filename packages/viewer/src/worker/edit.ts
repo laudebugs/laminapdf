@@ -13,7 +13,6 @@
 
 import type { RenderSource } from "@laminapdf/render";
 import type {
-  ContentsListing,
   ContentsPlacement,
   Document,
   DocumentMetadata,
@@ -28,7 +27,15 @@ import type {
   XmpText,
 } from "@laminapdf/sdk";
 import { Font, layOutContentsPage, loadText } from "@laminapdf/sdk";
-import type { ContentsInsert, EditHistory, EditResult, ReplayedStep, RevertedStep, SavedCopy } from "../protocol.js";
+import type {
+  ContentsInsert,
+  ContentsPreview,
+  EditHistory,
+  EditResult,
+  ReplayedStep,
+  RevertedStep,
+  SavedCopy,
+} from "../protocol.js";
 import {
   current,
   currentBackend,
@@ -140,14 +147,25 @@ export function createContentsPage(
   });
 }
 
-/** What a contents page placed as `placement` would list in document `id`. */
-export function readContentsListing(
+/**
+ * What a contents page placed as `placement` would list in document `id`, and how many pages it
+ * takes laid out in `font` (1 without one).
+ */
+export async function readContentsListing(
   placement: ContentsPlacement,
   id: number,
   signal: AbortSignal,
-): Promise<ContentsListing> {
+  font?: Uint8Array,
+): Promise<ContentsPreview> {
   const { model } = current(id);
-  return model.ensure(() => model.contentsListing(placement), { signal });
+  const listing = await model.ensure(() => model.contentsListing(placement), { signal });
+  if (font === undefined) return { ...listing, pages: 1 };
+  await loadText();
+  const { boxes } = layOutContentsPage(listing, { font: Font.fromBytes(font) });
+  // Six numbers per entry, the second its page on the contents page.
+  let pages = 1;
+  for (let i = 1; i < boxes.length; i += 6) pages = Math.max(pages, (boxes[i] ?? 0) + 1);
+  return { ...listing, pages };
 }
 
 async function apply(change: Change, id: number, signal: AbortSignal, label: string): Promise<EditResult> {

@@ -102,7 +102,8 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   },
   labelRanges: { run: ([id], { signal }) => readLabelRanges(id as number, signal) },
   contentsListing: {
-    run: ([placement, id], { signal }) => readContentsListing(placement as ContentsPlacement, id as number, signal),
+    run: ([placement, id, font], { signal }) =>
+      readContentsListing(placement as ContentsPlacement, id as number, signal, font as Uint8Array | undefined),
   },
   createContentsPage: {
     run: ([placement, font, id, label], { signal }) =>

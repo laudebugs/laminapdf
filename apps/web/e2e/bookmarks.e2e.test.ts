@@ -164,11 +164,11 @@ describe(`bookmarks in ${BROWSER}`, () => {
     await unsaved(page, 1);
 
     // The new first page's links go where the bookmarks do: follow one.
-    const before = await page.getByRole("textbox", { name: "Page" }).inputValue();
+    const before = await page.getByRole("textbox", { name: "Page", exact: true }).inputValue();
     const links = page.locator('[data-page-index="0"]').getByRole("link");
     await expect.poll(() => links.count()).toBeGreaterThan(1);
     await links.nth(1).click();
-    await expect.poll(() => page.getByRole("textbox", { name: "Page" }).inputValue()).not.toBe(before);
+    await expect.poll(() => page.getByRole("textbox", { name: "Page", exact: true }).inputValue()).not.toBe(before);
 
     const download = page.waitForEvent("download");
     await page.getByRole("button", { name: "Download", exact: true }).click();

@@ -43,6 +43,7 @@ export { type NetworkSink, watchNetwork } from "./network/watch.js";
 export type {
   BackendInit,
   BackendName,
+  ContentsPreview,
   EditHistory,
   EditResult,
   EditStep,

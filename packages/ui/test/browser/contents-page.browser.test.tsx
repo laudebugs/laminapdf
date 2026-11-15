@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { flushSync } from "react-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { type ContentsChoice, ContentsPageDialog, type ContentsPreviewEntry } from "../../src/editing.ts";
@@ -23,6 +25,24 @@ function open(preview: (choice: ContentsChoice) => Promise<readonly ContentsPrev
     />,
   );
   return created;
+}
+
+/** Opens or closes {@link Host}'s dialog. */
+let setOpen: (open: boolean) => void = () => {};
+
+/** The dialog, opened and closed as an app would, through {@link setOpen}. */
+function Host() {
+  const [open, set] = useState(true);
+  setOpen = set;
+  return (
+    <ContentsPageDialog
+      isOpen={open}
+      onOpenChange={set}
+      firstPage="1"
+      preview={() => Promise.resolve(ENTRIES)}
+      onCreate={() => {}}
+    />
+  );
 }
 
 const button = (name: string) =>
@@ -61,5 +81,15 @@ describe("the contents page dialog", () => {
       .poll(() => document.querySelector(".paper-contents-preview-note")?.textContent)
       .toMatch(/no bookmarks/);
     expect(button("Create contents page")?.disabled).toBe(true);
+  });
+
+  it("starts from the defaults each time it opens", async () => {
+    renderIn(<Host />);
+    await expect.poll(entries).toHaveLength(2);
+    await userEvent.click(radio("At the end"));
+    flushSync(() => setOpen(false));
+    await expect.poll(() => document.querySelector("[role='dialog']")).toBeNull();
+    flushSync(() => setOpen(true));
+    await expect.poll(() => document.querySelector<HTMLInputElement>("input[value='start']")?.checked).toBe(true);
   });
 });

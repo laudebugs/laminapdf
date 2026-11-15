@@ -22,7 +22,7 @@ export interface ContentsPlacement {
   readonly title?: string;
   /** Whether a bookmark for the contents page goes first in the outline (no by default). */
   readonly bookmark?: boolean;
-  /** The entries' size in points: 11 when left out. The heading is half again as large. */
+  /** The entries' size in points, from 4 to 72: 11 when left out. The heading is half again as large. */
   readonly size?: number;
 }
 
@@ -60,7 +60,7 @@ export interface ContentsEntry {
   readonly title: string;
   /**
    * The label its page shows once the contents page is in: `labels[n - 1]` when the contents page
-   * takes `n` pages (one to three).
+   * takes `n` pages (one to ten).
    */
   readonly labels: readonly string[];
 }
