@@ -37,10 +37,15 @@ pub(crate) struct CheckRequest {
 /// The endpoint of `channel` at `server`. The updater plugin fills in the placeholders; nothing
 /// about the install goes in the URL.
 pub(crate) fn endpoint(server: &str, channel: Channel) -> String {
+    endpoint_of(server, channel.as_str())
+}
+
+/// The endpoint of the channel named `channel` at `server`: [`endpoint`], or the update test's
+/// `staging`, which no install follows.
+pub(crate) fn endpoint_of(server: &str, channel: &str) -> String {
     format!(
-        "{}/{}/{{{{target}}}}/{{{{arch}}}}/{{{{current_version}}}}",
+        "{}/{channel}/{{{{target}}}}/{{{{arch}}}}/{{{{current_version}}}}",
         server.trim_end_matches('/'),
-        channel.as_str()
     )
 }
 
