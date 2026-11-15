@@ -120,7 +120,7 @@ mod add_reply {
         let new = reply(&mut d, "a12.0", "And me");
         let threads = d.comment_threads().unwrap();
         let thread = threads.iter().find(|t| t.comment.id == id("a10.0")).unwrap();
-        assert!(thread.replies.iter().any(|a| a.id == new));
+        assert!(thread.replies.iter().any(|m| m.annot.id == new));
     }
 
     #[test]

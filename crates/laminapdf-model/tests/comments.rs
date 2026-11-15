@@ -3,7 +3,7 @@
 //! and the latest per model, groups, and broken threads, none dropped.
 #![expect(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 
-use laminapdf_model::{Annot, BrokenThread, CommentThread, Document, OpenOptions, StateModel};
+use laminapdf_model::{Annot, BrokenThread, CommentThread, Document, OpenOptions, StateModel, ThreadMember};
 use laminapdf_test_fixtures::fixture;
 
 fn threads(name: &str) -> Vec<CommentThread> {
@@ -15,8 +15,8 @@ fn object(a: &Annot) -> u32 {
     a.id.as_lamina_id().obj_ref().unwrap().num
 }
 
-fn objects(list: &[Annot]) -> Vec<u32> {
-    list.iter().map(object).collect()
+fn objects(list: &[ThreadMember]) -> Vec<u32> {
+    list.iter().map(|m| object(&m.annot)).collect()
 }
 
 fn thread_of(threads: &[CommentThread], num: u32) -> &CommentThread {
@@ -54,7 +54,7 @@ fn replies_to_replies_and_on_other_pages_join_the_comment_s_thread() {
 #[test]
 fn a_reply_says_what_it_answers() {
     let threads = threads("review.pdf");
-    let reply = &thread_of(&threads, 10).replies[1];
+    let reply = &thread_of(&threads, 10).replies[1].annot;
     assert_eq!(
         reply.in_reply_to.as_ref().map(ToString::to_string),
         Some("a11.0".to_owned())
@@ -67,8 +67,8 @@ fn states_read_as_strings_and_as_names() {
     let states: Vec<(StateModel, String)> = thread_of(&threads, 10)
         .states
         .iter()
-        .map(|a| {
-            let s = a.state.clone().unwrap();
+        .map(|m| {
+            let s = m.annot.state.clone().unwrap();
             (s.model, s.state)
         })
         .collect();
@@ -123,6 +123,13 @@ fn a_ring_of_replies_is_one_broken_thread_from_its_first_annotation() {
 fn a_grouped_caret_belongs_to_its_strike_out() {
     let threads = threads("review.pdf");
     assert_eq!(objects(&thread_of(&threads, 20).group), [21]);
+}
+
+#[test]
+fn a_reply_on_another_page_says_which() {
+    let threads = threads("review.pdf");
+    let pages: Vec<usize> = thread_of(&threads, 10).replies.iter().map(|m| m.page_index).collect();
+    assert_eq!(pages, [0, 0, 1]);
 }
 
 #[test]

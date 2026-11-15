@@ -67,6 +67,19 @@ pub enum BrokenThread {
     Cycle,
 }
 
+/// An annotation of a thread, with the page it is on: a reply can be on another page than its
+/// comment.
+///
+/// Added in 0.3.0.
+#[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub struct ThreadMember {
+    /// The page's position, from 0.
+    pub page_index: usize,
+    /// The annotation.
+    pub annot: Annot,
+}
+
 /// One comment and everything that answers it.
 ///
 /// Added in 0.3.0.
@@ -81,13 +94,13 @@ pub struct CommentThread {
     pub comment: Annot,
     /// The annotations grouped with it (`/RT /Group`), shown, moved and deleted with it, in
     /// document order.
-    pub group: Vec<Annot>,
+    pub group: Vec<ThreadMember>,
     /// Every reply in the thread, replies to replies included, in document order (pages in
     /// order, then each page's `/Annots`). Each one's [`Annot::in_reply_to`] names what it
     /// answers.
-    pub replies: Vec<Annot>,
+    pub replies: Vec<ThreadMember>,
     /// Every review state set in the thread, on the comment or on a reply, in document order.
-    pub states: Vec<Annot>,
+    pub states: Vec<ThreadMember>,
     /// Set when the thread doesn't start at a comment that answers nothing.
     pub broken: Option<BrokenThread>,
 }
@@ -101,6 +114,7 @@ impl CommentThread {
     pub fn latest_state(&self, model: &StateModel) -> Option<&Annot> {
         self.states
             .iter()
+            .map(|m| &m.annot)
             .filter(|a| a.in_reply_to.as_ref() == Some(&self.comment.id))
             .filter(|a| a.state.as_ref().is_some_and(|s| s.model == *model))
             .reduce(|latest, a| if is_later(a, latest) { a } else { latest })
@@ -185,7 +199,7 @@ impl Document {
                 broken,
             });
         }
-        for (i, (_, _, annot)) in all.iter().enumerate() {
+        for (i, (page_index, _, annot)) in all.iter().enumerate() {
             let Some(thread) = starts
                 .get(i)
                 .filter(|(start, _)| *start != i)
@@ -194,10 +208,14 @@ impl Document {
             else {
                 continue;
             };
+            let member = ThreadMember {
+                page_index: *page_index,
+                annot: annot.clone(),
+            };
             match role(annot) {
-                Role::Group => thread.group.push(annot.clone()),
-                Role::State => thread.states.push(annot.clone()),
-                Role::Reply | Role::Comment => thread.replies.push(annot.clone()),
+                Role::Group => thread.group.push(member),
+                Role::State => thread.states.push(member),
+                Role::Reply | Role::Comment => thread.replies.push(member),
             }
         }
         Ok(threads)

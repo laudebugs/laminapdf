@@ -105,7 +105,7 @@ mod widgets;
 pub mod xmp;
 
 pub use annot::{Annot, AnnotFlags, AnnotGeometry, AnnotLink, AnnotSubtype, ReplyType};
-pub use comments::{AnnotState, BrokenThread, CommentThread, StateModel};
+pub use comments::{AnnotState, BrokenThread, CommentThread, StateModel, ThreadMember};
 pub use copy::{Copied, ObjectCopier};
 pub use date::{InvalidDate, PdfDate};
 pub use disclosure::{
