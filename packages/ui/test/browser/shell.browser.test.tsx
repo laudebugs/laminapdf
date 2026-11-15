@@ -4,12 +4,19 @@
 // the drawer below the rail breakpoint; one landmark of each kind, and axe.
 
 import axe from "axe-core";
-import { afterEach, describe, expect, it } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { afterEach, describe, expect, it, onTestFinished } from "vitest";
+import { commands, page, userEvent } from "vitest/browser";
 import { Demo } from "../../examples/ui-demo.tsx";
 import { ModeRegistry, PlatformProvider, RAIL_DEFAULT_WIDTH, ReaderShell, ShellLayout } from "../../src/index.ts";
 import { fakePlatform } from "../fakes.ts";
 import { cleanup, renderIn, settled } from "./render.tsx";
+
+declare module "vitest/browser" {
+  interface BrowserCommands {
+    /** Makes the page prefer reduced motion or not, or follow the system again with `null`. */
+    reducedMotion: (value: "reduce" | "no-preference" | null) => Promise<void>;
+  }
+}
 
 afterEach(async () => {
   cleanup();
@@ -84,13 +91,57 @@ describe("the shell", () => {
     const before = canvas().getBoundingClientRect();
     await userEvent.click(button("Select the heading"));
     await expect.poll(() => document.querySelector("aside")).not.toBeNull();
-    // Wait out the inspector's growing animation, where motion is allowed.
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    // Wait out the inspector's slide, where motion is allowed.
+    await settled();
     const after = canvas().getBoundingClientRect();
     const inspector = (document.querySelector("aside") as HTMLElement).getBoundingClientRect();
     expect(after.width).toBeLessThan(before.width);
     expect(inspector.left).toBeGreaterThanOrEqual(after.right - 0.5);
   });
+
+  for (const motion of ["no-preference", "reduce"] as const) {
+    it(`docks the inspector at its full width on its first frame, then ${motion === "reduce" ? "fades it" : "slides and fades it"} in and out`, async () => {
+      await commands.reducedMotion(motion);
+      onTestFinished(() => commands.reducedMotion(null));
+      await openDemo();
+      const before = canvas().getBoundingClientRect().width;
+      // What the first frame with the inspector shows: the canvas's width, and what the panel animates.
+      const transitions = (el: Element) =>
+        el
+          .getAnimations()
+          .filter((a): a is CSSTransition => a instanceof CSSTransition)
+          .map((a) => a.transitionProperty)
+          .sort();
+      const first = new Promise<{ width: number; moving: string[] }>((resolve) => {
+        const observer = new MutationObserver(() => {
+          const aside = document.querySelector("aside.paper-inspector");
+          if (aside === null) return;
+          observer.disconnect();
+          resolve({ width: canvas().getBoundingClientRect().width, moving: transitions(aside) });
+        });
+        observer.observe(document.body, { subtree: true, childList: true });
+      });
+      await userEvent.click(button("Select the heading"));
+      const opened = await first;
+      const moved = motion === "reduce" ? ["opacity"] : ["opacity", "translate"];
+      expect(opened.moving).toEqual(moved);
+      await settled();
+      const docked = canvas().getBoundingClientRect().width;
+      expect([opened.width < before, opened.width]).toEqual([true, docked]);
+      // Leaving, it keeps its width while it goes, takes no pointer, then gives the width back.
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(() => document.querySelector("aside.paper-inspector[data-exiting]")).not.toBeNull();
+      const leaving = document.querySelector("aside.paper-inspector[data-exiting]") as HTMLElement;
+      expect([leaving.inert, getComputedStyle(leaving).pointerEvents, transitions(leaving)]).toEqual([
+        true,
+        "none",
+        moved,
+      ]);
+      expect(canvas().getBoundingClientRect().width).toBe(docked);
+      await expect.poll(() => document.querySelector("aside")).toBeNull();
+      expect(canvas().getBoundingClientRect().width).toBe(before);
+    });
+  }
 
   it("closes a selection's inspector on Escape, and gives the canvas its width back", async () => {
     await openDemo();
@@ -230,8 +281,8 @@ describe("the shell", () => {
     await userEvent.click(button("Sidebar"));
     await userEvent.click(button("Select the heading"));
     await expect.poll(() => document.querySelector("aside")).not.toBeNull();
-    // The inspector grows in, overflowing its text until it is full width: check it settled.
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    // The inspector slides and fades in: check it settled.
+    await settled();
     expect([landmarks("header"), landmarks("nav"), landmarks("main"), landmarks("aside"), landmarks("footer")]).toEqual(
       [1, 1, 1, 1, 1],
     );

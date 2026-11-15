@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `U7e` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
-| Depends on | [U7a](../done/U7a-motion-and-state-tokens.md) |
+| Depends on | [U7a](./U7a-motion-and-state-tokens.md) |
 | ADRs | Follows [0024](../../decisions/0024-app-shell-ux.md) (tokens in layers), [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) §4 (headers, CSP) |
 | Branch | `feat/u7e-sites-states-and-motion` |
 | PR title | `feat(sites): pressed, disabled and reduced-motion states on both sites` |
 | Size | M (200–400) |
-| PR | — |
+| PR | [#634](https://github.com/laudebugs/laminapdf/pull/634) |
 
 ## Goal
 
@@ -45,19 +45,19 @@ Apply the plan's §3 and §4 to the docs site, the website and the site kit:
 
 ## Tasks
 
-- [ ] States and cursors
-- [ ] Links
-- [ ] Touch guard
-- [ ] Reduced motion
-- [ ] The runner's busy state
-- [ ] Focus ring
-- [ ] The cursor check
+- [x] States and cursors
+- [x] Links
+- [x] Touch guard
+- [x] Reduced motion
+- [x] The runner's busy state
+- [x] Focus ring
+- [x] The cursor check
 
 ## Acceptance criteria
 
-- [ ] The site kit's browser tests (Chromium, Firefox, WebKit) check the header's and select's cursors and pressed states
-- [ ] The cursor check over built docs and website pages finds no clickable element without the hand
-- [ ] With reduced motion, Starlight's sidebar caret doesn't rotate
+- [x] The site kit's browser tests (Chromium, Firefox, WebKit) check the header's and select's cursors and pressed states
+- [x] The cursor check over built docs and website pages finds no clickable element without the hand
+- [x] With reduced motion, Starlight's sidebar caret doesn't rotate
 
 ## Post-merge checks
 
@@ -79,9 +79,9 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] Every change people see tried in the built app, as a person uses it (CLAUDE.md, [bug triage §7](../../guidelines/bug-triage.md#7-prove-the-fix))
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Every change people see tried in the built app, as a person uses it (CLAUDE.md, [bug triage §7](../../guidelines/bug-triage.md#7-prove-the-fix))
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

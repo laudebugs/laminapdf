@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `U7d` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
-| Depends on | [U7b](../done/U7b-control-states-and-cursors.md), [U7i](../done/U7i-choice-and-field-states.md) |
+| Depends on | [U7b](./U7b-control-states-and-cursors.md), [U7i](./U7i-choice-and-field-states.md) |
 | ADRs | Follows [0024](../../decisions/0024-app-shell-ux.md) (tokens in layers) |
 | Branch | `feat/u7d-reader-surfaces-motion` |
 | PR title | `feat(web): thumbnails, panels and tool cursors follow the state rules` |
 | Size | M (200–400) |
-| PR | — |
+| PR | [#634](https://github.com/laudebugs/laminapdf/pull/634) |
 
 ## Goal
 
@@ -45,19 +45,19 @@ Bring the reader's surfaces that aren't plain controls under the plan's §3 and 
 
 ## Tasks
 
-- [ ] Thumbnails
-- [ ] Page fades
-- [ ] Inspector and phone bar
-- [ ] Tool cursors
-- [ ] Raw `:hover` rules
-- [ ] The cursor test
+- [x] Thumbnails
+- [x] Page fades
+- [x] Inspector and phone bar
+- [x] Tool cursors
+- [x] Raw `:hover` rules
+- [x] The cursor test
 
 ## Acceptance criteria
 
-- [ ] The Link tool shows its crosshair over page text; text selection still shows the I-beam
-- [ ] Opening the inspector moves nothing in the page view during its animation (the canvas width is set on the first frame)
-- [ ] A page fades in rather than appearing in one frame; with reduced motion it still fades
-- [ ] The cursor test passes, and fails if one button's cursor is changed back to `default`
+- [x] The Link tool shows its crosshair over page text; text selection still shows the I-beam
+- [x] Opening the inspector moves nothing in the page view during its animation (the canvas width is set on the first frame)
+- [x] A page fades in rather than appearing in one frame; with reduced motion it still fades
+- [x] The cursor test passes, and fails if one button's cursor is changed back to `default`
 
 ## Post-merge checks
 
@@ -77,12 +77,13 @@ None.
 
 - The inspector's dock width is part of the shell's layout state; changing how it opens must keep the saved rail and inspector widths
 - A page fade must not delay the first readable frame: the page shows at full opacity as soon as its sharp render is ready
+- The low-resolution to sharp cross-fade runs only for the high-zoom detail canvas, which has a canvas of its own over the blurry backdrop. In the common case the sharp tiles are drawn into the page's own canvas and replace the blurry picture at once: a cross-fade there would need a second full-size canvas per page, doubling the view's canvas memory. Plan §3, 10 and the design language say so
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] Every change people see tried in the built app, as a person uses it (CLAUDE.md, [bug triage §7](../../guidelines/bug-triage.md#7-prove-the-fix))
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Every change people see tried in the built app, as a person uses it (CLAUDE.md, [bug triage §7](../../guidelines/bug-triage.md#7-prove-the-fix))
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

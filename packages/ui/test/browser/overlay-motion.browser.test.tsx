@@ -105,10 +105,13 @@ describe("Presence", () => {
 
   it("keeps an overlay for its exit, marked exiting and inert, then removes it", async () => {
     renderIn(<Toolbar />);
-    expect(toolbar()?.hasAttribute("data-exiting")).toBe(false);
-    await userEvent.click(document.querySelector("button") as HTMLElement);
     // Opened and faded in: closing in the frame it opens would leave nothing to fade out.
     await settled();
+    expect(toolbar()?.hasAttribute("data-exiting")).toBe(false);
+    // A click in the page, read a frame later: a test runner's click can take longer than the
+    // exit itself (Firefox in CI), and React renders the exit in a microtask after the click.
+    (document.querySelector("button") as HTMLElement).click();
+    await new Promise(requestAnimationFrame);
     expect(toolbar()?.hasAttribute("data-exiting")).toBe(true);
     expect(toolbar()?.inert).toBe(true);
     await expect.poll(toolbar).toBeNull();

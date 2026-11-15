@@ -32,7 +32,7 @@ import {
   registerEditCommands,
   SaveStrip,
 } from "@laminapdf/ui/editing";
-import type { Viewer } from "@laminapdf/viewer";
+import { TEXT_CURSOR_PROPERTY, type Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { showEditToasts } from "./edit-toasts.ts";
 import { toolsOf } from "./edit-tools.tsx";
@@ -169,7 +169,11 @@ function useTools(viewer: Viewer, reader: ReaderController): void {
   const tools = toolsOf(viewer.edits);
   useEffect(() => {
     const element = viewer.element;
-    return attachTools(tools, { element, scrollBy: (dx, dy) => element.scrollBy(dx, dy) });
+    return attachTools(tools, {
+      element,
+      textCursorProperty: TEXT_CURSOR_PROPERTY,
+      scrollBy: (dx, dy) => element.scrollBy(dx, dy),
+    });
   }, [viewer, tools]);
   // One mode: the reader machine's. A `set-mode` turns the tool on; a name no tool has goes back
   // to the tool on, so the machine never names a mode nothing reads.

@@ -3,22 +3,20 @@
 // example (the six recipes and "Your first PDF"'s Node app) run unchanged gives its golden's bytes;
 // an edit changes the PDF; a mistake shows its code and hint; the editor's lines stay unwrapped
 // until Wrap lines is pressed; TypeScript completes the SDK's API, shows types and marks errors,
-// loaded only on the first edit. Nothing loads before the button is pressed, nothing from another
-// origin, and no CSP violation is reported.
+// loaded only on the first edit; Run stays focused while it runs, and Download's arrival moves
+// nothing. Nothing loads before the button is pressed, nothing from another origin, and no CSP
+// violation is reported.
 
 import { readFileSync } from "node:fs";
-import { env } from "node:process";
-import { firefoxEnv } from "@laminapdf/test-utils/firefox";
+import { BROWSER, launchBrowser } from "@laminapdf/test-utils/e2e-browser";
 import { withoutSelectErrors } from "@laminapdf/test-utils/webkit-select";
 import { getLocal } from "@laminapdf/test-utils/wrangler-dev";
-import { type Browser, type BrowserType, chromium, firefox, type Page, webkit } from "playwright";
+import type { Browser, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { RUNNABLE } from "../runner/examples.js";
 
 const DOCS = new URL("../", import.meta.url);
 const ROOT = new URL("../../", DOCS);
-const BROWSERS: Record<string, BrowserType> = { chromium, firefox, webkit };
-const BROWSER = env.LAMINA_PDF_E2E_BROWSER ?? "chromium";
 const origin = inject("origin");
 const ca = inject("ca");
 
@@ -48,9 +46,7 @@ interface Watched {
 let browser: Browser;
 
 beforeAll(async () => {
-  const type = BROWSERS[BROWSER];
-  if (type === undefined) throw new Error(`LAMINA_PDF_E2E_BROWSER: unknown browser ${BROWSER}`);
-  browser = await type.launch(BROWSER === "firefox" ? { env: firefoxEnv(DOCS) } : {});
+  browser = await launchBrowser(DOCS);
 });
 
 afterAll(async () => {
@@ -75,11 +71,11 @@ async function recipe(path: string): Promise<Watched> {
   return watched;
 }
 
-/** Presses Run and waits until the run ends (Run is enabled again), with its pages or its error. */
+/** Presses Run and waits until the run ends (Run is no longer busy), with its pages or its error. */
 async function run(page: Page, timeout = 60_000): Promise<void> {
   const button = page.getByRole("button", { name: "Run", exact: true });
   await button.click();
-  await page.waitForFunction(() => document.querySelector<HTMLButtonElement>(".run-run")?.disabled === false, null, {
+  await page.waitForFunction(() => !document.querySelector(".run-run")?.hasAttribute("aria-busy"), null, {
     timeout,
   });
 }
@@ -234,6 +230,38 @@ describe(`edit and run in ${BROWSER}`, () => {
     await run(page);
     expect((await downloaded(page)).equals(golden)).toBe(true);
     expect(withoutSelectErrors(BROWSER, errors, await page.locator("select").count())).toEqual([]);
+    await page.context().close();
+  });
+
+  it("keeps Run focused and named Running… while it runs, and Download's arrival moves nothing", async () => {
+    const { page } = await recipe("/recipes/hello/");
+    await page.getByRole("button", { name: "Edit and run" }).click();
+    const button = page.getByRole("button", { name: "Run", exact: true });
+    await button.waitFor();
+    // A button's box within the bar, which the page may scroll.
+    const box = (selector: string) =>
+      page.locator(selector).evaluate((b) => {
+        const own = b.getBoundingClientRect();
+        const bar = b.closest(".run-bar")?.getBoundingClientRect();
+        return { x: own.x - (bar?.x ?? 0), y: own.y - (bar?.y ?? 0), width: own.width, height: own.height };
+      });
+    const before = { run: await box(".run-run"), wrap: await box(".run-wrap"), format: await box(".run-format") };
+    await button.focus();
+    await page.keyboard.press("Enter");
+    // Busy, not disabled: the focus stays, a press does nothing, and the name says what it does.
+    const busy = page.getByRole("button", { name: "Running…" });
+    expect(await busy.getAttribute("aria-disabled")).toBe("true");
+    expect(await busy.getAttribute("aria-busy")).toBe("true");
+    expect(await busy.evaluate((b) => b === document.activeElement)).toBe(true);
+    expect(await busy.evaluate((b) => getComputedStyle(b).cursor)).toBe("progress");
+    expect((await box(".run-run")).width).toBe(before.run.width);
+    await page.waitForFunction(() => !document.querySelector(".run-run")?.hasAttribute("aria-busy"), null, {
+      timeout: 60_000,
+    });
+    expect(await button.evaluate((b) => b === document.activeElement)).toBe(true);
+    expect(await page.locator(".run-download").isVisible()).toBe(true);
+    expect(await box(".run-wrap")).toEqual(before.wrap);
+    expect(await box(".run-format")).toEqual(before.format);
     await page.context().close();
   });
 

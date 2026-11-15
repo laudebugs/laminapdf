@@ -12,6 +12,19 @@
           }
         }
       }
+    },
+    {
+      "includes": ["src/cursors.ts"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off"
+          },
+          "style": {
+            "noRestrictedGlobals": "off"
+          }
+        }
+      }
     }
   ]
 }

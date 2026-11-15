@@ -1,25 +1,10 @@
 // The e2e suite's server: `wrangler dev --local` over the built dist/ (@laminapdf/test-utils'
-// wranglerDev, over HTTPS). Its address reaches the tests through Vitest's `provide` (inject("origin")).
-import { existsSync } from "node:fs";
-import { wranglerDev } from "@laminapdf/test-utils/wrangler-dev";
-import type { TestProject } from "vitest/node";
+// wranglerDevSetup, over HTTPS). Its address reaches the tests through Vitest's `provide`
+// (inject("origin")). A default export because Vitest reads one.
+import { wranglerDevSetup } from "@laminapdf/test-utils/wrangler-dev";
 
-const APP = new URL("../", import.meta.url);
-
-declare module "vitest" {
-  export interface ProvidedContext {
-    origin: string;
-    /** The server's certificate, which getLocal trusts. */
-    ca: string;
-  }
-}
-
-export default async function setup(project: TestProject): Promise<() => void> {
-  if (!existsSync(new URL("dist/index.html", APP))) {
-    throw new Error("apps/web/dist/ is missing: run `pnpm --filter @laminapdf/web build` first");
-  }
-  const server = await wranglerDev(APP);
-  project.provide("origin", server.origin);
-  project.provide("ca", server.ca);
-  return server.stop;
-}
+export default wranglerDevSetup(
+  new URL("../", import.meta.url),
+  "dist/index.html",
+  "apps/web/dist/ is missing: run `pnpm --filter @laminapdf/web build` first",
+);

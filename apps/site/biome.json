@@ -15,7 +15,7 @@
       }
     },
     {
-      "includes": ["astro.config.mjs", "test/**", "src/scripts/**", "scripts/**"],
+      "includes": ["astro.config.mjs", "test/**", "e2e/**", "src/scripts/**", "scripts/**"],
       "linter": {
         "rules": {
           "style": {

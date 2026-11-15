@@ -4,23 +4,18 @@
 // shows at once and survives a reload, Auto follows the system and clears the stored choice, the
 // header's and the phone menu's switches stay in step, and no CSP violation is reported.
 
-import { env } from "node:process";
-import { firefoxEnv } from "@laminapdf/test-utils/firefox";
+import { BROWSER, launchBrowser } from "@laminapdf/test-utils/e2e-browser";
 import { withoutSelectErrors } from "@laminapdf/test-utils/webkit-select";
-import { type Browser, type BrowserContext, type BrowserType, chromium, firefox, type Page, webkit } from "playwright";
+import type { Browser, BrowserContext, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 
 const DOCS = new URL("../", import.meta.url);
-const BROWSERS: Record<string, BrowserType> = { chromium, firefox, webkit };
-const BROWSER = env.LAMINA_PDF_E2E_BROWSER ?? "chromium";
 const origin = inject("origin");
 
 let browser: Browser;
 
 beforeAll(async () => {
-  const type = BROWSERS[BROWSER];
-  if (type === undefined) throw new Error(`LAMINA_PDF_E2E_BROWSER: unknown browser ${BROWSER}`);
-  browser = await type.launch(BROWSER === "firefox" ? { env: firefoxEnv(DOCS) } : {});
+  browser = await launchBrowser(DOCS);
 });
 
 afterAll(async () => {

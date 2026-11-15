@@ -37,14 +37,9 @@
     padding: var(--paper-space-8) var(--paper-space-4);
     border: 0;
     border-block-end: var(--paper-border-width) solid var(--paper-hairline);
-    background: transparent;
+    background-color: transparent;
     color: var(--paper-text);
     text-align: start;
-    cursor: pointer;
-  }
-
-  .paper-recent-row[data-hovered] {
-    background: var(--paper-hover);
   }
 
   .paper-recent-row[data-focus-visible] {
@@ -75,7 +70,7 @@
 
   /* A missing file's row: not a button, its name muted. */
   .paper-recent-row[data-missing] {
-    cursor: default;
+    cursor: var(--paper-cursor-disabled);
   }
 
   .paper-recent-row[data-missing] .paper-recent-name {

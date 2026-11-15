@@ -2,6 +2,7 @@
 // The site's links (nav.mjs's one list) as a `nav`: in the header on both sites, and in the docs
 // site's phone menu, where the header has no room for them. Its look is header.css's `.site-nav`;
 // in the header on a phone, the links marked `site-nav-more` give way to the header's menu.
+import "./states.css";
 import "./header.css";
 import { inPhoneMenu, type NavLink } from "./nav.mjs";
 
@@ -18,7 +19,7 @@ const { links } = Astro.props;
     {
       links.map((link) => (
         <li class={inPhoneMenu(link) ? "site-nav-more" : undefined}>
-          <a href={link.href} aria-current={link.current}>
+          <a class="site-control" href={link.href} aria-current={link.current}>
             {link.label}
           </a>
         </li>

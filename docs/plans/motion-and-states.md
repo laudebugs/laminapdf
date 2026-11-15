@@ -58,7 +58,7 @@ The owner chose 1–4 on 2026-11-14; the rest follow from them and from the rese
 7. **Selection never moves layout.** A selected tab or segment keeps its width: the label reserves the bold width (a hidden bold copy sets the box), or the selection shows by colour and underline only.
 8. **The desktop follows Linux's preference itself.** Since WebKitGTK may miss GNOME's setting, the desktop reads it through the platform (a capability flag, never a platform check in UI code, ADR 0010) and exposes Settings › Reduce motion as the web reader does.
 9. **Links keep two states of their own.** The current page or tab shows by `aria-current` and an underline; visited links look like any other, in the apps and on both sites, since in a reference site or an app "visited" says nothing useful.
-10. **Loading fades, never shimmers.** A page or thumbnail placeholder cross-fades into its picture over `duration-state-out`, and the low-resolution first render into the sharp one; skeletons keep their still blocks (the design language's rule).
+10. **Loading fades, never shimmers.** A page or thumbnail placeholder cross-fades into its picture over `duration-state-out`; skeletons keep their still blocks (the design language's rule). At high zoom the sharp detail canvas fades in over the blurry first render. Elsewhere the sharp picture replaces the blurry one at once: the viewer draws the sharp tiles into the page's own canvas, and a cross-fade there would need a second full-size canvas for every page, doubling the view's canvas memory for a 150 ms effect (U7d).
 
 ## 4. The system
 
@@ -133,8 +133,8 @@ Every interactive element styles the states it has, written in this order inside
 | [U7b](../todos/done/U7b-control-states-and-cursors.md) | The action controls in `@laminapdf/ui` (buttons, toggles, tabs, the mode switcher, menu items, options): the state model, cursors, hover fades, touch-safe hover, selection without layout shift | U7a |
 | [U7i](../todos/done/U7i-choice-and-field-states.md) | Choices, fields and rows in `@laminapdf/ui` (checkboxes, radios, the switch and its knob, swatches, chips, the select, text fields, outline rows): the same | U7a |
 | [U7c](../todos/done/U7c-overlay-enter-and-exit.md) | Menus, popovers, tooltips, link previews, dialogs, toasts, sheets, the drawer and scrim enter and leave | U7a |
-| [U7d](../todos/ready/U7d-reader-surfaces-motion.md) | The reader's surfaces: thumbnails, pages fading in, the inspector and phone bar without layout animation, tool cursors over the text layer, the reader's raw `:hover` rules, the built-reader cursor test | U7b, U7i |
-| [U7e](../todos/ready/U7e-sites-states-and-motion.md) | The docs site, the website and the site kit: states, cursors, links, touch guards, a reduced-motion layer, the runner's busy state, one focus ring | U7a |
+| [U7d](../todos/done/U7d-reader-surfaces-motion.md) | The reader's surfaces: thumbnails, pages fading in, the inspector and phone bar without layout animation, tool cursors over the text layer, the reader's raw `:hover` rules, the built-reader cursor test | U7b, U7i |
+| [U7e](../todos/done/U7e-sites-states-and-motion.md) | The docs site, the website and the site kit: states, cursors, links, touch guards, a reduced-motion layer, the runner's busy state, one focus ring | U7a |
 | [U7f](../todos/ready/U7f-desktop-chrome-motion.md) | The desktop chrome: cursors and their check, tab motion, the strip's reserved space, unselectable labels, Settings › Reduce motion and the platform's reading of it, the webview giveaways | U7b, U7c |
 | [U7g](../todos/done/U7g-pointer-tab-drag.md) | Tab reordering and dragging out by pointer events, tested on each OS | None |
 | [U7h](../todos/ready/U7h-delight-pass.md) | The round's close: a view transition for the Reader toggle, copy and undo feedback, a by-hand pass over every screen of the apps and both sites against this plan | U7b, U7c, U7d, U7e, U7f, U7g, U7i |

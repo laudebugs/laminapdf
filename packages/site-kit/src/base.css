@@ -1,0 +1,42 @@
+/*
+ * The page-wide states both sites share (design language §7.0; motion plan §3, §4.2), from the
+ * Paper tokens, which each site loads first: one focus ring, the hand on every link and summary,
+ * visited links that look like the rest, and one meaning for reduced motion. They reach every
+ * element on the page, so no component imports this sheet: each site's layout loads it, before
+ * states.css and its own style sheet.
+ */
+
+/* One focus ring on both sites: 2 px of the focus colour, 2 px out, drawn at once and never
+   rounded off (an element without a radius keeps its corners). A control with no room outside
+   sets its own offset from the focus-ring tokens. */
+:focus-visible {
+  outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+  outline-offset: var(--paper-focus-ring-offset);
+}
+
+/* Links show the hand from their own token, not only from the browser, whose style sheet WebKit
+   leaves at `auto` for links (the cursor check reads the computed cursor). A visited link looks like any
+   other (motion plan §3, 9): each site colours `a` itself, which covers :visited, and sets no
+   :visited rule. */
+:any-link {
+  cursor: var(--paper-cursor-link);
+}
+
+/* A disclosure's summary opens it, so it shows the hand too, wherever it comes from (Starlight's
+   phone contents list has no cursor of its own). */
+summary {
+  cursor: var(--paper-cursor-action);
+}
+
+/* Reduced motion keeps fades and drops movement (motion plan §3, 4). Whatever a rule of ours or a
+   library's (Starlight's sidebar caret, Expressive Code's "Copied!") transitions, only colours,
+   fills, edges, shadows and opacity may fade; a turn, slide or scale lands at once. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-property:
+      --site-state, color, background-color, border-color, outline-color, box-shadow, opacity, fill, stroke !important;
+    scroll-behavior: auto !important;
+  }
+}
