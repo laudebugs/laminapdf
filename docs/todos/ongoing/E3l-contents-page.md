@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E3l` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E3 plan §2.2](../../plans/editor/e3-navigation-attachments-inspection.md#22-the-contents-page) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E2c](../done/E2c-cross-document-pages.md), [E2o](../done/E2o-structure-tree-merge.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md), [E3b](../done/E3b-bookmarks-and-destinations.md), [E3c](../done/E3c-links.md) |
@@ -35,8 +35,8 @@ Create a clickable contents page from the bookmarks, one or two levels deep, ins
 
 **Out of scope** (and which todo covers it)
 
-- A contents page from a tagged file's headings → [E15b](E15b-structure-tree-editing.md)
-- The desktop column → [E3k](E3k-desktop-navigation-and-export.md)
+- A contents page from a tagged file's headings → [E15b](../ready/E15b-structure-tree-editing.md)
+- The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 
