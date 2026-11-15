@@ -124,7 +124,7 @@ The workflow is new, so `schedule` and `workflow_dispatch` can't run it until it
 - **Nightlies build no `.rpm`**, as they build no MSI: rpm refuses a `-` in a version, and a nightly's is `X.Y.Z-nightly.…`. Fedora testers use the AppImage; tags and staging builds make all three.
 - **The notices are a `bundle.resources` entry in `tauri.release.conf.json`**, not in `tauri.bundle.conf.json`: development builds don't write the file. `resources` is an object map there, so the merge keeps PDFium's entry beside it.
 - **The `.rpm` is signed with `rpmsign` through gpg**, not Tauri's `TAURI_SIGNING_RPM_KEY`: the secret holds the signing subkey alone, which gpg signs with and Tauri's own rpm signer may not read. The build then checks every Linux signature with the runbook's commands (§3).
-- **The AppImage is reported, not gated, against the 15 MB budget** (owner decision 2026-11-15, [#651](https://github.com/laudebugs/laminapdf/issues/651): no gate): it carries GTK and WebKitGTK, about 90 MB, which the `.deb` and `.rpm` take from the system. The builds strip their binaries' symbols (`CARGO_PROFILE_RELEASE_STRIP=symbols`), which brought the arm64 `.deb` back under 15 MB.
+- **The AppImage is reported, not gated, against the 15 MB budget** (owner decision 2026-11-15, [#651](https://github.com/laudebugs/laminapdf/issues/651)): it carries GTK and WebKitGTK, about 90 MB, which the `.deb` and `.rpm` take from the system. The builds strip their binaries' symbols (`CARGO_PROFILE_RELEASE_STRIP=symbols`), which brought the arm64 `.deb` back under 15 MB.
 - **Windows 11 on Arm runs binaryen's x64 `wasm-opt`** under emulation, since binaryen ships no Arm build for Windows.
 
 ## Definition of done
