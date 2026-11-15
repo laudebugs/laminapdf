@@ -9,6 +9,7 @@
 //! either turns off ([`should_persist`]).
 
 pub(crate) mod app;
+pub(crate) mod locate;
 pub(crate) mod restore;
 pub(crate) mod track;
 

@@ -78,25 +78,37 @@ function harness() {
     decode: () => Promise.reject(new Error("no tiles here")),
   } as unknown as DesktopShell;
   const client = new DesktopEngineClient(shell);
-  // The viewer shows one document; its view is whatever was restored last, else page 1.
+  // The viewer shows one document; its view is whatever was restored last, else page 1. Its state
+  // is the page that view is at, which the restore notice follows.
   let view: ViewPosition | undefined;
   const restored: (number | undefined)[] = [];
+  const pageListeners = new Set<() => void>();
+  const moved = () => {
+    for (const listener of pageListeners) listener();
+  };
   const viewer = {
     open: () => {
       view = at(1);
+      moved();
     },
     restore: (position: ViewPosition) => {
       view = position;
       restored.push((position as unknown as { point: { page: number } }).point.page);
+      moved();
     },
     viewPosition: () => view,
-    subscribe: () => () => undefined,
+    getState: () => ({ currentPage: (view as unknown as { point: { page: number } } | undefined)?.point.page ?? 0 }),
+    subscribe: (listener: () => void) => {
+      pageListeners.add(listener);
+      return () => pageListeners.delete(listener);
+    },
   } as unknown as Viewer;
   const tabs = new WindowTabs(shell, client, viewer);
   const reader = new ReaderController({} as Platform, desktopOpener(shell, client, viewer, tabs));
   tabs.attach(reader);
   const scrollTo = (page: number) => {
     view = at(page);
+    moved();
   };
   const closed = () => invoked.filter((c) => c.command === "close_document").map((c) => c.args?.doc);
   return { tabs, reader, client, invoked, restored, scrollTo, closed, gate, drop };
@@ -307,8 +319,8 @@ describe("a window's tabs", () => {
 describe("the last session's tabs", () => {
   const restoredWindow = (active: number | null) => ({
     tabs: [
-      { token: "t1", name: "a.pdf", view: at(4) },
-      { token: "t2", name: "b.pdf", view: at(6) },
+      { token: "t1", name: "a.pdf", view: at(4), missing: false },
+      { token: "t2", name: "b.pdf", view: at(6), missing: false },
     ],
     active,
   });
@@ -333,7 +345,7 @@ describe("the last session's tabs", () => {
 
   it("show a tab whose file is gone on its own tab, unopened, and let Locate… show the file chosen", async () => {
     const { tabs, reader } = harness();
-    await tabs.restore({ tabs: [{ token: "gone", name: "gone.pdf", view: null }], active: 0 });
+    await tabs.restore({ tabs: [{ token: "gone", name: "gone.pdf", view: null, missing: true }], active: 0 });
     const state = reader.getState();
     const file = state.phase === "error" ? state.file : undefined;
     expect([
@@ -365,5 +377,76 @@ describe("the last session's tabs", () => {
     const reported = report?.tabs ?? [];
     const pages = reported.map((t) => (t.view as unknown as { point: { page: number } }).point.page);
     expect([report?.active, pages, reported[1]]).toEqual([0, [9, 6], { doc: null, token: "t2", view: at(6) }]);
+  });
+
+  it("mark the tabs whose files are missing, and count them in the restore notice", async () => {
+    const { tabs } = harness();
+    await tabs.restore({
+      tabs: [
+        { token: "t1", name: "a.pdf", view: at(4), missing: false },
+        { token: "gone", name: "gone.pdf", view: null, missing: true },
+      ],
+      active: 0,
+    });
+    const marks = tabs.getState().tabs.map((t) => t.missing === true);
+    expect([marks, tabs.notice.getState()]).toEqual([[false, true], { tabs: 2, missing: 1 }]);
+  });
+
+  it("mark a tab missing when its file turns out to be gone as it first opens", async () => {
+    const { tabs } = harness();
+    await tabs.restore({ tabs: [{ token: "gone", name: "gone.pdf", view: null, missing: false }], active: 0 });
+    expect(tabs.shown?.missing).toBe(true);
+  });
+
+  it("show the first missing tab from the notice, and unmark it once located", async () => {
+    const { tabs, reader } = harness();
+    await tabs.restore({
+      tabs: [
+        { token: "t1", name: "a.pdf", view: at(4), missing: false },
+        { token: "gone", name: "gone.pdf", view: null, missing: true },
+      ],
+      active: 0,
+    });
+    await tabs.showMissing();
+    expect([tabs.shown?.file.name, reader.getState().phase]).toEqual(["gone.pdf", "error"]);
+    await tabs.located(tabs.shown?.id ?? "", doc(7, "found.pdf"));
+    expect([tabs.shown?.missing, tabs.notice.getState()]).toEqual([undefined, { tabs: 2, missing: 0 }]);
+  });
+
+  it("count a missing tab's file as no longer missing once its tab closes", async () => {
+    const { tabs } = harness();
+    await tabs.restore({
+      tabs: [
+        { token: "t1", name: "a.pdf", view: at(4), missing: false },
+        { token: "gone", name: "gone.pdf", view: null, missing: true },
+      ],
+      active: 0,
+    });
+    await tabs.close(tabs.getState().tabs[1]?.id ?? "");
+    expect(tabs.notice.getState()).toEqual({ tabs: 2, missing: 0 });
+  });
+
+  it("take the restore notice away on the first page turned after the restored one", async () => {
+    const { tabs, scrollTo } = harness();
+    await tabs.restore(restoredWindow(1));
+    expect(tabs.notice.getState()).toEqual({ tabs: 2, missing: 0 });
+    scrollTo(7);
+    expect(tabs.notice.getState()).toBeUndefined();
+  });
+
+  it("take the restore notice away when the user chooses another tab, not when the notice shows one", async () => {
+    const { tabs } = harness();
+    await tabs.restore({
+      tabs: [
+        { token: "t1", name: "a.pdf", view: at(4), missing: false },
+        { token: "gone", name: "gone.pdf", view: null, missing: true },
+        { token: "t3", name: "c.pdf", view: at(2), missing: false },
+      ],
+      active: 0,
+    });
+    await tabs.showMissing();
+    expect(tabs.notice.getState()).toEqual({ tabs: 3, missing: 1 });
+    await tabs.choose(tabs.getState().tabs[2]?.id ?? "");
+    expect(tabs.notice.getState()).toBeUndefined();
   });
 });

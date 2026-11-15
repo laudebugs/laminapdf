@@ -11,7 +11,7 @@
 | Branch | `feat/d4f-restore-notice-and-missing-marks` |
 | PR title | `feat(desktop): say what the last session brought back, and mark missing files in the tab strip` |
 | Size | M (200–400): the notice, the strip's marks and menu entries in `@laminapdf/ui`, the "looks different" question, their gallery states |
-| PR | — |
+| PR | [#628](https://github.com/laudebugs/laminapdf/pull/628) |
 
 ## Goal
 

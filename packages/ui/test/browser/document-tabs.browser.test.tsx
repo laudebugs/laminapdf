@@ -1,11 +1,13 @@
 // The window's document tabs: one Tab stop that the arrow keys move along, Enter shows the focused
 // tab, Delete closes it, the close buttons and the strip's menu reach every tab, dragging a tab
-// onto another reorders them, and a drag that ends anywhere else is handed to the shell.
+// onto another reorders them, and a drag that ends anywhere else is handed to the shell. A tab whose
+// file is missing carries a named warning mark, and the menu says "Not found" or each tab's page;
+// the restore notice counts what came back and shows a missing file.
 
 import { useState } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { type DocumentTab, DocumentTabs } from "../../src/index.ts";
+import { type DocumentTab, DocumentTabs, LocateDifferentDialog, RestoreNotice } from "../../src/index.ts";
 import { cleanup, renderIn } from "./render.tsx";
 
 afterEach(() => cleanup());
@@ -159,5 +161,64 @@ describe("the document tabs", () => {
     onto.dispatchEvent(foreign);
     expect(foreign.defaultPrevented).toBe(false);
     expect(log).toEqual(["drag a"]);
+  });
+
+  it("mark a missing file's tab, and say Not found or each tab's page in the menu", async () => {
+    renderIn(
+      <DocumentTabs
+        tabs={[
+          { id: "a", title: "report.pdf", detail: "Page 12" },
+          { id: "b", title: "gone.pdf", missing: true },
+        ]}
+        active="a"
+        onActivate={() => undefined}
+        onClose={() => undefined}
+        platform="mac"
+      />,
+    );
+    await expect.element(page.getByRole("tab", { name: "Not found gone.pdf" })).toBeVisible();
+    await page.getByRole("button", { name: "All tabs, 2 open" }).click();
+    await expect.element(page.getByRole("menuitem", { name: "report.pdf" })).toHaveAccessibleDescription("Page 12");
+    await expect.element(page.getByRole("menuitem", { name: "gone.pdf" })).toHaveAccessibleDescription("Not found");
+  });
+});
+
+describe("the restore notice", () => {
+  it("counts the tabs and the missing files, and shows a missing one", async () => {
+    const log: string[] = [];
+    renderIn(
+      <RestoreNotice
+        tabs={8}
+        missing={1}
+        onShowMissing={() => log.push("show")}
+        onDismiss={() => log.push("dismiss")}
+      />,
+    );
+    await expect
+      .element(page.getByRole("status"))
+      .toHaveTextContent(
+        "Restored your last session. 8 tabs, each at the page you were reading. 1 file was not found.",
+      );
+    await page.getByRole("button", { name: "Show missing file" }).click();
+    await page.getByRole("button", { name: "Dismiss the restore notice" }).click();
+    expect(log).toEqual(["show", "dismiss"]);
+  });
+
+  it("offers no missing file to show when every file came back", async () => {
+    renderIn(<RestoreNotice tabs={1} missing={0} onShowMissing={() => undefined} onDismiss={() => undefined} />);
+    await expect
+      .element(page.getByRole("status"))
+      .toHaveTextContent("Restored your last session. 1 tab, at the page you were reading.");
+    expect(page.getByRole("button", { name: "Show missing file" }).elements()).toEqual([]);
+  });
+
+  it("asks before a located file that looks different opens, Cancel first", async () => {
+    const answers: boolean[] = [];
+    renderIn(<LocateDifferentDialog name="gone.pdf" onAnswer={(open) => answers.push(open)} />);
+    const ask = page.getByRole("alertdialog", { name: "This file looks different from the one you had open" });
+    await expect.element(ask).toBeVisible();
+    await expect.element(ask.getByRole("button", { name: "Cancel" })).toHaveFocus();
+    await ask.getByRole("button", { name: "Open anyway" }).click();
+    expect(answers).toEqual([true]);
   });
 });

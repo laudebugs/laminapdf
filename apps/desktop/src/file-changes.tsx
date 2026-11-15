@@ -3,14 +3,22 @@
 // with Locate… (choose where it went: the view moves to that file) and Close, while the document
 // stays readable; a change the main process couldn't open shows the unreadable notice until the next good
 // reload. Each event names a document id, and only the one on screen counts. A tab of the last
-// session whose file is gone shows the same words in place of the document, with Locate… and Close.
+// session whose file is gone shows the same words in place of the document, with Locate… and Close;
+// a located file whose size or date differs from the session's opens only once the user agrees.
 
-import { message, Notice, type PlatformFile, type ReaderController, type ToastQueue } from "@laminapdf/ui";
+import {
+  LocateDifferentDialog,
+  message,
+  Notice,
+  type PlatformFile,
+  type ReaderController,
+  type ToastQueue,
+} from "@laminapdf/ui";
 import { type ReactNode, useEffect, useState } from "react";
 import type { DesktopEngine } from "./app.tsx";
 import { type DesktopDocument, engineError } from "./engine/desktop-engine-client.ts";
 import { listenForFileChanges, showInPlace } from "./engine/file-changes.ts";
-import { desktopFile } from "./engine/open.ts";
+import { desktopFile, restoredToken } from "./engine/open.ts";
 import { stopper } from "./engine/stopper.ts";
 import type { WindowTabs } from "./tabs/window-tabs.ts";
 
@@ -127,9 +135,13 @@ async function locate(engine: DesktopEngine, reader: ReaderController): Promise<
   return true;
 }
 
+/** What `session_locate` found: the file opened, or it looks different and waits for an answer. */
+type Located = { kind: "opened"; document: DesktopDocument } | { kind: "different"; name: string };
+
 /**
- * The page a tab of the last session shows when its file couldn't be found (D4d): Locate… lets
- * the user choose where it went, and the tab shows that file; Close closes the tab.
+ * The page a tab of the last session shows when its file couldn't be found: Locate… lets the user
+ * choose where it went, and the tab shows that file, after asking when it looks different from the
+ * file the session had; Close closes the tab.
  */
 export function MissingRestoredTab({
   engine,
@@ -142,18 +154,33 @@ export function MissingRestoredTab({
   file: PlatformFile;
   toasts: ToastQueue;
 }): ReactNode {
+  // The chosen file's name while Lamina PDF asks whether to open it anyway.
+  const [different, setDifferent] = useState<string>();
   const id = tabs.getState().tabs.find((tab) => tab.file === file)?.id;
-  if (id === undefined) return null;
+  const token = restoredToken(file);
+  if (id === undefined || token === undefined) return null;
+  const answer = async (open: boolean) => {
+    setDifferent(undefined);
+    const document = await engine.shell.invoke<DesktopDocument | null>("session_locate_answer", { token, open });
+    if (document !== null) await tabs.located(id, document);
+  };
   return (
     <div className="desktop-missing">
       <MissingNotice
         body={message("reader.file.missing.restored")}
         onLocate={async () => {
-          const located = await engine.shell.invoke<DesktopDocument | null>("open_dialog");
-          if (located !== null) await tabs.located(id, located);
+          const located = await engine.shell.invoke<Located | null>("session_locate", { token });
+          if (located?.kind === "opened") await tabs.located(id, located.document);
+          else if (located?.kind === "different") setDifferent(located.name);
         }}
         onClose={() => void tabs.close(id)}
         toasts={toasts}
+      />
+      <LocateDifferentDialog
+        name={different}
+        onAnswer={(open) => {
+          void answer(open).catch((error: unknown) => toasts.add({ message: engineError(error).message }));
+        }}
       />
     </div>
   );

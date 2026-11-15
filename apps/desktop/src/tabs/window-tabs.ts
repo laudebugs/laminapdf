@@ -19,12 +19,15 @@ import type {
   RestartedPayload,
 } from "../engine/desktop-engine-client.ts";
 import { desktopFile, documentOf, rebind, restoredFile, restoredToken } from "../engine/open.ts";
+import { RestoreNoticeState } from "./restore-notice.ts";
 
 /** One tab: its id, the file the reader opens for it, and the view it had when it was last shown. */
 export interface Tab {
   readonly id: string;
   readonly file: PlatformFile;
   view: ViewPosition | undefined;
+  /** A tab of the last session whose file couldn't be found, until it is located. */
+  readonly missing?: boolean;
 }
 
 /** The tabs as the strip draws them. */
@@ -48,6 +51,8 @@ interface RestoredTab {
   readonly token: string;
   readonly name: string;
   readonly view: ViewPosition | null;
+  /** Its file couldn't be found when the session came back. */
+  readonly missing: boolean;
 }
 
 /** This window's tabs in the last session, and the shown one's index. */
@@ -68,6 +73,8 @@ export const DRAG_OVER_EVENT = "tab://drag-over";
 
 /** The window's tabs. */
 export class WindowTabs implements ExternalStore<TabsState> {
+  /** The restore notice: what the last session brought back here, until dismissed or left. */
+  readonly notice: RestoreNoticeState;
   readonly #shell: DesktopShell;
   readonly #client: DesktopEngineClient;
   readonly #viewer: Viewer;
@@ -95,6 +102,7 @@ export class WindowTabs implements ExternalStore<TabsState> {
     this.#shell = shell;
     this.#client = client;
     this.#viewer = viewer;
+    this.notice = new RestoreNoticeState(viewer, () => client.current?.doc);
     this.#restored = new Promise((resolve) => {
       this.#restoredNow = resolve;
     });
@@ -194,11 +202,21 @@ export class WindowTabs implements ExternalStore<TabsState> {
   async restore(restored: RestoredWindow): Promise<void> {
     try {
       const tabs = restored.tabs.map(
-        (t): Tab => ({ id: String(this.#next++), file: restoredFile(t.token, t.name), view: t.view ?? undefined }),
+        (t): Tab => ({
+          id: String(this.#next++),
+          file: restoredFile(t.token, t.name),
+          view: t.view ?? undefined,
+          ...(t.missing ? { missing: true } : {}),
+        }),
       );
       if (tabs.length === 0) return;
       this.#set({ tabs: [...this.#state.tabs, ...tabs] });
       const shown = tabs[restored.active ?? 0] ?? tabs[0];
+      const missing = tabs.filter((tab) => tab.missing === true).length;
+      this.notice.show(
+        { tabs: tabs.length, missing },
+        shown === undefined || shown.missing === true ? undefined : (shown.view?.point.page ?? 0),
+      );
       if (shown !== undefined) await this.activate(shown.id);
     } finally {
       this.#restoredNow();
@@ -216,7 +234,35 @@ export class WindowTabs implements ExternalStore<TabsState> {
     if (tab === undefined) return;
     rebind(tab.file, document);
     tab.view = undefined;
+    this.#setMissing(id, false);
     await this.#drive(() => this.#reader?.open(tab.file));
+  }
+
+  /** The last session's tab `file` stands for couldn't find its file when it first showed. */
+  missingFile(file: PlatformFile): void {
+    const tab = this.#state.tabs.find((t) => t.file === file);
+    if (tab !== undefined) this.#setMissing(tab.id, true);
+  }
+
+  /** Shows the first tab whose file is missing: the restore notice's Show missing file. */
+  async showMissing(): Promise<void> {
+    const tab = this.#state.tabs.find((t) => t.missing === true);
+    if (tab !== undefined) await this.activate(tab.id);
+  }
+
+  /** Shows tab `id` because the user chose it: the first navigation takes the restore notice away. */
+  async choose(id: string): Promise<void> {
+    if (id !== this.#state.active) this.notice.dismiss();
+    await this.activate(id);
+  }
+
+  #setMissing(id: string, missing: boolean): void {
+    const tab = this.#state.tabs.find((t) => t.id === id);
+    if (tab === undefined || (tab.missing === true) === missing) return;
+    if (!missing) this.notice.found();
+    const { missing: _, ...rest } = tab;
+    const changed: Tab = missing ? { ...rest, missing: true } : rest;
+    this.#set({ tabs: this.#state.tabs.map((t) => (t.id === id ? changed : t)) });
   }
 
   /** The tab whose document is `doc`. */
@@ -294,7 +340,7 @@ export class WindowTabs implements ExternalStore<TabsState> {
     if (tabs.length < 2) return;
     const index = tabs.findIndex((t) => t.id === active);
     const next = tabs[(index + by + tabs.length) % tabs.length];
-    if (next !== undefined) await this.activate(next.id);
+    if (next !== undefined) await this.choose(next.id);
   }
 
   /** Puts the tabs in `ids`' order. */
@@ -351,6 +397,7 @@ export class WindowTabs implements ExternalStore<TabsState> {
   }
 
   #remove(id: string): void {
+    if (this.#state.tabs.find((t) => t.id === id)?.missing === true) this.notice.found();
     const tabs = this.#state.tabs.filter((t) => t.id !== id);
     this.#set({ tabs, active: this.#state.active === id ? undefined : this.#state.active });
   }

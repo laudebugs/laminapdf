@@ -146,6 +146,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(open::OpenWorker::start(app.handle().clone())?);
     app.manage(windows::Windows::default());
     app.manage(tab_drag::TabDrag::default());
+    app.manage(session::locate::Held::default());
     app.manage(menu::MenusJson::embedded());
     app.manage(menu::NativeMenus::default());
     // The last session's windows (D4d), else one window. Windows are made here, not in
@@ -203,6 +204,8 @@ macro_rules! app_commands {
             session::app::session_tabs,
             session::app::take_session_tabs,
             session::app::session_open,
+            session::locate::session_locate,
+            session::locate::session_locate_answer,
             commands::menu_state,
             commands::close_window,
             commands::quit,

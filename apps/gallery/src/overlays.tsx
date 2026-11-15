@@ -54,6 +54,7 @@ import {
   LinkEditor,
   type LinkGoal,
   LinkPanel,
+  LocateDifferentDialog,
   NamedDestinationsDialog,
   RemoveSignaturesDialog,
 } from "@laminapdf/ui/editing";
@@ -228,6 +229,8 @@ export function Dialogs({ state }: { state: string }): ReactNode {
   if (state === "settings" || state === "shortcuts" || state === "view-settings")
     return <SettingsDialogs state={state} />;
   if (EDITING_DIALOGS.has(state)) return <EditingDialogs state={state} />;
+  // S02: the desktop's question before a located file that differs from the session's opens.
+  if (state === "locate-different") return <LocateDifferentDialog name="Q2-board-report.pdf" onAnswer={noop} />;
   if (state === "external-link") {
     // R07's drawn state: the page's text shows a shorter address than the link's real target.
     return (

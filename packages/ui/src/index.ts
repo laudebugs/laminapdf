@@ -311,6 +311,12 @@ export {
   type RepairKind,
 } from "./reader/repair.js";
 export {
+  LocateDifferentDialog,
+  type LocateDifferentDialogProps,
+  RestoreNotice,
+  type RestoreNoticeProps,
+} from "./reader/restore-notice.js";
+export {
   SettingsDialog,
   type SettingsDialogProps,
   SettingsRegistry,

@@ -204,7 +204,7 @@ Ticked by the PR that completes them.
 - [x] Multi-window and tabs ([D4a](../todos/done/D4a-windows-tabs-and-session-restore.md))
 - [x] Drag a tab to a new window or another window's strip ([D4e](../todos/done/D4e-tab-drag-between-windows.md))
 - [x] Session restore ([D4d](../todos/done/D4d-session-restore.md))
-- [ ] The restore notice and missing files marked in the tab strip ([D4f](../todos/ongoing/D4f-restore-notice-and-missing-marks.md))
+- [x] The restore notice and missing files marked in the tab strip ([D4f](../todos/ongoing/D4f-restore-notice-and-missing-marks.md))
 - [x] Native menus and accelerators generated from the shared shortcut map ([D4b](../todos/done/D4b-native-menus.md))
 - [ ] Implement printing per the D1 recommendation
 - [ ] Record a manual print check per OS in the PR
