@@ -7,9 +7,8 @@
     justify-content: center;
     border: var(--paper-border-width) solid transparent;
     border-radius: var(--paper-radius-4);
-    background: transparent;
+    background-color: transparent;
     color: var(--paper-text-3);
-    cursor: default;
     white-space: nowrap;
   }
 
@@ -33,34 +32,32 @@
     font: var(--paper-type-control);
   }
 
-  /* Secondary: field fill and a control border; hover lays the hover fill over it. */
+  /* Secondary: field fill and a control border; hover and press lay their layer over it (states.css). */
   .paper-button[data-variant="secondary"] {
-    background: var(--paper-field);
+    background-color: var(--paper-field);
     border-color: var(--paper-control-border);
   }
 
-  .paper-button[data-variant="secondary"][data-hovered] {
-    background: linear-gradient(var(--paper-hover), var(--paper-hover)), var(--paper-field);
-  }
-
-  .paper-button[data-variant="secondary"][data-pressed] {
-    background: linear-gradient(var(--paper-pressed), var(--paper-pressed)), var(--paper-field);
+  /* The filled buttons swap one solid fill for another instead of a layer, which would change
+     their text's contrast; high contrast's fills don't change. */
+  .paper-button:is([data-variant="primary"], [data-variant="danger-filled"]):is([data-hovered], [data-pressed]) {
+    --ui-state-layer: transparent;
   }
 
   .paper-button[data-variant="primary"] {
-    background: var(--paper-accent);
+    background-color: var(--paper-accent);
     border-color: var(--paper-accent);
     color: var(--paper-on-accent);
     font-weight: 600;
   }
 
   .paper-button[data-variant="primary"][data-hovered] {
-    background: var(--paper-accent-strong);
+    background-color: var(--paper-accent-strong);
     border-color: var(--paper-accent-strong);
   }
 
   .paper-button[data-variant="primary"][data-pressed] {
-    background: var(--paper-primary-pressed);
+    background-color: var(--paper-primary-pressed);
     border-color: var(--paper-primary-pressed);
   }
 
@@ -72,50 +69,46 @@
     color: var(--paper-danger);
   }
 
-  .paper-button:is([data-variant="ghost"], [data-variant="danger"])[data-hovered],
-  .paper-icon-button[data-hovered] {
-    background: var(--paper-hover);
-  }
-
   /* A button whose panel is open (the top bar's Find, R05): the pressed look of a tool toggle. */
   .paper-icon-button[aria-expanded="true"] {
     outline: var(--paper-border-width) solid var(--paper-accent);
     outline-offset: calc(-1 * var(--paper-border-width));
-    background: var(--paper-accent-tint);
+    background-color: var(--paper-accent-tint);
     color: var(--paper-accent);
   }
 
-  .paper-button:is([data-variant="ghost"], [data-variant="danger"])[data-pressed],
-  .paper-icon-button[data-pressed] {
-    background: var(--paper-pressed);
-  }
-
   .paper-button[data-variant="danger-filled"] {
-    background: var(--paper-danger);
+    background-color: var(--paper-danger);
     border-color: var(--paper-danger);
     color: var(--paper-on-accent);
     font-weight: 600;
   }
 
-  /* Disabled or pending: the disabled text, no hover; filled buttons lose their fill. */
+  .paper-button[data-variant="danger-filled"][data-hovered] {
+    background-color: var(--paper-danger-strong);
+    border-color: var(--paper-danger-strong);
+  }
+
+  .paper-button[data-variant="danger-filled"][data-pressed] {
+    background-color: var(--paper-danger-pressed);
+    border-color: var(--paper-danger-pressed);
+  }
+
+  /* Disabled or pending: the disabled text, no hover (states.css); filled buttons lose their fill. */
   .paper-button:is([data-disabled], [data-pending]),
-  .paper-icon-button[data-disabled] {
+  .paper-icon-button:is([data-disabled], [data-pending]) {
     color: var(--paper-disabled);
-    background: transparent;
+    background-color: transparent;
   }
 
   .paper-button[data-variant="secondary"]:is([data-disabled], [data-pending]) {
-    background: var(--paper-field);
+    background-color: var(--paper-field);
     border-color: var(--paper-hairline);
   }
 
   .paper-button:is([data-variant="primary"], [data-variant="danger-filled"]):is([data-disabled], [data-pending]) {
-    background: var(--paper-hairline);
+    background-color: var(--paper-hairline);
     border-color: var(--paper-hairline);
-  }
-
-  .paper-button[data-pending] {
-    cursor: progress;
   }
 
   .paper-icon-button {

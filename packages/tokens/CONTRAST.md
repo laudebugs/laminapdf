@@ -51,6 +51,9 @@ WCAG 2.x contrast ratios, translucent colours composited over what they sit on. 
 | `on-accent` | `accent` | text ≥ 4.5 | 7.58 | 9.12 | 9.20 | 7.98 |  |
 | `on-accent` | `accent-strong` | text ≥ 4.5 | 10.57 | 12.15 | 12.31 | 11.03 |  |
 | `on-accent` | `primary-pressed` | text ≥ 4.5 | 12.33 | 13.80 | 14.11 | 12.76 |  |
+| `on-accent` | `danger` | text ≥ 4.5 | 7.82 | 7.82 | 7.82 | 7.82 |  |
+| `on-accent` | `danger-strong` | text ≥ 4.5 | 9.05 | 9.05 | 9.05 | 9.05 |  |
+| `on-accent` | `danger-pressed` | text ≥ 4.5 | 10.22 | 10.22 | 10.22 | 10.22 |  |
 | `danger` | `ground` | text ≥ 4.5 | 7.12 | 7.12 | 7.12 | 7.12 |  |
 | `danger` | `surface` | text ≥ 4.5 | 7.44 | 7.44 | 7.44 | 7.44 |  |
 | `danger` | `field` | text ≥ 4.5 | 7.82 | 7.82 | 7.82 | 7.82 |  |
@@ -129,6 +132,9 @@ WCAG 2.x contrast ratios, translucent colours composited over what they sit on. 
 | `on-accent` | `accent` | text ≥ 4.5 | 7.97 | 7.77 | 7.49 | 7.89 |  |
 | `on-accent` | `accent-strong` | text ≥ 4.5 | 9.84 | 9.68 | 9.39 | 9.77 |  |
 | `on-accent` | `primary-pressed` | text ≥ 4.5 | 11.62 | 11.58 | 11.32 | 11.65 |  |
+| `on-accent` | `danger` | text ≥ 4.5 | 7.10 | 7.10 | 7.10 | 7.10 |  |
+| `on-accent` | `danger-strong` | text ≥ 4.5 | 7.85 | 7.85 | 7.85 | 7.85 |  |
+| `on-accent` | `danger-pressed` | text ≥ 4.5 | 8.49 | 8.49 | 8.49 | 8.49 |  |
 | `danger` | `ground` | text ≥ 4.5 | 7.10 | 7.10 | 7.10 | 7.10 |  |
 | `danger` | `surface` | text ≥ 4.5 | 6.52 | 6.52 | 6.52 | 6.52 |  |
 | `danger` | `raised` | text ≥ 4.5 | 5.87 | 5.87 | 5.87 | 5.87 |  |
@@ -190,6 +196,9 @@ WCAG 2.x contrast ratios, translucent colours composited over what they sit on. 
 | `control-border` | `ground` | boundary ≥ 3 | browser |  |
 | `on-accent` | `accent` | text ≥ 4.5 | browser |  |
 | `on-accent` | `primary-pressed` | text ≥ 4.5 | browser |  |
+| `on-accent` | `danger` | text ≥ 4.5 | browser |  |
+| `on-accent` | `danger-strong` | text ≥ 4.5 | browser |  |
+| `on-accent` | `danger-pressed` | text ≥ 4.5 | browser |  |
 | `danger` | `ground` | text ≥ 4.5 | browser |  |
 | `positive` | `ground` | text ≥ 4.5 | browser |  |
 | `warning` | `ground` | text ≥ 4.5 | browser |  |

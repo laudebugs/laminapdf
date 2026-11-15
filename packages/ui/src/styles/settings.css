@@ -116,7 +116,7 @@
   }
 
   .paper-settings-nav .paper-button[aria-current="page"] {
-    background: var(--paper-accent-tint);
+    background-color: var(--paper-accent-tint);
   }
 
   .paper-settings-section,
@@ -173,7 +173,7 @@
   }
 
   .paper-sheet .paper-settings-nav .paper-button[aria-current="page"] {
-    background: none;
+    background-color: transparent;
   }
 
   .paper-sheet .paper-settings-nav .paper-button-label {
