@@ -34,7 +34,9 @@ runs:
         if command -v cygpath > /dev/null; then temp=$(cygpath -u "$temp"); fi
         file="dump_syms-$asset"
         curl -fsSL --retry 3 -o "$temp/$file" "https://github.com/mozilla/dump_syms/releases/download/v$DUMP_SYMS_VERSION/$file"
-        echo "$sum  $temp/$file" | shasum -a 256 -c -
+        # Git Bash on Windows has sha256sum but no shasum; macOS has shasum.
+        if command -v sha256sum >/dev/null; then check=(sha256sum -c -); else check=(shasum -a 256 -c -); fi
+        echo "$sum  $temp/$file" | "${check[@]}"
         dir="$temp/dump_syms"
         mkdir -p "$dir"
         case "$file" in
