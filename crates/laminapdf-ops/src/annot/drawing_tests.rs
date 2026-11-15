@@ -57,9 +57,9 @@ fn widths_must_match_the_points() {
 
 #[test]
 fn a_cloudy_line_is_invalid() {
-    let line = Line {
+    let line = LineMark {
         border: Border::cloudy(1.0, 1.0),
-        ..Line::new(p(0.0, 0.0), p(10.0, 0.0))
+        ..LineMark::new(p(0.0, 0.0), p(10.0, 0.0))
     };
     assert!(!AnnotSpec::Line(line).is_valid());
 }
@@ -112,7 +112,7 @@ fn a_cloudy_filled_square_reads_back_inside_its_rect() {
 
 #[test]
 fn a_dashed_arrow_with_leader_lines_reads_back() {
-    let line = Line {
+    let line = LineMark {
         interior: Some(AnnotColor::Gray(0.5)),
         border: Border::dashed(1.5, vec![4.0, 2.0]),
         leader: Some(Leader {
@@ -120,7 +120,7 @@ fn a_dashed_arrow_with_leader_lines_reads_back() {
             extension: 3.0,
             offset: 1.0,
         }),
-        ..Line::new(p(0.0, 0.0), p(100.0, 50.0)).with_ends(LineEnding::Butt, LineEnding::ClosedArrow)
+        ..LineMark::new(p(0.0, 0.0), p(100.0, 50.0)).with_ends(LineEnding::Butt, LineEnding::ClosedArrow)
     };
     let spec = AnnotSpec::Line(line);
     assert_eq!(
@@ -187,9 +187,9 @@ fn erasing_a_stroke_the_mark_lacks_is_refused() {
 
 #[test]
 fn a_line_patch_can_remove_the_leader_lines() {
-    let line = Line {
+    let line = LineMark {
         leader: Some(Leader::new(10.0)),
-        ..Line::new(p(0.0, 0.0), p(10.0, 0.0))
+        ..LineMark::new(p(0.0, 0.0), p(10.0, 0.0))
     };
     let patch: LinePatch = serde_json::from_str(r#"{ "leader": null }"#).unwrap();
     assert_eq!(patch.applied_to(&line).leader, None);

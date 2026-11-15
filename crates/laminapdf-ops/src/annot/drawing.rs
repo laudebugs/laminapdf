@@ -205,6 +205,24 @@ impl Shape {
         }
     }
 
+    /// The same shape filled with `color` (`/IC`), or with none.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub const fn with_interior(mut self, color: Option<AnnotColor>) -> Self {
+        self.interior = color;
+        self
+    }
+
+    /// The same shape with `border` as its outline.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub fn with_border(mut self, border: Border) -> Self {
+        self.border = border;
+        self
+    }
+
     fn is_valid(&self) -> bool {
         geom::finite(geom::corners(&self.rect)) && self.rect.has_area() && self.border.is_valid(true)
     }
@@ -243,7 +261,7 @@ impl ShapeKind {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
-pub struct Line {
+pub struct LineMark {
     /// Where it starts, in user space.
     #[serde(with = "wire::user_space_point")]
     #[cfg_attr(feature = "tsify", tsify(type = "{ x: number; y: number }"))]
@@ -268,7 +286,7 @@ pub struct Line {
     pub leader: Option<Leader>,
 }
 
-impl Line {
+impl LineMark {
     /// A 1-point solid line from `from` to `to`, with no endings.
     ///
     /// Added in 0.5.0.
@@ -291,6 +309,33 @@ impl Line {
     #[must_use]
     pub const fn with_ends(mut self, start: LineEnding, end: LineEnding) -> Self {
         self.ends = [start, end];
+        self
+    }
+
+    /// The same line filled with `color` (`/IC`), or with none.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub const fn with_interior(mut self, color: Option<AnnotColor>) -> Self {
+        self.interior = color;
+        self
+    }
+
+    /// The same line with `border` as its outline.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub fn with_border(mut self, border: Border) -> Self {
+        self.border = border;
+        self
+    }
+
+    /// The same line with `leader` lines, or none.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub const fn with_leader(mut self, leader: Option<Leader>) -> Self {
+        self.leader = leader;
         self
     }
 
@@ -380,6 +425,34 @@ impl Poly {
             interior: None,
             border: Border::default(),
         }
+    }
+
+    /// The same polyline with `start` at its first vertex and `end` at its last; a polygon has
+    /// no endings.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub const fn with_ends(mut self, start: LineEnding, end: LineEnding) -> Self {
+        self.ends = [start, end];
+        self
+    }
+
+    /// The same polygon or polyline filled with `color` (`/IC`), or with none.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub const fn with_interior(mut self, color: Option<AnnotColor>) -> Self {
+        self.interior = color;
+        self
+    }
+
+    /// The same polygon or polyline with `border` as its outline.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub fn with_border(mut self, border: Border) -> Self {
+        self.border = border;
+        self
     }
 
     fn is_valid(&self) -> bool {
@@ -623,7 +696,7 @@ const fn yes() -> bool {
 pub(crate) enum Drawing<'a> {
     Ink(&'a Ink),
     Shape(&'a Shape),
-    Line(&'a Line),
+    Line(&'a LineMark),
     Poly(&'a Poly),
 }
 
@@ -899,7 +972,7 @@ pub(crate) fn read(subtype: &[u8], dict: &Dict, rect: Option<UserSpaceRect>) -> 
                 extension: dict.get("LLE").and_then(Object::as_f64).unwrap_or(0.0).max(0.0),
                 offset: dict.get("LLO").and_then(Object::as_f64).unwrap_or(0.0).max(0.0),
             });
-            Some(AnnotSpec::Line(Line {
+            Some(AnnotSpec::Line(LineMark {
                 from,
                 to,
                 ends: read_ends(dict),

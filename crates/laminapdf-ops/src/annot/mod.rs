@@ -21,7 +21,9 @@ pub use add::{AddAnnot, AnnotCommon};
 pub(crate) use appearance::Generator;
 pub use appearance::{Appearance, AppearanceRequest, Appearances, IntentSpace};
 pub(crate) use conformance::warnings as conformance_warnings;
-pub use drawing::{Border, BorderStyle, Ink, InkStroke, Leader, Line, LineEnding, Poly, PolyKind, Shape, ShapeKind};
+pub use drawing::{
+    Border, BorderStyle, Ink, InkStroke, Leader, LineEnding, LineMark, Poly, PolyKind, Shape, ShapeKind,
+};
 pub use drawing_patch::{InkPatch, LinePatch, PolyPatch, ShapePatch};
 pub(crate) use geom::quad_points;
 pub use geom::{AnnotColor, Opacity};

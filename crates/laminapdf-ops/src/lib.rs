@@ -105,7 +105,7 @@ use laminapdf_test_fixtures::codes as test_codes;
 pub use annot::{
     AddAnnot, AddReply, AnnotColor, AnnotCommon, AnnotSpec, AnnotSpecPatch, Appearance, AppearanceRequest, Appearances,
     Border, BorderStyle, Caret, CaretPatch, CaretSymbol, DeleteAnnot, Ink, InkPatch, InkStroke, IntentSpace, Leader,
-    Line, LineEnding, LinePatch, MarkupKind, Note, NoteIcon, NotePatch, Offset, Opacity, Poly, PolyKind, PolyPatch,
+    LineEnding, LineMark, LinePatch, MarkupKind, Note, NoteIcon, NotePatch, Offset, Opacity, Poly, PolyKind, PolyPatch,
     ReviewState, SetReviewState, Shape, ShapeKind, ShapePatch, TextMarkup, TextMarkupPatch, UpdateAnnot,
     delete_annotations,
 };

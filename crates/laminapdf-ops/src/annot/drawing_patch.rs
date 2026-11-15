@@ -6,7 +6,7 @@
 use laminapdf_model::{UserSpacePoint, UserSpaceRect};
 use serde::{Deserialize, Serialize};
 
-use super::drawing::{Border, Ink, InkStroke, Leader, Line, LineEnding, Poly, Shape};
+use super::drawing::{Border, Ink, InkStroke, Leader, LineEnding, LineMark, Poly, Shape};
 use super::geom::AnnotColor;
 use crate::wire;
 
@@ -213,8 +213,8 @@ impl ShapePatch {
 }
 
 impl LinePatch {
-    pub(crate) fn applied_to(&self, line: &Line) -> Line {
-        Line {
+    pub(crate) fn applied_to(&self, line: &LineMark) -> LineMark {
+        LineMark {
             from: self.from.unwrap_or(line.from),
             to: self.to.unwrap_or(line.to),
             ends: self.ends.unwrap_or(line.ends),

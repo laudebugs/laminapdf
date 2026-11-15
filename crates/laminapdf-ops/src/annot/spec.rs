@@ -5,7 +5,7 @@
 use laminapdf_model::{UserSpacePoint, UserSpaceRect};
 use serde::{Deserialize, Serialize};
 
-use super::drawing::{self, Drawing, Ink, Line, Poly, Shape};
+use super::drawing::{self, Drawing, Ink, LineMark, Poly, Shape};
 use super::drawing_patch::{InkPatch, LinePatch, PolyPatch, ShapePatch};
 use super::geom;
 use crate::wire;
@@ -39,7 +39,7 @@ pub enum AnnotSpec {
     /// A line, an arrow or a dimension line (§12.5.6.7).
     ///
     /// Added in 0.5.0.
-    Line(Line),
+    Line(LineMark),
     /// A polygon or polyline (§12.5.6.9).
     ///
     /// Added in 0.5.0.
