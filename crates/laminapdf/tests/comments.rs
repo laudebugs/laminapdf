@@ -110,3 +110,56 @@ fn deleting_a_comment_with_its_reply_is_one_undo_step() {
     doc.undo().unwrap();
     assert_eq!((after, doc.comment_threads(None).unwrap().len()), (4, 5));
 }
+
+/// pdf.js's view (`fixtures/annotations/pdfjs-replies.json`, from
+/// `tools/fixtures/pdfjs_replies.mjs`) of the review example's output: each reply and state
+/// Lamina PDF wrote names its comment, a state with its model and name.
+#[test]
+fn pdfjs_reads_lamina_pdf_s_replies_and_states() {
+    let facts: serde_json::Value = serde_json::from_slice(&fixture("annotations/pdfjs-replies.json")).unwrap();
+    let doc = Document::open_bytes(fixture("golden/examples/review_comments.pdf"), OpenOptions::new()).unwrap();
+    let ours: Vec<(String, String, Option<String>)> = doc
+        .page_annotations(0)
+        .unwrap()
+        .into_iter()
+        .filter(|a| a.in_reply_to.is_some() && !a.grouped)
+        .map(|a| {
+            let object = |id: &str| format!("{}R", id.trim_start_matches('a').trim_end_matches(".0"));
+            (
+                object(&a.id),
+                object(a.in_reply_to.as_deref().unwrap()),
+                a.state.map(|s| s.state),
+            )
+        })
+        .collect();
+    let theirs: Vec<(String, String, Option<String>)> = facts["files"]["review_comments.pdf"][0]["replies"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|r| r["replyType"] == "R")
+        .map(|r| {
+            (
+                r["id"].as_str().unwrap().to_owned(),
+                r["inReplyTo"].as_str().unwrap().to_owned(),
+                r["state"].as_str().map(ToOwned::to_owned),
+            )
+        })
+        .collect();
+    assert_eq!((ours.len(), ours), (2, theirs));
+}
+
+/// pdf.js draws as many operators for the answered report as for the marked-up one: a reply and
+/// a state draw nothing.
+#[test]
+fn pdfjs_draws_nothing_for_a_reply_or_a_state() {
+    let facts: serde_json::Value = serde_json::from_slice(&fixture("annotations/pdfjs-replies.json")).unwrap();
+    let operators = |file: &str| -> Vec<u64> {
+        facts["files"][file]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|p| p["operators"].as_u64().unwrap())
+            .collect()
+    };
+    assert_eq!(operators("review_comments.pdf"), operators("mark_up.pdf"));
+}

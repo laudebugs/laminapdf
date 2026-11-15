@@ -69,6 +69,72 @@
         }
       ]
     ],
+    "review.pdf": [
+      [
+        {
+          "subtype": "Highlight",
+          "id": "10R"
+        },
+        {
+          "subtype": "Text",
+          "id": "11R"
+        },
+        {
+          "subtype": "Text",
+          "id": "12R"
+        },
+        {
+          "subtype": "Text",
+          "id": "13R"
+        },
+        {
+          "subtype": "Text",
+          "id": "14R"
+        },
+        {
+          "subtype": "Text",
+          "id": "15R"
+        },
+        {
+          "subtype": "Text",
+          "id": "16R"
+        },
+        {
+          "subtype": "Text",
+          "id": "24R"
+        },
+        {
+          "subtype": "Text",
+          "id": "17R"
+        },
+        {
+          "subtype": "Text",
+          "id": "18R"
+        },
+        {
+          "subtype": "Text",
+          "id": "19R"
+        },
+        {
+          "subtype": "StrikeOut",
+          "id": "20R"
+        },
+        {
+          "subtype": "Caret",
+          "id": "21R"
+        },
+        {
+          "subtype": "Popup",
+          "id": "23R"
+        }
+      ],
+      [
+        {
+          "subtype": "Text",
+          "id": "30R"
+        }
+      ]
+    ],
     "tagged.pdf": [
       [
         {
