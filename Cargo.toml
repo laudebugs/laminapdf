@@ -170,6 +170,12 @@ tauri-plugin-opener = "=2.7.2"
 tauri-plugin-single-instance = "=2.5.5"
 # Each window's size, position and maximised state across launches (D4d). MIT OR Apache-2.0
 tauri-plugin-window-state = "=2.5.0"
+# The desktop reader's self-update (D5b, ADR 0014): checks the update Worker, downloads in the
+# background and verifies the minisign signature before installing. Rust-side only; the webview is
+# granted none of its commands. MIT OR Apache-2.0; with rustls, not the system's TLS.
+tauri-plugin-updater = "=2.14.1"
+# The desktop reader's anonymous install ID (ADR 0014 §3): a random UUID v4. MIT OR Apache-2.0.
+uuid = { version = "1.29.0", default-features = false, features = ["std", "v4"] }
 muda = { version = "=0.20.0", default-features = false }  # MIT OR Apache-2.0; Tauri's menus (the desktop app's tests)
 # The desktop reader's file watching (D3b): the OS's change events (FSEvents, inotify,
 # ReadDirectoryChangesW). CC0-1.0
@@ -181,8 +187,12 @@ file-id = "=0.2.3"
 # RecentManager (MIT).
 objc2 = "=0.6.5"
 objc2-app-kit = { version = "=0.3.2", default-features = false, features = ["std", "NSDocumentController"] }
-objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std", "NSArray", "NSData", "NSError", "NSString", "NSURL"] }
-windows = { version = "=0.62.2", default-features = false, features = ["std", "Win32_Foundation", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_UI_Shell", "Win32_UI_Shell_Common"] }
+objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std", "NSArray", "NSData", "NSError", "NSString", "NSURL", "NSUserDefaults"] }
+# The desktop app prints with Core Graphics images over Core Foundation data (laminapdf-desktop-os); the
+# objc2 family, Zlib OR Apache-2.0 OR MIT, at objc2-app-kit's version.
+objc2-core-foundation = { version = "=0.3.2", default-features = false, features = ["std"] }
+objc2-core-graphics = { version = "=0.3.2", default-features = false, features = ["std"] }
+windows = { version = "=0.62.2", default-features = false, features = ["std", "Win32_Foundation", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Registry", "Win32_UI_Shell", "Win32_UI_Shell_Common"] }
 gtk = { version = "=0.18.2", default-features = false }
 # The desktop end-to-end tests' plugins (D2e), only in `laminapdf-desktop`'s `e2e` builds: the
 # test API (execute, logs) and the WebDriver server inside the app.

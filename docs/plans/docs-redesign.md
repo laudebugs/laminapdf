@@ -57,6 +57,8 @@ The work goes in four steps, so the cheap, well-evidenced fixes ship first and t
 | [Q4s](../todos/done/Q4s-editor-line-wrap.md) | Unwrapped lines in "Edit and run", with a Wrap lines toggle | — |
 | [Q4t](../todos/done/Q4t-editor-type-completion.md) | Completion and hover types in "Edit and run" | — |
 | [Q4u](../todos/done/Q4u-editor-colours-match-the-blocks.md) | The code blocks in the editor's Paper colours | — |
+| [Q4v](../todos/done/Q4v-tables-and-hideable-contents.md) | Boxed tables with a header band; a button that hides "On this page" | — |
+| [Q4w](../todos/done/Q4w-theme-menu-with-icons.md) | The theme switch as a list with an icon per theme, not the platform's select | — |
 
 The recommendation numbers are the report's. Two of them are too large for one pull request, so the reading path is Q4b and Q4c, and the sidebar is Q4f now and Q4g after Q4m.
 
@@ -96,3 +98,5 @@ The recommendation numbers are the report's. Two of them are too large for one p
 - [x] Q4s: unwrapped lines in "Edit and run", with a Wrap lines toggle
 - [x] Q4t: completion and hover types in "Edit and run"
 - [x] Q4u: the code blocks in the editor's Paper colours
+- [x] Q4v: boxed tables with a header band, and "On this page" a reader can hide
+- [x] Q4w: the theme switch as a list with an icon per theme

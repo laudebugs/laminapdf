@@ -5,6 +5,7 @@
 import type { ReactNode } from "react";
 import { ToggleButton } from "react-aria-components";
 import { chooseOnPress, PressedGroup } from "./pressed-group.js";
+import { StableLabel } from "./stable-label.js";
 
 /** One mode: its id, used in `onChange`, and its visible name. */
 export interface Mode<Id extends string> {
@@ -42,7 +43,7 @@ export function ModeSwitcher<Id extends string>({
           isSelected={mode.id === value}
           onChange={chooseOnPress(mode.id, onChange)}
         >
-          {mode.label}
+          <StableLabel>{mode.label}</StableLabel>
         </ToggleButton>
       ))}
     </PressedGroup>

@@ -17,6 +17,7 @@ import type {
   DocumentMetadata,
   DocumentProperties,
   ExplicitDestination,
+  FieldEdit,
   InitialView,
   Limits,
   NamedDestination,
@@ -26,12 +27,14 @@ import type {
   PageInfo,
   PageLink,
   PlannedSave,
+  ReferenceEdit,
   Reflow,
   SaveOptions,
   SaveReport,
   StructureNode,
   Target,
   TargetView,
+  Violation,
   XmpText,
 } from "@laminapdf/sdk";
 import type { FindOptions } from "./find/fold.js";
@@ -108,6 +111,11 @@ export interface OpenedDocument {
 export interface EditResult {
   readonly pages: readonly PageInfo[];
   readonly history: EditHistory;
+  /**
+   * Every page in its new order, with its size, when the call inserted, deleted or moved pages:
+   * a viewer follows the pages by ID. Absent when the page list stayed as it was.
+   */
+  readonly order?: readonly PageInfo[];
   /** Each step an undo or redo took back or made again, in order, with how it went (none for an edit). */
   readonly reverted?: readonly RevertedStep[];
   /** The IDs of the bookmarks the edit added, in order (none for an undo or redo). */
@@ -116,6 +124,10 @@ export interface EditResult {
   readonly createdAnnotations?: readonly string[];
   /** The edit found the outline's links broken and rebuilt them. */
   readonly outlineRepaired?: boolean;
+  /** What a page deletion did to the references to the deleted pages (none for an undo or redo). */
+  readonly references?: readonly ReferenceEdit[];
+  /** What a page duplication or copy did to form fields (none for an undo or redo). */
+  readonly fields?: readonly FieldEdit[];
 }
 
 /** The most steps an edit session keeps: the oldest go after this many (ADR 0006 §4). */
@@ -127,8 +139,13 @@ export interface EditStep {
   readonly id: number;
   /** What it did, in the words its caller gave ("Rotate page 5"). */
   readonly label: string;
-  /** The pages it touched (0-based), in order. */
+  /**
+   * The pages it touched (0-based), in order, where they are when the history was read: a page
+   * moved since is named at its new place, and one deleted since is left out.
+   */
   readonly pages: readonly number[];
+  /** The IDs of the pages it touched, which stay theirs when pages move. */
+  readonly pageIds: readonly string[];
   /** When it was made, in ms since the epoch. */
   readonly at: number;
   /**
@@ -232,6 +249,8 @@ export interface Methods {
   /** Document `document`'s XMP metadata as text, as its edits leave it. */
   xmpPacket: { params: [document: number]; result: XmpText };
   planSave: { params: [options: SaveOptions, document: number]; result: PlannedSave };
+  /** What saving document `document` with `ops` applied would break, before they apply: each signature restriction they violate. */
+  wouldViolate: { params: [ops: readonly Op[], document: number]; result: Violation[] };
   copyEdits: { params: [options: SaveOptions, document: number]; result: SavedCopy };
   adoptEdits: { params: [token: number, document: number]; result: EditHistory };
   /**
@@ -477,6 +496,13 @@ export function renderKey(request: RenderRequest, id: number): string {
  */
 export function viewKey(request: RenderRequest, id: number, revision: number): string {
   return JSON.stringify([...keyFields(request, id), revision]);
+}
+
+/** `key` (a {@link viewKey}) for the same picture of a page now at index `page`. */
+export function viewKeyAt(key: string, page: number): string {
+  const fields = JSON.parse(key) as unknown[];
+  fields[1] = page;
+  return JSON.stringify(fields);
 }
 
 function keyFields(request: RenderRequest, id: number): unknown[] {

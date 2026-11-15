@@ -120,17 +120,17 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D4. Windows, tabs, menus and printing
 
-**Todos:** [D4a](../todos/done/D4a-windows-tabs-and-session-restore.md), [D4d](../todos/done/D4d-session-restore.md), [D4e](../todos/done/D4e-tab-drag-between-windows.md), [D4f](../todos/ready/D4f-restore-notice-and-missing-marks.md), [D4b](../todos/done/D4b-native-menus.md), [D4c](../todos/ready/D4c-native-printing.md)
+**Todos:** [D4a](../todos/done/D4a-windows-tabs-and-session-restore.md), [D4d](../todos/done/D4d-session-restore.md), [D4e](../todos/done/D4e-tab-drag-between-windows.md), [D4f](../todos/done/D4f-restore-notice-and-missing-marks.md), [D4b](../todos/done/D4b-native-menus.md), [D4c](../todos/done/D4c-native-printing.md)
 
 **Deliverable:** multi-window, tabs with drag between windows, session restore, native menus and accelerators, native printing per the D1 result.
 **Accepted when:** menu items and shortcuts match the shared map (test); a 50-page document prints with page ranges on each OS (manual check recorded).
 
 ### D5. Update service
 
-**Todos:** [D5a](../todos/done/D5a-update-worker-and-adr-0014.md), [D5b](../todos/ready/D5b-updater-in-app.md)
+**Todos:** [D5a](../todos/done/D5a-update-worker-and-adr-0014.md), [D5b](../todos/done/D5b-updater-in-app.md), [D5c](../todos/ready/D5c-desktop-update-e2e.md)
 
 **Deliverable:** ADR 0014; `apps/updates` Worker (channels, staged rollout, kill switch, 60 s cache) with tests; R2 layout and channel manifests; updater plugin wired in the app with settings.
-**Accepted when:** Worker unit tests cover 204/200, rollout bucketing from the `Lamina-Install-Id` header (present, absent, malformed) and kill switch; a test asserts the install ID never reaches logs; an app on `0.0.1-test` updates to `0.0.2-test` on each OS from a staging channel; a tampered bundle is rejected.
+**Accepted when:** Worker unit tests cover 204/200, rollout bucketing from the `Lamina-Install-Id` header (present, absent, malformed) and kill switch; a test asserts the install ID never reaches logs; an app on `0.0.1` updates to `0.0.2` on each OS from a staging channel; a tampered bundle is rejected (D5c).
 
 ### D6. Signing, packaging and release pipeline
 
@@ -204,9 +204,9 @@ Ticked by the PR that completes them.
 - [x] Multi-window and tabs ([D4a](../todos/done/D4a-windows-tabs-and-session-restore.md))
 - [x] Drag a tab to a new window or another window's strip ([D4e](../todos/done/D4e-tab-drag-between-windows.md))
 - [x] Session restore ([D4d](../todos/done/D4d-session-restore.md))
-- [ ] The restore notice and missing files marked in the tab strip ([D4f](../todos/ready/D4f-restore-notice-and-missing-marks.md))
+- [x] The restore notice and missing files marked in the tab strip ([D4f](../todos/done/D4f-restore-notice-and-missing-marks.md))
 - [x] Native menus and accelerators generated from the shared shortcut map ([D4b](../todos/done/D4b-native-menus.md))
-- [ ] Implement printing per the D1 recommendation
+- [x] Implement printing per the D1 recommendation
 - [ ] Record a manual print check per OS in the PR
 
 ### D5. Update service
@@ -215,8 +215,8 @@ Ticked by the PR that completes them.
 - [x] Create `apps/updates` Worker: `/{channel}/{target}/{arch}/{current_version}` → 204 or 200 JSON
 - [x] Implement rollout bucketing by install-ID hash (from the `Lamina-Install-Id` request header), kill switch, 60 s cache (one 30 s cache layer)
 - [x] Define the R2 layout and channel manifest schema; tests for every branch
-- [ ] Wire the Tauri updater plugin with settings (channel, disable, check now, reset install ID); send the install ID header via `UpdaterBuilder::header`
-- [ ] End-to-end update test on a staging channel on three OSes; tampered bundle rejected
+- [x] Wire the Tauri updater plugin with settings (channel, disable, check now, reset install ID); send the install ID header via `UpdaterBuilder::header` (D5b)
+- [ ] End-to-end update test on a staging channel on three OSes; tampered bundle rejected (D5c)
 
 ### D6. Signing, packaging and release pipeline
 

@@ -42,10 +42,12 @@ import { MissingRestoredTab, useFileChanges } from "./file-changes.tsx";
 import { EchoRegistry } from "./menus/echo-registry.ts";
 import { useNativeMenus } from "./menus/use-native-menus.tsx";
 import { NotYetSupportedError } from "./platform/desktop.ts";
+import { usePrint } from "./print.tsx";
 import { type DesktopRecent, useDesktopRecent } from "./recent.tsx";
 import { type DesktopSettings, useDesktopSettings } from "./settings.tsx";
 import { NO_TABS, useTabStrip } from "./tabs/use-tabs.tsx";
 import { WindowTabs } from "./tabs/window-tabs.ts";
+import { type DesktopUpdates, UpdateReadyItem, useDesktopUpdates } from "./updates.tsx";
 
 /** Outside Tauri (`pnpm dev` in a browser) there is no engine to open with. */
 const openLater: Opener = () => Promise.reject(new NotYetSupportedError("open"));
@@ -86,6 +88,54 @@ const LOST_TEXT: Readonly<Record<Lost, { title: string; body: string }>> = {
   },
 };
 
+/** A part of the window's command handlers. */
+type CommandActions = NonNullable<CommandContext["actions"]>;
+
+/** The window's command handlers in one object, the same object while each part is. */
+function useMergedActions(home: CommandActions, tabs: CommandActions, print: CommandActions): CommandActions {
+  return useMemo(() => ({ ...home, ...tabs, ...print }), [home, tabs, print]);
+}
+
+/** {@link WindowStatus}'s props. */
+interface WindowStatusProps {
+  /** Whether the shown document was repaired as it opened. */
+  readonly repaired: boolean;
+  /** Where the repair's details go. */
+  readonly toasts: ToastQueue;
+  /** The print's progress, while one runs. */
+  readonly print: ReactNode;
+  /** The app's updates, for "Update ready". */
+  readonly updates: DesktopUpdates;
+  /** The app's version, when known. */
+  readonly info: AppInfo | undefined;
+}
+
+/**
+ * The status bar's items: the repair notice, the print's progress, "Update ready" and the app's version.
+ * @param props - See {@link WindowStatusProps}.
+ * @returns The items.
+ */
+function WindowStatus({ repaired, toasts, print, updates, info }: WindowStatusProps): ReactNode {
+  return (
+    <>
+      {repaired ? (
+        <RepairedNotice
+          label="Repaired on open"
+          details="Details"
+          onPress={() =>
+            toasts.add({
+              message: "The file had damage that Lamina PDF repaired as it opened it. The file itself is unchanged.",
+            })
+          }
+        />
+      ) : null}
+      {print}
+      <UpdateReadyItem updates={updates} />
+      {info === undefined ? null : <StatusBarItem>{`Lamina PDF ${info.version}`}</StatusBarItem>}
+    </>
+  );
+}
+
 /**
  * The reader's window: top bar, home screen, the document's view, and the notices around them.
  * @param props - See {@link AppProps}.
@@ -110,9 +160,10 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const lost = useEngineEvents(engine, toasts, state.phase === "open");
   const dragging = useOsOpens(engine, reader, toasts, tabs);
   const fileProblem = useFileChanges(engine, reader, toasts, tabs);
-  const { strip, actions: tabActions } = useTabStrip(engine?.shell, tabs, reader, toasts, keys);
-  const { settings, recent, actions: homeActions } = useHome(engine, platform, reader, state, toasts);
-  const actions = useMemo(() => ({ ...homeActions, ...tabActions }), [homeActions, tabActions]);
+  const { strip, notice, actions: tabActions } = useTabStrip(engine?.shell, tabs, reader, toasts, keys, engine?.viewer);
+  const { settings, recent, updates, actions: homeActions } = useHome(engine, platform, reader, state, toasts);
+  const print = usePrint(engine, toasts);
+  const actions = useMergedActions(homeActions, tabActions, print.actions);
   const open = state.phase === "open";
   const shows = useShownParts(state.phase, tabs);
   // The page input, zoom and the viewer's commands work while a document is on screen.
@@ -124,6 +175,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
     <CommandsProvider registry={registry} context={context} keys={keys} singleKeys={singleKeys}>
       <ReaderShell
         tabs={strip}
+        notice={notice}
         topBar={
           <ReaderTopBar
             reader={reader}
@@ -136,23 +188,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
             }}
           />
         }
-        status={
-          <>
-            {repaired ? (
-              <RepairedNotice
-                label="Repaired on open"
-                details="Details"
-                onPress={() =>
-                  toasts.add({
-                    message:
-                      "The file had damage that Lamina PDF repaired as it opened it. The file itself is unchanged.",
-                  })
-                }
-              />
-            ) : null}
-            {info === undefined ? null : <StatusBarItem>{`Lamina PDF ${info.version}`}</StatusBarItem>}
-          </>
-        }
+        status={<WindowStatus repaired={repaired} toasts={toasts} print={print.status} updates={updates} info={info} />}
       >
         {shows.startScreen ? (
           <OpenDropZone reader={reader} keys={keys}>
@@ -239,8 +275,8 @@ function useCommands(
 
 /**
  * The start window's recent files and the Settings dialog, which share the "Remember recent
- * files" choice, and the handlers of their commands (`file.open-recent`, `file.clear-recent`,
- * `app.settings`).
+ * files" choice, the updates (S06), and the handlers of their commands (`file.open-recent`,
+ * `file.clear-recent`, `app.settings`, `app.check-for-updates`, `app.restart-to-update`).
  */
 function useHome(
   engine: DesktopEngine | undefined,
@@ -248,12 +284,19 @@ function useHome(
   reader: ReaderController,
   state: ReaderState,
   toasts: ToastQueue,
-): { settings: DesktopSettings; recent: DesktopRecent; actions: NonNullable<CommandContext["actions"]> } {
+): {
+  settings: DesktopSettings;
+  recent: DesktopRecent;
+  updates: DesktopUpdates;
+  actions: NonNullable<CommandContext["actions"]>;
+} {
   // The recent list reads again once a preference change has reached the main process.
   const [preferencesChanged, setPreferencesChanged] = useState(0);
+  const updates = useDesktopUpdates(engine?.shell, toasts);
   const settings = useDesktopSettings(
     engine?.shell,
     useCallback(() => setPreferencesChanged((n) => n + 1), []),
+    updates,
   );
   const recent = useDesktopRecent(platform, reader, state, toasts, settings.preferences.rememberRecent);
   const { refresh, actions: recentActions } = recent;
@@ -261,8 +304,27 @@ function useHome(
     if (preferencesChanged > 0) refresh();
   }, [preferencesChanged, refresh]);
   const openSettings = settings.open;
-  const actions = useMemo(() => ({ ...recentActions, "app.settings": openSettings }), [recentActions, openSettings]);
-  return { settings, recent, actions };
+  const ready = updates.status?.state.state === "ready";
+  const { checkNow, restart } = updates;
+  const actions = useMemo(
+    () => ({
+      ...recentActions,
+      "app.settings": () => openSettings(),
+      // S06: Check for updates shows Settings › Updates and checks; Restart to update only while
+      // a downloaded update waits.
+      ...(engine === undefined
+        ? {}
+        : {
+            "app.check-for-updates": () => {
+              openSettings("updates");
+              checkNow();
+            },
+          }),
+      ...(ready ? { "app.restart-to-update": restart } : {}),
+    }),
+    [recentActions, openSettings, engine, ready, checkNow, restart],
+  );
+  return { settings, recent, updates, actions };
 }
 
 /** What a drop of the dragged files will do. */

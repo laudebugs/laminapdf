@@ -126,6 +126,8 @@ export interface SettingsDialogProps {
   readonly isOpen: boolean;
   /** Called with false when the dialog closes. */
   readonly onOpenChange: (open: boolean) => void;
+  /** The section to show as it opens, by id (Check for updates opens Updates); the first otherwise. */
+  readonly section?: string | undefined;
 }
 
 /** Props of `SettingsRow`. */
@@ -160,21 +162,39 @@ function SettingsRow({ section, current, summaryId, onPress }: SettingsRowProps)
 }
 
 /**
+ * Which screen a phone shows as the dialog opens: the list, or the section the opening names (on
+ * every width, that section is the one shown).
+ */
+function useOpenAt(
+  isOpen: boolean,
+  section: string | undefined,
+  choose: (id: string) => void,
+  showScreen: (shown: boolean) => void,
+): void {
+  useEffect(() => {
+    if (!isOpen) showScreen(false);
+    else if (section !== undefined) {
+      choose(section);
+      showScreen(true);
+    }
+  }, [isOpen, section, choose, showScreen]);
+}
+
+/**
  * The Settings dialog: a list of sections beside the chosen one's fields. On a phone's sheet the
  * list is the first screen, with each section's summary, and a section opens as the next screen
  * with a way back (settings.css shows one screen at a time from `data-screen`).
  */
-export function SettingsDialog({ registry, isOpen, onOpenChange }: SettingsDialogProps): ReactNode {
+export function SettingsDialog({ registry, isOpen, onOpenChange, section }: SettingsDialogProps): ReactNode {
   const sections = useSyncExternalStore(
     (listener) => registry.subscribe(listener),
     () => registry.sections(),
   );
   const [chosen, setChosen] = useState<string | undefined>(undefined);
-  // Whether a phone shows the chosen section rather than the list; each opening starts at the list.
+  // Whether a phone shows the chosen section rather than the list; an opening starts at the list
+  // unless it names a section.
   const [opened, setOpened] = useState(false);
-  useEffect(() => {
-    if (!isOpen) setOpened(false);
-  }, [isOpen]);
+  useOpenAt(isOpen, section, setChosen, setOpened);
   const shown = sections.find((s) => s.id === chosen) ?? sections[0];
   const listed = sections.length > 1;
   const summaryId = useId();

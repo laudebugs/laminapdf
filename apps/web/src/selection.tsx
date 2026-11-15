@@ -13,6 +13,7 @@ import {
   message,
   type Platform,
   type PlatformStorage,
+  Presence,
   SelectionActionBar,
   SelectionToolbar,
   selectionBox,
@@ -31,8 +32,11 @@ type SelectionMoreId = "copy-exact";
 /** The selection's command handlers and surfaces. */
 export interface SelectionSurfaces {
   readonly actions: Partial<Record<CommandId, () => void>>;
-  /** The toolbar, while a settled mouse or pen selection shows it (it places itself). */
-  readonly toolbar: ReactNode | undefined;
+  /**
+   * The toolbar: always an element, which shows the toolbar while a settled mouse or pen selection
+   * calls for it, and for its exit after (it places itself).
+   */
+  readonly toolbar: ReactNode;
   /** The phone's selection bar, while text is selected by touch; the bottom bar otherwise. */
   readonly bar: ReactNode | undefined;
 }
@@ -126,33 +130,38 @@ export function useSelection(
   };
   return {
     actions,
-    toolbar: showToolbar ? (
-      <SelectionToolbar
-        aria-label={message("selection.toolbar")}
-        anchor={() => selectionBox(selection.rects)}
-        bounds={() => viewerBounds(viewer)}
-        onDismiss={() => setDismissed(selection)}
-      >
-        <Button size={32} icon="copy" preventFocusOnPress onPress={() => actions["edit.copy"]?.()}>
-          {message("command.edit.copy")}
-        </Button>
-        <Button size={32} preventFocusOnPress onPress={() => actions["edit.copy-exact"]?.()}>
-          {message("command.edit.copy-exact")}
-        </Button>
-        <Button size={32} icon="find" preventFocusOnPress onPress={() => actions["selection.search"]?.()}>
-          {message("selection.search")}
-        </Button>
-        {/* links.tsx (later.ts) listens for it and opens the link editor on the selected text. */}
-        <Button
-          size={32}
-          icon="link"
-          preventFocusOnPress
-          onPress={() => viewer.element.dispatchEvent(new Event("lamina-make-link"))}
-        >
-          {message("command.edit.make-link")}
-        </Button>
-      </SelectionToolbar>
-    ) : undefined,
+    // The toolbar stays for its exit after the selection goes (Presence), so it fades out.
+    toolbar: (
+      <Presence value={showToolbar ? { selection, viewer } : null}>
+        {(shown) => (
+          <SelectionToolbar
+            aria-label={message("selection.toolbar")}
+            anchor={() => selectionBox(shown.selection.rects)}
+            bounds={() => viewerBounds(shown.viewer)}
+            onDismiss={() => setDismissed(shown.selection)}
+          >
+            <Button size={32} icon="copy" preventFocusOnPress onPress={() => actions["edit.copy"]?.()}>
+              {message("command.edit.copy")}
+            </Button>
+            <Button size={32} preventFocusOnPress onPress={() => actions["edit.copy-exact"]?.()}>
+              {message("command.edit.copy-exact")}
+            </Button>
+            <Button size={32} icon="find" preventFocusOnPress onPress={() => actions["selection.search"]?.()}>
+              {message("selection.search")}
+            </Button>
+            {/* links.tsx (later.ts) listens for it and opens the link editor on the selected text. */}
+            <Button
+              size={32}
+              icon="link"
+              preventFocusOnPress
+              onPress={() => shown.viewer.element.dispatchEvent(new Event("lamina-make-link"))}
+            >
+              {message("command.edit.make-link")}
+            </Button>
+          </SelectionToolbar>
+        )}
+      </Presence>
+    ),
     bar: touch ? <SelectionActionBar more={more} keys={keys} /> : undefined,
   };
 }

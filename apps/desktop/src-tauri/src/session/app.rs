@@ -253,14 +253,25 @@ pub(crate) fn session_open(window: tauri::WebviewWindow, token: String) -> Resul
         Resolved::Found(path) | Resolved::Moved(path) => path,
         Resolved::Missing => return Err(missing()),
     };
+    open_restored(&window, &token, path)
+}
+
+/// Opens `path` in `window` as restored tab `token`'s file, which the session follows from now on.
+pub(super) fn open_restored(
+    window: &tauri::WebviewWindow,
+    token: &str,
+    path: PathBuf,
+) -> Result<DocumentMeta, DesktopError> {
     let opened = crate::opened::open_path(window.app_handle(), window.label(), &path)?;
+    let session = window.state::<Arc<Session>>();
     let mut tracker = session.tracker();
     tracker.remember(DocId(opened.doc), path);
-    tracker.opened(&token);
+    tracker.opened(token);
     Ok(opened)
 }
 
-fn missing() -> DesktopError {
+/// The error a missing file or an unknown token gives: `io`, which the window shows as missing.
+pub(super) fn missing() -> DesktopError {
     DesktopError::Io(std::io::Error::from(std::io::ErrorKind::NotFound))
 }
 

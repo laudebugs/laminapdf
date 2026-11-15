@@ -90,12 +90,14 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   │                    #     `supervisor` (std only: spawn, Hello/Ready, replies by ReqId, ReadRange served, heartbeat
 │   │                    #     watchdog, restart with backoff, 4th crash in 60 s = failed; `fake` with `test-support`) (D2b);
 │   │                    #     SandboxLevel/Layer (an engine missing a required layer is refused), Fonts/FontRequest/FontData
-│   │                    #     with FontServer (D2c)
+│   │                    #     with FontServer (D2c); protocol 5: RenderPrintBand/PrintBand, a page for printing in bands of
+│   │                    #     ≤ 16 MiB at a dpi with the print intent, TileFormat::Bgra8 (D4c)
 │   ├── laminapdf-desktop-engine/  # app, unpublished: the desktop engine binary (ADR 0008 §2): stdin/stdout frames, a router
 │   │                    #     thread that never parses, one worker (lamina model + PDFium), RemoteSource (256 KiB blocks
 │   │                    #     read over the pipe); examples large_pdf (the 1 GB fixture) and measure (D2b);
 │   │                    #     fonts.rs (PDFium's system fonts, asked of the main process); --sandbox-selftest[=<probe>]
-│   │                    #     (feature `selftest`, selftest.rs), tests/sandbox_selftest.rs (D2c)
+│   │                    #     (feature `selftest`, selftest.rs), tests/sandbox_selftest.rs (D2c); print.rs (the print bands'
+│   │                    #     maths: band height, the dpi a page fits, BGRA; D4c)
 │   ├── laminapdf-desktop-sandbox/  # edge, unpublished: the engine's sandbox (ADR 0008 §5), both halves: spawn_sandboxed /
 │   │                    #     SandboxSpawner (Windows: job, Low-IL restricted token + start-up impersonation, mitigation
 │   │                    #     policies, CreateProcessAsUserW; Unix: only fds 0–2 inherited; macOS: memory watchdog; names
@@ -107,7 +109,11 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   ├── laminapdf-desktop-os/  # edge, unpublished: the desktop main process's calls into the OS's shell (D3b): the recent
 │   │                    #     documents (macOS NSDocumentController, Windows SHAddToRecentDocs and the Jump List of the
 │   │                    #     AppUserModelID set at start-up, Linux GTK RecentManager), on the main thread; open_shared and file_identity
-│   │                    #     (D3c: the share mode documents open with, the file an open handle reads, volume and file ID or device and inode; example reopen-cost)
+│   │                    #     (D3c: the share mode documents open with, the file an open handle reads, volume and file ID or device and inode; example reopen-cost);
+│   │                    #     print/ (D4c: PrintSource of bands, checked; macOS: AppKit's panel + a Core Printing session per job,
+│   │                    #     a page format per page; Windows: PrintDlgExW + GDI's ResetDCW/StretchDIBits; Linux: GtkPrintOperation
+│   │                    #     + cairo; choose on the main thread, spool anywhere (Linux: print, main thread); tests/print_to_file.rs,
+│   │                    #     its own main(), prints four page sizes to the OS's PDF printer on macOS and Windows)
 │   ├── laminapdf-render-wasm/  # edge: wasm-bindgen bindings of the hayro adapter (flat numbers and bytes), built by
 │                        #     `cargo xtask wasm` as lamina_pdf_render_hayro into @laminapdf/wasm (C2c)
 │   └── laminapdf-test-fixtures/  # dev, unpublished: the Rust test helpers that crates share (fixtures_dir, fixture, corpus,
@@ -154,11 +160,15 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   swapped in once open; a failure undoes the transaction), viewer.invalidate(pages, sizes?) (bitmaps dropped by a per-page
 │                        #   revision in the view key (viewKey), late answers of an older revision dropped, keptTop's layout, layers remounted,
 │                        #   find.refresh, a restarted worker's sizes taken back, the strip laid out from viewer.pageSizes(id) on its `invalidate`
-│                        #   event), viewer.applyEdit and client.applyEdit; E1f: client.metadata() (worker `metadata`: the edited document's, never the text copy's); E1d: worker/session.ts (the edit session's history: steps with
+│                        #   event), viewer.applyEdit and client.applyEdit; E1f: client.metadata() (worker `metadata`: the edited document's, never the text copy's); E2h: client.wouldViolate(ops), EditResult's `references` and `fields`, a hidden view keeping its place (drawing nothing, back there with no history entry, a jump as it shows going where it says); E1d: worker/session.ts (the edit session's history: steps with
 │                        #   label, pages, time; position, 500 deep, the saved position for the unsaved count), edit.ts's undoEdit/redoEdit/
 │                        #   goToStep (one redraw, taken back on failure)/editHistory/restoreEdits, src/edit-log.ts (the page's copy of each
 │                        #   step's ops, replayed into a restarted worker), edit/session.ts (EditSession, viewer.edits: calls in order, busy,
 │                        #   blocked, the partial undo's notice), client `edit` event, OpenedDocument.encrypted, fit modes refit after a resize;
+│                        #   E2l: edits that change the page list (the worker checks the order against `Edited.pageOrder`; `EditResult.order`,
+│                        #   `EditStep.pageIds`), layout/page-moves.ts (pageMoves: old index → new, a deleted page's nearest survivor),
+│                        #   the viewer's `#reorder` (bitmaps rekeyed by `viewKeyAt`, revisions, find.remap, history.remap, the top page kept)
+│                        #   and its `reorder` event, which the thumbnail strip follows;
 │                        #   C3b: createViewer (src/layout/, view/, canvas/,
 │                        #   render/, zoom/), demo/viewer-demo.html, examples/show-a-pdf.ts (the docs site's example); test/browser/ (Chromium, Firefox, WebKit);
 │                        #   C3c: perf/ (the performance harness: seeded fixtures, page/ with globalThis.__laminaPerf,
@@ -220,7 +230,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   ShellLayout, the rail's open state, width and tab kept in platform storage, focus mode per window, the
 │                        #   inspector's content; ModeRegistry; LeftRail (nav, resizable by pointer and arrows, a drawer below 1024 px);
 │                        #   Inspector (docked, a selection's is a layer); FocusModeItem; shellActions for view.toggle-sidebar,
-│                        #   view.focus-mode and mode.<id>; useShell), src/edit/ (E1d: EditControls, the session as a shape; E3b: BookmarkEditor, NamedDestinationsDialog, bookmark-moves.ts; HistoryPanel,
+│                        #   view.focus-mode and mode.<id>; useShell), src/organise/ (E2h, Paper O06: PageGrid, a React Aria ListBox in a virtualized GridLayout with multiple selection, drag with an insertion bar, ⇧⌘/Ctrl Shift + arrows to move, R/⇧R/Delete and the page menu, tiles drawn by page ID; moves.ts (gaps, moveToGap, stepGap, pageRanges); dialogs.tsx (Move to page…, Blank pages…, the signed-page question); OrganiseToolbar; commands.ts (pages.*); report.ts (toasts and step labels); in the ./editing entry), src/edit/ (E1d: EditControls, the session as a shape; E3b: BookmarkEditor, NamedDestinationsDialog, bookmark-moves.ts; HistoryPanel,
 │                        #   the virtualised History tab), commands/edit-commands.ts (edit.undo/redo with ⌘Z, ⇧⌘Z/Ctrl Y, `fields: false`;
 │                        #   edit.history, edit.go-to-step, pages.rotate-*), src/tools/ (ToolRegistry: select, hand, textSelect keyed by
 │                        #   InteractionModes, extended by declaration merging; attachTools), ReaderController.setMode and its close guard
@@ -247,7 +257,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   --paper-code-* kinds, for the website's code panel and the docs' code blocks);
 │                        #   the site header (W1d): src/nav.mjs (the one list of links, siteNav per site and page, APP_LAUNCHED),
 │                        #   src/SiteHeader.astro, SiteNav.astro (the links alone) + header.css (sized per site by CSS variables); the select (W1g):
-│                        #   src/Select.astro + select.css (design language §7.19: a native <select> in the Paper look, 44 px on touch), icon.mjs
+│                        #   src/MenuSelect.astro + menu-select.ts + menu-select.css (Q4w: a select-only combobox with an icon per choice,
+│                        #   §7.19's field opening §7.26's listbox popup, 44 px on touch), icon.mjs
 │                        #   (decorativeIcon: a Paper icon's ?raw SVG as hidden HTML); test/ (Node), test/browser/ (the header and the select
 │                        #   rendered by Astro's container in a global setup, then Chromium, Firefox, WebKit: tab order, current underline,
 │                        #   phone width, the select's name, keys and focus ring, axe; run by `cargo xtask pdf-runtimes`); README.md
@@ -269,6 +280,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   src/initial-view-editing.tsx, threads-tab.tsx and thread-parts.ts (E3d: the Initial view dialog over the edit session, the Threads tab, the part followed last; the file's opening page and zoom in session.ts, after the first paint; its panel and the thread-part commands' handlers in editing-runtime.tsx);
 │                        #   src/editing.tsx (E1d: the edit session in the reader: rotate the current page, the History tab, "•" in the
 │                        #   tab's title, beforeunload) and editing-runtime.tsx (the commands, toasts, the close confirmation, the tools),
+│                        #   src/organise.tsx (E2h: OrganiseController, the Organise mode registered while a document is open and its
+│                        #   toolbar, grid, inspector and dialogs; each edit asked of wouldViolate first (signed page, certification) and
+│                        #   toasted with Undo; the viewer hidden under the grid; ModeArea, the top bar's Read/Organise switcher; loaded with later.ts);
 │                        #   src/bookmarks.tsx (E3b: the Outline tab's Edit bookmarks, the bookmark editor and the named
 │                        #   destinations dialog, each action one op; loaded with later.ts),
 │                        #   src/later.ts (the one chunk loaded once a document is open: dialogs, reader mode's column, the editor's parts, the capability page);
@@ -289,10 +303,13 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   Changesets: its version is the crate's). src/main.tsx (the only isTauri() call, checked by `check ts`),
 │                        #   src/platform/desktop.ts (the web platform plus canWriteInPlace, canWatchFiles, hasNativePrint,
 │                        #   multiWindow; their calls reject with NotYetSupportedError naming the feature), src/app.tsx (top bar, home
-│                        #   screen, version from the `app_info` command); showing a document waits for D2d. src-tauri/: the
+│                        #   screen, version from the `app_info` command); src/print.tsx (File ▸ Print: print_document, the
+│                        #   status-bar progress item with cancel_print; D4c); showing a document waits for D2d. src-tauri/: the
 │                        #   workspace crate laminapdf-desktop (layer app, publish = false): lib.rs (plugins dialog/log/opener for
 │                        #   Rust only, window `main` built in Rust, Engines managed state, window close/app exit stop engines),
-│                        #   commands.rs (`app_info`, `open_dialog`, `page_info`, `close_document`; `debug_kill_engine` with
+│                        #   print.rs (D4c: print_document, cancel_print, e2e_print_to_file; a PrintSource over the window's
+│                        #   engine at 300 dpi, engine/print.rs checking each band), commands.rs (`app_info`, `open_dialog`,
+│                        #   `page_info`, `close_document`; `debug_kill_engine` with
 │                        #   feature `e2e`), startup.rs (feature `e2e`: the cold-start marks, logged by the first
 │                        #   `app_info`), engine/ (D2b: Engines = one supervised engine per window, engine://restarted and
 │                        #   engine://failed to that window; documents.rs DocumentRegistry, a window reads only its own docs;
@@ -347,7 +364,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   src/components/Benchmarks.astro and its Markdown twin), code pages from
 │                        #   docs/errors/ (src/pages/, plugins/error-pages.mjs), post-build checks (plugins/), the shared site header
 │                        #   (src/components/Header.astro, Starlight's Header override, with its search and theme switch; the theme switch is
-│                        #   src/components/ThemeSelect.astro, Starlight's ThemeSelect override on site-kit's select); public/_headers
+│                        #   src/components/ThemeSelect.astro, Starlight's ThemeSelect override on site-kit's MenuSelect); public/_headers
 │                        #   (ADR 0011 §4, inline-script hashes filled in after the build by @laminapdf/site-kit); wrangler.toml (Workers static
 │                        #   assets: docs.laminapdf.com, no workers.dev address, and next.docs.laminapdf.com as [env.next]); robots.txt from the site kit
 │                        #   (the sitemap only on the released docs, checked by plugins/release.mjs); deployed by .github/workflows/docs.yml; README.md has the owner's setup;

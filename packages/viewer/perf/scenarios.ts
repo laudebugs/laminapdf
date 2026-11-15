@@ -287,6 +287,39 @@ async function edit(context: BrowserContext, url: string): Promise<BrowserResult
   return out;
 }
 
+/** Runs of each page-list edit: the median is reported. */
+const PAGE_EDITS = 3;
+
+/**
+ * Edits that change the page list on the 1,000-page file (E2 plan §5): the page in view deleted,
+ * the 200 pages after it moved to the end, 10 blank pages inserted before it, each three times in
+ * a row (once with `--quick`) from the middle of the file, timed from the call to every visible page's first new pixels
+ * and to every one sharp.
+ */
+async function pageEdits(context: BrowserContext, url: string, quick: boolean): Promise<BrowserResult["pageEdits"]> {
+  const count = quick ? 1 : PAGE_EDITS;
+  const out: BrowserResult["pageEdits"][number][] = [];
+  for (const kind of ["delete", "move", "insert"] as const) {
+    const page = await harness(context, url);
+    await opened(page, "thousand", "fit-width");
+    await page.evaluate(() => globalThis.__laminaPerf.goToPage(500));
+    await page.evaluate(() => globalThis.__laminaPerf.untilSharp());
+    const runs = [];
+    for (let i = 0; i < count; i++) {
+      runs.push(await page.evaluate((k) => globalThis.__laminaPerf.pageEdit(k), kind));
+      await page.evaluate(() => globalThis.__laminaPerf.untilSharp());
+    }
+    await page.close();
+    out.push({
+      kind,
+      applyMs: median(runs.map((r) => r.applyMs)),
+      firstPixelsMs: median(runs.map((r) => r.firstPixelsMs)),
+      sharpMs: median(runs.map((r) => r.sharpMs)),
+    });
+  }
+  return out;
+}
+
 /** Every scenario in `browser`, against the harness served at `url`. */
 export async function runScenarios(
   browser: Browser,
@@ -307,6 +340,7 @@ export async function runScenarios(
       find: await find(context, url),
       linkPreviews: await linkPreviews(context, url),
       edit: await edit(context, url),
+      pageEdits: await pageEdits(context, url, quick),
       mobile: await mobile(browser, name, url, quick),
     };
   } finally {

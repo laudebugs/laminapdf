@@ -90,10 +90,10 @@ Conventions on this canvas:
 
 **Platform differences.** macOS: closing the last tab closes the window but the app stays running; the Window menu lists windows and tabs. Windows/Linux: closing the last tab of the last window shows S01 (closing the window then quits). Wayland may place detached windows where the compositor chooses. Web: no tabs (one document per browser tab).
 
-**As built ([D4a](../../todos/done/D4a-windows-tabs-and-session-restore.md), [D4d](../../todos/done/D4d-session-restore.md)).** Tabs, the strip's menu and moving a tab to a new or another window ship with D4a, and session restore with D4d. Dragging a tab out of its window or onto another one ships with [D4e](../../todos/done/D4e-tab-drag-between-windows.md). The restore notice, a missing file's marks in the strip (its glyph, its page and "Not found" in the menu) and Locate…'s "looks different" question come with [D4f](../../todos/ready/D4f-restore-notice-and-missing-marks.md). Differences from the boards:
+**As built ([D4a](../../todos/done/D4a-windows-tabs-and-session-restore.md), [D4d](../../todos/done/D4d-session-restore.md)).** Tabs, the strip's menu and moving a tab to a new or another window ship with D4a, and session restore with D4d. Dragging a tab out of its window or onto another one ships with [D4e](../../todos/done/D4e-tab-drag-between-windows.md). The restore notice, a missing file's marks in the strip (its glyph, and "Not found" in the menu, where every other tab shows its page) and Locate…'s "looks different" question ship with [D4f](../../todos/done/D4f-restore-notice-and-missing-marks.md). Differences from the boards:
 
 - Closing the last tab shows the start screen (S01) in that window on every OS; the window stays open. The owner chose this on 2026-11-12. Closing the window itself works as the boards say: on macOS the app keeps running and the Dock makes a new window, elsewhere closing the last window quits.
-- The strip scrolls sideways when its tabs don't fit at 120 px, and a menu button at its end (a chevron named "All tabs, N open") is always there, in place of "+3". Its menu lists the tabs as plain items, then Move tab to new window and Move tab to *window*. Pages and "Not found" in it come with D4d.
+- The strip scrolls sideways when its tabs don't fit at 120 px, and a menu button at its end (a chevron named "All tabs, N open") is always there, in place of "+3". Its menu lists the tabs as plain items, each with its page, or "Not found" and the warning glyph for a missing file, then Move tab to new window and Move tab to *window*.
 - A tab's context menu (right-click, `⇧F10` or the menu key) shows that tab and opens the same menu.
 - With one tab the strip also shows while other windows are open, so the tab can move to one of them.
 - A tab moves to another window when dropped anywhere on it, not only on its strip, because a window shows its strip only once it has two tabs. While a tab is dragged over a window, a dashed accent border lines that window. The moved tab joins the end of the strip.
@@ -101,6 +101,8 @@ Conventions on this canvas:
 - No title-bar colour token exists, so the strip sits on `ground` and the active tab takes the top bar's `surface`.
 - `tab.activate` and `tab.list` aren't commands: clicking a tab and the strip's menu do their work. `tab.move-to-window` is the strip's menu entry for each other window. `⇧⌘]` and `⇧⌘[` come with D4b's menus.
 - The window title is "*name* — Lamina PDF", or "Lamina PDF" alone on the start screen.
+- Each window shows its own restore notice, counting only the tabs it brought back. With more than one file missing, the button reads Show missing files and shows the first. Choosing another tab, or turning a page once the restored view has settled, takes the notice away; showing a missing file from it, or locating one, doesn't. The notice's text doesn't change when a file is located, so a screen reader announces it once; its button goes once no file is missing.
+- Locate… asks "This file looks different from the one you had open" when the chosen file's size or modification date differs from the session's record; Cancel is the default.
 - A restored tab whose file is gone shows the "File was moved or deleted" notice, with Locate… and Close, in place of S02-tab-missing's empty state. Its sentence names neither the folder the file was in (the webview never sees paths, ADR 0008 §6) nor the page it comes back at.
 
 **Artboards:** `S02-tabs.dc.html`, `S02-tab-missing.dc.html`.
@@ -196,7 +198,7 @@ Conventions on this canvas:
 
 **Layout.** S05-print: the system dialog (drawn schematically as a sheet under the macOS title bar over `scrim`): page preview with its own pager on the left; Printer, Copies, Two-sided, Pages (All 24 pages · Current page (3) · Pages [5–12], “8 pages”), Scale (Fit to paper · Actual size), and the line “Orientation follows each page. Prints the page as it looks in Original appearance, with comments.”; Cancel · Print. S05-print-progress: back in the window (Reader v0.1 top bar), the status bar’s middle shows the printer glyph, “Printing pages 5–12 · 3 of 8 sent”, a 140 px determinate bar and **Cancel printing**.
 
-**Content and controls.** `file.print` opens the system dialog with the current page and page count; `print.cancel` (**Cancel printing**, ghost text button in the status-bar item); `print.compatibility` (the toast action “Try compatibility printing” after a native failure); Settings › Advanced › Printing (`print.mode`: System printing / Compatibility printing, drawn in S07-settings-advanced). Both paths print raster pages rendered by the engine ([D4c](../../todos/ready/D4c-native-printing.md)); they differ only in who hands the pages to the printer: System printing uses the OS print dialog and renders each page at the printer's resolution, Compatibility printing goes through the built-in web view's print. The dialog’s own controls (printer, copies, pages, scale) belong to the OS; lamina only pre-fills them.
+**Content and controls.** `file.print` opens the system dialog with the current page and page count; `print.cancel` (**Cancel printing**, ghost text button in the status-bar item); `print.compatibility` (the toast action “Try compatibility printing” after a native failure); Settings › Advanced › Printing (`print.mode`: System printing / Compatibility printing, drawn in S07-settings-advanced). Both paths print raster pages rendered by the engine ([D4c](../../todos/done/D4c-native-printing.md)); they differ only in who hands the pages to the printer: System printing uses the OS print dialog and renders each page at 300 dpi (as built: see As built below), Compatibility printing goes through the built-in web view's print. The dialog’s own controls (printer, copies, pages, scale) belong to the OS; lamina only pre-fills them.
 
 **States.**
 
@@ -207,15 +209,25 @@ Conventions on this canvas:
 - **Native path failed:** notice in the status-bar slot replaced by a toast with action: “Couldn’t print with the system printer path. Try compatibility printing” → runs the web-view print path once; Settings › Advanced can make it the default.
 - **Page appearance not Original or Dark theme:** prints in Original; the dialog line says so (no separate warning, unlike the web R09 where the browser dialog can’t carry it).
 
-**Behaviour.** Pages render in the sandboxed engine at the printer’s resolution, one at a time; Cancel stops rendering within a second. No headers, footers or margins are added. Printing never changes the file.
+**Behaviour.** Pages render in the sandboxed engine at 300 dpi, one band at a time; Cancel stops rendering within a second. No headers, footers or margins are added. Printing never changes the file.
 
 **Accessibility.** The progress bar is `role="progressbar"` labelled by its text; Cancel printing is a real button reachable with F6 → status bar. Completion is announced by the toast.
 
 **Platform differences.** The dialog differs per OS (macOS sheet, Windows print dialog, GTK print dialog on Linux) and offers what the printer supports (duplex, collation). Web: R09 uses the browser’s print with a lamina pre-print panel.
 
+**As built ([D4c](../../todos/done/D4c-native-printing.md)).** These differ from the drawings:
+
+- No compatibility printing: D1b measured the web view's print as the worst path on every OS. `print.compatibility`, the Native path failed toast's action and Settings › Advanced › Printing aren't built; a failure is a plain toast.
+- The status-bar item reads “Printing · 3 of 8 sent”, without the page range.
+- The Done toast reads “Sent 8 pages to the printer”, without the printer's name.
+- macOS's panel has no Current page choice.
+- On Linux, GTK's own progress window replaces the status-bar item.
+- On macOS, a document of mixed page sizes prints every page on the job's paper, each in its own orientation ([#626](https://github.com/laudebugs/laminapdf/issues/626)).
+- Pages render at 300 dpi and print at actual size. Scale is whatever the OS dialog offers.
+
 **Artboards:** `S05-print.dc.html`, `S05-print-progress.dc.html`.
 
-**Todos:** [D4c](../../todos/ready/D4c-native-printing.md).
+**Todos:** [D4c](../../todos/done/D4c-native-printing.md).
 
 ## S06 Updates
 
@@ -252,7 +264,7 @@ Conventions on this canvas:
 
 **Artboards:** `S06-update-ready.dc.html`, `S06-update-settings.dc.html`.
 
-**Todos:** [D5b](../../todos/ready/D5b-updater-in-app.md).
+**Todos:** [D5b](../../todos/done/D5b-updater-in-app.md).
 
 ## S07 Settings window
 
@@ -274,7 +286,7 @@ Conventions on this canvas:
 | Licence | Enter or remove a licence key; see [H02](account-cloud-product.md#h02-account-and-plan) | Account and cloud |
 | Account and plan | Signed-in account, plan, devices; see [H02](account-cloud-product.md#h02-account-and-plan) | Account and cloud |
 | Notifications | See [H07](account-cloud-product.md#h07-notifications) | Account and cloud |
-| Advanced (drawn, Linux frame) | Graphics (Linux only): Automatic / Compatibility / Safe mode, Restart lamina, `--safe-graphics` hint · Printing (`print.mode`): System printing (recommended) — “Uses your system’s print dialog; lamina renders each page at your printer’s resolution.” / Compatibility printing — “Prints through the built-in web view. Try it if a printer skips pages or prints them blank.” | D7b, D4c |
+| Advanced (drawn, Linux frame) | Graphics (Linux only): Automatic / Compatibility / Safe mode, Restart lamina, `--safe-graphics` hint · Printing (`print.mode`, not built: see S05 As built): System printing (recommended) — “Uses your system’s print dialog; lamina renders each page at your printer’s resolution.” (as built: 300 dpi) / Compatibility printing — “Prints through the built-in web view. Try it if a printer skips pages or prints them blank.” | D7b, D4c |
 | About | Version and channel (“lamina 0.1.2 · Beta”), build line (release or nightly), Copy version info, View licences, laminapdf help, the code licence line (MIT or Apache-2.0) | D7b |
 
 **States.**
@@ -400,7 +412,7 @@ Merged into the [design language](design-language.md#decisions-on-area-proposals
 - **Close tab `⌘W` and Quit `⌘Q`** are desktop-only exceptions to the web collision list (see Conventions); the shortcut help must show them only in the desktop app.
 - **Crash dialog merges two questions** (which tabs to reopen, whether to report) that D7a describes as one consent dialog; D7a’s wording (“Send”, “Don’t send”, “Always send”) is kept in the report preview.
 - **Compare** (S04) opens a second read-only tab; a visual diff would need its own todo.
-- **Reset anonymous ID** is drawn in Settings › Updates, where [D5b](../../todos/ready/D5b-updater-in-app.md) puts it; Privacy no longer has it (U5c usage counts carry no identifier). D5b's owner builds it in Updates.
+- **Reset anonymous ID** is drawn in Settings › Updates, where [D5b](../../todos/done/D5b-updater-in-app.md) puts it; Privacy no longer has it (U5c usage counts carry no identifier). D5b's owner builds it in Updates.
 - **Usage-counts wording** is S07's: “Share how often each command is used” (`settings.usage-counts`) with S07's help text; Account and cloud H02/H10 should use the same label, key and descriptions (the account fixer aligns them to S07, per the cross-area review).
 - **`F1` for Keyboard shortcuts** on the desktop is in the design language's shortcut table ([§8.8](design-language.md#88-keyboard-and-shortcuts)) as proposed.
 

@@ -23,6 +23,7 @@ import {
   type Op,
   type PlannedSave,
   type SaveOptions,
+  type Violation,
   type XmpText,
 } from "@laminapdf/sdk";
 import {
@@ -151,6 +152,7 @@ export type ViewerEngine = Pick<
   | "goToStep"
   | "editHistory"
   | "planSave"
+  | "wouldViolate"
   | "copyEdits"
   | "adoptEdits"
 >;
@@ -417,6 +419,15 @@ export class ViewerClient {
   }
 
   /**
+   * What saving the open document with `ops` applied would break, before they apply: each
+   * signature restriction they violate, so a page edit a signature forbids can be refused first.
+   */
+  async wouldViolate(ops: readonly Op[], call?: ViewerCallOptions): Promise<Violation[]> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("wouldViolate", [ops, this.#document?.id ?? 0], call);
+  }
+
+  /**
    * Writes the open document as a save with `options` would, for the caller to write where the
    * file lives; the document stays unsaved until `adoptEdits(copy.token)`. Save a copy uses it
    * and never adopts.
@@ -468,8 +479,15 @@ export class ViewerClient {
     return result;
   }
 
-  /** The pages keep their sizes in `document`, for whoever lays them out. */
+  /**
+   * The pages keep their sizes in `document`, for whoever lays them out; an edit that inserted,
+   * deleted or moved pages gives `document` its new page list.
+   */
   #takePages(opened: OpenedDocument, result: EditResult): void {
+    if (result.order !== undefined) {
+      this.#document = { ...opened, pageCount: result.order.length, pages: [...result.order] };
+      return;
+    }
     if (result.pages.length === 0) return;
     const pages = [...opened.pages];
     for (const page of result.pages) pages[page.index] = page;

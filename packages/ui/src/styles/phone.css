@@ -17,20 +17,27 @@
     justify-content: center;
   }
 
+  /* More keeps its 44 px beside a long file name; the name shrinks instead. */
+  .paper-top-bar[data-phone] > .paper-icon-button {
+    flex-shrink: 0;
+  }
+
   /* Hidden, the bar moves up by its whole height, the notch's padding included. */
   .paper-top-bar[data-hidden] {
     margin-block-start: calc(-1 * (var(--paper-phone-top-bar-height) + env(safe-area-inset-top)));
     visibility: hidden;
   }
 
+  /* The bar slides by its margin, a layout property, until it moves by transform (motion plan
+     §4.3); so it slides only when neither the system nor Settings asks for reduced motion. */
   @media (prefers-reduced-motion: no-preference) {
-    .paper-top-bar[data-phone] {
+    :root:not([data-motion="reduce"]) .paper-top-bar[data-phone] {
       transition:
         margin-block-start 160ms ease,
         visibility 0s linear 160ms;
     }
 
-    .paper-top-bar[data-phone]:not([data-hidden]) {
+    :root:not([data-motion="reduce"]) .paper-top-bar[data-phone]:not([data-hidden]) {
       transition-delay: 0s;
     }
   }

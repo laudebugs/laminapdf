@@ -16,13 +16,8 @@
     padding: 0;
     border: 0;
     border-radius: var(--paper-radius-4);
-    background: transparent;
+    background-color: transparent;
     color: var(--paper-text-3);
-    cursor: default;
-  }
-
-  .paper-outline-toggle[data-hovered] {
-    background: var(--paper-hover);
   }
 
   /* The chevron points the way text runs. */
@@ -43,7 +38,6 @@
     color: var(--paper-text);
     font: var(--paper-type-outline);
     text-decoration: none;
-    cursor: default;
   }
 
   .paper-outline-row[data-level="2"] .paper-outline-link {
@@ -53,12 +47,8 @@
     font: var(--paper-type-outline-nested);
   }
 
-  .paper-outline-link[data-hovered] {
-    background: var(--paper-hover);
-  }
-
   .paper-outline-row[data-current] .paper-outline-link {
-    background: var(--paper-accent-tint);
+    background-color: var(--paper-accent-tint);
     color: var(--paper-accent);
     font-weight: 600;
   }
@@ -83,14 +73,21 @@
     border-radius: var(--paper-radius-4);
   }
 
+  /* In the tree the row takes hover and press, so its link shows them (states.css's layer). */
   .paper-outline-item[data-hovered] .paper-outline-link {
-    background: var(--paper-hover);
+    --ui-state-layer: var(--paper-hover);
+    transition-duration: var(--paper-duration-state-in);
+  }
+
+  .paper-outline-item[data-pressed] .paper-outline-link {
+    --ui-state-layer: var(--paper-pressed);
+    transition: none;
   }
 
   @media (forced-colors: active) {
     .paper-outline-row[data-current] .paper-outline-link {
       forced-color-adjust: none;
-      background: Highlight;
+      background-color: Highlight;
       color: HighlightText;
     }
   }
@@ -145,7 +142,7 @@
   }
 
   .paper-outline-item[data-selected] .paper-outline-link {
-    background: var(--paper-accent-tint);
+    background-color: var(--paper-accent-tint);
   }
 
   .paper-outline-item[data-drop-target] .paper-outline-link {
@@ -178,7 +175,13 @@
     border: 0;
     background: transparent;
     color: var(--paper-text-3);
+    cursor: var(--paper-cursor-grab);
     opacity: 0;
+  }
+
+  .paper-outline-grip[data-pressed],
+  .paper-outline-item[data-dragging] .paper-outline-grip {
+    cursor: var(--paper-cursor-grabbing);
   }
 
   .paper-outline-item[data-selected] .paper-outline-grip,

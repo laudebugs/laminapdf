@@ -328,7 +328,7 @@ The web More menu (drawn) holds Download a copy (`file.save-copy`) · Print… (
 
 **Accessibility.** The dialog uses a `fieldset`/`legend` for Pages and real `select`s; Enter prints; Escape cancels. The progress dialog announces every 25%. The restricted-print confirmation is an `alertdialog` with focus on Cancel. The More menu is `role="menu"` opened from a button with `aria-haspopup="menu"` and `aria-expanded`; ↑ ↓ move, Enter runs, Escape closes and returns focus; the active item uses the palette’s active-row style.
 
-**Platform differences.** *Desktop:* print hands off to the native print dialog with a preview (S05, [D4c](../../todos/ready/D4c-native-printing.md)), with the same restriction rule once the owner decides it (Desktop shell’s S05 doesn’t draw the step yet); the menu item is File › Save a copy… (`file.save-copy`, no shortcut, design language decision 18) with a native save panel. In the read-only reader it writes the bytes as opened; in an edit session it writes the document with its changes. *Phone:* Print uses the OS share/print sheet after the same preparing step; Download becomes Share › Save to Files. *Windows/Linux vs macOS:* chips `Ctrl P` / `⌘P`.
+**Platform differences.** *Desktop:* print hands off to the native print dialog with a preview (S05, [D4c](../../todos/done/D4c-native-printing.md)), with the same restriction rule once the owner decides it (Desktop shell’s S05 doesn’t draw the step yet); the menu item is File › Save a copy… (`file.save-copy`, no shortcut, design language decision 18) with a native save panel. In the read-only reader it writes the bytes as opened; in an edit session it writes the document with its changes. *Phone:* Print uses the OS share/print sheet after the same preparing step; Download becomes Share › Save to Files. *Windows/Linux vs macOS:* chips `Ctrl P` / `⌘P`.
 
 **As built ([C6c](../../todos/done/C6c-print-download-properties.md)).** The web reader ships Print with its progress and restricted-print steps, Download a copy and Document properties, all in the More menu. Six parts differ from the boards:
 
@@ -349,7 +349,7 @@ The web More menu (drawn) holds Download a copy (`file.save-copy`) · Print… (
 
 **Entry points.** The Close button beside the file name; More › Close document; the palette’s “Close document” (`file.close`); the phone’s and tablet’s Back to files. Removing `#url=` from the address, an unusable `#url=` link and the failure page’s Try another close through the same guarded path.
 
-**Layout.** In the top bar, a 24×24 icon button with the 14 px Close cross follows the file name, 2 px after it, inside the file area (design language [§7.1](design-language.md#71-top-bar)). A long file name is cut short with an ellipsis before the button, which never moves off the bar. In More, “Close document” follows “Open another file…” directly. The phone and tablet draw no new control: their top bars already start with Back to files (Reader B R17 and R18).
+**Layout.** In the top bar, a 24×24 icon button with the 14 px Close cross follows the file name, 8 px after it, inside the file area (design language [§7.1](design-language.md#71-top-bar)). A long file name is cut short with an ellipsis before the button, which never moves off the bar. In More, “Close document” follows “Open another file…” directly. The phone and tablet draw no new control: their top bars already start with Back to files (Reader B R17 and R18).
 
 **Content and controls.**
 

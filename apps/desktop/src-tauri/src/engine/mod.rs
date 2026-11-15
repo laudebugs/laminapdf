@@ -6,6 +6,7 @@
 
 mod bytesource;
 mod documents;
+mod print;
 mod secret;
 mod tiles;
 
@@ -20,6 +21,7 @@ use laminapdf_desktop_protocol::{
 use serde::Serialize;
 
 pub(crate) use documents::DocumentRegistry;
+pub(crate) use print::BandQuery;
 use secret::SessionPassword;
 pub(crate) use tiles::{Tile, TileQuery, UrlError as TileUrlError, parse as parse_tile, respond as tile_response};
 

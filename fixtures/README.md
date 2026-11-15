@@ -405,6 +405,10 @@ Inputs for the desktop engine's tests (ADR 0008 §5).
 | --- | --- | --- |
 | `cjk-not-embedded.pdf` | [`tools/fixtures/cjk_not_embedded.py`](../tools/fixtures/cjk_not_embedded.py) (no dependencies) | Six Chinese characters in STSong-Light (Type 0, `UniGB-UCS2-H`, Adobe-GB1), not embedded, and no other ink on the page: the sandboxed engine must get a system font from the main process for any glyph to render. `crates/laminapdf-desktop-engine/tests/engine_process.rs` counts the dark pixels |
 
+### `print/`
+
+Printing's fixtures (D4c), copied from the desktop-print spike (`spikes/desktop-print/fixtures/`, made by its `make_fixtures` binary with Lamina PDF's builder). `mixed-50.pdf` is 50 A4 portrait pages. `mixed-sizes.pdf` has A4 portrait, US Letter landscape, A4 with `/Rotate 90` and A5 portrait pages, each with a border 18 pt inside its edge and red corner squares. The desktop app's e2e scenario `print` and the manual checks in `apps/desktop/e2e/MANUAL-PRINT.md` print them.
+
 ### `cli/`
 
 `transcripts/*.console` are the command-line sessions the docs site shows: the commands and their output, written by `crates/laminapdf-cli/tests/transcripts.rs` with `UPDATE_GOLDEN=1` (the version as `{{version}}`). `transcripts/transcripts.json` gives each one's commands, written by hand, and stages its inputs from other fixtures, under the names the pages use: `invoice.pdf` is `golden/examples/invoice.pdf`, `scan.pdf` is `corpus/hello-broken.pdf`, `letter.pdf` is `corpus/hello-incremental.pdf`, `brochure.pdf` is `corpus/text-example.pdf`, `report.pdf` is `golden/examples/flowing_report.pdf`, and `notes.pdf` in the scripts examples is a Markdown file, to show a failure. `notes.md` is the Markdown file the build page shows, written for it.

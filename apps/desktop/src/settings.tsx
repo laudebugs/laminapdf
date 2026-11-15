@@ -8,6 +8,8 @@
 import { message, SettingsDialog, SettingsRegistry, Switch, useSettingsSection } from "@laminapdf/ui";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import type { DesktopShell } from "./engine/desktop-engine-client.ts";
+import { words } from "./update-words.ts";
+import { type DesktopUpdates, UpdateSettings, updatesSummary } from "./updates.tsx";
 
 /** The main process's preferences (`Preferences` in src-tauri/src/prefs.rs). */
 interface Preferences {
@@ -33,8 +35,8 @@ const DEFAULTS: Preferences = {
 /** What the settings give the app. */
 export interface DesktopSettings {
   readonly preferences: Preferences;
-  /** Opens the Settings dialog (`app.settings`). */
-  readonly open: () => void;
+  /** Opens the Settings dialog (`app.settings`), at `section` when given (`updates`). */
+  readonly open: (section?: string) => void;
   /** The dialog, rendered once by the app. */
   readonly dialog: ReactNode;
 }
@@ -43,10 +45,17 @@ export interface DesktopSettings {
  * The preferences, read from the main process and set through it, and the Settings dialog with
  * the Files section. `onChange` runs after each change the main process has applied.
  */
-export function useDesktopSettings(shell: DesktopShell | undefined, onChange: () => void): DesktopSettings {
+export function useDesktopSettings(
+  shell: DesktopShell | undefined,
+  onChange: () => void,
+  updates: DesktopUpdates,
+): DesktopSettings {
   const [preferences, setPreferences] = useState(DEFAULTS);
   const [isOpen, setOpen] = useState(false);
+  const [section, setSection] = useState<string>();
   const [registry] = useState(() => new SettingsRegistry());
+  // Outside the shell nothing updates, so the Updates section goes to a registry nobody shows.
+  const [unshown] = useState(() => new SettingsRegistry());
   useEffect(() => {
     shell?.invoke<Preferences>("preferences").then(setPreferences, reportError);
   }, [shell]);
@@ -64,10 +73,22 @@ export function useDesktopSettings(shell: DesktopShell | undefined, onChange: ()
     () => <FileSettings preferences={preferences} onChange={change} />,
     { shows: [preferences], summary: () => filesSummary(preferences) },
   );
+  // S06: Settings › Updates, inside the shell only (the main process owns updates).
+  useSettingsSection(
+    shell === undefined ? unshown : registry,
+    "updates",
+    words("title"),
+    () => <UpdateSettings updates={updates} />,
+    { shows: [updates], summary: () => updatesSummary(updates.status) },
+  );
+  const open = useCallback((at?: string) => {
+    setSection(at);
+    setOpen(true);
+  }, []);
   return {
     preferences,
-    open: () => setOpen(true),
-    dialog: <SettingsDialog registry={registry} isOpen={isOpen} onOpenChange={setOpen} />,
+    open,
+    dialog: <SettingsDialog registry={registry} isOpen={isOpen} onOpenChange={setOpen} section={section} />,
   };
 }
 

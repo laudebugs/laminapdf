@@ -19,6 +19,7 @@ import {
   LeftRail,
   LinkPreview,
   type LinkPreviewImage,
+  LocateDifferentDialog,
   Menu,
   MenuTrigger,
   ModeRegistry,
@@ -50,12 +51,15 @@ import {
 import { InitialViewDialog, PrintDialog, PrintProgressDialog, PropertiesDialog } from "@laminapdf/ui/dialogs";
 import {
   type AddressCheck,
+  BlankPagesDialog,
   ConformanceDialog,
   LinkEditor,
   type LinkGoal,
   LinkPanel,
+  MoveToPageDialog,
   NamedDestinationsDialog,
   RemoveSignaturesDialog,
+  SignedPageDialog,
 } from "@laminapdf/ui/editing";
 import { fakeFile, fakePlatform } from "@laminapdf/ui/testing";
 import { type ReactNode, useEffect, useState } from "react";
@@ -202,11 +206,33 @@ function NamedDestinations(): ReactNode {
   );
 }
 
-/** The editor's dialogs: the save's two confirmations and the named destinations. */
-const EDITING_DIALOGS = new Set(["remove-signatures", "conformance", "named-destinations"]);
+/** The editor's dialogs: the save's two confirmations, the named destinations and Organise's three (O06). */
+const EDITING_DIALOGS = new Set([
+  "remove-signatures",
+  "conformance",
+  "named-destinations",
+  "move-to-page",
+  "blank-pages",
+  "signed-page",
+]);
+
+/** Twelve pages for Move to page…, pages 5 and 6 selected. */
+const MOVE_PAGES = Array.from({ length: 12 }, (_, i) => ({ id: `p${i + 1}.0`, label: String(i + 1) }));
+
+/** One of Organise's dialogs (O06). */
+function OrganiseDialog({ state }: { state: string }): ReactNode {
+  if (state === "move-to-page") {
+    return <MoveToPageDialog isOpen onClose={noop} pages={MOVE_PAGES} selected={[4, 5]} onMove={noop} />;
+  }
+  if (state === "blank-pages") return <BlankPagesDialog isOpen onClose={noop} hasSelection onInsert={noop} />;
+  return <SignedPageDialog ask={{ action: "delete", page: "23" }} onAnswer={noop} />;
+}
 
 /** One of {@link EDITING_DIALOGS}. */
 function EditingDialogs({ state }: { state: string }): ReactNode {
+  if (state === "move-to-page" || state === "blank-pages" || state === "signed-page") {
+    return <OrganiseDialog state={state} />;
+  }
   if (state === "remove-signatures") {
     // O02's confirmation before a save that invalidates a certification and a signature.
     const signatures = [{ kind: "certification" }, { kind: "approval" }];
@@ -228,6 +254,8 @@ export function Dialogs({ state }: { state: string }): ReactNode {
   if (state === "settings" || state === "shortcuts" || state === "view-settings")
     return <SettingsDialogs state={state} />;
   if (EDITING_DIALOGS.has(state)) return <EditingDialogs state={state} />;
+  // S02: the desktop's question before a located file that differs from the session's opens.
+  if (state === "locate-different") return <LocateDifferentDialog name="Q2-board-report.pdf" onAnswer={noop} />;
   if (state === "external-link") {
     // R07's drawn state: the page's text shows a shorter address than the link's real target.
     return (

@@ -65,6 +65,19 @@
     cursor: default;
   }
 
+  /* The title takes the ellipsis: the label is a flex row, with a missing file's mark before it. */
+  .paper-document-tab-title {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .paper-document-tab-missing {
+    flex: none;
+    margin-inline-end: var(--paper-space-4);
+    color: var(--paper-warning);
+  }
+
   .paper-document-tab[data-active] .paper-document-tab-label {
     color: var(--paper-text);
     font-weight: 600;

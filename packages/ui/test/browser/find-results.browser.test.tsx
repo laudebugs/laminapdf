@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { userEvent } from "vitest/browser";
 import { FindResults } from "../../src/index.ts";
 import { FakeFind } from "../fakes.ts";
-import { cleanup, renderIn } from "./render.tsx";
+import { cleanup, renderIn, settled } from "./render.tsx";
 
 afterEach(cleanup);
 
@@ -90,6 +90,7 @@ describe("FindResults", () => {
       const find = new FakeFind({ query: "backlog", total: 3, current: 1 });
       find.list = LIST;
       const host = renderIn(<FindResults find={find} heading={heading} />, { theme });
+      await settled();
       const { violations } = await axe.run(host, { resultTypes: ["violations"] });
       expect(violations.map((v) => v.id)).toEqual([]);
     });

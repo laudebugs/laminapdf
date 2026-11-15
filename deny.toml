@@ -76,6 +76,12 @@ exceptions = [
     # code derives from libjpeg. laminapdf-render's `export` feature encodes JPEG pages with it,
     # and the crate's README carries the credit the licence asks for.
     { name = "jpeg-encoder", allow = ["IJG"] },
+    # CDLA-Permissive-2.0 (a permissive data licence) for webpki-root-certs only, Mozilla's CA list
+    # (owner decision 2026-11-14, todo D5b). The desktop updater's HTTP client, reqwest with rustls,
+    # brings it through rustls-platform-verifier, which compiles it only for wasm32: the desktop
+    # app's macOS, Windows and Linux builds never build it, and they check certificates against
+    # the OS's own store.
+    { name = "webpki-root-certs", allow = ["CDLA-Permissive-2.0"] },
 ]
 
 [licenses.private]

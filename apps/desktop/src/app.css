@@ -66,3 +66,61 @@ body {
   border: var(--paper-drop-border-width) dashed var(--paper-accent);
   pointer-events: none;
 }
+
+/* Settings › Updates (S06): the status card, the last check beside Check now, and the status bar's
+   "Update ready" item, accent on its tint, with its details' actions at the end. */
+.desktop-update-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: var(--paper-border-width) solid var(--paper-hairline);
+  border-radius: var(--paper-radius-6);
+}
+
+.desktop-update-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.desktop-update-check {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.desktop-update-ready .paper-status-item {
+  color: var(--paper-accent);
+  background: var(--paper-accent-tint);
+}
+
+.desktop-update-popover {
+  display: grid;
+  gap: 8px;
+  max-inline-size: 320px;
+  padding: 4px;
+}
+
+.desktop-update-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.desktop-update-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* The print's progress in the status bar (S05-print-progress): the bar is 140 px wide. */
+.desktop-print-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--paper-space-8);
+}
+
+.desktop-print-status .paper-progress {
+  inline-size: 140px;
+}

@@ -48,8 +48,8 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | S02 | Window with document tabs and session restore: tab overflow, session restore notice | D | [D4a](../../todos/done/D4a-windows-tabs-and-session-restore.md) |
 | S03 | Native menus: macOS menu bar (File, Edit, View, Go, Tools, Window, Help) and Windows/Linux in-window menu | D | [D4b](../../todos/done/D4b-native-menus.md) |
 | S04 | File changed on disk: strip (Compare · Keep mine · Reload from disk); the next Save asks | D | [D3b](../../todos/done/D3b-recent-files-and-file-watching.md) |
-| S05 | Print: native print dialog hand-off, printing progress | D | [D4c](../../todos/ready/D4c-native-printing.md) |
-| S06 | Updates: update available / downloading / restart to update; channel note | D | [D5b](../../todos/ready/D5b-updater-in-app.md) |
+| S05 | Print: native print dialog hand-off, printing progress | D | [D4c](../../todos/done/D4c-native-printing.md) |
+| S06 | Updates: update available / downloading / restart to update; channel note | D | [D5b](../../todos/done/D5b-updater-in-app.md) |
 | S07 | Settings window: General, Appearance, Privacy (telemetry opt-in, crash reports), Shortcuts (single-key on/off), Advanced (renderer switch) | D | [D7b](../../todos/ready/D7b-settings-renderer-switch-and-download-page.md), [D7a](../../todos/ready/D7a-crash-reporting.md), [U5c](../../todos/ready/U5c-opt-in-usage-telemetry.md) |
 | S08 | Crash recovered: restore session and optional report preview | D | [D7a](../../todos/ready/D7a-crash-reporting.md) |
 | S09 | Download page (web): per-OS download, checksums, system requirements | W | [D7b](../../todos/ready/D7b-settings-renderer-switch-and-download-page.md) |
@@ -64,7 +64,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | O03 | Close with unsaved changes (dialog) | D | [E2i](../../todos/ready/E2i-signed-gating-and-close.md) |
 | O04 | Document info and XMP editor (title, author, subject, keywords, dates; XMP tree) | D | [E1f](../../todos/done/E1f-metadata-ui-capability-page.md), [E3e](../../todos/done/E3e-xmp-editor.md) |
 | O05 | Capability page: what lamina can read, write and round-trip | W | [E1f](../../todos/done/E1f-metadata-ui-capability-page.md) |
-| O06 | Organise mode: page grid, multi-select, insertion bar, rotate, delete, duplicate, "Move to page…" | D, W | [E2h](../../todos/ready/E2h-page-organiser-ui.md), [E2b](../../todos/done/E2b-page-structure-ops.md) |
+| O06 | Organise mode: page grid, multi-select, insertion bar, rotate, delete, duplicate, "Move to page…" | D, W | [E2h](../../todos/done/E2h-page-organiser-ui.md), [E2b](../../todos/done/E2b-page-structure-ops.md) |
 | O07 | Insert pages and merge documents (from another PDF, images, blank) | D | [E2c](../../todos/done/E2c-cross-document-pages.md), [E2d](../../todos/done/E2d-merge-and-split.md), [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md) |
 | O08 | Split document (by count, ranges, bookmarks) | D | [E2d](../../todos/done/E2d-merge-and-split.md) |
 | O09 | Page geometry: crop and page boxes, resize, warning that cropped content remains | D | [E2f](../../todos/done/E2f-page-geometry.md), [E2s](../../todos/done/E2s-resize-and-orientation.md), [E2g](../../todos/ready/E2g-page-labels.md) |
@@ -75,7 +75,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | O14 | Attachments panel (add, extract, associated files) | D | [E3f](../../todos/ready/E3f-attachments-and-associated-files.md) |
 | O15 | Object inspector (object tree / COS inspector, advanced) | D | [E3g](../../todos/ready/E3g-inspectors.md) |
 | O16 | Export and extraction: pages as images, text/Markdown/JSON, pictures out | D, W | [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md), [E3i](../../todos/done/E3i-extraction.md) |
-| O17 | Phone: organise pages (grid, select, reorder by "Move to"), bottom action bar | M | [E2h](../../todos/ready/E2h-page-organiser-ui.md) |
+| O17 | Phone: organise pages (grid, select, reorder by "Move to"), bottom action bar | M | [E2h](../../todos/done/E2h-page-organiser-ui.md) |
 
 ## C. Comment and review (E4–E5)
 

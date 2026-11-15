@@ -13,7 +13,13 @@ export function useShell(storage: PlatformStorage): { readonly layout: ShellLayo
   const [shell] = useState(() => {
     const layout = new ShellLayout(storage);
     const modes = new ModeRegistry();
-    modes.register({ id: "read", title: message("command.mode.read"), icon: "reader", leave: () => layout.deselect() });
+    modes.register({
+      id: "read",
+      title: message("command.mode.read"),
+      label: message("mode.read"),
+      icon: "reader",
+      leave: () => layout.deselect(),
+    });
     return { layout, modes };
   });
   useEffect(() => {

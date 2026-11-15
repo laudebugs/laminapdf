@@ -14,21 +14,16 @@
     padding: var(--paper-space-8);
     border: var(--paper-border-width) solid var(--paper-chip-border);
     border-radius: var(--paper-radius-6);
-    background: var(--paper-surface);
+    background-color: var(--paper-surface);
     color: var(--paper-text);
     font: var(--paper-type-control);
     text-align: center;
-    cursor: default;
-  }
-
-  .paper-appearance-chip[data-hovered] {
-    background: linear-gradient(var(--paper-hover), var(--paper-hover)), var(--paper-surface);
   }
 
   .paper-appearance-chip[data-selected] {
     border-color: var(--paper-accent);
     box-shadow: inset 0 0 0 var(--paper-border-width) var(--paper-accent);
-    background: var(--paper-field);
+    background-color: var(--paper-field);
     font-weight: 600;
   }
 

@@ -16,19 +16,53 @@ homepage.workspace = true
 [package.metadata.laminapdf]
 layer = "edge"
 
+[features]
+# Printing to a PDF file with no dialog (`PrintJob::output`): the desktop app's end-to-end builds and
+# this crate's print test only. Shipped builds can't print anywhere but where the user chooses.
+print-to-file = []
+
 [dependencies]
 thiserror = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = { workspace = true }
-objc2-app-kit = { workspace = true }
-objc2-foundation = { workspace = true }
+# Printing (D4c): the print panel and its info, and Core Graphics images over Core Foundation data.
+objc2-app-kit = { workspace = true, features = ["NSApplication", "NSPrintInfo", "NSPrintPanel", "NSResponder", "NSWindow"] }
+objc2-core-foundation = { workspace = true, features = ["CFData", "CFString", "CFURL"] }
+objc2-core-graphics = { workspace = true, features = [
+    "CGColorSpace",
+    "CGContext",
+    "CGDataProvider",
+    "CGImage",
+] }
+objc2-foundation = { workspace = true, features = ["NSGeometry"] }
 
 [target.'cfg(windows)'.dependencies]
-windows = { workspace = true }
+# Printing (D4c): the print dialog, its global memory, and GDI's printer device context.
+windows = { workspace = true, features = [
+    "Win32_Graphics_Gdi",
+    "Win32_Storage_Xps",
+    "Win32_System_Memory",
+    "Win32_UI_Controls_Dialogs",
+] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = { workspace = true }
+# Linux's update policy file, /etc/lamina/policy.json.
+serde_json = { workspace = true }
+
+[dev-dependencies]
+# The policy file's parser is tested on every OS.
+serde_json = { workspace = true }
+# The print test reads its printed PDF back (tests only: the main process links no parser).
+laminapdf = { workspace = true }
+
+# Prints through the OS's real print API, which AppKit allows only on the main thread: its own
+# main(), not libtest's worker threads.
+[[test]]
+name = "print_to_file"
+harness = false
+required-features = ["print-to-file"]
 
 [lints]
 workspace = true

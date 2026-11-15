@@ -185,6 +185,8 @@ export interface OpenerTabs {
   stillWanted(file: PlatformFile): boolean;
   /** The reader lets go of the shown document (before it shows another): its tab keeps the view. */
   setAside(): void;
+  /** The last session's tab `file` stands for found its file gone: the tab is marked missing. */
+  missingFile(file: PlatformFile): void;
 }
 
 /**
@@ -204,7 +206,9 @@ async function openRestored(
   try {
     opened = await shell.invoke<DesktopDocument>("session_open", { token });
   } catch (error) {
-    throw engineError(error);
+    const failed = engineError(error);
+    if (failed.code === "io") tabs?.missingFile(file);
+    throw failed;
   }
   rebind(file, opened);
   return opened;

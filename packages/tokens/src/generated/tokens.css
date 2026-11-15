@@ -71,6 +71,25 @@
   --paper-duration-pill-fade: 1500ms;
   --paper-duration-progress-cycle: 1200ms;
   --paper-duration-tooltip-delay: 500ms;
+  --paper-duration-state-in: 80ms;
+  --paper-duration-state-out: 150ms;
+  --paper-duration-enter-small: 120ms;
+  --paper-duration-exit-small: 80ms;
+  --paper-duration-enter-panel: 200ms;
+  --paper-duration-exit-panel: 150ms;
+  --paper-duration-view: 250ms;
+  --paper-duration-link-preview-delay: 300ms;
+  --paper-motion-scale: 0.97;
+  --paper-motion-travel: 1;
+  --paper-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --paper-ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --paper-ease-exit: cubic-bezier(0.3, 0, 1, 1);
+  --paper-cursor-action: pointer;
+  --paper-cursor-link: pointer;
+  --paper-cursor-disabled: default;
+  --paper-cursor-pending: progress;
+  --paper-cursor-grab: grab;
+  --paper-cursor-grabbing: grabbing;
   --paper-z-page: 0;
   --paper-z-page-overlay: 1;
   --paper-z-chrome: 10;
@@ -121,6 +140,12 @@
   --paper-thumbnail-height: 150px;
   --paper-thumbnail-width-phone: 122px;
   --paper-thumbnail-height-phone: 158px;
+  --paper-organise-tile-size: 171px;
+  --paper-organise-tile-short-size: 132px;
+  --paper-organise-drop-dot-size: 8px;
+  --paper-organise-ghost-width: 66px;
+  --paper-organise-ghost-height: 86px;
+  --paper-organise-ghost-offset: 4px;
   --paper-page-pill-height: 30px;
   --paper-icon-button-size-large: 32px;
   --paper-icon-button-radius-touch: 6px;
@@ -223,6 +248,8 @@
   --paper-control-border: #8A8174;
   --paper-on-accent: #FFFFFF;
   --paper-danger: #9B2335;
+  --paper-danger-strong: #882231;
+  --paper-danger-pressed: #78212D;
   --paper-positive: #2F6A45;
   --paper-warning: #8A5300;
   --paper-danger-tint: #F1E4E2;
@@ -334,6 +361,8 @@
   --paper-control-border: #7E766A;
   --paper-on-accent: #1E1D1A;
   --paper-danger: #EE8C98;
+  --paper-danger-strong: #EE9AA2;
+  --paper-danger-pressed: #EDA5AC;
   --paper-positive: #86C49A;
   --paper-warning: #E0AE5A;
   --paper-danger-tint: #463534;
@@ -412,6 +441,8 @@
     --paper-control-border: #7E766A;
     --paper-on-accent: #1E1D1A;
     --paper-danger: #EE8C98;
+    --paper-danger-strong: #EE9AA2;
+    --paper-danger-pressed: #EDA5AC;
     --paper-positive: #86C49A;
     --paper-warning: #E0AE5A;
     --paper-danger-tint: #463534;
@@ -496,6 +527,8 @@
   --paper-control-border: CanvasText;
   --paper-on-accent: Canvas;
   --paper-danger: CanvasText;
+  --paper-danger-strong: CanvasText;
+  --paper-danger-pressed: CanvasText;
   --paper-positive: CanvasText;
   --paper-warning: CanvasText;
   --paper-danger-tint: Canvas;
@@ -544,6 +577,8 @@
     --paper-control-border: CanvasText;
     --paper-on-accent: Canvas;
     --paper-danger: CanvasText;
+    --paper-danger-strong: CanvasText;
+    --paper-danger-pressed: CanvasText;
     --paper-positive: CanvasText;
     --paper-warning: CanvasText;
     --paper-danger-tint: Canvas;
@@ -639,5 +674,14 @@
 @media (prefers-reduced-motion: reduce) {
   :where(:root) {
     --paper-duration-progress-cycle: 0ms;
+    --paper-motion-scale: 1;
+    --paper-motion-travel: 0;
   }
+}
+
+/* Reduced motion chosen in Settings: the same values as the system preference */
+:where([data-motion="reduce"]) {
+  --paper-duration-progress-cycle: 0ms;
+  --paper-motion-scale: 1;
+  --paper-motion-travel: 0;
 }

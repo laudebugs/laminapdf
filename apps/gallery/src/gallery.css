@@ -8,14 +8,6 @@ body {
   font: var(--paper-type-body, 400 14px / 1.45 var(--paper-font-sans));
 }
 
-/* Unlayered, so it wins over the components' `@layer paper.*` rules without !important. */
-[data-motion="reduce"] *,
-[data-motion="reduce"] *::before,
-[data-motion="reduce"] *::after {
-  transition: none;
-  animation: none;
-}
-
 .g-header {
   display: flex;
   flex-wrap: wrap;

@@ -142,7 +142,7 @@ describe(`the edit session in ${BROWSER}`, () => {
     await expect.poll(() => saveState(page)).toBe("No unsaved changes");
     await more(page, "Close document");
     await page.getByRole("heading", { name: "Open a PDF" }).waitFor();
-    expect(await page.getByRole("alertdialog").count()).toBe(0);
+    await expect.poll(() => page.getByRole("alertdialog").count()).toBe(0);
     expect(await asksBeforeUnload(page)).toBe(false);
     await clean(watched);
   });
