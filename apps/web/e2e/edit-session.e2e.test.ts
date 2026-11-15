@@ -3,7 +3,8 @@
 // page itself (it lies on its side, then stands again) and in the dirty indicators (the top bar's
 // save state and the tab's "•"); the History tab going back to the file as opened; closing with
 // unsaved changes asks first, in the reader and in the browser, and closing a clean document
-// doesn't; and the 500-step limit, which drops the oldest step and says so in the History tab.
+// doesn't; and, in Chromium alone, the 500-step limit, which drops the oldest step and says so in
+// the History tab.
 // No CSP violation or other origin throughout.
 
 import type { Browser, Page } from "playwright";
