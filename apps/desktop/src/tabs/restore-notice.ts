@@ -1,9 +1,10 @@
-// Whether a window shows its restore notice (desktop shell S02): what the last session brought
-// back into it, until the user dismisses it or first navigates. Restoring a tab moves the viewer
-// to the place it was at, possibly after the restore itself has finished, and the viewer's page
-// (the one in the middle of the window) needn't be the page the session recorded. So for a moment
-// after the restore, or after another document comes on screen (a located file), page changes
-// only say where the view settles; after that, leaving the settled page is the first navigation.
+// Whether a window shows its restore notice (desktop shell S02), which says what the last session
+// brought back into it. It shows until the user dismisses it or first navigates. Restoring a tab
+// moves the viewer to the place it was at, possibly after the restore itself has finished, and the
+// viewer's page (the one in the middle of the window) needn't be the page the session recorded.
+// So page changes only say where the view settles for a moment after the restore, or after
+// another document (a located file) comes on screen. After that, leaving the settled page is the
+// first navigation.
 //
 // The notice says what the restore found, once: locating a missing file doesn't change it, so a
 // screen reader isn't told again.

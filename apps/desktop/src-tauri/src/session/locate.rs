@@ -1,5 +1,5 @@
-//! Locate… on a restored tab whose file is missing: the user picks where the file went, and a pick
-//! that looks different from the file the session had (another size or date) waits for their
+//! Locate… on a restored tab whose file is missing: the user picks where the file went. If the pick
+//! looks different from the file the session had (another size or date), it waits for the user's
 //! answer before it opens, so a different document never takes the tab's place unasked.
 
 use std::collections::BTreeMap;

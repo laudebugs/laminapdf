@@ -1,8 +1,8 @@
 // What a window says after it brings the last session back (desktop shell S02): a strip under the
 // top bar that counts the tabs it restored and the files it couldn't find, with Show missing file
-// and Dismiss. Its sentence is a polite status, so a screen reader hears it once; the app takes it away on
-// Dismiss or the reader's first navigation. Locating a missing file that looks different from the
-// one in the session asks first (`LocateDifferentDialog`).
+// and Dismiss. Its sentence is a polite status, so a screen reader hears it once; the app takes it
+// away on Dismiss or the user's first navigation. Locating a missing file that looks different
+// from the one in the session asks first (`LocateDifferentDialog`).
 
 import { Icon } from "@laminapdf/icons/react";
 import { type ReactNode, useEffect, useState } from "react";

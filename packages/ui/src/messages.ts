@@ -147,7 +147,7 @@ const EN = {
   "restore.showMissing.other": "Show missing files",
   "restore.dismiss": "Dismiss the restore notice",
   "restore.different.title": "This file looks different from the one you had open",
-  "restore.different.body": "{name} has another size or date than the file this tab last showed. Open it anyway?",
+  "restore.different.body": "{name} differs in size or date from the file this tab last showed. Open it anyway?",
   "restore.different.open": "Open anyway",
   "restore.different.cancel": "Cancel",
   "announce.opened": "Opened {name}, {count} pages",
