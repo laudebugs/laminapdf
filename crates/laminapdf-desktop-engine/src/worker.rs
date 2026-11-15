@@ -9,8 +9,8 @@ use std::sync::Arc;
 
 use laminapdf::OpenOptions;
 use laminapdf_desktop_protocol::{
-    DocId, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PageDimensions, Password, ReqId, TileAppearance,
-    TileFormat, TileRequest, ViewRotation,
+    DocId, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PageDimensions, Password, PrintBandRequest, ReqId,
+    TileAppearance, TileFormat, TileRequest, ViewRotation,
 };
 use laminapdf_render::{
     ByteSource, CancelToken, PageAppearance, PixelRect, RenderBackend, RenderDocument, RenderOpenOptions,
@@ -84,6 +84,7 @@ impl Worker {
                 Job::Unlock { req, doc, password } => self.unlock(req, doc, &password),
                 Job::PageInfo { req, doc } => self.page_info(req, doc),
                 Job::Render(tile) => self.render(&tile, &token),
+                Job::Print(band) => self.print_band(&band, &token),
                 Job::Close { doc } => {
                     self.docs.remove(&doc);
                 }
@@ -178,20 +179,35 @@ impl Worker {
         }
     }
 
-    fn render(&self, tile: &TileRequest, cancel: &CancelToken) {
-        let req = tile.req;
-        let opened = match self.docs.get(&tile.doc) {
-            None => return self.error(req, FailureKind::UnknownDocument, "no such document".into()),
-            Some(Doc::Locked { .. }) => return self.send(&FromEngine::NeedsPassword { req, doc: tile.doc }),
+    /// The renderer of `doc`, or `None` once the failure is answered.
+    fn renderer(&self, req: ReqId, doc: DocId) -> Option<&dyn RenderDocument> {
+        let opened = match self.docs.get(&doc) {
+            None => {
+                self.error(req, FailureKind::UnknownDocument, "no such document".into());
+                return None;
+            }
+            Some(Doc::Locked { .. }) => {
+                self.send(&FromEngine::NeedsPassword { req, doc });
+                return None;
+            }
             Some(Doc::Open(opened)) => opened,
         };
-        let Some(render) = opened.render.as_deref() else {
+        let render = opened.render.as_deref();
+        if render.is_none() {
             let kind = if self.backend.is_some() {
                 FailureKind::RenderFailed
             } else {
                 FailureKind::RenderUnavailable
             };
-            return self.error(req, kind, "no renderer for this document".into());
+            self.error(req, kind, "no renderer for this document".into());
+        }
+        render
+    }
+
+    fn render(&self, tile: &TileRequest, cancel: &CancelToken) {
+        let req = tile.req;
+        let Some(render) = self.renderer(req, tile.doc) else {
+            return;
         };
         let request = RenderRequest::page(tile.page, tile.scale)
             .with_clip(PixelRect {
@@ -221,6 +237,29 @@ impl Worker {
                 },
                 &pixels,
             ),
+            Err(error) => self.error(req, kind_of(error.code()), error.code().into()),
+        }
+    }
+
+    /// Renders one band of a page for printing ([`crate::print`] does the maths).
+    fn print_band(&self, band: &PrintBandRequest, cancel: &CancelToken) {
+        let req = band.req;
+        let Some(render) = self.renderer(req, band.doc) else {
+            return;
+        };
+        let planned = crate::print::plan(render, band);
+        let (request, reply, len) = match planned {
+            Ok(planned) => planned,
+            Err((kind, message)) => return self.error(req, kind, message),
+        };
+        let mut pixels = vec![0_u8; len];
+        match render.render(&request, &mut pixels, cancel) {
+            Ok(_) => {
+                if band.format == TileFormat::Bgra8 {
+                    crate::print::rgba_to_bgra(&mut pixels);
+                }
+                self.send_payload(&reply, &pixels);
+            }
             Err(error) => self.error(req, kind_of(error.code()), error.code().into()),
         }
     }
@@ -281,7 +320,7 @@ impl Worker {
 
 /// The protocol's kind for a parser or renderer error code. Only codes cross the pipe, never an
 /// error's text, which can quote the document.
-fn kind_of(code: &str) -> FailureKind {
+pub(crate) fn kind_of(code: &str) -> FailureKind {
     match code {
         "wrong-password" | "password-required" => FailureKind::WrongPassword,
         "limit-exceeded" => FailureKind::Limit,

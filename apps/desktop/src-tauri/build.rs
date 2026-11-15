@@ -32,6 +32,8 @@ const COMMANDS: &[&str] = &[
     "close_window",
     "quit",
     "save_copy",
+    "print_document",
+    "cancel_print",
     "tab_drag_start",
     "tab_drag_end",
     "tab_drag_cancel",
@@ -66,6 +68,8 @@ const E2E_COMMANDS: &[&str] = &[
     "close_window",
     "quit",
     "save_copy",
+    "print_document",
+    "cancel_print",
     "tab_drag_start",
     "tab_drag_end",
     "tab_drag_cancel",
@@ -76,6 +80,7 @@ const E2E_COMMANDS: &[&str] = &[
     "e2e_place_cursor",
     "e2e_menu_click",
     "e2e_menu_snapshot",
+    "e2e_print_to_file",
 ];
 
 fn main() -> ExitCode {

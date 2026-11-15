@@ -12,6 +12,7 @@
     "allow-e2e-place-cursor",
     "allow-e2e-menu-click",
     "allow-e2e-menu-snapshot",
+    "allow-e2e-print-to-file",
     "wdio:default"
   ]
 }

@@ -16,6 +16,7 @@ mod menu;
 mod open;
 mod opened;
 mod prefs;
+mod print;
 mod recent;
 mod session;
 #[cfg(feature = "e2e")]
@@ -149,6 +150,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(session::locate::Held::default());
     app.manage(menu::MenusJson::embedded());
     app.manage(menu::NativeMenus::default());
+    app.manage(Arc::new(print::Printing::default()));
     // The last session's windows (D4d), else one window. Windows are made here, not in
     // tauri.conf.json, so the app chooses every label.
     let restored = session::app::start(app, config);
@@ -210,6 +212,8 @@ macro_rules! app_commands {
             commands::close_window,
             commands::quit,
             commands::save_copy,
+            print::print_document,
+            print::cancel_print,
             commands::tab_drag_start,
             commands::tab_drag_end,
             commands::tab_drag_cancel,
@@ -244,6 +248,7 @@ pub fn run() -> Result<(), DesktopError> {
             e2e::e2e_menu_click,
             e2e::e2e_menu_snapshot,
             e2e::e2e_place_cursor,
+            print::e2e_print_to_file,
         ])
         .manage(e2e::QueuedPick::default());
     // First of all plugins: a second launch hands its paths to the running app and exits before

@@ -32,6 +32,57 @@ export async function invoke(command: string, args: object = {}): Promise<unknow
   );
 }
 
+/** What the print started by `printToFile` ended with: the printed pages' sizes, or its error. */
+type PrintResult = { readonly sizes: [number, number][] } | { readonly error: string };
+
+/** A page's size in points, as `page_info` and `e2e_print_to_file` give it. */
+export interface PageSize {
+  readonly width: number;
+  readonly height: number;
+}
+
+/** The shown document's pages, as the engine measures them. */
+export async function pageSizes(): Promise<PageSize[]> {
+  const doc = await browser.execute(() => globalThis.__laminaE2e?.doc());
+  const pages = (await invoke("page_info", { doc })) as PageSize[];
+  return pages.map(({ width, height }) => ({ width, height }));
+}
+
+/**
+ * Prints the shown document to the PDF `path` through the native print path, with no dialog, and
+ * returns the printed file's pages as the engine reads them back.
+ */
+export async function printToFile(path: string, timeout = 150_000): Promise<PageSize[]> {
+  const doc = await browser.execute(() => globalThis.__laminaE2e?.doc());
+  // A long print outlasts WebDriver's 30 s script timeout, and WebdriverIO would then send the
+  // command again into the print still running. So the print starts here, and the result is polled.
+  await browser.execute(
+    (payload) => {
+      const page = globalThis as unknown as TauriGlobal & { __laminaPrinted?: PrintResult | undefined };
+      page.__laminaPrinted = undefined;
+      page.__TAURI__.core.invoke("e2e_print_to_file", payload).then(
+        (sizes) => {
+          page.__laminaPrinted = { sizes: sizes as [number, number][] };
+        },
+        (error: unknown) => {
+          page.__laminaPrinted = { error: JSON.stringify(error) };
+        },
+      );
+    },
+    { doc, path },
+  );
+  const result = await browser.waitUntil(
+    () => browser.execute(() => (globalThis as unknown as { __laminaPrinted?: PrintResult }).__laminaPrinted ?? false),
+    { timeout, interval: 500, timeoutMsg: `the print didn't finish within ${timeout} ms` },
+  );
+  if ("error" in result) throw new Error(`the print failed: ${result.error}`);
+  const { sizes } = result;
+  // The OS's PDF printer can take the foreground (Windows), and a window behind others may stop
+  // drawing: bring it back, as the user's click on it would.
+  await focusWindow();
+  return sizes.map(([width, height]) => ({ width, height }));
+}
+
 /** Makes the next file dialog (Open, Locate…) pick `path`, which must be under the fixtures. */
 export async function queuePick(path: string): Promise<void> {
   await invoke("e2e_queue_pick", { path });
