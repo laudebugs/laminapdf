@@ -171,7 +171,8 @@ describe(`reader mode in ${BROWSER}`, () => {
         return transition;
       }) as typeof document.startViewTransition;
     });
-    const switches = () => page.evaluate(() => (globalThis as unknown as { __switches: unknown[] }).__switches);
+    type Switch = { animating: string[]; loading: boolean };
+    const switches = () => page.evaluate(() => (globalThis as unknown as { __switches: Switch[] }).__switches);
     const FADE = ["::view-transition-new(paper-view)", "::view-transition-old(paper-view)"];
     const toggle = page.getByRole("button", { name: "Reader mode" }).first();
     await enter(page);
