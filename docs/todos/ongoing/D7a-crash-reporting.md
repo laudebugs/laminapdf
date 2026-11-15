@@ -11,7 +11,7 @@
 | Branch | `feat/d7a-crash-reporting` |
 | PR title | `feat(desktop): add opt-in, scrubbed crash and panic reporting` |
 | Size | L (700–1,300 lines across app, engine and Worker) |
-| PR | — |
+| PR | [#639](https://github.com/laudebugs/laminapdf/pull/639) |
 
 ## Goal
 
