@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `D5b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §6 D5](../../plans/desktop-app.md#d5-update-service) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D4b](../done/D4b-native-menus.md), [D5a](../done/D5a-update-worker-and-adr-0014.md) |
+| Depends on | [D4b](./D4b-native-menus.md), [D5a](./D5a-update-worker-and-adr-0014.md) |
 | ADRs | Implements ADR 0014 (client side). Follows ADR 0008 (security baseline), ADR 0011 (privacy) |
 | Branch | `feat/d5b-desktop-updater` |
 | PR title | `feat(desktop): wire the updater with channels, settings and the install-ID header` |
@@ -69,7 +69,7 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 - [ ] ~~A tampered bundle is rejected on each OS (signature error logged; app remains on 0.0.1) — same workflow.~~ Moved to [D5c](../ready/D5c-desktop-update-e2e.md).
 - [x] The request to the update endpoint carries `Lamina-Install-Id` as a header and not in the URL (unit test of the builder config + a Worker-side assertion in the staging run). The unit test is `update::plan`'s; the Worker-side assertion moved to D5c.
 - [x] Disabling updates stops all update network requests (unit test on the scheduler; manual check with a proxy). The unit tests are `update::plan`'s: with updates off, no check is planned, and every request goes through that plan. The proxy check is in the PR.
-- [ ] Managed policy overrides user settings on each OS (unit tests for the parsers; manual check on Windows registry and macOS profile). The unit tests are `update::policy`'s and `laminapdf-desktop-os`'s; the manual checks are listed in the PR for the owner, who has the machines.
+- [x] Managed policy overrides user settings on each OS (unit tests for the parsers; manual check on Windows registry and macOS profile). The unit tests are `update::policy`'s and `laminapdf-desktop-os`'s; the manual checks are listed in the PR for the owner, who has the machines (owner's standing go-ahead, 2026-11-15: they don't block the merge).
 - [x] "Reset anonymous ID" generates a new UUID and the next check uses it (unit test).
 - [x] The webview has no `updater:*` permission (capability guard test).
 
@@ -120,8 +120,8 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR's first commit moved this file `ready/` → `ongoing/` (Status `ongoing`, links updated) before work started, under the current claim rule
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

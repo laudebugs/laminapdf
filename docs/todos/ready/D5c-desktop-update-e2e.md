@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D5](../../plans/desktop-app.md#d5-update-service) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D5b](../ongoing/D5b-updater-in-app.md) |
+| Depends on | [D5b](../done/D5b-updater-in-app.md) |
 | ADRs | Follows ADR 0014 (endpoint, channels, staging bucket), ADR 0008 (the `e2e` feature stays out of release builds) |
 | Branch | `ci/d5c-desktop-update-e2e` |
 | PR title | `ci(desktop): test the update from 0.0.1 to 0.0.2, and a tampered bundle, on three OSes` |
