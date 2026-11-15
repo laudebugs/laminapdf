@@ -375,6 +375,8 @@ const EN = {
   "command.window.new": "New window",
   "command.app.install": "Install Lamina PDF…",
   "command.app.reload-update": "Reload to update",
+  "command.app.check-for-updates": "Check for updates",
+  "command.app.restart-to-update": "Restart to update",
   "command.view.toggle-sidebar": "Show or hide sidebar",
   "command.view.focus-mode": "Focus mode",
   "command.view.reader-mode": "Reader mode",

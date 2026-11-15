@@ -26,7 +26,7 @@ afterEach(async () => {
 });
 
 /** Settings with the reader's two sections: appearance, and a storage section of plain text. */
-function Settings(): ReactNode {
+function Settings({ section }: { readonly section?: string } = {}): ReactNode {
   const [appearance, setAppearance] = useState(DEFAULT_APPEARANCE);
   const [registry] = useState(() => new SettingsRegistry());
   useSettingsSection(
@@ -45,7 +45,7 @@ function Settings(): ReactNode {
       <button type="button" onClick={() => setOpen(true)}>
         Open settings
       </button>
-      <SettingsDialog registry={registry} isOpen={open} onOpenChange={setOpen} />
+      <SettingsDialog registry={registry} isOpen={open} onOpenChange={setOpen} section={section} />
     </>
   );
 }
@@ -77,6 +77,14 @@ describe("Settings on a phone", () => {
       visible(first.querySelector(".paper-settings-chevron")),
       settings.querySelectorAll('[aria-current="page"]').length,
     ]).toEqual([true, true, 0]);
+  });
+
+  it("opens straight on the section it is asked for", async () => {
+    renderIn(<Settings section="storage" />, { density: "touch" });
+    await expect.poll(() => document.querySelector(".paper-settings")).not.toBeNull();
+    const settings = document.querySelector<HTMLElement>(".paper-settings") as HTMLElement;
+    await expect.poll(() => visible(settings.querySelector(".paper-settings-back"))).toBe(true);
+    expect(settings.textContent).toContain("Recent files stay on this device.");
   });
 
   it("starts at the list again when Settings reopens", async () => {
@@ -138,6 +146,14 @@ describe("Settings wider than a phone", () => {
       visible(settings.querySelector(".paper-settings-chevron")),
       visible(settings.querySelector(".paper-settings-back")),
     ]).toEqual([true, false, false, false]);
+  });
+
+  it("shows the section it is asked for beside the list", async () => {
+    renderIn(<Settings section="storage" />);
+    await expect.poll(() => document.querySelector(".paper-settings")).not.toBeNull();
+    const settings = document.querySelector<HTMLElement>(".paper-settings") as HTMLElement;
+    await expect.poll(() => row(settings, "Storage and privacy").getAttribute("aria-current")).toBe("page");
+    expect(settings.textContent).toContain("Recent files stay on this device.");
   });
 
   it("keeps focus on the pressed section and marks it current", async () => {

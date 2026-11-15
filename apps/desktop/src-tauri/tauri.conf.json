@@ -43,5 +43,15 @@
         "desktopTemplate": "linux/laminapdf.desktop"
       }
     }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEFGNDhEMjE3QzhGQkM5QkIKUldTN3lmdklGOUpJcjVmRzd0Zjk5Ty9TTnJFMVl1NFJ1WDRlZXdKQkM3bGM2VHM5VENndUFrTHEK",
+      "endpoints": ["https://updates.laminapdf.com/beta/{{target}}/{{arch}}/{{current_version}}"],
+      "requireSignedVersion": true,
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }
