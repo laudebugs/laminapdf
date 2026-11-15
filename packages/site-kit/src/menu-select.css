@@ -45,7 +45,7 @@
   background: var(--paper-field);
   color: var(--paper-text);
   font: inherit;
-  cursor: pointer;
+  cursor: var(--paper-cursor-action);
 }
 
 .site-menu-select-button[aria-expanded="true"] {
@@ -125,17 +125,25 @@
   border-radius: var(--paper-radius-4);
   color: var(--paper-text);
   white-space: nowrap;
-  cursor: pointer;
+  cursor: var(--paper-cursor-action);
 }
 
 .site-menu-select-option-label {
   flex: 1;
 }
 
-.site-menu-select-option[data-active],
-.site-menu-select-option:hover {
+.site-menu-select-option[data-active] {
   background: var(--paper-accent-tint);
   box-shadow: inset 0 0 0 1px var(--paper-accent);
+}
+
+/* The option under a mouse or pen, as the active one: design language §7.0 keeps :hover to a
+   pointer that hovers, since a tap leaves it on. */
+@media (hover: hover) and (pointer: fine) {
+  .site-menu-select-option:hover {
+    background: var(--paper-accent-tint);
+    box-shadow: inset 0 0 0 1px var(--paper-accent);
+  }
 }
 
 .site-menu-select-check {
@@ -171,8 +179,7 @@
     color: CanvasText;
   }
 
-  .site-menu-select-option[data-active],
-  .site-menu-select-option:hover {
+  .site-menu-select-option[data-active] {
     outline: 2px solid Highlight;
   }
 }

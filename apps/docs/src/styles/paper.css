@@ -245,15 +245,7 @@ h1#_top,
     border-radius: 0.75rem;
     background: var(--paper-surface);
     color: var(--paper-text-2);
-    cursor: pointer;
-  }
-  .docs-toc-toggle:hover {
-    border-color: var(--paper-control-border);
-    background: var(--paper-gutter);
-    color: var(--paper-text);
-  }
-  :root[data-theme="dark"] .docs-toc-toggle:hover {
-    background: var(--paper-raised);
+    cursor: var(--paper-cursor-action);
   }
   .docs-toc-toggle svg {
     width: 1rem;
@@ -277,6 +269,17 @@ h1#_top,
   }
   :root[data-toc-hidden] .right-sidebar {
     border-inline-start-color: transparent;
+  }
+}
+/* The toggle under a mouse or pen (design language §7.0: :hover only where a pointer hovers). */
+@media screen and (min-width: 72rem) and (hover: hover) and (pointer: fine) {
+  .docs-toc-toggle:hover {
+    border-color: var(--paper-control-border);
+    background: var(--paper-gutter);
+    color: var(--paper-text);
+  }
+  :root[data-theme="dark"] .docs-toc-toggle:hover {
+    background: var(--paper-raised);
   }
 }
 
