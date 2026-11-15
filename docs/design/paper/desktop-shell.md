@@ -252,7 +252,7 @@ Conventions on this canvas:
 
 **Artboards:** `S06-update-ready.dc.html`, `S06-update-settings.dc.html`.
 
-**Todos:** [D5b](../../todos/ready/D5b-updater-in-app.md).
+**Todos:** [D5b](../../todos/ongoing/D5b-updater-in-app.md).
 
 ## S07 Settings window
 
@@ -400,7 +400,7 @@ Merged into the [design language](design-language.md#decisions-on-area-proposals
 - **Close tab `⌘W` and Quit `⌘Q`** are desktop-only exceptions to the web collision list (see Conventions); the shortcut help must show them only in the desktop app.
 - **Crash dialog merges two questions** (which tabs to reopen, whether to report) that D7a describes as one consent dialog; D7a’s wording (“Send”, “Don’t send”, “Always send”) is kept in the report preview.
 - **Compare** (S04) opens a second read-only tab; a visual diff would need its own todo.
-- **Reset anonymous ID** is drawn in Settings › Updates, where [D5b](../../todos/ready/D5b-updater-in-app.md) puts it; Privacy no longer has it (U5c usage counts carry no identifier). D5b's owner builds it in Updates.
+- **Reset anonymous ID** is drawn in Settings › Updates, where [D5b](../../todos/ongoing/D5b-updater-in-app.md) puts it; Privacy no longer has it (U5c usage counts carry no identifier). D5b's owner builds it in Updates.
 - **Usage-counts wording** is S07's: “Share how often each command is used” (`settings.usage-counts`) with S07's help text; Account and cloud H02/H10 should use the same label, key and descriptions (the account fixer aligns them to S07, per the cross-area review).
 - **`F1` for Keyboard shortcuts** on the desktop is in the design language's shortcut table ([§8.8](design-language.md#88-keyboard-and-shortcuts)) as proposed.
 

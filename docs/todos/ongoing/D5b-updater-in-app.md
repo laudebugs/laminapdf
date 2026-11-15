@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D5b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D5](../../plans/desktop-app.md#d5-update-service) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [D4b](../done/D4b-native-menus.md), [D5a](../done/D5a-update-worker-and-adr-0014.md) |
@@ -47,8 +47,8 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 
 **Out of scope** (and which todo covers it)
 
-- Production signing of installers (Apple/Windows/Linux) and the release workflow: [D6b](D6b-release-workflow-and-linux-packages.md)–[D6d](D6d-windows-signing.md). The staging e2e uses OS-unsigned (or ad-hoc signed) bundles; updater signatures are independent of OS code signing.
-- Crash reporting settings: [D7a](D7a-crash-reporting.md). Renderer switch: [D7b](D7b-settings-renderer-switch-and-download-page.md).
+- Production signing of installers (Apple/Windows/Linux) and the release workflow: [D6b](../ready/D6b-release-workflow-and-linux-packages.md)–[D6d](../ready/D6d-windows-signing.md). The staging e2e uses OS-unsigned (or ad-hoc signed) bundles; updater signatures are independent of OS code signing.
+- Crash reporting settings: [D7a](../ready/D7a-crash-reporting.md). Renderer switch: [D7b](../ready/D7b-settings-renderer-switch-and-download-page.md).
 - Mac App Store/Microsoft Store builds without the updater (non-goal).
 
 ## Tasks
