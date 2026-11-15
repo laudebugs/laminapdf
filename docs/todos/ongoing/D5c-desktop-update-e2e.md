@@ -59,6 +59,16 @@ Show that an installed Lamina PDF `0.0.1` updates itself to `0.0.2` on macOS, Wi
 - `docs/plans/desktop-app.md` §9 D5: tick "End-to-end update test on a staging channel on three OSes; tampered bundle rejected".
 - `apps/desktop/README.md`: running the update test locally.
 
+## Decisions and deviations
+
+- **The bundles' addresses in local mode.** The Worker serves only `https` bundle addresses, which a runner can't serve. So the local run's manifest names `https://staging-downloads.laminapdf.com/e2e/…`, and the test's proxy, which the app asks, rewrites that origin to a file server on the runner. The Worker and its manifest checks are unchanged. Staging mode uploads the bundles to `lamina-pdf-staging` and rewrites nothing.
+- **The header check.** A proxy in front of the Worker records each request, in both modes. The test asserts that each request asked `/staging/{target}/{arch}/0.0.1`, with a UUID v4 in `Lamina-Install-Id` and the ID nowhere in the URL. No log of the Worker is read, and the ID is never written to a file.
+- **The test-only flag is an environment variable.** `LAMINA_E2E_UPDATE_SERVER` and `LAMINA_E2E_UPDATE_REPORT`, read only by `update/e2e.rs` in `e2e` builds. An environment variable survives the app's restart after the install, where a command-line flag might not, and the NSIS installer passes the environment on to the app it relaunches. Release binaries are checked for `LAMINA_E2E_UPDATE` along with the other e2e names.
+- **Plain HTTP** to the runner's servers comes only from the workflow's `--config` override (`dangerousInsecureTransportProtocol`). A capability-guard test fails if any committed `tauri*.conf.json` sets it.
+- **One install, two steps.** The tampered bundle goes first, then the real one, so the second step also shows that a refused update leaves a working `0.0.1`. Each step waits until the Worker serves its manifest (it caches one for up to 30 s).
+- **Staging legs run one at a time** (`max-parallel: 1`), since each writes the channel's one manifest. Each leg leaves the channel paused and deletes its bundles. Until `desktop-staging` holds `CLOUDFLARE_STAGING_R2_TOKEN`, the staging job passes with a notice.
+- **Debug builds** (`tauri build --debug`): the updater works the same way, and debug builds compile faster.
+
 ## Definition of done
 
 - [ ] Work PR from a fresh worktree; its first commit moves this file `ready/` → `ongoing/` (Status `ongoing`)
