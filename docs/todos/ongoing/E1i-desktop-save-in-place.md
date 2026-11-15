@@ -11,7 +11,7 @@
 | Branch | `feat/e1i-desktop-save-in-place` |
 | PR title | `feat(desktop): save in place, with conflicts from outside changes` |
 | Size | M (200–400) |
-| PR | — |
+| PR | [#643](https://github.com/laudebugs/laminapdf/pull/643) |
 
 ## Goal
 
