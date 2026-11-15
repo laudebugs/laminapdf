@@ -4,7 +4,8 @@
 // (within one block); an untagged file reads approximately (todo U4c), labelled so, each block's
 // "View original page" leaving at its place, and a page whose column order is doubted shown as its
 // image; the settings change the column, which at its largest text and a narrow window never
-// scrolls sideways; Escape leaves; and the column passes axe. No CSP violation or other origin
+// scrolls sideways; the toggle cross-fades both ways, the column's text in its first frame; Escape
+// leaves; and the column passes axe. No CSP violation or other origin
 // throughout.
 
 import type { Browser, Page } from "playwright";
@@ -46,10 +47,19 @@ describe(`reader mode in ${BROWSER}`, () => {
     return watched;
   }
 
+  /**
+   * Waits for the Reader toggle's view transition to end: until then the page takes no clicks
+   * (the browser hit-tests the root), and Playwright would scroll the column while it retried.
+   */
+  async function switched(page: Page): Promise<void> {
+    await page.waitForFunction(() => !document.documentElement.hasAttribute("data-view-switch"));
+  }
+
   /** Turns reader mode on with the top bar's toggle. */
   async function enter(page: Page): Promise<void> {
     await page.getByRole("button", { name: "Reader mode" }).first().click();
     await column(page).waitFor();
+    await switched(page);
   }
 
   it("reads a tagged file in its tree's order, with crops named by their alternate text", async () => {
@@ -141,6 +151,50 @@ describe(`reader mode in ${BROWSER}`, () => {
     await view.getByRole("button", { name: "Open page 1" }).click();
     await page.locator(".web-viewer canvas").first().waitFor({ state: "visible" });
     await expect.poll(() => column(page).count()).toBe(0);
+    await clean(watched);
+  });
+
+  it("cross-fades into the column and back, the column's text already in the first frame", async () => {
+    const watched = await open(`${REFLOW}two-columns-tagged.pdf`);
+    const { page } = watched;
+    // Each view transition as it starts: which parts of the canvas animate, and whether the
+    // column (when it is the new view) already holds its text rather than its loading lines.
+    await page.evaluate(() => {
+      const seen: { animating: string[]; loading: boolean }[] = [];
+      Object.assign(globalThis, { __switches: seen });
+      const start = document.startViewTransition.bind(document);
+      document.startViewTransition = ((update: ViewTransitionUpdateCallback) => {
+        const transition = start(update);
+        void transition.ready.then(
+          () =>
+            seen.push({
+              animating: document
+                .getAnimations()
+                .map((a) => (a.effect as KeyframeEffect | null)?.pseudoElement ?? "")
+                .filter((name) => /^::view-transition-(old|new)\(paper-view\)$/.test(name))
+                .sort(),
+              loading: document.querySelector('.paper-reader-mode article[aria-busy="true"]') !== null,
+            }),
+          () => undefined,
+        );
+        return transition;
+      }) as typeof document.startViewTransition;
+    });
+    type Switch = { animating: string[]; loading: boolean };
+    const switches = () => page.evaluate(() => (globalThis as unknown as { __switches: Switch[] }).__switches);
+    const FADE = ["::view-transition-new(paper-view)", "::view-transition-old(paper-view)"];
+    const toggle = page.getByRole("button", { name: "Reader mode" }).first();
+    await enter(page);
+    await column(page).getByRole("heading").first().waitFor();
+    await toggle.click();
+    await expect.poll(() => column(page).count()).toBe(0);
+    await switched(page);
+    // In and out, each a fade of the old view and the new.
+    await expect.poll(async () => (await switches()).map((s) => s.animating)).toEqual([FADE, FADE]);
+    // Once the document's reflow has been read, the column comes in with its text, not its loading lines.
+    await enter(page);
+    await expect.poll(async () => (await switches()).length).toBe(3);
+    expect((await switches())[2]).toEqual({ animating: FADE, loading: false });
     await clean(watched);
   });
 

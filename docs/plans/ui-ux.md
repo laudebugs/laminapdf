@@ -294,4 +294,5 @@ Ticked by the PR that completes them.
 
 ### U7. Motion and interaction states
 
-- [ ] Cursors, the state model, hover and overlay motion, reduced motion and loading fades on the reader, the desktop app and both sites ([motion and interaction states](motion-and-states.md#7-todos), todos U7a–U7i)
+- [x] Cursors, the state model, hover and overlay motion, reduced motion and loading fades on the reader, the desktop app and both sites ([motion and interaction states](motion-and-states.md#7-todos), todos U7a–U7i)
+- [ ] What the closing pass found: phone sheets and page tiles in the reader, overlays on the sites, the desktop app on each OS (todos U7j–U7l)

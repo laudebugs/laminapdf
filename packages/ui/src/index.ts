@@ -389,3 +389,4 @@ export {
   transition,
 } from "./state/reader-machine.js";
 export type { InteractionMode, InteractionModes, ToolHost, ToolModule, ToolsState } from "./tools/tools.js";
+export { switchView } from "./view-switch.js";
