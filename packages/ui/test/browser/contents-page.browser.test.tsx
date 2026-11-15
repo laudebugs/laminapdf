@@ -79,7 +79,7 @@ describe("the contents page dialog", () => {
     open(() => Promise.resolve([]));
     await expect
       .poll(() => document.querySelector(".paper-contents-preview-note")?.textContent)
-      .toMatch(/no bookmarks/);
+      .toMatch(/None of this file/);
     expect(button("Create contents page")?.disabled).toBe(true);
   });
 

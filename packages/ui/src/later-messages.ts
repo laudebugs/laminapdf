@@ -383,12 +383,12 @@ const EN = {
   "contents.bookmark": "Add a “{title}” bookmark",
   "contents.preview": "Preview",
   "contents.preview.reading": "Reading the bookmarks…",
-  "contents.preview.none": "This file has no bookmarks to list. Add some first.",
+  "contents.preview.none": "None of this file’s bookmarks go to one of its pages. Add a bookmark for a page first.",
   "contents.preview.failed": "The bookmarks couldn’t be read.",
   "contents.consequence.before":
-    "Adds the contents page before page {page}, so every page after it moves down one place. Bookmarks, links and page labels follow their pages.",
+    "Adds the contents page before page {page}, so page {page} and every page after it move down one place. Bookmarks, links and page labels follow their pages.",
   "contents.consequence.after":
-    "Adds the contents page after page {page}, so every page after it moves down one place. Bookmarks, links and page labels follow their pages.",
+    "Adds the contents page after page {page}, so every page after page {page} moves down one place. Bookmarks, links and page labels follow their pages.",
   "contents.consequence.end": "Adds the contents page at the end. Bookmarks, links and page labels follow their pages.",
   "contents.cancel": "Cancel",
   "contents.create": "Create contents page",

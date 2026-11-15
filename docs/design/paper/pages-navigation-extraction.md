@@ -128,7 +128,7 @@ Differs from the boards:
 
 **As built (web, E3l): the contents page dialog.** It opens from the editor's header, a button beside Named destinations, off while the file has no bookmarks. Differs from the board:
 
-- The consequence sentence doesn't count pages or name a label range: "Adds the contents page before page 1, so every page after it moves down one place. Bookmarks, links and page labels follow their pages." A long outline can take two or three pages, and the labels each entry's page will show are in the preview instead.
+- The consequence sentence doesn't count pages or name a label range: "Adds the contents page before page 1, so page 1 and every page after it move down one place. Bookmarks, links and page labels follow their pages." A long outline can take two or three pages, and the labels each entry's page will show are in the preview instead.
 - The preview lists the entries in the reader's own type, as a miniature of the page; the page itself is set in Lamina Sans, embedded, so files that claim PDF/A or PDF/UA-1 keep their claim.
 - Put before a first page labelled 1 (or "i"), the contents page takes that label too: every page that was there keeps its label (E2j's rule), where the board has the body's numbers go up by one. The preview shows the labels as they will be.
 - After Create, the view goes to the new page (a history jump, so Back returns).

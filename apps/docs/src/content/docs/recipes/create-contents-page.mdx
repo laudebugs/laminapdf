@@ -27,6 +27,7 @@ The result is the original bytes, unchanged, followed by one revision. The new f
 - **One level:** pass `levels: 1` (`with_levels(1)` in Rust) to list only the top-level bookmarks.
 - **Another place:** pass `at: "end"`, or `{ after: id }` with a page's ID (`with_at` in Rust).
 - **Another heading:** pass `title` (`with_title`), in the document's own language.
+- **Text size:** pass `size` (`with_size`), from 4 to 72 points; entries are 11 points by default, and the heading half again as large. A contents page longer than ten pages fails with [`invalid-op`](/reference/codes/invalid-op/): list one level, or use a smaller size.
 - **Characters the font lacks:** add `fallbacks` (`with_fallback`), fonts tried in order. A title no font can draw fails with [`missing-glyph`](/reference/codes/missing-glyph/).
 
 Next: [edit the bookmarks](/recipes/edit-bookmarks/) the page is made from.
