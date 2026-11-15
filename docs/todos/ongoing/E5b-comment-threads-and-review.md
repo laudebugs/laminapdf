@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E5b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E5 plan §2.1](../../plans/editor/e5-review-stamps-interchange.md#21-ops) ([full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E4b](../done/E4b-annotation-model-and-overlay.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md) |
@@ -15,7 +15,7 @@
 
 ## Goal
 
-The thread model and `comment_threads`, the `AddReply` and `SetReviewState` ops, and `delete_annotations`, so the Comments panel ([E5g](E5g-comments-panel.md)) and interchange ([E5d](E5d-xfdf-fdf.md)) have one place to read and write a review.
+The thread model and `comment_threads`, the `AddReply` and `SetReviewState` ops, and `delete_annotations`, so the Comments panel ([E5g](../ready/E5g-comments-panel.md)) and interchange ([E5d](../ready/E5d-xfdf-fdf.md)) have one place to read and write a review.
 
 ## Context
 
@@ -35,8 +35,8 @@ The thread model and `comment_threads`, the `AddReply` and `SetReviewState` ops,
 
 **Out of scope** (and which todo covers it)
 
-- The panel → [E5g](E5g-comments-panel.md)
-- XFDF and FDF → [E5d](E5d-xfdf-fdf.md)
+- The panel → [E5g](../ready/E5g-comments-panel.md)
+- XFDF and FDF → [E5d](../ready/E5d-xfdf-fdf.md)
 
 **Editor facts**
 

@@ -146,7 +146,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 
 | ID | Todo | Depends on |
 | --- | --- | --- |
-| [E5b](../../todos/ready/E5b-comment-threads-and-review.md) | The thread model, `comment_threads`, `AddReply`, `SetReviewState` and `delete_annotations` | E4b |
+| [E5b](../../todos/ongoing/E5b-comment-threads-and-review.md) | The thread model, `comment_threads`, `AddReply`, `SetReviewState` and `delete_annotations` | E4b |
 | [E5c](../../todos/ready/E5c-stamps-and-attachments.md) | Stamps, file-attachment annotations, and audio comments read | E3f, E4b, E4e |
 | [E5d](../../todos/ready/E5d-xfdf-fdf.md) | `laminapdf-interchange`: XFDF, FDF and Markdown export, and import | E4c, E4d, E5b, E5c |
 | [E5e](../../todos/ready/E5e-flatten-and-summary.md) | `FlattenAnnots` | E2e, E4c, E4d |
