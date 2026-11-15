@@ -1,5 +1,5 @@
 //! Saving replies and review states (E5 plan §5): `AddReply`'s and `SetReviewState`'s verdict on
-//! the signed fixtures (class `Annotation`: approval signatures, a FieldMDP lock and a
+//! the signed fixtures (class `Annotation`: approval signatures, a `FieldMDP` lock and a
 //! certification that allows annotations (P3) allow them, P1 and P2 forbid them), and both saved in
 //! each mode, reopened as one thread, `qpdf --check` clean.
 #![allow(
