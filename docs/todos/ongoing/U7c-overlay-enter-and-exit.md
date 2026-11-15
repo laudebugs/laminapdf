@@ -11,7 +11,7 @@
 | Branch | `feat/u7c-overlay-enter-and-exit` |
 | PR title | `feat(ui): menus, dialogs and toasts fade in and out` |
 | Size | M (200–400) |
-| PR | — |
+| PR | [#630](https://github.com/laudebugs/laminapdf/pull/630) |
 
 ## Goal
 
