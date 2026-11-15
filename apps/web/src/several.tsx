@@ -5,6 +5,7 @@
 
 import { Button, Dialog, Notice, type Platform, type PlatformFile, PlatformProvider } from "@laminapdf/ui";
 import { laterMessage as word, laterCountMessage as words } from "@laminapdf/ui/editing";
+import { mergeFiles } from "@laminapdf/viewer";
 import { type ReactNode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { Engine } from "./session.ts";
@@ -26,7 +27,7 @@ async function mergeAll(files: readonly PlatformFile[], engine: Engine): Promise
     files.map(async (file) => ({ bytes: await file.read(0, file.size), title: file.name.replace(/\.pdf$/i, "") })),
   );
   const { client } = await engine.view();
-  const bytes = await client.mergeFiles(inputs);
+  const bytes = await mergeFiles(client, inputs);
   const first = files[0]?.name.replace(/\.pdf$/i, "") ?? "document";
   return memoryFile(word("documents.several.name", { name: first }), bytes);
 }

@@ -5,7 +5,7 @@
 // encrypted source can't come back: the page keeps no password.
 
 import { Builder, Document, init, isLaminaPdfError, type Op } from "@laminapdf/sdk";
-import type { ViewerClient } from "@laminapdf/viewer";
+import { closeSource, mergeFiles, previewSource, renderSource, type ViewerClient, writeParts } from "@laminapdf/viewer";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { ENCRYPTED, hook, next, PASSWORD, read, rejection, testViewer } from "./helpers.js";
 
@@ -51,23 +51,23 @@ function zipNames(zip: Uint8Array): string[] {
 describe("pages across files", () => {
   it("previews a file, draws its pages, and asks for an encrypted one's password", async () => {
     const client = await opened();
-    const preview = await client.previewSource(pages(2, 400));
+    const preview = await previewSource(client, pages(2, 400));
     expect(preview.pages.map((p) => [p.width, p.height])).toEqual([
       [400, 792],
       [612, 792],
     ]);
-    const thumb = await client.renderSource(preview.key, 0, 0.25);
+    const thumb = await renderSource(client, preview.key, 0, 0.25);
     expect([thumb.width, thumb.height]).toEqual([100, 198]);
     thumb.bitmap.close();
-    await client.closeSource(preview.key);
+    await closeSource(client, preview.key);
 
     const locked = await read(ENCRYPTED);
-    const refused = await rejection(client.previewSource(locked));
+    const refused = await rejection(previewSource(client, locked));
     expect(isLaminaPdfError(refused, "password-required")).toBe(true);
     expect(
-      isLaminaPdfError(await rejection(client.previewSource(locked, { password: "nope" })), "wrong-password"),
+      isLaminaPdfError(await rejection(previewSource(client, locked, { password: "nope" })), "wrong-password"),
     ).toBe(true);
-    const unlocked = await client.previewSource(locked, { password: PASSWORD });
+    const unlocked = await previewSource(client, locked, { password: PASSWORD });
     expect([unlocked.encrypted, unlocked.pages.length > 0]).toEqual([true, true]);
   });
 
@@ -100,14 +100,15 @@ describe("pages across files", () => {
     const client = await opened(pages(4));
     const ids = client.document?.pages.map((p) => p.id) ?? [];
     const heard: number[] = [];
-    const files = await client.writeParts(
+    const files = await writeParts(
+      client,
       [ids.slice(0, 1), ids.slice(1)],
       {},
       { onProgress: (p) => heard.push(p.done) },
     );
     expect("files" in files && files.files.map((bytes) => Document.open(bytes).pageCount)).toEqual([1, 3]);
     expect(heard.at(-1)).toBe(2);
-    const zipped = await client.writeParts([ids.slice(0, 2), ids.slice(2)], {
+    const zipped = await writeParts(client, [ids.slice(0, 2), ids.slice(2)], {
       zip: { names: ["a.pdf", "b.pdf"], modified: Date.UTC(2026, 10, 15) },
     });
     expect("zip" in zipped && zipNames(zipped.zip)).toEqual(["a.pdf", "b.pdf"]);
@@ -117,10 +118,10 @@ describe("pages across files", () => {
 
   it("merges files into a new document, with the open one first when asked", async () => {
     const client = await opened(pages(3));
-    const merged = await client.mergeFiles([{ bytes: pages(2, 400), title: "Other" }], { open: "Report" });
+    const merged = await mergeFiles(client, [{ bytes: pages(2, 400), title: "Other" }], { open: "Report" });
     using doc = Document.open(merged);
     expect(doc.pages.map((p) => p.width)).toEqual([612, 612, 612, 400, 612]);
-    const alone = await client.mergeFiles([{ bytes: pages(1, 300) }, { bytes: pages(1, 500) }]);
+    const alone = await mergeFiles(client, [{ bytes: pages(1, 300) }, { bytes: pages(1, 500) }]);
     expect(Document.open(alone).pages.map((p) => p.width)).toEqual([300, 500]);
   });
 });

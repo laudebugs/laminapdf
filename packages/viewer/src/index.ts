@@ -22,6 +22,7 @@ export {
   type FailureListener,
   type RevertListener,
 } from "./edit/session.js";
+export { closeSource, mergeFiles, previewSource, renderSource, writeParts } from "./files.js";
 export type { FindController, FindResult, FindState } from "./find/controller.js";
 export type { FindOptions } from "./find/fold.js";
 export type { FindSnippet } from "./find/page.js";

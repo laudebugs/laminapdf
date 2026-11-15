@@ -260,7 +260,7 @@ describe("saving on the web", () => {
         },
       }),
     );
-    expect(await platform.saveAs(PDF, "Report parts.zip", "zip")).toEqual({ saved: true, name: "parts.zip" });
+    expect(await platform.saveAs(PDF, "Report parts.zip")).toEqual({ saved: true, name: "parts.zip" });
     expect(written).toEqual([PDF]);
     expect(asked).toEqual([
       {

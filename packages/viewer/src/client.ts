@@ -20,7 +20,6 @@ import type { RenderRequest } from "@laminapdf/render";
 import {
   type DocumentMetadata,
   isLaminaPdfError,
-  type MergeOptions,
   type Op,
   type PageBoxesRead,
   type PageLabelRange,
@@ -47,13 +46,10 @@ import {
   type ExportPageOptions,
   type ExportTiffOptions,
   type LoadProgress,
-  type MergeFilesRequest,
   type MethodName,
   type NetworkRecord,
   type OpenedDocument,
   type Params,
-  type PartsOutput,
-  type PartsProgress,
   type PolicyViolation,
   PRIORITY,
   type PrintOptions,
@@ -63,10 +59,8 @@ import {
   renderKey,
   type SavedCopy,
   type SourceInit,
-  type SourcePreview,
   type ViewerOpenOptions,
   type WorkerNetworkLog,
-  type WrittenParts,
 } from "./protocol.js";
 
 /** Default render timeouts (ADR 0009 §3.7), in ms. */
@@ -411,32 +405,6 @@ export class ViewerClient {
   }
 
   /**
-   * Opens a PDF to preview before its pages come in (Insert from a file, Replace, Merge): its
-   * pages' sizes, the PDF/A and PDF/UA claims and title of its metadata, and a key that draws its
-   * pages (`renderSource`) until `closeSource`. The password is sent with this call only.
-   *
-   * @throws `password-required` or `wrong-password` for an encrypted file; the errors of a file that doesn't open.
-   */
-  previewSource(
-    bytes: Uint8Array,
-    options?: { readonly password?: string },
-    call?: ViewerCallOptions,
-  ): Promise<SourcePreview> {
-    const password = options?.password;
-    return this.call("previewSource", password === undefined ? [bytes] : [bytes, password], call);
-  }
-
-  /** Page `page` of preview `key`, drawn at `scale`: a transferred bitmap, at background priority unless `call` says. */
-  renderSource(key: number, page: number, scale: number, call?: ViewerCallOptions): Promise<RenderedBitmap> {
-    return this.call("renderSource", [key, page, scale], { priority: "background", ...call });
-  }
-
-  /** Closes preview `key`. */
-  async closeSource(key: number): Promise<void> {
-    await this.call("closeSource", [key]);
-  }
-
-  /**
    * Makes `bytes` a source document of the open document, for the ops that copy its pages
    * (`insertPagesFrom`, `replacePages`, `mergeDocuments`): its ID and page IDs. The page keeps
    * the bytes while an edit names the source, so a restarted worker adds it again before it
@@ -455,44 +423,6 @@ export class ViewerClient {
       this.#edits.addedSource(added.id, bytes, password !== undefined && password !== "");
     }
     return added;
-  }
-
-  /**
-   * One new file per list of page IDs in `ranges` (pages of the open document as its edits leave
-   * them, each list in the order given), each a whole file with its pages' annotations, links,
-   * bookmarks, fields and labels; the document doesn't change. `output.zip` packs them into one
-   * zip under its names. `onProgress` hears `{ done, total }` after each file.
-   */
-  async writeParts(
-    ranges: readonly (readonly string[])[],
-    output: PartsOutput,
-    call?: ViewerCallOptions & { readonly onProgress?: (progress: PartsProgress) => void },
-  ): Promise<WrittenParts> {
-    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
-    const { onProgress, ...rest } = call ?? {};
-    return this.call("writeParts", [ranges, output, this.#document?.id ?? 0], {
-      ...rest,
-      ...(onProgress === undefined ? {} : { onProgress: (p: unknown) => onProgress(p as PartsProgress) }),
-    });
-  }
-
-  /**
-   * One new document of `files` one after another, with the open document first under the title
-   * `open` when it is given (its pages as its edits leave them); the open document doesn't change.
-   */
-  async mergeFiles(
-    files: MergeFilesRequest["files"],
-    options: { readonly open?: string; readonly merge?: MergeOptions } = {},
-    call?: ViewerCallOptions,
-  ): Promise<Uint8Array> {
-    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
-    const opened = this.#document;
-    const request: MergeFilesRequest = {
-      files,
-      ...(options.open === undefined || opened === undefined ? {} : { open: { id: opened.id, title: options.open } }),
-      ...(options.merge === undefined ? {} : { options: options.merge }),
-    };
-    return this.call("mergeFiles", [request], call);
   }
 
   /** The open document's metadata as its edits leave it: Info and XMP read together. */

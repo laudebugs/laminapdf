@@ -29,7 +29,15 @@ import {
   laterMessage as word,
   laterCountMessage as words,
 } from "@laminapdf/ui/editing";
-import type { SourcePreview, ViewerClient } from "@laminapdf/viewer";
+import {
+  closeSource,
+  mergeFiles,
+  previewSource,
+  renderSource,
+  type SourcePreview,
+  type ViewerClient,
+  writeParts,
+} from "@laminapdf/viewer";
 import { type ReactNode, useCallback } from "react";
 import { downloadName } from "./download-name.ts";
 import type { OrganiseController } from "./organise.tsx";
@@ -164,7 +172,7 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
     const ratio = globalThis.devicePixelRatio || 1;
     const width = Math.max(1, Math.round(box.clientWidth * ratio));
     const { client } = await this.#engine.view();
-    const { bitmap } = await client.renderSource(preview.key, page, width / size.width, { signal });
+    const { bitmap } = await renderSource(client, preview.key, page, width / size.width, { signal });
     try {
       if (signal.aborted) return;
       canvas.width = bitmap.width;
@@ -259,7 +267,7 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
         ...(p.password === undefined ? {} : { password: p.password }),
       }));
       try {
-        const bytes = await client.mergeFiles(inputs, { open: stem, merge: options });
+        const bytes = await mergeFiles(client, inputs, { open: stem, merge: options });
         await this.#save([{ name: word("documents.merged.name", { name: stem }), bytes }]);
       } catch {
         this.#organise.say(word("documents.failed.merge"));
@@ -346,11 +354,11 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
     const { client } = await this.#engine.view();
     const onProgress = (progress: { done: number; total: number }) => this.#set({ progress });
     if (typeof where === "string") {
-      const written = await client.writeParts(ranges, { zip: { names, modified: Date.now() } }, { onProgress });
-      if ("zip" in written) await this.#platform.saveAs(written.zip, where, "zip");
+      const written = await writeParts(client, ranges, { zip: { names, modified: Date.now() } }, { onProgress });
+      if ("zip" in written) await this.#platform.saveAs(written.zip, where);
       return;
     }
-    const written = await client.writeParts(ranges, {}, { onProgress });
+    const written = await writeParts(client, ranges, {}, { onProgress });
     const files = ("files" in written ? written.files : []).map((bytes, i) => ({
       name: names[i] ?? "part.pdf",
       bytes,
@@ -447,7 +455,7 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
       const bytes = picked.bytes ?? (await picked.file.read(0, size));
       const { client } = await this.#engine.view();
       try {
-        const preview = await client.previewSource(bytes, password === undefined ? {} : { password });
+        const preview = await previewSource(client, bytes, password === undefined ? {} : { password });
         const pages = preview.pages.map(({ width, height }) => ({ width, height }));
         return { ...picked, bytes, password, preview, shown: { name, size, status: "ready", pages } };
       } catch (error) {
@@ -465,7 +473,7 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
     const key = picked?.preview?.key;
     if (key === undefined) return;
     const { client } = await this.#engine.view();
-    await client.closeSource(key).catch(() => undefined);
+    await closeSource(client, key).catch(() => undefined);
   }
 
   #set(change: Partial<DocumentsState>): void {

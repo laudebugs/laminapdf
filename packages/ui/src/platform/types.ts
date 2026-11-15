@@ -203,10 +203,10 @@ export interface Platform {
   onOpenRequest(listener: (files: PlatformFile[]) => void): () => void;
 
   /**
-   * Saves as a new file the user chooses, or as a download: a PDF, or a zip of several (`kind`
-   * `"zip"`, for the parts of a split where no folder can be chosen).
+   * Saves as a new file the user chooses, or as a download: a PDF, or a zip of several when the
+   * name ends in `.zip` (the parts of a split where no folder can be chosen).
    */
-  saveAs(bytes: Uint8Array, suggestedName: string, kind?: "pdf" | "zip"): Promise<SaveResult>;
+  saveAs(bytes: Uint8Array, suggestedName: string): Promise<SaveResult>;
   /** Asks the user for a folder to write files into; undefined when they cancel. Only when capabilities.canWriteDirectory. */
   chooseFolder?(): Promise<PlatformFolder | undefined>;
   /** Overwrites the file `file` came from. Only when capabilities.canWriteInPlace and file.writable. */

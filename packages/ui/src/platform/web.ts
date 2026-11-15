@@ -11,7 +11,6 @@ import type {
   Capability,
   Platform,
   PlatformFile,
-  PlatformFolder,
   PlatformStorage,
   ReadingPositions,
   RecentFile,
@@ -108,8 +107,11 @@ export function createWebPlatform(scope: WebScope = globalThis as unknown as Web
     },
     filesFromDataTransfer: (data) => filesFromDataTransfer(data, capabilities),
     onOpenRequest: launches.subscribe,
-    saveAs: (bytes, name, kind = "pdf") => saveAs(scope, bytes, name, capabilities, kind),
-    ...(capabilities.canWriteDirectory ? { chooseFolder: () => chooseFolder(scope) } : {}),
+    saveAs: (bytes, name) => saveAs(scope, bytes, name, capabilities),
+    // Loaded when first asked for, within the click's activation, which the picker needs.
+    ...(capabilities.canWriteDirectory
+      ? { chooseFolder: () => import("./folder.js").then(({ chooseFolder }) => chooseFolder(scope, write)) }
+      : {}),
     async saveInPlace(file, bytes) {
       const handle = file.handle;
       if (!capabilities.canWriteInPlace || !file.writable || !isFileHandle(handle)) {
@@ -229,12 +231,13 @@ async function saveAs(
   bytes: Uint8Array,
   suggestedName: string,
   capabilities: Capabilities,
-  kind: "pdf" | "zip",
 ): Promise<SaveResult> {
+  const zip = suggestedName.endsWith(".zip");
   if (scope.showSaveFilePicker === undefined) {
     // No dialog: the browser downloads it, under the suggested name.
-    const type = kind === "zip" ? "application/zip" : "application/pdf";
-    const url = scope.URL.createObjectURL(new Blob([bytes as BlobPart], { type }));
+    const url = scope.URL.createObjectURL(
+      new Blob([bytes as BlobPart], { type: zip ? "application/zip" : "application/pdf" }),
+    );
     // Attached while it is clicked, which some engines need before they download.
     const link = scope.document.createElement("a");
     link.href = url;
@@ -246,52 +249,15 @@ async function saveAs(
     return { saved: true, name: suggestedName };
   }
   try {
-    const handle = await scope.showSaveFilePicker({ suggestedName, types: kind === "zip" ? ZIP_TYPES : PDF_TYPES });
+    const handle = await scope.showSaveFilePicker({ suggestedName, types: zip ? ZIP_TYPES : PDF_TYPES });
     await write(handle, bytes);
     // A zip isn't a document the reader opens next.
-    if (kind === "zip") return { saved: true, name: handle.name };
+    if (zip) return { saved: true, name: handle.name };
     return { saved: true, name: handle.name, file: await fromHandle(handle, capabilities) };
   } catch (error) {
     if (isAbort(error)) return { saved: false, reason: "cancelled" };
     throw error;
   }
-}
-
-/** The folder picker's folder, or undefined when the user cancels. */
-async function chooseFolder(scope: WebScope): Promise<PlatformFolder | undefined> {
-  let folder: FileSystemDirectoryHandle;
-  try {
-    folder = await (scope.showDirectoryPicker as NonNullable<WebScope["showDirectoryPicker"]>)({ mode: "readwrite" });
-  } catch (error) {
-    if (isAbort(error)) return undefined;
-    throw error;
-  }
-  return {
-    name: folder.name,
-    async existing(names) {
-      const found = await Promise.all(
-        names.map((name) =>
-          folder.getFileHandle(name).then(
-            () => true,
-            (error: unknown) => {
-              if (
-                error instanceof DOMException &&
-                (error.name === "NotFoundError" || error.name === "TypeMismatchError")
-              ) {
-                // No file of that name (or a folder, which a write refuses on its own).
-                return error.name === "TypeMismatchError";
-              }
-              throw error;
-            },
-          ),
-        ),
-      );
-      return names.filter((_, i) => found[i]);
-    },
-    async write(name, bytes) {
-      await write(await folder.getFileHandle(name, { create: true }), bytes);
-    },
-  };
 }
 
 /** Writes `bytes` over the file; on a failure the stream is aborted, so no swap file or lock stays. */
