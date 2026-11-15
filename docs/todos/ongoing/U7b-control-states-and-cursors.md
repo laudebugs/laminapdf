@@ -11,7 +11,7 @@
 | Branch | `feat/u7b-control-states-and-cursors` |
 | PR title | `feat(ui): action controls show the hand, their states and quick fades` |
 | Size | L (400–800) |
-| PR | — |
+| PR | [#623](https://github.com/laudebugs/laminapdf/pull/623) |
 
 ## Goal
 
