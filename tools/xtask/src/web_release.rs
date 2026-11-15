@@ -57,7 +57,7 @@ const SHIPPING_MACHINERY: [&str; 3] = [
 /// are read against too) less the rest of the tools and workflows, which the preview
 /// and staging deploys count but a release needn't, and less Markdown (READMEs, changelogs),
 /// which the reader doesn't bundle.
-fn ships(path: &str, inputs: &[String]) -> bool {
+fn ships(path: &str, inputs: &crate::changes::suites::WebInputs) -> bool {
     if path.is_empty() {
         return false;
     }

@@ -3,6 +3,8 @@
 //! the suites its paths can reach. The reader's deploys and releases follow the `web` suite's inputs
 //! too ([`web_inputs`]).
 
+use std::collections::BTreeSet;
+
 use anyhow::{Result, bail};
 
 use super::graph::{Graph, outermost};
@@ -38,15 +40,17 @@ pub(crate) const SUITES: [Suite; 12] = [
     suite("icons", "@laminapdf/icons", "packages/icons/", &[]),
     suite("ui", "@laminapdf/ui", "packages/ui/", &[]),
     suite("site-kit", "@laminapdf/site-kit", "packages/site-kit/", &[]),
-    suite("web", "@laminapdf/web", "apps/web/", &[]),
+    // The capability page bundles the matrix `cargo xtask capabilities` writes.
+    suite("web", "@laminapdf/web", "apps/web/", &["docs/capabilities/matrix.json"]),
     suite(
         "docs",
         "@laminapdf/docs",
         "apps/docs/",
-        // The code shown on its pages, the error pages, the changelog page, and the website's
-        // pages, which the shared header links once each exists.
+        // The code shown on its pages (the viewer's examples among it), the error pages, the
+        // changelog page, and the website's pages, which the shared header links once each exists.
         &[
             "crates/laminapdf/examples/",
+            "packages/viewer/examples/",
             "docs/errors/",
             "CHANGELOG.md",
             "apps/site/src/pages/",
@@ -57,9 +61,12 @@ pub(crate) const SUITES: [Suite; 12] = [
         "@laminapdf/site",
         "apps/site/",
         // What its pages read at build time (apps/site/src/data/sources.ts): the first PDF in
-        // both languages, the command-line examples, the install page and the licence policy.
+        // both languages, the SDK's version, the command-line examples, the install page and the
+        // licence policy.
         &[
             "crates/laminapdf/examples/hello.rs",
+            "packages/sdk/examples/hello.ts",
+            "packages/sdk/package.json",
             "crates/laminapdf-cli/README.md",
             "apps/docs/src/content/docs/install.mdx",
             "deny.toml",
@@ -92,39 +99,56 @@ const SHARED: [&str; 6] = [
     ".npmrc",
 ];
 
-/// Whether `path` reaches every suite: one of [`SHARED`], or a file at the root that isn't docs
-/// (`Cargo.toml`, `pnpm-lock.yaml`, or a root config nobody thought to list).
+/// Whether `path` is a file at the repository's root that isn't docs (`Cargo.toml`,
+/// `pnpm-lock.yaml`, or a root config nobody thought to list): it counts for every suite and for
+/// the reader.
+fn is_root_file(path: &str) -> bool {
+    !path.contains('/') && !super::is_docs(path)
+}
+
+/// Whether `path` reaches every suite: one of [`SHARED`], or a root file.
 fn counts_everywhere(path: &str) -> bool {
-    SHARED.iter().any(|s| path.starts_with(s)) || (!path.contains('/') && !super::is_docs(path))
+    SHARED.iter().any(|s| path.starts_with(s)) || is_root_file(path)
+}
+
+/// Whether `path` lies in one of `extra` (docs or not), or isn't docs and lies in `inputs`.
+fn hits(path: &str, inputs: &[String], extra: &[&str]) -> bool {
+    extra.iter().any(|e| path.starts_with(e))
+        || (!super::is_docs(path) && inputs.iter().any(|i| path.starts_with(i.as_str())))
+}
+
+/// The crates the WebAssembly is built from: `wasm::MODULES` and what they reach.
+fn wasm_crates(graph: &Graph) -> Result<BTreeSet<String>> {
+    graph.crate_dirs(crate::wasm::MODULES.iter().map(|module| module.krate))
 }
 
 /// The directories and files `suite` reads through the graph: its package and the packages it
-/// reaches, and the crates the WebAssembly is built from when it reaches the WebAssembly.
-pub(crate) fn graph_inputs(graph: &Graph, suite: &Suite) -> Result<Vec<String>> {
+/// reaches, and `wasm` (the crates of [`wasm_crates`]) when it reaches the WebAssembly.
+fn graph_inputs_with(graph: &Graph, suite: &Suite, wasm: &BTreeSet<String>) -> Vec<String> {
     let packages = graph.package_dirs(suite.root);
-    let crates = if packages.iter().any(|p| WASM_PACKAGES.contains(&p.as_str())) {
-        graph.crate_dirs(crate::wasm::MODULES.iter().map(|module| module.krate))?
-    } else {
-        std::collections::BTreeSet::default()
-    };
-    Ok(outermost(packages.into_iter().chain(crates)))
+    let reads_wasm = packages.iter().any(|p| WASM_PACKAGES.contains(&p.as_str()));
+    let crates = wasm.iter().filter(|_| reads_wasm).cloned();
+    outermost(packages.into_iter().chain(crates))
+}
+
+/// [`graph_inputs_with`], walking the WebAssembly's crates itself.
+pub(crate) fn graph_inputs(graph: &Graph, suite: &Suite) -> Result<Vec<String>> {
+    Ok(graph_inputs_with(graph, suite, &wasm_crates(graph)?))
 }
 
 /// The suites any of `paths` can change, in [`SUITES`]' order.
 pub(crate) fn reached(graph: &Graph, paths: &[&str]) -> Result<Vec<&'static str>> {
-    let mut found = Vec::new();
-    for suite in &SUITES {
-        let inputs = graph_inputs(graph, suite)?;
-        let hit = paths.iter().any(|&path| {
-            suite.extra.iter().any(|e| path.starts_with(e))
-                || (!super::is_docs(path)
-                    && (counts_everywhere(path) || inputs.iter().any(|i| path.starts_with(i.as_str()))))
-        });
-        if hit {
-            found.push(suite.name);
-        }
-    }
-    Ok(found)
+    let wasm = wasm_crates(graph)?;
+    Ok(SUITES
+        .iter()
+        .filter(|suite| {
+            let inputs = graph_inputs_with(graph, suite, &wasm);
+            paths
+                .iter()
+                .any(|&path| counts_everywhere(path) || hits(path, &inputs, suite.extra))
+        })
+        .map(|suite| suite.name)
+        .collect())
 }
 
 /// The suite named `name`.
@@ -137,28 +161,37 @@ pub(crate) fn by_name(name: &str) -> Result<&'static Suite> {
 }
 
 /// What the reader's deploys and releases depend on (`web-deploy.yml`, `cargo xtask web
-/// next-release`): the `web` suite's graph inputs, its deploy workflow, and what every leg reads
-/// but the fixtures and the fast lane's workflow, which only its tests open.
-pub(crate) fn web_inputs(graph: &Graph) -> Result<Vec<String>> {
+/// next-release`).
+#[derive(Debug)]
+pub(crate) struct WebInputs {
+    /// The `web` suite's graph inputs, its deploy workflow, and what every leg reads but the
+    /// fixtures and the fast lane's workflow, which only its tests open.
+    dirs: Vec<String>,
+    /// The `web` suite's own files, docs or not.
+    extra: &'static [&'static str],
+}
+
+/// The reader's [`WebInputs`].
+pub(crate) fn web_inputs(graph: &Graph) -> Result<WebInputs> {
     let web = by_name("web")?;
     let shared = SHARED
         .iter()
         .filter(|&&s| s != "fixtures/" && s != ".github/workflows/ci.yml")
         .map(|&s| s.to_owned());
-    Ok(outermost(
+    let dirs = outermost(
         graph_inputs(graph, web)?
             .into_iter()
             .chain(shared)
             .chain([".github/workflows/web-deploy.yml".to_owned()]),
-    ))
+    );
+    Ok(WebInputs { dirs, extra: web.extra })
 }
 
-/// Whether any of `paths` can change the reader as deployed: one of `inputs` ([`web_inputs`]) or a
-/// file at the root that isn't docs. Docs never count.
-pub(crate) fn touches_web(paths: &[&str], inputs: &[String]) -> bool {
-    paths.iter().any(|&path| {
-        !super::is_docs(path) && ((!path.contains('/')) || inputs.iter().any(|i| path.starts_with(i.as_str())))
-    })
+/// Whether any of `paths` can change the reader as deployed: a root file, or one of `inputs`.
+pub(crate) fn touches_web(paths: &[&str], inputs: &WebInputs) -> bool {
+    paths
+        .iter()
+        .any(|&path| is_root_file(path) || hits(path, &inputs.dirs, inputs.extra))
 }
 
 #[cfg(test)]
@@ -230,6 +263,24 @@ mod tests {
     #[test]
     fn an_error_page_should_reach_the_docs_site_though_it_is_docs() {
         assert_eq!(reach(&["docs/errors/wrong-password.md"]), ["docs"]);
+    }
+
+    #[test]
+    fn a_viewer_example_should_reach_the_docs_site_that_shows_it() {
+        assert_eq!(
+            reach(&["packages/viewer/examples/show-a-pdf.ts"]),
+            ["viewer", "web", "docs"]
+        );
+    }
+
+    #[test]
+    fn the_sdk_s_first_example_should_reach_the_website_s_code_panel() {
+        assert!(reach(&["packages/sdk/examples/hello.ts"]).contains(&"site"));
+    }
+
+    #[test]
+    fn the_capability_matrix_should_reach_the_reader_though_it_is_docs() {
+        assert_eq!(reach(&["docs/capabilities/matrix.json"]), ["web"]);
     }
 
     #[test]
@@ -331,6 +382,7 @@ mod tests {
             ".github/actions/node-pnpm/action.yml",
             ".github/workflows/web-deploy.yml",
             "a-new-root-file.toml",
+            "docs/capabilities/matrix.json",
         ] {
             assert!(touches_web(&[path], &inputs), "{path}");
         }
