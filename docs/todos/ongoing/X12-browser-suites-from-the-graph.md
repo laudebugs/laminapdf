@@ -33,27 +33,26 @@ The fast lane's runtime legs run every browser suite on almost every code PR, so
 - `cargo xtask changes` prints `runtime-legs`. Pushes to `main` run every leg and suite.
 - `cargo xtask pdf-runtimes --suites <list>`, with no list running every suite. A browser leg without `examples` records no measurements and doesn't fail for it.
 - `ci.yml`'s runtime matrix from `runtime-legs`; `fast-gate` expects the job when the list isn't empty.
-- `touches_web` from the `web` suite's inputs, the deploy workflow and the manifests, in place of `OUTSIDE_WEB`.
+- `touches_web` from the `web` suite's inputs, the deploy workflow and the manifests, in place of `OUTSIDE_WEB`, for the reader's deploys and for its daily release (`web_release.rs`' `ships`, which called the same function).
 - A test that `docs.yml`'s and `site.yml`'s path filters cover their suites' graph inputs; `site.yml` gains `packages/icons/**`.
 
 **Out of scope**
 
 - `wasm`, `typescript` and `semver` stay on `ts` (about 12 minutes together, on Linux).
-- `web-release-train.yml`'s rule for a new reader release (`cargo xtask web next-release`) keeps its own list.
 
 ## Tasks
 
-- [ ] `changes/graph.rs`, with its tests moved from `desktop.rs`; `desktop.rs` over it.
-- [ ] `changes/suites.rs`: `SUITES`, `inputs`, `reached`, `runtime_legs`, with tests on the repository's graph.
-- [ ] `changes.rs`: the `runtime-legs` output and `touches_web` from the graph.
-- [ ] `pdf_runtimes.rs`: `--suites`, the measurement rule, `help` text.
-- [ ] `ci.yml`: the push step's full matrix, the `pdf-runtimes` matrix and `if`, `fast-gate`; `workflows.rs`' tests.
-- [ ] `site.yml`'s path filter, and the filter test.
-- [ ] The plan's §8.1 table, CLAUDE.md's `changes` and `pdf-runtimes` entries.
+- [x] `changes/graph.rs`, with its tests moved from `desktop.rs`; `desktop.rs` over it.
+- [x] `changes/suites.rs`: `SUITES`, `inputs`, `reached`, `runtime_legs`, with tests on the repository's graph.
+- [x] `changes.rs`: the `runtime-legs` output and `touches_web` from the graph.
+- [x] `pdf_runtimes.rs`: `--suites`, the measurement rule, `help` text.
+- [x] `ci.yml`: the push step's full matrix, the `pdf-runtimes` matrix and `if`, `fast-gate`; `workflows.rs`' tests.
+- [x] `site.yml`'s path filter, and the filter test.
+- [x] The plan's §8.1 table, CLAUDE.md's `changes` and `pdf-runtimes` entries.
 
 ## Acceptance criteria
 
-- [ ] A change only to `crates/laminapdf-cli/src/` gives an empty `runtime-legs` and `web=false`.
+- [ ] A change only to `crates/laminapdf-cli/src/` gives an empty `runtime-legs` and `web=false`, and doesn't release the reader.
 - [ ] A change only to `apps/site/src/data/` runs the `site` suite alone, in each browser leg, and no server leg.
 - [ ] A change to `crates/laminapdf-cos/` runs `examples`, `render-hayro`, `viewer`, `web` and `docs`, and the server leg.
 - [ ] A change to `docs/errors/` with a code change runs `docs`.
@@ -65,7 +64,7 @@ The fast lane's runtime legs run every browser suite on almost every code PR, so
 
 ## Tests
 
-`tools/xtask/src/changes/graph.rs`, `suites.rs`, `desktop.rs`; `changes.rs`' `touches_web` tests; `pdf_runtimes.rs`' argument tests; `workflows.rs`.
+`tools/xtask/src/changes/graph.rs`, `suites.rs`, `desktop.rs`; `suites.rs`' `touches_web` tests; `web_release.rs`' `ships` test; `pdf_runtimes.rs`' argument tests; `workflows.rs`.
 
 ## Docs to update
 

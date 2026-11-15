@@ -160,9 +160,10 @@ The waits in §2 cost more than compiling. macOS jobs on PRs waited 27 to 120 mi
 | Jobs | Flag | Skipped when every changed path is under | Notes |
 | --- | --- | --- | --- |
 | `ci.yml`'s `rust` legs and `msrv-and-spike`; `full.yml`'s `fuzz` | `rust` | `apps/web/`, `apps/docs/`, `apps/site/`, `apps/gallery/`, `packages/`, but not `packages/sdk/` or any package's `src/` | Rust tests read the SDK's schemas and test files; `check maintainability` scans package sources for todo IDs |
-| `ci.yml`'s `wasm`, `pdf-runtimes`, `semver`, `typescript` | `ts` | `fuzz/`, `spikes/`, `tools/`, `.github/workflows/`, but not `tools/xtask/`, `tools/cli-release/`, `tools/fonts/`, any file Biome lints, or the two lanes' workflows | The crates and fixtures always count: the WebAssembly, the docs site and the examples' goldens come from them |
+| `ci.yml`'s `wasm`, `semver`, `typescript` | `ts` | `fuzz/`, `spikes/`, `tools/`, `.github/workflows/`, but not `tools/xtask/`, `tools/cli-release/`, `tools/fonts/`, any file Biome lints, or the two lanes' workflows | The crates and fixtures always count: the WebAssembly, the docs site and the examples' goldens come from them |
 | `full.yml`'s `render-golden` | `render` (X9b) | Runs only when a path is under the crates, the example and render goldens, the corpus, `tools/render/`, `tools/xtask/`, the manifests and toolchain, or `full.yml` | It needs a Mac |
 | `full.yml`'s `desktop`, `desktop-e2e` | `desktop-build`, `desktop-e2e` (X10a, X10b) | Runs only when a path is among the desktop's inputs (`changes/desktop.rs`: the crates and packages the app builds, found from the dependency graph, plus a fixed list) and at least one leg hasn't yet passed on those inputs | §8.2 |
+| `ci.yml`'s `pdf-runtimes` legs | `runtimes`, `runtime-legs` (X12) | `ts`, and a leg runs only when the paths reach one of its suites (`changes/suites.rs`, from the dependency graph) | §8.3 |
 | `codeql.yml`'s `analyze` legs | `codeql` (X10c) | A language runs only when a path is in it | §8.2 |
 | `full.yml`'s `check-linux`, `check-windows`, `suites` | `code` | Docs only | The checks run the whole `cargo xtask check`; the suites read both Rust and the TypeScript tests' capability tags, so `rust` or `ts` would always equal `code` |
 
@@ -196,7 +197,7 @@ A suite whose packages reach `packages/wasm/` or `packages/render-hayro/` reads 
 
 The `changes` job prints `runtime-legs`, the runtime matrix with only the legs some suite needs, each with its list. The server leg runs only for `examples`. `cargo xtask pdf-runtimes --suites` runs the listed suites alone, and with no list every suite, as the nightly and release lanes do. Pushes to `main` run every leg and every suite. `fast-gate` expects the runtime job when `runtime-legs` isn't empty.
 
-The reader's deploy flag (`web`, which `web-deploy.yml` reads) comes from the `web` suite's inputs too, in place of the list of places the reader can't depend on (`OUTSIDE_WEB`). A test holds `docs.yml`'s and `site.yml`'s path filters to their suites' graph inputs. `site.yml`'s filter lacks `packages/icons/`, which the website reaches through `@laminapdf/site-kit`, so the test adds it.
+The reader's deploy flag (`web`, which `web-deploy.yml` reads) comes from the `web` suite's inputs too, in place of the list of places the reader can't depend on (`OUTSIDE_WEB`). So does the daily reader release (`cargo xtask web next-release`), which asked the same question: a change to the CLI no longer releases the reader. It reads a past commit's paths against today's graph. A test holds `docs.yml`'s and `site.yml`'s path filters to their suites' graph inputs. It found six gaps: `docs.yml` lacked `CHANGELOG.md` (the changelog page), `packages/icons/` (it listed only the SVG files) and `packages/test-utils/`, and `site.yml` lacked `packages/icons/`, which the website reaches through `@laminapdf/site-kit`, `packages/test-utils/` and `packages/render/`.
 
 What this leaves out:
 
