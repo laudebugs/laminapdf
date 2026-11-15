@@ -3267,7 +3267,7 @@ An edit names an object on a page, such as a paragraph, an image or a drawing, b
 
 ## Why
 
-An edit names a page's object by its place among the page's objects and a hash of the bytes that draw it. When Lamina PDF applies the edit, it finds the object at that place and checks the hash. A different hash means another edit, or another program, has changed the page since the name was taken, and the object there may be a different one. Lamina PDF won't guess which object the edit meant, so it refuses rather than change the wrong one.
+An edit names a page's object by its place among the page's objects and a hash of the bytes that draw it. When Lamina PDF applies the edit, it finds the object at that place and checks the hash. A different hash means another edit, or another program, has changed the page since the name was taken. Lamina PDF won't guess which object the edit meant, so it refuses rather than change the wrong one.
 
 ## How to fix
 
@@ -3296,7 +3296,7 @@ assert_eq!(after.find(&name), None); // an edit with this name fails with conten
 The decisions and todos behind this code:
 
 - [ADR 0022 §2](../decisions/0022-content-stream-editing.md#2-identity): how an edit names a page's object
-- [E7c](../todos/ongoing/E7c-content-ir.md): the content IR, its names and this code
+- [E7c](../todos/done/E7c-content-ir.md): the content IR, its names and this code
 "#,
         "content-not-editable" => r"# `content-not-editable`
 
@@ -3309,10 +3309,10 @@ An edit tried to change content that Lamina PDF can't change safely. The edit ch
 
 ## Why
 
-PDF stores text as glyphs placed one by one in a font's own encoding, not as characters. To change text, Lamina PDF has to find the glyphs that belong together, learn which characters they stand for, and place new glyphs in the same font. It refuses when it can't do that reliably:
+PDF stores text as glyphs placed one by one in a font's own encoding, not as characters. To change text, Lamina PDF has to find the glyphs that belong together, learn which characters they stand for, and place new glyphs in the same font. It refuses, and names the reason, when it can't do that reliably:
 
 - `type3-font`: the font draws each glyph with its own small drawing, which has no characters to map new text to.
-- `vertical-text`: the text is written top to bottom, which editing doesn't support yet.
+- `vertical-text`: the text is written top to bottom, and editing handles only horizontal text so far.
 - `no-unicode-map`: the font says nothing about which characters its glyphs stand for.
 - `rotated-run`: glyphs of one line are turned against each other.
 - `glyphs-out-of-order`: the file draws the line's glyphs out of reading order.
@@ -3321,7 +3321,7 @@ PDF stores text as glyphs placed one by one in a font's own encoding, not as cha
 
 ## How to fix
 
-Nothing in the file needs fixing: Lamina PDF reads this content and shows it as it is. To change it, delete the object and add new content in its place, or edit the file in the program that made it.
+The file is fine: Lamina PDF reads this content and shows it as it is. To change it, delete the object and add new content in its place, or edit the file in the program that made it.
 
 ## Example
 
@@ -3340,7 +3340,7 @@ When `/T3` is a Type 3 font, an edit of this text fails with `content-not-editab
 The decisions and todos behind this code:
 
 - [ADR 0022 §5–§7](../decisions/0022-content-stream-editing.md#5-finding-text-runs-marked-content-first-layout-second): which text runs are read-only, and why
-- [E7c](../todos/ongoing/E7c-content-ir.md): the content IR and this code
+- [E7c](../todos/done/E7c-content-ir.md): the content IR and this code
 ",
         "pdfa-one-author" => r#"# `pdfa-one-author`
 

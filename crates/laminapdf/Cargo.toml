@@ -85,6 +85,8 @@ boon = { workspace = true }
 # The data-fields test builds one value of every variant of the wrapped crates' errors.
 laminapdf-build = { path = "../laminapdf-build", features = ["text"] }
 laminapdf-text = { path = "../laminapdf-text" }
+# Its `NotEditable` reasons, which the data fields test samples.
+laminapdf-content = { path = "../laminapdf-content" }
 # tests/redaction.rs appends revisions with the spike-era incremental_update.
 laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
 serde_json = { workspace = true }
