@@ -11,7 +11,7 @@
 | Branch | `ci/d5c-desktop-update-e2e` |
 | PR title | `ci(desktop): test the update from 0.0.1 to 0.0.2, and a tampered bundle, on three OSes` |
 | Size | M (300–600, mostly the workflow and its scripts) |
-| PR | — |
+| PR | [#637](https://github.com/laudebugs/laminapdf/pull/637) |
 
 Split from D5b on the owner's call (2026-11-14): D5b wires the updater into the app with unit tests; this todo proves it end to end. D5 is accepted when this todo's checks pass.
 
