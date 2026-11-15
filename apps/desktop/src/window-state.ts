@@ -13,7 +13,7 @@ const BACKGROUND = new Set(["HTML", "BODY"]);
  * selected (app.css), as computed in `view`. `auto` takes its parent's, so the nearest element that
  * sets a value decides; the page's background never keeps the menu.
  */
-export function keepsContextMenu(target: EventTarget | null, view: Window): boolean {
+function keepsContextMenu(target: EventTarget | null, view: Window): boolean {
   if (!(target instanceof Element) || BACKGROUND.has(target.tagName) || target.id === "app") return false;
   for (let at: Element | null = target; at !== null; at = at.parentElement) {
     const style = view.getComputedStyle(at);
