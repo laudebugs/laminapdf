@@ -25,10 +25,8 @@ const LEAVE_TEXT: Readonly<Record<Leaving, { title: (file: string) => string; go
 /** The question in words: how many changes go, and that the desktop can't save edits yet. */
 function leaveDescription(unsaved: number): string {
   const lost =
-    unsaved === 1
-      ? "Your change isn't saved, so it will be lost."
-      : `Your ${unsaved} changes aren't saved, so they will be lost.`;
-  return `${lost} The desktop app can't save edits yet.`;
+    unsaved === 1 ? "Your edit isn't saved and will be lost." : `Your ${unsaved} edits aren't saved and will be lost.`;
+  return `${lost} Lamina PDF can't save edits yet.`;
 }
 
 /** A store's subscribe with nothing to hear, while no document is shown. */

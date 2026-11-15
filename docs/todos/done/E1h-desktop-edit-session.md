@@ -67,10 +67,10 @@ None beyond E1d's.
 ## Found while building it
 
 - The engine makes each edit, but the history stays in the webview, over the viewer's own history code (`@laminapdf/viewer/edit-history`), so a step counts the same way on both shells.
-- macOS's own Quit (AppKit's `terminate:`) ends the app before Tauri can stop it, so Quit is the app's command on macOS too. Quitting from the Dock still can't ask.
-- Each window's engine holds its own edits: a tab with unsaved edits doesn't move to another window until edits are saved.
+- macOS's own Quit (AppKit's `terminate:`) ends the app before Tauri can stop it, so Quit is the app's command on macOS too. Quitting from the Dock goes through the same `terminate:`, so it still can't ask.
+- Each window's engine holds its own edits: a tab with unsaved edits doesn't move to another window until its edits are undone (or, after E1i, saved).
 - An engine that restarts opens the file as it is on disk, so the webview makes the edits again in it, as the web reader does after a worker restart.
-- The scenario turns pages from View › Rotate page right and left, which the desktop menus gained for it.
+- This todo added View › Rotate page right and Rotate page left to the desktop menus, so the scenario has an edit to make.
 
 ## Definition of done
 

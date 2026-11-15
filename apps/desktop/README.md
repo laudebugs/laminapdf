@@ -111,7 +111,7 @@ The menus (Paper [S03](../../docs/design/paper/desktop-shell.md#s03-native-menus
 
 - `src/menus/layout.ts` lists which commands each menu holds, in order, by id; nothing else. The words that aren't a command's title (the menus' names, Open recent's) are in its `MENU_WORDS`.
 - `src/menus/menus.ts` reads each command's title and its menu keys (`menuAccelerator` in `@laminapdf/ui`: the first binding that holds Ctrl, Alt or ⌘, or is a function key) into `src-tauri/menus.json`. Run `pnpm --filter @laminapdf/desktop menus` after changing the layout or a command's title or keys; `test/menus-json.test.ts` fails while the file is out of date.
-- `src-tauri/src/menu.rs` embeds the file and builds the menus for the OS it runs on. macOS has one menu bar, with the app menu. Windows and Linux show the same menus in every window, with Settings at the end of Edit, Quit in File and About in Help. Quit is the app's own command on every OS, so a window with unsaved edits asks first. The snapshots in `src-tauri/tests/menus/` show both (`LAMINA_UPDATE_MENUS=1 cargo test -p laminapdf-desktop menu` writes them).
+- `src-tauri/src/menu.rs` embeds the file and builds the menus for the OS it runs on. macOS has one menu bar, with the app menu. Windows and Linux show the same menus in every window, with Settings at the end of Edit, Quit in File and About in Help. Quit is the app's own command on every OS, so a window with unsaved edits asks first: macOS's own Quit would end the app without asking. The snapshots in `src-tauri/tests/menus/` show both (`LAMINA_UPDATE_MENUS=1 cargo test -p laminapdf-desktop menu` writes them).
 - Each window reports which of the menus' commands it can run now (`menu_state`), and the menus show the focused window's. Choosing a command sends it to that window (`menu://command`), which runs it through its registry. Rust does the rest: the OS's own items, the window list, Open recent's files and the Help menu's links.
 - A key press can reach a command through the web view's shortcut and the menu's accelerator. The desktop's registry (`src/menus/echo-registry.ts`) runs it once.
 
@@ -119,11 +119,15 @@ The end-to-end scenarios choose menu items with `e2e_menu_click` and read the me
 
 ### Editing
 
-View › Rotate page right and left turn the shown page, and Edit › Undo and Redo take a turn back and make it again, from the menu or with ⌘Z and ⇧⌘Z (Ctrl+Z and Ctrl+Y elsewhere). While a text field has the focus, Undo and Redo are the field's.
+View › Rotate page right and Rotate page left turn the page you're viewing. Edit › Undo and Redo undo and redo a rotation, from the menu or with ⌘Z and ⇧⌘Z (Ctrl+Z and Ctrl+Y elsewhere). While a text field has the focus, Undo and Redo are the field's.
 
-The engine process makes each edit. It applies the change to its copy of the document, writes the edits as a revision appended to the file, and reopens PDFium over the file and that revision, so the pages show the change. When that fails, it takes the change back, and the pages stay as they were (`crates/laminapdf-desktop-engine/src/edit.rs`). The webview keeps the history: each step's name, its pages, and how many steps aren't saved (`src/engine/desktop-edits.ts`, over `@laminapdf/viewer`'s `edit-history`). It keeps one history per document, so switching tabs keeps it. When the engine restarts, the webview makes the edits again in the new engine.
+The engine process makes each edit. It applies the change to its copy of the document, writes the edits as a revision appended to the file, and reopens PDFium over the file and that revision, so the pages show the change. If any step fails, the engine takes the change back, and the pages stay as they were (`crates/laminapdf-desktop-engine/src/edit.rs`).
 
-While a document has edits that aren't saved, the window's title starts with "•". Closing its tab, closing the window or quitting asks first. The window tells the main process (`set_unsaved`), which holds back a close or a quit and asks the window (`src-tauri/src/unsaved.rs`). On macOS, Quit is the app's own command, not the OS's: the OS's Quit would end the app without asking. A tab with unsaved edits can't move to another window yet, since each window's engine holds its own edits. Saving edits comes next ([E1i](../../docs/todos/ready/E1i-desktop-save-in-place.md)).
+The webview keeps the history: each step's name, its pages, and how many steps aren't saved (`src/engine/desktop-edits.ts`, over `@laminapdf/viewer`'s `edit-history`). It keeps one history per document, so switching tabs keeps it. When the engine restarts, the webview makes the edits again in the new engine.
+
+While a document has unsaved edits, the window's title starts with "•", and closing its tab, closing the window or quitting asks first. The window reports whether it has unsaved edits to the main process (`set_unsaved`), which holds back a close or a quit and asks the window (`src-tauri/src/unsaved.rs`). Saving edits comes next ([E1i](../../docs/todos/ready/E1i-desktop-save-in-place.md)).
+
+Each window's engine holds its own edits, so a tab with unsaved edits can't move to another window yet: undo them to move it.
 
 ## How it fits together
 

@@ -64,7 +64,7 @@ export interface RestoredWindow {
 
 /** Why a tab with unsaved edits stays: its edits are this window's engine's until they're saved. */
 const UNSAVED_MOVE =
-  "This document has edits that aren't saved, and they can't move to another window yet. Undo them to move the tab.";
+  "This document has unsaved edits, which can't move to another window yet. Undo them to move the tab.";
 
 /** How long the tabs and the view stay still before the main process hears of them. */
 const REPORT_AFTER_MS = 500;
