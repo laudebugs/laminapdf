@@ -30,4 +30,4 @@ None.
 
 The decisions and todos behind this code:
 
-- [E3l](../todos/ongoing/E3l-contents-page.md): `create_contents_page`
+- [E3l](../todos/done/E3l-contents-page.md): `create_contents_page`

@@ -34,4 +34,4 @@ None.
 The decisions and todos behind this code:
 
 - [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) §3
-- [E3l](../todos/ongoing/E3l-contents-page.md): the contents page
+- [E3l](../todos/done/E3l-contents-page.md): the contents page
