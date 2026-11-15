@@ -61,7 +61,7 @@ Every op is class `Annotation`, and none needs a full rewrite (`requires_rewrite
 | `Caret` | Caret | `{ rect, symbol: None \| Paragraph }` | E4c |
 | `Ink` | Ink | `{ strokes: Vec<InkStroke>, width, smoothing: bool }`; `InkStroke { points, widths: Option<Vec<f32>> }` (§11) | E4d |
 | `Shape` | Square, Circle | `{ kind, rect, interior: Option<Color>, border: Border }` | E4d |
-| `Line` | Line | `{ from, to, ends: [LineEnding; 2], interior, border, leader: Option<Leader> }` | E4d |
+| `Line` (Rust `LineMark`) | Line | `{ from, to, ends: [LineEnding; 2], interior, border, leader: Option<Leader> }` | E4d |
 | `Poly` | Polygon, PolyLine | `{ kind, vertices, ends, interior, border }` | E4d |
 | `FreeText` | FreeText | `{ rect, text: RichText, font: FontRef, size, align, intent: Plain \| Callout { line, knee } \| Typewriter, fill, border }`; `FontRef` is a standard 14 name or a font's bytes by `BlobId` (E2p) | E4e |
 
