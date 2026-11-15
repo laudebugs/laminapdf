@@ -17,7 +17,7 @@ import {
   registerReaderCommands,
 } from "../../src/index.ts";
 import { fakeFile, fakePlatform } from "../fakes.ts";
-import { cleanup, renderIn, targets } from "./render.tsx";
+import { cleanup, renderIn, settled, targets } from "./render.tsx";
 
 beforeEach(async () => {
   await page.viewport(390, 844);
@@ -105,7 +105,8 @@ describe("the phone shell", () => {
     await userEvent.click(button("Select the heading"));
     const sheet = () => [...document.querySelectorAll(".paper-sheet")].find((s) => s.textContent?.includes("Heading"));
     await expect.poll(sheet).toBeDefined();
-    expect(document.querySelector("[role=dialog]")).toBeNull();
+    // Polled: an overlay plays its exit before it leaves the page.
+    await expect.poll(() => document.querySelector("[role=dialog]")).toBeNull();
     await userEvent.keyboard("{Escape}");
     await expect.poll(sheet).toBeUndefined();
   });
@@ -142,10 +143,12 @@ describe("the phone shell", () => {
 
   it("passes axe with the bars and with the More sheet open", async () => {
     await openDemo();
-    const serious = async () =>
-      (await axe.run(document.body)).violations
+    const serious = async () => {
+      await settled();
+      return (await axe.run(document.body)).violations
         .filter((v) => v.impact === "serious" || v.impact === "critical")
         .map((v) => v.id);
+    };
     const bars = await serious();
     await userEvent.click(button("More", bottomBar() as HTMLElement));
     await expect.poll(() => document.querySelector("[role=dialog]")).not.toBeNull();

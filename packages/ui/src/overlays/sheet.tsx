@@ -12,6 +12,7 @@ import { createPortal } from "react-dom";
 import { IconButton } from "../components/button.js";
 import { markModal } from "./aria-modal.js";
 import { LayerScope, useLayerOpenedHere } from "./layers.js";
+import { useLastOpen } from "./presence.js";
 
 /** Where an open sheet rests. Closing it is the third, collapsed position. */
 export type SheetDetent = "medium" | "large";
@@ -75,14 +76,21 @@ function topOf(detent: SheetDetent): number {
 }
 
 /** A bottom sheet. */
-export function BottomSheet(props: BottomSheetProps): ReactNode {
+export function BottomSheet(given: BottomSheetProps): ReactNode {
+  // A modal sheet stays mounted and closes through React Aria, which plays its exit; what it shows
+  // stays as it was meanwhile (useLastOpen), while whether it is open, and its handler, are live.
+  const shown = useLastOpen(given, given.isOpen);
+  const props = { ...shown, isOpen: given.isOpen, onOpenChange: given.onOpenChange };
   const opening = props.defaultDetent ?? "medium";
   const [ownDetent, setOwnDetent] = useState<SheetDetent>(opening);
-  // Each opening starts at the default detent, not wherever the sheet was when it last closed.
-  useEffect(() => {
-    if (!props.isOpen) setOwnDetent(opening);
-  }, [props.isOpen, opening]);
-  if (!props.isOpen) return null;
+  // Each opening starts at the default detent, not wherever the sheet was when it last closed. The
+  // reset happens as it opens, not as it closes, so a leaving sheet keeps its height for its exit.
+  const [wasOpen, setWasOpen] = useState(props.isOpen);
+  if (props.isOpen !== wasOpen) {
+    setWasOpen(props.isOpen);
+    if (props.isOpen) setOwnDetent(opening);
+  }
+  if (!props.isOpen && props.isModal === false) return null;
   const placed: Placed = {
     detent: props.detent ?? ownDetent,
     setDetent: (next) => {
@@ -112,10 +120,10 @@ function ModalSheet(props: BottomSheetProps & Placed): ReactNode {
   const titleId = useId();
   const required = props.isRequired === true;
   const describedBy = props.description === undefined ? {} : { "aria-describedby": `${titleId}-description` };
-  useKeyboardInset(ref);
+  useKeyboardInset(ref, props.isOpen);
   return (
     <ModalOverlay
-      isOpen
+      isOpen={props.isOpen}
       onOpenChange={props.onOpenChange}
       isDismissable={!required}
       isKeyboardDismissDisabled={required}
@@ -130,7 +138,7 @@ function ModalSheet(props: BottomSheetProps & Placed): ReactNode {
           ref={markModal}
         >
           {() => (
-            <LayerScope dismiss={props.close} dismissable={!required}>
+            <LayerScope dismiss={props.close} dismissable={!required} away={!props.isOpen}>
               <SheetParts {...props} titleId={titleId} sheet={ref} />
             </LayerScope>
           )}
@@ -144,7 +152,7 @@ function ModalSheet(props: BottomSheetProps & Placed): ReactNode {
 function FreeSheet(props: BottomSheetProps & Placed): ReactNode {
   const ref = useRef<HTMLElement>(null);
   const titleId = useId();
-  useKeyboardInset(ref);
+  useKeyboardInset(ref, true);
   return (
     <LayerScope dismiss={props.close} dismissable={props.isRequired !== true}>
       <FocusClear sheet={ref} detent={props.detent} />
@@ -324,8 +332,10 @@ function useSheetDrag(
  * Lifts the sheet above an on-screen keyboard, which shrinks the visual viewport: sheet.css raises
  * its bottom to the keyboard's top and its top by as much, up to the large detent.
  */
-function useKeyboardInset(sheet: RefObject<HTMLElement | null>): void {
+function useKeyboardInset(sheet: RefObject<HTMLElement | null>, isOpen: boolean): void {
+  // Keyed on isOpen: a modal sheet stays mounted while closed, and its element exists only open.
   useEffect(() => {
+    if (!isOpen) return;
     const viewport = window.visualViewport;
     const update = () => {
       const hidden = viewport === null ? 0 : Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
@@ -339,7 +349,7 @@ function useKeyboardInset(sheet: RefObject<HTMLElement | null>): void {
       viewport?.removeEventListener("resize", update);
       viewport?.removeEventListener("scroll", update);
     };
-  }, [sheet]);
+  }, [sheet, isOpen]);
 }
 
 /**

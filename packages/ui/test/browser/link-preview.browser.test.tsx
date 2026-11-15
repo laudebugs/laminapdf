@@ -7,7 +7,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { LinkPreview, type LinkPreviewImage, type LinkPreviewProps } from "../../src/index.ts";
-import { cleanup, focused, renderIn, type Setting } from "./render.tsx";
+import { cleanup, focused, renderIn, type Setting, settled } from "./render.tsx";
 
 afterEach(cleanup);
 
@@ -190,6 +190,7 @@ describe.each(SETTINGS)("axe with the popover open, $theme theme, $dir", (settin
   it("finds no violation", async () => {
     renderIn(<Harness pointer="keyboard" handlers={handlers()} />, setting);
     await frame();
+    await settled();
     const result = await axe.run(document.body, {
       runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] },
     });

@@ -12,7 +12,7 @@ import {
   registerReaderCommands,
 } from "../../src/index.ts";
 import { FakeViewer, fakeFile, fakePlatform } from "../fakes.ts";
-import { cleanup, renderIn } from "./render.tsx";
+import { cleanup, renderIn, settled } from "./render.tsx";
 
 afterEach(cleanup);
 
@@ -47,6 +47,7 @@ describe("ExternalLinkDialog", () => {
     expect(element.querySelector(".paper-external-link-address")?.textContent).toBe(LINK.href);
     expect(element.querySelector(".paper-external-link-address strong")?.textContent).toBe("surveys.example.org");
     await expect.poll(() => document.activeElement?.textContent).toBe("Cancel");
+    await settled();
     const results = await axe.run(element);
     expect(results.violations.map((v) => [v.id, v.nodes.map((n) => n.failureSummary)])).toEqual([]);
   });

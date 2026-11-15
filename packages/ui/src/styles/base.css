@@ -17,7 +17,7 @@
   }
 
   /* Controls draw their own pressed state (§7.0), so they clear iOS's grey tap flash and a tap
-     shows Paper's pressed fill alone: buttons, tabs, options, menu items and rows. */
+     shows Paper's pressed fill alone: buttons, tabs, options, menu items, rows and the choices' rows. */
   :where(
     button[class^="paper-"],
     button[class*=" paper-"],
@@ -27,7 +27,9 @@
     [role="menuitem"],
     [role="menuitemradio"],
     [role="menuitemcheckbox"],
-    [role="row"]
+    [role="row"],
+    .paper-choice,
+    .paper-outline-link
   ) {
     -webkit-tap-highlight-color: transparent;
   }
