@@ -77,6 +77,7 @@ mod error;
 mod finish;
 #[cfg(feature = "text")]
 pub mod flow;
+mod image_writer;
 mod images;
 #[cfg(feature = "markdown")]
 pub mod markdown;
@@ -101,6 +102,7 @@ pub use annot::appearance::AnnotationAppearances;
 pub use attach::{AfRelationship, Attachment};
 pub use builder::{Appender, BuildOptions, Builder, PdfVersion};
 pub use error::{Error, ImageFormat, Result, Warning};
+pub use image_writer::ImageXObjectWriter;
 pub use images::{ImagePages, ImagesOptions, images_to_pdf};
 pub use laminapdf_model::PageSize;
 pub use laminapdf_model::{

@@ -78,6 +78,7 @@
 mod annot;
 mod blob;
 mod class;
+mod content;
 mod document;
 mod error;
 mod history;
@@ -109,6 +110,7 @@ pub use annot::{
 };
 pub use blob::{BlobId, BlobStore, ParseBlobIdError, SourceId};
 pub use class::ModificationClass;
+pub use content::{ContentEdit, EditContent, ImageXObjects, ObjectRef, StackPosition, WrittenImage};
 pub use document::{Document, PendingRebase, SaveState};
 pub use error::{Error, Result};
 pub use history::{History, Reverted, UndoOutcome};

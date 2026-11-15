@@ -228,6 +228,10 @@ pub struct Tx<'d> {
     pub(crate) state: &'d mut TxState,
     /// What draws the appearances of the annotations the ops make.
     pub(crate) appearances: Option<&'d dyn crate::Appearances>,
+    /// The bytes ops name by `BlobId`, which replacement images come from.
+    pub(crate) blobs: &'d crate::BlobStore,
+    /// What writes replacement images.
+    pub(crate) images: Option<&'d dyn crate::ImageXObjects>,
 }
 
 impl fmt::Debug for Tx<'_> {
@@ -299,7 +303,7 @@ impl Tx<'_> {
     /// Runs `op`, rolling back its own changes on error; returns what it did.
     fn run_op(&mut self, op: &Op) -> Result<Effect> {
         let mark = self.doc.journal_mark();
-        match op.apply_to(self.doc, self.sources, self.appearances) {
+        match op.apply_to(self.doc, self.sources, self.appearances, (self.blobs, self.images)) {
             Ok(effect) => {
                 self.state.touched.extend(effect.pages.iter().cloned());
                 self.state.pending.record(op, &effect);
@@ -480,6 +484,8 @@ mod tests {
             sources: &sources,
             state: &mut state,
             appearances: None,
+            blobs: &crate::BlobStore::default(),
+            images: None,
         }
         .apply(rotate("p2.0"))
         .unwrap();
@@ -496,6 +502,8 @@ mod tests {
             sources: &sources,
             state: &mut state,
             appearances: None,
+            blobs: &crate::BlobStore::default(),
+            images: None,
         };
         let result = tx.savepoint(|tx| {
             tx.apply(rotate("p2.0"))?;
@@ -518,6 +526,8 @@ mod tests {
             sources: &sources,
             state: &mut state,
             appearances: None,
+            blobs: &crate::BlobStore::default(),
+            images: None,
         }
         .apply(rotate("p9.0"));
         assert_eq!((err.is_err(), doc.journal_mark()), (true, mark));
@@ -533,6 +543,8 @@ mod tests {
             sources: &sources,
             state: &mut state,
             appearances: None,
+            blobs: &crate::BlobStore::default(),
+            images: None,
         };
         tx.apply(rotate("p2.0")).unwrap();
         let second = tx

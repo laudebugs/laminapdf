@@ -17,6 +17,7 @@ use std::collections::BTreeSet;
 use laminapdf_cos::{CosMut, Error, Limit, ObjRef, Page, Result};
 use laminapdf_syntax::{Dict, Limits, Name, Object, Stream};
 
+use crate::edit::{ContentOps, EncodedContent, ResourceName};
 use crate::lexer::{ContentIter, Lexed};
 
 /// The resource categories whose names a new name must not repeat (§7.8.3, Table 34).
@@ -339,6 +340,79 @@ impl<'d> PageContentWriter<'d> {
     /// Added in 0.2.0.
     pub fn add_font(&mut self, font: ObjRef) -> Result<Name> {
         self.add_resource("Font", "Ft", Object::Ref(font))
+    }
+
+    /// Registers the image XObject `image` under `/XObject` with an unused name (`Im1`, …), or
+    /// returns the name it already has there.
+    ///
+    /// # Errors
+    /// As [`add_xobject`](Self::add_xobject).
+    ///
+    /// Added in 0.5.0.
+    pub fn add_image(&mut self, image: ObjRef) -> Result<Name> {
+        self.add_resource("XObject", "Im", Object::Ref(image))
+    }
+
+    /// Writes the parts of `ops` that `encoded` wrote (ADR 0022 §3): each as a new Flate stream
+    /// in place of its `/Contents` entry. The streams they replace are left as they are, so a
+    /// stream another page also draws stays as it was there.
+    ///
+    /// # Errors
+    /// Errors writing.
+    ///
+    /// Added in 0.5.0.
+    pub fn write_parts(&mut self, ops: &ContentOps, encoded: &EncodedContent) -> Result<()> {
+        for part in &encoded.parts {
+            let (Some(bytes), Some(index)) = (part.bytes(), ops.parts().get(part.part()).map(|p| p.contents_index))
+            else {
+                continue;
+            };
+            let stream = self.cos.create(Object::Stream(Stream::flate(Dict::new(), bytes)))?;
+            if let Some(slot) = self.contents.get_mut(index) {
+                *slot = Object::Ref(stream);
+            }
+        }
+        self.content_names = None;
+        self.write_page()
+    }
+
+    /// Removes `names` from the page's own copy of its resources, and a category left empty.
+    ///
+    /// # Errors
+    /// Errors resolving the resources or writing.
+    ///
+    /// Added in 0.5.0.
+    pub fn remove_resources(&mut self, names: &BTreeSet<ResourceName>) -> Result<()> {
+        if names.is_empty() {
+            return Ok(());
+        }
+        let doc = self.cos.document();
+        let mut changed = false;
+        for category in names.iter().map(|n| n.category).collect::<BTreeSet<_>>() {
+            let Some(sub) = self.resources.get(category) else {
+                continue;
+            };
+            let Object::Dict(old) = &*doc.deref(sub)? else {
+                continue;
+            };
+            let gone = |key: &Name| names.iter().any(|n| n.category == category && n.name == *key);
+            let entries: Dict = old
+                .iter()
+                .filter(|(k, _)| !gone(k))
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect();
+            changed |= entries.len() != old.len();
+            if entries.is_empty() {
+                self.resources.remove(category);
+            } else {
+                self.resources.insert(category, Object::Dict(entries));
+            }
+        }
+        if !changed {
+            return Ok(());
+        }
+        self.dict.insert("Resources", Object::Dict(self.resources.clone()));
+        self.write_page()
     }
 
     fn add_resource(&mut self, category: &'static str, prefix: &str, value: Object) -> Result<Name> {

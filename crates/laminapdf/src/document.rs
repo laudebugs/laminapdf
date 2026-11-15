@@ -806,7 +806,9 @@ impl From<laminapdf_ops::Document> for Document {
     fn from(inner: laminapdf_ops::Document) -> Self {
         // Every annotation an edit makes gets its appearance drawn (E4 plan §2.2).
         #[cfg(feature = "build")]
-        let inner = inner.with_appearances(laminapdf_build::AnnotationAppearances);
+        let inner = inner
+            .with_appearances(laminapdf_build::AnnotationAppearances)
+            .with_images(laminapdf_build::ImageXObjectWriter);
         Self {
             inner,
             instance: Arc::new(Instance),

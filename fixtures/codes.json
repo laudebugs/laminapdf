@@ -719,8 +719,22 @@
     {
       "code": "content-not-editable",
       "kind": "unsupported",
-      "summary": "the content can't be edited: its font, its writing direction or the order of its glyphs is one Lamina PDF can't change safely, or it can't be read",
+      "summary": "the content can't be edited: its font, its writing direction, the order of its glyphs, a clip it sets or the state it draws in is one Lamina PDF can't change safely, or it can't be read",
       "hint": "the content stays selectable and readable; the reason says why it can't be changed",
+      "since": "0.5.0"
+    },
+    {
+      "code": "unknown-blob",
+      "kind": "usage",
+      "summary": "an op names bytes by an ID that were not added to the session",
+      "hint": "add the bytes with addBlob before applying ops that name them",
+      "since": "0.5.0"
+    },
+    {
+      "code": "images-unavailable",
+      "kind": "unsupported",
+      "summary": "the document has no image writer, so it can't put a replacement image in the file",
+      "hint": "edit through the laminapdf crate, which writes images, or give laminapdf-ops a writer with Document::with_images",
       "since": "0.5.0"
     }
   ],

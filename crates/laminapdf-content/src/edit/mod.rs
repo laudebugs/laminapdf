@@ -3,6 +3,7 @@
 //!
 //! [ADR 0022]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0022-content-stream-editing.md
 
+mod edits;
 mod encode;
 mod parse;
 mod record;
@@ -17,6 +18,7 @@ use laminapdf_syntax::{Name, ObjRef, Object};
 use crate::operator::Operator;
 use crate::state::GraphicsState;
 
+pub use edits::{Placement, ResourceName};
 pub use encode::{EncodedContent, EncodedPart};
 pub use record::Recorder;
 
@@ -110,14 +112,20 @@ pub enum NotEditable {
     GlyphsOutOfOrder,
     /// The object is inside Form XObjects nested deeper than the limit allows.
     TooDeep,
-    /// The content failed to read.
+    /// The content failed to read, or the object's graphics state wasn't recorded.
     ContentUnreadable,
+    /// The object clips what follows it (a `W` path, or text in a clipping render mode): moving,
+    /// deleting or reordering it would change other content. Clipping is edited on its own.
+    ClippingPath,
+    /// Moving the object in the stacking order would change how it draws: the clip, the
+    /// transparency or the font where it would go differ from where it is.
+    StateNotPortable,
 }
 
 impl NotEditable {
     /// The reason as the error's data names it: `type3-font`, `vertical-text`,
-    /// `no-unicode-map`, `rotated-run`, `glyphs-out-of-order`, `too-deep` or
-    /// `content-unreadable`.
+    /// `no-unicode-map`, `rotated-run`, `glyphs-out-of-order`, `too-deep`,
+    /// `content-unreadable`, `clipping-path` or `state-not-portable`.
     ///
     /// Added in 0.5.0.
     #[must_use]
@@ -130,6 +138,8 @@ impl NotEditable {
             Self::GlyphsOutOfOrder => "glyphs-out-of-order",
             Self::TooDeep => "too-deep",
             Self::ContentUnreadable => "content-unreadable",
+            Self::ClippingPath => "clipping-path",
+            Self::StateNotPortable => "state-not-portable",
         }
     }
 }
@@ -245,6 +255,9 @@ pub struct ContentObject {
     kind: ContentObjectKind,
     ops: Range<usize>,
     state: Option<Box<GraphicsState>>,
+    /// The graphics state before its last operator: a painting or closing operator changes
+    /// none of it, so it is the state after the object (for an object that doesn't clip).
+    end_state: Option<Box<GraphicsState>>,
     bounds: Option<RectPt>,
     marked: Vec<usize>,
 }
@@ -601,8 +614,10 @@ impl ContentOps {
         Recorder::new(self, frame)
     }
 
+    /// The object's index in [`ContentOps::objects`]: by search, since a reordered object
+    /// is no longer in ID order.
     fn position(&self, id: ContentObjectId) -> Option<usize> {
-        self.objects.binary_search_by_key(&id, |o| o.id).ok()
+        self.objects.iter().position(|o| o.id == id)
     }
 
     /// The object's bytes, as a lasting name hashes them: its source from its first token

@@ -9,6 +9,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::annot::{AddAnnot, AddReply, Appearances, DeleteAnnot, SetReviewState, UpdateAnnot};
 use crate::class::ModificationClass;
+use crate::content::{EditContent, ImageXObjects};
 use crate::error::{Error, Result};
 use crate::info::SetInfo;
 use crate::initial_view::SetInitialView;
@@ -140,6 +141,9 @@ pub enum Op {
     DeleteLink(DeleteLink),
     /// Replace the document's page labels.
     SetPageLabels(SetPageLabels),
+    /// Change objects a page already draws: move, resize, rotate, delete, replace an image,
+    /// crop or reorder them.
+    EditContent(EditContent),
     /// An op that declares the widgets it touches, for the save planner's tests
     /// ([`test_support::Declared`](crate::test_support::Declared)); never on the wire.
     #[cfg(feature = "test-support")]
@@ -192,6 +196,7 @@ impl Op {
             | Self::UpdateLink(_)
             | Self::DeleteLink(_) => ModificationClass::Annotation,
             Self::SetPageLabels(_) => ModificationClass::Document,
+            Self::EditContent(_) => ModificationClass::Content,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.class(),
         }
@@ -241,7 +246,8 @@ impl Op {
             | Self::AddAnnot(_)
             | Self::AddLink(_)
             | Self::UpdateLink(_)
-            | Self::DeleteLink(_) => false,
+            | Self::DeleteLink(_)
+            | Self::EditContent(_) => false,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.requires_rewrite(),
         }
@@ -286,7 +292,8 @@ impl Op {
             | Self::AddAnnot(_)
             | Self::AddLink(_)
             | Self::UpdateLink(_)
-            | Self::DeleteLink(_) => Vec::new(),
+            | Self::DeleteLink(_)
+            | Self::EditContent(_) => Vec::new(),
             Self::ReplacePages(op) => each(&op.targets, WidgetChange::Deleted),
             Self::RotatePage(op) => vec![PageChange::new(op.page.clone(), WidgetChange::Reshown)],
             Self::RotatePages(op) => each(&op.pages, WidgetChange::Reshown),
@@ -309,6 +316,7 @@ impl Op {
         doc: &mut laminapdf_model::Document,
         sources: &crate::document::Sources,
         appearances: Option<&dyn Appearances>,
+        content: (&crate::BlobStore, Option<&dyn ImageXObjects>),
     ) -> Result<Effect> {
         match self {
             Self::SetInfo(op) => op.apply_to(doc),
@@ -358,6 +366,7 @@ impl Op {
             Self::UpdateLink(op) => op.apply_to(doc),
             Self::DeleteLink(op) => op.apply_to(doc),
             Self::SetPageLabels(op) => op.apply_to(doc).map(|()| Effect::default()),
+            Self::EditContent(op) => op.apply_to(doc, content.0, content.1),
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.apply_to(doc, sources, self.class()),
         }
@@ -480,7 +489,8 @@ op_from!(
     SetReviewState,
     AddLink,
     UpdateLink,
-    DeleteLink
+    DeleteLink,
+    EditContent
 );
 
 impl From<SetPageLabels> for Op {

@@ -164,6 +164,15 @@ pub enum Error {
     /// façade always sets one.
     #[error("the document has no appearance generator for annotations")]
     AppearanceUnavailable,
+    /// An op names bytes by a [`BlobId`](crate::BlobId) the session doesn't hold: add them
+    /// with [`Document::add_blob`](crate::Document::add_blob) first.
+    #[error("no bytes with this ID were added to the session")]
+    UnknownBlob(crate::BlobId),
+    /// An op needs an image XObject written from a JPEG or PNG, and the document has no image
+    /// writer ([`Document::with_images`](crate::Document::with_images)): the `laminapdf` façade
+    /// always sets one.
+    #[error("the document has no image writer for replacement images")]
+    ImagesUnavailable,
 }
 
 /// An outline item ID as a message may show it, as [`Shown`] does pages.
@@ -279,6 +288,8 @@ impl Error {
         "invalid-label-ranges",
         "content-object-stale",
         "content-not-editable",
+        "unknown-blob",
+        "images-unavailable",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -322,6 +333,8 @@ impl Error {
             Self::InvalidLabelRanges { .. } => "invalid-label-ranges",
             Self::ContentObjectStale { .. } => "content-object-stale",
             Self::ContentNotEditable { .. } => "content-not-editable",
+            Self::UnknownBlob(_) => "unknown-blob",
+            Self::ImagesUnavailable => "images-unavailable",
         }
     }
 
@@ -341,6 +354,7 @@ impl Error {
             }
             Self::UnknownPage(_)
             | Self::UnknownSource(_)
+            | Self::UnknownBlob(_)
             | Self::UnknownOutlineItem(_)
             | Self::NotASibling(_)
             | Self::OutlineIntoItself(_)
@@ -364,6 +378,7 @@ impl Error {
             | Self::AnnotationNotEditable(_)
             | Self::LinkNotTagged
             | Self::AppearanceUnavailable
+            | Self::ImagesUnavailable
             | Self::ContentNotEditable { .. } => ErrorKind::Unsupported,
             Self::InvalidLog(_) | Self::MalformedXmp | Self::InvalidXmpPacket(_) => ErrorKind::Input,
         }
@@ -414,6 +429,8 @@ impl Error {
             | Self::LinkUriRefused
             | Self::LinkNotTagged
             | Self::AppearanceUnavailable
+            | Self::ImagesUnavailable
+            | Self::UnknownBlob(_)
             | Self::ViewNotFinite
             | Self::NestedTransaction
             | Self::NoTransaction
@@ -488,6 +505,8 @@ mod tests {
             Error::ContentNotEditable {
                 reason: laminapdf_content::NotEditable::Type3Font,
             },
+            Error::UnknownBlob(crate::BlobId::of(b"")),
+            Error::ImagesUnavailable,
         ]
     }
 
