@@ -323,7 +323,7 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 
 **Artboards:** `O07-insert-pages.dc.html`, `O07-merge.dc.html`.
 
-**As built (web, E2m).** Insert pages from a file and Replace pages are one dialog, opened from Insert ▾; Merge documents… and Add files to merge… are in More page actions. The file is read whole and previewed in the document worker, so its thumbnails are drawn by PDFium before any edit. Each insert, replace or merge is one step, asked about first when its save would break a signature. The build differs from the boards in six ways:
+**As built (web, E2m).** Insert pages from a file and Replace pages are one dialog, opened from Insert ▾; Merge documents… and Add files to merge… are in More page actions. The reader reads the whole file and previews it in the document worker, where PDFium draws its thumbnails before any edit. Each insert, replace or merge is one step, asked about first when its save would break a signature. The build differs from the boards in six ways:
 
 - Blank pages stays its own dialog (E2h), and From images isn't built here, so Insert has no tabs.
 - Form fields always come with the pages: the option is "Link form fields to fields of the same name", since an op can link a field or rename it but never leave it behind.
