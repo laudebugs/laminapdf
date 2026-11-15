@@ -22,8 +22,13 @@ document.head.append(ground);
 /** `html` on a fresh body in `theme`, and its select. */
 function mount(html: string, theme: "light" | "dark"): SiteMenuSelect {
   document.documentElement.dataset.theme = theme;
-  // The rendered page's module script is left out: this file defines the element.
-  document.body.innerHTML = `<main><h1>Page</h1>${html.replace(/<script[\s\S]*?<\/script>/g, "")}</main>`;
+  document.body.innerHTML = "<main><h1>Page</h1></main>";
+  // Parsed in a template, whose scripts never run, and the rendered module script dropped: this
+  // file defines the element.
+  const template = document.createElement("template");
+  template.innerHTML = html;
+  for (const script of template.content.querySelectorAll("script")) script.remove();
+  document.querySelector("main")?.append(template.content);
   const select = document.querySelector<SiteMenuSelect>("site-menu-select");
   if (select === null) throw new Error("no select");
   return select;
