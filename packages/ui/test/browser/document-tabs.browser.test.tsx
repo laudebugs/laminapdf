@@ -1,6 +1,6 @@
 // The window's document tabs: one Tab stop that the arrow keys move along, Enter shows the focused
 // tab, Delete closes it, the close buttons and the strip's menu reach every tab, dragging a tab
-// across the strip reorders it (by the mouse, through Playwright), a marker and the grabbing cursor
+// across the strip reorders it, a marker and the grabbing cursor
 // show while it is dragged, a release anywhere else is handed to the shell, and Escape cancels. A
 // tab whose file is missing carries a named warning mark, and the menu says "Not found" or each
 // tab's page; the restore notice counts what came back and shows a missing file.
@@ -98,12 +98,11 @@ describe("the document tabs", () => {
   it("move a tab one step right when dropped past its right-hand neighbour's middle", async () => {
     const log: string[] = [];
     renderIn(<Strip log={log} />);
-    const onto = page.getByRole("tab", { name: "notes.pdf" });
-    const width = onto.element().getBoundingClientRect().width;
-    await userEvent.dragAndDrop(page.getByRole("tab", { name: "report.pdf" }), onto, {
-      targetPosition: { x: width - 4, y: 8 },
-    });
-    // The release that ends the drag clicks too, and shows no tab.
+    const onto = page.getByRole("tab", { name: "notes.pdf" }).element().getBoundingClientRect();
+    const from = page.getByRole("tab", { name: "report.pdf" }).element();
+    drag(from, { x: onto.right - 4, y: onto.top + 8 });
+    // The click a browser sends after the release that ends the drag shows no tab.
+    from.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
     await expect.poll(() => log).toEqual(["drag a", "reorder bac"]);
   });
 
@@ -119,13 +118,8 @@ describe("the document tabs", () => {
   it("reorder when a tab is dropped on another's first half", async () => {
     const log: string[] = [];
     renderIn(<Strip log={log} />);
-    await userEvent.dragAndDrop(
-      page.getByRole("tab", { name: "minutes.pdf" }),
-      page.getByRole("tab", { name: "report.pdf" }),
-      {
-        targetPosition: { x: 4, y: 8 },
-      },
-    );
+    const onto = page.getByRole("tab", { name: "report.pdf" }).element().getBoundingClientRect();
+    drag(page.getByRole("tab", { name: "minutes.pdf" }).element(), { x: onto.left + 4, y: onto.top + 8 });
     await expect.poll(() => log).toEqual(["drag c", "reorder cab"]);
   });
 
@@ -188,9 +182,9 @@ describe("the document tabs", () => {
         <Strip log={other} />
       </>,
     );
-    const mine = page.getByRole("tab", { name: "report.pdf" }).nth(0);
-    const theirs = page.getByRole("tab", { name: "notes.pdf" }).nth(1);
-    await userEvent.dragAndDrop(mine, theirs, { targetPosition: { x: 4, y: 8 } });
+    const mine = page.getByRole("tab", { name: "report.pdf" }).nth(0).element();
+    const theirs = page.getByRole("tab", { name: "notes.pdf" }).nth(1).element().getBoundingClientRect();
+    drag(mine, { x: theirs.left + 4, y: theirs.top + 8 });
     await expect.poll(() => log).toEqual(["drag a", "out a inside"]);
     expect(other).toEqual([]);
   });
@@ -269,3 +263,11 @@ function pointer(target: Element, type: string, at: { x: number; y: number }, bu
 const press = (target: Element, at: { x: number; y: number }) => pointer(target, "pointerdown", at, 1);
 const move = (target: Element, at: { x: number; y: number }) => pointer(target, "pointermove", at, 1);
 const release = (target: Element, at: { x: number; y: number }) => pointer(target, "pointerup", at, 0);
+
+/** Presses `from` in its middle, moves to `to` and releases there. Dispatched rather than through
+ * Playwright's mouse, which every test file running at once shares. */
+function drag(from: Element, to: { x: number; y: number }): void {
+  press(from, middleOf(from.getBoundingClientRect()));
+  move(from, to);
+  release(from, to);
+}
