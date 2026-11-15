@@ -14,7 +14,7 @@
 //! - its CSP isn't the base CSP with only `'unsafe-eval'` added to `script-src` (the test
 //!   plugin runs scripts with `eval`): the e2e build must test the policy users get;
 //! - a committed `tauri*.conf.json` turns on the updater's `dangerousInsecureTransportProtocol`:
-//!   only the update test (D5c) passes it, with `--config`, to reach its local server over HTTP.
+//!   only the update test (`desktop-update-e2e.yml`) passes it, with `--config`, to reach its local server over HTTP.
 
 use std::collections::BTreeMap;
 use std::path::Path;

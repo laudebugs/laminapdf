@@ -766,7 +766,7 @@ mod tests {
         );
     }
 
-    /// The desktop update test (todo D5c): its pull request job, which forks' code runs, names no
+    /// The desktop update test (`desktop-update-e2e.yml`): its pull request job, which forks' code runs, names no
     /// secret and no environment, and its build action reads none; only the staging job runs in
     /// `desktop-staging`, never on a pull request, whose only secrets are the staging bucket's token and the account ID.
     #[test]
@@ -782,9 +782,26 @@ mod tests {
         };
         let local = job("local");
         assert!(local.contains("if: ${{ github.event_name == 'pull_request' }}"));
+        // The job's own lines, and every local action it uses (the build action among them).
+        let actions: Vec<String> = local
+            .lines()
+            .filter_map(|line| {
+                line.trim()
+                    .strip_prefix("- uses: $/")
+                    .or_else(|| line.trim().strip_prefix("uses: $/"))
+            })
+            .map(|path| repository_file(&format!("{path}/action.yml")).unwrap_or_else(|| panic!("{path}/action.yml")))
+            .collect();
+        assert!(
+            actions.iter().any(|action| action == UPDATE_BUILDS),
+            "the job builds with desktop-update-builds"
+        );
         for forbidden in ["secrets.", "environment:"] {
             assert!(!local.contains(forbidden), "the pull request job names {forbidden}");
-            assert!(!UPDATE_BUILDS.contains(forbidden), "the build action names {forbidden}");
+            assert!(
+                actions.iter().all(|action| !action.contains(forbidden)),
+                "a local action the pull request job uses names {forbidden}"
+            );
         }
         let staging = job("staging");
         assert!(staging.contains("if: ${{ github.event_name != 'pull_request'"));

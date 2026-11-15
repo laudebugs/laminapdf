@@ -52,7 +52,7 @@ Show that an installed Lamina PDF `0.0.1` updates itself to `0.0.2` on macOS, Wi
 ## Post-merge checks
 
 - [ ] The owner has created the `desktop-staging` environment (deployment branches: `main`) with `CLOUDFLARE_STAGING_R2_TOKEN` scoped to `lamina-pdf-staging` only.
-- [ ] The first `staging`-mode run on `main` is green on all three OSes (a new workflow can't be dispatched or scheduled until it is on `main`, and PRs get no secrets).
+- [ ] The first `staging`-mode run on `main` is green on all three OSes and actually ran: until the token exists, each leg passes with a notice that it skipped, which doesn't count (a new workflow can't be dispatched or scheduled until it is on `main`, and PRs get no secrets).
 
 ## Docs to update
 
@@ -67,6 +67,9 @@ Show that an installed Lamina PDF `0.0.1` updates itself to `0.0.2` on macOS, Wi
 - **Plain HTTP** to the runner's servers comes only from the workflow's `--config` override (`dangerousInsecureTransportProtocol`). A capability-guard test fails if any committed `tauri*.conf.json` sets it.
 - **One install, two steps.** The tampered bundle goes first, then the real one, so the second step also shows that a refused update leaves a working `0.0.1`. Each step waits until the Worker serves its manifest (it caches one for up to 30 s).
 - **Staging legs run one at a time** (`max-parallel: 1`), since each writes the channel's one manifest. Each leg leaves the channel paused and deletes its bundles. Until `desktop-staging` holds `CLOUDFLARE_STAGING_R2_TOKEN`, the staging job passes with a notice.
+- **The staging run goes through the proxy too**, over plain HTTP on the runner, so it can see the header. So the app's own TLS request to the deployed Worker isn't what's tested; the proxy's is. The app's HTTPS requests are D5b's, against production, and the release workflow's trial runs.
+- **One lock for the staging channel:** staging runs take the concurrency group `desktop-staging-channel`, which the desktop release workflow's signed trial runs (D6b) should share, since both write `channels/staging.json`.
+- **The hooks live in `src/`**, gated by the `e2e` feature, like `e2e.rs`'s commands: release builds compile `update/e2e_off.rs`, whose hooks do nothing, and CI checks their binary.
 - **Debug builds** (`tauri build --debug`): the updater works the same way, and debug builds compile faster.
 
 ## Definition of done

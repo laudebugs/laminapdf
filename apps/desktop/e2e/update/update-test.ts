@@ -1,4 +1,4 @@
-// The desktop update's end-to-end test (D5c): an installed Lamina PDF 0.0.1 refuses a tampered
+// The desktop update's end-to-end test: an installed Lamina PDF 0.0.1 refuses a tampered
 // 0.0.2, then updates itself to the real one, from the update Worker's `staging` channel.
 //
 // The workflow (.github/workflows/desktop-update-e2e.yml) builds both versions with the `e2e`
@@ -42,6 +42,7 @@ import { root, updateTestFile } from "../paths.ts";
 import {
   CHANNEL,
   emptyManifest,
+  endpointPath,
   INSTALL_ID_HEADER,
   manifestFor,
   NEW_VERSION,
@@ -156,8 +157,7 @@ async function startLocalWorker(): Promise<string> {
       stdio: ["ignore", "pipe", "pipe"],
     },
   );
-  wranglerDev.stdout?.on("data", (chunk: Buffer) => appendFileSync(logFile, chunk));
-  wranglerDev.stderr?.on("data", (chunk: Buffer) => appendFileSync(logFile, chunk));
+  logTo(wranglerDev, logFile);
   for (let tries = 0; tries < 120; tries++) {
     try {
       if ((await fetch(`${origin}/healthz`)).ok) return origin;
@@ -167,6 +167,12 @@ async function startLocalWorker(): Promise<string> {
     await sleep(1000);
   }
   throw new Error(`wrangler dev didn't answer within 120 s (${logFile})`);
+}
+
+/** Appends `child`'s output to `file`. */
+function logTo(child: ChildProcess, file: string): void {
+  child.stdout?.on("data", (chunk: Buffer) => appendFileSync(file, chunk));
+  child.stderr?.on("data", (chunk: Buffer) => appendFileSync(file, chunk));
 }
 
 function pnpm(args: string[], cwd: string): void {
@@ -194,7 +200,7 @@ async function publish(worker: string, step: string, bytes: Uint8Array): Promise
   putManifest(manifestFor(key, `${DOWNLOADS}${path}`, signature, new Date()));
   // The Worker caches a manifest for up to 30 s: wait until it offers this step's bundle.
   for (let tries = 0; tries < 60; tries++) {
-    const answer = await fetch(`${worker}/${CHANNEL}/${here.target}/${here.arch}/${OLD_VERSION}`, {
+    const answer = await fetch(`${worker}${endpointPath(here, OLD_VERSION)}`, {
       headers: { [INSTALL_ID_HEADER]: randomUUID() },
     });
     if (answer.status === 200 && (await answer.text()).includes(path)) return;
@@ -251,8 +257,7 @@ function launch(program: string, server: string, step: string): string {
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
-  app.stdout?.on("data", (chunk: Buffer) => appendFileSync(logFile, chunk));
-  app.stderr?.on("data", (chunk: Buffer) => appendFileSync(logFile, chunk));
+  logTo(app, logFile);
   const started = Date.now();
   app.once("exit", (code, signal) => {
     // The single-instance plugin hands a second launch to a copy already running and exits.
@@ -322,6 +327,9 @@ async function waitFor(
 
 // --- The run ---------------------------------------------------------------------------------
 
+/** The installed program, for the clean-up when the run fails half-way. */
+let installed: string | undefined;
+
 async function main(): Promise<void> {
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
@@ -331,6 +339,7 @@ async function main(): Promise<void> {
   log(`${mode} mode, ${key}: the Worker at ${worker}, the app asks ${server}`);
 
   const program = install();
+  installed = program;
   log(`installed ${OLD_VERSION}: ${program}`);
   const bundle = new Uint8Array(readFileSync(newBundle));
 
@@ -367,11 +376,14 @@ async function main(): Promise<void> {
     300_000,
   );
   stopApp(program);
+  // The refused update left a working 0.0.1, which is what updated.
+  if (lines(updated)[0] !== `started ${OLD_VERSION}`) {
+    throw new Error(`the update step didn't start on ${OLD_VERSION}: ${JSON.stringify(lines(updated))}`);
+  }
   log(`updated: ${JSON.stringify(lines(updated))}`);
 
-  // Every request the 0.0.1 app made: the header, never the URL. 0.0.2 asked as 0.0.2.
-  const asOld = seen.filter((request) => request.url.endsWith(`/${OLD_VERSION}`));
-  const problems = requestProblems(asOld, here, OLD_VERSION);
+  // Every request, the restarted 0.0.2's included: the header, never the URL.
+  const problems = requestProblems(seen, here, [OLD_VERSION, NEW_VERSION]);
   if (tamperedRequests === 0) problems.push("the app made no request while the tampered bundle was offered");
   if (problems.length > 0) throw new Error(`the update requests were wrong:\n  ${problems.join("\n  ")}`);
   log(`${seen.length} update request(s), each with the install ID in the header only`);
@@ -384,17 +396,14 @@ try {
   failed = true;
   console.error(`update-test: ${error instanceof Error ? error.message : String(error)}`);
 } finally {
+  if (installed !== undefined) stopApp(installed);
   if (mode === "staging") {
     try {
       putManifest(emptyManifest());
       for (const step of ["tampered", "update"]) {
-        spawnSync(
-          "pnpm",
+        pnpm(
           ["exec", "wrangler", "r2", "object", "delete", `${BUCKET}/e2e/${run}/${step}/${servedName}`, "--remote"],
-          {
-            cwd: updates,
-            shell: platform === "win32",
-          },
+          updates,
         );
       }
     } catch (error) {

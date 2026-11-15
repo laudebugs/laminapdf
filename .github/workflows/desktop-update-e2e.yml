@@ -43,8 +43,10 @@ permissions:
   contents: read
 
 concurrency:
-  # A PR's newer push cancels its older run; staging runs queue, since they share the channel.
-  group: desktop-update-e2e-${{ github.event.pull_request.number || 'staging' }}
+  # A PR's newer push cancels its older run. Staging runs share `desktop-staging-channel` with the
+  # desktop release workflow's signed trial runs, which write the same channels/staging.json, so
+  # they queue rather than overlap (GitHub keeps one pending run per group: a newer one replaces it).
+  group: ${{ github.event_name == 'pull_request' && format('desktop-update-e2e-{0}', github.event.pull_request.number) || 'desktop-staging-channel' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
