@@ -124,6 +124,8 @@ pub(crate) fn e2e_queue_pick(queue: tauri::State<'_, QueuedPick>, path: String) 
 const CORNER_INSET: f64 = 24.0;
 /// How far right of every window `outside` puts the cursor, in points.
 const OUTSIDE_GAP: f64 = 400.0;
+/// How far below the first window's top `outside` puts the cursor, in points.
+const OUTSIDE_DROP: f64 = 100.0;
 
 /// Where `e2e_place_cursor` put the cursor that a tab's drag reads, if anywhere: `WebDriver` moves
 /// the pointer inside a page only, never the OS's cursor.
@@ -139,12 +141,11 @@ pub(crate) fn placed_cursor() -> Option<Point> {
 /// that one.
 fn visible_point(label: &str, frames: &[(String, Frame)]) -> Option<Point> {
     let (_, frame) = frames.iter().find(|(name, _)| name == label)?;
-    let inset = CORNER_INSET;
     [(0.5, 0.5), (0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (1.0, 1.0)]
         .into_iter()
         .map(|(across, down)| Point {
-            x: frame.x + inset + across * (frame.width - 2.0 * inset),
-            y: frame.y + inset + down * (frame.height - 2.0 * inset),
+            x: frame.x + CORNER_INSET + across * (frame.width - 2.0 * CORNER_INSET),
+            y: frame.y + CORNER_INSET + down * (frame.height - 2.0 * CORNER_INSET),
         })
         .find(|point| crate::tab_drag::window_at(*point, frames) == Some(label))
 }
@@ -168,7 +169,7 @@ pub(crate) fn e2e_place_cursor(app: tauri::AppHandle, at: String) -> Result<(), 
             let top = frames.first().map_or(0.0, |(_, frame)| frame.y);
             Some(Point {
                 x: right + OUTSIDE_GAP,
-                y: top + OUTSIDE_GAP / 4.0,
+                y: top + OUTSIDE_DROP,
             })
         }
         _ => {

@@ -1,12 +1,12 @@
-// Dragging a document tab, by pointer events. HTML5 drag and drop can't serve here: the desktop
-// webview turns it off on Windows while it handles dropped files, and where it works it shows a
-// "not allowed" cursor over windows that take the tab. A press on a tab that moves a few pixels
-// starts a drag; the tab captures the pointer, so its moves and its release arrive even outside
-// the window. The drag listens on the document, so it also follows events that a test dispatches
-// to whatever is under the point, which no capture redirects. Over the strip the drag shows where
-// the tab would go, and a release there reorders; a release anywhere else is the shell's
-// (`onDragOut`). Escape, or the OS taking the pointer away, cancels it (`onDragCancel`). Mouse and
-// pen only: a finger on the strip scrolls it.
+// Dragging a document tab, by pointer events. HTML5 drag and drop can't serve here: it doesn't
+// work on Windows while Tauri replaces WebView2's drop handler to take dropped files, and where it
+// works it shows a "not allowed" cursor over windows that take the tab. A press on a tab that moves
+// a few pixels starts a drag; the tab captures the pointer, so its moves and its release arrive
+// even outside the window. The drag listens on the document, not the tab: pointer capture doesn't
+// redirect events a test dispatches to the element under the point, but they still bubble to the
+// document. Over the strip the drag shows where the tab would go, and a release there reorders; a
+// release anywhere else is the shell's (`onDragOut`). Escape, or the OS taking the pointer away,
+// cancels it (`onDragCancel`). Mouse and pen only: a finger on the strip scrolls it.
 
 import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from "react";
 
