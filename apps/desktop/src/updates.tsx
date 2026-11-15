@@ -19,6 +19,7 @@ import {
 } from "@laminapdf/ui";
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import type { DesktopShell } from "./engine/desktop-engine-client.ts";
+import { words } from "./update-words.ts";
 
 /** A channel an install follows. */
 type Channel = "stable" | "beta" | "nightly";
@@ -95,10 +96,7 @@ export function useDesktopUpdates(shell: DesktopShell | undefined, toasts: Toast
       checkNow: () => void call("update_check_now"),
       setEnabled: (enabled) => void call("update_set_enabled", { enabled }),
       setChannel: (channel) => void call("update_set_channel", { channel }),
-      resetId: () =>
-        void call("update_reset_install_id")?.then(() =>
-          toasts.add({ message: message("settings.updates.resetDone") }),
-        ),
+      resetId: () => void call("update_reset_install_id")?.then(() => toasts.add({ message: words("resetDone") })),
       restart: () => void shell?.invoke("update_restart_to_install").catch(reportError),
       openLink: (link) => void shell?.invoke("update_open_link", { link }).catch(reportError),
     }),
@@ -112,23 +110,23 @@ function reportError(error: unknown): void {
 
 /** The channel's name, as Settings writes it. */
 function channelName(channel: Channel): string {
-  return message(`settings.updates.channel.${channel}`);
+  return words(`channel.${channel}`);
 }
 
 /** When the last check ran, in words; "Not checked yet" before the first. */
 function lastChecked(seconds: number | null): string {
-  if (seconds === null) return message("settings.updates.neverChecked");
+  if (seconds === null) return words("neverChecked");
   const when = new Date(seconds * 1000).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-  return message("settings.updates.lastChecked", { when });
+  return words("lastChecked", { when });
 }
 
 /** Settings › Updates in one line, for a narrow window's list of sections. */
 export function updatesSummary(status: UpdateStatus | undefined): string {
   if (status === undefined) return "";
-  if (status.off === "package-manager") return message("settings.updates.summary.packageManager");
-  if (status.managed) return message("settings.updates.summary.managed");
-  if (status.off !== null) return message("settings.updates.summary.off");
-  return message("settings.updates.summary.on", { channel: channelName(status.channel) });
+  if (status.off === "package-manager") return words("summary.packageManager");
+  if (status.managed) return words("summary.managed");
+  if (status.off !== null) return words("summary.off");
+  return words("summary.on", { channel: channelName(status.channel) });
 }
 
 /** The card at the top of Settings › Updates: where the update is, and what the user can do now. */
@@ -138,8 +136,8 @@ function StatusCard({ status, updates }: { status: UpdateStatus; updates: Deskto
     case "ready":
       return (
         <div className="desktop-update-card">
-          <p className="desktop-update-title">{message("settings.updates.ready", { version: state.version })}</p>
-          <p className="desktop-settings-help">{message("settings.updates.readyHelp")}</p>
+          <p className="desktop-update-title">{words("ready", { version: state.version })}</p>
+          <p className="desktop-settings-help">{words("readyHelp")}</p>
           <Button variant="primary" onPress={updates.restart}>
             {message("command.app.restart-to-update")}
           </Button>
@@ -148,40 +146,36 @@ function StatusCard({ status, updates }: { status: UpdateStatus; updates: Deskto
     case "downloading":
       return (
         <div className="desktop-update-card">
-          <p className="desktop-update-title">{message("settings.updates.downloading", { version: state.version })}</p>
+          <p className="desktop-update-title">{words("downloading", { version: state.version })}</p>
           <ProgressBar
-            label={message("settings.updates.downloading", { version: state.version })}
+            label={words("downloading", { version: state.version })}
             {...(state.percent === null ? {} : { value: state.percent })}
           />
-          <p className="desktop-settings-help">
-            {message("settings.updates.downloadingHelp", { current: status.current })}
-          </p>
+          <p className="desktop-settings-help">{words("downloadingHelp", { current: status.current })}</p>
         </div>
       );
     case "checking":
       return (
         <div className="desktop-update-card">
-          <ProgressBar label={message("settings.updates.checking")} />
+          <ProgressBar label={words("checking")} />
         </div>
       );
     default:
       return (
         <div className="desktop-update-card">
-          {state.state === "failed" ? <Notice tone="danger" title={message("settings.updates.failed")} /> : null}
+          {state.state === "failed" ? <Notice tone="danger" title={words("failed")} /> : null}
           {status.off === null || status.off === "package-manager" ? (
             <p className="desktop-update-title">
               {/* "Up to date" only once a check has answered. */}
-              {message(status.lastChecked === null ? "settings.updates.current" : "settings.updates.upToDate", {
+              {words(status.lastChecked === null ? "current" : "upToDate", {
                 version: status.current,
               })}
             </p>
           ) : (
             <>
-              <p className="desktop-update-title">{message("settings.updates.off")}</p>
+              <p className="desktop-update-title">{words("off")}</p>
               {status.off === "user" ? (
-                <p className="desktop-settings-help">
-                  {message("settings.updates.offHelp", { current: status.current })}
-                </p>
+                <p className="desktop-settings-help">{words("offHelp", { current: status.current })}</p>
               ) : null}
             </>
           )}
@@ -198,8 +192,8 @@ export function UpdateSettings({ updates }: { updates: DesktopUpdates }): ReactN
   if (status.off === "package-manager") {
     return (
       <div className="paper-settings-fields">
-        <p className="desktop-update-title">{message("settings.updates.packageManager")}</p>
-        <p className="desktop-settings-help">{message("settings.updates.packageManagerHelp")}</p>
+        <p className="desktop-update-title">{words("packageManager")}</p>
+        <p className="desktop-settings-help">{words("packageManagerHelp")}</p>
         <Sends updates={updates} />
       </div>
     );
@@ -208,44 +202,44 @@ export function UpdateSettings({ updates }: { updates: DesktopUpdates }): ReactN
     <div className="paper-settings-fields">
       {status.managed ? (
         <div>
-          <Badge tone="neutral">{message("settings.updates.managed")}</Badge>
+          <Badge tone="neutral">{words("managed")}</Badge>
           <p className="desktop-settings-help">
             {status.off === "policy" || status.off === "msi"
-              ? message("settings.updates.managedOff")
-              : message("settings.updates.managedChannel", { channel: channelName(status.channel) })}
+              ? words("managedOff")
+              : words("managedChannel", { channel: channelName(status.channel) })}
           </p>
         </div>
       ) : null}
       <StatusCard status={status} updates={updates} />
       <Switch isSelected={status.enabled && !status.managed} isDisabled={status.managed} onChange={updates.setEnabled}>
-        {message("settings.updates.automatic")}
+        {words("automatic")}
       </Switch>
-      <p className="desktop-settings-help">{message("settings.updates.automatic.help")}</p>
+      <p className="desktop-settings-help">{words("automatic.help")}</p>
       {status.nightly ? (
         <div>
-          <p className="paper-field-label">{message("settings.updates.channel")}</p>
+          <p className="paper-field-label">{words("channel")}</p>
           <p>{channelName("nightly")}</p>
-          <p className="desktop-settings-help">{message("settings.updates.channel.nightlyHelp")}</p>
+          <p className="desktop-settings-help">{words("channel.nightlyHelp")}</p>
         </div>
       ) : (
         <RadioGroup
-          label={message("settings.updates.channel")}
+          label={words("channel")}
           orientation="horizontal"
           value={status.channel}
           isDisabled={status.managed}
           onChange={(value) => updates.setChannel(value as Channel)}
-          description={message("settings.updates.nightlyNote")}
+          description={words("nightlyNote")}
         >
           <Radio value="beta">{channelName("beta")}</Radio>
           <Radio value="stable" isDisabled={!status.stableAvailable}>
-            {status.stableAvailable ? channelName("stable") : message("settings.updates.channel.stableNotYet")}
+            {status.stableAvailable ? channelName("stable") : words("channel.stableNotYet")}
           </Radio>
         </RadioGroup>
       )}
       <div className="desktop-update-check">
         <span className="desktop-settings-help">{lastChecked(status.lastChecked)}</span>
         <Button isDisabled={busy || !status.canCheck} onPress={updates.checkNow}>
-          {message("settings.updates.checkNow")}
+          {words("checkNow")}
         </Button>
       </div>
       <Sends updates={updates} />
@@ -257,14 +251,14 @@ export function UpdateSettings({ updates }: { updates: DesktopUpdates }): ReactN
 function Sends({ updates }: { updates: DesktopUpdates }): ReactNode {
   return (
     <div>
-      <p className="paper-field-label">{message("settings.updates.sends")}</p>
+      <p className="paper-field-label">{words("sends")}</p>
       <p className="desktop-settings-help">
-        {message("settings.updates.sendsHelp")}{" "}
+        {words("sendsHelp")}{" "}
         <button type="button" className="desktop-link" onClick={() => updates.openLink("privacy")}>
-          {message("settings.updates.privacy")}
+          {words("privacy")}
         </button>
       </p>
-      <Button onPress={updates.resetId}>{message("settings.updates.resetId")}</Button>
+      <Button onPress={updates.resetId}>{words("resetId")}</Button>
     </div>
   );
 }
@@ -278,7 +272,7 @@ export function UpdateReadyItem({ updates }: { updates: DesktopUpdates }): React
   const [isOpen, setOpen] = useState(false);
   const { status } = updates;
   const ready = status?.state.state === "ready" ? status.state : undefined;
-  const title = ready === undefined ? "" : message("settings.updates.ready", { version: ready.version });
+  const title = ready === undefined ? "" : words("ready", { version: ready.version });
   return (
     <>
       {/* Always the same element, empty until the update is ready: screen readers announce the
@@ -289,29 +283,25 @@ export function UpdateReadyItem({ updates }: { updates: DesktopUpdates }): React
       {status === undefined || ready === undefined ? null : (
         <span className="desktop-update-ready">
           <PopoverTrigger isOpen={isOpen} onOpenChange={setOpen}>
-            <StatusBarItem icon="download">{message("settings.updates.readyItem")}</StatusBarItem>
+            <StatusBarItem icon="download">{words("readyItem")}</StatusBarItem>
             <Popover aria-label={title} placement="top">
               <div className="desktop-update-popover">
                 <div className="desktop-update-popover-head">
                   <p className="desktop-update-title">{title}</p>
-                  <IconButton
-                    label={message("settings.updates.closeDetails")}
-                    icon="close"
-                    onPress={() => setOpen(false)}
-                  />
+                  <IconButton label={words("closeDetails")} icon="close" onPress={() => setOpen(false)} />
                 </div>
                 <p className="desktop-settings-help">
-                  {message("settings.updates.readyChannel", {
+                  {words("readyChannel", {
                     channel: channelName(status.channel),
                     current: status.current,
                   })}
                 </p>
-                <p className="desktop-settings-help">{message("settings.updates.readyHelp")}</p>
+                <p className="desktop-settings-help">{words("readyHelp")}</p>
                 <button type="button" className="desktop-link" onClick={() => updates.openLink("whats-new")}>
-                  {message("settings.updates.whatsNew", { version: ready.version })}
+                  {words("whatsNew", { version: ready.version })}
                 </button>
                 <div className="desktop-update-actions">
-                  <Button onPress={() => setOpen(false)}>{message("settings.updates.later")}</Button>
+                  <Button onPress={() => setOpen(false)}>{words("later")}</Button>
                   <Button variant="primary" onPress={updates.restart}>
                     {message("command.app.restart-to-update")}
                   </Button>

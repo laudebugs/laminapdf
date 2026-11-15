@@ -8,6 +8,7 @@
 import { message, SettingsDialog, SettingsRegistry, Switch, useSettingsSection } from "@laminapdf/ui";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import type { DesktopShell } from "./engine/desktop-engine-client.ts";
+import { words } from "./update-words.ts";
 import { type DesktopUpdates, UpdateSettings, updatesSummary } from "./updates.tsx";
 
 /** The main process's preferences (`Preferences` in src-tauri/src/prefs.rs). */
@@ -76,7 +77,7 @@ export function useDesktopSettings(
   useSettingsSection(
     shell === undefined ? unshown : registry,
     "updates",
-    message("settings.updates"),
+    words("title"),
     () => <UpdateSettings updates={updates} />,
     { shows: [updates], summary: () => updatesSummary(updates.status) },
   );
