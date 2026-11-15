@@ -42,6 +42,7 @@ import { MissingRestoredTab, useFileChanges } from "./file-changes.tsx";
 import { EchoRegistry } from "./menus/echo-registry.ts";
 import { useNativeMenus } from "./menus/use-native-menus.tsx";
 import { NotYetSupportedError } from "./platform/desktop.ts";
+import { usePrint } from "./print.tsx";
 import { type DesktopRecent, useDesktopRecent } from "./recent.tsx";
 import { type DesktopSettings, useDesktopSettings } from "./settings.tsx";
 import { NO_TABS, useTabStrip } from "./tabs/use-tabs.tsx";
@@ -87,6 +88,54 @@ const LOST_TEXT: Readonly<Record<Lost, { title: string; body: string }>> = {
   },
 };
 
+/** A part of the window's command handlers. */
+type CommandActions = NonNullable<CommandContext["actions"]>;
+
+/** The window's command handlers in one object, the same object while each part is. */
+function useMergedActions(home: CommandActions, tabs: CommandActions, print: CommandActions): CommandActions {
+  return useMemo(() => ({ ...home, ...tabs, ...print }), [home, tabs, print]);
+}
+
+/** {@link WindowStatus}'s props. */
+interface WindowStatusProps {
+  /** Whether the shown document was repaired as it opened. */
+  readonly repaired: boolean;
+  /** Where the repair's details go. */
+  readonly toasts: ToastQueue;
+  /** The print's progress, while one runs. */
+  readonly print: ReactNode;
+  /** The app's updates, for "Update ready". */
+  readonly updates: DesktopUpdates;
+  /** The app's version, when known. */
+  readonly info: AppInfo | undefined;
+}
+
+/**
+ * The status bar's items: the repair notice, the print's progress, "Update ready" and the app's version.
+ * @param props - See {@link WindowStatusProps}.
+ * @returns The items.
+ */
+function WindowStatus({ repaired, toasts, print, updates, info }: WindowStatusProps): ReactNode {
+  return (
+    <>
+      {repaired ? (
+        <RepairedNotice
+          label="Repaired on open"
+          details="Details"
+          onPress={() =>
+            toasts.add({
+              message: "The file had damage that Lamina PDF repaired as it opened it. The file itself is unchanged.",
+            })
+          }
+        />
+      ) : null}
+      {print}
+      <UpdateReadyItem updates={updates} />
+      {info === undefined ? null : <StatusBarItem>{`Lamina PDF ${info.version}`}</StatusBarItem>}
+    </>
+  );
+}
+
 /**
  * The reader's window: top bar, home screen, the document's view, and the notices around them.
  * @param props - See {@link AppProps}.
@@ -113,7 +162,8 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const fileProblem = useFileChanges(engine, reader, toasts, tabs);
   const { strip, notice, actions: tabActions } = useTabStrip(engine?.shell, tabs, reader, toasts, keys, engine?.viewer);
   const { settings, recent, updates, actions: homeActions } = useHome(engine, platform, reader, state, toasts);
-  const actions = useMemo(() => ({ ...homeActions, ...tabActions }), [homeActions, tabActions]);
+  const print = usePrint(engine, toasts);
+  const actions = useMergedActions(homeActions, tabActions, print.actions);
   const open = state.phase === "open";
   const shows = useShownParts(state.phase, tabs);
   // The page input, zoom and the viewer's commands work while a document is on screen.
@@ -138,24 +188,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
             }}
           />
         }
-        status={
-          <>
-            {repaired ? (
-              <RepairedNotice
-                label="Repaired on open"
-                details="Details"
-                onPress={() =>
-                  toasts.add({
-                    message:
-                      "The file had damage that Lamina PDF repaired as it opened it. The file itself is unchanged.",
-                  })
-                }
-              />
-            ) : null}
-            <UpdateReadyItem updates={updates} />
-            {info === undefined ? null : <StatusBarItem>{`Lamina PDF ${info.version}`}</StatusBarItem>}
-          </>
-        }
+        status={<WindowStatus repaired={repaired} toasts={toasts} print={print.status} updates={updates} info={info} />}
       >
         {shows.startScreen ? (
           <OpenDropZone reader={reader} keys={keys}>

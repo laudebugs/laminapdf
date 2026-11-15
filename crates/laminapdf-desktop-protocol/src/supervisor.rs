@@ -606,7 +606,8 @@ const fn reply_req(msg: &FromEngine) -> Option<ReqId> {
         | FromEngine::NeedsPassword { req, .. }
         | FromEngine::Unlocked { req, .. }
         | FromEngine::PageInfo { req, .. }
-        | FromEngine::Tile { req, .. } => Some(*req),
+        | FromEngine::Tile { req, .. }
+        | FromEngine::PrintBand { req, .. } => Some(*req),
         FromEngine::Error { req, .. } => *req,
         FromEngine::Ready { .. }
         | FromEngine::ReadRange { .. }

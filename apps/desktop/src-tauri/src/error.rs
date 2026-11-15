@@ -39,6 +39,9 @@ pub enum DesktopError {
     /// Restart to update was asked for with no update downloaded.
     #[error("no update is ready to install")]
     UpdateNotReady,
+    /// The window is printing already: one print per window at a time.
+    #[error("this window is printing already")]
+    AlreadyPrinting,
     /// A background task of the shell failed (the file dialog's thread).
     #[error("the desktop shell failed: {0}")]
     Internal(String),
@@ -58,6 +61,7 @@ impl DesktopError {
             Self::UpdatesManaged => "updates-managed",
             Self::ChannelUnavailable => "channel-unavailable",
             Self::UpdateNotReady => "update-not-ready",
+            Self::AlreadyPrinting => "already-printing",
             Self::Internal(_) => "internal",
         }
     }

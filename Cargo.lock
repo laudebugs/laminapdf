@@ -3140,8 +3140,11 @@ name = "laminapdf-desktop-os"
 version = "0.4.0"
 dependencies = [
  "gtk",
+ "laminapdf",
  "objc2",
  "objc2-app-kit",
+ "objc2-core-foundation",
+ "objc2-core-graphics",
  "objc2-foundation",
  "serde_json",
  "thiserror 2.0.21",
