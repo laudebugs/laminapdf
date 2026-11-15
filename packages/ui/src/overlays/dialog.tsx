@@ -87,7 +87,9 @@ export function usePhoneLayout(isOpen: boolean): boolean {
 
 /** A modal dialog; on a phone-wide viewport, a bottom sheet at the large detent with full-width actions. */
 export function Dialog(props: DialogProps): ReactNode {
-  // What it shows stays as it was for the exit (useLastOpen); whether it is open never lags.
+  // What it shows (title, description, content, actions, size, role) stays as it was for the exit
+  // (useLastOpen); whether it is open and how it closes (isOpen, onOpenChange, isRequired,
+  // onEscape) are read live, so a closing dialog never acts on stale handlers.
   const {
     title,
     description,
@@ -135,7 +137,11 @@ export function Dialog(props: DialogProps): ReactNode {
           {...(description === undefined ? {} : { "aria-describedby": descriptionId })}
         >
           {({ close }) => (
-            <LayerScope dismiss={props.onEscape ?? close} dismissable={!required || props.onEscape !== undefined}>
+            <LayerScope
+              dismiss={props.onEscape ?? close}
+              dismissable={!required || props.onEscape !== undefined}
+              away={!isOpen}
+            >
               <Heading slot="title" className="paper-dialog-title">
                 {title}
               </Heading>

@@ -75,6 +75,8 @@ None.
 ## Risks and open questions
 
 - React Aria keeps an exiting overlay in the DOM until its animation ends: an animation that never ends (a hidden tab) must not leave a ghost; test with `animationend` missing
+  - Answered in #630: the overlays Lamina PDF times (Presence, toasts) leave after the exit token's time, whatever the transition does. React Aria's own Popover, Modal and Tooltip wait on the element's animations. Unverified: browsers throttle a hidden tab's frames, so such an exit should finish when the tab draws again rather than never; no engine the tests drive can hold a page undrawn, so this stays a watched risk.
+- Reopening a menu within its 80 ms exit leaves keyboard focus on the page: [#631](https://github.com/laudebugs/laminapdf/issues/631)
 
 ## Definition of done
 

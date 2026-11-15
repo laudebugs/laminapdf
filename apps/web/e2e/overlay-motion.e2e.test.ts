@@ -86,6 +86,80 @@ describe(`overlay motion in ${BROWSER}`, () => {
     await clean(watched);
   });
 
+  for (const reduced of [false, true]) {
+    it(`fades a dialog in and out over its scrim${reduced ? ", with no scale under reduced motion" : ", growing from 0.97"}`, async () => {
+      const watched = await load(browser, origin, "/", WITHOUT_PICKER, {
+        ignoreHTTPSErrors: true,
+        reducedMotion: reduced ? "reduce" : "no-preference",
+      });
+      const { page } = watched;
+      await chooseFile(watched, "hello.pdf");
+      await opened(watched, "hello.pdf");
+      await page.getByRole("button", { name: "More" }).first().click();
+      await page.getByRole("menuitem", { name: "Settings" }).click();
+      await page.getByRole("dialog", { name: "Settings" }).waitFor();
+      // Faded in before it closes: closing in the frame it opens would leave nothing to fade out.
+      await page.evaluate(() =>
+        Promise.all(
+          document
+            .getAnimations()
+            .filter((a) => a.effect?.getComputedTiming().endTime !== Number.POSITIVE_INFINITY)
+            // A cancelled transition (its target changed) rejects: it has stopped all the same.
+            .map((a) => a.finished.catch(() => undefined)),
+        ),
+      );
+      const frame = () =>
+        page.evaluate(() => {
+          const overlay = document.querySelector(".paper-modal-overlay");
+          const frame = document.querySelector(".paper-dialog-frame");
+          if (overlay === null || frame === null) return null;
+          return {
+            fade: getComputedStyle(overlay).transitionDuration,
+            exiting: overlay.hasAttribute("data-exiting"),
+            scale: Number(getComputedStyle(frame).getPropertyValue("--paper-motion-scale")),
+          };
+        });
+      expect(await frame()).toMatchObject({ fade: "0.2s", scale: reduced ? 1 : 0.97 });
+      await page.keyboard.press("Escape");
+      expect(await frame()).toMatchObject({ fade: "0.15s", exiting: true });
+      await expect.poll(frame).toBeNull();
+      await clean(watched);
+    });
+  }
+
+  it("slides the rail drawer in and out over its fading scrim on a narrow window", async () => {
+    const watched = await load(browser, origin, "/", WITHOUT_PICKER, {
+      ignoreHTTPSErrors: true,
+      reducedMotion: "no-preference",
+      viewport: { width: 900, height: 700 },
+    });
+    const { page } = watched;
+    await chooseFile(watched, "hello.pdf");
+    await opened(watched, "hello.pdf");
+    const drawer = () =>
+      page.evaluate(() => {
+        const rail = document.querySelector(".paper-left-rail[data-drawer]");
+        const scrim = document.querySelector(".paper-rail-scrim");
+        if (rail === null || scrim === null) return null;
+        return {
+          property: getComputedStyle(rail).transitionProperty,
+          scrim: getComputedStyle(scrim).transitionProperty,
+          exiting: rail.hasAttribute("data-exiting") && scrim.hasAttribute("data-exiting"),
+        };
+      });
+    // The rail may start open: close it first, then open it as a person would.
+    if ((await drawer()) !== null) {
+      await page.keyboard.press("Escape");
+      await expect.poll(drawer).toBeNull();
+    }
+    await page.getByRole("button", { name: "Sidebar" }).click();
+    await expect.poll(drawer).toMatchObject({ property: "translate, opacity", scrim: "opacity", exiting: false });
+    await page.keyboard.press("Escape");
+    expect(await drawer()).toMatchObject({ exiting: true });
+    await expect.poll(drawer).toBeNull();
+    await clean(watched);
+  });
+
   it("opens and closes the command palette in the frame of its key", async () => {
     const watched = await load(browser, origin, "/", WITHOUT_PICKER, { ignoreHTTPSErrors: true });
     const { page } = watched;

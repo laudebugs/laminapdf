@@ -111,7 +111,8 @@ export function ToastRegion({ queue, "aria-label": label }: ToastRegionProps): R
   const [leavings, setLeavings] = useState(0);
   // biome-ignore lint/correctness/useExhaustiveDependencies: a toast starting to leave is what to check after.
   useLayoutEffect(() => {
-    if (leavings === 0 || region.current?.contains(document.activeElement) !== true) return;
+    // Only when focus is in the toast that is leaving (marked data-exiting by now), not in another.
+    if (leavings === 0 || document.activeElement?.closest(".paper-toast[data-exiting]") == null) return;
     if (returnTo.current?.isConnected === true) returnTo.current.focus();
     returnTo.current = null;
     setFocused(false);

@@ -259,12 +259,12 @@ describe.skipIf(PROFILES[BROWSER] === undefined)(`phones and tablets in ${BROWSE
       await expect.poll(async () => (await pagesInView(page)).includes(2)).toBe(true);
       expect((await pagesInView(page)).includes(0)).toBe(false);
       // The rail covered the page, so it closed.
-      expect(await page.getByRole("tab", { name: "Outline" }).count()).toBe(0);
+      await expect.poll(() => page.getByRole("tab", { name: "Outline" }).count()).toBe(0);
       await rail();
       await page.getByRole("tab", { name: "Pages" }).click();
       await page.getByRole("option", { name: "Page A-1 (2 of 3)" }).click();
       await expect.poll(async () => (await pagesInView(page))[0]).toBe(1);
-      expect(await page.getByRole("tab", { name: "Pages" }).count()).toBe(0);
+      await expect.poll(() => page.getByRole("tab", { name: "Pages" }).count()).toBe(0);
       await clean(watched);
     });
 

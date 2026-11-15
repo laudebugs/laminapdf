@@ -32,8 +32,11 @@ type SelectionMoreId = "copy-exact";
 /** The selection's command handlers and surfaces. */
 export interface SelectionSurfaces {
   readonly actions: Partial<Record<CommandId, () => void>>;
-  /** The toolbar, while a settled mouse or pen selection shows it (it places itself). */
-  readonly toolbar: ReactNode | undefined;
+  /**
+   * The toolbar: always an element, which shows the toolbar while a settled mouse or pen selection
+   * calls for it, and for its exit after (it places itself).
+   */
+  readonly toolbar: ReactNode;
   /** The phone's selection bar, while text is selected by touch; the bottom bar otherwise. */
   readonly bar: ReactNode | undefined;
 }

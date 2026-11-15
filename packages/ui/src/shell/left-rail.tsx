@@ -9,7 +9,7 @@ import { type KeyboardEvent, type PointerEvent, type ReactNode, useRef } from "r
 import { SegmentedTabs, TabPanel } from "../components/tabs.js";
 import { message } from "../messages.js";
 import { LayerScope } from "../overlays/layers.js";
-import { Presence, useExiting } from "../overlays/presence.js";
+import { exitingAttributes, Presence, useExiting } from "../overlays/presence.js";
 import { BottomSheet } from "../overlays/sheet.js";
 import { useMediaQuery, useStoreState } from "../state/hooks.js";
 import { RAIL_MAX_WIDTH, RAIL_MIN_WIDTH, RAIL_STEP, type ShellLayout } from "./layout.js";
@@ -148,7 +148,7 @@ export function LeftRail({ layout, tabs }: LeftRailProps): ReactNode {
   }
   // The drawer stays for its exit after it closes (Presence), sliding out over its fading scrim.
   return (
-    <Presence value={open || null} exit="panel">
+    <Presence value={open} exit="panel">
       {() => <RailDrawer layout={layout} tabs={tabs} />}
     </Presence>
   );
@@ -165,15 +165,13 @@ function RailDrawer({ layout, tabs }: LeftRailProps): ReactNode {
         className="paper-rail-scrim"
         aria-label={message("shell.rail.close")}
         onClick={close}
-        data-exiting={exiting || undefined}
-        inert={exiting}
+        {...exitingAttributes(exiting)}
       />
       <nav
         className="paper-left-rail"
         aria-label={message("reader.sidebar")}
         data-drawer
-        data-exiting={exiting || undefined}
-        inert={exiting}
+        {...exitingAttributes(exiting)}
       >
         <RailTabs layout={layout} tabs={tabs} />
       </nav>

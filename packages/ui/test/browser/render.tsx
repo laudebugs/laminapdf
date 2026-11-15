@@ -46,7 +46,8 @@ export async function settled(): Promise<void> {
   const ending = document
     .getAnimations()
     .filter((a) => a.effect?.getComputedTiming().endTime !== Number.POSITIVE_INFINITY);
-  await Promise.all(ending.map((a) => a.finished));
+  // A cancelled animation (its target changed) rejects: it has stopped all the same.
+  await Promise.all(ending.map((a) => a.finished.catch(() => undefined)));
 }
 
 /** Unmounts every rendered element, so overlays undo what they did to the page, then removes the hosts. */

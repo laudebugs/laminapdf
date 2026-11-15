@@ -10,7 +10,7 @@ import { createPortal } from "react-dom";
 import { useAnchoredPlacement } from "./anchored.js";
 import { LayerScope } from "./layers.js";
 import { type Box, placeAbove } from "./place.js";
-import { useExiting } from "./presence.js";
+import { exitingAttributes, useExiting } from "./presence.js";
 
 /** Props of `SelectionToolbar`. */
 export interface SelectionToolbarProps {
@@ -64,8 +64,7 @@ export function SelectionToolbar({
         aria-label={label}
         className="paper-selection-toolbar"
         data-side={place?.side}
-        data-exiting={exiting || undefined}
-        inert={exiting}
+        {...exitingAttributes(exiting)}
         style={place === null ? { visibility: "hidden" } : { top: place.top, left: place.left }}
       >
         {children}
