@@ -618,6 +618,7 @@
 
   .paper-network-disclosure {
     justify-self: start;
+    cursor: var(--paper-cursor-action);
     min-block-size: var(--ui-target);
     padding: 0;
     border: 0;
@@ -891,5 +892,45 @@
   .paper-reader-canvas:focus-visible {
     outline: var(--paper-focus-ring-width) solid var(--paper-focus);
     outline-offset: var(--paper-focus-ring-offset-inset);
+  }
+}
+
+/* The Reader toggle's view transition (motion plan §4.3; switchView in view-switch.ts): while the
+   root carries data-view-switch, the canvas is captured as paper-view and the rest of the page
+   switches at once. The old view fades out and the new one fades in, rising a little; under
+   reduced motion motion-travel is 0, so the two only cross-fade. */
+@layer paper.components {
+  :root[data-view-switch] .paper-reader-canvas {
+    view-transition-name: paper-view;
+  }
+
+  :root[data-view-switch]::view-transition-old(root),
+  :root[data-view-switch]::view-transition-new(root) {
+    animation: none;
+  }
+
+  :root[data-view-switch]::view-transition-group(paper-view) {
+    animation-duration: var(--paper-duration-view);
+  }
+
+  :root[data-view-switch]::view-transition-old(paper-view) {
+    animation: paper-view-out var(--paper-duration-view) var(--paper-ease-standard) both;
+  }
+
+  :root[data-view-switch]::view-transition-new(paper-view) {
+    animation: paper-view-in var(--paper-duration-view) var(--paper-ease-standard) both;
+  }
+
+  @keyframes paper-view-out {
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes paper-view-in {
+    from {
+      opacity: 0;
+      translate: 0 calc(var(--paper-space-8) * var(--paper-motion-travel));
+    }
   }
 }

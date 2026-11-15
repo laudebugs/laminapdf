@@ -8,11 +8,11 @@ import {
   NetworkActivityPanel,
   NetworkIndicator,
   networkIndicatorText,
-  type Platform,
   type ShellLayout,
   useStoreState,
 } from "@laminapdf/ui";
 import { type ReactNode, useMemo } from "react";
+import type { Copy } from "../copy.ts";
 import { serviceWorkerControl } from "../offline/control.ts";
 import type { NetworkMonitor, NetworkState, NetworkSummary } from "./monitor.ts";
 import { summarize } from "./monitor.ts";
@@ -73,11 +73,11 @@ function NetworkStatus({ layout, network }: { layout: ShellLayout; network: Netw
 /** The panel, in the inspector. */
 function NetworkInspector({
   layout,
-  platform,
+  copy,
   network,
 }: {
   layout: ShellLayout;
-  platform: Platform;
+  copy: Copy;
   network: NetworkMonitor;
 }): ReactNode {
   const { state, summary } = useSummary(network);
@@ -96,7 +96,7 @@ function NetworkInspector({
         {...(fileHost === undefined ? {} : { fileHost })}
         feeds={{ page: true, worker: state.workerFeed, serviceWorker: controlled }}
         onClose={() => layout.closeInspector()}
-        onCopy={() => void platform.copyText(networkReport(summary, since))}
+        onCopy={() => copy(networkReport(summary, since))}
       />
     </Inspector>
   );
@@ -105,7 +105,7 @@ function NetworkInspector({
 /** The network indicator and, while it is open, the panel. */
 export function useNetworkPanel(
   layout: ShellLayout,
-  platform: Platform,
+  copy: Copy,
   network: NetworkMonitor,
 ): { indicator: ReactNode; inspector: ReactNode } {
   // Two booleans, so the reader re-renders only when the indicator or the panel comes or goes.
@@ -114,5 +114,5 @@ export function useNetworkPanel(
   if (!visible) return { indicator: undefined, inspector: undefined };
   const indicator = <NetworkStatus key="network" layout={layout} network={network} />;
   if (!shown) return { indicator, inspector: undefined };
-  return { indicator, inspector: <NetworkInspector layout={layout} platform={platform} network={network} /> };
+  return { indicator, inspector: <NetworkInspector layout={layout} copy={copy} network={network} /> };
 }

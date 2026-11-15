@@ -53,6 +53,20 @@ describe("HistoryPanel", () => {
     await expect.poll(() => rows(host)[0]?.getAttribute("aria-current")).toBe("step");
   });
 
+  it("lights up the row the current point moves to, and nothing when the tab opens", async () => {
+    const { host } = panel();
+    // Opening the tab moves nothing: no row lights up.
+    expect(host.querySelector("[data-arrived]")).toBeNull();
+    const current = getComputedStyle(rows(host)[2] as Element).backgroundColor;
+    await userEvent.click(rows(host)[0] as HTMLElement);
+    await expect.poll(() => rows(host)[0]?.hasAttribute("data-arrived")).toBe(true);
+    // Lit brighter than the current row's tint, then back to it.
+    expect(getComputedStyle(rows(host)[0] as Element).backgroundColor).not.toBe(current);
+    expect(getComputedStyle(rows(host)[0] as Element).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    await expect.poll(() => host.querySelector("[data-arrived]")).toBeNull();
+    expect(rows(host)[0]?.getAttribute("aria-current")).toBe("step");
+  });
+
   it("takes one Tab stop, on the current row, and moves with the arrows, Home and End", async () => {
     const { edits, host } = panel();
     expect(rows(host).map((r) => r.tabIndex)).toEqual([-1, -1, 0, -1]);

@@ -240,10 +240,11 @@ jobs:
 
   # Todo B6c (pdf-library §5): @laminapdf/sdk's example suite, byte-identical to the Rust goldens,
   # in every runtime it supports, over the `wasm` job's build (Node 24, .nvmrc, is the `wasm`
-  # job's own run of the suite). Three jobs rather than one per runtime: each runtime's suite takes
-  # 20 to 70 s, less than setting up a job. `browsers` runs Chromium (with a Vite production
-  # build run in a Chromium page) and Firefox on Linux, `webkit` WebKit on macOS (Vitest browser
-  # mode with Playwright);
+  # job's own run of the suite). The servers share a job: each one's suite takes 20 to 70 s, less
+  # than setting up a job. Each browser has its own, since a browser also runs the packages' browser
+  # tests and the reader's e2e suite, 10 to 12 minutes each: `chromium` (with a Vite production
+  # build run in a Chromium page) and `firefox` on Linux, `webkit` on macOS (Vitest browser mode
+  # with Playwright);
   # `servers` runs Deno, Bun, workerd (wrangler's test harness) and Node 22 and 26. Every runtime
   # runs even when one fails. Timings and WebAssembly memory go to the job summary (`cargo
   # xtask pdf-runtimes`; recorded, not asserted).
@@ -257,7 +258,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { group: browsers, name: "Chromium and Firefox", runtimes: "chromium firefox", runner: ubuntu-24.04 }
+          - { group: chromium, name: "Chromium", runtimes: "chromium", runner: ubuntu-24.04 }
+          - { group: firefox, name: "Firefox", runtimes: "firefox", runner: ubuntu-24.04 }
           - { group: webkit, name: "WebKit", runtimes: "webkit", runner: macos-15 }
           - {
               group: servers,
@@ -283,10 +285,10 @@ jobs:
       - uses: $/.github/actions/node-pnpm
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
-      - if: matrix.group == 'browsers'
+      - if: matrix.group == 'chromium' || matrix.group == 'firefox'
         uses: $/.github/actions/playwright-deps
         with:
-          browsers: chromium firefox
+          browsers: ${{ matrix.runtimes }}
       # Every runtime runs even when one before it failed (`!cancelled()`); the Node runs come
       # last, each after switching the Node on PATH. `--label` gives each run its own
       # measurements file.
