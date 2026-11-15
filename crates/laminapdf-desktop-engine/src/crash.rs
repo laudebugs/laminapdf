@@ -1,20 +1,18 @@
 //! The engine's panics, for crash reports: the binary's panic hook ([`report_panics`])
-//! sends the main process a summary of the panic, then aborts, so the main process sees a crash and
+//! sends the main process a summary of the panic (its message and place, without frames, which the
+//! sandbox stops the engine naming), then aborts, so the main process sees a crash and
 //! restarts the engine as it does after any other. Without the abort, a panic in the worker
 //! would leave an engine that beats but never answers.
 
 use std::sync::OnceLock;
 
 use laminapdf_desktop_protocol::FromEngine;
-use laminapdf_desktop_protocol::crash::summarize;
+use laminapdf_desktop_protocol::crash::summarize_without_frames;
 
 use crate::outbox::Outbox;
 
 /// Where the hook sends the summary: the main process, once [`crate::run`] has said `Ready`.
 static TO_MAIN: OnceLock<Outbox> = OnceLock::new();
-
-/// The engine's binary, as frames name it.
-const MODULE: &str = "laminapdf-desktop-engine";
 
 /// Makes every panic from here on end the engine, after telling the main process what it was.
 /// The binary calls it; the library's tests don't, so a test's panic stays a test failure.
@@ -24,7 +22,7 @@ pub fn report_panics() {
         // The default hook writes the message to stderr, which the main process keeps in its log.
         previous(info);
         if let Some(out) = TO_MAIN.get() {
-            out.try_send(&FromEngine::Panic(Box::new(summarize(info, MODULE))));
+            out.try_send(&FromEngine::Panic(Box::new(summarize_without_frames(info))));
         }
         std::process::abort();
     }));

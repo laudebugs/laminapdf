@@ -57,10 +57,22 @@ pub struct NativeFrame {
     pub function: String,
 }
 
+/// The summary of the panic `info` describes, without frames: for a sandboxed process, where
+/// naming them would read its own binary from disk, which the sandbox forbids (Linux's seccomp
+/// ends the process for it).
+#[must_use]
+pub fn summarize_without_frames(info: &PanicHookInfo<'_>) -> PanicSummary {
+    summary_of(info, Vec::new)
+}
+
 /// The summary of the panic `info` describes, raised in the binary `module`. Call it from a panic
 /// hook: it walks the current thread's stack.
 #[must_use]
 pub fn summarize(info: &PanicHookInfo<'_>, module: &str) -> PanicSummary {
+    summary_of(info, || frames(module))
+}
+
+fn summary_of(info: &PanicHookInfo<'_>, frames: impl FnOnce() -> Vec<NativeFrame>) -> PanicSummary {
     let message = info
         .payload()
         .downcast_ref::<&str>()
@@ -74,7 +86,7 @@ pub fn summarize(info: &PanicHookInfo<'_>, module: &str) -> PanicSummary {
             line: at.line(),
             column: at.column(),
         }),
-        frames: frames(module),
+        frames: frames(),
     }
 }
 
@@ -107,7 +119,7 @@ fn frames(module: &str) -> Vec<NativeFrame> {
 
 /// Whether `function` is part of raising or reporting a panic rather than the code that panicked.
 fn is_machinery(function: &str) -> bool {
-    const PREFIXES: [&str; 14] = [
+    const PREFIXES: [&str; 15] = [
         "backtrace::",
         "std::",
         "core::",
@@ -115,7 +127,8 @@ fn is_machinery(function: &str) -> bool {
         "rust_begin_unwind",
         "rust_panic",
         "__rust",
-        "laminapdf_desktop_protocol::crash::",
+        "laminapdf_desktop_protocol::crash::summarize",
+        "laminapdf_desktop_protocol::crash::frames",
         // The panic hooks themselves, and the trait calls that reach them.
         "laminapdf_desktop_engine::crash::report_panics",
         "laminapdf_desktop_lib::crash::report_panics",
