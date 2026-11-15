@@ -4,8 +4,10 @@
 // undone steps struck through. Choosing a row undoes or redoes to that point in one call. Up and
 // Down move between rows, Home and End to the ends, Enter or Space goes to the step. The list holds
 // up to 500 steps, so only the rows in view (and a few either side) are in the DOM; each row says
-// where it sits in the whole list.
+// where it sits in the whole list. When the current point moves (an undo, a redo, a new edit, a
+// row chosen), the row it lands on lights up for a moment, so the move shows where it went.
 
+import { MOTION } from "@laminapdf/tokens";
 import {
   type FocusEvent,
   type KeyboardEvent,
@@ -169,6 +171,25 @@ function useRovingFocus(
   return { focus, setFocus, onKeyDown, onFocus, onBlur };
 }
 
+/**
+ * The row the current point just moved to, for `MOTION.view` ms after the move; nothing when the
+ * list first draws, so opening the tab lights nothing.
+ */
+function useArrived(position: number): number | undefined {
+  const [seen, setSeen] = useState(position);
+  const [arrived, setArrived] = useState<number>();
+  if (position !== seen) {
+    setSeen(position);
+    setArrived(position);
+  }
+  useEffect(() => {
+    if (arrived === undefined) return;
+    const timer = setTimeout(() => setArrived(undefined), MOTION.view);
+    return () => clearTimeout(timer);
+  }, [arrived]);
+  return arrived;
+}
+
 /** The list itself, virtualised, with a roving focus. */
 function HistoryList(props: HistoryPanelProps): ReactNode {
   const { edits } = props;
@@ -187,6 +208,7 @@ function HistoryList(props: HistoryPanelProps): ReactNode {
     height: rowHeight,
     drawn: `${first}-${last}`,
   });
+  const arrived = useArrived(history.position);
   const rows: Row[] = [];
   for (let index = first; index < last; index++) rows.push({ index, step: history.steps[index - 1] });
   const choose = (index: number) => {
@@ -219,6 +241,7 @@ function HistoryList(props: HistoryPanelProps): ReactNode {
             total={total}
             dropped={history.dropped > 0}
             tabbable={row.index === tabbable}
+            arrived={row.index === arrived}
             meta={metaOf(row, history.position, history.dropped > 0, { name, time, openedAt: props.openedAt })}
             onChoose={choose}
             onFocusRow={setFocus}
@@ -285,6 +308,7 @@ function HistoryRow({
   total,
   dropped,
   tabbable,
+  arrived,
   meta,
   onChoose,
   onFocusRow,
@@ -293,6 +317,8 @@ function HistoryRow({
   total: number;
   dropped: boolean;
   tabbable: boolean;
+  /** Whether the current point just moved here: the row lights up. */
+  arrived: boolean;
   meta: RowMeta;
   onChoose: (index: number) => void;
   onFocusRow: (index: number) => void;
@@ -307,6 +333,7 @@ function HistoryRow({
         data-row={row.index}
         data-current={current || undefined}
         data-undone={undone || undefined}
+        data-arrived={arrived || undefined}
         aria-current={current ? "step" : undefined}
         tabIndex={tabbable ? 0 : -1}
         onClick={() => onChoose(row.index)}

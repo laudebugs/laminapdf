@@ -14,19 +14,21 @@ import {
   readerTextSize,
   type ShellLayout,
   StatusBarItem,
+  switchView,
   useStoreState,
 } from "@laminapdf/ui";
 import type * as ReaderModeParts from "@laminapdf/ui/reader-mode";
 import type { Viewer } from "@laminapdf/viewer";
-import { lazy, type ReactNode, type RefObject, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { pageLabel } from "./outline.ts";
 
-/** The column and its settings panel, loaded when reader mode first turns on, so they aren't in the startup script (#380). */
-const loadParts = () => import("./later.ts");
-const ReaderView = lazy<typeof ReaderModeParts.ReaderView>(() => loadParts().then((m) => ({ default: m.ReaderView })));
-const ReaderSettingsPanel = lazy<typeof ReaderModeParts.ReaderSettingsPanel>(() =>
-  loadParts().then((m) => ({ default: m.ReaderSettingsPanel })),
-);
+/**
+ * The column and its settings panel, loaded when reader mode first turns on, so they aren't in the
+ * startup script (#380). They are loaded before the view switches, not by `lazy`, so the view
+ * transition never captures an empty fallback for the column.
+ */
+type Parts = Pick<typeof ReaderModeParts, "ReaderView" | "ReaderSettingsPanel">;
+const loadParts = (): Promise<Parts> => import("./later.ts");
 
 import { cropClip, cropScale } from "./reader-crop.ts";
 import { type OriginBox, outlineOrigin } from "./reader-origin.ts";
@@ -167,9 +169,11 @@ export interface ReaderMode {
   readonly actions: Readonly<Record<string, (args: unknown) => void>>;
 }
 
-/** The column's state: on or off, its content, and the block at its top. */
+/** The column's state: on or off, its parts, its content, and the block at its top. */
 interface ReaderContent {
   readonly on: boolean;
+  /** The column's components while it shows: set exactly while `on`. */
+  readonly parts: Parts | undefined;
   readonly content: { view: ReaderViewContent; blocks: readonly Block[]; startAt: number } | undefined;
   readonly topPage: number;
   enter(): void;
@@ -225,6 +229,20 @@ function useLeaveOnNewDocument(document: unknown, layout: ShellLayout, leave: ()
 }
 
 /**
+ * Loads the column's code, then switches to the column by passing it to `show`, unless `current` says a later
+ * entry or exit has taken over. The code comes first so the view transition captures the column
+ * at once.
+ */
+function showColumn(current: () => boolean, show: (parts: Parts) => void): void {
+  void loadParts().then(
+    (loaded) => {
+      if (current()) switchView(() => show(loaded));
+    },
+    () => undefined,
+  );
+}
+
+/**
  * Entering reads the open document's reflow and starts the column at the block at the view's
  * top; leaving brings that block's place on its page back to the view's top. A new document
  * (`document`), or none, leaves reader mode.
@@ -235,7 +253,8 @@ function useReaderContent(
   viewer: Viewer | undefined,
   document: unknown,
 ): ReaderContent {
-  const [on, setOn] = useState(false);
+  const [parts, setParts] = useState<Parts>();
+  const on = parts !== undefined;
   const [content, setContent] = useState<ReaderContent["content"]>();
   const top = useRef(0);
   const [topPage, setTopPage] = useState(0);
@@ -243,7 +262,7 @@ function useReaderContent(
   const turn = useRef(0);
   useLeaveOnNewDocument(document, layout, () => {
     turn.current += 1;
-    setOn(false);
+    setParts(undefined);
     setContent(undefined);
   });
   const enter = useCallback(() => {
@@ -253,8 +272,8 @@ function useReaderContent(
     const at = viewer?.pointAt(16, 16);
     const height = at === undefined ? undefined : engine.getState().pages[at.page]?.height;
     const point = at === undefined || height === undefined ? undefined : { page: at.page, y: at.y * height };
-    setOn(true);
     setContent(undefined);
+    showColumn(() => mine === turn.current, setParts);
     void engine.reflow().then(
       (reflow) => {
         if (mine !== turn.current) return;
@@ -273,9 +292,11 @@ function useReaderContent(
   const leaveTo = useCallback(
     (to: JumpTarget | undefined) => {
       turn.current += 1;
-      setOn(false);
-      if (layout.getState().inspector?.id === READER_SETTINGS_PANEL) layout.closeInspector();
-      jump(to);
+      switchView(() => {
+        setParts(undefined);
+        if (layout.getState().inspector?.id === READER_SETTINGS_PANEL) layout.closeInspector();
+        jump(to);
+      });
     },
     [layout, jump],
   );
@@ -300,7 +321,7 @@ function useReaderContent(
     },
     [content],
   );
-  return { on, content, topPage, enter, leave, leaveAt, openPage, onTopBlock };
+  return { on, parts, content, topPage, enter, leave, leaveAt, openPage, onTopBlock };
 }
 
 /** The view's content for `reflow`: its blocks, and why it is approximate when it is. */
@@ -353,10 +374,10 @@ export function useReaderMode(
   const reader = useReaderContent(engine, layout, viewer, document);
   const [settings, setSettings] = useReaderSettings(platform);
   const settingsOpen = useStoreState(layout, (s) => s.inspector?.id === READER_SETTINGS_PANEL);
-  const { on, content, leave } = reader;
-  const view = on ? (
-    <Suspense fallback={null}>
-      <ReaderView
+  const { on, parts, content, leave } = reader;
+  const view =
+    on && parts !== undefined ? (
+      <parts.ReaderView
         content={content?.view ?? { status: "loading" }}
         settings={settings}
         pageName={pageLabel(pages, reader.topPage)}
@@ -368,15 +389,13 @@ export function useReaderMode(
         onOpenPage={reader.openPage}
         nameOfPage={(page: number) => pageLabel(pages, page)}
       />
-    </Suspense>
-  ) : undefined;
-  const inspector = settingsOpen ? (
-    <Inspector layout={layout}>
-      <Suspense fallback={null}>
-        <ReaderSettingsPanel settings={settings} onChange={setSettings} onClose={() => layout.closeInspector()} />
-      </Suspense>
-    </Inspector>
-  ) : undefined;
+    ) : undefined;
+  const inspector =
+    settingsOpen && parts !== undefined ? (
+      <Inspector layout={layout}>
+        <parts.ReaderSettingsPanel settings={settings} onChange={setSettings} onClose={() => layout.closeInspector()} />
+      </Inspector>
+    ) : undefined;
   const status = on ? (
     <StatusBarItem key="reader-mode" onPress={leave}>
       {message(
