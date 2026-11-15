@@ -171,6 +171,10 @@ name = "mark_up"
 required-features = ["extract"]
 
 [[example]]
+name = "review_comments"
+required-features = ["extract"]
+
+[[example]]
 name = "duplicate_pages"
 
 [[example]]

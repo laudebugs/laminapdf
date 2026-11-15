@@ -40,6 +40,8 @@ mod common;
 /// capability: D.01 core round-trip
 /// capability: D.02 core round-trip
 /// capability: D.03 core round-trip
+/// capability: D.10 core round-trip
+/// capability: D.11 core round-trip
 #[test]
 fn every_case_saves_or_refuses_as_expected_and_reopens_in_lamina() {
     let suite = common::roundtrip::run(&common::fixtures_dir().join(".."));
