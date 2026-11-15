@@ -10,7 +10,7 @@
 | ADRs | Implements ADR 0014 (client side). Follows ADR 0008 (security baseline), ADR 0011 (privacy) |
 | Branch | `feat/d5b-desktop-updater` |
 | PR title | `feat(desktop): wire the updater with channels, settings and the install-ID header` |
-| Size | L (600–1,100 lines; the staging workflow moved to [D5c](../ongoing/D5c-desktop-update-e2e.md)) |
+| Size | L (600–1,100 lines; the staging workflow moved to [D5c](./D5c-desktop-update-e2e.md)) |
 | PR | [#617](https://github.com/laudebugs/laminapdf/pull/617) |
 
 ## Goal
@@ -59,14 +59,14 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 - [x] Commands + capabilities (separate `capabilities/settings.json` for the `settings` window, created in D4b and already listed in `app.security.capabilities` and `tauri.e2e.conf.json`; extend the forbidden-permissions guard from D2a to forbid `updater:` in any capability). Done otherwise: see Decisions and deviations.
 - [x] Settings UI in `@laminapdf/ui` (desktop-only section rendered when `Platform.hasUpdater`). Done otherwise: see Decisions and deviations.
 - [x] Menu wiring.
-- [ ] ~~Staging e2e workflow (above) with a test updater keypair (`pnpm tauri signer generate`) stored as `TAURI_TEST_SIGNING_PRIVATE_KEY`; document that this key is **not** the production key.~~ Moved to [D5c](../ongoing/D5c-desktop-update-e2e.md), with a throwaway key made in each run instead of a stored one.
+- [ ] ~~Staging e2e workflow (above) with a test updater keypair (`pnpm tauri signer generate`) stored as `TAURI_TEST_SIGNING_PRIVATE_KEY`; document that this key is **not** the production key.~~ Moved to [D5c](./D5c-desktop-update-e2e.md), with a throwaway key made in each run instead of a stored one.
 - [x] Privacy: update the privacy page draft (owned by web C7/ADR 0011) with the update endpoint data and the reset option — via a PR note if the page doesn't exist yet. Done otherwise: see Decisions and deviations.
 
 ## Acceptance criteria
 
-- [ ] ~~On macOS, Windows and Linux (AppImage), an installed `0.0.1` updates to `0.0.2` from the `staging` channel without user interaction beyond what `installMode: passive` shows (`local`-mode CI run green on all three OSes in the PR; run linked).~~ Moved to [D5c](../ongoing/D5c-desktop-update-e2e.md).
-- [ ] ~~The workflow's `pull_request` jobs reference no secrets and no environment; only `staging`-mode jobs use the `desktop-staging` environment (checked by reading the workflow in review).~~ Moved to [D5c](../ongoing/D5c-desktop-update-e2e.md).
-- [ ] ~~A tampered bundle is rejected on each OS (signature error logged; app remains on 0.0.1) — same workflow.~~ Moved to [D5c](../ongoing/D5c-desktop-update-e2e.md).
+- [ ] ~~On macOS, Windows and Linux (AppImage), an installed `0.0.1` updates to `0.0.2` from the `staging` channel without user interaction beyond what `installMode: passive` shows (`local`-mode CI run green on all three OSes in the PR; run linked).~~ Moved to [D5c](./D5c-desktop-update-e2e.md).
+- [ ] ~~The workflow's `pull_request` jobs reference no secrets and no environment; only `staging`-mode jobs use the `desktop-staging` environment (checked by reading the workflow in review).~~ Moved to [D5c](./D5c-desktop-update-e2e.md).
+- [ ] ~~A tampered bundle is rejected on each OS (signature error logged; app remains on 0.0.1) — same workflow.~~ Moved to [D5c](./D5c-desktop-update-e2e.md).
 - [x] The request to the update endpoint carries `Lamina-Install-Id` as a header and not in the URL (unit test of the builder config + a Worker-side assertion in the staging run). The unit test is `update::plan`'s; the Worker-side assertion moved to D5c.
 - [x] Disabling updates stops all update network requests (unit test on the scheduler; manual check with a proxy). The unit tests are `update::plan`'s: with updates off, no check is planned, and every request goes through that plan. The proxy check is in the PR.
 - [x] Managed policy overrides user settings on each OS (unit tests for the parsers; manual check on Windows registry and macOS profile). The unit tests are `update::policy`'s and `laminapdf-desktop-os`'s; the manual checks are listed in the PR for the owner, who has the machines (owner's standing go-ahead, 2026-11-15: they don't block the merge).

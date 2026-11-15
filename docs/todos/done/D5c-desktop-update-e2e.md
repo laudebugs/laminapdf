@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `D5c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §6 D5](../../plans/desktop-app.md#d5-update-service) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D5b](../done/D5b-updater-in-app.md) |
+| Depends on | [D5b](./D5b-updater-in-app.md) |
 | ADRs | Follows ADR 0014 (endpoint, channels, staging bucket), ADR 0008 (the `e2e` feature stays out of release builds) |
 | Branch | `ci/d5c-desktop-update-e2e` |
 | PR title | `ci(desktop): test the update from 0.0.1 to 0.0.2, and a tampered bundle, on three OSes` |
@@ -44,10 +44,10 @@ Show that an installed Lamina PDF `0.0.1` updates itself to `0.0.2` on macOS, Wi
 
 ## Acceptance criteria
 
-- [ ] On macOS, Windows and Linux (AppImage), an installed `0.0.1` updates to `0.0.2` from the `staging` channel with no input beyond what `installMode: passive` shows (the `local`-mode run green on all three OSes in the PR; run linked).
-- [ ] A tampered bundle is refused on each OS: the signature error is logged and the app stays on `0.0.1` (same workflow).
-- [ ] The workflow's `pull_request` jobs name no secret and no environment; only `staging`-mode jobs use `desktop-staging` (a `workflows.rs` test holds it).
-- [ ] The update request carries `Lamina-Install-Id` as a header, never in the URL (asserted in the run).
+- [x] On macOS, Windows and Linux (AppImage), an installed `0.0.1` updates to `0.0.2` from the `staging` channel with no input beyond what `installMode: passive` shows (the `local`-mode run green on all three OSes in the PR; run linked). [run 43717200595](https://github.com/laudebugs/laminapdf/actions/runs/43717200595): each OS reported `started 0.0.1`, `ready 0.0.2`, `started 0.0.2`.
+- [x] A tampered bundle is refused on each OS: the signature error is logged and the app stays on `0.0.1` (same workflow). Each OS reported `failed: The signature verification failed`, and the next step started on `0.0.1`.
+- [x] The workflow's `pull_request` jobs name no secret and no environment; only `staging`-mode jobs use `desktop-staging` (a `workflows.rs` test holds it): `the_update_tests_pull_request_job_should_hold_no_secret`, which also reads the local actions the job uses.
+- [x] The update request carries `Lamina-Install-Id` as a header, never in the URL (asserted in the run): every request, 0.0.2's included, through the test's recording proxy.
 
 ## Post-merge checks
 
@@ -74,7 +74,7 @@ Show that an installed Lamina PDF `0.0.1` updates itself to `0.0.2` on macOS, Wi
 
 ## Definition of done
 
-- [ ] Work PR from a fresh worktree; its first commit moves this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages)
-- [ ] CI green
-- [ ] This file moved to `done/` in the work PR (Status `done`), plan to-do ticked, board regenerated
+- [x] Work PR from a fresh worktree; its first commit moves this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages)
+- [x] CI green
+- [x] This file moved to `done/` in the work PR (Status `done`), plan to-do ticked, board regenerated
