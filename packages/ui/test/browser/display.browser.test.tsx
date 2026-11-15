@@ -17,8 +17,8 @@ afterEach(cleanup);
 
 declare module "vitest/browser" {
   interface BrowserCommands {
-    /** Makes the page prefer reduced motion, or stop preferring it with `null`. */
-    reducedMotion: (value: "reduce" | null) => Promise<void>;
+    /** Makes the page prefer reduced motion or not, whatever the system says, or follow the system again with `null`. */
+    reducedMotion: (value: "reduce" | "no-preference" | null) => Promise<void>;
   }
 }
 
@@ -171,9 +171,12 @@ describe("reduced motion", () => {
 
   it("keeps fades and drops movement when the system asks", async () => {
     const el = control();
+    // The runner's own setting may already ask for reduced motion (CI's macOS WebKit did): start
+    // from no preference, so the scale has something to drop from.
+    await commands.reducedMotion("no-preference");
+    onTestFinished(() => commands.reducedMotion(null));
     expect(scaleOf(el)).toBeCloseTo(0.97);
     await commands.reducedMotion("reduce");
-    onTestFinished(() => commands.reducedMotion(null));
     expect(getComputedStyle(el).transitionDuration).toBe("0.08s");
     expect(scaleOf(el)).toBe(1);
   });
