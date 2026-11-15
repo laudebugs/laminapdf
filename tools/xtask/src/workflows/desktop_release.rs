@@ -64,7 +64,8 @@ fn the_plan_and_the_dry_run_should_read_no_secret_and_use_no_environment() {
     for (id, lines) in jobs(&text) {
         if id == "plan" || id == "build-dry-run" {
             assert_eq!(environment(&lines), None, "{id}");
-            assert!(secrets(&lines).is_empty(), "{id} reads {:?}", secrets(&lines));
+            // The message names the job only: CodeQL treats any secret's name in a log as a leak.
+            assert!(secrets(&lines).is_empty(), "{id} reads a secret");
         }
     }
 }
@@ -77,7 +78,7 @@ fn every_job_that_reads_a_secret_should_name_its_environment() {
         if read.is_empty() {
             continue;
         }
-        let env = environment(&lines).unwrap_or_else(|| panic!("{id} reads {read:?} with no environment"));
+        let env = environment(&lines).unwrap_or_else(|| panic!("{id} reads a secret with no environment"));
         assert!(env == "desktop-nightly" || env == "desktop-release", "{id}: {env}");
         let condition = lines
             .iter()
