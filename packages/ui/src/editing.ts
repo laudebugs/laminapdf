@@ -60,7 +60,6 @@ export {
   selectionNote,
 } from "./organise/dialogs.js";
 export {
-  FileCard,
   type FromFileChoice,
   type FromFileWhere,
   PagesFromFileDialog,
