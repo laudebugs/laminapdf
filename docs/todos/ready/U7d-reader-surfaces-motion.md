@@ -1,0 +1,77 @@
+# U7d — The reader's own surfaces: thumbnails, panels, tool cursors
+
+| Field | Value |
+| --- | --- |
+| ID | `U7d` |
+| Status | `ready` |
+| Plan | [Motion and interaction states](../../plans/motion-and-states.md) |
+| Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
+| Depends on | [U7b](./U7b-control-states-and-cursors.md) |
+| ADRs | Follows 0024 (tokens in layers), 0010 (capability flags) |
+| Branch | `feat/u7d-reader-surfaces-motion` |
+| PR title | `feat(web): thumbnails, panels and tool cursors follow the state rules` |
+| Size | M (200–600) |
+| PR | — |
+
+## Goal
+
+Bring the reader's surfaces that aren't plain controls under plan §4: thumbnails get hover and pressed states; the inspector opens by `transform` and `opacity` in a dock that takes its width at once, and the phone top bar leaves by `translateY`, so neither animates layout; a creation tool's cursor wins over the text layer's I-beam, and the hand tool shows `grab` and `grabbing`; the remaining raw `:hover` rules (document tabs, history rows, threads, the rail handle) move behind the guard; and a test fails the build on any control with the wrong cursor.
+
+## Context
+
+- [Plan §2](../../plans/motion-and-states.md#2-what-the-apps-do-today-2026-11-14): `apps/web/src/app.css:83-113` (thumbnails), `shell.css:58-68` (inspector), `phone.css:26-36`, `text-layer.ts:275` vs `tools.ts:157`, `document-tabs.css:40,99-106`, `history.css:65`, `threads.css:79-80`, `shell.css:26`
+
+## Scope
+
+**In scope**
+
+- Thumbnails' states
+- Inspector and phone top bar motion without layout animation
+- Tool cursors over the text and link layers (the tool's cursor set on the layer root wins; spans inherit unless the tool is text selection)
+- The remaining raw `:hover` rules
+- A Playwright test over the built reader recording every control's computed cursor (plan §6)
+
+**Out of scope**
+
+- The desktop's tab strip → U7f, U7g
+
+## Tasks
+
+- [ ] Thumbnails
+- [ ] Inspector and phone bar
+- [ ] Tool cursors
+- [ ] Raw `:hover` rules
+- [ ] The cursor test
+
+## Acceptance criteria
+
+- [ ] The Link tool shows its crosshair over page text; text selection still shows the I-beam
+- [ ] Opening the inspector moves nothing in the page view during its animation (the canvas width is set on the first frame)
+- [ ] The cursor test passes on main's reader and fails if one button's cursor is changed back to `default`
+
+## Post-merge checks
+
+None.
+
+## Tests
+
+- The cursor test (Chromium, Firefox, WebKit)
+- The viewer's browser tests for the text layer
+- The reader's e2e suite
+
+## Docs to update
+
+- Plan §7: point this todo at `done/`
+
+## Risks and open questions
+
+- The inspector's dock width is part of the shell's layout state; changing how it opens must keep the saved rail and inspector widths
+
+## Definition of done
+
+- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] Every change people see tried in the built app, as a person uses it (CLAUDE.md, [bug triage §7](../../guidelines/bug-triage.md#7-prove-the-fix))
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [ ] CI green
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
