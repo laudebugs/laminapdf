@@ -34,6 +34,7 @@ import { pdfUaReport } from "../../examples/pdf-ua-report.js";
 import { report } from "../../examples/report.js";
 import { resizePages } from "../../examples/resize-pages.js";
 import { reviewComments } from "../../examples/review-comments.js";
+import { addContents } from "../../examples/create-contents-page.js";
 import { openOn } from "../../examples/set-initial-view.js";
 import { splitDocument } from "../../examples/split-document.js";
 import { exampleOptions, HELLO_OPTIONS } from "./hello-options.js";
@@ -87,6 +88,8 @@ const ANSWERED_AT = "D:20261031090000Z";
 const OUTLINE_PDF = "fixtures/corpus/outline.pdf";
 /** The document edit-bookmarks edits. */
 const BOOKMARKS_PDF = "fixtures/golden/links-and-outlines.pdf";
+/** The file create-contents-page-pdfua adds a contents page to: one that claims PDF/UA-1. */
+const PDF_UA_PDF = "fixtures/golden/examples/pdf_ua_report.pdf";
 /** The PDF/A-2b file edit-xmp records a review in. */
 const PDFA_2B_PDF = "fixtures/golden/examples/pdf_a_archive-2b.pdf";
 /** The document organise-pages organises: five pages, with bookmarks, links and named destinations that point at the third. */
@@ -228,6 +231,18 @@ export const EXAMPLES: readonly Example[] = [
     golden: "set_initial_view",
     inputs: [OUTLINE_PDF],
     build: (i) => openOn(input(i, OUTLINE_PDF), 1),
+  },
+  {
+    name: "create-contents-page",
+    golden: "create_contents_page",
+    inputs: [BOOKMARKS_PDF, NOTO],
+    build: (i) => addContents(input(i, BOOKMARKS_PDF), input(i, NOTO)),
+  },
+  {
+    name: "create-contents-page-pdfua",
+    golden: "create_contents_page-pdfua",
+    inputs: [PDF_UA_PDF, NOTO],
+    build: (i) => addContents(input(i, PDF_UA_PDF), input(i, NOTO)),
   },
   {
     name: "edit-bookmarks",

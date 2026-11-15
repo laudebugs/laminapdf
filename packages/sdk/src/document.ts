@@ -5,6 +5,7 @@
 import type { WasmDocument, WasmPage, WasmSaveJob } from "@laminapdf/wasm/base";
 import type { WasmDocument as ExtractWasmDocument, PageTextJs, WasmExtractJob } from "@laminapdf/wasm/extract";
 import { isLaminaPdfError, type LaminaPdfWarning, packageError } from "./errors.js";
+import type { Font } from "./font.js";
 import { type ExtractFormat, type ExtractOptions, type ExtractResult, parseExtract } from "./extract.js";
 import { ExtractJob, type ExtractJobOptions } from "./extract-job.js";
 import { type BaseGlue, extractsText, readingModule } from "./init.js";
@@ -1187,6 +1188,49 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * Inserts a contents page made from the bookmarks, in one transaction (one undo step). It lists
+   * the bookmarks that go to a page, one or two levels deep, each with the label its page shows
+   * once the contents page is in and a link to that page. Bookmarks that open a web address, or
+   * go nowhere, are left out. Needs a document opened while the text module was loaded.
+   *
+   * @example
+   * ```ts
+   * await init({ text: true });
+   * const doc = Document.open(bytes);
+   * doc.createContentsPage({ font: Font.fromBytes(fontBytes), bookmark: true });
+   * ```
+   * @param options - where it goes (`at`, before the first page by default), how many levels it
+   *   lists (`levels`, 1 or 2), its heading (`title`), whether a bookmark for it goes first in the
+   *   outline (`bookmark`), its font and fallbacks, and the entries' size in points (`size`).
+   * @throws {@link LaminaPdfError} `text-module-not-loaded` for a document opened without the text
+   *   module; `no-bookmarks` when no bookmark goes to a page; `font-not-embedded` for the default
+   *   font on a file that claims PDF/A or PDF/UA-1; `missing-glyph` for a title no font can draw;
+   *   as {@link Document.apply}.
+   *
+   * @since 0.5.0
+   */
+  createContentsPage(options: ContentsPageOptions = {}): Edited {
+    this.#notInTransaction("createContentsPage");
+    const doc = this.#doc as WasmDocument & {
+      createContentsPage?: (options: object, fonts: object[]) => Edited;
+    };
+    if (typeof doc.createContentsPage !== "function") {
+      throw packageError(
+        "text-module-not-loaded",
+        "createContentsPage() needs a document opened while the text module was loaded",
+      );
+    }
+    const { font, fallbacks = [], ...rest } = options;
+    const fonts = (font === undefined ? [] : [font, ...fallbacks]).map((f) =>
+      f.standard !== undefined
+        ? { standard: f.standard }
+        : { bytes: f.bytes, ...(f.index === undefined ? {} : { index: f.index }) },
+    );
+    const create = doc.createContentsPage.bind(doc);
+    return this.call(() => create(rest, fonts));
+  }
+
+  /**
    * Replaces the document's page labels, the names viewers show for pages ("iv", "A-3"), in one
    * transaction (`setPageLabels`). Each range names its first page by ID and labels the pages up
    * to the next range; the first must be on the first page, the rest follow in page order. No
@@ -1716,4 +1760,29 @@ export class Document extends Handle<BaseGlue> {
     // A range document's fetched bytes live in its sparse source.
     this.#range?.sparse.free();
   }
+}
+
+/**
+ * How {@link Document.createContentsPage} makes a contents page. Every field has a default.
+ *
+ * @since 0.5.0
+ */
+export interface ContentsPageOptions {
+  /** Where it goes: before the first page when left out. */
+  readonly at?: PagePosition;
+  /** The levels of bookmarks it lists: 1, or 2 (the default). */
+  readonly levels?: 1 | 2;
+  /** The heading at its top: "Contents" when left out. */
+  readonly title?: string;
+  /** Whether a bookmark for the contents page goes first in the outline (no by default). */
+  readonly bookmark?: boolean;
+  /**
+   * Its font: Helvetica when left out, which isn't embedded, so a file that claims PDF/A or
+   * PDF/UA-1 refuses it.
+   */
+  readonly font?: Font;
+  /** Fonts for the characters `font` lacks, tried in order (used only with `font`). */
+  readonly fallbacks?: readonly Font[];
+  /** The entries' size in points: 11 when left out. The heading is half again as large. */
+  readonly size?: number;
 }

@@ -48,6 +48,7 @@ export const DOCUMENT_METHODS = {
   applyLog: 1,
   canExtractText: 0,
   commentThreads: 1,
+  createContentsPage: 1,
   cropPages: 2,
   caretAt: 2,
   deleteAnnotations: 1,
