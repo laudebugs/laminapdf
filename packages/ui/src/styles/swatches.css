@@ -27,8 +27,7 @@
     padding: 0;
     border: 0;
     border-radius: var(--paper-radius-pill);
-    background: transparent;
-    cursor: default;
+    background-color: transparent;
   }
 
   .paper-swatch-group[data-size="28"] .paper-swatch {

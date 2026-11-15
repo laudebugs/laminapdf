@@ -179,7 +179,8 @@ describe(`link previews in ${BROWSER}`, () => {
     await link.hover();
     await tooltip(page).waitFor();
     await page.keyboard.press("Escape");
-    expect(await tooltip(page).count()).toBe(0);
+    // Polled: the preview fades out for 80 ms before it leaves the page.
+    await expect.poll(() => tooltip(page).count()).toBe(0);
     await page.close();
   });
 
@@ -247,7 +248,7 @@ describe(`link previews in ${BROWSER}`, () => {
     await expect.poll(() => tooltip(page).count(), { timeout: 2000 }).toBe(0);
     await page.getByRole("link", { name: "The project site" }).hover();
     await page.waitForTimeout(600);
-    expect(await tooltip(page).count()).toBe(0);
+    await expect.poll(() => tooltip(page).count()).toBe(0);
     await page.close();
   });
 
@@ -296,7 +297,7 @@ describe(`link previews in ${BROWSER}`, () => {
       });
       await page.getByRole("link", { name: "Link to page 3" }).first().tap();
       await expect.poll(() => addressPage(page)).toBe("3");
-      expect(await page.getByRole("dialog").count()).toBe(0);
+      await expect.poll(() => page.getByRole("dialog").count()).toBe(0);
       await page.close();
     });
   });

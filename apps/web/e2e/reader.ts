@@ -199,6 +199,15 @@ export const bytes = (name: string): number[] => [...readFileSync(new URL(name, 
 
 /** axe's serious and critical violations on the page now, as `id: targets`, without the rules `off`. */
 export async function serious(page: Page, off: readonly string[] = []): Promise<string[]> {
+  // Overlays fade in: axe measures contrast once the page's finite animations have ended (a
+  // cancelled one rejects, and counts as ended).
+  await page.evaluate(async () => {
+    for (let i = 0; i < 2; i++) await new Promise(requestAnimationFrame);
+    const ending = document
+      .getAnimations()
+      .filter((a) => a.effect?.getComputedTiming().endTime !== Number.POSITIVE_INFINITY);
+    await Promise.all(ending.map((a) => a.finished.catch(() => undefined)));
+  });
   await page.evaluate(axe.source);
   return page.evaluate(async (off) => {
     const run = (window as unknown as { axe: typeof axe }).axe;

@@ -247,7 +247,7 @@
   }
 
   .paper-xmp-item[data-selected] .paper-outline-link {
-    background: var(--paper-accent-tint);
+    background-color: var(--paper-accent-tint);
     color: var(--paper-accent);
   }
 
@@ -283,7 +283,7 @@
   @media (forced-colors: active) {
     .paper-xmp-item[data-selected] .paper-outline-link {
       forced-color-adjust: none;
-      background: Highlight;
+      background-color: Highlight;
       color: HighlightText;
     }
   }

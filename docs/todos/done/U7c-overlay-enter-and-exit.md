@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `U7c` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
-| Depends on | [U7a](../done/U7a-motion-and-state-tokens.md) |
+| Depends on | [U7a](./U7a-motion-and-state-tokens.md) |
 | ADRs | Follows [0024](../../decisions/0024-app-shell-ux.md) (tokens in layers) |
 | Branch | `feat/u7c-overlay-enter-and-exit` |
 | PR title | `feat(ui): menus, dialogs and toasts fade in and out` |
 | Size | M (200–400) |
-| PR | — |
+| PR | [#630](https://github.com/laudebugs/laminapdf/pull/630) |
 
 ## Goal
 
@@ -45,18 +45,18 @@ Make overlays enter and leave as the owner chose (2026-11-14), and let an overla
 
 ## Tasks
 
-- [ ] Small overlays
-- [ ] Panels and sheets
-- [ ] The drawer and scrim
-- [ ] Exit never blocks input
-- [ ] Reduced motion
-- [ ] The built-reader overlay test
+- [x] Small overlays
+- [x] Panels and sheets
+- [x] The drawer and scrim
+- [x] Exit never blocks input
+- [x] Reduced motion
+- [x] The built-reader overlay test
 
 ## Acceptance criteria
 
-- [ ] Opening and closing each overlay in the built reader shows the fade and scale; with reduced motion, a fade only
-- [ ] A second click during a menu's exit reaches what is under it
-- [ ] The palette opens and closes in the same frame as its shortcut
+- [x] Opening and closing each overlay in the built reader shows the fade and scale; with reduced motion, a fade only
+- [x] A second click during a menu's exit reaches what is under it
+- [x] The palette opens and closes in the same frame as its shortcut
 
 ## Post-merge checks
 
@@ -75,12 +75,14 @@ None.
 ## Risks and open questions
 
 - React Aria keeps an exiting overlay in the DOM until its animation ends: an animation that never ends (a hidden tab) must not leave a ghost; test with `animationend` missing
+  - Answered in #630: the overlays Lamina PDF times (Presence, toasts) leave after the exit token's time, whatever the transition does. React Aria's own Popover, Modal and Tooltip wait on the element's animations. Unverified: browsers throttle a hidden tab's frames, so such an exit should finish when the tab draws again rather than never; no engine the tests drive can hold a page undrawn, so this stays a watched risk.
+- Reopening a menu within its 80 ms exit leaves keyboard focus on the page: [#631](https://github.com/laudebugs/laminapdf/issues/631)
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] Every change people see tried in the built app, as a person uses it (CLAUDE.md, [bug triage §7](../../guidelines/bug-triage.md#7-prove-the-fix))
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Every change people see tried in the built app, as a person uses it (CLAUDE.md, [bug triage §7](../../guidelines/bug-triage.md#7-prove-the-fix))
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

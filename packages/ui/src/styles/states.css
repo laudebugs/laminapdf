@@ -24,7 +24,11 @@
     .paper-tab,
     .paper-menu-item,
     .paper-status-item,
-    .paper-palette-row
+    .paper-palette-row,
+    .paper-swatch,
+    .paper-appearance-chip,
+    button.paper-outline-toggle,
+    .paper-outline-link
   ) {
     cursor: var(--paper-cursor-action);
     background-image: linear-gradient(var(--ui-state-layer) 0 0);
@@ -54,13 +58,20 @@
     }
   }
 
-  /* Hover as a fill: buttons, toggles and status items. Tabs and modes darken their label instead,
-     and a menu item or palette row's focus tint already follows the pointer. */
-  :where(.paper-button, .paper-icon-button, .paper-toggle, .paper-tool-toggle, .paper-status-item)[data-hovered]:not(
-    [data-pressed],
-    [data-disabled],
-    [data-pending]
-  ) {
+  /* Hover as a fill: buttons, toggles, status items, swatches, page-appearance chips and outline
+     rows. Tabs and modes darken their label instead, and a menu item or palette row's focus tint
+     already follows the pointer. */
+  :where(
+    .paper-button,
+    .paper-icon-button,
+    .paper-toggle,
+    .paper-tool-toggle,
+    .paper-status-item,
+    .paper-swatch,
+    .paper-appearance-chip,
+    button.paper-outline-toggle,
+    .paper-outline-link
+  )[data-hovered]:not([data-pressed], [data-disabled], [data-pending]) {
     --ui-state-layer: var(--paper-hover);
   }
 

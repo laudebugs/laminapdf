@@ -32,6 +32,7 @@ const NOT_DRAWN: Readonly<Record<string, string>> = {
   Announcer: "the live regions' store of what to say, not a component",
   LiveRegions: "two live regions screen readers hear, drawn out of sight",
   SettingsRegistry: "the Settings dialog's store of sections, which the dialogs route fills",
+  Presence: "keeps an overlay mounted for its exit; the overlays that use it are on their routes",
 };
 
 /** The package's entries that export components: the root, `./dialogs`, `./editing` and `./reader-mode`. */

@@ -13,7 +13,7 @@ import {
   SelectionToolbarDivider,
   TextInput,
 } from "../../src/index.ts";
-import { cleanup, focused, renderIn } from "./render.tsx";
+import { cleanup, focused, renderIn, settled } from "./render.tsx";
 
 afterEach(() => {
   cleanup();
@@ -87,7 +87,12 @@ describe("SelectionToolbar", () => {
     const words = host.querySelector("span") as HTMLElement;
     const scroller = host.querySelector("[data-testid=scroller]") as HTMLElement;
     renderIn(<Selection anchor={() => words.getBoundingClientRect()} />);
-    await frame();
+    // Measured once its entry has ended: while it grows from 0.97, its box isn't its resting one.
+    await Promise.all(
+      toolbar()
+        .getAnimations()
+        .map((a) => a.finished),
+    );
     const before = toolbar().getBoundingClientRect().top;
     scroller.scrollTop = 100;
     scroller.dispatchEvent(new Event("scroll"));
@@ -371,7 +376,8 @@ describe("CommandPalette", () => {
     await userEvent.keyboard("{ArrowDown}{ArrowDown}{Enter}");
     expect(onAction).toHaveBeenCalledWith("edit.copy");
     await userEvent.keyboard("{Escape}");
-    expect(document.querySelector("[role=dialog]")).toBeNull();
+    // Polled: an overlay plays its exit before it leaves the page.
+    await expect.poll(() => document.querySelector("[role=dialog]")).toBeNull();
   });
 
   it("passes the query out, shows the empty state, and a page in place of the list", async () => {
@@ -396,7 +402,8 @@ describe("CommandPalette", () => {
     const box = (document.querySelector(".paper-palette") as HTMLElement).getBoundingClientRect();
     const overlay = document.querySelector(".paper-palette-overlay") as HTMLElement;
     await userEvent.click(overlay, { position: { x: box.left + box.width / 2, y: box.bottom + 100 } });
-    expect(document.querySelector("[role=dialog]")).toBeNull();
+    // Polled: an overlay plays its exit before it leaves the page.
+    await expect.poll(() => document.querySelector("[role=dialog]")).toBeNull();
   });
 
   it("shows the empty state, and no overlines, when every section is empty", async () => {
@@ -463,6 +470,7 @@ describe("CommandPalette", () => {
 
 describe.each(["light", "dark", "high-contrast"] as const)("axe, %s theme", (theme) => {
   const check = async (rules: axe.RuleObject = {}) => {
+    await settled();
     const result = await axe.run(document.body, {
       runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] },
       rules,

@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `U7i` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
-| Depends on | [U7a](../done/U7a-motion-and-state-tokens.md) |
+| Depends on | [U7a](./U7a-motion-and-state-tokens.md) |
 | ADRs | Follows [0024](../../decisions/0024-app-shell-ux.md) (tokens in layers) |
 | Branch | `feat/u7i-choice-and-field-states` |
 | PR title | `feat(ui): choices, fields and rows follow the state rules` |
 | Size | M (200–400) |
-| PR | — |
+| PR | [#629](https://github.com/laudebugs/laminapdf/pull/629) |
 
 ## Goal
 
@@ -43,18 +43,18 @@ Apply plan §4.2 to the controls in `@laminapdf/ui` that choose, take input or l
 
 ## Tasks
 
-- [ ] Choices, with their `<label>` elements added to base.css's tap-highlight rule once they draw a pressed state
-- [ ] The switch knob
-- [ ] Fields
-- [ ] Outline rows
-- [ ] Gallery states and cursor checks
+- [x] Choices, with their `<label>` elements added to base.css's tap-highlight rule once they draw a pressed state
+- [x] The switch knob
+- [x] Fields
+- [x] Outline rows
+- [x] Gallery states (`states.tsx`) and cursor checks (the UI browser tests; the gallery's screenshots weren't regenerated, as in U7b)
 
 ## Acceptance criteria
 
-- [ ] In the gallery, every choice and row shows the hand when enabled and the arrow when disabled; text fields show the I-beam
-- [ ] The switch knob slides; with reduced motion it jumps
-- [ ] An invalid field's focus ring keeps its `focus` colour
-- [ ] axe passes in three engines; contrast pairs pass
+- [x] Every choice and row shows the hand when enabled and the arrow when disabled; text fields show the I-beam (checked in the UI package's browser tests, as U7b's are)
+- [x] The switch knob slides; with reduced motion it jumps
+- [x] An invalid field's focus ring keeps its `focus` colour
+- [x] axe passes in three engines; contrast pairs pass
 
 ## Post-merge checks
 
@@ -76,9 +76,9 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] Every change people see tried in the built app, as a person uses it (CLAUDE.md, [bug triage §7](../../guidelines/bug-triage.md#7-prove-the-fix))
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Every change people see tried in the built app, as a person uses it (CLAUDE.md, [bug triage §7](../../guidelines/bug-triage.md#7-prove-the-fix))
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

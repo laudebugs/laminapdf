@@ -7,7 +7,7 @@ import axe from "axe-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { RemoveSignaturesDialog, type SavePlanSlice, SaveStrip } from "../../src/editing.ts";
-import { cleanup, focused, renderIn } from "./render.tsx";
+import { cleanup, focused, renderIn, settled } from "./render.tsx";
 
 afterEach(cleanup);
 
@@ -56,6 +56,7 @@ describe("SaveStrip", () => {
 
   it.each(["light", "dark"] as const)("has no serious axe violation in the %s theme", async (theme) => {
     const host = renderIn(<SaveStrip plan={plan("conflict")} />, { theme });
+    await settled();
     const result = await axe.run(host);
     expect(result.violations.filter((v) => v.impact === "serious" || v.impact === "critical")).toEqual([]);
   });
@@ -101,6 +102,7 @@ describe("RemoveSignaturesDialog", () => {
       if (found === null) throw new Error("no dialog yet");
       return found;
     });
+    await settled();
     const result = await axe.run(dialog);
     expect(result.violations.filter((v) => v.impact === "serious" || v.impact === "critical")).toEqual([]);
   });
