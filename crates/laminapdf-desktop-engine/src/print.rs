@@ -1,4 +1,4 @@
-//! Print bands (D4c, ADR 0008): a page rendered for printing, one band of rows at a time, so
+//! Print bands (ADR 0008 §9): a page rendered for printing, one band of rows at a time, so
 //! neither process holds a whole page at print resolution. The engine picks the band height;
 //! the main process asks for band 0 first and learns from the reply how many bands follow.
 

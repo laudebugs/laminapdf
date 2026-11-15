@@ -1,4 +1,4 @@
-//! Printing through the OS (D4c, ADR 0008): the OS's print dialog, then each page drawn from
+//! Printing through the OS (ADR 0008 §9): the OS's print dialog, then each page drawn from
 //! Lamina PDF's own rasters on paper of the page's size and orientation, with no browser headers
 //! or margins. This crate never parses a PDF: the bands come from a [`PrintSource`], which the
 //! app fills from the sandboxed engine.

@@ -1,4 +1,4 @@
-//! Print bands from a window's engine (D4c): asked one at a time, and checked like tiles, since
+//! Print bands from a window's engine (ADR 0008 §9): asked one at a time, and checked like tiles, since
 //! the engine reads untrusted files and so its answers are untrusted too.
 
 use laminapdf_desktop_protocol::{DocId, FromEngine, PrintBandRequest, ReqId, TileFormat, ToEngine};

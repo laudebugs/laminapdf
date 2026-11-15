@@ -1,4 +1,4 @@
-//! File ▸ Print (D4c, ADR 0008): the OS's print dialog, then every page rendered by this window's
+//! File ▸ Print (ADR 0008 §9): the OS's print dialog, then every page rendered by this window's
 //! sandboxed engine at print resolution and drawn into the OS's print job by
 //! `laminapdf-desktop-os`. The main process never parses the PDF and never hands it to the OS:
 //! it only moves checked pixels from the engine to the printer, one band at a time.
@@ -20,7 +20,7 @@ use tauri::Emitter as _;
 use crate::DesktopError;
 use crate::engine::{BandQuery, Engines};
 
-/// The resolution pages print at: the spike's measured cap (D1b). Higher would only enlarge the
+/// The resolution pages print at: the cap the desktop-print spike measured. Higher would only enlarge the
 /// spool for no gain on most printers; the engine lowers it for a page too wide to render at it.
 pub(crate) const PRINT_DPI: u16 = 300;
 
