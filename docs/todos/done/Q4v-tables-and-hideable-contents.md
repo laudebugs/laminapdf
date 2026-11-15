@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q4v` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Docs redesign §4](../../plans/docs-redesign.md#4-todos) |
 | Round / milestone | Round Q (docs and code quality), Q4 docs redesign |
-| Depends on | [Q4q](../done/Q4q-resizable-page-beside-the-code.md) |
+| Depends on | [Q4q](./Q4q-resizable-page-beside-the-code.md) |
 | ADRs | [ADR 0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (the CSP the inline script runs under) |
 | Branch | `claude/dazzling-sagan-s9woz0` |
 | PR title | `feat(docs): boxed tables with a header band, and a button that hides "On this page"` |
 | Size | S |
-| PR | — |
+| PR | [laudebugs/laminapdf#627](https://github.com/laudebugs/laminapdf/pull/627) |
 
 ## Goal
 
