@@ -76,6 +76,17 @@ pub enum Event {
         /// The new engine's process id.
         pid: u32,
     },
+    /// The engine exited without being asked to (before any restart): how it ended, as the
+    /// sandbox names it, and the summary its panic hook sent, if it panicked. For crash reports:
+    /// the restart policy doesn't depend on it.
+    Crashed {
+        /// How it ended (`crash: signal: 11 (SIGSEGV)`, `exit code: 3`); never document content.
+        how: String,
+        /// What its panic hook sent.
+        panic: Option<Box<crate::crash::PanicSummary>>,
+        /// What its sandbox enforced.
+        sandboxed: SandboxLevel,
+    },
     /// Too many crashes: the engine stays down.
     Failed,
     /// A line for the log (from the engine's stderr or about it). Never document content.
@@ -341,10 +352,10 @@ impl Supervisor {
             let (this, stdin, beat, done) = (self.clone(), Arc::clone(&stdin), Arc::clone(&beat), Arc::clone(&done));
             let stdout = spawned.stdout;
             thread::Builder::new().name("engine-reader".into()).spawn(move || {
-                this.read_loop(stdout, &stdin, &beat, &ready_tx);
+                let panic = this.read_loop(stdout, &stdin, &beat, &ready_tx);
                 drop(ready_tx);
                 done.store(true, Ordering::SeqCst);
-                this.exited(generation);
+                this.exited(generation, panic);
             })
         };
         let pid = started.and_then(|()| reader.map_err(|e| e.to_string())).and_then(|_| {
@@ -374,7 +385,7 @@ impl Supervisor {
             return Err(SupervisorError::Lost);
         }
         if done.load(Ordering::SeqCst) {
-            self.exited(generation);
+            self.exited(generation, None);
             return Err(SupervisorError::Lost);
         }
         let this = self.clone();
@@ -385,13 +396,15 @@ impl Supervisor {
     }
 
     /// Reads the engine's frames until it exits: replies to their waiters, reads to the files.
+    /// Returns the summary of the panic that ended it, if its panic hook sent one.
     fn read_loop(
         &self,
         mut stdout: Box<dyn Read + Send>,
         stdin: &Arc<Mutex<Box<dyn Write + Send>>>,
         beat: &Mutex<Instant>,
         ready: &mpsc::Sender<(u32, SandboxLevel)>,
-    ) {
+    ) -> Option<Box<crate::crash::PanicSummary>> {
+        let mut panic = None;
         loop {
             let (msg, payload) = match read_frame::<_, FromEngine>(&mut stdout, MAX_FRAME) {
                 Ok(frame) => frame,
@@ -420,6 +433,7 @@ impl Supervisor {
                     break;
                 }
                 FromEngine::Heartbeat => *lock(beat) = Instant::now(),
+                FromEngine::Panic(summary) => panic = Some(summary),
                 FromEngine::ReadRange { req, doc, offset, len } => {
                     if !self.serve(stdin, req, doc, offset, len) {
                         break;
@@ -437,6 +451,7 @@ impl Supervisor {
                 },
             }
         }
+        panic
     }
 
     /// Sends the system font list once the scan behind it has finished, from a thread of its own:
@@ -511,8 +526,9 @@ impl Supervisor {
         }
     }
 
-    /// The engine of `generation` is gone: fail its requests, then restart it or give up.
-    fn exited(&self, generation: u64) {
+    /// The engine of `generation` is gone: fail its requests, tell the owner how it ended, then
+    /// restart it or give up. `panic` is what its panic hook sent.
+    fn exited(&self, generation: u64, panic: Option<Box<crate::crash::PanicSummary>>) {
         let (engine, waiting, stopping) = {
             let mut state = self.state();
             let Some(engine) = state.engine.take_if(|e| e.generation == generation) else {
@@ -523,8 +539,14 @@ impl Supervisor {
         for (_, tx) in waiting {
             let _ = tx.send(Err(SupervisorError::Lost));
         }
-        self.log(format!("engine {} exited: {}", engine.pid, reap(&engine.process)));
+        let how = reap(&engine.process);
+        self.log(format!("engine {} exited: {how}", engine.pid));
         if !stopping {
+            self.emit(Event::Crashed {
+                how,
+                panic,
+                sandboxed: engine.sandboxed,
+            });
             self.crashed();
         }
     }
@@ -613,7 +635,8 @@ const fn reply_req(msg: &FromEngine) -> Option<ReqId> {
         FromEngine::Ready { .. }
         | FromEngine::ReadRange { .. }
         | FromEngine::FontRequest { .. }
-        | FromEngine::Heartbeat => None,
+        | FromEngine::Heartbeat
+        | FromEngine::Panic(_) => None,
     }
 }
 

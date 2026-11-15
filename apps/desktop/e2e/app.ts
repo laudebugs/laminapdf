@@ -213,7 +213,7 @@ async function tilesDrawn(): Promise<number> {
   return browser.execute(() => globalThis.__laminaE2e?.tilesDrawn() ?? 0);
 }
 
-async function restarts(): Promise<number> {
+export async function restarts(): Promise<number> {
   return browser.execute(() => globalThis.__laminaE2e?.restarts() ?? 0);
 }
 

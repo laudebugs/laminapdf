@@ -75,6 +75,7 @@ export const ROUTES: readonly Route[] = [
       "RemoteFailure",
       "OfflineNotice",
       "RestoreNotice",
+      "CrashNotice",
       "RecentList",
     ],
   },
@@ -119,6 +120,7 @@ export const ROUTES: readonly Route[] = [
       "PageBoxesDialog",
       "PageLabelsDialog",
       "LocateDifferentDialog",
+      "CrashReportDialog",
     ],
     states: [
       "default",
@@ -150,6 +152,9 @@ export const ROUTES: readonly Route[] = [
       "page-labels",
       "page-labels-clash",
       "locate-different",
+      "crash-main",
+      "crash-engine",
+      "crash-report",
     ],
   },
   {
