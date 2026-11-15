@@ -11,7 +11,7 @@
 | Branch | `ci/d6b-desktop-release-workflow` |
 | PR title | `ci(desktop): add the tauri-action release matrix with Linux signing and R2 publishing` |
 | Size | L (600–1,200 lines of workflow, scripts and config) |
-| PR | — |
+| PR | [#636](https://github.com/laudebugs/laminapdf/pull/636) |
 
 ## Goal
 
