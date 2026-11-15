@@ -143,7 +143,11 @@ runs:
         PLATFORM: ${{ inputs.platform }}
       run: |
         set -euo pipefail
-        out="$RUNNER_TEMP/desktop/$PLATFORM"
+        # Forward slashes on Windows (D:/a/_temp): the later steps glob this path, and a glob reads
+        # D:\a\_temp's backslashes as escapes. Windows programs (xtask) accept the same form.
+        temp="$RUNNER_TEMP"
+        if command -v cygpath > /dev/null; then temp=$(cygpath -m "$temp"); fi
+        out="$temp/desktop/$PLATFORM"
         mkdir -p "$out"
         # Globs, not find: on Windows, `find` is the system's own find.exe. Files only: the .app
         # folder ships inside the .dmg and the .app.tar.gz.
