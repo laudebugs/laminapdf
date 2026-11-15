@@ -190,7 +190,8 @@ h1#_top,
    both sidebars alike and grows the right one on wide screens. Keep its mobile dropdown.
    A reader can hide the rail (src/components/PageSidebar.astro, todo Q4v, as Claude's docs do):
    it shrinks to its button, the article widens to 68rem, and the examples beside their pages grow
-   with it (Example.astro reads both widths). */
+   with it (Example.astro reads both widths). Only pages that have the column (`data-has-toc`)
+   change; others keep their width whatever was stored. */
 .docs-toc-toggle {
   display: none;
 }
@@ -198,7 +199,7 @@ h1#_top,
   :root {
     --docs-toc-width: 14rem;
   }
-  :root[data-toc-hidden] {
+  :root[data-toc-hidden][data-has-toc] {
     --docs-toc-width: 4rem;
     --sl-content-width: 68rem;
   }
@@ -225,13 +226,15 @@ h1#_top,
     width: calc(100% - var(--docs-toc-width));
   }
   /* A 24 px circle before "On this page", in the rail's padding; hidden, a pill of the turned
-     chevron and the list, so it reads as "bring the contents back". */
+     chevron and the list, so it reads as "bring the contents back". Fixed to the window, not
+     placed in the rail, which scrolls: the button stays in view however long the list is. Its
+     inline end is the rail's width less its padding (and the circle) from the window's end. */
   .docs-toc-toggle {
     display: inline-flex;
-    position: absolute;
+    position: fixed;
     z-index: 1;
     top: calc(var(--sl-nav-height) + 1rem);
-    inset-inline-start: calc(var(--sl-sidebar-pad-x) - 0.25rem);
+    inset-inline-end: calc(var(--docs-toc-width) - var(--sl-sidebar-pad-x) + 0.25rem - 1.5rem);
     align-items: center;
     justify-content: center;
     gap: 0.125rem;
@@ -249,6 +252,9 @@ h1#_top,
     background: var(--paper-gutter);
     color: var(--paper-text);
   }
+  :root[data-theme="dark"] .docs-toc-toggle:hover {
+    background: var(--paper-raised);
+  }
   .docs-toc-toggle svg {
     width: 1rem;
     height: 1rem;
@@ -257,7 +263,6 @@ h1#_top,
     display: none;
   }
   :root[data-toc-hidden] .docs-toc-toggle {
-    inset-inline-start: auto;
     inset-inline-end: 0.625rem;
     padding-inline: 0.25rem;
   }
@@ -319,7 +324,7 @@ h1#_top,
 :root[data-theme="dark"] .sl-markdown-content th:not(:where(.not-content *)) {
   background: var(--paper-raised);
 }
-.sl-markdown-content tr:last-child > td:not(:where(.not-content *)) {
+.sl-markdown-content :is(tbody, thead:last-child) > tr:last-child > :is(th, td):not(:where(.not-content *)) {
   border-bottom: 0;
 }
 

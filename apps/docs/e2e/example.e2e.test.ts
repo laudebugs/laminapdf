@@ -293,6 +293,15 @@ describe(`hiding "On this page" in ${BROWSER} (todo Q4v)`, () => {
     await page.context().close();
   });
 
+  it("leaves a page without the column at its width when the choice is stored", async () => {
+    const { page } = await open("/cli/inspect/", 1440);
+    await page.getByRole("button", { name: "Hide “On this page”" }).click();
+    await page.goto(new URL("/reference/codes/", origin).href);
+    expect(await page.evaluate(() => document.documentElement.dataset.tocHidden)).toBeUndefined();
+    expect(await page.locator(".docs-toc-toggle").count()).toBe(0);
+    await page.context().close();
+  });
+
   it("draws tables as a box whose header row stands apart from the body", async () => {
     const { page } = await open("/cli/inspect/", 1440);
     const looks = await page.evaluate(() => {
@@ -300,17 +309,25 @@ describe(`hiding "On this page" in ${BROWSER} (todo Q4v)`, () => {
       const th = table?.querySelector("th");
       const td = table?.querySelector("td");
       if (!table || !th || !td) return null;
+      // The header band's colour as the browser resolves `--paper-gutter`, and the page's behind it.
+      const probe = document.createElement("div");
+      probe.style.background = "var(--paper-gutter)";
+      document.body.append(probe);
+      const gutter = getComputedStyle(probe).backgroundColor;
+      probe.remove();
       return {
         border: getComputedStyle(table).borderTopWidth,
         header: getComputedStyle(th).backgroundColor,
-        body: getComputedStyle(td).backgroundColor,
+        gutter,
+        page: getComputedStyle(document.body).backgroundColor,
         row: getComputedStyle(td).borderBottomWidth,
       };
     });
     expect(looks).not.toBeNull();
     expect(looks?.border).toBe("1px");
     expect(looks?.row).toBe("1px");
-    expect(looks?.header).not.toBe(looks?.body);
+    expect(looks?.header).toBe(looks?.gutter);
+    expect(looks?.header).not.toBe(looks?.page);
     await page.context().close();
   });
 });
