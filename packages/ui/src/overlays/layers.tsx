@@ -20,6 +20,11 @@ interface LayerScopeProps {
   dismiss: () => void;
   /** False while the layer asks a required question. */
   dismissable?: boolean;
+  /**
+   * The overlay is leaving (Presence): its layer leaves the stack at once, so Escape and outside
+   * clicks reach what is under it, while its content stays mounted for the exit.
+   */
+  away?: boolean;
   /** The layer's content. */
   children: ReactNode;
 }
@@ -34,7 +39,7 @@ export function useLayerOpenedHere(): () => boolean {
 }
 
 /** Keeps a layer on the stack for as long as it is mounted, and is the parent of layers opened inside it. */
-export function LayerScope({ dismiss, dismissable = true, children }: LayerScopeProps): ReactNode {
+export function LayerScope({ dismiss, dismissable = true, away = false, children }: LayerScopeProps): ReactNode {
   // The compiler can't lower the layer's getter, nor follow the latest-value ref it reads.
   "use no memo";
   const parent = useContext(ParentLayer);
@@ -49,12 +54,13 @@ export function LayerScope({ dismiss, dismissable = true, children }: LayerScope
     parent,
   }));
   useEffect(() => {
+    if (away) return;
     const remove = STACK.open(layer);
     if (STACK.size === 1) document.addEventListener("keydown", onKeyDown);
     return () => {
       remove();
       if (STACK.size === 0) document.removeEventListener("keydown", onKeyDown);
     };
-  }, [layer]);
+  }, [layer, away]);
   return <ParentLayer.Provider value={layer}>{children}</ParentLayer.Provider>;
 }

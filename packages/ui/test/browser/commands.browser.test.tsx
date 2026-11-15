@@ -1,13 +1,13 @@
 import axe from "axe-core";
 import { useState } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import type { CommandRegistry } from "../../src/commands/registry.ts";
 import type { CommandContext, CommandId } from "../../src/commands/types.ts";
 import { CommandsProvider, RecentCommands, RegistryPalette } from "../../src/index.ts";
 import { readerCommandsFor } from "../commands.tsx";
 import { FakeViewer, fakeFile, fakePlatform } from "../fakes.ts";
-import { cleanup, focused, renderIn } from "./render.tsx";
+import { cleanup, focused, renderIn, settled } from "./render.tsx";
 
 afterEach(cleanup);
 
@@ -240,6 +240,7 @@ describe("RegistryPalette", () => {
         .map((id) => document.getElementById(id));
       for (const meta of row.querySelectorAll(".paper-palette-meta")) expect(described).toContain(meta);
     }
+    await settled();
     const { violations } = await axe.run(document.body, {
       runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] },
       rules: { "label-content-name-mismatch": { enabled: false } },
@@ -278,6 +279,21 @@ describe("the shortcut dispatcher", () => {
     await userEvent.keyboard("{Control>}o{/Control}{PageDown}");
     expect(reader.openFromPicker).not.toHaveBeenCalled();
     expect(viewer.calls).toEqual([]);
+  });
+
+  it("runs a key pressed in a modal that is leaving, as its exit plays", async () => {
+    const { app } = setup();
+    renderIn(app);
+    // A dialog fading out keeps focus until it leaves the page; it no longer holds the keys.
+    const leaving = document.createElement("div");
+    leaving.setAttribute("data-exiting", "true");
+    leaving.innerHTML = '<div role="dialog" aria-modal="true"><button type="button">Open</button></div>';
+    document.body.append(leaving);
+    onTestFinished(() => leaving.remove());
+    (leaving.querySelector("button") as HTMLButtonElement).focus();
+    await userEvent.keyboard("{Control>}k{/Control}");
+    await frame();
+    expect(palette()).not.toBeNull();
   });
 
   it("keeps the page's keys inside a selection on the page", async () => {

@@ -22,7 +22,7 @@ import {
 } from "../../src/index.ts";
 import { WithCommands } from "../commands.tsx";
 import { FakeViewer, fakeFile, fakePlatform } from "../fakes.ts";
-import { cleanup, focused, renderIn } from "./render.tsx";
+import { cleanup, focused, renderIn, settled } from "./render.tsx";
 
 afterEach(cleanup);
 
@@ -170,6 +170,7 @@ describe("ReaderTopBar", () => {
         actions={{ "view.toggle-sidebar": () => {}, "palette.open": () => {}, "file.close": () => {} }}
       />,
     );
+    await settled();
     const { violations } = await axe.run(host, { resultTypes: ["violations"] });
     expect(violations.map((v) => v.id)).toEqual([]);
   });
@@ -277,9 +278,12 @@ describe("ZoomControl", () => {
     await frame();
     expect(focused().textContent).toBe("Fit width");
     await userEvent.keyboard("{Enter}");
+    // Reopened once the first menu has left: reopening during its 80 ms exit loses focus to the
+    // page (React Aria restores the old menu's focus as it unmounts; issue linked in the PR).
+    await expect.poll(() => document.querySelector(".paper-popover")).toBeNull();
     (button("Zoom, 110%") as HTMLButtonElement).focus();
     await userEvent.keyboard("{Enter}");
-    await frame();
+    await expect.poll(() => focused().closest("[role=menu]")).not.toBeNull();
     await userEvent.keyboard("{End}{Enter}");
     expect(viewer.calls).toEqual([
       { method: "setZoom", value: "fit-width" },
@@ -397,7 +401,8 @@ describe("PasswordDialog", () => {
   it("asks for the password when the document needs one, focused on the field", async () => {
     const { reader } = lockedReader();
     renderIn(<PasswordDialog reader={reader} />);
-    expect(document.querySelector("[role=dialog]")).toBeNull();
+    // Polled: an overlay plays its exit before it leaves the page.
+    await expect.poll(() => document.querySelector("[role=dialog]")).toBeNull();
     await reader.open(fakeFile("Q3-board-report.pdf"));
     await frame();
     const dialog = document.querySelector("[role=dialog]") as HTMLElement;
@@ -519,6 +524,7 @@ describe("PasswordDialog", () => {
     await frame();
     await userEvent.keyboard("x{Enter}");
     await expect.poll(() => document.querySelector("[role=alert]")).not.toBeNull();
+    await settled();
     const { violations } = await axe.run(document.querySelector("[role=dialog]") as HTMLElement, {
       resultTypes: ["violations"],
     });
@@ -645,6 +651,7 @@ describe("OpenDropZone", () => {
 
   it("passes axe, with the shell's content under it", async () => {
     home();
+    await settled();
     const { violations } = await axe.run(document.querySelector("section.paper-open") as HTMLElement, {
       resultTypes: ["violations"],
     });
@@ -707,6 +714,7 @@ describe("RepairDetails", () => {
         onCopy={() => {}}
       />,
     );
+    await settled();
     const { violations } = await axe.run(host, { resultTypes: ["violations"] });
     expect(violations.map((v) => v.id)).toEqual([]);
   });
@@ -737,6 +745,7 @@ describe("OpenFailure", () => {
     const host = renderIn(
       <OpenFailure error={{ code: "not-pdf", message: "" }} onTryAnother={() => {}} onCopy={() => {}} />,
     );
+    await settled();
     const { violations } = await axe.run(host, { resultTypes: ["violations"] });
     expect(violations.map((v) => v.id)).toEqual([]);
   });
