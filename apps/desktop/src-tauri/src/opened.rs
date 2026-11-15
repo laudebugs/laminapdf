@@ -52,15 +52,26 @@ pub(crate) fn stop_watching(app: &tauri::AppHandle, window: &str, doc: DocId) {
 
 /// Puts the opened file first in the app's recent list and adds it to the OS's.
 fn remember(app: &tauri::AppHandle, path: &Path, opened: &DocumentMeta) {
+    record(
+        app,
+        path,
+        &opened.name,
+        opened.size,
+        (!opened.needs_password).then_some(opened.page_count),
+    );
+}
+
+/// Puts `path` first in the app's recent list and adds it to the OS's.
+fn record(app: &tauri::AppHandle, path: &Path, name: &str, size: u64, pages: Option<u32>) {
     if !app.state::<Prefs>().get().remember_recent {
         return;
     }
     app.state::<RecentFiles>().add(
         recent::Opened {
             path,
-            name: &opened.name,
-            size: opened.size,
-            pages: (!opened.needs_password).then_some(opened.page_count),
+            name,
+            size,
+            pages,
             fingerprint: fingerprint(path),
         },
         recent::now_ms(),
@@ -68,6 +79,19 @@ fn remember(app: &tauri::AppHandle, path: &Path, opened: &DocumentMeta) {
     let path = path.to_owned();
     on_main_thread(app, move |_| laminapdf_desktop_os::note_recent(&path));
     crate::menu::rebuild(app);
+}
+
+/// A document was saved as `path`: the new file goes first in the app's and the OS's recent lists, as
+/// an opened one does.
+pub(crate) fn remember_saved(app: &tauri::AppHandle, path: &Path) {
+    let name = path
+        .file_name()
+        .map_or_else(String::new, |name| name.to_string_lossy().into_owned());
+    let Ok(meta) = std::fs::metadata(path) else {
+        return;
+    };
+    // The page count shows once the file is next opened from the list.
+    record(app, path, &name, meta.len(), None);
 }
 
 /// Removes `paths` from the OS's recent list: every one of them on Linux, the app's whole list on

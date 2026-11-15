@@ -18,6 +18,7 @@ mod opened;
 mod prefs;
 mod print;
 mod recent;
+mod save;
 mod session;
 #[cfg(feature = "e2e")]
 mod startup;
@@ -225,6 +226,10 @@ macro_rules! app_commands {
             commands::close_window,
             commands::quit,
             commands::save_copy,
+            save::plan_save,
+            save::save_document,
+            save::save_document_as,
+            save::reload_document,
             print::print_document,
             print::cancel_print,
             commands::tab_drag_start,

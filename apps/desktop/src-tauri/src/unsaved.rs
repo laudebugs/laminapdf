@@ -4,7 +4,7 @@
 //! next window with edits is asked; a Cancel in any of them forgets those answers, so each window
 //! keeps its mark until the app really quits.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use tauri::{Emitter, Manager};
@@ -24,6 +24,9 @@ pub(crate) struct Unsaved(Mutex<Marks>);
 struct Marks {
     unsaved: BTreeSet<String>,
     agreed: BTreeSet<String>,
+    /// Each window's documents with unsaved edits, by id: a change another app makes to one of
+    /// their files asks before it reloads (`crate::watch::app`).
+    docs: BTreeMap<String, BTreeSet<u32>>,
 }
 
 impl Unsaved {
@@ -37,6 +40,21 @@ impl Unsaved {
         }
         // Told again (an edit since, or none left): a quit's earlier answer about it no longer holds.
         marks.agreed.remove(window);
+    }
+
+    /// Which of `window`'s documents hold unsaved edits.
+    pub(crate) fn set_docs(&self, window: &str, docs: &[u32]) {
+        let mut marks = self.lock();
+        if docs.is_empty() {
+            marks.docs.remove(window);
+        } else {
+            marks.docs.insert(window.to_owned(), docs.iter().copied().collect());
+        }
+    }
+
+    /// Whether `window`'s document `doc` holds unsaved edits.
+    pub(crate) fn holds_doc(&self, window: &str, doc: u32) -> bool {
+        self.lock().docs.get(window).is_some_and(|docs| docs.contains(&doc))
     }
 
     /// Whether `window` holds unsaved edits.
@@ -110,6 +128,22 @@ mod tests {
         assert_eq!(
             (unsaved.holds("main"), unsaved.to_ask().as_deref()),
             (false, Some("w2"))
+        );
+    }
+
+    #[test]
+    fn only_the_documents_named_should_hold_unsaved_edits() {
+        let unsaved = Unsaved::default();
+        unsaved.set_docs("main", &[3, 5]);
+        unsaved.set_docs("w2", &[3]);
+        unsaved.set_docs("w2", &[]);
+        assert_eq!(
+            (
+                unsaved.holds_doc("main", 5),
+                unsaved.holds_doc("main", 4),
+                unsaved.holds_doc("w2", 3)
+            ),
+            (true, false, false)
         );
     }
 

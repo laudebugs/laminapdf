@@ -8,6 +8,10 @@
 //! still changing, it is looked at again one period later; settled, it reloads; missing, its
 //! windows are told, and it reloads if it comes back.
 //!
+//! The app's own saves aren't changes made outside: a save holds a [`Writing`] token for the file
+//! while it writes, and the file isn't looked at until the token goes. The written file is then
+//! the file as its documents read it, so the events the write raised find nothing new.
+//!
 //! One thread owns the state and the OS watcher: commands and the OS's events arrive on one
 //! channel, and reloads run on that thread, one at a time. [`Reload`] is how it reaches the app,
 //! so the tests drive it with a fake.
@@ -53,6 +57,8 @@ enum Command {
     Watch { path: PathBuf, window: String, doc: DocId },
     Unwatch { window: String, doc: DocId },
     UnwatchWindow(String),
+    Writing(PathBuf),
+    Wrote { path: PathBuf, stamp: Option<FileStamp> },
     Event(notify::Result<notify::Event>),
 }
 
@@ -108,11 +114,58 @@ impl Watcher {
         self.send(Command::UnwatchWindow(window.to_owned()));
     }
 
+    /// Holds off looking at `path` while the app writes it; the token says when the write is done.
+    pub(crate) fn writing(&self, path: &Path) -> Writing<'_> {
+        let path = canonical(path);
+        self.send(Command::Writing(path.clone()));
+        Writing {
+            watcher: self,
+            path,
+            done: false,
+        }
+    }
+
     fn send(&self, command: Command) {
         if self.tx.send(command).is_err() {
             tracing::warn!("the file watcher has stopped");
         }
     }
+}
+
+/// The app is writing a watched file: until the token is dropped, or [`Writing::wrote`] says
+/// what the write left, the watcher doesn't look at the file.
+pub(crate) struct Writing<'a> {
+    watcher: &'a Watcher,
+    path: PathBuf,
+    done: bool,
+}
+
+impl Writing<'_> {
+    /// The write is done and left the file at `stamp`: the file as its documents read it now.
+    pub(crate) fn wrote(mut self, stamp: FileStamp) {
+        self.done = true;
+        self.watcher.send(Command::Wrote {
+            path: self.path.clone(),
+            stamp: Some(stamp),
+        });
+    }
+}
+
+impl Drop for Writing<'_> {
+    /// A write that failed should have left the file as it was: it is looked at again, like any change.
+    fn drop(&mut self) {
+        if !self.done {
+            self.watcher.send(Command::Wrote {
+                path: self.path.clone(),
+                stamp: None,
+            });
+        }
+    }
+}
+
+/// `path` as the watcher keys files: canonical when it can be.
+fn canonical(path: &Path) -> PathBuf {
+    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_owned())
 }
 
 /// One watched file.
@@ -126,6 +179,8 @@ struct Watched {
     due: Option<Instant>,
     /// Its windows were told it is gone.
     missing: bool,
+    /// How many of the app's own writes to it are under way.
+    writing: u32,
 }
 
 struct Worker {
@@ -164,6 +219,12 @@ impl Worker {
             Command::Watch { path, window, doc } => self.watch(&path, window, doc),
             Command::Unwatch { window, doc } => self.unwatch(|w, d| w == window && d == doc),
             Command::UnwatchWindow(window) => self.unwatch(|w, _| w == window),
+            Command::Writing(path) => {
+                if let Some(file) = self.files.get_mut(&path) {
+                    file.writing += 1;
+                }
+            }
+            Command::Wrote { path, stamp } => self.wrote(&path, stamp),
             Command::Event(Ok(event)) => {
                 let due = Instant::now() + DEBOUNCE;
                 for (path, file) in &mut self.files {
@@ -179,7 +240,7 @@ impl Worker {
     }
 
     fn watch(&mut self, path: &Path, window: String, doc: DocId) {
-        let path = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_owned());
+        let path = canonical(path);
         if let Some(file) = self.files.get_mut(&path) {
             if !file.docs.iter().any(|(w, d)| *w == window && *d == doc) {
                 file.docs.push((window, doc));
@@ -208,6 +269,7 @@ impl Worker {
                 settle: Settle::default(),
                 due: None,
                 missing: false,
+                writing: 0,
             },
         );
     }
@@ -248,11 +310,30 @@ impl Worker {
         }
     }
 
+    /// One of the app's writes to `path` is done; `stamp` is what it left, or `None` when it failed.
+    fn wrote(&mut self, path: &Path, stamp: Option<FileStamp>) {
+        let Some(file) = self.files.get_mut(path) else {
+            return;
+        };
+        file.writing = file.writing.saturating_sub(1);
+        if let Some(stamp) = stamp {
+            file.opened = stamp;
+            file.settle = Settle::default();
+            file.missing = false;
+        }
+        // Whatever the write's events left waiting is looked at now, against the file as written.
+        file.due = Some(Instant::now() + DEBOUNCE);
+    }
+
     fn look_at(&mut self, path: &Path) {
         let Some(file) = self.files.get_mut(path) else {
             return;
         };
         file.due = None;
+        if file.writing > 0 {
+            file.due = Some(Instant::now() + DEBOUNCE);
+            return;
+        }
         let stamp = FileStamp::read(path).ok();
         match file.settle.look(&file.opened, stamp.as_ref()) {
             Verdict::Wait => file.due = Some(Instant::now() + DEBOUNCE),

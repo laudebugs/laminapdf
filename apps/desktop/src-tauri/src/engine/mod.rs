@@ -8,6 +8,7 @@ mod bytesource;
 mod documents;
 mod edit;
 mod print;
+mod save;
 mod secret;
 mod tiles;
 
@@ -569,6 +570,14 @@ impl Engines {
 
 /// Sends a request and turns the engine's `Error` reply into a [`DesktopError`].
 fn ask(engine: &Supervisor, make: impl FnOnce(ReqId) -> ToEngine) -> Result<FromEngine, DesktopError> {
+    ask_with_payload(engine, make).map(|(reply, _)| reply)
+}
+
+/// As [`ask`], keeping the bytes the reply's frame carries.
+fn ask_with_payload(
+    engine: &Supervisor,
+    make: impl FnOnce(ReqId) -> ToEngine,
+) -> Result<(FromEngine, Vec<u8>), DesktopError> {
     match engine.request(make) {
         // An edit's refusal names the op's error code, which the webview shows a sentence for.
         Ok((
@@ -582,8 +591,20 @@ fn ask(engine: &Supervisor, make: impl FnOnce(ReqId) -> ToEngine) -> Result<From
             kind: "edit-refused",
             message,
         }),
+        // So does a save's refusal (`would-invalidate-signatures`, `encrypted-base` …).
+        Ok((
+            FromEngine::Error {
+                kind: FailureKind::SaveRefused,
+                message,
+                ..
+            },
+            _,
+        )) => Err(DesktopError::Engine {
+            kind: "save-refused",
+            message,
+        }),
         Ok((FromEngine::Error { kind, .. }, _)) => Err(engine_error(kind)),
-        Ok((reply, _)) => Ok(reply),
+        Ok(answer) => Ok(answer),
         Err(error) => Err(supervisor_error(&error)),
     }
 }
@@ -610,6 +631,7 @@ fn engine_error(kind: FailureKind) -> DesktopError {
         FailureKind::RenderFailed => ("render-failed", "the page could not be drawn"),
         FailureKind::Protocol => ("protocol", "the document process misbehaved"),
         FailureKind::EditRefused => ("edit-refused", "the edit was refused"),
+        FailureKind::SaveRefused => ("save-refused", "the save was refused"),
         FailureKind::EditDiverged => (
             "edit-diverged",
             "an edit failed and couldn't be undone: open the document again",

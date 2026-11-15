@@ -42,6 +42,13 @@ pub enum DesktopError {
     /// The window is printing already: one print per window at a time.
     #[error("this window is printing already")]
     AlreadyPrinting,
+    /// The document's file changed on disk since it opened or was last saved: saving over it
+    /// would lose the other app's change, so the window asks first.
+    #[error("the file changed on disk since it opened")]
+    FileChanged,
+    /// Writing the document's file failed; the file is as it was. Rust's I/O errors carry no path.
+    #[error("the file could not be written: {0}")]
+    Write(std::io::Error),
     /// A background task of the shell failed (the file dialog's thread).
     #[error("the desktop shell failed: {0}")]
     Internal(String),
@@ -50,7 +57,7 @@ pub enum DesktopError {
 impl DesktopError {
     /// The stable name the UI matches on.
     #[must_use]
-    pub const fn kind(&self) -> &'static str {
+    pub fn kind(&self) -> &'static str {
         match self {
             Self::Tauri(_) => "tauri",
             Self::Engine { kind, .. } => kind,
@@ -62,6 +69,12 @@ impl DesktopError {
             Self::ChannelUnavailable => "channel-unavailable",
             Self::UpdateNotReady => "update-not-ready",
             Self::AlreadyPrinting => "already-printing",
+            Self::FileChanged => "file-changed",
+            Self::Write(error) => match error.kind() {
+                std::io::ErrorKind::PermissionDenied | std::io::ErrorKind::ReadOnlyFilesystem => "write-refused",
+                std::io::ErrorKind::StorageFull | std::io::ErrorKind::QuotaExceeded => "disk-full",
+                _ => "write-failed",
+            },
             Self::Internal(_) => "internal",
         }
     }
