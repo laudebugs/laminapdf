@@ -1,9 +1,10 @@
 //! `cargo xtask changes`: which groups of CI jobs can a branch's changes affect? Both lanes' first
 //! job (`.github/workflows/ci.yml`, `full.yml`, ADR 0018 §2) runs it on pull requests and runs each
 //! group of jobs only when its flag is true: `code` (anything but docs), and the narrower `gallery`,
-//! `web`, `desktop` (its inputs worked out in [`desktop`]), `render`, `rust` and `ts` (CI caching plan
-//! §8.1). Pushes to main run everything. It also prints `desktop-key`, which names the desktop's
-//! inputs, so a desktop leg that passed on them can be skipped (todo X10b).
+//! `web` and the runtime `suites` (their inputs worked out in [`suites`]), `desktop` (in
+//! [`desktop`]), `render`, `rust` and `ts` (CI caching plan §8.1, §8.3). Pushes to main run
+//! everything. It also prints `desktop-key`, which names the desktop's inputs, so a desktop leg
+//! that passed on them can be skipped (todo X10b).
 //!
 //! The filter is an allowlist of documentation paths ([`is_docs`], where it is defined); every
 //! other path counts as code. Inverting it this way means a root config file nobody thought to list
@@ -18,6 +19,8 @@ use anyhow::{Context, Result};
 use crate::tracked::git;
 
 pub(crate) mod desktop;
+pub(crate) mod graph;
+pub(crate) mod suites;
 
 /// `cargo xtask changes [--base <rev>]`: lists the paths changed since the merge base of
 /// `base` and `HEAD`, prints each flag as `name=true|false`, and appends them to
@@ -30,7 +33,8 @@ pub(crate) fn run(root: &Path, base: &str) -> Result<()> {
     let diff = git(root, &["diff", "--name-only", "--no-renames", "-z", merge_base, "HEAD"])?;
     let paths: Vec<&str> = diff.split('\0').filter(|p| !p.is_empty()).collect();
     let code = touches_code(&paths);
-    let desktop_inputs = desktop::inputs(root)?;
+    let graph = graph::Graph::load(root)?;
+    let desktop_inputs = desktop::inputs(&graph)?;
     println!("{} paths changed since {merge_base} ({base}):", paths.len());
     for path in &paths {
         let kind = if is_docs(path) { "docs" } else { "code" };
@@ -39,8 +43,8 @@ pub(crate) fn run(root: &Path, base: &str) -> Result<()> {
     let flags = [
         ("code", code),
         ("gallery", touches_gallery(&paths)),
-        ("web", touches_web(&paths)),
-        ("desktop", desktop::touches(&paths, &desktop_inputs)),
+        ("web", suites::touches_web(&paths, &suites::web_inputs(&graph)?)),
+        ("desktop", graph::touches(&paths, &desktop_inputs)),
         ("render", touches_render(&paths)),
         ("rust", touches_rust(&paths)),
         ("ts", touches_ts(&paths)),
@@ -49,6 +53,11 @@ pub(crate) fn run(root: &Path, base: &str) -> Result<()> {
         println!("{name}={value}");
         crate::util::github_output(name, &value.to_string())?;
     }
+    // The runtime suites the paths reach, comma-separated, which ci.yml turns into the runtime
+    // matrix (todo X12).
+    let reached = suites::reached(&graph, &paths)?.join(",");
+    println!("suites={reached}");
+    crate::util::github_output("suites", &reached)?;
     // A JSON list, which codeql.yml's matrix reads (todo X10c).
     let languages = serde_json::to_string(&codeql_languages(&paths))?;
     println!("codeql={languages}");
@@ -169,34 +178,6 @@ pub(crate) fn touches_gallery(paths: &[&str]) -> bool {
         .any(|path| GALLERY_INPUTS.iter().any(|input| path.starts_with(input)))
 }
 
-/// Paths the reader can't depend on (todo C4d): the other apps, the tools other than xtask, the
-/// spikes, the fuzz workspace and the other workflows. [`touches_web`] counts every changed path
-/// outside these and outside the docs ([`is_docs`]), so a root config file or a shared action
-/// nobody thought to list redeploys the reader, as [`touches_code`] does for the suites.
-const OUTSIDE_WEB: [&str; 8] = [
-    "apps/docs/",
-    "apps/site/",
-    "apps/gallery/",
-    "apps/updates/",
-    "spikes/",
-    "fuzz/",
-    "tools/",
-    ".github/workflows/",
-];
-
-/// Paths under [`OUTSIDE_WEB`] that the reader's deploys still depend on: the build tasks and the
-/// deploy workflow.
-const WEB_ANYWAY: [&str; 2] = ["tools/xtask/", ".github/workflows/web-deploy.yml"];
-
-/// Whether any of `paths` can change the reader as deployed. The preview and staging deploys
-/// (`.github/workflows/web-deploy.yml`) run only when one does; the production deploy runs for
-/// every `web-v*` tag.
-pub(crate) fn touches_web(paths: &[&str]) -> bool {
-    touches_unless_outside(paths, &OUTSIDE_WEB, |path| {
-        WEB_ANYWAY.iter().any(|w| path.starts_with(w))
-    })
-}
-
 /// CodeQL's languages, as codeql.yml's matrix names them, in its order (todo X10c).
 pub(crate) const CODEQL_LANGUAGES: [&str; 4] = ["actions", "javascript-typescript", "python", "rust"];
 
@@ -306,45 +287,8 @@ fn pick_base(has_origin_main: bool) -> &'static str {
 mod tests {
     use super::{
         CODEQL_LANGUAGES, codeql_languages, is_docs, pick_base, touches_code, touches_gallery, touches_render,
-        touches_rust, touches_ts, touches_web,
+        touches_rust, touches_ts,
     };
-
-    #[test]
-    fn touches_web_should_follow_the_app_its_sources_build_tasks_and_root_config() {
-        for path in [
-            "apps/web/src/app.tsx",
-            "packages/viewer/src/index.ts",
-            "crates/laminapdf-wasm/src/lib.rs",
-            "fixtures/corpus/hello.pdf",
-            "tools/xtask/src/web.rs",
-            "pnpm-lock.yaml",
-            "Cargo.lock",
-            "package.json",
-            ".npmrc",
-            ".cargo/config.toml",
-            ".github/actions/node-pnpm/action.yml",
-            ".github/workflows/web-deploy.yml",
-            "a-new-root-file.toml",
-        ] {
-            assert!(touches_web(&[path]), "{path}");
-        }
-    }
-
-    #[test]
-    fn touches_web_should_skip_docs_other_apps_other_tools_and_other_workflows() {
-        assert!(!touches_web(&[
-            "docs/todos/README.md",
-            "README.md",
-            "apps/docs/src/content/docs/index.mdx",
-            "apps/site/package.json",
-            "apps/gallery/src/main.tsx",
-            "apps/updates/src/handler.ts",
-            "tools/render/Cargo.toml",
-            "spikes/pdf-basics/rust/src/lib.rs",
-            "fuzz/fuzz_targets/lex.rs",
-            ".github/workflows/docs.yml",
-        ]));
-    }
 
     #[test]
     fn touches_gallery_should_follow_the_ui_packages_and_the_lockfile() {
