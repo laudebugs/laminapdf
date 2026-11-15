@@ -295,9 +295,29 @@ const fields: Example[] = [
     element: () => <TextArea label="Note" defaultValue="Check the totals." />,
   },
   {
+    component: "TextArea",
+    state: "invalid",
+    element: () => <TextArea label="Note" defaultValue="" errorMessage="Write a note to add it" />,
+  },
+  {
+    component: "TextArea",
+    state: "read-only",
+    element: () => <TextArea label="Note" defaultValue="Checked by the auditor." isReadOnly />,
+  },
+  {
+    component: "TextArea",
+    state: "disabled",
+    element: () => <TextArea label="Note" defaultValue="Check the totals." isDisabled />,
+  },
+  {
     component: "Select",
     state: "chosen",
     element: () => <Select label="Paper size" options={OPTIONS} value="a4" onChange={noop} />,
+  },
+  {
+    component: "Select",
+    state: "disabled",
+    element: () => <Select label="Paper size" options={OPTIONS} value="a4" onChange={noop} isDisabled />,
   },
   {
     component: "Select",
@@ -333,6 +353,16 @@ const choices: Example[] = [
     state: "one chosen",
     element: () => (
       <RadioGroup label="Pages" defaultValue="all">
+        <Radio value="all">All pages</Radio>
+        <Radio value="current">Current page</Radio>
+      </RadioGroup>
+    ),
+  },
+  {
+    component: "RadioGroup",
+    state: "disabled",
+    element: () => (
+      <RadioGroup label="Pages" defaultValue="all" isDisabled>
         <Radio value="all">All pages</Radio>
         <Radio value="current">Current page</Radio>
       </RadioGroup>

@@ -3,7 +3,7 @@
 // (and jumping under reduced motion), and an invalid field keeping its focus ring's colour.
 
 import { afterEach, describe, expect, it, onTestFinished } from "vitest";
-import { userEvent } from "vitest/browser";
+import { commands, server, userEvent } from "vitest/browser";
 import {
   Checkbox,
   OutlineRow,
@@ -18,6 +18,19 @@ import {
 import { cleanup, get, renderIn } from "./render.tsx";
 
 afterEach(cleanup);
+
+declare module "vitest/browser" {
+  interface BrowserCommands {
+    /** Emulates forced colours (Windows high contrast), or stops with `null`. Chromium only. */
+    forcedColors: (value: "active" | null) => Promise<void>;
+  }
+}
+
+/** Turns transitions off for this test, so computed styles read each state's end value. */
+const instant = () => {
+  document.documentElement.setAttribute("data-motion-suppressed", "");
+  onTestFinished(() => document.documentElement.removeAttribute("data-motion-suppressed"));
+};
 
 const noop = () => {};
 const style = (el: Element) => getComputedStyle(el);
@@ -87,23 +100,45 @@ describe("cursors", () => {
 
 describe("the switch", () => {
   const knob = (host: HTMLElement) => get(host, ".paper-switch-knob");
+  /** The knob's inset from the track's edge: the track's padding and border, as rendered. */
+  const inset = (track: Element, side: "left" | "right") =>
+    Number.parseFloat(style(track).getPropertyValue(`padding-${side}`)) +
+    Number.parseFloat(style(track).getPropertyValue(`border-${side}-width`));
 
-  it("slides its knob to the far end over the state-out time, mirrored right to left", () => {
-    const on = renderIn(<Switch defaultSelected>Show thumbnails</Switch>);
-    const track = get(on, ".paper-switch-track").getBoundingClientRect();
-    const k = knob(on).getBoundingClientRect();
-    expect(k.right).toBeCloseTo(track.right - 3, 0);
-    expect(style(knob(on)).transitionDuration).toBe("0.15s");
-    const rtl = renderIn(<Switch defaultSelected>Show thumbnails</Switch>, { dir: "rtl" });
-    const rtlTrack = get(rtl, ".paper-switch-track").getBoundingClientRect();
-    expect(knob(rtl).getBoundingClientRect().left).toBeCloseTo(rtlTrack.left + 3, 0);
+  it("slides its knob to the far end when turned on, by translate over the state-out time", async () => {
+    const host = renderIn(<Switch>Show thumbnails</Switch>);
+    const track = get(host, ".paper-switch-track");
+    expect(knob(host).getBoundingClientRect().left).toBeCloseTo(
+      track.getBoundingClientRect().left + inset(track, "left"),
+      0,
+    );
+    await userEvent.click(get(host, ".paper-switch"));
+    const slide = knob(host)
+      .getAnimations()
+      .find((a) => (a as CSSTransition).transitionProperty === "translate");
+    expect(slide, "a running translate transition").toBeDefined();
+    expect(slide?.effect?.getTiming().duration).toBe(150);
+    await slide?.finished;
+    expect(knob(host).getBoundingClientRect().right).toBeCloseTo(
+      track.getBoundingClientRect().right - inset(track, "right"),
+      0,
+    );
   });
 
-  it("jumps under reduced motion", () => {
+  it("mirrors the knob right to left", () => {
+    const host = renderIn(<Switch defaultSelected>Show thumbnails</Switch>, { dir: "rtl" });
+    const track = get(host, ".paper-switch-track");
+    expect(knob(host).getBoundingClientRect().left).toBeCloseTo(
+      track.getBoundingClientRect().left + inset(track, "left"),
+      0,
+    );
+  });
+
+  it("jumps under reduced motion, with no transition at all", () => {
     const host = renderIn(<Switch defaultSelected>Show thumbnails</Switch>);
     document.documentElement.setAttribute("data-motion", "reduce");
     onTestFinished(() => document.documentElement.removeAttribute("data-motion"));
-    expect(style(knob(host)).transitionDuration).toBe("0s");
+    expect(style(knob(host)).transitionProperty).toBe("none");
   });
 });
 
@@ -126,23 +161,57 @@ describe("fields", () => {
   });
 });
 
-describe("hover", () => {
+describe("hover and press", () => {
+  const layer = (el: Element) => style(el).getPropertyValue("--ui-state-layer").trim();
+
   it("lays the hover layer on a checkbox's box and a swatch, not on the label row", async () => {
-    // Transitions off, so the layer reads its end value rather than a frame of its fade.
-    document.documentElement.setAttribute("data-motion-suppressed", "");
-    onTestFinished(() => document.documentElement.removeAttribute("data-motion-suppressed"));
+    instant();
     const host = renderIn(
       <>
         <Checkbox>Highlight fields</Checkbox>
         <SwatchGroup label="Colour" swatches={SWATCHES} value="yellow" onChange={noop} />
       </>,
     );
-    const layer = (el: Element) => style(el).getPropertyValue("--ui-state-layer").trim();
+    const hover = token(host, "hover");
     await userEvent.hover(get(host, ".paper-checkbox"));
-    expect(layer(get(host, ".paper-checkbox-box"))).not.toBe("rgba(0, 0, 0, 0)");
-    expect(layer(get(host, ".paper-checkbox"))).toBe("rgba(0, 0, 0, 0)");
+    expect(layer(get(host, ".paper-checkbox-box"))).toBe(hover);
+    expect(style(get(host, ".paper-checkbox")).backgroundImage).toBe("none");
     const swatch = host.querySelectorAll(".paper-swatch")[1] as HTMLElement;
     await userEvent.hover(swatch);
-    expect(layer(swatch)).not.toBe("rgba(0, 0, 0, 0)");
+    expect(layer(swatch)).toBe(hover);
   });
+
+  it("moves a checked box's fill to accent-strong on hover, with no layer", async () => {
+    instant();
+    const host = renderIn(<Checkbox defaultSelected>Highlight fields</Checkbox>);
+    await userEvent.hover(get(host, ".paper-checkbox"));
+    const box = get(host, ".paper-checkbox-box");
+    expect(style(box).backgroundColor).toBe(token(host, "accent-strong"));
+    expect(layer(box)).toBe("rgba(0, 0, 0, 0)");
+  });
+
+  it.runIf(server.browser === "chromium")(
+    "keeps a checked box and an on switch Highlight in forced colours when hovered",
+    async () => {
+      instant();
+      await commands.forcedColors("active");
+      onTestFinished(() => commands.forcedColors(null));
+      const host = renderIn(
+        <>
+          <Checkbox defaultSelected>Highlight fields</Checkbox>
+          <Switch defaultSelected>Show thumbnails</Switch>
+        </>,
+      );
+      const probe = document.createElement("span");
+      probe.style.color = "Highlight";
+      host.append(probe);
+      for (const [row, drawing] of [
+        [".paper-checkbox", ".paper-checkbox-box"],
+        [".paper-switch", ".paper-switch-track"],
+      ] as const) {
+        await userEvent.hover(get(host, row));
+        expect(style(get(host, drawing)).backgroundColor, row).toBe(style(probe).color);
+      }
+    },
+  );
 });

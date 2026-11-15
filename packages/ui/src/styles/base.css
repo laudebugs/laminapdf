@@ -28,7 +28,8 @@
     [role="menuitemradio"],
     [role="menuitemcheckbox"],
     [role="row"],
-    .paper-choice
+    .paper-choice,
+    .paper-outline-link
   ) {
     -webkit-tap-highlight-color: transparent;
   }

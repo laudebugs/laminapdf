@@ -27,7 +27,7 @@
     .paper-palette-row,
     .paper-swatch,
     .paper-appearance-chip,
-    .paper-outline-toggle,
+    button.paper-outline-toggle,
     .paper-outline-link
   ) {
     cursor: var(--paper-cursor-action);
@@ -69,7 +69,7 @@
     .paper-status-item,
     .paper-swatch,
     .paper-appearance-chip,
-    .paper-outline-toggle,
+    button.paper-outline-toggle,
     .paper-outline-link
   )[data-hovered]:not([data-pressed], [data-disabled], [data-pending]) {
     --ui-state-layer: var(--paper-hover);

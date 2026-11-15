@@ -175,13 +175,13 @@
     border: 0;
     background: transparent;
     color: var(--paper-text-3);
-    cursor: grab;
+    cursor: var(--paper-cursor-grab);
     opacity: 0;
   }
 
   .paper-outline-grip[data-pressed],
   .paper-outline-item[data-dragging] .paper-outline-grip {
-    cursor: grabbing;
+    cursor: var(--paper-cursor-grabbing);
   }
 
   .paper-outline-item[data-selected] .paper-outline-grip,

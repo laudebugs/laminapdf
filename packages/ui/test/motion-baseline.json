@@ -21,6 +21,7 @@
   ],
   "packages/ui/src/styles/recent.css": ["cursor: default", "cursor: pointer"],
   "packages/ui/src/styles/settings.css": ["cursor: default", "cursor: default"],
+  "packages/ui/src/styles/sheet.css": ["cursor: grab", "cursor: grabbing"],
   "packages/ui/src/styles/shell.css": [
     "duration: animation: 160ms",
     "easing: animation: ease-out",

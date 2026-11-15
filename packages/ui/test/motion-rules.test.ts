@@ -5,7 +5,7 @@
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { offences, sheets } from "./motion-rules.ts";
+import { declarations, offences, sheets } from "./motion-rules.ts";
 
 const BASELINE: Record<string, string[]> = JSON.parse(
   readFileSync(new URL("./motion-baseline.json", import.meta.url), "utf8"),
@@ -75,5 +75,32 @@ describe("the motion rules' checker", () => {
         "@media (hover: hover) and (pointer: fine) { .a:hover { color: x; } } .b { transition: visibility 0s linear; cursor: var(--paper-cursor-action); }",
       ),
     ).toEqual([]);
+  });
+});
+
+describe("the state layer (states.css)", () => {
+  const states = readFileSync(new URL("../src/styles/states.css", import.meta.url), "utf8");
+  // Every class whose rules draw the layer: those in states.css's lists.
+  const layered = new Set([...states.matchAll(/(?:^|[\s(,])(?:button)?\.(paper-[\w-]+)/g)].map((m) => m[1] ?? ""));
+  layered.delete("paper-stable-label");
+  layered.delete("paper-stable-label-bold");
+
+  it("knows the controls it draws on", () => {
+    expect([...layered]).toEqual(expect.arrayContaining(["paper-button", "paper-swatch", "paper-outline-link"]));
+  });
+
+  it("is never wiped by a `background` shorthand on one of those controls", () => {
+    // The shorthand resets background-image, so a control's hover and press would vanish.
+    const found = sheets()
+      .filter(([file]) => file.startsWith("packages/ui/"))
+      .flatMap(([file, css]) =>
+        declarations(css)
+          .filter(({ decl }) => /^background\s*:/.test(decl))
+          .filter(({ selector }) =>
+            [...layered].some((c) => new RegExp(String.raw`\.${c}(?![\w-])(?![^\s,]*\s)`).test(selector)),
+          )
+          .map(({ selector }) => `${file}: ${selector.replace(/\s+/g, " ")}`),
+      );
+    expect(found).toEqual([]);
   });
 });
