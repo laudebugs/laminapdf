@@ -11,7 +11,7 @@
 | Branch | `feat/e2g-page-labels` |
 | PR title | `feat(ui): page-setup dialogs and the labels editor` |
 | Size | L (400–800): five dialogs and their commands in `@laminapdf/ui`, the labels editor with its preview, and their Playwright tests; the ops are [E2f](../done/E2f-page-geometry.md)'s, [E2q](../done/E2q-page-labels-op.md)'s and [E2s](../done/E2s-resize-and-orientation.md)'s |
-| PR | — |
+| PR | [#635](https://github.com/laudebugs/laminapdf/pull/635) |
 
 ## Goal
 

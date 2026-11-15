@@ -79,6 +79,7 @@ import type {
   OutlineNode,
   OutlineTarget,
   PageAnnotation,
+  PageBoxesRead,
   PageInfo,
   PageLabelRange,
   PageLink,
@@ -584,6 +585,30 @@ export class Document extends Handle<BaseGlue> {
    */
   threads(): ArticleThread[] {
     return this.call(() => this.#extracting("doc.threads()").threads());
+  }
+  /**
+   * Page `index`'s boxes in user space, as {@link Document.setPageBoxes} takes them. Needs a
+   * document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `page-index-out-of-range`, and as {@link Document.outline}.
+   *
+   * @since 0.5.0
+   */
+  pageBoxes(index: number): PageBoxesRead {
+    return this.call(() => this.#extracting("doc.pageBoxes()").pageBoxes(index));
+  }
+
+  /**
+   * The document's page labels as ranges in page order, each naming its first page by ID, as
+   * {@link Document.setPageLabels} takes them; empty when the document has none. Needs a
+   * document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   *
+   * @since 0.5.0
+   */
+  labelRanges(): PageLabelRange[] {
+    return this.call(() => this.#extracting("doc.labelRanges()").labelRanges());
   }
 
   /**

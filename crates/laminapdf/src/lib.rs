@@ -122,6 +122,7 @@ mod marks;
 mod metadata;
 mod navigation;
 mod navigation_export;
+mod page_setup;
 mod pages;
 mod properties;
 #[cfg(feature = "extract")]
@@ -165,6 +166,7 @@ pub use navigation::{NamedDestination, OutlineNode, PageTarget, PageTargetView};
 #[cfg(feature = "schema")]
 pub use navigation_export::navigation_schemas;
 pub use navigation_export::{DocumentLink, LINKS_SCHEMA, OUTLINE_SCHEMA};
+pub use page_setup::{OwnBoxes, PageGeometry};
 pub use properties::{DocumentContents, DocumentPermissions, DocumentProperties, EncryptionSummary, FontSummary};
 pub use structure::{StructureKid, StructureNode};
 
@@ -189,7 +191,7 @@ pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOpti
 pub use laminapdf_model::xmp::{ExtensionProperty, LangText, XmpReal, XmpValue};
 pub use laminapdf_model::{
     AnnotId, FieldId, LabelStyle, PageId, PageLayout, PageMode, PagePosition, PageSize, PdfDate, PointPt, Pt, RectPt,
-    Rotation, SiblingPosition, WindowPreferences,
+    Rotation, SiblingPosition, UserSpaceRect, WindowPreferences,
 };
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use laminapdf_ops::{

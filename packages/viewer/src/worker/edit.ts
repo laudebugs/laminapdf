@@ -16,7 +16,9 @@ import type {
   Document,
   DocumentMetadata,
   Op,
+  PageBoxesRead,
   PageInfo,
+  PageLabelRange,
   PlannedSave,
   Reverted,
   SaveOptions,
@@ -24,7 +26,7 @@ import type {
   XmpText,
 } from "@laminapdf/sdk";
 import type { EditHistory, EditResult, ReplayedStep, RevertedStep, SavedCopy } from "../protocol.js";
-import { current, currentBackend, type EditState, filling, followEdit, type Open } from "./document.js";
+import { current, currentBackend, type EditState, filling, followEdit, type Open, textModel } from "./document.js";
 import { forgetSearch } from "./find.js";
 import { forgetLinks } from "./navigation.js";
 import {
@@ -108,10 +110,13 @@ async function apply(ops: readonly Op[], id: number, signal: AbortSignal, label:
   const pages = touched(opened, after, shown);
   const step = record(edit.session, label, pages.length > 0 ? pages : listed(after, edited.touchedPages), Date.now());
   if (after.moved) edit.reorders.set(step.id, onlyMoves(ops));
+  const relabels = setsLabels(ops);
+  if (relabels) edit.relabels.add(step.id);
   return {
     pages,
     history: historyOf(edit.session, false, edit.order),
     ...(after.moved && after.list !== undefined ? { order: after.list } : {}),
+    ...(await relabelled(model, after, relabels, signal)),
     createdOutlineItems: edited.createdOutlineItems,
     createdAnnotations: edited.createdAnnotations,
     outlineRepaired: edited.outlineRepaired,
@@ -190,6 +195,12 @@ async function moveTo(position: () => number, id: number, signal: AbortSignal): 
     history: historyOf(session, false, edit.order),
     reverted: done.map((move) => ({ ...move, step: placed(move.step, edit.order) })),
     ...(after.moved && after.list !== undefined ? { order: after.list } : {}),
+    ...(await relabelled(
+      model,
+      after,
+      done.some((move) => edit.relabels.has(move.step.id)),
+      signal,
+    )),
   };
 }
 
@@ -264,6 +275,12 @@ async function replay(
     pages: touched(opened, after, [...ids]),
     history: historyOf(edit.session, false, edit.order),
     ...(after.moved && after.list !== undefined ? { order: after.list } : {}),
+    ...(await relabelled(
+      model,
+      after,
+      steps.some((step) => setsLabels(step.ops)),
+      signal,
+    )),
   };
 }
 
@@ -292,9 +309,29 @@ async function replayStep(
     pages.filter((page) => wanted.has(page.id)),
     step.at,
   );
+  if (setsLabels(step.ops)) edit.relabels.add(recorded.id);
   if (samePages(pages, order)) return order;
   edit.reorders.set(recorded.id, moves);
   return orderOf(pages.map((page) => page.id));
+}
+
+/** Whether `ops` set the page labels, which changes every page's label but none of its pixels. */
+function setsLabels(ops: readonly Op[]): boolean {
+  return ops.some((op) => op.op === "setPageLabels");
+}
+
+/**
+ * Every page with its label now, as `relabelled`, when the call changed the labels (`relabels`)
+ * but not the page list, whose new order already carries them; nothing otherwise.
+ */
+async function relabelled(
+  model: Document,
+  after: PagesNow,
+  relabels: boolean,
+  signal: AbortSignal,
+): Promise<{ relabelled?: readonly PageInfo[] }> {
+  if (!relabels || after.moved) return {};
+  return { relabelled: after.list ?? (await model.ensure(() => model.pages, { signal })) };
 }
 
 /** A label for an edit whose caller gave none: its ops' names. */
@@ -467,6 +504,26 @@ export function readMetadata(id: number, signal: AbortSignal): Promise<DocumentM
 export function readXmpPacket(id: number, signal: AbortSignal): Promise<XmpText> {
   const opened = current(id);
   return serial(opened, () => opened.model.ensure(() => opened.model.xmpPacket(), { signal }));
+}
+
+/**
+ * Page `index` of document `id`'s boxes in user space, as its edits leave them, for the page-setup
+ * dialogs: read from its text-capable copy, which the extract module opened and which makes every
+ * edit the model made (the model may be open in the base module, which can't read them).
+ */
+export function readPageBoxes(index: number, id: number, signal: AbortSignal): Promise<PageBoxesRead> {
+  return serial(current(id), async () => {
+    const model = await textModel(signal);
+    return model.ensure(() => model.pageBoxes(index), { signal });
+  });
+}
+
+/** Document `id`'s page label ranges, as its edits leave them, for the labels editor; read as `readPageBoxes` reads. */
+export function readLabelRanges(id: number, signal: AbortSignal): Promise<PageLabelRange[]> {
+  return serial(current(id), async () => {
+    const model = await textModel(signal);
+    return model.ensure(() => model.labelRanges(), { signal });
+  });
 }
 
 /** The token of the next copy a save writes. */

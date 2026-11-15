@@ -33,7 +33,9 @@ import {
   editHistory,
   goToStep,
   planSave,
+  readLabelRanges,
   readMetadata,
+  readPageBoxes,
   readXmpPacket,
   restoreEdits,
   stepEdit,
@@ -93,6 +95,10 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   },
   metadata: { run: ([id], { signal }) => readMetadata(id as number, signal) },
   xmpPacket: { run: ([id], { signal }) => readXmpPacket(id as number, signal) },
+  pageBoxes: {
+    run: ([index, id], { signal }) => readPageBoxes(index as number, id as number, signal),
+  },
+  labelRanges: { run: ([id], { signal }) => readLabelRanges(id as number, signal) },
   planSave: {
     run: ([options, id], { signal }) => planSave(options as SaveOptions, id as number, signal),
   },
