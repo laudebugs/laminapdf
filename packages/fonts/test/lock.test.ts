@@ -1,4 +1,4 @@
-// fonts.lock.json against the files it describes: every WOFF2 file, every licence, the tool pins.
+// fonts.lock.json against the files it describes: every WOFF2 and PDF file, every licence, the tool pins.
 
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
@@ -14,6 +14,20 @@ describe("fonts.lock.json", () => {
     const files = readdirSync(packagePath("files")).map((name) => `files/${name}`);
     expect(files.sort()).toEqual(Object.keys(outputs).sort());
     for (const [file, output] of Object.entries(outputs)) {
+      const data = readFileSync(packagePath(file));
+      expect({ file, sha256: sha256(data), bytes: data.length }).toEqual({
+        file,
+        sha256: output.sha256,
+        bytes: output.bytes,
+      });
+    }
+  });
+
+  it("lists every TrueType file in pdf/ with its hash and size", () => {
+    const { pdf } = lock();
+    const files = readdirSync(packagePath("pdf")).map((name) => `pdf/${name}`);
+    expect(files.sort()).toEqual(Object.keys(pdf).sort());
+    for (const [file, output] of Object.entries(pdf)) {
       const data = readFileSync(packagePath(file));
       expect({ file, sha256: sha256(data), bytes: data.length }).toEqual({
         file,
@@ -48,7 +62,7 @@ describe("fonts.lock.json", () => {
   it("renames the only source that reserves a font name", () => {
     const reserved = lock().sources.filter((s) => s.reservedFontName !== null);
     expect(reserved.map((s) => [s.id, s.reservedFontName])).toEqual([["source-sans-3", "Source"]]);
-    const families = new Set(Object.values(lock().outputs).map((o) => o.family));
+    const families = new Set([...Object.values(lock().outputs), ...Object.values(lock().pdf)].map((o) => o.family));
     expect([...families].filter((family) => family.includes("Source"))).toEqual([]);
   });
 });
