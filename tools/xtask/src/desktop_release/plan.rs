@@ -216,7 +216,7 @@ pub(crate) struct Leg {
     pub os: Os,
     pub mode: Mode,
     pub version: String,
-    /// `--bundles` for the Tauri CLI, or empty for the OS's targets in tauri.<os>.conf.json.
+    /// `--bundles` for the Tauri CLI, or empty for the OS's targets in `tauri.<os>.conf.json`.
     pub bundles: &'static str,
 }
 
