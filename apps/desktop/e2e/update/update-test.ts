@@ -118,15 +118,26 @@ const fileServer = createServer((request, response) => {
   response.writeHead(200, { "content-type": "application/octet-stream", "content-length": body.length }).end(body);
 });
 
-/** The proxy the app asks: it records each request and passes it on to the Worker. */
+/** The only paths the proxy passes on: the two versions' update checks. */
+const ENDPOINTS = [endpointPath(here, OLD_VERSION), endpointPath(here, NEW_VERSION)];
+
+/**
+ * The proxy the app asks: it records each request and passes the update checks on to the Worker.
+ * Anything else gets a 404, and requestProblems reports it.
+ */
 function proxy(worker: string, filesOrigin: string | undefined): Server {
   return createServer((request, response) => {
     const header = request.headers[INSTALL_ID_HEADER];
     const installId = Array.isArray(header) ? header[0] : header;
     seen.push({ url: request.url ?? "", installId });
+    const path = ENDPOINTS.find((endpoint) => endpoint === request.url);
+    if (path === undefined) {
+      response.writeHead(404).end();
+      return;
+    }
     const headers: Record<string, string> = {};
     if (installId !== undefined) headers[INSTALL_ID_HEADER] = installId;
-    fetch(`${worker}${request.url ?? "/"}`, { headers })
+    fetch(`${worker}${path}`, { headers })
       .then(async (answer) => {
         let body = await answer.text();
         // Local mode has no download host: its bundles come from the file server.

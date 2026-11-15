@@ -68,6 +68,9 @@ const config: KnipConfig = {
       "webdriver-io": { config: ["e2e/wdio*.conf.ts"] },
       // The config's `runner: "local"` loads it; knip's plugin doesn't map the name to the package.
       ignoreDependencies: ["@wdio/local-runner"],
+      // The update test (e2e/update/update-test.ts) runs wrangler with `pnpm exec` in apps/updates,
+      // which depends on it, and macOS's own xattr, plutil and pkill.
+      ignoreBinaries: ["wrangler", "xattr", "plutil", "pkill"],
     },
     // The desktop update Worker (its entry, the manifest tool and the Vitest config knip finds itself).
     "apps/updates": {

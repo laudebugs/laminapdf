@@ -810,17 +810,17 @@ mod tests {
             staging.contains("max-parallel: 1"),
             "staging legs share the channel's manifest"
         );
-        let secrets: Vec<&str> = staging
+        // The names the job reads after `secrets.`, never their values.
+        let names: Vec<&str> = staging
             .split("secrets.")
             .skip(1)
             .filter_map(|rest| rest.split(|c: char| !c.is_ascii_alphanumeric() && c != '_').next())
             .collect();
-        assert!(
-            secrets
-                .iter()
-                .all(|name| ["CLOUDFLARE_STAGING_R2_TOKEN", "CLOUDFLARE_ACCOUNT_ID"].contains(name)),
-            "the staging job reads {secrets:?}"
-        );
+        let unexpected = names
+            .iter()
+            .filter(|name| !["CLOUDFLARE_STAGING_R2_TOKEN", "CLOUDFLARE_ACCOUNT_ID"].contains(name))
+            .count();
+        assert_eq!(unexpected, 0, "the staging job reads another secret");
     }
 
     /// GitHub blocks `pull_request_target` by default in public repositories from December 2, 2026,
