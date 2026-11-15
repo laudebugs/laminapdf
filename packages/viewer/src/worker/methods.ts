@@ -37,6 +37,7 @@ import {
   readXmpPacket,
   restoreEdits,
   stepEdit,
+  wouldViolate,
 } from "./edit.js";
 import { exportPage } from "./export.js";
 import { exportTiff } from "./export-tiff.js";
@@ -94,6 +95,9 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   xmpPacket: { run: ([id], { signal }) => readXmpPacket(id as number, signal) },
   planSave: {
     run: ([options, id], { signal }) => planSave(options as SaveOptions, id as number, signal),
+  },
+  wouldViolate: {
+    run: ([ops, id], { signal }) => wouldViolate(ops as readonly Op[], id as number, signal),
   },
   copyEdits: {
     run: ([options, id], { signal }) => copyEdits(options as SaveOptions, id as number, signal),

@@ -1,0 +1,215 @@
+/* The Organise mode (Paper O06): its toolbar under the top bar; the page grid on the gutter, tiles
+   132 × 171 at 100% (landscape 171 × 132; page-grid.tsx lays them out, as the virtualizer needs
+   sizes in pixels) with the page number under each; a selected tile on
+   accent-tint with a 2 px accent outline on its page, a check badge and its number in 600; a
+   dragged tile at 55%; a 2 px accent insertion bar with end dots between tiles; and the drag's
+   ghost, a two-page stack with the count. */
+@layer paper.components {
+  .paper-organise-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-4);
+    min-block-size: var(--paper-secondary-toolbar-height);
+    padding-inline: var(--paper-space-12);
+  }
+
+  .paper-organise-divider {
+    inline-size: var(--paper-border-width);
+    block-size: var(--paper-toolbar-divider-height);
+    margin-inline: var(--paper-space-4);
+    background: var(--paper-hairline);
+  }
+
+  .paper-organise-note {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-inline-start: var(--paper-space-8);
+    color: var(--paper-muted);
+    font: var(--paper-type-caption);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .paper-organise-size {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--paper-space-4);
+    margin-inline-start: auto;
+  }
+
+  .paper-organise-size-value {
+    min-inline-size: 4ch;
+    white-space: nowrap;
+    text-align: center;
+    font: var(--paper-type-caption);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .paper-organise-order {
+    margin: 0;
+    color: var(--paper-text-3);
+    font: var(--paper-type-caption);
+    overflow-wrap: anywhere;
+  }
+
+  .paper-page-grid {
+    block-size: 100%;
+    background: var(--paper-gutter);
+  }
+
+  /* The scroller: the virtualizer places the tiles and the drop bars inside it, and sizes them. */
+  .paper-page-grid-list {
+    block-size: 100%;
+    overflow: auto;
+    outline: none;
+  }
+
+  .paper-page-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    box-sizing: border-box;
+    padding: var(--paper-space-8) var(--paper-space-10);
+    border-radius: var(--paper-radius-6);
+    outline: none;
+  }
+
+  .paper-page-tile-body {
+    display: contents;
+  }
+
+  .paper-page-tile-box {
+    position: relative;
+    display: block;
+    outline: var(--paper-border-width) solid var(--paper-hairline);
+    background: var(--paper-page-paper);
+    box-shadow: var(--paper-shadow-thumbnail);
+  }
+
+  .paper-page-tile-box > canvas {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+  }
+
+  .paper-page-tile-number {
+    margin-block-start: var(--paper-space-8);
+    color: var(--paper-muted);
+    font: var(--paper-type-caption);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .paper-page-tile[data-hovered] {
+    background: var(--paper-hover);
+  }
+
+  .paper-page-tile[data-selected] {
+    background: var(--paper-accent-tint);
+  }
+
+  .paper-page-tile[data-selected] .paper-page-tile-box {
+    outline: var(--paper-focus-ring-width) solid var(--paper-accent);
+  }
+
+  .paper-page-tile[data-selected] .paper-page-tile-number {
+    color: var(--paper-text);
+    font-weight: 600;
+  }
+
+  /* The check badge: the selected state without colour alone. */
+  .paper-page-tile-check {
+    position: absolute;
+    inset-block-start: var(--paper-space-4);
+    inset-inline-end: var(--paper-space-4);
+    display: none;
+    inline-size: var(--paper-checkbox-size);
+    block-size: var(--paper-checkbox-size);
+    border-radius: var(--paper-radius-pill);
+    background: var(--paper-accent);
+    color: var(--paper-on-accent);
+  }
+
+  .paper-page-tile-check > svg {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+  }
+
+  .paper-page-tile[data-selected] .paper-page-tile-check {
+    display: block;
+  }
+
+  .paper-page-tile[data-focus-visible] {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset);
+  }
+
+  .paper-page-tile[data-dragging] {
+    opacity: 0.55;
+  }
+
+  /* The insertion bar between tiles: 2 px accent with a dot at each end. */
+  .paper-page-grid-drop {
+    position: relative;
+    block-size: 100%;
+    outline: none;
+  }
+
+  /* The virtualizer clips each indicator's box to the bar's 2 px; the end dots reach past it. */
+  [role="presentation"]:has(> .paper-page-grid-drop) {
+    /* biome-ignore lint/complexity/noImportantStyles: only !important outranks the virtualizer's inline overflow. */
+    overflow: visible !important;
+  }
+
+  .paper-page-grid-drop[data-drop-target] {
+    background: var(--paper-accent);
+  }
+
+  .paper-page-grid-drop[data-drop-target]::before,
+  .paper-page-grid-drop[data-drop-target]::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: calc((var(--paper-focus-ring-width) - var(--paper-organise-drop-dot-size)) / 2);
+    inline-size: var(--paper-organise-drop-dot-size);
+    block-size: var(--paper-organise-drop-dot-size);
+    border-radius: var(--paper-radius-pill);
+    background: var(--paper-accent);
+  }
+
+  .paper-page-grid-drop[data-drop-target]::before {
+    inset-block-start: calc(var(--paper-organise-drop-dot-size) / -2);
+  }
+
+  .paper-page-grid-drop[data-drop-target]::after {
+    inset-block-end: calc(var(--paper-organise-drop-dot-size) / -2);
+  }
+
+  /* The drag's ghost: two pages stacked, and how many move. */
+  .paper-page-grid-ghost {
+    display: grid;
+    place-items: center;
+    inline-size: var(--paper-organise-ghost-width);
+    block-size: var(--paper-organise-ghost-height);
+    border: var(--paper-border-width) solid var(--paper-hairline);
+    background: var(--paper-page-paper);
+    box-shadow:
+      var(--paper-organise-ghost-offset) var(--paper-organise-ghost-offset) 0 calc(-1 * var(--paper-border-width))
+      var(--paper-page-paper),
+      var(--paper-organise-ghost-offset) var(--paper-organise-ghost-offset) 0 0 var(--paper-hairline),
+      var(--paper-shadow-thumbnail);
+    color: var(--paper-accent);
+    font: var(--paper-type-control);
+    font-weight: 600;
+  }
+
+  @media (forced-colors: active) {
+    .paper-page-tile[data-selected] .paper-page-tile-box,
+    .paper-page-grid-drop[data-drop-target],
+    .paper-page-tile-check {
+      outline-color: Highlight;
+      background: Highlight;
+    }
+  }
+}

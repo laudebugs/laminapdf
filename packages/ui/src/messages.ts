@@ -723,6 +723,7 @@ const EN = {
   "edit.undo.step": "Undo {step}",
   "edit.redo.step": "Redo {step}",
   "edit.rotate.label": "Rotate page {page}",
+  "mode.read": "Read",
   "edit.saveState.clean": "No unsaved changes",
   "edit.saveState.one": "1 unsaved change",
   "edit.saveState.many": "{count} unsaved changes",

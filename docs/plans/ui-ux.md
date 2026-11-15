@@ -156,7 +156,7 @@ The pipeline for every page view ([C3b](../todos/done/C3b-viewer-virtualiser-and
 - **Annotations and form values** (E4, E8): written into the file with appearance streams, readable by Acrobat, pdf.js, Zotero and Readwise; export of highlights as Markdown.
 - **Signing** (E10, [E10j](../todos/ready/E10j-signature-ui.md)): two separately named actions, "Add a signature image" and "Sign with a certificate", each with one sentence on what it proves; a validation badge on open.
 - **Redaction** (E12): its own tool and mode, mark → review → apply, then the verification report from [E12d](../todos/ready/E12d-scrub-and-rewrite.md); saving is blocked while the report shows any leak.
-- **Organiser** ([E2h](../todos/ready/E2h-page-organiser-ui.md)): multi-select grid, insertion bar (no live swapping), keyboard moves, a "Move to page…" dialog as the non-drag alternative (WCAG 2.5.7), one undo step per batch (ADR 0006).
+- **Organiser** ([E2h](../todos/done/E2h-page-organiser-ui.md)): multi-select grid, insertion bar (no live swapping), keyboard moves, a "Move to page…" dialog as the non-drag alternative (WCAG 2.5.7), one undo step per batch (ADR 0006).
 
 ### 5.8 Reader mode (reflow) and local intelligence (R15, R16)
 
@@ -230,7 +230,7 @@ The research and the owner's decisions on it change todos in other plans (each n
 | [D2d](../todos/done/D2d-tile-transport-and-first-document.md), [D2e](../todos/done/D2e-desktop-e2e-webdriverio.md), [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md), [D7c](../todos/ready/D7c-desktop-beta-release.md) | Desktop gates (owner decisions 2026-10-29 and 2026-11-11): the cold-start gates measured in D2d and D2g and asserted by D2e on the reference runner, installer < 15 MB in D6b's budget step; a miss blocks D7c |
 | [D7a](../todos/ready/D7a-crash-reporting.md), [H1](../todos/done/H1-auth-spike.md), [H2](../todos/ready/H2-accounts-and-login.md) | Usage analytics via U5c only; pricing questions decided once, in U5a |
 | [D4b](../todos/done/D4b-native-menus.md) | Depends on U1b; native menus are generated from the command registry |
-| [E2h](../todos/ready/E2h-page-organiser-ui.md) | Insertion bar, "Move to page…" dialog, one undo step per batch |
+| [E2h](../todos/done/E2h-page-organiser-ui.md) | Insertion bar, "Move to page…" dialog, one undo step per batch |
 | [E10j](../todos/ready/E10j-signature-ui.md) | Two named signing actions with plain-language explanations |
 | [E12d](../todos/ready/E12d-scrub-and-rewrite.md) | Saving is blocked while the verification report shows a leak |
 
