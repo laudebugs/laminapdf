@@ -401,6 +401,36 @@ fn open_plain(f: &mut Fixture, window: &str) -> u32 {
 }
 
 #[test]
+fn an_edit_should_report_the_pages_by_id_and_how_an_undo_went() {
+    let mut f = Fixture::new(Mode::Healthy);
+    let doc = DocId(open_plain(&mut f, "main"));
+    let applied = f
+        .engines
+        .edit("main", doc, EditRequest::Apply { log: "{}".into() })
+        .unwrap();
+    let undone = f.engines.edit("main", doc, EditRequest::Undo).unwrap();
+    assert_eq!(
+        (
+            applied.reversal,
+            applied.touched,
+            applied.pages.first().map(|page| page.id.clone()),
+            undone.reversal
+        ),
+        (None, vec!["p1.0".to_owned()], Some("p1.0".to_owned()), Some("applied"))
+    );
+}
+
+#[test]
+fn a_window_should_not_edit_another_windows_document() {
+    let mut f = Fixture::new(Mode::Healthy);
+    let doc = DocId(open_plain(&mut f, "main"));
+    assert!(matches!(
+        f.engines.edit("doc-2", doc, EditRequest::Undo),
+        Err(DesktopError::UnknownDocument)
+    ));
+}
+
+#[test]
 fn a_tile_should_come_back_at_the_size_asked_for() {
     let mut f = Fixture::new(Mode::Healthy);
     let doc = open_plain(&mut f, "main");

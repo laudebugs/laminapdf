@@ -6,6 +6,7 @@
 
 mod bytesource;
 mod documents;
+mod edit;
 mod secret;
 mod tiles;
 
@@ -20,6 +21,7 @@ use laminapdf_desktop_protocol::{
 use serde::Serialize;
 
 pub(crate) use documents::DocumentRegistry;
+pub(crate) use edit::{EditOutcome, EditRequest};
 use secret::SessionPassword;
 pub(crate) use tiles::{Tile, TileQuery, UrlError as TileUrlError, parse as parse_tile, respond as tile_response};
 
@@ -54,17 +56,19 @@ pub(crate) struct DocumentMeta {
     pub pages: Vec<PageMeta>,
 }
 
-/// One page's displayed size in points and `/Rotate`.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+/// One page's stable ID, displayed size in points and `/Rotate`.
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub(crate) struct PageMeta {
+    pub id: String,
     pub width: f32,
     pub height: f32,
     pub rotate: u16,
 }
 
-impl From<&PageDimensions> for PageMeta {
-    fn from(size: &PageDimensions) -> Self {
+impl PageMeta {
+    fn new(id: String, size: &PageDimensions) -> Self {
         Self {
+            id,
             width: size.width,
             height: size.height,
             rotate: size.rotate,
@@ -282,7 +286,11 @@ impl Engines {
     pub(crate) fn page_info(&self, window: &str, doc: DocId) -> Result<Vec<PageMeta>, DesktopError> {
         self.check(window, doc)?;
         match ask(&self.engine(window)?, |req| ToEngine::GetPageInfo { req, doc })? {
-            FromEngine::PageInfo { sizes, .. } => Ok(sizes.iter().map(PageMeta::from).collect()),
+            FromEngine::PageInfo { sizes, ids, .. } => Ok(ids
+                .into_iter()
+                .zip(&sizes)
+                .map(|(id, size)| PageMeta::new(id, size))
+                .collect()),
             FromEngine::NeedsPassword { .. } => Err(needs_password()),
             other => Err(unexpected(&other)),
         }
@@ -560,6 +568,18 @@ impl Engines {
 /// Sends a request and turns the engine's `Error` reply into a [`DesktopError`].
 fn ask(engine: &Supervisor, make: impl FnOnce(ReqId) -> ToEngine) -> Result<FromEngine, DesktopError> {
     match engine.request(make) {
+        // An edit's refusal names the op's error code, which the webview shows a sentence for.
+        Ok((
+            FromEngine::Error {
+                kind: FailureKind::EditRefused,
+                message,
+                ..
+            },
+            _,
+        )) => Err(DesktopError::Engine {
+            kind: "edit-refused",
+            message,
+        }),
         Ok((FromEngine::Error { kind, .. }, _)) => Err(engine_error(kind)),
         Ok((reply, _)) => Ok(reply),
         Err(error) => Err(supervisor_error(&error)),
@@ -587,6 +607,7 @@ fn engine_error(kind: FailureKind) -> DesktopError {
         FailureKind::RenderUnavailable => ("render-unavailable", "rendering isn't available"),
         FailureKind::RenderFailed => ("render-failed", "the page could not be drawn"),
         FailureKind::Protocol => ("protocol", "the document process misbehaved"),
+        FailureKind::EditRefused => ("edit-refused", "the edit was refused"),
     };
     DesktopError::Engine {
         kind,

@@ -14,7 +14,7 @@ use tauri_plugin_dialog::DialogExt as _;
 use zeroize::Zeroizing;
 
 use crate::DesktopError;
-use crate::engine::{DocumentMeta, Engines, PageMeta};
+use crate::engine::{DocumentMeta, EditOutcome, EditRequest, Engines, PageMeta};
 use crate::opened::{self, open_path};
 use crate::prefs::{Preferences, Prefs};
 use crate::recent::{self, RecentFiles};
@@ -238,11 +238,37 @@ pub(crate) async fn close_window(window: tauri::WebviewWindow) -> Result<(), Des
     Ok(())
 }
 
-/// Quits the app (File ▸ Quit on Windows and Linux; macOS quits from its app menu).
+/// Quits the app (File ▸ Quit, or the app menu's on macOS), unless a window holds unsaved edits:
+/// that window is asked first, and quits again once the user chose to discard them.
 #[tauri::command]
 #[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its app by value")]
 pub(crate) fn quit(app: tauri::AppHandle) {
-    app.exit(0);
+    if crate::unsaved::may_quit(&app) {
+        app.exit(0);
+    }
+}
+
+/// Says whether this window's documents hold edits not yet saved, so closing it or quitting asks
+/// first.
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window by value")]
+pub(crate) fn set_unsaved(window: tauri::WebviewWindow, unsaved: bool) {
+    window.state::<crate::unsaved::Unsaved>().set(window.label(), unsaved);
+}
+
+/// Applies, undoes or redoes an edit of one of this window's documents: the engine draws its
+/// pages from the edited file from then on.
+#[tauri::command]
+pub(crate) async fn edit_document(
+    window: tauri::WebviewWindow,
+    engines: tauri::State<'_, Arc<Engines>>,
+    doc: u32,
+    request: EditRequest,
+) -> Result<EditOutcome, DesktopError> {
+    let engines = Arc::clone(&engines);
+    tauri::async_runtime::spawn_blocking(move || engines.edit(window.label(), DocId(doc), request))
+        .await
+        .map_err(|error| DesktopError::Internal(error.to_string()))?
 }
 
 /// Saves a copy of this window's document `doc` where the user chooses (File ▸ Save a copy…):

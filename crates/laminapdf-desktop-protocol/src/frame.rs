@@ -156,8 +156,8 @@ fn read_exact<R: Read>(r: &mut R, buf: &mut [u8]) -> Result<(), ProtocolError> {
 mod tests {
     use super::*;
     use crate::{
-        Charsets, DocId, EngineLimits, FailureKind, FontFace, FromEngine, PageDimensions, Password, Priority, ReqId,
-        SandboxLevel, TileFormat, TileRequest, ToEngine,
+        Charsets, DocId, EditCall, EditReport, EditedPage, EngineLimits, FailureKind, FontFace, FromEngine,
+        PageDimensions, Password, Priority, ReqId, Reversal, SandboxLevel, TileFormat, TileRequest, ToEngine,
     };
 
     fn encode<M: Serialize>(msg: &M, payload: &[u8]) -> Vec<u8> {
@@ -201,6 +201,18 @@ mod tests {
                 message: "truncated".into(),
             },
             ToEngine::GetPageInfo { req, doc },
+            ToEngine::Edit {
+                req,
+                doc,
+                call: EditCall::Apply {
+                    log: r#"{"v":1,"ops":[{"op":"rotatePage","args":{"page":"p1.0","by":90}}]}"#.into(),
+                },
+            },
+            ToEngine::Edit {
+                req,
+                doc,
+                call: EditCall::Undo,
+            },
             ToEngine::RenderTile(TileRequest {
                 req,
                 doc,
@@ -276,6 +288,28 @@ mod tests {
                     height: 792.0,
                     rotate: 90,
                 }],
+                ids: vec!["p4.0".into()],
+            },
+            FromEngine::Edited {
+                req,
+                doc,
+                report: Box::new(EditReport {
+                    changed: true,
+                    reversal: Some(Reversal::Partial),
+                    touched: vec!["p4.0".into()],
+                    page_order: Some(vec!["p4.0".into()]),
+                    pages: vec![EditedPage {
+                        id: "p4.0".into(),
+                        size: PageDimensions {
+                            width: 792.0,
+                            height: 612.0,
+                            rotate: 180,
+                        },
+                    }],
+                    created_outline_items: vec!["o1".into()],
+                    created_annotations: Vec::new(),
+                    outline_repaired: false,
+                }),
             },
             FromEngine::Tile {
                 req,
