@@ -53,6 +53,7 @@ export type CommandHome =
   | "page-indicator"
   | "file-menu"
   | "edit-menu"
+  | "organise-toolbar"
   | "view-menu"
   | "help-menu"
   | "view-settings"

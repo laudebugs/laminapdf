@@ -41,4 +41,19 @@ export {
   SaveStrip,
   signatureKind,
 } from "./edit/save-ui.js";
+export { ORGANISE_COMMANDS, type OrganiseCommand, registerOrganiseCommands } from "./organise/commands.js";
+export {
+  BlankPagesDialog,
+  type BlankSize,
+  type BlankWhere,
+  MoveToPageDialog,
+  movedMessage,
+  pageNamed,
+  SignedPageDialog,
+  selectionNote,
+} from "./organise/dialogs.js";
+export { gapOf, type MoveTo, moveToGap, type PageMove, pageRanges, stepGap } from "./organise/moves.js";
+export { type GridCommand, type GridPage, PageGrid } from "./organise/page-grid.js";
+export { deletedMessage, duplicatedMessage, insertedMessage } from "./organise/report.js";
+export { OrganiseToolbar, THUMBNAIL_SCALES } from "./organise/toolbar.js";
 export { attachTools, handTool, SELECT_TOOL, TEXT_SELECT_TOOL, ToolRegistry } from "./tools/tools.js";
