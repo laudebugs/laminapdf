@@ -3,10 +3,10 @@
 // button that hides it and gives the article its room, as Claude's docs do. Hidden, the column
 // shrinks to that button alone, and the choice lasts across pages (localStorage, a per-reader
 // convenience). The inline script in Head.astro applies a stored choice before the first paint,
-// so a page never opens with the column and then loses it; the one after the button names it for
-// that state at once, and handles presses. The styles are in paper.css (`data-toc-hidden`).
-// Below Starlight's 72rem breakpoint the column is a dropdown under the header, which this leaves
-// alone, and the button isn't shown.
+// so a page never opens with the column and then loses it; the script after the button names the
+// button for that state at once, and handles presses. The styles are in paper.css
+// (`data-toc-hidden`). Below Starlight's 72rem breakpoint the column is a dropdown under the
+// header, which this leaves alone, and the button isn't shown.
 import Default from "@astrojs/starlight/components/PageSidebar.astro";
 import chevronIcon from "@laminapdf/icons/svg/chevron-right.svg?raw";
 import listIcon from "@laminapdf/icons/svg/list.svg?raw";

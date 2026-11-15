@@ -15,7 +15,7 @@
 
 ## Goal
 
-The owner asked for two changes, after the way Claude's docs do them. The docs' tables draw their rules in `hairline`, which is too faint on `surface` to follow a row across, and the header row looks like the body but for its weight. And the "On this page" column always takes its 14rem, even from a reader who reads one long page top to bottom and wants the article wider.
+The owner asked for two changes, modelled on Claude's docs. The docs' tables draw their rules in `hairline`, which is too faint on `surface` to follow a row across, and the header row looks like the body but for its weight. And the "On this page" column always takes 14rem, even from a reader who wants the article wider.
 
 ## Context
 

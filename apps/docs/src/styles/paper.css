@@ -227,8 +227,8 @@ h1#_top,
   }
   /* A 24 px circle before "On this page", in the rail's padding; hidden, a pill of the turned
      chevron and the list, so it reads as "bring the contents back". Fixed to the window, not
-     placed in the rail, which scrolls: the button stays in view however long the list is. Its
-     inline end is the rail's width less its padding (and the circle) from the window's end. */
+     placed in the rail, which scrolls: the button stays in view however long the list is. It sits
+     the rail's width, less the rail's padding and the circle's own width, in from the window's end. */
   .docs-toc-toggle {
     display: inline-flex;
     position: fixed;
@@ -306,7 +306,7 @@ h1#_top,
    follows a row across. The rules are `chip-border`, a step darker than the page's hairlines,
    which are too faint on `surface` to follow; the header row sits on `gutter` (`raised` in the
    dark theme, where `gutter` is darker than the page). The box fits its columns, up to the
-   column's width, and scrolls sideways past that, as Starlight's tables do. Numbers are tabular. */
+   article's width, and scrolls sideways past that, as Starlight's tables do. Numbers are tabular. */
 .sl-markdown-content table:not(:where(.not-content *)) {
   width: fit-content;
   max-width: 100%;
