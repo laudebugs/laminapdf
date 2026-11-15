@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 29 | 5 | 17 | 0 | 118 | 42 |
+| core | 169 | 31 | 5 | 18 | 0 | 115 | 45 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
 | web | 168 | 17 | 0 | 1 | 0 | 150 | 18 |
 | desktop | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
@@ -87,9 +87,9 @@ Rows per surface by best proven status (of the rows that target the surface).
 | D.07 | Custom stamps | — | — | — | — | E5 round-trip |  |
 | D.08 | Attach files as annotations | — | — | — | — | E5 round-trip |  |
 | D.09 | Audio annotations | — | — | — | — | E5 read |  |
-| D.10 | Replies to comments | — | — | — | — | E5 round-trip |  |
-| D.11 | Status & review properties | — | — | — | — | E5 round-trip |  |
-| D.12 | Filter & search comments | — | — | — | — | E5 read |  |
+| D.10 | Replies to comments | 🟢 round-trip | — | — | — | E5 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| D.11 | Status & review properties | 🟢 round-trip | — | — | — | E5 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| D.12 | Filter & search comments | 🟡 read | — | — | — | E5 read | [`every_markup_annotation_of_review_pdf_is_in_one_thread`](../../crates/laminapdf-model/tests/comments.rs) core read |
 | D.13 | Import & export annotation data | — | — | — | — | E5 round-trip |  |
 | D.14 | Flatten annotations into content | — | — | — | — | E5 round-trip |  |
 | D.15 | Delete or summarise annotations | — | — | — | — | E5 round-trip |  |

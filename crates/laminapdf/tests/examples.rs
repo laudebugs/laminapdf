@@ -109,6 +109,9 @@ mod react_to_error_codes;
 #[path = "../examples/resize_pages.rs"]
 mod resize_pages;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/review_comments.rs"]
+mod review_comments;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/set_initial_view.rs"]
 mod set_initial_view;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -155,6 +158,8 @@ const JSON_INVOICE_ID: &[u8; 16] = b"lamina-ex-jsoniv";
 const PRODUCER: &str = "lamina examples";
 const CREATED: &str = "D:20261030120000Z";
 const EDITED: &str = "D:20261030130000Z";
+/// When the review example answers the marked-up report's comments.
+const ANSWERED: &str = "D:20261031090000Z";
 
 /// What a reader's environment would supply, fixed so the output never changes: the file ID,
 /// the producer and the creation date.
@@ -171,7 +176,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 36] = [
+const EXAMPLES: [(&str, Build); 37] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -208,6 +213,10 @@ const EXAMPLES: [(&str, Build); 36] = [
     // annotations keep the claim.
     ("mark_up-pdfua", || {
         mark_up::mark_up(fixture("golden/examples/pdf_ua_report.pdf"), EDITED.parse()?)
+    }),
+    // The marked-up report answered: a reply to its note and its highlight marked done.
+    ("review_comments", || {
+        review_comments::review(fixture("golden/examples/mark_up.pdf"), ANSWERED.parse()?)
     }),
     ("edit_bookmarks", || {
         edit_bookmarks::edit(fixture("golden/links-and-outlines.pdf"))
