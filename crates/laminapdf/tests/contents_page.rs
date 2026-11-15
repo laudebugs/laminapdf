@@ -295,7 +295,11 @@ fn a_contents_page_over_several_pages_should_print_the_pages_its_links_go_to() {
     for page in 0..added {
         let lines = text(&doc, page);
         // Each entry's line ends with the number it prints; the heading's has none.
-        printed.extend(lines.lines().filter_map(|l| l.split_whitespace().last()?.parse::<u32>().ok()));
+        printed.extend(
+            lines
+                .lines()
+                .filter_map(|l| l.split_whitespace().last()?.parse::<u32>().ok()),
+        );
         linked.extend(link_pages(&doc, page).into_iter().map(|p| p + 1));
     }
     assert_eq!((added > 1, printed.len(), printed), (true, 120, linked));
