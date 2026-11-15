@@ -14,7 +14,7 @@ import {
   type ReaderController,
   type ToastQueue,
 } from "@laminapdf/ui";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { DesktopEngine } from "./app.tsx";
 import { type DesktopDocument, engineError } from "./engine/desktop-engine-client.ts";
 import { listenForFileChanges, showInPlace } from "./engine/file-changes.ts";
@@ -156,6 +156,8 @@ export function MissingRestoredTab({
 }): ReactNode {
   // The chosen file's name while Lamina PDF asks whether to open it anyway.
   const [different, setDifferent] = useState<string>();
+  // One Locate… at a time: a second press while the dialog is up would pick for the same tab again.
+  const locating = useRef(false);
   const id = tabs.getState().tabs.find((tab) => tab.file === file)?.id;
   const token = restoredToken(file);
   if (id === undefined || token === undefined) return null;
@@ -169,9 +171,15 @@ export function MissingRestoredTab({
       <MissingNotice
         body={message("reader.file.missing.restored")}
         onLocate={async () => {
-          const located = await engine.shell.invoke<Located | null>("session_locate", { token });
-          if (located?.kind === "opened") await tabs.located(id, located.document);
-          else if (located?.kind === "different") setDifferent(located.name);
+          if (locating.current) return;
+          locating.current = true;
+          try {
+            const located = await engine.shell.invoke<Located | null>("session_locate", { token });
+            if (located?.kind === "opened") await tabs.located(id, located.document);
+            else if (located?.kind === "different") setDifferent(located.name);
+          } finally {
+            locating.current = false;
+          }
         }}
         onClose={() => void tabs.close(id)}
         toasts={toasts}

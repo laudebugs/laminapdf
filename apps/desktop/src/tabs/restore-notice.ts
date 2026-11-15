@@ -1,8 +1,12 @@
 // Whether a window shows its restore notice (desktop shell S02): what the last session brought
-// back into it, until the user dismisses it or first navigates. Restoring a tab puts its view
-// back, possibly after the restore itself has finished, so a page change counts as the user's
-// only once the viewer has reached the page the restored tab was at, and only within one document:
-// another document coming on screen (a located file) settles on its own first page.
+// back into it, until the user dismisses it or first navigates. Restoring a tab moves the viewer
+// to the place it was at, possibly after the restore itself has finished, and the viewer's page
+// (the one in the middle of the window) needn't be the page the session recorded. So for a moment
+// after the restore, or after another document comes on screen (a located file), page changes
+// only say where the view settles; after that, leaving the settled page is the first navigation.
+//
+// The notice says what the restore found, once: locating a missing file doesn't change it, so a
+// screen reader isn't told again.
 import type { ExternalStore } from "@laminapdf/ui";
 
 /** What a window's restore brought back. */
@@ -13,25 +17,30 @@ export interface RestoredSummary {
   readonly missing: number;
 }
 
-/** The viewer's state, as far as the notice reads it. */
-interface PageStore extends ExternalStore<{ readonly currentPage: number }> {}
+/** The viewer's page, as the notice and the tab strip read it. */
+export type PageStore = ExternalStore<{ readonly currentPage: number }>;
+
+/** How long after a restore, or another document coming on screen, the view may still be settling. */
+export const SETTLE_MS = 1500;
 
 /** The notice's state: the summary while it shows, else undefined. */
 export class RestoreNoticeState implements ExternalStore<RestoredSummary | undefined> {
   readonly #pages: PageStore;
   readonly #documentShown: () => number | undefined;
+  readonly #now: () => number;
   #summary: RestoredSummary | undefined;
-  /** The page the restored tab opens at, until the viewer reaches it; undefined once it has. */
-  #arriving: number | undefined;
-  /** The page the viewer settled on, and in which document: leaving it is the first navigation. */
-  #settled: { page: number; document: number | undefined } | undefined;
+  /** Where the view settled, in which document, and until when it may still be settling. */
+  #settled: { page: number; document: number | undefined; settlingUntil: number } | undefined;
   #stopWatching: () => void = () => undefined;
   readonly #listeners = new Set<() => void>();
 
-  /** `documentShown` says which document the viewer shows now, if any. */
-  constructor(pages: PageStore, documentShown: () => number | undefined) {
+  /**
+   * `documentShown` says which document the viewer shows now, if any; `now` is the clock, in ms.
+   */
+  constructor(pages: PageStore, documentShown: () => number | undefined, now: () => number = () => performance.now()) {
     this.#pages = pages;
     this.#documentShown = documentShown;
+    this.#now = now;
   }
 
   getState(): RestoredSummary | undefined {
@@ -43,18 +52,13 @@ export class RestoreNoticeState implements ExternalStore<RestoredSummary | undef
     return () => this.#listeners.delete(listener);
   }
 
-  /**
-   * Shows `summary`. `arriving` is the 0-based page the shown tab is coming back at, which the
-   * viewer may still be moving to; undefined when no document shows (its file is missing).
-   */
-  show(summary: RestoredSummary, arriving: number | undefined): void {
+  /** Shows `summary`, the view now settling where the restore puts it. */
+  show(summary: RestoredSummary): void {
     if (summary.tabs === 0) return;
     this.#summary = summary;
-    this.#arriving = arriving;
-    this.#settled = undefined;
+    this.#settle(this.#pages.getState().currentPage);
     this.#stopWatching();
     this.#stopWatching = this.#pages.subscribe(() => this.#pageChanged(this.#pages.getState().currentPage));
-    this.#pageChanged(this.#pages.getState().currentPage);
     this.#notify();
   }
 
@@ -67,22 +71,15 @@ export class RestoreNoticeState implements ExternalStore<RestoredSummary | undef
     this.#notify();
   }
 
-  /** One fewer file is missing: it was located, or its tab closed. */
-  found(): void {
-    const summary = this.#summary;
-    if (summary === undefined || summary.missing === 0) return;
-    this.#summary = { ...summary, missing: summary.missing - 1 };
-    this.#notify();
+  #settle(page: number): void {
+    this.#settled = { page, document: this.#documentShown(), settlingUntil: this.#now() + SETTLE_MS };
   }
 
   #pageChanged(page: number): void {
-    if (this.#arriving !== undefined) {
-      if (page !== this.#arriving) return;
-      this.#arriving = undefined;
-    }
-    const document = this.#documentShown();
-    if (this.#settled === undefined || this.#settled.document !== document) this.#settled = { page, document };
-    else if (page !== this.#settled.page) this.dismiss();
+    const settled = this.#settled;
+    if (settled === undefined || settled.document !== this.#documentShown()) this.#settle(page);
+    else if (this.#now() < settled.settlingUntil) settled.page = page;
+    else if (page !== settled.page) this.dismiss();
   }
 
   #notify(): void {

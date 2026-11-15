@@ -21,14 +21,41 @@ pub(crate) fn looks_different(saved: Stamp, now: Stamp) -> bool {
     saved.len != now.len || matches!((saved.mtime, now.mtime), (Some(before), Some(after)) if before != after)
 }
 
-/// Picks that looked different, by window and token, until the window answers.
+/// Which restored tab a held pick is for: its window and its token.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct HeldFor {
+    window: String,
+    token: String,
+}
+
+/// Picks that looked different, by the tab they are for, until its window answers or closes.
 #[derive(Debug, Default)]
-pub(crate) struct Held(Mutex<BTreeMap<(String, String), PathBuf>>);
+pub(crate) struct Held(Mutex<BTreeMap<HeldFor, PathBuf>>);
 
 impl Held {
-    fn picks(&self) -> MutexGuard<'_, BTreeMap<(String, String), PathBuf>> {
+    fn picks(&self) -> MutexGuard<'_, BTreeMap<HeldFor, PathBuf>> {
         // A map of paths: nothing a panic could leave half-done.
         self.0.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    fn hold(&self, window: &str, token: &str, path: PathBuf) {
+        self.picks().insert(held_for(window, token), path);
+    }
+
+    fn take(&self, window: &str, token: &str) -> Option<PathBuf> {
+        self.picks().remove(&held_for(window, token))
+    }
+
+    /// `window` closed: what it held goes, unanswered.
+    pub(crate) fn closed(&self, window: &str) {
+        self.picks().retain(|held, _| held.window != window);
+    }
+}
+
+fn held_for(window: &str, token: &str) -> HeldFor {
+    HeldFor {
+        window: window.to_owned(),
+        token: token.to_owned(),
     }
 }
 
@@ -72,10 +99,7 @@ pub(crate) async fn session_locate(
             .file_name()
             .map(|name| name.to_string_lossy().into_owned())
             .unwrap_or_default();
-        window
-            .state::<Held>()
-            .picks()
-            .insert((window.label().to_owned(), token), path);
+        window.state::<Held>().hold(window.label(), &token, path);
         Ok(Some(Located::Different { name }))
     })
     .await
@@ -95,12 +119,17 @@ pub(crate) async fn session_locate_answer(
     open: bool,
 ) -> Result<Option<DocumentMeta>, DesktopError> {
     tauri::async_runtime::spawn_blocking(move || {
-        let held = window
+        let path = window
             .state::<Held>()
-            .picks()
-            .remove(&(window.label().to_owned(), token.clone()));
-        let path = held.ok_or_else(missing)?;
-        if !open {
+            .take(window.label(), &token)
+            .ok_or_else(missing)?;
+        // The tab may have closed, or its file been found, while the question was open.
+        let still_missing = window
+            .state::<std::sync::Arc<Session>>()
+            .tracker()
+            .restored_tab(&token, window.label())
+            .is_some();
+        if !open || !still_missing {
             return Ok(None);
         }
         open_restored(&window, &token, path).map(Some)
@@ -115,6 +144,18 @@ mod tests {
 
     fn stamp(len: u64, mtime: Option<u64>) -> Stamp {
         Stamp { len, mtime }
+    }
+
+    #[test]
+    fn a_closed_window_should_drop_only_its_own_picks() {
+        let held = Held::default();
+        held.hold("main", "t1", PathBuf::from("a.pdf"));
+        held.hold("doc-1", "t2", PathBuf::from("b.pdf"));
+        held.closed("main");
+        assert_eq!(
+            (held.take("main", "t1"), held.take("doc-1", "t2")),
+            (None, Some(PathBuf::from("b.pdf")))
+        );
     }
 
     #[test]

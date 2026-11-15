@@ -325,6 +325,7 @@ fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
             window.state::<Arc<Engines>>().close_window(window.label());
             window.state::<watch::Watcher>().unwatch_window(window.label());
             window.state::<windows::Windows>().closed(window.label());
+            window.state::<session::locate::Held>().closed(window.label());
             window.state::<open::PendingOpens>().closed(window.label());
             menu::closed(window.app_handle(), window.label());
             windows::changed(window.app_handle());

@@ -11,7 +11,7 @@ import {
   type CommandContext,
   type DocumentTab,
   DocumentTabs,
-  type ExternalStore,
+  type DocumentTabsProps,
   type KeyPlatform,
   message,
   type ReaderController,
@@ -28,6 +28,7 @@ import {
 } from "../engine/desktop-engine-client.ts";
 import { documentOf } from "../engine/open.ts";
 import { stopper } from "../engine/stopper.ts";
+import type { PageStore } from "./restore-notice.ts";
 import {
   ACTIVATE_EVENT,
   ARRIVED_EVENT,
@@ -39,9 +40,6 @@ import {
   WINDOWS_CHANGED_EVENT,
   type WindowTabs,
 } from "./window-tabs.ts";
-
-/** The viewer's page, as the strip reads it for the shown tab. */
-type PageStore = ExternalStore<{ readonly currentPage: number }>;
 
 const NO_PAGE: PageStore = { getState: () => ({ currentPage: 0 }), subscribe: () => () => undefined };
 
@@ -121,8 +119,10 @@ export function useTabStrip(
 ): { strip: ReactNode; notice: ReactNode; actions: NonNullable<CommandContext["actions"]> } {
   useTabEvents(shell, tabs, reader, toasts);
   const state = useStoreState(tabs ?? NO_TABS, (s) => s);
-  const page = useStoreState(pages ?? NO_PAGE, (s) => s.currentPage);
-  const notice = useRestoreNotice(tabs);
+  const notice = useRestoreNotice(
+    tabs,
+    state.tabs.some((tab) => tab.missing === true),
+  );
   const others = useOtherWindows(shell, state.tabs.length);
   useWindowTitle(shell, tabs, state.active);
   const { move, actions } = useTabActions(shell, tabs, toasts);
@@ -141,8 +141,9 @@ export function useTabStrip(
           })),
         ];
   const strip = (
-    <DocumentTabs
-      tabs={state.tabs.map((tab) => stripTab(tab, tab.id === state.active ? page : tab.view?.point.page))}
+    <TabStrip
+      tabs={tabs}
+      pages={pages ?? NO_PAGE}
       active={state.active}
       onActivate={(id) => void tabs.choose(id)}
       onClose={(id) => void tabs.close(id)}
@@ -161,6 +162,20 @@ export function useTabStrip(
   return { strip, notice, actions };
 }
 
+/**
+ * The strip over the window's tabs. It alone follows the viewer's page, for the shown tab's entry
+ * in its menu, so turning a page redraws the strip and not the window.
+ */
+function TabStrip({
+  tabs,
+  pages,
+  ...props
+}: Omit<DocumentTabsProps, "tabs"> & { tabs: WindowTabs; pages: PageStore }): ReactNode {
+  const state = useStoreState(tabs, (s) => s);
+  useStoreState(pages, (s) => s.currentPage);
+  return <DocumentTabs {...props} tabs={state.tabs.map((tab) => stripTab(tab, tabs.pageOf(tab)))} />;
+}
+
 /** A tab as the strip draws it: its name, and its 0-based `page` or its missing file in the menu. */
 function stripTab(tab: Tab, page: number | undefined): DocumentTab {
   const title = documentOf(tab.file)?.name ?? tab.file.name;
@@ -170,15 +185,18 @@ function stripTab(tab: Tab, page: number | undefined): DocumentTab {
     : { id: tab.id, title, detail: message("tabs.page", { page: page + 1 }) };
 }
 
-/** The restore notice under the top bar while it shows: Show missing file shows the first missing tab. */
-function useRestoreNotice(tabs: WindowTabs | undefined): ReactNode {
+/**
+ * The restore notice under the top bar while it shows, with Show missing file (the first missing
+ * tab) while `anyMissing`.
+ */
+function useRestoreNotice(tabs: WindowTabs | undefined, anyMissing: boolean): ReactNode {
   const summary = useStoreState(tabs?.notice ?? NO_NOTICE, (s) => s);
   if (tabs === undefined || summary === undefined) return undefined;
   return (
     <RestoreNotice
       tabs={summary.tabs}
       missing={summary.missing}
-      onShowMissing={() => void tabs.showMissing()}
+      {...(anyMissing ? { onShowMissing: () => void tabs.showMissing() } : {})}
       onDismiss={() => tabs.notice.dismiss()}
     />
   );

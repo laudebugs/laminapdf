@@ -19,6 +19,7 @@ import {
   LeftRail,
   LinkPreview,
   type LinkPreviewImage,
+  LocateDifferentDialog,
   Menu,
   MenuTrigger,
   ModeRegistry,
@@ -54,7 +55,6 @@ import {
   LinkEditor,
   type LinkGoal,
   LinkPanel,
-  LocateDifferentDialog,
   NamedDestinationsDialog,
   RemoveSignaturesDialog,
 } from "@laminapdf/ui/editing";

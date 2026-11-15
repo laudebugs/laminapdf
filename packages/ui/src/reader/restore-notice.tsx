@@ -5,7 +5,7 @@
 // one in the session asks first (`LocateDifferentDialog`).
 
 import { Icon } from "@laminapdf/icons/react";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Button, IconButton } from "../components/button.js";
 import { message } from "../messages.js";
 import { Dialog } from "../overlays/dialog.js";
@@ -16,26 +16,41 @@ export interface RestoreNoticeProps {
   tabs: number;
   /** How many of their files couldn't be found. */
   missing: number;
-  /** Show missing file was pressed: the app shows the first tab whose file is missing. */
-  onShowMissing: () => void;
+  /** Show missing file was pressed: the app shows the first tab whose file is missing. Left out
+      once no tab's file is missing: the button goes. */
+  onShowMissing?: () => void;
   /** Dismiss was pressed. */
   onDismiss: () => void;
 }
 
 /** Says the last session came back, and how many of its files are missing. */
 export function RestoreNotice({ tabs, missing, onShowMissing, onDismiss }: RestoreNoticeProps): ReactNode {
+  // The status region is in the page, empty, before its sentence: a screen reader then says the
+  // sentence, where it may skip a region that arrives with its text already in it.
+  const [said, setSaid] = useState(false);
+  useEffect(() => setSaid(true), []);
+  const sentence = [
+    tabs === 1 ? message("restore.tabs.one") : message("restore.tabs.other", { count: tabs }),
+    missing === 0
+      ? undefined
+      : missing === 1
+        ? message("restore.missing.one")
+        : message("restore.missing.other", { count: missing }),
+  ]
+    .filter((part) => part !== undefined)
+    .join(" ");
   return (
     <div className="paper-restore-notice" data-missing={missing > 0 || undefined}>
       <Icon name={missing > 0 ? "warning" : "check"} />
       {/* The sentence alone is the status, so a screen reader hears it without the buttons. */}
       <p role="status">
-        <strong>{message("restore.title")}</strong>{" "}
-        {tabs === 1 ? message("restore.tabs.one") : message("restore.tabs.other", { count: tabs })}
-        {missing === 0
-          ? null
-          : ` ${missing === 1 ? message("restore.missing.one") : message("restore.missing.other", { count: missing })}`}
+        {said ? (
+          <>
+            <strong>{message("restore.title")}</strong> {sentence}
+          </>
+        ) : null}
       </p>
-      {missing === 0 ? null : (
+      {onShowMissing === undefined ? null : (
         <Button variant="ghost" onPress={onShowMissing}>
           {message(missing === 1 ? "restore.showMissing.one" : "restore.showMissing.other")}
         </Button>
@@ -53,7 +68,7 @@ export interface LocateDifferentDialogProps {
   onAnswer: (open: boolean) => void;
 }
 
-/** Asks before a located file whose size and date differ from the session's opens in its tab. */
+/** Asks before a located file whose size or date differs from the session's opens in its tab. */
 export function LocateDifferentDialog({ name, onAnswer }: LocateDifferentDialogProps): ReactNode {
   return (
     <Dialog
@@ -69,7 +84,7 @@ export function LocateDifferentDialog({ name, onAnswer }: LocateDifferentDialogP
       actions={
         <>
           <Button autoFocus onPress={() => onAnswer(false)}>
-            {message("edit.close.cancel")}
+            {message("restore.different.cancel")}
           </Button>
           <Button variant="primary" onPress={() => onAnswer(true)}>
             {message("restore.different.open")}

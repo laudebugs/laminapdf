@@ -7,7 +7,7 @@
 
 import { type Platform, ReaderController } from "@laminapdf/ui";
 import type { Viewer, ViewPosition } from "@laminapdf/viewer";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   type DesktopDocument,
   DesktopEngineClient,
@@ -15,6 +15,7 @@ import {
   type DesktopShell,
 } from "../engine/desktop-engine-client.ts";
 import { desktopFile, desktopOpener, failedFile } from "../engine/open.ts";
+import { SETTLE_MS } from "./restore-notice.ts";
 import { WindowTabs } from "./window-tabs.ts";
 
 function doc(id: number, name: string): DesktopDocument {
@@ -410,28 +411,31 @@ describe("the last session's tabs", () => {
     await tabs.showMissing();
     expect([tabs.shown?.file.name, reader.getState().phase]).toEqual(["gone.pdf", "error"]);
     await tabs.located(tabs.shown?.id ?? "", doc(7, "found.pdf"));
-    expect([tabs.shown?.missing, tabs.notice.getState()]).toEqual([undefined, { tabs: 2, missing: 0 }]);
+    // The notice still says what the restore found: it isn't said again.
+    expect([tabs.shown?.missing, tabs.notice.getState()]).toEqual([undefined, { tabs: 2, missing: 1 }]);
   });
 
-  it("count a missing tab's file as no longer missing once its tab closes", async () => {
-    const { tabs } = harness();
-    await tabs.restore({
-      tabs: [
-        { token: "t1", name: "a.pdf", view: at(4), missing: false },
-        { token: "gone", name: "gone.pdf", view: null, missing: true },
-      ],
-      active: 0,
-    });
-    await tabs.close(tabs.getState().tabs[1]?.id ?? "");
-    expect(tabs.notice.getState()).toEqual({ tabs: 2, missing: 0 });
-  });
-
-  it("take the restore notice away on the first page turned after the restored one", async () => {
+  it("give each tab's page: the viewer's for the shown one, the kept view's for the others", async () => {
     const { tabs, scrollTo } = harness();
     await tabs.restore(restoredWindow(1));
-    expect(tabs.notice.getState()).toEqual({ tabs: 2, missing: 0 });
-    scrollTo(7);
-    expect(tabs.notice.getState()).toBeUndefined();
+    scrollTo(8);
+    expect(tabs.getState().tabs.map((tab) => tabs.pageOf(tab))).toEqual([4, 8]);
+  });
+
+  it("take the restore notice away on the first page turned once the restored view settled", async () => {
+    let time = 0;
+    const clock = vi.spyOn(performance, "now").mockImplementation(() => time);
+    try {
+      const { tabs, scrollTo } = harness();
+      await tabs.restore(restoredWindow(1));
+      scrollTo(7);
+      expect(tabs.notice.getState()).toEqual({ tabs: 2, missing: 0 });
+      time += SETTLE_MS;
+      scrollTo(8);
+      expect(tabs.notice.getState()).toBeUndefined();
+    } finally {
+      clock.mockRestore();
+    }
   });
 
   it("take the restore notice away when the user chooses another tab, not when the notice shows one", async () => {

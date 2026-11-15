@@ -212,11 +212,7 @@ export class WindowTabs implements ExternalStore<TabsState> {
       if (tabs.length === 0) return;
       this.#set({ tabs: [...this.#state.tabs, ...tabs] });
       const shown = tabs[restored.active ?? 0] ?? tabs[0];
-      const missing = tabs.filter((tab) => tab.missing === true).length;
-      this.notice.show(
-        { tabs: tabs.length, missing },
-        shown === undefined || shown.missing === true ? undefined : (shown.view?.point.page ?? 0),
-      );
+      this.notice.show({ tabs: tabs.length, missing: tabs.filter((tab) => tab.missing === true).length });
       if (shown !== undefined) await this.activate(shown.id);
     } finally {
       this.#restoredNow();
@@ -259,10 +255,18 @@ export class WindowTabs implements ExternalStore<TabsState> {
   #setMissing(id: string, missing: boolean): void {
     const tab = this.#state.tabs.find((t) => t.id === id);
     if (tab === undefined || (tab.missing === true) === missing) return;
-    if (!missing) this.notice.found();
     const { missing: _, ...rest } = tab;
     const changed: Tab = missing ? { ...rest, missing: true } : rest;
     this.#set({ tabs: this.#state.tabs.map((t) => (t.id === id ? changed : t)) });
+  }
+
+  /**
+   * The 0-based page at the top of tab `tab`'s view: the viewer's now for the shown tab, else the
+   * one it kept. Undefined for a tab never shown.
+   */
+  pageOf(tab: Tab): number | undefined {
+    const live = tab.id === this.#state.active && this.#client.current?.doc === documentOf(tab.file)?.doc;
+    return (live ? this.#viewer.viewPosition() : tab.view)?.point.page;
   }
 
   /** The tab whose document is `doc`. */
@@ -397,7 +401,6 @@ export class WindowTabs implements ExternalStore<TabsState> {
   }
 
   #remove(id: string): void {
-    if (this.#state.tabs.find((t) => t.id === id)?.missing === true) this.notice.found();
     const tabs = this.#state.tabs.filter((t) => t.id !== id);
     this.#set({ tabs, active: this.#state.active === id ? undefined : this.#state.active });
   }

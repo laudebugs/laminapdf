@@ -101,7 +101,7 @@ Conventions on this canvas:
 - No title-bar colour token exists, so the strip sits on `ground` and the active tab takes the top bar's `surface`.
 - `tab.activate` and `tab.list` aren't commands: clicking a tab and the strip's menu do their work. `tab.move-to-window` is the strip's menu entry for each other window. `⇧⌘]` and `⇧⌘[` come with D4b's menus.
 - The window title is "*name* — Lamina PDF", or "Lamina PDF" alone on the start screen.
-- Each window shows its own restore notice, counting only the tabs it brought back. With more than one file missing, the button reads Show missing files and shows the first. Choosing another tab, or turning a page after the restored one, takes the notice away; showing a missing file from it, or locating one, doesn't. A located file counts as found, so the notice's count goes down.
+- Each window shows its own restore notice, counting only the tabs it brought back. With more than one file missing, the button reads Show missing files and shows the first. Choosing another tab, or turning a page once the restored view has settled, takes the notice away; showing a missing file from it, or locating one, doesn't. The notice keeps saying what the restore found, so a screen reader hears it once; its button goes once no file is missing.
 - Locate… asks "This file looks different from the one you had open" when the chosen file's size or modification date differs from the session's record; Cancel is the default.
 - A restored tab whose file is gone shows the "File was moved or deleted" notice, with Locate… and Close, in place of S02-tab-missing's empty state. Its sentence names neither the folder the file was in (the webview never sees paths, ADR 0008 §6) nor the page it comes back at.
 

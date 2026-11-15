@@ -176,7 +176,7 @@ describe("the document tabs", () => {
         platform="mac"
       />,
     );
-    await expect.element(page.getByRole("tab", { name: "Not found gone.pdf" })).toBeVisible();
+    await expect.element(page.getByRole("tab", { name: "gone.pdf, not found" })).toBeVisible();
     await page.getByRole("button", { name: "All tabs, 2 open" }).click();
     await expect.element(page.getByRole("menuitem", { name: "report.pdf" })).toHaveAccessibleDescription("Page 12");
     await expect.element(page.getByRole("menuitem", { name: "gone.pdf" })).toHaveAccessibleDescription("Not found");
@@ -204,8 +204,8 @@ describe("the restore notice", () => {
     expect(log).toEqual(["show", "dismiss"]);
   });
 
-  it("offers no missing file to show when every file came back", async () => {
-    renderIn(<RestoreNotice tabs={1} missing={0} onShowMissing={() => undefined} onDismiss={() => undefined} />);
+  it("offers no missing file to show once none is missing", async () => {
+    renderIn(<RestoreNotice tabs={1} missing={0} onDismiss={() => undefined} />);
     await expect
       .element(page.getByRole("status"))
       .toHaveTextContent("Restored your last session. 1 tab, at the page you were reading.");

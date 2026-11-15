@@ -294,6 +294,7 @@ function OneTab({
         id={`paper-tab-${tab.id}`}
         data-tab-id={tab.id}
         aria-selected={active}
+        aria-label={tab.missing === true ? message("tabs.missingName", { name: tab.title }) : undefined}
         tabIndex={stop ? 0 : -1}
         title={tab.title}
         className="paper-document-tab-label"
@@ -310,9 +311,7 @@ function OneTab({
           onContextMenu(tab.id);
         }}
       >
-        {tab.missing === true ? (
-          <Icon name="warning" label={message("tabs.notFound")} className="paper-document-tab-missing" />
-        ) : null}
+        {tab.missing === true ? <Icon name="warning" className="paper-document-tab-missing" /> : null}
         <span className="paper-document-tab-title">{tab.title}</span>
       </div>
       {/* Out of the tab (no control inside a tab) and out of the tab order: Delete on the focused
