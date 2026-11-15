@@ -729,6 +729,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
             reader={engine.reader}
             {...(shown === undefined ? {} : { viewer: shown })}
             editArea={editing.topBar}
+            modeArea={editing.modeArea}
             keys={KEYS}
             sidebarOpen={sidebar}
             findOpen={find.open}

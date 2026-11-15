@@ -1,9 +1,10 @@
 // The words of parts the reader loads after startup: the properties dialog's editing and the
 // capability page. They sit in a catalogue of their own so that they load with those parts, not
 // with the reader's first paint (#380). Only code in a lazily loaded chunk may import this file;
-// the size budget (apps/web/size-budget.json) is what catches a slip. messages.ts holds every
-// other word, including the few the apps show from their own lazy code (the undo step's name, the
-// page's Back labels), since this catalogue is in no package entry. A translation is a second
+// the size budget (apps/web/size-budget.json) is what catches a slip. The editing entry exports it,
+// since that entry only loads lazily, for the apps' own lazy parts that use these words (the
+// Organise mode's). messages.ts holds every other word, including the few the apps show from their
+// own lazy code elsewhere (the undo step's name, the page's Back labels). A translation is a second
 // copy of both.
 
 import { type CountIds, countId, ENGLISH, fill, type MessageId } from "./messages.js";
@@ -24,6 +25,19 @@ const EN = {
   "command.pages.select-all": "Select all pages",
   "organise.grid": "Pages",
   "organise.close": "Close",
+  "organise.modes": "Mode",
+  "mode.organise": "Organise",
+  "organise.step.delete": "Delete pages {pages}",
+  "organise.step.delete.one": "Delete page {pages}",
+  "organise.step.rotate": "Rotate pages {pages}",
+  "organise.step.rotate.one": "Rotate page {pages}",
+  "organise.step.move": "Move pages {pages}",
+  "organise.step.move.one": "Move page {pages}",
+  "organise.step.duplicate": "Duplicate pages {pages}",
+  "organise.step.duplicate.one": "Duplicate page {pages}",
+  "organise.step.reverse": "Reverse pages {pages}",
+  "organise.step.insert": "Insert {count} blank pages",
+  "organise.step.insert.one": "Insert a blank page",
   "organise.unavailable": "Open a document to organise its pages.",
   "organise.inOrganise": "Switch to Organise mode to change pages.",
   "organise.insert": "Insert",
@@ -40,6 +54,7 @@ const EN = {
   "organise.menu.insert-after": "Insert blank page after",
   "organise.menu.delete": "Delete page",
   "organise.menu.delete.many": "Delete {count} pages",
+  "organise.inspector.label": "Selected pages",
   "organise.inspector.title": "Pages {pages}",
   "organise.inspector.title.one": "Page {pages}",
   "organise.inspector.rotation": "Rotation",
@@ -92,11 +107,10 @@ const EN = {
   "organise.blank.go": "Insert",
   "organise.signed.title": "Page {page} holds a signature",
   "organise.signed.body":
-    "{signer} signed this document, and the signature’s box is on page {page}. Changing that page would break the signature.",
+    "This document is signed, and a signature’s box is on page {page}. Changing that page would break the signature.",
   "organise.signed.delete": "Delete page {page} anyway",
   "organise.signed.rotate": "Rotate page {page} anyway",
   "organise.signed.cancel": "Cancel",
-  "organise.signed.unknown": "Someone",
   "organise.certified": "Changing pages would invalidate the certification. Nothing has been changed.",
   "organise.certified.apply": "Apply anyway…",
   "threads.title": "Article threads",

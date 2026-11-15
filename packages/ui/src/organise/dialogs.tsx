@@ -206,15 +206,16 @@ export interface SignedPageDialogProps {
         readonly action: "delete" | "rotate";
         /** The page's label. */
         readonly page: string;
-        /** Who signed, when the signature says. */
-        readonly signer: string | undefined;
       }
     | undefined;
   /** The person's answer: go ahead anyway (the save will break the signature) or not. */
   readonly onAnswer: (proceed: boolean) => void;
 }
 
-/** The question before deleting or turning a page that holds a signature's box (O06-delete-signed). */
+/**
+ * The question before deleting or turning a page that holds a signature's box (O06-delete-signed).
+ * It names the page; it can't name the signer, whom the save planner's signatures don't carry.
+ */
 export function SignedPageDialog({ ask, onAnswer }: SignedPageDialogProps): ReactNode {
   const page = ask?.page ?? "";
   return (
@@ -227,10 +228,7 @@ export function SignedPageDialog({ ask, onAnswer }: SignedPageDialogProps): Reac
       }}
       onEscape={() => onAnswer(false)}
       title={laterMessage("organise.signed.title", { page })}
-      description={laterMessage("organise.signed.body", {
-        page,
-        signer: ask?.signer ?? laterMessage("organise.signed.unknown"),
-      })}
+      description={laterMessage("organise.signed.body", { page })}
       actions={
         <>
           <Button variant="danger" onPress={() => onAnswer(true)}>
