@@ -1103,6 +1103,49 @@ pub fn mark_facts(doc: &laminapdf_model::Document) -> Vec<Vec<Value>> {
         .collect()
 }
 
+/// The drawing marks of the mark cases (E4d): ink, a circle, an arrow and a triangle, each
+/// described, on page `first`.
+fn drawing_ops(first: &PageId) -> Vec<Op> {
+    use laminapdf_model::{UserSpacePoint, UserSpaceRect};
+    use laminapdf_ops::{AddAnnot, AnnotSpec, Ink, InkStroke, LineEnding, LineMark, Poly, PolyKind, Shape, ShapeKind};
+    let p = UserSpacePoint::new;
+    let drawn = |spec, contents: &str| {
+        let mut op = AddAnnot::new(first.clone(), spec);
+        op.common.contents = Some(contents.into());
+        Op::from(op)
+    };
+    vec![
+        drawn(
+            AnnotSpec::Ink(Ink::new(vec![InkStroke::new(vec![
+                p(240.0, 40.0),
+                p(260.0, 60.0),
+                p(280.0, 40.0),
+            ])])),
+            "Ink",
+        ),
+        drawn(
+            AnnotSpec::Shape(Shape::new(
+                ShapeKind::Circle,
+                UserSpaceRect::from_corners(300.0, 40.0, 340.0, 70.0),
+            )),
+            "Circle",
+        ),
+        drawn(
+            AnnotSpec::Line(
+                LineMark::new(p(240.0, 90.0), p(340.0, 100.0)).with_ends(LineEnding::None, LineEnding::OpenArrow),
+            ),
+            "Arrow",
+        ),
+        drawn(
+            AnnotSpec::Poly(Poly::new(
+                PolyKind::Polygon,
+                vec![p(360.0, 40.0), p(400.0, 40.0), p(380.0, 70.0)],
+            )),
+            "Triangle",
+        ),
+    ]
+}
+
 /// The mark cases (todo E4c, D.01 to D.03; E5b, D.10 and D.11): on every plain fixture, a
 /// highlight and an underline over two lines of the first page, a note, a text replacement (a
 /// caret holding the new text, grouped with a strike-out), and a reply to the highlight and a
@@ -1113,8 +1156,7 @@ pub fn mark_facts(doc: &laminapdf_model::Document) -> Vec<Vec<Value>> {
 fn marks(root: &Path, suite: &mut Suite) {
     use laminapdf_model::{UserSpacePoint, UserSpaceRect};
     use laminapdf_ops::{
-        AddAnnot, AddReply, AnnotSpec, Caret, Ink, InkStroke, LineEnding, LineMark, MarkupKind, Note, NoteIcon, Poly,
-        PolyKind, ReviewState, SetReviewState, Shape, ShapeKind, TextMarkup,
+        AddAnnot, AddReply, AnnotSpec, Caret, MarkupKind, Note, NoteIcon, ReviewState, SetReviewState, TextMarkup,
     };
     let names = PLAIN_CORPUS
         .iter()
@@ -1147,43 +1189,7 @@ fn marks(root: &Path, suite: &mut Suite) {
                 AnnotSpec::Caret(Caret::new(UserSpaceRect::from_corners(198.0, 40.0, 204.0, 50.0))),
             );
             caret.common.contents = Some("replacement".into());
-            let p = UserSpacePoint::new;
-            let mut drawn = |spec, contents: &str| {
-                let mut op = AddAnnot::new(first.clone(), spec);
-                op.common.contents = Some(contents.into());
-                Op::from(op)
-            };
-            let drawings = [
-                drawn(
-                    AnnotSpec::Ink(Ink::new(vec![InkStroke::new(vec![
-                        p(240.0, 40.0),
-                        p(260.0, 60.0),
-                        p(280.0, 40.0),
-                    ])])),
-                    "Ink",
-                ),
-                drawn(
-                    AnnotSpec::Shape(Shape::new(
-                        ShapeKind::Circle,
-                        UserSpaceRect::from_corners(300.0, 40.0, 340.0, 70.0),
-                    )),
-                    "Circle",
-                ),
-                drawn(
-                    AnnotSpec::Line(
-                        LineMark::new(p(240.0, 90.0), p(340.0, 100.0))
-                            .with_ends(LineEnding::None, LineEnding::OpenArrow),
-                    ),
-                    "Arrow",
-                ),
-                drawn(
-                    AnnotSpec::Poly(Poly::new(
-                        PolyKind::Polygon,
-                        vec![p(360.0, 40.0), p(400.0, 40.0), p(380.0, 70.0)],
-                    )),
-                    "Triangle",
-                ),
-            ];
+            let drawings = drawing_ops(&first);
             let ops = [
                 Op::from(highlight),
                 markup(MarkupKind::Underline, vec![line(100.0)]).into(),
