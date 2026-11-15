@@ -292,7 +292,6 @@ Ticked by the PR that completes them.
 ### U6. Paper design system
 - [x] Tokens, fonts, icons, core components, overlays, gallery and visual tests ([Paper design plan](paper-design.md#9-to-dos))
 
-
 ### U7. Motion and interaction states
 
-The hand cursor on everything clickable, every state in one order of precedence, hover that fades and overlays that grow from what opened them, on the reader, the desktop app and both sites: [motion and interaction states](motion-and-states.md) (todos U7a–U7h).
+- [ ] Cursors, the state model, hover and overlay motion, reduced motion and loading fades on the reader, the desktop app and both sites ([motion and interaction states](motion-and-states.md#7-todos), todos U7a–U7i)

@@ -4,22 +4,27 @@
 | --- | --- |
 | ID | `U7c` |
 | Status | `ready` |
-| Plan | [Motion and interaction states](../../plans/motion-and-states.md) |
+| Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
 | Depends on | [U7a](./U7a-motion-and-state-tokens.md) |
-| ADRs | Follows 0024 (tokens in layers), 0010 (capability flags) |
+| ADRs | Follows [0024](../../decisions/0024-app-shell-ux.md) (tokens in layers) |
 | Branch | `feat/u7c-overlay-enter-and-exit` |
 | PR title | `feat(ui): menus, dialogs and toasts fade in and out` |
-| Size | M (200–600) |
+| Size | M (200–400) |
 | PR | — |
 
 ## Goal
 
-Make overlays enter and leave as the owner chose (2026-11-14): menus, popovers, tooltips, link previews and mini toolbars fade in with a scale from 0.97 at their anchor over 120 ms and out over 80 ms; dialogs, toasts, sheets, the rail drawer and its scrim over 200 ms in and 150 ms out; the command palette stays instant. An overlay that is leaving lets clicks and keys through from its first frame.
+Make overlays enter and leave as the owner chose (2026-11-14), and let an overlay that is leaving pass clicks and keys through from its first frame:
+
+- menus, popovers, tooltips, link previews and mini toolbars fade in with a scale from 0.97 at their anchor over 120 ms and out over 80 ms
+- dialogs, toasts, sheets, the rail drawer and its scrim take 200 ms in and 150 ms out
+- the command palette stays instant
+- under reduced motion, every overlay fades without scaling or sliding
 
 ## Context
 
-- [Plan §3, 3 and 6](../../plans/motion-and-states.md#3-decisions); §2.3: no overlay uses `data-entering` or `data-exiting` today
+- [Plan §3, 3, 4 and 6](../../plans/motion-and-states.md#3-decisions); §2.3: no overlay uses `data-entering` or `data-exiting` today
 - `packages/ui/src/overlays/` (Popover, Menu, Tooltip, Dialog, ToastRegion, BottomSheet, SelectionToolbar, LinkPreview, CommandPalette) and `src/shell/` (the rail drawer and scrim)
 
 ## Scope
@@ -31,6 +36,7 @@ Make overlays enter and leave as the owner chose (2026-11-14): menus, popovers, 
 - Exiting overlays `inert` and `pointer-events: none`
 - The drawer slides by `transform`, the scrim fades
 - A toast leaves the way it came
+- A Playwright test over the built reader opening each overlay with reduced motion on and off (plan §6)
 
 **Out of scope**
 
@@ -44,6 +50,7 @@ Make overlays enter and leave as the owner chose (2026-11-14): menus, popovers, 
 - [ ] The drawer and scrim
 - [ ] Exit never blocks input
 - [ ] Reduced motion
+- [ ] The built-reader overlay test
 
 ## Acceptance criteria
 
@@ -57,7 +64,7 @@ None.
 
 ## Tests
 
-- A browser test per overlay type: classes and computed styles during enter and exit, with and without reduced motion
+- The built-reader overlay test (Chromium, Firefox, WebKit)
 - The existing overlay tests (layer stack, Escape, focus return) still pass
 
 ## Docs to update

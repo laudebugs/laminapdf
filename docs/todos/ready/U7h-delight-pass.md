@@ -1,21 +1,25 @@
-# U7h — The round's close: view transitions, feedback and a pass over every screen
+# U7h — The round's close: a view transition, feedback and a pass over every screen
 
 | Field | Value |
 | --- | --- |
 | ID | `U7h` |
 | Status | `ready` |
-| Plan | [Motion and interaction states](../../plans/motion-and-states.md) |
+| Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
-| Depends on | [U7b](./U7b-control-states-and-cursors.md), [U7c](./U7c-overlay-enter-and-exit.md), [U7d](./U7d-reader-surfaces-motion.md), [U7f](./U7f-desktop-chrome-motion.md) |
-| ADRs | Follows 0024 (tokens in layers), 0010 (capability flags) |
+| Depends on | [U7b](./U7b-control-states-and-cursors.md), [U7c](./U7c-overlay-enter-and-exit.md), [U7d](./U7d-reader-surfaces-motion.md), [U7e](./U7e-sites-states-and-motion.md), [U7f](./U7f-desktop-chrome-motion.md), [U7g](./U7g-pointer-tab-drag.md), [U7i](./U7i-choice-and-field-states.md) |
+| ADRs | Follows [0024](../../decisions/0024-app-shell-ux.md) (tokens in layers) |
 | Branch | `feat/u7h-delight-pass` |
 | PR title | `feat(ui): a view transition for the Reader toggle, and clearer feedback` |
-| Size | M (200–600) |
+| Size | M (200–400) |
 | PR | — |
 
 ## Goal
 
-Close Round U7: a same-document view transition when the Reader toggle switches between pages and the reading column (250 ms, a cross-fade under reduced motion); confirmation that a copy or an undo happened (a short toast or the History tab's step lighting up); then one by-hand pass over every screen in the screen inventory against the plan, with whatever it finds fixed or written up as todos.
+Close Round U7:
+
+- a same-document view transition when the Reader toggle switches between pages and the reading column (`duration-view`, 250 ms; a cross-fade under reduced motion)
+- confirmation that a copy or an undo happened: a short toast, or the History tab's step lighting up
+- one by-hand pass over every screen in the screen inventory and both sites, and over tab dragging on each desktop OS, against the plan, with whatever it finds fixed or written up as todos
 
 ## Context
 
@@ -43,7 +47,7 @@ Close Round U7: a same-document view transition when the Reader toggle switches 
 ## Acceptance criteria
 
 - [ ] Switching to the reading column and back cross-fades in Chromium, Firefox and Safari, and is instant where view transitions are missing
-- [ ] Every screen in the inventory checked, with a list in the PR
+- [ ] Every screen in the inventory and every page type of both sites checked, with a list in the PR
 
 ## Post-merge checks
 

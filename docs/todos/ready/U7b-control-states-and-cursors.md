@@ -1,57 +1,63 @@
-# U7b — Every control: the state model, cursors and hover fades
+# U7b — The action controls: states, the hand cursor and hover fades
 
 | Field | Value |
 | --- | --- |
 | ID | `U7b` |
 | Status | `ready` |
-| Plan | [Motion and interaction states](../../plans/motion-and-states.md) |
+| Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
 | Depends on | [U7a](./U7a-motion-and-state-tokens.md) |
-| ADRs | Follows 0024 (tokens in layers), 0010 (capability flags) |
+| ADRs | Follows [0024](../../decisions/0024-app-shell-ux.md) (tokens in layers) |
 | Branch | `feat/u7b-control-states-and-cursors` |
-| PR title | `feat(ui): every control shows the hand, its states and quick fades` |
-| Size | L (600–1,500) |
+| PR title | `feat(ui): action controls show the hand, their states and quick fades` |
+| Size | L (400–800) |
 | PR | — |
 
 ## Goal
 
-Apply plan §4.2 to every control in `@laminapdf/ui`: the hand cursor on everything clickable (the owner's choice, 2026-11-14), the arrow on disabled ones, `progress` on pending ones; hover, pressed, selected + hover, focus-visible, disabled, pending, invalid and read-only styled in the plan's order; hover fading in over 80 ms and out over 150 ms, press instant; hover that never sticks after a tap; and selection that never changes a control's width.
+Apply plan §4.2 to the controls in `@laminapdf/ui` that run an action:
+
+- the hand on every enabled one (the owner's choice, 2026-11-14), the arrow when disabled, `progress` when pending
+- hover, pressed, selected + hover, focus-visible, disabled and pending styled in the plan's order
+- hover fading in over 80 ms and out over 150 ms, press instant, hover that never sticks after a tap
+- selection that never changes a control's width
 
 ## Context
 
-- [Plan §2.1–2.2](../../plans/motion-and-states.md#2-what-the-apps-do-today-2026-11-14): `cursor: default` on about 20 controls (`button.css:12`, `toggle.css:19`, `tabs.css:21`, `choice.css:11`, `popover.css:38`), pressed missing on toggles, tabs, choices and swatches, a selected toggle losing hover, tabs widening when selected
+- [Plan §2.1–2.2](../../plans/motion-and-states.md#2-what-the-apps-do-today-2026-11-14) and the reader [research](../../research/product/motion-and-states/README.md): `cursor: default` in `button.css:12`, `toggle.css:19`, `tabs.css:21`, `popover.css:38`; pressed missing on toggles and tabs; a selected toggle losing hover (`toggle.css:22-33`); tabs widening when selected
 - `packages/ui/src/styles/` and `src/components/`; the gallery's `packages/ui/test/states.tsx`
 
 ## Scope
 
 **In scope**
 
-- Button, IconButton, ToggleButton, ToolToggle, ModeSwitcher, SegmentedTabs, Select, Checkbox, Radio, Switch (its knob slides, by `transform`), SwatchGroup, PageAppearanceChips, menu items and options, OutlineRow, Thumbnail, ShortcutChip where it acts, StatusBarItem
-- The cursor tokens on each; `pointer` removed where it was hard-coded; `danger-filled`'s hover and pressed
-- Hover from `data-hovered` only; raw `:hover` in these files behind the `(hover: hover)` guard
-- Selected labels keep their width (plan §3, 7)
-- Each supported state combination in `states.tsx`, so the gallery screenshots them
+- Button (every variant, `danger-filled`'s hover and pressed included), IconButton (its pending state), ToggleButton, ToolToggle, ModeSwitcher, SegmentedTabs, menu items and options, StatusBarItem, ShortcutChip where it acts
+- The cursor tokens on each; hard-coded cursors removed
+- Hover from `data-hovered`; raw `:hover` in these components' CSS behind the guard
+- Width-stable selected labels (plan §3, 7)
+- Each supported state combination in `states.tsx`
 
 **Out of scope**
 
-- Overlays' enter and exit → U7c
-- The reader's own surfaces (thumbnails strip, inspector, tool cursors, history and threads rows) → U7d
+- Checkboxes, radios, the switch, swatches, chips, the select, text fields, outline rows → U7i
+- Overlays → U7c
+- The reader's surfaces → U7d
 - The sites → U7e
 
 ## Tasks
 
-- [ ] Cursors
-- [ ] State styles per control, in the plan's order
-- [ ] Hover fades with the tokens
+- [ ] Cursors on each control
+- [ ] State styles in the plan's order
+- [ ] Hover fades with the tokens; press instant
 - [ ] Touch-safe hover
 - [ ] Width-stable selection
-- [ ] Gallery states and screenshots
+- [ ] Gallery states, screenshots and a cursor check per control in the gallery's browser test
 
 ## Acceptance criteria
 
-- [ ] In the built reader, every control's computed cursor is `pointer` when enabled and `default` when disabled (the plan's measurement, scripted)
-- [ ] Each control shows a visible pressed state; a selected toggle still answers hover
-- [ ] No raw `:hover` left in `@laminapdf/ui`'s component CSS outside the guard (the U7a baseline shrinks)
+- [ ] In the gallery, every action control's computed cursor is `pointer` when enabled, `default` when disabled and `progress` when pending
+- [ ] Each shows a pressed state; a selected toggle still answers hover
+- [ ] No raw `:hover` left in these components' CSS outside the guard (the U7a baseline shrinks)
 - [ ] Selecting a tab or segment moves nothing beside it (screenshot diff)
 - [ ] axe passes in three engines; contrast pairs for the new state fills pass
 
@@ -62,7 +68,7 @@ None.
 ## Tests
 
 - The gallery's visual tests (`cargo xtask gallery --test`; screenshots updated with `--update`, listed in the PR)
-- A browser test of hover in and out timing on one control (computed `transition-duration` per state)
+- The gallery's browser tests: cursor and the computed `transition-duration` per state
 - The UI's Node tests, including the React Compiler pass
 
 ## Docs to update

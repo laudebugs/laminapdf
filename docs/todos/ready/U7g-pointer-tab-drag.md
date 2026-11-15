@@ -4,22 +4,26 @@
 | --- | --- |
 | ID | `U7g` |
 | Status | `ready` |
-| Plan | [Motion and interaction states](../../plans/motion-and-states.md) |
+| Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
 | Depends on | None |
-| ADRs | Follows 0024 (tokens in layers), 0010 (capability flags) |
+| ADRs | Follows [0008](../../decisions/0008-desktop-shell.md) (desktop shell) |
 | Branch | `feat/u7g-pointer-tab-drag` |
 | PR title | `fix(desktop): drag tabs by pointer events on every OS` |
-| Size | M (200–600) |
+| Size | M (200–400) |
 | PR | — |
 
 ## Goal
 
-Tab reordering and dragging a tab out of its window use HTML5 drag and drop (`packages/ui/src/reader/document-tabs.tsx:289-293`), which Tauri turns off on Windows while its file-drop handler is on (`windows.rs:159-176`; Tauri's own note at `webview_window.rs:1096`), so they may not work there at all; on macOS and Linux the same mechanism shows a "not allowed" cursor over a window that says "drop here". Confirm the fault on Windows, then drive the drag with pointer events, keeping D4a's `move_tab` and D4e's `tab_drag_start`/`tab_drag_end`.
+Tab reordering and dragging a tab out of its window use HTML5 drag and drop (`packages/ui/src/reader/document-tabs.tsx:289-293`), which Tauri turns off on Windows while its file-drop handler is on (`apps/desktop/src-tauri/src/windows.rs:159-176`; Tauri's own note at `webview_window.rs:1096`). So they may not work there at all, and on macOS and Linux the same mechanism shows a "not allowed" cursor over a window that says "drop here". This todo confirms the fault on Windows, then drives the drag with pointer events.
+
+- reordering, with an insertion marker and the `grabbing` cursor
+- dragging out and between windows, through D4a's `move_tab` and D4e's `tab_drag_start` and `tab_drag_end`
+- the keyboard and menu routes unchanged
 
 ## Context
 
-- [Plan §2.3](../../plans/motion-and-states.md#23-motion), the desktop research
+- [Plan §2.3](../../plans/motion-and-states.md#23-motion) and the desktop [research](../../research/product/motion-and-states/README.md): not motion, but the desktop's worst fault in this area
 - [D4e](../done/D4e-tab-drag-between-windows.md) (drag between windows) and its `apps/desktop/src-tauri/src/tab_drag.rs`
 - Load the `tauri-v2` skill
 
@@ -27,7 +31,7 @@ Tab reordering and dragging a tab out of its window use HTML5 drag and drop (`pa
 
 **In scope**
 
-- A Windows check first: record whether reorder and drag-out work today (the result goes in `docs/bugs/` if they don't)
+- A Windows check first: record whether reorder and drag-out work today (a `docs/bugs/` record if they don't)
 - Pointer-driven reorder with an insertion marker and the `grabbing` cursor
 - Drag-out and drag-between through D4e's Rust side
 - Keyboard and menu routes unchanged

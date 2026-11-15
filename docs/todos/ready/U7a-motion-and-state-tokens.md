@@ -4,53 +4,60 @@
 | --- | --- |
 | ID | `U7a` |
 | Status | `ready` |
-| Plan | [Motion and interaction states](../../plans/motion-and-states.md) |
+| Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
 | Depends on | None |
-| ADRs | Follows 0024 (tokens in layers), 0010 (capability flags) |
+| ADRs | Follows [0024](../../decisions/0024-app-shell-ux.md) (tokens in layers) |
 | Branch | `feat/u7a-motion-and-state-tokens` |
 | PR title | `feat(tokens): motion, cursor and state rules for Paper` |
-| Size | M (200–600) |
+| Size | M (200–400) |
 | PR | — |
 
 ## Goal
 
-Give every component author what the [motion and states plan](../../plans/motion-and-states.md) §4 decides: duration, easing and cursor tokens in `@laminapdf/tokens`, the state model and its order of precedence in the design language's §7.0, one meaning for reduced motion, a way to suppress transitions while the look switches, and static checks that keep literal timings, `transition: all` and unguarded `:hover` out. No component changes yet: U7b–U7e apply them.
+Give every component author what the plan's §3 and §4 decide, before any component changes (later U7 todos apply them):
+
+- duration, easing and cursor tokens in `@laminapdf/tokens`
+- the state model and its order of precedence in the design language's §7.0, and one meaning for reduced motion
+- a way to suppress transitions while the look switches, and the iOS tap highlight cleared once for every control
+- static checks that keep literal timings, `transition: all` and unguarded `:hover` out
 
 ## Context
 
-- [Plan §3 and §4](../../plans/motion-and-states.md#3-decisions): the owner's four choices (2026-11-14) and the tokens, state model and motion rules
+- [Plan §3 and §4](../../plans/motion-and-states.md#3-decisions): the owner's four choices (2026-11-14) and the tokens, state model and motion rules; the [research](../../research/product/motion-and-states/README.md)
 - `packages/tokens/tokens.json`'s `motion` group and `scripts/generate.ts`
 - [Design language §7.0](../../design/paper/design-language.md) (the state table, hover, pressed and disabled still proposed) and its accessibility checklist
-- `packages/ui/src/styles/settings.css` (Settings › Reduce motion's blanket override) and the tokens-only check in `packages/ui/test/`
+- `packages/ui/src/styles/settings.css:217-229` (Settings › Reduce motion's blanket override), the tokens-only check in `packages/ui/test/`, and the gallery's motion URL switch (`apps/gallery`)
 
 ## Scope
 
 **In scope**
 
-- The tokens of plan §4.1 (durations, easings, cursors), generated into `--paper-*` and `tokens.ts`, with their reduced-motion values
-- Design language §7.0: the state model and precedence (plan §4.2), hover, pressed and disabled no longer proposed, the cursor rule; the checklist's reduced-motion line rewritten to plan §3, 4
+- The tokens of plan §4.1 in the semantic layer, generated into `--paper-*` and `tokens.ts`, with their reduced-motion values
+- Design language §7.0: the state model and precedence (plan §4.2), the cursor rule, hover, pressed and disabled no longer proposed; the checklist's reduced-motion line rewritten to plan §3, 4
 - `data-motion-suppressed` on `:root` for one frame around theme, accent, page appearance, density and direction switches (plan §3, 5)
-- Settings › Reduce motion follows the same rule as the system preference: movement off, fades kept
-- Static checks: no literal duration, easing or cursor value, no `transition: all`, no `:hover` outside `@media (hover: hover) and (pointer: fine)` in `@laminapdf/ui`'s and the sites' CSS, with a baseline file listing today's offenders that only shrinks
+- Settings › Reduce motion and the gallery's motion switch follow the system preference's rule: movement off, fades kept
+- `-webkit-tap-highlight-color: transparent` for every control that draws its own pressed state (plan §4.3)
+- Static checks with a baseline file of today's offenders that only shrinks
 
 **Out of scope**
 
-- Changing components → U7b, U7c, U7d
+- Changing components → U7b, U7i, U7c, U7d
 - The sites' own CSS → U7e
 
 ## Tasks
 
-- [ ] Tokens and generator
-- [ ] Design language §7.0 and the checklist
-- [ ] `data-motion-suppressed` and its hook in the theme and appearance switches
-- [ ] Settings › Reduce motion's rule
-- [ ] The static checks and their baseline
+- [ ] Add the tokens of plan §4.1 to `tokens.json` (DTCG `duration` and `cubicBezier`), generate them, and give each its reduced-motion value in the generator's reduced-motion block
+- [ ] Rewrite §7.0's state table in the plan's order and add the cursor rule; rewrite the checklist's reduced-motion line
+- [ ] Add `data-motion-suppressed` and set it, for one animation frame, in the theme, accent, appearance, density and direction setters
+- [ ] Change Settings › Reduce motion's CSS from `transition: none !important` to removing transforms and size changes only; make the gallery's motion switch do the same
+- [ ] Clear the tap highlight in the base layer for buttons, `[role=button]`, tabs, options, menu items and rows
+- [ ] Extend the tokens-only check: literal durations, easings and cursor values, `transition: all`, and `:hover` outside `@media (hover: hover) and (pointer: fine)`, in `packages/ui/src` and the sites' CSS; write the baseline
 
 ## Acceptance criteria
 
 - [ ] `--paper-duration-state-in` and the other plan §4.1 tokens exist in light, dark and high contrast, and `tokens.ts` exports them
-- [ ] Switching theme or accent changes no colour gradually (measured in a browser: the root's computed `transition-duration` is 0 for the frame)
+- [ ] Switching theme or accent changes no colour gradually (measured in a browser: the root's computed `transition-duration` is 0 for that frame)
 - [ ] Settings › Reduce motion on: a hover still fades; a transform transition resolves to none
 - [ ] The checks fail on a new literal `120ms` or `transition: all`, and pass on main's files through the baseline
 
@@ -60,9 +67,9 @@ None.
 
 ## Tests
 
-- The tokens package's tests: coverage of the new tokens, reduced-motion values
+- The tokens package's tests: coverage of the new tokens and their reduced-motion values
 - The check's own tests on fixtures
-- The UI's browser test for reduced motion (`packages/ui/test/browser`) extended to fades kept, movement off
+- The UI's browser test for reduced motion (`packages/ui/test/browser`), extended to fades kept and movement off
 
 ## Docs to update
 
