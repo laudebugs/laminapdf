@@ -71,6 +71,7 @@
 #![forbid(unsafe_code)]
 
 mod annot;
+mod comments;
 mod copy;
 mod date;
 mod disclosure;
@@ -104,6 +105,7 @@ mod widgets;
 pub mod xmp;
 
 pub use annot::{Annot, AnnotFlags, AnnotGeometry, AnnotLink, AnnotSubtype, ReplyType};
+pub use comments::{AnnotState, BrokenThread, CommentThread, StateModel};
 pub use copy::{Copied, ObjectCopier};
 pub use date::{InvalidDate, PdfDate};
 pub use disclosure::{

@@ -10,6 +10,7 @@ use std::collections::BTreeSet;
 
 use laminapdf_cos::{Dict, DirectPath, ObjRef, Object, PathSegment, Result, Warning};
 
+use crate::comments::AnnotState;
 use crate::document::Document;
 use crate::geometry::{UserSpacePoint, UserSpaceRect};
 use crate::id::AnnotId;
@@ -64,6 +65,11 @@ pub struct Annot {
     pub has_rich_text: bool,
     /// The subtype's own geometry.
     pub geometry: AnnotGeometry,
+    /// For a Text annotation that sets a review state on the one it replies to, that state
+    /// (`/StateModel` and `/State`, Table 175; §12.5.6.4).
+    ///
+    /// Added in 0.3.0.
+    pub state: Option<AnnotState>,
 }
 
 /// What an annotation op needs of an annotation, read without its text or geometry: its ID and
@@ -380,7 +386,13 @@ impl Document {
 
     fn annotation(&self, link: AnnotLink, dict: &Dict) -> Result<Annot> {
         let geometry = self.geometry(&link.subtype, dict)?;
+        let state = if link.subtype == AnnotSubtype::Text {
+            self.annot_state(dict)?
+        } else {
+            None
+        };
         Ok(Annot {
+            state,
             rect: match dict.get("Rect") {
                 Some(rect) => read_rect(self, rect)?,
                 None => None,

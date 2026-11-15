@@ -15,6 +15,12 @@ points.
     tagged.pdf         a tagged page: a square that is the only kid of an Annot element, a note
                        that shares its element with marked content, and a line whose OBJR is an
                        indirect object
+    review.pdf         a review (todo E5b): a highlight over text with two replies (one answering
+                       the other) and four states set on it (review states as strings, as names,
+                       and dated out of document order; a marked state), its Popup, a second note
+                       whose state has no /StateModel, a reply to a missing object, a ring of two
+                       replies, a strike-out grouped with a caret, and on page 2 a reply to the
+                       highlight
 
     python3 tools/fixtures/annotations.py
 """
@@ -143,12 +149,56 @@ def tagged():
     write("tagged.pdf", objects, streams, "/MarkInfo << /Marked true >> /StructTreeRoot 20 0 R ")
 
 
+def review():
+    font = "<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>"
+    objects = {
+        2: "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
+        **page(
+            3,
+            "[10 0 R 23 0 R 11 0 R 12 0 R 13 0 R 14 0 R 15 0 R 16 0 R 24 0 R 17 0 R 18 0 R 19 0 R 20 0 R 21 0 R]",
+            "/Contents 40 0 R ",
+            font,
+        ),
+        **page(4, "[30 0 R]"),
+        10: "<< /Type /Annot /Subtype /Highlight /Rect [18 246 98 264] /QuadPoints [18 264 98 264 18 246 98 246] "
+        "/Contents (Check this) /T (Ada) /NM (c1) /CreationDate (D:20261101100000Z) /Popup 23 0 R /F 4 >>",
+        23: "<< /Type /Annot /Subtype /Popup /Rect [120 200 220 260] /Parent 10 0 R >>",
+        11: "<< /Type /Annot /Subtype /Text /Rect [18 246 98 264] /IRT 10 0 R /RT /R /Contents (Agreed) /T (Ben) "
+        "/NM (r1) /CreationDate (D:20261101110000Z) /F 28 >>",
+        12: "<< /Type /Annot /Subtype /Text /Rect [18 246 98 264] /IRT 11 0 R /Contents (Thanks) /T (Ada) "
+        "/NM (r2) /CreationDate (D:20261101113000Z) /F 28 >>",
+        13: "<< /Type /Annot /Subtype /Text /Rect [18 246 98 264] /IRT 10 0 R /StateModel (Review) /State (Accepted) "
+        "/T (Ben) /NM (s1) /Contents (Accepted set by Ben) /CreationDate (D:20261102090000Z) /F 28 >>",
+        14: "<< /Type /Annot /Subtype /Text /Rect [18 246 98 264] /IRT 10 0 R /StateModel /Review /State /Rejected "
+        "/T (Cy) /NM (s2) /CreationDate (D:20261101120000Z) /F 28 >>",
+        15: "<< /Type /Annot /Subtype /Text /Rect [18 246 98 264] /IRT 10 0 R /StateModel /Marked /State /Marked "
+        "/T (Ada) /NM (s3) /F 28 >>",
+        16: "<< /Type /Annot /Subtype /Text /Rect [200 260 220 280] /Contents (Second) /T (Ben) /NM (c2) /F 28 >>",
+        24: "<< /Type /Annot /Subtype /Text /Rect [200 260 220 280] /IRT 16 0 R /State (Completed) /T (Ada) /F 28 >>",
+        17: "<< /Type /Annot /Subtype /Text /Rect [200 200 220 220] /IRT 99 0 R /Contents (Orphan) /T (Cy) /F 28 >>",
+        18: "<< /Type /Annot /Subtype /Text /Rect [200 150 220 170] /IRT 19 0 R /Contents (Ring A) /F 28 >>",
+        19: "<< /Type /Annot /Subtype /Text /Rect [200 150 220 170] /IRT 18 0 R /Contents (Ring B) /F 28 >>",
+        20: "<< /Type /Annot /Subtype /StrikeOut /Rect [18 96 98 114] /QuadPoints [18 114 98 114 18 96 98 96] "
+        "/Contents (Struck) /T (Ben) /F 4 >>",
+        21: "<< /Type /Annot /Subtype /Caret /Rect [96 96 104 114] /IRT 20 0 R /RT /Group /Contents (better) /F 4 >>",
+        30: "<< /Type /Annot /Subtype /Text /Rect [20 260 40 280] /IRT 10 0 R /Contents (From page 2) /T (Cy) /F 28 >>",
+    }
+    streams = {
+        40: (
+            "",
+            b"BT /F1 12 Tf 20 250 Td (Quoted words) Tj ET BT /F1 12 Tf 20 100 Td (Struck text) Tj ET",
+        )
+    }
+    write("review.pdf", objects, streams)
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     every_subtype()
     threads()
     flags()
     tagged()
+    review()
 
 
 if __name__ == "__main__":
