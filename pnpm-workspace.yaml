@@ -49,6 +49,10 @@ catalog:
   # JSON Schema 2020-12 validation of LaminaPdfError.toJSON() against laminapdf.error/1 (tests only).
   # MIT (fast-deep-equal, json-schema-traverse, require-from-string: MIT; fast-uri: BSD-3-Clause)
   ajv: 8.20.0
+  # SigV4 signing of R2's S3 API for the desktop release scripts (apps/updates/scripts/r2.ts):
+  # per-bucket R2 tokens can't use the REST API Wrangler's `r2 object` commands call. MIT, no
+  # dependencies, dev-only. Pinned to a release at least two weeks old when added.
+  aws4fetch: 1.0.20
   # Accessibility checks in browser tests (@laminapdf/icons' gallery). MPL-2.0, dev-only: never
   # shipped (ADR 0019).
   axe-core: 4.14.0
