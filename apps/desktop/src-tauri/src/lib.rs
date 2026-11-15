@@ -149,7 +149,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(tab_drag::TabDrag::default());
     app.manage(menu::MenusJson::embedded());
     app.manage(menu::NativeMenus::default());
-    // Updates (D5b): the settings beside the preferences, the policy and this build; checks start
+    // Updates: the settings beside the preferences, the policy and this build; checks start
     // 10 s from now, on a thread of their own.
     app.manage(Arc::new(update::Updates::load(
         &config,
@@ -297,7 +297,7 @@ pub fn run() -> Result<(), DesktopError> {
         })
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        // Self-update (D5b): Rust's own, always through `update::Updates`, which sets the channel's
+        // Self-update: Rust's own, always through `update::Updates`, which sets the channel's
         // endpoint and the install ID header; the webview is granted none of its commands.
         .plugin(tauri_plugin_updater::Builder::new().build())
         // Each window's size, position and maximised state, kept by its label and put back when a

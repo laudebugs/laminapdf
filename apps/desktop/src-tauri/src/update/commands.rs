@@ -8,7 +8,7 @@ use serde::Deserialize;
 use tauri::{Manager as _, State};
 use tauri_plugin_opener::OpenerExt as _;
 
-use super::policy::STABLE_AVAILABLE;
+use super::policy::may_choose;
 use super::settings::Channel;
 use super::{UpdateStatus, Updates};
 use crate::DesktopError;
@@ -38,17 +38,11 @@ pub(crate) async fn update_check_now(app: tauri::AppHandle) -> Result<UpdateStat
     reason = "Tauri hands a command its AppHandle by value"
 )]
 pub(crate) fn update_set_enabled(app: tauri::AppHandle, enabled: bool) -> Result<UpdateStatus, DesktopError> {
-    let updates = app.state::<Arc<Updates>>();
-    if !updates.user_decides() {
-        return Err(DesktopError::UpdatesManaged);
-    }
-    updates.store.update(|settings| settings.enabled = enabled);
-    updates.announce(&app);
-    Ok(updates.status())
+    app.state::<Arc<Updates>>()
+        .change_settings(&app, |settings| settings.enabled = enabled)
 }
 
-/// Switches between Stable and Beta. A nightly build can't switch (it trusts only the nightly key),
-/// and Stable can't be chosen before the first stable release.
+/// Switches between Stable and Beta, as far as [`may_choose`] allows.
 #[tauri::command]
 #[expect(
     clippy::needless_pass_by_value,
@@ -56,20 +50,10 @@ pub(crate) fn update_set_enabled(app: tauri::AppHandle, enabled: bool) -> Result
 )]
 pub(crate) fn update_set_channel(app: tauri::AppHandle, channel: Channel) -> Result<UpdateStatus, DesktopError> {
     let updates = app.state::<Arc<Updates>>();
-    if !updates.user_decides() {
-        return Err(DesktopError::UpdatesManaged);
-    }
-    let allowed = match channel {
-        Channel::Beta => !updates.status().nightly,
-        Channel::Stable => STABLE_AVAILABLE && !updates.status().nightly,
-        Channel::Nightly => false,
-    };
-    if !allowed {
+    if !may_choose(channel, &updates.build) {
         return Err(DesktopError::ChannelUnavailable);
     }
-    updates.store.update(|settings| settings.channel = Some(channel));
-    updates.announce(&app);
-    Ok(updates.status())
+    updates.change_settings(&app, |settings| settings.channel = Some(channel))
 }
 
 /// Replaces the anonymous install ID; the next check sends the new one.
@@ -96,9 +80,17 @@ pub(crate) fn update_restart_to_install(app: tauri::AppHandle) -> Result<(), Des
     if !updates.has_ready() {
         return Err(DesktopError::UpdateNotReady);
     }
-    // The windows that close now stay in the session, which is written before the install.
+    // The session is written before the install: on Windows the installer exits the app.
+    crate::session::app::flush(&app);
+    if let Err(error) = updates.install() {
+        // The app keeps running, with the update still waiting to install on quit.
+        tracing::warn!("could not install the update: {error}");
+        return Err(DesktopError::Internal(error.to_string()));
+    }
+    // The windows that close now stay in the session. On the main thread `restart` raises no
+    // `RunEvent::Exit`, so the session and the engines are seen to here.
     crate::session::app::quitting(&app);
-    updates.install_on_quit();
+    app.state::<Arc<crate::engine::Engines>>().shutdown();
     app.restart()
 }
 

@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::store::{read_json, write_json};
 
-/// A channel an install follows. `staging` is the tests' (D5c) and never one of these.
+/// A channel an install follows. `staging` is the end-to-end test's and never one of these.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum Channel {

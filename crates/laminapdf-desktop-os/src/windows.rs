@@ -1,5 +1,5 @@
 //! Windows: the Shell's recent documents and the Jump List of this app's `AppUserModelID`.
-#![expect(unsafe_code, reason = "the Shell's C and COM functions")]
+#![expect(unsafe_code, reason = "the Shell's and the registry's C and COM functions")]
 
 use std::cell::Cell;
 use std::path::{Path, PathBuf};
@@ -144,7 +144,8 @@ fn registry_dword(key: &str, value: &str) -> Option<u32> {
     use windows::Win32::System::Registry::{HKEY_LOCAL_MACHINE, RRF_RT_REG_DWORD, RegGetValueW};
     let (key, value) = (HSTRING::from(key), HSTRING::from(value));
     let mut data: u32 = 0;
-    let mut bytes = u32::try_from(size_of::<u32>()).unwrap_or(4);
+    // A DWORD's four bytes.
+    let mut bytes: u32 = 4;
     // SAFETY: `data` is a 4-byte buffer, as `bytes` says, and outlives the call; the names are
     // NUL-terminated wide strings.
     let read = unsafe {

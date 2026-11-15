@@ -101,6 +101,13 @@ body {
   padding: 4px;
 }
 
+.desktop-update-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .desktop-update-actions {
   display: flex;
   justify-content: flex-end;

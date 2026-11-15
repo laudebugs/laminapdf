@@ -558,6 +558,7 @@ const EN = {
   "settings.files.summary.none": "Doesn't remember recent files or reload changed ones",
   "settings.updates": "Updates",
   "settings.updates.upToDate": "Lamina PDF {version} is up to date",
+  "settings.updates.current": "You have Lamina PDF {version}",
   "settings.updates.checking": "Checking for updates…",
   "settings.updates.downloading": "Downloading Lamina PDF {version}",
   "settings.updates.downloadingHelp":
@@ -603,7 +604,7 @@ const EN = {
   "settings.updates.readyChannel": "{channel} channel · you have {current}",
   "settings.updates.whatsNew": "What's new in {version}",
   "settings.updates.later": "Later",
-  "settings.updates.details": "Update details",
+  "settings.updates.closeDetails": "Close update details",
   "reader.file.reloaded": "Reloaded: {name} changed on disk",
   "reader.file.missing.title": "File was moved or deleted",
   "reader.file.missing.body":

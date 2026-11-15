@@ -26,7 +26,7 @@ mod files;
 mod policy;
 pub use bookmark::{file_bookmark, resolve_bookmark};
 pub use files::{FileIdentity, file_identity, open_shared};
-pub use policy::{ManagedUpdates, installed_by_msi, managed_updates, parse_policy_json};
+pub use policy::{ManagedUpdates, installed_by_msi, managed_updates};
 
 #[cfg(target_os = "linux")]
 mod linux;

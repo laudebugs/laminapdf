@@ -15,6 +15,7 @@ const UP_TO_DATE: UpdateStatus = {
   enabled: true,
   off: null,
   managed: false,
+  canCheck: true,
   stableAvailable: false,
   lastChecked: null,
 };
@@ -55,11 +56,16 @@ describe("Settings › Updates", () => {
   it("says the app is up to date and offers Check now, the switch and Beta", () => {
     const html = settings({});
     expect(disabled(html, "Check now")).toBe(false);
-    expect(text(html)).toContain("Lamina PDF 0.1.2 is up to date");
+    expect(text(html)).toContain("You have Lamina PDF 0.1.2");
     expect(text(html)).toContain("Check now");
     expect(text(html)).toContain("Not checked yet");
     expect(text(html)).toContain("Reset anonymous ID");
     expect(html).toContain('value="beta"');
+  });
+
+  it("says up to date only once a check has answered", () => {
+    expect(text(settings({ lastChecked: 1_794_710_891 }))).toContain("Lamina PDF 0.1.2 is up to date");
+    expect(text(settings({}))).not.toContain("up to date");
   });
 
   it("shows Stable disabled, with why, until the first stable release", () => {
@@ -92,7 +98,7 @@ describe("Settings › Updates", () => {
   });
 
   it("disables everything and says so when an organisation manages updates", () => {
-    const html = settings({ off: "policy", managed: true });
+    const html = settings({ off: "policy", managed: true, canCheck: false });
     expect(text(html)).toContain("Managed by your organisation");
     expect(text(html)).toContain("Your organisation has turned updates off");
     expect(disabled(html, "Check now")).toBe(true);
@@ -122,8 +128,12 @@ describe("the status bar's Update ready", () => {
   it("appears only when an update is ready", () => {
     const item = (status: UpdateStatus) =>
       renderToStaticMarkup(createElement(UpdateReadyItem, { updates: controls(status) }));
-    expect(item(UP_TO_DATE)).toBe("");
-    expect(item({ ...UP_TO_DATE, state: { state: "downloading", version: "0.2.0", percent: 10 } })).toBe("");
+    // Only the empty live region, there before the words it will announce.
+    expect(text(item(UP_TO_DATE)).trim()).toBe("");
+    expect(item(UP_TO_DATE)).toContain('aria-live="polite"');
+    expect(text(item({ ...UP_TO_DATE, state: { state: "downloading", version: "0.2.0", percent: 10 } })).trim()).toBe(
+      "",
+    );
     const ready = item({ ...UP_TO_DATE, state: { state: "ready", version: "0.2.0", notes: null } });
     expect(text(ready)).toContain("Update ready");
     expect(ready).toContain('aria-live="polite"');

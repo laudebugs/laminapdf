@@ -19,8 +19,8 @@ pub struct ManagedUpdates {
     pub disable: Option<bool>,
 }
 
-/// The update policy on this machine. A policy that can't be read counts as none, with a warning
-/// for the caller to log.
+/// The update policy on this machine. A policy that can't be read (missing, unreadable, or not the
+/// expected JSON or registry type) counts as none.
 #[must_use]
 pub fn managed_updates() -> ManagedUpdates {
     #[cfg(windows)]
@@ -58,8 +58,8 @@ fn linux_policy(path: &str) -> ManagedUpdates {
 
 /// `/etc/lamina/policy.json`'s update keys. A file that isn't a JSON object counts as no policy;
 /// a key of the wrong type counts as unset.
-#[must_use]
-pub fn parse_policy_json(bytes: &[u8]) -> ManagedUpdates {
+#[cfg(any(target_os = "linux", test))]
+fn parse_policy_json(bytes: &[u8]) -> ManagedUpdates {
     let Ok(serde_json::Value::Object(map)) = serde_json::from_slice(bytes) else {
         return ManagedUpdates::default();
     };

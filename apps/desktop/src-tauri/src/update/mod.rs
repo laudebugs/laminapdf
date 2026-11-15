@@ -1,4 +1,4 @@
-//! The app's self-update (D5b, ADR 0014; S06): checks the update Worker 10 s after start and every
+//! The app's self-update (ADR 0014; Paper S06): checks the update Worker 10 s after start and every
 //! 24 hours, downloads an update in the background, and installs it when the app quits or when the
 //! user chooses Restart to update.
 //!
@@ -66,6 +66,8 @@ pub(crate) struct UpdateStatus {
     pub off: Option<Off>,
     /// Whether an administrator decides: the controls are disabled.
     pub managed: bool,
+    /// Whether Check now may run.
+    pub can_check: bool,
     /// Whether the Stable channel can be chosen yet.
     pub stable_available: bool,
     /// When the last check ran, in seconds since the Unix epoch.
@@ -120,6 +122,7 @@ impl Updates {
             enabled: settings.enabled,
             off: applied.off,
             managed: applied.managed,
+            can_check: applied.can_check(),
             stable_available: STABLE_AVAILABLE,
             last_checked: settings.last_check,
         }
@@ -150,9 +153,11 @@ impl Updates {
         if lock(&self.ready).is_some() || self.busy.swap(true, Ordering::AcqRel) {
             return;
         }
+        // Cleared however the check ends, a panic included, so later checks still run.
+        let _busy = Busy(&self.busy);
         if let Some(request) = plan_check(&self.store, self.applied(), manual, UPDATE_SERVER) {
             self.set_state(app, State::Checking);
-            let outcome = self.fetch(app, request).await;
+            let outcome = self.fetch(app, request, manual).await;
             // "Last checked" counts only checks the server answered.
             if outcome.is_ok() {
                 self.store.update(|settings| settings.last_check = Some(now()));
@@ -174,7 +179,20 @@ impl Updates {
             };
             self.set_state(app, state);
         }
-        self.busy.store(false, Ordering::Release);
+    }
+
+    /// Changes the user's settings with `change`, unless someone else decides, and tells the windows.
+    fn change_settings(
+        &self,
+        app: &tauri::AppHandle,
+        change: impl FnOnce(&mut settings::UpdateSettings),
+    ) -> Result<UpdateStatus, crate::DesktopError> {
+        if !self.user_decides() {
+            return Err(crate::DesktopError::UpdatesManaged);
+        }
+        self.store.update(change);
+        self.announce(app);
+        Ok(self.status())
     }
 
     /// One check and, when an update applies, its download: verified before it counts as ready.
@@ -182,11 +200,9 @@ impl Updates {
         &self,
         app: &tauri::AppHandle,
         request: plan::CheckRequest,
+        manual: bool,
     ) -> Result<Option<Ready>, tauri_plugin_updater::Error> {
-        let url = request
-            .url
-            .parse()
-            .map_err(|_| tauri_plugin_updater::Error::EmptyEndpoints)?;
+        let url = tauri::Url::parse(&request.url)?;
         let updater = app
             .updater_builder()
             .endpoints(vec![url])?
@@ -196,6 +212,10 @@ impl Updates {
         let Some(update) = updater.check().await? else {
             return Ok(None);
         };
+        // Updates turned off while the check ran: nothing more is fetched (Check now goes on).
+        if !self.still_wanted(manual) {
+            return Ok(None);
+        }
         let version = update.version.clone();
         self.set_state(
             app,
@@ -229,22 +249,50 @@ impl Updates {
                 || {},
             )
             .await?;
-        Ok(Some(Ready { update, bytes }))
+        // Turned off during the download: the update is dropped, so nothing installs on quit.
+        Ok(self.still_wanted(manual).then_some(Ready { update, bytes }))
+    }
+
+    /// Whether a check that began (by hand when `manual`) may go on: an automatic one stops once
+    /// updates are off; Check now goes on unless policy or the install turned them off.
+    fn still_wanted(&self, manual: bool) -> bool {
+        let applied = self.applied();
+        if manual {
+            applied.can_check()
+        } else {
+            applied.automatic()
+        }
     }
 
     /// Installs the waiting update, if any: the app is quitting. On Windows the installer takes over
     /// and the process exits; on macOS and Linux the new version starts next time.
     pub(crate) fn install_on_quit(&self) {
-        if let Some(ready) = lock(&self.ready).take()
-            && let Err(error) = ready.update.install(&ready.bytes)
-        {
+        if let Err(error) = self.install() {
             tracing::warn!("could not install the update: {error}");
+        }
+    }
+
+    /// Installs the waiting update; `Ok` with none waiting. A failed install keeps it waiting.
+    fn install(&self) -> Result<(), tauri_plugin_updater::Error> {
+        let ready = lock(&self.ready);
+        match ready.as_ref() {
+            Some(ready) => ready.update.install(&ready.bytes),
+            None => Ok(()),
         }
     }
 
     /// Whether an update is waiting.
     fn has_ready(&self) -> bool {
         lock(&self.ready).is_some()
+    }
+}
+
+/// Clears the busy flag when dropped.
+struct Busy<'a>(&'a AtomicBool);
+
+impl Drop for Busy<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::Release);
     }
 }
 

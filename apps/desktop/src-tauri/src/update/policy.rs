@@ -27,7 +27,7 @@ pub(crate) struct Build {
     pub version: String,
     pub line: Line,
     /// The channel of the download this install came from: `LAMINA_UPDATE_CHANNEL` at build time
-    /// (D6b's release jobs set it), else Beta, as every download is until the first stable release.
+    /// (the release builds set it), else Beta, as every download is until the first stable release.
     pub channel: Channel,
 }
 
@@ -68,7 +68,7 @@ pub(crate) enum Install {
     Updatable,
     /// A Linux `.deb` or `.rpm`: its package manager updates it (Tauri replaces only an `AppImage`).
     PackageManager,
-    /// A Windows MSI install (D6d), which an organisation updates.
+    /// A Windows MSI install, which an organisation updates.
     Msi,
 }
 
@@ -128,6 +128,17 @@ pub(crate) enum Off {
     Msi,
     /// A Linux `.deb` or `.rpm`: the package manager updates it.
     PackageManager,
+}
+
+/// Whether the user may switch `build` to `channel`: Beta on a release build, Stable once it exists,
+/// never Nightly, and nothing on a nightly build, which trusts only the nightly key.
+pub(crate) fn may_choose(channel: Channel, build: &Build) -> bool {
+    build.line == Line::Release
+        && match channel {
+            Channel::Beta => true,
+            Channel::Stable => STABLE_AVAILABLE,
+            Channel::Nightly => false,
+        }
 }
 
 /// What the settings, policy, install and build add up to.
@@ -259,6 +270,15 @@ mod tests {
             effective(&settings, Policy::default(), Install::Updatable, &release()).channel,
             Channel::Beta
         );
+    }
+
+    #[test]
+    fn a_release_build_may_choose_beta_and_a_nightly_nothing() {
+        let nightly = Build::new("0.1.1-nightly.20261028.42", None);
+        assert!(may_choose(Channel::Beta, &release()));
+        assert_eq!(may_choose(Channel::Stable, &release()), STABLE_AVAILABLE);
+        assert!(!may_choose(Channel::Nightly, &release()));
+        assert!(!may_choose(Channel::Beta, &nightly));
     }
 
     #[test]

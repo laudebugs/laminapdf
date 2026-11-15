@@ -5,6 +5,7 @@
 import {
   Badge,
   Button,
+  IconButton,
   message,
   Notice,
   Popover,
@@ -42,6 +43,8 @@ export interface UpdateStatus {
   readonly enabled: boolean;
   readonly off: Off | null;
   readonly managed: boolean;
+  /** Whether Check now may run: the main process's rule. */
+  readonly canCheck: boolean;
   readonly stableAvailable: boolean;
   /** Seconds since the Unix epoch. */
   readonly lastChecked: number | null;
@@ -166,7 +169,12 @@ function StatusCard({ status, updates }: { status: UpdateStatus; updates: Deskto
         <div className="desktop-update-card">
           {state.state === "failed" ? <Notice tone="danger" title={message("settings.updates.failed")} /> : null}
           {status.off === null || status.off === "package-manager" ? (
-            <p className="desktop-update-title">{message("settings.updates.upToDate", { version: status.current })}</p>
+            <p className="desktop-update-title">
+              {/* "Up to date" only once a check has answered. */}
+              {message(status.lastChecked === null ? "settings.updates.current" : "settings.updates.upToDate", {
+                version: status.current,
+              })}
+            </p>
           ) : (
             <>
               <p className="desktop-update-title">{message("settings.updates.off")}</p>
@@ -196,7 +204,6 @@ export function UpdateSettings({ updates }: { updates: DesktopUpdates }): ReactN
       </div>
     );
   }
-  const canCheck = status.off === null || status.off === "user";
   return (
     <div className="paper-settings-fields">
       {status.managed ? (
@@ -237,7 +244,7 @@ export function UpdateSettings({ updates }: { updates: DesktopUpdates }): ReactN
       )}
       <div className="desktop-update-check">
         <span className="desktop-settings-help">{lastChecked(status.lastChecked)}</span>
-        <Button isDisabled={busy || !canCheck} onPress={updates.checkNow}>
+        <Button isDisabled={busy || !status.canCheck} onPress={updates.checkNow}>
           {message("settings.updates.checkNow")}
         </Button>
       </div>
@@ -270,19 +277,32 @@ function Sends({ updates }: { updates: DesktopUpdates }): ReactNode {
 export function UpdateReadyItem({ updates }: { updates: DesktopUpdates }): ReactNode {
   const [isOpen, setOpen] = useState(false);
   const { status } = updates;
-  if (status === undefined || status.state.state !== "ready") return null;
-  const { version } = status.state;
+  const ready = status?.state.state === "ready" ? status.state : undefined;
+  // The live region is there before the update is ready, so screen readers announce its words
+  // when they appear; it never changes again, so it speaks once.
+  const live = (
+    <span className="paper-visually-hidden" aria-live="polite">
+      {ready === undefined ? "" : message("settings.updates.ready", { version: ready.version })}
+    </span>
+  );
+  if (status === undefined || ready === undefined) return live;
+  const { version } = ready;
   const title = message("settings.updates.ready", { version });
   return (
     <span className="desktop-update-ready">
-      <span className="paper-visually-hidden" aria-live="polite">
-        {title}
-      </span>
+      {live}
       <PopoverTrigger isOpen={isOpen} onOpenChange={setOpen}>
         <StatusBarItem icon="download">{message("settings.updates.readyItem")}</StatusBarItem>
         <Popover aria-label={title} placement="top">
           <div className="desktop-update-popover">
-            <p className="desktop-update-title">{title}</p>
+            <div className="desktop-update-popover-head">
+              <p className="desktop-update-title">{title}</p>
+              <IconButton
+                label={message("settings.updates.closeDetails")}
+                icon="close"
+                onPress={() => setOpen(false)}
+              />
+            </div>
             <p className="desktop-settings-help">
               {message("settings.updates.readyChannel", {
                 channel: channelName(status.channel),

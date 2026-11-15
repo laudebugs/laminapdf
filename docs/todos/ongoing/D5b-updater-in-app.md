@@ -111,6 +111,9 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 - **Install on quit** runs at `RunEvent::Exit`, after the session is written. On macOS closing the last window doesn't quit, so `Exit` is the real quit. Restart to update calls `app.restart()` (no `tauri-plugin-process`).
 - **Restart to update with unsaved changes**: the desktop reader doesn't edit yet (E1h), so there is no close dialog (O03) to show; E1h adds it before installing.
 - **The popover is React Aria's**, modal while open, where S06 draws a non-modal one.
+- **Commands:** the palette and menus get Check for updates and Restart to update. S06's `app.update-later`, `settings.update-enabled`, `settings.update-channel` and `help.whats-new` stay the controls of their own screens (the popover's Later, the switch, the channel, the link), since none means anything outside them.
+- **Not drawn yet:** the update check in the network indicator (the desktop status bar has no network indicator yet) and the dot on the Updates row (Settings' list has no status dots). Check now is the house `Button`, disabled while busy, rather than `aria-disabled`.
+- **The base endpoint** in `tauri.conf.json` names the beta channel, not stable: no stable release exists, and every check sets its channel's endpoint anyway.
 - **The nightly note has no link**: the download page is D7b's.
 - **The privacy page's words are D7b's** (ADR 0014 §9), and `apps/site/src/data/privacy.ts` sends any change to a promise back to the owner. Settings › Updates says what each check sends and links to the page.
 - **A licence exception**, owner decision 2026-11-14: `webpki-root-certs` (CDLA-Permissive-2.0), which reqwest's rustls brings and only wasm32 compiles. The desktop notices list only the six shipped targets, so it isn't in them.

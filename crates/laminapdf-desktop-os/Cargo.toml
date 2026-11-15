@@ -17,8 +17,6 @@ homepage.workspace = true
 layer = "edge"
 
 [dependencies]
-# Linux's update policy file, /etc/lamina/policy.json.
-serde_json = { workspace = true }
 thiserror = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
@@ -31,6 +29,12 @@ windows = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = { workspace = true }
+# Linux's update policy file, /etc/lamina/policy.json.
+serde_json = { workspace = true }
+
+[dev-dependencies]
+# The policy file's parser is tested on every OS.
+serde_json = { workspace = true }
 
 [lints]
 workspace = true
