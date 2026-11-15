@@ -82,7 +82,9 @@ export type ApplyTo = "selected" | "all";
 
 /** Props of `CropDialog`. */
 export interface CropDialogProps {
+  /** Whether the dialog shows. */
   readonly isOpen: boolean;
+  /** The dialog asks to close: Cancel, Escape, the close button, or after Apply. */
   readonly onClose: () => void;
   readonly unit: LengthUnit;
   /** Every page's displayed size, in order. */
@@ -207,7 +209,9 @@ export type ResizeAnchor = (typeof ANCHORS)[number];
 
 /** Props of `ResizeDialog`. */
 export interface ResizeDialogProps {
+  /** Whether the dialog shows. */
   readonly isOpen: boolean;
+  /** The dialog asks to close: Cancel, Escape, the close button, or after Apply. */
   readonly onClose: () => void;
   readonly unit: LengthUnit;
   /** The displayed sizes of the pages it resizes. */
@@ -435,13 +439,16 @@ export type BoxChanges = { readonly media?: Box; readonly crop?: Box } & {
 
 /** Props of `PageBoxesDialog`. */
 export interface PageBoxesDialogProps {
+  /** Whether the dialog shows. */
   readonly isOpen: boolean;
+  /** The dialog asks to close: Cancel, Escape, the close button, or after Apply. */
   readonly onClose: () => void;
   /** The page whose boxes it shows ("3"), and how many pages it sets them on. */
   readonly page: string;
   readonly count: number;
   /** That page's boxes, or undefined while they are read. */
   readonly boxes: PageBoxValues | undefined;
+  /** Writes the boxes the person changed, on every page the dialog sets them on. */
   readonly onApply: (boxes: BoxChanges) => void;
 }
 

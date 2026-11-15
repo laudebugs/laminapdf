@@ -26,7 +26,9 @@ import {
 
 /** Props of `PageLabelsDialog`. */
 export interface PageLabelsDialogProps {
+  /** Whether the dialog shows. */
   readonly isOpen: boolean;
+  /** The dialog asks to close: Cancel, Escape, the close button, or after Apply. */
   readonly onClose: () => void;
   /** Every page's ID, in order. */
   readonly pages: readonly string[];
