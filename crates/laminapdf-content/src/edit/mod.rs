@@ -549,7 +549,7 @@ impl ContentOps {
         };
         // An object an edit left empty is written where its next operator starts, or at the end.
         let anchor = self.ops.get(range.start).map_or(self.source.len(), |op| op.token_start);
-        self.splice(range, anchor, ops);
+        self.splice(index, range, anchor, ops);
         if let Some(object) = self.objects.get_mut(index) {
             object.bounds = None;
         }
@@ -626,8 +626,9 @@ impl ContentOps {
 
     /// Replaces the operators in `range` with `new`, written at `anchor` in the source, and
     /// keeps every index into the operators in step. Marked-content operators in `range` whose
-    /// sequence reaches outside it are written again after `new`, outside the object.
-    fn splice(&mut self, range: Range<usize>, anchor: usize, mut new: Vec<ContentOp>) {
+    /// sequence reaches outside it are written again after `new`, outside the object
+    /// `object_index`.
+    fn splice(&mut self, object_index: usize, range: Range<usize>, anchor: usize, mut new: Vec<ContentOp>) {
         self.edited = true;
         // One hole per run of source operators, from the first one's token: the white space
         // between them goes with them, the white space before the run stays.
@@ -691,11 +692,12 @@ impl ContentOps {
             kept.push(seq);
         }
         self.marked = kept;
-        for object in &mut self.objects {
-            if object.ops.start >= end {
-                object.ops = shift(object.ops.start)..shift(object.ops.end);
-            } else if object.ops.start == start && object.ops.end == end {
+        for (index, object) in self.objects.iter_mut().enumerate() {
+            // The replaced object by its index: an empty range can't tell it from a neighbour.
+            if index == object_index {
                 object.ops = start..start + written;
+            } else if object.ops.start >= end {
+                object.ops = shift(object.ops.start)..shift(object.ops.end);
             }
             object.marked = object
                 .marked

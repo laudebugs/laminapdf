@@ -330,3 +330,12 @@ fn replacing_an_object_should_write_a_sequence_it_opens_after_the_new_operators(
     assert!(ops.replace(text, replacement));
     assert_eq!(written(&ops), b"BT\nET\n/P << /MCID 2 >> BDC\n EMC");
 }
+
+#[test]
+fn an_object_left_empty_should_hold_the_operators_it_takes_again() {
+    let mut ops = ir(&[b"0 0 m S BT (a) Tj ET"]);
+    let path = object(&ops, 0);
+    assert!(ops.replace(path, Vec::new()));
+    assert!(ops.replace(path, vec![ContentOp::new(Operator::EndPath, Vec::new())]));
+    assert_eq!(ops.object(path).map(ContentObject::operators), Some(0..1));
+}
