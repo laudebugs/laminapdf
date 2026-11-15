@@ -50,6 +50,8 @@ on:
       - apps/site/src/pages/**
       - packages/wasm/package.json
       - crates/laminapdf/examples/**
+      # The viewer's examples, which its pages show.
+      - packages/viewer/examples/**
       - fixtures/golden/examples/**
       - fixtures/codes.json
       - fixtures/codes.schema.json
