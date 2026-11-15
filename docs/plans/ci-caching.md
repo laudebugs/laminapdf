@@ -3,7 +3,7 @@
 - **Status:** Done (2026-11-15). The trial (X8a) didn't meet §5's rule, so X8b removed the compile cache ([§2.2](#22-the-trials-results-x8b)); the waits (§8) are done
 - **Date:** 2026-11-12
 - **Asked for by:** the project owner (2026-11-12): "look at caching for our tests, so as to speed up the pipeline", then "cache the rust builds without turborepo", with the cache on Cloudflare R2.
-- **Changes:** [ADR 0018 §2](../decisions/0018-test-strategy.md#2-ci-lanes) (a CI compile cache, and what may never use it)
+- **Changes:** [ADR 0018 §2](../decisions/0018-test-strategy.md#2-ci-lanes) (a CI compile cache, and what may never use it; reversed 2026-11-15)
 - **Builds on:** the fast and full lanes ([X4](../todos/done/X4-full-lane-gate.md), [X7](../todos/done/X7-fast-lane-gate.md)), the hosted runners ([X6](../todos/done/X6-windows-ci.md)), and the shared setup actions in `.github/actions/`
 - **Todos:** [§7](#7-todos) (the compile cache), [§8](#8-the-waits) (the waits) and [§8.2](#82-desktop-legs-and-codeql-by-what-changed-x10) (desktop legs and CodeQL)
 
@@ -52,11 +52,11 @@ The exact-key PR runs are 43257042096, 43216833241, 43199525601, 43169313504 and
 
 ### 2.2 The trial's results (X8b)
 
-X8b measured every `ci.yml` pull-request run from 2026-11-11 21:13Z to 2026-11-15 19:09Z, 993 runs and 1,134 successful Rust jobs, the most the API returns. Compiling is measured as in §2.1. A job counts as "after" when its log prints `Compile cache: READ_ONLY`: Linux x64 and macOS x64 from #507 (2026-11-12 18:04Z), macOS Arm64 from #513 (20:18Z). Every job on those legs from then on had the compile cache, Dependabot's included. The Rust-cache state is rust-cache's own log line: `full match: true` (exact), `full match: false` (partial), `No cache found.` (none). Linux Arm64, which never had the compile cache, is the control, split at 2026-11-12 20:31Z.
+X8b measured every `ci.yml` pull-request run from 2026-11-11 21:13Z to 2026-11-15 19:09Z: 993 runs with 1,134 successful Rust jobs. The API returns no older runs. Compiling is measured as in §2.1. A job counts as "after" when its log prints `Compile cache: READ_ONLY`: Linux x64 and macOS x64 from #507 (2026-11-12 18:04Z), macOS Arm64 from #513 (20:18Z). Every job on those legs from then on had the compile cache, Dependabot's included. The Rust-cache state is rust-cache's own log line: `full match: true` (exact), `full match: false` (partial), `No cache found.` (miss). Linux Arm64, which never had the compile cache, is the control, split at 2026-11-12 20:31Z.
 
 Median compile minutes, before → after (runs):
 
-| Leg | Exact | Partial | None |
+| Leg | Exact | Partial | Miss |
 | --- | --- | --- | --- |
 | macOS Arm64 | 5.83 (9) → 6.22 (49), +7 % | 6.35 (20) → 7.48 (71), +18 % | 11.04 (57) → 10.26 (107), −7 % |
 | Linux x64 | 3.31 (28) → 3.69 (60), +11 % | 3.84 (38) → 4.27 (93), +11 % | 9.07 (43) → 5.75 (137), −37 % |
@@ -64,7 +64,7 @@ Median compile minutes, before → after (runs):
 
 On macOS Arm64, the leg §5's rule reads, compiling fell by 7 % on a Rust-cache miss and grew on both kinds of hit. The rule's bars were 3.95 minutes for exact hits and 7.57 for misses; the medians after are 6.22 and 10.26. Clippy, the part §6 doubted, went from 1.42 to 1.51 minutes on exact hits and 4.34 to 3.79 on misses; the test builds stayed about the same. Linux x64 shows what the compile cache can do on a miss, 37 % off, with clippy at 3.71 → 2.43 minutes, but nothing on a hit.
 
-The codebase grew over the same days: test time went from about 1.0 to 1.6 minutes on every leg (4,221 tests, then about 5,200), and the control compiled 15 to 40 % slower. Measured against the control, macOS Arm64 did about a fifth better, still short of a third, and the rule reads the raw numbers. The "before" window is short (from 2026-11-11, where the API stops), with 9 exact-hit runs. Every macOS Arm64 job ran on runner image 20261103.629. sccache's hit rates went to the job summaries, which no API returns, so they weren't collected.
+The codebase grew over the same days: test time went from about 1.0 to 1.6 minutes on every leg (4,221 tests, then about 5,200), and the control compiled 15 to 40 % slower. Even against the control, macOS Arm64 did only about a fifth better, short of a third; and the rule reads the raw numbers. The "before" window is short (from 2026-11-11, where the API stops), with 9 exact-hit runs. Every macOS Arm64 job ran on runner image 20261103.629. sccache's hit rates went to the job summaries, which no API returns, so they weren't collected.
 
 ## 3. Choices
 
@@ -85,6 +85,8 @@ sccache can't cache any crate that calls the linker ([sccache's README](https://
 The gain is smaller than "compiling stops". sccache reaches the 22 library crates in each build of `check rust`: clippy (if it caches `clippy-driver`, §6), the cross-target and wasm32 checks, and the libraries that tests link. It never reaches the test harnesses, which are a large share of the compile minutes. Its keys include each dependency's compiled output, so a PR that changes `laminapdf-syntax` or `laminapdf-cos` misses on nearly every crate above them. The trial measures the result; this plan sets no number in advance beyond the rule in §5.
 
 ## 4. Design
+
+This section and §6 describe the compile cache as the trial ran it; X8b removed it (§2.2, §5).
 
 ### 4.1 One setup action
 
@@ -124,7 +126,7 @@ The trial (X8a) runs the compile cache on the Rust legs where compiling costs mo
 - **Keep and spread** if the compile minutes of `cargo xtask check rust` on macOS Arm64 PR runs fall by a third or more in at least one Rust-cache state, compared within that state (exact-key hits to 3.95 minutes or less, misses to 7.57 or less, against §2.1's 5.92 and 11.36), and grow in neither. Until 2026-11-12 the rule read macOS x64 PR runs with a Rust-cache hit (8.6 minutes); [X9a](../todos/done/X9a-macos-x64-rust-off-prs.md) takes that leg off pull requests. The compile cache then goes to every Rust job in `ci.yml` and `full.yml`, and X8b tries one leg without the Rust cache.
 - **Remove** otherwise. X8b then takes the action and the secrets out and records the numbers here, so nobody tries the same thing without new evidence.
 
-**Decision (2026-11-15, X8b): remove.** On macOS Arm64 compiling fell by 7 % on a miss and grew on both kinds of hit (§2.2), and the owner chose to follow the rule. The action, the sccache pin, the workflow checks and the legs' environment went in [X8b](../todos/done/X8b-rust-compile-cache-everywhere.md). Trying again would need new evidence: for instance a leg whose Rust cache misses most of the time, as Linux x64 showed, measured against a control.
+**Decision (2026-11-15, X8b): remove.** On macOS Arm64 compiling fell by 7 % on a miss and grew on both kinds of hit (§2.2), and the owner chose to follow the rule. [X8b](../todos/done/X8b-rust-compile-cache-everywhere.md) removed the action, the sccache pin, the workflow checks and the legs' environment. Trying again would need new evidence: for instance a leg whose Rust cache misses most of the time, as Linux x64 showed, measured against a control.
 
 Each todo's PR carries its workflow edits with the action, the pin, the tests and the docs. If the agent's GitHub access can't push workflow files, the PR gives them as a patch for the owner to commit.
 

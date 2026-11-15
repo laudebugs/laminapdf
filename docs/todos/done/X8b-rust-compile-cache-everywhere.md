@@ -9,7 +9,7 @@
 | Depends on | [X8a](./X8a-rust-compile-cache-trial.md) |
 | ADRs | [ADR 0018 §2](../../decisions/0018-test-strategy.md#2-ci-lanes) |
 | Branch | `ci/x8b-rust-compile-cache-everywhere` |
-| PR title | `ci: compile Rust through the compile cache in the fast and full lanes` |
+| PR title | `ci: remove the Rust compile cache, which saved too little` |
 | Size | S |
 | PR | [#653](https://github.com/laudebugs/laminapdf/pull/653) |
 
@@ -44,7 +44,7 @@ X8a's trial shows how much sccache saves on the Linux x64, macOS x64 and macOS A
 ## Acceptance criteria
 
 - [x] The plan's §2 holds the trial's numbers and §5 the decision.
-- [x] If kept, every Rust job of the fast and full lanes uses the action, and the workflow checks still pass. Removed instead; the workflow checks pass without the compile cache's.
+- [x] If kept, every Rust job of the fast and full lanes uses the action, and the workflow checks still pass. Removed instead; the remaining workflow checks pass.
 
 ## Post-merge checks
 
