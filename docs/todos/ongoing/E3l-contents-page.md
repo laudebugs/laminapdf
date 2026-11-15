@@ -11,7 +11,7 @@
 | Branch | `feat/e3l-contents-page` |
 | PR title | `feat(ops): create a contents page from the bookmarks` |
 | Size | M (200–400): one function composing existing ops, the page's layout and the dialog |
-| PR | — |
+| PR | [#645](https://github.com/laudebugs/laminapdf/pull/645) |
 
 ## Goal
 
