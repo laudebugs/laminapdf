@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `U7a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
 | Depends on | None |
