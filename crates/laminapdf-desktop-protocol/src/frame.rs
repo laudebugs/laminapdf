@@ -233,6 +233,14 @@ mod tests {
                 req,
                 message: "too large".into(),
             },
+            ToEngine::RenderPrintBand(crate::PrintBandRequest {
+                req,
+                doc,
+                page: 4,
+                dpi: 300,
+                band: 2,
+                format: TileFormat::Bgra8,
+            }),
         ]
     }
 
@@ -295,6 +303,16 @@ mod tests {
             },
             FromEngine::Heartbeat,
             FromEngine::FontRequest { req, font: 3 },
+            FromEngine::PrintBand {
+                req,
+                dpi: 300,
+                width: 2480,
+                height: 3508,
+                y: 1690,
+                rows: 1690,
+                bands: 3,
+                format: TileFormat::Bgra8,
+            },
         ]
     }
 

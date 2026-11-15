@@ -90,12 +90,14 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   │                    #     `supervisor` (std only: spawn, Hello/Ready, replies by ReqId, ReadRange served, heartbeat
 │   │                    #     watchdog, restart with backoff, 4th crash in 60 s = failed; `fake` with `test-support`) (D2b);
 │   │                    #     SandboxLevel/Layer (an engine missing a required layer is refused), Fonts/FontRequest/FontData
-│   │                    #     with FontServer (D2c)
+│   │                    #     with FontServer (D2c); protocol 5: RenderPrintBand/PrintBand, a page for printing in bands of
+│   │                    #     ≤ 16 MiB at a dpi with the print intent, TileFormat::Bgra8 (D4c)
 │   ├── laminapdf-desktop-engine/  # app, unpublished: the desktop engine binary (ADR 0008 §2): stdin/stdout frames, a router
 │   │                    #     thread that never parses, one worker (lamina model + PDFium), RemoteSource (256 KiB blocks
 │   │                    #     read over the pipe); examples large_pdf (the 1 GB fixture) and measure (D2b);
 │   │                    #     fonts.rs (PDFium's system fonts, asked of the main process); --sandbox-selftest[=<probe>]
-│   │                    #     (feature `selftest`, selftest.rs), tests/sandbox_selftest.rs (D2c)
+│   │                    #     (feature `selftest`, selftest.rs), tests/sandbox_selftest.rs (D2c); print.rs (the print bands'
+│   │                    #     maths: band height, the dpi a page fits, BGRA; D4c)
 │   ├── laminapdf-desktop-sandbox/  # edge, unpublished: the engine's sandbox (ADR 0008 §5), both halves: spawn_sandboxed /
 │   │                    #     SandboxSpawner (Windows: job, Low-IL restricted token + start-up impersonation, mitigation
 │   │                    #     policies, CreateProcessAsUserW; Unix: only fds 0–2 inherited; macOS: memory watchdog; names
@@ -107,7 +109,11 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   ├── laminapdf-desktop-os/  # edge, unpublished: the desktop main process's calls into the OS's shell (D3b): the recent
 │   │                    #     documents (macOS NSDocumentController, Windows SHAddToRecentDocs and the Jump List of the
 │   │                    #     AppUserModelID set at start-up, Linux GTK RecentManager), on the main thread; open_shared and file_identity
-│   │                    #     (D3c: the share mode documents open with, the file an open handle reads, volume and file ID or device and inode; example reopen-cost)
+│   │                    #     (D3c: the share mode documents open with, the file an open handle reads, volume and file ID or device and inode; example reopen-cost);
+│   │                    #     print/ (D4c: PrintSource of bands, checked; macOS: AppKit's panel + a Core Printing session per job,
+│   │                    #     a page format per page; Windows: PrintDlgExW + GDI's ResetDCW/StretchDIBits; Linux: GtkPrintOperation
+│   │                    #     + cairo; choose on the main thread, spool anywhere (Linux: print, main thread); tests/print_to_file.rs,
+│   │                    #     its own main(), prints four page sizes to the OS's PDF printer on macOS and Windows)
 │   ├── laminapdf-render-wasm/  # edge: wasm-bindgen bindings of the hayro adapter (flat numbers and bytes), built by
 │                        #     `cargo xtask wasm` as lamina_pdf_render_hayro into @laminapdf/wasm (C2c)
 │   └── laminapdf-test-fixtures/  # dev, unpublished: the Rust test helpers that crates share (fixtures_dir, fixture, corpus,
@@ -297,10 +303,13 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   Changesets: its version is the crate's). src/main.tsx (the only isTauri() call, checked by `check ts`),
 │                        #   src/platform/desktop.ts (the web platform plus canWriteInPlace, canWatchFiles, hasNativePrint,
 │                        #   multiWindow; their calls reject with NotYetSupportedError naming the feature), src/app.tsx (top bar, home
-│                        #   screen, version from the `app_info` command); showing a document waits for D2d. src-tauri/: the
+│                        #   screen, version from the `app_info` command); src/print.tsx (File ▸ Print: print_document, the
+│                        #   status-bar progress item with cancel_print; D4c); showing a document waits for D2d. src-tauri/: the
 │                        #   workspace crate laminapdf-desktop (layer app, publish = false): lib.rs (plugins dialog/log/opener for
 │                        #   Rust only, window `main` built in Rust, Engines managed state, window close/app exit stop engines),
-│                        #   commands.rs (`app_info`, `open_dialog`, `page_info`, `close_document`; `debug_kill_engine` with
+│                        #   print.rs (D4c: print_document, cancel_print, e2e_print_to_file; a PrintSource over the window's
+│                        #   engine at 300 dpi, engine/print.rs checking each band), commands.rs (`app_info`, `open_dialog`,
+│                        #   `page_info`, `close_document`; `debug_kill_engine` with
 │                        #   feature `e2e`), startup.rs (feature `e2e`: the cold-start marks, logged by the first
 │                        #   `app_info`), engine/ (D2b: Engines = one supervised engine per window, engine://restarted and
 │                        #   engine://failed to that window; documents.rs DocumentRegistry, a window reads only its own docs;
