@@ -83,10 +83,13 @@ export function BottomSheet(given: BottomSheetProps): ReactNode {
   const props = { ...shown, isOpen: given.isOpen, onOpenChange: given.onOpenChange };
   const opening = props.defaultDetent ?? "medium";
   const [ownDetent, setOwnDetent] = useState<SheetDetent>(opening);
-  // Each opening starts at the default detent, not wherever the sheet was when it last closed.
-  useEffect(() => {
-    if (!props.isOpen) setOwnDetent(opening);
-  }, [props.isOpen, opening]);
+  // Each opening starts at the default detent, not wherever the sheet was when it last closed. The
+  // reset happens as it opens, not as it closes, so a leaving sheet keeps its height for its exit.
+  const [wasOpen, setWasOpen] = useState(props.isOpen);
+  if (props.isOpen !== wasOpen) {
+    setWasOpen(props.isOpen);
+    if (props.isOpen) setOwnDetent(opening);
+  }
   if (!props.isOpen && props.isModal === false) return null;
   const placed: Placed = {
     detent: props.detent ?? ownDetent,

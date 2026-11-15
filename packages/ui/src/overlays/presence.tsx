@@ -8,6 +8,9 @@ import { createContext, type ReactNode, useContext, useEffect, useState } from "
 
 const Exiting = createContext(false);
 
+/** Two frames at 60 Hz: how much later than its exit token an overlay leaves the page. */
+const EXIT_MARGIN_MS = 34;
+
 /** Whether the overlay rendering this is on its way out: it marks itself `data-exiting` and `inert`. */
 export function useExiting(): boolean {
   return useContext(Exiting);
@@ -74,7 +77,9 @@ export function Presence<T>({ value, exit = "small", children }: PresenceProps<T
   if (open && gone) setGone(false);
   useEffect(() => {
     if (open) return;
-    const timer = setTimeout(() => setGone(true), MOTION[`exit-${exit}`]);
+    // A little past the exit's time: the timer starts at commit, a frame or two before the
+    // transition does, and must not clip its last frame.
+    const timer = setTimeout(() => setGone(true), MOTION[`exit-${exit}`] + EXIT_MARGIN_MS);
     return () => clearTimeout(timer);
   }, [open, exit]);
   const shown = open ? value : kept;

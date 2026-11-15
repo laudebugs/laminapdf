@@ -10,6 +10,30 @@ import { chooseFile, clean, load, opened, WITHOUT_PICKER } from "./reader.ts";
 
 const origin = inject("origin");
 
+/**
+ * Records the first computed exit of an element matching `selector`: its transition duration and
+ * pointer-events when it is marked data-exiting. A single read after the key press could miss a
+ * 150 ms exit on a slow runner; the recorder sees it whenever it happens.
+ */
+function recordExit(page: Page, selector: string) {
+  return page.evaluate((selector) => {
+    const seen: { duration: string; pointerEvents: string }[] = [];
+    Object.assign(window, { exitSeen: seen });
+    new MutationObserver(() => {
+      const element = document.querySelector(`${selector}[data-exiting]`);
+      if (element === null || seen.length > 0) return;
+      const style = getComputedStyle(element);
+      seen.push({ duration: style.transitionDuration.split(", ")[0] ?? "", pointerEvents: style.pointerEvents });
+    }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ["data-exiting"] });
+  }, selector);
+}
+
+/** The exit `recordExit` saw, once there was one. */
+const exitSeen = (page: Page) =>
+  page.evaluate(
+    () => (window as unknown as { exitSeen: { duration: string; pointerEvents: string }[] }).exitSeen[0] ?? null,
+  );
+
 /** The open popover's computed transition and scale, and whether it is leaving. */
 function popover(page: Page) {
   return page.evaluate(() => {
@@ -63,8 +87,9 @@ describe(`overlay motion in ${BROWSER}`, () => {
     await opened(watched, "hello.pdf");
     await openMore(page);
     expect(await popover(page)).toMatchObject({ duration: "0.12s", property: "opacity, scale", scale: 0.97 });
+    await recordExit(page, ".paper-popover");
     await page.keyboard.press("Escape");
-    expect(await popover(page)).toMatchObject({ duration: "0.08s", exiting: true, pointerEvents: "none" });
+    await expect.poll(() => exitSeen(page)).toEqual({ duration: "0.08s", pointerEvents: "none" });
     await expect.poll(() => popover(page)).toBeNull();
     await clean(watched);
   });
@@ -80,8 +105,9 @@ describe(`overlay motion in ${BROWSER}`, () => {
     await openMore(page);
     // The fade stays; the scale it grows from is 1, so nothing moves.
     expect(await popover(page)).toMatchObject({ duration: "0.12s", scale: 1 });
+    await recordExit(page, ".paper-popover");
     await page.keyboard.press("Escape");
-    expect(await popover(page)).toMatchObject({ exiting: true });
+    await expect.poll(() => exitSeen(page)).not.toBeNull();
     await expect.poll(() => popover(page)).toBeNull();
     await clean(watched);
   });
@@ -120,8 +146,9 @@ describe(`overlay motion in ${BROWSER}`, () => {
           };
         });
       expect(await frame()).toMatchObject({ fade: "0.2s", scale: reduced ? 1 : 0.97 });
+      await recordExit(page, ".paper-modal-overlay");
       await page.keyboard.press("Escape");
-      expect(await frame()).toMatchObject({ fade: "0.15s", exiting: true });
+      await expect.poll(() => exitSeen(page)).toEqual({ duration: "0.15s", pointerEvents: "none" });
       await expect.poll(frame).toBeNull();
       await clean(watched);
     });
@@ -154,8 +181,9 @@ describe(`overlay motion in ${BROWSER}`, () => {
     }
     await page.getByRole("button", { name: "Sidebar" }).click();
     await expect.poll(drawer).toMatchObject({ property: "translate, opacity", scrim: "opacity", exiting: false });
+    await recordExit(page, ".paper-left-rail");
     await page.keyboard.press("Escape");
-    expect(await drawer()).toMatchObject({ exiting: true });
+    await expect.poll(() => exitSeen(page)).toMatchObject({ pointerEvents: "none" });
     await expect.poll(drawer).toBeNull();
     await clean(watched);
   });
