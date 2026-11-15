@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D5c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D5](../../plans/desktop-app.md#d5-update-service) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [D5b](../done/D5b-updater-in-app.md) |
@@ -40,7 +40,7 @@ Show that an installed Lamina PDF `0.0.1` updates itself to `0.0.2` on macOS, Wi
 
 **Out of scope**
 
-- The release workflow and OS code signing: [D6b](./D6b-release-workflow-and-linux-packages.md)–[D6d](./D6d-windows-signing.md).
+- The release workflow and OS code signing: [D6b](../ready/D6b-release-workflow-and-linux-packages.md)–[D6d](../ready/D6d-windows-signing.md).
 
 ## Acceptance criteria
 
