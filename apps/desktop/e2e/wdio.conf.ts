@@ -64,8 +64,8 @@ export const config: WebdriverIO.Config = {
     "large",
     "tabs",
     "menus",
-    "print",
     "edit-session",
+    "print",
   ]),
   // Opening adds a tab rather than replacing the document before, so each scenario starts with
   // every tab closed, as if it had the app to itself. The scenarios run as one group, where
