@@ -3,7 +3,8 @@
 // turned off clears the app's and the OS's recent lists and the last session, reopening the last
 // session (which needs the recent files remembered), reloading open files that change on disk,
 // opening files in tabs or windows, and opening a file that is open already; and Appearance and
-// accessibility's Motion, kept beside them so every window shares it (motion.ts applies it). The full settings page adds its
+// accessibility's Motion, kept beside them so every window shares it (motion.ts applies it); and,
+// on Linux, Graphics (graphics.tsx), which the next start reads. The full settings page adds its
 // other sections to the same registry.
 
 import {
@@ -17,6 +18,7 @@ import {
 } from "@laminapdf/ui";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import type { DesktopShell } from "./engine/desktop-engine-client.ts";
+import { type Graphics, useGraphicsSection } from "./graphics.tsx";
 import { useMotion } from "./motion.ts";
 import { words } from "./update-words.ts";
 import { type DesktopUpdates, UpdateSettings, updatesSummary } from "./updates.tsx";
@@ -33,6 +35,8 @@ interface Preferences {
   readonly reopenLast: boolean;
   /** Settings › Motion: the system's, or reduced whatever it says. */
   readonly motion: Motion;
+  /** Settings › Graphics (Linux): the WebKitGTK workarounds the next start runs with. */
+  readonly graphics: Graphics;
 }
 
 /** The main process's event with the preferences, after any window changed them (`commands.rs`). */
@@ -46,6 +50,7 @@ const DEFAULTS: Preferences = {
   allowDuplicates: false,
   reopenLast: true,
   motion: "system",
+  graphics: "automatic",
 };
 
 /** What the settings give the app. */
@@ -112,6 +117,10 @@ export function useDesktopSettings(
     words("title"),
     () => <UpdateSettings updates={updates} />,
     { shows: [updates], summary: () => updatesSummary(updates.status) },
+  );
+  // Settings › Graphics, on Linux only (the main process says whether it applies).
+  useGraphicsSection(shell, { shown: registry, unshown }, preferences.graphics, (graphics) =>
+    change({ ...preferences, graphics }),
   );
   const open = useCallback((at?: string) => {
     setSection(at);

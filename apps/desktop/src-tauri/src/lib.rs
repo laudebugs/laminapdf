@@ -12,6 +12,14 @@ mod commands;
 mod e2e;
 mod engine;
 mod error;
+#[cfg_attr(
+    all(not(target_os = "linux"), not(test)),
+    expect(
+        dead_code,
+        reason = "the graphics choice is made on Linux only; its tests run everywhere"
+    )
+)]
+mod graphics;
 mod menu;
 mod motion;
 mod open;
@@ -141,6 +149,8 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         tracing::warn!("could not set the app's ID: {error}");
     }
     let config = app.path().app_config_dir()?;
+    graphics::log();
+    graphics::watch_start(config.clone());
     app.manage(prefs::Prefs::load(config.join("preferences.json")));
     app.manage(recent::RecentFiles::load(config.join("recent.json")));
     app.manage(engines(app.handle()));
@@ -213,6 +223,9 @@ macro_rules! app_commands {
             commands::preferences,
             commands::set_preferences,
             commands::system_motion,
+            commands::graphics_status,
+            commands::graphics_notice_seen,
+            commands::restart_app,
             commands::new_window,
             commands::move_tab,
             commands::window_list,
@@ -254,6 +267,9 @@ macro_rules! app_commands {
     reason = "tauri::generate_context! builds a HashMap of the bundled assets"
 )]
 pub fn run() -> Result<(), DesktopError> {
+    let context = tauri::generate_context!();
+    // First of all, while nothing else runs: `WebKitGTK` reads its graphics settings as it starts.
+    graphics::prepare(&context.config().identifier);
     #[cfg(feature = "e2e")]
     e2e::start_clock();
     // The test commands and WebdriverIO's plugins exist only in e2e builds; generate_handler!
@@ -328,7 +344,7 @@ pub fn run() -> Result<(), DesktopError> {
         .setup(setup)
         .on_window_event(on_window_event)
         .on_menu_event(|app, event| menu::on_menu_event(app, &event))
-        .build(tauri::generate_context!())?;
+        .build(context)?;
     app.run(|app, event| on_run_event(app, &event));
     Ok(())
 }
@@ -391,6 +407,10 @@ fn on_run_event(app: &tauri::AppHandle, event: &RunEvent) {
     match event {
         RunEvent::Exit => {
             session::app::flush(app);
+            // A clean quit, however soon after the start, isn't one the graphics guard counts.
+            if let Ok(config) = app.path().app_config_dir() {
+                graphics::survived(&config);
+            }
             app.state::<Arc<Engines>>().shutdown();
             // A downloaded update installs as the app quits (on Windows its installer takes over).
             app.state::<Arc<update::Updates>>().install_on_quit();

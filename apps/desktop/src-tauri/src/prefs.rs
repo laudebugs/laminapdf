@@ -1,6 +1,7 @@
 //! The desktop app's own preferences, kept in `preferences.json` in the app's config folder:
 //! whether it remembers recent files and whether it reloads files that change on disk, where files
-//! open, and Settings › Motion. The
+//! open, Settings › Motion and, on Linux, Settings › Graphics (`graphics.rs`, read before the app
+//! starts). The
 //! settings page (D5b, D7b) will show them; until then the Recent popover holds the toggles.
 
 use std::path::PathBuf;
@@ -8,6 +9,7 @@ use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use serde::{Deserialize, Serialize};
 
+use crate::graphics::Graphics;
 use crate::store::{read_json, write_json};
 
 /// The preferences, as the webview reads and sets them.
@@ -31,6 +33,8 @@ pub(crate) struct Preferences {
     pub reopen_last: bool,
     /// Settings › Motion: follow the system, or reduce motion whatever it says.
     pub motion: Motion,
+    /// Settings › Graphics (Linux): the `WebKitGTK` workarounds the next start runs with.
+    pub graphics: Graphics,
 }
 
 /// Settings › Motion (motion plan §5).
@@ -67,6 +71,7 @@ impl Default for Preferences {
             allow_duplicates: false,
             reopen_last: true,
             motion: Motion::System,
+            graphics: Graphics::Automatic,
         }
     }
 }

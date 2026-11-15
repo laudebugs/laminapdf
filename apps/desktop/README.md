@@ -166,6 +166,21 @@ UPDATE_TEST_OLD=<0.0.1's .app, installer or AppImage> UPDATE_TEST_NEW=<0.0.2's u
 
 The test installs and launches the app. On Windows, it installs for your user under `%LOCALAPPDATA%\Lamina PDF`.
 
+### Graphics on Linux
+
+WebKitGTK leaves some windows blank or draws them slowly, mostly with NVIDIA's own driver under Wayland. Settings › Graphics, shown on Linux only, picks the workarounds the app starts with (`src-tauri/src/graphics.rs`):
+
+| Choice | Sets |
+| --- | --- |
+| Automatic (default) | nothing; on NVIDIA's driver under Wayland, `WEBKIT_DISABLE_DMABUF_RENDERER=1` and `__NV_DISABLE_EXPLICIT_SYNC=1` |
+| Compatibility | `WEBKIT_DISABLE_DMABUF_RENDERER=1` |
+| Safe mode | that, and `WEBKIT_DISABLE_COMPOSITING_MODE=1` (slower; the last resort) |
+
+WebKitGTK reads these once, as it starts, so a change takes effect at the next start, and Settings offers Restart now. The app doesn't call `set_var`: when its environment isn't the one the choice needs, it runs itself again in place (`exec`, same process ID) with it. It never changes a variable you set yourself, and it names the ones it set in `LAMINA_GRAPHICS_ENV`, so choosing Automatic again removes them. To check what a running app has, read `/proc/<pid>/environ`.
+
+- **Can't reach Settings?** Start it with `laminapdf-desktop --safe-graphics` (or the AppImage with the same flag) for one start in Safe mode.
+- **It closes as it starts:** when two starts in a row end within 10 s, the next one switches Automatic to Compatibility, saves it, and Settings › Graphics says so. End-to-end builds have no such guard, since the tests start and stop the app within seconds.
+
 ## How it fits together
 
 ```text

@@ -229,6 +229,38 @@ pub(crate) fn set_preferences(
     crate::session::app::preferences_changed(&app, was, value);
 }
 
+/// Settings › Graphics: what this start runs with, and whether the crash-loop guard switched it.
+#[tauri::command]
+pub(crate) fn graphics_status() -> crate::graphics::Status {
+    crate::graphics::status()
+}
+
+/// Settings has shown the crash-loop guard's notice.
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its handle by value")]
+pub(crate) fn graphics_notice_seen(app: tauri::AppHandle) -> Result<(), DesktopError> {
+    crate::graphics::notice_seen(&app.path().app_config_dir()?);
+    Ok(())
+}
+
+/// Restart now, after a change that takes effect at the next start (Settings › Graphics):
+/// `false`, and no restart, while a window holds unsaved edits.
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its handle by value")]
+pub(crate) fn restart_app(app: tauri::AppHandle) -> bool {
+    if app.state::<crate::unsaved::Unsaved>().to_ask().is_some() {
+        return false;
+    }
+    // As Restart to update: on the main thread `restart` raises no `RunEvent::Exit`, so the
+    // session, the engines and the graphics guard are seen to here.
+    crate::session::app::quitting(&app);
+    app.state::<Arc<Engines>>().shutdown();
+    if let Ok(config) = app.path().app_config_dir() {
+        crate::graphics::survived(&config);
+    }
+    app.restart()
+}
+
 /// Whether the system asks for reduced motion where the webview can't tell (`motion.rs`): `None`
 /// where the webview reads it itself, or the setting can't be read.
 #[tauri::command]
