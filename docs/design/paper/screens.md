@@ -48,7 +48,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | S02 | Window with document tabs and session restore: tab overflow, session restore notice | D | [D4a](../../todos/done/D4a-windows-tabs-and-session-restore.md) |
 | S03 | Native menus: macOS menu bar (File, Edit, View, Go, Tools, Window, Help) and Windows/Linux in-window menu | D | [D4b](../../todos/done/D4b-native-menus.md) |
 | S04 | File changed on disk: strip (Compare · Keep mine · Reload from disk); the next Save asks | D | [D3b](../../todos/done/D3b-recent-files-and-file-watching.md) |
-| S05 | Print: native print dialog hand-off, printing progress | D | [D4c](../../todos/ongoing/D4c-native-printing.md) |
+| S05 | Print: native print dialog hand-off, printing progress | D | [D4c](../../todos/done/D4c-native-printing.md) |
 | S06 | Updates: update available / downloading / restart to update; channel note | D | [D5b](../../todos/ready/D5b-updater-in-app.md) |
 | S07 | Settings window: General, Appearance, Privacy (telemetry opt-in, crash reports), Shortcuts (single-key on/off), Advanced (renderer switch) | D | [D7b](../../todos/ready/D7b-settings-renderer-switch-and-download-page.md), [D7a](../../todos/ready/D7a-crash-reporting.md), [U5c](../../todos/ready/U5c-opt-in-usage-telemetry.md) |
 | S08 | Crash recovered: restore session and optional report preview | D | [D7a](../../todos/ready/D7a-crash-reporting.md) |

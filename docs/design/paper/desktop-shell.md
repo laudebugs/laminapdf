@@ -196,7 +196,7 @@ Conventions on this canvas:
 
 **Layout.** S05-print: the system dialog (drawn schematically as a sheet under the macOS title bar over `scrim`): page preview with its own pager on the left; Printer, Copies, Two-sided, Pages (All 24 pages · Current page (3) · Pages [5–12], “8 pages”), Scale (Fit to paper · Actual size), and the line “Orientation follows each page. Prints the page as it looks in Original appearance, with comments.”; Cancel · Print. S05-print-progress: back in the window (Reader v0.1 top bar), the status bar’s middle shows the printer glyph, “Printing pages 5–12 · 3 of 8 sent”, a 140 px determinate bar and **Cancel printing**.
 
-**Content and controls.** `file.print` opens the system dialog with the current page and page count; `print.cancel` (**Cancel printing**, ghost text button in the status-bar item); `print.compatibility` (the toast action “Try compatibility printing” after a native failure); Settings › Advanced › Printing (`print.mode`: System printing / Compatibility printing, drawn in S07-settings-advanced). Both paths print raster pages rendered by the engine ([D4c](../../todos/ongoing/D4c-native-printing.md)); they differ only in who hands the pages to the printer: System printing uses the OS print dialog and renders each page at the printer's resolution, Compatibility printing goes through the built-in web view's print. The dialog’s own controls (printer, copies, pages, scale) belong to the OS; lamina only pre-fills them.
+**Content and controls.** `file.print` opens the system dialog with the current page and page count; `print.cancel` (**Cancel printing**, ghost text button in the status-bar item); `print.compatibility` (the toast action “Try compatibility printing” after a native failure); Settings › Advanced › Printing (`print.mode`: System printing / Compatibility printing, drawn in S07-settings-advanced). Both paths print raster pages rendered by the engine ([D4c](../../todos/done/D4c-native-printing.md)); they differ only in who hands the pages to the printer: System printing uses the OS print dialog and renders each page at the printer's resolution, Compatibility printing goes through the built-in web view's print. The dialog’s own controls (printer, copies, pages, scale) belong to the OS; lamina only pre-fills them.
 
 **States.**
 
@@ -215,7 +215,7 @@ Conventions on this canvas:
 
 **Artboards:** `S05-print.dc.html`, `S05-print-progress.dc.html`.
 
-**Todos:** [D4c](../../todos/ongoing/D4c-native-printing.md).
+**Todos:** [D4c](../../todos/done/D4c-native-printing.md).
 
 ## S06 Updates
 
