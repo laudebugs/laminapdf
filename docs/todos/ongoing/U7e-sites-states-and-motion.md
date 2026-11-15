@@ -11,7 +11,7 @@
 | Branch | `feat/u7e-sites-states-and-motion` |
 | PR title | `feat(sites): pressed, disabled and reduced-motion states on both sites` |
 | Size | M (200–400) |
-| PR | — |
+| PR | [#634](https://github.com/laudebugs/laminapdf/pull/634) |
 
 ## Goal
 

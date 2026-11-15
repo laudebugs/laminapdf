@@ -11,7 +11,7 @@
 | Branch | `feat/u7d-reader-surfaces-motion` |
 | PR title | `feat(web): thumbnails, panels and tool cursors follow the state rules` |
 | Size | M (200–400) |
-| PR | — |
+| PR | [#634](https://github.com/laudebugs/laminapdf/pull/634) |
 
 ## Goal
 
