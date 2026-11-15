@@ -7,7 +7,13 @@ import { describe, expect, it } from "vitest";
 const SCRIPT = readFileSync(new URL("../public/appearance.js", import.meta.url), "utf8");
 const KEY = "lamina.appearance";
 
-type Root = { attrs: Map<string, string>; setAttribute(n: string, v: string): void; removeAttribute(n: string): void };
+type Root = {
+  attrs: Map<string, string>;
+  setAttribute(n: string, v: string): void;
+  removeAttribute(n: string): void;
+  getAttribute(n: string): string | null;
+  ownerDocument: { defaultView: null };
+};
 
 function root(): Root {
   const attrs = new Map<string, string>();
@@ -15,6 +21,9 @@ function root(): Root {
     attrs,
     setAttribute: (name, value) => attrs.set(name, value),
     removeAttribute: (name) => attrs.delete(name),
+    getAttribute: (name) => attrs.get(name) ?? null,
+    // No window: nothing draws, so applyAppearance's suppressMotion leaves the attributes alone.
+    ownerDocument: { defaultView: null },
   };
 }
 

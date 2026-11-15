@@ -37,7 +37,7 @@ SPACE[16]; // 16 (px)
 cssVar("surface"); // "var(--paper-surface)"
 ```
 
-Sizes are numbers in px and durations numbers in ms. Colours are CSS colour strings. In the high-contrast theme, colours are system colour names such as `Canvas`, which only a browser can resolve.
+Sizes are numbers in px and durations numbers in ms. Easings are CSS `cubic-bezier()` strings and cursors CSS keywords. Colours are CSS colour strings. In the high-contrast theme, colours are system colour names such as `Canvas`, which only a browser can resolve.
 
 ## How the values are organised
 
@@ -50,7 +50,8 @@ The tokens come in three layers, and each layer reads only the one below it. Pri
 | `appearance.<appearance>` | The page colours, under `data-page-appearance` | `--paper-page-ink` |
 | `annotation`, `content` | Fixed colours, the same in every theme | `--paper-annotation-yellow` |
 | `semantic`, `font`, `type` | Space, radius, font stacks, type roles | `--paper-space-16`, `--paper-type-body` |
-| `component`, `breakpoint`, `motion` | Component sizes, breakpoints, durations | `--paper-rail-width` |
+| `component`, `breakpoint` | Component sizes, breakpoints | `--paper-rail-width` |
+| `motion`, `easing`, `cursor` | Durations, how far things scale and slide (`motion-scale`, `motion-travel`), easing curves, the cursor for each role | `--paper-duration-state-in`, `--paper-ease-enter`, `--paper-cursor-action` |
 
 A type role is two properties: `--paper-type-body` is a `font` shorthand, and `--paper-type-body-letter-spacing` holds the letter spacing. CSS can't read a custom property inside a media query, so use `BREAKPOINTS` from TypeScript for those.
 
@@ -71,7 +72,7 @@ The package's tests run the same generator with `--check` first, so a stale outp
 | `contrast` | The pairs the colour must pass, described below |
 | `system` | In the high-contrast theme, the CSS system colour the token maps to |
 | `followsAccent` | On a page token that aliases the Teal accent's page tint: the generator writes one value per accent |
-| `reducedMotion` | The duration under `prefers-reduced-motion` |
+| `reducedMotion` | The value under reduced motion: a duration, or a number for `motion-scale` and `motion-travel`. Both `prefers-reduced-motion` and Settings' Reduce motion (`[data-motion="reduce"]`) apply it. |
 
 A colour's role decides what it owes the contrast test. A `text`, `boundary` or `focus` colour declares at least one pair. Each `background` colour has at least one pair measured on it. A `decorative` colour, such as a hairline, needs no pair. So a new colour can't skip the test: the test fails until the colour has a role and the pairs that role needs.
 

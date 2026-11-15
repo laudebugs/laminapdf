@@ -12,6 +12,7 @@ import {
   type PageAppearanceScope,
   type PlatformFile,
   pageAppearanceName,
+  suppressMotion,
   type ToastQueue,
   useMediaQuery,
 } from "@laminapdf/ui";
@@ -106,7 +107,10 @@ export function usePageAppearance(
   // High contrast follows the system's colours: read again when they may have changed.
   const colours = name === "high-contrast" ? system : 0;
   useEffect(() => {
-    document.documentElement.dataset.pageAppearance = name;
+    const root = document.documentElement;
+    // A switch of look: nothing transitions from the old page colours (design language §7.0).
+    if (root.dataset.pageAppearance !== name) suppressMotion(root);
+    root.dataset.pageAppearance = name;
     if (colours >= 0) viewer?.setAppearance(forViewer(name));
   }, [viewer, name, colours]);
   // Undo reads the choices as they are when it is pressed, not when the toast showed.

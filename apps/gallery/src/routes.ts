@@ -196,7 +196,7 @@ export const APPEARANCES = ["original", "sepia", "dark", "high-contrast"] as con
 export const DENSITIES = ["desktop", "touch"] as const;
 /** The text directions (`dir` on the root). */
 export const DIRECTIONS = ["ltr", "rtl"] as const;
-/** Full motion, or none (transitions and animations off). */
+/** Full motion, or reduced: nothing moves, fades stay (design language §7.0). */
 export const MOTIONS = ["full", "reduce"] as const;
 
 /** What the URL chooses. */

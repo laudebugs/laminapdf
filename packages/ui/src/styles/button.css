@@ -11,7 +11,6 @@
     color: var(--paper-text-3);
     cursor: default;
     white-space: nowrap;
-    -webkit-tap-highlight-color: transparent;
   }
 
   .paper-button {
