@@ -12,7 +12,7 @@
 | Branch | `feat/d7b-settings-and-download-page` |
 | PR title | `feat(desktop): finish the settings page and add the download page` |
 | Size | M–L (500–900 lines) |
-| PR | — |
+| PR | [#647](https://github.com/laudebugs/laminapdf/pull/647) |
 
 ## Goal
 
