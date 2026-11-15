@@ -7,9 +7,9 @@ import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@lamin
 import { addLinks } from "../../examples/add-links.js";
 import { cropPages } from "../../examples/crop-pages.js";
 import { duplicatePages } from "../../examples/duplicate-pages.js";
-import { editObjects } from "../../examples/edit-objects.js";
 import { editBookmarks } from "../../examples/edit-bookmarks.js";
 import { editMetadata } from "../../examples/edit-metadata.js";
+import { editObjects } from "../../examples/edit-objects.js";
 import { editXmp } from "../../examples/edit-xmp.js";
 import { elementFlow, type Report } from "../../examples/element-flow.js";
 import { extractPages } from "../../examples/extract-pages.js";

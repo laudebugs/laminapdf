@@ -53,10 +53,7 @@ export class DocumentContent {
    *
    * @since 0.5.0
    */
-  hitTest(
-    index: number,
-    at: readonly [number, number] | readonly [number, number, number, number],
-  ): ObjectRef[] {
+  hitTest(index: number, at: readonly [number, number] | readonly [number, number, number, number]): ObjectRef[] {
     return this.#access.read("doc.content.hitTest()", (doc) =>
       at.length === 2 ? doc.hitTest(index, at[0], at[1]) : doc.hitTestRect(index, [...at]),
     );

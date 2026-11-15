@@ -16,7 +16,7 @@ export function editObjects(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
     console.log(object.kind, object.bounds, object.readOnly ? `(read-only: ${object.readOnly})` : "");
   }
   const [square, second, line] = objects.filter((o) => o.kind === "path");
-  const photo = objects.findLast((o) => o.kind === "image");
+  const photo = objects.filter((o) => o.kind === "image").at(-1);
   if (!square?.bounds || !second || !line || !photo) {
     throw new Error("the page needs three shapes and an image");
   }

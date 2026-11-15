@@ -38,7 +38,7 @@ Add new content objects to existing pages through the append API: images (JPEG p
 
 **Out of scope** (and which todo covers it)
 
-- Editing pre-existing content → [E7d](E7d-select-transform-existing.md)
+- Editing pre-existing content → [E7d](../done/E7d-select-transform-existing.md)
 
 **Editor facts**
 

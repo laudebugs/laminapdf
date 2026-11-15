@@ -3380,7 +3380,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [ADR 0006 §1](../decisions/0006-op-log-and-undo.md#1-ops-are-typed-semantic-and-serialisable): large payloads named by their hash
+- [ADR 0006 §1](../decisions/0006-op-log-and-undo.md#1-the-op-enum-laminapdf-ops): large payloads named by their hash
 - [E7d](../todos/done/E7d-select-transform-existing.md): replacing images, the first op that names a payload other than a source document
 "#,
         "images-unavailable" => r#"# `images-unavailable`
