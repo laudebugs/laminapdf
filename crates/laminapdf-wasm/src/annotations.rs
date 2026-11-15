@@ -145,10 +145,7 @@ impl From<&PageComment> for CommentJs {
             review: c.review.clone(),
             marked: c.marked.clone(),
             quoted: c.quoted.clone(),
-            broken: c.broken.map(|b| match b {
-                BrokenThread::Cycle => "cycle",
-                _ => "missing-parent",
-            }),
+            broken: c.broken.map(BrokenThread::name),
         }
     }
 }
@@ -259,13 +256,19 @@ impl WasmDocument {
     /// (the extract and text modules).
     ///
     /// # Errors
+    /// `invalid-argument` for an index that isn't a whole number from 0;
     /// `page-index-out-of-range`, `data-pending` and the reading errors.
     #[wasm_bindgen(js_name = commentThreads, unchecked_return_type = "CommentJs[]")]
-    #[expect(
-        clippy::needless_pass_by_value,
-        reason = "wasm-bindgen hands a JS array over by value"
-    )]
-    pub fn comment_threads(&self, pages: Option<Vec<u32>>) -> JsResult<JsValue> {
+    pub fn comment_threads(
+        &self,
+        #[wasm_bindgen(unchecked_param_type = "number[] | undefined")] pages: &JsValue,
+    ) -> JsResult<JsValue> {
+        // Read through serde, which refuses a negative or fractional index (`invalid-argument`).
+        let pages: Option<Vec<u32>> = if pages.is_undefined() {
+            None
+        } else {
+            Some(from_js(pages, "pages")?)
+        };
         let threads = self
             .shared()
             .borrow()

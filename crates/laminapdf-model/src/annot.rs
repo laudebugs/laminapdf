@@ -334,6 +334,15 @@ impl Document {
     ///
     /// Added in 0.3.0.
     pub fn annotations(&self, page: &Page<'_>) -> Result<Vec<Annot>> {
+        let found = self.annotations_unchecked(page)?;
+        self.check_names(&found)?;
+        Ok(found)
+    }
+
+    /// [`Document::annotations`] without its duplicate-name warning, for views that read every
+    /// page each call (the comment threads), so a duplicate name neither repeats its warning nor
+    /// stops them in strict mode.
+    pub(crate) fn annotations_unchecked(&self, page: &Page<'_>) -> Result<Vec<Annot>> {
         let mut found = Vec::new();
         self.each_annotation(page, |id, index, dict| {
             let link = self.link(id, index, dict)?;
@@ -341,7 +350,6 @@ impl Document {
             Ok(())
         })?;
         pair_popups(&mut found, |a| (&a.id, a.parent.as_ref(), &mut a.popup));
-        self.check_names(&found)?;
         Ok(found)
     }
 

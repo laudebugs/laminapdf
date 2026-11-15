@@ -12,6 +12,15 @@ use crate::annotations::{PageAnnotation, record};
 use crate::document::Document;
 use crate::error::{Error, Result};
 
+/// Each page's text, read once per call however many highlights it holds.
+#[cfg(feature = "extract")]
+type PageTexts = std::collections::BTreeMap<u32, crate::extract::PageText>;
+#[cfg(not(feature = "extract"))]
+#[derive(Default)]
+struct PageTexts {
+    _none: (),
+}
+
 /// One comment and what answers it, each annotation in its own page's space.
 ///
 /// Added in 0.4.1.
@@ -35,7 +44,7 @@ pub struct PageComment {
     /// The comment's latest `Marked` state (`Marked` or `Unmarked`).
     pub marked: Option<String>,
     /// For text markup, the text under its areas: every glyph whose centre is in one of them, in
-    /// the order the page shows them, lines joined by a space. Needs the `extract` feature;
+    /// the order the page's content draws them, lines joined by a space. Needs the `extract` feature;
     /// `None` without it and for other comments.
     pub quoted: Option<String>,
     /// Set when the thread doesn't start at a comment that answers nothing: a reply to a missing
@@ -96,6 +105,7 @@ impl Document {
         drop(all);
         let index = |i: usize| u32::try_from(i).unwrap_or(u32::MAX);
         let mut out = Vec::new();
+        let mut texts = PageTexts::default();
         for thread in self.ops().comment_threads()? {
             let page = index(thread.page_index);
             if pages.is_some_and(|wanted| !wanted.contains(&page)) {
@@ -104,7 +114,7 @@ impl Document {
             let Some(frame) = frames.get(thread.page_index).copied().flatten() else {
                 continue;
             };
-            out.push(self.page_comment(thread, page, &frame, &frames)?);
+            out.push(self.page_comment(thread, page, &frame, &frames, &mut texts)?);
         }
         Ok(out)
     }
@@ -115,6 +125,7 @@ impl Document {
         page: u32,
         frame: &PageFrame,
         frames: &[Option<PageFrame>],
+        texts: &mut PageTexts,
     ) -> Result<PageComment> {
         let state = |model: &StateModel| {
             thread
@@ -123,7 +134,7 @@ impl Document {
                 .map(|s| s.state.clone())
         };
         let (review, marked) = (state(&StateModel::Review), state(&StateModel::Marked));
-        let quoted = self.quoted(page, &thread.comment.geometry, frame)?;
+        let quoted = self.quoted(texts, page, &thread.comment.geometry, frame)?;
         let parts = |members: Vec<ThreadMember>| -> Vec<CommentPart> {
             members
                 .into_iter()
@@ -150,7 +161,13 @@ impl Document {
     }
 
     #[cfg(feature = "extract")]
-    fn quoted(&self, page: u32, geometry: &AnnotGeometry, frame: &PageFrame) -> Result<Option<String>> {
+    fn quoted(
+        &self,
+        texts: &mut PageTexts,
+        page: u32,
+        geometry: &AnnotGeometry,
+        frame: &PageFrame,
+    ) -> Result<Option<String>> {
         let AnnotGeometry::Quads(quads) = geometry else {
             return Ok(None);
         };
@@ -168,7 +185,12 @@ impl Document {
                 ]
             })
             .collect();
-        let text = self.page_text(page, &crate::extract::TextOptions::default().with_skip_invisible(true))?;
+        let text = match texts.entry(page) {
+            std::collections::btree_map::Entry::Occupied(found) => found.into_mut(),
+            std::collections::btree_map::Entry::Vacant(slot) => {
+                slot.insert(self.page_text(page, &crate::extract::TextOptions::default().with_skip_invisible(true))?)
+            }
+        };
         let mut quoted = String::new();
         let mut last_area = None;
         for glyph in &text.glyphs {
@@ -196,7 +218,13 @@ impl Document {
         clippy::unnecessary_wraps,
         reason = "the extract build's signature"
     )]
-    fn quoted(&self, _page: u32, _geometry: &AnnotGeometry, _frame: &PageFrame) -> Result<Option<String>> {
+    fn quoted(
+        &self,
+        _texts: &mut PageTexts,
+        _page: u32,
+        _geometry: &AnnotGeometry,
+        _frame: &PageFrame,
+    ) -> Result<Option<String>> {
         Ok(None)
     }
 

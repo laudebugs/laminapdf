@@ -37,13 +37,13 @@ fn every_markup_annotation_of_review_pdf_is_in_one_thread() {
         })
         .collect();
     seen.sort_unstable();
-    assert_eq!(seen, [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 24, 30]);
+    assert_eq!(seen, [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 24, 25, 30]);
 }
 
 #[test]
 fn the_threads_start_at_their_comments_in_document_order() {
     let starts: Vec<u32> = threads("review.pdf").iter().map(|t| object(&t.comment)).collect();
-    assert_eq!(starts, [10, 16, 17, 18, 20]);
+    assert_eq!(starts, [10, 16, 17, 18, 20, 25]);
 }
 
 #[test]
@@ -131,6 +131,12 @@ fn a_reply_on_another_page_says_which() {
     let threads = threads("review.pdf");
     let pages: Vec<usize> = thread_of(&threads, 10).replies.iter().map(|m| m.page_index).collect();
     assert_eq!(pages, [0, 0, 1]);
+}
+
+#[test]
+fn a_reply_to_a_popup_starts_an_unbroken_thread() {
+    let threads = threads("review.pdf");
+    assert_eq!(thread_of(&threads, 25).broken, None);
 }
 
 #[test]

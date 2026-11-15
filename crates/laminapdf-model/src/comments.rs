@@ -8,7 +8,7 @@
 //! reads whether `/StateModel` and `/State` are names or strings, as 04 §2.3 found writers store
 //! them.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use laminapdf_cos::{Dict, Object, Result};
 
@@ -78,6 +78,19 @@ pub struct ThreadMember {
     pub page_index: usize,
     /// The annotation.
     pub annot: Annot,
+}
+
+impl BrokenThread {
+    /// Its name on the wire: `missing-parent` or `cycle`.
+    ///
+    /// Added in 0.4.1.
+    #[must_use]
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::MissingParent => "missing-parent",
+            Self::Cycle => "cycle",
+        }
+    }
 }
 
 /// One comment and everything that answers it.
@@ -169,16 +182,22 @@ impl Document {
         let pages = self.pages()?;
         // Every markup annotation, in document order, with its page.
         let mut all: Vec<(usize, PageId, Annot)> = Vec::new();
+        // The other annotations (Popups, links, widgets): a reply to one of them starts a thread
+        // of its own, unbroken, since its parent is there.
+        let mut others: BTreeSet<AnnotId> = BTreeSet::new();
         for (index, page) in pages.iter().enumerate() {
-            for annot in self.annotations(&page)? {
+            for annot in self.annotations_unchecked(&page)? {
                 if annot.subtype.is_markup() {
                     all.push((index, page.id().clone(), annot));
+                } else {
+                    others.insert(annot.id);
                 }
             }
         }
         let position: BTreeMap<&AnnotId, usize> = all.iter().enumerate().map(|(i, (_, _, a))| (&a.id, i)).collect();
-        let starts: Vec<(usize, Option<BrokenThread>)> =
-            (0..all.len()).map(|i| thread_start(i, &all, &position)).collect();
+        let starts: Vec<(usize, Option<BrokenThread>)> = (0..all.len())
+            .map(|i| thread_start(i, &all, &position, &others))
+            .collect();
         let mut threads: Vec<CommentThread> = Vec::new();
         let mut slot: BTreeMap<usize, usize> = BTreeMap::new();
         for (i, (page_index, page, annot)) in all.iter().enumerate() {
@@ -267,12 +286,14 @@ const fn default_state(model: &StateModel) -> &'static str {
 }
 
 /// Where the thread of `all[i]` starts: the first annotation up its `/IRT` chain that answers
-/// nothing, else the last one reached before a missing parent, else the first in the document of
-/// the ring the chain runs into.
+/// nothing, else the last one reached before a missing parent (unbroken when that parent is a
+/// listed annotation that isn't markup), else the first in the document of the ring the chain runs
+/// into.
 fn thread_start(
     i: usize,
     all: &[(usize, PageId, Annot)],
     position: &BTreeMap<&AnnotId, usize>,
+    others: &BTreeSet<AnnotId>,
 ) -> (usize, Option<BrokenThread>) {
     let mut seen = vec![i];
     let mut at = i;
@@ -281,7 +302,8 @@ fn thread_start(
             return (at, None);
         };
         let Some(&next) = position.get(parent) else {
-            return (at, Some(BrokenThread::MissingParent));
+            let broken = (!others.contains(parent)).then_some(BrokenThread::MissingParent);
+            return (at, broken);
         };
         if let Some(from) = seen.iter().position(|&s| s == next) {
             let ring = seen.get(from..).unwrap_or_default();

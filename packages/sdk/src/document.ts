@@ -832,12 +832,13 @@ export class Document extends Handle<BaseGlue> {
    * doc.apply([{ op: "setReviewState", args: { target: thread.comment.id, state: "completed" } }]);
    * ```
    *
-   * @throws {@link LaminaPdfError} `page-index-out-of-range`; as {@link Document.outline}.
+   * @throws {@link LaminaPdfError} `invalid-argument` for an index that isn't a whole number from
+   * 0; `page-index-out-of-range`; as {@link Document.outline}.
    *
    * @since 0.4.1
    */
   commentThreads(pages?: readonly number[]): CommentThread[] {
-    const wanted = pages === undefined ? undefined : Uint32Array.from(pages);
+    const wanted = pages === undefined ? undefined : [...pages];
     return this.call(() => this.#extracting("doc.commentThreads()").commentThreads(wanted));
   }
 

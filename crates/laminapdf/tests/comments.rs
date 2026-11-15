@@ -71,7 +71,7 @@ fn a_page_filter_keeps_the_threads_whose_comments_are_on_it() {
             doc.comment_threads(Some(&[0])).unwrap().len(),
             doc.comment_threads(Some(&[1])).unwrap().len()
         ),
-        (5, 0)
+        (6, 0)
     );
 }
 
@@ -108,7 +108,7 @@ fn deleting_a_comment_with_its_reply_is_one_undo_step() {
     doc.delete_annotations(&ids).unwrap();
     let after = doc.comment_threads(None).unwrap().len();
     doc.undo().unwrap();
-    assert_eq!((after, doc.comment_threads(None).unwrap().len()), (4, 5));
+    assert_eq!((after, doc.comment_threads(None).unwrap().len()), (4, 6));
 }
 
 /// pdf.js's view (`fixtures/annotations/pdfjs-replies.json`, from

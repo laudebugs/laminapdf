@@ -47,7 +47,7 @@ describe("commentThreads", () => {
 
   it("filters by the comment's page", () => {
     using doc = open();
-    expect([doc.commentThreads([0]).length, doc.commentThreads([1]).length]).toEqual([5, 0]);
+    expect([doc.commentThreads([0]).length, doc.commentThreads([1]).length]).toEqual([6, 0]);
   });
 });
 
@@ -67,6 +67,6 @@ describe("replies, states and deleting", () => {
     doc.deleteAnnotations(["a11.0", "a10.0"]);
     const after = doc.commentThreads().length;
     doc.undo();
-    expect([after, doc.commentThreads().length]).toEqual([4, 5]);
+    expect([after, doc.commentThreads().length]).toEqual([4, 6]);
   });
 });

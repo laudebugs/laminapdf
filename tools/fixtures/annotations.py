@@ -19,8 +19,8 @@ points.
                        the other) and four states set on it (review states as strings, as names,
                        and dated out of document order; a marked state), its Popup, a second note
                        whose state has no /StateModel, a reply to a missing object, a ring of two
-                       replies, a strike-out grouped with a caret, and on page 2 a reply to the
-                       highlight
+                       replies, a strike-out grouped with a caret, a reply to the highlight's
+                       Popup, and on page 2 a reply to the highlight
 
     python3 tools/fixtures/annotations.py
 """
@@ -155,7 +155,7 @@ def review():
         2: "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
         **page(
             3,
-            "[10 0 R 23 0 R 11 0 R 12 0 R 13 0 R 14 0 R 15 0 R 16 0 R 24 0 R 17 0 R 18 0 R 19 0 R 20 0 R 21 0 R]",
+            "[10 0 R 23 0 R 11 0 R 12 0 R 13 0 R 14 0 R 15 0 R 16 0 R 24 0 R 17 0 R 18 0 R 19 0 R 20 0 R 21 0 R 25 0 R]",
             "/Contents 40 0 R ",
             font,
         ),
@@ -181,6 +181,7 @@ def review():
         20: "<< /Type /Annot /Subtype /StrikeOut /Rect [18 96 98 114] /QuadPoints [18 114 98 114 18 96 98 96] "
         "/Contents (Struck) /T (Ben) /F 4 >>",
         21: "<< /Type /Annot /Subtype /Caret /Rect [96 96 104 114] /IRT 20 0 R /RT /Group /Contents (better) /F 4 >>",
+        25: "<< /Type /Annot /Subtype /Text /Rect [200 100 220 120] /IRT 23 0 R /Contents (To the Popup) /F 28 >>",
         30: "<< /Type /Annot /Subtype /Text /Rect [20 260 40 280] /IRT 10 0 R /Contents (From page 2) /T (Cy) /F 28 >>",
     }
     streams = {
