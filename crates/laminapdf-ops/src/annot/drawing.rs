@@ -379,6 +379,24 @@ impl Leader {
         }
     }
 
+    /// The same leader lines carrying on `extension` points past the line.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub const fn with_extension(mut self, extension: f64) -> Self {
+        self.extension = extension;
+        self
+    }
+
+    /// The same leader lines starting `offset` points off the line's points.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub const fn with_offset(mut self, offset: f64) -> Self {
+        self.offset = offset;
+        self
+    }
+
     fn is_valid(&self) -> bool {
         [self.length, self.extension, self.offset].iter().all(|v| v.is_finite())
             && self.extension >= 0.0
