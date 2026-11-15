@@ -21,6 +21,10 @@
   }
 
   .paper-organise-note {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     margin-inline-start: var(--paper-space-8);
     color: var(--paper-muted);
     font: var(--paper-type-caption);
@@ -36,6 +40,7 @@
 
   .paper-organise-size-value {
     min-inline-size: 4ch;
+    white-space: nowrap;
     text-align: center;
     font: var(--paper-type-caption);
     font-variant-numeric: tabular-nums;

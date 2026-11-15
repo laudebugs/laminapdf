@@ -10,6 +10,8 @@ import {
   EditArea,
   HistoryPanel,
   LinkEditor,
+  OrganiseToolbar,
+  PageGrid,
   type SavePlanSlice,
   SaveStrip,
 } from "../src/editing.ts";
@@ -1094,6 +1096,72 @@ const OUTLINE: readonly OutlineTreeItem[] = [
   { id: "2", title: "3. Budget", page: "7", children: [{ id: "2.0", title: "Capital", page: "8", children: [] }] },
 ];
 
+/** Six pages of the Organise grid: letter pages, one landscape, labelled by number. */
+const GRID_PAGES = [1, 2, 3, 4, 5, 6].map((n) => ({
+  id: `p${n}.0`,
+  label: String(n),
+  width: n === 4 ? 792 : 612,
+  height: n === 4 ? 612 : 792,
+  drawn: "0",
+}));
+
+/** The grid's handlers, which the examples never call (its pictures stay white). */
+const GRID_ACTIONS = {
+  "aria-label": "Pages",
+  draw: async () => undefined,
+  onSelectionChange: noop,
+  onMove: noop,
+  onCommand: noop,
+  onOpen: noop,
+  menu: [],
+  onMenuAction: noop,
+  platform: "other" as const,
+};
+
+/** The Organise mode's handlers for its page commands, so its toolbar's buttons are enabled. */
+const ORGANISE_ACTIONS = Object.fromEntries(
+  [
+    "pages.insert-blank",
+    "pages.delete",
+    "pages.duplicate",
+    "pages.reverse",
+    "pages.move-to",
+    "pages.select-all",
+    "pages.rotate-left",
+    "pages.rotate-right",
+  ].map((id) => [id, noop]),
+);
+
+const organise: Example[] = [
+  {
+    component: "PageGrid",
+    state: "two pages selected, one landscape",
+    element: () => (
+      <div style={{ blockSize: 480 }}>
+        <PageGrid pages={GRID_PAGES} selected={new Set(["p2.0", "p3.0"])} {...GRID_ACTIONS} />
+      </div>
+    ),
+  },
+  {
+    component: "PageGrid",
+    state: "nothing selected, larger thumbnails",
+    element: () => (
+      <div style={{ blockSize: 480 }}>
+        <PageGrid pages={GRID_PAGES} selected={new Set()} scale={1.25} {...GRID_ACTIONS} />
+      </div>
+    ),
+  },
+  {
+    component: "OrganiseToolbar",
+    state: "two pages selected",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} organise actions={ORGANISE_ACTIONS}>
+        <OrganiseToolbar note="2 pages selected" scale={1} onScale={noop} platform="other" />
+      </WithCommands>
+    ),
+  },
+];
+
 export const EXAMPLES: readonly Example[] = [
   ...topBar,
   ...findBar,
@@ -1102,6 +1170,7 @@ export const EXAMPLES: readonly Example[] = [
   ...threads,
   ...bookmarks,
   ...links,
+  ...organise,
   ...saveStrip,
   ...buttons,
   ...documentTabs,

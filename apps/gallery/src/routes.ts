@@ -110,6 +110,9 @@ export const ROUTES: readonly Route[] = [
       "RemoveSignaturesDialog",
       "ConformanceDialog",
       "NamedDestinationsDialog",
+      "MoveToPageDialog",
+      "BlankPagesDialog",
+      "SignedPageDialog",
     ],
     states: [
       "default",
@@ -131,6 +134,9 @@ export const ROUTES: readonly Route[] = [
       "remove-signatures",
       "conformance",
       "named-destinations",
+      "move-to-page",
+      "blank-pages",
+      "signed-page",
     ],
   },
   {
@@ -153,6 +159,11 @@ export const ROUTES: readonly Route[] = [
     components: [],
     renders: ["LinkPreview"],
     states: ["popover", "sheet"],
+  },
+  {
+    id: "organise",
+    title: "Organise mode",
+    components: ["OrganiseToolbar", "PageGrid"],
   },
   {
     id: "link-editor",
