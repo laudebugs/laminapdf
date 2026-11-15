@@ -282,6 +282,8 @@ pub enum ErrorCode {
     DocumentChanged,
     /// `revision-index-out-of-range`: an earlier revision was asked for by an index past the file's last revision.
     RevisionIndexOutOfRange,
+    /// `no-bookmarks`: a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing.
+    NoBookmarks,
     /// `builder-finished`: a builder or one of its pages was used after it finished.
     BuilderFinished,
     /// `disposed`: a document, builder or other handle was used after free(), or after the using block that held it ended.
@@ -434,6 +436,7 @@ impl ErrorCode {
         Self::JobFinished,
         Self::DocumentChanged,
         Self::RevisionIndexOutOfRange,
+        Self::NoBookmarks,
         Self::BuilderFinished,
         Self::Disposed,
         Self::InvalidArgument,
@@ -589,6 +592,7 @@ impl ErrorCode {
             Self::JobFinished => "job-finished",
             Self::DocumentChanged => "document-changed",
             Self::RevisionIndexOutOfRange => "revision-index-out-of-range",
+            Self::NoBookmarks => "no-bookmarks",
             Self::BuilderFinished => "builder-finished",
             Self::Disposed => "disposed",
             Self::InvalidArgument => "invalid-argument",
@@ -730,6 +734,7 @@ impl ErrorCode {
             Self::JobFinished => ErrorKind::State,
             Self::DocumentChanged => ErrorKind::State,
             Self::RevisionIndexOutOfRange => ErrorKind::Usage,
+            Self::NoBookmarks => ErrorKind::Usage,
             Self::BuilderFinished => ErrorKind::State,
             Self::Disposed => ErrorKind::State,
             Self::InvalidArgument => ErrorKind::Usage,
@@ -871,6 +876,7 @@ impl ErrorCode {
             Self::JobFinished => "a job was stepped after it had finished, failed or been cancelled",
             Self::DocumentChanged => "the document a job was created for changed (an edit, undo, redo, save or rebase) or a different document was passed to step",
             Self::RevisionIndexOutOfRange => "an earlier revision was asked for by an index past the file's last revision",
+            Self::NoBookmarks => "a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing",
             Self::BuilderFinished => "a builder or one of its pages was used after it finished",
             Self::Disposed => "a document, builder or other handle was used after free(), or after the using block that held it ended",
             Self::InvalidArgument => "a value passed to a binding does not have the shape its type declares",
@@ -1012,6 +1018,7 @@ impl ErrorCode {
             Self::JobFinished => "stop stepping a job once a step returned its result or an error; create a new job",
             Self::DocumentChanged => "pass the document the job was created from, and don't change it while the job runs; create a new job",
             Self::RevisionIndexOutOfRange => "ask for an index below the document's revision count",
+            Self::NoBookmarks => "add bookmarks that go to the document's pages first, then create the contents page",
             Self::BuilderFinished => "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",
             Self::Disposed => "free a handle only after its last use; to keep working, open the document again or create a new builder",
             Self::InvalidArgument => "pass the value the type declarations describe; the data field says what was wrong",

@@ -8,6 +8,7 @@ use std::rc::Rc;
 use laminapdf_model::{FillRule, PageId, PointPt, Pt, RectPt};
 use laminapdf_text::{Alignment, ShapedRun};
 
+use super::ContentsEntryBox;
 use super::draw_table::{Part, RowAt, draw_row, draw_rules, layout_artifact};
 use super::items::{Content, Items};
 use super::measure::{Look, MLine, Source};
@@ -23,14 +24,15 @@ use crate::surface::style::StrokeStyle;
 use crate::surface::text::ShapedPiece;
 use crate::tag::{Artifact, ElementId, Tag, TagKind};
 
-/// Draws `pages` into `builder`; returns the pages added.
+/// Draws `pages` into `builder`; returns the pages added and where each contents listing
+/// entry was drawn.
 pub(crate) fn emit(
     builder: &mut Builder,
     flow: &Flow,
     items: &Items,
     pages: &[PageOut],
     first: usize,
-) -> Result<Vec<PageId>> {
+) -> Result<(Vec<PageId>, Vec<ContentsEntryBox>)> {
     let mut order = Vec::new();
     let drawn = draw_pages(builder, flow, items, pages, first, &mut order);
     // Children were opened after their parents: close them first. After a failure every element
@@ -44,7 +46,41 @@ pub(crate) fn emit(
     }
     let ids = drawn?;
     closed?;
-    Ok(ids)
+    let boxes = ids
+        .iter()
+        .zip(pages)
+        .flat_map(|(id, page)| {
+            listed_boxes(items, page)
+                .into_iter()
+                .map(|(entry, rect)| ContentsEntryBox {
+                    entry,
+                    page: id.clone(),
+                    rect,
+                })
+        })
+        .collect();
+    Ok((ids, boxes))
+}
+
+/// Each contents listing entry on `page` and the box over its text and label, in entry order.
+fn listed_boxes(items: &Items, page: &PageOut) -> BTreeMap<usize, RectPt> {
+    let mut boxes: BTreeMap<usize, RectPt> = BTreeMap::new();
+    for placed in &page.placed {
+        let (Placed::Line { item, line, x, top } | Placed::Entry { item, line, x, top }) = placed else {
+            continue;
+        };
+        let Some(entry) = items.entries.get(*item).and_then(|it| it.listed) else {
+            continue;
+        };
+        let rect = RectPt::from_points(
+            *x + line.line.x,
+            *top,
+            line.line.width.max(0.0),
+            line.height.max(line.baseline),
+        );
+        boxes.entry(entry).and_modify(|b| *b = b.union(&rect)).or_insert(rect);
+    }
+    boxes
 }
 
 fn draw_pages(

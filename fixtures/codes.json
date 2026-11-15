@@ -1314,6 +1314,13 @@
       "summary": "an earlier revision was asked for by an index past the file's last revision",
       "hint": "ask for an index below the document's revision count",
       "since": "0.2.0"
+    },
+    {
+      "code": "no-bookmarks",
+      "kind": "usage",
+      "summary": "a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing",
+      "hint": "add bookmarks that go to the document's pages first, then create the contents page",
+      "since": "0.5.0"
     }
   ],
   "facadeWarnings": [
