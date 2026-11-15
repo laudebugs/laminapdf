@@ -51,7 +51,12 @@ async function open(
 }
 
 /** The page's clickable elements whose cursor breaks the rule (@laminapdf/test-utils/cursors). */
-const problems = async (page: Page) => (await page.evaluate(cursorCheck)).problems;
+/** The cursor problems on the page; fails when it checked no control, since covered ones are left out. */
+async function problems(page: Page) {
+  const { checked, problems } = await page.evaluate(cursorCheck, "");
+  expect(checked, "controls the cursor check reached").toBeGreaterThan(0);
+  return problems;
+}
 
 describe(`the docs' cursors in ${BROWSER}`, () => {
   for (const [name, viewport] of [

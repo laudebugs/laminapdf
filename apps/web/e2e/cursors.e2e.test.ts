@@ -14,11 +14,13 @@ import { chooseFile, clean, load, WITHOUT_PICKER } from "./reader.ts";
 
 const origin = inject("origin");
 const TAGGED = new URL("../../../fixtures/golden/tagged-report.pdf", import.meta.url);
+/** The reader's controls that are dragged, not pressed, and show `grab`: the sheet's grabber, a bookmark's grip. */
+const DRAG_HANDLES = ".paper-sheet-grabber, .paper-outline-grip";
 const LOCKED = new URL("../../../fixtures/encrypted/r4-aes-128-user.pdf", import.meta.url);
 
 /** The controls in `state` whose cursor breaks the rule; fails if the state shows too few to mean much. */
 async function wrong(page: Page, state: string, least: number): Promise<string[]> {
-  const { checked, problems } = await page.evaluate(cursorCheck);
+  const { checked, problems } = await page.evaluate(cursorCheck, DRAG_HANDLES);
   expect(checked, `controls on screen in ${state}`).toBeGreaterThanOrEqual(least);
   return problems.map((p) => `${state}: ${p.element} shows ${p.cursor}, not ${p.expected}`);
 }

@@ -23,8 +23,9 @@ export interface CursorCheck {
  * (the tokens' --paper-cursor-action and --paper-cursor-link); `progress` when busy (inside
  * `aria-busy="true"` or React Aria's `data-pending`); `default` when disabled (inside `:disabled`,
  * `aria-disabled="true"` or `data-disabled`). Busy wins, since a running control is also blocked.
- * An enabled control that is dragged rather than pressed (a sheet's grabber, a tile that moves)
- * may show `grab` in place of the hand.
+ * An enabled control matching `dragHandles` (a selector the caller passes, such as a sheet's
+ * grabber; an empty string for none) is dragged rather than pressed, and may show `grab` in place of the hand; any other
+ * control showing `grab` is a problem.
  *
  * A control in the window is read where a pointer at its middle lands, on what the pointer meets
  * there (the control, or an icon or label inside it): a control another element covers there is
@@ -32,9 +33,10 @@ export interface CursorCheck {
  * under 4 px a side, too small to be a target itself (React Aria's hidden inputs and dismiss
  * buttons, whose label or overlay is the target). A control below or beside the window, that a
  * person scrolls to, is read on itself; one placed where no scroll reaches (a skip link waiting
- * for focus), with no box, or hidden by `visibility`, is left out.
+ * for focus), with no box, or hidden by `visibility`, is left out. Since covered controls are left
+ * out, callers check `checked` too: a page where every control is covered checks nothing.
  */
-export function cursorCheck(): CursorCheck {
+export function cursorCheck(dragHandles: string): CursorCheck {
   // No named function inside: a test runner's transform may wrap one in a helper the page lacks.
   const clickable = [
     "a[href]",
@@ -73,9 +75,10 @@ export function cursorCheck(): CursorCheck {
     const busy = element.closest('[aria-busy="true"], [data-pending]') !== null;
     const disabled = element.closest(':disabled, [aria-disabled="true"], [data-disabled]') !== null;
     const expected = busy ? "progress" : disabled ? "default" : "pointer";
-    const allowed = expected === "pointer" ? ["pointer", "grab"] : [expected];
     // What the pointer meets: an icon or a label inside a control must show the control's cursor.
     const wrong = hit ?? element;
+    const dragged = dragHandles !== "" && (element.matches(dragHandles) || wrong.closest(dragHandles) !== null);
+    const allowed = expected === "pointer" && dragged ? ["pointer", "grab"] : [expected];
     if (allowed.includes(getComputedStyle(wrong).cursor)) continue;
     const [what, at] = [element, wrong].map((target) => {
       const classes = [...target.classList].map((name) => `.${name}`).join("");
