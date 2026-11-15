@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { EditLog } from "./edit-log.js";
 import type { EditHistory, EditResult, EditStep } from "./protocol.js";
 
-const step = (id: number): EditStep => ({ id, label: `step ${id}`, pages: [0], at: id });
+const step = (id: number): EditStep => ({ id, label: `step ${id}`, pages: [0], pageIds: ["p1.0"], at: id });
 
 function result(ids: readonly number[], position = ids.length, dropped = 0): EditResult {
   const history: EditHistory = { steps: ids.map(step), position, dropped, unsaved: position, diverged: false };

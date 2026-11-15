@@ -60,6 +60,9 @@ export interface EditTiming {
   readonly sharpMs: number;
 }
 
+/** An edit that changes the page list (E2 plan §5): one page deleted, 200 moved, 10 blank ones inserted. */
+export type PageEditKind = "delete" | "move" | "insert";
+
 /** `globalThis.__laminaPerf`. */
 export interface PerfHook {
   /** With `?open=<name>`: ms from navigation start until the first page painted (null until then). */
@@ -77,6 +80,11 @@ export interface PerfHook {
   goToPage(index: number): void;
   /** Turns the page in view a quarter through the viewer (`viewer.applyEdit`) and times its redraw. */
   edit(): Promise<EditTiming>;
+  /**
+   * Edits the page list at the page in view (`kind`) through the viewer and times the redraw: to
+   * every visible page's first new pixels, and to every one sharp.
+   */
+  pageEdit(kind: PageEditKind): Promise<EditTiming>;
   /** The scroll position and its largest value, in CSS px. */
   scroll(): { readonly top: number; readonly max: number };
   record(): void;

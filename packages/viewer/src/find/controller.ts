@@ -6,6 +6,7 @@
 // paint on the pages mounted now and on each page as it mounts. A new query, new options or
 // `close()` aborts the search under way, and its late results are dropped by the search's id.
 
+import { keptPage, movedKeys, type PageMoves } from "../layout/page-moves.js";
 import type { FindPageResult } from "../protocol.js";
 import type { FindOptions } from "./fold.js";
 import type { FindSnippet } from "./page.js";
@@ -84,6 +85,8 @@ export class FindController {
   #state: FindState = IDLE;
   #byPage = new Map<number, readonly (readonly number[])[]>();
   #snippets = new Map<number, readonly FindSnippet[]>();
+  /** The pages searched that have no text (`FindState.pagesWithoutText` counts them). */
+  #noText = new Set<number>();
   /** The last list `results()` made, and the state it was made for. */
   #results: { readonly state: FindState; readonly list: readonly FindResult[] } | undefined;
   #current: Place | undefined;
@@ -113,6 +116,7 @@ export class FindController {
     const cleared = [...this.#byPage.keys()];
     this.#byPage = new Map();
     this.#snippets = new Map();
+    this.#noText = new Set();
     this.#current = undefined;
     const pageCount = this.#host.pageCount();
     this.#start = Math.min(Math.max(0, this.#host.currentPage()), Math.max(0, pageCount - 1));
@@ -185,12 +189,69 @@ export class FindController {
       .catch((error) => reportError(error));
   }
 
+  /**
+   * Follows an edit that inserted, deleted or moved pages (`moves`): each page's matches move to
+   * its index now (a deleted page's go, and its nearest surviving page is where the current match
+   * moves on from), and new pages are searched. A search under way starts again from the current
+   * page, since the pages it has left to read moved.
+   */
+  remap(moves: PageMoves): void {
+    const { query, options, done } = this.#state;
+    const pageCount = moves.from.length;
+    if (query.trim() === "") {
+      this.#set({ pageCount });
+      return;
+    }
+    if (!done) {
+      this.find(query, options);
+      return;
+    }
+    const painted = new Set([...this.#byPage.keys()]);
+    this.#byPage = movedKeys(this.#byPage, moves);
+    this.#snippets = movedKeys(this.#snippets, moves);
+    this.#noText = new Set([...this.#noText].flatMap((page) => keptPage(moves, page)));
+    const current = this.#current;
+    const at = current === undefined ? undefined : moves.at(current.page);
+    this.#current = this.#kept(
+      current === undefined || at === undefined ? undefined : { page: at.page, index: at.kept ? current.index : 0 },
+    );
+    let total = 0;
+    for (const matches of this.#byPage.values()) total += matches.length;
+    // The new pages count as searched once their search answers.
+    this.#set({
+      total,
+      pageCount,
+      searched: pageCount - moves.added.length,
+      pagesWithoutText: this.#noText.size,
+      current: this.#current === undefined ? undefined : this.#ordinal(this.#current),
+    });
+    for (const p of this.#byPage.keys()) painted.add(p);
+    this.#host.redraw(painted);
+    this.#searchAdded(moves.added);
+  }
+
+  /** Searches `pages`, new to the document, and adds what they hold to the results. */
+  #searchAdded(pages: readonly number[]): void {
+    const { query, options, search } = this.#state;
+    if (pages.length === 0) return;
+    this.#host
+      .find(query, options, pages, new AbortController().signal)
+      .then((results) => {
+        if (this.#state.search !== search) return;
+        for (const { page, noText } of results) if (noText === true) this.#noText.add(page);
+        this.#replace(results);
+        this.#set({ searched: this.#state.searched + results.length, pagesWithoutText: this.#noText.size });
+      })
+      .catch((error) => reportError(error));
+  }
+
   /** Stops the search and drops the results: a new document opened. */
   reset(): void {
     this.#stop();
     this.#stale.clear();
     this.#byPage = new Map();
     this.#snippets = new Map();
+    this.#noText = new Set();
     this.#current = undefined;
     this.#set({ ...IDLE, search: this.#state.search + 1 });
   }
@@ -232,10 +293,10 @@ export class FindController {
   /** Adds one call's results: the count, the first match to show, the pages to paint. */
   #take(results: readonly FindPageResult[], search: number): void {
     let total = this.#state.total;
-    let noText = this.#state.pagesWithoutText;
+
     const painted: number[] = [];
     for (const { page, matches, snippets, noText: empty } of results) {
-      if (empty === true) noText += 1;
+      if (empty === true) this.#noText.add(page);
       if (matches.length === 0) continue;
       this.#byPage.set(page, matches);
       this.#snippets.set(page, snippets);
@@ -253,7 +314,7 @@ export class FindController {
     }
     this.#set({
       total,
-      pagesWithoutText: noText,
+      pagesWithoutText: this.#noText.size,
       searched: this.#state.searched + results.length,
       current: this.#current === undefined ? undefined : this.#ordinal(this.#current),
       search,

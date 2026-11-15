@@ -38,6 +38,7 @@ export type { LinkLayerOptions, LinkPreviewPointer, LinkPreviewRequest, LinkWord
 export { type ExternalLink, externalLink, type OpenableLink } from "./layers/link-url.js";
 export type { TextLayerOptions, TextSelection } from "./layers/text-layer.js";
 export type { PageSize, Rotation } from "./layout/page-layout.js";
+export type { PageMoves } from "./layout/page-moves.js";
 export { type NetworkSink, watchNetwork } from "./network/watch.js";
 export type {
   BackendInit,
