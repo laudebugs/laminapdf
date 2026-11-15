@@ -35,7 +35,7 @@ Pull requests stop waiting for a macOS x64 runner. In the plan's baseline, the m
 
 **Out of scope** (and which todo covers it)
 
-- Moving X8b's PR measurements from macOS x64 to macOS Arm64 → [X8b](../ongoing/X8b-rust-compile-cache-everywhere.md) and its owner's small PR before this one (agreed 2026-11-12).
+- Moving X8b's PR measurements from macOS x64 to macOS Arm64 → [X8b](../done/X8b-rust-compile-cache-everywhere.md) and its owner's small PR before this one (agreed 2026-11-12).
 - Render goldens on Mac runners → [X9b](X9b-render-goldens-when-rendering-changes.md).
 - Other macOS jobs (WebKit, the desktop builds) stay as they are.
 
