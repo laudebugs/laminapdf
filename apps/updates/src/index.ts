@@ -1,6 +1,7 @@
-// The Worker's entry: binds the handler to the R2 buckets, the Cache API and Workers Logs. The only
-// file that uses the Workers runtime's own types (src/generated/worker-configuration.d.ts, from
-// `pnpm run types`); the rest runs in Node's tests as well.
+// The Worker's entry: binds the handler to the R2 buckets, the Cache API, the crash endpoint's rate
+// limiter and Workers Logs. The only file that uses the Workers runtime's own types
+// (src/generated/worker-configuration.d.ts, from `pnpm run types`); the rest runs in Node's tests as
+// well.
 import { CHANNEL_BUCKETS, type Channel } from "./channels.ts";
 import { type HandlerDeps, handle, logEvent } from "./handler.ts";
 
@@ -11,7 +12,7 @@ function storesOf(env: Env): HandlerDeps["stores"] {
   return { stable: of("stable"), beta: of("beta"), nightly: of("nightly"), staging: of("staging") };
 }
 
-/** The Worker: every request goes to {@link handle} with the runtime's buckets, cache and logger. */
+/** The Worker: every request goes to {@link handle} with the runtime's buckets, cache, limiter and logger. */
 export default {
   fetch(request, env, ctx): Promise<Response> {
     const deps: HandlerDeps = {
@@ -19,6 +20,9 @@ export default {
       cache: caches.default,
       now: Date.now,
       waitUntil: (work) => ctx.waitUntil(work),
+      // Crash reports' own private bucket and the per-IP limit (D7a; wrangler.jsonc).
+      crashStore: env.CRASH_REPORTS,
+      crashLimit: env.CRASH_LIMIT,
       // One JSON line per event for Workers Logs (ADR 0014 §9); events carry no request header.
       log: logEvent,
     };

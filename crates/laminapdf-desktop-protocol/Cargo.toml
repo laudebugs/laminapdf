@@ -20,6 +20,7 @@ layer = "app"
 test-support = []
 
 [dependencies]
+backtrace = { workspace = true }
 postcard = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }

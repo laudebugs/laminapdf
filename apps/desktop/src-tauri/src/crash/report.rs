@@ -1,0 +1,472 @@
+//! The crash report (D7a), exactly as the app shows it and the update Worker receives it
+//! (apps/updates/schemas/crash-report.schema.json). [`Report`] is the allow-list: it has no other
+//! field, so nothing else can be sent, and every string in it is either one of a closed set or has
+//! passed [`scrub`]. Its pieces come from where the crash happened: a panic's summary, how an
+//! engine ended, or a webview's error.
+
+use std::time::Duration;
+
+use laminapdf_desktop_protocol::crash::{MAX_MESSAGE, NativeFrame, PanicSummary, SourceLocation};
+use laminapdf_desktop_protocol::{Layer, SandboxLevel};
+use serde::{Deserialize, Serialize};
+
+use super::scrub::{ScriptFrame, cut_chars, scrub};
+
+/// The report's schema version.
+const SCHEMA: u8 = 1;
+
+/// The most characters a native frame's function name keeps.
+const MAX_FUNCTION: usize = 256;
+
+/// One crash report.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct Report {
+    pub schema: u8,
+    /// A random UUID v4, made for this report only and kept nowhere else.
+    #[expect(clippy::struct_field_names, reason = "the schema's name for it")]
+    pub report_id: String,
+    pub app_version: String,
+    pub channel: ReportChannel,
+    pub os: Os,
+    pub os_version: String,
+    pub arch: Arch,
+    pub process: ProcessKind,
+    pub renderer: Renderer,
+    pub sandbox: Vec<SandboxLayer>,
+    pub uptime: Uptime,
+    pub kind: CrashKind,
+    /// The panic or error message, or how the engine ended; scrubbed.
+    pub reason: String,
+    pub location: Option<Location>,
+    pub frames: Vec<Frame>,
+    /// Filled by minidump processing (D7d); empty until then.
+    pub modules: Vec<Module>,
+}
+
+/// The channel this build follows; `dev` for a debug build.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub(crate) enum ReportChannel {
+    Stable,
+    Beta,
+    Nightly,
+    Staging,
+    Dev,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub(crate) enum Os {
+    Macos,
+    Windows,
+    Linux,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub(crate) enum Arch {
+    #[serde(rename = "x86_64")]
+    X86_64,
+    Aarch64,
+}
+
+/// Which process crashed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub(crate) enum ProcessKind {
+    Main,
+    Engine,
+    Webview,
+}
+
+/// What draws pages. Only PDFium until D7b's Linux fallback.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub(crate) enum Renderer {
+    Pdfium,
+}
+
+/// One layer of the engine's sandbox ([`Layer`], without Landlock's ABI).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum SandboxLayer {
+    Off,
+    NoNewPrivs,
+    Seccomp,
+    Landlock,
+    MemoryLimit,
+    Seatbelt,
+    Job,
+    LowIntegrity,
+    RestrictedToken,
+}
+
+impl SandboxLayer {
+    /// `layer`'s name in a report; `None` for a layer newer than the schema, which is left out.
+    const fn of(layer: Layer) -> Option<Self> {
+        Some(match layer {
+            Layer::Off => Self::Off,
+            Layer::NoNewPrivs => Self::NoNewPrivs,
+            Layer::Seccomp => Self::Seccomp,
+            Layer::Landlock { .. } => Self::Landlock,
+            Layer::MemoryLimit => Self::MemoryLimit,
+            Layer::Seatbelt => Self::Seatbelt,
+            Layer::Job => Self::Job,
+            Layer::LowIntegrity => Self::LowIntegrity,
+            Layer::RestrictedToken => Self::RestrictedToken,
+            _ => return None,
+        })
+    }
+}
+
+/// How long the app had run, coarsely.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) enum Uptime {
+    #[serde(rename = "under_1m")]
+    Under1m,
+    #[serde(rename = "1m_to_10m")]
+    To10m,
+    #[serde(rename = "10m_to_1h")]
+    To1h,
+    #[serde(rename = "over_1h")]
+    Over1h,
+}
+
+impl Uptime {
+    pub(crate) fn of(running: Duration) -> Self {
+        match running.as_secs() {
+            0..60 => Self::Under1m,
+            60..600 => Self::To10m,
+            600..3600 => Self::To1h,
+            _ => Self::Over1h,
+        }
+    }
+}
+
+/// What kind of crash.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub(crate) enum CrashKind {
+    /// A Rust panic.
+    Panic,
+    /// The engine was ended by a signal or an exception code.
+    Signal,
+    /// The engine exited with a failure code.
+    Exit,
+    /// An uncaught error in the webview.
+    Error,
+    /// An unhandled promise rejection in the webview.
+    Rejection,
+}
+
+/// Where a panic happened, in lamina's own sources.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct Location {
+    pub file: String,
+    pub line: u32,
+    pub column: u32,
+}
+
+/// A frame: native for Rust, a script's for the webview.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub(crate) enum Frame {
+    Native {
+        module: String,
+        /// The offset within `function`, as `0x…`.
+        offset: String,
+        function: Option<String>,
+    },
+    Script(ScriptFrame),
+}
+
+/// A loaded module (D7d).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct Module {
+    pub name: String,
+    pub version: Option<String>,
+    pub debug_id: Option<String>,
+}
+
+/// What every report says about the app, whatever crashed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct AppFacts {
+    pub app_version: String,
+    pub channel: ReportChannel,
+    pub os_version: String,
+}
+
+/// What crashed and how, before it becomes a [`Report`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Crash {
+    pub process: ProcessKind,
+    pub kind: CrashKind,
+    /// Unscrubbed: [`Crash::report`] scrubs it.
+    pub reason: String,
+    pub location: Option<SourceLocation>,
+    pub frames: Vec<Frame>,
+    /// The engine's sandbox, when the engine was running.
+    pub sandbox: Option<SandboxLevel>,
+}
+
+impl Crash {
+    /// A panic in `process`.
+    pub(crate) fn panic(process: ProcessKind, summary: PanicSummary, sandbox: Option<SandboxLevel>) -> Self {
+        Self {
+            process,
+            kind: CrashKind::Panic,
+            reason: summary.message,
+            location: summary.location,
+            frames: summary.frames.iter().map(native).collect(),
+            sandbox,
+        }
+    }
+
+    /// An engine that ended without a panic: `how` is the sandbox's description of its end.
+    pub(crate) fn engine_exit(how: String, sandbox: Option<SandboxLevel>) -> Self {
+        // `describe` in laminapdf-desktop-sandbox: "exit code: 3" or "exit status: 3" for an exit,
+        // anything else (a signal, an exception code, a sandbox stop) is the OS ending it.
+        let exited = how.starts_with("exit code") || how.starts_with("exit status");
+        Self {
+            process: ProcessKind::Engine,
+            kind: if exited { CrashKind::Exit } else { CrashKind::Signal },
+            reason: how,
+            location: None,
+            frames: Vec::new(),
+            sandbox,
+        }
+    }
+
+    /// An uncaught error (`rejection`: an unhandled rejection) in a webview, with its stack.
+    pub(crate) fn webview(message: String, stack: &str, rejection: bool) -> Self {
+        Self {
+            process: ProcessKind::Webview,
+            kind: if rejection { CrashKind::Rejection } else { CrashKind::Error },
+            reason: message,
+            location: None,
+            frames: super::scrub::script_frames(stack).into_iter().map(Frame::Script).collect(),
+            sandbox: None,
+        }
+    }
+
+    /// The report, with a new random ID and the crash's facts scrubbed.
+    pub(crate) fn report(self, facts: &AppFacts, uptime: Duration) -> Report {
+        let sandbox = self
+            .sandbox
+            .map(|level| dedup(level.layers.into_iter().filter_map(SandboxLayer::of)))
+            .unwrap_or_default();
+        Report {
+            schema: SCHEMA,
+            report_id: uuid::Uuid::new_v4().to_string(),
+            app_version: facts.app_version.clone(),
+            channel: facts.channel,
+            os: OS,
+            os_version: facts.os_version.clone(),
+            arch: ARCH,
+            process: self.process,
+            renderer: Renderer::Pdfium,
+            sandbox,
+            uptime: Uptime::of(uptime),
+            kind: self.kind,
+            reason: cut_chars(&scrub(&self.reason), MAX_MESSAGE),
+            location: self.location.as_ref().and_then(ours),
+            frames: self.frames,
+            modules: Vec::new(),
+        }
+    }
+}
+
+/// A native frame, its function name scrubbed (a closure's name can't hold a path, but a
+/// compromised engine's frames could hold anything).
+fn native(frame: &NativeFrame) -> Frame {
+    Frame::Native {
+        module: module_name(&frame.module),
+        offset: format!("{:#x}", frame.offset),
+        function: Some(cut_chars(&scrub(&frame.function), MAX_FUNCTION)),
+    }
+}
+
+/// `name` if it is a plain file name the schema accepts, else `<unknown>`.
+fn module_name(name: &str) -> String {
+    let plain = !name.is_empty()
+        && name.len() <= 64
+        && name
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'+' | b'-'));
+    if plain { name.to_owned() } else { "<unknown>".to_owned() }
+}
+
+/// `at` when it is in lamina's own sources (`apps/…` or `crates/…`, relative, no `..`); else
+/// `None`, since another crate's location is an absolute path on the build machine.
+fn ours(at: &SourceLocation) -> Option<Location> {
+    let file = at.file.replace('\\', "/");
+    let segments_ok = file.split('/').all(|segment| {
+        !segment.is_empty() && segment.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'-' | b'.'))
+    });
+    let ours = (file.starts_with("apps/") || file.starts_with("crates/"))
+        && std::path::Path::new(&file).extension().is_some_and(|ext| ext == "rs")
+        && file.len() <= 160
+        && segments_ok
+        && !file.split('/').any(|segment| segment.starts_with('.'))
+        && file.matches('.').count() == 1;
+    ours.then_some(Location {
+        file,
+        line: at.line,
+        column: at.column,
+    })
+}
+
+fn dedup(layers: impl Iterator<Item = SandboxLayer>) -> Vec<SandboxLayer> {
+    let mut out: Vec<SandboxLayer> = Vec::new();
+    for layer in layers {
+        if !out.contains(&layer) {
+            out.push(layer);
+        }
+    }
+    out
+}
+
+const OS: Os = if cfg!(target_os = "macos") {
+    Os::Macos
+} else if cfg!(windows) {
+    Os::Windows
+} else {
+    Os::Linux
+};
+
+const ARCH: Arch = if cfg!(target_arch = "aarch64") {
+    Arch::Aarch64
+} else {
+    Arch::X86_64
+};
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn facts() -> AppFacts {
+        AppFacts {
+            app_version: "0.1.0".into(),
+            channel: ReportChannel::Beta,
+            os_version: "15.1".into(),
+        }
+    }
+
+    fn summary(message: &str, file: &str) -> PanicSummary {
+        PanicSummary {
+            message: message.into(),
+            location: Some(SourceLocation {
+                file: file.into(),
+                line: 120,
+                column: 9,
+            }),
+            frames: vec![NativeFrame {
+                module: "laminapdf-desktop-engine".into(),
+                offset: 0x1a,
+                function: "laminapdf_desktop_engine::worker::render".into(),
+            }],
+        }
+    }
+
+    /// The fixture the Worker's tests hold to the schema.
+    fn fixture() -> serde_json::Value {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../updates/test/fixtures/crash-report.json");
+        serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
+    }
+
+    fn keys(value: &serde_json::Value) -> Vec<String> {
+        value.as_object().map(|o| o.keys().cloned().collect()).unwrap_or_default()
+    }
+
+    #[test]
+    fn a_report_should_have_exactly_the_schemas_fields() {
+        let report = Crash::panic(
+            ProcessKind::Engine,
+            summary("boom", "crates/laminapdf-desktop-engine/src/worker.rs"),
+            None,
+        )
+        .report(&facts(), Duration::from_secs(90));
+        let mut built = keys(&serde_json::to_value(&report).unwrap());
+        let mut expected = keys(&fixture());
+        built.sort();
+        expected.sort();
+        assert_eq!(built, expected);
+    }
+
+    #[test]
+    fn the_fixture_should_read_as_a_report() {
+        assert!(serde_json::from_value::<Report>(fixture()).is_ok());
+    }
+
+    #[test]
+    fn a_panic_message_should_be_scrubbed() {
+        let report = Crash::panic(ProcessKind::Main, summary("open /Users/ana/x/a.pdf", "src/a.rs"), None)
+            .report(&facts(), Duration::ZERO);
+        assert_eq!(report.reason, "open <path>");
+    }
+
+    #[test]
+    fn a_location_outside_lamina_should_be_dropped() {
+        let report = Crash::panic(
+            ProcessKind::Main,
+            summary("boom", "/Users/ci/.cargo/registry/src/x-1.0/src/lib.rs"),
+            None,
+        )
+        .report(&facts(), Duration::ZERO);
+        assert_eq!(report.location, None);
+    }
+
+    #[test]
+    fn a_location_in_lamina_should_be_kept() {
+        let report = Crash::panic(
+            ProcessKind::Engine,
+            summary("boom", "crates/laminapdf-desktop-engine/src/worker.rs"),
+            None,
+        )
+        .report(&facts(), Duration::ZERO);
+        assert_eq!(
+            report.location.map(|at| at.file),
+            Some("crates/laminapdf-desktop-engine/src/worker.rs".to_owned())
+        );
+    }
+
+    #[test]
+    fn an_engine_ended_by_a_signal_should_be_a_signal() {
+        let crash = Crash::engine_exit("crash: signal: 11 (SIGSEGV)".into(), None);
+        assert_eq!(crash.kind, CrashKind::Signal);
+    }
+
+    #[test]
+    fn an_engine_that_exited_should_be_an_exit() {
+        let crash = Crash::engine_exit("exit status: 3".into(), None);
+        assert_eq!(crash.kind, CrashKind::Exit);
+    }
+
+    #[test]
+    fn a_module_name_with_a_path_should_be_unknown() {
+        assert_eq!(module_name("/usr/lib/libpdfium.so"), "<unknown>");
+    }
+
+    #[test]
+    fn each_report_should_get_its_own_id() {
+        let make = || Crash::engine_exit("killed".into(), None).report(&facts(), Duration::ZERO);
+        assert_ne!(make().report_id, make().report_id);
+    }
+
+    #[test]
+    fn uptime_should_be_bucketed() {
+        let buckets = [0, 59, 60, 599, 600, 3599, 3600].map(|s| Uptime::of(Duration::from_secs(s)));
+        assert_eq!(
+            buckets,
+            [
+                Uptime::Under1m,
+                Uptime::Under1m,
+                Uptime::To10m,
+                Uptime::To10m,
+                Uptime::To1h,
+                Uptime::To1h,
+                Uptime::Over1h
+            ]
+        );
+    }
+}

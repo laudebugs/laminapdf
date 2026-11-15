@@ -39,6 +39,11 @@ laminapdf-desktop-protocol = { workspace = true }
 laminapdf-desktop-sandbox = { workspace = true }
 # The OS's recent-documents lists and Windows' app ID: the FFI lives there, not here.
 laminapdf-desktop-os = { workspace = true }
+# Crash reports (D7a): the OS version, the scrubber, and the upload over the updater's client.
+os_info = { workspace = true }
+regex = { workspace = true }
+reqwest = { workspace = true }
+rustls = { workspace = true }
 # Watching open files for changes on disk, and telling a replaced file from the one opened.
 file-id = { workspace = true }
 notify = { workspace = true }
@@ -57,6 +62,8 @@ tauri-plugin-updater = { workspace = true }
 tauri-plugin-wdio = { workspace = true, optional = true }
 tauri-plugin-wdio-webdriver = { workspace = true, optional = true }
 thiserror = { workspace = true }
+# The crash reporter's wait between sends (D7a), on the runtime Tauri already runs.
+tokio = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true }
 zeroize = { workspace = true }

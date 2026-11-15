@@ -13,6 +13,7 @@ import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { App, type DesktopEngine } from "./app.tsx";
 import { type AppInfo, loadAppInfo } from "./app-info.ts";
+import { reportUiErrors } from "./crashes.tsx";
 import { DesktopEngineClient, type DesktopShell } from "./engine/desktop-engine-client.ts";
 import { tauriShell } from "./engine/tauri-shell.ts";
 import { createDesktopPlatform } from "./platform/desktop.ts";
@@ -54,6 +55,8 @@ const keys = /Mac|iPhone|iPad/.test(navigator.platform) ? "mac" : "other";
 // Inside the shell, one engine client for this window and the view it draws; the platform's
 // open dialog runs in the main process.
 const shell = desktop ? tauriShell() : undefined;
+// This window's uncaught errors become crash reports, held until the user lets them go (D7a).
+if (shell !== undefined) reportUiErrors(shell);
 const engine = startEngine(shell);
 // End-to-end test builds only: Vite drops this branch, and the module, from every other build.
 if (import.meta.env.MODE === "e2e") void import("../e2e/probe/probe.ts").then(({ exposeProbe }) => exposeProbe(engine));

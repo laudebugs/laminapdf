@@ -24,6 +24,8 @@ pub enum Mode {
     Healthy,
     /// Exits shortly after `Ready` (an engine that dies on its first document).
     CrashAfterReady,
+    /// Sends a panic summary shortly after `Ready`, then exits, as a panicking engine does.
+    PanicAfterReady,
     /// Answers `Hello`, then never beats or answers again.
     Silent,
     /// Exits as it says `Ready`.
@@ -134,6 +136,12 @@ fn fake_engine(mode: Mode, pid: u32, mut stdin: PipeReader, out: &SharedOut) {
         }
         Mode::CrashAfterReady => {
             thread::sleep(Duration::from_millis(30));
+            lock(out).take();
+            return;
+        }
+        Mode::PanicAfterReady => {
+            thread::sleep(Duration::from_millis(30));
+            send(out, &FromEngine::Panic(Box::new(fake_panic())));
             lock(out).take();
             return;
         }
@@ -281,4 +289,14 @@ fn answer(msg: ToEngine, locked: &mut Vec<DocId>) -> Option<FromEngine> {
         }
         _ => return None,
     })
+}
+
+/// The summary [`Mode::PanicAfterReady`] sends.
+#[must_use]
+pub fn fake_panic() -> crate::crash::PanicSummary {
+    crate::crash::PanicSummary {
+        message: "the fake engine panicked".into(),
+        location: None,
+        frames: Vec::new(),
+    }
 }

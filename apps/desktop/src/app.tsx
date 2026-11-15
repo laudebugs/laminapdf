@@ -35,6 +35,7 @@ import {
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AppInfo } from "./app-info.ts";
+import { useCrashReports } from "./crashes.tsx";
 import { type DesktopEngineClient, DesktopEngineError, type DesktopShell } from "./engine/desktop-engine-client.ts";
 import { type Dragging, desktopOpener, listenForOsOpens } from "./engine/open.ts";
 import { stopper } from "./engine/stopper.ts";
@@ -163,6 +164,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const { strip, notice, actions: tabActions } = useTabStrip(engine?.shell, tabs, reader, toasts, keys, engine?.viewer);
   const { settings, recent, updates, actions: homeActions } = useHome(engine, platform, reader, state, toasts);
   const print = usePrint(engine, toasts);
+  const crashes = useCrashReports(engine?.shell);
   const actions = useMergedActions(homeActions, tabActions, print.actions);
   const open = state.phase === "open";
   const shows = useShownParts(state.phase, tabs);
@@ -175,7 +177,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
     <CommandsProvider registry={registry} context={context} keys={keys} singleKeys={singleKeys}>
       <ReaderShell
         tabs={strip}
-        notice={notice}
+        notice={crashes.notice ?? notice}
         topBar={
           <ReaderTopBar
             reader={reader}
@@ -212,6 +214,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
       {dragging === undefined ? null : <DropOverlay>{dropText(dragging)}</DropOverlay>}
       <PasswordDialog reader={reader} />
       {settings.dialog}
+      {crashes.dialog}
       {palette}
       <ToastRegion queue={toasts} aria-label="Notifications" />
     </CommandsProvider>

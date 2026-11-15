@@ -75,6 +75,7 @@ export const ROUTES: readonly Route[] = [
       "RemoteFailure",
       "OfflineNotice",
       "RestoreNotice",
+      "CrashNotice",
       "RecentList",
     ],
   },
@@ -115,6 +116,7 @@ export const ROUTES: readonly Route[] = [
       "BlankPagesDialog",
       "SignedPageDialog",
       "LocateDifferentDialog",
+      "CrashReportDialog",
     ],
     states: [
       "default",
@@ -140,6 +142,9 @@ export const ROUTES: readonly Route[] = [
       "blank-pages",
       "signed-page",
       "locate-different",
+      "crash-main",
+      "crash-engine",
+      "crash-report",
     ],
   },
   {

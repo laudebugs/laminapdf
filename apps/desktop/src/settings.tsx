@@ -2,11 +2,13 @@
 // process keeps in preferences.json and acts on (src-tauri/src/prefs.rs): remembering recent
 // files, which turned off clears the app's and the OS's recent lists and the last session,
 // reopening the last session (which needs the recent files remembered), reloading open files that
-// change on disk, opening files in tabs or windows, and opening a file that is open already. The
-// full settings page adds its other sections to the same registry.
+// change on disk, opening files in tabs or windows, and opening a file that is open already; its
+// Updates section (S06) and its Privacy section (crash reports, D7a). The full settings page adds its
+// other sections to the same registry.
 
 import { message, SettingsDialog, SettingsRegistry, Switch, useSettingsSection } from "@laminapdf/ui";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { PrivacySettings, privacySummary, useCrashSetting } from "./crashes.tsx";
 import type { DesktopShell } from "./engine/desktop-engine-client.ts";
 import { words } from "./update-words.ts";
 import { type DesktopUpdates, UpdateSettings, updatesSummary } from "./updates.tsx";
@@ -80,6 +82,16 @@ export function useDesktopSettings(
     words("title"),
     () => <UpdateSettings updates={updates} />,
     { shows: [updates], summary: () => updatesSummary(updates.status) },
+  );
+  // S07: Settings › Privacy, inside the shell only (the main process keeps the crash reports).
+  const [crashReports, setCrashReports] = useCrashSetting(shell);
+  useSettingsSection(
+    shell === undefined ? unshown : registry,
+    "privacy",
+    message("settings.privacy"),
+    () =>
+      shell === undefined ? null : <PrivacySettings shell={shell} enabled={crashReports} onChange={setCrashReports} />,
+    { shows: [crashReports], summary: () => privacySummary(crashReports) },
   );
   const open = useCallback((at?: string) => {
     setSection(at);

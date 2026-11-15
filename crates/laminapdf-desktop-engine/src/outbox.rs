@@ -23,6 +23,17 @@ impl Outbox {
         write_frame(&mut *out, msg, payload)
     }
 
+    /// Sends `msg` unless another frame is being written: for the panic hook, which may run on a
+    /// thread that holds the lock already, where waiting would never end.
+    pub(crate) fn try_send(&self, msg: &FromEngine) {
+        let mut out = match self.0.try_lock() {
+            Ok(out) => out,
+            Err(std::sync::TryLockError::Poisoned(poisoned)) => poisoned.into_inner(),
+            Err(std::sync::TryLockError::WouldBlock) => return,
+        };
+        let _ = write_frame(&mut *out, msg, &[]);
+    }
+
     /// Sends `msg`, logging a failure: the pipe is gone, and the router sees that too.
     pub(crate) fn send_or_log(&self, msg: &FromEngine, payload: &[u8]) {
         if let Err(error) = self.send(msg, payload) {

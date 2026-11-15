@@ -111,6 +111,8 @@ pub(crate) struct Failed {
 pub(crate) trait Notify: Send + Sync {
     fn restarted(&self, payload: Restarted);
     fn failed(&self, payload: Failed);
+    /// `window`'s engine crashed: for crash reports (D7a). Tests needn't hear it.
+    fn crashed(&self, _window: &str, _crash: crate::crash::Crash) {}
 }
 
 /// How [`Engines`] starts an engine.
@@ -423,6 +425,33 @@ impl Engines {
         }
     }
 
+    /// Asks `window`'s engine to panic (the end-to-end tests' forced engine panic; only a debug
+    /// engine obeys).
+    #[cfg(feature = "e2e")]
+    pub(crate) fn debug_panic(&self, window: &str) {
+        if let Some(engine) = self.windows().get(window).cloned() {
+            engine.send(&ToEngine::DebugPanic);
+        }
+    }
+
+    /// Ends `window`'s engine as a segmentation fault would (Windows has no signals: there it
+    /// is ended with a failure code).
+    #[cfg(feature = "e2e")]
+    pub(crate) fn debug_segv(&self, window: &str) {
+        let Some(pid) = self.windows().get(window).and_then(Supervisor::pid) else {
+            return;
+        };
+        let pid = pid.to_string();
+        let ended = if cfg!(windows) {
+            std::process::Command::new("taskkill").args(["/F", "/PID", &pid]).status()
+        } else {
+            std::process::Command::new("kill").args(["-SEGV", &pid]).status()
+        };
+        if let Err(error) = ended {
+            tracing::warn!("could not end the engine: {error}");
+        }
+    }
+
     /// `window`'s engine, started on first use, and again after one that failed for good, so the
     /// window's Reopen gets a fresh engine instead of the dead one.
     fn engine(&self, window: &str) -> Result<Supervisor, DesktopError> {
@@ -478,6 +507,14 @@ impl Engines {
                 self.notify.failed(Failed {
                     window: window.to_owned(),
                 });
+            }
+            Event::Crashed { how, panic, sandboxed } => {
+                let sandbox = Some(sandboxed);
+                let crash = match panic {
+                    Some(summary) => crate::crash::Crash::panic(crate::crash::ProcessKind::Engine, *summary, sandbox),
+                    None => crate::crash::Crash::engine_exit(how, sandbox),
+                };
+                self.notify.crashed(window, crash);
             }
             Event::Log(line) => tracing::info!(target: "laminapdf_desktop::engine", window, "{line}"),
         }

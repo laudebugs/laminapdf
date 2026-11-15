@@ -222,6 +222,13 @@ export {
   type UiTheme,
 } from "./reader/appearance.js";
 export { formatBytes } from "./reader/bytes.js";
+export {
+  type CrashAnswer,
+  CrashNotice,
+  type CrashNoticeProps,
+  CrashReportDialog,
+  type CrashReportDialogProps,
+} from "./reader/crash-report.js";
 export { type DebugBackend, DebugMenu, type DebugMenuProps } from "./reader/debug-menu.js";
 export { type DocumentTab, DocumentTabs, type DocumentTabsProps } from "./reader/document-tabs.js";
 export {

@@ -11,8 +11,8 @@
 
 pub(crate) mod commands;
 mod plan;
-mod policy;
-mod settings;
+pub(crate) mod policy;
+pub(crate) mod settings;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};

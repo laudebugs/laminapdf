@@ -1,9 +1,10 @@
-/* The offline notice (R15) and the desktop's restore notice (S02): a strip under the top bar on the
+/* The offline notice (R15), the desktop's restore notice (S02) and its crash notice (S08): a strip under the top bar on the
    surface colour, a hairline below, an icon, the message (wrapping on a phone), any action, and the
    dismiss button at the end. */
 @layer paper.components {
   .paper-offline-notice,
-  .paper-restore-notice {
+  .paper-restore-notice,
+  .paper-crash-notice {
     display: flex;
     align-items: center;
     gap: var(--paper-space-10);
@@ -15,7 +16,8 @@
   }
 
   .paper-offline-notice p,
-  .paper-restore-notice p {
+  .paper-restore-notice p,
+  .paper-crash-notice p {
     flex: 1;
     min-inline-size: 0;
     margin: 0;
@@ -27,7 +29,9 @@
     color: var(--paper-text-2);
   }
 
+  .paper-crash-notice > svg,
   .paper-restore-notice[data-missing] > svg {
+    flex: none;
     color: var(--paper-warning);
   }
 }

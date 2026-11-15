@@ -1,6 +1,6 @@
 //! The supervisor against the in-process fake engine (`fake`).
 
-use super::fake::{FakeSpawner, Mode};
+use super::fake::{self, FakeSpawner, Mode};
 use super::*;
 use crate::{Password, TileFormat};
 
@@ -32,7 +32,8 @@ fn start(mode: Mode) -> (Supervisor, FakeSpawner, mpsc::Receiver<Event>) {
         Arc::new(NoFiles),
         fast_config(),
         move |_, event| {
-            if !matches!(event, Event::Log(_)) {
+            // Crash events are `crashes`'s to check: here, the restarts and failures alone.
+            if !matches!(event, Event::Log(_) | Event::Crashed { .. }) {
                 let _ = lock(&tx).send(event);
             }
         },
@@ -299,4 +300,48 @@ fn a_slow_font_scan_should_not_hold_up_the_engines_start() {
     let supervisor = started.unwrap_or_else(|error| panic!("the scan held up the start: {error}"));
     assert!(open(&supervisor).is_ok());
     supervisor.shutdown();
+}
+
+/// A crash event's how and panic.
+type Crash = (String, Option<Box<crate::crash::PanicSummary>>);
+
+/// The crash events of a supervisor of fakes in `mode`, as they come.
+fn crashes(mode: Mode) -> (Supervisor, mpsc::Receiver<Crash>) {
+    let (tx, rx) = mpsc::channel();
+    let tx = Mutex::new(tx);
+    let supervisor = Supervisor::start(
+        Box::new(FakeSpawner::new(mode)),
+        Arc::new(NoFiles),
+        fast_config(),
+        move |_, event| {
+            if let Event::Crashed { how, panic, .. } = event {
+                let _ = lock(&tx).send((how, panic));
+            }
+        },
+    );
+    match supervisor {
+        Ok(supervisor) => (supervisor, rx),
+        Err(error) => panic!("the fake engine did not start: {error}"),
+    }
+}
+
+#[test]
+fn a_crash_should_say_how_the_engine_ended() {
+    let (_supervisor, crashes) = crashes(Mode::CrashAfterReady);
+    let crash = crashes.recv_timeout(Duration::from_secs(5)).ok();
+    assert_eq!(crash, Some(("killed".to_owned(), None)));
+}
+
+#[test]
+fn a_panic_should_reach_the_crash_event_with_its_summary() {
+    let (_supervisor, crashes) = crashes(Mode::PanicAfterReady);
+    let panic = crashes.recv_timeout(Duration::from_secs(5)).ok().and_then(|(_, panic)| panic);
+    assert_eq!(panic.map(|summary| *summary), Some(fake::fake_panic()));
+}
+
+#[test]
+fn a_shutdown_should_not_count_as_a_crash() {
+    let (supervisor, crashes) = crashes(Mode::Healthy);
+    supervisor.shutdown();
+    assert!(crashes.recv_timeout(Duration::from_millis(300)).is_err());
 }

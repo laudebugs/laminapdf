@@ -8,6 +8,7 @@
 //! mobile entry point.
 
 mod commands;
+mod crash;
 #[cfg(feature = "e2e")]
 mod e2e;
 mod engine;
@@ -97,6 +98,12 @@ impl Notify for WindowEvents {
         }
     }
 
+    fn crashed(&self, window: &str, crash: crash::Crash) {
+        if let Some(reports) = self.0.try_state::<Arc<crash::CrashReports>>() {
+            reports.record(&self.0, Some(window), crash);
+        }
+    }
+
     fn failed(&self, payload: Failed) {
         let target = EventTarget::webview_window(payload.window.clone());
         if let Err(error) = self.0.emit_to(target, FAILED_EVENT, payload) {
@@ -139,6 +146,15 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         tracing::warn!("could not set the app's ID: {error}");
     }
     let config = app.path().app_config_dir()?;
+    // Crash reports first, so a panic in the rest of the start-up leaves one (D7a).
+    let crashes = crash::CrashReports::new(
+        &config,
+        &app.path().app_data_dir()?,
+        &app.package_info().version.to_string(),
+    );
+    crash::report_panics(&crashes);
+    crashes.resume();
+    app.manage(crashes);
     app.manage(prefs::Prefs::load(config.join("preferences.json")));
     app.manage(recent::RecentFiles::load(config.join("recent.json")));
     app.manage(engines(app.handle()));
@@ -232,6 +248,12 @@ macro_rules! app_commands {
             update::commands::update_reset_install_id,
             update::commands::update_restart_to_install,
             update::commands::update_open_link,
+            crash::commands::crash_question,
+            crash::commands::crash_answer,
+            crash::commands::crash_settings,
+            crash::commands::crash_set_enabled,
+            crash::commands::crash_sample,
+            crash::commands::report_ui_error,
             $($extra),*
         ]
     };
@@ -262,6 +284,9 @@ pub fn run() -> Result<(), DesktopError> {
             e2e::e2e_menu_click,
             e2e::e2e_menu_snapshot,
             print::e2e_print_to_file,
+            crash::commands::e2e_crash_main_panic,
+            crash::commands::e2e_crash_engine_panic,
+            crash::commands::e2e_crash_engine_segv,
         ])
         .manage(e2e::QueuedPick::default());
     // First of all plugins: a second launch hands its paths to the running app and exits before
