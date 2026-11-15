@@ -187,10 +187,20 @@ h1#_top,
 }
 
 /* A compact contents rail gives the article the remaining space. Starlight otherwise sizes
-   both sidebars alike and grows the right one on wide screens. Keep its mobile dropdown. */
+   both sidebars alike and grows the right one on wide screens. Keep its mobile dropdown.
+   A reader can hide the rail (src/components/PageSidebar.astro, todo Q4v, as Claude's docs do):
+   it shrinks to its button, the article widens to 68rem, and the examples beside their pages grow
+   with it (Example.astro reads both widths). */
+.docs-toc-toggle {
+  display: none;
+}
 @media screen and (min-width: 72rem) {
   :root {
     --docs-toc-width: 14rem;
+  }
+  :root[data-toc-hidden] {
+    --docs-toc-width: 4rem;
+    --sl-content-width: 68rem;
   }
   .right-sidebar-container {
     width: var(--docs-toc-width);
@@ -205,12 +215,63 @@ h1#_top,
   }
   .right-sidebar-panel h2 {
     margin-bottom: 0.25rem;
+    padding-inline-start: 1.75rem;
     font-size: var(--sl-text-sm);
+    line-height: 1.5rem;
   }
   [data-has-sidebar][data-has-toc] .main-pane {
     --sl-content-margin-inline: auto;
 
     width: calc(100% - var(--docs-toc-width));
+  }
+  /* A 24 px circle before "On this page", in the rail's padding; hidden, a pill of the turned
+     chevron and the list, so it reads as "bring the contents back". */
+  .docs-toc-toggle {
+    display: inline-flex;
+    position: absolute;
+    z-index: 1;
+    top: calc(var(--sl-nav-height) + 1rem);
+    inset-inline-start: calc(var(--sl-sidebar-pad-x) - 0.25rem);
+    align-items: center;
+    justify-content: center;
+    gap: 0.125rem;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    border: 1px solid var(--paper-chip-border);
+    border-radius: 0.75rem;
+    background: var(--paper-surface);
+    color: var(--paper-text-2);
+    cursor: pointer;
+  }
+  .docs-toc-toggle:hover {
+    border-color: var(--paper-control-border);
+    background: var(--paper-gutter);
+    color: var(--paper-text);
+  }
+  .docs-toc-toggle svg {
+    width: 1rem;
+    height: 1rem;
+  }
+  .docs-toc-toggle .docs-toc-list {
+    display: none;
+  }
+  :root[data-toc-hidden] .docs-toc-toggle {
+    inset-inline-start: auto;
+    inset-inline-end: 0.625rem;
+    padding-inline: 0.25rem;
+  }
+  :root[data-toc-hidden] .docs-toc-toggle .docs-toc-chevron {
+    transform: scaleX(-1);
+  }
+  :root[data-toc-hidden] .docs-toc-toggle .docs-toc-list {
+    display: block;
+  }
+  :root[data-toc-hidden] #docs-toc .right-sidebar-panel {
+    display: none;
+  }
+  :root[data-toc-hidden] .right-sidebar {
+    border-inline-start-color: transparent;
   }
 }
 
@@ -236,12 +297,30 @@ h1#_top,
   outline: 2px solid var(--paper-accent);
 }
 
-/* Tables: hairline rules instead of boxes, tabular numerals (§3 rules). */
-.sl-markdown-content table {
+/* Tables (todo Q4v): a box with a header band, so a reader tells the header from the body and
+   follows a row across. The rules are `chip-border`, a step darker than the page's hairlines,
+   which are too faint on `surface` to follow; the header row sits on `gutter` (`raised` in the
+   dark theme, where `gutter` is darker than the page). The box fits its columns, up to the
+   column's width, and scrolls sideways past that, as Starlight's tables do. Numbers are tabular. */
+.sl-markdown-content table:not(:where(.not-content *)) {
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--paper-chip-border);
+  border-radius: 4px;
   font-variant-numeric: tabular-nums;
 }
-.sl-markdown-content :is(th, td) {
-  border-color: var(--paper-hairline);
+.sl-markdown-content :is(th, td):not(:where(.not-content *)) {
+  border-bottom-color: var(--paper-chip-border);
+  padding-inline: 0.75rem;
+}
+.sl-markdown-content th:not(:where(.not-content *)) {
+  background: var(--paper-gutter);
+}
+:root[data-theme="dark"] .sl-markdown-content th:not(:where(.not-content *)) {
+  background: var(--paper-raised);
+}
+.sl-markdown-content tr:last-child > td:not(:where(.not-content *)) {
+  border-bottom: 0;
 }
 
 /* The benchmarks page (src/components/Benchmarks.astro): numbers right-aligned, and each

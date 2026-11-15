@@ -2,8 +2,9 @@
 // Starlight's `Head` override: Starlight's own head, then a link to the page's Markdown twin
 // (plugins/agent-docs.mjs writes `/guides/save-a-pdf.md` for `/guides/save-a-pdf/`), so a coding
 // agent that fetches the HTML finds the clean text. On every page, the code blocks' wrap button
-// (CodeWrap.astro). The home page also describes the project for search engines as JSON-LD
-// (@laminapdf/site-kit's structured-data.mjs), a data block the CSP leaves out.
+// (CodeWrap.astro), and the stored choice to hide "On this page" (PageSidebar.astro). The home
+// page also describes the project for search engines as JSON-LD (@laminapdf/site-kit's
+// structured-data.mjs), a data block the CSP leaves out.
 import Default from "@astrojs/starlight/components/Head.astro";
 import { jsonLd, structuredData } from "@laminapdf/site-kit/structured-data";
 import cargoToml from "../../../../Cargo.toml?raw";
@@ -20,6 +21,15 @@ const shareImage = new URL(SHARE_IMAGE, Astro.site);
 ---
 
 <Default />
+{/* Inline, before the first paint: a reader who hid "On this page" (PageSidebar.astro) never sees it
+    open and then close. */}
+<script is:inline>
+  try {
+    if (localStorage.getItem("lamina-docs-toc") === "hidden") document.documentElement.dataset.tocHidden = "";
+  } catch {
+    // No storage (a private window): the column starts open.
+  }
+</script>
 <meta property="og:image" content={shareImage.href} />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />

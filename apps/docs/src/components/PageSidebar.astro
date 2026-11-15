@@ -1,0 +1,63 @@
+---
+// Starlight's `PageSidebar` override (todo Q4v): Starlight's own "On this page" column, with a
+// button that hides it and gives the article its room, as Claude's docs do. Hidden, the column
+// shrinks to that button alone, and the choice lasts across pages (localStorage, a per-reader
+// convenience). The inline script in Head.astro applies a stored choice before the first paint,
+// so a page never opens with the column and then loses it; the styles are in paper.css
+// (`data-toc-hidden`). Below Starlight's 72rem breakpoint the column is a dropdown under the
+// header, which this leaves alone, and the button isn't shown.
+import Default from "@astrojs/starlight/components/PageSidebar.astro";
+import chevronIcon from "@laminapdf/icons/svg/chevron-right.svg?raw";
+import listIcon from "@laminapdf/icons/svg/list.svg?raw";
+import { decorativeIcon } from "@laminapdf/site-kit/icon";
+
+const hasToc = Boolean(Astro.locals.starlightRoute.toc);
+---
+
+{
+  hasToc && (
+    <button
+      type="button"
+      class="docs-toc-toggle"
+      aria-controls="docs-toc"
+      aria-expanded="true"
+      aria-label="Hide “On this page”"
+      title="Hide “On this page”"
+    >
+      <Fragment set:html={decorativeIcon(chevronIcon, "docs-toc-chevron")} />
+      <Fragment set:html={decorativeIcon(listIcon, "docs-toc-list")} />
+    </button>
+  )
+}
+<div id="docs-toc">
+  <Default />
+</div>
+
+<script>
+  const KEY = "lamina-docs-toc";
+  const root = document.documentElement;
+  const toggle = document.querySelector<HTMLButtonElement>(".docs-toc-toggle");
+
+  /** Shows the button's state: what pressing it will do, and whether the column is open. */
+  const describe = () => {
+    if (toggle === null) return;
+    const hidden = root.dataset.tocHidden !== undefined;
+    const label = hidden ? "Show “On this page”" : "Hide “On this page”";
+    toggle.setAttribute("aria-expanded", String(!hidden));
+    toggle.setAttribute("aria-label", label);
+    toggle.title = label;
+  };
+
+  describe();
+  toggle?.addEventListener("click", () => {
+    const hide = root.dataset.tocHidden === undefined;
+    if (hide) root.dataset.tocHidden = "";
+    else delete root.dataset.tocHidden;
+    describe();
+    try {
+      localStorage.setItem(KEY, hide ? "hidden" : "shown");
+    } catch {
+      // No storage (a private window): the choice lasts until the page is left.
+    }
+  });
+</script>

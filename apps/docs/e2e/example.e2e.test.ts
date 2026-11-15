@@ -264,3 +264,53 @@ describe(`code blocks' "Wrap long lines" in ${BROWSER} (todo Q4r)`, () => {
     await page.context().close();
   });
 });
+
+describe(`hiding "On this page" in ${BROWSER} (todo Q4v)`, () => {
+  it("widens the article, says what the button does, and keeps the choice after a reload", async () => {
+    const { page, errors } = await open("/cli/inspect/", 1440);
+    const article = () =>
+      page.evaluate(() => document.querySelector(".sl-markdown-content")?.getBoundingClientRect().width ?? 0);
+    const contents = page.locator("#docs-toc .right-sidebar-panel");
+    const before = await article();
+    expect(await contents.isVisible()).toBe(true);
+    await page.getByRole("button", { name: "Hide “On this page”" }).click();
+    expect(await contents.isVisible()).toBe(false);
+    expect(await article()).toBeGreaterThan(before + 200);
+    const toggle = page.getByRole("button", { name: "Show “On this page”" });
+    expect(await toggle.getAttribute("aria-expanded")).toBe("false");
+    // Checked per load: WebKit reports each select once per load (withoutSelectErrors).
+    const selects = await page.locator("select").count();
+    expect(withoutSelectErrors(BROWSER, errors, selects)).toEqual([]);
+    errors.length = 0;
+
+    // The stored choice holds before the first paint (Head.astro's inline script), so no CSP error either.
+    await page.reload();
+    expect(await contents.isVisible()).toBe(false);
+    await toggle.click();
+    expect(await contents.isVisible()).toBe(true);
+    expect(await article()).toBe(before);
+    expect(withoutSelectErrors(BROWSER, errors, selects)).toEqual([]);
+    await page.context().close();
+  });
+
+  it("draws tables as a box whose header row stands apart from the body", async () => {
+    const { page } = await open("/cli/inspect/", 1440);
+    const looks = await page.evaluate(() => {
+      const table = document.querySelector(".sl-markdown-content table");
+      const th = table?.querySelector("th");
+      const td = table?.querySelector("td");
+      if (!table || !th || !td) return null;
+      return {
+        border: getComputedStyle(table).borderTopWidth,
+        header: getComputedStyle(th).backgroundColor,
+        body: getComputedStyle(td).backgroundColor,
+        row: getComputedStyle(td).borderBottomWidth,
+      };
+    });
+    expect(looks).not.toBeNull();
+    expect(looks?.border).toBe("1px");
+    expect(looks?.row).toBe("1px");
+    expect(looks?.header).not.toBe(looks?.body);
+    await page.context().close();
+  });
+});

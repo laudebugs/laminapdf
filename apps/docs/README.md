@@ -97,7 +97,7 @@ Starlight is still at 0.x, and any minor release can change the markup or the co
 - **Exact pins.** `package.json` pins `astro`, `@astrojs/starlight`, `starlight-links-validator` and `starlight-typedoc` to exact versions, never ranges. The website (`apps/site`) and `@laminapdf/site-kit` pin the same `astro`, and an upgrade moves all three.
 - **One minor per PR.** Each PR moves Starlight or Astro by one minor, and moves `starlight-links-validator` and `starlight-typedoc` only as far as that minor needs. Dependabot groups them (the `starlight` group in `.github/dependabot.yml`), and when its PR skips a minor, step through the skipped ones one PR at a time.
 - **The changelog, read.** For every version between the old pin and the new one, read Starlight's changelog (and Astro's upgrade guide for a major), and note in the PR each change that touches a row of the table below.
-- **The site, tried.** After `pnpm --filter @laminapdf/docs build` and the e2e tests, open the built site and use what the table lists: the header at desktop and phone widths, the phone menu, the theme switch, the unreleased banner, the code tabs, a code page and an "Edit page" link.
+- **The site, tried.** After `pnpm --filter @laminapdf/docs build` and the e2e tests, open the built site and use what the table lists: the header at desktop and phone widths, the phone menu, the theme switch, the unreleased banner, hiding "On this page", the code tabs, a code page and an "Edit page" link.
 
 What depends on Starlight's internals, and why each exists:
 
@@ -107,6 +107,7 @@ What depends on Starlight's internals, and why each exists:
 | `src/components/MobileMenuFooter.astro` | The `MobileMenuFooter` override, wrapping Starlight's own | Below 50 rem the header hides the site's links, so the phone menu lists them |
 | `src/components/ThemeSelect.astro` | The `ThemeSelect` override; the `<starlight-theme-select>` element, the `starlight-theme` storage key and the theme provider's `updatePickers` | The theme switch on the sites' Paper select; its script is Starlight's, under Starlight's names, so the two diff easily: diff it with each upgrade |
 | `src/components/Banner.astro` | The `Banner` override, wrapping Starlight's own | The notice on docs that describe unreleased changes |
+| `src/components/PageSidebar.astro` | The `PageSidebar` override, wrapping Starlight's own; the `.right-sidebar-panel` it draws and `[data-theme]` on the root | The button that hides "On this page" and widens the article; `paper.css` hides the panel and the inline script in `Head.astro` applies the stored choice |
 | `src/routeData.ts` | `defineRouteMiddleware` and the `starlightRoute` local | Generated reference pages get no "Edit page" link |
 | `src/components/Example.astro` | The `<starlight-tabs>` element and its `starlight-synced-tabs__lang` storage key; eight `--sl-*` properties in its styles, among them `--sl-shadow-sm`, which `paper.css` doesn't set | A language chosen in one example's tabs holds in every example; the example's frame in Starlight's colours |
 | `src/styles/diagrams.css` | `--sl-text-sm` | The diagrams' labels at Starlight's small text size |
