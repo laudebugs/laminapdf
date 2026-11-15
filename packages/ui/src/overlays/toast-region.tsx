@@ -106,13 +106,16 @@ export function ToastRegion({ queue, "aria-label": label }: ToastRegionProps): R
     returnTo.current = null;
   }, [entries, focused]);
   // A toast about to leave turns inert, which would drop a focused action's focus to the page:
-  // focus goes back where it came from first, as it does once a toast is gone (above).
-  const settle = () => {
-    if (region.current?.contains(document.activeElement) !== true) return;
+  // focus goes back where it came from first, before the inert toast paints, as it does once a
+  // toast is gone (above).
+  const [leavings, setLeavings] = useState(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a toast starting to leave is what to check after.
+  useLayoutEffect(() => {
+    if (leavings === 0 || region.current?.contains(document.activeElement) !== true) return;
     if (returnTo.current?.isConnected === true) returnTo.current.focus();
     returnTo.current = null;
     setFocused(false);
-  };
+  }, [leavings]);
   return (
     <section
       ref={region}
@@ -140,7 +143,7 @@ export function ToastRegion({ queue, "aria-label": label }: ToastRegionProps): R
             key={entry.key}
             entry={entry}
             paused={paused}
-            onLeaving={settle}
+            onLeaving={() => setLeavings((n) => n + 1)}
             onDone={() => queue.remove(entry.key)}
           />
         ))}
@@ -149,18 +152,17 @@ export function ToastRegion({ queue, "aria-label": label }: ToastRegionProps): R
   );
 }
 
-/** One toast with its own timer, which stops while `paused` and resumes with the time it had left. */
-function TimedToast({
-  entry,
-  paused,
-  onLeaving,
-  onDone,
-}: {
+interface TimedToastProps {
   entry: Entry;
   paused: boolean;
+  /** Called as the toast starts to leave, before it turns inert. */
   onLeaving: () => void;
+  /** Called once it has left: the queue drops it. */
   onDone: () => void;
-}): ReactNode {
+}
+
+/** One toast with its own timer, which stops while `paused` and resumes with the time it had left. */
+function TimedToast({ entry, paused, onLeaving, onDone }: TimedToastProps): ReactNode {
   // The compiler can't follow the latest-value ref kept here for effects (useEffectEvent could replace it).
   "use no memo";
   const remaining = useRef(entry.options.timeout ?? MOTION.toast);
