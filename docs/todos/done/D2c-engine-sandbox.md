@@ -48,7 +48,7 @@ Reduce what a compromised engine process can do to (almost) nothing: no file sys
 **Out of scope** (and which todo covers it)
 
 - Signing the engine with entitlements in release builds: [D6c](../ready/D6c-macos-signing-and-notarisation.md) (this PR adds the entitlements file and ad-hoc signs in dev/CI).
-- Crash/minidump capture of sandboxed engines: [D7a](../ready/D7a-crash-reporting.md).
+- Crash/minidump capture of sandboxed engines: [D7a](../ongoing/D7a-crash-reporting.md).
 - Sandboxing the webview processes (owned by the OS webview).
 - Mac App Store sandboxing of the whole app (non-goal).
 

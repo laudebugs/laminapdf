@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `D7a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D5a](../done/D5a-update-worker-and-adr-0014.md), [D5b](../done/D5b-updater-in-app.md), [D6b](./D6b-release-workflow-and-linux-packages.md) |
+| Depends on | [D5a](../done/D5a-update-worker-and-adr-0014.md), [D5b](../done/D5b-updater-in-app.md), [D6b](../ready/D6b-release-workflow-and-linux-packages.md) |
 | ADRs | Records the crash-backend decision (plan open question 2) as an amendment to ADR 0014 or a short new ADR (next free number). Follows ADR 0011 (privacy/retention, web C2), ADR 0008 (engine process) |
 | Branch | `feat/d7a-crash-reporting` |
 | PR title | `feat(desktop): add opt-in, scrubbed crash and panic reporting` |
@@ -44,8 +44,8 @@ When lamina or its engine crashes or panics, we want to learn why — **only if 
 
 **Out of scope** (and which todo covers it)
 
-- The rest of the settings page (renderer switch): [D7b](D7b-settings-renderer-switch-and-download-page.md).
-- Usage analytics: none here; optional opt-in usage counts for both shells come with [U5c](./U5c-opt-in-usage-telemetry.md), which reuses this todo's consent settings (owner decision 2026-10-29).
+- The rest of the settings page (renderer switch): [D7b](../ready/D7b-settings-renderer-switch-and-download-page.md).
+- Usage analytics: none here; optional opt-in usage counts for both shells come with [U5c](../ready/U5c-opt-in-usage-telemetry.md), which reuses this todo's consent settings (owner decision 2026-10-29).
 - Crash reporting for the web app: web plan.
 
 ## Tasks
