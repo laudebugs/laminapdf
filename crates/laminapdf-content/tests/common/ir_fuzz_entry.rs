@@ -2,7 +2,7 @@
 //! the content IR (ADR 0022) over fuzzed content, its invariants checked, a few objects edited
 //! and the result read back.
 
-use laminapdf_content::{ContentOp, ContentOps, ContentOwner, EncodedPart, Operator, interpret_page};
+use laminapdf_content::{ContentObject, ContentOp, ContentOps, ContentOwner, EncodedPart, Operator, interpret_page};
 use laminapdf_cos::Limits;
 use laminapdf_model::{Document, OpenOptions, PointPt, RectPt};
 
@@ -17,7 +17,7 @@ pub fn content_ir(data: &[u8]) {
     let count = usize::from(control % 4) + 1;
     let size = content.len().div_ceil(count).max(1);
     let parts: Vec<_> = content.chunks(size).map(|c| (None, c.to_vec())).collect();
-    let owner = ContentOwner::Page("p1.0".parse().expect("a page ID"));
+    let owner = ContentOwner::Page("p1.0".parse().unwrap());
     let Ok(mut ops) = ContentOps::from_parts(owner.clone(), parts.clone(), &Limits::default()) else {
         return;
     };
@@ -34,11 +34,14 @@ pub fn content_ir(data: &[u8]) {
     check_objects(&ops);
     // Each object finds itself by its lasting name.
     for object in ops.objects() {
-        let name = ops.reference(object.id()).expect("a name");
-        assert!(ops.find(&name).is_some(), "an object finds its own name");
+        let name = ops.reference(object.id());
+        assert!(
+            name.is_some_and(|n| ops.find(&n).is_some()),
+            "an object finds its own name"
+        );
     }
     // Edit every few objects: remove one, replace the next with a path, as `control` picks.
-    let ids: Vec<_> = ops.objects().iter().map(|o| o.id()).collect();
+    let ids: Vec<_> = ops.objects().iter().map(ContentObject::id).collect();
     for (i, id) in ids.into_iter().enumerate() {
         match (i + usize::from(control / 4)) % 3 {
             0 => {
