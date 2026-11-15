@@ -6,7 +6,7 @@
 //! (Tauri's app-wide menu). Choosing a command sends it to the window focused last, which runs
 //! it through its registry as a key press or the palette would ([`COMMAND_EVENT`]). Rust handles
 //! the rest itself: the OS's own items (Hide, Copy…), the window list, Open recent's files,
-//! the Help menu's links, and, with no window open, Open, New window and Quit.
+//! the Help menu's links and licences, and, with no window open, Open, New window and Quit.
 //!
 //! Each window reports which of its commands are enabled and ticked (`menu_state`), and the menus
 //! show the focused window's. Their shape changes only when the windows or the recent list do.
@@ -113,7 +113,7 @@ enum KindJson {
         title: String,
         url: String,
     },
-    Placeholder {
+    Licences {
         title: String,
     },
     Recent {
@@ -309,7 +309,7 @@ fn nodes(kind: &KindJson, ctx: &Context<'_>) -> Vec<Node> {
         }
         KindJson::Predefined { name } => vec![Node::Predefined(*name)],
         KindJson::Link { title, url } => vec![plain(format!("link:{url}"), title, true)],
-        KindJson::Placeholder { title } => vec![plain(format!("later:{title}"), title, false)],
+        KindJson::Licences { title } => vec![plain(LICENCES.to_owned(), title, true)],
         KindJson::Recent { title, empty, clear } => vec![Node::Submenu {
             title: title.clone(),
             items: recent_items(ctx, empty, clear),
@@ -743,6 +743,8 @@ pub(crate) enum Action {
     Focus(String),
     /// Open a page in the browser.
     Link(String),
+    /// Open the bundled third-party notices.
+    Licences,
     /// Nothing (a disabled or unknown item).
     None,
 }
@@ -763,6 +765,9 @@ pub(crate) fn action(id: &str) -> Action {
     }
     if id == "recent-clear" {
         return command("file.clear-recent", None);
+    }
+    if id == LICENCES {
+        return Action::Licences;
     }
     match id.split_once(':') {
         Some(("recent" | "move", "none")) => Action::None,
@@ -790,7 +795,33 @@ pub(crate) fn run(app: &AppHandle, action: Action) {
                 tracing::warn!("could not open a Help link: {error}");
             }
         }
+        Action::Licences => open_licences(app),
         Action::None => {}
+    }
+}
+
+/// Help ▸ View licences' item ID.
+const LICENCES: &str = "licences";
+
+/// The third-party notices release builds bundle (`cargo xtask desktop-notices --bundle`,
+/// `tauri.release.conf.json`).
+const NOTICES: &str = "THIRD_PARTY_NOTICES.txt";
+
+/// Opens the bundled notices in the OS's viewer for text files. Development builds bundle none.
+fn open_licences(app: &AppHandle) {
+    let notices = match app.path().resource_dir() {
+        Ok(dir) => dir.join(NOTICES),
+        Err(error) => {
+            tracing::warn!("no resource folder for the licences: {error}");
+            return;
+        }
+    };
+    if !notices.is_file() {
+        tracing::warn!("this build bundles no {NOTICES}: release builds do");
+        return;
+    }
+    if let Err(error) = app.opener().open_path(notices.to_string_lossy(), None::<&str>) {
+        tracing::warn!("could not open the licences: {error}");
     }
 }
 
@@ -1075,6 +1106,6 @@ mod tests {
             action("link:https://docs.laminapdf.com/"),
             Action::Link("https://docs.laminapdf.com/".to_owned())
         );
-        assert_eq!(action("later:View licences"), Action::None);
+        assert_eq!(action("licences"), Action::Licences);
     }
 }

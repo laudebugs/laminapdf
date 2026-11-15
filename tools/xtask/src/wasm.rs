@@ -360,7 +360,8 @@ fn binaryen_asset() -> Result<(&'static str, &'static str)> {
         ("x86_64", "macos") => "x86_64-macos",
         ("aarch64", "linux") => "aarch64-linux",
         ("x86_64", "linux") => "x86_64-linux",
-        ("x86_64", "windows") => "x86_64-windows",
+        // Windows 11 on Arm runs x64 programs under emulation, and binaryen has no Arm build for it.
+        ("x86_64" | "aarch64", "windows") => "x86_64-windows",
         (arch, os) => bail!("no binaryen {BINARYEN_VERSION} release for {arch}-{os}: put wasm-opt on PATH"),
     };
     BINARYEN_ASSETS

@@ -36,11 +36,16 @@
       }
     ],
     "linux": {
+      "appimage": {
+        "bundleMediaFramework": false
+      },
       "deb": {
-        "desktopTemplate": "linux/laminapdf.desktop"
+        "desktopTemplate": "linux/laminapdf.desktop",
+        "depends": ["libdbus-1-3"]
       },
       "rpm": {
-        "desktopTemplate": "linux/laminapdf.desktop"
+        "desktopTemplate": "linux/laminapdf.desktop",
+        "depends": ["dbus-libs"]
       }
     }
   },

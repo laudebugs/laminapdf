@@ -16,6 +16,17 @@ pnpm --filter @laminapdf/updates manifest validate my-edit.json beta
 pnpm --filter @laminapdf/updates manifest put beta my-edit.json          # a hand edit, such as a bridge
 ```
 
+The desktop release workflow publishes with three more commands, which read the workflow's built files from `<dir>/<platform>/`:
+
+```sh
+pnpm --filter @laminapdf/updates manifest upload nightly <dir> --version <v>    # to releases/<v>/<platform>/
+pnpm --filter @laminapdf/updates manifest publish nightly <dir> --version <v> \
+  --downloads https://nightly-downloads.laminapdf.com --notes "…" --rollout 100   # the new release
+pnpm --filter @laminapdf/updates manifest verify nightly <v>                    # ask the Worker, per platform
+```
+
+`publish` takes each platform's updater bundle (`.app.tar.gz`, `-setup.exe` or `.AppImage`) and its `.sig`, and refuses a version that isn't newer than the channel's release. If the release it replaces had reached 100 %, that release becomes `previous`, as with `promote`; otherwise `previous` stays as it was.
+
 Add `--local` to any command to work on Wrangler's local R2, which `pnpm --filter @laminapdf/updates dev` serves at `http://localhost:8787`.
 
 **Who may change what (recommendation).** Changes to stable and beta (`promote`, `set-rollout`, `resume`, `put`) need the owner's go-ahead, normally through the desktop release workflow, which the owner approves. Anyone operating the service may `pause` a channel at once.
