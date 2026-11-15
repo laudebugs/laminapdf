@@ -127,7 +127,7 @@ This table corrects [full-editor §E1](../full-editor.md#e1-editing-foundation),
 
 - **The web with the File System Access API** (Chromium): Save writes in place through a writable stream; Save as asks for a place.
 - **The web without it** (Firefox, Safari): Save becomes Download, and the session rebases onto what was downloaded, so the next save is again incremental against that copy.
-- **The desktop** writes in place, appends an incremental update, rewrites through a temporary file and a rename, and watches for changes made outside. That is [E1i](../../todos/ongoing/E1i-desktop-save-in-place.md).
+- **The desktop** writes in place, appends an incremental update, rewrites through a temporary file and a rename, and watches for changes made outside. That is [E1i](../../todos/done/E1i-desktop-save-in-place.md).
 
 A failed write leaves the document dirty and the original file as it was.
 
@@ -156,7 +156,7 @@ No server feature: every edit and save happens on the device, and nothing leaves
 | [E1e](../../todos/done/E1e-save-and-constraint-banner.md) | Save, Save as and Download a copy on the web, and the save-constraint strip | E1c, E1d |
 | [E1f](../../todos/done/E1f-metadata-ui-capability-page.md) | The editable Properties dialog and the capability page | E1c, E1e |
 | [E1h](../../todos/done/E1h-desktop-edit-session.md) | Desktop: the session in the engine process, the native Edit menu, the close guard | E1d, D4b |
-| [E1i](../../todos/ready/E1i-desktop-save-in-place.md) | Desktop: save in place, watcher suppression and the conflict dialog for outside changes | E1e, E1h, D3b |
+| [E1i](../../todos/done/E1i-desktop-save-in-place.md) | Desktop: save in place, watcher suppression and the conflict dialog for outside changes | E1e, E1h, D3b |
 | [E1j](../../todos/ready/E1j-desktop-properties.md) | Desktop: the Properties dialog and editing metadata, the desktop column of J.01–J.03 and J.10 | E1f, E1i |
 
 E1b and E1g can start as soon as this plan merges, in parallel. The round's web and shared work, E1b to E1g, waits on no desktop todo.
