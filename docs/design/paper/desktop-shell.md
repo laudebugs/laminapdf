@@ -304,7 +304,7 @@ Conventions on this canvas:
 
 **Artboards:** `S07-settings-general.dc.html`, `S07-settings-appearance.dc.html`, `S07-settings-privacy.dc.html`, `S07-settings-shortcuts.dc.html`, `S07-settings-advanced.dc.html` (and `S06-update-settings.dc.html` for Updates).
 
-**Todos:** [D7b](../../todos/ready/D7b-settings-renderer-switch-and-download-page.md), [D7a](../../todos/ready/D7a-crash-reporting.md), [U5c](../../todos/ready/U5c-opt-in-usage-telemetry.md).
+**Todos:** [D7b](../../todos/ongoing/D7b-settings-renderer-switch-and-download-page.md), [D7a](../../todos/ready/D7a-crash-reporting.md), [U5c](../../todos/ready/U5c-opt-in-usage-telemetry.md).
 
 ## S08 Crash recovered
 
@@ -367,7 +367,7 @@ Sizes, hashes and the publisher name are placeholders (`[SIZE]`, `[PUBLISHER NAM
 
 **Artboards:** `S09-download.dc.html`.
 
-**Todos:** [D7b](../../todos/ready/D7b-settings-renderer-switch-and-download-page.md).
+**Todos:** [D7b](../../todos/ongoing/D7b-settings-renderer-switch-and-download-page.md).
 
 ## S10 Windows window frame
 

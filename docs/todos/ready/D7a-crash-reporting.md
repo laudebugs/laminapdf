@@ -44,7 +44,7 @@ When lamina or its engine crashes or panics, we want to learn why — **only if 
 
 **Out of scope** (and which todo covers it)
 
-- The rest of the settings page (renderer switch): [D7b](D7b-settings-renderer-switch-and-download-page.md).
+- The rest of the settings page (renderer switch): [D7b](../ongoing/D7b-settings-renderer-switch-and-download-page.md).
 - Usage analytics: none here; optional opt-in usage counts for both shells come with [U5c](./U5c-opt-in-usage-telemetry.md), which reuses this todo's consent settings (owner decision 2026-10-29).
 - Crash reporting for the web app: web plan.
 

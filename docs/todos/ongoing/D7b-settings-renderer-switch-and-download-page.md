@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `D7b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [C4b](../done/C4b-web-app-shell.md), [C4d](../done/C4d-deploy-previews-and-production.md), [W1b](../done/W1b-site-scaffold-and-deploys.md), [D6b](./D6b-release-workflow-and-linux-packages.md), [D7a](./D7a-crash-reporting.md) |
-| Dependency notes | [D7a](D7a-crash-reporting.md) (settings sections for crash reports), [D6b](D6b-release-workflow-and-linux-packages.md) (artefacts and `SHA256SUMS` in R2). Cross-plan: the download page lives on the website, `apps/site`, from [W1b](../done/W1b-site-scaffold-and-deploys.md) ([website plan §4](../../plans/website.md#4-the-website)). |
+| Depends on | [C4b](../done/C4b-web-app-shell.md), [C4d](../done/C4d-deploy-previews-and-production.md), [W1b](../done/W1b-site-scaffold-and-deploys.md), [D6b](../ready/D6b-release-workflow-and-linux-packages.md), [D7a](../ready/D7a-crash-reporting.md) |
+| Dependency notes | [D7a](../ready/D7a-crash-reporting.md) (settings sections for crash reports), [D6b](../ready/D6b-release-workflow-and-linux-packages.md) (artefacts and `SHA256SUMS` in R2). Cross-plan: the download page lives on the website, `apps/site`, from [W1b](../done/W1b-site-scaffold-and-deploys.md) ([website plan §4](../../plans/website.md#4-the-website)). |
 | ADRs | Follows ADR 0008 (Linux fallback: renderer switch), ADR 0014 (downloads domain, channels), ADR 0011 (privacy page) |
 | Branch | `feat/d7b-settings-and-download-page` |
 | PR title | `feat(desktop): finish the settings page and add the download page` |
@@ -42,7 +42,7 @@ Finish the desktop settings page so every user-facing control the beta needs is 
 
 **Out of scope** (and which todo covers it)
 
-- Shipping the beta and the update cycle: [D7c](D7c-desktop-beta-release.md).
+- Shipping the beta and the update cycle: [D7c](../ready/D7c-desktop-beta-release.md).
 - Store listings (non-goals).
 - The privacy page itself (ADR 0011, web C7) — this PR adds desktop sections to it if it exists, else provides text for its owner.
 
