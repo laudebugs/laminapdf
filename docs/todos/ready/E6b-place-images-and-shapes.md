@@ -29,7 +29,7 @@ Add new content objects to existing pages through the append API: images (JPEG p
 
 **In scope**
 
-- `AddContentObject { id, page, object: ContentObjectSpec, matrix, opacity, layer, alt: Option<Alt>, modified }` where `ContentObjectSpec` = Image(BlobId, crop) | Shape(PathSpec, fill, stroke) | Form(BlobId, page), as the [E6 plan §2.1](../../plans/editor/e6-adding-content.md#21-ops) gives them, defined in `laminapdf-ops` (op payload). The name `ContentObject` is reserved for [E7c](../ongoing/E7c-content-ir.md)'s IR type in `laminapdf-content`, so the two never clash
+- `AddContentObject { id, page, object: ContentObjectSpec, matrix, opacity, layer, alt: Option<Alt>, modified }` where `ContentObjectSpec` = Image(BlobId, crop) | Shape(PathSpec, fill, stroke) | Form(BlobId, page), as the [E6 plan §2.1](../../plans/editor/e6-adding-content.md#21-ops) gives them, defined in `laminapdf-ops` (op payload). The name `ContentObject` is reserved for [E7c](../done/E7c-content-ir.md)'s IR type in `laminapdf-content`, so the two never clash
 - `UpdateContentObject` / `DeleteContentObject` for objects Lamina PDF added, found again after a save through each form's `/PieceInfo` ([E6 plan §2.1](../../plans/editor/e6-adding-content.md#21-ops)); `Document::added_objects(page)`
 - `place_form`, the private function the round's ops and E5e, E8g and E2s share (E2e's `AppendContent` op is not added), and the `Appearances` method that draws a spec into a Form XObject (E4c's trait)
 - `pdfa-transparency` in `codes.json` and `docs/errors/`: opacity or an alpha channel on a PDF/A-1 file

@@ -40,4 +40,4 @@ When `/T3` is a Type 3 font, an edit of this text fails with `content-not-editab
 The decisions and todos behind this code:
 
 - [ADR 0022 §5–§7](../decisions/0022-content-stream-editing.md#5-finding-text-runs-marked-content-first-layout-second): which text runs are read-only, and why
-- [E7c](../todos/ongoing/E7c-content-ir.md): the content IR and this code
+- [E7c](../todos/done/E7c-content-ir.md): the content IR and this code

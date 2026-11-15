@@ -180,3 +180,20 @@ fn every_fixture_page_should_be_written_back_byte_for_byte() {
     }
     assert!(pages > 100, "only {pages} fixture pages were read");
 }
+
+#[test]
+fn every_saved_crash_input_of_the_ir_target_replays_without_a_panic() {
+    let Ok(files) = std::fs::read_dir(fixtures_dir().join("regressions/content_ir")) else {
+        return;
+    };
+    for file in files {
+        common::ir_fuzz_entry::content_ir(&std::fs::read(file.unwrap().path()).unwrap());
+    }
+}
+
+#[test]
+fn the_ir_fuzz_entry_should_take_content_in_several_parts() {
+    common::ir_fuzz_entry::content_ir(
+        b"\x03q 1 0 0 RG 0 0 m 5 5 l S BT /F1 9 Tf (a) Tj ET /P <</MCID 0>> BDC /Im1 Do EMC BI /W 1 /H 1 /BPC 8 /CS /G ID \x00 EI Q",
+    );
+}

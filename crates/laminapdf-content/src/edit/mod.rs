@@ -16,7 +16,7 @@ use laminapdf_syntax::{Name, ObjRef, Object};
 use crate::operator::Operator;
 use crate::state::GraphicsState;
 
-pub use encode::{Encoded, EncodedPart};
+pub use encode::{EncodedContent, EncodedPart};
 pub use record::Recorder;
 
 /// How far outside an object's box a point still hits it, in points: thin lines and
@@ -572,7 +572,7 @@ impl ContentOps {
     ///
     /// Added in 0.5.0.
     #[must_use]
-    pub fn encode(&self) -> Encoded {
+    pub fn encode(&self) -> EncodedContent {
         encode::encode(self, false)
     }
 
@@ -582,7 +582,7 @@ impl ContentOps {
     ///
     /// Added in 0.5.0.
     #[must_use]
-    pub fn encode_every_part(&self) -> Encoded {
+    pub fn encode_every_part(&self) -> EncodedContent {
         encode::encode(self, true)
     }
 

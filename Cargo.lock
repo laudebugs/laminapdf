@@ -3070,6 +3070,7 @@ dependencies = [
 name = "laminapdf-content"
 version = "0.4.0"
 dependencies = [
+ "criterion",
  "laminapdf-cos",
  "laminapdf-model",
  "laminapdf-save",

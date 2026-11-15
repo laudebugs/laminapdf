@@ -38,4 +38,4 @@ assert_eq!(after.find(&name), None); // an edit with this name fails with conten
 The decisions and todos behind this code:
 
 - [ADR 0022 §2](../decisions/0022-content-stream-editing.md#2-identity): how an edit names a page's object
-- [E7c](../todos/ongoing/E7c-content-ir.md): the content IR, its names and this code
+- [E7c](../todos/done/E7c-content-ir.md): the content IR, its names and this code

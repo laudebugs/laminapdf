@@ -1,5 +1,5 @@
-//! Read-only content-stream interpretation ([ADR 0023]): what a page draws, operator by
-//! operator, with the graphics and text state in effect.
+//! Content-stream interpretation ([ADR 0023]): what a page draws, operator by operator, with the
+//! graphics and text state in effect; and editing what it draws ([ADR 0022]).
 //!
 //! ```
 //! use laminapdf_content::{ContentIter, Lexed, Operator};
@@ -21,6 +21,12 @@
 //!   events to a [`Visitor`]: text shows, path segments and paints, shadings, images,
 //!   marked-content sequences, form entry and exit, and warnings.
 //!
+//! * [`ContentOps`]: the editable IR ([ADR 0022]): a page's operators with the bytes they came
+//!   from, grouped into [`ContentObject`]s (text, paths, images, forms, shadings) inside
+//!   marked content; a [`Recorder`] fills in each object's graphics state and box as the
+//!   interpreter reads the page, [`ContentOps::hit_test`] finds objects by position, and
+//!   [`ContentOps::encode`] writes an edited page again, copying every byte no edit changed.
+//!
 //! Glyph decoding is `laminapdf-text`'s job: the interpreter hands each text show to the visitor
 //! with the font and matrices, and the visitor returns how far the glyphs moved the text
 //! matrix ([`TextAdvance`]).
@@ -41,6 +47,7 @@
 //! This crate is part of Lamina PDF's pure core: bytes in, bytes out, no file system, network,
 //! clocks or threads.
 //!
+//! [ADR 0022]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0022-content-stream-editing.md
 //! [ADR 0023]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0023-content-stream-reading.md
 //! [ADR 0003]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0003-reader-tolerance-and-limits.md
 #![forbid(unsafe_code)]
@@ -56,7 +63,7 @@ mod write;
 
 pub use edit::{
     ContentObject, ContentObjectId, ContentObjectKind, ContentObjectRef, ContentOp, ContentOps, ContentOwner,
-    ContentPart, Encoded, EncodedPart, MarkedSequence, NotEditable, Recorder, source_hash,
+    ContentPart, EncodedContent, EncodedPart, MarkedSequence, NotEditable, Recorder, source_hash,
 };
 pub use interp::{Summary, interpret_content, interpret_page};
 pub use laminapdf_model::{Dash, FillRule, Matrix};

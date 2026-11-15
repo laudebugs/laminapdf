@@ -10,12 +10,12 @@ use super::{ContentOp, ContentOps};
 /// Added in 0.5.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
-pub struct Encoded {
+pub struct EncodedContent {
     /// One entry per [`ContentOps::parts`] entry.
     pub parts: Vec<EncodedPart>,
 }
 
-/// One part of [`Encoded`].
+/// One part of [`EncodedContent`].
 ///
 /// Added in 0.5.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -68,7 +68,7 @@ enum Cut {
 }
 
 /// The parts that need writing (every part with `all`), written.
-pub(super) fn encode(ops: &ContentOps, all: bool) -> Encoded {
+pub(super) fn encode(ops: &ContentOps, all: bool) -> EncodedContent {
     let parts = ops
         .parts
         .iter()
@@ -84,7 +84,7 @@ pub(super) fn encode(ops: &ContentOps, all: bool) -> Encoded {
             }
         })
         .collect();
-    Encoded { parts }
+    EncodedContent { parts }
 }
 
 /// The source from `start` to `end` with the edits in it applied.
