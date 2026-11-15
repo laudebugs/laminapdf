@@ -3,9 +3,9 @@
    chevron in text-3, 8 px from the end, here with the choice's 16 px icon before its label. The
    list is §7.26's listbox popup: surface, a chip-border edge, radius 6, the floating shadow,
    padding 4, in the popover layer under the button's end (above it with -up); items 28 px high,
-   padding 0 10px, gap 10, the 16 px icon in text-3, the active one in accent-tint with a 1 px
-   accent ring inside (and the one under the pointer), the chosen one with the Check icon at its
-   end. Drawn from the Paper tokens, which each site loads first; they follow its data-theme. The
+   padding 0 10px, gap 10, the 16 px icon in text-3; the active one, and the one under the
+   pointer, in accent-tint with a 1 px accent ring inside; the chosen one with the Check icon at
+   its end. Drawn from the Paper tokens, which each site loads first; they follow its data-theme. The
    button repeats @laminapdf/ui's field.css, which is React-only and layered and so can't be shared;
    a change to §7.19 changes both. */
 

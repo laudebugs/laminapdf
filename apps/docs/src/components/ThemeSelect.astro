@@ -1,5 +1,5 @@
 ---
-// The docs site's theme switch (Starlight's `ThemeSelect` override, W1g; Q4w) on the sites' Paper
+// The docs site's theme switch (Starlight's `ThemeSelect` override) on the sites' Paper
 // select (@laminapdf/site-kit's MenuSelect): a button that opens a list of Light, Dark and Auto,
 // each with its icon (Sun, Moon, Laptop), instead of the platform's own list. It keeps Starlight's
 // contract: a <starlight-theme-select> around the switch, the values `dark`, `light` and `auto`,
@@ -7,7 +7,7 @@
 // script in the head) sets the theme before the first paint; its `updatePickers` fills in only a
 // native <select>, so the inline script below shows the stored choice in the switch instead. The
 // module script is Starlight's own switching logic (@astrojs/starlight/components/ThemeSelect.astro),
-// under its names so the two diff easily, with localStorage wrapped for browsers that refuse it; a
+// under its names so the two diff easily, with localStorage wrapped for browsers that refuse it. A
 // Starlight update that changes that contract needs a look here. The header and the phone menu both
 // use this switch.
 import laptop from "@laminapdf/icons/svg/laptop.svg?raw";

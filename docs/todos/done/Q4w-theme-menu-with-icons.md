@@ -19,7 +19,7 @@ The owner asked for the docs' light and dark switch to open a list drawn by the 
 
 ## Context
 
-- `@laminapdf/site-kit`'s `Select.astro` was the native select, and the docs' theme switch (`apps/docs/src/components/ThemeSelect.astro`, Starlight's `ThemeSelect` override) its only user.
+- `@laminapdf/site-kit`'s `Select.astro` was the native select; its only user was the docs' theme switch (`apps/docs/src/components/ThemeSelect.astro`, Starlight's `ThemeSelect` override).
 - Starlight's theme provider fills in a native `<select>` before the first paint (`updatePickers`); a list of our own needs its own inline script for that.
 - Design language §7.19 (the select field) and §7.26 (the listbox popup) give the look; ARIA's select-only combobox gives the keyboard.
 

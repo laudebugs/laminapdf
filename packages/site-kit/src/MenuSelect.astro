@@ -5,8 +5,8 @@
 // Space chooses, Escape closes. menu-select.ts gives it that behaviour (<site-menu-select>); the
 // docs site's theme switch uses it (apps/docs/src/components/ThemeSelect.astro). The chosen value
 // is the element's `value` attribute, and every element marked `data-for` shows only for its
-// value, so a page's inline script can set both before the first paint. Its look is
-// menu-select.css; no inline style, which the website's checks refuse.
+// value, so a page's inline script can set both before the first paint. menu-select.css gives its
+// look, with no inline style, which the website's checks refuse.
 import "./menu-select.css";
 import check from "@laminapdf/icons/svg/check.svg?raw";
 import chevron from "@laminapdf/icons/svg/chevron-down.svg?raw";
