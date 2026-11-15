@@ -2,10 +2,10 @@
 # (apps/web/wrangler.jsonc; setup, rollbacks and deploying by hand in apps/web/DEPLOY.md).
 #
 # Pull requests from this repository:
-# - `preview-build` classifies the PR with `cargo xtask changes` (its `web` output: every path but
-#   the docs and the parts of the repository the reader can't depend on, as listed in
-#   tools/xtask/src/changes.rs). When nothing it counts changed, it reports success and nothing
-#   deploys. Otherwise it builds the reader with no secrets (`cargo xtask web build`) and uploads
+# - `preview-build` classifies the PR with `cargo xtask changes` (its `web` output: the reader's
+#   inputs from the dependency graph, the manifests, tools/xtask, the shared actions, this workflow
+#   and root files, as tools/xtask/src/changes/suites.rs works them out). When nothing it counts
+#   changed, it reports success and nothing deploys. Otherwise it builds the reader with no secrets (`cargo xtask web build`) and uploads
 #   apps/web/dist/ as an artifact.
 # - `preview-deploy` holds the Cloudflare secrets and never checks out or runs the PR's code. It
 #   reads wrangler.jsonc and the Wrangler version from the default branch, and works in the
