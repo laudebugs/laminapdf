@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
-| Depends on | [U7b](../done/U7b-control-states-and-cursors.md), [U7i](./U7i-choice-and-field-states.md) |
+| Depends on | [U7b](../done/U7b-control-states-and-cursors.md), [U7i](../ongoing/U7i-choice-and-field-states.md) |
 | ADRs | Follows [0024](../../decisions/0024-app-shell-ux.md) (tokens in layers) |
 | Branch | `feat/u7d-reader-surfaces-motion` |
 | PR title | `feat(web): thumbnails, panels and tool cursors follow the state rules` |
