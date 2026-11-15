@@ -1,6 +1,6 @@
 # Desktop release and signing runbook
 
-This runbook tells the owner how to set up and look after the identities that sign Lamina PDF's desktop app, and tells the release workflows which secrets they may use. The owner signs every tagged release personally, as the publisher, on macOS, Windows and Linux ([architecture §8 Q5](../plans/architecture.md#8-open-questions-for-the-team), decided 2026-10-28). Sections 1 and 2 are the setup, section 3 checks each release, and sections 4 and 5 cover what happens later. Todo [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md) wrote it; [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/ready/D6c-macos-signing-and-notarisation.md) and [D6d](../todos/ready/D6d-windows-signing.md) wire it into the workflows.
+This runbook tells the owner how to set up and look after the identities that sign Lamina PDF's desktop app, and tells the release workflows which secrets they may use. The owner signs every tagged release personally, as the publisher, on macOS, Windows and Linux ([architecture §8 Q5](../plans/architecture.md#8-open-questions-for-the-team), decided 2026-10-28). Sections 1 and 2 are the setup, section 3 checks each release, sections 4 and 5 cover what happens later, and section 6 cuts a release. Todo [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md) wrote it; [D6b](../todos/done/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/ready/D6c-macos-signing-and-notarisation.md) and [D6d](../todos/ready/D6d-windows-signing.md) wire it into the workflows.
 
 **Never write a secret value, private key, certificate file or recovery code into this repository**, a pull request, an issue or a screenshot. This page names secrets; it never holds them.
 
@@ -110,7 +110,7 @@ One key signs the AppImage, `.deb`, `.rpm`, the detached `.asc` files and `SHA25
 | Package | Variables | Source |
 | --- | --- | --- |
 | AppImage | `SIGN=1`, `SIGN_KEY`, `APPIMAGETOOL_SIGN_PASSPHRASE` | [Tauri Linux signing](https://v2.tauri.app/distribute/sign/linux/) |
-| `.rpm` | `TAURI_SIGNING_RPM_KEY`, `TAURI_SIGNING_RPM_KEY_PASSPHRASE` | [Tauri RPM](https://v2.tauri.app/distribute/rpm/) |
+| `.rpm` | none: D6b signs it with `rpmsign` through gpg, since Tauri's own rpm signer (`TAURI_SIGNING_RPM_KEY`) may not read a subkey-only export | [Tauri RPM](https://v2.tauri.app/distribute/rpm/) |
 | `.deb` | none: Tauri doesn't sign it, so D6b signs it with `debsigs` | — |
 
 ### 1.7 Updater keys
@@ -210,11 +210,34 @@ Get-AuthenticodeSignature .\Lamina-PDF-setup.exe | Format-List   # Status Valid;
 gpg --import lamina-release.asc
 gpg --verify SHA256SUMS.asc SHA256SUMS && sha256sum --check --ignore-missing SHA256SUMS
 gpg --verify lamina-pdf_<version>_amd64.deb.asc lamina-pdf_<version>_amd64.deb
-debsig-verify lamina-pdf_<version>_amd64.deb   # needs the policy file and keyring D6b publishes
+debsig-verify lamina-pdf_<version>_amd64.deb   # needs the policy and keyring below
 rpm -K lamina-pdf-<version>-1.x86_64.rpm         # after: rpm --import lamina-release.asc (Tauri's guide uses rpm -v --checksig)
 ./Lamina-PDF_<version>_amd64.AppImage --appimage-signature   # prints the embedded signature
 ./validate-x86_64.AppImage Lamina-PDF_<version>_amd64.AppImage   # expect: Validation successful
 ```
+
+`debsig-verify` checks a `.deb` only against a policy and a keyring filed under the signing subkey's ID, `7C7B196F2CB087F5`. Install both once on each machine that checks:
+
+```sh
+id=7C7B196F2CB087F5
+sudo mkdir -p /usr/share/debsig/keyrings/$id /etc/debsig/policies/$id
+gpg --dearmor < lamina-release.asc | sudo tee /usr/share/debsig/keyrings/$id/debsig.gpg > /dev/null
+sudo tee /etc/debsig/policies/$id/lamina-pdf.pol > /dev/null <<'POLICY'
+<?xml version="1.0"?>
+<!DOCTYPE Policy SYSTEM "https://www.debian.org/debsig/1.0/policy.dtd">
+<Policy xmlns="https://www.debian.org/debsig/1.0/">
+  <Origin Name="Lamina PDF" id="7C7B196F2CB087F5" Description="Lamina PDF releases"/>
+  <Selection>
+    <Required Type="origin" File="debsig.gpg" id="7C7B196F2CB087F5"/>
+  </Selection>
+  <Verification MinOptional="0">
+    <Required Type="origin" File="debsig.gpg" id="7C7B196F2CB087F5"/>
+  </Verification>
+</Policy>
+POLICY
+```
+
+A new signing subkey has a new ID, so its renewal (§4) adds a policy and keyring under the new ID.
 
 `validate-x86_64.AppImage` comes from [AppImageUpdate's continuous release](https://github.com/AppImageCommunity/AppImageUpdate/releases/tag/continuous). AppImage doesn't check its own signature when it runs, so users check it by hand against the key published on the website ([Tauri Linux signing](https://v2.tauri.app/distribute/sign/linux/)).
 
@@ -267,6 +290,46 @@ A SmartScreen warning that names the publisher is acceptable for early releases;
 Until releases install without a warning, the release notes carry this text:
 
 > **Windows may show "Windows protected your PC".** Lamina PDF is new, so Microsoft SmartScreen hasn't seen many downloads of it yet. The installer is signed by <Legal Name>. To install it, select **More info**, check that the publisher is <Legal Name>, then select **Run anyway**. The warning goes away as more people install the app.
+
+## 6. Cutting a release
+
+The desktop release workflow, `.github/workflows/desktop-release.yml`, builds and publishes every release. Its first job, `plan`, decides from what started the run which version it builds, which channel it publishes to and which GitHub environment holds the secrets:
+
+| Started by | Version | Channel and bucket | Environment |
+| --- | --- | --- | --- |
+| The schedule, 04:23 UTC every day | `X.Y.Z-nightly.YYYYMMDD.N`: the patch after the latest `desktop-v*` tag (`0.1.0` before the first), the date and the run number | `nightly`, `lamina-pdf-nightly` | `desktop-nightly` |
+| A dispatch (`gh workflow run desktop-release.yml`) | `0.0.(100 + run number)` | `staging`, `lamina-pdf-staging` | `desktop-release` |
+| A `desktop-vX.Y.Z` tag | `X.Y.Z`, plain: no `-rc.1` or other suffix | `beta`, `lamina-pdf-releases` | `desktop-release` |
+| A pull request that changes the release files (the workflow, its actions, the Tauri configs, the plan code or the manifest tool's publish code) | a nightly version; Windows x64 also builds once in tag mode, to check the MSI | nothing is published | none |
+
+Until macOS and Windows are signed ([D6c](../todos/ready/D6c-macos-signing-and-notarisation.md), [D6d](../todos/ready/D6d-windows-signing.md)), only nightlies publish. `plan` refuses a tag, and a staging dispatch publishes only with `allow_unsigned_platforms`. D6c and D6d each add their platform to the workflow's `SIGNED_PLATFORMS`.
+
+Each run builds macOS (arm64 and x64), Windows (x64 and arm64) and Linux (x64 and arm64) on runners of their own OS and CPU. Every build makes the `.dmg`, the NSIS installer, the AppImage, the `.deb`, the updater's bundles and their `.sig` files, `SHA256SUMS` and the SBOMs. Tag and staging builds also make the MSI and the `.rpm`; nightlies can't, because neither format accepts a `-nightly` version. It fails when an installer reaches 15 MB. The AppImage, which carries GTK and WebKitGTK (about 90 MB), is reported but not gated, until the owner decides whether it gets a budget of its own ([#651](https://github.com/laudebugs/laminapdf/issues/651)). Linux packages from `desktop-release` are signed with the GPG key (§1.6), each with a detached `.asc`, and `SHA256SUMS.asc`. After the builds, `attest` attests every file, and the publish job uploads them to `releases/<version>/<platform>/` in the channel's bucket, makes them the channel's release, and asks the update Worker for each platform.
+
+### Nightlies
+
+Nightlies need nothing from the owner. A night on which nothing the app is built from changed publishes nothing. The run's summary lists the version, files and sizes. A nightly installs on macOS with a Gatekeeper warning (ad-hoc signed) and on Windows with a SmartScreen warning (unsigned); the download page ([D7b](../todos/ongoing/D7b-settings-renderer-switch-and-download-page.md)) is to say so.
+
+### A staging trial
+
+1. Run `gh workflow run desktop-release.yml -f channel=staging -f allow_unsigned_platforms=true` (drop `allow_unsigned_platforms` once D6c and D6d have merged).
+2. Approve the `desktop-release` deployment each time GitHub asks: for the builds, then for the publish job.
+3. Check the files with §3's commands. Staging builds never reach a user's install: the app offers no staging channel.
+
+Add `-f dry_run=true` to build every target with no environment and publish nothing.
+
+### A tagged release
+
+1. Merge everything the release needs into `main`, and wait for the nightly to pass on it.
+2. Tag the commit: `git tag desktop-v0.1.0 <commit> && git push origin desktop-v0.1.0`. The version must be plain `X.Y.Z`, with X and Y at most 255 and Z at most 65,535, the limits an MSI allows.
+3. Approve the `desktop-release` deployment, twice: the builds start once you approve, and the publish job asks again when the builds have passed.
+4. Run §3's checks on a clean virtual machine for each platform, and paste their output into the release's pull request or issue.
+
+Every beta install now offers the release.
+
+### Promote, roll out, pause
+
+Stable releases come from beta. Promote a beta release to stable at 1 %, then raise the rollout, and pause at once if something goes wrong. The update service's README has the commands and the rules for each step: [Operations](../../apps/updates/README.md#operations).
 
 ## Sources
 

@@ -7,7 +7,7 @@
 | Plan | [E1 editing foundation §7](../../plans/editor/e1-editing-foundation.md#7-saving-and-the-save-constraint) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E1c](./E1c-metadata-ops.md), [E1d](./E1d-edit-session-undo-ui.md) |
-| Dependency notes | [E1c](../done/E1c-metadata-ops.md) (`SaveOptions { metadata_date, instance_id }`, `ConformanceWarning`, `SaveReport::metadata_not_updated`), [E1d](../done/E1d-edit-session-undo-ui.md). The desktop's save in place is [E1i](../ready/E1i-desktop-save-in-place.md), after D3b; the constraint table is [E1 plan §7](../../plans/editor/e1-editing-foundation.md#7-saving-and-the-save-constraint) |
+| Dependency notes | [E1c](../done/E1c-metadata-ops.md) (`SaveOptions { metadata_date, instance_id }`, `ConformanceWarning`, `SaveReport::metadata_not_updated`), [E1d](../done/E1d-edit-session-undo-ui.md). The desktop's save in place is [E1i](../done/E1i-desktop-save-in-place.md), after D3b; the constraint table is [E1 plan §7](../../plans/editor/e1-editing-foundation.md#7-saving-and-the-save-constraint) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e1e-save-and-constraint-banner` |
 | PR title | `feat(app): save through the platform adapter with the save-constraint banner` |
@@ -31,7 +31,7 @@ Let users save edits safely on the web: Save (incremental by default), Save as, 
 
 - Save commands: `Save`, `Save as…`, `Save as optimised` (full rewrite), `Download a copy`
 - Web: File System Access API (`showSaveFilePicker`, `createWritable`) where available; streamed `WriteSink` into it; otherwise download via Blob URL; OPFS spool for full rewrites (readable sink for rebase)
-- Desktop: in-place save and outside changes → [E1i](../ready/E1i-desktop-save-in-place.md)
+- Desktop: in-place save and outside changes → [E1i](../done/E1i-desktop-save-in-place.md)
 - `SaveConstraint` banner component: kind, signatures (field, signer, kind), rewrite reasons, violations; explanation texts; confirm dialog naming each signature before `invalidate_signatures: true`
 - Show `ConformanceWarning`s from E1c before saving, and say when save-time metadata was left unchanged to keep a certification valid (`metadata_not_updated`)
 - Pass save-time inputs (`metadata_date`, `instance_id`) from the shell (clock at the edge)

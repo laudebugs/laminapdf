@@ -49,6 +49,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "direct-outline-item":
     case "annotation-not-editable":
     case "link-not-tagged":
+    case "content-not-editable":
     case "appearance-unavailable":
     case "unsupported-version":
     case "subset-failed":
@@ -146,6 +147,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "saved-not-rebased":
     case "no-pending-save":
     case "annotation-locked":
+    case "content-object-stale":
     case "not-rebased":
     case "requires-rewrite":
     case "job-finished":

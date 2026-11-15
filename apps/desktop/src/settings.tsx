@@ -2,9 +2,10 @@
 // keeps in preferences.json and acts on (src-tauri/src/prefs.rs): remembering recent files, which
 // turned off clears the app's and the OS's recent lists and the last session, reopening the last
 // session (which needs the recent files remembered), reloading open files that change on disk,
-// opening files in tabs or windows, and opening a file that is open already; and Appearance and
-// accessibility's Motion, kept beside them so every window shares it (motion.ts applies it); and,
-// on Linux, Graphics (graphics.tsx), which the next start reads. The full settings page adds its
+// opening files in tabs or windows, and opening a file that is open already; Appearance and
+// accessibility's Motion, kept beside them so every window shares it (motion.ts applies it); its
+// Updates section (S06), its Privacy section (crash reports) and, on Linux, Graphics
+// (graphics.tsx), which the next start reads. The full settings page adds its
 // other sections to the same registry.
 
 import {
@@ -17,6 +18,7 @@ import {
   useSettingsSection,
 } from "@laminapdf/ui";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { PrivacySettings, privacySummary, useCrashSetting } from "./crashes.tsx";
 import type { DesktopShell } from "./engine/desktop-engine-client.ts";
 import { type Graphics, useGraphicsSection } from "./graphics.tsx";
 import { useMotion } from "./motion.ts";
@@ -121,6 +123,16 @@ export function useDesktopSettings(
   // Settings › Graphics, on Linux only (the main process says whether it applies).
   useGraphicsSection(shell, { shown: registry, unshown }, preferences.graphics, (graphics) =>
     change({ ...preferences, graphics }),
+  );
+  // S07: Settings › Privacy, inside the shell only (the main process keeps the crash reports).
+  const [crashReports, setCrashReports] = useCrashSetting(shell);
+  useSettingsSection(
+    shell === undefined ? unshown : registry,
+    "privacy",
+    message("settings.privacy"),
+    () =>
+      shell === undefined ? null : <PrivacySettings shell={shell} enabled={crashReports} onChange={setCrashReports} />,
+    { shows: [crashReports], summary: () => privacySummary(crashReports) },
   );
   const open = useCallback((at?: string) => {
     setSection(at);

@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `D6b` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Desktop app §6 D6](../../plans/desktop-app.md#d6-signing-packaging-and-release-pipeline) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D5b](../done/D5b-updater-in-app.md), [D6a](../done/D6a-signing-runbook-and-owner-setup.md) |
+| Depends on | [D5b](./D5b-updater-in-app.md), [D6a](./D6a-signing-runbook-and-owner-setup.md) |
 | ADRs | Implements ADR 0014 (R2 layout, manifests, attestations). Follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (pinned actions, SBOMs, third-party notices), ADR 0017 (attestations, library plan) |
 | Branch | `ci/d6b-desktop-release-workflow` |
 | PR title | `ci(desktop): add the tauri-action release matrix with Linux signing and R2 publishing` |
 | Size | L (600–1,200 lines of workflow, scripts and config) |
-| PR | — |
+| PR | [#636](https://github.com/laudebugs/laminapdf/pull/636) |
 
 ## Goal
 
@@ -41,45 +41,46 @@ One workflow turns a `desktop-v*` tag (and, nightly, `main`) into published desk
   - `bundle.targets` per OS in `tauri.conf.json`: macOS `["app", "dmg"]`, Windows `["nsis", "msi"]` (nightlies narrow this to NSIS with `--bundles nsis`), Linux `["appimage", "deb", "rpm"]` (rpm kept if the matrix stays green; else dropped with a note).
   - **Nightly signing policy (decided)**: nightlies run in the `desktop-nightly` environment, which has no required reviewer and holds only nightly-scoped secrets (D6a). They are **not OS-signed**: macOS ad-hoc signed (`codesign -s -`, needed on Apple silicon; Gatekeeper will warn on first launch — the nightly download page says so), Windows unsigned (SmartScreen warns), Linux packages unsigned with `SHA256SUMS` only. Their updater artefacts are signed with the **nightly-only updater key**, and nightly builds embed the matching public key, so nightlies only update to nightlies. Tagged releases keep the `desktop-release` environment and its reviewer gate, the production updater key and every OS signing identity.
   - Linux signing (tagged releases): AppImage GPG-signed (embedded signature); `.deb` signed with `debsigs --sign=origin` and verified with `debsig-verify` using a policy file shipped in the runbook; `.rpm` signed with `rpmsign --addsign` (or Tauri's rpm signing env vars if available) and verified with `rpm -K`; detached `.asc` for every Linux file; `SHA256SUMS` + `SHA256SUMS.asc`.
-  - Job `sbom-and-notices`: CycloneDX SBOMs — Rust via `cargo-cyclonedx` (or `cargo-about`), npm via `pnpm` + syft over the installers; third-party notices generated with `cargo-about` (Rust, MIT/Apache) + `license-checker`-style output for npm, bundled into the app as a resource (`bundle.resources` in `tauri.bundle.conf.json`, as one array together with PDFium — JSON merge patch replaces arrays) and shown under Help ▸ View Licences (D4b). Notices generation runs **before** the build (it's packaged), SBOMs after.
+  - Job `sbom-and-notices`: CycloneDX SBOMs — Rust via `cargo-cyclonedx` (or `cargo-about`), npm via `pnpm` + syft over the installers; third-party notices generated with `cargo-about` (Rust, MIT/Apache) + `license-checker`-style output for npm, bundled into the app as a resource (`bundle.resources` in `tauri.bundle.conf.json`, as one array together with PDFium — JSON merge patch replaces arrays) and shown under Help ▸ View licences (D4b). Notices generation runs **before** the build (it's packaged), SBOMs after.
   - Job `attest`: `actions/attest-build-provenance@<sha>` for every artefact (subject paths), plus SBOM attestations (`actions/attest-sbom`).
   - Job `publish` (same environment as `build`, needs all): upload to R2 `releases/{version}/{target}-{arch}/` — bucket `lamina-pdf-releases` for tagged releases, `lamina-pdf-staging` for `workflow_dispatch` staging runs, `lamina-pdf-nightly` for nightlies (ADR 0014; each token can write only its own bucket) — with `wrangler r2 object put` (or `aws s3 cp --endpoint-url` with R2 S3 credentials), set `Content-Type` and `Cache-Control: public, max-age=31536000, immutable` for versioned files; then update `channels/{channel}.json` via D5a's tooling with `rollout_percent` from input (nightly: 100; beta/stable: starts at the input value, default 1 per ADR 0014 for stable); verify the manifest by calling the Worker for each platform with a synthetic install ID; post a summary (versions, sizes, links) to the job summary.
   - Size budget step: fail if any installer reaches 15 MB (warn at 13.5 MB).
+  - The staging `publish` job takes `concurrency: { group: desktop-staging-channel, cancel-in-progress: false }`, the group D5c's update test (`desktop-update-e2e.yml`) holds while it writes `channels/staging.json`, so the two never write the staging channel at once.
 - `xtask` helpers if useful: `cargo xtask desktop-version` (sync version from tag into `apps/desktop/package.json`/`tauri.conf.json` at build time without committing).
 - `docs/guidelines/desktop-release.md` gains a "Cutting a release" section (tag, watch, verify, promote, roll out, pause).
 - Clean-VM verification for Linux (Ubuntu 22.04, Ubuntu 24.04, Fedora current): install the deb/rpm, run the AppImage, verify signatures with the runbook commands; recorded in this file after the first `desktop-release`-environment run (Post-merge checks).
 
 **Out of scope** (and which todo covers it)
 
-- Apple signing, notarisation and stapling: [D6c](D6c-macos-signing-and-notarisation.md) (this PR builds macOS unsigned/ad-hoc for nightly only).
-- Windows Authenticode signing: [D6d](D6d-windows-signing.md) (this PR builds Windows unsigned for nightly only).
-- Download page: [D7b](../ongoing/D7b-settings-renderer-switch-and-download-page.md). First beta: [D7c](D7c-desktop-beta-release.md).
+- Apple signing, notarisation and stapling: [D6c](../ready/D6c-macos-signing-and-notarisation.md) (this PR builds macOS unsigned/ad-hoc for nightly only).
+- Windows Authenticode signing: [D6d](../ready/D6d-windows-signing.md) (this PR builds Windows unsigned for nightly only).
+- Download page: [D7b](../ongoing/D7b-settings-renderer-switch-and-download-page.md). First beta: [D7c](../ready/D7c-desktop-beta-release.md).
 - Flatpak/Snap/stores (non-goals).
 
 ## Tasks
 
-- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`; `wrangler` for the R2 steps.
-- [ ] Pin every action by commit SHA with a version comment; add them to Dependabot's `github-actions` ecosystem.
-- [ ] Write the workflow jobs above; reuse D5b's staging workflow pieces (factor shared steps into a composite action under `.github/actions/desktop-build/`).
-- [ ] Configure `bundle.targets`, `bundle.linux.deb.depends` (e.g. `libwebkit2gtk-4.1-0`, `libgtk-3-0`, `libcups2` if D4c needs it), `bundle.linux.rpm.depends`, `bundle.linux.appimage.bundleMediaFramework: false`, desktop file template from D3a, `bundle.resources` for notices and PDFium in `tauri.bundle.conf.json` (D2b).
-- [ ] Linux signing steps and verification; publish the debsig policy XML and keyring instructions in the runbook.
-- [ ] SBOM, notices, attestations jobs.
-- [ ] R2 publishing + manifest update + post-publish verification against the Worker.
-- [ ] Nightly-only guard until D6c and D6d merge (a workflow input `allow_unsigned_platforms` that defaults to false for non-nightly channels).
-- [ ] `tauri.nightly.conf.json` (nightly updater pubkey, NSIS-only Windows bundle) and the environment selection in `plan`; assert in a workflow step that a `desktop-nightly`-environment job never references `APPLE_*`, `AZURE_*`, `LINUX_SIGNING_*` secrets (grep of the workflow file in CI).
-- [ ] `pull_request`-triggered dry-run mode (path-filtered to the workflow and `apps/desktop/**`) used to prove the workflow before merge; the end-to-end nightly and release runs are Post-merge checks.
+- [x] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`; `wrangler` for the R2 steps.
+- [x] Pin every action by commit SHA with a version comment; add them to Dependabot's `github-actions` ecosystem.
+- [x] Write the workflow jobs above; reuse D5b's staging workflow pieces (factor shared steps into a composite action under `.github/actions/desktop-build/`).
+- [x] Configure `bundle.targets`, `bundle.linux.deb.depends` (e.g. `libwebkit2gtk-4.1-0`, `libgtk-3-0`, `libcups2` if D4c needs it), `bundle.linux.rpm.depends`, `bundle.linux.appimage.bundleMediaFramework: false`, desktop file template from D3a, `bundle.resources` for notices and PDFium in `tauri.bundle.conf.json` (D2b).
+- [x] Linux signing steps and verification; publish the debsig policy XML and keyring instructions in the runbook.
+- [x] SBOM, notices, attestations jobs.
+- [x] R2 publishing + manifest update + post-publish verification against the Worker.
+- [x] Nightly-only guard until D6c and D6d merge (a workflow input `allow_unsigned_platforms` that defaults to false for non-nightly channels).
+- [x] `tauri.nightly.conf.json` (nightly updater pubkey, NSIS-only Windows bundle) and the environment selection in `plan`; assert in a workflow step that a `desktop-nightly`-environment job never references `APPLE_*`, `AZURE_*`, `LINUX_SIGNING_*` secrets (grep of the workflow file in CI).
+- [x] `pull_request`-triggered dry-run mode (path-filtered to the workflow and `apps/desktop/**`) used to prove the workflow before merge; the end-to-end nightly and release runs are Post-merge checks.
 
 ## Acceptance criteria
 
 The workflow is new, so `schedule` and `workflow_dispatch` can't run it until it is on `main`, and neither environment deploys from a PR branch; the PR proves it with a `pull_request`-triggered **dry run** (`dry_run: true`: no environment, no secrets, updater artefacts and OS/Linux signing skipped, no uploads). Everything that needs an environment or a published artefact is in Post-merge checks.
 
-- [ ] The dry run builds all six target/arch combinations (or the documented subset if a runner is unavailable, with the gap recorded) with the configured bundles.
-- [ ] Version derivation: nightly versions match `^\d+\.\d+\.\d+-nightly\.[1-9]\d{7}\.[1-9]\d*$`; staging versions match `^0\.0\.(10[1-9]|1[1-9]\d|[2-9]\d{2}|[1-9]\d{3,4})$` and stay ≤ 65,535; `workflow_dispatch` with a channel other than `staging` fails `plan`; a pre-release tag (e.g. `desktop-v0.2.0-rc.1`) fails `plan`; the dry run's tag-mode Windows build produces a valid MSI and NSIS installer and its nightly-mode Windows build produces NSIS only.
-- [ ] `plan` selects the `desktop-nightly` environment for `schedule` and `desktop-release` for tags/`workflow_dispatch` (unit test of the selection script); the CI grep proves no `desktop-nightly`-environment job references `APPLE_*`, `AZURE_*` or `LINUX_SIGNING_*`.
-- [ ] Every dry-run artefact has a CycloneDX SBOM; the attestation step is wired (it runs for real only with `id-token: write` on non-dry runs).
-- [ ] The app bundles a third-party notices file and Help ▸ View Licences shows it.
-- [ ] Installer sizes < 15 MB (budget step green; sizes in the job summary).
-- [ ] Non-nightly channels cannot be published while macOS/Windows signing is missing (workflow guard tested in the dry run).
+- [x] The dry run builds all six target/arch combinations (or the documented subset if a runner is unavailable, with the gap recorded) with the configured bundles.
+- [x] Version derivation: nightly versions match `^\d+\.\d+\.\d+-nightly\.[1-9]\d{7}\.[1-9]\d*$`; staging versions match `^0\.0\.(10[1-9]|1[1-9]\d|[2-9]\d{2}|[1-9]\d{3,4})$` and stay ≤ 65,535; `workflow_dispatch` with a channel other than `staging` fails `plan`; a pre-release tag (e.g. `desktop-v0.2.0-rc.1`) fails `plan`; the dry run's tag-mode Windows build produces a valid MSI and NSIS installer and its nightly-mode Windows build produces NSIS only.
+- [x] `plan` selects the `desktop-nightly` environment for `schedule` and `desktop-release` for tags/`workflow_dispatch` (unit test of the selection script); the CI grep proves no `desktop-nightly`-environment job references `APPLE_*`, `AZURE_*` or `LINUX_SIGNING_*`.
+- [x] Every dry-run artefact has a CycloneDX SBOM; the attestation step is wired (it runs for real only with `id-token: write` on non-dry runs).
+- [x] The app bundles a third-party notices file and Help ▸ View licences shows it.
+- [x] Installer sizes < 15 MB (budget step green; sizes in the job summary). The AppImage, about 90 MB with GTK and WebKitGTK inside, is reported, not gated, until the owner answers [#651](https://github.com/laudebugs/laminapdf/issues/651).
+- [x] Non-nightly channels cannot be published while macOS/Windows signing is missing (workflow guard tested in the dry run). Tested by `plan`'s unit tests: a pull request is never a tag, so the dry run can't reach the guard.
 
 ## Post-merge checks
 
@@ -109,10 +110,27 @@ The workflow is new, so `schedule` and `workflow_dispatch` can't run it until it
 - **Secret exposure in PR workflows**: the release workflow must never run on `pull_request` from forks; the `desktop-release` environment's reviewer gate protects production secrets; the `desktop-nightly` environment is limited to `main` and holds nothing that can sign as the owner or reach beta/stable installs.
 - **Nightly UX without OS signing**: Gatekeeper/SmartScreen warnings on every nightly install; acceptable for a testers-only channel — revisit if nightly users grow (would need a reviewer-free path to OS signing, which this design deliberately avoids).
 
+## Decided while building it
+
+- **The Tauri CLI, not `tauri-action`.** The workflow runs `tauri build` itself (`.github/actions/desktop-build`). `tauri-action` adds GitHub Release creation, which this workflow doesn't use, and it would be one more third-party action holding the signing keys.
+- **Per-architecture macOS builds, not universal**, on `macos-15` and `macos-15-intel`: a universal build doubles the engine and PDFium, which the 15 MB budget can't hold.
+- **Windows on `windows-2025` and `windows-11-arm`**, as the CLI's release uses; PDFium's Windows arm64 build is pinned beside the others (`tools/xtask/src/pdfium.rs`).
+- **Three build jobs** (`build-dry-run`, `build-nightly`, `build-release`), each with a fixed environment, instead of one job whose environment is an expression. Each job's secrets are then visible in the file, so a test can check that no `desktop-nightly` job names an `APPLE_*`, `AZURE_*` or `LINUX_SIGNING_*` secret (`tools/xtask/src/workflows/desktop_release.rs`).
+- **SBOMs in each build**, not a separate job: they depend on the target. The app's and the engine's come from cargo-cyclonedx for that target, the frontend's npm packages' from `pnpm sbom`. The notices come before the build, since the bundle carries them.
+- **Bundle targets in `tauri.{macos,windows,linux}.conf.json`**, which Tauri merges for each OS, instead of per-OS lists in `tauri.conf.json`, which has one list for every OS.
+- **Help ▸ View licences opens `THIRD_PARTY_NOTICES.txt` in the OS's text viewer.** A `.txt` opens everywhere; a `.md` has no default viewer on Windows.
+- **The pull-request dry run follows the release files only** (the workflow, its actions, the Tauri configs, the plan and notices code, the manifest tool's publish code). The app's own changes are built on every OS by `full.yml`'s desktop job, and every night by the schedule; seven release builds on every desktop PR would cost more than they find.
+- **Tags publish to beta at 100 %**; stable comes from `manifest promote`, which starts at 1 % (ADR 0014 §2).
+- **Nightlies build no `.rpm`**, as they build no MSI: rpm refuses a `-` in a version, and a nightly's is `X.Y.Z-nightly.…`. Fedora testers use the AppImage; tags and staging builds make all three.
+- **The notices are a `bundle.resources` entry in `tauri.release.conf.json`**, not in `tauri.bundle.conf.json`: development builds don't write the file. `resources` is an object map there, so the merge keeps PDFium's entry beside it.
+- **The `.rpm` is signed with `rpmsign` through gpg**, not Tauri's `TAURI_SIGNING_RPM_KEY`: the secret holds the signing subkey alone, which gpg signs with and Tauri's own rpm signer may not read. The build then checks every Linux signature with the runbook's commands (§3).
+- **The AppImage is reported, not gated, against the 15 MB budget** (owner question [#651](https://github.com/laudebugs/laminapdf/issues/651)): it carries GTK and WebKitGTK, about 90 MB, which the `.deb` and `.rpm` take from the system. The builds strip their binaries' symbols (`CARGO_PROFILE_RELEASE_STRIP=symbols`), which brought the arm64 `.deb` back under 15 MB.
+- **Windows 11 on Arm runs binaryen's x64 `wasm-opt`** under emulation, since binaryen ships no Arm build for Windows.
+
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

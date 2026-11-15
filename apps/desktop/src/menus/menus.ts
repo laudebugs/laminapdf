@@ -38,7 +38,7 @@ type MenuItemJson = (
     }
   | { readonly kind: "predefined"; readonly name: string }
   | { readonly kind: "link"; readonly id: string; readonly title: string; readonly url: string }
-  | { readonly kind: "placeholder"; readonly id: string; readonly title: string }
+  | { readonly kind: "licences"; readonly title: string }
   | { readonly kind: "recent"; readonly title: string; readonly empty: string; readonly clear: string }
   | { readonly kind: "move-to-window"; readonly title: string; readonly empty: string }
   | { readonly kind: "windows" }
@@ -60,10 +60,12 @@ export interface MenusJson {
 }
 
 /**
- * The edit session's commands the desktop has: undo, redo and turning the current page. Saving
- * and the History tab come with saving in place.
+ * The edit session's commands the desktop has: undo, redo, turning the current page, and saving
+ * in place or as a new file.
  */
 export const DESKTOP_EDIT_COMMANDS: readonly CommandId[] = [
+  "file.save",
+  "file.save-as",
   "edit.undo",
   "edit.redo",
   "pages.rotate-right",
@@ -119,14 +121,12 @@ function choicesItem(source: Source, entry: Entry<"choices">): MenuItemJson {
   return { kind: "choices", id: found.id, title: source.registry.title(found, source.ctx), choices };
 }
 
-/** An item that isn't a command's: the OS's own, a link, a placeholder, or a list Rust fills. */
+/** An item that isn't a command's: the OS's own, a link, the licences, or a list Rust fills. */
 function otherItem(entry: Exclude<MenuEntry, Entry<"command"> | Entry<"choices">>): MenuItemJson {
   if ("predefined" in entry) return { kind: "predefined", name: entry.predefined };
   if ("link" in entry)
     return { kind: "link", id: entry.link, title: MENU_WORDS.link[entry.link], url: LINKS[entry.link] };
-  if ("placeholder" in entry) {
-    return { kind: "placeholder", id: entry.placeholder, title: MENU_WORDS.placeholder[entry.placeholder] };
-  }
+  if ("licences" in entry) return { kind: "licences", title: MENU_WORDS.licences };
   if ("recent" in entry) {
     return { kind: "recent", title: MENU_WORDS.recent, empty: MENU_WORDS.recentEmpty, clear: MENU_WORDS.clearRecent };
   }

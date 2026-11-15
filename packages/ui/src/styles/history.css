@@ -66,6 +66,13 @@
     box-shadow: inset 0 0 0 var(--paper-border-width) var(--paper-accent);
   }
 
+  /* The current point just moved here: the row lights up at once and fades back to the current
+     tint over the row's state-out transition (states.css), a fade that reduced motion keeps. */
+  .paper-history-row[data-arrived] {
+    background-color: color-mix(in srgb, var(--paper-accent) 24%, var(--paper-accent-tint));
+    transition-duration: 0s;
+  }
+
   .paper-history-label {
     font: var(--paper-type-body);
   }

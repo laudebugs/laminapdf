@@ -6,8 +6,10 @@
 
 import type { EditHistory, EditResult, OpenedDocument, RevertedStep, ViewerEngine } from "@laminapdf/viewer";
 import {
+  clearHistory,
   clearRedo,
   historyOf,
+  markSaved,
   newSession,
   orderOf,
   type PageOrder,
@@ -108,20 +110,45 @@ export class DesktopEdits {
   }
 
   /**
-   * Makes the edits again in an engine that restarted and opened the file as it is on disk:
-   * every step kept, then undoes those that were undone. Undefined when there were none.
+   * The document was saved, its file now holding every step done: the history marks that point
+   * saved, or starts empty when the save couldn't keep it (`historyCleared`). Runs after the calls
+   * before it.
+   */
+  saved(historyCleared: boolean): Promise<EditHistory> {
+    return this.#serial(() => {
+      if (historyCleared) {
+        clearHistory(this.#session);
+        this.#logs.clear();
+        this.#reorders.clear();
+      } else {
+        markSaved(this.#session);
+      }
+      return Promise.resolve(this.history());
+    });
+  }
+
+  /**
+   * Makes the edits again in an engine that restarted and opened the file as it is on disk: the
+   * steps after the last save (the file holds those before), then undoes those that were undone.
+   * The steps the file holds can't be undone in the new engine, so they leave the history.
+   * Undefined when there was nothing to make again.
    *
-   * @throws when a step fails, or the depth limit dropped the oldest ones: the document is then
-   *   marked diverged, since it can't be what the history says.
+   * @throws when a step fails, or the file isn't a point the history can go on from (the depth
+   *   limit dropped steps it lacks, or steps it holds were undone): the document is then marked
+   *   diverged, since it can't be what the history says.
    */
   replay(): Promise<EditResult | undefined> {
     return this.#serial(async () => {
-      const { steps, position, dropped } = this.#session;
-      if (steps.length === 0) return undefined;
+      const { steps, position } = this.#session;
       let last: EditOutcome | undefined;
+      let inFile = 0;
       try {
-        if (dropped > 0) throw new Error("the oldest edits were dropped from the history");
-        for (const step of steps) {
+        inFile = this.#stepsInFile();
+        if (steps.length === inFile && position === inFile) {
+          this.#forgetFirst(inFile);
+          return undefined;
+        }
+        for (const step of steps.slice(inFile)) {
           const log = this.#logs.get(step.id);
           if (log === undefined) throw new Error("a step has no op log");
           last = await this.#run({ kind: "apply", log });
@@ -131,6 +158,7 @@ export class DesktopEdits {
         this.#diverged = true;
         throw new Error(DIVERGED, { cause: e });
       }
+      this.#forgetFirst(inFile);
       if (last === undefined) return undefined;
       const pages = pagesOf(last);
       // Every page may differ from the file as opened: all of them are drawn again.
@@ -140,6 +168,29 @@ export class DesktopEdits {
         this.#moved(pages),
       );
     });
+  }
+
+  /**
+   * How many of the steps kept the file on disk holds: those up to the last save.
+   * @throws when the file isn't a point the history can go on from.
+   */
+  #stepsInFile(): number {
+    const { position, dropped, saved } = this.#session;
+    const inFile = saved === undefined ? -1 : saved - dropped;
+    if (inFile < 0) throw new Error("the file holds no point the history can go on from");
+    if (position < inFile) throw new Error("edits the file holds were undone");
+    return inFile;
+  }
+
+  /** Takes the oldest `count` steps, all done, out of the history: the file holds them. */
+  #forgetFirst(count: number): void {
+    const session = this.#session;
+    for (const step of session.steps.splice(0, count)) {
+      this.#logs.delete(step.id);
+      this.#reorders.delete(step.id);
+    }
+    session.dropped += count;
+    session.position -= count;
   }
 
   /** Sends op log `log`. */

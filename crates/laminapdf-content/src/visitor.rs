@@ -22,6 +22,15 @@ pub trait Visitor {
         let _ = (op, depth);
     }
 
+    /// Every operator again, right after [`Visitor::operator`], with the graphics state in
+    /// effect before it runs: what an editor records for the object the operator starts
+    /// ([`ContentOps`](crate::ContentOps)).
+    ///
+    /// Added in 0.5.0.
+    fn operator_state(&mut self, op: &Op<'_>, state: &GraphicsState, depth: usize) {
+        let _ = (op, state, depth);
+    }
+
     /// A text-showing operator (`Tj`, `TJ`, `'`, `"`). Return how far the shown glyphs move
     /// the text matrix ([`TextState::glyph_advance`](crate::TextState::glyph_advance) summed
     /// over them, including `TJ` adjustments); the default, no movement, suits visitors that
@@ -31,6 +40,15 @@ pub trait Visitor {
     fn show_text(&mut self, show: &TextShow<'_>) -> TextAdvance {
         let _ = show;
         TextAdvance::default()
+    }
+
+    /// The same text show once [`Visitor::show_text`] has measured it, with the advance it
+    /// returned: for a visitor that needs the glyphs' extent without decoding them itself,
+    /// such as one a text extractor passes the page's events to.
+    ///
+    /// Added in 0.5.0.
+    fn shown_text(&mut self, show: &TextShow<'_>, advance: TextAdvance) {
+        let _ = (show, advance);
     }
 
     /// A path construction operator (`m`, `l`, `c`, `v`, `y`, `h`, `re`), in user space, with

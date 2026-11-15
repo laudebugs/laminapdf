@@ -9,6 +9,7 @@ import {
   CommandPalette,
   CommandRegistry,
   CommandsProvider,
+  CrashReportDialog,
   DEFAULT_APPEARANCE,
   DebugMenu,
   Dialog,
@@ -300,6 +301,52 @@ function EditingDialogs({ state }: { state: string }): ReactNode {
   return <NamedDestinations />;
 }
 
+/** A crash report as apps/updates' test fixture shapes it: an engine panic, pretty-printed. */
+const CRASH_REPORT = JSON.stringify(
+  {
+    schema: 1,
+    report_id: "3f1c2a9e-8b7d-4e6f-9a5b-1c2d3e4f5a6b",
+    app_version: "0.1.0",
+    channel: "beta",
+    os: "macos",
+    os_version: "15.1",
+    arch: "aarch64",
+    process: "engine",
+    renderer: "pdfium",
+    sandbox: ["seatbelt", "memory_limit"],
+    uptime: "1m_to_10m",
+    kind: "panic",
+    reason: "index out of bounds: the len is 3 but the index is 7 (in <path>)",
+    location: { file: "crates/laminapdf-desktop-engine/src/worker.rs", line: 120, column: 9 },
+    frames: [
+      { module: "laminapdf-desktop-engine", offset: "0x1a2b3c", function: "laminapdf_desktop_engine::worker::render" },
+      { module: "<unknown>", offset: "0x7f00", function: null },
+    ],
+    modules: [],
+  },
+  null,
+  2,
+);
+
+/** The desktop's own dialogs: S02's located-file question, S08's crash report question and preview. */
+const DESKTOP_DIALOGS = new Set(["locate-different", "crash-main", "crash-engine", "crash-report"]);
+
+/** One of {@link DESKTOP_DIALOGS}. */
+function DesktopDialog({ state }: { state: string }): ReactNode {
+  // S02: the desktop's question before a located file that differs from the session's opens.
+  if (state === "locate-different") return <LocateDifferentDialog name="Q2-board-report.pdf" onAnswer={noop} />;
+  // S08: after the app quit (crash-main) or the document view restarted (crash-engine), and the report.
+  return (
+    <CrashReportDialog
+      process={state === "crash-main" ? "main" : "engine"}
+      report={CRASH_REPORT}
+      onAnswer={noop}
+      onCopy={noop}
+      {...(state === "crash-report" ? { initialView: "preview" as const } : {})}
+    />
+  );
+}
+
 /** The dialogs: the three widths, a destructive confirm, the reader's password prompt, print, properties and the save confirmations. */
 export function Dialogs({ state }: { state: string }): ReactNode {
   if (state === "password") return <PasswordPrompt />;
@@ -309,8 +356,7 @@ export function Dialogs({ state }: { state: string }): ReactNode {
   if (state === "settings" || state === "shortcuts" || state === "view-settings")
     return <SettingsDialogs state={state} />;
   if (EDITING_DIALOGS.has(state)) return <EditingDialogs state={state} />;
-  // S02: the desktop's question before a located file that differs from the session's opens.
-  if (state === "locate-different") return <LocateDifferentDialog name="Q2-board-report.pdf" onAnswer={noop} />;
+  if (DESKTOP_DIALOGS.has(state)) return <DesktopDialog state={state} />;
   if (state === "external-link") {
     // R07's drawn state: the page's text shows a shorter address than the link's real target.
     return (

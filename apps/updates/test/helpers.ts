@@ -1,7 +1,9 @@
-// What the handler tests share: fixtures, an in-memory bucket, a Cache API double and a fake clock.
+// What the handler tests share: fixtures, an in-memory bucket, a Cache API double, a fake clock, and
+// the crash endpoint's bucket and rate limiter.
 import { readFileSync } from "node:fs";
 import type { ManifestCache, ManifestStore } from "../src/cache.ts";
 import type { Channel } from "../src/channels.ts";
+import type { CrashLimiter, CrashStore } from "../src/crash-endpoint.ts";
 import type { HandlerDeps, LogEvent } from "../src/handler.ts";
 import type { Manifest } from "../src/manifest.ts";
 import { bucketFor } from "../src/rollout.ts";
@@ -25,6 +27,29 @@ class MemoryStore implements ManifestStore {
   }
 }
 
+/** The crash-reports bucket held in memory: each write's key, text and content type. */
+class MemoryCrashStore implements CrashStore {
+  readonly objects = new Map<string, { text: string; contentType: string }>();
+  async put(key: string, text: string, options: { httpMetadata: { contentType: string } }): Promise<unknown> {
+    this.objects.set(key, { text, contentType: options.httpMetadata.contentType });
+    return {};
+  }
+}
+
+/** The Workers rate limiter's simple limit: `limit` calls per key, with no window to pass. */
+class FakeLimiter implements CrashLimiter {
+  readonly calls = new Map<string, number>();
+  readonly #max: number;
+  constructor(max: number) {
+    this.#max = max;
+  }
+  async limit({ key }: { key: string }): Promise<{ success: boolean }> {
+    const count = (this.calls.get(key) ?? 0) + 1;
+    this.calls.set(key, count);
+    return { success: count <= this.#max };
+  }
+}
+
 /** The Cache API's behaviour that matters here: keyed by URL, keeps copies, returns clones. */
 class MemoryCache implements ManifestCache {
   readonly entries = new Map<string, Response>();
@@ -41,6 +66,8 @@ export interface Harness {
   readonly deps: HandlerDeps;
   readonly store: MemoryStore;
   readonly cache: MemoryCache;
+  readonly crashes: MemoryCrashStore;
+  readonly limiter: FakeLimiter;
   readonly logs: LogEvent[];
   /** Moves the fake clock forward. */
   advance(ms: number): void;
@@ -52,12 +79,17 @@ export interface Harness {
 export function harness(): Harness {
   const store = new MemoryStore();
   const cache = new MemoryCache();
+  const crashes = new MemoryCrashStore();
+  // wrangler.jsonc's limit: 10 a minute.
+  const limiter = new FakeLimiter(10);
   const logs: LogEvent[] = [];
   const pending: Promise<unknown>[] = [];
   let clock = Date.parse("2027-01-20T12:00:00Z");
   return {
     store,
     cache,
+    crashes,
+    limiter,
     logs,
     deps: {
       stores: { stable: store, beta: store, nightly: store, staging: store },
@@ -65,6 +97,8 @@ export function harness(): Harness {
       now: () => clock,
       waitUntil: (work) => pending.push(work),
       log: (entry) => logs.push(entry),
+      crashStore: crashes,
+      crashLimit: limiter,
     },
     advance(ms) {
       clock += ms;
@@ -80,6 +114,22 @@ export function request(path: string, init: { installId?: string; method?: strin
   const headers = new Headers();
   if (init.installId !== undefined) headers.set("Lamina-Install-Id", init.installId);
   return new Request(`https://updates.laminapdf.com${path}`, { method: init.method ?? "GET", headers });
+}
+
+/** test/fixtures/crash-report.json, the report the desktop app's tests also read. */
+export function crashFixture(): Record<string, unknown> {
+  return JSON.parse(readFileSync(new URL("fixtures/crash-report.json", import.meta.url), "utf8"));
+}
+
+/** A `POST /crash` with `body`, as JSON from the given IP unless `headers` says otherwise. */
+export function crashRequest(body: BodyInit | null, headers: Record<string, string> = {}): Request {
+  return new Request("https://updates.laminapdf.com/crash", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "CF-Connecting-IP": "192.0.2.1", ...headers },
+    body,
+    // Node's fetch needs this for a streamed body.
+    ...(body instanceof ReadableStream ? { duplex: "half" } : {}),
+  });
 }
 
 /** Fixed install IDs, so every run tests the same cohorts. */

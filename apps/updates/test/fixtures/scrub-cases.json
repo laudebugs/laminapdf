@@ -1,0 +1,45 @@
+{
+  "$comment": "What the desktop's scrubber (apps/desktop/src-tauri/src/crash/scrub.rs) makes of each input, and so what the Worker's check (src/crash.ts, PATH_LIKE) must refuse before and accept after. Both sides' tests read this file.",
+  "cases": [
+    {
+      "input": "cannot open /Users/ana/Tax 2026/return.pdf now",
+      "scrubbed": "cannot open <path>"
+    },
+    {
+      "input": "open C:\\Users\\ana\\a.pdf failed",
+      "scrubbed": "open <path>"
+    },
+    {
+      "input": "read \\\\server\\share\\a.pdf",
+      "scrubbed": "read <path>"
+    },
+    {
+      "input": "in ~/Documents",
+      "scrubbed": "in <path>"
+    },
+    {
+      "input": "load file:///tmp/a.pdf",
+      "scrubbed": "load <path>"
+    },
+    {
+      "input": "from ana.b+pdf@example.co.uk",
+      "scrubbed": "from <email>"
+    },
+    {
+      "input": "call 5551234567",
+      "scrubbed": "call <number>"
+    },
+    {
+      "input": "crash: exit code 0xc0000005",
+      "scrubbed": "crash: exit code 0xc0000005"
+    },
+    {
+      "input": "index out of bounds: the len is 3 but the index is 7",
+      "scrubbed": "index out of bounds: the len is 3 but the index is 7"
+    },
+    {
+      "input": "<laminapdf_desktop::engine::Engines as core::ops::Drop>::drop",
+      "scrubbed": "<laminapdf_desktop::engine::Engines as core::ops::Drop>::drop"
+    }
+  ]
+}

@@ -3256,6 +3256,92 @@ doc.apply(vec![Op::from(SetPageLabels::new(ranges))]); // invalid-label-ranges: 
 
 - `what`: the rule that was broken: `first-page` (the first range isn't on the first page), `order` (ranges out of page order, or two on one page) or `first-number` (a range numbered from 0).
 ",
+        "content-object-stale" => r#"# `content-object-stale`
+
+- Type: error
+- Kind: `state` (the call conflicts with the object's current state)
+
+## What happened
+
+An edit names an object on a page, such as a paragraph, an image or a drawing, but the page's content has changed since the name was taken. Lamina PDF refused the edit and changed nothing.
+
+## Why
+
+An edit names a page's object by its place among the page's objects and a hash of the bytes that draw it. When Lamina PDF applies the edit, it finds the object at that place and checks the hash. A different hash means another edit, or another program, has changed the page since the name was taken. Lamina PDF won't guess which object the edit meant, so it refuses rather than change the wrong one.
+
+## How to fix
+
+Read the page's objects again and take the object's name from that list, then apply the edit. When you replay a saved list of edits, apply them to the same file they were made on, in the order they were made.
+
+## Example
+
+```rust
+use laminapdf_content::{ContentOps, ContentOwner};
+use laminapdf_cos::Limits;
+
+let owner = ContentOwner::Page("p3.0".parse()?);
+let before = ContentOps::from_parts(owner.clone(), vec![(None, b"BT (Draft) Tj ET".to_vec())], &Limits::default())?;
+let name = before.reference(before.objects()[0].id()).expect("an object");
+// The text changed since the name was taken.
+let after = ContentOps::from_parts(owner, vec![(None, b"BT (Final) Tj ET".to_vec())], &Limits::default())?;
+assert_eq!(after.find(&name), None); // an edit with this name fails with content-object-stale
+```
+
+## Data fields
+
+- `ordinal`: the object's place among the page's objects, from 0.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0022 §2](../decisions/0022-content-stream-editing.md#2-identity): how an edit names a page's object
+- [E7c](../todos/done/E7c-content-ir.md): the content IR, its names and this code
+"#,
+        "content-not-editable" => r"# `content-not-editable`
+
+- Type: error
+- Kind: `unsupported` (valid input that Lamina PDF does not support yet)
+
+## What happened
+
+An edit tried to change content that Lamina PDF can't change safely. The edit changed nothing, and the content stays on the page, selectable and readable.
+
+## Why
+
+PDF stores text as glyphs placed one by one in a font's own encoding, not as characters. To change text, Lamina PDF has to find the glyphs that belong together, learn which characters they stand for, and place new glyphs in the same font. It refuses, and names the reason, when it can't do that reliably:
+
+- `type3-font`: the font draws each glyph with its own small drawing, which has no characters to map new text to.
+- `vertical-text`: the text is written top to bottom, and editing handles only horizontal text so far.
+- `no-unicode-map`: the font says nothing about which characters its glyphs stand for.
+- `rotated-run`: glyphs of one line are turned against each other.
+- `glyphs-out-of-order`: the file draws the line's glyphs out of reading order.
+- `too-deep`: the content sits inside more nested drawings than the limits allow.
+- `content-unreadable`: the page's content could not be read.
+
+## How to fix
+
+The file is fine: Lamina PDF reads this content and shows it as it is. To change it, delete the object and add new content in its place, or edit the file in the program that made it.
+
+## Example
+
+```text
+BT /T3 12 Tf 72 700 Td (Total) Tj ET
+```
+
+When `/T3` is a Type 3 font, an edit of this text fails with `content-not-editable` and the reason `type3-font`.
+
+## Data fields
+
+- `reason`: why the content can't be edited: `type3-font`, `vertical-text`, `no-unicode-map`, `rotated-run`, `glyphs-out-of-order`, `too-deep` or `content-unreadable`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0022 §5–§7](../decisions/0022-content-stream-editing.md#5-finding-text-runs-marked-content-first-layout-second): which text runs are read-only, and why
+- [E7c](../todos/done/E7c-content-ir.md): the content IR and this code
+",
         "pdfa-one-author" => r#"# `pdfa-one-author`
 
 - Type: warning

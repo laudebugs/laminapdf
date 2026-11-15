@@ -306,6 +306,7 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
                         });
                     }
                     self.visitor.operator(&op, self.depth());
+                    self.visitor.operator_state(&op, &frame.gs, self.depth());
                     self.execute(frame, &op)?;
                 }
             }

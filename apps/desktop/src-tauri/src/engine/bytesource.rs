@@ -14,6 +14,7 @@
 use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
 use laminapdf_desktop_os::{FileIdentity, file_identity, open_shared};
 
@@ -27,6 +28,8 @@ pub(crate) const MAX_READ: u32 = 16 * 1024 * 1024;
 pub(crate) struct FileSource {
     access: Access,
     len: u64,
+    /// The file's modification time when it opened, when the OS reports one.
+    modified: Option<SystemTime>,
 }
 
 /// Whether a source holds its file's handle or opens the file for each read.
@@ -54,7 +57,9 @@ impl FileSource {
     /// Opens `path`, holding its handle or keeping only its path and identity.
     fn open_with(path: &Path, mode: Mode) -> io::Result<Self> {
         let file = open_shared(path)?;
-        let len = file.metadata()?.len();
+        let meta = file.metadata()?;
+        let len = meta.len();
+        let modified = meta.modified().ok();
         let access = match mode {
             Mode::Hold => Access::Held(file),
             Mode::Reopen => Access::Reopened {
@@ -62,7 +67,7 @@ impl FileSource {
                 identity: file_identity(&file)?,
             },
         };
-        Ok(Self { access, len })
+        Ok(Self { access, len, modified })
     }
 
     /// The file's length when it opened.
@@ -103,6 +108,24 @@ impl FileSource {
                 self.read_from(&file, offset, len)
             }
         }
+    }
+
+    /// Whether the file this source reads still holds the bytes it opened with: the same length
+    /// and modification time, and on Windows the same file at the path. Another app that wrote the
+    /// file in place, or replaced it where reads go by path, leaves the source unable to read the
+    /// document's old bytes.
+    pub(crate) fn intact(&self) -> bool {
+        let meta = match &self.access {
+            Access::Held(file) => file.metadata(),
+            Access::Reopened { path, identity } => open_shared(path).and_then(|file| {
+                if file_identity(&file)? == *identity {
+                    file.metadata()
+                } else {
+                    Err(io::Error::other("replaced"))
+                }
+            }),
+        };
+        meta.is_ok_and(|meta| meta.len() == self.len && meta.modified().ok() == self.modified)
     }
 
     fn read_from(&self, file: &File, offset: u64, len: u32) -> io::Result<Vec<u8>> {
@@ -279,6 +302,32 @@ mod tests {
         let (temp, held) = source("both", b"0123456789");
         let reopened = FileSource::open_with(&temp.0, Mode::Reopen).unwrap();
         assert_eq!(reopened.read(2, 100).unwrap(), held.read(2, 100).unwrap());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_held_source_should_stay_intact_when_another_file_replaces_its_path() {
+        let (temp, source) = source("intact-replaced", b"%PDF-1.7 first");
+        let other = Temp::new("intact-replacement", b"%PDF-1.7 a new file, longer");
+        std::fs::rename(&other.0, &temp.0).unwrap();
+        assert!(source.intact());
+    }
+
+    #[test]
+    fn a_source_should_not_stay_intact_when_its_file_is_written_in_place() {
+        let (temp, source) = source("intact-written", b"%PDF-1.7 first");
+        let mut file = std::fs::OpenOptions::new().append(true).open(&temp.0).unwrap();
+        file.write_all(b" and more").unwrap();
+        assert!(!source.intact());
+    }
+
+    #[test]
+    fn a_reopening_source_should_not_stay_intact_when_its_file_is_replaced() {
+        let temp = Temp::new("intact-reopen", b"%PDF-1.7 first");
+        let source = FileSource::open_with(&temp.0, Mode::Reopen).unwrap();
+        let other = Temp::new("intact-reopen-new", b"%PDF-1.7 other");
+        std::fs::rename(&other.0, &temp.0).unwrap();
+        assert!(!source.intact());
     }
 
     #[test]

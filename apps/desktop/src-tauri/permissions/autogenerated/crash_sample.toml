@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crash-sample"
+description = "Enables the crash_sample command without any pre-configured scope."
+commands.allow = ["crash_sample"]
+
+[[permission]]
+identifier = "deny-crash-sample"
+description = "Denies the crash_sample command without any pre-configured scope."
+commands.deny = ["crash_sample"]

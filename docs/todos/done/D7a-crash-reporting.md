@@ -3,15 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `D7a` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Desktop app §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D5a](../done/D5a-update-worker-and-adr-0014.md), [D5b](../done/D5b-updater-in-app.md), [D6b](./D6b-release-workflow-and-linux-packages.md) |
+| Depends on | [D5a](./D5a-update-worker-and-adr-0014.md), [D5b](./D5b-updater-in-app.md) |
+| Dependency notes | D6b's part, the symbol archive, moved to [D7d](../ready/D7d-native-crash-minidumps-and-symbols.md), which depends on D6b instead. |
 | ADRs | Records the crash-backend decision (plan open question 2) as an amendment to ADR 0014 or a short new ADR (next free number). Follows ADR 0011 (privacy/retention, web C2), ADR 0008 (engine process) |
 | Branch | `feat/d7a-crash-reporting` |
 | PR title | `feat(desktop): add opt-in, scrubbed crash and panic reporting` |
 | Size | L (700–1,300 lines across app, engine and Worker) |
-| PR | — |
+| PR | [#639](https://github.com/laudebugs/laminapdf/pull/639) |
 
 ## Goal
 
@@ -45,30 +46,30 @@ When lamina or its engine crashes or panics, we want to learn why — **only if 
 **Out of scope** (and which todo covers it)
 
 - The rest of the settings page (renderer switch): [D7b](../ongoing/D7b-settings-renderer-switch-and-download-page.md).
-- Usage analytics: none here; optional opt-in usage counts for both shells come with [U5c](./U5c-opt-in-usage-telemetry.md), which reuses this todo's consent settings (owner decision 2026-10-29).
+- Usage analytics: none here; optional opt-in usage counts for both shells come with [U5c](../ready/U5c-opt-in-usage-telemetry.md), which reuses this todo's consent settings (owner decision 2026-10-29).
 - Crash reporting for the web app: web plan.
 
 ## Tasks
 
-- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`, `rust-best-practices`, `workers-best-practices`.
-- [ ] Backend decision write-up (ADR 0014 amendment or new short ADR) with the privacy rationale for local processing.
-- [ ] Capture: panic hooks (main, engine), crash-handler/minidumper wiring between engine and main, JS error capture.
-- [ ] Local processing + allow-list report builder + scrubber (`fn scrub(s: &str) -> Cow<'_, str>`).
-- [ ] Consent state machine (`ConsentState { NotAsked, Asked { send: bool }, Always }`) persisted in settings; dialog and settings toggle UI.
-- [ ] Upload queue with retry/backoff; the HTTP client is Rust-side (`reqwest` with rustls, or Tauri's http plugin **only** from Rust — no `http:` permission for the webview).
-- [ ] Worker endpoint, validation, rate limiting, R2 write, lifecycle rule; tests.
-- [ ] D6b workflow addition: symbols to the private bucket; `cargo xtask crash symbolicate`.
-- [ ] Privacy page text (crash reports: what, where, retention 30 days, opt-in) — coordinate with the ADR 0011 privacy page owner.
+- [x] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`, `rust-best-practices`, `workers-best-practices`.
+- [x] Backend decision write-up (ADR 0014 amendment or new short ADR) with the privacy rationale for local processing. *ADR 0014 §10.*
+- [x] Capture: panic hooks (main, engine), ~~crash-handler/minidumper wiring between engine and main~~ (moved to [D7d](../ready/D7d-native-crash-minidumps-and-symbols.md)), JS error capture.
+- [x] ~~Local processing~~ (minidumps: D7d) + allow-list report builder + scrubber (`fn scrub(s: &str) -> Cow<'_, str>`).
+- [x] Consent state machine (`ConsentState { NotAsked, Asked { send: bool }, Always }`) persisted in settings; dialog and settings toggle UI.
+- [x] Upload queue with retry/backoff; the HTTP client is Rust-side (`reqwest` with rustls, or Tauri's http plugin **only** from Rust — no `http:` permission for the webview).
+- [x] Worker endpoint, validation, rate limiting, R2 write, lifecycle rule; tests. *The lifecycle rule is the owner's step in apps/updates/README.md.*
+- [ ] ~~D6b workflow addition: symbols to the private bucket; `cargo xtask crash symbolicate`.~~ Moved to [D7d](../ready/D7d-native-crash-minidumps-and-symbols.md), which needs D6b's workflow on `main`.
+- [x] Privacy page text (crash reports: what, where, retention 30 days, opt-in) — coordinate with the ADR 0011 privacy page owner. *The page's promises change only with the owner's sign-off: the text is in #640 for the owner.*
 
 ## Acceptance criteria
 
-- [ ] With reporting **off** (default), forcing a crash (main panic, engine segfault, engine panic) produces **no network request** (e2e with a request-recording proxy or a mocked endpoint) and only a local pending record that is deleted after 30 days.
-- [ ] After consent, the forced crashes produce reports accepted by the Worker (202) and stored in R2 under `crash-reports/`.
-- [ ] A test opens a fixture whose path contains a unique marker directory and file name, and whose content contains a unique marker string, forces each crash type, and asserts that **neither marker nor any path-like string** appears in the uploaded JSON (Rust integration test + e2e).
-- [ ] The report never contains the install ID (test asserts no UUID matching the stored install ID; the crash client never sets `Lamina-Install-Id`).
-- [ ] Raw minidumps are deleted after local processing (test).
-- [ ] Worker tests: schema validation, size cap, path-like rejection in free-text fields, a webview report with `assets/…js` frames accepted, rate limiting, no body/IP logging (console spy), R2 key layout.
-- [ ] Engine crashes still trigger the D2b restart flow, unaffected by reporting.
+- [x] With reporting **off** (default), forcing a crash (main panic, engine segfault, engine panic) produces **no network request** (e2e with a request-recording proxy or a mocked endpoint) and only a local pending record that is deleted after 30 days. *The engine segfault in the e2e run; the main panic in `a_main_process_panic_should_leave_a_held_report_until_asked`.*
+- [x] After consent, the forced crashes produce reports accepted by the Worker (202) and stored in R2 under `crash-reports/`. *The e2e run against a stand-in answering 202; the Worker's R2 layout in its workerd test.*
+- [x] A test opens a fixture whose path contains a unique marker directory and file name, and whose content contains a unique marker string, forces each crash type, and asserts that **neither marker nor any path-like string** appears in the uploaded JSON (Rust integration test + e2e).
+- [x] The report never contains the install ID (test asserts no UUID matching the stored install ID; the crash client never sets `Lamina-Install-Id`). *The e2e run checks the header; the Worker refuses a report carrying it.*
+- [ ] ~~Raw minidumps are deleted after local processing (test).~~ Moved to [D7d](../ready/D7d-native-crash-minidumps-and-symbols.md).
+- [x] Worker tests: schema validation, size cap, path-like rejection in free-text fields, a webview report with `assets/…js` frames accepted, rate limiting, no body/IP logging (console spy), R2 key layout.
+- [x] Engine crashes still trigger the D2b restart flow, unaffected by reporting.
 
 ## Post-merge checks
 
@@ -93,10 +94,23 @@ None.
 - **Sentry vs own backend**: Sentry gives symbolication and grouping for free but sends raw minidumps unless configured carefully; our local-processing rule applies either way.
 - **Rate limiting/abuse** of a public endpoint: cap sizes, rate limit, validate schema; R2 cost is negligible at expected volume.
 
+## As built
+
+These differ from the text above:
+
+- **Split.** Minidumps of native crashes, their local processing, the deletion test and the symbol archive went to [D7d](../ready/D7d-native-crash-minidumps-and-symbols.md): they need D6b's release workflow, and capture across the sandbox needs testing on each OS. S08's tab choice went to [D7e](../ready/D7e-crash-recovered-tab-choice.md), with the e2e run pair that forces a main-process panic and relaunches. A main-process panic is tested here in Rust (`a_main_process_panic_should_leave_a_held_report_until_asked`).
+- **Engine panics abort.** The engine's panic hook sends its summary, then aborts, so the supervisor sees a crash and restarts the engine. Before, a panic in the worker thread left an engine that beat but never answered.
+- **Webview messages.** A page error keeps only its type, from a fixed list, and its frames: a script's message can quote document text, and the marker test showed that no scrubber can tell such text from code.
+- **Renderer.** The report names the renderer (`pdfium`) without its version: each app version ships one pinned PDFium, so `app_version` says which.
+- **Frames.** A panic's frames are function names with the offset within each function. A Rust function is linked into the panicking binary, which names its module; any other's module is `<unknown>`. A debug build names functions from its debug info, without their paths, so there every module is `<unknown>`. The engine sends no frames: naming them reads its own binary from disk, which its sandbox forbids (on Linux, seccomp ends the process for it). Its reports hold the panic's message and place; D7d's minidumps give native stacks.
+- **Queues.** `held/` and `outbox/` each keep ten reports. Moving a report from one to the other keeps its age.
+- **Consent off.** The e2e run checks only an engine segmentation fault with sending off. Every kind of crash goes through `Shelf::for_consent`, which alone decides whether a report waits or goes, and a Rust test checks it for each consent state.
+- **Privacy page.** Its promises change only with the owner's sign-off, so the proposed text is in [#640](https://github.com/laudebugs/laminapdf/issues/640) rather than in this PR.
+
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

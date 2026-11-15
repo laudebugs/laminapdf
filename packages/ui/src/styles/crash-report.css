@@ -1,0 +1,72 @@
+/* The crash report question and its preview (S08): Back drawn above the title, though it follows
+   the title in the page (Tab still reaches it first); the left-out badges in a row; the report in
+   a scrollable mono block; Copy report at the start of the actions; and the status bar's notice. */
+@layer paper.components {
+  .paper-crash-about,
+  .paper-crash-note {
+    margin: 0;
+  }
+
+  .paper-crash-note {
+    color: var(--paper-text-3);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-crash-view {
+    align-self: flex-start;
+    margin-inline-start: calc(-1 * var(--paper-space-16));
+  }
+
+  .paper-crash-back {
+    order: -1;
+    align-self: flex-start;
+    margin-inline-start: calc(-1 * var(--paper-space-8));
+  }
+
+  .paper-crash-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--paper-space-8);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .paper-crash-json {
+    max-block-size: 20rem;
+    margin: 0;
+    overflow: auto;
+    padding: var(--paper-space-12);
+    border: var(--paper-border-width) solid var(--paper-hairline);
+    border-radius: var(--paper-radius-4);
+    background: var(--paper-ground);
+    color: var(--paper-text);
+    font: var(--paper-type-mono);
+    letter-spacing: var(--paper-type-mono-letter-spacing);
+  }
+
+  .paper-crash-json:focus-visible {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset);
+  }
+
+  /* The notice's sentence keeps a readable width: the buttons wrap below it before it narrows. */
+  .paper-crash-notice {
+    flex-wrap: wrap;
+  }
+
+  .paper-crash-notice p {
+    flex: 1 1 12rem;
+  }
+
+  .paper-crash-notice-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--paper-space-8);
+    margin-inline-start: auto;
+  }
+
+  .paper-crash-copy {
+    margin-inline-end: auto;
+  }
+}

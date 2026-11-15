@@ -1,12 +1,12 @@
 // The Worker as Cloudflare runs it: src/index.ts bundled by esbuild and run in workerd through
-// Miniflare, with the three R2 buckets bound and the real Cache API. The handler's branches are
-// tested in Node (handler.test.ts); this checks the entry's wiring, the runtime's types, and that
-// nothing workerd writes carries the install ID.
+// Miniflare, with wrangler.jsonc's R2 buckets and rate limiter bound and the real Cache API. The
+// handler's branches are tested in Node (handler.test.ts, crash.test.ts); this checks the entry's
+// wiring, the runtime's types, and that nothing workerd writes carries the install ID.
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { cohortIds, fixture } from "./helpers.ts";
+import { cohortIds, crashFixture, fixture } from "./helpers.ts";
 import { wranglerConfig } from "./wrangler-config.ts";
 
 let mf: Miniflare;
@@ -30,6 +30,7 @@ beforeAll(async () => {
       script,
       compatibilityDate: wranglerConfig().compatibility_date,
       r2Buckets: wranglerConfig().r2_buckets.map((bucket) => bucket.binding),
+      ratelimits: Object.fromEntries(wranglerConfig().ratelimits.map(({ name, ...limit }) => [name, limit])),
       handleStructuredLogs: (log) => logged.push(JSON.stringify(log)),
     }),
   );
@@ -43,12 +44,20 @@ afterAll(async () => {
   await mf?.dispose();
 });
 
+// getR2Bucket's type comes from @cloudflare/workers-types, which this package doesn't install;
+// `put` and `get` are all the tests need.
+interface Bucket {
+  put(key: string, value: string): Promise<unknown>;
+  get(key: string): Promise<{ text(): Promise<string>; httpMetadata?: { contentType?: string } } | null>;
+}
+
+async function bucket(binding: string): Promise<Bucket> {
+  return (await mf.getR2Bucket(binding)) as unknown as Bucket;
+}
+
 /** Writes a channel's manifest into a bucket of the running workerd. */
 async function seed(binding: string, channel: string, text: string): Promise<void> {
-  // getR2Bucket's type comes from @cloudflare/workers-types, which this package doesn't install;
-  // `put` is all the test needs.
-  const bucket = (await mf.getR2Bucket(binding)) as unknown as { put(key: string, value: string): Promise<unknown> };
-  await bucket.put(`channels/${channel}.json`, text);
+  await (await bucket(binding)).put(`channels/${channel}.json`, text);
 }
 
 function get(path: string, installId?: string, method = "GET") {
@@ -110,5 +119,40 @@ describe("fetch", () => {
     await expect.poll(() => logged.some((line) => line.includes("manifest-invalid")), { timeout: 5_000 }).toBe(true);
     expect(logged.join("\n")).not.toContain(id);
     expect(logged.join("\n").toLowerCase()).not.toContain(id.toLowerCase());
+  });
+
+  it("stores a crash report in the crash bucket and answers 202", async () => {
+    const report = crashFixture();
+    const dayOf = () => new Date().toISOString().slice(0, 10).replaceAll("-", "/");
+    const before = dayOf();
+    const response = await mf.dispatchFetch("https://updates.laminapdf.com/crash", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "CF-Connecting-IP": "192.0.2.9" },
+      body: JSON.stringify(report),
+    });
+    expect(response.status).toBe(202);
+    expect(await response.text()).toBe("");
+    const keyOn = (day: string) => `crash-reports/${day}/${String(report.report_id)}.json`;
+    // The Worker's clock's UTC day: the one before the request unless midnight passed during it.
+    const crashes = await bucket("CRASH_REPORTS");
+    const stored = (await crashes.get(keyOn(before))) ?? (await crashes.get(keyOn(dayOf())));
+    expect(JSON.parse((await stored?.text()) ?? "null")).toEqual(report);
+    expect(stored?.httpMetadata?.contentType).toBe("application/json");
+    expect(await (await bucket("RELEASES")).get(keyOn(before))).toBeNull();
+  });
+
+  it("limits crash reports to 10 a minute per IP", async () => {
+    const statuses: number[] = [];
+    for (let i = 0; i < 11; i += 1) {
+      const response = await mf.dispatchFetch("https://updates.laminapdf.com/crash", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "CF-Connecting-IP": "192.0.2.10" },
+        body: JSON.stringify(crashFixture()),
+      });
+      statuses.push(response.status);
+      await response.arrayBuffer();
+    }
+    expect(statuses.slice(0, 10)).toEqual(Array(10).fill(202));
+    expect(statuses[10]).toBe(429);
   });
 });

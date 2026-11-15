@@ -120,6 +120,42 @@ pub(crate) fn e2e_queue_pick(queue: tauri::State<'_, QueuedPick>, path: String) 
     Ok(())
 }
 
+/// The path the next Save as writes instead of asking, per app.
+#[derive(Debug, Default)]
+pub(crate) struct QueuedSaveAs(QueuedPick);
+
+impl QueuedSaveAs {
+    /// Takes the queued path, leaving none.
+    pub(crate) fn take(&self) -> Option<PathBuf> {
+        self.0.take()
+    }
+}
+
+/// Queues `path` for the next Save as: a file to write in a folder under the repository's
+/// fixtures, which needn't exist yet.
+///
+/// # Errors
+/// [`DesktopError::Internal`] when `path`'s folder isn't under the repository's fixtures.
+#[tauri::command]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri hands a command its state and arguments by value"
+)]
+pub(crate) fn e2e_queue_save_as(queue: tauri::State<'_, QueuedSaveAs>, path: String) -> Result<(), DesktopError> {
+    let path = Path::new(&path);
+    let refused = || DesktopError::Internal("e2e_queue_save_as: not in a fixtures folder".to_owned());
+    let folder = path
+        .parent()
+        .and_then(|folder| folder.canonicalize().ok())
+        .ok_or_else(refused)?;
+    let name = path.file_name().ok_or_else(refused)?;
+    if !fixture_roots().iter().any(|root| folder.starts_with(root)) {
+        return Err(refused());
+    }
+    queue.0.set(folder.join(name));
+    Ok(())
+}
+
 /// How far inside a window's edge `visible_point` tries its corners, in points: clear of borders.
 const CORNER_INSET: f64 = 24.0;
 /// How far right of every window `outside` puts the cursor, in points.

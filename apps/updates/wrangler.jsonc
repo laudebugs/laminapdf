@@ -1,6 +1,7 @@
 // The desktop update service (ADR 0014): one Worker that answers the Tauri updater's
 // `GET /{channel}/{target}/{arch}/{current_version}` from the channel manifests in R2. It only
-// reads the buckets: the desktop release workflow and apps/updates/scripts/manifest.ts write them.
+// reads the release buckets: the desktop release workflow and apps/updates/scripts/manifest.ts
+// write them. It writes one bucket, the crash reports' (`POST /crash`, D7a).
 // Production is updates.laminapdf.com and staging (env.staging) staging-updates.laminapdf.com,
 // both deployed from main by .github/workflows/updates-deploy.yml (apps/updates/README.md).
 // Comments here take whole lines.
@@ -22,8 +23,14 @@
   "r2_buckets": [
     { "binding": "RELEASES", "bucket_name": "lamina-pdf-releases" },
     { "binding": "STAGING", "bucket_name": "lamina-pdf-staging" },
-    { "binding": "NIGHTLY", "bucket_name": "lamina-pdf-nightly" }
+    { "binding": "NIGHTLY", "bucket_name": "lamina-pdf-nightly" },
+    // Crash reports (D7a, POST /crash): their own private bucket, which only this Worker writes and a
+    // lifecycle rule empties after 30 days (README.md). No release token can reach it.
+    { "binding": "CRASH_REPORTS", "bucket_name": "lamina-pdf-crash-reports" }
   ],
+  // POST /crash: 10 reports a minute per IP. The IP is the limiter's key and goes nowhere else.
+  // namespace_id is any number unique in the account; staging has its own counters.
+  "ratelimits": [{ "name": "CRASH_LIMIT", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }],
   // ADR 0014 §9: Workers Logs keep only what the Worker writes with console (errors, never a
   // request header). Invocation logs (the request's metadata) and traces (which record the user
   // agent and the full URL) stay off; no Tail Worker and no Logpush job read this Worker.
@@ -35,8 +42,9 @@
   },
   "env": {
     // Staging: main's Worker before production, as lamina-pdf-updates-staging. It reads the same
-    // buckets (it never writes), so the app's end-to-end update test can use its `staging` channel. Each key is
-    // set here, not inherited, so the two Workers can't drift into sharing a route.
+    // release buckets (it never writes them), so the app's end-to-end update test can use its
+    // `staging` channel, and keeps crash reports in a bucket of its own. Each key is set here, not
+    // inherited, so the two Workers can't drift into sharing a route.
     "staging": {
       "name": "lamina-pdf-updates-staging",
       "routes": [{ "pattern": "staging-updates.laminapdf.com", "custom_domain": true }],
@@ -45,8 +53,10 @@
       "r2_buckets": [
         { "binding": "RELEASES", "bucket_name": "lamina-pdf-releases" },
         { "binding": "STAGING", "bucket_name": "lamina-pdf-staging" },
-        { "binding": "NIGHTLY", "bucket_name": "lamina-pdf-nightly" }
+        { "binding": "NIGHTLY", "bucket_name": "lamina-pdf-nightly" },
+        { "binding": "CRASH_REPORTS", "bucket_name": "lamina-pdf-crash-reports-staging" }
       ],
+      "ratelimits": [{ "name": "CRASH_LIMIT", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } }],
       "observability": {
         "enabled": true,
         "head_sampling_rate": 1,

@@ -10,10 +10,12 @@ import {
   DRAG_ENTER_EVENT,
   DRAG_LEAVE_EVENT,
   type Dragging,
+  desktopFile,
   listenForOsOpens,
   OPEN_EVENT,
   type OsOpenHandlers,
   REFUSED_EVENT,
+  rebind,
 } from "./open.ts";
 import { tauriShell } from "./tauri-shell.ts";
 
@@ -140,5 +142,14 @@ describe("listenForOsOpens", () => {
     stop();
     await emit(REFUSED_EVENT, ["photo.jpg"]);
     expect(seen.refused).toEqual([]);
+  });
+});
+
+describe("a document's file", () => {
+  it("takes the name of the file its document was saved as", () => {
+    const file = desktopFile(DOC);
+    const before = file.name;
+    rebind(file, { ...DOC, name: "Relevé copie.pdf" });
+    expect([before, file.name]).toEqual(["Relevé.pdf", "Relevé copie.pdf"]);
   });
 });

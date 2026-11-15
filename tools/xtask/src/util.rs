@@ -19,6 +19,13 @@ pub(crate) fn append(path: &Path, text: &str) -> Result<()> {
     Ok(())
 }
 
+/// The last part of `path`, as text (lossy), or empty when it has none.
+pub(crate) fn file_name(path: &Path) -> String {
+    path.file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default()
+}
+
 /// Writes `key=value` to `$GITHUB_OUTPUT` when running in Actions.
 pub(crate) fn github_output(key: &str, value: &str) -> Result<()> {
     if let Ok(path) = std::env::var("GITHUB_OUTPUT") {
@@ -44,9 +51,10 @@ pub(crate) fn git_stdout(dir: &Path, args: &[&str]) -> Option<String> {
         .then(|| String::from_utf8_lossy(&output.stdout).trim().to_owned())
 }
 
-/// The standard output of `program args…`, or `None` when it can't run or fails.
+/// The standard output of `program args…`, or `None` when it can't run or fails. On Windows the
+/// program may be a `.cmd` shim, such as pnpm's ([`program_path`]).
 pub(crate) fn stdout(program: &str, args: &[&str]) -> Option<String> {
-    let out = Command::new(program).args(args).output().ok()?;
+    let out = Command::new(program_path(program)).args(args).output().ok()?;
     out.status
         .success()
         .then(|| String::from_utf8_lossy(&out.stdout).into_owned())

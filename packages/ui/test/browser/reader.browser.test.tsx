@@ -314,6 +314,17 @@ describe("ZoomControl", () => {
     ]);
   });
 
+  it("rings the button the keyboard reaches, not the whole control around it", async () => {
+    renderIn(<TopBar reader={await openedController()} viewer={new FakeViewer()} />);
+    (button("Zoom out") as HTMLButtonElement).focus();
+    await userEvent.keyboard("{Tab}");
+    await expect.poll(() => focused().hasAttribute("data-focus-visible")).toBe(true);
+    expect(getComputedStyle(focused()).outlineStyle).toBe("solid");
+    const control = focused().closest(".paper-zoom-control") as HTMLElement;
+    expect(control.hasAttribute("data-focus-visible")).toBe(true);
+    expect(getComputedStyle(control).outlineStyle).toBe("none");
+  });
+
   it("can't step past the viewer's range", async () => {
     const viewer = new FakeViewer({ percent: 800 });
     renderIn(<TopBar reader={await openedController()} viewer={viewer} />);

@@ -74,6 +74,8 @@ export type ErrorCode =
   | "link-not-tagged"
   | "appearance-unavailable"
   | "invalid-label-ranges"
+  | "content-object-stale"
+  | "content-not-editable"
   | "sink"
   | "not-rebased"
   | "sink-not-empty"
@@ -317,6 +319,8 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "link-not-tagged",
   "appearance-unavailable",
   "invalid-label-ranges",
+  "content-object-stale",
+  "content-not-editable",
   "sink",
   "not-rebased",
   "sink-not-empty",
@@ -590,6 +594,8 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "link-not-tagged": "unsupported",
   "appearance-unavailable": "unsupported",
   "invalid-label-ranges": "usage",
+  "content-object-stale": "state",
+  "content-not-editable": "unsupported",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
   "pdfa-info-mismatch": "input",
@@ -808,6 +814,8 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "link-not-tagged": "tag the document first, or add the link to a copy that doesn't claim PDF/UA",
   "appearance-unavailable": "edit through the laminapdf crate, which draws appearances, or give laminapdf-ops a generator with Document::with_appearances",
   "invalid-label-ranges": "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
+  "content-object-stale": "read the page's content objects again and name the object from that list",
+  "content-not-editable": "the content stays selectable and readable; the reason says why it can't be changed",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",

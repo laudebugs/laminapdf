@@ -201,3 +201,46 @@ fn a_watcher_error_should_be_logged_without_its_paths() {
     let error = notify::Error::path_not_found().add_path(PathBuf::from("/Users/someone/secret/report.pdf"));
     assert_eq!(without_paths(&error), "no path was found");
 }
+
+#[test]
+fn the_apps_own_write_should_not_reload() {
+    let setup = Setup::new("own-write");
+    let writing = setup.watcher.writing(&setup.file, "main", DocId(1));
+    let mut file = std::fs::OpenOptions::new().append(true).open(&setup.file).unwrap();
+    std::io::Write::write_all(&mut file, b" and an appended revision").unwrap();
+    drop(file);
+    // Longer than the debounce: the events of a slow write come while the token is held.
+    thread::sleep(3 * DEBOUNCE);
+    writing.wrote(FileStamp::read(&setup.file).unwrap());
+    assert_eq!(setup.fake.wait_for(1), vec![]);
+}
+
+#[test]
+fn the_apps_own_rename_over_the_file_should_not_reload() {
+    let setup = Setup::new("own-rename");
+    let writing = setup.watcher.writing(&setup.file, "main", DocId(1));
+    let temp = setup.dir.join(".doc.pdf.lamina-save");
+    std::fs::write(&temp, b"%PDF-1.7 rewritten by the app").unwrap();
+    std::fs::rename(&temp, &setup.file).unwrap();
+    writing.wrote(FileStamp::read(&setup.file).unwrap());
+    assert_eq!(setup.fake.wait_for(1), vec![]);
+}
+
+#[test]
+fn a_change_after_a_failed_write_should_reload() {
+    let setup = Setup::new("failed-write");
+    drop(setup.watcher.writing(&setup.file, "main", DocId(1)));
+    std::fs::write(&setup.file, b"%PDF-1.7 changed by another app").unwrap();
+    assert_eq!(setup.fake.wait_for(1), vec![Heard::Modified(DocId(1))]);
+}
+
+#[test]
+fn another_documents_save_to_the_file_should_reload_this_one() {
+    let setup = Setup::new("other-writer");
+    setup.watcher.watch(&setup.file, "doc-1", DocId(2));
+    thread::sleep(Duration::from_millis(200));
+    let writing = setup.watcher.writing(&setup.file, "doc-1", DocId(2));
+    std::fs::write(&setup.file, b"%PDF-1.7 saved by the other window").unwrap();
+    writing.wrote(FileStamp::read(&setup.file).unwrap());
+    assert_eq!(setup.fake.wait_for(1), vec![Heard::Modified(DocId(1))]);
+}
