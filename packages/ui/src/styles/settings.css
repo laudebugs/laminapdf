@@ -58,7 +58,7 @@
     inline-size: max(var(--paper-button-height), var(--ui-target));
     block-size: max(var(--paper-button-height), var(--ui-target));
     border-radius: var(--paper-radius-pill);
-    cursor: default;
+    cursor: var(--paper-cursor-action);
   }
 
   .paper-accent-dot {
@@ -85,6 +85,7 @@
 
   .paper-accent-swatch[data-disabled] {
     opacity: 0.4;
+    cursor: var(--paper-cursor-disabled);
   }
 
   .paper-accent-name {
@@ -302,7 +303,7 @@
   .paper-shortcuts-browser summary {
     font: var(--paper-type-control);
     color: var(--paper-text-2);
-    cursor: default;
+    cursor: var(--paper-cursor-action);
   }
 
   .paper-shortcuts-browser dl {

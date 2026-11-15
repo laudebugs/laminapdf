@@ -4,15 +4,12 @@
 // left, @laminapdf/site-kit's inlineStylesToClasses), search opens and shows its results, the
 // search button shows its shortcut once search has loaded, and no page reports a CSP violation.
 
-import { env } from "node:process";
-import { firefoxEnv } from "@laminapdf/test-utils/firefox";
+import { BROWSER, launchBrowser } from "@laminapdf/test-utils/e2e-browser";
 import { type CspReport, withoutSelectErrors, withoutSelectReports } from "@laminapdf/test-utils/webkit-select";
-import { type Browser, type BrowserType, chromium, firefox, type Page, webkit } from "playwright";
+import type { Browser, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 
 const DOCS = new URL("../", import.meta.url);
-const BROWSERS: Record<string, BrowserType> = { chromium, firefox, webkit };
-const BROWSER = env.LAMINA_PDF_E2E_BROWSER ?? "chromium";
 const origin = inject("origin");
 
 /** Pages with code in the forms the docs have (tabs, a Result tab, generated reference), and two without. */
@@ -28,9 +25,7 @@ const WITHOUT_CODE = new Set(["/", "/reference/codes/"]);
 let browser: Browser;
 
 beforeAll(async () => {
-  const type = BROWSERS[BROWSER];
-  if (type === undefined) throw new Error(`LAMINA_PDF_E2E_BROWSER: unknown browser ${BROWSER}`);
-  browser = await type.launch(BROWSER === "firefox" ? { env: firefoxEnv(DOCS) } : {});
+  browser = await launchBrowser(DOCS);
 });
 
 afterAll(async () => {

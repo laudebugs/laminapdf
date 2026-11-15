@@ -325,7 +325,13 @@ fn the_frozen_samples_apply() {
 
 #[test]
 fn the_fuzz_entry_holds_on_every_fixture() {
-    for name in ["every-subtype.pdf", "threads.pdf", "flags.pdf", "tagged.pdf"] {
+    for name in [
+        "every-subtype.pdf",
+        "threads.pdf",
+        "flags.pdf",
+        "tagged.pdf",
+        "review.pdf",
+    ] {
         common::annot_fuzz_entry::annots(&fixture(&format!("annotations/{name}")));
     }
 }

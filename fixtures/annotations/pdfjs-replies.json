@@ -1,0 +1,159 @@
+{
+  "pdfjs_version": "6.4.299",
+  "files": {
+    "review.pdf": [
+      {
+        "replies": [
+          {
+            "id": "11R",
+            "inReplyTo": "10R",
+            "replyType": "R",
+            "stateModel": null,
+            "state": null
+          },
+          {
+            "id": "12R",
+            "inReplyTo": "11R",
+            "replyType": "R",
+            "stateModel": null,
+            "state": null
+          },
+          {
+            "id": "13R",
+            "inReplyTo": "10R",
+            "replyType": "R",
+            "stateModel": "Review",
+            "state": "Accepted"
+          },
+          {
+            "id": "14R",
+            "inReplyTo": "10R",
+            "replyType": "R",
+            "stateModel": {
+              "name": "Review"
+            },
+            "state": {
+              "name": "Rejected"
+            }
+          },
+          {
+            "id": "15R",
+            "inReplyTo": "10R",
+            "replyType": "R",
+            "stateModel": {
+              "name": "Marked"
+            },
+            "state": {
+              "name": "Marked"
+            }
+          },
+          {
+            "id": "24R",
+            "inReplyTo": "16R",
+            "replyType": "R",
+            "stateModel": null,
+            "state": "Completed"
+          },
+          {
+            "id": "17R",
+            "inReplyTo": "99R",
+            "replyType": "R",
+            "stateModel": null,
+            "state": null
+          },
+          {
+            "id": "18R",
+            "inReplyTo": "19R",
+            "replyType": "R",
+            "stateModel": null,
+            "state": null
+          },
+          {
+            "id": "19R",
+            "inReplyTo": "18R",
+            "replyType": "R",
+            "stateModel": null,
+            "state": null
+          },
+          {
+            "id": "21R",
+            "inReplyTo": "20R",
+            "replyType": "Group",
+            "stateModel": null,
+            "state": null
+          },
+          {
+            "id": "25R",
+            "inReplyTo": "23R",
+            "replyType": "R",
+            "stateModel": null,
+            "state": null
+          }
+        ],
+        "operators": 26
+      },
+      {
+        "replies": [
+          {
+            "id": "30R",
+            "inReplyTo": "10R",
+            "replyType": "R",
+            "stateModel": null,
+            "state": null
+          }
+        ],
+        "operators": 0
+      }
+    ],
+    "mark_up.pdf": [
+      {
+        "replies": [
+          {
+            "id": "71R",
+            "inReplyTo": "67R",
+            "replyType": "Group",
+            "stateModel": null,
+            "state": null
+          }
+        ],
+        "operators": 186
+      },
+      {
+        "replies": [],
+        "operators": 60
+      }
+    ],
+    "review_comments.pdf": [
+      {
+        "replies": [
+          {
+            "id": "71R",
+            "inReplyTo": "67R",
+            "replyType": "Group",
+            "stateModel": null,
+            "state": null
+          },
+          {
+            "id": "75R",
+            "inReplyTo": "57R",
+            "replyType": "R",
+            "stateModel": "Review",
+            "state": "Completed"
+          },
+          {
+            "id": "79R",
+            "inReplyTo": "61R",
+            "replyType": "R",
+            "stateModel": null,
+            "state": null
+          }
+        ],
+        "operators": 186
+      },
+      {
+        "replies": [],
+        "operators": 60
+      }
+    ]
+  }
+}

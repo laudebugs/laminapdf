@@ -67,11 +67,11 @@
     border: 0;
     border-radius: var(--paper-radius-6);
     background: transparent;
-    cursor: grab;
+    cursor: var(--paper-cursor-grab);
   }
 
   .paper-sheet[data-dragging] .paper-sheet-grabber {
-    cursor: grabbing;
+    cursor: var(--paper-cursor-grabbing);
   }
 
   .paper-sheet-grabber-bar {

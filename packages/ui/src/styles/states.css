@@ -14,7 +14,11 @@
 }
 
 @layer paper.components {
-  /* Every action control; its rules nest, so the list is written once. */
+  /* Every action control; its rules nest, so the list is written once. Most are React Aria's, which
+     mark them data-rac and set data-hovered and data-pressed; the rest (the document tabs and their
+     close button, History rows, threads and their parts, the viewer's thumbnails in the Pages tab)
+     are pressed by :active, and hovered by :hover only where hover is real, a fine pointer that can
+     hover, since a tap leaves plain :hover on. */
   :where(
     .paper-button,
     .paper-icon-button,
@@ -28,7 +32,20 @@
     .paper-swatch,
     .paper-appearance-chip,
     button.paper-outline-toggle,
-    .paper-outline-link
+    .paper-outline-link,
+    .paper-thumbnail,
+    .paper-recent-row,
+    .paper-zoom-percent,
+    .paper-commands-button,
+    .paper-password-show,
+    .paper-document-tabs-menu,
+    .paper-bottom-bar-button,
+    .paper-document-tab,
+    .paper-document-tab-close,
+    .paper-history-row,
+    .paper-thread-toggle,
+    button.paper-thread-part,
+    .lamina-thumbnail
   ) {
     cursor: var(--paper-cursor-action);
     background-image: linear-gradient(var(--ui-state-layer) 0 0);
@@ -43,6 +60,18 @@
     &[data-pressed] {
       --ui-state-layer: var(--paper-pressed);
       /* No transition at all, rather than a zero-length one (motion plan §4.3). */
+      transition: none;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      &:not([data-rac]):hover:not(:active) {
+        --ui-state-layer: var(--paper-hover);
+        transition-duration: var(--paper-duration-state-in);
+      }
+    }
+
+    &:not([data-rac]):active {
+      --ui-state-layer: var(--paper-pressed);
       transition: none;
     }
 
@@ -70,7 +99,14 @@
     .paper-swatch,
     .paper-appearance-chip,
     button.paper-outline-toggle,
-    .paper-outline-link
+    .paper-outline-link,
+    .paper-thumbnail,
+    .paper-recent-row,
+    .paper-zoom-percent,
+    .paper-commands-button,
+    .paper-password-show,
+    .paper-document-tabs-menu,
+    .paper-bottom-bar-button
   )[data-hovered]:not([data-pressed], [data-disabled], [data-pending]) {
     --ui-state-layer: var(--paper-hover);
   }

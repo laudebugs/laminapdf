@@ -237,6 +237,12 @@ describe(`the network indicator in ${BROWSER}`, () => {
     await page.keyboard.press("Enter");
     await page.getByRole("complementary", { name: "Network activity" }).waitFor();
     expect(await indicator.getAttribute("aria-expanded")).toBe("true");
+    // The inspector fades in: axe reads its colours once it has (a rejected `finished` ended too).
+    await page.evaluate(() =>
+      Promise.all(
+        (document.querySelector(".paper-inspector")?.getAnimations() ?? []).map((a) => a.finished.catch(() => {})),
+      ),
+    );
     // Evaluated rather than added as a script tag, which the page's policy would refuse.
     await page.evaluate(axe.source);
     const serious = await page.evaluate(async () => {

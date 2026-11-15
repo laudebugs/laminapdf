@@ -7,7 +7,8 @@
    pointer, in accent-tint with a 1 px accent ring inside; the chosen one with the Check icon at
    its end. Drawn from the Paper tokens, which each site loads first; they follow its data-theme. The
    button repeats @laminapdf/ui's field.css, which is React-only and layered and so can't be shared;
-   a change to §7.19 changes both. */
+   a change to §7.19 changes both. The button and the options take states.css's `site-control`: the
+   hand, and the hover and pressed layer over their fill (an option's hover is its active look). */
 
 .site-menu-select {
   position: relative;
@@ -42,14 +43,14 @@
   padding-inline: var(--paper-space-10) var(--paper-select-chevron-space);
   border: var(--paper-border-width) solid var(--paper-control-border);
   border-radius: var(--paper-radius-4);
-  background: var(--paper-field);
+  background-color: var(--paper-field);
   color: var(--paper-text);
   font: inherit;
-  cursor: var(--paper-cursor-action);
 }
 
+/* Open: the pressed fill under the layer, as an open trigger (motion plan §4.2). */
 .site-menu-select-button[aria-expanded="true"] {
-  background: var(--paper-pressed);
+  background-color: var(--paper-pressed);
 }
 
 .site-menu-select-button:focus-visible {
@@ -125,7 +126,7 @@
   border-radius: var(--paper-radius-4);
   color: var(--paper-text);
   white-space: nowrap;
-  cursor: var(--paper-cursor-action);
+  --site-hover: transparent;
 }
 
 .site-menu-select-option-label {
@@ -133,7 +134,7 @@
 }
 
 .site-menu-select-option[data-active] {
-  background: var(--paper-accent-tint);
+  background-color: var(--paper-accent-tint);
   box-shadow: inset 0 0 0 1px var(--paper-accent);
 }
 
@@ -141,7 +142,7 @@
    pointer that hovers, since a tap leaves it on. */
 @media (hover: hover) and (pointer: fine) {
   .site-menu-select-option:hover {
-    background: var(--paper-accent-tint);
+    background-color: var(--paper-accent-tint);
     box-shadow: inset 0 0 0 1px var(--paper-accent);
   }
 }

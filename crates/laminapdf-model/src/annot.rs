@@ -10,6 +10,7 @@ use std::collections::BTreeSet;
 
 use laminapdf_cos::{Dict, DirectPath, ObjRef, Object, PathSegment, Result, Warning};
 
+use crate::comments::AnnotState;
 use crate::document::Document;
 use crate::geometry::{UserSpacePoint, UserSpaceRect};
 use crate::id::AnnotId;
@@ -64,6 +65,9 @@ pub struct Annot {
     pub has_rich_text: bool,
     /// The subtype's own geometry.
     pub geometry: AnnotGeometry,
+    /// For a Text annotation that sets a review state on the one it replies to, that state
+    /// (`/StateModel` and `/State`, Table 175; §12.5.6.4).
+    pub state: Option<AnnotState>,
 }
 
 /// What an annotation op needs of an annotation, read without its text or geometry: its ID and
@@ -166,6 +170,34 @@ impl AnnotSubtype {
             b"Redact" => Self::Redact,
             other => Self::Other(other.to_vec()),
         }
+    }
+
+    /// Whether it is a markup annotation (ISO 32000-2 Table 171's markup column, §12.5.6.2): the
+    /// kind that can be a comment, answer one or have a review state.
+    ///
+    /// Added in 0.4.1.
+    #[must_use]
+    pub const fn is_markup(&self) -> bool {
+        matches!(
+            self,
+            Self::Text
+                | Self::FreeText
+                | Self::Line
+                | Self::Square
+                | Self::Circle
+                | Self::Polygon
+                | Self::PolyLine
+                | Self::Highlight
+                | Self::Underline
+                | Self::Squiggly
+                | Self::StrikeOut
+                | Self::Caret
+                | Self::Stamp
+                | Self::Ink
+                | Self::FileAttachment
+                | Self::Sound
+                | Self::Redact
+        )
     }
 
     /// The subtype's name as written in `/Subtype`.
@@ -302,6 +334,15 @@ impl Document {
     ///
     /// Added in 0.3.0.
     pub fn annotations(&self, page: &Page<'_>) -> Result<Vec<Annot>> {
+        let found = self.annotations_unchecked(page)?;
+        self.check_names(&found)?;
+        Ok(found)
+    }
+
+    /// [`Document::annotations`] without its duplicate-name warning, for views that read every
+    /// page each call (the comment threads), so a duplicate name neither repeats its warning nor
+    /// stops them in strict mode.
+    pub(crate) fn annotations_unchecked(&self, page: &Page<'_>) -> Result<Vec<Annot>> {
         let mut found = Vec::new();
         self.each_annotation(page, |id, index, dict| {
             let link = self.link(id, index, dict)?;
@@ -309,7 +350,6 @@ impl Document {
             Ok(())
         })?;
         pair_popups(&mut found, |a| (&a.id, a.parent.as_ref(), &mut a.popup));
-        self.check_names(&found)?;
         Ok(found)
     }
 
@@ -380,7 +420,13 @@ impl Document {
 
     fn annotation(&self, link: AnnotLink, dict: &Dict) -> Result<Annot> {
         let geometry = self.geometry(&link.subtype, dict)?;
+        let state = if link.subtype == AnnotSubtype::Text {
+            self.annot_state(dict)?
+        } else {
+            None
+        };
         Ok(Annot {
+            state,
             rect: match dict.get("Rect") {
                 Some(rect) => read_rect(self, rect)?,
                 None => None,

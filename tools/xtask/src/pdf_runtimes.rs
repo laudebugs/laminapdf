@@ -216,7 +216,8 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
 /// light, dark and high-contrast themes and with forced colours, the 12 px label floor), and the reader app (`apps/web`,
 /// C4b): typechecked and built over the packages above, then its e2e suite against `wrangler dev`
 /// (headers, local files opened four ways, CSP violations and other origins), and the docs site's
-/// "Edit and run" (B7e: built, then its e2e suite). They record no measurements.
+/// "Edit and run" (B7e: built, then its e2e suite), and the website (built, then its e2e suite: the
+/// cursor check over its pages, U7e). They record no measurements.
 fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
     crate::web::packages(ws)?;
     for package in [
@@ -248,12 +249,21 @@ fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
         &[("LAMINA_PDF_E2E_BROWSER", browser)],
     )?;
     // The docs site's "Edit and run" (B7e): its build makes the example runner from the same
-    // WebAssembly, then its e2e suite runs the six examples against `wrangler dev`.
+    // WebAssembly, then its e2e suite runs the six examples against `wrangler dev`, with the
+    // docs' cursor check and states (U7e).
     crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/docs", "run", "build"])?;
     crate::run_env(
         &ws.root,
         "pnpm",
         &["--filter", "@laminapdf/docs", "run", "e2e"],
+        &[("LAMINA_PDF_E2E_BROWSER", browser)],
+    )?;
+    // The website's cursor check and states over its built pages, against `wrangler dev` (U7e).
+    crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/site", "run", "build"])?;
+    crate::run_env(
+        &ws.root,
+        "pnpm",
+        &["--filter", "@laminapdf/site", "run", "e2e"],
         &[("LAMINA_PDF_E2E_BROWSER", browser)],
     )
 }

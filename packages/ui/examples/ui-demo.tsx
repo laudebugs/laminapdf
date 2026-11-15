@@ -235,7 +235,10 @@ function DemoInspector({
   layout: ShellLayout;
   damaged: string | undefined;
 }): ReactNode {
-  const shown = useStoreState(layout, (s) => s.inspector?.id);
+  // The panel shown last stays rendered, so the inspector can leave with its content when it closes.
+  const id = useStoreState(layout, (s) => s.inspector?.id);
+  const [shown, setShown] = useState(id);
+  if (id !== undefined && id !== shown) setShown(id);
   if (shown === "repairs" && damaged !== undefined) {
     return (
       <Inspector layout={layout}>

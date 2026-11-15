@@ -520,6 +520,20 @@
         }
       ]
     },
+    "review_comments": {
+      "sha256": "85788f12c2696b372ecf1dff0056a0328321de0bb7e4dc65fd99ea728c80d5b5",
+      "bytes": 31456,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        },
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
     "set_initial_view": {
       "sha256": "a0f3094d11caece50e7e872f6f0b1fb83de9de3c579f3db5c030a1c35778de19",
       "bytes": 3091,

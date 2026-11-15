@@ -25,9 +25,9 @@ const tabs = [
   <h1 id="home-title">{OPENING.headline}</h1>
   <p class="lead">{OPENING.lead}</p>
   <p class="actions">
-    <a class="button-primary" href={`${DOCS}/`}>{OPENING.docs}</a>
-    <a class="button-secondary" href="#packages">{OPENING.packages}</a>
-    {APP_LAUNCHED && <a class="button-secondary" href={APP_URL}>{OPENING.app}</a>}
+    <a class="button-primary site-control" href={`${DOCS}/`}>{OPENING.docs}</a>
+    <a class="button-secondary site-control" href="#packages">{OPENING.packages}</a>
+    {APP_LAUNCHED && <a class="button-secondary site-control" href={APP_URL}>{OPENING.app}</a>}
   </p>
   {APP_LAUNCHED && <p class="opening-free">{OPENING.free}</p>}
   <CodePanel tabs={tabs} caption={OPENING.caption} />

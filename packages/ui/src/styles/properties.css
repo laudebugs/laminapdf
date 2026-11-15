@@ -65,12 +65,18 @@
     opacity: 0;
   }
 
-  .paper-properties-row:hover .paper-icon-button,
   .paper-properties-row:focus-within .paper-icon-button {
     opacity: 1;
   }
 
-  @media (hover: none) {
+  @media (hover: hover) and (pointer: fine) {
+    .paper-properties-row:hover .paper-icon-button {
+      opacity: 1;
+    }
+  }
+
+  /* Where hover isn't real (touch), the button always shows. */
+  @media not all and (hover: hover) and (pointer: fine) {
     .paper-properties-row .paper-icon-button {
       opacity: 1;
     }
