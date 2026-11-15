@@ -136,9 +136,10 @@
     outline: none;
   }
 
-  /* As in a menu: the active row's tint marks the row under the pointer; a press still shows. */
-  .paper-palette-row[data-hovered]:not([data-pressed]) {
-    --ui-state-layer: transparent;
+  /* As in a menu: the active row's tint marks the row under the pointer and moves at once with
+     the arrow keys; only the press layer changes. */
+  .paper-palette-row {
+    transition-property: --ui-state-layer;
   }
 
   .paper-palette-row[data-focused] .paper-palette-group {
@@ -194,7 +195,7 @@
 
     .paper-palette-row[data-focused] {
       forced-color-adjust: none;
-      background: Highlight;
+      background-color: Highlight;
       color: HighlightText;
     }
 

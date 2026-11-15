@@ -552,7 +552,8 @@ Every control styles the states it has in this order: rest, value (selected, che
 | Hover | `hover` fill | `hover` fill over white | `accent-strong` | `hover` layer over its fill |
 | Pressed | `pressed` fill, label `text-3` | `pressed` | `#123A3F` (white 12.33) | `pressed` layer over its fill |
 | Focus (keyboard) | `outline: 2px solid #1F5C63; outline-offset: 2px` (1 px offset where space is tight: mini toolbar, palette input; `-2px` inset inside edge-to-edge phone bars) | same | same | same |
-| Disabled | `disabled` text, no hover | `disabled` text, `hairline` border | `hairline` fill and border, `disabled` text | as ghost |
+| Disabled | `disabled` text, no hover | `disabled` text, `hairline` border | `hairline` fill and border, `disabled` text | as ghost; a selected one keeps a `hairline` border |
+| Pending | as disabled, the busy arrow, keeps its width and focus | as disabled | as disabled | — |
 
 **Cursor.** Every enabled control that acts shows the hand (`--paper-cursor-action`): buttons, toggles, tabs, menu items, choices and rows that open something. Links show the hand too (`--paper-cursor-link`). Disabled and blocked controls show the arrow (`--paper-cursor-disabled`), and a control waiting on its action shows the busy arrow (`--paper-cursor-pending`). Text fields keep the text cursor, and the page canvas keeps its tool's cursor.
 
@@ -765,7 +766,7 @@ In `@laminapdf/ui`: `SelectionToolbar` with `SelectionToolbarDivider`, placed ag
 
 ### 7.10 Command palette
 
-In `@laminapdf/ui`: `CommandPalette`, the shell only: the app passes the rows already ranked, with the matched parts of each title. A disabled row shows its reason, when it has one, in place of its group and is skipped by the arrow keys; the group and the shortcut chip describe a row (`aria-describedby`) rather than name it. **Combobox (U6j):** the input carries `role="combobox"` and `aria-expanded`, which React Aria's autocomplete leaves out.
+In `@laminapdf/ui`: `CommandPalette`, the shell only: the app passes the rows already ranked, with the matched parts of each title. The active row, chosen by the pointer or the arrow keys, takes its tint at once, with no `hover` layer; a press lays the `pressed` layer over it. A disabled row shows its reason, when it has one, in place of its group and is skipped by the arrow keys; the group and the shortcut chip describe a row (`aria-describedby`) rather than name it. **Combobox (U6j):** the input carries `role="combobox"` and `aria-expanded`, which React Aria's autocomplete leaves out.
 
 Modal over `scrim` (from below the window title bar), 96 px from the top, `max-width: 600px`, `surface`, `chip-border` edge, radius 6, palette shadow. Input: 44 high, inset 10, `control-border`, white, radius 4, 18 px search icon `muted`, 16 px text, `esc` chip; keeps focus (APG combobox: `role="combobox"`, `aria-activedescendant`). List: `role="listbox"`, padding `0 6px 8px`; section overlines ("Recent" first, then "Commands"); rows 40 high, padding `0 12px`, gap 12: title (query match in 600) · group name (12 `muted`) · shortcut chip. Active row: `accent-tint` fill, `inset 0 0 0 1px` `accent` ring, group `text-3`, chip border `accent`. Footer: 12 `muted` hints over a `hairline`.
 
@@ -1097,7 +1098,7 @@ In `@laminapdf/ui`: `Menu` with `MenuTrigger`, and `Popover` with `PopoverTrigge
 
 One menu for every lamina-drawn menu: toolbar menus (Shapes, Insert, Form data, Filter), More menus, the More tabs menu, context menus and the tab overflow menu. Native menus (the macOS menu bar, Windows and Linux menu bars) are drawn by the OS; the desktop boards only sketch them.
 
-- `role="menu"` popover (z 30) under its button: `surface`, `chip-border` edge, radius 6, floating shadow, padding 4, width 260 (wider when needed). The opening button shows the `pressed` fill and `aria-expanded="true"`.
+- `role="menu"` popover (z 30) under its button: `surface`, `chip-border` edge, radius 6, floating shadow, padding 4, width 260 (wider when needed). The item under the pointer or the keyboard takes the `accent-tint` and an inset `accent` line at once, with no `hover` layer; a press lays the `pressed` layer over it. The opening button shows the `pressed` fill and `aria-expanded="true"`.
 - Items 32 high (44 on touch), padding `0 10px`, gap 10: 16 px icon `text-3` (items without an icon indent to 36), 14 px label, shortcut chip at the right. Check and radio items (`menuitemcheckbox`, `menuitemradio`) show the Check icon in the icon column.
 - Active item: the palette's active-row style (`accent-tint`, inset 1 px `accent` ring). Disabled: `disabled` text, `aria-disabled`, the reason in a tooltip. A destructive item goes last, in `danger`.
 - Separators 1 px `hairline` with 6 px side margins; optional overline group headers; an optional 12 `muted` note or footer hint below the items, outside `role="menu"`, linked with `aria-describedby`.

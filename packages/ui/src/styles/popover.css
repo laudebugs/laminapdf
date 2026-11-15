@@ -50,10 +50,10 @@
     box-shadow: inset 0 0 0 var(--paper-border-width) var(--paper-accent);
   }
 
-  /* The focused item's tint already marks the item under the pointer: no hover layer over it, but
-     a press still shows. */
-  .paper-menu-item[data-hovered]:not([data-pressed]) {
-    --ui-state-layer: transparent;
+  /* The focused item's tint marks the item under the pointer too (no hover layer, states.css). It
+     moves with keyboard focus, so it appears at once: only the press layer changes. */
+  .paper-menu-item {
+    transition-property: --ui-state-layer;
   }
 
   .paper-menu-item[data-destructive] {
@@ -82,7 +82,7 @@
 
     .paper-menu-item[data-focused] {
       forced-color-adjust: none;
-      background: Highlight;
+      background-color: Highlight;
       color: HighlightText;
     }
   }

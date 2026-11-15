@@ -24,8 +24,7 @@
   }
 
   /* Hover darkens the label with no fill, as on a tab; a press shows the pressed layer. */
-  .paper-mode[data-hovered]:not([data-pressed]) {
-    --ui-state-layer: transparent;
+  .paper-mode[data-hovered] {
     color: var(--paper-text);
   }
 

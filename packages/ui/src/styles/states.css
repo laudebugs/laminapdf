@@ -1,12 +1,12 @@
 /* The action controls' shared states (§7.0; motion plan §4.2): the hand, the arrow when disabled,
-   the busy arrow while pending, and hover and pressed as one translucent layer over the control's
-   own fill. Each component file sets the fill with `background-color`, never the `background`
-   shorthand, which would wipe the layer.
+   the busy arrow while pending, and pressed (and, on controls whose hover is a fill, hover) as one
+   translucent layer over the control's own fill. Each component file sets the fill with
+   `background-color`, never the `background` shorthand, which would wipe the layer.
 
    The layer is a registered colour, so it can fade: hover in over --paper-duration-state-in, out
-   over --paper-duration-state-out, press at once, and release back to hover over state-in. Hover
-   comes from React Aria's data-hovered, which a touch never sets, so a tap leaves no hover behind.
-   The focus ring isn't in the transition list: it appears at once. */
+   over --paper-duration-state-out, press at once with no transition, and release back to hover
+   over state-in. Hover comes from React Aria's data-hovered, which a touch never sets, so a tap
+   leaves no hover behind. The focus ring isn't in the transition list: it appears at once. */
 @property --ui-state-layer {
   syntax: "<color>";
   inherits: false;
@@ -14,6 +14,7 @@
 }
 
 @layer paper.components {
+  /* Every action control; its rules nest, so the list is written once. */
   :where(
     .paper-button,
     .paper-icon-button,
@@ -30,63 +31,45 @@
     transition-property: --ui-state-layer, background-color, border-color, color;
     transition-duration: var(--paper-duration-state-out);
     transition-timing-function: var(--paper-ease-standard);
+
+    &[data-hovered] {
+      transition-duration: var(--paper-duration-state-in);
+    }
+
+    &[data-pressed] {
+      --ui-state-layer: var(--paper-pressed);
+      /* No transition at all, rather than a zero-length one (motion plan §4.3). */
+      transition: none;
+    }
+
+    /* Availability comes last, so it wins over hover and press. */
+    &[data-disabled] {
+      --ui-state-layer: transparent;
+      cursor: var(--paper-cursor-disabled);
+    }
+
+    &[data-pending] {
+      --ui-state-layer: transparent;
+      cursor: var(--paper-cursor-pending);
+    }
   }
 
-  :where(
-    .paper-button,
-    .paper-icon-button,
-    .paper-toggle,
-    .paper-tool-toggle,
-    .paper-mode,
-    .paper-tab,
-    .paper-menu-item,
-    .paper-status-item,
-    .paper-palette-row
-  )[data-hovered] {
+  /* Hover as a fill: buttons, toggles and status items. Tabs and modes darken their label instead,
+     and a menu item or palette row's focus tint already follows the pointer. */
+  :where(.paper-button, .paper-icon-button, .paper-toggle, .paper-tool-toggle, .paper-status-item)[data-hovered]:not(
+    [data-pressed],
+    [data-disabled],
+    [data-pending]
+  ) {
     --ui-state-layer: var(--paper-hover);
-    transition-duration: var(--paper-duration-state-in);
-  }
-
-  :where(
-    .paper-button,
-    .paper-icon-button,
-    .paper-toggle,
-    .paper-tool-toggle,
-    .paper-mode,
-    .paper-tab,
-    .paper-menu-item,
-    .paper-status-item,
-    .paper-palette-row
-  )[data-pressed] {
-    --ui-state-layer: var(--paper-pressed);
-    transition-duration: 0s;
-  }
-
-  /* Availability comes last, so it wins over hover and press. */
-  :where(
-    .paper-button,
-    .paper-icon-button,
-    .paper-toggle,
-    .paper-tool-toggle,
-    .paper-mode,
-    .paper-tab,
-    .paper-menu-item,
-    .paper-status-item,
-    .paper-palette-row
-  )[data-disabled] {
-    --ui-state-layer: transparent;
-    cursor: var(--paper-cursor-disabled);
-  }
-
-  :where(.paper-button, .paper-icon-button)[data-pending] {
-    --ui-state-layer: transparent;
-    cursor: var(--paper-cursor-pending);
   }
 
   /* A label that turns bold when selected keeps the bold width from the start (motion plan §3, 7):
-     a hidden bold copy shares its grid cell (StableLabel). */
+     a hidden bold copy shares its grid cell (StableLabel). The copy sets the width alone: it takes
+     no height, so a label that wraps isn't made taller by its bolder twin. */
   .paper-stable-label {
     display: inline-grid;
+    justify-items: center;
   }
 
   .paper-stable-label > * {
@@ -94,6 +77,8 @@
   }
 
   .paper-stable-label-bold {
+    block-size: 0;
+    overflow: hidden;
     visibility: hidden;
     font-weight: 600;
   }

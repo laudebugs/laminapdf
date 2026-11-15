@@ -55,11 +55,11 @@ Apply plan §4.2 to the controls in `@laminapdf/ui` that run an action:
 
 ## Acceptance criteria
 
-- [ ] In the gallery, every action control's computed cursor is `pointer` when enabled, `default` when disabled and `progress` when pending
+- [ ] Every action control's computed cursor is `pointer` when enabled, `default` when disabled and `progress` when pending (checked in the UI package's browser tests, which CI runs in three engines; the gallery's Playwright tests run only in Docker and no workflow runs them)
 - [ ] Each shows a pressed state; a selected toggle still answers hover
 - [ ] No raw `:hover` left in these components' CSS outside the guard (the U7a baseline shrinks)
-- [ ] Selecting a tab or segment moves nothing beside it (screenshot diff)
-- [ ] axe passes in three engines; contrast pairs for the new state fills pass
+- [ ] Selecting a tab or segment moves nothing beside it (each tab's and mode's width measured across selection, in the same browser tests)
+- [ ] axe passes in three engines; every label keeps 4.5:1 on its hover and pressed fill, light and dark (measured from the rendered colours with the layer composited, since the danger fills are mixes of tokens)
 
 ## Post-merge checks
 

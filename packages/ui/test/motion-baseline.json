@@ -1,15 +1,27 @@
 {
-  "packages/ui/src/styles/appearance-chips.css": ["cursor: default"],
-  "packages/ui/src/styles/choice.css": ["cursor: default"],
+  "packages/ui/src/styles/appearance-chips.css": [
+    "cursor: default"
+  ],
+  "packages/ui/src/styles/choice.css": [
+    "cursor: default"
+  ],
   "packages/ui/src/styles/document-tabs.css": [
     "cursor: default",
     "hover: .paper-document-tab-close:hover",
     "hover: .paper-document-tab:hover",
     "hover: .paper-document-tab[data-active] .paper-document-tab-close, .paper-document-tab:hover .paper-document-tab-close, .paper-document-tab:focus-within .paper-document-tab-close"
   ],
-  "packages/ui/src/styles/history.css": ["cursor: default", "hover: .paper-history-row:hover"],
-  "packages/ui/src/styles/notice.css": ["cursor: default"],
-  "packages/ui/src/styles/outline-row.css": ["cursor: default", "cursor: default"],
+  "packages/ui/src/styles/history.css": [
+    "cursor: default",
+    "hover: .paper-history-row:hover"
+  ],
+  "packages/ui/src/styles/notice.css": [
+    "cursor: default"
+  ],
+  "packages/ui/src/styles/outline-row.css": [
+    "cursor: default",
+    "cursor: default"
+  ],
   "packages/ui/src/styles/phone.css": [
     "cursor: pointer",
     "duration: transition: 160ms",
@@ -22,20 +34,30 @@
   "packages/ui/src/styles/reader.css": [
     "hover: .paper-reader-block:hover > .paper-reader-view-original, .paper-reader-block:focus-within > .paper-reader-view-original"
   ],
-  "packages/ui/src/styles/recent.css": ["cursor: default", "cursor: pointer"],
-  "packages/ui/src/styles/settings.css": ["cursor: default", "cursor: default"],
+  "packages/ui/src/styles/recent.css": [
+    "cursor: default",
+    "cursor: pointer"
+  ],
+  "packages/ui/src/styles/settings.css": [
+    "cursor: default",
+    "cursor: default"
+  ],
   "packages/ui/src/styles/shell.css": [
     "duration: animation: 160ms",
     "easing: animation: ease-out",
     "hover: .paper-rail-handle:hover, .paper-rail-handle:focus-visible"
   ],
-  "packages/ui/src/styles/swatches.css": ["cursor: default"],
+  "packages/ui/src/styles/swatches.css": [
+    "cursor: default"
+  ],
   "packages/ui/src/styles/threads.css": [
     "cursor: pointer",
     "cursor: pointer",
     "hover: .paper-thread-toggle:hover, button.paper-thread-part:hover"
   ],
-  "packages/ui/src/styles/thumbnail.css": ["cursor: default"],
+  "packages/ui/src/styles/thumbnail.css": [
+    "cursor: default"
+  ],
   "packages/site-kit/src/header.css": [
     "cursor: pointer",
     "hover: .site-header-app:hover",
@@ -44,9 +66,16 @@
     "hover: .site-nav a:hover",
     "hover: .site-wordmark:hover"
   ],
-  "packages/site-kit/src/select.css": ["cursor: pointer"],
-  "apps/web/src/app.css": ["duration: animation: 2s", "easing: animation: ease-out"],
-  "apps/desktop/src/app.css": ["cursor: pointer"],
+  "packages/site-kit/src/select.css": [
+    "cursor: pointer"
+  ],
+  "apps/web/src/app.css": [
+    "duration: animation: 2s",
+    "easing: animation: ease-out"
+  ],
+  "apps/desktop/src/app.css": [
+    "cursor: pointer"
+  ],
   "apps/docs/src/components/CopyMarkdown.astro": [
     "cursor: pointer",
     "cursor: progress",
