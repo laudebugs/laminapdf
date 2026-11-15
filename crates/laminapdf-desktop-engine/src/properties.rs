@@ -261,17 +261,19 @@ mod tests {
     }
 
     /// The webview's copy of this data (`apps/desktop/src/engine/properties.fixture.json`), whose
-    /// keys its test holds to `@laminapdf/ui`'s shapes. `UPDATE_GOLDEN=1` rewrites it.
+    /// keys its test holds to `@laminapdf/ui`'s shapes. `UPDATE_GOLDEN=1` rewrites it (then run
+    /// `cargo xtask fmt`, whose Biome lays it out).
     #[test]
     fn read_should_give_the_json_the_webviews_fixture_holds() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../apps/desktop/src/engine/properties.fixture.json");
         let read = data(&read(&open("golden/metadata.pdf"), &mut None).expect("reads"));
-        let pretty = serde_json::to_string_pretty(&read).expect("writes") + "\n";
         if std::env::var_os("UPDATE_GOLDEN").is_some() {
-            std::fs::write(&path, &pretty).expect("writes the fixture");
+            let pretty = serde_json::to_string_pretty(&read).expect("writes") + "\n";
+            std::fs::write(&path, pretty).expect("writes the fixture");
         }
-        assert_eq!(std::fs::read_to_string(&path).unwrap_or_default(), pretty);
+        // Compared as values: the repository's formatter lays the file out its own way.
+        assert_eq!(data(&std::fs::read_to_string(&path).unwrap_or_default()), read);
     }
 
     #[test]
