@@ -17,24 +17,33 @@
     justify-content: center;
   }
 
-  /* Hidden, the bar moves up by its whole height, the notch's padding included. */
+  /* Hidden, the bar slides up by its own height and fades (motion plan §4.3: by transform, never by
+     a layout property), then gives its row back at once: its margin and visibility change at the
+     end of the slide, so the page view grows once rather than through every frame. Shown again,
+     the row is back on the first frame and the bar slides down into it. Under reduced motion
+     motion-travel is 0, so it only fades. */
+  .paper-top-bar[data-phone] {
+    /* In lengths, never percentages, so that with no travel (reduced motion) no transition runs. */
+    --ui-top-bar-travel: calc(
+      -1 *
+      (var(--paper-phone-top-bar-height) + env(safe-area-inset-top)) *
+      var(--paper-motion-travel)
+    );
+
+    translate: 0;
+    transition-property: translate, opacity, margin-block-start, visibility;
+    transition-duration: var(--paper-duration-enter-panel), var(--paper-duration-enter-panel), 0s, 0s;
+    transition-timing-function: var(--paper-ease-enter);
+  }
+
   .paper-top-bar[data-hidden] {
     margin-block-start: calc(-1 * (var(--paper-phone-top-bar-height) + env(safe-area-inset-top)));
     visibility: hidden;
-  }
-
-  /* The bar slides by its margin, a layout property, until it moves by transform (motion plan
-     §4.3); so it slides only when neither the system nor Settings asks for reduced motion. */
-  @media (prefers-reduced-motion: no-preference) {
-    :root:not([data-motion="reduce"]) .paper-top-bar[data-phone] {
-      transition:
-        margin-block-start 160ms ease,
-        visibility 0s linear 160ms;
-    }
-
-    :root:not([data-motion="reduce"]) .paper-top-bar[data-phone]:not([data-hidden]) {
-      transition-delay: 0s;
-    }
+    opacity: 0;
+    translate: 0 var(--ui-top-bar-travel);
+    transition-duration: var(--paper-duration-exit-panel), var(--paper-duration-exit-panel), 0s, 0s;
+    transition-delay: 0s, 0s, var(--paper-duration-exit-panel), var(--paper-duration-exit-panel);
+    transition-timing-function: var(--paper-ease-exit);
   }
 
   .paper-reader-status[data-phone] {
@@ -62,19 +71,14 @@
     min-block-size: var(--paper-target-min-touch);
     border: 0;
     border-radius: var(--paper-radius-6);
-    background: transparent;
+    background-color: transparent;
     color: var(--paper-text-3);
     font: var(--paper-type-tab-label);
-    cursor: pointer;
   }
 
   .paper-bottom-bar-button svg {
     inline-size: var(--paper-icon-size-touch);
     block-size: var(--paper-icon-size-touch);
-  }
-
-  .paper-bottom-bar-button[data-pressed] {
-    background: var(--paper-pressed);
   }
 
   .paper-bottom-bar-button[data-focus-visible] {

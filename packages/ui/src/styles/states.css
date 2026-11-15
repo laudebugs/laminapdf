@@ -28,7 +28,14 @@
     .paper-swatch,
     .paper-appearance-chip,
     button.paper-outline-toggle,
-    .paper-outline-link
+    .paper-outline-link,
+    .paper-thumbnail,
+    .paper-recent-row,
+    .paper-zoom-percent,
+    .paper-commands-button,
+    .paper-password-show,
+    .paper-document-tabs-menu,
+    .paper-bottom-bar-button
   ) {
     cursor: var(--paper-cursor-action);
     background-image: linear-gradient(var(--ui-state-layer) 0 0);
@@ -70,9 +77,54 @@
     .paper-swatch,
     .paper-appearance-chip,
     button.paper-outline-toggle,
-    .paper-outline-link
+    .paper-outline-link,
+    .paper-thumbnail,
+    .paper-recent-row,
+    .paper-zoom-percent,
+    .paper-commands-button,
+    .paper-password-show,
+    .paper-document-tabs-menu,
+    .paper-bottom-bar-button
   )[data-hovered]:not([data-pressed], [data-disabled], [data-pending]) {
     --ui-state-layer: var(--paper-hover);
+  }
+
+  /* Controls that aren't React Aria's (the document tabs and their close button, History rows,
+     threads and their parts, the viewer's thumbnails in the Pages tab): the same layer, pressed
+     by :active, and hovered by :hover only where hover is real, a fine pointer that can hover,
+     since a tap leaves plain :hover on. */
+  :where(
+    .paper-document-tab,
+    .paper-document-tab-close,
+    .paper-history-row,
+    .paper-thread-toggle,
+    button.paper-thread-part,
+    .lamina-thumbnail
+  ) {
+    cursor: var(--paper-cursor-action);
+    background-image: linear-gradient(var(--ui-state-layer) 0 0);
+    transition-property: --ui-state-layer, background-color, border-color, color;
+    transition-duration: var(--paper-duration-state-out);
+    transition-timing-function: var(--paper-ease-standard);
+
+    &:active {
+      --ui-state-layer: var(--paper-pressed);
+      transition: none;
+    }
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    :where(
+        .paper-document-tab,
+        .paper-document-tab-close,
+        .paper-history-row,
+        .paper-thread-toggle,
+        button.paper-thread-part,
+        .lamina-thumbnail
+      ):hover:not(:active) {
+      --ui-state-layer: var(--paper-hover);
+      transition-duration: var(--paper-duration-state-in);
+    }
   }
 
   /* A label that turns bold when selected keeps the bold width from the start (motion plan §3, 7):

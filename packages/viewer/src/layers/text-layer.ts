@@ -272,7 +272,9 @@ export class TextLayer implements PageLayer {
         fontFamily: "sans-serif",
         whiteSpace: "pre",
         color: "transparent",
-        cursor: "text",
+        // The I-beam, unless the viewer's root names another cursor for the text: a tool that
+        // selects no text (a creation tool, the hand) shows its own over the page's words.
+        cursor: "var(--lamina-text-cursor, text)",
         transformOrigin: "0 0",
         ...(this.#options.outline === true ? { outline: "1px solid rgb(220 0 0 / 0.7)" } : {}),
       });

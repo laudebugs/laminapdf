@@ -177,19 +177,11 @@
     padding-inline: var(--paper-space-4);
     border: var(--paper-border-width) solid transparent;
     border-radius: var(--paper-radius-4);
-    background: transparent;
+    background-color: transparent;
     color: var(--paper-text);
     font: inherit;
     font-variant-numeric: tabular-nums;
     text-align: center;
-  }
-
-  .paper-zoom-percent[data-hovered] {
-    background: var(--paper-hover);
-  }
-
-  .paper-zoom-percent[data-pressed] {
-    background: var(--paper-pressed);
   }
 
   .paper-commands-button {
@@ -202,14 +194,10 @@
     padding-inline: var(--paper-space-10) var(--paper-space-6);
     border: var(--paper-border-width) solid var(--paper-hairline);
     border-radius: var(--paper-radius-4);
-    background: var(--paper-raised);
+    background-color: var(--paper-raised);
     color: var(--paper-muted);
     font: var(--paper-type-control);
     white-space: nowrap;
-  }
-
-  .paper-commands-button[data-hovered] {
-    background: var(--paper-hover);
   }
 
   /* Read by screen readers, not drawn: a box one border wide, clipped away. */
@@ -271,17 +259,13 @@
     padding-inline: var(--paper-space-8);
     border: 0;
     border-radius: var(--paper-radius-3);
-    background: transparent;
+    background-color: transparent;
     color: var(--paper-accent-strong);
     font: var(--paper-type-control);
   }
 
-  .paper-password-show[data-hovered] {
-    background: var(--paper-hover);
-  }
-
   .paper-password-show[data-selected] {
-    background: var(--paper-accent-tint);
+    background-color: var(--paper-accent-tint);
   }
 
   .paper-password-error {
@@ -814,12 +798,17 @@
     opacity: 0;
   }
 
-  .paper-reader-block:hover > .paper-reader-view-original,
   .paper-reader-block:focus-within > .paper-reader-view-original {
     opacity: 1;
   }
 
-  @media (hover: none) {
+  @media (hover: hover) and (pointer: fine) {
+    .paper-reader-block:hover > .paper-reader-view-original {
+      opacity: 1;
+    }
+  }
+
+  @media not all and (hover: hover) and (pointer: fine) {
     .paper-reader-view-original {
       position: static;
       display: block;

@@ -8,6 +8,7 @@
 
 import { type ReactNode, useRef } from "react";
 import { message } from "../messages.js";
+import { Presence } from "../overlays/presence.js";
 import type { ShellLayout } from "../shell/layout.js";
 import type { ModeRegistry, ModesState } from "../shell/modes.js";
 import { usePhone } from "../shell/phone.js";
@@ -104,7 +105,10 @@ export function ReaderShell({
         <main ref={canvas} className="paper-reader-canvas" data-shortcut-scope="page" tabIndex={-1}>
           {children}
         </main>
-        {inspector}
+        {/* A closed inspector stays for its exit (Inspector shows its last content meanwhile). */}
+        <Presence value={inspector} exit="panel">
+          {(panel) => panel}
+        </Presence>
       </div>
       {foot === undefined ? null : (
         <footer className="paper-reader-status" data-phone={phoneBar || undefined}>

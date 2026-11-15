@@ -43,8 +43,13 @@ export interface ToolHost {
 /** A tool module: one interaction mode. */
 export interface ToolModule {
   readonly name: InteractionMode;
-  /** The CSS cursor over the page while it is on; empty for the page's own (text over text). */
+  /**
+   * The CSS cursor over the page while it is on; empty for the page's own (text over text). A tool
+   * that selects no text shows it over the text layer's words too, in place of the I-beam.
+   */
   readonly cursor: string;
+  /** The cursor while a press it took is held (the hand's `grabbing`); its `cursor` otherwise. */
+  readonly pressedCursor?: string;
   /** The viewer layer it draws into (`text`, `annot`, `highlight`), if any. */
   readonly layer?: string;
   /** Whether a drag over text selects it while this tool is on. */
@@ -75,6 +80,7 @@ export function handTool(): ToolModule {
   return {
     name: "hand",
     cursor: "grab",
+    pressedCursor: "grabbing",
     selectsText: false,
     pointerDown(event) {
       if (event.button !== 0) return false;
@@ -151,10 +157,16 @@ export class ToolRegistry implements ExternalStore<ToolsState> {
 export function attachTools(registry: ToolRegistry, host: ToolHost): () => void {
   const { element } = host;
   let captured: { tool: ToolModule; pointer: number } | undefined;
+  /** Shows `cursor` over the page, and over its text too when the tool selects none. */
+  const cursorOf = (tool: ToolModule | undefined, cursor: string) => {
+    element.style.cursor = cursor;
+    if (tool?.selectsText === false && cursor !== "") element.style.setProperty("--lamina-text-cursor", cursor);
+    else element.style.removeProperty("--lamina-text-cursor");
+  };
   const show = () => {
     const tool = registry.current();
     element.dataset.tool = tool?.name ?? "";
-    element.style.cursor = tool?.cursor ?? "";
+    cursorOf(tool, tool?.cursor ?? "");
     if (tool?.selectsText === false) element.dataset.noTextSelection = "";
     else delete element.dataset.noTextSelection;
   };
@@ -162,6 +174,7 @@ export function attachTools(registry: ToolRegistry, host: ToolHost): () => void 
     const tool = registry.current();
     if (tool?.pointerDown?.(event, host) !== true) return;
     captured = { tool, pointer: event.pointerId };
+    if (tool.pressedCursor !== undefined) cursorOf(tool, tool.pressedCursor);
     element.setPointerCapture?.(event.pointerId);
     event.preventDefault();
   };
@@ -172,6 +185,7 @@ export function attachTools(registry: ToolRegistry, host: ToolHost): () => void 
     if (captured?.pointer !== event.pointerId) return;
     captured.tool.pointerUp?.(event, host);
     captured = undefined;
+    show();
   };
   show();
   const stop = registry.subscribe(show);
@@ -187,6 +201,6 @@ export function attachTools(registry: ToolRegistry, host: ToolHost): () => void 
     element.removeEventListener("pointercancel", up);
     delete element.dataset.tool;
     delete element.dataset.noTextSelection;
-    element.style.cursor = "";
+    cursorOf(undefined, "");
   };
 }

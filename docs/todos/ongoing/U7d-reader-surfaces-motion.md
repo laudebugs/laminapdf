@@ -45,19 +45,19 @@ Bring the reader's surfaces that aren't plain controls under the plan's §3 and 
 
 ## Tasks
 
-- [ ] Thumbnails
-- [ ] Page fades
-- [ ] Inspector and phone bar
-- [ ] Tool cursors
-- [ ] Raw `:hover` rules
-- [ ] The cursor test
+- [x] Thumbnails
+- [x] Page fades
+- [x] Inspector and phone bar
+- [x] Tool cursors
+- [x] Raw `:hover` rules
+- [x] The cursor test
 
 ## Acceptance criteria
 
-- [ ] The Link tool shows its crosshair over page text; text selection still shows the I-beam
-- [ ] Opening the inspector moves nothing in the page view during its animation (the canvas width is set on the first frame)
-- [ ] A page fades in rather than appearing in one frame; with reduced motion it still fades
-- [ ] The cursor test passes, and fails if one button's cursor is changed back to `default`
+- [x] The Link tool shows its crosshair over page text; text selection still shows the I-beam
+- [x] Opening the inspector moves nothing in the page view during its animation (the canvas width is set on the first frame)
+- [x] A page fades in rather than appearing in one frame; with reduced motion it still fades
+- [x] The cursor test passes, and fails if one button's cursor is changed back to `default`
 
 ## Post-merge checks
 

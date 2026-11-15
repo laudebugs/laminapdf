@@ -536,7 +536,7 @@ A coarse pointer (`pointer: coarse`) uses the touch rules (§8.7) at any width. 
 
 | Region | Size | Notes |
 | --- | --- | --- |
-| Top bar | 56 px, padding `0 6px`, `ground`, `hairline` bottom | Back (44×44), centred title (Newsreader 17/500) over a 12 px `muted` subtitle, overflow (44×44). Auto-hides on scroll down, returns on scroll up or tap |
+| Top bar | 56 px, padding `0 6px`, `ground`, `hairline` bottom | Back (44×44), centred title (Newsreader 17/500) over a 12 px `muted` subtitle, overflow (44×44). Auto-hides on scroll down, returns on scroll up or tap. **Motion (U7d):** it slides up by its height and fades over 150 ms, then gives its row back at once; returning, the row is back on the first frame and the bar slides down into it over 200 ms. Under reduced motion it only fades |
 | Page | 358 px wide (16 px gutters), 16 px from the top bar, 14 px between pages | Phone page shadow |
 | Page pill | 30 px high, padding `0 14px`, radius 15, `pill` bg, white 13/500 tabular, 100 px from the bottom (16 above the bar) | `aria-live="polite"`; fades out 1.5 s after scrolling stops |
 | Bottom bar | 84 px incl. safe area: padding `6px 8px 22px`, 5 equal columns, gap 4, `ground`, `hairline` top | Search, Annotate, Pages, Reader, More. Buttons 56 high, radius 6, 22 px icon over 11.5 px label, gap 3 |
@@ -566,9 +566,9 @@ Every control styles the states it has in this order: rest, value (selected, che
 | Disabled | `disabled` text, no hover | `disabled` text, `hairline` border | `hairline` fill and border, `disabled` text | as ghost; a selected one keeps a `hairline` border |
 | Pending | as disabled, the busy arrow, keeps its width and focus | as disabled | as disabled | — |
 
-**Cursor.** Every enabled control that acts shows the hand (`--paper-cursor-action`): buttons, toggles, tabs, menu items, choices and rows that open something. Links show the hand too (`--paper-cursor-link`). Disabled and blocked controls show the arrow (`--paper-cursor-disabled`), and a control waiting on its action shows the busy arrow (`--paper-cursor-pending`). Text fields keep the text cursor, and the page canvas keeps its tool's cursor.
+**Cursor.** Every enabled control that acts shows the hand (`--paper-cursor-action`): buttons, toggles, tabs, menu items, choices and rows that open something. Links show the hand too (`--paper-cursor-link`). Disabled and blocked controls show the arrow (`--paper-cursor-disabled`), and a control waiting on its action shows the busy arrow (`--paper-cursor-pending`). Text fields keep the text cursor, and the page canvas keeps its tool's cursor. Over page text the I-beam shows only while a drag selects text; a tool that selects none shows its own cursor over the words too (the Link tool's crosshair), and the hand tool shows `grab`, and `grabbing` while it holds the page.
 
-**Motion.** Hover fades in over `--paper-duration-state-in` (80 ms) and out over `--paper-duration-state-out` (150 ms). Pressed and the focus ring appear at once, and release fades back to hover over 80 ms. Only colour, background, border and opacity change, and no transition lists `all`. Hover applies only on a pointer that hovers (`data-hovered`, or `:hover` inside `@media (hover: hover) and (pointer: fine)`), so a tap leaves no hover behind. Controls that draw a pressed state clear iOS's grey tap flash.
+**Motion.** Hover fades in over `--paper-duration-state-in` (80 ms) and out over `--paper-duration-state-out` (150 ms). Pressed and the focus ring appear at once, and release fades back to hover over 80 ms. Only colour, background, border and opacity change, and no transition lists `all`. Hover applies only on a pointer that hovers (`data-hovered`, or `:hover` inside `@media (hover: hover) and (pointer: fine)`), so a tap leaves no hover behind. Controls outside React Aria (the document tabs and their close button, History rows, threads, the reader's thumbnails) draw the same layers, pressed by `:active` and hovered only inside that query. A page or a thumbnail fades from its paper into its picture over 150 ms, under reduced motion too, and a page shows at full opacity as soon as it is sharp. Controls that draw a pressed state clear iOS's grey tap flash.
 
 **Reduced motion.** Under the system's preference or Settings › Reduce motion, nothing slides, scales, grows, shimmers or springs; fades stay. A switch of theme, accent, page appearance, density or direction applies at once, with no fade from the old colours.
 
@@ -687,6 +687,8 @@ In `@laminapdf/ui`: `SegmentedTabs` and `TabPanel`. **Activation (decided, U6d):
 In `@laminapdf/ui`: `Thumbnail`, a button whose `children` are the page image the viewer drew.
 
 116×150 in the rail (column, gap 22, padding 22 0), 122×158 in the phone sheet (2-column grid, gaps `18px 16px`). White, thumbnail shadow, 1 px `hairline` outline; **current page**: `outline: 2px solid #1F5C63; outline-offset: 3px`, `aria-current="page"`, number 600 `text`; others number `muted`. Number 12 px (13 on phone) tabular, 8 px below. Thumbnails are named and numbered by the page label (“Page A-1, 22 of 24”).
+
+**States and motion (U7d):** the thumbnail shows the hand; hover and pressed are the shared layers of §7.0 over the padded thumbnail, in the `Thumbnail` component and in the reader's Pages tab alike. The page picture fades in from the white page box over 150 ms when it is drawn, under reduced motion too.
 
 **Keyboard focus (proposed)** is distinct from the current page: a rounded (radius 6) 2 px `focus` ring around the whole thumbnail and its number, with the `hover` fill and `8px 10px` padding.
 
@@ -816,7 +818,7 @@ In `@laminapdf/ui`: `ShortcutChip`, which writes a command's keys for the platfo
 
 ### 7.11 Inspector panel
 
-Docked right, 288 px, `surface`. Sections stack with gap 22:
+Docked right, 288 px, `surface`. **Motion (U7d):** the dock takes its 288 px on its first frame, so the page view narrows once and holds still; the panel slides in from its outer edge and fades over 200 ms, and leaves the same way over 150 ms, keeping its last content, taking no pointer and keeping its width until it has gone. Under reduced motion it only fades. Sections stack with gap 22:
 
 1. **Header:** title (Newsreader 20/500, line height 1.2) over a 12 `muted` context line ("Page 3 · Repairs backlog"); close icon button (16 px icon) top right.
 2. **Subject preview:** for text annotations, the quoted text (Newsreader 15/1.5 italic `text-2`, curly quotes).
