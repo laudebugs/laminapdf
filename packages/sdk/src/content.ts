@@ -1,5 +1,5 @@
-// What a page already draws, for an editor to select and change: `doc.content` (todo E7d;
-// ADR 0022). Reads need a document opened while the extract or text module was loaded; edits go
+// What a page already draws, for an editor to select and change: `doc.content`
+// (ADR 0022). Reads need a document opened while the extract or text module was loaded; edits go
 // through `apply` as one `editContent` op.
 
 import type { WasmDocument as ExtractWasmDocument } from "@laminapdf/wasm/extract";

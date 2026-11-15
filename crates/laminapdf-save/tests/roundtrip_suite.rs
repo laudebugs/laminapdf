@@ -278,7 +278,7 @@ fn content_edits_round_trip_with_the_rest_of_the_page_unchanged() {
         let page = pages.get(0).unwrap();
         let mut ir = ContentOps::read_page(doc, page.cos(), ContentOwner::Page(page.id().clone())).unwrap();
         interpret_page(doc, &page, &mut ir.recorder(page.frame().unwrap())).unwrap();
-        #[allow(clippy::cast_possible_truncation, reason = "rounded points, well inside i64")]
+        #[expect(clippy::cast_possible_truncation, reason = "rounded points, well inside i64")]
         let round = |r: RectPt| [r.x0, r.y0, r.x1, r.y1].map(|v| (v.get() * 100.0).round() as i64);
         ir.objects()
             .iter()

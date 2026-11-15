@@ -3,7 +3,6 @@
 //! order. Every edit goes through `laminapdf-content`'s IR, so only the objects it names are
 //! written again; the rest of the content keeps its bytes.
 
-mod images;
 mod wire;
 
 use std::collections::BTreeSet;
@@ -15,8 +14,7 @@ use laminapdf_content::{
 use laminapdf_model::{Matrix, PageId, RectPt};
 use serde::{Deserialize, Serialize};
 
-pub(crate) use images::ImageWriter;
-pub use images::{ImageXObjects, WrittenImage};
+use crate::images::ImageXObjects;
 
 use crate::blob::{BlobId, BlobStore};
 use crate::error::{Error, Result};
@@ -222,6 +220,9 @@ impl EditContent {
             interpret_page(doc, &model_page, &mut recorder)?;
         }
         let targets = self.resolve(&ir)?;
+        // A form or Type 3 font without resources of its own draws with the page's (§7.8.3), so
+        // a name the page's operators no longer use may still be needed: then nothing is pruned.
+        let prune = !borrows_page_resources(doc, &page);
         let mut dropped: BTreeSet<ResourceName> = BTreeSet::new();
         let mut writer = PageContentWriter::new(doc.cos_mut().edit(), &page)?;
         let mut removed = false;
@@ -254,9 +255,11 @@ impl EditContent {
             }
         }
         writer.write_parts(&ir, &ir.encode())?;
-        let still_named = ir.resource_names();
-        dropped.retain(|name| !still_named.contains(name));
-        writer.remove_resources(&dropped)?;
+        if prune {
+            let still_named = ir.resource_names();
+            dropped.retain(|name| !still_named.contains(name));
+            writer.remove_resources(&dropped)?;
+        }
         Ok(Effect {
             pages: vec![self.page.clone()],
             removed,
@@ -326,3 +329,30 @@ fn find(ir: &ContentOps, page: &PageId, object: ObjectRef) -> Result<ContentObje
 
 #[cfg(test)]
 mod tests;
+
+/// Whether a Form XObject or Type 3 font in the page's resources has no `/Resources` of its own,
+/// and so reads the page's (§7.8.3: a PDF 1.1 form or font may omit them).
+fn borrows_page_resources(doc: &laminapdf_model::Document, page: &laminapdf_cos::Page) -> bool {
+    let Some(resources) = page.resources_dict() else {
+        return false;
+    };
+    let entries = |category: &str| -> Vec<laminapdf_cos::Object> {
+        match resources.get(category).and_then(|o| doc.deref(o).ok()).as_deref() {
+            Some(laminapdf_cos::Object::Dict(dict)) => dict.iter().map(|(_, o)| o.clone()).collect(),
+            _ => Vec::new(),
+        }
+    };
+    let borrows = |object: &laminapdf_cos::Object, subtype: &[u8]| -> bool {
+        let Ok(object) = doc.deref(object) else {
+            return false;
+        };
+        let dict = match &*object {
+            laminapdf_cos::Object::Dict(dict) => dict,
+            laminapdf_cos::Object::Stream(stream) => &stream.dict,
+            _ => return false,
+        };
+        matches!(dict.get("Subtype"), Some(laminapdf_cos::Object::Name(name)) if name.as_bytes() == subtype)
+            && dict.get("Resources").is_none()
+    };
+    entries("XObject").iter().any(|o| borrows(o, b"Form")) || entries("Font").iter().any(|o| borrows(o, b"Type3"))
+}

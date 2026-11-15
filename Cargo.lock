@@ -3272,6 +3272,7 @@ dependencies = [
  "laminapdf-content",
  "laminapdf-cos",
  "laminapdf-model",
+ "laminapdf-ops",
  "laminapdf-save",
  "laminapdf-syntax",
  "laminapdf-test-fixtures",

@@ -61,7 +61,7 @@ pub struct Document {
     /// What draws new annotations' appearances (E4 plan §2.2).
     appearances: Option<Generator>,
     /// What writes replacement images (E7 plan §2.3).
-    images: Option<crate::content::ImageWriter>,
+    images: Option<crate::images::ImageWriter>,
 }
 
 /// What a save that wrote its bytes means for the rebase onto them
@@ -217,7 +217,7 @@ impl Document {
     /// Added in 0.5.0.
     #[must_use]
     pub fn with_images(mut self, images: impl crate::ImageXObjects + Send + 'static) -> Self {
-        self.images = Some(crate::content::ImageWriter(Box::new(images)));
+        self.images = Some(crate::images::ImageWriter(Box::new(images)));
         self
     }
 

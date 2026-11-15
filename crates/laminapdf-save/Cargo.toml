@@ -48,7 +48,7 @@ path = "examples/golden.rs"
 # This crate's own tests use `test_support` (Cargo allows the self-dependency for tests).
 laminapdf-save = { path = ".", features = ["test-support"] }
 # The op that declares the widgets it touches, for the field-level planner tests (E2r).
-laminapdf-ops = { path = "../laminapdf-ops", features = ["test-support"] }
+laminapdf-ops = { path = "../laminapdf-ops", features = ["test-support", "content-edit"] }
 # The test helpers every crate shares, by path only so `cargo publish` drops it
 # (code-organization.md §6).
 laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }

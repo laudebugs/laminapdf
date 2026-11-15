@@ -25,6 +25,7 @@ mod edit_bookmarks;
 #[path = "../examples/edit_metadata.rs"]
 mod edit_metadata;
 
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/edit_objects.rs"]
 mod edit_objects;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]

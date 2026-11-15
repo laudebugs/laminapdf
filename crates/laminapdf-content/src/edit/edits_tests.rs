@@ -289,3 +289,106 @@ fn resource_names_should_follow_the_operators_that_name_them() {
     let first = id(&ops, 0);
     assert!(ops.object_resource_names(first).iter().all(|n| n.category != "XObject"));
 }
+
+#[test]
+fn the_object_a_moved_one_lands_after_should_keep_only_its_own_operators() {
+    let mut ops = ir(b"0 0 1 1 re f 2 2 1 1 re f 4 4 1 1 re f");
+    let (first, last) = (id(&ops, 0), id(&ops, 2));
+    ops.reorder(first, Placement::Front).unwrap();
+    // The anchor, the old last object, still ends where it did: deleting it leaves the moved one.
+    ops.delete(last).unwrap();
+    let out = written(&ops);
+    assert!(out.contains("0 0 1 1 re") && !out.contains("4 4 1 1 re"), "{out}");
+}
+
+#[test]
+fn a_moved_object_should_land_outside_the_anchors_marked_content() {
+    let mut ops = ir(b"/P <</MCID 0>> BDC 0 0 1 1 re f EMC /P <</MCID 1>> BDC 2 2 1 1 re f EMC");
+    ops.reorder(id(&ops, 0), Placement::Front).unwrap();
+    let out = written(&ops);
+    let second_end = out.find("EMC").unwrap();
+    let first_begin = out.find("/MCID 0").unwrap();
+    assert!(
+        out.find("/MCID 1").unwrap() < second_end && second_end < first_begin,
+        "{out}"
+    );
+}
+
+#[test]
+fn moving_an_object_after_reordering_it_should_use_its_new_place() {
+    let here = GraphicsState {
+        ctm: Matrix::translate(100.0, 0.0),
+        ..GraphicsState::default()
+    };
+    let mut ops = ir_in(
+        b"q 1 0 0 1 100 0 cm 0 0 1 1 re f Q 2 2 1 1 re f",
+        &GraphicsState::default(),
+    );
+    ops.objects[0].state = Some(Box::new(here));
+    let moved = id(&ops, 0);
+    ops.reorder(moved, Placement::Front).unwrap();
+    assert_eq!(
+        ops.object(moved).and_then(ContentObject::state).map(|s| s.ctm),
+        Some(Matrix::IDENTITY)
+    );
+    ops.transform(moved, &Matrix::translate(5.0, 0.0), &frame()).unwrap();
+    // Wrapped twice: the move by 5 in its new place's space, then the reorder's 100.
+    let out = written(&ops);
+    assert!(
+        out.contains("1 0 0 1 5 0 cm") && out.contains("1 0 0 1 100 0 cm"),
+        "{out}"
+    );
+}
+
+#[test]
+fn reordering_by_an_object_an_earlier_edit_deleted_should_be_refused() {
+    let mut ops = ir(b"0 0 1 1 re f 2 2 1 1 re f 4 4 1 1 re f");
+    let (first, second) = (id(&ops, 0), id(&ops, 1));
+    ops.delete(second).unwrap();
+    assert_eq!(
+        ops.reorder(first, Placement::Before(second)),
+        Err(NotEditable::ContentUnreadable)
+    );
+}
+
+#[test]
+fn nothing_should_be_placed_after_a_clipping_path() {
+    let mut ops = ir(b"0 0 50 50 re W n 2 2 1 1 re f 4 4 1 1 re f");
+    let (clip, last) = (id(&ops, 0), id(&ops, 2));
+    assert_eq!(
+        ops.reorder(last, Placement::After(clip)),
+        Err(NotEditable::StateNotPortable)
+    );
+}
+
+#[test]
+fn an_inline_image_should_be_replaced_by_the_new_xobject() {
+    let mut ops = ir(b"q 10 0 0 10 0 0 cm BI /W 1 /H 1 /CS /G /BPC 8 ID \x80 EI Q");
+    ops.objects[0].kind = ContentObjectKind::Image;
+    ops.replace_image(id(&ops, 0), Name::from("Im2"), &Matrix::IDENTITY)
+        .unwrap();
+    let out = written(&ops);
+    assert!(out.contains("/Im2 Do") && !out.contains("BI"), "{out}");
+}
+
+#[test]
+fn text_state_set_by_td_and_the_quote_operator_should_stay_behind() {
+    let mut ops = ir(b"BT /F1 12 Tf 0 -14 TD 1 2 (a) \" ET BT (b) Tj T* (c) Tj ET");
+    ops.delete(id(&ops, 0)).unwrap();
+    let out = written(&ops);
+    assert!(
+        out.contains("14 TL") && out.contains("1 Tw") && out.contains("2 Tc"),
+        "{out}"
+    );
+}
+
+#[test]
+fn an_inline_images_colour_space_should_count_as_named() {
+    let ops = ir(b"BI /W 1 /H 1 /CS /CS0 /BPC 8 ID \x80 EI BI /W 1 /H 1 /CS /RGB /BPC 8 ID \x80\x80\x80 EI");
+    let names: Vec<String> = ops
+        .resource_names()
+        .iter()
+        .map(|n| format!("{}/{}", n.category, String::from_utf8_lossy(n.name.as_bytes())))
+        .collect();
+    assert_eq!(names, ["ColorSpace/CS0"]);
+}

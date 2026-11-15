@@ -9,8 +9,10 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::annot::{AddAnnot, AddReply, Appearances, DeleteAnnot, SetReviewState, UpdateAnnot};
 use crate::class::ModificationClass;
-use crate::content::{EditContent, ImageXObjects};
+#[cfg(feature = "content-edit")]
+use crate::content::EditContent;
 use crate::error::{Error, Result};
+use crate::images::ImageXObjects;
 use crate::info::SetInfo;
 use crate::initial_view::SetInitialView;
 use crate::labels::SetPageLabels;
@@ -143,6 +145,7 @@ pub enum Op {
     SetPageLabels(SetPageLabels),
     /// Change objects a page already draws: move, resize, rotate, delete, replace an image,
     /// crop or reorder them.
+    #[cfg(feature = "content-edit")]
     EditContent(EditContent),
     /// An op that declares the widgets it touches, for the save planner's tests
     /// ([`test_support::Declared`](crate::test_support::Declared)); never on the wire.
@@ -196,6 +199,7 @@ impl Op {
             | Self::UpdateLink(_)
             | Self::DeleteLink(_) => ModificationClass::Annotation,
             Self::SetPageLabels(_) => ModificationClass::Document,
+            #[cfg(feature = "content-edit")]
             Self::EditContent(_) => ModificationClass::Content,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.class(),
@@ -246,8 +250,9 @@ impl Op {
             | Self::AddAnnot(_)
             | Self::AddLink(_)
             | Self::UpdateLink(_)
-            | Self::DeleteLink(_)
-            | Self::EditContent(_) => false,
+            | Self::DeleteLink(_) => false,
+            #[cfg(feature = "content-edit")]
+            Self::EditContent(_) => false,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.requires_rewrite(),
         }
@@ -292,8 +297,9 @@ impl Op {
             | Self::AddAnnot(_)
             | Self::AddLink(_)
             | Self::UpdateLink(_)
-            | Self::DeleteLink(_)
-            | Self::EditContent(_) => Vec::new(),
+            | Self::DeleteLink(_) => Vec::new(),
+            #[cfg(feature = "content-edit")]
+            Self::EditContent(_) => Vec::new(),
             Self::ReplacePages(op) => each(&op.targets, WidgetChange::Deleted),
             Self::RotatePage(op) => vec![PageChange::new(op.page.clone(), WidgetChange::Reshown)],
             Self::RotatePages(op) => each(&op.pages, WidgetChange::Reshown),
@@ -316,6 +322,10 @@ impl Op {
         doc: &mut laminapdf_model::Document,
         sources: &crate::document::Sources,
         appearances: Option<&dyn Appearances>,
+        #[cfg_attr(
+            not(feature = "content-edit"),
+            expect(unused_variables, reason = "only EditContent reads the blobs and the image writer")
+        )]
         content: (&crate::BlobStore, Option<&dyn ImageXObjects>),
     ) -> Result<Effect> {
         match self {
@@ -366,6 +376,7 @@ impl Op {
             Self::UpdateLink(op) => op.apply_to(doc),
             Self::DeleteLink(op) => op.apply_to(doc),
             Self::SetPageLabels(op) => op.apply_to(doc).map(|()| Effect::default()),
+            #[cfg(feature = "content-edit")]
             Self::EditContent(op) => op.apply_to(doc, content.0, content.1),
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.apply_to(doc, sources, self.class(), content),
@@ -489,9 +500,15 @@ op_from!(
     SetReviewState,
     AddLink,
     UpdateLink,
-    DeleteLink,
-    EditContent
+    DeleteLink
 );
+
+#[cfg(feature = "content-edit")]
+impl From<EditContent> for Op {
+    fn from(op: EditContent) -> Self {
+        Self::EditContent(op)
+    }
+}
 
 impl From<SetPageLabels> for Op {
     fn from(op: SetPageLabels) -> Self {

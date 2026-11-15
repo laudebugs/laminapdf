@@ -48,7 +48,9 @@ This example labels a cover, roman front matter and a numbered body:
 
 ## Edit what a page draws
 
-`doc.content.objects(index)` lists the shapes, text, images and other objects a page already draws, in painting order, each with its box in page space. `doc.content.hitTest(index, [x, y])` gives the objects under a point, topmost first. `doc.content.edit(index, edits)` then moves, resizes, deletes, crops, replaces or reorders them in one edit, naming each object as the list gave it. Editing what a page already draws is best effort: an object that clips what follows it, or that would draw differently in its new place in the stacking order, is refused with `content-not-editable` and a reason, and its `readOnly` says why before you try. Only the objects you name are written again, so the rest of the page keeps its bytes. [Edit what a page draws](/recipes/edit-objects/) has the whole program.
+`doc.content.objects(index)` lists the shapes, text, images and other objects a page already draws, in painting order, each with its box in page space. `doc.content.hitTest(index, [x, y])` gives the objects under a point, topmost first. `doc.content.edit(index, edits)` then moves, resizes, deletes, crops, replaces or reorders them in one edit, naming each object as the list gave it. Only the objects you name are written again, so the rest of the page keeps its bytes. [Edit what a page draws](/recipes/edit-objects/) has the whole program.
+
+Editing what a page already draws is best effort. An object that clips what follows it can't be moved, and its `readOnly` says why before you try. A move in the stacking order that would make an object draw differently is refused with `content-not-editable` and a reason.
 
 ## Undo and redo
 

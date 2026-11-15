@@ -7,7 +7,7 @@ use std::fmt;
 use laminapdf_cos::{CosMut, ObjRef};
 use laminapdf_model::Matrix;
 
-/// Writes image XObjects for [`ContentEdit::ReplaceImage`](super::ContentEdit::ReplaceImage).
+/// Writes image XObjects for `ContentEdit::ReplaceImage` (feature `content-edit`).
 /// `laminapdf-build` implements it, and the `laminapdf` façade sets that implementation on
 /// every document it opens. An implementation must be deterministic: the same bytes write the
 /// same objects on every platform, so a replayed op log writes the same file.

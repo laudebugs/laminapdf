@@ -6,7 +6,7 @@
 | Status | `done` |
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [E7c](../done/E7c-content-ir.md) |
+| Depends on | [E7c](./E7c-content-ir.md) |
 | ADRs | Implements ADR 0022; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e7d-select-transform-existing` |
 | PR title | `feat(content): transform, delete, replace and reorder existing objects` |
@@ -34,8 +34,8 @@ Edit existing objects: select (hit-test), move/resize/rotate (`cm` changes), del
 
 **Out of scope** (and which todo covers it)
 
-- The reader's selection, handles and inspectors → [E7k](./E7k-select-transform-ui.md)
-- Deleting text runs → [E7e](./E7e-text-runs-and-inline-edit.md) (`EditText` with empty text)
+- The reader's selection, handles and inspectors → [E7k](../ready/E7k-select-transform-ui.md)
+- Deleting text runs → [E7e](../ready/E7e-text-runs-and-inline-edit.md) (`EditText` with empty text)
 
 **Editor facts**
 
@@ -45,7 +45,7 @@ Edit existing objects: select (hit-test), move/resize/rotate (`cm` changes), del
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked unless the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock` (the signature panel, E10h, reports the later content change)
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `A.07`, `B.01`, `B.02`, `B.08`, `B.12` → `round-trip` (core, pdf); web and desktop in [E7k](./E7k-select-transform-ui.md)
+- **Capability-matrix rows to flip:** `A.07`, `B.01`, `B.02`, `B.08`, `B.12` → `round-trip` (core, pdf); web and desktop in [E7k](../ready/E7k-select-transform-ui.md)
 
 ## Tasks
 

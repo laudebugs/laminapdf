@@ -49,15 +49,14 @@ pub(crate) fn edit(bytes: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
         .rev()
         .find(|o| o.kind == ContentObjectKind::Image)
         .ok_or("no image")?;
-    let (square, second, line) = match shapes.as_slice() {
-        [square, second, line, ..] => (square, second, line),
-        _ => return Err("the page needs three shapes".into()),
+    let [square, second, line, ..] = shapes.as_slice() else {
+        return Err("the page needs three shapes".into());
     };
     let square_box = square.bounds.ok_or("the square draws nothing")?;
     // Page space: points from the top-left, y down. Half size, about the square's centre.
     let (cx, cy) = (
-        (square_box.x0.get() + square_box.x1.get()) / 2.0,
-        (square_box.y0.get() + square_box.y1.get()) / 2.0,
+        f64::midpoint(square_box.x0.get(), square_box.x1.get()),
+        f64::midpoint(square_box.y0.get(), square_box.y1.get()),
     );
     let shrink = Matrix::translate(-cx, -cy)
         .then(&Matrix::scale(0.5, 0.5))

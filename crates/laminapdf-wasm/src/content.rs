@@ -1,4 +1,4 @@
-//! The objects a page draws, for an editor (todo E7d; the extract and text modules, with the
+//! The objects a page draws, for an editor (the extract and text modules, with the
 //! viewer): `contentObjects`, `hitTest`, `hitTestRect` and `addBlob`. The `editContent` op
 //! changes them through `apply`.
 

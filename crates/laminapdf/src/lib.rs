@@ -105,6 +105,7 @@ mod annotations;
 mod builder;
 mod codes;
 mod comments;
+#[cfg(feature = "content-edit")]
 mod content;
 mod data;
 mod document;
@@ -156,12 +157,14 @@ use laminapdf_test_fixtures::codes as test_codes;
 
 pub use annotations::{AnnotationGeometry, PageAnnotation};
 pub use comments::{CommentPart, PageComment};
+#[cfg(feature = "content-edit")]
 pub use content::PageObject;
 pub use document::{Document, DocumentInfo, Edited, PageInfo, ReferenceEdit, ReferenceEditKind, Saved};
 pub use error::{CoreError, Error, Result};
 #[cfg(feature = "explain")]
 pub use generated::explain::explain;
 pub use initial_view::{ArticleThread, OpenTarget, OpeningView, ThreadPart};
+#[cfg(feature = "content-edit")]
 pub use laminapdf_content::{ContentObjectKind, NotEditable};
 pub use laminapdf_cos::Cipher;
 pub use laminapdf_model::FontEncoding;
@@ -201,19 +204,21 @@ pub use laminapdf_model::{
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use laminapdf_ops::{
     AddAnnot, AddLink, AddOutlineItem, AddReply, Anchor, AnnotColor, AnnotCommon, AnnotSpec, AnnotSpecPatch, BlobId,
-    Caret, CaretPatch, CaretSymbol, Carry, ChildItems, ConformanceWarning, ContentEdit, CropMargins, CropPages,
-    DeleteAnnot, DeleteLink, DeleteNamedDestination, DeleteOutlineItem, DeletePages, DestinationUse, DestinationView,
-    DocumentMetadata, DuplicatePages, EditContent, ExplicitDestination, FieldChange, FieldClash, FieldOutcome,
-    InfoPatch, InsertBlankPages, InsertPagesFrom, MarkupKind, MergeDocuments, MergeInput, MergeOptions, MergeSource,
-    MetadataKey, MetadataPatch, MetadataSource, ModificationClass, MoveOutlineItem, MovePages, Note, NoteIcon,
-    NotePatch, ObjectRef, Offset, Op, OpLog, Opacity, OpenAt, OpenZoom, OrientationMethod, OutlineMerge, OutlineStyle,
-    OutlineTarget, PacketStatus, PageBoxes, PageLabelRange, PageOrientation, ReferenceOutcome, ReferencePolicy,
-    RemoveMetadata, RemoveXmpProperty, RenameLinks, RenameNamedDestination, RenamedDestination, ReplacePages,
-    ReplaceXmpPacket, ResizeMode, ResizePages, ReversePages, Reverted, ReviewState, Rgb, RotateMode, RotatePage,
-    RotatePages, SetInfo, SetInitialView, SetMetadata, SetNamedDestination, SetOrientation, SetPageBoxes,
-    SetPageLabels, SetReviewState, SetXmpProperty, SourceId, SplitBy, StackPosition, StructureName, StructureRename,
-    TextMarkup, TextMarkupPatch, UndoOutcome, UpdateAnnot, UpdateLink, UpdateOutlineItem, WindowPreferencesPatch,
+    Caret, CaretPatch, CaretSymbol, Carry, ChildItems, ConformanceWarning, CropMargins, CropPages, DeleteAnnot,
+    DeleteLink, DeleteNamedDestination, DeleteOutlineItem, DeletePages, DestinationUse, DestinationView,
+    DocumentMetadata, DuplicatePages, ExplicitDestination, FieldChange, FieldClash, FieldOutcome, InfoPatch,
+    InsertBlankPages, InsertPagesFrom, MarkupKind, MergeDocuments, MergeInput, MergeOptions, MergeSource, MetadataKey,
+    MetadataPatch, MetadataSource, ModificationClass, MoveOutlineItem, MovePages, Note, NoteIcon, NotePatch, Offset,
+    Op, OpLog, Opacity, OpenAt, OpenZoom, OrientationMethod, OutlineMerge, OutlineStyle, OutlineTarget, PacketStatus,
+    PageBoxes, PageLabelRange, PageOrientation, ReferenceOutcome, ReferencePolicy, RemoveMetadata, RemoveXmpProperty,
+    RenameLinks, RenameNamedDestination, RenamedDestination, ReplacePages, ReplaceXmpPacket, ResizeMode, ResizePages,
+    ReversePages, Reverted, ReviewState, Rgb, RotateMode, RotatePage, RotatePages, SetInfo, SetInitialView,
+    SetMetadata, SetNamedDestination, SetOrientation, SetPageBoxes, SetPageLabels, SetReviewState, SetXmpProperty,
+    SourceId, SplitBy, StructureName, StructureRename, TextMarkup, TextMarkupPatch, UndoOutcome, UpdateAnnot,
+    UpdateLink, UpdateOutlineItem, WindowPreferencesPatch,
 };
+#[cfg(feature = "content-edit")]
+pub use laminapdf_ops::{ContentEdit, EditContent, ObjectRef, StackPosition};
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,
     SaveMode, SaveOptions, SaveReport, SignatureInfo, SignatureKind, Violation, XrefEol, XrefKind,

@@ -354,6 +354,8 @@ pub struct ContentOps {
     dirty: Vec<bool>,
     /// Whether any edit has changed the operators: a [`Recorder`] then records nothing.
     edited: bool,
+    /// Whether a reorder has moved an object, so the objects are no longer in ID order.
+    reordered: bool,
 }
 
 impl ContentOps {
@@ -427,6 +429,7 @@ impl ContentOps {
             removed: Vec::new(),
             dirty,
             edited: false,
+            reordered: false,
         })
     }
 
@@ -614,10 +617,14 @@ impl ContentOps {
         Recorder::new(self, frame)
     }
 
-    /// The object's index in [`ContentOps::objects`]: by search, since a reordered object
-    /// is no longer in ID order.
+    /// The object's index in [`ContentOps::objects`]: a binary search while the objects are in
+    /// ID order, a scan once a reorder has moved one.
     fn position(&self, id: ContentObjectId) -> Option<usize> {
-        self.objects.iter().position(|o| o.id == id)
+        if self.reordered {
+            self.objects.iter().position(|o| o.id == id)
+        } else {
+            self.objects.binary_search_by_key(&id, |o| o.id).ok()
+        }
     }
 
     /// The object's bytes, as a lasting name hashes them: its source from its first token

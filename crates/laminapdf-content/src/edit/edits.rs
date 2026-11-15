@@ -1,4 +1,4 @@
-//! Edits to existing objects (ADR 0022 §1, §3; todo E7d): move, resize and rotate (a `cm`
+//! Edits to existing objects (ADR 0022 §1, §3): move, resize and rotate (a `cm`
 //! around the object), crop (a clip around it), delete, swap an image for another XObject, and
 //! move it in the stacking order. Each rewrites only the object it edits, through
 //! [`ContentOps::replace`]'s splice, so the encoder copies every other byte as it was.
@@ -161,11 +161,12 @@ impl ContentOps {
         } else {
             vec![op(b"q", Vec::new()), cm(unit), draw, op(b"Q", Vec::new())]
         };
-        // Only the `Do` changes: the rest of the object's operators, the state it sets and an
-        // earlier edit's `q … cm … Q` around it, stay.
+        // Only the `Do` (or the inline image) changes: the rest of the object's operators, the
+        // state it sets and an earlier edit's `q … cm … Q` around it, stay. An XObject image and
+        // an inline image both fill the unit square, so the new one fills the same box.
         let mut new = Vec::new();
         for old in self.own_ops(id)? {
-            if old.keyword[..] == *b"Do" {
+            if old.keyword[..] == *b"Do" || old.inline_image.is_some() {
                 new.extend(new_draw.iter().cloned());
             } else {
                 new.push(old);
@@ -189,9 +190,14 @@ impl ContentOps {
     pub fn reorder(&mut self, id: ContentObjectId, to: Placement) -> Result<(), NotEditable> {
         let ops = self.own_ops(id)?;
         let state = self.state_of(id)?;
-        let Some((anchor, after)) = self.anchor_for(id, to) else {
+        let Some((anchor, after)) = self.anchor_for(id, to)? else {
             return Ok(());
         };
+        // The state after a clipping object includes its clip, which its recorded states
+        // don't: nothing can be placed after it as it would draw there.
+        if after && matches!(self.own_ops(anchor), Err(NotEditable::ClippingPath)) {
+            return Err(NotEditable::StateNotPortable);
+        }
         let target = self.position(anchor).and_then(|i| self.objects.get(i));
         let there = if after {
             target.and_then(|o| o.end_state.as_deref())
@@ -223,18 +229,45 @@ impl ContentOps {
             .get(target)
             .map(super::ContentObject::operators)
             .ok_or(NotEditable::ContentUnreadable)?;
+        // Outside the marked content that starts or ends with the anchor, so the moved object
+        // joins no other structure element.
         let (at, slot) = if after {
-            (range.end, target + 1)
+            (self.past_closing(range.end), target + 1)
         } else {
-            (range.start, target)
+            (self.before_opening(range.start), target)
         };
         let count = moved.len();
         self.insert_ops(at, moved);
         object.ops = at..at + count;
         object.marked.clear();
         object.bounds = None;
+        // It now draws in its new place's state, inside its own `q … Q`.
+        object.state = Some(Box::new(there.clone()));
+        object.end_state = Some(Box::new(there));
         self.objects.insert(slot, object);
+        self.reordered = true;
         Ok(())
+    }
+
+    /// `at` moved past every `EMC` right at it that closes a sequence begun before it.
+    fn past_closing(&self, mut at: usize) -> usize {
+        while self.marked.iter().any(|seq| seq.end == Some(at) && seq.begin < at) {
+            at += 1;
+        }
+        at
+    }
+
+    /// `at` moved before every `BMC`/`BDC` right before it whose sequence holds it.
+    fn before_opening(&self, mut at: usize) -> usize {
+        while let Some(start) = at.checked_sub(1)
+            && self
+                .marked
+                .iter()
+                .any(|seq| seq.begin == start && seq.end.is_none_or(|end| end >= at))
+        {
+            at = start;
+        }
+        at
     }
 
     /// `range` grown by every marked-content sequence that holds exactly it: a `BMC`/`BDC`
@@ -267,7 +300,7 @@ impl ContentOps {
     /// Added in 0.5.0.
     #[must_use]
     pub fn resource_names(&self) -> BTreeSet<ResourceName> {
-        self.ops.iter().filter_map(resource_name).collect()
+        self.ops.iter().flat_map(resource_names_of).collect()
     }
 
     /// The resources the object's operators name.
@@ -280,7 +313,7 @@ impl ContentOps {
             .get(range)
             .unwrap_or_default()
             .iter()
-            .filter_map(resource_name)
+            .flat_map(resource_names_of)
             .collect()
     }
 
@@ -313,18 +346,28 @@ impl ContentOps {
 
     /// The object `to` places `id` by, and whether `id` goes after it; `None` when the object
     /// would stay where it is.
-    fn anchor_for(&self, id: ContentObjectId, to: Placement) -> Option<(ContentObjectId, bool)> {
+    ///
+    /// # Errors
+    /// [`NotEditable::ContentUnreadable`] when `id` or the object named by `to` doesn't exist
+    /// (an earlier edit deleted it).
+    fn anchor_for(&self, id: ContentObjectId, to: Placement) -> Result<Option<(ContentObjectId, bool)>, NotEditable> {
         let others = || self.objects.iter().map(|o| o.id).filter(|&o| o != id);
         let (anchor, after) = match to {
-            Placement::Front => (others().next_back()?, true),
-            Placement::Back => (others().next()?, false),
+            Placement::Front => match others().next_back() {
+                Some(last) => (last, true),
+                None => return Ok(None),
+            },
+            Placement::Back => match others().next() {
+                Some(first) => (first, false),
+                None => return Ok(None),
+            },
             Placement::Before(anchor) => (anchor, false),
             Placement::After(anchor) => (anchor, true),
         };
-        let here = self.position(id)?;
-        let there = self.position(anchor)?;
+        let here = self.position(id).ok_or(NotEditable::ContentUnreadable)?;
+        let there = self.position(anchor).ok_or(NotEditable::ContentUnreadable)?;
         let unchanged = anchor == id || (after && there + 1 == here) || (!after && here + 1 == there);
-        (!unchanged).then_some((anchor, after))
+        Ok((!unchanged).then_some((anchor, after)))
     }
 
     /// Takes the object out of the content, writing `keep` where it was.
@@ -349,7 +392,14 @@ impl ContentOps {
         self.ops.splice(at..at, new);
         let shift = |i: usize| if i >= at { i + added } else { i };
         for object in &mut self.objects {
-            object.ops = shift(object.ops.start)..shift(object.ops.end);
+            // A range that ends at `at` stays where it is: the new operators follow it.
+            let start = shift(object.ops.start);
+            let end = if object.ops.end > at || object.ops.start >= at {
+                object.ops.end + added
+            } else {
+                object.ops.end
+            };
+            object.ops = start..end;
         }
         for seq in &mut self.marked {
             seq.begin = shift(seq.begin);
@@ -469,11 +519,70 @@ fn leaked_state(ops: &[ContentOp]) -> Vec<ContentOp> {
         match &o.keyword[..] {
             b"q" => depth += 1,
             b"Q" => depth = depth.saturating_sub(1),
-            keyword if depth == 0 && LEAVES_STATE.contains(&keyword) => out.push(o.clone()),
+            _ if depth > 0 => {}
+            keyword if LEAVES_STATE.contains(&keyword) => out.push(o.clone()),
+            // `tx ty TD` also sets the leading to -ty (§9.4.2), and `aw ac string "` sets the
+            // word and character spacing (§9.4.3); both are text-object operators, so the state
+            // is written as `TL`, `Tw` and `Tc`, which are allowed anywhere.
+            b"TD" => {
+                if let Some(ty) = o.operands.get(1).and_then(Object::as_f64) {
+                    out.push(op(b"TL", vec![Object::number(-ty)]));
+                }
+            }
+            b"\"" => {
+                if let [aw, ac, ..] = o.operands.as_slice() {
+                    out.push(op(b"Tw", vec![aw.clone()]));
+                    out.push(op(b"Tc", vec![ac.clone()]));
+                }
+            }
             _ => {}
         }
     }
     out
+}
+
+/// The resources an operator names: one for most, the colour space an inline image names by
+/// `/CS` or `/ColorSpace` (§8.9.7).
+fn resource_names_of(op: &ContentOp) -> Vec<ResourceName> {
+    match &op.inline_image {
+        Some(image) => inline_color_space(image)
+            .map(|name| ResourceName {
+                category: "ColorSpace",
+                name,
+            })
+            .into_iter()
+            .collect(),
+        None => resource_name(op).into_iter().collect(),
+    }
+}
+
+/// The colour space an inline image names in its dictionary (before `ID`), if it names one
+/// rather than giving a device space by its abbreviation.
+fn inline_color_space(image: &[u8]) -> Option<Name> {
+    let dict = image
+        .windows(2)
+        .position(|w| w == b"ID")
+        .map_or(image, |end| image.get(..end).unwrap_or(image));
+    let mut tokens = dict
+        .split(|&b| b.is_ascii_whitespace() || b == b'/')
+        .filter(|t| !t.is_empty());
+    while let Some(token) = tokens.next() {
+        if token == b"CS" || token == b"ColorSpace" {
+            let name = tokens.next()?;
+            let device = [
+                &b"G"[..],
+                b"RGB",
+                b"CMYK",
+                b"I",
+                b"DeviceGray",
+                b"DeviceRGB",
+                b"DeviceCMYK",
+                b"Indexed",
+            ];
+            return (!device.contains(&name)).then(|| Name::new(name));
+        }
+    }
+    None
 }
 
 /// The resource an operator names, if any.

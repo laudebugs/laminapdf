@@ -1,4 +1,4 @@
-//! The objects a page draws, for an editor to select and change (ADR 0022; todo E7d):
+//! The objects a page draws, for an editor to select and change (ADR 0022):
 //! [`Document::content_objects`], [`Document::hit_test`] and [`Document::hit_test_rect`].
 //! [`EditContent`](crate::EditContent) changes them.
 

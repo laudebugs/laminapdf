@@ -398,3 +398,31 @@ fn the_frozen_sample_applies_to_the_page_it_was_written_for() {
         ]
     );
 }
+
+/// A form without resources of its own draws with the page's (§7.8.3), so deleting the page's
+/// own use of an image the form also draws keeps the image in the resources.
+#[test]
+fn resources_a_form_borrows_from_the_page_should_stay() {
+    let form = stream_body("/Type /XObject /Subtype /Form /BBox [0 0 1 1]", b"/Im1 Do");
+    let image = stream_body(
+        "/Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8",
+        b"\x80",
+    );
+    let content = stream_body("", b"q 40 0 0 40 0 0 cm /Fm1 Do Q\nq 40 0 0 40 100 100 cm /Im1 Do Q\n");
+    let objects: [&[u8]; 6] = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Resources << /XObject << /Fm1 5 0 R /Im1 6 0 R >> >> >>",
+        &content,
+        &form,
+        &image,
+    ];
+    let mut doc = open(&classic(&objects, "<< /Size 7 /Root 1 0 R >>"));
+    edit(&mut doc, 0, |doc| {
+        vec![ContentEdit::Delete {
+            object: object(doc, 0, 1),
+        }]
+    })
+    .unwrap();
+    assert_eq!(resources(&doc, 0, "XObject"), ["Fm1", "Im1"]);
+}
