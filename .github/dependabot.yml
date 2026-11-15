@@ -1,5 +1,15 @@
-# Dependency updates (ADR 0019). Weekly, minor/patch grouped per ecosystem, with a cooldown so
-# brand-new releases (the usual window for a compromised publish) are not picked up immediately.
+# Dependency updates (ADR 0019). Weekly. Packages that must move together share a group, so each
+# update arrives as one PR that can pass CI; the rest come grouped as minor/patch per ecosystem.
+# A dependency joins the first group that matches it, so the specific groups come first.
+#
+# Cooldown: Cargo and npm wait 14 days, the age this repository asks of any version it adds
+# ("pinned to a release at least two weeks old"). The npm wait must also stay at or above pnpm's
+# `minimumReleaseAge` (pnpm 11's default: 1 day), or pnpm would refuse the version Dependabot
+# proposes; a test in tools/xtask/src/workflows/dependabot.rs holds the two together.
+#
+# The fixup workflow regenerates actions.lock and the updates Worker's Wrangler types. Only
+# actions.lock is verified and committed automatically; generated types need review.
+#
 # Only the root workspaces are covered: spikes/ is frozen research code. The docker entry bumps
 # the Linux CI runner's base image (tools/ci-runner/linux); the runner's agent rebuilds from main.
 version: 2
@@ -9,12 +19,27 @@ updates:
     schedule:
       interval: weekly
     cooldown:
-      default-days: 7
+      default-days: 14
+    ignore:
+      # tauri-plugin-wdio and @wdio/tauri-* (npm) are one release across two ecosystems, which
+      # Dependabot can't update in one PR: bump both by hand.
+      - dependency-name: "tauri-plugin-wdio*"
     groups:
-      # Tauri and its plugins move together (ADR 0008): one PR, checked by the desktop build.
-      # Listed first, since a dependency joins the first group that matches it.
+      # Tauri, its plugins and muda (Tauri's menu crate) move together (ADR 0008): one PR,
+      # checked by the desktop build.
       tauri:
-        patterns: ["tauri", "tauri-*"]
+        patterns: ["tauri", "tauri-*", "muda"]
+      # hayro's decoders share its types, and their 0.x minors change the API. Every update
+      # type, so one PR carries the code change.
+      hayro:
+        patterns: ["hayro", "hayro-*"]
+      # skrifa and harfrust both build on read-fonts, which must be one version.
+      fontations:
+        patterns: ["skrifa", "read-fonts", "font-types", "harfrust"]
+      # The wasm-bindgen crates release together; CI installs wasm-bindgen-cli at the version in
+      # Cargo.lock (tools/xtask/src/doctor.rs).
+      wasm-bindgen:
+        patterns: ["wasm-bindgen", "wasm-bindgen-*", "js-sys", "web-sys"]
       cargo-minor-patch:
         update-types: [minor, patch]
     commit-message:
@@ -26,7 +51,13 @@ updates:
     schedule:
       interval: weekly
     cooldown:
-      default-days: 7
+      default-days: 14
+    ignore:
+      # Pinned with tools/roundtrip's and tools/corpus-facts' copies and with the differential
+      # facts measured with it; a bump re-measures them by hand.
+      - dependency-name: "pdfjs-dist"
+      # One release with the tauri-plugin-wdio crate (see the cargo entry).
+      - dependency-name: "@wdio/tauri-*"
     groups:
       # The desktop app's @tauri-apps/api and cli, in step with the tauri crate (ADR 0008).
       tauri:
@@ -36,6 +67,18 @@ updates:
       # and Astro"). Any later @astrojs/* package joins this group too.
       starlight:
         patterns: ["astro", "@astrojs/*", "starlight-*"]
+      # WebdriverIO's packages share a major; the desktop e2e suite runs them.
+      wdio:
+        patterns: ["@wdio/*", "webdriverio"]
+      # Wrangler runs the Miniflare it pins, and the workspace pins that Miniflare too.
+      cloudflare:
+        patterns: ["wrangler", "miniflare", "@cloudflare/*"]
+      # Vitest's browser mode runs Playwright, so they move together.
+      test-runners:
+        patterns: ["vite", "vitest", "@vitest/*", "playwright", "@playwright/*"]
+      # A Biome release adds lint rules, which usually need code changes: a PR of its own.
+      biome:
+        patterns: ["@biomejs/*"]
       npm-minor-patch:
         update-types: [minor, patch]
     commit-message:
@@ -44,8 +87,8 @@ updates:
 
   - package-ecosystem: github-actions
     # The workflows and our composite actions (.github/actions/*/action.yml). A workflow's update also
-    # rewrites its entry in .github/workflows/actions.lock (ADR 0019). If an update leaves the lockfile
-    # behind, the `lockfile` job fails: run `gh actions-lock` on Dependabot's branch (contributing.md).
+    # rewrites its entry in .github/workflows/actions.lock (ADR 0019); an update in a composite
+    # action leaves it behind, and dependabot-fixup.yml regenerates it.
     directories: ["/", "/.github/actions/*"]
     schedule:
       interval: weekly

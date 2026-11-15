@@ -1,7 +1,7 @@
 ---
 title: "Generate, then edit"
 description: "Build a one-page draft, open its bytes, retitle it in one transaction and save the edit as a revision after the original bytes."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/recipes/generate-then-edit/"
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: "Install the command-line tool"
 description: "Install the laminapdf command with Homebrew or npm, or download it for macOS, Linux or Windows and check it against its checksum."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/cli/install/"
 ---
 
@@ -24,10 +24,10 @@ brew install laudebugs/tap/laminapdf
 npm installs the same tool, with no Rust or WebAssembly involved:
 
 ```sh
-npm install -g @laminapdf/cli@0.3.0
+npm install -g @laminapdf/cli@0.4.0
 ```
 
-To run it once without installing it, use `npx @laminapdf/cli@0.3.0 info report.pdf`. The package holds a small launcher, and npm installs the build for your system as one of its optional dependencies. No install script runs and nothing else is downloaded.
+To run it once without installing it, use `npx @laminapdf/cli@0.4.0 info report.pdf`. The package holds a small launcher, and npm installs the build for your system as one of its optional dependencies. No install script runs and nothing else is downloaded.
 
 ## Download it
 
@@ -35,16 +35,16 @@ Each release attaches the tool, built for eight systems, to its page on GitHub. 
 
 | System | Archive | Checksum |
 | --- | --- | --- |
-| macOS, Apple silicon | [laminapdf-cli-aarch64-apple-darwin.tar.xz](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.3.0/laminapdf-cli-aarch64-apple-darwin.tar.xz) | [.sha256](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.3.0/laminapdf-cli-aarch64-apple-darwin.tar.xz.sha256) |
-| macOS, Intel | [laminapdf-cli-x86_64-apple-darwin.tar.xz](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.3.0/laminapdf-cli-x86_64-apple-darwin.tar.xz) | [.sha256](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.3.0/laminapdf-cli-x86_64-apple-darwin.tar.xz.sha256) |
-| Linux, Arm64 | [laminapdf-cli-aarch64-unknown-linux-gnu.tar.xz](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.3.0/laminapdf-cli-aarch64-unknown-linux-gnu.tar.xz) | [.sha256](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.3.0/laminapdf-cli-aarch64-unknown-linux-gnu.tar.xz.sha256) |
-| Linux, x86-64 | [laminapdf-cli-x86_64-unknown-linux-gnu.tar.xz](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.3.0/laminapdf-cli-x86_64-unknown-linux-gnu.tar.xz) | [.sha256](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.3.0/laminapdf-cli-x86_64-unknown-linux-gnu.tar.xz.sha256) |
-| Linux, Arm64, static | [laminapdf-cli-aarch64-unknown-linux-musl.tar.xz](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.3.0/laminapdf-cli-aarch64-unknown-linux-musl.tar.xz) | [.sha256](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.3.0/laminapdf-cli-aarch64-unknown-linux-musl.tar.xz.sha256) |
-| Linux, x86-64, static | [laminapdf-cli-x86_64-unknown-linux-musl.tar.xz](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.3.0/laminapdf-cli-x86_64-unknown-linux-musl.tar.xz) | [.sha256](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.3.0/laminapdf-cli-x86_64-unknown-linux-musl.tar.xz.sha256) |
-| Windows, Arm64 | [laminapdf-cli-aarch64-pc-windows-msvc.zip](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.3.0/laminapdf-cli-aarch64-pc-windows-msvc.zip) | [.sha256](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.3.0/laminapdf-cli-aarch64-pc-windows-msvc.zip.sha256) |
-| Windows, x86-64 | [laminapdf-cli-x86_64-pc-windows-msvc.zip](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.3.0/laminapdf-cli-x86_64-pc-windows-msvc.zip) | [.sha256](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.3.0/laminapdf-cli-x86_64-pc-windows-msvc.zip.sha256) |
+| macOS, Apple silicon | [laminapdf-cli-aarch64-apple-darwin.tar.xz](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.4.0/laminapdf-cli-aarch64-apple-darwin.tar.xz) | [.sha256](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.4.0/laminapdf-cli-aarch64-apple-darwin.tar.xz.sha256) |
+| macOS, Intel | [laminapdf-cli-x86_64-apple-darwin.tar.xz](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.4.0/laminapdf-cli-x86_64-apple-darwin.tar.xz) | [.sha256](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.4.0/laminapdf-cli-x86_64-apple-darwin.tar.xz.sha256) |
+| Linux, Arm64 | [laminapdf-cli-aarch64-unknown-linux-gnu.tar.xz](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.4.0/laminapdf-cli-aarch64-unknown-linux-gnu.tar.xz) | [.sha256](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.4.0/laminapdf-cli-aarch64-unknown-linux-gnu.tar.xz.sha256) |
+| Linux, x86-64 | [laminapdf-cli-x86_64-unknown-linux-gnu.tar.xz](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.4.0/laminapdf-cli-x86_64-unknown-linux-gnu.tar.xz) | [.sha256](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.4.0/laminapdf-cli-x86_64-unknown-linux-gnu.tar.xz.sha256) |
+| Linux, Arm64, static | [laminapdf-cli-aarch64-unknown-linux-musl.tar.xz](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.4.0/laminapdf-cli-aarch64-unknown-linux-musl.tar.xz) | [.sha256](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.4.0/laminapdf-cli-aarch64-unknown-linux-musl.tar.xz.sha256) |
+| Linux, x86-64, static | [laminapdf-cli-x86_64-unknown-linux-musl.tar.xz](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.4.0/laminapdf-cli-x86_64-unknown-linux-musl.tar.xz) | [.sha256](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.4.0/laminapdf-cli-x86_64-unknown-linux-musl.tar.xz.sha256) |
+| Windows, Arm64 | [laminapdf-cli-aarch64-pc-windows-msvc.zip](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.4.0/laminapdf-cli-aarch64-pc-windows-msvc.zip) | [.sha256](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.4.0/laminapdf-cli-aarch64-pc-windows-msvc.zip.sha256) |
+| Windows, x86-64 | [laminapdf-cli-x86_64-pc-windows-msvc.zip](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.4.0/laminapdf-cli-x86_64-pc-windows-msvc.zip) | [.sha256](https://github.com/laudebugs/laminapdf/releases/download/laminapdf-cli-v0.4.0/laminapdf-cli-x86_64-pc-windows-msvc.zip.sha256) |
 
-The Linux builds use the system's C library, glibc. The static builds carry their own, so they also run where glibc is missing, such as Alpine Linux and minimal containers. Every link above is for version 0.3.0; the [release page](https://github.com/laudebugs/laminapdf/releases/tag/laminapdf-cli-v0.3.0) also has `sha256.sum`, every checksum in one file.
+The Linux builds use the system's C library, glibc. The static builds carry their own, so they also run where glibc is missing, such as Alpine Linux and minimal containers. Every link above is for version 0.4.0; the [release page](https://github.com/laudebugs/laminapdf/releases/tag/laminapdf-cli-v0.4.0) also has `sha256.sum`, every checksum in one file.
 
 ### Check the download
 
@@ -86,7 +86,7 @@ It also writes `bash`, `fish`, `powershell` and `elvish` scripts.
 
 ```console
 $ laminapdf --version
-laminapdf 0.3.0
+laminapdf 0.4.0
 ```
 
 ## Try a change before it's released

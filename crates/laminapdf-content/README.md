@@ -20,5 +20,5 @@ Tests: unit tests in `src/{operator,lexer,state}.rs`; `tests/operators.rs` (ever
 ```sh
 cargo test -p laminapdf-content
 cargo xtask fuzz content --time 600
-cargo +nightly fuzz run content_append_scan --fuzz-dir fuzz -- -max_total_time=600
+cargo xtask fuzz content_append_scan --time 600
 ```

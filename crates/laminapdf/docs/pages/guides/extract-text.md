@@ -1,7 +1,7 @@
 ---
 title: "Extract text and Markdown"
 description: "Get a PDF's text out in reading order as plain text, Markdown, JSON with a box for every block, or chunks for retrieval, in TypeScript and Rust."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/guides/extract-text/"
 ---
 
@@ -409,6 +409,20 @@ Total € 135.40
 ```
 
 A token here is about four characters. That count runs low for code, numbers and scripts other than Latin, so leave room under your model's limit. `overlap` repeats whole paragraphs from the end of the previous chunk, and `splitOn` (`with_split_on`) chooses where else a chunk starts: at each heading (`"headings"`, the default), at each page (`"pages"`), or only when the budget runs out (`"blocks"`).
+
+## Get the images
+
+`extractImages()` (`extract_images` in Rust) gives the images the pages draw, each as a file you can save:
+
+- **JPEG and JPEG 2000 images** come out as the file stores them, byte for byte, so nothing is lost to a second compression.
+- **Every other image** is decoded to a PNG, its colours converted to grey or RGB and its mask made transparency.
+- **An image a page draws twice**, or that several pages draw, comes out once, on the first page that draws it.
+
+Each image carries its page, its size, its colour space and its file's `extension`. An image Lamina PDF can't decode is listed in `skipped` with the reason, and the rest still come out. In TypeScript that includes JBIG2 images (scanned text), which the WebAssembly modules leave out for their size.
+
+## Get the links and the outline
+
+`linksJson()` and `outlineJson()` give every page's links and the outline (the bookmarks a reader lists in its sidebar) as JSON, in the formats `laminapdf.links/1` and `laminapdf.outline/1`. A link's page and rectangle are in points from the page's top-left, and each says where it goes: a page here, a web address or another file. `linksCsv()` and `outlineCsv()` give the same as CSV for a spreadsheet, one row a link or an outline item, each item with its level. In Rust they are `links_json`, `outline_json`, `links_csv` and `outline_csv` on `Document`.
 
 ## Reading order
 

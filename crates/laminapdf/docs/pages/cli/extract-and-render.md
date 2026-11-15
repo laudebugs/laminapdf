@@ -1,7 +1,7 @@
 ---
 title: "Extract text and render pages"
 description: "Read a PDF's text, or its blocks in reading order as Markdown, JSON or chunks for an LLM, and draw its pages as PNG images from the command line."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/cli/extract-and-render/"
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: "Install"
 description: "Install Lamina PDF from npm or crates.io, and find every published package."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/install/"
 ---
 
@@ -16,10 +16,10 @@ Lamina PDF is published to npm as [`@laminapdf/sdk`](https://www.npmjs.com/packa
 Install the version these docs describe:
 
 ```sh
-npm install @laminapdf/sdk@0.3.0
+npm install @laminapdf/sdk@0.4.0
 ```
 
-Without a version, `npm install @laminapdf/sdk` installs the newest release. pnpm, Yarn and Bun take the same name (`pnpm add @laminapdf/sdk@0.3.0`), and Deno takes `npm:@laminapdf/sdk@0.3.0`. The package brings [`@laminapdf/wasm`](https://www.npmjs.com/package/@laminapdf/wasm), its WebAssembly modules, as a dependency.
+Without a version, `npm install @laminapdf/sdk` installs the newest release. pnpm, Yarn and Bun take the same name (`pnpm add @laminapdf/sdk@0.4.0`), and Deno takes `npm:@laminapdf/sdk@0.4.0`. The package brings [`@laminapdf/wasm`](https://www.npmjs.com/package/@laminapdf/wasm), its WebAssembly modules, as a dependency.
 
 The package is ESM only. It has one entry per runtime (the `workerd`, `deno`, `browser`, `node` and `default` export conditions), and each entry loads the `.wasm` its own way. The [quick starts](../pages/quick-start/browser.md) show each one.
 
@@ -28,10 +28,10 @@ The package is ESM only. It has one entry per runtime (the `workerd`, `deno`, `b
 Add the crate at the version these docs describe:
 
 ```sh
-cargo add laminapdf@0.3.0
+cargo add laminapdf@0.4.0
 ```
 
-The command writes `laminapdf = "0.3.0"` to `Cargo.toml`, and Cargo reads it as this release or a later one in the same `0.x` line, which the [stability policy](../pages/reference/stability.md) promises needs no change to your code.
+The command writes `laminapdf = "0.4.0"` to `Cargo.toml`, and Cargo reads it as this release or a later one in the same `0.x` line, which the [stability policy](../pages/reference/stability.md) promises needs no change to your code.
 
 The default features start with `text`: fonts and text, which includes the builder and text extraction. Four more are on by default: `markdown` (Markdown in, flowing pages out), `document` (JSON documents in, flowing pages out), `reflow` (a tagged document's text in reading order, for reader mode) and `saslprep` (passwords for AES-256 files). For reading and editing only, add `--no-default-features`, then turn on what you need: `build` for the builder without text, `extract` for text extraction alone. `explain`, off by default, gives each code's page as text. [Your first PDF in Rust](../pages/start/first-pdf-rust.md) walks through a first program.
 

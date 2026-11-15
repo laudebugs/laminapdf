@@ -1,7 +1,7 @@
 ---
 title: "Your first PDF in Rust"
 description: "Write hello.pdf from a Rust program in five minutes."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/start/first-pdf-rust/"
 ---
 
@@ -17,7 +17,7 @@ You need Rust 1.97 or newer. Create a project and add the `laminapdf` crate:
 
 ```sh
 cargo new hello-pdf && cd hello-pdf
-cargo add laminapdf@0.3.0
+cargo add laminapdf@0.4.0
 ```
 
 This adds the version these docs describe. Cargo reads it as this release or a later one in the same `0.x` line, which the [stability policy](../../pages/reference/stability.md) promises needs no change to your code. [Install](../../pages/install.md#rust-laminapdf) covers the crate's features.

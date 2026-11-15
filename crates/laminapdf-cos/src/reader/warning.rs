@@ -33,6 +33,13 @@ pub enum Warning {
         /// The stream's object number.
         object: u32,
     },
+    /// `dictionary-key-skipped`: a dictionary had something other than a name where a key
+    /// belongs (a stray keyword, number, string, array or unbalanced `)` or `>`); it was
+    /// skipped and the rest of the dictionary read, as pdf.js and PDFium do.
+    DictionaryKeySkipped {
+        /// The object holding the dictionary (`None` for a trailer or xref-stream dictionary).
+        object: Option<u32>,
+    },
     /// `stale-generation`: a reference's generation did not match its xref entry, so it
     /// resolved to `null` (§7.3.10).
     StaleGeneration {
@@ -58,6 +65,14 @@ pub enum Warning {
     },
     /// `flate-truncated`: Flate output was kept despite truncation or a bad checksum.
     FlateTruncated {
+        /// The stream's object number, when known.
+        object: Option<u32>,
+    },
+    /// `filter-characters-skipped`: `ASCIIHexDecode` or `ASCII85Decode` data held characters
+    /// outside the filter's alphabet, which were skipped.
+    ///
+    /// Added in 0.4.0.
+    FilterCharactersSkipped {
         /// The stream's object number, when known.
         object: Option<u32>,
     },
@@ -354,10 +369,12 @@ impl Warning {
         "xref-repaired",
         "xrefstm-ignored",
         "stream-length-recovered",
+        "dictionary-key-skipped",
         "stale-generation",
         "page-tree-node-skipped",
         "page-count-mismatch",
         "flate-truncated",
+        "filter-characters-skipped",
         "objstm-index-mismatch",
         "object-number-out-of-range",
         "aes-padding-invalid",
@@ -407,10 +424,12 @@ impl Warning {
             Self::XrefRepaired => "xref-repaired",
             Self::XrefStmIgnored { .. } => "xrefstm-ignored",
             Self::StreamLengthRecovered { .. } => "stream-length-recovered",
+            Self::DictionaryKeySkipped { .. } => "dictionary-key-skipped",
             Self::StaleGeneration { .. } => "stale-generation",
             Self::PageTreeNodeSkipped { .. } => "page-tree-node-skipped",
             Self::PageCountMismatch { .. } => "page-count-mismatch",
             Self::FlateTruncated { .. } => "flate-truncated",
+            Self::FilterCharactersSkipped { .. } => "filter-characters-skipped",
             Self::ObjStmIndexMismatch { .. } => "objstm-index-mismatch",
             Self::ObjectNumberOutOfRange { .. } => "object-number-out-of-range",
             Self::AesPaddingInvalid { .. } => "aes-padding-invalid",
@@ -465,8 +484,10 @@ impl Warning {
             | Self::AesPaddingInvalid { object }
             | Self::XObjectCycle { object } => Some(object),
             Self::PageTreeNodeSkipped { object }
+            | Self::DictionaryKeySkipped { object }
             | Self::PageCountMismatch { object, .. }
             | Self::FlateTruncated { object }
+            | Self::FilterCharactersSkipped { object }
             | Self::InvalidBox { object, .. }
             | Self::InvalidRotate { object, .. }
             | Self::NameTreeNodeSkipped { object }
@@ -518,10 +539,12 @@ impl Warning {
             | Self::XrefRepaired
             | Self::XrefStmIgnored { .. }
             | Self::StreamLengthRecovered { .. }
+            | Self::DictionaryKeySkipped { .. }
             | Self::StaleGeneration { .. }
             | Self::PageTreeNodeSkipped { .. }
             | Self::PageCountMismatch { .. }
             | Self::FlateTruncated { .. }
+            | Self::FilterCharactersSkipped { .. }
             | Self::ObjStmIndexMismatch { .. }
             | Self::InvalidBox { .. }
             | Self::InvalidRotate { .. }
@@ -690,6 +713,7 @@ mod tests {
             Warning::XrefRepaired,
             Warning::XrefStmIgnored { offset: 1 },
             Warning::StreamLengthRecovered { object: 1 },
+            Warning::DictionaryKeySkipped { object: None },
             Warning::StaleGeneration {
                 object: 1,
                 generation: 1,
@@ -701,6 +725,7 @@ mod tests {
                 walked: 0,
             },
             Warning::FlateTruncated { object: None },
+            Warning::FilterCharactersSkipped { object: None },
             Warning::ObjStmIndexMismatch { object: 1 },
             Warning::ObjectNumberOutOfRange { object: 1 },
             Warning::AesPaddingInvalid { object: 1 },
@@ -799,10 +824,12 @@ mod tests {
                 | Warning::XrefRepaired
                 | Warning::XrefStmIgnored { .. }
                 | Warning::StreamLengthRecovered { .. }
+                | Warning::DictionaryKeySkipped { .. }
                 | Warning::StaleGeneration { .. }
                 | Warning::PageTreeNodeSkipped { .. }
                 | Warning::PageCountMismatch { .. }
                 | Warning::FlateTruncated { .. }
+                | Warning::FilterCharactersSkipped { .. }
                 | Warning::ObjStmIndexMismatch { .. }
                 | Warning::ObjectNumberOutOfRange { .. }
                 | Warning::AesPaddingInvalid { .. }

@@ -1,7 +1,7 @@
 ---
 title: "Organise pages"
 description: "Delete, move, insert and rotate a PDF's pages in one edit, and see where the bookmarks and links that pointed at a deleted page now go."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/recipes/organise-pages/"
 ---
 

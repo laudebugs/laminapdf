@@ -1,7 +1,7 @@
 ---
 title: "Troubleshooting"
 description: "Find the fix for what you see when Lamina PDF goes wrong, whether you use it from JavaScript, Rust or the command line, or to extract text or render pages."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/troubleshooting/"
 ---
 

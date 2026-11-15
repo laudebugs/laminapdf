@@ -1,7 +1,7 @@
 ---
 title: "Accessible PDFs"
 description: "Build PDF/UA-1 documents that screen readers can follow, with every machine-checkable rule checked when the builder finishes."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/guides/accessible-pdfs/"
 ---
 

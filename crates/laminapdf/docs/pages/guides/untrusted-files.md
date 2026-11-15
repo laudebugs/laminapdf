@@ -1,7 +1,7 @@
 ---
 title: "Open files you don't trust"
 description: "Cap how much work an uploaded PDF can make Lamina PDF do, and refuse damaged files with strict mode."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/guides/untrusted-files/"
 ---
 

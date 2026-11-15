@@ -45,7 +45,7 @@ We use **Dependabot** (decided by the project owner), configured in `.github/dep
 
 - Built into GitHub: nothing to install or grant, no third-party app with write access to the repository.
 - It covers our ecosystems: `cargo`, `npm` (pnpm lockfiles), `github-actions`, with one entry per directory. For `github-actions` it updates a workflow's `uses:` tag and its lockfile entry in one PR (for an action a composite action calls, unconfirmed until its first weekly PR), but doesn't onboard a workflow that has no lockfile entries yet: `gh actions-lock` does that.
-- `groups` keep coupled upgrades in one PR (the wasm-bindgen crate; `@tauri-apps/*`; dev tooling), and `cooldown` delays brand-new releases for a few days, which reduces exposure to compromised releases that get yanked quickly.
+- `groups` keep coupled upgrades in one PR (the wasm-bindgen crate; `@tauri-apps/*`; dev tooling), and `cooldown` delays brand-new releases (14 days for Cargo and npm, at least pnpm's `minimumReleaseAge`; contributing.md, "Dependency updates"), which reduces exposure to compromised releases that get yanked quickly.
 
 What Dependabot does not track, xtask does: the pinned `wasm-bindgen-cli` must match the crate version in `Cargo.lock` (checked by `cargo xtask wasm`, [ADR 0002](0002-binding-strategy.md)), and binaryen, cargo-deny and the toolchain in `rust-toolchain.toml` are bumped by hand in a reviewed PR. Check the exact Dependabot options (pnpm catalog support, grouping syntax) against GitHub's docs when the config is written.
 

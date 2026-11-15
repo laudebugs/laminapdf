@@ -1,7 +1,7 @@
 ---
 title: "Edit the bookmarks"
 description: "Add, move and style a PDF's bookmarks, name a place links can jump to, and rename a destination together with everything that uses it."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/recipes/edit-bookmarks/"
 ---
 

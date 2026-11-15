@@ -32,7 +32,7 @@
 #                   the published version from npm and crates.io in the same runtimes. One job waits
 #                   for the version on both registries (a registry can take a few minutes to serve
 #                   it) and checks the Rust binary; then Node 22, 24 and 26 and the rest run
-# The repository is private, so there is no npm provenance and no artifact attestation yet
+# npm provenance and artifact attestations, which need a public repository, aren't set up yet
 # (ADR 0017 §7).
 #
 # Besides the tag trigger it runs on `workflow_dispatch`, so the lane can be tried without a tag:

@@ -290,6 +290,53 @@ mod opening {
     }
 }
 
+/// ADR 0003 §1: an `/Encrypt` damaged in ways pdf.js and PDFium read past.
+mod damaged_encrypt {
+    use super::*;
+
+    /// `corpus/enc.pdf` (R6, empty user password) with `from` replaced by `to`, padded with
+    /// spaces to the same length so the stored xref stays valid.
+    fn enc_with(from: &str, to: &str) -> Vec<u8> {
+        let text = String::from_utf8_lossy(&fixture("corpus/enc.pdf")).into_owned();
+        assert!(text.contains(from) && to.len() <= from.len());
+        let mut bytes = fixture("corpus/enc.pdf");
+        let at = bytes.windows(from.len()).position(|w| w == from.as_bytes()).unwrap();
+        let padded = format!("{to:<width$}", width = from.len());
+        bytes.splice(at..at + from.len(), padded.bytes());
+        bytes
+    }
+
+    const OE: &str = "/OE <93fc817da070c5f74f08893fbd06e46aa4afadacfccbf862885603489695404d>";
+    const UE: &str = "/UE <c0abccc7fd1b97e41ca69aeebb70c4add572f13dc25708d3d16d1884449efbf9>";
+
+    #[test]
+    fn a_stray_token_where_a_key_belongs_is_skipped_and_the_file_decrypts() {
+        let doc = open(&enc_with("/Length 256", "Size 6 ) >")).unwrap();
+        assert_eq!(
+            (
+                info(&doc)["Title"].clone(),
+                doc.warnings()
+                    .contains(&Warning::DictionaryKeySkipped { object: Some(5) })
+            ),
+            (Value::from("Secret"), true)
+        );
+    }
+
+    #[test]
+    fn a_short_oe_does_not_stop_the_user_password() {
+        let doc = open(&enc_with(OE, "/OE <93fc>")).unwrap();
+        assert_eq!(info(&doc)["Title"], "Secret");
+    }
+
+    #[test]
+    fn a_short_ue_without_a_working_password_is_invalid() {
+        assert!(matches!(
+            open(&enc_with(UE, "/UE <c0ab>")),
+            Err(Error::InvalidStructure { message: "bad /UE", .. })
+        ));
+    }
+}
+
 mod summary {
     use super::*;
 

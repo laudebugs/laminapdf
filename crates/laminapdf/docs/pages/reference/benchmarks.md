@@ -1,7 +1,7 @@
 ---
 title: "Benchmarks"
 description: "How fast Lamina PDF makes PDFs in each runtime, how large its WebAssembly files are, and how well it extracts text on a public benchmark."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/reference/benchmarks/"
 ---
 

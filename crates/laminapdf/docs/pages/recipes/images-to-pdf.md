@@ -1,7 +1,7 @@
 ---
 title: "Turn photos into a PDF"
 description: "Photos into a PDF, one page each, fitted on A4 with margins, in TypeScript or Rust, with each JPEG embedded as it is."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/recipes/images-to-pdf/"
 ---
 

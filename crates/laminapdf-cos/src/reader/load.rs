@@ -221,6 +221,9 @@ impl Document {
         if parsed.length_recovered {
             self.warn(Warning::StreamLengthRecovered { object: num })?;
         }
+        if parsed.skipped_keys {
+            self.warn(Warning::DictionaryKeySkipped { object: Some(num) })?;
+        }
         if let Some(security) = &self.security {
             let mut fatal = None;
             let mut resolve = |o: &Object| match o {
@@ -289,10 +292,15 @@ impl Document {
             });
         };
         let decoded = self.decode_stream_of(s, Some(stream))?;
-        let members: Vec<_> = objstm::parse(&s.dict, &decoded, &self.limits)?
-            .into_iter()
-            .map(|(n, member)| (n, member.map(Arc::new)))
-            .collect();
+        let mut members = Vec::new();
+        for member in objstm::parse(&s.dict, &decoded, &self.limits)? {
+            if member.skipped_keys {
+                self.warn(Warning::DictionaryKeySkipped {
+                    object: Some(member.num),
+                })?;
+            }
+            members.push((member.num, member.object.map(Arc::new)));
+        }
         let members = Arc::new(members);
         self.objstm_cache.borrow_mut().insert(stream, Arc::clone(&members));
         Ok(members)
@@ -334,6 +342,9 @@ impl Document {
         let decoded = decoded?;
         if decoded.flate_truncated {
             self.warn(Warning::FlateTruncated { object })?;
+        }
+        if decoded.characters_skipped {
+            self.warn(Warning::FilterCharactersSkipped { object })?;
         }
         Ok(decoded.data)
     }

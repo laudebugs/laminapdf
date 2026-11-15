@@ -1,7 +1,7 @@
 ---
 title: "A PDF/UA report"
 description: "A one-page sales report a screen reader can follow, with headings, a table, a described chart and a link, checked against PDF/UA-1 as it's built."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/recipes/pdf-ua-report/"
 ---
 

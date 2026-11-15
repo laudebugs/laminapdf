@@ -1,7 +1,7 @@
 ---
 title: "An invoice"
 description: "A tagged one-page invoice with an embedded font, a table of line items with right-aligned amounts and a total, in TypeScript and Rust."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/recipes/invoice/"
 ---
 

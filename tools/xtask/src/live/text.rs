@@ -1023,6 +1023,44 @@ mod tests {
     }
 
     #[test]
+    fn undefined_pdfdoc_class_and_known_pdfjs_difference_should_cover_one_page() {
+        let e = entries(&format!(
+            "[[class]]\nfile = \"s/*.pdf\"\nfacts = [\"text\"]\ntools = [\"pdftotext\"]\nrelation = \"pdfdoc-9f-replaced\"\n{RULE}\n{}",
+            known("0", "tools = [\"pdfjs\"]\n")
+        ));
+        let lamina = report("lamina", &json!({"s/a.pdf": opened(&["glyph\u{009F}"])}));
+        let tools = two_tools(&opened(&["gliph\u{FFFD}"]), &opened(&["glyph\u{FFFD}"]));
+        let c = compare(&lamina, &tools, &e);
+        assert!(!c.failed() && kinds(&c) == [("s/a.pdf", 0, Kind::Known)]);
+        assert_eq!(c.class_hits.get(&0), Some(&1));
+    }
+
+    #[test]
+    fn din91379_fixture_entries_should_cover_only_the_reported_tool_differences() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/differential/exceptions.toml");
+        let e = Exceptions::read(&path).unwrap().text;
+        let ours = json!({"text": "glyph\u{009F}", "warnings": []});
+        let poppler = json!("glyph\u{FFFD}");
+        let pdfjs = json!("gliph\u{FFFD}");
+        for file in [
+            "pdfbox/pdfbox-layout-awt/src/test/resources/pdf/GlyphLayoutDIN91379Form_ActualText.pdf",
+            "pdfbox/pdfbox-layout-awt/src/test/resources/pdf/GlyphLayoutDIN91379_ActualText.pdf",
+            "pdfbox/pdfbox-layout-fop/src/test/resources/pdf/GlyphLayoutDIN91379_ActualText.pdf",
+        ] {
+            assert!(matches!(
+                e.excuse(file, 0, "pdftotext", &ours, &poppler),
+                Some(Excuse::Class(_))
+            ));
+            assert!(matches!(
+                e.excuse(file, 0, "pdfjs", &ours, &pdfjs),
+                Some(Excuse::Known(_))
+            ));
+            assert_eq!(e.excuse(file, 0, "pdftotext", &ours, &json!("different")), None);
+        }
+        assert_eq!(e.excuse("pdfbox/another.pdf", 0, "pdftotext", &ours, &poppler), None);
+    }
+
+    #[test]
     fn classes_should_excuse_only_the_named_tool() {
         let e = entries(&format!(
             "[[class]]\nfacts = [\"text\"]\ntools = [\"pdftotext\"]\n{RULE}"

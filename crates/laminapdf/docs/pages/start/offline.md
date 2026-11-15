@@ -1,7 +1,7 @@
 ---
 title: "Read offline"
 description: "Each section of these docs on one page, and the whole guide as one PDF."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/start/offline/"
 ---
 

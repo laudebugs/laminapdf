@@ -165,6 +165,67 @@ mod stream_length_recovered {
     }
 }
 
+mod dictionary_key_skipped {
+    use super::*;
+
+    /// A page whose dictionary has a stray `)` and keyword where keys belong.
+    fn stray_tokens() -> Vec<u8> {
+        file(
+            b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            &[b"<< /Type /Page ) /Parent 2 0 R Rotate 90 /Rotate 180 >>"],
+        )
+    }
+
+    #[test]
+    fn is_raised_when_the_object_is_resolved_and_keeps_the_other_keys() {
+        let doc = open(&stray_tokens()).unwrap();
+        let page = doc.resolve(ObjRef::new(3, 0)).unwrap();
+        assert_eq!(
+            (page.as_dict().and_then(|d| d.get_int("Rotate")), doc.warnings()),
+            (Some(180), vec![Warning::DictionaryKeySkipped { object: Some(3) }])
+        );
+    }
+
+    #[test]
+    fn is_an_error_in_strict_mode() {
+        let doc = open_with(&stray_tokens(), strict()).unwrap();
+        assert_eq!(
+            strict_code(doc.resolve(ObjRef::new(3, 0))),
+            Some("dictionary-key-skipped")
+        );
+    }
+
+    #[test]
+    fn is_raised_for_a_trailer_without_an_object() {
+        let objects: [&[u8]; 2] = [
+            b"<< /Type /Catalog /Pages 2 0 R >>",
+            b"<< /Type /Pages /Kids [] /Count 0 >>",
+        ];
+        let doc = open(&classic(&objects, "<< /Size 3 ID /Root 1 0 R >>")).unwrap();
+        assert!(doc.warnings().contains(&Warning::DictionaryKeySkipped { object: None }));
+    }
+
+    #[test]
+    fn an_intact_older_definition_wins_in_repair() {
+        // The newer catalog parses only by skipping `0 ]`; repair keeps the older one.
+        let mut bytes = one_page();
+        let end = bytes.windows(9).rposition(|w| w == b"startxref").unwrap();
+        bytes.truncate(end);
+        bytes.extend_from_slice(b"1 0 obj\n<< /Type /Catalog /Pages 2 0 ] >>\nendobj\n");
+        let doc = open(&bytes).unwrap();
+        assert_eq!(
+            (
+                doc.was_repaired(),
+                doc.resolve(ObjRef::new(1, 0))
+                    .unwrap()
+                    .as_dict()
+                    .map(|d| d.get("Pages").cloned())
+            ),
+            (true, Some(Some(laminapdf_cos::Object::Ref(ObjRef::new(2, 0)))))
+        );
+    }
+}
+
 mod stale_generation {
     use super::*;
 
@@ -370,4 +431,84 @@ fn warning_codes_are_kebab_case() {
             .iter()
             .all(|c| c.bytes().all(|b| b.is_ascii_lowercase() || b == b'-'))
     );
+}
+
+mod filter_characters_skipped {
+    use super::*;
+    use std::fmt::Write as _;
+
+    /// A one-page file whose xref stream (object 3) is ASCIIHex-encoded, with `G`, which is
+    /// not a hex digit, in its data.
+    fn hex_xref_with_a_stray_character() -> Vec<u8> {
+        let mut out = b"%PDF-1.5\n".to_vec();
+        let catalog = out.len();
+        out.extend_from_slice(b"1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n");
+        let pages = out.len();
+        out.extend_from_slice(b"2 0 obj << /Type /Pages /Kids [] /Count 0 >> endobj\n");
+        let xref = out.len();
+        let mut hex = String::new();
+        for (kind, offset) in [(0u8, 0usize), (1, catalog), (1, pages), (1, xref)] {
+            let offset = u32::try_from(offset).unwrap();
+            write!(hex, "{kind:02X}{offset:08X}00 ").unwrap();
+        }
+        hex.insert(1, 'G');
+        hex.push('>');
+        out.extend_from_slice(b"3 0 obj ");
+        out.extend_from_slice(&stream_body(
+            "/Type /XRef /W [1 4 1] /Size 4 /Root 1 0 R /Filter /ASCIIHexDecode",
+            hex.as_bytes(),
+        ));
+        out.extend_from_slice(format!(" endobj\nstartxref\n{xref}\n%%EOF\n").as_bytes());
+        out
+    }
+
+    /// A page whose content stream (object 4) is ASCIIHex-encoded `BT ET`, with `G` and `!`,
+    /// which aren't hex digits, among the digits.
+    fn hex_content_with_stray_characters() -> Vec<u8> {
+        let content = stream_body("/Filter /ASCIIHexDecode", b"4254 G20!4554>");
+        file(
+            b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            &[b"<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>", &content],
+        )
+    }
+
+    fn first_page_content(doc: &Document) -> laminapdf_cos::Result<Vec<u8>> {
+        let page = doc.pages()?.remove(0);
+        doc.page_content(&page)
+    }
+
+    #[test]
+    fn is_raised_with_the_stream_object_and_the_rest_decodes() {
+        let doc = open(&hex_content_with_stray_characters()).unwrap();
+        assert_eq!(
+            (first_page_content(&doc), doc.warnings()),
+            (
+                Ok(b"BT ET".to_vec()),
+                vec![Warning::FilterCharactersSkipped { object: Some(4) }]
+            )
+        );
+    }
+
+    #[test]
+    fn is_an_error_in_strict_mode_for_a_content_stream() {
+        let doc = open_with(&hex_content_with_stray_characters(), strict()).unwrap();
+        assert_eq!(strict_code(first_page_content(&doc)), Some("filter-characters-skipped"));
+    }
+
+    #[test]
+    fn is_raised_for_an_xref_stream_and_the_xref_still_reads() {
+        let doc = open(&hex_xref_with_a_stray_character()).unwrap();
+        assert_eq!(
+            (doc.was_repaired(), doc.warnings()),
+            (false, vec![Warning::FilterCharactersSkipped { object: None }])
+        );
+    }
+
+    #[test]
+    fn is_an_error_in_strict_mode() {
+        assert_eq!(
+            strict_code(open_with(&hex_xref_with_a_stray_character(), strict())),
+            Some("filter-characters-skipped")
+        );
+    }
 }

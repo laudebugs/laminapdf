@@ -1,7 +1,7 @@
 ---
 title: "Make and change PDFs"
 description: "Turn Markdown or a JSON document into a tagged, accessible PDF with laminapdf build, and turn pages with laminapdf pages rotate."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/cli/build-and-edit/"
 ---
 

@@ -475,8 +475,8 @@ webview2 runtime: 156.0.4314.58
 
 | headers | crossOriginIsolated | SharedArrayBuffer | invoke | fetch tile (CORP same-origin) | `<img>` tile (CORP same-origin) | `<img>` tile (CORP cross-origin) | page origin |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| off | false | unavailable | ok | ok | ok | ok | http://tauri.localhost |
-| on | true | ok | ok | ok | ok | ok | http://tauri.localhost |
+| off | false | unavailable | ok | ok | ok | ok | `http://tauri.localhost` |
+| on | true | ok | ok | ok | ok | ok | `http://tauri.localhost` |
 
 In-flight sweep (512 px, DPR 2, one run each), burst tiles/s:
 

@@ -1,7 +1,7 @@
 ---
 title: "Troubleshooting the command line"
 description: "Fixes for the laminapdf tool when a script stops on exit 3, a file already exists, a password is needed or a PDF would go to the terminal."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/troubleshooting/command-line/"
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: "Text and fonts"
 description: "Draw text in any script with your own fonts or the standard 14, one line at a time or as a paragraph that wraps in a box."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/guides/fonts-and-text/"
 ---
 

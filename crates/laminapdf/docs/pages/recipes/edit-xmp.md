@@ -1,7 +1,7 @@
 ---
 title: "Record your own metadata"
 description: "Add properties of your own to a PDF's XMP metadata, such as a review's status and reviewers, and keep a PDF/A file valid while you do."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/recipes/edit-xmp/"
 ---
 

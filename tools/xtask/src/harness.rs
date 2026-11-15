@@ -21,13 +21,14 @@ mod fuzz_run;
 pub(crate) use fuzz_run::{FuzzRun, SUMMARY_DIR as FUZZ_SUMMARY_DIR};
 
 /// The fuzz targets in `fuzz/fuzz_targets/` (ADR 0018 tier 9).
-pub(crate) const FUZZ_TARGETS: [&str; 15] = [
+pub(crate) const FUZZ_TARGETS: [&str; 16] = [
     "lex",
     "parse_object",
     "flate_decode",
     "open",
     "page_tree",
     "content",
+    "content_append_scan",
     "ops_json",
     "save_roundtrip",
     "copy_pages",

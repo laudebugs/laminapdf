@@ -1,7 +1,7 @@
 ---
 title: "Error and warning codes"
 description: "Every error and warning code Lamina PDF raises, with a page for each that says when it happens and how to fix it."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/reference/codes/"
 ---
 

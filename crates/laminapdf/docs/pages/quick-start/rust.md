@@ -1,7 +1,7 @@
 ---
 title: "Rust"
 description: "Generate a PDF with the Lamina PDF crate."
-version: "0.3.0"
+version: "0.4.0"
 url: "https://docs.laminapdf.com/quick-start/rust/"
 ---
 
@@ -9,7 +9,7 @@ url: "https://docs.laminapdf.com/quick-start/rust/"
 
 Generate a PDF with the Lamina PDF crate.
 
-The `laminapdf` crate is the one to depend on: it wraps Lamina PDF's core crates in one API. Add it with `cargo add laminapdf@0.3.0`, then build a document. [Install](../../pages/install.md#rust-laminapdf) explains the version. This is the `hello` example, which is tested on every change:
+The `laminapdf` crate is the one to depend on: it wraps Lamina PDF's core crates in one API. Add it with `cargo add laminapdf@0.4.0`, then build a document. [Install](../../pages/install.md#rust-laminapdf) explains the version. This is the `hello` example, which is tested on every change:
 
 **Rust**
 
