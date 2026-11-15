@@ -176,7 +176,6 @@ interface ReaderContent {
   readonly parts: Parts | undefined;
   readonly content: { view: ReaderViewContent; blocks: readonly Block[]; startAt: number } | undefined;
   readonly topPage: number;
-  enter(): void;
   leave(): void;
   /** The Reader toggle: enters, leaves, or calls off an entry whose column is still loading. */
   toggle(): void;
@@ -262,18 +261,20 @@ function readColumn(engine: Engine, point: { page: number; y: number } | undefin
 /**
  * Switches to the column once its code has loaded and its text is read, or `TEXT_WAIT_MS` has
  * passed (a large document then shows its loading lines first): the view transition captures the
- * column as it is, never an empty frame. `show` gets the parts and the column if it is ready.
- * Nothing switches if `current` says a later entry or exit has taken over.
+ * column as it is, never an empty frame. `show` gets the parts and the column if it is ready;
+ * text read later is the caller's to show.
+ * Nothing switches if `current` says a later entry or exit has taken over. Rejects when the code
+ * can't be loaded.
  */
 function showColumn(
   current: () => boolean,
   reading: Promise<Column>,
   show: (parts: Parts, column: Column | undefined) => void,
-): void {
+): Promise<void> {
   const waited = new Promise<undefined>((done) => setTimeout(done, TEXT_WAIT_MS));
-  void Promise.all([loadParts(), Promise.race([reading, waited])]).then(([parts, column]) => {
+  return Promise.all([loadParts(), Promise.race([reading, waited])]).then(([parts, column]) => {
     if (current()) switchView(() => show(parts, column));
-  }, reportError);
+  });
 }
 
 /** The view's top-left as a point on its page, in points from the page's top. */
@@ -326,6 +327,7 @@ function useReaderContent(
   const entering = useRef(false);
   useLeaveOnNewDocument(document, layout, () => {
     turn.current += 1;
+    entering.current = false;
     setParts(undefined);
     setContent(undefined);
   });
@@ -342,13 +344,15 @@ function useReaderContent(
       setContent(column.content);
     };
     const reading = readColumn(engine, point);
-    // Text read after the switch arrives on its own; text read in time switches with the column.
     void reading.then((column) => current() && show(column));
     showColumn(current, reading, (loaded, column) => {
-      entering.current = false;
       setParts(loaded);
       if (column !== undefined) show(column);
-    });
+    })
+      .catch(reportError)
+      .finally(() => {
+        if (current()) entering.current = false;
+      });
   }, [engine, viewer]);
   const jump = useJumpBack(on, viewer);
   const leaveTo = useCallback(
@@ -382,7 +386,7 @@ function useReaderContent(
       entering.current = false;
     } else enter();
   };
-  return { on, parts, content, topPage, enter, leave, toggle, leaveAt, openPage, onTopBlock };
+  return { on, parts, content, topPage, leave, toggle, leaveAt, openPage, onTopBlock };
 }
 
 /** The view's content for `reflow`: its blocks, and why it is approximate when it is. */

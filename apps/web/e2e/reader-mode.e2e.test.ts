@@ -162,7 +162,7 @@ describe(`reader mode in ${BROWSER}`, () => {
               animating: document
                 .getAnimations()
                 .map((a) => (a.effect as KeyframeEffect | null)?.pseudoElement ?? "")
-                .filter((name) => name.includes("paper-view"))
+                .filter((name) => /^::view-transition-(old|new)\(paper-view\)$/.test(name))
                 .sort(),
               loading: document.querySelector('.paper-reader-mode article[aria-busy="true"]') !== null,
             }),
@@ -173,12 +173,17 @@ describe(`reader mode in ${BROWSER}`, () => {
     });
     const switches = () => page.evaluate(() => (globalThis as unknown as { __switches: unknown[] }).__switches);
     const FADE = ["::view-transition-new(paper-view)", "::view-transition-old(paper-view)"];
+    const toggle = page.getByRole("button", { name: "Reader mode" }).first();
     await enter(page);
-    await expect.poll(switches).toEqual([{ animating: FADE, loading: false }]);
-    await page.getByRole("button", { name: "Reader mode" }).first().click();
+    await column(page).getByRole("heading").first().waitFor();
+    await toggle.click();
     await expect.poll(() => column(page).count()).toBe(0);
-    await expect.poll(async () => (await switches()).length).toBe(2);
-    expect((await switches())[1]).toEqual({ animating: FADE, loading: false });
+    // In and out, each a fade of the old view and the new.
+    await expect.poll(async () => (await switches()).map((s) => s.animating)).toEqual([FADE, FADE]);
+    // Once the document's reflow has been read, the column comes in with its text, not its loading lines.
+    await enter(page);
+    await expect.poll(async () => (await switches()).length).toBe(3);
+    expect((await switches())[2]).toEqual({ animating: FADE, loading: false });
     await clean(watched);
   });
 
