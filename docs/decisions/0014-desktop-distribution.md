@@ -3,6 +3,7 @@
 - Status: Accepted
 - Date: 2026-11-12
 - Amended 2026-11-15 (D7a): §10 adds crash reports, which the same Worker receives ([desktop plan §8 Q2](../plans/desktop-app.md#8-open-questions)).
+- Amended 2026-11-15 ([D6c](../todos/ongoing/D6c-macos-signing-and-notarisation.md)): §6 records how macOS builds are signed: one build per architecture, the hardened runtime only with the Developer ID, PDFium signed before Tauri bundles, the `.dmg` notarised on its own, and macOS 13 as the oldest supported version.
 
 ## Context
 
@@ -75,6 +76,7 @@ The owner, **Laurence Ininda**, is the publisher on every operating system. The 
 - **Windows eligibility.** Artifact Signing accepts individuals only in the US and Canada ([quickstart](https://learn.microsoft.com/azure/artifact-signing/quickstart), checked 2026-11-12, updated 2026-10-08). The owner lives in the US, so no OV certificate is needed.
 - **SmartScreen.** Microsoft gives no certificate instant reputation, Artifact Signing included ([SmartScreen reputation](https://learn.microsoft.com/windows/apps/package-and-deploy/smartscreen-reputation), checked 2026-11-12). The first downloads may show a warning that names the publisher.
 - **Nightlies are not OS-signed** (D6b). macOS builds are ad-hoc signed, Windows builds unsigned, and Linux packages ship with `SHA256SUMS` only. A compromised nightly job therefore can't produce anything signed with the owner's identity.
+- **macOS signing** (D6c). Each architecture is built, signed and notarised on its own runner; there is no universal build. Release builds sign every piece of code with the Developer ID and give executables the hardened runtime. Tauri signs the app and the engine but not the files in `Resources/`, so `cargo xtask desktop-sidecar` signs PDFium's library first: the hardened runtime's library validation loads only libraries with the engine's own Team ID. The engine has no entitlement and no hardened-runtime exception; its sandbox is its own Seatbelt profile ([ADR 0008 §5](0008-desktop-shell.md#5-sandboxing-per-os)). Tauri notarises and staples the app, and the release workflow notarises and staples the `.dmg`, which needs a ticket of its own for Gatekeeper's offline check. Ad-hoc builds leave out the hardened runtime: an ad-hoc signature has no Team ID, so library validation would refuse PDFium and the engine would draw nothing. The app supports macOS 13 and later (`bundle.macOS.minimumSystemVersion`).
 
 ### 7. The updater keys: custody and rotation
 

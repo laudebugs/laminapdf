@@ -7,7 +7,12 @@
 //! - `apps/desktop/src-tauri/resources/pdfium/`: the pinned PDFium library (`fetch-pdfium`) with
 //!   its licence notices, which ship with every bundle (ADR 0004 §3).
 //!
-//! On macOS the engine is signed ad hoc with `apps/desktop/src-tauri/engine.entitlements`.
+//! On macOS the engine is signed with `apps/desktop/src-tauri/engine.entitlements`: ad hoc, or, when
+//! `APPLE_SIGNING_IDENTITY` names a Developer ID (the release build, D6c), with that identity, the
+//! hardened runtime and a secure timestamp. A Developer ID build signs PDFium's library too: the
+//! hardened runtime's library validation loads only code of the engine's own Team ID, and Tauri
+//! signs the sidecar but not the files in `resources/`. Tauri signs the sidecar again as it
+//! bundles, so the engine's signature here is for builds that don't bundle.
 //!
 //! Both folders are git-ignored. The profile is `--release` or `--debug`, else what the Tauri CLI
 //! asked for, else debug. The CLI's `beforeDevCommand`/`beforeBuildCommand` set
@@ -18,6 +23,7 @@
 //! engine the end-to-end tests run, with its `e2e` feature (it obeys their forced panic).
 
 use std::env;
+use std::ffi::OsStr;
 use std::fs;
 use std::path::Path;
 
@@ -89,8 +95,9 @@ pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
     let sidecar = binaries.join(format!("{ENGINE}-{triple}{exe}"));
     fs::copy(&built, &sidecar).with_context(|| format!("copying {} to {}", built.display(), sidecar.display()))?;
     step(&format!("engine ({profile}) → {}", sidecar.display()));
+    let identity = developer_id(env::var("APPLE_SIGNING_IDENTITY").ok().as_deref()).map(str::to_owned);
     if cfg!(target_os = "macos") {
-        sign_ad_hoc(&app, &sidecar)?;
+        sign_engine(&app, &sidecar, identity.as_deref())?;
     }
 
     let lib = pdfium::fetch(ws)?;
@@ -105,30 +112,62 @@ pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
         let licence = unpacked.join("LICENSE");
         fs::copy(&licence, resources.join("LICENSE")).with_context(|| format!("copying {}", licence.display()))?;
     }
+    if let (true, Some(identity)) = (cfg!(target_os = "macos"), identity.as_deref()) {
+        sign_libraries(&resources, identity)?;
+    }
     step(&format!("PDFium {} → {}", pdfium::TAG, resources.display()));
     Ok(())
 }
 
-/// Signs the engine ad hoc with `engine.entitlements`, so dev builds run the binary the way a
-/// release signs it (D6c then signs with the Developer ID and the hardened runtime, which an ad-hoc
-/// signature can't use: library validation would refuse PDFium, which has no Team ID). The
-/// sandbox itself is the engine's Seatbelt profile and needs no entitlement (ADR 0008 §5).
-fn sign_ad_hoc(app: &Path, sidecar: &Path) -> Result<()> {
+/// The Developer ID `APPLE_SIGNING_IDENTITY` names, if it names one: unset, empty and Tauri's ad-hoc
+/// `-` mean an ad-hoc signature.
+fn developer_id(identity: Option<&str>) -> Option<&str> {
+    identity.map(str::trim).filter(|id| !id.is_empty() && *id != "-")
+}
+
+/// Signs the engine with `engine.entitlements`. Ad hoc (no `identity`), as dev builds and nightlies
+/// run it, without the hardened runtime: its library validation would refuse PDFium, which has no
+/// Team ID then. With a Developer ID, the hardened runtime and a secure timestamp, as notarisation
+/// requires. The sandbox itself is the engine's Seatbelt profile and needs no entitlement (ADR 0008
+/// §5).
+fn sign_engine(app: &Path, sidecar: &Path, identity: Option<&str>) -> Result<()> {
     let entitlements = app.join("engine.entitlements");
-    crate::run(
-        app,
-        "codesign",
-        &[
-            "--force".as_ref(),
-            "--sign".as_ref(),
-            "-".as_ref(),
-            "--identifier".as_ref(),
-            "com.laminapdf.desktop.engine".as_ref(),
-            "--entitlements".as_ref(),
-            entitlements.as_os_str(),
-            sidecar.as_os_str(),
-        ],
-    )
+    let mut args: Vec<&OsStr> = vec![OsStr::new("--force"), OsStr::new("--sign")];
+    match identity {
+        Some(identity) => {
+            args.push(OsStr::new(identity));
+            args.extend(["--options", "runtime", "--timestamp"].map(OsStr::new));
+        }
+        None => args.push(OsStr::new("-")),
+    }
+    args.extend([
+        OsStr::new("--identifier"),
+        OsStr::new("com.laminapdf.desktop.engine"),
+        OsStr::new("--entitlements"),
+    ]);
+    args.extend([entitlements.as_os_str(), sidecar.as_os_str()]);
+    crate::run(app, "codesign", &args)
+}
+
+/// Signs each library in `dir` (PDFium's) with the Developer ID `identity` and a secure timestamp.
+fn sign_libraries(dir: &Path, identity: &str) -> Result<()> {
+    for entry in fs::read_dir(dir).with_context(|| format!("reading {}", dir.display()))? {
+        let path = entry?.path();
+        if path.extension().is_some_and(|ext| ext == "dylib") {
+            crate::run(
+                dir,
+                "codesign",
+                &[
+                    OsStr::new("--force"),
+                    OsStr::new("--sign"),
+                    OsStr::new(identity),
+                    OsStr::new("--timestamp"),
+                    path.as_os_str(),
+                ],
+            )?;
+        }
+    }
+    Ok(())
 }
 
 /// The host's target triple, from `rustc -vV`.
@@ -158,7 +197,7 @@ fn copy_libraries(from: &Path, to: &Path) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Options, parse, tauri_wants_release};
+    use super::{Options, developer_id, parse, tauri_wants_release};
 
     fn args(list: &[&str]) -> Vec<String> {
         list.iter().map(|arg| (*arg).to_owned()).collect()
@@ -178,6 +217,15 @@ mod tests {
     #[test]
     fn both_profiles_or_an_unknown_flag_should_be_refused() {
         assert!(parse(&args(&["--release", "--debug"])).is_err() && parse(&args(&["--fast"])).is_err());
+    }
+
+    #[test]
+    fn only_a_named_identity_should_be_a_developer_id() {
+        let id = "Developer ID Application: A Person (35KBR7UHPZ)";
+        assert_eq!(
+            [None, Some(""), Some(" "), Some("-"), Some(id)].map(developer_id),
+            [None, None, None, None, Some(id)]
+        );
     }
 
     #[test]

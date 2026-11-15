@@ -124,6 +124,17 @@ impl Signing {
     fn all(self) -> bool {
         self.macos && self.windows
     }
+
+    /// Why a release can't publish yet: the platforms not signed at the OS level.
+    fn unsigned(self) -> String {
+        let missing = match (self.macos, self.windows) {
+            (false, false) => "macOS and Windows aren't",
+            (false, true) => "macOS isn't",
+            (true, false) => "Windows isn't",
+            (true, true) => "every platform is",
+        };
+        format!("{missing} signed at the OS level yet (SIGNED_PLATFORMS)")
+    }
 }
 
 /// Everything `plan` reads.
@@ -280,8 +291,6 @@ impl Plan {
     }
 }
 
-const UNSIGNED: &str = "macOS and Windows aren't signed at the OS level yet (SIGNED_PLATFORMS)";
-
 fn every_target(mode: Mode, version: &str) -> Vec<Leg> {
     TARGETS.iter().map(|t| t.leg(mode, version)).collect()
 }
@@ -292,7 +301,10 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
         Trigger::Tag(tag) => {
             let version = tag_version(tag)?.to_string();
             if !inputs.signing.all() {
-                bail!("{UNSIGNED}: until they are, only the nightly channel publishes, so {tag} can't be released");
+                bail!(
+                    "{}: until every platform is, only the nightly channel publishes, so {tag} can't be released",
+                    inputs.signing.unsigned()
+                );
             }
             Ok(Plan {
                 legs: every_target(Mode::Tag, &version),
@@ -322,7 +334,10 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
             }
             let version = staging_version(inputs.run_number)?;
             if !dry_run && !inputs.signing.all() && !allow_unsigned {
-                bail!("{UNSIGNED}: set allow_unsigned_platforms to publish an unsigned staging build");
+                bail!(
+                    "{}: set allow_unsigned_platforms to publish an unsigned staging build",
+                    inputs.signing.unsigned()
+                );
             }
             Ok(Plan {
                 legs: every_target(Mode::Tag, &version),
@@ -617,6 +632,18 @@ mod tests {
     fn signed_platforms_should_name_macos_or_windows() {
         assert_eq!(Signing::parse("").unwrap(), Signing::default());
         assert!(Signing::parse("linux").is_err());
+    }
+
+    #[test]
+    fn the_refusal_should_name_only_the_platforms_still_unsigned() {
+        let macos = Signing::parse("macos").unwrap();
+        assert_eq!(
+            [Signing::default().unsigned(), macos.unsigned()],
+            [
+                "macOS and Windows aren't signed at the OS level yet (SIGNED_PLATFORMS)",
+                "Windows isn't signed at the OS level yet (SIGNED_PLATFORMS)",
+            ]
+        );
     }
 
     /// The update Worker's lists are the source: apps/updates/src/channels.ts names the channels,

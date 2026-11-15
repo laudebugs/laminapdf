@@ -193,9 +193,14 @@ Run these on every release candidate and paste the output (not the files) into t
 ```sh
 codesign --verify --deep --strict --verbose=2 "Lamina PDF.app"
 spctl -a -vvv -t exec "Lamina PDF.app"          # expect: source=Notarized Developer ID
-spctl -a -vvv -t open --context context:primary-signature Lamina-PDF.dmg
+xcrun stapler validate "Lamina PDF.app"
+spctl -a -vvv -t open --context context:primary-signature Lamina-PDF.dmg   # expect: source=Notarized Developer ID
 xcrun stapler validate Lamina-PDF.dmg
+codesign -dvv "Lamina PDF.app/Contents/MacOS/laminapdf-desktop-engine"        # expect: flags=…runtime, TeamIdentifier=35KBR7UHPZ
+codesign -dvv "Lamina PDF.app/Contents/Resources/pdfium/libpdfium.dylib"    # expect: TeamIdentifier=35KBR7UHPZ
 ```
+
+The release workflow runs these checks on every macOS build it signs, and fails the build when one fails. It also checks that every other piece of code in the app carries the Team ID, that the engine has no entitlement, and that the updater's `.app.tar.gz` holds the stapled app. On every macOS build, signed or not, it has the bundled engine draw a page with the bundled PDFium.
 
 **Windows** (PowerShell):
 
@@ -302,9 +307,28 @@ The desktop release workflow, `.github/workflows/desktop-release.yml`, builds an
 | A `desktop-vX.Y.Z` tag | `X.Y.Z`, plain: no `-rc.1` or other suffix | `beta`, `lamina-pdf-releases` | `desktop-release` |
 | A pull request that changes the release files (the workflow, its actions, the Tauri configs, the plan code or the manifest tool's publish code) | a nightly version; Windows x64 also builds once in tag mode, to check the MSI | nothing is published | none |
 
-Until macOS and Windows are signed ([D6c](../todos/ongoing/D6c-macos-signing-and-notarisation.md), [D6d](../todos/ready/D6d-windows-signing.md)), only nightlies publish. `plan` refuses a tag, and a staging dispatch publishes only with `allow_unsigned_platforms`. D6c and D6d each add their platform to the workflow's `SIGNED_PLATFORMS`.
+Until Windows is signed too ([D6d](../todos/ready/D6d-windows-signing.md)), only nightlies publish. `plan` refuses a tag, and a staging dispatch publishes only with `allow_unsigned_platforms`. The workflow's `SIGNED_PLATFORMS` lists the platforms signed so far: macOS since [D6c](../todos/ongoing/D6c-macos-signing-and-notarisation.md), and D6d adds Windows.
 
 Each run builds macOS (arm64 and x64), Windows (x64 and arm64) and Linux (x64 and arm64) on runners of their own OS and CPU. Every build makes the `.dmg`, the NSIS installer, the AppImage, the `.deb`, the updater's bundles and their `.sig` files, `SHA256SUMS` and the SBOMs. Tag and staging builds also make the MSI and the `.rpm`; nightlies can't, because neither format accepts a `-nightly` version. It fails when an installer reaches 15 MB. The AppImage, which carries GTK and WebKitGTK (about 90 MB), is reported but not gated, until the owner decides whether it gets a budget of its own ([#651](https://github.com/laudebugs/laminapdf/issues/651)). Linux packages from `desktop-release` are signed with the GPG key (§1.6), each with a detached `.asc`, and `SHA256SUMS.asc`. After the builds, `attest` attests every file, and the publish job uploads them to `releases/<version>/<platform>/` in the channel's bucket, makes them the channel's release, and asks the update Worker for each platform.
+
+### How a macOS release is signed
+
+Builds in `desktop-release` sign macOS with the Developer ID (§1.3) and notarise with the App Store Connect key (§1.4), in this order:
+
+1. The build imports the certificate into a keychain of its own, with Apple's Developer ID G2 intermediate, which it checks against a pinned SHA-256.
+2. `cargo xtask desktop-sidecar`, which Tauri runs before it bundles, signs the engine and PDFium's library with the Developer ID. The engine gets the hardened runtime too. Tauri signs the app and the engine but not the files in `Resources/`, and the hardened runtime's library validation loads only libraries signed by the engine's own Team ID.
+3. Tauri signs the app with the hardened runtime (`tauri.developer-id.conf.json`), then notarises and staples it. The `.dmg` and the updater's `.app.tar.gz` both hold the stapled app.
+4. The workflow notarises and staples the `.dmg`, which needs a ticket of its own for Gatekeeper's check while the Mac is offline. It tries a failed submission up to three times; a rejection fails the build.
+5. It runs §3's checks.
+
+Nightlies and dry runs are signed ad hoc and without the hardened runtime (`tauri.release.conf.json`). An ad-hoc signature has no Team ID, so the hardened runtime would make the engine refuse PDFium and draw nothing.
+
+When notarisation fails, `xcrun notarytool log <submission id>` (in the build's log) names each file Apple refused. The usual reasons:
+
+- **A file isn't signed with the Developer ID,** often a library in `Resources/`. Sign it in `cargo xtask desktop-sidecar`, as PDFium is.
+- **An executable lacks the hardened runtime.** Check that the build used `tauri.developer-id.conf.json`.
+- **A signature has no secure timestamp.** `codesign` adds one for a Developer ID; the sidecar step asks for it with `--timestamp`.
+- **The key was refused (401).** The App Store Connect key was revoked or its secrets are wrong (§1.4).
 
 ### Nightlies
 
@@ -312,7 +336,7 @@ Nightlies need nothing from the owner. A night on which nothing the app is built
 
 ### A staging trial
 
-1. Run `gh workflow run desktop-release.yml -f channel=staging -f allow_unsigned_platforms=true` (drop `allow_unsigned_platforms` once D6c and D6d have merged).
+1. Run `gh workflow run desktop-release.yml -f channel=staging -f allow_unsigned_platforms=true` (drop `allow_unsigned_platforms` once D6d has merged).
 2. Approve the `desktop-release` deployment each time GitHub asks: for the builds, then for the publish job.
 3. Check the files with §3's commands. Staging builds never reach a user's install: the app offers no staging channel.
 
