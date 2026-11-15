@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
-| Depends on | [U7b](./U7b-control-states-and-cursors.md), [U7c](./U7c-overlay-enter-and-exit.md), [U7d](./U7d-reader-surfaces-motion.md), [U7e](./U7e-sites-states-and-motion.md), [U7f](./U7f-desktop-chrome-motion.md), [U7g](../ongoing/U7g-pointer-tab-drag.md), [U7i](./U7i-choice-and-field-states.md) |
+| Depends on | [U7b](./U7b-control-states-and-cursors.md), [U7c](./U7c-overlay-enter-and-exit.md), [U7d](./U7d-reader-surfaces-motion.md), [U7e](./U7e-sites-states-and-motion.md), [U7f](./U7f-desktop-chrome-motion.md), [U7g](../done/U7g-pointer-tab-drag.md), [U7i](./U7i-choice-and-field-states.md) |
 | ADRs | Follows [0024](../../decisions/0024-app-shell-ux.md) (tokens in layers) |
 | Branch | `feat/u7h-delight-pass` |
 | PR title | `feat(ui): a view transition for the Reader toggle, and clearer feedback` |

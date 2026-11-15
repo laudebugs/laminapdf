@@ -3,14 +3,21 @@
 // "not allowed" cursor over windows that take the tab. A press on a tab that moves a few pixels
 // starts a drag; the tab captures the pointer, so its moves and its release arrive even outside
 // the window. The drag listens on the document, so it also follows events that a test dispatches
-// to whatever is under the point, which no capture redirects. Over the strip the drag shows where the tab would go, and a release there reorders;
-// a release anywhere else is the shell's (`onDragOut`). Escape, or the OS taking the pointer away,
-// cancels it (`onDragCancel`). Mouse and pen only: a finger on the strip scrolls it.
+// to whatever is under the point, which no capture redirects. Over the strip the drag shows where
+// the tab would go, and a release there reorders; a release anywhere else is the shell's
+// (`onDragOut`). Escape, or the OS taking the pointer away, cancels it (`onDragCancel`). Mouse and
+// pen only: a finger on the strip scrolls it.
 
 import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from "react";
 
 /** How far, in CSS pixels, a pressed tab must move before it drags rather than clicks. */
 const DRAG_THRESHOLD_PX = 4;
+
+/** How long after a drag ends a click on a tab is that drag's release, not a new click. */
+const CLICK_AFTER_DRAG_MS = 250;
+
+/** A point in the page, in CSS pixels. */
+type Point = { readonly x: number; readonly y: number };
 
 /** What the shell does with a drag. */
 export interface TabDragHandlers {
@@ -35,7 +42,8 @@ export interface TabDrag {
   readonly enabled: boolean;
   /** A tab was pressed. */
   pointerDown(event: ReactPointerEvent<HTMLElement>, id: string): void;
-  /** Whether a click on a tab should be ignored: the release that ended a drag clicks too. */
+  /** Whether a click on a tab should be ignored: the release that ended a drag clicks too, at
+      once; a later click is the person's. */
   takeClick(): boolean;
 }
 
@@ -57,7 +65,8 @@ export function useTabDrag(tabs: readonly string[], handlers: TabDragHandlers): 
   const [dragged, setDragged] = useState<string>();
   const [insertAt, setInsertAt] = useState<number>();
   const press = useRef<Press | undefined>(undefined);
-  const swallowClick = useRef(false);
+  // Until when a click on a tab is the release of a drag, which shows no tab.
+  const clicksIgnoredUntil = useRef(0);
   // The handlers and tabs of the latest render, read when the pointer moves.
   const latest = useRef({ tabs, handlers });
   latest.current = { tabs, handlers };
@@ -65,7 +74,7 @@ export function useTabDrag(tabs: readonly string[], handlers: TabDragHandlers): 
   useEffect(() => () => press.current?.stop(), []);
   useGrabbingCursor(dragged !== undefined);
 
-  const end = (releasedAt: { x: number; y: number } | undefined) => {
+  const end = (releasedAt: Point | undefined) => {
     const current = press.current;
     if (current === undefined) return;
     current.stop();
@@ -73,7 +82,7 @@ export function useTabDrag(tabs: readonly string[], handlers: TabDragHandlers): 
     setDragged(undefined);
     setInsertAt(undefined);
     if (!current.dragging) return;
-    swallowClick.current = true;
+    clicksIgnoredUntil.current = performance.now() + CLICK_AFTER_DRAG_MS;
     settle(current, latest.current, releasedAt);
   };
 
@@ -116,11 +125,7 @@ export function useTabDrag(tabs: readonly string[], handlers: TabDragHandlers): 
         }),
       };
     },
-    takeClick: () => {
-      const swallow = swallowClick.current;
-      swallowClick.current = false;
-      return swallow;
-    },
+    takeClick: () => performance.now() < clicksIgnoredUntil.current,
   };
 }
 
@@ -140,7 +145,7 @@ function useGrabbingCursor(dragging: boolean): void {
 function settle(
   drag: Press,
   { tabs, handlers: on }: { tabs: readonly string[]; handlers: TabDragHandlers },
-  at: { x: number; y: number } | undefined,
+  at: Point | undefined,
 ): void {
   if (at === undefined) on.onDragCancel?.(drag.id);
   else if (drag.insertAt !== undefined) {
@@ -152,7 +157,7 @@ function settle(
 /** What a pressed tab hears until the press ends. */
 interface Listeners {
   readonly move: (event: PointerEvent) => void;
-  readonly up: (at: { x: number; y: number }) => void;
+  readonly up: (at: Point) => void;
   readonly cancel: () => void;
   /** Whether the press has become a drag, which Escape cancels. */
   readonly dragging: () => boolean;
@@ -227,7 +232,7 @@ function insertionIndex(element: HTMLElement, x: number, y: number): number | un
 }
 
 /** Whether a point in the page's coordinates lies outside the window's page. */
-function outsideWindow({ x, y }: { x: number; y: number }): boolean {
+function outsideWindow({ x, y }: Point): boolean {
   const root = document.documentElement;
   return x < 0 || y < 0 || x >= root.clientWidth || y >= root.clientHeight;
 }

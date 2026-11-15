@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `U7g` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
 | Depends on | None |
@@ -42,15 +42,15 @@ Tab reordering and dragging a tab out of its window use HTML5 drag and drop (`pa
 
 ## Tasks
 
-- [ ] Confirm on Windows
-- [ ] Pointer-driven drag
-- [ ] Feedback while dragging
-- [ ] e2e
+- [x] Confirm on Windows
+- [x] Pointer-driven drag
+- [x] Feedback while dragging
+- [x] e2e
 
 ## Acceptance criteria
 
-- [ ] On Windows, macOS and Linux a tab reorders within its strip and moves to another window or a new one
-- [ ] The cursor is `grabbing` while dragging, with no "not allowed" cursor over a valid target
+- [x] On Windows, macOS and Linux a tab reorders within its strip and moves to another window or a new one
+- [x] The cursor is `grabbing` while dragging, with no "not allowed" cursor over a valid target
 
 ## Post-merge checks
 
@@ -72,9 +72,9 @@ Tab reordering and dragging a tab out of its window use HTML5 drag and drop (`pa
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] Every change people see tried in the built app, as a person uses it (CLAUDE.md, [bug triage §7](../../guidelines/bug-triage.md#7-prove-the-fix))
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Every change people see tried in the built app, as a person uses it (CLAUDE.md, [bug triage §7](../../guidelines/bug-triage.md#7-prove-the-fix))
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

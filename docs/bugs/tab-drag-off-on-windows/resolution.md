@@ -24,4 +24,5 @@ The keyboard and the strip's menu move tabs as before.
 ## Left for later
 
 - Dragging with a real mouse on each OS, the todo's post-merge check.
-- Outside every window the OS draws its own cursor; the page can't set it there.
+- The `grabbing` cursor shows in the window the tab comes from. Over another window, or outside every window, the OS draws its ordinary cursor, which the page can't set; no "not allowed" cursor shows anywhere.
+- A strip with more tabs than fit doesn't scroll while a tab is dragged along it, as it didn't with HTML5 drag and drop.

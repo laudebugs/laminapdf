@@ -17,7 +17,7 @@ import { Button as AriaButton, MenuTrigger } from "react-aria-components";
 import type { KeyPlatform } from "../components/shortcut-chip.js";
 import { message } from "../messages.js";
 import { Menu, type MenuEntry } from "../overlays/popover.js";
-import { type TabDrag, useTabDrag } from "./tab-drag.js";
+import { type TabDrag, type TabDragHandlers, useTabDrag } from "./tab-drag.js";
 
 /** One tab: the id the shell knows it by and the document's name. */
 export interface DocumentTab {
@@ -25,8 +25,9 @@ export interface DocumentTab {
   readonly title: string;
 }
 
-/** Props of {@link DocumentTabs}. */
-export interface DocumentTabsProps {
+/** Props of {@link DocumentTabs}: the tabs, what showing, closing and moving them do, and what a
+    drag does (`TabDragHandlers`). */
+export interface DocumentTabsProps extends TabDragHandlers {
   /** The tabs, in order. */
   readonly tabs: readonly DocumentTab[];
   /** The shown tab's id; none while the window shows its start screen or an error. */
@@ -35,17 +36,6 @@ export interface DocumentTabsProps {
   readonly onActivate: (id: string) => void;
   /** Close this tab. */
   readonly onClose: (id: string) => void;
-  /** The tabs' new order, after one was dragged within the strip. */
-  readonly onReorder?: (ids: readonly string[]) => void;
-  /** A tab began to be dragged. */
-  readonly onDragStart?: (id: string) => void;
-  /**
-   * A tab's drag was released off this strip: over another window, outside every window, or
-   * elsewhere in this one. `outside` says whether the pointer was outside this window's page.
-   */
-  readonly onDragOut?: (id: string, outside: boolean) => void;
-  /** A tab's drag was cancelled (Escape): the tab stays where it was. */
-  readonly onDragCancel?: (id: string) => void;
   /** Entries after the tab list in the strip's menu, such as "Move tab to new window". */
   readonly moves?: readonly MenuEntry<string>[];
   /** One of `moves` was chosen. */

@@ -136,7 +136,7 @@ Every interactive element styles the states it has, written in this order inside
 | [U7d](../todos/ready/U7d-reader-surfaces-motion.md) | The reader's surfaces: thumbnails, pages fading in, the inspector and phone bar without layout animation, tool cursors over the text layer, the reader's raw `:hover` rules, the built-reader cursor test | U7b, U7i |
 | [U7e](../todos/ready/U7e-sites-states-and-motion.md) | The docs site, the website and the site kit: states, cursors, links, touch guards, a reduced-motion layer, the runner's busy state, one focus ring | U7a |
 | [U7f](../todos/ready/U7f-desktop-chrome-motion.md) | The desktop chrome: cursors and their check, tab motion, the strip's reserved space, unselectable labels, Settings › Reduce motion and the platform's reading of it, the webview giveaways | U7b, U7c |
-| [U7g](../todos/ongoing/U7g-pointer-tab-drag.md) | Tab reordering and dragging out by pointer events, tested on each OS | None |
+| [U7g](../todos/done/U7g-pointer-tab-drag.md) | Tab reordering and dragging out by pointer events, tested on each OS | None |
 | [U7h](../todos/ready/U7h-delight-pass.md) | The round's close: a view transition for the Reader toggle, copy and undo feedback, a by-hand pass over every screen of the apps and both sites against this plan | U7b, U7c, U7d, U7e, U7f, U7g, U7i |
 
 U7g fixes a fault that needs no new tokens, so it can start at once; so can U7a.
