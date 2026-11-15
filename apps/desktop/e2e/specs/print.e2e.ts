@@ -58,7 +58,10 @@ describe("printing", () => {
     expect(within(printed, document)).toEqual([]);
   });
 
-  it("should print all 50 pages of a long document", async () => {
+  // 50 pages at 300 dpi take over half a minute on a CI Windows runner: more than mocha's 60 s
+  // with the open, on a slow day.
+  it("should print all 50 pages of a long document", async function () {
+    this.timeout(180_000);
     await openAndWait(fixture("fixtures", "print", "mixed-50.pdf"));
     const printed = await printToFile(join(tmpdir(), `lamina-print-50-${Date.now()}.pdf`));
     expect(printed).toHaveLength(50);
