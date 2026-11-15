@@ -197,3 +197,19 @@ fn the_ir_fuzz_entry_should_take_content_in_several_parts() {
         b"\x03q 1 0 0 RG 0 0 m 5 5 l S BT /F1 9 Tf (a) Tj ET /P <</MCID 0>> BDC /Im1 Do EMC BI /W 1 /H 1 /BPC 8 /CS /G ID \x00 EI Q",
     );
 }
+
+#[test]
+fn a_recorder_should_record_nothing_once_the_ir_is_edited() {
+    let doc = page_with(b"1 0 0 rg 0 0 5 5 re f 0 g 5 5 5 5 re f");
+    let pages = doc.pages().unwrap();
+    let page = pages.get(0).unwrap();
+    let mut ops = ContentOps::read_page(&doc, page.cos(), ContentOwner::Page(page.id().clone())).unwrap();
+    let first = ops.objects()[0].id();
+    assert!(ops.remove(first));
+    interpret_page(&doc, &page, &mut ops.recorder(page.frame().unwrap())).unwrap();
+    assert!(
+        ops.objects()
+            .iter()
+            .all(|o| o.state().is_none() && o.bounds().is_none())
+    );
+}

@@ -1,7 +1,7 @@
 //! Reading a content owner into operators with spans, grouped into objects (ADR 0022 §1).
 
 use laminapdf_cos::{Document, Error, Limit, Limits, Page, Result};
-use laminapdf_syntax::{ObjRef, Object, is_whitespace};
+use laminapdf_syntax::{Lexer, ObjRef, Object};
 
 use super::{ContentObject, ContentObjectId, ContentObjectKind, ContentOp, MarkedSequence};
 use crate::lexer::{ContentIter, Lexed};
@@ -93,20 +93,11 @@ pub(super) fn parse(source: &[u8], limits: &Limits) -> Result<Parsed> {
 }
 
 /// Where the first token of the span from `start` to the keyword at `keyword` begins: past the
-/// white space and comments before it.
-fn token_start(source: &[u8], mut at: usize, keyword: usize) -> usize {
-    while at < keyword {
-        match source.get(at) {
-            Some(&b) if is_whitespace(b) => at += 1,
-            Some(b'%') => {
-                while at < keyword && !matches!(source.get(at), Some(b'\r' | b'\n')) {
-                    at += 1;
-                }
-            }
-            _ => break,
-        }
-    }
-    at
+/// white space and comments before it, as the lexer skips them.
+fn token_start(source: &[u8], start: usize, keyword: usize) -> usize {
+    let mut lexer = Lexer::new(source, start);
+    lexer.skip_whitespace();
+    lexer.pos().min(keyword)
 }
 
 const PATH: &[Operator<'static>] = &[
@@ -148,25 +139,8 @@ fn group(ops: &[ContentOp]) -> (Vec<ContentObject>, Vec<MarkedSequence>) {
             Operator::BeginInlineImage => (ContentObjectKind::Image, i),
             Operator::PaintXObject => (ContentObjectKind::XObject, i),
             Operator::Shading => (ContentObjectKind::Shading, i),
-            Operator::BeginMarked | Operator::BeginMarkedProperties => {
-                open.push(marked.len());
-                marked.push(MarkedSequence {
-                    tag: tag(op),
-                    mcid: mcid(op),
-                    begin: i,
-                    end: None,
-                });
-                i += 1;
-                continue;
-            }
-            Operator::EndMarked => {
-                if let Some(seq) = open.pop().and_then(|m| marked.get_mut(m)) {
-                    seq.end = Some(i);
-                }
-                i += 1;
-                continue;
-            }
             _ => {
+                track_marked(op, i, &mut open, &mut marked);
                 i += 1;
                 continue;
             }
@@ -183,27 +157,33 @@ fn group(ops: &[ContentOp]) -> (Vec<ContentObject>, Vec<MarkedSequence>) {
             marked: open.clone(),
         });
         for (offset, inner) in ops.get(i..=last).unwrap_or_default().iter().enumerate() {
-            match inner.operator() {
-                Operator::BeginMarked | Operator::BeginMarkedProperties => {
-                    open.push(marked.len());
-                    marked.push(MarkedSequence {
-                        tag: tag(inner),
-                        mcid: mcid(inner),
-                        begin: i + offset,
-                        end: None,
-                    });
-                }
-                Operator::EndMarked => {
-                    if let Some(seq) = open.pop().and_then(|m| marked.get_mut(m)) {
-                        seq.end = Some(i + offset);
-                    }
-                }
-                _ => {}
-            }
+            track_marked(inner, i + offset, &mut open, &mut marked);
         }
         i = last + 1;
     }
     (objects, marked)
+}
+
+/// Opens a marked-content sequence at a `BMC`/`BDC` (the operator at `index`) or closes the
+/// innermost open one at an `EMC`; any other operator changes nothing.
+fn track_marked(op: &ContentOp, index: usize, open: &mut Vec<usize>, marked: &mut Vec<MarkedSequence>) {
+    match op.operator() {
+        Operator::BeginMarked | Operator::BeginMarkedProperties => {
+            open.push(marked.len());
+            marked.push(MarkedSequence {
+                tag: tag(op),
+                mcid: mcid(op),
+                begin: index,
+                end: None,
+            });
+        }
+        Operator::EndMarked => {
+            if let Some(seq) = open.pop().and_then(|m| marked.get_mut(m)) {
+                seq.end = Some(index);
+            }
+        }
+        _ => {}
+    }
 }
 
 /// The `ET` that ends the text object begun at `begin`, else the last operator.

@@ -72,7 +72,7 @@ The glyph check needs the font program, so `EditText`, `SetTextStyle` and `Repla
 
 ## 4. Crate and package changes
 
-- **`laminapdf-content`**: `ContentOps`, `ContentObjectRef`, hit testing and the encoder (E7c); the inline image's end offset on `Op` (ADR 0022 §1).
+- **`laminapdf-content`**: `ContentOps`, `ContentObjectRef`, hit testing and the encoder (E7c); the inline image's end offset on `Op` (ADR 0022 §1). The encoder writes each `/Contents` part an edit touched on its own, also when an edited object spans two parts, where ADR 0022 §3 merges them into one stream: the parts are read as one program, so the result is the same, and E7d can still merge them when it writes the streams.
 - **`laminapdf-text`**: line grouping with glyph ranges, which `PageText::lines()` then builds on (E7e); glyph availability in an embedded subset from its `cmap` or the inverse of its encoding and ToUnicode (E7e); the font chain (E7f).
 - **`laminapdf-ops`**: the ops of §2.1 in a `content/` module, each over the IR, and the structure-tree hooks (E7i).
 - **The façade and bindings.** `laminapdf::Document::content_objects(page)`, `hit_test(page, point | rect)` and `text_runs(page)`, and each op, with docs, Rust and TypeScript examples and frozen samples in `fixtures/ops/v1/`; in TypeScript, `doc.content.objects`, `hitTest`, `textRuns`, `edit`, `editText`, `setTextStyle` and `replaceText`.

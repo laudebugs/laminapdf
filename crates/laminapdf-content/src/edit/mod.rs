@@ -7,6 +7,7 @@ mod encode;
 mod parse;
 mod record;
 
+use std::borrow::Cow;
 use std::ops::Range;
 
 use laminapdf_cos::{Document, Error, Limit, Limits, Page, Result};
@@ -338,6 +339,8 @@ pub struct ContentOps {
     removed: Vec<Range<usize>>,
     /// Per part: whether an edit touched it.
     dirty: Vec<bool>,
+    /// Whether any edit has changed the operators: a [`Recorder`] then records nothing.
+    edited: bool,
 }
 
 impl ContentOps {
@@ -410,6 +413,7 @@ impl ContentOps {
             marked: parsed.marked,
             removed: Vec::new(),
             dirty,
+            edited: false,
         })
     }
 
@@ -530,9 +534,10 @@ impl ContentOps {
     }
 
     /// Replaces the object's operators with `ops`, written canonically by the encoder; its ID,
-    /// kind and graphics state stay, its box goes until it is measured again. The objects
-    /// and marked content it held inside it go with its operators. Returns `false` when no
-    /// object has the ID.
+    /// kind and graphics state stay, its box goes until it is measured again. Marked content
+    /// wholly inside it goes with its operators; a `BMC`, `BDC` or `EMC` inside it that belongs
+    /// to a sequence reaching outside it is kept, written after `ops`, so the content stays
+    /// balanced. Returns `false` when no object has the ID.
     ///
     /// Added in 0.5.0.
     pub fn replace(&mut self, id: ContentObjectId, ops: Vec<ContentOp>) -> bool {
@@ -542,6 +547,7 @@ impl ContentOps {
         let Some(range) = self.objects.get(index).map(ContentObject::operators) else {
             return false;
         };
+        // An object an edit left empty is written where its next operator starts, or at the end.
         let anchor = self.ops.get(range.start).map_or(self.source.len(), |op| op.token_start);
         self.splice(range, anchor, ops);
         if let Some(object) = self.objects.get_mut(index) {
@@ -550,7 +556,8 @@ impl ContentOps {
         true
     }
 
-    /// Deletes the object: its operators go, and the marked content it held. Returns `false`
+    /// Deletes the object: its operators go, and the marked content wholly inside it (see
+    /// [`ContentOps::replace`] for marked content that reaches outside it). Returns `false`
     /// when no object has the ID.
     ///
     /// Added in 0.5.0.
@@ -600,26 +607,28 @@ impl ContentOps {
 
     /// The object's bytes, as a lasting name hashes them: its source from its first token
     /// through its last operator, or for written operators what the encoder writes.
-    fn object_bytes(&self, object: &ContentObject) -> Vec<u8> {
+    fn object_bytes(&self, object: &ContentObject) -> Cow<'_, [u8]> {
         let ops = self.ops.get(object.operators()).unwrap_or_default();
         match (ops.first(), ops.last()) {
             (Some(first), Some(last)) if ops.iter().all(|op| op.span.is_some()) => {
                 let end = last.span.as_ref().map_or(first.token_start, |s| s.end);
-                self.source.get(first.token_start..end).unwrap_or_default().to_vec()
+                Cow::Borrowed(self.source.get(first.token_start..end).unwrap_or_default())
             }
             _ => {
                 let mut out = encode::canonical(ops);
                 if out.last() == Some(&b'\n') {
                     out.pop();
                 }
-                out
+                Cow::Owned(out)
             }
         }
     }
 
     /// Replaces the operators in `range` with `new`, written at `anchor` in the source, and
-    /// keeps every index into the operators in step.
+    /// keeps every index into the operators in step. Marked-content operators in `range` whose
+    /// sequence reaches outside it are written again after `new`, outside the object.
     fn splice(&mut self, range: Range<usize>, anchor: usize, mut new: Vec<ContentOp>) {
+        self.edited = true;
         // One hole per run of source operators, from the first one's token: the white space
         // between them goes with them, the white space before the run stays.
         let mut holes: Vec<Range<usize>> = Vec::new();
@@ -635,21 +644,43 @@ impl ContentOps {
         for hole in holes {
             self.drop_source(hole);
         }
-        mark_dirty(&self.parts, &mut self.dirty, anchor..anchor.saturating_add(1));
+        mark_anchor(&self.parts, &mut self.dirty, anchor);
+        let (start, end) = (range.start, range.end);
+        let inside = |i: usize| (start..end).contains(&i);
+        // The operators inside of sequences that reach outside: one end of a sequence that
+        // another operator outside the range closes or opens.
+        let mut carried: Vec<usize> = self
+            .marked
+            .iter()
+            .filter_map(|seq| match (inside(seq.begin), seq.end.map(inside)) {
+                (true, Some(false) | None) => Some(seq.begin),
+                (false, Some(true)) => seq.end,
+                _ => None,
+            })
+            .collect();
+        carried.sort_unstable();
+        let written = new.len();
+        new.extend(carried.iter().filter_map(|&i| self.ops.get(i).cloned()));
         for op in &mut new {
             op.span = None;
             op.token_start = anchor;
         }
         let added = new.len();
-        let (start, end) = (range.start, range.end);
         self.ops.splice(range, new);
-        let shift = |i: usize| if i >= end { i - (end - start) + added } else { i };
+        let shift = |i: usize| {
+            if i >= end {
+                i - (end - start) + added
+            } else if let Ok(k) = carried.binary_search(&i) {
+                start + written + k
+            } else {
+                i
+            }
+        };
         // Marked content wholly inside the replaced operators goes with them.
-        let inside = |i: usize| (start..end).contains(&i);
         let mut kept = Vec::with_capacity(self.marked.len());
         let mut renumber = vec![None; self.marked.len()];
         for (old, mut seq) in std::mem::take(&mut self.marked).into_iter().enumerate() {
-            if inside(seq.begin) || seq.end.is_some_and(inside) {
+            if inside(seq.begin) && seq.end.is_some_and(inside) {
                 continue;
             }
             seq.begin = shift(seq.begin);
@@ -664,7 +695,7 @@ impl ContentOps {
             if object.ops.start >= end {
                 object.ops = shift(object.ops.start)..shift(object.ops.end);
             } else if object.ops.start == start && object.ops.end == end {
-                object.ops = start..start + added;
+                object.ops = start..start + written;
             }
             object.marked = object
                 .marked
@@ -684,9 +715,21 @@ impl ContentOps {
 /// Marks the parts `range` of the source touches as edited.
 fn mark_dirty(parts: &[ContentPart], dirty: &mut [bool], range: Range<usize>) {
     for (part, flag) in parts.iter().zip(dirty.iter_mut()) {
-        if range.start < part.end.max(part.start + 1) && part.start < range.end {
+        if range.start < part.end && part.start < range.end {
             *flag = true;
         }
+    }
+}
+
+/// Marks the part written operators anchored at `anchor` go in: the one it falls in, its end
+/// included, so an anchor at the end of the content still has a part.
+fn mark_anchor(parts: &[ContentPart], dirty: &mut [bool], anchor: usize) {
+    if let Some((_, flag)) = parts
+        .iter()
+        .zip(dirty.iter_mut())
+        .find(|(part, _)| (part.start..=part.end).contains(&anchor))
+    {
+        *flag = true;
     }
 }
 

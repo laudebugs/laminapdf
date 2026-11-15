@@ -67,8 +67,11 @@ enum Cut {
     Hole(usize),
 }
 
-/// The parts that need writing (every part with `all`), written.
+/// The parts that need writing (every part with `all`), written. Each part is written on its
+/// own, also when an edited object spans two: the parts are read as one program (ISO 32000-2
+/// §7.8.2), so the joined result is the same, and a part no edit reached keeps its stream.
 pub(super) fn encode(ops: &ContentOps, all: bool) -> EncodedContent {
+    let inserts = inserts(ops);
     let parts = ops
         .parts
         .iter()
@@ -77,7 +80,7 @@ pub(super) fn encode(ops: &ContentOps, all: bool) -> EncodedContent {
             if all || ops.dirty.get(index).copied().unwrap_or(false) {
                 EncodedPart::Written {
                     part: index,
-                    bytes: write_region(ops, part.start, part.end),
+                    bytes: write_region(ops, &inserts, part.start, part.end),
                 }
             } else {
                 EncodedPart::Unchanged { part: index }
@@ -87,26 +90,39 @@ pub(super) fn encode(ops: &ContentOps, all: bool) -> EncodedContent {
     EncodedContent { parts }
 }
 
-/// The source from `start` to `end` with the edits in it applied.
-fn write_region(ops: &ContentOps, start: usize, end: usize) -> Vec<u8> {
-    let mut cuts: Vec<(usize, Cut)> = ops
-        .removed
-        .iter()
-        .filter(|hole| hole.start < end && start < hole.end)
-        .map(|hole| (hole.start.max(start), Cut::Hole(hole.end.min(end))))
-        .collect();
+/// Where written operators go, in operator order: each run of consecutive written operators
+/// at one anchor, as `(anchor, index of the run's first operator)`.
+fn inserts(ops: &ContentOps) -> Vec<(usize, usize)> {
+    let mut out = Vec::new();
     let mut previous_anchor = None;
     for (index, op) in ops.ops.iter().enumerate() {
         if op.span.is_some() {
             previous_anchor = None;
             continue;
         }
-        // Consecutive written operators at one anchor are written together.
-        if previous_anchor != Some(op.token_start) && (start..end).contains(&op.token_start) {
-            cuts.push((op.token_start, Cut::Insert(index)));
+        if previous_anchor != Some(op.token_start) {
+            out.push((op.token_start, index));
         }
         previous_anchor = Some(op.token_start);
     }
+    out
+}
+
+/// The source from `start` to `end` with the edits in it applied. An insert anchored at `end`
+/// belongs here: the next part starts after the `\n` that joins them.
+fn write_region(ops: &ContentOps, inserts: &[(usize, usize)], start: usize, end: usize) -> Vec<u8> {
+    let mut cuts: Vec<(usize, Cut)> = ops
+        .removed
+        .iter()
+        .filter(|hole| hole.start < end && start < hole.end)
+        .map(|hole| (hole.start.max(start), Cut::Hole(hole.end.min(end))))
+        .collect();
+    cuts.extend(
+        inserts
+            .iter()
+            .filter(|(anchor, _)| (start..=end).contains(anchor))
+            .map(|&(anchor, index)| (anchor, Cut::Insert(index))),
+    );
     cuts.sort_unstable();
     let source = &ops.source;
     let mut out = Vec::with_capacity(end.saturating_sub(start));

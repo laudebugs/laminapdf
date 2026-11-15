@@ -18,7 +18,8 @@ const DESCENT: f64 = -0.2;
 ///
 /// Pass it to the interpreter over the same content the IR was read from, before any edit:
 /// [`interpret_page`](crate::interpret_page) for a page read with
-/// [`ContentOps::read_page`]. A text show's box comes from the advance the visitor that
+/// [`ContentOps::read_page`]. Once an edit has changed the IR, the recorder records nothing:
+/// read the content again for states and boxes. A text show's box comes from the advance the visitor that
 /// measures the glyphs returned ([`Visitor::shown_text`]); interpreted on its own, the
 /// recorder measures none, so text objects get no width. `laminapdf-text`'s extractor
 /// measures them while it passes the page's events on.
@@ -66,7 +67,8 @@ impl<'a> Recorder<'a> {
 
 impl Visitor for Recorder<'_> {
     fn operator_state(&mut self, op: &Op<'_>, state: &GraphicsState, depth: usize) {
-        if depth > 0 {
+        // After an edit the operators no longer match the content the interpreter reads.
+        if depth > 0 || self.ops.edited {
             return;
         }
         // The operators are in offset order; a written one has no span and isn't looked for.

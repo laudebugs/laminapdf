@@ -284,3 +284,49 @@ fn every_reason_should_have_its_name() {
         ]
     );
 }
+
+#[test]
+fn an_object_left_empty_at_the_end_should_take_new_operators_again() {
+    let mut ops = ir(&[b"0 0 m S BT (a) Tj ET"]);
+    let text = object(&ops, 1);
+    assert!(ops.replace(text, Vec::new()));
+    assert!(ops.replace(text, vec![ContentOp::new(Operator::EndPath, Vec::new())]));
+    let encoded = ops.encode();
+    assert_eq!(encoded.parts[0].bytes(), Some(&b"0 0 m S n\n"[..]));
+}
+
+#[test]
+fn an_object_replaced_twice_should_keep_only_the_second_operators() {
+    let mut ops = ir(&[b"0 0 m S BT (a) Tj ET"]);
+    let path = object(&ops, 0);
+    assert!(ops.replace(path, vec![ContentOp::new(Operator::EndPath, Vec::new())]));
+    assert!(ops.replace(path, vec![ContentOp::new(Operator::Fill, Vec::new())]));
+    assert_eq!(written(&ops), b"f\n BT (a) Tj ET");
+}
+
+#[test]
+fn removing_an_object_should_keep_the_end_of_a_sequence_begun_before_it() {
+    let mut ops = ir(&[b"/P <</MCID 0>> BDC BT (a) Tj EMC ET 0 0 m S"]);
+    assert!(ops.remove(object(&ops, 0)));
+    assert_eq!(written(&ops), b"/P <</MCID 0>> BDC EMC\n 0 0 m S");
+}
+
+#[test]
+fn a_sequence_reaching_outside_a_removed_object_should_stay_in_the_ir() {
+    let mut ops = ir(&[b"/P <</MCID 0>> BDC BT (a) Tj EMC ET 0 0 m S"]);
+    assert!(ops.remove(object(&ops, 0)));
+    let seq = &ops.marked()[0];
+    assert_eq!((seq.begin, seq.end), (0, Some(1)));
+}
+
+#[test]
+fn replacing_an_object_should_write_a_sequence_it_opens_after_the_new_operators() {
+    let mut ops = ir(&[b"BT /P <</MCID 2>> BDC (a) Tj ET EMC"]);
+    let text = object(&ops, 0);
+    let replacement = vec![
+        ContentOp::new(Operator::BeginText, Vec::new()),
+        ContentOp::new(Operator::EndText, Vec::new()),
+    ];
+    assert!(ops.replace(text, replacement));
+    assert_eq!(written(&ops), b"BT\nET\n/P << /MCID 2 >> BDC\n EMC");
+}
