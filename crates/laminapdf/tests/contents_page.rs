@@ -59,10 +59,11 @@ fn create_contents_page_should_list_the_bookmarks_that_go_to_pages_with_their_la
     let mut doc = outline();
     doc.create_contents_page(&options(), &fonts()).unwrap();
     // The heading, then each bookmark with a page, two levels deep, and the label its page
-    // shows once the contents page is in (the file labels its pages i, ii, 1, 2).
+    // shows once the contents page is in: the file labels its pages i, ii, 1, 2, and the
+    // contents page joins the first range as "i", so the title page becomes "ii".
     assert_eq!(
         text(&doc, 0),
-        "Contents\nTitle page i\nContents ii\nChapter 1 1\nChapter 2 2"
+        "Contents\nTitle page ii\nContents iii\nChapter 1 1\nChapter 2 2"
     );
 }
 

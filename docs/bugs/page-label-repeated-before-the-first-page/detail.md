@@ -4,7 +4,7 @@
 
 ## What we saw
 
-Opening `fixtures/golden/links-and-outlines.pdf` in the web reader and creating a contents page before page "i" (todo [E3l](../../todos/ready/E3l-contents-page.md)) gave both the contents page and the title page the label "i". Inserting blank pages, inserting pages from another file or merging documents at the start of any labelled file did the same whenever its first range started at 1: "i", "1" or "A-1".
+Opening `fixtures/golden/links-and-outlines.pdf` in the web reader and creating a contents page before page "i" (todo [E3l](../../todos/done/E3l-contents-page.md)) gave both the contents page and the title page the label "i". Inserting blank pages, inserting pages from another file or merging documents at the start of any labelled file did the same whenever its first range started at 1: "i", "1" or "A-1".
 
 Paper's design for the contents page dialog ([O11](../../design/paper/pages-navigation-extraction.md)) expects the opposite: a contents page put before page 1 takes label 1, every later page in that range goes up by one, and the appendix keeps A-1 to A-3.
 

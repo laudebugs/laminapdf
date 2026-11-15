@@ -32,8 +32,9 @@ describe("a contents page", () => {
     const client = await opened();
     const listing = await client.contentsListing({});
     expect(listing.entries.map((e) => [e.level, e.title, e.labels[0]])).toEqual([
-      [1, "Title page", "i"],
-      [1, "Contents", "ii"],
+      // The contents page joins the front matter as "i", so its pages move up one.
+      [1, "Title page", "ii"],
+      [1, "Contents", "iii"],
       [2, "Chapter 1", "1"],
       [2, "Chapter 2", "2"],
     ]);

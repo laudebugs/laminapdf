@@ -79,7 +79,7 @@ None.
 
 ## Risks and open questions
 
-- Inserting before a first page labelled 1 (or "i") gives the new page that label too: `PageLabels::remap` keeps every existing page's label (E2j). O11 expects the new page to join the range instead; the preview shows what the file will hold. Which rule is right is left to its own decision, apart from this todo
+- Inserting before a first page labelled 1 (or "i") gave the new page that label too. The bug [page-label-repeated-before-the-first-page](../../bugs/page-label-repeated-before-the-first-page/detail.md) fixed it on `main` as O11 asks: the contents page joins the first range, so it is "i" and the title page "ii". This PR's tests and golden expect that
 
 ## Definition of done
 
