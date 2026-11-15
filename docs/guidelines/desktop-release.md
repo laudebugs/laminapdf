@@ -212,7 +212,7 @@ rpm -K lamina-pdf-<version>-1.x86_64.rpm         # after: rpm --import lamina-re
 ./validate-x86_64.AppImage Lamina-PDF_<version>_amd64.AppImage   # expect: Validation successful
 ```
 
-`debsig-verify` checks a `.deb` only against a policy file and a keyring installed for the signing key's ID, which is the signing subkey's, `7C7B196F2CB087F5`. Install both once on each machine that checks:
+`debsig-verify` checks a `.deb` only against a policy and a keyring filed under the signing subkey's ID, `7C7B196F2CB087F5`. Install both once on each machine that checks:
 
 ```sh
 id=7C7B196F2CB087F5
@@ -296,20 +296,20 @@ The desktop release workflow, `.github/workflows/desktop-release.yml`, builds an
 | The schedule, 04:23 UTC every day | `X.Y.Z-nightly.YYYYMMDD.N`: the patch after the latest `desktop-v*` tag (`0.1.0` before the first), the date and the run number | `nightly`, `lamina-pdf-nightly` | `desktop-nightly` |
 | A dispatch (`gh workflow run desktop-release.yml`) | `0.0.(100 + run number)` | `staging`, `lamina-pdf-staging` | `desktop-release` |
 | A `desktop-vX.Y.Z` tag | `X.Y.Z`, plain: no `-rc.1` or other suffix | `beta`, `lamina-pdf-releases` | `desktop-release` |
-| A pull request that changes the workflow | a nightly version, and Windows x64 again as a tag builds it | nothing is published | none |
+| A pull request that changes the release files (the workflow, its actions, the Tauri configs, the plan code or the manifest tool's publish code) | a nightly version; Windows x64 also builds once in tag mode, to check the MSI | nothing is published | none |
 
 Until macOS and Windows are signed ([D6c](../todos/ready/D6c-macos-signing-and-notarisation.md), [D6d](../todos/ready/D6d-windows-signing.md)), only nightlies publish. `plan` refuses a tag, and a staging dispatch publishes only with `allow_unsigned_platforms`. D6c and D6d each add their platform to the workflow's `SIGNED_PLATFORMS`.
 
-Each run builds macOS (arm64 and x64), Windows (x64 and arm64) and Linux (x64 and arm64) on runners of their own OS and CPU. A build makes the `.dmg`, the NSIS installer, the AppImage and the `.deb`, and, except in a nightly, the MSI and the `.rpm`, whose versions can't carry a nightly's, the updater's bundles and their `.sig` files, `SHA256SUMS`, and the SBOMs. It fails when an installer reaches 15 MB. Linux packages from `desktop-release` are signed with the GPG key (§1.6), each with a detached `.asc`, and `SHA256SUMS.asc`. After the builds, `attest` attests every file, and the publish job uploads them to `releases/<version>/<platform>/` in the channel's bucket, makes them the channel's release, and asks the update Worker for each platform.
+Each run builds macOS (arm64 and x64), Windows (x64 and arm64) and Linux (x64 and arm64) on runners of their own OS and CPU. Every build makes the `.dmg`, the NSIS installer, the AppImage, the `.deb`, the updater's bundles and their `.sig` files, `SHA256SUMS` and the SBOMs. Tag and staging builds also make the MSI and the `.rpm`; nightlies can't, because neither format accepts a `-nightly` version. It fails when an installer reaches 15 MB. Linux packages from `desktop-release` are signed with the GPG key (§1.6), each with a detached `.asc`, and `SHA256SUMS.asc`. After the builds, `attest` attests every file, and the publish job uploads them to `releases/<version>/<platform>/` in the channel's bucket, makes them the channel's release, and asks the update Worker for each platform.
 
 ### Nightlies
 
-Nightlies need nothing from the owner. A night on which nothing the app is built from changed publishes nothing. To check one, open the run's summary: it lists the version, the files and their sizes. A nightly installs on macOS with a Gatekeeper warning (ad-hoc signed) and on Windows with a SmartScreen warning (unsigned); the download page ([D7b](../todos/ready/D7b-settings-renderer-switch-and-download-page.md)) is to say so.
+Nightlies need nothing from the owner. A night on which nothing the app is built from changed publishes nothing. The run's summary lists the version, files and sizes. A nightly installs on macOS with a Gatekeeper warning (ad-hoc signed) and on Windows with a SmartScreen warning (unsigned); the download page ([D7b](../todos/ready/D7b-settings-renderer-switch-and-download-page.md)) is to say so.
 
 ### A staging trial
 
 1. Run `gh workflow run desktop-release.yml -f channel=staging -f allow_unsigned_platforms=true` (drop `allow_unsigned_platforms` once D6c and D6d have merged).
-2. Approve the `desktop-release` deployment when GitHub asks.
+2. Approve the `desktop-release` deployment each time GitHub asks: for the builds, then for the publish job.
 3. Check the files with §3's commands. Staging builds never reach a user's install: the app offers no staging channel.
 
 Add `-f dry_run=true` to build every target with no environment and publish nothing.
@@ -318,9 +318,10 @@ Add `-f dry_run=true` to build every target with no environment and publish noth
 
 1. Merge everything the release needs into `main`, and wait for the nightly to pass on it.
 2. Tag the commit: `git tag desktop-v0.1.0 <commit> && git push origin desktop-v0.1.0`. The version must be plain `X.Y.Z`, with X and Y at most 255 and Z at most 65,535, the limits an MSI allows.
-3. Approve the `desktop-release` deployment. The builds wait for it, then the publish job.
+3. Approve the `desktop-release` deployment, twice: the builds start once you approve, and the publish job asks again when the builds have passed.
 4. Run §3's checks on a clean virtual machine for each platform, and paste their output into the release's pull request or issue.
-5. The release is now beta's, at 100 % of beta installs.
+
+Every beta install now offers the release.
 
 ### Promote, roll out, pause
 

@@ -144,13 +144,13 @@ A development build checks the production Worker's beta channel, which offers no
 
 ### Releases
 
-`.github/workflows/desktop-release.yml` builds and publishes the app: nightlies every night, staging trials by hand, and beta releases from `desktop-v*` tags. The release runbook, [Cutting a release](../../docs/guidelines/desktop-release.md#6-cutting-a-release), has the steps. Release builds add three configs to `tauri.bundle.conf.json`:
+`.github/workflows/desktop-release.yml` builds and publishes the app: nightlies every night, staging trials by hand, and beta releases from `desktop-v*` tags. The release runbook, [Cutting a release](../../docs/guidelines/desktop-release.md#6-cutting-a-release), has the steps. The workflow's builds merge up to three more configs over `tauri.bundle.conf.json`:
 
-- `tauri.release.conf.json` bundles the third-party notices (`cargo xtask desktop-notices --bundle`: the Rust crates, the npm packages and the fonts), which Help › View licences opens in the OS's text viewer. A development build bundles none, so the item does nothing there.
-- `tauri.nightly.conf.json` puts the nightly updater key in nightlies, so they update only to nightlies.
+- `tauri.release.conf.json` bundles the third-party notices (`cargo xtask desktop-notices --bundle`: the Rust crates, the npm packages and the fonts), which Help ▸ View licences opens in the OS's text viewer. A development build bundles none, so the item does nothing.
+- `tauri.nightly.conf.json` (nightlies only) puts the nightly updater key in nightlies, so they update only to nightlies.
 - A config the workflow writes sets the version and turns on the updater's bundles.
 
-`tauri.macos.conf.json`, `tauri.windows.conf.json` and `tauri.linux.conf.json` name each OS's bundles, which Tauri merges on its own: the `.dmg`, NSIS and MSI, the AppImage, `.deb` and `.rpm`.
+`tauri.macos.conf.json`, `tauri.windows.conf.json` and `tauri.linux.conf.json` name each OS's bundles, which Tauri merges on its own: the `.dmg`, NSIS and MSI, the AppImage, `.deb` and `.rpm`. A nightly passes `--bundles` without the MSI and the `.rpm`, whose formats refuse a `-nightly` version.
 
 ## How it fits together
 

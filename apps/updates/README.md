@@ -25,7 +25,7 @@ pnpm --filter @laminapdf/updates manifest publish nightly <dir> --version <v> \
 pnpm --filter @laminapdf/updates manifest verify nightly <v>                    # ask the Worker, per platform
 ```
 
-`publish` takes each platform's updater bundle (`.app.tar.gz`, `-setup.exe` or `.AppImage`) and its `.sig`, and refuses a version that isn't newer than the channel's release. The release it replaces becomes `previous` once it reached 100 %, as `promote` does.
+`publish` takes each platform's updater bundle (`.app.tar.gz`, `-setup.exe` or `.AppImage`) and its `.sig`, and refuses a version that isn't newer than the channel's release. If the release it replaces had reached 100 %, that release becomes `previous`, as with `promote`; otherwise `previous` stays as it was.
 
 Add `--local` to any command to work on Wrangler's local R2, which `pnpm --filter @laminapdf/updates dev` serves at `http://localhost:8787`.
 
