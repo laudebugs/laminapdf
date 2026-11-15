@@ -35,7 +35,8 @@ pub struct PanicSummary {
 /// A source position: a file as the compiler named it, a line and a column.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SourceLocation {
-    /// The file, relative to the workspace for lamina's own crates, absolute for others.
+    /// The file, relative to the workspace for lamina's own crates, absolute for others; `/`
+    /// separates its parts on every OS.
     pub file: String,
     /// The line, from 1.
     pub line: u32,
@@ -82,7 +83,7 @@ fn summary_of(info: &PanicHookInfo<'_>, frames: impl FnOnce() -> Vec<NativeFrame
     PanicSummary {
         message: truncate_on_char_boundary(message, MAX_MESSAGE),
         location: info.location().map(|at| SourceLocation {
-            file: at.file().to_owned(),
+            file: portable(at.file()),
             line: at.line(),
             column: at.column(),
         }),
@@ -143,6 +144,12 @@ fn is_machinery(function: &str) -> bool {
     PREFIXES.iter().any(|prefix| function.starts_with(prefix))
 }
 
+/// A source file as the compiler named it, with `/` between its parts: Windows builds name it
+/// with backslashes, and a report's location is the same on every OS.
+fn portable(file: &str) -> String {
+    file.replace('\\', "/")
+}
+
 /// `text` cut to at most `max` bytes, on a character boundary.
 #[must_use]
 pub fn truncate_on_char_boundary(mut text: String, max: usize) -> String {
@@ -162,6 +169,14 @@ mod tests {
     #[test]
     fn a_long_message_should_be_cut_on_a_character_boundary() {
         assert_eq!(truncate_on_char_boundary("aé".repeat(3), 4), "aéa");
+    }
+
+    #[test]
+    fn a_windows_source_path_should_be_separated_by_slashes() {
+        assert_eq!(
+            portable("crates\\laminapdf-desktop-engine\\src\\crash.rs"),
+            "crates/laminapdf-desktop-engine/src/crash.rs"
+        );
     }
 
     #[test]
