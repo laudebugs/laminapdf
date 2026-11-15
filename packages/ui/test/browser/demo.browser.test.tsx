@@ -4,7 +4,7 @@ import { userEvent } from "vitest/browser";
 import { Demo } from "../../examples/ui-demo.tsx";
 import { PlatformProvider } from "../../src/index.ts";
 import { fakePlatform } from "../fakes.ts";
-import { cleanup, renderIn } from "./render.tsx";
+import { cleanup, renderIn, settled } from "./render.tsx";
 
 afterEach(cleanup);
 
@@ -27,6 +27,7 @@ function demo(name: string) {
 
 /** Serious and critical axe violations on the whole page, overlays included. */
 async function violations(): Promise<string[]> {
+  await settled();
   const { violations: found } = await axe.run(document.body, { resultTypes: ["violations"] });
   return found.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => v.id);
 }

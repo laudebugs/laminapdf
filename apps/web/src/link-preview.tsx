@@ -10,6 +10,7 @@ import {
   message,
   type OutlineTreeItem,
   outlineItemAt,
+  Presence,
   useStoreState,
 } from "@laminapdf/ui";
 import type { LinkPreviewPicture, LinkPreviewRequest, Viewer } from "@laminapdf/viewer";
@@ -76,18 +77,23 @@ export function LinkPreviews({ engine, viewer }: { engine: Engine; viewer: Viewe
   useEffect(() => {
     if (shown !== undefined && outline === undefined) void engine.loadOutline();
   }, [engine, shown, outline]);
-  if (viewer === undefined || shown === undefined) return null;
   const items = typeof outline === "object" ? outline.items : [];
+  // The preview stays for its exit after the viewer ends it (Presence), so it fades out: a panel's
+  // time, since on touch it is a sheet (150 ms); the popover is faded and inert well before that.
   return (
-    <LinkPreview
-      {...cardProps(shown, pages, items)}
-      anchor={shown.request.anchor}
-      pointer={shown.request.pointer}
-      closeLabel={message("link.preview.close")}
-      onFollow={() => viewer.followLinkPreview()}
-      onDismiss={() => viewer.dismissLinkPreview()}
-      onHold={(held) => viewer.holdLinkPreview(held)}
-    />
+    <Presence value={viewer === undefined || shown === undefined ? null : { viewer, shown }} exit="panel">
+      {(open) => (
+        <LinkPreview
+          {...cardProps(open.shown, pages, items)}
+          anchor={open.shown.request.anchor}
+          pointer={open.shown.request.pointer}
+          closeLabel={message("link.preview.close")}
+          onFollow={() => open.viewer.followLinkPreview()}
+          onDismiss={() => open.viewer.dismissLinkPreview()}
+          onHold={(held) => open.viewer.holdLinkPreview(held)}
+        />
+      )}
+    </Presence>
   );
 }
 

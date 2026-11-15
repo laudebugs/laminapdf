@@ -1,0 +1,174 @@
+/* Overlays enter and leave (§7.0; motion plan §3, 3, 4 and 6). Small overlays (menus, popovers,
+   tooltips, link previews, the selection toolbar) fade in with a scale from motion-scale at their
+   anchor over enter-small and out over exit-small; panels (dialogs, sheets, toasts, the rail
+   drawer) take enter-panel and exit-panel, and their scrims fade. The command palette stays
+   instant. Under reduced motion motion-scale is 1 and motion-travel 0, so everything only fades.
+
+   React Aria marks its overlays data-entering for their first frame and data-exiting until their
+   transitions end; Presence (overlays/presence.tsx) marks the others. An overlay that is leaving
+   takes no pointer: a second click reaches what is under it. */
+@layer paper.components {
+  /* Small overlays. */
+  :where(.paper-popover, .paper-tooltip, .paper-selection-toolbar, .paper-link-preview) {
+    transition-property: opacity, scale;
+    transition-duration: var(--paper-duration-enter-small);
+    transition-timing-function: var(--paper-ease-enter);
+
+    &:is([data-entering], [data-exiting]) {
+      opacity: 0;
+      scale: var(--paper-motion-scale);
+    }
+
+    &[data-exiting] {
+      transition-duration: var(--paper-duration-exit-small);
+      transition-timing-function: var(--paper-ease-exit);
+      pointer-events: none;
+    }
+  }
+
+  /* The custom overlays have no entering frame of their own: they start from it. */
+  @starting-style {
+    :where(.paper-selection-toolbar, .paper-link-preview) {
+      opacity: 0;
+      scale: var(--paper-motion-scale);
+    }
+  }
+
+  /* Each grows from the side that faces its anchor: React Aria's data-placement, or the side the
+     custom overlays land on (place.ts). */
+  :where(.paper-popover, .paper-tooltip) {
+    &[data-placement="bottom"] {
+      transform-origin: top center;
+    }
+
+    &[data-placement="top"] {
+      transform-origin: bottom center;
+    }
+
+    &[data-placement="left"] {
+      transform-origin: center right;
+    }
+
+    &[data-placement="right"] {
+      transform-origin: center left;
+    }
+  }
+
+  :where(.paper-selection-toolbar, .paper-link-preview) {
+    &[data-side="above"] {
+      transform-origin: bottom center;
+    }
+
+    &[data-side="below"] {
+      transform-origin: top center;
+    }
+  }
+
+  /* Panels: dialogs fade with the same slight scale; their scrim fades. */
+  :where(.paper-modal-overlay, .paper-sheet-overlay) {
+    transition: opacity var(--paper-duration-enter-panel) var(--paper-ease-enter);
+
+    &:is([data-entering], [data-exiting]) {
+      opacity: 0;
+    }
+
+    &[data-exiting] {
+      transition-duration: var(--paper-duration-exit-panel);
+      transition-timing-function: var(--paper-ease-exit);
+      pointer-events: none;
+    }
+  }
+
+  :where(.paper-modal-overlay) :where(.paper-dialog-frame) {
+    transition: scale var(--paper-duration-enter-panel) var(--paper-ease-enter);
+  }
+
+  :where(.paper-modal-overlay[data-entering], .paper-modal-overlay[data-exiting]) :where(.paper-dialog-frame) {
+    scale: var(--paper-motion-scale);
+  }
+
+  :where(.paper-modal-overlay[data-exiting]) :where(.paper-dialog-frame) {
+    transition-duration: var(--paper-duration-exit-panel);
+    transition-timing-function: var(--paper-ease-exit);
+  }
+
+  /* A sheet rises from the bottom edge by its own height, scaled by motion-travel. */
+  :where(.paper-sheet-overlay) :where(.paper-sheet) {
+    transition: translate var(--paper-duration-enter-panel) var(--paper-ease-enter);
+  }
+
+  :where(.paper-sheet-overlay[data-entering], .paper-sheet-overlay[data-exiting]) :where(.paper-sheet) {
+    translate: 0 calc(100% * var(--paper-motion-travel));
+  }
+
+  :where(.paper-sheet-overlay[data-exiting]) :where(.paper-sheet) {
+    transition-duration: var(--paper-duration-exit-panel);
+    transition-timing-function: var(--paper-ease-exit);
+  }
+
+  /* A toast rises into place and leaves the way it came. */
+  .paper-toast {
+    transition-property: opacity, translate;
+    transition-duration: var(--paper-duration-enter-panel);
+    transition-timing-function: var(--paper-ease-enter);
+
+    @starting-style {
+      opacity: 0;
+      translate: 0 calc(var(--paper-space-16) * var(--paper-motion-travel));
+    }
+
+    &[data-exiting] {
+      opacity: 0;
+      translate: 0 calc(var(--paper-space-16) * var(--paper-motion-travel));
+      transition-duration: var(--paper-duration-exit-panel);
+      transition-timing-function: var(--paper-ease-exit);
+      pointer-events: none;
+    }
+  }
+
+  /* The rail drawer slides in from the start edge over its scrim, which fades. */
+  .paper-left-rail[data-drawer] {
+    transition-property: translate, opacity;
+    transition-duration: var(--paper-duration-enter-panel);
+    transition-timing-function: var(--paper-ease-enter);
+
+    @starting-style {
+      opacity: 0;
+      translate: calc(-100% * var(--paper-motion-travel)) 0;
+    }
+
+    &:dir(rtl) {
+      @starting-style {
+        opacity: 0;
+        translate: calc(100% * var(--paper-motion-travel)) 0;
+      }
+    }
+
+    &[data-exiting] {
+      opacity: 0;
+      translate: calc(-100% * var(--paper-motion-travel)) 0;
+      transition-duration: var(--paper-duration-exit-panel);
+      transition-timing-function: var(--paper-ease-exit);
+      pointer-events: none;
+    }
+
+    &[data-exiting]:dir(rtl) {
+      translate: calc(100% * var(--paper-motion-travel)) 0;
+    }
+  }
+
+  .paper-rail-scrim {
+    transition: opacity var(--paper-duration-enter-panel) var(--paper-ease-enter);
+
+    @starting-style {
+      opacity: 0;
+    }
+
+    &[data-exiting] {
+      opacity: 0;
+      transition-duration: var(--paper-duration-exit-panel);
+      transition-timing-function: var(--paper-ease-exit);
+      pointer-events: none;
+    }
+  }
+}

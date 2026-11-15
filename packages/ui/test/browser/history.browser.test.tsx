@@ -8,7 +8,7 @@ import { userEvent } from "vitest/browser";
 import { HistoryPanel, registerEditCommands } from "../../src/editing.ts";
 import { CommandRegistry, CommandsProvider } from "../../src/index.ts";
 import { FakeEdits, fakePlatform } from "../fakes.ts";
-import { all, cleanup, focused, renderIn } from "./render.tsx";
+import { all, cleanup, focused, renderIn, settled } from "./render.tsx";
 
 afterEach(cleanup);
 
@@ -118,6 +118,7 @@ describe("HistoryPanel", () => {
 
   it.each(["light", "dark"] as const)("has no axe violations in the %s theme", async (theme) => {
     const host = renderIn(<HistoryPanel edits={new FakeEdits(LABELS, 2)} {...TIME} />, { theme });
+    await settled();
     const result = await axe.run(host);
     expect(result.violations.filter((v) => v.impact === "serious" || v.impact === "critical")).toEqual([]);
   });

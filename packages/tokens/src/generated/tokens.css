@@ -88,6 +88,8 @@
   --paper-cursor-link: pointer;
   --paper-cursor-disabled: default;
   --paper-cursor-pending: progress;
+  --paper-cursor-grab: grab;
+  --paper-cursor-grabbing: grabbing;
   --paper-z-page: 0;
   --paper-z-page-overlay: 1;
   --paper-z-chrome: 10;

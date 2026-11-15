@@ -2,6 +2,7 @@ import axe from "axe-core";
 import { type ReactNode, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
+import { LinkPanel } from "../../src/editing.ts";
 import {
   Button,
   Dialog,
@@ -18,7 +19,7 @@ import {
   ToastRegion,
   Tooltip,
 } from "../../src/index.ts";
-import { cleanup, focused, renderIn } from "./render.tsx";
+import { cleanup, focused, renderIn, settled } from "./render.tsx";
 
 afterEach(() => {
   cleanup();
@@ -128,7 +129,8 @@ describe("Dialog", () => {
   it("closes on Escape and returns focus to its opener", async () => {
     await openDialog();
     await userEvent.keyboard("{Escape}");
-    expect(role("dialog")).toBeNull();
+    // Polled: an overlay plays its exit before it leaves the page.
+    await expect.poll(() => role("dialog")).toBeNull();
     // WebKit moves focus back a little after the dialog unmounts.
     await expect.poll(() => focused().textContent).toBe("Move pages");
   });
@@ -136,12 +138,13 @@ describe("Dialog", () => {
   it("closes on a scrim click, from its close button, but not when it asks a required question", async () => {
     await openDialog();
     await userEvent.click(document.querySelector(".paper-modal-overlay") as HTMLElement, { position: { x: 4, y: 4 } });
-    expect(role("dialog")).toBeNull();
+    // Polled: it plays its exit before it leaves the page.
+    await expect.poll(() => role("dialog")).toBeNull();
     cleanup();
 
     await openDialog();
     await userEvent.click(document.querySelector("[aria-label=Close]") as HTMLElement);
-    expect(role("dialog")).toBeNull();
+    await expect.poll(() => role("dialog")).toBeNull();
     cleanup();
 
     const dialog = await openDialog({ required: true, role: "alertdialog" });
@@ -202,11 +205,12 @@ describe("Dialog", () => {
       zOf(document.querySelector(".paper-modal-overlay")),
     );
     await userEvent.keyboard("{Escape}");
-    expect(role("menu")).toBeNull();
+    // Polled: it plays its exit before it leaves the page.
+    await expect.poll(() => role("menu")).toBeNull();
     expect(role("dialog")).not.toBeNull();
     await expect.poll(focused).toBe(position);
     await userEvent.keyboard("{Escape}");
-    expect(role("dialog")).toBeNull();
+    await expect.poll(() => role("dialog")).toBeNull();
   });
 });
 
@@ -249,7 +253,8 @@ describe("Menu", () => {
     expect(focused().textContent).toContain("Rename");
     await userEvent.keyboard("{Enter}");
     expect(onAction).toHaveBeenCalledWith("rename");
-    expect(role("menu")).toBeNull();
+    // Polled: it plays its exit before it leaves the page.
+    await expect.poll(() => role("menu")).toBeNull();
     await expect.poll(focused).toBe(button);
   });
 
@@ -263,7 +268,8 @@ describe("Menu", () => {
     expect(exportItem?.getAttribute("aria-disabled")).toBe("true");
     expect(exportItem?.textContent).toContain("Nothing to export yet");
     await userEvent.keyboard("{Escape}");
-    expect(role("menu")).toBeNull();
+    // Polled: an overlay plays its exit before it leaves the page.
+    await expect.poll(() => role("menu")).toBeNull();
     await expect.poll(focused).toBe(host.querySelector("button"));
   });
 });
@@ -282,7 +288,8 @@ describe("Popover", () => {
     await userEvent.keyboard("{Enter}");
     expect(role("dialog")?.getAttribute("aria-label")).toBe("View settings");
     await userEvent.keyboard("{Escape}");
-    expect(role("dialog")).toBeNull();
+    // Polled: an overlay plays its exit before it leaves the page.
+    await expect.poll(() => role("dialog")).toBeNull();
     await expect.poll(focused).toBe(host.querySelector("button"));
   });
 });
@@ -303,7 +310,8 @@ describe("the layer stack", () => {
     (document.activeElement as HTMLElement).blur();
     expect(document.activeElement).toBe(document.body);
     await userEvent.keyboard("{Escape}");
-    expect(role("dialog")).toBeNull();
+    // Polled: an overlay plays its exit before it leaves the page.
+    await expect.poll(() => role("dialog")).toBeNull();
   });
 });
 
@@ -320,7 +328,8 @@ describe("Tooltip", () => {
     expect(tip?.textContent).toBe("Find in document⌘F");
     expect(focused().getAttribute("aria-describedby")).toBe(tip?.id);
     await userEvent.keyboard("{Escape}");
-    expect(role("tooltip")).toBeNull();
+    // Polled: an overlay plays its exit before it leaves the page.
+    await expect.poll(() => role("tooltip")).toBeNull();
   });
 });
 
@@ -370,7 +379,8 @@ describe("ToastRegion", () => {
     expect(onUndo).toHaveBeenCalledOnce();
     handle.dismiss();
     await frame();
-    expect(host.querySelector(".paper-toast")).toBeNull();
+    // Polled: it plays its exit before it leaves the page.
+    await expect.poll(() => host.querySelector(".paper-toast")).toBeNull();
   });
 
   it("keeps an endless toast, and resumes the timers once a pressed action takes focus away", async () => {
@@ -434,6 +444,8 @@ describe("ToastRegion", () => {
 
 describe.each(["light", "dark", "high-contrast"] as const)("axe with each overlay open, %s theme", (theme) => {
   const check = async (rules: axe.RuleObject = {}) => {
+    // Overlays fade in: axe measures contrast once they have, not through a half-faded one.
+    await settled();
     const result = await axe.run(document.body, {
       runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] },
       rules,
@@ -479,5 +491,24 @@ describe.each(["light", "dark", "high-contrast"] as const)("axe with each overla
     queue.add({ message: "Copied", action: { label: "Undo", onPress: () => {} }, timeout: 60_000 });
     await userEvent.tab();
     await check();
+  });
+});
+
+describe("LinkPanel", () => {
+  it("adds no second banner to a page whose top bar is its banner", async () => {
+    // A dialog's role drops the section's scope, so a <header> in it would read as the page's banner.
+    renderIn(
+      <>
+        <header>Top bar</header>
+        <LinkPanel anchor={() => ({ top: 40, left: 40, width: 80, height: 20 })} onDismiss={() => {}}>
+          <p>Where the link goes</p>
+        </LinkPanel>
+      </>,
+    );
+    await expect.poll(() => role("dialog")).not.toBeNull();
+    const { violations } = await axe.run(document.body, {
+      runOnly: ["landmark-no-duplicate-banner", "landmark-unique"],
+    });
+    expect(violations.map((v) => v.id)).toEqual([]);
   });
 });

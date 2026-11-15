@@ -179,7 +179,7 @@ describe(`how a file opens, and its threads, in ${BROWSER}`, () => {
     await more(page, "Close document");
     await chooseFile(watched, "outline.pdf");
     await expect.poll(() => page.getByRole("tab", { name: "Outline" }).count()).toBe(1);
-    expect(await page.getByRole("tab", { name: "Threads" }).count()).toBe(0);
+    await expect.poll(() => page.getByRole("tab", { name: "Threads" }).count()).toBe(0);
     await clean(watched);
   });
 });

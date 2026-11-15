@@ -9,7 +9,7 @@ import { page, userEvent } from "vitest/browser";
 import { Demo } from "../../examples/ui-demo.tsx";
 import { ModeRegistry, PlatformProvider, RAIL_DEFAULT_WIDTH, ReaderShell, ShellLayout } from "../../src/index.ts";
 import { fakePlatform } from "../fakes.ts";
-import { cleanup, renderIn } from "./render.tsx";
+import { cleanup, renderIn, settled } from "./render.tsx";
 
 afterEach(async () => {
   cleanup();
@@ -52,6 +52,7 @@ const focusItem = () => button("Focus mode Ctrl \\");
 const landmarks = (selector: string) => document.querySelectorAll(selector).length;
 
 async function seriousViolations(): Promise<string[]> {
+  await settled();
   const { violations } = await axe.run(document.body, { resultTypes: ["violations"] });
   return violations
     .filter((v) => v.impact === "serious" || v.impact === "critical")

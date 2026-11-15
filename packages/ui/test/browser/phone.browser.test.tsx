@@ -13,11 +13,12 @@ import {
   CommandsProvider,
   PlatformProvider,
   ReaderController,
+  ReaderShell,
   ReaderTopBar,
   registerReaderCommands,
 } from "../../src/index.ts";
 import { fakeFile, fakePlatform } from "../fakes.ts";
-import { cleanup, renderIn, targets } from "./render.tsx";
+import { cleanup, renderIn, settled, targets } from "./render.tsx";
 
 beforeEach(async () => {
   await page.viewport(390, 844);
@@ -105,7 +106,8 @@ describe("the phone shell", () => {
     await userEvent.click(button("Select the heading"));
     const sheet = () => [...document.querySelectorAll(".paper-sheet")].find((s) => s.textContent?.includes("Heading"));
     await expect.poll(sheet).toBeDefined();
-    expect(document.querySelector("[role=dialog]")).toBeNull();
+    // Polled: an overlay plays its exit before it leaves the page.
+    await expect.poll(() => document.querySelector("[role=dialog]")).toBeNull();
     await userEvent.keyboard("{Escape}");
     await expect.poll(sheet).toBeUndefined();
   });
@@ -142,10 +144,12 @@ describe("the phone shell", () => {
 
   it("passes axe with the bars and with the More sheet open", async () => {
     await openDemo();
-    const serious = async () =>
-      (await axe.run(document.body)).violations
+    const serious = async () => {
+      await settled();
+      return (await axe.run(document.body)).violations
         .filter((v) => v.impact === "serious" || v.impact === "critical")
         .map((v) => v.id);
+    };
     const bars = await serious();
     await userEvent.click(button("More", bottomBar() as HTMLElement));
     await expect.poll(() => document.querySelector("[role=dialog]")).not.toBeNull();
@@ -173,6 +177,48 @@ describe("the phone's top bar", () => {
     expect(document.querySelector('[aria-label="Close Q3-board-report.pdf"]')).toBeNull();
     await userEvent.click(back);
     expect(close).toHaveBeenCalledOnce();
+  });
+
+  it("cuts a long file name short with an ellipsis, so every button of the top bar stays on screen at its full size", async () => {
+    const name = "Laurence_Bugasu_Ininda_Consent_Form_Signed_Copy_For_The_Program_2026_Final_Version.pdf";
+    const reader = new ReaderController(fakePlatform(), async () => ({ pageCount: 3 }));
+    await reader.open(fakeFile(name));
+    // The phone's widths and two wider windows, whose bar has the × after the name instead.
+    const results: string[] = [];
+    for (const width of [320, 390, 768, 1280]) {
+      await page.viewport(width, 800);
+      renderIn(
+        <CommandsProvider
+          registry={registered()}
+          context={{ platform: fakePlatform(), reader, actions: { "file.close": () => undefined } }}
+          keys="other"
+        >
+          <ReaderShell
+            topBar={<ReaderTopBar reader={reader} keys="other" more={{ items: [], onAction: () => undefined }} />}
+          >
+            <p>page</p>
+          </ReaderShell>
+        </CommandsProvider>,
+        { density: "touch" },
+      );
+      const header = document.querySelector("header") as HTMLElement;
+      // Off screen, or squeezed below the 44 px touch target by the name.
+      const off = targets(header)
+        .filter((el) => {
+          const box = el.getBoundingClientRect();
+          return box.left < -0.5 || box.right > width + 0.5 || box.width + 0.5 < 44;
+        })
+        .map((el) => el.getAttribute("aria-label") ?? el.textContent);
+      const title = header.querySelector<HTMLElement>(".paper-top-bar-name") as HTMLElement;
+      results.push(`${width}: off screen [${off.join(", ")}], name cut ${title.scrollWidth > title.clientWidth}`);
+      cleanup();
+    }
+    expect(results).toEqual([
+      "320: off screen [], name cut true",
+      "390: off screen [], name cut true",
+      "768: off screen [], name cut true",
+      "1280: off screen [], name cut true",
+    ]);
   });
 
   it("slides away while the document scrolls down, and comes back as soon as it scrolls up", async () => {

@@ -36,7 +36,7 @@ export function sheets(): [string, string][] {
 }
 
 /** Each declaration with the at-rules around it (`@media (hover: hover)` …) and its selector. */
-function declarations(css: string): { decl: string; selector: string; media: string[] }[] {
+export function declarations(css: string): { decl: string; selector: string; media: string[] }[] {
   const out: { decl: string; selector: string; media: string[] }[] = [];
   const stack: string[] = [];
   let buffer = "";
@@ -84,10 +84,10 @@ function easings(name: string, value: string): Found {
   );
 }
 
-/** The action, disabled and pending cursors written in place, not read from their tokens. */
+/** The action, disabled, pending and drag cursors written in place, not read from their tokens. */
 function cursors(name: string, value: string): Found {
   const keyword = value.replace(/\s*!important$/, "");
-  return name === "cursor" && /^(pointer|default|progress)$/.test(keyword) ? [["cursor", keyword]] : [];
+  return name === "cursor" && /^(pointer|default|progress|grab|grabbing)$/.test(keyword) ? [["cursor", keyword]] : [];
 }
 
 function transitionAll(name: string, value: string): Found {

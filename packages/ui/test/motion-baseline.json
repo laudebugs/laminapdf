@@ -1,6 +1,4 @@
 {
-  "packages/ui/src/styles/appearance-chips.css": ["cursor: default"],
-  "packages/ui/src/styles/choice.css": ["cursor: default"],
   "packages/ui/src/styles/document-tabs.css": [
     "cursor: default",
     "hover: .paper-document-tab-close:hover",
@@ -9,7 +7,6 @@
   ],
   "packages/ui/src/styles/history.css": ["cursor: default", "hover: .paper-history-row:hover"],
   "packages/ui/src/styles/notice.css": ["cursor: default"],
-  "packages/ui/src/styles/outline-row.css": ["cursor: default", "cursor: default"],
   "packages/ui/src/styles/phone.css": [
     "cursor: pointer",
     "duration: transition: 160ms",
@@ -24,12 +21,12 @@
   ],
   "packages/ui/src/styles/recent.css": ["cursor: default", "cursor: pointer"],
   "packages/ui/src/styles/settings.css": ["cursor: default", "cursor: default"],
+  "packages/ui/src/styles/sheet.css": ["cursor: grab", "cursor: grabbing"],
   "packages/ui/src/styles/shell.css": [
     "duration: animation: 160ms",
     "easing: animation: ease-out",
     "hover: .paper-rail-handle:hover, .paper-rail-handle:focus-visible"
   ],
-  "packages/ui/src/styles/swatches.css": ["cursor: default"],
   "packages/ui/src/styles/threads.css": [
     "cursor: pointer",
     "cursor: pointer",
