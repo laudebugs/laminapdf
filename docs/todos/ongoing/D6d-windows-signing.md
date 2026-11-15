@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D6d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D6](../../plans/desktop-app.md#d6-signing-packaging-and-release-pipeline) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [D6a](../done/D6a-signing-runbook-and-owner-setup.md), [D6b](../done/D6b-release-workflow-and-linux-packages.md) |
