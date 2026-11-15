@@ -7,7 +7,7 @@
 | Plan | [E1 editing foundation §5](../../plans/editor/e1-editing-foundation.md#5-the-edit-session-and-the-modes) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B6b](./B6b-lamina-pdf-package.md), [C4e](./C4e-reader-chrome.md), [E1a](./E1a-editing-foundation-feature-plan.md), [E1g](./E1g-redraw-after-edit.md) |
-| Dependency notes | [E1g](../done/E1g-redraw-after-edit.md) (the worker's redraw after an edit, which the session builds on), `C4` ([web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare): `@laminapdf/ui`, `apps/web`), `B6` ([pdf-library §B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfsdk): `laminapdf-wasm` and `@laminapdf/sdk`). The desktop part is [E1h](../ongoing/E1h-desktop-edit-session.md), after D4b ([E1 plan §8](../../plans/editor/e1-editing-foundation.md#8-differences-between-the-shells)) |
+| Dependency notes | [E1g](../done/E1g-redraw-after-edit.md) (the worker's redraw after an edit, which the session builds on), `C4` ([web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare): `@laminapdf/ui`, `apps/web`), `B6` ([pdf-library §B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfsdk): `laminapdf-wasm` and `@laminapdf/sdk`). The desktop part is [E1h](../done/E1h-desktop-edit-session.md), after D4b ([E1 plan §8](../../plans/editor/e1-editing-foundation.md#8-differences-between-the-shells)) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e1d-edit-session-undo-ui` |
 | PR title | `feat(ui): edit session with undo/redo and history panel` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Turn the web reader into an editor shell: an edit session per open document that holds the op log in the document worker, the interaction modes in `@laminapdf/ui` that later rounds add tools to ([E1 plan §5](../../plans/editor/e1-editing-foundation.md#5-the-edit-session-and-the-modes)), dirty state, undo/redo commands with shortcuts, and a history panel listing transactions. The desktop's session, Edit menu and close guard are [E1h](../ongoing/E1h-desktop-edit-session.md).
+Turn the web reader into an editor shell: an edit session per open document that holds the op log in the document worker, the interaction modes in `@laminapdf/ui` that later rounds add tools to ([E1 plan §5](../../plans/editor/e1-editing-foundation.md#5-the-edit-session-and-the-modes)), dirty state, undo/redo commands with shortcuts, and a history panel listing transactions. The desktop's session, Edit menu and close guard are [E1h](../done/E1h-desktop-edit-session.md).
 
 ## Context
 
@@ -41,7 +41,7 @@ Turn the web reader into an editor shell: an edit session per open document that
 
 - Saving and the constraint banner → [E1e](../done/E1e-save-and-constraint-banner.md)
 - Metadata editing UI → [E1f](../done/E1f-metadata-ui-capability-page.md)
-- The desktop session, Edit menu and close guard → [E1h](../ongoing/E1h-desktop-edit-session.md)
+- The desktop session, Edit menu and close guard → [E1h](../done/E1h-desktop-edit-session.md)
 
 **Editor facts**
 

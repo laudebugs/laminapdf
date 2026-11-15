@@ -34,8 +34,9 @@ impl Unsaved {
             marks.unsaved.insert(window.to_owned());
         } else {
             marks.unsaved.remove(window);
-            marks.agreed.remove(window);
         }
+        // Told again (an edit since, or none left): a quit's earlier answer about it no longer holds.
+        marks.agreed.remove(window);
     }
 
     /// Whether `window` holds unsaved edits.
@@ -125,6 +126,15 @@ mod tests {
             (first.as_deref(), second.as_deref(), unsaved.to_ask()),
             (Some("main"), Some("w2"), None)
         );
+    }
+
+    #[test]
+    fn a_window_edited_after_agreeing_to_a_quit_should_be_asked_again() {
+        let unsaved = Unsaved::default();
+        unsaved.set("main", true);
+        unsaved.agree("main");
+        unsaved.set("main", true);
+        assert_eq!(unsaved.to_ask().as_deref(), Some("main"));
     }
 
     #[test]

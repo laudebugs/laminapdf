@@ -4,15 +4,7 @@
 // aren't saved; and the question before they're lost: closing the tab, the window or the app.
 // The desktop doesn't save edits yet: until it does, the question can only keep them or let them go.
 
-import {
-  Button,
-  Dialog,
-  type EditControls,
-  message,
-  quarterTurn,
-  type ReaderController,
-  useStoreState,
-} from "@laminapdf/ui";
+import { Button, Dialog, type EditControls, message, quarterTurn, type ReaderController } from "@laminapdf/ui";
 import { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { DesktopEngine } from "./app.tsx";
 import { stopper } from "./engine/stopper.ts";
@@ -63,9 +55,7 @@ export function useDesktopEditing(
   const edits = engine?.viewer.edits;
   const slice = useSyncExternalStore(edits?.subscribe ?? NOTHING_TO_HEAR, () => edits?.getState());
   const unsaved = (slice?.history.unsaved ?? 0) > 0;
-  // A document closed takes its edits with it: the window renders again then too, and reads them.
-  useStoreState(reader, (s) => s.phase);
-  useUnsavedMark(engine, engine?.client.unsaved ?? false);
+  useUnsavedMark(engine, reader);
   const question = useLeaveQuestion(engine, reader);
   const actions = useMemo(() => {
     const rotate = (delta: 90 | -90) => () => {
@@ -91,13 +81,23 @@ export function useDesktopEditing(
 }
 
 /**
- * Tells the main process whether this window holds unsaved edits, in any of its documents
- * (`unsaved`, read as the window renders after an edit, an undo, a redo or a document closed).
+ * Tells the main process whether this window holds unsaved edits, in any of its documents, after
+ * every change of the shown document's session and of the reader (a document opened or closed).
+ * Each new edit tells it again, so a window that agreed to lose its edits to a quit is asked
+ * again about the ones it made since.
  */
-function useUnsavedMark(engine: DesktopEngine | undefined, unsaved: boolean): void {
+function useUnsavedMark(engine: DesktopEngine | undefined, reader: ReaderController): void {
   useEffect(() => {
-    engine?.shell.invoke("set_unsaved", { unsaved }).catch(() => undefined);
-  }, [engine, unsaved]);
+    if (engine === undefined) return;
+    const tell = () => {
+      engine.shell.invoke("set_unsaved", { unsaved: engine.client.unsaved }).catch(() => undefined);
+    };
+    tell();
+    const stops = [engine.viewer.edits.subscribe(tell), reader.subscribe(tell)];
+    return () => {
+      for (const stop of stops) stop();
+    };
+  }, [engine, reader]);
 }
 
 /** The question waiting for an answer, and how it resolves. */
