@@ -176,13 +176,22 @@ const buttons: Example[] = [
     element: () => <Button size={size}>Open</Button>,
   })),
   { component: "Button", state: "icon and text", element: () => <Button icon="download">Download</Button> },
-  { component: "Button", state: "pending", element: () => <Button isPending>Saving</Button> },
+  ...(["secondary", "primary", "danger-filled"] as const).map((variant) => ({
+    component: "Button",
+    state: variant === "secondary" ? "pending" : `${variant} pending`,
+    element: () => (
+      <Button variant={variant} isPending>
+        Saving
+      </Button>
+    ),
+  })),
   ...([26, 28, 32] as const).map((size) => ({
     component: "IconButton",
     state: `size ${size}`,
     element: () => <IconButton label="Find in document" icon="find" size={size} />,
   })),
   { component: "IconButton", state: "disabled", element: () => <IconButton label="Undo" icon="undo" isDisabled /> },
+  { component: "IconButton", state: "pending", element: () => <IconButton label="Save" icon="download" isPending /> },
 ];
 
 const toggles: Example[] = [
@@ -218,6 +227,24 @@ const toggles: Example[] = [
       <ToolToggle icon="comment" isDisabled>
         Note
       </ToolToggle>
+    ),
+  },
+  {
+    component: "ToolToggle",
+    state: "on, disabled",
+    element: () => (
+      <ToolToggle icon="highlight" defaultSelected isDisabled>
+        Highlight
+      </ToolToggle>
+    ),
+  },
+  {
+    component: "ToggleButton",
+    state: "disabled",
+    element: () => (
+      <ToggleButton icon="sidebar" isDisabled>
+        Sidebar
+      </ToggleButton>
     ),
   },
   {
@@ -406,6 +433,15 @@ const status: Example[] = [
     state: "with an icon",
     element: () => (
       <StatusBarItem icon="sync" onPress={noop}>
+        Comments synced 10:32
+      </StatusBarItem>
+    ),
+  },
+  {
+    component: "StatusBarItem",
+    state: "disabled",
+    element: () => (
+      <StatusBarItem icon="sync" isDisabled>
         Comments synced 10:32
       </StatusBarItem>
     ),

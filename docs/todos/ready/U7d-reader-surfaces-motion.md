@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
-| Depends on | [U7b](./U7b-control-states-and-cursors.md), [U7i](./U7i-choice-and-field-states.md) |
+| Depends on | [U7b](../done/U7b-control-states-and-cursors.md), [U7i](./U7i-choice-and-field-states.md) |
 | ADRs | Follows [0024](../../decisions/0024-app-shell-ux.md) (tokens in layers) |
 | Branch | `feat/u7d-reader-surfaces-motion` |
 | PR title | `feat(web): thumbnails, panels and tool cursors follow the state rules` |
@@ -35,7 +35,8 @@ Bring the reader's surfaces that aren't plain controls under the plan's §3 and 
 - Pages' fade-in and the low-resolution to sharp cross-fade
 - Inspector and phone top bar motion without layout animation
 - Tool cursors over the text and link layers (the tool's cursor on the layer root wins; spans keep the I-beam only for text selection)
-- The reader's raw `:hover` rules, all of them, including `document-tabs.css`'s (U7f and U7g change the tabs' motion and drag, not their hover)
+- The reader's raw `:hover` rules, all of them, including `document-tabs.css`'s (U7f and U7g change the tabs' motion and drag, not their hover) and `properties.css`'s row hover that shows its icon button
+- The reader's own buttons outside U7b's action controls, onto its shared states (`states.css`): `.paper-zoom-percent`, `.paper-commands-button`, `.paper-password-show`, `.paper-document-tabs-menu`, `.paper-bottom-bar-button`
 - The built-reader cursor test (plan §6)
 
 **Out of scope**

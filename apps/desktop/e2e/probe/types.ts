@@ -16,6 +16,8 @@ interface E2eProbe {
   readonly now: () => number;
   /** The view's page, zoom and scroll, or undefined outside the shell. */
   readonly view: () => ViewState | undefined;
+  /** The shown document's id in the main process, or undefined with none open. */
+  readonly doc: () => number | undefined;
   /** Each mounted page's render state. */
   readonly pages: () => Readonly<Record<number, PageRenderState>>;
   /** Every change of a page's state since `since` (a `now()`), oldest first. */

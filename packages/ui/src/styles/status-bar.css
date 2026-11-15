@@ -12,10 +12,9 @@
     padding-inline: var(--paper-space-4);
     border: 0;
     border-radius: var(--paper-radius-4);
-    background: transparent;
+    background-color: transparent;
     color: var(--paper-muted);
     font: var(--paper-type-caption);
-    cursor: default;
   }
 
   .paper-status-item svg {
@@ -26,13 +25,8 @@
     outline-offset: var(--paper-focus-ring-offset-tight);
   }
 
-  .paper-status-item[data-hovered] {
-    background: var(--paper-hover);
-  }
-
   /* Pressed, the label darkens to text-3 as §7.0's ghost controls do: muted is under 4.5 there. */
   .paper-status-item[data-pressed] {
-    background: var(--paper-pressed);
     color: var(--paper-text-3);
   }
 

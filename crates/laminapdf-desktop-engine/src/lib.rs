@@ -18,6 +18,7 @@ mod edit;
 pub mod fonts;
 mod limits;
 mod outbox;
+mod print;
 mod queue;
 mod remote;
 #[cfg(feature = "selftest")]
@@ -169,6 +170,7 @@ fn route<R: Read>(
             ToEngine::GetPageInfo { req, doc } => queue.push(Job::PageInfo { req, doc }),
             ToEngine::RenderTile(tile) => queue.push(Job::Render(tile)),
             ToEngine::Edit { req, doc, call } => queue.push(Job::Edit { req, doc, call }),
+            ToEngine::RenderPrintBand(band) => queue.push(Job::Print(band)),
             ToEngine::CloseDocument { doc } => queue.push(Job::Close { doc }),
         }
     }

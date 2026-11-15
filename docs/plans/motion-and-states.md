@@ -130,7 +130,7 @@ Every interactive element styles the states it has, written in this order inside
 | Todo | What | Depends on |
 | --- | --- | --- |
 | [U7a](../todos/done/U7a-motion-and-state-tokens.md) | The tokens, the state model and reduced-motion rule in the design language, `data-motion-suppressed`, the tap highlight, the gallery's motion switch, the static checks | None |
-| [U7b](../todos/ready/U7b-control-states-and-cursors.md) | The action controls in `@laminapdf/ui` (buttons, toggles, tabs, the mode switcher, menu items, options): the state model, cursors, hover fades, touch-safe hover, selection without layout shift | U7a |
+| [U7b](../todos/done/U7b-control-states-and-cursors.md) | The action controls in `@laminapdf/ui` (buttons, toggles, tabs, the mode switcher, menu items, options): the state model, cursors, hover fades, touch-safe hover, selection without layout shift | U7a |
 | [U7i](../todos/ready/U7i-choice-and-field-states.md) | Choices, fields and rows in `@laminapdf/ui` (checkboxes, radios, the switch and its knob, swatches, chips, the select, text fields, outline rows): the same | U7a |
 | [U7c](../todos/ready/U7c-overlay-enter-and-exit.md) | Menus, popovers, tooltips, link previews, dialogs, toasts, sheets, the drawer and scrim enter and leave | U7a |
 | [U7d](../todos/ready/U7d-reader-surfaces-motion.md) | The reader's surfaces: thumbnails, pages fading in, the inspector and phone bar without layout animation, tool cursors over the text layer, the reader's raw `:hover` rules, the built-reader cursor test | U7b, U7i |

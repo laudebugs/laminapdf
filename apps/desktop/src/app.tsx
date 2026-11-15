@@ -46,6 +46,7 @@ import { EchoRegistry } from "./menus/echo-registry.ts";
 import { DESKTOP_EDIT_COMMANDS } from "./menus/menus.ts";
 import { useNativeMenus } from "./menus/use-native-menus.tsx";
 import { NotYetSupportedError } from "./platform/desktop.ts";
+import { usePrint } from "./print.tsx";
 import { type DesktopRecent, useDesktopRecent } from "./recent.tsx";
 import { type DesktopSettings, useDesktopSettings } from "./settings.tsx";
 import { NO_TABS, useTabStrip } from "./tabs/use-tabs.tsx";
@@ -90,22 +91,37 @@ const LOST_TEXT: Readonly<Record<Lost, { title: string; body: string }>> = {
   },
 };
 
+/** A part of the window's command handlers. */
+type CommandActions = NonNullable<CommandContext["actions"]>;
+
+/** The window's command handlers in one object, the same object while each part is. */
+function useMergedActions(
+  home: CommandActions,
+  tabs: CommandActions,
+  print: CommandActions,
+  edits: CommandActions,
+): CommandActions {
+  return useMemo(() => ({ ...home, ...tabs, ...print, ...edits }), [home, tabs, print, edits]);
+}
+
 /** {@link WindowStatus}'s props. */
 interface WindowStatusProps {
   /** Whether the shown document was repaired as it opened. */
   readonly repaired: boolean;
   /** Where the repair's details go. */
   readonly toasts: ToastQueue;
+  /** The print's progress, while one runs. */
+  readonly print: ReactNode;
   /** The app's version, when known. */
   readonly info: AppInfo | undefined;
 }
 
 /**
- * The status bar's items: the repair notice and the app's version.
+ * The status bar's items: the repair notice, the print's progress and the app's version.
  * @param props - See {@link WindowStatusProps}.
  * @returns The items.
  */
-function WindowStatus({ repaired, toasts, info }: WindowStatusProps): ReactNode {
+function WindowStatus({ repaired, toasts, print, info }: WindowStatusProps): ReactNode {
   return (
     <>
       {repaired ? (
@@ -119,6 +135,7 @@ function WindowStatus({ repaired, toasts, info }: WindowStatusProps): ReactNode 
           }
         />
       ) : null}
+      {print}
       {info === undefined ? null : <StatusBarItem>{`Lamina PDF ${info.version}`}</StatusBarItem>}
     </>
   );
@@ -152,10 +169,8 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const strip = useTabStrip(engine?.shell, tabs, reader, toasts, keys, engine?.viewer, editing.unsaved);
   const { notice, actions: tabActions } = strip;
   const { settings, recent, actions: homeActions } = useHome(engine, platform, reader, state, toasts);
-  const actions = useMemo(
-    () => ({ ...homeActions, ...tabActions, ...editing.actions }),
-    [homeActions, tabActions, editing.actions],
-  );
+  const print = usePrint(engine, toasts);
+  const actions = useMergedActions(homeActions, tabActions, print.actions, editing.actions);
   const open = state.phase === "open";
   const shows = useShownParts(state.phase, tabs);
   // The page input, zoom and the viewer's commands work while a document is on screen.
@@ -180,7 +195,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
             }}
           />
         }
-        status={<WindowStatus repaired={repaired} toasts={toasts} info={info} />}
+        status={<WindowStatus repaired={repaired} toasts={toasts} print={print.status} info={info} />}
       >
         {shows.startScreen ? (
           <OpenDropZone reader={reader} keys={keys}>

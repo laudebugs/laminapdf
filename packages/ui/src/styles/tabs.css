@@ -16,11 +16,13 @@
     min-block-size: var(--ui-target);
     min-inline-size: var(--ui-target);
     border-block-end: var(--paper-selected-underline-width) solid transparent;
+    border-start-start-radius: var(--paper-radius-4);
+    border-start-end-radius: var(--paper-radius-4);
     color: var(--paper-muted);
     font: var(--paper-type-control);
-    cursor: default;
   }
 
+  /* Hover darkens the label with no fill; a press shows the pressed layer (states.css). */
   .paper-tab[data-hovered] {
     color: var(--paper-text);
   }

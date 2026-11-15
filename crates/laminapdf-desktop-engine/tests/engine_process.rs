@@ -1,6 +1,7 @@
 //! The built engine binary under the main process's [`Supervisor`]: documents open and report
 //! their pages from the engine, encrypted ones unlock, a killed engine is replaced, and tiles
-//! match an in-process PDFium render (that test needs PDFium: `cargo xtask render-golden`).
+//! match an in-process PDFium render, and a page printed band by band matches one whole print
+//! render (those tests need PDFium: `cargo xtask render-golden`).
 #![allow(
     clippy::unwrap_used,
     clippy::panic,
@@ -18,8 +19,8 @@ use std::time::{Duration, Instant};
 
 use laminapdf_desktop_protocol::supervisor::{Config, Event, FontServer, RangeServer, Supervisor, SupervisorError};
 use laminapdf_desktop_protocol::{
-    DocId, EditCall, EditReport, FailureKind, FromEngine, Password, Priority, ReqId, TileAppearance, TileFormat,
-    TileRequest, ToEngine, ViewRotation,
+    DocId, EditCall, EditReport, FailureKind, FromEngine, Password, PrintBandRequest, Priority, ReqId, TileAppearance,
+    TileFormat, TileRequest, ToEngine, ViewRotation,
 };
 use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner, SystemFonts};
 use laminapdf_test_fixtures::{fixture, read_at};
@@ -314,6 +315,125 @@ fn a_tile_should_match_an_in_process_pdfium_render() {
         engine.open(doc, len);
         assert_tile_matches(&engine, doc, bytes, &name);
     }
+}
+
+#[test]
+fn a_print_band_of_a_document_that_is_not_open_should_be_refused() {
+    let engine = Engine::start();
+    let reply = engine.ask(|req| {
+        ToEngine::RenderPrintBand(PrintBandRequest {
+            req,
+            doc: DocId(7),
+            page: 0,
+            dpi: 300,
+            band: 0,
+            format: TileFormat::Bgra8,
+        })
+    });
+    assert!(
+        matches!(
+            reply,
+            FromEngine::Error {
+                kind: FailureKind::UnknownDocument,
+                ..
+            }
+        ),
+        "{reply:?}"
+    );
+}
+
+#[test]
+#[ignore = "needs the PDFium library: cargo xtask render-golden"]
+fn a_page_printed_band_by_band_should_match_one_whole_print_render() {
+    use laminapdf_render::{CancelToken, RenderBackend, RenderFlags, RenderLimits, RenderOpenOptions, RenderRequest};
+
+    let bytes = fixture("golden/text-latin.pdf");
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, bytes.clone());
+    engine.open(doc, len);
+    let band = |band: u32, format: TileFormat| {
+        engine
+            .supervisor
+            .request(|req| {
+                ToEngine::RenderPrintBand(PrintBandRequest {
+                    req,
+                    doc,
+                    page: 0,
+                    dpi: 600,
+                    band,
+                    format,
+                })
+            })
+            .unwrap()
+    };
+    // At 600 dpi a letter-size page needs several 16 MiB bands.
+    let mut page = Vec::new();
+    let (mut next, mut count, mut size) = (0, 1, (0, 0));
+    while next < count {
+        let (reply, pixels) = band(next, TileFormat::Rgba8);
+        let FromEngine::PrintBand {
+            dpi: 600,
+            width,
+            height,
+            y,
+            rows,
+            bands,
+            format: TileFormat::Rgba8,
+            ..
+        } = reply
+        else {
+            panic!("band {next}: {reply:?}");
+        };
+        assert_eq!(
+            y as usize * width as usize * 4,
+            page.len(),
+            "band {next} starts where the last ended"
+        );
+        assert_eq!(pixels.len(), width as usize * rows as usize * 4);
+        page.extend_from_slice(&pixels);
+        (count, size) = (bands, (width, height));
+        next += 1;
+    }
+    assert!(count > 1, "the page fits one band: the test proves nothing");
+    assert_eq!(page.len(), size.0 as usize * size.1 as usize * 4);
+
+    let (_, bgra) = band(0, TileFormat::Bgra8);
+    let swapped: Vec<u8> = bgra
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .flat_map(|[b, g, r, a]| [*r, *g, *b, *a])
+        .collect();
+    assert!(
+        page.starts_with(&swapped),
+        "BGRA is the same pixels, red and blue swapped"
+    );
+
+    let backend = laminapdf_render_pdfium::PdfiumBackend::from_env().unwrap();
+    let source: Arc<dyn laminapdf_render::ByteSource> = Arc::new(bytes);
+    // The whole page at 600 dpi is over the default per-tile limit, which is why the engine bands it.
+    let whole_page = RenderLimits {
+        max_render_pixels: 64 * 1024 * 1024,
+        ..RenderLimits::default()
+    };
+    let local = backend
+        .open(source, &RenderOpenOptions::new().with_limits(whole_page))
+        .unwrap();
+    let request = RenderRequest::page(0, 600.0 / 72.0).with_flags(RenderFlags {
+        print: true,
+        ..RenderFlags::default()
+    });
+    let mut expected = vec![0; local.plan(&request).unwrap().byte_len()];
+    local.render(&request, &mut expected, &CancelToken::new()).unwrap();
+    // PDFium rounds anti-aliased edges a level apart when a band starts at another origin: a
+    // few hundred of the 139 million bytes differ by one level (measured with this fixture).
+    let worst = page
+        .iter()
+        .zip(&expected)
+        .map(|(a, b)| a.abs_diff(*b))
+        .max()
+        .unwrap_or(0);
+    assert!(worst <= 1, "a band differs from the whole render by {worst} levels");
 }
 
 /// The file has text, and holds every font it uses, so both renders draw the same glyphs. A

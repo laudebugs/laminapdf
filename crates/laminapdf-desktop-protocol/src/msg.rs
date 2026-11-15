@@ -100,6 +100,9 @@ pub struct EngineLimits {
 pub enum TileFormat {
     /// Straight-alpha RGBA, 8 bits per channel, rows top to bottom with no padding.
     Rgba8,
+    /// The same, in the order B, G, R, A: what GDI's DIBs and cairo's `ARGB32` (on a
+    /// little-endian machine) take as they are. Print bands only; the pixels are opaque.
+    Bgra8,
 }
 
 /// Which tiles go first: those on screen, then those rendered ahead of a scroll.
@@ -175,6 +178,27 @@ pub struct TileRequest {
     pub format: TileFormat,
     /// Whether the tile is on screen.
     pub priority: Priority,
+}
+
+/// One band of a page rendered for printing ([`ToEngine::RenderPrintBand`]): the page at `dpi`,
+/// with the print intent (annotations' `Print` flags, PDFium's `FPDF_PRINTING`), its own colours
+/// and no view rotation, on white. The engine splits the page into bands of its own height, so
+/// a page is never held whole; band `band` is the `band`-th from the top.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PrintBandRequest {
+    /// The request; the reply is [`FromEngine::PrintBand`] or [`FromEngine::Error`].
+    pub req: ReqId,
+    /// The document.
+    pub doc: DocId,
+    /// The page, 0-based.
+    pub page: u32,
+    /// Pixels per inch. The engine lowers it for a page too large to render at it, and says so
+    /// in the reply.
+    pub dpi: u16,
+    /// Which band, from 0 at the top.
+    pub band: u32,
+    /// The pixel format of the reply.
+    pub format: TileFormat,
 }
 
 /// A page's displayed size in points and its `/Rotate`.
@@ -430,6 +454,8 @@ pub enum ToEngine {
         /// What went wrong, without the file's path.
         message: String,
     },
+    /// Render one band of a page for printing. Answered by [`FromEngine::PrintBand`].
+    RenderPrintBand(PrintBandRequest),
 }
 
 /// A message from the engine to the main process.
@@ -540,5 +566,26 @@ pub enum FromEngine {
         req: ReqId,
         /// The face's [`FontFace::id`].
         font: u32,
+    },
+    /// A band of a page rendered for printing; its pixels (`width × rows × 4` bytes) follow the
+    /// header as the frame's payload.
+    PrintBand {
+        /// The request.
+        req: ReqId,
+        /// The resolution the page was rendered at: the request's, or lower for a page too large
+        /// to render at it.
+        dpi: u16,
+        /// The whole page's width in pixels, which is the band's width too.
+        width: u32,
+        /// The whole page's height in pixels.
+        height: u32,
+        /// The band's first row on the page.
+        y: u32,
+        /// The band's height in rows.
+        rows: u32,
+        /// How many bands the page has.
+        bands: u32,
+        /// The pixels' format.
+        format: TileFormat,
     },
 }

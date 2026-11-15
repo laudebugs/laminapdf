@@ -60,6 +60,7 @@ export function exposeProbe(engine: DesktopEngine | undefined): void {
   globalThis.__laminaE2e = {
     now: () => performance.now(),
     view: () => engine?.viewer.getState(),
+    doc: () => engine?.client.current?.doc,
     pages: () => engine?.viewer.stats().pages ?? {},
     paintsSince: (since) => paints.filter((paint) => paint.at >= since),
     tilesDrawn: () => tilesDrawn,

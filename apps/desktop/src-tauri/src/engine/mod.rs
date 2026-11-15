@@ -7,6 +7,7 @@
 mod bytesource;
 mod documents;
 mod edit;
+mod print;
 mod secret;
 mod tiles;
 
@@ -22,6 +23,7 @@ use serde::Serialize;
 
 pub(crate) use documents::DocumentRegistry;
 pub(crate) use edit::{EditOutcome, EditRequest};
+pub(crate) use print::BandQuery;
 use secret::SessionPassword;
 pub(crate) use tiles::{Tile, TileQuery, UrlError as TileUrlError, parse as parse_tile, respond as tile_response};
 
