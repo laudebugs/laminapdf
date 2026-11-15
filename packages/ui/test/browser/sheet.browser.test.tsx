@@ -273,7 +273,8 @@ describe("BottomSheet", () => {
       host.closest("[inert]") ?? host.querySelector("[inert]") ?? host.parentElement?.closest("[inert]"),
     ).not.toBeNull();
     await userEvent.keyboard("{Escape}");
-    expect(sheet()).toBeNull();
+    // Polled: an overlay plays its exit before it leaves the page.
+    await expect.poll(() => sheet()).toBeNull();
     await expect.poll(focused).toBe(host.querySelector("button"));
   });
 
@@ -452,7 +453,8 @@ describe("Dialog on a phone", () => {
       expect((document.querySelector("[role=dialog] input") as HTMLInputElement).value).toBe("12");
       await userEvent.keyboard("{Escape}");
       await userEvent.click(host.querySelector("button") as HTMLElement);
-      expect(sheet()).toBeNull();
+      // Polled: an overlay plays its exit before it leaves the page.
+      await expect.poll(() => sheet()).toBeNull();
       expect(document.querySelector(".paper-dialog")).not.toBeNull();
     } finally {
       await page.viewport(width, height);

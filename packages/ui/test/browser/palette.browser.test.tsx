@@ -375,7 +375,8 @@ describe("CommandPalette", () => {
     await userEvent.keyboard("{ArrowDown}{ArrowDown}{Enter}");
     expect(onAction).toHaveBeenCalledWith("edit.copy");
     await userEvent.keyboard("{Escape}");
-    expect(document.querySelector("[role=dialog]")).toBeNull();
+    // Polled: an overlay plays its exit before it leaves the page.
+    await expect.poll(() => document.querySelector("[role=dialog]")).toBeNull();
   });
 
   it("passes the query out, shows the empty state, and a page in place of the list", async () => {
@@ -400,7 +401,8 @@ describe("CommandPalette", () => {
     const box = (document.querySelector(".paper-palette") as HTMLElement).getBoundingClientRect();
     const overlay = document.querySelector(".paper-palette-overlay") as HTMLElement;
     await userEvent.click(overlay, { position: { x: box.left + box.width / 2, y: box.bottom + 100 } });
-    expect(document.querySelector("[role=dialog]")).toBeNull();
+    // Polled: an overlay plays its exit before it leaves the page.
+    await expect.poll(() => document.querySelector("[role=dialog]")).toBeNull();
   });
 
   it("shows the empty state, and no overlines, when every section is empty", async () => {

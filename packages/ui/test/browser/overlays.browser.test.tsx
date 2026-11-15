@@ -128,7 +128,8 @@ describe("Dialog", () => {
   it("closes on Escape and returns focus to its opener", async () => {
     await openDialog();
     await userEvent.keyboard("{Escape}");
-    expect(role("dialog")).toBeNull();
+    // Polled: an overlay plays its exit before it leaves the page.
+    await expect.poll(() => role("dialog")).toBeNull();
     // WebKit moves focus back a little after the dialog unmounts.
     await expect.poll(() => focused().textContent).toBe("Move pages");
   });
@@ -266,7 +267,8 @@ describe("Menu", () => {
     expect(exportItem?.getAttribute("aria-disabled")).toBe("true");
     expect(exportItem?.textContent).toContain("Nothing to export yet");
     await userEvent.keyboard("{Escape}");
-    expect(role("menu")).toBeNull();
+    // Polled: an overlay plays its exit before it leaves the page.
+    await expect.poll(() => role("menu")).toBeNull();
     await expect.poll(focused).toBe(host.querySelector("button"));
   });
 });
@@ -285,7 +287,8 @@ describe("Popover", () => {
     await userEvent.keyboard("{Enter}");
     expect(role("dialog")?.getAttribute("aria-label")).toBe("View settings");
     await userEvent.keyboard("{Escape}");
-    expect(role("dialog")).toBeNull();
+    // Polled: an overlay plays its exit before it leaves the page.
+    await expect.poll(() => role("dialog")).toBeNull();
     await expect.poll(focused).toBe(host.querySelector("button"));
   });
 });
@@ -306,7 +309,8 @@ describe("the layer stack", () => {
     (document.activeElement as HTMLElement).blur();
     expect(document.activeElement).toBe(document.body);
     await userEvent.keyboard("{Escape}");
-    expect(role("dialog")).toBeNull();
+    // Polled: an overlay plays its exit before it leaves the page.
+    await expect.poll(() => role("dialog")).toBeNull();
   });
 });
 
@@ -323,7 +327,8 @@ describe("Tooltip", () => {
     expect(tip?.textContent).toBe("Find in document⌘F");
     expect(focused().getAttribute("aria-describedby")).toBe(tip?.id);
     await userEvent.keyboard("{Escape}");
-    expect(role("tooltip")).toBeNull();
+    // Polled: an overlay plays its exit before it leaves the page.
+    await expect.poll(() => role("tooltip")).toBeNull();
   });
 });
 

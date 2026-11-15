@@ -105,7 +105,8 @@ describe("the phone shell", () => {
     await userEvent.click(button("Select the heading"));
     const sheet = () => [...document.querySelectorAll(".paper-sheet")].find((s) => s.textContent?.includes("Heading"));
     await expect.poll(sheet).toBeDefined();
-    expect(document.querySelector("[role=dialog]")).toBeNull();
+    // Polled: an overlay plays its exit before it leaves the page.
+    await expect.poll(() => document.querySelector("[role=dialog]")).toBeNull();
     await userEvent.keyboard("{Escape}");
     await expect.poll(sheet).toBeUndefined();
   });
