@@ -139,6 +139,29 @@ function useSaveFlow(
   );
 }
 
+/**
+ * The Organise mode's state for this document, and whether it is the mode: the page commands act on
+ * the grid's selection then.
+ */
+function useOrganise(
+  later: Later | undefined,
+  engine: Engine,
+  viewer: Viewer | undefined,
+  toasts: ToastQueue,
+  modes: ModeRegistry,
+) {
+  const organise = useMemo(
+    () =>
+      later === undefined || viewer === undefined ? undefined : new later.OrganiseController(engine, viewer, toasts),
+    [later, viewer, engine, toasts],
+  );
+  const organising = useSyncExternalStore(
+    (listener) => modes.subscribe(listener),
+    () => modes.getState().current === "organise",
+  );
+  return { organise, organising };
+}
+
 /** The edit session's part of the reader, for the document `viewer` shows (undefined: none). */
 export function useEditing(options: {
   readonly engine: Engine;
@@ -151,7 +174,7 @@ export function useEditing(options: {
   readonly keys: KeyPlatform;
   readonly platform: Platform;
 }): Editing {
-  const { engine, viewer, toasts, platform } = options;
+  const { engine, viewer, toasts, platform, keys } = options;
   const { layout, registry, modes } = options.shell;
   const pages = useStoreState(engine, (s) => s.pages);
   const edits = viewer?.edits;
@@ -169,16 +192,7 @@ export function useEditing(options: {
   const threads = useStoreState(engine, (s) => s.threads);
   const { fileName } = options;
   const flow = useSaveFlow({ engine, viewer, platform, toasts, fileName }, later);
-  // The Organise mode's state for this document, and whether it is the mode: its page commands
-  // act on the grid's selection then.
-  const organise = useMemo(
-    () => (later === undefined || viewer === undefined ? undefined : new later.OrganiseController(engine, viewer, toasts)),
-    [later, viewer, engine, toasts],
-  );
-  const organising = useSyncExternalStore(
-    (listener) => modes.subscribe(listener),
-    () => modes.getState().current === "organise",
-  );
+  const { organise, organising } = useOrganise(later, engine, viewer, toasts, modes);
   // With the commands they run, which register once later.ts has loaded. Download a copy is the
   // output's (the file as opened) until there are changes, then the flow's (with them).
   const actions = useMemo(
@@ -204,33 +218,52 @@ export function useEditing(options: {
     unsaved: unsaved > 0,
     lastMs: slice?.lastMs,
     later,
-    topBar:
-      edits === undefined || later === undefined ? undefined : <later.EditArea edits={edits} keys={options.keys} />,
+    topBar: edits === undefined || later === undefined ? undefined : <later.EditArea edits={edits} keys={keys} />,
     modeArea: later === undefined ? undefined : <later.ModeArea modes={modes} />,
     notice: flow === undefined || later === undefined ? undefined : <later.SaveNotices flow={flow} />,
     runtime: (registry) =>
       viewer === undefined || fileName === undefined || later === undefined || flow === undefined ? null : (
-        <>
-          <later.EditingRuntime
-            engine={engine}
-            viewer={viewer}
-            registry={registry}
-            toasts={toasts}
-            fileName={fileName}
-            flow={flow}
-            layout={layout}
-          />
-          {organise === undefined ? null : (
-            <later.OrganiseMode
-              controller={organise}
-              engine={engine}
-              viewer={viewer}
-              modes={modes}
-              registry={registry}
-              keys={options.keys}
-            />
-          )}
-        </>
+        <Runtimes {...{ later, engine, viewer, registry, toasts, fileName, flow, layout, organise, modes, keys }} />
       ),
   };
+}
+
+/** The editing parts that run once a document is open: the edit session's and the Organise mode's. */
+function Runtimes(props: {
+  readonly later: Later;
+  readonly engine: Engine;
+  readonly viewer: Viewer;
+  readonly registry: CommandRegistry;
+  readonly toasts: ToastQueue;
+  readonly fileName: string;
+  readonly flow: NonNullable<ReturnType<typeof useSaveFlow>>;
+  readonly layout: ShellLayout;
+  readonly organise: InstanceType<Later["OrganiseController"]> | undefined;
+  readonly modes: ModeRegistry;
+  readonly keys: KeyPlatform;
+}): ReactNode {
+  const { later, engine, viewer, registry, toasts } = props;
+  return (
+    <>
+      <later.EditingRuntime
+        engine={engine}
+        viewer={viewer}
+        registry={registry}
+        toasts={toasts}
+        fileName={props.fileName}
+        flow={props.flow}
+        layout={props.layout}
+      />
+      {props.organise === undefined ? null : (
+        <later.OrganiseMode
+          controller={props.organise}
+          engine={engine}
+          viewer={viewer}
+          modes={props.modes}
+          registry={registry}
+          keys={props.keys}
+        />
+      )}
+    </>
+  );
 }

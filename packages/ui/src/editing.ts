@@ -41,6 +41,8 @@ export {
   SaveStrip,
   signatureKind,
 } from "./edit/save-ui.js";
+// The words of the parts that load after startup, which only lazily loaded code (this entry's) reads.
+export { type LaterMessageId, laterCountMessage, laterMessage } from "./later-messages.js";
 export { ORGANISE_COMMANDS, type OrganiseCommand, registerOrganiseCommands } from "./organise/commands.js";
 export {
   BlankPagesDialog,
@@ -64,5 +66,3 @@ export {
 } from "./organise/report.js";
 export { OrganiseToolbar, THUMBNAIL_SCALES } from "./organise/toolbar.js";
 export { attachTools, handTool, SELECT_TOOL, TEXT_SELECT_TOOL, ToolRegistry } from "./tools/tools.js";
-// The words of the parts that load after startup, which only lazily loaded code (this entry's) reads.
-export { type LaterMessageId, laterCountMessage, laterMessage } from "./later-messages.js";

@@ -173,10 +173,18 @@ body {
   inset: 0;
   z-index: 1;
   display: flex;
+  flex-direction: column;
   background: var(--paper-gutter);
 }
 
-.web-organise > .paper-page-grid {
+/* The grid and the inspector, under the certification notice when it shows. */
+.web-organise-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-block-size: 0;
+}
+
+.web-organise-body > .paper-page-grid {
   flex: 1 1 auto;
   min-inline-size: 0;
 }
@@ -191,7 +199,7 @@ body {
 
 .web-organise-inspector-title {
   margin: 0 0 var(--paper-space-12);
-  font: var(--paper-type-title, 600 15px/1.4 var(--paper-font-sans));
+  font: var(--paper-type-title, 600 15px / 1.4 var(--paper-font-sans));
 }
 
 .web-organise-facts {
@@ -220,10 +228,9 @@ body {
 }
 
 .web-organise-certified {
-  position: absolute;
-  inset-block-start: var(--paper-space-8);
-  inset-inline: var(--paper-space-16);
+  order: -1;
   display: flex;
+  margin: var(--paper-space-8) var(--paper-space-16);
   align-items: center;
   gap: var(--paper-space-12);
   padding: var(--paper-space-8) var(--paper-space-12);

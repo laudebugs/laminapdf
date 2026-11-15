@@ -121,6 +121,11 @@
   --paper-thumbnail-height: 150px;
   --paper-thumbnail-width-phone: 122px;
   --paper-thumbnail-height-phone: 158px;
+  --paper-organise-tile-size: 171px;
+  --paper-organise-drop-dot-size: 8px;
+  --paper-organise-ghost-width: 66px;
+  --paper-organise-ghost-height: 86px;
+  --paper-organise-ghost-offset: 4px;
   --paper-page-pill-height: 30px;
   --paper-icon-button-size-large: 32px;
   --paper-icon-button-radius-touch: 6px;

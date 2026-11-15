@@ -445,21 +445,23 @@ function OrganiseCanvas({ controller, engine, viewer, modes, keys }: OrganiseMod
   };
   return (
     <div className="web-organise">
-      <PageGrid
-        aria-label={organiseWords("organise.grid")}
-        pages={grid}
-        selected={state.selected}
-        onSelectionChange={(ids) => controller.select(ids)}
-        draw={draw}
-        onMove={(indices, gap) => controller.move(indices, gap)}
-        onCommand={onCommand}
-        onOpen={open}
-        menu={pageMenu(state.selected.size)}
-        onMenuAction={(id) => runMenu(id, controller, commands)}
-        platform={keys}
-        scale={state.scale}
-      />
-      <OrganiseInspector controller={controller} pages={pages} />
+      <div className="web-organise-body">
+        <PageGrid
+          aria-label={organiseWords("organise.grid")}
+          pages={grid}
+          selected={state.selected}
+          onSelectionChange={(ids) => controller.select(ids)}
+          draw={draw}
+          onMove={(indices, gap) => controller.move(indices, gap)}
+          onCommand={onCommand}
+          onOpen={open}
+          menu={pageMenu(state.selected.size)}
+          onMenuAction={(id) => runMenu(id, controller, commands)}
+          platform={keys}
+          scale={state.scale}
+        />
+        <OrganiseInspector controller={controller} pages={pages} />
+      </div>
       <Announcement controller={controller} />
       <OrganiseDialogs controller={controller} engine={engine} />
     </div>

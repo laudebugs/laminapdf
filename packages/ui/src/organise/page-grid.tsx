@@ -9,6 +9,7 @@
 // draws each tile's picture; the grid asks for it when the tile comes near the view, and again when
 // its page's `drawn` key changes.
 
+import { Icon } from "@laminapdf/icons/react";
 import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import {
   Menu as AriaMenu,
@@ -90,7 +91,7 @@ export function PageGrid<Id extends string>(props: PageGridProps<Id>): ReactNode
     }
   };
   return (
-    <div className="paper-page-grid" onKeyDownCapture={onKeyDown} style={{ "--paper-grid-scale": scale } as never}>
+    <div className="paper-page-grid" onKeyDownCapture={onKeyDown} style={{ "--grid-scale": scale } as never}>
       <ListBox
         ref={list}
         aria-label={props["aria-label"]}
@@ -251,7 +252,9 @@ function Tile({
     >
       <span className="paper-page-tile-box" style={{ inlineSize: box.width, blockSize: box.height }} aria-hidden="true">
         <canvas ref={canvas} />
-        <span className="paper-page-tile-check" aria-hidden="true" />
+        <span className="paper-page-tile-check" aria-hidden="true">
+          <Icon name="check" size={16} strokeWidth={2} />
+        </span>
       </span>
       <span className="paper-page-tile-number" aria-hidden="true">
         {page.label}
