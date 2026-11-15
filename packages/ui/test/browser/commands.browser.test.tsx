@@ -94,36 +94,51 @@ const INLINE: Partial<Record<CommandId, string>> = {
   "view.accent": "Accent colour plum",
 };
 
-/** Sixty-one search-and-run cycles in one test: about 25 s in Firefox on a busy runner. */
+/** Sixteen or so search-and-run cycles per test: about 10 s each in Firefox on a busy runner. */
 const EVERY_COMMAND_MS = 60_000;
+/** The registry's commands are run in this many tests, so none nears its time on a loaded run. */
+const PARTS = 4;
 
 describe("RegistryPalette", () => {
-  it("runs every registered command the toolbar and menus can reach, each from its first row", {
-    timeout: EVERY_COMMAND_MS,
-  }, async () => {
-    const { app, registry, viewer, reader, calls } = setup();
-    renderIn(app);
-    const ran: string[] = [];
-    for (const command of registry.list()) {
+  const ranInPart: string[][] = [];
+  for (let part = 0; part < PARTS; part++) {
+    it(`runs every registered command the toolbar and menus can reach, each from its first row (part ${part + 1} of ${PARTS})`, {
+      timeout: EVERY_COMMAND_MS,
+    }, async () => {
+      const { app, registry, viewer, reader, calls } = setup();
+      renderIn(app);
       // The password goes in the password prompt, never in the palette; the palette itself is open.
-      if (command.id === "file.unlock" || command.id === "palette.open") continue;
-      const title = registry.title(command, { platform: fakePlatform() });
-      await search(INLINE[command.id] ?? title);
-      await userEvent.keyboard("{Enter}");
-      await frame();
-      expect(palette(), `${command.id} closes the palette`).toBeNull();
-      ran.push(command.id);
-    }
-    expect(ran).toHaveLength(64);
-    expect(reader.openFromPicker).toHaveBeenCalledOnce();
-    // Each delegated command reached its handler, with parsed arguments where it takes them.
-    expect(calls.find((c) => c.id === "view.page-layout")?.args).toBe("two-up");
-    expect(calls.find((c) => c.id === "view.reader-line-spacing")?.args).toBe("loose");
-    expect(calls.find((c) => c.id === "view.reader-line-length")?.args).toBe("wide");
-    expect(calls.find((c) => c.id === "file.open-url")?.args).toBe("https://example.com/a.pdf");
-    expect(new Set(calls.map((c) => c.id)).size).toBe(calls.length);
-    expect(viewer.calls).toContainEqual({ method: "jumpToPage", value: 11 });
-    expect(viewer.calls).toContainEqual({ method: "setZoom", value: 150 });
+      const all = registry.list().filter((c) => c.id !== "file.unlock" && c.id !== "palette.open");
+      const size = Math.ceil(all.length / PARTS);
+      const mine = all.slice(part * size, (part + 1) * size);
+      const ran: string[] = [];
+      for (const command of mine) {
+        const title = registry.title(command, { platform: fakePlatform() });
+        await search(INLINE[command.id] ?? title);
+        await userEvent.keyboard("{Enter}");
+        await frame();
+        expect(palette(), `${command.id} closes the palette`).toBeNull();
+        ran.push(command.id);
+      }
+      ranInPart[part] = ran;
+      // Each delegated command reached its handler, with parsed arguments where it takes them.
+      const ids = new Set<string>(mine.map((c) => c.id));
+      const expectArgs = (id: CommandId, value: unknown) => {
+        if (ids.has(id)) expect(calls.find((c) => c.id === id)?.args, id).toBe(value);
+      };
+      expectArgs("view.page-layout", "two-up");
+      expectArgs("view.reader-line-spacing", "loose");
+      expectArgs("view.reader-line-length", "wide");
+      expectArgs("file.open-url", "https://example.com/a.pdf");
+      expect(new Set(calls.map((c) => c.id)).size).toBe(calls.length);
+      if (ids.has("file.open")) expect(reader.openFromPicker).toHaveBeenCalledOnce();
+      if (ids.has("nav.go-to-page")) expect(viewer.calls).toContainEqual({ method: "jumpToPage", value: 11 });
+      if (ids.has("view.set-zoom")) expect(viewer.calls).toContainEqual({ method: "setZoom", value: 150 });
+    });
+  }
+
+  it("ran all 64 commands across the parts", () => {
+    expect(ranInPart.flat()).toHaveLength(64);
   });
 
   it("goes to a page and zooms in one step, and runs nothing for arguments that don't parse", async () => {

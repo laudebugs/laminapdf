@@ -15,6 +15,11 @@ const reducedMotion: BrowserCommand<["reduce" | "no-preference" | null]> = async
   await ctx.page.emulateMedia({ reducedMotion: value });
 };
 
+const forcedColors: BrowserCommand<["active" | null]> = async (ctx, value) => {
+  if (ctx.provider.name !== "playwright") throw new Error("forcedColors needs the Playwright provider");
+  await ctx.page.emulateMedia({ forcedColors: value });
+};
+
 export default defineConfig({
   test: {
     ...retryOnceAndReport(),
@@ -24,7 +29,7 @@ export default defineConfig({
       headless: true,
       // Desktop-sized, wider than the phone breakpoint; tests of the phone layout set their own.
       viewport: { width: 1280, height: 800 },
-      commands: { reducedMotion },
+      commands: { reducedMotion, forcedColors },
       provider: playwright(),
       instances: [
         { browser: "chromium", name: "chromium" },

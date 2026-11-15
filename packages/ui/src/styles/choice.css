@@ -1,6 +1,9 @@
 /* Checkboxes, radios and switches (§7.19): a label row at least one target high, the drawn box,
-   circle or track beside the label, and the focus ring on that drawing. */
+   circle or track beside the label, and the focus ring on that drawing. The row takes hover and
+   press; the drawing shows them. The states come in §7.0's order (motion plan §4.2): rest, value,
+   interaction, validity, focus, then availability, so a later state wins on what it sets. */
 @layer paper.components {
+  /* Rest. */
   .paper-choice {
     display: inline-flex;
     align-items: center;
@@ -9,11 +12,6 @@
     color: var(--paper-text);
     font: var(--paper-type-body);
     cursor: var(--paper-cursor-action);
-  }
-
-  .paper-choice[data-disabled] {
-    color: var(--paper-muted);
-    cursor: var(--paper-cursor-disabled);
   }
 
   .paper-checkbox-box,
@@ -28,27 +26,16 @@
     background-color: var(--paper-field);
   }
 
-  /* The row takes hover and press; the drawing shows them, as states.css's layer over its fill
-     (motion plan §4.2). A selected drawing's accent fill swaps solids instead, as the primary
-     button does: accent-strong on hover, primary-pressed on press. */
+  /* The drawing shows hover and press as states.css's layer over its fill. Only the layer fades:
+     a checked box's fill and border change at once with its mark, so the white mark never sits
+     on a pale, half-faded fill. */
   .paper-checkbox-box,
   .paper-radio-circle,
   .paper-switch-track {
     background-image: linear-gradient(var(--ui-state-layer) 0 0);
-    transition-property: --ui-state-layer, background-color, border-color;
+    transition-property: --ui-state-layer;
     transition-duration: var(--paper-duration-state-out);
     transition-timing-function: var(--paper-ease-standard);
-  }
-
-  .paper-choice[data-hovered]:not([data-pressed], [data-disabled])
-    :is(.paper-checkbox-box, .paper-radio-circle, .paper-switch-track) {
-    --ui-state-layer: var(--paper-hover);
-    transition-duration: var(--paper-duration-state-in);
-  }
-
-  .paper-choice[data-pressed] :is(.paper-checkbox-box, .paper-radio-circle, .paper-switch-track) {
-    --ui-state-layer: var(--paper-pressed);
-    transition: none;
   }
 
   .paper-checkbox-box {
@@ -72,10 +59,105 @@
     background: var(--paper-on-accent);
   }
 
+  .paper-radio-options {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .paper-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-radio-circle {
+    border-radius: var(--paper-radius-pill);
+  }
+
+  .paper-switch-track {
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    inline-size: var(--paper-switch-width);
+    block-size: var(--paper-switch-height);
+    padding-inline: var(--paper-space-2);
+    border: var(--paper-border-width) solid var(--paper-control-border);
+    border-radius: var(--paper-radius-pill);
+    background-color: var(--paper-field);
+  }
+
+  /* The knob slides by `translate` to the track's far end (motion plan §3, 2); under reduced
+     motion it has no transition at all and jumps (below). Its colour changes at once. */
+  .paper-switch-knob {
+    --ui-knob-travel: calc(
+      var(--paper-switch-width) -
+      var(--paper-switch-knob) -
+      2 *
+      var(--paper-space-2) -
+      2 *
+      var(--paper-border-width)
+    );
+    inline-size: var(--paper-switch-knob);
+    block-size: var(--paper-switch-knob);
+    border-radius: var(--paper-radius-pill);
+    background: var(--paper-control-border);
+    transition: translate var(--paper-duration-state-out) var(--paper-ease-standard);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .paper-switch-knob {
+      transition: none;
+    }
+  }
+
+  :where([data-motion="reduce"]) .paper-switch-knob {
+    transition: none;
+  }
+
+  /* Value: checked, mixed, chosen, on. */
   .paper-checkbox:is([data-selected], [data-indeterminate]) .paper-checkbox-box,
   .paper-switch[data-selected] .paper-switch-track {
     border-color: var(--paper-accent);
     background-color: var(--paper-accent);
+  }
+
+  .paper-checkbox[data-selected]:not([data-indeterminate]) .paper-checkbox-check,
+  .paper-checkbox[data-indeterminate] .paper-checkbox-dash {
+    display: block;
+  }
+
+  .paper-radio[data-selected] .paper-radio-circle {
+    border: var(--paper-selected-underline-width) solid var(--paper-accent);
+  }
+
+  .paper-radio[data-selected] .paper-radio-circle::after {
+    content: "";
+    inline-size: var(--paper-radio-dot);
+    block-size: var(--paper-radio-dot);
+    border-radius: var(--paper-radius-pill);
+    background: var(--paper-accent);
+  }
+
+  .paper-switch[data-selected] .paper-switch-knob {
+    translate: var(--ui-knob-travel) 0;
+    background: var(--paper-on-accent);
+  }
+
+  .paper-switch[data-selected] .paper-switch-knob:dir(rtl) {
+    translate: calc(-1 * var(--ui-knob-travel)) 0;
+  }
+
+  /* Interaction: hover, then pressed. Unchecked, the layer goes over the field fill; a checked
+     accent fill swaps solids instead, as the primary button does. */
+  .paper-choice[data-hovered]:not([data-pressed], [data-disabled])
+    :is(.paper-checkbox-box, .paper-radio-circle, .paper-switch-track) {
+    --ui-state-layer: var(--paper-hover);
+    transition-duration: var(--paper-duration-state-in);
+  }
+
+  .paper-choice[data-pressed] :is(.paper-checkbox-box, .paper-radio-circle, .paper-switch-track) {
+    --ui-state-layer: var(--paper-pressed);
+    transition: none;
   }
 
   :is(.paper-checkbox:is([data-selected], [data-indeterminate]), .paper-switch[data-selected])[data-hovered]
@@ -92,79 +174,34 @@
     background-color: var(--paper-primary-pressed);
   }
 
-  .paper-checkbox[data-selected]:not([data-indeterminate]) .paper-checkbox-check,
-  .paper-checkbox[data-indeterminate] .paper-checkbox-dash {
-    display: block;
+  /* Validity: an invalid choice's edge turns danger, as a field's does; the ring stays focus. */
+  .paper-choice[data-invalid]:not([data-selected], [data-indeterminate])
+    :is(.paper-checkbox-box, .paper-radio-circle, .paper-switch-track) {
+    border-color: var(--paper-danger);
   }
 
-  .paper-radio-options {
-    display: flex;
-    flex-direction: column;
+  /* Focus: the ring goes on the drawing, not the whole row. */
+  .paper-choice[data-focus-visible] .paper-checkbox-box,
+  .paper-choice[data-focus-visible] .paper-radio-circle,
+  .paper-choice[data-focus-visible] .paper-switch-track {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset-tight);
   }
 
-  .paper-radio-group {
-    display: flex;
-    flex-direction: column;
-    gap: var(--paper-space-8);
+  .paper-choice[data-focus-visible] {
+    outline: none;
   }
 
-  .paper-radio-circle {
-    border-radius: var(--paper-radius-pill);
+  /* Availability, last: a chip-border edge on the ground; a checked or on control fills with the
+     disabled grey, so its mark still shows. */
+  .paper-choice:is([data-disabled], [data-readonly]) {
+    cursor: var(--paper-cursor-disabled);
   }
 
-  .paper-radio[data-selected] .paper-radio-circle {
-    border: var(--paper-selected-underline-width) solid var(--paper-accent);
+  .paper-choice[data-disabled] {
+    color: var(--paper-muted);
   }
 
-  .paper-radio[data-selected] .paper-radio-circle::after {
-    content: "";
-    inline-size: var(--paper-radio-dot);
-    block-size: var(--paper-radio-dot);
-    border-radius: var(--paper-radius-pill);
-    background: var(--paper-accent);
-  }
-
-  .paper-switch-track {
-    display: inline-flex;
-    align-items: center;
-    flex: none;
-    inline-size: var(--paper-switch-width);
-    block-size: var(--paper-switch-height);
-    padding-inline: var(--paper-space-2);
-    border: var(--paper-border-width) solid var(--paper-control-border);
-    border-radius: var(--paper-radius-pill);
-    background-color: var(--paper-field);
-  }
-
-  /* The knob slides by transform to the track's far end (motion plan §3, 2). Its time is scaled by
-     motion-travel, 0 under reduced motion, so there it jumps; its colour changes at once. */
-  .paper-switch-knob {
-    --ui-knob-travel: calc(
-      var(--paper-switch-width) -
-      var(--paper-switch-knob) -
-      2 *
-      var(--paper-space-2) -
-      2 *
-      var(--paper-border-width)
-    );
-    inline-size: var(--paper-switch-knob);
-    block-size: var(--paper-switch-knob);
-    border-radius: var(--paper-radius-pill);
-    background: var(--paper-control-border);
-    transition: translate calc(var(--paper-duration-state-out) * var(--paper-motion-travel)) var(--paper-ease-standard);
-  }
-
-  .paper-switch[data-selected] .paper-switch-knob {
-    translate: var(--ui-knob-travel) 0;
-    background: var(--paper-on-accent);
-  }
-
-  .paper-switch[data-selected] .paper-switch-knob:dir(rtl) {
-    translate: calc(-1 * var(--ui-knob-travel)) 0;
-  }
-
-  /* Disabled comes last (§7.0's order): a chip-border edge on the ground; a chosen one keeps its
-     mark, the box or track filled with the disabled grey, so "on" still reads as on. */
   .paper-choice[data-disabled] :is(.paper-checkbox-box, .paper-radio-circle, .paper-switch-track) {
     border-color: var(--paper-chip-border);
     background-color: var(--paper-ground);
@@ -185,18 +222,6 @@
     background: var(--paper-disabled);
   }
 
-  .paper-choice[data-focus-visible] .paper-checkbox-box,
-  .paper-choice[data-focus-visible] .paper-radio-circle,
-  .paper-choice[data-focus-visible] .paper-switch-track {
-    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
-    outline-offset: var(--paper-focus-ring-offset-tight);
-  }
-
-  /* The ring goes on the drawing, not the whole row. */
-  .paper-choice[data-focus-visible] {
-    outline: none;
-  }
-
   @media (forced-colors: active) {
     .paper-checkbox-box,
     .paper-radio-circle,
@@ -204,9 +229,25 @@
       border-color: CanvasText;
     }
 
-    .paper-checkbox:is([data-selected], [data-indeterminate]) .paper-checkbox-box,
-    .paper-switch[data-selected] .paper-switch-track {
+    /* The `:is(*, …)` lifts these over the hover, press and disabled swaps above, which would
+       otherwise put non-system colours there (forced to Canvas: an on switch would look off). */
+    :is(.paper-checkbox:is([data-selected], [data-indeterminate]), .paper-switch[data-selected]):is(
+        *,
+        [data-hovered],
+        [data-pressed]
+      )
+      :is(.paper-checkbox-box, .paper-switch-track) {
+      border-color: Highlight;
       background-color: Highlight;
+    }
+
+    :is(.paper-checkbox:is([data-selected], [data-indeterminate]), .paper-switch[data-selected]):is(
+        [data-disabled],
+        [data-disabled][data-hovered]
+      )
+      :is(.paper-checkbox-box, .paper-switch-track) {
+      border-color: GrayText;
+      background-color: GrayText;
     }
   }
 }

@@ -68,8 +68,12 @@
   /* Availability comes last (§7.0's order), so it wins over invalid. Read-only: a quiet ground
      fill and hairline edge, the text still readable and selectable; disabled: the disabled text. */
   .paper-field :is(input, textarea).paper-input:read-only:not(:disabled) {
-    border-color: var(--paper-hairline);
     background-color: var(--paper-ground);
+  }
+
+  /* An invalid read-only field keeps its danger edge: read-only isn't unavailable. */
+  .paper-field:not([data-invalid]) :is(input, textarea).paper-input:read-only:not(:disabled) {
+    border-color: var(--paper-hairline);
   }
 
   .paper-field .paper-input:is(:disabled, [data-disabled]) {
