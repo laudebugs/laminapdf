@@ -1,8 +1,8 @@
-//! The desktop release's secret boundaries (todo D6b, docs/guidelines/desktop-release.md §1.9):
+//! The desktop release's secret boundaries (docs/guidelines/desktop-release.md §1.9):
 //! `desktop-nightly` has no reviewer, so no job in it may name a secret that signs as the owner;
 //! the plan and the dry run, which pull requests start, read no secret and use no environment;
 //! each build and publish job reads only its own environment's secrets; and the staging publish
-//! shares D5c's concurrency group, so the two never write the staging channel at once.
+//! shares the update test's concurrency group (`desktop-update-e2e.yml`), so the two never write the staging channel at once.
 
 use super::{jobs, repository_file};
 
@@ -93,7 +93,7 @@ fn every_job_that_reads_a_secret_should_name_its_environment() {
 }
 
 #[test]
-fn the_staging_publish_should_share_d5cs_concurrency_group() {
+fn the_staging_publish_should_share_the_update_tests_concurrency_group() {
     let text = workflow();
     let publish = jobs(&text)
         .into_iter()

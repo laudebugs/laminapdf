@@ -1,5 +1,5 @@
 //! `cargo xtask desktop-release …`: the desktop release workflow's steps that make decisions
-//! (`.github/workflows/desktop-release.yml`, todo D6b).
+//! (`.github/workflows/desktop-release.yml`).
 //!
 //! - `plan`: the run's version, channel, environment and build matrix (`plan.rs`), from the
 //!   Actions environment, written to `$GITHUB_OUTPUT` and the job summary.
@@ -54,7 +54,9 @@ fn trigger() -> Result<Trigger> {
 }
 
 fn run_plan(ws: &Workspace) -> Result<()> {
-    let tags = crate::util::git_stdout(&ws.root, &["tag", "--list", "desktop-v*"]).unwrap_or_default();
+    // A git failure must not read as "no tag yet", which would version nightlies 0.1.0.
+    let tags = crate::util::git_stdout(&ws.root, &["tag", "--list", "desktop-v*"])
+        .context("listing the desktop-v* tags (the checkout needs its tags: fetch-depth 0)")?;
     let inputs = Inputs {
         trigger: trigger()?,
         latest_tag: plan::latest_tag(tags.lines()),
@@ -64,22 +66,23 @@ fn run_plan(ws: &Workspace) -> Result<()> {
     };
     let plan = plan::plan(&inputs)?;
     let matrix = serde_json::json!({ "include": plan.legs });
-    let outputs = [
+    let commit = var("GITHUB_SHA");
+    // What the summary shows; the matrix goes to the outputs only.
+    let shown = [
         ("version", plan.version.clone()),
         ("channel", plan.destination.channel.to_owned()),
-        ("bucket", plan.destination.bucket.to_owned()),
         ("downloads", plan.destination.downloads.to_owned()),
         ("environment", plan.environment.unwrap_or_default().to_owned()),
         ("dry-run", plan.dry_run().to_string()),
-        ("matrix", matrix.to_string()),
+        ("commit", commit),
     ];
     let mut table = String::from("## Desktop release plan\n\n| | |\n| --- | --- |\n");
-    for (key, value) in &outputs[..6] {
+    for (key, value) in &shown {
         github_output(key, value)?;
         writeln!(table, "| {key} | `{value}` |")?;
         println!("{key}={value}");
     }
-    github_output("matrix", &outputs[6].1)?;
+    github_output("matrix", &matrix.to_string())?;
     table.push_str("\n| Build | Runner | Version | Bundles |\n| --- | --- | --- | --- |\n");
     for leg in &plan.legs {
         let bundles = if leg.bundles.is_empty() {
@@ -117,12 +120,29 @@ fn files_under(dir: &Path) -> Result<Vec<PathBuf>> {
     Ok(found)
 }
 
-/// How an installer of `bytes` fares against the budget.
-fn verdict(bytes: u64) -> &'static str {
-    match bytes {
-        b if b >= BUDGET => "over the budget",
-        b if b >= WARN => "near the budget",
-        _ => "ok",
+/// How an installer fares against the budget.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Verdict {
+    Ok,
+    Near,
+    Over,
+}
+
+impl Verdict {
+    fn of(bytes: u64) -> Self {
+        match bytes {
+            b if b >= BUDGET => Self::Over,
+            b if b >= WARN => Self::Near,
+            _ => Self::Ok,
+        }
+    }
+
+    fn words(self) -> &'static str {
+        match self {
+            Self::Ok => "ok",
+            Self::Near => "near the budget",
+            Self::Over => "over the budget",
+        }
     }
 }
 
@@ -131,29 +151,29 @@ fn sizes(dir: &Path) -> Result<()> {
     let mut over = Vec::new();
     let mut count = 0;
     for path in files_under(dir)? {
-        let name = path
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_default();
+        let name = crate::util::file_name(&path);
         if !is_installer(&name) {
             continue;
         }
         count += 1;
-        let bytes = fs::metadata(&path)?.len();
-        let verdict = verdict(bytes);
+        let bytes = fs::metadata(&path)
+            .with_context(|| format!("reading {}", path.display()))?
+            .len();
+        let verdict = Verdict::of(bytes);
         match verdict {
-            "over the budget" => {
-                println!("::error file={name}::{name} is {bytes} bytes, over the 15 MB budget");
+            Verdict::Over => {
+                println!("::error::{name} is {bytes} bytes, over the 15 MB budget");
                 over.push(name.clone());
             }
-            "near the budget" => println!("::warning::{name} is {bytes} bytes, near the 15 MB budget"),
-            _ => println!("{name}: {bytes} bytes"),
+            Verdict::Near => println!("::warning::{name} is {bytes} bytes, near the 15 MB budget"),
+            Verdict::Ok => println!("{name}: {bytes} bytes"),
         }
         writeln!(
             table,
-            "| {name} | {}.{:02} MB | {verdict} |",
+            "| {name} | {}.{:02} MB | {} |",
             bytes / 1_000_000,
-            bytes % 1_000_000 / 10_000
+            bytes % 1_000_000 / 10_000,
+            verdict.words()
         )?;
     }
     summary(&table)?;
@@ -232,9 +252,9 @@ mod tests {
 
     #[test]
     fn the_budget_should_fail_at_15_mb_and_warn_from_13_5() {
-        assert_eq!(verdict(13_499_999), "ok");
-        assert_eq!(verdict(13_500_000), "near the budget");
-        assert_eq!(verdict(14_999_999), "near the budget");
-        assert_eq!(verdict(15_000_000), "over the budget");
+        assert_eq!(Verdict::of(13_499_999), Verdict::Ok);
+        assert_eq!(Verdict::of(13_500_000), Verdict::Near);
+        assert_eq!(Verdict::of(14_999_999), Verdict::Near);
+        assert_eq!(Verdict::of(15_000_000), Verdict::Over);
     }
 }

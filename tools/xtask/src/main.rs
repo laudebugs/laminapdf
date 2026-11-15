@@ -36,6 +36,7 @@ mod package_docs;
 mod package_metadata;
 mod pdf_runtimes;
 mod pdfium;
+mod plain_version;
 mod platform_boundary;
 mod portable_paths;
 mod progress;

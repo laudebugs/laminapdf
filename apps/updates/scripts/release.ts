@@ -1,4 +1,4 @@
-// A release as the desktop release workflow publishes it (todo D6b): which built file each platform
+// A release as the desktop release workflow publishes it: which built file each platform
 // updates from, and the manifest entry that names it. scripts/manifest.ts's `publish` reads the
 // files; these functions decide, so tests can check them without R2.
 

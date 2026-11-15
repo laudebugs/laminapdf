@@ -55,7 +55,7 @@ pub(crate) fn desktop(ws: &Workspace, args: &[String]) -> Result<()> {
         let mut text = fs::read_to_string(&notices).with_context(|| format!("reading {}", notices.display()))?;
         text.push_str(&npm_notices(ws)?);
         let out = app.join("resources/THIRD_PARTY_NOTICES.txt");
-        fs::create_dir_all(app.join("resources"))?;
+        fs::create_dir_all(app.join("resources")).context("creating src-tauri/resources")?;
         fs::write(&out, text).with_context(|| format!("writing {}", out.display()))?;
         println!(
             "desktop-notices: with the npm packages, for the bundle, in {}",
@@ -111,10 +111,7 @@ fn text_files(dir: &Path, keep: impl Fn(&str) -> bool) -> Result<BTreeMap<String
     let mut files = BTreeMap::new();
     for entry in fs::read_dir(dir).with_context(|| format!("reading {}", dir.display()))? {
         let path = entry?.path();
-        let name = path
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_default();
+        let name = crate::util::file_name(&path);
         if path.is_file() && keep(&name) {
             files.insert(
                 name,
@@ -156,7 +153,11 @@ fn npm_notices(ws: &Workspace) -> Result<String> {
          licence files it ships.\n",
     );
     for package in packages(&list) {
-        let manifest: Value = serde_json::from_str(&fs::read_to_string(package.path.join("package.json"))?)?;
+        let manifest_path = package.path.join("package.json");
+        let manifest =
+            fs::read_to_string(&manifest_path).with_context(|| format!("reading {}", manifest_path.display()))?;
+        let manifest: Value =
+            serde_json::from_str(&manifest).with_context(|| format!("parsing {}", manifest_path.display()))?;
         let licence = manifest.get("license").and_then(Value::as_str).unwrap_or("not stated");
         let files = text_files(&package.path, is_licence_file)?;
         write!(

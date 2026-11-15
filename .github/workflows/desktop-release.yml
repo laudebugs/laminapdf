@@ -53,18 +53,25 @@ on:
     paths:
       - .github/workflows/desktop-release.yml
       - .github/actions/desktop-build/**
+      - .github/actions/desktop-publish/**
       - apps/desktop/src-tauri/tauri*.conf.json
+      - apps/updates/scripts/edits.ts
       - apps/updates/scripts/manifest.ts
       - apps/updates/scripts/release.ts
       - tools/xtask/src/desktop_release.rs
       - tools/xtask/src/desktop_release/**
       - tools/xtask/src/notices.rs
+      - tools/xtask/src/pdfium.rs
+      - tools/xtask/src/workflows/desktop_release.rs
 
 permissions:
   contents: read
 
+# A pull request's newer push replaces its dry run. Every other run is its own group: GitHub keeps
+# one pending run per group, so a shared group would drop a queued staging dispatch behind a
+# nightly. The publish jobs take the channel's own group.
 concurrency:
-  group: desktop-release-${{ github.event.pull_request.number || github.ref }}
+  group: desktop-release-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -84,12 +91,12 @@ jobs:
     outputs:
       version: ${{ steps.plan.outputs.version }}
       channel: ${{ steps.plan.outputs.channel }}
-      bucket: ${{ steps.plan.outputs.bucket }}
       downloads: ${{ steps.plan.outputs.downloads }}
       environment: ${{ steps.plan.outputs.environment }}
       dry-run: ${{ steps.plan.outputs.dry-run }}
       matrix: ${{ steps.plan.outputs.matrix }}
       skip: ${{ steps.skip.outputs.skip }}
+      public: ${{ steps.visibility.outputs.public }}
     steps:
       # The whole history and its tags: the nightly's version follows the latest desktop-v* tag.
       - uses: actions/checkout@v7.0.1
@@ -99,6 +106,14 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: false
+      # GitHub attests only for a public repository. A scheduled run's event names no repository,
+      # so ask the API.
+      - name: Whether the repository is public
+        id: visibility
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: echo "public=$([ "$(gh api "repos/$REPO" --jq .visibility)" = public ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
       - name: Plan the run
         id: plan
         env:
@@ -204,7 +219,7 @@ jobs:
     name: Attest (${{ matrix.name }})
     needs: [plan, build-nightly, build-release]
     if: >-
-      !cancelled() && github.event.repository.visibility == 'public' && needs.plan.outputs.dry-run == 'false'
+      !cancelled() && needs.plan.outputs.public == 'true' && needs.plan.outputs.dry-run == 'false'
       && needs.plan.outputs.skip != 'true'
       && (needs.build-nightly.result == 'success' || needs.build-release.result == 'success')
     runs-on: ubuntu-24.04
@@ -225,10 +240,19 @@ jobs:
       - uses: actions/attest-build-provenance@v4.2.2
         with:
           subject-checksums: built/${{ matrix.platform }}/SHA256SUMS
+      # One SBOM attestation each: the app's crates, the engine's, and the window's npm packages.
       - uses: actions/attest@v4.2.2
         with:
           subject-checksums: built/${{ matrix.platform }}/SHA256SUMS
           sbom-path: built/${{ matrix.platform }}/sbom/laminapdf-desktop.cdx.json
+      - uses: actions/attest@v4.2.2
+        with:
+          subject-checksums: built/${{ matrix.platform }}/SHA256SUMS
+          sbom-path: built/${{ matrix.platform }}/sbom/laminapdf-desktop-engine.cdx.json
+      - uses: actions/attest@v4.2.2
+        with:
+          subject-checksums: built/${{ matrix.platform }}/SHA256SUMS
+          sbom-path: built/${{ matrix.platform }}/sbom/laminapdf-desktop-npm.cdx.json
 
   publish-nightly:
     name: Publish (nightly)

@@ -110,7 +110,7 @@ One key signs the AppImage, `.deb`, `.rpm`, the detached `.asc` files and `SHA25
 | Package | Variables | Source |
 | --- | --- | --- |
 | AppImage | `SIGN=1`, `SIGN_KEY`, `APPIMAGETOOL_SIGN_PASSPHRASE` | [Tauri Linux signing](https://v2.tauri.app/distribute/sign/linux/) |
-| `.rpm` | `TAURI_SIGNING_RPM_KEY`, `TAURI_SIGNING_RPM_KEY_PASSPHRASE` | [Tauri RPM](https://v2.tauri.app/distribute/rpm/) |
+| `.rpm` | none: D6b signs it with `rpmsign` through gpg, since Tauri's own rpm signer (`TAURI_SIGNING_RPM_KEY`) may not read a subkey-only export | [Tauri RPM](https://v2.tauri.app/distribute/rpm/) |
 | `.deb` | none: Tauri doesn't sign it, so D6b signs it with `debsigs` | — |
 
 ### 1.7 Updater keys
@@ -300,7 +300,7 @@ The desktop release workflow, `.github/workflows/desktop-release.yml`, builds an
 
 Until macOS and Windows are signed ([D6c](../todos/ready/D6c-macos-signing-and-notarisation.md), [D6d](../todos/ready/D6d-windows-signing.md)), only nightlies publish. `plan` refuses a tag, and a staging dispatch publishes only with `allow_unsigned_platforms`. D6c and D6d each add their platform to the workflow's `SIGNED_PLATFORMS`.
 
-Each run builds macOS (arm64 and x64), Windows (x64 and arm64) and Linux (x64 and arm64) on runners of their own OS and CPU. A build makes the `.dmg`, the NSIS installer (and the MSI, except in a nightly), the AppImage, `.deb` and `.rpm`, the updater's bundles and their `.sig` files, `SHA256SUMS`, and the SBOMs. It fails when an installer reaches 15 MB. Linux packages from `desktop-release` are signed with the GPG key (§1.6), each with a detached `.asc`, and `SHA256SUMS.asc`. After the builds, `attest` attests every file, and the publish job uploads them to `releases/<version>/<platform>/` in the channel's bucket, makes them the channel's release, and asks the update Worker for each platform.
+Each run builds macOS (arm64 and x64), Windows (x64 and arm64) and Linux (x64 and arm64) on runners of their own OS and CPU. A build makes the `.dmg`, the NSIS installer, the AppImage and the `.deb`, and, except in a nightly, the MSI and the `.rpm`, whose versions can't carry a nightly's, the updater's bundles and their `.sig` files, `SHA256SUMS`, and the SBOMs. It fails when an installer reaches 15 MB. Linux packages from `desktop-release` are signed with the GPG key (§1.6), each with a detached `.asc`, and `SHA256SUMS.asc`. After the builds, `attest` attests every file, and the publish job uploads them to `releases/<version>/<platform>/` in the channel's bucket, makes them the channel's release, and asks the update Worker for each platform.
 
 ### Nightlies
 

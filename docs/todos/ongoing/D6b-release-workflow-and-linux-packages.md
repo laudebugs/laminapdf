@@ -121,6 +121,10 @@ The workflow is new, so `schedule` and `workflow_dispatch` can't run it until it
 - **Help ▸ View licences opens `THIRD_PARTY_NOTICES.txt` in the OS's text viewer.** A `.txt` opens everywhere; a `.md` has no default viewer on Windows.
 - **The pull-request dry run follows the release files only** (the workflow, its actions, the Tauri configs, the plan and notices code, the manifest tool's publish code). The app's own changes are built on every OS by `full.yml`'s desktop job, and every night by the schedule; seven release builds on every desktop PR would cost more than they find.
 - **Tags publish to beta at 100 %**; stable comes from `manifest promote`, which starts at 1 % (ADR 0014 §2).
+- **Nightlies build no `.rpm`**, as they build no MSI: rpm refuses a `-` in a version, and a nightly's is `X.Y.Z-nightly.…`. Fedora testers use the AppImage; tags and staging builds make all three.
+- **The notices are a `bundle.resources` entry in `tauri.release.conf.json`**, not in `tauri.bundle.conf.json`: development builds don't write the file. `resources` is an object map there, so the merge keeps PDFium's entry beside it.
+- **The `.rpm` is signed with `rpmsign` through gpg**, not Tauri's `TAURI_SIGNING_RPM_KEY`: the secret holds the signing subkey alone, which gpg signs with and Tauri's own rpm signer may not read. The build then checks every Linux signature with the runbook's commands (§3).
+- **Windows 11 on Arm runs binaryen's x64 `wasm-opt`** under emulation, since binaryen ships no Arm build for Windows.
 
 ## Definition of done
 

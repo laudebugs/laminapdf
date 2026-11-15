@@ -1,74 +1,41 @@
-//! What a run of the desktop release workflow builds and where it publishes it (todo D6b,
-//! ADR 0014 §1): the version, the channel, the GitHub environment and the build matrix, from the
-//! event that started the run. A pure function, so the version rules are table-tested.
+//! What a run of the desktop release workflow builds and where it publishes it (ADR 0014 §1):
+//! the version, the channel, the GitHub environment and the build matrix, from the event that
+//! started the run. A pure function, so the version rules are table-tested.
 //!
 //! - A `desktop-vX.Y.Z` tag builds `X.Y.Z` for the beta channel in `desktop-release`. Only plain
-//!   versions: the `WiX` toolset's MSI version allows no pre-release, majors and minors up to 255 and patches up
-//!   to 65,535.
+//!   versions: an MSI's version allows no pre-release, majors and minors up to 255 and patches up
+//!   to 65,535 (the `WiX` toolset's limits, which Tauri's bundler checks).
 //! - The schedule builds `X.Y.Z-nightly.YYYYMMDD.N` in `desktop-nightly`, `X.Y.Z` the patch after
 //!   the latest tag (before any tag, `0.1.0`, the first release), `N` the run number. Windows
-//!   builds NSIS only: MSI can't carry the pre-release.
+//!   builds NSIS only and Linux no `.rpm`: neither an MSI's version nor an rpm's can carry it.
 //! - A dispatch builds `0.0.(100 + run)` for the staging channel in `desktop-release`.
 //! - A pull request, or a dispatch with `dry_run`, builds every target with no environment and
 //!   publishes nothing; a pull request also builds Windows x64 as a tag would, MSI included.
 //!
-//! Until macOS and Windows are signed (D6c, D6d), a tag is refused and staging needs
+//! Until macOS and Windows are signed at the OS level, a tag is refused and staging needs
 //! `allow_unsigned_platforms`.
-
-use std::fmt;
 
 use anyhow::{Result, bail};
 use serde::Serialize;
 
-/// A plain `major.minor.patch` version.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct Version {
-    pub major: u32,
-    pub minor: u32,
-    pub patch: u32,
-}
+use crate::plain_version::{self, Version};
 
-impl fmt::Display for Version {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
-    }
-}
-
-/// the `WiX` toolset's limits for an MSI's `major.minor.build` (and Tauri's bundler checks the same).
-const MAX_MAJOR_MINOR: u32 = 255;
-const MAX_PATCH: u32 = 65_535;
-/// The first release (D7c): the nightlies' version before any tag.
-const FIRST_RELEASE: Version = Version {
-    major: 0,
-    minor: 1,
-    patch: 0,
-};
-/// Staging versions are `0.0.(STAGING_BASE + run)`, above D5b's own test versions 0.0.1 and 0.0.2.
+const MAX_MAJOR_MINOR: u64 = 255;
+const MAX_PATCH: u64 = 65_535;
+/// The first release: the nightlies' version before any tag.
+const FIRST_RELEASE: Version = Version(0, 1, 0);
+/// Staging versions are `0.0.(STAGING_BASE + run)`, above the updater test's own 0.0.1 and 0.0.2.
 const STAGING_BASE: u64 = 100;
 
-/// One numeric identifier: digits only, no leading zero.
-fn number(text: &str) -> Option<u32> {
-    let plain = !text.is_empty() && text.bytes().all(|b| b.is_ascii_digit()) && (text == "0" || !text.starts_with('0'));
-    plain.then(|| text.parse().ok()).flatten()
-}
-
-impl Version {
-    /// `X.Y.Z` with no pre-release or build, within the `WiX` toolset's limits.
-    pub(crate) fn parse_plain(text: &str) -> Result<Self> {
-        let parts: Vec<&str> = text.split('.').collect();
-        let [major, minor, patch] = parts.as_slice() else {
-            bail!("{text:?} isn't a plain X.Y.Z version (no pre-release or build suffix)");
-        };
-        let (Some(major), Some(minor), Some(patch)) = (number(major), number(minor), number(patch)) else {
-            bail!("{text:?} isn't a plain X.Y.Z version (no pre-release or build suffix)");
-        };
-        if major > MAX_MAJOR_MINOR || minor > MAX_MAJOR_MINOR || patch > MAX_PATCH {
-            bail!(
-                "{text}: an MSI version allows majors and minors up to {MAX_MAJOR_MINOR} and patches up to {MAX_PATCH}"
-            );
-        }
-        Ok(Self { major, minor, patch })
+/// `text` as a plain `X.Y.Z` within an MSI's limits.
+fn parse_plain(text: &str) -> Result<Version> {
+    let Some(version) = plain_version::parse(text) else {
+        bail!("{text:?} isn't a plain X.Y.Z version (no pre-release or build suffix)");
+    };
+    if version.0 > MAX_MAJOR_MINOR || version.1 > MAX_MAJOR_MINOR || version.2 > MAX_PATCH {
+        bail!("{text}: an MSI version allows majors and minors up to {MAX_MAJOR_MINOR} and patches up to {MAX_PATCH}");
     }
+    Ok(version)
 }
 
 /// The version a `desktop-v*` tag names.
@@ -76,7 +43,7 @@ pub(crate) fn tag_version(tag: &str) -> Result<Version> {
     let Some(text) = tag.strip_prefix("desktop-v") else {
         bail!("{tag:?} isn't a desktop-v<X.Y.Z> tag");
     };
-    Version::parse_plain(text)
+    parse_plain(text)
 }
 
 /// The newest of `tags` that names a plain version; other tags are ignored.
@@ -86,12 +53,12 @@ pub(crate) fn latest_tag<'a>(tags: impl IntoIterator<Item = &'a str>) -> Option<
 
 /// A UTC date, as `YYYYMMDD`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct Date(pub u32);
+pub(crate) struct Date(pub u64);
 
 impl Date {
     /// `YYYYMMDD`, eight digits from year 2000 on.
     pub(crate) fn parse(text: &str) -> Result<Self> {
-        match number(text) {
+        match plain_version::number(text) {
             Some(n) if text.len() == 8 && n >= 20_000_101 => Ok(Self(n)),
             _ => bail!("{text:?} isn't a YYYYMMDD date"),
         }
@@ -102,10 +69,7 @@ impl Date {
 pub(crate) fn nightly_version(latest: Option<Version>, date: Date, run: u64) -> Result<String> {
     let base = match latest {
         None => FIRST_RELEASE,
-        Some(v) if v.patch < MAX_PATCH => Version {
-            patch: v.patch + 1,
-            ..v
-        },
+        Some(v) if v.2 < MAX_PATCH => Version(v.0, v.1, v.2 + 1),
         Some(v) => bail!("{v} is the last patch an MSI allows: tag the next minor first"),
     };
     if run == 0 {
@@ -117,7 +81,7 @@ pub(crate) fn nightly_version(latest: Option<Version>, date: Date, run: u64) -> 
 /// The staging version of run `run`.
 pub(crate) fn staging_version(run: u64) -> Result<String> {
     let patch = STAGING_BASE + run;
-    if run == 0 || patch > u64::from(MAX_PATCH) {
+    if run == 0 || patch > MAX_PATCH {
         bail!("staging run {run} is outside 0.0.101–0.0.{MAX_PATCH}: staging versions have run out");
     }
     Ok(format!("0.0.{patch}"))
@@ -136,7 +100,7 @@ pub(crate) enum Trigger {
     PullRequest,
 }
 
-/// Which platforms the workflow can sign at the OS level (D6c: macOS, D6d: Windows).
+/// Which platforms the workflow signs at the OS level.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) struct Signing {
     pub macos: bool,
@@ -182,86 +146,120 @@ pub(crate) enum Mode {
     Nightly,
 }
 
+/// A target's OS, as the build steps and the matrix name it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub(crate) enum Os {
+    Macos,
+    Windows,
+    Linux,
+}
+
+/// One target: the hosted runner of its own OS and CPU, the Rust triple, and the update
+/// manifest's platform key, `{target}-{arch}` (apps/updates/src/route.ts).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Target {
+    runner: &'static str,
+    triple: &'static str,
+    platform: &'static str,
+    os: Os,
+}
+
+/// The six targets (desktop plan §6 D6). Linux on 22.04, the oldest the app supports, so the
+/// packages' glibc and `WebKitGTK` are the floor.
+const TARGETS: [Target; 6] = [
+    Target {
+        runner: "macos-15",
+        triple: "aarch64-apple-darwin",
+        platform: "darwin-aarch64",
+        os: Os::Macos,
+    },
+    Target {
+        runner: "macos-15-intel",
+        triple: "x86_64-apple-darwin",
+        platform: "darwin-x86_64",
+        os: Os::Macos,
+    },
+    Target {
+        runner: "windows-2025",
+        triple: "x86_64-pc-windows-msvc",
+        platform: "windows-x86_64",
+        os: Os::Windows,
+    },
+    Target {
+        runner: "windows-11-arm",
+        triple: "aarch64-pc-windows-msvc",
+        platform: "windows-aarch64",
+        os: Os::Windows,
+    },
+    Target {
+        runner: "ubuntu-22.04",
+        triple: "x86_64-unknown-linux-gnu",
+        platform: "linux-x86_64",
+        os: Os::Linux,
+    },
+    Target {
+        runner: "ubuntu-22.04-arm",
+        triple: "aarch64-unknown-linux-gnu",
+        platform: "linux-aarch64",
+        os: Os::Linux,
+    },
+];
+
 /// One build of the matrix.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(crate) struct Leg {
     pub name: String,
     pub runner: &'static str,
     pub target: &'static str,
-    /// The update manifest's key, `{target}-{arch}` (apps/updates/src/route.ts).
     pub platform: &'static str,
-    pub os: &'static str,
+    pub os: Os,
     pub mode: Mode,
     pub version: String,
     /// `--bundles` for the Tauri CLI, or empty for the OS's targets in tauri.<os>.conf.json.
     pub bundles: &'static str,
 }
 
-/// The six targets (desktop plan §6 D6), each on a hosted runner of its own OS and CPU. Linux on
-/// 22.04, the oldest the app supports, so the packages' glibc and `WebKitGTK` are the floor.
-const TARGETS: [(&str, &str, &str, &str); 6] = [
-    ("macos-15", "aarch64-apple-darwin", "darwin-aarch64", "macos"),
-    ("macos-15-intel", "x86_64-apple-darwin", "darwin-x86_64", "macos"),
-    ("windows-2025", "x86_64-pc-windows-msvc", "windows-x86_64", "windows"),
-    (
-        "windows-11-arm",
-        "aarch64-pc-windows-msvc",
-        "windows-aarch64",
-        "windows",
-    ),
-    ("ubuntu-22.04", "x86_64-unknown-linux-gnu", "linux-x86_64", "linux"),
-    (
-        "ubuntu-22.04-arm",
-        "aarch64-unknown-linux-gnu",
-        "linux-aarch64",
-        "linux",
-    ),
-];
-
-fn leg(
-    &(runner, target, platform, os): &(&'static str, &'static str, &'static str, &'static str),
-    mode: Mode,
-    version: &str,
-) -> Leg {
-    let bundles = if os == "windows" && mode == Mode::Nightly {
-        "nsis"
-    } else {
-        ""
-    };
-    let suffix = if mode == Mode::Tag { " as a tag" } else { "" };
-    Leg {
-        name: format!("{platform}{suffix}"),
-        runner,
-        target,
-        platform,
-        os,
-        mode,
-        version: version.to_owned(),
-        bundles,
+impl Target {
+    fn leg(self, mode: Mode, version: &str) -> Leg {
+        // A nightly's pre-release fits neither an MSI's version nor an rpm's, which allows no `-`.
+        let bundles = match (self.os, mode) {
+            (Os::Windows, Mode::Nightly) => "nsis",
+            (Os::Linux, Mode::Nightly) => "appimage,deb",
+            _ => "",
+        };
+        let suffix = if mode == Mode::Tag { " as a tag" } else { "" };
+        Leg {
+            name: format!("{}{suffix}", self.platform),
+            runner: self.runner,
+            target: self.triple,
+            platform: self.platform,
+            os: self.os,
+            mode,
+            version: version.to_owned(),
+            bundles,
+        }
     }
 }
 
-/// Where a channel publishes (ADR 0014 §1).
+/// A channel and the address its bucket serves downloads from (ADR 0014 §1). The bucket itself is
+/// the manifest tool's to know (apps/updates/src/channels.ts).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct Destination {
     pub channel: &'static str,
-    pub bucket: &'static str,
     pub downloads: &'static str,
 }
 
 const BETA: Destination = Destination {
     channel: "beta",
-    bucket: "lamina-pdf-releases",
     downloads: "https://downloads.laminapdf.com",
 };
 const NIGHTLY: Destination = Destination {
     channel: "nightly",
-    bucket: "lamina-pdf-nightly",
     downloads: "https://nightly-downloads.laminapdf.com",
 };
 const STAGING: Destination = Destination {
     channel: "staging",
-    bucket: "lamina-pdf-staging",
     downloads: "https://staging-downloads.laminapdf.com",
 };
 
@@ -282,11 +280,14 @@ impl Plan {
     }
 }
 
-const UNSIGNED: &str = "macOS and Windows aren't signed yet (D6c, D6d)";
+const UNSIGNED: &str = "macOS and Windows aren't signed at the OS level yet (SIGNED_PLATFORMS)";
+
+fn every_target(mode: Mode, version: &str) -> Vec<Leg> {
+    TARGETS.iter().map(|t| t.leg(mode, version)).collect()
+}
 
 /// The plan for `inputs`.
 pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
-    let all = |mode: Mode, version: &str| TARGETS.iter().map(|t| leg(t, mode, version)).collect::<Vec<_>>();
     match &inputs.trigger {
         Trigger::Tag(tag) => {
             let version = tag_version(tag)?.to_string();
@@ -294,7 +295,7 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
                 bail!("{UNSIGNED}: until they are, only the nightly channel publishes, so {tag} can't be released");
             }
             Ok(Plan {
-                legs: all(Mode::Tag, &version),
+                legs: every_target(Mode::Tag, &version),
                 version,
                 destination: BETA,
                 environment: Some("desktop-release"),
@@ -303,7 +304,7 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
         Trigger::Schedule => {
             let version = nightly_version(inputs.latest_tag, inputs.date, inputs.run_number)?;
             Ok(Plan {
-                legs: all(Mode::Nightly, &version),
+                legs: every_target(Mode::Nightly, &version),
                 version,
                 destination: NIGHTLY,
                 environment: Some("desktop-nightly"),
@@ -324,7 +325,7 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
                 bail!("{UNSIGNED}: set allow_unsigned_platforms to publish an unsigned staging build");
             }
             Ok(Plan {
-                legs: all(Mode::Tag, &version),
+                legs: every_target(Mode::Tag, &version),
                 version,
                 destination: STAGING,
                 environment: (!dry_run).then_some("desktop-release"),
@@ -332,13 +333,13 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
         }
         Trigger::PullRequest => {
             let version = nightly_version(inputs.latest_tag, inputs.date, inputs.run_number)?;
-            let mut legs = all(Mode::Nightly, &version);
+            let mut legs = every_target(Mode::Nightly, &version);
             let tag_mode = staging_version(inputs.run_number)?;
             legs.extend(
                 TARGETS
                     .iter()
-                    .filter(|t| t.2 == "windows-x86_64")
-                    .map(|t| leg(t, Mode::Tag, &tag_mode)),
+                    .filter(|t| t.platform == "windows-x86_64")
+                    .map(|t| t.leg(Mode::Tag, &tag_mode)),
             );
             Ok(Plan {
                 version,
@@ -352,21 +353,26 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
 
 #[cfg(test)]
 mod tests {
+    use std::cmp::Ordering;
+
     use super::*;
 
     const DATE: Date = Date(20_261_028);
 
-    fn v(major: u32, minor: u32, patch: u32) -> Version {
-        Version { major, minor, patch }
-    }
-
     fn inputs(trigger: Trigger) -> Inputs {
         Inputs {
             trigger,
-            latest_tag: Some(v(0, 1, 0)),
+            latest_tag: Some(Version(0, 1, 0)),
             date: DATE,
             run_number: 42,
             signing: Signing::default(),
+        }
+    }
+
+    fn signed(trigger: Trigger) -> Inputs {
+        Inputs {
+            signing: Signing::parse("macos, windows").unwrap(),
+            ..inputs(trigger)
         }
     }
 
@@ -378,15 +384,22 @@ mod tests {
         }
     }
 
-    /// The semver precedence of two versions, as the updater compares them: numeric identifiers
-    /// numerically, a pre-release below its release.
+    /// Compares two pre-release identifiers as semver does: numbers numerically and below words.
+    fn identifier_order(x: &str, y: &str) -> Ordering {
+        match (x.parse::<u64>(), y.parse::<u64>()) {
+            (Ok(x), Ok(y)) => x.cmp(&y),
+            (Ok(_), Err(_)) => Ordering::Less,
+            (Err(_), Ok(_)) => Ordering::Greater,
+            (Err(_), Err(_)) => x.cmp(y),
+        }
+    }
+
+    /// Whether `a` sorts before `b` as the updater compares versions: a pre-release below its release.
     fn semver_lt(a: &str, b: &str) -> bool {
-        let split = |s: &str| {
+        fn split(s: &str) -> (Version, Option<Vec<&str>>) {
             let (core, pre) = s.split_once('-').map_or((s, None), |(c, p)| (c, Some(p)));
-            let core: Vec<u64> = core.split('.').map(|n| n.parse().unwrap()).collect();
-            let pre: Option<Vec<String>> = pre.map(|p| p.split('.').map(str::to_owned).collect());
-            (core, pre)
-        };
+            (plain_version::parse(core).unwrap(), pre.map(|p| p.split('.').collect()))
+        }
         let ((ca, pa), (cb, pb)) = (split(a), split(b));
         if ca != cb {
             return ca < cb;
@@ -394,20 +407,12 @@ mod tests {
         match (pa, pb) {
             (Some(_), None) => true,
             (None, _) => false,
-            (Some(pa), Some(pb)) => {
-                for (x, y) in pa.iter().zip(&pb) {
-                    let order = match (x.parse::<u64>(), y.parse::<u64>()) {
-                        (Ok(x), Ok(y)) => x.cmp(&y),
-                        (Ok(_), Err(_)) => std::cmp::Ordering::Less,
-                        (Err(_), Ok(_)) => std::cmp::Ordering::Greater,
-                        (Err(_), Err(_)) => x.cmp(y),
-                    };
-                    if order != std::cmp::Ordering::Equal {
-                        return order.is_lt();
-                    }
-                }
-                pa.len() < pb.len()
-            }
+            (Some(pa), Some(pb)) => pa
+                .iter()
+                .zip(&pb)
+                .map(|(x, y)| identifier_order(x, y))
+                .find(|o| o.is_ne())
+                .map_or(pa.len() < pb.len(), Ordering::is_lt),
         }
     }
 
@@ -418,11 +423,31 @@ mod tests {
             .all(|id| id == "0" || !id.starts_with('0'))
     }
 
+    /// `^\d+\.\d+\.\d+-nightly\.[1-9]\d{7}\.[1-9]\d*$`, the todo's nightly pattern.
+    fn is_nightly(version: &str) -> bool {
+        let Some((core, pre)) = version.split_once("-nightly.") else {
+            return false;
+        };
+        let digits = |s: &str| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit());
+        let core_ok = core.split('.').count() == 3 && core.split('.').all(digits);
+        pre.split_once('.').is_some_and(|(date, run)| {
+            core_ok && digits(date) && date.len() == 8 && !date.starts_with('0') && digits(run) && !run.starts_with('0')
+        })
+    }
+
+    /// `^0\.0\.(10[1-9]|1[1-9]\d|[2-9]\d{2}|[1-9]\d{3,4})$`, the todo's staging pattern.
+    fn is_staging(version: &str) -> bool {
+        version
+            .strip_prefix("0.0.")
+            .and_then(plain_version::number)
+            .is_some_and(|patch| (101..=99_999).contains(&patch))
+    }
+
     #[test]
     fn a_tag_should_name_a_plain_version_within_the_msi_limits() {
         let table = [
-            ("desktop-v0.1.0", Some(v(0, 1, 0))),
-            ("desktop-v255.255.65535", Some(v(255, 255, 65_535))),
+            ("desktop-v0.1.0", Some(Version(0, 1, 0))),
+            ("desktop-v255.255.65535", Some(Version(255, 255, 65_535))),
             ("desktop-v0.2.0-rc.1", None),
             ("desktop-v0.2.0+build.5", None),
             ("desktop-v256.0.0", None),
@@ -446,72 +471,42 @@ mod tests {
             "desktop-v1.0.0-rc.1",
             "junk",
         ];
-        assert_eq!(latest_tag(tags), Some(v(0, 10, 0)));
+        assert_eq!(latest_tag(tags), Some(Version(0, 10, 0)));
         assert_eq!(latest_tag(["junk"]), None);
     }
 
     #[test]
     fn a_nightly_should_be_the_next_patch_dated_and_numbered() {
         assert_eq!(
-            nightly_version(Some(v(0, 1, 0)), DATE, 42).unwrap(),
+            nightly_version(Some(Version(0, 1, 0)), DATE, 42).unwrap(),
             "0.1.1-nightly.20261028.42"
         );
         assert_eq!(nightly_version(None, DATE, 42).unwrap(), "0.1.0-nightly.20261028.42");
-        assert!(nightly_version(Some(v(0, 1, 65_535)), DATE, 1).is_err());
+        assert!(nightly_version(Some(Version(0, 1, 65_535)), DATE, 1).is_err());
         assert!(nightly_version(None, DATE, 0).is_err());
     }
 
     #[test]
     fn a_nightly_should_sort_after_the_last_release_and_before_the_next() {
-        let after_tag = nightly_version(Some(v(0, 1, 0)), DATE, 42).unwrap();
+        let latest = Some(Version(0, 1, 0));
+        let after_tag = nightly_version(latest, DATE, 42).unwrap();
         assert!(semver_lt("0.1.0", &after_tag));
         assert!(semver_lt(&after_tag, "0.1.1"));
         let before_tag = nightly_version(None, DATE, 42).unwrap();
         assert!(semver_lt("0.0.65535", &before_tag));
         assert!(semver_lt(&before_tag, "0.1.0"));
         // A later run, or a later day, sorts after.
+        assert!(semver_lt(&after_tag, &nightly_version(latest, DATE, 43).unwrap()));
         assert!(semver_lt(
             &after_tag,
-            &nightly_version(Some(v(0, 1, 0)), DATE, 43).unwrap()
+            &nightly_version(latest, Date(20_261_029), 1).unwrap()
         ));
-        assert!(semver_lt(
-            &after_tag,
-            &nightly_version(Some(v(0, 1, 0)), Date(20_261_029), 1).unwrap()
-        ));
-    }
-
-    /// `^\d+\.\d+\.\d+-nightly\.[1-9]\d{7}\.[1-9]\d*$`, the todo's nightly pattern.
-    fn is_nightly(version: &str) -> bool {
-        let Some((core, pre)) = version.split_once("-nightly.") else {
-            return false;
-        };
-        let digits = |s: &str| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit());
-        let core_ok = core.split('.').count() == 3 && core.split('.').all(digits);
-        match pre.split_once('.') {
-            Some((date, run)) => {
-                core_ok
-                    && digits(date)
-                    && date.len() == 8
-                    && !date.starts_with('0')
-                    && digits(run)
-                    && !run.starts_with('0')
-            }
-            None => false,
-        }
-    }
-
-    /// `^0\.0\.(10[1-9]|1[1-9]\d|[2-9]\d{2}|[1-9]\d{3,4})$`, the todo's staging pattern.
-    fn is_staging(version: &str) -> bool {
-        version
-            .strip_prefix("0.0.")
-            .and_then(number)
-            .is_some_and(|patch| (101..=99_999).contains(&patch))
     }
 
     #[test]
     fn every_version_should_match_its_pattern_with_no_leading_zero() {
         for run in [1, 9, 10, 99, 100, 999, 65_435] {
-            let n = nightly_version(Some(v(0, 1, 0)), DATE, run).unwrap();
+            let n = nightly_version(Some(Version(0, 1, 0)), DATE, run).unwrap();
             assert!(is_nightly(&n) && no_leading_zero(&n), "{n}");
             let s = staging_version(run).unwrap();
             assert!(is_staging(&s) && no_leading_zero(&s), "{s}");
@@ -549,10 +544,14 @@ mod tests {
     }
 
     #[test]
-    fn a_nightly_should_build_nsis_only_on_windows() {
+    fn a_nightly_should_build_no_msi_and_no_rpm() {
         let plan = plan(&inputs(Trigger::Schedule)).unwrap();
         for leg in &plan.legs {
-            let expected = if leg.os == "windows" { "nsis" } else { "" };
+            let expected = match leg.os {
+                Os::Windows => "nsis",
+                Os::Linux => "appimage,deb",
+                Os::Macos => "",
+            };
             assert_eq!(leg.bundles, expected, "{}", leg.name);
         }
     }
@@ -569,11 +568,7 @@ mod tests {
             ..inputs(tag())
         };
         assert!(plan(&half).is_err());
-        let signed = Inputs {
-            signing: Signing::parse("macos, windows").unwrap(),
-            ..inputs(tag())
-        };
-        let plan = plan(&signed).unwrap();
+        let plan = plan(&signed(tag())).unwrap();
         assert_eq!(
             (plan.version.as_str(), plan.environment),
             ("0.1.0", Some("desktop-release"))
@@ -584,11 +579,7 @@ mod tests {
 
     #[test]
     fn a_pre_release_tag_should_fail_the_plan() {
-        let signed = Inputs {
-            signing: Signing::parse("macos,windows").unwrap(),
-            ..inputs(Trigger::Tag("desktop-v0.2.0-rc.1".to_owned()))
-        };
-        assert!(plan(&signed).is_err());
+        assert!(plan(&signed(Trigger::Tag("desktop-v0.2.0-rc.1".to_owned()))).is_err());
     }
 
     #[test]
@@ -607,8 +598,8 @@ mod tests {
     #[test]
     fn unsigned_staging_should_need_the_explicit_input() {
         assert!(plan(&inputs(dispatch("staging", false, false))).is_err());
-        let dry = plan(&inputs(dispatch("staging", true, false))).unwrap();
-        assert!(dry.dry_run());
+        assert!(plan(&signed(dispatch("staging", false, false))).is_ok());
+        assert!(plan(&inputs(dispatch("staging", true, false))).unwrap().dry_run());
     }
 
     #[test]
@@ -619,12 +610,36 @@ mod tests {
         let tag_legs: Vec<&Leg> = plan.legs.iter().filter(|l| l.mode == Mode::Tag).collect();
         assert_eq!(tag_legs.len(), 1);
         assert_eq!((tag_legs[0].platform, tag_legs[0].bundles), ("windows-x86_64", ""));
-        assert!(Version::parse_plain(&tag_legs[0].version).is_ok());
+        assert!(parse_plain(&tag_legs[0].version).is_ok());
     }
 
     #[test]
     fn signed_platforms_should_name_macos_or_windows() {
         assert_eq!(Signing::parse("").unwrap(), Signing::default());
         assert!(Signing::parse("linux").is_err());
+    }
+
+    /// The update Worker's lists are the source: apps/updates/src/channels.ts names the channels,
+    /// and route.ts the targets and arches a platform key is made of.
+    #[test]
+    fn channels_and_platform_keys_should_be_the_update_workers() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../apps/updates/src");
+        let channels = std::fs::read_to_string(root.join("channels.ts")).unwrap();
+        for destination in [BETA, NIGHTLY, STAGING] {
+            assert!(
+                channels.contains(&format!("\"{}\"", destination.channel)),
+                "{}",
+                destination.channel
+            );
+        }
+        let route = std::fs::read_to_string(root.join("route.ts")).unwrap();
+        for target in TARGETS {
+            let (os, arch) = target.platform.split_once('-').unwrap();
+            assert!(
+                route.contains(&format!("\"{os}\"")) && route.contains(&format!("\"{arch}\"")),
+                "{}",
+                target.platform
+            );
+        }
     }
 }
