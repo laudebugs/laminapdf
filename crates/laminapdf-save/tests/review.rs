@@ -112,7 +112,11 @@ fn a_reply_and_a_state_save_in_both_modes_and_reopen_in_their_thread() {
             .iter()
             .find(|t| t.comment.contents.as_deref() == Some("Check this"))
             .unwrap();
-        let replies: Vec<&str> = thread.replies.iter().filter_map(|m| m.annot.contents.as_deref()).collect();
+        let replies: Vec<&str> = thread
+            .replies
+            .iter()
+            .filter_map(|m| m.annot.contents.as_deref())
+            .collect();
         let states = thread.states.len();
         assert_eq!(
             (

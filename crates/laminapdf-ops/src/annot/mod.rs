@@ -378,7 +378,7 @@ impl DeleteAnnot {
 /// `unknown-annotation` for an ID no page lists; `annotation-not-editable` for a widget or a
 /// direct dictionary; reading errors.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.1.
 pub fn delete_annotations(doc: &laminapdf_model::Document, ids: &[AnnotId]) -> Result<Vec<crate::Op>> {
     let all = every_annotation(doc)?;
     let mut cascades: Vec<(&AnnotId, Vec<AnnotId>)> = Vec::new();

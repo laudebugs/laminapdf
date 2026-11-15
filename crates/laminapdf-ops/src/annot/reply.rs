@@ -30,7 +30,7 @@ use crate::wire;
 /// On the wire: `{ "op": "addReply", "args": { "parent": "a10.0", "contents": "Agreed", "author":
 /// "Ben", "created": "D:20261101110000Z" } }`.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.1.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -59,7 +59,7 @@ pub struct AddReply {
 impl AddReply {
     /// The op that answers `parent` with `contents`, with no author, date or `/NM`.
     ///
-    /// Added in 0.3.0.
+    /// Added in 0.4.1.
     #[must_use]
     pub fn new(parent: AnnotId, contents: impl Into<String>) -> Self {
         Self {
@@ -86,7 +86,7 @@ impl AddReply {
 
 /// A review status (Table 175), with the state model it belongs to.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.1.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -110,7 +110,7 @@ pub enum ReviewState {
 impl ReviewState {
     /// `/StateModel`.
     ///
-    /// Added in 0.3.0.
+    /// Added in 0.4.1.
     #[must_use]
     pub const fn model(self) -> &'static str {
         match self {
@@ -121,7 +121,7 @@ impl ReviewState {
 
     /// `/State`.
     ///
-    /// Added in 0.3.0.
+    /// Added in 0.4.1.
     #[must_use]
     pub const fn name(self) -> &'static str {
         match self {
@@ -147,7 +147,7 @@ impl ReviewState {
 /// On the wire: `{ "op": "setReviewState", "args": { "target": "a10.0", "state": "accepted",
 /// "author": "Ben", "created": "D:20261102090000Z" } }`.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.1.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -176,7 +176,7 @@ pub struct SetReviewState {
 impl SetReviewState {
     /// The op that sets `state` on `target`, with no author, date or `/NM`.
     ///
-    /// Added in 0.3.0.
+    /// Added in 0.4.1.
     #[must_use]
     pub const fn new(target: AnnotId, state: ReviewState) -> Self {
         Self {

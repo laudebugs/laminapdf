@@ -19,7 +19,7 @@ use crate::id::{AnnotId, PageId};
 
 /// A review state that a Text annotation sets on the annotation it replies to (Table 175).
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.1.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct AnnotState {
@@ -32,7 +32,7 @@ pub struct AnnotState {
 
 /// The state model a review state belongs to (Table 175).
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.1.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum StateModel {
@@ -56,7 +56,7 @@ impl StateModel {
 
 /// Why a thread doesn't start at a comment that answers nothing.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.1.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum BrokenThread {
@@ -70,7 +70,7 @@ pub enum BrokenThread {
 /// An annotation of a thread, with the page it is on: a reply can be on another page than its
 /// comment.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.1.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct ThreadMember {
@@ -82,7 +82,7 @@ pub struct ThreadMember {
 
 /// One comment and everything that answers it.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.1.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct CommentThread {
@@ -109,7 +109,7 @@ impl CommentThread {
     /// The latest state of `model` set on the comment itself: the one with the latest
     /// `/CreationDate` (else `/M`), and between two without dates, the later in the document.
     ///
-    /// Added in 0.3.0.
+    /// Added in 0.4.1.
     #[must_use]
     pub fn latest_state(&self, model: &StateModel) -> Option<&Annot> {
         self.states
@@ -164,7 +164,7 @@ impl Document {
     /// # Errors
     /// As [`Document::annotations`].
     ///
-    /// Added in 0.3.0.
+    /// Added in 0.4.1.
     pub fn comment_threads(&self) -> Result<Vec<CommentThread>> {
         let pages = self.pages()?;
         // Every markup annotation, in document order, with its page.

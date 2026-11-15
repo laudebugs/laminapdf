@@ -14,7 +14,7 @@ use crate::error::{Error, Result};
 
 /// One comment and what answers it, each annotation in its own page's space.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.1.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct PageComment {
@@ -45,7 +45,7 @@ pub struct PageComment {
 
 /// An annotation of a thread, with its page.
 ///
-/// Added in 0.3.0.
+/// Added in 0.4.1.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct CommentPart {
@@ -80,7 +80,7 @@ impl Document {
     /// # Errors
     /// `page-index-out-of-range` for a page past the end; reading errors.
     ///
-    /// Added in 0.3.0.
+    /// Added in 0.4.1.
     pub fn comment_threads(&self, pages: Option<&[u32]>) -> Result<Vec<PageComment>> {
         let all = self.ops().pages()?;
         let count = u32::try_from(all.len()).unwrap_or(u32::MAX);
@@ -210,7 +210,7 @@ impl Document {
     /// `unknown-annotation`, `annotation-not-editable`, `annotation-locked`; as
     /// [`Document::apply`].
     ///
-    /// Added in 0.3.0.
+    /// Added in 0.4.1.
     pub fn delete_annotations(&mut self, ids: &[AnnotId]) -> Result<crate::Edited> {
         let ops = laminapdf_ops::delete_annotations(self.ops(), ids)?;
         self.apply(ops)

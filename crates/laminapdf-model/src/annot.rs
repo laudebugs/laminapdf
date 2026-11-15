@@ -67,8 +67,6 @@ pub struct Annot {
     pub geometry: AnnotGeometry,
     /// For a Text annotation that sets a review state on the one it replies to, that state
     /// (`/StateModel` and `/State`, Table 175; §12.5.6.4).
-    ///
-    /// Added in 0.3.0.
     pub state: Option<AnnotState>,
 }
 
@@ -177,7 +175,7 @@ impl AnnotSubtype {
     /// Whether it is a markup annotation (ISO 32000-2 Table 171's markup column, §12.5.6.2): the
     /// kind that can be a comment, answer one or have a review state.
     ///
-    /// Added in 0.3.0.
+    /// Added in 0.4.1.
     #[must_use]
     pub const fn is_markup(&self) -> bool {
         matches!(

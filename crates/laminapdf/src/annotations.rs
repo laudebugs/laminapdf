@@ -56,8 +56,6 @@ pub struct PageAnnotation {
     /// The subtype's own geometry, in page space.
     pub geometry: AnnotationGeometry,
     /// For a review state set on the annotation it replies to, that state.
-    ///
-    /// Added in 0.3.0.
     pub state: Option<AnnotState>,
 }
 
