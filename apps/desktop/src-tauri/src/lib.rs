@@ -23,6 +23,7 @@ mod session;
 mod startup;
 mod store;
 mod tab_drag;
+mod unsaved;
 mod update;
 mod watch;
 mod windows;
@@ -147,6 +148,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     )))?);
     app.manage(open::OpenWorker::start(app.handle().clone())?);
     app.manage(windows::Windows::default());
+    app.manage(unsaved::Unsaved::default());
     app.manage(tab_drag::TabDrag::default());
     app.manage(session::locate::Held::default());
     app.manage(menu::MenusJson::embedded());
@@ -197,6 +199,9 @@ macro_rules! app_commands {
             commands::app_info,
             commands::open_dialog,
             commands::page_info,
+            commands::edit_document,
+            commands::set_unsaved,
+            commands::cancel_quit,
             commands::close_document,
             commands::unlock_document,
             commands::cancel_tiles,
@@ -224,6 +229,7 @@ macro_rules! app_commands {
             print::cancel_print,
             commands::tab_drag_start,
             commands::tab_drag_end,
+            commands::tab_drag_cancel,
             open::take_pending_opens,
             update::commands::update_status,
             update::commands::update_check_now,
@@ -261,6 +267,7 @@ pub fn run() -> Result<(), DesktopError> {
             e2e::e2e_focus,
             e2e::e2e_menu_click,
             e2e::e2e_menu_snapshot,
+            e2e::e2e_place_cursor,
             print::e2e_print_to_file,
         ])
         .manage(e2e::QueuedPick::default());
@@ -341,9 +348,16 @@ fn second_launch(app: &tauri::AppHandle, args: &[String], cwd: &str) {
 
 fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
     match event {
+        // Closing a window that holds unsaved edits asks it first.
+        WindowEvent::CloseRequested { api, .. } => {
+            if !unsaved::may_close(window) {
+                api.prevent_close();
+            }
+        }
         // A closed window's documents close, their passwords are wiped, its engine stops, and
         // their files are no longer watched.
         WindowEvent::Destroyed => {
+            window.state::<unsaved::Unsaved>().set(window.label(), false);
             session::app::window_closed(window.app_handle(), window.label());
             window.state::<Arc<Engines>>().close_window(window.label());
             window.state::<watch::Watcher>().unwatch_window(window.label());

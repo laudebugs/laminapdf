@@ -1,0 +1,10 @@
+{
+  "changed": true,
+  "reversal": "partial",
+  "touched": ["p1.0"],
+  "pageOrder": null,
+  "pages": [{ "id": "p1.0", "width": 792.0, "height": 612.0, "rotate": 90 }],
+  "createdOutlineItems": [],
+  "createdAnnotations": [],
+  "outlineRepaired": false
+}

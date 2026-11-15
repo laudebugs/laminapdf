@@ -11,6 +11,7 @@ import axe from "axe-core";
 import { afterEach, describe, expect, inject, it } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { defineMenuSelect, type SiteMenuSelect } from "../../src/menu-select.ts";
+import { layer, pressedLayer, resolvedColor } from "./states.ts";
 
 const SELECTS = inject("selects");
 defineMenuSelect();
@@ -51,16 +52,6 @@ function shown(): string | undefined {
 function active(): string | undefined {
   const id = button().getAttribute("aria-activedescendant");
   return id ? document.getElementById(id)?.textContent?.trim() : undefined;
-}
-
-/** `value` as the browser computes a colour (`rgb(…)`). */
-function resolvedColor(value: string): string {
-  const probe = document.createElement("span");
-  probe.style.color = value;
-  document.body.append(probe);
-  const resolved = getComputedStyle(probe).color;
-  probe.remove();
-  return resolved;
 }
 
 afterEach(() => {
@@ -203,3 +194,34 @@ for (const theme of ["light", "dark"] as const) {
     });
   });
 }
+
+describe("the select's states", () => {
+  it("shows the hand on the button and on every option", async () => {
+    mount(SELECTS.hidden, "light");
+    expect(getComputedStyle(button()).cursor).toBe("pointer");
+    await userEvent.click(button());
+    for (const option of document.querySelectorAll("[role=option]"))
+      expect(getComputedStyle(option).cursor).toBe("pointer");
+  });
+
+  it("draws the hover layer over the field, and the pressed one while the mouse holds it down", async () => {
+    mount(SELECTS.hidden, "light");
+    await userEvent.hover(button());
+    await expect.poll(() => layer(button())).toBe(resolvedColor("var(--paper-hover)"));
+    expect(getComputedStyle(button()).backgroundColor).toBe(resolvedColor("var(--paper-field)"));
+    expect(await pressedLayer(".site-menu-select-button")).toBe(resolvedColor("var(--paper-pressed)"));
+  });
+
+  it("draws an option pressed while the mouse holds it down", async () => {
+    mount(SELECTS.hidden, "light");
+    await userEvent.click(button());
+    expect(await pressedLayer(".site-menu-select-option")).toBe(resolvedColor("var(--paper-pressed)"));
+  });
+
+  it("fills the open button with the pressed fill under the layer", async () => {
+    mount(SELECTS.hidden, "light");
+    await userEvent.click(button());
+    // The fill fades in as a state does: poll until it lands.
+    await expect.poll(() => getComputedStyle(button()).backgroundColor).toBe(resolvedColor("var(--paper-pressed)"));
+  });
+});

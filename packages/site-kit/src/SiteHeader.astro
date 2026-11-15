@@ -6,6 +6,7 @@
 // On a phone the bar keeps the wordmark, Docs and App, and the other links move into a menu
 // (`menu`, on by default; the docs site has Starlight's own).
 // Its look is header.css; each site sizes it with header.css's variables.
+import "./states.css";
 import "./header.css";
 import externalLink from "@laminapdf/icons/svg/external-link.svg?raw";
 import menuIcon from "@laminapdf/icons/svg/menu.svg?raw";
@@ -27,7 +28,7 @@ const menuLinks = menu ? links.filter(inPhoneMenu) : [];
 ---
 
 <div class="site-header-row" data-phone-menu={menuLinks.length > 0 ? "" : undefined}>
-  <a class="site-wordmark" href={home}>Lamina PDF</a>
+  <a class="site-wordmark site-control" href={home}>Lamina PDF</a>
   <SiteNav links={links} />
   {
     Astro.slots.has("tools") && (
@@ -38,7 +39,7 @@ const menuLinks = menu ? links.filter(inPhoneMenu) : [];
   }
   {
     APP_LAUNCHED && (
-      <a class="site-header-app" href={APP_URL}>
+      <a class="site-header-app site-control" href={APP_URL}>
         <span><span class="site-header-app-lead">Open the web </span><span class="site-header-app-word">app</span></span>
         <Fragment set:html={decorativeIcon(externalLink, "site-header-app-icon")} />
       </a>
@@ -47,14 +48,14 @@ const menuLinks = menu ? links.filter(inPhoneMenu) : [];
   {
     menuLinks.length > 0 && (
       <details class="site-menu">
-        <summary aria-label="More pages">
+        <summary class="site-control" aria-label="More pages">
           <Fragment set:html={decorativeIcon(menuIcon, "site-menu-icon")} />
         </summary>
         <nav class="site-menu-panel" aria-label="More pages">
           <ul>
             {menuLinks.map((link) => (
               <li>
-                <a href={link.href} aria-current={link.current}>
+                <a class="site-control" href={link.href} aria-current={link.current}>
                   {link.label}
                 </a>
               </li>

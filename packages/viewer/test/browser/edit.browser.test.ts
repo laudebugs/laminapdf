@@ -225,6 +225,47 @@ describe("redraw after an edit", () => {
     expect(v.stats().pages[1]).toBe("sharp");
   });
 
+  it("gives every page its new label for a labels edit and its undo, and redraws nothing", async () => {
+    const client = await opened();
+    const v = await showing(client);
+    const pages = rendered(client);
+    const events = invalidated(v);
+    const first = client.document?.pages[0]?.id as string;
+    const third = client.document?.pages[2]?.id as string;
+    const ranges = [
+      { page: first, style: "lowerRoman" as const },
+      { page: third, style: "decimal" as const, prefix: "A-" },
+    ];
+
+    const result = await v.applyEdit([{ op: "setPageLabels", args: { ranges } } as Op]);
+
+    expect(result.relabelled?.map((p) => p.label)).toEqual(["i", "ii", "A-1"]);
+    expect(client.document?.pages.map((p) => p.label)).toEqual(["i", "ii", "A-1"]);
+    expect(await client.labelRanges()).toEqual(ranges);
+    const undone = await v.edits.undo();
+    expect(undone?.relabelled?.map((p) => p.label ?? null)).toEqual([null, null, null]);
+    expect(client.document?.pages.map((p) => p.label ?? null)).toEqual([null, null, null]);
+    expect(await client.labelRanges()).toEqual([]);
+    expect(events).toEqual([]);
+    await new Promise((r) => setTimeout(r, 200));
+    expect(pages).toEqual([]);
+  });
+
+  it("reads a page's boxes in user space as its edits leave them", async () => {
+    const client = await opened();
+    const id = client.document?.pages[1]?.id as string;
+    expect((await client.pageBoxes(1)).crop).toEqual([0, 0, 612, 792]);
+
+    await client.applyEdit([{ op: "cropPages", args: { pages: [id], margins: { top: 72 } } } as Op]);
+
+    const boxes = await client.pageBoxes(1);
+    expect([boxes.media, boxes.crop, boxes.own]).toEqual([
+      [0, 0, 612, 792],
+      [0, 0, 612, 720],
+      { bleed: false, trim: false, art: false },
+    ]);
+  });
+
   it("changes nothing when an edit fails, and the pages go on drawing", async () => {
     const client = await opened();
     const v = await showing(client);

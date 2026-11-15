@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-edit-document"
+description = "Enables the edit_document command without any pre-configured scope."
+commands.allow = ["edit_document"]
+
+[[permission]]
+identifier = "deny-edit-document"
+description = "Denies the edit_document command without any pre-configured scope."
+commands.deny = ["edit_document"]

@@ -59,6 +59,7 @@ import type {
   AddLink,
   AnnotCommon,
   ArticleThread,
+  CommentThread,
   DocumentInfo,
   DocumentMetadata,
   DocumentProperties,
@@ -79,6 +80,7 @@ import type {
   OutlineNode,
   OutlineTarget,
   PageAnnotation,
+  PageBoxesRead,
   PageInfo,
   PageLabelRange,
   PageLink,
@@ -585,6 +587,30 @@ export class Document extends Handle<BaseGlue> {
   threads(): ArticleThread[] {
     return this.call(() => this.#extracting("doc.threads()").threads());
   }
+  /**
+   * Page `index`'s boxes in user space, as {@link Document.setPageBoxes} takes them. Needs a
+   * document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `page-index-out-of-range`, and as {@link Document.outline}.
+   *
+   * @since 0.5.0
+   */
+  pageBoxes(index: number): PageBoxesRead {
+    return this.call(() => this.#extracting("doc.pageBoxes()").pageBoxes(index));
+  }
+
+  /**
+   * The document's page labels as ranges in page order, each naming its first page by ID, as
+   * {@link Document.setPageLabels} takes them; empty when the document has none. Needs a
+   * document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   *
+   * @since 0.5.0
+   */
+  labelRanges(): PageLabelRange[] {
+    return this.call(() => this.#extracting("doc.labelRanges()").labelRanges());
+  }
 
   /**
    * The images the pages draw, as files: JPEG and JPEG 2000 images as stored, byte for byte, the
@@ -814,6 +840,47 @@ export class Document extends Handle<BaseGlue> {
    */
   pageAnnotations(index: number): PageAnnotation[] {
     return this.call(() => this.#extracting("doc.pageAnnotations()").pageAnnotations(index));
+  }
+
+  /**
+   * The comments on `pages` (0-based; every page when left out) as threads in document order:
+   * each comment with its replies, the annotations grouped with it, the review states set on it
+   * and the latest of each, and the text a highlight or other text markup marks. A reply on
+   * another page than its comment belongs to the comment's thread. Filter and search this list;
+   * it changes nothing. Reply with the `addReply` op and set a status with `setReviewState`.
+   * Needs a document opened while the extract or text module was loaded.
+   *
+   * @example
+   * ```ts
+   * const [thread] = doc.commentThreads();
+   * doc.apply([{ op: "addReply", args: { parent: thread.comment.id, contents: "Fixed", author: "Ada" } }]);
+   * doc.apply([{ op: "setReviewState", args: { target: thread.comment.id, state: "completed" } }]);
+   * ```
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument` for an index that isn't a whole number from
+   * 0; `page-index-out-of-range`; as {@link Document.outline}.
+   *
+   * @since 0.4.1
+   */
+  commentThreads(pages?: readonly number[]): CommentThread[] {
+    const wanted = pages === undefined ? undefined : [...pages];
+    return this.call(() => this.#extracting("doc.commentThreads()").commentThreads(wanted));
+  }
+
+  /**
+   * Deletes the annotations `ids` as one edit, one undo step: each with its pop-up, its replies
+   * and the rest of its group. An ID that another's deletion already takes (a reply selected
+   * with its comment) is left out, so the second delete never fails. Needs a document opened
+   * while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `unknown-annotation`, `annotation-not-editable`,
+   * `annotation-locked`; as {@link Document.apply}.
+   *
+   * @since 0.4.1
+   */
+  deleteAnnotations(ids: readonly string[]): Edited {
+    this.#notInTransaction("deleteAnnotations");
+    return this.call(() => this.#extracting("doc.deleteAnnotations()").deleteAnnotations([...ids]));
   }
 
   /**

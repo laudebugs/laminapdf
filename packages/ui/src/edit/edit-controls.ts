@@ -49,6 +49,17 @@ export interface EditSlice {
   readonly notice: RevertedSlice | undefined;
 }
 
+/**
+ * The op that turns `page` a quarter (`delta` 90 clockwise, -90 the other way), as the SDK's
+ * `rotatePage` takes it. The op sets the rotation, so the new one comes from the page's own.
+ */
+export function quarterTurn(
+  page: { readonly id: string; readonly rotation: number },
+  delta: 90 | -90,
+): { readonly op: "rotatePage"; readonly args: { readonly page: string; readonly rotate: number } } {
+  return { op: "rotatePage", args: { page: page.id, rotate: (((page.rotation + delta) % 360) + 360) % 360 } };
+}
+
 /** The edit session as the chrome drives it: `viewer.edits` fits. */
 export interface EditControls extends ExternalStore<EditSlice> {
   /** Takes back the last step done, if any. */

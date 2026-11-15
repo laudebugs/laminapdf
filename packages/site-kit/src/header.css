@@ -2,7 +2,9 @@
  * The site header both sites use (design language §7.39), from the Paper tokens of
  * @laminapdf/tokens, which each site loads first. A site sizes it with the variables below: the
  * website keeps §7.39's 64 px bar at most 1120 px wide; the docs site fits it into Starlight's
- * 56 px bar, the smaller variant §7.39 gives the download page, with a 22 px wordmark.
+ * 56 px bar, the smaller variant §7.39 gives the download page, with a 22 px wordmark. Its
+ * controls take states.css's `site-control` (SiteHeader.astro, SiteNav.astro): the hand, the
+ * pressed layer, hover only where a pointer hovers, and the fades.
  */
 
 .site-header-row {
@@ -26,10 +28,6 @@
   text-decoration: none;
 }
 
-.site-wordmark:hover {
-  color: var(--paper-text);
-}
-
 .site-nav ul {
   display: flex;
   flex-wrap: wrap;
@@ -49,8 +47,11 @@
   box-shadow: inset 0 calc(-1 * var(--paper-selected-underline-width)) 0 transparent;
 }
 
-.site-nav a:hover {
-  color: var(--paper-text);
+/* The wordmark and the bar's links darken their text on hover, with no fill; a press still
+   shows the pressed layer. */
+.site-wordmark,
+.site-nav a {
+  --site-hover: transparent;
 }
 
 /* The current page, or the section the page belongs to: 600 with the accent underline. */
@@ -79,11 +80,6 @@
   text-decoration: none;
 }
 
-.site-header-app:hover {
-  color: var(--paper-text);
-  background: var(--paper-hover);
-}
-
 /* The label is one flex item, so "Open the web app" stays one phrase. The external-link icon
    shows only on a phone. */
 .site-header-app-icon {
@@ -106,7 +102,6 @@
   block-size: var(--paper-target-min-touch);
   border-radius: var(--paper-radius-4);
   color: var(--paper-text);
-  cursor: pointer;
   list-style: none;
 }
 
@@ -114,9 +109,9 @@
   display: none;
 }
 
-.site-menu > summary:hover,
+/* Open: the pressed fill, as an open ghost trigger (motion plan §4.2); hover and press draw over it. */
 .site-menu[open] > summary {
-  background: var(--paper-hover);
+  background-color: var(--paper-pressed);
 }
 
 .site-menu-icon {
@@ -153,9 +148,22 @@
   text-decoration: none;
 }
 
-.site-menu-panel a:hover {
+/* Under a mouse or pen: the text darkens, and links and the wordmark keep their colour where a
+   site colours every link. The fills are states.css's layer. */
+@media (hover: hover) and (pointer: fine) {
+  .site-wordmark:hover,
+  .site-nav a:hover,
+  .site-header-app:hover,
+  .site-menu-panel a:hover {
+    color: var(--paper-text);
+  }
+}
+
+.site-wordmark:active,
+.site-nav a:active,
+.site-header-app:active,
+.site-menu-panel a:active {
   color: var(--paper-text);
-  background: var(--paper-hover);
 }
 
 /* The current page, as in the bar: 600, with the accent rule on the side the panel's list reads from. */

@@ -67,8 +67,8 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | O06 | Organise mode: page grid, multi-select, insertion bar, rotate, delete, duplicate, "Move to page…" | D, W | [E2h](../../todos/done/E2h-page-organiser-ui.md), [E2b](../../todos/done/E2b-page-structure-ops.md) |
 | O07 | Insert pages and merge documents (from another PDF, images, blank) | D | [E2c](../../todos/done/E2c-cross-document-pages.md), [E2d](../../todos/done/E2d-merge-and-split.md), [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md) |
 | O08 | Split document (by count, ranges, bookmarks) | D | [E2d](../../todos/done/E2d-merge-and-split.md) |
-| O09 | Page geometry: crop and page boxes, resize, warning that cropped content remains | D | [E2f](../../todos/done/E2f-page-geometry.md), [E2s](../../todos/done/E2s-resize-and-orientation.md), [E2g](../../todos/ready/E2g-page-labels.md) |
-| O10 | Page labels editor (roman front matter, numbering ranges) | D | [E2q](../../todos/done/E2q-page-labels-op.md), [E2g](../../todos/ready/E2g-page-labels.md) |
+| O09 | Page geometry: crop and page boxes, resize, warning that cropped content remains | D | [E2f](../../todos/done/E2f-page-geometry.md), [E2s](../../todos/done/E2s-resize-and-orientation.md), [E2g](../../todos/done/E2g-page-labels.md) |
+| O10 | Page labels editor (roman front matter, numbering ranges) | D | [E2q](../../todos/done/E2q-page-labels-op.md), [E2g](../../todos/done/E2g-page-labels.md) |
 | O11 | Bookmarks editor (nested, drag and keyboard reorder, from headings) | D | [E3b](../../todos/done/E3b-bookmarks-and-destinations.md) |
 | O12 | Link editor: link selected text or draw a link area; target page, named destination, web or email address; script address rejected | D | [E3c](../../todos/done/E3c-links.md) |
 | O13 | Initial view and article threads | D | [E3d](../../todos/done/E3d-initial-view-and-threads.md) |
@@ -84,7 +84,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | C01 | Comment tools: highlight, underline, strike, caret, note, ink, shapes, arrow, text box; colour and width | D | [E4f](../../todos/ready/E4f-annotation-tools-ui.md) |
 | C02 | Ink and shapes: drawing in progress, selected shape with handles, inspector | D | [E4d](../../todos/ready/E4d-appearances-ink-and-shapes.md) |
 | C03 | Free text and callouts: editing | D | [E4e](../../todos/ready/E4e-freetext-callouts.md) |
-| C04 | Comments panel: threads, replies, status (accepted, rejected, done), filter and search | D, W | [E5b](../../todos/ready/E5b-comment-threads-and-review.md), [E5g](../../todos/ready/E5g-comments-panel.md) |
+| C04 | Comments panel: threads, replies, status (accepted, rejected, done), filter and search | D, W | [E5b](../../todos/done/E5b-comment-threads-and-review.md), [E5g](../../todos/ready/E5g-comments-panel.md) |
 | C05 | Stamps and file attachments (stamps picker: standard, custom image, dynamic date/name; file attachment annotation) | D | [E5c](../../todos/ready/E5c-stamps-and-attachments.md), [E5h](../../todos/ready/E5h-stamps-and-attachments-ui.md) |
 | C06 | Import and export comments (XFDF/FDF), export highlights as Markdown | D | [E5d](../../todos/ready/E5d-xfdf-fdf.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md) |
 | C07 | Flatten and comment summary (print/export) | D | [E5e](../../todos/ready/E5e-flatten-and-summary.md), [E5f](../../todos/ready/E5f-comment-summary.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md) |

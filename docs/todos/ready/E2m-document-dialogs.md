@@ -36,7 +36,7 @@ Build the web dialogs that bring pages in from other files and write pages out t
 
 **Out of scope** (and which todo covers it)
 
-- Crop, resize, boxes, orientation and labels dialogs → [E2g](E2g-page-labels.md)
+- Crop, resize, boxes, orientation and labels dialogs → [E2g](../done/E2g-page-labels.md)
 - Desktop folder output and Finder/Explorer selections → [E2n](E2n-desktop-organise.md)
 
 **Editor facts**

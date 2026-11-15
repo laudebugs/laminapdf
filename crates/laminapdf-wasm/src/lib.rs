@@ -44,6 +44,8 @@ mod marks;
 mod memory;
 #[cfg(feature = "extract")]
 mod navigation;
+#[cfg(feature = "extract")]
+mod page_setup;
 mod pages;
 mod plan;
 #[cfg(feature = "extract")]

@@ -74,6 +74,8 @@
     padding: var(--paper-space-8) var(--paper-space-10);
     border-radius: var(--paper-radius-6);
     outline: none;
+    /* A press selects it, as a control's does (motion plan §3, 1): the hand, over its picture too. */
+    cursor: var(--paper-cursor-action);
   }
 
   .paper-page-tile-body {
@@ -211,5 +213,137 @@
       outline-color: Highlight;
       background: Highlight;
     }
+  }
+}
+
+/* Page setup's dialogs (Paper O09, O10): the labels editor's ranges table, its preview grid of
+   page → label pairs with the range being edited in accent 600; the crop margins in two columns;
+   the resize preview (the page now dashed, the new size solid) beside the 3 × 3 anchor grid; and
+   the page boxes, four numbers each. */
+@layer paper.components {
+  .paper-labels-intro,
+  .paper-setup-line {
+    margin: 0;
+    color: var(--paper-text-2);
+    font: var(--paper-type-body);
+  }
+
+  .paper-labels-table {
+    inline-size: 100%;
+    border-collapse: collapse;
+  }
+
+  .paper-labels-table th {
+    padding-block-end: var(--paper-space-4);
+    color: var(--paper-text-2);
+    font: var(--paper-type-label);
+    text-align: start;
+  }
+
+  .paper-labels-table td {
+    padding-block: var(--paper-space-2);
+    padding-inline-end: var(--paper-space-8);
+    vertical-align: top;
+  }
+
+  .paper-labels-number {
+    inline-size: var(--paper-space-48);
+  }
+
+  .paper-labels-table [aria-invalid="true"] {
+    border-color: var(--paper-danger);
+  }
+
+  .paper-labels-error {
+    display: block;
+    color: var(--paper-danger-strong);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-labels-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--paper-space-4) var(--paper-space-16);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font: var(--paper-type-caption);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .paper-labels-preview [data-editing] .paper-labels-label {
+    color: var(--paper-accent-strong);
+    font-weight: 600;
+  }
+
+  .paper-labels-page,
+  .paper-labels-gap,
+  .paper-labels-shared {
+    color: var(--paper-muted);
+  }
+
+  .paper-labels-shared {
+    margin: 0;
+    font: var(--paper-type-caption);
+  }
+
+  .paper-setup-margins {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--paper-space-8) var(--paper-space-12);
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .paper-setup-margins > legend {
+    grid-column: 1 / -1;
+    padding: 0;
+  }
+
+  .paper-setup-pair,
+  .paper-setup-corners {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(var(--paper-space-48), 1fr));
+    gap: var(--paper-space-8);
+  }
+
+  .paper-setup-resize {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--paper-space-24);
+  }
+
+  .paper-setup-preview-now,
+  .paper-setup-preview-new {
+    fill: none;
+    stroke-width: var(--paper-border-width);
+  }
+
+  .paper-setup-preview-now {
+    stroke: var(--paper-muted);
+    stroke-dasharray: var(--paper-space-4) var(--paper-space-2);
+  }
+
+  .paper-setup-preview-new {
+    stroke: var(--paper-accent);
+  }
+
+  .paper-setup-anchors {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    gap: var(--paper-space-4);
+  }
+
+  .paper-setup-box {
+    display: grid;
+    gap: var(--paper-space-4);
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .paper-setup-box > legend {
+    padding: 0;
   }
 }

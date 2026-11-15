@@ -7,6 +7,10 @@
  * tokens' light or dark block). The fonts come from `@laminapdf/fonts/fonts.css`, loaded before this
  * file too.
  * Colours for asides (note, tip, caution, danger) map to `accent`, Plum, `warning` and `danger`.
+ * The states both sites share are @laminapdf/site-kit's, loaded before this file: base.css for the
+ * whole page (the focus ring, links, reduced motion) and states.css for controls (the pressed
+ * layer, hover only under a pointer that hovers); the docs' own controls take its `site-control`
+ * class, and Starlight's are listed below.
  */
 
 /* Dark: the proposed Paper dark theme (§2.3). Starlight's default (unthemed) mode is dark.
@@ -243,9 +247,8 @@ h1#_top,
     padding: 0;
     border: 1px solid var(--paper-chip-border);
     border-radius: 0.75rem;
-    background: var(--paper-surface);
+    background-color: var(--paper-surface);
     color: var(--paper-text-2);
-    cursor: var(--paper-cursor-action);
   }
   .docs-toc-toggle svg {
     width: 1rem;
@@ -271,15 +274,12 @@ h1#_top,
     border-inline-start-color: transparent;
   }
 }
-/* The toggle under a mouse or pen (design language §7.0: :hover only where a pointer hovers). */
+/* The toggle under a mouse or pen (design language §7.0: :hover only where a pointer hovers): a
+   darker edge and text, over states.css's hover layer. */
 @media screen and (min-width: 72rem) and (hover: hover) and (pointer: fine) {
   .docs-toc-toggle:hover {
     border-color: var(--paper-control-border);
-    background: var(--paper-gutter);
     color: var(--paper-text);
-  }
-  :root[data-theme="dark"] .docs-toc-toggle:hover {
-    background: var(--paper-raised);
   }
 }
 
@@ -298,11 +298,97 @@ h1#_top,
   line-height: 1.375rem;
 }
 
-/* Focus: the accent, 2 px (§2.1 `focus`). Only colour and width: Starlight's own offsets stay
-   (inside offsets on the table of contents and tabs, whose containers would clip a ring drawn
-   outside). */
-:focus-visible {
-  outline: 2px solid var(--paper-accent);
+/* Focus: base.css's one ring for both sites, 2 px out. Starlight's tabs and its phone contents
+   list draw theirs inside (Starlight 0.42.8: Tabs.astro, MobileTableOfContents.astro and
+   TableOfContentsList.astro set --sl-outline-offset-inside), since their containers would clip a
+   ring drawn outside: here with Paper's inset offset. */
+.tab > [role="tab"]:focus-visible,
+mobile-starlight-toc :is(summary, a):focus-visible {
+  outline-offset: var(--paper-focus-ring-offset-inset);
+}
+
+/* Starlight's own controls, styled from here, not forked (written against Starlight 0.42.8; check
+   these selectors on an upgrade): states.css's hover and pressed layer, with its fades, on the
+   tabs (Tabs.astro), the sidebar's links and groups (SidebarSublist.astro), the contents rail's
+   links (TableOfContentsList.astro), the previous and next links (Pagination.astro), the hero's
+   buttons (LinkButton.astro), the search button (Search.astro) and the phone menu's button
+   (MobileMenuToggle.astro). Their markup can't take the `site-control` class, so the same rules are
+   written for them here, the list once with its states nested. Starlight's styles are in its
+   @layer starlight.*, which this file's unlayered rules win over whatever their weight; the list
+   sits in :where(), so a rule weighs only what it adds (:hover, :active) and the rules after it
+   here (the current page, disabled search) win where they set the same thing. */
+:where(
+  .tab > [role="tab"],
+  .sidebar-content :is(a, summary),
+  starlight-toc a,
+  .pagination-links a,
+  .sl-link-button,
+  button[data-open-modal],
+  .sl-menu-button
+) {
+  cursor: var(--paper-cursor-action);
+  background-image: linear-gradient(var(--site-state) 0 0);
+  transition-property: --site-state, background-color, border-color, color, box-shadow;
+  transition-duration: var(--paper-duration-state-out);
+  transition-timing-function: var(--paper-ease-standard);
+  -webkit-tap-highlight-color: transparent;
+
+  /* Search, disabled until it loads, takes neither hover nor press (below). */
+  @media (hover: hover) and (pointer: fine) {
+    &:hover:not([disabled]) {
+      --site-state: var(--site-hover, var(--paper-hover));
+      transition-duration: var(--paper-duration-state-in);
+    }
+  }
+
+  &:active:not([disabled]) {
+    --site-state: var(--site-pressed, var(--paper-pressed));
+    transition: none;
+  }
+}
+/* A tab darkens its label, with no fill (as the website's code tabs); the primary hero button
+   swaps solids (design language §7.0). */
+.tab > [role="tab"],
+.sl-link-button.primary {
+  --site-hover: transparent;
+}
+.sl-link-button.primary {
+  --site-pressed: transparent;
+}
+@media (hover: hover) and (pointer: fine) {
+  .tab > [role="tab"]:hover {
+    color: var(--sl-color-white);
+  }
+  .sl-link-button.primary:hover {
+    border-color: var(--paper-accent-strong);
+    background-color: var(--paper-accent-strong);
+  }
+}
+.sl-link-button.primary:active {
+  border-color: var(--paper-primary-pressed);
+  background-color: var(--paper-primary-pressed);
+}
+
+/* Search is a disabled button until Pagefind has loaded (always, under `astro dev`): the arrow,
+   the disabled text, and no hover (Search.astro in Starlight 0.42.8 gives it the hand and a hover
+   edge whatever its state). */
+button[data-open-modal][disabled] {
+  color: var(--paper-disabled);
+  cursor: var(--paper-cursor-disabled);
+}
+@media (min-width: 50rem) and (hover: hover) and (pointer: fine) {
+  button[data-open-modal][disabled]:hover {
+    border-color: var(--sl-color-gray-5);
+    color: var(--paper-disabled);
+  }
+}
+
+/* Reduced motion (base.css keeps only fades): Expressive Code's "Copied!" (EC 0.44.3's
+   plugin-frames) also rests 0.25rem low and rises as it fades in; it fades in place instead. */
+@media (prefers-reduced-motion: reduce) {
+  .expressive-code .frame .copy .feedback {
+    transform: none;
+  }
 }
 
 /* Tables (todo Q4v): a box with a header band, so a reader tells the header from the body and
@@ -348,14 +434,22 @@ h1#_top,
 }
 
 /* The current page in the sidebar: a selected row, `accent-tint` with `text` (§2.1), not a
-   solid accent block. The accent bar on the left keeps it visible without colour alone. */
-.sidebar-content a[aria-current="page"],
-.sidebar-content a[aria-current="page"]:hover,
-.sidebar-content a[aria-current="page"]:focus {
+   solid accent block. The accent bar on the left and the underline (motion plan §3, 9) keep it
+   visible without colour alone. Unlayered, it wins over Starlight's hover and focus colours for
+   the current page (SidebarSublist.astro, Starlight 0.42.8). The contents rail's current heading
+   (aria-current="true", in the accent from Starlight) takes the same underline. */
+.sidebar-content a[aria-current="page"] {
   background-color: var(--paper-accent-tint);
   color: var(--paper-text);
   font-weight: 600;
   box-shadow: inset 2px 0 0 var(--paper-accent);
+}
+.sidebar-content a[aria-current="page"],
+starlight-toc a[aria-current="true"] {
+  text-decoration-line: underline;
+  text-decoration-color: var(--paper-accent);
+  text-decoration-thickness: var(--paper-selected-underline-width);
+  text-underline-offset: 0.25em;
 }
 
 /* The version the docs describe, before the search (plugins/release.mjs): control text (§3) in
@@ -367,8 +461,13 @@ h1#_top,
   text-decoration: none;
   white-space: nowrap;
 }
-.docs-version:hover {
-  color: var(--paper-accent);
+@media (hover: hover) and (pointer: fine) {
+  .docs-version:hover {
+    color: var(--paper-accent);
+  }
+}
+.docs-version:active {
+  color: var(--paper-accent-strong);
 }
 
 /* The notice on unreleased docs (src/components/Banner.astro): the warning tint behind body text,

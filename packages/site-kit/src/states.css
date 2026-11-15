@@ -1,0 +1,61 @@
+/*
+ * The control states both sites share (design language §7.0; motion plan §3, §4.2), from the
+ * Paper tokens, which each site loads first: the hand on every control, a pressed state, hover
+ * that a tap doesn't leave behind, and disabled and pending looks. Each site loads this sheet
+ * before its own, and the header and the select import it. The rules for the whole page (the
+ * focus ring, links, reduced motion) are base.css's, which only a site's layout loads.
+ *
+ * A control the sites draw takes the class `site-control`. Hover and pressed are one translucent
+ * layer over the control's own fill, so a control sets its fill with `background-color`, never
+ * the `background` shorthand, which would wipe the layer. The layer is a registered colour, so it
+ * fades: hover in over --paper-duration-state-in, out over --paper-duration-state-out; press is
+ * at once, with no transition, and release fades back to hover over state-in. A control whose
+ * hover darkens its label instead (tabs, the header's links) sets `--site-hover: transparent`; the
+ * primary button, which swaps solids, sets both `--site-hover` and `--site-pressed` to transparent.
+ * The order is §4.2's: rest and value in each control's own rules, then hover, pressed and
+ * availability here, each later rule winning on what it sets.
+ */
+
+@property --site-state {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: transparent;
+}
+
+.site-control {
+  cursor: var(--paper-cursor-action);
+  background-image: linear-gradient(var(--site-state) 0 0);
+  transition-property: --site-state, background-color, border-color, color, box-shadow;
+  transition-duration: var(--paper-duration-state-out);
+  transition-timing-function: var(--paper-ease-standard);
+  /* The pressed layer is the tap's answer on iOS, not its grey flash. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Hover only under a pointer that hovers: a tap leaves plain :hover on until the next tap. */
+@media (hover: hover) and (pointer: fine) {
+  .site-control:hover {
+    --site-state: var(--site-hover, var(--paper-hover));
+    transition-duration: var(--paper-duration-state-in);
+  }
+}
+
+.site-control:active {
+  --site-state: var(--site-pressed, var(--paper-pressed));
+  /* No transition at all, rather than a zero-length one (motion plan §4.3). */
+  transition: none;
+}
+
+/* Availability last, so it wins over hover and press. Disabled (or blocked) shows the arrow and
+   the disabled text; pending (aria-busy, the runner's Run while it runs) keeps its label's colour,
+   says what it is doing in the label, and shows the busy arrow. Both keep their focus. */
+.site-control:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) {
+  --site-state: transparent;
+  color: var(--paper-disabled);
+  cursor: var(--paper-cursor-disabled);
+}
+
+.site-control[aria-busy="true"] {
+  --site-state: transparent;
+  cursor: var(--paper-cursor-pending);
+}

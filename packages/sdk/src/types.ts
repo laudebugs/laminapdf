@@ -12,6 +12,8 @@ import type {
   AttachmentInit,
   BuildOptionsInit,
   ChildItems as ChildItemsJs,
+  CommentJs,
+  CommentPartJs,
   DestinationUse as DestinationUseJs,
   DestinationView as DestinationViewJs,
   DirectionInit,
@@ -42,6 +44,7 @@ import type {
   OutlineTarget as OutlineTargetJs,
   OverflowInit,
   PageAnnotationJs,
+  PageBoxesReadJs,
   PageInfoJs,
   PageLabelInit,
   PageLabelRange as PageLabelRangeJs,
@@ -468,6 +471,26 @@ export type PageLink = PageLinkJs;
 export type PageAnnotation = PageAnnotationJs;
 
 /**
+ * A comment and what answers it, each annotation in its own page's space: the comment, its
+ * replies in document order (each one's `inReplyTo` names what it answers), the annotations
+ * grouped with it, the review states set in the thread (its history), the latest `review`
+ * status and `marked` state, the `quoted` text under a highlight or other text markup, and
+ * `broken` (`"missing-parent"` or `"cycle"`) when the thread doesn't start at a comment that
+ * answers nothing.
+ *
+ * @since 0.4.1
+ */
+export type CommentThread = CommentJs;
+
+/**
+ * An annotation of a comment thread, with the page it is on (a reply can be on another page
+ * than its comment).
+ *
+ * @since 0.4.1
+ */
+export type CommentPart = CommentPartJs;
+
+/**
  * What a properties view shows about a document: its Info entries and dates (ISO 8601), the
  * XMP packet's text, version, pages, file size, linearization and tagging, its `encryption`
  * (with the author's `permissions`, a request rather than a lock), the `fonts` its pages use,
@@ -529,6 +552,17 @@ export type OpenAt = OpenAtJs;
  * @since 0.3.0
  */
 export type ArticleThread = ThreadJs;
+
+/**
+ * A page's boxes in user space (`[x0, y0, x1, y1]`), as readers use them: the crop box cut to
+ * the media box, and the bleed, trim and art boxes cut to the crop box, a box the page doesn't
+ * set taken from the crop box. `own` says which of those three the page sets itself, and
+ * `userUnit` is the size of a unit in points. {@link Document.setPageBoxes} takes boxes in the
+ * same space.
+ *
+ * @since 0.5.0
+ */
+export type PageBoxesRead = PageBoxesReadJs;
 
 /**
  * One image a document draws, as a file: `format` `"jpeg"` or `"jpeg2000"` as stored, byte for

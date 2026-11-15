@@ -53,7 +53,10 @@ const config: KnipConfig = {
       packageDirs(".").map((dir) => [`packages/${dir}`, { entry: entries(dir), project: project(dir) }]),
     ),
     // Its tests are named here: knip can't load its Vitest config, which loads Astro's whole config.
-    "apps/site": { entry: ["test/**/*.test.ts", "vitest.config.ts"], vitest: false },
+    "apps/site": {
+      entry: ["test/**/*.test.ts", "vitest.config.ts", "e2e/*.e2e.test.ts", "e2e/server.ts"],
+      vitest: false,
+    },
     // The docs' example runner: scripts/build-runner.mjs builds runner/worker.ts and runner/types-worker.ts by their paths.
     // src/routeData.ts is Starlight's route middleware, which astro.config.mjs names by path.
     // The guide PDF's fonts (scripts/guide-pdf.mjs) are read as files from node_modules, not imported.

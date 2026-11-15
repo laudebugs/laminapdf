@@ -22,8 +22,8 @@ const DOC: DesktopDocument = {
   needsPassword: false,
   repaired: false,
   pages: [
-    { width: 612, height: 792, rotate: 0 },
-    { width: 612, height: 792, rotate: 0 },
+    { id: "p1.0", width: 612, height: 792, rotate: 0 },
+    { id: "p2.0", width: 612, height: 792, rotate: 0 },
   ],
 };
 
