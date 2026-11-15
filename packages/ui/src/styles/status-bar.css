@@ -16,7 +16,6 @@
     color: var(--paper-muted);
     font: var(--paper-type-caption);
     cursor: default;
-    -webkit-tap-highlight-color: transparent;
   }
 
   .paper-status-item svg {
