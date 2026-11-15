@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D6b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D6](../../plans/desktop-app.md#d6-signing-packaging-and-release-pipeline) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [D5b](../done/D5b-updater-in-app.md), [D6a](../done/D6a-signing-runbook-and-owner-setup.md) |
@@ -51,9 +51,9 @@ One workflow turns a `desktop-v*` tag (and, nightly, `main`) into published desk
 
 **Out of scope** (and which todo covers it)
 
-- Apple signing, notarisation and stapling: [D6c](D6c-macos-signing-and-notarisation.md) (this PR builds macOS unsigned/ad-hoc for nightly only).
-- Windows Authenticode signing: [D6d](D6d-windows-signing.md) (this PR builds Windows unsigned for nightly only).
-- Download page: [D7b](D7b-settings-renderer-switch-and-download-page.md). First beta: [D7c](D7c-desktop-beta-release.md).
+- Apple signing, notarisation and stapling: [D6c](../ready/D6c-macos-signing-and-notarisation.md) (this PR builds macOS unsigned/ad-hoc for nightly only).
+- Windows Authenticode signing: [D6d](../ready/D6d-windows-signing.md) (this PR builds Windows unsigned for nightly only).
+- Download page: [D7b](../ready/D7b-settings-renderer-switch-and-download-page.md). First beta: [D7c](../ready/D7c-desktop-beta-release.md).
 - Flatpak/Snap/stores (non-goals).
 
 ## Tasks
