@@ -63,6 +63,7 @@ export const config: WebdriverIO.Config = {
     "restart",
     "large",
     "tabs",
+    "tab-drag",
     "menus",
     "print",
   ]),

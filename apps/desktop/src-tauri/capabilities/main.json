@@ -36,6 +36,7 @@
     "allow-cancel-print",
     "allow-tab-drag-start",
     "allow-tab-drag-end",
+    "allow-tab-drag-cancel",
     "allow-update-status",
     "allow-update-check-now",
     "allow-update-set-enabled",

@@ -224,6 +224,7 @@ macro_rules! app_commands {
             print::cancel_print,
             commands::tab_drag_start,
             commands::tab_drag_end,
+            commands::tab_drag_cancel,
             open::take_pending_opens,
             update::commands::update_status,
             update::commands::update_check_now,
@@ -261,6 +262,7 @@ pub fn run() -> Result<(), DesktopError> {
             e2e::e2e_focus,
             e2e::e2e_menu_click,
             e2e::e2e_menu_snapshot,
+            e2e::e2e_place_cursor,
             print::e2e_print_to_file,
         ])
         .manage(e2e::QueuedPick::default());

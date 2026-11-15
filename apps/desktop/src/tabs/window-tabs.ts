@@ -431,9 +431,16 @@ export class WindowTabs implements ExternalStore<TabsState> {
     });
   }
 
+  /** Tab `id`'s drag was cancelled: it stays, and Rust stops following the cursor. */
+  async dragCancelled(id: string): Promise<void> {
+    await this.#dragStart;
+    const doc = this.#tab(id)?.doc;
+    if (doc !== undefined) await this.#shell.invoke<void>("tab_drag_cancel", { doc });
+  }
+
   /**
-   * Tab `id`'s drag ended without a drop on this window's strip (`outside`: the pointer had left
-   * this window, as far as the page can tell). Rust moves it to the window under the cursor, or
+   * Tab `id`'s drag was released off this window's strip (`outside`: the pointer was outside this
+   * window, as far as the page can tell). Rust moves it to the window under the cursor, or
    * to a new one when the cursor is outside every window, or leaves it here. A move goes as
    * {@link moveShown}'s does; on failure the tab stays and the error rejects.
    */
