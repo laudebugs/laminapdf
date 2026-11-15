@@ -118,6 +118,7 @@ export function sidebar(typeDoc) {
         { label: "Edit the bookmarks", slug: "recipes/edit-bookmarks" },
         { label: "Add links", slug: "recipes/add-links" },
         { label: "Mark up a page", slug: "recipes/mark-up" },
+        { label: "Answer a review", slug: "recipes/review-comments" },
         { label: "Record your own metadata", slug: "recipes/edit-xmp" },
         { label: "Organise pages", slug: "recipes/organise-pages" },
         { label: "Duplicate pages", slug: "recipes/duplicate-pages" },

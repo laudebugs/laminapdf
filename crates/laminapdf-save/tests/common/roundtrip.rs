@@ -1090,14 +1090,17 @@ pub fn mark_facts(doc: &laminapdf_model::Document) -> Vec<Vec<Value>> {
         .collect()
 }
 
-/// The mark cases (todo E4c, D.01 to D.03): on every plain fixture, a highlight and an underline
-/// over two lines of the first page, a note, and a text replacement (a caret holding the new
-/// text, grouped with a strike-out), saved incrementally and as a full rewrite. Lamina reopens
+/// The mark cases (todo E4c, D.01 to D.03; E5b, D.10 and D.11): on every plain fixture, a
+/// highlight and an underline over two lines of the first page, a note, a text replacement (a
+/// caret holding the new text, grouped with a strike-out), and a reply to the highlight and a
+/// review state set on it, saved incrementally and as a full rewrite. Lamina reopens
 /// each with the same marks and pages, every mark with its appearance; the tools compare the
 /// marks they read (`marks`).
 fn marks(root: &Path, suite: &mut Suite) {
     use laminapdf_model::{UserSpacePoint, UserSpaceRect};
-    use laminapdf_ops::{AddAnnot, AnnotSpec, Caret, MarkupKind, Note, NoteIcon, TextMarkup};
+    use laminapdf_ops::{
+        AddAnnot, AddReply, AnnotSpec, Caret, MarkupKind, Note, NoteIcon, ReviewState, SetReviewState, TextMarkup,
+    };
     let names = PLAIN_CORPUS
         .iter()
         .map(|n| format!("corpus/{n}"))
@@ -1138,7 +1141,13 @@ fn marks(root: &Path, suite: &mut Suite) {
             let applied = doc.apply_all(Origin::Local, ops).unwrap();
             let mut strike = markup(MarkupKind::StrikeOut, vec![line(40.0)]);
             strike.common.group_with = applied.created_annotations.last().cloned();
-            doc.apply_all(Origin::Local, [Op::from(strike)]).unwrap();
+            let highlight = applied.created_annotations.first().cloned().unwrap();
+            let mut reply = AddReply::new(highlight.clone(), "Agreed");
+            reply.author = Some("Ada".into());
+            let mut state = SetReviewState::new(highlight, ReviewState::Accepted);
+            state.author = Some("Ada".into());
+            doc.apply_all(Origin::Local, [Op::from(strike), reply.into(), state.into()])
+                .unwrap();
             let marks = mark_facts(&doc);
             let mut output = Vec::new();
             let report = doc.save(&mut output, &SaveOptions::new().with_mode(mode)).unwrap();

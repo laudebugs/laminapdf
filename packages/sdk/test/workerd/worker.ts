@@ -15,6 +15,7 @@ import notoSansDevanagari from "../../../../fixtures/fonts/NotoSansDevanagari-Re
 import notoSansHebrew from "../../../../fixtures/fonts/NotoSansHebrew-Regular.ttf";
 import notoSansSC from "../../../../fixtures/fonts/NotoSansSC-Regular.otf";
 import linksAndOutlinesPdf from "../../../../fixtures/golden/examples/links_and_outlines.pdf";
+import markedPdf from "../../../../fixtures/golden/examples/mark_up.pdf";
 import pdfaArchive2b from "../../../../fixtures/golden/examples/pdf_a_archive-2b.pdf";
 import bookmarksPdf from "../../../../fixtures/golden/links-and-outlines.pdf";
 import metadataPdf from "../../../../fixtures/golden/metadata.pdf";
@@ -59,6 +60,7 @@ const inputs: Inputs = {
       "fixtures/pages/geometry.pdf": geometryPdf,
       "fixtures/corpus/hello.pdf": helloPdf,
       "fixtures/golden/examples/links_and_outlines.pdf": linksAndOutlinesPdf,
+      "fixtures/golden/examples/mark_up.pdf": markedPdf,
     }).map(([path, data]) => [path, new Uint8Array(data)]),
   ),
   // The element-flow report comes in as a JSON module; the suite reads every input as bytes.

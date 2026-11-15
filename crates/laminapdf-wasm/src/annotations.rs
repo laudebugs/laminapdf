@@ -1,15 +1,19 @@
 //! A page's annotations across the boundary: `WasmDocument.pageAnnotations(index)`, each a record
-//! in page space (the extract and text modules, as the links are, so the base module stays in
-//! its size budget). The ops that change them, `updateAnnot` and `deleteAnnot`, cross through
-//! `apply` in every module.
+//! in page space, and the review's threads, `WasmDocument.commentThreads(pages)` (the extract and
+//! text modules, as the links are, so the base module stays in its size budget), with
+//! `deleteAnnotations(ids)`. The ops that change them, `updateAnnot`, `deleteAnnot`, `addReply`
+//! and `setReviewState`, cross through `apply` in every module.
 
-use laminapdf::{AnnotationGeometry, PageAnnotation, PointPt};
+use laminapdf::{
+    AnnotId, AnnotationGeometry, BrokenThread, CommentPart, PageAnnotation, PageComment, PointPt, StateModel,
+};
 use serde::Serialize;
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
-use crate::convert::to_js;
+use crate::convert::{from_js, to_js};
 use crate::document::WasmDocument;
+use crate::dto::EditedJs;
 use crate::error::{JsResult, lamina_error};
 
 /// One annotation on a page, in page space.
@@ -67,6 +71,83 @@ pub(crate) struct PageAnnotationJs {
     pub has_rich_text: bool,
     /// The subtype's own geometry, as flat `[x, y, …]` lists in page space.
     pub geometry: GeometryJs,
+    /// For a review state set on the annotation it replies to, that state.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub state: Option<StateJs>,
+}
+
+/// A review state: its model (`Review`, `Marked`, or another a writer chose) and its name.
+#[derive(Debug, Serialize, Tsify)]
+pub(crate) struct StateJs {
+    /// `Review`, `Marked`, or the model as written.
+    pub model: String,
+    /// The state as written (`Accepted`, `Marked`, …).
+    pub state: String,
+}
+
+/// A comment and what answers it.
+#[derive(Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct CommentJs {
+    /// The page the comment is on, from 0.
+    pub page: u32,
+    /// The comment.
+    pub comment: PageAnnotationJs,
+    /// The replies, in document order.
+    pub replies: Vec<CommentPartJs>,
+    /// The annotations grouped with it.
+    pub group: Vec<CommentPartJs>,
+    /// The review states set in the thread, in document order.
+    pub states: Vec<CommentPartJs>,
+    /// The latest `Review` status.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub review: Option<String>,
+    /// The latest `Marked` state.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub marked: Option<String>,
+    /// For text markup, the text under it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub quoted: Option<String>,
+    /// `"missing-parent"` or `"cycle"` when the thread doesn't start at a comment that answers
+    /// nothing.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(type = "\"missing-parent\" | \"cycle\"")]
+    pub broken: Option<&'static str>,
+}
+
+/// An annotation of a thread, with its page.
+#[derive(Debug, Serialize, Tsify)]
+pub(crate) struct CommentPartJs {
+    /// Its page, from 0.
+    pub page: u32,
+    /// The annotation.
+    pub annotation: PageAnnotationJs,
+}
+
+impl From<&CommentPart> for CommentPartJs {
+    fn from(p: &CommentPart) -> Self {
+        Self {
+            page: p.page,
+            annotation: PageAnnotationJs::from(&p.annotation),
+        }
+    }
+}
+
+impl From<&PageComment> for CommentJs {
+    fn from(c: &PageComment) -> Self {
+        let parts = |list: &[CommentPart]| list.iter().map(CommentPartJs::from).collect();
+        Self {
+            page: c.page,
+            comment: PageAnnotationJs::from(&c.comment),
+            replies: parts(&c.replies),
+            group: parts(&c.group),
+            states: parts(&c.states),
+            review: c.review.clone(),
+            marked: c.marked.clone(),
+            quoted: c.quoted.clone(),
+            broken: c.broken.map(BrokenThread::name),
+        }
+    }
 }
 
 /// An annotation's own geometry, by `kind`; points are flat `[x, y, …]` lists in page space.
@@ -140,6 +221,15 @@ impl From<&PageAnnotation> for PageAnnotationJs {
             parent: a.parent.clone(),
             has_appearance: a.has_appearance,
             has_rich_text: a.has_rich_text,
+            state: a.state.as_ref().map(|s| StateJs {
+                model: match &s.model {
+                    StateModel::Review => "Review".to_owned(),
+                    StateModel::Marked => "Marked".to_owned(),
+                    StateModel::Other(other) => other.clone(),
+                    _ => String::new(),
+                },
+                state: s.state.clone(),
+            }),
             geometry,
         }
     }
@@ -160,5 +250,53 @@ impl WasmDocument {
             .page_annotations(index)
             .map_err(|e| lamina_error(&e))?;
         Ok(to_js(&annots.iter().map(PageAnnotationJs::from).collect::<Vec<_>>()))
+    }
+
+    /// The comments on `pages` (every page when `undefined`), as threads in document order
+    /// (the extract and text modules).
+    ///
+    /// # Errors
+    /// `invalid-argument` for an index that isn't a whole number from 0;
+    /// `page-index-out-of-range`, `data-pending` and the reading errors.
+    #[wasm_bindgen(js_name = commentThreads, unchecked_return_type = "CommentJs[]")]
+    pub fn comment_threads(
+        &self,
+        #[wasm_bindgen(unchecked_param_type = "number[] | undefined")] pages: &JsValue,
+    ) -> JsResult<JsValue> {
+        // Read through serde, which refuses a negative or fractional index (`invalid-argument`).
+        let pages: Option<Vec<u32>> = if pages.is_undefined() {
+            None
+        } else {
+            Some(from_js(pages, "pages")?)
+        };
+        let threads = self
+            .shared()
+            .borrow()
+            .comment_threads(pages.as_deref())
+            .map_err(|e| lamina_error(&e))?;
+        Ok(to_js(&threads.iter().map(CommentJs::from).collect::<Vec<_>>()))
+    }
+
+    /// Deletes the annotations `ids` (`a12.0`) in one transaction, leaving out those another's
+    /// deletion takes (the extract and text modules).
+    ///
+    /// # Errors
+    /// `invalid-argument` for a value that isn't an annotation ID; `unknown-annotation`,
+    /// `annotation-not-editable`, `annotation-locked`.
+    #[wasm_bindgen(js_name = deleteAnnotations, unchecked_return_type = "EditedJs")]
+    pub fn delete_annotations(
+        &self,
+        #[wasm_bindgen(unchecked_param_type = "string[]")] ids: &JsValue,
+    ) -> JsResult<JsValue> {
+        let ids: Vec<String> = from_js(ids, "ids")?;
+        let ids: Vec<AnnotId> = ids.iter().map(|id| id.parse()).collect::<Result<_, _>>().map_err(|_| {
+            crate::error::invalid_argument("ids", "an annotation ID such as a12.0".to_owned(), Vec::new())
+        })?;
+        let edited = self
+            .shared()
+            .borrow_mut()
+            .delete_annotations(&ids)
+            .map_err(|e| lamina_error(&e))?;
+        Ok(to_js(&EditedJs::from(edited)))
     }
 }

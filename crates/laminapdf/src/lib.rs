@@ -104,6 +104,7 @@ mod annotations;
 #[cfg(feature = "build")]
 mod builder;
 mod codes;
+mod comments;
 mod data;
 mod document;
 mod error;
@@ -153,6 +154,7 @@ mod warning;
 use laminapdf_test_fixtures::codes as test_codes;
 
 pub use annotations::{AnnotationGeometry, PageAnnotation};
+pub use comments::{CommentPart, PageComment};
 pub use document::{Document, DocumentInfo, Edited, PageInfo, ReferenceEdit, ReferenceEditKind, Saved};
 pub use error::{CoreError, Error, Result};
 #[cfg(feature = "explain")]
@@ -190,13 +192,13 @@ pub use warning::{Warning, WarningCursor};
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};
 pub use laminapdf_model::xmp::{ExtensionProperty, LangText, XmpReal, XmpValue};
 pub use laminapdf_model::{
-    AnnotId, FieldId, LabelStyle, PageId, PageLayout, PageMode, PagePosition, PageSize, PdfDate, PointPt, Pt, RectPt,
-    Rotation, SiblingPosition, UserSpaceRect, WindowPreferences,
+    AnnotId, AnnotState, BrokenThread, FieldId, LabelStyle, PageId, PageLayout, PageMode, PagePosition, PageSize,
+    PdfDate, PointPt, Pt, RectPt, Rotation, SiblingPosition, StateModel, UserSpaceRect, WindowPreferences,
 };
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use laminapdf_ops::{
-    AddAnnot, AddLink, AddOutlineItem, Anchor, AnnotColor, AnnotCommon, AnnotSpec, AnnotSpecPatch, Caret, CaretPatch,
-    CaretSymbol, Carry, ChildItems, ConformanceWarning, CropMargins, CropPages, DeleteAnnot, DeleteLink,
+    AddAnnot, AddLink, AddOutlineItem, AddReply, Anchor, AnnotColor, AnnotCommon, AnnotSpec, AnnotSpecPatch, Caret,
+    CaretPatch, CaretSymbol, Carry, ChildItems, ConformanceWarning, CropMargins, CropPages, DeleteAnnot, DeleteLink,
     DeleteNamedDestination, DeleteOutlineItem, DeletePages, DestinationUse, DestinationView, DocumentMetadata,
     DuplicatePages, ExplicitDestination, FieldChange, FieldClash, FieldOutcome, InfoPatch, InsertBlankPages,
     InsertPagesFrom, MarkupKind, MergeDocuments, MergeInput, MergeOptions, MergeSource, MetadataKey, MetadataPatch,
@@ -204,9 +206,10 @@ pub use laminapdf_ops::{
     Opacity, OpenAt, OpenZoom, OrientationMethod, OutlineMerge, OutlineStyle, OutlineTarget, PacketStatus, PageBoxes,
     PageLabelRange, PageOrientation, ReferenceOutcome, ReferencePolicy, RemoveMetadata, RemoveXmpProperty, RenameLinks,
     RenameNamedDestination, RenamedDestination, ReplacePages, ReplaceXmpPacket, ResizeMode, ResizePages, ReversePages,
-    Reverted, Rgb, RotateMode, RotatePage, RotatePages, SetInfo, SetInitialView, SetMetadata, SetNamedDestination,
-    SetOrientation, SetPageBoxes, SetPageLabels, SetXmpProperty, SourceId, SplitBy, StructureName, StructureRename,
-    TextMarkup, TextMarkupPatch, UndoOutcome, UpdateAnnot, UpdateLink, UpdateOutlineItem, WindowPreferencesPatch,
+    Reverted, ReviewState, Rgb, RotateMode, RotatePage, RotatePages, SetInfo, SetInitialView, SetMetadata,
+    SetNamedDestination, SetOrientation, SetPageBoxes, SetPageLabels, SetReviewState, SetXmpProperty, SourceId,
+    SplitBy, StructureName, StructureRename, TextMarkup, TextMarkupPatch, UndoOutcome, UpdateAnnot, UpdateLink,
+    UpdateOutlineItem, WindowPreferencesPatch,
 };
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,
