@@ -57,7 +57,8 @@ function Value([string]$key, [string]$name) {
 
 function Show($value) { if ($null -eq $value) { 'none' } else { "'$value'" } }
 
-function Test-Registered([string]$hive, [string]$label, [string]$defaultBefore) {
+# $defaultBefore is untyped: a [string] parameter would turn "no default" ($null) into ''.
+function Test-Registered([string]$hive, [string]$label, $defaultBefore) {
     $classes = "${hive}:\Software\Classes"
     Check ($null -ne (Value "$classes\.pdf\OpenWithProgids" $progId)) "$label lists $progId in .pdf's OpenWithProgids"
     $default = Value "$classes\.pdf" '(default)'
@@ -75,7 +76,7 @@ function Test-Registered([string]$hive, [string]$label, [string]$defaultBefore) 
     return $null
 }
 
-function Test-Removed([string]$hive, [string]$label, [string]$defaultBefore, [string]$exe) {
+function Test-Removed([string]$hive, [string]$label, $defaultBefore, [string]$exe) {
     $classes = "${hive}:\Software\Classes"
     Check ($null -eq (Value "$classes\.pdf\OpenWithProgids" $progId)) "$label removes $progId from .pdf's OpenWithProgids"
     Check (-not (Test-Path -LiteralPath "$classes\$progId")) "$label removes the $progId class"
@@ -93,6 +94,21 @@ $nsis = @(Get-ChildItem -LiteralPath $Dir -Filter '*-setup.exe')
 $msi = @(Get-ChildItem -LiteralPath $Dir -Filter '*.msi')
 if ($nsis.Count -ne 1) { Write-Host "::error::expected one NSIS installer in $Dir, found $($nsis.Count)"; exit 1 }
 
+# The MSI first, per machine: HKLM, and the install flavour that turns the updater off. Tauri's MSI
+# installs where an earlier install of either kind went (HKCU\Software\<manufacturer>\<product>), so
+# it goes before the NSIS installer, whose uninstall leaves that key.
+foreach ($package in $msi) {
+    $before = Value 'HKLM:\Software\Classes\.pdf' '(default)'
+    $log = Join-Path $env:RUNNER_TEMP "$($package.BaseName).install.log"
+    Run 'msiexec.exe' @('/i', "`"$($package.FullName)`"", '/qn', '/l*v', "`"$log`"")
+    $exe = Test-Registered 'HKLM' 'the MSI install' $before
+    Check ($null -ne $exe -and $exe.StartsWith("$env:ProgramFiles\", [StringComparison]::OrdinalIgnoreCase)) "the MSI installs under Program Files ($exe)"
+    Check ((Value 'HKLM:\Software\Lamina' 'InstallFlavour') -eq 'msi') 'the MSI install writes InstallFlavour = msi'
+    Run 'msiexec.exe' @('/x', "`"$($package.FullName)`"", '/qn')
+    Test-Removed 'HKLM' 'the MSI uninstall' $before $exe
+    Check ($null -eq (Value 'HKLM:\Software\Lamina' 'InstallFlavour')) 'the MSI uninstall removes InstallFlavour'
+}
+
 # The NSIS installer, per user (installMode currentUser): HKCU.
 $before = Value 'HKCU:\Software\Classes\.pdf' '(default)'
 Run $nsis[0].FullName @('/S')
@@ -109,18 +125,6 @@ if ($uninstall) {
     # The uninstaller copies itself to a temporary folder and returns at once.
     for ($i = 0; $i -lt 60 -and $exe -and (Test-Path -LiteralPath $exe); $i++) { Start-Sleep -Seconds 1 }
     Test-Removed 'HKCU' 'the NSIS uninstall' $before $exe
-}
-
-# The MSI, per machine: HKLM, and the install flavour that turns the updater off.
-foreach ($package in $msi) {
-    $before = Value 'HKLM:\Software\Classes\.pdf' '(default)'
-    $log = Join-Path $env:RUNNER_TEMP "$($package.BaseName).install.log"
-    Run 'msiexec.exe' @('/i', "`"$($package.FullName)`"", '/qn', '/l*v', "`"$log`"")
-    $exe = Test-Registered 'HKLM' 'the MSI install' $before
-    Check ((Value 'HKLM:\Software\Lamina' 'InstallFlavour') -eq 'msi') 'the MSI install writes InstallFlavour = msi'
-    Run 'msiexec.exe' @('/x', "`"$($package.FullName)`"", '/qn')
-    Test-Removed 'HKLM' 'the MSI uninstall' $before $exe
-    Check ($null -eq (Value 'HKLM:\Software\Lamina' 'InstallFlavour')) 'the MSI uninstall removes InstallFlavour'
 }
 
 if ($failures.Count -gt 0) {
