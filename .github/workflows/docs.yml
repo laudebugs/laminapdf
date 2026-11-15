@@ -1,6 +1,7 @@
 # Docs site deploys (todos B7a, P4): apps/docs on Cloudflare Workers static assets (apps/docs/wrangler.toml).
 #
-# Pull requests that touch the site or anything it is built from (paths below):
+# Pull requests that touch the site or anything it is built from (paths below; a test in
+# tools/xtask/src/changes/suites.rs holds them to the dependency graph, todo X12):
 # - `preview-build` builds the PR's site with no secrets and uploads dist/ as an artifact.
 # - `preview-deploy` holds the Cloudflare secrets and never checks out or runs the PR's code: it
 #   takes wrangler.toml and the Wrangler version from the default branch, installs that exact
@@ -35,7 +36,9 @@ on:
       - packages/wasm/**
       - packages/render/**
       - packages/render-hayro/**
-      - packages/icons/svg/**
+      - packages/icons/**
+      # The test helpers its browser tests and e2e suite share.
+      - packages/test-utils/**
       - tools/xtask/**
       - Cargo.toml
       - Cargo.lock
@@ -47,10 +50,14 @@ on:
       - apps/site/src/pages/**
       - packages/wasm/package.json
       - crates/laminapdf/examples/**
+      # The viewer's examples, which its pages show.
+      - packages/viewer/examples/**
       - fixtures/golden/examples/**
       - fixtures/codes.json
       - fixtures/codes.schema.json
       - docs/errors/**
+      # The changelog page.
+      - CHANGELOG.md
       - package.json
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
