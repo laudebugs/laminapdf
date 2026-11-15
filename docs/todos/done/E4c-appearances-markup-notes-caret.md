@@ -39,7 +39,7 @@ Highlight, underline, strike-through and squiggly annotations from glyph quads, 
 **Out of scope** (and which todo covers it)
 
 - The tools → [E4f](../ready/E4f-annotation-tools-ui.md)
-- Replies and review state → [E5b](../ongoing/E5b-comment-threads-and-review.md)
+- Replies and review state → [E5b](../done/E5b-comment-threads-and-review.md)
 
 **Editor facts**
 

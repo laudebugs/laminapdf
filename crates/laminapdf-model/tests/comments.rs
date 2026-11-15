@@ -23,6 +23,7 @@ fn thread_of(threads: &[CommentThread], num: u32) -> &CommentThread {
     threads.iter().find(|t| object(&t.comment) == num).unwrap()
 }
 
+/// capability: D.12 core read
 #[test]
 fn every_markup_annotation_of_review_pdf_is_in_one_thread() {
     let threads = threads("review.pdf");
