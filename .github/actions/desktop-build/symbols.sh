@@ -86,7 +86,10 @@ case "$RUNNER_OS" in
         # What CARGO_PROFILE_RELEASE_STRIP=symbols did before, plus a link to the .debug file
         # (its name and CRC) that debuggers follow.
         objcopy --strip-all --add-gnu-debuglink="$debug" "$file"
-        if readelf -S "$file" | grep -q '\.debug_'; then fail "$file still carries DWARF"; fi
+        # DWARF proper: rustc also leaves .debug_gdb_scripts, an allocated section strip keeps, which
+        # holds only the names of gdb's pretty-printer scripts.
+        dwarf=$(readelf -SW "$file" | grep -oE '\.debug_(info|abbrev|line|line_str|str|str_offsets|ranges|rnglists|loc|loclists|aranges|addr|frame|types|macro|pubnames|pubtypes)\b' | sort -u | tr '\n' ' ' || true)
+        [ -z "$dwarf" ] || fail "$file still carries DWARF: $dwarf"
       done
     done
     ;;
