@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E7d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [E7c](../done/E7c-content-ir.md) |
