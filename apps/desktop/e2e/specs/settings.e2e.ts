@@ -6,10 +6,9 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { platform } from "node:process";
 import { browser, expect } from "@wdio/globals";
-import { closeAll } from "../app.ts";
 
 const AXE = readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
-const SECTIONS = ["Files", "Appearance", "Updates", "Privacy", "About"];
+const SECTIONS = ["Files", "Appearance and accessibility", "Updates", "Privacy", "About"];
 const LINUX = platform === "linux";
 
 /** The Settings dialog's sections, by the names its list shows. */
@@ -35,30 +34,39 @@ async function violations(): Promise<string[]> {
   });
 }
 
-describe("Settings", () => {
-  before(async () => {
-    await closeAll();
-    await $('button[aria-label="More"]').click();
-    await $('//*[@role="menuitem"][contains(., "Settings")]').click();
-    await $(".paper-settings-nav-name").waitForExist();
+/**
+ * Opens Settings and waits for every section. Each test opens it itself: wdio.conf.ts's
+ * `beforeTest` closes everything before each test, after any `beforeEach` here.
+ */
+async function openSettings(): Promise<string[]> {
+  await $('button[aria-label="More"]').click();
+  await $('//*[@role="menuitem"][contains(., "Settings")]').click();
+  // Updates, Privacy and About appear once the main process has answered.
+  await browser.waitUntil(async () => (await sections()).length >= SECTIONS.length, {
+    timeoutMsg: "Settings didn't list its sections",
   });
+  return sections();
+}
 
-  after(async () => {
+describe("Settings", () => {
+  afterEach(async () => {
     await browser.keys("Escape");
   });
 
   it("should list every section, and Graphics only on Linux", async () => {
     const expected = LINUX ? [...SECTIONS, "Graphics"] : SECTIONS;
-    expect(new Set(await sections())).toEqual(new Set(expected));
+    expect((await openSettings()).sort()).toEqual([...expected].sort());
   });
 
   it("should have no serious accessibility problem in any section", async () => {
     const found: Record<string, string[]> = {};
-    for (const name of await sections()) {
+    const names = await openSettings();
+    for (const name of names) {
       await $(`//button[.//span[@class="paper-settings-nav-name" and text()=${JSON.stringify(name)}]]`).click();
       const problems = await violations();
       if (problems.length > 0) found[name] = problems;
     }
-    expect(found).toEqual({});
+    // Every section checked, so an empty list can't pass.
+    expect([names.length >= SECTIONS.length, found]).toEqual([true, {}]);
   });
 });
