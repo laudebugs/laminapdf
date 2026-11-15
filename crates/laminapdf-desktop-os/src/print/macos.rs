@@ -298,10 +298,9 @@ fn format_for(session: &Owned, printer: &Owned, size: PrintPage) -> Result<Owned
 /// corner: `paper` and `page` are the format's paper and printable rectangles (top-down, from the
 /// printable area's top-left).
 fn draw_band(context: &CGContext, paper: pm::Rect, page: pm::Rect, band: &Band<'_>) -> Result<(), PrintError> {
-    check_band(band)?;
+    let image = image_of(band)?;
     let (width, height) = (paper.right - paper.left, paper.bottom - paper.top);
     let (top, bottom) = band_edges(band, height);
-    let image = image_of(band).ok_or(PrintError::refused("holding a band in Core Graphics"))?;
     // From top-down paper coordinates to the context's bottom-up ones.
     let page_height = page.bottom - page.top;
     let rect = NSRect::new(
@@ -312,16 +311,21 @@ fn draw_band(context: &CGContext, paper: pm::Rect, page: pm::Rect, band: &Band<'
     Ok(())
 }
 
-/// An image over a copy of `band`'s RGBA pixels (opaque: the alpha byte is skipped).
-fn image_of(band: &Band<'_>) -> Option<CFRetained<CGImage>> {
-    check_band(band).ok()?;
+/// An image over a copy of `band`'s RGBA pixels (opaque: the alpha byte is skipped), once the
+/// band is checked.
+fn image_of(band: &Band<'_>) -> Result<CFRetained<CGImage>, PrintError> {
+    check_band(band)?;
+    image_of_checked(band).ok_or(PrintError::refused("holding a band in Core Graphics"))
+}
+
+fn image_of_checked(band: &Band<'_>) -> Option<CFRetained<CGImage>> {
     let width = usize::try_from(band.page_width).ok()?;
     let rows = usize::try_from(band.rows).ok()?;
     let data = CFData::from_bytes(band.pixels);
     let provider = CGDataProvider::with_cf_data(Some(&data))?;
     let space = CGColorSpace::new_device_rgb()?;
     let info = CGBitmapInfo(CGImageAlphaInfo::NoneSkipLast.0);
-    // SAFETY: the provider holds width × rows × 4 bytes (checked above), 8 bits a sample and 32 a
+    // SAFETY: the provider holds width × rows × 4 bytes (`image_of` checked), 8 bits a sample and 32 a
     // pixel; no decode array.
     unsafe {
         CGImage::new(

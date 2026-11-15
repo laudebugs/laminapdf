@@ -66,15 +66,20 @@ impl Printing {
         self.0.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
-    /// Starts `window`'s print; refused while one runs there.
-    fn start(&self, window: &str) -> Result<Arc<Cancel>, DesktopError> {
+    /// Starts `window`'s print, refused while one runs there. The print runs until the returned
+    /// guard drops.
+    fn start(self: &Arc<Self>, window: &str) -> Result<Running, DesktopError> {
         let mut jobs = self.jobs();
         if jobs.contains_key(window) {
             return Err(DesktopError::AlreadyPrinting);
         }
         let cancel = Arc::new(Cancel::default());
         jobs.insert(window.to_owned(), Arc::clone(&cancel));
-        Ok(cancel)
+        Ok(Running {
+            printing: Arc::clone(self),
+            window: window.to_owned(),
+            cancel,
+        })
     }
 
     fn finish(&self, window: &str) {
@@ -123,9 +128,7 @@ impl PrintSource for EngineSource {
         order: PixelOrder,
         draw: &mut dyn FnMut(&Band<'_>) -> Result<(), PrintError>,
     ) -> Result<(), PrintError> {
-        let page_index = u32::try_from(page).map_err(|_| PrintError::Source {
-            kind: "page-out-of-range",
-        })?;
+        let page_index = u32::try_from(page).map_err(|_| PrintError::PAGE_OUT_OF_RANGE)?;
         let format = match order {
             PixelOrder::Rgba => TileFormat::Rgba8,
             PixelOrder::Bgra => TileFormat::Bgra8,
@@ -180,6 +183,7 @@ impl PrintSource for EngineSource {
 struct Running {
     printing: Arc<Printing>,
     window: String,
+    cancel: Arc<Cancel>,
 }
 
 impl Drop for Running {
@@ -197,12 +201,9 @@ pub(crate) async fn print(
     doc: DocId,
     job: PrintJob,
 ) -> Result<Printed, DesktopError> {
-    let cancel = printing.start(window.label())?;
     // Frees the window's print however this ends, a dropped command included.
-    let _running = Running {
-        printing: Arc::clone(&printing),
-        window: window.label().to_owned(),
-    };
+    let running = printing.start(window.label())?;
+    let cancel = Arc::clone(&running.cancel);
     let result = tauri::async_runtime::spawn_blocking(move || {
         let pages: Vec<PrintPage> = engines
             .page_info(window.label(), doc)?

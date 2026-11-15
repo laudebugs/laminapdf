@@ -75,7 +75,7 @@ unsafe impl Send for Chosen {}
 /// [`PrintError::Refused`] when the dialog or the PDF printer can't be opened.
 pub fn choose(owner: isize, job: &PrintJob, page_count: usize) -> Result<Option<Chosen>, PrintError> {
     if job.output().is_some() {
-        // SAFETY: CreateDCW with static, null-terminated names; the DC is deleted by `spool`.
+        // SAFETY: CreateDCW with static, null-terminated names; the `Chosen` deletes the DC when dropped.
         let dc = unsafe { CreateDCW(w!("WINSPOOL"), w!("Microsoft Print to PDF"), PCWSTR::null(), None) };
         if dc.is_invalid() {
             return Err(PrintError::refused("opening Microsoft Print to PDF"));
@@ -118,14 +118,13 @@ pub fn choose(owner: isize, job: &PrintJob, page_count: usize) -> Result<Option<
         }
         return Ok(None);
     }
-    let pages = if dialog.Flags.0 & PD_PAGENUMS.0 != 0 {
-        let chosen = usize::try_from(dialog.nPageRanges).unwrap_or(0).min(MAX_RANGES);
-        pages_in(ranges.get(..chosen).unwrap_or_default(), page_count)
-    } else if dialog.Flags.0 & PD_CURRENTPAGE.0 != 0 {
-        job.current_page.filter(|&page| page < page_count).into_iter().collect()
-    } else {
-        (0..page_count).collect()
-    };
+    let used = usize::try_from(dialog.nPageRanges).unwrap_or(0).min(MAX_RANGES);
+    let pages = chosen_pages(
+        dialog.Flags.0,
+        ranges.get(..used).unwrap_or_default(),
+        job.current_page,
+        page_count,
+    );
     Ok(Some(Chosen {
         dc: dialog.hDC.0 as isize,
         devmode,
@@ -136,6 +135,18 @@ pub fn choose(owner: isize, job: &PrintJob, page_count: usize) -> Result<Option<
 /// A Win32 struct's size, as its size field holds it (a few hundred bytes at most).
 fn win32_size<T>() -> u32 {
     u32::try_from(size_of::<T>()).unwrap_or(u32::MAX)
+}
+
+/// The pages the dialog's `flags` chose: its ranges, the current page, or every page. Reverse
+/// order and collation are the driver's.
+fn chosen_pages(flags: u32, ranges: &[PRINTPAGERANGE], current: Option<usize>, page_count: usize) -> Vec<usize> {
+    if flags & PD_PAGENUMS.0 != 0 {
+        pages_in(ranges, page_count)
+    } else if flags & PD_CURRENTPAGE.0 != 0 {
+        current.filter(|&page| page < page_count).into_iter().collect()
+    } else {
+        (0..page_count).collect()
+    }
 }
 
 /// The pages the dialog's 1-based, inclusive ranges name, 0-based, past the end dropped.
@@ -241,12 +252,16 @@ fn paper_of(dc: HDC, size: PrintPage) -> Paper {
             GetDeviceCaps(Some(dc), LOGPIXELSY),
         )
     };
-    Paper {
-        x,
-        y,
-        width: size.width * f64::from(dpi_x) / 72.0,
-        height: size.height * f64::from(dpi_y) / 72.0,
-    }
+    let (width, height) = device_extent(size, dpi_x, dpi_y);
+    Paper { x, y, width, height }
+}
+
+/// A page's size in device pixels at `dpi_x` × `dpi_y`, from points.
+fn device_extent(size: PrintPage, dpi_x: i32, dpi_y: i32) -> (f64, f64) {
+    (
+        size.width * f64::from(dpi_x) / 72.0,
+        size.height * f64::from(dpi_y) / 72.0,
+    )
 }
 
 /// Draws `band` (BGRA) on `dc`'s page.
@@ -258,8 +273,8 @@ fn draw_band(dc: HDC, paper: &Paper, band: &Band<'_>) -> Result<(), PrintError> 
         reason = "a page at a printer's resolution fits an i32"
     )]
     let (top, bottom, dest_width) = (top.round() as i32, bottom.round() as i32, paper.width.round() as i32);
-    let width = i32::try_from(band.page_width).map_err(|_| PrintError::Source { kind: "bad-band" })?;
-    let rows = i32::try_from(band.rows).map_err(|_| PrintError::Source { kind: "bad-band" })?;
+    let width = i32::try_from(band.page_width).map_err(|_| PrintError::BAD_BAND)?;
+    let rows = i32::try_from(band.rows).map_err(|_| PrintError::BAD_BAND)?;
     let info = BITMAPINFO {
         bmiHeader: BITMAPINFOHEADER {
             biSize: win32_size::<BITMAPINFOHEADER>(),
@@ -413,6 +428,30 @@ mod tests {
             },
         ];
         assert_eq!(pages_in(&ranges, 50), vec![4, 5, 6, 1]);
+    }
+
+    #[test]
+    fn chosen_pages_should_print_only_the_current_page_when_it_is_chosen() {
+        assert_eq!(chosen_pages(PD_CURRENTPAGE.0, &[], Some(3), 10), vec![3]);
+    }
+
+    #[test]
+    fn chosen_pages_should_print_nothing_for_a_current_page_past_the_end() {
+        assert_eq!(chosen_pages(PD_CURRENTPAGE.0, &[], Some(10), 10), Vec::<usize>::new());
+    }
+
+    #[test]
+    fn chosen_pages_should_print_every_page_with_no_choice() {
+        assert_eq!(chosen_pages(0, &[], Some(3), 3), vec![0, 1, 2]);
+    }
+
+    #[test]
+    fn device_extent_should_map_a_letter_page_at_600_by_300_dpi() {
+        let letter = PrintPage {
+            width: 612.0,
+            height: 792.0,
+        };
+        assert_eq!(device_extent(letter, 600, 300), (5100.0, 3300.0));
     }
 
     #[test]

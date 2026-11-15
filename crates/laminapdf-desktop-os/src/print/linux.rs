@@ -27,9 +27,9 @@ struct Job {
 fn paint_band(cr: &gtk::cairo::Context, band: &Band<'_>) -> Result<(), PrintError> {
     check_band(band)?;
     let refused = |_: gtk::cairo::Error| PrintError::refused("drawing a band with cairo");
-    let width = i32::try_from(band.page_width).map_err(|_| PrintError::Source { kind: "bad-band" })?;
-    let rows = i32::try_from(band.rows).map_err(|_| PrintError::Source { kind: "bad-band" })?;
-    let stride = width.checked_mul(4).ok_or(PrintError::Source { kind: "bad-band" })?;
+    let width = i32::try_from(band.page_width).map_err(|_| PrintError::BAD_BAND)?;
+    let rows = i32::try_from(band.rows).map_err(|_| PrintError::BAD_BAND)?;
+    let stride = width.checked_mul(4).ok_or(PrintError::BAD_BAND)?;
     // cairo keeps the surface's data while the page records it: a copy it owns.
     let surface = gtk::cairo::ImageSurface::create_for_data(
         band.pixels.to_vec(),
@@ -47,9 +47,7 @@ fn paint_band(cr: &gtk::cairo::Context, band: &Band<'_>) -> Result<(), PrintErro
 
 /// Draws page `page` of `job` on `cr`, whose units are the page's points.
 fn draw_page(job: &mut Job, cr: &gtk::cairo::Context, page: usize) -> Result<(), PrintError> {
-    let size = *job.pages.get(page).ok_or(PrintError::Source {
-        kind: "page-out-of-range",
-    })?;
+    let size = *job.pages.get(page).ok_or(PrintError::PAGE_OUT_OF_RANGE)?;
     job.source.page_bands(page, PixelOrder::Bgra, &mut |band| {
         let refused = |_: gtk::cairo::Error| PrintError::refused("drawing a band with cairo");
         cr.save().map_err(refused)?;
@@ -108,17 +106,17 @@ pub fn print(owner: Option<&Owner>, job: &PrintJob, source: Box<dyn PrintSource>
         setup.set_left_margin(0.0, Unit::Points);
         setup.set_right_margin(0.0, Unit::Points);
     });
-    let starting = Rc::clone(&state);
-    op.connect_begin_print(move |op, _| {
-        // The pages the user chose, known once the dialog closes.
-        let chosen = usize::try_from(op.n_pages_to_print()).unwrap_or(0);
-        starting.borrow_mut().source.start(chosen);
-    });
     let drawing = Rc::clone(&state);
     op.connect_draw_page(move |op, ctx, page| {
         let mut job = drawing.borrow_mut();
         if job.failed.is_some() {
             return;
+        }
+        if job.drawn == 0 {
+            // The pages the user chose: GTK knows them once data generation starts, not at
+            // begin-print.
+            let chosen = usize::try_from(op.n_pages_to_print()).unwrap_or(0);
+            job.source.start(chosen);
         }
         let drawn = match (ctx.cairo_context(), usize::try_from(page)) {
             (Some(cr), Ok(page)) => draw_page(&mut job, &cr, page),

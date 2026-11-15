@@ -89,9 +89,7 @@ pub trait PrintSource {
     ) -> Result<(), PrintError>;
 
     /// Told how many pages will print, once the user has chosen them, before the first.
-    fn start(&mut self, pages: usize) {
-        let _ = pages;
-    }
+    fn start(&mut self, _pages: usize) {}
 }
 
 /// One print job.
@@ -170,6 +168,14 @@ pub enum PrintError {
 }
 
 impl PrintError {
+    /// The engine sent a band whose numbers don't fit its pixels or its page.
+    pub const BAD_BAND: Self = Self::Source { kind: "bad-band" };
+
+    /// A page past the document's end.
+    pub const PAGE_OUT_OF_RANGE: Self = Self::Source {
+        kind: "page-out-of-range",
+    };
+
     /// An OS refusal of `what`, with no code.
     #[must_use]
     pub const fn refused(what: &'static str) -> Self {
@@ -212,11 +218,7 @@ pub fn check_band(band: &Band<'_>) -> Result<(), PrintError> {
         && band.rows > 0
         && u64::from(band.y) + u64::from(band.rows) <= u64::from(band.page_height)
         && band.pixels.len() as u64 == expected;
-    if fits {
-        Ok(())
-    } else {
-        Err(PrintError::Source { kind: "bad-band" })
-    }
+    if fits { Ok(()) } else { Err(PrintError::BAD_BAND) }
 }
 
 #[cfg(test)]
