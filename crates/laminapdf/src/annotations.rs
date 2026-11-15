@@ -3,7 +3,7 @@
 //! carries the annotation's ID, which [`UpdateAnnot`](crate::UpdateAnnot) and
 //! [`DeleteAnnot`](crate::DeleteAnnot) take.
 
-use laminapdf_model::{Annot, AnnotGeometry, PageFrame, PointPt, RectPt, ReplyType, UserSpacePoint};
+use laminapdf_model::{Annot, AnnotGeometry, AnnotState, PageFrame, PointPt, RectPt, ReplyType, UserSpacePoint};
 
 use crate::document::Document;
 use crate::error::{Error, Result};
@@ -55,6 +55,10 @@ pub struct PageAnnotation {
     pub has_rich_text: bool,
     /// The subtype's own geometry, in page space.
     pub geometry: AnnotationGeometry,
+    /// For a review state set on the annotation it replies to, that state.
+    ///
+    /// Added in 0.3.0.
+    pub state: Option<AnnotState>,
 }
 
 /// Where an annotation's own geometry puts it, in page space.
@@ -124,7 +128,7 @@ impl Document {
     }
 }
 
-fn record(annot: Annot, frame: &PageFrame) -> PageAnnotation {
+pub(crate) fn record(annot: Annot, frame: &PageFrame) -> PageAnnotation {
     let points = |list: Vec<UserSpacePoint>| list.into_iter().map(|p| frame.to_page(p)).collect();
     let geometry = match annot.geometry {
         AnnotGeometry::Quads(quads) => {
@@ -156,6 +160,7 @@ fn record(annot: Annot, frame: &PageFrame) -> PageAnnotation {
         parent: annot.parent.map(|id| id.to_string()),
         has_appearance: annot.has_appearance,
         has_rich_text: annot.has_rich_text,
+        state: annot.state,
         geometry,
     }
 }
