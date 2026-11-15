@@ -32,6 +32,7 @@ const COMMANDS: &[&str] = &[
     "save_copy",
     "tab_drag_start",
     "tab_drag_end",
+    "tab_drag_cancel",
 ];
 
 /// With the `e2e` feature: the end-to-end tests' commands too.
@@ -63,10 +64,12 @@ const E2E_COMMANDS: &[&str] = &[
     "save_copy",
     "tab_drag_start",
     "tab_drag_end",
+    "tab_drag_cancel",
     "debug_kill_engine",
     "e2e_queue_pick",
     "e2e_interactive",
     "e2e_focus",
+    "e2e_place_cursor",
     "e2e_menu_click",
     "e2e_menu_snapshot",
 ];

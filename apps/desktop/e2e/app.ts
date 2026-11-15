@@ -24,7 +24,7 @@ export function withText(text: string): ChainablePromiseElement {
 }
 
 /** Runs one of the app's commands as the webview would. */
-async function invoke(command: string, args: object = {}): Promise<unknown> {
+export async function invoke(command: string, args: object = {}): Promise<unknown> {
   return browser.execute(
     (name, payload) => (globalThis as unknown as TauriGlobal).__TAURI__.core.invoke(name, payload),
     command,
@@ -321,4 +321,35 @@ async function openSetting(label: string): Promise<void> {
 /** The switch labelled `label` in the open Settings dialog. */
 function settingSwitch(label: string): ChainablePromiseElement {
   return $(`//label[contains(., "${label}")]//input[@role="switch"]`);
+}
+
+/**
+ * Closes the window WebDriver is on and goes back to `handle`, once the closed one is gone: until
+ * then it can still hold the keyboard, and a shortcut sent next goes to it.
+ */
+export async function closeWindowFor(handle: string): Promise<void> {
+  const closing = await browser.getWindowHandle();
+  await browser.closeWindow();
+  await browser.waitUntil(async () => !(await browser.getWindowHandles()).includes(closing), {
+    timeoutMsg: "the window didn't close",
+  });
+  await browser.switchToWindow(handle);
+  // macOS can leave it in the background, where WebKit slows its work (a shortcut, an open).
+  await focusWindow();
+}
+
+/**
+ * Leaves the window the scenarios began in (`home`), alone and on its start screen. The window tests start
+ * here so that each, and the retry of a failed attempt, opens its own files: an attempt that
+ * failed leaves windows and documents open (an encrypted one unlocked), and a retry built on them
+ * fails at once, hiding the first attempt's error behind its own.
+ */
+export async function startOver(home: string): Promise<void> {
+  for (const handle of await browser.getWindowHandles()) {
+    if (handle === home) continue;
+    await browser.switchToWindow(handle);
+    await closeWindowFor(home);
+  }
+  await browser.switchToWindow(home);
+  await closeAll();
 }

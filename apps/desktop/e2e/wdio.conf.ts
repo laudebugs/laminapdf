@@ -63,6 +63,7 @@ export const config: WebdriverIO.Config = {
     "restart",
     "large",
     "tabs",
+    "tab-drag",
     "menus",
   ]),
   // Opening adds a tab rather than replacing the document before, so each scenario starts with

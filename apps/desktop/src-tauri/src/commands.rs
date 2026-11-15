@@ -319,6 +319,14 @@ pub(crate) fn tab_drag_start(window: tauri::WebviewWindow, doc: u32) {
     crate::tab_drag::start(window.app_handle(), window.label(), DocId(doc));
 }
 
+/// The drag of this window's tab of `doc` was cancelled: the tab stays, and Rust stops following
+/// the cursor.
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window by value")]
+pub(crate) fn tab_drag_cancel(window: tauri::WebviewWindow, doc: u32) {
+    crate::tab_drag::cancel(window.app_handle(), window.label(), DocId(doc));
+}
+
 /// The drag of this window's tab of `doc` ended without a drop on this window's strip (`outside`:
 /// the pointer had left the window, by the webview's account). Where the cursor is decides: over
 /// another window the tab moves there, outside every window it opens in a new one under the

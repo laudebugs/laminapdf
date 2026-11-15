@@ -140,6 +140,9 @@ export function useTabStrip(
           .draggedOut(id, outside)
           .catch((error: unknown) => toasts.add({ message: engineError(error).message }));
       }}
+      onDragCancel={(id) => {
+        void tabs.dragCancelled(id).catch((error: unknown) => console.warn("cancelling a tab's drag", error));
+      }}
       moves={moves}
       onMove={(id) => move(id === NEW_WINDOW ? { to: "newWindow" } : { to: "window", label: id.slice(MOVE_TO.length) })}
       platform={keys}

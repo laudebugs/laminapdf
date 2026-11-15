@@ -32,6 +32,7 @@
     "allow-save-copy",
     "allow-tab-drag-start",
     "allow-tab-drag-end",
+    "allow-tab-drag-cancel",
     "core:event:allow-listen",
     "core:event:allow-unlisten"
   ]

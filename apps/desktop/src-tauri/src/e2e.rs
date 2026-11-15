@@ -14,6 +14,7 @@ use std::time::Instant;
 use tauri::Manager as _;
 
 use crate::DesktopError;
+use crate::tab_drag::Point;
 
 /// When `run()` began: the start of the cold start `e2e_interactive` reports.
 static STARTED: OnceLock<Instant> = OnceLock::new();
@@ -149,4 +150,61 @@ mod tests {
         assert!(queue.take().is_some());
         assert!(queue.take().is_none());
     }
+}
+
+/// Where `e2e_place_cursor` put the cursor that a tab's drag reads, if anywhere: `WebDriver` moves
+/// the pointer inside a page only, never the OS's cursor.
+static PLACED_CURSOR: Mutex<Option<Point>> = Mutex::new(None);
+
+/// The cursor a tab's drag reads instead of the OS's, once a test placed one.
+pub(crate) fn placed_cursor() -> Option<Point> {
+    *PLACED_CURSOR.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
+/// A point of window `label` that no window in front of it covers: its middle, else a point near
+/// one of its corners. Windows may overlap, and a drop where another window is in front lands on
+/// that one.
+fn visible_point(label: &str, frames: &[(String, crate::tab_drag::Frame)]) -> Option<Point> {
+    let (_, f) = frames.iter().find(|(l, _)| l == label)?;
+    let inset = 24.0;
+    [(0.5, 0.5), (0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (1.0, 1.0)]
+        .into_iter()
+        .map(|(across, down)| Point {
+            x: f.x + inset + across * (f.width - 2.0 * inset),
+            y: f.y + inset + down * (f.height - 2.0 * inset),
+        })
+        .find(|point| crate::tab_drag::window_at(*point, frames) == Some(label))
+}
+
+/// Places the cursor a tab's drag reads (`src/tab_drag.rs`): `window:<label>` puts it in the
+/// middle of that window, `outside` to the right of every window, `os` gives back the OS's own.
+#[tauri::command]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri hands a command its arguments by value"
+)]
+pub(crate) fn e2e_place_cursor(app: tauri::AppHandle, at: String) -> Result<(), DesktopError> {
+    let frames = crate::tab_drag::window_frames(&app);
+    let point = match at.as_str() {
+        "os" => None,
+        "outside" => {
+            let right = frames.iter().map(|(_, f)| f.x + f.width).fold(0.0, f64::max);
+            let top = frames.first().map_or(0.0, |(_, f)| f.y);
+            Some(Point {
+                x: right + 400.0,
+                y: top + 100.0,
+            })
+        }
+        _ => {
+            let label = at
+                .strip_prefix("window:")
+                .ok_or_else(|| DesktopError::Internal(format!("no place {at}")))?;
+            Some(
+                visible_point(label, &frames)
+                    .ok_or_else(|| DesktopError::Internal(format!("{label} isn't showing")))?,
+            )
+        }
+    };
+    *PLACED_CURSOR.lock().unwrap_or_else(PoisonError::into_inner) = point;
+    Ok(())
 }

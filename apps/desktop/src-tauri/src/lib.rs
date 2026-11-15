@@ -209,6 +209,7 @@ macro_rules! app_commands {
             commands::save_copy,
             commands::tab_drag_start,
             commands::tab_drag_end,
+            commands::tab_drag_cancel,
             open::take_pending_opens,
             $($extra),*
         ]
@@ -239,6 +240,7 @@ pub fn run() -> Result<(), DesktopError> {
             e2e::e2e_focus,
             e2e::e2e_menu_click,
             e2e::e2e_menu_snapshot,
+            e2e::e2e_place_cursor,
         ])
         .manage(e2e::QueuedPick::default());
     // First of all plugins: a second launch hands its paths to the running app and exits before
