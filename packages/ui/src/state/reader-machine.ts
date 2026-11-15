@@ -1,5 +1,5 @@
 // The reader's lifecycle as a small state machine: empty → opening → (needs-password →) open, or
-// error. Hand-written rather than a library: six states and nine events fit in one switch, each
+// error. Hand-written rather than a library: six states and ten events fit in one switch, each
 // transition is a plain function of state and event, and every one has a unit test.
 
 import type { PlatformFile } from "../platform/types.js";
@@ -31,7 +31,9 @@ export type ReaderEvent =
   | { readonly type: "failed"; readonly error: ReaderError }
   | { readonly type: "cancel" }
   | { readonly type: "close" }
-  | { readonly type: "set-mode"; readonly mode: InteractionMode };
+  | { readonly type: "set-mode"; readonly mode: InteractionMode }
+  /** The open file's name changed (a desktop Save as): the state is new, so whatever shows `file.name` reads it again. */
+  | { readonly type: "file-renamed" };
 
 /** The reader before any document. */
 export const EMPTY: ReaderState = { phase: "empty" };
@@ -51,11 +53,16 @@ export function transition(state: ReaderState, event: ReaderEvent): ReaderState 
       if (event.type === "cancel") return EMPTY;
       return state;
     case "open":
-      if (event.type === "set-mode") return event.mode === state.mode ? state : { ...state, mode: event.mode };
-      return state;
+      return fromOpen(state, event);
     case "error":
       return state;
   }
+}
+
+function fromOpen(state: ReaderState & { phase: "open" }, event: ReaderEvent): ReaderState {
+  if (event.type === "set-mode") return event.mode === state.mode ? state : { ...state, mode: event.mode };
+  if (event.type === "file-renamed") return { ...state };
+  return state;
 }
 
 function fromOpening(state: ReaderState & { phase: "opening" }, event: ReaderEvent): ReaderState {

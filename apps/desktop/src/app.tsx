@@ -171,7 +171,13 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const lost = useEngineEvents(engine, toasts, state.phase === "open");
   const dragging = useOsOpens(engine, reader, toasts, tabs);
   const fileProblem = useFileChanges(engine, reader, toasts, tabs);
-  const renamed = useCallback((doc: number, name: string) => tabs?.renamed(doc, name), [tabs]);
+  const renamed = useCallback(
+    (doc: number, name: string) => {
+      tabs?.renamed(doc, name);
+      reader.fileRenamed();
+    },
+    [tabs, reader],
+  );
   const saving = useDesktopSaving(engine, reader, toasts, renamed);
   const editing = useDesktopEditing(engine, reader, engine?.client.current?.name, saving.save);
   const strip = useTabStrip(engine?.shell, tabs, reader, toasts, keys, engine?.viewer, editing.unsaved);

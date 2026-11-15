@@ -24,6 +24,7 @@ const EVENTS: Record<ReaderEvent["type"], ReaderEvent> = {
   cancel: { type: "cancel" },
   close: { type: "close" },
   "set-mode": { type: "set-mode", mode: "select" },
+  "file-renamed": { type: "file-renamed" },
 };
 
 /** Every transition that changes the state, by state then event; the rest leave it as it is. */
@@ -41,7 +42,7 @@ const CHANGES: Partial<Record<ReaderState["phase"], Partial<Record<ReaderEvent["
     cancel: EMPTY,
     close: EMPTY,
   },
-  open: { close: EMPTY },
+  open: { close: EMPTY, "file-renamed": { phase: "open", file, pageCount: 3, mode: "select" } },
   error: { close: EMPTY },
 };
 
@@ -67,6 +68,10 @@ describe("the reader machine", () => {
       }
     }
   }
+
+  it("gives a renamed open file a new state, so what shows its name reads it again", () => {
+    expect(transition(STATES.open, EVENTS["file-renamed"])).not.toBe(STATES.open);
+  });
 
   it("keeps the document through a wrong password and the retry", () => {
     let state = transition(EMPTY, { type: "open", file });
