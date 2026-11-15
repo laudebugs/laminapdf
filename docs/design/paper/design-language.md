@@ -705,7 +705,7 @@ In `@laminapdf/ui`: `Thumbnail`, a button whose `children` are the page image th
 
 In `@laminapdf/ui`: `OutlineRow`. **Chevron (decided, U6h):** a row with children has a chevron button before its link, on desktop as on touch, so the link and the button each do one thing. The button keeps one name, such as “Sections in 2. Repairs backlog”, and `aria-expanded` says whether they show; a name that flips between Expand and Collapse would say the same thing twice. The tree below stays proposed.
 
-Links in a `<nav aria-label="Document outline">`, padding `14px 10px`, gap 2. Row: Newsreader 15, padding `6px 8px`, radius 4, page number right (Source Sans 3 12 `muted` tabular). Level 2: 14 px, `text-3`, left padding 22. Current: `accent` text 600 on `accent-tint`, `aria-current="location"`. Hover lays the `hover` layer over the row's fill, current or not, and pressed the `pressed` layer; in the tree the row takes them. A drag grip shows `grab`, and `grabbing` while held.
+Links in a `<nav aria-label="Document outline">`, padding `14px 10px`, gap 2. Row: Newsreader 15, padding `6px 8px`, radius 4, page number right (Source Sans 3 12 `muted` tabular). Level 2: 14 px, `text-3`, left padding 22. Current: `accent` text 600 on `accent-tint`, `aria-current="location"`. Hover lays the `hover` layer over the row's fill, current or not, and pressed the `pressed` layer; in the tree, pointing anywhere on the row shows them on its link. A drag grip shows `grab`, and `grabbing` while held.
 
 **Outline tree (proposed; replaces the link list once an outline has levels):** the same rows as a WAI-ARIA tree (`ul role="tree"`, `li role="treeitem"` with `aria-level` and `aria-expanded`). A 16 px chevron (down = expanded, right = collapsed) is decoration inside the row, toggled by click or ← →, so there is no nested button. The current row tracks scrolling (the deepest entry at or above the top of the view).
 
@@ -969,9 +969,9 @@ Rules **(proposed)**:
 
 In `@laminapdf/ui`: `TextInput`, `TextArea`, `Select`, `Checkbox`, `RadioGroup` with `Radio`, and `Switch`. The switch is a visually hidden `<input type="checkbox" role="switch">` inside its label, like the checkbox below, rather than a `<button role="switch">`: it reports the same role and state, and keeps the whole row as its target.
 
-All: `control-border` 1 px, white fill, radius 4, 14 px text (16 on touch), label above (12/600 `text-3`) with gap 8, help text below (12 `muted`), error text below (12 `danger`, with `aria-describedby` and `aria-invalid="true"`; the border turns `danger`). Focus: the 2 px `accent` ring, offset 1, in the `focus` colour even on an invalid field. Read-only: a `ground` fill and `hairline` edge, the text still `text` and selectable. Disabled: `disabled` text, `hairline` edge, the arrow. A text field keeps the I-beam; the select shows the hand.
+All: `control-border` 1 px, white fill, radius 4, 14 px text (16 on touch), label above (12/600 `text-3`) with gap 8, help text below (12 `muted`), error text below (12 `danger`, with `aria-describedby` and `aria-invalid="true"`; the border turns `danger`). Focus: the 2 px `focus` ring, offset 1, which stays `focus` on an invalid field. Read-only: a `ground` fill and `hairline` edge, the text still `text` and selectable. Disabled: `disabled` text, `hairline` edge, the arrow cursor. A text field keeps the I-beam; the select shows the hand.
 
-Checkbox, radio and switch: the whole row is the target and shows the hand, and the drawing shows its state. Unchecked, hover and pressed lay their layer over the field fill; checked, the `accent` fill moves to `accent-strong` on hover and `primary-pressed` on press. The switch's knob slides to the far end over 150 ms and jumps under reduced motion. Disabled: a `chip-border` edge on `ground`; a chosen one fills with `disabled`, keeping its mark.
+Checkbox, radio and switch: the whole row is the target and shows the hand, and the box, circle or track shows its state. When unchecked, hover and pressed lay their layer over the field fill; when checked, the `accent` fill moves to `accent-strong` on hover and `primary-pressed` on press. The switch's knob slides to the far end over 150 ms and jumps under reduced motion. Disabled: a `chip-border` edge on `ground`; a checked or on control fills with `disabled`, so its mark still shows.
 
 | Control | Size | Details |
 | --- | --- | --- |
@@ -1088,7 +1088,7 @@ From the Comment toolbar: 28 high, padding `0 10px`, gap 6, radius 4, 16 px icon
 
 In `@laminapdf/ui`: `PageAppearanceChips`.
 
-From the style tile: 4-column grid gap 10; chip padding 8, gap 8, radius 6; preview 52 high, radius 3, "Aa" in Source Serif 4 20 px on the appearance's paper and ink; selected chip white with a 2 px `accent` border and a 13/600 label, others `surface` with `chip-border` and 13/400. Hover and pressed lay their layer over either. `role="group"` + `aria-pressed`.
+From the style tile: 4-column grid gap 10; chip padding 8, gap 8, radius 6; preview 52 high, radius 3, "Aa" in Source Serif 4 20 px on the appearance's paper and ink; selected chip white with a 2 px `accent` border and a 13/600 label, others `surface` with `chip-border` and 13/400. Hover and pressed lay their layer over a chip, selected or not. `role="group"` + `aria-pressed`.
 
 **Theme chips (proposed):** the same anatomy with a 52 px preview of the chrome ground and a small white page; Match system splits light and dark.
 
