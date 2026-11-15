@@ -219,10 +219,15 @@ function useFocusFallback(isOpen: boolean, fallback: (() => HTMLElement | null) 
   );
 }
 
-// React Aria restores focus as the dialog unmounts; check once a frame has passed.
+// React Aria restores focus as the dialog unmounts, which waits for its exit to play: check each
+// frame until focus is no longer in a leaving overlay, then send it to the fallback if it is lost.
 function focusFallbackLater(fallback: RefObject<(() => HTMLElement | null) | undefined>): void {
   requestAnimationFrame(() => {
     const active = document.activeElement;
+    if (active?.closest("[data-exiting]") != null) {
+      focusFallbackLater(fallback);
+      return;
+    }
     if (active === null || active === document.body || !active.isConnected) fallback.current?.()?.focus();
   });
 }
