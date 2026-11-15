@@ -78,9 +78,10 @@ export function LinkPreviews({ engine, viewer }: { engine: Engine; viewer: Viewe
     if (shown !== undefined && outline === undefined) void engine.loadOutline();
   }, [engine, shown, outline]);
   const items = typeof outline === "object" ? outline.items : [];
-  // The preview stays for its exit after the viewer ends it (Presence), so it fades out.
+  // The preview stays for its exit after the viewer ends it (Presence), so it fades out: a panel's
+  // time, since on touch it is a sheet (150 ms); the popover is faded and inert well before that.
   return (
-    <Presence value={viewer === undefined || shown === undefined ? null : { viewer, shown }}>
+    <Presence value={viewer === undefined || shown === undefined ? null : { viewer, shown }} exit="panel">
       {(open) => (
         <LinkPreview
           {...cardProps(open.shown, pages, items)}
