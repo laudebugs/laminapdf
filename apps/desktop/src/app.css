@@ -12,6 +12,52 @@ body {
   font-family: var(--paper-font-sans);
 }
 
+/* A window, not a web page (motion plan §5): the content doesn't bounce past its ends, and the
+   chrome's labels can't be selected, as a native app's can't: the bars, the tab strip, the start
+   screen, and every button, label and menu item. Anything else, the document, the reader view,
+   Document properties, the failure page, notices and toasts, stays selectable. window-state.ts
+   refuses the webview's context menu exactly where selection is off. WebKit stops editing in a
+   field whose ancestor turns selection off, so fields turn it back on themselves. */
+html,
+body {
+  overscroll-behavior: none;
+}
+
+:is(
+  .paper-top-bar,
+  .paper-reader-secondary,
+  .paper-document-tabs,
+  .paper-reader-status,
+  .paper-left-rail,
+  .paper-bottom-bar,
+  .paper-open,
+  .paper-recent,
+  button,
+  label,
+  [role="tab"],
+  [role="menuitem"],
+  [role="menuitemradio"],
+  [role="menuitemcheckbox"],
+  [role="option"]
+) {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+:is(input, textarea, [contenteditable]) {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* An inactive window looks it (motion plan §5), as native windows do: its bars' text and icons
+   turn muted until the window has the focus again (window-state.ts sets the attribute). */
+:root[data-window-inactive] :is(.paper-top-bar, .paper-document-tabs, .paper-reader-status) {
+  --paper-text: var(--paper-muted);
+  --paper-text-2: var(--paper-muted);
+  --paper-text-3: var(--paper-muted);
+  --paper-accent: var(--paper-muted);
+}
+
 .desktop-wordmark {
   font-family: var(--paper-font-serif);
   font-size: 18px;
@@ -37,7 +83,16 @@ body {
   color: var(--paper-accent-strong);
   font: inherit;
   text-decoration: underline;
-  cursor: pointer;
+  cursor: var(--paper-cursor-link);
+}
+
+/* A restored tab whose file is gone: its notice, centred in the canvas the document would fill,
+   as the start window's drop zone is. */
+.desktop-missing {
+  display: grid;
+  place-content: center;
+  block-size: 100%;
+  padding: var(--paper-space-24);
 }
 
 /* The start window's line under the recent list: where the list is kept, or that it is off. */

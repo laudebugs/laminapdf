@@ -23,7 +23,7 @@ The library can already edit and save, but nothing above it can, and its metadat
 
 ## 2. The operations
 
-The round implements four rows of the [feature inventory](../../research/pdf/06-feature-inventory.md) to `round-trip` in the [capability matrix](../../capabilities/README.md). Their rows are already in `docs/capabilities/manifest.toml` with `round = "E1"`. E1c flips the core and `pdf` (`@laminapdf/sdk`) columns, E1f the web column and E1i the desktop column.
+The round implements four rows of the [feature inventory](../../research/pdf/06-feature-inventory.md) to `round-trip` in the [capability matrix](../../capabilities/README.md). Their rows are already in `docs/capabilities/manifest.toml` with `round = "E1"`. E1c flips the core and `pdf` (`@laminapdf/sdk`) columns, E1f the web column and E1j the desktop column.
 
 | ID | What it means | Target |
 | --- | --- | --- |
@@ -157,6 +157,7 @@ No server feature: every edit and save happens on the device, and nothing leaves
 | [E1f](../../todos/done/E1f-metadata-ui-capability-page.md) | The editable Properties dialog and the capability page | E1c, E1e |
 | [E1h](../../todos/done/E1h-desktop-edit-session.md) | Desktop: the session in the engine process, the native Edit menu, the close guard | E1d, D4b |
 | [E1i](../../todos/ready/E1i-desktop-save-in-place.md) | Desktop: save in place, watcher suppression and the conflict dialog for outside changes | E1e, E1h, D3b |
+| [E1j](../../todos/ready/E1j-desktop-properties.md) | Desktop: the Properties dialog and editing metadata, the desktop column of J.01–J.03 and J.10 | E1f, E1i |
 
 E1b and E1g can start as soon as this plan merges, in parallel. The round's web and shared work, E1b to E1g, waits on no desktop todo.
 

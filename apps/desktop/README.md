@@ -85,7 +85,7 @@ cargo run --release -p laminapdf-desktop-engine --example measure -- \
 
 ### Windows and tabs
 
-Each window holds tabs, one per open document; the tab strip appears once a window has two tabs. Opening a file adds a tab to the frontmost window (Settings › Files can open each file in its own window instead), and opening a file that is already open shows its tab. Rust makes every window (`src-tauri/src/windows.rs`, labels `main` then `doc-1`, `doc-2`, …) and knows which window owns each document. The tabs themselves (their order, the shown one, each one's view) live in the webview (`src/tabs/`). Each window has its own engine, so moving a tab to another window reopens its document in that window's engine, keeping its password, page and zoom.
+Each window holds tabs, one per open document; the tab strip shows from the first tab, so opening a second moves nothing below it, and tabs fade in and slide to new places as they open, close and move. Opening a file adds a tab to the frontmost window (Settings › Files can open each file in its own window instead), and opening a file that is already open shows its tab. Rust makes every window (`src-tauri/src/windows.rs`, labels `main` then `doc-1`, `doc-2`, …) and knows which window owns each document. The tabs themselves (their order, the shown one, each one's view) live in the webview (`src/tabs/`). Each window has its own engine, so moving a tab to another window reopens its document in that window's engine, keeping its password, page and zoom.
 
 Dragging a tab moves it too. Dragged along the strip, a tab reorders the tabs, and an accent bar marks where it will go. Dropped on another window, it moves there. Dropped outside every window, it opens in a new window under the cursor. Escape cancels the drag.
 
@@ -106,6 +106,15 @@ When Lamina PDF starts, the windows and tabs it had when it last quit come back:
 After a restore, each window's notice says how many tabs came back and how many files are missing. The notice goes away when you dismiss it, turn a page or choose another tab (`src/tabs/restore-notice.ts`). Locate… asks first when the chosen file's size or date differs from the one the session recorded (`src-tauri/src/session/locate.rs`).
 
 Settings › Files has "Reopen last session", on by default. The session lists the same files as the recent list, so it is kept only while "Remember recent files" is on too: turning either off deletes `session.json`. "Clear recent" empties the recent list and leaves the session.
+
+### A window, not a web page
+
+The window behaves as a native one (motion plan §5):
+
+- **Its frame matches the theme.** Before the webview paints, the window shows Paper's `ground` for the OS's light or dark (`src-tauri/src/windows.rs`), and `index.html` asks the webview for the same, so a dark window never opens on a white frame.
+- **The chrome stays still.** The page doesn't bounce past its ends, the chrome's labels can't be selected, and right-clicking the chrome shows no webview menu (Back, Reload, Inspect Element). Everything else, the document, the reader view, dialogs, notices and fields, keeps its menu and selection (`src/app.css`, `src/window-state.ts`).
+- **An inactive window looks it.** The bars' text and icons turn muted while another window has the focus.
+- **Motion follows the system, or Settings.** Settings › Appearance and accessibility › Motion reduces motion in every window; it is kept with the other preferences in `preferences.json`. Each OS's webview reads the system's reduce-motion setting itself, except WebKitGTK under Wayland, which misses GNOME's "Reduce animations" (GTK issue 5813). On Linux the main process reads it through `gsettings` (`src-tauri/src/motion.rs`, the `system_motion` command) whenever a window comes to the front, and `src/motion.ts` sets `data-motion="reduce"` on the page.
 
 ### Native menus
 
@@ -140,7 +149,22 @@ The app updates itself from the update Worker (`apps/updates`, [ADR 0014](../../
 - `plan.rs` decides each check, and makes no request while updates are off. The webview can call only the `update_*` commands, so it can't point the updater anywhere or read the ID.
 - `src/updates.tsx` is Settings › Updates and the status bar's "Update ready". Help › Check for updates… (the app menu on macOS) opens that section and checks.
 
-A development build checks the production Worker's beta channel, which offers nothing to a version newer than every release. Testing an update end to end, with a local Worker and a throwaway key, is D5c's workflow.
+A development build checks the production Worker's beta channel, which offers nothing to a version newer than every release.
+
+#### The update test
+
+`.github/workflows/desktop-update-e2e.yml` installs `0.0.1` on macOS, Windows and Linux (AppImage), then checks two things. First, the app refuses a `0.0.2` bundle with one byte changed and stays on `0.0.1`. Second, the real `0.0.2` installs and the app restarts as `0.0.2`. On pull requests the update Worker runs on the runner under `wrangler dev`. On `main`, every night and by hand, the test uses the deployed staging Worker and its bucket. `e2e/update/update-test.ts` runs the test. It also checks that every request sent the install ID in the header and never in the URL.
+
+Both versions come from one run, signed with a throwaway updater key that `.github/actions/desktop-update-builds` makes. In `e2e` builds, `src-tauri/src/update/e2e.rs` works only when the app's config folder holds `update-test.json`, which names a server and a report file. The app then asks that server on the `staging` channel, checks at once, and installs as soon as an update is ready. Each step goes to the report file. Plain HTTP to the local server comes from a `--config` override; no committed configuration allows it.
+
+To run the test on your machine, run the action's steps from the repository root (`$RUNNER_TEMP` stands for any empty folder). Then run:
+
+```sh
+UPDATE_TEST_OLD=<0.0.1's .app, installer or AppImage> UPDATE_TEST_NEW=<0.0.2's updater bundle> \
+  node apps/desktop/e2e/update/update-test.ts
+```
+
+The test installs and launches the app. On Windows, it installs for your user under `%LOCALAPPDATA%\Lamina PDF`.
 
 ### Releases
 
@@ -168,7 +192,7 @@ A development build checks the production Worker's beta channel, which offers no
 
 - **`src/main.tsx`** loads the design tokens (`@laminapdf/tokens`), fonts and component styles, creates the desktop `Platform`, and renders the app. It is the only module that asks about its surroundings: whether it runs inside Tauri (`isTauri()`; `cargo xtask check ts` refuses the call anywhere else) and whether shortcuts show ⌘ or Ctrl.
 - **`src/platform/desktop.ts`** is the desktop `Platform` (ADR 0010). It starts from the web platform, which works in any webview, and sets the capability flags the desktop shell adds. `ownsKeyboard` turns on the shortcuts a browser would keep, such as ⌘− and ⌘W. `recent` (`recent.ts`) and `watch` go through the main process. Saving in place isn't built yet: its method rejects with `NotYetSupportedError`. `print` rejects too: it is the web reader's path, and the desktop prints from the main process (below).
-- **`src/app.tsx`** puts the reader's top bar, home screen, the document's view and status bar in the window, with the command palette (⌘K or Ctrl+K), the password dialog, the failure page, the repaired-file notice and the "Document process restarted" toast; **`src/app-info.ts`** calls `app_info`, whose version the status bar shows. **`src/recent.tsx`** is the start window's recent list, **`src/settings.tsx`** the Settings dialog with its Files section, and **`src/file-changes.tsx`** shows a reloaded document in place, or the strip for a file that was moved or deleted.
+- **`src/app.tsx`** puts the reader's top bar, home screen, the document's view and status bar in the window, with the command palette (⌘K or Ctrl+K), the password dialog, the failure page, the repaired-file notice and the "Document process restarted" toast; **`src/app-info.ts`** calls `app_info`, whose version the status bar shows. **`src/recent.tsx`** is the start window's recent list, **`src/settings.tsx`** the Settings dialog with its Files and Appearance and accessibility sections, and **`src/file-changes.tsx`** shows a reloaded document in place, or the strip for a file that was moved or deleted.
 - **`src/print.tsx`** handles File ▸ Print… (⌘P or Ctrl+P). It calls `print_document` with the document shown and the page on screen, which the dialog offers as "Current page" on Windows and Linux. While pages spool, the status bar shows how many were sent and a Cancel printing button that calls `cancel_print` (GTK's own window on Linux). Reading goes on meanwhile.
 - **`src/engine/`** is the viewer's engine on the desktop. `desktop-engine-client.ts` is `DesktopEngineClient`, the `ViewerEngine` that `@laminapdf/viewer` draws from, as it draws from `ViewerClient` on the web. It fetches each tile from `lamina://localhost/tile/{doc}/{page}?…` (`http://lamina.localhost/…` on Windows; `tile-url.ts` builds the address), decodes the WebP, and closes a tile that lands after its render was aborted or its document went. An aborted render's ticket goes to `cancel_tiles`, so the engine skips it. The engine's restart events become the viewer's `restarted`, which redraws the pages on screen. `open.ts` holds the open dialog's files and the reader's opener, which shows a document or unlocks it first. `tauri-shell.ts` is the Tauri side the client runs on; the tests pass Tauri's mocks.
 - **`src-tauri/`** is the Rust crate `laminapdf-desktop`, a member of the Cargo workspace. `src/lib.rs` builds the app and its main window; `src/commands.rs` holds the commands the webview may call; `src/error.rs` holds `DesktopError`, which reaches the UI as `{ kind, message }`.
