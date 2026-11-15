@@ -145,7 +145,7 @@ The pipeline for every page view ([C3b](../todos/done/C3b-viewer-virtualiser-and
 | --- | --- | --- |
 | Web: first page, 10-page 1 MB PDF, warm cache | ≤ 700 ms ([web-app §4](web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward)) | ≤ 500 ms for a 10 MB PDF |
 | Desktop: cold start | Window built and shown < 300 ms, first command within 75 ms of the floor build; macOS, Windows and Linux ([desktop-app §4](desktop-app.md#non-functional-targets-and-release-gates); owner decision 2026-11-11, was < 300 ms to the first command) | — |
-| Desktop installer | < 15 MB per platform, PDFium included (was ≤ 40 MB) | — |
+| Desktop installer | < 15 MB per platform, PDFium included (was ≤ 40 MB); the Linux AppImage is reported, not gated ([desktop plan §4](desktop-app.md#non-functional-targets-and-release-gates)) | — |
 | Interaction responsiveness | No main-thread task > 50 ms while scrolling ([web-app §4](web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward)) | INP ≤ 200 ms (p75); every command answers in ≤ 100 ms |
 | Crash-free sessions (opt-in reports) | — | ≥ 99.95% (vendor median) |
 
