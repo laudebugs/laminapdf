@@ -108,6 +108,9 @@ describe("the switch", () => {
     Number.parseFloat(style(track).getPropertyValue(`border-${side}-width`));
 
   it("slides its knob to the far end when turned on, by translate over the state-out time", async () => {
+    // The runner's own setting may ask for reduced motion (CI's WebKit does), which drops the slide.
+    await commands.reducedMotion("no-preference");
+    onTestFinished(() => commands.reducedMotion(null));
     const host = renderIn(<Switch>Show thumbnails</Switch>);
     const track = get(host, ".paper-switch-track");
     expect(knob(host).getBoundingClientRect().left).toBeCloseTo(
