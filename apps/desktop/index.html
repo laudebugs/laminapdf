@@ -3,6 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- The webview paints its empty page in the OS's light or dark before the styles load, so a
+         dark window doesn't open on a white frame (motion plan §5). -->
+    <meta name="color-scheme" content="light dark" />
     <title>Lamina PDF</title>
     <script type="module" src="/src/main.tsx"></script>
   </head>
