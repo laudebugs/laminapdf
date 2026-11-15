@@ -323,7 +323,10 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   (preferences.json, Settings › Motion among them), motion.rs (U7f: GNOME's reduce-motion setting, which
 │                        #   WebKitGTK misses under Wayland, read by gsettings for `system_motion`; src/motion.ts applies it), store.rs (atomic JSON), watch/ (notify on each open file's folder,
 │                        #   stamp.rs's settle rule, app.rs's reload as a new document; document://reloaded|missing|
-│                        #   unreadable); src/recent.tsx, settings.tsx (Settings › Files and Appearance and accessibility's Motion), motion.ts, window-state.ts
+│                        #   unreadable); crash/ (D7a: opt-in crash reports: report.rs, the allow-list matching
+│                        #   apps/updates/schemas/crash-report.schema.json; scrub.rs; consent.rs, crash.json; queue.rs, held/ and
+│                        #   outbox/; upload.rs, POST /crash without the install ID; the panic hook; src/crashes.tsx, S08's question
+│                        #   and Settings › Privacy); src/recent.tsx, settings.tsx (Settings › Files and Appearance and accessibility's Motion), motion.ts, window-state.ts
 │                        #   (the webview's context menu off the chrome, dimmed bars in an inactive window), file-changes.tsx,
 │                        #   error.rs (DesktopError as { kind, message }), build.rs (app manifest: each command needs an allow-*
 │                        #   permission), tauri.conf.json (Lamina PDF, com.laminapdf.desktop, strict CSP, frozen prototype,
@@ -344,7 +347,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   400/404), manifest.ts (types and validator; schemas/manifest.schema.json), rollout.ts (Lamina-Install-Id
 │                        #   as a UUID v4, SHA-256 buckets of 10 000), select.ts (bridges, whatever the pause; release in its rollout;
 │                        #   previous), cache.ts (one Cache API layer, 30 s, checked against the copy's read time), handler.ts,
-│                        #   index.ts (the only file on workerd's types, src/generated/ from `pnpm run types`); scripts/manifest.ts
+│                        #   index.ts (the only file on workerd's types, src/generated/ from `pnpm run types`); crash.ts and
+│                        #   crash-endpoint.ts (D7a: POST /crash checked against schemas/crash-report.schema.json, path-like free
+│                        #   text refused, 64 KiB, rate-limited, into the private bucket lamina-pdf-crash-reports); scripts/manifest.ts
 │                        #   (show, validate, put, pause, resume, set-rollout, promote; R2's S3 API, `--local` on Wrangler),
 │                        #   scripts/r2.ts (the S3 client per-bucket R2 tokens need, SigV4 via aws4fetch; `pnpm run r2
 │                        #   put|delete`), smoke.sh;
@@ -678,7 +683,7 @@ cargo xtask desktop-notices [--bundle]  # the desktop app's THIRD_PARTY_NOTICES.
 cargo xtask desktop-release plan | sizes <dir> | sbom <target> <dir>  # the desktop release's decisions (D6b): the run's
                              #   version, channel, environment and matrix into $GITHUB_OUTPUT (desktop_release/plan.rs, table-tested);
                              #   installers against the 15 MB budget; the app's and engine's CycloneDX SBOMs and the npm SBOM
-cargo xtask desktop-sidecar [--release|--debug]  # the engine into apps/desktop/src-tauri/binaries/ (Tauri's -<triple> name) and
+cargo xtask desktop-sidecar [--release|--debug] [--e2e]  # the engine into apps/desktop/src-tauri/binaries/ (Tauri's -<triple> name) and
                              #   pinned PDFium into src-tauri/resources/pdfium/ (both git-ignored); the profile defaults to the
                              #   Tauri CLI's (release unless its hook sets TAURI_ENV_DEBUG=true); desktop:dev/desktop:build run it first
 cargo xtask fixtures large-pdf [--pages N] [--out PATH]  # the engine's 1 GB fixture (20,000 image pages, ~1.1 GB, never

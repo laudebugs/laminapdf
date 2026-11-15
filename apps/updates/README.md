@@ -42,6 +42,20 @@ To check a channel by hand:
 curl -i -H "Lamina-Install-Id: $(uuidgen)" https://updates.laminapdf.com/beta/darwin/aarch64/0.1.0
 ```
 
+## Crash reports
+
+When a user has agreed to send crash reports, the desktop app posts each one to `POST /crash` on the same Worker. The body is one JSON report, as `schemas/crash-report.schema.json` describes it, of at most 64 KiB, sent as `application/json`.
+
+The Worker checks it with `src/crash.ts` and refuses any report whose free text still holds a path, a `file:` URL, an e-mail address or a long number: the app's scrubber removes those, and the Worker checks again. A request carrying the `Lamina-Install-Id` header is refused, so no report can be linked to an install. An accepted report answers 202 and lands in its own private bucket, `lamina-pdf-crash-reports`, at `crash-reports/{yyyy}/{mm}/{dd}/{report_id}.json` by the UTC day it arrived. Staging writes to `lamina-pdf-crash-reports-staging`.
+
+The `CRASH_LIMIT` rate limiter allows about 10 reports a minute from one IP and answers 429 past that; Cloudflare counts per location, so the cut-off is approximate. The IP is the limiter's key and nothing else. Neither it nor any part of a report reaches a log. The Worker logs only a failed R2 write (`crash-store-failed`), with R2's own error text, and the log-leak test fails if a report's text or an IP appears in any console output.
+
+Wrangler fetches one report by its key (browse a day's keys in the dashboard's R2 view):
+
+```sh
+pnpm --filter @laminapdf/updates exec wrangler r2 object get lamina-pdf-crash-reports/crash-reports/2027/01/20/<report_id>.json --remote --pipe
+```
+
 ## Updater public keys
 
 The desktop app compiles one of these into its updater configuration, `plugins.updater.pubkey` in `tauri.conf.json` ([Tauri updater](https://v2.tauri.app/plugin/updater/)). The owner made both keys on 2026-11-12. The private halves are only in the owner's password manager, its backups, and the GitHub environments named below.
@@ -75,11 +89,12 @@ A key change ships through a bridge release, since every installed copy trusts o
 | Stable and beta | bucket `lamina-pdf-releases`, files at `downloads.laminapdf.com` |
 | Nightly | bucket `lamina-pdf-nightly`, files at `nightly-downloads.laminapdf.com` |
 | Staging channel | bucket `lamina-pdf-staging`, files at `staging-downloads.laminapdf.com` |
+| Crash reports | bucket `lamina-pdf-crash-reports` (staging: `lamina-pdf-crash-reports-staging`), kept 30 days; `src/crash.ts`, `src/crash-endpoint.ts` |
 | Channels and buckets | `src/channels.ts`, the one map; a test holds `wrangler.jsonc`'s bindings to it |
 | Manifest format | `src/manifest.ts`, and `schemas/manifest.schema.json` for other tools |
 | Deploys | `.github/workflows/updates-deploy.yml`, with `scripts/smoke.sh` |
 
-The Worker only reads the buckets. A release is a set of files plus a manifest change, never a Worker deploy: the desktop release workflow uploads the bundles, and the manifest tool edits the manifest. Every push to `main` that touches the Worker deploys staging and then production, in the Worker's own `updates-production` environment, with no release tag; [ADR 0014 §5](../../docs/decisions/0014-desktop-distribution.md#5-the-r2-layout-the-manifest-and-the-endpoint) explains why that is safe.
+The Worker only reads the release buckets; the crash-reports bucket is the one it writes. A release is a set of files plus a manifest change, never a Worker deploy: the desktop release workflow uploads the bundles, and the manifest tool edits the manifest. Every push to `main` that touches the Worker deploys staging and then production, in the Worker's own `updates-production` environment, with no release tag; [ADR 0014 §5](../../docs/decisions/0014-desktop-distribution.md#5-the-r2-layout-the-manifest-and-the-endpoint) explains why that is safe.
 
 ## Owner setup
 
@@ -101,7 +116,17 @@ This is done once, in the Cloudflare dashboard. Until the deploy secrets exist, 
 
    `CLOUDFLARE_ACCOUNT_ID` is in all three environments. The staging token in `desktop-release` serves the desktop release workflow's signed trial runs.
 4. **Deploy token.** The workflow uses the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, the same ones the web reader deploys with. The token needs **Workers Scripts: Edit** on the account and **Workers Routes: Edit** on the `laminapdf.com` zone, and **no R2 access at all**: deploying a Worker with R2 bindings needs none, and only the per-bucket tokens above may write releases. The first deploy creates the `updates.` and `staging-updates.` custom domains and their certificates.
-5. **Check it.** `https://updates.laminapdf.com/healthz` answers `ok`. A channel with no manifest answers 204.
+5. **Crash-report buckets.** Create both buckets and give each a rule that deletes reports after 30 days. Leave them without a custom domain or `r2.dev` address, so only the Worker can reach them:
+
+   ```sh
+   pnpm --filter @laminapdf/updates exec wrangler r2 bucket create lamina-pdf-crash-reports
+   pnpm --filter @laminapdf/updates exec wrangler r2 bucket lifecycle add lamina-pdf-crash-reports expire-crash-reports crash-reports/ --expire-days 30
+   pnpm --filter @laminapdf/updates exec wrangler r2 bucket create lamina-pdf-crash-reports-staging
+   pnpm --filter @laminapdf/updates exec wrangler r2 bucket lifecycle add lamina-pdf-crash-reports-staging expire-crash-reports crash-reports/ --expire-days 30
+   ```
+
+   `wrangler r2 bucket lifecycle list lamina-pdf-crash-reports` shows the rule. The deploy fails until both buckets exist.
+6. **Check it.** `https://updates.laminapdf.com/healthz` answers `ok`. A channel with no manifest answers 204.
 
 The GitHub environments themselves (reviewers, branch rules, the signing secrets) are set up in the desktop release runbook, `docs/guidelines/desktop-release.md` (added by the desktop signing runbook, PR #517). The `updates-production` environment the deploy uses needs no setup: GitHub creates it on the first deploy, and it is the update Worker's own, apart from the web reader's `production`.
 
@@ -116,7 +141,7 @@ pnpm --filter @laminapdf/updates dev         # the Worker on wrangler dev with l
 
 `cargo xtask check ts` runs the typecheck and the tests with every other package's.
 
-Unit tests sit beside their sources (`src/*.test.ts`, `scripts/edits.test.ts`); `test/` holds the integration tests: the request handler in Node, and the bundled Worker in workerd. Together they cover every branch in ADR 0014: 204 and 200, the rollout with the install ID present, absent and malformed, `previous`, bridges, the pause, the 30-second cache bound and bad paths. A log-leak test fails if an install ID reaches any log.
+Unit tests sit beside their sources (`src/*.test.ts`, `scripts/edits.test.ts`); `test/` holds the integration tests: the request handler in Node, and the bundled Worker in workerd. Together they cover every branch in ADR 0014: 204 and 200, the rollout with the install ID present, absent and malformed, `previous`, bridges, the pause, the 30-second cache bound and bad paths. `test/crash.test.ts` covers `POST /crash` and holds `src/crash.ts` to the report's schema. A log-leak test fails if an install ID, a crash report's text or a client's IP reaches any log.
 
 The workerd tests run through Miniflare `5.20261103.0-beta`, pinned exactly: it is the Miniflare that the workspace's Wrangler 4.157.0 depends on, and Miniflare 5 has so far been published only as betas. `@cloudflare/vitest-pool-workers` would run every test in workerd, but its current release needs Vitest 4, and the workspace is on Vitest 5.
 

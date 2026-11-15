@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crash-question"
+description = "Enables the crash_question command without any pre-configured scope."
+commands.allow = ["crash_question"]
+
+[[permission]]
+identifier = "deny-crash-question"
+description = "Denies the crash_question command without any pre-configured scope."
+commands.deny = ["crash_question"]

@@ -37,6 +37,7 @@ import { registerEditCommands } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AppInfo } from "./app-info.ts";
+import { useCrashReports } from "./crashes.tsx";
 import { useDesktopEditing } from "./editing.tsx";
 import { type DesktopEngineClient, DesktopEngineError, type DesktopShell } from "./engine/desktop-engine-client.ts";
 import { type Dragging, desktopOpener, listenForOsOpens } from "./engine/open.ts";
@@ -174,6 +175,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const { notice, actions: tabActions } = strip;
   const { settings, recent, updates, actions: homeActions } = useHome(engine, platform, reader, state, toasts);
   const print = usePrint(engine, toasts);
+  const crashes = useCrashReports(engine?.shell);
   const actions = useMergedActions(homeActions, tabActions, print.actions, editing.actions);
   const open = state.phase === "open";
   const shows = useShownParts(state.phase, tabs);
@@ -186,7 +188,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
     <CommandsProvider registry={registry} context={context} keys={keys} singleKeys={singleKeys}>
       <ReaderShell
         tabs={strip.strip}
-        notice={notice}
+        notice={crashes.notice ?? notice}
         topBar={
           <ReaderTopBar
             reader={reader}
@@ -224,6 +226,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
       <PasswordDialog reader={reader} />
       {editing.dialog}
       {settings.dialog}
+      {crashes.dialog}
       {palette}
       <ToastRegion queue={toasts} aria-label="Notifications" />
     </CommandsProvider>

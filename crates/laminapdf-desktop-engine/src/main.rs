@@ -84,6 +84,7 @@ fn main() -> ExitCode {
             }
         };
     }
+    laminapdf_desktop_engine::crash::report_panics();
     let setup = Setup {
         backend,
         sandboxed,

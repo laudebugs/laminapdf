@@ -330,12 +330,17 @@ jobs:
           set -euo pipefail
           exe=""
           if [ "$RUNNER_OS" = Windows ]; then exe=.exe; fi
-          for name in debug_kill_engine e2e_queue_pick e2e_interactive tauri-plugin-wdio TAURI_WEBDRIVER_PORT "startup timings" update-test.json; do
+          for name in debug_kill_engine e2e_queue_pick e2e_interactive e2e_crash_ DebugPanic tauri-plugin-wdio TAURI_WEBDRIVER_PORT "startup timings" update-test.json; do
             if grep -aq "$name" "target/debug/laminapdf-desktop$exe"; then
               echo "::error::the app holds $name without the e2e feature"
               exit 1
             fi
           done
+          # The engine obeys the tests' forced panic only when built for them (desktop-sidecar --e2e).
+          if grep -aq DebugPanic "target/debug/laminapdf-desktop-engine$exe"; then
+            echo "::error::the engine holds DebugPanic without its e2e feature"
+            exit 1
+          fi
           if grep -rlq -e __laminaE2e -e __wdio apps/desktop/dist; then
             echo "::error::the frontend bundle holds the e2e probe or WebdriverIO's plugin"
             exit 1

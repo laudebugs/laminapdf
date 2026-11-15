@@ -31,6 +31,7 @@
 @import "./properties.css";
 @import "./capabilities.css";
 @import "./offline.css";
+@import "./crash-report.css";
 @import "./recent.css";
 @import "./print.css";
 @import "./initial-view.css";
