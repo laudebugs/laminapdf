@@ -192,7 +192,7 @@ export function CropDialog(props: CropDialogProps): ReactNode {
 export type ResizeContent = "scale" | "extend";
 
 /** Where content kept at its size sits on the new paper. */
-export const ANCHORS = [
+const ANCHORS = [
   "topLeft",
   "top",
   "topRight",
@@ -414,10 +414,10 @@ export function ResizeDialog(props: ResizeDialogProps): ReactNode {
 export type Box = readonly [number, number, number, number];
 
 /** The five boxes. */
-export const BOX_NAMES = ["media", "crop", "bleed", "trim", "art"] as const;
+const BOX_NAMES = ["media", "crop", "bleed", "trim", "art"] as const;
 
 /** One of them. */
-export type BoxName = (typeof BOX_NAMES)[number];
+type BoxName = (typeof BOX_NAMES)[number];
 
 /** A page's boxes as the boxes dialog reads them: each box, and which of the last three the page sets. */
 export interface PageBoxValues {
