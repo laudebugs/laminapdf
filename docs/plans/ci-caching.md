@@ -1,6 +1,6 @@
 # Plan: share compiled Rust between CI runs through sccache on Cloudflare R2
 
-- **Status:** In progress (2026-11-15). The trial (X8a) didn't meet §5's rule, so X8b removed the compile cache ([§2.2](#22-the-trials-results-x8b)); the waits (§8) are done but for the browser suites (§8.3, X12)
+- **Status:** Done (2026-11-15). The trial (X8a) didn't meet §5's rule, so X8b removed the compile cache ([§2.2](#22-the-trials-results-x8b)); the waits (§8) are done
 - **Date:** 2026-11-12
 - **Asked for by:** the project owner (2026-11-12): "look at caching for our tests, so as to speed up the pipeline", then "cache the rust builds without turborepo", with the cache on Cloudflare R2.
 - **Changes:** [ADR 0018 §2](../decisions/0018-test-strategy.md#2-ci-lanes) (a CI compile cache, and what may never use it; reversed 2026-11-15)
@@ -216,4 +216,4 @@ Expected savings, per pull request:
 | `packages/ui/` | every leg, every suite | `ui` and `web` in each browser |
 | a core crate | every leg, every suite | every suite that reads the WebAssembly: `examples`, `render-hayro`, `viewer`, `web`, `docs` |
 
-- [ ] The browser suites and the reader's deploy flag from the dependency graph ([X12](../todos/ongoing/X12-browser-suites-from-the-graph.md))
+- [x] The browser suites and the reader's deploy flag from the dependency graph ([X12](../todos/done/X12-browser-suites-from-the-graph.md))

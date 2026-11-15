@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `X12` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [CI caching §8.3](../../plans/ci-caching.md#83-browser-suites-by-the-dependency-graph-x12) |
 | Round / milestone | Round X (cross-cutting): CI |
-| Depends on | [X10a](../done/X10a-desktop-inputs-from-the-graph.md) |
+| Depends on | [X10a](./X10a-desktop-inputs-from-the-graph.md) |
 | ADRs | [ADR 0018 §2](../../decisions/0018-test-strategy.md#2-ci-lanes) |
 | Branch | `ci/x12-suites-by-graph` |
 | PR title | `ci: run each browser suite only when the dependency graph reaches it` |
@@ -52,11 +52,11 @@ The fast lane's runtime legs run every browser suite on almost every code PR, so
 
 ## Acceptance criteria
 
-- [ ] A change only to `crates/laminapdf-cli/src/` gives an empty `runtime-legs` and `web=false`, and doesn't release the reader.
-- [ ] A change only to `apps/site/src/data/` runs the `site` suite alone, in each browser leg, and no server leg.
-- [ ] A change to `crates/laminapdf-cos/` runs `examples`, `render-hayro`, `viewer`, `web` and `docs`, and the server leg.
-- [ ] A change to `docs/errors/` with a code change runs `docs`.
-- [ ] A push to `main` runs every leg and every suite; the nightly's and the release lane's `pdf-runtimes` runs are unchanged.
+- [x] A change only to `crates/laminapdf-cli/src/` gives an empty `runtime-legs` and `web=false`, and doesn't release the reader.
+- [x] A change only to `apps/site/src/data/` runs the `site` suite alone, in each browser leg, and no server leg.
+- [x] A change to `crates/laminapdf-cos/` runs `examples`, `render-hayro`, `viewer`, `web` and `docs`, and the server leg.
+- [x] A change to `docs/errors/` with a code change runs `docs`.
+- [x] A push to `main` runs every leg and every suite; the nightly's and the release lane's `pdf-runtimes` runs are unchanged.
 
 ## Post-merge checks
 
