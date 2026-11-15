@@ -11,7 +11,7 @@
 | Branch | `feat/e2h-page-organiser-ui` |
 | PR title | `feat(ui): page organiser with drag-and-drop thumbnails` |
 | Size | L (400–800): the Organise mode's page grid, selection, drag and its commands in `@laminapdf/ui`, with Playwright tests; the viewer's part is [E2l](../done/E2l-viewer-across-page-edits.md)'s and the dialogs [E2g](../ready/E2g-page-labels.md)'s and [E2m](../ready/E2m-document-dialogs.md)'s |
-| PR | — |
+| PR | [laudebugs/laminapdf#625](https://github.com/laudebugs/laminapdf/pull/625) |
 
 ## Goal
 
