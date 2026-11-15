@@ -1,6 +1,7 @@
 # Website deploys (todo W1b): apps/site on Cloudflare Workers static assets (apps/site/wrangler.toml).
 #
-# Pull requests that touch the site or anything it is built from (paths below):
+# Pull requests that touch the site or anything it is built from (paths below; a test in
+# tools/xtask/src/changes/suites.rs holds them to the dependency graph, todo X12):
 # - `preview-build` builds the PR's site with no secrets and uploads dist/ as an artifact. The
 #   build marks it noindex itself: only a build with LAMINA_PDF_ENV=production omits the header.
 # - `preview-deploy` holds the Cloudflare secrets and never checks out or runs the PR's code: it
@@ -31,6 +32,11 @@ on:
       - packages/site-kit/**
       - packages/tokens/**
       - packages/fonts/**
+      # What the site kit draws its icons from, and the test helpers (and the render package
+      # they import) its e2e suite shares.
+      - packages/icons/**
+      - packages/test-utils/**
+      - packages/render/**
       # What the home page reads at build time (apps/site/src/data/sources.ts): the first PDF, the
       # version, the command-line examples and the install page.
       - packages/sdk/examples/hello.ts
