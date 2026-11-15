@@ -11,7 +11,7 @@ mod appearance;
 mod conformance;
 mod drawing;
 mod drawing_patch;
-mod geom;
+pub(crate) mod geom;
 mod redraw;
 mod reply;
 mod spec;

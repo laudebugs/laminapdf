@@ -9,7 +9,7 @@ use laminapdf_cos::{Dict, Object};
 use laminapdf_model::{UserSpacePoint, UserSpaceRect};
 use serde::{Deserialize, Serialize};
 
-use super::geom::{self, AnnotColor};
+use super::geom::{self, AnnotColor, numbers_of, rect_of};
 use crate::wire;
 
 /// The private key holding an ink annotation's per-point widths: one array per stroke of
@@ -78,7 +78,8 @@ impl Ink {
     fn thinned(&self) -> Self {
         Self {
             strokes: self.strokes.iter().map(InkStroke::thinned).collect(),
-            ..self.clone()
+            width: self.width,
+            smoothing: self.smoothing,
         }
     }
 
@@ -128,24 +129,24 @@ impl InkStroke {
         self
     }
 
-    /// The stroke without points closer than [`THIN`] to the point kept before them; the last
-    /// point is always kept, so the stroke ends where it ended.
+    /// The stroke without points closer than [`THIN`] to the point kept before them. The first
+    /// and last points are always kept, so the stroke starts and ends where it did; the last
+    /// replaces the kept points it is too close to. Thinning a thinned stroke changes nothing.
     fn thinned(&self) -> Self {
-        let mut points = Vec::with_capacity(self.points.len());
+        let near = |p: &UserSpacePoint, q: &UserSpacePoint| (p.x - q.x).hypot(p.y - q.y) < THIN;
+        let mut points: Vec<UserSpacePoint> = Vec::with_capacity(self.points.len());
         let mut widths = self.widths.as_ref().map(|_| Vec::with_capacity(self.points.len()));
         let last = self.points.len().saturating_sub(1);
         for (i, p) in self.points.iter().enumerate() {
-            let near = points
-                .last()
-                .is_some_and(|q: &UserSpacePoint| (p.x - q.x).hypot(p.y - q.y) < THIN);
-            if near && i != last {
+            if i != last && points.last().is_some_and(|q| near(p, q)) {
                 continue;
             }
-            if near {
-                // The last point replaces the one it is too close to.
-                points.pop();
-                if let Some(w) = widths.as_mut() {
-                    w.pop();
+            if i == last {
+                while points.len() > 1 && points.last().is_some_and(|q| near(p, q)) {
+                    points.pop();
+                    if let Some(w) = widths.as_mut() {
+                        w.pop();
+                    }
                 }
             }
             points.push(*p);
@@ -764,10 +765,7 @@ pub(crate) fn write(dict: &mut Dict, drawing: &Drawing<'_>) {
         Drawing::Shape(shape) => {
             write_border(dict, &shape.border);
             write_interior(dict, shape.interior);
-            let rect = dict.get("Rect").and_then(numbers_of).and_then(|r| match *r {
-                [a, b, c, d] => Some(UserSpaceRect::from_corners(a, b, c, d)),
-                _ => None,
-            });
+            let rect = dict.get("Rect").and_then(rect_of);
             if let Some(outer) = rect {
                 let inner = shape.rect;
                 let rd = [
@@ -865,11 +863,6 @@ fn numbers(points: &[UserSpacePoint]) -> Object {
             .flat_map(|p| [Object::Real(p.x), Object::Real(p.y)])
             .collect(),
     )
-}
-
-/// The numbers of an array.
-fn numbers_of(value: &Object) -> Option<Vec<f64>> {
-    value.as_array()?.iter().map(Object::as_f64).collect()
 }
 
 /// Points from a flat array of numbers; a trailing odd number is dropped.

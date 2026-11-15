@@ -75,9 +75,10 @@ fn shapes() -> Vec<AnnotSpec> {
 
 fn lines() -> Vec<AnnotSpec> {
     vec![
-        AnnotSpec::Line(LineMark::new(at(60.0, 330.0), at(260.0, 330.0)).with_leader(Some(
-            Leader::new(30.0).with_extension(6.0).with_offset(4.0),
-        ))),
+        AnnotSpec::Line(
+            LineMark::new(at(60.0, 330.0), at(260.0, 330.0))
+                .with_leader(Some(Leader::new(30.0).with_extension(6.0).with_offset(4.0))),
+        ),
         AnnotSpec::Line(LineMark::new(at(60.0, 380.0), at(260.0, 380.0)).with_leader(Some(Leader::new(-20.0)))),
         AnnotSpec::Line(
             LineMark::new(at(300.0, 330.0), at(500.0, 420.0))
@@ -103,13 +104,19 @@ fn polys() -> Vec<AnnotSpec> {
             Poly::new(PolyKind::Polygon, star(110.0, 510.0)).with_interior(Some(AnnotColor::Rgb(1.0, 0.9, 0.2))),
         ),
         AnnotSpec::Poly(
-            Poly::new(PolyKind::Polygon, vec![at(200.0, 470.0), at(320.0, 480.0), at(290.0, 550.0), at(210.0, 540.0)])
-                .with_border(Border::cloudy(1.5, 1.0)),
+            Poly::new(
+                PolyKind::Polygon,
+                vec![at(200.0, 470.0), at(320.0, 480.0), at(290.0, 550.0), at(210.0, 540.0)],
+            )
+            .with_border(Border::cloudy(1.5, 1.0)),
         ),
         AnnotSpec::Poly(
-            Poly::new(PolyKind::PolyLine, vec![at(370.0, 550.0), at(420.0, 470.0), at(470.0, 540.0), at(520.0, 480.0)])
-                .with_ends(LineEnding::OpenArrow, LineEnding::RClosedArrow)
-                .with_border(Border::solid(2.0)),
+            Poly::new(
+                PolyKind::PolyLine,
+                vec![at(370.0, 550.0), at(420.0, 470.0), at(470.0, 540.0), at(520.0, 480.0)],
+            )
+            .with_ends(LineEnding::OpenArrow, LineEnding::RClosedArrow)
+            .with_border(Border::solid(2.0)),
         ),
     ]
 }
@@ -129,7 +136,11 @@ fn ink() -> Vec<AnnotSpec> {
         .collect();
     vec![
         AnnotSpec::Ink(Ink::new(vec![InkStroke::new(wave(60.0, 640.0))]).with_width(2.0)),
-        AnnotSpec::Ink(Ink::new(vec![InkStroke::new(wave(60.0, 700.0))]).with_width(2.0).with_smoothing(false)),
+        AnnotSpec::Ink(
+            Ink::new(vec![InkStroke::new(wave(60.0, 700.0))])
+                .with_width(2.0)
+                .with_smoothing(false),
+        ),
         AnnotSpec::Ink(Ink::new(vec![InkStroke::new(wave(280.0, 640.0)).with_widths(pressure)])),
         AnnotSpec::Ink(Ink::new(vec![InkStroke::new(vec![at(300.0, 720.0)])]).with_width(8.0)),
     ]

@@ -50,6 +50,18 @@ fn thinning_drops_points_within_a_quarter_point_and_keeps_the_last() {
 }
 
 #[test]
+fn thinning_keeps_the_first_point_and_changes_a_thinned_stroke_no_more() {
+    // The last point lands near the first once the middle one goes.
+    let once = InkStroke::new(vec![p(0.0, 0.0), p(0.3, 0.0), p(0.1, 0.0)]).thinned();
+    assert_eq!(once.points, vec![p(0.0, 0.0), p(0.1, 0.0)]);
+    assert_eq!(once.thinned(), once);
+    // A last point near several kept ones replaces them all, so no two stay too close.
+    let tail = InkStroke::new(vec![p(0.0, 0.0), p(5.0, 0.0), p(5.2, 0.0), p(5.1, 0.0)]).thinned();
+    assert_eq!(tail.points, vec![p(0.0, 0.0), p(5.1, 0.0)]);
+    assert_eq!(tail.thinned(), tail);
+}
+
+#[test]
 fn widths_must_match_the_points() {
     let stroke = InkStroke::new(vec![p(0.0, 0.0), p(5.0, 5.0)]).with_widths(vec![1.0]);
     assert!(!AnnotSpec::Ink(Ink::new(vec![stroke])).is_valid());

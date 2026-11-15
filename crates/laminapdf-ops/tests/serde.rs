@@ -180,6 +180,32 @@ mod samples {
     }
 
     #[test]
+    fn an_ink_update_with_widths_off_its_points_or_a_missing_stroke_is_refused() {
+        let mut doc = common::open(&fixture("golden/links-and-outlines.pdf"))
+            .with_appearances(laminapdf_build::AnnotationAppearances);
+        let add: Op = serde_json::from_slice(&fixture("ops/v1/add-annot-ink.json")).unwrap();
+        let id = doc.apply_all(Origin::Local, [add]).unwrap().created_annotations[0].to_string();
+        let points = r#"[{ "x": 310, "y": 590 }, { "x": 320, "y": 600 }, { "x": 330, "y": 610 }]"#;
+        for (spec, why) in [
+            (
+                format!(r#"{{ "type": "ink", "add": [{{ "points": {points}, "widths": [2] }}] }}"#),
+                "geometry",
+            ),
+            (
+                r#"{ "type": "ink", "remove": [9] }"#.to_owned(),
+                "a stroke the mark doesn't have",
+            ),
+        ] {
+            let json = format!(r#"{{ "op": "updateAnnot", "args": {{ "id": "{id}", "spec": {spec} }} }}"#);
+            let update: Op = serde_json::from_str(&json).unwrap();
+            match doc.apply_all(Origin::Local, [update]) {
+                Err(Error::InvalidOp(message)) => assert!(message.contains(why), "{message}"),
+                other => panic!("{spec}: {other:?}"),
+            }
+        }
+    }
+
+    #[test]
     fn an_annotation_spec_rejects_unknown_fields_and_types() {
         for spec in [
             r#"{ "type": "note", "at": { "x": 0, "y": 0 }, "colour": "red" }"#,

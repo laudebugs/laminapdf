@@ -6,16 +6,16 @@ use laminapdf_ops::{Border, Ink};
 
 use super::{DeviceColor, KAPPA, Pen, V, set_stroke};
 
-/// Draws `ink` in `color`; returns how far the drawing reaches past the points: half the widest
-/// stroke.
+/// Draws `ink` in `color`; returns how far the drawing reaches past the pen's box: half the
+/// pen's width when a stroke is stroked, else nothing, since a pressure stroke's filled outline
+/// is in the box already.
 pub(super) fn ink(pen: &mut Pen<'_>, ink: &Ink, color: DeviceColor) -> f64 {
-    let mut reach = ink.width / 2.0;
+    let mut reach: f64 = 0.0;
     let mut stroking = false;
     for stroke in &ink.strokes {
         let points: Vec<V> = stroke.points.iter().map(|p| V::of(*p)).collect();
         if let Some(widths) = &stroke.widths {
             let halves: Vec<f64> = widths.iter().map(|w| f64::from(*w) / 2.0).collect();
-            reach = halves.iter().copied().fold(reach, f64::max);
             color.fill(pen.c);
             outline(pen, &points, &halves, ink.smoothing);
             pen.c.fill_nonzero();
@@ -24,6 +24,7 @@ pub(super) fn ink(pen: &mut Pen<'_>, ink: &Ink, color: DeviceColor) -> f64 {
         if !stroking {
             stroking = set_stroke(pen, &Border::solid(ink.width), color);
         }
+        reach = ink.width / 2.0;
         if let [only] = points.as_slice() {
             // One point is a dot: a zero-length line shows nothing in some readers.
             color.fill(pen.c);

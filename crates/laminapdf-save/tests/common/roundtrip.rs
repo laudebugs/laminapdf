@@ -1201,7 +1201,8 @@ fn marks(root: &Path, suite: &mut Suite) {
             .collect::<Vec<_>>();
             let applied = doc.apply_all(Origin::Local, ops).unwrap();
             let mut strike = markup(MarkupKind::StrikeOut, vec![line(40.0)]);
-            strike.common.group_with = applied.created_annotations.last().cloned();
+            // The caret is the fourth mark made: the strike-out joins its group, a replacement.
+            strike.common.group_with = applied.created_annotations.get(3).cloned();
             let highlight = applied.created_annotations.first().cloned().unwrap();
             let mut reply = AddReply::new(highlight.clone(), "Agreed");
             reply.author = Some("Ada".into());

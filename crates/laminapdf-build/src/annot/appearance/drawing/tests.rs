@@ -100,6 +100,17 @@ fn a_polyline_draws_its_endings_along_its_end_segments() {
 }
 
 #[test]
+fn a_polyline_ending_on_a_repeated_vertex_keeps_its_arrow() {
+    let ends = |vertices| {
+        let poly = Poly::new(PolyKind::PolyLine, vertices).with_ends(LineEnding::None, LineEnding::ClosedArrow);
+        drawn(&AnnotSpec::Poly(poly)).bbox
+    };
+    let once = ends(vec![p(0.0, 0.0), p(50.0, 50.0), p(100.0, 0.0)]);
+    let twice = ends(vec![p(0.0, 0.0), p(50.0, 50.0), p(100.0, 0.0), p(100.0, 0.0)]);
+    assert_eq!(rect(twice), rect(once));
+}
+
+#[test]
 fn a_pressure_stroke_is_filled_not_stroked() {
     let stroke = InkStroke::new(vec![p(0.0, 0.0), p(10.0, 5.0), p(20.0, 0.0)]).with_widths(vec![1.0, 4.0, 1.0]);
     let t = text(&AnnotSpec::Ink(Ink::new(vec![stroke])));
@@ -108,10 +119,11 @@ fn a_pressure_stroke_is_filled_not_stroked() {
 }
 
 #[test]
-fn a_pressure_stroke_reaches_half_its_widest_point() {
+fn a_pressure_stroke_reaches_half_its_widest_point_and_no_further() {
     let stroke = InkStroke::new(vec![p(0.0, 0.0), p(20.0, 0.0)]).with_widths(vec![2.0, 6.0]);
     let b = drawn(&AnnotSpec::Ink(Ink::new(vec![stroke]))).bbox;
-    assert!(b.y1 >= 3.0 && b.y1 < 6.5, "{b:?}");
+    // The round cap at the wide end: 3 past the point, and nothing added for a pen.
+    assert!((b.y1 - 3.0).abs() < 1e-9 && (b.x1 - 23.0).abs() < 1e-9, "{b:?}");
 }
 
 #[test]

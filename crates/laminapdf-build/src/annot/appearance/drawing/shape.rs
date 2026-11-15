@@ -61,22 +61,23 @@ pub(super) fn poly(pen: &mut Pen<'_>, poly: &Poly, color: DeviceColor, fill: Opt
         _ => {
             pen.through(&points, false);
             paint_path(pen, None, stroke);
-            if let (Some(&a), Some(&b), Some(&y), Some(&z)) =
-                (points.first(), points.get(1), points.iter().rev().nth(1), points.last())
-            {
-                let out = |from: V, to: V| to.sub(from).unit();
-                draw_ends(
-                    pen,
-                    poly.ends,
-                    [(a, out(b, a)), (z, out(y, z))],
-                    poly.border.width,
-                    fill,
-                    stroke,
-                );
+            if let (Some(&a), Some(&z)) = (points.first(), points.last()) {
+                let start = away(a, points.iter().skip(1), V::new(-1.0, 0.0));
+                let end = away(z, points.iter().rev().skip(1), V::new(1.0, 0.0));
+                draw_ends(pen, poly.ends, [(a, start), (z, end)], poly.border.width, fill, stroke);
             }
             half
         }
     }
+}
+
+/// The direction from the first of `others` that differs from `tip` to `tip`, so a repeated end
+/// vertex (a polyline finished by a double click) keeps its ending; `fallback` when every vertex
+/// is `tip`, as a line of one point falls back to x.
+fn away<'a>(tip: V, mut others: impl Iterator<Item = &'a V>, fallback: V) -> V {
+    others
+        .find(|v| v.sub(tip).len() > 0.0)
+        .map_or(fallback, |&v| tip.sub(v).unit())
 }
 
 /// A box's corners, counter-clockwise from the lower left.
