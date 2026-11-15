@@ -221,6 +221,8 @@ impl ContentOps {
         moved.extend(portable(&ops, &state, &there)?);
         moved.extend(closing);
         let anchor_at = self.ops.get(outer.start).map_or(self.source.len(), |o| o.token_start);
+        // Every refusal comes before this point: `anchor_for` found the anchor, and it isn't the
+        // moved object, so the lookups below find it after the moved object is taken out.
         self.splice(index, outer, anchor_at, leaked_state(&ops));
         let mut object = self.objects.remove(index);
         let target = self.position(anchor).ok_or(NotEditable::ContentUnreadable)?;
