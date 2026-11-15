@@ -148,6 +148,18 @@ function WindowStatus({ repaired, toasts, print, updates, info }: WindowStatusPr
   );
 }
 
+/** Why the document's view went away, with Reopen. */
+function LostNotice({ lost, reader }: { lost: Lost; reader: ReaderController }): ReactNode {
+  return (
+    <Notice title={LOST_TEXT[lost].title} tone="warning">
+      {LOST_TEXT[lost].body}{" "}
+      <button type="button" className="desktop-link" onClick={() => void reopen(reader)}>
+        Reopen
+      </button>
+    </Notice>
+  );
+}
+
 /**
  * The reader's window: top bar, home screen, the document's view, and the notices around them.
  * @param props - See {@link AppProps}.
@@ -222,14 +234,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
         {state.phase === "error" ? (
           <ErrorPage state={state} engine={engine} tabs={tabs} reader={reader} platform={platform} toasts={toasts} />
         ) : null}
-        {open && lost !== undefined ? (
-          <Notice title={LOST_TEXT[lost].title} tone="warning">
-            {LOST_TEXT[lost].body}{" "}
-            <button type="button" className="desktop-link" onClick={() => void reopen(reader)}>
-              Reopen
-            </button>
-          </Notice>
-        ) : null}
+        {open && lost !== undefined ? <LostNotice lost={lost} reader={reader} /> : null}
         <ViewerHost viewer={engine?.viewer} visible={shows.viewer && lost === undefined} />
       </ReaderShell>
       {dragging === undefined ? null : <DropOverlay>{dropText(dragging)}</DropOverlay>}
