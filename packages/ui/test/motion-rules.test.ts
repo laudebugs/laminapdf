@@ -78,29 +78,61 @@ describe("the motion rules' checker", () => {
   });
 });
 
-describe("the state layer (states.css)", () => {
-  const states = readFileSync(new URL("../src/styles/states.css", import.meta.url), "utf8");
-  // Every class whose rules draw the layer: those in states.css's lists.
-  const layered = new Set([...states.matchAll(/(?:^|[\s(,])(?:button)?\.(paper-[\w-]+)/g)].map((m) => m[1] ?? ""));
-  layered.delete("paper-stable-label");
-  layered.delete("paper-stable-label-bold");
+describe("the state layer", () => {
+  const ui = sheets().filter(([file]) => file.startsWith("packages/ui/"));
+  /** A selector list split at its top-level commas, whitespace collapsed. */
+  const selectorsOf = (list: string) => {
+    const out: string[] = [];
+    let depth = 0;
+    let current = "";
+    for (const ch of list.replace(/\s+/g, " ")) {
+      if (ch === "(") depth++;
+      if (ch === ")") depth--;
+      if (ch === "," && depth === 0) {
+        out.push(current.trim());
+        current = "";
+      } else current += ch;
+    }
+    return [...out, current.trim()];
+  };
+  /** The compound a selector styles: its last one, outside parentheses; none for a pseudo-element. */
+  const subject = (selector: string) => {
+    let depth = 0;
+    let start = 0;
+    for (let i = 0; i < selector.length; i++) {
+      const ch = selector[i];
+      if (ch === "(") depth++;
+      if (ch === ")") depth--;
+      if (depth === 0 && (ch === " " || ch === ">" || ch === "+" || ch === "~")) start = i + 1;
+    }
+    const last = selector.slice(start);
+    return last.includes("::") ? "" : last;
+  };
+  // Every class that draws the layer: the subjects of rules setting background-image to it.
+  const layered = new Set(
+    ui.flatMap(([, css]) =>
+      declarations(css)
+        .filter(({ decl }) => /^background-image\s*:.*--ui-state-layer/.test(decl))
+        .flatMap(({ selector }) => selectorsOf(selector))
+        .flatMap((s) => [...subject(s).matchAll(/\.(paper-[\w-]+)/g)].map((m) => m[1] ?? "")),
+    ),
+  );
 
   it("knows the controls it draws on", () => {
-    expect([...layered]).toEqual(expect.arrayContaining(["paper-button", "paper-swatch", "paper-outline-link"]));
+    expect([...layered]).toEqual(
+      expect.arrayContaining(["paper-button", "paper-swatch", "paper-outline-link", "paper-checkbox-box"]),
+    );
   });
 
   it("is never wiped by a `background` shorthand on one of those controls", () => {
-    // The shorthand resets background-image, so a control's hover and press would vanish.
-    const found = sheets()
-      .filter(([file]) => file.startsWith("packages/ui/"))
-      .flatMap(([file, css]) =>
-        declarations(css)
-          .filter(({ decl }) => /^background\s*:/.test(decl))
-          .filter(({ selector }) =>
-            [...layered].some((c) => new RegExp(String.raw`\.${c}(?![\w-])(?![^\s,]*\s)`).test(selector)),
-          )
-          .map(({ selector }) => `${file}: ${selector.replace(/\s+/g, " ")}`),
-      );
+    // The shorthand resets background-image, so the control's hover and press would vanish.
+    const found = ui.flatMap(([file, css]) =>
+      declarations(css)
+        .filter(({ decl }) => /^background\s*:/.test(decl))
+        .flatMap(({ selector }) => selectorsOf(selector))
+        .filter((s) => [...layered].some((c) => new RegExp(String.raw`\.${c}(?![\w-])`).test(subject(s))))
+        .map((s) => `${file}: ${s}`),
+    );
     expect(found).toEqual([]);
   });
 });

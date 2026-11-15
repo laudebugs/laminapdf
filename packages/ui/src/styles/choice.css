@@ -175,7 +175,7 @@
   }
 
   /* Validity: an invalid choice's edge turns danger, as a field's does; the ring stays focus. */
-  .paper-choice[data-invalid]:not([data-selected], [data-indeterminate])
+  .paper-choice[data-invalid]:not([data-selected], [data-indeterminate], [data-disabled])
     :is(.paper-checkbox-box, .paper-radio-circle, .paper-switch-track) {
     border-color: var(--paper-danger);
   }
