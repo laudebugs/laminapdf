@@ -121,6 +121,8 @@ runs:
         UPDATER: ${{ inputs.updater }}
         SIGN_LINUX: ${{ inputs.sign-linux }}
         LAMINA_UPDATE_CHANNEL: ${{ inputs.channel }}
+        # Shipped binaries carry no symbols (the workspace's release profile keeps them for others).
+        CARGO_PROFILE_RELEASE_STRIP: symbols
       run: |
         set -euo pipefail
         # The version isn't committed: the run's plan gives it. A file, not a JSON argument,
@@ -143,12 +145,15 @@ runs:
         set -euo pipefail
         out="$RUNNER_TEMP/desktop/$PLATFORM"
         mkdir -p "$out"
-        bundle="target/$TARGET/release/bundle"
-        # Files only: the .app folder ships inside the .dmg and the .app.tar.gz.
-        find "$bundle" -mindepth 2 -maxdepth 2 -type f \
-          \( -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*-setup.exe' -o -name '*.msi' \
-             -o -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' -o -name '*.sig' \) \
-          -exec cp {} "$out/" \;
+        # Globs, not find: on Windows, `find` is the system's own find.exe. Files only: the .app
+        # folder ships inside the .dmg and the .app.tar.gz.
+        shopt -s nullglob
+        for file in target/"$TARGET"/release/bundle/*/*; do
+          case "$file" in
+            *.dmg | *.app.tar.gz | *-setup.exe | *.msi | *.AppImage | *.deb | *.rpm | *.sig)
+              if [ -f "$file" ]; then cp "$file" "$out/"; fi ;;
+          esac
+        done
         ls -l "$out"
         echo "DESKTOP_OUT=$out" >> "$GITHUB_ENV"
     # A nightly's pre-release version fits neither an MSI nor an rpm, so it builds neither.
@@ -181,7 +186,10 @@ runs:
         set -euo pipefail
         case "$RUNNER_OS" in
           macOS) test -s target/"$TARGET"/release/bundle/macos/*.app/Contents/Resources/THIRD_PARTY_NOTICES.txt ;;
-          Linux) dpkg-deb -c "$DESKTOP_OUT"/*.deb | grep -q 'THIRD_PARTY_NOTICES.txt$' ;;
+          # The listing goes to a file: grep -q stops early, and dpkg-deb's tar fails on the closed pipe.
+          Linux)
+            dpkg-deb -c "$DESKTOP_OUT"/*.deb > "$RUNNER_TEMP/deb-files.txt"
+            grep -q 'THIRD_PARTY_NOTICES.txt$' "$RUNNER_TEMP/deb-files.txt" ;;
           # The installers pack their files; the build copies the resource next to the executable.
           Windows) test -s target/"$TARGET"/release/THIRD_PARTY_NOTICES.txt ;;
         esac

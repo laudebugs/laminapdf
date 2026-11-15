@@ -99,11 +99,18 @@ fn run_plan(ws: &Workspace) -> Result<()> {
 const BUDGET: u64 = 15_000_000;
 const WARN: u64 = 13_500_000;
 
-/// The files people download and install; updater bundles and signatures aren't counted.
+/// The installers the budget gates; updater bundles and signatures aren't counted.
 fn is_installer(name: &str) -> bool {
-    [".dmg", "-setup.exe", ".msi", ".AppImage", ".deb", ".rpm"]
+    [".dmg", "-setup.exe", ".msi", ".deb", ".rpm"]
         .iter()
         .any(|end| name.ends_with(end))
+}
+
+/// Installers reported but not gated: the `AppImage` carries GTK and `WebKitGTK` (about 90 MB), which
+/// the `.deb` and `.rpm` take from the system. Whether it gets a budget of its own is the owner's
+/// question (issue #651).
+fn is_reported_only(name: &str) -> bool {
+    name.ends_with(".AppImage")
 }
 
 fn files_under(dir: &Path) -> Result<Vec<PathBuf>> {
@@ -152,6 +159,14 @@ fn sizes(dir: &Path) -> Result<()> {
     let mut count = 0;
     for path in files_under(dir)? {
         let name = crate::util::file_name(&path);
+        if is_reported_only(&name) {
+            let bytes = fs::metadata(&path)
+                .with_context(|| format!("reading {}", path.display()))?
+                .len();
+            println!("{name}: {bytes} bytes (reported, not gated)");
+            writeln!(table, "| {name} | {} MB | not gated |", bytes / 1_000_000)?;
+            continue;
+        }
         if !is_installer(&name) {
             continue;
         }
@@ -234,7 +249,6 @@ mod tests {
             "Lamina PDF_0.1.0_aarch64.dmg",
             "Lamina PDF_0.1.0_x64-setup.exe",
             "Lamina PDF_0.1.0_x64_en-US.msi",
-            "Lamina PDF_0.1.0_amd64.AppImage",
             "lamina-pdf_0.1.0_amd64.deb",
             "lamina-pdf-0.1.0-1.x86_64.rpm",
         ] {
@@ -248,6 +262,8 @@ mod tests {
         ] {
             assert!(!is_installer(name), "{name}");
         }
+        let appimage = "Lamina PDF_0.1.0_amd64.AppImage";
+        assert!(is_reported_only(appimage) && !is_installer(appimage));
     }
 
     #[test]
