@@ -46,8 +46,8 @@ Close Round U7:
 
 ## Acceptance criteria
 
-- [x] Switching to the reading column and back cross-fades in Chromium, Firefox and Safari, and is instant where view transitions are missing
-- [x] Every screen in the inventory and every page type of both sites checked, with a list in the PR (the desktop screens in U7l)
+- [x] Switching to the reading column and back cross-fades in Chromium, Firefox and Safari (by hand in Chromium and WebKit; Firefox in the browser tests), and is instant where view transitions are missing
+- [x] Every screen in the inventory and every page type of both sites checked, with a list in the PR: the desktop screens are in U7l, and the PR names the four web reader screens left unchecked (R17, O16, P02 and phone text selection), which U7j covers
 
 ## Post-merge checks
 

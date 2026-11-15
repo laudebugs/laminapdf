@@ -1,4 +1,4 @@
-# U7k — The sites' pass findings: overlays that enter and leave, and steady tabs and buttons
+# U7k — The sites' pass findings: overlays that enter and leave, a steady Copy as Markdown, links in the state model
 
 | Field | Value |
 | --- | --- |
@@ -19,16 +19,22 @@ Fix what U7h's by-hand pass over the docs site and the website found: no overlay
 
 ## Context
 
-- [Plan §3, 3 and 6, §4.3](../../plans/motion-and-states.md#43-rules-for-motion): the sites use `@starting-style` with `transition-behavior: allow-discrete`
+- [Plan §3 (decisions 3 and 6) and §4.3](../../plans/motion-and-states.md#43-rules-for-motion): the sites use `@starting-style` with `transition-behavior: allow-discrete`
 - [U7e](../done/U7e-sites-states-and-motion.md): the states and motion the sites already have
 
 ## Scope
 
 **In scope**
 
-- **Overlays:** the search dialog and its `::backdrop`, the theme select's list, Starlight's phone menu (`#starlight__sidebar`), the phone "On this page" (`mobile-starlight-toc .dropdown`), the contents rail's panel (`.right-sidebar-panel`) and the website's phone menu all appear and vanish in one frame; none of the sites' CSS has a `@starting-style` (§3, 3 and 6). Files: `packages/site-kit/src/menu-select.css`, `header.css`, `apps/docs/src/styles/paper.css`
-- **Copy as Markdown:** "Copied" appears inline, growing the group from 156 to 198 px, so the button slides about 41 px left, out from under the pointer, and back 2.5 s later (`apps/docs/src/components/CopyMarkdown.astro`; §3, 7)
-- **Links:** prose, footer and version links snap their colour (`transition: all 0s`; §3, 2): `packages/site-kit/src/base.css`'s `:any-link`, `apps/site/src/styles/site.css` or `paper.css`; the unreleased banner's "released docs" link has no hover or pressed state
+- **Overlays** that appear and vanish in one frame (decisions 3 and 6); none of the sites' CSS has a `@starting-style`:
+  - the search dialog and its `::backdrop`
+  - the theme select's list
+  - Starlight's phone menu (`#starlight__sidebar`) and phone "On this page" (`mobile-starlight-toc .dropdown`)
+  - the contents rail's panel (`.right-sidebar-panel`)
+  - the website's phone menu
+  - Files: `packages/site-kit/src/menu-select.css`, `header.css`, `apps/docs/src/styles/paper.css`
+- **Copy as Markdown:** "Copied" appears inline, growing the group from 156 to 198 px, so the button slides about 41 px left, out from under the pointer, and back 2.5 s later (`apps/docs/src/components/CopyMarkdown.astro`; decision 7)
+- **Links:** prose, footer and version links snap their colour (`transition: all 0s`; decision 2): `packages/site-kit/src/base.css`'s `:any-link`, `apps/site/src/styles/site.css` or `paper.css`; the unreleased banner's "released docs" link has no hover or pressed state
 - **The theme select:** a hovered option takes the same tint and edge as the `data-active` one, so two look current (`menu-select.css`, or move `data-active` with the pointer in `menu-select.ts`; §4.2); its focus ring sits 1 px out where every other control's is 2 px
 - Expressive Code's "Copied!" bubble is its default green, not a Paper token (`apps/docs/ec.config.mjs`); decide whether it changes
 

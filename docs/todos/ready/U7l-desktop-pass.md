@@ -28,6 +28,7 @@ Do the desktop part of U7h's by-hand pass: every desktop screen in the [screen i
 
 - Each desktop screen and the tab strip, in each OS's webview (WebKit on macOS, WebView2 on Windows, WebKitGTK on Linux), with the system's reduce-motion setting off and on
 - Findings fixed when small, or written up as todos
+- The desktop app's open-failure Copy (`apps/desktop/src/app.tsx`) gives no confirmation; the web reader's Copy buttons say "Copied" since U7h
 
 **Out of scope**
 

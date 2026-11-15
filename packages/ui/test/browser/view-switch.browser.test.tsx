@@ -40,7 +40,7 @@ const newView = () =>
 
 /**
  * How far the new view rises from, in px: the second length of its first keyframe's translate
- * ("0px 8px", or "0px calc(8px)" in Firefox); none when it has one.
+ * ("0px 8px", or "0px calc(8px)" in Firefox); 0 when the translate has only one length.
  */
 function rise(animation: Animation): number {
   const [first] = (animation.effect as KeyframeEffect).getKeyframes();

@@ -15,7 +15,7 @@
 
 ## Goal
 
-Fix what U7h's by-hand pass over the web reader found against the plan: the phone sheets don't slide up and the Pages sheet has no exit, Organise's page tiles skip the state model, and six smaller things snap or shift in one frame.
+Fix what U7h's by-hand pass over the web reader found against the plan: the phone sheets don't slide up and the Pages sheet has no exit, Organise's page tiles skip the state model, and five smaller things: three shifts in one frame, a scrim's cursor and the page view's focus ring.
 
 ## Context
 
@@ -26,11 +26,15 @@ Fix what U7h's by-hand pass over the web reader found against the plan: the phon
 
 **In scope**
 
-- **Phone sheets (F04, R18):** the Pages and More sheets sit in place from their first frame; only the scrim fades. React Aria's `data-entering` never shows on `.paper-sheet-overlay`, so the slide in `overlay-motion.css` never runs: start the sheet from a `@starting-style`, as the toast and drawer do (§3, 3)
-- **The Pages sheet** flashes (opacity 1, 0.7, 0, then in) on opening in Chromium, and leaves in one frame on Escape, a scrim tap or Close, where More fades out over exit-panel (§3, 6)
-- **Organise's page tiles (O06):** `.paper-page-tile` sets `background` in `organise.css` and isn't in `states.css`'s list, so hover snaps (`transition: all 0s`), there's no pressed state and a selected tile shows no hover (§3, 2; §4.2, 3)
-- **Polish:** the rail drawer's scrim shows the arrow (`shell.css`; decide whether a scrim takes the hand); the first edit adds "1 unsaved change" and Save, pushing the top bar about 100 px in one frame; the Properties dialog is 189 px tall on its first frame and 727 px the next, mid scale-in, and changes height between its tabs; the offline strip pushes the page down 44 px in one frame; keyboard focus on the page view (`.lamina-viewer`) shows the browser's ring, not Paper's (§3, 7; §4.2, 5)
-- The desktop app's open-failure Copy (`apps/desktop/src/app.tsx`) gives no confirmation; the web reader's Copy buttons say "Copied" since U7h
+- **Phone sheets (F04, R18):** the Pages and More sheets sit in place from their first frame; only the scrim fades. React Aria's `data-entering` never shows on `.paper-sheet-overlay`, so the slide in `overlay-motion.css` never runs. Fix: start the sheet from a `@starting-style`, as the toast and drawer do (plan §3, decision 3)
+- **The Pages sheet** flashes (opacity 1, 0.7, 0, then in) on opening in Chromium. It also leaves in one frame on Escape, a scrim tap or Close; the More sheet fades out over exit-panel (decision 6)
+- **Organise's page tiles (O06):** `.paper-page-tile` sets `background` in `organise.css` and isn't in `states.css`'s list, so hover snaps (`transition: all 0s`), there's no pressed state and a selected tile shows no hover (decision 2; §4.2, rule 3)
+- **Polish:**
+  - The first edit adds "1 unsaved change" and Save, pushing the top bar about 100 px in one frame (decision 7)
+  - The Properties dialog is 189 px tall on its first frame and 727 px the next, mid scale-in, and changes height between its tabs
+  - The offline strip pushes the page down 44 px in one frame
+  - The rail drawer's scrim shows the arrow (`shell.css`); decide whether a scrim takes the hand
+  - Keyboard focus on the page view (`.lamina-viewer`) shows the browser's ring, not Paper's (§4.2, rule 5)
 
 **Out of scope**
 
@@ -41,13 +45,14 @@ Fix what U7h's by-hand pass over the web reader found against the plan: the phon
 - [ ] Sheets: the slide in and the exit, both sheets, both motion settings
 - [ ] Page tiles in the state model
 - [ ] The polish items, each fixed or, where the plan doesn't decide, asked as a GitHub issue
+- [ ] Check what U7h's pass left out: R17 (tablet), O16, P02, phone text selection
 - [ ] Check Firefox too: U7h's pass couldn't launch Playwright's Firefox outside Vitest on the Mac (`@laminapdf/test-utils`' `firefoxEnv` is what the suites use)
 
 ## Acceptance criteria
 
 - [ ] The phone sheets slide up and down (fade only under reduced motion) in Chromium, Firefox and WebKit
 - [ ] Page tiles hover, press and show hover when selected, with the state transitions
-- [ ] None of the listed shifts happens in one frame
+- [ ] None of the three shifts happens in one frame, the drawer's scrim has the cursor decided for it, and the page view shows Paper's ring
 
 ## Post-merge checks
 

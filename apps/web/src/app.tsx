@@ -632,7 +632,7 @@ function useRailTabs(
   }, [engine, layout, open, strip, viewer, finding, history, editor, threaded]);
 }
 
-/** The settings, with the page appearance of the document `viewer` shows, the toasts they share, and the reader's Copy. */
+/** The settings, the toasts they share and the reader's Copy, with the page appearance of the document that `viewer` shows. */
 function useAppSettings(
   openPalette: () => void,
   viewer: Viewer | undefined,
