@@ -65,10 +65,10 @@ WebdriverIO e2e on three OSes; engine tests of the metadata read.
 
 ## Notes
 
-- **One call when the dialog opens.** The engine answers `GetProperties` with the facts, the metadata and the XMP packet as one JSON string in `@laminapdf/ui`'s shapes (`crates/laminapdf-desktop-engine/src/properties.rs`): the pipe's format can't carry a self-describing value, and the main process passes the string on unread. Protocol 9.
+- **One call when the dialog opens.** In protocol 9, the engine answers `GetProperties` with the facts, the metadata and the XMP packet as one JSON string in `@laminapdf/ui`'s shapes (`crates/laminapdf-desktop-engine/src/properties.rs`): the pipe's format can't carry a self-describing value, and the main process passes the string on unread.
 - **The XMP tab works too.** The engine's answer carries the packet, and Apply's ops go through the same edit session, so the tab isn't left waiting. Its desktop capability row (J.04) stays [E3k](../ready/E3k-desktop-navigation-and-export.md)'s, with its e2e test.
-- **One home for Apply's ops.** `propertiesOps` (`@laminapdf/ui/dialogs`) turns the dialog's changes into ops for both apps; the web reader's own copy went.
-- **The desktop's scenarios can carry capability tags.** `TS_SUITES` (`tools/xtask/src/capabilities/tags.rs`) lists `apps/desktop/e2e/specs` for the `desktop` surface, run by the full lane's `desktop-e2e` jobs, which the `gate` waits on.
+- **One home for Apply's ops.** `propertiesOps` (`@laminapdf/ui/dialogs`) turns the dialog's changes into ops for both apps, so the web reader no longer keeps its own copy.
+- **The desktop's scenarios can carry capability tags.** `TS_SUITES` (`tools/xtask/src/capabilities/tags.rs`) lists `apps/desktop/e2e/specs` for the `desktop` surface. The full lane's `desktop-e2e` jobs run those scenarios, and its `gate` waits on them.
 - **Checkboxes in the scenario are ticked from the page.** WebKit's driver can't click a visually hidden input or its label, as `toggleSetting` already found.
 
 ## Definition of done
