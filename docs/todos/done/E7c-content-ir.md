@@ -57,8 +57,8 @@ Implement the ADR 0022 IR in `laminapdf-content`: parse a page's content (and Fo
 ## Acceptance criteria
 
 - [x] Parse → encode with no edit is byte-identical on every corpus page (the encoder copies every untouched span, ADR 0022 §3): every fixture page in `tests/ir.rs`, and all 5,984 pages of the external corpus that open
-- [ ] Fuzz 10 min without panic
-- [x] Tokenizing and grouping on the external corpus runs at 50 MB/s or faster (75 % of the spike's 67 MB/s) ([spike README](../../../spikes/content-edit/README.md)), reported, not a CI gate: see the PR for the figures; `benches/ir.rs` reports the fixtures' throughput nightly
+- [x] Fuzz 10 min without panic: `content_ir`, 386,856 runs in 600 s
+- [x] Tokenizing and grouping on the external corpus runs at 50 MB/s or faster (75 % of the spike's 67 MB/s) ([spike README](../../../spikes/content-edit/README.md)), reported, not a CI gate: 50–52 MB/s over the 27.3 MB of the 5,984 pages, where the spike itself runs at 49 MB/s on the same machine (a 4-core cloud Xeon, not the spike's M1 Pro); `benches/ir.rs` reports the fixtures' throughput nightly
 - [x] `content-object-stale` and `content-not-editable` (reasons `type3-font`, `vertical-text`, `no-unicode-map`, `rotated-run`, `glyphs-out-of-order`, `too-deep`, `content-unreadable`) in `fixtures/codes.json` with their `docs/errors/` pages; `Op` reports an inline image's end offset ([E7 plan](../../plans/editor/e7-editing-existing-content.md) §2.1)
 
 ## Post-merge checks
