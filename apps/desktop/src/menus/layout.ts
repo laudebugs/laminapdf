@@ -83,6 +83,8 @@ export const MENU_LAYOUT: readonly MenuLayout[] = [
       { command: "tab.close" },
       { command: "window.close" },
       SEPARATOR,
+      { command: "file.save" },
+      { command: "file.save-as", dialog: true },
       { command: "file.save-copy" },
       { command: "file.properties", dialog: true },
       SEPARATOR,

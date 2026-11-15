@@ -213,6 +213,29 @@ mod tests {
                 doc,
                 call: EditCall::Undo,
             },
+            ToEngine::Save {
+                req,
+                doc,
+                call: crate::SaveCall::Write(crate::SaveRequest {
+                    rewrite: true,
+                    invalidate_signatures: false,
+                    metadata_date: Some("2026-11-15T10:00:00Z".into()),
+                    instance_id: Some([7; 16]),
+                }),
+            },
+            ToEngine::Save {
+                req,
+                doc,
+                call: crate::SaveCall::Read {
+                    offset: 1 << 33,
+                    len: 1 << 20,
+                },
+            },
+            ToEngine::Save {
+                req,
+                doc,
+                call: crate::SaveCall::Adopt,
+            },
             ToEngine::RenderTile(TileRequest {
                 req,
                 doc,
@@ -357,9 +380,43 @@ mod tests {
         }
     }
 
+    /// The answers to a save, apart from the other messages to keep each list short.
+    fn saved_messages() -> Vec<FromEngine> {
+        let req = ReqId(9);
+        let doc = DocId(1);
+        vec![
+            FromEngine::Saved {
+                req,
+                doc,
+                answer: Box::new(crate::SaveAnswer::Planned(crate::PlanReport {
+                    mode: None,
+                    refusal: Some("would-invalidate-signatures".into()),
+                    constraint: crate::PlanConstraint::AppendOnly,
+                    signatures: vec![crate::PlanSignature {
+                        kind: crate::SignatureRole::Approval,
+                        field: Some("Signature1".into()),
+                    }],
+                    would_invalidate: Vec::new(),
+                    conformance_warnings: vec![r#"{"code":"pdfa-one-author"}"#.into()],
+                    unchanged: false,
+                })),
+            },
+            FromEngine::Saved {
+                req,
+                doc,
+                answer: Box::new(crate::SaveAnswer::Written(crate::SaveWritten {
+                    mode: crate::SavedAs::Incremental,
+                    len: 2048,
+                    history_cleared: false,
+                    metadata_not_updated: true,
+                })),
+            },
+        ]
+    }
+
     #[test]
     fn every_message_from_the_engine_should_round_trip() {
-        for msg in from_engine_messages() {
+        for msg in from_engine_messages().into_iter().chain(saved_messages()) {
             round_trip(&msg, b"");
         }
     }

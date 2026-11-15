@@ -294,6 +294,9 @@ pub enum FailureKind {
     /// The document can't take an edit (it is encrypted), or an op refused it; nothing changed.
     /// The message is the error's code.
     EditRefused,
+    /// A save was refused, or its output can't be read or adopted; nothing changed. The message
+    /// is the error's code.
+    SaveRefused,
     /// An edit failed and couldn't be taken back: the document and the pages drawn may differ,
     /// and it takes no more edits until it opens again.
     EditDiverged,
@@ -422,6 +425,16 @@ pub enum ToEngine {
         /// What to do.
         call: EditCall,
     },
+    /// Plan, write, read or adopt a save of the document (`crate::SaveCall`). Answered by
+    /// [`FromEngine::Saved`], or a [`FromEngine::Error`] after which the document is as it was.
+    Save {
+        /// The request.
+        req: ReqId,
+        /// The document.
+        doc: DocId,
+        /// What to do.
+        call: crate::SaveCall,
+    },
     /// Drop a queued request, or skip sending a running one's result. The engine still
     /// answers it, with [`FailureKind::Cancelled`].
     Cancel {
@@ -543,6 +556,16 @@ pub enum FromEngine {
         doc: DocId,
         /// What changed (boxed: the other messages are small).
         report: Box<EditReport>,
+    },
+    /// What a save call did; [`crate::SaveAnswer::Bytes`] carries the output's bytes as the
+    /// frame's payload.
+    Saved {
+        /// The request.
+        req: ReqId,
+        /// The document.
+        doc: DocId,
+        /// The answer (boxed: the other messages are small).
+        answer: Box<crate::SaveAnswer>,
     },
     /// A rendered tile; its pixels follow the header as the frame's payload.
     Tile {

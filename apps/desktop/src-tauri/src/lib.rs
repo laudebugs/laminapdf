@@ -20,6 +20,7 @@ mod opened;
 mod prefs;
 mod print;
 mod recent;
+mod save;
 mod session;
 #[cfg(feature = "e2e")]
 mod startup;
@@ -247,6 +248,10 @@ macro_rules! app_commands {
             commands::close_window,
             commands::quit,
             commands::save_copy,
+            save::plan_save,
+            save::save_document,
+            save::save_document_as,
+            save::reload_document,
             print::print_document,
             print::cancel_print,
             commands::tab_drag_start,
@@ -291,6 +296,7 @@ pub fn run() -> Result<(), DesktopError> {
         .invoke_handler(app_commands![
             commands::debug_kill_engine,
             e2e::e2e_queue_pick,
+            e2e::e2e_queue_save_as,
             e2e::e2e_interactive,
             e2e::e2e_focus,
             e2e::e2e_menu_click,
@@ -301,7 +307,8 @@ pub fn run() -> Result<(), DesktopError> {
             crash::commands::e2e_crash_engine_panic,
             crash::commands::e2e_crash_engine_segv,
         ])
-        .manage(e2e::QueuedPick::default());
+        .manage(e2e::QueuedPick::default())
+        .manage(e2e::QueuedSaveAs::default());
     // First of all plugins: a second launch hands its paths to the running app and exits before
     // anything else starts (the plugin's own rule). Its callback queues them like any OS request.
     let builder = builder

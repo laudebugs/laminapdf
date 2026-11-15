@@ -49,6 +49,7 @@
     "@wdio/tauri-plugin": "catalog:",
     "@wdio/tauri-service": "catalog:",
     "babel-plugin-react-compiler": "catalog:",
+    "pdfjs-dist": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:",

@@ -10,8 +10,9 @@
 //   passwords: `engine://restarted` becomes the viewer's `restarted`, which redraws what is
 //   on screen; `engine://failed` and a document that didn't come back become `restart-failed`.
 // - Edits go to the engine, which draws the pages from the edited file from then on; the history
-//   is kept here, per document, so it survives a tab switch (desktop-edits.ts). Saving them isn't
-//   served yet: planning, copying and adopting a save reject.
+//   is kept here, per document, so it survives a tab switch (desktop-edits.ts). A save runs in the
+//   main process, which writes the file (desktop-saves.ts); checking an edit against the
+//   signatures before it applies (`wouldViolate`) isn't served yet.
 // - Text, links and search aren't served by the engine yet: their calls answer as for a document
 //   without them (no text runs, no links, untagged).
 // - Only types come from `@laminapdf/viewer` here, so the app's Node tests run without the
@@ -33,6 +34,16 @@ import type {
   ViewerEvents,
 } from "@laminapdf/viewer";
 import { DesktopEdits, type EditOutcome, type EditRequest, NO_EDITS, pagesOf } from "./desktop-edits.ts";
+import {
+  asked,
+  type DesktopSaved,
+  type PlannedSave,
+  plannedSave,
+  SAVE_CANCELLED,
+  type SaveOptions,
+  type SaveTarget,
+  saveCall,
+} from "./desktop-saves.ts";
 import { type TileTransport, tileUrl } from "./tile-url.ts";
 
 /** A page as the main process reports it: its stable ID, displayed size in points and `/Rotate`. */
@@ -106,9 +117,16 @@ export interface DesktopShell {
 export const RESTARTED_EVENT = "engine://restarted";
 export const FAILED_EVENT = "engine://failed";
 
-const NOT_YET = "the desktop reader doesn't save edits yet";
+const NOT_YET = "the desktop reader doesn't check edits against signatures yet";
 
-/** The save calls' answer until the engine saves: rejected, with why. */
+/** A save waiting in the edit session's queue: its document, where it goes, and what it did once it ran. */
+interface QueuedSave {
+  readonly doc: number;
+  readonly target: SaveTarget;
+  saved: DesktopSaved | undefined;
+}
+
+/** The answer of the calls the engine doesn't serve yet: rejected, with why. */
 function notYet<T>(): Promise<T> {
   return Promise.reject(new DesktopEngineError("not-yet-supported", NOT_YET));
 }
@@ -135,6 +153,11 @@ export class DesktopEngineClient implements ViewerEngine {
   readonly #edits = new Map<number, DesktopEdits>();
   /** Each edited document's pages as its last edit left them. */
   readonly #pagesNow = new Map<number, readonly DesktopPage[]>();
+  /** Where the saves the edit session will run go, in its order. */
+  readonly #saveTargets: QueuedSave[] = [];
+  /** The saves written and not yet marked in their history, by token. */
+  readonly #adopting = new Map<number, { readonly doc: number; readonly historyCleared: boolean }>();
+  #nextSave = 1;
 
   constructor(shell: DesktopShell, options: { readonly transport?: TileTransport } = {}) {
     this.#shell = shell;
@@ -393,6 +416,11 @@ export class DesktopEngineClient implements ViewerEngine {
     return [...this.#edits.values()].reduce((sum, edits) => sum + edits.history().unsaved, 0);
   }
 
+  /** The open documents that hold edits not yet saved, by the main process's id. */
+  get unsavedDocs(): number[] {
+    return [...this.#edits].filter(([, edits]) => edits.history().unsaved > 0).map(([doc]) => doc);
+  }
+
   /** Whether document `doc` holds edits not yet saved. */
   hasUnsaved(doc: number): boolean {
     return (this.#edits.get(doc)?.history().unsaved ?? 0) > 0;
@@ -466,20 +494,82 @@ export class DesktopEngineClient implements ViewerEngine {
       this.#document = { ...this.#document, pageCount: pages.length, pages: pagesOf({ pages }) };
   }
 
-  // The viewer doesn't export `PlannedSave`, so its type comes from `ViewerEngine`.
-  planSave(): ReturnType<ViewerEngine["planSave"]> {
-    return notYet();
+  /** How a save of the shown document with `options` would go. */
+  async planSave(options: SaveOptions): Promise<PlannedSave> {
+    const doc = this.#shownDoc();
+    const plan = await this.#shell
+      .invoke<Parameters<typeof plannedSave>[0]>("plan_save", { doc, options: asked(options) })
+      .catch((e: unknown) => {
+        throw engineError(e);
+      });
+    return plannedSave(plan);
   }
 
   wouldViolate(): ReturnType<ViewerEngine["wouldViolate"]> {
     return notYet();
   }
 
-  copyEdits(): Promise<SavedCopy> {
-    return notYet();
+  /**
+   * Saves the shown document to `target` through `edits`, the viewer's session for it, which runs
+   * the save after the edits before it and marks its history saved. Undefined when the user
+   * cancelled Save as's dialog.
+   */
+  async saveTo(
+    edits: { save(options: SaveOptions, write: () => Promise<void>): Promise<unknown> },
+    target: SaveTarget,
+    options: SaveOptions,
+  ): Promise<DesktopSaved | undefined> {
+    const queued: QueuedSave = { doc: this.#shownDoc(), target, saved: undefined };
+    this.#saveTargets.push(queued);
+    try {
+      await edits.save(options, () => Promise.resolve());
+      return queued.saved;
+    } catch (error) {
+      if (error === SAVE_CANCELLED) return undefined;
+      throw error;
+    } finally {
+      // A save the session refused before it ran never took its target.
+      const left = this.#saveTargets.indexOf(queued);
+      if (left >= 0) this.#saveTargets.splice(left, 1);
+    }
   }
 
-  adoptEdits(): Promise<EditHistory> {
-    return notYet();
+  /**
+   * The edit session's copy step, which on the desktop is the whole save: the main process writes
+   * the file and the engine adopts it ({@link saveTo} says where). The copy holds no bytes, since
+   * they never reach the webview, and {@link adoptEdits} marks the history saved.
+   */
+  async copyEdits(options: SaveOptions): Promise<SavedCopy> {
+    const queued = this.#saveTargets.shift();
+    if (queued === undefined) throw new DesktopEngineError("unsupported", "the desktop saves through saveTo");
+    // The document the save was asked for, whichever tab shows now.
+    const { doc } = queued;
+    const { command, args } = saveCall(doc, queued.target, options);
+    const saved = await this.#shell.invoke<DesktopSaved | null>(command, args).catch((e: unknown) => {
+      throw engineError(e);
+    });
+    if (saved === null) throw SAVE_CANCELLED;
+    queued.saved = saved;
+    if (this.#current?.doc === doc && saved.name !== this.#current.name)
+      this.#current = { ...this.#current, name: saved.name };
+    const token = this.#nextSave++;
+    this.#adopting.set(token, { doc, historyCleared: saved.historyCleared });
+    const report = { metadataNotUpdated: saved.metadataNotUpdated, historyCleared: saved.historyCleared };
+    return { token, bytes: new Uint8Array(0), report: report as unknown as SavedCopy["report"] };
+  }
+
+  /** The history once the save `token` names is in place: saved at the point it wrote. */
+  async adoptEdits(token: number): Promise<EditHistory> {
+    const adopting = this.#adopting.get(token);
+    this.#adopting.delete(token);
+    if (adopting === undefined) throw new DesktopEngineError("unsupported", "no such save");
+    return (await this.#edits.get(adopting.doc)?.saved(adopting.historyCleared)) ?? NO_EDITS;
+  }
+
+  /** The shown document's id. @throws DesktopEngineError when none is shown. */
+  #shownDoc(): number {
+    const doc = this.#current?.doc;
+    if (doc === undefined) throw new DesktopEngineError("disposed", "no document is open");
+    return doc;
   }
 }

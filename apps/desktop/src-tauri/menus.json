@@ -106,6 +106,20 @@
         },
         {
           "kind": "command",
+          "id": "file.save",
+          "title": "Save",
+          "mac": "Mod+S",
+          "other": "Mod+S"
+        },
+        {
+          "kind": "command",
+          "id": "file.save-as",
+          "title": "Save as…",
+          "mac": "Mod+Shift+S",
+          "other": "Mod+Shift+S"
+        },
+        {
+          "kind": "command",
           "id": "file.save-copy",
           "title": "Save a copy…"
         },

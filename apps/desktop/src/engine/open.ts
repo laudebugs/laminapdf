@@ -27,7 +27,10 @@ const restored = new WeakMap<PlatformFile, string>();
 /** The PlatformFile that stands for `opened`: its name and size; its bytes stay in the main process. */
 export function desktopFile(opened: DesktopDocument): PlatformFile {
   const file: PlatformFile = {
-    name: opened.name,
+    // The document's name now: Save as gives it a new file, and `rebind` its new name.
+    get name() {
+      return documents.get(file)?.name ?? opened.name;
+    },
     size: opened.size,
     writable: false,
     read: () => Promise.reject(new DesktopEngineError("unsupported", "the document process reads the file")),

@@ -136,9 +136,26 @@ The engine process makes each edit. It applies the change to its copy of the doc
 
 The webview keeps the history: each step's name, its pages, and how many steps aren't saved (`src/engine/desktop-edits.ts`, over `@laminapdf/viewer`'s `edit-history`). It keeps one history per document, so switching tabs keeps it. When the engine restarts, the webview makes the edits again in the new engine.
 
-While a document has unsaved edits, the window's title starts with "•", and closing its tab, closing the window or quitting asks first. The window reports whether it has unsaved edits to the main process (`set_unsaved`), which holds back a close or a quit and asks the window (`src-tauri/src/unsaved.rs`). Saving edits comes next ([E1i](../../docs/todos/ready/E1i-desktop-save-in-place.md)).
+While a document has unsaved edits, the window's title starts with "•", and closing its tab, closing the window or quitting asks first, offering to save. The window reports which of its documents have unsaved edits to the main process (`set_unsaved`), which holds back a close or a quit and asks the window (`src-tauri/src/unsaved.rs`).
 
 Each window's engine holds its own edits, so a tab with unsaved edits can't move to another window yet: undo them to move it.
+
+### Saving
+
+File ▸ Save (⌘S or Ctrl+S) writes the document's file in place, and File ▸ Save as… (⇧⌘S or Ctrl+Shift+S) writes a new file, which the document reads and saves to from then on. Like the web reader, a save plans first and asks before removing signatures or breaking a standard the file claims (`src/saving.tsx`).
+
+No file's bytes pass through the webview. The engine writes the save and keeps the output, and the main process reads it in parts and puts it in place (`src-tauri/src/save/`):
+
+- **An incremental save** appends only the new revision to the file, so a large file isn't copied. If the write fails, the file is cut back to its old length.
+- **A full rewrite** goes to a temporary file beside the original, which is renamed over it once complete. The new file keeps the old one's permissions, and a read-only file is refused.
+
+The engine takes the written file as the document's saved one only after the write worked, so a failed save leaves the edits unsaved and the file as it was. After a save, a restarted engine opens the saved file and makes only the later edits again.
+
+While a window saves, the watcher holds off looking at the file. It then takes the written file as the one that window's document reads, so a save never reloads its own document. Another window showing the same file reloads it, as it would after any outside change.
+
+When another app changes the file of a document with unsaved edits, the window asks instead of reloading. Reload drops the edits and shows the other app's version, Save as… keeps both, and Overwrite replaces the other app's version with a full rewrite. A save that finds the file changed asks the same question. To tell, the main process compares the file's size, modification time, identity and a hash of its ends with what the document last read. It checks again just before it writes, so a change made during the save stops it.
+
+Overwrite needs the bytes the edits build on. After an editor's atomic save, macOS and Linux still read the old file through the handle the document holds, so Overwrite works. A file written in place has lost those bytes. So has a replaced file on Windows, where the app reads documents by path. In both cases Overwrite says it can't save, and Reload or Save as… remain.
 
 ### Updates
 
@@ -202,7 +219,7 @@ The e2e build reads the endpoint from `LAMINA_PDF_CRASH_ENDPOINT`. Its `e2e_cras
 ```
 
 - **`src/main.tsx`** loads the design tokens (`@laminapdf/tokens`), fonts and component styles, creates the desktop `Platform`, and renders the app. It is the only module that asks about its surroundings: whether it runs inside Tauri (`isTauri()`; `cargo xtask check ts` refuses the call anywhere else) and whether shortcuts show ⌘ or Ctrl.
-- **`src/platform/desktop.ts`** is the desktop `Platform` (ADR 0010). It starts from the web platform, which works in any webview, and sets the capability flags the desktop shell adds. `ownsKeyboard` turns on the shortcuts a browser would keep, such as ⌘− and ⌘W. `recent` (`recent.ts`) and `watch` go through the main process. Saving in place isn't built yet: its method rejects with `NotYetSupportedError`. `print` rejects too: it is the web reader's path, and the desktop prints from the main process (below).
+- **`src/platform/desktop.ts`** is the desktop `Platform` (ADR 0010). It starts from the web platform, which works in any webview, and sets the capability flags the desktop shell adds. `ownsKeyboard` turns on the shortcuts a browser would keep, such as ⌘− and ⌘W. `recent` (`recent.ts`) and `watch` go through the main process. `saveInPlace` rejects with `NotYetSupportedError`: the window saves through the main process instead (`src/saving.tsx`), so the file's bytes never reach the webview. `print` rejects too: it is the web reader's path, and the desktop prints from the main process (below).
 - **`src/app.tsx`** puts the reader's top bar, home screen, the document's view and status bar in the window, with the command palette (⌘K or Ctrl+K), the password dialog, the failure page, the repaired-file notice and the "Document process restarted" toast; **`src/app-info.ts`** calls `app_info`, whose version the status bar shows. **`src/recent.tsx`** is the start window's recent list, **`src/settings.tsx`** the Settings dialog with its Files and Appearance and accessibility sections, and **`src/file-changes.tsx`** shows a reloaded document in place, or the strip for a file that was moved or deleted.
 - **`src/print.tsx`** handles File ▸ Print… (⌘P or Ctrl+P). It calls `print_document` with the document shown and the page on screen, which the dialog offers as "Current page" on Windows and Linux. While pages spool, the status bar shows how many were sent and a Cancel printing button that calls `cancel_print` (GTK's own window on Linux). Reading goes on meanwhile.
 - **`src/engine/`** is the viewer's engine on the desktop. `desktop-engine-client.ts` is `DesktopEngineClient`, the `ViewerEngine` that `@laminapdf/viewer` draws from, as it draws from `ViewerClient` on the web. It fetches each tile from `lamina://localhost/tile/{doc}/{page}?…` (`http://lamina.localhost/…` on Windows; `tile-url.ts` builds the address), decodes the WebP, and closes a tile that lands after its render was aborted or its document went. An aborted render's ticket goes to `cancel_tiles`, so the engine skips it. The engine's restart events become the viewer's `restarted`, which redraws the pages on screen. `open.ts` holds the open dialog's files and the reader's opener, which shows a document or unlocks it first. `tauri-shell.ts` is the Tauri side the client runs on; the tests pass Tauri's mocks.

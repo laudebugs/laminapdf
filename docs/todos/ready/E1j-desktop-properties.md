@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E1 editing foundation §2](../../plans/editor/e1-editing-foundation.md#2-the-operations) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E1f](../done/E1f-metadata-ui-capability-page.md), [E1i](./E1i-desktop-save-in-place.md) |
+| Depends on | [E1f](../done/E1f-metadata-ui-capability-page.md), [E1i](../done/E1i-desktop-save-in-place.md) |
 | ADRs | Follows ADR 0005, 0007, 0008 |
 | Branch | `feat/e1j-desktop-properties` |
 | PR title | `feat(desktop): the Properties dialog, with metadata edits that save` |
@@ -20,7 +20,7 @@ The desktop's File ▸ Document properties… opens the Properties dialog the we
 ## Context
 
 - [E1f](../done/E1f-metadata-ui-capability-page.md): the editable dialog (`PropertiesDialog` with `editing`, `@laminapdf/ui/dialogs`) and the web's round-trip e2e tests of these rows
-- [E1i](./E1i-desktop-save-in-place.md): saving in place on the desktop, which the edits go through
+- [E1i](../done/E1i-desktop-save-in-place.md): saving in place on the desktop, which the edits go through
 - [E1h](../done/E1h-desktop-edit-session.md): the engine's edit session, which applies the metadata ops
 - [ADR 0008 §2](../../decisions/0008-desktop-shell.md#2-process-model-a-main-process-that-owns-files-and-a-sandboxed-engine-per-window): only the engine parses, so the dialog's facts come from it
 - Load the `/tauri-v2` skill before any work

@@ -51,6 +51,20 @@ class FakeBitmap {
 }
 
 let commands: { command: string; args: unknown }[] = [];
+/** How the next save answers: what it saved, `null` for a cancelled Save as, or a refusal. */
+let saveAnswer: unknown;
+
+/** An edit's outcome, as the main process sends it: page 1 turned a quarter. */
+const TURNED = {
+  changed: true,
+  reversal: null,
+  touched: ["p1.0"],
+  pageOrder: null,
+  pages: [{ ...PAGES[0], rotate: 90 }, PAGES[1]],
+  createdOutlineItems: [],
+  createdAnnotations: [],
+  outlineRepaired: false,
+};
 let bitmaps: FakeBitmap[] = [];
 
 /** Answers every tile fetch with `answer`'s response, after `delay` ms. */
@@ -90,6 +104,18 @@ beforeEach(() => {
           return Promise.reject({ kind: "wrong-password", message: "the password doesn't open this document" });
         return { ...LOCKED, needsPassword: false, pageCount: 2, pages: PAGES };
       }
+      if (command === "edit_document") return TURNED;
+      if (command === "plan_save")
+        return {
+          mode: "incremental",
+          constraint: "free",
+          signatures: [],
+          wouldInvalidate: [],
+          conformanceWarnings: [],
+          unchanged: false,
+        };
+      if (command === "save_document" || command === "save_document_as")
+        return saveAnswer instanceof Error ? Promise.reject(saveAnswer.cause) : saveAnswer;
       return undefined;
     },
     { shouldMockEvents: true },
@@ -109,6 +135,20 @@ afterEach(() => {
 function client(): DesktopEngineClient {
   return new DesktopEngineClient(tauriShell());
 }
+
+/** The viewer's edit session as far as a save goes: the copy, the write, then the adoption. */
+function session(engine: DesktopEngineClient) {
+  return {
+    async save(options: Parameters<DesktopEngineClient["copyEdits"]>[0], write: () => Promise<void>) {
+      const copy = await engine.copyEdits(options);
+      await write();
+      return engine.adoptEdits(copy.token);
+    },
+  };
+}
+
+/** A save that wrote the file as `name`. */
+const savedAs = (name: string) => ({ name, mode: "incremental", historyCleared: false, metadataNotUpdated: false });
 
 const CLIP = { x: 512, y: 0, width: 512, height: 300 };
 
@@ -283,6 +323,102 @@ describe("the engine's events", () => {
 
   it("reports an engine that stays down", async () => {
     expect(await told(undefined)).toEqual(["restart-failed"]);
+  });
+});
+
+describe("saving", () => {
+  const options = { mode: "auto" as const, metadataDate: "2026-11-15T10:00:00.000Z" };
+
+  it("asks the main process for the plan, with the options as it reads them", async () => {
+    const engine = client();
+    engine.show(PLAIN);
+    const plan = await engine.planSave({
+      mode: "fullRewrite",
+      invalidateSignatures: true,
+      instanceId: "00112233-4455-6677-8899-aabbccddeeff",
+    });
+    expect([commands.at(-1)?.args, plan.mode, plan.violations]).toEqual([
+      {
+        doc: 4,
+        options: {
+          rewrite: true,
+          invalidateSignatures: true,
+          instanceId: [0, 17, 34, 51, 68, 85, 102, 119, 136, 153, 170, 187, 204, 221, 238, 255],
+        },
+      },
+      "incremental",
+      [],
+    ]);
+  });
+
+  it("saves in place through the edit session, which then counts nothing unsaved", async () => {
+    saveAnswer = savedAs("letter.pdf");
+    const engine = client();
+    engine.show(PLAIN);
+    await engine.applyEdit([] as never, { label: "Rotate page 1" });
+    const saved = await engine.saveTo(session(engine), "in-place", options);
+    const history = await engine.editHistory();
+    expect([commands.at(-1)?.command, saved?.name, history.unsaved, engine.unsavedDocs]).toEqual([
+      "save_document",
+      "letter.pdf",
+      0,
+      [],
+    ]);
+  });
+
+  it("saves the document it was asked for, even if another tab shows by the time the save runs", async () => {
+    saveAnswer = savedAs("letter.pdf");
+    const engine = client();
+    engine.show(PLAIN);
+    let go: () => void = () => undefined;
+    const waited = new Promise<void>((resolve) => {
+      go = resolve;
+    });
+    const later = {
+      async save(options: Parameters<DesktopEngineClient["copyEdits"]>[0], write: () => Promise<void>) {
+        await waited;
+        return session(engine).save(options, write);
+      },
+    };
+    const saving = engine.saveTo(later, "in-place", options);
+    engine.show({ ...PLAIN, doc: 9, name: "other.pdf" });
+    go();
+    await saving;
+    expect(commands.find((c) => c.command === "save_document")?.args).toMatchObject({ doc: 4 });
+  });
+
+  it("names the document after the file Save as wrote", async () => {
+    saveAnswer = savedAs("letter copy.pdf");
+    const engine = client();
+    engine.show(PLAIN);
+    await engine.applyEdit([] as never, { label: "Rotate page 1" });
+    await engine.saveTo(session(engine), "new-file", options);
+    expect([commands.at(-1)?.command, engine.current?.name]).toEqual(["save_document_as", "letter copy.pdf"]);
+  });
+
+  it("saves nothing when Save as's dialog is cancelled", async () => {
+    saveAnswer = null;
+    const engine = client();
+    engine.show(PLAIN);
+    await engine.applyEdit([] as never, { label: "Rotate page 1" });
+    const saved = await engine.saveTo(session(engine), "new-file", options);
+    expect([saved, (await engine.editHistory()).unsaved]).toEqual([undefined, 1]);
+  });
+
+  it("keeps the edit unsaved when the write fails, with the main process's reason", async () => {
+    saveAnswer = new Error("refused", { cause: { kind: "write-refused", message: "the file could not be written" } });
+    const engine = client();
+    engine.show(PLAIN);
+    await engine.applyEdit([] as never, { label: "Rotate page 1" });
+    await expect(engine.saveTo(session(engine), "overwrite", options)).rejects.toMatchObject({ code: "write-refused" });
+    expect([commands.at(-1)?.args, (await engine.editHistory()).unsaved]).toEqual([
+      {
+        doc: 4,
+        options: { rewrite: false, invalidateSignatures: false, metadataDate: options.metadataDate },
+        overwrite: true,
+      },
+      1,
+    ]);
   });
 });
 

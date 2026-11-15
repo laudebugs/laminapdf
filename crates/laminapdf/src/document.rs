@@ -691,6 +691,23 @@ impl Document {
         Ok(result?)
     }
 
+    /// As [`Document::adopt_copy`], for a copy read through `saved` instead of held in one
+    /// buffer: the file where the copy was written, such as the old file followed by the revision
+    /// an incremental save appended. A desktop app that writes a large file in place adopts it this
+    /// way without reading it into memory.
+    ///
+    /// # Errors
+    /// As [`Document::adopt_copy`].
+    ///
+    /// Added in 0.5.0.
+    pub fn adopt_copy_from(&mut self, saved: Arc<dyn ByteSource>, history_cleared: bool) -> Result<()> {
+        let result = self.inner.adopt_copy(saved.into(), history_cleared);
+        if matches!(&result, Ok(()) | Err(laminapdf_save::SaveError::NotRebased { .. })) {
+            self.bump();
+        }
+        Ok(result?)
+    }
+
     /// A save as a resumable job, with its own [`CancelToken`] ([`SaveJob::cancel_token`]).
     ///
     /// Added in 0.2.0.
