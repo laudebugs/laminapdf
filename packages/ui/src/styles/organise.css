@@ -73,7 +73,6 @@
     box-sizing: border-box;
     padding: var(--paper-space-8) var(--paper-space-10);
     border-radius: var(--paper-radius-6);
-    cursor: default;
     outline: none;
   }
 
