@@ -21,7 +21,7 @@ The desktop part of round E4 ([full-editor §7](../../plans/full-editor.md#7-pha
 
 - **Design (Paper):** [C01](../../design/paper/comment-review.md#c01-comment-tools) to [C03](../../design/paper/comment-review.md#c03-free-text-and-callouts), [C09](../../design/paper/comment-review.md#c09-tablet-stylus), desktop artboards
 - [E4 plan §6 and §7](../../plans/editor/e4-markup-and-drawing-annotations.md#7-differences-between-the-shells)
-- [E1h](E1h-desktop-edit-session.md), [E1i](E1i-desktop-save-in-place.md): the engine's edit session and saving in place
+- [E1h](../ongoing/E1h-desktop-edit-session.md), [E1i](E1i-desktop-save-in-place.md): the engine's edit session and saving in place
 - [D4b](../done/D4b-native-menus.md): the native menus
 
 ## Scope

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E1h` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E1 editing foundation §8](../../plans/editor/e1-editing-foundation.md#8-differences-between-the-shells) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [D4b](../done/D4b-native-menus.md), [E1d](../done/E1d-edit-session-undo-ui.md) |

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E1 editing foundation §7](../../plans/editor/e1-editing-foundation.md#7-saving-and-the-save-constraint) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [D3b](../done/D3b-recent-files-and-file-watching.md), [E1e](../done/E1e-save-and-constraint-banner.md), [E1h](./E1h-desktop-edit-session.md) |
+| Depends on | [D3b](../done/D3b-recent-files-and-file-watching.md), [E1e](../done/E1e-save-and-constraint-banner.md), [E1h](../ongoing/E1h-desktop-edit-session.md) |
 | ADRs | Follows ADR 0007, 0008 |
 | Branch | `feat/e1i-desktop-save-in-place` |
 | PR title | `feat(desktop): save in place, with conflicts from outside changes` |

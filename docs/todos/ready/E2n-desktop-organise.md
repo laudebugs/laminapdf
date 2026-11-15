@@ -21,7 +21,7 @@ The desktop part of round E2 ([full-editor §7](../../plans/full-editor.md#7-pha
 
 - **Design (Paper):** [O06](../../design/paper/edit-session-organise.md#o06-organise-mode), [O07](../../design/paper/edit-session-organise.md#o07-insert-pages-and-merge-documents) (desktop: "Merge into one document"), [O08](../../design/paper/edit-session-organise.md#o08-split-document) (Save to a folder, Show in Finder)
 - [E2 plan §5 and §7](../../plans/editor/e2-page-organisation.md#7-differences-between-the-shells)
-- [E1h](E1h-desktop-edit-session.md) and [E1i](E1i-desktop-save-in-place.md): the engine's edit session and saving in place; [D3a](../done/D3a-open-from-os.md): open requests with several paths
+- [E1h](../ongoing/E1h-desktop-edit-session.md) and [E1i](E1i-desktop-save-in-place.md): the engine's edit session and saving in place; [D3a](../done/D3a-open-from-os.md): open requests with several paths
 
 ## Scope
 

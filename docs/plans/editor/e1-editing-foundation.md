@@ -137,7 +137,7 @@ A failed write leaves the document dirty and the original file as it was.
 
 | Area | Web | Desktop |
 | --- | --- | --- |
-| Session | In the document worker | In the engine process ([E1h](../../todos/ready/E1h-desktop-edit-session.md), after D4b) |
+| Session | In the document worker | In the engine process ([E1h](../../todos/ongoing/E1h-desktop-edit-session.md), after D4b) |
 | Undo and Redo | Toolbar, shortcuts, palette | The same, plus the native Edit menu, generated from the command registry (D4b) |
 | Close guard | `beforeunload` | Tauri's `CloseRequested` (E1h) |
 | Save | In place with the File System Access API, else Download | In place, with conflict detection (E1i, after D3b) |
@@ -155,7 +155,7 @@ No server feature: every edit and save happens on the device, and nothing leaves
 | [E1d](../../todos/done/E1d-edit-session-undo-ui.md) | The edit session in the document worker, the interaction modes, undo and redo, history, dirty state and the web close guard | E1g |
 | [E1e](../../todos/done/E1e-save-and-constraint-banner.md) | Save, Save as and Download a copy on the web, and the save-constraint strip | E1c, E1d |
 | [E1f](../../todos/done/E1f-metadata-ui-capability-page.md) | The editable Properties dialog and the capability page | E1c, E1e |
-| [E1h](../../todos/ready/E1h-desktop-edit-session.md) | Desktop: the session in the engine process, the native Edit menu, the close guard | E1d, D4b |
+| [E1h](../../todos/ongoing/E1h-desktop-edit-session.md) | Desktop: the session in the engine process, the native Edit menu, the close guard | E1d, D4b |
 | [E1i](../../todos/ready/E1i-desktop-save-in-place.md) | Desktop: save in place, watcher suppression and the conflict dialog for outside changes | E1e, E1h, D3b |
 
 E1b and E1g can start as soon as this plan merges, in parallel. The round's web and shared work, E1b to E1g, waits on no desktop todo.
