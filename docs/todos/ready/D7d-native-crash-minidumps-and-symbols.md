@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D7a](../ongoing/D7a-crash-reporting.md), [D6b](./D6b-release-workflow-and-linux-packages.md) |
+| Depends on | [D6b](./D6b-release-workflow-and-linux-packages.md), [D7a](../ongoing/D7a-crash-reporting.md) |
 | ADRs | Follows [ADR 0014 §10](../../decisions/0014-desktop-distribution.md#10-crash-reports) (crash reports), ADR 0008 §5 (the engine's sandbox) |
 | Branch | `feat/d7d-native-crash-minidumps` |
 | PR title | `feat(desktop): report native crashes from minidumps processed on the computer` |
