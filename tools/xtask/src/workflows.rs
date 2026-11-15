@@ -816,11 +816,16 @@ mod tests {
             .skip(1)
             .filter_map(|rest| rest.split(|c: char| !c.is_ascii_alphanumeric() && c != '_').next())
             .collect();
-        let unexpected = names
-            .iter()
-            .filter(|name| !["CLOUDFLARE_STAGING_R2_TOKEN", "CLOUDFLARE_ACCOUNT_ID"].contains(name))
-            .count();
+        // Exactly these: the staging bucket's token, its S3 Access Key ID, and the account.
+        let allowed = [
+            "CLOUDFLARE_STAGING_R2_TOKEN",
+            "STAGING_R2_ACCESS_KEY_ID",
+            "CLOUDFLARE_ACCOUNT_ID",
+        ];
+        let unexpected = names.iter().filter(|name| !allowed.contains(name)).count();
         assert_eq!(unexpected, 0, "the staging job reads another secret");
+        let read = allowed.iter().filter(|name| names.contains(name)).count();
+        assert_eq!(read, allowed.len(), "the staging job lacks one of its secrets");
     }
 
     /// GitHub blocks `pull_request_target` by default in public repositories from December 2, 2026,

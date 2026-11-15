@@ -206,7 +206,8 @@ async function publish(worker: string, step: string, bytes: Uint8Array): Promise
   } else {
     const file = join(out, `${step}-${servedName}`);
     writeFileSync(file, bytes);
-    pnpm(["exec", "wrangler", "r2", "object", "put", `${BUCKET}${path}`, "--file", file, "--remote"], updates);
+    // R2's S3 API (apps/updates/scripts/r2.ts): the staging token is scoped to its bucket.
+    pnpm(["run", "r2", "put", BUCKET, path.slice(1), file, "--content-type", "application/octet-stream"], updates);
   }
   putManifest(manifestFor(key, `${DOWNLOADS}${path}`, signature, new Date()));
   // The Worker caches a manifest for up to 30 s: wait until it offers this step's bundle.
@@ -412,10 +413,7 @@ try {
     try {
       putManifest(emptyManifest());
       for (const step of ["tampered", "update"]) {
-        pnpm(
-          ["exec", "wrangler", "r2", "object", "delete", `${BUCKET}/e2e/${run}/${step}/${servedName}`, "--remote"],
-          updates,
-        );
+        pnpm(["run", "r2", "delete", BUCKET, `e2e/${run}/${step}/${servedName}`], updates);
       }
     } catch (error) {
       console.error(`update-test: couldn't clean the staging channel up: ${String(error)}`);
