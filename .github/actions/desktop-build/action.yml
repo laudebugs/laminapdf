@@ -239,8 +239,11 @@ runs:
         </Policy>
         POLICY
         for deb in *.deb; do debsig-verify "$deb"; done
-        sudo rpm --import "$public"
-        for rpm in *.rpm; do rpm -K "$rpm" | tee /dev/stderr | grep -q 'signatures OK'; done
+        # One rpm database for the import and the check: Ubuntu's rpm keeps it in $HOME, which sudo changes.
+        rpmdb="$RUNNER_TEMP/rpmdb"
+        mkdir -p "$rpmdb"
+        rpm --dbpath "$rpmdb" --import "$public"
+        for rpm in *.rpm; do rpm --dbpath "$rpmdb" -K "$rpm" | tee /dev/stderr | grep -q 'signatures OK'; done
         for appimage in *.AppImage; do
           chmod +x "$appimage"
           test -n "$("./$appimage" --appimage-signature)"

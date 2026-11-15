@@ -106,6 +106,11 @@ fn the_staging_publish_should_share_the_update_tests_concurrency_group() {
             .any(|l| l.contains("'desktop-staging-channel'") && l.contains("group:"))
     );
     assert!(publish.1.iter().any(|l| l.trim() == "cancel-in-progress: false"));
+    let update_test = repository_file(".github/workflows/desktop-update-e2e.yml").expect("the update test");
+    assert!(
+        update_test.contains("'desktop-staging-channel'"),
+        "desktop-update-e2e.yml must take the same group"
+    );
 }
 
 #[test]

@@ -113,7 +113,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-        run: echo "public=$([ "$(gh api "repos/$REPO" --jq .visibility)" = public ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        # A failed API call fails the step: a release must not skip its attestations silently.
+        run: |
+          visibility=$(gh api "repos/$REPO" --jq .visibility)
+          echo "public=$([ "$visibility" = public ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
       - name: Plan the run
         id: plan
         env:
@@ -263,6 +266,10 @@ jobs:
     environment: desktop-nightly
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    # A re-run and the next night never write channels/nightly.json at once.
+    concurrency:
+      group: desktop-nightly-channel
+      cancel-in-progress: false
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
