@@ -38,7 +38,7 @@ import {
   type ViewerClient,
   writeParts,
 } from "@laminapdf/viewer";
-import { type ReactNode, useCallback } from "react";
+import { type ReactNode, useCallback, useEffect } from "react";
 import { downloadName } from "./download-name.ts";
 import type { OrganiseController } from "./organise.tsx";
 import type { Engine } from "./session.ts";
@@ -96,8 +96,13 @@ let nextKey = 1;
 /** A folder the person chose to write into. */
 type Folder = PlatformFolder;
 
-/** Thrown when the person cancels the question about files already in the folder: nothing more is written. */
+/** Thrown when the person cancels a save dialog or the question about files already in the folder: nothing more is written. */
 class Cancelled extends Error {}
+
+/** The worker answered without the file asked for, which only a bug does. */
+function noFile(): never {
+  throw new Error("the document worker wrote no such file");
+}
 
 /** The dialogs across files over one open document, and the files they read. */
 export class DocumentsController implements ExternalStore<DocumentsState> {
@@ -152,7 +157,10 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
     const picked = this.#picked(file);
     this.#set({ source: picked });
     await this.#close(old);
-    this.#set({ source: await this.#read(picked, undefined) });
+    const read = await this.#read(picked, undefined);
+    // The dialog closed, or another file was chosen, while this one was read: its preview goes.
+    if (this.#state.source?.key === picked.key) this.#set({ source: read });
+    else await this.#close(read);
   }
 
   /** Tries `password` on Insert's or Replace's encrypted file. */
@@ -161,6 +169,7 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
     if (source === undefined) return;
     const read = await this.#read(source, password);
     if (this.#state.source?.key === source.key) this.#set({ source: read });
+    else await this.#close(read);
   }
 
   /** Draws page `page` of `picked` into `canvas`, at the canvas box's size in device pixels. */
@@ -251,8 +260,16 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
   async mergePassword(key: string, password: string): Promise<void> {
     const picked = this.#state.merge.find((p) => p.key === key);
     if (picked === undefined) return;
-    const read = await this.#read(picked, password);
-    this.#set({ merge: this.#state.merge.map((p) => (p.key === key ? read : p)) });
+    await this.#replaceMergeFile(await this.#read(picked, password));
+  }
+
+  /** Puts `read` in its file's place in the merge, or closes its preview when the file left the list. */
+  async #replaceMergeFile(read: Picked): Promise<void> {
+    if (this.#state.merge.some((p) => p.key === read.key)) {
+      this.#set({ merge: this.#state.merge.map((p) => (p.key === read.key ? read : p)) });
+    } else {
+      await this.#close(read);
+    }
   }
 
   /** Merges: into the open document as one step, or into a new document, saved as a new file named from `stem`. */
@@ -267,10 +284,10 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
         ...(p.password === undefined ? {} : { password: p.password }),
       }));
       try {
-        const bytes = await mergeFiles(client, inputs, { open: stem, merge: options });
-        await this.#save([{ name: word("documents.merged.name", { name: stem }), bytes }]);
-      } catch {
-        this.#organise.say(word("documents.failed.merge"));
+        const merged = mergeFiles(client, inputs, { open: stem, merge: options });
+        await this.#saveOne(merged, word("documents.merged.name", { name: stem }));
+      } catch (error) {
+        if (!(error instanceof Cancelled)) this.#organise.say(word("documents.failed.merge"));
       }
       return;
     }
@@ -350,22 +367,30 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
   /**
    * Has the document worker write one file per list of `ranges`, named `names`, then puts them
    * `where`: into a folder, as one zip saved under that name, or (undefined) each saved on its own.
+   * A save dialog opens before the worker is done, while the click still lets the browser show it.
    */
   async #write(ranges: string[][], names: readonly string[], where: Folder | string | undefined): Promise<void> {
     const { client } = await this.#engine.view();
     const onProgress = (progress: { done: number; total: number }) => this.#set({ progress });
     if (typeof where === "string") {
-      const written = await writeParts(client, ranges, { zip: { names, modified: Date.now() } }, { onProgress });
-      if ("zip" in written) await this.#platform.saveAs(written.zip, where);
+      const zipped = writeParts(client, ranges, { zip: { names, modified: Date.now() } }, { onProgress });
+      await this.#saveOne(
+        zipped.then((w) => ("zip" in w ? w.zip : noFile())),
+        where,
+      );
       return;
     }
-    const written = await writeParts(client, ranges, {}, { onProgress });
-    const files = ("files" in written ? written.files : []).map((bytes, i) => ({
-      name: names[i] ?? "part.pdf",
-      bytes,
-    }));
-    if (where === undefined) await this.#save(files);
-    else await this.#writeFolder(where, files);
+    const written = writeParts(client, ranges, {}, { onProgress }).then((w) => ("files" in w ? w.files : []));
+    if (where !== undefined) {
+      const files = (await written).map((bytes, i) => ({ name: names[i] ?? "part.pdf", bytes }));
+      await this.#writeFolder(where, files);
+      return;
+    }
+    for (const [i, name] of names.entries())
+      await this.#saveOne(
+        written.then((f) => f[i] ?? noFile()),
+        name,
+      );
   }
 
   /** Closes the dialog and the previews it opened. */
@@ -402,18 +427,16 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
     );
   }
 
-  /** Saves each of `files` as its own file (a download where no dialog is), under its safe name. */
-  async #save(files: readonly { name: string; bytes: Uint8Array }[]): Promise<void> {
-    for (const file of files) await this.#platform.saveAs(file.bytes, downloadName(file.name));
+  /** Saves `bytes`, maybe still coming, as a new file named `name` (made safe); a dismissed dialog cancels. */
+  async #saveOne(bytes: Promise<Uint8Array>, name: string): Promise<void> {
+    const result = await this.#platform.saveAs(bytes, name.endsWith(".zip") ? name : downloadName(name));
+    if (!result.saved) throw new Cancelled();
   }
 
   async #addToMerge(files: readonly PlatformFile[]): Promise<void> {
     const picked = files.map((file) => this.#picked(file));
     this.#set({ merge: [...this.#state.merge, ...picked] });
-    for (const p of picked) {
-      const read = await this.#read(p, undefined);
-      this.#set({ merge: this.#state.merge.map((q) => (q.key === p.key ? read : q)) });
-    }
+    await Promise.all(picked.map(async (p) => this.#replaceMergeFile(await this.#read(p, undefined))));
   }
 
   async #claims(): Promise<void> {
@@ -523,6 +546,8 @@ export function DocumentsDialogs({
   const selected = pages.flatMap((p, i) => (selectedIds.has(p.id) ? [i] : []));
   const labels = pages.map((p, i) => p.label ?? String(i + 1));
   const close = () => void documents.close();
+  // The dialogs go with the document: their previews close with them.
+  useEffect(() => () => void documents.close(), [documents]);
   const source = state.source;
   const drawSource = useCallback(
     (page: number, canvas: HTMLCanvasElement, signal: AbortSignal) => documents.draw(source, page, canvas, signal),

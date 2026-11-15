@@ -404,6 +404,12 @@ export class ViewerClient {
     return history;
   }
 
+  /** The open document's ID in the worker, once a restarted worker has opened it again; 0 when none is open. */
+  async documentId(): Promise<number> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.#document?.id ?? 0;
+  }
+
   /**
    * Makes `bytes` a source document of the open document, for the ops that copy its pages
    * (`insertPagesFrom`, `replacePages`, `mergeDocuments`): its ID and page IDs. The page keeps

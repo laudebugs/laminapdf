@@ -104,7 +104,7 @@ None.
   - Fields always come with the pages (linked or renamed).
   - Merge into a new document saves a file on the web.
   - There is no Details panel, and no keep-bookmarks checkbox in Split.
-- **Startup JavaScript:** 283,321 bytes gzipped, against 283,190 before. The dialogs, the worker calls and the folder picker load later; the rest is page-side. The owner raised the budget to 283,400 on 2026-11-15.
+- **Startup JavaScript:** 283,358 bytes gzipped, against 283,190 before. The dialogs, the worker calls and the folder picker load later; the rest is page-side. The owner raised the budget to 283,400 on 2026-11-15.
 - **Tests:**
   - `apps/web/e2e/organise-documents.e2e.test.ts` (Chromium here; Firefox and WebKit in CI). It inserts by range, inserts from an encrypted file after its password, replaces a page, merges two files, splits (a stubbed folder in Chromium, a zip elsewhere) and extracts, each read back by the SDK. Capability tags: C.02, C.06, C.16 `web round-trip`; C.05, C.07, H.10 `web write`.
   - `packages/viewer/test/browser/sources.browser.test.ts` covers the preview, the password, parts, merges and the replay after a crash (and the loss for an encrypted source).

@@ -204,9 +204,10 @@ export interface Platform {
 
   /**
    * Saves as a new file the user chooses, or as a download: a PDF, or a zip of several when the
-   * name ends in `.zip` (the parts of a split where no folder can be chosen).
+   * name ends in `.zip` (the parts of a split where no folder can be chosen). `bytes` may still be
+   * coming: a save dialog opens first, while the click that asked for it lets the browser show it.
    */
-  saveAs(bytes: Uint8Array, suggestedName: string): Promise<SaveResult>;
+  saveAs(bytes: Uint8Array | Promise<Uint8Array>, suggestedName: string): Promise<SaveResult>;
   /** Asks the user for a folder to write files into; undefined when they cancel. Only when capabilities.canWriteDirectory. */
   chooseFolder?(): Promise<PlatformFolder | undefined>;
   /** Overwrites the file `file` came from. Only when capabilities.canWriteInPlace and file.writable. */

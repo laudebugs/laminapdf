@@ -53,14 +53,14 @@ export async function closeSource(client: ViewerClient, key: number): Promise<vo
  * bookmarks, fields and labels; the document doesn't change. `output.zip` packs them into one zip
  * under its names. `onProgress` hears `{ done, total }` after each file.
  */
-export function writeParts(
+export async function writeParts(
   client: ViewerClient,
   ranges: readonly (readonly string[])[],
   output: PartsOutput,
   call?: ViewerCallOptions & { readonly onProgress?: (progress: PartsProgress) => void },
 ): Promise<WrittenParts> {
   const { onProgress, ...rest } = call ?? {};
-  return client.call("writeParts", [ranges, output, client.document?.id ?? 0], {
+  return client.call("writeParts", [ranges, output, await client.documentId()], {
     ...rest,
     ...(onProgress === undefined ? {} : { onProgress: (p: unknown) => onProgress(p as PartsProgress) }),
   });
@@ -70,16 +70,16 @@ export function writeParts(
  * One new document of `files` one after another, with the open document first under the title
  * `open` when it is given (its pages as its edits leave them); the open document doesn't change.
  */
-export function mergeFiles(
+export async function mergeFiles(
   client: ViewerClient,
   files: MergeFilesRequest["files"],
   options: { readonly open?: string; readonly merge?: MergeOptions } = {},
   call?: ViewerCallOptions,
 ): Promise<Uint8Array> {
-  const opened = client.document;
+  const id = options.open === undefined ? 0 : await client.documentId();
   const request: MergeFilesRequest = {
     files,
-    ...(options.open === undefined || opened === undefined ? {} : { open: { id: opened.id, title: options.open } }),
+    ...(options.open === undefined || id === 0 ? {} : { open: { id, title: options.open } }),
     ...(options.merge === undefined ? {} : { options: options.merge }),
   };
   return client.call("mergeFiles", [request], call);

@@ -228,12 +228,13 @@ function pickWithInput(doc: Document, multiple: boolean): Promise<File[]> {
 
 async function saveAs(
   scope: WebScope,
-  bytes: Uint8Array,
+  coming: Uint8Array | Promise<Uint8Array>,
   suggestedName: string,
   capabilities: Capabilities,
 ): Promise<SaveResult> {
   const zip = suggestedName.endsWith(".zip");
   if (scope.showSaveFilePicker === undefined) {
+    const bytes = await coming;
     // No dialog: the browser downloads it, under the suggested name.
     const url = scope.URL.createObjectURL(
       new Blob([bytes as BlobPart], { type: zip ? "application/zip" : "application/pdf" }),
@@ -249,8 +250,10 @@ async function saveAs(
     return { saved: true, name: suggestedName };
   }
   try {
+    // A dismissed dialog leaves the bytes' failure, if any, to nobody.
+    if (coming instanceof Promise) coming.catch(() => undefined);
     const handle = await scope.showSaveFilePicker({ suggestedName, types: zip ? ZIP_TYPES : PDF_TYPES });
-    await write(handle, bytes);
+    await write(handle, await coming);
     // A zip isn't a document the reader opens next.
     if (zip) return { saved: true, name: handle.name };
     return { saved: true, name: handle.name, file: await fromHandle(handle, capabilities) };

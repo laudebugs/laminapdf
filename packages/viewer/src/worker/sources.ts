@@ -42,12 +42,18 @@ export function previewSource(bytes: Uint8Array, password: string | undefined): 
     { size: bytes.length, readSync: (offset, length) => bytes.subarray(offset, offset + length) },
     options,
   );
+  let pages: SourcePreview["pages"];
+  try {
+    pages = Array.from({ length: render.pageCount }, (_, i) => {
+      const { width, height, rotate } = render.page(i);
+      return { width, height, rotate };
+    });
+  } catch (error) {
+    render.close();
+    throw error;
+  }
   const key = nextPreview++;
   previews.set(key, render);
-  const pages = Array.from({ length: render.pageCount }, (_, i) => {
-    const { width, height, rotate } = render.page(i);
-    return { width, height, rotate };
-  });
   return { key, pages, encrypted, ...claims };
 }
 
