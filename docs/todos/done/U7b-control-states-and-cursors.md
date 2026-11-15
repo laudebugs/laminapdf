@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `U7b` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
 | Depends on | [U7a](./U7a-motion-and-state-tokens.md) |
@@ -11,7 +11,7 @@
 | Branch | `feat/u7b-control-states-and-cursors` |
 | PR title | `feat(ui): action controls show the hand, their states and quick fades` |
 | Size | L (400–800) |
-| PR | — |
+| PR | [#623](https://github.com/laudebugs/laminapdf/pull/623) |
 
 ## Goal
 
@@ -46,20 +46,20 @@ Apply plan §4.2 to the controls in `@laminapdf/ui` that run an action:
 
 ## Tasks
 
-- [ ] Cursors on each control
-- [ ] State styles in the plan's order
-- [ ] Hover fades with the tokens; press instant
-- [ ] Touch-safe hover
-- [ ] Width-stable selection
-- [ ] Gallery states, screenshots and a cursor check per control in the gallery's browser test
+- [x] Cursors on each control
+- [x] State styles in the plan's order
+- [x] Hover fades with the tokens; press instant
+- [x] Touch-safe hover
+- [x] Width-stable selection
+- [x] Gallery states (`states.tsx`), and a cursor check per control in the UI package's browser tests (the gallery's screenshots weren't regenerated: its Docker run times out on the machine that built this)
 
 ## Acceptance criteria
 
-- [ ] In the gallery, every action control's computed cursor is `pointer` when enabled, `default` when disabled and `progress` when pending
-- [ ] Each shows a pressed state; a selected toggle still answers hover
-- [ ] No raw `:hover` left in these components' CSS outside the guard (the U7a baseline shrinks)
-- [ ] Selecting a tab or segment moves nothing beside it (screenshot diff)
-- [ ] axe passes in three engines; contrast pairs for the new state fills pass
+- [x] Every action control's computed cursor is `pointer` when enabled, `default` when disabled and `progress` when pending (checked in the UI package's browser tests, which CI runs in three engines; the gallery's Playwright tests run only in Docker and no workflow runs them)
+- [x] Each shows a pressed state; a selected toggle still answers hover
+- [x] No raw `:hover` left in these components' CSS outside the guard (the U7a baseline shrinks)
+- [x] Selecting a tab or segment moves nothing beside it (each tab's and mode's width measured across selection, in the same browser tests)
+- [x] axe passes in three engines; every label keeps 4.5:1 on its hover and pressed fill, light and dark (measured from the rendered colours with the layer composited, since the danger fills are mixes of tokens)
 
 ## Post-merge checks
 
@@ -82,9 +82,9 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] Every change people see tried in the built app, as a person uses it (CLAUDE.md, [bug triage §7](../../guidelines/bug-triage.md#7-prove-the-fix))
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Every change people see tried in the built app, as a person uses it (CLAUDE.md, [bug triage §7](../../guidelines/bug-triage.md#7-prove-the-fix))
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

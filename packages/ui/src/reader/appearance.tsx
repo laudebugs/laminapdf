@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import { Radio as AriaRadio, RadioGroup as AriaRadioGroup, Label, Text } from "react-aria-components";
 import { Radio, RadioGroup, Switch } from "../components/choice.js";
 import { message } from "../messages.js";
+import { suppressMotion } from "../motion.js";
 import { useMediaQuery } from "../state/hooks.js";
 
 /** The UI themes; `system` follows the system's light or dark. */
@@ -73,8 +74,12 @@ export function appearanceSummary(appearance: Appearance): string {
 
 /** Sets `appearance` on `root` (the document element): what the tokens and styles read. */
 export function applyAppearance(root: HTMLElement, appearance: Appearance): void {
-  if (appearance.theme === "system") root.removeAttribute("data-theme");
-  else root.setAttribute("data-theme", appearance.theme);
+  const theme = appearance.theme === "system" ? null : appearance.theme;
+  if (root.getAttribute("data-theme") !== theme || root.getAttribute("data-accent") !== appearance.accent) {
+    suppressMotion(root);
+  }
+  if (theme === null) root.removeAttribute("data-theme");
+  else root.setAttribute("data-theme", theme);
   root.setAttribute("data-accent", appearance.accent);
   if (appearance.motion === "reduce") root.setAttribute("data-motion", "reduce");
   else root.removeAttribute("data-motion");

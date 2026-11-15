@@ -10,7 +10,7 @@ import type { BrowserCommand } from "vitest/node";
 const firefox = firefoxProvider(new URL("./", import.meta.url));
 
 // Lets a test make the page prefer reduced motion, which a page can't set for itself.
-const reducedMotion: BrowserCommand<["reduce" | null]> = async (ctx, value) => {
+const reducedMotion: BrowserCommand<["reduce" | "no-preference" | null]> = async (ctx, value) => {
   if (ctx.provider.name !== "playwright") throw new Error("reducedMotion needs the Playwright provider");
   await ctx.page.emulateMedia({ reducedMotion: value });
 };

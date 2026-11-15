@@ -147,6 +147,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(open::OpenWorker::start(app.handle().clone())?);
     app.manage(windows::Windows::default());
     app.manage(tab_drag::TabDrag::default());
+    app.manage(session::locate::Held::default());
     app.manage(menu::MenusJson::embedded());
     app.manage(menu::NativeMenus::default());
     // Updates: the settings beside the preferences, the policy and this build; checks start
@@ -211,6 +212,8 @@ macro_rules! app_commands {
             session::app::session_tabs,
             session::app::take_session_tabs,
             session::app::session_open,
+            session::locate::session_locate,
+            session::locate::session_locate_answer,
             commands::menu_state,
             commands::close_window,
             commands::quit,
@@ -340,6 +343,7 @@ fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
             window.state::<Arc<Engines>>().close_window(window.label());
             window.state::<watch::Watcher>().unwatch_window(window.label());
             window.state::<windows::Windows>().closed(window.label());
+            window.state::<session::locate::Held>().closed(window.label());
             window.state::<open::PendingOpens>().closed(window.label());
             menu::closed(window.app_handle(), window.label());
             windows::changed(window.app_handle());
