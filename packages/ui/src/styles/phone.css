@@ -23,14 +23,16 @@
     visibility: hidden;
   }
 
+  /* The bar slides by its margin, a layout property, until it moves by transform (motion plan
+     §4.3); so it slides only when neither the system nor Settings asks for reduced motion. */
   @media (prefers-reduced-motion: no-preference) {
-    .paper-top-bar[data-phone] {
+    :root:not([data-motion="reduce"]) .paper-top-bar[data-phone] {
       transition:
         margin-block-start 160ms ease,
         visibility 0s linear 160ms;
     }
 
-    .paper-top-bar[data-phone]:not([data-hidden]) {
+    :root:not([data-motion="reduce"]) .paper-top-bar[data-phone]:not([data-hidden]) {
       transition-delay: 0s;
     }
   }

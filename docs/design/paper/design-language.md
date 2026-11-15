@@ -491,6 +491,13 @@ Wrap each in:
 | Wrap lines | `wrap-lines` | `<path d="M4.5 6.5h15M4.5 12h11a3 3 0 0 1 0 6h-4"></path><path d="M13.5 16l-2 2 2 2"></path><path d="M4.5 17.5h4"></path>` | Wrap long lines in a code block |
 | Format code | `format-code` | `<path d="M4.5 6h9M8.5 10h11M8.5 14h7M4.5 18h9"></path>` | Format the code in an editor |
 
+**Icons for the sites' theme switch (Q4w).** Q4w drew these for the Light and Dark choices of the docs site's theme switch; Auto uses Laptop.
+
+| Name | File | Markup | Used for |
+| --- | --- | --- | --- |
+| Sun | `sun` | `<circle cx="12" cy="12" r="3.5"></circle><path d="M12 4v2M12 18v2M4 12h2M18 12h2M6.34 6.34l1.42 1.42M16.24 16.24l1.42 1.42M17.66 6.34l-1.42 1.42M7.76 16.24l-1.42 1.42"></path>` | The light theme |
+| Moon | `moon` | `<path d="M19 14.5A7.5 7.5 0 0 1 9.5 5a7.5 7.5 0 1 0 9.5 9.5z"></path>` | The dark theme |
+
 Window caption glyphs (minimise, maximise, close) are drawn on a 10 × 10 grid with 1 px strokes and are mockup-only.
 
 ## 6. Layout
@@ -543,14 +550,22 @@ Snippets use literal hex values; in canvases that expose the accent as a tweak, 
 
 ### 7.0 Shared states
 
+Every control styles the states it has in this order: rest, value (selected, checked, current, open), interaction (hover, then pressed), validity, focus and availability (disabled, blocked, pending, read-only). A later state wins on what it sets. Hover and pressed are translucent layers over the value's fill, so a selected control still shows hover; the primary button swaps one solid fill for another instead (`accent` → `accent-strong` → `primary-pressed`). The [motion plan](../../plans/motion-and-states.md#42-the-state-model) gives each state's rules.
+
 | State | Ghost / icon button | Secondary button | Primary button | Toggle (aria-pressed) |
 | --- | --- | --- | --- | --- |
-| Default | transparent, `text-3` | white, `control-border` | `accent` bg and border, white 600 | transparent, 1 px transparent border |
-| Hover **(proposed)** | `hover` fill | `hover` fill over white | `accent-strong` | `hover` fill |
-| Pressed **(proposed)** | `pressed` fill, label `text-3` | `pressed` | `#123A3F` (white 12.33) | — |
+| Rest | transparent, `text-3` | white, `control-border` | `accent` bg and border, white 600 | transparent, 1 px transparent border |
 | Selected | — | — | — | `accent` border, `accent-tint` fill, `accent` 600 |
+| Hover | `hover` fill | `hover` fill over white | `accent-strong` | `hover` layer over its fill |
+| Pressed | `pressed` fill, label `text-3` | `pressed` | `#123A3F` (white 12.33) | `pressed` layer over its fill |
 | Focus (keyboard) | `outline: 2px solid #1F5C63; outline-offset: 2px` (1 px offset where space is tight: mini toolbar, palette input; `-2px` inset inside edge-to-edge phone bars) | same | same | same |
-| Disabled **(proposed)** | `disabled` text, no hover | `disabled` text, `hairline` border | `hairline` fill and border, `disabled` text | as ghost |
+| Disabled | `disabled` text, no hover | `disabled` text, `hairline` border | `hairline` fill and border, `disabled` text | as ghost |
+
+**Cursor.** Every enabled control that acts shows the hand (`--paper-cursor-action`): buttons, toggles, tabs, menu items, choices and rows that open something. Links show the hand too (`--paper-cursor-link`). Disabled and blocked controls show the arrow (`--paper-cursor-disabled`), and a control waiting on its action shows the busy arrow (`--paper-cursor-pending`). Text fields keep the text cursor, and the page canvas keeps its tool's cursor.
+
+**Motion.** Hover fades in over `--paper-duration-state-in` (80 ms) and out over `--paper-duration-state-out` (150 ms). Pressed and the focus ring appear at once, and release fades back to hover over 80 ms. Only colour, background, border and opacity change, and no transition lists `all`. Hover applies only on a pointer that hovers (`data-hovered`, or `:hover` inside `@media (hover: hover) and (pointer: fine)`), so a tap leaves no hover behind. Controls that draw a pressed state clear iOS's grey tap flash.
+
+**Reduced motion.** Under the system's preference or Settings › Reduce motion, nothing slides, scales, grows, shimmers or springs; fades stay. A switch of theme, accent, page appearance, density or direction applies at once, with no fade from the old colours.
 
 Use `:focus-visible`, never remove the ring, and every board shows the ring on one control.
 
@@ -1368,7 +1383,7 @@ Three separate settings in View settings: **Theme** (Light, Dark, High contrast,
 - [ ] Current page `aria-current="page"`, current outline row `aria-current="location"`; page pill and toasts `aria-live="polite"`
 - [ ] Single-pointer alternative to every drag (2.5.7); single-key shortcuts can be turned off (2.1.4)
 - [ ] State never shown by colour alone (swatches have names, badges have words or icons)
-- [ ] `prefers-reduced-motion`: no sliding sheets or shimmer, instant cross-fades
+- [ ] Reduced motion (the system's `prefers-reduced-motion` or Settings › Reduce motion): nothing slides, scales, grows, shimmers or springs; fades stay
 - [ ] Zoom to 200% and 320 CSS px width reflows the chrome (top bar wraps; phone shell below 600)
 - [ ] `forced-colors` mode keeps borders and focus rings visible (use real borders/outlines, not only shadows)
 

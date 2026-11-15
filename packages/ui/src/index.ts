@@ -149,6 +149,7 @@ export {
   stepToUndo,
 } from "./edit/edit-controls.js";
 export { type Catalogue, countMessage, ENGLISH, type MessageId, message } from "./messages.js";
+export { suppressMotion } from "./motion.js";
 export {
   Dialog,
   type DialogProps,
@@ -310,6 +311,12 @@ export {
   type RepairDetailsProps,
   type RepairKind,
 } from "./reader/repair.js";
+export {
+  LocateDifferentDialog,
+  type LocateDifferentDialogProps,
+  RestoreNotice,
+  type RestoreNoticeProps,
+} from "./reader/restore-notice.js";
 export {
   SettingsDialog,
   type SettingsDialogProps,

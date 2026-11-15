@@ -14,6 +14,9 @@ function element(): Root & { attrs: Map<string, string> } {
     attrs,
     setAttribute: (name: string, value: string) => attrs.set(name, value),
     removeAttribute: (name: string) => attrs.delete(name),
+    getAttribute: (name: string) => attrs.get(name) ?? null,
+    // No window: no frames to suppress transitions across, so suppressMotion leaves it alone.
+    ownerDocument: { defaultView: null },
   } as unknown as Root & { attrs: Map<string, string> };
 }
 
