@@ -23,8 +23,8 @@ use std::path::{Path, PathBuf};
 
 mod bookmark;
 mod files;
-pub mod print;
 mod policy;
+pub mod print;
 pub use bookmark::{file_bookmark, resolve_bookmark};
 pub use files::{FileIdentity, file_identity, open_shared};
 pub use policy::{ManagedUpdates, installed_by_msi, managed_updates};
