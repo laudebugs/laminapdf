@@ -723,10 +723,24 @@ fn a_full_rewrite_should_give_the_whole_file() {
         ..SaveRequest::default()
     };
     let (written, file) = write_and_read(&engine, doc, request, 1 << 20);
+    engine.add(1, file.clone());
     let adopted = save(&engine, doc, &SaveCall::Adopt).map(|(answer, _)| answer);
+    // The rewritten file is the document's now: the next edit and save go on from it.
+    let FromEngine::PageInfo { ids, .. } = engine.ask(|req| ToEngine::GetPageInfo { req, doc }) else {
+        panic!("expected PageInfo");
+    };
+    let turned = edit(&engine, doc, &rotate(&ids[0], 0));
+    let (_, next) = write_and_read(&engine, doc, SaveRequest::default(), 1 << 20);
+    let again = [file.as_slice(), next.as_slice()].concat();
     assert_eq!(
-        (written.mode, adopted, first_rotation(file)),
-        (SavedAs::FullRewrite, Ok(SaveAnswer::Adopted), 270)
+        (
+            written.mode,
+            adopted,
+            first_rotation(file),
+            turned.pages[0].size.rotate,
+            first_rotation(again)
+        ),
+        (SavedAs::FullRewrite, Ok(SaveAnswer::Adopted), 270, 0, 0)
     );
 }
 
