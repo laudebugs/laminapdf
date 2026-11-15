@@ -1,0 +1,102 @@
+name: Desktop update test builds
+description: >-
+  The update test's two builds of the desktop app (D5c), with the `e2e` feature and a throwaway
+  updater key made here: 0.0.1, which trusts the key's public half, and 0.0.2's updater bundle,
+  signed with its private half. No signing secret is stored, so pull requests need none. Needs the
+  Rust toolchain, Node and pnpm, WebKitGTK on Linux, and the frontend's packages built.
+outputs:
+  old:
+    description: 0.0.1 to install (macOS the .app, Windows the NSIS installer, Linux the AppImage).
+    value: ${{ steps.old.outputs.path }}
+  new:
+    description: 0.0.2's updater bundle, with its .sig beside it.
+    value: ${{ steps.new.outputs.path }}
+runs:
+  using: composite
+  steps:
+    - name: Make a throwaway updater key
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p "$RUNNER_TEMP/update-test"
+        pnpm --filter @laminapdf/desktop exec tauri signer generate --ci --password "" \
+          --write-keys "$RUNNER_TEMP/update-test/updater.key"
+    # Each version's configuration on top of the e2e build's: its version, the run's public key, and
+    # plain HTTP to the test's local server, which no committed configuration allows (the
+    # capability guard test holds that). Only 0.0.2 makes the signed updater bundle.
+    - name: Write the two versions' configuration
+      shell: bash
+      run: |
+        set -euo pipefail
+        dir="$RUNNER_TEMP/update-test"
+        pubkey=$(cat "$dir/updater.key.pub")
+        for version in 0.0.1 0.0.2; do
+          artifacts=false
+          if [ "$version" = 0.0.2 ]; then artifacts=true; fi
+          jq -n --arg version "$version" --arg pubkey "$pubkey" --argjson artifacts "$artifacts" '{
+            version: $version,
+            bundle: { createUpdaterArtifacts: $artifacts },
+            plugins: { updater: { pubkey: $pubkey, dangerousInsecureTransportProtocol: true } }
+          }' > "$dir/$version.json"
+        done
+        case "$RUNNER_OS" in
+          macOS) echo "UPDATE_TEST_BUNDLES=app" >> "$GITHUB_ENV" ;;
+          Windows) echo "UPDATE_TEST_BUNDLES=nsis" >> "$GITHUB_ENV" ;;
+          Linux) echo "UPDATE_TEST_BUNDLES=appimage" >> "$GITHUB_ENV" ;;
+        esac
+    - name: Build 0.0.1
+      shell: bash
+      env:
+        # GitHub's runners have no FUSE for linuxdeploy's AppImage.
+        APPIMAGE_EXTRACT_AND_RUN: "1"
+      run: |
+        set -euo pipefail
+        pnpm --filter @laminapdf/desktop exec tauri build --debug --features e2e --bundles "$UPDATE_TEST_BUNDLES" \
+          --config src-tauri/tauri.bundle.conf.json --config src-tauri/tauri.e2e.conf.json \
+          --config "$RUNNER_TEMP/update-test/0.0.1.json"
+    # The second build writes to the same folders, so 0.0.1 moves out first.
+    - name: Keep 0.0.1
+      id: old
+      shell: bash
+      run: |
+        set -euo pipefail
+        kept="$RUNNER_TEMP/update-test/old"
+        mkdir -p "$kept"
+        case "$RUNNER_OS" in
+          macOS) found=$(find target/debug/bundle/macos -maxdepth 1 -name '*.app' -print -quit) ;;
+          Windows) found=$(find target/debug/bundle/nsis -maxdepth 1 -name '*_0.0.1_*-setup.exe' -print -quit) ;;
+          Linux) found=$(find target/debug/bundle/appimage -maxdepth 1 -name '*_0.0.1_*.AppImage' -print -quit) ;;
+        esac
+        if [ -z "$found" ]; then
+          echo "::error::0.0.1's bundle is missing"
+          exit 1
+        fi
+        mv "$found" "$kept/"
+        echo "path=$kept/$(basename "$found")" >> "$GITHUB_OUTPUT"
+    - name: Build 0.0.2 and sign its updater bundle
+      shell: bash
+      env:
+        APPIMAGE_EXTRACT_AND_RUN: "1"
+        TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+      run: |
+        set -euo pipefail
+        export TAURI_SIGNING_PRIVATE_KEY="$RUNNER_TEMP/update-test/updater.key"
+        pnpm --filter @laminapdf/desktop exec tauri build --debug --features e2e --bundles "$UPDATE_TEST_BUNDLES" \
+          --config src-tauri/tauri.bundle.conf.json --config src-tauri/tauri.e2e.conf.json \
+          --config "$RUNNER_TEMP/update-test/0.0.2.json"
+    - name: Find 0.0.2's updater bundle
+      id: new
+      shell: bash
+      run: |
+        set -euo pipefail
+        case "$RUNNER_OS" in
+          macOS) found=$(find target/debug/bundle/macos -maxdepth 1 -name '*.app.tar.gz' -print -quit) ;;
+          Windows) found=$(find target/debug/bundle/nsis -maxdepth 1 -name '*_0.0.2_*-setup.exe' -print -quit) ;;
+          Linux) found=$(find target/debug/bundle/appimage -maxdepth 1 -name '*_0.0.2_*.AppImage' -print -quit) ;;
+        esac
+        if [ -z "$found" ] || [ ! -s "$found.sig" ]; then
+          echo "::error::0.0.2's updater bundle or its signature is missing"
+          ls -la target/debug/bundle/*/ || true
+          exit 1
+        fi
+        echo "path=$PWD/$found" >> "$GITHUB_OUTPUT"

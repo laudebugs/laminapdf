@@ -13,11 +13,13 @@
     "types": "wrangler types --env-interface Env src/generated/worker-configuration.d.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.worker.json && wrangler types --env-interface Env src/generated/worker-configuration.d.ts --check",
     "test": "vitest run",
-    "manifest": "node scripts/manifest.ts"
+    "manifest": "node scripts/manifest.ts",
+    "r2": "node scripts/r2.ts"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "ajv": "catalog:",
+    "aws4fetch": "catalog:",
     "esbuild": "catalog:",
     "miniflare": "catalog:",
     "typescript": "catalog:",
