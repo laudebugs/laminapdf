@@ -165,9 +165,10 @@ pub(crate) fn rerun(
 /// The config folder Tauri gives an app with `identifier` on Linux: `$XDG_CONFIG_HOME` when it is
 /// absolute, else `~/.config`, then the identifier.
 pub(crate) fn config_dir(identifier: &str, current: impl Fn(&str) -> Option<String>) -> Option<PathBuf> {
+    // XDG's "absolute" is Linux's: a leading `/` (so the tests agree on every OS).
     let base = current("XDG_CONFIG_HOME")
+        .filter(|path| path.starts_with('/'))
         .map(PathBuf::from)
-        .filter(|path| path.is_absolute())
         .or_else(|| current("HOME").map(|home| Path::new(&home).join(".config")))?;
     Some(base.join(identifier))
 }
