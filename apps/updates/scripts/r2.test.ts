@@ -4,7 +4,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { credentialsFor, objectUrl, R2, secretOf } from "./r2.ts";
+import { credentialsFor, objectUrl, R2Bucket, secretOf } from "./r2.ts";
 
 const ACCOUNT = "0123456789abcdef0123456789abcdef";
 const CREDENTIALS = { accountId: ACCOUNT, accessKeyId: "key-id", token: "token-value" };
@@ -16,8 +16,8 @@ interface Sent {
   readonly body: string;
 }
 
-/** An R2 whose requests are recorded in `sent` and answered with `status`. */
-function recording(status = 200, body = ""): { r2: R2; sent: Sent[] } {
+/** A bucket whose requests are recorded in `sent`, answered in turn from `answers` (the last repeats). */
+function recording(...answers: { status: number; body?: string }[]): { bucket: R2Bucket; sent: Sent[] } {
   const sent: Sent[] = [];
   const fetcher = (async (input: string | URL | Request, init?: RequestInit) => {
     const request = new Request(input, init);
@@ -27,10 +27,14 @@ function recording(status = 200, body = ""): { r2: R2; sent: Sent[] } {
       headers: request.headers,
       body: init?.body === undefined ? "" : await request.text(),
     });
-    return new Response(status === 204 || init?.method === "HEAD" ? null : body, { status });
+    const { status, body = "" } = answers[Math.min(sent.length, answers.length) - 1] ?? { status: 200 };
+    return new Response(init?.method === "HEAD" ? null : body, { status });
   }) as typeof fetch;
-  return { r2: new R2(CREDENTIALS, fetcher), sent };
+  const bucket = new R2Bucket("lamina-pdf-staging", CREDENTIALS, fetcher, async () => undefined);
+  return { bucket, sent };
 }
+
+const OK = { status: 200 };
 
 describe("credentialsFor", () => {
   it("takes the staging bucket's own token and key ID", () => {
@@ -76,8 +80,8 @@ describe("objectUrl", () => {
 
 describe("R2", () => {
   it("signs a put for the key ID, R2's region and S3, without hashing the body", async () => {
-    const { r2, sent } = recording();
-    await r2.putObject("lamina-pdf-staging", "channels/staging.json", "{}", { contentType: "application/json" });
+    const { bucket, sent } = recording(OK);
+    await bucket.putObject("channels/staging.json", "{}", { contentType: "application/json" });
     const authorization = sent[0]?.headers.get("authorization") ?? "";
     expect([
       authorization.startsWith("AWS4-HMAC-SHA256 Credential=key-id/"),
@@ -87,8 +91,8 @@ describe("R2", () => {
   });
 
   it("stores a put's body with its type and cache headers", async () => {
-    const { r2, sent } = recording();
-    await r2.putObject("lamina-pdf-staging", "channels/staging.json", "{}", {
+    const { bucket, sent } = recording(OK);
+    await bucket.putObject("channels/staging.json", "{}", {
       contentType: "application/json",
       cacheControl: "no-store",
     });
@@ -103,30 +107,45 @@ describe("R2", () => {
   it("streams a file with its length", async () => {
     const file = join(mkdtempSync(join(tmpdir(), "lamina-r2-")), "bundle.bin");
     writeFileSync(file, "bundle bytes");
-    const { r2, sent } = recording();
-    await r2.putObject("lamina-pdf-staging", "e2e/bundle.bin", { file }, { contentType: "application/octet-stream" });
+    const { bucket, sent } = recording(OK);
+    await bucket.putObject("e2e/bundle.bin", { file }, { contentType: "application/octet-stream" });
     expect([sent[0]?.body, sent[0]?.headers.get("content-length")]).toEqual(["bundle bytes", "12"]);
   });
 
-  it("reads a missing object as undefined", async () => {
-    const { r2 } = recording(404);
-    expect(await r2.getObject("lamina-pdf-staging", "channels/beta.json")).toBeUndefined();
+  it("reads a missing key as undefined", async () => {
+    const { bucket } = recording({ status: 404, body: "<Error><Code>NoSuchKey</Code></Error>" });
+    expect(await bucket.getObject("channels/beta.json")).toBeUndefined();
+  });
+
+  it("fails on a missing bucket rather than reading it as empty", async () => {
+    const { bucket } = recording({ status: 404, body: "<Error><Code>NoSuchBucket</Code></Error>" });
+    await expect(bucket.getObject("channels/beta.json")).rejects.toThrow("NoSuchBucket");
   });
 
   it("reads an object's bytes", async () => {
-    const { r2 } = recording(200, "{}");
-    expect(new TextDecoder().decode(await r2.getObject("lamina-pdf-staging", "channels/staging.json"))).toBe("{}");
+    const { bucket } = recording({ status: 200, body: "{}" });
+    expect(new TextDecoder().decode(await bucket.getObject("channels/staging.json"))).toBe("{}");
   });
 
   it("fails with the status of a refused request", async () => {
-    const { r2 } = recording(403, "AccessDenied");
-    await expect(r2.deleteObject("lamina-pdf-releases", "x")).rejects.toThrow(
-      "DELETE lamina-pdf-releases/x answered 403: AccessDenied",
-    );
+    const { bucket } = recording({ status: 403, body: "AccessDenied" });
+    await expect(bucket.deleteObject("x")).rejects.toThrow("DELETE lamina-pdf-staging/x answered 403: AccessDenied");
   });
 
   it("reads a missing object's head as undefined", async () => {
-    const { r2 } = recording(404);
-    expect(await r2.headObject("lamina-pdf-staging", "nothing")).toBeUndefined();
+    const { bucket } = recording({ status: 404 });
+    expect(await bucket.headObject("nothing")).toBeUndefined();
+  });
+
+  it("tries a busy or failing R2 again, with the whole body each time", async () => {
+    const { bucket, sent } = recording({ status: 503 }, { status: 429 }, OK);
+    await bucket.putObject("channels/staging.json", "{}", { contentType: "application/json" });
+    expect(sent.map((request) => request.body)).toEqual(["{}", "{}", "{}"]);
+  });
+
+  it("gives up after four tries", async () => {
+    const { bucket, sent } = recording({ status: 500 });
+    await expect(bucket.deleteObject("x")).rejects.toThrow("answered 500");
+    expect(sent).toHaveLength(4);
   });
 });

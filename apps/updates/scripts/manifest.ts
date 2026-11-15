@@ -23,7 +23,7 @@ import process from "node:process";
 import { CHANNEL_BUCKETS, CHANNELS, type Channel, isChannel } from "../src/channels.ts";
 import { type Manifest, parseManifest } from "../src/manifest.ts";
 import { emptyManifest, promote, setPaused, setRollout } from "./edits.ts";
-import { R2 } from "./r2.ts";
+import { R2Bucket } from "./r2.ts";
 
 const local = process.argv.includes("--local");
 const args = process.argv.slice(2).filter((a) => a !== "--local");
@@ -69,55 +69,67 @@ function objectPath(channel: Channel): string {
   return `${bucketOf(channel)}/${keyOf(channel)}`;
 }
 
-/** The manifest's text in R2, or `undefined` when the channel has none yet. */
-async function readText(channel: Channel): Promise<string | undefined> {
-  if (!local) {
-    const bytes = await R2.for(bucketOf(channel)).getObject(bucketOf(channel), keyOf(channel));
-    return bytes === undefined ? undefined : new TextDecoder().decode(bytes);
-  }
-  const run = wrangler(["r2", "object", "get", objectPath(channel), "--pipe", "--local"]);
-  if (run.status === 0) return run.stdout;
-  if (/does not exist|not found|NoSuchKey/i.test(run.stderr + run.stdout)) return undefined;
-  fail(`couldn't read ${objectPath(channel)}:\n${run.stderr}`);
+/** Where the manifests are: R2's S3 API, or Wrangler's local R2 with `--local`. */
+interface ManifestStore {
+  /** The manifest's text, or `undefined` when the channel has none yet. */
+  readText(channel: Channel): Promise<string | undefined>;
+  /** Stores `text` as the channel's manifest, never cached by the CDN. */
+  writeText(channel: Channel, text: string): Promise<void>;
 }
+
+const HEADERS = { contentType: "application/json", cacheControl: "no-store" };
+
+const s3Store: ManifestStore = {
+  async readText(channel) {
+    const bytes = await R2Bucket.open(bucketOf(channel)).getObject(keyOf(channel));
+    return bytes === undefined ? undefined : new TextDecoder().decode(bytes);
+  },
+  async writeText(channel, text) {
+    await R2Bucket.open(bucketOf(channel)).putObject(keyOf(channel), text, HEADERS);
+  },
+};
+
+const localStore: ManifestStore = {
+  async readText(channel) {
+    const run = wrangler(["r2", "object", "get", objectPath(channel), "--pipe", "--local"]);
+    if (run.status === 0) return run.stdout;
+    if (/does not exist|not found|NoSuchKey/i.test(run.stderr + run.stdout)) return undefined;
+    fail(`couldn't read ${objectPath(channel)}:\n${run.stderr}`);
+  },
+  async writeText(channel, text) {
+    const dir = mkdtempSync(join(tmpdir(), "lamina-manifest-"));
+    try {
+      const file = join(dir, `${channel}.json`);
+      writeFileSync(file, text);
+      const run = wrangler([
+        "r2",
+        "object",
+        "put",
+        objectPath(channel),
+        "--file",
+        file,
+        "--content-type",
+        HEADERS.contentType,
+        "--cache-control",
+        HEADERS.cacheControl,
+        "--local",
+      ]);
+      if (run.status !== 0) fail(`couldn't write ${objectPath(channel)}:\n${run.stderr}`);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  },
+};
+
+const store = local ? localStore : s3Store;
 
 /** The channel's manifest in R2, or the empty one when the channel has none yet. */
 async function read(channel: Channel): Promise<Manifest> {
-  const text = await readText(channel);
+  const text = await store.readText(channel);
   if (text === undefined) return emptyManifest(channel);
   const result = parseManifest(text, channel);
   if (!result.ok) fail(`${objectPath(channel)} is invalid:\n  ${result.errors.join("\n  ")}`);
   return result.manifest;
-}
-
-/** Stores `text` as `channel`'s manifest, never cached by the CDN. */
-async function writeText(channel: Channel, text: string): Promise<void> {
-  const headers = { contentType: "application/json", cacheControl: "no-store" };
-  if (!local) {
-    await R2.for(bucketOf(channel)).putObject(bucketOf(channel), keyOf(channel), text, headers);
-    return;
-  }
-  const dir = mkdtempSync(join(tmpdir(), "lamina-manifest-"));
-  try {
-    const file = join(dir, `${channel}.json`);
-    writeFileSync(file, text);
-    const run = wrangler([
-      "r2",
-      "object",
-      "put",
-      objectPath(channel),
-      "--file",
-      file,
-      "--content-type",
-      headers.contentType,
-      "--cache-control",
-      headers.cacheControl,
-      "--local",
-    ]);
-    if (run.status !== 0) fail(`couldn't write ${objectPath(channel)}:\n${run.stderr}`);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
 }
 
 /** Uploads `next` unless it equals `before`; R2 takes about one write a second per key. */
@@ -126,7 +138,7 @@ async function write(before: Manifest, next: Manifest): Promise<void> {
     console.log(`${next.channel}: unchanged, nothing written`);
     return;
   }
-  await writeText(next.channel, `${JSON.stringify(next, null, 2)}\n`);
+  await store.writeText(next.channel, `${JSON.stringify(next, null, 2)}\n`);
   console.log(`${next.channel}: written to ${objectPath(next.channel)}; the Worker serves it within 30 s`);
 }
 
