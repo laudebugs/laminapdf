@@ -107,7 +107,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `O11-bookmarks.dc.html` (editor with inline rename and inspector), `O11-bookmarks-toc.dc.html` (create a contents page), `O11-named-destinations.dc.html` (named destinations with an inline rename).
 
-**As built (web, E3b).** Organise mode doesn't exist yet ([E2h](../../todos/ongoing/E2h-page-organiser-ui.md)), so the editor lives in the rail's Outline tab: Read shows the tree as before with an **Edit bookmarks** button at its foot, which turns the tab into the editor until **Done editing**.
+**As built (web, E3b).** Organise mode doesn't exist yet ([E2h](../../todos/done/E2h-page-organiser-ui.md)), so the editor lives in the rail's Outline tab: Read shows the tree as before with an **Edit bookmarks** button at its foot, which turns the tab into the editor until **Done editing**.
 
 Differs from the boards:
 
@@ -314,7 +314,7 @@ Not built yet:
 
 **Artboards.** `O17-phone-organise.dc.html` (2 selected), `O17-phone-organise-move.dc.html` (Move sheet).
 
-**Todos.** [E2h](../../todos/ongoing/E2h-page-organiser-ui.md).
+**Todos.** [E2h](../../todos/done/E2h-page-organiser-ui.md).
 
 ## New components
 

@@ -12,7 +12,7 @@ export { editMenu } from "./edit-menu.ts";
 export { EditArea } from "./edit-tools.tsx";
 export { EditingRuntime, editActions, historyTab, SaveNotices } from "./editing-runtime.tsx";
 export { LinkPreviews } from "./link-preview.tsx";
-export { ModeArea, OrganiseController, OrganiseMode, organiseActions } from "./organise.tsx";
+export { ModeArea, OrganiseController, organiseActions } from "./organise.tsx";
 export { EditablePropertiesDialog } from "./properties-editing.tsx";
 export { SaveFlow } from "./save-flow.ts";
 export { ThreadsTab } from "./threads-tab.tsx";

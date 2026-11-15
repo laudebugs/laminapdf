@@ -154,7 +154,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   swapped in once open; a failure undoes the transaction), viewer.invalidate(pages, sizes?) (bitmaps dropped by a per-page
 │                        #   revision in the view key (viewKey), late answers of an older revision dropped, keptTop's layout, layers remounted,
 │                        #   find.refresh, a restarted worker's sizes taken back, the strip laid out from viewer.pageSizes(id) on its `invalidate`
-│                        #   event), viewer.applyEdit and client.applyEdit; E1f: client.metadata() (worker `metadata`: the edited document's, never the text copy's); E1d: worker/session.ts (the edit session's history: steps with
+│                        #   event), viewer.applyEdit and client.applyEdit; E1f: client.metadata() (worker `metadata`: the edited document's, never the text copy's); E2h: client.wouldViolate(ops), EditResult's `references` and `fields`, a hidden view keeping its place (drawing nothing, back there with no history entry, a jump as it shows going where it says); E1d: worker/session.ts (the edit session's history: steps with
 │                        #   label, pages, time; position, 500 deep, the saved position for the unsaved count), edit.ts's undoEdit/redoEdit/
 │                        #   goToStep (one redraw, taken back on failure)/editHistory/restoreEdits, src/edit-log.ts (the page's copy of each
 │                        #   step's ops, replayed into a restarted worker), edit/session.ts (EditSession, viewer.edits: calls in order, busy,
@@ -224,7 +224,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   ShellLayout, the rail's open state, width and tab kept in platform storage, focus mode per window, the
 │                        #   inspector's content; ModeRegistry; LeftRail (nav, resizable by pointer and arrows, a drawer below 1024 px);
 │                        #   Inspector (docked, a selection's is a layer); FocusModeItem; shellActions for view.toggle-sidebar,
-│                        #   view.focus-mode and mode.<id>; useShell), src/edit/ (E1d: EditControls, the session as a shape; E3b: BookmarkEditor, NamedDestinationsDialog, bookmark-moves.ts; HistoryPanel,
+│                        #   view.focus-mode and mode.<id>; useShell), src/organise/ (E2h, Paper O06: PageGrid, a React Aria ListBox in a virtualized GridLayout with multiple selection, drag with an insertion bar, ⇧⌘/Ctrl Shift + arrows to move, R/⇧R/Delete and the page menu, tiles drawn by page ID; moves.ts (gaps, moveToGap, stepGap, pageRanges); dialogs.tsx (Move to page…, Blank pages…, the signed-page question); OrganiseToolbar; commands.ts (pages.*); report.ts (toasts and step labels); in the ./editing entry), src/edit/ (E1d: EditControls, the session as a shape; E3b: BookmarkEditor, NamedDestinationsDialog, bookmark-moves.ts; HistoryPanel,
 │                        #   the virtualised History tab), commands/edit-commands.ts (edit.undo/redo with ⌘Z, ⇧⌘Z/Ctrl Y, `fields: false`;
 │                        #   edit.history, edit.go-to-step, pages.rotate-*), src/tools/ (ToolRegistry: select, hand, textSelect keyed by
 │                        #   InteractionModes, extended by declaration merging; attachTools), ReaderController.setMode and its close guard
@@ -273,6 +273,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   src/initial-view-editing.tsx, threads-tab.tsx and thread-parts.ts (E3d: the Initial view dialog over the edit session, the Threads tab, the part followed last; the file's opening page and zoom in session.ts, after the first paint; its panel and the thread-part commands' handlers in editing-runtime.tsx);
 │                        #   src/editing.tsx (E1d: the edit session in the reader: rotate the current page, the History tab, "•" in the
 │                        #   tab's title, beforeunload) and editing-runtime.tsx (the commands, toasts, the close confirmation, the tools),
+│                        #   src/organise.tsx (E2h: OrganiseController, the Organise mode registered while a document is open and its
+│                        #   toolbar, grid, inspector and dialogs; each edit asked of wouldViolate first (signed page, certification) and
+│                        #   toasted with Undo; the viewer hidden under the grid; ModeArea, the top bar's Read/Organise switcher; loaded with later.ts);
 │                        #   src/bookmarks.tsx (E3b: the Outline tab's Edit bookmarks, the bookmark editor and the named
 │                        #   destinations dialog, each action one op; loaded with later.ts),
 │                        #   src/later.ts (the one chunk loaded once a document is open: dialogs, reader mode's column, the editor's parts, the capability page);

@@ -222,48 +222,15 @@ export function useEditing(options: {
     modeArea: later === undefined ? undefined : <later.ModeArea modes={modes} />,
     notice: flow === undefined || later === undefined ? undefined : <later.SaveNotices flow={flow} />,
     runtime: (registry) =>
-      viewer === undefined || fileName === undefined || later === undefined || flow === undefined ? null : (
-        <Runtimes {...{ later, engine, viewer, registry, toasts, fileName, flow, layout, organise, modes, keys }} />
+      viewer === undefined ||
+      fileName === undefined ||
+      later === undefined ||
+      flow === undefined ||
+      organise === undefined ? null : (
+        <later.EditingRuntime
+          {...{ engine, viewer, registry, toasts, fileName, flow, layout, modes, keys }}
+          organise={organise}
+        />
       ),
   };
-}
-
-/** The editing parts that run once a document is open: the edit session's and the Organise mode's. */
-function Runtimes(props: {
-  readonly later: Later;
-  readonly engine: Engine;
-  readonly viewer: Viewer;
-  readonly registry: CommandRegistry;
-  readonly toasts: ToastQueue;
-  readonly fileName: string;
-  readonly flow: NonNullable<ReturnType<typeof useSaveFlow>>;
-  readonly layout: ShellLayout;
-  readonly organise: InstanceType<Later["OrganiseController"]> | undefined;
-  readonly modes: ModeRegistry;
-  readonly keys: KeyPlatform;
-}): ReactNode {
-  const { later, engine, viewer, registry, toasts } = props;
-  return (
-    <>
-      <later.EditingRuntime
-        engine={engine}
-        viewer={viewer}
-        registry={registry}
-        toasts={toasts}
-        fileName={props.fileName}
-        flow={props.flow}
-        layout={props.layout}
-      />
-      {props.organise === undefined ? null : (
-        <later.OrganiseMode
-          controller={props.organise}
-          engine={engine}
-          viewer={viewer}
-          modes={props.modes}
-          registry={registry}
-          keys={props.keys}
-        />
-      )}
-    </>
-  );
 }
