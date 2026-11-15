@@ -8,6 +8,8 @@ import { platform } from "node:process";
 import { $, browser, expect } from "@wdio/globals";
 import { Key } from "webdriverio";
 import {
+  AFTER_THE_ANSWER_MS,
+  closeWindowFor,
   fixture,
   focusWindow,
   menuClick,
@@ -70,7 +72,35 @@ async function newWindowWith(path: string): Promise<string> {
 /** The keys of Redo here: ⇧⌘Z on macOS, Ctrl+Y elsewhere. */
 const REDO_KEYS = platform === "darwin" ? [Key.Command, Key.Shift, "z"] : [Key.Ctrl, "y"];
 
+/**
+ * After each test, closes the windows a test left open and puts WebDriver back on the window the
+ * spec started in, focused; gives that window's handle. A test that fails between opening and
+ * closing a window leaves WebDriver on a window it may have closed, and the window it opened still
+ * open: its retry and the specs after it would start from no window, or beside a stray one. Not
+ * `startOver`, which would also close the main window's document that the next test goes on with.
+ */
+function returnToTheMainWindow(): () => string {
+  let main = "";
+  before(async () => {
+    main = await browser.getWindowHandle();
+  });
+  afterEach(async () => {
+    const handles = await browser.getWindowHandles();
+    if (!handles.includes(main)) return;
+    for (const handle of handles.filter((h) => h !== main)) {
+      await browser.switchToWindow(handle);
+      // A window with unsaved edits asks first and stays: the cleanup must not fail the run on it.
+      await closeWindowFor(main).catch(() => undefined);
+    }
+    await browser.switchToWindow(main);
+    await focusWindow();
+  });
+  return () => main;
+}
+
 describe("the edit session", () => {
+  const mainWindow = returnToTheMainWindow();
+
   it("turns a page, and undoes and redoes the turn from the Edit menu and the keys", async () => {
     await openAndWait(HELLO);
     await focusWindow();
@@ -108,7 +138,7 @@ describe("the edit session", () => {
   });
 
   it("closes a window with no unsaved edits without asking, and one with them once told to", async () => {
-    const main = await browser.getWindowHandle();
+    const main = mainWindow();
     const clean = await newWindowWith(INVOICE);
     await menuClickAndGo("cmd:window.close");
     await browser.waitUntil(async () => !(await browser.getWindowHandles()).includes(clean), {
@@ -119,11 +149,13 @@ describe("the edit session", () => {
     await turnsTo(90, "Rotate page right in the new window", () => menuClick("cmd:pages.rotate-right"), "invoice.pdf");
     await menuClick("cmd:window.close");
     await $("[role=alertdialog]").waitForDisplayed({ timeoutMsg: "closing the edited window didn't ask" });
-    // The click closes the window it is in: its answer can't come back.
-    await browser.execute(() => {
-      const buttons = Array.from(globalThis.document.querySelectorAll("button"));
-      buttons.find((button) => button.textContent === "Close without saving")?.click();
-    });
+    // The click closes the window it is in: the page makes it after this call has answered.
+    await browser.execute((wait) => {
+      setTimeout(() => {
+        const buttons = Array.from(globalThis.document.querySelectorAll("button"));
+        buttons.find((button) => button.textContent === "Close without saving")?.click();
+      }, wait);
+    }, AFTER_THE_ANSWER_MS);
     await browser.waitUntil(async () => !(await browser.getWindowHandles()).includes(edited), {
       timeoutMsg: "Close without saving didn't close the window",
     });
