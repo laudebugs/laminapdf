@@ -2,6 +2,7 @@
 // same-document view transition of duration-view, the new view rising a little as it fades in; under
 // reduced motion it only fades; where view transitions are missing the switch is instant.
 
+import { MOTION } from "@laminapdf/tokens";
 import { useState } from "react";
 import { afterEach, describe, expect, it, onTestFinished } from "vitest";
 import { commands } from "vitest/browser";
@@ -63,7 +64,7 @@ describe("switchView", () => {
     toggle();
     await expect.poll(newView).toBeDefined();
     const animation = newView() as Animation;
-    expect(animation.effect?.getTiming().duration).toBe(250);
+    expect(animation.effect?.getTiming().duration).toBe(MOTION.view);
     expect(rise(animation)).toBe(8);
     expect(host.textContent).toBe("Column");
     await animation.finished;
@@ -81,7 +82,7 @@ describe("switchView", () => {
     toggle();
     await expect.poll(newView).toBeDefined();
     const animation = newView() as Animation;
-    expect(animation.effect?.getTiming().duration).toBe(250);
+    expect(animation.effect?.getTiming().duration).toBe(MOTION.view);
     expect(rise(animation)).toBe(0);
   });
 

@@ -1,6 +1,5 @@
-// Copying text in the reader: every Copy button (an open failure's details, the repairs, a web
-// link, the network report, the document's properties) says it worked with the same short toast,
-// "Copied", so a press that changes nothing on screen still shows it did something.
+// Copying text in the reader: every Copy button says it worked with the same short toast, "Copied",
+// since a copy changes nothing on screen and would otherwise leave no sign it happened.
 
 import { message, type Platform, type ToastQueue } from "@laminapdf/ui";
 

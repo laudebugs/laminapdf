@@ -4,7 +4,8 @@
 // (within one block); an untagged file reads approximately (todo U4c), labelled so, each block's
 // "View original page" leaving at its place, and a page whose column order is doubted shown as its
 // image; the settings change the column, which at its largest text and a narrow window never
-// scrolls sideways; Escape leaves; and the column passes axe. No CSP violation or other origin
+// scrolls sideways; the toggle cross-fades both ways, the column's text in its first frame; Escape
+// leaves; and the column passes axe. No CSP violation or other origin
 // throughout.
 
 import type { Browser, Page } from "playwright";
@@ -141,6 +142,43 @@ describe(`reader mode in ${BROWSER}`, () => {
     await view.getByRole("button", { name: "Open page 1" }).click();
     await page.locator(".web-viewer canvas").first().waitFor({ state: "visible" });
     await expect.poll(() => column(page).count()).toBe(0);
+    await clean(watched);
+  });
+
+  it("cross-fades into the column and back, the column's text already in the first frame", async () => {
+    const watched = await open(`${REFLOW}two-columns-tagged.pdf`);
+    const { page } = watched;
+    // Each view transition as it starts: which parts of the canvas animate, and whether the
+    // column (when it is the new view) already holds its text rather than its loading lines.
+    await page.evaluate(() => {
+      const seen: { animating: string[]; loading: boolean }[] = [];
+      Object.assign(globalThis, { __switches: seen });
+      const start = document.startViewTransition.bind(document);
+      document.startViewTransition = ((update: ViewTransitionUpdateCallback) => {
+        const transition = start(update);
+        void transition.ready.then(
+          () =>
+            seen.push({
+              animating: document
+                .getAnimations()
+                .map((a) => (a.effect as KeyframeEffect | null)?.pseudoElement ?? "")
+                .filter((name) => name.includes("paper-view"))
+                .sort(),
+              loading: document.querySelector('.paper-reader-mode article[aria-busy="true"]') !== null,
+            }),
+          () => undefined,
+        );
+        return transition;
+      }) as typeof document.startViewTransition;
+    });
+    const switches = () => page.evaluate(() => (globalThis as unknown as { __switches: unknown[] }).__switches);
+    const FADE = ["::view-transition-new(paper-view)", "::view-transition-old(paper-view)"];
+    await enter(page);
+    await expect.poll(switches).toEqual([{ animating: FADE, loading: false }]);
+    await page.getByRole("button", { name: "Reader mode" }).first().click();
+    await expect.poll(() => column(page).count()).toBe(0);
+    await expect.poll(async () => (await switches()).length).toBe(2);
+    expect((await switches())[1]).toEqual({ animating: FADE, loading: false });
     await clean(watched);
   });
 

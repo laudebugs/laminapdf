@@ -163,7 +163,7 @@ function useProperties(engine: Engine, platform: Platform, toasts: ToastQueue) {
       },
     );
   };
-  const copy = (text: string) => copier(platform, toasts)(text);
+  const copy = copier(platform, toasts);
   return {
     start,
     render: (document: OutputDocument | undefined) =>

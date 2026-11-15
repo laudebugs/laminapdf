@@ -7,7 +7,6 @@
 // where it sits in the whole list. When the current point moves (an undo, a redo, a new edit, a
 // row chosen), the row it lands on lights up for a moment, so the move shows where it went.
 
-import { MOTION } from "@laminapdf/tokens";
 import {
   type FocusEvent,
   type KeyboardEvent,
@@ -172,8 +171,14 @@ function useRovingFocus(
 }
 
 /**
- * The row the current point just moved to, for `MOTION.view` ms after the move; nothing when the
- * list first draws, so opening the tab lights nothing.
+ * How long the row the current point moved to stays lit, in ms, before it fades back over its
+ * state-out transition: long enough to catch the eye after a keyboard undo.
+ */
+const LIT_MS = 300;
+
+/**
+ * The row the current point just moved to, for `LIT_MS` after the move; nothing when the list
+ * first draws, so opening the tab lights nothing.
  */
 function useArrived(position: number): number | undefined {
   const [seen, setSeen] = useState(position);
@@ -184,7 +189,7 @@ function useArrived(position: number): number | undefined {
   }
   useEffect(() => {
     if (arrived === undefined) return;
-    const timer = setTimeout(() => setArrived(undefined), MOTION.view);
+    const timer = setTimeout(() => setArrived(undefined), LIT_MS);
     return () => clearTimeout(timer);
   }, [arrived]);
   return arrived;

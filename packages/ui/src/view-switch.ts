@@ -6,8 +6,8 @@
 
 import { flushSync } from "react-dom";
 
-/** The transitions running now, by root: a newer one takes over the attribute from an older one. */
-const running = new WeakMap<HTMLElement, symbol>();
+/** The newest transition: it owns the root's attribute, which an older one leaves alone when it ends. */
+let newest: symbol | undefined;
 
 /**
  * Runs `update`, a React state change that swaps one whole view for another, inside a view
@@ -24,7 +24,7 @@ export function switchView(update: () => void): void {
   }
   const root = doc.documentElement;
   const token = Symbol();
-  running.set(root, token);
+  newest = token;
   root.setAttribute("data-view-switch", "");
   const transition = doc.startViewTransition(() => flushSync(update));
   // A skipped transition (a newer one started, or the page was hidden) still runs `update`.
@@ -32,8 +32,8 @@ export function switchView(update: () => void): void {
   void transition.finished
     .catch(() => undefined)
     .then(() => {
-      if (running.get(root) !== token) return;
-      running.delete(root);
+      if (newest !== token) return;
+      newest = undefined;
       root.removeAttribute("data-view-switch");
     });
 }

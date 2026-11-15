@@ -178,6 +178,8 @@ interface ReaderContent {
   readonly topPage: number;
   enter(): void;
   leave(): void;
+  /** The Reader toggle: enters, leaves, or calls off an entry whose column is still loading. */
+  toggle(): void;
   /** Leaves at `block`'s place on its page and outlines it there: "View original page". */
   leaveAt(block: Block): void;
   /** Leaves at the top of `page`: a page image's "Open page n". */
@@ -228,18 +230,78 @@ function useLeaveOnNewDocument(document: unknown, layout: ShellLayout, leave: ()
   }, [document, layout]);
 }
 
-/**
- * Loads the column's code, then switches to the column by passing it to `show`, unless `current` says a later
- * entry or exit has taken over. The code comes first so the view transition captures the column
- * at once.
- */
-function showColumn(current: () => boolean, show: (parts: Parts) => void): void {
-  void loadParts().then(
-    (loaded) => {
-      if (current()) switchView(() => show(loaded));
-    },
-    () => undefined,
+/** How long entering waits for the column's text before switching to its loading lines. */
+const TEXT_WAIT_MS = 150;
+
+/** The column for one reflow: its content, and the page of the block it starts at. */
+interface Column {
+  readonly content: NonNullable<ReaderContent["content"]>;
+  readonly topPage: number;
+}
+
+/** The column for `reflow`, starting at the block at `point` (the view's top-left, in points). */
+function columnOf(reflow: DocumentReflow, point: { page: number; y: number } | undefined): Column {
+  const blocks = reflow.available ? reflow.blocks : [];
+  const startAt = blockAt(blocks, point);
+  return {
+    content: { view: viewOf(reflow, blocks), blocks, startAt },
+    topPage: blocks[startAt]?.page ?? point?.page ?? 0,
+  };
+}
+
+const UNAVAILABLE: Column = { content: { view: { status: "unavailable" }, blocks: [], startAt: 0 }, topPage: 0 };
+
+/** The column of the open document's reflow (read once per document by the worker), or why there is none. */
+function readColumn(engine: Engine, point: { page: number; y: number } | undefined): Promise<Column> {
+  return engine.reflow().then(
+    (reflow) => columnOf(reflow, point),
+    () => UNAVAILABLE,
   );
+}
+
+/**
+ * Switches to the column once its code has loaded and its text is read, or `TEXT_WAIT_MS` has
+ * passed (a large document then shows its loading lines first): the view transition captures the
+ * column as it is, never an empty frame. `show` gets the parts and the column if it is ready.
+ * Nothing switches if `current` says a later entry or exit has taken over.
+ */
+function showColumn(
+  current: () => boolean,
+  reading: Promise<Column>,
+  show: (parts: Parts, column: Column | undefined) => void,
+): void {
+  const waited = new Promise<undefined>((done) => setTimeout(done, TEXT_WAIT_MS));
+  void Promise.all([loadParts(), Promise.race([reading, waited])]).then(([parts, column]) => {
+    if (current()) switchView(() => show(parts, column));
+  }, reportError);
+}
+
+/** The view's top-left as a point on its page, in points from the page's top. */
+function viewTop(viewer: Viewer | undefined, engine: Engine): { page: number; y: number } | undefined {
+  const at = viewer?.pointAt(16, 16);
+  const height = at === undefined ? undefined : engine.getState().pages[at.page]?.height;
+  return at === undefined || height === undefined ? undefined : { page: at.page, y: at.y * height };
+}
+
+/**
+ * The ways to leave at a place: "View original page" leaves at `block`'s place on its page and
+ * outlines it there; a page image's "Open page n" leaves at the top of `page`.
+ */
+function useLeavingAt(
+  engine: Engine,
+  leaveTo: (to: JumpTarget | undefined) => void,
+): Pick<ReaderContent, "leaveAt" | "openPage"> {
+  const leaveAt = useCallback(
+    (block: Block) => {
+      const size = engine.getState().pages[block.page];
+      if (block.bbox === null) return leaveTo({ page: block.page, y: 0 });
+      const outline = size === undefined ? {} : { outline: { page: block.page, bbox: block.bbox, size } };
+      leaveTo({ page: block.page, y: block.bbox[1], ...outline });
+    },
+    [engine, leaveTo],
+  );
+  const openPage = useCallback((page: number) => leaveTo({ page, y: 0 }), [leaveTo]);
+  return { leaveAt, openPage };
 }
 
 /**
@@ -260,6 +322,8 @@ function useReaderContent(
   const [topPage, setTopPage] = useState(0);
   // Counts entries and documents: a reflow that arrives for an older one is dropped.
   const turn = useRef(0);
+  // An entry whose column hasn't shown yet: the toggle pressed again calls it off.
+  const entering = useRef(false);
   useLeaveOnNewDocument(document, layout, () => {
     turn.current += 1;
     setParts(undefined);
@@ -267,31 +331,30 @@ function useReaderContent(
   });
   const enter = useCallback(() => {
     turn.current += 1;
+    entering.current = true;
     const mine = turn.current;
-    // The view's top-left, its height on the page (a share of it) in points.
-    const at = viewer?.pointAt(16, 16);
-    const height = at === undefined ? undefined : engine.getState().pages[at.page]?.height;
-    const point = at === undefined || height === undefined ? undefined : { page: at.page, y: at.y * height };
+    const current = () => mine === turn.current;
+    const point = viewTop(viewer, engine);
     setContent(undefined);
-    showColumn(() => mine === turn.current, setParts);
-    void engine.reflow().then(
-      (reflow) => {
-        if (mine !== turn.current) return;
-        const blocks = reflow.available ? reflow.blocks : [];
-        const startAt = blockAt(blocks, point);
-        top.current = startAt;
-        setTopPage(blocks[startAt]?.page ?? point?.page ?? 0);
-        setContent({ view: viewOf(reflow, blocks), blocks, startAt });
-      },
-      () => {
-        if (mine === turn.current) setContent({ view: { status: "unavailable" }, blocks: [], startAt: 0 });
-      },
-    );
+    const show = (column: Column) => {
+      top.current = column.content.startAt;
+      setTopPage(column.topPage);
+      setContent(column.content);
+    };
+    const reading = readColumn(engine, point);
+    // Text read after the switch arrives on its own; text read in time switches with the column.
+    void reading.then((column) => current() && show(column));
+    showColumn(current, reading, (loaded, column) => {
+      entering.current = false;
+      setParts(loaded);
+      if (column !== undefined) show(column);
+    });
   }, [engine, viewer]);
   const jump = useJumpBack(on, viewer);
   const leaveTo = useCallback(
     (to: JumpTarget | undefined) => {
       turn.current += 1;
+      entering.current = false;
       switchView(() => {
         setParts(undefined);
         if (layout.getState().inspector?.id === READER_SETTINGS_PANEL) layout.closeInspector();
@@ -304,16 +367,7 @@ function useReaderContent(
     const block = content?.blocks[top.current];
     leaveTo(block?.bbox ? { page: block.page, y: block.bbox[1] } : undefined);
   }, [content, leaveTo]);
-  const leaveAt = useCallback(
-    (block: Block) => {
-      const size = engine.getState().pages[block.page];
-      if (block.bbox === null) return leaveTo({ page: block.page, y: 0 });
-      const outline = size === undefined ? {} : { outline: { page: block.page, bbox: block.bbox, size } };
-      leaveTo({ page: block.page, y: block.bbox[1], ...outline });
-    },
-    [engine, leaveTo],
-  );
-  const openPage = useCallback((page: number) => leaveTo({ page, y: 0 }), [leaveTo]);
+  const { leaveAt, openPage } = useLeavingAt(engine, leaveTo);
   const onTopBlock = useCallback(
     (index: number) => {
       top.current = index;
@@ -321,7 +375,14 @@ function useReaderContent(
     },
     [content],
   );
-  return { on, parts, content, topPage, enter, leave, leaveAt, openPage, onTopBlock };
+  const toggle = () => {
+    if (on) leave();
+    else if (entering.current) {
+      turn.current += 1;
+      entering.current = false;
+    } else enter();
+  };
+  return { on, parts, content, topPage, enter, leave, toggle, leaveAt, openPage, onTopBlock };
 }
 
 /** The view's content for `reflow`: its blocks, and why it is approximate when it is. */
@@ -345,7 +406,7 @@ function readerActions(
   setSettings: (next: ReaderSettings) => void,
 ): ReaderMode["actions"] {
   const set = (patch: Partial<ReaderSettings>) => setSettings({ ...settings, ...patch });
-  const toggle = { "view.reader-mode": () => (reader.on ? reader.leave() : reader.enter()) };
+  const toggle = { "view.reader-mode": () => reader.toggle() };
   // The settings' commands have handlers, so the palette offers them, only while reader mode is on.
   if (!reader.on) return toggle;
   return {
