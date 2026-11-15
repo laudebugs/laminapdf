@@ -360,6 +360,31 @@ mod tests {
             },
             FromEngine::Heartbeat,
             FromEngine::FontRequest { req, font: 3 },
+            FromEngine::PrintBand {
+                req,
+                dpi: 300,
+                width: 2480,
+                height: 3508,
+                y: 1690,
+                rows: 1690,
+                bands: 3,
+                format: TileFormat::Bgra8,
+            },
+        ]
+    }
+
+    #[test]
+    fn every_message_to_the_engine_should_round_trip() {
+        for msg in to_engine_messages() {
+            round_trip(&msg, b"");
+        }
+    }
+
+    /// The answers to a save, apart from the other messages to keep each list short.
+    fn saved_messages() -> Vec<FromEngine> {
+        let req = ReqId(9);
+        let doc = DocId(1);
+        vec![
             FromEngine::Saved {
                 req,
                 doc,
@@ -386,29 +411,12 @@ mod tests {
                     metadata_not_updated: true,
                 })),
             },
-            FromEngine::PrintBand {
-                req,
-                dpi: 300,
-                width: 2480,
-                height: 3508,
-                y: 1690,
-                rows: 1690,
-                bands: 3,
-                format: TileFormat::Bgra8,
-            },
         ]
     }
 
     #[test]
-    fn every_message_to_the_engine_should_round_trip() {
-        for msg in to_engine_messages() {
-            round_trip(&msg, b"");
-        }
-    }
-
-    #[test]
     fn every_message_from_the_engine_should_round_trip() {
-        for msg in from_engine_messages() {
+        for msg in from_engine_messages().into_iter().chain(saved_messages()) {
             round_trip(&msg, b"");
         }
     }

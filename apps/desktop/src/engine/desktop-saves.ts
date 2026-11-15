@@ -57,7 +57,7 @@ export function asked(options: SaveOptions): SaveAsked {
 }
 
 /** A UUID's 16 bytes, from its hexadecimal form with or without dashes and `uuid:`; undefined for anything else. */
-export function uuidBytes(id: string): number[] | undefined {
+function uuidBytes(id: string): number[] | undefined {
   const hex = id
     .trim()
     .replace(/^uuid:/, "")
