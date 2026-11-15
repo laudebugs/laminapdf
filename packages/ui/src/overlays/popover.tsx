@@ -85,6 +85,8 @@ export interface MenuEntry<Id extends string> {
   isDisabled?: boolean;
   /** Why it is disabled, shown under the label. */
   disabledReason?: string;
+  /** A line under the label, such as a tab's page; `disabledReason` takes its place while disabled. */
+  description?: string;
   /** A destructive action: shown in the danger colour. Put it last. */
   isDestructive?: boolean;
 }
@@ -103,7 +105,7 @@ export interface MenuProps<Id extends string> {
   placement?: Placement;
 }
 
-/** One entry of a menu: its icon, label, shortcut chip and why it is disabled; `Menu` and the phone's More sheet share it. */
+/** One entry of a menu: its icon, label, shortcut chip and the line under it; `Menu` and the phone's More sheet share it. */
 export function menuItem<Id extends string>(item: MenuEntry<Id>, platform: KeyPlatform): ReactNode {
   return (
     <MenuItem
@@ -118,9 +120,9 @@ export function menuItem<Id extends string>(item: MenuEntry<Id>, platform: KeyPl
       </Text>
       {/* The chip is React Aria's Keyboard, which a menu item links with aria-describedby. */}
       {item.shortcut === undefined ? null : <ShortcutChip keys={item.shortcut} platform={platform} />}
-      {item.disabledReason === undefined ? null : (
+      {(item.disabledReason ?? item.description) === undefined ? null : (
         <Text slot="description" className="paper-menu-reason">
-          {item.disabledReason}
+          {item.disabledReason ?? item.description}
         </Text>
       )}
     </MenuItem>

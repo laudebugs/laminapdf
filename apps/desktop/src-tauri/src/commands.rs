@@ -4,6 +4,7 @@
 //! path; the calling window comes from Tauri, not from the webview's arguments, so a window reaches
 //! only its own documents.
 
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use laminapdf_desktop_protocol::DocId;
@@ -62,28 +63,32 @@ pub(crate) fn app_info(app: tauri::AppHandle) -> AppInfo {
 #[tauri::command]
 pub(crate) async fn open_dialog(window: tauri::WebviewWindow) -> Result<Option<DocumentMeta>, DesktopError> {
     // The dialog and the engine's replies block: off the async runtime's threads.
-    tauri::async_runtime::spawn_blocking(move || {
-        // End-to-end builds: a scenario's queued fixture stands in for the dialog.
-        #[cfg(feature = "e2e")]
-        if let Some(path) = tauri::Manager::state::<crate::e2e::QueuedPick>(&window).take() {
-            return open_path(window.app_handle(), window.label(), &path).map(Some);
-        }
-        let picked = window
-            .dialog()
-            .file()
-            .set_parent(&window)
-            .add_filter("PDF", &["pdf"])
-            .blocking_pick_file();
-        let Some(picked) = picked else {
-            return Ok(None);
-        };
-        let path = picked
-            .into_path()
-            .map_err(|error| DesktopError::Internal(error.to_string()))?;
-        open_path(window.app_handle(), window.label(), &path).map(Some)
+    tauri::async_runtime::spawn_blocking(move || match pick_pdf(&window)? {
+        Some(path) => open_path(window.app_handle(), window.label(), &path).map(Some),
+        None => Ok(None),
     })
     .await
     .map_err(|error| DesktopError::Internal(error.to_string()))?
+}
+
+/// The PDF the user picks in the open dialog over `window`, or `None` when they cancel. It
+/// blocks until they answer: never on the main thread.
+pub(crate) fn pick_pdf(window: &tauri::WebviewWindow) -> Result<Option<PathBuf>, DesktopError> {
+    // End-to-end builds: a scenario's queued fixture stands in for the dialog.
+    #[cfg(feature = "e2e")]
+    if let Some(path) = tauri::Manager::state::<crate::e2e::QueuedPick>(window).take() {
+        return Ok(Some(path));
+    }
+    let picked = window
+        .dialog()
+        .file()
+        .set_parent(window)
+        .add_filter("PDF", &["pdf"])
+        .blocking_pick_file();
+    picked
+        .map(tauri_plugin_dialog::FilePath::into_path)
+        .transpose()
+        .map_err(|error| DesktopError::Internal(error.to_string()))
 }
 
 /// Every page's size of one of this window's documents.

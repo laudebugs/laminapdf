@@ -21,6 +21,10 @@ import { Menu, type MenuEntry } from "../overlays/popover.js";
 export interface DocumentTab {
   readonly id: string;
   readonly title: string;
+  /** Its file couldn't be found: the tab shows a warning mark and the strip's menu says "Not found". */
+  readonly missing?: boolean;
+  /** A line under its entry in the strip's menu, such as the page it shows. */
+  readonly detail?: string;
 }
 
 /** Props of {@link DocumentTabs}. */
@@ -94,7 +98,7 @@ export function DocumentTabs({
   };
   const onKeyDown = tabKeys(tabs, { focusTab, onActivate, onClose, openMenuFor });
 
-  const menu: MenuEntry<string>[] = [...tabs.map((t) => ({ id: `${TAB_ENTRY}${t.id}`, label: t.title })), ...moves];
+  const menu: MenuEntry<string>[] = [...tabs.map(tabEntry), ...moves];
   return (
     <div className="paper-document-tabs">
       <div role="tablist" aria-label={message("tabs.label")} className="paper-document-tabs-list">
@@ -130,6 +134,13 @@ export function DocumentTabs({
       </MenuTrigger>
     </div>
   );
+}
+
+/** A tab's entry in the strip's menu: a missing file flagged "Not found", else the tab's page. */
+function tabEntry(tab: DocumentTab): MenuEntry<string> {
+  const entry: MenuEntry<string> = { id: `${TAB_ENTRY}${tab.id}`, label: tab.title };
+  if (tab.missing === true) return { ...entry, icon: "warning", description: message("tabs.notFound") };
+  return tab.detail === undefined ? entry : { ...entry, description: tab.detail };
 }
 
 /** What the strip's keys do to its tabs. */
@@ -283,6 +294,7 @@ function OneTab({
         id={`paper-tab-${tab.id}`}
         data-tab-id={tab.id}
         aria-selected={active}
+        aria-label={tab.missing === true ? message("tabs.missingName", { name: tab.title }) : undefined}
         tabIndex={stop ? 0 : -1}
         title={tab.title}
         className="paper-document-tab-label"
@@ -299,7 +311,8 @@ function OneTab({
           onContextMenu(tab.id);
         }}
       >
-        {tab.title}
+        {tab.missing === true ? <Icon name="warning" className="paper-document-tab-missing" /> : null}
+        <span className="paper-document-tab-title">{tab.title}</span>
       </div>
       {/* Out of the tab (no control inside a tab) and out of the tab order: Delete on the focused
           tab and the strip's menu close tabs from the keyboard. */}

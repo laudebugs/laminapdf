@@ -110,7 +110,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const lost = useEngineEvents(engine, toasts, state.phase === "open");
   const dragging = useOsOpens(engine, reader, toasts, tabs);
   const fileProblem = useFileChanges(engine, reader, toasts, tabs);
-  const { strip, actions: tabActions } = useTabStrip(engine?.shell, tabs, reader, toasts, keys);
+  const { strip, notice, actions: tabActions } = useTabStrip(engine?.shell, tabs, reader, toasts, keys, engine?.viewer);
   const { settings, recent, actions: homeActions } = useHome(engine, platform, reader, state, toasts);
   const actions = useMemo(() => ({ ...homeActions, ...tabActions }), [homeActions, tabActions]);
   const open = state.phase === "open";
@@ -124,6 +124,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
     <CommandsProvider registry={registry} context={context} keys={keys} singleKeys={singleKeys}>
       <ReaderShell
         tabs={strip}
+        notice={notice}
         topBar={
           <ReaderTopBar
             reader={reader}
