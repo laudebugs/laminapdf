@@ -2,8 +2,8 @@
 // keeps in preferences.json and acts on (src-tauri/src/prefs.rs): remembering recent files, which
 // turned off clears the app's and the OS's recent lists and the last session, reopening the last
 // session (which needs the recent files remembered), reloading open files that change on disk,
-// opening files in tabs or windows, and opening a file that is open already; and Motion, kept
-// beside them so every window shares it (motion.ts applies it). The full settings page adds its
+// opening files in tabs or windows, and opening a file that is open already; and Appearance and
+// accessibility's Motion, kept beside them so every window shares it (motion.ts applies it). The full settings page adds its
 // other sections to the same registry.
 
 import {
@@ -91,8 +91,8 @@ export function useDesktopSettings(
   useMotion(shell, preferences.motion);
   useSettingsSection(
     registry,
-    "motion",
-    message("appearance.motion"),
+    "appearance",
+    message("settings.appearance"),
     () => <MotionSettings preferences={preferences} onChange={change} />,
     { shows: [preferences], summary: () => message(`appearance.motion.${preferences.motion}`) },
   );
@@ -169,7 +169,7 @@ function FileSettings({
   );
 }
 
-/** Settings › Motion: follow the system, or reduce motion in every window. */
+/** Settings › Appearance and accessibility: Motion, the system's or reduced in every window. */
 function MotionSettings({
   preferences,
   onChange,

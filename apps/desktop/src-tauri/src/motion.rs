@@ -1,5 +1,5 @@
-//! The system's reduce-motion setting where the webview can't read it (motion plan §5). WebKit,
-//! WebView2 and WKWebView report `prefers-reduced-motion` from the OS, but WebKitGTK on GTK 3
+//! The system's reduce-motion setting where the webview can't read it (motion plan §5).
+//! `WebView2` and `WKWebView` report `prefers-reduced-motion` from the OS, but `WebKitGTK` on GTK 3
 //! doesn't follow GNOME's "Reduce animations" under Wayland (GTK issue 5813). On Linux the main
 //! process reads that setting itself, `org.gnome.desktop.interface enable-animations`, through
 //! `gsettings` (dconf over D-Bus), and the webview adds it to its own reading. The engine never
@@ -26,7 +26,10 @@ pub(crate) fn system_reduces_motion() -> Option<bool> {
 }
 
 /// What `gsettings get … enable-animations` printed, as "reduce motion": animations off asks for it.
-#[cfg_attr(not(any(target_os = "linux", test)), expect(dead_code, reason = "only Linux reads gsettings"))]
+#[cfg_attr(
+    not(any(target_os = "linux", test)),
+    expect(dead_code, reason = "only Linux reads gsettings")
+)]
 fn reduces_motion(printed: &str) -> Option<bool> {
     match printed.trim() {
         "true" => Some(false),

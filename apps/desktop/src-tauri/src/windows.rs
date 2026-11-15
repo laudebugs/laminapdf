@@ -175,9 +175,7 @@ pub(crate) fn build_window(app: &AppHandle, label: &str, corner: Option<Position
         None => builder,
     };
     let window = builder.build()?;
-    if let Err(error) = window.set_background_color(Some(ground(window.theme().unwrap_or(Theme::Light)))) {
-        tracing::warn!("could not set the window's background colour: {error}");
-    }
+    show_ground(&window);
     if let Some(at @ Position::Physical(_)) = corner {
         // A window that can't be placed still shows, where the OS put it: a hidden one would
         // count as a window ("Move tab to window ▸") that nobody can see.
@@ -207,7 +205,18 @@ const GROUND_DARK: Color = Color(0x1E, 0x1D, 0x1A, 0xFF);
 /// The ground colour a window shows under the OS's `theme`: set as it is built, and again when the
 /// OS's theme changes (`lib.rs`'s window events). The webview paints over it with the app's theme.
 pub(crate) fn ground(theme: Theme) -> Color {
-    if theme == Theme::Dark { GROUND_DARK } else { GROUND_LIGHT }
+    if theme == Theme::Dark {
+        GROUND_DARK
+    } else {
+        GROUND_LIGHT
+    }
+}
+
+/// Gives a new window the ground colour of the OS's theme until its webview paints.
+fn show_ground(window: &tauri::WebviewWindow) {
+    if let Err(error) = window.set_background_color(Some(ground(window.theme().unwrap_or(Theme::Light)))) {
+        tracing::warn!("could not set the window's background colour: {error}");
+    }
 }
 
 /// A new, empty window (File ▸ New Window, or a tab moved out), with its corner at `corner` when
