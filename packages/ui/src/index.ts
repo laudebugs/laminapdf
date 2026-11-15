@@ -149,6 +149,7 @@ export {
   stepToUndo,
 } from "./edit/edit-controls.js";
 export { type Catalogue, countMessage, ENGLISH, type MessageId, message } from "./messages.js";
+export { suppressMotion } from "./motion.js";
 export {
   Dialog,
   type DialogProps,
