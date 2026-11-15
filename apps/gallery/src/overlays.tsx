@@ -53,12 +53,16 @@ import {
   type AddressCheck,
   BlankPagesDialog,
   ConformanceDialog,
+  CropDialog,
   LinkEditor,
   type LinkGoal,
   LinkPanel,
   MoveToPageDialog,
   NamedDestinationsDialog,
+  PageBoxesDialog,
+  PageLabelsDialog,
   RemoveSignaturesDialog,
+  ResizeDialog,
   SignedPageDialog,
 } from "@laminapdf/ui/editing";
 import { fakeFile, fakePlatform } from "@laminapdf/ui/testing";
@@ -214,7 +218,55 @@ const EDITING_DIALOGS = new Set([
   "move-to-page",
   "blank-pages",
   "signed-page",
+  "crop",
+  "crop-mixed",
+  "resize",
+  "page-boxes",
+  "page-labels",
+  "page-labels-clash",
 ]);
+
+/** The 24-page sample: US Letter pages, and pages 3 and 4 on A4 for the mixed states. */
+const LETTER = { width: 612, height: 792 };
+const SETUP_PAGES = Array.from({ length: 24 }, (_, i) =>
+  i === 2 || i === 3 ? { width: 595.28, height: 841.89 } : LETTER,
+);
+const SETUP_IDS = SETUP_PAGES.map((_, i) => `p${i + 1}.0`);
+
+/** O10's ranges: pages 1–2 roman, the body from 1 on page 3, the appendix A-1 to A-3 from page 22. */
+const LABEL_RANGES = [
+  { page: "p1.0", style: "lowerRoman" as const },
+  { page: "p3.0", style: "decimal" as const },
+  { page: "p22.0", style: "decimal" as const, prefix: "A-" },
+];
+
+/** A page's boxes: a crop box inside the media box, its own trim box, and bleed and art as the crop box. */
+const BOXES = {
+  media: [0, 0, 612, 792],
+  crop: [18, 18, 594, 774],
+  bleed: [18, 18, 594, 774],
+  trim: [36, 36, 576, 756],
+  art: [18, 18, 594, 774],
+  own: { bleed: false, trim: true, art: false },
+} as const;
+
+/** One of Page setup's dialogs (O09, O10). */
+function PageSetupDialog({ state }: { state: string }): ReactNode {
+  if (state === "crop" || state === "crop-mixed") {
+    const selected = state === "crop" ? [2] : [1, 2, 3];
+    return <CropDialog isOpen onClose={noop} unit="mm" pages={SETUP_PAGES} selected={selected} onCrop={noop} />;
+  }
+  if (state === "resize") {
+    return <ResizeDialog isOpen onClose={noop} unit="mm" pages={SETUP_PAGES.slice(4)} onResize={noop} />;
+  }
+  if (state === "page-boxes") {
+    return <PageBoxesDialog isOpen onClose={noop} page="5" count={1} boxes={BOXES} onApply={noop} />;
+  }
+  // Two ranges on page 22, as O10's state with the clash.
+  const ranges =
+    state === "page-labels-clash" ? [...LABEL_RANGES, { page: "p22.0", style: "upperLetters" as const }] : LABEL_RANGES;
+  return <PageLabelsDialog isOpen onClose={noop} pages={SETUP_IDS} ranges={ranges} onApply={noop} />;
+}
 
 /** Twelve pages for Move to page…, pages 5 and 6 selected. */
 const MOVE_PAGES = Array.from({ length: 12 }, (_, i) => ({ id: `p${i + 1}.0`, label: String(i + 1) }));
@@ -232,6 +284,9 @@ function OrganiseDialog({ state }: { state: string }): ReactNode {
 function EditingDialogs({ state }: { state: string }): ReactNode {
   if (state === "move-to-page" || state === "blank-pages" || state === "signed-page") {
     return <OrganiseDialog state={state} />;
+  }
+  if (state.startsWith("crop") || state === "resize" || state.startsWith("page-")) {
+    return <PageSetupDialog state={state} />;
   }
   if (state === "remove-signatures") {
     // O02's confirmation before a save that invalidates a certification and a signature.

@@ -35,7 +35,7 @@ Resize pages (scaling the content, or extending the page around an anchor) and s
 **Out of scope** (and which todo covers it)
 
 - Setting boxes and cropping → [E2f](../done/E2f-page-geometry.md)
-- The page-setup dialogs → [E2g](../ready/E2g-page-labels.md)
+- The page-setup dialogs → [E2g](../done/E2g-page-labels.md)
 
 **Editor facts**
 

@@ -173,6 +173,7 @@ export type {
   OutlineTarget,
   Overflow,
   PageAnnotation,
+  PageBoxesRead,
   PageInfo,
   PageLabel,
   PageLabelRange,

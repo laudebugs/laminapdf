@@ -44,6 +44,7 @@ import {
 import type { EditResult, Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo } from "react";
 import type { PageInfo } from "./outline.ts";
+import { PageSetupDialogs, pageSetupActions } from "./page-setup.tsx";
 import type { Engine } from "./session.ts";
 
 /** A question before an edit applies: about a signature on the page, or the certification. */
@@ -56,13 +57,16 @@ type Ask =
     }
   | { readonly kind: "certified"; readonly proceed: () => void };
 
+/** The dialog open over the grid: Organise's own, or one of Page setup's (page-setup.tsx). */
+export type OrganiseDialog = "move" | "blank" | "crop" | "resize" | "boxes" | "labels";
+
 /** What the grid, its toolbar and its dialogs show. */
 export interface OrganiseState {
   /** The selected pages' IDs. */
   readonly selected: ReadonlySet<string>;
   /** Thumbnail size, 0.75–2. */
   readonly scale: number;
-  readonly dialog: "move" | "blank" | undefined;
+  readonly dialog: OrganiseDialog | undefined;
   readonly ask: Ask | undefined;
   /** Each page's drawing version: bumped when an edit redrew it, so its tile draws again. */
   readonly drawn: ReadonlyMap<string, number>;
@@ -134,8 +138,26 @@ export class OrganiseController implements ExternalStore<OrganiseState> {
     this.#set({ scale });
   }
 
-  open(dialog: "move" | "blank" | undefined): void {
+  open(dialog: OrganiseDialog | undefined): void {
     this.#set({ dialog });
+  }
+
+  /** Says `message` in a toast, as a refusal that changed nothing. */
+  say(message: string): void {
+    this.#toasts.add({ message });
+  }
+
+  /**
+   * Applies `ops` to the pages at `indices` as one step named `label`, asked about first when
+   * their save would break a signature; `report` gives the toast's words.
+   */
+  edit(
+    ops: readonly object[],
+    indices: readonly number[],
+    label: string,
+    report?: (result: EditResult) => string | undefined,
+  ): void {
+    this.#guarded(ops, undefined, indices, () => this.#apply(ops, label, report));
   }
 
   /** The person's answer to the question before an edit. */
@@ -330,6 +352,7 @@ export function organiseActions(controller: OrganiseController) {
     "pages.move-to": () => controller.open("move"),
     "pages.insert-blank": () => controller.open("blank"),
     "pages.select-all": () => controller.selectAll(),
+    ...pageSetupActions(controller),
   } as const;
 }
 
@@ -474,8 +497,21 @@ function OrganiseCanvas({ controller, engine, viewer, modes, keys }: OrganiseMod
   );
 }
 
-/** The page menu's entries (O06): insert beside, turn, duplicate, move, and delete last. */
-type MenuId = "insert-before" | "insert-after" | "rotate-left" | "rotate-right" | "duplicate" | "move-to" | "delete";
+/** The page menu's entries (O06, O09): insert beside, turn, duplicate, move, Page setup's, and delete last. */
+type MenuId =
+  | "insert-before"
+  | "insert-after"
+  | "rotate-left"
+  | "rotate-right"
+  | "duplicate"
+  | "move-to"
+  | "crop"
+  | "resize"
+  | "edit-boxes"
+  | "make-landscape"
+  | "make-portrait"
+  | "edit-labels"
+  | "delete";
 
 function pageMenu(count: number): MenuEntry<MenuId>[] {
   const del = count > 1 ? organiseWords("organise.menu.delete.many", { count }) : organiseWords("organise.menu.delete");
@@ -496,6 +532,12 @@ function pageMenu(count: number): MenuEntry<MenuId>[] {
     },
     { id: "duplicate", label: organiseWords("command.pages.duplicate"), icon: "copy" },
     { id: "move-to", label: organiseWords("command.pages.move-to"), icon: "move-to-page" },
+    { id: "crop", label: organiseWords("command.pages.crop"), icon: "crop" },
+    { id: "resize", label: organiseWords("command.pages.resize"), icon: "resize" },
+    { id: "edit-boxes", label: organiseWords("command.pages.edit-boxes") },
+    { id: "make-landscape", label: organiseWords("command.pages.make-landscape") },
+    { id: "make-portrait", label: organiseWords("command.pages.make-portrait") },
+    { id: "edit-labels", label: organiseWords("command.pages.edit-labels"), icon: "tag" },
     { id: "delete", label: del, icon: "delete", isDestructive: true, shortcut: { mac: "Backspace", other: "Delete" } },
   ];
 }
@@ -602,6 +644,7 @@ function OrganiseDialogs({ controller, engine }: { controller: OrganiseControlle
         ask={ask?.kind === "signed" ? { action: ask.action, page: ask.page } : undefined}
         onAnswer={(proceed) => controller.answer(proceed)}
       />
+      <PageSetupDialogs controller={controller} engine={engine} />
       <CertifiedNotice controller={controller} />
     </>
   );

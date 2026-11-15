@@ -24,7 +24,9 @@ import type {
   Op,
   OutlineNode,
   OutlineTarget,
+  PageBoxesRead,
   PageInfo,
+  PageLabelRange,
   PageLink,
   PlannedSave,
   ReferenceEdit,
@@ -116,6 +118,11 @@ export interface EditResult {
    * a viewer follows the pages by ID. Absent when the page list stayed as it was.
    */
   readonly order?: readonly PageInfo[];
+  /**
+   * Every page in order, with its new label, when the call changed the page labels but not the
+   * page list. Labels draw nothing on the page, so no page is drawn again.
+   */
+  readonly relabelled?: readonly PageInfo[];
   /** Each step an undo or redo took back or made again, in order, with how it went (none for an edit). */
   readonly reverted?: readonly RevertedStep[];
   /** The IDs of the bookmarks the edit added, in order (none for an undo or redo). */
@@ -248,6 +255,10 @@ export interface Methods {
   metadata: { params: [document: number]; result: DocumentMetadata };
   /** Document `document`'s XMP metadata as text, as its edits leave it. */
   xmpPacket: { params: [document: number]; result: XmpText };
+  /** Page `index`'s boxes in user space, as document `document`'s edits leave them. */
+  pageBoxes: { params: [index: number, document: number]; result: PageBoxesRead };
+  /** Document `document`'s page label ranges, as its edits leave them. */
+  labelRanges: { params: [document: number]; result: PageLabelRange[] };
   planSave: { params: [options: SaveOptions, document: number]; result: PlannedSave };
   /** What saving document `document` with `ops` applied would break, before they apply: each signature restriction they violate. */
   wouldViolate: { params: [ops: readonly Op[], document: number]; result: Violation[] };

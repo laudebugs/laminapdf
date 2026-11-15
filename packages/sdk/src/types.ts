@@ -44,6 +44,7 @@ import type {
   OutlineTarget as OutlineTargetJs,
   OverflowInit,
   PageAnnotationJs,
+  PageBoxesReadJs,
   PageInfoJs,
   PageLabelInit,
   PageLabelRange as PageLabelRangeJs,
@@ -551,6 +552,17 @@ export type OpenAt = OpenAtJs;
  * @since 0.3.0
  */
 export type ArticleThread = ThreadJs;
+
+/**
+ * A page's boxes in user space (`[x0, y0, x1, y1]`), as readers use them: the crop box cut to
+ * the media box, and the bleed, trim and art boxes cut to the crop box, a box the page doesn't
+ * set taken from the crop box. `own` says which of those three the page sets itself, and
+ * `userUnit` is the size of a unit in points. {@link Document.setPageBoxes} takes boxes in the
+ * same space.
+ *
+ * @since 0.5.0
+ */
+export type PageBoxesRead = PageBoxesReadJs;
 
 /**
  * One image a document draws, as a file: `format` `"jpeg"` or `"jpeg2000"` as stored, byte for

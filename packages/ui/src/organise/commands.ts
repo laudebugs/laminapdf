@@ -1,5 +1,6 @@
 // The Organise mode's page commands (Paper O06): insert blank pages, delete, duplicate, reverse and
-// Move to page…, each on the grid's selection, and Select all. The shell runs them (`delegated`): it
+// Move to page…, each on the grid's selection, and Select all; and Page setup's (O09, O10): crop,
+// resize, page boxes, make landscape or portrait, and page labels. The shell runs them (`delegated`): it
 // knows the selection and the pages, and asks before one a signature forbids. Their home is the
 // Organise toolbar and the page menu; Rotate left and right are the edit commands' (edit-commands.ts),
 // which turn the selection while Organise is the mode.
@@ -18,7 +19,23 @@ export const ORGANISE_COMMANDS = [
   "pages.reverse",
   "pages.move-to",
   "pages.select-all",
+  "pages.crop",
+  "pages.resize",
+  "pages.edit-boxes",
+  "pages.make-landscape",
+  "pages.make-portrait",
+  "pages.edit-labels",
 ] as const;
+
+/** Page setup ▾'s commands (O09, O10), in the menu's order. */
+export const PAGE_SETUP_COMMANDS = [
+  "pages.crop",
+  "pages.resize",
+  "pages.edit-boxes",
+  "pages.make-landscape",
+  "pages.make-portrait",
+  "pages.edit-labels",
+] as const satisfies readonly OrganiseCommand[];
 
 /** One of them. */
 export type OrganiseCommand = (typeof ORGANISE_COMMANDS)[number];
@@ -28,6 +45,9 @@ const ICONS: Partial<Record<OrganiseCommand, IconName>> = {
   "pages.delete": "delete",
   "pages.duplicate": "copy",
   "pages.move-to": "move-to-page",
+  "pages.crop": "crop",
+  "pages.resize": "resize",
+  "pages.edit-labels": "tag",
 };
 
 /** Whether the session can take an edit now, and the shell gave the command a handler (Organise is open). */

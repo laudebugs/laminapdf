@@ -11,6 +11,8 @@ import type {
   DocumentMetadata,
   InitialView,
   Op,
+  PageBoxesRead,
+  PageLabelRange,
   SaveOptions,
   SaveReport,
   Violation,
@@ -460,6 +462,18 @@ export class Engine implements ExternalStore<EngineState> {
     return session.client.wouldViolate(ops);
   }
 
+  /** Page `index`'s boxes in user space, as the open document's edits leave them, for Page boxes…. */
+  async pageBoxes(index: number): Promise<PageBoxesRead> {
+    const session = await this.#session;
+    return session.client.pageBoxes(index);
+  }
+
+  /** The open document's page label ranges as its edits leave them, for Page labels…. */
+  async labelRanges(): Promise<PageLabelRange[]> {
+    const session = await this.#session;
+    return session.client.labelRanges();
+  }
+
   /**
    * Page `index` of the open document drawn at `scale` (1 = 72 dpi) for the page grid, behind the
    * pages in view; the caller closes the bitmap.
@@ -586,11 +600,13 @@ export class Engine implements ExternalStore<EngineState> {
    * the page grid read them), and counts the times a restarted worker lost the unsaved edits.
    */
   #followEdits(session: Promise<Session>, client: ViewerClient): void {
-    client.on("edit", ({ pages, order }) => {
+    client.on("edit", ({ pages, order, relabelled }) => {
       if (this.#session !== session) return;
-      // An edit that inserted, deleted or moved pages gives the whole list in its new order.
-      if (order !== undefined) {
-        this.#set({ pages: [...order] });
+      // An edit that inserted, deleted or moved pages gives the whole list in its new order, and
+      // one that changed the labels gives every page with its new label.
+      const list = order ?? relabelled;
+      if (list !== undefined) {
+        this.#set({ pages: [...list] });
         return;
       }
       if (pages.length === 0) return;
