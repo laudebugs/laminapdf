@@ -67,7 +67,7 @@ Create and edit nested bookmarks (add, rename, retarget, move, nest, colour and 
 - [x] Outline facts (titles, levels, targets) match pdf.js and pypdf after edits on corpus files
 - [x] Playwright: create nested bookmarks, reorder, rename a named destination, save, reopen
 
-**As built.** The outline facts after edits are checked by the round-trip suite's outline cases, which every plain corpus and built fixture runs: Lamina PDF, pdf.js and PDFium read the same titles, levels and pages (pypdf's role there is PDFium's, the two tools `cargo xtask roundtrip` runs). The reader edits in the Outline tab until Organise mode exists ([E2h](../ready/E2h-page-organiser-ui.md)); the other differences from O11 are in the [area document](../../design/paper/pages-navigation-extraction.md#o11-bookmarks-editor). The `pdf` column stays without evidence, as for J.01: TypeScript tests outside the reader's end-to-end suite carry no capability tags.
+**As built.** The outline facts after edits are checked by the round-trip suite's outline cases, which every plain corpus and built fixture runs: Lamina PDF, pdf.js and PDFium read the same titles, levels and pages (pypdf's role there is PDFium's, the two tools `cargo xtask roundtrip` runs). The reader edits in the Outline tab until Organise mode exists ([E2h](../ongoing/E2h-page-organiser-ui.md)); the other differences from O11 are in the [area document](../../design/paper/pages-navigation-extraction.md#o11-bookmarks-editor). The `pdf` column stays without evidence, as for J.01: TypeScript tests outside the reader's end-to-end suite carry no capability tags.
 
 ## Post-merge checks
 

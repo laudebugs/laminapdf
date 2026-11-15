@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §4](../../plans/editor/e2-page-organisation.md#4-crate-and-package-changes) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2h](./E2h-page-organiser-ui.md), [E2q](../done/E2q-page-labels-op.md), [E2s](../done/E2s-resize-and-orientation.md) |
+| Depends on | [E2h](../ongoing/E2h-page-organiser-ui.md), [E2q](../done/E2q-page-labels-op.md), [E2s](../done/E2s-resize-and-orientation.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2g-page-labels` |
 | PR title | `feat(ui): page-setup dialogs and the labels editor` |

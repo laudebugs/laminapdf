@@ -3,19 +3,19 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2h` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E2 page organisation §4](../../plans/editor/e2-page-organisation.md#4-crate-and-package-changes) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E1e](../done/E1e-save-and-constraint-banner.md), [E2k](../done/E2k-duplicate-pages.md), [E2l](../done/E2l-viewer-across-page-edits.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2h-page-organiser-ui` |
 | PR title | `feat(ui): page organiser with drag-and-drop thumbnails` |
-| Size | L (400–800): the Organise mode's page grid, selection, drag and its commands in `@laminapdf/ui`, with Playwright tests; the viewer's part is [E2l](../done/E2l-viewer-across-page-edits.md)'s and the dialogs [E2g](E2g-page-labels.md)'s and [E2m](E2m-document-dialogs.md)'s |
+| Size | L (400–800): the Organise mode's page grid, selection, drag and its commands in `@laminapdf/ui`, with Playwright tests; the viewer's part is [E2l](../done/E2l-viewer-across-page-edits.md)'s and the dialogs [E2g](../ready/E2g-page-labels.md)'s and [E2m](../ready/E2m-document-dialogs.md)'s |
 | PR | — |
 
 ## Goal
 
-The Organise mode on the web: a page grid with multi-select thumbnails, drag-and-drop reordering with an insertion bar, Move to page…, context menus and the single-document commands (insert blank, delete, duplicate, rotate, reverse), keyboard-accessible. The [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos) moved the documents dialogs (insert from a file, replace, extract, merge, split) to [E2m](E2m-document-dialogs.md), the page-setup dialogs to [E2g](E2g-page-labels.md), and the desktop part to [E2n](E2n-desktop-organise.md).
+The Organise mode on the web: a page grid with multi-select thumbnails, drag-and-drop reordering with an insertion bar, Move to page…, context menus and the single-document commands (insert blank, delete, duplicate, rotate, reverse), keyboard-accessible. The [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos) moved the documents dialogs (insert from a file, replace, extract, merge, split) to [E2m](../ready/E2m-document-dialogs.md), the page-setup dialogs to [E2g](../ready/E2g-page-labels.md), and the desktop part to [E2n](../ready/E2n-desktop-organise.md).
 
 ## Context
 
@@ -36,16 +36,16 @@ The Organise mode on the web: a page grid with multi-select thumbnails, drag-and
 
 **Out of scope** (and which todo covers it)
 
-- The documents dialogs and their outputs → [E2m](E2m-document-dialogs.md)
-- Page setup (crop, resize, boxes, orientation, labels) → [E2g](E2g-page-labels.md)
-- The desktop column and OS merge → [E2n](E2n-desktop-organise.md)
+- The documents dialogs and their outputs → [E2m](../ready/E2m-document-dialogs.md)
+- Page setup (crop, resize, boxes, orientation, labels) → [E2g](../ready/E2g-page-labels.md)
+- The desktop column and OS merge → [E2n](../ready/E2n-desktop-organise.md)
 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `C.01` insert blank pages; `C.03` delete and duplicate pages; `C.04` reorder pages; `C.08` rotate pages 90/180/270; `C.13` reverse page order
 - **Crates and packages:** `@laminapdf/ui`, `@laminapdf/viewer` (thumbnail drag layer), `apps/web`
 - **`SaveConstraint`:** banner from E1e shows violations as the user drags on signed files; drops are refused before applying when `would_violate`
-- **Web vs desktop:** the shared interface; the desktop column is [E2n](E2n-desktop-organise.md)'s
+- **Web vs desktop:** the shared interface; the desktop column is [E2n](../ready/E2n-desktop-organise.md)'s
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `C.01`, `C.03`, `C.04`, `C.08`, `C.13` → `round-trip` (web)
 

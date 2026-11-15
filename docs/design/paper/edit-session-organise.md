@@ -283,7 +283,7 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 
 **Artboards:** `O06-organise.dc.html` (drag with insertion bar), `O06-organise-menu.dc.html` (page context menu), `O06-move-dialog.dc.html` (Move to page…, 440 px), `O06-delete-signed.dc.html` (approval signature, 560 px).
 
-**Todos:** [E2h](../../todos/ready/E2h-page-organiser-ui.md), [E2b](../../todos/done/E2b-page-structure-ops.md).
+**Todos:** [E2h](../../todos/ongoing/E2h-page-organiser-ui.md), [E2b](../../todos/done/E2b-page-structure-ops.md).
 
 ## O07 Insert pages and merge documents
 
