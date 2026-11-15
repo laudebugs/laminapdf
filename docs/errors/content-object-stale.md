@@ -9,7 +9,7 @@ An edit names an object on a page, such as a paragraph, an image or a drawing, b
 
 ## Why
 
-An edit names a page's object by its place among the page's objects and a hash of the bytes that draw it. When Lamina PDF applies the edit, it finds the object at that place and checks the hash. A different hash means another edit, or another program, has changed the page since the name was taken, and the object there may be a different one. Lamina PDF won't guess which object the edit meant, so it refuses rather than change the wrong one.
+An edit names a page's object by its place among the page's objects and a hash of the bytes that draw it. When Lamina PDF applies the edit, it finds the object at that place and checks the hash. A different hash means another edit, or another program, has changed the page since the name was taken. Lamina PDF won't guess which object the edit meant, so it refuses rather than change the wrong one.
 
 ## How to fix
 

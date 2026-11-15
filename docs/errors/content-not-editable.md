@@ -9,10 +9,10 @@ An edit tried to change content that Lamina PDF can't change safely. The edit ch
 
 ## Why
 
-PDF stores text as glyphs placed one by one in a font's own encoding, not as characters. To change text, Lamina PDF has to find the glyphs that belong together, learn which characters they stand for, and place new glyphs in the same font. It refuses when it can't do that reliably:
+PDF stores text as glyphs placed one by one in a font's own encoding, not as characters. To change text, Lamina PDF has to find the glyphs that belong together, learn which characters they stand for, and place new glyphs in the same font. It refuses, and names the reason, when it can't do that reliably:
 
 - `type3-font`: the font draws each glyph with its own small drawing, which has no characters to map new text to.
-- `vertical-text`: the text is written top to bottom, which editing doesn't support yet.
+- `vertical-text`: the text is written top to bottom, and editing handles only horizontal text so far.
 - `no-unicode-map`: the font says nothing about which characters its glyphs stand for.
 - `rotated-run`: glyphs of one line are turned against each other.
 - `glyphs-out-of-order`: the file draws the line's glyphs out of reading order.
@@ -21,7 +21,7 @@ PDF stores text as glyphs placed one by one in a font's own encoding, not as cha
 
 ## How to fix
 
-Nothing in the file needs fixing: Lamina PDF reads this content and shows it as it is. To change it, delete the object and add new content in its place, or edit the file in the program that made it.
+The file is fine: Lamina PDF reads this content and shows it as it is. To change it, delete the object and add new content in its place, or edit the file in the program that made it.
 
 ## Example
 
