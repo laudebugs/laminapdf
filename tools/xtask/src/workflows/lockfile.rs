@@ -3,9 +3,24 @@
 //! So `uses:` lines name release tags, never bare commit SHAs, and this repository's own actions
 //! are written `$/`, which the lockfile follows, not `./`, which it doesn't.
 
-use super::compile_cache::uses;
 use super::{action_files, lines_of, needs, repository_file, workflow_files};
 use crate::doctor::GH_ACTIONS_LOCK_VERSION;
+
+/// The value of a `uses:` line (a `- uses:` one too), without a trailing comment or quotes;
+/// `None` for any other line, comments included.
+fn uses(line: &str) -> Option<&str> {
+    let line = line.trim_start();
+    let line = line.strip_prefix("- ").unwrap_or(line).trim_start();
+    let value = line.strip_prefix("uses:")?;
+    Some(
+        value
+            .split(" #")
+            .next()
+            .unwrap_or_default()
+            .trim()
+            .trim_matches(['"', '\'']),
+    )
+}
 
 const CI: &str = include_str!("../../../../.github/workflows/ci.yml");
 

@@ -1,11 +1,21 @@
 // ADR 0014 §3 and §9: the install ID never reaches a log. Every console method is watched across
 // requests that take each path through the handler (served, not served, bridges, pause, a broken
 // manifest, R2 failing, bad paths), with the Worker's own logger, `logEvent`, which src/index.ts
-// passes too. test/workerd.test.ts checks workerd's output the same way.
+// passes too. test/workerd.test.ts checks workerd's output the same way. D7a: no crash report's body
+// and no client IP reaches a log either, whatever POST /crash answers.
 import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { type HandlerDeps, handle, logEvent } from "../src/handler.ts";
-import { cohortIds, fixture, type Harness, harness, INSTALL_IDS, request } from "./helpers.ts";
+import {
+  cohortIds,
+  crashFixture,
+  crashRequest,
+  fixture,
+  type Harness,
+  harness,
+  INSTALL_IDS,
+  request,
+} from "./helpers.ts";
 
 const METHODS = ["log", "info", "warn", "error", "debug", "trace", "dir", "table"] as const;
 const PATHS = [
@@ -81,5 +91,40 @@ describe("handle", () => {
     for (const form of ids.flatMap((id) => forms(id, ["0.2.0", "0.1.3", "0.1.0"]))) {
       expect(all).not.toContain(form);
     }
+  });
+
+  it("never writes a crash report's body or the client's IP to the console", async () => {
+    const written = watchConsole();
+    const h = harness();
+    const deps: HandlerDeps = { ...h.deps, log: logEvent };
+    const marker = "CRASHMARKER-q7w8e9";
+    const ip = "203.0.113.77";
+    const report = { ...crashFixture(), reason: `boom ${marker}` };
+    const bodies = [
+      JSON.stringify(report),
+      JSON.stringify({ ...report, reason: `/Users/${marker}/a.pdf` }),
+      JSON.stringify({ ...report, [marker]: true }),
+      `{"reason":"${marker}`,
+    ];
+    const send = async () => {
+      for (const body of bodies) {
+        await handle(crashRequest(body, { "CF-Connecting-IP": ip }), deps);
+        await handle(crashRequest(body, { "CF-Connecting-IP": ip, "Content-Type": "text/plain" }), deps);
+      }
+    };
+    await send();
+    // Past the limit, then with R2 failing.
+    for (let i = 0; i < 10; i += 1) await send();
+    const failing = harness();
+    failing.deps.crashStore.put = async () => {
+      throw new Error("R2 unavailable");
+    };
+    await handle(crashRequest(bodies[0] ?? "", { "CF-Connecting-IP": ip }), { ...failing.deps, log: logEvent });
+
+    // The R2 failure did log something, so the check isn't vacuous.
+    expect(written.some((line) => line.includes("crash-store-failed"))).toBe(true);
+    const all = written.join("\n");
+    expect(all).not.toContain(marker);
+    expect(all).not.toContain(ip);
   });
 });

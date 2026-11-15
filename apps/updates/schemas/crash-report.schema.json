@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/laudebugs/laminapdf/blob/main/apps/updates/schemas/crash-report.schema.json",
+  "title": "Lamina PDF desktop crash report",
+  "description": "The body of POST /crash (D7a). The desktop app builds it from an allow-list (apps/desktop/src-tauri/src/crash/report.rs) and scrubs every free-text field; the Worker (src/crash.ts) checks it against this schema and its free-text fields against the path-like patterns again. Nothing in it names a file, a path, a document or the install. test/crash.test.ts holds this schema to the Worker's check, and the app's tests to test/fixtures/crash-report.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "report_id",
+    "app_version",
+    "channel",
+    "os",
+    "os_version",
+    "arch",
+    "process",
+    "renderer",
+    "sandbox",
+    "uptime",
+    "kind",
+    "reason",
+    "location",
+    "frames",
+    "modules"
+  ],
+  "properties": {
+    "schema": { "const": 1 },
+    "report_id": {
+      "description": "A random UUID v4 made for this report only.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "app_version": { "type": "string", "pattern": "^[0-9A-Za-z.+-]{1,32}$" },
+    "channel": { "enum": ["stable", "beta", "nightly", "dev"] },
+    "os": { "enum": ["macos", "windows", "linux"] },
+    "os_version": { "type": "string", "pattern": "^[0-9A-Za-z. ()_-]{0,40}$" },
+    "arch": { "enum": ["x86_64", "aarch64"] },
+    "process": { "enum": ["main", "engine", "webview"] },
+    "renderer": { "enum": ["pdfium"] },
+    "sandbox": {
+      "description": "The engine's sandbox layers (laminapdf-desktop-protocol's Layer); empty when unknown, as for a main-process crash before the engine started.",
+      "type": "array",
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "off",
+          "no_new_privs",
+          "seccomp",
+          "landlock",
+          "memory_limit",
+          "seatbelt",
+          "job",
+          "low_integrity",
+          "restricted_token"
+        ]
+      }
+    },
+    "uptime": { "enum": ["under_1m", "1m_to_10m", "10m_to_1h", "over_1h"] },
+    "kind": {
+      "description": "panic: a Rust panic. signal: the engine was ended by a signal (Unix) or an exception code (Windows). exit: the engine exited with a failure code. error, rejection: an uncaught error or unhandled promise rejection in the webview.",
+      "enum": ["panic", "signal", "exit", "error", "rejection"]
+    },
+    "reason": { "type": "string", "$ref": "#/$defs/free_text", "maxLength": 1024 },
+    "location": {
+      "description": "Where a panic happened, only when it is in lamina's own sources; null otherwise.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["file", "line", "column"],
+          "properties": {
+            "file": { "type": "string", "pattern": "^(apps|crates)/[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*\\.rs$", "maxLength": 160 },
+            "line": { "$ref": "#/$defs/count" },
+            "column": { "$ref": "#/$defs/count" }
+          }
+        }
+      ]
+    },
+    "frames": {
+      "description": "The crashing thread's frames, innermost first: native frames (module and offset) for Rust, script frames for the webview.",
+      "type": "array",
+      "maxItems": 64,
+      "items": { "oneOf": [{ "$ref": "#/$defs/native_frame" }, { "$ref": "#/$defs/script_frame" }] }
+    },
+    "modules": {
+      "description": "The loaded modules a native crash's frames refer to, by name; filled by minidump processing (D7d), empty until then.",
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "version", "debug_id"],
+        "properties": {
+          "name": { "$ref": "#/$defs/module_name" },
+          "version": { "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^[0-9A-Za-z.+-]{1,32}$" }] },
+          "debug_id": { "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^[0-9A-Fa-f]{32,40}$" }] }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "count": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
+    "free_text": {
+      "description": "Scrubbed by the app: no path (/a/b, C:\\a, \\\\server\\share, ~/a), no file: URL, no e-mail address and no run of 6 or more digits. The Worker refuses a body where one is left.",
+      "type": "string"
+    },
+    "module_name": { "type": "string", "pattern": "^[A-Za-z0-9._+-]{1,64}$" },
+    "native_frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "offset", "function"],
+      "properties": {
+        "module": { "description": "The module's file name, or <unknown>.", "oneOf": [{ "$ref": "#/$defs/module_name" }, { "const": "<unknown>" }] },
+        "offset": { "description": "The address within the module, in hex.", "type": "string", "pattern": "^0x[0-9a-f]{1,16}$" },
+        "function": { "oneOf": [{ "type": "null" }, { "type": "string", "$ref": "#/$defs/free_text", "maxLength": 256 }] }
+      }
+    },
+    "script_frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "line", "column", "function"],
+      "properties": {
+        "file": {
+          "description": "A bundle asset (Vite's hashed output) with the app's origin stripped, or <external> for anything else.",
+          "oneOf": [{ "type": "string", "pattern": "^assets/[A-Za-z0-9._-]+\\.(js|mjs)$" }, { "const": "<external>" }]
+        },
+        "line": { "$ref": "#/$defs/count" },
+        "column": { "$ref": "#/$defs/count" },
+        "function": { "oneOf": [{ "type": "null" }, { "type": "string", "$ref": "#/$defs/free_text", "maxLength": 256 }] }
+      }
+    }
+  }
+}

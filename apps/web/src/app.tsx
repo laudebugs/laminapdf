@@ -51,6 +51,7 @@ import type { HistoryState, Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useAnnouncements } from "./announce.tsx";
 import { type CapabilityRoute, useCapabilityRoute } from "./capabilities.tsx";
+import { type Copy, copier } from "./copy.ts";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
 import { type EditActions, type Editing, type EditMenuId, useEditing } from "./editing.tsx";
 import { type FindActions, useFind } from "./find.tsx";
@@ -321,11 +322,11 @@ function refusedByHost(error: ReaderError): boolean {
 function Failure({
   state,
   reader,
-  platform,
+  copy,
 }: {
   state: ReaderState & { readonly phase: "error" };
   reader: ReaderController;
-  platform: Platform;
+  copy: Copy;
 }): ReactNode {
   const { file, error } = state;
   const url = remoteUrlOf(file);
@@ -343,7 +344,7 @@ function Failure({
     <OpenFailure
       error={error}
       onTryAnother={() => void reader.requestClose()}
-      onCopy={() => void platform.copyText(`${error.code}: ${error.message}`)}
+      onCopy={() => copy(`${error.code}: ${error.message}`)}
     />
   );
 }
@@ -355,7 +356,7 @@ function Failure({
  */
 function useRepairsPanel(
   layout: ShellLayout,
-  platform: Platform,
+  copy: Copy,
   fileName: string | undefined,
   repairs: EngineState["repairs"],
 ): { inspector: ReactNode; showRepairs: (() => void) | undefined } {
@@ -372,7 +373,7 @@ function useRepairsPanel(
         fileName={fileName}
         repairs={repairs}
         onClose={() => layout.closeInspector()}
-        onCopy={() => void platform.copyText(repairsText(repairs))}
+        onCopy={() => copy(repairsText(repairs))}
       />
     </Inspector>
   ) : undefined;
@@ -384,10 +385,12 @@ function ReaderDialogs({
   engine,
   link,
   platform,
+  copy,
 }: {
   engine: Engine;
   link: EngineState["externalLink"];
   platform: Platform;
+  copy: Copy;
 }): ReactNode {
   return (
     <>
@@ -395,7 +398,7 @@ function ReaderDialogs({
       <ExternalLinkDialog
         link={link}
         onOpen={(href) => void platform.openExternal(href).catch(reportError)}
-        onCopy={(href) => void platform.copyText(href).catch(reportError)}
+        onCopy={copy}
         onClose={() => engine.closeExternalLink()}
       />
     </>
@@ -408,7 +411,7 @@ function ReaderDialogs({
  */
 function usePanels(
   layout: ShellLayout,
-  platform: Platform,
+  copy: Copy,
   network: NetworkMonitor,
   fileName: string | undefined,
   engine: EngineState,
@@ -422,8 +425,8 @@ function usePanels(
     readonly editMs: number | undefined;
   },
 ): { inspector: ReactNode; status: ReactNode[]; notice: ReactNode } {
-  const { inspector: repairsPanel, showRepairs } = useRepairsPanel(layout, platform, fileName, engine.repairs);
-  const { indicator, inspector: networkPanel } = useNetworkPanel(layout, platform, network);
+  const { inspector: repairsPanel, showRepairs } = useRepairsPanel(layout, copy, fileName, engine.repairs);
+  const { indicator, inspector: networkPanel } = useNetworkPanel(layout, copy, network);
   const connection = useOffline(shared.updates, shared.toasts, shared.documentOpen);
   // One inspector at a time: whichever panel the layout holds draws, the others draw nothing.
   const inspector = shared.readerMode.inspector ?? repairsPanel ?? networkPanel;
@@ -543,14 +546,14 @@ function EngineDebugMenu({ engine, backend }: { engine: Engine; backend: EngineS
 function Canvas({
   engine,
   state,
-  platform,
+  copy,
   viewer,
   recent,
   readerMode,
 }: {
   engine: Engine;
   state: ReaderState;
-  platform: Platform;
+  copy: Copy;
   viewer: Viewer | undefined;
   /** The home screen's Recent list. */
   recent: ReactNode;
@@ -575,7 +578,7 @@ function Canvas({
           onChooseFile={() => void reader.openFromPicker()}
         />
       ) : null}
-      {state.phase === "error" ? <Failure state={state} reader={reader} platform={platform} /> : null}
+      {state.phase === "error" ? <Failure state={state} reader={reader} copy={copy} /> : null}
       <ViewerHost viewer={viewer} visible={state.phase === "open"} covered={readerMode.on} />
       {state.phase === "open" ? readerMode.view : null}
     </>
@@ -629,14 +632,16 @@ function useRailTabs(
   }, [engine, layout, open, strip, viewer, finding, history, editor, threaded]);
 }
 
-/** The settings, with the page appearance of the document `viewer` shows, and the toasts they share. */
+/** The settings, the toasts they share and the reader's Copy, with the page appearance of the document that `viewer` shows. */
 function useAppSettings(
   openPalette: () => void,
   viewer: Viewer | undefined,
   file: PlatformFile | undefined,
-): { settings: Settings; toasts: ToastQueue } {
+  platform: Platform,
+): { settings: Settings; toasts: ToastQueue; copy: Copy } {
   const [toasts] = useState(() => new ToastQueue());
-  return { settings: useSettings(openPalette, usePageAppearance(viewer, file, toasts)), toasts };
+  const settings = useSettings(openPalette, usePageAppearance(viewer, file, toasts));
+  return { settings, toasts, copy: copier(platform, toasts) };
 }
 
 /**
@@ -695,7 +700,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
   const sidebar = useStoreState(layout, (s) => s.rail.open);
   const open = state.phase === "open";
   const shown = open ? engineState.viewer : undefined;
-  const { settings, toasts } = useAppSettings(shell.openPalette, shown, open ? state.file : undefined);
+  const { settings, toasts, copy } = useAppSettings(shell.openPalette, shown, open ? state.file : undefined, platform);
   const fileName = open ? state.file.name : undefined;
   const editing = useEditing({ engine, shell, viewer: shown, toasts, fileName, keys: KEYS, platform });
   const menu = useDocumentMenu(engine, platform, state, shown, settings, { updates, toasts }, editing.actions);
@@ -705,7 +710,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
   const moreItems = withEditItems(editing.menu(commands.context), menu.moreItems);
   useWindowTitle(fileName, engineState.title, editing.unsaved);
   const liveRegions = useAnnouncements(shown, open ? state.file : undefined, engineState, state.phase === "empty");
-  const { inspector, status, notice } = usePanels(layout, platform, network, fileName, engineState, debug, {
+  const { inspector, status, notice } = usePanels(layout, copy, network, fileName, engineState, debug, {
     updates,
     toasts,
     documentOpen: open,
@@ -750,12 +755,12 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
         <Canvas
           engine={engine}
           state={state}
-          platform={platform}
+          copy={copy}
           viewer={engineState.viewer}
           recent={recent.home}
           readerMode={reading}
         />
-        <ReaderDialogs engine={engine} link={engineState.externalLink} platform={platform} />
+        <ReaderDialogs engine={engine} link={engineState.externalLink} platform={platform} copy={copy} />
         {/* The link previews (R07) load once a document is open (later.ts, #380). */}
         {shown === undefined || editing.later === undefined ? null : (
           <editing.later.LinkPreviews engine={engine} viewer={shown} />

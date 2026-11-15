@@ -21,33 +21,11 @@ use std::path::Path;
 use anyhow::{Context, Result, bail};
 use serde_json::Value;
 
+use crate::plain_version::{Version, parse};
 use crate::tracked::git;
 
 const PACKAGE: &str = "apps/web/package.json";
 const TAG_PREFIX: &str = "web-v";
-
-/// A release version: `MAJOR.MINOR.PATCH`, no pre-release (the reader releases only these).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct Version(u64, u64, u64);
-
-impl std::fmt::Display for Version {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}.{}.{}", self.0, self.1, self.2)
-    }
-}
-
-fn parse(text: &str) -> Option<Version> {
-    let mut parts = text.split('.');
-    let mut number = || -> Option<u64> {
-        let part = parts.next()?;
-        // No leading zeros, no signs: semver's numeric identifiers.
-        (!part.is_empty() && part.bytes().all(|b| b.is_ascii_digit()) && (part == "0" || !part.starts_with('0')))
-            .then(|| part.parse().ok())
-            .flatten()
-    };
-    let version = Version(number()?, number()?, number()?);
-    parts.next().is_none().then_some(version)
-}
 
 /// The version after `latest` that `base` (`package.json`'s) allows: `base` itself when it is newer
 /// (the first release, or the owner raised it), else `latest` with its patch one higher, as long as

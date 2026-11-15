@@ -286,13 +286,14 @@ function useWindowTitle(
   active: string | undefined,
   unsaved: boolean,
 ): void {
+  // The shown file's name, read each render: Save as renames the file without changing the tab.
+  const shown = active === undefined ? undefined : tabs?.shown;
+  const file = shown === undefined ? null : (documentOf(shown.file)?.name ?? shown.file.name);
   useEffect(() => {
     if (shell === undefined || tabs === undefined) return;
-    const shown = tabs.shown;
-    const file = shown === undefined ? null : (documentOf(shown.file)?.name ?? shown.file.name);
     const name = file === null ? null : `${unsaved ? "• " : ""}${file}`;
     // The page's title too, as the window's (src-tauri/src/windows.rs `title`).
     document.title = name === null ? "Lamina PDF" : `${name} — Lamina PDF`;
     void shell.invoke("set_window_title", { name }).catch(() => undefined);
-  }, [shell, tabs, active, unsaved]);
+  }, [shell, tabs, file, unsaved]);
 }

@@ -105,6 +105,11 @@ export class ReaderController {
     this.#dispatch({ type: "cancel" });
   }
 
+  /** Says the open file's name changed, as a Save as to a new file does, so the chrome shows the new one. */
+  fileRenamed(): void {
+    this.#dispatch({ type: "file-renamed" });
+  }
+
   /** Reads pointer input on the open document as interaction mode `mode` (a registered tool's name). */
   setMode(mode: InteractionMode): void {
     this.#dispatch({ type: "set-mode", mode });

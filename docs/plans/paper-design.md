@@ -108,3 +108,4 @@ The design system is built once, in `@laminapdf/tokens` and `@laminapdf/ui`, bef
 - [ ] Republish the canvases from the committed files (the account's daily publish limit stopped the last publishes)
 - [x] U6a tokens, U6b fonts, U6c icons, U6d core controls, U6h display components, U6e overlays, U6i bottom sheets, U6j palette and selection toolbar shells, U6f gallery and visual tests
 - [x] Owner sign-off on proposed values (U6a, 2026-11-05)
+- [x] Round U7, motion and interaction states, U7a–U7i: the state model, cursors and motion in Paper's components ([motion and states plan](motion-and-states.md#7-todos)); the closing pass's findings are U7j–U7l

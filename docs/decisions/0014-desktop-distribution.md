@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-11-12
+- Amended 2026-11-15 (D7a): §10 adds crash reports, which the same Worker receives ([desktop plan §8 Q2](../plans/desktop-app.md#8-open-questions)).
 
 ## Context
 
@@ -110,6 +111,16 @@ Every release artefact carries a GitHub artifact attestation (ADR 0017's practic
 - **Verified 2026-11-12** against [Workers Logs](https://developers.cloudflare.com/workers/observability/logs/workers-logs/): invocation logs hold the request's metadata, and `observability.logs.invocation_logs: false` turns them off. Anyone adding tracing, a Tail Worker or Logpush must first show that the install ID can't reach it, and must amend this section.
 - **The privacy page** (D7b) says the same in plain words.
 
+### 10. Crash reports
+
+The app reports crashes to the update Worker, not to Sentry or another service, and only with the user's consent (amended 2026-11-15, D7a). A report holds what went wrong in the app and never the user's documents, their names or their folders.
+
+- **Built on the computer, from an allow-list.** The app turns a crash into a report itself. A report holds the panic's message and source location, the panicking thread's frames (function names and offsets) and the crash kind. It also holds the version, channel, OS and its version, architecture, process kind, renderer, sandbox layers, a coarse uptime and a random report ID. It has no other field, so nothing else can be sent. A scrubber removes paths, `file:` URLs, document file names, e-mail addresses and long numbers from every free-text field. A webview report names only the error's type from a fixed list, since a script's message can quote document text; its frames keep only bundle files (`assets/index-3f2a.js`). The schema is `apps/updates/schemas/crash-report.schema.json`.
+- **Consent.** Sending is off until the user turns it on. After the first crash the app asks once: "Send report" sends that report, and with "Always send reports after a crash" checked it sends every later one too. Settings › Privacy turns sending on and off. Held reports stay on the computer for 30 days at most, ten at a time.
+- **No install ID.** The crash client never sends `Lamina-Install-Id`, and the Worker refuses a report that carries it. Each report gets a random ID of its own, kept nowhere else. The Worker still sees the sender's IP address, which it uses as the rate limit's key and doesn't keep.
+- **The Worker.** `POST /crash` checks the body against the schema and refuses a free-text field that still looks like a path, a `file:` URL, an e-mail address or a long number. It caps a body at 64 KiB and allows ten reports a minute from one address. It stores each report in the private bucket `lamina-pdf-crash-reports` under `crash-reports/{yyyy}/{mm}/{dd}/{report_id}.json`, and a lifecycle rule deletes reports after 30 days. It logs no body and no address.
+- **What comes later.** Minidumps of native crashes, which hold memory and so may hold document bytes, are processed on the computer into the same fields and never uploaded raw (D7d). D7d also archives debug symbols for maintainers to read frames with.
+
 ## Consequences
 
 - One Worker and three buckets serve every desktop update. Costs are R2 storage and reads; the Worker reads each channel's manifest at most once per data centre every 30 s.
@@ -128,3 +139,4 @@ Every release artefact carries a GitHub artifact attestation (ADR 0017's practic
 - **One updater key for every channel:** a nightly job, which runs without approval, could then sign updates that stable installs accept.
 - **Tauri's `version_comparator` for rollbacks:** it needs app support and runs the decision on the client; a bridge with a higher version does the same from the server.
 - **An OV certificate in a cloud HSM for Windows:** this is needed only outside the US and Canada. Artifact Signing costs less and keeps the private key in Microsoft's HSM, with no key to manage. D6a's runbook keeps OV as the fallback.
+- **Sentry for crash reports (§10):** it groups crashes and reads symbols for free, but its SDKs upload minidumps whole, with whatever memory they caught, unless configured with care, and every report would go to another company. Our own Worker keeps reports on our bucket, under the privacy rules the update service already follows, at no cost at the expected volume.

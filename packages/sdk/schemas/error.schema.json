@@ -56,6 +56,8 @@
             "link-not-tagged",
             "appearance-unavailable",
             "invalid-label-ranges",
+            "content-object-stale",
+            "content-not-editable",
             "sink",
             "not-rebased",
             "sink-not-empty",

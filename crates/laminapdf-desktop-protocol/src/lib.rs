@@ -20,12 +20,14 @@
 //! serves the engine's reads and restarts it after a crash. It uses only `std`, so the engine's
 //! tests drive it without Tauri.
 //!
-//! This crate depends only on `serde`, `postcard`, `thiserror` and `zeroize`, so the main
-//! process never links the parser or PDFium.
+//! This crate depends only on `serde`, `postcard`, `thiserror`, `zeroize` and `backtrace` (for
+//! [`crash`]), so the main process never links the parser or PDFium.
 
+pub mod crash;
 mod frame;
 mod msg;
 mod sandbox;
+mod save;
 pub mod supervisor;
 
 pub use frame::{MAX_FRAME, ProtocolError, read_frame, write_frame};
@@ -37,7 +39,10 @@ pub use msg::{
 #[cfg(any(test, feature = "test-support"))]
 pub use sandbox::complete_level;
 pub use sandbox::{Layer, SandboxLevel};
+pub use save::{
+    PlanConstraint, PlanReport, PlanSignature, SaveAnswer, SaveCall, SaveRequest, SaveWritten, SavedAs, SignatureRole,
+};
 
 /// The protocol's version: in every frame and in the `Hello`/`Ready` handshake. Both sides come
 /// from the same build, so a mismatch means a stale engine binary next to a newer app.
-pub const PROTOCOL_VERSION: u16 = 6;
+pub const PROTOCOL_VERSION: u16 = 8;

@@ -19,6 +19,7 @@ import {
   Badge,
   Button,
   Checkbox,
+  CrashNotice,
   DEFAULT_READER_SETTINGS,
   DocumentTabs,
   EmptyState,
@@ -1043,6 +1044,11 @@ const repairs: Example[] = [
     component: "RestoreNotice",
     state: "every file found",
     element: () => <RestoreNotice tabs={3} missing={0} onShowMissing={noop} onDismiss={noop} />,
+  },
+  {
+    component: "CrashNotice",
+    state: "the document view restarted (S08), the report question not yet asked",
+    element: () => <CrashNotice onSend={noop} onViewReport={noop} onDismiss={noop} />,
   },
   {
     component: "RecentList",

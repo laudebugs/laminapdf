@@ -10,6 +10,16 @@ pub mod exercise;
 pub mod fuzz_entry;
 #[path = "../../crates/laminapdf-content/tests/common/fuzz_entry.rs"]
 pub mod content_entry;
+/// The `content_ir` target's entry point, shared with laminapdf-content's `tests/ir.rs`. It
+/// builds on the `content` target's small file, so it sits beside its own copy of that entry,
+/// as it does in the crate's `tests/common/`.
+#[path = "."]
+pub mod ir_entry {
+    #[path = "../../crates/laminapdf-content/tests/common/fuzz_entry.rs"]
+    pub mod fuzz_entry;
+    #[path = "../../crates/laminapdf-content/tests/common/ir_fuzz_entry.rs"]
+    pub mod ir_fuzz_entry;
+}
 /// The `content_append_scan` target's entry point, shared with laminapdf-content's `tests/append.rs`.
 #[path = "../../crates/laminapdf-content/tests/common/append_fuzz_entry.rs"]
 pub mod append_entry;

@@ -9,6 +9,7 @@ import type * as Dialogs from "@laminapdf/ui/dialogs";
 import type { PrintChoice, PropertiesState } from "@laminapdf/ui/dialogs";
 import type { Viewer } from "@laminapdf/viewer";
 import { lazy, type ReactNode, Suspense, useRef, useState } from "react";
+import { copier } from "./copy.ts";
 import { downloadName } from "./download-name.ts";
 import type { PageInfo } from "./outline.ts";
 import type { EditablePropertiesDialog } from "./properties-editing.tsx";
@@ -162,8 +163,7 @@ function useProperties(engine: Engine, platform: Platform, toasts: ToastQueue) {
       },
     );
   };
-  const copy = (text: string) =>
-    void platform.copyText(text).then(() => toasts.add({ message: message("properties.copied") }), reportError);
+  const copy = copier(platform, toasts);
   return {
     start,
     render: (document: OutputDocument | undefined) =>

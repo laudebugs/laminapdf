@@ -75,6 +75,7 @@ export const ROUTES: readonly Route[] = [
       "RemoteFailure",
       "OfflineNotice",
       "RestoreNotice",
+      "CrashNotice",
       "RecentList",
     ],
   },
@@ -122,6 +123,7 @@ export const ROUTES: readonly Route[] = [
       "MergeDialog",
       "SplitDialog",
       "LocateDifferentDialog",
+      "CrashReportDialog",
     ],
     states: [
       "default",
@@ -159,6 +161,9 @@ export const ROUTES: readonly Route[] = [
       "split",
       "extract",
       "locate-different",
+      "crash-main",
+      "crash-engine",
+      "crash-report",
     ],
   },
   {

@@ -280,11 +280,14 @@ pub(crate) fn cancel_quit(window: tauri::WebviewWindow) {
 }
 
 /// Says whether this window's documents hold edits not yet saved, so closing it or quitting asks
-/// first.
+/// first, and which ones (`docs`), so a change another app makes to one of their files asks before
+/// it reloads.
 #[tauri::command]
 #[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window by value")]
-pub(crate) fn set_unsaved(window: tauri::WebviewWindow, unsaved: bool) {
-    window.state::<crate::unsaved::Unsaved>().set(window.label(), unsaved);
+pub(crate) fn set_unsaved(window: tauri::WebviewWindow, unsaved: bool, docs: Option<Vec<u32>>) {
+    let marks = window.state::<crate::unsaved::Unsaved>();
+    marks.set(window.label(), unsaved);
+    marks.set_docs(window.label(), docs.as_deref().unwrap_or_default());
 }
 
 /// Applies, undoes or redoes an edit of one of this window's documents: the engine draws its

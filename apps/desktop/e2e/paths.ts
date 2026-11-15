@@ -54,3 +54,13 @@ export const updateTestFile = join(configDir, "update-test.json");
 
 /** The app's preferences (src-tauri/src/prefs.rs). */
 export const preferencesFile = join(configDir, "preferences.json");
+
+/** The crash reports' consent (src-tauri/src/crash/consent.rs). */
+export const crashConsentFile = join(configDir, "crash.json");
+
+/** The crash reports kept on disk, in Tauri's `app_data_dir` (src-tauri/src/crash/queue.rs). */
+export const crashesDir = join(
+  platform === "linux" ? (env.XDG_DATA_HOME ?? join(homedir(), ".local", "share")) : join(configDir, ".."),
+  "com.laminapdf.desktop.e2e",
+  "crashes",
+);

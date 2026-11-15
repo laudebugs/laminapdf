@@ -227,6 +227,14 @@ export {
   type UiTheme,
 } from "./reader/appearance.js";
 export { formatBytes } from "./reader/bytes.js";
+export {
+  type CrashAnswer,
+  CrashNotice,
+  type CrashNoticeProps,
+  type CrashProcess,
+  CrashReportDialog,
+  type CrashReportDialogProps,
+} from "./reader/crash-report.js";
 export { type DebugBackend, DebugMenu, type DebugMenuProps } from "./reader/debug-menu.js";
 export { type DocumentTab, DocumentTabs, type DocumentTabsProps } from "./reader/document-tabs.js";
 export {
@@ -382,3 +390,4 @@ export {
   transition,
 } from "./state/reader-machine.js";
 export type { InteractionMode, InteractionModes, ToolHost, ToolModule, ToolsState } from "./tools/tools.js";
+export { switchView } from "./view-switch.js";
