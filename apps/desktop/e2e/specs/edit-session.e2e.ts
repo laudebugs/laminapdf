@@ -10,9 +10,9 @@ import { Key } from "webdriverio";
 import { fixture, focusWindow, menuClick, now, openAndWait, waitForMenus, waitForSharpSince } from "../app.ts";
 
 const HELLO = fixture("fixtures", "golden", "examples", "hello.pdf");
+/** The new windows' file: one open in another window would show there, in its tab. */
+const INVOICE = fixture("fixtures", "golden", "examples", "invoice.pdf");
 const MOD = platform === "darwin" ? Key.Command : Key.Ctrl;
-const CLEAN_TITLE = "hello.pdf — Lamina PDF";
-const DIRTY_TITLE = "• hello.pdf — Lamina PDF";
 
 /** Page 1's `/Rotate` as the engine reports it. */
 async function rotation(): Promise<number | undefined> {
@@ -31,10 +31,10 @@ async function shownLandscape(): Promise<boolean> {
  * Runs `step`, then waits until page 1 is turned to `degrees` in the engine, shows that way and is
  * drawn sharp again, and the title says whether the turn is unsaved.
  */
-async function turnsTo(degrees: number, why: string, step: () => Promise<unknown>): Promise<void> {
+async function turnsTo(degrees: number, why: string, step: () => Promise<unknown>, file = "hello.pdf"): Promise<void> {
   const since = await now();
   await step();
-  const title = degrees === 0 ? CLEAN_TITLE : DIRTY_TITLE;
+  const title = `${degrees === 0 ? "" : "• "}${file} — Lamina PDF`;
   const landscape = degrees % 180 !== 0;
   await browser.waitUntil(
     async () =>
@@ -93,21 +93,21 @@ describe("the edit session", () => {
     await $("button=Cancel").click();
     await question.waitForDisplayed({ reverse: true });
     expect(await browser.getWindowHandles()).toEqual(handles);
-    expect(await browser.getTitle()).toBe(DIRTY_TITLE);
+    expect(await browser.getTitle()).toBe("• hello.pdf — Lamina PDF");
     // Undone, the document matches its file again: nothing is lost by closing it.
     await turnsTo(0, "the undo before the clean close", () => browser.keys([MOD, "z"]));
   });
 
   it("closes a window with no unsaved edits without asking, and one with them once told to", async () => {
     const main = await browser.getWindowHandle();
-    const clean = await newWindowWith(HELLO);
+    const clean = await newWindowWith(INVOICE);
     await menuClick("cmd:window.close");
     await browser.waitUntil(async () => !(await browser.getWindowHandles()).includes(clean), {
       timeoutMsg: "the window with no edits didn't close at once",
     });
     await browser.switchToWindow(main);
-    const edited = await newWindowWith(HELLO);
-    await turnsTo(90, "Rotate page right in the new window", () => menuClick("cmd:pages.rotate-right"));
+    const edited = await newWindowWith(INVOICE);
+    await turnsTo(90, "Rotate page right in the new window", () => menuClick("cmd:pages.rotate-right"), "invoice.pdf");
     await menuClick("cmd:window.close");
     await $("[role=alertdialog]").waitForDisplayed({ timeoutMsg: "closing the edited window didn't ask" });
     await $("button=Close without saving").click();

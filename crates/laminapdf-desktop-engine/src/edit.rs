@@ -13,9 +13,7 @@
 use std::sync::Arc;
 
 use laminapdf::{IncrementalOutput, PageId, SaveMode, SaveOptions, UndoOutcome};
-use laminapdf_desktop_protocol::{
-    EditCall, EditReport, EditedPage, EngineLimits, FailureKind, Reversal,
-};
+use laminapdf_desktop_protocol::{EditCall, EditReport, EditedPage, EngineLimits, FailureKind, Reversal};
 use laminapdf_render::{ByteSource, RenderBackend, RenderOpenOptions, SourceError};
 
 use crate::limits;
