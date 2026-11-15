@@ -47,6 +47,7 @@ export interface MergeDialogProps {
   readonly onAdd: () => void;
   /** Moves file `key` up (-1) or down (1). */
   readonly onMove: (key: string, delta: -1 | 1) => void;
+  /** Takes file `key` out of the list. */
   readonly onRemove: (key: string) => void;
   /** Tries `password` on file `key`. */
   readonly onPassword: (key: string, password: string) => void;

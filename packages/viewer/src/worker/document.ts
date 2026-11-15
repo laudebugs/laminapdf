@@ -139,7 +139,7 @@ export interface EditState {
 export type EditAction = readonly Op[] | "undo" | "redo" | SourceAdded;
 
 /** A source document the model was given: its bytes, and the password it opened with. */
-export interface SourceAdded {
+interface SourceAdded {
   readonly source: Uint8Array;
   readonly password?: string;
 }

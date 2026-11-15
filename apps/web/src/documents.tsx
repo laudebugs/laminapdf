@@ -55,7 +55,7 @@ interface Picked {
 }
 
 /** The dialog across files that is open. */
-export type DocumentsDialog = "from-file" | "replace" | "merge" | "split" | "extract";
+type DocumentsDialog = "from-file" | "replace" | "merge" | "split" | "extract";
 
 /** What the dialogs across files show. */
 export interface DocumentsState {
