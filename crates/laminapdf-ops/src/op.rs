@@ -368,7 +368,7 @@ impl Op {
             Self::SetPageLabels(op) => op.apply_to(doc).map(|()| Effect::default()),
             Self::EditContent(op) => op.apply_to(doc, content.0, content.1),
             #[cfg(feature = "test-support")]
-            Self::Declared(op) => op.apply_to(doc, sources, self.class()),
+            Self::Declared(op) => op.apply_to(doc, sources, self.class(), content),
         }
     }
 }

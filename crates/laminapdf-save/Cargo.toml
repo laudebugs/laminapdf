@@ -54,6 +54,8 @@ laminapdf-ops = { path = "../laminapdf-ops", features = ["test-support"] }
 laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 # Images to PDF, for the round-trip suite's image cases (todo E3h).
 laminapdf-build = { path = "../laminapdf-build" }
+# The objects a page draws, for the round-trip suite's content edits (todo E7d).
+laminapdf-content = { path = "../laminapdf-content" }
 criterion = { workspace = true }
 proptest = { workspace = true }
 serde_json = { workspace = true }

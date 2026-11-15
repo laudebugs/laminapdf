@@ -156,11 +156,21 @@ impl ContentOps {
             return Err(NotEditable::ContentUnreadable);
         }
         let draw = op(b"Do", vec![Object::Name(name)]);
-        let new = if *unit == Matrix::IDENTITY {
+        let new_draw = if *unit == Matrix::IDENTITY {
             vec![draw]
         } else {
             vec![op(b"q", Vec::new()), cm(unit), draw, op(b"Q", Vec::new())]
         };
+        // Only the `Do` changes: the rest of the object's operators, the state it sets and an
+        // earlier edit's `q … cm … Q` around it, stay.
+        let mut new = Vec::new();
+        for old in self.own_ops(id)? {
+            if old.keyword[..] == *b"Do" {
+                new.extend(new_draw.iter().cloned());
+            } else {
+                new.push(old);
+            }
+        }
         self.replace(id, new);
         Ok(())
     }
@@ -288,7 +298,7 @@ impl ContentOps {
         let text_clips = object.kind == ContentObjectKind::Text
             && (object.state().is_some_and(|s| s.text.render_mode >= 4)
                 || ops.iter().any(|o| o.keyword[..] == *b"Tr" && clipping_mode(o)));
-        if text_clips || ops.iter().any(|o| matches!(&o.keyword[..], b"W" | b"W*")) {
+        if text_clips || clips_after(&ops) {
             return Err(NotEditable::ClippingPath);
         }
         Ok(ops)
@@ -430,6 +440,24 @@ fn color_ops(color: &CurrentColor, stroke: bool) -> Vec<ContentOp> {
         out.push(op(set_color, operands));
     }
     out
+}
+
+/// Whether `ops` set a clip that outlasts them: a `W` or `W*` outside every `q … Q` they open
+/// (an earlier crop's clip sits inside its own `q … Q`).
+fn clips_after(ops: &[ContentOp]) -> bool {
+    let mut depth = 0_usize;
+    ops.iter().any(|o| match &o.keyword[..] {
+        b"q" => {
+            depth += 1;
+            false
+        }
+        b"Q" => {
+            depth = depth.saturating_sub(1);
+            false
+        }
+        b"W" | b"W*" => depth == 0,
+        _ => false,
+    })
 }
 
 /// The operators of `ops` that set state the object leaves behind, in order.

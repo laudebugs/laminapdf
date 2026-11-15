@@ -375,3 +375,26 @@ fn a_deletion_should_say_the_earlier_revision_still_holds_it() {
     let applied = doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
     assert!(applied.still_in_earlier_revisions);
 }
+
+/// The frozen wire sample (`fixtures/ops/v1/edit-content.json`), written for [`shared`]'s first
+/// page, applies: the square moves, the image is cropped and goes to the back, the text goes.
+#[test]
+fn the_frozen_sample_applies_to_the_page_it_was_written_for() {
+    let mut doc = shared();
+    let op: Op = serde_json::from_slice(&fixture("ops/v1/edit-content.json")).unwrap();
+    let Op::EditContent(ref edit) = op else {
+        panic!("not an editContent op: {op:?}");
+    };
+    let refs: Vec<ObjectRef> = objects(&doc, 0).into_iter().map(|(_, r, _)| r).collect();
+    assert!(edit.edits.iter().all(|e| refs.contains(&e.object())), "{refs:?}");
+    doc.apply_all(Origin::Local, [op]).unwrap();
+    // Read again, the crop's clipping path is an object of its own, before the image.
+    assert_eq!(
+        kinds(&doc, 0),
+        [
+            ContentObjectKind::Path,
+            ContentObjectKind::Image,
+            ContentObjectKind::Path
+        ]
+    );
+}

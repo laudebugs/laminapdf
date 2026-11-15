@@ -3332,6 +3332,7 @@ version = "0.4.0"
 dependencies = [
  "criterion",
  "laminapdf-build",
+ "laminapdf-content",
  "laminapdf-cos",
  "laminapdf-model",
  "laminapdf-ops",

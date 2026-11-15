@@ -143,6 +143,18 @@ fn replacing_an_image_should_draw_the_new_xobject_through_the_unit_matrix() {
 }
 
 #[test]
+fn replacing_an_image_after_moving_it_should_keep_the_move() {
+    let mut ops = ir(b"/Im1 Do");
+    ops.objects[0].kind = ContentObjectKind::Image;
+    let image = id(&ops, 0);
+    ops.transform(image, &Matrix::translate(5.0, 0.0), &frame()).unwrap();
+    ops.replace_image(image, Name::from("Im2"), &Matrix::IDENTITY).unwrap();
+    let out = written(&ops);
+    assert!(out.contains("1 0 0 1 5 0 cm") && out.contains("/Im2 Do"), "{out}");
+    assert!(!out.contains("/Im1"), "{out}");
+}
+
+#[test]
 fn replacing_something_other_than_an_image_should_be_refused() {
     let mut ops = ir(b"0 0 1 1 re f");
     assert_eq!(
