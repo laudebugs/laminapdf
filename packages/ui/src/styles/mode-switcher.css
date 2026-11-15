@@ -15,14 +15,17 @@
     padding: 0;
     border: 0;
     border-block-end: var(--paper-selected-underline-width) solid transparent;
-    background: transparent;
+    border-start-start-radius: var(--paper-radius-4);
+    border-start-end-radius: var(--paper-radius-4);
+    background-color: transparent;
     color: var(--paper-muted);
     font: var(--paper-type-body);
     white-space: nowrap;
-    cursor: default;
   }
 
-  .paper-mode[data-hovered] {
+  /* Hover darkens the label with no fill, as on a tab; a press shows the pressed layer. */
+  .paper-mode[data-hovered]:not([data-pressed]) {
+    --ui-state-layer: transparent;
     color: var(--paper-text);
   }
 

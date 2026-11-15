@@ -1,6 +1,5 @@
 {
   "packages/ui/src/styles/appearance-chips.css": ["cursor: default"],
-  "packages/ui/src/styles/button.css": ["cursor: default", "cursor: progress"],
   "packages/ui/src/styles/choice.css": ["cursor: default"],
   "packages/ui/src/styles/document-tabs.css": [
     "cursor: default",
@@ -9,17 +8,14 @@
     "hover: .paper-document-tab[data-active] .paper-document-tab-close, .paper-document-tab:hover .paper-document-tab-close, .paper-document-tab:focus-within .paper-document-tab-close"
   ],
   "packages/ui/src/styles/history.css": ["cursor: default", "hover: .paper-history-row:hover"],
-  "packages/ui/src/styles/mode-switcher.css": ["cursor: default"],
   "packages/ui/src/styles/notice.css": ["cursor: default"],
   "packages/ui/src/styles/outline-row.css": ["cursor: default", "cursor: default"],
-  "packages/ui/src/styles/palette.css": ["cursor: default"],
   "packages/ui/src/styles/phone.css": [
     "cursor: pointer",
     "duration: transition: 160ms",
     "duration: transition: 160ms",
     "easing: transition: ease"
   ],
-  "packages/ui/src/styles/popover.css": ["cursor: default"],
   "packages/ui/src/styles/properties.css": [
     "hover: .paper-properties-row:hover .paper-icon-button, .paper-properties-row:focus-within .paper-icon-button"
   ],
@@ -33,16 +29,13 @@
     "easing: animation: ease-out",
     "hover: .paper-rail-handle:hover, .paper-rail-handle:focus-visible"
   ],
-  "packages/ui/src/styles/status-bar.css": ["cursor: default"],
   "packages/ui/src/styles/swatches.css": ["cursor: default"],
-  "packages/ui/src/styles/tabs.css": ["cursor: default"],
   "packages/ui/src/styles/threads.css": [
     "cursor: pointer",
     "cursor: pointer",
     "hover: .paper-thread-toggle:hover, button.paper-thread-part:hover"
   ],
   "packages/ui/src/styles/thumbnail.css": ["cursor: default"],
-  "packages/ui/src/styles/toggle.css": ["cursor: default"],
   "packages/site-kit/src/header.css": [
     "cursor: pointer",
     "hover: .site-header-app:hover",

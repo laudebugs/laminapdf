@@ -165,6 +165,7 @@ const buttons: Example[] = [
     element: () => <IconButton label="Find in document" icon="find" size={size} />,
   })),
   { component: "IconButton", state: "disabled", element: () => <IconButton label="Undo" icon="undo" isDisabled /> },
+  { component: "IconButton", state: "pending", element: () => <IconButton label="Save" icon="download" isPending /> },
 ];
 
 const toggles: Example[] = [

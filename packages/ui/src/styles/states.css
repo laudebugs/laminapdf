@@ -1,0 +1,100 @@
+/* The action controls' shared states (§7.0; motion plan §4.2): the hand, the arrow when disabled,
+   the busy arrow while pending, and hover and pressed as one translucent layer over the control's
+   own fill. Each component file sets the fill with `background-color`, never the `background`
+   shorthand, which would wipe the layer.
+
+   The layer is a registered colour, so it can fade: hover in over --paper-duration-state-in, out
+   over --paper-duration-state-out, press at once, and release back to hover over state-in. Hover
+   comes from React Aria's data-hovered, which a touch never sets, so a tap leaves no hover behind.
+   The focus ring isn't in the transition list: it appears at once. */
+@property --ui-state-layer {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: transparent;
+}
+
+@layer paper.components {
+  :where(
+    .paper-button,
+    .paper-icon-button,
+    .paper-toggle,
+    .paper-tool-toggle,
+    .paper-mode,
+    .paper-tab,
+    .paper-menu-item,
+    .paper-status-item,
+    .paper-palette-row
+  ) {
+    cursor: var(--paper-cursor-action);
+    background-image: linear-gradient(var(--ui-state-layer) 0 0);
+    transition-property: --ui-state-layer, background-color, border-color, color;
+    transition-duration: var(--paper-duration-state-out);
+    transition-timing-function: var(--paper-ease-standard);
+  }
+
+  :where(
+    .paper-button,
+    .paper-icon-button,
+    .paper-toggle,
+    .paper-tool-toggle,
+    .paper-mode,
+    .paper-tab,
+    .paper-menu-item,
+    .paper-status-item,
+    .paper-palette-row
+  )[data-hovered] {
+    --ui-state-layer: var(--paper-hover);
+    transition-duration: var(--paper-duration-state-in);
+  }
+
+  :where(
+    .paper-button,
+    .paper-icon-button,
+    .paper-toggle,
+    .paper-tool-toggle,
+    .paper-mode,
+    .paper-tab,
+    .paper-menu-item,
+    .paper-status-item,
+    .paper-palette-row
+  )[data-pressed] {
+    --ui-state-layer: var(--paper-pressed);
+    transition-duration: 0s;
+  }
+
+  /* Availability comes last, so it wins over hover and press. */
+  :where(
+    .paper-button,
+    .paper-icon-button,
+    .paper-toggle,
+    .paper-tool-toggle,
+    .paper-mode,
+    .paper-tab,
+    .paper-menu-item,
+    .paper-status-item,
+    .paper-palette-row
+  )[data-disabled] {
+    --ui-state-layer: transparent;
+    cursor: var(--paper-cursor-disabled);
+  }
+
+  :where(.paper-button, .paper-icon-button)[data-pending] {
+    --ui-state-layer: transparent;
+    cursor: var(--paper-cursor-pending);
+  }
+
+  /* A label that turns bold when selected keeps the bold width from the start (motion plan §3, 7):
+     a hidden bold copy shares its grid cell (StableLabel). */
+  .paper-stable-label {
+    display: inline-grid;
+  }
+
+  .paper-stable-label > * {
+    grid-area: 1 / 1;
+  }
+
+  .paper-stable-label-bold {
+    visibility: hidden;
+    font-weight: 600;
+  }
+}

@@ -220,7 +220,8 @@ describe("SelectionToolbar", () => {
     await userEvent.hover(copy);
     expect(copy.hasAttribute("data-hovered")).toBe(true);
     // A secondary button's hover lays a tint over the field fill; in the toolbar it is the tint alone.
-    expect(getComputedStyle(copy).backgroundImage).toBe("none");
+    expect(getComputedStyle(copy).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(copy).getPropertyValue("--ui-state-layer")).not.toBe("rgba(0, 0, 0, 0)");
   });
 
   it("moves when the app passes a new selection, without a scroll", async () => {

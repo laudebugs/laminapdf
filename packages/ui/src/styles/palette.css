@@ -101,7 +101,6 @@
     min-block-size: var(--paper-palette-row-height);
     padding-inline: var(--paper-space-12);
     border-radius: var(--paper-radius-4);
-    cursor: default;
     outline: none;
   }
 
@@ -127,7 +126,7 @@
   }
 
   .paper-palette-row[data-focused] {
-    background: var(--paper-accent-tint);
+    background-color: var(--paper-accent-tint);
     box-shadow: inset 0 0 0 var(--paper-border-width) var(--paper-accent);
   }
 
@@ -135,6 +134,11 @@
      aria-activedescendant, marked by the tint and inset ring above (§7.10, F02), not a second ring. */
   .paper-palette-row[data-focus-visible] {
     outline: none;
+  }
+
+  /* As in a menu: the active row's tint marks the row under the pointer; a press still shows. */
+  .paper-palette-row[data-hovered]:not([data-pressed]) {
+    --ui-state-layer: transparent;
   }
 
   .paper-palette-row[data-focused] .paper-palette-group {

@@ -12,22 +12,16 @@
     padding-inline: var(--paper-space-10);
     border: var(--paper-border-width) solid transparent;
     border-radius: var(--paper-radius-4);
-    background: transparent;
+    background-color: transparent;
     color: var(--paper-text-3);
     font: var(--paper-type-control);
     white-space: nowrap;
-    cursor: default;
-  }
-
-  .paper-toggle[data-hovered],
-  .paper-tool-toggle[data-hovered] {
-    background: var(--paper-hover);
   }
 
   .paper-toggle[data-selected],
   .paper-tool-toggle[data-selected] {
     border-color: var(--paper-accent);
-    background: var(--paper-accent-tint);
+    background-color: var(--paper-accent-tint);
     color: var(--paper-accent);
     font-weight: 600;
   }
@@ -35,7 +29,7 @@
   .paper-toggle[data-disabled],
   .paper-tool-toggle[data-disabled] {
     color: var(--paper-disabled);
-    background: transparent;
+    background-color: transparent;
   }
 
   @media (forced-colors: active) {
