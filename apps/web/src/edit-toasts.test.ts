@@ -3,7 +3,7 @@ import type { EditFailure, EditSessionState, RevertedStep } from "@laminapdf/vie
 import { describe, expect, it } from "vitest";
 import { failureText, showEditToasts, type ToastedSession } from "./edit-toasts.ts";
 
-const STEP = { id: 1, label: "Rotate page 5", pages: [4], at: 0 };
+const STEP = { id: 1, label: "Rotate page 5", pages: [4], pageIds: ["p9.0"], at: 0 };
 
 /** A session whose history and events a test drives. */
 class FakeSession implements ToastedSession {

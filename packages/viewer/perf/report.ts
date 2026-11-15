@@ -2,7 +2,7 @@
 // (docs/plans/web-app.md, "Non-functional"), the Markdown summary, and the figures the nightly
 // history keeps (`cargo xtask viewer-perf --record`). The checks inform; nothing here fails a run.
 
-import type { Counters, EditTiming, FindTiming, MemorySample, Recording } from "./types.ts";
+import type { Counters, EditTiming, FindTiming, MemorySample, PageEditKind, Recording } from "./types.ts";
 
 /** The §4 targets. */
 export const TARGETS = {
@@ -68,6 +68,11 @@ export interface BrowserResult {
     readonly lastOf?: number;
     readonly lastFirstPixelsMs?: number;
   })[];
+  /**
+   * Edits that change the page list on the 1,000-page file, the median of three each: from the
+   * call to every visible page's first new pixels, against the same budget as an edit.
+   */
+  readonly pageEdits: readonly (EditTiming & { readonly kind: PageEditKind })[];
   /**
    * The 1,000-page file stepped through in a phone's profile (a coarse pointer, so the viewer's
    * touch budgets), against those budgets; null in a browser without one (Firefox).
@@ -161,6 +166,7 @@ export function checks(result: BrowserResult): Check[] {
     ...findChecks(result),
     ...linkPreviewChecks(result),
     ...editChecks(result),
+    ...pageEditChecks(result),
     mobileMemory(result),
     {
       name: "Zoom bursts: longest frame, slowest to sharp",
@@ -234,6 +240,23 @@ function editChecks({ edit }: BrowserResult): Check[] {
   return rows;
 }
 
+/** What a page-list edit does, in words. */
+const PAGE_EDIT_NAMES: Record<PageEditKind, string> = {
+  delete: "Delete one page",
+  move: "Move 200 pages",
+  insert: "Insert 10 blank pages",
+};
+
+/** Each page-list edit to the visible pages' first new pixels, against the edit budget (E2 plan §5). */
+function pageEditChecks({ pageEdits }: BrowserResult): Check[] {
+  return pageEdits.map((e) => ({
+    name: `${PAGE_EDIT_NAMES[e.kind]}, 1,000 pages: first new pixels`,
+    target: `≤ ${ms(TARGETS.editFirstPixelsMs)}`,
+    value: ms(e.firstPixelsMs),
+    pass: e.firstPixelsMs <= TARGETS.editFirstPixelsMs,
+  }));
+}
+
 /** The phone's canvases and bitmaps at their peak, against the budgets the viewer gives that device. */
 function mobileMemory({ mobile }: BrowserResult): Check {
   const name = "Canvases and bitmaps on a phone, 1,000 pages";
@@ -296,6 +319,7 @@ export function historyEntries(result: BrowserResult): Record<string, number> {
   if (result.firstPage.coldLinkMs !== null) entries["first-page-cold-link"] = ns(result.firstPage.coldLinkMs);
   if (result.find.common.firstResultMs !== null) entries["find-first-result"] = ns(result.find.common.firstResultMs);
   for (const { pages, firstPixelsMs } of result.edit) entries[`edit-first-pixels-${pages}`] = ns(firstPixelsMs);
+  for (const { kind, firstPixelsMs } of result.pageEdits) entries[`page-edit-first-pixels-${kind}`] = ns(firstPixelsMs);
   if (result.mobile !== null) {
     entries["mobile-memory-peak-bytes"] = Math.round(
       result.mobile.peakMemory.canvases + result.mobile.peakMemory.bitmaps,

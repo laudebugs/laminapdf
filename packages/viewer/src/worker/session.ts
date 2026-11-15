@@ -1,6 +1,6 @@
 // The edit session's history (E1 plan §5, ADR 0006 §4 and §7): what the interface lists of the op
 // log the model keeps. The model holds the undo records; this holds a step per transaction, with
-// its label, pages and time, and where the document stands among them. edit.ts moves both
+// its label, pages (by ID, so a step still names its pages after later edits move them) and time, and where the document stands among them. edit.ts moves both
 // together, so the steps done are always the model's undo stack and the steps undone its redo
 // stack, up to the same depth.
 //
@@ -36,10 +36,32 @@ export function newSession(depth = HISTORY_DEPTH): Session {
 /** The absolute position the document is at. */
 const at = (session: Session) => session.dropped + session.position;
 
-/** What the interface reads of `session`. */
-export function historyOf(session: Session, diverged: boolean): EditHistory {
+/** Where each page is: page IDs in document order. */
+export type PageOrder = ReadonlyMap<string, number>;
+
+/** `ids` as a {@link PageOrder}. */
+export function orderOf(ids: readonly string[]): PageOrder {
+  return new Map(ids.map((id, index) => [id, index]));
+}
+
+/**
+ * `step` with its pages named where they are in `order`: a step keeps its pages' IDs, so one moved
+ * since is named at its new place, and one deleted since is left out. Without an order, as recorded.
+ */
+export function placed(step: EditStep, order: PageOrder | undefined): EditStep {
+  if (order === undefined) return step;
+  const pages: number[] = [];
+  for (const id of step.pageIds) {
+    const index = order.get(id);
+    if (index !== undefined) pages.push(index);
+  }
+  return pages.length === step.pages.length && pages.every((p, i) => p === step.pages[i]) ? step : { ...step, pages };
+}
+
+/** What the interface reads of `session`, its steps' pages named where they are in `order`. */
+export function historyOf(session: Session, diverged: boolean, order?: PageOrder): EditHistory {
   return {
-    steps: [...session.steps],
+    steps: session.steps.map((step) => placed(step, order)),
     position: session.position,
     dropped: session.dropped,
     unsaved: unsaved(session),
@@ -65,10 +87,22 @@ export function clearRedo(session: Session): void {
   if (session.saved !== undefined && session.saved > at(session)) session.saved = undefined;
 }
 
+/** A page a step touched: its ID, kept, and its index when the step was made. */
+export interface TouchedPage {
+  readonly id: string;
+  readonly index: number;
+}
+
 /** Records a transaction the model committed: the steps undone go, and the oldest past the depth. */
-export function record(session: Session, label: string, pages: readonly number[], time: number): EditStep {
+export function record(session: Session, label: string, pages: readonly TouchedPage[], time: number): EditStep {
   clearRedo(session);
-  const step: EditStep = { id: session.nextId++, label, pages: [...pages], at: time };
+  const step: EditStep = {
+    id: session.nextId++,
+    label,
+    pages: pages.map((page) => page.index),
+    pageIds: pages.map((page) => page.id),
+    at: time,
+  };
   session.steps.push(step);
   session.position += 1;
   while (session.steps.length > session.depth) {

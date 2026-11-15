@@ -144,4 +144,19 @@ describe("NavigationHistory", () => {
     history.jump(() => undefined);
     expect(history.getState().current).toBeUndefined();
   });
+
+  it("moves entries with their pages, and merges two that a deleted page made one", () => {
+    const view = fakeView();
+    const history = new NavigationHistory(view.host);
+    history.jump(() => view.scroll(3, 0.2));
+    history.jump(() => view.scroll(3, 0.7));
+    history.jump(() => view.scroll(6));
+    // Page 3 is deleted (its places go to the top of the next page, now 3); page 6 is now 5.
+    history.remap((old) => (old === 3 ? { page: 3, kept: false } : { page: old > 3 ? old - 1 : old, kept: true }));
+    expect(pageOf(history.getState().current)).toBe(5);
+    expect(history.back()).toBe(true);
+    expect([view.page, history.getState().back?.point.page]).toEqual([3, 0]);
+    expect(history.back()).toBe(true);
+    expect(view.page).toBe(0);
+  });
 });
