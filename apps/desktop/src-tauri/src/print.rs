@@ -3,10 +3,10 @@
 //! `laminapdf-desktop-os`. The main process never parses the PDF and never hands it to the OS:
 //! it only moves checked pixels from the engine to the printer, one band at a time.
 //!
-//! macOS and Linux print from the main thread (their toolkits' rule), so the webview waits while
-//! a page is drawn, and the OS shows its own progress window with Stop or Cancel. On Windows the
-//! dialog runs on the main thread and the pages spool on a worker thread, so the webview shows
-//! the progress ([`PROGRESS_EVENT`]) and its Cancel calls [`cancel_print`].
+//! On macOS and Windows the dialog runs on the main thread and the pages spool on a worker thread,
+//! so the webview shows the progress ([`PROGRESS_EVENT`]) and its Cancel calls [`cancel_print`].
+//! Linux prints from the main thread (GTK's rule), so the webview waits while a page is drawn, and
+//! GTK shows its own progress window with Cancel.
 
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -195,7 +195,7 @@ pub(crate) async fn print(
             cancel,
             done: 0,
         };
-        run_os_print(&window, job, source)
+        run_os_print(&window, &job, source)
     })
     .await
     .map_err(|error| DesktopError::Internal(error.to_string()))
@@ -238,25 +238,13 @@ fn on_main<T: Send + 'static>(
         .map_err(|_| DesktopError::Internal("the main thread dropped the print".into()))
 }
 
-#[cfg(target_os = "macos")]
-fn run_os_print(
-    window: &tauri::WebviewWindow,
-    job: PrintJob,
-    source: EngineSource,
-) -> Result<PrintOutcome, DesktopError> {
-    on_main(window, move || {
-        laminapdf_desktop_os::print::print(&job, Box::new(source))
-    })?
-    .map_err(print_error)
-}
-
 #[cfg(target_os = "linux")]
 fn run_os_print(
     window: &tauri::WebviewWindow,
-    job: PrintJob,
+    job: &PrintJob,
     source: EngineSource,
 ) -> Result<PrintOutcome, DesktopError> {
-    let owner = window.clone();
+    let (owner, job) = (window.clone(), job.clone());
     on_main(window, move || {
         let gtk = owner.gtk_window().ok();
         laminapdf_desktop_os::print::print(gtk.as_ref(), &job, Box::new(source))
@@ -264,24 +252,30 @@ fn run_os_print(
     .map_err(print_error)
 }
 
-#[cfg(windows)]
+/// macOS and Windows: the dialog on the main thread, then the pages spooled on this one.
+#[cfg(any(target_os = "macos", windows))]
 fn run_os_print(
     window: &tauri::WebviewWindow,
-    job: PrintJob,
+    job: &PrintJob,
     mut source: EngineSource,
 ) -> Result<PrintOutcome, DesktopError> {
     use laminapdf_desktop_os::print::{choose, spool};
-    let owner = window.hwnd()?.0 as isize;
     let count = source.pages().len();
     let asked = job.clone();
-    let Some(chosen) = on_main(window, move || choose(owner, &asked, count))?.map_err(print_error)? else {
+    #[cfg(windows)]
+    let owner = window.hwnd()?.0 as isize;
+    #[cfg(windows)]
+    let chosen = on_main(window, move || choose(owner, &asked, count))?;
+    #[cfg(target_os = "macos")]
+    let chosen = on_main(window, move || choose(&asked, count))?;
+    let Some(chosen) = chosen.map_err(print_error)? else {
         return Ok(PrintOutcome::Cancelled);
     };
-    spool(chosen, &job, &mut source).map_err(print_error)
+    spool(chosen, job, &mut source).map_err(print_error)
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "linux", windows)))]
-fn run_os_print(_: &tauri::WebviewWindow, _: PrintJob, _: EngineSource) -> Result<PrintOutcome, DesktopError> {
+fn run_os_print(_: &tauri::WebviewWindow, _: &PrintJob, _: EngineSource) -> Result<PrintOutcome, DesktopError> {
     Err(print_error(PrintError::Refused(
         "printing isn't available on this OS".into(),
     )))

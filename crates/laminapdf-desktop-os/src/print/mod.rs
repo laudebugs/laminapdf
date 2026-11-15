@@ -3,16 +3,17 @@
 //! or margins. This crate never parses a PDF: the bands come from a [`PrintSource`], which the
 //! app fills from the sandboxed engine.
 //!
-//! - **macOS:** `NSPrintOperation` over a view that draws each page's bands; `AppKit`'s print
-//!   panel, then its progress panel (whose Stop cancels).
+//! - **macOS:** `AppKit`'s print panel, then a Core Printing session that gives each page its own
+//!   page format and draws its bands with Core Graphics. The print system puts every page on the
+//!   job's paper, in the page's own orientation (issue #626).
 //! - **Windows:** `PrintDlgExW`, then GDI on the printer's device context: `ResetDCW` sets each
 //!   page's paper and orientation, `StretchDIBits` draws each band.
 //! - **Linux:** `GtkPrintOperation`: each page's paper set in `request-page-setup`, its bands
 //!   drawn with cairo in `draw-page`.
 //!
-//! macOS and Linux must print from the main thread (`AppKit`'s and GTK's rule), and draw from it
-//! too, so their source is asked for bands on the main thread. On Windows the dialog runs on the
-//! main thread ([`choose`]) and the spooling anywhere ([`spool`]).
+//! On macOS and Windows the dialog runs on the main thread (`choose`) and the spooling on any
+//! thread (`spool`). GTK prints only from the main thread, and draws from it too, so on Linux the
+//! source is asked for bands on the main thread (`print`).
 
 use std::path::PathBuf;
 
@@ -26,7 +27,7 @@ mod windows;
 #[cfg(target_os = "linux")]
 pub use linux::{Owner, print};
 #[cfg(target_os = "macos")]
-pub use macos::print;
+pub use macos::{Chosen, choose, spool};
 #[cfg(windows)]
 pub use windows::{Chosen, choose, spool};
 

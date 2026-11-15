@@ -21,19 +21,17 @@ thiserror = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = { workspace = true }
-# Printing (D4c): the print operation and info, a view to draw pages from, and bitmap images.
-objc2-app-kit = { workspace = true, features = [
-    "NSBitmapImageRep",
-    "NSGraphics",
-    "NSImage",
-    "NSImageRep",
-    "NSPrintInfo",
-    "NSPrintOperation",
-    "NSResponder",
-    "NSView",
-    "objc2-core-foundation",
+# Printing (D4c): the print panel and its info, and Core Graphics images over Core Foundation data.
+objc2-app-kit = { workspace = true, features = ["NSApplication", "NSPrintInfo", "NSPrintPanel", "NSResponder", "NSWindow"] }
+objc2-core-foundation = { version = "=0.3.2", default-features = false, features = ["std", "CFData", "CFString", "CFURL"] }
+objc2-core-graphics = { version = "=0.3.2", default-features = false, features = [
+    "std",
+    "CGColorSpace",
+    "CGContext",
+    "CGDataProvider",
+    "CGImage",
 ] }
-objc2-foundation = { workspace = true, features = ["NSDictionary", "NSGeometry", "NSRange"] }
+objc2-foundation = { workspace = true, features = ["NSGeometry"] }
 
 [target.'cfg(windows)'.dependencies]
 # Printing (D4c): the print dialog, its global memory, and GDI's printer device context.
@@ -46,6 +44,16 @@ windows = { workspace = true, features = [
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = { workspace = true }
+
+[dev-dependencies]
+# The print test reads its printed PDF back (tests only: the main process links no parser).
+laminapdf = { workspace = true }
+
+# Prints through the OS's real print API, which AppKit allows only on the main thread: its own
+# main(), not libtest's worker threads.
+[[test]]
+name = "print_to_file"
+harness = false
 
 [lints]
 workspace = true

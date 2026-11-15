@@ -32,6 +32,29 @@ async function invoke(command: string, args: object = {}): Promise<unknown> {
   );
 }
 
+/** A page's size in points, as `page_info` and `e2e_print_to_file` give it. */
+export interface PageSize {
+  readonly width: number;
+  readonly height: number;
+}
+
+/** The shown document's pages, as the engine measures them. */
+export async function pageSizes(): Promise<PageSize[]> {
+  const doc = await browser.execute(() => globalThis.__laminaE2e?.doc());
+  const pages = (await invoke("page_info", { doc })) as PageSize[];
+  return pages.map(({ width, height }) => ({ width, height }));
+}
+
+/**
+ * Prints the shown document to the PDF `path` through the native print path, with no dialog, and
+ * returns the printed file's pages as the engine reads them back.
+ */
+export async function printToFile(path: string): Promise<PageSize[]> {
+  const doc = await browser.execute(() => globalThis.__laminaE2e?.doc());
+  const sizes = (await invoke("e2e_print_to_file", { doc, path })) as [number, number][];
+  return sizes.map(([width, height]) => ({ width, height }));
+}
+
 /**
  * Opens `path` as a user does: Choose a file on the home screen, else the open shortcut (⌘O or
  * Ctrl+O). The e2e build opens the queued path instead of showing the dialog.

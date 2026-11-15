@@ -42,6 +42,7 @@ import { MissingRestoredTab, useFileChanges } from "./file-changes.tsx";
 import { EchoRegistry } from "./menus/echo-registry.ts";
 import { useNativeMenus } from "./menus/use-native-menus.tsx";
 import { NotYetSupportedError } from "./platform/desktop.ts";
+import { usePrint } from "./print.tsx";
 import { type DesktopRecent, useDesktopRecent } from "./recent.tsx";
 import { type DesktopSettings, useDesktopSettings } from "./settings.tsx";
 import { NO_TABS, useTabStrip } from "./tabs/use-tabs.tsx";
@@ -86,6 +87,14 @@ const LOST_TEXT: Readonly<Record<Lost, { title: string; body: string }>> = {
   },
 };
 
+/** A part of the window's command handlers. */
+type CommandActions = NonNullable<CommandContext["actions"]>;
+
+/** The window's command handlers in one object, the same object while each part is. */
+function useMergedActions(home: CommandActions, tabs: CommandActions, print: CommandActions): CommandActions {
+  return useMemo(() => ({ ...home, ...tabs, ...print }), [home, tabs, print]);
+}
+
 /**
  * The reader's window: top bar, home screen, the document's view, and the notices around them.
  * @param props - See {@link AppProps}.
@@ -112,7 +121,8 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const fileProblem = useFileChanges(engine, reader, toasts, tabs);
   const { strip, actions: tabActions } = useTabStrip(engine?.shell, tabs, reader, toasts, keys);
   const { settings, recent, actions: homeActions } = useHome(engine, platform, reader, state, toasts);
-  const actions = useMemo(() => ({ ...homeActions, ...tabActions }), [homeActions, tabActions]);
+  const print = usePrint(engine, toasts);
+  const actions = useMergedActions(homeActions, tabActions, print.actions);
   const open = state.phase === "open";
   const shows = useShownParts(state.phase, tabs);
   // The page input, zoom and the viewer's commands work while a document is on screen.
@@ -175,6 +185,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
       </ReaderShell>
       {dragging === undefined ? null : <DropOverlay>{dropText(dragging)}</DropOverlay>}
       <PasswordDialog reader={reader} />
+      {print.dialog}
       {settings.dialog}
       {palette}
       <ToastRegion queue={toasts} aria-label="Notifications" />
