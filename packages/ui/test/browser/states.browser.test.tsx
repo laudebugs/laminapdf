@@ -164,11 +164,12 @@ describe("hover and press", () => {
 });
 
 describe("contrast of the state fills", () => {
-  const accents = ["teal", "blue", "plum", "green"] as const;
+  // One test per theme and accent, so each stays well inside its time even when a whole suite
+  // runs at once in Firefox (16 hovers and presses in one test ran out there).
   for (const theme of ["light", "dark"] as const) {
-    it(`keeps every label at 4.5:1 or more when hovered and pressed, in the ${theme} theme, every accent`, async () => {
-      instant();
-      for (const accent of accents) {
+    for (const accent of ["teal", "blue", "plum", "green"] as const) {
+      it(`keeps every label at 4.5:1 or more when hovered and pressed: ${theme} theme, ${accent} accent`, async () => {
+        instant();
         const host = renderIn(
           <>
             <Button variant="primary">Save</Button>
@@ -180,16 +181,14 @@ describe("contrast of the state fills", () => {
         );
         host.dataset.accent = accent;
         for (const button of host.querySelectorAll("button")) {
-          const label = `${accent} ${button.innerText}`;
           await userEvent.hover(button);
-          expect(contrast(button), `${label} hovered`).toBeGreaterThanOrEqual(4.5);
+          expect(contrast(button), `${button.innerText} hovered`).toBeGreaterThanOrEqual(4.5);
           const lift = await pressDown(button);
-          expect(contrast(button), `${label} pressed`).toBeGreaterThanOrEqual(4.5);
+          expect(contrast(button), `${button.innerText} pressed`).toBeGreaterThanOrEqual(4.5);
           await lift();
-          await userEvent.unhover(button);
         }
-      }
-    });
+      });
+    }
   }
 });
 
