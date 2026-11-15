@@ -525,8 +525,11 @@ export class Viewer {
     this.#layout = undefined;
     this.#root.scrollTop = 0;
     this.#root.scrollLeft = 0;
-    // A hidden view keeps its old scroll: the new document starts at its top once it shows.
+    // A hidden view keeps its old scroll: the new document starts at its top once it shows. The
+    // last document's place goes, so a view hidden before its first frame doesn't return there.
     this.#pending = this.#sized() ? undefined : "top";
+    this.#kept = undefined;
+    this.#lastPlace = undefined;
     this.#relayout(this.#viewport());
     this.#schedule();
   }

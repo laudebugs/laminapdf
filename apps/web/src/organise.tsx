@@ -148,6 +148,7 @@ export class OrganiseController implements ExternalStore<OrganiseState> {
   /** Turns the selection a quarter (`delta` 90 clockwise, -90 the other way). */
   rotate(delta: 90 | -90): void {
     const indices = this.selectedIndices();
+    if (indices.length === 0) return;
     const op = { op: "rotatePages", args: { pages: this.#ids(indices), angle: delta, mode: "turn" } };
     this.#guarded([op], "rotate", indices, () =>
       this.#apply([op], stepLabel("rotate", this.#names(indices), indices.length)),
@@ -188,7 +189,9 @@ export class OrganiseController implements ExternalStore<OrganiseState> {
   /** Reverses the order of the selection, or of every page when nothing is selected. */
   reverse(): void {
     const chosen = this.selectedIndices();
-    const indices = chosen.length > 1 ? chosen : this.pages().map((_, i) => i);
+    // One page reversed stays where it is.
+    if (chosen.length === 1) return;
+    const indices = chosen.length > 0 ? chosen : this.pages().map((_, i) => i);
     const op = { op: "reversePages", args: { pages: this.#ids(indices) } };
     this.#guarded([op], undefined, indices, () =>
       this.#apply([op], stepLabel("reverse", this.#names(indices), indices.length)),

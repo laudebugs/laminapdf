@@ -291,6 +291,7 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 - The certification banner reads “Changing pages would invalidate the certification. Nothing has been changed.” with Apply anyway… and a close button; Apply anyway… applies the change as one undo step without a second confirmation, and Save a copy and Details wait for E2i.
 - The delete toast counts what pointed at the deleted pages as “links or bookmarks” (bookmarks, links, named destinations and the opening view together).
 - Deleting every page is refused with a toast. Tiles are white until their picture arrives, with no text-line placeholder.
+- Toolbar actions that need a selection stay enabled without one and do nothing then. With several pages selected, the signed-page question names the first of them: a violation names the signature's field, not its page.
 
 **Artboards:** `O06-organise.dc.html` (drag with insertion bar), `O06-organise-menu.dc.html` (page context menu), `O06-move-dialog.dc.html` (Move to page…, 440 px), `O06-delete-signed.dc.html` (approval signature, 560 px).
 
