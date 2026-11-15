@@ -11,6 +11,7 @@ mod appearance;
 mod conformance;
 mod geom;
 mod redraw;
+mod reply;
 mod spec;
 mod tags;
 
@@ -20,6 +21,7 @@ pub use appearance::{Appearance, AppearanceRequest, Appearances, IntentSpace};
 pub(crate) use conformance::warnings as conformance_warnings;
 pub(crate) use geom::quad_points;
 pub use geom::{AnnotColor, Opacity};
+pub use reply::{AddReply, ReviewState, SetReviewState};
 pub use spec::{
     AnnotSpec, AnnotSpecPatch, Caret, CaretPatch, CaretSymbol, MarkupKind, Note, NoteIcon, NotePatch, TextMarkup,
     TextMarkupPatch,
@@ -365,6 +367,43 @@ impl DeleteAnnot {
             ..Effect::default()
         })
     }
+}
+
+/// The ops that delete `ids` in one transaction, one [`DeleteAnnot`] each, in the order given,
+/// after leaving out every ID that another's deletion already removes (its Popup, a reply to it,
+/// a member of its group) and every ID given twice. Deleting a comment together with its reply
+/// is then one step, and the second delete never fails.
+///
+/// # Errors
+/// `unknown-annotation` for an ID no page lists; `annotation-not-editable` for a widget or a
+/// direct dictionary; reading errors.
+///
+/// Added in 0.3.0.
+pub fn delete_annotations(doc: &laminapdf_model::Document, ids: &[AnnotId]) -> Result<Vec<crate::Op>> {
+    let all = every_annotation(doc)?;
+    let mut cascades: Vec<(&AnnotId, Vec<AnnotId>)> = Vec::new();
+    for id in ids {
+        if cascades.iter().all(|(seen, _)| *seen != id) {
+            let found = Found::locate(&all, id)?;
+            cascades.push((id, doomed(&found.annot, &all)));
+        }
+    }
+    let takes = |(by, cascade): &(&AnnotId, Vec<AnnotId>), id: &AnnotId| *by != id && cascade.contains(id);
+    let mut kept: Vec<&(&AnnotId, Vec<AnnotId>)> = Vec::new();
+    for entry in &cascades {
+        let id = entry.0;
+        // Another selection takes this one but not the other way round (its parent, say)…
+        let below = cascades.iter().any(|other| takes(other, id) && !takes(entry, other.0));
+        // …or one kept already takes it (a member of the same group or ring).
+        if below || kept.iter().any(|k| takes(k, id)) {
+            continue;
+        }
+        kept.push(entry);
+    }
+    Ok(kept
+        .into_iter()
+        .map(|(id, _)| DeleteAnnot::new((*id).clone()).into())
+        .collect())
 }
 
 /// The annotation an op names, with its page and object.

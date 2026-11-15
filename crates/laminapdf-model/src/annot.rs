@@ -174,6 +174,34 @@ impl AnnotSubtype {
         }
     }
 
+    /// Whether it is a markup annotation (ISO 32000-2 Table 171's markup column, §12.5.6.2): the
+    /// kind that can be a comment, answer one or have a review state.
+    ///
+    /// Added in 0.3.0.
+    #[must_use]
+    pub const fn is_markup(&self) -> bool {
+        matches!(
+            self,
+            Self::Text
+                | Self::FreeText
+                | Self::Line
+                | Self::Square
+                | Self::Circle
+                | Self::Polygon
+                | Self::PolyLine
+                | Self::Highlight
+                | Self::Underline
+                | Self::Squiggly
+                | Self::StrikeOut
+                | Self::Caret
+                | Self::Stamp
+                | Self::Ink
+                | Self::FileAttachment
+                | Self::Sound
+                | Self::Redact
+        )
+    }
+
     /// The subtype's name as written in `/Subtype`.
     ///
     /// Added in 0.3.0.

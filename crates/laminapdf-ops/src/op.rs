@@ -7,7 +7,7 @@
 use laminapdf_model::{OutlineItemId, PageId};
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::annot::{AddAnnot, Appearances, DeleteAnnot, UpdateAnnot};
+use crate::annot::{AddAnnot, AddReply, Appearances, DeleteAnnot, SetReviewState, UpdateAnnot};
 use crate::class::ModificationClass;
 use crate::error::{Error, Result};
 use crate::info::SetInfo;
@@ -128,6 +128,10 @@ pub enum Op {
     UpdateAnnot(UpdateAnnot),
     /// Delete an annotation with its Popup, replies and group.
     DeleteAnnot(DeleteAnnot),
+    /// Reply to a comment.
+    AddReply(AddReply),
+    /// Set a comment's review status.
+    SetReviewState(SetReviewState),
     /// Add a link on an area or on text.
     AddLink(AddLink),
     /// Change a link's area, quads, target or description.
@@ -181,6 +185,8 @@ impl Op {
             | Self::DeleteNamedDestination(_) => ModificationClass::Document,
             Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_)
+            | Self::AddReply(_)
+            | Self::SetReviewState(_)
             | Self::AddAnnot(_)
             | Self::AddLink(_)
             | Self::UpdateLink(_)
@@ -230,6 +236,8 @@ impl Op {
             | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_)
+            | Self::AddReply(_)
+            | Self::SetReviewState(_)
             | Self::AddAnnot(_)
             | Self::AddLink(_)
             | Self::UpdateLink(_)
@@ -273,6 +281,8 @@ impl Op {
             | Self::SetPageLabels(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_)
+            | Self::AddReply(_)
+            | Self::SetReviewState(_)
             | Self::AddAnnot(_)
             | Self::AddLink(_)
             | Self::UpdateLink(_)
@@ -342,6 +352,8 @@ impl Op {
             Self::AddAnnot(op) => op.apply_to(doc, appearances),
             Self::UpdateAnnot(op) => op.apply_to(doc, appearances),
             Self::DeleteAnnot(op) => op.apply_to(doc),
+            Self::AddReply(op) => op.apply_to(doc),
+            Self::SetReviewState(op) => op.apply_to(doc),
             Self::AddLink(op) => op.apply_to(doc),
             Self::UpdateLink(op) => op.apply_to(doc),
             Self::DeleteLink(op) => op.apply_to(doc),
@@ -464,6 +476,8 @@ op_from!(
     SetOrientation,
     UpdateAnnot,
     DeleteAnnot,
+    AddReply,
+    SetReviewState,
     AddLink,
     UpdateLink,
     DeleteLink

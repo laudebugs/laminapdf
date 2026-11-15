@@ -12,7 +12,7 @@ use std::collections::BTreeMap;
 
 use laminapdf_cos::{Dict, Object, Result};
 
-use crate::annot::{Annot, AnnotSubtype, ReplyType};
+use crate::annot::{Annot, ReplyType};
 use crate::date::PdfDate;
 use crate::document::Document;
 use crate::id::{AnnotId, PageId};
@@ -123,31 +123,6 @@ fn date(a: &Annot) -> Option<PdfDate> {
         .and_then(|d| d.parse().ok())
 }
 
-/// Whether the subtype is a markup annotation (Table 171's markup column), the kind that can be
-/// a comment or answer one.
-const fn is_markup(subtype: &AnnotSubtype) -> bool {
-    matches!(
-        subtype,
-        AnnotSubtype::Text
-            | AnnotSubtype::FreeText
-            | AnnotSubtype::Line
-            | AnnotSubtype::Square
-            | AnnotSubtype::Circle
-            | AnnotSubtype::Polygon
-            | AnnotSubtype::PolyLine
-            | AnnotSubtype::Highlight
-            | AnnotSubtype::Underline
-            | AnnotSubtype::Squiggly
-            | AnnotSubtype::StrikeOut
-            | AnnotSubtype::Caret
-            | AnnotSubtype::Stamp
-            | AnnotSubtype::Ink
-            | AnnotSubtype::FileAttachment
-            | AnnotSubtype::Sound
-            | AnnotSubtype::Redact
-    )
-}
-
 /// What an annotation is to its thread.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Role {
@@ -182,7 +157,7 @@ impl Document {
         let mut all: Vec<(usize, PageId, Annot)> = Vec::new();
         for (index, page) in pages.iter().enumerate() {
             for annot in self.annotations(&page)? {
-                if is_markup(&annot.subtype) {
+                if annot.subtype.is_markup() {
                     all.push((index, page.id().clone(), annot));
                 }
             }
