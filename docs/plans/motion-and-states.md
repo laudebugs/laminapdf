@@ -1,6 +1,6 @@
 # Plan: motion and interaction states
 
-- **Status:** Draft (the owner chose the cursor, hover motion, overlay motion and reduced-motion rules on 2026-11-14, §3)
+- **Status:** Done (U7a–U7i, 2026-11-15; the owner chose the cursor, hover motion, overlay motion and reduced-motion rules on 2026-11-14, §3). The closing pass's findings are U7j–U7l, in [§7](#7-todos)
 - **Date:** 2026-11-14
 - **Asked for by:** the project owner (2026-11-14): make the apps "delightful to use"; "there are buttons that don't have the right cursor when hovering"; "handle all the different states of buttons/links etc and handle the animations to/from hover states correctly".
 - **Changes:** the Paper design language ([§7.0 states](../design/paper/design-language.md), the reduced-motion checklist), `@laminapdf/tokens`' `motion` group, every interactive component in `@laminapdf/ui`, the web reader, the desktop app, the docs site and the website
@@ -137,7 +137,10 @@ Every interactive element styles the states it has, written in this order inside
 | [U7e](../todos/done/U7e-sites-states-and-motion.md) | The docs site, the website and the site kit: states, cursors, links, touch guards, a reduced-motion layer, the runner's busy state, one focus ring | U7a |
 | [U7f](../todos/done/U7f-desktop-chrome-motion.md) | The desktop chrome: cursors and their check, tab motion, the strip's reserved space, unselectable labels, Settings › Reduce motion and the platform's reading of it, the webview giveaways | U7b, U7c |
 | [U7g](../todos/done/U7g-pointer-tab-drag.md) | Tab reordering and dragging out by pointer events, tested on each OS | None |
-| [U7h](../todos/ongoing/U7h-delight-pass.md) | The round's close: a view transition for the Reader toggle, copy and undo feedback, a by-hand pass over every screen of the apps and both sites against this plan | U7b, U7c, U7d, U7e, U7f, U7g, U7i |
+| [U7h](../todos/done/U7h-delight-pass.md) | The round's close: a view transition for the Reader toggle, copy and undo feedback, a by-hand pass over every screen of the web reader and both sites against this plan | U7b, U7c, U7d, U7e, U7f, U7g, U7i |
+| [U7j](../todos/ready/U7j-reader-pass-fixes.md) | What the pass found in the reader: phone sheets that don't slide or leave, page tiles outside the state model, shifts in one frame | U7h |
+| [U7k](../todos/ready/U7k-sites-pass-fixes.md) | What the pass found on the sites: overlays that appear and vanish at once, Copy as Markdown moving under the pointer, links and options outside the state model | U7h |
+| [U7l](../todos/ready/U7l-desktop-pass.md) | The pass over the desktop app and tab dragging, by hand on macOS, Windows and Linux | U7h, U7f |
 
 U7g fixes a fault that needs no new tokens, so it can start at once; so can U7a.
 

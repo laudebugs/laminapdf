@@ -102,7 +102,8 @@ const EN = {
   "appearance.motion": "Motion",
   "appearance.motion.system": "Match system",
   "appearance.motion.reduce": "Reduce motion",
-  "appearance.motion.help": "Reduce motion turns off smooth scrolling and animations.",
+  "appearance.motion.help":
+    "Reduce motion stops movement: menus and panels fade in place instead of growing or sliding, and scrolling jumps instead of gliding.",
   "appearance.singleKeys": "Single-key shortcuts",
   "appearance.summary.shortcutsOn": "Shortcuts on",
   "appearance.summary.shortcutsOff": "Shortcuts off",

@@ -352,6 +352,11 @@ mobile-starlight-toc :is(summary, a):focus-visible {
 .sl-link-button.primary {
   --site-hover: transparent;
 }
+/* A selected tab shows by its colour and underline, not by weight: Starlight's bold label is
+   wider, and selection never moves layout (motion plan §3, 7). */
+.tab > [role="tab"][aria-selected="true"] {
+  font-weight: inherit;
+}
 .sl-link-button.primary {
   --site-pressed: transparent;
 }

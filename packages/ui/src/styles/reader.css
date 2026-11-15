@@ -618,6 +618,7 @@
 
   .paper-network-disclosure {
     justify-self: start;
+    cursor: var(--paper-cursor-action);
     min-block-size: var(--ui-target);
     padding: 0;
     border: 0;

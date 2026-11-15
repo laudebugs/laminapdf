@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
-| Depends on | [U7h](../done/U7h-delight-pass.md), [U7f](../done/U7f-desktop-chrome-motion.md) |
+| Depends on | [U7f](../done/U7f-desktop-chrome-motion.md), [U7h](../done/U7h-delight-pass.md) |
 | ADRs | Follows [0008](../../decisions/0008-desktop-shell.md) (the desktop shell) |
 | Branch | `test/u7l-desktop-pass` |
 | PR title | `test(desktop): a pass over the desktop app's states and motion on each OS` |
