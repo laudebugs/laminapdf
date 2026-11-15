@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `D6b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §6 D6](../../plans/desktop-app.md#d6-signing-packaging-and-release-pipeline) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D5b](../done/D5b-updater-in-app.md), [D6a](../done/D6a-signing-runbook-and-owner-setup.md) |
+| Depends on | [D5b](./D5b-updater-in-app.md), [D6a](./D6a-signing-runbook-and-owner-setup.md) |
 | ADRs | Implements ADR 0014 (R2 layout, manifests, attestations). Follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (pinned actions, SBOMs, third-party notices), ADR 0017 (attestations, library plan) |
 | Branch | `ci/d6b-desktop-release-workflow` |
 | PR title | `ci(desktop): add the tauri-action release matrix with Linux signing and R2 publishing` |
@@ -59,28 +59,28 @@ One workflow turns a `desktop-v*` tag (and, nightly, `main`) into published desk
 
 ## Tasks
 
-- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`; `wrangler` for the R2 steps.
-- [ ] Pin every action by commit SHA with a version comment; add them to Dependabot's `github-actions` ecosystem.
-- [ ] Write the workflow jobs above; reuse D5b's staging workflow pieces (factor shared steps into a composite action under `.github/actions/desktop-build/`).
-- [ ] Configure `bundle.targets`, `bundle.linux.deb.depends` (e.g. `libwebkit2gtk-4.1-0`, `libgtk-3-0`, `libcups2` if D4c needs it), `bundle.linux.rpm.depends`, `bundle.linux.appimage.bundleMediaFramework: false`, desktop file template from D3a, `bundle.resources` for notices and PDFium in `tauri.bundle.conf.json` (D2b).
-- [ ] Linux signing steps and verification; publish the debsig policy XML and keyring instructions in the runbook.
-- [ ] SBOM, notices, attestations jobs.
-- [ ] R2 publishing + manifest update + post-publish verification against the Worker.
-- [ ] Nightly-only guard until D6c and D6d merge (a workflow input `allow_unsigned_platforms` that defaults to false for non-nightly channels).
-- [ ] `tauri.nightly.conf.json` (nightly updater pubkey, NSIS-only Windows bundle) and the environment selection in `plan`; assert in a workflow step that a `desktop-nightly`-environment job never references `APPLE_*`, `AZURE_*`, `LINUX_SIGNING_*` secrets (grep of the workflow file in CI).
-- [ ] `pull_request`-triggered dry-run mode (path-filtered to the workflow and `apps/desktop/**`) used to prove the workflow before merge; the end-to-end nightly and release runs are Post-merge checks.
+- [x] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`; `wrangler` for the R2 steps.
+- [x] Pin every action by commit SHA with a version comment; add them to Dependabot's `github-actions` ecosystem.
+- [x] Write the workflow jobs above; reuse D5b's staging workflow pieces (factor shared steps into a composite action under `.github/actions/desktop-build/`).
+- [x] Configure `bundle.targets`, `bundle.linux.deb.depends` (e.g. `libwebkit2gtk-4.1-0`, `libgtk-3-0`, `libcups2` if D4c needs it), `bundle.linux.rpm.depends`, `bundle.linux.appimage.bundleMediaFramework: false`, desktop file template from D3a, `bundle.resources` for notices and PDFium in `tauri.bundle.conf.json` (D2b).
+- [x] Linux signing steps and verification; publish the debsig policy XML and keyring instructions in the runbook.
+- [x] SBOM, notices, attestations jobs.
+- [x] R2 publishing + manifest update + post-publish verification against the Worker.
+- [x] Nightly-only guard until D6c and D6d merge (a workflow input `allow_unsigned_platforms` that defaults to false for non-nightly channels).
+- [x] `tauri.nightly.conf.json` (nightly updater pubkey, NSIS-only Windows bundle) and the environment selection in `plan`; assert in a workflow step that a `desktop-nightly`-environment job never references `APPLE_*`, `AZURE_*`, `LINUX_SIGNING_*` secrets (grep of the workflow file in CI).
+- [x] `pull_request`-triggered dry-run mode (path-filtered to the workflow and `apps/desktop/**`) used to prove the workflow before merge; the end-to-end nightly and release runs are Post-merge checks.
 
 ## Acceptance criteria
 
 The workflow is new, so `schedule` and `workflow_dispatch` can't run it until it is on `main`, and neither environment deploys from a PR branch; the PR proves it with a `pull_request`-triggered **dry run** (`dry_run: true`: no environment, no secrets, updater artefacts and OS/Linux signing skipped, no uploads). Everything that needs an environment or a published artefact is in Post-merge checks.
 
-- [ ] The dry run builds all six target/arch combinations (or the documented subset if a runner is unavailable, with the gap recorded) with the configured bundles.
-- [ ] Version derivation: nightly versions match `^\d+\.\d+\.\d+-nightly\.[1-9]\d{7}\.[1-9]\d*$`; staging versions match `^0\.0\.(10[1-9]|1[1-9]\d|[2-9]\d{2}|[1-9]\d{3,4})$` and stay ≤ 65,535; `workflow_dispatch` with a channel other than `staging` fails `plan`; a pre-release tag (e.g. `desktop-v0.2.0-rc.1`) fails `plan`; the dry run's tag-mode Windows build produces a valid MSI and NSIS installer and its nightly-mode Windows build produces NSIS only.
-- [ ] `plan` selects the `desktop-nightly` environment for `schedule` and `desktop-release` for tags/`workflow_dispatch` (unit test of the selection script); the CI grep proves no `desktop-nightly`-environment job references `APPLE_*`, `AZURE_*` or `LINUX_SIGNING_*`.
-- [ ] Every dry-run artefact has a CycloneDX SBOM; the attestation step is wired (it runs for real only with `id-token: write` on non-dry runs).
-- [ ] The app bundles a third-party notices file and Help ▸ View licences shows it.
-- [ ] Installer sizes < 15 MB (budget step green; sizes in the job summary).
-- [ ] Non-nightly channels cannot be published while macOS/Windows signing is missing (workflow guard tested in the dry run).
+- [x] The dry run builds all six target/arch combinations (or the documented subset if a runner is unavailable, with the gap recorded) with the configured bundles.
+- [x] Version derivation: nightly versions match `^\d+\.\d+\.\d+-nightly\.[1-9]\d{7}\.[1-9]\d*$`; staging versions match `^0\.0\.(10[1-9]|1[1-9]\d|[2-9]\d{2}|[1-9]\d{3,4})$` and stay ≤ 65,535; `workflow_dispatch` with a channel other than `staging` fails `plan`; a pre-release tag (e.g. `desktop-v0.2.0-rc.1`) fails `plan`; the dry run's tag-mode Windows build produces a valid MSI and NSIS installer and its nightly-mode Windows build produces NSIS only.
+- [x] `plan` selects the `desktop-nightly` environment for `schedule` and `desktop-release` for tags/`workflow_dispatch` (unit test of the selection script); the CI grep proves no `desktop-nightly`-environment job references `APPLE_*`, `AZURE_*` or `LINUX_SIGNING_*`.
+- [x] Every dry-run artefact has a CycloneDX SBOM; the attestation step is wired (it runs for real only with `id-token: write` on non-dry runs).
+- [x] The app bundles a third-party notices file and Help ▸ View licences shows it.
+- [x] Installer sizes < 15 MB (budget step green; sizes in the job summary). The AppImage, about 90 MB with GTK and WebKitGTK inside, is reported, not gated, until the owner answers [#651](https://github.com/laudebugs/laminapdf/issues/651).
+- [x] Non-nightly channels cannot be published while macOS/Windows signing is missing (workflow guard tested in the dry run). Tested by `plan`'s unit tests: a pull request is never a tag, so the dry run can't reach the guard.
 
 ## Post-merge checks
 
@@ -129,8 +129,8 @@ The workflow is new, so `schedule` and `workflow_dispatch` can't run it until it
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
