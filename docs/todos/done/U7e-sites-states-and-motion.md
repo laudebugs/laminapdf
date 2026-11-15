@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `U7e` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
-| Depends on | [U7a](../done/U7a-motion-and-state-tokens.md) |
+| Depends on | [U7a](./U7a-motion-and-state-tokens.md) |
 | ADRs | Follows [0024](../../decisions/0024-app-shell-ux.md) (tokens in layers), [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) §4 (headers, CSP) |
 | Branch | `feat/u7e-sites-states-and-motion` |
 | PR title | `feat(sites): pressed, disabled and reduced-motion states on both sites` |
@@ -79,9 +79,9 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] Every change people see tried in the built app, as a person uses it (CLAUDE.md, [bug triage §7](../../guidelines/bug-triage.md#7-prove-the-fix))
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Every change people see tried in the built app, as a person uses it (CLAUDE.md, [bug triage §7](../../guidelines/bug-triage.md#7-prove-the-fix))
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
