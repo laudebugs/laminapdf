@@ -1,4 +1,4 @@
-//! A contents page made from the bookmarks (E3l), in three calls, so a document open in the base
+//! A contents page made from the bookmarks, in three calls, so a document open in the base
 //! or extract module can have one: `WasmDocument.contentsListing` (every module) reads what it
 //! lists, `layOutContentsPage` (text module, which has the fonts) lays it out as a document of its
 //! own, and `WasmDocument.insertContentsPage` (every module) inserts it as one undo step. Fonts

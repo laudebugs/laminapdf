@@ -5,6 +5,7 @@
 // runtime produces the same bytes.
 import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@laminapdf/sdk";
 import { addLinks } from "../../examples/add-links.js";
+import { addContents } from "../../examples/create-contents-page.js";
 import { cropPages } from "../../examples/crop-pages.js";
 import { duplicatePages } from "../../examples/duplicate-pages.js";
 import { editBookmarks } from "../../examples/edit-bookmarks.js";
@@ -34,7 +35,6 @@ import { pdfUaReport } from "../../examples/pdf-ua-report.js";
 import { report } from "../../examples/report.js";
 import { resizePages } from "../../examples/resize-pages.js";
 import { reviewComments } from "../../examples/review-comments.js";
-import { addContents } from "../../examples/create-contents-page.js";
 import { openOn } from "../../examples/set-initial-view.js";
 import { splitDocument } from "../../examples/split-document.js";
 import { exampleOptions, HELLO_OPTIONS } from "./hello-options.js";

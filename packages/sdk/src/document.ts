@@ -5,9 +5,9 @@
 import type { WasmDocument, WasmPage, WasmSaveJob } from "@laminapdf/wasm/base";
 import type { WasmDocument as ExtractWasmDocument, PageTextJs, WasmExtractJob } from "@laminapdf/wasm/extract";
 import { isLaminaPdfError, type LaminaPdfWarning, packageError } from "./errors.js";
-import type { Font } from "./font.js";
 import { type ExtractFormat, type ExtractOptions, type ExtractResult, parseExtract } from "./extract.js";
 import { ExtractJob, type ExtractJobOptions } from "./extract-job.js";
+import type { Font } from "./font.js";
 import { type BaseGlue, extractsText, readingModule, textModule } from "./init.js";
 import { Handle, watch } from "./internal/handle.js";
 import type { Instance } from "./internal/instance.js";

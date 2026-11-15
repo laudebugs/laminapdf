@@ -5835,7 +5835,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-`Document::create_contents_page` was asked for a contents page, but none of the document's bookmarks goes to one of its pages.
+`Document::create_contents_page` or `contents_listing` was asked for a contents page, but none of the document's bookmarks goes to one of its pages.
 
 ## Why
 
@@ -5849,7 +5849,7 @@ Add bookmarks that go to the document's pages, then create the contents page.
 
 ```rust
 let mut doc = Document::open_bytes(bytes, OpenOptions::default())?; // a file with no bookmarks
-doc.create_contents_page(&ContentsOptions::new())?; // no-bookmarks
+doc.create_contents_page(&ContentsOptions::new(), &ContentsFonts::new())?; // no-bookmarks
 ```
 
 ## For contributors
