@@ -13,6 +13,7 @@ import {
   CommandsProvider,
   PlatformProvider,
   ReaderController,
+  ReaderShell,
   ReaderTopBar,
   registerReaderCommands,
 } from "../../src/index.ts";
@@ -173,6 +174,46 @@ describe("the phone's top bar", () => {
     expect(document.querySelector('[aria-label="Close Q3-board-report.pdf"]')).toBeNull();
     await userEvent.click(back);
     expect(close).toHaveBeenCalledOnce();
+  });
+
+  it("cuts a long file name short with an ellipsis, so every button of the top bar stays on screen", async () => {
+    const name = "Laurence_Bugasu_Ininda_Consent_Form_Signed_Copy_For_The_Program_2026_Final_Version.pdf";
+    const reader = new ReaderController(fakePlatform(), async () => ({ pageCount: 3 }));
+    await reader.open(fakeFile(name));
+    // The phone's widths and two wider windows, whose bar has the × after the name instead.
+    const results: string[] = [];
+    for (const width of [320, 390, 768, 1280]) {
+      await page.viewport(width, 800);
+      renderIn(
+        <CommandsProvider
+          registry={registered()}
+          context={{ platform: fakePlatform(), reader, actions: { "file.close": () => undefined } }}
+          keys="other"
+        >
+          <ReaderShell
+            topBar={<ReaderTopBar reader={reader} keys="other" more={{ items: [], onAction: () => undefined }} />}
+          >
+            <p>page</p>
+          </ReaderShell>
+        </CommandsProvider>,
+      );
+      const header = document.querySelector("header") as HTMLElement;
+      const off = targets(header)
+        .filter((el) => {
+          const box = el.getBoundingClientRect();
+          return box.left < -0.5 || box.right > width + 0.5;
+        })
+        .map((el) => el.getAttribute("aria-label") ?? el.textContent);
+      const title = header.querySelector<HTMLElement>(".paper-top-bar-name") as HTMLElement;
+      results.push(`${width}: off screen [${off.join(", ")}], name cut ${title.scrollWidth > title.clientWidth}`);
+      cleanup();
+    }
+    expect(results).toEqual([
+      "320: off screen [], name cut true",
+      "390: off screen [], name cut true",
+      "768: off screen [], name cut true",
+      "1280: off screen [], name cut true",
+    ]);
   });
 
   it("slides away while the document scrolls down, and comes back as soon as it scrolls up", async () => {

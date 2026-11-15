@@ -9,6 +9,9 @@
   .paper-reader-shell {
     overflow-x: clip;
     display: grid;
+    /* One column as wide as the window: a column sized by its content would grow to a long file
+       name, which no ellipsis could then cut short, pushing the bar's buttons out of sight. */
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto minmax(0, 1fr) auto;
     block-size: 100%;
     background: var(--paper-ground);
