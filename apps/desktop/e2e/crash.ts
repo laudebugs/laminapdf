@@ -12,7 +12,7 @@ import { output, workingCopies } from "./paths.ts";
 export const CRASH_PORT = 8797;
 
 /** Every request the stand-in got, one JSON line each. */
-export const received = join(output, "crash-requests.jsonl");
+const received = join(output, "crash-requests.jsonl");
 
 /** What the stand-in recorded of one request. */
 export interface Received {

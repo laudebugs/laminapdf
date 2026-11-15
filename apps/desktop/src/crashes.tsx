@@ -9,7 +9,7 @@ import { type ReactNode, useCallback, useEffect, useState } from "react";
 import type { DesktopShell } from "./engine/desktop-engine-client.ts";
 
 /** The event the main process sends this window when it may ask about a crash (crash/mod.rs). */
-export const ASK_EVENT = "crash://ask";
+const ASK_EVENT = "crash://ask";
 
 /** A question about a crash (`Question` in crash/mod.rs). */
 interface Question {

@@ -11,7 +11,7 @@ import { isOneOf } from "./one-of.ts";
  * `0xc0000005` passes). The desktop's scrubber, apps/desktop/src-tauri/src/crash/scrub.rs, removes
  * the same things; the Worker refuses a report where one is left.
  */
-export const PATH_LIKE: readonly RegExp[] = [
+const PATH_LIKE: readonly RegExp[] = [
   /\/[^\s/]+\//,
   /\b[A-Za-z]:[\\/]/,
   /\\\\[^\s\\]+\\/,
@@ -25,7 +25,7 @@ export const PATH_LIKE: readonly RegExp[] = [
 export const SCRIPT_FILE = /^assets\/[A-Za-z0-9._-]+\.(js|mjs)$/;
 
 /** A webview frame's `file` for anything outside the app's bundle. */
-export const EXTERNAL_FILE = "<external>";
+const EXTERNAL_FILE = "<external>";
 
 const CHANNELS = ["stable", "beta", "nightly", "dev"] as const;
 const OSES = ["macos", "windows", "linux"] as const;

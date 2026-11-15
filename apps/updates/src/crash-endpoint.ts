@@ -42,7 +42,7 @@ export type CrashOutcome =
   | { readonly status: 400 | 413 | 415 | 429 | 503; readonly reason: string };
 
 /** The report's R2 key, by the UTC day it arrived. */
-export function crashKey(report: CrashReport, now: number): string {
+function crashKey(report: CrashReport, now: number): string {
   const [yyyy, mm, dd] = new Date(now).toISOString().slice(0, 10).split("-");
   return `crash-reports/${yyyy}/${mm}/${dd}/${report.report_id}.json`;
 }
