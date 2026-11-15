@@ -97,11 +97,6 @@
     display: block;
   }
 
-  .paper-checkbox[data-disabled] .paper-checkbox-box {
-    border-color: var(--paper-chip-border);
-    background-color: var(--paper-ground);
-  }
-
   .paper-radio-options {
     display: flex;
     flex-direction: column;
@@ -166,6 +161,28 @@
 
   .paper-switch[data-selected] .paper-switch-knob:dir(rtl) {
     translate: calc(-1 * var(--ui-knob-travel)) 0;
+  }
+
+  /* Disabled comes last (§7.0's order): a chip-border edge on the ground; a chosen one keeps its
+     mark, the box or track filled with the disabled grey, so "on" still reads as on. */
+  .paper-choice[data-disabled] :is(.paper-checkbox-box, .paper-radio-circle, .paper-switch-track) {
+    border-color: var(--paper-chip-border);
+    background-color: var(--paper-ground);
+  }
+
+  :is(.paper-checkbox:is([data-selected], [data-indeterminate]), .paper-switch[data-selected])[data-disabled]
+    :is(.paper-checkbox-box, .paper-switch-track) {
+    border-color: var(--paper-disabled);
+    background-color: var(--paper-disabled);
+  }
+
+  .paper-radio[data-selected][data-disabled] .paper-radio-circle {
+    border-color: var(--paper-disabled);
+  }
+
+  .paper-radio[data-selected][data-disabled] .paper-radio-circle::after,
+  .paper-switch[data-disabled]:not([data-selected]) .paper-switch-knob {
+    background: var(--paper-disabled);
   }
 
   .paper-choice[data-focus-visible] .paper-checkbox-box,

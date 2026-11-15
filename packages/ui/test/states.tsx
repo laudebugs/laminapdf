@@ -285,6 +285,11 @@ const fields: Example[] = [
     element: () => <TextInput label="Producer" defaultValue="Lamina PDF" isDisabled />,
   },
   {
+    component: "TextInput",
+    state: "read-only",
+    element: () => <TextInput label="Created" defaultValue="14 November 2026" isReadOnly />,
+  },
+  {
     component: "TextArea",
     state: "with text",
     element: () => <TextArea label="Note" defaultValue="Check the totals." />,
@@ -315,6 +320,15 @@ const choices: Example[] = [
   { component: "Checkbox", state: "mixed", element: () => <Checkbox isIndeterminate>All pages</Checkbox> },
   { component: "Checkbox", state: "disabled", element: () => <Checkbox isDisabled>Locked</Checkbox> },
   {
+    component: "Checkbox",
+    state: "on, disabled",
+    element: () => (
+      <Checkbox defaultSelected isDisabled>
+        Locked
+      </Checkbox>
+    ),
+  },
+  {
     component: "RadioGroup",
     state: "one chosen",
     element: () => (
@@ -336,6 +350,16 @@ const choices: Example[] = [
   },
   { component: "Switch", state: "off", element: () => <Switch>Show thumbnails</Switch> },
   { component: "Switch", state: "on", element: () => <Switch defaultSelected>Show thumbnails</Switch> },
+  { component: "Switch", state: "disabled", element: () => <Switch isDisabled>Show thumbnails</Switch> },
+  {
+    component: "Switch",
+    state: "on, disabled",
+    element: () => (
+      <Switch defaultSelected isDisabled>
+        Show thumbnails
+      </Switch>
+    ),
+  },
 ];
 
 const pickers: Example[] = [
