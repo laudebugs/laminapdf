@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `U7h` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
 | Depends on | [U7b](../done/U7b-control-states-and-cursors.md), [U7c](../done/U7c-overlay-enter-and-exit.md), [U7d](../done/U7d-reader-surfaces-motion.md), [U7e](../done/U7e-sites-states-and-motion.md), [U7f](../done/U7f-desktop-chrome-motion.md), [U7g](../done/U7g-pointer-tab-drag.md), [U7i](../done/U7i-choice-and-field-states.md) |
@@ -11,7 +11,7 @@
 | Branch | `feat/u7h-delight-pass` |
 | PR title | `feat(ui): a view transition for the Reader toggle, and clearer feedback` |
 | Size | M (200–400) |
-| PR | — |
+| PR | [#642](https://github.com/laudebugs/laminapdf/pull/642) |
 
 ## Goal
 
