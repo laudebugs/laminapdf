@@ -148,12 +148,14 @@ describe("ProgressBar", () => {
   });
 
   it("leaves aria-valuenow out while indeterminate, and stands still under reduced motion", async () => {
+    // CI's WebKit prefers reduced motion: ask for motion first, then take it away.
+    await commands.reducedMotion("no-preference");
+    onTestFinished(() => commands.reducedMotion(null));
     const host = renderIn(<ProgressBar label="Opening…" />);
     expect(get(host, "[role=progressbar]").hasAttribute("aria-valuenow")).toBe(false);
     const fill = get(host, ".paper-progress-fill");
     expect(getComputedStyle(fill).animationName).toBe("paper-progress-slide");
     await commands.reducedMotion("reduce");
-    onTestFinished(() => commands.reducedMotion(null));
     expect(getComputedStyle(fill).animationName).toBe("none");
   });
 });
