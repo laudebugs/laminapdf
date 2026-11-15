@@ -33,6 +33,8 @@
   }
 }
 
+/* The focus ring of §7.0 on every focusable control: shown for the keyboard, never removed,
+   whatever the order of the element's classes. */
 @layer paper.components {
   :is([class^="paper-"], [class*=" paper-"])[data-focus-visible] {
     outline: var(--paper-focus-ring-width) solid var(--paper-focus);
@@ -58,6 +60,3 @@
     transition: none !important;
   }
 }
-
-/* The focus ring of §7.0 on every focusable control: shown for the keyboard, never removed,
-   whatever the order of the element's classes. */

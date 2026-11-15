@@ -7,9 +7,9 @@ import "@laminapdf/fonts/fonts.css";
 import "@laminapdf/ui/styles.css";
 import "./gallery.css";
 import { FONT_PRELOADS } from "@laminapdf/fonts";
-import { DensityProvider, PlatformProvider, suppressMotion } from "@laminapdf/ui";
+import { DensityProvider, PlatformProvider } from "@laminapdf/ui";
 import { EXAMPLES, fakePlatform } from "@laminapdf/ui/testing";
-import { type ReactNode, StrictMode, useLayoutEffect, useRef } from "react";
+import { type ReactNode, StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { Icons } from "./icons.tsx";
 import {
@@ -144,13 +144,8 @@ function App({ settings }: { settings: Settings }): ReactNode {
   const shell = route?.renders?.includes("ReaderShell") === true;
   const Chrome = shell ? "div" : "header";
   const Stage = shell ? "div" : "main";
-  const shownLook = useRef<string | undefined>(undefined);
-  useLayoutEffect(() => {
+  useEffect(() => {
     const root = document.documentElement;
-    // A switch of look applies at once, as in the reader (design language §7.0).
-    const look = [settings.theme, settings.dir, settings.motion, settings.appearance, settings.density].join(" ");
-    if (shownLook.current !== undefined && shownLook.current !== look) suppressMotion(root);
-    shownLook.current = look;
     root.dataset.theme = settings.theme;
     root.dir = settings.dir;
     root.dataset.motion = settings.motion;

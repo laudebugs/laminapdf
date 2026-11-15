@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
-| Depends on | [U7a](../ongoing/U7a-motion-and-state-tokens.md) |
+| Depends on | [U7a](../done/U7a-motion-and-state-tokens.md) |
 | ADRs | Follows [0024](../../decisions/0024-app-shell-ux.md) (tokens in layers), [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) §4 (headers, CSP) |
 | Branch | `feat/u7e-sites-states-and-motion` |
 | PR title | `feat(sites): pressed, disabled and reduced-motion states on both sites` |
