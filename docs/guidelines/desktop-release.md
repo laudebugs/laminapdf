@@ -316,7 +316,7 @@ Each run builds macOS (arm64 and x64), Windows (x64 and arm64) and Linux (x64 an
 Builds in `desktop-release` sign macOS with the Developer ID (§1.3) and notarise with the App Store Connect key (§1.4), in this order:
 
 1. The build imports the certificate into a keychain of its own, with Apple's Developer ID G2 intermediate, which it checks against a pinned SHA-256.
-2. `cargo xtask desktop-sidecar`, which Tauri runs before it bundles, signs PDFium's library with the Developer ID. Tauri signs the app and the engine but not the files in `Resources/`, and the hardened runtime's library validation loads only libraries signed by the engine's own Team ID.
+2. `cargo xtask desktop-sidecar`, which Tauri runs before it bundles, signs PDFium's library with the Developer ID. Tauri signs the app and the engine but never the files in `Resources/`, and the hardened runtime's library validation would refuse a library without the engine's own Team ID.
 3. Tauri signs the engine and the app with the Developer ID and the hardened runtime (`tauri.developer-id.conf.json`), then notarises and staples the app. The `.dmg` and the updater's `.app.tar.gz` both hold the stapled app.
 4. The workflow notarises and staples the `.dmg`, which needs a ticket of its own for Gatekeeper's check while the Mac is offline. It tries a failed submission up to three times, waits on a submission Apple accepted rather than sending it again, and fails at once on a rejection, printing Apple's log.
 5. It runs §3's checks, then deletes the keychain and the key from the runner.
