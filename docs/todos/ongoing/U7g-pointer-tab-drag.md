@@ -11,7 +11,7 @@
 | Branch | `fix/u7g-pointer-tab-drag` |
 | PR title | `fix(desktop): drag tabs by pointer events on every OS` |
 | Size | M (200–400) |
-| PR | — |
+| PR | [#621](https://github.com/laudebugs/laminapdf/pull/621) |
 
 ## Goal
 
