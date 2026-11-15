@@ -37,18 +37,31 @@ function Check([bool]$ok, [string]$what) {
     if ($ok) { Write-Host "ok      $what" } else { $script:failures.Add($what); Write-Host "FAILED  $what" }
 }
 
+# A registry value as a string, or $null when the key or the value is missing. `(default)` is the
+# key's default value. Read through .NET, which tells a missing value from an empty one.
 function Value([string]$key, [string]$name) {
-    $item = Get-ItemProperty -LiteralPath $key -ErrorAction SilentlyContinue
-    if (-not $item) { return $null }
-    $property = $item.PSObject.Properties[$name]
-    if ($property) { return [string]$property.Value }
-    return $null
+    $hive, $path = $key -split ':\\', 2
+    $root = switch ($hive) {
+        'HKCU' { [Microsoft.Win32.Registry]::CurrentUser }
+        'HKLM' { [Microsoft.Win32.Registry]::LocalMachine }
+        default { throw "unknown hive in $key" }
+    }
+    $opened = $root.OpenSubKey($path)
+    if (-not $opened) { return $null }
+    try {
+        $value = $opened.GetValue($(if ($name -eq '(default)') { '' } else { $name }))
+        if ($null -eq $value) { return $null }
+        return [string]$value
+    } finally { $opened.Dispose() }
 }
+
+function Show($value) { if ($null -eq $value) { 'none' } else { "'$value'" } }
 
 function Test-Registered([string]$hive, [string]$label, [string]$defaultBefore) {
     $classes = "${hive}:\Software\Classes"
     Check ($null -ne (Value "$classes\.pdf\OpenWithProgids" $progId)) "$label lists $progId in .pdf's OpenWithProgids"
-    Check ((Value "$classes\.pdf" '(default)') -eq $defaultBefore) "$label leaves .pdf's default class as it was ('$defaultBefore')"
+    $default = Value "$classes\.pdf" '(default)'
+    Check ($default -ceq $defaultBefore) "$label leaves .pdf's default class as it was (before $(Show $defaultBefore), now $(Show $default))"
     $command = Value "$classes\$progId\shell\open\command" '(default)'
     Check ($null -ne $command -and $command -match '^"(?<exe>[^"]+)" "%1"$') "$label's open command is `"<app>`" `"%1`" ($command)"
     if ($command -match '^"(?<exe>[^"]+)"') {
@@ -66,7 +79,8 @@ function Test-Removed([string]$hive, [string]$label, [string]$defaultBefore, [st
     $classes = "${hive}:\Software\Classes"
     Check ($null -eq (Value "$classes\.pdf\OpenWithProgids" $progId)) "$label removes $progId from .pdf's OpenWithProgids"
     Check (-not (Test-Path -LiteralPath "$classes\$progId")) "$label removes the $progId class"
-    Check ((Value "$classes\.pdf" '(default)') -eq $defaultBefore) "$label leaves .pdf's default class as it was"
+    $default = Value "$classes\.pdf" '(default)'
+    Check ($default -ceq $defaultBefore) "$label leaves .pdf's default class as it was (before $(Show $defaultBefore), now $(Show $default))"
     if ($exe) { Check (-not (Test-Path -LiteralPath $exe)) "$label removes the app ($exe)" }
 }
 
