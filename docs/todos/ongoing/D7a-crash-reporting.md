@@ -101,9 +101,9 @@ These differ from the text above:
 - **Engine panics abort.** The engine's panic hook sends its summary, then aborts, so the supervisor sees a crash and restarts the engine. Before, a panic in the worker thread left an engine that beat but never answered.
 - **Webview messages.** A page error keeps only its type, from a fixed list, and its frames: a script's message can quote document text, and the marker test showed that no scrubber can tell such text from code.
 - **Renderer.** The report names the renderer (`pdfium`) without its version: each app version ships one pinned PDFium, so `app_version` says which.
-- **Frames.** A panic's frames are function names with the offset within each function. A Rust function is linked into the panicking binary, which names its module; any other's module is `<unknown>`. Frames may be empty where the sandbox stops the engine reading its own symbols.
+- **Frames.** A panic's frames are function names with the offset within each function. A Rust function is linked into the panicking binary, which names its module; any other's module is `<unknown>`. A debug build names functions from its debug info, without their paths, so there every module is `<unknown>`. Frames may be empty where the sandbox stops the engine reading its own symbols, as Seatbelt does on macOS.
 - **Queues.** `held/` and `outbox/` each keep ten reports. Moving a report from one to the other keeps its age.
-- **Consent off.** The e2e run checks only an engine segmentation fault with sending off. The Rust tests check, for every crash kind, that only consent decides whether a report goes.
+- **Consent off.** The e2e run checks only an engine segmentation fault with sending off. Every kind of crash goes through `Shelf::for_consent`, which alone decides whether a report waits or goes, and a Rust test checks it for each consent state.
 - **Privacy page.** Its promises change only with the owner's sign-off, so the proposed text is in [#640](https://github.com/laudebugs/laminapdf/issues/640) rather than in this PR.
 
 ## Definition of done

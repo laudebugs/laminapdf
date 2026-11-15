@@ -79,11 +79,11 @@ impl Queue {
             .collect()
     }
 
-    /// Takes report `id` off `place`.
+    /// Takes report `id` off `place`; `None` when it isn't there or can't be removed.
     pub(crate) fn take(&self, place: Shelf, id: &str) -> Option<Report> {
         let path = self.path(place, id)?;
         let report = read_json(&path, "crash report");
-        let _ = fs::remove_file(&path);
+        fs::remove_file(&path).ok()?;
         report
     }
 
@@ -188,6 +188,19 @@ mod tests {
         queue.release(&report.report_id);
         queue.prune(Shelf::Outbox, SystemTime::now() + Duration::from_hours(48));
         assert_eq!(queue.list(Shelf::Outbox), Vec::<Report>::new());
+    }
+
+    #[test]
+    fn only_consent_should_decide_where_a_report_goes() {
+        use super::super::consent::ConsentState;
+        let places = [
+            ConsentState::NotAsked,
+            ConsentState::Asked { send: true },
+            ConsentState::Asked { send: false },
+            ConsentState::Always,
+        ]
+        .map(Shelf::for_consent);
+        assert_eq!(places, [Shelf::Held, Shelf::Held, Shelf::Held, Shelf::Outbox]);
     }
 
     #[test]

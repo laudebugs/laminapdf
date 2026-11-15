@@ -28,8 +28,8 @@ impl Outbox {
     pub(crate) fn try_send(&self, msg: &FromEngine) {
         let mut out = match self.0.try_lock() {
             Ok(out) => out,
-            Err(std::sync::TryLockError::Poisoned(poisoned)) => poisoned.into_inner(),
-            Err(std::sync::TryLockError::WouldBlock) => return,
+            // A thread that panicked mid-write may have left half a frame: this one wouldn't parse.
+            Err(std::sync::TryLockError::Poisoned(_) | std::sync::TryLockError::WouldBlock) => return,
         };
         let _ = write_frame(&mut *out, msg, &[]);
     }

@@ -87,7 +87,8 @@ fn frames(module: &str) -> Vec<NativeFrame> {
         let function = format!("{:#}", symbol.name()?);
         let start = symbol.addr()? as usize;
         let offset = (frame.ip() as usize).checked_sub(start)?;
-        let rust = function.contains("::");
+        // A Rust path; a demangled C++ name (PDFium's, a system library's) has its parameters.
+        let rust = function.contains("::") && !function.contains('(');
         Some(NativeFrame {
             module: if rust {
                 module.to_owned()
@@ -106,7 +107,7 @@ fn frames(module: &str) -> Vec<NativeFrame> {
 
 /// Whether `function` is part of raising or reporting a panic rather than the code that panicked.
 fn is_machinery(function: &str) -> bool {
-    const PREFIXES: [&str; 8] = [
+    const PREFIXES: [&str; 14] = [
         "backtrace::",
         "std::",
         "core::",
@@ -115,6 +116,13 @@ fn is_machinery(function: &str) -> bool {
         "rust_panic",
         "__rust",
         "laminapdf_desktop_protocol::crash::",
+        // The panic hooks themselves, and the trait calls that reach them.
+        "laminapdf_desktop_engine::crash::report_panics",
+        "laminapdf_desktop_lib::crash::report_panics",
+        "laminapdf_desktop::crash::report_panics",
+        "<alloc::",
+        "<core::",
+        "<std::",
     ];
     PREFIXES.iter().any(|prefix| function.starts_with(prefix))
 }
@@ -147,8 +155,9 @@ mod tests {
             is_machinery("core::panicking::panic_fmt"),
             is_machinery("laminapdf_desktop_engine::worker::render"),
             is_machinery("laminapdf_desktop_engine::crash::debug_panic"),
+            is_machinery("laminapdf_desktop_engine::crash::report_panics::{{closure}}"),
         ];
-        assert_eq!(checks, [true, true, false, false]);
+        assert_eq!(checks, [true, true, false, false, true]);
     }
 
     #[test]

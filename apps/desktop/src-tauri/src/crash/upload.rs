@@ -48,8 +48,11 @@ pub(crate) async fn send_outbox(queue: &Queue, endpoint: &str) -> bool {
     reports.reverse();
     for report in reports {
         match send(&client, endpoint, &report).await {
+            // A report that can't leave the outbox is sent again later, not at once.
             Sent::Taken | Sent::Refused => {
-                queue.take(Shelf::Outbox, &report.report_id);
+                if queue.take(Shelf::Outbox, &report.report_id).is_none() {
+                    return false;
+                }
             }
             Sent::Later => return false,
         }
