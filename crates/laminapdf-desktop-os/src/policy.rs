@@ -1,7 +1,8 @@
 //! What an administrator set for Lamina PDF's updates (ADR 0014 §1), read where each OS keeps it:
 //!
 //! - **Windows:** `HKLM\Software\Policies\Lamina`, `UpdateChannel` (a string) and `DisableUpdates`
-//!   (a `DWORD`, non-zero for off). D6d's MSI writes `HKLM\Software\Lamina\InstallFlavour` = `msi`.
+//!   (a `DWORD`, non-zero for off). The MSI installer writes
+//!   `HKLM\Software\Lamina\InstallFlavour` = `msi`.
 //! - **macOS:** the app's managed preferences, which a configuration profile sets for the bundle
 //!   identifier's domain: `UpdateChannel` and `DisableUpdates`, read only when forced, so a value
 //!   the user wrote with `defaults write` doesn't count as policy.
@@ -32,9 +33,9 @@ pub fn managed_updates() -> ManagedUpdates {
     ManagedUpdates::default()
 }
 
-/// Whether D6d's MSI installed the app (Windows only). MSI installs don't update themselves: the
-/// update manifest carries only the per-user NSIS installer, so an MSI install would gain a
-/// second, per-user copy.
+/// Whether the MSI installer installed the app (Windows only). MSI installs don't update
+/// themselves: the update manifest carries only the per-user NSIS installer, so an MSI install
+/// would gain a second, per-user copy.
 #[must_use]
 pub fn installed_by_msi() -> bool {
     #[cfg(windows)]

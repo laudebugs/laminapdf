@@ -92,7 +92,7 @@ pub(crate) fn managed_updates() -> crate::ManagedUpdates {
     }
 }
 
-/// `HKLM\Software\Lamina\InstallFlavour`, which only D6d's MSI writes.
+/// `HKLM\Software\Lamina\InstallFlavour`, which only the MSI installer writes.
 pub(crate) fn install_flavour() -> Option<String> {
     registry_string(r"Software\Lamina", "InstallFlavour")
 }

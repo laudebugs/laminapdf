@@ -153,7 +153,10 @@ impl Updates {
         if let Some(request) = plan_check(&self.store, self.applied(), manual, UPDATE_SERVER) {
             self.set_state(app, State::Checking);
             let outcome = self.fetch(app, request).await;
-            self.store.update(|settings| settings.last_check = Some(now()));
+            // "Last checked" counts only checks the server answered.
+            if outcome.is_ok() {
+                self.store.update(|settings| settings.last_check = Some(now()));
+            }
             let state = match outcome {
                 Ok(Some(ready)) => {
                     let state = State::Ready {
