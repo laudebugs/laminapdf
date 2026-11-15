@@ -8,7 +8,7 @@
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
 | Depends on | None |
 | ADRs | Follows [0008](../../decisions/0008-desktop-shell.md) (desktop shell) |
-| Branch | `feat/u7g-pointer-tab-drag` |
+| Branch | `fix/u7g-pointer-tab-drag` |
 | PR title | `fix(desktop): drag tabs by pointer events on every OS` |
 | Size | M (200–400) |
 | PR | — |

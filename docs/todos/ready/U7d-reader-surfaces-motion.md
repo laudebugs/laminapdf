@@ -18,14 +18,14 @@
 Bring the reader's surfaces that aren't plain controls under the plan's §3 and §4, then lock the cursor rule with a test over the built reader:
 
 - thumbnails get hover and pressed states and fade from placeholder to picture; pages fade in, and from their low-resolution render to the sharp one (plan §3, 10)
-- the inspector opens by `transform` and `opacity` in a dock that takes its width at once, and the phone top bar leaves by `translateY`; both fade under reduced motion
+- the inspector opens by `transform` and `opacity` over `duration-enter-panel` and closes over `duration-exit-panel` (200 and 150 ms), in a dock that takes its width at once, and the phone top bar leaves by `translateY`; both fade under reduced motion
 - a creation tool's cursor wins over the text layer's I-beam, and the hand tool shows `grab` and `grabbing`
-- the remaining raw `:hover` rules (document tabs, history rows, threads, recent rows, the rail handle) move behind the guard
+- the reader's raw `:hover` rules (document tabs and their close button, history rows, threads, the rail handle, properties rows, reader blocks) move behind the guard, and recent rows take the cursor tokens
 - a test fails the build on any control in the built reader with the wrong cursor
 
 ## Context
 
-- [Plan §2](../../plans/motion-and-states.md#2-what-the-apps-do-today-2026-11-14) and the reader [research](../../research/product/motion-and-states/README.md): `apps/web/src/app.css:83-113` (thumbnails), `shell.css:58-68` (inspector), `phone.css:26-36`, `text-layer.ts:275` vs `tools.ts:157`, `document-tabs.css:40,99-106`, `history.css:65`, `threads.css:54,76,79-80`, `recent.css:43`, `shell.css:26`
+- [Plan §2](../../plans/motion-and-states.md#2-what-the-apps-do-today-2026-11-14) and the reader [research](../../research/product/motion-and-states/README.md): `apps/web/src/app.css:83-113` (thumbnails), `shell.css:58-68` (inspector), `phone.css:26-36`, `text-layer.ts:275` vs `tools.ts:157`, `document-tabs.css:40,99-106`, `history.css:65`, `threads.css:54,76,79-80`, `recent.css:43` (cursor), `shell.css:26`, `properties.css:68`, `reader.css:817`
 
 ## Scope
 
@@ -35,12 +35,12 @@ Bring the reader's surfaces that aren't plain controls under the plan's §3 and 
 - Pages' fade-in and the low-resolution to sharp cross-fade
 - Inspector and phone top bar motion without layout animation
 - Tool cursors over the text and link layers (the tool's cursor on the layer root wins; spans keep the I-beam only for text selection)
-- The remaining raw `:hover` rules
+- The reader's raw `:hover` rules, all of them, including `document-tabs.css`'s (U7f and U7g change the tabs' motion and drag, not their hover)
 - The built-reader cursor test (plan §6)
 
 **Out of scope**
 
-- The desktop's tab strip → U7f, U7g
+- The tab strip's motion and reserved space → U7f; tab dragging → U7g
 
 ## Tasks
 
