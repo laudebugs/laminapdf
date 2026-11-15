@@ -217,7 +217,7 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
 /// C4b): typechecked and built over the packages above, then its e2e suite against `wrangler dev`
 /// (headers, local files opened four ways, CSP violations and other origins), and the docs site's
 /// "Edit and run" (B7e: built, then its e2e suite), and the website (built, then its e2e suite: the
-/// cursor check over its pages, U7e). They record no measurements.
+/// cursor check over its pages, U7e, and the download page's choice of installer). They record no measurements.
 fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
     crate::web::packages(ws)?;
     for package in [
@@ -258,8 +258,15 @@ fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
         &["--filter", "@laminapdf/docs", "run", "e2e"],
         &[("LAMINA_PDF_E2E_BROWSER", browser)],
     )?;
-    // The website's cursor check and states over its built pages, against `wrangler dev` (U7e).
-    crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/site", "run", "build"])?;
+    // The website's cursor check and states over its built pages, against `wrangler dev` (U7e), and
+    // its download page, built from the e2e fixture's release lists rather than the snapshot
+    // (apps/site/src/data/downloads.ts; the path is the site's own, where its build runs).
+    crate::run_env(
+        &ws.root,
+        "pnpm",
+        &["--filter", "@laminapdf/site", "run", "build"],
+        &[("LAMINA_PDF_DOWNLOADS", "e2e/downloads.fixture.json")],
+    )?;
     crate::run_env(
         &ws.root,
         "pnpm",
