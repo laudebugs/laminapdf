@@ -32,9 +32,6 @@ const CARGO_FUZZ_VERSION: &str = "0.13.2";
 /// `.github/workflows/actions.lock` (todo X11; MIT; pre-1.0, so bumped in a reviewed PR). The fast
 /// lane's `lockfile` job installs the same pin (a test in workflows/lockfile.rs checks it).
 pub(crate) const GH_ACTIONS_LOCK_VERSION: &str = "0.4.1";
-/// sccache release, CI's compile cache (`.github/actions/rust-compile-cache`, which installs this
-/// version; docs/plans/ci-caching.md; Apache-2.0). Optional locally.
-pub(crate) const SCCACHE_VERSION: &str = "0.19.0";
 /// qpdf release for the nightly differential (`cargo xtask differential --live`; the nightly
 /// workflow downloads this release's binaries, checked by SHA-256), the round-trip suite
 /// (`cargo xtask roundtrip`) and the committed `qpdf --check` facts (`tools/fixtures/text_facts.py`,
@@ -276,16 +273,6 @@ pub(crate) fn cargo_fuzz() -> Tool {
     }
 }
 
-fn sccache() -> Tool {
-    Tool {
-        name: "sccache",
-        version_command: &["sccache", "--version"],
-        pin: Pin::Exact(SCCACHE_VERSION.to_owned()),
-        fix: format!("cargo install sccache --locked --version {SCCACHE_VERSION}"),
-        optional_for: Some("CI's compile cache (.github/actions/rust-compile-cache); local builds don't need it"),
-    }
-}
-
 pub(crate) fn qpdf() -> Tool {
     Tool {
         name: "qpdf",
@@ -334,7 +321,6 @@ fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
         cargo_semver_checks(),
         cargo_fuzz(),
         gh_actions_lock(),
-        sccache(),
         qpdf(),
         pdftotext(),
         exiftool(),
