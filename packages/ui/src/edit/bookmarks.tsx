@@ -80,6 +80,8 @@ export interface BookmarkEditorProps {
   readonly onUseCurrentView: (id: string) => void;
   /** Open the named destinations dialog. */
   readonly onNamedDestinations: () => void;
+  /** Open the contents page dialog; without it, the header has no such button. */
+  readonly onContentsPage?: () => void;
 }
 
 type ColourId = "default" | "grey" | "red" | "blue" | "green";
@@ -104,7 +106,9 @@ export type BookmarkStep =
   | "bookmark.open"
   | "destination.add"
   | "destination.rename"
-  | "destination.delete";
+  | "destination.delete"
+  | "contents.step"
+  | "contents.failed";
 
 /**
  * The words of step `step` as the History tab and Undo show it ("Rename bookmark “Results”"), or
@@ -256,7 +260,7 @@ function RenameField({
   );
 }
 
-/** The editor's header: its title, Add and Named destinations. */
+/** The editor's header: its title, Add, Named destinations and Create a contents page. */
 function Header({ props, selected }: { props: BookmarkEditorProps; selected: string | undefined }): ReactNode {
   return (
     <div className="paper-bookmarks-header">
@@ -268,6 +272,14 @@ function Header({ props, selected }: { props: BookmarkEditorProps; selected: str
         onPress={() => props.onAdd(selected)}
       />
       <IconButton icon="list-box" label={laterMessage("bookmarks.named")} onPress={props.onNamedDestinations} />
+      {props.onContentsPage === undefined ? null : (
+        <IconButton
+          icon="list"
+          label={laterMessage("bookmarks.contents")}
+          isDisabled={props.readOnly === true || props.items.length === 0}
+          onPress={props.onContentsPage}
+        />
+      )}
     </div>
   );
 }

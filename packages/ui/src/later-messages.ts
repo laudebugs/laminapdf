@@ -322,6 +322,7 @@ const EN = {
   "bookmarks.title": "Bookmarks in this file",
   "bookmarks.add": "Add bookmark",
   "bookmarks.named": "Named destinations",
+  "bookmarks.contents": "Create a contents page",
   "bookmarks.repaired": "Lamina PDF rebuilt this file’s damaged bookmark list.",
   "bookmarks.none": "No bookmarks yet",
   "bookmarks.none.hint": "Add one for the page you’re on.",
