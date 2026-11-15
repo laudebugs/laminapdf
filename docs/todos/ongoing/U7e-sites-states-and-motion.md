@@ -45,19 +45,19 @@ Apply the plan's §3 and §4 to the docs site, the website and the site kit:
 
 ## Tasks
 
-- [ ] States and cursors
-- [ ] Links
-- [ ] Touch guard
-- [ ] Reduced motion
-- [ ] The runner's busy state
-- [ ] Focus ring
-- [ ] The cursor check
+- [x] States and cursors
+- [x] Links
+- [x] Touch guard
+- [x] Reduced motion
+- [x] The runner's busy state
+- [x] Focus ring
+- [x] The cursor check
 
 ## Acceptance criteria
 
-- [ ] The site kit's browser tests (Chromium, Firefox, WebKit) check the header's and select's cursors and pressed states
-- [ ] The cursor check over built docs and website pages finds no clickable element without the hand
-- [ ] With reduced motion, Starlight's sidebar caret doesn't rotate
+- [x] The site kit's browser tests (Chromium, Firefox, WebKit) check the header's and select's cursors and pressed states
+- [x] The cursor check over built docs and website pages finds no clickable element without the hand
+- [x] With reduced motion, Starlight's sidebar caret doesn't rotate
 
 ## Post-merge checks
 

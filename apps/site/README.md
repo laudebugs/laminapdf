@@ -7,11 +7,12 @@ pnpm install                          # once per worktree
 pnpm --filter @laminapdf/site dev        # http://localhost:4321 (no headers in dev)
 pnpm --filter @laminapdf/site build      # dist/: what deploys; fails on a page that breaks the rules
 pnpm --filter @laminapdf/site test       # the headers against ADR 0011 §4, the header's links, the home page from a fixture
+pnpm --filter @laminapdf/site e2e        # after a build: every page's cursors and the buttons' pressed states in a browser
 pnpm --filter @laminapdf/site typecheck
 pnpm --filter @laminapdf/site share-image  # rewrites public/og.png and the PNG favicons (needs Playwright's Chromium)
 ```
 
-`cargo xtask check ts` runs the build, the tests and the typecheck, so CI fails on a page that breaks the rules.
+`cargo xtask check ts` runs the build, the tests and the typecheck, so CI fails on a page that breaks the rules. `cargo xtask pdf-runtimes <browser>` builds the site and runs its e2e suite in Chromium, Firefox and WebKit (`LAMINA_PDF_E2E_BROWSER`), against `wrangler dev` with the production headers: `e2e/states.e2e.test.ts` checks that every clickable element on every page shows the hand, at desktop and phone widths, that the buttons and code tabs show a pressed state, and that the focus ring keeps an element's corners.
 
 ## What every build checks
 
@@ -66,7 +67,7 @@ Every page carries Open Graph and X card tags with `public/og.png`. `robots.txt`
 
 ## Look and header
 
-The pages use the tokens of `@laminapdf/tokens` and the self-hosted fonts of `@laminapdf/fonts` (Lamina Sans and Newsreader), with the layout's style sheet in `src/styles/site.css`. The theme follows the visitor's system, so the site needs no script. `src/layouts/Base.astro` writes each page's head and preloads Lamina Sans' Latin file, the face of the first paint.
+The pages use the tokens of `@laminapdf/tokens` and the self-hosted fonts of `@laminapdf/fonts` (Lamina Sans and Newsreader), the states both sites share from [`@laminapdf/site-kit`'s `states.css`](../../packages/site-kit/README.md#the-states), and the layout's style sheet in `src/styles/site.css`. The theme follows the visitor's system, so the site needs no script. `src/layouts/Base.astro` writes each page's head and preloads Lamina Sans' Latin file, the face of the first paint.
 
 The header is the one both sites share, from [`@laminapdf/site-kit`](../../packages/site-kit/README.md#the-site-header): design language §7.39's wordmark, links and "Open the web app". A link to a page of this site appears once the page exists, on both sites. `astro.config.mjs` lists the files in `src/pages/` once per build, so the todo that writes `/privacy/` adds its link by adding the page. "Open the web app" appears once `APP_LAUNCHED` in the package's `src/nav.mjs` is `true`, which [C7c](../../docs/todos/done/C7c-performance-gates-and-launch.md) sets when the reader goes live.
 

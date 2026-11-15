@@ -240,15 +240,13 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
     link.download = name;
     link.click();
   });
-  buttons.run.addEventListener("click", async () => {
-    buttons.run.disabled = true;
+  whileBusy(buttons.run, async () => {
     state.running = true;
     status.textContent = worker === undefined ? "Loading Lamina PDF (about 3 MB, once)…" : "Running…";
     const width = pagePixels(places.pages);
     const code = view.state.doc.toString();
     const reply = await run({ file, source: code, width });
     state.running = false;
-    buttons.run.disabled = false;
     status.textContent = "";
     if (!reply.ok) {
       showProblem(problem, reply);
@@ -272,8 +270,7 @@ export function openRunner(buttons: RunButtons, example: RunExample, places: Run
  * the alert says where Prettier stopped.
  */
 function formatOnPress(view: EditorView, button: HTMLButtonElement, status: HTMLElement, problem: HTMLElement): void {
-  button.addEventListener("click", async () => {
-    button.disabled = true;
+  whileBusy(button, async () => {
     status.textContent = "Formatting…";
     try {
       const code = view.state.doc.toString();
@@ -293,10 +290,41 @@ function formatOnPress(view: EditorView, button: HTMLButtonElement, status: HTML
       problem.replaceChildren(element("strong", "", "can't format"), document.createTextNode(`: ${firstLine(error)}`));
       problem.hidden = false;
     } finally {
-      button.disabled = false;
       view.focus();
     }
   });
+}
+
+/**
+ * Runs `work` on each press of `button`, the button busy meanwhile, when a press does nothing.
+ * A busy button stays focusable, so a keyboard user keeps their place: `aria-disabled` and
+ * `aria-busy` rather than `disabled`, and its busy label (Example.astro's second `.run-label` span,
+ * "Running…") in place of its own. Both labels share one cell, so the button keeps its width.
+ */
+function whileBusy(button: HTMLButtonElement, work: () => Promise<void>): void {
+  button.addEventListener("click", async () => {
+    if (button.getAttribute("aria-busy") === "true") return;
+    setBusy(button, true);
+    try {
+      await work();
+    } finally {
+      setBusy(button, false);
+    }
+  });
+}
+
+/** Marks a bar button busy, or done (whileBusy). */
+function setBusy(button: HTMLButtonElement, busy: boolean): void {
+  if (busy) {
+    button.setAttribute("aria-disabled", "true");
+    button.setAttribute("aria-busy", "true");
+  } else {
+    button.removeAttribute("aria-disabled");
+    button.removeAttribute("aria-busy");
+  }
+  const [idle, working] = button.querySelectorAll<HTMLElement>(".run-label > span");
+  if (idle !== undefined) idle.hidden = busy;
+  if (working !== undefined) working.hidden = !busy;
 }
 
 /** A failed run's code, message and hint, in the bar's alert. */

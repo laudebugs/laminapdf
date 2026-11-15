@@ -19,7 +19,7 @@ const panes = await Promise.all(tabs.map(async (tab) => ({ ...tab, lines: await 
   <div class="code-tabs" data-tablist aria-label="Language" hidden>
     {
       tabs.map((tab) => (
-        <button type="button" class="code-tab" id={`tab-${tab.id}`} data-tab>
+        <button type="button" class="code-tab site-control" id={`tab-${tab.id}`} data-tab>
           {tab.label}
         </button>
       ))

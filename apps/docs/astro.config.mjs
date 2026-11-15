@@ -132,10 +132,12 @@ export default defineConfig({
       // Expressive Code's options are in ec.config.mjs: its plugin can't be serialised into the
       // `<Code>` component's settings.
       // The Paper design language (docs/design/paper/design-language.md): its tokens, its fonts,
-      // then Starlight's colours and fonts mapped onto them.
+      // the states both sites share (@laminapdf/site-kit), then Starlight's colours and fonts mapped
+      // onto them.
       customCss: [
         "@laminapdf/tokens/tokens.css",
         "@laminapdf/fonts/fonts.css",
+        "@laminapdf/site-kit/states.css",
         "./src/styles/paper.css",
         "./src/styles/diagrams.css",
       ],

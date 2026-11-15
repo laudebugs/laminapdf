@@ -2,7 +2,10 @@
  * The website in Lamina PDF's Paper design language (docs/design/paper/design-language.md): pages
  * of text on the paper ground, from the tokens of @laminapdf/tokens and the fonts of
  * @laminapdf/fonts, both loaded before this file (src/layouts/Base.astro). The light or dark theme
- * follows the visitor's system; the site sets no `data-theme`, so it needs no script.
+ * follows the visitor's system; the site sets no `data-theme`, so it needs no script. The states
+ * both sites share (the pressed layer, hover only under a pointer that hovers, the focus ring,
+ * reduced motion) are @laminapdf/site-kit's states.css, loaded before this file; the site's
+ * controls take its `site-control` class.
  */
 
 *,
@@ -25,18 +28,19 @@ body {
   font: 400 16px / 1.5 var(--paper-font-sans);
 }
 
+/* Visited or not, a link is the accent (motion plan §3, 9); pressed, the strong accent. */
 a {
   color: var(--paper-accent);
 }
 
-a:hover {
-  color: var(--paper-accent-strong);
+@media (hover: hover) and (pointer: fine) {
+  a:hover {
+    color: var(--paper-accent-strong);
+  }
 }
 
-:focus-visible {
-  outline: var(--paper-focus-ring-width) solid var(--paper-focus);
-  outline-offset: var(--paper-focus-ring-offset);
-  border-radius: var(--paper-radius-3);
+a:active {
+  color: var(--paper-accent-strong);
 }
 
 /* Hidden until a keyboard user tabs to it, then shown above the header. */
@@ -68,11 +72,6 @@ a:hover {
   color: var(--paper-text);
   font-weight: 600;
   text-decoration: none;
-}
-
-.button-secondary:hover {
-  color: var(--paper-text);
-  background: var(--paper-hover);
 }
 
 main {
@@ -131,15 +130,38 @@ main {
   min-height: var(--paper-target-min-touch);
   padding: 0 var(--paper-space-20);
   border-radius: var(--paper-radius-4);
-  background: var(--paper-accent);
+  background-color: var(--paper-accent);
   color: var(--paper-on-accent);
   font-weight: 600;
   text-decoration: none;
+  /* The primary swaps one solid for another (design language §7.0) instead of the layer. */
+  --site-hover: transparent;
+  --site-pressed: transparent;
 }
 
-.button-primary:hover {
+/* The buttons keep their own text colour over the links' hover and press. */
+@media (hover: hover) and (pointer: fine) {
+  .button-secondary:hover {
+    color: var(--paper-text);
+  }
+
+  .button-primary:hover {
+    color: var(--paper-on-accent);
+    background-color: var(--paper-accent-strong);
+  }
+
+  .code-tab:hover {
+    color: var(--paper-text);
+  }
+}
+
+.button-secondary:active {
+  color: var(--paper-text);
+}
+
+.button-primary:active {
   color: var(--paper-on-accent);
-  background: var(--paper-accent-strong);
+  background-color: var(--paper-primary-pressed);
 }
 
 .home {
@@ -234,11 +256,12 @@ main {
   min-height: var(--paper-target-min-touch);
   padding: 0 var(--paper-space-14);
   border: 0;
-  background: transparent;
+  background-color: transparent;
   color: var(--paper-text-2);
   font: 600 13px / 1 var(--paper-font-sans);
-  cursor: pointer;
   box-shadow: inset 0 calc(-1 * var(--paper-selected-underline-width)) 0 transparent;
+  /* A tab darkens its label on hover, with no fill; a press shows the pressed layer. */
+  --site-hover: transparent;
 }
 
 .code-tab[aria-selected="true"] {

@@ -7,6 +7,7 @@
 // is the element's `value` attribute, and every element marked `data-for` shows only for its
 // value, so a page's inline script can set both before the first paint. menu-select.css gives its
 // look, with no inline style, which the website's checks refuse.
+import "./states.css";
 import "./menu-select.css";
 import check from "@laminapdf/icons/svg/check.svg?raw";
 import chevron from "@laminapdf/icons/svg/chevron-down.svg?raw";
@@ -46,7 +47,7 @@ const { label, hideLabel = false, options, value } = Astro.props;
     type="button"
     role="combobox"
     tabindex="0"
-    class="site-menu-select-button"
+    class="site-menu-select-button site-control"
     aria-label={label}
     aria-haspopup="listbox"
     aria-expanded="false"
@@ -66,7 +67,7 @@ const { label, hideLabel = false, options, value } = Astro.props;
       options.map((option) => (
         <li
           role="option"
-          class="site-menu-select-option"
+          class="site-menu-select-option site-control"
           data-value={option.value}
           aria-selected={String(option.value === value)}
         >

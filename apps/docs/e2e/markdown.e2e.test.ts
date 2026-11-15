@@ -1,9 +1,10 @@
 // Each page's Markdown twin against `wrangler dev` (e2e/server.ts), in one browser per run
 // (LAMINA_PDF_E2E_BROWSER): the head links the twin, and "Copy as Markdown" fetches it only when
-// pressed and copies its text, with no CSP violation, on a page with a title and on the home page's
-// hero. Headless Firefox and WebKit can't read the clipboard back, so a stand-in clipboard records
-// what the button wrote and whether the write started inside the press, which Safari requires. In
-// Chromium a second test reads the real clipboard, which the button may only write.
+// pressed and copies its text, saying "Copied" for a moment, with no CSP violation, on a page with
+// a title and on the home page's hero. Headless Firefox and WebKit can't read the clipboard back,
+// so a stand-in clipboard records what the button wrote and whether the write started inside the
+// press, which Safari requires. In Chromium a second test reads the real clipboard, which the
+// button may only write.
 
 import { env } from "node:process";
 import { firefoxEnv } from "@laminapdf/test-utils/firefox";
@@ -41,15 +42,18 @@ async function twinText(page: Page, href: string): Promise<string> {
 }
 
 /**
- * Presses the page's "Copy as Markdown" from the keyboard and waits for its status; returns whether
- * the button kept the focus.
+ * Presses the page's "Copy as Markdown" from the keyboard and waits for its status, then for
+ * "Copied" to clear; returns whether the button kept the focus.
  */
 async function pressCopy(page: Page): Promise<boolean> {
   const button = page.getByRole("button", { name: "Copy as Markdown" });
   await button.focus();
   await page.keyboard.press("Enter");
-  await expect.poll(() => page.getByRole("status").filter({ hasText: "Copied" }).count()).toBe(1);
-  return button.evaluate((b) => b === document.activeElement);
+  const copied = () => page.getByRole("status").filter({ hasText: "Copied" }).count();
+  await expect.poll(copied).toBe(1);
+  const kept = await button.evaluate((b) => b === document.activeElement);
+  await expect.poll(copied, { timeout: 5_000 }).toBe(0);
+  return kept;
 }
 
 describe(`each page's Markdown twin in ${BROWSER}`, () => {

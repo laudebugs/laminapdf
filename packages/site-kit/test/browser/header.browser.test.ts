@@ -1,6 +1,7 @@
 // The site header in a real browser, as both sites render it: links in §7.39's order in the tab
 // order, the current page in 600 with the accent underline, no sideways scroll at phone width, and
-// no axe violation, in the light and the dark theme.
+// no axe violation, in the light and the dark theme; the hand on every link and the menu button,
+// and the pressed layer (states.css) while the mouse holds one down.
 
 import "@laminapdf/tokens/tokens.css";
 import "@laminapdf/fonts/fonts.css";
@@ -9,6 +10,7 @@ import axe from "axe-core";
 import { afterEach, describe, expect, inject, it } from "vitest";
 import { page, server, userEvent } from "vitest/browser";
 import { wireMenus } from "../../src/menu.mjs";
+import { layer, pressedLayer, resolvedColor } from "./states.ts";
 
 const HEADERS = inject("headers");
 
@@ -24,16 +26,6 @@ function mount(html: string, theme: "light" | "dark"): HTMLElement {
   const header = document.querySelector("header");
   if (header === null) throw new Error("no header");
   return header;
-}
-
-/** `color` as the browser computes it (`rgb(…)`), the form `box-shadow` reports its colour in. */
-function resolvedColor(color: string): string {
-  const probe = document.createElement("span");
-  probe.style.color = color;
-  document.body.append(probe);
-  const resolved = getComputedStyle(probe).color;
-  probe.remove();
-  return resolved;
 }
 
 /**
@@ -164,3 +156,46 @@ for (const theme of ["light", "dark"] as const) {
     });
   });
 }
+
+describe("the site header's states", () => {
+  const CONTROLS = [".site-wordmark", ".site-nav a", ".site-header-app", ".site-menu > summary"];
+
+  it("shows the hand on the wordmark, the links, the app button and the menu button", async () => {
+    await page.viewport(375, 800);
+    mount(HEADERS.website, "light");
+    for (const selector of [...CONTROLS, ".site-menu-panel a"]) {
+      for (const element of document.querySelectorAll(selector)) {
+        expect(getComputedStyle(element).cursor, selector).toBe("pointer");
+      }
+    }
+  });
+
+  it("draws the pressed layer while the mouse holds a control down, and none at rest", async () => {
+    const pressed = resolvedColor("var(--paper-pressed)");
+    for (const [selector, width] of [
+      [".site-wordmark", 1280],
+      [".site-nav a", 1280],
+      [".site-header-app", 1280],
+      [".site-menu > summary", 375],
+    ] as const) {
+      await page.viewport(width, 800);
+      mount(HEADERS.website, "light");
+      const element = document.querySelector(selector);
+      if (element === null) throw new Error(`no ${selector}`);
+      expect(layer(element), `${selector} at rest`).toBe(resolvedColor("transparent"));
+      expect(await pressedLayer(selector), selector).toBe(pressed);
+    }
+  });
+
+  it("fills the app button on hover, and darkens the links' text without a fill", async () => {
+    mount(HEADERS.website, "light");
+    const app = document.querySelector(".site-header-app");
+    const link = document.querySelector(".site-nav a:not([aria-current])");
+    if (app === null || link === null) throw new Error("no app button or link");
+    await userEvent.hover(app);
+    await expect.poll(() => layer(app)).toBe(resolvedColor("var(--paper-hover)"));
+    await userEvent.hover(link);
+    await expect.poll(() => getComputedStyle(link).color).toBe(resolvedColor("var(--paper-text)"));
+    expect(layer(link)).toBe(resolvedColor("transparent"));
+  });
+});

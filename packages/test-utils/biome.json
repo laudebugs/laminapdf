@@ -12,6 +12,16 @@
           }
         }
       }
+    },
+    {
+      "includes": ["src/cursors.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": "off"
+          }
+        }
+      }
     }
   ]
 }

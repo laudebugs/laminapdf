@@ -1,0 +1,95 @@
+/*
+ * The states both sites share (design language §7.0; motion plan §3, §4.2), from the Paper
+ * tokens, which each site loads first: the hand on every control, a pressed state, hover that a
+ * tap doesn't leave behind, disabled and pending looks, one focus ring, the current page's
+ * underline, and one meaning for reduced motion. Each site loads this sheet before its own.
+ *
+ * A control the sites draw takes the class `site-control`. Hover and pressed are one translucent
+ * layer over the control's own fill, so a control sets its fill with `background-color`, never
+ * the `background` shorthand, which would wipe the layer. The layer is a registered colour, so it
+ * fades: hover in over --paper-duration-state-in, out over --paper-duration-state-out; press is
+ * at once, with no transition, and release fades back to hover over state-in. A control whose
+ * hover darkens its label instead (tabs, the header's links) sets `--site-hover: transparent`; the
+ * primary button, which swaps solids, sets both `--site-hover` and `--site-pressed` to transparent.
+ * The order is §4.2's: rest and value in each control's own rules, then hover, pressed, focus and
+ * availability here, each later rule winning on what it sets.
+ */
+
+@property --site-state {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: transparent;
+}
+
+.site-control {
+  cursor: var(--paper-cursor-action);
+  background-image: linear-gradient(var(--site-state) 0 0);
+  transition-property: --site-state, background-color, border-color, color, box-shadow;
+  transition-duration: var(--paper-duration-state-out);
+  transition-timing-function: var(--paper-ease-standard);
+  /* The pressed layer is the tap's answer on iOS, not its grey flash. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Hover only under a pointer that hovers: a tap leaves plain :hover on until the next tap. */
+@media (hover: hover) and (pointer: fine) {
+  .site-control:hover {
+    --site-state: var(--site-hover, var(--paper-hover));
+    transition-duration: var(--paper-duration-state-in);
+  }
+}
+
+.site-control:active {
+  --site-state: var(--site-pressed, var(--paper-pressed));
+  /* No transition at all, rather than a zero-length one (motion plan §4.3). */
+  transition: none;
+}
+
+/* Availability last, so it wins over hover and press. Disabled (or blocked) shows the arrow and
+   the disabled text; pending (aria-busy, the runner's Run while it runs) keeps its label's colour,
+   says what it is doing in the label, and shows the busy arrow. Both keep their focus. */
+.site-control:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) {
+  --site-state: transparent;
+  color: var(--paper-disabled);
+  cursor: var(--paper-cursor-disabled);
+}
+
+.site-control[aria-busy="true"] {
+  --site-state: transparent;
+  cursor: var(--paper-cursor-pending);
+}
+
+/* One focus ring on both sites: 2 px of the focus colour, 2 px out, drawn at once and never
+   rounded off (an element without a radius keeps its corners). A control with no room outside
+   sets its own offset from the focus-ring tokens. */
+:focus-visible {
+  outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+  outline-offset: var(--paper-focus-ring-offset);
+}
+
+/* Links show the hand from their own token, not only from the browser, whose style sheet WebKit
+   leaves at `auto` for links (the cursor check reads the computed cursor). A visited link looks like any
+   other (motion plan §3, 9): each site colours `a` itself, which covers :visited, and sets no
+   :visited rule. */
+:any-link {
+  cursor: var(--paper-cursor-link);
+}
+
+/* A disclosure's summary opens it, so it shows the hand too, wherever it comes from (Starlight's
+   phone contents list has no cursor of its own). */
+summary {
+  cursor: var(--paper-cursor-action);
+}
+
+/* Reduced motion keeps fades and drops movement (motion plan §3, 4). Whatever a rule of ours or a
+   library's (Starlight's sidebar caret, Expressive Code's "Copied!") transitions, only colours,
+   fills, edges, shadows and opacity may fade; a turn, slide or scale lands at once. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-property:
+      --site-state, color, background-color, border-color, outline-color, box-shadow, opacity, fill, stroke !important;
+    scroll-behavior: auto !important;
+  }
+}

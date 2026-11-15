@@ -439,6 +439,9 @@ importers:
       '@laminapdf/site-kit':
         specifier: workspace:*
         version: link:../../packages/site-kit
+      '@laminapdf/test-utils':
+        specifier: workspace:*
+        version: link:../../packages/test-utils
       '@laminapdf/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
