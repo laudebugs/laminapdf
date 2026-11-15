@@ -1,8 +1,9 @@
 /*
- * The states both sites share (design language §7.0; motion plan §3, §4.2), from the Paper
- * tokens, which each site loads first: the hand on every control, a pressed state, hover that a
- * tap doesn't leave behind, disabled and pending looks, one focus ring, the current page's
- * underline, and one meaning for reduced motion. Each site loads this sheet before its own.
+ * The control states both sites share (design language §7.0; motion plan §3, §4.2), from the
+ * Paper tokens, which each site loads first: the hand on every control, a pressed state, hover
+ * that a tap doesn't leave behind, and disabled and pending looks. Each site loads this sheet
+ * before its own, and the header and the select import it. The rules for the whole page (the
+ * focus ring, links, reduced motion) are base.css's, which only a site's layout loads.
  *
  * A control the sites draw takes the class `site-control`. Hover and pressed are one translucent
  * layer over the control's own fill, so a control sets its fill with `background-color`, never
@@ -11,7 +12,7 @@
  * at once, with no transition, and release fades back to hover over state-in. A control whose
  * hover darkens its label instead (tabs, the header's links) sets `--site-hover: transparent`; the
  * primary button, which swaps solids, sets both `--site-hover` and `--site-pressed` to transparent.
- * The order is §4.2's: rest and value in each control's own rules, then hover, pressed, focus and
+ * The order is §4.2's: rest and value in each control's own rules, then hover, pressed and
  * availability here, each later rule winning on what it sets.
  */
 
@@ -57,39 +58,4 @@
 .site-control[aria-busy="true"] {
   --site-state: transparent;
   cursor: var(--paper-cursor-pending);
-}
-
-/* One focus ring on both sites: 2 px of the focus colour, 2 px out, drawn at once and never
-   rounded off (an element without a radius keeps its corners). A control with no room outside
-   sets its own offset from the focus-ring tokens. */
-:focus-visible {
-  outline: var(--paper-focus-ring-width) solid var(--paper-focus);
-  outline-offset: var(--paper-focus-ring-offset);
-}
-
-/* Links show the hand from their own token, not only from the browser, whose style sheet WebKit
-   leaves at `auto` for links (the cursor check reads the computed cursor). A visited link looks like any
-   other (motion plan §3, 9): each site colours `a` itself, which covers :visited, and sets no
-   :visited rule. */
-:any-link {
-  cursor: var(--paper-cursor-link);
-}
-
-/* A disclosure's summary opens it, so it shows the hand too, wherever it comes from (Starlight's
-   phone contents list has no cursor of its own). */
-summary {
-  cursor: var(--paper-cursor-action);
-}
-
-/* Reduced motion keeps fades and drops movement (motion plan §3, 4). Whatever a rule of ours or a
-   library's (Starlight's sidebar caret, Expressive Code's "Copied!") transitions, only colours,
-   fills, edges, shadows and opacity may fade; a turn, slide or scale lands at once. */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    transition-property:
-      --site-state, color, background-color, border-color, outline-color, box-shadow, opacity, fill, stroke !important;
-    scroll-behavior: auto !important;
-  }
 }

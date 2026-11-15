@@ -74,6 +74,8 @@
     padding: var(--paper-space-8) var(--paper-space-10);
     border-radius: var(--paper-radius-6);
     outline: none;
+    /* A press selects it, as a control's does (motion plan §3, 1): the hand, over its picture too. */
+    cursor: var(--paper-cursor-action);
   }
 
   .paper-page-tile-body {

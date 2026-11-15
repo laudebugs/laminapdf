@@ -22,11 +22,17 @@
     flex-shrink: 0;
   }
 
-  /* Hidden, the bar slides up by its own height and fades (motion plan §4.3: by transform, never by
-     a layout property), then gives its row back at once: its margin and visibility change at the
-     end of the slide, so the page view grows once rather than through every frame. Shown again,
-     the row is back on the first frame and the bar slides down into it. Under reduced motion
-     motion-travel is 0, so it only fades. */
+  /* Hidden, the bar gives its row back at once and slides up out of it by its own height while it
+     fades (motion plan §4.3: by transform, inside a box whose size is set at once): taken out of
+     the flow on the first frame, it leaves its row at no height, so the page view grows once, at
+     the start, and nothing moves under the reader's eyes later. It slides over the page's top
+     meanwhile, from where it was, taking no pointer, and is hidden once the slide ends. Shown
+     again, the row is back on the first frame and the bar slides down into it. Under reduced
+     motion motion-travel is 0, so it only fades. */
+  .paper-reader-shell:has(.paper-top-bar[data-phone]) {
+    position: relative;
+  }
+
   .paper-top-bar[data-phone] {
     /* In lengths, never percentages, so that with no travel (reduced motion) no transition runs. */
     --ui-top-bar-travel: calc(
@@ -35,19 +41,24 @@
       var(--paper-motion-travel)
     );
 
+    /* Over the page view while it slides out across it. */
+    z-index: 1;
     translate: 0;
-    transition-property: translate, opacity, margin-block-start, visibility;
-    transition-duration: var(--paper-duration-enter-panel), var(--paper-duration-enter-panel), 0s, 0s;
+    transition-property: translate, opacity, visibility;
+    transition-duration: var(--paper-duration-enter-panel), var(--paper-duration-enter-panel), 0s;
     transition-timing-function: var(--paper-ease-enter);
   }
 
   .paper-top-bar[data-hidden] {
-    margin-block-start: calc(-1 * (var(--paper-phone-top-bar-height) + env(safe-area-inset-top)));
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
     visibility: hidden;
+    pointer-events: none;
     opacity: 0;
     translate: 0 var(--ui-top-bar-travel);
-    transition-duration: var(--paper-duration-exit-panel), var(--paper-duration-exit-panel), 0s, 0s;
-    transition-delay: 0s, 0s, var(--paper-duration-exit-panel), var(--paper-duration-exit-panel);
+    transition-duration: var(--paper-duration-exit-panel), var(--paper-duration-exit-panel), 0s;
+    transition-delay: 0s, 0s, var(--paper-duration-exit-panel);
     transition-timing-function: var(--paper-ease-exit);
   }
 

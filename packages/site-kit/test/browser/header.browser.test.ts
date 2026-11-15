@@ -7,8 +7,8 @@ import "@laminapdf/tokens/tokens.css";
 import "@laminapdf/fonts/fonts.css";
 import "../../src/header.css";
 import axe from "axe-core";
-import { afterEach, describe, expect, inject, it } from "vitest";
-import { page, server, userEvent } from "vitest/browser";
+import { afterEach, describe, expect, inject, it, onTestFinished } from "vitest";
+import { commands, page, server, userEvent } from "vitest/browser";
 import { wireMenus } from "../../src/menu.mjs";
 import { layer, pressedLayer, resolvedColor } from "./states.ts";
 
@@ -171,6 +171,9 @@ describe("the site header's states", () => {
   });
 
   it("draws the pressed layer while the mouse holds a control down, and none at rest", async () => {
+    // With motion allowed, so the layer at rest is read after any fade, not because none runs.
+    await commands.reducedMotion("no-preference");
+    onTestFinished(() => commands.reducedMotion(null));
     const pressed = resolvedColor("var(--paper-pressed)");
     for (const [selector, width] of [
       [".site-wordmark", 1280],
@@ -182,7 +185,7 @@ describe("the site header's states", () => {
       mount(HEADERS.website, "light");
       const element = document.querySelector(selector);
       if (element === null) throw new Error(`no ${selector}`);
-      expect(layer(element), `${selector} at rest`).toBe(resolvedColor("transparent"));
+      await expect.poll(() => layer(element), { message: `${selector} at rest` }).toBe(resolvedColor("transparent"));
       expect(await pressedLayer(selector), selector).toBe(pressed);
     }
   });

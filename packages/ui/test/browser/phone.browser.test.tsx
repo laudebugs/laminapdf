@@ -5,8 +5,8 @@
 // density, and axe finds nothing serious.
 
 import axe from "axe-core";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
+import { commands, page, userEvent } from "vitest/browser";
 import { Demo } from "../../examples/ui-demo.tsx";
 import {
   CommandRegistry,
@@ -272,5 +272,79 @@ describe("the phone's top bar", () => {
     state = { ...state, percent: 175 };
     await scroll(600);
     expect(hidden()).toBe(false);
+  });
+
+  it("gives its row back on the frame it hides, then slides out over the page; returning, takes the row at once", async () => {
+    // With motion allowed, so the slide runs and the check can tell the row from the bar.
+    await commands.reducedMotion("no-preference");
+    onTestFinished(() => commands.reducedMotion(null));
+    const reader = new ReaderController(fakePlatform(), async () => ({ pageCount: 3 }) as never);
+    let state = { pageCount: 3, currentPage: 0, zoom: "fit-width" as const, percent: 100, scrollTop: 0 };
+    const listeners = new Set<() => void>();
+    const viewer = {
+      getState: () => state,
+      subscribe: (l: () => void) => {
+        listeners.add(l);
+        return () => listeners.delete(l);
+      },
+      goToPage: () => undefined,
+      jumpToPage: () => undefined,
+      setZoom: () => undefined,
+      rotate: () => undefined,
+    };
+    const scroll = async (top: number) => {
+      state = { ...state, scrollTop: top };
+      for (const l of listeners) l();
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    };
+    renderIn(
+      <CommandsProvider registry={new CommandRegistry()} context={{ platform: fakePlatform(), reader }} keys="other">
+        {/* Positioned, as the reader's shell is on a phone. */}
+        <div style={{ position: "relative" }}>
+          <ReaderTopBar reader={reader} viewer={viewer} keys="other" more={{ items: [], onAction: () => undefined }} />
+          <div className="below" />
+        </div>
+      </CommandsProvider>,
+    );
+    const header = document.querySelector("header") as HTMLElement;
+    const below = document.querySelector(".below") as HTMLElement;
+    // Where the page view would start: below the bar's row.
+    const row = () =>
+      Math.round(below.getBoundingClientRect().top - (header.parentElement as HTMLElement).getBoundingClientRect().top);
+    const moving = () =>
+      header
+        .getAnimations()
+        .filter((a): a is CSSTransition => a instanceof CSSTransition)
+        .map((a) => a.transitionProperty);
+    /** The row and the bar's transitions on the frame the bar's data-hidden turns `to`. */
+    const onFlip = (to: boolean) =>
+      new Promise<{ row: number; moving: string[] }>((resolve) => {
+        new MutationObserver((_, observer) => {
+          if (header.hasAttribute("data-hidden") !== to) return;
+          observer.disconnect();
+          getComputedStyle(header).opacity;
+          resolve({ row: row(), moving: moving() });
+        }).observe(header, { attributes: true, attributeFilter: ["data-hidden"] });
+      });
+    const shown = row();
+    const hiding = onFlip(true);
+    await scroll(10);
+    await scroll(200);
+    const hid = await hiding;
+    await expect.poll(moving).toEqual([]);
+    const gone = row();
+    // The bar holds still for a moment after it moves, so a refit's small scroll doesn't flip it.
+    await new Promise((resolve) => setTimeout(resolve, 450));
+    const showing = onFlip(false);
+    await scroll(160);
+    const back = await showing;
+    expect(shown).toBeGreaterThanOrEqual(56);
+    // The row's size is set on the first frame, both ways; only the bar's translate and opacity
+    // move after it, never its margin.
+    expect([hid.row, gone, back.row]).toEqual([0, 0, shown]);
+    for (const { moving: properties } of [hid, back]) {
+      expect(properties).toEqual(expect.arrayContaining(["translate", "opacity"]));
+      expect(properties.filter((p) => p.startsWith("margin"))).toEqual([]);
+    }
   });
 });

@@ -3,9 +3,9 @@
  * of text on the paper ground, from the tokens of @laminapdf/tokens and the fonts of
  * @laminapdf/fonts, both loaded before this file (src/layouts/Base.astro). The light or dark theme
  * follows the visitor's system; the site sets no `data-theme`, so it needs no script. The states
- * both sites share (the pressed layer, hover only under a pointer that hovers, the focus ring,
- * reduced motion) are @laminapdf/site-kit's states.css, loaded before this file; the site's
- * controls take its `site-control` class.
+ * both sites share are @laminapdf/site-kit's, loaded before this file: base.css for the whole page
+ * (the focus ring, links, reduced motion) and states.css for controls (the pressed layer, hover
+ * only under a pointer that hovers), whose `site-control` class the site's controls take.
  */
 
 *,

@@ -1,8 +1,9 @@
 // The cursor check over a built page (motion plan §3, 1 and §6): every element a person can click
-// shows the hand, a disabled one the arrow and a busy one the busy arrow, on the element and on
-// whatever the pointer meets at its centre. Run in the page by Playwright (`page.evaluate`), so the
-// function carries everything it needs: nothing outside it is in scope there. The sites' e2e suites
-// call it on each page they open, in Chromium, Firefox and WebKit.
+// shows the hand, a disabled one the arrow and a busy one the busy arrow, read where a pointer over
+// its middle lands. Run in the page by Playwright (`page.evaluate(cursorCheck)`), so the function
+// carries everything it needs: nothing outside it is in scope there. The reader's, the docs' and
+// the website's e2e suites call it in each state they open, in Chromium, Firefox and WebKit. Being
+// one function, it is longer and branchier than Biome allows elsewhere (biome.json).
 
 /** An element whose cursor breaks the rule: what it is, the cursor it shows and the one it should. */
 export interface CursorProblem {
@@ -11,14 +12,29 @@ export interface CursorProblem {
   readonly expected: string;
 }
 
+/** What `cursorCheck` found: how many controls it checked, and those whose cursor is wrong. */
+export interface CursorCheck {
+  readonly checked: number;
+  readonly problems: CursorProblem[];
+}
+
 /**
- * Every clickable element on the page that a person can see or reach and whose cursor isn't the
- * rule's: `pointer` (the tokens' --paper-cursor-action and --paper-cursor-link), `default` when
- * disabled (`:disabled`, `aria-disabled="true"`), `progress` when busy (`aria-busy="true"`).
- * Elements with no box, or hidden by `visibility`, are skipped; a transparent one isn't, since a
- * pointer still finds it.
+ * Every control on the page a person can point at, and whose cursor isn't the rule's: `pointer`
+ * (the tokens' --paper-cursor-action and --paper-cursor-link); `progress` when busy (inside
+ * `aria-busy="true"` or React Aria's `data-pending`); `default` when disabled (inside `:disabled`,
+ * `aria-disabled="true"` or `data-disabled`). Busy wins, since a running control is also blocked.
+ * An enabled control that is dragged rather than pressed (a sheet's grabber, a tile that moves)
+ * may show `grab` in place of the hand.
+ *
+ * A control in the window is read where a pointer at its middle lands, on what the pointer meets
+ * there (the control, or an icon or label inside it): a control another element covers there is
+ * left out, as is one
+ * under 4 px a side, too small to be a target itself (React Aria's hidden inputs and dismiss
+ * buttons, whose label or overlay is the target). A control below or beside the window, that a
+ * person scrolls to, is read on itself; one placed where no scroll reaches (a skip link waiting
+ * for focus), with no box, or hidden by `visibility`, is left out.
  */
-export function cursorProblems(): CursorProblem[] {
+export function cursorCheck(): CursorCheck {
   // No named function inside: a test runner's transform may wrap one in a helper the page lacks.
   const clickable = [
     "a[href]",
@@ -26,33 +42,52 @@ export function cursorProblems(): CursorProblem[] {
     "summary",
     "select",
     'input:is([type="button"], [type="submit"], [type="reset"], [type="checkbox"], [type="radio"])',
-    ...["button", "link", "tab", "option", "menuitem", "checkbox", "radio", "switch", "combobox"].map(
-      (role) => `[role="${role}"]:not(input, textarea)`,
-    ),
+    'label:has(input[type="radio"], input[type="checkbox"])',
+    '[role="treegrid"] [role="row"]',
+    ...[
+      "button",
+      "link",
+      "tab",
+      "option",
+      "menuitem",
+      "menuitemradio",
+      "menuitemcheckbox",
+      "checkbox",
+      "radio",
+      "switch",
+      "combobox",
+    ].map((role) => `[role="${role}"]:not(input, textarea)`),
   ].join(", ");
-  const shown = [...document.querySelectorAll(clickable)].filter((element) => {
+  let checked = 0;
+  const problems: CursorProblem[] = [];
+  for (const element of document.querySelectorAll(clickable)) {
     const box = element.getBoundingClientRect();
-    return box.width > 0 && box.height > 0 && element.checkVisibility({ visibilityProperty: true });
-  });
-  return shown.flatMap((element): CursorProblem[] => {
-    const busy = element.matches('[aria-busy="true"]');
-    const disabled = element.matches(':disabled, [aria-disabled="true"]');
-    const expected = busy ? "progress" : disabled ? "default" : "pointer";
-    // The element, then what the pointer meets at its centre when that is in the window and inside
-    // the element: an icon or a label in a button must not show another cursor.
-    const box = element.getBoundingClientRect();
+    if (box.width < 4 || box.height < 4 || !element.checkVisibility({ visibilityProperty: true })) continue;
     const [x, y] = [box.left + box.width / 2, box.top + box.height / 2];
+    // Where no scroll reaches: above or left of the page's start.
+    if (y + scrollY < 0 || x + scrollX < 0) continue;
     const inWindow = x >= 0 && y >= 0 && x < innerWidth && y < innerHeight;
     const hit = inWindow ? document.elementFromPoint(x, y) : null;
-    const targets = hit !== null && hit !== element && element.contains(hit) ? [element, hit] : [element];
-    const wrong = targets.find((target) => getComputedStyle(target).cursor !== expected);
-    if (wrong === undefined) return [];
+    if (inWindow && (hit === null || !(hit === element || element.contains(hit)))) continue;
+    checked += 1;
+    const busy = element.closest('[aria-busy="true"], [data-pending]') !== null;
+    const disabled = element.closest(':disabled, [aria-disabled="true"], [data-disabled]') !== null;
+    const expected = busy ? "progress" : disabled ? "default" : "pointer";
+    const allowed = expected === "pointer" ? ["pointer", "grab"] : [expected];
+    // What the pointer meets: an icon or a label inside a control must show the control's cursor.
+    const wrong = hit ?? element;
+    if (allowed.includes(getComputedStyle(wrong).cursor)) continue;
     const [what, at] = [element, wrong].map((target) => {
       const classes = [...target.classList].map((name) => `.${name}`).join("");
+      const role = target.getAttribute("role");
       const label = target.getAttribute("aria-label") ?? (target.textContent ?? "").trim().replace(/\s+/g, " ");
-      return `<${target.localName}${classes}>${label === "" ? "" : ` "${label.slice(0, 40)}"`}`;
+      return `<${target.localName}${role === null ? "" : `[role=${role}]`}${classes}>${label === "" ? "" : ` "${label.slice(0, 40)}"`}`;
     });
-    const where = wrong === element ? `${what}` : `${what} at ${at}`;
-    return [{ element: where, cursor: getComputedStyle(wrong).cursor, expected }];
-  });
+    problems.push({
+      element: wrong === element ? `${what}` : `${what} at ${at}`,
+      cursor: getComputedStyle(wrong).cursor,
+      expected,
+    });
+  }
+  return { checked, problems };
 }

@@ -3,15 +3,12 @@
 // on every page shows the hand, at a desktop's and a phone's width and with the phone menu open;
 // the buttons and code tabs show a pressed state; and a focused element keeps its own corners.
 
-import { env } from "node:process";
-import { cursorProblems } from "@laminapdf/test-utils/cursors";
-import { firefoxEnv } from "@laminapdf/test-utils/firefox";
-import { type Browser, type BrowserType, chromium, firefox, type Page, webkit } from "playwright";
+import { cursorCheck } from "@laminapdf/test-utils/cursors";
+import { BROWSER, launchBrowser } from "@laminapdf/test-utils/e2e-browser";
+import type { Browser, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 
 const SITE = new URL("../", import.meta.url);
-const BROWSERS: Record<string, BrowserType> = { chromium, firefox, webkit };
-const BROWSER = env.LAMINA_PDF_E2E_BROWSER ?? "chromium";
 const origin = inject("origin");
 
 /** Every page the website builds, and an address it doesn't (its 404 page). */
@@ -22,9 +19,7 @@ const PHONE = { width: 390, height: 844 };
 let browser: Browser;
 
 beforeAll(async () => {
-  const type = BROWSERS[BROWSER];
-  if (type === undefined) throw new Error(`LAMINA_PDF_E2E_BROWSER: unknown browser ${BROWSER}`);
-  browser = await type.launch(BROWSER === "firefox" ? { env: firefoxEnv(SITE) } : {});
+  browser = await launchBrowser(SITE);
 });
 
 afterAll(async () => {
@@ -42,7 +37,7 @@ async function open(path: string, viewport: { width: number; height: number }): 
 }
 
 /** The page's clickable elements whose cursor breaks the rule (@laminapdf/test-utils/cursors). */
-const problems = (page: Page) => page.evaluate(cursorProblems);
+const problems = async (page: Page) => (await page.evaluate(cursorCheck)).problems;
 
 /** `selector`'s background (colour and layer) as drawn now. */
 const fill = (page: Page, selector: string) =>

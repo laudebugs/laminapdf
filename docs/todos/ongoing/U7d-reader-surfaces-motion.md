@@ -77,6 +77,7 @@ None.
 
 - The inspector's dock width is part of the shell's layout state; changing how it opens must keep the saved rail and inspector widths
 - A page fade must not delay the first readable frame: the page shows at full opacity as soon as its sharp render is ready
+- The low-resolution to sharp cross-fade runs only for the high-zoom detail canvas, which has a canvas of its own over the blurry backdrop. In the common case the sharp tiles are drawn into the page's own canvas and replace the blurry picture at once: a cross-fade there would need a second full-size canvas per page, doubling the view's canvas memory. Plan §3, 10 and the design language say so
 
 ## Definition of done
 

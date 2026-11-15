@@ -36,6 +36,11 @@ export type InteractionMode = keyof InteractionModes;
 export interface ToolHost {
   /** The element the pointer lands on: the viewer's scroll container. */
   readonly element: HTMLElement;
+  /**
+   * The custom property that sets the cursor over the page's text, set on `element` while a tool
+   * that selects no text is on (`@laminapdf/viewer`'s TEXT_CURSOR_PROPERTY).
+   */
+  readonly textCursorProperty: string;
   /** Scrolls the view by this many CSS px. */
   scrollBy(dx: number, dy: number): void;
 }
@@ -155,18 +160,18 @@ export class ToolRegistry implements ExternalStore<ToolsState> {
  * layer's selection off). Returns the function that stops.
  */
 export function attachTools(registry: ToolRegistry, host: ToolHost): () => void {
-  const { element } = host;
+  const { element, textCursorProperty } = host;
   let captured: { tool: ToolModule; pointer: number } | undefined;
   /** Shows `cursor` over the page, and over its text too when the tool selects none. */
-  const cursorOf = (tool: ToolModule | undefined, cursor: string) => {
+  const showCursor = (tool: ToolModule | undefined, cursor: string) => {
     element.style.cursor = cursor;
-    if (tool?.selectsText === false && cursor !== "") element.style.setProperty("--lamina-text-cursor", cursor);
-    else element.style.removeProperty("--lamina-text-cursor");
+    if (tool?.selectsText === false && cursor !== "") element.style.setProperty(textCursorProperty, cursor);
+    else element.style.removeProperty(textCursorProperty);
   };
   const show = () => {
     const tool = registry.current();
     element.dataset.tool = tool?.name ?? "";
-    cursorOf(tool, tool?.cursor ?? "");
+    showCursor(tool, tool?.cursor ?? "");
     if (tool?.selectsText === false) element.dataset.noTextSelection = "";
     else delete element.dataset.noTextSelection;
   };
@@ -174,7 +179,7 @@ export function attachTools(registry: ToolRegistry, host: ToolHost): () => void 
     const tool = registry.current();
     if (tool?.pointerDown?.(event, host) !== true) return;
     captured = { tool, pointer: event.pointerId };
-    if (tool.pressedCursor !== undefined) cursorOf(tool, tool.pressedCursor);
+    if (tool.pressedCursor !== undefined) showCursor(tool, tool.pressedCursor);
     element.setPointerCapture?.(event.pointerId);
     event.preventDefault();
   };
@@ -201,6 +206,6 @@ export function attachTools(registry: ToolRegistry, host: ToolHost): () => void 
     element.removeEventListener("pointercancel", up);
     delete element.dataset.tool;
     delete element.dataset.noTextSelection;
-    cursorOf(undefined, "");
+    showCursor(undefined, "");
   };
 }

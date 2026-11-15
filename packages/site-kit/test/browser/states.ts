@@ -1,5 +1,7 @@
-// What the header's and the select's state tests share: the commands that press the real mouse
-// (vitest.browser.config.ts) and a reading of states.css's layer.
+// What the header's and the select's state tests share: the commands that press the real mouse and
+// set the motion preference (vitest.browser.config.ts) and a reading of states.css's layer. The
+// page loads the site kit's base.css as each site's layout does.
+import "../../src/base.css";
 import "../../src/states.css";
 import { commands } from "vitest/browser";
 
@@ -9,6 +11,8 @@ declare module "vitest/browser" {
     press: (selector: string) => Promise<void>;
     /** Lets the mouse button go, away from everything. */
     release: () => Promise<void>;
+    /** Makes the page prefer reduced motion or not; null goes back to the browser's own setting. */
+    reducedMotion: (value: "reduce" | "no-preference" | null) => Promise<void>;
   }
 }
 

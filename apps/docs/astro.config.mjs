@@ -137,6 +137,7 @@ export default defineConfig({
       customCss: [
         "@laminapdf/tokens/tokens.css",
         "@laminapdf/fonts/fonts.css",
+        "@laminapdf/site-kit/base.css",
         "@laminapdf/site-kit/states.css",
         "./src/styles/paper.css",
         "./src/styles/diagrams.css",

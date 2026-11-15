@@ -2,9 +2,10 @@
 // Vitest run, over HTTPS. The sites' policies end in `upgrade-insecure-requests`, which WebKit
 // applies even to 127.0.0.1, so a plain-HTTP server would have every script refused there.
 // Each server gets a throwaway self-signed certificate for 127.0.0.1 (openssl), and `getLocal`
-// trusts that certificate alone: verification stays on. Used by apps/web's and apps/docs' e2e suites.
+// trusts that certificate alone: verification stays on. Used by the reader's, the docs' and the
+// website's e2e suites, whose global setup is `wranglerDevSetup`.
 import { type ChildProcess, execFileSync, spawn } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import type { IncomingHttpHeaders } from "node:http";
 import { request } from "node:https";
 import { createServer } from "node:net";
@@ -12,6 +13,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { env, kill } from "node:process";
 import { fileURLToPath } from "node:url";
+import type { TestProject } from "vitest/node";
+
+declare module "vitest" {
+  export interface ProvidedContext {
+    /** The e2e server's origin (`https://127.0.0.1:<port>`). */
+    origin: string;
+    /** The server's certificate, which getLocal trusts. */
+    ca: string;
+  }
+}
 
 /** Node's response headers as a `Headers`, a repeated header kept once per value. */
 function toHeaders(raw: IncomingHttpHeaders): Headers {
@@ -172,4 +183,23 @@ async function start(app: URL, port: number): Promise<WranglerDev> {
     throw error;
   }
   return { origin, ca, stop };
+}
+
+/**
+ * An e2e suite's Vitest global setup: `wrangler dev` over `app`'s built dist/ for the whole run,
+ * its origin and certificate handed to the tests (`inject("origin")`, `inject("ca")`). It fails
+ * at once, saying `missing`, when `built` (a path in `app`) isn't there: the site isn't built.
+ */
+export function wranglerDevSetup(
+  app: URL,
+  built: string,
+  missing: string,
+): (project: TestProject) => Promise<() => void> {
+  return async (project) => {
+    if (!existsSync(new URL(built, app))) throw new Error(missing);
+    const server = await wranglerDev(app);
+    project.provide("origin", server.origin);
+    project.provide("ca", server.ca);
+    return server.stop;
+  };
 }

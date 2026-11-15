@@ -5,12 +5,15 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { attachTools, handTool, ToolRegistry } from "../../src/tools/tools.ts";
 
+/** The property the viewer's text layer reads its words' cursor from (TEXT_CURSOR_PROPERTY). */
+const TEXT_CURSOR = "--test-text-cursor";
+
 /** A view with one word in it, styled as the viewer's text layer styles its spans. */
 function view() {
   const element = document.createElement("div");
   const word = document.createElement("span");
   word.textContent = "Widgets";
-  word.style.cursor = "var(--lamina-text-cursor, text)";
+  word.style.cursor = `var(${TEXT_CURSOR}, text)`;
   element.append(word);
   // A synthetic press has no pointer to capture.
   element.setPointerCapture = () => {};
@@ -27,7 +30,7 @@ describe("the tools' cursors", () => {
   it("leave the I-beam over the words while text can be selected", () => {
     const { element, word } = view();
     const tools = new ToolRegistry();
-    attachTools(tools, { element, scrollBy: () => {} });
+    attachTools(tools, { element, textCursorProperty: TEXT_CURSOR, scrollBy: () => {} });
     expect(cursor(word)).toBe("text");
     tools.use("textSelect");
     expect(cursor(word)).toBe("text");
@@ -37,7 +40,7 @@ describe("the tools' cursors", () => {
     const { element, word } = view();
     const tools = new ToolRegistry();
     tools.register({ name: "link", cursor: "crosshair", selectsText: false });
-    const stop = attachTools(tools, { element, scrollBy: () => {} });
+    const stop = attachTools(tools, { element, textCursorProperty: TEXT_CURSOR, scrollBy: () => {} });
     tools.use("link");
     expect([cursor(element), cursor(word)]).toEqual(["crosshair", "crosshair"]);
     tools.use("select");
@@ -51,7 +54,7 @@ describe("the tools' cursors", () => {
     const { element, word } = view();
     const tools = new ToolRegistry([handTool()]);
     tools.use("hand");
-    attachTools(tools, { element, scrollBy: () => {} });
+    attachTools(tools, { element, textCursorProperty: TEXT_CURSOR, scrollBy: () => {} });
     expect([cursor(element), cursor(word)]).toEqual(["grab", "grab"]);
     word.dispatchEvent(pointer("pointerdown"));
     expect([cursor(element), cursor(word)]).toEqual(["grabbing", "grabbing"]);

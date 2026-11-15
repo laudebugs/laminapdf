@@ -1,6 +1,6 @@
 # @laminapdf/site-kit
 
-This package holds what Lamina PDF's two Astro sites share: the website (`apps/site`, laminapdf.com) and the docs site (`apps/docs`, docs.laminapdf.com). It has four parts: the build steps that check and finish each site's output, the site header with its one list of links, the select, and the states every control on both sites shares. All three run at build time, but the select also has a script that runs in the browser. It is private to the workspace, and the sites import its source files directly.
+This package holds what Lamina PDF's two Astro sites share: the website (`apps/site`, laminapdf.com) and the docs site (`apps/docs`, docs.laminapdf.com). It has four parts: the build steps that check and finish each site's output, the site header with its one list of links, the select, and the states both sites share. All three run at build time, but the select also has a script that runs in the browser. It is private to the workspace, and the sites import its source files directly.
 
 ## The site header
 
@@ -27,7 +27,7 @@ Both sites show the same header, from design language [§7.39](../../docs/design
 
 ## The states
 
-`src/states.css` (`@laminapdf/site-kit/states.css`) gives both sites [design language §7.0](../../docs/design/paper/design-language.md#70-shared-states)'s states, in the [motion plan's](../../docs/plans/motion-and-states.md#42-the-state-model) order. Each site loads it after the tokens and before its own style sheet, and the header and the select import it too.
+Two style sheets give both sites [design language §7.0](../../docs/design/paper/design-language.md#70-shared-states)'s states, in the [motion plan's](../../docs/plans/motion-and-states.md#42-the-state-model) order. `src/base.css` (`@laminapdf/site-kit/base.css`) holds the rules for the whole page: the focus ring, the hand on links and summaries, and reduced motion. Each site's layout loads it after the tokens, and no component imports it, since its rules reach every element on the page. `src/states.css` (`@laminapdf/site-kit/states.css`) holds the control states of the `site-control` class. Each site loads it after `base.css` and before its own style sheet, and the header and the select import it too.
 
 - **The hand.** Every control that acts shows `--paper-cursor-action`, every link `--paper-cursor-link`, every disclosure's `summary` the hand too. A disabled control shows the arrow and the disabled text; a busy one (`aria-busy`, such as the docs runner's Run while it runs) shows the busy arrow and keeps its focus.
 - **Hover and pressed.** A control takes the class `site-control`: hover and pressed are one translucent layer over its own fill, so a control sets its fill with `background-color`, not the `background` shorthand. Hover fades in over 80 ms and out over 150 ms, press shows at once, and hover applies only under a pointer that hovers (`@media (hover: hover) and (pointer: fine)`), so a tap leaves nothing lit. A control whose hover darkens its text sets `--site-hover: transparent`; the website's primary button swaps solid fills instead.
@@ -35,7 +35,7 @@ Both sites show the same header, from design language [§7.39](../../docs/design
 - **Reduced motion.** Under the system's preference only colours, fills, edges, shadows and opacity may fade, whatever a rule of the sites or a library transitions: a turn, a slide or a scale lands at once. Starlight's sidebar caret and Expressive Code's "Copied!" follow it.
 - **Links.** A visited link looks like any other, and the current page is marked by `aria-current` with an underline.
 
-The header's and the select's browser tests check their cursors, the hover layer and the pressed layer in Chromium, Firefox and WebKit. Each site's e2e suite checks every clickable element's cursor over its built pages with `cursorProblems` from `@laminapdf/test-utils/cursors`.
+The header's and the select's browser tests check their cursors, the hover layer and the pressed layer in Chromium, Firefox and WebKit. Each site's e2e suite checks every clickable element's cursor over its built pages with `cursorCheck` from `@laminapdf/test-utils/cursors`, the check the reader's e2e suite runs too.
 
 ## The build steps
 

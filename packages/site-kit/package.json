@@ -23,6 +23,7 @@
     "./SiteHeader.astro": "./src/SiteHeader.astro",
     "./SiteNav.astro": "./src/SiteNav.astro",
     "./header.css": "./src/header.css",
+    "./base.css": "./src/base.css",
     "./states.css": "./src/states.css",
     "./icon": "./src/icon.mjs",
     "./MenuSelect.astro": "./src/MenuSelect.astro",

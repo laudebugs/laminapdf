@@ -7,9 +7,10 @@
  * tokens' light or dark block). The fonts come from `@laminapdf/fonts/fonts.css`, loaded before this
  * file too.
  * Colours for asides (note, tip, caution, danger) map to `accent`, Plum, `warning` and `danger`.
- * The states both sites share (the pressed layer, hover only under a pointer that hovers, the
- * focus ring, reduced motion) are @laminapdf/site-kit's states.css, loaded before this file; the
- * docs' own controls take its `site-control` class, and Starlight's are listed below.
+ * The states both sites share are @laminapdf/site-kit's, loaded before this file: base.css for the
+ * whole page (the focus ring, links, reduced motion) and states.css for controls (the pressed
+ * layer, hover only under a pointer that hovers); the docs' own controls take its `site-control`
+ * class, and Starlight's are listed below.
  */
 
 /* Dark: the proposed Paper dark theme (§2.3). Starlight's default (unthemed) mode is dark.
@@ -297,7 +298,7 @@ h1#_top,
   line-height: 1.375rem;
 }
 
-/* Focus: states.css's one ring for both sites, 2 px out. Starlight's tabs and its phone contents
+/* Focus: base.css's one ring for both sites, 2 px out. Starlight's tabs and its phone contents
    list draw theirs inside (Starlight 0.42.8: Tabs.astro, MobileTableOfContents.astro and
    TableOfContentsList.astro set --sl-outline-offset-inside), since their containers would clip a
    ring drawn outside: here with Paper's inset offset. */
@@ -312,9 +313,11 @@ mobile-starlight-toc :is(summary, a):focus-visible {
    links (TableOfContentsList.astro), the previous and next links (Pagination.astro), the hero's
    buttons (LinkButton.astro), the search button (Search.astro) and the phone menu's button
    (MobileMenuToggle.astro). Their markup can't take the `site-control` class, so the same rules are
-   written for them here. Starlight's styles are in its @layer starlight.*, which this file's
-   unlayered rules win over. */
-:is(
+   written for them here, the list once with its states nested. Starlight's styles are in its
+   @layer starlight.*, which this file's unlayered rules win over whatever their weight; the list
+   sits in :where(), so a rule weighs only what it adds (:hover, :active) and the rules after it
+   here (the current page, disabled search) win where they set the same thing. */
+:where(
   .tab > [role="tab"],
   .sidebar-content :is(a, summary),
   starlight-toc a,
@@ -329,6 +332,19 @@ mobile-starlight-toc :is(summary, a):focus-visible {
   transition-duration: var(--paper-duration-state-out);
   transition-timing-function: var(--paper-ease-standard);
   -webkit-tap-highlight-color: transparent;
+
+  /* Search, disabled until it loads, takes neither hover nor press (below). */
+  @media (hover: hover) and (pointer: fine) {
+    &:hover:not([disabled]) {
+      --site-state: var(--site-hover, var(--paper-hover));
+      transition-duration: var(--paper-duration-state-in);
+    }
+  }
+
+  &:active:not([disabled]) {
+    --site-state: var(--site-pressed, var(--paper-pressed));
+    transition: none;
+  }
 }
 /* A tab darkens its label, with no fill (as the website's code tabs); the primary hero button
    swaps solids (design language §7.0). */
@@ -340,18 +356,6 @@ mobile-starlight-toc :is(summary, a):focus-visible {
   --site-pressed: transparent;
 }
 @media (hover: hover) and (pointer: fine) {
-  :is(
-    .tab > [role="tab"],
-    .sidebar-content :is(a, summary),
-    starlight-toc a,
-    .pagination-links a,
-    .sl-link-button,
-    button[data-open-modal]:not([disabled]),
-    .sl-menu-button
-  ):hover {
-    --site-state: var(--site-hover, var(--paper-hover));
-    transition-duration: var(--paper-duration-state-in);
-  }
   .tab > [role="tab"]:hover {
     color: var(--sl-color-white);
   }
@@ -359,18 +363,6 @@ mobile-starlight-toc :is(summary, a):focus-visible {
     border-color: var(--paper-accent-strong);
     background-color: var(--paper-accent-strong);
   }
-}
-:is(
-  .tab > [role="tab"],
-  .sidebar-content :is(a, summary),
-  starlight-toc a,
-  .pagination-links a,
-  .sl-link-button,
-  button[data-open-modal]:not([disabled]),
-  .sl-menu-button
-):active {
-  --site-state: var(--site-pressed, var(--paper-pressed));
-  transition: none;
 }
 .sl-link-button.primary:active {
   border-color: var(--paper-primary-pressed);
@@ -391,7 +383,7 @@ button[data-open-modal][disabled] {
   }
 }
 
-/* Reduced motion (states.css keeps only fades): Expressive Code's "Copied!" (EC 0.44.3's
+/* Reduced motion (base.css keeps only fades): Expressive Code's "Copied!" (EC 0.44.3's
    plugin-frames) also rests 0.25rem low and rises as it fades in; it fades in place instead. */
 @media (prefers-reduced-motion: reduce) {
   .expressive-code .frame .copy .feedback {

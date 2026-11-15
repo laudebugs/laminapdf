@@ -29,8 +29,8 @@ const release: BrowserCommand<[]> = async (ctx) => {
   await ctx.page.mouse.up();
 };
 
-/** Makes the page prefer reduced motion or not, which a page can't set for itself. */
-const reducedMotion: BrowserCommand<["reduce" | "no-preference"]> = async (ctx, value) => {
+/** Makes the page prefer reduced motion or not, which a page can't set for itself; null resets it. */
+const reducedMotion: BrowserCommand<["reduce" | "no-preference" | null]> = async (ctx, value) => {
   await ctx.page.emulateMedia({ reducedMotion: value });
 };
 

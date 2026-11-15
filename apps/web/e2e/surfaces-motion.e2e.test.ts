@@ -1,7 +1,8 @@
 // The reader's surfaces in motion (todo U7d; motion plan §3, 3, 4 and 10), in this run's browser: a
 // page fades in from its paper rather than appearing in one frame, with reduced motion too, and
 // shows at full opacity once it is sharp; the inspector slides and fades in and out while the page
-// view keeps the width it took on the first frame, and with reduced motion it only fades.
+// view keeps the width it took on the first frame, and with reduced motion it only fades. Each test
+// pins the motion preference, since a machine's own (or CI's WebKit) may ask for reduced motion.
 
 import type { Browser, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
@@ -10,29 +11,27 @@ import { chooseFile, clean, load, opened, WITHOUT_PICKER } from "./reader.ts";
 
 const origin = inject("origin");
 
-/** Records, as the first page canvas goes onto its page, the transitions it starts with. */
-function recordFirstCanvas(page: Page) {
+/**
+ * Records the properties every page canvas starts a transition on, from the `transitionrun`
+ * events, so no frame has to be caught.
+ */
+function recordCanvasTransitions(page: Page) {
   return page.evaluate(() => {
-    const seen: string[][] = [];
+    const seen: string[] = [];
     Object.assign(window, { canvasSeen: seen });
-    new MutationObserver((_, observer) => {
-      const canvas = document.querySelector(".lamina-page-canvas");
-      if (canvas === null) return;
-      observer.disconnect();
-      getComputedStyle(canvas).opacity;
-      seen.push(
-        canvas
-          .getAnimations()
-          .filter((a): a is CSSTransition => a instanceof CSSTransition)
-          .map((a) => a.transitionProperty),
-      );
-    }).observe(document.body, { subtree: true, childList: true });
+    document.addEventListener("transitionrun", (event) => {
+      if (event.target instanceof Element && event.target.matches(".lamina-page-canvas")) seen.push(event.propertyName);
+    });
   });
 }
 
+const canvasTransitions = (page: Page) =>
+  page.evaluate(() => [...new Set((window as unknown as { canvasSeen: string[] }).canvasSeen)]);
+
 /**
  * Records the page view's width and the inspector's transitions, at the frame the inspector is put
- * in or marked leaving and at every frame after, until it has been gone for a while.
+ * in or marked leaving and at every frame after, until `stopInspectorLog()` stops it. The log is
+ * read from the transitions' own records (CSSTransition), never from waits of a set length.
  */
 function recordInspector(page: Page) {
   return page.evaluate(() => {
@@ -44,8 +43,11 @@ function recordInspector(page: Page) {
         .map((a) => a.transitionProperty)
         .sort();
     const log: { at: string; canvas: number; transitions: string[] }[] = [];
-    Object.assign(window, { inspectorLog: log });
     const canvas = document.querySelector(".paper-reader-canvas") as HTMLElement;
+    const now = () => {
+      const inspector = document.querySelector(".paper-inspector");
+      return inspector === null ? "closed" : inspector.hasAttribute("data-exiting") ? "exiting" : "open";
+    };
     const note = (at: string) => {
       const inspector = document.querySelector(".paper-inspector");
       if (inspector !== null) getComputedStyle(inspector).opacity;
@@ -56,28 +58,55 @@ function recordInspector(page: Page) {
       });
     };
     let state = "closed";
+    let frameId = 0;
     const frame = () => {
-      const inspector = document.querySelector(".paper-inspector");
-      const now = inspector === null ? "closed" : inspector.hasAttribute("data-exiting") ? "exiting" : "open";
-      note(now === state ? "frame" : now);
-      state = now;
-      requestAnimationFrame(frame);
+      const seen = now();
+      note(seen === state ? "frame" : seen);
+      state = seen;
+      frameId = requestAnimationFrame(frame);
     };
-    new MutationObserver(() => {
-      const inspector = document.querySelector(".paper-inspector");
-      const now = inspector === null ? "closed" : inspector.hasAttribute("data-exiting") ? "exiting" : "open";
-      if (now !== state) {
-        note(now);
-        state = now;
+    const observer = new MutationObserver(() => {
+      const seen = now();
+      if (seen !== state) {
+        note(seen);
+        state = seen;
       }
-    }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-exiting"] });
-    requestAnimationFrame(frame);
+    });
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["data-exiting"],
+    });
+    frameId = requestAnimationFrame(frame);
+    Object.assign(window, {
+      inspectorLog: log,
+      stopInspectorLog: () => {
+        cancelAnimationFrame(frameId);
+        observer.disconnect();
+      },
+    });
   });
 }
 
 type Logged = { at: string; canvas: number; transitions: string[] };
 const inspectorLog = (page: Page) =>
   page.evaluate(() => (window as unknown as { inspectorLog: Logged[] }).inspectorLog);
+
+/** Frames logged since the inspector was last seen gone, after it had been leaving. */
+const framesSinceClosed = async (page: Page) => {
+  const log = await inspectorLog(page);
+  const exiting = log.findIndex((l) => l.at === "exiting");
+  const closed = log.findIndex((l, i) => i > exiting && l.at === "closed");
+  return exiting < 0 || closed < 0 ? 0 : log.length - 1 - closed;
+};
+
+/** Waits for the transitions running on the first element `selector` names to end. */
+const transitionsEnd = (page: Page, selector: string) =>
+  page
+    .locator(selector)
+    .first()
+    .evaluate((element) => Promise.all(element.getAnimations().map((a) => a.finished)).then(() => undefined));
 
 describe(`the reader's surfaces in motion in ${BROWSER}`, () => {
   let browser: Browser;
@@ -97,17 +126,16 @@ describe(`the reader's surfaces in motion in ${BROWSER}`, () => {
         reducedMotion: reduced ? "reduce" : "no-preference",
       });
       const { page } = watched;
-      await recordFirstCanvas(page);
+      await recordCanvasTransitions(page);
       await chooseFile(watched, "hello.pdf");
       await opened(watched, "hello.pdf");
-      const seen = await page.evaluate(() => (window as unknown as { canvasSeen: string[][] }).canvasSeen);
-      expect(seen).toEqual([["opacity"]]);
-      await page.locator('.lamina-page[data-render="sharp"]').first().waitFor({ state: "attached" });
-      const sharp = await page
-        .locator('.lamina-page[data-render="sharp"] > .lamina-page-canvas')
-        .first()
-        .evaluate((canvas) => [getComputedStyle(canvas).opacity, canvas.getAnimations().length]);
-      expect(sharp).toEqual(["1", 0]);
+      // The canvas fades: an opacity transition, and nothing else, starts on it.
+      await expect.poll(() => canvasTransitions(page)).toEqual(["opacity"]);
+      const sharp = page.locator('.lamina-page[data-render="sharp"] > .lamina-page-canvas').first();
+      await sharp.waitFor({ state: "attached" });
+      await expect
+        .poll(() => sharp.evaluate((canvas) => [getComputedStyle(canvas).opacity, canvas.getAnimations().length]))
+        .toEqual(["1", 0]);
       await clean(watched);
     });
   }
@@ -126,10 +154,12 @@ describe(`the reader's surfaces in motion in ${BROWSER}`, () => {
       await recordInspector(page);
       await indicator.click();
       await page.locator(".paper-inspector:not([data-exiting])").waitFor();
-      await page.waitForTimeout(400);
+      await transitionsEnd(page, ".paper-inspector");
       await indicator.click();
       await page.locator(".paper-inspector").waitFor({ state: "detached" });
-      await page.waitForTimeout(100);
+      // A few frames with it gone, to see the page view get its width back and keep it.
+      await expect.poll(() => framesSinceClosed(page)).toBeGreaterThanOrEqual(3);
+      await page.evaluate(() => (window as unknown as { stopInspectorLog: () => void }).stopInspectorLog());
       const log = await inspectorLog(page);
       const opening = log.findIndex((l) => l.at === "open");
       const exiting = log.findIndex((l) => l.at === "exiting");
@@ -144,8 +174,10 @@ describe(`the reader's surfaces in motion in ${BROWSER}`, () => {
       expect(log[closed]?.canvas).toBe(before);
       // It slides as well as fades only where motion is allowed.
       const moved = reduced ? ["opacity"] : ["opacity", "translate"];
-      expect(log[opening]?.transitions).toEqual(moved);
-      expect(log[exiting]?.transitions).toEqual(moved);
+      // What ran while it came in, and while it left, over every frame of each, not one frame's.
+      const ran = (from: number, to: number) => [...new Set(log.slice(from, to).flatMap((l) => l.transitions))].sort();
+      expect(ran(opening, exiting)).toEqual(moved);
+      expect(ran(exiting, closed)).toEqual(moved);
       await clean(watched);
     });
   }
