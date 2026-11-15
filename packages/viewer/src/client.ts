@@ -21,6 +21,8 @@ import {
   type DocumentMetadata,
   isLaminaPdfError,
   type Op,
+  type PageBoxesRead,
+  type PageLabelRange,
   type PlannedSave,
   type SaveOptions,
   type Violation,
@@ -412,6 +414,18 @@ export class ViewerClient {
     return this.call("xmpPacket", [this.#document?.id ?? 0], call);
   }
 
+  /** Page `index`'s boxes in user space, as the open document's edits leave them. */
+  async pageBoxes(index: number, call?: ViewerCallOptions): Promise<PageBoxesRead> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("pageBoxes", [index, this.#document?.id ?? 0], call);
+  }
+
+  /** The open document's page label ranges, in page order, as its edits leave them; empty without labels. */
+  async labelRanges(call?: ViewerCallOptions): Promise<PageLabelRange[]> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("labelRanges", [this.#document?.id ?? 0], call);
+  }
+
   /** How saving the open document with `options` would go: its constraint, signatures, mode and warnings. */
   async planSave(options: SaveOptions, call?: ViewerCallOptions): Promise<PlannedSave> {
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
@@ -484,8 +498,9 @@ export class ViewerClient {
    * deleted or moved pages gives `document` its new page list.
    */
   #takePages(opened: OpenedDocument, result: EditResult): void {
-    if (result.order !== undefined) {
-      this.#document = { ...opened, pageCount: result.order.length, pages: [...result.order] };
+    const list = result.order ?? result.relabelled;
+    if (list !== undefined) {
+      this.#document = { ...opened, pageCount: list.length, pages: [...list] };
       return;
     }
     if (result.pages.length === 0) return;

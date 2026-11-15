@@ -17,6 +17,7 @@ import { reportUiErrors } from "./crashes.tsx";
 import { DesktopEngineClient, type DesktopShell } from "./engine/desktop-engine-client.ts";
 import { tauriShell } from "./engine/tauri-shell.ts";
 import { createDesktopPlatform } from "./platform/desktop.ts";
+import { watchWindowState } from "./window-state.ts";
 
 /**
  * This window's engine client and its view. The text and link layers stay off until the engine
@@ -57,6 +58,9 @@ const keys = /Mac|iPhone|iPad/.test(navigator.platform) ? "mac" : "other";
 const shell = desktop ? tauriShell() : undefined;
 // This window's uncaught errors become crash reports, held until the user lets them go.
 if (shell !== undefined) reportUiErrors(shell);
+// In the shell, a window rather than a web page: no webview context menu on the chrome, and dimmed
+// bars while another window is in front. A browser (`pnpm dev`) keeps its own.
+if (desktop) watchWindowState(window);
 const engine = startEngine(shell);
 // End-to-end test builds only: Vite drops this branch, and the module, from every other build.
 if (import.meta.env.MODE === "e2e") void import("../e2e/probe/probe.ts").then(({ exposeProbe }) => exposeProbe(engine));

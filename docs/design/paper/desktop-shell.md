@@ -61,7 +61,7 @@ Conventions on this canvas:
 
 **Purpose.** Many documents per window: a tab strip under the title bar, an overflow menu when tabs don’t fit, and a notice after the last session comes back.
 
-**Entry points.** Opening a second file in a window (the strip appears from two tabs; with one tab it is hidden and the title bar carries the name); relaunching with “Reopen last session” on.
+**Entry points.** Opening a file in a window (the strip shows from the first tab, so a second moves nothing below it: motion plan §5); relaunching with “Reopen last session” on.
 
 **Layout.** Window frame → **tab strip** (34 px, on the title-bar colour) → top bar → restore notice (only after a restore) → rail · canvas · inspector → status bar. The active tab joins the top bar visually (it takes `ground` and drops its bottom rule).
 
@@ -95,8 +95,7 @@ Conventions on this canvas:
 - Closing the last tab shows the start screen (S01) in that window on every OS; the window stays open. The owner chose this on 2026-11-12. Closing the window itself works as the boards say: on macOS the app keeps running and the Dock makes a new window, elsewhere closing the last window quits.
 - The strip scrolls sideways when its tabs don't fit at 120 px, and a menu button at its end (a chevron named "All tabs, N open") is always there, in place of "+3". Its menu lists the tabs as plain items, each with its page, or "Not found" and the warning glyph for a missing file, then Move tab to new window and Move tab to *window*.
 - A tab's context menu (right-click, `⇧F10` or the menu key) shows that tab and opens the same menu.
-- With one tab the strip also shows while other windows are open, so the tab can move to one of them.
-- A tab moves to another window when dropped anywhere on it, not only on its strip, because a window shows its strip only once it has two tabs. While a tab is dragged over a window, a dashed accent border lines that window. The moved tab joins the end of the strip.
+- A tab moves to another window when dropped anywhere on it, not only on its strip, because a window with no document shows no strip. While a tab is dragged over a window, a dashed accent border lines that window. The moved tab joins the end of the strip.
 - No + button: Open (`⌘O` / `Ctrl O`) opens a new tab.
 - No title-bar colour token exists, so the strip sits on `ground` and the active tab takes the top bar's `surface`.
 - `tab.activate` and `tab.list` aren't commands: clicking a tab and the strip's menu do their work. `tab.move-to-window` is the strip's menu entry for each other window. `⇧⌘]` and `⇧⌘[` come with D4b's menus.
@@ -398,7 +397,7 @@ Sizes, hashes and the publisher name are placeholders (`[SIZE]`, `[PUBLISHER NAM
 | Body | Pages rail (page 3 current) and page 3 “2. Repairs backlog” | — |
 | Status bar | Network indicator “0 network requests for this document · Offline-safe: nothing uploaded”, “Page 3 · Repairs backlog” | `privacy.network-activity` |
 
-**States.** Menu bar focused after Alt (drawn: File highlighted, access keys underlined; the ring on the board is schematic) · at rest (access-key underlines hidden until Alt, per the OS setting) · a menu open (S03-menus-windows) · window maximised (radius 0, Maximise glyph becomes Restore: two offset squares) · inactive window (title text `muted`) · one tab (strip hidden, as on macOS).
+**States.** Menu bar focused after Alt (drawn: File highlighted, access keys underlined; the ring on the board is schematic) · at rest (access-key underlines hidden until Alt, per the OS setting) · a menu open (S03-menus-windows) · window maximised (radius 0, Maximise glyph becomes Restore: two offset squares) · inactive window (title text `muted`) · one tab (the strip shows, so a second tab moves nothing below it: motion plan §5).
 
 **Behaviour.** The menu bar is built natively by D4b (`window.set_menu`), outside the web view: the OS handles Alt and F10, arrows move between menus, and Escape returns focus to the web view. Caption buttons follow the OS (snap layouts on hover of Maximise are the OS’s). The title bar is the OS’s own (no custom-drawn chrome) so it behaves natively with accessibility tools.
 

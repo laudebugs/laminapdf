@@ -154,21 +154,45 @@ export function formatFileSize(bytes: number, locale?: string): string {
   return message("properties.size", { size: `${short} ${unit}`, bytes: exact });
 }
 
-/** Paper sizes in points, portrait: the ISO ones by their own names, the others from the catalogue. */
-const PAPERS: readonly (readonly [string | MessageId, number, number])[] = [
-  ["properties.paper.usLetter", 612, 792],
-  ["properties.paper.usLegal", 612, 1008],
-  ["properties.paper.tabloid", 792, 1224],
-  ["A3", 841.89, 1190.55],
-  ["A4", 595.28, 841.89],
-  ["A5", 419.53, 595.28],
-];
+/** Paper sizes in points, portrait: the one table Properties names pages from and Resize offers. */
+export const PAPER_SIZES = {
+  letter: { width: 612, height: 792 },
+  legal: { width: 612, height: 1008 },
+  tabloid: { width: 792, height: 1224 },
+  a3: { width: 841.89, height: 1190.55 },
+  a4: { width: 595.28, height: 841.89 },
+  a5: { width: 419.53, height: 595.28 },
+} as const;
+
+/** One of them. */
+export type PaperSize = keyof typeof PAPER_SIZES;
+
+/** Each paper's name: the ISO ones by their own names, the others from the catalogue. */
+const PAPER_NAMES: Readonly<Record<PaperSize, string>> = {
+  letter: "properties.paper.usLetter",
+  legal: "properties.paper.usLegal",
+  tabloid: "properties.paper.tabloid",
+  a3: "A3",
+  a4: "A4",
+  a5: "A5",
+};
+
+/** The paper a page size is, either way up (within 2 pt), or undefined. */
+export function paperOf(width: number, height: number): PaperSize | undefined {
+  const [short, long] = width <= height ? [width, height] : [height, width];
+  return (Object.keys(PAPER_SIZES) as PaperSize[]).find((name) => {
+    const paper = PAPER_SIZES[name];
+    return Math.abs(paper.width - short) < 2 && Math.abs(paper.height - long) < 2;
+  });
+}
 
 /** A page size's name: a paper (`A4`, `US Letter`, either way up), else its size in inches. */
 export function paperName(width: number, height: number): string {
-  const [short, long] = width <= height ? [width, height] : [height, width];
-  const paper = PAPERS.find(([, w, h]) => Math.abs(w - short) < 2 && Math.abs(h - long) < 2);
-  if (paper !== undefined) return paper[0].startsWith("properties.") ? message(paper[0] as MessageId) : paper[0];
+  const paper = paperOf(width, height);
+  if (paper !== undefined) {
+    const name = PAPER_NAMES[paper];
+    return name.startsWith("properties.") ? message(name as MessageId) : name;
+  }
   const inches = (pt: number) => Math.round((pt / 72) * 100) / 100;
   return message("properties.paper.inches", { width: inches(width), height: inches(height) });
 }

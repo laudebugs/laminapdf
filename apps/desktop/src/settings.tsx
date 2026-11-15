@@ -1,15 +1,25 @@
-// The desktop app's Settings dialog (S07): for now its Files section, with the choices the main
-// process keeps in preferences.json and acts on (src-tauri/src/prefs.rs): remembering recent
-// files, which turned off clears the app's and the OS's recent lists and the last session,
-// reopening the last session (which needs the recent files remembered), reloading open files that
-// change on disk, opening files in tabs or windows, and opening a file that is open already; its
+// The desktop app's Settings dialog (S07): its Files section, with the choices the main process
+// keeps in preferences.json and acts on (src-tauri/src/prefs.rs): remembering recent files, which
+// turned off clears the app's and the OS's recent lists and the last session, reopening the last
+// session (which needs the recent files remembered), reloading open files that change on disk,
+// opening files in tabs or windows, and opening a file that is open already; Appearance and
+// accessibility's Motion, kept beside them so every window shares it (motion.ts applies it); its
 // Updates section (S06) and its Privacy section (crash reports). The full settings page adds its
 // other sections to the same registry.
 
-import { message, SettingsDialog, SettingsRegistry, Switch, useSettingsSection } from "@laminapdf/ui";
+import {
+  type Motion,
+  MotionField,
+  message,
+  SettingsDialog,
+  SettingsRegistry,
+  Switch,
+  useSettingsSection,
+} from "@laminapdf/ui";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { PrivacySettings, privacySummary, useCrashSetting } from "./crashes.tsx";
 import type { DesktopShell } from "./engine/desktop-engine-client.ts";
+import { useMotion } from "./motion.ts";
 import { words } from "./update-words.ts";
 import { type DesktopUpdates, UpdateSettings, updatesSummary } from "./updates.tsx";
 
@@ -23,7 +33,12 @@ interface Preferences {
   readonly allowDuplicates: boolean;
   /** Whether the last session's windows and tabs come back on launch; kept only with `rememberRecent`. */
   readonly reopenLast: boolean;
+  /** Settings › Motion: the system's, or reduced whatever it says. */
+  readonly motion: Motion;
 }
+
+/** The main process's event with the preferences, after any window changed them (`commands.rs`). */
+const PREFERENCES_EVENT = "preferences://changed";
 
 /** Until the main process answers, and outside the shell: its defaults. */
 const DEFAULTS: Preferences = {
@@ -32,6 +47,7 @@ const DEFAULTS: Preferences = {
   openIn: "tabs",
   allowDuplicates: false,
   reopenLast: true,
+  motion: "system",
 };
 
 /** What the settings give the app. */
@@ -59,7 +75,11 @@ export function useDesktopSettings(
   // Outside the shell nothing updates, so the Updates section goes to a registry nobody shows.
   const [unshown] = useState(() => new SettingsRegistry());
   useEffect(() => {
-    shell?.invoke<Preferences>("preferences").then(setPreferences, reportError);
+    if (shell === undefined) return;
+    shell.invoke<Preferences>("preferences").then(setPreferences, reportError);
+    // A change made in another window (src-tauri's PREFERENCES_EVENT) shows here too.
+    const unlisten = shell.listen<Preferences>(PREFERENCES_EVENT, setPreferences);
+    return () => void unlisten.then((stop) => stop(), reportError);
   }, [shell]);
   const change = useCallback(
     (value: Preferences) => {
@@ -74,6 +94,18 @@ export function useDesktopSettings(
     message("settings.files"),
     () => <FileSettings preferences={preferences} onChange={change} />,
     { shows: [preferences], summary: () => filesSummary(preferences) },
+  );
+  useMotion(shell, preferences.motion);
+  useSettingsSection(
+    registry,
+    "appearance",
+    message("settings.appearance"),
+    () => (
+      <div className="paper-settings-fields">
+        <MotionField value={preferences.motion} onChange={(motion) => change({ ...preferences, motion })} />
+      </div>
+    ),
+    { shows: [preferences], summary: () => message(`appearance.motion.${preferences.motion}`) },
   );
   // S06: Settings › Updates, inside the shell only (the main process owns updates).
   useSettingsSection(

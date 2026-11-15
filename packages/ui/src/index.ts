@@ -219,6 +219,8 @@ export {
   DEFAULT_APPEARANCE,
   MOTIONS,
   type Motion,
+  MotionField,
+  type MotionFieldProps,
   parseAppearance,
   UI_THEMES,
   type UiTheme,

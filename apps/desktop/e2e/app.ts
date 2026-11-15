@@ -306,7 +306,7 @@ export async function runCommand(title: string): Promise<void> {
   await $(`//*[@role="option"][normalize-space(.) = "${title}" or .//*[normalize-space(.) = "${title}"]]`).click();
 }
 
-/** The window's tabs' names, in order; the strip shows from two tabs on. */
+/** The window's tabs' names, in order; the strip shows from the first tab on. */
 export async function tabNames(): Promise<string[]> {
   return browser.execute(() =>
     Array.from(globalThis.document.querySelectorAll('[role="tab"]'), (tab) => tab.textContent ?? ""),

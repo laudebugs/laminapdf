@@ -1,4 +1,3 @@
 {
-  "apps/web/src/app.css": ["duration: animation: 2s", "easing: animation: ease-out"],
-  "apps/desktop/src/app.css": ["cursor: pointer"]
+  "apps/web/src/app.css": ["duration: animation: 2s", "easing: animation: ease-out"]
 }

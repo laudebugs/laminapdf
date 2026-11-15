@@ -79,6 +79,7 @@ function newEditState(source: RenderSource, renderLimits: RenderOpenOptions["lim
     session: newSession(),
     order: undefined,
     reorders: new Map(),
+    relabels: new Set(),
     queue: Promise.resolve(),
   };
 }
@@ -122,6 +123,11 @@ export interface EditState {
    * draw as they did. Undo and redo report no page order, so these say when to read it.
    */
   readonly reorders: Map<number, boolean>;
+  /**
+   * The steps that changed the page labels, by ID. Undo and redo report no labels, so these say
+   * when to read every page's again.
+   */
+  readonly relabels: Set<number>;
   /** The edit calls running and waiting, one after another (edit.ts's `serial`). */
   queue: Promise<unknown>;
 }
