@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D7a](../ongoing/D7a-crash-reporting.md) |
+| Depends on | [D7a](../done/D7a-crash-reporting.md) |
 | ADRs | Follows ADR 0008 (the session, D4d) |
 | Branch | `feat/d7e-crash-recovered-tab-choice` |
 | PR title | `feat(desktop): choose which tabs to reopen after a crash` |
@@ -21,7 +21,7 @@ When Lamina PDF quits unexpectedly, the next launch should not reopen every tab 
 
 - [S08 Crash recovered](../../design/paper/desktop-shell.md#s08-crash-recovered): the layout, the states and the accessibility notes.
 - [D4d](../done/D4d-session-restore.md) and [D4f](../done/D4f-restore-notice-and-missing-marks.md): the session file, lazy restore and the restore notice.
-- [D7a](../ongoing/D7a-crash-reporting.md): `CrashReportDialog` and the question at launch; this todo puts the tab list in the same dialog.
+- [D7a](../done/D7a-crash-reporting.md): `CrashReportDialog` and the question at launch; this todo puts the tab list in the same dialog.
 
 ## Scope
 

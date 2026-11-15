@@ -3,10 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `D7a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D5a](../done/D5a-update-worker-and-adr-0014.md), [D5b](../done/D5b-updater-in-app.md), [D6b](../ready/D6b-release-workflow-and-linux-packages.md) |
+| Depends on | [D5a](./D5a-update-worker-and-adr-0014.md), [D5b](./D5b-updater-in-app.md) |
+| Dependency notes | D6b's part, the symbol archive, moved to [D7d](../ready/D7d-native-crash-minidumps-and-symbols.md), which depends on D6b instead. |
 | ADRs | Records the crash-backend decision (plan open question 2) as an amendment to ADR 0014 or a short new ADR (next free number). Follows ADR 0011 (privacy/retention, web C2), ADR 0008 (engine process) |
 | Branch | `feat/d7a-crash-reporting` |
 | PR title | `feat(desktop): add opt-in, scrubbed crash and panic reporting` |
@@ -108,8 +109,8 @@ These differ from the text above:
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

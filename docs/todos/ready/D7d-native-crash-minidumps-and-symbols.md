@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D6b](./D6b-release-workflow-and-linux-packages.md), [D7a](../ongoing/D7a-crash-reporting.md) |
+| Depends on | [D6b](./D6b-release-workflow-and-linux-packages.md), [D7a](../done/D7a-crash-reporting.md) |
 | ADRs | Follows [ADR 0014 §10](../../decisions/0014-desktop-distribution.md#10-crash-reports) (crash reports), ADR 0008 §5 (the engine's sandbox) |
 | Branch | `feat/d7d-native-crash-minidumps` |
 | PR title | `feat(desktop): report native crashes from minidumps processed on the computer` |
@@ -19,7 +19,7 @@ D7a reports panics and how an engine ended, but a native crash (a segmentation f
 
 ## Context
 
-- [D7a](../ongoing/D7a-crash-reporting.md): the report, its schema (`apps/updates/schemas/crash-report.schema.json`: `modules` and native frames wait for this todo), the scrubber, consent and upload. Read its "As built" notes.
+- [D7a](../done/D7a-crash-reporting.md): the report, its schema (`apps/updates/schemas/crash-report.schema.json`: `modules` and native frames wait for this todo), the scrubber, consent and upload. Read its "As built" notes.
 - Crates (licence-check each): `crash-handler` and `minidumper` (Embark, MIT OR Apache-2.0) for out-of-process capture; `minidump`, `minidump-processor` and `minidump-unwind` (rust-minidump, MIT) to process a dump locally.
 - **Privacy:** a raw minidump holds stack and possibly heap memory, so possibly document bytes and paths. It is never uploaded; only the processed, allow-listed fields are.
 - The engine's sandbox (D2c) may block the socket the crash handler needs; connect before the lock-down.
