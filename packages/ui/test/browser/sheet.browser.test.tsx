@@ -13,7 +13,7 @@ import {
   ToastQueue,
   ToastRegion,
 } from "../../src/index.ts";
-import { cleanup, focused, renderIn } from "./render.tsx";
+import { cleanup, focused, renderIn, settled } from "./render.tsx";
 
 afterEach(() => {
   cleanup();
@@ -195,7 +195,8 @@ describe("BottomSheet", () => {
     await userEvent.click(document.querySelector("[aria-label='Resize sheet']") as HTMLElement);
     expect(sheet()?.dataset.detent).toBe("large");
     await userEvent.click(document.querySelector("[aria-label='Close pages']") as HTMLElement);
-    expect(sheet()).toBeNull();
+    // Polled: it plays its exit before it leaves the page.
+    await expect.poll(() => sheet()).toBeNull();
     await userEvent.click(host.querySelector("button") as HTMLElement);
     expect(sheet()?.dataset.detent).toBe("medium");
   });
@@ -220,7 +221,8 @@ describe("BottomSheet", () => {
     await drag(80, FLICK);
     expect(sheet()?.dataset.detent).toBe("medium");
     await drag(80, FLICK);
-    expect(sheet()).toBeNull();
+    // Polled: it plays its exit before it leaves the page.
+    await expect.poll(() => sheet()).toBeNull();
     expect(onClosed).toHaveBeenCalledOnce();
   });
 
@@ -271,7 +273,8 @@ describe("BottomSheet", () => {
       host.closest("[inert]") ?? host.querySelector("[inert]") ?? host.parentElement?.closest("[inert]"),
     ).not.toBeNull();
     await userEvent.keyboard("{Escape}");
-    expect(sheet()).toBeNull();
+    // Polled: an overlay plays its exit before it leaves the page.
+    await expect.poll(() => sheet()).toBeNull();
     await expect.poll(focused).toBe(host.querySelector("button"));
   });
 
@@ -391,11 +394,13 @@ describe("BottomSheet", () => {
     expect(z(menu)).toBe(50);
     expect(z(document.querySelector(".paper-toast-region"))).toBe(60);
     await userEvent.keyboard("{Escape}");
-    expect(document.querySelector("[role=menu]")).toBeNull();
+    // Polled: it plays its exit before it leaves the page.
+    await expect.poll(() => document.querySelector("[role=menu]")).toBeNull();
     expect(sheet()).not.toBeNull();
     await expect.poll(focused).toBe(sort);
     await userEvent.keyboard("{Escape}");
-    expect(sheet()).toBeNull();
+    // Polled: it plays its exit before it leaves the page.
+    await expect.poll(() => sheet()).toBeNull();
   });
 });
 
@@ -448,7 +453,8 @@ describe("Dialog on a phone", () => {
       expect((document.querySelector("[role=dialog] input") as HTMLInputElement).value).toBe("12");
       await userEvent.keyboard("{Escape}");
       await userEvent.click(host.querySelector("button") as HTMLElement);
-      expect(sheet()).toBeNull();
+      // Polled: an overlay plays its exit before it leaves the page.
+      await expect.poll(() => sheet()).toBeNull();
       expect(document.querySelector(".paper-dialog")).not.toBeNull();
     } finally {
       await page.viewport(width, height);
@@ -458,6 +464,7 @@ describe("Dialog on a phone", () => {
 
 describe.each(["light", "dark", "high-contrast"] as const)("axe with a sheet open, %s theme", (theme) => {
   const check = async () => {
+    await settled();
     const result = await axe.run(document.body, {
       runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] },
     });

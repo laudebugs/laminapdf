@@ -6,6 +6,7 @@
 import { MOTION } from "@laminapdf/tokens";
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Toast, type ToastAction } from "../components/notice.js";
+import { Leaving } from "./presence.js";
 
 /** At most this many toasts show; a new one pushes the oldest out. */
 const MAX_VISIBLE = 3;
@@ -104,6 +105,18 @@ export function ToastRegion({ queue, "aria-label": label }: ToastRegionProps): R
     if (returnTo.current?.isConnected === true) returnTo.current.focus();
     returnTo.current = null;
   }, [entries, focused]);
+  // A toast about to leave turns inert, which would drop a focused action's focus to the page:
+  // focus goes back where it came from first, before the inert toast paints, as it does once a
+  // toast is gone (above).
+  const [leavings, setLeavings] = useState(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a toast starting to leave is what to check after.
+  useLayoutEffect(() => {
+    // Only when focus is in the toast that is leaving (marked data-exiting by now), not in another.
+    if (leavings === 0 || document.activeElement?.closest(".paper-toast[data-exiting]") == null) return;
+    if (returnTo.current?.isConnected === true) returnTo.current.focus();
+    returnTo.current = null;
+    setFocused(false);
+  }, [leavings]);
   return (
     <section
       ref={region}
@@ -127,46 +140,76 @@ export function ToastRegion({ queue, "aria-label": label }: ToastRegionProps): R
     >
       <div role="status" className="paper-toast-list">
         {entries.map((entry) => (
-          <TimedToast key={entry.key} entry={entry} paused={paused} onDone={() => queue.remove(entry.key)} />
+          <TimedToast
+            key={entry.key}
+            entry={entry}
+            paused={paused}
+            onLeaving={() => setLeavings((n) => n + 1)}
+            onDone={() => queue.remove(entry.key)}
+          />
         ))}
       </div>
     </section>
   );
 }
 
+interface TimedToastProps {
+  entry: Entry;
+  paused: boolean;
+  /** Called as the toast starts to leave, before it turns inert. */
+  onLeaving: () => void;
+  /** Called once it has left: the queue drops it. */
+  onDone: () => void;
+}
+
 /** One toast with its own timer, which stops while `paused` and resumes with the time it had left. */
-function TimedToast({ entry, paused, onDone }: { entry: Entry; paused: boolean; onDone: () => void }): ReactNode {
+function TimedToast({ entry, paused, onLeaving, onDone }: TimedToastProps): ReactNode {
   // The compiler can't follow the latest-value ref kept here for effects (useEffectEvent could replace it).
   "use no memo";
   const remaining = useRef(entry.options.timeout ?? MOTION.toast);
-  const done = useRef(onDone);
-  done.current = onDone;
+  // Done is the toast leaving: it fades out for the panel's exit time, then leaves the queue.
+  const [leaving, setLeaving] = useState(false);
+  const leave = useRef(onDone);
+  leave.current = onDone;
+  const starting = useRef(onLeaving);
+  starting.current = onLeaving;
+  const done = useRef(() => {
+    starting.current();
+    setLeaving(true);
+  });
   useEffect(() => {
-    if (paused || !(remaining.current <= LONGEST_TIMER)) return;
+    if (!leaving) return;
+    const timer = setTimeout(() => leave.current(), MOTION["exit-panel"]);
+    return () => clearTimeout(timer);
+  }, [leaving]);
+  useEffect(() => {
+    if (paused || leaving || !(remaining.current <= LONGEST_TIMER)) return;
     const started = performance.now();
     const timer = setTimeout(() => done.current(), remaining.current);
     return () => {
       clearTimeout(timer);
       remaining.current -= performance.now() - started;
     };
-  }, [paused]);
+  }, [paused, leaving]);
   const { message, action, dismissLabel } = entry.options;
   return (
-    <Toast
-      {...(dismissLabel === undefined ? {} : { dismiss: { label: dismissLabel, onPress: () => done.current() } })}
-      {...(action === undefined
-        ? {}
-        : {
-            action: {
-              label: action.label,
-              onPress: () => {
-                action.onPress();
-                done.current();
+    <Leaving leaving={leaving}>
+      <Toast
+        {...(dismissLabel === undefined ? {} : { dismiss: { label: dismissLabel, onPress: () => done.current() } })}
+        {...(action === undefined
+          ? {}
+          : {
+              action: {
+                label: action.label,
+                onPress: () => {
+                  action.onPress();
+                  done.current();
+                },
               },
-            },
-          })}
-    >
-      {message}
-    </Toast>
+            })}
+      >
+        {message}
+      </Toast>
+    </Leaving>
   );
 }

@@ -357,12 +357,14 @@ export function LinkPanel({ anchor, onDismiss, children }: LinkPanelProps): Reac
         data-side={place?.side}
         style={place === null ? { visibility: "hidden" } : { top: place.top, left: place.left }}
       >
-        <header className="paper-link-panel-header">
+        {/* A division, not a <header>: the dialog role drops the section's scope, so a header here
+            would be a second banner beside the page's top bar. */}
+        <div className="paper-link-panel-header">
           <h2 className="paper-link-panel-title">{laterMessage("link.panel")}</h2>
           <Button variant="ghost" size={30} onPress={dismiss}>
             {laterMessage("link.done")}
           </Button>
-        </header>
+        </div>
         {children}
       </section>
     </LayerScope>,

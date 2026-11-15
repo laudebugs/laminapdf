@@ -48,8 +48,12 @@ windows = { workspace = true, features = [
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = { workspace = true }
+# Linux's update policy file, /etc/lamina/policy.json.
+serde_json = { workspace = true }
 
 [dev-dependencies]
+# The policy file's parser is tested on every OS.
+serde_json = { workspace = true }
 # The print test reads its printed PDF back (tests only: the main process links no parser).
 laminapdf = { workspace = true }
 

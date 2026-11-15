@@ -76,14 +76,14 @@
   }
 
   .paper-document-tab-label[data-draggable] {
-    cursor: grab;
+    cursor: var(--paper-cursor-grab);
   }
 
   /* Every element, so nothing under the pointer shows its own cursor mid-drag. */
   :root[data-tab-dragging],
   :root[data-tab-dragging] * {
     /* biome-ignore lint/complexity/noImportantStyles: it must beat every control's own cursor while the pointer is held */
-    cursor: grabbing !important;
+    cursor: var(--paper-cursor-grabbing) !important;
   }
 
   .paper-document-tab-label {

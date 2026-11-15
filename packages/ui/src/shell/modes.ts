@@ -12,8 +12,10 @@ import type { ExternalStore } from "../state/hooks.js";
 export interface ShellMode {
   /** `read`, `comment`, `edit`. */
   readonly id: string;
-  /** Its name in the switcher ("Read mode"). */
+  /** Its name in the palette and menus ("Read mode"). */
   readonly title: string;
+  /** Its name on the switcher's button ("Read"); the title when left out. */
+  readonly label?: string;
   readonly icon?: IconName;
   /** The secondary toolbar while this mode is current; none for a mode without tools (Read). */
   readonly toolbar?: () => ReactNode;

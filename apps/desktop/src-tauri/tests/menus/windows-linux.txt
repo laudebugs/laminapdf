@@ -88,5 +88,5 @@
   Report an issue  <link:https://github.com/laudebugs/laminapdf/issues/new/choose>
   View licences (disabled)  <later:View licences>
   ---
-  Check for updates… (disabled)  <later:Check for updates…>
+  Check for updates… (disabled)  <cmd:app.check-for-updates>
   (About)

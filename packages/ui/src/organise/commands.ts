@@ -1,0 +1,64 @@
+// The Organise mode's page commands (Paper O06): insert blank pages, delete, duplicate, reverse and
+// Move to page…, each on the grid's selection, and Select all. The shell runs them (`delegated`): it
+// knows the selection and the pages, and asks before one a signature forbids. Their home is the
+// Organise toolbar and the page menu; Rotate left and right are the edit commands' (edit-commands.ts),
+// which turn the selection while Organise is the mode.
+
+import type { IconName } from "@laminapdf/icons";
+import type { CommandRegistry } from "../commands/registry.js";
+import type { Command, CommandContext, CommandId } from "../commands/types.js";
+import { blockedReason } from "../edit/outcome.js";
+import { laterMessage } from "../later-messages.js";
+
+/** The page commands Organise adds. */
+export const ORGANISE_COMMANDS = [
+  "pages.insert-blank",
+  "pages.delete",
+  "pages.duplicate",
+  "pages.reverse",
+  "pages.move-to",
+  "pages.select-all",
+] as const;
+
+/** One of them. */
+export type OrganiseCommand = (typeof ORGANISE_COMMANDS)[number];
+
+const ICONS: Partial<Record<OrganiseCommand, IconName>> = {
+  "pages.insert-blank": "insert-page",
+  "pages.delete": "delete",
+  "pages.duplicate": "copy",
+  "pages.move-to": "move-to-page",
+};
+
+/** Whether the session can take an edit now, and the shell gave the command a handler (Organise is open). */
+function available(id: CommandId) {
+  return (ctx: CommandContext): true | string => {
+    if (ctx.edits === undefined) return laterMessage("organise.unavailable");
+    const blocked = blockedReason(ctx.edits.getState().blocked);
+    if (blocked !== undefined) return blocked;
+    return ctx.actions?.[id] === undefined ? laterMessage("organise.inOrganise") : true;
+  };
+}
+
+function organiseCommand(id: OrganiseCommand): Command {
+  const icon = ICONS[id];
+  return {
+    id,
+    title: laterMessage(`command.${id}`),
+    keywords: ["page", "pages", "organise"],
+    group: "edit",
+    ...(icon === undefined ? {} : { icon }),
+    delegated: true,
+    home: ["organise-toolbar", "context-menu"],
+    enabled: available(id),
+    run: (ctx) => ctx.actions?.[id]?.(undefined),
+  };
+}
+
+/** Registers the Organise mode's page commands in `registry`; returns the function that removes them. */
+export function registerOrganiseCommands(registry: CommandRegistry): () => void {
+  const removers = ORGANISE_COMMANDS.map((id) => registry.register(organiseCommand(id)));
+  return () => {
+    for (const remove of removers) remove();
+  };
+}

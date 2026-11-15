@@ -6,6 +6,7 @@ import type { IconName } from "@laminapdf/icons";
 import { Icon } from "@laminapdf/icons/react";
 import type { ReactNode } from "react";
 import { Button as AriaButton } from "react-aria-components";
+import { exitingAttributes, useExiting } from "../overlays/presence.js";
 
 /** A notice's status colour. */
 export type NoticeTone = "neutral" | "positive" | "warning" | "danger";
@@ -63,8 +64,10 @@ export interface ToastProps {
  * reported.
  */
 export function Toast({ children, action, dismiss }: ToastProps): ReactNode {
+  // A toast that is leaving fades out and passes clicks and keys through (motion plan §3, 6).
+  const exiting = useExiting();
   return (
-    <div className="paper-toast">
+    <div className="paper-toast" {...exitingAttributes(exiting)}>
       <span>{children}</span>
       {action === undefined ? null : (
         <AriaButton className="paper-toast-action" onPress={action.onPress}>

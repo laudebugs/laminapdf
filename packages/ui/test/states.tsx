@@ -10,6 +10,8 @@ import {
   EditArea,
   HistoryPanel,
   LinkEditor,
+  OrganiseToolbar,
+  PageGrid,
   type SavePlanSlice,
   SaveStrip,
 } from "../src/editing.ts";
@@ -285,14 +287,39 @@ const fields: Example[] = [
     element: () => <TextInput label="Producer" defaultValue="Lamina PDF" isDisabled />,
   },
   {
+    component: "TextInput",
+    state: "read-only",
+    element: () => <TextInput label="Created" defaultValue="14 November 2026" isReadOnly />,
+  },
+  {
     component: "TextArea",
     state: "with text",
     element: () => <TextArea label="Note" defaultValue="Check the totals." />,
   },
   {
+    component: "TextArea",
+    state: "invalid",
+    element: () => <TextArea label="Note" defaultValue="" errorMessage="Write a note to add it" />,
+  },
+  {
+    component: "TextArea",
+    state: "read-only",
+    element: () => <TextArea label="Note" defaultValue="Checked by the auditor." isReadOnly />,
+  },
+  {
+    component: "TextArea",
+    state: "disabled",
+    element: () => <TextArea label="Note" defaultValue="Check the totals." isDisabled />,
+  },
+  {
     component: "Select",
     state: "chosen",
     element: () => <Select label="Paper size" options={OPTIONS} value="a4" onChange={noop} />,
+  },
+  {
+    component: "Select",
+    state: "disabled",
+    element: () => <Select label="Paper size" options={OPTIONS} value="a4" onChange={noop} isDisabled />,
   },
   {
     component: "Select",
@@ -315,10 +342,29 @@ const choices: Example[] = [
   { component: "Checkbox", state: "mixed", element: () => <Checkbox isIndeterminate>All pages</Checkbox> },
   { component: "Checkbox", state: "disabled", element: () => <Checkbox isDisabled>Locked</Checkbox> },
   {
+    component: "Checkbox",
+    state: "on, disabled",
+    element: () => (
+      <Checkbox defaultSelected isDisabled>
+        Locked
+      </Checkbox>
+    ),
+  },
+  {
     component: "RadioGroup",
     state: "one chosen",
     element: () => (
       <RadioGroup label="Pages" defaultValue="all">
+        <Radio value="all">All pages</Radio>
+        <Radio value="current">Current page</Radio>
+      </RadioGroup>
+    ),
+  },
+  {
+    component: "RadioGroup",
+    state: "disabled",
+    element: () => (
+      <RadioGroup label="Pages" defaultValue="all" isDisabled>
         <Radio value="all">All pages</Radio>
         <Radio value="current">Current page</Radio>
       </RadioGroup>
@@ -336,6 +382,16 @@ const choices: Example[] = [
   },
   { component: "Switch", state: "off", element: () => <Switch>Show thumbnails</Switch> },
   { component: "Switch", state: "on", element: () => <Switch defaultSelected>Show thumbnails</Switch> },
+  { component: "Switch", state: "disabled", element: () => <Switch isDisabled>Show thumbnails</Switch> },
+  {
+    component: "Switch",
+    state: "on, disabled",
+    element: () => (
+      <Switch defaultSelected isDisabled>
+        Show thumbnails
+      </Switch>
+    ),
+  },
 ];
 
 const pickers: Example[] = [
@@ -1158,6 +1214,72 @@ const OUTLINE: readonly OutlineTreeItem[] = [
   { id: "2", title: "3. Budget", page: "7", children: [{ id: "2.0", title: "Capital", page: "8", children: [] }] },
 ];
 
+/** Six pages of the Organise grid: letter pages, one landscape, labelled by number. */
+const GRID_PAGES = [1, 2, 3, 4, 5, 6].map((n) => ({
+  id: `p${n}.0`,
+  label: String(n),
+  width: n === 4 ? 792 : 612,
+  height: n === 4 ? 612 : 792,
+  drawn: "0",
+}));
+
+/** The grid's handlers, which the examples never call (its pictures stay white). */
+const GRID_ACTIONS = {
+  "aria-label": "Pages",
+  draw: async () => undefined,
+  onSelectionChange: noop,
+  onMove: noop,
+  onCommand: noop,
+  onOpen: noop,
+  menu: [],
+  onMenuAction: noop,
+  platform: "other" as const,
+};
+
+/** The Organise mode's handlers for its page commands, so its toolbar's buttons are enabled. */
+const ORGANISE_ACTIONS = Object.fromEntries(
+  [
+    "pages.insert-blank",
+    "pages.delete",
+    "pages.duplicate",
+    "pages.reverse",
+    "pages.move-to",
+    "pages.select-all",
+    "pages.rotate-left",
+    "pages.rotate-right",
+  ].map((id) => [id, noop]),
+);
+
+const organise: Example[] = [
+  {
+    component: "PageGrid",
+    state: "two pages selected, one landscape",
+    element: () => (
+      <div style={{ blockSize: 480 }}>
+        <PageGrid pages={GRID_PAGES} selected={new Set(["p2.0", "p3.0"])} {...GRID_ACTIONS} />
+      </div>
+    ),
+  },
+  {
+    component: "PageGrid",
+    state: "nothing selected, larger thumbnails",
+    element: () => (
+      <div style={{ blockSize: 480 }}>
+        <PageGrid pages={GRID_PAGES} selected={new Set()} scale={1.25} {...GRID_ACTIONS} />
+      </div>
+    ),
+  },
+  {
+    component: "OrganiseToolbar",
+    state: "two pages selected",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} organise actions={ORGANISE_ACTIONS}>
+        <OrganiseToolbar note="2 pages selected" scale={1} onScale={noop} platform="other" />
+      </WithCommands>
+    ),
+  },
+];
+
 export const EXAMPLES: readonly Example[] = [
   ...topBar,
   ...findBar,
@@ -1166,6 +1288,7 @@ export const EXAMPLES: readonly Example[] = [
   ...threads,
   ...bookmarks,
   ...links,
+  ...organise,
   ...saveStrip,
   ...buttons,
   ...documentTabs,

@@ -20,6 +20,7 @@ import type {
   PlannedSave,
   Reverted,
   SaveOptions,
+  Violation,
   XmpText,
 } from "@laminapdf/sdk";
 import type { EditHistory, EditResult, ReplayedStep, RevertedStep, SavedCopy } from "../protocol.js";
@@ -114,6 +115,8 @@ async function apply(ops: readonly Op[], id: number, signal: AbortSignal, label:
     createdOutlineItems: edited.createdOutlineItems,
     createdAnnotations: edited.createdAnnotations,
     outlineRepaired: edited.outlineRepaired,
+    ...(edited.references === undefined || edited.references.length === 0 ? {} : { references: edited.references }),
+    ...(edited.fields === undefined || edited.fields.length === 0 ? {} : { fields: edited.fields }),
   };
 }
 
@@ -431,6 +434,17 @@ async function reopen(opened: Open): Promise<void> {
   const old = opened.render;
   opened.render = next;
   old.close();
+}
+
+/**
+ * What saving document `id` with `ops` applied would break, before they apply: the signature
+ * restrictions each op violates, in order, so the reader can ask first (E2 plan §6).
+ */
+export function wouldViolate(ops: readonly Op[], id: number, signal: AbortSignal): Promise<Violation[]> {
+  const opened = current(id);
+  return serial(opened, () =>
+    opened.model.ensure(() => ops.flatMap((op) => opened.model.wouldViolate(op)), { signal }),
+  );
 }
 
 /** How saving document `id` with `options` would go: its constraint, signatures, mode and warnings. */
