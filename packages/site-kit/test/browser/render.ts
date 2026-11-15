@@ -1,10 +1,11 @@
 // Renders the site header in Node with Astro's container API, once for the website and once for
 // the docs site (with a tools slot), and the select with its label shown and hidden, and hands them
 // to the browser tests as HTML.
+import { readFileSync } from "node:fs";
 import { experimental_AstroContainer as AstroContainer } from "astro/container";
 import type { TestProject } from "vitest/node";
+import MenuSelect from "../../src/MenuSelect.astro";
 import { siteNav } from "../../src/nav.mjs";
-import Select from "../../src/Select.astro";
 import SiteHeader from "../../src/SiteHeader.astro";
 
 /** The website's page files in these tests: three of §7.39's links have their page. */
@@ -33,12 +34,15 @@ export default async function setup(project: TestProject): Promise<void> {
     slots: { tools: '<button type="button">Search</button>' },
   });
   project.provide("headers", { website, docs });
+  const icon = (name: string) => readFileSync(new URL(`../../../icons/svg/${name}.svg`, import.meta.url), "utf8");
   const options = [
-    { value: "dark", label: "Dark" },
-    { value: "light", label: "Light" },
-    { value: "auto", label: "Auto", selected: true },
+    { value: "light", label: "Light", icon: icon("sun") },
+    { value: "dark", label: "Dark", icon: icon("moon") },
+    { value: "auto", label: "Auto", icon: icon("laptop") },
   ];
-  const shown = await container.renderToString(Select, { props: { label: "Theme", options } });
-  const hidden = await container.renderToString(Select, { props: { label: "Select theme", hideLabel: true, options } });
+  const shown = await container.renderToString(MenuSelect, { props: { label: "Theme", options, value: "auto" } });
+  const hidden = await container.renderToString(MenuSelect, {
+    props: { label: "Select theme", hideLabel: true, options, value: "auto" },
+  });
   project.provide("selects", { shown, hidden });
 }

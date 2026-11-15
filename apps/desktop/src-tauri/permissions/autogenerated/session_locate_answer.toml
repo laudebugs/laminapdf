@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-session-locate-answer"
+description = "Enables the session_locate_answer command without any pre-configured scope."
+commands.allow = ["session_locate_answer"]
+
+[[permission]]
+identifier = "deny-session-locate-answer"
+description = "Denies the session_locate_answer command without any pre-configured scope."
+commands.deny = ["session_locate_answer"]
