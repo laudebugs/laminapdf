@@ -34,7 +34,7 @@ The desktop part of E1d: the edit session runs in the engine process as it runs 
 
 **Out of scope**
 
-- Saving in place: [E1i](./E1i-desktop-save-in-place.md).
+- Saving in place: [E1i](../ready/E1i-desktop-save-in-place.md).
 
 ## Tasks
 
