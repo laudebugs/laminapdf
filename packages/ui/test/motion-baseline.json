@@ -51,7 +51,6 @@
     "hover: .site-nav a:hover",
     "hover: .site-wordmark:hover"
   ],
-  "packages/site-kit/src/select.css": ["cursor: pointer"],
   "apps/web/src/app.css": ["duration: animation: 2s", "easing: animation: ease-out"],
   "apps/desktop/src/app.css": ["cursor: pointer"],
   "apps/docs/src/components/CopyMarkdown.astro": [

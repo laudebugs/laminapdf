@@ -5,13 +5,17 @@
 // title, tabs not shown when the engine restarts, and another window's tab dragged over this one
 // (`tab://drag-over`). A tab dragged off the strip goes where Rust finds the cursor when the drag
 // ends (`tab_drag_end`). The strip shows from two tabs on (S02); with one, the title bar carries the
-// name.
+// name. A tab whose file is missing carries a warning mark, and the strip's menu shows each tab's
+// page or "Not found". After a restore, the restore notice says what came back (`useRestoreNotice`).
 import {
   type CommandContext,
+  type DocumentTab,
   DocumentTabs,
+  type DocumentTabsProps,
   type KeyPlatform,
   message,
   type ReaderController,
+  RestoreNotice,
   type ToastQueue,
   useStoreState,
 } from "@laminapdf/ui";
@@ -24,6 +28,7 @@ import {
 } from "../engine/desktop-engine-client.ts";
 import { documentOf } from "../engine/open.ts";
 import { stopper } from "../engine/stopper.ts";
+import type { PageStore } from "./restore-notice.ts";
 import {
   ACTIVATE_EVENT,
   ARRIVED_EVENT,
@@ -31,9 +36,12 @@ import {
   DRAG_OVER_EVENT,
   type MoveTarget,
   type RestoredWindow,
+  type Tab,
   WINDOWS_CHANGED_EVENT,
   type WindowTabs,
 } from "./window-tabs.ts";
+
+const NO_PAGE: PageStore = { getState: () => ({ currentPage: 0 }), subscribe: () => () => undefined };
 
 /** Another window, as `window_list` gives it. */
 interface OtherWindow {
@@ -107,15 +115,20 @@ export function useTabStrip(
   reader: ReaderController,
   toasts: ToastQueue,
   keys: KeyPlatform,
-): { strip: ReactNode; actions: NonNullable<CommandContext["actions"]> } {
+  pages?: PageStore,
+): { strip: ReactNode; notice: ReactNode; actions: NonNullable<CommandContext["actions"]> } {
   useTabEvents(shell, tabs, reader, toasts);
   const state = useStoreState(tabs ?? NO_TABS, (s) => s);
+  const notice = useRestoreNotice(
+    tabs,
+    state.tabs.some((tab) => tab.missing === true),
+  );
   const others = useOtherWindows(shell, state.tabs.length);
   useWindowTitle(shell, tabs, state.active);
   const { move, actions } = useTabActions(shell, tabs, toasts);
   // From two tabs on (S02), or with one while other windows are open, so it can move there.
   const shows = state.tabs.length >= 2 || (state.tabs.length === 1 && others.length > 0);
-  if (tabs === undefined || !shows) return { strip: null, actions };
+  if (tabs === undefined || !shows) return { strip: null, notice, actions };
   // The moves act on the shown tab: none while nothing shows.
   const moves =
     state.active === undefined
@@ -128,10 +141,11 @@ export function useTabStrip(
           })),
         ];
   const strip = (
-    <DocumentTabs
-      tabs={state.tabs.map((tab) => ({ id: tab.id, title: documentOf(tab.file)?.name ?? tab.file.name }))}
+    <TabStrip
+      tabs={tabs}
+      pages={pages ?? NO_PAGE}
       active={state.active}
-      onActivate={(id) => void tabs.activate(id)}
+      onActivate={(id) => void tabs.choose(id)}
       onClose={(id) => void tabs.close(id)}
       onReorder={(ids) => tabs.reorder(ids)}
       onDragStart={(id) => tabs.dragStarted(id)}
@@ -148,8 +162,50 @@ export function useTabStrip(
       platform={keys}
     />
   );
-  return { strip, actions };
+  return { strip, notice, actions };
 }
+
+/**
+ * The strip over the window's tabs. It alone follows the viewer's page, for the shown tab's entry
+ * in its menu, so turning a page redraws the strip and not the window.
+ */
+function TabStrip({
+  tabs,
+  pages,
+  ...props
+}: Omit<DocumentTabsProps, "tabs"> & { tabs: WindowTabs; pages: PageStore }): ReactNode {
+  const state = useStoreState(tabs, (s) => s);
+  useStoreState(pages, (s) => s.currentPage);
+  return <DocumentTabs {...props} tabs={state.tabs.map((tab) => stripTab(tab, tabs.pageOf(tab)))} />;
+}
+
+/** A tab as the strip draws it: its name, and its 0-based `page` or its missing file in the menu. */
+function stripTab(tab: Tab, page: number | undefined): DocumentTab {
+  const title = documentOf(tab.file)?.name ?? tab.file.name;
+  if (tab.missing === true) return { id: tab.id, title, missing: true };
+  return page === undefined
+    ? { id: tab.id, title }
+    : { id: tab.id, title, detail: message("tabs.page", { page: page + 1 }) };
+}
+
+/**
+ * The restore notice under the top bar while it shows, with Show missing file (the first missing
+ * tab) while `anyMissing`, when the restore found any: a file found gone later has its own tab's page.
+ */
+function useRestoreNotice(tabs: WindowTabs | undefined, anyMissing: boolean): ReactNode {
+  const summary = useStoreState(tabs?.notice ?? NO_NOTICE, (s) => s);
+  if (tabs === undefined || summary === undefined) return undefined;
+  return (
+    <RestoreNotice
+      tabs={summary.tabs}
+      missing={summary.missing}
+      {...(anyMissing && summary.missing > 0 ? { onShowMissing: () => void tabs.showMissing() } : {})}
+      onDismiss={() => tabs.notice.dismiss()}
+    />
+  );
+}
+
+const NO_NOTICE = { getState: () => undefined, subscribe: () => () => undefined } as const;
 
 export const NO_TABS = {
   getState: () => ({ tabs: [], active: undefined }),
