@@ -12,7 +12,7 @@ This runbook tells the owner how to set up and look after the identities that si
 | Publisher shown on every OS | The owner's legal name, as on their government ID |
 | Windows signing path | **Azure Artifact Signing**, Public Trust, individual developer. The owner lives in the US or Canada, the only places Microsoft accepts individuals. |
 | Apple account | Apple Developer Program, **individual** membership, Team ID `35KBR7UHPZ` |
-| Updater keys, R2 buckets, ADR 0014 | Keys (release `AF48D217C8FBC9BB`, nightly `D8B5180692ABC3EF`), buckets and tokens done 2026-11-12; [ADR 0014](../decisions/0014-desktop-distribution.md) written by [D5a](../todos/done/D5a-update-worker-and-adr-0014.md) |
+| Updater keys, R2 buckets, ADR 0014 | Buckets and tokens done 2026-11-12; keys (release `34929FE857511973`, nightly `46010ED395B59CAF`) replaced 2026-11-15, before any release or nightly published, because the first release key's password didn't unlock it; [ADR 0014](../decisions/0014-desktop-distribution.md) written by [D5a](../todos/done/D5a-update-worker-and-adr-0014.md) |
 
 [ADR 0014 §6](../decisions/0014-desktop-distribution.md#6-signing-identities) records these answers, the Apple Team ID, the Azure account and profile, and the GPG fingerprints.
 
@@ -118,7 +118,7 @@ One key signs the AppImage, `.deb`, `.rpm`, the detached `.asc` files and `SHA25
 D5a's key ceremony makes two Tauri updater keys: one for releases and one for nightlies. Losing the release key strands every installed copy, because installed apps accept only updates that key signed.
 
 - [x] Confirm `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` exist in the `desktop-release` environment.
-- [x] Confirm the release key's offline backups exist in two places (owner, 2026-11-13: both updater keys).
+- [ ] Confirm the release key's offline backups exist in two places (both updater keys, replaced 2026-11-15; the first pair's backups were confirmed 2026-11-13).
 - [x] Confirm the nightly key exists in the `desktop-nightly` environment under the same two names, with different values and one backup.
 
 ### 1.8 GitHub `desktop-release` environment

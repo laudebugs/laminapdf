@@ -4,6 +4,7 @@
 - Date: 2026-11-12
 - Amended 2026-11-15 (D7a): §10 adds crash reports, which the same Worker receives ([desktop plan §8 Q2](../plans/desktop-app.md#8-open-questions)).
 - Amended 2026-11-15 ([D6c](../todos/ongoing/D6c-macos-signing-and-notarisation.md)): §6 records how macOS builds are signed: one build per architecture, the hardened runtime only with the Developer ID, PDFium signed before Tauri bundles, the `.dmg` notarised on its own, and macOS 13 as the oldest supported version.
+- Amended 2026-11-15: §7's updater keys replaced before anything published, because the first release key's password didn't unlock it.
 
 ## Context
 
@@ -90,8 +91,8 @@ An updater key is the one key whose loss a new certificate can't repair. The own
 
 | Key | minisign key ID | Signs | GitHub environment |
 | --- | --- | --- | --- |
-| Release | `AF48D217C8FBC9BB` | stable and beta | `desktop-release` (the owner approves every run) |
-| Nightly | `D8B5180692ABC3EF` | nightly only | `desktop-nightly` (no reviewer, `main` only) |
+| Release | `34929FE857511973` | stable and beta | `desktop-release` (the owner approves every run) |
+| Nightly | `46010ED395B59CAF` | nightly only | `desktop-nightly` (no reviewer, `main` only) |
 
 Their Tauri `pubkey` values, which D5b compiles into the apps' updater configuration, are in [`apps/updates/README.md`](../../apps/updates/README.md#updater-public-keys).
 
