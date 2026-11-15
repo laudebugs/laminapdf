@@ -1,6 +1,7 @@
 /* A page thumbnail (§7.6): a white page box with the thumbnail shadow and a hairline outline, its
    number 8 below; the current page gets a 2 px accent outline offset 3 and a bold number. The
-   button pads them 8 by 10 with radius 6, so hover, press and the focus ring cover box and number. */
+   button pads them 8 by 10 with radius 6, so hover, press and the focus ring cover box and number;
+   hover and press are the shared state layer (states.css). */
 @layer paper.components {
   .paper-thumbnail {
     display: inline-flex;
@@ -11,8 +12,7 @@
     padding-inline: var(--paper-space-10);
     border: 0;
     border-radius: var(--paper-radius-6);
-    background: transparent;
-    cursor: default;
+    background-color: transparent;
   }
 
   .paper-thumbnail-page {
@@ -56,14 +56,6 @@
   .paper-thumbnail[data-current] .paper-thumbnail-number {
     font-weight: 600;
     color: var(--paper-text);
-  }
-
-  .paper-thumbnail[data-hovered] {
-    background: var(--paper-hover);
-  }
-
-  .paper-thumbnail[data-pressed] {
-    background: var(--paper-pressed);
   }
 
   .paper-thumbnail[data-pressed] .paper-thumbnail-number {

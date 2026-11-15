@@ -2,8 +2,9 @@
 // "Copy as Markdown": copies the page's Markdown twin (Head.astro links it) for pasting into a chat.
 // The twin is fetched from this site only when the button is pressed. The clipboard write starts
 // inside the press, with the twin's text as a promise: Safari refuses a write that comes after an
-// await, outside the click. The button stays focusable while it works (aria-disabled, not disabled),
-// so a keyboard user keeps their place. The 404 page has no twin, so no button.
+// await, outside the click. The button stays focusable while it works (aria-disabled and aria-busy,
+// not disabled), so a keyboard user keeps their place. "Copied" clears after a moment, so the next
+// press says something new; a failure stays, with its link. The 404 page has no twin, so no button.
 import copyIcon from "@laminapdf/icons/svg/copy.svg?raw";
 import { decorativeIcon } from "@laminapdf/site-kit/icon";
 import { pageTwin } from "../../plugins/markdown.mjs";
@@ -14,7 +15,7 @@ const twin = pageTwin(Astro.url.pathname);
 {
   twin && (
     <lamina-copy-markdown class="copy-markdown" data-twin={twin} data-pagefind-ignore>
-      <button type="button">
+      <button type="button" class="site-control">
         <Fragment set:html={decorativeIcon(copyIcon, "copy-markdown-icon")} />
         Copy as Markdown
       </button>
@@ -39,6 +40,9 @@ const twin = pageTwin(Astro.url.pathname);
     return twinText(twin).then((blob) => blob.text().then((text) => navigator.clipboard.writeText(text)));
   }
 
+  /** How long "Copied" stays, as Expressive Code's "Copied!" on code blocks does. */
+  const COPIED_MS = 1500;
+
   /** Copies the page's Markdown twin when its button is pressed, and says how that went. */
   class LaminaCopyMarkdown extends HTMLElement {
     connectedCallback(): void {
@@ -46,13 +50,19 @@ const twin = pageTwin(Astro.url.pathname);
       const status = this.querySelector(".copy-markdown-status");
       const { twin } = this.dataset;
       if (button === null || status === null || twin === undefined) return;
+      let clear: ReturnType<typeof setTimeout> | undefined;
       button.addEventListener("click", () => {
         if (button.getAttribute("aria-disabled") === "true") return;
         button.setAttribute("aria-disabled", "true");
+        button.setAttribute("aria-busy", "true");
+        clearTimeout(clear);
         status.textContent = "";
         copy(twin)
           .then(() => {
             status.textContent = "Copied";
+            clear = setTimeout(() => {
+              status.textContent = "";
+            }, COPIED_MS);
           })
           .catch(() => {
             status.textContent = "Couldn't copy. Open the Markdown instead:";
@@ -61,7 +71,10 @@ const twin = pageTwin(Astro.url.pathname);
             link.textContent = twin;
             status.append(" ", link);
           })
-          .finally(() => button.removeAttribute("aria-disabled"));
+          .finally(() => {
+            button.removeAttribute("aria-disabled");
+            button.removeAttribute("aria-busy");
+          });
       });
     }
   }
@@ -77,7 +90,8 @@ const twin = pageTwin(Astro.url.pathname);
     margin-top: 0.75rem;
     font-size: var(--sl-text-sm);
   }
-  /* A secondary action: text in the muted colour, with no border or fill until it's hovered. */
+  /* A secondary action: text in the muted colour, with no border or fill until it's hovered or
+     pressed (the site kit's states.css: the layer, the hand, the busy arrow while it copies). */
   .copy-markdown button {
     display: inline-flex;
     align-items: center;
@@ -87,16 +101,16 @@ const twin = pageTwin(Astro.url.pathname);
     padding: 0.25rem 0.5rem;
     border: 0;
     border-radius: 0.25rem;
-    background: transparent;
+    background-color: transparent;
     color: var(--sl-color-gray-2);
-    cursor: pointer;
   }
-  .copy-markdown button:hover {
-    background: var(--sl-color-gray-6);
+  @media (hover: hover) and (pointer: fine) {
+    .copy-markdown button:hover {
+      color: var(--sl-color-white);
+    }
+  }
+  .copy-markdown button:active {
     color: var(--sl-color-white);
-  }
-  .copy-markdown button[aria-disabled="true"] {
-    cursor: progress;
   }
   .copy-markdown :global(.copy-markdown-icon) {
     flex: none;

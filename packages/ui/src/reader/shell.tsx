@@ -6,8 +6,9 @@
 // unless a tool's toolbar or the find bar replaces it (ADR 0024 §2); given its `layout`, focus mode
 // hides the mode's toolbar and keeps the one that replaced it until it is closed (§1).
 
-import { type ReactNode, useRef } from "react";
+import { type ReactNode, useLayoutEffect, useRef } from "react";
 import { message } from "../messages.js";
+import { Presence } from "../overlays/presence.js";
 import type { ShellLayout } from "../shell/layout.js";
 import type { ModeRegistry, ModesState } from "../shell/modes.js";
 import { usePhone } from "../shell/phone.js";
@@ -81,6 +82,13 @@ export function ReaderShell({
   const modeToolbar = useModeToolbar(modes);
   const toolbar = secondaryToolbar ?? (focus || modeToolbar === undefined ? undefined : modeToolbar());
   const canvas = useRef<HTMLElement>(null);
+  const inspectorShown = inspector !== undefined && inspector !== null && inspector !== false;
+  // The last inspector put on the page, for its exit once the app takes it off. Kept after commit,
+  // not in state: the app passes a new element every render, which state would render twice for.
+  const lastInspector = useRef<ReactNode>(null);
+  useLayoutEffect(() => {
+    if (inspectorShown) lastInspector.current = inspector;
+  });
   return (
     <div className="paper-reader-shell" data-focus={focus || undefined}>
       <SkipLink canvas={canvas} />
@@ -104,7 +112,10 @@ export function ReaderShell({
         <main ref={canvas} className="paper-reader-canvas" data-shortcut-scope="page" tabIndex={-1}>
           {children}
         </main>
-        {inspector}
+        {/* A closed inspector stays for its exit (Inspector shows its last content meanwhile). */}
+        <Presence value={inspectorShown} exit="panel">
+          {() => (inspectorShown ? inspector : lastInspector.current)}
+        </Presence>
       </div>
       {foot === undefined ? null : (
         <footer className="paper-reader-status" data-phone={phoneBar || undefined}>

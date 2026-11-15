@@ -1,7 +1,7 @@
 /* The window's document tabs (desktop shell S02): a 34 px strip over the top bar. Each tab is at
    most 220 px wide and at least 120, its label 13 px with an ellipsis, muted unless active; the
    active tab takes the top bar's `surface` and drops its bottom rule, so it joins the bar. The
-   close button shows on the active, hovered and focused tab. The strip scrolls sideways when the
+   close button shows on the active, hovered and focused tab (on touch, the tab a tap made active). The strip scrolls sideways when the
    tabs don't fit; its menu at the end lists them all. On touch every target grows to the touch
    minimum (`--ui-target`). A draggable tab shows the grab cursor; while one is dragged the whole
    page shows the grabbing cursor (the pointer is captured, so no other control reacts), and an
@@ -42,13 +42,9 @@
     border-block-end: var(--paper-border-width) solid var(--paper-hairline);
   }
 
-  .paper-document-tab:hover {
-    background: var(--paper-hover);
-  }
-
   .paper-document-tab[data-active] {
     border-block-end-color: transparent;
-    background: var(--paper-surface);
+    background-color: var(--paper-surface);
   }
 
   .paper-document-tab[data-dragging] {
@@ -98,7 +94,6 @@
     color: var(--paper-muted);
     text-overflow: ellipsis;
     white-space: nowrap;
-    cursor: default;
   }
 
   /* The title takes the ellipsis: the label is a flex row, with a missing file's mark before it. */
@@ -134,7 +129,7 @@
     padding: 0;
     border: 0;
     border-radius: var(--paper-radius-4);
-    background: none;
+    background-color: transparent;
     color: var(--paper-muted);
     visibility: hidden;
   }
@@ -145,14 +140,19 @@
   }
 
   .paper-document-tab[data-active] .paper-document-tab-close,
-  .paper-document-tab:hover .paper-document-tab-close,
   .paper-document-tab:focus-within .paper-document-tab-close {
     visibility: visible;
   }
 
-  .paper-document-tab-close:hover {
-    background: var(--paper-hover);
-    color: var(--paper-text);
+  /* Hover only where it is real (a tap leaves plain :hover on); its fill is the state layer. */
+  @media (hover: hover) and (pointer: fine) {
+    .paper-document-tab:hover .paper-document-tab-close {
+      visibility: visible;
+    }
+
+    .paper-document-tab-close:hover {
+      color: var(--paper-text);
+    }
   }
 
   .paper-document-tabs-menu {
@@ -161,12 +161,11 @@
     flex: none;
     inline-size: max(var(--paper-document-tab-strip-height), var(--ui-target));
     border: 0;
-    background: none;
+    background-color: transparent;
     color: var(--paper-muted);
   }
 
   .paper-document-tabs-menu[data-hovered] {
-    background: var(--paper-hover);
     color: var(--paper-text);
   }
 

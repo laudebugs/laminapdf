@@ -32,6 +32,7 @@ The sidebar is an explicit list in `astro.config.mjs`, in the order of the [qual
 `src/styles/paper.css` (Starlight's `customCss`) maps the design language's tokens (`--paper-*`) onto Starlight's `--sl-*` properties:
 - **Colours:** asides use Paper's accent, Plum, `warning` and `danger`, and the sidebar marks the current page as a selected row.
 - **Fonts:** self-hosted from `@laminapdf/fonts` (the CSP allows fonts from `'self'` only); their provenance and OFL licences are in [its README](../../packages/fonts/README.md).
+- **States:** the site kit's [`base.css` and `states.css`](../../packages/site-kit/README.md#the-states), loaded before `paper.css`, give both sites design language §7.0's states. The docs' own controls (Copy as Markdown, the runner's buttons, the contents button) take its `site-control` class. `paper.css` gives Starlight's controls the same states (its tabs, sidebar, contents rail, pagination, hero buttons, search and menu button) and draws search as disabled until it has loaded. `e2e/states.e2e.test.ts` checks every clickable element's cursor on pages of each kind, at desktop and phone widths, and that the sidebar's caret turns at once under reduced motion.
 
 When the design language's tokens change, change them here too.
 
@@ -113,6 +114,7 @@ What depends on Starlight's internals, and why each exists:
 | `src/styles/diagrams.css` | `--sl-text-sm` | The diagrams' labels at Starlight's small text size |
 | `src/content.config.ts`, `src/pages/reference/codes/[code].astro` | Starlight's loaders and schema, and `StarlightPage` | The docs collection, and the code pages built outside it |
 | `src/styles/paper.css` | 46 of Starlight's `--sl-*` properties, and Starlight's classes and attributes: `.sl-markdown-content`, `.sl-container`, `.header`, `.sidebar-content`, `.right-sidebar`, `.right-sidebar-container`, `.right-sidebar-panel`, `.pagination-links`, `.main-pane`, `[data-has-sidebar]`, `[data-has-toc]` | The Paper look ([Look](#look)); a renamed class or property fails silently, so compare the pages by eye |
+| `src/styles/paper.css`, the states | The markup of Starlight's controls: `.tab > [role="tab"]`, `.sidebar-content` links and `summary`, `starlight-toc a`, `mobile-starlight-toc`, `.pagination-links a`, `.sl-link-button`, `button[data-open-modal]` (and its `disabled` until search loads), `.sl-menu-button`, the sidebar's `.caret`; Expressive Code's `.copy .feedback` | Hover, pressed, the cursor, the focus ring's inset offset and the underlined current page on controls Starlight draws, and its disabled search drawn as disabled; written against Starlight 0.42.8 and Expressive Code 0.44.3. `e2e/states.e2e.test.ts` checks the cursors and the caret under reduced motion, so a renamed class fails there |
 
 Starlight's documented components (`Code`, `Tabs`, `TabItem` from `@astrojs/starlight/components`) are its public API and need no row. Add a row when a change adds an override, imports any other part of `@astrojs/starlight/` or `virtual:starlight/`, styles Starlight's markup or uses an `--sl-*` property, and remove it when the dependency goes.
 

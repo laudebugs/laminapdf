@@ -173,33 +173,41 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
         </figure>
         {source !== undefined && (
           <lamina-run class="example-run" data-file={ts} data-source={source} data-name={`${first.stem}.pdf`}>
-            <button type="button" class="run-open">
+            <button type="button" class="run-open site-control">
               <Fragment set:html={icon(playIcon)} />
               Edit and run
             </button>
             <div class="run-bar" hidden>
-              <button type="button" class="run-run">
+              {/* While it runs, Run says so and stays focusable (editor.ts's busy): both labels share one
+                  cell, so the button keeps the longer one's width. */}
+              <button type="button" class="run-run site-control">
                 <Fragment set:html={icon(playIcon)} />
-                Run
+                <span class="run-label">
+                  <span>Run</span>
+                  <span hidden>Running…</span>
+                </span>
               </button>
-              <button type="button" class="run-reset">
+              <button type="button" class="run-reset site-control">
                 <Fragment set:html={icon(resetIcon)} />
                 Reset
               </button>
-              <button type="button" class="run-download" hidden>
+              <button type="button" class="run-download site-control" hidden>
                 <Fragment set:html={icon(downloadIcon)} />
                 Download PDF
               </button>
               {/* At the bar's far end (todos Q4r, Q4s): these two change the code, not the PDF, and wrap
                   to the next row together. */}
               <div class="run-code-tools">
-                <button type="button" class="run-wrap">
+                <button type="button" class="run-wrap site-control">
                   <Fragment set:html={icon(wrapIcon)} />
                   Wrap lines
                 </button>
-                <button type="button" class="run-format">
+                <button type="button" class="run-format site-control">
                   <Fragment set:html={icon(formatIcon)} />
-                  Format
+                  <span class="run-label">
+                    <span>Format</span>
+                    <span hidden>Formatting…</span>
+                  </span>
                 </button>
               </div>
             </div>
@@ -265,8 +273,12 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
       const picture = example?.querySelector<HTMLElement>(".example-first");
       const side = this.parentElement;
       if (code == null || shown == null || picture == null || side === null) return;
+      // While the editor loads the button says so and keeps the focus (aria-disabled and aria-busy,
+      // not disabled); a press then does nothing.
       const open = async () => {
-        button.disabled = true;
+        if (button.getAttribute("aria-busy") === "true") return;
+        button.setAttribute("aria-disabled", "true");
+        button.setAttribute("aria-busy", "true");
         button.lastChild?.replaceWith(" Loading the editor…");
         let editor: typeof import("../../runner/editor.ts");
         try {
@@ -274,7 +286,8 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
         } catch {
           // A deploy may have replaced the editor's file since the page loaded: try again.
           button.lastChild?.replaceWith(" Couldn't load the editor; try again");
-          button.disabled = false;
+          button.removeAttribute("aria-disabled");
+          button.removeAttribute("aria-busy");
           return;
         }
         button.removeEventListener("click", open);
@@ -566,14 +579,22 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
     inset-block: 0;
     left: 50%;
     width: var(--paper-border-width);
-    background: var(--paper-hairline);
+    background-color: var(--paper-hairline);
     transform: translateX(-50%);
+    /* The line's colour fades as a hover does (design language §7.0); its width changes at once. */
+    transition: background-color var(--paper-duration-state-out) var(--paper-ease-standard);
   }
-  .example-split:hover::before,
+  @media (hover: hover) and (pointer: fine) {
+    .example-split:hover::before {
+      width: 3px;
+      background-color: var(--paper-accent);
+      transition-duration: var(--paper-duration-state-in);
+    }
+  }
   .example-split:focus-visible::before,
   :global(.example-resizing) .example-split::before {
     width: 3px;
-    background: var(--paper-accent);
+    background-color: var(--paper-accent);
   }
   /* While the divider moves, the pointer keeps its shape over the code and the page, and no text gets selected. */
   :global(.example-resizing),
@@ -628,6 +649,8 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
     align-items: center;
     margin-top: var(--paper-space-8);
   }
+  /* The buttons take the site kit's states.css (`site-control`): the hand, the hover and pressed
+     layer over their fill, and the busy arrow while they work. */
   .run-open,
   .run-bar button {
     display: inline-flex;
@@ -639,15 +662,14 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
     padding: var(--paper-space-4) var(--paper-space-12);
     border: var(--paper-border-width) solid var(--paper-control-border);
     border-radius: var(--paper-radius-4);
-    background: var(--paper-raised);
+    background-color: var(--paper-raised);
     color: var(--paper-text);
-    cursor: pointer;
   }
   /* Wrap lines while pressed: the accent's tint and border, as a pressed tool toggle looks. A border,
      not an outline, so the focus ring (the page's :focus-visible outline) still shows. */
   .run-bar button[aria-pressed="true"] {
     border-color: var(--paper-accent);
-    background: var(--paper-accent-tint);
+    background-color: var(--paper-accent-tint);
     color: var(--paper-accent);
   }
   /* Wrap lines and Format change the code, not the PDF: together at the bar's far end (todos Q4r, Q4s). */
@@ -662,12 +684,24 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
   .run-bar[hidden] {
     display: none;
   }
+  /* Download keeps its place until a run makes a PDF, so its arrival moves nothing in the bar. */
+  .run-bar .run-download[hidden] {
+    display: inline-flex;
+    visibility: hidden;
+  }
+  /* A button's labels in one cell: the one shown, and the other, hidden, keeping its width. */
+  .run-label {
+    display: inline-grid;
+  }
+  .run-label > span {
+    grid-area: 1 / 1;
+  }
+  .run-label > span[hidden] {
+    display: inline;
+    visibility: hidden;
+  }
   .example :global(.run-icon) {
     flex: none;
-  }
-  .run-open:disabled,
-  .run-bar button:disabled {
-    cursor: progress;
   }
   .example :global(.run-status) {
     margin: var(--paper-space-8) 0 0;

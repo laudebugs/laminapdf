@@ -20,6 +20,13 @@ import { type CopyMode, copySelection } from "./copy.js";
 import { layoutSpans, type Piece, type SpanSpec } from "./spans.js";
 import { StructureLayer } from "./structure-layer.js";
 
+/**
+ * The CSS custom property that sets the cursor over the text layer's words: set on the viewer's
+ * root (or any element above the layer), it replaces the I-beam, as a tool that selects no text
+ * does with its own cursor. Unset, the words show the I-beam.
+ */
+export const TEXT_CURSOR_PROPERTY = "--lamina-text-cursor";
+
 /** What the text layer needs of its viewer. */
 export interface TextLayerHost {
   /** The viewer's root: where selections start, and where the structure tree lives. */
@@ -272,7 +279,9 @@ export class TextLayer implements PageLayer {
         fontFamily: "sans-serif",
         whiteSpace: "pre",
         color: "transparent",
-        cursor: "text",
+        // The I-beam, unless the viewer's root names another cursor for the text: a tool that
+        // selects no text (a creation tool, the hand) shows its own over the page's words.
+        cursor: `var(${TEXT_CURSOR_PROPERTY}, text)`,
         transformOrigin: "0 0",
         ...(this.#options.outline === true ? { outline: "1px solid rgb(220 0 0 / 0.7)" } : {}),
       });

@@ -7,7 +7,9 @@
 // that leaves the margin aborts its renders, and a result that arrives for it anyway is dropped,
 // never drawn. Zoom keeps the document point under the cursor (or the viewport centre) where it
 // is; during a gesture the canvases are stretched by CSS and the sharp re-render waits until the
-// gesture settles. Framework-free: UI layers read `getState()`, `subscribe()` and the events.
+// gesture settles. Each page's shell names its render state in `data-render` (placeholder, low,
+// sharp, error) for styles to follow. Framework-free: UI layers read `getState()`, `subscribe()`
+// and the events.
 
 import { type PageAppearance, type PixelRect, pagePixels } from "@laminapdf/render";
 import type { Op, PageInfo, Target } from "@laminapdf/sdk";
@@ -284,6 +286,15 @@ interface PageView {
   waiting: boolean;
   /** Bumped by an abort: an older pass's results are dropped. */
   pass: number;
+}
+
+/**
+ * Sets `view`'s render state, which its shell's `data-render` names too, so styles can follow: the
+ * reader fades a page's canvas in from its paper, and ends that fade once the page is sharp.
+ */
+function setRenderState(view: PageView, state: PageRenderState): void {
+  view.state = state;
+  view.shell.dataset.render = state;
 }
 
 function isAbort(e: unknown): boolean {
@@ -1116,10 +1127,10 @@ export class Viewer {
     if (repaint || view.state === "error") {
       this.#releaseDetail(view);
       view.painted = "";
-      view.state = "placeholder";
+      setRenderState(view, "placeholder");
     } else {
       view.detail?.tiles.clear();
-      if (view.state !== "placeholder") view.state = "low";
+      if (view.state !== "placeholder") setRenderState(view, "low");
     }
   }
 
@@ -1261,9 +1272,9 @@ export class Viewer {
       this.#abort(view);
       // The new geometry needs other canvases: a page that waited for one tries again.
       view.waiting = false;
-      if (view.state === "error") view.state = "placeholder";
+      if (view.state === "error") setRenderState(view, "placeholder");
       if (view.state === "sharp") {
-        view.state = "low";
+        setRenderState(view, "low");
         unsharpened = true;
       }
     }
@@ -1401,6 +1412,7 @@ export class Viewer {
       contain: "strict",
       background: "var(--lamina-page-paper, #fff)",
     });
+    shell.dataset.render = "placeholder";
     this.#spacer.append(shell);
     const view: PageView = {
       index,
@@ -1476,7 +1488,7 @@ export class Viewer {
     view.canvas = undefined;
     view.painted = "";
     view.tiles.clear();
-    if (view.state !== "error") view.state = "placeholder";
+    if (view.state !== "error") setRenderState(view, "placeholder");
     // A canvas is free again: pages that waited for one try now.
     for (const other of this.#pages.values()) other.waiting = false;
     this.#schedule();
@@ -1575,13 +1587,13 @@ export class Viewer {
     // Sharp means every tile now in view is drawn: scrolling down a tall page sharpens the rest.
     if (view.scale > 0 && this.#sharpInView(view, frame)) {
       if (view.state !== "sharp") {
-        view.state = "sharp";
+        setRenderState(view, "sharp");
         this.#emit("renderstats", this.stats());
       }
       return true;
     }
     // Tiles in view are missing (the page scrolled): it is no longer sharp until they are drawn.
-    if (view.state === "sharp") view.state = "low";
+    if (view.state === "sharp") setRenderState(view, "low");
     return false;
   }
 
@@ -1603,7 +1615,7 @@ export class Viewer {
           return;
         }
         if (pass !== view.pass) return;
-        view.state = "error";
+        setRenderState(view, "error");
         this.#emit("renderstats", this.stats());
       })
       .finally(() => {
@@ -1693,7 +1705,7 @@ export class Viewer {
     view.painted = geometryOf(layout);
     view.scale = scale;
     view.tiles.clear();
-    view.state = "low";
+    setRenderState(view, "low");
     this.#pruneOtherGeometries(index, layout, new Set([request.scale, scale, layout.scale * dpr]));
     this.#emit("renderstats", this.stats());
     return true;

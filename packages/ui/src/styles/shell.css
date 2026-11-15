@@ -1,8 +1,7 @@
 /* The shell's regions (§5.1, ADR 0024 §1): the left rail docked beside the canvas on `surface`, its
    resize handle on the rail's inner edge (an accent line while hovered, dragged or focused), and
    below the rail breakpoint the rail as a drawer over the canvas with a scrim; the inspector docked
-   on the right, which takes its width from the canvas rather than covering it, and grows in only
-   when motion is allowed. */
+   on the right, which takes its width from the canvas rather than covering it. */
 @layer paper.components {
   .paper-left-rail {
     position: relative;
@@ -23,10 +22,16 @@
     touch-action: none;
   }
 
-  .paper-rail-handle:hover,
   .paper-rail-handle:focus-visible {
     outline: none;
     background: linear-gradient(to right, transparent 40%, var(--paper-accent) 40% 60%, transparent 60%);
+  }
+
+  /* Hover only where it is real: a tap leaves plain :hover on. */
+  @media (hover: hover) and (pointer: fine) {
+    .paper-rail-handle:hover {
+      background: linear-gradient(to right, transparent 40%, var(--paper-accent) 40% 60%, transparent 60%);
+    }
   }
 
   .paper-left-rail[data-drawer] {
@@ -55,15 +60,42 @@
     overflow: auto;
   }
 
-  @media (prefers-reduced-motion: no-preference) {
-    .paper-inspector {
-      animation: paper-inspector-in 160ms ease-out;
-    }
-  }
+  /* The dock takes its width on the first frame, so the canvas resizes once and nothing in the
+     page view moves while the panel slides in from its outer edge and fades (motion plan §4.3);
+     leaving, it keeps the width while it slides and fades out, then gives the width back at once.
+     Under reduced motion motion-travel is 0, so it only fades. */
+  .paper-inspector {
+    /* In lengths, never percentages, so that with no travel (reduced motion) the start and the
+       rest are the same value and no transition runs at all. */
+    --ui-inspector-travel: calc(var(--paper-inspector-width) * var(--paper-motion-travel));
 
-  @keyframes paper-inspector-in {
-    from {
-      inline-size: 0;
+    translate: 0;
+    transition-property: opacity, translate;
+    transition-duration: var(--paper-duration-enter-panel);
+    transition-timing-function: var(--paper-ease-enter);
+
+    @starting-style {
+      opacity: 0;
+      translate: var(--ui-inspector-travel);
+    }
+
+    &:dir(rtl) {
+      @starting-style {
+        opacity: 0;
+        translate: calc(-1 * var(--ui-inspector-travel));
+      }
+    }
+
+    &[data-exiting] {
+      opacity: 0;
+      translate: var(--ui-inspector-travel);
+      transition-duration: var(--paper-duration-exit-panel);
+      transition-timing-function: var(--paper-ease-exit);
+      pointer-events: none;
+    }
+
+    &[data-exiting]:dir(rtl) {
+      translate: calc(-1 * var(--ui-inspector-travel));
     }
   }
 }

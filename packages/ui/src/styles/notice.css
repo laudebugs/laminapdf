@@ -78,7 +78,7 @@
     color: inherit;
     font: inherit;
     text-decoration: underline;
-    cursor: default;
+    cursor: var(--paper-cursor-action);
   }
 
   /* The focus colour is too dark on the toast, so its ring takes the toast's text colour. */
