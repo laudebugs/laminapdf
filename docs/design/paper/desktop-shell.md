@@ -196,7 +196,7 @@ Conventions on this canvas:
 
 **Layout.** S05-print: the system dialog (drawn schematically as a sheet under the macOS title bar over `scrim`): page preview with its own pager on the left; Printer, Copies, Two-sided, Pages (All 24 pages · Current page (3) · Pages [5–12], “8 pages”), Scale (Fit to paper · Actual size), and the line “Orientation follows each page. Prints the page as it looks in Original appearance, with comments.”; Cancel · Print. S05-print-progress: back in the window (Reader v0.1 top bar), the status bar’s middle shows the printer glyph, “Printing pages 5–12 · 3 of 8 sent”, a 140 px determinate bar and **Cancel printing**.
 
-**Content and controls.** `file.print` opens the system dialog with the current page and page count; `print.cancel` (**Cancel printing**, ghost text button in the status-bar item); `print.compatibility` (the toast action “Try compatibility printing” after a native failure); Settings › Advanced › Printing (`print.mode`: System printing / Compatibility printing, drawn in S07-settings-advanced). Both paths print raster pages rendered by the engine ([D4c](../../todos/done/D4c-native-printing.md)); they differ only in who hands the pages to the printer: System printing uses the OS print dialog and renders each page at the printer's resolution, Compatibility printing goes through the built-in web view's print. The dialog’s own controls (printer, copies, pages, scale) belong to the OS; lamina only pre-fills them.
+**Content and controls.** `file.print` opens the system dialog with the current page and page count; `print.cancel` (**Cancel printing**, ghost text button in the status-bar item); `print.compatibility` (the toast action “Try compatibility printing” after a native failure); Settings › Advanced › Printing (`print.mode`: System printing / Compatibility printing, drawn in S07-settings-advanced). Both paths print raster pages rendered by the engine ([D4c](../../todos/done/D4c-native-printing.md)); they differ only in who hands the pages to the printer: System printing uses the OS print dialog and renders each page at 300 dpi (as built: see As built below), Compatibility printing goes through the built-in web view's print. The dialog’s own controls (printer, copies, pages, scale) belong to the OS; lamina only pre-fills them.
 
 **States.**
 
@@ -213,12 +213,15 @@ Conventions on this canvas:
 
 **Platform differences.** The dialog differs per OS (macOS sheet, Windows print dialog, GTK print dialog on Linux) and offers what the printer supports (duplex, collation). Web: R09 uses the browser’s print with a lamina pre-print panel.
 
-**As built ([D4c](../../todos/done/D4c-native-printing.md)).** Four differences from the drawings:
+**As built ([D4c](../../todos/done/D4c-native-printing.md)).** These differ from the drawings:
 
 - No compatibility printing: D1b measured the web view's print as the worst path on every OS. `print.compatibility`, the Native path failed toast's action and Settings › Advanced › Printing aren't built; a failure is a plain toast.
-- The status-bar item reads “Printing · 3 of 8 sent”, without the page range, and the Done toast reads “Sent 8 pages to the printer”, without the printer's name.
-- macOS's panel has no Current page choice, and on Linux GTK's own progress window replaces the status-bar item.
-- Pages print at actual size. Scale is whatever the OS dialog offers.
+- The status-bar item reads “Printing · 3 of 8 sent”, without the page range.
+- The Done toast reads “Sent 8 pages to the printer”, without the printer's name.
+- macOS's panel has no Current page choice.
+- On Linux, GTK's own progress window replaces the status-bar item.
+- On macOS, a document of mixed page sizes prints every page on the job's paper, each in its own orientation ([#626](https://github.com/laudebugs/laminapdf/issues/626)).
+- Pages render at 300 dpi and print at actual size. Scale is whatever the OS dialog offers.
 
 **Artboards:** `S05-print.dc.html`, `S05-print-progress.dc.html`.
 
@@ -281,7 +284,7 @@ Conventions on this canvas:
 | Licence | Enter or remove a licence key; see [H02](account-cloud-product.md#h02-account-and-plan) | Account and cloud |
 | Account and plan | Signed-in account, plan, devices; see [H02](account-cloud-product.md#h02-account-and-plan) | Account and cloud |
 | Notifications | See [H07](account-cloud-product.md#h07-notifications) | Account and cloud |
-| Advanced (drawn, Linux frame) | Graphics (Linux only): Automatic / Compatibility / Safe mode, Restart lamina, `--safe-graphics` hint · Printing (`print.mode`, not built: see S05 As built): System printing (recommended) — “Uses your system’s print dialog; lamina renders each page at your printer’s resolution.” / Compatibility printing — “Prints through the built-in web view. Try it if a printer skips pages or prints them blank.” | D7b, D4c |
+| Advanced (drawn, Linux frame) | Graphics (Linux only): Automatic / Compatibility / Safe mode, Restart lamina, `--safe-graphics` hint · Printing (`print.mode`, not built: see S05 As built): System printing (recommended) — “Uses your system’s print dialog; lamina renders each page at your printer’s resolution.” (as built: 300 dpi) / Compatibility printing — “Prints through the built-in web view. Try it if a printer skips pages or prints them blank.” | D7b, D4c |
 | About | Version and channel (“lamina 0.1.2 · Beta”), build line (release or nightly), Copy version info, View licences, laminapdf help, the code licence line (MIT or Apache-2.0) | D7b |
 
 **States.**

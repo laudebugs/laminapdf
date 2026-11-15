@@ -296,7 +296,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   src/platform/desktop.ts (the web platform plus canWriteInPlace, canWatchFiles, hasNativePrint,
 │                        #   multiWindow; their calls reject with NotYetSupportedError naming the feature), src/app.tsx (top bar, home
 │                        #   screen, version from the `app_info` command); src/print.tsx (File ▸ Print: print_document, the
-│                        #   PrintProgressDialog with cancel_print; D4c); showing a document waits for D2d. src-tauri/: the
+│                        #   status-bar progress item with cancel_print; D4c); showing a document waits for D2d. src-tauri/: the
 │                        #   workspace crate laminapdf-desktop (layer app, publish = false): lib.rs (plugins dialog/log/opener for
 │                        #   Rust only, window `main` built in Rust, Engines managed state, window close/app exit stop engines),
 │                        #   print.rs (D4c: print_document, cancel_print, e2e_print_to_file; a PrintSource over the window's
