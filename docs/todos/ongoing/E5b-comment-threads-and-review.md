@@ -11,7 +11,7 @@
 | Branch | `feat/e5b-comment-threads-and-review` |
 | PR title | `feat(ops): comment threads, replies and review state` |
 | Size | M (200–400): the thread model, two ops and a helper; the panel is E5g |
-| PR | — |
+| PR | [#618](https://github.com/laudebugs/laminapdf/pull/618) |
 
 ## Goal
 
