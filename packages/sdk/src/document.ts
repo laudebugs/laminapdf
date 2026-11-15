@@ -2,7 +2,7 @@
 // WasmDocument (ADR 0028 F12): every call is synchronous and throws LaminaPdfError. Documents,
 // pages and save jobs are handles (internal/handle.ts): a page or save job is freed with its
 // document.
-import type { WasmDocument, WasmPage, WasmSaveJob } from "@laminapdf/wasm/base";
+import type { Op as BaseOp, WasmDocument, WasmPage, WasmSaveJob } from "@laminapdf/wasm/base";
 import type { WasmDocument as ExtractWasmDocument, PageTextJs, WasmExtractJob } from "@laminapdf/wasm/extract";
 import type { DocumentContent } from "./content.js";
 import { isLaminaPdfError, type LaminaPdfWarning, packageError } from "./errors.js";
@@ -1097,7 +1097,9 @@ export class Document extends Handle<BaseGlue> {
    */
   apply(ops: readonly Op[]): Edited {
     this.#notInTransaction("apply");
-    return this.call(() => this.#doc.apply(ops as Op[]));
+    // The base module's op type leaves out `editContent`, which only the extract and text modules
+    // apply; the base module refuses it as an unknown op.
+    return this.call(() => this.#doc.apply(ops as BaseOp[]));
   }
 
   /**
@@ -1634,7 +1636,7 @@ export class Document extends Handle<BaseGlue> {
    * @since 0.2.0
    */
   wouldViolate(op: Op): Violation[] {
-    return this.call(() => this.#doc.wouldViolate(op));
+    return this.call(() => this.#doc.wouldViolate(op as BaseOp));
   }
 
   /**
