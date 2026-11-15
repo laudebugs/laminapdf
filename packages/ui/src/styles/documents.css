@@ -40,6 +40,11 @@
     align-items: end;
   }
 
+  /* Two labelled fields side by side: their labels line up, whatever help text each has. */
+  .paper-documents-where {
+    align-items: start;
+  }
+
   .paper-documents-password > .paper-field,
   .paper-documents-range > .paper-field,
   .paper-documents-where > .paper-field {

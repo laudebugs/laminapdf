@@ -48,8 +48,8 @@ export interface SplitDialogProps {
   readonly chapters: readonly Chapter[];
   /** The open file's name without `.pdf`, which the parts are named from. */
   readonly stem: string;
-  /** Where `parts` files go, said under the preview: a folder the person picks, one zip, or each file on its own. */
-  readonly output: (parts: number) => "folder" | "zip" | "files";
+  /** Where `parts` files go, said under the preview: a folder the person picks, one zip, each file on its own, or the one file. */
+  readonly output: (parts: number) => "folder" | "zip" | "files" | "file";
   /** Whether the file is signed or certified: its parts aren't. */
   readonly signed: boolean;
   /** How far the writing is: undefined until it starts. */

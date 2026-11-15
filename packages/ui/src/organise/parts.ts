@@ -91,7 +91,7 @@ export type PartNaming = "number-title" | "name-number" | "name-pages";
 
 /**
  * Each part's file name, without `.pdf` (the shell makes it safe to save): `1. Repairs backlog`,
- * `Q3-board-report 2` or `Q3-board-report pages 3–6`, from the open file's `stem` and the pages'
+ * `Q3-board-report 2` or `Q3-board-report pages 3-6`, from the open file's `stem` and the pages'
  * labels. Names that would repeat get ` (2)`, ` (3)`.
  */
 export function partNames(
@@ -104,8 +104,11 @@ export function partNames(
   const names = parts.map((part, i) => {
     const number = String(i + 1).padStart(width, "0");
     if (naming === "name-number") return `${stem} ${number}`;
-    if (naming === "name-pages")
-      return laterMessage("documents.split.name.pages", { stem, pages: pageRanges(part.pages, label) });
+    // A hyphen, not the en dash the dialogs show: names stay plain ASCII where the labels allow.
+    if (naming === "name-pages") {
+      const pages = pageRanges(part.pages, label).replaceAll("–", "-");
+      return laterMessage("documents.split.name.pages", { stem, pages });
+    }
     return part.title === undefined ? `${number}. ${stem}` : `${number}. ${part.title}`;
   });
   const used = new Map<string, number>();

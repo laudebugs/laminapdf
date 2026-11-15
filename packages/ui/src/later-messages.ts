@@ -622,6 +622,7 @@ const EN = {
   "documents.split.output.folder": "You’ll choose a folder for the files.",
   "documents.split.output.zip": "The files download together as one zip.",
   "documents.split.output.files": "Each file saves on its own.",
+  "documents.split.output.file": "It saves as a new file.",
   "documents.split.signed.title": "The new files won’t be signed.",
   "documents.split.signed": "A signature covers the whole original file, so its fields are kept unsigned in each part.",
   "documents.split.progress": "Writing file {file} of {total}",

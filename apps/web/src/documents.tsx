@@ -305,8 +305,9 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
   }
 
   /** Where Split's files go here: a folder the person picks, one zip, or each file on its own. */
-  output(parts: number): "folder" | "zip" | "files" {
-    if (parts > 1 && this.#platform.capabilities.canWriteDirectory) return "folder";
+  output(parts: number): "folder" | "zip" | "files" | "file" {
+    if (parts === 1) return "file";
+    if (this.#platform.capabilities.canWriteDirectory) return "folder";
     return parts > 2 ? "zip" : "files";
   }
 

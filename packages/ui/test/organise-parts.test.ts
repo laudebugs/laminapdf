@@ -62,7 +62,7 @@ describe("part names", () => {
       "3. Chair’s summary",
     ]);
     expect(partNames(parts, "name-number", "Q3", label)).toEqual(["Q3 1", "Q3 2", "Q3 3"]);
-    expect(partNames(parts, "name-pages", "Q3", label)).toEqual(["Q3 pages 1–2", "Q3 pages 3–5", "Q3 pages 6"]);
+    expect(partNames(parts, "name-pages", "Q3", label)).toEqual(["Q3 pages 1-2", "Q3 pages 3-5", "Q3 pages 6"]);
   });
 
   it("tells names apart that would repeat", () => {

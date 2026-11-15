@@ -335,6 +335,9 @@ export function FileCard({ source, password, onPassword, onTry, onChoose }: File
       {source.status === "password" ? (
         <form
           className="paper-documents-password"
+          // The field shows a wrong password as its error, which the browser would take for a
+          // reason to stop the next submit: the form leaves checking to the dialog.
+          noValidate
           onSubmit={(event) => {
             event.preventDefault();
             onTry();
