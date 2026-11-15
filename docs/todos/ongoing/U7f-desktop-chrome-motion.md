@@ -3,12 +3,12 @@
 | Field | Value |
 | --- | --- |
 | ID | `U7f` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
 | Depends on | [U7b](../done/U7b-control-states-and-cursors.md), [U7c](../done/U7c-overlay-enter-and-exit.md) |
 | ADRs | Follows [0008](../../decisions/0008-desktop-shell.md) (desktop shell), [0010](../../decisions/0010-platform-adapter.md) (capability flags) |
-| Branch | `feat/u7f-desktop-chrome-motion` |
+| Branch | `claude/dazzling-sagan-s9woz0` |
 | PR title | `feat(desktop): tab motion, Reduce motion and a window that feels native` |
 | Size | M (200–400) |
 | PR | — |
