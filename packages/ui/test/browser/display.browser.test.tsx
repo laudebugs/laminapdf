@@ -158,6 +158,44 @@ describe("ProgressBar", () => {
   });
 });
 
+describe("reduced motion", () => {
+  /** A control that fades its fill and grows from the overlays' scale, as the components will. */
+  const control = () => {
+    const host = renderIn(<span className="paper-button">Fade</span>);
+    const el = get(host, ".paper-button");
+    el.style.transition = "background-color var(--paper-duration-state-in) var(--paper-ease-standard)";
+    el.style.transform = "scale(var(--paper-motion-scale))";
+    return el;
+  };
+  const scaleOf = (el: Element) => new DOMMatrixReadOnly(getComputedStyle(el).transform).a;
+
+  it("keeps fades and drops movement when the system asks", async () => {
+    const el = control();
+    expect(scaleOf(el)).toBeCloseTo(0.97);
+    await commands.reducedMotion("reduce");
+    onTestFinished(() => commands.reducedMotion(null));
+    expect(getComputedStyle(el).transitionDuration).toBe("0.08s");
+    expect(scaleOf(el)).toBe(1);
+  });
+
+  it("keeps fades and drops movement when Settings asks, and stops keyframes", () => {
+    const el = control();
+    document.documentElement.setAttribute("data-motion", "reduce");
+    onTestFinished(() => document.documentElement.removeAttribute("data-motion"));
+    expect(getComputedStyle(el).transitionDuration).toBe("0.08s");
+    expect(scaleOf(el)).toBe(1);
+    const fill = get(renderIn(<ProgressBar label="Opening…" />), ".paper-progress-fill");
+    expect(getComputedStyle(fill).animationName).toBe("none");
+  });
+
+  it("turns every transition off while a switch of look draws", () => {
+    const el = control();
+    document.documentElement.setAttribute("data-motion-suppressed", "");
+    onTestFinished(() => document.documentElement.removeAttribute("data-motion-suppressed"));
+    expect(getComputedStyle(el).transitionDuration).toBe("0s");
+  });
+});
+
 describe("Toast", () => {
   it("leaves announcing to the toast region, and its action is a button", async () => {
     const onPress = vi.fn();

@@ -16,34 +16,23 @@
     margin: 0;
   }
 
-  /* A control that draws its own pressed state (§7.0) clears iOS's grey tap flash, so a tap shows
-     Paper's pressed fill alone. A control joins this list when it gains a pressed state, never
-     before: without one, the flash is its only feedback. */
+  /* Controls draw their own pressed state (§7.0), so they clear iOS's grey tap flash and a tap
+     shows Paper's pressed fill alone: buttons, tabs, options, menu items and rows. */
   :where(
-    .paper-button,
-    .paper-icon-button,
-    .paper-bottom-bar-button,
-    .paper-zoom-percent,
-    .paper-status-item,
-    .paper-thumbnail
+    button[class^="paper-"],
+    button[class*=" paper-"],
+    [role="button"],
+    [role="tab"],
+    [role="option"],
+    [role="menuitem"],
+    [role="menuitemradio"],
+    [role="menuitemcheckbox"],
+    [role="row"]
   ) {
     -webkit-tap-highlight-color: transparent;
   }
 }
 
-/* For one frame around a switch of look (theme, accent, page appearance, density), nothing
-   transitions, so no colour fades from the old look to the new (§7.0; motion.ts). */
-@layer paper.motion {
-  :where([data-motion-suppressed]) *,
-  :where([data-motion-suppressed]) *::before,
-  :where([data-motion-suppressed]) *::after {
-    /* biome-ignore lint/complexity/noImportantStyles: a switch of look must beat every component's transition */
-    transition: none !important;
-  }
-}
-
-/* The focus ring of §7.0 on every focusable control: shown for the keyboard, never removed,
-   whatever the order of the element's classes. */
 @layer paper.components {
   :is([class^="paper-"], [class*=" paper-"])[data-focus-visible] {
     outline: var(--paper-focus-ring-width) solid var(--paper-focus);
@@ -56,3 +45,19 @@
     }
   }
 }
+
+/* Around a switch of look (theme, accent, page appearance, density, direction), nothing
+   transitions until the frame after the switch draws, so no colour fades from the old look to the
+   new (§7.0; motion.ts). Last in the file, so paper.motion stays after paper.components in the
+   cascade's layer order, as settings.css first declared it. */
+@layer paper.motion {
+  :where([data-motion-suppressed]) *,
+  :where([data-motion-suppressed]) *::before,
+  :where([data-motion-suppressed]) *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: a switch of look must beat every component's transition */
+    transition: none !important;
+  }
+}
+
+/* The focus ring of §7.0 on every focusable control: shown for the keyboard, never removed,
+   whatever the order of the element's classes. */

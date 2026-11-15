@@ -78,8 +78,8 @@ export function applyAppearance(root: HTMLElement, appearance: Appearance): void
   if (root.getAttribute("data-theme") !== theme || root.getAttribute("data-accent") !== appearance.accent) {
     suppressMotion(root);
   }
-  if (appearance.theme === "system") root.removeAttribute("data-theme");
-  else root.setAttribute("data-theme", appearance.theme);
+  if (theme === null) root.removeAttribute("data-theme");
+  else root.setAttribute("data-theme", theme);
   root.setAttribute("data-accent", appearance.accent);
   if (appearance.motion === "reduce") root.setAttribute("data-motion", "reduce");
   else root.removeAttribute("data-motion");

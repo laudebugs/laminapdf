@@ -23,6 +23,7 @@ export type Kind = "duration" | "easing" | "cursor" | "transition-all" | "hover"
 export function sheets(): [string, string][] {
   return DIRS.flatMap((dir) =>
     readdirSync(new URL(dir, ROOT), { recursive: true, encoding: "utf8" })
+      .map((f) => f.replaceAll("\\", "/"))
       .filter((f) => /\.(css|astro)$/.test(f) && !f.includes("generated"))
       .map((f): [string, string] => {
         const text = readFileSync(new URL(`${dir}${f}`, ROOT), "utf8");
@@ -44,11 +45,11 @@ function declarations(css: string): { decl: string; selector: string; media: str
       stack.push(buffer.trim());
       buffer = "";
     } else if (ch === "}") {
-      if (buffer.trim() !== "") out.push(...split(buffer, stack));
+      if (buffer.trim() !== "") out.push(...toDeclaration(buffer, stack));
       buffer = "";
       stack.pop();
     } else if (ch === ";") {
-      out.push(...split(buffer, stack));
+      out.push(...toDeclaration(buffer, stack));
       buffer = "";
     } else {
       buffer += ch;
@@ -57,7 +58,8 @@ function declarations(css: string): { decl: string; selector: string; media: str
   return out;
 }
 
-function split(buffer: string, stack: string[]) {
+/** `buffer` as a declaration, with its selector and the at-rules around it; none if it isn't one. */
+function toDeclaration(buffer: string, stack: string[]) {
   const decl = buffer.trim();
   if (decl === "" || !decl.includes(":")) return [];
   const selector = [...stack].reverse().find((s) => !s.startsWith("@")) ?? "";
@@ -84,13 +86,20 @@ function easings(name: string, value: string): Found {
 
 /** The action, disabled and pending cursors written in place, not read from their tokens. */
 function cursors(name: string, value: string): Found {
-  return name === "cursor" && /^(pointer|default|progress)$/.test(value) ? [["cursor", `cursor: ${value}`]] : [];
+  const keyword = value.replace(/\s*!important$/, "");
+  return name === "cursor" && /^(pointer|default|progress)$/.test(keyword) ? [["cursor", keyword]] : [];
 }
 
 function transitionAll(name: string, value: string): Found {
   return /^transition(-property)?$/.test(name) && /(?:^|[\s,])all(?:[\s,]|$)/.test(value)
     ? [["transition-all", `${name}: ${value}`]]
     : [];
+}
+
+/** `@media (hover: hover) and (pointer: fine)`, the guard §7.0 asks of a raw `:hover`: both
+    features, and neither negated. */
+function hoverGuard(media: string): boolean {
+  return /\(\s*hover:\s*hover\s*\)/.test(media) && /\(\s*pointer:\s*fine\s*\)/.test(media) && !/\bnot\b/.test(media);
 }
 
 /** Every break of a rule in `css`, as `kind: what`; a hover selector once, however many declarations. */
@@ -107,7 +116,7 @@ export function offences(css: string): Found {
       ...cursors(name, value),
       ...transitionAll(name, value),
     );
-    const guarded = media.some((m) => /hover:\s*hover/.test(m));
+    const guarded = media.some(hoverGuard);
     const shown = selector.replace(/\s+/g, " ");
     if (selector.includes(":hover") && !guarded && !hovers.has(shown)) {
       hovers.add(shown);
