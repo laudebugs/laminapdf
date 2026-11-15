@@ -18,6 +18,10 @@ import { type TileAddress, tileUrl } from "./tile-url.ts";
 import wireFixture from "./wire.fixture.json" with { type: "json" };
 
 const LETTER = { width: 612, height: 792, rotate: 0 };
+const PAGES = [
+  { id: "p1.0", ...LETTER },
+  { id: "p2.0", ...LETTER },
+];
 
 const PLAIN: DesktopDocument = {
   doc: 4,
@@ -27,7 +31,7 @@ const PLAIN: DesktopDocument = {
   encrypted: false,
   needsPassword: false,
   repaired: false,
-  pages: [LETTER, LETTER],
+  pages: PAGES,
 };
 
 const LOCKED: DesktopDocument = { ...PLAIN, doc: 5, encrypted: true, needsPassword: true, pageCount: 0, pages: [] };
@@ -84,7 +88,7 @@ beforeEach(() => {
         const { password } = args as { password: string };
         if (password !== "secret")
           return Promise.reject({ kind: "wrong-password", message: "the password doesn't open this document" });
-        return { ...LOCKED, needsPassword: false, pageCount: 2, pages: [LETTER, LETTER] };
+        return { ...LOCKED, needsPassword: false, pageCount: 2, pages: PAGES };
       }
       return undefined;
     },

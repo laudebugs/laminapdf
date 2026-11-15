@@ -128,7 +128,7 @@ export async function killEngine(): Promise<void> {
 }
 
 /** `performance.now()` in the app's window. */
-async function now(): Promise<number> {
+export async function now(): Promise<number> {
   return browser.execute(() => performance.now());
 }
 
@@ -269,6 +269,17 @@ async function menuSnapshot(): Promise<string> {
 /** Chooses the native menu item `id` (`cmd:view.zoom-in`, `recent:<id>`): WebDriver can't reach the OS's menus. */
 export async function menuClick(id: string): Promise<void> {
   await invoke("e2e_menu_click", { id });
+}
+
+/**
+ * Chooses menu item `id` and returns at once, without waiting for the choice to finish: for an
+ * item that opens or closes a window, whose answer the embedded WebDriver server can lose as the
+ * windows change, after which WebdriverIO would send the choice again into another window.
+ */
+export async function menuClickAndGo(id: string): Promise<void> {
+  await browser.execute((item) => {
+    void (globalThis as unknown as TauriGlobal).__TAURI__.core.invoke("e2e_menu_click", { id: item });
+  }, id);
 }
 
 /** Waits until the menu snapshot matches `pattern`; returns the snapshot. */

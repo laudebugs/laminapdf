@@ -14,6 +14,7 @@
 //!   younger than [`STALLED`]. A job that runs longer (a hostile file looping in the parser or
 //!   PDFium) stops the beats, and the main process kills and restarts the engine.
 
+mod edit;
 pub mod fonts;
 mod limits;
 mod outbox;
@@ -168,6 +169,7 @@ fn route<R: Read>(
             ToEngine::UnlockDocument { req, doc, password } => queue.push(Job::Unlock { req, doc, password }),
             ToEngine::GetPageInfo { req, doc } => queue.push(Job::PageInfo { req, doc }),
             ToEngine::RenderTile(tile) => queue.push(Job::Render(tile)),
+            ToEngine::Edit { req, doc, call } => queue.push(Job::Edit { req, doc, call }),
             ToEngine::RenderPrintBand(band) => queue.push(Job::Print(band)),
             ToEngine::CloseDocument { doc } => queue.push(Job::Close { doc }),
         }

@@ -116,6 +116,7 @@ export function useTabStrip(
   toasts: ToastQueue,
   keys: KeyPlatform,
   pages?: PageStore,
+  unsaved = false,
 ): { strip: ReactNode; notice: ReactNode; actions: NonNullable<CommandContext["actions"]> } {
   useTabEvents(shell, tabs, reader, toasts);
   const state = useStoreState(tabs ?? NO_TABS, (s) => s);
@@ -124,7 +125,7 @@ export function useTabStrip(
     state.tabs.some((tab) => tab.missing === true),
   );
   const others = useOtherWindows(shell, state.tabs.length);
-  useWindowTitle(shell, tabs, state.active);
+  useWindowTitle(shell, tabs, state.active, unsaved);
   const { move, actions } = useTabActions(shell, tabs, toasts);
   // From two tabs on (S02), or with one while other windows are open, so it can move there.
   const shows = state.tabs.length >= 2 || (state.tabs.length === 1 && others.length > 0);
@@ -275,18 +276,23 @@ function useOtherWindows(shell: DesktopShell | undefined, tabCount: number): rea
   return others;
 }
 
-/** The window's title: the shown tab's document, or the app's name alone. */
+/**
+ * The window's title: the shown tab's document, with a leading "• " while it has unsaved edits
+ * (Paper O01, as the web reader's tab), or the app's name alone.
+ */
 function useWindowTitle(
   shell: DesktopShell | undefined,
   tabs: WindowTabs | undefined,
   active: string | undefined,
+  unsaved: boolean,
 ): void {
   useEffect(() => {
     if (shell === undefined || tabs === undefined) return;
     const shown = tabs.shown;
-    const name = shown === undefined ? null : (documentOf(shown.file)?.name ?? shown.file.name);
+    const file = shown === undefined ? null : (documentOf(shown.file)?.name ?? shown.file.name);
+    const name = file === null ? null : `${unsaved ? "• " : ""}${file}`;
     // The page's title too, as the window's (src-tauri/src/windows.rs `title`).
     document.title = name === null ? "Lamina PDF" : `${name} — Lamina PDF`;
     void shell.invoke("set_window_title", { name }).catch(() => undefined);
-  }, [shell, tabs, active]);
+  }, [shell, tabs, active, unsaved]);
 }
