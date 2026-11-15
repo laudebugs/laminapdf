@@ -138,6 +138,8 @@ runs:
         done
         keychain="$RUNNER_TEMP/lamina-signing.keychain-db"
         security create-keychain -p "$KEYCHAIN_PASSWORD" "$keychain"
+        # Named at once, so the last step deletes it even if this one fails part-way.
+        echo "APPLE_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
         security set-keychain-settings -lut 21600 "$keychain"
         security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$keychain"
         certificate="$RUNNER_TEMP/developer-id.p12"
@@ -167,7 +169,6 @@ runs:
         mkdir -p "$(dirname "$key")"
         printf '%s' "$APPLE_API_KEY_P8" > "$key"
         echo "APPLE_API_KEY_PATH=$key" >> "$GITHUB_ENV"
-        echo "APPLE_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
     - name: Build and bundle (tauri build)
       shell: bash
       working-directory: apps/desktop
@@ -278,7 +279,12 @@ runs:
             if xcrun notarytool wait "$id" "${notary[@]}" --timeout 15m; then break; fi
             echo "::warning::still waiting for submission $id (attempt $attempt)"
           done
-          status=$(xcrun notarytool info "$id" "${notary[@]}" --output-format json | jq -r .status)
+          status=""
+          for attempt in 1 2 3; do
+            status=$(xcrun notarytool info "$id" "${notary[@]}" --output-format json | jq -r '.status // empty') || status=""
+            if [ -n "$status" ]; then break; fi
+            sleep 30
+          done
           if [ "$status" != Accepted ]; then
             xcrun notarytool log "$id" "${notary[@]}" || true
             echo "::error::Apple's notary service answered ${status:-nothing} for $name (submission $id)"

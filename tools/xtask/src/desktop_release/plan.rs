@@ -329,7 +329,10 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
                 );
             }
             let version = staging_version(inputs.run_number)?;
-            if let (false, false, Some(reason)) = (*dry_run, *allow_unsigned, inputs.signing.unsigned_reason()) {
+            if !dry_run
+                && !allow_unsigned
+                && let Some(reason) = inputs.signing.unsigned_reason()
+            {
                 bail!("{reason}: set allow_unsigned_platforms to publish an unsigned staging build");
             }
             Ok(Plan {
