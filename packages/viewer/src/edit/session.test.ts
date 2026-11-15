@@ -16,7 +16,7 @@ class FakeWorker implements EditSessionHost {
   copies = 0;
 
   history(): EditHistory {
-    const steps = this.labels.map((label, i) => ({ id: i + 1, label, pages: [0], at: 0 }));
+    const steps = this.labels.map((label, i) => ({ id: i + 1, label, pages: [0], pageIds: ["p1.0"], at: 0 }));
     return { ...EMPTY_HISTORY, steps, position: this.position, unsaved: Math.abs(this.position - this.saved) };
   }
 

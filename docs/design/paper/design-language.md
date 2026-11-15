@@ -543,14 +543,20 @@ Snippets use literal hex values; in canvases that expose the accent as a tweak, 
 
 ### 7.0 Shared states
 
+Every control styles the states it has in this order, so a later state wins on what it sets: rest, then value (selected, checked, current, open), then interaction (hover, then pressed), then validity, then focus, then availability (disabled, blocked, pending, read-only). Hover and pressed are translucent layers over the value's fill, so a selected control still shows hover; the primary button swaps solids instead. The [motion plan](../../plans/motion-and-states.md#42-the-state-model) gives each state's rules.
+
 | State | Ghost / icon button | Secondary button | Primary button | Toggle (aria-pressed) |
 | --- | --- | --- | --- | --- |
-| Default | transparent, `text-3` | white, `control-border` | `accent` bg and border, white 600 | transparent, 1 px transparent border |
-| Hover **(proposed)** | `hover` fill | `hover` fill over white | `accent-strong` | `hover` fill |
-| Pressed **(proposed)** | `pressed` fill, label `text-3` | `pressed` | `#123A3F` (white 12.33) | — |
+| Rest | transparent, `text-3` | white, `control-border` | `accent` bg and border, white 600 | transparent, 1 px transparent border |
 | Selected | — | — | — | `accent` border, `accent-tint` fill, `accent` 600 |
+| Hover | `hover` fill | `hover` fill over white | `accent-strong` | `hover` layer over its fill |
+| Pressed | `pressed` fill, label `text-3` | `pressed` | `#123A3F` (white 12.33) | `pressed` layer over its fill |
 | Focus (keyboard) | `outline: 2px solid #1F5C63; outline-offset: 2px` (1 px offset where space is tight: mini toolbar, palette input; `-2px` inset inside edge-to-edge phone bars) | same | same | same |
-| Disabled **(proposed)** | `disabled` text, no hover | `disabled` text, `hairline` border | `hairline` fill and border, `disabled` text | as ghost |
+| Disabled | `disabled` text, no hover | `disabled` text, `hairline` border | `hairline` fill and border, `disabled` text | as ghost |
+
+**Cursor.** Every enabled control that acts shows the hand (`--paper-cursor-action`): buttons, toggles, tabs, menu items, choices and rows that open something. Links use `--paper-cursor-link`, the hand too. Disabled and blocked controls show the arrow (`--paper-cursor-disabled`), and a control waiting on its action shows `--paper-cursor-pending`. Text fields keep the text cursor, and the page canvas keeps its tool's.
+
+**Motion.** Hover in takes `--paper-duration-state-in` (80 ms) and hover out `--paper-duration-state-out` (150 ms), on colour, background, border and opacity only; the focus ring never transitions. Hover applies only on a pointer that hovers (`data-hovered`, or `:hover` inside `@media (hover: hover) and (pointer: fine)`), so a tap leaves no hover behind. Controls that draw a pressed state clear iOS's grey tap flash. Durations, easings and cursors come from tokens, and no transition names `all`. **Reduced motion**, from the system or from Settings, removes movement (no scale, slide or size change) and keeps fades. A switch of theme, accent, page appearance or density applies at once, with no fade from the old colours.
 
 Use `:focus-visible`, never remove the ring, and every board shows the ring on one control.
 
@@ -1368,7 +1374,7 @@ Three separate settings in View settings: **Theme** (Light, Dark, High contrast,
 - [ ] Current page `aria-current="page"`, current outline row `aria-current="location"`; page pill and toasts `aria-live="polite"`
 - [ ] Single-pointer alternative to every drag (2.5.7); single-key shortcuts can be turned off (2.1.4)
 - [ ] State never shown by colour alone (swatches have names, badges have words or icons)
-- [ ] `prefers-reduced-motion`: no sliding sheets or shimmer, instant cross-fades
+- [ ] Reduced motion (the system's `prefers-reduced-motion` or Settings › Reduce motion): nothing slides, scales or shimmers; fades stay
 - [ ] Zoom to 200% and 320 CSS px width reflows the chrome (top bar wraps; phone shell below 600)
 - [ ] `forced-colors` mode keeps borders and focus rings visible (use real borders/outlines, not only shadows)
 

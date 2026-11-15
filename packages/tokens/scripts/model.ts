@@ -29,7 +29,8 @@ interface Lamina {
   contrast?: Pair[];
   system?: string;
   followsAccent?: boolean;
-  reducedMotion?: Dimension;
+  /** The value under reduced motion: a duration, or a number for a scale or a travel. */
+  reducedMotion?: Dimension | number;
 }
 
 /** A DTCG dimension or duration. */

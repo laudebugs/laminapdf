@@ -2,7 +2,8 @@
 // 16 px text in fields (design language §8.7). Without a provider, a coarse pointer picks touch
 // through CSS alone; a provider sets the density for everything inside it.
 
-import { createContext, type ReactNode, useContext } from "react";
+import { createContext, type ReactNode, useContext, useLayoutEffect, useRef } from "react";
+import { suppressMotion } from "./motion.js";
 
 /** A control density: desktop (fine pointer) or touch (coarse pointer). */
 export type Density = "desktop" | "touch";
@@ -19,6 +20,13 @@ export interface DensityProviderProps {
 
 /** Sets the density for the controls inside it, whatever the pointer. */
 export function DensityProvider({ density, children }: DensityProviderProps): ReactNode {
+  // A change of density is a switch of look: nothing transitions across it (motion.ts).
+  const shown = useRef(density);
+  useLayoutEffect(() => {
+    if (shown.current === density) return;
+    shown.current = density;
+    suppressMotion();
+  }, [density]);
   return (
     <DensityContext value={density}>
       <div className="paper-density" data-density={density}>

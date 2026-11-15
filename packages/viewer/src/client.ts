@@ -468,8 +468,15 @@ export class ViewerClient {
     return result;
   }
 
-  /** The pages keep their sizes in `document`, for whoever lays them out. */
+  /**
+   * The pages keep their sizes in `document`, for whoever lays them out; an edit that inserted,
+   * deleted or moved pages gives `document` its new page list.
+   */
   #takePages(opened: OpenedDocument, result: EditResult): void {
+    if (result.order !== undefined) {
+      this.#document = { ...opened, pageCount: result.order.length, pages: [...result.order] };
+      return;
+    }
     if (result.pages.length === 0) return;
     const pages = [...opened.pages];
     for (const page of result.pages) pages[page.index] = page;
