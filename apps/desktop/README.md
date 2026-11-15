@@ -127,7 +127,7 @@ The engine process makes each edit. It applies the change to its copy of the doc
 
 The webview keeps the history: each step's name, its pages, and how many steps aren't saved (`src/engine/desktop-edits.ts`, over `@laminapdf/viewer`'s `edit-history`). It keeps one history per document, so switching tabs keeps it. When the engine restarts, the webview makes the edits again in the new engine.
 
-While a document has unsaved edits, the window's title starts with "•", and closing its tab, closing the window or quitting asks first. The window reports whether it has unsaved edits to the main process (`set_unsaved`), which holds back a close or a quit and asks the window (`src-tauri/src/unsaved.rs`). Saving edits comes next ([E1i](../../docs/todos/ready/E1i-desktop-save-in-place.md)).
+While a document has unsaved edits, the window's title starts with "•", and closing its tab, closing the window or quitting asks first. The window reports whether it has unsaved edits to the main process (`set_unsaved`), which holds back a close or a quit and asks the window (`src-tauri/src/unsaved.rs`). Saving edits comes next ([E1i](../../docs/todos/ongoing/E1i-desktop-save-in-place.md)).
 
 Each window's engine holds its own edits, so a tab with unsaved edits can't move to another window yet: undo them to move it.
 
