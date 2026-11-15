@@ -82,3 +82,81 @@ pub(crate) fn clear_recent(app_id: &str, _paths: &[PathBuf]) -> Result<(), OsErr
     // SAFETY: a live interface; the call takes no arguments and touches only this app ID's lists.
     unsafe { destinations.RemoveAllDestinations() }.map_err(|e| refused(&e))
 }
+
+/// `HKLM\Software\Policies\Lamina`'s update values.
+pub(crate) fn managed_updates() -> crate::ManagedUpdates {
+    const KEY: &str = r"Software\Policies\Lamina";
+    crate::ManagedUpdates {
+        channel: registry_string(KEY, "UpdateChannel"),
+        disable: registry_dword(KEY, "DisableUpdates").map(|value| value != 0),
+    }
+}
+
+/// `HKLM\Software\Lamina\InstallFlavour`, which only D6d's MSI writes.
+pub(crate) fn install_flavour() -> Option<String> {
+    registry_string(r"Software\Lamina", "InstallFlavour")
+}
+
+/// A `REG_SZ` value under `HKEY_LOCAL_MACHINE`; `None` when it is missing or of another type.
+fn registry_string(key: &str, value: &str) -> Option<String> {
+    use windows::Win32::System::Registry::{HKEY_LOCAL_MACHINE, RRF_RT_REG_SZ, RegGetValueW};
+    let (key, value) = (HSTRING::from(key), HSTRING::from(value));
+    let mut bytes: u32 = 0;
+    // SAFETY: the key and value names are NUL-terminated wide strings that outlive the call; with
+    // no buffer, the call only writes the size it needs to `bytes`.
+    let sized = unsafe {
+        RegGetValueW(
+            HKEY_LOCAL_MACHINE,
+            &key,
+            &value,
+            RRF_RT_REG_SZ,
+            None,
+            None,
+            Some(&raw mut bytes),
+        )
+    };
+    if sized.is_err() || bytes == 0 {
+        return None;
+    }
+    let mut buffer = vec![0_u16; (bytes as usize).div_ceil(2)];
+    // SAFETY: `buffer` holds `bytes` bytes, the size the first call asked for, and outlives the call.
+    let read = unsafe {
+        RegGetValueW(
+            HKEY_LOCAL_MACHINE,
+            &key,
+            &value,
+            RRF_RT_REG_SZ,
+            None,
+            Some(buffer.as_mut_ptr().cast()),
+            Some(&raw mut bytes),
+        )
+    };
+    if read.is_err() {
+        return None;
+    }
+    // The count includes the terminating NUL, which `RRF_RT_REG_SZ` guarantees.
+    let text = buffer.split(|&unit| unit == 0).next().unwrap_or_default();
+    String::from_utf16(text).ok()
+}
+
+/// A `REG_DWORD` value under `HKEY_LOCAL_MACHINE`; `None` when it is missing or of another type.
+fn registry_dword(key: &str, value: &str) -> Option<u32> {
+    use windows::Win32::System::Registry::{HKEY_LOCAL_MACHINE, RRF_RT_REG_DWORD, RegGetValueW};
+    let (key, value) = (HSTRING::from(key), HSTRING::from(value));
+    let mut data: u32 = 0;
+    let mut bytes = u32::try_from(size_of::<u32>()).unwrap_or(4);
+    // SAFETY: `data` is a 4-byte buffer, as `bytes` says, and outlives the call; the names are
+    // NUL-terminated wide strings.
+    let read = unsafe {
+        RegGetValueW(
+            HKEY_LOCAL_MACHINE,
+            &key,
+            &value,
+            RRF_RT_REG_DWORD,
+            None,
+            Some((&raw mut data).cast()),
+            Some(&raw mut bytes),
+        )
+    };
+    read.is_ok().then_some(data)
+}

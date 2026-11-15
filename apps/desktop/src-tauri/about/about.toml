@@ -18,6 +18,16 @@ accepted = [
     "CC0-1.0",
     "MPL-2.0",
 ]
+# The targets the app ships for (D6b–D6d): a dependency other targets alone compile (rustls-
+# platform-verifier's webpki-root-certs, wasm32 only) isn't in the app, so it isn't in its notices.
+targets = [
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "aarch64-pc-windows-msvc",
+    "x86_64-pc-windows-msvc",
+    "aarch64-unknown-linux-gnu",
+    "x86_64-unknown-linux-gnu",
+]
 # Only what ships in the binary: no dev- or build-only dependencies.
 ignore-dev-dependencies = true
 ignore-build-dependencies = true

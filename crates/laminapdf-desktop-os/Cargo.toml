@@ -17,6 +17,8 @@ homepage.workspace = true
 layer = "edge"
 
 [dependencies]
+# Linux's update policy file, /etc/lamina/policy.json.
+serde_json = { workspace = true }
 thiserror = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]

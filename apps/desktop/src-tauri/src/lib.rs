@@ -3,8 +3,8 @@
 //! The main process owns windows, dialogs and files (opening, the recent lists, watching for
 //! changes); untrusted PDF bytes are parsed only in the sandboxed engine process (ADR 0008 §2).
 //! The webview reaches Rust only through the app commands in `commands`, each allowed by name in
-//! `capabilities/main.json`; the dialog, log and opener plugins are for Rust's own use and grant
-//! the webview nothing. Desktop only: there is no
+//! `capabilities/main.json`; the dialog, log, opener and updater plugins are for Rust's own use and
+//! grant the webview nothing. Desktop only: there is no
 //! mobile entry point.
 
 mod commands;
@@ -22,6 +22,7 @@ mod session;
 mod startup;
 mod store;
 mod tab_drag;
+mod update;
 mod watch;
 mod windows;
 
@@ -148,6 +149,12 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(tab_drag::TabDrag::default());
     app.manage(menu::MenusJson::embedded());
     app.manage(menu::NativeMenus::default());
+    // Updates (D5b): the settings beside the preferences, the policy and this build; checks start
+    // 10 s from now, on a thread of their own.
+    app.manage(Arc::new(update::Updates::load(
+        &config,
+        &app.package_info().version.to_string(),
+    )));
     // The last session's windows (D4d), else one window. Windows are made here, not in
     // tauri.conf.json, so the app chooses every label.
     let restored = session::app::start(app, config);
@@ -169,6 +176,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(feature = "e2e")]
     startup::window();
     tracing::info!(version = %app.package_info().version, "Lamina PDF started");
+    update::start(app.handle());
     // A cold start's PDFs (Windows, Linux, a macOS terminal), after the restored tabs, in the
     // first window: queued until its webview takes them.
     let first = labels.first().map_or(MAIN_WINDOW, String::as_str);
@@ -210,6 +218,12 @@ macro_rules! app_commands {
             commands::tab_drag_start,
             commands::tab_drag_end,
             open::take_pending_opens,
+            update::commands::update_status,
+            update::commands::update_check_now,
+            update::commands::update_set_enabled,
+            update::commands::update_set_channel,
+            update::commands::update_reset_install_id,
+            update::commands::update_restart_to_install,
             $($extra),*
         ]
     };
@@ -282,6 +296,9 @@ pub fn run() -> Result<(), DesktopError> {
         })
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        // Self-update (D5b): Rust's own, always through `update::Updates`, which sets the channel's
+        // endpoint and the install ID header; the webview is granted none of its commands.
+        .plugin(tauri_plugin_updater::Builder::new().build())
         // Each window's size, position and maximised state, kept by its label and put back when a
         // window of that label opens (D4d); a position on a monitor that went away isn't restored.
         // Rust's own: the webview is granted none of its commands.
@@ -343,6 +360,8 @@ fn on_run_event(app: &tauri::AppHandle, event: &RunEvent) {
         RunEvent::Exit => {
             session::app::flush(app);
             app.state::<Arc<Engines>>().shutdown();
+            // A downloaded update installs as the app quits (on Windows its installer takes over).
+            app.state::<Arc<update::Updates>>().install_on_quit();
         }
         // macOS hands Finder's, the Dock's and `open`'s files to the running app, cold or warm,
         // with or without a window.

@@ -32,6 +32,12 @@ const COMMANDS: &[&str] = &[
     "save_copy",
     "tab_drag_start",
     "tab_drag_end",
+    "update_status",
+    "update_check_now",
+    "update_set_enabled",
+    "update_set_channel",
+    "update_reset_install_id",
+    "update_restart_to_install",
 ];
 
 /// With the `e2e` feature: the end-to-end tests' commands too.
@@ -63,6 +69,12 @@ const E2E_COMMANDS: &[&str] = &[
     "save_copy",
     "tab_drag_start",
     "tab_drag_end",
+    "update_status",
+    "update_check_now",
+    "update_set_enabled",
+    "update_set_channel",
+    "update_reset_install_id",
+    "update_restart_to_install",
     "debug_kill_engine",
     "e2e_queue_pick",
     "e2e_interactive",
