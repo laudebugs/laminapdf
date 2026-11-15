@@ -17,7 +17,7 @@ const DIRS = [
   "apps/site/src/",
 ];
 
-export type Kind = "duration" | "easing" | "cursor" | "transition-all" | "hover";
+type Kind = "duration" | "easing" | "cursor" | "transition-all" | "hover";
 
 /** Each stylesheet's CSS, comments removed: `.css` files whole, `.astro` files' `<style>` blocks. */
 export function sheets(): [string, string][] {
