@@ -268,17 +268,9 @@ pub(crate) async fn save_document_as(
             .state::<Arc<Engines>>()
             .path_in(window.label(), DocId(doc))
             .ok_or(DesktopError::UnknownDocument)?;
-        let mut dialog = window.dialog().file().set_parent(&window).add_filter("PDF", &["pdf"]);
-        let name = file_name(&from);
-        if !name.is_empty() {
-            dialog = dialog.set_file_name(&name);
-        }
-        let Some(to) = dialog.blocking_save_file() else {
+        let Some(to) = pick_save_path(&window, &from)? else {
             return Ok(None);
         };
-        let to = to
-            .into_path()
-            .map_err(|error| DesktopError::Internal(error.to_string()))?;
         let target = if to == from {
             Target::InPlace { overwrite: true }
         } else {
@@ -287,6 +279,26 @@ pub(crate) async fn save_document_as(
         save(app, window.label(), DocId(doc), options, &target).map(Some)
     })
     .await
+}
+
+/// The file the user chooses to save `from` as, or `None` when they cancel. It blocks until they
+/// answer: never on the main thread.
+fn pick_save_path(window: &tauri::WebviewWindow, from: &Path) -> Result<Option<PathBuf>, DesktopError> {
+    // End-to-end builds: a scenario's queued path stands in for the dialog.
+    #[cfg(feature = "e2e")]
+    if let Some(path) = window.state::<crate::e2e::QueuedSaveAs>().take() {
+        return Ok(Some(path));
+    }
+    let mut dialog = window.dialog().file().set_parent(window).add_filter("PDF", &["pdf"]);
+    let name = file_name(from);
+    if !name.is_empty() {
+        dialog = dialog.set_file_name(&name);
+    }
+    dialog
+        .blocking_save_file()
+        .map(tauri_plugin_dialog::FilePath::into_path)
+        .transpose()
+        .map_err(|error| DesktopError::Internal(error.to_string()))
 }
 
 /// Reloads this window's document `doc` from its file as it is on disk, dropping its unsaved

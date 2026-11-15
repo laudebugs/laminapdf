@@ -103,6 +103,7 @@ const E2E_COMMANDS: &[&str] = &[
     "update_open_link",
     "debug_kill_engine",
     "e2e_queue_pick",
+    "e2e_queue_save_as",
     "e2e_interactive",
     "e2e_focus",
     "e2e_place_cursor",

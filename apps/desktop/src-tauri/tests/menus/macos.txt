@@ -23,6 +23,8 @@ File
   Close tab [Cmd+W]  <cmd:tab.close>
   Close window [Cmd+Shift+W]  <cmd:window.close>
   ---
+  Save [Cmd+S] (disabled)  <cmd:file.save>
+  Save as… [Cmd+Shift+S] (disabled)  <cmd:file.save-as>
   Save a copy… (disabled)  <cmd:file.save-copy>
   Document properties… (disabled)  <cmd:file.properties>
   ---

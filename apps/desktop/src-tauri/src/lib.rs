@@ -268,6 +268,7 @@ pub fn run() -> Result<(), DesktopError> {
         .invoke_handler(app_commands![
             commands::debug_kill_engine,
             e2e::e2e_queue_pick,
+            e2e::e2e_queue_save_as,
             e2e::e2e_interactive,
             e2e::e2e_focus,
             e2e::e2e_menu_click,
@@ -275,7 +276,8 @@ pub fn run() -> Result<(), DesktopError> {
             e2e::e2e_place_cursor,
             print::e2e_print_to_file,
         ])
-        .manage(e2e::QueuedPick::default());
+        .manage(e2e::QueuedPick::default())
+        .manage(e2e::QueuedSaveAs::default());
     // First of all plugins: a second launch hands its paths to the running app and exits before
     // anything else starts (the plugin's own rule). Its callback queues them like any OS request.
     let builder = builder
