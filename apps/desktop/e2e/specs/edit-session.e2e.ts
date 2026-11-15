@@ -9,6 +9,7 @@ import { $, browser, expect } from "@wdio/globals";
 import { Key } from "webdriverio";
 import {
   AFTER_THE_ANSWER_MS,
+  closeWindowFor,
   fixture,
   focusWindow,
   menuClick,
@@ -72,9 +73,11 @@ async function newWindowWith(path: string): Promise<string> {
 const REDO_KEYS = platform === "darwin" ? [Key.Command, Key.Shift, "z"] : [Key.Ctrl, "y"];
 
 /**
- * Puts WebDriver back on the window the spec started in after each test, and gives its handle. A
- * test that fails between opening and closing a window leaves WebDriver on a window it may have
- * closed; its retry and the specs after it would start from no window at all.
+ * After each test, closes the windows a test left open and puts WebDriver back on the window the
+ * spec started in, focused; gives that window's handle. A test that fails between opening and
+ * closing a window leaves WebDriver on a window it may have closed, and the window it opened still
+ * open: its retry and the specs after it would start from no window, or beside a stray one. Not
+ * `startOver`, which would also close the main window's document that the next test goes on with.
  */
 function returnToTheMainWindow(): () => string {
   let main = "";
@@ -82,7 +85,15 @@ function returnToTheMainWindow(): () => string {
     main = await browser.getWindowHandle();
   });
   afterEach(async () => {
-    if ((await browser.getWindowHandles()).includes(main)) await browser.switchToWindow(main);
+    const handles = await browser.getWindowHandles();
+    if (!handles.includes(main)) return;
+    for (const handle of handles.filter((h) => h !== main)) {
+      await browser.switchToWindow(handle);
+      // A window with unsaved edits asks first and stays: the cleanup must not fail the run on it.
+      await closeWindowFor(main).catch(() => undefined);
+    }
+    await browser.switchToWindow(main);
+    await focusWindow();
   });
   return () => main;
 }
