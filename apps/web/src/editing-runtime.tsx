@@ -11,6 +11,8 @@ import {
   countMessage,
   Dialog,
   type EditControls,
+  type KeyPlatform,
+  type ModeRegistry,
   message,
   Notice,
   RAIL_DRAWER_QUERY,
@@ -37,6 +39,7 @@ import { toolsOf } from "./edit-tools.tsx";
 import { type EditActions, HISTORY_TAB } from "./editing.tsx";
 import { InitialViewEditing, showInitialView } from "./initial-view-editing.tsx";
 import { LinkEditing } from "./links.tsx";
+import { type OrganiseController, OrganiseMode } from "./organise.tsx";
 import { type PageInfo, pageLabel } from "./outline.ts";
 import type { SaveFlow } from "./save-flow.ts";
 import type { Engine } from "./session.ts";
@@ -194,6 +197,10 @@ export interface EditingRuntimeProps {
   readonly flow: SaveFlow;
   /** The shell's layout: the panel the document asks for opens in it. */
   readonly layout: ShellLayout;
+  /** The Organise mode's state for this document, the shell's modes and how shortcut chips are written. */
+  readonly organise: OrganiseController;
+  readonly modes: ModeRegistry;
+  readonly keys: KeyPlatform;
 }
 
 /** Asks the browser to confirm closing the tab while `unsaved`; its own prompt, whose words can't be set. */
@@ -219,6 +226,7 @@ export function EditingRuntime({
   fileName,
   flow,
   layout,
+  ...organising
 }: EditingRuntimeProps): ReactNode {
   useEffect(() => registerEditCommands(registry), [registry]);
   useEffect(() => flow.start(), [flow]);
@@ -248,6 +256,14 @@ export function EditingRuntime({
         onAnswer={(yes) => flow.answer(yes)}
       />
       <InitialViewEditing engine={engine} viewer={viewer} />
+      <OrganiseMode
+        controller={organising.organise}
+        engine={engine}
+        viewer={viewer}
+        modes={organising.modes}
+        registry={registry}
+        keys={organising.keys}
+      />
     </>
   );
 }

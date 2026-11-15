@@ -14,6 +14,7 @@ import {
   type EditControls,
   type GatedEntry,
   type KeyPlatform,
+  type ModeRegistry,
   type Platform,
   type RailTab,
   type ShellLayout,
@@ -60,6 +61,12 @@ export type EditActions = Readonly<
       | "organise.initial-view"
       | "pages.rotate-right"
       | "pages.rotate-left"
+      | "pages.delete"
+      | "pages.duplicate"
+      | "pages.reverse"
+      | "pages.move-to"
+      | "pages.insert-blank"
+      | "pages.select-all"
       | "file.save"
       | "file.save-as"
       | "file.save-optimised"
@@ -87,6 +94,8 @@ export interface Editing {
   readonly later: Later | undefined;
   /** The top bar's save state, Undo and Redo, while a document is open. */
   readonly topBar: ReactNode;
+  /** The top bar's mode switcher, once later.ts has loaded and a second mode is registered. */
+  readonly modeArea: ReactNode;
   /** The strip under the top bar: how the file saves, and a save that failed. */
   readonly notice: ReactNode;
   /** The History tab, once the document has an edit session. */
@@ -130,11 +139,34 @@ function useSaveFlow(
   );
 }
 
+/**
+ * The Organise mode's state for this document, and whether it is the mode: the page commands act on
+ * the grid's selection then.
+ */
+function useOrganise(
+  later: Later | undefined,
+  engine: Engine,
+  viewer: Viewer | undefined,
+  toasts: ToastQueue,
+  modes: ModeRegistry,
+) {
+  const organise = useMemo(
+    () =>
+      later === undefined || viewer === undefined ? undefined : new later.OrganiseController(engine, viewer, toasts),
+    [later, viewer, engine, toasts],
+  );
+  const organising = useSyncExternalStore(
+    (listener) => modes.subscribe(listener),
+    () => modes.getState().current === "organise",
+  );
+  return { organise, organising };
+}
+
 /** The edit session's part of the reader, for the document `viewer` shows (undefined: none). */
 export function useEditing(options: {
   readonly engine: Engine;
   /** The rail's layout, and the commands' registry, which the edit commands join once a document is open. */
-  readonly shell: { readonly layout: ShellLayout; readonly registry: CommandRegistry };
+  readonly shell: { readonly layout: ShellLayout; readonly registry: CommandRegistry; readonly modes: ModeRegistry };
   readonly viewer: Viewer | undefined;
   readonly toasts: ToastQueue;
   readonly fileName: string | undefined;
@@ -142,8 +174,8 @@ export function useEditing(options: {
   readonly keys: KeyPlatform;
   readonly platform: Platform;
 }): Editing {
-  const { engine, viewer, toasts, platform } = options;
-  const { layout, registry } = options.shell;
+  const { engine, viewer, toasts, platform, keys } = options;
+  const { layout, registry, modes } = options.shell;
   const pages = useStoreState(engine, (s) => s.pages);
   const edits = viewer?.edits;
   const later = useLater(viewer !== undefined);
@@ -160,14 +192,18 @@ export function useEditing(options: {
   const threads = useStoreState(engine, (s) => s.threads);
   const { fileName } = options;
   const flow = useSaveFlow({ engine, viewer, platform, toasts, fileName }, later);
+  const { organise, organising } = useOrganise(later, engine, viewer, toasts, modes);
   // With the commands they run, which register once later.ts has loaded. Download a copy is the
   // output's (the file as opened) until there are changes, then the flow's (with them).
   const actions = useMemo(
     () =>
       later === undefined || viewer === undefined || flow === undefined
         ? NO_ACTIONS
-        : later.editActions(engine, layout, viewer, flow, { unsaved: unsaved > 0, threads }),
-    [engine, layout, viewer, later, flow, unsaved, threads],
+        : {
+            ...later.editActions(engine, layout, viewer, flow, { unsaved: unsaved > 0, threads }),
+            ...(organising && organise !== undefined ? later.organiseActions(organise) : {}),
+          },
+    [engine, layout, viewer, later, flow, unsaved, threads, organising, organise],
   );
   const tab = useMemo<RailTab | undefined>(
     () =>
@@ -182,19 +218,18 @@ export function useEditing(options: {
     unsaved: unsaved > 0,
     lastMs: slice?.lastMs,
     later,
-    topBar:
-      edits === undefined || later === undefined ? undefined : <later.EditArea edits={edits} keys={options.keys} />,
+    topBar: edits === undefined || later === undefined ? undefined : <later.EditArea edits={edits} keys={keys} />,
+    modeArea: later === undefined ? undefined : <later.ModeArea modes={modes} />,
     notice: flow === undefined || later === undefined ? undefined : <later.SaveNotices flow={flow} />,
     runtime: (registry) =>
-      viewer === undefined || fileName === undefined || later === undefined || flow === undefined ? null : (
+      viewer === undefined ||
+      fileName === undefined ||
+      later === undefined ||
+      flow === undefined ||
+      organise === undefined ? null : (
         <later.EditingRuntime
-          engine={engine}
-          viewer={viewer}
-          registry={registry}
-          toasts={toasts}
-          fileName={fileName}
-          flow={flow}
-          layout={layout}
+          {...{ engine, viewer, registry, toasts, fileName, flow, layout, modes, keys }}
+          organise={organise}
         />
       ),
   };

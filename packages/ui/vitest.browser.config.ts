@@ -21,6 +21,9 @@ const forcedColors: BrowserCommand<["active" | null]> = async (ctx, value) => {
 };
 
 export default defineConfig({
+  // React Stately's virtualizer (the Organise page grid's) reads process.env.VIRT_ON in a test
+  // build, and a browser has no `process`: Vite replaces NODE_ENV but not this one.
+  define: { "process.env.VIRT_ON": "undefined" },
   test: {
     ...retryOnceAndReport(),
     include: ["test/browser/*.browser.test.tsx"],

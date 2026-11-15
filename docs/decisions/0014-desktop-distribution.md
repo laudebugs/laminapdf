@@ -96,6 +96,7 @@ Their Tauri `pubkey` values, which D5b compiles into the apps' updater configura
   2. Publish a bridge whose `below` is above every version in the field, so every install takes it. Installed copies trust only the old key, so the bridge is signed with the old key and embeds the new public key; later releases use the new key.
   3. Revoke the leaked key: delete it from the environment and the backups.
   4. Tell users in the release notes, on the download page and in a GitHub security advisory.
+- **Signed versions.** The apps set the updater's `requireSignedVersion` (D5b): an update is refused unless its signature's trusted comment names the version the endpoint announced, so a server or a manifest can't pair a newer version number with an older signed release. Every release is therefore signed with a Tauri CLI that records the version (D6b).
 - **The risk the owner accepts:** until every install has taken the bridge, whoever holds the leaked key can also sign updates those installs accept. No updater design avoids this without a second key the app already trusts. Tauri accepts only one updater public key per build.
 
 ### 8. Attestations and SBOMs

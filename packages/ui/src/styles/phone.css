@@ -17,6 +17,11 @@
     justify-content: center;
   }
 
+  /* More keeps its 44 px beside a long file name; the name shrinks instead. */
+  .paper-top-bar[data-phone] > .paper-icon-button {
+    flex-shrink: 0;
+  }
+
   /* Hidden, the bar slides up by its own height and fades (motion plan §4.3: by transform, never by
      a layout property), then gives its row back at once: its margin and visibility change at the
      end of the slide, so the page view grows once rather than through every frame. Shown again,

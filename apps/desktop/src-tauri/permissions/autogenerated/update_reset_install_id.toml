@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-update-reset-install-id"
+description = "Enables the update_reset_install_id command without any pre-configured scope."
+commands.allow = ["update_reset_install_id"]
+
+[[permission]]
+identifier = "deny-update-reset-install-id"
+description = "Denies the update_reset_install_id command without any pre-configured scope."
+commands.deny = ["update_reset_install_id"]

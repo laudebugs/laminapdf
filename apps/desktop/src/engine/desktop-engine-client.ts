@@ -354,6 +354,10 @@ export class DesktopEngineClient implements ViewerEngine {
     return notYet();
   }
 
+  wouldViolate(): ReturnType<ViewerEngine["wouldViolate"]> {
+    return notYet();
+  }
+
   copyEdits(): Promise<SavedCopy> {
     return notYet();
   }

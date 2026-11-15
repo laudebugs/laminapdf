@@ -3,7 +3,8 @@
 //! It reads `tauri.conf.json`, `tauri.e2e.conf.json` (when it exists) and `capabilities/*.json`,
 //! and fails when:
 //! - a capability grants a forbidden permission (`shell:`, `fs:`, `http:`, `dialog:`, `process:`,
-//!   `opener:`, `log:`): the webview never gets those, only Rust uses the plugins (ADR 0008 §6);
+//!   `opener:`, `log:`, `updater:`): the webview never gets those, only Rust uses the plugins
+//!   (ADR 0008 §6; D5b: every update request goes through the app's commands);
 //! - a capability file other than `e2e.json` is missing from `app.security.capabilities` (with an
 //!   explicit list, a file nobody listed is silently off), or the list names an identifier with no
 //!   file;
@@ -18,7 +19,9 @@ use std::path::Path;
 
 use serde_json::Value;
 
-const FORBIDDEN: [&str; 7] = ["shell:", "fs:", "http:", "dialog:", "process:", "opener:", "log:"];
+const FORBIDDEN: [&str; 8] = [
+    "shell:", "fs:", "http:", "dialog:", "process:", "opener:", "log:", "updater:",
+];
 
 /// A capability file's identifier and the permission identifiers it grants.
 struct Capability {
@@ -161,6 +164,18 @@ fn cap(file: &str, identifier: &str, permissions: &[&str]) -> Capability {
 fn the_guard_should_reject_a_forbidden_permission() {
     let caps = [cap("main.json", "main", &["allow-app-info", "fs:default"])];
     assert_eq!(problems(&conf(&["main"]), &caps, None).len(), 1);
+}
+
+#[test]
+fn the_guard_should_reject_any_updater_permission() {
+    for permission in [
+        "updater:default",
+        "updater:allow-check",
+        "updater:allow-download-and-install",
+    ] {
+        let caps = [cap("main.json", "main", &["allow-update-status", permission])];
+        assert_eq!(problems(&conf(&["main"]), &caps, None).len(), 1, "{permission}");
+    }
 }
 
 #[test]

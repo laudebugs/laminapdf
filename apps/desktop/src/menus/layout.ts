@@ -24,7 +24,7 @@ type Predefined =
 export type Link = "help" | "issues";
 
 /** An item whose work comes in a later todo: shown, never enabled. */
-type Placeholder = "check-for-updates" | "licences";
+type Placeholder = "licences";
 
 /** One entry of a menu. Each may exist on one platform only (`on`). */
 export type MenuEntry = (
@@ -63,7 +63,7 @@ export const MENU_LAYOUT: readonly MenuLayout[] = [
     on: MAC,
     entries: [
       { predefined: "about" },
-      { placeholder: "check-for-updates" },
+      { command: "app.check-for-updates", dialog: true },
       SEPARATOR,
       { command: "app.settings", dialog: true },
       SEPARATOR,
@@ -170,7 +170,7 @@ export const MENU_LAYOUT: readonly MenuLayout[] = [
       { link: "issues" },
       { placeholder: "licences" },
       { separator: true, on: OTHER },
-      { placeholder: "check-for-updates", on: OTHER },
+      { command: "app.check-for-updates", dialog: true, on: OTHER },
       { predefined: "about", on: OTHER },
     ],
   },
@@ -197,7 +197,7 @@ export const MENU_WORDS = {
   moveToWindow: "Move tab to window",
   noOtherWindows: "No other windows",
   link: { help: "Lamina PDF help", issues: "Report an issue" },
-  placeholder: { "check-for-updates": "Check for updates…", licences: "View licences" },
+  placeholder: { licences: "View licences" },
 } as const;
 
 /** Where the Help menu's links go. */
