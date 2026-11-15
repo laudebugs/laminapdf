@@ -32,17 +32,25 @@ fn main() -> Result<(), Box<dyn Error>> {
 pub(crate) fn edit(bytes: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut doc = Document::open_bytes(bytes, OpenOptions::new())?;
     let objects = doc.content_objects(0)?;
-    for object in &objects {
-        println!(
-            "{:?} {:?}{}",
-            object.kind,
-            object.bounds,
-            match object.read_only {
-                Some(reason) => format!(" (read-only: {})", reason.as_str()),
-                None => String::new(),
-            }
-        );
+    list(&objects);
+    let page = doc.page_info(0)?.id;
+    doc.apply(vec![EditContent::new(page, edits(&objects)?).into()])?;
+    Ok(doc.save(&SaveOptions::new())?.bytes)
+}
+
+/// Prints each object: what it draws, its box and, when it can't be moved, why.
+fn list(objects: &[PageObject]) {
+    for object in objects {
+        let read_only = match object.read_only {
+            Some(reason) => format!(" (read-only: {})", reason.as_str()),
+            None => String::new(),
+        };
+        println!("{:?} {:?}{read_only}", object.kind, object.bounds);
     }
+}
+
+/// The four edits, each naming its object as the list gave it.
+fn edits(objects: &[PageObject]) -> Result<Vec<ContentEdit>, Box<dyn Error>> {
     let shapes: Vec<&PageObject> = objects.iter().filter(|o| o.kind == ContentObjectKind::Path).collect();
     let photo = objects
         .iter()
@@ -52,20 +60,10 @@ pub(crate) fn edit(bytes: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
     let [square, second, line, ..] = shapes.as_slice() else {
         return Err("the page needs three shapes".into());
     };
-    let square_box = square.bounds.ok_or("the square draws nothing")?;
-    // Page space: points from the top-left, y down. Half size, about the square's centre.
-    let (cx, cy) = (
-        f64::midpoint(square_box.x0.get(), square_box.x1.get()),
-        f64::midpoint(square_box.y0.get(), square_box.y1.get()),
-    );
-    let shrink = Matrix::translate(-cx, -cy)
-        .then(&Matrix::scale(0.5, 0.5))
-        .then(&Matrix::translate(cx, cy));
-    let page = doc.page_info(0)?.id;
-    let edits = vec![
+    Ok(vec![
         ContentEdit::Transform {
             object: square.object,
-            matrix: shrink,
+            matrix: half_size(square)?,
         },
         ContentEdit::Delete { object: second.object },
         ContentEdit::Transform {
@@ -76,7 +74,17 @@ pub(crate) fn edit(bytes: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
             object: line.object,
             to: StackPosition::Back,
         },
-    ];
-    doc.apply(vec![EditContent::new(page, edits).into()])?;
-    Ok(doc.save(&SaveOptions::new())?.bytes)
+    ])
+}
+
+/// Half size, about the object's centre. Page space: points from the top-left, y down.
+fn half_size(object: &PageObject) -> Result<Matrix, Box<dyn Error>> {
+    let bounds = object.bounds.ok_or("the object draws nothing")?;
+    let (cx, cy) = (
+        f64::midpoint(bounds.x0.get(), bounds.x1.get()),
+        f64::midpoint(bounds.y0.get(), bounds.y1.get()),
+    );
+    Ok(Matrix::translate(-cx, -cy)
+        .then(&Matrix::scale(0.5, 0.5))
+        .then(&Matrix::translate(cx, cy)))
 }
