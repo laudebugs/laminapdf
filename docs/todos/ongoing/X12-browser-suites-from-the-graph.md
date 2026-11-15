@@ -11,60 +11,67 @@
 | Branch | `ci/x12-suites-by-graph` |
 | PR title | `ci: run each browser suite only when the dependency graph reaches it` |
 | Size | L |
-| PR | — |
+| PR | [#664](https://github.com/laudebugs/laminapdf/pull/664) |
 
 ## Goal
 
-The fast lane's runtime legs run every browser suite on almost every code PR. Each of Chromium, Firefox and WebKit runs the SDK's examples, every package's browser tests, the reader's e2e suite, the docs site's and the website's. On main's run 43751465593 they took 16, 12 and 40 minutes, WebKit on a macOS runner. A change to the CLI, a docs page's text or the website's copy reaches none of those suites, or only one. This todo works out which suites a PR's paths can reach from the same graph X10a walks for the desktop app, and runs only those. The reader's deploy flag (`web`) moves to the same graph.
+The fast lane's runtime legs run every browser suite on almost every code PR, so a change to the CLI's code or the website's copy still runs the SDK's examples, nine packages' browser tests and three apps' e2e suites in three browsers. On `main`'s run 43751465593 those legs took 16, 12 and 40 minutes, WebKit on macOS. This todo works out each suite's inputs from the graph X10a walks for the desktop app, and runs only the suites a pull request's paths reach. The reader's deploy flag moves to the same graph.
 
 ## Context
 
-- `tools/xtask/src/changes/desktop.rs` (X10a): the crates reached through path dependencies (`cargo metadata --no-deps`) and the packages reached through `workspace:` dependencies.
-- `tools/xtask/src/pdf_runtimes.rs`: `render_suites` lists what each browser runs.
-- `ci.yml`'s `pdf-runtimes` matrix and `fast-gate`; `web-deploy.yml`'s `preview-build`.
+- The plan's §8.3: the suites, what each reads, and the expected savings.
+- `tools/xtask/src/changes/desktop.rs` (X10a): the crate and package walk this todo shares.
+- `tools/xtask/src/pdf_runtimes.rs`: `render_suites`, what each browser leg runs, and the rule that a runtime printing no measurements fails.
+- `ci.yml`'s `changes`, `pdf-runtimes` and `fast-gate`; `web-deploy.yml`'s `preview-build`; `tools/xtask/src/workflows.rs`, which tests each job's `if` against its gate.
 
 ## Scope
 
 **In scope**
 
-- `changes/graph.rs`: the crate and package graphs, shared by the desktop's inputs and the suites'.
-- A suite per package with browser tests, plus the SDK's examples, the reader, the docs site and the website, each with its root package, its extra inputs and the inputs every suite shares.
-- `cargo xtask changes` prints `runtime-legs`, the runtime matrix with each leg's suites; pushes to `main` run every leg and suite.
-- `cargo xtask pdf-runtimes --suites <list>`; the default runs every suite, as the nightly and release lanes do.
-- `web` from the reader's suite inputs in place of `OUTSIDE_WEB`.
+- `changes/graph.rs`: the crate and package graphs, read once, with `desktop.rs` over it.
+- `changes/suites.rs`: the plan's suites, each with its root, its extra inputs and the inputs every suite shares; `runtime_legs`, the matrix with each leg's suites.
+- `cargo xtask changes` prints `runtime-legs`. Pushes to `main` run every leg and suite.
+- `cargo xtask pdf-runtimes --suites <list>`, with no list running every suite. A browser leg without `examples` records no measurements and doesn't fail for it.
+- `ci.yml`'s runtime matrix from `runtime-legs`; `fast-gate` expects the job when the list isn't empty.
+- `touches_web` from the `web` suite's inputs, the deploy workflow and the manifests, in place of `OUTSIDE_WEB`.
+- A test that `docs.yml`'s and `site.yml`'s path filters cover their suites' graph inputs; `site.yml` gains `packages/icons/**`.
 
-**Out of scope** (and which todo covers it)
+**Out of scope**
 
-- The `wasm`, `typescript` and `semver` jobs stay on `ts`: together they take about 12 minutes, on Linux.
+- `wasm`, `typescript` and `semver` stay on `ts` (about 12 minutes together, on Linux).
+- `web-release-train.yml`'s rule for a new reader release (`cargo xtask web next-release`) keeps its own list.
 
 ## Tasks
 
-- [ ] `changes/graph.rs`, with `desktop.rs` over it.
-- [ ] `changes/suites.rs`: the suites, their inputs, `runtime_legs`.
-- [ ] `pdf_runtimes.rs`: `--suites`.
-- [ ] `ci.yml`: the matrix from `runtime-legs`, and `fast-gate`'s rule; `workflows.rs`' tests.
-- [ ] `touches_web` from the reader's inputs.
-- [ ] Plan §8.1 and §8.3, CLAUDE.md.
+- [ ] `changes/graph.rs`, with its tests moved from `desktop.rs`; `desktop.rs` over it.
+- [ ] `changes/suites.rs`: `SUITES`, `inputs`, `reached`, `runtime_legs`, with tests on the repository's graph.
+- [ ] `changes.rs`: the `runtime-legs` output and `touches_web` from the graph.
+- [ ] `pdf_runtimes.rs`: `--suites`, the measurement rule, `help` text.
+- [ ] `ci.yml`: the push step's full matrix, the `pdf-runtimes` matrix and `if`, `fast-gate`; `workflows.rs`' tests.
+- [ ] `site.yml`'s path filter, and the filter test.
+- [ ] The plan's §8.1 table, CLAUDE.md's `changes` and `pdf-runtimes` entries.
 
 ## Acceptance criteria
 
-- [ ] A change only to `crates/laminapdf-cli/` runs no runtime leg and sets `web=false`.
-- [ ] A change only to `apps/site/` runs only the website's suite, in each browser, and no server leg.
-- [ ] A change to `crates/laminapdf-cos/` runs every suite that reaches the WebAssembly.
-- [ ] A push to `main` runs every leg and every suite.
+- [ ] A change only to `crates/laminapdf-cli/src/` gives an empty `runtime-legs` and `web=false`.
+- [ ] A change only to `apps/site/src/data/` runs the `site` suite alone, in each browser leg, and no server leg.
+- [ ] A change to `crates/laminapdf-cos/` runs `examples`, `render-hayro`, `viewer`, `web` and `docs`, and the server leg.
+- [ ] A change to `docs/errors/` with a code change runs `docs`.
+- [ ] A push to `main` runs every leg and every suite; the nightly's and the release lane's `pdf-runtimes` runs are unchanged.
 
 ## Post-merge checks
 
-- The first PRs after the merge skip the legs this todo says they skip.
+- The next PRs that change only the CLI or the website skip the legs the plan says they skip, and `fast-gate` passes.
 
 ## Tests
 
-`tools/xtask/src/changes/suites.rs`, `graph.rs`, `pdf_runtimes.rs`, `workflows.rs`.
+`tools/xtask/src/changes/graph.rs`, `suites.rs`, `desktop.rs`; `changes.rs`' `touches_web` tests; `pdf_runtimes.rs`' argument tests; `workflows.rs`.
 
 ## Docs to update
 
-The CI caching plan's §8.1 table and a new §8.3; CLAUDE.md's `cargo xtask changes` and `pdf-runtimes` entries.
+The plan's §8.1 table and §8.3's checkbox; CLAUDE.md's `cargo xtask changes` and `pdf-runtimes` entries.
 
 ## Risks and open questions
 
-- A file a suite reads that no graph or list names skips that suite on a PR, until the next push to `main` runs it. Every suite counts the fixtures, the manifests, `tools/xtask` and the workflow, and when unsure, a path counts.
+- A file a suite reads that no graph or list names skips that suite on a pull request, until the next push to `main` runs it. Every suite counts `fixtures/`, the manifests, `tools/xtask/`, `ci.yml` and its actions, and when unsure, a path counts.
+- A change to `tools/xtask/` runs every suite, as the desktop's inputs do: most xtask modules feed some leg.
