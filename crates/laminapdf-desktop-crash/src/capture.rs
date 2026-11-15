@@ -544,11 +544,6 @@ pub mod test_support {
 }
 
 #[cfg(test)]
-#[expect(
-    clippy::cast_possible_truncation,
-    clippy::cast_possible_wrap,
-    reason = "test-only sockaddr construction from a known-short path"
-)]
 mod tests {
     use std::os::fd::AsRawFd as _;
 
@@ -591,11 +586,12 @@ mod tests {
         if bytes.len() >= addr.sun_path.len() {
             return None;
         }
-        addr.sun_family = libc::AF_UNIX as _;
+        addr.sun_family = libc::sa_family_t::try_from(libc::AF_UNIX).ok()?;
+        // `c_char` is signed on some targets and unsigned on others (Linux on Arm64).
         for (slot, &byte) in addr.sun_path.iter_mut().zip(bytes) {
-            *slot = byte as _;
+            *slot = libc::c_char::from_ne_bytes([byte]);
         }
-        let len = (size_of::<libc::sa_family_t>() + bytes.len() + 1) as libc::socklen_t;
+        let len = libc::socklen_t::try_from(size_of::<libc::sa_family_t>() + bytes.len() + 1).ok()?;
         Some((addr, len))
     }
 
