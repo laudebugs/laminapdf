@@ -1,5 +1,5 @@
 // The Organise mode's toolbar (Paper O06, §8.1), under the top bar while Organise is the mode:
-// Insert ▾ · Rotate left · Rotate right · Delete │ Move to page… │ More page actions (⋯) · the note
+// Insert ▾ · Rotate left · Rotate right · Delete │ Move to page… │ More page actions (⋯) · Page setup ▾ · the note
 // on the selection, and the thumbnail size control at the end. Each button is its command's view
 // (useCommand), so it is disabled, with the reason, when the command can't run.
 
@@ -10,6 +10,7 @@ import { Button, IconButton } from "../components/button.js";
 import type { KeyPlatform } from "../components/shortcut-chip.js";
 import { laterMessage } from "../later-messages.js";
 import { Menu, type MenuEntry, MenuTrigger } from "../overlays/popover.js";
+import { PAGE_SETUP_COMMANDS } from "./commands.js";
 
 /** Props of `OrganiseToolbar`. */
 export interface OrganiseToolbarProps {
@@ -98,6 +99,7 @@ export function OrganiseToolbar({ note, scale, onScale, platform }: OrganiseTool
         ids={["pages.duplicate", "pages.reverse", "pages.select-all"]}
         platform={platform}
       />
+      <CommandMenu label={laterMessage("organise.setup")} ids={PAGE_SETUP_COMMANDS} platform={platform} />
       <span className="paper-organise-note" aria-live="polite">
         {note}
       </span>
