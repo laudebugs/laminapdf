@@ -214,16 +214,16 @@
   }
 }
 
-/* Reduce motion, chosen in Settings: no animation, transition or smooth scroll, as the system's
-   prefers-reduced-motion asks of every style that animates. */
+/* Reduce motion, chosen in Settings, means what the system's prefers-reduced-motion means
+   (design language §7.0): nothing moves, fades stay. The tokens carry most of it, since
+   tokens.css gives [data-motion="reduce"] the reduced values (no scale, no travel); this rule
+   stops keyframe animations and smooth scrolling, which no token can. */
 @layer paper.motion {
   :where([data-motion="reduce"]) *,
   :where([data-motion="reduce"]) *::before,
   :where([data-motion="reduce"]) *::after {
     /* biome-ignore lint/complexity/noImportantStyles: the setting must beat every component's own animation */
     animation: none !important;
-    /* biome-ignore lint/complexity/noImportantStyles: as above, for transitions */
-    transition: none !important;
     /* biome-ignore lint/complexity/noImportantStyles: as above, for smooth scrolling */
     scroll-behavior: auto !important;
   }
