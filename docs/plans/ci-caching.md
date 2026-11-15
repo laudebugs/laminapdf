@@ -5,7 +5,7 @@
 - **Asked for by:** the project owner (2026-11-12): "look at caching for our tests, so as to speed up the pipeline", then "cache the rust builds without turborepo", with the cache on Cloudflare R2.
 - **Changes:** [ADR 0018 §2](../decisions/0018-test-strategy.md#2-ci-lanes) (a CI compile cache, and what may never use it; reversed 2026-11-15)
 - **Builds on:** the fast and full lanes ([X4](../todos/done/X4-full-lane-gate.md), [X7](../todos/done/X7-fast-lane-gate.md)), the hosted runners ([X6](../todos/done/X6-windows-ci.md)), and the shared setup actions in `.github/actions/`
-- **Todos:** [§7](#7-todos) (the compile cache), [§8](#8-the-waits) (the waits) and [§8.2](#82-desktop-legs-and-codeql-by-what-changed-x10) (desktop legs and CodeQL)
+- **Todos:** [§7](#7-todos) (the compile cache), [§8](#8-the-waits) (the waits), [§8.2](#82-desktop-legs-and-codeql-by-what-changed-x10) (desktop legs and CodeQL) and [§8.3](#83-browser-suites-by-the-dependency-graph-x12) (browser suites)
 
 ## 1. Goal
 
@@ -160,9 +160,10 @@ The waits in §2 cost more than compiling. macOS jobs on PRs waited 27 to 120 mi
 | Jobs | Flag | Skipped when every changed path is under | Notes |
 | --- | --- | --- | --- |
 | `ci.yml`'s `rust` legs and `msrv-and-spike`; `full.yml`'s `fuzz` | `rust` | `apps/web/`, `apps/docs/`, `apps/site/`, `apps/gallery/`, `packages/`, but not `packages/sdk/` or any package's `src/` | Rust tests read the SDK's schemas and test files; `check maintainability` scans package sources for todo IDs |
-| `ci.yml`'s `wasm`, `pdf-runtimes`, `semver`, `typescript` | `ts` | `fuzz/`, `spikes/`, `tools/`, `.github/workflows/`, but not `tools/xtask/`, `tools/cli-release/`, `tools/fonts/`, any file Biome lints, or the two lanes' workflows | The crates and fixtures always count: the WebAssembly, the docs site and the examples' goldens come from them |
+| `ci.yml`'s `wasm`, `semver`, `typescript` | `ts` | `fuzz/`, `spikes/`, `tools/`, `.github/workflows/`, but not `tools/xtask/`, `tools/cli-release/`, `tools/fonts/`, any file Biome lints, or the two lanes' workflows | The crates and fixtures always count: the WebAssembly, the docs site and the examples' goldens come from them |
 | `full.yml`'s `render-golden` | `render` (X9b) | Runs only when a path is under the crates, the example and render goldens, the corpus, `tools/render/`, `tools/xtask/`, the manifests and toolchain, or `full.yml` | It needs a Mac |
 | `full.yml`'s `desktop`, `desktop-e2e` | `desktop-build`, `desktop-e2e` (X10a, X10b) | Runs only when a path is among the desktop's inputs (`changes/desktop.rs`: the crates and packages the app builds, found from the dependency graph, plus a fixed list) and at least one leg hasn't yet passed on those inputs | §8.2 |
+| `ci.yml`'s `pdf-runtimes` legs | `runtimes`, `runtime-legs` (X12) | `ts`, and a leg runs only when the paths reach one of its suites (`changes/suites.rs`, from the dependency graph) | §8.3 |
 | `codeql.yml`'s `analyze` legs | `codeql` (X10c) | A language runs only when a path is in it | §8.2 |
 | `full.yml`'s `check-linux`, `check-windows`, `suites` | `code` | Docs only | The checks run the whole `cargo xtask check`; the suites read both Rust and the TypeScript tests' capability tags, so `rust` or `ts` would always equal `code` |
 
@@ -177,3 +178,42 @@ The desktop jobs and CodeQL ran more than a pull request's changes needed. The o
 - [x] The `desktop` flag counted every crate and package, so a CLI-only change built and tested the app on three systems. `cargo xtask changes` now works out which crates the app, its engine and its WebAssembly reach through path dependencies (`cargo metadata --no-deps`), and the packages `apps/desktop` reaches through `workspace:` dependencies. A fixed list adds the manifests, toolchains, the fixtures the scenarios open, `tools/xtask` (whose tasks the jobs run, wasm-opt's pin included) and the workflow ([X10a](../todos/done/X10a-desktop-inputs-from-the-graph.md)). `laminapdf-cli`, `laminapdf-layout-onnx`, `packages/cli`, `packages/layout-heron` and `packages/site-kit` fall outside it.
 - [x] A rerun of the full lane ran every desktop leg again, though nothing the app reads had changed. `cargo xtask desktop-key` is a digest of every input file's contents at `HEAD`. Each passing leg saves an empty Actions cache entry, `desktop-passed-<key>-<build|e2e>-<os>`, and the `changes` job leaves out each leg with an entry saved by the same PR or by `main` ([X10b](../todos/done/X10b-reuse-desktop-legs-that-passed.md)). Pushes to `main` run every leg, so they save entries that a PR reuses when its inputs match `main`'s. A PR can only fool its own gate this way, since its entries are visible to no other ref. An evicted entry runs the leg again. Every path is canonicalised before the dependency walk, so each OS computes the same key.
 - [x] CodeQL analysed four languages on every pull request, a docs-only one included. `cargo xtask changes` now lists the languages a PR's paths are in, and `codeql.yml` analyses only those; pushes to `main` and the weekly schedule analyse all four ([X10c](../todos/done/X10c-codeql-by-changed-language.md)). A script under `docs/` counts as docs, so CodeQL analyses it only once the PR merges to `main`, and code scanning may warn on a PR that a skipped language's analysis is missing.
+
+### 8.3 Browser suites by the dependency graph (X12)
+
+The owner asked for CI to stop building and testing apps a pull request can't change (2026-11-15): "we don't need to build a website if nothing the website has changed", with "a graph or something" to tell. The fast lane's runtime legs are where that costs most. Each of Chromium, Firefox and WebKit runs the SDK's examples, nine packages' browser tests, and the reader's, the docs site's and the website's builds and e2e suites, whatever the pull request changed. On `main`'s run 43751465593 those legs took 16, 12 and 40 minutes. WebKit, on a macOS runner, was the lane's slowest job. A change to the CLI's code reaches none of those suites, and a change to the website's copy reaches one.
+
+`cargo xtask changes` already walks two graphs for the desktop app (§8.2): the crates reached through path dependencies, and the packages reached through `workspace:` dependencies. X12 moves that walk into `changes/graph.rs` and gives each browser suite its inputs from it:
+
+| Suite | Runs | Starts from | Also reads |
+| --- | --- | --- | --- |
+| `examples` | the SDK's example suite: every browser leg and the server leg (Deno, Bun, workerd, Node 22 and 26) | `packages/sdk/` | — |
+| `render-pdfium`, `render-hayro`, `viewer`, `tokens`, `fonts`, `icons`, `ui`, `site-kit` | the package's browser tests | its package | — |
+| `web` | the reader's typecheck, build, size budget and e2e suite | `apps/web/` | `docs/capabilities/matrix.json` (the capability page) |
+| `docs` | the docs site's browser tests, build and e2e suite | `apps/docs/` | `crates/laminapdf/examples/`, `packages/viewer/examples/`, `docs/errors/`, `CHANGELOG.md`, `apps/site/src/pages/` (the shared header links each page) |
+| `site` | the website's build and e2e suite | `apps/site/` | `crates/laminapdf/examples/hello.rs`, `packages/sdk/examples/hello.ts`, `packages/sdk/package.json`, `crates/laminapdf-cli/README.md`, `apps/docs/src/content/docs/install.mdx`, `deny.toml` |
+
+A suite whose packages reach `packages/wasm/` or `packages/render-hayro/` reads the WebAssembly too, so it also counts the crates `wasm::MODULES` reach. Every suite counts what every leg uses: the manifests and lockfiles, the toolchain, `fixtures/`, `tools/xtask/` and `ci.yml` with its actions. A suite's own extra inputs count even when they are docs by [`is_docs`](../../tools/xtask/src/changes.rs), since the docs site builds pages from `docs/errors/` and `CHANGELOG.md`, and the reader bundles `docs/capabilities/matrix.json`. A pull request with docs only still runs no leg (`ts=false`), and `docs.yml`'s preview builds the site for it.
+
+The `changes` job prints `runtime-legs`, the runtime matrix with only the legs some suite needs, each with its list. The server leg runs only for `examples`. `cargo xtask pdf-runtimes --suites` runs the listed suites alone, and with no list every suite, as the nightly and release lanes do. Pushes to `main` run every leg and every suite. `fast-gate` expects the runtime job when `runtimes` is true: `ts` is, and `runtime-legs` isn't empty.
+
+The reader's deploy flag (`web`, which `web-deploy.yml` reads) comes from the `web` suite's inputs too, in place of the list of places the reader can't depend on (`OUTSIDE_WEB`). So does the daily reader release (`cargo xtask web next-release`), which asked the same question: a change to the CLI no longer releases the reader. The release reads a past commit's paths against today's graph.
+
+A test holds `docs.yml`'s and `site.yml`'s path filters to their suites' graph inputs. It found seven gaps: `docs.yml` lacked `CHANGELOG.md` (the changelog page), `packages/viewer/examples/` (shown on its pages), `packages/icons/` (it listed only the SVG files) and `packages/test-utils/`, and `site.yml` lacked `packages/test-utils/`, `packages/render/` and `packages/icons/`, the last of which the website reaches through `@laminapdf/site-kit`.
+
+What this leaves out:
+
+- `wasm`, `typescript` and `semver` stay on `ts`. Together they take about 12 minutes, on Linux.
+- Turborepo's and Nx's "affected" commands see only the pnpm graph. They miss the crates the WebAssembly is built from and the files a site reads outside its packages, and would add a tool for a walk xtask already makes.
+- The risk is the one X10a took: a file a suite reads that no graph or list names skips that suite on a pull request, until the next push to `main` runs it. When unsure, a path counts.
+
+Expected savings, per pull request:
+
+| A pull request that changes | Before X12 | With X12 |
+| --- | --- | --- |
+| `crates/laminapdf-cli/src/` | every leg, every suite | no leg |
+| the website's copy (`apps/site/src/data/`) | every leg, every suite | `site` in each browser |
+| `packages/ui/` | every leg, every suite | `ui` and `web` in each browser |
+| a core crate | every leg, every suite | every suite that reads the WebAssembly: `examples`, `render-hayro`, `viewer`, `web`, `docs` |
+
+- [x] The browser suites and the reader's deploy flag from the dependency graph ([X12](../todos/done/X12-browser-suites-from-the-graph.md))

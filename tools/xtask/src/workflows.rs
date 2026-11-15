@@ -860,8 +860,21 @@ mod tests {
 
     /// The native Rust legs of ci.yml's `changes` job, as JSON objects.
     fn rust_legs(workflow: &str) -> Vec<serde_json::Value> {
+        legs_in_step(workflow, "Choose the native Rust legs")
+    }
+
+    /// The `legs='[ … ]'` list of the `changes` job's step named `step`.
+    fn legs_in_step(workflow: &str, step: &str) -> Vec<serde_json::Value> {
         let lines = lines_of(workflow, "jobs", "changes");
-        let start = lines.iter().position(|l| l.trim() == "legs='[").unwrap_or(lines.len());
+        let named = lines
+            .iter()
+            .position(|l| l.trim() == format!("- name: {step}"))
+            .unwrap_or(lines.len());
+        let start = lines
+            .iter()
+            .skip(named)
+            .position(|l| l.trim() == "legs='[")
+            .map_or(lines.len(), |n| named + n);
         let end = lines
             .iter()
             .skip(start)
@@ -975,6 +988,32 @@ mod tests {
         assert_eq!(
             rust_legs("jobs:\n  changes:\n    steps: []\n"),
             Vec::<serde_json::Value>::new()
+        );
+    }
+
+    /// Todo X12: the runtime matrix comes from the `changes` job, which lists the three browsers
+    /// and the server leg, and each leg passes its suites to `pdf-runtimes`.
+    #[test]
+    fn pdf_runtimes_should_take_its_legs_and_suites_from_the_changes_job() {
+        let groups: Vec<String> = legs_in_step(CI, "Choose the runtime legs")
+            .iter()
+            .filter_map(|leg| leg.get("group").and_then(serde_json::Value::as_str).map(str::to_owned))
+            .collect();
+        let job = lines_of(CI, "jobs", "pdf-runtimes");
+        assert_eq!(
+            (
+                groups,
+                job.iter()
+                    .any(|l| l.trim() == "include: ${{ fromJSON(needs.changes.outputs.runtime-legs) }}"),
+                job.iter()
+                    .filter(|l| l.trim() == "SUITES: ${{ matrix.suites }}")
+                    .count(),
+            ),
+            (
+                ["chromium", "firefox", "webkit", "servers"].map(String::from).to_vec(),
+                true,
+                3
+            )
         );
     }
 

@@ -274,13 +274,25 @@ export async function menuClick(id: string): Promise<void> {
 /**
  * Chooses menu item `id` and returns at once, without waiting for the choice to finish: for an
  * item that opens or closes a window, whose answer the embedded WebDriver server can lose as the
- * windows change, after which WebdriverIO would send the choice again into another window.
+ * windows change, after which WebdriverIO would send the choice again into another window. The
+ * page makes the choice a moment after this call answers: started at once, a new window could
+ * open before the answer came back, and on WebKitGTK the answer was then lost all the same.
  */
 export async function menuClickAndGo(id: string): Promise<void> {
-  await browser.execute((item) => {
-    void (globalThis as unknown as TauriGlobal).__TAURI__.core.invoke("e2e_menu_click", { id: item });
-  }, id);
+  // The callback runs in the page, so the wait goes in as an argument.
+  await browser.execute(
+    (item, wait) => {
+      setTimeout(() => {
+        void (globalThis as unknown as TauriGlobal).__TAURI__.core.invoke("e2e_menu_click", { id: item });
+      }, wait);
+    },
+    id,
+    AFTER_THE_ANSWER_MS,
+  );
 }
+
+/** How long the page waits before a step that changes the windows: long enough for the answer. */
+export const AFTER_THE_ANSWER_MS = 100;
 
 /** Waits until the menu snapshot matches `pattern`; returns the snapshot. */
 export async function waitForMenus(pattern: RegExp, timeoutMsg: string): Promise<string> {
