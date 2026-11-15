@@ -1,4 +1,4 @@
-//! Sending the outbox's reports to the update Worker's `POST /crash` (D7a), from the main process
+//! Sending the outbox's reports to the update Worker's `POST /crash`, from the main process
 //! only: the webview has no network permission for it. The request carries the report and nothing
 //! else: no install ID (the updater's `Lamina-Install-Id` is never set on this client), no cookie,
 //! no user agent beyond the client's own.

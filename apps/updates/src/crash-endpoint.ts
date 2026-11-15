@@ -1,4 +1,4 @@
-// `POST /crash` (D7a): takes one scrubbed crash report from the desktop app's main process and
+// `POST /crash`: takes one scrubbed crash report from the desktop app's main process and
 // stores it in its own private bucket, `crash-reports/{yyyy}/{mm}/{dd}/{report_id}.json`, which a
 // lifecycle rule empties after 30 days (apps/updates/README.md). Nothing here logs a body, and the
 // client's IP is the rate limiter's key and nothing else: never logged, stored or put in an error.

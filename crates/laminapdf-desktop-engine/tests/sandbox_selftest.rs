@@ -330,12 +330,15 @@ fn an_engine_killed_by_seccomp_should_be_restarted_and_logged_as_a_violation() {
 }
 
 /// A panic in a sandboxed engine reaches the main process as a crash, with the summary its panic
-/// hook sent: the message, the place in the source and named frames (D7a). The test's engine is a
-/// debug build, which obeys `DebugPanic`.
+/// hook sent: the message and the place in the source. The engine is the e2e one, which obeys
+/// `DebugPanic`.
+#[cfg(feature = "e2e")]
 #[test]
 fn a_panic_in_the_engine_should_reach_the_supervisor_with_its_summary() {
     let (supervisor, events) = supervised(&[], SandboxConfig::default());
-    supervisor.send(&laminapdf_desktop_protocol::ToEngine::DebugPanic);
+    supervisor.send(&laminapdf_desktop_protocol::ToEngine::DebugPanic {
+        message: "a panic the end-to-end tests asked for".into(),
+    });
     let panic = loop {
         match events.recv_timeout(Duration::from_secs(20)) {
             Ok(Event::Crashed { panic, .. }) => break panic,

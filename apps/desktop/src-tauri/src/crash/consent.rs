@@ -1,4 +1,4 @@
-//! Whether crash reports may be sent (D7a): off until the user says otherwise, asked once per
+//! Whether crash reports may be sent: off until the user says otherwise, asked once per
 //! install after the first crash (S08), and changed only by that answer or by Settings › Privacy.
 //! Kept in `crash.json` in the app's config folder.
 

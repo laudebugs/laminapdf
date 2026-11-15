@@ -1,4 +1,4 @@
-//! Opt-in crash reporting (D7a; desktop plan req. 9, S07 Privacy, S08). A crash anywhere in the app
+//! Opt-in crash reporting (desktop plan req. 9; Paper S07 Privacy, S08). A crash anywhere in the app
 //! becomes a [`report::Report`]: built from an allow-list, scrubbed of paths and names, and kept on
 //! this computer. It leaves only with the user's consent ([`consent`]): asked once, after the
 //! first crash, or always from Settings › Privacy. What is sent is exactly what the app showed.
@@ -12,7 +12,7 @@
 //!   ask: a notice in its status bar, not a dialog, since the engine has already restarted.
 //! - **The webview's uncaught errors**: `report_ui_error`, with the stack parsed here, in Rust.
 //!
-//! Native crashes of the main process and the engine's minidumps are D7d's.
+//! Native crashes, without a panic, report only how the engine ended: minidumps come later.
 
 pub(crate) mod commands;
 mod consent;
@@ -102,8 +102,7 @@ impl CrashReports {
             return;
         }
         let consent = self.consent.get();
-        let place = if consent.sends() { Shelf::Outbox } else { Shelf::Held };
-        if let Err(error) = self.queue.put(place, &self.build(crash)) {
+        if let Err(error) = self.queue.put(Shelf::for_consent(consent), &self.build(crash)) {
             tracing::warn!("could not keep a crash report: {error}");
             return;
         }
@@ -157,19 +156,26 @@ impl CrashReports {
     }
 
     /// Sends the outbox in the background, again after a growing wait while the Worker can't be
-    /// reached; one pass at a time.
+    /// reached; one sender at a time. A report kept while it sends is sent too: the sender looks
+    /// again after it lets go, so none waits for the next launch.
     pub(crate) fn send_soon(self: &Arc<Self>) {
         if self.sending.swap(true, Ordering::SeqCst) {
             return;
         }
         let this = Arc::clone(self);
         tauri::async_runtime::spawn(async move {
-            let mut wait = FIRST_RETRY;
-            while !upload::send_outbox(&this.queue, &this.endpoint).await {
-                tokio::time::sleep(wait).await;
-                wait = (wait * 2).min(LAST_RETRY);
+            loop {
+                let mut wait = FIRST_RETRY;
+                while !upload::send_outbox(&this.queue, &this.endpoint).await {
+                    tokio::time::sleep(wait).await;
+                    wait = (wait * 2).min(LAST_RETRY);
+                }
+                this.sending.store(false, Ordering::SeqCst);
+                let more = !this.queue.list(Shelf::Outbox).is_empty();
+                if !more || this.sending.swap(true, Ordering::SeqCst) {
+                    break;
+                }
             }
-            this.sending.store(false, Ordering::SeqCst);
         });
     }
 
@@ -195,9 +201,8 @@ pub(crate) fn report_panics(reports: &Arc<CrashReports>) {
         if let Some(reports) = FOR_PANICS.get() {
             let crash = Crash::panic(ProcessKind::Main, summarize(info, "laminapdf-desktop"), None);
             // A panic while the consent is being changed counts as not yet allowed.
-            let sends = reports.consent.try_get().is_some_and(ConsentState::sends);
-            let place = if sends { Shelf::Outbox } else { Shelf::Held };
-            let _ = reports.queue.put(place, &reports.build(crash));
+            let consent = reports.consent.try_get().unwrap_or_default();
+            let _ = reports.queue.put(Shelf::for_consent(consent), &reports.build(crash));
         }
         previous(info);
     }));

@@ -23,10 +23,13 @@ export interface CrashAnswer {
   readonly always: boolean;
 }
 
+/** Which process crashed: the app itself, its document process, or a window's page. */
+export type CrashProcess = "main" | "engine" | "webview";
+
 /** Props of `CrashReportDialog`. */
 export interface CrashReportDialogProps {
   /** Which process stopped: the app itself ("main", the next launch asks), the document process ("engine") or the window's page ("webview"). */
-  readonly process: "main" | "engine" | "webview";
+  readonly process: CrashProcess;
   /** The exact JSON that would be sent, already pretty-printed by the caller. */
   readonly report: string;
   /** The user's answer: send this report (and, with `always`, every later one), or not. */
@@ -171,7 +174,7 @@ function ReportPreview({ report, onBack }: { report: string; onBack: () => void 
 /** Props of `CrashNotice`. */
 export interface CrashNoticeProps {
   /** What went wrong: the document view restarted (`engine`), or the window's page hit an error. */
-  readonly process?: "engine" | "webview";
+  readonly process?: Exclude<CrashProcess, "main">;
   /** Send was pressed: send this report. */
   onSend: () => void;
   /** View report was pressed: the app opens `CrashReportDialog` on its report. */

@@ -382,9 +382,13 @@ pub enum ToEngine {
     },
     /// Render one band of a page for printing. Answered by [`FromEngine::PrintBand`].
     RenderPrintBand(PrintBandRequest),
-    /// Panic, as a crash would (the end-to-end tests' `e2e_crash_engine_panic`). Only an engine
-    /// built with its `e2e` feature obeys; any other logs it and carries on.
-    DebugPanic,
+    /// Panic with `message`, as a crash would: the end-to-end tests' forced engine panic. Only the
+    /// e2e builds have it (feature `debug-crash`).
+    #[cfg(feature = "debug-crash")]
+    DebugPanic {
+        /// The panic's message, which the test fills with what a report must not hold.
+        message: String,
+    },
 }
 
 /// A message from the engine to the main process.
@@ -478,7 +482,7 @@ pub enum FromEngine {
     /// Sent every second, so the main process can tell a hung engine from a busy one.
     Heartbeat,
     /// The engine panicked: sent from its panic hook, just before it aborts, so the main process
-    /// can build a crash report (D7a). Unscrubbed: the main process scrubs it.
+    /// can build a crash report. Unscrubbed: the main process scrubs it.
     Panic(Box<crate::crash::PanicSummary>),
     /// The engine needs a system font face's bytes; answered by [`ToEngine::FontData`] or
     /// [`ToEngine::FontFailed`].

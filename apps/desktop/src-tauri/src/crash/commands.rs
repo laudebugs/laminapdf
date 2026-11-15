@@ -74,7 +74,7 @@ pub(crate) fn report_ui_error(
     stack: String,
     rejection: bool,
 ) {
-    let stack = laminapdf_desktop_protocol::crash::cut(stack, MAX_STACK);
+    let stack = laminapdf_desktop_protocol::crash::truncate_on_char_boundary(stack, MAX_STACK);
     reports.record(
         window.app_handle(),
         Some(window.label()),
@@ -100,30 +100,32 @@ pub(crate) fn e2e_crash_main_panic(app: tauri::AppHandle) -> Result<(), crate::D
     .map_err(|error| crate::DesktopError::Internal(error.to_string()))
 }
 
-/// Makes this window's engine panic (a debug engine obeys `DebugPanic`).
+/// Makes this window's engine panic with `message`, which the test fills with what a report must
+/// not hold.
 #[cfg(feature = "e2e")]
 #[tauri::command]
 #[expect(
     clippy::needless_pass_by_value,
-    reason = "Tauri hands a command its window and state by value"
+    reason = "Tauri hands a command its window, state and arguments by value"
 )]
 pub(crate) fn e2e_crash_engine_panic(
     window: tauri::WebviewWindow,
     engines: tauri::State<'_, Arc<crate::engine::Engines>>,
+    message: String,
 ) {
-    engines.debug_panic(window.label());
+    engines.debug_panic(window.label(), message);
 }
 
-/// Ends this window's engine as a segmentation fault would.
+/// Ends this window's engine as a segmentation fault would. Async, and off the async runtime's
+/// threads: it waits between signals, which the main thread mustn't.
 #[cfg(feature = "e2e")]
 #[tauri::command]
-#[expect(
-    clippy::needless_pass_by_value,
-    reason = "Tauri hands a command its window and state by value"
-)]
-pub(crate) fn e2e_crash_engine_segv(
+pub(crate) async fn e2e_crash_engine_segv(
     window: tauri::WebviewWindow,
     engines: tauri::State<'_, Arc<crate::engine::Engines>>,
-) {
-    engines.debug_segv(window.label());
+) -> Result<(), crate::DesktopError> {
+    let (engines, label) = (Arc::clone(&engines), window.label().to_owned());
+    tauri::async_runtime::spawn_blocking(move || engines.debug_segv(&label))
+        .await
+        .map_err(|error| crate::DesktopError::Internal(error.to_string()))
 }

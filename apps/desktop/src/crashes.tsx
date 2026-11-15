@@ -1,10 +1,10 @@
-// Crash reports in the desktop app (D7a; S08's report question, S07's Privacy section). The main
+// Crash reports in the desktop app (Paper S08's report question, S07's Privacy section). The main
 // process keeps every report and decides whether one may be asked about (src-tauri/src/crash/):
 // this window only shows the question, passes the answer back, and hands the main process its own
 // uncaught errors. A crash of the app itself is asked about at the next launch, in a dialog; one of
 // the document view, while the window runs, in a notice, since the view has already restarted.
 
-import { Button, CrashNotice, CrashReportDialog, message, Switch } from "@laminapdf/ui";
+import { Button, CrashNotice, type CrashProcess, CrashReportDialog, message, Switch } from "@laminapdf/ui";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import type { DesktopShell } from "./engine/desktop-engine-client.ts";
 
@@ -14,7 +14,7 @@ export const ASK_EVENT = "crash://ask";
 /** A question about a crash (`Question` in crash/mod.rs). */
 interface Question {
   readonly id: string;
-  readonly process: "main" | "engine" | "webview";
+  readonly process: CrashProcess;
   /** The report's JSON: exactly what would be sent. */
   readonly report: string;
 }

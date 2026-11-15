@@ -55,7 +55,7 @@ const keys = /Mac|iPhone|iPad/.test(navigator.platform) ? "mac" : "other";
 // Inside the shell, one engine client for this window and the view it draws; the platform's
 // open dialog runs in the main process.
 const shell = desktop ? tauriShell() : undefined;
-// This window's uncaught errors become crash reports, held until the user lets them go (D7a).
+// This window's uncaught errors become crash reports, held until the user lets them go.
 if (shell !== undefined) reportUiErrors(shell);
 const engine = startEngine(shell);
 // End-to-end test builds only: Vite drops this branch, and the module, from every other build.

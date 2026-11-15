@@ -1,4 +1,4 @@
-//! What keeps a crash report anonymous (D7a): [`scrub`] takes out of free text anything that could
+//! What keeps a crash report anonymous: [`scrub`] takes out of free text anything that could
 //! name a file, a folder or a person, and [`script_frames`] turns a webview's error stack into
 //! structured frames whose `file` is a bundle asset or `<external>`, never a path. The update
 //! Worker refuses a report where either is left (apps/updates/src/crash.ts checks the same things),
@@ -7,6 +7,7 @@
 use std::borrow::Cow;
 use std::sync::LazyLock;
 
+use laminapdf_desktop_protocol::crash::{MAX_FRAMES, truncate_on_char_boundary};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
@@ -21,8 +22,9 @@ pub(crate) const NUMBER: &str = "<number>";
 /// A script frame's file outside the app's bundle.
 pub(crate) const EXTERNAL: &str = "<external>";
 
-/// A bundle asset, as Vite names its hashed output: the one `file` a script frame keeps. The Worker
-/// holds frames to the same pattern (`ASSET_PATTERN` in apps/updates/src/crash.ts).
+/// A bundle asset, as Vite names its hashed output: the one `file` a script frame keeps. The schema
+/// (apps/updates/schemas/crash-report.schema.json) and the Worker (`SCRIPT_FILE` in
+/// apps/updates/src/crash.ts) hold frames to the same pattern; tests on both sides pin it.
 pub(crate) const ASSET_PATTERN: &str = r"^assets/[A-Za-z0-9._-]+\.(js|mjs)$";
 
 /// The origins the app's own pages load from: `tauri://localhost` on macOS and Linux,
@@ -33,10 +35,8 @@ const ORIGINS: [&str; 3] = [
     "https://tauri.localhost/",
 ];
 
-/// The most frames a report keeps.
-const MAX_FRAMES: usize = 64;
-/// The most characters a frame's function name keeps.
-const MAX_FUNCTION: usize = 256;
+/// The most bytes a frame's function name keeps.
+pub(crate) const MAX_FUNCTION: usize = 256;
 
 /// What [`scrub`] removes, in order, and what each becomes. A path is any run of characters with
 /// two separators in it, so relative paths (`src/a/b.rs`) and URLs go too; since a folder or a file
@@ -99,11 +99,16 @@ fn script_frame(line: &str) -> Option<ScriptFrame> {
     };
     let (rest, column) = place.rsplit_once(':')?;
     let (url, line) = rest.rsplit_once(':')?;
+    // A frame names a script by its URL. Without one, the line is the message (V8 puts it first,
+    // and it can end like a frame), which a report never holds.
+    if !url.contains("://") || url.contains(char::is_whitespace) {
+        return None;
+    }
     Some(ScriptFrame {
         file: asset(url),
         line: line.parse().ok()?,
         column: column.parse().ok()?,
-        function: function.map(|name| cut_chars(&scrub(name), MAX_FUNCTION)),
+        function: function.map(|name| truncate_on_char_boundary(scrub(name).into_owned(), MAX_FUNCTION)),
     })
 }
 
@@ -116,14 +121,38 @@ fn asset(url: &str) -> String {
         .map_or_else(|| EXTERNAL.to_owned(), str::to_owned)
 }
 
-/// The first `max` characters of `text`.
-pub(crate) fn cut_chars(text: &str, max: usize) -> String {
-    text.chars().take(max).collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A JSON file of the update Worker's tests, which both sides read.
+    fn shared(name: &str) -> serde_json::Value {
+        let path = format!("{}/../../updates/{name}", env!("CARGO_MANIFEST_DIR"));
+        serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn the_scrubber_should_make_what_the_worker_expects_of_each_shared_case() {
+        let cases = shared("test/fixtures/scrub-cases.json");
+        let wrong: Vec<(String, String)> = cases["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|case| (case["input"].as_str().unwrap(), case["scrubbed"].as_str().unwrap()))
+            .filter(|(input, scrubbed)| scrub(input) != *scrubbed)
+            .map(|(input, _)| (input.to_owned(), scrub(input).into_owned()))
+            .collect();
+        assert_eq!(wrong, Vec::new());
+    }
+
+    #[test]
+    fn the_asset_pattern_should_be_the_schemas() {
+        let schema = shared("schemas/crash-report.schema.json");
+        assert_eq!(
+            schema["$defs"]["script_frame"]["properties"]["file"]["oneOf"][0]["pattern"],
+            ASSET_PATTERN
+        );
+    }
 
     #[test]
     fn unix_paths_should_be_removed() {
@@ -231,6 +260,11 @@ mod tests {
                 ("assets/index-abc.js".into(), None),
             ]
         );
+    }
+
+    #[test]
+    fn a_message_that_ends_like_a_frame_should_not_be_a_frame() {
+        assert_eq!(script_frames("Error: mail ana@x.com:1:2"), []);
     }
 
     #[test]

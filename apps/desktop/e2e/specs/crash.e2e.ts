@@ -22,10 +22,10 @@ async function sendsReports(): Promise<boolean> {
   return ((await invoke("crash_settings")) as { enabled: boolean }).enabled;
 }
 
-/** Forces a crash with `command` and waits until the document process has restarted. */
-async function crashAndWait(command: string): Promise<void> {
+/** Forces a crash with `command` (and its `args`) and waits until the document process restarted. */
+async function crashAndWait(command: string, args: object = {}): Promise<void> {
   const before = await restarts();
-  await invoke(command);
+  await invoke(command, args);
   await browser.waitUntil(async () => (await restarts()) > before, {
     timeout: 20_000,
     timeoutMsg: `the document process didn't restart after ${command}`,
@@ -82,7 +82,8 @@ describe("crash reports", () => {
     await browser.waitUntil(sendsReports, { timeoutMsg: "Send crash reports didn't turn on" });
     await browser.keys("Escape");
 
-    await crashAndWait("e2e_crash_engine_panic");
+    // The panic's message names the open file, as a careless format! would: the report must not.
+    await crashAndWait("e2e_crash_engine_panic", { message: `could not read ${markedFile}` });
     await crashAndWait("e2e_crash_engine_segv");
     await browser.execute((path) => {
       setTimeout(() => {

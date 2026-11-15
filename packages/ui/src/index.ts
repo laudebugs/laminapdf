@@ -225,6 +225,7 @@ export { formatBytes } from "./reader/bytes.js";
 export {
   type CrashAnswer,
   CrashNotice,
+  type CrashProcess,
   type CrashNoticeProps,
   CrashReportDialog,
   type CrashReportDialogProps,

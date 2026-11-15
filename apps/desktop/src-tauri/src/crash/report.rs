@@ -1,4 +1,4 @@
-//! The crash report (D7a), exactly as the app shows it and the update Worker receives it
+//! The crash report, exactly as the app shows it and the update Worker receives it
 //! (apps/updates/schemas/crash-report.schema.json). [`Report`] is the allow-list: it has no other
 //! field, so nothing else can be sent, and every string in it is either one of a closed set or has
 //! passed [`scrub`]. Its pieces come from where the crash happened: a panic's summary, how an
@@ -6,11 +6,13 @@
 
 use std::time::Duration;
 
-use laminapdf_desktop_protocol::crash::{MAX_MESSAGE, NativeFrame, PanicSummary, SourceLocation};
+use laminapdf_desktop_protocol::crash::{
+    MAX_MESSAGE, NativeFrame, PanicSummary, SourceLocation, UNKNOWN_MODULE, truncate_on_char_boundary,
+};
 use laminapdf_desktop_protocol::{Layer, SandboxLevel};
 use serde::{Deserialize, Serialize};
 
-use super::scrub::{ScriptFrame, cut_chars, scrub};
+use super::scrub::{MAX_FUNCTION, ScriptFrame, scrub};
 
 /// The script errors a webview report names; any other is [`OTHER_ERROR`].
 const SCRIPT_ERRORS: [&str; 12] = [
@@ -34,9 +36,6 @@ const OTHER_ERROR: &str = "OtherError";
 /// The report's schema version.
 const SCHEMA: u8 = 1;
 
-/// The most characters a native frame's function name keeps.
-const MAX_FUNCTION: usize = 256;
-
 /// One crash report.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct Report {
@@ -58,7 +57,7 @@ pub(crate) struct Report {
     pub reason: String,
     pub location: Option<Location>,
     pub frames: Vec<Frame>,
-    /// Filled by minidump processing (D7d); empty until then.
+    /// Filled by minidump processing, which comes later; empty until then.
     pub modules: Vec<Module>,
 }
 
@@ -69,7 +68,6 @@ pub(crate) enum ReportChannel {
     Stable,
     Beta,
     Nightly,
-    Staging,
     Dev,
 }
 
@@ -98,7 +96,7 @@ pub(crate) enum ProcessKind {
     Webview,
 }
 
-/// What draws pages. Only PDFium until D7b's Linux fallback.
+/// What draws pages: PDFium, until the Linux renderer switch adds another.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum Renderer {
@@ -194,12 +192,12 @@ pub(crate) enum Frame {
         module: String,
         /// The offset within `function`, as `0x…`.
         offset: String,
-        function: Option<String>,
+        function: String,
     },
     Script(ScriptFrame),
 }
 
-/// A loaded module (D7d).
+/// A loaded module, from a processed minidump.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct Module {
     pub name: String,
@@ -302,7 +300,7 @@ impl Crash {
             sandbox,
             uptime: Uptime::of(uptime),
             kind: self.kind,
-            reason: cut_chars(&scrub(&self.reason), MAX_MESSAGE),
+            reason: truncate_on_char_boundary(scrub(&self.reason).into_owned(), MAX_MESSAGE),
             location: self.location.as_ref().and_then(ours),
             frames: self.frames,
             modules: Vec::new(),
@@ -316,7 +314,7 @@ fn native(frame: &NativeFrame) -> Frame {
     Frame::Native {
         module: module_name(&frame.module),
         offset: format!("{:#x}", frame.offset),
-        function: Some(cut_chars(&scrub(&frame.function), MAX_FUNCTION)),
+        function: truncate_on_char_boundary(scrub(&frame.function).into_owned(), MAX_FUNCTION),
     }
 }
 
@@ -327,7 +325,11 @@ fn module_name(name: &str) -> String {
         && name
             .bytes()
             .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'+' | b'-'));
-    if plain { name.to_owned() } else { "<unknown>".to_owned() }
+    if plain {
+        name.to_owned()
+    } else {
+        UNKNOWN_MODULE.to_owned()
+    }
 }
 
 /// `at` when it is in lamina's own sources (`apps/…` or `crates/…`, relative, no `..`); else
@@ -434,6 +436,95 @@ mod tests {
         built.sort();
         expected.sort();
         assert_eq!(built, expected);
+    }
+
+    /// The schema's `enum` at `pointer`.
+    fn schema_enum(pointer: &str) -> serde_json::Value {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../updates/schemas/crash-report.schema.json"
+        );
+        let schema: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        schema.pointer(pointer).cloned().unwrap_or_default()
+    }
+
+    #[test]
+    fn every_closed_field_should_take_exactly_the_schemas_values() {
+        let pairs = [
+            (
+                "/properties/channel/enum",
+                serde_json::to_value([
+                    ReportChannel::Stable,
+                    ReportChannel::Beta,
+                    ReportChannel::Nightly,
+                    ReportChannel::Dev,
+                ])
+                .unwrap(),
+            ),
+            (
+                "/properties/os/enum",
+                serde_json::to_value([Os::Macos, Os::Windows, Os::Linux]).unwrap(),
+            ),
+            (
+                "/properties/arch/enum",
+                serde_json::to_value([Arch::X86_64, Arch::Aarch64]).unwrap(),
+            ),
+            (
+                "/properties/process/enum",
+                serde_json::to_value([ProcessKind::Main, ProcessKind::Engine, ProcessKind::Webview]).unwrap(),
+            ),
+            (
+                "/properties/renderer/enum",
+                serde_json::to_value([Renderer::Pdfium]).unwrap(),
+            ),
+            (
+                "/properties/sandbox/items/enum",
+                serde_json::to_value([
+                    SandboxLayer::Off,
+                    SandboxLayer::NoNewPrivs,
+                    SandboxLayer::Seccomp,
+                    SandboxLayer::Landlock,
+                    SandboxLayer::MemoryLimit,
+                    SandboxLayer::Seatbelt,
+                    SandboxLayer::Job,
+                    SandboxLayer::LowIntegrity,
+                    SandboxLayer::RestrictedToken,
+                ])
+                .unwrap(),
+            ),
+            (
+                "/properties/uptime/enum",
+                serde_json::to_value([Uptime::Under1m, Uptime::To10m, Uptime::To1h, Uptime::Over1h]).unwrap(),
+            ),
+            (
+                "/properties/kind/enum",
+                serde_json::to_value([
+                    CrashKind::Panic,
+                    CrashKind::Signal,
+                    CrashKind::Exit,
+                    CrashKind::Error,
+                    CrashKind::Rejection,
+                ])
+                .unwrap(),
+            ),
+        ];
+        let differ: Vec<&str> = pairs
+            .into_iter()
+            .filter(|(pointer, ours)| schema_enum(pointer) != *ours)
+            .map(|(pointer, _)| pointer)
+            .collect();
+        assert_eq!(differ, Vec::<&str>::new());
+    }
+
+    #[test]
+    fn a_report_should_hold_no_uuid_but_its_own_id() {
+        let uuid =
+            regex::Regex::new(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}").unwrap();
+        let report =
+            Crash::panic(ProcessKind::Engine, summary("boom", "src/a.rs"), None).report(&facts(), Duration::ZERO);
+        let json = serde_json::to_string(&report).unwrap();
+        let found: Vec<&str> = uuid.find_iter(&json).map(|m| m.as_str()).collect();
+        assert_eq!(found, [report.report_id.as_str()]);
     }
 
     #[test]

@@ -31,7 +31,7 @@
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
     },
     "app_version": { "type": "string", "pattern": "^[0-9A-Za-z.+-]{1,32}$" },
-    "channel": { "enum": ["stable", "beta", "nightly", "staging", "dev"] },
+    "channel": { "enum": ["stable", "beta", "nightly", "dev"] },
     "os": { "enum": ["macos", "windows", "linux"] },
     "os_version": { "type": "string", "pattern": "^[0-9A-Za-z. ()_-]{0,40}$" },
     "arch": { "enum": ["x86_64", "aarch64"] },

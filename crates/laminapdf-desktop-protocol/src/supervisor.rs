@@ -77,8 +77,8 @@ pub enum Event {
         pid: u32,
     },
     /// The engine exited without being asked to (before any restart): how it ended, as the
-    /// sandbox names it, and the summary its panic hook sent, if it panicked. For crash reports
-    /// (D7a); the restart policy doesn't depend on it.
+    /// sandbox names it, and the summary its panic hook sent, if it panicked. For crash reports:
+    /// the restart policy doesn't depend on it.
     Crashed {
         /// How it ended (`crash: signal: 11 (SIGSEGV)`, `exit code: 3`); never document content.
         how: String,

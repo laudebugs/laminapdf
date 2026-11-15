@@ -19,7 +19,7 @@
       "offset": "0x1a2b3c",
       "function": "laminapdf_desktop_engine::worker::render"
     },
-    { "module": "<unknown>", "offset": "0x7f00", "function": null }
+    { "module": "<unknown>", "offset": "0x7f00", "function": "objc_msgSend" }
   ],
   "modules": []
 }

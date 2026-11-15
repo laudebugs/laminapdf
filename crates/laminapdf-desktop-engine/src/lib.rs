@@ -172,7 +172,8 @@ fn route<R: Read>(
             ToEngine::RenderTile(tile) => queue.push(Job::Render(tile)),
             ToEngine::RenderPrintBand(band) => queue.push(Job::Print(band)),
             ToEngine::CloseDocument { doc } => queue.push(Job::Close { doc }),
-            ToEngine::DebugPanic => crash::debug_panic(out),
+            #[cfg(feature = "e2e")]
+            ToEngine::DebugPanic { message } => crash::debug_panic(&message),
         }
     }
 }

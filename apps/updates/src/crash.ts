@@ -1,4 +1,4 @@
-// A desktop crash report, the body of `POST /crash` (D7a). The app builds it from an allow-list and
+// A desktop crash report, the body of `POST /crash`. The app builds it from an allow-list and
 // scrubs its free-text fields (apps/desktop/src-tauri/src/crash/); this module checks it again, as
 // schemas/crash-report.schema.json describes it, and refuses free text where a path, an e-mail
 // address or a long number is left. test/crash.test.ts holds this validator to the schema.
@@ -17,7 +17,7 @@ export const PATH_LIKE: readonly RegExp[] = [
   /\\\\[^\s\\]+\\/,
   /~[\\/]/,
   /\bfile:/i,
-  /[\w.%+-]+@[\w-]+\.[\w.-]+/,
+  /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/,
   /\b\d{6,}\b/,
 ];
 
@@ -27,7 +27,7 @@ export const SCRIPT_FILE = /^assets\/[A-Za-z0-9._-]+\.(js|mjs)$/;
 /** A webview frame's `file` for anything outside the app's bundle. */
 export const EXTERNAL_FILE = "<external>";
 
-const CHANNELS = ["stable", "beta", "nightly", "staging", "dev"] as const;
+const CHANNELS = ["stable", "beta", "nightly", "dev"] as const;
 const OSES = ["macos", "windows", "linux"] as const;
 const ARCHES = ["x86_64", "aarch64"] as const;
 const PROCESSES = ["main", "engine", "webview"] as const;

@@ -99,9 +99,13 @@ impl Notify for WindowEvents {
     }
 
     fn crashed(&self, window: &str, crash: crash::Crash) {
-        if let Some(reports) = self.0.try_state::<Arc<crash::CrashReports>>() {
-            reports.record(&self.0, Some(window), crash);
-        }
+        // Off the supervisor's thread: writing the report mustn't hold up the engine's restart.
+        let (app, window) = (self.0.clone(), window.to_owned());
+        tauri::async_runtime::spawn_blocking(move || {
+            if let Some(reports) = app.try_state::<Arc<crash::CrashReports>>() {
+                reports.record(&app, Some(&window), crash);
+            }
+        });
     }
 
     fn failed(&self, payload: Failed) {
@@ -146,7 +150,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         tracing::warn!("could not set the app's ID: {error}");
     }
     let config = app.path().app_config_dir()?;
-    // Crash reports first, so a panic in the rest of the start-up leaves one (D7a).
+    // Crash reports first, so a panic in the rest of the start-up leaves one.
     let crashes = crash::CrashReports::new(
         &config,
         &app.path().app_data_dir()?,

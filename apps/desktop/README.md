@@ -135,9 +135,9 @@ A crash leaves a report on this computer, and the report leaves only with the us
 - **Where crashes come from.** The main process's panic hook keeps a report at once, and the next launch asks about it in a dialog. The engine's panic hook sends the main process its panic's summary (`FromEngine::Panic`) and aborts. The supervisor then reports how the engine ended, with that summary, and the window asks in its notice. The webview hands its uncaught errors to `report_ui_error`.
 - **What a report holds.** `src-tauri/src/crash/report.rs` builds it from an allow-list matching `apps/updates/schemas/crash-report.schema.json`, and `scrub.rs` takes paths, `file:` URLs, document names, e-mail addresses and long numbers out of its free text. A page error keeps only its type and its frames' bundle files.
 - **Where it waits.** `queue.rs` keeps reports in the app's data folder, in `crashes/held/` until the user lets one go and in `crashes/outbox/` until the Worker takes it: ten at most in each, none past 30 days.
-- **How it goes.** `upload.rs` posts it to `https://updates.laminapdf.com/crash` over the updater's HTTP client, without the install ID, retrying from a minute up to an hour while the Worker can't be reached.
+- **How it goes.** `upload.rs` posts it to `https://updates.laminapdf.com/crash` with its own client, built as the updater's is (reqwest over rustls), without the install ID, retrying from a minute up to an hour while the Worker can't be reached.
 
-The e2e build reads the endpoint from `LAMINA_PDF_CRASH_ENDPOINT`. Its `e2e_crash_engine_panic`, `e2e_crash_engine_segv` and `e2e_crash_main_panic` commands force each kind of crash; `e2e/wdio.crash.conf.ts` runs the crash scenario against a local stand-in for the Worker.
+The e2e build reads the endpoint from `LAMINA_PDF_CRASH_ENDPOINT`. Its `e2e_crash_engine_panic` (an engine built with `cargo xtask desktop-sidecar --e2e` panics with the test's message), `e2e_crash_engine_segv` and `e2e_crash_main_panic` commands force each kind of crash; `e2e/wdio.crash.conf.ts` runs the crash scenario against a local stand-in for the Worker.
 
 ## How it fits together
 

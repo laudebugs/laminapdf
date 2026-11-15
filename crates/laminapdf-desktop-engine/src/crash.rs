@@ -1,6 +1,6 @@
-//! The engine's panics, for crash reports (D7a): the binary's panic hook ([`report_panics`])
+//! The engine's panics, for crash reports: the binary's panic hook ([`report_panics`])
 //! sends the main process a summary of the panic, then aborts, so the main process sees a crash and
-//! restarts the engine as it does after any other (D2b). Without the abort, a panic in the worker
+//! restarts the engine as it does after any other. Without the abort, a panic in the worker
 //! would leave an engine that beats but never answers.
 
 use std::sync::OnceLock;
@@ -35,20 +35,11 @@ pub(crate) fn connect(out: &Outbox) {
     let _ = TO_MAIN.set(out.clone());
 }
 
-/// [`laminapdf_desktop_protocol::ToEngine::DebugPanic`]: a debug build panics, as the end-to-end
-/// tests ask; a release build says no and carries on.
-pub(crate) fn debug_panic(out: &Outbox) {
-    #[cfg(debug_assertions)]
+/// `ToEngine::DebugPanic`: the end-to-end tests' forced engine panic, with their `message`.
+#[cfg(feature = "e2e")]
+pub(crate) fn debug_panic(message: &str) {
+    #[expect(clippy::panic, reason = "the end-to-end tests' forced engine panic")]
     {
-        let _ = out;
-        #[expect(
-            clippy::panic,
-            reason = "the end-to-end tests' forced engine panic, in debug builds only"
-        )]
-        {
-            panic!("a panic the end-to-end tests asked for");
-        }
+        panic!("{message}");
     }
-    #[cfg(not(debug_assertions))]
-    crate::report(out, "DebugPanic ignored: this is a release engine");
 }

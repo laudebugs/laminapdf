@@ -3,7 +3,7 @@
 // files, which turned off clears the app's and the OS's recent lists and the last session,
 // reopening the last session (which needs the recent files remembered), reloading open files that
 // change on disk, opening files in tabs or windows, and opening a file that is open already; its
-// Updates section (S06) and its Privacy section (crash reports, D7a). The full settings page adds its
+// Updates section (S06) and its Privacy section (crash reports). The full settings page adds its
 // other sections to the same registry.
 
 import { message, SettingsDialog, SettingsRegistry, Switch, useSettingsSection } from "@laminapdf/ui";

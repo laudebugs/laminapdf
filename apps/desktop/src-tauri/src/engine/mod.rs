@@ -111,7 +111,7 @@ pub(crate) struct Failed {
 pub(crate) trait Notify: Send + Sync {
     fn restarted(&self, payload: Restarted);
     fn failed(&self, payload: Failed);
-    /// `window`'s engine crashed: for crash reports (D7a). Tests needn't hear it.
+    /// `window`'s engine crashed: for crash reports. Tests needn't hear it.
     fn crashed(&self, _window: &str, _crash: crate::crash::Crash) {}
 }
 
@@ -425,12 +425,11 @@ impl Engines {
         }
     }
 
-    /// Asks `window`'s engine to panic (the end-to-end tests' forced engine panic; only a debug
-    /// engine obeys).
+    /// Asks `window`'s engine to panic with `message` (the end-to-end tests' forced engine panic).
     #[cfg(feature = "e2e")]
-    pub(crate) fn debug_panic(&self, window: &str) {
+    pub(crate) fn debug_panic(&self, window: &str, message: String) {
         if let Some(engine) = self.windows().get(window).cloned() {
-            engine.send(&ToEngine::DebugPanic);
+            engine.send(&ToEngine::DebugPanic { message });
         }
     }
 

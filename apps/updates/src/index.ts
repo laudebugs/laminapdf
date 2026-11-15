@@ -20,7 +20,7 @@ export default {
       cache: caches.default,
       now: Date.now,
       waitUntil: (work) => ctx.waitUntil(work),
-      // Crash reports' own private bucket and the per-IP limit (D7a; wrangler.jsonc).
+      // Crash reports' own private bucket and the per-IP limit (wrangler.jsonc).
       crashStore: env.CRASH_REPORTS,
       crashLimit: env.CRASH_LIMIT,
       // One JSON line per event for Workers Logs (ADR 0014 §9); events carry no request header.

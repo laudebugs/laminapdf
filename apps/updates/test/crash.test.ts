@@ -5,7 +5,7 @@
 import { readFileSync } from "node:fs";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { beforeEach, describe, expect, it } from "vitest";
-import { checkCrashReport, isPathLike } from "../src/crash.ts";
+import { checkCrashReport, isPathLike, SCRIPT_FILE } from "../src/crash.ts";
 import { MAX_CRASH_BYTES } from "../src/crash-endpoint.ts";
 import { handle } from "../src/handler.ts";
 import { crashFixture, crashRequest, type Harness, harness } from "./helpers.ts";
@@ -165,6 +165,66 @@ function streamOf(bytes: number): ReadableStream<Uint8Array> {
     },
   });
 }
+
+// The desktop's scrubber and this check, held to one list of cases (the Rust side reads it too):
+// each input the scrubber changes is refused as it was, and every scrubbed result is accepted.
+describe("the shared scrub cases", () => {
+  const { cases } = JSON.parse(readFileSync(new URL("./fixtures/scrub-cases.json", import.meta.url), "utf8")) as {
+    cases: { input: string; scrubbed: string }[];
+  };
+
+  it.each(cases.filter((c) => c.input !== c.scrubbed))("refuses $input as it was", ({ input }) => {
+    expect(isPathLike(input)).toBe(true);
+  });
+
+  it.each(cases)("accepts $scrubbed once scrubbed", ({ scrubbed }) => {
+    expect(isPathLike(scrubbed)).toBe(false);
+  });
+});
+
+/** A field the schema closes to a list of values. */
+interface Closed {
+  readonly enum: readonly string[];
+}
+
+/** The parts of the schema the tests below read. */
+interface SchemaShape {
+  readonly properties: Record<"channel" | "os" | "arch" | "process" | "renderer" | "uptime" | "kind", Closed> & {
+    readonly sandbox: { readonly items: Closed };
+  };
+  readonly $defs: {
+    readonly script_frame: {
+      readonly properties: { readonly file: { readonly oneOf: readonly { readonly pattern: string }[] } };
+    };
+  };
+}
+
+describe("the schema's closed fields", () => {
+  const shape = schema as SchemaShape;
+  const closed = [
+    ["channel", shape.properties.channel.enum],
+    ["os", shape.properties.os.enum],
+    ["arch", shape.properties.arch.enum],
+    ["process", shape.properties.process.enum],
+    ["renderer", shape.properties.renderer.enum],
+    ["uptime", shape.properties.uptime.enum],
+    ["kind", shape.properties.kind.enum],
+  ] as const;
+
+  it.each(closed)("lets %s take each of the schema's values", (field, values) => {
+    for (const value of values) expect(checkCrashReport({ ...crashFixture(), [field]: value }).ok).toBe(true);
+  });
+
+  it("lets the sandbox list each of the schema's layers", () => {
+    for (const layer of shape.properties.sandbox.items.enum) {
+      expect(checkCrashReport({ ...crashFixture(), sandbox: [layer] }).ok).toBe(true);
+    }
+  });
+
+  it("takes the schema's pattern for a script frame's file", () => {
+    expect(SCRIPT_FILE.source.replaceAll("\\/", "/")).toBe(shape.$defs.script_frame.properties.file.oneOf[0]?.pattern);
+  });
+});
 
 describe("POST /crash", () => {
   it("stores the report under its UTC day and answers 202 with no body", async () => {

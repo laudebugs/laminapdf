@@ -1,4 +1,4 @@
-//! Where reports wait, as JSON files in the app's data folder (D7a): `held/` for those the user
+//! Where reports wait, as JSON files in the app's data folder: `held/` for those the user
 //! hasn't let go (shown when the app asks; never sent), `outbox/` for those they have, until the
 //! update Worker takes them. Each keeps at most [`MAX_KEPT`] reports, the oldest dropped first, and
 //! none older than [`MAX_AGE`].
@@ -27,6 +27,11 @@ pub(crate) enum Shelf {
 }
 
 impl Shelf {
+    /// Where a new report goes under `consent`: sent only if the user said always.
+    pub(crate) const fn for_consent(consent: super::consent::ConsentState) -> Self {
+        if consent.sends() { Self::Outbox } else { Self::Held }
+    }
+
     const fn folder(self) -> &'static str {
         match self {
             Self::Held => "held",
@@ -82,10 +87,23 @@ impl Queue {
         report
     }
 
-    /// Moves report `id` from `held/` to `outbox/`; `false` when it isn't held.
+    /// Moves report `id` from `held/` to `outbox/`, keeping its age, so a report never outlives
+    /// [`MAX_AGE`] by moving; `false` when it isn't held.
     pub(crate) fn release(&self, id: &str) -> bool {
-        self.take(Shelf::Held, id)
-            .is_some_and(|report| self.put(Shelf::Outbox, &report).is_ok())
+        let made = self
+            .path(Shelf::Held, id)
+            .and_then(|path| fs::metadata(path).and_then(|m| m.modified()).ok());
+        let Some(report) = self.take(Shelf::Held, id) else {
+            return false;
+        };
+        let moved = self.put(Shelf::Outbox, &report).is_ok();
+        if let (true, Some(made), Some(path)) = (moved, made, self.path(Shelf::Outbox, id)) {
+            let _ = fs::File::options()
+                .write(true)
+                .open(path)
+                .and_then(|file| file.set_modified(made));
+        }
+        moved
     }
 
     /// Drops every report on `place`.
@@ -152,6 +170,24 @@ mod tests {
             (moved, queue.list(Shelf::Held).len(), queue.list(Shelf::Outbox)),
             (true, 0, vec![report])
         );
+    }
+
+    #[test]
+    fn a_released_report_should_keep_its_age() {
+        let queue = queue("age-kept");
+        let report = report();
+        queue.put(Shelf::Held, &report).unwrap();
+        let held = queue.dir(Shelf::Held).join(format!("{}.json", report.report_id));
+        let old = SystemTime::now() - Duration::from_hours(24 * 29);
+        fs::File::options()
+            .write(true)
+            .open(&held)
+            .unwrap()
+            .set_modified(old)
+            .unwrap();
+        queue.release(&report.report_id);
+        queue.prune(Shelf::Outbox, SystemTime::now() + Duration::from_hours(48));
+        assert_eq!(queue.list(Shelf::Outbox), Vec::<Report>::new());
     }
 
     #[test]

@@ -178,12 +178,12 @@ tauri-plugin-window-state = "=2.5.0"
 tauri-plugin-updater = "=2.14.1"
 # The crash reporter's upload (D7a): the same HTTP client and TLS the updater uses, from Rust only.
 # MIT OR Apache-2.0; rustls Apache-2.0 OR ISC OR MIT.
-reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider"] }
-rustls = { version = "0.23", default-features = false, features = ["ring"] }
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider"] }
+rustls = { version = "0.23.46", default-features = false, features = ["ring"] }
 # The OS version in crash reports (D7a). MIT.
-os_info = { version = "3.15", default-features = false }
+os_info = { version = "3.15.0", default-features = false }
 # The crash reporter's scrubber (D7a). MIT OR Apache-2.0.
-regex = "1.13"
+regex = "1.13.1"
 # The desktop reader's anonymous install ID (ADR 0014 §3): a random UUID v4. MIT OR Apache-2.0.
 uuid = { version = "1.29.0", default-features = false, features = ["std", "v4"] }
 muda = { version = "=0.20.0", default-features = false }  # MIT OR Apache-2.0; Tauri's menus (the desktop app's tests)

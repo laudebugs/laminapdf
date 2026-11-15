@@ -58,7 +58,7 @@ When lamina or its engine crashes or panics, we want to learn why — **only if 
 - [x] Upload queue with retry/backoff; the HTTP client is Rust-side (`reqwest` with rustls, or Tauri's http plugin **only** from Rust — no `http:` permission for the webview).
 - [x] Worker endpoint, validation, rate limiting, R2 write, lifecycle rule; tests. *The lifecycle rule is the owner's step in apps/updates/README.md.*
 - [ ] ~~D6b workflow addition: symbols to the private bucket; `cargo xtask crash symbolicate`.~~ Moved to [D7d](../ready/D7d-native-crash-minidumps-and-symbols.md), which needs D6b's workflow on `main`.
-- [x] Privacy page text (crash reports: what, where, retention 30 days, opt-in) — coordinate with the ADR 0011 privacy page owner. *The page's promises change only with the owner's sign-off: the text is in the PR and an issue asks the owner.*
+- [x] Privacy page text (crash reports: what, where, retention 30 days, opt-in) — coordinate with the ADR 0011 privacy page owner. *The page's promises change only with the owner's sign-off: the text is in #640 for the owner.*
 
 ## Acceptance criteria
 
@@ -92,6 +92,19 @@ None.
 - **minidumper IPC under the sandbox**: the engine's crash-handler must reach the main process's minidumper server; D2c's sandbox may block socket creation — prefer pre-connecting before lock-down; test on each OS.
 - **Sentry vs own backend**: Sentry gives symbolication and grouping for free but sends raw minidumps unless configured carefully; our local-processing rule applies either way.
 - **Rate limiting/abuse** of a public endpoint: cap sizes, rate limit, validate schema; R2 cost is negligible at expected volume.
+
+## As built
+
+These differ from the text above:
+
+- **Split.** Minidumps of native crashes, their local processing, the deletion test and the symbol archive went to [D7d](../ready/D7d-native-crash-minidumps-and-symbols.md): they need D6b's release workflow, and capture across the sandbox needs testing on each OS. S08's tab choice went to [D7e](../ready/D7e-crash-recovered-tab-choice.md), with the e2e run pair that forces a main-process panic and relaunches. A main-process panic is tested here in Rust (`a_main_process_panic_should_leave_a_held_report_until_asked`).
+- **Engine panics abort.** The engine's panic hook sends its summary, then aborts, so the supervisor sees a crash and restarts the engine. Before, a panic in the worker thread left an engine that beat but never answered.
+- **Webview messages.** A page error keeps only its type, from a fixed list, and its frames: a script's message can quote document text, which the marker test showed no scrubber can tell from code.
+- **Renderer.** The report names the renderer (`pdfium`) without its version: each app version ships one pinned PDFium, so `app_version` says which.
+- **Frames.** A panic's frames are function names with the offset within each function. A Rust function is linked into the panicking binary, which names its module; any other's module is `<unknown>`. Frames may be empty where the sandbox stops the engine reading its own symbols.
+- **Queues.** `held/` and `outbox/` each keep ten reports. Moving a report from one to the other keeps its age.
+- **Off.** With reporting off, the e2e run forces an engine segmentation fault; whether a report is sent depends only on the consent, which the Rust tests check for every kind of crash.
+- **Privacy page.** Its promises change only with the owner's sign-off, so the proposed text is in [#640](https://github.com/laudebugs/laminapdf/issues/640) rather than in this PR.
 
 ## Definition of done
 
