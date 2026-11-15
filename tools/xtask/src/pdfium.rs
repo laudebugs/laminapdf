@@ -23,8 +23,9 @@ pub(crate) const TAG: &str = "chromium/7881";
 
 /// One downloadable build: OS, CPU, archive name, its SHA-256, and the archive folder holding
 /// the library. The macOS arm64, macOS x64 and Linux x64 hashes are the hayro-parity spike's
-/// (C1a); Linux arm64 and Windows x64 were recorded when C2b added them (2026-10-31).
-const ASSETS: [(&str, &str, &str, &str, &str); 5] = [
+/// (C1a); Linux arm64 and Windows x64 were recorded when C2b added them (2026-10-31), Windows
+/// arm64 when the desktop release built for it (2026-11-15; equal to the digest GitHub lists).
+const ASSETS: [(&str, &str, &str, &str, &str); 6] = [
     (
         "macos",
         "aarch64",
@@ -58,6 +59,13 @@ const ASSETS: [(&str, &str, &str, &str, &str); 5] = [
         "x86_64",
         "pdfium-win-x64.tgz",
         "73cc0de638ac2095e7445bf56a38200a5b7c7ca0e9f4ba144598f2457377ac08",
+        "bin",
+    ),
+    (
+        "windows",
+        "aarch64",
+        "pdfium-win-arm64.tgz",
+        "d3035d4d2cacac6ecd1a2ece197a3d702a1b2a58466276b9f870b8cb278a9d84",
         "bin",
     ),
 ];

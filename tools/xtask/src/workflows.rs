@@ -26,6 +26,8 @@ mod compile_cache;
 #[cfg(test)]
 mod dependabot;
 #[cfg(test)]
+mod desktop_release;
+#[cfg(test)]
 mod lockfile;
 
 use std::path::{Path, PathBuf};

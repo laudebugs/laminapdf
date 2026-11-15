@@ -11,6 +11,7 @@ mod cli_docs;
 mod codegen;
 mod corpus;
 mod design_screens;
+mod desktop_release;
 mod desktop_sidecar;
 mod docs_links;
 mod docs_previews;
@@ -229,8 +230,16 @@ tasks:
   cli-docs          the laminapdf CLI's man pages and shell completions into target/cli-docs/
   cli-dist          cli-docs plus the third-party notices (cargo-about) into target/cli-docs/:
                     the files dist-workspace.toml puts in every release archive
-  desktop-notices   the desktop app's third-party notices, MPL-2.0 text included (cargo-about),
-                    into target/desktop/
+  desktop-notices [--bundle]
+                    the desktop app's third-party notices, MPL-2.0 text included (cargo-about),
+                    into target/desktop/; --bundle adds the frontend's npm packages and fonts and
+                    writes apps/desktop/src-tauri/resources/THIRD_PARTY_NOTICES.txt, which release
+                    builds bundle (tauri.release.conf.json)
+  desktop-release plan | sizes <dir> | sbom <target> <dir>
+                    the desktop release workflow's decisions: the run's version, channel,
+                    environment and build matrix from the Actions environment into $GITHUB_OUTPUT;
+                    the installers under <dir> against the 15 MB budget; the app's and engine's
+                    CycloneDX SBOMs for <target> and the frontend's npm SBOM into <dir>
   fixtures large-pdf [--pages N] [--out PATH]
                     write an image-heavy PDF with the laminapdf builder (default 20,000 pages, about
                     1.1 GB, into target/fixtures/1gb.pdf; never committed): the desktop engine's
@@ -447,7 +456,8 @@ fn main() -> Result<()> {
         ("models", [cmd, name]) if cmd == "fetch" => models::fetch(&ws, name).map(|_| ()),
         ("cli-docs", []) => cli_docs::run(&ws),
         ("cli-dist", []) => cli_docs::dist_files(&ws),
-        ("desktop-notices", []) => notices::desktop(&ws),
+        ("desktop-notices", args) => notices::desktop(&ws, args),
+        ("desktop-release", args) => desktop_release::run(&ws, args),
         ("desktop-sidecar", args) => desktop_sidecar::run(&ws, args),
         ("desktop-frontend", []) => web::desktop_frontend(&ws),
         ("fixtures", [what, rest @ ..]) if what == "large-pdf" => fixtures::large_pdf(&ws, rest),

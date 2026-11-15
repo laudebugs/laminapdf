@@ -1,0 +1,84 @@
+# The desktop release's publish (todo D6b; .github/workflows/desktop-release.yml): every target's
+# files to R2 under releases/<version>/<platform>/ in the channel's bucket, the channel's manifest
+# written with the new release, then the update Worker asked for each platform as a fresh install
+# would. Both publish jobs use it; each sets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID from its
+# own environment, scoped to that channel's bucket (ADR 0014 §1). Every R2 call goes through the
+# manifest tool (apps/updates/scripts/manifest.ts), the one place that knows the layout.
+name: Desktop release publish
+description: Upload a desktop release to R2, update its channel and check the update Worker.
+inputs:
+  channel:
+    description: nightly, staging or beta.
+    required: true
+  version:
+    description: The version the builds carry.
+    required: true
+  downloads:
+    description: The bucket's download address.
+    required: true
+  mode:
+    description: The build artifacts' mode suffix, `nightly` or `tag`.
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: $/.github/actions/node-pnpm
+    - uses: actions/download-artifact@v8.0.2
+      with:
+        pattern: desktop-*-${{ inputs.mode }}
+        path: ${{ runner.temp }}/built
+        # Each artifact holds one <platform>/ folder.
+        merge-multiple: true
+    - name: Upload the files
+      shell: bash
+      env:
+        CHANNEL: ${{ inputs.channel }}
+        VERSION: ${{ inputs.version }}
+      run: pnpm --filter @laminapdf/updates manifest upload "$CHANNEL" "$RUNNER_TEMP/built" --version "$VERSION"
+    # Every channel starts at 100 %: nightly and staging always, beta for its testers. Stable
+    # starts low through `manifest promote` (ADR 0014 §2; docs/guidelines/desktop-release.md).
+    - name: Make it the channel's release
+      shell: bash
+      env:
+        CHANNEL: ${{ inputs.channel }}
+        VERSION: ${{ inputs.version }}
+        DOWNLOADS: ${{ inputs.downloads }}
+        NOTES: Lamina PDF ${{ inputs.version }}, built from ${{ github.sha }}
+      run: |
+        pnpm --filter @laminapdf/updates manifest publish "$CHANNEL" "$RUNNER_TEMP/built" \
+          --version "$VERSION" --downloads "$DOWNLOADS" --notes "$NOTES" --rollout 100
+    # The Worker caches a manifest for 30 s: try for two minutes.
+    - name: Ask the update Worker for each platform
+      shell: bash
+      env:
+        CHANNEL: ${{ inputs.channel }}
+        VERSION: ${{ inputs.version }}
+      run: |
+        for attempt in 1 2 3 4; do
+          sleep 30
+          if pnpm --filter @laminapdf/updates manifest verify "$CHANNEL" "$VERSION"; then exit 0; fi
+          echo "::warning::try $attempt: the Worker doesn't serve $VERSION everywhere yet"
+        done
+        exit 1
+    - name: Summary
+      shell: bash
+      env:
+        CHANNEL: ${{ inputs.channel }}
+        VERSION: ${{ inputs.version }}
+        DOWNLOADS: ${{ inputs.downloads }}
+      run: |
+        {
+          echo "## Published $VERSION to $CHANNEL"
+          echo
+          echo "| Platform | File | Size |"
+          echo "| --- | --- | ---: |"
+          for dir in "$RUNNER_TEMP"/built/*/; do
+            platform=$(basename "$dir")
+            for file in "$dir"*; do
+              [ -f "$file" ] || continue
+              name=$(basename "$file")
+              case "$name" in *.sig | *.asc) continue ;; esac
+              echo "| $platform | [$name]($DOWNLOADS/releases/$VERSION/$platform/${name// /%20}) | $(wc -c < "$file" | tr -d ' ') B |"
+            done
+          done
+        } >> "$GITHUB_STEP_SUMMARY"

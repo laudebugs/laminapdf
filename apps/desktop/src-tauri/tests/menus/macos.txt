@@ -104,4 +104,4 @@ Help
   What Lamina PDF can do (disabled)  <cmd:help.capabilities>
   ---
   Report an issue  <link:https://github.com/laudebugs/laminapdf/issues/new/choose>
-  View licences (disabled)  <later:View licences>
+  View licences  <licences>

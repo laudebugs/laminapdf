@@ -22,8 +22,9 @@ const ACTION: &str = "$/.github/actions/rust-compile-cache";
 const TOOLCHAIN_STEPS: [&str; 2] = ["actions-rust-lang/setup-rust-toolchain", "$/.github/actions/host-rust"];
 
 /// The workflows that publish, deploy or gate a release (plan §4.3).
-const NEVER_CACHED: [&str; 8] = [
+const NEVER_CACHED: [&str; 9] = [
     "release.yml",
+    "desktop-release.yml",
     "cli-release.yml",
     "release-train.yml",
     "web-deploy.yml",

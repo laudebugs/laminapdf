@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Manifest } from "../src/manifest.ts";
 import { fixture } from "../test/helpers.ts";
-import { emptyManifest, promote, setPaused, setRollout } from "./edits.ts";
+import { emptyManifest, promote, publishRelease, setPaused, setRollout } from "./edits.ts";
 
 const beta = fixture("beta");
 
@@ -68,5 +68,26 @@ describe("promote", () => {
 
   it("refuses an unknown version", () => {
     expect(() => promote(beta, emptyManifest("stable"), "9.9.9", 1)).toThrow(/no release 9.9.9/);
+  });
+});
+
+describe("publishRelease", () => {
+  const nightly = fixture("nightly");
+  const built = nightly.release;
+  if (!built) throw new Error("the nightly fixture has a release");
+  const next = { ...built, version: "0.2.1-nightly.20270117.8" };
+
+  it("publishes a newer build and retires the one everyone had", () => {
+    const published = publishRelease(nightly, next, 100);
+    expect(published.release).toEqual({ ...next, rollout_percent: 100 });
+    expect(published.previous?.version).toBe("0.2.1-nightly.20270116.7");
+  });
+
+  it("publishes into an empty channel", () => {
+    expect(publishRelease(emptyManifest("nightly"), next, 100).previous).toBeUndefined();
+  });
+
+  it("refuses a build that isn't newer, so a re-run can't go back", () => {
+    expect(() => publishRelease(nightly, built, 100)).toThrow(/isn't older/);
   });
 });

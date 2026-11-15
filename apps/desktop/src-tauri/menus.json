@@ -526,8 +526,7 @@
           "url": "https://github.com/laudebugs/laminapdf/issues/new/choose"
         },
         {
-          "kind": "placeholder",
-          "id": "licences",
+          "kind": "licences",
           "title": "View licences"
         },
         {
