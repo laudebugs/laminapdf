@@ -8,7 +8,7 @@
 // release anywhere else is the shell's (`onDragOut`). Escape, or the OS taking the pointer away,
 // cancels it (`onDragCancel`). Mouse and pen only: a finger on the strip scrolls it.
 
-import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from "react";
+import { type PointerEvent as ReactPointerEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 /** How far, in CSS pixels, a pressed tab must move before it drags rather than clicks. */
 const DRAG_THRESHOLD_PX = 4;
@@ -68,8 +68,7 @@ export function useTabDrag(tabs: readonly string[], handlers: TabDragHandlers): 
   // Until when a click on a tab is the release of a drag, which shows no tab.
   const clicksIgnoredUntil = useRef(0);
   // The handlers and tabs of the latest render, read when the pointer moves.
-  const latest = useRef({ tabs, handlers });
-  latest.current = { tabs, handlers };
+  const latest = useLatest({ tabs, handlers });
   // A drag still running when the strip goes (its window closing) leaves nothing behind.
   useEffect(() => () => press.current?.stop(), []);
   useGrabbingCursor(dragged !== undefined);
@@ -127,6 +126,16 @@ export function useTabDrag(tabs: readonly string[], handlers: TabDragHandlers): 
     },
     takeClick: () => performance.now() < clicksIgnoredUntil.current,
   };
+}
+
+/** A ref that holds `value` from the latest render, for handlers that run later: written after
+    each commit, since a render must not write a ref. */
+function useLatest<T>(value: T): { readonly current: T } {
+  const ref = useRef(value);
+  useLayoutEffect(() => {
+    ref.current = value;
+  });
+  return ref;
 }
 
 /** While `dragging`, the whole page shows the grabbing cursor (document-tabs.css). */
