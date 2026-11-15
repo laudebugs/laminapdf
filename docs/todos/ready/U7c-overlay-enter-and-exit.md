@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Motion and interaction states §7](../../plans/motion-and-states.md#7-todos) |
 | Round / milestone | Round U (UI/UX) — U7 Motion and interaction states |
-| Depends on | [U7a](../ongoing/U7a-motion-and-state-tokens.md) |
+| Depends on | [U7a](../done/U7a-motion-and-state-tokens.md) |
 | ADRs | Follows [0024](../../decisions/0024-app-shell-ux.md) (tokens in layers) |
 | Branch | `feat/u7c-overlay-enter-and-exit` |
 | PR title | `feat(ui): menus, dialogs and toasts fade in and out` |
