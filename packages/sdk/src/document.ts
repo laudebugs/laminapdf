@@ -4,6 +4,7 @@
 // document.
 import type { WasmDocument, WasmPage, WasmSaveJob } from "@laminapdf/wasm/base";
 import type { WasmDocument as ExtractWasmDocument, PageTextJs, WasmExtractJob } from "@laminapdf/wasm/extract";
+import { DocumentContent } from "./content.js";
 import { isLaminaPdfError, type LaminaPdfWarning, packageError } from "./errors.js";
 import { type ExtractFormat, type ExtractOptions, type ExtractResult, parseExtract } from "./extract.js";
 import { ExtractJob, type ExtractJobOptions } from "./extract-job.js";
@@ -828,6 +829,21 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * What the pages draw, to select and change: `content.objects(index)`, `content.hitTest(index,
+   * at)` and `content.edit(index, edits)`. Reads need a document opened while the extract or
+   * text module was loaded.
+   *
+   * @since 0.5.0
+   */
+  get content(): DocumentContent {
+    return new DocumentContent({
+      read: (what, read) => this.call(() => read(this.#extracting(what))),
+      apply: (ops) => this.apply(ops),
+      pageId: (index) => this.pageInfo(index).id,
+    });
+  }
+
+  /**
    * The annotations on page `index` (0-based), in the order of the page's annotation list, every
    * subtype included. Change one with the `updateAnnot` op (its text, author, flags, or a move by
    * `translate`) and delete one with `deleteAnnot`, which also deletes its pop-up, its replies
@@ -1468,6 +1484,21 @@ export class Document extends Handle<BaseGlue> {
   addSource(bytes: Uint8Array | ArrayBuffer, options?: { readonly password?: string }): AddedSource {
     const data = bytesOf(bytes);
     return this.call(() => this.#doc.addSource(data, options?.password));
+  }
+
+  /**
+   * Keeps `bytes` for the session (a replacement image's JPEG or PNG) and returns their ID, 64 hex
+   * digits (the SHA-256 of the bytes), which a `replaceImage` content edit names them by. The same
+   * bytes get the same ID everywhere and are kept once. Adding bytes changes nothing to save or
+   * undo. Needs a document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded`.
+   *
+   * @since 0.5.0
+   */
+  addBlob(bytes: Uint8Array | ArrayBuffer): string {
+    const data = bytesOf(bytes);
+    return this.call(() => this.#extracting("doc.addBlob()").addBlob(data));
   }
 
   /**

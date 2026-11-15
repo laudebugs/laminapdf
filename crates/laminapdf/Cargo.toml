@@ -62,6 +62,8 @@ schema = ["dep:schemars"]
 explain = []
 
 [dependencies]
+# The content IR (ADR 0022): the objects a page draws, for `content_objects` and `hit_test`.
+laminapdf-content = { workspace = true }
 laminapdf-cos = { workspace = true }
 laminapdf-model = { workspace = true }
 laminapdf-ops = { workspace = true }
@@ -85,8 +87,6 @@ boon = { workspace = true }
 # The data-fields test builds one value of every variant of the wrapped crates' errors.
 laminapdf-build = { path = "../laminapdf-build", features = ["text"] }
 laminapdf-text = { path = "../laminapdf-text" }
-# Its `NotEditable` reasons, which the data fields test samples.
-laminapdf-content = { path = "../laminapdf-content" }
 # tests/redaction.rs appends revisions with the spike-era incremental_update.
 laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
 serde_json = { workspace = true }
@@ -181,6 +181,9 @@ name = "duplicate_pages"
 
 [[example]]
 name = "crop_pages"
+
+[[example]]
+name = "edit_objects"
 
 [[example]]
 name = "resize_pages"

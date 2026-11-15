@@ -241,6 +241,16 @@ impl ContentOps {
         range
     }
 
+    /// Why the object can't be moved, deleted or reordered, or `None` when it can: it clips
+    /// what follows ([`NotEditable::ClippingPath`]), or its graphics state wasn't recorded
+    /// ([`NotEditable::ContentUnreadable`]). An editor shows such an object read-only.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub fn edit_refusal(&self, id: ContentObjectId) -> Option<NotEditable> {
+        self.editable(id).err()
+    }
+
     /// Every resource the operators name, by category: what [`ContentOps`] still needs from
     /// the owner's `/Resources` after an edit.
     ///

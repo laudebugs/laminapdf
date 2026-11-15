@@ -27,6 +27,7 @@ export type {
   TextOptions,
 } from "./builder.js";
 export { Builder, imagesToPdf, PAGE_SIZES, Page, PendingPath, Surface, TAG_NAMES } from "./builder.js";
+export { type ContentAccess, DocumentContent } from "./content.js";
 export { Document, type MergeInput, PageRef, SaveJob, type SplitBy } from "./document.js";
 export type { Diagnostic, ErrorKind, LaminaPdfWarning, Location } from "./errors.js";
 export { isLaminaPdfError, LaminaPdfError } from "./errors.js";
@@ -138,6 +139,7 @@ export type {
   Color,
   CommentPart,
   CommentThread,
+  ContentEdit,
   DestinationUse,
   DestinationView,
   Direction,
@@ -170,6 +172,7 @@ export type {
   OutlineEntry,
   OutlineNode,
   OutlineStyle,
+  ObjectRef,
   OutlineTarget,
   Overflow,
   PageAnnotation,
@@ -178,6 +181,7 @@ export type {
   PageLabel,
   PageLabelRange,
   PageLink,
+  PageObject,
   PlannedSave,
   Point,
   Profile,

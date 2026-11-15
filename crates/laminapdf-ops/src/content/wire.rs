@@ -8,9 +8,13 @@ use serde::ser::Serializer;
 pub(crate) mod hash {
     use super::{Deserialize, Deserializer, Serializer, de};
 
-    #[expect(
-        clippy::trivially_copy_pass_by_ref,
-        reason = "serde's `with` passes the field by reference"
+    // On 64-bit targets only: clippy's size limit there is 8 bytes, and on wasm32 it is 4.
+    #[cfg_attr(
+        target_pointer_width = "64",
+        expect(
+            clippy::trivially_copy_pass_by_ref,
+            reason = "serde's `with` passes the field by reference"
+        )
     )]
     pub(crate) fn serialize<S: Serializer>(hash: &u64, s: S) -> Result<S::Ok, S::Error> {
         s.collect_str(&format_args!("{hash:016x}"))
