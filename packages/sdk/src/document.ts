@@ -8,7 +8,7 @@ import { isLaminaPdfError, type LaminaPdfWarning, packageError } from "./errors.
 import type { Font } from "./font.js";
 import { type ExtractFormat, type ExtractOptions, type ExtractResult, parseExtract } from "./extract.js";
 import { ExtractJob, type ExtractJobOptions } from "./extract-job.js";
-import { type BaseGlue, extractsText, readingModule } from "./init.js";
+import { type BaseGlue, extractsText, readingModule, textModule } from "./init.js";
 import { Handle, watch } from "./internal/handle.js";
 import type { Instance } from "./internal/instance.js";
 import type { Reflow } from "./reflow.js";
@@ -1191,7 +1191,8 @@ export class Document extends Handle<BaseGlue> {
    * Inserts a contents page made from the bookmarks, in one transaction (one undo step). It lists
    * the bookmarks that go to a page, one or two levels deep, each with the label its page shows
    * once the contents page is in and a link to that page. Bookmarks that open a web address, or
-   * go nowhere, are left out. Needs a document opened while the text module was loaded.
+   * go nowhere, are left out. Needs the text module loaded, which lays the page out; the document
+   * itself can be open in any module.
    *
    * @example
    * ```ts
@@ -1202,8 +1203,8 @@ export class Document extends Handle<BaseGlue> {
    * @param options - where it goes (`at`, before the first page by default), how many levels it
    *   lists (`levels`, 1 or 2), its heading (`title`), whether a bookmark for it goes first in the
    *   outline (`bookmark`), its font and fallbacks, and the entries' size in points (`size`).
-   * @throws {@link LaminaPdfError} `text-module-not-loaded` for a document opened without the text
-   *   module; `no-bookmarks` when no bookmark goes to a page; `font-not-embedded` for the default
+   * @throws {@link LaminaPdfError} `text-module-not-loaded` when the text module isn't loaded;
+   *   `no-bookmarks` when no bookmark goes to a page; `font-not-embedded` for the default
    *   font on a file that claims PDF/A or PDF/UA-1; `missing-glyph` for a title no font can draw;
    *   as {@link Document.apply}.
    *
@@ -1211,23 +1212,21 @@ export class Document extends Handle<BaseGlue> {
    */
   createContentsPage(options: ContentsPageOptions = {}): Edited {
     this.#notInTransaction("createContentsPage");
-    const doc = this.#doc as WasmDocument & {
-      createContentsPage?: (options: object, fonts: object[]) => Edited;
-    };
-    if (typeof doc.createContentsPage !== "function") {
-      throw packageError(
-        "text-module-not-loaded",
-        "createContentsPage() needs a document opened while the text module was loaded",
-      );
+    const text = textModule();
+    if (text === undefined) {
+      throw packageError("text-module-not-loaded", "createContentsPage() needs the text module: init({ text: true })");
     }
     const { font, fallbacks = [], ...rest } = options;
     const fonts = (font === undefined ? [] : [font, ...fallbacks]).map((f) =>
       f.standard !== undefined
         ? { standard: f.standard }
-        : { bytes: f.bytes, ...(f.index === undefined ? {} : { index: f.index }) },
+        : { bytes: f.bytes as Uint8Array, ...(f.index === undefined ? {} : { index: f.index }) },
     );
-    const create = doc.createContentsPage.bind(doc);
-    return this.call(() => create(rest, fonts));
+    // Read in the document's own module, laid out in the text module (which has the fonts),
+    // inserted in the document's module: a document opened before the text module loaded works too.
+    const listing = this.call(() => this.#doc.contentsListing(rest));
+    const page = text.call((glue) => glue.layOutContentsPage(listing, fonts));
+    return this.call(() => this.#doc.insertContentsPage(rest, page));
   }
 
   /**

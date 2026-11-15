@@ -4,7 +4,10 @@
 #![expect(clippy::unwrap_used, reason = "test code: a panic is a test failure")]
 
 use laminapdf::extract::TextOptions;
-use laminapdf::{ContentsOptions, Document, Font, LinkTo, OpenOptions, PagePosition, SaveOptions, UndoOutcome};
+use laminapdf::{
+    ContentsFonts, ContentsListing, ContentsOptions, Document, Font, LinkTo, OpenOptions, PagePosition, SaveOptions,
+    UndoOutcome,
+};
 use laminapdf_test_fixtures::fixture;
 
 /// `fixtures/golden/links-and-outlines.pdf`: four unlabelled pages; bookmarks Title page
@@ -20,7 +23,11 @@ fn noto() -> Font {
 }
 
 fn options() -> ContentsOptions {
-    ContentsOptions::new().with_font(noto())
+    ContentsOptions::new()
+}
+
+fn fonts() -> ContentsFonts {
+    ContentsFonts::new().with_font(noto())
 }
 
 /// The page text of page `index`, lines joined by newlines.
@@ -43,14 +50,14 @@ fn link_pages(doc: &Document, index: u32) -> Vec<u32> {
 #[test]
 fn create_contents_page_should_insert_one_page_before_the_first() {
     let mut doc = outline();
-    doc.create_contents_page(&options()).unwrap();
+    doc.create_contents_page(&options(), &fonts()).unwrap();
     assert_eq!(doc.page_count().unwrap(), 5);
 }
 
 #[test]
 fn create_contents_page_should_list_the_bookmarks_that_go_to_pages_with_their_labels() {
     let mut doc = outline();
-    doc.create_contents_page(&options()).unwrap();
+    doc.create_contents_page(&options(), &fonts()).unwrap();
     // The heading, then each bookmark with a page, two levels deep, and the label its page
     // shows once the contents page is in (the file labels its pages i, ii, 1, 2).
     assert_eq!(
@@ -62,7 +69,7 @@ fn create_contents_page_should_list_the_bookmarks_that_go_to_pages_with_their_la
 #[test]
 fn create_contents_page_should_print_the_labels_the_linked_pages_show() {
     let mut doc = outline();
-    doc.create_contents_page(&options()).unwrap();
+    doc.create_contents_page(&options(), &fonts()).unwrap();
     let shown: Vec<String> = link_pages(&doc, 0)
         .into_iter()
         .map(|page| doc.page_info(page).unwrap().label.unwrap_or_default())
@@ -78,7 +85,7 @@ fn create_contents_page_should_print_the_labels_the_linked_pages_show() {
 #[test]
 fn create_contents_page_should_link_each_entry_to_its_bookmarks_page() {
     let mut doc = outline();
-    doc.create_contents_page(&options()).unwrap();
+    doc.create_contents_page(&options(), &fonts()).unwrap();
     // Title page, Contents, Chapter 1 and Chapter 2, on pages 1 to 4 once the contents page
     // is page 0; Chapters (no page) and Website (a web address) are left out.
     assert_eq!(link_pages(&doc, 0), vec![1, 2, 3, 4]);
@@ -87,14 +94,15 @@ fn create_contents_page_should_link_each_entry_to_its_bookmarks_page() {
 #[test]
 fn create_contents_page_should_list_one_level_when_asked() {
     let mut doc = outline();
-    doc.create_contents_page(&options().with_levels(1)).unwrap();
+    doc.create_contents_page(&options().with_levels(1), &fonts()).unwrap();
     assert_eq!(link_pages(&doc, 0), vec![1, 2]);
 }
 
 #[test]
 fn create_contents_page_should_go_where_it_is_asked() {
     let mut doc = outline();
-    doc.create_contents_page(&options().with_at(PagePosition::End)).unwrap();
+    doc.create_contents_page(&options().with_at(PagePosition::End), &fonts())
+        .unwrap();
     assert_eq!(link_pages(&doc, 4), vec![0, 1, 2, 3]);
 }
 
@@ -103,14 +111,15 @@ fn create_contents_page_should_refuse_a_title_with_a_character_no_font_has() {
     // `fixtures/corpus/outline.pdf`'s "Appendix 𝄞 Ω": Noto Sans has no 𝄞, and the page never
     // draws a box in its place.
     let mut doc = Document::open_bytes(fixture("corpus/outline.pdf"), OpenOptions::default()).unwrap();
-    let err = doc.create_contents_page(&options()).unwrap_err();
+    let err = doc.create_contents_page(&options(), &fonts()).unwrap_err();
     assert_eq!(err.code(), "missing-glyph");
 }
 
 #[test]
 fn undo_should_remove_the_contents_page_and_its_links_in_one_step() {
     let mut doc = outline();
-    doc.create_contents_page(&options().with_bookmark(true)).unwrap();
+    doc.create_contents_page(&options().with_bookmark(true), &fonts())
+        .unwrap();
     let reverted = doc.undo().unwrap().unwrap();
     assert_eq!(
         (
@@ -125,7 +134,8 @@ fn undo_should_remove_the_contents_page_and_its_links_in_one_step() {
 #[test]
 fn create_contents_page_should_add_its_bookmark_first_when_asked() {
     let mut doc = outline();
-    doc.create_contents_page(&options().with_bookmark(true)).unwrap();
+    doc.create_contents_page(&options().with_bookmark(true), &fonts())
+        .unwrap();
     let first = doc.outline().unwrap().into_iter().next().unwrap();
     assert_eq!(
         (first.title.as_str(), first.target.map(|t| t.page)),
@@ -136,21 +146,25 @@ fn create_contents_page_should_add_its_bookmark_first_when_asked() {
 #[test]
 fn create_contents_page_should_refuse_a_document_without_bookmarks() {
     let mut doc = Document::open_bytes(fixture("golden/examples/hello.pdf"), OpenOptions::default()).unwrap();
-    let err = doc.create_contents_page(&ContentsOptions::new()).unwrap_err();
+    let err = doc
+        .create_contents_page(&ContentsOptions::new(), &ContentsFonts::new())
+        .unwrap_err();
     assert_eq!(err.code(), "no-bookmarks");
 }
 
 #[test]
 fn create_contents_page_should_refuse_the_standard_font_on_a_pdf_ua_file() {
-    let mut doc = Document::open_bytes(fixture("golden/examples/pdf_ua_report.pdf"), OpenOptions::default()).unwrap();
-    let err = doc.create_contents_page(&ContentsOptions::new()).unwrap_err();
+    let mut doc = Document::open_bytes(fixture("golden/flow-table.pdf"), OpenOptions::default()).unwrap();
+    let err = doc
+        .create_contents_page(&ContentsOptions::new(), &ContentsFonts::new())
+        .unwrap_err();
     assert_eq!(err.code(), "font-not-embedded");
 }
 
 #[test]
 fn a_saved_contents_page_should_keep_its_links_when_read_back() {
     let mut doc = outline();
-    doc.create_contents_page(&options()).unwrap();
+    doc.create_contents_page(&options(), &fonts()).unwrap();
     let saved = doc.save(&SaveOptions::default()).unwrap();
     let back = Document::open_bytes(saved.bytes, OpenOptions::default()).unwrap();
     assert_eq!(link_pages(&back, 0), vec![1, 2, 3, 4]);
@@ -161,10 +175,10 @@ fn creating_a_contents_page_twice_on_fresh_copies_should_save_the_same_bytes() {
     // What a replay of the op log needs: the same source bytes and ops from the same file.
     let save = || {
         let mut doc = outline();
-        doc.create_contents_page(&options()).unwrap();
+        doc.create_contents_page(&options(), &fonts()).unwrap();
         doc.save(&SaveOptions::default()).unwrap().bytes
     };
-    assert!(save() == save());
+    assert_eq!(save(), save());
 }
 
 /// The kinds of the structure tree's elements, depth first.
@@ -202,10 +216,51 @@ fn tagged() -> Document {
 #[test]
 fn a_contents_page_in_a_tagged_document_should_join_its_structure_tree() {
     let mut doc = tagged();
-    doc.create_contents_page(&options()).unwrap();
+    doc.create_contents_page(&options(), &fonts()).unwrap();
     let mut out = Vec::new();
     kinds(&doc.structure_tree().unwrap().unwrap(), &mut out);
     let toc = out.iter().filter(|k| *k == "TOC").count();
     let entries = out.iter().filter(|k| *k == "TOCI").count();
     assert_eq!((toc, entries), (1, 2), "{out:?}");
+}
+
+#[test]
+fn a_listing_should_read_back_from_json_as_it_was() {
+    let listing = outline().contents_listing(&options()).unwrap();
+    let json = serde_json::to_string(&listing).unwrap();
+    assert_eq!(serde_json::from_str::<ContentsListing>(&json).unwrap(), listing);
+}
+
+#[test]
+fn inserting_a_page_laid_out_before_an_edit_should_be_refused() {
+    let mut doc = outline();
+    let listing = doc.contents_listing(&options()).unwrap();
+    let page = listing.lay_out(&fonts()).unwrap();
+    // Deleting the last page sends Chapter 2's bookmark to the page before, whose label differs.
+    let last = doc.page_info(3).unwrap().id;
+    doc.apply(vec![laminapdf::Op::from(laminapdf::DeletePages::new(vec![last]))])
+        .unwrap();
+    let err = doc.insert_contents_page(&options(), page).unwrap_err();
+    assert_eq!(err.code(), "document-changed");
+}
+
+#[test]
+fn a_page_laid_out_from_a_listing_should_insert_as_create_does() {
+    let mut split = outline();
+    let listing = split.contents_listing(&options()).unwrap();
+    split
+        .insert_contents_page(&options(), listing.lay_out(&fonts()).unwrap())
+        .unwrap();
+    let mut whole = outline();
+    whole.create_contents_page(&options(), &fonts()).unwrap();
+    let save = |doc: &mut Document| doc.save(&SaveOptions::default()).unwrap().bytes;
+    assert_eq!(save(&mut split), save(&mut whole));
+}
+
+#[test]
+fn create_contents_page_should_refuse_a_standard_font_given_on_a_pdf_ua_file() {
+    let mut doc = Document::open_bytes(fixture("golden/flow-table.pdf"), OpenOptions::default()).unwrap();
+    let helvetica = ContentsFonts::new().with_font(Font::standard(laminapdf::Standard14::Helvetica));
+    let err = doc.create_contents_page(&options(), &helvetica).unwrap_err();
+    assert_eq!(err.code(), "font-not-embedded");
 }

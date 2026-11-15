@@ -1,26 +1,32 @@
 //! A contents page made from the bookmarks (E3 plan §2.2): a page or pages listing the outline
 //! one or two levels deep, each entry linked to its bookmark's place, inserted as one undo step.
 //!
-//! It isn't an op: an op can't draw text. The page is laid out with the builder's flowing
-//! layout into a document of its own, which becomes a source; then one transaction inserts its
-//! pages ([`InsertPagesFrom`]), links each entry ([`AddLink`]) and, when asked, adds a bookmark
-//! for it ([`AddOutlineItem`]). The op log holds those ops and the source's bytes, so a replay
-//! draws the same page everywhere.
+//! It isn't an op: an op can't draw text. It runs in three parts, so a host whose document is
+//! open in a build without fonts (the WebAssembly base and extract modules) can lay the page out
+//! in another (the text module):
+//!
+//! 1. [`Document::contents_listing`] reads what the page lists: the bookmarks, the label each
+//!    bookmark's page will show, the page size and the file's claims. Every build.
+//! 2. [`ContentsListing::lay_out`] lays the page out with the builder's flowing layout into a
+//!    document of its own. Only with the `text` feature.
+//! 3. [`Document::insert_contents_page`] adds that document as a source and, in one transaction,
+//!    inserts its pages ([`InsertPagesFrom`]), links each entry ([`AddLink`]) and, when asked,
+//!    adds a bookmark for it ([`AddOutlineItem`]). Every build.
+//!
+//! [`Document::create_contents_page`] runs all three.
 
 use laminapdf_cos::ObjRef;
-use laminapdf_model::{PageId, PageLabels, PagePosition, PageSize, Pt, RectPt, SiblingPosition, UserSpaceRect};
+use laminapdf_model::{PageId, PageLabels, PagePosition, RectPt, SiblingPosition, UserSpaceRect};
 use laminapdf_ops::{
     AddLink, AddOutlineItem, DestinationView, ExplicitDestination, InsertPagesFrom, Origin, OutlineTarget,
 };
+use serde::{Deserialize, Serialize};
 
-use crate::builder::Builder;
 use crate::document::{Document, Edited};
 use crate::error::Result;
-use crate::flow::{Contents, ContentsEntry, ContentsEntryBox, Flow, FlowBlock, PageTemplate, Paragraph, TextStyle};
 use crate::navigation::OutlineNode;
-use crate::{BuildOptions, Font, Standard14};
 
-/// How [`Document::create_contents_page`] makes the contents page.
+/// How a contents page is made: where it goes, what it lists and how it reads.
 ///
 /// Added in 0.5.0.
 #[derive(Debug, Clone)]
@@ -34,11 +40,6 @@ pub struct ContentsOptions {
     pub title: String,
     /// Whether a bookmark for the contents page is added first in the outline.
     pub bookmark: bool,
-    /// The font of its text; `None` for the standard 14 Helvetica, which isn't embedded, so a
-    /// file that claims PDF/A or PDF/UA-1 refuses it (`font-not-embedded`).
-    pub font: Option<Font>,
-    /// Fonts for the characters [`ContentsOptions::font`] lacks, tried in order.
-    pub fallbacks: Vec<Font>,
     /// The entries' size, points; the heading is half again as large.
     pub size: f64,
 }
@@ -50,8 +51,6 @@ impl Default for ContentsOptions {
             levels: 2,
             title: "Contents".to_owned(),
             bookmark: false,
-            font: None,
-            fallbacks: Vec::new(),
             size: 11.0,
         }
     }
@@ -59,7 +58,7 @@ impl Default for ContentsOptions {
 
 impl ContentsOptions {
     /// The defaults: before the first page, two levels, titled "Contents", no bookmark of its
-    /// own, Helvetica at 11 points.
+    /// own, entries at 11 points.
     ///
     /// Added in 0.5.0.
     #[must_use]
@@ -103,24 +102,6 @@ impl ContentsOptions {
         self
     }
 
-    /// Set in `font`, embedded and subset.
-    ///
-    /// Added in 0.5.0.
-    #[must_use]
-    pub fn with_font(mut self, font: Font) -> Self {
-        self.font = Some(font);
-        self
-    }
-
-    /// With `font` for the characters the main font lacks, after any fallbacks given before.
-    ///
-    /// Added in 0.5.0.
-    #[must_use]
-    pub fn with_fallback(mut self, font: Font) -> Self {
-        self.fallbacks.push(font);
-        self
-    }
-
     /// The entries at `size` points.
     ///
     /// Added in 0.5.0.
@@ -131,7 +112,136 @@ impl ContentsOptions {
     }
 }
 
-/// A bookmark the page lists: its level, its title and where its link goes.
+/// What a contents page lists, read from a document by [`Document::contents_listing`]: the
+/// options it was read with, the page size, the claims the file makes, and each entry with the
+/// labels its page will show. It is plain data that serialises to JSON, so a host can read it in
+/// one build and lay the page out in another.
+///
+/// Added in 0.5.0.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ContentsListing {
+    at: ListingAt,
+    levels: u8,
+    title: String,
+    bookmark: bool,
+    size: f64,
+    width: f64,
+    height: f64,
+    tagged: bool,
+    claim: Option<Claim>,
+    entries: Vec<ListedEntry>,
+}
+
+/// Where the listing's page goes, by page ID.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum ListingAt {
+    Start,
+    End,
+    Before(String),
+    After(String),
+}
+
+/// The profile a file claims that requires every font embedded.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum Claim {
+    PdfUa,
+    PdfA,
+}
+
+/// One bookmark a contents page lists.
+///
+/// Added in 0.5.0.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[non_exhaustive]
+pub struct ListedEntry {
+    /// Its level: 1 for a top-level bookmark, 2 for one inside it.
+    pub level: u8,
+    /// The bookmark's title.
+    pub title: String,
+    /// The label its page shows once the contents page is in: `labels[n - 1]` when the contents
+    /// page takes `n` pages (the file's labels, or page numbers, move along by that many).
+    pub labels: Vec<String>,
+}
+
+impl ContentsListing {
+    /// The entries, in outline order.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub fn entries(&self) -> &[ListedEntry] {
+        &self.entries
+    }
+
+    /// The listing as JSON, which serde reads back as a `ContentsListing`.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub fn to_json(&self) -> String {
+        // A struct of strings, numbers and lists always serialises.
+        serde_json::to_string(self).unwrap_or_default()
+    }
+}
+
+/// A contents page laid out as a document of its own, by [`ContentsListing::lay_out`], for
+/// [`Document::insert_contents_page`].
+///
+/// Added in 0.5.0.
+#[derive(Debug, Clone)]
+#[non_exhaustive]
+pub struct ContentsPage {
+    /// The document's bytes.
+    pub bytes: Vec<u8>,
+    /// Where each entry was drawn.
+    pub entries: Vec<PlacedEntry>,
+    /// The listing it was laid out from, as JSON: the insert compares it with the document's
+    /// listing then, so it never inserts a page whose entries or labels have gone stale.
+    pub listing: String,
+}
+
+impl ContentsPage {
+    /// A laid-out contents page: its document's bytes, where each entry was drawn, and the
+    /// listing it was laid out from as JSON ([`ContentsListing::to_json`]).
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub const fn new(bytes: Vec<u8>, entries: Vec<PlacedEntry>, listing: String) -> Self {
+        Self {
+            bytes,
+            entries,
+            listing,
+        }
+    }
+}
+
+/// Where a contents page drew one entry: the box its link covers.
+///
+/// Added in 0.5.0.
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[non_exhaustive]
+pub struct PlacedEntry {
+    /// The entry's index in [`ContentsListing::entries`].
+    pub entry: usize,
+    /// The 0-based index of the contents page's page it is on.
+    pub page: usize,
+    /// Its box in that page's page space (top-left origin, y down).
+    pub rect: RectPt,
+}
+
+impl PlacedEntry {
+    /// Entry `entry` drawn in `rect` on page `page` of the contents page.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub const fn new(entry: usize, page: usize, rect: RectPt) -> Self {
+        Self { entry, page, rect }
+    }
+}
+
+/// A bookmark the page lists: its level, its title, its page and where its link goes.
 struct Listed {
     level: u8,
     title: String,
@@ -139,81 +249,110 @@ struct Listed {
     target: OutlineTarget,
 }
 
-/// The most times the page is laid out while its page count, and so the labels it prints,
-/// settle: one page or more pushes the bookmarks' pages along by that many.
-const MAX_LAYOUTS: usize = 3;
+/// The most pages a contents page is laid out for while its page count, and so the labels it
+/// prints, settle: each page pushes the bookmarks' pages along by one.
+const MAX_PAGES: usize = 3;
 
 impl Document {
-    /// Adds a contents page made from the bookmarks: their titles one or two levels deep, each
-    /// indented by its level, with dot leaders to the page label a reader will see once the
-    /// page is in, each entry a link to its bookmark's place. Bookmarks that go to no page of
-    /// this document (a web address, another file) are left out. On a tagged document the page
-    /// is tagged (`TOC`, `TOCI`) and joins the structure tree.
-    ///
-    /// It is one transaction, so one undo step, of ops the document already knows: the page is
-    /// laid out as a document of its own and added as a source, then
-    /// [`InsertPagesFrom`](crate::InsertPagesFrom) inserts it, an
-    /// [`AddLink`](crate::AddLink) links each entry and, with
-    /// [`ContentsOptions::bookmark`], an [`AddOutlineItem`](crate::AddOutlineItem) adds its
-    /// bookmark. The pages it inserted are those [`Edited::page_order`] holds that weren't there
-    /// before.
+    /// What a contents page made with `options` lists: each bookmark up to `options.levels`
+    /// deep that goes to a page of this document, in outline order, with the label its page will
+    /// show once the page is in. Bookmarks that go to no page of this document (a web address,
+    /// another file) are left out; the ones inside them are listed.
     ///
     /// # Errors
-    /// `font-not-embedded` for the standard font on a file that claims PDF/A or PDF/UA-1;
-    /// `no-bookmarks` when no bookmark goes to a page of this document; `missing-glyph` for a
-    /// character of a title that neither the font nor its fallbacks have, and the other errors
-    /// of laying the page out; the ops' errors; `saved-not-rebased`.
+    /// `no-bookmarks` when no bookmark goes to a page of this document; `unknown-page` for an
+    /// `at` that names no page; reading errors.
     ///
     /// Added in 0.5.0.
-    pub fn create_contents_page(&mut self, options: &ContentsOptions) -> Result<Edited> {
-        self.refuse_standard_font(options)?;
+    pub fn contents_listing(&self, options: &ContentsOptions) -> Result<ContentsListing> {
         let listed = self.listed(options.levels.clamp(1, 2))?;
         if listed.is_empty() {
             return Err(crate::Error::NoBookmarks);
         }
         let infos = self.page_infos()?;
-        let size = infos
-            .first()
-            .map_or(PageSize::A4, |p| PageSize::new(Pt::new(p.width), Pt::new(p.height)));
         let before: Vec<PageId> = infos.iter().map(|p| p.id.clone()).collect();
-        let labels = self.ops().page_labels()?;
-        let tagged = self.is_tagged()?;
-        let mut count = 1;
-        let mut laid = None;
-        for _ in 0..MAX_LAYOUTS {
-            let printed = predicted_labels(&labels, &before, &options.at, count, &listed);
-            let (bytes, report) = lay_out(&listed, &printed, options, size, tagged)?;
-            let pages = report.pages.len();
-            laid = Some((bytes, report));
-            if pages == count {
-                break;
-            }
-            count = pages;
-        }
-        let Some((bytes, report)) = laid else {
-            return Err(crate::Error::NoBookmarks);
+        let at = match &options.at {
+            PagePosition::Start => ListingAt::Start,
+            PagePosition::Before(id) => ListingAt::Before(known(&before, id)?),
+            PagePosition::After(id) => ListingAt::After(known(&before, id)?),
+            // The end, and any position added later.
+            _ => ListingAt::End,
         };
-        let source = self.add_source(bytes, None)?;
+        let labels = self.ops().page_labels()?;
+        let by_count: Vec<Vec<String>> = (1..=MAX_PAGES)
+            .map(|count| predicted_labels(&labels, &before, &options.at, count, &listed))
+            .collect();
+        let entries = listed
+            .iter()
+            .enumerate()
+            .map(|(n, entry)| ListedEntry {
+                level: entry.level,
+                title: entry.title.clone(),
+                labels: by_count.iter().map(|l| l.get(n).cloned().unwrap_or_default()).collect(),
+            })
+            .collect();
+        let claims = self.metadata()?;
+        let claim = if claims.pdfua.is_some() {
+            Some(Claim::PdfUa)
+        } else {
+            claims.pdfa.is_some().then_some(Claim::PdfA)
+        };
+        let (width, height) = infos.first().map_or((595.0, 842.0), |p| (p.width, p.height));
+        Ok(ContentsListing {
+            at,
+            levels: options.levels.clamp(1, 2),
+            title: options.title.clone(),
+            bookmark: options.bookmark,
+            size: options.size,
+            width,
+            height,
+            tagged: self.is_tagged()?,
+            claim,
+            entries,
+        })
+    }
+
+    /// Inserts `page`, laid out from the listing `options` gives, in one transaction (one undo
+    /// step): its pages where `options` says ([`InsertPagesFrom`](crate::InsertPagesFrom)), a link over each
+    /// entry to its bookmark's place with the bookmark's title as its description
+    /// ([`AddLink`](crate::AddLink)), and, with [`ContentsOptions::bookmark`], a bookmark for the
+    /// contents page first in the outline ([`AddOutlineItem`](crate::AddOutlineItem)). The pages it
+    /// inserted are those [`Edited::page_order`] holds that weren't there before.
+    ///
+    /// # Errors
+    /// `document-changed` when this document no longer gives the listing `page` was laid out
+    /// from (its bookmarks, labels or pages changed since, or `options` differ); `no-bookmarks`; the errors of a source document that
+    /// doesn't open; the ops' errors; `saved-not-rebased`.
+    ///
+    /// Added in 0.5.0.
+    pub fn insert_contents_page(&mut self, options: &ContentsOptions, page: ContentsPage) -> Result<Edited> {
+        let listing = self.contents_listing(options)?;
+        if listing.to_json() != page.listing {
+            return Err(crate::Error::DocumentChanged);
+        }
+        let listed = self.listed(listing.levels)?;
+        let before: Vec<PageId> = self.page_infos()?.into_iter().map(|p| p.id).collect();
+        let source = self.add_source(page.bytes, None)?;
         let source_pages = self.source_pages(&source)?;
-        let height = size.height.get();
+        let count = source_pages.len();
         let insert = InsertPagesFrom::new(source, source_pages, options.at.clone());
+        let height = listing.height;
         let ((), applied) = self.ops_mut().transact(Origin::Local, |tx| {
             let order = tx.apply(insert)?.page_order.unwrap_or_default();
             let added: Vec<PageId> = order.iter().filter(|id| !before.contains(id)).cloned().collect();
-            for entry_box in &report.entries {
-                let Some(link) = link_for(entry_box, &report.pages, &added, &listed, height) else {
-                    continue;
-                };
-                tx.apply(link)?;
+            for placed in page.entries.iter().filter(|p| p.page < count) {
+                if let Some(link) = link_for(placed, &added, &listed, height) {
+                    tx.apply(link)?;
+                }
             }
-            if options.bookmark
+            if listing.bookmark
                 && let Some(first) = added.first()
             {
                 let target = OutlineTarget::Destination(ExplicitDestination::new(first.clone(), DestinationView::Fit));
                 tx.apply(AddOutlineItem::new(
                     None,
                     SiblingPosition::First,
-                    options.title.clone(),
+                    listing.title.clone(),
                     target,
                 ))?;
             }
@@ -253,26 +392,14 @@ impl Document {
         }
         Ok(())
     }
+}
 
-    /// `font-not-embedded` when the page would set the standard font in a file that claims
-    /// PDF/A or PDF/UA-1, which require every font embedded.
-    fn refuse_standard_font(&self, options: &ContentsOptions) -> Result<()> {
-        if options.font.is_some() {
-            return Ok(());
-        }
-        let claims = self.metadata()?;
-        let profile = if claims.pdfua.is_some() {
-            laminapdf_build::Profile::PdfUa1
-        } else if claims.pdfa.is_some() {
-            laminapdf_build::Profile::PdfA2b
-        } else {
-            return Ok(());
-        };
-        Err(laminapdf_build::Error::FontNotEmbedded {
-            profile,
-            font: "Helvetica".to_owned(),
-        }
-        .into())
+/// `id` as text when it is one of `pages`, else `unknown-page`.
+fn known(pages: &[PageId], id: &PageId) -> Result<String> {
+    if pages.contains(id) {
+        Ok(id.to_string())
+    } else {
+        Err(laminapdf_ops::Error::UnknownPage(id.clone()).into())
     }
 }
 
@@ -312,55 +439,172 @@ fn predicted_labels(
         .collect()
 }
 
-/// The contents page laid out as a document of its own: its bytes and where each entry went.
-fn lay_out(
-    listed: &[Listed],
-    labels: &[String],
-    options: &ContentsOptions,
-    size: PageSize,
-    tagged: bool,
-) -> Result<(Vec<u8>, crate::flow::FlowReport)> {
-    let mut builder = Builder::new(BuildOptions::new().with_tagged(tagged));
-    let font = match &options.font {
-        Some(font) => builder.font(font.clone())?,
-        None => builder.standard_font(Standard14::Helvetica)?,
-    };
-    let mut body = TextStyle::new(&font, options.size);
-    for fallback in &options.fallbacks {
-        body = body.with_fallback(&builder.font(fallback.clone())?);
-    }
-    let heading = body.clone().with_size(options.size * 1.5);
-    let entries = listed
-        .iter()
-        .zip(labels)
-        .map(|(entry, label)| ContentsEntry::new(entry.level, entry.title.clone(), label.clone()))
-        .collect();
-    let flow = Flow::new(PageTemplate::new(size))
-        .with_tagged(tagged)
-        .with_outline(false)
-        .block(FlowBlock::Heading(1, Paragraph::plain(options.title.clone(), &heading)))
-        .block(FlowBlock::Contents(Contents::listing(&body, entries)));
-    let report = builder.flow(&flow)?;
-    let saved = builder.finish()?.save(&crate::SaveOptions::default())?;
-    Ok((saved.bytes, report))
-}
-
-/// The link over `entry_box`, on the inserted page that holds it, to its bookmark's place.
-fn link_for(
-    entry_box: &ContentsEntryBox,
-    built: &[PageId],
-    added: &[PageId],
-    listed: &[Listed],
-    height: f64,
-) -> Option<AddLink> {
-    let index = built.iter().position(|p| *p == entry_box.page)?;
-    let page = added.get(index)?.clone();
-    let entry = listed.get(entry_box.entry)?;
-    let r: &RectPt = &entry_box.rect;
+/// The link over `placed`, on the inserted page that holds it, to its bookmark's place.
+fn link_for(placed: &PlacedEntry, added: &[PageId], listed: &[Listed], height: f64) -> Option<AddLink> {
+    let page = added.get(placed.page)?.clone();
+    let entry = listed.get(placed.entry)?;
+    let r = &placed.rect;
     // The page was built upright with its media box at the origin: page space flips into
     // user space.
     let rect = UserSpaceRect::from_corners(r.x0.get(), height - r.y1.get(), r.x1.get(), height - r.y0.get());
     let mut link = AddLink::new(page, rect, entry.target.clone());
     link.contents = Some(entry.title.clone());
     Some(link)
+}
+
+#[cfg(feature = "text")]
+pub use layout::ContentsFonts;
+
+/// Laying the page out, with the builder's flowing layout and fonts.
+#[cfg(feature = "text")]
+mod layout {
+    use laminapdf_model::{PageSize, Pt};
+
+    use super::{Claim, ContentsListing, ContentsOptions, ContentsPage, MAX_PAGES, PlacedEntry};
+    use crate::builder::Builder;
+    use crate::document::{Document, Edited};
+    use crate::error::Result;
+    use crate::flow::{Contents, ContentsEntry, Flow, FlowBlock, PageTemplate, Paragraph, TextStyle};
+    use crate::{BuildOptions, Font, Standard14};
+
+    /// The fonts a contents page is set in.
+    ///
+    /// Added in 0.5.0.
+    #[derive(Debug, Clone, Default)]
+    #[non_exhaustive]
+    pub struct ContentsFonts {
+        /// The font of its text; `None` for the standard 14 Helvetica, which isn't embedded, so
+        /// a file that claims PDF/A or PDF/UA-1 refuses it (`font-not-embedded`).
+        pub font: Option<Font>,
+        /// Fonts for the characters [`ContentsFonts::font`] lacks, tried in order.
+        pub fallbacks: Vec<Font>,
+    }
+
+    impl ContentsFonts {
+        /// Helvetica, with no fallbacks.
+        ///
+        /// Added in 0.5.0.
+        #[must_use]
+        pub fn new() -> Self {
+            Self::default()
+        }
+
+        /// Set in `font`, embedded and subset.
+        ///
+        /// Added in 0.5.0.
+        #[must_use]
+        pub fn with_font(mut self, font: Font) -> Self {
+            self.font = Some(font);
+            self
+        }
+
+        /// With `font` for the characters the main font lacks, after any fallbacks given before.
+        ///
+        /// Added in 0.5.0.
+        #[must_use]
+        pub fn with_fallback(mut self, font: Font) -> Self {
+            self.fallbacks.push(font);
+            self
+        }
+    }
+
+    impl ContentsListing {
+        /// The contents page laid out in `fonts` as a document of its own, for
+        /// [`Document::insert_contents_page`]: the heading, then each entry indented by its
+        /// level, with dot leaders to its label. Laid out again with the labels for two or three
+        /// pages when it takes more than one. On a tagged document it is tagged (`TOC`, `TOCI`).
+        ///
+        /// # Errors
+        /// `font-not-embedded` for a font that isn't embedded (the default Helvetica) when the
+        /// file claims PDF/A or PDF/UA-1; `missing-glyph` for a character of a title that
+        /// neither the font nor its fallbacks have, and the other errors of laying text out.
+        ///
+        /// Added in 0.5.0.
+        pub fn lay_out(&self, fonts: &ContentsFonts) -> Result<ContentsPage> {
+            self.refuse_unembedded(fonts)?;
+            let mut laid = None;
+            for count in 1..=MAX_PAGES {
+                let page = self.lay_out_for(fonts, count)?;
+                let pages = page.1;
+                laid = Some(page.0);
+                if pages <= count {
+                    break;
+                }
+            }
+            laid.ok_or(crate::Error::NoBookmarks)
+        }
+
+        /// The page laid out with the labels for `count` pages, and how many it took.
+        fn lay_out_for(&self, fonts: &ContentsFonts, count: usize) -> Result<(ContentsPage, usize)> {
+            let mut builder = Builder::new(BuildOptions::new().with_tagged(self.tagged));
+            let font = match &fonts.font {
+                Some(font) => builder.font(font.clone())?,
+                None => builder.standard_font(Standard14::Helvetica)?,
+            };
+            let mut body = TextStyle::new(&font, self.size);
+            for fallback in &fonts.fallbacks {
+                body = body.with_fallback(&builder.font(fallback.clone())?);
+            }
+            let heading = body.clone().with_size(self.size * 1.5);
+            let entries = self
+                .entries
+                .iter()
+                .map(|e| {
+                    let label = e.labels.get(count - 1).cloned().unwrap_or_default();
+                    ContentsEntry::new(e.level, e.title.clone(), label)
+                })
+                .collect();
+            let size = PageSize::new(Pt::new(self.width), Pt::new(self.height));
+            let flow = Flow::new(PageTemplate::new(size))
+                .with_tagged(self.tagged)
+                .with_outline(false)
+                .block(FlowBlock::Heading(1, Paragraph::plain(self.title.clone(), &heading)))
+                .block(FlowBlock::Contents(Contents::listing(&body, entries)));
+            let report = builder.flow(&flow)?;
+            let bytes = builder.finish()?.save(&crate::SaveOptions::default())?.bytes;
+            let placed = report
+                .entries
+                .iter()
+                .filter_map(|b| {
+                    let page = report.pages.iter().position(|p| *p == b.page)?;
+                    Some(PlacedEntry::new(b.entry, page, b.rect))
+                })
+                .collect();
+            Ok((ContentsPage::new(bytes, placed, self.to_json()), report.pages.len()))
+        }
+
+        /// `font-not-embedded` when the page would set a font that isn't embedded in a file that
+        /// claims PDF/A or PDF/UA-1, which require every font embedded.
+        fn refuse_unembedded(&self, fonts: &ContentsFonts) -> Result<()> {
+            let name = match &fonts.font {
+                None => "Helvetica".to_owned(),
+                Some(font) if !font.requires_embedding() => font.info().postscript_name.clone(),
+                Some(_) => return Ok(()),
+            };
+            let profile = match self.claim {
+                Some(Claim::PdfUa) => laminapdf_build::Profile::PdfUa1,
+                Some(Claim::PdfA) => laminapdf_build::Profile::PdfA2b,
+                None => return Ok(()),
+            };
+            Err(laminapdf_build::Error::FontNotEmbedded { profile, font: name }.into())
+        }
+    }
+
+    impl Document {
+        /// Adds a contents page made from the bookmarks, set in `fonts`: their titles one or two
+        /// levels deep, each indented by its level, with dot leaders to the page label a reader
+        /// will see once the page is in, each entry a link to its bookmark's place. It runs
+        /// [`Document::contents_listing`], [`ContentsListing::lay_out`] and
+        /// [`Document::insert_contents_page`], so it is one undo step.
+        ///
+        /// # Errors
+        /// As those three.
+        ///
+        /// Added in 0.5.0.
+        pub fn create_contents_page(&mut self, options: &ContentsOptions, fonts: &ContentsFonts) -> Result<Edited> {
+            let listing = self.contents_listing(options)?;
+            let page = listing.lay_out(fonts)?;
+            self.insert_contents_page(options, page)
+        }
+    }
 }

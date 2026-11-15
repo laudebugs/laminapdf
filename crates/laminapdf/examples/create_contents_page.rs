@@ -11,7 +11,7 @@
 use std::error::Error;
 use std::path::PathBuf;
 
-use laminapdf::{ContentsOptions, Document, Font, OpenOptions, SaveOptions};
+use laminapdf::{ContentsFonts, ContentsOptions, Document, Font, OpenOptions, SaveOptions};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = std::env::args().skip(1);
@@ -29,9 +29,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// PDF/A or PDF/UA-1 file keeps its claim), saved incrementally.
 pub(crate) fn add_contents(bytes: Vec<u8>, font: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut doc = Document::open_bytes(bytes, OpenOptions::new())?;
-    let options = ContentsOptions::new()
-        .with_font(Font::from_bytes(font)?)
-        .with_bookmark(true);
-    doc.create_contents_page(&options)?;
+    let options = ContentsOptions::new().with_bookmark(true);
+    let fonts = ContentsFonts::new().with_font(Font::from_bytes(font)?);
+    doc.create_contents_page(&options, &fonts)?;
     Ok(doc.save(&SaveOptions::new())?.bytes)
 }

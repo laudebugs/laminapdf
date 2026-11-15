@@ -1304,8 +1304,8 @@
     {
       "code": "document-changed",
       "kind": "state",
-      "summary": "the document a job was created for changed (an edit, undo, redo, save or rebase) or a different document was passed to step",
-      "hint": "pass the document the job was created from, and don't change it while the job runs; create a new job",
+      "summary": "the document a job or a contents listing was made from changed (an edit, undo, redo, save or rebase), or a different document was passed to step",
+      "hint": "pass the document the job was created from, and don't change it while the job runs; create a new job, or read the contents listing again",
       "since": "0.1.0"
     },
     {

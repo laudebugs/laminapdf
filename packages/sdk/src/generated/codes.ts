@@ -893,7 +893,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "model-needs-host": "step an extraction job and hand it each result with provide, or give the plug-in a page renderer",
   "cancelled": "nothing to do: this is the outcome the caller asked for; start a new job to try again",
   "job-finished": "stop stepping a job once a step returned its result or an error; create a new job",
-  "document-changed": "pass the document the job was created from, and don't change it while the job runs; create a new job",
+  "document-changed": "pass the document the job was created from, and don't change it while the job runs; create a new job, or read the contents listing again",
   "revision-index-out-of-range": "ask for an index below the document's revision count",
   "no-bookmarks": "add bookmarks that go to the document's pages first, then create the contents page",
   "covered-text": "remove the text itself with a tool that deletes what a redaction covers, then save a full rewrite",

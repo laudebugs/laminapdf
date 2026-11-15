@@ -278,7 +278,7 @@ pub enum ErrorCode {
     Cancelled,
     /// `job-finished`: a job was stepped after it had finished, failed or been cancelled.
     JobFinished,
-    /// `document-changed`: the document a job was created for changed (an edit, undo, redo, save or rebase) or a different document was passed to step.
+    /// `document-changed`: the document a job or a contents listing was made from changed (an edit, undo, redo, save or rebase), or a different document was passed to step.
     DocumentChanged,
     /// `revision-index-out-of-range`: an earlier revision was asked for by an index past the file's last revision.
     RevisionIndexOutOfRange,
@@ -874,7 +874,7 @@ impl ErrorCode {
             Self::ModelNeedsHost => "an extraction in one call was given a model whose results only the host can give: a host model, or a plug-in model without a page renderer",
             Self::Cancelled => "a CancelToken stopped the work; the job is finished and returned no partial result",
             Self::JobFinished => "a job was stepped after it had finished, failed or been cancelled",
-            Self::DocumentChanged => "the document a job was created for changed (an edit, undo, redo, save or rebase) or a different document was passed to step",
+            Self::DocumentChanged => "the document a job or a contents listing was made from changed (an edit, undo, redo, save or rebase), or a different document was passed to step",
             Self::RevisionIndexOutOfRange => "an earlier revision was asked for by an index past the file's last revision",
             Self::NoBookmarks => "a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing",
             Self::BuilderFinished => "a builder or one of its pages was used after it finished",
@@ -1016,7 +1016,7 @@ impl ErrorCode {
             Self::ModelNeedsHost => "step an extraction job and hand it each result with provide, or give the plug-in a page renderer",
             Self::Cancelled => "nothing to do: this is the outcome the caller asked for; start a new job to try again",
             Self::JobFinished => "stop stepping a job once a step returned its result or an error; create a new job",
-            Self::DocumentChanged => "pass the document the job was created from, and don't change it while the job runs; create a new job",
+            Self::DocumentChanged => "pass the document the job was created from, and don't change it while the job runs; create a new job, or read the contents listing again",
             Self::RevisionIndexOutOfRange => "ask for an index below the document's revision count",
             Self::NoBookmarks => "add bookmarks that go to the document's pages first, then create the contents page",
             Self::BuilderFinished => "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",

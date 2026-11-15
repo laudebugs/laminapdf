@@ -105,7 +105,6 @@ mod annotations;
 mod builder;
 mod codes;
 mod comments;
-#[cfg(feature = "text")]
 mod contents_page;
 mod data;
 mod document;
@@ -158,7 +157,8 @@ use laminapdf_test_fixtures::codes as test_codes;
 pub use annotations::{AnnotationGeometry, PageAnnotation};
 pub use comments::{CommentPart, PageComment};
 #[cfg(feature = "text")]
-pub use contents_page::ContentsOptions;
+pub use contents_page::ContentsFonts;
+pub use contents_page::{ContentsListing, ContentsOptions, ContentsPage, ListedEntry, PlacedEntry};
 pub use document::{Document, DocumentInfo, Edited, PageInfo, ReferenceEdit, ReferenceEditKind, Saved};
 pub use error::{CoreError, Error, Result};
 #[cfg(feature = "explain")]
