@@ -89,7 +89,7 @@ const OUTLINE_PDF = "fixtures/corpus/outline.pdf";
 /** The document edit-bookmarks edits. */
 const BOOKMARKS_PDF = "fixtures/golden/links-and-outlines.pdf";
 /** The file create-contents-page-pdfua adds a contents page to: one that claims PDF/UA-1. */
-const PDF_UA_PDF = "fixtures/golden/examples/pdf_ua_report.pdf";
+const PDF_UA_PDF = "fixtures/golden/flow-table.pdf";
 /** The PDF/A-2b file edit-xmp records a review in. */
 const PDFA_2B_PDF = "fixtures/golden/examples/pdf_a_archive-2b.pdf";
 /** The document organise-pages organises: five pages, with bookmarks, links and named destinations that point at the third. */

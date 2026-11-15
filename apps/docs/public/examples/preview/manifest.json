@@ -24,6 +24,54 @@
         }
       ]
     },
+    "create_contents_page": {
+      "sha256": "30b468eedc5e026e58afeacbd748554ea30510620ee53855b5e427531640325e",
+      "bytes": 20325,
+      "pages": [
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        }
+      ]
+    },
+    "create_contents_page-pdfua": {
+      "sha256": "220db15b1919460cf0ca5ddeaba2128b8ea16810da4378c6b96574bdf775d648",
+      "bytes": 111186,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        },
+        {
+          "width": 1190,
+          "height": 1683
+        },
+        {
+          "width": 1190,
+          "height": 1683
+        },
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
     "crop_pages": {
       "sha256": "8c2c71ebcc80eb8271370f12b4900789c0bdfa6997241c504ee9e2e2c565fa29",
       "bytes": 2890,

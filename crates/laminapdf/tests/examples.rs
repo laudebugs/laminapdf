@@ -114,6 +114,7 @@ mod resize_pages;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/review_comments.rs"]
 mod review_comments;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/set_initial_view.rs"]
 mod set_initial_view;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -255,7 +256,7 @@ const EXAMPLES: [(&str, Build); 39] = [
     // The same page in a file that claims PDF/UA-1, so `cargo xtask verapdf` checks that the
     // contents page, its links and its tags keep the claim.
     ("create_contents_page-pdfua", || {
-        create_contents_page::add_contents(fixture("golden/examples/pdf_ua_report.pdf"), fixture(NOTO))
+        create_contents_page::add_contents(fixture("golden/flow-table.pdf"), fixture(NOTO))
     }),
     ("set_initial_view", || {
         set_initial_view::open_on(fixture("corpus/outline.pdf"), 1)
