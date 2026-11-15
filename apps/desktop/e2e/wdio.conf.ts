@@ -1,13 +1,13 @@
 // WebdriverIO against the desktop reader's e2e build: `pnpm --filter @laminapdf/desktop
 // desktop:build:e2e`, then `pnpm --filter @laminapdf/desktop e2e`. The WebDriver server runs
 // inside the app (tauri-plugin-wdio-webdriver), on every OS, so no driver is installed.
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { env } from "node:process";
 import { fileURLToPath } from "node:url";
 import { describeFlaky, warningLine } from "@laminapdf/test-utils/flaky";
 import { closeAll } from "./app.ts";
-import { appBinary, output } from "./paths.ts";
+import { appBinary, crashConsentFile, output } from "./paths.ts";
 
 const specs = join(fileURLToPath(new URL(".", import.meta.url)), "specs");
 mkdirSync(output, { recursive: true });
@@ -70,6 +70,12 @@ export const config: WebdriverIO.Config = {
     "edit-session",
     "save",
   ]),
+  // The restart scenario kills the engine, which would ask about the crash (D7a): as if the user
+  // had once said Don't send, so no notice comes between the scenarios and nothing is sent.
+  onPrepare: () => {
+    mkdirSync(dirname(crashConsentFile), { recursive: true });
+    writeFileSync(crashConsentFile, JSON.stringify({ consent: { state: "asked", send: false } }));
+  },
   // Opening adds a tab rather than replacing the document before, so each scenario starts with
   // every tab closed, as if it had the app to itself. The scenarios run as one group, where
   // `beforeSuite` fires once only: the first test of each file closes them.

@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "report_id": "3f1c2a9e-8b7d-4e6f-9a5b-1c2d3e4f5a6b",
+  "app_version": "0.1.0",
+  "channel": "beta",
+  "os": "macos",
+  "os_version": "15.1",
+  "arch": "aarch64",
+  "process": "engine",
+  "renderer": "pdfium",
+  "sandbox": ["seatbelt", "memory_limit"],
+  "uptime": "1m_to_10m",
+  "kind": "panic",
+  "reason": "index out of bounds: the len is 3 but the index is 7 (in <path>)",
+  "location": { "file": "crates/laminapdf-desktop-engine/src/worker.rs", "line": 120, "column": 9 },
+  "frames": [
+    {
+      "module": "laminapdf-desktop-engine",
+      "offset": "0x1a2b3c",
+      "function": "laminapdf_desktop_engine::worker::render"
+    },
+    { "module": "<unknown>", "offset": "0x7f00", "function": "objc_msgSend" }
+  ],
+  "modules": []
+}

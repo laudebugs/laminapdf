@@ -141,7 +141,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D7. Crash reporting and beta
 
-**Todos:** [D7a](../todos/ready/D7a-crash-reporting.md), [D7b](../todos/ready/D7b-settings-renderer-switch-and-download-page.md), [D7c](../todos/ready/D7c-desktop-beta-release.md)
+**Todos:** [D7a](../todos/done/D7a-crash-reporting.md), [D7b](../todos/ready/D7b-settings-renderer-switch-and-download-page.md), [D7c](../todos/ready/D7c-desktop-beta-release.md), [D7d](../todos/ready/D7d-native-crash-minidumps-and-symbols.md), [D7e](../todos/ready/D7e-crash-recovered-tab-choice.md)
 
 **Deliverable:** opt-in crash and panic reporting to the chosen backend; settings page (updates, channel, crash reports, renderer backend switch for Linux); download page at `laminapdf.com/download`, on the website (`apps/site`, [website plan](website.md)); `desktop v0.1` beta on the beta channel.
 **Accepted when:** a forced crash produces a scrubbed report only after consent (test asserts no paths or content); beta installs and auto-updates for at least one release cycle on all three OSes.
@@ -160,7 +160,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 ## 8. Open questions
 
 1. Mac App Store, Microsoft Store, Flathub: in scope, and when?
-2. Crash backend: own Worker + R2, or Sentry (self-hosted or SaaS)?
+2. Crash backend: own Worker + R2, or Sentry (self-hosted or SaaS)? *Answered by D7a:* the update Worker's `POST /crash` and a private R2 bucket, with reports built and scrubbed on the computer and sent only with consent ([ADR 0014 §10](../decisions/0014-desktop-distribution.md#10-crash-reports)).
 3. One engine process per window, or a shared pool with per-document isolation? *Answered by D2b:* one per window; an engine uses 11–12 MiB with a small document, and D4a measured about 14 MiB per extra window with up to 20 documents ([ADR 0008 §2](../decisions/0008-desktop-shell.md#2-process-model-a-main-process-that-owns-files-and-a-sandboxed-engine-per-window)).
 4. Default channel for new installs: stable only, or beta during 0.x? *Answered 2026-11-12 (owner):* an install follows the channel of the build it came from; the download page offers stable once a stable release exists, and Settings switches between stable and beta ([ADR 0014 §1](../decisions/0014-desktop-distribution.md#1-channels)).
 5. Do we register as the default PDF handler on install (opt-in prompt) or leave it to the user? *Answered by D3a:* the installers register Lamina PDF as able to open PDFs and leave the default to the user ([ADR 0008 §10](../decisions/0008-desktop-shell.md#10-opening-files-from-the-os)); an opt-in prompt, if wanted, comes with the settings (D7b).
@@ -230,8 +230,10 @@ Ticked by the PR that completes them.
 
 ### D7. Crash reporting and beta
 
-- [ ] Decide the crash backend (record in ADR 0014 or a short ADR)
-- [ ] Implement opt-in crash/panic capture with scrubbing; test that no paths or content leak
+- [x] Decide the crash backend (record in ADR 0014 or a short ADR) ([D7a](../todos/done/D7a-crash-reporting.md): ADR 0014 §10)
+- [x] Implement opt-in crash/panic capture with scrubbing; test that no paths or content leak ([D7a](../todos/done/D7a-crash-reporting.md); native crashes from minidumps: [D7d](../todos/ready/D7d-native-crash-minidumps-and-symbols.md))
+- [ ] Native crash minidumps processed on the computer, and debug symbols ([D7d](../todos/ready/D7d-native-crash-minidumps-and-symbols.md))
+- [ ] Choose which tabs to reopen after an unexpected quit, S08 ([D7e](../todos/ready/D7e-crash-recovered-tab-choice.md))
 - [ ] Settings page: updates, channel, crash reports, renderer backend switch
 - [ ] Download page on the web app with per-OS links from R2
 - [ ] Ship `desktop v0.1` on the beta channel and complete one auto-update cycle

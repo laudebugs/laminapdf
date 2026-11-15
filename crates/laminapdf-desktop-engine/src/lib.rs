@@ -14,6 +14,7 @@
 //!   younger than [`STALLED`]. A job that runs longer (a hostile file looping in the parser or
 //!   PDFium) stops the beats, and the main process kills and restarts the engine.
 
+pub mod crash;
 mod edit;
 pub mod fonts;
 mod limits;
@@ -92,6 +93,7 @@ pub fn run<R: Read, W: Write + Send + 'static>(mut input: R, output: W, setup: S
         },
         &[],
     )?;
+    crash::connect(&out);
 
     let ranges = Ranges::new(out.clone());
     fonts.connect(Arc::clone(&ranges));
@@ -174,6 +176,8 @@ fn route<R: Read>(
             ToEngine::Save { req, doc, call } => queue.push(Job::Save { req, doc, call }),
             ToEngine::RenderPrintBand(band) => queue.push(Job::Print(band)),
             ToEngine::CloseDocument { doc } => queue.push(Job::Close { doc }),
+            #[cfg(feature = "e2e")]
+            ToEngine::DebugPanic { message } => crash::debug_panic(&message),
         }
     }
 }

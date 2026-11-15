@@ -120,10 +120,14 @@ impl Engine {
         }
     }
 
+    /// The new engine's pid once it restarted; the crash event before it is skipped.
     fn restarted(&self) -> Option<u32> {
-        match self.events.recv_timeout(Duration::from_secs(5)) {
-            Ok(Event::Restarted { pid }) => Some(pid),
-            _ => None,
+        loop {
+            match self.events.recv_timeout(Duration::from_secs(5)) {
+                Ok(Event::Restarted { pid }) => return Some(pid),
+                Ok(Event::Crashed { .. }) => {}
+                _ => return None,
+            }
         }
     }
 }

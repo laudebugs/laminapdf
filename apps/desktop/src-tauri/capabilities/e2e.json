@@ -14,6 +14,9 @@
     "allow-e2e-menu-click",
     "allow-e2e-menu-snapshot",
     "allow-e2e-print-to-file",
+    "allow-e2e-crash-main-panic",
+    "allow-e2e-crash-engine-panic",
+    "allow-e2e-crash-engine-segv",
     "wdio:default"
   ]
 }
