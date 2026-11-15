@@ -25,6 +25,6 @@ Tests: unit tests in `src/{operator,lexer,state}.rs`; `tests/operators.rs` (ever
 cargo test -p laminapdf-content
 cargo xtask fuzz content --time 600
 cargo xtask fuzz content_append_scan --time 600
-(cd fuzz && cargo +nightly fuzz run content_ir)   # not in cargo xtask fuzz yet
+cargo xtask fuzz content_ir --time 600
 cargo bench -p laminapdf-content --bench ir
 ```
