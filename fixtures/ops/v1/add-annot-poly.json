@@ -1,0 +1,1 @@
+{ "op": "addAnnot", "args": { "page": "p9.0", "spec": { "type": "poly", "kind": "polyLine", "vertices": [{ "x": 72, "y": 200 }, { "x": 120, "y": 240 }, { "x": 170, "y": 200 }], "ends": ["none", "openArrow"] } } }
