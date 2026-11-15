@@ -103,7 +103,7 @@ describe(`accessibility in ${BROWSER}`, () => {
     await page.close();
   });
 
-  it("runs no animation in the chrome with motion reduced in Settings", async () => {
+  it("moves nothing in the chrome with motion reduced in Settings, though fades stay", async () => {
     const watched = await start("light", { motion: "reduce" });
     const { page } = watched;
     await chooseFile(watched, "outline.pdf");
@@ -113,8 +113,22 @@ describe(`accessibility in ${BROWSER}`, () => {
     await page.keyboard.press("Escape");
     await page.getByRole("button", { name: /^Commands/ }).click();
     await page.getByRole("dialog").getByRole("combobox").waitFor();
+    // Reduced motion removes movement and keeps fades (design language §7.0): no keyframe
+    // animation, and no transition of anything that moves or resizes; colour and opacity may fade.
     const moving = await page.evaluate(() =>
-      document.getAnimations().map((a) => (a.effect as KeyframeEffect | null)?.target?.className ?? "?"),
+      document
+        .getAnimations()
+        .filter(
+          (a) =>
+            !(a instanceof CSSTransition) ||
+            /transform|translate|scale|rotate|inset|top|left|right|bottom|width|height|size|margin/.test(
+              a.transitionProperty,
+            ),
+        )
+        .map(
+          (a) =>
+            `${(a.effect as KeyframeEffect | null)?.target?.className ?? "?"} ${a instanceof CSSTransition ? a.transitionProperty : "animation"}`,
+        ),
     );
     expect(moving).toEqual([]);
     const behaviour = await page.evaluate(

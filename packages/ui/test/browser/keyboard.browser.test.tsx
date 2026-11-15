@@ -126,7 +126,8 @@ describe("ModeSwitcher", () => {
     await userEvent.keyboard("{Enter}");
     expect(onChange).not.toHaveBeenCalled();
     await userEvent.tab();
-    expect(focused().textContent).toBe("Comment");
+    // innerText, as a person reads it: the label without its hidden bold copy.
+    expect(focused().innerText).toBe("Comment");
     await userEvent.keyboard("{Enter}");
     expect(onChange).toHaveBeenCalledWith("comment");
     expect(all(host, "button").map((b) => b.getAttribute("aria-pressed"))).toEqual(["false", "true"]);
@@ -134,7 +135,7 @@ describe("ModeSwitcher", () => {
 });
 
 describe("SegmentedTabs", () => {
-  const selected = (host: HTMLElement) => get(host, "[role=tab][aria-selected=true]").textContent;
+  const selected = (host: HTMLElement) => get(host, "[role=tab][aria-selected=true]").innerText;
 
   it("selects with the arrow keys, Home and End", async () => {
     const host = renderIn(<Rail />);
