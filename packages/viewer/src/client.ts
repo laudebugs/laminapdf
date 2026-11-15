@@ -18,6 +18,8 @@
 
 import type { RenderRequest } from "@laminapdf/render";
 import {
+  type ContentsListing,
+  type ContentsPlacement,
   type DocumentMetadata,
   isLaminaPdfError,
   type Op,
@@ -375,6 +377,37 @@ export class ViewerClient {
       ops,
       label: label ?? "",
     });
+  }
+
+  /**
+   * Inserts a contents page made from the open document's bookmarks, laid out in `font` (TrueType
+   * or OpenType bytes, embedded and subset): one step named `label` ("Create a contents page"),
+   * which undo takes back with its links and bookmark. The worker loads the text module for it.
+   * A restarted worker inserts the same page again (`restarted`'s `edits`).
+   *
+   * @throws `no-bookmarks`, `missing-glyph`, `invalid-font`; as `applyEdit`.
+   */
+  createContentsPage(
+    placement: ContentsPlacement,
+    font: Uint8Array,
+    options?: ViewerCallOptions & { readonly label?: string },
+  ): Promise<EditResult> {
+    const label = options?.label;
+    return this.#edit(
+      (id) =>
+        this.call(
+          "createContentsPage",
+          label === undefined ? [placement, font, id] : [placement, font, id, label],
+          options,
+        ),
+      { ops: [], label: label ?? "" },
+    );
+  }
+
+  /** What a contents page placed as `placement` would list: the entries and their labels, for a preview. */
+  async contentsListing(placement: ContentsPlacement, call?: ViewerCallOptions): Promise<ContentsListing> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("contentsListing", [placement, this.#document?.id ?? 0], call);
   }
 
   /** Undoes the newest step of the edit session; the pages it touched are drawn as they were. */

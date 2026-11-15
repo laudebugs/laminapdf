@@ -4,11 +4,18 @@
 // document.
 import type { WasmDocument, WasmPage, WasmSaveJob } from "@laminapdf/wasm/base";
 import type { WasmDocument as ExtractWasmDocument, PageTextJs, WasmExtractJob } from "@laminapdf/wasm/extract";
+import {
+  type ContentsListing,
+  type ContentsPage,
+  type ContentsPageOptions,
+  type ContentsPlacement,
+  layOutContentsPage,
+  parseListing,
+} from "./contents.js";
 import { isLaminaPdfError, type LaminaPdfWarning, packageError } from "./errors.js";
 import { type ExtractFormat, type ExtractOptions, type ExtractResult, parseExtract } from "./extract.js";
 import { ExtractJob, type ExtractJobOptions } from "./extract-job.js";
-import type { Font } from "./font.js";
-import { type BaseGlue, extractsText, readingModule, textModule } from "./init.js";
+import { type BaseGlue, extractsText, readingModule } from "./init.js";
 import { Handle, watch } from "./internal/handle.js";
 import type { Instance } from "./internal/instance.js";
 import type { Reflow } from "./reflow.js";
@@ -1212,21 +1219,42 @@ export class Document extends Handle<BaseGlue> {
    */
   createContentsPage(options: ContentsPageOptions = {}): Edited {
     this.#notInTransaction("createContentsPage");
-    const text = textModule();
-    if (text === undefined) {
-      throw packageError("text-module-not-loaded", "createContentsPage() needs the text module: init({ text: true })");
-    }
-    const { font, fallbacks = [], ...rest } = options;
-    const fonts = (font === undefined ? [] : [font, ...fallbacks]).map((f) =>
-      f.standard !== undefined
-        ? { standard: f.standard }
-        : { bytes: f.bytes as Uint8Array, ...(f.index === undefined ? {} : { index: f.index }) },
-    );
-    // Read in the document's own module, laid out in the text module (which has the fonts),
-    // inserted in the document's module: a document opened before the text module loaded works too.
-    const listing = this.call(() => this.#doc.contentsListing(rest));
-    const page = text.call((glue) => glue.layOutContentsPage(listing, fonts));
-    return this.call(() => this.#doc.insertContentsPage(rest, page));
+    const { font, fallbacks, ...placement } = options;
+    const listing = this.contentsListing(placement);
+    const page = layOutContentsPage(listing, { ...(font ? { font } : {}), ...(fallbacks ? { fallbacks } : {}) });
+    return this.insertContentsPage(placement, page);
+  }
+
+  /**
+   * What a contents page made with `options` lists, without making it: each bookmark that goes to
+   * a page, with its level, title and the label its page will show. Works in every module; lay the
+   * page out with {@link layOutContentsPage} (text module), then insert it with
+   * {@link Document.insertContentsPage}, which is what {@link Document.createContentsPage} does.
+   *
+   * @throws {@link LaminaPdfError} `no-bookmarks` when no bookmark goes to a page; `unknown-page`
+   *   for an `at` that names no page; reading errors.
+   *
+   * @since 0.5.0
+   */
+  contentsListing(options: ContentsPlacement = {}): ContentsListing {
+    const json = this.call(() => this.#doc.contentsListing(options));
+    return parseListing(json);
+  }
+
+  /**
+   * Inserts `page`, laid out from the listing `options` gives, in one transaction (one undo step):
+   * its pages where `options.at` says, a link over each entry to its bookmark's place, and with
+   * `options.bookmark` a bookmark for it first in the outline.
+   *
+   * @throws {@link LaminaPdfError} `document-changed` when the document no longer gives the listing
+   *   `page` was laid out from (its bookmarks, labels or pages changed since); as
+   *   {@link Document.apply}.
+   *
+   * @since 0.5.0
+   */
+  insertContentsPage(options: ContentsPlacement, page: ContentsPage): Edited {
+    this.#notInTransaction("insertContentsPage");
+    return this.call(() => this.#doc.insertContentsPage(options, page));
   }
 
   /**
@@ -1759,29 +1787,4 @@ export class Document extends Handle<BaseGlue> {
     // A range document's fetched bytes live in its sparse source.
     this.#range?.sparse.free();
   }
-}
-
-/**
- * How {@link Document.createContentsPage} makes a contents page. Every field has a default.
- *
- * @since 0.5.0
- */
-export interface ContentsPageOptions {
-  /** Where it goes: before the first page when left out. */
-  readonly at?: PagePosition;
-  /** The levels of bookmarks it lists: 1, or 2 (the default). */
-  readonly levels?: 1 | 2;
-  /** The heading at its top: "Contents" when left out. */
-  readonly title?: string;
-  /** Whether a bookmark for the contents page goes first in the outline (no by default). */
-  readonly bookmark?: boolean;
-  /**
-   * Its font: Helvetica when left out, which isn't embedded, so a file that claims PDF/A or
-   * PDF/UA-1 refuses it.
-   */
-  readonly font?: Font;
-  /** Fonts for the characters `font` lacks, tried in order (used only with `font`). */
-  readonly fallbacks?: readonly Font[];
-  /** The entries' size in points: 11 when left out. The heading is half again as large. */
-  readonly size?: number;
 }

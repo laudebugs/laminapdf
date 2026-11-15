@@ -5,7 +5,13 @@
 // save, the new worker opens the saved file, so only the steps since the save are replayed.
 
 import type { Op } from "@laminapdf/sdk";
-import { type EditHistory, type EditResult, EMPTY_HISTORY, type ReplayedStep } from "./protocol.js";
+import {
+  type ContentsInsert,
+  type EditHistory,
+  type EditResult,
+  EMPTY_HISTORY,
+  type ReplayedStep,
+} from "./protocol.js";
 
 /** One step's ops, under the ID its worker gave it. */
 interface LoggedStep extends ReplayedStep {
@@ -65,19 +71,30 @@ export class EditLog {
    * the depth limit dropped kept apart (they are still part of the document, so a replay needs
    * them), and the steps the answer no longer lists forgotten.
    */
-  take(result: EditResult, edit?: { readonly ops: readonly Op[]; readonly label: string }): void {
+  take(
+    result: EditResult,
+    edit?: { readonly ops: readonly Op[]; readonly label: string; readonly contents?: ContentsInsert },
+  ): void {
     if (result.reverted?.some((step) => step.outcome !== "applied")) this.#replayable = false;
     const { steps, dropped } = result.history;
     const newest = steps.at(-1);
     if (edit !== undefined && newest !== undefined && !this.#steps.some((s) => s.id === newest.id)) {
-      this.#steps.push({ id: newest.id, ops: edit.ops, label: newest.label, at: newest.at });
+      // A contents page's step replays its laid-out page, which the worker's answer carries.
+      const contents = edit.contents ?? result.contents;
+      this.#steps.push({
+        id: newest.id,
+        ops: edit.ops,
+        ...(contents === undefined ? {} : { contents }),
+        label: newest.label,
+        at: newest.at,
+      });
     }
     // The depth limit dropped the oldest steps of the last answer, as many as `dropped` grew by:
     // still part of the document, so a replay needs those this log holds (since a save, the older
     // ones are in the saved file). A step gone otherwise was cleared by a new edit.
     const newlyDropped = Math.max(0, dropped - this.#history.dropped);
     const droppedIds = new Set(this.#history.steps.slice(0, newlyDropped).map((s) => s.id));
-    for (const { id, ops, label, at } of this.#steps) if (droppedIds.has(id)) this.#dropped.push({ ops, label, at });
+    for (const { id, ...step } of this.#steps) if (droppedIds.has(id)) this.#dropped.push(step);
     const kept = new Set(steps.map((s) => s.id));
     this.#steps = this.#steps.filter((s) => kept.has(s.id));
     // Undone past the save: the steps it would take apply to a file the new worker never opens.
@@ -92,7 +109,7 @@ export class EditLog {
   replay(): { readonly steps: readonly ReplayedStep[]; readonly undone: number } | undefined {
     if (!this.#replayable) return undefined;
     const { steps, position, dropped } = this.#history;
-    const logged = [...this.#dropped, ...this.#steps.map(({ ops, label, at }) => ({ ops, label, at }))];
+    const logged = [...this.#dropped, ...this.#steps.map(({ id: _, ...step }) => step)];
     // Since a save, the steps done are those past its position.
     const undone =
       this.#savedAt === undefined ? steps.length - position : logged.length - (dropped + position - this.#savedAt);

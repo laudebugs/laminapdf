@@ -29,6 +29,7 @@ import {
 import { emit, yieldToMessages } from "@laminapdf/sdk/worker/server";
 import type {
   BackendInit,
+  ContentsInsert,
   OpenedDocument,
   RemoteSource,
   SourceInit,
@@ -132,8 +133,11 @@ export interface EditState {
   queue: Promise<unknown>;
 }
 
-/** What the model did that a text-capable copy does after it: an edit's ops, an undo or a redo. */
-export type EditAction = readonly Op[] | "undo" | "redo";
+/**
+ * What the model did that a text-capable copy does after it: an edit's ops, a contents page
+ * inserted, an undo or a redo.
+ */
+export type EditAction = readonly Op[] | ContentsInsert | "undo" | "redo";
 
 /**
  * Rounds of fetching a call may need before it gives up with its last `data-pending`: the SDK's
@@ -271,7 +275,15 @@ async function replayEdits(opened: Open, copy: Document): Promise<void> {
   const { pending } = opened.edit;
   for (let action = pending[0]; action !== undefined; action = pending[0]) {
     const next = action;
-    await copy.ensure(() => (next === "undo" ? copy.undo() : next === "redo" ? copy.redo() : copy.apply(next)));
+    await copy.ensure(() =>
+      next === "undo"
+        ? copy.undo()
+        : next === "redo"
+          ? copy.redo()
+          : "page" in next
+            ? copy.insertContentsPage(next.placement, next.page)
+            : copy.apply(next),
+    );
     pending.shift();
   }
 }
