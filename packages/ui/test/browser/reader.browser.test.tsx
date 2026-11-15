@@ -1,6 +1,7 @@
 import axe from "axe-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
+import newsreaderUrl from "../../../fonts/files/newsreader-latin-wght-normal.woff2?url";
 import type { CommandId } from "../../src/commands/types.ts";
 import {
   DebugMenu,
@@ -132,6 +133,28 @@ describe("ReaderTopBar", () => {
     await expect.poll(() => document.querySelector('[role="tooltip"]')?.textContent).toBe("Close document");
     await userEvent.click(x);
     expect(close).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the whole of the name's last letter and leaves 8 px before the × (R19)", async () => {
+    // The name in its own typeface: Newsreader's "f" reaches 2.6 px past its advance at 16 px.
+    const face = new FontFace("Newsreader", `url(${newsreaderUrl})`, { weight: "200 800" });
+    document.fonts.add(await face.load());
+    const reader = new ReaderController(fakePlatform(), async () => ({ pageCount: 3 }));
+    await reader.open(fakeFile("brief.pdf"));
+    const host = renderIn(<TopBar reader={reader} actions={{ "file.close": () => {} }} />);
+    const name = host.querySelector(".paper-top-bar-name") as HTMLElement;
+    const style = getComputedStyle(name);
+    const ink = document.createElement("canvas").getContext("2d") as CanvasRenderingContext2D;
+    ink.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    const box = name.getBoundingClientRect();
+    const inkEnd =
+      box.left + Number.parseFloat(style.paddingInlineStart) + ink.measureText("brief.pdf").actualBoundingBoxRight;
+    const textEnd = box.right - Number.parseFloat(style.paddingInlineEnd);
+    const x = (button("Close brief.pdf") as HTMLElement).getBoundingClientRect();
+    expect({ inkInside: inkEnd <= box.right + 0.5, gap: Math.round(x.left - textEnd) }).toEqual({
+      inkInside: true,
+      gap: 8,
+    });
   });
 
   it("shows the × while a document opens or asks for a password, never without one or without a handler", async () => {
