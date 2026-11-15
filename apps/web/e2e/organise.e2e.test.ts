@@ -134,7 +134,9 @@ describe(`organising pages in ${BROWSER}`, () => {
     await unsaved(page, ++steps);
     await expect.poll(() => order(page)).toEqual(ids);
 
-    // The moved page goes one back with the keyboard, then to the start with Move to page….
+    // The moved page goes one back with the keyboard, then to the start with Move to page…. Its
+    // tile takes focus first: after Move to page…, focus is back on the dialog's button.
+    await pick(page, 3);
     await page.keyboard.press("ControlOrMeta+Shift+ArrowLeft");
     ids = moved(ids, 3, 2);
     await unsaved(page, ++steps);
