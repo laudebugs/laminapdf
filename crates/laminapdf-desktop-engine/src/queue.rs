@@ -14,6 +14,7 @@ pub(crate) enum Job {
     Open { req: ReqId, doc: DocId, len: u64 },
     Unlock { req: ReqId, doc: DocId, password: Password },
     PageInfo { req: ReqId, doc: DocId },
+    Properties { req: ReqId, doc: DocId },
     Render(TileRequest),
     Edit { req: ReqId, doc: DocId, call: EditCall },
     Save { req: ReqId, doc: DocId, call: SaveCall },
@@ -28,6 +29,7 @@ impl Job {
             Self::Open { req, .. }
             | Self::Unlock { req, .. }
             | Self::PageInfo { req, .. }
+            | Self::Properties { req, .. }
             | Self::Edit { req, .. }
             | Self::Save { req, .. } => Some(*req),
             Self::Render(tile) => Some(tile.req),

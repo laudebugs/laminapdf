@@ -92,13 +92,15 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   │                    #     watchdog, restart with backoff, 4th crash in 60 s = failed; `fake` with `test-support`) (D2b);
 │   │                    #     SandboxLevel/Layer (an engine missing a required layer is refused), Fonts/FontRequest/FontData
 │   │                    #     with FontServer (D2c); protocol 5: RenderPrintBand/PrintBand, a page for printing in bands of
-│   │                    #     ≤ 16 MiB at a dpi with the print intent, TileFormat::Bgra8 (D4c)
+│   │                    #     ≤ 16 MiB at a dpi with the print intent, TileFormat::Bgra8 (D4c); protocol 9: GetProperties/Properties, the Properties
+│   │                    #     dialog's data as one JSON string (E1j)
 │   ├── laminapdf-desktop-engine/  # app, unpublished: the desktop engine binary (ADR 0008 §2): stdin/stdout frames, a router
 │   │                    #     thread that never parses, one worker (lamina model + PDFium), RemoteSource (256 KiB blocks
 │   │                    #     read over the pipe); examples large_pdf (the 1 GB fixture) and measure (D2b);
 │   │                    #     fonts.rs (PDFium's system fonts, asked of the main process); --sandbox-selftest[=<probe>]
 │   │                    #     (feature `selftest`, selftest.rs), tests/sandbox_selftest.rs (D2c); print.rs (the print bands'
-│   │                    #     maths: band height, the dpi a page fits, BGRA; D4c)
+│   │                    #     maths: band height, the dpi a page fits, BGRA; D4c); properties.rs (E1j: the Properties dialog's facts, metadata
+│   │                    #     and XMP packet in @laminapdf/ui's shapes, as JSON)
 │   ├── laminapdf-desktop-sandbox/  # edge, unpublished: the engine's sandbox (ADR 0008 §5), both halves: spawn_sandboxed /
 │   │                    #     SandboxSpawner (Windows: job, Low-IL restricted token + start-up impersonation, mitigation
 │   │                    #     policies, CreateProcessAsUserW; Unix: only fds 0–2 inherited; macOS: memory watchdog; names
@@ -213,7 +215,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   LinkPreview (T5a: a tooltip under its link, or a sheet on touch), CommandPalette; z-order from --paper-z-*), src/dialogs.ts (the ./dialogs entry: PrintDialog, PrintProgressDialog, InitialViewDialog and ThreadsPanel (E3d: reader/initial-view-form.ts, the change as one setInitialView patch; reader/threads.ts's stepThreadPart is in the main entry),
 │                        #   PropertiesDialog, which the web reader loads once a document opens, issue #380; E1f: with `editing`, a Description tab whose form
 │                        #   (reader/properties-editor.tsx, properties-form.ts: changeOf → one setMetadata patch and a removeMetadata list,
-│                        #   fieldWarnings, PDF dates) Apply turns into one edit, and a File tab; E3e: an XMP tab (reader/xmp-editor.tsx: a
+│                        #   fieldWarnings, PDF dates) Apply turns into one edit (reader/properties-ops.ts: propertiesOps, both apps' ops; E1j), and a File tab; E3e: an XMP tab (reader/xmp-editor.tsx: a
 │                        #   tree of schemas, the property's type and value, Add property…, Raw XML checked as typed; xmp-model.ts: the
 │                        #   packet read by DOMParser, XmpChange → setXmpProperty/removeXmpProperty/replaceXmpPacket)), src/capabilities.ts (the ./capabilities entry: CapabilityPage,
 │                        #   help/: the O05 page over docs/capabilities/matrix.json, filters kept in platform storage), src/platform/ (ADR 0010: the Platform interface and capability
@@ -306,7 +308,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   src/platform/desktop.ts (the web platform plus canWriteInPlace, canWatchFiles, hasNativePrint,
 │                        #   multiWindow; their calls reject with NotYetSupportedError naming the feature), src/app.tsx (top bar, home
 │                        #   screen, version from the `app_info` command); src/print.tsx (File ▸ Print: print_document, the
-│                        #   status-bar progress item with cancel_print; D4c); showing a document waits for D2d. src-tauri/: the
+│                        #   status-bar progress item with cancel_print; D4c); src/properties.tsx (E1j: File ▸ Document properties…
+│                        #   over `document_properties`, edits through the session; useOutput groups it with Print); showing a document waits for D2d. src-tauri/: the
 │                        #   workspace crate laminapdf-desktop (layer app, publish = false): lib.rs (plugins dialog/log/opener for
 │                        #   Rust only, window `main` built in Rust, Engines managed state, window close/app exit stop engines),
 │                        #   print.rs (D4c: print_document, cancel_print, e2e_print_to_file; a PrintSource over the window's
@@ -633,7 +636,8 @@ cargo xtask progress [--offline]  # write apps/site/src/data/progress.json, the 
                              #   build, so the committed file only feeds previews and local builds; refreshing it is an exempt PR
 cargo xtask capabilities     # run the tests tagged `/// capability: <ID> <surface> <status>`, regenerate docs/capabilities/README.md and
                              #   matrix.json (the reader's capability page); count `[cap J.01 web round-trip]` titles in apps/web/e2e,
-                             #   which the reader's e2e suite runs
+                             #   which the reader's e2e suite runs, and `[cap J.01 desktop round-trip]` titles in
+                             #   apps/desktop/e2e/specs, which the full lane's desktop-e2e jobs run
 cargo xtask capabilities --check  # full lane: fail if that page differs from what the passing tagged tests prove
 cargo xtask golden --update  # regenerate every golden in fixtures/golden/ (and fixtures/reading-order/) from its source, print the list
                              #   (and fixtures/shaping/ with hb-shape when HarfBuzz is installed)

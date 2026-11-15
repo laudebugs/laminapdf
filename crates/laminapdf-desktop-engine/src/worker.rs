@@ -89,6 +89,7 @@ impl Worker {
                 Job::Open { req, doc, len } => self.open(req, doc, len),
                 Job::Unlock { req, doc, password } => self.unlock(req, doc, &password),
                 Job::PageInfo { req, doc } => self.page_info(req, doc),
+                Job::Properties { req, doc } => self.properties(req, doc),
                 Job::Render(tile) => self.render(&tile, &token),
                 Job::Edit { req, doc, call } => self.edit(req, doc, call),
                 Job::Save { req, doc, call } => self.save(req, doc, call),
@@ -175,6 +176,18 @@ impl Worker {
                 let sizes = pages.iter().map(dimensions).collect();
                 self.send(&FromEngine::PageInfo { req, doc, sizes, ids });
             }
+            Err(error) => self.error(req, kind_of(error.code()), error.code().into()),
+        }
+    }
+
+    fn properties(&self, req: ReqId, doc: DocId) {
+        let opened = match self.docs.get(&doc) {
+            None => return self.error(req, FailureKind::UnknownDocument, "no such document".into()),
+            Some(Doc::Locked { .. }) => return self.send(&FromEngine::NeedsPassword { req, doc }),
+            Some(Doc::Open(opened)) => opened,
+        };
+        match crate::properties::read(&opened.lamina) {
+            Ok(json) => self.send(&FromEngine::Properties { req, doc, json }),
             Err(error) => self.error(req, kind_of(error.code()), error.code().into()),
         }
     }
