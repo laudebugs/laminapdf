@@ -261,4 +261,77 @@
     gap: var(--paper-space-8);
     margin-block-start: var(--paper-space-12);
   }
+
+  /* The contents page dialog (O11): the choices beside a miniature of the page they make. */
+  .paper-contents-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--paper-space-16);
+  }
+
+  .paper-contents-fields {
+    display: flex;
+    flex: 1 1 14rem;
+    flex-direction: column;
+    gap: var(--paper-space-12);
+  }
+
+  .paper-contents-preview {
+    flex: 1 1 14rem;
+  }
+
+  .paper-contents-preview-page {
+    max-block-size: 18rem;
+    overflow-y: auto;
+    padding: var(--paper-space-16);
+    outline: var(--paper-border-width) solid var(--paper-hairline);
+    background: var(--paper-page-paper);
+    color: var(--paper-page-ink);
+    box-shadow: var(--paper-shadow-thumbnail);
+  }
+
+  .paper-contents-preview-heading {
+    margin: 0 0 var(--paper-space-8);
+    font: var(--paper-type-heading);
+  }
+
+  .paper-contents-preview-entries {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font: var(--paper-type-caption);
+  }
+
+  .paper-contents-preview-entry {
+    display: flex;
+    align-items: baseline;
+    gap: var(--paper-space-4);
+  }
+
+  .paper-contents-preview-entry[data-level="2"] {
+    padding-inline-start: var(--paper-space-12);
+  }
+
+  .paper-contents-preview-title {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .paper-contents-preview-leader {
+    flex: 1 1 var(--paper-space-12);
+    border-block-end: var(--paper-border-width) dotted currentcolor;
+  }
+
+  .paper-contents-preview-note {
+    margin: 0;
+    font: var(--paper-type-caption);
+  }
+
+  .paper-contents-consequence {
+    margin: var(--paper-space-12) 0 0;
+    font: var(--paper-type-body);
+    color: var(--paper-text-3);
+  }
 }
