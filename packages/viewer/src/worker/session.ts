@@ -2,7 +2,8 @@
 // log the model keeps. The model holds the undo records; this holds a step per transaction, with
 // its label, pages (by ID, so a step still names its pages after later edits move them) and time, and where the document stands among them. edit.ts moves both
 // together, so the steps done are always the model's undo stack and the steps undone its redo
-// stack, up to the same depth.
+// stack, up to the same depth. The package exports it as `@laminapdf/viewer/edit-history` for an
+// editor whose model lives elsewhere: the desktop app's, in its engine process.
 //
 // Positions are counted from the document as opened: position p (absolute) is the state after the
 // p-th step ever made. `saved` is the absolute position the last save wrote, so the semantic dirty

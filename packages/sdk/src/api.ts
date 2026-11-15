@@ -136,6 +136,8 @@ export type {
   BuildOptions,
   ChildItems,
   Color,
+  CommentPart,
+  CommentThread,
   DestinationUse,
   DestinationView,
   Direction,

@@ -12,6 +12,8 @@ import type {
   AttachmentInit,
   BuildOptionsInit,
   ChildItems as ChildItemsJs,
+  CommentJs,
+  CommentPartJs,
   DestinationUse as DestinationUseJs,
   DestinationView as DestinationViewJs,
   DirectionInit,
@@ -466,6 +468,26 @@ export type PageLink = PageLinkJs;
  * @since 0.3.0
  */
 export type PageAnnotation = PageAnnotationJs;
+
+/**
+ * A comment and what answers it, each annotation in its own page's space: the comment, its
+ * replies in document order (each one's `inReplyTo` names what it answers), the annotations
+ * grouped with it, the review states set in the thread (its history), the latest `review`
+ * status and `marked` state, the `quoted` text under a highlight or other text markup, and
+ * `broken` (`"missing-parent"` or `"cycle"`) when the thread doesn't start at a comment that
+ * answers nothing.
+ *
+ * @since 0.4.1
+ */
+export type CommentThread = CommentJs;
+
+/**
+ * An annotation of a comment thread, with the page it is on (a reply can be on another page
+ * than its comment).
+ *
+ * @since 0.4.1
+ */
+export type CommentPart = CommentPartJs;
 
 /**
  * What a properties view shows about a document: its Info entries and dates (ISO 8601), the
