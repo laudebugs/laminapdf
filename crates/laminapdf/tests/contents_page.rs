@@ -155,3 +155,57 @@ fn a_saved_contents_page_should_keep_its_links_when_read_back() {
     let back = Document::open_bytes(saved.bytes, OpenOptions::default()).unwrap();
     assert_eq!(link_pages(&back, 0), vec![1, 2, 3, 4]);
 }
+
+#[test]
+fn creating_a_contents_page_twice_on_fresh_copies_should_save_the_same_bytes() {
+    // What a replay of the op log needs: the same source bytes and ops from the same file.
+    let save = || {
+        let mut doc = outline();
+        doc.create_contents_page(&options()).unwrap();
+        doc.save(&SaveOptions::default()).unwrap().bytes
+    };
+    assert!(save() == save());
+}
+
+/// The kinds of the structure tree's elements, depth first.
+fn kinds(nodes: &[laminapdf::StructureNode], out: &mut Vec<String>) {
+    for node in nodes {
+        out.push(node.kind.clone());
+        let kids: Vec<laminapdf::StructureNode> = node
+            .kids
+            .iter()
+            .filter_map(|k| match k {
+                laminapdf::StructureKid::Node(n) => Some(n.clone()),
+                _ => None,
+            })
+            .collect();
+        kinds(&kids, out);
+    }
+}
+
+/// A tagged two-page document whose two headings are its bookmarks.
+fn tagged() -> Document {
+    use laminapdf::flow::{Flow, FlowBlock, PageTemplate, Paragraph, TextStyle};
+    use laminapdf::{BuildOptions, Builder, PageSize};
+    let mut b = Builder::new(BuildOptions::new().with_tagged(true));
+    let font = b.font(noto()).unwrap();
+    let body = TextStyle::new(&font, 11.0);
+    let flow = Flow::new(PageTemplate::new(PageSize::A4))
+        .block(FlowBlock::Heading(1, Paragraph::plain("Chapter A", &body)))
+        .block(FlowBlock::PageBreak)
+        .block(FlowBlock::Heading(1, Paragraph::plain("Chapter B", &body)));
+    b.flow(&flow).unwrap();
+    let bytes = b.finish().unwrap().save(&SaveOptions::default()).unwrap().bytes;
+    Document::open_bytes(bytes, OpenOptions::default()).unwrap()
+}
+
+#[test]
+fn a_contents_page_in_a_tagged_document_should_join_its_structure_tree() {
+    let mut doc = tagged();
+    doc.create_contents_page(&options()).unwrap();
+    let mut out = Vec::new();
+    kinds(&doc.structure_tree().unwrap().unwrap(), &mut out);
+    let toc = out.iter().filter(|k| *k == "TOC").count();
+    let entries = out.iter().filter(|k| *k == "TOCI").count();
+    assert_eq!((toc, entries), (1, 2), "{out:?}");
+}
