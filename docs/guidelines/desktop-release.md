@@ -87,7 +87,7 @@ The steps follow Microsoft's [quickstart](https://learn.microsoft.com/azure/arti
 | Identity validation completed | 2026-11-12 (ID `62b8833a-2cbf-46c0-8f7c-702606975b2a`) |
 | Entra app (no client secret) | `lamina-pdf-release-signing`, federated credential `github-desktop-release` for `repo:laudebugs/laminapdf:environment:desktop-release` |
 
-**For D6d (recommendation, not yet tested):** sign with `signtool` and Microsoft's Artifact Signing dlib in `bundle.windows.signCommand`, logged in through `azure/login` with the federated credential, so no client secret exists. Tauri's guide uses `artifact-signing-cli` instead, but that tool needs a client secret, `AZURE_CLIENT_SECRET` ([Tauri Windows signing](https://v2.tauri.app/distribute/sign/windows/); [artifact-signing-cli](https://github.com/Levminer/artifact-signing-cli)). Only if `signtool` fails does the owner add a client secret, with a 12-month expiry.
+**How the release build signs (D6d).** The Windows legs of `build-release` sign with SignTool and Microsoft's Artifact Signing dlib, logged in through `azure/login` with the federated credential, so no client secret exists. The dlib comes from the NuGet package `Microsoft.ArtifactSigning.Client`, pinned by version and SHA-256 in `.github/actions/desktop-build` and fetched only there; `apps/desktop/src-tauri/windows/artifact-signing.json` holds the endpoint, account and profile above. `apps/desktop/scripts/sign-windows.ps1` signs one file at a time; the Tauri CLI calls it for the app, the engine, both installers and the uninstaller, and the build calls it for PDFium's DLL. Tauri's guide uses `artifact-signing-cli` instead, but that tool needs a client secret, `AZURE_CLIENT_SECRET` ([Tauri Windows signing](https://v2.tauri.app/distribute/sign/windows/); [artifact-signing-cli](https://github.com/Levminer/artifact-signing-cli)). Add one, with a 12-month expiry, only if the federated login stops working.
 
 **OV certificate: not applicable**, because the owner qualifies for Artifact Signing. If Microsoft's rules change or validation fails, the fallback is the OV certificate in a cloud HSM that the D6a todo describes, and this section and ADR 0014 then record the CA and signing tool.
 
@@ -126,7 +126,7 @@ D5a's key ceremony makes two Tauri updater keys: one for releases and one for ni
 The `desktop-release` environment holds every production secret, and every job that uses it waits for the owner's approval ([GitHub environments](https://docs.github.com/actions/deployment/targeting-different-environments/using-environments-for-deployment)).
 
 - [x] Create it with required reviewer = the owner, and "Prevent self-review" off so the owner can approve their own runs.
-- [x] Limit deployment branches and tags to the tag pattern `desktop-v*`, the branch `main`, and, for now, the branches `ci/d6c-*` and `ci/d6d-*`, so D6c and D6d can test their signing steps before they merge. D6d removes the two `ci/` patterns when it merges.
+- [x] Limit deployment branches and tags to the tag pattern `desktop-v*`, the branch `main`, and, for now, the branches `ci/d6c-*` and `ci/d6d-*`, so D6c and D6d can test their signing steps before they merge. Remove each `ci/` pattern once its todo has merged.
 - [x] Add the secrets listed for `desktop-release` in §2, and none at repository level.
 
 ### 1.9 GitHub `desktop-nightly` environment
@@ -202,7 +202,12 @@ xcrun stapler validate Lamina-PDF.dmg
 ```powershell
 signtool verify /pa /v .\Lamina-PDF-setup.exe
 Get-AuthenticodeSignature .\Lamina-PDF-setup.exe | Format-List   # Status Valid; SignerCertificate subject shows the legal name
+# Every file inside both installers, as the release build checks them (signer CN, timestamp):
+$env:SIGNTOOL = (Get-Command signtool).Source
+.\apps\desktop\scripts\verify-windows-signatures.ps1 -Dir <folder with the installers> -Publisher 'Laurence Ininda'
 ```
+
+The release build runs the last script on what it built, and installs and removes each installer on the runner (`apps/desktop/scripts/check-windows-installers.ps1`): Lamina PDF in `.pdf`'s "Open with" list and never its default, the MSI's install flavour, nothing left after the uninstall. NSIS's own plugin DLLs, which the NSIS installer unpacks while it runs, are listed but not signed by the owner: they come with the NSIS toolkit, which the Tauri CLI checks by hash.
 
 **Linux:**
 
@@ -279,6 +284,16 @@ Fill in each date when the item is created, and add a calendar reminder as far a
 4. **Re-sign and republish** the current release with the new identity, verify it with §3, and lift the pause.
 5. **Tell users** in the release notes, on the download page, and in a GitHub security advisory: what was exposed, which builds to distrust and what to install.
 
+### When Windows signing fails
+
+The Windows legs stop at the first file that can't be signed, after two retries. The log names the file and SignTool's message.
+
+- **`azure/login` fails with AADSTS70021 or AADSTS700213.** No federated credential matches the run. The credential trusts `repo:laudebugs/laminapdf:environment:desktop-release` only, so check that the job ran in that environment and that the credential's subject still matches it.
+- **SignTool reports 403 Forbidden.** The Entra app lacks the Artifact Signing Certificate Profile Signer role on `LaminaPdfPublicTrust`, or the identity validation lapsed (the renewal calendar above).
+- **SignTool can't load the dlib.** The dlib is x64 only, so the build uses the x64 SignTool on both runners; an Arm64 SignTool can't load it.
+- **The timestamp server or the signing service times out.** The script tries again twice, 15 and 30 seconds apart. Re-run the failed job when it still fails.
+- **The signature check fails on a file nobody signed.** A new PE file reached an installer by a path the signing misses, for example a new resource DLL. Sign it in the build's `beforeBundleCommand`, as PDFium's DLL is.
+
 ### If the project becomes a company
 
 The publisher identities move to the company: a new Apple organisation membership, a new Artifact Signing organisation validation and a new GPG key. Releases signed after the move show the company's name. The updater key stays the same, because Tauri checks it independently of the OS publisher, so installed copies keep updating.
@@ -302,9 +317,9 @@ The desktop release workflow, `.github/workflows/desktop-release.yml`, builds an
 | A `desktop-vX.Y.Z` tag | `X.Y.Z`, plain: no `-rc.1` or other suffix | `beta`, `lamina-pdf-releases` | `desktop-release` |
 | A pull request that changes the release files (the workflow, its actions, the Tauri configs, the plan code or the manifest tool's publish code) | a nightly version; Windows x64 also builds once in tag mode, to check the MSI | nothing is published | none |
 
-Until macOS and Windows are signed ([D6c](../todos/ready/D6c-macos-signing-and-notarisation.md), [D6d](../todos/ongoing/D6d-windows-signing.md)), only nightlies publish. `plan` refuses a tag, and a staging dispatch publishes only with `allow_unsigned_platforms`. D6c and D6d each add their platform to the workflow's `SIGNED_PLATFORMS`.
+Windows builds from `desktop-release` are signed ([D6d](../todos/ongoing/D6d-windows-signing.md)). Until macOS is signed too ([D6c](../todos/ready/D6c-macos-signing-and-notarisation.md)), only nightlies publish: `plan` refuses a tag, and a staging dispatch publishes only with `allow_unsigned_platforms`. D6c adds `macos` to the workflow's `SIGNED_PLATFORMS`, which now reads `windows`.
 
-Each run builds macOS (arm64 and x64), Windows (x64 and arm64) and Linux (x64 and arm64) on runners of their own OS and CPU. Every build makes the `.dmg`, the NSIS installer, the AppImage, the `.deb`, the updater's bundles and their `.sig` files, `SHA256SUMS` and the SBOMs. Tag and staging builds also make the MSI and the `.rpm`; nightlies can't, because neither format accepts a `-nightly` version. It fails when an installer reaches 15 MB. The AppImage, which carries GTK and WebKitGTK (about 90 MB), is reported but not gated, until the owner decides whether it gets a budget of its own ([#651](https://github.com/laudebugs/laminapdf/issues/651)). Linux packages from `desktop-release` are signed with the GPG key (§1.6), each with a detached `.asc`, and `SHA256SUMS.asc`. After the builds, `attest` attests every file, and the publish job uploads them to `releases/<version>/<platform>/` in the channel's bucket, makes them the channel's release, and asks the update Worker for each platform.
+Each run builds macOS (arm64 and x64), Windows (x64 and arm64) and Linux (x64 and arm64) on runners of their own OS and CPU. Every build makes the `.dmg`, the NSIS installer, the AppImage, the `.deb`, the updater's bundles and their `.sig` files, `SHA256SUMS` and the SBOMs. Tag and staging builds also make the MSI and the `.rpm`; nightlies can't, because neither format accepts a `-nightly` version. It fails when an installer reaches 15 MB. The AppImage, which carries GTK and WebKitGTK (about 90 MB), is reported but not gated, until the owner decides whether it gets a budget of its own ([#651](https://github.com/laudebugs/laminapdf/issues/651)). Linux packages from `desktop-release` are signed with the GPG key (§1.6), each with a detached `.asc`, and `SHA256SUMS.asc`; Windows files from it are Authenticode-signed (§1.5). After the builds, `attest` attests every file, and the publish job uploads them to `releases/<version>/<platform>/` in the channel's bucket, makes them the channel's release, and asks the update Worker for each platform.
 
 ### Nightlies
 
@@ -312,7 +327,7 @@ Nightlies need nothing from the owner. A night on which nothing the app is built
 
 ### A staging trial
 
-1. Run `gh workflow run desktop-release.yml -f channel=staging -f allow_unsigned_platforms=true` (drop `allow_unsigned_platforms` once D6c and D6d have merged).
+1. Run `gh workflow run desktop-release.yml -f channel=staging -f allow_unsigned_platforms=true` (drop `allow_unsigned_platforms` once D6c has merged).
 2. Approve the `desktop-release` deployment each time GitHub asks: for the builds, then for the publish job.
 3. Check the files with §3's commands. Staging builds never reach a user's install: the app offers no staging channel.
 
