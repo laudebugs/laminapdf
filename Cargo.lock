@@ -3291,6 +3291,7 @@ dependencies = [
  "boon",
  "hayro",
  "jpeg-encoder",
+ "laminapdf",
  "laminapdf-cos",
  "laminapdf-model",
  "laminapdf-syntax",

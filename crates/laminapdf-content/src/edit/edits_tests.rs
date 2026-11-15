@@ -155,6 +155,34 @@ fn replacing_an_image_after_moving_it_should_keep_the_move() {
 }
 
 #[test]
+fn moving_an_object_after_reordering_it_should_leave_no_state_behind_at_its_new_place() {
+    let mut ops = ir(b"1 0 0 rg 0 0 1 1 re f 0 0 1 rg 2 2 1 1 re f");
+    let blue = id(&ops, 1);
+    ops.reorder(blue, Placement::Back).unwrap();
+    ops.transform(blue, &Matrix::translate(5.0, 0.0), &frame()).unwrap();
+    let out = written(&ops);
+    // The blue square's colour stays inside its own `q … Q`, so the red square stays red: the
+    // last fill colour set outside every `q … Q` before it is red's.
+    let red = out.find("0 0 1 1 re").unwrap();
+    let (mut depth, mut fill) = (0_usize, Vec::new());
+    let mut operands = Vec::new();
+    for token in out[..red].split_whitespace() {
+        match token {
+            "q" => depth += 1,
+            "Q" => depth -= 1,
+            "rg" | "scn" | "sc" | "g" | "k" if depth == 0 => fill = std::mem::take(&mut operands),
+            _ if token.parse::<f64>().is_ok() => {
+                operands.push(token.to_owned());
+                continue;
+            }
+            _ => {}
+        }
+        operands.clear();
+    }
+    assert_eq!(fill, ["1", "0", "0"], "{out}");
+}
+
+#[test]
 fn replacing_something_other_than_an_image_should_be_refused() {
     let mut ops = ir(b"0 0 1 1 re f");
     assert_eq!(

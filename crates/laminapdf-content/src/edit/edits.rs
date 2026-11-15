@@ -462,10 +462,18 @@ fn clips_after(ops: &[ContentOp]) -> bool {
 
 /// The operators of `ops` that set state the object leaves behind, in order.
 fn leaked_state(ops: &[ContentOp]) -> Vec<ContentOp> {
-    ops.iter()
-        .filter(|o| LEAVES_STATE.contains(&&o.keyword[..]))
-        .cloned()
-        .collect()
+    // State set inside a `q … Q` the operators open (an earlier edit's wrapper) ends there.
+    let mut depth = 0_usize;
+    let mut out = Vec::new();
+    for o in ops {
+        match &o.keyword[..] {
+            b"q" => depth += 1,
+            b"Q" => depth = depth.saturating_sub(1),
+            keyword if depth == 0 && LEAVES_STATE.contains(&keyword) => out.push(o.clone()),
+            _ => {}
+        }
+    }
+    out
 }
 
 /// The resource an operator names, if any.

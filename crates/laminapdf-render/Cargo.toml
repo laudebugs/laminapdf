@@ -44,6 +44,8 @@ tiff = { workspace = true, optional = true }
 [dev-dependencies]
 # The test helpers every crate shares, by path only (code-organization.md §6).
 laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
+# Content edits to render before and after, in tests/content_edits.rs (todo E7d).
+laminapdf = { path = "../laminapdf" }
 boon = { workspace = true }
 # Decoding what `export_pages` wrote, in tests/export.rs.
 png = { workspace = true }
