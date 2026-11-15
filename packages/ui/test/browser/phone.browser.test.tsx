@@ -176,7 +176,7 @@ describe("the phone's top bar", () => {
     expect(close).toHaveBeenCalledOnce();
   });
 
-  it("cuts a long file name short with an ellipsis, so every button of the top bar stays on screen", async () => {
+  it("cuts a long file name short with an ellipsis, so every button of the top bar stays on screen at its full size", async () => {
     const name = "Laurence_Bugasu_Ininda_Consent_Form_Signed_Copy_For_The_Program_2026_Final_Version.pdf";
     const reader = new ReaderController(fakePlatform(), async () => ({ pageCount: 3 }));
     await reader.open(fakeFile(name));
@@ -196,12 +196,14 @@ describe("the phone's top bar", () => {
             <p>page</p>
           </ReaderShell>
         </CommandsProvider>,
+        { density: "touch" },
       );
       const header = document.querySelector("header") as HTMLElement;
+      // Off screen, or squeezed below the 44 px touch target by the name.
       const off = targets(header)
         .filter((el) => {
           const box = el.getBoundingClientRect();
-          return box.left < -0.5 || box.right > width + 0.5;
+          return box.left < -0.5 || box.right > width + 0.5 || box.width + 0.5 < 44;
         })
         .map((el) => el.getAttribute("aria-label") ?? el.textContent);
       const title = header.querySelector<HTMLElement>(".paper-top-bar-name") as HTMLElement;

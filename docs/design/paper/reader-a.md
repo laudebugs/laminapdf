@@ -349,7 +349,7 @@ The web More menu (drawn) holds Download a copy (`file.save-copy`) · Print… (
 
 **Entry points.** The Close button beside the file name; More › Close document; the palette’s “Close document” (`file.close`); the phone’s and tablet’s Back to files. Removing `#url=` from the address, an unusable `#url=` link and the failure page’s Try another close through the same guarded path.
 
-**Layout.** In the top bar, a 24×24 icon button with the 14 px Close cross follows the file name, 2 px after it, inside the file area (design language [§7.1](design-language.md#71-top-bar)). A long file name is cut short with an ellipsis before the button, which never moves off the bar. In More, “Close document” follows “Open another file…” directly. The phone and tablet draw no new control: their top bars already start with Back to files (Reader B R17 and R18).
+**Layout.** In the top bar, a 24×24 icon button with the 14 px Close cross follows the file name, 8 px after it, inside the file area (design language [§7.1](design-language.md#71-top-bar)). A long file name is cut short with an ellipsis before the button, which never moves off the bar. In More, “Close document” follows “Open another file…” directly. The phone and tablet draw no new control: their top bars already start with Back to files (Reader B R17 and R18).
 
 **Content and controls.**
 
