@@ -396,6 +396,7 @@ mod tests {
             Error::JobFinished,
             Error::DocumentChanged,
             Error::RevisionIndexOutOfRange { index: 2, count: 2 },
+            Error::NoBookmarks,
         ]
     }
 

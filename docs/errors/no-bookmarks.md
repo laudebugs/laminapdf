@@ -22,6 +22,10 @@ let mut doc = Document::open_bytes(bytes, OpenOptions::default())?; // a file wi
 doc.create_contents_page(&ContentsOptions::new(), &ContentsFonts::new())?; // no-bookmarks
 ```
 
+## Data fields
+
+None.
+
 ## For contributors
 
 The decisions and todos behind this code:
