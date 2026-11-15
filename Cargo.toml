@@ -182,6 +182,10 @@ file-id = "=0.2.3"
 objc2 = "=0.6.5"
 objc2-app-kit = { version = "=0.3.2", default-features = false, features = ["std", "NSDocumentController"] }
 objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std", "NSArray", "NSData", "NSError", "NSString", "NSURL"] }
+# The desktop app prints with Core Graphics images over Core Foundation data (laminapdf-desktop-os); the
+# objc2 family, Zlib OR Apache-2.0 OR MIT, at objc2-app-kit's version.
+objc2-core-foundation = { version = "=0.3.2", default-features = false, features = ["std"] }
+objc2-core-graphics = { version = "=0.3.2", default-features = false, features = ["std"] }
 windows = { version = "=0.62.2", default-features = false, features = ["std", "Win32_Foundation", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_UI_Shell", "Win32_UI_Shell_Common"] }
 gtk = { version = "=0.18.2", default-features = false }
 # The desktop end-to-end tests' plugins (D2e), only in `laminapdf-desktop`'s `e2e` builds: the

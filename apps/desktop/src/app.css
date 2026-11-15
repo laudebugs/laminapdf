@@ -66,3 +66,14 @@ body {
   border: var(--paper-drop-border-width) dashed var(--paper-accent);
   pointer-events: none;
 }
+
+/* The print's progress in the status bar (S05-print-progress): the bar is 140 px wide. */
+.desktop-print-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--paper-space-8);
+}
+
+.desktop-print-status .paper-progress {
+  inline-size: 140px;
+}
