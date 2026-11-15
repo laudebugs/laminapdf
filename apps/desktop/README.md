@@ -62,7 +62,7 @@ target/debug/laminapdf-desktop /tmp/watched.pdf
 cp fixtures/golden/examples/invoice_from_json.pdf /tmp/watched.pdf   # the window reloads: 2 pages
 ```
 
-Settings (in the More menu) has a switch for each: Remember recent files and Reload files that change on disk. The config folder is `~/Library/Application Support/com.laminapdf.desktop` on macOS, `%APPDATA%\com.laminapdf.desktop` on Windows and `~/.config/com.laminapdf.desktop` on Linux; e2e builds use `com.laminapdf.desktop.e2e`. [`e2e/MANUAL-OPEN.md`](e2e/MANUAL-OPEN.md) lists the checks of each OS's own recent list.
+Settings (in the More menu) has a switch for each: Remember recent files and Reload files that change on disk, and a Clear recent files button. Its other sections are Appearance, Updates, Privacy, About and, on Linux, Graphics; the `settings` scenario checks each with axe. The config folder is `~/Library/Application Support/com.laminapdf.desktop` on macOS, `%APPDATA%\com.laminapdf.desktop` on Windows and `~/.config/com.laminapdf.desktop` on Linux; e2e builds use `com.laminapdf.desktop.e2e`. [`e2e/MANUAL-OPEN.md`](e2e/MANUAL-OPEN.md) lists the checks of each OS's own recent list.
 
 The engine runs sandboxed on every OS ([ADR 0008 §5](../../docs/decisions/0008-desktop-shell.md#5-sandboxing-per-os)): it can't open files, use the network or start processes. It gets the system's fonts from the main process, which lists them once at start-up. To see whether a problem comes from the sandbox, turn it off in a debug build and try again:
 
