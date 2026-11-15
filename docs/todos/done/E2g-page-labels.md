@@ -95,6 +95,7 @@ None.
   - The boxes dialog read the page's boxes again on every render, which would have wiped what the person typed. It now reads once each time the dialog opens.
   - The edited document can't read boxes in the base module, so the reads go to the text-capable copy.
 - **Differences from O09 and O10** are under each screen's "As built (web, E2g)": crop is a dialog without drag handles, Apply to has no page range, and the crop notice leaves out Redact, which the reader doesn't have yet.
+- **WebAssembly size:** the two reads add about 2.6 KB gzipped to the extract module, mostly reading code; crossing as flat values instead of records saved only 188 bytes and cost the SDK's JavaScript more. With main's comment threads (laudebugs/laminapdf#618) the module came to 1,227,634 bytes, over its 1,226,000 budget, and the owner raised the budget to 1,228,500 on 2026-11-15.
 - **Startup JavaScript:** 282,534 bytes gzipped, under the 282,700 waiver. The dialogs load with the Organise mode; the growth is the viewer client's two reads and its handling of `relabelled`.
 - **Tests:**
   - `apps/web/e2e/page-setup.e2e.test.ts` (Chromium here; Firefox and WebKit in CI). One test crops, resizes, sets a trim box, makes a page landscape and labels the pages, then saves and reads the file back with the SDK (C.09, C.10, C.11, C.12, I.10 `web round-trip`). The other runs axe in each dialog and checks the clash on one page.
