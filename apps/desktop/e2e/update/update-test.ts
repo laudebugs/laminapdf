@@ -36,7 +36,7 @@ import {
 } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { basename, dirname, join } from "node:path";
-import { arch, env, exit, platform } from "node:process";
+import { arch, env, exit, kill, platform } from "node:process";
 import { setTimeout as sleep } from "node:timers/promises";
 import { root, updateTestFile } from "../paths.ts";
 import {
@@ -85,7 +85,9 @@ function bundleName(path: string): string {
 }
 
 function log(line: string): void {
-  console.log(`update-test: ${line}`);
+  const stamped = `${new Date().toISOString()} update-test: ${line}`;
+  console.log(stamped);
+  appendFileSync(join(out, "update-test.log"), `${stamped}\n`);
 }
 
 // --- The servers -----------------------------------------------------------------------------
@@ -168,7 +170,7 @@ async function startLocalWorker(): Promise<string> {
 }
 
 function pnpm(args: string[], cwd: string): void {
-  const result = spawnSync("pnpm", args, { cwd, shell: platform === "win32", encoding: "utf8" });
+  const result = spawnSync("pnpm", args, { cwd, shell: platform === "win32", encoding: "utf8", timeout: 180_000 });
   if (result.status !== 0) throw new Error(`pnpm ${args.join(" ")} failed:\n${result.stdout}\n${result.stderr}`);
 }
 
@@ -218,7 +220,8 @@ function install(): string {
     return join(app, "Contents", "MacOS", program);
   }
   if (platform === "win32") {
-    execFileSync(oldBuild, ["/S"], { stdio: "inherit" });
+    log(`running ${basename(oldBuild)} /S`);
+    execFileSync(oldBuild, ["/S"], { stdio: "ignore", timeout: 300_000 });
     const dir = join(required("LOCALAPPDATA"), "Lamina PDF");
     const program = readdirSync(dir).find((name) => /\.exe$/i.test(name) && !/^uninstall|engine/i.test(name));
     if (program === undefined) throw new Error(`no program in ${dir}: ${readdirSync(dir).join(", ")}`);
@@ -232,6 +235,7 @@ function install(): string {
 
 /** Launches the app at `program` for step `step`, reporting to its own file. */
 function launch(program: string, server: string, step: string): string {
+  log(`launching the app for the ${step} step`);
   const report = join(out, `${step}.report`);
   rmSync(report, { force: true });
   // A file, not the environment: Windows' installer relaunches the updated app as a fresh process.
@@ -266,18 +270,27 @@ function launch(program: string, server: string, step: string): string {
  * Lamina PDF keeps running.
  */
 function stopApp(program: string): void {
+  log("stopping the app");
   if (platform === "win32") {
     const path = program.replaceAll("'", "''");
-    spawnSync("powershell", [
-      "-NoProfile",
-      "-Command",
-      `Get-Process | Where-Object { $_.Path -eq '${path}' } | Stop-Process -Force`,
-    ]);
+    spawnSync(
+      "powershell",
+      ["-NoProfile", "-Command", `Get-Process | Where-Object { $_.Path -eq '${path}' } | Stop-Process -Force`],
+      { timeout: 60_000 },
+    );
   } else if (platform === "darwin") {
     spawnSync("pkill", ["-f", join(out, "installed")]);
   } else {
-    spawnSync("pkill", ["-f", join(out, "installed")]);
-    spawnSync("pkill", ["-f", "/appimage_extracted_"]);
+    // The AppImage's unpacked copy runs from a temporary folder; its environment names the image.
+    for (const pid of readdirSync("/proc").filter((name) => /^\d+$/.test(name))) {
+      try {
+        if (readFileSync(`/proc/${pid}/environ`, "utf8").split("\0").includes(`APPIMAGE=${program}`)) {
+          kill(Number(pid), "SIGKILL");
+        }
+      } catch {
+        // Gone already, or not ours to read.
+      }
+    }
   }
 }
 

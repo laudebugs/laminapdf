@@ -90,6 +90,8 @@ jobs:
       - id: builds
         uses: $/.github/actions/desktop-update-builds
       - name: Run the update test on local R2
+        # Its own limit, under the job's, so a hang still uploads the app's logs.
+        timeout-minutes: 25
         env:
           UPDATE_TEST_MODE: local
           UPDATE_TEST_OLD: ${{ steps.builds.outputs.old }}
@@ -164,6 +166,7 @@ jobs:
         uses: $/.github/actions/desktop-update-builds
       - name: Run the update test on the staging Worker
         if: steps.token.outputs.set == 'true'
+        timeout-minutes: 25
         env:
           UPDATE_TEST_MODE: staging
           UPDATE_TEST_OLD: ${{ steps.builds.outputs.old }}
