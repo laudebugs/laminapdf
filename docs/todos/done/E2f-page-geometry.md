@@ -29,12 +29,12 @@ Set any page box (Media, Crop, Bleed, Trim, Art) and crop pages by margins, with
 **In scope**
 
 - Ops, with the payloads of [E2 plan §2.1](../../plans/editor/e2-page-organisation.md#21-ops-and-functions): `SetPageBoxes` and `CropPages`; each reports its touched widgets to [E2r](../done/E2r-planner-page-checks.md)'s checks
-- `Applied`/`Edited` warning `CroppedContentRemains` for `CropPages`, and for `SetPageBoxes` when the crop shrinks; the page-setup dialog ([E2g](../ready/E2g-page-labels.md)) shows it, and "remove hidden content" comes later (E11d, E12)
+- `Applied`/`Edited` warning `CroppedContentRemains` for `CropPages`, and for `SetPageBoxes` when the crop shrinks; the page-setup dialog ([E2g](../done/E2g-page-labels.md)) shows it, and "remove hidden content" comes later (E11d, E12)
 
 **Out of scope** (and which todo covers it)
 
 - Resize and orientation → [E2s](../done/E2s-resize-and-orientation.md)
-- The dialogs → [E2g](../ready/E2g-page-labels.md)
+- The dialogs → [E2g](../done/E2g-page-labels.md)
 
 **Editor facts**
 

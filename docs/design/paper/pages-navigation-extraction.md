@@ -49,7 +49,14 @@ Rules that hold for every screen here:
 
 **Artboards.** `O09-page-geometry.dc.html` (crop with warning), `O09-page-geometry-resize.dc.html` (resize dialog), `O09-page-geometry-signed.dc.html` (certified file: banner and Apply anyway confirm).
 
-**Todos.** [E2f](../../todos/done/E2f-page-geometry.md), [E2s](../../todos/done/E2s-resize-and-orientation.md), [E2g](../../todos/ready/E2g-page-labels.md).
+**Todos.** [E2f](../../todos/done/E2f-page-geometry.md), [E2s](../../todos/done/E2s-resize-and-orientation.md), [E2g](../../todos/done/E2g-page-labels.md).
+
+**As built (web, E2g).** Page setup ▾ sits in the Organise toolbar after More page actions, and its six items are also on the page menu and in the palette. Each dialog changes the selected pages, or every page when none is selected, and each Apply is one undo step, asked about first when its save would break a signature. Differences from the boards:
+
+- Crop is a dialog, not a tool with handles on the page and an inspector tab. It has the four margins (millimetres or inches by the browser's language; the arrow keys change them by 1 mm, or 10 mm with Shift), the visible-area line, Apply to (This page or the selected pages, and All pages) and the notice, always shown. The notice leaves out "use Redact", since the reader has no redaction yet. Dragging the edges, and a page range in Apply to, wait for a later round.
+- Resize is the dialog drawn: paper, orientation (or width and height for Custom), Scale to fit or Keep the content size, the preview (the page now dashed, the new size solid) and the 3 × 3 anchor grid, a `radiogroup` disabled until Keep the content size is chosen. A page turned a quarter gets the paper with its sides swapped, so every page shows the size and orientation chosen.
+- Page boxes is a dialog, not an inspector tab: it shows the first selected page's five boxes in points and sets the same values on every selected page. A box outside the media box is refused before Apply.
+- Make landscape and Make portrait turn only the pages that need it, by a quarter turn, and say so when none does. They never open the resize dialog, since a quarter turn can always make a page landscape or portrait.
 
 ## O10 Page labels editor
 
@@ -77,7 +84,9 @@ Rules that hold for every screen here:
 
 **Artboards.** `O10-page-labels.dc.html`.
 
-**Todos.** [E2q](../../todos/done/E2q-page-labels-op.md), [E2g](../../todos/ready/E2g-page-labels.md).
+**Todos.** [E2q](../../todos/done/E2q-page-labels-op.md), [E2g](../../todos/done/E2g-page-labels.md).
+
+**As built (web, E2g).** The dialog matches the board: the ranges table with its column headers, a first row fixed on page 1, Add range (focus goes to the new row's From field), the preview of the first pages, each range's start and the last pages with the runs between named, and Apply labels as one op and one undo step. The preview numbers pages as Lamina PDF does, which matches pdf.js and PDFium on the five labels fixtures. Two rows starting on one page both say so beside their fields, and Apply is off until they differ. The thumbnails, the page input and the inspector show the new labels as soon as the edit applies, without drawing any page again. On a phone the dialog stays a dialog; the sheet with one card per range waits for the phone's Organise.
 
 ## O11 Bookmarks editor
 
