@@ -11,7 +11,7 @@
 | Branch | `ci/d6d-windows-signing` |
 | PR title | `ci(desktop): Authenticode-sign Windows MSI and NSIS builds with the owner's identity` |
 | Size | M (200–600 lines) |
-| PR | — |
+| PR | [#656](https://github.com/laudebugs/laminapdf/pull/656) |
 
 ## Goal
 
@@ -49,7 +49,7 @@ Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's
 
 - Microsoft Store/MSIX (non-goal).
 - EV certificates (no reputation advantage since 2024; not planned).
-- macOS: [D6c](D6c-macos-signing-and-notarisation.md).
+- macOS: [D6c](../ready/D6c-macos-signing-and-notarisation.md).
 
 ## Tasks
 
