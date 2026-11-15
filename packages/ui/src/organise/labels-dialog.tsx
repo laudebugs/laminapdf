@@ -165,14 +165,18 @@ function LabelsPreview({ preview, editing }: { preview: readonly PreviewEntry[];
   );
 }
 
-/** The table's rows as state, reset from the document's ranges each time the dialog opens. */
+/** The table's rows as state, filled from the document's ranges each time a read of them arrives. */
 function useRows(isOpen: boolean, ranges: readonly LabelRangeValue[], pages: readonly string[]) {
   const [rows, setRows] = useState<LabelRow[]>([]);
   const added = useRef<number | undefined>(undefined);
   const table = useRef<HTMLTableElement>(null);
-  useEffect(() => {
-    if (isOpen) setRows(rowsOf(ranges, pages));
-  }, [isOpen, ranges, pages]);
+  // Filled when it opens with a read, and only then: a re-render of the reader keeps what was typed.
+  const [seeded, setSeeded] = useState<readonly LabelRangeValue[] | undefined>(undefined);
+  const now = isOpen ? ranges : undefined;
+  if (now !== seeded) {
+    setSeeded(now);
+    if (now !== undefined) setRows(rowsOf(now, pages));
+  }
   useEffect(() => {
     // After Add range, focus goes to the new row's From field.
     if (added.current === undefined) return;

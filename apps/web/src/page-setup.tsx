@@ -145,9 +145,10 @@ function setLabels(controller: OrganiseController, ranges: readonly PageLabelRan
 /**
  * What the boxes and labels dialogs read when they open, from the document as its edits leave it:
  * read once each time `open` turns on (or `read` changes while open: give it a stable function,
- * as `useCallback` makes), so typing in the dialog never reads it again.
+ * as `useCallback` makes), so typing in the dialog never reads it again. A read that fails calls
+ * `failed`, which closes the dialog and says so, rather than leaving an empty dialog.
  */
-function useOpened<T>(open: boolean, read: () => Promise<T>): T | undefined {
+function useOpened<T>(open: boolean, read: () => Promise<T>, failed: () => void): T | undefined {
   const [value, setValue] = useState<T | undefined>(undefined);
   useEffect(() => {
     setValue(undefined);
@@ -157,12 +158,14 @@ function useOpened<T>(open: boolean, read: () => Promise<T>): T | undefined {
       (v) => {
         if (live) setValue(v);
       },
-      () => undefined,
+      () => {
+        if (live) failed();
+      },
     );
     return () => {
       live = false;
     };
-  }, [open, read]);
+  }, [open, read, failed]);
   return value;
 }
 
@@ -185,8 +188,12 @@ export function PageSetupDialogs({
   const close = () => controller.open(undefined);
   const readBoxes = useCallback(() => engine.pageBoxes(first), [engine, first]);
   const readRanges = useCallback(() => engine.labelRanges(), [engine]);
-  const boxes = useOpened<PageBoxValues>(dialog === "boxes", readBoxes);
-  const ranges = useOpened<PageLabelRange[]>(dialog === "labels", readRanges);
+  const failed = useCallback(() => {
+    controller.open(undefined);
+    controller.say(setupWords("setup.readFailed"));
+  }, [controller]);
+  const boxes = useOpened<PageBoxValues>(dialog === "boxes", readBoxes, failed);
+  const ranges = useOpened<PageLabelRange[]>(dialog === "labels", readRanges, failed);
   const sizes = pages.map((p) => ({ width: p.width, height: p.height }));
   return (
     <>

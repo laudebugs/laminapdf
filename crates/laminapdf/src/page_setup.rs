@@ -64,7 +64,8 @@ impl Document {
             .and_then(|i| pages.get(i))
             .ok_or(Error::PageIndexOutOfRange { index, count })?;
         let media = page.media_box()?.unwrap_or(LETTER);
-        let crop = page.crop_box()?.unwrap_or(media);
+        // The model cuts the crop box to the media box it read; without one, cut it to Letter here.
+        let crop = page.crop_box()?.and_then(|c| c.intersect(&media)).unwrap_or(media);
         let dict = page.dict();
         let own = |key: &str| dict.get(key).is_some();
         Ok(PageGeometry {

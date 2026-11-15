@@ -107,7 +107,8 @@ export function row(from: number, style: LabelStyleName = "decimal", prefix = ""
 /**
  * The dialog's rows for a document's ranges (`pages` its page IDs in order): one per range, or
  * one "1, 2, 3 from page 1" row for a document without labels. A range on a page the document
- * lacks is left out.
+ * lacks is left out. A file whose first range starts after page 1 (readers number those pages
+ * 1, 2, 3) gets a "1, 2, 3 from page 1" row first, since the labels op needs a range there.
  */
 export function rowsOf(ranges: readonly LabelRangeValue[], pages: readonly string[]): LabelRow[] {
   const rows: LabelRow[] = [];
@@ -116,7 +117,7 @@ export function rowsOf(ranges: readonly LabelRangeValue[], pages: readonly strin
     if (at < 0) continue;
     rows.push(row(at + 1, range.style ?? "none", range.prefix ?? "", range.first ?? 1));
   }
-  return rows.length === 0 ? [row(1)] : rows;
+  return rows[0]?.from === "1" ? rows : [row(1), ...rows];
 }
 
 /** What is wrong with the rows: the rows whose first page clashes or is out of range, and those whose first number isn't one. */

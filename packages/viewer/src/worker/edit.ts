@@ -116,7 +116,7 @@ async function apply(ops: readonly Op[], id: number, signal: AbortSignal, label:
     pages,
     history: historyOf(edit.session, false, edit.order),
     ...(after.moved && after.list !== undefined ? { order: after.list } : {}),
-    ...(await relabelled(model, after, relabels, signal)),
+    ...(await relabelled(model, after, relabels)),
     createdOutlineItems: edited.createdOutlineItems,
     createdAnnotations: edited.createdAnnotations,
     outlineRepaired: edited.outlineRepaired,
@@ -199,7 +199,6 @@ async function moveTo(position: () => number, id: number, signal: AbortSignal): 
       model,
       after,
       done.some((move) => edit.relabels.has(move.step.id)),
-      signal,
     )),
   };
 }
@@ -279,7 +278,6 @@ async function replay(
       model,
       after,
       steps.some((step) => setsLabels(step.ops)),
-      signal,
     )),
   };
 }
@@ -315,23 +313,34 @@ async function replayStep(
   return orderOf(pages.map((page) => page.id));
 }
 
-/** Whether `ops` set the page labels, which changes every page's label but none of its pixels. */
+/**
+ * The ops that change page labels without changing the page list (those that change it report
+ * the new order, labels included): every page's label may change, none of its pixels.
+ */
+const LABEL_OPS: ReadonlySet<string> = new Set(["setPageLabels"]);
+
+/** Whether `ops` change the page labels as `LABEL_OPS` do. */
 function setsLabels(ops: readonly Op[]): boolean {
-  return ops.some((op) => op.op === "setPageLabels");
+  return ops.some((op) => LABEL_OPS.has(op.op));
 }
 
 /**
  * Every page with its label now, as `relabelled`, when the call changed the labels (`relabels`)
- * but not the page list, whose new order already carries them; nothing otherwise.
+ * but not the page list, whose new order already carries them; nothing otherwise. The edit is
+ * already made and recorded, so this read never fails the call: it ignores the caller's abort,
+ * and a page list it can't read leaves the labels as the page last knew them.
  */
 async function relabelled(
   model: Document,
   after: PagesNow,
   relabels: boolean,
-  signal: AbortSignal,
 ): Promise<{ relabelled?: readonly PageInfo[] }> {
   if (!relabels || after.moved) return {};
-  return { relabelled: after.list ?? (await model.ensure(() => model.pages, { signal })) };
+  try {
+    return { relabelled: after.list ?? (await model.ensure(() => model.pages)) };
+  } catch {
+    return {};
+  }
 }
 
 /** A label for an edit whose caller gave none: its ops' names. */

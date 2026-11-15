@@ -58,6 +58,7 @@ const EN = {
   "setup.done.orientation": "Pages {pages} turned",
   "setup.done.orientation.one": "Page {pages} turned",
   "setup.done.labels": "Page labels set",
+  "setup.readFailed": "This document's page setup couldn't be read, so nothing was changed.",
   "setup.already.landscape": "The pages are already landscape.",
   "setup.already.portrait": "The pages are already portrait.",
   "crop.title": "Crop pages",

@@ -74,6 +74,15 @@ describe("the labels preview", () => {
     expect(rangesOf(rows, PAGES)).toEqual([{ page: "p1.0", style: "decimal" }]);
   });
 
+  it("starts a file whose first range is after page 1 with 1, 2, 3 from page 1", () => {
+    const rows = rowsOf([{ page: "p3.0", style: "upperRoman" }], PAGES);
+    expect(rangesOf(rows, PAGES)).toEqual([
+      { page: "p1.0", style: "decimal" },
+      { page: "p3.0", style: "upperRoman" },
+    ]);
+    expect(labelsOf(rows, 4).map((l) => l.label)).toEqual(["1", "2", "I", "II"]);
+  });
+
   it("names two rows on one page, a page past the end and a first number of 0", () => {
     const rows = [row(1), row(22, "decimal"), row(22, "upperLetters"), row(30), row(2, "decimal", "", 0)];
     const problems = problemsOf(rows, 24);

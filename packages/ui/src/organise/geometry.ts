@@ -1,5 +1,6 @@
-// The page-setup dialogs' arithmetic (Paper O09): lengths in millimetres or inches, the papers
-// Resize offers, what a crop leaves visible, and the sizes a selection's pages have. Every length
+// The page-setup dialogs' arithmetic (Paper O09): lengths in millimetres or inches, what a crop
+// leaves visible, and the sizes a selection's pages have. The papers are Properties' table
+// (reader/properties.ts). Every length
 // the ops take is in points (1/72 in); the dialogs show millimetres or inches by locale.
 
 /** The unit lengths show in. */
@@ -40,16 +41,8 @@ export function nudged(text: string, delta: number, unit: LengthUnit): string {
   return unit === "mm" ? String(Math.round(next)) : String(Math.round(next * 100) / 100);
 }
 
-/** The papers Resize offers, upright, in points. */
-export const PAPERS = {
-  a4: { width: (210 * 72) / 25.4, height: (297 * 72) / 25.4 },
-  letter: { width: 612, height: 792 },
-  legal: { width: 612, height: 1008 },
-  a5: { width: (148 * 72) / 25.4, height: (210 * 72) / 25.4 },
-} as const;
-
-/** A paper Resize offers, or `custom`. */
-export type PaperName = keyof typeof PAPERS | "custom";
+/** The papers Resize offers, in the order it lists them, or `custom`. */
+export type PaperName = "a4" | "letter" | "legal" | "a5" | "custom";
 
 /** A page's displayed size in points. */
 export interface PageSize {
@@ -57,21 +50,9 @@ export interface PageSize {
   readonly height: number;
 }
 
-/** Within half a millimetre: the same paper. */
-const near = (a: number, b: number) => Math.abs(a - b) < 72 / 25.4 / 2;
-
-/** The paper `size` is, either way up, or undefined. */
-export function paperOf(size: PageSize): keyof typeof PAPERS | undefined {
-  for (const [name, paper] of Object.entries(PAPERS) as [keyof typeof PAPERS, PageSize][]) {
-    const upright = near(size.width, paper.width) && near(size.height, paper.height);
-    const turned = near(size.width, paper.height) && near(size.height, paper.width);
-    if (upright || turned) return name;
-  }
-  return undefined;
-}
-
-/** The different sizes among `pages`, by value within half a millimetre, in order of first use. */
+/** The different sizes among `pages` (within 2 pt, as Properties tells papers apart), in order of first use. */
 export function sizesOf(pages: readonly PageSize[]): PageSize[] {
+  const near = (a: number, b: number) => Math.abs(a - b) < 2;
   const out: PageSize[] = [];
   for (const page of pages) {
     if (!out.some((s) => near(s.width, page.width) && near(s.height, page.height))) out.push(page);

@@ -4,22 +4,21 @@
 // (each of the five boxes as four numbers in points). Each Apply is one op the app applies, so
 // each is one undo step.
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { Button } from "../components/button.js";
 import { Checkbox, Radio, RadioGroup } from "../components/choice.js";
 import { Select, TextInput, type TextInputProps } from "../components/field.js";
 import { Notice } from "../components/notice.js";
 import { laterCountMessage, laterMessage } from "../later-messages.js";
 import { Dialog } from "../overlays/dialog.js";
+import { PAPER_SIZES, paperName, paperOf } from "../reader/properties.js";
 import {
   type LengthUnit,
   type Margins,
   nudged,
   oriented,
-  PAPERS,
   type PageSize,
   type PaperName,
-  paperOf,
   points,
   shown,
   sizesOf,
@@ -66,6 +65,18 @@ function LengthField(props: {
   );
 }
 
+/**
+ * Calls `reset` as the dialog opens, and only then, during that render: a re-render of the reader
+ * while it is open keeps what the person typed or chose.
+ */
+function useOnOpen(isOpen: boolean, reset: () => void): void {
+  const [opened, setOpened] = useState(false);
+  if (isOpen !== opened) {
+    setOpened(isOpen);
+    if (isOpen) reset();
+  }
+}
+
 /** Which pages an O09 dialog changes: the selection, or every page. */
 export type ApplyTo = "selected" | "all";
 
@@ -90,12 +101,10 @@ export function CropDialog(props: CropDialogProps): ReactNode {
   const { unit, pages, selected, isOpen } = props;
   const [margins, setMargins] = useState<Record<(typeof SIDES)[number], string>>(NO_MARGINS);
   const [to, setTo] = useState<ApplyTo>("selected");
-  useEffect(() => {
-    if (isOpen) {
-      setMargins(NO_MARGINS);
-      setTo(selected.length === 0 ? "all" : "selected");
-    }
-  }, [isOpen, selected.length]);
+  useOnOpen(isOpen, () => {
+    setMargins(NO_MARGINS);
+    setTo(selected.length === 0 ? "all" : "selected");
+  });
   const targets =
     to === "all" || selected.length === 0 ? pages : selected.map((i) => pages[i]).filter((p) => p !== undefined);
   const read = Object.fromEntries(SIDES.map((s) => [s, points(margins[s], unit)])) as Record<
@@ -217,18 +226,14 @@ const PREVIEW = 116;
 
 /** "24 pages · now US Letter, 216 × 279 mm", or "24 pages · 3 sizes". */
 function resizeSubtitle(pages: readonly PageSize[], unit: LengthUnit): string {
-  const now = pages[0] ?? PAPERS.letter;
+  const now = pages[0] ?? PAPER_SIZES.letter;
   const count = pages.length;
   const sizes = sizesOf(pages).length;
   if (sizes > 1) return laterMessage("resize.subtitle.mixed", { count, sizes });
-  const name = paperOf(now);
   return laterCountMessage(
     count,
     { one: "resize.subtitle.one", many: "resize.subtitle" },
-    {
-      paper: name === undefined ? laterMessage("resize.paper.custom") : laterMessage(`resize.paper.${name}`),
-      size: sizeText(now, unit),
-    },
+    { paper: paperName(now.width, now.height), size: sizeText(now, unit) },
   );
 }
 
@@ -320,21 +325,20 @@ function ResizePreview(props: {
 /** Resize pages: a paper, an orientation, and how the content goes onto it. */
 export function ResizeDialog(props: ResizeDialogProps): ReactNode {
   const { unit, pages, isOpen } = props;
-  const now = pages[0] ?? PAPERS.letter;
+  const now = pages[0] ?? PAPER_SIZES.letter;
   const [paper, setPaper] = useState<PaperName>("a4");
   const [orientation, setOrientation] = useState<"portrait" | "landscape">("portrait");
   const [content, setContent] = useState<ResizeContent>("scale");
   const [anchor, setAnchor] = useState<ResizeAnchor>("center");
   const [custom, setCustom] = useState({ width: "", height: "" });
-  useEffect(() => {
-    if (!isOpen) return;
-    setPaper(paperOf(now) === "a4" ? "letter" : "a4");
+  useOnOpen(isOpen, () => {
+    setPaper(paperOf(now.width, now.height) === "a4" ? "letter" : "a4");
     setOrientation(now.width > now.height ? "landscape" : "portrait");
     setContent("scale");
     setAnchor("center");
     setCustom({ width: shown(now.width, unit), height: shown(now.height, unit) });
-  }, [isOpen, now, unit]);
-  const size = paper === "custom" ? customSize(custom, unit) : oriented(PAPERS[paper], orientation);
+  });
+  const size = paper === "custom" ? customSize(custom, unit) : oriented(PAPER_SIZES[paper], orientation);
   const count = pages.length;
   return (
     <Dialog
@@ -421,9 +425,12 @@ export interface PageBoxValues {
   readonly own: { readonly bleed: boolean; readonly trim: boolean; readonly art: boolean };
 }
 
-/** The boxes to write: each a box, or `null` to remove it (the page then takes the crop box). */
-export type BoxChanges = { readonly media: Box; readonly crop: Box } & {
-  readonly [K in "bleed" | "trim" | "art"]: Box | null;
+/**
+ * The boxes to write, only those the person changed: each a box, or `null` to remove it (the page
+ * then takes the crop box). A box left out stays as each page has it.
+ */
+export type BoxChanges = { readonly media?: Box; readonly crop?: Box } & {
+  readonly [K in "bleed" | "trim" | "art"]?: Box | null;
 };
 
 /** Props of `PageBoxesDialog`. */
@@ -454,6 +461,38 @@ function readBox(text: BoxText): Box | undefined {
 
 const inside = (box: Box, outer: Box) =>
   box[0] >= outer[0] - 1e-6 && box[1] >= outer[1] - 1e-6 && box[2] <= outer[2] + 1e-6 && box[3] <= outer[3] + 1e-6;
+
+/** Whether box `b`'s numbers differ from those shown when the dialog opened. */
+function typedIn(seeded: PageBoxValues, text: Record<BoxName, BoxText> | undefined, b: BoxName): boolean {
+  const before = boxText(seeded[b]);
+  return text?.[b].some((t, i) => t !== before[i]) === true;
+}
+
+/**
+ * What the person changed: each box whose numbers differ from those shown when the dialog opened,
+ * and each bleed, trim or art box whose "Same as crop box" changed (`null` when it now follows
+ * the crop box). A box left as it was is left out, so Apply writes nothing the person didn't
+ * touch. Undefined when a changed box can't be read.
+ */
+function changesOf(
+  seeded: PageBoxValues,
+  text: Record<BoxName, BoxText> | undefined,
+  read: Record<BoxName, Box | undefined>,
+  same: Readonly<Record<(typeof FOLLOWS)[number], boolean>>,
+): BoxChanges | undefined {
+  const changed = BOX_NAMES.filter((b) => {
+    if (b === "media" || b === "crop") return typedIn(seeded, text, b);
+    return same[b] ? seeded.own[b] : !seeded.own[b] || typedIn(seeded, text, b);
+  });
+  const out: Record<string, Box | null> = {};
+  for (const b of changed) {
+    const follows = b !== "media" && b !== "crop" && same[b];
+    const box = follows ? null : read[b];
+    if (box === undefined) return undefined;
+    out[b] = box;
+  }
+  return out as BoxChanges;
+}
 
 /** Whether box `name` takes the crop box (the "Same as crop box" checkbox is on). */
 const follows = (name: BoxName, same: Readonly<Record<(typeof FOLLOWS)[number], boolean>>) =>
@@ -511,26 +550,44 @@ function BoxFieldset(props: {
   );
 }
 
+/**
+ * The boxes dialog's fields, filled from each read and emptied while there is none: a dialog
+ * opened again never shows the last page's boxes, and a re-render keeps what was typed.
+ */
+function useSeeded(isOpen: boolean, boxes: PageBoxValues | undefined) {
+  const [text, setText] = useState<Record<BoxName, BoxText> | undefined>(undefined);
+  const [same, setSame] = useState({ bleed: true, trim: true, art: true });
+  const [seeded, setSeeded] = useState<PageBoxValues | undefined>(undefined);
+  const now = isOpen ? boxes : undefined;
+  if (now !== seeded) {
+    setSeeded(now);
+    setText(
+      now === undefined
+        ? undefined
+        : (Object.fromEntries(BOX_NAMES.map((b) => [b, boxText(now[b])])) as Record<BoxName, BoxText>),
+    );
+    if (now !== undefined) setSame({ bleed: !now.own.bleed, trim: !now.own.trim, art: !now.own.art });
+  }
+  return { text, setText, same, setSame, seeded };
+}
+
 /** Page boxes: the media, crop, bleed, trim and art boxes as numbers, each of the last three possibly the crop box. */
 export function PageBoxesDialog(props: PageBoxesDialogProps): ReactNode {
   const { boxes, isOpen } = props;
-  const [text, setText] = useState<Record<BoxName, BoxText> | undefined>(undefined);
-  const [same, setSame] = useState({ bleed: true, trim: true, art: true });
-  useEffect(() => {
-    if (!isOpen || boxes === undefined) return;
-    setText(Object.fromEntries(BOX_NAMES.map((b) => [b, boxText(boxes[b])])) as Record<BoxName, BoxText>);
-    setSame({ bleed: !boxes.own.bleed, trim: !boxes.own.trim, art: !boxes.own.art });
-  }, [isOpen, boxes]);
+  const { text, setText, same, setSame, seeded } = useSeeded(isOpen, boxes);
   const read =
     text === undefined
       ? undefined
       : (Object.fromEntries(BOX_NAMES.map((b) => [b, readBox(text[b])])) as Record<BoxName, Box | undefined>);
   const errors = read === undefined ? {} : boxErrors(read);
-  const valid = read !== undefined && BOX_NAMES.every((b) => follows(b, same) || errors[b] === undefined);
+  const changes = read === undefined || seeded === undefined ? undefined : changesOf(seeded, text, read, same);
+  const valid =
+    changes !== undefined &&
+    Object.keys(changes).length > 0 &&
+    BOX_NAMES.every((b) => follows(b, same) || errors[b] === undefined);
   const apply = () => {
-    if (read?.media === undefined || read.crop === undefined) return;
-    const pick = (b: (typeof FOLLOWS)[number]) => (same[b] ? null : (read[b] ?? null));
-    props.onApply({ media: read.media, crop: read.crop, bleed: pick("bleed"), trim: pick("trim"), art: pick("art") });
+    if (changes === undefined) return;
+    props.onApply(changes);
     props.onClose();
   };
   const onText = (name: BoxName) => (c: number, v: string) =>

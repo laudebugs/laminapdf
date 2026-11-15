@@ -101,3 +101,22 @@ fn label_ranges_written_back_change_nothing() {
 fn a_document_without_labels_has_no_ranges() {
     assert_eq!(open("pages/boxes.pdf").label_ranges().unwrap(), []);
 }
+
+#[test]
+fn page_boxes_cuts_the_crop_box_to_letter_when_the_media_box_is_missing() {
+    // One page with no /MediaBox and a crop box bigger than US Letter.
+    let pdf = laminapdf_test_fixtures::classic_with_root(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /CropBox [0 0 1000 1000] >>",
+        ],
+        "",
+    );
+    let doc = Document::open_bytes(pdf, OpenOptions::new()).unwrap();
+    let boxes = doc.page_boxes(0).unwrap();
+    assert_eq!(
+        (boxes.media, boxes.crop),
+        (rect(0.0, 0.0, 612.0, 792.0), rect(0.0, 0.0, 612.0, 792.0))
+    );
+}
