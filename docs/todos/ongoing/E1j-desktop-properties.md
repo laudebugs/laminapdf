@@ -11,7 +11,7 @@
 | Branch | `feat/e1j-desktop-properties` |
 | PR title | `feat(desktop): the Properties dialog, with metadata edits that save` |
 | Size | M (200–400) |
-| PR | — |
+| PR | [#660](https://github.com/laudebugs/laminapdf/pull/660) |
 
 ## Goal
 
