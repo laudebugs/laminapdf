@@ -22,7 +22,7 @@ import {
 } from "../../src/index.ts";
 import { WithCommands } from "../commands.tsx";
 import { FakeViewer, fakeFile, fakePlatform } from "../fakes.ts";
-import { cleanup, focused, renderIn } from "./render.tsx";
+import { cleanup, focused, renderIn, settled } from "./render.tsx";
 
 afterEach(cleanup);
 
@@ -170,6 +170,7 @@ describe("ReaderTopBar", () => {
         actions={{ "view.toggle-sidebar": () => {}, "palette.open": () => {}, "file.close": () => {} }}
       />,
     );
+    await settled();
     const { violations } = await axe.run(host, { resultTypes: ["violations"] });
     expect(violations.map((v) => v.id)).toEqual([]);
   });
@@ -279,7 +280,8 @@ describe("ZoomControl", () => {
     await userEvent.keyboard("{Enter}");
     (button("Zoom, 110%") as HTMLButtonElement).focus();
     await userEvent.keyboard("{Enter}");
-    await frame();
+    // The menu just closed may still be leaving: keys go to the new one once focus is in it.
+    await expect.poll(() => focused().closest("[role=menu]:not([data-exiting] *)")).not.toBeNull();
     await userEvent.keyboard("{End}{Enter}");
     expect(viewer.calls).toEqual([
       { method: "setZoom", value: "fit-width" },
@@ -519,6 +521,7 @@ describe("PasswordDialog", () => {
     await frame();
     await userEvent.keyboard("x{Enter}");
     await expect.poll(() => document.querySelector("[role=alert]")).not.toBeNull();
+    await settled();
     const { violations } = await axe.run(document.querySelector("[role=dialog]") as HTMLElement, {
       resultTypes: ["violations"],
     });
@@ -645,6 +648,7 @@ describe("OpenDropZone", () => {
 
   it("passes axe, with the shell's content under it", async () => {
     home();
+    await settled();
     const { violations } = await axe.run(document.querySelector("section.paper-open") as HTMLElement, {
       resultTypes: ["violations"],
     });
@@ -707,6 +711,7 @@ describe("RepairDetails", () => {
         onCopy={() => {}}
       />,
     );
+    await settled();
     const { violations } = await axe.run(host, { resultTypes: ["violations"] });
     expect(violations.map((v) => v.id)).toEqual([]);
   });
@@ -737,6 +742,7 @@ describe("OpenFailure", () => {
     const host = renderIn(
       <OpenFailure error={{ code: "not-pdf", message: "" }} onTryAnother={() => {}} onCopy={() => {}} />,
     );
+    await settled();
     const { violations } = await axe.run(host, { resultTypes: ["violations"] });
     expect(violations.map((v) => v.id)).toEqual([]);
   });

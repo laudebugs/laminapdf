@@ -9,6 +9,7 @@ import { type KeyboardEvent, type PointerEvent, type ReactNode, useRef } from "r
 import { SegmentedTabs, TabPanel } from "../components/tabs.js";
 import { message } from "../messages.js";
 import { LayerScope } from "../overlays/layers.js";
+import { Presence, useExiting } from "../overlays/presence.js";
 import { BottomSheet } from "../overlays/sheet.js";
 import { useMediaQuery, useStoreState } from "../state/hooks.js";
 import { RAIL_MAX_WIDTH, RAIL_MIN_WIDTH, RAIL_STEP, type ShellLayout } from "./layout.js";
@@ -118,12 +119,12 @@ function RailTabs({ layout, tabs }: LeftRailProps): ReactNode {
  * windows; a drawer over it below the rail breakpoint.
  */
 export function LeftRail({ layout, tabs }: LeftRailProps): ReactNode {
-  const open = useStoreState(layout, (s) => s.rail.open && !s.focus);
+  const open = useStoreState(layout, (s) => s.rail.open && !s.focus) && tabs.length > 0;
   const width = useStoreState(layout, (s) => s.rail.width);
   const drawer = useMediaQuery(RAIL_DRAWER_QUERY);
   const phone = usePhone();
-  if (!open || tabs.length === 0) return null;
   if (phone) {
+    if (!open) return null;
     return (
       <BottomSheet
         isOpen
@@ -136,27 +137,46 @@ export function LeftRail({ layout, tabs }: LeftRailProps): ReactNode {
       </BottomSheet>
     );
   }
-  const rail = (
-    <nav
-      className="paper-left-rail"
-      aria-label={message("reader.sidebar")}
-      data-drawer={drawer || undefined}
-      style={{ inlineSize: drawer ? undefined : `${width}px` }}
-    >
-      <RailTabs layout={layout} tabs={tabs} />
-      {drawer ? null : <ResizeHandle layout={layout} width={width} />}
-    </nav>
-  );
-  if (!drawer) return rail;
+  if (!drawer) {
+    if (!open) return null;
+    return (
+      <nav className="paper-left-rail" aria-label={message("reader.sidebar")} style={{ inlineSize: `${width}px` }}>
+        <RailTabs layout={layout} tabs={tabs} />
+        <ResizeHandle layout={layout} width={width} />
+      </nav>
+    );
+  }
+  // The drawer stays for its exit after it closes (Presence), sliding out over its fading scrim.
   return (
-    <LayerScope dismiss={() => layout.setRailOpen(false)}>
+    <Presence value={open || null} exit="panel">
+      {() => <RailDrawer layout={layout} tabs={tabs} />}
+    </Presence>
+  );
+}
+
+/** The rail as a drawer over the canvas, with the scrim that closes it. */
+function RailDrawer({ layout, tabs }: LeftRailProps): ReactNode {
+  const exiting = useExiting();
+  const close = () => layout.setRailOpen(false);
+  return (
+    <LayerScope dismiss={close} away={exiting}>
       <button
         type="button"
         className="paper-rail-scrim"
         aria-label={message("shell.rail.close")}
-        onClick={() => layout.setRailOpen(false)}
+        onClick={close}
+        data-exiting={exiting || undefined}
+        inert={exiting}
       />
-      {rail}
+      <nav
+        className="paper-left-rail"
+        aria-label={message("reader.sidebar")}
+        data-drawer
+        data-exiting={exiting || undefined}
+        inert={exiting}
+      >
+        <RailTabs layout={layout} tabs={tabs} />
+      </nav>
     </LayerScope>
   );
 }

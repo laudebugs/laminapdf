@@ -13,6 +13,7 @@ import { Button } from "../components/button.js";
 import { useAnchoredPlacement } from "./anchored.js";
 import { LayerScope } from "./layers.js";
 import { placeBelow } from "./place.js";
+import { useExiting } from "./presence.js";
 import { BottomSheet } from "./sheet.js";
 
 /** A picture of the destination: a bitmap and its size on screen in CSS px. */
@@ -76,17 +77,20 @@ function PreviewPopover({
 }: LinkPreviewProps): ReactNode {
   const id = useId();
   const ref = useRef<HTMLDivElement>(null);
+  const exiting = useExiting();
   const place = useAnchoredPlacement(ref, { anchor: () => boxOf(anchor), place: placeBelow, gap: GAP });
   useDescribedBy(anchor, id);
   useHover(ref, onHold);
   return createPortal(
-    <LayerScope dismiss={onDismiss}>
+    <LayerScope dismiss={onDismiss} away={exiting}>
       <div
         ref={ref}
         id={id}
         role="tooltip"
         className="paper-link-preview"
         data-side={place?.side}
+        data-exiting={exiting || undefined}
+        inert={exiting}
         style={place === null ? { visibility: "hidden" } : { top: place.top, left: place.left }}
       >
         <Picture picture={picture} label={pictureLabel ?? title} />

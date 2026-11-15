@@ -13,7 +13,7 @@ import {
   SelectionToolbarDivider,
   TextInput,
 } from "../../src/index.ts";
-import { cleanup, focused, renderIn } from "./render.tsx";
+import { cleanup, focused, renderIn, settled } from "./render.tsx";
 
 afterEach(() => {
   cleanup();
@@ -87,7 +87,12 @@ describe("SelectionToolbar", () => {
     const words = host.querySelector("span") as HTMLElement;
     const scroller = host.querySelector("[data-testid=scroller]") as HTMLElement;
     renderIn(<Selection anchor={() => words.getBoundingClientRect()} />);
-    await frame();
+    // Measured once its entry has ended: while it grows from 0.97, its box isn't its resting one.
+    await Promise.all(
+      toolbar()
+        .getAnimations()
+        .map((a) => a.finished),
+    );
     const before = toolbar().getBoundingClientRect().top;
     scroller.scrollTop = 100;
     scroller.dispatchEvent(new Event("scroll"));
@@ -462,6 +467,7 @@ describe("CommandPalette", () => {
 
 describe.each(["light", "dark", "high-contrast"] as const)("axe, %s theme", (theme) => {
   const check = async (rules: axe.RuleObject = {}) => {
+    await settled();
     const result = await axe.run(document.body, {
       runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] },
       rules,

@@ -7,7 +7,7 @@ import type { CommandContext, CommandId } from "../../src/commands/types.ts";
 import { CommandsProvider, RecentCommands, RegistryPalette } from "../../src/index.ts";
 import { readerCommandsFor } from "../commands.tsx";
 import { FakeViewer, fakeFile, fakePlatform } from "../fakes.ts";
-import { cleanup, focused, renderIn } from "./render.tsx";
+import { cleanup, focused, renderIn, settled } from "./render.tsx";
 
 afterEach(cleanup);
 
@@ -240,6 +240,7 @@ describe("RegistryPalette", () => {
         .map((id) => document.getElementById(id));
       for (const meta of row.querySelectorAll(".paper-palette-meta")) expect(described).toContain(meta);
     }
+    await settled();
     const { violations } = await axe.run(document.body, {
       runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] },
       rules: { "label-content-name-mismatch": { enabled: false } },

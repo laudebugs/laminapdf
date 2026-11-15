@@ -172,6 +172,7 @@ export {
   type PopoverProps,
   PopoverTrigger,
 } from "./overlays/popover.js";
+export { type ExitSize, Leaving, Presence, type PresenceProps, useExiting } from "./overlays/presence.js";
 export {
   SelectionToolbar,
   SelectionToolbarDivider,

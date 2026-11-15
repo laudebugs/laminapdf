@@ -10,6 +10,7 @@ import { createPortal } from "react-dom";
 import { useAnchoredPlacement } from "./anchored.js";
 import { LayerScope } from "./layers.js";
 import { type Box, placeAbove } from "./place.js";
+import { useExiting } from "./presence.js";
 
 /** Props of `SelectionToolbar`. */
 export interface SelectionToolbarProps {
@@ -41,6 +42,7 @@ export function SelectionToolbar({
   children,
 }: SelectionToolbarProps): ReactNode {
   const ref = useRef<HTMLDivElement>(null);
+  const exiting = useExiting();
   const place = useAnchoredPlacement(ref, { anchor, bounds, place: placeAbove, gap: GAP });
   const returnTo = useRef<HTMLElement | null>(null);
   useShiftF10(ref, returnTo);
@@ -56,12 +58,14 @@ export function SelectionToolbar({
     if (inside && returnTo.current?.isConnected === true) returnTo.current.focus();
   };
   return createPortal(
-    <LayerScope dismiss={dismiss}>
+    <LayerScope dismiss={dismiss} away={exiting}>
       <Toolbar
         ref={ref}
         aria-label={label}
         className="paper-selection-toolbar"
         data-side={place?.side}
+        data-exiting={exiting || undefined}
+        inert={exiting}
         style={place === null ? { visibility: "hidden" } : { top: place.top, left: place.left }}
       >
         {children}

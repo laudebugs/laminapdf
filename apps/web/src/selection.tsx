@@ -13,6 +13,7 @@ import {
   message,
   type Platform,
   type PlatformStorage,
+  Presence,
   SelectionActionBar,
   SelectionToolbar,
   selectionBox,
@@ -126,33 +127,38 @@ export function useSelection(
   };
   return {
     actions,
-    toolbar: showToolbar ? (
-      <SelectionToolbar
-        aria-label={message("selection.toolbar")}
-        anchor={() => selectionBox(selection.rects)}
-        bounds={() => viewerBounds(viewer)}
-        onDismiss={() => setDismissed(selection)}
-      >
-        <Button size={32} icon="copy" preventFocusOnPress onPress={() => actions["edit.copy"]?.()}>
-          {message("command.edit.copy")}
-        </Button>
-        <Button size={32} preventFocusOnPress onPress={() => actions["edit.copy-exact"]?.()}>
-          {message("command.edit.copy-exact")}
-        </Button>
-        <Button size={32} icon="find" preventFocusOnPress onPress={() => actions["selection.search"]?.()}>
-          {message("selection.search")}
-        </Button>
-        {/* links.tsx (later.ts) listens for it and opens the link editor on the selected text. */}
-        <Button
-          size={32}
-          icon="link"
-          preventFocusOnPress
-          onPress={() => viewer.element.dispatchEvent(new Event("lamina-make-link"))}
-        >
-          {message("command.edit.make-link")}
-        </Button>
-      </SelectionToolbar>
-    ) : undefined,
+    // The toolbar stays for its exit after the selection goes (Presence), so it fades out.
+    toolbar: (
+      <Presence value={showToolbar ? { selection, viewer } : null}>
+        {(shown) => (
+          <SelectionToolbar
+            aria-label={message("selection.toolbar")}
+            anchor={() => selectionBox(shown.selection.rects)}
+            bounds={() => viewerBounds(shown.viewer)}
+            onDismiss={() => setDismissed(shown.selection)}
+          >
+            <Button size={32} icon="copy" preventFocusOnPress onPress={() => actions["edit.copy"]?.()}>
+              {message("command.edit.copy")}
+            </Button>
+            <Button size={32} preventFocusOnPress onPress={() => actions["edit.copy-exact"]?.()}>
+              {message("command.edit.copy-exact")}
+            </Button>
+            <Button size={32} icon="find" preventFocusOnPress onPress={() => actions["selection.search"]?.()}>
+              {message("selection.search")}
+            </Button>
+            {/* links.tsx (later.ts) listens for it and opens the link editor on the selected text. */}
+            <Button
+              size={32}
+              icon="link"
+              preventFocusOnPress
+              onPress={() => shown.viewer.element.dispatchEvent(new Event("lamina-make-link"))}
+            >
+              {message("command.edit.make-link")}
+            </Button>
+          </SelectionToolbar>
+        )}
+      </Presence>
+    ),
     bar: touch ? <SelectionActionBar more={more} keys={keys} /> : undefined,
   };
 }

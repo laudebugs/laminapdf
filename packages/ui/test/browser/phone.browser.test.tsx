@@ -17,7 +17,7 @@ import {
   registerReaderCommands,
 } from "../../src/index.ts";
 import { fakeFile, fakePlatform } from "../fakes.ts";
-import { cleanup, renderIn, targets } from "./render.tsx";
+import { cleanup, renderIn, settled, targets } from "./render.tsx";
 
 beforeEach(async () => {
   await page.viewport(390, 844);
@@ -142,10 +142,12 @@ describe("the phone shell", () => {
 
   it("passes axe with the bars and with the More sheet open", async () => {
     await openDemo();
-    const serious = async () =>
-      (await axe.run(document.body)).violations
+    const serious = async () => {
+      await settled();
+      return (await axe.run(document.body)).violations
         .filter((v) => v.impact === "serious" || v.impact === "critical")
         .map((v) => v.id);
+    };
     const bars = await serious();
     await userEvent.click(button("More", bottomBar() as HTMLElement));
     await expect.poll(() => document.querySelector("[role=dialog]")).not.toBeNull();

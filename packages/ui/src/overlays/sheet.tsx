@@ -12,6 +12,7 @@ import { createPortal } from "react-dom";
 import { IconButton } from "../components/button.js";
 import { markModal } from "./aria-modal.js";
 import { LayerScope, useLayerOpenedHere } from "./layers.js";
+import { useLastOpen } from "./presence.js";
 
 /** Where an open sheet rests. Closing it is the third, collapsed position. */
 export type SheetDetent = "medium" | "large";
@@ -75,14 +76,17 @@ function topOf(detent: SheetDetent): number {
 }
 
 /** A bottom sheet. */
-export function BottomSheet(props: BottomSheetProps): ReactNode {
+export function BottomSheet(open: BottomSheetProps): ReactNode {
+  // A modal sheet stays mounted and closes through React Aria, which plays its exit; its content
+  // stays as it was meanwhile (useLastOpen). A non-modal sheet leaves at once.
+  const props = { ...useLastOpen(open, open.isOpen), isOpen: open.isOpen, onOpenChange: open.onOpenChange };
   const opening = props.defaultDetent ?? "medium";
   const [ownDetent, setOwnDetent] = useState<SheetDetent>(opening);
   // Each opening starts at the default detent, not wherever the sheet was when it last closed.
   useEffect(() => {
     if (!props.isOpen) setOwnDetent(opening);
   }, [props.isOpen, opening]);
-  if (!props.isOpen) return null;
+  if (!props.isOpen && props.isModal === false) return null;
   const placed: Placed = {
     detent: props.detent ?? ownDetent,
     setDetent: (next) => {
@@ -115,7 +119,7 @@ function ModalSheet(props: BottomSheetProps & Placed): ReactNode {
   useKeyboardInset(ref);
   return (
     <ModalOverlay
-      isOpen
+      isOpen={props.isOpen}
       onOpenChange={props.onOpenChange}
       isDismissable={!required}
       isKeyboardDismissDisabled={required}

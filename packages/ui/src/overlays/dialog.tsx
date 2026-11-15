@@ -8,6 +8,7 @@ import { PHONE_QUERY } from "../breakpoints.js";
 import { IconButton } from "../components/button.js";
 import { markModal } from "./aria-modal.js";
 import { LayerScope } from "./layers.js";
+import { useLastOpen } from "./presence.js";
 import { BottomSheet } from "./sheet.js";
 
 /** How wide a dialog may grow: 440 by default, 560 for a form, 820 for a preview or two panes. */
@@ -86,7 +87,17 @@ export function usePhoneLayout(isOpen: boolean): boolean {
 
 /** A modal dialog; on a phone-wide viewport, a bottom sheet at the large detent with full-width actions. */
 export function Dialog(props: DialogProps): ReactNode {
-  const { isOpen, onOpenChange, title, description, children, actions, size = "default", role, returnFocusTo } = props;
+  // What it shows stays as it was for the exit (useLastOpen); whether it is open never lags.
+  const {
+    title,
+    description,
+    children,
+    actions,
+    size = "default",
+    role,
+    returnFocusTo,
+  } = useLastOpen(props, props.isOpen);
+  const { isOpen, onOpenChange } = props;
   const required = props.isRequired === true;
   const descriptionId = useId();
   const asSheet = usePhoneLayout(isOpen);

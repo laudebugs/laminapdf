@@ -34,6 +34,18 @@ export function renderIn(element: ReactElement, { theme = "light", dir = "ltr", 
 
 const roots: Root[] = [];
 
+/**
+ * Waits for every running animation and transition on the page to finish: overlays fade in, so
+ * axe measures their contrast once they have, and a box is measured at rest.
+ */
+export async function settled(): Promise<void> {
+  // An endless animation (an indeterminate progress bar) never finishes: only those that end.
+  const ending = document
+    .getAnimations()
+    .filter((a) => a.effect?.getComputedTiming().endTime !== Number.POSITIVE_INFINITY);
+  await Promise.all(ending.map((a) => a.finished));
+}
+
 /** Unmounts every rendered element, so overlays undo what they did to the page, then removes the hosts. */
 export function cleanup(): void {
   for (const root of roots.splice(0)) flushSync(() => root.unmount());

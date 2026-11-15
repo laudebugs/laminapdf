@@ -18,7 +18,7 @@ import {
   ToastRegion,
   Tooltip,
 } from "../../src/index.ts";
-import { cleanup, focused, renderIn } from "./render.tsx";
+import { cleanup, focused, renderIn, settled } from "./render.tsx";
 
 afterEach(() => {
   cleanup();
@@ -136,12 +136,13 @@ describe("Dialog", () => {
   it("closes on a scrim click, from its close button, but not when it asks a required question", async () => {
     await openDialog();
     await userEvent.click(document.querySelector(".paper-modal-overlay") as HTMLElement, { position: { x: 4, y: 4 } });
-    expect(role("dialog")).toBeNull();
+    // Polled: it plays its exit before it leaves the page.
+    await expect.poll(() => role("dialog")).toBeNull();
     cleanup();
 
     await openDialog();
     await userEvent.click(document.querySelector("[aria-label=Close]") as HTMLElement);
-    expect(role("dialog")).toBeNull();
+    await expect.poll(() => role("dialog")).toBeNull();
     cleanup();
 
     const dialog = await openDialog({ required: true, role: "alertdialog" });
@@ -202,11 +203,12 @@ describe("Dialog", () => {
       zOf(document.querySelector(".paper-modal-overlay")),
     );
     await userEvent.keyboard("{Escape}");
-    expect(role("menu")).toBeNull();
+    // Polled: it plays its exit before it leaves the page.
+    await expect.poll(() => role("menu")).toBeNull();
     expect(role("dialog")).not.toBeNull();
     await expect.poll(focused).toBe(position);
     await userEvent.keyboard("{Escape}");
-    expect(role("dialog")).toBeNull();
+    await expect.poll(() => role("dialog")).toBeNull();
   });
 });
 
@@ -249,7 +251,8 @@ describe("Menu", () => {
     expect(focused().textContent).toContain("Rename");
     await userEvent.keyboard("{Enter}");
     expect(onAction).toHaveBeenCalledWith("rename");
-    expect(role("menu")).toBeNull();
+    // Polled: it plays its exit before it leaves the page.
+    await expect.poll(() => role("menu")).toBeNull();
     await expect.poll(focused).toBe(button);
   });
 
@@ -370,7 +373,8 @@ describe("ToastRegion", () => {
     expect(onUndo).toHaveBeenCalledOnce();
     handle.dismiss();
     await frame();
-    expect(host.querySelector(".paper-toast")).toBeNull();
+    // Polled: it plays its exit before it leaves the page.
+    await expect.poll(() => host.querySelector(".paper-toast")).toBeNull();
   });
 
   it("keeps an endless toast, and resumes the timers once a pressed action takes focus away", async () => {
@@ -434,6 +438,8 @@ describe("ToastRegion", () => {
 
 describe.each(["light", "dark", "high-contrast"] as const)("axe with each overlay open, %s theme", (theme) => {
   const check = async (rules: axe.RuleObject = {}) => {
+    // Overlays fade in: axe measures contrast once they have, not through a half-faded one.
+    await settled();
     const result = await axe.run(document.body, {
       runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] },
       rules,
