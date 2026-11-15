@@ -19,8 +19,8 @@ use std::time::{Duration, Instant};
 
 use laminapdf_desktop_protocol::supervisor::{Config, Event, FontServer, RangeServer, Supervisor, SupervisorError};
 use laminapdf_desktop_protocol::{
-    DocId, EditCall, EditReport, FailureKind, FromEngine, Password, PrintBandRequest, Priority, ReqId, TileAppearance,
-    TileFormat, TileRequest, ToEngine, ViewRotation,
+    DocId, EditCall, EditReport, FailureKind, FromEngine, Password, PrintBandRequest, Priority, ReqId, SaveAnswer,
+    SaveCall, SaveRequest, SaveWritten, SavedAs, TileAppearance, TileFormat, TileRequest, ToEngine, ViewRotation,
 };
 use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner, SystemFonts};
 use laminapdf_test_fixtures::{fixture, read_at};
@@ -631,4 +631,133 @@ fn an_op_on_a_page_that_does_not_exist_should_be_refused_with_its_code() {
         matches!(&reply, FromEngine::Error { kind: FailureKind::EditRefused, message, .. } if message == "unknown-page"),
         "{reply:?}"
     );
+}
+
+/// The answer to a save call on `doc`, and the bytes its frame carried.
+fn save(engine: &Engine, doc: DocId, call: &SaveCall) -> Result<(SaveAnswer, Vec<u8>), (FailureKind, String)> {
+    let deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        let reply = engine.supervisor.request(|req| ToEngine::Save {
+            req,
+            doc,
+            call: call.clone(),
+        });
+        match reply {
+            Err(SupervisorError::Lost) if Instant::now() < deadline => thread::sleep(Duration::from_millis(10)),
+            Ok((FromEngine::Saved { answer, .. }, payload)) => return Ok((*answer, payload)),
+            Ok((FromEngine::Error { kind, message, .. }, _)) => return Err((kind, message)),
+            other => panic!("expected Saved, got {other:?}"),
+        }
+    }
+}
+
+/// Writes `doc`'s save with `request` and reads its output back in parts of `part` bytes.
+fn write_and_read(engine: &Engine, doc: DocId, request: SaveRequest, part: u32) -> (SaveWritten, Vec<u8>) {
+    let Ok((SaveAnswer::Written(written), _)) = save(engine, doc, &SaveCall::Write(request)) else {
+        panic!("expected Written");
+    };
+    let mut output = Vec::new();
+    while (output.len() as u64) < written.len {
+        let call = SaveCall::Read {
+            offset: output.len() as u64,
+            len: part,
+        };
+        let (_, bytes) = save(engine, doc, &call).unwrap();
+        assert!(!bytes.is_empty(), "a read inside the output came back empty");
+        output.extend(bytes);
+    }
+    (written, output)
+}
+
+/// The rotation of `bytes`' first page.
+fn first_rotation(bytes: Vec<u8>) -> u16 {
+    lamina_pages(bytes, None)[0].2
+}
+
+/// Opens `name` as document 1 and turns its first page to `degrees`; returns the document and
+/// the file's bytes.
+fn open_and_turn(engine: &Engine, name: &str, degrees: u16) -> (DocId, Vec<u8>) {
+    let bytes = fixture(name);
+    let (doc, len) = engine.add(1, bytes.clone());
+    engine.open(doc, len);
+    let FromEngine::PageInfo { ids, .. } = engine.ask(|req| ToEngine::GetPageInfo { req, doc }) else {
+        panic!("expected PageInfo");
+    };
+    edit(engine, doc, &rotate(&ids[0], degrees));
+    (doc, bytes)
+}
+
+#[test]
+fn an_incremental_save_should_give_only_the_revision_to_append_and_adopt_the_file_with_it() {
+    let engine = Engine::start();
+    let (doc, file) = open_and_turn(&engine, "corpus/fpdf2.pdf", 90);
+    let (written, tail) = write_and_read(&engine, doc, SaveRequest::default(), 100);
+    let saved = [file.as_slice(), tail.as_slice()].concat();
+    // The main process writes the file, then the engine adopts it: the next save appends to it.
+    engine.add(1, saved.clone());
+    let adopted = save(&engine, doc, &SaveCall::Adopt).map(|(answer, _)| answer);
+    let FromEngine::PageInfo { ids, .. } = engine.ask(|req| ToEngine::GetPageInfo { req, doc }) else {
+        panic!("expected PageInfo");
+    };
+    edit(&engine, doc, &rotate(&ids[0], 180));
+    let (_, next) = write_and_read(&engine, doc, SaveRequest::default(), 1 << 20);
+    let again = [saved.as_slice(), next.as_slice()].concat();
+    assert_eq!(
+        (
+            written.mode,
+            tail.len() as u64 == written.len,
+            adopted,
+            first_rotation(saved),
+            first_rotation(again)
+        ),
+        (SavedAs::Incremental, true, Ok(SaveAnswer::Adopted), 90, 180)
+    );
+}
+
+#[test]
+fn a_full_rewrite_should_give_the_whole_file() {
+    let engine = Engine::start();
+    let (doc, _) = open_and_turn(&engine, "corpus/fpdf2.pdf", 270);
+    let request = SaveRequest {
+        rewrite: true,
+        ..SaveRequest::default()
+    };
+    let (written, file) = write_and_read(&engine, doc, request, 1 << 20);
+    let adopted = save(&engine, doc, &SaveCall::Adopt).map(|(answer, _)| answer);
+    assert_eq!(
+        (written.mode, adopted, first_rotation(file)),
+        (SavedAs::FullRewrite, Ok(SaveAnswer::Adopted), 270)
+    );
+}
+
+#[test]
+fn a_plan_should_say_how_the_save_would_go() {
+    let engine = Engine::start();
+    let (doc, _) = open_and_turn(&engine, "corpus/fpdf2.pdf", 90);
+    let Ok((SaveAnswer::Planned(plan), _)) = save(&engine, doc, &SaveCall::Plan(SaveRequest::default())) else {
+        panic!("expected Planned");
+    };
+    assert_eq!(
+        (plan.mode, plan.refusal, plan.unchanged),
+        (Some(SavedAs::Incremental), None, false)
+    );
+}
+
+#[test]
+fn an_adoption_with_no_output_waiting_should_be_refused() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("corpus/fpdf2.pdf"));
+    engine.open(doc, len);
+    let refused = save(&engine, doc, &SaveCall::Adopt);
+    assert_eq!(refused, Err((FailureKind::SaveRefused, "no-pending-save".to_owned())));
+}
+
+#[test]
+fn an_edit_after_a_write_should_drop_the_output_it_made_stale() {
+    let engine = Engine::start();
+    let (doc, _) = open_and_turn(&engine, "corpus/fpdf2.pdf", 90);
+    write_and_read(&engine, doc, SaveRequest::default(), 1 << 20);
+    edit(&engine, doc, &EditCall::Undo);
+    let refused = save(&engine, doc, &SaveCall::Adopt);
+    assert_eq!(refused, Err((FailureKind::SaveRefused, "no-pending-save".to_owned())));
 }

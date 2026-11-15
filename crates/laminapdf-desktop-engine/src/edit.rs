@@ -222,9 +222,9 @@ fn refused(code: &str) -> Refused {
 
 /// The file followed by the revision an edit appended, read in place, never copied into one
 /// buffer.
-struct Appended {
-    base: Arc<dyn ByteSource>,
-    tail: Arc<[u8]>,
+pub(crate) struct Appended {
+    pub(crate) base: Arc<dyn ByteSource>,
+    pub(crate) tail: Arc<[u8]>,
 }
 
 impl ByteSource for Appended {

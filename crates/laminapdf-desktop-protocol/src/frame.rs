@@ -213,6 +213,29 @@ mod tests {
                 doc,
                 call: EditCall::Undo,
             },
+            ToEngine::Save {
+                req,
+                doc,
+                call: crate::SaveCall::Write(crate::SaveRequest {
+                    rewrite: true,
+                    invalidate_signatures: false,
+                    metadata_date: Some("2026-11-15T10:00:00Z".into()),
+                    instance_id: Some([7; 16]),
+                }),
+            },
+            ToEngine::Save {
+                req,
+                doc,
+                call: crate::SaveCall::Read {
+                    offset: 1 << 33,
+                    len: 1 << 20,
+                },
+            },
+            ToEngine::Save {
+                req,
+                doc,
+                call: crate::SaveCall::Adopt,
+            },
             ToEngine::RenderTile(TileRequest {
                 req,
                 doc,
@@ -337,6 +360,32 @@ mod tests {
             },
             FromEngine::Heartbeat,
             FromEngine::FontRequest { req, font: 3 },
+            FromEngine::Saved {
+                req,
+                doc,
+                answer: Box::new(crate::SaveAnswer::Planned(crate::PlanReport {
+                    mode: None,
+                    refusal: Some("would-invalidate-signatures".into()),
+                    constraint: crate::PlanConstraint::AppendOnly,
+                    signatures: vec![crate::PlanSignature {
+                        kind: crate::SignatureRole::Approval,
+                        field: Some("Signature1".into()),
+                    }],
+                    would_invalidate: Vec::new(),
+                    conformance_warnings: vec![r#"{"code":"pdfa-one-author"}"#.into()],
+                    unchanged: false,
+                })),
+            },
+            FromEngine::Saved {
+                req,
+                doc,
+                answer: Box::new(crate::SaveAnswer::Written(crate::SaveWritten {
+                    mode: crate::SavedAs::Incremental,
+                    len: 2048,
+                    history_cleared: false,
+                    metadata_not_updated: true,
+                })),
+            },
             FromEngine::PrintBand {
                 req,
                 dpi: 300,
