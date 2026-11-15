@@ -21,13 +21,13 @@ import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react
 import type { DesktopShell } from "./engine/desktop-engine-client.ts";
 
 /** A channel an install follows. */
-export type Channel = "stable" | "beta" | "nightly";
+type Channel = "stable" | "beta" | "nightly";
 
 /** Why automatic updates are off: the user, policy, an MSI install or a Linux package manager. */
-export type Off = "user" | "policy" | "msi" | "package-manager";
+type Off = "user" | "policy" | "msi" | "package-manager";
 
 /** Where the update is (`State` in src-tauri/src/update/mod.rs). */
-export type UpdateState =
+type UpdateState =
   | { readonly state: "idle" }
   | { readonly state: "checking" }
   | { readonly state: "downloading"; readonly version: string; readonly percent: number | null }
@@ -51,7 +51,7 @@ export interface UpdateStatus {
 }
 
 /** The event the main process sends every window when the status changes. */
-export const STATUS_EVENT = "update://status";
+const STATUS_EVENT = "update://status";
 
 /** The status and the user's controls. */
 export interface DesktopUpdates {
@@ -111,7 +111,7 @@ function reportError(error: unknown): void {
 }
 
 /** The channel's name, as Settings writes it. */
-export function channelName(channel: Channel): string {
+function channelName(channel: Channel): string {
   return message(`settings.updates.channel.${channel}`);
 }
 
