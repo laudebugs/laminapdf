@@ -3,7 +3,8 @@
 // page itself (it lies on its side, then stands again) and in the dirty indicators (the top bar's
 // save state and the tab's "•"); the History tab going back to the file as opened; closing with
 // unsaved changes asks first, in the reader and in the browser, and closing a clean document
-// doesn't; and the 500-step limit, which drops the oldest step and says so in the History tab.
+// doesn't; and, in Chromium alone, the 500-step limit, which drops the oldest step and says so in
+// the History tab.
 // No CSP violation or other origin throughout.
 
 import type { Browser, Page } from "playwright";
@@ -147,25 +148,32 @@ describe(`the edit session in ${BROWSER}`, () => {
     await clean(watched);
   });
 
-  it("keeps 500 steps: the 501st edit drops the oldest, and the History tab says so", async () => {
-    const watched = await opened();
-    const { page } = watched;
-    await more(page, "Rotate page right");
-    // The command palette turns the page again each time.
-    for (let i = 1; i < 501; i++) {
-      await page.keyboard.press("ControlOrMeta+K");
-      await page.keyboard.type("rotate page right");
-      await page.keyboard.press("Enter");
-      await expect.poll(() => saveState(page)).toBe(`${i + 1} unsaved changes`);
-    }
-    await more(page, "Show history");
-    const tab = page.locator(".paper-history");
-    await expect.poll(() => tab.locator(".paper-history-count").textContent()).toBe("500 steps");
-    const first = tab.getByRole("button").first();
-    await expect.poll(() => first.textContent()).toContain("Earlier steps no longer kept");
-    // Back to the oldest step kept: the file as opened can't be reached, so a change stays unsaved.
-    await first.click();
-    await expect.poll(() => saveState(page), { timeout: 30_000 }).toBe("1 unsaved change");
-    await clean(watched);
-  }, 600_000);
+  // The 500-step limit is the edit session's, the same JavaScript in every browser, and the History
+  // tab is checked in each browser above; 500 edits through the palette take 1.5 to 2.5 minutes a
+  // browser, so this runs in Chromium alone.
+  it.skipIf(BROWSER !== "chromium")(
+    "keeps 500 steps: the 501st edit drops the oldest, and the History tab says so",
+    async () => {
+      const watched = await opened();
+      const { page } = watched;
+      await more(page, "Rotate page right");
+      // The command palette turns the page again each time.
+      for (let i = 1; i < 501; i++) {
+        await page.keyboard.press("ControlOrMeta+K");
+        await page.keyboard.type("rotate page right");
+        await page.keyboard.press("Enter");
+        await expect.poll(() => saveState(page)).toBe(`${i + 1} unsaved changes`);
+      }
+      await more(page, "Show history");
+      const tab = page.locator(".paper-history");
+      await expect.poll(() => tab.locator(".paper-history-count").textContent()).toBe("500 steps");
+      const first = tab.getByRole("button").first();
+      await expect.poll(() => first.textContent()).toContain("Earlier steps no longer kept");
+      // Back to the oldest step kept: the file as opened can't be reached, so a change stays unsaved.
+      await first.click();
+      await expect.poll(() => saveState(page), { timeout: 30_000 }).toBe("1 unsaved change");
+      await clean(watched);
+    },
+    600_000,
+  );
 });
