@@ -25,7 +25,7 @@ export function installerKind(name: string): InstallerKind | undefined {
 }
 
 /** One installer in the list. */
-export interface DownloadFile {
+interface DownloadFile {
   readonly platform: PlatformKey;
   readonly kind: InstallerKind;
   readonly name: string;

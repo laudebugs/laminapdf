@@ -153,7 +153,7 @@ function archFrom(architecture: string | undefined, os: Os | undefined, userAgen
 }
 
 /** The installer each system is offered first. */
-export const FIRST_KIND: Readonly<Record<Os, InstallerKind>> = { darwin: "dmg", windows: "nsis", linux: "appimage" };
+const FIRST_KIND: Readonly<Record<Os, InstallerKind>> = { darwin: "dmg", windows: "nsis", linux: "appimage" };
 
 /**
  * The platforms whose first installer to offer `visitor`: one, or a Mac's two (Apple silicon, then
@@ -223,7 +223,7 @@ export const WORDS = {
     windows:
       "Windows may show “Windows protected your PC”. Lamina PDF is new, so Microsoft SmartScreen hasn't seen many downloads of it yet. Select More info, check the publisher, then select Run anyway.",
     linux:
-      "Make the AppImage executable (chmod +x on it) and run it; it updates itself. The .deb and .rpm update with your system's packages. If a window stays blank, choose Settings › Graphics › Compatibility, or start the app with --safe-graphics.",
+      "Make the AppImage executable (chmod +x on it) and run it; it updates itself. The .deb and .rpm update with your system's packages. If a window stays blank, choose Settings › Graphics › Compatibility, or start the app with",
     nightly:
       "A nightly opens on macOS only after you allow it in System Settings › Privacy & Security, and on Windows after More info › Run anyway.",
   },

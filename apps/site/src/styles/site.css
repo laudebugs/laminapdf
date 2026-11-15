@@ -742,7 +742,8 @@ main {
 
 .download-hash {
   display: block;
-  max-width: 22ch;
+  /* Three lines of a 64-character hash. */
+  width: 22ch;
   overflow-wrap: anywhere;
   color: var(--paper-muted);
   font-size: 12px;

@@ -374,6 +374,11 @@ Sizes, hashes and the publisher name are placeholders (`[SIZE]`, `[PUBLISHER NAM
 
 **Platform differences.** Web only. On a phone (not drawn) the card stacks above the table and the table scrolls horizontally.
 
+**As built ([D7b](../../todos/ongoing/D7b-settings-renderer-switch-and-download-page.md)).** Three differences from the board:
+- **Built in, not fetched.** The page is built from each channel's `downloads/{channel}.json`, refreshed at every production deploy (`apps/site/src/data/downloads.json`, every six hours and on each push). It makes no request when it loads. The website's `connect-src 'self'` stays, with no CORS rule on the buckets, and a release shows at the next deploy. The "couldn't load the download list" state has nothing to show, and the files are plain links that work without JavaScript.
+- **A Nightly tab.** Nightly sits beside Beta and Stable, with a note that nightlies aren't signed and install apart. Released channels come first, so the first tab has files.
+- **Stable stays selectable.** Its tab reads "Stable · not released yet" and its pane says so, instead of a disabled tab. The site's tab script has no disabled state.
+
 **Artboards:** `S09-download.dc.html`.
 
 **Todos:** [D7b](../../todos/ongoing/D7b-settings-renderer-switch-and-download-page.md).
