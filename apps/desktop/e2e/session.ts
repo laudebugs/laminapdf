@@ -1,9 +1,9 @@
 // What the session scenarios share: the three files they open, and the session file as the app
 // left it, read from the test process as another program would.
-import { existsSync, readFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { fixture } from "./app.ts";
-import { output, sessionFile } from "./paths.ts";
+import { output, sessionFile, workingCopies } from "./paths.ts";
 
 export const example = (name: string) => fixture("fixtures", "golden", "examples", name);
 
@@ -25,4 +25,16 @@ export function savedTabs(): string[][] | undefined {
   if (!existsSync(sessionFile)) return undefined;
   const session = JSON.parse(readFileSync(sessionFile, "utf8")) as { windows: { tabs: { path: string }[] }[] };
   return session.windows.map((window) => window.tabs.map((tab) => basename(tab.path)));
+}
+
+/**
+ * The file the missing-file runs open and then delete: a copy of hello.pdf among the working
+ * copies, which the e2e build's file pick may open.
+ */
+export const vanishing = join(workingCopies, "vanishing.pdf");
+
+/** Makes {@link vanishing} again, for the run that opens it. */
+export function makeVanishing(): void {
+  mkdirSync(workingCopies, { recursive: true });
+  copyFileSync(example("hello.pdf"), vanishing);
 }

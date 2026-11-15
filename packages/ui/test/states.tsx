@@ -45,6 +45,7 @@ import {
   RemoteFailure,
   RepairDetails,
   RepairedNotice,
+  RestoreNotice,
   SegmentedTabs,
   Select,
   ShortcutChip,
@@ -117,6 +118,23 @@ const documentTabs: Example[] = [
         onReorder={() => {}}
         moves={[{ id: "new", label: "Move tab to new window" }]}
         onMove={() => {}}
+        platform="mac"
+      />
+    ),
+  },
+  {
+    component: "DocumentTabs",
+    state: "restored, one file missing (S02-tab-missing)",
+    element: () => (
+      <DocumentTabs
+        tabs={[
+          { id: "1", title: "report.pdf", detail: "Page 12" },
+          { id: "2", title: "Q2-board-report.pdf", missing: true },
+          { id: "3", title: "notes.pdf", detail: "Page 3" },
+        ]}
+        active="2"
+        onActivate={() => {}}
+        onClose={() => {}}
         platform="mac"
       />
     ),
@@ -923,6 +941,16 @@ const repairs: Example[] = [
     component: "OfflineNotice",
     state: "offline",
     element: () => <OfflineNotice onDismiss={noop} />,
+  },
+  {
+    component: "RestoreNotice",
+    state: "eight tabs, one file not found",
+    element: () => <RestoreNotice tabs={8} missing={1} onShowMissing={noop} onDismiss={noop} />,
+  },
+  {
+    component: "RestoreNotice",
+    state: "every file found",
+    element: () => <RestoreNotice tabs={3} missing={0} onShowMissing={noop} onDismiss={noop} />,
   },
   {
     component: "RecentList",

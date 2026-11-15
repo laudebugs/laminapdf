@@ -74,6 +74,7 @@ export const ROUTES: readonly Route[] = [
       "OpenFailure",
       "RemoteFailure",
       "OfflineNotice",
+      "RestoreNotice",
       "RecentList",
     ],
   },
@@ -110,6 +111,7 @@ export const ROUTES: readonly Route[] = [
       "RemoveSignaturesDialog",
       "ConformanceDialog",
       "NamedDestinationsDialog",
+      "LocateDifferentDialog",
     ],
     states: [
       "default",
@@ -131,6 +133,7 @@ export const ROUTES: readonly Route[] = [
       "remove-signatures",
       "conformance",
       "named-destinations",
+      "locate-different",
     ],
   },
   {

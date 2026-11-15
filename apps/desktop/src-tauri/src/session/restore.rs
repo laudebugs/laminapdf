@@ -17,6 +17,9 @@ pub(crate) struct RestoredTab {
     pub token: String,
     pub name: String,
     pub view: View,
+    /// Neither its bookmark nor its path finds its file now: the window marks the tab and counts
+    /// it in its restore notice.
+    pub missing: bool,
 }
 
 /// A window to make again, with its tabs.
@@ -51,7 +54,9 @@ pub(crate) fn plan(session: SessionFile, bookmarks: &dyn Bookmarks, tracker: &mu
         let mut tabs = Vec::with_capacity(record.tabs.len());
         for mut tab in record.tabs {
             // A file found elsewhere through its bookmark is restored from there.
-            if let Resolved::Moved(path) = resolve(&tab, bookmarks) {
+            let resolved = resolve(&tab, bookmarks);
+            let missing = resolved == Resolved::Missing;
+            if let Resolved::Moved(path) = resolved {
                 tab.path = path;
             }
             let name = tab
@@ -65,6 +70,7 @@ pub(crate) fn plan(session: SessionFile, bookmarks: &dyn Bookmarks, tracker: &mu
                 token: token.clone(),
                 name,
                 view: tab.view.clone(),
+                missing,
             });
             tracker.restored(token, &record.label, tab);
         }
@@ -155,6 +161,22 @@ mod tests {
         };
         let planned = plan(session, &NoBookmarks, &mut Tracker::default());
         assert_eq!(planned[0].tabs[0].name.as_str(), "gone.pdf");
+    }
+
+    #[test]
+    fn only_a_tab_whose_file_is_gone_should_be_marked_missing() {
+        let here = file("here.pdf");
+        let session = SessionFile {
+            v: VERSION,
+            windows: vec![window(
+                "main",
+                vec![tab(&here, 1), tab(Path::new("/nowhere/gone.pdf"), 2)],
+                Some(0),
+            )],
+        };
+        let planned = plan(session, &NoBookmarks, &mut Tracker::default());
+        let missing: Vec<bool> = planned[0].tabs.iter().map(|t| t.missing).collect();
+        assert_eq!(missing, [false, true]);
     }
 
     #[test]
