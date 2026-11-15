@@ -102,6 +102,7 @@ mod pm {
         pub(super) fn PMSessionEndPageNoDialog(session: Object) -> Status;
         pub(super) fn PMSessionEndDocumentNoDialog(session: Object) -> Status;
         pub(super) fn PMSessionError(session: Object) -> Status;
+        pub(super) fn PMSessionSetError(session: Object, error: Status) -> Status;
     }
 
     #[link(name = "CoreFoundation", kind = "framework")]
@@ -116,7 +117,7 @@ struct Owned(pm::Object);
 
 impl Owned {
     /// Takes `object` from a `Create`/`Copy` call that answered `status`.
-    fn created(status: pm::Status, object: pm::Object, what: &str) -> Result<Self, PrintError> {
+    fn created(status: pm::Status, object: pm::Object, what: &'static str) -> Result<Self, PrintError> {
         if status == 0 && !object.is_null() {
             Ok(Self(object))
         } else {
@@ -134,11 +135,11 @@ impl Drop for Owned {
     }
 }
 
-fn refused(what: &str, status: pm::Status) -> PrintError {
-    PrintError::Refused(format!("{what} failed ({status})"))
+fn refused(what: &'static str, status: pm::Status) -> PrintError {
+    PrintError::refused_with(what, i64::from(status))
 }
 
-fn check(status: pm::Status, what: &str) -> Result<(), PrintError> {
+fn check(status: pm::Status, what: &'static str) -> Result<(), PrintError> {
     if status == 0 {
         Ok(())
     } else {
@@ -162,8 +163,9 @@ impl std::fmt::Debug for Chosen {
     }
 }
 
-// SAFETY: Core Printing's objects are reference-counted and thread-safe; the `Chosen` is their
-// only holder in this code, and is used from one thread at a time.
+// SAFETY: the `Chosen` holds its own references to the printer and settings (retained and
+// copied in `choose`). It moves to the spooling thread whole and is never shared, so they're used
+// from one thread at a time; the print info `choose` read them from keeps only its own reference.
 unsafe impl Send for Chosen {}
 
 /// The printer and pages: `AppKit`'s print panel (printer, pages, copies), or, with `job.output`,
@@ -175,7 +177,7 @@ unsafe impl Send for Chosen {}
 pub fn choose(job: &PrintJob, page_count: usize) -> Result<Option<Chosen>, PrintError> {
     let main = MainThreadMarker::new().ok_or(PrintError::NotMainThread)?;
     let info: Retained<NSPrintInfo> = NSPrintInfo::sharedPrintInfo().copy();
-    if job.output.is_none() {
+    if job.output().is_none() {
         let panel = NSPrintPanel::printPanel(main);
         panel.setOptions(NSPrintPanelOptions::ShowsCopies | NSPrintPanelOptions::ShowsPageRange);
         if panel.runModalWithPrintInfo(&info) != NSModalResponseOK {
@@ -202,7 +204,7 @@ pub fn choose(job: &PrintJob, page_count: usize) -> Result<Option<Chosen>, Print
             pm::PMCopyPrintSettings(info.PMPrintSettings().as_ptr(), settings.0),
             "copying the print settings",
         )?;
-        let pages = chosen_pages(&settings, page_count, job.output.is_some());
+        let pages = chosen_pages(&settings, page_count, job.output().is_some());
         Ok(Some(Chosen {
             printer,
             settings,
@@ -299,7 +301,7 @@ fn draw_band(context: &CGContext, paper: pm::Rect, page: pm::Rect, band: &Band<'
     check_band(band)?;
     let (width, height) = (paper.right - paper.left, paper.bottom - paper.top);
     let (top, bottom) = band_edges(band, height);
-    let image = image_of(band).ok_or_else(|| PrintError::Refused("Core Graphics couldn't hold a band".into()))?;
+    let image = image_of(band).ok_or(PrintError::refused("holding a band in Core Graphics"))?;
     // From top-down paper coordinates to the context's bottom-up ones.
     let page_height = page.bottom - page.top;
     let rect = NSRect::new(
@@ -312,13 +314,14 @@ fn draw_band(context: &CGContext, paper: pm::Rect, page: pm::Rect, band: &Band<'
 
 /// An image over a copy of `band`'s RGBA pixels (opaque: the alpha byte is skipped).
 fn image_of(band: &Band<'_>) -> Option<CFRetained<CGImage>> {
+    check_band(band).ok()?;
     let width = usize::try_from(band.page_width).ok()?;
     let rows = usize::try_from(band.rows).ok()?;
     let data = CFData::from_bytes(band.pixels);
     let provider = CGDataProvider::with_cf_data(Some(&data))?;
     let space = CGColorSpace::new_device_rgb()?;
     let info = CGBitmapInfo(CGImageAlphaInfo::NoneSkipLast.0);
-    // SAFETY: the provider holds width × rows × 4 bytes (`check_band`), 8 bits a sample and 32 a
+    // SAFETY: the provider holds width × rows × 4 bytes (checked above), 8 bits a sample and 32 a
     // pixel; no decode array.
     unsafe {
         CGImage::new(
@@ -362,6 +365,7 @@ pub fn spool(chosen: Chosen, job: &PrintJob, source: &mut dyn PrintSource) -> Re
     // SAFETY: begins the document once, with live settings and format; every exit below ends it.
     let begun = unsafe { pm::PMSessionBeginCGDocumentNoDialog(session.0, chosen.settings.0, first_format.0) };
     check(begun, "starting the job")?;
+    source.start(chosen.pages.len());
     let mut printed = 0;
     let mut failed = None;
     for &page in &chosen.pages {
@@ -374,9 +378,13 @@ pub fn spool(chosen: Chosen, job: &PrintJob, source: &mut dyn PrintSource) -> Re
         }
         printed += 1;
     }
-    // SAFETY: ends the document begun above, whatever happened to its pages; then reads the live
-    // session's error.
+    // SAFETY: on a failure or a cancel, marks the live session cancelled first, so the pages
+    // spooled so far are dropped rather than printed; then ends the document begun above and reads
+    // the session's error.
     let (ended, error) = unsafe {
+        if failed.is_some() {
+            let _ = pm::PMSessionSetError(session.0, pm::CANCEL);
+        }
         (
             pm::PMSessionEndDocumentNoDialog(session.0),
             pm::PMSessionError(session.0),
@@ -403,10 +411,10 @@ fn begin(session: &Owned, chosen: &Chosen, job: &PrintJob) -> Result<(), PrintEr
         )?;
         let title = CFString::from_str(&job.title);
         let _ = pm::PMPrintSettingsSetJobName(chosen.settings.0, cf(&title));
-        if let Some(path) = job.output.as_deref().and_then(std::path::Path::to_str) {
+        if let Some(path) = job.output().and_then(std::path::Path::to_str) {
             let path = CFString::from_str(path);
             let url = CFURL::with_file_system_path(None, Some(&path), CFURLPathStyle::CFURLPOSIXPathStyle, false)
-                .ok_or_else(|| PrintError::Refused("the output path".into()))?;
+                .ok_or(PrintError::refused("naming the output file"))?;
             let pdf = CFString::from_str("application/pdf");
             check(
                 pm::PMSessionSetDestination(session.0, chosen.settings.0, pm::DESTINATION_FILE, cf(&pdf), cf(&url)),
@@ -448,7 +456,7 @@ fn spool_page(
                     draw_band(context, paper, printable, band)
                 })
             }
-            _ => Err(PrintError::Refused("the page has no graphics context".into())),
+            _ => Err(PrintError::refused("getting the page's graphics context")),
         };
         let ended = pm::PMSessionEndPageNoDialog(session.0);
         drawn?;

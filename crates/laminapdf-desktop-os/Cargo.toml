@@ -16,6 +16,11 @@ homepage.workspace = true
 [package.metadata.laminapdf]
 layer = "edge"
 
+[features]
+# Printing to a PDF file with no dialog (`PrintJob::output`): the desktop app's end-to-end builds and
+# this crate's print test only. Shipped builds can't print anywhere but where the user chooses.
+print-to-file = []
+
 [dependencies]
 thiserror = { workspace = true }
 
@@ -23,9 +28,8 @@ thiserror = { workspace = true }
 objc2 = { workspace = true }
 # Printing (D4c): the print panel and its info, and Core Graphics images over Core Foundation data.
 objc2-app-kit = { workspace = true, features = ["NSApplication", "NSPrintInfo", "NSPrintPanel", "NSResponder", "NSWindow"] }
-objc2-core-foundation = { version = "=0.3.2", default-features = false, features = ["std", "CFData", "CFString", "CFURL"] }
-objc2-core-graphics = { version = "=0.3.2", default-features = false, features = [
-    "std",
+objc2-core-foundation = { workspace = true, features = ["CFData", "CFString", "CFURL"] }
+objc2-core-graphics = { workspace = true, features = [
     "CGColorSpace",
     "CGContext",
     "CGDataProvider",
@@ -54,6 +58,7 @@ laminapdf = { workspace = true }
 [[test]]
 name = "print_to_file"
 harness = false
+required-features = ["print-to-file"]
 
 [lints]
 workspace = true

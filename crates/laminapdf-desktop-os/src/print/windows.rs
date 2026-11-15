@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 use windows::Win32::Foundation::{GlobalFree, HGLOBAL, HWND};
 use windows::Win32::Graphics::Gdi::{
     BI_RGB, BITMAPINFO, BITMAPINFOHEADER, CreateDCW, DEVMODEW, DIB_RGB_COLORS, DeleteDC, GetDeviceCaps, HDC,
-    PHYSICALHEIGHT, PHYSICALOFFSETX, PHYSICALOFFSETY, PHYSICALWIDTH, ResetDCW, SRCCOPY, StretchDIBits,
+    LOGPIXELSX, LOGPIXELSY, PHYSICALOFFSETX, PHYSICALOFFSETY, ResetDCW, SRCCOPY, StretchDIBits,
 };
 use windows::Win32::Storage::Xps::{AbortDoc, DOCINFOW, EndDoc, EndPage, StartDocW, StartPage};
 use windows::Win32::System::Memory::{GlobalLock, GlobalUnlock};
@@ -54,6 +54,16 @@ impl std::fmt::Debug for Chosen {
     }
 }
 
+impl Drop for Chosen {
+    /// Deletes the device context, whether or not the job was spooled.
+    fn drop(&mut self) {
+        // SAFETY: the DC `choose` created or the dialog returned, deleted once, here.
+        unsafe {
+            let _ = DeleteDC(HDC(self.dc as *mut c_void));
+        }
+    }
+}
+
 // SAFETY: the device context is a handle number GDI accepts from any thread, used by one thread
 // at a time (whoever holds the `Chosen`); `DEVMODEW` is plain data.
 unsafe impl Send for Chosen {}
@@ -64,11 +74,11 @@ unsafe impl Send for Chosen {}
 /// # Errors
 /// [`PrintError::Refused`] when the dialog or the PDF printer can't be opened.
 pub fn choose(owner: isize, job: &PrintJob, page_count: usize) -> Result<Option<Chosen>, PrintError> {
-    if job.output.is_some() {
+    if job.output().is_some() {
         // SAFETY: CreateDCW with static, null-terminated names; the DC is deleted by `spool`.
         let dc = unsafe { CreateDCW(w!("WINSPOOL"), w!("Microsoft Print to PDF"), PCWSTR::null(), None) };
         if dc.is_invalid() {
-            return Err(PrintError::Refused("Microsoft Print to PDF is not installed".into()));
+            return Err(PrintError::refused("opening Microsoft Print to PDF"));
         }
         return Ok(Some(Chosen {
             dc: dc.0 as isize,
@@ -76,7 +86,7 @@ pub fn choose(owner: isize, job: &PrintJob, page_count: usize) -> Result<Option<
             pages: (0..page_count).collect(),
         }));
     }
-    let count = u32::try_from(page_count).map_err(|_| PrintError::Refused("too many pages".into()))?;
+    let count = u32::try_from(page_count).map_err(|_| PrintError::refused("counting the pages"))?;
     let mut ranges = [PRINTPAGERANGE {
         nFromPage: 1,
         nToPage: count.max(1),
@@ -95,7 +105,8 @@ pub fn choose(owner: isize, job: &PrintJob, page_count: usize) -> Result<Option<
         ..Default::default()
     };
     // SAFETY: `dialog` is fully set up, its ranges point at `ranges`, which outlives the call.
-    unsafe { PrintDlgExW(&raw mut dialog) }.map_err(|error| PrintError::Refused(error.to_string()))?;
+    unsafe { PrintDlgExW(&raw mut dialog) }
+        .map_err(|error| PrintError::refused_with("showing the print dialog", i64::from(error.code().0)))?;
     let devmode = take_devmode(dialog.hDevMode);
     free(dialog.hDevNames);
     if dialog.dwResultAction != PD_RESULT_PRINT {
@@ -172,7 +183,7 @@ fn free(handle: HGLOBAL) {
 /// millimetre: `(code, width, length)`.
 fn paper(size: PrintPage) -> (i16, i16, i16) {
     let (short, long) = (size.width.min(size.height), size.width.max(size.height));
-    let near = |w: f64, h: f64| (short - w).abs() < 3.0 && (long - h).abs() < 3.0;
+    let near = |w: f64, h: f64| (short - w).abs() < 2.0 && (long - h).abs() < 2.0;
     #[expect(clippy::cast_possible_truncation, reason = "clamped to i16's range first")]
     let tenth_mm = |pt: f64| (pt / 72.0 * 254.0).round().clamp(1.0, f64::from(i16::MAX)) as i16;
     if near(595.0, 842.0) {
@@ -210,35 +221,45 @@ fn devmode_for(base: Option<&DEVMODEW>, size: PrintPage) -> DEVMODEW {
     devmode
 }
 
-/// The whole paper in device pixels, from the printable area's origin: the page's corner goes on
-/// the paper's corner.
+/// Where a page goes on the paper, in device pixels from the printable area's origin: the paper's
+/// corner, and the page's size at the device's resolution. Actual size, so a page keeps its shape
+/// on paper the driver chose for it; on its own paper, it fills it.
 struct Paper {
     x: i32,
     y: i32,
-    width: i32,
-    height: i32,
+    width: f64,
+    height: f64,
 }
 
-fn paper_of(dc: HDC) -> Paper {
+fn paper_of(dc: HDC, size: PrintPage) -> Paper {
     // SAFETY: GetDeviceCaps on a live printer DC.
-    unsafe {
-        Paper {
-            x: -GetDeviceCaps(Some(dc), PHYSICALOFFSETX),
-            y: -GetDeviceCaps(Some(dc), PHYSICALOFFSETY),
-            width: GetDeviceCaps(Some(dc), PHYSICALWIDTH),
-            height: GetDeviceCaps(Some(dc), PHYSICALHEIGHT),
-        }
+    let (x, y, dpi_x, dpi_y) = unsafe {
+        (
+            -GetDeviceCaps(Some(dc), PHYSICALOFFSETX),
+            -GetDeviceCaps(Some(dc), PHYSICALOFFSETY),
+            GetDeviceCaps(Some(dc), LOGPIXELSX),
+            GetDeviceCaps(Some(dc), LOGPIXELSY),
+        )
+    };
+    Paper {
+        x,
+        y,
+        width: size.width * f64::from(dpi_x) / 72.0,
+        height: size.height * f64::from(dpi_y) / 72.0,
     }
 }
 
 /// Draws `band` (BGRA) on `dc`'s page.
 fn draw_band(dc: HDC, paper: &Paper, band: &Band<'_>) -> Result<(), PrintError> {
     check_band(band)?;
-    let (top, bottom) = band_edges(band, f64::from(paper.height));
-    #[expect(clippy::cast_possible_truncation, reason = "within the paper's height, an i32")]
-    let (top, bottom) = (top.round() as i32, bottom.round() as i32);
-    let width = i32::try_from(band.page_width).map_err(|_| PrintError::Source("band too wide".into()))?;
-    let rows = i32::try_from(band.rows).map_err(|_| PrintError::Source("band too tall".into()))?;
+    let (top, bottom) = band_edges(band, paper.height);
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "a page at a printer's resolution fits an i32"
+    )]
+    let (top, bottom, dest_width) = (top.round() as i32, bottom.round() as i32, paper.width.round() as i32);
+    let width = i32::try_from(band.page_width).map_err(|_| PrintError::Source { kind: "bad-band" })?;
+    let rows = i32::try_from(band.rows).map_err(|_| PrintError::Source { kind: "bad-band" })?;
     let info = BITMAPINFO {
         bmiHeader: BITMAPINFOHEADER {
             biSize: win32_size::<BITMAPINFOHEADER>(),
@@ -258,7 +279,7 @@ fn draw_band(dc: HDC, paper: &Paper, band: &Band<'_>) -> Result<(), PrintError> 
             dc,
             paper.x,
             paper.y + top,
-            paper.width,
+            dest_width,
             bottom - top,
             0,
             0,
@@ -271,7 +292,7 @@ fn draw_band(dc: HDC, paper: &Paper, band: &Band<'_>) -> Result<(), PrintError> 
         )
     };
     if lines == 0 {
-        Err(PrintError::Refused("the printer refused a band".into()))
+        Err(PrintError::refused("drawing a band"))
     } else {
         Ok(())
     }
@@ -283,18 +304,12 @@ fn draw_band(dc: HDC, paper: &Paper, band: &Band<'_>) -> Result<(), PrintError> 
 /// # Errors
 /// [`PrintError::Refused`] when the printer refuses the job, and the source's error when a page
 /// couldn't be drawn; a cancel ends the job as [`PrintOutcome::Cancelled`].
-#[expect(
-    clippy::needless_pass_by_value,
-    reason = "the device context is deleted: the choice is used up"
-)]
 pub fn spool(chosen: Chosen, job: &PrintJob, source: &mut dyn PrintSource) -> Result<PrintOutcome, PrintError> {
     let dc = HDC(chosen.dc as *mut c_void);
     let result = spool_on(dc, &chosen, job, source);
-    // SAFETY: the DC `choose` returned, deleted once, whatever the job did.
-    unsafe {
-        let _ = DeleteDC(dc);
-    }
-    if let (Ok(PrintOutcome::Printed { .. }), Some(output)) = (&result, job.output.as_deref()) {
+    // The device context goes before the wait: Microsoft Print to PDF finishes the file after.
+    drop(chosen);
+    if let (Ok(PrintOutcome::Printed { .. }), Some(output)) = (&result, job.output()) {
         wait_for_file(output)?;
     }
     result
@@ -307,7 +322,7 @@ fn spool_on(
     source: &mut dyn PrintSource,
 ) -> Result<PrintOutcome, PrintError> {
     let title = HSTRING::from(job.title.as_str());
-    let output = job.output.as_ref().map(|path| HSTRING::from(path.as_os_str()));
+    let output = job.output().map(|path| HSTRING::from(path.as_os_str()));
     let info = DOCINFOW {
         cbSize: i32::try_from(size_of::<DOCINFOW>()).unwrap_or(i32::MAX),
         lpszDocName: PCWSTR(title.as_ptr()),
@@ -316,9 +331,10 @@ fn spool_on(
     };
     // SAFETY: the DOCINFOW's strings outlive the call.
     if unsafe { StartDocW(dc, &raw const info) } <= 0 {
-        return Err(PrintError::Refused("the printer refused the job".into()));
+        return Err(PrintError::refused("starting the job"));
     }
     let sizes = source.pages().to_vec();
+    source.start(chosen.pages.len());
     let mut printed = 0;
     for &page in &chosen.pages {
         let Some(&size) = sizes.get(page) else {
@@ -329,16 +345,19 @@ fn spool_on(
             // SAFETY: between StartDocW and EndDoc, with a complete DEVMODEW; the page is started
             // and ended once.
             unsafe {
-                let _ = ResetDCW(dc, &raw const devmode);
+                // A refused paper would print the page on the last one's: stop instead.
+                if ResetDCW(dc, &raw const devmode).is_invalid() {
+                    return Err(PrintError::refused("setting a page's paper"));
+                }
                 if StartPage(dc) <= 0 {
-                    return Err(PrintError::Refused("the printer refused a page".into()));
+                    return Err(PrintError::refused("starting a page"));
                 }
             }
-            let paper = paper_of(dc);
+            let paper = paper_of(dc, size);
             source.page_bands(page, PixelOrder::Bgra, &mut |band| draw_band(dc, &paper, band))?;
             // SAFETY: the page StartPage began.
             if unsafe { EndPage(dc) } <= 0 {
-                return Err(PrintError::Refused("the printer refused a page".into()));
+                return Err(PrintError::refused("ending a page"));
             }
             Ok(())
         })();
@@ -356,7 +375,7 @@ fn spool_on(
     }
     // SAFETY: ends the job StartDocW began.
     if unsafe { EndDoc(dc) } <= 0 {
-        return Err(PrintError::Refused("the printer refused to finish the job".into()));
+        return Err(PrintError::refused("finishing the job"));
     }
     Ok(PrintOutcome::Printed { pages: printed })
 }
@@ -374,7 +393,7 @@ fn wait_for_file(path: &Path) -> Result<(), PrintError> {
         last = size;
         std::thread::sleep(Duration::from_millis(500));
     }
-    Err(PrintError::Refused("the PDF printer didn't finish the file".into()))
+    Err(PrintError::refused("waiting for the PDF printer's file"))
 }
 
 #[cfg(test)]

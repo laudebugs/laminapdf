@@ -207,11 +207,18 @@ Conventions on this canvas:
 - **Native path failed:** notice in the status-bar slot replaced by a toast with action: “Couldn’t print with the system printer path. Try compatibility printing” → runs the web-view print path once; Settings › Advanced can make it the default.
 - **Page appearance not Original or Dark theme:** prints in Original; the dialog line says so (no separate warning, unlike the web R09 where the browser dialog can’t carry it).
 
-**Behaviour.** Pages render in the sandboxed engine at the printer’s resolution, one at a time; Cancel stops rendering within a second. No headers, footers or margins are added. Printing never changes the file.
+**Behaviour.** Pages render in the sandboxed engine at 300 dpi, one band at a time; Cancel stops rendering within a second. No headers, footers or margins are added. Printing never changes the file.
 
 **Accessibility.** The progress bar is `role="progressbar"` labelled by its text; Cancel printing is a real button reachable with F6 → status bar. Completion is announced by the toast.
 
 **Platform differences.** The dialog differs per OS (macOS sheet, Windows print dialog, GTK print dialog on Linux) and offers what the printer supports (duplex, collation). Web: R09 uses the browser’s print with a lamina pre-print panel.
+
+**As built ([D4c](../../todos/done/D4c-native-printing.md)).** Four differences from the drawings:
+
+- No compatibility printing: D1b measured the web view's print as the worst path on every OS. `print.compatibility`, the Native path failed toast's action and Settings › Advanced › Printing aren't built; a failure is a plain toast.
+- The status-bar item reads “Printing · 3 of 8 sent”, without the page range, and the Done toast reads “Sent 8 pages to the printer”, without the printer's name.
+- macOS's panel has no Current page choice, and on Linux GTK's own progress window replaces the status-bar item.
+- Pages print at actual size. Scale is whatever the OS dialog offers.
 
 **Artboards:** `S05-print.dc.html`, `S05-print-progress.dc.html`.
 
@@ -274,7 +281,7 @@ Conventions on this canvas:
 | Licence | Enter or remove a licence key; see [H02](account-cloud-product.md#h02-account-and-plan) | Account and cloud |
 | Account and plan | Signed-in account, plan, devices; see [H02](account-cloud-product.md#h02-account-and-plan) | Account and cloud |
 | Notifications | See [H07](account-cloud-product.md#h07-notifications) | Account and cloud |
-| Advanced (drawn, Linux frame) | Graphics (Linux only): Automatic / Compatibility / Safe mode, Restart lamina, `--safe-graphics` hint · Printing (`print.mode`): System printing (recommended) — “Uses your system’s print dialog; lamina renders each page at your printer’s resolution.” / Compatibility printing — “Prints through the built-in web view. Try it if a printer skips pages or prints them blank.” | D7b, D4c |
+| Advanced (drawn, Linux frame) | Graphics (Linux only): Automatic / Compatibility / Safe mode, Restart lamina, `--safe-graphics` hint · Printing (`print.mode`, not built: see S05 As built): System printing (recommended) — “Uses your system’s print dialog; lamina renders each page at your printer’s resolution.” / Compatibility printing — “Prints through the built-in web view. Try it if a printer skips pages or prints them blank.” | D7b, D4c |
 | About | Version and channel (“lamina 0.1.2 · Beta”), build line (release or nightly), Copy version info, View licences, laminapdf help, the code licence line (MIT or Apache-2.0) | D7b |
 
 **States.**

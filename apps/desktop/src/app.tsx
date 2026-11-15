@@ -160,6 +160,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
                 }
               />
             ) : null}
+            {print.status}
             {info === undefined ? null : <StatusBarItem>{`Lamina PDF ${info.version}`}</StatusBarItem>}
           </>
         }
@@ -185,7 +186,6 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
       </ReaderShell>
       {dragging === undefined ? null : <DropOverlay>{dropText(dragging)}</DropOverlay>}
       <PasswordDialog reader={reader} />
-      {print.dialog}
       {settings.dialog}
       {palette}
       <ToastRegion queue={toasts} aria-label="Notifications" />

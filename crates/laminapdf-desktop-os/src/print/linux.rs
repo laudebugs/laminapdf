@@ -26,12 +26,10 @@ struct Job {
 /// is scaled to the page's pixels.
 fn paint_band(cr: &gtk::cairo::Context, band: &Band<'_>) -> Result<(), PrintError> {
     check_band(band)?;
-    let refused = |error: gtk::cairo::Error| PrintError::Refused(error.to_string());
-    let width = i32::try_from(band.page_width).map_err(|_| PrintError::Source("band too wide".into()))?;
-    let rows = i32::try_from(band.rows).map_err(|_| PrintError::Source("band too tall".into()))?;
-    let stride = width
-        .checked_mul(4)
-        .ok_or_else(|| PrintError::Source("band too wide".into()))?;
+    let refused = |_: gtk::cairo::Error| PrintError::refused("drawing a band with cairo");
+    let width = i32::try_from(band.page_width).map_err(|_| PrintError::Source { kind: "bad-band" })?;
+    let rows = i32::try_from(band.rows).map_err(|_| PrintError::Source { kind: "bad-band" })?;
+    let stride = width.checked_mul(4).ok_or(PrintError::Source { kind: "bad-band" })?;
     // cairo keeps the surface's data while the page records it: a copy it owns.
     let surface = gtk::cairo::ImageSurface::create_for_data(
         band.pixels.to_vec(),
@@ -49,12 +47,11 @@ fn paint_band(cr: &gtk::cairo::Context, band: &Band<'_>) -> Result<(), PrintErro
 
 /// Draws page `page` of `job` on `cr`, whose units are the page's points.
 fn draw_page(job: &mut Job, cr: &gtk::cairo::Context, page: usize) -> Result<(), PrintError> {
-    let size = *job
-        .pages
-        .get(page)
-        .ok_or_else(|| PrintError::Source("no such page".into()))?;
+    let size = *job.pages.get(page).ok_or(PrintError::Source {
+        kind: "page-out-of-range",
+    })?;
     job.source.page_bands(page, PixelOrder::Bgra, &mut |band| {
-        let refused = |error: gtk::cairo::Error| PrintError::Refused(error.to_string());
+        let refused = |_: gtk::cairo::Error| PrintError::refused("drawing a band with cairo");
         cr.save().map_err(refused)?;
         // From the page's points to its pixels, one scale per axis, so the bands fill the page.
         cr.scale(
@@ -78,7 +75,7 @@ pub fn print(owner: Option<&Owner>, job: &PrintJob, source: Box<dyn PrintSource>
         return Err(PrintError::NotMainThread);
     }
     let pages = source.pages().to_vec();
-    let count = i32::try_from(pages.len()).map_err(|_| PrintError::Refused("too many pages".into()))?;
+    let count = i32::try_from(pages.len()).map_err(|_| PrintError::refused("counting the pages"))?;
     let state = Rc::new(RefCell::new(Job {
         source,
         pages: pages.clone(),
@@ -111,6 +108,12 @@ pub fn print(owner: Option<&Owner>, job: &PrintJob, source: Box<dyn PrintSource>
         setup.set_left_margin(0.0, Unit::Points);
         setup.set_right_margin(0.0, Unit::Points);
     });
+    let starting = Rc::clone(&state);
+    op.connect_begin_print(move |op, _| {
+        // The pages the user chose, known once the dialog closes.
+        let chosen = usize::try_from(op.n_pages_to_print()).unwrap_or(0);
+        starting.borrow_mut().source.start(chosen);
+    });
     let drawing = Rc::clone(&state);
     op.connect_draw_page(move |op, ctx, page| {
         let mut job = drawing.borrow_mut();
@@ -119,7 +122,7 @@ pub fn print(owner: Option<&Owner>, job: &PrintJob, source: Box<dyn PrintSource>
         }
         let drawn = match (ctx.cairo_context(), usize::try_from(page)) {
             (Some(cr), Ok(page)) => draw_page(&mut job, &cr, page),
-            _ => Err(PrintError::Refused("GTK gave no page to draw on".into())),
+            _ => Err(PrintError::refused("getting the page's cairo context")),
         };
         match drawn {
             Ok(()) => job.drawn += 1,
@@ -129,7 +132,7 @@ pub fn print(owner: Option<&Owner>, job: &PrintJob, source: Box<dyn PrintSource>
             }
         }
     });
-    let action = match job.output.as_deref() {
+    let action = match job.output() {
         Some(path) => {
             op.set_export_filename(path);
             PrintOperationAction::Export
@@ -144,7 +147,7 @@ pub fn print(owner: Option<&Owner>, job: &PrintJob, source: Box<dyn PrintSource>
         (None, Ok(PrintOperationResult::Apply | PrintOperationResult::InProgress)) => {
             Ok(PrintOutcome::Printed { pages: job.drawn })
         }
-        (None, Ok(_)) => Err(PrintError::Refused("GTK couldn't print".into())),
-        (None, Err(error)) => Err(PrintError::Refused(error.to_string())),
+        // GLib's message may name the export file: none of it is kept.
+        (None, _) => Err(PrintError::refused("printing with GTK")),
     }
 }

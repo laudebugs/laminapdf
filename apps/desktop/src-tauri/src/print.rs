@@ -70,10 +70,7 @@ impl Printing {
     fn start(&self, window: &str) -> Result<Arc<Cancel>, DesktopError> {
         let mut jobs = self.jobs();
         if jobs.contains_key(window) {
-            return Err(DesktopError::Engine {
-                kind: "printing",
-                message: "this window is printing already".into(),
-            });
+            return Err(DesktopError::AlreadyPrinting);
         }
         let cancel = Arc::new(Cancel::default());
         jobs.insert(window.to_owned(), Arc::clone(&cancel));
@@ -104,9 +101,18 @@ struct EngineSource {
     pages: Vec<PrintPage>,
     cancel: Arc<Cancel>,
     done: usize,
+    /// The pages the user chose, once the OS says (every page until then).
+    total: usize,
 }
 
 impl PrintSource for EngineSource {
+    fn start(&mut self, pages: usize) {
+        self.total = pages;
+        // The window's progress shows from the start, at 0 of the pages chosen.
+        let progress = Progress { done: 0, total: pages };
+        let _ = self.window.emit_to(self.window.label(), PROGRESS_EVENT, progress);
+    }
+
     fn pages(&self) -> &[PrintPage] {
         &self.pages
     }
@@ -117,7 +123,9 @@ impl PrintSource for EngineSource {
         order: PixelOrder,
         draw: &mut dyn FnMut(&Band<'_>) -> Result<(), PrintError>,
     ) -> Result<(), PrintError> {
-        let page_index = u32::try_from(page).map_err(|_| PrintError::Source("no such page".into()))?;
+        let page_index = u32::try_from(page).map_err(|_| PrintError::Source {
+            kind: "page-out-of-range",
+        })?;
         let format = match order {
             PixelOrder::Rgba => TileFormat::Rgba8,
             PixelOrder::Bgra => TileFormat::Bgra8,
@@ -142,7 +150,7 @@ impl PrintSource for EngineSource {
             *self.cancel.running() = None;
             let got = got.map_err(|error| match error {
                 DesktopError::Engine { kind: "cancelled", .. } => PrintError::Cancelled,
-                other => PrintError::Source(other.to_string()),
+                other => PrintError::Source { kind: other.kind() },
             })?;
             draw(&Band {
                 page_width: got.width,
@@ -159,11 +167,24 @@ impl PrintSource for EngineSource {
         self.done += 1;
         let progress = Progress {
             done: self.done,
-            total: self.pages.len(),
+            total: self.total,
         };
-        // The webview shows it on Windows; elsewhere the OS's own window does.
+        // The webview shows it on macOS and Windows; on Linux GTK's own window does.
         let _ = self.window.emit_to(self.window.label(), PROGRESS_EVENT, progress);
         Ok(())
+    }
+}
+
+/// A window's print, from its start: finishes it when dropped, so a print whose command future was
+/// dropped doesn't leave the window "printing already".
+struct Running {
+    printing: Arc<Printing>,
+    window: String,
+}
+
+impl Drop for Running {
+    fn drop(&mut self) {
+        self.printing.finish(&self.window);
     }
 }
 
@@ -176,10 +197,14 @@ pub(crate) async fn print(
     doc: DocId,
     job: PrintJob,
 ) -> Result<Printed, DesktopError> {
-    let label = window.label().to_owned();
-    let cancel = printing.start(&label)?;
+    let cancel = printing.start(window.label())?;
+    // Frees the window's print however this ends, a dropped command included.
+    let _running = Running {
+        printing: Arc::clone(&printing),
+        window: window.label().to_owned(),
+    };
     let result = tauri::async_runtime::spawn_blocking(move || {
-        let pages = engines
+        let pages: Vec<PrintPage> = engines
             .page_info(window.label(), doc)?
             .iter()
             .map(|page| PrintPage {
@@ -191,6 +216,7 @@ pub(crate) async fn print(
             engines,
             window: window.clone(),
             doc,
+            total: pages.len(),
             pages,
             cancel,
             done: 0,
@@ -200,7 +226,6 @@ pub(crate) async fn print(
     .await
     .map_err(|error| DesktopError::Internal(error.to_string()))
     .and_then(|result| result);
-    printing.finish(&label);
     match result? {
         PrintOutcome::Printed { .. } => Ok(Printed::Printed),
         PrintOutcome::Cancelled => Ok(Printed::Cancelled),
@@ -213,9 +238,9 @@ fn print_error(error: PrintError) -> DesktopError {
             kind: "cancelled",
             message: "the print was cancelled".into(),
         },
-        PrintError::Source(message) => DesktopError::Engine {
-            kind: "print-render",
-            message,
+        PrintError::Source { kind } => DesktopError::Engine {
+            kind,
+            message: "a page couldn't be drawn for printing".into(),
         },
         other => DesktopError::Engine {
             kind: "print-refused",
@@ -276,9 +301,7 @@ fn run_os_print(
 
 #[cfg(not(any(target_os = "macos", target_os = "linux", windows)))]
 fn run_os_print(_: &tauri::WebviewWindow, _: &PrintJob, _: EngineSource) -> Result<PrintOutcome, DesktopError> {
-    Err(print_error(PrintError::Refused(
-        "printing isn't available on this OS".into(),
-    )))
+    Err(print_error(PrintError::refused("printing on this OS")))
 }
 
 /// Prints this window's document `doc` (File ▸ Print…, ⌘P): the OS's print dialog, then its
@@ -295,11 +318,7 @@ pub(crate) async fn print_document(
         .path_in(window.label(), DocId(doc))
         .and_then(|path| path.file_name().map(|name| name.to_string_lossy().into_owned()))
         .ok_or(DesktopError::UnknownDocument)?;
-    let job = PrintJob {
-        title,
-        current_page: current_page.and_then(|page| usize::try_from(page).ok()),
-        output: None,
-    };
+    let job = PrintJob::new(title, current_page.and_then(|page| usize::try_from(page).ok()));
     print(
         window,
         engines.inner().clone(),
@@ -337,11 +356,8 @@ pub(crate) async fn e2e_print_to_file(
     path: String,
 ) -> Result<Vec<(f32, f32)>, DesktopError> {
     let path = std::path::PathBuf::from(path);
-    let job = PrintJob {
-        title: "e2e".into(),
-        current_page: None,
-        output: Some(path.clone()),
-    };
+    let mut job = PrintJob::new("e2e".into(), None);
+    job.output = Some(path.clone());
     let engines = engines.inner().clone();
     let label = window.label().to_owned();
     print(window, Arc::clone(&engines), printing.inner().clone(), DocId(doc), job).await?;

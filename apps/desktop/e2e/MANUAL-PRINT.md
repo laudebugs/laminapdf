@@ -16,7 +16,7 @@ The spike's comparison tool (`cargo run --bin compare` in `spikes/desktop-print/
 | --- | --- | --- |
 | 1 | Open `mixed-50.pdf`, File ▸ Print…, pages 5–12, print. | Exactly pages 5–12 print, at full size, with no headers, footers or margins added. |
 | 2 | Print `mixed-sizes.pdf` to the OS's PDF printer. | Windows and Linux: each page on paper of its own size and orientation. macOS: each page in its own orientation, on the job's paper ([#626](https://github.com/laudebugs/laminapdf/issues/626)). |
-| 3 | Print `mixed-50.pdf` and press Cancel in the progress (macOS, Windows) or GTK's window (Linux) after a few pages. | The job stops within a second, and the app stays responsive. Nothing more reaches the queue. |
+| 3 | Print `mixed-50.pdf` and press Cancel printing in the status bar (macOS, Windows) or GTK's window (Linux) after a few pages. | The job stops within a second, and the app stays responsive. Nothing more reaches the queue. |
 | 4 | Print with 2 copies, collated, duplex where the printer has it. | The driver's copies and duplex. |
 | 5 | Print `vectors.pdf` to a PDF and score it with the comparison tool. | SSIM ≥ 0.95. |
 | 6 | Watch the app's memory (Activity Monitor, Task Manager, `top`) while printing `mixed-50.pdf`. | The main process stays within about twice one page's raster at 300 dpi, about 70 MB for A4. |

@@ -15,8 +15,6 @@
 //! thread (`spool`). GTK prints only from the main thread, and draws from it too, so on Linux the
 //! source is asked for bands on the main thread (`print`).
 
-use std::path::PathBuf;
-
 #[cfg(target_os = "linux")]
 mod linux;
 #[cfg(target_os = "macos")]
@@ -89,6 +87,11 @@ pub trait PrintSource {
         order: PixelOrder,
         draw: &mut dyn FnMut(&Band<'_>) -> Result<(), PrintError>,
     ) -> Result<(), PrintError>;
+
+    /// Told how many pages will print, once the user has chosen them, before the first.
+    fn start(&mut self, pages: usize) {
+        let _ = pages;
+    }
 }
 
 /// One print job.
@@ -98,9 +101,33 @@ pub struct PrintJob {
     pub title: String,
     /// The page shown when Print was chosen, 0-based, for the dialog's "Current page".
     pub current_page: Option<usize>,
-    /// Print to this PDF file with no dialog (the app's end-to-end tests): Save as PDF on
-    /// macOS, Microsoft Print to PDF on Windows, GTK's export on Linux.
-    pub output: Option<PathBuf>,
+    /// Print to this PDF file with no dialog: Save as PDF on macOS, Microsoft Print to PDF on
+    /// Windows, GTK's export on Linux. Only with the feature `print-to-file` (the app's end-to-end
+    /// builds and this crate's print test), so shipped builds print only where the user chooses.
+    #[cfg(feature = "print-to-file")]
+    pub output: Option<std::path::PathBuf>,
+}
+
+impl PrintJob {
+    /// A job named `title`, offering `current_page` (0-based) as the dialog's "Current page".
+    #[must_use]
+    pub fn new(title: String, current_page: Option<usize>) -> Self {
+        Self {
+            title,
+            current_page,
+            #[cfg(feature = "print-to-file")]
+            output: None,
+        }
+    }
+
+    /// The PDF file to print to with no dialog, if any (never without `print-to-file`).
+    #[must_use]
+    pub fn output(&self) -> Option<&std::path::Path> {
+        #[cfg(feature = "print-to-file")]
+        return self.output.as_deref();
+        #[cfg(not(feature = "print-to-file"))]
+        None
+    }
 }
 
 /// How a print job ended.
@@ -125,12 +152,38 @@ pub enum PrintError {
     /// The user cancelled while the pages were drawn.
     #[error("the print job was cancelled")]
     Cancelled,
-    /// The engine couldn't draw a page.
-    #[error("a page couldn't be drawn: {0}")]
-    Source(String),
-    /// The OS refused a call.
-    #[error("the OS refused to print: {0}")]
-    Refused(String),
+    /// The engine couldn't draw a page, or sent a band that doesn't fit it; `kind` names why, as
+    /// the app's errors do (`render-failed`, `engine-restarted`, `bad-band` …).
+    #[error("a page couldn't be drawn ({kind})")]
+    Source {
+        /// The stable name of the failure.
+        kind: &'static str,
+    },
+    /// The OS refused a call: `what` it was doing, and the OS's status code when it gave one.
+    #[error("the OS refused to print: {what}{}", status.map(|s| format!(" ({s})")).unwrap_or_default())]
+    Refused {
+        /// What was being done, in fixed words: never text from the OS, which may name a file.
+        what: &'static str,
+        /// The OS's status or error code.
+        status: Option<i64>,
+    },
+}
+
+impl PrintError {
+    /// An OS refusal of `what`, with no code.
+    #[must_use]
+    pub const fn refused(what: &'static str) -> Self {
+        Self::Refused { what, status: None }
+    }
+
+    /// An OS refusal of `what`, with its status code.
+    #[must_use]
+    pub const fn refused_with(what: &'static str, status: i64) -> Self {
+        Self::Refused {
+            what,
+            status: Some(status),
+        }
+    }
 }
 
 /// Where a band's rows go on the page, in the page's own units (points, or device pixels): the
@@ -139,8 +192,11 @@ pub enum PrintError {
 #[must_use]
 pub fn band_edges(band: &Band<'_>, page_extent: f64) -> (f64, f64) {
     let height = f64::from(band.page_height.max(1));
-    let top = f64::from(band.y) * page_extent / height;
-    let bottom = f64::from(band.y + band.rows) * page_extent / height;
+    #[expect(clippy::cast_precision_loss, reason = "a row number below 2^33 is exact in an f64")]
+    let (top, bottom) = (
+        u64::from(band.y) as f64 * page_extent / height,
+        (u64::from(band.y) + u64::from(band.rows)) as f64 * page_extent / height,
+    );
     (top, bottom)
 }
 
@@ -159,9 +215,7 @@ pub fn check_band(band: &Band<'_>) -> Result<(), PrintError> {
     if fits {
         Ok(())
     } else {
-        Err(PrintError::Source(
-            "the engine sent a band that doesn't fit its page".into(),
-        ))
+        Err(PrintError::Source { kind: "bad-band" })
     }
 }
 

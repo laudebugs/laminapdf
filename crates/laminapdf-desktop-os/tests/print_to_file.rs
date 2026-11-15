@@ -16,8 +16,10 @@
     reason = "a test: a panic is a failure; the pages are small whole numbers of points"
 )]
 
+#[cfg(any(target_os = "macos", windows))]
 use laminapdf_desktop_os::print::{Band, PixelOrder, PrintError, PrintJob, PrintOutcome, PrintPage, PrintSource};
 
+#[cfg(any(target_os = "macos", windows))]
 /// A4 portrait, US Letter landscape, A4 landscape and A5 portrait, in points.
 const PAGES: [PrintPage; 4] = [
     PrintPage {
@@ -38,9 +40,11 @@ const PAGES: [PrintPage; 4] = [
     },
 ];
 
+#[cfg(any(target_os = "macos", windows))]
 /// Grey pages at 72 dpi, in bands of 100 rows.
 struct Grey;
 
+#[cfg(any(target_os = "macos", windows))]
 impl PrintSource for Grey {
     fn pages(&self) -> &[PrintPage] {
         &PAGES

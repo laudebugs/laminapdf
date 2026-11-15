@@ -197,6 +197,42 @@ mod tests {
         })
     }
 
+    fn print_band(req: u64) -> Job {
+        Job::Print(PrintBandRequest {
+            req: ReqId(req),
+            doc: DocId(1),
+            page: 0,
+            dpi: 300,
+            band: 0,
+            format: TileFormat::Bgra8,
+        })
+    }
+
+    #[test]
+    fn cancelling_a_queued_print_band_should_remove_it() {
+        let queue = Queue::default();
+        queue.push(print_band(1));
+        queue.push(print_band(2));
+        assert!(matches!(queue.cancel(ReqId(1)), Cancelled::Dequeued));
+        assert_eq!(order(&queue, 1), vec![Some(ReqId(2))]);
+    }
+
+    #[test]
+    fn cancelling_a_running_print_band_should_cancel_its_token() {
+        let queue = Queue::default();
+        let token = CancelToken::new();
+        queue.start(Some(ReqId(7)), token.clone());
+        assert!(matches!(queue.cancel(ReqId(7)), Cancelled::Running) && token.is_cancelled());
+    }
+
+    #[test]
+    fn a_print_band_should_go_before_prefetched_tiles() {
+        let queue = Queue::default();
+        queue.push(tile(1, Priority::Prefetch));
+        queue.push(print_band(2));
+        assert_eq!(order(&queue, 1), vec![Some(ReqId(2))]);
+    }
+
     fn order(queue: &Queue, n: usize) -> Vec<Option<ReqId>> {
         (0..n).map(|_| queue.pop().and_then(|job| job.req())).collect()
     }

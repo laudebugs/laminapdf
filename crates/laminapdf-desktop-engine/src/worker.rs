@@ -248,11 +248,11 @@ impl Worker {
             return;
         };
         let planned = crate::print::plan(render, band);
-        let (request, reply) = match planned {
+        let (request, reply, len) = match planned {
             Ok(planned) => planned,
             Err((kind, message)) => return self.error(req, kind, message),
         };
-        let mut pixels = vec![0_u8; crate::print::byte_len(&reply)];
+        let mut pixels = vec![0_u8; len];
         match render.render(&request, &mut pixels, cancel) {
             Ok(_) => {
                 if band.format == TileFormat::Bgra8 {

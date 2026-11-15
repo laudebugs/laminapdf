@@ -15,11 +15,12 @@ const BAND_PIXELS: u64 = 4 * 1024 * 1024;
 /// What a failed plan answers.
 pub(crate) type Failure = (FailureKind, String);
 
-/// The render request for `band` and the reply that will carry its pixels, or why there is none.
+/// The render request for `band`, the reply that will carry its pixels and their length in bytes,
+/// or why there is none.
 pub(crate) fn plan(
     render: &dyn RenderDocument,
     band: &PrintBandRequest,
-) -> Result<(RenderRequest, FromEngine), Failure> {
+) -> Result<(RenderRequest, FromEngine, usize), Failure> {
     if band.dpi == 0 || band.dpi > MAX_PRINT_DPI {
         return Err((FailureKind::Protocol, "the print resolution is out of range".into()));
     }
@@ -71,17 +72,9 @@ pub(crate) fn plan(
         bands,
         format: band.format,
     };
-    Ok((request, reply))
-}
-
-/// The payload's length for `reply`, a [`FromEngine::PrintBand`]: four bytes a pixel.
-pub(crate) fn byte_len(reply: &FromEngine) -> usize {
-    match reply {
-        FromEngine::PrintBand { width, rows, .. } => {
-            usize::try_from(u64::from(*width) * u64::from(*rows) * 4).unwrap_or(usize::MAX)
-        }
-        _ => 0,
-    }
+    let len = usize::try_from(u64::from(width) * u64::from(rows) * 4)
+        .map_err(|_| (FailureKind::TooLarge, "the band is too large".to_owned()))?;
+    Ok((request, reply, len))
 }
 
 /// Swaps red and blue in place: RGBA becomes BGRA.
