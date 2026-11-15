@@ -1,6 +1,6 @@
 // The document tabs' motion (motion plan §5): when the strip's tabs change, each tab that stays
-// slides from where it was to where it is, so a reorder and the gap a closed tab leaves close with
-// motion, and a new tab fades in growing from the motion scale. The slide is a FLIP: the tabs are
+// slides from where it was to where it is, so tabs slide on a reorder, and into the gap a closed
+// tab leaves, and a new tab fades in growing from the motion scale. The slide is a FLIP: the tabs are
 // laid out at their new places first, then each is drawn back at its old place and let go, through
 // the Web Animations API, with the tokens' durations and easings read from the strip's styles.
 // Under reduced motion `--paper-motion-travel` is 0 and `--paper-motion-scale` 1, so nothing

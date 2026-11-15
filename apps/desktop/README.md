@@ -110,9 +110,9 @@ Settings › Files has "Reopen last session", on by default. The session lists t
 The window behaves as a native one (motion plan §5):
 
 - **Its frame matches the theme.** Before the webview paints, the window shows Paper's `ground` for the OS's light or dark (`src-tauri/src/windows.rs`), and `index.html` asks the webview for the same, so a dark window never opens on a white frame.
-- **The chrome stays still.** The page doesn't bounce past its ends, the chrome's labels can't be selected, and right-clicking the chrome shows no webview menu (Back, Reload, Inspect Element). The document, the reader view's column and fields keep their menu and selection (`src/app.css`, `src/window-state.ts`).
+- **The chrome stays still.** The page doesn't bounce past its ends, the chrome's labels can't be selected, and right-clicking the chrome shows no webview menu (Back, Reload, Inspect Element). Everything else, the document, the reader view, dialogs, notices and fields, keeps its menu and selection (`src/app.css`, `src/window-state.ts`).
 - **An inactive window looks it.** The bars' text and icons turn muted while another window has the focus.
-- **Motion follows the system, or Settings.** Settings › Appearance and accessibility › Motion, kept with the other preferences in `preferences.json`, reduces motion in every window. Each OS's webview reads the system's reduce-motion setting itself, except WebKitGTK under Wayland, which misses GNOME's "Reduce animations" (GTK issue 5813). On Linux the main process reads it through `gsettings` (`src-tauri/src/motion.rs`, the `system_motion` command) whenever a window comes to the front, and `src/motion.ts` sets `data-motion="reduce"` on the page.
+- **Motion follows the system, or Settings.** Settings › Appearance and accessibility › Motion reduces motion in every window; it is kept with the other preferences in `preferences.json`. Each OS's webview reads the system's reduce-motion setting itself, except WebKitGTK under Wayland, which misses GNOME's "Reduce animations" (GTK issue 5813). On Linux the main process reads it through `gsettings` (`src-tauri/src/motion.rs`, the `system_motion` command) whenever a window comes to the front, and `src/motion.ts` sets `data-motion="reduce"` on the page.
 
 ### Native menus
 

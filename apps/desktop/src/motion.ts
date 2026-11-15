@@ -1,5 +1,5 @@
-// Reduced motion in the desktop window (motion plan §5): Settings › Motion, kept by the main
-// process with the other preferences, and the system's setting. The webview reads the system's
+// Reduced motion in the desktop window (motion plan §5): Settings › Appearance and accessibility ›
+// Motion, kept by the main process with the other preferences, and the system's setting. The webview reads the system's
 // `prefers-reduced-motion` itself, except where WebKitGTK misses GNOME's (src-tauri's motion.rs
 // reads that one), so the root carries `data-motion="reduce"` when the choice is Reduce motion or
 // the main process says the system asks for it. The tokens and @laminapdf/ui read that attribute
