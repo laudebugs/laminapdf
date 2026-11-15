@@ -12,11 +12,12 @@
 // before shows again.
 import type { ExternalStore, PlatformFile, ReaderController, ReaderState } from "@laminapdf/ui";
 import type { Viewer, ViewPosition } from "@laminapdf/viewer";
-import type {
-  DesktopDocument,
-  DesktopEngineClient,
-  DesktopShell,
-  RestartedPayload,
+import {
+  type DesktopDocument,
+  type DesktopEngineClient,
+  DesktopEngineError,
+  type DesktopShell,
+  type RestartedPayload,
 } from "../engine/desktop-engine-client.ts";
 import { desktopFile, documentOf, rebind, restoredFile, restoredToken } from "../engine/open.ts";
 import { RestoreNoticeState } from "./restore-notice.ts";
@@ -60,6 +61,10 @@ export interface RestoredWindow {
   readonly tabs: readonly RestoredTab[];
   readonly active: number | null;
 }
+
+/** Why a tab with unsaved edits stays: its edits are this window's engine's until they're saved. */
+const UNSAVED_MOVE =
+  "This document has unsaved edits, which can't move to another window yet. Undo them to move the tab.";
 
 /** How long the tabs and the view stay still before the main process hears of them. */
 const REPORT_AFTER_MS = 500;
@@ -377,9 +382,18 @@ export class WindowTabs implements ExternalStore<TabsState> {
     }
     const tab = this.#state.tabs.find((t) => t.id === id);
     if (tab === undefined) return;
-    this.#remove(tab.id);
     const doc = documentOf(tab.file)?.doc;
-    if (doc !== undefined) await this.#shell.invoke("close_document", { doc });
+    if (doc !== undefined && this.#client.hasUnsaved(doc)) {
+      // Its edits aren't saved: it shows, and closes through the reader, which asks first.
+      await this.activate(id);
+      this.#reader?.close();
+      return;
+    }
+    this.#remove(tab.id);
+    if (doc !== undefined) {
+      this.#client.dropEdits(doc);
+      await this.#shell.invoke("close_document", { doc });
+    }
   }
 
   /** The reader closed its open document: that tab and its document close. */
@@ -391,6 +405,7 @@ export class WindowTabs implements ExternalStore<TabsState> {
     const next = this.#neighbour(shown.id);
     this.#remove(shown.id);
     if (doc !== undefined) {
+      this.#client.dropEdits(doc);
       await this.#shell.invoke("close_document", { doc }).catch((error: unknown) => {
         console.warn("closing the document failed", error);
       });
@@ -431,9 +446,16 @@ export class WindowTabs implements ExternalStore<TabsState> {
     });
   }
 
+  /** Tab `id`'s drag was cancelled: it stays, and Rust stops following the cursor. */
+  async dragCancelled(id: string): Promise<void> {
+    await this.#dragStart;
+    const doc = this.#tab(id)?.doc;
+    if (doc !== undefined) await this.#shell.invoke<void>("tab_drag_cancel", { doc });
+  }
+
   /**
-   * Tab `id`'s drag ended without a drop on this window's strip (`outside`: the pointer had left
-   * this window, as far as the page can tell). Rust moves it to the window under the cursor, or
+   * Tab `id`'s drag was released off this window's strip (`outside`: the pointer was outside this
+   * window, as far as the page can tell). Rust moves it to the window under the cursor, or
    * to a new one when the cursor is outside every window, or leaves it here. A move goes as
    * {@link moveShown}'s does; on failure the tab stays and the error rejects.
    */
@@ -458,9 +480,12 @@ export class WindowTabs implements ExternalStore<TabsState> {
     const reader = this.#reader;
     if (found === undefined || reader === undefined) return;
     const { tab, doc } = found;
+    // Each window's engine holds its own edits: the other window would open the file without them.
+    if (this.#client.hasUnsaved(doc)) throw new DesktopEngineError("unsaved-edits", UNSAVED_MOVE);
     const shown = id === this.#state.active;
     const view = (shown ? this.#viewer.viewPosition() : tab.view) ?? null;
     if ((await send(doc, view)) === null) return;
+    this.#client.dropEdits(doc);
     const next = this.#neighbour(id);
     this.#remove(id);
     if (!shown) return;

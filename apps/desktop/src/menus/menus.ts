@@ -6,6 +6,7 @@
 import {
   type AnyCommand,
   type CommandContext,
+  type CommandId,
   type CommandRegistry,
   type KeyPlatform,
   type MessageId,
@@ -14,6 +15,7 @@ import {
   registerDesktopCommands,
   registerReaderCommands,
 } from "@laminapdf/ui";
+import { registerEditCommands } from "@laminapdf/ui/editing";
 import { EchoRegistry } from "./echo-registry.ts";
 import { LINKS, MENU_LAYOUT, MENU_WORDS, type MenuEntry, type MenuLayout } from "./layout.ts";
 
@@ -57,11 +59,23 @@ export interface MenusJson {
   readonly menus: readonly MenuJson[];
 }
 
+/**
+ * The edit session's commands the desktop has: undo, redo and turning the current page. Saving
+ * and the History tab come with saving in place.
+ */
+export const DESKTOP_EDIT_COMMANDS: readonly CommandId[] = [
+  "edit.undo",
+  "edit.redo",
+  "pages.rotate-right",
+  "pages.rotate-left",
+];
+
 /** A registry with every command the desktop app registers (`app.tsx` registers the same). */
 export function desktopRegistry(): CommandRegistry {
   const registry = new EchoRegistry();
   registerReaderCommands(registry);
   registerDesktopCommands(registry);
+  registerEditCommands(registry, DESKTOP_EDIT_COMMANDS);
   return registry;
 }
 

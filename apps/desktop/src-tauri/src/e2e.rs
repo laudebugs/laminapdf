@@ -14,6 +14,7 @@ use std::time::Instant;
 use tauri::Manager as _;
 
 use crate::DesktopError;
+use crate::tab_drag::{Frame, Point};
 
 /// When `run()` began: the start of the cold start `e2e_interactive` reports.
 static STARTED: OnceLock<Instant> = OnceLock::new();
@@ -116,6 +117,72 @@ pub(crate) fn e2e_queue_pick(queue: tauri::State<'_, QueuedPick>, path: String) 
     let resolved = fixture_path(Path::new(&path), &fixture_roots())
         .ok_or_else(|| DesktopError::Internal("e2e_queue_pick: not a fixture".to_owned()))?;
     queue.set(resolved);
+    Ok(())
+}
+
+/// How far inside a window's edge `visible_point` tries its corners, in points: clear of borders.
+const CORNER_INSET: f64 = 24.0;
+/// How far right of every window `outside` puts the cursor, in points.
+const OUTSIDE_GAP: f64 = 400.0;
+/// How far below the first window's top `outside` puts the cursor, in points.
+const OUTSIDE_DROP: f64 = 100.0;
+
+/// Where `e2e_place_cursor` put the cursor that a tab's drag reads, if anywhere: `WebDriver` moves
+/// the pointer inside a page only, never the OS's cursor.
+static PLACED_CURSOR: Mutex<Option<Point>> = Mutex::new(None);
+
+/// The cursor a tab's drag reads instead of the OS's, once a test placed one.
+pub(crate) fn placed_cursor() -> Option<Point> {
+    *PLACED_CURSOR.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
+/// A point of window `label` that no window in front of it covers: its middle, else a point near
+/// one of its corners. Windows may overlap, and a drop where another window is in front lands on
+/// that one.
+fn visible_point(label: &str, frames: &[(String, Frame)]) -> Option<Point> {
+    let (_, frame) = frames.iter().find(|(name, _)| name == label)?;
+    [(0.5, 0.5), (0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (1.0, 1.0)]
+        .into_iter()
+        .map(|(across, down)| Point {
+            x: frame.x + CORNER_INSET + across * (frame.width - 2.0 * CORNER_INSET),
+            y: frame.y + CORNER_INSET + down * (frame.height - 2.0 * CORNER_INSET),
+        })
+        .find(|point| crate::tab_drag::window_at(*point, frames) == Some(label))
+}
+
+/// Places the cursor a tab's drag reads (`src/tab_drag.rs`): `window:<label>` puts it in the
+/// middle of that window, `outside` to the right of every window, `os` gives back the OS's own.
+#[tauri::command]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri hands a command its arguments by value"
+)]
+pub(crate) fn e2e_place_cursor(app: tauri::AppHandle, at: String) -> Result<(), DesktopError> {
+    let frames = crate::tab_drag::window_frames(&app);
+    let point = match at.as_str() {
+        "os" => None,
+        "outside" => {
+            let right = frames
+                .iter()
+                .map(|(_, frame)| frame.x + frame.width)
+                .fold(0.0, f64::max);
+            let top = frames.first().map_or(0.0, |(_, frame)| frame.y);
+            Some(Point {
+                x: right + OUTSIDE_GAP,
+                y: top + OUTSIDE_DROP,
+            })
+        }
+        _ => {
+            let label = at
+                .strip_prefix("window:")
+                .ok_or_else(|| DesktopError::Internal(format!("no place {at}")))?;
+            Some(
+                visible_point(label, &frames)
+                    .ok_or_else(|| DesktopError::Internal(format!("{label} isn't showing")))?,
+            )
+        }
+    };
+    *PLACED_CURSOR.lock().unwrap_or_else(PoisonError::into_inner) = point;
     Ok(())
 }
 

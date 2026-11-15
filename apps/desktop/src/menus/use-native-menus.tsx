@@ -4,7 +4,7 @@
 // that reaches a command through both the web view and a menu's accelerator runs it once (the
 // registry's `source`).
 
-import type { CommandContext, CommandId, CommandRegistry } from "@laminapdf/ui";
+import { type CommandContext, type CommandId, type CommandRegistry, isEditable } from "@laminapdf/ui";
 import { useEffect } from "react";
 import MENUS from "../../src-tauri/menus.json" with { type: "json" };
 import type { DesktopShell } from "../engine/desktop-engine-client.ts";
@@ -28,6 +28,9 @@ export interface CommandState {
   readonly checked?: boolean | string;
 }
 
+/** The menu commands a text field with the focus does itself. */
+const FIELD_EDITS: Partial<Record<CommandId, "undo" | "redo">> = { "edit.undo": "undo", "edit.redo": "redo" };
+
 /** The ids of the commands the menus list. */
 const IDS = menuCommandIds(MENUS as MenusJson) as readonly CommandId[];
 
@@ -49,6 +52,14 @@ export function menuState(registry: CommandRegistry, context: CommandContext): C
  */
 export function runMenuCommand(registry: CommandRegistry, context: CommandContext, command: MenuCommand): void {
   const id = command.id as CommandId;
+  // In a text field, Edit ▸ Undo and Redo (and their keys, which the menu takes first) are the
+  // field's, as the OS's own Edit menu would make them.
+  const inField = FIELD_EDITS[id];
+  const focused = inField === undefined ? undefined : globalThis.document?.activeElement;
+  if (inField !== undefined && focused != null && isEditable(focused)) {
+    document.execCommand(inField);
+    return;
+  }
   if (registry.get(id) === undefined) {
     void context.actions?.[id]?.(command.arg);
     return;
@@ -85,7 +96,12 @@ export function useNativeMenus(
       });
     };
     report();
-    const stops = [registry.subscribe(report), context.reader?.subscribe(report), context.viewer?.subscribe(report)];
+    const stops = [
+      registry.subscribe(report),
+      context.reader?.subscribe(report),
+      context.viewer?.subscribe(report),
+      context.edits?.subscribe(report),
+    ];
     return () => {
       for (const stop of stops) stop?.();
     };

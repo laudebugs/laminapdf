@@ -70,6 +70,8 @@ export function exposeProbe(engine: DesktopEngine | undefined): void {
       const view = engine?.viewer.element;
       if (view !== undefined) view.scrollTop = view.scrollHeight;
     },
+    rotation: (index) => engine?.client.document?.pages[index]?.rotation,
+    unsaved: () => engine?.viewer.edits.getState().history.unsaved ?? 0,
   };
 }
 

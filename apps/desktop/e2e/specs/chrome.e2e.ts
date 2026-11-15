@@ -1,5 +1,5 @@
 // The desktop chrome as a window rather than a web page (motion plan §5): the hand on its controls
-// and links, chrome labels that can't be selected while the document can, no webview context menu
+// and links (the grab hand on its tabs), chrome labels that can't be selected while the document can, no webview context menu
 // on the chrome, a tab strip that is there from the first tab so a second moves nothing below it,
 // and Settings › Motion turning reduced motion on in the window.
 import { platform } from "node:process";
@@ -63,8 +63,9 @@ describe("the desktop chrome", () => {
     expect(await canvasTop()).toBe(top);
   });
 
-  it("should show the hand on tabs and the strip's menu, and keep the chrome's labels unselectable", async () => {
-    expect(await computed('[role="tab"]', "cursor")).toBe("pointer");
+  it("should show the grab hand on tabs, the hand on the strip's menu, and keep the chrome's labels unselectable", async () => {
+    // A tab can be dragged (to reorder it, or out to another window), so it shows the grab cursor.
+    expect(await computed('[role="tab"]', "cursor")).toBe("grab");
     expect(await computed(".paper-document-tabs-menu", "cursor")).toBe("pointer");
     expect(await unselectable(".paper-top-bar")).toBe(true);
     expect(await unselectable('[role="tab"]')).toBe(true);

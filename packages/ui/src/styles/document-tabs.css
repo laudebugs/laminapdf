@@ -3,8 +3,11 @@
    active tab takes the top bar's `surface` and drops its bottom rule, so it joins the bar. The
    close button shows on the active, hovered and focused tab. The strip scrolls sideways when the
    tabs don't fit; its menu at the end lists them all. On touch every target grows to the touch
-   minimum (`--ui-target`). Tabs open, close and reorder with motion (tab-motion.ts); hover fades in
-   and out on the state tokens and applies only to a pointer that hovers (design language §7.0). */
+   minimum (`--ui-target`). A draggable tab shows the grab cursor; while one is dragged the whole
+   page shows the grabbing cursor (the pointer is captured, so no other control reacts), and an
+   accent bar marks where the tab would go. Tabs open, close and reorder with motion (tab-motion.ts);
+   hover fades in and out on the state tokens and applies only to a pointer that hovers (design
+   language §7.0). */
 @layer paper.components {
   .paper-reader-head {
     grid-row: 1;
@@ -21,6 +24,9 @@
 
   .paper-document-tabs-list {
     display: flex;
+    /* A drag across the tabs moves a tab; it never selects their names. */
+    -webkit-user-select: none;
+    user-select: none;
     flex: 1 1 auto;
     min-inline-size: 0;
     overflow-x: auto;
@@ -46,6 +52,37 @@
 
   .paper-document-tab[data-dragging] {
     opacity: 0.5;
+  }
+
+  /* Where the dragged tab would go: a bar at this tab's start, or after the last tab, inside the
+     tab so the strip's edge never clips it. */
+  .paper-document-tab[data-drop]::after {
+    position: absolute;
+    inset-block: var(--paper-space-4);
+    inline-size: var(--paper-space-2);
+    border-radius: var(--paper-radius-pill);
+    background: var(--paper-accent);
+    content: "";
+    pointer-events: none;
+  }
+
+  .paper-document-tab[data-drop="before"]::after {
+    inset-inline-start: 0;
+  }
+
+  .paper-document-tab[data-drop="after"]::after {
+    inset-inline-end: 0;
+  }
+
+  .paper-document-tab-label[data-draggable] {
+    cursor: var(--paper-cursor-grab);
+  }
+
+  /* Every element, so nothing under the pointer shows its own cursor mid-drag. */
+  :root[data-tab-dragging],
+  :root[data-tab-dragging] * {
+    /* biome-ignore lint/complexity/noImportantStyles: it must beat every control's own cursor while the pointer is held */
+    cursor: var(--paper-cursor-grabbing) !important;
   }
 
   .paper-document-tab-label {

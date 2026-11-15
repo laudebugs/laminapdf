@@ -1,8 +1,9 @@
 // The window's document tabs: one Tab stop that the arrow keys move along, Enter shows the focused
 // tab, Delete closes it, the close buttons and the strip's menu reach every tab, dragging a tab
-// onto another reorders them, and a drag that ends anywhere else is handed to the shell. A tab whose
-// file is missing carries a named warning mark, and the menu says "Not found" or each tab's page;
-// the restore notice counts what came back and shows a missing file.
+// across the strip reorders it, a marker and the grabbing cursor
+// show while it is dragged, a release anywhere else is handed to the shell, and Escape cancels. A
+// tab whose file is missing carries a named warning mark, and the menu says "Not found" or each
+// tab's page; the restore notice counts what came back and shows a missing file.
 
 import { useState } from "react";
 import { afterEach, describe, expect, it, onTestFinished } from "vitest";
@@ -42,6 +43,7 @@ function Strip({ log }: { log: string[] }) {
       onMove={(id) => log.push(`move ${id}`)}
       onDragStart={(id) => log.push(`drag ${id}`)}
       onDragOut={(id, outside) => log.push(`out ${id} ${outside ? "outside" : "inside"}`)}
+      onDragCancel={(id) => log.push(`cancel ${id}`)}
       platform="mac"
     />
   );
@@ -93,15 +95,14 @@ describe("the document tabs", () => {
     expect(log).toEqual(["activate c", "move new"]);
   });
 
-  it("move a tab one step right when dropped on its right-hand neighbour", async () => {
+  it("move a tab one step right when dropped past its right-hand neighbour's middle", async () => {
     const log: string[] = [];
     renderIn(<Strip log={log} />);
+    const onto = page.getByRole("tab", { name: "notes.pdf" }).element().getBoundingClientRect();
     const from = page.getByRole("tab", { name: "report.pdf" }).element();
-    const onto = page.getByRole("tab", { name: "notes.pdf" }).element();
-    const data = new DataTransfer();
-    from.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: data }));
-    onto.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: data }));
-    onto.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: data }));
+    drag(from, { x: onto.right - 4, y: onto.top + 8 });
+    // The click a browser sends after the release that ends the drag shows no tab.
+    from.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
     await expect.poll(() => log).toEqual(["drag a", "reorder bac"]);
   });
 
@@ -114,53 +115,78 @@ describe("the document tabs", () => {
     expect(log).toEqual(["activate a", "activate b", "move new"]);
   });
 
-  it("reorder when a tab is dropped on another", async () => {
+  it("reorder when a tab is dropped on another's first half", async () => {
     const log: string[] = [];
     renderIn(<Strip log={log} />);
-    const from = page.getByRole("tab", { name: "minutes.pdf" }).element();
-    const onto = page.getByRole("tab", { name: "report.pdf" }).element();
-    const data = new DataTransfer();
-    from.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: data }));
-    onto.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: data }));
-    onto.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: data }));
+    const onto = page.getByRole("tab", { name: "report.pdf" }).element().getBoundingClientRect();
+    drag(page.getByRole("tab", { name: "minutes.pdf" }).element(), { x: onto.left + 4, y: onto.top + 8 });
     await expect.poll(() => log).toEqual(["drag c", "reorder cab"]);
   });
 
-  it("hand a drag that ends off the strip to the shell, inside the page or out of it", async () => {
+  it("show where the tab would go and the grabbing cursor while it is dragged", async () => {
+    const log: string[] = [];
+    renderIn(<Strip log={log} />);
+    const from = page.getByRole("tab", { name: "minutes.pdf" }).element();
+    const onto = page.getByRole("tab", { name: "report.pdf" }).element().getBoundingClientRect();
+    press(from, middleOf(from.getBoundingClientRect()));
+    move(from, { x: onto.left + 4, y: onto.top + 8 });
+    await expect
+      .poll(() => [document.querySelector('[data-drop="before"]')?.textContent, getComputedStyle(from).cursor])
+      .toEqual(["report.pdf", "grabbing"]);
+    release(from, { x: onto.left + 4, y: onto.top + 8 });
+    await expect
+      .poll(() => [document.querySelector("[data-drop]"), "tabDragging" in document.documentElement.dataset])
+      .toEqual([null, false]);
+  });
+
+  it("hand a tab released off the strip to the shell, inside the page or out of it", async () => {
     const log: string[] = [];
     renderIn(<Strip log={log} />);
     const from = page.getByRole("tab", { name: "notes.pdf" }).element();
-    const data = new DataTransfer();
-    from.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: data }));
-    document.body.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: data }));
-    from.dispatchEvent(new DragEvent("dragend", { bubbles: true, dataTransfer: data }));
-    // No dragover for a while: the pointer has left the page.
-    from.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: data }));
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    from.dispatchEvent(new DragEvent("dragend", { bubbles: true, dataTransfer: data }));
+    const start = middleOf(from.getBoundingClientRect());
+    const below = { x: start.x, y: start.y + 200 };
+    press(from, start);
+    move(from, below);
+    release(from, below);
+    press(from, start);
+    move(from, below);
+    release(from, { x: -20, y: -20 });
     await expect.poll(() => log).toEqual(["drag b", "out b inside", "drag b", "out b outside"]);
   });
 
-  it("keep a drag that dropped on the strip to itself, and take no other strip's tab", async () => {
+  it("leave the tab where it was when Escape cancels the drag", async () => {
     const log: string[] = [];
+    renderIn(<Strip log={log} />);
+    const from = page.getByRole("tab", { name: "notes.pdf" }).element();
+    const start = middleOf(from.getBoundingClientRect());
+    press(from, start);
+    move(from, { x: start.x, y: start.y + 200 });
+    await userEvent.keyboard("{Escape}");
+    release(from, { x: start.x, y: start.y + 200 });
+    expect(log).toEqual(["drag b", "cancel b"]);
+  });
+
+  it("show a tab on a click that doesn't move", async () => {
+    const log: string[] = [];
+    renderIn(<Strip log={log} />);
+    await userEvent.click(page.getByRole("tab", { name: "minutes.pdf" }));
+    expect(log).toEqual(["activate c"]);
+  });
+
+  it("hand a tab dropped on another strip to the shell, not to that strip", async () => {
+    const log: string[] = [];
+    const other: string[] = [];
     renderIn(
       <>
         <Strip log={log} />
-        <Strip log={[]} />
+        <Strip log={other} />
       </>,
     );
-    const mine = page.getByRole("tab", { name: "report.pdf" }).elements()[0];
-    const onto = page.getByRole("tab", { name: "notes.pdf" }).elements()[1];
-    if (mine === undefined || onto === undefined) throw new Error("two strips expected");
-    const data = new DataTransfer();
-    mine.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: data }));
-    mine.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: data }));
-    mine.dispatchEvent(new DragEvent("dragend", { bubbles: true, dataTransfer: data }));
-    // The other strip refuses this one's tab: its dragover isn't cancelled, so no drop happens there.
-    const foreign = new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: data });
-    onto.dispatchEvent(foreign);
-    expect(foreign.defaultPrevented).toBe(false);
-    expect(log).toEqual(["drag a"]);
+    const mine = page.getByRole("tab", { name: "report.pdf" }).nth(0).element();
+    const theirs = page.getByRole("tab", { name: "notes.pdf" }).nth(1).element().getBoundingClientRect();
+    drag(mine, { x: theirs.left + 4, y: theirs.top + 8 });
+    await expect.poll(() => log).toEqual(["drag a", "out a inside"]);
+    expect(other).toEqual([]);
   });
 
   it("mark a missing file's tab, and say Not found or each tab's page in the menu", async () => {
@@ -292,3 +318,26 @@ describe("the document tabs' motion after a resize", () => {
     expect(motion("b")).toEqual([]);
   });
 });
+
+/** The middle of `box`. */
+function middleOf(box: DOMRect): { x: number; y: number } {
+  return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+}
+
+/** A mouse pointer event of `type` at `at`, dispatched to `target`. */
+function pointer(target: Element, type: string, at: { x: number; y: number }, buttons: number): void {
+  const init = { bubbles: true, cancelable: true, pointerId: 1, pointerType: "mouse", isPrimary: true };
+  target.dispatchEvent(new PointerEvent(type, { ...init, button: 0, buttons, clientX: at.x, clientY: at.y }));
+}
+
+const press = (target: Element, at: { x: number; y: number }) => pointer(target, "pointerdown", at, 1);
+const move = (target: Element, at: { x: number; y: number }) => pointer(target, "pointermove", at, 1);
+const release = (target: Element, at: { x: number; y: number }) => pointer(target, "pointerup", at, 0);
+
+/** Presses `from` in its middle, moves to `to` and releases there. Dispatched rather than through
+ * Playwright's mouse, which every test file running at once shares. */
+function drag(from: Element, to: { x: number; y: number }): void {
+  press(from, middleOf(from.getBoundingClientRect()));
+  move(from, to);
+  release(from, to);
+}

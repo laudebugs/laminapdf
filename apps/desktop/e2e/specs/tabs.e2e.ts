@@ -4,14 +4,15 @@
 import { $, browser, expect } from "@wdio/globals";
 import {
   closeAll,
+  closeWindowFor,
   drawsAfterZoomOut,
   fixture,
-  focusWindow,
   goToPage,
   moveToNewWindow,
   open,
   openAndWait,
   shownTab,
+  startOver,
   tabNames,
   view,
   waitForSharp,
@@ -30,40 +31,9 @@ function pagesShown(): Promise<number> {
 /** The window the app started with, where every scenario before this one ran. */
 let home = "";
 
-/**
- * Closes the window WebDriver is on and goes back to `handle`, once the closed one is gone: until
- * then it can still hold the keyboard, and a shortcut sent next goes to it.
- */
-async function closeWindowFor(handle: string): Promise<void> {
-  const closing = await browser.getWindowHandle();
-  await browser.closeWindow();
-  await browser.waitUntil(async () => !(await browser.getWindowHandles()).includes(closing), {
-    timeoutMsg: "the window didn't close",
-  });
-  await browser.switchToWindow(handle);
-  // macOS can leave it in the background, where WebKit slows its work (a shortcut, an open).
-  await focusWindow();
-}
-
-/**
- * Leaves the window the scenarios began in, alone and on its start screen. The window tests start
- * here so that each, and the retry of a failed attempt, opens its own files: an attempt that
- * failed leaves windows and documents open (an encrypted one unlocked), and a retry built on them
- * fails at once, hiding the first attempt's error behind its own.
- */
-async function startOver(): Promise<void> {
-  for (const handle of await browser.getWindowHandles()) {
-    if (handle === home) continue;
-    await browser.switchToWindow(handle);
-    await closeWindowFor(home);
-  }
-  await browser.switchToWindow(home);
-  await closeAll();
-}
-
 /** Moves flowing_report.pdf, shown on its page 5, to a new window, then invoice.pdf to that window from the strip's menu. */
 async function movesToWindows(): Promise<void> {
-  await startOver();
+  await startOver(home);
   await openAndWait(example("hello.pdf"));
   await openAndWait(example("invoice.pdf"));
   await openAndWait(example("flowing_report.pdf"));
@@ -100,7 +70,7 @@ async function movesToWindows(): Promise<void> {
 
 /** Opens the encrypted fixture, moves it to a new window, then on to another, and closes the one between. */
 async function movesEncrypted(): Promise<void> {
-  await startOver();
+  await startOver(home);
   await open(fixture("fixtures", "encrypted", "r3-rc4-128-user.pdf"));
   await $('input[aria-label="Password"]').setValue("user-pw");
   await $("button=Open").click();

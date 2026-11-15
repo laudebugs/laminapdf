@@ -9,8 +9,8 @@ use std::sync::Arc;
 
 use laminapdf::OpenOptions;
 use laminapdf_desktop_protocol::{
-    DocId, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PageDimensions, Password, PrintBandRequest, ReqId,
-    TileAppearance, TileFormat, TileRequest, ViewRotation,
+    DocId, EditCall, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PageDimensions, Password, PrintBandRequest,
+    ReqId, TileAppearance, TileFormat, TileRequest, ViewRotation,
 };
 use laminapdf_render::{
     ByteSource, CancelToken, PageAppearance, PixelRect, RenderBackend, RenderDocument, RenderOpenOptions,
@@ -35,13 +35,17 @@ enum Doc {
 }
 
 /// An open document: Lamina PDF's model for facts, PDFium's for pixels.
-struct Opened {
-    lamina: laminapdf::Document,
+pub(crate) struct Opened {
+    pub(crate) lamina: laminapdf::Document,
     /// `None` without PDFium, or when PDFium couldn't open a file Lamina PDF could.
-    render: Option<Box<dyn RenderDocument>>,
+    pub(crate) render: Option<Box<dyn RenderDocument>>,
+    /// The file as opened, which an edit's revision is appended to for PDFium.
+    pub(crate) source: Arc<dyn ByteSource>,
     page_count: u32,
-    encrypted: bool,
+    pub(crate) encrypted: bool,
     repaired: bool,
+    /// An edit failed and couldn't be taken back: the model and the pages drawn may differ.
+    pub(crate) diverged: bool,
 }
 
 /// Why a document didn't open.
@@ -84,6 +88,7 @@ impl Worker {
                 Job::Unlock { req, doc, password } => self.unlock(req, doc, &password),
                 Job::PageInfo { req, doc } => self.page_info(req, doc),
                 Job::Render(tile) => self.render(&tile, &token),
+                Job::Edit { req, doc, call } => self.edit(req, doc, call),
                 Job::Print(band) => self.print_band(&band, &token),
                 Job::Close { doc } => {
                     self.docs.remove(&doc);
@@ -163,19 +168,30 @@ impl Worker {
         };
         match opened.lamina.page_infos() {
             Ok(pages) => {
-                let sizes = pages
-                    .iter()
-                    .map(|page| PageDimensions {
-                        #[expect(clippy::cast_possible_truncation, reason = "page sizes in points fit an f32")]
-                        width: page.width as f32,
-                        #[expect(clippy::cast_possible_truncation, reason = "page sizes in points fit an f32")]
-                        height: page.height as f32,
-                        rotate: page.rotation,
-                    })
-                    .collect();
-                self.send(&FromEngine::PageInfo { req, doc, sizes });
+                let ids = pages.iter().map(|page| page.id.to_string()).collect();
+                let sizes = pages.iter().map(dimensions).collect();
+                self.send(&FromEngine::PageInfo { req, doc, sizes, ids });
             }
             Err(error) => self.error(req, kind_of(error.code()), error.code().into()),
+        }
+    }
+
+    fn edit(&mut self, req: ReqId, doc: DocId, call: EditCall) {
+        let opened = match self.docs.get_mut(&doc) {
+            None => return self.error(req, FailureKind::UnknownDocument, "no such document".into()),
+            Some(Doc::Locked { .. }) => return self.send(&FromEngine::NeedsPassword { req, doc }),
+            Some(Doc::Open(opened)) => opened,
+        };
+        match crate::edit::run(opened, self.backend.as_deref(), &self.limits, call) {
+            Ok(report) => {
+                opened.page_count = u32::try_from(report.pages.len()).unwrap_or(u32::MAX);
+                self.send(&FromEngine::Edited {
+                    req,
+                    doc,
+                    report: Box::new(report),
+                });
+            }
+            Err((kind, code)) => self.error(req, kind, code),
         }
     }
 
@@ -288,7 +304,7 @@ impl Worker {
                 options = options.with_password(password.expose());
             }
             backend
-                .open(shared, &options)
+                .open(Arc::clone(&shared), &options)
                 .map_err(|error| crate::log(&format!("the renderer could not open a document: {}", error.code())))
                 .ok()
         });
@@ -297,7 +313,9 @@ impl Worker {
             repaired: lamina.warnings().remaining() > 0,
             lamina,
             render,
+            source: shared,
             page_count,
+            diverged: false,
         })
     }
 
@@ -315,6 +333,17 @@ impl Worker {
             kind,
             message,
         });
+    }
+}
+
+/// A page's size and rotation, as the protocol carries them.
+pub(crate) fn dimensions(page: &laminapdf::PageInfo) -> PageDimensions {
+    PageDimensions {
+        #[expect(clippy::cast_possible_truncation, reason = "page sizes in points fit an f32")]
+        width: page.width as f32,
+        #[expect(clippy::cast_possible_truncation, reason = "page sizes in points fit an f32")]
+        height: page.height as f32,
+        rotate: page.rotation,
     }
 }
 

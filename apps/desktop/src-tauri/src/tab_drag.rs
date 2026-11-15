@@ -10,9 +10,10 @@
 //! report of whether the drag left its window: if it did, a new window opens wherever the
 //! compositor puts it, and no other window can be found under the cursor.
 //!
-//! The end of a drag can't tell a drop from a cancel (Escape): a cancelled drag whose cursor is
-//! outside its window moves the tab too. Other apps' windows are invisible here, so a drop on one
-//! that covers a Lamina PDF window moves the tab to the covered window.
+//! The webview drives the drag with pointer events, so it tells a release ([`end`]) from a
+//! cancel (Escape, [`cancel`]), which leaves the tab where it was. Other apps' windows are
+//! invisible here, so a drop on one that covers a Lamina PDF window moves the tab to the covered
+//! window.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
@@ -162,7 +163,7 @@ fn to_shared_space(scale: impl FnOnce() -> Option<f64>) -> Option<f64> {
 
 /// The open, visible windows' frames, front to back (the window focused last first). On macOS
 /// in points, on the other systems in physical pixels: the same space as [`cursor`]'s.
-fn window_frames(app: &AppHandle) -> Vec<(String, Frame)> {
+pub(crate) fn window_frames(app: &AppHandle) -> Vec<(String, Frame)> {
     if !positions_known() {
         return Vec::new();
     }
@@ -195,6 +196,10 @@ fn window_frames(app: &AppHandle) -> Vec<(String, Frame)> {
 
 /// Where the cursor is, if the OS says. macOS reports it scaled by the main screen's factor.
 fn cursor(app: &AppHandle) -> Option<Point> {
+    #[cfg(feature = "e2e")]
+    if let Some(at) = crate::e2e::placed_cursor() {
+        return Some(at);
+    }
     if !positions_known() {
         return None;
     }
@@ -258,6 +263,12 @@ fn tell(app: &AppHandle, label: Option<&str>, over: bool) {
     if let Err(error) = app.emit_to(EventTarget::webview_window(label), DRAG_OVER_EVENT, over) {
         tracing::warn!("could not tell a window a tab is dragged over it: {error}");
     }
+}
+
+/// The drag of `from`'s tab of `doc` was cancelled (Escape): Rust stops following it, and the
+/// window it was over, if any, hears it has left. The tab stays.
+pub(crate) fn cancel(app: &AppHandle, from: &str, doc: DocId) {
+    app.state::<TabDrag>().finish(from, doc);
 }
 
 /// The drag of `from`'s tab of `doc` ended, outside `from` by the webview's account or not: the
