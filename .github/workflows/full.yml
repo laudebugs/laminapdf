@@ -330,7 +330,7 @@ jobs:
           set -euo pipefail
           exe=""
           if [ "$RUNNER_OS" = Windows ]; then exe=.exe; fi
-          for name in debug_kill_engine e2e_queue_pick e2e_interactive tauri-plugin-wdio TAURI_WEBDRIVER_PORT "startup timings" LAMINA_E2E_UPDATE; do
+          for name in debug_kill_engine e2e_queue_pick e2e_interactive tauri-plugin-wdio TAURI_WEBDRIVER_PORT "startup timings" update-test.json; do
             if grep -aq "$name" "target/debug/laminapdf-desktop$exe"; then
               echo "::error::the app holds $name without the e2e feature"
               exit 1

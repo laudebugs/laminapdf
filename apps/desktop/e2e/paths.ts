@@ -49,5 +49,8 @@ const configDir = join(
 /** The last session, as the app writes it (src-tauri/src/session/mod.rs). */
 export const sessionFile = join(configDir, "session.json");
 
+/** The update test's settings, which turn on the app's hooks (src-tauri/src/update/e2e.rs). */
+export const updateTestFile = join(configDir, "update-test.json");
+
 /** The app's preferences (src-tauri/src/prefs.rs). */
 export const preferencesFile = join(configDir, "preferences.json");

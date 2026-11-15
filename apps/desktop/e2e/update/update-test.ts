@@ -13,7 +13,8 @@
 // 4. serves the real 0.0.2, launches the app, and expects it to install and restart as 0.0.2;
 // 5. checks that every request carried the install ID in the header and never in the URL.
 //
-// The app's `e2e` hooks (src-tauri/src/update/e2e.rs) point it at the proxy, check at once, install
+// The app's `e2e` hooks (src-tauri/src/update/e2e.rs), turned on by `update-test.json` in its
+// config folder, point it at the proxy, check at once, install
 // as soon as an update is ready, and write each step to a report file.
 //
 // Environment: UPDATE_TEST_MODE (`local` or `staging`), UPDATE_TEST_OLD (0.0.1's .app, installer
@@ -34,10 +35,10 @@ import {
   writeFileSync,
 } from "node:fs";
 import { createServer, type Server } from "node:http";
-import { basename, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { arch, env, exit, platform } from "node:process";
 import { setTimeout as sleep } from "node:timers/promises";
-import { root } from "../paths.ts";
+import { root, updateTestFile } from "../paths.ts";
 import {
   CHANNEL,
   emptyManifest,
@@ -233,12 +234,13 @@ function install(): string {
 function launch(program: string, server: string, step: string): string {
   const report = join(out, `${step}.report`);
   rmSync(report, { force: true });
+  // A file, not the environment: Windows' installer relaunches the updated app as a fresh process.
+  mkdirSync(dirname(updateTestFile), { recursive: true });
+  writeFileSync(updateTestFile, JSON.stringify({ server, report }));
   const logFile = join(out, `${step}.log`);
   const app = spawn(program, [], {
     env: {
       ...env,
-      LAMINA_E2E_UPDATE_SERVER: server,
-      LAMINA_E2E_UPDATE_REPORT: report,
       // GitHub's runners have no FUSE: the AppImage runs from a copy it unpacks.
       APPIMAGE_EXTRACT_AND_RUN: "1",
       RUST_LOG: "info,laminapdf_desktop=debug,tauri_plugin_updater=debug",
@@ -247,13 +249,36 @@ function launch(program: string, server: string, step: string): string {
   });
   app.stdout?.on("data", (chunk: Buffer) => appendFileSync(logFile, chunk));
   app.stderr?.on("data", (chunk: Buffer) => appendFileSync(logFile, chunk));
+  const started = Date.now();
+  app.once("exit", (code, signal) => {
+    // The single-instance plugin hands a second launch to a copy already running and exits.
+    if (Date.now() - started < 5000 && lines(report).length === 0) {
+      log(`the app exited at once (${code ?? signal}): is another copy of the e2e build running?`);
+    }
+  });
   return report;
 }
 
-/** Stops every copy of the app: after an update, the running one isn't this script's child. */
+/**
+ * Stops the test's copy of the app, which after an update isn't this script's child: on macOS the
+ * processes under the installed .app, on Linux the AppImage's unpacked copy (named after the
+ * image), on Windows the installed program. Nothing else is stopped: a developer's own copy of
+ * Lamina PDF keeps running.
+ */
 function stopApp(program: string): void {
-  if (platform === "win32") spawnSync("taskkill", ["/F", "/T", "/IM", basename(program)]);
-  else for (const name of [basename(program), "laminapdf-desktop"]) spawnSync("pkill", ["-f", name]);
+  if (platform === "win32") {
+    const path = program.replaceAll("'", "''");
+    spawnSync("powershell", [
+      "-NoProfile",
+      "-Command",
+      `Get-Process | Where-Object { $_.Path -eq '${path}' } | Stop-Process -Force`,
+    ]);
+  } else if (platform === "darwin") {
+    spawnSync("pkill", ["-f", join(out, "installed")]);
+  } else {
+    spawnSync("pkill", ["-f", join(out, "installed")]);
+    spawnSync("pkill", ["-f", "/appimage_extracted_"]);
+  }
 }
 
 function lines(report: string): string[] {
@@ -364,6 +389,7 @@ try {
       failed = true;
     }
   }
+  rmSync(updateTestFile, { force: true });
   wranglerDev?.kill();
   fileServer.close();
 }

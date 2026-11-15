@@ -97,6 +97,8 @@ pub(crate) struct Updates {
 impl Updates {
     /// The settings in `config`'s `updates.json`, this machine's policy and install, and this build.
     pub(crate) fn load(config: &std::path::Path, version: &str) -> Self {
+        #[cfg(feature = "e2e")]
+        e2e::load(config);
         Self {
             store: UpdateStore::load(config.join("updates.json")),
             policy: Policy::from_managed(&laminapdf_desktop_os::managed_updates()),
@@ -177,7 +179,7 @@ impl Updates {
                 Err(error) => e2e::report(&format!("failed: {error}")),
             }
             #[cfg(feature = "e2e")]
-            let install_now = matches!(outcome, Ok(Some(_))) && e2e::server().is_some();
+            let install_now = matches!(outcome, Ok(Some(_))) && e2e::active();
             let state = match outcome {
                 Ok(Some(ready)) => {
                     let state = State::Ready {
@@ -341,7 +343,7 @@ pub(crate) fn start(app: &tauri::AppHandle) {
         .spawn(move || {
             // The update test (D5c) checks at once.
             #[cfg(feature = "e2e")]
-            let first = if e2e::server().is_some() {
+            let first = if e2e::active() {
                 e2e::report(&format!("started {}", app.state::<Arc<Updates>>().build.version));
                 std::time::Duration::ZERO
             } else {
