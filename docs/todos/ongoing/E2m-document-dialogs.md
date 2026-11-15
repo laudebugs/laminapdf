@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2m` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E2 page organisation §4](../../plans/editor/e2-page-organisation.md#4-crate-and-package-changes) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E2d](../done/E2d-merge-and-split.md), [E2h](../done/E2h-page-organiser-ui.md) |
