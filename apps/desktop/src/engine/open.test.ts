@@ -25,7 +25,7 @@ const DOC: DesktopDocument = {
   encrypted: false,
   needsPassword: false,
   repaired: false,
-  pages: [{ width: 612, height: 792, rotate: 0 }],
+  pages: [{ id: "p1.0", width: 612, height: 792, rotate: 0 }],
 };
 
 let commands: string[] = [];

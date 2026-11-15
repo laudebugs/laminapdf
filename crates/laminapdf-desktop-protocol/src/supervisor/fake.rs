@@ -13,8 +13,8 @@ use std::time::Duration;
 
 use super::{Process, Spawned, Spawner, lock};
 use crate::{
-    DocId, FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, PageDimensions, ReqId, TileFormat, ToEngine,
-    read_frame, write_frame,
+    DocId, EditCall, EditReport, EditedPage, FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, PageDimensions,
+    ReqId, Reversal, TileFormat, ToEngine, read_frame, write_frame,
 };
 
 /// How a fake engine behaves.
@@ -270,6 +270,35 @@ fn answer(msg: ToEngine, locked: &mut Vec<DocId>) -> Option<FromEngine> {
                 };
                 3
             ],
+            ids: fake_ids(),
+        },
+        ToEngine::Edit { req, doc, .. } if locked.contains(&doc) => FromEngine::NeedsPassword { req, doc },
+        ToEngine::Edit { req, doc, call } => FromEngine::Edited {
+            req,
+            doc,
+            report: Box::new(EditReport {
+                changed: true,
+                reversal: match call {
+                    EditCall::Apply { .. } => None,
+                    EditCall::Undo | EditCall::Redo => Some(Reversal::Applied),
+                },
+                touched: vec!["p1.0".into()],
+                page_order: None,
+                pages: fake_ids()
+                    .into_iter()
+                    .map(|id| EditedPage {
+                        id,
+                        size: PageDimensions {
+                            width: 612.0,
+                            height: 792.0,
+                            rotate: 0,
+                        },
+                    })
+                    .collect(),
+                created_outline_items: Vec::new(),
+                created_annotations: Vec::new(),
+                outline_repaired: false,
+            }),
         },
         ToEngine::RenderTile(tile) => FromEngine::NeedsPassword {
             req: tile.req,
@@ -281,4 +310,9 @@ fn answer(msg: ToEngine, locked: &mut Vec<DocId>) -> Option<FromEngine> {
         }
         _ => return None,
     })
+}
+
+/// The fake's page IDs: three pages.
+fn fake_ids() -> Vec<String> {
+    (1..=3).map(|n| format!("p{n}.0")).collect()
 }

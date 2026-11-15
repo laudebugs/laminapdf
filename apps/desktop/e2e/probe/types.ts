@@ -30,6 +30,10 @@ interface E2eProbe {
   readonly inkedPixels: (index: number) => number;
   /** Scrolls the view to its end, as a scroll bar dragged to the bottom would. */
   readonly scrollToEnd: () => void;
+  /** Page `index`'s `/Rotate`, as the engine reported it after the last edit. */
+  readonly rotation: (index: number) => number | undefined;
+  /** The shown document's edits not yet saved. */
+  readonly unsaved: () => number;
 }
 
 declare global {

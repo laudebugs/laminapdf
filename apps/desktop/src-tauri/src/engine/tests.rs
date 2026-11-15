@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::sync::{OnceLock, mpsc};
 use std::time::Duration;
 
+use laminapdf_desktop_protocol::Reversal;
 use laminapdf_desktop_protocol::supervisor::fake::{FakeSpawner, Mode, PASSWORD};
 
 use super::*;
@@ -398,6 +399,67 @@ fn tile_of(doc: u32, page: u32, ticket: u64) -> TileQuery {
 fn open_plain(f: &mut Fixture, window: &str) -> u32 {
     let path = f.file(PLAIN);
     f.engines.open(window, &path).unwrap().doc
+}
+
+#[test]
+fn an_edit_should_report_the_pages_by_id_and_how_an_undo_went() {
+    let mut f = Fixture::new(Mode::Healthy);
+    let doc = DocId(open_plain(&mut f, "main"));
+    let applied = f
+        .engines
+        .edit("main", doc, EditRequest::Apply { log: "{}".into() })
+        .unwrap();
+    let undone = f.engines.edit("main", doc, EditRequest::Undo).unwrap();
+    assert_eq!(
+        (
+            applied.reversal,
+            applied.touched,
+            applied.pages.first().map(|page| page.id.clone()),
+            undone.reversal
+        ),
+        (
+            None,
+            vec!["p1.0".to_owned()],
+            Some("p1.0".to_owned()),
+            Some(Reversal::Applied)
+        )
+    );
+}
+
+/// An undo's outcome as the webview reads it (src/engine/edit-outcome.fixture.json, which the
+/// client's tests read too).
+#[test]
+fn an_edit_outcome_should_reach_the_webview_in_the_shape_its_client_reads() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("../../../src/engine/edit-outcome.fixture.json")).unwrap();
+    let outcome = EditOutcome::from(laminapdf_desktop_protocol::EditReport {
+        changed: true,
+        reversal: Some(Reversal::Partial),
+        touched: vec!["p1.0".into()],
+        page_order: None,
+        pages: vec![laminapdf_desktop_protocol::EditedPage {
+            id: "p1.0".into(),
+            size: PageDimensions {
+                width: 792.0,
+                height: 612.0,
+                rotate: 90,
+            },
+        }],
+        created_outline_items: Vec::new(),
+        created_annotations: Vec::new(),
+        outline_repaired: false,
+    });
+    assert_eq!(serde_json::to_value(outcome).unwrap(), fixture);
+}
+
+#[test]
+fn a_window_should_not_edit_another_windows_document() {
+    let mut f = Fixture::new(Mode::Healthy);
+    let doc = DocId(open_plain(&mut f, "main"));
+    assert!(matches!(
+        f.engines.edit("doc-2", doc, EditRequest::Undo),
+        Err(DesktopError::UnknownDocument)
+    ));
 }
 
 #[test]
