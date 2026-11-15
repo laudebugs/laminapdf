@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E1j` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E1 editing foundation §2](../../plans/editor/e1-editing-foundation.md#2-the-operations) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E1f](../done/E1f-metadata-ui-capability-page.md), [E1i](../done/E1i-desktop-save-in-place.md) |
@@ -35,7 +35,7 @@ The desktop's File ▸ Document properties… opens the Properties dialog the we
 
 **Out of scope**
 
-- The XMP tab's general editor on the desktop: [E3k](./E3k-desktop-navigation-and-export.md).
+- The XMP tab's general editor on the desktop: [E3k](../ready/E3k-desktop-navigation-and-export.md).
 
 ## Tasks
 
