@@ -21,7 +21,7 @@ The interface for the round's exports: one dialog (O16) that exports pages as PN
 
 - **Design (Paper):** [O16 Export and extraction](../../design/paper/pages-navigation-extraction.md#o16-export-and-extraction), [O07 Insert pages and merge documents](../../design/paper/edit-session-organise.md#o07-insert-pages-and-merge-documents). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [E3 plan §2.3 and §7](../../plans/editor/e3-navigation-attachments-inspection.md#23-functions-that-only-read-or-write-new-files)
-- [E2m](E2m-document-dialogs.md): `canWriteDirectory` and the folder output
+- [E2m](../ongoing/E2m-document-dialogs.md): `canWriteDirectory` and the folder output
 
 ## Scope
 

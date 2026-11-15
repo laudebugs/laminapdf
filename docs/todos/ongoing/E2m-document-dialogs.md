@@ -11,7 +11,7 @@
 | Branch | `feat/e2m-document-dialogs` |
 | PR title | `feat(ui): insert, replace, extract, merge and split dialogs` |
 | Size | L (400–800): six dialogs and their outputs in `@laminapdf/ui` and `apps/web`, with Playwright tests; the ops are [E2c](../done/E2c-cross-document-pages.md)'s and [E2d](../done/E2d-merge-and-split.md)'s |
-| PR | — |
+| PR | [laudebugs/laminapdf#641](https://github.com/laudebugs/laminapdf/pull/641) |
 
 ## Goal
 
@@ -37,7 +37,7 @@ Build the web dialogs that bring pages in from other files and write pages out t
 **Out of scope** (and which todo covers it)
 
 - Crop, resize, boxes, orientation and labels dialogs → [E2g](../done/E2g-page-labels.md)
-- Desktop folder output and Finder/Explorer selections → [E2n](E2n-desktop-organise.md)
+- Desktop folder output and Finder/Explorer selections → [E2n](../ready/E2n-desktop-organise.md)
 
 **Editor facts**
 
