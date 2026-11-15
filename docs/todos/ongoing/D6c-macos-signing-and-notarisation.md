@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D6c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D6](../../plans/desktop-app.md#d6-signing-packaging-and-release-pipeline) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [D6a](../done/D6a-signing-runbook-and-owner-setup.md), [D6b](../done/D6b-release-workflow-and-linux-packages.md) |
@@ -42,7 +42,7 @@ Every macOS artefact lamina publishes — the `.app` inside the updater `.app.ta
 **Out of scope** (and which todo covers it)
 
 - Mac App Store packaging (non-goal).
-- Windows signing: [D6d](D6d-windows-signing.md).
+- Windows signing: [D6d](../ready/D6d-windows-signing.md).
 
 ## Tasks
 
