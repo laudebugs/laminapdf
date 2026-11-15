@@ -48,6 +48,9 @@ pub struct InlineImage<'a> {
     pub data: &'a [u8],
     /// Byte offset of the data in the content.
     pub data_offset: usize,
+    /// Byte offset just past the image's `EI`, where reading resumes: `BI`'s offset through
+    /// here is the whole image as written.
+    pub end: usize,
 }
 
 /// A problem the tokenizer skipped over.
@@ -310,6 +313,7 @@ impl<'a> ContentIter<'a> {
                 dict,
                 data: data.get(data_start..data_end).unwrap_or_default(),
                 data_offset: data_start,
+                end: resume,
             }),
         }));
         Ok(self.queue.pop_front().unwrap_or(Lexed::Issue(Issue {

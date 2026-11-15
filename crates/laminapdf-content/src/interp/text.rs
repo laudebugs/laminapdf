@@ -155,13 +155,15 @@ impl<V: Visitor + ?Sized> Interpreter<'_, '_, V> {
     /// Hands a string or `TJ` array to the visitor and moves the text matrix by the advance
     /// it returns.
     fn show(&mut self, frame: &mut Frame, operand: &Object) {
-        let advance = self.visitor.show_text(&TextShow {
+        let show = TextShow {
             operand,
             state: &frame.gs,
             tm: frame.tm,
             tlm: frame.tlm,
             depth: self.forms.len(),
-        });
+        };
+        let advance = self.visitor.show_text(&show);
+        self.visitor.shown_text(&show, advance);
         frame.tm = Matrix::translate(advance.tx, advance.ty).then(&frame.tm);
     }
 }

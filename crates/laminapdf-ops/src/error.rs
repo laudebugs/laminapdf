@@ -126,6 +126,20 @@ pub enum Error {
         /// Which rule.
         what: &'static str,
     },
+    /// An edit names a content object by a [`ContentObjectRef`](laminapdf_content::ContentObjectRef)
+    /// whose hash doesn't match the object at that ordinal (ADR 0022 §2): the content changed
+    /// since the name was taken, so the edit would change another object.
+    #[error("content object {ordinal} is not the one the edit names")]
+    ContentObjectStale {
+        /// The object's ordinal among its owner's objects.
+        ordinal: u32,
+    },
+    /// The content can't be edited (ADR 0022 §5 and §7), for the reason given.
+    #[error("the content can't be edited ({})", .reason.as_str())]
+    ContentNotEditable {
+        /// Why.
+        reason: laminapdf_content::NotEditable,
+    },
     /// The op names an annotation that no page's `/Annots` lists.
     #[error("no annotation {}", ShownAnnot(.0))]
     UnknownAnnotation(AnnotId),
@@ -263,6 +277,8 @@ impl Error {
         "link-not-tagged",
         "appearance-unavailable",
         "invalid-label-ranges",
+        "content-object-stale",
+        "content-not-editable",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -304,6 +320,8 @@ impl Error {
             Self::LinkNotTagged => "link-not-tagged",
             Self::AppearanceUnavailable => "appearance-unavailable",
             Self::InvalidLabelRanges { .. } => "invalid-label-ranges",
+            Self::ContentObjectStale { .. } => "content-object-stale",
+            Self::ContentNotEditable { .. } => "content-not-editable",
         }
     }
 
@@ -339,13 +357,14 @@ impl Error {
             | Self::XmpClaimReadOnly
             | Self::InvalidXmpProperty { .. }
             | Self::InvalidLabelRanges { .. } => ErrorKind::Usage,
-            Self::AnnotationLocked(_) => ErrorKind::State,
+            Self::AnnotationLocked(_) | Self::ContentObjectStale { .. } => ErrorKind::State,
             Self::DirectPage(_)
             | Self::UnsupportedVersion(_)
             | Self::DirectOutlineItem(_)
             | Self::AnnotationNotEditable(_)
             | Self::LinkNotTagged
-            | Self::AppearanceUnavailable => ErrorKind::Unsupported,
+            | Self::AppearanceUnavailable
+            | Self::ContentNotEditable { .. } => ErrorKind::Unsupported,
             Self::InvalidLog(_) | Self::MalformedXmp | Self::InvalidXmpPacket(_) => ErrorKind::Input,
         }
     }
@@ -410,7 +429,9 @@ impl Error {
             | Self::InvalidXmpProperty { .. }
             | Self::NoPagesLeft
             | Self::InvalidOp(_)
-            | Self::InvalidLabelRanges { .. } => Location::NONE,
+            | Self::InvalidLabelRanges { .. }
+            | Self::ContentObjectStale { .. }
+            | Self::ContentNotEditable { .. } => Location::NONE,
         }
     }
 }
@@ -463,6 +484,10 @@ mod tests {
             Error::LinkNotTagged,
             Error::AppearanceUnavailable,
             Error::InvalidLabelRanges { what: "order" },
+            Error::ContentObjectStale { ordinal: 2 },
+            Error::ContentNotEditable {
+                reason: laminapdf_content::NotEditable::Type3Font,
+            },
         ]
     }
 

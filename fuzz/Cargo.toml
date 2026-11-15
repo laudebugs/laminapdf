@@ -91,6 +91,13 @@ doc = false
 bench = false
 
 [[bin]]
+name = "content_ir"
+path = "fuzz_targets/content_ir.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
 name = "content_append_scan"
 path = "fuzz_targets/content_append_scan.rs"
 test = false
