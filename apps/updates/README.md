@@ -4,7 +4,7 @@ This Cloudflare Worker tells each installed copy of the Lamina PDF desktop app w
 
 ## Operations
 
-The manifest tool reads and writes `channels/{channel}.json` with the package's Wrangler. It uses your `wrangler login`, or `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` in the environment. The tool checks every write with the Worker's own validator and skips the write when the manifest wouldn't change. Every data centre serves a change within 60 seconds (30 s of cache plus one R2 read).
+The manifest tool reads and writes `channels/{channel}.json` through R2's S3 API (`scripts/r2.ts`), with the bucket's token and Access Key ID in the environment: `CLOUDFLARE_STAGING_R2_TOKEN` and `STAGING_R2_ACCESS_KEY_ID` for `lamina-pdf-staging`, `CLOUDFLARE_API_TOKEN` and `R2_ACCESS_KEY_ID` for the others, and `CLOUDFLARE_ACCOUNT_ID` (owner setup, step 3). With `--local` it uses the package's Wrangler on local R2 instead. `pnpm run r2 put|delete` stores or removes one object the same way. The tool checks every write with the Worker's own validator and skips the write when the manifest wouldn't change. Every data centre serves a change within 60 seconds (30 s of cache plus one R2 read).
 
 ```sh
 pnpm --filter @laminapdf/updates manifest show beta
@@ -90,14 +90,14 @@ This is done once, in the Cloudflare dashboard. Until the deploy secrets exist, 
    - `lamina-pdf-releases`: `downloads.laminapdf.com`
    - `lamina-pdf-nightly`: `nightly-downloads.laminapdf.com`
    - `lamina-pdf-staging`: `staging-downloads.laminapdf.com`
-3. **Write tokens** (done 2026-11-12). Four R2 API tokens, each with **Bucket Item Read + Write** on one bucket only, expiring 2027-11-12:
+3. **Write tokens** (done 2026-11-12). Four R2 API tokens, each with **Bucket Item Read + Write** on one bucket only, expiring 2027-11-12. A token scoped to buckets works only through R2's S3 API, so each job also holds the token's **Access Key ID**, shown beside it in R2 › Manage API tokens; the S3 secret is the SHA-256 of the token's value, which `scripts/r2.ts` works out. Neither Wrangler's `r2 object` commands nor Cloudflare's REST API accept these tokens.
 
-   | Bucket | GitHub environment | Secret name |
-   | --- | --- | --- |
-   | `lamina-pdf-releases` | `desktop-release` | `CLOUDFLARE_API_TOKEN` |
-   | `lamina-pdf-staging` | `desktop-release` | `CLOUDFLARE_STAGING_R2_TOKEN` |
-   | `lamina-pdf-nightly` | `desktop-nightly` | `CLOUDFLARE_API_TOKEN` |
-   | `lamina-pdf-staging` | `desktop-staging` | `CLOUDFLARE_STAGING_R2_TOKEN` |
+   | Bucket | GitHub environment | Token secret | Access Key ID secret |
+   | --- | --- | --- | --- |
+   | `lamina-pdf-releases` | `desktop-release` | `CLOUDFLARE_API_TOKEN` | `R2_ACCESS_KEY_ID` |
+   | `lamina-pdf-staging` | `desktop-release` | `CLOUDFLARE_STAGING_R2_TOKEN` | `STAGING_R2_ACCESS_KEY_ID` |
+   | `lamina-pdf-nightly` | `desktop-nightly` | `CLOUDFLARE_API_TOKEN` | `R2_ACCESS_KEY_ID` |
+   | `lamina-pdf-staging` | `desktop-staging` | `CLOUDFLARE_STAGING_R2_TOKEN` | `STAGING_R2_ACCESS_KEY_ID` |
 
    `CLOUDFLARE_ACCOUNT_ID` is in all three environments. The staging token in `desktop-release` serves the desktop release workflow's signed trial runs.
 4. **Deploy token.** The workflow uses the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, the same ones the web reader deploys with. The token needs **Workers Scripts: Edit** on the account and **Workers Routes: Edit** on the `laminapdf.com` zone, and **no R2 access at all**: deploying a Worker with R2 bindings needs none, and only the per-bucket tokens above may write releases. The first deploy creates the `updates.` and `staging-updates.` custom domains and their certificates.

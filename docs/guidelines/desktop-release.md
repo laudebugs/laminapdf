@@ -169,13 +169,17 @@ Every secret is an **environment** secret; the repository level holds none. "Rea
 | `TAURI_SIGNING_PRIVATE_KEY` | `desktop-release` | release updater key (D5a) | `Lamina PDF / updater key (release)` | bundle jobs (D6b), after approval | only on compromise |
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | `desktop-release` | its password | `Lamina PDF / updater key (release)` | same | with the key |
 | `CLOUDFLARE_API_TOKEN` | `desktop-release` | write to `lamina-pdf-releases` only | `Lamina PDF / Cloudflare R2 release` | publish job (D6b) | yearly |
+| `R2_ACCESS_KEY_ID` | `desktop-release` | that token's S3 Access Key ID (R2's S3 API; the secret is the token's SHA-256) | `Lamina PDF / Cloudflare R2 release` | same | with the token |
 | `CLOUDFLARE_ACCOUNT_ID` | `desktop-release` | Cloudflare account | `Lamina PDF / Cloudflare R2 release` | same | never |
 | `CLOUDFLARE_STAGING_R2_TOKEN` | `desktop-release` | write to `lamina-pdf-staging`, for signed staging dispatch runs | `Lamina PDF / Cloudflare R2 staging` | D6b–D6d staging runs | yearly |
+| `STAGING_R2_ACCESS_KEY_ID` | `desktop-release` | that token's S3 Access Key ID | `Lamina PDF / Cloudflare R2 staging` | same | with the token |
 | `TAURI_SIGNING_PRIVATE_KEY` | `desktop-nightly` | nightly-only updater key (D5a) | `Lamina PDF / updater key (nightly)` | nightly bundle jobs | only on compromise |
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | `desktop-nightly` | its password | `Lamina PDF / updater key (nightly)` | same | with the key |
 | `CLOUDFLARE_API_TOKEN` | `desktop-nightly` | write to `lamina-pdf-nightly` only | `Lamina PDF / Cloudflare R2 nightly` | nightly publish job | yearly |
+| `R2_ACCESS_KEY_ID` | `desktop-nightly` | that token's S3 Access Key ID | `Lamina PDF / Cloudflare R2 nightly` | same | with the token |
 | `CLOUDFLARE_ACCOUNT_ID` | `desktop-nightly` | Cloudflare account | `Lamina PDF / Cloudflare R2 nightly` | same | never |
 | `CLOUDFLARE_STAGING_R2_TOKEN` | `desktop-staging` | write to `lamina-pdf-staging` only (D5b) | `Lamina PDF / Cloudflare R2 staging` | updater end-to-end tests on `main` | yearly |
+| `STAGING_R2_ACCESS_KEY_ID` | `desktop-staging` | that token's S3 Access Key ID | `Lamina PDF / Cloudflare R2 staging` | same | with the token |
 | `TAURI_TEST_SIGNING_PRIVATE_KEY` | `desktop-staging` | throwaway test updater key (D5b), never a production key | none (throwaway) | same | any time |
 
 `AZURE_CLIENT_SECRET` is added to `desktop-release` only if D6d's federated login fails (§1.5). D6b's workflow fails a build if any job in the `desktop-nightly` environment refers to an `APPLE_*`, `AZURE_*` or `LINUX_SIGNING_*` secret.

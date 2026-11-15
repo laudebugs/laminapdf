@@ -1,9 +1,9 @@
 # The desktop release's publish (todo D6b; .github/workflows/desktop-release.yml): every target's
 # files to R2 under releases/<version>/<platform>/ in the channel's bucket, the channel's manifest
 # written with the new release, then the update Worker asked for each platform as a fresh install
-# would. Both publish jobs use it; each sets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID from its
-# own environment, scoped to that channel's bucket (ADR 0014 §1). Every R2 call goes through the
-# manifest tool (apps/updates/scripts/manifest.ts), the one place that knows the layout.
+# would. Both publish jobs use it; each sets its environment's R2 tokens and their Access Key IDs,
+# each scoped to one bucket (ADR 0014 §1), under the names apps/updates/scripts/r2.ts reads. Every
+# R2 call goes through the manifest tool (apps/updates/scripts/manifest.ts), over R2's S3 API.
 name: Desktop release publish
 description: Upload a desktop release to R2, update its channel and check the update Worker.
 inputs:

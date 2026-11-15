@@ -270,8 +270,10 @@ jobs:
     concurrency:
       group: desktop-nightly-channel
       cancel-in-progress: false
+    # The nightly bucket's R2 token and its Access Key ID (apps/updates/scripts/r2.ts reads them).
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v7.0.1
@@ -298,9 +300,13 @@ jobs:
     concurrency:
       group: ${{ needs.plan.outputs.channel == 'staging' && 'desktop-staging-channel' || 'desktop-release-channel' }}
       cancel-in-progress: false
+    # Each token writes one bucket: the releases bucket's for tags, staging's for dispatches.
+    # apps/updates/scripts/r2.ts picks the pair the channel's bucket needs.
     env:
-      # Each token writes one bucket: staging's for dispatches, the releases bucket's for tags.
-      CLOUDFLARE_API_TOKEN: ${{ needs.plan.outputs.channel == 'staging' && secrets.CLOUDFLARE_STAGING_R2_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      CLOUDFLARE_STAGING_R2_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_R2_TOKEN }}
+      STAGING_R2_ACCESS_KEY_ID: ${{ secrets.STAGING_R2_ACCESS_KEY_ID }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v7.0.1
