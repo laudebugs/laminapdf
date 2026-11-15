@@ -47,10 +47,19 @@ describe(`reader mode in ${BROWSER}`, () => {
     return watched;
   }
 
+  /**
+   * Waits for the Reader toggle's view transition to end: until then the page takes no clicks
+   * (the browser hit-tests the root), and Playwright would scroll the column while it retried.
+   */
+  async function switched(page: Page): Promise<void> {
+    await page.waitForFunction(() => !document.documentElement.hasAttribute("data-view-switch"));
+  }
+
   /** Turns reader mode on with the top bar's toggle. */
   async function enter(page: Page): Promise<void> {
     await page.getByRole("button", { name: "Reader mode" }).first().click();
     await column(page).waitFor();
+    await switched(page);
   }
 
   it("reads a tagged file in its tree's order, with crops named by their alternate text", async () => {
@@ -179,6 +188,7 @@ describe(`reader mode in ${BROWSER}`, () => {
     await column(page).getByRole("heading").first().waitFor();
     await toggle.click();
     await expect.poll(() => column(page).count()).toBe(0);
+    await switched(page);
     // In and out, each a fade of the old view and the new.
     await expect.poll(async () => (await switches()).map((s) => s.animating)).toEqual([FADE, FADE]);
     // Once the document's reflow has been read, the column comes in with its text, not its loading lines.

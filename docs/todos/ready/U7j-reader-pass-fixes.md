@@ -35,6 +35,7 @@ Fix what U7h's by-hand pass over the web reader found against the plan: the phon
   - The offline strip pushes the page down 44 px in one frame
   - The rail drawer's scrim shows the arrow (`shell.css`); decide whether a scrim takes the hand
   - Keyboard focus on the page view (`.lamina-viewer`) shows the browser's ring, not Paper's (§4.2, rule 5)
+  - During the Reader toggle's 250 ms view transition the page takes no clicks: the browser hit-tests the root (U7h's e2e waits it out; `pointer-events: none` on `::view-transition` didn't help in Chromium)
 
 **Out of scope**
 
