@@ -107,8 +107,7 @@ fn is_installer(name: &str) -> bool {
 }
 
 /// Installers reported but not gated: the `AppImage` carries GTK and `WebKitGTK` (about 90 MB), which
-/// the `.deb` and `.rpm` take from the system. Whether it gets a budget of its own is the owner's
-/// question (issue #651).
+/// the `.deb` and `.rpm` take from the system (owner decision 2026-11-15, desktop plan §4).
 fn is_reported_only(name: &str) -> bool {
     name.ends_with(".AppImage")
 }

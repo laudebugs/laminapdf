@@ -66,7 +66,7 @@ A native **PDF reader for macOS, Windows and Linux** built with Tauri 2. It reus
 | Cold start, mid-range machine | Launch → window built and shown < 300 ms; launch → the window's first command within 75 ms of the floor build, measured in the same session (macOS, Windows, Linux; owner decision 2026-11-11, [ADR 0008 §4](../decisions/0008-desktop-shell.md#4-tiles-lossless-webp-over-the-lamina-scheme-512-px-single-threaded), because Tauri and the webview alone take over 300 ms; earlier < 300 ms to the first command, from the [product research](../research/product/pdf-app-product-and-ux.md#a-phased-roadmap-that-fits-the-existing-rounds), and before that ≤ 1 s) |
 | First page of a 1 GB PDF | ≤ 1.5 s after open |
 | Idle memory with one 10-page document | ≤ 150 MB |
-| Installer size | < 15 MB per platform, PDFium native included (owner decision 2026-10-29; was ≤ 40 MB) |
+| Installer size | < 15 MB per platform, PDFium native included (owner decision 2026-10-29; was ≤ 40 MB). The gate covers the `.dmg`, the NSIS and MSI installers, the `.deb` and the `.rpm`; the Linux AppImage, about 90 MB because it carries GTK and WebKitGTK, is reported in every release run with no gate (owner decision 2026-11-15, [#651](https://github.com/laudebugs/laminapdf/issues/651)) |
 | Supported OS | macOS 13+, Windows 11 (versions in Microsoft servicing), Ubuntu 22.04+ and supported Fedora releases (x64 and arm64 where Tauri supports it). Windows 10 22H2 is best-effort only: not tested in CI, no fixes for Windows 10-only bugs (end of support 14 October 2025, [Microsoft lifecycle](https://learn.microsoft.com/en-us/lifecycle/products/windows-10-home-and-pro)) |
 | Update rollout | Configurable 1% → 10% → 50% → 100%, kill switch effective within 60 s |
 

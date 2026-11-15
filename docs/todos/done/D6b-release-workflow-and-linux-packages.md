@@ -79,7 +79,7 @@ The workflow is new, so `schedule` and `workflow_dispatch` can't run it until it
 - [x] `plan` selects the `desktop-nightly` environment for `schedule` and `desktop-release` for tags/`workflow_dispatch` (unit test of the selection script); the CI grep proves no `desktop-nightly`-environment job references `APPLE_*`, `AZURE_*` or `LINUX_SIGNING_*`.
 - [x] Every dry-run artefact has a CycloneDX SBOM; the attestation step is wired (it runs for real only with `id-token: write` on non-dry runs).
 - [x] The app bundles a third-party notices file and Help ▸ View licences shows it.
-- [x] Installer sizes < 15 MB (budget step green; sizes in the job summary). The AppImage, about 90 MB with GTK and WebKitGTK inside, is reported, not gated, until the owner answers [#651](https://github.com/laudebugs/laminapdf/issues/651).
+- [x] Installer sizes < 15 MB (budget step green; sizes in the job summary). The AppImage, about 90 MB with GTK and WebKitGTK inside, is reported, not gated (owner decision 2026-11-15, [#651](https://github.com/laudebugs/laminapdf/issues/651)).
 - [x] Non-nightly channels cannot be published while macOS/Windows signing is missing (workflow guard tested in the dry run). Tested by `plan`'s unit tests: a pull request is never a tag, so the dry run can't reach the guard.
 
 ## Post-merge checks
@@ -124,7 +124,7 @@ The workflow is new, so `schedule` and `workflow_dispatch` can't run it until it
 - **Nightlies build no `.rpm`**, as they build no MSI: rpm refuses a `-` in a version, and a nightly's is `X.Y.Z-nightly.…`. Fedora testers use the AppImage; tags and staging builds make all three.
 - **The notices are a `bundle.resources` entry in `tauri.release.conf.json`**, not in `tauri.bundle.conf.json`: development builds don't write the file. `resources` is an object map there, so the merge keeps PDFium's entry beside it.
 - **The `.rpm` is signed with `rpmsign` through gpg**, not Tauri's `TAURI_SIGNING_RPM_KEY`: the secret holds the signing subkey alone, which gpg signs with and Tauri's own rpm signer may not read. The build then checks every Linux signature with the runbook's commands (§3).
-- **The AppImage is reported, not gated, against the 15 MB budget** (owner question [#651](https://github.com/laudebugs/laminapdf/issues/651)): it carries GTK and WebKitGTK, about 90 MB, which the `.deb` and `.rpm` take from the system. The builds strip their binaries' symbols (`CARGO_PROFILE_RELEASE_STRIP=symbols`), which brought the arm64 `.deb` back under 15 MB.
+- **The AppImage is reported, not gated, against the 15 MB budget** (owner decision 2026-11-15, [#651](https://github.com/laudebugs/laminapdf/issues/651): no gate): it carries GTK and WebKitGTK, about 90 MB, which the `.deb` and `.rpm` take from the system. The builds strip their binaries' symbols (`CARGO_PROFILE_RELEASE_STRIP=symbols`), which brought the arm64 `.deb` back under 15 MB.
 - **Windows 11 on Arm runs binaryen's x64 `wasm-opt`** under emulation, since binaryen ships no Arm build for Windows.
 
 ## Definition of done
