@@ -1,4 +1,4 @@
-// Pages across files, over a ViewerClient (E2m): previewing a PDF before its pages come in,
+// Pages across files, over a ViewerClient: previewing a PDF before its pages come in,
 // writing pages of the open document as new files, and merging files into a new document. They
 // are functions rather than the client's methods, so an app that loads its dialogs across files
 // later loads these with them; `client.addSource`, which the edit log follows, is the client's.
