@@ -306,6 +306,7 @@ mod tests {
             }],
         };
         let stack = format!("draw@file://{path}:1:2\nat x (C:\\Users\\ana\\{FOLDER}\\{NAME}.js:3:4)");
+        #[cfg_attr(not(unix), expect(unused_mut, reason = "only capture, on Unix, adds native crashes"))]
         let mut crashes = vec![
             Crash::panic(ProcessKind::Main, summary.clone(), None),
             Crash::panic(ProcessKind::Engine, summary, None),
