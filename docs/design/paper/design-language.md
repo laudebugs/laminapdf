@@ -611,7 +611,7 @@ Variants **(proposed)**:
 
 In `@laminapdf/ui`: `ModeSwitcher`. **Keyboard (decided, U6d):** each mode button is its own Tab stop, with Enter or Space to switch, because a `role="group"` gives no hint that arrow keys work. The secondary toolbars below use the toolbar pattern instead (ADR 0024 §8).
 
-Buttons with `aria-pressed` in a `role="group"` (not tabs: modes change tools, not a panel). Active: `text` 600 + 2 px `accent` underline; inactive: `muted`, transparent underline (keeps height stable). Hover **(proposed)**: label turns `text`. Gap 22, height 40 (fills the top bar).
+Buttons with `aria-pressed` in a `role="group"` (not tabs: modes change tools, not a panel). Active: `text` 600 + 2 px `accent` underline; inactive: `muted`, transparent underline (keeps height stable). Hover: the label turns `text`, with no fill; pressed: the `pressed` layer. Each label keeps its bold width while inactive, so switching modes moves nothing. Gap 22, height 40 (fills the top bar).
 
 ```html
 <div role="group" aria-label="Mode" style="display: flex; align-items: stretch; gap: 22px; height: 40px">
@@ -644,7 +644,7 @@ Heights: 32 (default, padding 0 16), 30 (inspector, padding 0 14), 26 (top bar, 
 <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Reply</button>
 <button style="height: 32px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; color: #1F5C63; font-weight: 600">Export highlights</button>
 <button style="height: 32px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; color: #9B2335">Delete highlight</button>
-<!-- danger, filled (proposed; only as the confirm button of a destructive dialog; white on it 7.82) -->
+<!-- danger, filled (proposed; only as the confirm button of a destructive dialog; white on it 7.82). Hover and pressed move the fill toward `text`, 15 % and 28 %, as `accent-strong` and `primary-pressed` do for the primary: white on them 9.02 and 10.18 (dark theme 7.83 and 8.53) -->
 <button style="height: 32px; padding: 0 16px; border: 1px solid #9B2335; background: #9B2335; color: #FFFFFF; border-radius: 4px; font-weight: 600">Delete 3 pages</button>
 ```
 
@@ -652,7 +652,7 @@ Heights: 32 (default, padding 0 16), 30 (inspector, padding 0 14), 26 (top bar, 
 
 In `@laminapdf/ui`: `SegmentedTabs` and `TabPanel`. **Activation (decided, U6d):** automatic, so an arrow key selects the tab it moves to, because a rail panel appears as soon as its tab is selected; a slow panel passes `keyboardActivation="manual"`.
 
-`role="tablist"` with `role="tab"`/`aria-selected`; 13 px, gap 16, padding `14px 18px 0`, 2 px `accent` underline on the selected tab, `hairline` under the row. Arrow keys move between tabs. Which tabs appear is in §8.10.
+`role="tablist"` with `role="tab"`/`aria-selected`; 13 px, gap 16, padding `14px 18px 0`, 2 px `accent` underline on the selected tab (600), `hairline` under the row. Hover turns the label `text` with no fill; pressed shows the `pressed` layer. A tab keeps its bold width while unselected, so selecting one moves nothing. Arrow keys move between tabs. Which tabs appear is in §8.10.
 
 **More tabs button (proposed).** With four or more tabs the rail is 280 px, the row gap 12 and padding `14px 10px 0 14px`; after the third tab, outside the `tablist`, a 28 px icon button with the More icon (16 px), `aria-label="More tabs"`, `aria-haspopup="menu"`, `aria-expanded`, opening a menu (§7.26) of the other tabs. A tab chosen from it takes the third slot; the selected tab is always in the row.
 
@@ -1067,7 +1067,7 @@ Badge sets **(proposed)**, all at this size:
 
 In `@laminapdf/ui`: `ToolToggle`, and `ToggleButton` for other pressed buttons.
 
-From the Comment toolbar: 28 high, padding `0 10px`, gap 6, radius 4, 16 px icon + 13 px label, 1 px transparent border; selected = `accent` border, `accent-tint`, `accent` 600. Right end: a 12 `muted` context note ("1 comment on this page").
+From the Comment toolbar: 28 high, padding `0 10px`, gap 6, radius 4, 16 px icon + 13 px label, 1 px transparent border; selected = `accent` border, `accent-tint`, `accent` 600, with the bold width held while unselected; hover and pressed lay their layer over either state. Right end: a 12 `muted` context note ("1 comment on this page").
 
 ```html
 <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid #1F5C63; background: #E1E6E3; color: #1F5C63; border-radius: 4px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14.5 4.5l5 5L11 18H6v-5z"></path><path d="M4 20.5h9"></path></svg>Highlight</button>
