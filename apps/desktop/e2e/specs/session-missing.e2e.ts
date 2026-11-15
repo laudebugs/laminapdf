@@ -21,7 +21,8 @@ describe("the last session with a missing file", () => {
   it("should show the missing file's tab from the notice", async () => {
     await $("button=Show missing file").click();
     await waitForShown("vanishing.pdf");
-    await $("*=couldn't find this file").waitForExist({ timeoutMsg: "no missing-file page" });
+    // The missing-file page's own button: only that page offers Locate….
+    await $("button=Locate…").waitForExist({ timeoutMsg: "no missing-file page" });
   });
 
   it("should ask before a located file of another size opens in its place", async () => {
