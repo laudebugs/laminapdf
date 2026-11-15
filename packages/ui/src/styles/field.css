@@ -30,7 +30,7 @@
     padding-inline: var(--paper-space-10);
     border: var(--paper-border-width) solid var(--paper-control-border);
     border-radius: var(--paper-radius-4);
-    background: var(--paper-field);
+    background-color: var(--paper-field);
     color: var(--paper-text);
     font: var(--ui-field-font);
   }
@@ -52,6 +52,7 @@
   .paper-select .paper-input {
     appearance: none;
     padding-inline-end: var(--paper-select-chevron-space);
+    cursor: var(--paper-cursor-action);
   }
 
   .paper-field[data-invalid] .paper-input {
@@ -64,10 +65,17 @@
     outline-offset: var(--paper-focus-ring-offset-tight);
   }
 
-  .paper-input:disabled,
-  .paper-input[data-disabled] {
+  /* Availability comes last (§7.0's order), so it wins over invalid. Read-only: a quiet ground
+     fill and hairline edge, the text still readable and selectable; disabled: the disabled text. */
+  .paper-field :is(input, textarea).paper-input:read-only:not(:disabled) {
+    border-color: var(--paper-hairline);
+    background-color: var(--paper-ground);
+  }
+
+  .paper-field .paper-input:is(:disabled, [data-disabled]) {
     border-color: var(--paper-hairline);
     color: var(--paper-disabled);
+    cursor: var(--paper-cursor-disabled);
   }
 
   .paper-select-chevron {
