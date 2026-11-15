@@ -48,8 +48,8 @@ export interface SplitDialogProps {
   readonly chapters: readonly Chapter[];
   /** The open file's name without `.pdf`, which the parts are named from. */
   readonly stem: string;
-  /** Where the parts go, said under the preview: a folder the person picks, one zip, or each file on its own. */
-  readonly output: "folder" | "zip" | "files";
+  /** Where `parts` files go, said under the preview: a folder the person picks, one zip, or each file on its own. */
+  readonly output: (parts: number) => "folder" | "zip" | "files";
   /** Whether the file is signed or certified: its parts aren't. */
   readonly signed: boolean;
   /** How far the writing is: undefined until it starts. */
@@ -141,7 +141,7 @@ export function SplitDialog(props: SplitDialogProps): ReactNode {
         ]}
       />
       <SplitPreview parts={named} result={result} label={label} />
-      <p className="paper-documents-result">{laterMessage(`documents.split.output.${props.output}`)}</p>
+      <p className="paper-documents-result">{laterMessage(`documents.split.output.${props.output(parts.length)}`)}</p>
       {props.signed ? (
         <Notice tone="warning" title={laterMessage("documents.split.signed.title")}>
           {laterMessage("documents.split.signed")}
