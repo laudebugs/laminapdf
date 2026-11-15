@@ -2,6 +2,7 @@ import axe from "axe-core";
 import { type ReactNode, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
+import { LinkPanel } from "../../src/editing.ts";
 import {
   Button,
   Dialog,
@@ -479,5 +480,24 @@ describe.each(["light", "dark", "high-contrast"] as const)("axe with each overla
     queue.add({ message: "Copied", action: { label: "Undo", onPress: () => {} }, timeout: 60_000 });
     await userEvent.tab();
     await check();
+  });
+});
+
+describe("LinkPanel", () => {
+  it("adds no second banner to a page whose top bar is its banner", async () => {
+    // A dialog's role drops the section's scope, so a <header> in it would read as the page's banner.
+    renderIn(
+      <>
+        <header>Top bar</header>
+        <LinkPanel anchor={() => ({ top: 40, left: 40, width: 80, height: 20 })} onDismiss={() => {}}>
+          <p>Where the link goes</p>
+        </LinkPanel>
+      </>,
+    );
+    await expect.poll(() => role("dialog")).not.toBeNull();
+    const { violations } = await axe.run(document.body, {
+      runOnly: ["landmark-no-duplicate-banner", "landmark-unique"],
+    });
+    expect(violations.map((v) => v.id)).toEqual([]);
   });
 });
