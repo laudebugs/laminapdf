@@ -1,12 +1,12 @@
-//! The worker's job queue: document requests first, then visible tiles, then prefetched ones,
-//! each in arrival order. The router pushes and cancels; the worker pops.
+//! The worker's job queue: document requests first, then visible tiles and print bands, then
+//! prefetched tiles, each in arrival order. The router pushes and cancels; the worker pops.
 
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::sync::{Condvar, Mutex, MutexGuard, PoisonError};
 use std::time::Instant;
 
-use laminapdf_desktop_protocol::{DocId, Password, Priority, ReqId, TileRequest};
+use laminapdf_desktop_protocol::{DocId, Password, PrintBandRequest, Priority, ReqId, TileRequest};
 use laminapdf_render::CancelToken;
 
 /// One request for the worker.
@@ -15,6 +15,7 @@ pub(crate) enum Job {
     Unlock { req: ReqId, doc: DocId, password: Password },
     PageInfo { req: ReqId, doc: DocId },
     Render(TileRequest),
+    Print(PrintBandRequest),
     Close { doc: DocId },
 }
 
@@ -24,6 +25,7 @@ impl Job {
         match self {
             Self::Open { req, .. } | Self::Unlock { req, .. } | Self::PageInfo { req, .. } => Some(*req),
             Self::Render(tile) => Some(tile.req),
+            Self::Print(band) => Some(band.req),
             Self::Close { .. } => None,
         }
     }
@@ -35,7 +37,8 @@ impl Job {
                 priority: Priority::Prefetch,
                 ..
             }) => 0,
-            Self::Render(_) => 1,
+            // A print band waits for the user like a tile on screen does.
+            Self::Render(_) | Self::Print(_) => 1,
             _ => 2,
         }
     }
