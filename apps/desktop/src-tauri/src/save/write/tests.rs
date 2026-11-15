@@ -88,8 +88,8 @@ fn an_append_to_a_file_of_another_length_should_be_refused() {
     let folder = Folder::new("append-length", b"%PDF-1.7 base, changed since");
     let result = append(&folder.file, 13, &mut writes(b" revision"));
     assert_eq!(
-        (kind(result), folder.read()),
-        (Some(io::ErrorKind::Other), b"%PDF-1.7 base, changed since".to_vec())
+        (result.as_ref().is_err_and(super::is_changed), folder.read()),
+        (true, b"%PDF-1.7 base, changed since".to_vec())
     );
 }
 

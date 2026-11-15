@@ -51,8 +51,9 @@ const OUTCOMES: Readonly<Record<string, (name: string) => string>> = {
   // Another app wrote the file in place: the bytes the edits build on are gone.
   "base-changed": (name) =>
     `Couldn't save over ${name}: another app changed it, and your edits build on the version it replaced. Save as… keeps your edits; Reload shows the other app's version.`,
-  // The file holds every edit, but the document had to reopen from it.
-  "saved-reopened": (name) => `Saved ${name}, and reopened it from the saved file.`,
+  // The file holds every edit, but the document had to reopen from it, under the saved file's
+  // name, which may be a new one after Save as.
+  "saved-reopened": () => "Saved, and reopened the document from the saved file.",
 };
 
 /** A plan's refusal as the error a save fails with, as the main process would refuse it. */

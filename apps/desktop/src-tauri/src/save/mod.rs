@@ -137,21 +137,21 @@ fn save(
         to: &to,
         expected,
     };
-    let in_place = match saving.write(target, written) {
-        Ok(()) => saving.adopt(),
-        Err(error) => {
-            engines.drop_save(window, doc);
-            return Err(error);
-        }
-    };
+    if let Err(error) = saving.write(target, written) {
+        engines.drop_save(window, doc);
+        return Err(error);
+    }
     if let Target::NewFile(_) = target {
-        // The document is the new file now: watch it there, and list it first in the recent lists.
+        crate::opened::remember_saved(app, &to);
+    }
+    // A document that reopened from the saved file is watched under its new id already.
+    saving.adopt(target)?;
+    if let Target::NewFile(_) = target {
+        // The document is the new file now: watch it there.
         let watcher = app.state::<Watcher>();
         watcher.unwatch(window, doc);
         watcher.watch(&to, window, doc);
-        crate::opened::remember_saved(app, &to);
     }
-    in_place?;
     Ok(SavedView {
         name: crate::opened::file_name(&to),
         mode: written.mode,
@@ -198,7 +198,7 @@ impl Saving<'_> {
             (Target::NewFile(_), SavedAs::FullRewrite) => write::create(self.to, None, &mut fill),
         };
         result.map_err(|error| {
-            if error.kind() == std::io::ErrorKind::WouldBlock {
+            if write::is_changed(&error) {
                 DesktopError::FileChanged
             } else {
                 DesktopError::Write(error)
@@ -211,28 +211,30 @@ impl Saving<'_> {
         Ok(())
     }
 
-    /// `Ok` while the file the save goes over is as it was when the save began; else the error
-    /// that stops the write (`WouldBlock`, which [`Saving::write`] reports as `file-changed`).
+    /// `Ok` while the file the save goes over is as it was when the save began; else
+    /// [`write::Changed`], which stops the write and [`Saving::write`] reports as `file-changed`.
     fn unchanged(&self) -> std::io::Result<()> {
         if FileStamp::read(self.to).ok() == self.expected {
             Ok(())
         } else {
-            Err(std::io::Error::new(
-                std::io::ErrorKind::WouldBlock,
-                "another app changed the file while it saved",
-            ))
+            Err(std::io::Error::other(write::Changed))
         }
     }
 
     /// The file is written: the document reads it from now on, and the engine takes it as the
     /// saved file. The document's file source moves first, so the engine reads the grown file
-    /// (on Windows the old source refuses it). If the engine can't adopt the file, the document
-    /// reopens from it, since the file holds every edit.
-    fn adopt(&self) -> Result<(), DesktopError> {
+    /// (on Windows the old source refuses it). If either step fails, the document reopens from
+    /// the file it saved to, which holds every edit: `saved-reopened`. A Save as whose new file
+    /// can't be opened at all leaves the document on its old file, which is unchanged.
+    fn adopt(&self, target: &Target) -> Result<(), DesktopError> {
         if let Err(error) = self.engines.saved_to(self.doc, self.to) {
             tracing::warn!(doc = self.doc.0, "a saved file couldn't be opened again: {error}");
             self.engines.drop_save(self.window, self.doc);
-            return Err(DesktopError::Write(error));
+            if let Target::NewFile(_) = target {
+                return Err(DesktopError::Write(error));
+            }
+            crate::watch::app::reload_now(self.app, self.window, self.doc)?;
+            return Err(DesktopError::SavedReopened);
         }
         if let Err(error) = self.engines.adopt_save(self.window, self.doc) {
             tracing::warn!(

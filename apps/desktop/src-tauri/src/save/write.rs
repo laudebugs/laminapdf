@@ -10,6 +10,19 @@ use std::io::{self, BufWriter, Seek as _, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
 
+/// The error that stops a write because the file isn't the one the save began with: another app
+/// changed it meanwhile. `io::Error::other(Changed)` carries it, so the caller can tell it apart.
+#[derive(Debug, thiserror::Error)]
+#[error("another app changed the file while it saved")]
+pub(crate) struct Changed;
+
+/// Whether `error` is [`Changed`].
+pub(crate) fn is_changed(error: &io::Error) -> bool {
+    error
+        .get_ref()
+        .is_some_and(<dyn std::error::Error + Send + Sync>::is::<Changed>)
+}
+
 /// Writes the save's output into the writer it is given.
 pub(crate) type Fill<'a> = dyn FnMut(&mut dyn Write) -> io::Result<()> + 'a;
 
@@ -18,11 +31,11 @@ pub(crate) type Fill<'a> = dyn FnMut(&mut dyn Write) -> io::Result<()> + 'a;
 ///
 /// # Errors
 /// The OS's error when the file can't be opened for writing (read-only, gone) or written (the
-/// disk is full); `fill`'s own; `Other` for a file whose length isn't `at`.
+/// disk is full); `fill`'s own; [`Changed`] for a file whose length isn't `at`.
 pub(crate) fn append(path: &Path, at: u64, fill: &mut Fill<'_>) -> io::Result<()> {
     let mut target = OpenOptions::new().write(true).open(path)?;
     if target.metadata()?.len() != at {
-        return Err(io::Error::other("the file's length changed since it opened"));
+        return Err(io::Error::other(Changed));
     }
     let written = (|| {
         target.seek(SeekFrom::Start(at))?;

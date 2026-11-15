@@ -340,26 +340,8 @@ impl Worker {
         let Some(stamp) = stamp else {
             return;
         };
-        file.opened = stamp;
         file.settle = Settle::default();
-        file.missing = false;
-        let others: Vec<usize> = (0..file.docs.len())
-            .filter(|&i| {
-                file.docs
-                    .get(i)
-                    .is_some_and(|(window, doc)| (window, doc) != (&writer.0, &writer.1))
-            })
-            .collect();
-        for i in others {
-            let Some((window, doc)) = self.files.get(path).and_then(|file| file.docs.get(i)).cloned() else {
-                continue;
-            };
-            if let Reloaded::Replaced(new) = self.reload.modified(&window, doc, path)
-                && let Some(slot) = self.files.get_mut(path).and_then(|file| file.docs.get_mut(i))
-            {
-                slot.1 = new;
-            }
-        }
+        self.reload_all(path, stamp, Some(writer));
     }
 
     fn look_at(&mut self, path: &Path) {
@@ -377,7 +359,7 @@ impl Worker {
             // A file that came back as it was still needs its windows told it is there again.
             Verdict::Settled(Change::Unchanged) if file.missing => {
                 if let Some(stamp) = stamp {
-                    self.reload_all(path, stamp);
+                    self.reload_all(path, stamp, None);
                 }
             }
             Verdict::Settled(Change::Unchanged) => {}
@@ -389,18 +371,21 @@ impl Worker {
                     }
                 }
             }
-            Verdict::Settled(Change::Modified(stamp)) => self.reload_all(path, stamp),
+            Verdict::Settled(Change::Modified(stamp)) => self.reload_all(path, stamp, None),
         }
     }
 
-    /// Reloads every document that shows `path`, now at `stamp`. A document that fails keeps its
-    /// old stamp, so the next change tries again.
-    fn reload_all(&mut self, path: &Path, stamp: FileStamp) {
+    /// Reloads every document that shows `path`, now at `stamp`, but `saved`, the one whose own
+    /// save it is. A document that fails keeps its old stamp, so the next change tries again.
+    fn reload_all(&mut self, path: &Path, stamp: FileStamp, saved: Option<&(String, DocId)>) {
         let Some(file) = self.files.get_mut(path) else {
             return;
         };
         let mut all = true;
         for (window, doc) in &mut file.docs {
+            if saved.is_some_and(|(w, d)| w == window && d == doc) {
+                continue;
+            }
             match self.reload.modified(window, *doc, path) {
                 Reloaded::Replaced(new) => *doc = new,
                 Reloaded::Skipped => {}
