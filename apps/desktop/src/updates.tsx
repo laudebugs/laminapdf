@@ -109,7 +109,7 @@ function reportError(error: unknown): void {
 }
 
 /** The channel's name, as Settings writes it. */
-function channelName(channel: Channel): string {
+export function channelName(channel: Channel): string {
   return words(`channel.${channel}`);
 }
 

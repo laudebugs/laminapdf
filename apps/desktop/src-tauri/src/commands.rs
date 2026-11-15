@@ -243,6 +243,13 @@ pub(crate) fn graphics_notice_seen(app: tauri::AppHandle) -> Result<(), DesktopE
     Ok(())
 }
 
+/// Settings › About's View licences: `false` when this build bundles none.
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its handle by value")]
+pub(crate) fn open_licences(app: tauri::AppHandle) -> bool {
+    crate::menu::open_licences(&app)
+}
+
 /// Restart now, after a change that takes effect at the next start (Settings › Graphics):
 /// `false`, and no restart, while a window holds unsaved edits.
 #[tauri::command]

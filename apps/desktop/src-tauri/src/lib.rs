@@ -247,6 +247,7 @@ macro_rules! app_commands {
             commands::graphics_status,
             commands::graphics_notice_seen,
             commands::restart_app,
+            commands::open_licences,
             commands::new_window,
             commands::move_tab,
             commands::window_list,
