@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `X8b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [CI caching §5](../../plans/ci-caching.md#5-rollout) |
 | Round / milestone | Round X (cross-cutting): CI |
 | Depends on | [X8a](../done/X8a-rust-compile-cache-trial.md) |

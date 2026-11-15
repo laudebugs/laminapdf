@@ -122,7 +122,7 @@ Each todo's PR carries its workflow edits with the action, the pin, the tests an
 ## 7. Todos
 
 - [x] The setup action, the sccache pin, the workflow checks, ADR 0018's amendment and a trial on two legs ([X8a](../todos/done/X8a-rust-compile-cache-trial.md))
-- [ ] Spread it to every Rust job of the fast and full lanes, or remove it, from the trial's numbers ([X8b](../todos/ready/X8b-rust-compile-cache-everywhere.md))
+- [ ] Spread it to every Rust job of the fast and full lanes, or remove it, from the trial's numbers ([X8b](../todos/ongoing/X8b-rust-compile-cache-everywhere.md))
 
 ## 8. The waits
 
