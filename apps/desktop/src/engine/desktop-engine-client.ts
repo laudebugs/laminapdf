@@ -10,8 +10,8 @@
 //   passwords: `engine://restarted` becomes the viewer's `restarted`, which redraws what is
 //   on screen; `engine://failed` and a document that didn't come back become `restart-failed`.
 // - Edits go to the engine, which draws the pages from the edited file from then on; the history
-//   is kept here, per document, so it survives a tab switch (desktop-edits.ts, E1h). Saving them
-//   waits for E1i: planning, copying and adopting a save reject.
+//   is kept here, per document, so it survives a tab switch (desktop-edits.ts). Saving them isn't
+//   served yet: planning, copying and adopting a save reject.
 // - Text, links and search aren't served by the engine yet: their calls answer as for a document
 //   without them (no text runs, no links, untagged).
 // - Only types come from `@laminapdf/viewer` here, so the app's Node tests run without the
@@ -229,17 +229,25 @@ export class DesktopEngineClient implements ViewerEngine {
 
   /**
    * The engine came back: the viewer redraws the document if it reopened, else the UI is told.
-   * Each reopened document's edits are made again in it, since it opened the file as it is.
+   * Each reopened document's edits are made again in it first, since it opened the file as it is
+   * on disk, so the shown one is never drawn without them. A document that came back locked or
+   * closed had none: an encrypted document takes no edits.
    */
   #restarted(payload: RestartedPayload): void {
     const doc = this.#current?.doc;
     const state = payload.docs.find((entry) => entry.doc === doc)?.state;
     for (const entry of payload.docs) {
-      if (entry.state === "open") this.#replay(entry.doc);
-      else this.dropEdits(entry.doc);
+      if (entry.state !== "open") this.dropEdits(entry.doc);
+      else if (entry.doc !== doc) void this.#replay(entry.doc);
     }
-    if (state === "open" || (state === undefined && doc === undefined)) {
-      this.#emit("restarted", { reason: "error", reopened: doc !== undefined });
+    if (state === "open" && doc !== undefined) {
+      void this.#replay(doc).then((result) => {
+        if (this.#current?.doc !== doc) return;
+        this.#emit("restarted", { reason: "error", reopened: true });
+        if (result !== undefined) this.#emit("edit", result);
+      });
+    } else if (state === undefined && doc === undefined) {
+      this.#emit("restarted", { reason: "error", reopened: false });
     } else if (state === "locked") {
       this.#emit("password-required", {});
     } else {
@@ -248,21 +256,21 @@ export class DesktopEngineClient implements ViewerEngine {
     }
   }
 
-  /** Makes document `doc`'s edits again; the shown one's pages are drawn again once they are. */
-  #replay(doc: number): void {
+  /**
+   * Makes document `doc`'s edits again, and keeps its pages as they leave it. Resolves to what the
+   * viewer redraws, or undefined with none; a replay that failed resolves to the history, which
+   * says the document diverged.
+   */
+  async #replay(doc: number): Promise<EditResult | undefined> {
     const edits = this.#edits.get(doc);
-    if (edits === undefined) return;
-    void edits.replay().then(
-      (result) => {
-        if (result === undefined || this.#current?.doc !== doc) return;
-        this.#keepPages(doc);
-        this.#emit("edit", result);
-      },
-      // The history says it diverged: the edit commands say why from now on.
-      () => {
-        if (this.#current?.doc === doc) this.#emit("edit", { pages: [], history: edits.history() });
-      },
-    );
+    if (edits === undefined) return undefined;
+    try {
+      const result = await edits.replay();
+      this.#keepPages(doc);
+      return result;
+    } catch {
+      return { pages: [], history: edits.history() };
+    }
   }
 
   /**

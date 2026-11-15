@@ -14,16 +14,12 @@ use std::sync::Arc;
 
 use laminapdf::{IncrementalOutput, PageId, SaveMode, SaveOptions, UndoOutcome};
 use laminapdf_desktop_protocol::{
-    EditCall, EditReport, EditedPage, EngineLimits, FailureKind, PageDimensions, Reversal,
+    EditCall, EditReport, EditedPage, EngineLimits, FailureKind, Reversal,
 };
 use laminapdf_render::{ByteSource, RenderBackend, RenderOpenOptions, SourceError};
 
 use crate::limits;
 use crate::worker::Opened;
-
-/// Why a document takes no more edits: a call that failed couldn't be taken back, so the model
-/// and the pages drawn may differ until it is opened again.
-const DIVERGED: &str = "diverged";
 
 /// Why an encrypted document takes no edit: the copy its pages would be drawn from can't be
 /// written yet (the save's `encrypted-base`).
@@ -32,12 +28,18 @@ const ENCRYPTED: &str = "encrypted-base";
 /// A failed call: the protocol's kind and the error's code.
 pub(crate) type Refused = (FailureKind, String);
 
+/// The failure of a call made on a document that diverged, and of the take-back that made it so.
+fn diverged() -> Refused {
+    (FailureKind::EditDiverged, "diverged".to_owned())
+}
+
 /// Applies, undoes or redoes `call` on `opened`, and draws its pages from the edited file from
 /// now on.
 ///
 /// # Errors
 /// The op's, undo's or redo's code (the document is unchanged); a save or reopen error, after the
-/// call is taken back; [`DIVERGED`] when taking it back failed too, and for every call after.
+/// call is taken back ([`FailureKind::RenderFailed`]); [`FailureKind::EditDiverged`] when taking
+/// it back failed too, and for every call after.
 pub(crate) fn run(
     opened: &mut Opened,
     backend: Option<&dyn RenderBackend>,
@@ -45,7 +47,7 @@ pub(crate) fn run(
     call: EditCall,
 ) -> Result<EditReport, Refused> {
     if opened.diverged {
-        return Err(refused(DIVERGED));
+        return Err(diverged());
     }
     if opened.encrypted {
         return Err(refused(ENCRYPTED));
@@ -154,13 +156,7 @@ fn report(opened: &Opened, done: Done) -> Result<EditReport, Refused> {
             .iter()
             .map(|page| EditedPage {
                 id: page.id.to_string(),
-                size: PageDimensions {
-                    #[expect(clippy::cast_possible_truncation, reason = "page sizes in points fit an f32")]
-                    width: page.width as f32,
-                    #[expect(clippy::cast_possible_truncation, reason = "page sizes in points fit an f32")]
-                    height: page.height as f32,
-                    rotate: page.rotation,
-                },
+                size: crate::worker::dimensions(page),
             })
             .collect(),
         created_outline_items: done.created_outline_items,
@@ -183,7 +179,11 @@ fn redraw(opened: &mut Opened, backend: Option<&dyn RenderBackend>, limits: &Eng
         .with_mode(SaveMode::Auto)
         .with_output(IncrementalOutput::AppendedOnly)
         .with_invalidate_signatures(true);
-    let saved = opened.lamina.save_copy(&options).map_err(|e| refused(e.code()))?;
+    // A failure here is the redraw's, after the call changed the model: it is taken back.
+    let saved = opened
+        .lamina
+        .save_copy(&options)
+        .map_err(|e| (FailureKind::RenderFailed, e.code().to_owned()))?;
     // Without PDFium there is nothing to draw; the model still takes the edit.
     let Some(backend) = backend else { return Ok(()) };
     let source: Arc<dyn ByteSource> = if saved.report.mode() == SaveMode::FullRewrite {
@@ -213,7 +213,7 @@ fn take_back(opened: &mut Opened, way: Way) -> Result<(), Refused> {
         Ok(Some(reverted)) if !matches!(reverted.outcome, UndoOutcome::Skipped { .. }) => Ok(()),
         _ => {
             opened.diverged = true;
-            Err(refused(DIVERGED))
+            Err(diverged())
         }
     }
 }

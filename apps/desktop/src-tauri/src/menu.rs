@@ -34,7 +34,7 @@ pub(crate) const COMMAND_EVENT: &str = "menu://command";
 const MENUS_JSON: &str = include_str!("../menus.json");
 
 /// The commands that work with no window open (macOS keeps running without one): Rust opens a
-/// window for Open and New window, and quits for Quit, with no window to hold unsaved edits.
+/// window for Open and New window, and quits for Quit, asking first any window with unsaved edits.
 const WITHOUT_WINDOW: [&str; 3] = ["file.open", "window.new", "app.quit"];
 
 /// The platform a menu or an item is for.
@@ -822,7 +822,12 @@ fn send(app: &AppHandle, command: &MenuCommand) {
                 tracing::warn!("could not send a menu command: {error}");
             }
         }
-        None if command.id == "app.quit" => app.exit(0),
+        // No window focused yet (they may still be opening): any with unsaved edits is asked.
+        None if command.id == "app.quit" => {
+            if crate::unsaved::may_quit(app) {
+                app.exit(0);
+            }
+        }
         None if WITHOUT_WINDOW.contains(&command.id.as_str()) => {
             if let Err(error) = windows::new_window(app, None) {
                 tracing::warn!("could not open a window from the menu: {error}");

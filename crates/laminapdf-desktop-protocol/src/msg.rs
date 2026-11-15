@@ -202,8 +202,10 @@ pub enum EditCall {
     Redo,
 }
 
-/// How an undo or redo went (the façade's `UndoOutcome`).
+/// How an undo or redo went (the façade's `UndoOutcome`). Its names are camelCase for the
+/// webview, which reads them as JSON; the pipe's format numbers the variants.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum Reversal {
     /// Every property was restored.
     Applied,
@@ -265,9 +267,12 @@ pub enum FailureKind {
     TooLarge,
     /// The request was cancelled.
     Cancelled,
-    /// The document can't take an edit (encrypted, or a failed edit left it apart from the
-    /// pages drawn), or an op refused it; the message is the error's code.
+    /// The document can't take an edit (it is encrypted), or an op refused it; nothing changed.
+    /// The message is the error's code.
     EditRefused,
+    /// An edit failed and couldn't be taken back: the document and the pages drawn may differ,
+    /// and it takes no more edits until it opens again.
+    EditDiverged,
     /// The engine has no renderer (PDFium wasn't found).
     RenderUnavailable,
     /// The renderer failed on this page.

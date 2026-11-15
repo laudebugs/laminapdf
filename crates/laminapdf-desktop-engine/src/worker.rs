@@ -168,16 +168,7 @@ impl Worker {
         match opened.lamina.page_infos() {
             Ok(pages) => {
                 let ids = pages.iter().map(|page| page.id.to_string()).collect();
-                let sizes = pages
-                    .iter()
-                    .map(|page| PageDimensions {
-                        #[expect(clippy::cast_possible_truncation, reason = "page sizes in points fit an f32")]
-                        width: page.width as f32,
-                        #[expect(clippy::cast_possible_truncation, reason = "page sizes in points fit an f32")]
-                        height: page.height as f32,
-                        rotate: page.rotation,
-                    })
-                    .collect();
+                let sizes = pages.iter().map(dimensions).collect();
                 self.send(&FromEngine::PageInfo { req, doc, sizes, ids });
             }
             Err(error) => self.error(req, kind_of(error.code()), error.code().into()),
@@ -303,6 +294,17 @@ impl Worker {
             kind,
             message,
         });
+    }
+}
+
+/// A page's size and rotation, as the protocol carries them.
+pub(crate) fn dimensions(page: &laminapdf::PageInfo) -> PageDimensions {
+    PageDimensions {
+        #[expect(clippy::cast_possible_truncation, reason = "page sizes in points fit an f32")]
+        width: page.width as f32,
+        #[expect(clippy::cast_possible_truncation, reason = "page sizes in points fit an f32")]
+        height: page.height as f32,
+        rotate: page.rotation,
     }
 }
 

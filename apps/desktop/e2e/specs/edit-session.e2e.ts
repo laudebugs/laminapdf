@@ -1,4 +1,4 @@
-// The edit session (E1h): View ▸ Rotate page right turns the shown page in the engine, which
+// The edit session: View ▸ Rotate page right turns the shown page in the engine, which
 // draws it from the edited file; Undo and Redo, from the Edit menu and from their keys, take the
 // turn back and make it again, and the window's title has a "•" while the turn isn't saved.
 // Closing a window with unsaved edits asks first; Cancel keeps it, and closing one with none
@@ -7,7 +7,7 @@
 import { platform } from "node:process";
 import { $, browser, expect } from "@wdio/globals";
 import { Key } from "webdriverio";
-import { fixture, focusWindow, menuClick, openAndWait, waitForMenus } from "../app.ts";
+import { fixture, focusWindow, menuClick, now, openAndWait, waitForMenus, waitForSharpSince } from "../app.ts";
 
 const HELLO = fixture("fixtures", "golden", "examples", "hello.pdf");
 const MOD = platform === "darwin" ? Key.Command : Key.Ctrl;
@@ -19,12 +19,29 @@ async function rotation(): Promise<number | undefined> {
   return browser.execute(() => globalThis.__laminaE2e?.rotation(0));
 }
 
-/** Waits until page 1 is turned to `degrees` and the title says whether the turn is unsaved. */
-async function turnedTo(degrees: number, why: string): Promise<void> {
-  const title = degrees === 0 ? CLEAN_TITLE : DIRTY_TITLE;
-  await browser.waitUntil(async () => (await rotation()) === degrees && (await browser.getTitle()) === title, {
-    timeoutMsg: `${why}: page 1 is at ${String(await rotation())}°, the title "${await browser.getTitle()}"`,
+/** Whether page 1 shows wider than tall: hello.pdf's portrait page after a quarter turn. */
+async function shownLandscape(): Promise<boolean> {
+  return browser.execute(() => {
+    const box = globalThis.document.querySelector('[data-page-index="0"]')?.getBoundingClientRect();
+    return box !== undefined && box.width > box.height;
   });
+}
+
+/**
+ * Runs `step`, then waits until page 1 is turned to `degrees` in the engine, shows that way and is
+ * drawn sharp again, and the title says whether the turn is unsaved.
+ */
+async function turnsTo(degrees: number, why: string, step: () => Promise<unknown>): Promise<void> {
+  const since = await now();
+  await step();
+  const title = degrees === 0 ? CLEAN_TITLE : DIRTY_TITLE;
+  const landscape = degrees % 180 !== 0;
+  await browser.waitUntil(
+    async () =>
+      (await rotation()) === degrees && (await shownLandscape()) === landscape && (await browser.getTitle()) === title,
+    { timeoutMsg: `${why}: page 1 didn't show turned to ${degrees}° with the title "${title}"` },
+  );
+  await waitForSharpSince(0, since);
 }
 
 /** Opens a new window from the File menu, switches to it and opens `path` there; its handle. */
@@ -48,18 +65,22 @@ describe("the edit session", () => {
   it("turns a page, and undoes and redoes the turn from the Edit menu and the keys", async () => {
     await openAndWait(HELLO);
     await focusWindow();
+    // Nothing to undo or redo yet.
+    await waitForMenus(
+      /Undo \[\w+\+Z\] \(disabled\)[^\n]*\n\s*Redo \[[^\]]+\] \(disabled\)/,
+      "Undo and Redo aren't disabled",
+    );
     await waitForMenus(/Rotate page right {2}<cmd:pages\.rotate-right>/, "Rotate page right isn't enabled");
-    await menuClick("cmd:pages.rotate-right");
-    await turnedTo(90, "Rotate page right");
-    await waitForMenus(/Undo \[\w+\+Z\] {2}<cmd:edit\.undo>/, "Undo isn't enabled after the turn");
-    await browser.keys([MOD, "z"]);
-    await turnedTo(0, "the undo keys");
-    await menuClick("cmd:edit.redo");
-    await turnedTo(90, "Edit ▸ Redo");
-    await menuClick("cmd:edit.undo");
-    await turnedTo(0, "Edit ▸ Undo");
-    await browser.keys(REDO_KEYS);
-    await turnedTo(90, "the redo keys");
+    await turnsTo(90, "Rotate page right", () => menuClick("cmd:pages.rotate-right"));
+    await waitForMenus(
+      /Undo \[\w+\+Z\] {2}<cmd:edit\.undo>\n\s*Redo \[[^\]]+\] \(disabled\)/,
+      "after the turn, Undo isn't enabled or Redo isn't disabled",
+    );
+    await turnsTo(0, "the undo keys", () => browser.keys([MOD, "z"]));
+    await waitForMenus(/Redo \[[^\]]+\] {2}<cmd:edit\.redo>/, "Redo isn't enabled after the undo");
+    await turnsTo(90, "Edit ▸ Redo", () => menuClick("cmd:edit.redo"));
+    await turnsTo(0, "Edit ▸ Undo", () => menuClick("cmd:edit.undo"));
+    await turnsTo(90, "the redo keys", () => browser.keys(REDO_KEYS));
   });
 
   it("asks before closing a window with unsaved edits, and Cancel keeps it", async () => {
@@ -74,8 +95,7 @@ describe("the edit session", () => {
     expect(await browser.getWindowHandles()).toEqual(handles);
     expect(await browser.getTitle()).toBe(DIRTY_TITLE);
     // Undone, the document matches its file again: nothing is lost by closing it.
-    await browser.keys([MOD, "z"]);
-    await turnedTo(0, "the undo before the clean close");
+    await turnsTo(0, "the undo before the clean close", () => browser.keys([MOD, "z"]));
   });
 
   it("closes a window with no unsaved edits without asking, and one with them once told to", async () => {
@@ -87,8 +107,7 @@ describe("the edit session", () => {
     });
     await browser.switchToWindow(main);
     const edited = await newWindowWith(HELLO);
-    await menuClick("cmd:pages.rotate-right");
-    await turnedTo(90, "Rotate page right in the new window");
+    await turnsTo(90, "Rotate page right in the new window", () => menuClick("cmd:pages.rotate-right"));
     await menuClick("cmd:window.close");
     await $("[role=alertdialog]").waitForDisplayed({ timeoutMsg: "closing the edited window didn't ask" });
     await $("button=Close without saving").click();

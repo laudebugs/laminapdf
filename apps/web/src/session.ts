@@ -25,7 +25,7 @@ import type {
   RepairKind,
   SaveResult,
 } from "@laminapdf/ui";
-import { fromFile, message, ReaderController } from "@laminapdf/ui";
+import { fromFile, message, quarterTurn, ReaderController } from "@laminapdf/ui";
 import {
   createViewer,
   type LinkLayerOptions,
@@ -459,8 +459,7 @@ export class Engine implements ExternalStore<EngineState> {
     const session = await this.#session;
     const page = session.client.document?.pages[index];
     if (page === undefined) return;
-    const rotate = (((page.rotation + delta) % 360) + 360) % 360;
-    const ops = [{ op: "rotatePage", args: { page: page.id, rotate } }] as unknown as Ops;
+    const ops = [quarterTurn(page, delta)] as unknown as Ops;
     const label = message("edit.rotate.label", { page: pageLabel(this.#state.pages, index) });
     await session.viewer.edits.apply(ops, label);
   }

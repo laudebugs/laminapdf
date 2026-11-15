@@ -239,13 +239,26 @@ pub(crate) async fn close_window(window: tauri::WebviewWindow) -> Result<(), Des
 }
 
 /// Quits the app (File ▸ Quit, or the app menu's on macOS), unless a window holds unsaved edits:
-/// that window is asked first, and quits again once the user chose to discard them.
+/// that window is asked first. It quits again with `discard` once the user chose to lose them,
+/// and the next window with edits is asked, until none is left.
 #[tauri::command]
-#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its app by value")]
-pub(crate) fn quit(app: tauri::AppHandle) {
-    if crate::unsaved::may_quit(&app) {
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window by value")]
+pub(crate) fn quit(window: tauri::WebviewWindow, discard: Option<bool>) {
+    let app = window.app_handle();
+    if discard == Some(true) {
+        window.state::<crate::unsaved::Unsaved>().agree(window.label());
+    }
+    if crate::unsaved::may_quit(app) {
         app.exit(0);
     }
+}
+
+/// The user cancelled a quit in this window: every window with unsaved edits is asked again next
+/// time.
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window by value")]
+pub(crate) fn cancel_quit(window: tauri::WebviewWindow) {
+    window.state::<crate::unsaved::Unsaved>().cancel_quit();
 }
 
 /// Says whether this window's documents hold edits not yet saved, so closing it or quitting asks

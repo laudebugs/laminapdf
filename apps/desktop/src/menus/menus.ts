@@ -61,7 +61,7 @@ export interface MenusJson {
 
 /**
  * The edit session's commands the desktop has: undo, redo and turning the current page. Saving
- * and the History tab wait for E1i.
+ * and the History tab come with saving in place.
  */
 export const DESKTOP_EDIT_COMMANDS: readonly CommandId[] = [
   "edit.undo",

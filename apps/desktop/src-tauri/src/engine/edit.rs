@@ -1,4 +1,4 @@
-//! A document's edits through its window's engine (E1h): the webview's edit session sends an
+//! A document's edits through its window's engine: the webview's edit session sends an
 //! op log, an undo or a redo, and gets what changed back. The engine draws the pages from the
 //! edited file from then on; the history (labels, the saved point) stays in the webview.
 
@@ -8,7 +8,8 @@ use serde::{Deserialize, Serialize};
 use super::{Engines, PageMeta, ask, needs_password, unexpected};
 use crate::DesktopError;
 
-/// What the webview asks of a document's edits.
+/// What the webview asks of a document's edits: the protocol's `EditCall` as JSON tags it. The
+/// pipe's format can't read an internally tagged enum, so the two stay apart.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub(crate) enum EditRequest {
@@ -27,7 +28,7 @@ pub(crate) struct EditOutcome {
     /// Whether the document changed.
     pub changed: bool,
     /// How an undo or redo went: `applied`, `partial` or `skipped`.
-    pub reversal: Option<&'static str>,
+    pub reversal: Option<Reversal>,
     /// The IDs of the pages whose content or attributes changed.
     pub touched: Vec<String>,
     /// The page order an op log reports, when it changed the page list.
@@ -46,11 +47,7 @@ impl From<EditReport> for EditOutcome {
     fn from(report: EditReport) -> Self {
         Self {
             changed: report.changed,
-            reversal: report.reversal.map(|reversal| match reversal {
-                Reversal::Applied => "applied",
-                Reversal::Partial => "partial",
-                Reversal::Skipped => "skipped",
-            }),
+            reversal: report.reversal,
             touched: report.touched,
             page_order: report.page_order,
             pages: report

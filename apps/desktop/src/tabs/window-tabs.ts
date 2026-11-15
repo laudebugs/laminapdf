@@ -62,7 +62,7 @@ export interface RestoredWindow {
   readonly active: number | null;
 }
 
-/** Why a tab with unsaved edits stays: its edits are this window's engine's (E1i saves them). */
+/** Why a tab with unsaved edits stays: its edits are this window's engine's until they're saved. */
 const UNSAVED_MOVE =
   "This document has edits that aren't saved, and they can't move to another window yet. Undo them to move the tab.";
 
@@ -405,6 +405,7 @@ export class WindowTabs implements ExternalStore<TabsState> {
     const next = this.#neighbour(shown.id);
     this.#remove(shown.id);
     if (doc !== undefined) {
+      this.#client.dropEdits(doc);
       await this.#shell.invoke("close_document", { doc }).catch((error: unknown) => {
         console.warn("closing the document failed", error);
       });

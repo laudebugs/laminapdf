@@ -608,6 +608,10 @@ fn engine_error(kind: FailureKind) -> DesktopError {
         FailureKind::RenderFailed => ("render-failed", "the page could not be drawn"),
         FailureKind::Protocol => ("protocol", "the document process misbehaved"),
         FailureKind::EditRefused => ("edit-refused", "the edit was refused"),
+        FailureKind::EditDiverged => (
+            "edit-diverged",
+            "an edit failed and couldn't be undone: open the document again",
+        ),
     };
     DesktopError::Engine {
         kind,

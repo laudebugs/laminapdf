@@ -445,7 +445,7 @@ fn cjk_text_in_a_font_the_file_does_not_embed_should_render_in_the_sandbox() {
 }
 
 /// The report of an edit call on `doc`.
-fn edit(engine: &Engine, doc: DocId, call: EditCall) -> EditReport {
+fn edit(engine: &Engine, doc: DocId, call: &EditCall) -> EditReport {
     match engine.ask(|req| ToEngine::Edit {
         req,
         doc,
@@ -472,9 +472,9 @@ fn an_edit_should_turn_a_page_and_undo_and_redo_should_take_it_back_and_again() 
         panic!("expected PageInfo");
     };
     let first = ids[0].clone();
-    let turned = edit(&engine, doc, rotate(&first, 90));
-    let undone = edit(&engine, doc, EditCall::Undo);
-    let redone = edit(&engine, doc, EditCall::Redo);
+    let turned = edit(&engine, doc, &rotate(&first, 90));
+    let undone = edit(&engine, doc, &EditCall::Undo);
+    let redone = edit(&engine, doc, &EditCall::Redo);
     let rotation = |report: &EditReport| report.pages[0].size.rotate;
     assert_eq!(
         (
@@ -493,7 +493,7 @@ fn an_undo_with_nothing_to_undo_should_change_nothing() {
     let engine = Engine::start();
     let (doc, len) = engine.add(1, fixture("corpus/fpdf2.pdf"));
     engine.open(doc, len);
-    let report = edit(&engine, doc, EditCall::Undo);
+    let report = edit(&engine, doc, &EditCall::Undo);
     assert!(!report.changed && report.reversal.is_none());
 }
 

@@ -1,10 +1,18 @@
-// The edit session in the desktop window (E1h): the view's session (`viewer.edits`) in the
+// The edit session in the desktop window: the view's session (`viewer.edits`) in the
 // commands' context, so Undo and Redo work from the keys, the Edit menu and the palette; turning
 // the current page (View ▸ Rotate page); the window's title and the main process told while edits
 // aren't saved; and the question before they're lost: closing the tab, the window or the app.
-// Saving the edits is E1i's: until then the question can only keep them or let them go.
+// The desktop doesn't save edits yet: until it does, the question can only keep them or let them go.
 
-import { Button, Dialog, type EditControls, message, type ReaderController } from "@laminapdf/ui";
+import {
+  Button,
+  Dialog,
+  type EditControls,
+  message,
+  quarterTurn,
+  type ReaderController,
+  useStoreState,
+} from "@laminapdf/ui";
 import { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { DesktopEngine } from "./app.tsx";
 import { stopper } from "./engine/stopper.ts";
@@ -22,7 +30,7 @@ const LEAVE_TEXT: Readonly<Record<Leaving, { title: (file: string) => string; go
   quit: { title: () => "Quit without saving?", go: "Quit without saving" },
 };
 
-/** The question in words: how many changes go. The desktop can't save edits yet (E1i). */
+/** The question in words: how many changes go, and that the desktop can't save edits yet. */
 function leaveDescription(unsaved: number): string {
   const lost =
     unsaved === 1
@@ -55,7 +63,9 @@ export function useDesktopEditing(
   const edits = engine?.viewer.edits;
   const slice = useSyncExternalStore(edits?.subscribe ?? NOTHING_TO_HEAR, () => edits?.getState());
   const unsaved = (slice?.history.unsaved ?? 0) > 0;
-  useUnsavedMark(engine, slice);
+  // A document closed takes its edits with it: the window renders again then too, and reads them.
+  useStoreState(reader, (s) => s.phase);
+  useUnsavedMark(engine, engine?.client.unsaved ?? false);
   const question = useLeaveQuestion(engine, reader);
   const actions = useMemo(() => {
     const rotate = (delta: 90 | -90) => () => {
@@ -63,10 +73,7 @@ export function useDesktopEditing(
       const index = engine.viewer.getState().currentPage;
       const page = engine.client.document?.pages[index];
       if (page === undefined) return;
-      const rotate = (((page.rotation + delta) % 360) + 360) % 360;
-      const ops = [{ op: "rotatePage", args: { page: page.id, rotate } }] as unknown as Parameters<
-        DesktopEngine["viewer"]["edits"]["apply"]
-      >[0];
+      const ops = [quarterTurn(page, delta)] as unknown as Parameters<DesktopEngine["viewer"]["edits"]["apply"]>[0];
       void engine.viewer.edits.apply(ops, message("edit.rotate.label", { page: String(index + 1) }));
     };
     return { "pages.rotate-right": rotate(90), "pages.rotate-left": rotate(-90) };
@@ -83,18 +90,14 @@ export function useDesktopEditing(
   return { edits, actions, unsaved, dialog };
 }
 
-/** Tells the main process whether this window holds unsaved edits, in any of its documents. */
-function useUnsavedMark(engine: DesktopEngine | undefined, slice: unknown): void {
-  const told = useRef<boolean | undefined>(undefined);
+/**
+ * Tells the main process whether this window holds unsaved edits, in any of its documents
+ * (`unsaved`, read as the window renders after an edit, an undo, a redo or a document closed).
+ */
+function useUnsavedMark(engine: DesktopEngine | undefined, unsaved: boolean): void {
   useEffect(() => {
-    // `slice` changes with every edit, undo or redo: the mark follows it.
-    void slice;
-    if (engine === undefined) return;
-    const unsaved = engine.client.unsaved;
-    if (told.current === unsaved) return;
-    told.current = unsaved;
-    engine.shell.invoke("set_unsaved", { unsaved }).catch(() => undefined);
-  }, [engine, slice]);
+    engine?.shell.invoke("set_unsaved", { unsaved }).catch(() => undefined);
+  }, [engine, unsaved]);
 }
 
 /** The question waiting for an answer, and how it resolves. */
@@ -127,11 +130,7 @@ function useLeaveQuestion(
       });
     };
     const leaveWindow = (leaving: "window" | "quit") => () => {
-      void ask(leaving, engine.client.unsavedSteps).then(async (leave) => {
-        if (!leave) return;
-        await engine.shell.invoke("set_unsaved", { unsaved: false }).catch(() => undefined);
-        await engine.shell.invoke(leaving === "quit" ? "quit" : "close_window").catch(() => undefined);
-      });
+      void ask(leaving, engine.client.unsavedSteps).then((leave) => afterAnswer(engine, leaving, leave));
     };
     const stopGuard = reader.setCloseGuard(() => {
       const unsaved = engine.viewer.edits.getState().history.unsaved;
@@ -159,7 +158,23 @@ function useLeaveQuestion(
   return { asking, answer };
 }
 
-/** The question (Paper O03 without Save, which waits for E1i): lose the changes, or Cancel. */
+/**
+ * Closes or quits once the user answered. A close clears this window's mark and closes again. A
+ * quit goes on saying this window may lose its edits, which keeps its mark should another window
+ * cancel; a Cancel here tells the main process, which asks every window again next time.
+ */
+async function afterAnswer(engine: DesktopEngine, leaving: "window" | "quit", leave: boolean): Promise<void> {
+  const { shell } = engine;
+  if (leaving === "quit") {
+    await shell.invoke(leave ? "quit" : "cancel_quit", leave ? { discard: true } : {}).catch(() => undefined);
+    return;
+  }
+  if (!leave) return;
+  await shell.invoke("set_unsaved", { unsaved: false }).catch(() => undefined);
+  await shell.invoke("close_window").catch(() => undefined);
+}
+
+/** The question (Paper O03 without Save, which the desktop doesn't have yet): lose the changes, or Cancel. */
 function LeaveDialog({
   leaving,
   fileName,

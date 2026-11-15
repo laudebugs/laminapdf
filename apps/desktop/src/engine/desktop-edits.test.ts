@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { DesktopEdits, type EditOutcome, type EditRequest } from "./desktop-edits.ts";
+import fixture from "./edit-outcome.fixture.json" with { type: "json" };
 
 /** A stand-in engine: three pages, `rotatePage` ops, and undo/redo stacks of rotations. */
 function engine(options: { readonly failRedoAfter?: number } = {}) {
@@ -149,6 +150,41 @@ describe("the desktop edit session", () => {
       3,
       2,
       [90, 90, 0],
+    ]);
+  });
+
+  it("drops the steps undone when an edit fails after changing the document, as the engine's redo stack does", async () => {
+    const fake = engine();
+    let failWith: string | undefined;
+    const run = (request: EditRequest) =>
+      failWith !== undefined && request.kind === "apply"
+        ? Promise.reject(Object.assign(new Error(failWith), { code: failWith }))
+        : fake.run(request);
+    const edits = new DesktopEdits(run, fake.pages);
+    await edits.apply(turn(1), "one");
+    await edits.step(-1);
+    failWith = "edit-refused";
+    await expect(edits.apply(turn(2), "two")).rejects.toThrow();
+    const afterRefusal = edits.history().steps.length;
+    failWith = "render-failed";
+    await expect(edits.apply(turn(2), "two")).rejects.toThrow();
+    expect([afterRefusal, edits.history().steps.length]).toEqual([1, 0]);
+  });
+
+  it("reads the outcome the main process sends (src-tauri's test sends the same file)", () => {
+    const sample = {
+      changed: true,
+      reversal: "partial",
+      touched: [],
+      pageOrder: null,
+      pages: [],
+      createdOutlineItems: [],
+      createdAnnotations: [],
+      outlineRepaired: false,
+    } satisfies Record<keyof EditOutcome, unknown>;
+    expect([Object.keys(fixture).sort(), ["applied", "partial", "skipped"].includes(fixture.reversal)]).toEqual([
+      Object.keys(sample).sort(),
+      true,
     ]);
   });
 });

@@ -1,4 +1,4 @@
-// The desktop's edit session (E1h): the history the web reader's document worker keeps
+// The desktop's edit session: the history the web reader's document worker keeps
 // (@laminapdf/viewer's edit-history), over the engine process, which makes each call. The engine
 // applies an op log, an undo or a redo to its model, draws the pages from the edited file from
 // then on, and takes the call back itself when that fails; this keeps the steps, their labels and
@@ -89,16 +89,14 @@ export class DesktopEdits {
     return this.#serial(async () => {
       this.#editable();
       const log = JSON.stringify({ v: 1, ops });
-      const outcome = await this.#call({ kind: "apply", log });
+      const outcome = await this.#applyLog(log);
       if (!outcome.changed) return { pages: [], history: this.history() };
       clearRedo(this.#session);
       const pages = pagesOf(outcome);
       const moves = ops.length > 0 && ops.every((op) => MOVE_OPS.has(op.op));
       const moved = this.#moved(pages);
       const step = record(this.#session, label, listed(pages, outcome.touched), Date.now());
-      this.#logs.set(step.id, log);
-      for (const id of this.#logs.keys())
-        if (!this.#session.steps.some((kept) => kept.id === id)) this.#logs.delete(id);
+      this.#keepLog(step.id, log);
       if (moved) this.#reorders.set(step.id, moves);
       return {
         ...this.#result(pages, moves ? [] : outcome.touched, moved),
@@ -142,6 +140,26 @@ export class DesktopEdits {
         this.#moved(pages),
       );
     });
+  }
+
+  /** Sends op log `log`. */
+  async #applyLog(log: string): Promise<EditOutcome> {
+    try {
+      return await this.#call({ kind: "apply", log });
+    } catch (e) {
+      // Only an op's refusal changed nothing. Any other failure came after the change, which the
+      // engine took back with an undo: that undo sits on its redo stack, so the steps undone here
+      // can't be redone any more. Nothing redoes the undo, and the next edit clears it.
+      if (codeOf(e) !== "edit-refused") clearRedo(this.#session);
+      throw e;
+    }
+  }
+
+  /** Keeps step `id`'s op log, and lets go of those of the steps the history no longer has. */
+  #keepLog(id: number, log: string): void {
+    this.#logs.set(id, log);
+    const kept = new Set(this.#session.steps.map((step) => step.id));
+    for (const step of this.#logs.keys()) if (!kept.has(step)) this.#logs.delete(step);
   }
 
   /** Undoes (`-1`) or redoes (`+1`) one step, reading where the history stands once the calls before it are done. */
@@ -261,10 +279,10 @@ function listed(pages: readonly PageInfo[], ids: readonly string[]): PageInfo[] 
 
 /** Whether `error` is the engine's refusal of a document whose edits went apart from its pages. */
 function isDiverged(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    (error as { code?: unknown }).code === "edit-refused" &&
-    (error as { message?: unknown }).message === "diverged"
-  );
+  return codeOf(error) === "edit-diverged";
+}
+
+/** The main process's kind of a failed call (`DesktopEngineError.code`), if it has one. */
+function codeOf(error: unknown): unknown {
+  return typeof error === "object" && error !== null ? (error as { code?: unknown }).code : undefined;
 }

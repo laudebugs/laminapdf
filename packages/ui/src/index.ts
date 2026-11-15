@@ -143,6 +143,7 @@ export {
   type EditSlice,
   type EditStepSlice,
   inSentence,
+  quarterTurn,
   type RevertedSlice,
   saveStateText,
   sessionStarted,

@@ -205,7 +205,7 @@ mod tests {
                 req,
                 doc,
                 call: EditCall::Apply {
-                    log: r#"{"v":1,"ops":[{"op":"rotatePage","args":{"page":"p1.0","by":90}}]}"#.into(),
+                    log: r#"{"v":1,"ops":[{"op":"rotatePage","args":{"page":"p1.0","rotate":90}}]}"#.into(),
                 },
             },
             ToEngine::Edit {
