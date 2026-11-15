@@ -21,6 +21,8 @@ afterEach(cleanup);
 
 declare module "vitest/browser" {
   interface BrowserCommands {
+    /** Makes the page prefer reduced motion or not, or follow the system again with `null`. */
+    reducedMotion: (value: "reduce" | "no-preference" | null) => Promise<void>;
     /** Emulates forced colours (Windows high contrast), or stops with `null`. Chromium only. */
     forcedColors: (value: "active" | null) => Promise<void>;
   }
@@ -112,13 +114,11 @@ describe("the switch", () => {
       track.getBoundingClientRect().left + inset(track, "left"),
       0,
     );
+    expect(style(knob(host)).transitionProperty).toBe("translate");
+    expect(style(knob(host)).transitionDuration).toBe("0.15s");
     await userEvent.click(get(host, ".paper-switch"));
-    const slide = knob(host)
-      .getAnimations()
-      .find((a) => (a as CSSTransition).transitionProperty === "translate");
-    expect(slide, "a running translate transition").toBeDefined();
-    expect(slide?.effect?.getTiming().duration).toBe(150);
-    await slide?.finished;
+    // Long enough for the 150 ms slide to finish, however slow the runner.
+    await new Promise((r) => setTimeout(r, 300));
     expect(knob(host).getBoundingClientRect().right).toBeCloseTo(
       track.getBoundingClientRect().right - inset(track, "right"),
       0,
@@ -134,7 +134,14 @@ describe("the switch", () => {
     );
   });
 
-  it("jumps under reduced motion, with no transition at all", () => {
+  it("jumps when the system asks for reduced motion", async () => {
+    const host = renderIn(<Switch defaultSelected>Show thumbnails</Switch>);
+    await commands.reducedMotion("reduce");
+    onTestFinished(() => commands.reducedMotion(null));
+    expect(style(knob(host)).transitionProperty).toBe("none");
+  });
+
+  it("jumps when Settings asks for reduced motion, with no transition at all", () => {
     const host = renderIn(<Switch defaultSelected>Show thumbnails</Switch>);
     document.documentElement.setAttribute("data-motion", "reduce");
     onTestFinished(() => document.documentElement.removeAttribute("data-motion"));
