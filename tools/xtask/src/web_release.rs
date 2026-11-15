@@ -52,16 +52,17 @@ const SHIPPING_MACHINERY: [&str; 3] = [
     ".github/workflows/web-deploy.yml",
 ];
 
-/// Whether `path` can change what visitors to the reader get: the reader's inputs
-/// ([`crate::changes::touches_web`]) less the rest of the tools and workflows, which the preview
+/// Whether `path` can change what visitors to the reader get: the reader's inputs (`inputs`, from
+/// [`crate::changes::suites::web_inputs`]: today's dependency graph, which a past commit's paths
+/// are read against too) less the rest of the tools and workflows, which the preview
 /// and staging deploys count but a release needn't, and less Markdown (READMEs, changelogs),
 /// which the reader doesn't bundle.
-fn ships(path: &str) -> bool {
+fn ships(path: &str, inputs: &crate::changes::suites::WebInputs) -> bool {
     if path.is_empty() {
         return false;
     }
     let machinery = path.starts_with("tools/") || path.starts_with(".github/");
-    crate::changes::touches_web(&[path])
+    crate::changes::suites::touches_web(&[path], inputs)
         && (!machinery || SHIPPING_MACHINERY.iter().any(|prefix| path.starts_with(prefix)))
         && !Path::new(path)
             .extension()
@@ -92,6 +93,7 @@ fn tags(root: &Path) -> Result<Vec<(String, Version)>> {
 /// The subject of each first-parent commit in `range` whose changes include a path that ships,
 /// from one `git log` (each commit's files against its first parent).
 fn notes(root: &Path, range: &str) -> Result<Vec<String>> {
+    let inputs = crate::changes::suites::web_inputs(&crate::changes::graph::Graph::load(root)?)?;
     let log = git(
         root,
         &["log", "--first-parent", "-m", "--name-only", "--format=%x00%s", range],
@@ -104,7 +106,7 @@ fn notes(root: &Path, range: &str) -> Result<Vec<String>> {
             // A blank line separates the subject from the files.
             lines
                 .map(str::trim)
-                .any(|file| !file.is_empty() && ships(file))
+                .any(|file| !file.is_empty() && ships(file, &inputs))
                 .then(|| format!("- {subject}"))
         })
         .collect())
@@ -228,6 +230,10 @@ mod tests {
 
     #[test]
     fn ships_should_count_the_reader_and_what_it_bundles_but_not_the_deploy_machinery() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let graph = crate::changes::graph::Graph::load(&root).unwrap();
+        let inputs = crate::changes::suites::web_inputs(&graph).unwrap();
+        let ships = |path: &str| ships(path, &inputs);
         assert!(!ships(""), "a blank line of `git log` output");
         for path in [
             "apps/web/src/app.tsx",
@@ -251,6 +257,7 @@ mod tests {
             "apps/site/src/pages/index.astro",
             "docs/plans/web-app.md",
             "apps/web/README.md",
+            "crates/laminapdf-cli/src/main.rs",
         ] {
             assert!(!ships(path), "{path}");
         }

@@ -4,8 +4,10 @@
 # job in this file) and full.yml's `gate` (todo X7). A new job here runs on its group's flag from
 # `cargo xtask changes` (todo X9c): native Rust jobs on
 #     if: ${{ !cancelled() && needs.changes.outputs.rust == 'true' }}
-# and TypeScript and WebAssembly jobs on `ts`. Both flags are false on docs-only PRs. Add the job to
-# `fast-gate`'s `needs`; a Rust job also needs a line in fast-gate's `case`, which defaults to `ts`.
+# and TypeScript and WebAssembly jobs on `ts`, but for the runtime legs, which follow `runtimes`
+# and run only the suites a PR's paths reach (todo X12). Every flag is false on docs-only PRs. Add
+# the job to `fast-gate`'s `needs`; a Rust job also needs a line in fast-gate's `case`, which
+# defaults to `ts`.
 # A job that must run on every PR, docs-only ones included, has no `if:` and a `<job>) needed=true ;;`
 # line in that `case` (the `lockfile` job).
 # Native Rust checks cover Linux, macOS and Windows on x64 and Arm64 (macOS x64 on pushes to main
@@ -54,6 +56,8 @@ jobs:
       rust: ${{ steps.pr.outputs.rust || steps.push.outputs.rust }}
       ts: ${{ steps.pr.outputs.ts || steps.push.outputs.ts }}
       rust-legs: ${{ steps.legs.outputs.rust-legs }}
+      runtime-legs: ${{ steps.runtime-legs.outputs.runtime-legs }}
+      runtimes: ${{ steps.runtime-legs.outputs.runtimes }}
     steps:
       # The native Rust legs, read by the `rust` job's matrix. Pull requests leave out macOS x64,
       # because its runners queue longest; the leg runs on pushes to main and in the nightly
@@ -102,6 +106,43 @@ jobs:
         env:
           BASE: origin/${{ github.base_ref }}
         run: cargo xtask changes --base "$BASE"
+      # The runtime legs, read by the `pdf-runtimes` job's matrix (todo X12; CI caching plan
+      # §8.3): on a pull request, each browser leg runs the suites `cargo xtask changes` found the
+      # paths reach, and the server leg runs only when they reach the SDK's examples. Pushes to
+      # main run every leg and suite. `runtimes` is false, and the job skipped, when no leg runs or
+      # `ts` is false.
+      - name: Choose the runtime legs
+        id: runtime-legs
+        env:
+          EVENT: ${{ github.event_name }}
+          SUITES: ${{ steps.pr.outputs.suites }}
+          TS: ${{ steps.pr.outputs.ts || steps.push.outputs.ts }}
+        run: |
+          legs='[
+            {"group": "chromium", "name": "Chromium", "runtimes": "chromium", "runner": "ubuntu-24.04"},
+            {"group": "firefox", "name": "Firefox", "runtimes": "firefox", "runner": "ubuntu-24.04"},
+            {"group": "webkit", "name": "WebKit", "runtimes": "webkit", "runner": "macos-15"},
+            {"group": "servers", "name": "Deno, Bun, workerd and Node 22 and 26", "runtimes": "deno bun workerd", "runner": "ubuntu-24.04"}
+          ]'
+          if [ "$EVENT" = pull_request ]; then
+            legs=$(jq -c --arg suites "$SUITES" '
+              ($suites | split(",") | map(select(. != ""))) as $s
+              | if ($s | length) == 0 then []
+                else map(
+                  if .group == "servers" then
+                    if ($s | index("examples")) then . + {suites: "examples"} else empty end
+                  else . + {suites: ($s | join(","))} end)
+                end' <<< "$legs")
+          else
+            legs=$(jq -c 'map(. + {suites: ""})' <<< "$legs")
+          fi
+          runtimes=false
+          if [ "$TS" = true ] && [ "$(jq length <<< "$legs")" -gt 0 ]; then runtimes=true; fi
+          {
+            echo "runtime-legs=$legs"
+            echo "runtimes=$runtimes"
+          } >> "$GITHUB_OUTPUT"
+          echo "Runtime legs (runtimes=$runtimes): $legs"
 
   rust:
     name: Rust (${{ matrix.platform }})
@@ -233,22 +274,14 @@ jobs:
   pdf-runtimes:
     name: "@laminapdf/sdk in ${{ matrix.name }}"
     needs: [changes, wasm]
-    if: ${{ !cancelled() && needs.changes.outputs.ts == 'true' && needs.wasm.outputs.dist == 'true' }}
+    # The legs and the suites each runs come from the changes job (todo X12).
+    if: ${{ !cancelled() && needs.changes.outputs.runtimes == 'true' && needs.wasm.outputs.dist == 'true' }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { group: chromium, name: "Chromium", runtimes: "chromium", runner: ubuntu-24.04 }
-          - { group: firefox, name: "Firefox", runtimes: "firefox", runner: ubuntu-24.04 }
-          - { group: webkit, name: "WebKit", runtimes: "webkit", runner: macos-15 }
-          - {
-              group: servers,
-              name: "Deno, Bun, workerd and Node 22 and 26",
-              runtimes: "deno bun workerd",
-              runner: ubuntu-24.04,
-            }
+        include: ${{ fromJSON(needs.changes.outputs.runtime-legs) }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -278,9 +311,13 @@ jobs:
         env:
           RUNTIMES: ${{ matrix.runtimes }}
           GROUP: ${{ matrix.group }}
+          SUITES: ${{ matrix.suites }}
         run: |
+          # An empty list (pushes to main) runs every suite.
+          suites=()
+          if [ -n "$SUITES" ]; then suites=(--suites "$SUITES"); fi
           # shellcheck disable=SC2086 # one argument per runtime
-          cargo xtask pdf-runtimes $RUNTIMES --label "$GROUP"
+          cargo xtask pdf-runtimes $RUNTIMES "${suites[@]}" --label "$GROUP"
       - if: ${{ !cancelled() && matrix.group == 'servers' }}
         uses: actions/setup-node@v7.1.0
         with:
@@ -288,7 +325,12 @@ jobs:
           package-manager-cache: false
       - name: "@laminapdf/sdk in Node 22"
         if: ${{ !cancelled() && matrix.group == 'servers' }}
-        run: cargo xtask pdf-runtimes node --label node22
+        env:
+          SUITES: ${{ matrix.suites }}
+        run: |
+          suites=()
+          if [ -n "$SUITES" ]; then suites=(--suites "$SUITES"); fi
+          cargo xtask pdf-runtimes node "${suites[@]}" --label node22
       - if: ${{ !cancelled() && matrix.group == 'servers' }}
         uses: actions/setup-node@v7.1.0
         with:
@@ -296,7 +338,12 @@ jobs:
           package-manager-cache: false
       - name: "@laminapdf/sdk in Node 26"
         if: ${{ !cancelled() && matrix.group == 'servers' }}
-        run: cargo xtask pdf-runtimes node --label node26
+        env:
+          SUITES: ${{ matrix.suites }}
+        run: |
+          suites=()
+          if [ -n "$SUITES" ]; then suites=(--suites "$SUITES"); fi
+          cargo xtask pdf-runtimes node "${suites[@]}" --label node26
       - name: Upload the measurements
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7.0.2
@@ -461,6 +508,7 @@ jobs:
           NEEDS: ${{ toJSON(needs) }}
           RUST: ${{ needs.changes.outputs.rust }}
           TS: ${{ needs.changes.outputs.ts }}
+          RUNTIMES: ${{ needs.changes.outputs.runtimes }}
         run: |
           set -euo pipefail
           changes=$(jq -r '.changes.result' <<<"$NEEDS")
@@ -468,7 +516,7 @@ jobs:
             echo "::error::the changes job ended with '$changes'"
             exit 1
           fi
-          for flag in "rust=$RUST" "ts=$TS"; do
+          for flag in "rust=$RUST" "ts=$TS" "runtimes=$RUNTIMES"; do
             case "${flag#*=}" in
               true|false) echo "Needed: $flag" ;;
               *)
@@ -484,6 +532,8 @@ jobs:
             # TypeScript and WebAssembly ones `ts`; the lockfile check none.
             case "$job" in
               rust | msrv-and-spike) needed=$RUST ;;
+              # `ts` and at least one runtime leg (todo X12).
+              pdf-runtimes) needed=$RUNTIMES ;;
               # Runs on every PR (todo X11).
               lockfile) needed=true ;;
               *) needed=$TS ;;
