@@ -16,7 +16,7 @@ The result is the original bytes, unchanged, followed by one revision. The new f
 ## How it works
 
 - The page lists each bookmark that goes to a page, two levels deep. A bookmark that opens a web address, or goes nowhere, is left out, but the bookmarks inside it are still listed.
-- Each entry ends with the label its page shows once the contents page is in. In a file that numbers its front matter i, ii and its body 1, 2, a contents page at the front joins the front matter as "i", so the old "i" and "ii" print as "ii" and "iii" and the body keeps 1 and 2; in a file without labels, the numbers move up by one for each contents page.
+- Each entry ends with the label its page shows once the contents page is in. Say a file numbers its front matter i, ii and its body 1, 2. A contents page at the front joins the front matter as "i", so the old "i" and "ii" print as "ii" and "iii", and the body keeps 1 and 2. In a file without labels, the numbers move up by one for each contents page.
 - The entries are links to the bookmarks' places, and each link's description is the bookmark's title, which screen readers read.
 - In a tagged file, the page is tagged too: a `TOC` element with a `TOCI` for each entry joins the document's structure tree.
 - The font is embedded and subset. Without one, the page is set in Helvetica, which isn't embedded, so a file that claims PDF/A or PDF/UA-1 refuses it with [`font-not-embedded`](/reference/codes/font-not-embedded/). A file with no bookmark that goes to a page fails with [`no-bookmarks`](/reference/codes/no-bookmarks/).
