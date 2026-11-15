@@ -208,6 +208,12 @@ impl Updates {
             .endpoints(vec![url])?
             .header(request.header.0, request.header.1)?
             .timeout(CHECK_TIMEOUT)
+            // Windows: the installer exits the app as soon as it starts, before any `Exit` event, so
+            // the engines stop here, once it has started; a failed install leaves them running.
+            .on_before_exit({
+                let app = app.clone();
+                move || app.state::<Arc<crate::engine::Engines>>().shutdown()
+            })
             .build()?;
         let Some(update) = updater.check().await? else {
             return Ok(None);

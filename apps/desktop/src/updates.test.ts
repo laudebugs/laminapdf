@@ -137,6 +137,9 @@ describe("the status bar's Update ready", () => {
     const ready = item({ ...UP_TO_DATE, state: { state: "ready", version: "0.2.0", notes: null } });
     expect(text(ready)).toContain("Update ready");
     expect(ready).toContain('aria-live="polite"');
+    // The live region is the first element in both states, so React keeps the same one.
+    expect(item(UP_TO_DATE).startsWith('<span class="paper-visually-hidden" aria-live="polite">')).toBe(true);
+    expect(ready.startsWith('<span class="paper-visually-hidden" aria-live="polite">')).toBe(true);
   });
 });
 

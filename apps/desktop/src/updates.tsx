@@ -278,50 +278,49 @@ export function UpdateReadyItem({ updates }: { updates: DesktopUpdates }): React
   const [isOpen, setOpen] = useState(false);
   const { status } = updates;
   const ready = status?.state.state === "ready" ? status.state : undefined;
-  // The live region is there before the update is ready, so screen readers announce its words
-  // when they appear; it never changes again, so it speaks once.
-  const live = (
-    <span className="paper-visually-hidden" aria-live="polite">
-      {ready === undefined ? "" : message("settings.updates.ready", { version: ready.version })}
-    </span>
-  );
-  if (status === undefined || ready === undefined) return live;
-  const { version } = ready;
-  const title = message("settings.updates.ready", { version });
+  const title = ready === undefined ? "" : message("settings.updates.ready", { version: ready.version });
   return (
-    <span className="desktop-update-ready">
-      {live}
-      <PopoverTrigger isOpen={isOpen} onOpenChange={setOpen}>
-        <StatusBarItem icon="download">{message("settings.updates.readyItem")}</StatusBarItem>
-        <Popover aria-label={title} placement="top">
-          <div className="desktop-update-popover">
-            <div className="desktop-update-popover-head">
-              <p className="desktop-update-title">{title}</p>
-              <IconButton
-                label={message("settings.updates.closeDetails")}
-                icon="close"
-                onPress={() => setOpen(false)}
-              />
-            </div>
-            <p className="desktop-settings-help">
-              {message("settings.updates.readyChannel", {
-                channel: channelName(status.channel),
-                current: status.current,
-              })}
-            </p>
-            <p className="desktop-settings-help">{message("settings.updates.readyHelp")}</p>
-            <button type="button" className="desktop-link" onClick={() => updates.openLink("whats-new")}>
-              {message("settings.updates.whatsNew", { version })}
-            </button>
-            <div className="desktop-update-actions">
-              <Button onPress={() => setOpen(false)}>{message("settings.updates.later")}</Button>
-              <Button variant="primary" onPress={updates.restart}>
-                {message("command.app.restart-to-update")}
-              </Button>
-            </div>
-          </div>
-        </Popover>
-      </PopoverTrigger>
-    </span>
+    <>
+      {/* Always the same element, empty until the update is ready: screen readers announce the
+          words when they appear, and since they then stay, they speak once. */}
+      <span className="paper-visually-hidden" aria-live="polite">
+        {title}
+      </span>
+      {status === undefined || ready === undefined ? null : (
+        <span className="desktop-update-ready">
+          <PopoverTrigger isOpen={isOpen} onOpenChange={setOpen}>
+            <StatusBarItem icon="download">{message("settings.updates.readyItem")}</StatusBarItem>
+            <Popover aria-label={title} placement="top">
+              <div className="desktop-update-popover">
+                <div className="desktop-update-popover-head">
+                  <p className="desktop-update-title">{title}</p>
+                  <IconButton
+                    label={message("settings.updates.closeDetails")}
+                    icon="close"
+                    onPress={() => setOpen(false)}
+                  />
+                </div>
+                <p className="desktop-settings-help">
+                  {message("settings.updates.readyChannel", {
+                    channel: channelName(status.channel),
+                    current: status.current,
+                  })}
+                </p>
+                <p className="desktop-settings-help">{message("settings.updates.readyHelp")}</p>
+                <button type="button" className="desktop-link" onClick={() => updates.openLink("whats-new")}>
+                  {message("settings.updates.whatsNew", { version: ready.version })}
+                </button>
+                <div className="desktop-update-actions">
+                  <Button onPress={() => setOpen(false)}>{message("settings.updates.later")}</Button>
+                  <Button variant="primary" onPress={updates.restart}>
+                    {message("command.app.restart-to-update")}
+                  </Button>
+                </div>
+              </div>
+            </Popover>
+          </PopoverTrigger>
+        </span>
+      )}
+    </>
   );
 }

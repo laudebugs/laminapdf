@@ -50,6 +50,9 @@ pub(crate) fn update_set_enabled(app: tauri::AppHandle, enabled: bool) -> Result
 )]
 pub(crate) fn update_set_channel(app: tauri::AppHandle, channel: Channel) -> Result<UpdateStatus, DesktopError> {
     let updates = app.state::<Arc<Updates>>();
+    if !updates.user_decides() {
+        return Err(DesktopError::UpdatesManaged);
+    }
     if !may_choose(channel, &updates.build) {
         return Err(DesktopError::ChannelUnavailable);
     }
@@ -87,8 +90,9 @@ pub(crate) fn update_restart_to_install(app: tauri::AppHandle) -> Result<(), Des
         tracing::warn!("could not install the update: {error}");
         return Err(DesktopError::Internal(error.to_string()));
     }
-    // The windows that close now stay in the session. On the main thread `restart` raises no
-    // `RunEvent::Exit`, so the session and the engines are seen to here.
+    // Here only on macOS and Linux (Windows' installer has exited the app, stopping the engines
+    // first). The windows that close now stay in the session. On the main thread `restart` raises
+    // no `RunEvent::Exit`, so the session and the engines are seen to here.
     crate::session::app::quitting(&app);
     app.state::<Arc<crate::engine::Engines>>().shutdown();
     app.restart()
