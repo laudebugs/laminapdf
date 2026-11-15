@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D4c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [C6c](../done/C6c-print-download-properties.md), [D1b](../done/D1b-desktop-print-spike.md), [D4b](../done/D4b-native-menus.md) |

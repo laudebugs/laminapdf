@@ -43,7 +43,7 @@ Let power users work with many documents: each window holds tabs, a tab moves to
 - Dragging a tab out of its window or onto another window's strip: [D4e](D4e-tab-drag-between-windows.md).
 
 - Native menus and accelerators (New Window, Close Tab, Move Tab to Window, Window menu list): [D4b](../done/D4b-native-menus.md).
-- Printing: [D4c](../ready/D4c-native-printing.md).
+- Printing: [D4c](../ongoing/D4c-native-printing.md).
 - Shared engine pool, if numbers argue for it: a follow-up todo (raise it in the PR if needed).
 
 ## Tasks
