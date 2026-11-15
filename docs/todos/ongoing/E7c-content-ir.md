@@ -11,7 +11,7 @@
 | Branch | `feat/e7c-content-ir` |
 | PR title | `feat(content): editable content IR with object identity` |
 | Size | L (600–1,500) |
-| PR | — |
+| PR | [#648](https://github.com/laudebugs/laminapdf/pull/648) |
 
 ## Goal
 

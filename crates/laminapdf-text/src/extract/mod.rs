@@ -14,8 +14,8 @@ pub use runs::{PageTextRun, is_right_to_left};
 use std::sync::Arc;
 
 use laminapdf_content::{
-    FormXObject, ImageDraw, MarkedContent, Matrix, PathPaint, PathSegment, ShadingPaint, TextAdvance, TextItem,
-    TextShow, Visitor,
+    FormXObject, GraphicsState, ImageDraw, MarkedContent, Matrix, Op, PathPaint, PathSegment, ShadingPaint,
+    TextAdvance, TextItem, TextShow, Visitor,
 };
 use laminapdf_cos::{Error, Result, Warning, absent_if_malformed};
 use laminapdf_model::{PageFrame, PointPt, RectPt, UserSpacePoint};
@@ -223,10 +223,13 @@ impl TextExtractor {
     /// [`TextExtractor::page`], also passing the page's painting events
     /// ([`Visitor::path_segment`], [`Visitor::paint_path`], [`Visitor::image`],
     /// [`Visitor::paint_shading`]), its marked content ([`Visitor::begin_marked`],
-    /// [`Visitor::end_marked`]) and its forms ([`Visitor::enter_xobject`],
-    /// [`Visitor::leave_xobject`]) to `paths` in the same walk of the content, each after the
-    /// extractor's own handling, so a caller that needs the page's lines (table rules) or what
-    /// is painted over or under its text doesn't interpret the page twice. The result equals
+    /// [`Visitor::end_marked`]), its forms ([`Visitor::enter_xobject`],
+    /// [`Visitor::leave_xobject`]), its operators ([`Visitor::operator`],
+    /// [`Visitor::operator_state`]) and its text shows with the advance the extractor measured
+    /// ([`Visitor::shown_text`]) to `paths` in the same walk of the content, each after the
+    /// extractor's own handling, so a caller that needs the page's lines (table rules), what
+    /// is painted over or under its text, or the boxes of its objects
+    /// ([`laminapdf_content::Recorder`]) doesn't interpret the page twice. The result equals
     /// [`TextExtractor::page`]'s: [`Glyph::paints_before`] counts the paints either way, so a
     /// caller counting the same three calls can order its paints against the glyphs.
     ///
@@ -298,7 +301,7 @@ fn luminance([r, g, b]: [f64; 3]) -> f64 {
 }
 
 /// The colour a glyph is painted in under the state's text rendering mode (§9.3.6).
-fn paint_color(state: &laminapdf_content::GraphicsState) -> Option<[f64; 3]> {
+fn paint_color(state: &GraphicsState) -> Option<[f64; 3]> {
     match state.text.render_mode {
         0 | 4 => state.fill.approx_rgb(),
         1 | 5 => state.stroke.approx_rgb(),
@@ -494,6 +497,18 @@ impl Visitor for Collector<'_, '_> {
         }
     }
 
+    fn operator(&mut self, op: &Op<'_>, depth: usize) {
+        if let Some(paths) = self.paths.as_deref_mut() {
+            paths.operator(op, depth);
+        }
+    }
+
+    fn operator_state(&mut self, op: &Op<'_>, state: &GraphicsState, depth: usize) {
+        if let Some(paths) = self.paths.as_deref_mut() {
+            paths.operator_state(op, state, depth);
+        }
+    }
+
     fn show_text(&mut self, show: &TextShow<'_>) -> TextAdvance {
         match self.show(show) {
             Ok(advance) => advance,
@@ -501,6 +516,12 @@ impl Visitor for Collector<'_, '_> {
                 self.error.get_or_insert(error);
                 TextAdvance::default()
             }
+        }
+    }
+
+    fn shown_text(&mut self, show: &TextShow<'_>, advance: TextAdvance) {
+        if let Some(paths) = self.paths.as_deref_mut() {
+            paths.shown_text(show, advance);
         }
     }
 

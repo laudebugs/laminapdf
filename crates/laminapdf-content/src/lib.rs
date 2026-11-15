@@ -45,6 +45,7 @@
 //! [ADR 0003]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0003-reader-tolerance-and-limits.md
 #![forbid(unsafe_code)]
 
+mod edit;
 mod interp;
 mod lexer;
 mod operator;
@@ -53,6 +54,10 @@ mod state;
 mod visitor;
 mod write;
 
+pub use edit::{
+    ContentObject, ContentObjectId, ContentObjectKind, ContentObjectRef, ContentOp, ContentOps, ContentOwner,
+    ContentPart, Encoded, EncodedPart, MarkedSequence, NotEditable, Recorder, source_hash,
+};
 pub use interp::{Summary, interpret_content, interpret_page};
 pub use laminapdf_model::{Dash, FillRule, Matrix};
 pub use lexer::{ContentIter, InlineImage, Issue, IssueKind, Lexed, MAX_OPERANDS, Op};
