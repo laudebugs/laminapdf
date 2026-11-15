@@ -52,6 +52,9 @@ export async function pageSizes(): Promise<PageSize[]> {
 export async function printToFile(path: string): Promise<PageSize[]> {
   const doc = await browser.execute(() => globalThis.__laminaE2e?.doc());
   const sizes = (await invoke("e2e_print_to_file", { doc, path })) as [number, number][];
+  // The OS's PDF printer can take the foreground (Windows), and a window behind others may stop
+  // drawing: bring it back, as the user's click on it would.
+  await focusWindow();
   return sizes.map(([width, height]) => ({ width, height }));
 }
 

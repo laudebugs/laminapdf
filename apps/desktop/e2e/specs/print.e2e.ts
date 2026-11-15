@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { platform } from "node:process";
 import { expect } from "@wdio/globals";
-import { fixture, openAndWait, type PageSize, pageSizes, printToFile } from "../app.ts";
+import { closeAll, fixture, focusWindow, openAndWait, type PageSize, pageSizes, printToFile } from "../app.ts";
 
 /** D1b's bar: each printed page's size within 2 pt of the document's. */
 const TOLERANCE = 2;
@@ -44,6 +44,12 @@ function within(printed: readonly PageSize[], document: readonly PageSize[]): st
 }
 
 describe("printing", () => {
+  // Each case opens its fixture afresh: a retry would otherwise only show the tab still open.
+  beforeEach(async () => {
+    await focusWindow();
+    await closeAll();
+  });
+
   it("should print pages of four sizes and orientations each on its own paper", async () => {
     await openAndWait(fixture("fixtures", "print", "mixed-sizes.pdf"));
     const document = await pageSizes();
