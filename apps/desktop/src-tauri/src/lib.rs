@@ -83,6 +83,7 @@ fn engine_program() -> PathBuf {
 /// The engine's arguments: the PDFium folder among the app's resources, when it is there, and
 /// the crash-dump server's socket, when it runs.
 fn engine_args(app: &tauri::AppHandle) -> Vec<OsString> {
+    #[cfg_attr(not(unix), expect(unused_mut, reason = "only capture, on Unix, adds the socket"))]
     let mut args = match app.path().resource_dir().map(|dir| dir.join("pdfium")) {
         Ok(dir) if dir.is_dir() => vec!["--pdfium".into(), dir.into_os_string()],
         _ => {
@@ -108,6 +109,10 @@ impl Notify for WindowEvents {
         }
     }
 
+    #[cfg_attr(
+        not(unix),
+        expect(unused_variables, unused_mut, reason = "only capture, on Unix, joins a dump by pid")
+    )]
     fn crashed(&self, window: &str, pid: u32, mut crash: crash::Crash) {
         // Off the supervisor's thread: waiting for the engine's minidump and writing the report
         // mustn't hold up the engine's restart.

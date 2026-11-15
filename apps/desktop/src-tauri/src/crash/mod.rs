@@ -170,6 +170,7 @@ impl CrashReports {
     /// A report as this app would send one, for "See a sample report": an engine's native crash,
     /// with the stack its minidump gives where capture runs (not Windows yet, ADR 0014 §10).
     pub(crate) fn sample(&self) -> String {
+        #[cfg_attr(not(unix), expect(unused_mut, reason = "only capture, on Unix, adds the stack"))]
         let mut crash = Crash::engine_exit("crash: signal: 11 (SIGSEGV)".into(), None);
         #[cfg(unix)]
         {
