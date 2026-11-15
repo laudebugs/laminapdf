@@ -12,7 +12,7 @@ pnpm --filter @laminapdf/site typecheck
 pnpm --filter @laminapdf/site share-image  # rewrites public/og.png and the PNG favicons (needs Playwright's Chromium)
 ```
 
-`cargo xtask check ts` runs the build, the tests and the typecheck, so CI fails on a page that breaks the rules. `cargo xtask pdf-runtimes <browser>` builds the site and runs its e2e suite in Chromium, Firefox and WebKit (`LAMINA_PDF_E2E_BROWSER`), against `wrangler dev` with the production headers: `e2e/states.e2e.test.ts` checks that every clickable element on every page shows the hand, at desktop and phone widths, that the buttons and code tabs show a pressed state, and that the focus ring keeps an element's corners.
+`cargo xtask check ts` runs the build, the tests and the typecheck, so CI fails on a page that breaks the rules. `cargo xtask pdf-runtimes <browser>` builds the site and runs its e2e suite in the browser you name (Chromium, Firefox or WebKit, passed as `LAMINA_PDF_E2E_BROWSER`), against `wrangler dev` with the production headers. `e2e/states.e2e.test.ts` checks that every clickable element on every page shows the hand at both widths; it also checks the pressed state of the buttons and code tabs, and that the focus ring keeps an element's corners.
 
 ## What every build checks
 
