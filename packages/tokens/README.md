@@ -51,7 +51,7 @@ The tokens come in three layers, and each layer reads only the one below it. Pri
 | `annotation`, `content` | Fixed colours, the same in every theme | `--paper-annotation-yellow` |
 | `semantic`, `font`, `type` | Space, radius, font stacks, type roles | `--paper-space-16`, `--paper-type-body` |
 | `component`, `breakpoint` | Component sizes, breakpoints | `--paper-rail-width` |
-| `motion`, `easing`, `cursor` | Durations and movement factors, easing curves, the cursor for each role | `--paper-duration-state-in`, `--paper-ease-enter`, `--paper-cursor-action` |
+| `motion`, `easing`, `cursor` | Durations, how far things scale and slide (`motion-scale`, `motion-travel`), easing curves, the cursor for each role | `--paper-duration-state-in`, `--paper-ease-enter`, `--paper-cursor-action` |
 
 A type role is two properties: `--paper-type-body` is a `font` shorthand, and `--paper-type-body-letter-spacing` holds the letter spacing. CSS can't read a custom property inside a media query, so use `BREAKPOINTS` from TypeScript for those.
 
@@ -72,7 +72,7 @@ The package's tests run the same generator with `--check` first, so a stale outp
 | `contrast` | The pairs the colour must pass, described below |
 | `system` | In the high-contrast theme, the CSS system colour the token maps to |
 | `followsAccent` | On a page token that aliases the Teal accent's page tint: the generator writes one value per accent |
-| `reducedMotion` | The value under reduced motion: a duration, or a number for `motion-scale` and `motion-travel`. It applies under `prefers-reduced-motion` and under `[data-motion="reduce"]`, Settings' choice |
+| `reducedMotion` | The value under reduced motion: a duration, or a number for `motion-scale` and `motion-travel`. Both `prefers-reduced-motion` and Settings' Reduce motion (`[data-motion="reduce"]`) apply it. |
 
 A colour's role decides what it owes the contrast test. A `text`, `boundary` or `focus` colour declares at least one pair. Each `background` colour has at least one pair measured on it. A `decorative` colour, such as a hairline, needs no pair. So a new colour can't skip the test: the test fails until the colour has a role and the pairs that role needs.
 

@@ -43,7 +43,7 @@ Apply plan §4.2 to the controls in `@laminapdf/ui` that choose, take input or l
 
 ## Tasks
 
-- [ ] Choices
+- [ ] Choices, with their `<label>` elements added to base.css's tap-highlight rule once they draw a pressed state
 - [ ] The switch knob
 - [ ] Fields
 - [ ] Outline rows
