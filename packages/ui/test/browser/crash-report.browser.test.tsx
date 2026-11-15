@@ -109,11 +109,7 @@ describe("CrashReportDialog", () => {
     }
     await expect.element(dialog.getByText("Sent to Lamina PDF's own server and deleted after 30 days.")).toBeVisible();
     await expect
-      .element(
-        dialog.getByText(
-          "The report ID is random and made for this report only; it is not stored anywhere else on this computer.",
-        ),
-      )
+      .element(dialog.getByText("The report ID is random, made for this report and kept only with it."))
       .toBeVisible();
     await expect.element(dialog.getByRole("button", { name: "Back" })).toHaveFocus();
     await dialog.getByRole("button", { name: "Back" }).click();

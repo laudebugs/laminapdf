@@ -167,8 +167,7 @@ const EN = {
   "crash.noContent": "No document content",
   "crash.noUpdateId": "No anonymous update ID",
   "crash.server": "Sent to Lamina PDF's own server and deleted after 30 days.",
-  "crash.reportId":
-    "The report ID is random and made for this report only; it is not stored anywhere else on this computer.",
+  "crash.reportId": "The report ID is random, made for this report and kept only with it.",
   "crash.notice": "The document view restarted after a problem. Send an anonymous report?",
   "crash.notice.webview": "Lamina PDF ran into a problem in this window. Send an anonymous report?",
   "crash.notice.send": "Send",
@@ -596,7 +595,7 @@ const EN = {
   "settings.privacy": "Privacy",
   "settings.privacy.crashReports": "Send crash reports",
   "settings.privacy.crashReports.help":
-    "After a crash, send an anonymous report of what went wrong. It never holds your files, their names or what's in them. Off unless you turn it on.",
+    "After a crash, send an anonymous report of what went wrong. It never holds your files, their names or what's in them. Off until you turn it on here or after a crash.",
   "settings.privacy.sample": "Sample crash report",
   "settings.privacy.sample.show": "See a sample report",
   "settings.privacy.sample.hide": "Hide the sample report",

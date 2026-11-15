@@ -33,9 +33,11 @@ curl -i -H "Lamina-Install-Id: $(uuidgen)" https://updates.laminapdf.com/beta/da
 
 ## Crash reports
 
-When a user has agreed to send crash reports, the desktop app posts each one to `POST /crash` on the same Worker. The body is one JSON report, as `schemas/crash-report.schema.json` describes it, of at most 64 KiB, sent as `application/json`. The Worker checks it with `src/crash.ts` and refuses any report whose free text still holds a path, a `file:` URL, an e-mail address or a long number: the app's scrubber removes those, and the Worker checks again. A request carrying the `Lamina-Install-Id` header is refused, so no report can be linked to an install. An accepted report answers 202 and lands in its own private bucket, `lamina-pdf-crash-reports`, at `crash-reports/{yyyy}/{mm}/{dd}/{report_id}.json` by the UTC day it arrived. Staging writes to `lamina-pdf-crash-reports-staging`.
+When a user has agreed to send crash reports, the desktop app posts each one to `POST /crash` on the same Worker. The body is one JSON report, as `schemas/crash-report.schema.json` describes it, of at most 64 KiB, sent as `application/json`.
 
-Each IP may send 10 reports a minute (the `CRASH_LIMIT` rate limiter); the 11th answers 429. The IP is the limiter's key and nothing else. Neither it nor any part of a report reaches a log: the Worker logs only a failed R2 write (`crash-store-failed`), with R2's own error text, and the log-leak test fails if a report's text or an IP appears in any console output.
+The Worker checks it with `src/crash.ts` and refuses any report whose free text still holds a path, a `file:` URL, an e-mail address or a long number: the app's scrubber removes those, and the Worker checks again. A request carrying the `Lamina-Install-Id` header is refused, so no report can be linked to an install. An accepted report answers 202 and lands in its own private bucket, `lamina-pdf-crash-reports`, at `crash-reports/{yyyy}/{mm}/{dd}/{report_id}.json` by the UTC day it arrived. Staging writes to `lamina-pdf-crash-reports-staging`.
+
+The `CRASH_LIMIT` rate limiter allows about 10 reports a minute from one IP and answers 429 past that; Cloudflare counts per location, so the cut-off is approximate. The IP is the limiter's key and nothing else. Neither it nor any part of a report reaches a log. The Worker logs only a failed R2 write (`crash-store-failed`), with R2's own error text, and the log-leak test fails if a report's text or an IP appears in any console output.
 
 Wrangler fetches one report by its key (browse a day's keys in the dashboard's R2 view):
 

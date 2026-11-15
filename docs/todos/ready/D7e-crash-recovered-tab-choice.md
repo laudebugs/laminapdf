@@ -15,7 +15,7 @@
 
 ## Goal
 
-When Lamina PDF quits unexpectedly, the next launch should not reopen every tab at once: if one file causes the crash, reopening it crashes the app again. S08 shows the session's tabs as check boxes before any tab reopens, with the tab that was in front unchecked and badged "Open when lamina quit". D7a built S08's report part; this todo adds the tab choice above it.
+When Lamina PDF quits unexpectedly, the next launch should not reopen every tab at once: if one file causes the crash, reopening it crashes the app again. S08 shows the session's tabs as check boxes before any tab reopens, with the tab that was in front unchecked and badged "Open when Lamina PDF quit" (the drawing says "lamina"). D7a built S08's report part; this todo adds the tab choice above it.
 
 ## Context
 

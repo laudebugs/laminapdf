@@ -29,7 +29,7 @@ D7a reports panics and how an engine ended, but a native crash (a segmentation f
 **In scope**
 
 - The main process as the `minidumper` server for its engines (it is unsandboxed, so it writes the dumps); `crash-handler` in the engine, connected before the sandbox goes on; the main process's own native crashes through a small monitor process or the platform's handler.
-- Processing each dump with `minidump-processor` into `{ crash_reason, frames: [{ module, offset, function? }], modules: [{ name, version, debug_id }] }`, module names without paths; the dump deleted after processing, processed or not.
+- Processing each dump with `minidump-processor` into `{ crash_reason, frames: [{ module, offset, function? }], modules: [{ name, version, debug_id }] }`, module names without paths; the dump deleted once processing ends, whether it succeeds or fails.
 - The supervisor's `Crashed` event carrying the processed dump, merged with D7a's report.
 - D6b's workflow: debug symbols (dSYM, PDB, split DWARF via `objcopy --only-keep-debug`) archived to a **private** R2 bucket `lamina-pdf-symbols`, keyed by debug ID.
 - `cargo xtask crash symbolicate <report.json>`: fetches the symbols and prints the stack with names and lines, for maintainers.

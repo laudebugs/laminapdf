@@ -99,11 +99,11 @@ These differ from the text above:
 
 - **Split.** Minidumps of native crashes, their local processing, the deletion test and the symbol archive went to [D7d](../ready/D7d-native-crash-minidumps-and-symbols.md): they need D6b's release workflow, and capture across the sandbox needs testing on each OS. S08's tab choice went to [D7e](../ready/D7e-crash-recovered-tab-choice.md), with the e2e run pair that forces a main-process panic and relaunches. A main-process panic is tested here in Rust (`a_main_process_panic_should_leave_a_held_report_until_asked`).
 - **Engine panics abort.** The engine's panic hook sends its summary, then aborts, so the supervisor sees a crash and restarts the engine. Before, a panic in the worker thread left an engine that beat but never answered.
-- **Webview messages.** A page error keeps only its type, from a fixed list, and its frames: a script's message can quote document text, which the marker test showed no scrubber can tell from code.
+- **Webview messages.** A page error keeps only its type, from a fixed list, and its frames: a script's message can quote document text, and the marker test showed that no scrubber can tell such text from code.
 - **Renderer.** The report names the renderer (`pdfium`) without its version: each app version ships one pinned PDFium, so `app_version` says which.
 - **Frames.** A panic's frames are function names with the offset within each function. A Rust function is linked into the panicking binary, which names its module; any other's module is `<unknown>`. Frames may be empty where the sandbox stops the engine reading its own symbols.
 - **Queues.** `held/` and `outbox/` each keep ten reports. Moving a report from one to the other keeps its age.
-- **Off.** With reporting off, the e2e run forces an engine segmentation fault; whether a report is sent depends only on the consent, which the Rust tests check for every kind of crash.
+- **Consent off.** The e2e run checks only an engine segmentation fault with sending off. The Rust tests check, for every crash kind, that only consent decides whether a report goes.
 - **Privacy page.** Its promises change only with the owner's sign-off, so the proposed text is in [#640](https://github.com/laudebugs/laminapdf/issues/640) rather than in this PR.
 
 ## Definition of done
