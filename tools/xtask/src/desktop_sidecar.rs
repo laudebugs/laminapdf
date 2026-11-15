@@ -7,12 +7,11 @@
 //! - `apps/desktop/src-tauri/resources/pdfium/`: the pinned PDFium library (`fetch-pdfium`) with
 //!   its licence notices, which ship with every bundle (ADR 0004 §3).
 //!
-//! On macOS the engine is signed with `apps/desktop/src-tauri/engine.entitlements`: ad hoc, or, when
-//! `APPLE_SIGNING_IDENTITY` names a Developer ID (the release build, D6c), with that identity, the
-//! hardened runtime and a secure timestamp. A Developer ID build signs PDFium's library too: the
-//! hardened runtime's library validation loads only code of the engine's own Team ID, and Tauri
-//! signs the sidecar but not the files in `resources/`. Tauri signs the sidecar again as it
-//! bundles, so the engine's signature here is for builds that don't bundle.
+//! On macOS the engine is signed ad hoc with `apps/desktop/src-tauri/engine.entitlements`, for dev
+//! builds that run it unbundled; Tauri signs it again as it bundles. When `APPLE_SIGNING_IDENTITY`
+//! names a Developer ID (the release build, D6c), PDFium's library is signed with it too: Tauri
+//! signs the app and its sidecar but not the files in `resources/`, and the hardened runtime's
+//! library validation loads only libraries with the engine's own Team ID.
 //!
 //! Both folders are git-ignored. The profile is `--release` or `--debug`, else what the Tauri CLI
 //! asked for, else debug. The CLI's `beforeDevCommand`/`beforeBuildCommand` set
@@ -95,9 +94,8 @@ pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
     let sidecar = binaries.join(format!("{ENGINE}-{triple}{exe}"));
     fs::copy(&built, &sidecar).with_context(|| format!("copying {} to {}", built.display(), sidecar.display()))?;
     step(&format!("engine ({profile}) → {}", sidecar.display()));
-    let identity = developer_id(env::var("APPLE_SIGNING_IDENTITY").ok().as_deref()).map(str::to_owned);
     if cfg!(target_os = "macos") {
-        sign_engine(&app, &sidecar, identity.as_deref())?;
+        sign_ad_hoc(&app, &sidecar)?;
     }
 
     let lib = pdfium::fetch(ws)?;
@@ -112,7 +110,9 @@ pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
         let licence = unpacked.join("LICENSE");
         fs::copy(&licence, resources.join("LICENSE")).with_context(|| format!("copying {}", licence.display()))?;
     }
-    if let (true, Some(identity)) = (cfg!(target_os = "macos"), identity.as_deref()) {
+    if cfg!(target_os = "macos")
+        && let Some(identity) = developer_id(env::var("APPLE_SIGNING_IDENTITY").ok().as_deref())
+    {
         sign_libraries(&resources, identity)?;
     }
     step(&format!("PDFium {} → {}", pdfium::TAG, resources.display()));
@@ -125,28 +125,26 @@ fn developer_id(identity: Option<&str>) -> Option<&str> {
     identity.map(str::trim).filter(|id| !id.is_empty() && *id != "-")
 }
 
-/// Signs the engine with `engine.entitlements`. Ad hoc (no `identity`), as dev builds and nightlies
-/// run it, without the hardened runtime: its library validation would refuse PDFium, which has no
-/// Team ID then. With a Developer ID, the hardened runtime and a secure timestamp, as notarisation
-/// requires. The sandbox itself is the engine's Seatbelt profile and needs no entitlement (ADR 0008
-/// §5).
-fn sign_engine(app: &Path, sidecar: &Path, identity: Option<&str>) -> Result<()> {
+/// Signs the engine ad hoc with `engine.entitlements`, so dev builds run the binary the way a
+/// release signs it, without the hardened runtime: its library validation would refuse PDFium, which
+/// has no Team ID in an ad-hoc build. The sandbox itself is the engine's Seatbelt profile and needs
+/// no entitlement (ADR 0008 §5).
+fn sign_ad_hoc(app: &Path, sidecar: &Path) -> Result<()> {
     let entitlements = app.join("engine.entitlements");
-    let mut args: Vec<&OsStr> = vec![OsStr::new("--force"), OsStr::new("--sign")];
-    match identity {
-        Some(identity) => {
-            args.push(OsStr::new(identity));
-            args.extend(["--options", "runtime", "--timestamp"].map(OsStr::new));
-        }
-        None => args.push(OsStr::new("-")),
-    }
-    args.extend([
-        OsStr::new("--identifier"),
-        OsStr::new("com.laminapdf.desktop.engine"),
-        OsStr::new("--entitlements"),
-    ]);
-    args.extend([entitlements.as_os_str(), sidecar.as_os_str()]);
-    crate::run(app, "codesign", &args)
+    crate::run(
+        app,
+        "codesign",
+        &[
+            OsStr::new("--force"),
+            OsStr::new("--sign"),
+            OsStr::new("-"),
+            OsStr::new("--identifier"),
+            OsStr::new("com.laminapdf.desktop.engine"),
+            OsStr::new("--entitlements"),
+            entitlements.as_os_str(),
+            sidecar.as_os_str(),
+        ],
+    )
 }
 
 /// Signs each library in `dir` (PDFium's) with the Developer ID `identity` and a secure timestamp.

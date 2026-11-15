@@ -84,6 +84,16 @@ Every macOS artefact lamina publishes — the `.app` inside the updater `.app.ta
 - **Apple certificate expiry** (5 years) and Apple Developer Program renewal (yearly) — calendar in the runbook; an expired membership doesn't invalidate already-notarised builds but blocks new ones.
 - **API key for individual accounts**: if unavailable, the Apple ID + app-specific password path is used (D6a records which).
 
+## Notes from the work
+
+Where the work differs from the plan above:
+
+- **No entitlements, rather than App Sandbox for the engine.** `engine.entitlements` is empty on purpose (ADR 0008 §5): the engine sandboxes itself with a Seatbelt profile, which a process in App Sandbox can't apply. The app needs no entitlement either, so there is no `entitlements/app.entitlements`; the release workflow fails a build in which the app or the engine has one, since Tauri signs the engine with the app's entitlements.
+- **The hardened runtime lives in `tauri.developer-id.conf.json`,** which only Developer ID builds add. Ad-hoc builds leave it out: an ad-hoc signature has no Team ID, so library validation would make the engine refuse PDFium and draw nothing (measured; no nightly had published yet).
+- **The sidecar step signs PDFium, not the engine,** for a release: Tauri signs the engine itself as it bundles, replacing any earlier signature, but it never signs the files in `Resources/`.
+- **`--sandbox-selftest` isn't in the shipped engine** (it needs the `selftest` feature). Instead, every macOS build has its bundled engine, as signed, draw a page with the bundled PDFium through the sandbox spawner, which refuses an engine missing a required sandbox layer.
+- **One build per architecture,** as D6b builds them; no universal binary.
+
 ## Definition of done
 
 - [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started

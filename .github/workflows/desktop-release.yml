@@ -193,7 +193,9 @@ jobs:
     if: needs.plan.outputs.environment == 'desktop-release'
     environment: desktop-release
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 90
+    # macOS adds Apple's notarisation of the .app and the .dmg to the build: usually minutes, but
+    # the .dmg's wait may take up to 45 (Notarise and staple the .dmg).
+    timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}

@@ -121,19 +121,16 @@ impl Signing {
         Ok(signing)
     }
 
-    fn all(self) -> bool {
-        self.macos && self.windows
-    }
-
-    /// Why a release can't publish yet: the platforms not signed at the OS level.
-    fn unsigned(self) -> String {
+    /// Why a release can't publish yet: the platforms not signed at the OS level. `None` once
+    /// every platform is.
+    fn unsigned_reason(self) -> Option<String> {
         let missing = match (self.macos, self.windows) {
+            (true, true) => return None,
             (false, false) => "macOS and Windows aren't",
             (false, true) => "macOS isn't",
             (true, false) => "Windows isn't",
-            (true, true) => "every platform is",
         };
-        format!("{missing} signed at the OS level yet (SIGNED_PLATFORMS)")
+        Some(format!("{missing} signed at the OS level yet (SIGNED_PLATFORMS)"))
     }
 }
 
@@ -300,10 +297,9 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
     match &inputs.trigger {
         Trigger::Tag(tag) => {
             let version = tag_version(tag)?.to_string();
-            if !inputs.signing.all() {
+            if let Some(reason) = inputs.signing.unsigned_reason() {
                 bail!(
-                    "{}: until every platform is, only the nightly channel publishes, so {tag} can't be released",
-                    inputs.signing.unsigned()
+                    "{reason}: until every platform is, only the nightly channel publishes, so {tag} can't be released"
                 );
             }
             Ok(Plan {
@@ -333,11 +329,8 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
                 );
             }
             let version = staging_version(inputs.run_number)?;
-            if !dry_run && !inputs.signing.all() && !allow_unsigned {
-                bail!(
-                    "{}: set allow_unsigned_platforms to publish an unsigned staging build",
-                    inputs.signing.unsigned()
-                );
+            if let (false, false, Some(reason)) = (*dry_run, *allow_unsigned, inputs.signing.unsigned_reason()) {
+                bail!("{reason}: set allow_unsigned_platforms to publish an unsigned staging build");
             }
             Ok(Plan {
                 legs: every_target(Mode::Tag, &version),
@@ -636,12 +629,13 @@ mod tests {
 
     #[test]
     fn the_refusal_should_name_only_the_platforms_still_unsigned() {
-        let macos = Signing::parse("macos").unwrap();
+        let reason = |list| Signing::parse(list).unwrap().unsigned_reason();
         assert_eq!(
-            [Signing::default().unsigned(), macos.unsigned()],
+            [reason(""), reason("macos"), reason("macos,windows")],
             [
-                "macOS and Windows aren't signed at the OS level yet (SIGNED_PLATFORMS)",
-                "Windows isn't signed at the OS level yet (SIGNED_PLATFORMS)",
+                Some("macOS and Windows aren't signed at the OS level yet (SIGNED_PLATFORMS)".to_owned()),
+                Some("Windows isn't signed at the OS level yet (SIGNED_PLATFORMS)".to_owned()),
+                None,
             ]
         );
     }

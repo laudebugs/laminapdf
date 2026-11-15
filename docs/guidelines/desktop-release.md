@@ -200,7 +200,7 @@ codesign -dvv "Lamina PDF.app/Contents/MacOS/laminapdf-desktop-engine"        # 
 codesign -dvv "Lamina PDF.app/Contents/Resources/pdfium/libpdfium.dylib"    # expect: TeamIdentifier=35KBR7UHPZ
 ```
 
-The release workflow runs these checks on every macOS build it signs, and fails the build when one fails. It also checks that every other piece of code in the app carries the Team ID, that the engine has no entitlement, and that the updater's `.app.tar.gz` holds the stapled app. On every macOS build, signed or not, it has the bundled engine draw a page with the bundled PDFium.
+The release workflow runs these checks on every macOS build it signs, and fails the build when one fails. It also checks that every other piece of code in the app carries the Team ID, that neither the app nor the engine has an entitlement, and that the updater's `.app.tar.gz` holds the stapled app. A runner whose image turns Gatekeeper's assessments off can't give `spctl`'s verdict: the build then warns and relies on the staple checks, so run `spctl` on a clean machine before the first release. On every macOS build, signed or not, the workflow has the bundled engine draw a page with the bundled PDFium.
 
 **Windows** (PowerShell):
 
@@ -316,10 +316,10 @@ Each run builds macOS (arm64 and x64), Windows (x64 and arm64) and Linux (x64 an
 Builds in `desktop-release` sign macOS with the Developer ID (§1.3) and notarise with the App Store Connect key (§1.4), in this order:
 
 1. The build imports the certificate into a keychain of its own, with Apple's Developer ID G2 intermediate, which it checks against a pinned SHA-256.
-2. `cargo xtask desktop-sidecar`, which Tauri runs before it bundles, signs the engine and PDFium's library with the Developer ID. The engine gets the hardened runtime too. Tauri signs the app and the engine but not the files in `Resources/`, and the hardened runtime's library validation loads only libraries signed by the engine's own Team ID.
-3. Tauri signs the app with the hardened runtime (`tauri.developer-id.conf.json`), then notarises and staples it. The `.dmg` and the updater's `.app.tar.gz` both hold the stapled app.
-4. The workflow notarises and staples the `.dmg`, which needs a ticket of its own for Gatekeeper's check while the Mac is offline. It tries a failed submission up to three times; a rejection fails the build.
-5. It runs §3's checks.
+2. `cargo xtask desktop-sidecar`, which Tauri runs before it bundles, signs PDFium's library with the Developer ID. Tauri signs the app and the engine but not the files in `Resources/`, and the hardened runtime's library validation loads only libraries signed by the engine's own Team ID.
+3. Tauri signs the engine and the app with the Developer ID and the hardened runtime (`tauri.developer-id.conf.json`), then notarises and staples the app. The `.dmg` and the updater's `.app.tar.gz` both hold the stapled app.
+4. The workflow notarises and staples the `.dmg`, which needs a ticket of its own for Gatekeeper's check while the Mac is offline. It tries a failed submission up to three times, waits on a submission Apple accepted rather than sending it again, and fails at once on a rejection, printing Apple's log.
+5. It runs §3's checks, then deletes the keychain and the key from the runner.
 
 Nightlies and dry runs are signed ad hoc and without the hardened runtime (`tauri.release.conf.json`). An ad-hoc signature has no Team ID, so the hardened runtime would make the engine refuse PDFium and draw nothing.
 
