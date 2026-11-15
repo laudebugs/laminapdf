@@ -118,7 +118,7 @@ One key signs the AppImage, `.deb`, `.rpm`, the detached `.asc` files and `SHA25
 D5a's key ceremony makes two Tauri updater keys: one for releases and one for nightlies. Losing the release key strands every installed copy, because installed apps accept only updates that key signed.
 
 - [x] Confirm `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` exist in the `desktop-release` environment.
-- [ ] Confirm the release key's offline backups exist in two places (both updater keys, replaced 2026-11-15; the first pair's backups were confirmed 2026-11-13).
+- [x] Confirm the release key's offline backups exist in two places (owner, 2026-11-15: both updater keys, as replaced that day).
 - [x] Confirm the nightly key exists in the `desktop-nightly` environment under the same two names, with different values and one backup.
 
 ### 1.8 GitHub `desktop-release` environment
