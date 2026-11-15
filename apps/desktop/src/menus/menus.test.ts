@@ -44,7 +44,7 @@ describe("the native menus' data", () => {
     }
   });
 
-  it("lists the S03 shortcuts: Open, New window, Close tab and window, zoom, Settings, Quit off macOS", () => {
+  it("lists the S03 shortcuts: Open, New window, Close tab and window, zoom, Settings, Quit", () => {
     const items = menus().menus.flatMap((m) => m.items.map((i) => ({ menu: m.id, ...i })));
     const keys = (id: string) => items.filter((i) => i.kind === "command" && i.id === id);
     expect(keys("file.open")[0]).toMatchObject({ mac: "Mod+O", other: "Mod+O" });
@@ -52,8 +52,12 @@ describe("the native menus' data", () => {
     expect(keys("tab.close")[0]).toMatchObject({ mac: "Mod+W" });
     expect(keys("window.close")[0]).toMatchObject({ mac: "Mod+Shift+W" });
     expect(keys("view.zoom-in")[0]).toMatchObject({ mac: "Mod++", other: "Mod++" });
-    expect(keys("app.quit")[0]).toMatchObject({ other: "Ctrl+Q", on: "other" });
-    expect(keys("app.quit")[0]).not.toHaveProperty("mac");
+    // Quit: the app menu on macOS, the end of File elsewhere, both Mod+Q, and ours, not the OS's,
+    // so a window with unsaved edits asks first.
+    expect(keys("app.quit").map((i) => [i.menu, i.on, "mac" in i && i.mac, "other" in i && i.other])).toEqual([
+      ["app", "mac", "Mod+Q", "Mod+Q"],
+      ["file", "other", "Mod+Q", "Mod+Q"],
+    ]);
     // Settings: the app menu on macOS, the end of Edit elsewhere, both with Mod+,.
     expect(keys("app.settings").map((i) => [i.menu, i.on])).toEqual([
       ["app", undefined],

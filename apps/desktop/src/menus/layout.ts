@@ -12,7 +12,6 @@ type Predefined =
   | "hide"
   | "hide-others"
   | "show-all"
-  | "quit"
   | "copy"
   | "select-all"
   | "minimize"
@@ -73,7 +72,7 @@ export const MENU_LAYOUT: readonly MenuLayout[] = [
       { predefined: "hide-others" },
       { predefined: "show-all" },
       SEPARATOR,
-      { predefined: "quit" },
+      { command: "app.quit", on: MAC },
     ],
   },
   {
@@ -97,6 +96,9 @@ export const MENU_LAYOUT: readonly MenuLayout[] = [
   {
     id: "edit",
     entries: [
+      { command: "edit.undo" },
+      { command: "edit.redo" },
+      SEPARATOR,
       { predefined: "copy" },
       { predefined: "select-all" },
       SEPARATOR,
@@ -119,6 +121,8 @@ export const MENU_LAYOUT: readonly MenuLayout[] = [
       { command: "view.toggle-sidebar", check: true },
       { command: "view.focus-mode", check: true },
       { command: "view.rotate-display" },
+      { command: "pages.rotate-right" },
+      { command: "pages.rotate-left" },
       SEPARATOR,
       { choices: "view.page-layout" },
       { choices: "view.page-appearance" },

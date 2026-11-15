@@ -137,9 +137,9 @@ A failed write leaves the document dirty and the original file as it was.
 
 | Area | Web | Desktop |
 | --- | --- | --- |
-| Session | In the document worker | In the engine process ([E1h](../../todos/ongoing/E1h-desktop-edit-session.md), after D4b) |
+| Session | In the document worker | The edits in the engine process, the history in the webview ([E1h](../../todos/ongoing/E1h-desktop-edit-session.md), after D4b) |
 | Undo and Redo | Toolbar, shortcuts, palette | The same, plus the native Edit menu, generated from the command registry (D4b) |
-| Close guard | `beforeunload` | Tauri's `CloseRequested` (E1h) |
+| Close guard | `beforeunload` | Tauri's `CloseRequested`, and the app's own Quit on macOS, where the OS's ends the app without asking (E1h) |
 | Save | In place with the File System Access API, else Download | In place, with conflict detection (E1i, after D3b) |
 | Capability flags | `canWriteInPlace`, `canSaveAsDialog` | `canWriteInPlace`, `canWatchFiles` |
 

@@ -10,7 +10,7 @@ Lamina PDF
   (HideOthers)
   (ShowAll)
   ---
-  (Quit)
+  Quit Lamina PDF [Cmd+Q]  <cmd:app.quit>
 File
   Open a file… [Cmd+O]  <cmd:file.open>
   Open recent ▸
@@ -28,6 +28,9 @@ File
   ---
   Print… [Cmd+P] (disabled)  <cmd:file.print>
 Edit
+  Undo [Cmd+Z] (disabled)  <cmd:edit.undo>
+  Redo [Cmd+Shift+Z] (disabled)  <cmd:edit.redo>
+  ---
   (Copy)
   (SelectAll)
   ---
@@ -44,6 +47,8 @@ View
   Show or hide sidebar ☐ (disabled)  <cmd:view.toggle-sidebar>
   Focus mode [Cmd+Backslash] ✓  <cmd:view.focus-mode>
   Rotate view (disabled)  <cmd:view.rotate-display>
+  Rotate page right (disabled)  <cmd:pages.rotate-right>
+  Rotate page left (disabled)  <cmd:pages.rotate-left>
   ---
   Page layout ▸
     Single page ☐  <cmd:view.page-layout=single>

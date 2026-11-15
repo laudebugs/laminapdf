@@ -11,7 +11,7 @@ import { type CountIds, countId, ENGLISH, fill, type MessageId } from "./message
 const EN = {
   // The desktop app's own commands (their code isn't in the web reader's bundle).
   "command.window.close": "Close window",
-  "command.app.quit": "Quit",
+  "command.app.quit": "Quit Lamina PDF",
   "command.nav.next-thread-part": "Next thread part",
   "command.nav.previous-thread-part": "Previous thread part",
   "command.organise.initial-view": "Initial view…",

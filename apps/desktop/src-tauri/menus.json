@@ -51,8 +51,12 @@
           "kind": "separator"
         },
         {
-          "kind": "predefined",
-          "name": "quit"
+          "kind": "command",
+          "id": "app.quit",
+          "title": "Quit Lamina PDF",
+          "mac": "Mod+Q",
+          "other": "Mod+Q",
+          "on": "mac"
         }
       ]
     },
@@ -127,8 +131,9 @@
         {
           "kind": "command",
           "id": "app.quit",
-          "title": "Quit",
-          "other": "Ctrl+Q",
+          "title": "Quit Lamina PDF",
+          "mac": "Mod+Q",
+          "other": "Mod+Q",
           "on": "other"
         }
       ]
@@ -137,6 +142,23 @@
       "id": "edit",
       "title": "Edit",
       "items": [
+        {
+          "kind": "command",
+          "id": "edit.undo",
+          "title": "Undo",
+          "mac": "Mod+Z",
+          "other": "Mod+Z"
+        },
+        {
+          "kind": "command",
+          "id": "edit.redo",
+          "title": "Redo",
+          "mac": "Mod+Shift+Z",
+          "other": "Mod+Y"
+        },
+        {
+          "kind": "separator"
+        },
         {
           "kind": "predefined",
           "name": "copy"
@@ -235,6 +257,16 @@
           "kind": "command",
           "id": "view.rotate-display",
           "title": "Rotate view"
+        },
+        {
+          "kind": "command",
+          "id": "pages.rotate-right",
+          "title": "Rotate page right"
+        },
+        {
+          "kind": "command",
+          "id": "pages.rotate-left",
+          "title": "Rotate page left"
         },
         {
           "kind": "separator"

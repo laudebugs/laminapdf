@@ -9,8 +9,11 @@
 // - The main process restarts a crashed engine and reopens its documents, with their kept
 //   passwords: `engine://restarted` becomes the viewer's `restarted`, which redraws what is
 //   on screen; `engine://failed` and a document that didn't come back become `restart-failed`.
-// - Text, links, search and editing aren't served by the engine yet: their calls answer as for
-//   a document without them (no text runs, no links, untagged), and edits and saves reject.
+// - Edits go to the engine, which draws the pages from the edited file from then on; the history
+//   is kept here, per document, so it survives a tab switch (desktop-edits.ts, E1h). Saving them
+//   waits for E1i: planning, copying and adopting a save reject.
+// - Text, links and search aren't served by the engine yet: their calls answer as for a document
+//   without them (no text runs, no links, untagged).
 // - Only types come from `@laminapdf/viewer` here, so the app's Node tests run without the
 //   viewer's build (which needs the WebAssembly); the app itself imports `createViewer`.
 
@@ -29,10 +32,12 @@ import type {
   ViewerEvent,
   ViewerEvents,
 } from "@laminapdf/viewer";
+import { DesktopEdits, type EditOutcome, type EditRequest, NO_EDITS, pagesOf } from "./desktop-edits.ts";
 import { type TileTransport, tileUrl } from "./tile-url.ts";
 
-/** A page as the main process reports it: displayed size in points and `/Rotate`. */
+/** A page as the main process reports it: its stable ID, displayed size in points and `/Rotate`. */
 interface DesktopPage {
+  readonly id: string;
   readonly width: number;
   readonly height: number;
   readonly rotate: number;
@@ -101,9 +106,9 @@ export interface DesktopShell {
 export const RESTARTED_EVENT = "engine://restarted";
 export const FAILED_EVENT = "engine://failed";
 
-const NOT_YET = "the desktop reader doesn't edit documents yet";
+const NOT_YET = "the desktop reader doesn't save edits yet";
 
-/** The edit calls' answer until the engine edits: rejected, with why. */
+/** The save calls' answer until the engine saves: rejected, with why. */
 function notYet<T>(): Promise<T> {
   return Promise.reject(new DesktopEngineError("not-yet-supported", NOT_YET));
 }
@@ -126,6 +131,10 @@ export class DesktopEngineClient implements ViewerEngine {
   #nextTicket = 1;
   /** Tickets of aborted renders, sent together in one `cancel_tiles`. */
   #cancelled: number[] = [];
+  /** Each open document's edit session, by the main process's id, kept while it is in another tab. */
+  readonly #edits = new Map<number, DesktopEdits>();
+  /** Each edited document's pages as its last edit left them. */
+  readonly #pagesNow = new Map<number, readonly DesktopPage[]>();
 
   constructor(shell: DesktopShell, options: { readonly transport?: TileTransport } = {}) {
     this.#shell = shell;
@@ -151,24 +160,30 @@ export class DesktopEngineClient implements ViewerEngine {
     return this.#current;
   }
 
-  /** Shows `opened`: the viewer's document for it, with an ID of its own. */
+  /**
+   * Shows `opened`: the viewer's document for it, with an ID of its own, its pages as its edits
+   * left them. A document with edits tells the viewer its history once the viewer shows it.
+   */
   show(opened: DesktopDocument): OpenedDocument {
     this.#generation += 1;
-    this.#current = opened;
+    const pages = this.#pagesNow.get(opened.doc) ?? opened.pages;
+    this.#current = { ...opened, pages, pageCount: pages.length };
     this.#document = {
       id: this.#generation,
-      pageCount: opened.pageCount,
-      pages: opened.pages.map((page, index) => ({
-        index,
-        id: `page-${index}`,
-        width: page.width,
-        height: page.height,
-        rotation: page.rotate,
-      })),
+      pageCount: pages.length,
+      pages: pagesOf({ pages }),
       needsPassword: opened.needsPassword,
       backend: { name: "pdfium", version: "desktop" },
       encrypted: opened.encrypted,
     };
+    const edits = this.#edits.get(opened.doc);
+    if (edits !== undefined) {
+      const generation = this.#generation;
+      // After the caller's `viewer.open`, which starts the viewer's session empty.
+      queueMicrotask(() => {
+        if (this.#generation === generation) this.#emit("edit", { pages: [], history: edits.history() });
+      });
+    }
     return this.#document;
   }
 
@@ -186,6 +201,7 @@ export class DesktopEngineClient implements ViewerEngine {
     this.#current = undefined;
     this.#document = undefined;
     this.#generation += 1;
+    if (doc !== undefined) this.dropEdits(doc);
     if (doc !== undefined)
       await this.#shell.invoke("close_document", { doc }).catch((e: unknown) => {
         throw engineError(e);
@@ -211,10 +227,17 @@ export class DesktopEngineClient implements ViewerEngine {
     for (const listener of this.#listeners.get(event) ?? []) (listener as (data: ViewerEvents[E]) => void)(data);
   }
 
-  /** The engine came back: the viewer redraws the document if it reopened, else the UI is told. */
+  /**
+   * The engine came back: the viewer redraws the document if it reopened, else the UI is told.
+   * Each reopened document's edits are made again in it, since it opened the file as it is.
+   */
   #restarted(payload: RestartedPayload): void {
     const doc = this.#current?.doc;
     const state = payload.docs.find((entry) => entry.doc === doc)?.state;
+    for (const entry of payload.docs) {
+      if (entry.state === "open") this.#replay(entry.doc);
+      else this.dropEdits(entry.doc);
+    }
     if (state === "open" || (state === undefined && doc === undefined)) {
       this.#emit("restarted", { reason: "error", reopened: doc !== undefined });
     } else if (state === "locked") {
@@ -223,6 +246,23 @@ export class DesktopEngineClient implements ViewerEngine {
       const error = new DesktopEngineError("closed", "the document didn't reopen after its process restarted");
       this.#emit("restart-failed", { reason: "error", error });
     }
+  }
+
+  /** Makes document `doc`'s edits again; the shown one's pages are drawn again once they are. */
+  #replay(doc: number): void {
+    const edits = this.#edits.get(doc);
+    if (edits === undefined) return;
+    void edits.replay().then(
+      (result) => {
+        if (result === undefined || this.#current?.doc !== doc) return;
+        this.#keepPages(doc);
+        this.#emit("edit", result);
+      },
+      // The history says it diverged: the edit commands say why from now on.
+      () => {
+        if (this.#current?.doc === doc) this.#emit("edit", { pages: [], history: edits.history() });
+      },
+    );
   }
 
   /**
@@ -329,24 +369,93 @@ export class DesktopEngineClient implements ViewerEngine {
     return Promise.resolve(pages.map((page) => ({ page, matches: [], snippets: [], noText: true as const })));
   }
 
-  applyEdit(): Promise<EditResult> {
-    return notYet();
+  /** Forgets document `doc`'s edits: it closed, or reloaded as another document. */
+  dropEdits(doc: number): void {
+    this.#edits.delete(doc);
+    this.#pagesNow.delete(doc);
+  }
+
+  /** Whether any open document holds edits not yet saved. */
+  get unsaved(): boolean {
+    return this.unsavedSteps > 0;
+  }
+
+  /** The edits not yet saved, over every open document. */
+  get unsavedSteps(): number {
+    return [...this.#edits.values()].reduce((sum, edits) => sum + edits.history().unsaved, 0);
+  }
+
+  /** Whether document `doc` holds edits not yet saved. */
+  hasUnsaved(doc: number): boolean {
+    return (this.#edits.get(doc)?.history().unsaved ?? 0) > 0;
+  }
+
+  /**
+   * Applies `ops` to the shown document as one transaction, recorded as a step named `label`; the
+   * engine draws the pages it touched from the edited file from then on.
+   */
+  applyEdit(ops: Parameters<ViewerEngine["applyEdit"]>[0], options?: { readonly label?: string }): Promise<EditResult> {
+    return this.#edit((edits) => edits.apply(ops, options?.label ?? ops.map((op) => op.op).join(", ")));
   }
 
   undoEdit(): Promise<EditResult> {
-    return notYet();
+    return this.#edit((edits) => edits.step(-1));
   }
 
   redoEdit(): Promise<EditResult> {
-    return notYet();
+    return this.#edit((edits) => edits.step(1));
   }
 
-  goToStep(): Promise<EditResult> {
-    return notYet();
+  goToStep(position: number): Promise<EditResult> {
+    return this.#edit((edits) => edits.goTo(position));
   }
 
   editHistory(): Promise<EditHistory> {
-    return notYet();
+    const doc = this.#current?.doc;
+    const edits = doc === undefined ? undefined : this.#edits.get(doc);
+    return Promise.resolve(edits?.history() ?? NO_EDITS);
+  }
+
+  /**
+   * Runs one edit session call on the shown document, then keeps its pages as the call left them
+   * and tells the viewer (`edit`).
+   */
+  async #edit(call: (edits: DesktopEdits) => Promise<EditResult>): Promise<EditResult> {
+    const current = this.#current;
+    if (current === undefined) throw new DesktopEngineError("disposed", "no document is open");
+    if (current.needsPassword) throw new DesktopEngineError("password-required", "this document needs its password");
+    const { doc } = current;
+    let edits = this.#edits.get(doc);
+    if (edits === undefined) {
+      const run = (request: EditRequest) =>
+        this.#shell.invoke<EditOutcome>("edit_document", { doc, request }).then(
+          (outcome) => {
+            this.#pagesNow.set(doc, outcome.pages);
+            return outcome;
+          },
+          (e: unknown) => {
+            throw engineError(e);
+          },
+        );
+      edits = new DesktopEdits(run, pagesOf(current));
+      this.#edits.set(doc, edits);
+    }
+    const result = await call(edits);
+    // Another document shows now: its pages and events are its own.
+    if (this.#current?.doc !== doc) return result;
+    this.#keepPages(doc);
+    this.#emit("edit", result);
+    return result;
+  }
+
+  /** The shown document `doc`'s pages as its last edit left them, in `current` and `document`. */
+  #keepPages(doc: number): void {
+    const current = this.#current;
+    const pages = this.#pagesNow.get(doc);
+    if (current?.doc !== doc || pages === undefined) return;
+    this.#current = { ...current, pages, pageCount: pages.length };
+    if (this.#document !== undefined)
+      this.#document = { ...this.#document, pageCount: pages.length, pages: pagesOf({ pages }) };
   }
 
   // The viewer doesn't export `PlannedSave`, so its type comes from `ViewerEngine`.

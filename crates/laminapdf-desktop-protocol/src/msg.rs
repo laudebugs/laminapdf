@@ -188,7 +188,7 @@ pub struct PageDimensions {
     pub rotate: u16,
 }
 
-/// What an edit call asks of a document's edit session (E1h).
+/// What an edit call asks of a document's edit session.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EditCall {
     /// Apply an op log (`{ "v": 1, "ops": [ … ] }`, ADR 0006 §6) as one transaction.

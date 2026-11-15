@@ -44,6 +44,7 @@ export {
   BROWSER_KEYS,
   bindingKey,
   type DispatcherOptions,
+  isEditable,
   type KeyPress,
   menuAccelerator,
   NEVER_BIND,

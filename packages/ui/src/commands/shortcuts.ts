@@ -199,7 +199,7 @@ export const OVERRIDES: Readonly<Record<Shell, readonly KeyRule[]>> = {
     { keys: "Mod+Shift+Z", why: "redo" },
     { keys: "Mod+Y", why: "redo on Windows and Linux" },
     { keys: "Mod+W", why: "closes the tab, as in other tabbed apps" },
-    { keys: "Ctrl+Q", why: "quits on Windows and Linux, as the File menu's Quit does" },
+    { keys: "Mod+Q", why: "quits, as the app menu's or the File menu's Quit does" },
     { keys: "Mod+[", why: "back, as in other apps with history" },
     { keys: "Mod+]", why: "forward" },
     { keys: "Alt+ArrowLeft", why: "back on Windows and Linux" },
@@ -329,7 +329,7 @@ export function shortcutProblems(commands: readonly AnyCommand[], shell: Shell):
 }
 
 /** Whether `target` takes typing: a text field, a text area, a select or editable content. */
-function isEditable(target: EventTarget | null): boolean {
+export function isEditable(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
   if (target instanceof HTMLInputElement) {
     return !["button", "checkbox", "radio", "range", "submit", "reset", "color", "file"].includes(target.type);

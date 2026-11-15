@@ -1,4 +1,4 @@
-//! A document's edits (E1h), as the web reader's document worker makes them (E1 plan §6).
+//! A document's edits, as the web reader's document worker makes them (E1 plan §6).
 //!
 //! PDFium draws the pages from the bytes it opened, so an edit to Lamina PDF's model reaches the
 //! screen as bytes: after a call that touched pages or moved them, the model writes every edit

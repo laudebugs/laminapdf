@@ -233,9 +233,14 @@ export function editCommands(): readonly AnyCommand[] {
   ];
 }
 
-/** Registers the edit session's commands in `registry`; returns the function that removes them. */
-export function registerEditCommands(registry: CommandRegistry): () => void {
-  const removers = editCommands().map((command) => registry.register(command));
+/**
+ * Registers the edit session's commands in `registry`, or `only` those, for a shell that has the
+ * rest yet; returns the function that removes them.
+ */
+export function registerEditCommands(registry: CommandRegistry, only?: readonly CommandId[]): () => void {
+  const wanted = only === undefined ? undefined : new Set(only);
+  const commands = editCommands().filter((command) => wanted?.has(command.id) ?? true);
+  const removers = commands.map((command) => registry.register(command));
   return () => {
     for (const remove of removers) remove();
   };

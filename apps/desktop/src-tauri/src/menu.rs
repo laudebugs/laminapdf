@@ -5,8 +5,8 @@
 //! macOS has one menu bar for the app; on Windows and Linux each window shows the same menus
 //! (Tauri's app-wide menu). Choosing a command sends it to the window focused last, which runs
 //! it through its registry as a key press or the palette would ([`COMMAND_EVENT`]). Rust handles
-//! the rest itself: the OS's own items (Quit, Hide, Copy…), the window list, Open recent's files,
-//! the Help menu's links, and, with no window open, Open and New window.
+//! the rest itself: the OS's own items (Hide, Copy…), the window list, Open recent's files,
+//! the Help menu's links, and, with no window open, Open, New window and Quit.
 //!
 //! Each window reports which of its commands are enabled and ticked (`menu_state`), and the menus
 //! show the focused window's. Their shape changes only when the windows or the recent list do.
@@ -34,8 +34,8 @@ pub(crate) const COMMAND_EVENT: &str = "menu://command";
 const MENUS_JSON: &str = include_str!("../menus.json");
 
 /// The commands that work with no window open (macOS keeps running without one): Rust opens a
-/// window for them.
-const WITHOUT_WINDOW: [&str; 2] = ["file.open", "window.new"];
+/// window for Open and New window, and quits for Quit, with no window to hold unsaved edits.
+const WITHOUT_WINDOW: [&str; 3] = ["file.open", "window.new", "app.quit"];
 
 /// The platform a menu or an item is for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -144,7 +144,6 @@ pub(crate) enum Predefined {
     Hide,
     HideOthers,
     ShowAll,
-    Quit,
     Copy,
     SelectAll,
     Minimize,
@@ -716,7 +715,6 @@ fn predefined_item(app: &AppHandle, predefined: Predefined) -> tauri::Result<Pre
         Predefined::Hide => PredefinedMenuItem::hide(app, Some("Hide Lamina PDF")),
         Predefined::HideOthers => PredefinedMenuItem::hide_others(app, Some("Hide others")),
         Predefined::ShowAll => PredefinedMenuItem::show_all(app, Some("Show all")),
-        Predefined::Quit => PredefinedMenuItem::quit(app, Some("Quit Lamina PDF")),
         Predefined::Copy => PredefinedMenuItem::copy(app, Some("Copy")),
         Predefined::SelectAll => PredefinedMenuItem::select_all(app, Some("Select all")),
         Predefined::Minimize => PredefinedMenuItem::minimize(app, Some("Minimise")),
@@ -816,7 +814,7 @@ fn focus(app: &AppHandle, label: &str) {
     }
 }
 
-/// Sends `command` to the focused window. With none, Open and New window open one.
+/// Sends `command` to the focused window. With none, Open and New window open one, and Quit quits.
 fn send(app: &AppHandle, command: &MenuCommand) {
     match focused(app) {
         Some(label) => {
@@ -824,6 +822,7 @@ fn send(app: &AppHandle, command: &MenuCommand) {
                 tracing::warn!("could not send a menu command: {error}");
             }
         }
+        None if command.id == "app.quit" => app.exit(0),
         None if WITHOUT_WINDOW.contains(&command.id.as_str()) => {
             if let Err(error) = windows::new_window(app, None) {
                 tracing::warn!("could not open a window from the menu: {error}");
@@ -1032,7 +1031,7 @@ mod tests {
     }
 
     #[test]
-    fn with_no_window_only_open_and_new_window_are_enabled() {
+    fn with_no_window_only_open_new_window_and_quit_are_enabled() {
         let bar = menu_bar(
             &MenusJson::embedded(),
             &Context {
@@ -1046,6 +1045,7 @@ mod tests {
         let text = render(&bar);
         assert!(text.contains("Open a file… [Cmd+O]  <cmd:file.open>"), "{text}");
         assert!(text.contains("New window [Cmd+Shift+N]  <cmd:window.new>"), "{text}");
+        assert!(text.contains("Quit Lamina PDF [Cmd+Q]  <cmd:app.quit>"), "{text}");
         assert!(text.contains("Print… [Cmd+P] (disabled)"), "{text}");
         assert!(text.contains("Close tab [Cmd+W] (disabled)"), "{text}");
         assert!(text.contains("No recent files (disabled)"), "{text}");
