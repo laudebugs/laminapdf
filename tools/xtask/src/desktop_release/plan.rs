@@ -12,8 +12,8 @@
 //! - A pull request, or a dispatch with `dry_run`, builds every target with no environment and
 //!   publishes nothing; a pull request also builds Windows x64 as a tag would, MSI included.
 //!
-//! Until macOS and Windows are signed at the OS level, a tag is refused and staging needs
-//! `allow_unsigned_platforms`.
+//! Until macOS and Windows are both signed at the OS level (`SIGNED_PLATFORMS`), a tag is refused
+//! and staging needs `allow_unsigned_platforms`.
 
 use anyhow::{Result, bail};
 use serde::Serialize;
@@ -123,6 +123,17 @@ impl Signing {
 
     fn all(self) -> bool {
         self.macos && self.windows
+    }
+
+    /// What isn't signed yet, for the refusals: "macOS isn't signed …".
+    fn unsigned(self) -> String {
+        let missing = match (self.macos, self.windows) {
+            (false, false) => "macOS and Windows aren't",
+            (false, true) => "macOS isn't",
+            (true, false) => "Windows isn't",
+            (true, true) => "every platform is",
+        };
+        format!("{missing} signed at the OS level yet (SIGNED_PLATFORMS)")
     }
 }
 
@@ -280,8 +291,6 @@ impl Plan {
     }
 }
 
-const UNSIGNED: &str = "macOS and Windows aren't signed at the OS level yet (SIGNED_PLATFORMS)";
-
 fn every_target(mode: Mode, version: &str) -> Vec<Leg> {
     TARGETS.iter().map(|t| t.leg(mode, version)).collect()
 }
@@ -292,7 +301,10 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
         Trigger::Tag(tag) => {
             let version = tag_version(tag)?.to_string();
             if !inputs.signing.all() {
-                bail!("{UNSIGNED}: until they are, only the nightly channel publishes, so {tag} can't be released");
+                bail!(
+                    "{}: until it is, only the nightly channel publishes, so {tag} can't be released",
+                    inputs.signing.unsigned()
+                );
             }
             Ok(Plan {
                 legs: every_target(Mode::Tag, &version),
@@ -322,7 +334,10 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
             }
             let version = staging_version(inputs.run_number)?;
             if !dry_run && !inputs.signing.all() && !allow_unsigned {
-                bail!("{UNSIGNED}: set allow_unsigned_platforms to publish an unsigned staging build");
+                bail!(
+                    "{}: set allow_unsigned_platforms to publish an unsigned staging build",
+                    inputs.signing.unsigned()
+                );
             }
             Ok(Plan {
                 legs: every_target(Mode::Tag, &version),
@@ -617,6 +632,33 @@ mod tests {
     fn signed_platforms_should_name_macos_or_windows() {
         assert_eq!(Signing::parse("").unwrap(), Signing::default());
         assert!(Signing::parse("linux").is_err());
+    }
+
+    #[test]
+    fn a_refusal_should_name_the_platform_still_unsigned() {
+        let windows = Signing::parse("windows").unwrap();
+        let refused = plan(&Inputs {
+            signing: windows,
+            ..inputs(dispatch("staging", false, false))
+        })
+        .unwrap_err()
+        .to_string();
+        assert!(refused.starts_with("macOS isn't signed"), "{refused}");
+    }
+
+    /// The workflow's own list parses, and names Windows, which the release job signs.
+    #[test]
+    fn the_workflow_should_sign_windows() {
+        let workflow = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.github/workflows/desktop-release.yml"),
+        )
+        .unwrap();
+        let line = workflow
+            .lines()
+            .find(|l| l.trim_start().starts_with("SIGNED_PLATFORMS:"))
+            .unwrap();
+        let list = line.split_once(':').unwrap().1.trim().trim_matches('"');
+        assert!(Signing::parse(list).unwrap().windows, "{line}");
     }
 
     /// The update Worker's lists are the source: apps/updates/src/channels.ts names the channels,

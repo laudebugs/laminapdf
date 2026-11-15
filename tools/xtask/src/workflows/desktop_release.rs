@@ -1,8 +1,10 @@
 //! The desktop release's secret boundaries (docs/guidelines/desktop-release.md §1.9):
-//! `desktop-nightly` has no reviewer, so no job in it may name a secret that signs as the owner;
-//! the plan and the dry run, which pull requests start, read no secret and use no environment;
-//! each build and publish job reads only its own environment's secrets; and the staging publish
-//! shares the update test's concurrency group (`desktop-update-e2e.yml`), so the two never write the staging channel at once.
+//! - `desktop-nightly` has no reviewer, so no job in it may name a secret that signs as the owner.
+//! - The plan and the dry run, which pull requests start, read no secret and use no environment.
+//! - Each build and publish job reads only its own environment's secrets.
+//! - Windows signs through OIDC: only the release build's Windows legs read the Azure IDs.
+//! - The staging publish shares the update test's concurrency group (`desktop-update-e2e.yml`),
+//!   so the two never write the staging channel at once.
 
 use super::{jobs, repository_file};
 
@@ -112,6 +114,35 @@ fn the_staging_publish_should_share_the_update_tests_concurrency_group() {
         update_test.contains("'desktop-staging-channel'"),
         "desktop-update-e2e.yml must take the same group"
     );
+}
+
+/// Windows signs through OIDC (runbook §1.5): only the release build reads the Azure IDs, only its
+/// Windows legs get them, and no client secret exists for any workflow or action to name.
+#[test]
+fn only_the_release_builds_windows_legs_should_read_the_azure_ids() {
+    let text = workflow();
+    for (id, lines) in jobs(&text) {
+        let azure: Vec<_> = lines.iter().filter(|l| l.contains("secrets.AZURE_")).collect();
+        if id != "build-release" {
+            assert!(azure.is_empty(), "{id} reads an Azure secret");
+            continue;
+        }
+        assert_eq!(azure.len(), 3, "the client, tenant and subscription IDs");
+        for line in azure {
+            assert!(line.contains("matrix.os == 'windows' && secrets.AZURE_"), "{line}");
+        }
+        assert!(
+            lines.iter().any(|l| l.trim() == "id-token: write"),
+            "{id} needs GitHub's OIDC token"
+        );
+    }
+    let action = repository_file(".github/actions/desktop-build/action.yml").expect("the build action");
+    for text in [text.as_str(), action.as_str()] {
+        assert!(
+            !text.contains("AZURE_CLIENT_SECRET"),
+            "Artifact Signing uses no client secret"
+        );
+    }
 }
 
 #[test]
