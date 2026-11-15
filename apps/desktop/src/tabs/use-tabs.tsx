@@ -4,8 +4,8 @@
 // showing its tab (`tab://activate`), the other windows for "Move tab to window ▸", the window's
 // title, tabs not shown when the engine restarts, and another window's tab dragged over this one
 // (`tab://drag-over`). A tab dragged off the strip goes where Rust finds the cursor when the drag
-// ends (`tab_drag_end`). The strip shows from two tabs on (S02); with one, the title bar carries the
-// name. A tab whose file is missing carries a warning mark, and the strip's menu shows each tab's
+// ends (`tab_drag_end`). The strip shows while the window holds a document, one tab included, so a
+// second tab opens into a strip already there and moves nothing below it (motion plan §5). A tab whose file is missing carries a warning mark, and the strip's menu shows each tab's
 // page or "Not found". After a restore, the restore notice says what came back (`useRestoreNotice`).
 import {
   type CommandContext,
@@ -127,8 +127,8 @@ export function useTabStrip(
   const others = useOtherWindows(shell, state.tabs.length);
   useWindowTitle(shell, tabs, state.active, unsaved);
   const { move, actions } = useTabActions(shell, tabs, toasts);
-  // From two tabs on (S02), or with one while other windows are open, so it can move there.
-  const shows = state.tabs.length >= 2 || (state.tabs.length === 1 && others.length > 0);
+  // From the first tab on (motion plan §5): a second tab then moves nothing below the strip.
+  const shows = state.tabs.length >= 1;
   if (tabs === undefined || !shows) return { strip: null, notice, actions };
   // The moves act on the shown tab: none while nothing shows.
   const moves =

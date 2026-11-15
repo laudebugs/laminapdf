@@ -212,6 +212,8 @@ mod tests {
     const WEB_DEPLOY: &str = include_str!("../../../.github/workflows/web-deploy.yml");
     const CLI_TRAIN: &str = include_str!("../../release/cli-release-train.yml");
     const CANCEL_MERGED: &str = include_str!("../../../.github/workflows/cancel-merged.yml");
+    const UPDATE_E2E: &str = include_str!("../../../.github/workflows/desktop-update-e2e.yml");
+    const UPDATE_BUILDS: &str = include_str!("../../../.github/actions/desktop-update-builds/action.yml");
 
     #[test]
     fn fast_gate_should_need_every_ci_job() {
@@ -762,6 +764,68 @@ mod tests {
             ["actions: write", "contents: read", "pull-requests: read"],
             "the token may cancel runs and read the merged PR, nothing more"
         );
+    }
+
+    /// The desktop update test (`desktop-update-e2e.yml`): its pull request job, which forks' code runs, names no
+    /// secret and no environment, and its build action reads none; only the staging job runs in
+    /// `desktop-staging`, never on a pull request, whose only secrets are the staging bucket's token and the account ID.
+    #[test]
+    fn the_update_tests_pull_request_job_should_hold_no_secret() {
+        let ids = job_ids(UPDATE_E2E);
+        assert_eq!(ids, ["local", "staging"]);
+        let job = |id: &str| {
+            jobs(UPDATE_E2E)
+                .into_iter()
+                .find(|(job, _)| *job == id)
+                .map(|(_, lines)| lines.join("\n"))
+                .unwrap_or_default()
+        };
+        let local = job("local");
+        assert!(local.contains("if: ${{ github.event_name == 'pull_request' }}"));
+        // The job's own lines, and every local action it uses (the build action among them).
+        let actions: Vec<String> = local
+            .lines()
+            .filter_map(|line| {
+                line.trim()
+                    .strip_prefix("- uses: $/")
+                    .or_else(|| line.trim().strip_prefix("uses: $/"))
+            })
+            .map(|path| repository_file(&format!("{path}/action.yml")).unwrap_or_else(|| panic!("{path}/action.yml")))
+            .collect();
+        assert!(
+            actions.iter().any(|action| action == UPDATE_BUILDS),
+            "the job builds with desktop-update-builds"
+        );
+        for forbidden in ["secrets.", "environment:"] {
+            assert!(!local.contains(forbidden), "the pull request job names {forbidden}");
+            assert!(
+                actions.iter().all(|action| !action.contains(forbidden)),
+                "a local action the pull request job uses names {forbidden}"
+            );
+        }
+        let staging = job("staging");
+        assert!(staging.contains("if: ${{ github.event_name != 'pull_request'"));
+        assert!(staging.contains("environment: desktop-staging"));
+        assert!(
+            staging.contains("max-parallel: 1"),
+            "staging legs share the channel's manifest"
+        );
+        // The names the job reads after `secrets.`, never their values.
+        let names: Vec<&str> = staging
+            .split("secrets.")
+            .skip(1)
+            .filter_map(|rest| rest.split(|c: char| !c.is_ascii_alphanumeric() && c != '_').next())
+            .collect();
+        // Exactly these: the staging bucket's token, its S3 Access Key ID, and the account.
+        let allowed = [
+            "CLOUDFLARE_STAGING_R2_TOKEN",
+            "STAGING_R2_ACCESS_KEY_ID",
+            "CLOUDFLARE_ACCOUNT_ID",
+        ];
+        let unexpected = names.iter().filter(|name| !allowed.contains(name)).count();
+        assert_eq!(unexpected, 0, "the staging job reads another secret");
+        let read = allowed.iter().filter(|name| names.contains(name)).count();
+        assert_eq!(read, allowed.len(), "the staging job lacks one of its secrets");
     }
 
     /// GitHub blocks `pull_request_target` by default in public repositories from December 2, 2026,

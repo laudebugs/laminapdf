@@ -159,23 +159,38 @@ function AccentGroup(props: { value: Accent; isDisabled: boolean; onChange: (acc
   );
 }
 
+/** Props of {@link MotionField}. */
+export interface MotionFieldProps {
+  /** The choice the field shows. */
+  readonly value: Motion;
+  /** Called with the new choice. */
+  readonly onChange: (motion: Motion) => void;
+}
+
+/** Settings' Motion choice: the system's, or reduced whatever it says (the web reader and the desktop's). */
+export function MotionField({ value, onChange }: MotionFieldProps): ReactNode {
+  return (
+    <RadioGroup
+      label={message("appearance.motion")}
+      value={value}
+      description={message("appearance.motion.help")}
+      onChange={(motion) => onChange(motion as Motion)}
+    >
+      {MOTIONS.map((motion) => (
+        <Radio key={motion} value={motion}>
+          {message(`appearance.motion.${motion}`)}
+        </Radio>
+      ))}
+    </RadioGroup>
+  );
+}
+
 /** Settings' "Appearance and accessibility" section: theme, accent, motion and single-key shortcuts. */
 export function AppearanceSettings({ appearance, onChange }: AppearanceFieldsProps): ReactNode {
   return (
     <div className="paper-settings-fields">
       <AppearanceFields appearance={appearance} onChange={onChange} />
-      <RadioGroup
-        label={message("appearance.motion")}
-        value={appearance.motion}
-        description={message("appearance.motion.help")}
-        onChange={(motion) => onChange({ ...appearance, motion: motion as Motion })}
-      >
-        {MOTIONS.map((motion) => (
-          <Radio key={motion} value={motion}>
-            {message(`appearance.motion.${motion}`)}
-          </Radio>
-        ))}
-      </RadioGroup>
+      <MotionField value={appearance.motion} onChange={(motion) => onChange({ ...appearance, motion })} />
       <Switch isSelected={appearance.singleKeys} onChange={(singleKeys) => onChange({ ...appearance, singleKeys })}>
         {message("appearance.singleKeys")}
       </Switch>

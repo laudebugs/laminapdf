@@ -5,7 +5,8 @@
    tabs don't fit; its menu at the end lists them all. On touch every target grows to the touch
    minimum (`--ui-target`). A draggable tab shows the grab cursor; while one is dragged the whole
    page shows the grabbing cursor (the pointer is captured, so no other control reacts), and an
-   accent bar marks where the tab would go. */
+   accent bar marks where the tab would go. Tabs open, close and reorder with motion (tab-motion.ts);
+   their cursors, hover and press come from states.css. */
 @layer paper.components {
   .paper-reader-head {
     grid-row: 1;
