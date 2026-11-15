@@ -11,7 +11,7 @@
 | Branch | `feat/u7i-choice-and-field-states` |
 | PR title | `feat(ui): choices, fields and rows follow the state rules` |
 | Size | M (200–400) |
-| PR | — |
+| PR | [#629](https://github.com/laudebugs/laminapdf/pull/629) |
 
 ## Goal
 
