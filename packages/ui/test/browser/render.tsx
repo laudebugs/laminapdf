@@ -39,6 +39,9 @@ const roots: Root[] = [];
  * axe measures their contrast once they have, and a box is measured at rest.
  */
 export async function settled(): Promise<void> {
+  // Two frames first: React Aria drops data-entering a frame after an overlay mounts, and only
+  // then does its fade start.
+  for (let i = 0; i < 2; i++) await new Promise(requestAnimationFrame);
   // An endless animation (an indeterminate progress bar) never finishes: only those that end.
   const ending = document
     .getAnimations()
