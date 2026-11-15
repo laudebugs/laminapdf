@@ -1,7 +1,9 @@
-/* The offline notice (R15): a strip under the top bar on the surface colour, a hairline below, the
-   offline icon, the message (wrapping on a phone) and the dismiss button at the end. */
+/* The offline notice (R15) and the desktop's restore notice (S02): a strip under the top bar on the
+   surface colour, a hairline below, an icon, the message (wrapping on a phone), any action, and the
+   dismiss button at the end. */
 @layer paper.components {
-  .paper-offline-notice {
+  .paper-offline-notice,
+  .paper-restore-notice {
     display: flex;
     align-items: center;
     gap: var(--paper-space-10);
@@ -12,15 +14,21 @@
     font: var(--paper-type-body);
   }
 
-  .paper-offline-notice p {
+  .paper-offline-notice p,
+  .paper-restore-notice p {
     flex: 1;
     min-inline-size: 0;
     margin: 0;
   }
 
-  .paper-offline-notice > svg {
+  .paper-offline-notice > svg,
+  .paper-restore-notice > svg {
     flex: none;
     color: var(--paper-text-2);
+  }
+
+  .paper-restore-notice[data-missing] > svg {
+    color: var(--paper-warning);
   }
 }
 

@@ -246,6 +246,8 @@
   --paper-control-border: #8A8174;
   --paper-on-accent: #FFFFFF;
   --paper-danger: #9B2335;
+  --paper-danger-strong: #882231;
+  --paper-danger-pressed: #78212D;
   --paper-positive: #2F6A45;
   --paper-warning: #8A5300;
   --paper-danger-tint: #F1E4E2;
@@ -357,6 +359,8 @@
   --paper-control-border: #7E766A;
   --paper-on-accent: #1E1D1A;
   --paper-danger: #EE8C98;
+  --paper-danger-strong: #EE9AA2;
+  --paper-danger-pressed: #EDA5AC;
   --paper-positive: #86C49A;
   --paper-warning: #E0AE5A;
   --paper-danger-tint: #463534;
@@ -435,6 +439,8 @@
     --paper-control-border: #7E766A;
     --paper-on-accent: #1E1D1A;
     --paper-danger: #EE8C98;
+    --paper-danger-strong: #EE9AA2;
+    --paper-danger-pressed: #EDA5AC;
     --paper-positive: #86C49A;
     --paper-warning: #E0AE5A;
     --paper-danger-tint: #463534;
@@ -519,6 +525,8 @@
   --paper-control-border: CanvasText;
   --paper-on-accent: Canvas;
   --paper-danger: CanvasText;
+  --paper-danger-strong: CanvasText;
+  --paper-danger-pressed: CanvasText;
   --paper-positive: CanvasText;
   --paper-warning: CanvasText;
   --paper-danger-tint: Canvas;
@@ -567,6 +575,8 @@
     --paper-control-border: CanvasText;
     --paper-on-accent: Canvas;
     --paper-danger: CanvasText;
+    --paper-danger-strong: CanvasText;
+    --paper-danger-pressed: CanvasText;
     --paper-positive: CanvasText;
     --paper-warning: CanvasText;
     --paper-danger-tint: Canvas;

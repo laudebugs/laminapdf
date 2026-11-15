@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `D4f` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Desktop app §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D4d](../done/D4d-session-restore.md) |
+| Depends on | [D4d](./D4d-session-restore.md) |
 | ADRs | Follows ADR 0008, ADR 0024 |
 | Branch | `feat/d4f-restore-notice-and-missing-marks` |
 | PR title | `feat(desktop): say what the last session brought back, and mark missing files in the tab strip` |
 | Size | M (200–400): the notice, the strip's marks and menu entries in `@laminapdf/ui`, the "looks different" question, their gallery states |
-| PR | — |
+| PR | [#628](https://github.com/laudebugs/laminapdf/pull/628) |
 
 ## Goal
 
@@ -37,14 +37,14 @@ Finish S02's session restore as drawn. D4d brings the last session back and give
 
 ## Acceptance criteria
 
-- [ ] After a restore with a missing file, the notice says so and Show missing file activates that tab (e2e).
-- [ ] The missing tab shows its glyph and "Not found" in the strip's menu until it is located or closed.
-- [ ] Locating a file of another size asks first.
+- [x] After a restore with a missing file, the notice says so and Show missing file activates that tab (e2e).
+- [x] The missing tab shows its glyph and "Not found" in the strip's menu until it is located or closed.
+- [x] Locating a file of another size asks first.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

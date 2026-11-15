@@ -47,6 +47,7 @@ import {
   RemoteFailure,
   RepairDetails,
   RepairedNotice,
+  RestoreNotice,
   SegmentedTabs,
   Select,
   ShortcutChip,
@@ -125,6 +126,23 @@ const documentTabs: Example[] = [
   },
   {
     component: "DocumentTabs",
+    state: "restored, one file missing (S02-tab-missing)",
+    element: () => (
+      <DocumentTabs
+        tabs={[
+          { id: "1", title: "report.pdf", detail: "Page 12" },
+          { id: "2", title: "Q2-board-report.pdf", missing: true },
+          { id: "3", title: "notes.pdf", detail: "Page 3" },
+        ]}
+        active="2"
+        onActivate={() => {}}
+        onClose={() => {}}
+        platform="mac"
+      />
+    ),
+  },
+  {
+    component: "DocumentTabs",
     state: "no tab shown (an error in the window)",
     element: () => (
       <DocumentTabs
@@ -160,13 +178,22 @@ const buttons: Example[] = [
     element: () => <Button size={size}>Open</Button>,
   })),
   { component: "Button", state: "icon and text", element: () => <Button icon="download">Download</Button> },
-  { component: "Button", state: "pending", element: () => <Button isPending>Saving</Button> },
+  ...(["secondary", "primary", "danger-filled"] as const).map((variant) => ({
+    component: "Button",
+    state: variant === "secondary" ? "pending" : `${variant} pending`,
+    element: () => (
+      <Button variant={variant} isPending>
+        Saving
+      </Button>
+    ),
+  })),
   ...([26, 28, 32] as const).map((size) => ({
     component: "IconButton",
     state: `size ${size}`,
     element: () => <IconButton label="Find in document" icon="find" size={size} />,
   })),
   { component: "IconButton", state: "disabled", element: () => <IconButton label="Undo" icon="undo" isDisabled /> },
+  { component: "IconButton", state: "pending", element: () => <IconButton label="Save" icon="download" isPending /> },
 ];
 
 const toggles: Example[] = [
@@ -202,6 +229,24 @@ const toggles: Example[] = [
       <ToolToggle icon="comment" isDisabled>
         Note
       </ToolToggle>
+    ),
+  },
+  {
+    component: "ToolToggle",
+    state: "on, disabled",
+    element: () => (
+      <ToolToggle icon="highlight" defaultSelected isDisabled>
+        Highlight
+      </ToolToggle>
+    ),
+  },
+  {
+    component: "ToggleButton",
+    state: "disabled",
+    element: () => (
+      <ToggleButton icon="sidebar" isDisabled>
+        Sidebar
+      </ToggleButton>
     ),
   },
   {
@@ -390,6 +435,15 @@ const status: Example[] = [
     state: "with an icon",
     element: () => (
       <StatusBarItem icon="sync" onPress={noop}>
+        Comments synced 10:32
+      </StatusBarItem>
+    ),
+  },
+  {
+    component: "StatusBarItem",
+    state: "disabled",
+    element: () => (
+      <StatusBarItem icon="sync" isDisabled>
         Comments synced 10:32
       </StatusBarItem>
     ),
@@ -925,6 +979,16 @@ const repairs: Example[] = [
     component: "OfflineNotice",
     state: "offline",
     element: () => <OfflineNotice onDismiss={noop} />,
+  },
+  {
+    component: "RestoreNotice",
+    state: "eight tabs, one file not found",
+    element: () => <RestoreNotice tabs={8} missing={1} onShowMissing={noop} onDismiss={noop} />,
+  },
+  {
+    component: "RestoreNotice",
+    state: "every file found",
+    element: () => <RestoreNotice tabs={3} missing={0} onShowMissing={noop} onDismiss={noop} />,
   },
   {
     component: "RecentList",

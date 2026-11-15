@@ -251,7 +251,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   --paper-code-* kinds, for the website's code panel and the docs' code blocks);
 │                        #   the site header (W1d): src/nav.mjs (the one list of links, siteNav per site and page, APP_LAUNCHED),
 │                        #   src/SiteHeader.astro, SiteNav.astro (the links alone) + header.css (sized per site by CSS variables); the select (W1g):
-│                        #   src/Select.astro + select.css (design language §7.19: a native <select> in the Paper look, 44 px on touch), icon.mjs
+│                        #   src/MenuSelect.astro + menu-select.ts + menu-select.css (Q4w: a select-only combobox with an icon per choice,
+│                        #   §7.19's field opening §7.26's listbox popup, 44 px on touch), icon.mjs
 │                        #   (decorativeIcon: a Paper icon's ?raw SVG as hidden HTML); test/ (Node), test/browser/ (the header and the select
 │                        #   rendered by Astro's container in a global setup, then Chromium, Firefox, WebKit: tab order, current underline,
 │                        #   phone width, the select's name, keys and focus ring, axe; run by `cargo xtask pdf-runtimes`); README.md
@@ -354,7 +355,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   src/components/Benchmarks.astro and its Markdown twin), code pages from
 │                        #   docs/errors/ (src/pages/, plugins/error-pages.mjs), post-build checks (plugins/), the shared site header
 │                        #   (src/components/Header.astro, Starlight's Header override, with its search and theme switch; the theme switch is
-│                        #   src/components/ThemeSelect.astro, Starlight's ThemeSelect override on site-kit's select); public/_headers
+│                        #   src/components/ThemeSelect.astro, Starlight's ThemeSelect override on site-kit's MenuSelect); public/_headers
 │                        #   (ADR 0011 §4, inline-script hashes filled in after the build by @laminapdf/site-kit); wrangler.toml (Workers static
 │                        #   assets: docs.laminapdf.com, no workers.dev address, and next.docs.laminapdf.com as [env.next]); robots.txt from the site kit
 │                        #   (the sitemap only on the released docs, checked by plugins/release.mjs); deployed by .github/workflows/docs.yml; README.md has the owner's setup;

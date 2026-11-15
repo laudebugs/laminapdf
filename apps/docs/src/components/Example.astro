@@ -494,7 +494,7 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
   }
   /* Wide screens: the page beside the code. The example grows into the margins the content column
      leaves (it stays centred on the column, as the column is in its pane), up to the column's own
-     45rem of code plus the page. 90rem (1440 px) is the narrowest viewport where that still leaves
+     width of code (45rem, 68rem with "On this page" hidden) plus the page. 90rem (1440 px) is the narrowest viewport where that still leaves
      36rem of code, about 66 characters: the left sidebar, the table of contents, the content's
      padding and a scroll bar's 1rem take the rest. Narrower, the code would wrap or scroll too
      often to read, so the page goes below it. */
@@ -511,7 +511,7 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
         var(--example-page-chosen, 15rem),
         var(--example-room) - 20rem - var(--paper-space-24)
       );
-      --example-width: min(var(--example-room), 45rem + var(--paper-space-24) + var(--example-page-width));
+      --example-width: min(var(--example-room), var(--sl-content-width) + var(--paper-space-24) + var(--example-page-width));
 
       grid-template-columns: minmax(0, 1fr) var(--paper-space-24) var(--example-page-width);
       column-gap: 0;

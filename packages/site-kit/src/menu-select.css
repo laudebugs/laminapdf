@@ -1,0 +1,185 @@
+/* The sites' select (MenuSelect.astro). The button is design language §7.19's select
+   field: the field's fill and edge, radius 4, 32 px high, padding 0 30px 0 10px and the 16 px
+   chevron in text-3, 8 px from the end, here with the choice's 16 px icon before its label. The
+   list is §7.26's listbox popup: surface, a chip-border edge, radius 6, the floating shadow,
+   padding 4, in the popover layer under the button's end (above it with -up); items 28 px high,
+   padding 0 10px, gap 10, the 16 px icon in text-3; the active one, and the one under the
+   pointer, in accent-tint with a 1 px accent ring inside; the chosen one with the Check icon at
+   its end. Drawn from the Paper tokens, which each site loads first; they follow its data-theme. The
+   button repeats @laminapdf/ui's field.css, which is React-only and layered and so can't be shared;
+   a change to §7.19 changes both. */
+
+.site-menu-select {
+  position: relative;
+  display: inline-flex;
+  font: var(--paper-type-body);
+}
+
+/* Hidden from sight, still the select's name. */
+.site-menu-select .site-menu-select-label-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.site-menu-select-label {
+  align-self: center;
+  margin-inline-end: var(--paper-space-8);
+  font: var(--paper-type-label);
+  color: var(--paper-text-3);
+}
+
+.site-menu-select-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  min-block-size: var(--paper-field-height);
+  padding-block: 0;
+  padding-inline: var(--paper-space-10) var(--paper-select-chevron-space);
+  border: var(--paper-border-width) solid var(--paper-control-border);
+  border-radius: var(--paper-radius-4);
+  background: var(--paper-field);
+  color: var(--paper-text);
+  font: inherit;
+  cursor: var(--paper-cursor-action);
+}
+
+.site-menu-select-button[aria-expanded="true"] {
+  background: var(--paper-pressed);
+}
+
+.site-menu-select-button:focus-visible {
+  outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+  outline-offset: var(--paper-focus-ring-offset-tight);
+}
+
+.site-menu-select-current:not([hidden]) {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--paper-space-8);
+}
+
+.site-menu-select-icon,
+.site-menu-select-check {
+  flex: none;
+  inline-size: 16px;
+  block-size: 16px;
+}
+
+.site-menu-select-button .site-menu-select-icon,
+.site-menu-select-option .site-menu-select-icon {
+  color: var(--paper-text-3);
+}
+
+.site-menu-select-chevron {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: var(--paper-select-chevron-inset);
+  inline-size: 16px;
+  block-size: 16px;
+  margin-block: auto;
+  color: var(--paper-text-3);
+  pointer-events: none;
+}
+
+.site-menu-select-list {
+  position: absolute;
+  z-index: var(--paper-z-popover);
+  inset-block-start: calc(100% + var(--paper-space-4));
+  inset-inline-end: 0;
+  min-inline-size: 100%;
+  margin: 0;
+  padding: var(--paper-space-4);
+  border: var(--paper-border-width) solid var(--paper-chip-border);
+  border-radius: var(--paper-radius-6);
+  background: var(--paper-surface);
+  box-shadow: var(--paper-shadow-float);
+  list-style: none;
+}
+
+.site-menu-select-list[hidden] {
+  display: none;
+}
+
+.site-menu-select-up .site-menu-select-list {
+  inset-block: auto calc(100% + var(--paper-space-4));
+}
+
+/* Under the button's start instead, when its end would put the list past the window's start. */
+.site-menu-select-start .site-menu-select-list {
+  inset-inline: 0 auto;
+}
+
+.site-menu-select-option {
+  display: flex;
+  align-items: center;
+  gap: var(--paper-space-10);
+  min-block-size: 28px;
+  margin: 0;
+  padding-block: 0;
+  padding-inline: var(--paper-space-10);
+  border-radius: var(--paper-radius-4);
+  color: var(--paper-text);
+  white-space: nowrap;
+  cursor: var(--paper-cursor-action);
+}
+
+.site-menu-select-option-label {
+  flex: 1;
+}
+
+.site-menu-select-option[data-active] {
+  background: var(--paper-accent-tint);
+  box-shadow: inset 0 0 0 1px var(--paper-accent);
+}
+
+/* The option under a mouse or pen, as the active one: design language §7.0 keeps :hover to a
+   pointer that hovers, since a tap leaves it on. */
+@media (hover: hover) and (pointer: fine) {
+  .site-menu-select-option:hover {
+    background: var(--paper-accent-tint);
+    box-shadow: inset 0 0 0 1px var(--paper-accent);
+  }
+}
+
+.site-menu-select-check {
+  color: var(--paper-accent);
+  visibility: hidden;
+}
+
+.site-menu-select-option[aria-selected="true"] .site-menu-select-check {
+  visibility: visible;
+}
+
+/* Touch (design language §8.7, as @laminapdf/ui's fields): 44 px targets, and 16 px text. */
+@media (pointer: coarse) {
+  .site-menu-select-button {
+    min-block-size: var(--paper-target-min-touch);
+    font: var(--paper-type-input-large);
+  }
+
+  .site-menu-select-option {
+    min-block-size: var(--paper-target-min-touch);
+    font: var(--paper-type-input-large);
+  }
+}
+
+@media (forced-colors: active) {
+  .site-menu-select-button,
+  .site-menu-select-list {
+    border-color: CanvasText;
+  }
+
+  .site-menu-select-chevron,
+  .site-menu-select-icon {
+    color: CanvasText;
+  }
+
+  .site-menu-select-option[data-active] {
+    outline: 2px solid Highlight;
+  }
+}

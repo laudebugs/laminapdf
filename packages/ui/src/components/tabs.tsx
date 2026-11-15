@@ -10,6 +10,7 @@ import {
   TabList,
   Tabs,
 } from "react-aria-components";
+import { StableLabel } from "./stable-label.js";
 
 /** One tab: its id, shared with its `TabPanel`, and its visible name. */
 export interface TabItem<Id extends string> {
@@ -54,7 +55,7 @@ export function SegmentedTabs<Id extends string>({
       <TabList aria-label={label} className="paper-tab-list">
         {tabs.map((tab) => (
           <Tab key={tab.id} id={tab.id} className="paper-tab">
-            {tab.label}
+            <StableLabel>{tab.label}</StableLabel>
           </Tab>
         ))}
       </TabList>

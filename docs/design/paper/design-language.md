@@ -40,6 +40,8 @@ Contrast ratios are WCAG 2.x relative-luminance ratios. `@laminapdf/tokens` reco
 | `selection-tint` | `#CEDBDD` | Text selection on an Original page (= `accent` 22% over white) | page ink 10.91 · ⚠ vs white page 1.42 (see note 1) |
 | `focus` | `#1F5C63` | Focus ring: same as `accent` | ground 6.91 · surface 7.21 · gutter 6.16 · accent-tint 6.00 |
 | `danger` | `#9B2335` | Destructive actions ("Delete highlight"), errors | ground 7.12 · surface 7.44 · white 7.82 |
+| `danger-strong` | `#882231` | The filled danger button's hover (`danger` 15% toward `text`) | white 9.05 |
+| `danger-pressed` | `#78212D` | Its pressed fill (28% toward `text`) | white 10.22 |
 | `positive` | `#2F6A45` | Success, valid signature | ground 5.85 · surface 6.11 · white 6.43 |
 | `warning` | `#8A5300` | Warnings: approximate reflow, signature that saving would break | ground 5.77 · surface 6.02 · white 6.33 · gutter 5.14 |
 | `danger-tint` / `positive-tint` / `warning-tint` | `#F1E4E2` / `#E7EBE3` / `#F0E8DC` | Backgrounds of badges and notices (10% over `surface`) | own colour on tint 6.31 / 5.32 / 5.21; text ≥ 13.5 |
@@ -94,6 +96,8 @@ The same warm family, inverted: chrome is warm charcoal, never pure black, and t
 | `on-accent` | `#1E1D1A` | on accent 7.97 |
 | `accent-tint` | `#343C3B` (16% over surface) | text 9.19 · accent 5.35 |
 | `danger` | `#EE8C98` | ground 7.10 · surface 6.52 · raised 5.87 |
+| `danger-strong` | `#EE9AA2` | on-accent 7.85 |
+| `danger-pressed` | `#EDA5AC` | on-accent 8.49 |
 | `positive` | `#86C49A` | ground 8.33 · surface 7.65 |
 | `warning` | `#E0AE5A` | ground 8.32 · surface 7.64 |
 | `danger-tint` / `positive-tint` / `warning-tint` | `#463534` / `#353E34` / `#443A2A` (16% over surface, the dark `accent-tint` rule) | own colour on tint 4.86 / 5.49 / 5.50; text ≥ 9.0 |
@@ -110,7 +114,7 @@ A high-contrast UI theme follows `forced-colors` system colours (plan §5.5), no
 | Tokens | System colour |
 | --- | --- |
 | `ground`, `surface`, `raised`, `field`, `gutter`, the three tints, `accent-tint`, `field-tint`, `hover`, `pressed`, `pill`, `scrim`, `on-accent` | `Canvas` |
-| `text`, `text-2`, `text-3`, `muted`, `hairline`, `chip-border`, `control-border`, `danger`, `positive`, `warning`, `focus`, `on-pill` | `CanvasText` |
+| `text`, `text-2`, `text-3`, `muted`, `hairline`, `chip-border`, `control-border`, `danger`, `danger-strong`, `danger-pressed`, `positive`, `warning`, `focus`, `on-pill` | `CanvasText` |
 | `accent`, `accent-strong`, primary pressed, the outline Blue | `LinkText` |
 | `disabled` | `GrayText` |
 
@@ -491,6 +495,13 @@ Wrap each in:
 | Wrap lines | `wrap-lines` | `<path d="M4.5 6.5h15M4.5 12h11a3 3 0 0 1 0 6h-4"></path><path d="M13.5 16l-2 2 2 2"></path><path d="M4.5 17.5h4"></path>` | Wrap long lines in a code block |
 | Format code | `format-code` | `<path d="M4.5 6h9M8.5 10h11M8.5 14h7M4.5 18h9"></path>` | Format the code in an editor |
 
+**Icons for the sites' theme switch (Q4w).** Q4w drew these for the Light and Dark choices of the docs site's theme switch; Auto uses Laptop.
+
+| Name | File | Markup | Used for |
+| --- | --- | --- | --- |
+| Sun | `sun` | `<circle cx="12" cy="12" r="3.5"></circle><path d="M12 4v2M12 18v2M4 12h2M18 12h2M6.34 6.34l1.42 1.42M16.24 16.24l1.42 1.42M17.66 6.34l-1.42 1.42M7.76 16.24l-1.42 1.42"></path>` | The light theme |
+| Moon | `moon` | `<path d="M19 14.5A7.5 7.5 0 0 1 9.5 5a7.5 7.5 0 1 0 9.5 9.5z"></path>` | The dark theme |
+
 Window caption glyphs (minimise, maximise, close) are drawn on a 10 × 10 grid with 1 px strokes and are mockup-only.
 
 ## 6. Layout
@@ -552,7 +563,8 @@ Every control styles the states it has in this order: rest, value (selected, che
 | Hover | `hover` fill | `hover` fill over white | `accent-strong` | `hover` layer over its fill |
 | Pressed | `pressed` fill, label `text-3` | `pressed` | `#123A3F` (white 12.33) | `pressed` layer over its fill |
 | Focus (keyboard) | `outline: 2px solid #1F5C63; outline-offset: 2px` (1 px offset where space is tight: mini toolbar, palette input; `-2px` inset inside edge-to-edge phone bars) | same | same | same |
-| Disabled | `disabled` text, no hover | `disabled` text, `hairline` border | `hairline` fill and border, `disabled` text | as ghost |
+| Disabled | `disabled` text, no hover | `disabled` text, `hairline` border | `hairline` fill and border, `disabled` text | as ghost; a selected one keeps a `hairline` border |
+| Pending | as disabled, the busy arrow, keeps its width and focus | as disabled | as disabled | — |
 
 **Cursor.** Every enabled control that acts shows the hand (`--paper-cursor-action`): buttons, toggles, tabs, menu items, choices and rows that open something. Links show the hand too (`--paper-cursor-link`). Disabled and blocked controls show the arrow (`--paper-cursor-disabled`), and a control waiting on its action shows the busy arrow (`--paper-cursor-pending`). Text fields keep the text cursor, and the page canvas keeps its tool's cursor.
 
@@ -611,7 +623,7 @@ Variants **(proposed)**:
 
 In `@laminapdf/ui`: `ModeSwitcher`. **Keyboard (decided, U6d):** each mode button is its own Tab stop, with Enter or Space to switch, because a `role="group"` gives no hint that arrow keys work. The secondary toolbars below use the toolbar pattern instead (ADR 0024 §8).
 
-Buttons with `aria-pressed` in a `role="group"` (not tabs: modes change tools, not a panel). Active: `text` 600 + 2 px `accent` underline; inactive: `muted`, transparent underline (keeps height stable). Hover **(proposed)**: label turns `text`. Gap 22, height 40 (fills the top bar).
+Buttons with `aria-pressed` in a `role="group"` (not tabs: modes change tools, not a panel). Active: `text` 600 + 2 px `accent` underline; inactive: `muted`, transparent underline (keeps height stable). Hover turns the label `text` and adds no `hover` layer; pressed shows the `pressed` layer. Each inactive label keeps the width of its 600 label, so switching modes moves nothing. Gap 22, height 40 (fills the top bar).
 
 ```html
 <div role="group" aria-label="Mode" style="display: flex; align-items: stretch; gap: 22px; height: 40px">
@@ -644,7 +656,7 @@ Heights: 32 (default, padding 0 16), 30 (inspector, padding 0 14), 26 (top bar, 
 <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Reply</button>
 <button style="height: 32px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; color: #1F5C63; font-weight: 600">Export highlights</button>
 <button style="height: 32px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; color: #9B2335">Delete highlight</button>
-<!-- danger, filled (proposed; only as the confirm button of a destructive dialog; white on it 7.82) -->
+<!-- danger, filled (proposed; only as the confirm button of a destructive dialog; white on it 7.82). Hover takes `danger-strong` (`danger` 15% toward `text`; white on it 9.05, dark 7.85) and pressed `danger-pressed` (28%; 10.22, dark 8.49), as the primary takes `accent-strong` and `primary-pressed` -->
 <button style="height: 32px; padding: 0 16px; border: 1px solid #9B2335; background: #9B2335; color: #FFFFFF; border-radius: 4px; font-weight: 600">Delete 3 pages</button>
 ```
 
@@ -652,7 +664,7 @@ Heights: 32 (default, padding 0 16), 30 (inspector, padding 0 14), 26 (top bar, 
 
 In `@laminapdf/ui`: `SegmentedTabs` and `TabPanel`. **Activation (decided, U6d):** automatic, so an arrow key selects the tab it moves to, because a rail panel appears as soon as its tab is selected; a slow panel passes `keyboardActivation="manual"`.
 
-`role="tablist"` with `role="tab"`/`aria-selected`; 13 px, gap 16, padding `14px 18px 0`, 2 px `accent` underline on the selected tab, `hairline` under the row. Arrow keys move between tabs. Which tabs appear is in §8.10.
+`role="tablist"` with `role="tab"`/`aria-selected`; 13 px, gap 16, padding `14px 18px 0`, a 600 label and 2 px `accent` underline on the selected tab, `hairline` under the row. Hover turns the label `text` and adds no `hover` layer; pressed shows the `pressed` layer. Each unselected tab keeps the width of its 600 label, so selecting one moves nothing. Arrow keys move between tabs. Which tabs appear is in §8.10.
 
 **More tabs button (proposed).** With four or more tabs the rail is 280 px, the row gap 12 and padding `14px 10px 0 14px`; after the third tab, outside the `tablist`, a 28 px icon button with the More icon (16 px), `aria-label="More tabs"`, `aria-haspopup="menu"`, `aria-expanded`, opening a menu (§7.26) of the other tabs. A tab chosen from it takes the third slot; the selected tab is always in the row.
 
@@ -765,7 +777,7 @@ In `@laminapdf/ui`: `SelectionToolbar` with `SelectionToolbarDivider`, placed ag
 
 ### 7.10 Command palette
 
-In `@laminapdf/ui`: `CommandPalette`, the shell only: the app passes the rows already ranked, with the matched parts of each title. A disabled row shows its reason, when it has one, in place of its group and is skipped by the arrow keys; the group and the shortcut chip describe a row (`aria-describedby`) rather than name it. **Combobox (U6j):** the input carries `role="combobox"` and `aria-expanded`, which React Aria's autocomplete leaves out.
+In `@laminapdf/ui`: `CommandPalette`, the shell only: the app passes the rows already ranked, with the matched parts of each title. The active row, chosen by the pointer or the arrow keys, takes its tint at once, with no `hover` layer; a press lays the `pressed` layer over it. A disabled row shows its reason, when it has one, in place of its group and is skipped by the arrow keys; the group and the shortcut chip describe a row (`aria-describedby`) rather than name it. **Combobox (U6j):** the input carries `role="combobox"` and `aria-expanded`, which React Aria's autocomplete leaves out.
 
 Modal over `scrim` (from below the window title bar), 96 px from the top, `max-width: 600px`, `surface`, `chip-border` edge, radius 6, palette shadow. Input: 44 high, inset 10, `control-border`, white, radius 4, 18 px search icon `muted`, 16 px text, `esc` chip; keeps focus (APG combobox: `role="combobox"`, `aria-activedescendant`). List: `role="listbox"`, padding `0 6px 8px`; section overlines ("Recent" first, then "Commands"); rows 40 high, padding `0 12px`, gap 12: title (query match in 600) · group name (12 `muted`) · shortcut chip. Active row: `accent-tint` fill, `inset 0 0 0 1px` `accent` ring, group `text-3`, chip border `accent`. Footer: 12 `muted` hints over a `hairline`.
 
@@ -1067,7 +1079,7 @@ Badge sets **(proposed)**, all at this size:
 
 In `@laminapdf/ui`: `ToolToggle`, and `ToggleButton` for other pressed buttons.
 
-From the Comment toolbar: 28 high, padding `0 10px`, gap 6, radius 4, 16 px icon + 13 px label, 1 px transparent border; selected = `accent` border, `accent-tint`, `accent` 600. Right end: a 12 `muted` context note ("1 comment on this page").
+From the Comment toolbar: 28 high, padding `0 10px`, gap 6, radius 4, 16 px icon + 13 px label, 1 px transparent border; selected = `accent` border, `accent-tint`, `accent` 600. An unselected toggle keeps the 600 label's width. Hover and pressed lay the `hover` and `pressed` layers over the selected or unselected fill. Right end: a 12 `muted` context note ("1 comment on this page").
 
 ```html
 <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid #1F5C63; background: #E1E6E3; color: #1F5C63; border-radius: 4px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14.5 4.5l5 5L11 18H6v-5z"></path><path d="M4 20.5h9"></path></svg>Highlight</button>
@@ -1097,7 +1109,7 @@ In `@laminapdf/ui`: `Menu` with `MenuTrigger`, and `Popover` with `PopoverTrigge
 
 One menu for every lamina-drawn menu: toolbar menus (Shapes, Insert, Form data, Filter), More menus, the More tabs menu, context menus and the tab overflow menu. Native menus (the macOS menu bar, Windows and Linux menu bars) are drawn by the OS; the desktop boards only sketch them.
 
-- `role="menu"` popover (z 30) under its button: `surface`, `chip-border` edge, radius 6, floating shadow, padding 4, width 260 (wider when needed). The opening button shows the `pressed` fill and `aria-expanded="true"`.
+- `role="menu"` popover (z 30) under its button: `surface`, `chip-border` edge, radius 6, floating shadow, padding 4, width 260 (wider when needed). The item under the pointer or the keyboard takes the `accent-tint` and an inset `accent` line at once, with no `hover` layer; a press lays the `pressed` layer over it. The opening button shows the `pressed` fill and `aria-expanded="true"`.
 - Items 32 high (44 on touch), padding `0 10px`, gap 10: 16 px icon `text-3` (items without an icon indent to 36), 14 px label, shortcut chip at the right. Check and radio items (`menuitemcheckbox`, `menuitemradio`) show the Check icon in the icon column.
 - Active item: the palette's active-row style (`accent-tint`, inset 1 px `accent` ring). Disabled: `disabled` text, `aria-disabled`, the reason in a tooltip. A destructive item goes last, in `danger`.
 - Separators 1 px `hairline` with 6 px side margins; optional overline group headers; an optional 12 `muted` note or footer hint below the items, outside `role="menu"`, linked with `aria-describedby`.
