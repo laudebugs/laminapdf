@@ -46,6 +46,14 @@ pub enum DesktopError {
     /// would lose the other app's change, so the window asks first.
     #[error("the file changed on disk since it opened")]
     FileChanged,
+    /// Another app changed the document's file in place (or, on Windows, replaced it), so the
+    /// document can no longer read the bytes its edits build on: only Reload or Save as work.
+    #[error("the file was changed by another app, and the edits can't be written over it")]
+    BaseGone,
+    /// The file was saved, but the engine couldn't take it as the document's saved file, so the
+    /// document reopened from it, with every edit and no history.
+    #[error("the file was saved and reopened")]
+    SavedReopened,
     /// Writing the document's file failed; the file is as it was. Rust's I/O errors carry no path.
     #[error("the file could not be written: {0}")]
     Write(std::io::Error),
@@ -70,6 +78,8 @@ impl DesktopError {
             Self::UpdateNotReady => "update-not-ready",
             Self::AlreadyPrinting => "already-printing",
             Self::FileChanged => "file-changed",
+            Self::BaseGone => "base-changed",
+            Self::SavedReopened => "saved-reopened",
             Self::Write(error) => match error.kind() {
                 std::io::ErrorKind::PermissionDenied | std::io::ErrorKind::ReadOnlyFilesystem => "write-refused",
                 std::io::ErrorKind::StorageFull | std::io::ErrorKind::QuotaExceeded => "disk-full",

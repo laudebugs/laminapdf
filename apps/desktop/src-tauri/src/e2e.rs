@@ -144,7 +144,10 @@ impl QueuedSaveAs {
 pub(crate) fn e2e_queue_save_as(queue: tauri::State<'_, QueuedSaveAs>, path: String) -> Result<(), DesktopError> {
     let path = Path::new(&path);
     let refused = || DesktopError::Internal("e2e_queue_save_as: not in a fixtures folder".to_owned());
-    let folder = path.parent().and_then(|folder| folder.canonicalize().ok()).ok_or_else(refused)?;
+    let folder = path
+        .parent()
+        .and_then(|folder| folder.canonicalize().ok())
+        .ok_or_else(refused)?;
     let name = path.file_name().ok_or_else(refused)?;
     if !fixture_roots().iter().any(|root| folder.starts_with(root)) {
         return Err(refused());

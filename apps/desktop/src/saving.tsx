@@ -11,7 +11,7 @@ import { Button, Dialog, message, type ReaderController, type ToastQueue } from 
 import { ConformanceDialog, RemoveSignaturesDialog, type SaveSignature } from "@laminapdf/ui/editing";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DesktopEngine } from "./app.tsx";
-import { engineError } from "./engine/desktop-engine-client.ts";
+import { DesktopEngineError, engineError } from "./engine/desktop-engine-client.ts";
 import type { DesktopSaved, PlannedSave, SaveOptions, SaveTarget } from "./engine/desktop-saves.ts";
 import { stopper } from "./engine/stopper.ts";
 
@@ -39,12 +39,25 @@ export interface DesktopSaving {
 
 /** Why a save failed, in words: the file is read-only, the disk is full, … */
 function failureReason(error: unknown): string {
-  const { code, message: text } = engineError(error);
+  const { code } = engineError(error);
   if (code === "write-refused") return message("save.reason.permission");
   if (code === "disk-full") return message("save.reason.full");
-  if (code === "save-refused" || /would-invalidate-signatures|requires-rewrite|encrypted-base/.test(text))
-    return message("save.reason.refused");
+  if (code === "save-refused") return message("save.reason.refused");
   return message("save.reason.other");
+}
+
+/** What the window says when a save didn't write the file as asked, by the main process's kind; undefined for a plain failure. */
+const OUTCOMES: Readonly<Record<string, (name: string) => string>> = {
+  // Another app wrote the file in place: the bytes the edits build on are gone.
+  "base-changed": (name) =>
+    `Couldn't save over ${name}: another app changed it, and your edits build on the version it replaced. Save as… keeps your edits; Reload shows the other app's version.`,
+  // The file holds every edit, but the document had to reopen from it.
+  "saved-reopened": (name) => `Saved ${name}, and reopened it from the saved file.`,
+};
+
+/** A plan's refusal as the error a save fails with, as the main process would refuse it. */
+function refusal(code: string): DesktopEngineError {
+  return new DesktopEngineError("save-refused", code);
 }
 
 function signature(s: PlannedSave["signatures"][number]): SaveSignature {
@@ -135,9 +148,15 @@ function saveFlow(
         done(current.doc, current.name, saved);
         return true;
       } catch (error) {
-        if (engineError(error).code === "file-changed") {
+        const { code } = engineError(error);
+        if (code === "file-changed") {
           await flow.resolveConflict(current.doc);
           return false;
+        }
+        const outcome = OUTCOMES[code];
+        if (outcome !== undefined) {
+          toasts.add({ message: outcome(current.name) });
+          return code === "saved-reopened";
         }
         toasts.add({ message: message("save.failed", { name: current.name, reason: failureReason(error) }) });
         return false;
@@ -176,12 +195,12 @@ function saveFlow(
     if (plan.refusal === "would-invalidate-signatures") {
       const overridden = { ...options, invalidateSignatures: true };
       plan = await viewer.edits.plan(overridden);
-      if (plan.refusal !== undefined) throw new Error(plan.refusal);
+      if (plan.refusal !== undefined) throw refusal(plan.refusal);
       const signatures = plan.wouldInvalidate.map(signature);
       if (!(await ask<boolean>({ kind: "signatures", signatures }))) return undefined;
       options = overridden;
     } else if (plan.refusal !== undefined) {
-      throw new Error(plan.refusal);
+      throw refusal(plan.refusal);
     }
     const warnings = plan.conformanceWarnings.map((w) => w.message);
     if (warnings.length > 0 && !(await ask<boolean>({ kind: "conformance", warnings }))) return undefined;

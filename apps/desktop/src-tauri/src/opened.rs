@@ -84,14 +84,18 @@ fn record(app: &tauri::AppHandle, path: &Path, name: &str, size: u64, pages: Opt
 /// A document was saved as `path`: the new file goes first in the app's and the OS's recent lists, as
 /// an opened one does.
 pub(crate) fn remember_saved(app: &tauri::AppHandle, path: &Path) {
-    let name = path
-        .file_name()
-        .map_or_else(String::new, |name| name.to_string_lossy().into_owned());
+    let name = file_name(path);
     let Ok(meta) = std::fs::metadata(path) else {
         return;
     };
     // The page count shows once the file is next opened from the list.
     record(app, path, &name, meta.len(), None);
+}
+
+/// `path`'s file name without its folder, as the webview and the recent lists name a file.
+pub(crate) fn file_name(path: &Path) -> String {
+    path.file_name()
+        .map_or_else(String::new, |name| name.to_string_lossy().into_owned())
 }
 
 /// Removes `paths` from the OS's recent list: every one of them on Linux, the app's whole list on

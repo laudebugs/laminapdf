@@ -71,16 +71,29 @@ impl Engines {
         Ok(())
     }
 
-    /// The kept output is in place: the engine makes it the document's saved file, and the
-    /// document reads its file from `path` from now on.
+    /// The kept output is in place: the engine makes it the document's saved file.
     ///
     /// # Errors
-    /// The engine's failures; the OS's error when the saved file can't be opened.
-    pub(crate) fn adopt_save(&self, window: &str, doc: DocId, path: &Path) -> Result<(), DesktopError> {
+    /// The engine's failures.
+    pub(crate) fn adopt_save(&self, window: &str, doc: DocId) -> Result<(), DesktopError> {
         match self.save_call(window, doc, SaveCall::Adopt)? {
-            (SaveAnswer::Adopted, _) => Ok(self.registry.saved_to(doc, path)?),
+            (SaveAnswer::Adopted, _) => Ok(()),
             (other, _) => Err(unexpected_answer(&other)),
         }
+    }
+
+    /// `doc` was saved to `path`: it reads its file from there from now on.
+    ///
+    /// # Errors
+    /// The OS's error when the saved file can't be opened; `doc` then keeps its old file.
+    pub(crate) fn saved_to(&self, doc: DocId, path: &Path) -> std::io::Result<()> {
+        self.registry.saved_to(doc, path)
+    }
+
+    /// Whether `doc` can still read the bytes its file had when it opened (see
+    /// `DocumentRegistry::base_intact`).
+    pub(crate) fn base_intact(&self, doc: DocId) -> bool {
+        self.registry.base_intact(doc)
     }
 
     /// Forgets the kept output after a write that failed. A failure here is only logged: the next

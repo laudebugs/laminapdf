@@ -366,6 +366,27 @@ describe("saving", () => {
     ]);
   });
 
+  it("saves the document it was asked for, even if another tab shows by the time the save runs", async () => {
+    saveAnswer = savedAs("letter.pdf");
+    const engine = client();
+    engine.show(PLAIN);
+    let go: () => void = () => undefined;
+    const waited = new Promise<void>((resolve) => {
+      go = resolve;
+    });
+    const later = {
+      async save(options: Parameters<DesktopEngineClient["copyEdits"]>[0], write: () => Promise<void>) {
+        await waited;
+        return session(engine).save(options, write);
+      },
+    };
+    const saving = engine.saveTo(later, "in-place", options);
+    engine.show({ ...PLAIN, doc: 9, name: "other.pdf" });
+    go();
+    await saving;
+    expect(commands.find((c) => c.command === "save_document")?.args).toMatchObject({ doc: 4 });
+  });
+
   it("names the document after the file Save as wrote", async () => {
     saveAnswer = savedAs("letter copy.pdf");
     const engine = client();

@@ -104,7 +104,7 @@ fn an_append_to_a_read_only_file_should_fail_and_leave_it_as_it_was() {
 #[test]
 fn a_replacement_should_write_the_new_file_and_leave_nothing_beside_it() {
     let folder = Folder::new("replace", b"%PDF-1.7 old");
-    replace(&folder.file, &mut writes(b"%PDF-1.7 rewritten")).unwrap();
+    replace(&folder.file, &mut writes(b"%PDF-1.7 rewritten"), &mut || Ok(())).unwrap();
     assert_eq!(
         (folder.read(), folder.names()),
         (b"%PDF-1.7 rewritten".to_vec(), vec!["doc.pdf".to_owned()])
@@ -114,7 +114,7 @@ fn a_replacement_should_write_the_new_file_and_leave_nothing_beside_it() {
 #[test]
 fn a_failed_replacement_should_keep_the_old_file_and_remove_the_temporary_one() {
     let folder = Folder::new("replace-fails", b"%PDF-1.7 old");
-    let result = replace(&folder.file, &mut fails_halfway);
+    let result = replace(&folder.file, &mut fails_halfway, &mut || Ok(()));
     assert_eq!(
         (kind(result), folder.read(), folder.names()),
         (
@@ -129,7 +129,7 @@ fn a_failed_replacement_should_keep_the_old_file_and_remove_the_temporary_one() 
 fn a_read_only_file_should_not_be_replaced() {
     let folder = Folder::new("replace-read-only", b"%PDF-1.7 old");
     folder.set_read_only(true);
-    let result = replace(&folder.file, &mut writes(b"%PDF-1.7 rewritten"));
+    let result = replace(&folder.file, &mut writes(b"%PDF-1.7 rewritten"), &mut || Ok(()));
     assert_eq!(
         (kind(result), folder.read()),
         (Some(io::ErrorKind::PermissionDenied), b"%PDF-1.7 old".to_vec())
@@ -142,7 +142,7 @@ fn a_replacement_should_keep_the_files_permissions() {
     use std::os::unix::fs::PermissionsExt as _;
     let folder = Folder::new("replace-mode", b"%PDF-1.7 old");
     std::fs::set_permissions(&folder.file, std::fs::Permissions::from_mode(0o640)).unwrap();
-    replace(&folder.file, &mut writes(b"%PDF-1.7 rewritten")).unwrap();
+    replace(&folder.file, &mut writes(b"%PDF-1.7 rewritten"), &mut || Ok(())).unwrap();
     let mode = std::fs::metadata(&folder.file).unwrap().permissions().mode() & 0o777;
     assert_eq!(mode, 0o640);
 }
@@ -161,4 +161,19 @@ fn a_new_file_from_a_rewrite_should_hold_the_output_alone() {
     let copy = folder.dir.join("copy.pdf");
     create(&copy, None::<&Path>, &mut writes(b"%PDF-1.7 rewritten")).unwrap();
     assert_eq!(std::fs::read(&copy).unwrap(), b"%PDF-1.7 rewritten");
+}
+
+#[test]
+fn a_replacement_whose_check_fails_should_keep_the_old_file_and_remove_the_temporary_one() {
+    let folder = Folder::new("replace-checked", b"%PDF-1.7 old");
+    let mut changed = || Err(io::Error::from(io::ErrorKind::WouldBlock));
+    let result = replace(&folder.file, &mut writes(b"%PDF-1.7 rewritten"), &mut changed);
+    assert_eq!(
+        (kind(result), folder.read(), folder.names()),
+        (
+            Some(io::ErrorKind::WouldBlock),
+            b"%PDF-1.7 old".to_vec(),
+            vec!["doc.pdf".to_owned()]
+        )
+    );
 }

@@ -45,16 +45,17 @@ pub(crate) fn append(path: &Path, at: u64, fill: &mut Fill<'_>) -> io::Result<()
 /// Writes a new file at `path` in place of the old one: the output goes to a temporary file
 /// beside it, which is renamed over `path` once it is complete, so the old file stays whole until
 /// then. The new file keeps the old one's permissions. A read-only file is refused, as appending
-/// to it would be, although its folder may allow the rename.
+/// to it would be, although its folder may allow the rename. `check` runs just before the rename:
+/// its error stops it, and the old file stays.
 ///
 /// # Errors
-/// `PermissionDenied` for a read-only file; the OS's errors; `fill`'s own.
-pub(crate) fn replace(path: &Path, fill: &mut Fill<'_>) -> io::Result<()> {
+/// `PermissionDenied` for a read-only file; the OS's errors; `fill`'s and `check`'s own.
+pub(crate) fn replace(path: &Path, fill: &mut Fill<'_>, check: &mut dyn FnMut() -> io::Result<()>) -> io::Result<()> {
     let permissions = fs::metadata(path)?.permissions();
     if permissions.readonly() {
         return Err(io::Error::from(io::ErrorKind::PermissionDenied));
     }
-    write_beside(path, Some(permissions), None, fill)
+    write_beside(path, Some(permissions), None, fill, check)
 }
 
 /// Writes a new file at `path` (Save as): `base`'s bytes followed by the output when the output
@@ -64,16 +65,17 @@ pub(crate) fn replace(path: &Path, fill: &mut Fill<'_>) -> io::Result<()> {
 /// # Errors
 /// The OS's errors; `fill`'s own.
 pub(crate) fn create(path: &Path, base: Option<&Path>, fill: &mut Fill<'_>) -> io::Result<()> {
-    write_beside(path, None, base, fill)
+    write_beside(path, None, base, fill, &mut || Ok(()))
 }
 
-/// Writes `base` (when given) and the output to a temporary file in `path`'s folder, then renames
-/// it over `path`. The temporary file is removed on any failure.
+/// Writes `base` (when given) and the output to a temporary file in `path`'s folder, then, once
+/// `check` agrees, renames it over `path`. The temporary file is removed on any failure.
 fn write_beside(
     path: &Path,
     permissions: Option<fs::Permissions>,
     base: Option<&Path>,
     fill: &mut Fill<'_>,
+    check: &mut dyn FnMut() -> io::Result<()>,
 ) -> io::Result<()> {
     let temp = temporary_beside(path)?;
     let written = (|| {
@@ -91,6 +93,7 @@ fn write_beside(
         if let Some(permissions) = permissions {
             fs::set_permissions(&temp, permissions)?;
         }
+        check()?;
         fs::rename(&temp, path)?;
         sync_folder(path);
         Ok(())

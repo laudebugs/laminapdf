@@ -119,8 +119,9 @@ export const FAILED_EVENT = "engine://failed";
 
 const NOT_YET = "the desktop reader doesn't check edits against signatures yet";
 
-/** A save waiting in the edit session's queue: where it goes, and what it did once it ran. */
+/** A save waiting in the edit session's queue: its document, where it goes, and what it did once it ran. */
 interface QueuedSave {
+  readonly doc: number;
   readonly target: SaveTarget;
   saved: DesktopSaved | undefined;
 }
@@ -518,7 +519,7 @@ export class DesktopEngineClient implements ViewerEngine {
     target: SaveTarget,
     options: SaveOptions,
   ): Promise<DesktopSaved | undefined> {
-    const queued: QueuedSave = { target, saved: undefined };
+    const queued: QueuedSave = { doc: this.#shownDoc(), target, saved: undefined };
     this.#saveTargets.push(queued);
     try {
       await edits.save(options, () => Promise.resolve());
@@ -541,7 +542,8 @@ export class DesktopEngineClient implements ViewerEngine {
   async copyEdits(options: SaveOptions): Promise<SavedCopy> {
     const queued = this.#saveTargets.shift();
     if (queued === undefined) throw new DesktopEngineError("unsupported", "the desktop saves through saveTo");
-    const doc = this.#shownDoc();
+    // The document the save was asked for, whichever tab shows now.
+    const { doc } = queued;
     const { command, args } = saveCall(doc, queued.target, options);
     const saved = await this.#shell.invoke<DesktopSaved | null>(command, args).catch((e: unknown) => {
       throw engineError(e);

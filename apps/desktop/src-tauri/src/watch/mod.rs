@@ -8,9 +8,10 @@
 //! still changing, it is looked at again one period later; settled, it reloads; missing, its
 //! windows are told, and it reloads if it comes back.
 //!
-//! The app's own saves aren't changes made outside: a save holds a [`Writing`] token for the file
-//! while it writes, and the file isn't looked at until the token goes. The written file is then
-//! the file as its documents read it, so the events the write raised find nothing new.
+//! A document's own save isn't a change made outside for it: the save holds a [`Writing`] token for
+//! the file while it writes, and the file isn't looked at until the token goes. The written file is
+//! then the file as that document reads it. Any other document showing the same file (another
+//! window's) reloads, as it would for another app's change.
 //!
 //! One thread owns the state and the OS watcher: commands and the OS's events arrive on one
 //! channel, and reloads run on that thread, one at a time. [`Reload`] is how it reaches the app,
@@ -54,11 +55,22 @@ pub(crate) trait Reload: Send + Sync {
 }
 
 enum Command {
-    Watch { path: PathBuf, window: String, doc: DocId },
-    Unwatch { window: String, doc: DocId },
+    Watch {
+        path: PathBuf,
+        window: String,
+        doc: DocId,
+    },
+    Unwatch {
+        window: String,
+        doc: DocId,
+    },
     UnwatchWindow(String),
     Writing(PathBuf),
-    Wrote { path: PathBuf, stamp: Option<FileStamp> },
+    Wrote {
+        path: PathBuf,
+        stamp: Option<FileStamp>,
+        writer: (String, DocId),
+    },
     Event(notify::Result<notify::Event>),
 }
 
@@ -114,13 +126,15 @@ impl Watcher {
         self.send(Command::UnwatchWindow(window.to_owned()));
     }
 
-    /// Holds off looking at `path` while the app writes it; the token says when the write is done.
-    pub(crate) fn writing(&self, path: &Path) -> Writing<'_> {
+    /// Holds off looking at `path` while `window`'s document `doc` saves to it; the token says when
+    /// the write is done.
+    pub(crate) fn writing(&self, path: &Path, window: &str, doc: DocId) -> Writing<'_> {
         let path = canonical(path);
         self.send(Command::Writing(path.clone()));
         Writing {
             watcher: self,
             path,
+            writer: (window.to_owned(), doc),
             done: false,
         }
     }
@@ -137,6 +151,8 @@ impl Watcher {
 pub(crate) struct Writing<'a> {
     watcher: &'a Watcher,
     path: PathBuf,
+    /// The document that saves.
+    writer: (String, DocId),
     done: bool,
 }
 
@@ -147,6 +163,7 @@ impl Writing<'_> {
         self.watcher.send(Command::Wrote {
             path: self.path.clone(),
             stamp: Some(stamp),
+            writer: self.writer.clone(),
         });
     }
 }
@@ -158,6 +175,7 @@ impl Drop for Writing<'_> {
             self.watcher.send(Command::Wrote {
                 path: self.path.clone(),
                 stamp: None,
+                writer: self.writer.clone(),
             });
         }
     }
@@ -224,7 +242,7 @@ impl Worker {
                     file.writing += 1;
                 }
             }
-            Command::Wrote { path, stamp } => self.wrote(&path, stamp),
+            Command::Wrote { path, stamp, writer } => self.wrote(&path, stamp, &writer),
             Command::Event(Ok(event)) => {
                 let due = Instant::now() + DEBOUNCE;
                 for (path, file) in &mut self.files {
@@ -310,19 +328,38 @@ impl Worker {
         }
     }
 
-    /// One of the app's writes to `path` is done; `stamp` is what it left, or `None` when it failed.
-    fn wrote(&mut self, path: &Path, stamp: Option<FileStamp>) {
+    /// `writer`'s save to `path` is done; `stamp` is what it left, or `None` when it failed. Every
+    /// other document showing the file reloads it.
+    fn wrote(&mut self, path: &Path, stamp: Option<FileStamp>, writer: &(String, DocId)) {
         let Some(file) = self.files.get_mut(path) else {
             return;
         };
         file.writing = file.writing.saturating_sub(1);
-        if let Some(stamp) = stamp {
-            file.opened = stamp;
-            file.settle = Settle::default();
-            file.missing = false;
-        }
         // Whatever the write's events left waiting is looked at now, against the file as written.
         file.due = Some(Instant::now() + DEBOUNCE);
+        let Some(stamp) = stamp else {
+            return;
+        };
+        file.opened = stamp;
+        file.settle = Settle::default();
+        file.missing = false;
+        let others: Vec<usize> = (0..file.docs.len())
+            .filter(|&i| {
+                file.docs
+                    .get(i)
+                    .is_some_and(|(window, doc)| (window, doc) != (&writer.0, &writer.1))
+            })
+            .collect();
+        for i in others {
+            let Some((window, doc)) = self.files.get(path).and_then(|file| file.docs.get(i)).cloned() else {
+                continue;
+            };
+            if let Reloaded::Replaced(new) = self.reload.modified(&window, doc, path)
+                && let Some(slot) = self.files.get_mut(path).and_then(|file| file.docs.get_mut(i))
+            {
+                slot.1 = new;
+            }
+        }
     }
 
     fn look_at(&mut self, path: &Path) {

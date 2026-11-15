@@ -1,11 +1,13 @@
 // Saving edits (E1 plan §7): File ▸ Save appends the edit to the file as a revision, which the
 // app and pdf.js both read back, and the app's own write never reloads the document. Another
-// app's change to a file with unsaved edits asks first: Reload takes the other app's version,
-// Overwrite keeps the edits. Save as writes a new file that the document reads from then on, and a
+// app's change to a file with unsaved edits asks first: Reload takes the other app's version, and
+// Overwrite keeps the edits while the document can still read the file they build on (another
+// app's atomic save, outside Windows). Save as writes a new file that the document reads from then on, and a
 // write that fails (a read-only file) leaves the edits unsaved and the file as it was. The scenario
 // changes the file from the test process, as another app would.
-import { chmodSync, copyFileSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { chmodSync, copyFileSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { platform } from "node:process";
 import { $, browser, expect } from "@wdio/globals";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { fixture, focusWindow, invoke, menuClick, openAndWait, view, withText } from "../app.ts";
@@ -30,6 +32,13 @@ async function readByPdfJs(path: string): Promise<{ pages: number; rotate: numbe
   } finally {
     await task.destroy();
   }
+}
+
+/** Replaces the file with a copy of `path` as an editor's atomic save does: written beside it, then renamed over. */
+function replaceWith(path: string): void {
+  const temp = join(dir, ".saved.pdf.tmp");
+  copyFileSync(path, temp);
+  renameSync(temp, saved);
 }
 
 /** Turns the shown page a quarter right and waits for the title's "•". */
@@ -98,15 +107,39 @@ describe("saving edits in place", () => {
     await waitForSaved("saved.pdf");
     expect(await rotation()).toBe(invoice.rotate);
   });
+});
 
-  it("overwrites another app's change with the edits when told to", async () => {
+describe("overwriting another app's change", () => {
+  it("can't overwrite a file another app wrote in place, and Reload takes its version then", async () => {
     await turn("saved.pdf", 90);
     copyFileSync(example("hello.pdf"), saved);
     await answerConflict("saved.pdf", "Overwrite");
+    await withText("Couldn't save over saved.pdf: another app changed it").waitForExist({ timeout: 15_000 });
+    expect(await browser.getTitle()).toBe("• saved.pdf — Lamina PDF");
+    await menuClick("cmd:file.save");
+    await answerConflict("saved.pdf", "Reload");
     await waitForSaved("saved.pdf");
-    // The other app's one-page file is gone: the file is the edited invoice, written whole.
-    const invoice = await readByPdfJs(example("invoice.pdf"));
-    expect(await readByPdfJs(saved)).toEqual({ pages: invoice.pages, rotate: 90 });
+    expect(await readByPdfJs(saved)).toEqual({ pages: 1, rotate: 0 });
+  });
+
+  it("overwrites an atomic save by another app with the edits when told to", async () => {
+    await turn("saved.pdf", 90);
+    // An editor's save: a new file renamed over the old one, which the document still reads.
+    replaceWith(example("invoice.pdf"));
+    if (platform === "win32") {
+      // Windows reads a document's file by its path, so the old bytes are gone with it.
+      await answerConflict("saved.pdf", "Overwrite");
+      await withText("Couldn't save over saved.pdf: another app changed it").waitForExist({ timeout: 15_000 });
+      await menuClick("cmd:file.save");
+      await answerConflict("saved.pdf", "Reload");
+      await waitForSaved("saved.pdf");
+      await turn("saved.pdf", 90);
+      await menuClick("cmd:file.save");
+    } else {
+      await answerConflict("saved.pdf", "Overwrite");
+    }
+    await waitForSaved("saved.pdf");
+    expect((await readByPdfJs(saved)).rotate).toBe(90);
   });
 });
 

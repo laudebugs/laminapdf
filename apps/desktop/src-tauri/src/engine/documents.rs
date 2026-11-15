@@ -126,6 +126,13 @@ impl DocumentRegistry {
         Some(stamp.is_none() || FileStamp::read(&path).ok() != stamp)
     }
 
+    /// Whether `doc`'s file source can still read the bytes the document opened with: false once
+    /// another app wrote the file in place, or replaced it where the source reads by path.
+    pub(crate) fn base_intact(&self, doc: DocId) -> bool {
+        let source = self.lock().get(&doc).map(|entry| Arc::clone(&entry.source));
+        source.is_some_and(|source| source.intact())
+    }
+
     /// `doc` was saved to `path`, its file from now on: the file is read again from there, at its
     /// new length, and is the one later saves compare against.
     ///

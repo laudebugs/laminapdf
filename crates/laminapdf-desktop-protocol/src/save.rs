@@ -10,8 +10,10 @@
 
 use serde::{Deserialize, Serialize};
 
-/// The save's options: the façade's `SaveOptions` that the desktop sets.
+/// The save's options: the façade's `SaveOptions` that the desktop sets. The webview sends them
+/// as JSON, in camelCase, any field left out at its default.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
 pub struct SaveRequest {
     /// Rewrite the whole file, even where an incremental update would do.
     pub rewrite: bool,

@@ -16,38 +16,13 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use laminapdf_desktop_protocol::{DocId, PlanReport, PlanSignature, SaveRequest, SaveWritten, SavedAs};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use tauri::Manager as _;
 use tauri_plugin_dialog::DialogExt as _;
 
 use crate::DesktopError;
 use crate::engine::Engines;
 use crate::watch::{FileStamp, Watcher};
-
-/// A save's options as the webview sends them.
-#[derive(Debug, Clone, Default, Deserialize)]
-#[serde(rename_all = "camelCase", default)]
-pub(crate) struct SaveAsked {
-    /// Rewrite the whole file (Save as optimised).
-    rewrite: bool,
-    /// Remove the signatures the edits invalidate, after the user agreed.
-    invalidate_signatures: bool,
-    /// The save's time, ISO 8601.
-    metadata_date: Option<String>,
-    /// The XMP instance ID, 16 random bytes.
-    instance_id: Option<[u8; 16]>,
-}
-
-impl From<SaveAsked> for SaveRequest {
-    fn from(asked: SaveAsked) -> Self {
-        Self {
-            rewrite: asked.rewrite,
-            invalidate_signatures: asked.invalidate_signatures,
-            metadata_date: asked.metadata_date,
-            instance_id: asked.instance_id,
-        }
-    }
-}
 
 /// A plan as the webview reads it: the fields of `@laminapdf/sdk`'s `PlannedSave` the desktop fills.
 #[derive(Debug, Clone, Serialize)]
@@ -118,41 +93,57 @@ enum Target {
     NewFile(PathBuf),
 }
 
+impl Target {
+    /// The file the save writes, for a document whose file is `from`.
+    fn path(&self, from: &Path) -> PathBuf {
+        match self {
+            Self::InPlace { .. } => from.to_owned(),
+            Self::NewFile(path) => path.clone(),
+        }
+    }
+}
+
 /// Saves `window`'s document `doc` to `target`.
 fn save(
     app: &tauri::AppHandle,
     window: &str,
     doc: DocId,
-    asked: SaveAsked,
+    mut request: SaveRequest,
     target: &Target,
 ) -> Result<SavedView, DesktopError> {
     let engines = Arc::clone(&app.state::<Arc<Engines>>());
     let from = engines.path_in(window, doc).ok_or(DesktopError::UnknownDocument)?;
-    let mut request = SaveRequest::from(asked);
+    let to = target.path(&from);
     if engines.changed_on_disk(doc) {
         if matches!(target, Target::InPlace { overwrite: false }) {
             return Err(DesktopError::FileChanged);
         }
-        // The file the revision would follow isn't there any more: only a whole file will do.
+        // The file a revision would follow isn't the document's any more, so only a whole file
+        // will do, and only while the document can still read the bytes it opened with.
+        if !engines.base_intact(doc) {
+            return Err(DesktopError::BaseGone);
+        }
         request.rewrite = true;
     }
+    // The file the save goes over, as it is now: it must still be so when the write happens.
+    let expected = FileStamp::read(&to).ok();
     let written = engines.write_save(window, doc, request)?;
-    let to = match target {
-        Target::InPlace { .. } => from.clone(),
-        Target::NewFile(path) => path.clone(),
-    };
     let saving = Saving {
+        app,
         engines: &engines,
         window,
         doc,
         from: &from,
         to: &to,
-        target,
+        expected,
     };
-    if let Err(error) = saving.put_in_place(app, written) {
-        engines.drop_save(window, doc);
-        return Err(error);
-    }
+    let in_place = match saving.write(target, written) {
+        Ok(()) => saving.adopt(),
+        Err(error) => {
+            engines.drop_save(window, doc);
+            return Err(error);
+        }
+    };
     if let Target::NewFile(_) = target {
         // The document is the new file now: watch it there, and list it first in the recent lists.
         let watcher = app.state::<Watcher>();
@@ -160,61 +151,99 @@ fn save(
         watcher.watch(&to, window, doc);
         crate::opened::remember_saved(app, &to);
     }
+    in_place?;
     Ok(SavedView {
-        name: file_name(&to),
+        name: crate::opened::file_name(&to),
         mode: written.mode,
         history_cleared: written.history_cleared,
         metadata_not_updated: written.metadata_not_updated,
     })
 }
 
-/// One save under way: the document, the file it reads and the file the save goes to.
+/// One save under way: the document, the file it reads, the file the save goes to and how that
+/// file looked when the save began.
 struct Saving<'a> {
+    app: &'a tauri::AppHandle,
     engines: &'a Engines,
     window: &'a str,
     doc: DocId,
     from: &'a Path,
     to: &'a Path,
-    target: &'a Target,
+    expected: Option<FileStamp>,
 }
 
 impl Saving<'_> {
-    /// Writes the engine's output to `to` and has the engine adopt it, while the watcher holds off.
-    fn put_in_place(&self, app: &tauri::AppHandle, written: SaveWritten) -> Result<(), DesktopError> {
-        let Self {
-            engines,
-            window,
-            doc,
-            from,
-            to,
-            target,
-        } = *self;
-        let watcher = app.state::<Watcher>();
-        let writing = watcher.writing(to);
-        let mut fill = |out: &mut dyn std::io::Write| engines.copy_save(window, doc, written.len, out);
+    /// Writes the engine's output to the file, while the watcher holds off; the file is the
+    /// document's from then on.
+    fn write(&self, target: &Target, written: SaveWritten) -> Result<(), DesktopError> {
+        let watcher = self.app.state::<Watcher>();
+        let writing = watcher.writing(self.to, self.window, self.doc);
+        let engines = self.engines;
+        let mut fill = |out: &mut dyn std::io::Write| engines.copy_save(self.window, self.doc, written.len, out);
+        let mut unchanged = || self.unchanged();
         let result = match (target, written.mode) {
             (Target::InPlace { .. }, SavedAs::Incremental) => {
                 // The revision follows the file as the document read it, and nothing else.
-                let at = engines.file_len(doc).ok_or(DesktopError::UnknownDocument)?;
-                write::append(to, at, &mut fill)
+                let at = engines.file_len(self.doc).ok_or(DesktopError::UnknownDocument)?;
+                unchanged().and_then(|()| write::append(self.to, at, &mut fill))
             }
-            (Target::InPlace { .. }, SavedAs::FullRewrite) => write::replace(to, &mut fill),
-            (Target::NewFile(_), SavedAs::Incremental) => write::create(to, Some(from), &mut fill),
-            (Target::NewFile(_), SavedAs::FullRewrite) => write::create(to, None, &mut fill),
+            (Target::InPlace { .. }, SavedAs::FullRewrite) => write::replace(self.to, &mut fill, &mut unchanged),
+            (Target::NewFile(_), SavedAs::Incremental) => {
+                // The new file starts with the document's file, which must still be as it read it.
+                if engines.changed_on_disk(self.doc) {
+                    return Err(DesktopError::FileChanged);
+                }
+                write::create(self.to, Some(self.from), &mut fill)
+            }
+            (Target::NewFile(_), SavedAs::FullRewrite) => write::create(self.to, None, &mut fill),
         };
-        result.map_err(DesktopError::Write)?;
-        engines.adopt_save(window, doc, to)?;
-        match FileStamp::read(to) {
+        result.map_err(|error| {
+            if error.kind() == std::io::ErrorKind::WouldBlock {
+                DesktopError::FileChanged
+            } else {
+                DesktopError::Write(error)
+            }
+        })?;
+        match FileStamp::read(self.to) {
             Ok(stamp) => writing.wrote(stamp),
             Err(error) => tracing::warn!("could not read a file just saved: {error}"),
         }
         Ok(())
     }
-}
 
-fn file_name(path: &Path) -> String {
-    path.file_name()
-        .map_or_else(String::new, |name| name.to_string_lossy().into_owned())
+    /// `Ok` while the file the save goes over is as it was when the save began; else the error
+    /// that stops the write (`WouldBlock`, which [`Saving::write`] reports as `file-changed`).
+    fn unchanged(&self) -> std::io::Result<()> {
+        if FileStamp::read(self.to).ok() == self.expected {
+            Ok(())
+        } else {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::WouldBlock,
+                "another app changed the file while it saved",
+            ))
+        }
+    }
+
+    /// The file is written: the document reads it from now on, and the engine takes it as the
+    /// saved file. The document's file source moves first, so the engine reads the grown file
+    /// (on Windows the old source refuses it). If the engine can't adopt the file, the document
+    /// reopens from it, since the file holds every edit.
+    fn adopt(&self) -> Result<(), DesktopError> {
+        if let Err(error) = self.engines.saved_to(self.doc, self.to) {
+            tracing::warn!(doc = self.doc.0, "a saved file couldn't be opened again: {error}");
+            self.engines.drop_save(self.window, self.doc);
+            return Err(DesktopError::Write(error));
+        }
+        if let Err(error) = self.engines.adopt_save(self.window, self.doc) {
+            tracing::warn!(
+                doc = self.doc.0,
+                "the engine didn't adopt a saved file; reopening it: {error}"
+            );
+            crate::watch::app::reload_now(self.app, self.window, self.doc)?;
+            return Err(DesktopError::SavedReopened);
+        }
+        Ok(())
+    }
 }
 
 /// Runs `work` off the async runtime's threads: a save reads and writes files, and may wait for
@@ -233,10 +262,10 @@ pub(crate) async fn plan_save(
     window: tauri::WebviewWindow,
     engines: tauri::State<'_, Arc<Engines>>,
     doc: u32,
-    options: SaveAsked,
+    options: SaveRequest,
 ) -> Result<PlanView, DesktopError> {
     let engines = Arc::clone(&engines);
-    blocking(move || Ok(engines.plan_save(window.label(), DocId(doc), options.into())?.into())).await
+    blocking(move || Ok(engines.plan_save(window.label(), DocId(doc), options)?.into())).await
 }
 
 /// Saves this window's document `doc` over its file (File ▸ Save). With `overwrite`, saves over a
@@ -245,7 +274,7 @@ pub(crate) async fn plan_save(
 pub(crate) async fn save_document(
     window: tauri::WebviewWindow,
     doc: u32,
-    options: SaveAsked,
+    options: SaveRequest,
     overwrite: Option<bool>,
 ) -> Result<SavedView, DesktopError> {
     let target = Target::InPlace {
@@ -260,7 +289,7 @@ pub(crate) async fn save_document(
 pub(crate) async fn save_document_as(
     window: tauri::WebviewWindow,
     doc: u32,
-    options: SaveAsked,
+    options: SaveRequest,
 ) -> Result<Option<SavedView>, DesktopError> {
     blocking(move || {
         let app = window.app_handle();
@@ -290,7 +319,7 @@ fn pick_save_path(window: &tauri::WebviewWindow, from: &Path) -> Result<Option<P
         return Ok(Some(path));
     }
     let mut dialog = window.dialog().file().set_parent(window).add_filter("PDF", &["pdf"]);
-    let name = file_name(from);
+    let name = crate::opened::file_name(from);
     if !name.is_empty() {
         dialog = dialog.set_file_name(&name);
     }
