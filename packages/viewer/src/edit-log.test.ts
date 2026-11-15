@@ -27,6 +27,7 @@ describe("the page's edit log", () => {
         { ops: rotate(2), label: "step 2", at: 2 },
       ],
       undone: 1,
+      sources: [],
     });
   });
 
@@ -93,6 +94,7 @@ describe("the page's edit log", () => {
           { ops: rotate(3), label: "step 3", at: 3 },
         ],
         undone: 1,
+        sources: [],
       });
     });
 
@@ -109,6 +111,44 @@ describe("the page's edit log", () => {
       log.saved(result([1]).history);
       log.take(result([1], 0));
       log.take(result([2]), { ops: rotate(2), label: "two" });
+      expect(log.replay()).toBeUndefined();
+    });
+  });
+
+  describe("with source documents", () => {
+    const source = "a".repeat(64);
+    const insert = [{ op: "insertPagesFrom", args: { source, pages: ["p3.0"], at: "end" } }] as never;
+    const merge = [{ op: "mergeDocuments", args: { sources: [{ source }], at: "end" } }] as never;
+    const bytes = new Uint8Array([37, 80, 68, 70]);
+
+    it("adds each source a step names before the steps", () => {
+      for (const ops of [insert, merge]) {
+        const log = new EditLog();
+        log.addedSource(source, bytes, false);
+        log.take(result([1]), { ops, label: "insert" });
+        expect(log.replay()?.sources).toEqual([bytes]);
+      }
+    });
+
+    it("lets a source go once no step names it", () => {
+      const log = new EditLog();
+      log.addedSource(source, bytes, false);
+      log.take(result([1]), { ops: insert, label: "insert" });
+      log.take(result([1], 0));
+      log.take(result([2]), { ops: rotate(2), label: "rotate" });
+      expect(log.replay()).toEqual({ steps: [{ ops: rotate(2), label: "step 2", at: 2 }], undone: 0, sources: [] });
+    });
+
+    it("won't replay a step from an encrypted source, whose password it never keeps", () => {
+      const log = new EditLog();
+      log.addedSource(source, bytes, true);
+      log.take(result([1]), { ops: insert, label: "insert" });
+      expect(log.replay()).toBeUndefined();
+    });
+
+    it("won't replay a step from a source it never saw added", () => {
+      const log = new EditLog();
+      log.take(result([1]), { ops: insert, label: "insert" });
       expect(log.replay()).toBeUndefined();
     });
   });

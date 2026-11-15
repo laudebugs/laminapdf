@@ -41,6 +41,7 @@ export type { PageSize, Rotation } from "./layout/page-layout.js";
 export type { PageMoves } from "./layout/page-moves.js";
 export { type NetworkSink, watchNetwork } from "./network/watch.js";
 export type {
+  AddedSource,
   BackendInit,
   BackendName,
   EditHistory,
@@ -52,6 +53,7 @@ export type {
   ExportTiffOptions,
   FindPageResult,
   LoadProgress,
+  MergeFilesRequest,
   MethodName,
   Methods,
   NetworkRecord,
@@ -59,6 +61,8 @@ export type {
   OpenedDocument,
   PageTextData,
   Params,
+  PartsOutput,
+  PartsProgress,
   PolicyViolation,
   PrintedPage,
   PrintOptions,
@@ -71,11 +75,13 @@ export type {
   RevertedStep,
   SavedCopy,
   SourceInit,
+  SourcePreview,
   StructureData,
   TextRunData,
   ViewerOpenOptions,
   WorkerMemory,
   WorkerNetworkLog,
+  WrittenParts,
 } from "./protocol.js";
 export { EMPTY_HISTORY, HISTORY_DEPTH } from "./protocol.js";
 export { CACHE_FOLDER } from "./source/opfs.js";
