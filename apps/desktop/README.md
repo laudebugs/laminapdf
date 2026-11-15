@@ -149,7 +149,22 @@ The app updates itself from the update Worker (`apps/updates`, [ADR 0014](../../
 - `plan.rs` decides each check, and makes no request while updates are off. The webview can call only the `update_*` commands, so it can't point the updater anywhere or read the ID.
 - `src/updates.tsx` is Settings › Updates and the status bar's "Update ready". Help › Check for updates… (the app menu on macOS) opens that section and checks.
 
-A development build checks the production Worker's beta channel, which offers nothing to a version newer than every release. Testing an update end to end, with a local Worker and a throwaway key, is D5c's workflow.
+A development build checks the production Worker's beta channel, which offers nothing to a version newer than every release.
+
+#### The update test
+
+`.github/workflows/desktop-update-e2e.yml` installs `0.0.1` on macOS, Windows and Linux (AppImage), then checks two things. First, the app refuses a `0.0.2` bundle with one byte changed and stays on `0.0.1`. Second, the real `0.0.2` installs and the app restarts as `0.0.2`. On pull requests the update Worker runs on the runner under `wrangler dev`. On `main`, every night and by hand, the test uses the deployed staging Worker and its bucket. `e2e/update/update-test.ts` runs the test. It also checks that every request sent the install ID in the header and never in the URL.
+
+Both versions come from one run, signed with a throwaway updater key that `.github/actions/desktop-update-builds` makes. In `e2e` builds, `src-tauri/src/update/e2e.rs` works only when the app's config folder holds `update-test.json`, which names a server and a report file. The app then asks that server on the `staging` channel, checks at once, and installs as soon as an update is ready. Each step goes to the report file. Plain HTTP to the local server comes from a `--config` override; no committed configuration allows it.
+
+To run the test on your machine, run the action's steps from the repository root (`$RUNNER_TEMP` stands for any empty folder). Then run:
+
+```sh
+UPDATE_TEST_OLD=<0.0.1's .app, installer or AppImage> UPDATE_TEST_NEW=<0.0.2's updater bundle> \
+  node apps/desktop/e2e/update/update-test.ts
+```
+
+The test installs and launches the app. On Windows, it installs for your user under `%LOCALAPPDATA%\Lamina PDF`.
 
 ## How it fits together
 
