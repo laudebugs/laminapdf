@@ -45,8 +45,9 @@ impl Job {
                 priority: Priority::Prefetch,
                 ..
             }) => 0,
-            // A print band waits for the user like a tile on screen does.
-            Self::Render(_) | Self::Print(_) => 1,
+            // A print band waits for the user like a tile on screen does. The Properties dialog's
+            // read may scan the whole file, so the tiles already waiting for the screen go first.
+            Self::Render(_) | Self::Print(_) | Self::Properties { .. } => 1,
             _ => 2,
         }
     }

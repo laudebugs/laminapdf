@@ -6,21 +6,27 @@
 use laminapdf::{Cipher, Document, DocumentMetadata, DocumentProperties, PacketStatus, XmpText};
 use serde::Serialize;
 
+/// The dialog's facts of one document: the File tab's, which read every object.
+pub(crate) type Facts = PropertiesData;
+
 /// The dialog's three reads of one document.
 #[derive(Debug, Serialize)]
-pub(crate) struct DialogData {
+struct DialogData<'a> {
     /// The facts the File tab lists.
-    properties: PropertiesData,
+    properties: &'a PropertiesData,
     /// What the Description form edits: Info and XMP read together.
     metadata: DocumentMetadata,
     /// The XMP packet, for the XMP tab.
     xmp: XmpData,
+    /// Each page's label, when the document labels its pages (a page without one by its number).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    labels: Option<Vec<String>>,
 }
 
 /// `DocumentPropertiesData`: the façade's properties, flattened as the dialog reads them.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct PropertiesData {
+pub(crate) struct PropertiesData {
     #[serde(skip_serializing_if = "Option::is_none")]
     title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -181,18 +187,42 @@ impl From<XmpText> for XmpData {
     }
 }
 
-/// The dialog's data for `doc`, as JSON.
+/// The dialog's data for `doc`, as JSON: its facts from `facts` when kept there, else read
+/// (every object) and kept; its metadata and XMP packet read each time, cheaply, with the edits so far.
 ///
 /// # Errors
-/// The façade's reading errors, by their code.
-pub(crate) fn read(doc: &Document) -> Result<String, laminapdf::Error> {
-    let data = DialogData {
-        properties: doc.properties()?.into(),
-        metadata: doc.metadata()?,
-        xmp: doc.xmp_packet()?.into(),
+/// The code of the façade's reading error, or `internal` when the data can't be written as JSON.
+pub(crate) fn read(doc: &Document, facts: &mut Option<Facts>) -> Result<String, String> {
+    let code = |error: laminapdf::Error| error.code().to_owned();
+    let properties = match facts.take() {
+        Some(kept) => kept,
+        None => doc.properties().map_err(code)?.into(),
     };
-    // These records hold strings, numbers and flags only: serialising them can't fail.
-    Ok(serde_json::to_string(&data).unwrap_or_default())
+    let json = (|| {
+        let data = DialogData {
+            properties: &properties,
+            metadata: doc.metadata().map_err(code)?,
+            xmp: doc.xmp_packet().map_err(code)?.into(),
+            labels: labels(doc).map_err(code)?,
+        };
+        serde_json::to_string(&data).map_err(|_| "internal".to_owned())
+    })();
+    *facts = Some(properties);
+    json
+}
+
+/// Each page's label, or `None` when no page has one.
+fn labels(doc: &Document) -> Result<Option<Vec<String>>, laminapdf::Error> {
+    let pages = doc.page_infos()?;
+    if pages.iter().all(|page| page.label.is_none()) {
+        return Ok(None);
+    }
+    Ok(Some(
+        pages
+            .into_iter()
+            .map(|page| page.label.unwrap_or_else(|| (page.index + 1).to_string()))
+            .collect(),
+    ))
 }
 
 #[cfg(test)]
@@ -210,7 +240,7 @@ mod tests {
 
     #[test]
     fn read_should_give_the_metadata_in_the_shape_the_description_form_reads() {
-        let json = data(&read(&open("golden/metadata.pdf")).expect("reads"));
+        let json = data(&read(&open("golden/metadata.pdf"), &mut None).expect("reads"));
         assert_eq!(
             (
                 json["metadata"]["authors"].as_array().map(Vec::len),
@@ -222,7 +252,7 @@ mod tests {
 
     #[test]
     fn read_should_give_the_properties_in_camel_case_with_absent_values_left_out() {
-        let json = data(&read(&open("golden/metadata.pdf")).expect("reads"));
+        let json = data(&read(&open("golden/metadata.pdf"), &mut None).expect("reads"));
         let properties = &json["properties"];
         assert_eq!(
             (properties["pageCount"].as_u64(), properties.get("encryption")),
@@ -230,9 +260,49 @@ mod tests {
         );
     }
 
+    /// The webview's copy of this data (`apps/desktop/src/engine/properties.fixture.json`), whose
+    /// keys its test holds to `@laminapdf/ui`'s shapes. `UPDATE_GOLDEN=1` rewrites it.
+    #[test]
+    fn read_should_give_the_json_the_webviews_fixture_holds() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../apps/desktop/src/engine/properties.fixture.json");
+        let read = data(&read(&open("golden/metadata.pdf"), &mut None).expect("reads"));
+        let pretty = serde_json::to_string_pretty(&read).expect("writes") + "\n";
+        if std::env::var_os("UPDATE_GOLDEN").is_some() {
+            std::fs::write(&path, &pretty).expect("writes the fixture");
+        }
+        assert_eq!(std::fs::read_to_string(&path).unwrap_or_default(), pretty);
+    }
+
+    #[test]
+    fn read_should_keep_the_facts_and_read_the_metadata_again() {
+        let doc = open("golden/metadata.pdf");
+        let mut facts = None;
+        read(&doc, &mut facts).expect("reads");
+        let kept = facts.as_ref().map(|f| f.page_count);
+        let again = data(&read(&doc, &mut facts).expect("reads again"));
+        assert_eq!(
+            (kept, &again["metadata"]["packet"]),
+            (Some(1), &serde_json::json!("parsed"))
+        );
+    }
+
+    #[test]
+    fn read_should_give_the_page_labels_only_for_a_document_that_labels_its_pages() {
+        let labelled = data(&read(&open("golden/examples/links_and_outlines.pdf"), &mut None).expect("reads"));
+        let plain = data(&read(&open("golden/metadata.pdf"), &mut None).expect("reads"));
+        assert_eq!(
+            (
+                labelled["labels"].as_array().map(|l| !l.is_empty()),
+                plain.get("labels")
+            ),
+            (Some(true), None)
+        );
+    }
+
     #[test]
     fn read_should_give_the_xmp_packet_with_its_status() {
-        let json = data(&read(&open("golden/metadata.pdf")).expect("reads"));
+        let json = data(&read(&open("golden/metadata.pdf"), &mut None).expect("reads"));
         assert_eq!(
             (&json["xmp"]["status"], json["xmp"]["xml"].is_string()),
             (&serde_json::json!("parsed"), true)

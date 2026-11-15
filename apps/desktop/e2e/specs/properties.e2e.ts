@@ -37,6 +37,15 @@ async function readByPdfJs(path: string): Promise<{ info: Record<string, unknown
   }
 }
 
+/** A PDF date (`D:20261014102000+05'30'`) as milliseconds since the epoch; `NaN` for anything else. */
+function pdfDate(date: string): number {
+  const m = /^D:(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(?:(Z)|([+-])(\d{2})'(\d{2})'?)?$/.exec(date);
+  if (m === null) return Number.NaN;
+  const [, y, mo, d, h, mi, s, , sign, oh, om] = m;
+  const offset = sign === undefined ? 0 : (sign === "-" ? -1 : 1) * (Number(oh) * 60 + Number(om));
+  return Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(s)) - offset * 60_000;
+}
+
 /** The dialog's field labelled `label`: the control its `<label>` names. */
 async function field(label: string) {
   const labelled = $(`//*[@role="dialog"]//label[normalize-space(.)=${JSON.stringify(label)}]`);
@@ -151,6 +160,7 @@ describe("editing a document's metadata", () => {
 
   it("[cap J.02 desktop round-trip] sets the creation date, and the save sets the modification date, in a file that had no XMP", async () => {
     const path = copyOf("links-and-outlines.pdf");
+    const began = Date.now();
     await openAndWait(path);
     await openProperties();
     // A date field takes typed digits differently in each engine: its value is set as React reads it.
@@ -172,7 +182,12 @@ describe("editing a document's metadata", () => {
       "D:20261014102000",
       "2026-10-14T10:20:00",
     ]);
-    expect([typeof info.ModDate, typeof xmp["xmp:modifydate"]]).toEqual(["string", "string"]);
+    // The save set the modification date, the same instant in Info and XMP, after the test began.
+    const modified = pdfDate(String(info.ModDate));
+    expect([modified >= Math.floor(began / 1000) * 1000, modified]).toEqual([
+      true,
+      Date.parse(String(xmp["xmp:modifydate"])),
+    ]);
     await closeTab();
   });
 });

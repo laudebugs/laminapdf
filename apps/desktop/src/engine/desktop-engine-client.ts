@@ -90,6 +90,8 @@ export interface DesktopProperties {
   readonly properties: DocumentPropertiesData;
   readonly metadata: DocumentMetadataData;
   readonly xmp: XmpPacketData;
+  /** Each page's label, when the document labels its pages. */
+  readonly labels?: readonly string[];
 }
 
 /** The main process's error, `{ kind, message }` (`DesktopError` in Rust); `code` is its kind. */
