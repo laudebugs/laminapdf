@@ -321,7 +321,10 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   recent.rs (recent.json, 20 entries by canonical path, ids for the webview), prefs.rs
 │                        #   (preferences.json), store.rs (atomic JSON), watch/ (notify on each open file's folder,
 │                        #   stamp.rs's settle rule, app.rs's reload as a new document; document://reloaded|missing|
-│                        #   unreadable); src/recent.tsx, settings.tsx (Settings › Files), file-changes.tsx,
+│                        #   unreadable); crash/ (D7a: opt-in crash reports: report.rs, the allow-list matching
+│                        #   apps/updates/schemas/crash-report.schema.json; scrub.rs; consent.rs, crash.json; queue.rs, held/ and
+│                        #   outbox/; upload.rs, POST /crash without the install ID; the panic hook; src/crashes.tsx, S08's question
+│                        #   and Settings › Privacy); src/recent.tsx, settings.tsx (Settings › Files), file-changes.tsx,
 │                        #   error.rs (DesktopError as { kind, message }), build.rs (app manifest: each command needs an allow-*
 │                        #   permission), tauri.conf.json (Lamina PDF, com.laminapdf.desktop, strict CSP, frozen prototype,
 │                        #   capabilities ["main"]; no externalBin), tauri.bundle.conf.json (the engine sidecar and PDFium, merged
@@ -341,7 +344,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   400/404), manifest.ts (types and validator; schemas/manifest.schema.json), rollout.ts (Lamina-Install-Id
 │                        #   as a UUID v4, SHA-256 buckets of 10 000), select.ts (bridges, whatever the pause; release in its rollout;
 │                        #   previous), cache.ts (one Cache API layer, 30 s, checked against the copy's read time), handler.ts,
-│                        #   index.ts (the only file on workerd's types, src/generated/ from `pnpm run types`); scripts/manifest.ts
+│                        #   index.ts (the only file on workerd's types, src/generated/ from `pnpm run types`); crash.ts and
+│                        #   crash-endpoint.ts (D7a: POST /crash checked against schemas/crash-report.schema.json, path-like free
+│                        #   text refused, 64 KiB, rate-limited, into the private bucket lamina-pdf-crash-reports); scripts/manifest.ts
 │                        #   (show, validate, put, pause, resume, set-rollout, promote over `wrangler r2 object`), smoke.sh;
 │                        #   src/channels.ts (the channels and their buckets, the one map; a test holds wrangler.jsonc to it);
 │                        #   unit tests beside their sources (src/*.test.ts, scripts/edits.test.ts), test/ (handle in Node, the

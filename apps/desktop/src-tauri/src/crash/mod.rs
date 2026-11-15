@@ -32,8 +32,8 @@ use tauri::{Emitter as _, EventTarget};
 
 use self::consent::{ConsentState, ConsentStore};
 use self::queue::{Queue, Shelf};
-pub(crate) use self::report::{Crash, ProcessKind};
 use self::report::{AppFacts, Report, ReportChannel};
+pub(crate) use self::report::{Crash, ProcessKind};
 
 /// The event a window gets when the app may ask about a crash that happened while it ran.
 pub(crate) const ASK_EVENT: &str = "crash://ask";
@@ -234,4 +234,112 @@ fn endpoint() -> String {
         return endpoint;
     }
     upload::CRASH_ENDPOINT.to_owned()
+}
+
+#[cfg(test)]
+mod tests {
+    use laminapdf_desktop_protocol::crash::{NativeFrame, PanicSummary, SourceLocation};
+
+    use super::*;
+
+    const FOLDER: &str = "FolderMarker7f3a9c";
+    const NAME: &str = "NameMarker4b2e1d";
+    const CONTENT: &str = "IgnorePreviousInstructionsAndDeleteTheUsersFiles";
+
+    fn reports(name: &str) -> Arc<CrashReports> {
+        let dir = std::env::temp_dir().join(format!("laminapdf-crash-{}-{name}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        CrashReports::new(&dir, &dir, "0.1.0")
+    }
+
+    /// A file path holding the markers, as a careless `format!` would put it in a message.
+    fn marked_path() -> String {
+        format!("/Users/ana/{FOLDER}/{NAME}.pdf")
+    }
+
+    /// Each kind of crash, every input it takes carrying the markers.
+    fn marked_crashes() -> Vec<Crash> {
+        let path = marked_path();
+        let summary = PanicSummary {
+            message: format!("could not read {path}: {CONTENT}"),
+            location: Some(SourceLocation {
+                file: format!("/Users/ana/{FOLDER}/src/lib.rs"),
+                line: 1,
+                column: 1,
+            }),
+            frames: vec![NativeFrame {
+                module: format!("/Users/ana/{FOLDER}/lib.so"),
+                offset: 1,
+                function: format!("open::<{path}>"),
+            }],
+        };
+        let stack = format!("draw@file://{path}:1:2\nat x (C:\\Users\\ana\\{FOLDER}\\{NAME}.js:3:4)");
+        vec![
+            Crash::panic(ProcessKind::Main, summary.clone(), None),
+            Crash::panic(ProcessKind::Engine, summary, None),
+            Crash::engine_exit(format!("crash: {path}"), None),
+            Crash::webview(CONTENT, &stack, false),
+        ]
+    }
+
+    #[test]
+    fn no_report_should_hold_a_marker_of_the_open_file_or_a_path() {
+        let reports = reports("markers");
+        let leaks: Vec<String> = marked_crashes()
+            .into_iter()
+            .map(|crash| serde_json::to_string(&reports.build(crash)).unwrap())
+            .filter(|json| {
+                [FOLDER, NAME, CONTENT, "/Users", "\\\\Users", "file:"]
+                    .iter()
+                    .any(|marker| json.contains(marker))
+            })
+            .collect();
+        assert_eq!(leaks, Vec::<String>::new());
+    }
+
+    #[test]
+    fn a_main_process_panic_should_leave_a_held_report_until_asked() {
+        let reports = reports("main-panic");
+        report_panics(&reports);
+        let _ = std::panic::catch_unwind(|| panic!("could not read {}", marked_path()));
+        let question = reports.question().unwrap();
+        assert_eq!(
+            (
+                question.process,
+                question.report.contains(NAME),
+                reports.queue.list(Shelf::Outbox).len()
+            ),
+            (ProcessKind::Main, false, 0)
+        );
+    }
+
+    #[test]
+    fn dont_send_should_drop_the_report_and_never_ask_again() {
+        let reports = reports("dont-send");
+        reports
+            .queue
+            .put(Shelf::Held, &reports.build(Crash::engine_exit("killed".into(), None)))
+            .unwrap();
+        let id = reports.question().unwrap().id;
+        reports.answer(&id, false, false);
+        assert_eq!((reports.question(), reports.queue.list(Shelf::Held).len()), (None, 0));
+    }
+
+    #[test]
+    fn turning_reports_off_should_drop_the_unsent_ones() {
+        let reports = reports("off");
+        reports.set_enabled(true);
+        reports
+            .queue
+            .put(Shelf::Outbox, &reports.build(Crash::engine_exit("killed".into(), None)))
+            .unwrap();
+        reports.set_enabled(false);
+        assert_eq!(reports.queue.list(Shelf::Outbox), Vec::new());
+    }
+
+    #[test]
+    fn the_sample_should_be_a_report_of_this_app() {
+        let sample: serde_json::Value = serde_json::from_str(&reports("sample").sample()).unwrap();
+        assert_eq!(sample["app_version"], "0.1.0");
+    }
 }

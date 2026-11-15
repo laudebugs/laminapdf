@@ -27,7 +27,11 @@ pub(crate) const ASSET_PATTERN: &str = r"^assets/[A-Za-z0-9._-]+\.(js|mjs)$";
 
 /// The origins the app's own pages load from: `tauri://localhost` on macOS and Linux,
 /// `http(s)://tauri.localhost` on Windows.
-const ORIGINS: [&str; 3] = ["tauri://localhost/", "http://tauri.localhost/", "https://tauri.localhost/"];
+const ORIGINS: [&str; 3] = [
+    "tauri://localhost/",
+    "http://tauri.localhost/",
+    "https://tauri.localhost/",
+];
 
 /// The most frames a report keeps.
 const MAX_FRAMES: usize = 64;
@@ -196,7 +200,9 @@ mod tests {
     #[test]
     fn a_webkit_stack_should_keep_its_assets() {
         assert_eq!(
-            script_frames("render@tauri://localhost/assets/index-abc.js:1:234\n@tauri://localhost/assets/vendor-9f.js:5:6"),
+            script_frames(
+                "render@tauri://localhost/assets/index-abc.js:1:234\n@tauri://localhost/assets/vendor-9f.js:5:6"
+            ),
             [
                 ScriptFrame {
                     file: "assets/index-abc.js".into(),

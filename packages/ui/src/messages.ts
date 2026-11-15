@@ -170,6 +170,7 @@ const EN = {
   "crash.reportId":
     "The report ID is random and made for this report only; it is not stored anywhere else on this computer.",
   "crash.notice": "The document view restarted after a problem. Send an anonymous report?",
+  "crash.notice.webview": "Lamina PDF ran into a problem in this window. Send an anonymous report?",
   "crash.notice.send": "Send",
   "announce.opened": "Opened {name}, {count} pages",
   "announce.closed": "Closed {name}",

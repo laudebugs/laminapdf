@@ -25,7 +25,11 @@ pub(crate) enum ConsentState {
 impl ConsentState {
     /// The state after the user answers the question: send this report or not, and always.
     pub(crate) const fn answered(send: bool, always: bool) -> Self {
-        if send && always { Self::Always } else { Self::Asked { send } }
+        if send && always {
+            Self::Always
+        } else {
+            Self::Asked { send }
+        }
     }
 
     /// The state after Settings › Privacy's "Send crash reports" is switched.
@@ -121,7 +125,10 @@ mod tests {
     #[test]
     fn the_settings_switch_should_turn_sending_on_and_off() {
         assert_eq!(
-            (ConsentState::switched(true).sends(), ConsentState::switched(false).sends()),
+            (
+                ConsentState::switched(true).sends(),
+                ConsentState::switched(false).sends()
+            ),
             (true, false)
         );
     }

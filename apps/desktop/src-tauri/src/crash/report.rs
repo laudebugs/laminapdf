@@ -12,6 +12,25 @@ use serde::{Deserialize, Serialize};
 
 use super::scrub::{ScriptFrame, cut_chars, scrub};
 
+/// The script errors a webview report names; any other is [`OTHER_ERROR`].
+const SCRIPT_ERRORS: [&str; 12] = [
+    "Error",
+    "TypeError",
+    "RangeError",
+    "ReferenceError",
+    "SyntaxError",
+    "EvalError",
+    "URIError",
+    "AggregateError",
+    "DOMException",
+    "AbortError",
+    "DesktopEngineError",
+    "LaminaPdfError",
+];
+
+/// A script error of another type, or a rejection with something other than an error.
+const OTHER_ERROR: &str = "OtherError";
+
 /// The report's schema version.
 const SCHEMA: u8 = 1;
 
@@ -237,14 +256,29 @@ impl Crash {
         }
     }
 
-    /// An uncaught error (`rejection`: an unhandled rejection) in a webview, with its stack.
-    pub(crate) fn webview(message: String, stack: &str, rejection: bool) -> Self {
+    /// An uncaught error named `name` (`rejection`: an unhandled rejection) in a webview, with its
+    /// stack. Only the error's type is kept, from [`SCRIPT_ERRORS`]: a script's message can quote
+    /// anything the page holds, a document's text included, which no scrubber can tell from code.
+    /// The frames say where it was thrown.
+    pub(crate) fn webview(name: &str, stack: &str, rejection: bool) -> Self {
+        let reason = SCRIPT_ERRORS
+            .iter()
+            .find(|known| **known == name)
+            .copied()
+            .unwrap_or(OTHER_ERROR);
         Self {
             process: ProcessKind::Webview,
-            kind: if rejection { CrashKind::Rejection } else { CrashKind::Error },
-            reason: message,
+            kind: if rejection {
+                CrashKind::Rejection
+            } else {
+                CrashKind::Error
+            },
+            reason: reason.to_owned(),
             location: None,
-            frames: super::scrub::script_frames(stack).into_iter().map(Frame::Script).collect(),
+            frames: super::scrub::script_frames(stack)
+                .into_iter()
+                .map(Frame::Script)
+                .collect(),
             sandbox: None,
         }
     }
@@ -301,7 +335,10 @@ fn module_name(name: &str) -> String {
 fn ours(at: &SourceLocation) -> Option<Location> {
     let file = at.file.replace('\\', "/");
     let segments_ok = file.split('/').all(|segment| {
-        !segment.is_empty() && segment.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'-' | b'.'))
+        !segment.is_empty()
+            && segment
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'-' | b'.'))
     });
     let ours = (file.starts_with("apps/") || file.starts_with("crates/"))
         && std::path::Path::new(&file).extension().is_some_and(|ext| ext == "rs")
@@ -370,12 +407,18 @@ mod tests {
 
     /// The fixture the Worker's tests hold to the schema.
     fn fixture() -> serde_json::Value {
-        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../updates/test/fixtures/crash-report.json");
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../updates/test/fixtures/crash-report.json"
+        );
         serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
     }
 
     fn keys(value: &serde_json::Value) -> Vec<String> {
-        value.as_object().map(|o| o.keys().cloned().collect()).unwrap_or_default()
+        value
+            .as_object()
+            .map(|o| o.keys().cloned().collect())
+            .unwrap_or_default()
     }
 
     #[test]
@@ -440,6 +483,13 @@ mod tests {
     fn an_engine_that_exited_should_be_an_exit() {
         let crash = Crash::engine_exit("exit status: 3".into(), None);
         assert_eq!(crash.kind, CrashKind::Exit);
+    }
+
+    #[test]
+    fn a_webview_error_should_keep_only_its_known_type() {
+        let reasons = ["TypeError", "IgnorePreviousInstructions", "Error: at /a/b"]
+            .map(|name| Crash::webview(name, "", false).reason);
+        assert_eq!(reasons, ["TypeError", OTHER_ERROR, OTHER_ERROR]);
     }
 
     #[test]

@@ -41,7 +41,10 @@ pub(crate) fn debug_panic(out: &Outbox) {
     #[cfg(debug_assertions)]
     {
         let _ = out;
-        #[expect(clippy::panic, reason = "the end-to-end tests' forced engine panic, in debug builds only")]
+        #[expect(
+            clippy::panic,
+            reason = "the end-to-end tests' forced engine panic, in debug builds only"
+        )]
         {
             panic!("a panic the end-to-end tests asked for");
         }

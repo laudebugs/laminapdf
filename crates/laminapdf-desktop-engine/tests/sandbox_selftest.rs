@@ -345,10 +345,7 @@ fn a_panic_in_the_engine_should_reach_the_supervisor_with_its_summary() {
     };
     let summary = panic.expect("a crash with the panic's summary");
     assert_eq!(
-        (
-            summary.message.as_str(),
-            summary.location.map(|at| at.file),
-        ),
+        (summary.message.as_str(), summary.location.map(|at| at.file),),
         (
             "a panic the end-to-end tests asked for",
             Some("crates/laminapdf-desktop-engine/src/crash.rs".to_owned()),

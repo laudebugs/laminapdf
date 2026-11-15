@@ -50,25 +50,25 @@ When lamina or its engine crashes or panics, we want to learn why — **only if 
 
 ## Tasks
 
-- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`, `rust-best-practices`, `workers-best-practices`.
-- [ ] Backend decision write-up (ADR 0014 amendment or new short ADR) with the privacy rationale for local processing.
-- [ ] Capture: panic hooks (main, engine), crash-handler/minidumper wiring between engine and main, JS error capture.
-- [ ] Local processing + allow-list report builder + scrubber (`fn scrub(s: &str) -> Cow<'_, str>`).
-- [ ] Consent state machine (`ConsentState { NotAsked, Asked { send: bool }, Always }`) persisted in settings; dialog and settings toggle UI.
-- [ ] Upload queue with retry/backoff; the HTTP client is Rust-side (`reqwest` with rustls, or Tauri's http plugin **only** from Rust — no `http:` permission for the webview).
-- [ ] Worker endpoint, validation, rate limiting, R2 write, lifecycle rule; tests.
-- [ ] D6b workflow addition: symbols to the private bucket; `cargo xtask crash symbolicate`.
-- [ ] Privacy page text (crash reports: what, where, retention 30 days, opt-in) — coordinate with the ADR 0011 privacy page owner.
+- [x] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`, `rust-best-practices`, `workers-best-practices`.
+- [x] Backend decision write-up (ADR 0014 amendment or new short ADR) with the privacy rationale for local processing. *ADR 0014 §10.*
+- [x] Capture: panic hooks (main, engine), ~~crash-handler/minidumper wiring between engine and main~~ (moved to [D7d](../ready/D7d-native-crash-minidumps-and-symbols.md)), JS error capture.
+- [x] ~~Local processing~~ (minidumps: D7d) + allow-list report builder + scrubber (`fn scrub(s: &str) -> Cow<'_, str>`).
+- [x] Consent state machine (`ConsentState { NotAsked, Asked { send: bool }, Always }`) persisted in settings; dialog and settings toggle UI.
+- [x] Upload queue with retry/backoff; the HTTP client is Rust-side (`reqwest` with rustls, or Tauri's http plugin **only** from Rust — no `http:` permission for the webview).
+- [x] Worker endpoint, validation, rate limiting, R2 write, lifecycle rule; tests. *The lifecycle rule is the owner's step in apps/updates/README.md.*
+- [ ] ~~D6b workflow addition: symbols to the private bucket; `cargo xtask crash symbolicate`.~~ Moved to [D7d](../ready/D7d-native-crash-minidumps-and-symbols.md), which needs D6b's workflow on `main`.
+- [x] Privacy page text (crash reports: what, where, retention 30 days, opt-in) — coordinate with the ADR 0011 privacy page owner. *The page's promises change only with the owner's sign-off: the text is in the PR and an issue asks the owner.*
 
 ## Acceptance criteria
 
-- [ ] With reporting **off** (default), forcing a crash (main panic, engine segfault, engine panic) produces **no network request** (e2e with a request-recording proxy or a mocked endpoint) and only a local pending record that is deleted after 30 days.
-- [ ] After consent, the forced crashes produce reports accepted by the Worker (202) and stored in R2 under `crash-reports/`.
-- [ ] A test opens a fixture whose path contains a unique marker directory and file name, and whose content contains a unique marker string, forces each crash type, and asserts that **neither marker nor any path-like string** appears in the uploaded JSON (Rust integration test + e2e).
-- [ ] The report never contains the install ID (test asserts no UUID matching the stored install ID; the crash client never sets `Lamina-Install-Id`).
-- [ ] Raw minidumps are deleted after local processing (test).
-- [ ] Worker tests: schema validation, size cap, path-like rejection in free-text fields, a webview report with `assets/…js` frames accepted, rate limiting, no body/IP logging (console spy), R2 key layout.
-- [ ] Engine crashes still trigger the D2b restart flow, unaffected by reporting.
+- [x] With reporting **off** (default), forcing a crash (main panic, engine segfault, engine panic) produces **no network request** (e2e with a request-recording proxy or a mocked endpoint) and only a local pending record that is deleted after 30 days. *The engine segfault in the e2e run; the main panic in `a_main_process_panic_should_leave_a_held_report_until_asked`.*
+- [x] After consent, the forced crashes produce reports accepted by the Worker (202) and stored in R2 under `crash-reports/`. *The e2e run against a stand-in answering 202; the Worker's R2 layout in its workerd test.*
+- [x] A test opens a fixture whose path contains a unique marker directory and file name, and whose content contains a unique marker string, forces each crash type, and asserts that **neither marker nor any path-like string** appears in the uploaded JSON (Rust integration test + e2e).
+- [x] The report never contains the install ID (test asserts no UUID matching the stored install ID; the crash client never sets `Lamina-Install-Id`). *The e2e run checks the header; the Worker refuses a report carrying it.*
+- [ ] ~~Raw minidumps are deleted after local processing (test).~~ Moved to [D7d](../ready/D7d-native-crash-minidumps-and-symbols.md).
+- [x] Worker tests: schema validation, size cap, path-like rejection in free-text fields, a webview report with `assets/…js` frames accepted, rate limiting, no body/IP logging (console spy), R2 key layout.
+- [x] Engine crashes still trigger the D2b restart flow, unaffected by reporting.
 
 ## Post-merge checks
 

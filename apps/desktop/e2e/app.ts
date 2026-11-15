@@ -24,7 +24,7 @@ export function withText(text: string): ChainablePromiseElement {
 }
 
 /** Runs one of the app's commands as the webview would. */
-async function invoke(command: string, args: object = {}): Promise<unknown> {
+export async function invoke(command: string, args: object = {}): Promise<unknown> {
   return browser.execute(
     (name, payload) => (globalThis as unknown as TauriGlobal).__TAURI__.core.invoke(name, payload),
     command,
@@ -213,7 +213,7 @@ async function tilesDrawn(): Promise<number> {
   return browser.execute(() => globalThis.__laminaE2e?.tilesDrawn() ?? 0);
 }
 
-async function restarts(): Promise<number> {
+export async function restarts(): Promise<number> {
   return browser.execute(() => globalThis.__laminaE2e?.restarts() ?? 0);
 }
 

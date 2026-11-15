@@ -66,6 +66,7 @@ export function useCrashReports(shell: DesktopShell | undefined): DesktopCrashes
       dialog: null,
       notice: (
         <CrashNotice
+          process={question.process === "webview" ? "webview" : "engine"}
           onSend={() => answer(true, false)}
           onViewReport={() => setShown({ as: "dialog", view: "preview" })}
           onDismiss={() => answer(false, false)}
@@ -89,19 +90,19 @@ export function useCrashReports(shell: DesktopShell | undefined): DesktopCrashes
 }
 
 /**
- * Hands this window's uncaught errors and unhandled rejections to the main process, which scrubs
- * them into reports. Only the message and the stack go; the main process keeps only the stack's
- * bundle files.
+ * Hands this window's uncaught errors and unhandled rejections to the main process. Only the
+ * error's type and its stack go: a message can quote anything the page holds. The main process
+ * keeps the type if it is a known one and only the stack's bundle files.
  */
 export function reportUiErrors(shell: DesktopShell): void {
-  const send = (error: unknown, fallback: string, rejection: boolean) => {
-    const message = error instanceof Error ? error.message : fallback;
+  const send = (error: unknown, rejection: boolean) => {
+    const name = error instanceof Error ? error.name : "";
     const stack = error instanceof Error ? (error.stack ?? "") : "";
     // Never a report about a report: a failure here is dropped.
-    shell.invoke("report_ui_error", { message, stack, rejection }).catch(() => undefined);
+    shell.invoke("report_ui_error", { name, stack, rejection }).catch(() => undefined);
   };
-  window.addEventListener("error", (event) => send(event.error, event.message, false));
-  window.addEventListener("unhandledrejection", (event) => send(event.reason, String(event.reason), true));
+  window.addEventListener("error", (event) => send(event.error, false));
+  window.addEventListener("unhandledrejection", (event) => send(event.reason, true));
 }
 
 /** Whether crash reports are sent, from the main process, and its switch. */

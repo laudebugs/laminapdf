@@ -435,20 +435,33 @@ impl Engines {
     }
 
     /// Ends `window`'s engine as a segmentation fault would (Windows has no signals: there it
-    /// is ended with a failure code).
+    /// is ended with a failure code). Rust's runtime catches a SIGSEGV to tell a stack overflow
+    /// from other faults; one sent from outside isn't either, so its handler puts the default action
+    /// back and returns, and only a later SIGSEGV ends the engine. Two sent close together can
+    /// arrive as one, so the signal goes again until the engine is gone.
     #[cfg(feature = "e2e")]
     pub(crate) fn debug_segv(&self, window: &str) {
         let Some(pid) = self.windows().get(window).and_then(Supervisor::pid) else {
             return;
         };
         let pid = pid.to_string();
-        let ended = if cfg!(windows) {
-            std::process::Command::new("taskkill").args(["/F", "/PID", &pid]).status()
-        } else {
-            std::process::Command::new("kill").args(["-SEGV", &pid]).status()
-        };
-        if let Err(error) = ended {
-            tracing::warn!("could not end the engine: {error}");
+        let run = |program: &str, args: &[&str]| std::process::Command::new(program).args(args).status();
+        if cfg!(windows) {
+            if let Err(error) = run("taskkill", &["/F", "/PID", &pid]) {
+                tracing::warn!("could not end the engine: {error}");
+            }
+            return;
+        }
+        for _ in 0..5 {
+            if let Err(error) = run("kill", &["-SEGV", &pid]) {
+                tracing::warn!("could not end the engine: {error}");
+                return;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(300));
+            // `kill -0` fails once the process is gone.
+            if !run("kill", &["-0", &pid]).is_ok_and(|status| status.success()) {
+                return;
+            }
         }
     }
 

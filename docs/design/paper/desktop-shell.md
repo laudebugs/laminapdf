@@ -303,6 +303,8 @@ Conventions on this canvas:
 
 **Platform differences.** macOS: frame with traffic lights, opened from the app menu. Windows: standard caption buttons; opened from Edit. Linux: Graphics group shown only here. The web app has no settings window; its View settings (R10) cover Appearance, and Privacy items live in the web app’s own settings panel.
 
+**As built ([D7a](../../todos/ongoing/D7a-crash-reporting.md)), Privacy.** The Settings dialog has a Privacy section with **Send crash reports** (off) and its help, and **See a sample report**, which shows the JSON of a report this app would send in a focusable block below it. The usage counts belong to U5c and aren't built. The section sits in the shared Settings dialog after Files and Updates, as S07's other sections do until D7b.
+
 **Artboards:** `S07-settings-general.dc.html`, `S07-settings-appearance.dc.html`, `S07-settings-privacy.dc.html`, `S07-settings-shortcuts.dc.html`, `S07-settings-advanced.dc.html` (and `S06-update-settings.dc.html` for Updates).
 
 **Todos:** [D7b](../../todos/ready/D7b-settings-renderer-switch-and-download-page.md), [D7a](../../todos/ongoing/D7a-crash-reporting.md), [U5c](../../todos/ready/U5c-opt-in-usage-telemetry.md).
@@ -333,6 +335,13 @@ Conventions on this canvas:
 **Accessibility.** `role="dialog"` with `aria-modal`, labelled by the title and described by the first sentence; initial focus on the primary button; Escape = Start without tabs is **not** used (Escape keeps the dialog: it asks a required question). The report block is focusable (`tabindex="0"`) so keyboard users can scroll it. The check boxes are native inputs inside their labels (§7.19); “Always send reports after a crash” is `aria-disabled` with the reason “Available after you choose to send this report”.
 
 **Platform differences.** Same on all OSes; report fields name the OS and process. Web: crash reporting is out of scope (ADR 0011).
+
+**As built ([D7a](../../todos/ongoing/D7a-crash-reporting.md)).** These differ from the drawings:
+
+- **The report part only.** The dialog is the "No session to restore" state: the tab choice is [D7e](../../todos/ready/D7e-crash-recovered-tab-choice.md)'s, so the session restores as before. Without the tab list, the question has no "Send an anonymous crash report" box: it asks with **Don't send** and **Send report**, and "Always send reports after a crash" is always available. **Back** returns from the report to the question.
+- **When it asks.** A main-process panic is asked about at the next launch, in the dialog. An engine crash is asked about at once, in the notice slot: "The document view restarted after a problem. Send an anonymous report?", with **View report** (the dialog, open on the report), **Don't send** and **Send**. An uncaught error in the page asks the same way: "Lamina PDF ran into a problem in this window." After any answer the app never asks again; only Settings › Privacy turns sending on. **Don't send** deletes the report; reports the app never asked about stay on the computer for 30 days at most.
+- **Native crashes.** Only panics, how an engine ended and the page's errors make reports for now; minidumps of native crashes are [D7d](../../todos/ready/D7d-native-crash-minidumps-and-symbols.md)'s.
+- **Words.** The app says "Lamina PDF" where the drawings say "lamina". The title reads "Lamina PDF ran into a problem" for a crash of the document view, which didn't quit the app.
 
 **Artboards:** `S08-crash-recovered.dc.html`, `S08-crash-report.dc.html`.
 

@@ -335,7 +335,10 @@ fn a_crash_should_say_how_the_engine_ended() {
 #[test]
 fn a_panic_should_reach_the_crash_event_with_its_summary() {
     let (_supervisor, crashes) = crashes(Mode::PanicAfterReady);
-    let panic = crashes.recv_timeout(Duration::from_secs(5)).ok().and_then(|(_, panic)| panic);
+    let panic = crashes
+        .recv_timeout(Duration::from_secs(5))
+        .ok()
+        .and_then(|(_, panic)| panic);
     assert_eq!(panic.map(|summary| *summary), Some(fake::fake_panic()));
 }
 

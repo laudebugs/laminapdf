@@ -169,4 +169,11 @@ describe("CrashNotice", () => {
     await page.getByRole("button", { name: "Don't send" }).click();
     expect(log).toEqual(["view", "send", "dismiss"]);
   });
+
+  it("says the window hit a problem after a page error, which restarted nothing", async () => {
+    renderIn(<CrashNotice process="webview" onSend={() => {}} onViewReport={() => {}} onDismiss={() => {}} />);
+    await expect
+      .element(page.getByRole("status"))
+      .toHaveTextContent("Lamina PDF ran into a problem in this window. Send an anonymous report?");
+  });
 });

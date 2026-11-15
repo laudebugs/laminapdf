@@ -9,8 +9,8 @@ use tauri::Manager as _;
 use super::{CrashReports, Question};
 use crate::crash::Crash;
 
-/// The longest error message and stack the webview may pass; the report keeps less.
-const MAX_INPUT: usize = 16 * 1024;
+/// The longest stack the webview may pass; the report keeps less.
+const MAX_STACK: usize = 16 * 1024;
 
 /// The question to ask about the newest crash, while the app may still ask; `null` otherwise.
 #[tauri::command]
@@ -21,7 +21,10 @@ pub(crate) fn crash_question(reports: tauri::State<'_, Arc<CrashReports>>) -> Op
 
 /// The user's answer about report `id`: `send` it or not, and `always` send from now on.
 #[tauri::command]
-#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its arguments and state by value")]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri hands a command its arguments and state by value"
+)]
 pub(crate) fn crash_answer(reports: tauri::State<'_, Arc<CrashReports>>, id: String, send: bool, always: bool) {
     reports.answer(&id, send, always);
 }
@@ -56,23 +59,26 @@ pub(crate) fn crash_sample(reports: tauri::State<'_, Arc<CrashReports>>) -> Stri
     reports.sample()
 }
 
-/// An uncaught error (`rejection`: an unhandled rejection) in this window's page, with its
-/// `Error.stack`. Kept like any crash: only its scrubbed message and its frames' bundle files.
+/// An uncaught error (`rejection`: an unhandled rejection) in this window's page: the error's type
+/// (`name`) and its `Error.stack` value. Kept like any crash, as its type and its frames' bundle
+/// files; never its message.
 #[tauri::command]
-#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its arguments and state by value")]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri hands a command its arguments and state by value"
+)]
 pub(crate) fn report_ui_error(
     window: tauri::WebviewWindow,
     reports: tauri::State<'_, Arc<CrashReports>>,
-    message: String,
+    name: String,
     stack: String,
     rejection: bool,
 ) {
-    let message = laminapdf_desktop_protocol::crash::cut(message, MAX_INPUT);
-    let stack = laminapdf_desktop_protocol::crash::cut(stack, MAX_INPUT);
+    let stack = laminapdf_desktop_protocol::crash::cut(stack, MAX_STACK);
     reports.record(
         window.app_handle(),
         Some(window.label()),
-        Crash::webview(message, &stack, rejection),
+        Crash::webview(&name, &stack, rejection),
     );
 }
 
@@ -80,7 +86,10 @@ pub(crate) fn report_ui_error(
 /// next launch asks about it.
 #[cfg(feature = "e2e")]
 #[tauri::command]
-#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its app handle by value")]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri hands a command its app handle by value"
+)]
 pub(crate) fn e2e_crash_main_panic(app: tauri::AppHandle) -> Result<(), crate::DesktopError> {
     app.run_on_main_thread(|| {
         #[expect(clippy::panic, reason = "the end-to-end tests' forced main-process panic")]
@@ -94,7 +103,10 @@ pub(crate) fn e2e_crash_main_panic(app: tauri::AppHandle) -> Result<(), crate::D
 /// Makes this window's engine panic (a debug engine obeys `DebugPanic`).
 #[cfg(feature = "e2e")]
 #[tauri::command]
-#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window and state by value")]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri hands a command its window and state by value"
+)]
 pub(crate) fn e2e_crash_engine_panic(
     window: tauri::WebviewWindow,
     engines: tauri::State<'_, Arc<crate::engine::Engines>>,
@@ -105,7 +117,10 @@ pub(crate) fn e2e_crash_engine_panic(
 /// Ends this window's engine as a segmentation fault would.
 #[cfg(feature = "e2e")]
 #[tauri::command]
-#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window and state by value")]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri hands a command its window and state by value"
+)]
 pub(crate) fn e2e_crash_engine_segv(
     window: tauri::WebviewWindow,
     engines: tauri::State<'_, Arc<crate::engine::Engines>>,

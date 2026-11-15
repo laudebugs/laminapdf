@@ -170,6 +170,8 @@ function ReportPreview({ report, onBack }: { report: string; onBack: () => void 
 
 /** Props of `CrashNotice`. */
 export interface CrashNoticeProps {
+  /** What went wrong: the document view restarted (`engine`), or the window's page hit an error. */
+  readonly process?: "engine" | "webview";
   /** Send was pressed: send this report. */
   onSend: () => void;
   /** View report was pressed: the app opens `CrashReportDialog` on its report. */
@@ -178,15 +180,15 @@ export interface CrashNoticeProps {
   onDismiss: () => void;
 }
 
-/** The report question after the document view restarted: a notice, not a modal (S08). */
-export function CrashNotice({ onSend, onViewReport, onDismiss }: CrashNoticeProps): ReactNode {
+/** The report question after a problem in a running window: a notice, not a modal (S08). */
+export function CrashNotice({ process = "engine", onSend, onViewReport, onDismiss }: CrashNoticeProps): ReactNode {
   // Mounted empty, then filled, so a screen reader says it (as RestoreNotice does).
   const [said, setSaid] = useState(false);
   useEffect(() => setSaid(true), []);
   return (
     <div className="paper-crash-notice">
       <Icon name="warning" />
-      <p role="status">{said ? message("crash.notice") : null}</p>
+      <p role="status">{said ? message(process === "engine" ? "crash.notice" : "crash.notice.webview") : null}</p>
       {/* Together, so a narrow window wraps the buttons below the sentence as one row. */}
       <div className="paper-crash-notice-actions">
         <Button variant="ghost" onPress={onViewReport}>
