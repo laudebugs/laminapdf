@@ -22,9 +22,6 @@ type Predefined =
 /** A page the Help menu opens in the browser. */
 export type Link = "help" | "issues";
 
-/** An item whose work comes in a later todo: shown, never enabled. */
-type Placeholder = "licences";
-
 /** One entry of a menu. Each may exist on one platform only (`on`). */
 export type MenuEntry = (
   | {
@@ -37,7 +34,8 @@ export type MenuEntry = (
   | { readonly choices: CommandId }
   | { readonly predefined: Predefined }
   | { readonly link: Link }
-  | { readonly placeholder: Placeholder }
+  /** Help ▸ View licences: the third-party notices the app bundles, in the OS's text viewer. */
+  | { readonly licences: true }
   | { readonly recent: true }
   | { readonly moveToWindow: true }
   | { readonly windows: true }
@@ -85,6 +83,8 @@ export const MENU_LAYOUT: readonly MenuLayout[] = [
       { command: "tab.close" },
       { command: "window.close" },
       SEPARATOR,
+      { command: "file.save" },
+      { command: "file.save-as", dialog: true },
       { command: "file.save-copy" },
       { command: "file.properties", dialog: true },
       SEPARATOR,
@@ -172,7 +172,7 @@ export const MENU_LAYOUT: readonly MenuLayout[] = [
       { command: "help.capabilities" },
       SEPARATOR,
       { link: "issues" },
-      { placeholder: "licences" },
+      { licences: true },
       { separator: true, on: OTHER },
       { command: "app.check-for-updates", dialog: true, on: OTHER },
       { predefined: "about", on: OTHER },
@@ -201,7 +201,7 @@ export const MENU_WORDS = {
   moveToWindow: "Move tab to window",
   noOtherWindows: "No other windows",
   link: { help: "Lamina PDF help", issues: "Report an issue" },
-  placeholder: { licences: "View licences" },
+  licences: "View licences",
 } as const;
 
 /** Where the Help menu's links go. */

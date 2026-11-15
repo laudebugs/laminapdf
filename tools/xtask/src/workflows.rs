@@ -22,9 +22,10 @@
 //! `needs` on one line, as `[a, b]` or a single id, a trailing comment allowed. A gate whose `needs` is written any other way reads as empty, so every job is
 //! reported missing. The module is compiled only for tests (`main.rs`).
 
-mod compile_cache;
 #[cfg(test)]
 mod dependabot;
+#[cfg(test)]
+mod desktop_release;
 #[cfg(test)]
 mod lockfile;
 
@@ -891,16 +892,6 @@ mod tests {
                 "windows-x64",
                 "windows-arm64"
             ]
-        );
-    }
-
-    /// Todo X9a: the macOS x64 leg keeps filling the compile cache from main.
-    #[test]
-    fn the_macos_x64_leg_should_keep_the_compile_cache() {
-        let leg = rust_legs(CI).into_iter().find(|leg| platform(leg) == "macos-x64");
-        assert_eq!(
-            leg.and_then(|l| l.get("compile-cache").cloned()),
-            Some(serde_json::Value::Bool(true))
         );
     }
 

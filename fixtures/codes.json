@@ -708,6 +708,20 @@
       "summary": "page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0",
       "hint": "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
       "since": "0.3.0"
+    },
+    {
+      "code": "content-object-stale",
+      "kind": "state",
+      "summary": "an edit names a content object whose bytes are no longer what the edit expects, so it would change another object",
+      "hint": "read the page's content objects again and name the object from that list",
+      "since": "0.5.0"
+    },
+    {
+      "code": "content-not-editable",
+      "kind": "unsupported",
+      "summary": "the content can't be edited: its font, its writing direction or the order of its glyphs is one Lamina PDF can't change safely, or it can't be read",
+      "hint": "the content stays selectable and readable; the reason says why it can't be changed",
+      "since": "0.5.0"
     }
   ],
   "opWarnings": [

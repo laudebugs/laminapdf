@@ -16,6 +16,7 @@ use laminapdf_desktop_protocol::supervisor::RangeServer;
 
 use super::bytesource::FileSource;
 use super::secret::SessionPassword;
+use crate::watch::FileStamp;
 
 /// One open document.
 struct Entry {
@@ -25,6 +26,9 @@ struct Entry {
     /// different spelling) from another file.
     canonical: Option<PathBuf>,
     source: Arc<FileSource>,
+    /// The file as the document last read it: when it opened, or when the app last saved it.
+    /// A save over a file that no longer matches would lose another app's change.
+    stamp: Option<FileStamp>,
     window: String,
     password: Option<SessionPassword>,
 }
@@ -55,6 +59,7 @@ impl DocumentRegistry {
                 path: path.to_owned(),
                 canonical: std::fs::canonicalize(path).ok(),
                 source: Arc::new(source),
+                stamp: FileStamp::read(path).ok(),
                 window: window.to_owned(),
                 password: None,
             },
@@ -111,6 +116,39 @@ impl DocumentRegistry {
     /// `doc`'s file length, while it is open.
     pub(crate) fn len_of(&self, doc: DocId) -> Option<u64> {
         self.lock().get(&doc).map(|entry| entry.source.len())
+    }
+
+    /// Whether `doc`'s file is no longer the one it last read: written or replaced by another
+    /// app, or gone. `None` when `doc` isn't open.
+    pub(crate) fn changed_on_disk(&self, doc: DocId) -> Option<bool> {
+        let (path, stamp) = self.lock().get(&doc).map(|e| (e.path.clone(), e.stamp.clone()))?;
+        // Read without the registry's lock: the file may be large or slow.
+        Some(stamp.is_none() || FileStamp::read(&path).ok() != stamp)
+    }
+
+    /// Whether `doc`'s file source can still read the bytes the document opened with: false once
+    /// another app wrote the file in place, or replaced it where the source reads by path.
+    pub(crate) fn base_intact(&self, doc: DocId) -> bool {
+        let source = self.lock().get(&doc).map(|entry| Arc::clone(&entry.source));
+        source.is_some_and(|source| source.intact())
+    }
+
+    /// `doc` was saved to `path`, its file from now on: the file is read again from there, at its
+    /// new length, and is the one later saves compare against.
+    ///
+    /// # Errors
+    /// The OS's error when the saved file can't be opened; `doc` then keeps its old file.
+    pub(crate) fn saved_to(&self, doc: DocId, path: &Path) -> io::Result<()> {
+        let source = Arc::new(FileSource::open(path)?);
+        let stamp = FileStamp::read(path).ok();
+        let canonical = std::fs::canonicalize(path).ok();
+        if let Some(entry) = self.lock().get_mut(&doc) {
+            path.clone_into(&mut entry.path);
+            entry.canonical = canonical;
+            entry.source = source;
+            entry.stamp = stamp;
+        }
+        Ok(())
     }
 
     /// Keeps `password` for `doc` until it closes.

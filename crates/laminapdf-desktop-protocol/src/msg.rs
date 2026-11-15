@@ -294,6 +294,9 @@ pub enum FailureKind {
     /// The document can't take an edit (it is encrypted), or an op refused it; nothing changed.
     /// The message is the error's code.
     EditRefused,
+    /// A save was refused, or its output can't be read or adopted; nothing changed. The message
+    /// is the error's code.
+    SaveRefused,
     /// An edit failed and couldn't be taken back: the document and the pages drawn may differ,
     /// and it takes no more edits until it opens again.
     EditDiverged,
@@ -422,6 +425,16 @@ pub enum ToEngine {
         /// What to do.
         call: EditCall,
     },
+    /// Plan, write, read or adopt a save of the document (`crate::SaveCall`). Answered by
+    /// [`FromEngine::Saved`], or a [`FromEngine::Error`] after which the document is as it was.
+    Save {
+        /// The request.
+        req: ReqId,
+        /// The document.
+        doc: DocId,
+        /// What to do.
+        call: crate::SaveCall,
+    },
     /// Drop a queued request, or skip sending a running one's result. The engine still
     /// answers it, with [`FailureKind::Cancelled`].
     Cancel {
@@ -456,6 +469,13 @@ pub enum ToEngine {
     },
     /// Render one band of a page for printing. Answered by [`FromEngine::PrintBand`].
     RenderPrintBand(PrintBandRequest),
+    /// Panic with `message`, as a crash would: the end-to-end tests' forced engine panic. Only the
+    /// e2e builds have it (feature `debug-crash`).
+    #[cfg(feature = "debug-crash")]
+    DebugPanic {
+        /// The panic's message, which the test fills with what a report must not hold.
+        message: String,
+    },
 }
 
 /// A message from the engine to the main process.
@@ -537,6 +557,16 @@ pub enum FromEngine {
         /// What changed (boxed: the other messages are small).
         report: Box<EditReport>,
     },
+    /// What a save call did; [`crate::SaveAnswer::Bytes`] carries the output's bytes as the
+    /// frame's payload.
+    Saved {
+        /// The request.
+        req: ReqId,
+        /// The document.
+        doc: DocId,
+        /// The answer (boxed: the other messages are small).
+        answer: Box<crate::SaveAnswer>,
+    },
     /// A rendered tile; its pixels follow the header as the frame's payload.
     Tile {
         /// The request.
@@ -559,6 +589,9 @@ pub enum FromEngine {
     },
     /// Sent every second, so the main process can tell a hung engine from a busy one.
     Heartbeat,
+    /// The engine panicked: sent from its panic hook, just before it aborts, so the main process
+    /// can build a crash report. Unscrubbed: the main process scrubs it.
+    Panic(Box<crate::crash::PanicSummary>),
     /// The engine needs a system font face's bytes; answered by [`ToEngine::FontData`] or
     /// [`ToEngine::FontFailed`].
     FontRequest {

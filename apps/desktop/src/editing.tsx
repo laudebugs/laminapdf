@@ -2,7 +2,7 @@
 // commands' context, so Undo and Redo work from the keys, the Edit menu and the palette; turning
 // the current page (View ▸ Rotate page); the window's title and the main process told while edits
 // aren't saved; and the question before they're lost: closing the tab, the window or the app.
-// The desktop doesn't save edits yet: until it does, the question can only keep them or let them go.
+// The question offers Save when saving the shown document saves everything the close would lose.
 
 import { Button, Dialog, type EditControls, message, quarterTurn, type ReaderController } from "@laminapdf/ui";
 import { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -22,12 +22,15 @@ const LEAVE_TEXT: Readonly<Record<Leaving, { title: (file: string) => string; go
   quit: { title: () => "Quit without saving?", go: "Quit without saving" },
 };
 
-/** The question in words: how many changes go, and that the desktop can't save edits yet. */
+/** The question in words: how many changes go. */
 function leaveDescription(unsaved: number): string {
-  const lost =
-    unsaved === 1 ? "Your edit isn't saved and will be lost." : `Your ${unsaved} edits aren't saved and will be lost.`;
-  return `${lost} Lamina PDF can't save edits yet.`;
+  return unsaved === 1
+    ? "Your edit isn't saved and will be lost unless you save it."
+    : `Your ${unsaved} edits aren't saved and will be lost unless you save them.`;
 }
+
+/** An answer to the question: save first, leave without saving, or stay. */
+type LeaveAnswer = "save" | "leave" | "stay";
 
 /** A store's subscribe with nothing to hear, while no document is shown. */
 const NOTHING_TO_HEAR = () => () => undefined;
@@ -49,12 +52,13 @@ export function useDesktopEditing(
   engine: DesktopEngine | undefined,
   reader: ReaderController,
   fileName: string | undefined,
+  save: () => Promise<boolean>,
 ): DesktopEditing {
   const edits = engine?.viewer.edits;
   const slice = useSyncExternalStore(edits?.subscribe ?? NOTHING_TO_HEAR, () => edits?.getState());
   const unsaved = (slice?.history.unsaved ?? 0) > 0;
   useUnsavedMark(engine, reader);
-  const question = useLeaveQuestion(engine, reader);
+  const question = useLeaveQuestion(engine, reader, save);
   const actions = useMemo(() => {
     const rotate = (delta: 90 | -90) => () => {
       if (engine === undefined) return;
@@ -72,6 +76,7 @@ export function useDesktopEditing(
         leaving={question.asking.leaving}
         fileName={fileName ?? ""}
         unsaved={question.asking.unsaved}
+        canSave={question.asking.canSave}
         onAnswer={question.answer}
       />
     );
@@ -88,7 +93,8 @@ function useUnsavedMark(engine: DesktopEngine | undefined, reader: ReaderControl
   useEffect(() => {
     if (engine === undefined) return;
     const tell = () => {
-      engine.shell.invoke("set_unsaved", { unsaved: engine.client.unsaved }).catch(() => undefined);
+      const { client } = engine;
+      engine.shell.invoke("set_unsaved", { unsaved: client.unsaved, docs: client.unsavedDocs }).catch(() => undefined);
     };
     tell();
     const stops = [engine.viewer.edits.subscribe(tell), reader.subscribe(tell)];
@@ -102,7 +108,9 @@ function useUnsavedMark(engine: DesktopEngine | undefined, reader: ReaderControl
 interface Asking {
   readonly leaving: Leaving;
   readonly unsaved: number;
-  readonly resolve: (leave: boolean) => void;
+  /** Whether saving the shown document saves every edit the close would lose. */
+  readonly canSave: boolean;
+  readonly resolve: (answer: LeaveAnswer) => void;
 }
 
 /**
@@ -113,26 +121,35 @@ interface Asking {
 function useLeaveQuestion(
   engine: DesktopEngine | undefined,
   reader: ReaderController,
-): { asking: Asking | undefined; answer: (leave: boolean) => void } {
+  save: () => Promise<boolean>,
+): { asking: Asking | undefined; answer: (answer: LeaveAnswer) => void } {
   const [asking, setAsking] = useState<Asking | undefined>(undefined);
   const pending = useRef<Asking | undefined>(undefined);
   useEffect(() => {
     if (engine === undefined) return;
-    const ask = (leaving: Leaving, unsaved: number): Promise<boolean> => {
+    const ask = (leaving: Leaving, unsaved: number, canSave: boolean): Promise<LeaveAnswer> => {
       // A second question while one shows (two closes in a row) answers the first "stay".
-      pending.current?.resolve(false);
-      return new Promise<boolean>((resolve) => {
-        const next = { leaving, unsaved, resolve };
+      pending.current?.resolve("stay");
+      return new Promise<LeaveAnswer>((resolve) => {
+        const next = { leaving, unsaved, canSave, resolve };
         pending.current = next;
         setAsking(next);
       });
     };
+    /** Leaves once saved, when the user chose Save: a failed save says why and stays. */
+    const decide = async (answer: LeaveAnswer): Promise<boolean> =>
+      answer === "leave" || (answer === "save" && (await save()));
     const leaveWindow = (leaving: "window" | "quit") => () => {
-      void ask(leaving, engine.client.unsavedSteps).then((leave) => afterAnswer(engine, leaving, leave));
+      const { client } = engine;
+      const shown = client.current?.doc;
+      const canSave = shown !== undefined && client.unsavedDocs.every((doc) => doc === shown);
+      void ask(leaving, client.unsavedSteps, canSave)
+        .then(decide)
+        .then((leave) => afterAnswer(engine, leaving, leave));
     };
     const stopGuard = reader.setCloseGuard(() => {
       const unsaved = engine.viewer.edits.getState().history.unsaved;
-      return unsaved === 0 ? Promise.resolve(true) : ask("tab", unsaved);
+      return unsaved === 0 ? Promise.resolve(true) : ask("tab", unsaved, true).then(decide);
     });
     const stopClose = stopper(
       engine.shell.listen(CONFIRM_CLOSE_EVENT, leaveWindow("window")),
@@ -147,9 +164,9 @@ function useLeaveQuestion(
       stopClose();
       stopQuit();
     };
-  }, [engine, reader]);
-  const answer = (leave: boolean) => {
-    pending.current?.resolve(leave);
+  }, [engine, reader, save]);
+  const answer = (given: LeaveAnswer) => {
+    pending.current?.resolve(given);
     pending.current = undefined;
     setAsking(undefined);
   };
@@ -172,17 +189,19 @@ async function afterAnswer(engine: DesktopEngine, leaving: "window" | "quit", le
   await shell.invoke("close_window").catch(() => undefined);
 }
 
-/** The question (Paper O03 without Save, which the desktop doesn't have yet): lose the changes, or Cancel. */
+/** The question (Paper O03): save first, lose the changes, or Cancel. */
 function LeaveDialog({
   leaving,
   fileName,
   unsaved,
+  canSave,
   onAnswer,
 }: {
   leaving: Leaving;
   fileName: string;
   unsaved: number;
-  onAnswer: (leave: boolean) => void;
+  canSave: boolean;
+  onAnswer: (answer: LeaveAnswer) => void;
 }): ReactNode {
   const text = LEAVE_TEXT[leaving];
   return (
@@ -191,19 +210,24 @@ function LeaveDialog({
       isRequired
       role="alertdialog"
       onOpenChange={(open) => {
-        if (!open) onAnswer(false);
+        if (!open) onAnswer("stay");
       }}
-      onEscape={() => onAnswer(false)}
+      onEscape={() => onAnswer("stay")}
       title={text.title(fileName)}
       description={leaveDescription(unsaved)}
       actions={
         <>
-          <Button variant="danger" onPress={() => onAnswer(true)}>
+          <Button variant="danger" onPress={() => onAnswer("leave")}>
             {text.go}
           </Button>
-          <Button variant="primary" autoFocus onPress={() => onAnswer(false)}>
+          <Button autoFocus={!canSave} onPress={() => onAnswer("stay")}>
             {message("edit.close.cancel")}
           </Button>
+          {canSave ? (
+            <Button variant="primary" autoFocus onPress={() => onAnswer("save")}>
+              {message("command.file.save")}
+            </Button>
+          ) : null}
         </>
       }
     />

@@ -8,6 +8,7 @@
 //! mobile entry point.
 
 mod commands;
+mod crash;
 #[cfg(feature = "e2e")]
 mod e2e;
 mod engine;
@@ -19,6 +20,7 @@ mod opened;
 mod prefs;
 mod print;
 mod recent;
+mod save;
 mod session;
 #[cfg(feature = "e2e")]
 mod startup;
@@ -99,6 +101,16 @@ impl Notify for WindowEvents {
         }
     }
 
+    fn crashed(&self, window: &str, crash: crash::Crash) {
+        // Off the supervisor's thread: writing the report mustn't hold up the engine's restart.
+        let (app, window) = (self.0.clone(), window.to_owned());
+        tauri::async_runtime::spawn_blocking(move || {
+            if let Some(reports) = app.try_state::<Arc<crash::CrashReports>>() {
+                reports.record(&app, Some(&window), crash);
+            }
+        });
+    }
+
     fn failed(&self, payload: Failed) {
         let target = EventTarget::webview_window(payload.window.clone());
         if let Err(error) = self.0.emit_to(target, FAILED_EVENT, payload) {
@@ -141,6 +153,15 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         tracing::warn!("could not set the app's ID: {error}");
     }
     let config = app.path().app_config_dir()?;
+    // Crash reports first, so a panic in the rest of the start-up leaves one.
+    let crashes = crash::CrashReports::new(
+        &config,
+        &app.path().app_data_dir()?,
+        &app.package_info().version.to_string(),
+    );
+    crash::report_panics(&crashes);
+    crashes.resume();
+    app.manage(crashes);
     app.manage(prefs::Prefs::load(config.join("preferences.json")));
     app.manage(recent::RecentFiles::load(config.join("recent.json")));
     app.manage(engines(app.handle()));
@@ -227,6 +248,10 @@ macro_rules! app_commands {
             commands::close_window,
             commands::quit,
             commands::save_copy,
+            save::plan_save,
+            save::save_document,
+            save::save_document_as,
+            save::reload_document,
             print::print_document,
             print::cancel_print,
             commands::tab_drag_start,
@@ -240,6 +265,12 @@ macro_rules! app_commands {
             update::commands::update_reset_install_id,
             update::commands::update_restart_to_install,
             update::commands::update_open_link,
+            crash::commands::crash_question,
+            crash::commands::crash_answer,
+            crash::commands::crash_settings,
+            crash::commands::crash_set_enabled,
+            crash::commands::crash_sample,
+            crash::commands::report_ui_error,
             $($extra),*
         ]
     };
@@ -265,14 +296,19 @@ pub fn run() -> Result<(), DesktopError> {
         .invoke_handler(app_commands![
             commands::debug_kill_engine,
             e2e::e2e_queue_pick,
+            e2e::e2e_queue_save_as,
             e2e::e2e_interactive,
             e2e::e2e_focus,
             e2e::e2e_menu_click,
             e2e::e2e_menu_snapshot,
             e2e::e2e_place_cursor,
             print::e2e_print_to_file,
+            crash::commands::e2e_crash_main_panic,
+            crash::commands::e2e_crash_engine_panic,
+            crash::commands::e2e_crash_engine_segv,
         ])
-        .manage(e2e::QueuedPick::default());
+        .manage(e2e::QueuedPick::default())
+        .manage(e2e::QueuedSaveAs::default());
     // First of all plugins: a second launch hands its paths to the running app and exits before
     // anything else starts (the plugin's own rule). Its callback queues them like any OS request.
     let builder = builder

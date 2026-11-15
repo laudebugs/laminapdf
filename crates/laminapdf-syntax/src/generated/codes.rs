@@ -146,6 +146,10 @@ pub enum ErrorCode {
     AppearanceUnavailable,
     /// `invalid-label-ranges`: page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0.
     InvalidLabelRanges,
+    /// `content-object-stale`: an edit names a content object whose bytes are no longer what the edit expects, so it would change another object.
+    ContentObjectStale,
+    /// `content-not-editable`: the content can't be edited: its font, its writing direction or the order of its glyphs is one Lamina PDF can't change safely, or it can't be read.
+    ContentNotEditable,
     /// `sink`: the sink failed to take the bytes or could not give them back.
     Sink,
     /// `not-rebased`: the output was written, but rebasing the document onto it failed.
@@ -368,6 +372,8 @@ impl ErrorCode {
         Self::LinkNotTagged,
         Self::AppearanceUnavailable,
         Self::InvalidLabelRanges,
+        Self::ContentObjectStale,
+        Self::ContentNotEditable,
         Self::Sink,
         Self::NotRebased,
         Self::SinkNotEmpty,
@@ -524,6 +530,8 @@ impl ErrorCode {
             Self::LinkNotTagged => "link-not-tagged",
             Self::AppearanceUnavailable => "appearance-unavailable",
             Self::InvalidLabelRanges => "invalid-label-ranges",
+            Self::ContentObjectStale => "content-object-stale",
+            Self::ContentNotEditable => "content-not-editable",
             Self::Sink => "sink",
             Self::NotRebased => "not-rebased",
             Self::SinkNotEmpty => "sink-not-empty",
@@ -666,6 +674,8 @@ impl ErrorCode {
             Self::LinkNotTagged => ErrorKind::Unsupported,
             Self::AppearanceUnavailable => ErrorKind::Unsupported,
             Self::InvalidLabelRanges => ErrorKind::Usage,
+            Self::ContentObjectStale => ErrorKind::State,
+            Self::ContentNotEditable => ErrorKind::Unsupported,
             Self::Sink => ErrorKind::Io,
             Self::NotRebased => ErrorKind::State,
             Self::SinkNotEmpty => ErrorKind::Usage,
@@ -808,6 +818,8 @@ impl ErrorCode {
             Self::LinkNotTagged => "the file claims PDF/UA-1 but has no structure tree for a new link to join",
             Self::AppearanceUnavailable => "the document has no appearance generator, so it can't draw a new annotation",
             Self::InvalidLabelRanges => "page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0",
+            Self::ContentObjectStale => "an edit names a content object whose bytes are no longer what the edit expects, so it would change another object",
+            Self::ContentNotEditable => "the content can't be edited: its font, its writing direction or the order of its glyphs is one Lamina PDF can't change safely, or it can't be read",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
             Self::SinkNotEmpty => "the sink already held bytes before the save started",
@@ -950,6 +962,8 @@ impl ErrorCode {
             Self::LinkNotTagged => "tag the document first, or add the link to a copy that doesn't claim PDF/UA",
             Self::AppearanceUnavailable => "edit through the laminapdf crate, which draws appearances, or give laminapdf-ops a generator with Document::with_appearances",
             Self::InvalidLabelRanges => "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
+            Self::ContentObjectStale => "read the page's content objects again and name the object from that list",
+            Self::ContentNotEditable => "the content stays selectable and readable; the reason says why it can't be changed",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",
             Self::SinkNotEmpty => "pass an empty sink: output offsets count from the sink's first byte",

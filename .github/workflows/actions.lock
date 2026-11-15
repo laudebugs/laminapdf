@@ -41,6 +41,18 @@ workflows:
         - 'actions/upload-artifact@v7.0.2'
         - 'nick-fields/retry@v4.0.0'
         - 'pnpm/action-setup@v6.1.1'
+    '.github/workflows/desktop-release.yml':
+        - 'actions-rust-lang/setup-rust-toolchain@v2.0.1'
+        - 'actions/attest-build-provenance@v4.2.2'
+        - 'actions/attest@v4.2.2'
+        - 'actions/cache@v6.1.0'
+        - 'actions/checkout@v7.0.1'
+        - 'actions/download-artifact@v8.0.2'
+        - 'actions/setup-node@v7.1.0'
+        - 'actions/upload-artifact@v7.0.2'
+        - 'nick-fields/retry@v4.0.0'
+        - 'pnpm/action-setup@v6.1.1'
+        - 'taiki-e/install-action@v2.90.2'
     '.github/workflows/desktop-update-e2e.yml':
         - 'actions-rust-lang/setup-rust-toolchain@v2.0.1'
         - 'actions/cache@v6.1.0'
@@ -150,6 +162,11 @@ dependencies:
     'actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d':
         ref: 'v4.2.1'
         commit: 'sha1-508db95dd578ae2727ebd6217d5ba78e4fbda05d'
+        owner_id: 44036562
+        repo_id: 760701061
+    'actions/attest@v4.2.2':
+        ref: 'v4.2.2'
+        commit: 'sha1-1e69f48acb82d1966a394da916b4c1698aa569d6'
         owner_id: 44036562
         repo_id: 760701061
     'actions/cache@v6.1.0':

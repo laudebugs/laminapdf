@@ -7,8 +7,11 @@ describe("CHANNEL_BUCKETS", () => {
   const expected = [...new Map(Object.values(CHANNEL_BUCKETS).map((b) => [b.binding, b.bucket])).entries()]
     .map(([binding, bucket_name]) => ({ binding, bucket_name }))
     .sort((a, b) => a.binding.localeCompare(b.binding));
+  // The crash-reports bucket isn't a channel's; test/crash.test.ts checks it.
   const bound = (buckets: readonly { binding: string; bucket_name: string }[] | undefined) =>
-    [...(buckets ?? [])].sort((a, b) => a.binding.localeCompare(b.binding));
+    [...(buckets ?? [])]
+      .filter((b) => b.binding !== "CRASH_REPORTS")
+      .sort((a, b) => a.binding.localeCompare(b.binding));
 
   it("names every channel", () => {
     expect(Object.keys(CHANNEL_BUCKETS).sort()).toEqual([...CHANNELS].sort());

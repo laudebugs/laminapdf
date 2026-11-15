@@ -14,6 +14,7 @@
 
 pub mod append_fuzz_entry;
 pub mod fuzz_entry;
+pub mod ir_fuzz_entry;
 
 use laminapdf_content::{
     FillRule, FormXObject, ImageDraw, ImageSource, Matrix, Op, Paint, PathSegment, TextAdvance, TextItem, TextShow,

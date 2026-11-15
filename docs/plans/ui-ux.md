@@ -227,8 +227,8 @@ The research and the owner's decisions on it change todos in other plans (each n
 | [C7a](../todos/done/C7a-accessibility-and-theming.md) | Depends on U1b and U1c; the keymap and help dialog come from the command registry; the "night reading" filter is replaced by U2c's page modes |
 | [C2a](../todos/done/C2a-render-adrs.md) (ADR 0011) | Telemetry optional, opt-in and off by default (owner decision 2026-10-29) |
 | [C7c](../todos/done/C7c-performance-gates-and-launch.md) | Also depends on U2a, U2c, U3a and U4a; web gates unchanged (stretch goals are U5a's); launch copy states v0.1's pricing status |
-| [D2d](../todos/done/D2d-tile-transport-and-first-document.md), [D2e](../todos/done/D2e-desktop-e2e-webdriverio.md), [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md), [D7c](../todos/ready/D7c-desktop-beta-release.md) | Desktop gates (owner decisions 2026-10-29 and 2026-11-11): the cold-start gates measured in D2d and D2g and asserted by D2e on the reference runner, installer < 15 MB in D6b's budget step; a miss blocks D7c |
-| [D7a](../todos/ready/D7a-crash-reporting.md), [H1](../todos/done/H1-auth-spike.md), [H2](../todos/ready/H2-accounts-and-login.md) | Usage analytics via U5c only; pricing questions decided once, in U5a |
+| [D2d](../todos/done/D2d-tile-transport-and-first-document.md), [D2e](../todos/done/D2e-desktop-e2e-webdriverio.md), [D6b](../todos/done/D6b-release-workflow-and-linux-packages.md), [D7c](../todos/ready/D7c-desktop-beta-release.md) | Desktop gates (owner decisions 2026-10-29 and 2026-11-11): the cold-start gates measured in D2d and D2g and asserted by D2e on the reference runner, installer < 15 MB in D6b's budget step; a miss blocks D7c |
+| [D7a](../todos/done/D7a-crash-reporting.md), [H1](../todos/done/H1-auth-spike.md), [H2](../todos/ready/H2-accounts-and-login.md) | Usage analytics via U5c only; pricing questions decided once, in U5a |
 | [D4b](../todos/done/D4b-native-menus.md) | Depends on U1b; native menus are generated from the command registry |
 | [E2h](../todos/done/E2h-page-organiser-ui.md) | Insertion bar, "Move to page…" dialog, one undo step per batch |
 | [E10j](../todos/ready/E10j-signature-ui.md) | Two named signing actions with plain-language explanations |
@@ -294,4 +294,5 @@ Ticked by the PR that completes them.
 
 ### U7. Motion and interaction states
 
-- [ ] Cursors, the state model, hover and overlay motion, reduced motion and loading fades on the reader, the desktop app and both sites ([motion and interaction states](motion-and-states.md#7-todos), todos U7a–U7i)
+- [x] Cursors, the state model, hover and overlay motion, reduced motion and loading fades on the reader, the desktop app and both sites ([motion and interaction states](motion-and-states.md#7-todos), todos U7a–U7i)
+- [ ] What the closing pass found: phone sheets and page tiles in the reader, overlays on the sites, the desktop app on each OS (todos U7j–U7l)

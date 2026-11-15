@@ -8,6 +8,8 @@ import fixture from "./edit-outcome.fixture.json" with { type: "json" };
 /** A stand-in engine: three pages, `rotatePage` ops, and undo/redo stacks of rotations. */
 function engine(options: { readonly failRedoAfter?: number } = {}) {
   const rotations = [0, 0, 0];
+  /** The file on disk: the rotations a restarted engine opens. */
+  const file = [0, 0, 0];
   const done: { page: number; before: number; after: number }[] = [];
   const undone: typeof done = [];
   const calls: EditRequest["kind"][] = [];
@@ -61,13 +63,17 @@ function engine(options: { readonly failRedoAfter?: number } = {}) {
     height: 792,
     rotation,
   }));
-  /** A restarted engine: the file as opened, with no history. */
+  /** A restarted engine: the file as it is on disk, with no history. */
   const restart = () => {
-    rotations.fill(0);
+    rotations.splice(0, rotations.length, ...file);
     done.length = 0;
     undone.length = 0;
   };
-  return { run, pages, rotations, calls, restart };
+  /** A save: the file on disk is the document now, and the engine keeps its history. */
+  const save = () => {
+    file.splice(0, file.length, ...rotations);
+  };
+  return { run, pages, rotations, calls, restart, save };
 }
 
 const turn = (page: number, rotate = 90) => [{ op: "rotatePage", args: { page: `p${page}.0`, rotate } }] as never;
@@ -151,6 +157,72 @@ describe("the desktop edit session", () => {
       2,
       [90, 90, 0],
     ]);
+  });
+
+  it("counts no edit unsaved once saved, and the next edit as the one unsaved", async () => {
+    const fake = engine();
+    const edits = new DesktopEdits(fake.run, fake.pages);
+    await edits.apply(turn(1), "one");
+    await edits.apply(turn(2), "two");
+    fake.save();
+    const saved = await edits.saved(false);
+    await edits.apply(turn(3), "three");
+    expect([saved.unsaved, saved.steps.length, edits.history().unsaved]).toEqual([0, 2, 1]);
+  });
+
+  it("starts the history again after a save that couldn't keep it", async () => {
+    const fake = engine();
+    const edits = new DesktopEdits(fake.run, fake.pages);
+    await edits.apply(turn(1), "one");
+    fake.save();
+    const saved = await edits.saved(true);
+    expect([saved.unsaved, saved.steps.length, saved.position]).toEqual([0, 0, 0]);
+  });
+
+  it("after a save, makes only the later edits again in a restarted engine, and the saved ones leave the history", async () => {
+    const fake = engine();
+    const edits = new DesktopEdits(fake.run, fake.pages);
+    await edits.apply(turn(1), "one");
+    fake.save();
+    await edits.saved(false);
+    await edits.apply(turn(2), "two");
+    fake.restart();
+    const replayed = await edits.replay();
+    const history = edits.history();
+    expect([fake.rotations, history.steps.map((step) => step.label), history.unsaved, replayed?.pages.length]).toEqual([
+      [90, 90, 0],
+      ["two"],
+      1,
+      3,
+    ]);
+  });
+
+  it("after a save with nothing since, makes nothing again in a restarted engine and keeps no saved step", async () => {
+    const fake = engine();
+    const edits = new DesktopEdits(fake.run, fake.pages);
+    await edits.apply(turn(1), "one");
+    fake.save();
+    await edits.saved(false);
+    fake.restart();
+    const replayed = await edits.replay();
+    expect([replayed, edits.history().steps.length, edits.history().unsaved, fake.calls.at(-1)]).toEqual([
+      undefined,
+      0,
+      0,
+      "apply",
+    ]);
+  });
+
+  it("marks the document diverged when a saved edit was undone before the engine restarted", async () => {
+    const fake = engine();
+    const edits = new DesktopEdits(fake.run, fake.pages);
+    await edits.apply(turn(1), "one");
+    fake.save();
+    await edits.saved(false);
+    await edits.step(-1);
+    fake.restart();
+    await expect(edits.replay()).rejects.toThrow("couldn't be undone");
+    expect(edits.history().diverged).toBe(true);
   });
 
   it("drops the steps undone when an edit fails after changing the document, as the engine's redo stack does", async () => {

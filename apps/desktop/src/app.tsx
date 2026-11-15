@@ -37,6 +37,7 @@ import { registerEditCommands } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AppInfo } from "./app-info.ts";
+import { useCrashReports } from "./crashes.tsx";
 import { useDesktopEditing } from "./editing.tsx";
 import { type DesktopEngineClient, DesktopEngineError, type DesktopShell } from "./engine/desktop-engine-client.ts";
 import { type Dragging, desktopOpener, listenForOsOpens } from "./engine/open.ts";
@@ -48,6 +49,7 @@ import { useNativeMenus } from "./menus/use-native-menus.tsx";
 import { NotYetSupportedError } from "./platform/desktop.ts";
 import { usePrint } from "./print.tsx";
 import { type DesktopRecent, useDesktopRecent } from "./recent.tsx";
+import { useDesktopSaving } from "./saving.tsx";
 import { type DesktopSettings, useDesktopSettings } from "./settings.tsx";
 import { NO_TABS, useTabStrip } from "./tabs/use-tabs.tsx";
 import { WindowTabs } from "./tabs/window-tabs.ts";
@@ -101,8 +103,9 @@ function useMergedActions(
   tabs: CommandActions,
   print: CommandActions,
   edits: CommandActions,
+  saves: CommandActions,
 ): CommandActions {
-  return useMemo(() => ({ ...home, ...tabs, ...print, ...edits }), [home, tabs, print, edits]);
+  return useMemo(() => ({ ...home, ...tabs, ...print, ...edits, ...saves }), [home, tabs, print, edits, saves]);
 }
 
 /** {@link WindowStatus}'s props. */
@@ -169,12 +172,21 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const lost = useEngineEvents(engine, toasts, state.phase === "open");
   const dragging = useOsOpens(engine, reader, toasts, tabs);
   const fileProblem = useFileChanges(engine, reader, toasts, tabs);
-  const editing = useDesktopEditing(engine, reader, engine?.client.current?.name);
+  const renamed = useCallback(
+    (doc: number, name: string) => {
+      tabs?.renamed(doc, name);
+      reader.fileRenamed();
+    },
+    [tabs, reader],
+  );
+  const saving = useDesktopSaving(engine, reader, toasts, renamed);
+  const editing = useDesktopEditing(engine, reader, engine?.client.current?.name, saving.save);
   const strip = useTabStrip(engine?.shell, tabs, reader, toasts, keys, engine?.viewer, editing.unsaved);
   const { notice, actions: tabActions } = strip;
   const { settings, recent, updates, actions: homeActions } = useHome(engine, platform, reader, state, toasts);
   const print = usePrint(engine, toasts);
-  const actions = useMergedActions(homeActions, tabActions, print.actions, editing.actions);
+  const crashes = useCrashReports(engine?.shell);
+  const actions = useMergedActions(homeActions, tabActions, print.actions, editing.actions, saving.actions);
   const open = state.phase === "open";
   const shows = useShownParts(state.phase, tabs);
   // The page input, zoom and the viewer's commands work while a document is on screen.
@@ -186,7 +198,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
     <CommandsProvider registry={registry} context={context} keys={keys} singleKeys={singleKeys}>
       <ReaderShell
         tabs={strip.strip}
-        notice={notice}
+        notice={crashes.notice ?? notice}
         topBar={
           <ReaderTopBar
             reader={reader}
@@ -223,7 +235,9 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
       {dragging === undefined ? null : <DropOverlay>{dropText(dragging)}</DropOverlay>}
       <PasswordDialog reader={reader} />
       {editing.dialog}
+      {saving.dialog}
       {settings.dialog}
+      {crashes.dialog}
       {palette}
       <ToastRegion queue={toasts} aria-label="Notifications" />
     </CommandsProvider>

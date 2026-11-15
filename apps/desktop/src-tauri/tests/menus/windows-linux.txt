@@ -10,6 +10,8 @@
   Close tab [Ctrl+W]  <cmd:tab.close>
   Close window [Ctrl+Shift+W]  <cmd:window.close>
   ---
+  Save [Ctrl+S] (disabled)  <cmd:file.save>
+  Save as… [Ctrl+Shift+S] (disabled)  <cmd:file.save-as>
   Save a copy… (disabled)  <cmd:file.save-copy>
   Document properties… (disabled)  <cmd:file.properties>
   ---
@@ -91,7 +93,7 @@
   What Lamina PDF can do (disabled)  <cmd:help.capabilities>
   ---
   Report an issue  <link:https://github.com/laudebugs/laminapdf/issues/new/choose>
-  View licences (disabled)  <later:View licences>
+  View licences  <licences>
   ---
   Check for updates… (disabled)  <cmd:app.check-for-updates>
   (About)

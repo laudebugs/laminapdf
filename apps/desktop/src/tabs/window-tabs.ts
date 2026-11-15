@@ -506,6 +506,15 @@ export class WindowTabs implements ExternalStore<TabsState> {
     await this.#drive(() => reader.open(file));
   }
 
+  /** The tab of `doc` was saved as a new file named `name`: its label and the window's title say so. */
+  renamed(doc: number, name: string): void {
+    const tab = this.tabOf(doc);
+    const opened = tab === undefined ? undefined : documentOf(tab.file);
+    if (tab === undefined || opened === undefined) return;
+    rebind(tab.file, { ...opened, name });
+    this.#set({ tabs: [...this.#state.tabs] });
+  }
+
   /** The tab of `doc` reopened from its changed file as `document`, while not shown. */
   reloaded(previous: number, document: DesktopDocument): boolean {
     const tab = this.tabOf(previous);

@@ -37,7 +37,7 @@ Every PR recompiles all 24 of the workspace's own crates on six Rust legs, and c
 
 **Out of scope** (and which todo covers it)
 
-- The other Rust jobs, and dropping the Rust cache: [X8b](../ready/X8b-rust-compile-cache-everywhere.md).
+- The other Rust jobs, and dropping the Rust cache: [X8b](../done/X8b-rust-compile-cache-everywhere.md).
 - The runner waits: the plan's §8, not yet todos.
 
 ## Tasks

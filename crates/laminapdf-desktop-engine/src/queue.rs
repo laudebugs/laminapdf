@@ -6,7 +6,7 @@ use std::collections::BinaryHeap;
 use std::sync::{Condvar, Mutex, MutexGuard, PoisonError};
 use std::time::Instant;
 
-use laminapdf_desktop_protocol::{DocId, EditCall, Password, PrintBandRequest, Priority, ReqId, TileRequest};
+use laminapdf_desktop_protocol::{DocId, EditCall, Password, PrintBandRequest, Priority, ReqId, SaveCall, TileRequest};
 use laminapdf_render::CancelToken;
 
 /// One request for the worker.
@@ -16,6 +16,7 @@ pub(crate) enum Job {
     PageInfo { req: ReqId, doc: DocId },
     Render(TileRequest),
     Edit { req: ReqId, doc: DocId, call: EditCall },
+    Save { req: ReqId, doc: DocId, call: SaveCall },
     Print(PrintBandRequest),
     Close { doc: DocId },
 }
@@ -24,9 +25,11 @@ impl Job {
     /// The request the job answers; `Close` answers none.
     pub(crate) const fn req(&self) -> Option<ReqId> {
         match self {
-            Self::Open { req, .. } | Self::Unlock { req, .. } | Self::PageInfo { req, .. } | Self::Edit { req, .. } => {
-                Some(*req)
-            }
+            Self::Open { req, .. }
+            | Self::Unlock { req, .. }
+            | Self::PageInfo { req, .. }
+            | Self::Edit { req, .. }
+            | Self::Save { req, .. } => Some(*req),
             Self::Render(tile) => Some(tile.req),
             Self::Print(band) => Some(band.req),
             Self::Close { .. } => None,

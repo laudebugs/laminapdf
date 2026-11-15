@@ -48,6 +48,12 @@
       outline-color: CanvasText;
     }
   }
+
+  /* React Aria marks a whole tab list or group data-focus-visible while a control inside it has
+     the keyboard focus; that control rings, so the container doesn't ring around it as well. */
+  :is(.paper-tabs, .paper-zoom-control)[data-focus-visible] {
+    outline: none;
+  }
 }
 
 /* Around a switch of look (theme, accent, page appearance, density, direction), nothing

@@ -1,4 +1,4 @@
-//! `cargo xtask desktop-sidecar [--release | --debug]`: builds the desktop app's engine
+//! `cargo xtask desktop-sidecar [--release | --debug] [--e2e]`: builds the desktop app's engine
 //! binary and fetches PDFium, where `tauri.bundle.conf.json` bundles them from:
 //!
 //! - `apps/desktop/src-tauri/binaries/laminapdf-desktop-engine-<target triple>[.exe]`: Tauri's
@@ -14,7 +14,8 @@
 //! `TAURI_ENV_PLATFORM`, and `TAURI_ENV_DEBUG=true` only for a debug build: a release build leaves
 //! `TAURI_ENV_DEBUG` unset (Tauri CLI 2.12, checked after release builds had shipped the
 //! debug engine).
-//! The host's target only: the universal macOS engine comes with code signing.
+//! The host's target only: the universal macOS engine comes with code signing. `--e2e` builds the
+//! engine the end-to-end tests run, with its `e2e` feature (it obeys their forced panic).
 
 use std::env;
 use std::fs;
@@ -24,6 +25,28 @@ use anyhow::{Context, Result, bail};
 
 use crate::workspace::Workspace;
 use crate::{pdfium, step};
+
+/// What the command line asked for.
+#[derive(Debug, Default, PartialEq, Eq)]
+struct Options {
+    /// `--release` or `--debug`; `None` follows the Tauri CLI.
+    release: Option<bool>,
+    /// `--e2e`: the end-to-end tests' engine.
+    e2e: bool,
+}
+
+fn parse(args: &[String]) -> Result<Options> {
+    let mut options = Options::default();
+    for arg in args {
+        match arg.as_str() {
+            "--release" if options.release.is_none() => options.release = Some(true),
+            "--debug" if options.release.is_none() => options.release = Some(false),
+            "--e2e" if !options.e2e => options.e2e = true,
+            _ => bail!("usage: cargo xtask desktop-sidecar [--release | --debug] [--e2e]"),
+        }
+    }
+    Ok(options)
+}
 
 /// Whether the Tauri CLI that ran this hook builds for release: inside a hook (`platform` set)
 /// unless `debug` is `true`; outside Tauri, never.
@@ -35,15 +58,13 @@ fn tauri_wants_release(platform: Option<&str>, debug: Option<&str>) -> bool {
 pub(crate) const ENGINE: &str = "laminapdf-desktop-engine";
 
 pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
-    let release = match args {
-        [] => tauri_wants_release(
+    let options = parse(args)?;
+    let release = options.release.unwrap_or_else(|| {
+        tauri_wants_release(
             env::var("TAURI_ENV_PLATFORM").ok().as_deref(),
             env::var("TAURI_ENV_DEBUG").ok().as_deref(),
-        ),
-        [flag] if flag == "--release" => true,
-        [flag] if flag == "--debug" => false,
-        _ => bail!("usage: cargo xtask desktop-sidecar [--release | --debug]"),
-    };
+        )
+    });
     let triple = host_triple()?;
     if let Ok(asked) = env::var("TAURI_ENV_TARGET_TRIPLE")
         && asked != triple
@@ -53,6 +74,9 @@ pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
     let mut cargo = vec!["build", "--locked", "-p", ENGINE];
     if release {
         cargo.push("--release");
+    }
+    if options.e2e {
+        cargo.extend(["--features", "e2e"]);
     }
     ws.cargo(&cargo)?;
 
@@ -134,7 +158,27 @@ fn copy_libraries(from: &Path, to: &Path) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::tauri_wants_release;
+    use super::{Options, parse, tauri_wants_release};
+
+    fn args(list: &[&str]) -> Vec<String> {
+        list.iter().map(|arg| (*arg).to_owned()).collect()
+    }
+
+    #[test]
+    fn the_flags_should_be_read_in_any_order() {
+        assert_eq!(
+            parse(&args(&["--e2e", "--debug"])).unwrap(),
+            Options {
+                release: Some(false),
+                e2e: true
+            }
+        );
+    }
+
+    #[test]
+    fn both_profiles_or_an_unknown_flag_should_be_refused() {
+        assert!(parse(&args(&["--release", "--debug"])).is_err() && parse(&args(&["--fast"])).is_err());
+    }
 
     #[test]
     fn tauri_wants_release_should_follow_the_cli_hooks_environment() {

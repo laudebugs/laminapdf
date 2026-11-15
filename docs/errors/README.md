@@ -125,6 +125,8 @@ A PR that adds a code adds:
 | [`link-not-tagged`](link-not-tagged.md) | `unsupported` | the file claims PDF/UA-1 but has no structure tree for a new link to join |
 | [`appearance-unavailable`](appearance-unavailable.md) | `unsupported` | the document has no appearance generator, so it can't draw a new annotation |
 | [`invalid-label-ranges`](invalid-label-ranges.md) | `usage` | page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0 |
+| [`content-object-stale`](content-object-stale.md) | `state` | an edit names a content object whose bytes are no longer what the edit expects, so it would change another object |
+| [`content-not-editable`](content-not-editable.md) | `unsupported` | the content can't be edited: its font, its writing direction or the order of its glyphs is one Lamina PDF can't change safely, or it can't be read |
 
 ## Op warnings
 

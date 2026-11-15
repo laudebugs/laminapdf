@@ -10,7 +10,7 @@ use std::sync::Arc;
 use laminapdf::OpenOptions;
 use laminapdf_desktop_protocol::{
     DocId, EditCall, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PageDimensions, Password, PrintBandRequest,
-    ReqId, TileAppearance, TileFormat, TileRequest, ViewRotation,
+    ReqId, SaveCall, TileAppearance, TileFormat, TileRequest, ViewRotation,
 };
 use laminapdf_render::{
     ByteSource, CancelToken, PageAppearance, PixelRect, RenderBackend, RenderDocument, RenderOpenOptions,
@@ -46,6 +46,8 @@ pub(crate) struct Opened {
     repaired: bool,
     /// An edit failed and couldn't be taken back: the model and the pages drawn may differ.
     pub(crate) diverged: bool,
+    /// A save's output, written and waiting for the main process to put it in place.
+    pub(crate) pending: Option<crate::save::Pending>,
 }
 
 /// Why a document didn't open.
@@ -89,6 +91,7 @@ impl Worker {
                 Job::PageInfo { req, doc } => self.page_info(req, doc),
                 Job::Render(tile) => self.render(&tile, &token),
                 Job::Edit { req, doc, call } => self.edit(req, doc, call),
+                Job::Save { req, doc, call } => self.save(req, doc, call),
                 Job::Print(band) => self.print_band(&band, &token),
                 Job::Close { doc } => {
                     self.docs.remove(&doc);
@@ -182,6 +185,8 @@ impl Worker {
             Some(Doc::Locked { .. }) => return self.send(&FromEngine::NeedsPassword { req, doc }),
             Some(Doc::Open(opened)) => opened,
         };
+        // A save's output written before this edit no longer matches the document.
+        opened.pending = None;
         match crate::edit::run(opened, self.backend.as_deref(), &self.limits, call) {
             Ok(report) => {
                 opened.page_count = u32::try_from(report.pages.len()).unwrap_or(u32::MAX);
@@ -191,6 +196,27 @@ impl Worker {
                     report: Box::new(report),
                 });
             }
+            Err((kind, code)) => self.error(req, kind, code),
+        }
+    }
+
+    fn save(&mut self, req: ReqId, doc: DocId, call: SaveCall) {
+        let opened = match self.docs.get_mut(&doc) {
+            None => return self.error(req, FailureKind::UnknownDocument, "no such document".into()),
+            Some(Doc::Locked { .. }) => return self.send(&FromEngine::NeedsPassword { req, doc }),
+            Some(Doc::Open(opened)) => opened,
+        };
+        // Room in the frame for the header besides the bytes.
+        let max_read = MAX_FRAME.saturating_sub(u32::try_from(TILE_FRAME_SLACK).unwrap_or(u32::MAX));
+        match crate::save::run(opened, self.backend.as_deref(), &self.limits, call, max_read) {
+            Ok((answer, payload)) => self.send_payload(
+                &FromEngine::Saved {
+                    req,
+                    doc,
+                    answer: Box::new(answer),
+                },
+                &payload,
+            ),
             Err((kind, code)) => self.error(req, kind, code),
         }
     }
@@ -316,6 +342,7 @@ impl Worker {
             source: shared,
             page_count,
             diverged: false,
+            pending: None,
         })
     }
 
