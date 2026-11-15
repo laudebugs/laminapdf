@@ -11,8 +11,8 @@
           "name": "about"
         },
         {
-          "kind": "placeholder",
-          "id": "check-for-updates",
+          "kind": "command",
+          "id": "app.check-for-updates",
           "title": "Check for updates…"
         },
         {
@@ -535,8 +535,8 @@
           "on": "other"
         },
         {
-          "kind": "placeholder",
-          "id": "check-for-updates",
+          "kind": "command",
+          "id": "app.check-for-updates",
           "title": "Check for updates…",
           "on": "other"
         },

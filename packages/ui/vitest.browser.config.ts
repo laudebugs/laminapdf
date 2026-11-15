@@ -15,7 +15,15 @@ const reducedMotion: BrowserCommand<["reduce" | "no-preference" | null]> = async
   await ctx.page.emulateMedia({ reducedMotion: value });
 };
 
+const forcedColors: BrowserCommand<["active" | null]> = async (ctx, value) => {
+  if (ctx.provider.name !== "playwright") throw new Error("forcedColors needs the Playwright provider");
+  await ctx.page.emulateMedia({ forcedColors: value });
+};
+
 export default defineConfig({
+  // React Stately's virtualizer (the Organise page grid's) reads process.env.VIRT_ON in a test
+  // build, and a browser has no `process`: Vite replaces NODE_ENV but not this one.
+  define: { "process.env.VIRT_ON": "undefined" },
   test: {
     ...retryOnceAndReport(),
     include: ["test/browser/*.browser.test.tsx"],
@@ -24,7 +32,7 @@ export default defineConfig({
       headless: true,
       // Desktop-sized, wider than the phone breakpoint; tests of the phone layout set their own.
       viewport: { width: 1280, height: 800 },
-      commands: { reducedMotion },
+      commands: { reducedMotion, forcedColors },
       provider: playwright(),
       instances: [
         { browser: "chromium", name: "chromium" },

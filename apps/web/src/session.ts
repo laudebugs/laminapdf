@@ -13,6 +13,7 @@ import type {
   Op,
   SaveOptions,
   SaveReport,
+  Violation,
   XmpText,
 } from "@laminapdf/sdk";
 import type {
@@ -451,6 +452,24 @@ export class Engine implements ExternalStore<EngineState> {
   }
 
   /**
+   * What saving the open document with `ops` applied would break, before they apply (E2 plan §6):
+   * each signature restriction they violate. Empty without a document.
+   */
+  async wouldViolate(ops: readonly Op[]): Promise<Violation[]> {
+    const session = await this.#session;
+    return session.client.wouldViolate(ops);
+  }
+
+  /**
+   * Page `index` of the open document drawn at `scale` (1 = 72 dpi) for the page grid, behind the
+   * pages in view; the caller closes the bitmap.
+   */
+  async thumbnail(index: number, scale: number, signal: AbortSignal): Promise<RenderedBitmap> {
+    const session = await this.#session;
+    return session.client.render({ page: index, scale }, { priority: "background", signal });
+  }
+
+  /**
    * Turns page `index` of the open document a quarter (`delta` 90 clockwise, -90 the other way),
    * as one step of the edit session, named by the page's label. The op sets the rotation, so the
    * new one is worked out from the page's own.
@@ -563,12 +582,18 @@ export class Engine implements ExternalStore<EngineState> {
   }
 
   /**
-   * Keeps the pages' sizes and rotations as edits change them (the outline and the labels read
-   * them), and counts the times a restarted worker lost the unsaved edits.
+   * Keeps the pages' sizes, rotations and order as edits change them (the outline, the labels and
+   * the page grid read them), and counts the times a restarted worker lost the unsaved edits.
    */
   #followEdits(session: Promise<Session>, client: ViewerClient): void {
-    client.on("edit", ({ pages }) => {
-      if (this.#session !== session || pages.length === 0) return;
+    client.on("edit", ({ pages, order }) => {
+      if (this.#session !== session) return;
+      // An edit that inserted, deleted or moved pages gives the whole list in its new order.
+      if (order !== undefined) {
+        this.#set({ pages: [...order] });
+        return;
+      }
+      if (pages.length === 0) return;
       const next = [...this.#state.pages];
       for (const page of pages) if (page.index < next.length) next[page.index] = page;
       this.#set({ pages: next });

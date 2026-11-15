@@ -174,6 +174,7 @@ export {
   type PopoverProps,
   PopoverTrigger,
 } from "./overlays/popover.js";
+export { Presence, type PresenceProps } from "./overlays/presence.js";
 export {
   SelectionToolbar,
   SelectionToolbarDivider,

@@ -383,6 +383,22 @@ function settingsCommands(): AnyCommand[] {
       group: "app",
       home: ["status-bar"],
     }),
+    // S06: the desktop app's handlers. Check for updates opens Settings › Updates and checks;
+    // Restart to update exists only while a downloaded update waits.
+    delegated({
+      id: "app.check-for-updates",
+      title: title("app.check-for-updates"),
+      keywords: ["update", "new version", "upgrade"],
+      group: "app",
+      home: ["help-menu"],
+    }),
+    delegated({
+      id: "app.restart-to-update",
+      title: title("app.restart-to-update"),
+      keywords: ["update", "new version", "restart", "install"],
+      group: "app",
+      home: ["status-bar"],
+    }),
   ];
 }
 

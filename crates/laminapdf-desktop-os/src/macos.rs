@@ -37,3 +37,19 @@ pub(crate) fn clear_recent(_app_id: &str, _paths: &[PathBuf]) -> Result<(), OsEr
     unsafe { controller.clearRecentDocuments(None) };
     Ok(())
 }
+
+/// The forced (managed) `UpdateChannel` and `DisableUpdates` of the app's preferences domain.
+/// `NSUserDefaults` is thread-safe, so this runs on any thread.
+pub(crate) fn managed_updates() -> crate::ManagedUpdates {
+    use objc2_foundation::NSUserDefaults;
+    let defaults = NSUserDefaults::standardUserDefaults();
+    let forced = |key: &NSString| defaults.objectIsForcedForKey(key);
+    let channel_key = NSString::from_str("UpdateChannel");
+    let disable_key = NSString::from_str("DisableUpdates");
+    crate::ManagedUpdates {
+        channel: forced(&channel_key)
+            .then(|| defaults.stringForKey(&channel_key).map(|s| s.to_string()))
+            .flatten(),
+        disable: forced(&disable_key).then(|| defaults.boolForKey(&disable_key)),
+    }
+}

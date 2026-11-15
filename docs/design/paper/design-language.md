@@ -527,7 +527,7 @@ Window caption glyphs (minimise, maximise, close) are drawn on a 10 × 10 grid w
 | Width | Shell |
 | --- | --- |
 | < 600 px | Phone shell (§6.2) |
-| 600–1023 px | Desktop shell; rail collapsed by default (opens docked, pushing the canvas); the inspector docks at 288 px and closes the rail if the canvas would fall below 560 px |
+| 600–1023 px | Desktop shell; rail collapsed by default, opening as a drawer over the canvas that slides in from the start edge over 200 ms, fading, above a fading scrim, and leaves over 150 ms; the inspector docks at 288 px and closes the rail if the canvas would fall below 560 px |
 | ≥ 1024 px | Desktop shell, rail open by default |
 
 A coarse pointer (`pointer: coarse`) uses the touch rules (§8.7) at any width. At phone width the desktop shell is never squeezed: the mode switcher moves into the bottom bar's Annotate entry and More sheet.
@@ -712,7 +712,7 @@ In `@laminapdf/ui`: `Thumbnail`, a button whose `children` are the page image th
 
 In `@laminapdf/ui`: `OutlineRow`. **Chevron (decided, U6h):** a row with children has a chevron button before its link, on desktop as on touch, so the link and the button each do one thing. The button keeps one name, such as “Sections in 2. Repairs backlog”, and `aria-expanded` says whether they show; a name that flips between Expand and Collapse would say the same thing twice. The tree below stays proposed.
 
-Links in a `<nav aria-label="Document outline">`, padding `14px 10px`, gap 2. Row: Newsreader 15, padding `6px 8px`, radius 4, page number right (Source Sans 3 12 `muted` tabular). Level 2: 14 px, `text-3`, left padding 22. Current: `accent` text 600 on `accent-tint`, `aria-current="location"`. Hover **(proposed)**: `hover` fill.
+Links in a `<nav aria-label="Document outline">`, padding `14px 10px`, gap 2. Row: Newsreader 15, padding `6px 8px`, radius 4, page number right (Source Sans 3 12 `muted` tabular). Level 2: 14 px, `text-3`, left padding 22. Current: `accent` text 600 on `accent-tint`, `aria-current="location"`. Hover lays the `hover` layer over the row's fill, current or not, and pressed the `pressed` layer; in the tree, pointing anywhere on the row shows them on its link. A drag grip shows `grab`, and `grabbing` while held.
 
 **Outline tree (proposed; replaces the link list once an outline has levels):** the same rows as a WAI-ARIA tree (`ul role="tree"`, `li role="treeitem"` with `aria-level` and `aria-expanded`). A 16 px chevron (down = expanded, right = collapsed) is decoration inside the row, toggled by click or ← →, so there is no nested button. The current row tracks scrolling (the deepest entry at or above the top of the view).
 
@@ -761,7 +761,7 @@ More items **(proposed)**; all keep the 2 px `focus` outline with a 1 px offset 
 
 ### 7.9 Selection mini toolbar (desktop, fine pointer)
 
-In `@laminapdf/ui`: `SelectionToolbar` with `SelectionToolbarDivider`, placed against a rectangle the app gives (the first selected line) and kept inside the viewport and an optional canvas. It follows its anchor through any scroll or resize and after every render, so the app renders it again when a zoom moves the selection without a scroll. While the selection is out of view, the toolbar hides. The app decides when it shows and what it holds.
+In `@laminapdf/ui`: `SelectionToolbar` with `SelectionToolbarDivider`, placed against a rectangle the app gives (the first selected line) and kept inside the viewport and an optional canvas. It follows its anchor through any scroll or resize and after every render, so the app renders it again when a zoom moves the selection without a scroll. While the selection is out of view, the toolbar hides. The app decides when it shows and what it holds. **Motion:** it fades in over 120 ms, growing from 0.97 at its anchor, and fades out over 80 ms; while it fades out, clicks and keys reach what is under it.
 
 `role="toolbar"`, above the first selected line (flips below on collision), `surface`, `chip-border` edge, radius 6, padding 4, gap 2, floating shadow, 13 px. Buttons 30 high, padding `0 10px`, 16 px icon + label; a 1×18 `hairline` divider before More (30×30 icon). Shown on `pointerup`, Shift+F10 reaches it, Escape dismisses.
 
@@ -777,7 +777,7 @@ In `@laminapdf/ui`: `SelectionToolbar` with `SelectionToolbarDivider`, placed ag
 
 ### 7.10 Command palette
 
-In `@laminapdf/ui`: `CommandPalette`, the shell only: the app passes the rows already ranked, with the matched parts of each title. The active row, chosen by the pointer or the arrow keys, takes its tint at once, with no `hover` layer; a press lays the `pressed` layer over it. A disabled row shows its reason, when it has one, in place of its group and is skipped by the arrow keys; the group and the shortcut chip describe a row (`aria-describedby`) rather than name it. **Combobox (U6j):** the input carries `role="combobox"` and `aria-expanded`, which React Aria's autocomplete leaves out.
+In `@laminapdf/ui`: `CommandPalette`, the shell only: the app passes the rows already ranked, with the matched parts of each title. The active row, chosen by the pointer or the arrow keys, takes its tint at once, with no `hover` layer; a press lays the `pressed` layer over it. A disabled row shows its reason, when it has one, in place of its group and is skipped by the arrow keys; the group and the shortcut chip describe a row (`aria-describedby`) rather than name it. **Combobox (U6j):** the input carries `role="combobox"` and `aria-expanded`, which React Aria's autocomplete leaves out. **Motion:** none. The palette opens and closes in the same frame as the key press that opens or closes it, so typing into it never waits.
 
 Modal over `scrim` (from below the window title bar), 96 px from the top, `max-width: 600px`, `surface`, `chip-border` edge, radius 6, palette shadow. Input: 44 high, inset 10, `control-border`, white, radius 4, 18 px search icon `muted`, 16 px text, `esc` chip; keeps focus (APG combobox: `role="combobox"`, `aria-activedescendant`). List: `role="listbox"`, padding `0 6px 8px`; section overlines ("Recent" first, then "Commands"); rows 40 high, padding `0 12px`, gap 12: title (query match in 600) · group name (12 `muted`) · shortcut chip. Active row: `accent-tint` fill, `inset 0 0 0 1px` `accent` ring, group `text-3`, chip border `accent`. Footer: 12 `muted` hints over a `hairline`.
 
@@ -860,7 +860,7 @@ The same shell **(proposed)** serves the **details panel** (a document-level exp
 
 In `@laminapdf/ui`: `SwatchGroup`, whose colours are token names.
 
-Circles with `aria-label` (colour name) and `aria-pressed`; 24 px in the secondary toolbar (gap 4, preceded by a 12 `muted` "Colour" label), 28 px in the inspector (gap 8). Edge 1 px `control-border`; selected `outline: 2px solid #1F1D1A` (offset 1 / 2). On touch **(proposed)**, the 26 px swatch sits centred in a 44 × 44 button and the selected ring is a `box-shadow` (2 px `surface` gap, 2 px `text`) so it doesn't change the layout. The same circles carry the other palettes of §2.7.
+Circles with `aria-label` (colour name) and `aria-pressed`; 24 px in the secondary toolbar (gap 4, preceded by a 12 `muted` "Colour" label), 28 px in the inspector (gap 8). Edge 1 px `control-border`; selected `outline: 2px solid #1F1D1A` (offset 1 / 2). Hover and pressed lay their layer on the round button behind the circle, so the colour itself never changes. On touch **(proposed)**, the 26 px swatch sits centred in a 44 × 44 button and the selected ring is a `box-shadow` (2 px `surface` gap, 2 px `text`) so it doesn't change the layout. The same circles carry the other palettes of §2.7.
 
 ```html
 <div role="group" aria-label="Colour" style="display: flex; gap: 8px">
@@ -916,7 +916,7 @@ Touch selection handles: 2×16 px `accent` caret with a 10 px `accent` dot (abov
 
 ### 7.16 Bottom sheet
 
-In `@laminapdf/ui`: `BottomSheet`, modal by default and non-modal with `isModal={false}`. **Behaviour (U6i):** the grabber switches between the medium and large detents on a press, Enter or Space. A drag of the grabber or header snaps to the nearest detent; a flick goes one detent in its direction, and a flick down from medium closes the sheet. The sheet moves without a slide, so reduced motion changes nothing. A non-modal sheet scrolls the page's focused element out from under itself when that element takes focus and when the sheet grows, but leaves focus in its own menus alone. An on-screen keyboard lifts the whole sheet, its top no higher than the large detent, and the sheet keeps clear of the safe area. **Layers (U6i):** a modal sheet is a dialog over the scrim, so it draws in the scrim's layer (40, the z-order's "Scrim + palette / dialog" row); a non-modal sheet draws at 30. **Deviation (U6i):** the sheet runs to the viewport's bottom, where F04 stops it above the phone bottom bar; the phone shell places that bar.
+In `@laminapdf/ui`: `BottomSheet`, modal by default and non-modal with `isModal={false}`. **Behaviour (U6i):** the grabber switches between the medium and large detents on a press, Enter or Space. A drag of the grabber or header snaps to the nearest detent; a flick goes one detent in its direction, and a flick down from medium closes the sheet. A drag moves it under the finger with no added motion. A non-modal sheet scrolls the page's focused element out from under itself when that element takes focus and when the sheet grows, but leaves focus in its own menus alone. An on-screen keyboard lifts the whole sheet, its top no higher than the large detent, and the sheet keeps clear of the safe area. **Layers (U6i):** a modal sheet is a dialog over the scrim, so it draws in the scrim's layer (40, the z-order's "Scrim + palette / dialog" row); a non-modal sheet draws at 30. **Deviation (U6i):** the sheet runs to the viewport's bottom, where F04 stops it above the phone bottom bar; the phone shell places that bar. **Motion:** a modal sheet fades in as it rises from the bottom edge over 200 ms, and drops away over 150 ms as its scrim fades. **Deviation (U7c):** a non-modal sheet, and a sheet its app stops rendering rather than closing (the phone's Contents sheet, the link preview on touch), appear and leave at once.
 
 ```html
 <section aria-label="Pages" style="position: absolute; left: 0; right: 0; top: 404px; bottom: 76px; background: #FBF9F5; border-top: 1px solid #E4DED3; border-radius: 12px 12px 0 0; box-shadow: 0 -8px 28px rgba(60,48,30,0.12); display: flex; flex-direction: column; overflow: hidden">
@@ -946,7 +946,7 @@ In `@laminapdf/ui`: `BottomSheet`, modal by default and non-modal with `isModal=
 
 ### 7.18 Dialog
 
-In `@laminapdf/ui`: `Dialog`. **Focus (U6e):** it starts on the first field, or on a control given `autoFocus` (Cancel in a destructive confirm); React Aria alone would focus the dialog itself. The close button comes last in the tab order, though it sits top right. `aria-modal` is set, and the page behind is inert. On a phone-wide viewport (599 px or less) it is a `BottomSheet` at the large detent, with its actions full width below the content. It keeps the layout it opened with until it closes, so turning a phone never rebuilds an open dialog.
+In `@laminapdf/ui`: `Dialog`. **Focus (U6e):** it starts on the first field, or on a control given `autoFocus` (Cancel in a destructive confirm); React Aria alone would focus the dialog itself. The close button comes last in the tab order, though it sits top right. `aria-modal` is set, and the page behind is inert. On a phone-wide viewport (599 px or less) it is a `BottomSheet` at the large detent, with its actions full width below the content. It keeps the layout it opened with until it closes, so turning a phone never rebuilds an open dialog. **Motion:** it fades in over 200 ms, growing from 0.97 at its centre above its fading scrim, and fades out over 150 ms, keeping its last content as it fades.
 
 Built like the palette: `scrim`, centred card `max-width: 440px` (forms up to 560; **wide:** 820 for a live preview or a two-pane editor, with an options or tree column (min 260) and a `gutter`-coloured preview column (min 400) that stack below 700 px, header and footer over `hairline` rules, a summary at the left of the footer), `raised` = `surface` in light, `chip-border` edge, radius 6, palette shadow, padding 24, gap 16. Title Newsreader 20/500; body 14 `text`; actions right-aligned, gap 8, primary last (danger-filled for destructive). Close icon button top right unless the dialog asks a required question. `role="dialog"` (or `alertdialog` for destructive confirms), `aria-modal="true"`, `aria-labelledby` the title, focus trapped, Escape closes, focus returns to the opener. Phone: becomes a bottom sheet at the large detent with actions full width (44 px high).
 
@@ -976,7 +976,9 @@ Rules **(proposed)**:
 
 In `@laminapdf/ui`: `TextInput`, `TextArea`, `Select`, `Checkbox`, `RadioGroup` with `Radio`, and `Switch`. The switch is a visually hidden `<input type="checkbox" role="switch">` inside its label, like the checkbox below, rather than a `<button role="switch">`: it reports the same role and state, and keeps the whole row as its target.
 
-All: `control-border` 1 px, white fill, radius 4, 14 px text (16 on touch), label above (12/600 `text-3`) with gap 8, help text below (12 `muted`), error text below (12 `danger`, with `aria-describedby` and `aria-invalid="true"`; the border turns `danger`). Focus: the 2 px `accent` ring, offset 1.
+All: `control-border` 1 px, white fill, radius 4, 14 px text (16 on touch), label above (12/600 `text-3`) with gap 8, help text below (12 `muted`), error text below (12 `danger`, with `aria-describedby` and `aria-invalid="true"`; the border turns `danger`). Focus: the 2 px `focus` ring, offset 1, which stays `focus` on an invalid field. Read-only: a `ground` fill and `hairline` edge, the text still `text` and selectable. Disabled: `disabled` text, `hairline` edge, the arrow cursor. A text field keeps the I-beam; the select shows the hand.
+
+Checkbox, radio and switch: the whole row is the target and shows the hand, and the box, circle or track shows its state. When unchecked, hover and pressed lay their layer over the field fill; when checked, the `accent` fill moves to `accent-strong` on hover and `primary-pressed` on press. The switch's knob slides to the far end over 150 ms and jumps under reduced motion. Disabled: a `chip-border` edge on `ground`; a checked or on control fills with `disabled`, so its mark still shows.
 
 | Control | Size | Details |
 | --- | --- | --- |
@@ -1021,7 +1023,7 @@ More controls **(proposed)**:
 
 ### 7.20 Toast and notice
 
-In `@laminapdf/ui`: `Notice`, `Toast` for the toast's look, and `ToastRegion` with `ToastQueue`. The region is the live region and owns the timing; the toast itself has no `role`, because a live region added together with its text is often not announced. **Stacking (U6e):** at most three show, newest at the bottom, and a fourth pushes the oldest out. The region stays outside a dialog's inert page, so a toast shown over a dialog is still announced and its action still reachable. **Toast colours (U6h):** the toast swaps the `text` and `surface` colours, so it is dark in the light theme, light in the dark theme and reads in high contrast; in the light theme its text is `surface` (`#FBF9F5`) rather than white.
+In `@laminapdf/ui`: `Notice`, `Toast` for the toast's look, and `ToastRegion` with `ToastQueue`. The region is the live region and owns the timing; the toast itself has no `role`, because a live region added together with its text is often not announced. **Stacking (U6e):** at most three show, newest at the bottom, and a fourth pushes the oldest out. The region stays outside a dialog's inert page, so a toast shown over a dialog is still announced and its action still reachable. **Toast colours (U6h):** the toast swaps the `text` and `surface` colours, so it is dark in the light theme, light in the dark theme and reads in high contrast; in the light theme its text is `surface` (`#FBF9F5`) rather than white. **Motion:** a toast fades in as it rises 16 px over 200 ms and leaves the way it came over 150 ms; if its action has focus, focus returns to where it was before the toast leaves. **Deviation (U7c):** a toast pushed out by a fourth, or taken back by the app, leaves at once.
 
 - **Toast:** short confirmation of an action that already happened ("Copied", "Highlights exported"). Bottom centre, 24 px above the status bar (phone: above the bottom bar, where the pill sits; it replaces the pill). `text` bg `#1F1D1A`, white 13 px (16.81), radius 6, padding `8px 14px`, floating shadow; an optional action is white underlined text ("Undo"). `role="status"`; 4 s, paused while hovered or focused; never the only place an error is reported. **Persistent toast (proposed):** the same with two text actions, staying until acted on; only for something that waits on the user's consent (“Update ready · Restart · Later”).
 - **Partial undo (proposed, Edit session):** when an undo applies only partly (`UndoOutcome::Partial`), a toast with normal timing plus a `warning-tint` notice at the top of the History tab until the next edit, since a toast is never the only place.
@@ -1093,7 +1095,7 @@ From the Comment toolbar: 28 high, padding `0 10px`, gap 6, radius 4, 16 px icon
 
 In `@laminapdf/ui`: `PageAppearanceChips`.
 
-From the style tile: 4-column grid gap 10; chip padding 8, gap 8, radius 6; preview 52 high, radius 3, "Aa" in Source Serif 4 20 px on the appearance's paper and ink; selected chip white with a 2 px `accent` border and a 13/600 label, others `surface` with `chip-border` and 13/400. `role="group"` + `aria-pressed`.
+From the style tile: 4-column grid gap 10; chip padding 8, gap 8, radius 6; preview 52 high, radius 3, "Aa" in Source Serif 4 20 px on the appearance's paper and ink; selected chip white with a 2 px `accent` border and a 13/600 label, others `surface` with `chip-border` and 13/400. Hover and pressed lay their layer over a chip, selected or not. `role="group"` + `aria-pressed`.
 
 **Theme chips (proposed):** the same anatomy with a 52 px preview of the chrome ground and a small white page; Match system splits light and dark.
 
@@ -1105,7 +1107,7 @@ From the style tile: 4-column grid gap 10; chip padding 8, gap 8, radius 6; prev
 
 ### 7.26 Menu
 
-In `@laminapdf/ui`: `Menu` with `MenuTrigger`, and `Popover` with `PopoverTrigger` for the popover dialog. **Deviations (U6e):** menus and popovers draw in the z-order's popover layer (50), above whatever opened them, rather than z 30. A disabled item is skipped by the arrow keys, as React Aria's menu does, and shows its reason as a second line, linked with `aria-describedby`; a tooltip on an item the keyboard can't reach would be unreadable. The popover dialog follows React Aria's popovers: while open it is modal, so the page behind is hidden from assistive technology and holds still, and a click outside closes it.
+In `@laminapdf/ui`: `Menu` with `MenuTrigger`, and `Popover` with `PopoverTrigger` for the popover dialog. **Deviations (U6e):** menus and popovers draw in the z-order's popover layer (50), above whatever opened them, rather than z 30. A disabled item is skipped by the arrow keys, as React Aria's menu does, and shows its reason as a second line, linked with `aria-describedby`; a tooltip on an item the keyboard can't reach would be unreadable. The popover dialog follows React Aria's popovers: while open it is modal, so the page behind is hidden from assistive technology and holds still, and a click outside closes it. **Motion:** menus and popovers fade in over 120 ms, growing from 0.97 at their anchor, and fade out over 80 ms; while they fade out, clicks reach what is under them.
 
 One menu for every lamina-drawn menu: toolbar menus (Shapes, Insert, Form data, Filter), More menus, the More tabs menu, context menus and the tab overflow menu. Native menus (the macOS menu bar, Windows and Linux menu bars) are drawn by the OS; the desktop boards only sketch them.
 
@@ -1120,7 +1122,7 @@ One menu for every lamina-drawn menu: toolbar menus (Shapes, Insert, Form data, 
 
 ### 7.27 Tooltip and link preview
 
-In `@laminapdf/ui`: `Tooltip` and `LinkPreview`, in the popover layer.
+In `@laminapdf/ui`: `Tooltip` and `LinkPreview`, in the popover layer. **Motion:** both fade in over 120 ms, growing from 0.97 at their anchor, and fade out over 80 ms; while they fade out, clicks reach what is under them.
 
 - **Tooltip:** `surface`, `chip-border` edge, radius 6, floating shadow, 12 px text plus a shortcut chip, 6 px below the control; `role="tooltip"`; shown on hover after 500 ms and on keyboard focus; hoverable; Escape dismisses.
 - **Link preview:** popover (z 30) at least 248 px (`link-preview-width`), `surface`, `chip-border`, radius 6, floating shadow, padding 12, gap 10: a crop of the destination (thumbnail shadow) over the destination's title (Newsreader 15/500) and a 12 `muted` line (“Link to page 11 · Enter to go”). A destination with no point gets a 224 × 92 px crop of the page's top (`link-preview-crop-width`, `-height`). One with a point (a citation) gets a crop from that point across its text column, at the reader's zoom clamped to 100–150 %, up to 480 × 180 px (`link-preview-crop-max-width`). Under the link, above it when there is no room. Shown after 300 ms on hover or focus; `role="tooltip"` named by the link's `aria-describedby`, hoverable, Escape dismisses. On touch, a long-press opens it as a medium sheet with **Go to page 11** instead.

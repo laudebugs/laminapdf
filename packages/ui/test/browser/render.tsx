@@ -34,6 +34,22 @@ export function renderIn(element: ReactElement, { theme = "light", dir = "ltr", 
 
 const roots: Root[] = [];
 
+/**
+ * Waits for every running animation and transition on the page to finish: overlays fade in, so
+ * axe measures their contrast once they have, and a box is measured at rest.
+ */
+export async function settled(): Promise<void> {
+  // Two frames first: React Aria drops data-entering a frame after an overlay mounts, and only
+  // then does its fade start.
+  for (let i = 0; i < 2; i++) await new Promise(requestAnimationFrame);
+  // An endless animation (an indeterminate progress bar) never finishes: only those that end.
+  const ending = document
+    .getAnimations()
+    .filter((a) => a.effect?.getComputedTiming().endTime !== Number.POSITIVE_INFINITY);
+  // A cancelled animation (its target changed) rejects: it has stopped all the same.
+  await Promise.all(ending.map((a) => a.finished.catch(() => undefined)));
+}
+
 /** Unmounts every rendered element, so overlays undo what they did to the page, then removes the hosts. */
 export function cleanup(): void {
   for (const root of roots.splice(0)) flushSync(() => root.unmount());

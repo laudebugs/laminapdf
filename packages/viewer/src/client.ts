@@ -23,6 +23,7 @@ import {
   type Op,
   type PlannedSave,
   type SaveOptions,
+  type Violation,
   type XmpText,
 } from "@laminapdf/sdk";
 import {
@@ -151,6 +152,7 @@ export type ViewerEngine = Pick<
   | "goToStep"
   | "editHistory"
   | "planSave"
+  | "wouldViolate"
   | "copyEdits"
   | "adoptEdits"
 >;
@@ -414,6 +416,15 @@ export class ViewerClient {
   async planSave(options: SaveOptions, call?: ViewerCallOptions): Promise<PlannedSave> {
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
     return this.call("planSave", [options, this.#document?.id ?? 0], call);
+  }
+
+  /**
+   * What saving the open document with `ops` applied would break, before they apply: each
+   * signature restriction they violate, so a page edit a signature forbids can be refused first.
+   */
+  async wouldViolate(ops: readonly Op[], call?: ViewerCallOptions): Promise<Violation[]> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("wouldViolate", [ops, this.#document?.id ?? 0], call);
   }
 
   /**

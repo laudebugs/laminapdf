@@ -30,6 +30,15 @@ pub enum DesktopError {
     /// The file is open already: its tab was shown instead of opening it again.
     #[error("the file is open already")]
     AlreadyOpen,
+    /// An administrator, an MSI install or the package manager decides the app's updates.
+    #[error("updates are managed for this install")]
+    UpdatesManaged,
+    /// The channel can't be chosen: Stable before its first release, or any switch on a nightly.
+    #[error("that update channel isn't available")]
+    ChannelUnavailable,
+    /// Restart to update was asked for with no update downloaded.
+    #[error("no update is ready to install")]
+    UpdateNotReady,
     /// The window is printing already: one print per window at a time.
     #[error("this window is printing already")]
     AlreadyPrinting,
@@ -49,6 +58,9 @@ impl DesktopError {
             Self::UnknownDocument => "unknown-document",
             Self::UnknownWindow => "unknown-window",
             Self::AlreadyOpen => "already-open",
+            Self::UpdatesManaged => "updates-managed",
+            Self::ChannelUnavailable => "channel-unavailable",
+            Self::UpdateNotReady => "update-not-ready",
             Self::AlreadyPrinting => "already-printing",
             Self::Internal(_) => "internal",
         }

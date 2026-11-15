@@ -10,6 +10,7 @@ import { CommandRegistry } from "../src/commands/registry.ts";
 import type { CommandContext, CommandId } from "../src/commands/types.ts";
 import type { KeyPlatform } from "../src/components/shortcut-chip.tsx";
 import type { EditControls } from "../src/edit/edit-controls.ts";
+import { registerOrganiseCommands } from "../src/organise/commands.ts";
 import type { Platform } from "../src/platform/types.ts";
 import type { ViewerControls } from "../src/reader/viewer-controls.ts";
 import type { ExternalStore } from "../src/state/hooks.ts";
@@ -26,6 +27,8 @@ export interface CommandsSetup {
   readonly actions?: Partial<Record<CommandId, (args: unknown) => void>>;
   /** An edit session: the edit commands join the reader's. */
   readonly edits?: EditControls;
+  /** The Organise mode's page commands join too. */
+  readonly organise?: boolean;
 }
 
 /** A registry with the reader's commands, and the context the setup describes. */
@@ -34,6 +37,7 @@ export function readerCommandsFor(setup: CommandsSetup = {}): { registry: Comman
   registerReaderCommands(registry);
   registerDesktopCommands(registry);
   if (setup.edits !== undefined) registerEditCommands(registry);
+  if (setup.organise === true) registerOrganiseCommands(registry);
   const { reader } = setup;
   const context: CommandContext = {
     platform: setup.platform ?? fakePlatform(),

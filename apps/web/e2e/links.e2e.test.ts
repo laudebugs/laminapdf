@@ -177,7 +177,7 @@ describe(`links and history in ${BROWSER}`, () => {
     }
     expect(dialogs).toBe(0);
     expect(page.url()).toBe(before);
-    expect(await page.getByRole("dialog").count()).toBe(0);
+    await expect.poll(() => page.getByRole("dialog").count()).toBe(0);
     await page.close();
   });
 

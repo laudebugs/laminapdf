@@ -1,6 +1,6 @@
 Lamina PDF
   (About)
-  Check for updates… (disabled)  <later:Check for updates…>
+  Check for updates… (disabled)  <cmd:app.check-for-updates>
   ---
   Settings… [Cmd+Comma]  <cmd:app.settings>
   ---

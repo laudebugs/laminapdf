@@ -361,8 +361,10 @@ export interface DispatcherOptions {
 export function shortcutDispatcher(options: DispatcherOptions): (event: KeyboardEvent) => void {
   return (event) => {
     if (event.defaultPrevented || event.isComposing) return;
-    // A modal (the palette, a dialog) has the keys; nothing runs behind it.
-    if (event.target instanceof Element && event.target.closest('[aria-modal="true"]') !== null) return;
+    // A modal (the palette, a dialog) has the keys; nothing runs behind it. A modal playing its exit
+    // (data-exiting) has let them go already, though focus stays in it until it leaves the page.
+    const modal = event.target instanceof Element ? event.target.closest('[aria-modal="true"]') : null;
+    if (modal !== null && modal.closest("[data-exiting]") === null) return;
     const ctx = options.context();
     const found = boundCommand(options, ctx, event);
     if (found === undefined || !allowed(options, event, found.binding)) return;

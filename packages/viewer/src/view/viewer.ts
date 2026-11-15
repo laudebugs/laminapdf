@@ -386,6 +386,13 @@ export class Viewer {
    * host ignores scrolling): the top of a new document, or a kept position.
    */
   #pending: ViewPosition | "top" | undefined;
+  /**
+   * Where a shown view was when its host was hidden (an app mode over it): it goes back there, with
+   * no history entry, once it has a size again, unless something sent it elsewhere meanwhile.
+   */
+  #kept: HistoryPlace | undefined;
+  /** The place at the last frame drawn with a size, which `#kept` takes when the host hides. */
+  #lastPlace: HistoryPlace | undefined;
   #state: ViewState;
   #frame: number | undefined;
   #settling: ReturnType<typeof setTimeout> | undefined;
@@ -518,8 +525,11 @@ export class Viewer {
     this.#layout = undefined;
     this.#root.scrollTop = 0;
     this.#root.scrollLeft = 0;
-    // A hidden view keeps its old scroll: the new document starts at its top once it shows.
+    // A hidden view keeps its old scroll: the new document starts at its top once it shows. The
+    // last document's place goes, so a view hidden before its first frame doesn't return there.
     this.#pending = this.#sized() ? undefined : "top";
+    this.#kept = undefined;
+    this.#lastPlace = undefined;
     this.#relayout(this.#viewport());
     this.#schedule();
   }
@@ -591,6 +601,7 @@ export class Viewer {
 
   /** Scrolls page `index` to the top of the viewport (or its centre). */
   goToPage(index: number, options: { readonly anchor?: "top" | "center" } = {}): void {
+    this.#arrive();
     this.#touch.stopMomentum();
     const layout = this.#layout;
     if (layout === undefined || layout.pageCount === 0) return;
@@ -609,6 +620,7 @@ export class Viewer {
    * viewport's top-left, or its page's top when it names no point (ISO 32000-2 §12.3.2.2).
    */
   goToDestination(target: Target): void {
+    this.#arrive();
     this.#touch.stopMomentum();
     const size = this.#sizes[target.page];
     if (this.#layout === undefined || size === undefined) return;
@@ -944,6 +956,7 @@ export class Viewer {
 
   /** Puts the view back at a history `place`: its zoom, then its point a gap below the viewport's top-left. */
   #show(place: HistoryPlace): void {
+    this.#arrive();
     this.#touch.stopMomentum();
     if (place.zoom !== this.#zoom) {
       this.#zoom = place.zoom;
@@ -1025,7 +1038,8 @@ export class Viewer {
       this.#ids,
       order.map((page) => page.id),
     );
-    const top = this.#place();
+    // A hidden view has no place of its own: its kept one moves instead (below).
+    const top = this.#sized() ? this.#place() : undefined;
     this.#unmountAll();
     this.#cache.remap(moves.to, viewKeyAt);
     this.#revisions = movedKeys(this.#revisions, moves);
@@ -1034,6 +1048,8 @@ export class Viewer {
     const pending = this.#pending;
     if (pending !== undefined && pending !== "top")
       this.#pending = { ...pending, point: movedPoint(moves, pending.point) };
+    const kept = this.#kept;
+    if (kept !== undefined) this.#kept = { ...kept, point: movedPoint(moves, kept.point) };
     this.#ids = order.map((page) => page.id);
     this.#sizes = order.map((page) => ({ width: page.width, height: page.height }));
     // The current page first: a fit zoom fits it, and find starts a search under way from it.
@@ -1127,6 +1143,16 @@ export class Viewer {
   }
 
   /** Whether the view has a size (it is in a shown container), so it can scroll. */
+  /**
+   * A jump as a hidden view shows again (before its resize is seen): it goes where the jump says,
+   * not to its kept place, laid out for its size first, since edits while hidden laid it out for none.
+   */
+  #arrive(): void {
+    if (this.#kept === undefined) return;
+    this.#kept = undefined;
+    if (this.#sized()) this.#relayout(this.#viewport());
+  }
+
   #sized(): boolean {
     return this.#root.clientWidth > 0 && this.#root.clientHeight > 0;
   }
@@ -1277,6 +1303,8 @@ export class Viewer {
   #update(): void {
     const layout = this.#layout;
     if (layout === undefined || layout.pageCount === 0 || this.#destroyed) return;
+    // A hidden view draws nothing; it is placed again once it shows (#listenResize).
+    if (this.#kept !== undefined && !this.#sized()) return;
     // Reads.
     const frame: Frame = {
       layout,
@@ -1290,6 +1318,7 @@ export class Viewer {
     // Writes.
     this.#placeShells(frame, first, last);
     this.#focusJumpTarget();
+    if (frame.width > 0 && frame.height > 0) this.#lastPlace = this.#place();
     this.#setState({
       currentPage: layout.pageAt(frame.top + frame.height / 2),
       scrollTop: frame.top,
@@ -2018,8 +2047,18 @@ export class Viewer {
   #listenResize(): void {
     const resize = new ResizeObserver(() => {
       if (this.#layout === undefined) return;
-      if (this.#pending !== undefined && this.#sized()) {
+      // Hidden: no fit to a zero width; the view keeps its place for when it shows.
+      if (!this.#sized()) {
+        if (this.#pending === undefined) this.#kept ??= this.#lastPlace;
+        return;
+      }
+      if (this.#pending !== undefined) {
         this.#showPending(this.#pending);
+        return;
+      }
+      const kept = this.#kept;
+      if (kept !== undefined) {
+        this.#show(kept);
         return;
       }
       if (typeof this.#zoom === "string") this.#rezoom(undefined);

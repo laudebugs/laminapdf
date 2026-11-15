@@ -59,6 +59,11 @@ export interface ReaderTopBarProps<Id extends string> {
    * is open; left out, the bar is the reader's.
    */
   editArea?: ReactNode;
+  /**
+   * The mode switcher (§7.2) between the file area and the tools, while more than one mode is
+   * registered: the editor's lazily loaded part gives it once a document is open.
+   */
+  modeArea?: ReactNode;
   /** The file area without a document: the wordmark, or Back. "No document open" when left out. */
   home?: ReactNode;
   /** A `DebugMenu`, which the shell shows only for `#debug`. */
@@ -207,6 +212,7 @@ function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNo
         <FileArea state={state} isLoading={props.isLoading === true} home={props.home} closable />
         {props.editArea}
       </div>
+      {props.modeArea}
       <div className="paper-top-bar-tools">
         {state.phase === "needs-password" ? <LockedPageInput /> : null}
         {viewer === undefined || state.phase !== "open" || props.readerMode === true ? null : (

@@ -281,9 +281,21 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 
 **Platform differences.** Web: identical except outputs (extract and export download a file or a zip) and no drop from the OS onto the window icon; Windows/Linux use `Ctrl` chips and the Delete key. Phone: O17. Tablet: the same grid with 44 px targets; long-press starts a drag, and the bottom action bar holds Rotate, Move to…, Duplicate, Delete, More.
 
+**As built (web, E2h).** The grid is the `listbox` recommended above: React Aria's `ListBox` in its grid layout, with multiple selection. Tiles are `option`s named “Page 5”. Only the tiles near the view are rendered (React Aria's virtualizer), so a selection or a move re-renders a screenful, not every page. The viewer stays under the grid, hidden, and keeps its place for Read; Enter or a double-click on a tile opens that page there. Differences from the boards:
+
+- The toolbar has what this round's commands can do: Insert ▾ (Blank pages… only) · Rotate left · Rotate right · Delete │ Move to page… │ More page actions (Duplicate pages · Reverse page order · Select all pages), then the note and the thumbnail size control at its end. Extract, Page setup ▾, Bookmark ▾ and the documents entries wait for [E2m](../../todos/ready/E2m-document-dialogs.md) and [E2g](../../todos/ready/E2g-page-labels.md). The top bar keeps its page-number input. The thumbnail size isn't remembered between visits yet.
+- The rail keeps Read's tabs.
+- The inspector has the title, Rotation, Size and Page labels, with Duplicate pages and Delete; no section context, and no “Linked from” line, which needs a reference count per page that the reader doesn't read yet.
+- The page menu has Insert blank page before and after, Rotate left and right, Duplicate, Move to page… and Delete page (last); the entries for other todos' dialogs are left out.
+- The signed-page question names the page, not the signer: the save planner's signatures don't carry a signer's name. It offers “Delete page 23 anyway” (or Rotate) and Cancel (focused); Remove signature… waits for [E2i](../../todos/ready/E2i-signed-gating-and-close.md).
+- The certification banner reads “Changing pages would invalidate the certification. Nothing has been changed.” with Apply anyway… and a close button; Apply anyway… applies the change as one undo step without a second confirmation, and Save a copy and Details wait for E2i.
+- The delete toast counts what pointed at the deleted pages as “links or bookmarks” (bookmarks, links, named destinations and the opening view together).
+- Deleting every page is refused with a toast. Tiles are white until their picture arrives, with no text-line placeholder.
+- Toolbar actions that need a selection stay enabled without one and do nothing then. With several pages selected, the signed-page question names the first of them: a violation names the signature's field, not its page.
+
 **Artboards:** `O06-organise.dc.html` (drag with insertion bar), `O06-organise-menu.dc.html` (page context menu), `O06-move-dialog.dc.html` (Move to page…, 440 px), `O06-delete-signed.dc.html` (approval signature, 560 px).
 
-**Todos:** [E2h](../../todos/ready/E2h-page-organiser-ui.md), [E2b](../../todos/done/E2b-page-structure-ops.md).
+**Todos:** [E2h](../../todos/done/E2h-page-organiser-ui.md), [E2b](../../todos/done/E2b-page-structure-ops.md).
 
 ## O07 Insert pages and merge documents
 
