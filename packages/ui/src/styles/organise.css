@@ -1,5 +1,6 @@
 /* The Organise mode (Paper O06): its toolbar under the top bar; the page grid on the gutter, tiles
-   132 × 171 at 100% (--paper-organise-tile-size the long side) (landscape 171 × 132) with the page number under each; a selected tile on
+   132 × 171 at 100% (landscape 171 × 132; page-grid.tsx lays them out, as the virtualizer needs
+   sizes in pixels) with the page number under each; a selected tile on
    accent-tint with a 2 px accent outline on its page, a check badge and its number in 600; a
    dragged tile at 55%; a 2 px accent insertion bar with end dots between tiles; and the drag's
    ghost, a two-page stack with the count. */
@@ -49,16 +50,13 @@
 
   .paper-page-grid {
     block-size: 100%;
-    overflow: auto;
     background: var(--paper-gutter);
   }
 
+  /* The scroller: the virtualizer places the tiles and the drop bars inside it, and sizes them. */
   .paper-page-grid-list {
-    display: flex;
-    flex-wrap: wrap;
-    align-content: flex-start;
-    gap: var(--paper-space-16);
-    padding: var(--paper-space-24);
+    block-size: 100%;
+    overflow: auto;
     outline: none;
   }
 
@@ -67,7 +65,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-end;
-    inline-size: calc(var(--paper-organise-tile-size) * var(--grid-scale, 1) + 2 * var(--paper-space-10));
+    box-sizing: border-box;
     padding: var(--paper-space-8) var(--paper-space-10);
     border-radius: var(--paper-radius-6);
     cursor: default;
@@ -151,15 +149,17 @@
   /* The insertion bar between tiles: 2 px accent with a dot at each end. */
   .paper-page-grid-drop {
     position: relative;
-    align-self: stretch;
-    inline-size: 0;
-    margin-inline: calc(-1 * var(--paper-space-8));
+    block-size: 100%;
     outline: none;
   }
 
+  /* The virtualizer clips each indicator's box to the bar's 2 px; the end dots reach past it. */
+  [role="presentation"]:has(> .paper-page-grid-drop) {
+    /* biome-ignore lint/complexity/noImportantStyles: only !important outranks the virtualizer's inline overflow. */
+    overflow: visible !important;
+  }
+
   .paper-page-grid-drop[data-drop-target] {
-    inline-size: var(--paper-focus-ring-width);
-    margin-inline: calc(-1 * var(--paper-space-8) - var(--paper-border-width));
     background: var(--paper-accent);
   }
 

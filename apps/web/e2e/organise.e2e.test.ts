@@ -6,11 +6,11 @@
 // order, with the turned page at 90°. No CSP violation or other origin throughout.
 
 import { readFileSync } from "node:fs";
-import { Document, init } from "@laminapdf/sdk";
+import { Builder, Document, init } from "@laminapdf/sdk";
 import type { Browser, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { BROWSER, launch } from "./browser.ts";
-import { clean, load } from "./reader.ts";
+import { clean, load, serious } from "./reader.ts";
 
 const origin = inject("origin");
 const FILE = new URL("../../../fixtures/golden/examples/flowing_report.pdf", import.meta.url);
@@ -32,9 +32,27 @@ const NO_PICKERS = {
  */
 const OFF_CENTRE = { x: 20, y: 30 };
 
+/** A file of `count` A4 pages, each with a shape that moves from page to page. */
+function manyPages(count: number): Buffer {
+  using b = new Builder();
+  for (let i = 0; i < count; i++) {
+    const page = b.page("A4");
+    page
+      .surface()
+      .fillColor([(i % 10) / 10, 0.4, 0.6])
+      .path((p) => p.rect([56 + (i % 20) * 20, 56 + (i % 30) * 20, 160, 100]))
+      .fill();
+    page.finish();
+  }
+  using doc = b.finish();
+  return Buffer.from(doc.save());
+}
+
 /** The grid's page IDs, in order. */
 function order(page: Page): Promise<string[]> {
-  return page.locator(".paper-page-tile").evaluateAll((tiles) => tiles.map((t) => (t as HTMLElement).dataset.pageId ?? ""));
+  return page
+    .locator(".paper-page-tile")
+    .evaluateAll((tiles) => tiles.map((t) => (t as HTMLElement).dataset.pageId ?? ""));
 }
 
 /** Waits until the top bar counts `count` unsaved changes. */
@@ -205,5 +223,100 @@ describe(`organising pages in ${BROWSER}`, () => {
     await expect.poll(() => notice.count()).toBe(1);
     expect(await again.page.locator(".paper-top-bar-save-state").textContent()).not.toMatch(/unsaved/);
     await clean(again);
+  });
+
+  it("reorders with the keyboard alone, and passes axe in the grid and its dialogs", async () => {
+    const watched = await load(browser, origin, "/", NO_PICKERS, {
+      ignoreHTTPSErrors: true,
+      viewport: { width: 1400, height: 900 },
+      bypassCSP: true,
+    });
+    const { page } = watched;
+    await organise(page, FILE);
+    const before = await order(page);
+    expect(await serious(page)).toEqual([]);
+
+    // Focus goes into the grid on page 1; the arrow keys choose page 3 and ⇧ + the arrows widen
+    // the choice to page 4; ⌘⇧→ (Ctrl+Shift+→) moves both one on.
+    await page.locator(".paper-page-tile").first().focus();
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("Shift+ArrowRight");
+    await expect.poll(() => page.locator(".paper-organise-note").textContent()).toBe("2 pages selected");
+    await page.keyboard.press("ControlOrMeta+Shift+ArrowRight");
+    await unsaved(page, 1);
+    const after = [...before.slice(0, 2), before[4], before[2], before[3], ...before.slice(5)];
+    await expect.poll(() => order(page)).toEqual(after);
+    // Focus stays with the moved pages, so the next move takes them on again.
+    await page.keyboard.press("ControlOrMeta+Shift+ArrowLeft");
+    await unsaved(page, 2);
+    await expect.poll(() => order(page)).toEqual(before);
+    expect(await serious(page)).toEqual([]);
+
+    await page.keyboard.press("Shift+F10");
+    await page.getByRole("menu").waitFor();
+    // A menu item's shortcut chip describes it, which axe's experimental
+    // label-content-name-mismatch doesn't allow for (as in a11y.e2e.test.ts's palette).
+    expect(await serious(page, ["label-content-name-mismatch"])).toEqual([]);
+    await page.keyboard.press("Escape");
+    // Enter on one of the menu's items runs it (it isn't the grid's Enter, which opens a page).
+    await page.keyboard.press("Shift+F10");
+    await page.getByRole("menuitem", { name: "Insert blank page after" }).waitFor();
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Enter");
+    await unsaved(page, 3);
+    await expect.poll(async () => (await order(page)).length).toBe(before.length + 1);
+    expect(await page.locator(".web-organise").count()).toBe(1);
+    await page.getByRole("button", { name: "Move to page…" }).click();
+    await page.getByRole("dialog").waitFor();
+    expect(await serious(page)).toEqual([]);
+    await page.keyboard.press("Escape");
+    await clean(watched);
+  });
+
+  // The C3 harness's rule (web-app §4): no task over 50 ms while the page answers a gesture, here
+  // from the drag's start to its drop. The edit's answer, which re-renders the reader around the
+  // grid, gets twice that, for slower machines than the one the 50 ms was measured on. Long tasks
+  // are Chromium's alone.
+  it.skipIf(BROWSER !== "chromium")("drags a page across 200 thumbnails with no long task", async () => {
+    const watched = await load(browser, origin, "/", NO_PICKERS, {
+      ignoreHTTPSErrors: true,
+      viewport: { width: 1400, height: 900 },
+    });
+    const { page } = watched;
+    const chooser = page.waitForEvent("filechooser");
+    await page.getByRole("button", { name: "Choose a file" }).click();
+    await (await chooser).setFiles({ name: "200-pages.pdf", mimeType: "application/pdf", buffer: manyPages(200) });
+    await page.locator(".web-viewer canvas").first().waitFor({ timeout: 30_000 });
+    await page.getByRole("button", { name: "Organise", exact: true }).click();
+    // Only the tiles near the view are in the page (the grid is virtualized).
+    await page.locator(".paper-page-tile").nth(8).waitFor();
+    const before = await order(page);
+    await pick(page, 0);
+    // Let the first thumbnails draw, then watch for long tasks through the drag and its edit.
+    await page.waitForTimeout(1500);
+    await page.evaluate(() => {
+      const log: { tasks: [number, number][]; drag: number[] } = { tasks: [], drag: [] };
+      (window as unknown as { __long: typeof log }).__long = log;
+      new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) log.tasks.push([entry.startTime, entry.duration]);
+      }).observe({ type: "longtask" });
+      for (const type of ["dragstart", "drop"])
+        document.addEventListener(type, () => log.drag.push(performance.now()), true);
+    });
+    await drag(page, 0, 8);
+    await unsaved(page, 1);
+    await expect.poll(async () => (await order(page))[8]).toBe(before[0]);
+    await page.waitForTimeout(500);
+    const {
+      tasks,
+      drag: [start = 0, drop = Number.POSITIVE_INFINITY],
+    } = await page.evaluate(
+      () => (window as unknown as { __long: { tasks: [number, number][]; drag: number[] } }).__long,
+    );
+    const during = tasks.filter(([at, length]) => at + length > start && at < drop);
+    expect(during).toEqual([]);
+    expect(tasks.filter(([, length]) => length > 100)).toEqual([]);
+    await clean(watched);
   });
 });

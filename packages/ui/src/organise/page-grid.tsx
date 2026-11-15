@@ -10,17 +10,22 @@
 // its page's `drawn` key changes.
 
 import { Icon } from "@laminapdf/icons/react";
-import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { COMPONENT, SPACE } from "@laminapdf/tokens";
+import { type KeyboardEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   Menu as AriaMenu,
   Popover as AriaPopover,
   DropIndicator,
+  GridLayout,
   ListBox,
   ListBoxItem,
   type Selection,
+  Size,
   useDragAndDrop,
+  Virtualizer,
 } from "react-aria-components";
 import type { KeyPlatform } from "../components/shortcut-chip.js";
+import { laterMessage } from "../later-messages.js";
 import { LayerScope } from "../overlays/layers.js";
 import { type MenuEntry, menuItem } from "../overlays/popover.js";
 import { stepGap } from "./moves.js";
@@ -48,7 +53,7 @@ export interface PageGridProps<Id extends string> {
   readonly selected: ReadonlySet<string>;
   readonly onSelectionChange: (ids: Set<string>) => void;
   /** Draws page `index`'s picture into `canvas`, sized to the tile in device pixels. */
-  readonly draw: (index: number, canvas: HTMLCanvasElement, signal: AbortSignal) => Promise<void>;
+  readonly draw: (id: string, canvas: HTMLCanvasElement, signal: AbortSignal) => Promise<void>;
   /** Moves the selected pages (indices, in order) to gap `gap` (moves.ts). */
   readonly onMove: (pages: readonly number[], gap: number) => void;
   /** Runs one of the grid's single-key commands on the selection. */
@@ -66,7 +71,7 @@ export interface PageGridProps<Id extends string> {
 }
 
 /** A portrait tile's page box at size 1 (O06): 132 × 171, a landscape one 171 × 132. */
-const TILE = { long: 171, short: 132 } as const;
+const TILE = { long: COMPONENT["organise-tile-size"], short: COMPONENT["organise-tile-short-size"] } as const;
 
 /** The page box of a tile for `page` at `scale`, in CSS px, its shape the page's. */
 function boxOf(page: GridPage, scale: number): { width: number; height: number } {
@@ -77,46 +82,76 @@ function boxOf(page: GridPage, scale: number): { width: number; height: number }
   return { width: Math.round(page.width * fit), height: Math.round(page.height * fit) };
 }
 
+/** Room around a tile's page box: its padding (organise.css), and the number under it (CSS px). */
+const TILE_PADDING = { inline: 2 * SPACE["10"], block: 2 * SPACE["8"], number: SPACE["8"] + SPACE["16"] } as const;
+
+/** The grid's layout at `scale`: every cell a 100% tile's size, so portrait and landscape pages line up. */
+function gridLayout(scale: number) {
+  const size = new Size(
+    TILE.long * scale + TILE_PADDING.inline,
+    TILE.long * scale + TILE_PADDING.block + TILE_PADDING.number,
+  );
+  return {
+    minItemSize: size,
+    maxItemSize: size,
+    minSpace: new Size(SPACE["16"], SPACE["16"]),
+    preserveAspectRatio: true,
+  };
+}
+
 /** The grid of pages. */
 export function PageGrid<Id extends string>(props: PageGridProps<Id>): ReactNode {
   const { pages, selected, scale = 1 } = props;
   const list = useRef<HTMLDivElement>(null);
-  const [menuAt, setMenuAt] = useState<HTMLElement | undefined>(undefined);
+  // The menu's trigger outlives the menu: the popover still reads it while it closes.
+  const [menu, setMenu] = useState<{ at: HTMLElement | null; open: boolean }>({ at: null, open: false });
+  const setMenuAt = (at: HTMLElement) => setMenu({ at, open: true });
   const indexOf = (id: string) => pages.findIndex((p) => p.id === id);
   const dragAndDropHooks = usePageDrops(props, indexOf);
   const onKeyDown = (e: KeyboardEvent) => {
+    // React's events bubble through portals: keys pressed in the page menu are the menu's.
+    if (!(e.target instanceof Node && list.current?.contains(e.target))) return;
     if (gridKeyDown(e, props, list.current, setMenuAt, indexOf)) {
       e.preventDefault();
       e.stopPropagation();
     }
   };
   return (
-    <div className="paper-page-grid" onKeyDownCapture={onKeyDown} style={{ "--grid-scale": scale } as never}>
-      <ListBox
-        ref={list}
-        aria-label={props["aria-label"]}
-        layout="grid"
-        selectionMode="multiple"
-        selectionBehavior="replace"
-        items={pages}
-        selectedKeys={selected}
-        onSelectionChange={(keys: Selection) =>
-          props.onSelectionChange(keys === "all" ? new Set(pages.map((p) => p.id)) : new Set([...keys].map(String)))
-        }
-        onAction={(key) => {
-          const index = indexOf(String(key));
-          if (index >= 0) props.onOpen(index);
-        }}
-        dragAndDropHooks={dragAndDropHooks}
-        className="paper-page-grid-list"
-      >
-        {(page) => (
-          <ListBoxItem id={page.id} textValue={page.label} className="paper-page-tile" data-page-id={page.id}>
-            <Tile page={page} index={pages.indexOf(page)} scale={scale} draw={props.draw} onMenu={setMenuAt} />
-          </ListBoxItem>
-        )}
-      </ListBox>
-      <PageMenu {...props} at={menuAt} onClose={() => setMenuAt(undefined)} />
+    <div className="paper-page-grid" onKeyDownCapture={onKeyDown}>
+      {/* Only the tiles near the view are rendered: a selection or a move re-renders a screenful, not every page. */}
+      <Virtualizer layout={GridLayout} layoutOptions={gridLayout(scale)}>
+        <ListBox
+          ref={list}
+          aria-label={props["aria-label"]}
+          layout="grid"
+          selectionMode="multiple"
+          selectionBehavior="replace"
+          items={pages}
+          selectedKeys={selected}
+          onSelectionChange={(keys: Selection) =>
+            props.onSelectionChange(keys === "all" ? new Set(pages.map((p) => p.id)) : new Set([...keys].map(String)))
+          }
+          onAction={(key) => {
+            const index = indexOf(String(key));
+            if (index >= 0) props.onOpen(index);
+          }}
+          dragAndDropHooks={dragAndDropHooks}
+          className="paper-page-grid-list"
+        >
+          {(page) => (
+            <ListBoxItem
+              id={page.id}
+              textValue={page.label}
+              aria-label={laterMessage("organise.tile", { page: page.label })}
+              className="paper-page-tile"
+              data-page-id={page.id}
+            >
+              <Tile page={page} scale={scale} draw={props.draw} onMenu={setMenuAt} />
+            </ListBoxItem>
+          )}
+        </ListBox>
+      </Virtualizer>
+      <PageMenu {...props} at={menu.at} open={menu.open} onClose={() => setMenu({ at: menu.at, open: false })} />
     </div>
   );
 }
@@ -143,20 +178,24 @@ function usePageDrops<Id extends string>(props: PageGridProps<Id>, indexOf: (id:
 }
 
 /** The page menu, at the tile it opened on (a right-click or Shift+F10), for the selection. */
-function PageMenu<Id extends string>(props: PageGridProps<Id> & { at: HTMLElement | undefined; onClose: () => void }) {
+function PageMenu<Id extends string>(
+  props: PageGridProps<Id> & { at: HTMLElement | null; open: boolean; onClose: () => void },
+) {
   const { at, onClose } = props;
+  const trigger = useMemo(() => ({ current: at }), [at]);
   return (
     <AriaPopover
-      isOpen={at !== undefined}
+      isOpen={props.open}
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
-      {...(at === undefined ? {} : { triggerRef: { current: at } })}
+      triggerRef={trigger}
       placement="bottom start"
       className="paper-popover paper-menu-popover"
     >
       <LayerScope dismiss={onClose}>
         <AriaMenu
+          autoFocus="first"
           className="paper-menu"
           aria-label={props["aria-label"]}
           items={props.menu}
@@ -207,20 +246,19 @@ function selectedOf(props: { pages: readonly GridPage[]; selected: ReadonlySet<s
 /** One tile's picture, drawn once it nears the view and again when its page draws differently; and its number. */
 function Tile({
   page,
-  index,
   scale,
   draw,
   onMenu,
 }: {
   page: GridPage;
-  index: number;
   scale: number;
   draw: PageGridProps<string>["draw"];
   onMenu: (tile: HTMLElement) => void;
 }): ReactNode {
   const canvas = useRef<HTMLCanvasElement>(null);
   const box = boxOf(page, scale);
-  // What the picture shows: the page as drawn now, at this size. A change draws it again.
+  // What the picture shows: the page as drawn now, at this size. A change draws it again; a move,
+  // which changes only where the page is, doesn't.
   const picture = `${page.drawn}:${box.width}x${box.height}`;
   useEffect(() => {
     const element = canvas.current;
@@ -230,7 +268,7 @@ function Tile({
       (entries) => {
         if (!entries.some((e) => e.isIntersecting)) return;
         seen.disconnect();
-        draw(index, element, abort.signal).catch(() => undefined);
+        draw(page.id, element, abort.signal).catch(() => undefined);
       },
       { rootMargin: "50%" },
     );
@@ -239,7 +277,7 @@ function Tile({
       seen.disconnect();
       abort.abort();
     };
-  }, [draw, index, picture]);
+  }, [draw, page.id, picture]);
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: the option around it is the control; this opens its menu on a right-click.
     <span

@@ -408,11 +408,12 @@ export function OrganiseMode(props: OrganiseModeProps): ReactNode {
   const { controller, viewer, modes } = props;
   useOrganiseMode(controller, props.engine, modes, props.registry, props.keys);
   const current = useStoreState(modes, (s) => s.current === "organise");
-  // The viewer stays mounted under the grid, out of reach of keys and assistive technology.
+  // The viewer stays mounted under the grid, hidden: out of reach of keys and assistive technology,
+  // and drawing nothing while edits change its pages. It keeps its place for Read.
   useEffect(() => {
-    viewer.element.inert = current;
+    viewer.element.hidden = current;
     return () => {
-      viewer.element.inert = false;
+      viewer.element.hidden = false;
     };
   }, [viewer, current]);
   return current ? <OrganiseCanvas {...props} /> : <OrganiseDialogs controller={controller} engine={props.engine} />;
@@ -439,7 +440,9 @@ function OrganiseCanvas({ controller, engine, viewer, modes, keys }: OrganiseMod
     if (command === "delete") controller.delete();
     else controller.rotate(command === "rotate-right" ? 90 : -90);
   };
+  // The viewer shows again first: the jump needs its size.
   const open = (index: number) => {
+    viewer.element.hidden = false;
     modes.switchTo("read");
     viewer.goToPage(index);
   };
@@ -622,13 +625,15 @@ function CertifiedNotice({ controller }: { controller: OrganiseController }): Re
 }
 
 /**
- * Draws page `index` into a tile's canvas for the grid: rendered at the tile's size in device
+ * Draws page `id` into a tile's canvas for the grid: rendered at the tile's size in device
  * pixels, behind the pages in view, and drawn once it arrives unless the tile went away.
  */
 function thumbnailDrawer(engine: Engine) {
-  return async (index: number, canvas: HTMLCanvasElement, signal: AbortSignal): Promise<void> => {
+  return async (id: string, canvas: HTMLCanvasElement, signal: AbortSignal): Promise<void> => {
     const box = canvas.parentElement;
-    const page = engine.getState().pages[index];
+    const pages = engine.getState().pages;
+    const index = pages.findIndex((p) => p.id === id);
+    const page = pages[index];
     if (box === null || page === undefined) return;
     const ratio = globalThis.devicePixelRatio || 1;
     const width = Math.max(1, Math.round(box.clientWidth * ratio));

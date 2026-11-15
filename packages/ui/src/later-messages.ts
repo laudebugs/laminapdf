@@ -24,6 +24,7 @@ const EN = {
   "command.pages.move-to": "Move to page…",
   "command.pages.select-all": "Select all pages",
   "organise.grid": "Pages",
+  "organise.tile": "Page {page}",
   "organise.close": "Close",
   "organise.modes": "Mode",
   "mode.organise": "Organise",

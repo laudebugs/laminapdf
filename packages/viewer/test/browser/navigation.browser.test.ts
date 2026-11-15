@@ -25,6 +25,21 @@ function thousandPages(): Uint8Array {
   return bytes;
 }
 
+/** Thirteen pages of three sizes, so a refit to another width moves a scroll by more than it scales. */
+function mixedSizes(): Uint8Array {
+  const b = new Builder({ id: new TextEncoder().encode("lamina-e2h-mixed"), producer: "lamina tests" });
+  const sizes: [number, number][] = [
+    [612, 792],
+    [420, 595],
+    [842, 595],
+  ];
+  for (let i = 0; i < 13; i++) b.page(sizes[i % 3] as [number, number]).finish();
+  const doc = b.finish();
+  const bytes = doc.save();
+  doc.free();
+  return bytes;
+}
+
 const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
 /** Waits (frame by frame, up to `limit` frames) until `done()`. */
@@ -303,6 +318,46 @@ describe("a view opened while hidden", () => {
       // Its first page is drawn: the view was placed, not left waiting for a size.
       await until(() => viewer.getState().pageCount === next.pageCount && viewer.stats().pages[0] === "sharp");
     } finally {
+      viewer.destroy();
+      host.remove();
+    }
+  });
+
+  it("keeps its place while it is hidden, drawing nothing, and goes back there with no history entry", async () => {
+    // The reader hides the view under the Organise grid; a fit zoom must not refit to no width.
+    const host = box(800, 600, 170);
+    const viewer = createViewer({ client: rpc, zoom: "fit-width" });
+    viewer.mount(host);
+    const started: number[] = [];
+    const stop = rpc.on("render-start", ({ page }) => started.push(page));
+    try {
+      viewer.open(await rpc.open(mixedSizes()));
+      await frame();
+      viewer.goToPage(6);
+      await until(() => viewer.getState().currentPage === 6 && viewer.stats().pages[6] === "sharp");
+      const back = viewer.history.getState().back;
+      viewer.element.hidden = true;
+      await frame();
+      await frame();
+      started.length = 0;
+      viewer.invalidate([6]);
+      await frame();
+      await frame();
+      expect(started).toEqual([]);
+      viewer.element.hidden = false;
+      await until(() => viewer.getState().scrollTop > 0 && started.length > 0);
+      expect(viewer.getState().currentPage).toBe(6);
+      expect(viewer.getState().zoom).toBe("fit-width");
+      expect(viewer.history.getState().back).toEqual(back);
+      // A jump as it shows goes where the jump says.
+      viewer.element.hidden = true;
+      await frame();
+      await frame();
+      viewer.element.hidden = false;
+      viewer.goToPage(2);
+      await until(() => viewer.getState().currentPage === 2);
+    } finally {
+      stop();
       viewer.destroy();
       host.remove();
     }
