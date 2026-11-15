@@ -151,6 +151,7 @@ export type ViewerEngine = Pick<
   | "pageLinks"
   | "find"
   | "applyEdit"
+  | "createContentsPage"
   | "undoEdit"
   | "redoEdit"
   | "goToStep"

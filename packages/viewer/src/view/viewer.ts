@@ -12,7 +12,7 @@
 // and the events.
 
 import { type PageAppearance, type PixelRect, pagePixels } from "@laminapdf/render";
-import type { Op, PageInfo, Target } from "@laminapdf/sdk";
+import type { ContentsPlacement, Op, PageInfo, Target } from "@laminapdf/sdk";
 import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
 import type { ViewerCallOptions, ViewerClient, ViewerEngine } from "../client.js";
@@ -482,6 +482,7 @@ export class Viewer {
   #editSession(): EditSession {
     const edits = new EditSession({
       applyEdit: (ops, call) => this.applyEdit(ops, call),
+      createContentsPage: (placement, font, call) => this.createContentsPage(placement, font, call),
       undoEdit: () => this.#editCall(() => this.#client.undoEdit()),
       redoEdit: () => this.#editCall(() => this.#client.redoEdit()),
       goToStep: (position) => this.#editCall(() => this.#client.goToStep(position)),
@@ -787,6 +788,19 @@ export class Viewer {
    */
   applyEdit(ops: readonly Op[], options?: ViewerCallOptions & { readonly label?: string }): Promise<EditResult> {
     return this.#editCall(() => this.#client.applyEdit(ops, options));
+  }
+
+  /**
+   * Inserts a contents page made from the open document's bookmarks, laid out in `font`, through
+   * the client (`ViewerClient.createContentsPage`) and redraws: the new page appears where it was
+   * inserted.
+   */
+  createContentsPage(
+    placement: ContentsPlacement,
+    font: Uint8Array,
+    options?: ViewerCallOptions & { readonly label?: string },
+  ): Promise<EditResult> {
+    return this.#editCall(() => this.#client.createContentsPage(placement, font, options));
   }
 
   /** Runs an edit session call and redraws the pages it touched, unless another document opened meanwhile. */
