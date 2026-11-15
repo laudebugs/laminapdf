@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E4d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E4 plan §2.1](../../plans/editor/e4-markup-and-drawing-annotations.md#21-ops) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4b](../done/E4b-annotation-model-and-overlay.md) |
@@ -31,11 +31,11 @@ Ink, Square, Circle, Line (every `/LE` ending, leader lines), Polygon and PolyLi
 - Specs `Ink`, `Shape`, `Line` and `Poly`, their patches, and the generators
 - Ink: points thinned to 0.25 pt in `/InkList`, Bézier smoothing in the appearance, per-point widths under a private key named by ISO 32000-2 Annex E's rules, drawn as a varying outline
 - Every `/LE` style, leader lines, cloudy borders (`/BE`), and `/Rect` grown for stroke width, endings and clouds
-- `UpdateAnnot` patches that add or remove ink strokes (the eraser and joined strokes of [E4k](E4k-touch-and-stylus-annotating.md))
+- `UpdateAnnot` patches that add or remove ink strokes (the eraser and joined strokes of [E4k](../ready/E4k-touch-and-stylus-annotating.md))
 
 **Out of scope** (and which todo covers it)
 
-- The tools → [E4f](E4f-annotation-tools-ui.md); pressure capture → [E4k](E4k-touch-and-stylus-annotating.md)
+- The tools → [E4f](../ready/E4f-annotation-tools-ui.md); pressure capture → [E4k](../ready/E4k-touch-and-stylus-annotating.md)
 - Measurement lines (`/Measure`) → not planned in this round
 
 **Editor facts**
