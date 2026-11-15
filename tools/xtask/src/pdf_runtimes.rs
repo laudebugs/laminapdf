@@ -49,7 +49,7 @@ const HELLO_TARGET_MS: f64 = 5.0;
 const REPORT_TARGET_MS: f64 = 500.0;
 const WORKER_MEMORY_TARGET_BYTES: f64 = 64.0 * 1024.0 * 1024.0;
 
-const USAGE: &str = "usage: cargo xtask pdf-runtimes [node|chromium|firefox|webkit|deno|bun|workerd]… [--label <name>] [--history <dir> --runner <label> --record]";
+const USAGE: &str = "usage: cargo xtask pdf-runtimes [node|chromium|firefox|webkit|deno|bun|workerd]… [--suites <name,…>] [--label <name>] [--history <dir> --runner <label> --record]";
 
 /// What `cargo xtask pdf-runtimes` was asked to do; the default runs every runtime, recording nothing.
 #[derive(Debug, PartialEq, Eq)]
@@ -60,6 +60,32 @@ pub(crate) struct Args {
     label: Option<String>,
     history: Option<String>,
     runner: Option<String>,
+    /// The suites to run (`changes::suites::SUITES`' names, in that order); every suite when
+    /// `--suites` isn't given, as the nightly and release lanes run them (todo X12).
+    suites: Vec<&'static str>,
+}
+
+impl Args {
+    fn runs(&self, suite: &str) -> bool {
+        self.suites.contains(&suite)
+    }
+}
+
+/// Every suite's name, in the order a browser leg runs them.
+fn all_suites() -> Vec<&'static str> {
+    crate::changes::suites::SUITES.iter().map(|s| s.name).collect()
+}
+
+/// The suites `list` names (comma-separated), in [`all_suites`]' order.
+fn parse_suites(list: &str) -> Result<Vec<&'static str>> {
+    let mut asked = Vec::new();
+    for name in list.split(',').filter(|n| !n.is_empty()) {
+        asked.push(crate::changes::suites::by_name(name)?.name);
+    }
+    if asked.is_empty() {
+        bail!("--suites names no suite; {USAGE}");
+    }
+    Ok(all_suites().into_iter().filter(|s| asked.contains(s)).collect())
 }
 
 impl Default for Args {
@@ -69,6 +95,7 @@ impl Default for Args {
             label: None,
             history: None,
             runner: None,
+            suites: all_suites(),
         }
     }
 }
@@ -85,6 +112,7 @@ pub(crate) fn parse_args(args: &[String]) -> Result<Args> {
             "--record" => record = true,
             "--history" => parsed.history = Some(rest.next().context(USAGE)?.clone()),
             "--runner" => parsed.runner = Some(rest.next().context(USAGE)?.clone()),
+            "--suites" => parsed.suites = parse_suites(rest.next().context(USAGE)?)?,
             "--label" => {
                 let label = rest.next().context(USAGE)?;
                 // Not starting with '-', so `--label --record` can't take the flag as the label.
@@ -217,55 +245,64 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
 /// C4b): typechecked and built over the packages above, then its e2e suite against `wrangler dev`
 /// (headers, local files opened four ways, CSP violations and other origins), and the docs site's
 /// "Edit and run" (B7e: built, then its e2e suite), and the website (built, then its e2e suite: the
-/// cursor check over its pages, U7e). They record no measurements.
-fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
+/// cursor check over its pages, U7e). They record no measurements. Only the suites in
+/// `args.suites` run (`--suites`, todo X12), each its part of this list.
+fn render_suites(ws: &Workspace, browser: &str, args: &Args) -> Result<()> {
+    if args.suites.iter().all(|&s| s == "examples") {
+        return Ok(());
+    }
     crate::web::packages(ws)?;
-    for package in [
-        "@laminapdf/render-pdfium",
-        "@laminapdf/render-hayro",
-        "@laminapdf/viewer",
-        "@laminapdf/tokens",
-        "@laminapdf/fonts",
-        "@laminapdf/icons",
-        "@laminapdf/ui",
-        "@laminapdf/site-kit",
-        "@laminapdf/docs",
-    ] {
-        let mut args = vec!["--filter", package, "exec"];
-        args.extend(vitest(BROWSER_CONFIG, &[browser]));
-        crate::run(&ws.root, "pnpm", &args)?;
+    for suite in &crate::changes::suites::SUITES {
+        if !args.runs(suite.name) {
+            continue;
+        }
+        let e2e = || {
+            crate::run_env(
+                &ws.root,
+                "pnpm",
+                &["--filter", suite.package, "run", "e2e"],
+                &[("LAMINA_PDF_E2E_BROWSER", browser)],
+            )
+        };
+        let build = || crate::run(&ws.root, "pnpm", &["--filter", suite.package, "run", "build"]);
+        match suite.name {
+            "examples" => {}
+            "web" => {
+                // The reader imports the built viewer, so its typecheck runs here, after `wasm`,
+                // not in `check ts`.
+                crate::run(&ws.root, "pnpm", &["--filter", suite.package, "run", "typecheck:wasm"])?;
+                build()?;
+                // The app shell's startup JavaScript against its budget, on the build just made
+                // (the PR lane's size gate, todo C7c): bytes, not time, so it may fail a pull
+                // request (ADR 0018 §2).
+                crate::web::size(ws)?;
+                e2e()?;
+            }
+            "docs" => {
+                // The docs' diagrams in the browser, then "Edit and run" (B7e): its build makes
+                // the example runner from the same WebAssembly, then its e2e suite runs the six
+                // examples against `wrangler dev`, with the docs' cursor check and states (U7e).
+                vitest_browser(ws, suite.package, browser)?;
+                build()?;
+                e2e()?;
+            }
+            // The website's cursor check and states over its built pages, against `wrangler dev`
+            // (U7e).
+            "site" => {
+                build()?;
+                e2e()?;
+            }
+            _ => vitest_browser(ws, suite.package, browser)?,
+        }
     }
-    // The reader imports the built viewer, so its typecheck runs here, after `wasm`, not in `check ts`.
-    for script in ["typecheck:wasm", "build"] {
-        crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/web", "run", script])?;
-    }
-    // The app shell's startup JavaScript against its budget, on the build just made (the PR lane's
-    // size gate, todo C7c): bytes, not time, so it may fail a pull request (ADR 0018 §2).
-    crate::web::size(ws)?;
-    crate::run_env(
-        &ws.root,
-        "pnpm",
-        &["--filter", "@laminapdf/web", "run", "e2e"],
-        &[("LAMINA_PDF_E2E_BROWSER", browser)],
-    )?;
-    // The docs site's "Edit and run" (B7e): its build makes the example runner from the same
-    // WebAssembly, then its e2e suite runs the six examples against `wrangler dev`, with the
-    // docs' cursor check and states (U7e).
-    crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/docs", "run", "build"])?;
-    crate::run_env(
-        &ws.root,
-        "pnpm",
-        &["--filter", "@laminapdf/docs", "run", "e2e"],
-        &[("LAMINA_PDF_E2E_BROWSER", browser)],
-    )?;
-    // The website's cursor check and states over its built pages, against `wrangler dev` (U7e).
-    crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/site", "run", "build"])?;
-    crate::run_env(
-        &ws.root,
-        "pnpm",
-        &["--filter", "@laminapdf/site", "run", "e2e"],
-        &[("LAMINA_PDF_E2E_BROWSER", browser)],
-    )
+    Ok(())
+}
+
+/// A package's browser tests (its [`BROWSER_CONFIG`]) in `browser`.
+fn vitest_browser(ws: &Workspace, package: &str, browser: &str) -> Result<()> {
+    let mut args = vec!["--filter", package, "exec"];
+    args.extend(vitest(BROWSER_CONFIG, &[browser]));
+    crate::run(&ws.root, "pnpm", &args)
 }
 
 /// Runs `pnpm --filter @laminapdf/sdk exec <args>`, echoing its stdout as it comes, and returns it.
@@ -319,43 +356,53 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
     let mut results = RuntimeResults::default();
     for &runtime in &args.runtimes {
         let mut example_passed = false;
+        let examples = args.runs("examples");
+        let browser = matches!(runtime, "chromium" | "firefox" | "webkit");
         let result = (|| -> Result<Vec<Measurement>> {
-            if matches!(runtime, "chromium" | "firefox" | "webkit") {
+            if !examples && !browser {
+                // The server runtimes run the examples alone.
+                step(&format!("pdf-runtimes: {runtime} has no suite among {:?}", args.suites));
+                return Ok(Vec::new());
+            }
+            if browser {
                 crate::run(
                     &ws.root,
                     "pnpm",
                     &["--filter", "@laminapdf/sdk", "exec", "playwright", "install", runtime],
                 )?;
             }
-            if runtime == "node" {
-                // The Node suite's compare-pages test draws pages with @laminapdf/render-hayro,
-                // which it imports through its built `dist/` (the `wasm` job uploads only the
-                // modules and the SDK's).
-                crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/render", "run", "build"])?;
-                crate::run(
-                    &ws.root,
-                    "pnpm",
-                    &["--filter", "@laminapdf/render-hayro", "run", "build:wasm"],
-                )?;
-            }
             let mut found = Vec::new();
-            for command in commands(runtime)? {
-                found.extend(parse_measurements(&run_captured(ws, &command)?)?);
+            if examples {
+                if runtime == "node" {
+                    // The Node suite's compare-pages test draws pages with
+                    // @laminapdf/render-hayro, which it imports through its built `dist/` (the
+                    // `wasm` job uploads only the modules and the SDK's).
+                    crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/render", "run", "build"])?;
+                    crate::run(
+                        &ws.root,
+                        "pnpm",
+                        &["--filter", "@laminapdf/render-hayro", "run", "build:wasm"],
+                    )?;
+                }
+                for command in commands(runtime)? {
+                    found.extend(parse_measurements(&run_captured(ws, &command)?)?);
+                }
+                // The example suite passed; a browser's suites below can still fail the runtime.
+                example_passed = !found.is_empty();
             }
-            // The example suite passed; a browser's suites below can still fail the runtime.
-            example_passed = !found.is_empty();
-            if matches!(runtime, "chromium" | "firefox" | "webkit") {
-                render_suites(ws, runtime)?;
+            if browser {
+                render_suites(ws, runtime, args)?;
             }
             Ok(found)
         })();
-        if example_passed {
+        // Without the examples, a runtime passes when its suites do.
+        if example_passed || (!examples && result.is_ok()) {
             results.passed.push(runtime.to_owned());
         } else {
             results.failed.push(runtime.to_owned());
         }
         match result {
-            Ok(found) if found.is_empty() => {
+            Ok(found) if found.is_empty() && examples => {
                 eprintln!("pdf-runtimes: {runtime} printed no measurements");
                 failed.push(runtime);
             }
@@ -613,6 +660,27 @@ mod tests {
     #[test]
     fn parse_args_should_not_take_a_flag_as_the_label() {
         assert!(parse_args(&args(&["--label", "--record"])).is_err());
+    }
+
+    #[test]
+    fn parse_args_should_run_every_suite_without_suites() {
+        assert_eq!(parse_args(&[]).unwrap().suites, all_suites());
+    }
+
+    #[test]
+    fn parse_args_should_keep_the_suites_given_in_the_order_a_leg_runs_them() {
+        assert_eq!(
+            parse_args(&args(&["chromium", "--suites", "site,examples,ui"]))
+                .unwrap()
+                .suites,
+            ["examples", "ui", "site"]
+        );
+    }
+
+    #[test]
+    fn parse_args_should_reject_an_unknown_or_empty_suite_list() {
+        assert!(parse_args(&args(&["--suites", "gallery"])).is_err());
+        assert!(parse_args(&args(&["--suites", ","])).is_err());
     }
 
     #[test]
