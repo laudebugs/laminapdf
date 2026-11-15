@@ -4,7 +4,9 @@
 
 use std::sync::Arc;
 
+use serde::Deserialize;
 use tauri::{Manager as _, State};
+use tauri_plugin_opener::OpenerExt as _;
 
 use super::policy::STABLE_AVAILABLE;
 use super::settings::Channel;
@@ -98,4 +100,61 @@ pub(crate) fn update_restart_to_install(app: tauri::AppHandle) -> Result<(), Des
     crate::session::app::quitting(&app);
     updates.install_on_quit();
     app.restart()
+}
+
+/// A page about updates, which Rust opens in the browser: the webview names it, never its address.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum UpdateLink {
+    /// What the update server receives and keeps (ADR 0014 §9).
+    Privacy,
+    /// The release notes of the update that is ready.
+    WhatsNew,
+}
+
+/// The privacy page, which says what an update check sends.
+const PRIVACY_PAGE: &str = "https://laminapdf.com/privacy/";
+
+/// The release notes of `version`.
+fn release_notes(version: &str) -> String {
+    format!("https://github.com/laudebugs/laminapdf/releases/tag/v{version}")
+}
+
+/// Opens `link` in the browser. What's new needs a ready update, whose version names the notes.
+#[tauri::command]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri hands a command its AppHandle by value"
+)]
+pub(crate) fn update_open_link(app: tauri::AppHandle, link: UpdateLink) -> Result<(), DesktopError> {
+    let url = match link {
+        UpdateLink::Privacy => PRIVACY_PAGE.to_owned(),
+        UpdateLink::WhatsNew => match app.state::<Arc<Updates>>().status().state {
+            super::State::Ready { version, .. } => release_notes(&version),
+            _ => return Err(DesktopError::UpdateNotReady),
+        },
+    };
+    app.opener()
+        .open_url(url, None::<&str>)
+        .map_err(|error| DesktopError::Internal(error.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_release_notes_should_be_the_versions_tag() {
+        assert_eq!(
+            release_notes("0.2.0"),
+            "https://github.com/laudebugs/laminapdf/releases/tag/v0.2.0"
+        );
+    }
+
+    #[test]
+    fn links_should_be_named_never_given_as_addresses() {
+        let link: UpdateLink = serde_json::from_str(r#""whats-new""#).unwrap();
+        assert_eq!(link, UpdateLink::WhatsNew);
+        assert!(serde_json::from_str::<UpdateLink>(r#""https://example.com/""#).is_err());
+    }
 }

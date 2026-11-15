@@ -224,6 +224,7 @@ macro_rules! app_commands {
             update::commands::update_set_channel,
             update::commands::update_reset_install_id,
             update::commands::update_restart_to_install,
+            update::commands::update_open_link,
             $($extra),*
         ]
     };

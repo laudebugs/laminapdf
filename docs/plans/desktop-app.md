@@ -127,10 +127,10 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D5. Update service
 
-**Todos:** [D5a](../todos/done/D5a-update-worker-and-adr-0014.md), [D5b](../todos/ongoing/D5b-updater-in-app.md)
+**Todos:** [D5a](../todos/done/D5a-update-worker-and-adr-0014.md), [D5b](../todos/ongoing/D5b-updater-in-app.md), [D5c](../todos/ready/D5c-desktop-update-e2e.md)
 
 **Deliverable:** ADR 0014; `apps/updates` Worker (channels, staged rollout, kill switch, 60 s cache) with tests; R2 layout and channel manifests; updater plugin wired in the app with settings.
-**Accepted when:** Worker unit tests cover 204/200, rollout bucketing from the `Lamina-Install-Id` header (present, absent, malformed) and kill switch; a test asserts the install ID never reaches logs; an app on `0.0.1-test` updates to `0.0.2-test` on each OS from a staging channel; a tampered bundle is rejected.
+**Accepted when:** Worker unit tests cover 204/200, rollout bucketing from the `Lamina-Install-Id` header (present, absent, malformed) and kill switch; a test asserts the install ID never reaches logs; an app on `0.0.1` updates to `0.0.2` on each OS from a staging channel; a tampered bundle is rejected (D5c).
 
 ### D6. Signing, packaging and release pipeline
 
@@ -215,8 +215,8 @@ Ticked by the PR that completes them.
 - [x] Create `apps/updates` Worker: `/{channel}/{target}/{arch}/{current_version}` → 204 or 200 JSON
 - [x] Implement rollout bucketing by install-ID hash (from the `Lamina-Install-Id` request header), kill switch, 60 s cache (one 30 s cache layer)
 - [x] Define the R2 layout and channel manifest schema; tests for every branch
-- [ ] Wire the Tauri updater plugin with settings (channel, disable, check now, reset install ID); send the install ID header via `UpdaterBuilder::header`
-- [ ] End-to-end update test on a staging channel on three OSes; tampered bundle rejected
+- [x] Wire the Tauri updater plugin with settings (channel, disable, check now, reset install ID); send the install ID header via `UpdaterBuilder::header` (D5b)
+- [ ] End-to-end update test on a staging channel on three OSes; tampered bundle rejected (D5c)
 
 ### D6. Signing, packaging and release pipeline
 

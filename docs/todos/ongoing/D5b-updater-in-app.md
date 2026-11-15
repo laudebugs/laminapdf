@@ -10,8 +10,8 @@
 | ADRs | Implements ADR 0014 (client side). Follows ADR 0008 (security baseline), ADR 0011 (privacy) |
 | Branch | `feat/d5b-desktop-updater` |
 | PR title | `feat(desktop): wire the updater with channels, settings and the install-ID header` |
-| Size | L (600–1,100 lines incl. staging workflow) |
-| PR | — |
+| Size | L (600–1,100 lines; the staging workflow moved to [D5c](../ready/D5c-desktop-update-e2e.md)) |
+| PR | [#617](https://github.com/laudebugs/laminapdf/pull/617) |
 
 ## Goal
 
@@ -53,25 +53,25 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 
 ## Tasks
 
-- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
-- [ ] Add `tauri-plugin-updater` and `uuid` (licence checks); register the plugin; config keys above.
-- [ ] Implement settings/policy/service modules with unit tests; ensure no lock is held across `await`.
-- [ ] Commands + capabilities (separate `capabilities/settings.json` for the `settings` window, created in D4b and already listed in `app.security.capabilities` and `tauri.e2e.conf.json`; extend the forbidden-permissions guard from D2a to forbid `updater:` in any capability).
-- [ ] Settings UI in `@laminapdf/ui` (desktop-only section rendered when `Platform.hasUpdater`).
-- [ ] Menu wiring.
-- [ ] Staging e2e workflow (above) with a test updater keypair (`pnpm tauri signer generate`) stored as `TAURI_TEST_SIGNING_PRIVATE_KEY`; document that this key is **not** the production key.
-- [ ] Privacy: update the privacy page draft (owned by web C7/ADR 0011) with the update endpoint data and the reset option — via a PR note if the page doesn't exist yet.
+- [x] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
+- [x] Add `tauri-plugin-updater` and `uuid` (licence checks); register the plugin; config keys above. Done otherwise: see Decisions and deviations.
+- [x] Implement settings/policy/service modules with unit tests; ensure no lock is held across `await`.
+- [x] Commands + capabilities (separate `capabilities/settings.json` for the `settings` window, created in D4b and already listed in `app.security.capabilities` and `tauri.e2e.conf.json`; extend the forbidden-permissions guard from D2a to forbid `updater:` in any capability). Done otherwise: see Decisions and deviations.
+- [x] Settings UI in `@laminapdf/ui` (desktop-only section rendered when `Platform.hasUpdater`). Done otherwise: see Decisions and deviations.
+- [x] Menu wiring.
+- [ ] ~~Staging e2e workflow (above) with a test updater keypair (`pnpm tauri signer generate`) stored as `TAURI_TEST_SIGNING_PRIVATE_KEY`; document that this key is **not** the production key.~~ Moved to [D5c](../ready/D5c-desktop-update-e2e.md), with a throwaway key made in each run instead of a stored one.
+- [x] Privacy: update the privacy page draft (owned by web C7/ADR 0011) with the update endpoint data and the reset option — via a PR note if the page doesn't exist yet. Done otherwise: see Decisions and deviations.
 
 ## Acceptance criteria
 
-- [ ] On macOS, Windows and Linux (AppImage), an installed `0.0.1` updates to `0.0.2` from the `staging` channel without user interaction beyond what `installMode: passive` shows (`local`-mode CI run green on all three OSes in the PR; run linked).
-- [ ] The workflow's `pull_request` jobs reference no secrets and no environment; only `staging`-mode jobs use the `desktop-staging` environment (checked by reading the workflow in review).
-- [ ] A tampered bundle is rejected on each OS (signature error logged; app remains on 0.0.1) — same workflow.
-- [ ] The request to the update endpoint carries `Lamina-Install-Id` as a header and not in the URL (unit test of the builder config + a Worker-side assertion in the staging run).
-- [ ] Disabling updates stops all update network requests (unit test on the scheduler; manual check with a proxy).
-- [ ] Managed policy overrides user settings on each OS (unit tests for the parsers; manual check on Windows registry and macOS profile).
-- [ ] "Reset anonymous ID" generates a new UUID and the next check uses it (unit test).
-- [ ] The webview has no `updater:*` permission (capability guard test).
+- [ ] ~~On macOS, Windows and Linux (AppImage), an installed `0.0.1` updates to `0.0.2` from the `staging` channel without user interaction beyond what `installMode: passive` shows (`local`-mode CI run green on all three OSes in the PR; run linked).~~ Moved to [D5c](../ready/D5c-desktop-update-e2e.md).
+- [ ] ~~The workflow's `pull_request` jobs reference no secrets and no environment; only `staging`-mode jobs use the `desktop-staging` environment (checked by reading the workflow in review).~~ Moved to [D5c](../ready/D5c-desktop-update-e2e.md).
+- [ ] ~~A tampered bundle is rejected on each OS (signature error logged; app remains on 0.0.1) — same workflow.~~ Moved to [D5c](../ready/D5c-desktop-update-e2e.md).
+- [x] The request to the update endpoint carries `Lamina-Install-Id` as a header and not in the URL (unit test of the builder config + a Worker-side assertion in the staging run). The unit test is `update::plan`'s; the Worker-side assertion moved to D5c.
+- [x] Disabling updates stops all update network requests (unit test on the scheduler; manual check with a proxy). The unit tests are `update::plan`'s: with updates off, no check is planned, and every request goes through that plan. The proxy check is in the PR.
+- [ ] Managed policy overrides user settings on each OS (unit tests for the parsers; manual check on Windows registry and macOS profile). The unit tests are `update::policy`'s and `laminapdf-desktop-os`'s; the manual checks are listed in the PR for the owner, who has the machines.
+- [x] "Reset anonymous ID" generates a new UUID and the next check uses it (unit test).
+- [x] The webview has no `updater:*` permission (capability guard test).
 
 ## Post-merge checks
 
@@ -96,6 +96,24 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 - **Linux deb/rpm installs can't self-update** (Tauri updates AppImage only): the app must detect a non-AppImage install (`APPIMAGE` env var absent) and show "Updates are managed by your package manager" instead of checking — implement here.
 - **Decision: MSI installs don't self-update** (with D6d; owner to confirm there). The update manifest carries only the per-user NSIS updater artefact, so an MSI install updating itself would end up with a second, per-user copy. At start-up the app reads `HKLM\Software\Lamina\InstallFlavour` (written by D6d's MSI only); if it is `msi`, the updater is off exactly as for `DisableUpdates` and the settings show "Updates are managed by your organisation". Absent value → NSIS → updater on. Implement the check here (unit test with a fake registry reader).
 - **Install-on-quit** while documents are open on Windows (installer kills the app): flush session (D4a) before `install`.
+
+## Decisions and deviations
+
+- **The end-to-end workflow is D5c** (owner, 2026-11-14). It builds `0.0.1` and `0.0.2` on three OSes, which takes many CI rounds to settle; D6b depends on D5b only. D5c makes a throwaway updater key in each run instead of the stored `TAURI_TEST_SIGNING_PRIVATE_KEY`, so pull requests need no secret at all. D7c (the beta) depends on D5c.
+- **No settings window.** D4b put Settings… into the reader's Settings dialog in every window, not a `settings` window. So Settings › Updates is a section of that dialog, its commands are in `capabilities/main.json`, and every window may call them, not only `update_status`.
+- **Its own file.** The update settings are in `updates.json`, not `preferences.json`: the webview sets the preferences whole, and it must never see or set the install ID.
+- **The section lives in `apps/desktop`**, as the Files section does (`src/updates.tsx`); `@laminapdf/ui` gains only the two commands, their words and the dialog's `section` prop. Instead of a `Platform.hasUpdater` flag, the section registers only inside the shell.
+- **One more command, `update_open_link`**, opens the privacy page or the ready update's release notes in the browser. The webview names the page and never sends an address; the opener plugin stays Rust's own.
+- **`createUpdaterArtifacts` is D6b's and D5c's.** With it on, `tauri build` fails without `TAURI_SIGNING_PRIVATE_KEY`, and CI builds bundles without one; the release and test configurations turn it on.
+- **`requireSignedVersion: true`.** The update is refused unless its signature names the version the server announced, which stops a downgrade to an older signed release. No release exists yet, so every one is signed with a Tauri CLI that records the version (D6b).
+- **The build's channel** is `LAMINA_UPDATE_CHANNEL` at build time (D6b's release jobs set it), else Beta. A version with a `-nightly` pre-release is a nightly build, which stays on Nightly. `STABLE_AVAILABLE` (false) keeps Stable disabled until the first stable release.
+- **Policy reading:** macOS counts a key only when it is forced (a configuration profile), so `defaults write` can't pose as policy. An unknown channel in a policy counts as none. A policy that pins a channel but leaves updates on still disables the user's controls.
+- **Install on quit** runs at `RunEvent::Exit`, after the session is written. On macOS closing the last window doesn't quit, so `Exit` is the real quit. Restart to update calls `app.restart()` (no `tauri-plugin-process`).
+- **Restart to update with unsaved changes**: the desktop reader doesn't edit yet (E1h), so there is no close dialog (O03) to show; E1h adds it before installing.
+- **The popover is React Aria's**, modal while open, where S06 draws a non-modal one.
+- **The nightly note has no link**: the download page is D7b's.
+- **The privacy page's words are D7b's** (ADR 0014 §9), and `apps/site/src/data/privacy.ts` sends any change to a promise back to the owner. Settings › Updates says what each check sends and links to the page.
+- **A licence exception**, owner decision 2026-11-14: `webpki-root-certs` (CDLA-Permissive-2.0), which reqwest's rustls brings and only wasm32 compiles. The desktop notices list only the six shipped targets, so it isn't in them.
 
 ## Definition of done
 

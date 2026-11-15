@@ -115,6 +115,17 @@ The menus (Paper [S03](../../docs/design/paper/desktop-shell.md#s03-native-menus
 
 The end-to-end scenarios choose menu items with `e2e_menu_click` and read the menus with `e2e_menu_snapshot`, since WebDriver can't reach the OS's menus. WebDriver's key presses reach the web view only, never a menu's accelerator, so whether one press runs a command once is checked by `EchoRegistry`'s unit test, not end to end.
 
+### Updates
+
+The app updates itself from the update Worker (`apps/updates`, [ADR 0014](../../docs/decisions/0014-desktop-distribution.md); Paper [S06](../../docs/design/paper/desktop-shell.md#s06-updates)). `src-tauri/src/update/` checks 10 s after start and then once a day, plus or minus half an hour, at `https://updates.laminapdf.com/{channel}/{{target}}/{{arch}}/{{current_version}}`. It sends the anonymous install ID only as the `Lamina-Install-Id` header. A new version downloads in the background, and the updater plugin checks its signature against the release public key in `tauri.conf.json` before calling it ready. It installs when the app quits, or at once with Restart to update.
+
+- `settings.rs` keeps the Automatic updates switch, the channel, the last check and the install ID in `updates.json`.
+- `policy.rs` reads what an administrator set through `crates/laminapdf-desktop-os`: `HKLM\Software\Policies\Lamina` on Windows, a configuration profile's forced `UpdateChannel` and `DisableUpdates` on macOS, `/etc/lamina/policy.json` on Linux. A Linux `.deb` or `.rpm` install (no `APPIMAGE` in its environment) and a Windows MSI install never update themselves.
+- `plan.rs` decides each check, and makes no request while updates are off. The webview can call only the `update_*` commands, so it can't point the updater anywhere or read the ID.
+- `src/updates.tsx` is Settings › Updates and the status bar's "Update ready". Help › Check for updates… (the app menu on macOS) opens that section and checks.
+
+A development build checks the production Worker's beta channel, which offers nothing to a version newer than every release. Testing an update end to end, with a local Worker and a throwaway key, is D5c's workflow.
+
 ## How it fits together
 
 ```text
@@ -145,8 +156,8 @@ The end-to-end scenarios choose menu items with `e2e_menu_click` and read the me
 
 ADR 0008 §6 sets these rules, and every later todo keeps or tightens them:
 
-- **The webview gets no plugin permissions.** The dialog, log and opener plugins are for Rust's use. The webview may call only the app's own commands, each allowed by name in `src-tauri/capabilities/main.json` (today `allow-app-info`, `allow-open-dialog`, `allow-unlock-document`, `allow-page-info`, `allow-cancel-tiles`, `allow-close-document`, `allow-take-pending-opens`, the four `allow-recent-*` and `allow-preferences`, `allow-set-preferences`), plus `core:event:allow-listen` and `allow-unlisten` for the engine's, the open requests' and the file changes' events; not `core:default`. The webview names documents and recent files by id, never by path. Tauri itself sends dropped files' paths to the webview's `tauri://drag-*` events, which the app doesn't listen to, and no command opens a path the webview names, so the webview can see a dropped path but can't open it.
-- **The capability guard checks the files.** `src-tauri/tests/capabilities.rs` fails on a `shell:`, `fs:`, `http:`, `dialog:`, `process:`, `opener:` or `log:` permission, on a capability file missing from `app.security.capabilities`, and on an `e2e` capability outside `tauri.e2e.conf.json`.
+- **The webview gets no plugin permissions.** The dialog, log, opener and updater plugins are for Rust's use. The webview may call only the app's own commands, each allowed by name in `src-tauri/capabilities/main.json` (today `allow-app-info`, `allow-open-dialog`, `allow-unlock-document`, `allow-page-info`, `allow-cancel-tiles`, `allow-close-document`, `allow-take-pending-opens`, the four `allow-recent-*` and `allow-preferences`, `allow-set-preferences`), plus `core:event:allow-listen` and `allow-unlisten` for the engine's, the open requests' and the file changes' events; not `core:default`. The webview names documents and recent files by id, never by path. Tauri itself sends dropped files' paths to the webview's `tauri://drag-*` events, which the app doesn't listen to, and no command opens a path the webview names, so the webview can see a dropped path but can't open it.
+- **The capability guard checks the files.** `src-tauri/tests/capabilities.rs` fails on a `shell:`, `fs:`, `http:`, `dialog:`, `process:`, `opener:`, `log:` or `updater:` permission, on a capability file missing from `app.security.capabilities`, and on an `e2e` capability outside `tauri.e2e.conf.json`.
 - **A window reads only its own documents.** The tile scheme takes the window from the webview that asked, and every command checks the document belongs to the calling window.
 - **A password is typed once.** `unlock_document` moves it into memory that is wiped when dropped as soon as it arrives; the main process keeps it for restarts and never logs it.
 - **The CSP allows the app's own files plus the tile and IPC schemes.** `tauri.conf.json` allows no inline script, no other web origin, and no frames. `withGlobalTauri` is off and the prototype is frozen.

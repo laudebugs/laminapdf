@@ -46,6 +46,7 @@ import { type DesktopRecent, useDesktopRecent } from "./recent.tsx";
 import { type DesktopSettings, useDesktopSettings } from "./settings.tsx";
 import { NO_TABS, useTabStrip } from "./tabs/use-tabs.tsx";
 import { WindowTabs } from "./tabs/window-tabs.ts";
+import { type DesktopUpdates, UpdateReadyItem, useDesktopUpdates } from "./updates.tsx";
 
 /** Outside Tauri (`pnpm dev` in a browser) there is no engine to open with. */
 const openLater: Opener = () => Promise.reject(new NotYetSupportedError("open"));
@@ -111,7 +112,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const dragging = useOsOpens(engine, reader, toasts, tabs);
   const fileProblem = useFileChanges(engine, reader, toasts, tabs);
   const { strip, actions: tabActions } = useTabStrip(engine?.shell, tabs, reader, toasts, keys);
-  const { settings, recent, actions: homeActions } = useHome(engine, platform, reader, state, toasts);
+  const { settings, recent, updates, actions: homeActions } = useHome(engine, platform, reader, state, toasts);
   const actions = useMemo(() => ({ ...homeActions, ...tabActions }), [homeActions, tabActions]);
   const open = state.phase === "open";
   const shows = useShownParts(state.phase, tabs);
@@ -150,6 +151,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
                 }
               />
             ) : null}
+            <UpdateReadyItem updates={updates} />
             {info === undefined ? null : <StatusBarItem>{`Lamina PDF ${info.version}`}</StatusBarItem>}
           </>
         }
@@ -239,8 +241,8 @@ function useCommands(
 
 /**
  * The start window's recent files and the Settings dialog, which share the "Remember recent
- * files" choice, and the handlers of their commands (`file.open-recent`, `file.clear-recent`,
- * `app.settings`).
+ * files" choice, the updates (S06), and the handlers of their commands (`file.open-recent`,
+ * `file.clear-recent`, `app.settings`, `app.check-for-updates`, `app.restart-to-update`).
  */
 function useHome(
   engine: DesktopEngine | undefined,
@@ -248,12 +250,19 @@ function useHome(
   reader: ReaderController,
   state: ReaderState,
   toasts: ToastQueue,
-): { settings: DesktopSettings; recent: DesktopRecent; actions: NonNullable<CommandContext["actions"]> } {
+): {
+  settings: DesktopSettings;
+  recent: DesktopRecent;
+  updates: DesktopUpdates;
+  actions: NonNullable<CommandContext["actions"]>;
+} {
   // The recent list reads again once a preference change has reached the main process.
   const [preferencesChanged, setPreferencesChanged] = useState(0);
+  const updates = useDesktopUpdates(engine?.shell, toasts);
   const settings = useDesktopSettings(
     engine?.shell,
     useCallback(() => setPreferencesChanged((n) => n + 1), []),
+    updates,
   );
   const recent = useDesktopRecent(platform, reader, state, toasts, settings.preferences.rememberRecent);
   const { refresh, actions: recentActions } = recent;
@@ -261,8 +270,27 @@ function useHome(
     if (preferencesChanged > 0) refresh();
   }, [preferencesChanged, refresh]);
   const openSettings = settings.open;
-  const actions = useMemo(() => ({ ...recentActions, "app.settings": openSettings }), [recentActions, openSettings]);
-  return { settings, recent, actions };
+  const ready = updates.status?.state.state === "ready";
+  const { checkNow, restart } = updates;
+  const actions = useMemo(
+    () => ({
+      ...recentActions,
+      "app.settings": () => openSettings(),
+      // S06: Check for updates shows Settings › Updates and checks; Restart to update only while
+      // a downloaded update waits.
+      ...(engine === undefined
+        ? {}
+        : {
+            "app.check-for-updates": () => {
+              openSettings("updates");
+              checkNow();
+            },
+          }),
+      ...(ready ? { "app.restart-to-update": restart } : {}),
+    }),
+    [recentActions, openSettings, engine, ready, checkNow, restart],
+  );
+  return { settings, recent, updates, actions };
 }
 
 /** What a drop of the dragged files will do. */

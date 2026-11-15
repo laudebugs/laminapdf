@@ -178,8 +178,8 @@ describe("the reader's commands", () => {
   // The desktop's set: the reader's and the tab and window commands.
   const commands = [...readerCommands(), ...desktopCommands()];
 
-  it("are ADR 0024's 48, reader mode's 7, Forget reading positions, Follow link, What Lamina PDF can do, Close document and the desktop's 7 tab, window and quit commands, each with a visible home besides the palette", () => {
-    expect(commands).toHaveLength(66);
+  it("are ADR 0024's 48, reader mode's 7, Forget reading positions, Follow link, What Lamina PDF can do, Close document, the desktop's 7 tab, window and quit commands and its 2 update commands, each with a visible home besides the palette", () => {
+    expect(commands).toHaveLength(68);
     expect(commands.filter((c) => c.home.length === 0).map((c) => c.id)).toEqual([]);
   });
 
