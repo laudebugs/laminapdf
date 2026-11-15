@@ -50,6 +50,7 @@ laminapdf-tiff-wasm = { version = "0.4.0", path = "crates/laminapdf-tiff-wasm" }
 laminapdf-desktop-protocol = { version = "0.4.0", path = "crates/laminapdf-desktop-protocol" }
 laminapdf-desktop-engine = { version = "0.4.0", path = "crates/laminapdf-desktop-engine" }
 laminapdf-desktop-sandbox = { version = "0.4.0", path = "crates/laminapdf-desktop-sandbox" }
+laminapdf-desktop-crash = { version = "0.4.0", path = "crates/laminapdf-desktop-crash" }
 laminapdf-desktop-os = { version = "0.4.0", path = "crates/laminapdf-desktop-os" }
 
 # Flate (zlib) codec, pure Rust; `with-alloc` is the default feature, named so it stays on.

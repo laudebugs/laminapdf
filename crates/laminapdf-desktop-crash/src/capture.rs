@@ -1,130 +1,148 @@
-//! Native crash capture (ADR 0014 §10): a process that faults asks another process, which
-//! is not sandboxed, to write its minidump. Embark's `crash-handler` catches the fault (a signal on
-//! Linux, a Mach exception on macOS, an unhandled exception on Windows) and `minidumper` carries the
-//! request to a [`DumpServer`], which reads the crashed process's memory from outside and writes
-//! the dump into a private folder. The dump never leaves the computer: the main process reads it
-//! into a [`summary`] (feature `summary`) and deletes it.
-//!
-//! - **Engines**: the main process runs one [`DumpServer`] for all of them and passes its socket in
-//!   [`CRASH_SOCKET_ARG`]. Each engine calls [`capture_crashes`] before it locks itself down, so
-//!   the connection exists before the sandbox would refuse it; the lock-down then allows only what
-//!   the crash path needs (on Linux: the socket's own descriptor, `PR_SET_PTRACER` for the server).
-//! - **The main process**: a monitor (the app's own binary, started with a flag) runs a
-//!   [`DumpServer`] for it alone and exits when the main process goes away.
+//! Native crash capture on Unix (ADR 0014 §10): the minidump servers the monitor hosts, and the
+//! crash handler a faulting process installs to ask its server for a dump. Nothing here runs in the
+//! main process except installing its own handler and spawning the monitor; the servers, which read
+//! a hostile process's memory, run in the monitor, so a bad message crashes only the monitor.
 
 #![expect(
     unsafe_code,
-    reason = "FFI: crash-handler's unsafe callback, the fd probe, the deliberate fault, the Windows label"
+    reason = "FFI: crash-handler's unsafe callback and the open-socket probe"
 )]
 
-#[cfg(feature = "summary")]
-pub mod summary;
-
+use std::ffi::OsString;
 use std::fs::File;
 use std::io;
+use std::os::fd::RawFd;
+use std::os::unix::fs::{OpenOptionsExt as _, PermissionsExt as _};
 use std::path::{Path, PathBuf};
+use std::process::ExitCode;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
-use std::sync::{Arc, Mutex, PoisonError};
 use std::thread::JoinHandle;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crash_handler::{CrashEventResult, CrashHandler, make_crash_event};
 use minidumper::{Client, LoopAction, MinidumpBinary, Server, ServerHandler, SocketName};
 
-/// The engine's argument that names the main process's [`DumpServer`] socket.
-pub const CRASH_SOCKET_ARG: &str = "--crash-socket";
+/// The argument that makes the app binary the crash monitor:
+/// `--crash-monitor <main-socket> <main-dir> <engine-socket> <engine-dir>`.
+pub const MONITOR_ARG: &str = "--crash-monitor";
 
-/// How many times a server whose loop failed (a client that broke the protocol) is started again.
-const MAX_RESTARTS: u32 = 8;
+/// How many times a server loop that fails (a client that broke the protocol ends `minidumper`'s
+/// `run`) is started again before the monitor gives up on it.
+const MAX_RESTARTS: u32 = 16;
 
-/// Why capture couldn't be set up. Capture is best effort: the app runs without it.
-#[derive(Debug, thiserror::Error)]
-#[non_exhaustive]
-pub enum CaptureError {
-    /// The server's socket couldn't be made, or the client couldn't reach it.
-    #[error("the crash socket failed")]
-    Socket(#[source] minidumper::Error),
-    /// The crash handler couldn't be installed.
-    #[error("the crash handler could not be installed: {0}")]
-    Handler(String),
-    /// The dumps folder couldn't be made.
-    #[error("the dumps folder could not be made")]
-    Folder(#[source] io::Error),
+/// How long the monitor waits for the main process to connect before it gives up and exits.
+const MONITOR_WAIT: Duration = Duration::from_secs(30);
+
+/// The sockets and dump folders the monitor serves. The main process makes a fresh set per monitor,
+/// so a restarted monitor never races a dead one's socket files.
+#[derive(Debug, Clone)]
+pub struct MonitorPaths {
+    /// The main process's crash socket.
+    pub main_socket: PathBuf,
+    /// Where the main process's dumps are written (read at the next launch).
+    pub main_dir: PathBuf,
+    /// The engines' crash socket, passed to each engine at spawn.
+    pub engine_socket: PathBuf,
+    /// Where the engines' dumps are written (read live by the main process).
+    pub engine_dir: PathBuf,
 }
 
-/// What a [`DumpServer`] tells its owner.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum DumpEvent {
-    /// A crashed process asked for a dump; its file is being written.
-    Started,
-    /// The dump was written to this file, which the owner now owns (and must delete).
-    Written(PathBuf),
-    /// Writing the dump failed; its file is already deleted.
-    Failed(String),
-    /// The server's loop failed and was started again (or gave up, after [`MAX_RESTARTS`]).
-    Trouble(String),
+impl MonitorPaths {
+    /// A fresh set under `data_dir/crashes/dumps`.
+    #[must_use]
+    pub fn new(data_dir: &Path) -> Self {
+        let dumps = data_dir.join("crashes").join("dumps");
+        Self {
+            main_socket: socket_path("main"),
+            main_dir: dumps.join("main"),
+            engine_socket: socket_path("engines"),
+            engine_dir: dumps.join("engines"),
+        }
+    }
+
+    /// The monitor's command-line arguments (after the program name).
+    #[must_use]
+    pub fn args(&self) -> Vec<OsString> {
+        vec![
+            MONITOR_ARG.into(),
+            self.main_socket.clone().into(),
+            self.main_dir.clone().into(),
+            self.engine_socket.clone().into(),
+            self.engine_dir.clone().into(),
+        ]
+    }
 }
 
-/// Whom a [`DumpServer`] serves.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Serve {
-    /// Any number of clients, until the server is dropped: the main process's engines.
+/// Where a [`DumpServer`] writes dumps and how long it serves.
+#[derive(Clone, Copy)]
+enum Role {
+    /// Any number of clients (the engines), until the server is dropped.
     Many,
-    /// One client: the server stops when it disconnects, or when none connected within `wait`.
-    One {
-        /// How long to wait for the client to connect.
-        wait: Duration,
-    },
+    /// One client (the main process): stop when it disconnects, or when none came within the wait.
+    One,
 }
 
-/// A `minidumper` server on a thread, writing dumps into a private folder.
-pub struct DumpServer {
+/// Parses `--crash-monitor …` and, if that is what this process is, runs the monitor's two servers
+/// until the main process goes away, then returns its exit code. Otherwise returns `None`.
+#[must_use]
+pub fn run_monitor(mut args: impl Iterator<Item = OsString>) -> Option<ExitCode> {
+    if args.next().is_none_or(|arg| arg != MONITOR_ARG) {
+        return None;
+    }
+    let (main_socket, main_dir, engine_socket, engine_dir) = match (args.next(), args.next(), args.next(), args.next())
+    {
+        (Some(a), Some(b), Some(c), Some(d)) => {
+            (PathBuf::from(a), PathBuf::from(b), PathBuf::from(c), PathBuf::from(d))
+        }
+        _ => return Some(ExitCode::FAILURE),
+    };
+    // The engines' server runs for the monitor's whole life; the main server stops when the main
+    // process disconnects, which ends the monitor.
+    let Ok(engines) = DumpServer::start(engine_socket, engine_dir, Role::Many) else {
+        return Some(ExitCode::FAILURE);
+    };
+    let Ok(main) = DumpServer::start(main_socket, main_dir, Role::One) else {
+        return Some(ExitCode::FAILURE);
+    };
+    main.wait();
+    drop(engines);
+    Some(ExitCode::SUCCESS)
+}
+
+/// A `minidumper` server on a thread, writing dumps into a private folder. Used only by the monitor.
+pub(crate) struct DumpServer {
     socket: PathBuf,
     stop: Arc<AtomicBool>,
     thread: Option<JoinHandle<()>>,
 }
 
 impl DumpServer {
-    /// Listens on `socket` (see [`socket_path`]) and writes each dump into `dumps` (made, private
-    /// to the user, if missing). `on_event` runs on the server's thread: it should hand long work
-    /// to another thread, since a crashed process waits for the server's answer.
-    ///
-    /// # Errors
-    /// [`CaptureError`] when the folder or the socket can't be made.
-    pub fn start(
-        socket: PathBuf,
-        dumps: PathBuf,
-        serve: Serve,
-        on_event: impl Fn(DumpEvent) + Send + Sync + 'static,
-    ) -> Result<Self, CaptureError> {
-        private_folder(&dumps).map_err(CaptureError::Folder)?;
-        let server = listen(&socket)?;
+    fn start(socket: PathBuf, dir: PathBuf, role: Role) -> io::Result<Self> {
+        private_dir(&dir)?;
+        // Bind once up front so a failure is reported before the thread starts.
+        let server = bind(&socket)?;
         let stop = Arc::new(AtomicBool::new(false));
-        let handler = Arc::new(Handler {
-            dumps,
-            writing: Mutex::new(None),
-            serve,
-            connected: AtomicBool::new(false),
-            on_event: Box::new(on_event),
-        });
-        if let Serve::One { wait } = serve {
-            let (stop, handler) = (Arc::clone(&stop), Arc::clone(&handler));
-            // Detached: it only flips the flag, and does nothing once the client has connected.
-            let _ = std::thread::Builder::new()
+        let connected = Arc::new(AtomicBool::new(false));
+        let one = matches!(role, Role::One);
+        if one {
+            let (stop, connected) = (Arc::clone(&stop), Arc::clone(&connected));
+            // Detached: it only flips the stop flag if no client ever connects.
+            std::thread::Builder::new()
                 .name("crash-monitor-wait".into())
                 .spawn(move || {
-                    std::thread::sleep(wait);
-                    if !handler.connected.load(Ordering::SeqCst) {
+                    std::thread::sleep(MONITOR_WAIT);
+                    if !connected.load(Ordering::SeqCst) {
                         stop.store(true, Ordering::SeqCst);
                     }
-                });
+                })?;
         }
+        let handler = Handler { dir, one, connected };
         let thread = {
             let (socket, stop) = (socket.clone(), Arc::clone(&stop));
             std::thread::Builder::new()
                 .name("crash-dumps".into())
-                .spawn(move || serve_loop(server, &socket, &handler, &stop))
-                .map_err(|error| CaptureError::Socket(error.into()))?
+                .spawn(move || serve_loop(server, &socket, &handler, &stop))?
         };
         Ok(Self {
             socket,
@@ -133,13 +151,14 @@ impl DumpServer {
         })
     }
 
-    /// The socket clients connect to.
-    pub fn socket(&self) -> &Path {
+    /// The socket clients connect to (tests only).
+    #[cfg(test)]
+    fn socket(&self) -> &Path {
         &self.socket
     }
 
-    /// Waits until the server stops by itself ([`Serve::One`]).
-    pub fn wait(mut self) {
+    /// Waits until the server stops by itself (a [`Role::One`] server, when its client disconnects).
+    fn wait(mut self) {
         if let Some(thread) = self.thread.take() {
             let _ = thread.join();
         }
@@ -152,79 +171,65 @@ impl Drop for DumpServer {
         if let Some(thread) = self.thread.take() {
             let _ = thread.join();
         }
+        // minidumper's own `Server` removed the file on each bind; this is belt and braces.
         let _ = std::fs::remove_file(&self.socket);
     }
 }
 
-/// Runs the server until it is stopped; a loop that fails (a client broke the protocol, which
-/// ends `minidumper`'s loop) starts again on a new socket, a few times at most.
-fn serve_loop(mut server: Server, socket: &Path, handler: &Arc<Handler>, stop: &AtomicBool) {
-    let mut restarts = 0;
+/// Runs the server until stopped. A loop that fails — a client broke the protocol, which ends
+/// `minidumper`'s `run` — is started again, bounded. The old `Server` is dropped **before** the new
+/// one binds, so the new socket file the bind just made is never removed by the old one's `Drop`.
+fn serve_loop(mut server: Server, socket: &Path, handler: &Handler, stop: &AtomicBool) {
+    let mut restarts = 0u32;
     loop {
-        match server.run(Box::new(Shared(Arc::clone(handler))), stop, None) {
+        let handler = Box::new(Shared(handler.clone()));
+        match server.run(handler, stop, Some(Duration::from_secs(60))) {
             Ok(()) => return,
-            Err(error) => {
+            Err(_) if stop.load(Ordering::SeqCst) || restarts >= MAX_RESTARTS => return,
+            Err(_) => {
                 restarts += 1;
-                (handler.on_event)(DumpEvent::Trouble(format!("the crash server stopped: {error}")));
-                if restarts > MAX_RESTARTS || stop.load(Ordering::SeqCst) {
-                    return;
-                }
-                match listen(socket) {
+                drop(server);
+                match bind(socket) {
                     Ok(again) => server = again,
-                    Err(error) => {
-                        (handler.on_event)(DumpEvent::Trouble(format!("the crash server can't restart: {error}")));
-                        return;
-                    }
+                    Err(_) => return,
                 }
             }
         }
     }
 }
 
-fn listen(socket: &Path) -> Result<Server, CaptureError> {
-    let server = Server::with_name(SocketName::Path(socket)).map_err(CaptureError::Socket)?;
-    #[cfg(windows)]
-    windows::let_low_integrity_connect(socket);
-    Ok(server)
+fn bind(socket: &Path) -> io::Result<Server> {
+    Server::with_name(SocketName::Path(socket)).map_err(io::Error::other)
 }
 
+#[derive(Clone)]
 struct Handler {
-    dumps: PathBuf,
-    /// The file being written, deleted if writing fails.
-    writing: Mutex<Option<PathBuf>>,
-    serve: Serve,
-    connected: AtomicBool,
-    on_event: Box<dyn Fn(DumpEvent) + Send + Sync>,
+    dir: PathBuf,
+    one: bool,
+    connected: Arc<AtomicBool>,
 }
 
-/// `minidumper` takes its handler boxed; the server keeps it across restarts.
-struct Shared(Arc<Handler>);
+/// `minidumper` takes a boxed handler each `run`; this shares one across restarts.
+struct Shared(Handler);
 
 impl ServerHandler for Shared {
     fn create_minidump_file(&self) -> Result<(File, PathBuf), io::Error> {
-        (self.0.on_event)(DumpEvent::Started);
-        let path = self.0.dumps.join(unique_name("dmp"));
-        let file = create_private(&path)?;
-        *self.0.writing.lock().unwrap_or_else(PoisonError::into_inner) = Some(path.clone());
+        let path = self.0.dir.join(unique_name("dmp"));
+        let file = File::options()
+            .write(true)
+            .read(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(&path)?;
         Ok((file, path))
     }
 
     fn on_minidump_created(&self, result: Result<MinidumpBinary, minidumper::Error>) -> LoopAction {
-        let writing = self.0.writing.lock().unwrap_or_else(PoisonError::into_inner).take();
-        let event = match result {
-            Ok(binary) => {
-                let _ = binary.file.sync_all();
-                drop(binary.file);
-                DumpEvent::Written(binary.path)
-            }
-            Err(error) => {
-                if let Some(path) = writing {
-                    let _ = std::fs::remove_file(path);
-                }
-                DumpEvent::Failed(error.to_string())
-            }
-        };
-        (self.0.on_event)(event);
+        // On success flush the file; on failure the server removes the unfinished file itself, and
+        // a short or missing dump the main process can't read is deleted when it reads it.
+        if let Ok(binary) = result {
+            let _ = binary.file.sync_all();
+        }
         LoopAction::Continue
     }
 
@@ -236,7 +241,7 @@ impl ServerHandler for Shared {
     }
 
     fn on_client_disconnected(&self, clients: usize) -> LoopAction {
-        if clients == 0 && matches!(self.0.serve, Serve::One { .. }) {
+        if self.0.one && clients == 0 {
             LoopAction::Exit
         } else {
             LoopAction::Continue
@@ -244,18 +249,17 @@ impl ServerHandler for Shared {
     }
 }
 
-/// A socket path unique to this process and moment, for a server named `role`: in the user's
-/// runtime folder on Linux (`XDG_RUNTIME_DIR`), else the user's temporary folder (private to the
-/// user on macOS and Windows). Kept short: a Unix socket's path holds about 100 bytes.
-#[must_use]
-pub fn socket_path(role: &str) -> PathBuf {
+/// A socket path unique to this process and moment, for a server named `role`: the user's runtime
+/// folder on Linux (`XDG_RUNTIME_DIR`), else the user's temporary folder.
+fn socket_path(role: &str) -> PathBuf {
     let runtime = std::env::var_os("XDG_RUNTIME_DIR")
         .filter(|_| cfg!(target_os = "linux"))
         .map(PathBuf::from)
         .filter(|dir| dir.is_dir());
     let dir = runtime.unwrap_or_else(std::env::temp_dir);
     let path = dir.join(unique_name(&format!("{role}.sock")));
-    if cfg!(unix) && path.as_os_str().len() > 100 {
+    // A Unix socket path holds about 100 bytes; fall back to /tmp if the chosen folder is too deep.
+    if path.as_os_str().len() > 100 {
         return Path::new("/tmp").join(unique_name(&format!("{role}.sock")));
     }
     path
@@ -275,29 +279,14 @@ fn unique_name(suffix: &str) -> String {
     )
 }
 
-fn private_folder(dir: &Path) -> io::Result<()> {
+/// Makes `dir`, private to the user.
+fn private_dir(dir: &Path) -> io::Result<()> {
     std::fs::create_dir_all(dir)?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt as _;
-        std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700))?;
-    }
-    Ok(())
+    std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700))
 }
 
-fn create_private(path: &Path) -> io::Result<File> {
-    let mut options = std::fs::OpenOptions::new();
-    options.write(true).read(true).create_new(true);
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::OpenOptionsExt as _;
-        options.mode(0o600);
-    }
-    options.open(path)
-}
-
-/// Set once a crash is reported some other way (the main process's panic hook), so the abort
-/// that follows asks for no dump: one crash, one report.
+/// Set once a crash is reported some other way (the main process's panic hook), so the abort that
+/// follows asks for no dump: one crash, one report.
 static SKIP_DUMPS: AtomicBool = AtomicBool::new(false);
 
 /// From now on, a crash in this process writes no dump.
@@ -305,18 +294,20 @@ pub fn skip_dumps() {
     SKIP_DUMPS.store(true, Ordering::SeqCst);
 }
 
-/// This process's crash handler and its connection to a [`DumpServer`]; dropping it detaches the
+/// A faulting process's crash handler and its connection to a server. Dropping it detaches the
 /// handler.
 pub struct CrashCapture {
     _handler: CrashHandler,
     _client: Arc<Client>,
-    descriptor: Option<i32>,
+    descriptor: Option<RawFd>,
 }
 
 impl CrashCapture {
-    /// The socket's descriptor (Unix): the one descriptor the engine's sandbox lets it keep and
-    /// write to besides its pipes.
-    pub const fn descriptor(&self) -> Option<i32> {
+    /// The crash socket's descriptor: the one descriptor, besides its pipes, the engine's sandbox
+    /// must let it send and receive on. `None` when it could not be identified (capture then still
+    /// works unsandboxed, but the engine refuses to lock down with it, so it logs and runs without).
+    #[must_use]
+    pub const fn descriptor(&self) -> Option<RawFd> {
         self.descriptor
     }
 }
@@ -329,21 +320,41 @@ impl std::fmt::Debug for CrashCapture {
     }
 }
 
-/// Connects to the [`DumpServer`] at `socket` and installs the crash handler that asks it for a
-/// dump. `server` is the server's process id: on Linux the handler lets it trace this process
-/// while it writes the dump (`PR_SET_PTRACER`, for Yama's `ptrace_scope` 1). Call it before
-/// the sandbox goes on, from the only thread (the engine) or early (the main process).
+/// Why capture could not be set up (non-fatal: the process runs without it).
+#[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+pub enum CaptureError {
+    /// The server could not be reached.
+    #[error("the crash socket could not be reached")]
+    Connect,
+    /// The crash handler could not be installed.
+    #[error("the crash handler could not be installed: {0}")]
+    Handler(String),
+}
+
+/// Connects to the server at `socket` and installs the crash handler that asks it for a dump.
+/// `ptracer` is the server process's pid: on Linux it is allowed to trace this process while it
+/// writes the dump (`PR_SET_PTRACER`, for Yama's `ptrace_scope` 1). Call it before the sandbox goes
+/// on, from the only thread (the engine) or early (the main process).
 ///
 /// # Errors
 /// [`CaptureError`] when the server can't be reached or the handler can't be installed.
-pub fn capture_crashes(socket: &Path, server: Option<u32>) -> Result<CrashCapture, CaptureError> {
-    let before = open_descriptors();
-    let client = Arc::new(Client::with_name(SocketName::Path(socket)).map_err(CaptureError::Socket)?);
-    let descriptor = open_descriptors().into_iter().find(|fd| !before.contains(fd));
+pub fn capture_crashes(socket: &Path, ptracer: Option<u32>) -> Result<CrashCapture, CaptureError> {
+    let before = open_sockets();
+    let client = Arc::new(Client::with_name(SocketName::Path(socket)).map_err(|_| CaptureError::Connect)?);
+    // minidumper gives no accessor for the client's socket fd, so the one new connected socket this
+    // call opened is it. Exactly one must appear; otherwise we don't guess (the engine then logs and
+    // runs without capture rather than allowing the wrong fd through seccomp).
+    let after = open_sockets();
+    let new: Vec<RawFd> = after.into_iter().filter(|fd| !before.contains(fd)).collect();
+    let descriptor = match new.as_slice() {
+        [fd] => Some(*fd),
+        _ => None,
+    };
     let asks = Arc::clone(&client);
-    // SAFETY: the callback runs in a signal handler or on the exception thread while the process
-    // is crashing. It only reads a flag and sends the crash context over the socket opened above,
-    // which is what `minidumper::Client::request_dump` is made for; it allocates nothing.
+    // SAFETY: the callback runs in a signal handler or on the exception thread while the process is
+    // crashing. It only reads a flag and sends the crash context over the socket opened above, which
+    // is what `minidumper::Client::request_dump` is made for; it allocates nothing.
     let event = unsafe {
         make_crash_event(move |context| {
             if SKIP_DUMPS.load(Ordering::SeqCst) {
@@ -354,9 +365,9 @@ pub fn capture_crashes(socket: &Path, server: Option<u32>) -> Result<CrashCaptur
     };
     let handler = CrashHandler::attach(event).map_err(|error| CaptureError::Handler(error.to_string()))?;
     #[cfg(target_os = "linux")]
-    handler.set_ptracer(server);
+    handler.set_ptracer(ptracer);
     #[cfg(not(target_os = "linux"))]
-    let _ = server;
+    let _ = ptracer;
     Ok(CrashCapture {
         _handler: handler,
         _client: client,
@@ -364,103 +375,114 @@ pub fn capture_crashes(socket: &Path, server: Option<u32>) -> Result<CrashCaptur
     })
 }
 
-/// The open descriptors above 2 (Unix; none elsewhere), to find the one the client opened.
-fn open_descriptors() -> Vec<i32> {
-    #[cfg(unix)]
-    {
-        (3..1024)
-            // SAFETY: F_GETFD on any number only asks whether it is an open descriptor.
-            .filter(|&fd| unsafe { libc::fcntl(fd, libc::F_GETFD) } != -1)
-            .collect()
+/// The open connected-socket descriptors above 2 this process holds, to find the one the client
+/// opened. Only sockets, so an unrelated file opened in between is not mistaken for it.
+fn open_sockets() -> Vec<RawFd> {
+    (3..1024).filter(|&fd| is_socket(fd)).collect()
+}
+
+/// Whether `fd` is an open socket descriptor.
+fn is_socket(fd: RawFd) -> bool {
+    let mut stat = std::mem::MaybeUninit::<libc::stat>::uninit();
+    // SAFETY: `fstat` on any number only reads the descriptor's kind into `stat`, or fails; on
+    // failure `stat` is left uninitialised and we return false without reading it.
+    if unsafe { libc::fstat(fd, stat.as_mut_ptr()) } != 0 {
+        return false;
     }
-    #[cfg(not(unix))]
-    Vec::new()
+    // SAFETY: `fstat` succeeded above, so it wrote a complete `libc::stat`.
+    let mode = unsafe { stat.assume_init() }.st_mode;
+    mode & libc::S_IFMT == libc::S_IFSOCK
 }
 
-/// Faults on purpose: a write through a null pointer, so the end-to-end tests see a real native
-/// crash (`ToEngine::DebugSegv`), not a signal sent from outside. Feature `debug-fault`, which only
-/// the e2e engine turns on.
-#[cfg(feature = "debug-fault")]
-pub fn fault() {
-    let null = std::ptr::null_mut::<u64>();
-    // SAFETY: none: this is the deliberate fault the end-to-end tests ask for. The write through a
-    // null pointer faults (SIGSEGV, EXC_BAD_ACCESS, an access violation) and the process ends in
-    // its crash handler; `write_volatile` keeps the compiler from removing it.
-    unsafe { null.write_volatile(0x1a3e_57ed) };
-}
+/// A crash-dump server for other crates' tests (the engine's native-crash test): the role the
+/// monitor gives the engines, so a sandboxed engine can connect and fault against it.
+#[cfg(feature = "test-support")]
+pub mod test_support {
+    use std::io;
+    use std::path::{Path, PathBuf};
 
-#[cfg(windows)]
-mod windows {
-    use std::os::windows::ffi::OsStrExt as _;
-    use std::path::Path;
+    use super::{DumpServer, Role, socket_path};
 
-    use windows_sys::Win32::Foundation::LocalFree;
-    use windows_sys::Win32::Security::Authorization::{
-        ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1, SE_FILE_OBJECT, SetNamedSecurityInfoW,
-    };
-    use windows_sys::Win32::Security::{
-        ACL, GetSecurityDescriptorSacl, LABEL_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR,
-    };
+    /// A running engine-dump server writing to `dir`.
+    pub struct TestDumpServer(DumpServer);
 
-    /// Labels the socket's file Low integrity, so the engine (Low integrity) may connect to it;
-    /// its DACL still admits only the user. Best effort: without it the engine runs uncaptured.
-    pub(super) fn let_low_integrity_connect(socket: &Path) {
-        let path: Vec<u16> = socket.as_os_str().encode_wide().chain([0]).collect();
-        // The mandatory label "Low, no write up": S:(ML;;NW;;;LW).
-        let sddl: Vec<u16> = "S:(ML;;NW;;;LW)".encode_utf16().chain([0]).collect();
-        let mut descriptor: PSECURITY_DESCRIPTOR = std::ptr::null_mut();
-        // SAFETY: `sddl` is NUL-terminated; `descriptor` is a valid out-pointer, freed below.
-        let made = unsafe {
-            ConvertStringSecurityDescriptorToSecurityDescriptorW(
-                sddl.as_ptr(),
-                SDDL_REVISION_1,
-                &raw mut descriptor,
-                std::ptr::null_mut(),
-            )
-        };
-        if made == 0 {
-            return;
+    impl TestDumpServer {
+        /// Starts the server, writing dumps into `dir`.
+        ///
+        /// # Errors
+        /// When the folder or socket can't be made.
+        pub fn start(dir: PathBuf) -> io::Result<Self> {
+            Ok(Self(DumpServer::start(socket_path("test"), dir, Role::Many)?))
         }
-        let (mut present, mut defaulted) = (0, 0);
-        let mut sacl: *mut ACL = std::ptr::null_mut();
-        // SAFETY: `descriptor` is the valid descriptor made above; the out-pointers are valid.
-        let got = unsafe { GetSecurityDescriptorSacl(descriptor, &raw mut present, &raw mut sacl, &raw mut defaulted) };
-        if got != 0 && present != 0 {
-            // SAFETY: `path` is NUL-terminated; `sacl` points into `descriptor`, alive until freed.
-            unsafe {
-                SetNamedSecurityInfoW(
-                    path.as_ptr(),
-                    SE_FILE_OBJECT,
-                    LABEL_SECURITY_INFORMATION,
-                    std::ptr::null_mut(),
-                    std::ptr::null_mut(),
-                    std::ptr::null(),
-                    sacl,
-                );
-            }
+
+        /// The socket a client connects to.
+        #[must_use]
+        pub fn socket(&self) -> &Path {
+            &self.0.socket
         }
-        // SAFETY: `descriptor` was allocated by the conversion above and is freed once.
-        unsafe { LocalFree(descriptor) };
     }
 }
 
 #[cfg(test)]
+#[expect(
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    reason = "test-only sockaddr construction from a known-short path"
+)]
 mod tests {
-    #![allow(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
-
+    use std::os::fd::AsRawFd as _;
     use std::time::Instant;
 
     use super::*;
 
-    fn dumps(name: &str) -> PathBuf {
-        std::env::temp_dir().join(format!("laminapdf-capture-{}-{name}", std::process::id()))
+    fn scratch(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("laminapdf-crash-{}-{name}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        dir
     }
 
-    /// The main process's monitor: it serves one client and stops once that client goes.
+    /// Raw bytes at a crash socket, as a hostile client might send; a stream to a seqpacket
+    /// listener may even fail to connect, which is itself garbage the server must survive.
+    fn send_garbage(path: &Path) {
+        let Some(addr) = os_socket_addr(path) else {
+            return;
+        };
+        // SAFETY: a SOCK_SEQPACKET socket of the server's family, connected to `addr` (a valid
+        // sockaddr_un), then sent 64 junk bytes and closed; every call's arguments are checked, and
+        // the fd is closed once. A wrong-type connect would hang, but the type matches the server's.
+        unsafe {
+            let fd = libc::socket(libc::AF_UNIX, libc::SOCK_SEQPACKET, 0);
+            if fd < 0 {
+                return;
+            }
+            let _ = libc::connect(fd, (&raw const addr.0).cast(), addr.1);
+            let junk = [0xffu8; 64];
+            let _ = libc::send(fd, junk.as_ptr().cast(), junk.len(), 0);
+            libc::close(fd);
+        }
+    }
+
+    /// A `sockaddr_un` for `path`, and its length, or `None` if the path is too long.
+    fn os_socket_addr(path: &Path) -> Option<(libc::sockaddr_un, libc::socklen_t)> {
+        use std::mem::size_of;
+        use std::os::unix::ffi::OsStrExt as _;
+        let bytes = path.as_os_str().as_bytes();
+        // SAFETY: a zeroed sockaddr_un is valid; only the path bytes are written, leaving the NUL.
+        let mut addr: libc::sockaddr_un = unsafe { std::mem::zeroed() };
+        if bytes.len() >= addr.sun_path.len() {
+            return None;
+        }
+        addr.sun_family = libc::AF_UNIX as _;
+        for (slot, &byte) in addr.sun_path.iter_mut().zip(bytes) {
+            *slot = byte as _;
+        }
+        let len = (size_of::<libc::sa_family_t>() + bytes.len() + 1) as libc::socklen_t;
+        Some((addr, len))
+    }
+
     #[test]
     fn a_one_client_server_should_stop_when_its_client_disconnects() {
-        let wait = Duration::from_secs(30);
-        let server = DumpServer::start(socket_path("one"), dumps("one"), Serve::One { wait }, |_| {}).unwrap();
+        let server = DumpServer::start(socket_path("one"), scratch("one"), Role::One).unwrap();
         let client = Client::with_name(SocketName::Path(server.socket())).unwrap();
         let started = Instant::now();
         drop(client);
@@ -469,17 +491,29 @@ mod tests {
     }
 
     #[test]
-    fn a_one_client_server_should_stop_when_no_client_comes() {
-        let wait = Duration::from_millis(200);
-        let server = DumpServer::start(socket_path("none"), dumps("none"), Serve::One { wait }, |_| {}).unwrap();
-        let started = Instant::now();
-        server.wait();
-        assert!(started.elapsed() < Duration::from_secs(10));
+    fn a_server_should_keep_serving_after_a_client_sends_garbage() {
+        let server = DumpServer::start(socket_path("garbage"), scratch("garbage"), Role::Many).unwrap();
+        let socket = server.socket().to_owned();
+        send_garbage(&socket);
+        send_garbage(&socket);
+        // A proper client must still connect and get a pong: the server survived the garbage.
+        let mut pinged = false;
+        for _ in 0..50 {
+            if let Ok(client) = Client::with_name(SocketName::Path(&socket))
+                && client.ping().is_ok()
+            {
+                pinged = true;
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        drop(server);
+        assert!(pinged, "the server did not serve a client after garbage");
     }
 
     #[test]
     fn a_server_should_remove_its_socket_when_dropped() {
-        let server = DumpServer::start(socket_path("drop"), dumps("drop"), Serve::Many, |_| {}).unwrap();
+        let server = DumpServer::start(socket_path("drop"), scratch("drop"), Role::Many).unwrap();
         let socket = server.socket().to_owned();
         drop(server);
         assert!(!socket.exists());
@@ -489,5 +523,45 @@ mod tests {
     fn socket_paths_should_differ_and_fit_a_unix_socket() {
         let (a, b) = (socket_path("engines"), socket_path("engines"));
         assert_eq!((a != b, a.as_os_str().len() <= 104), (true, true));
+    }
+
+    #[test]
+    fn the_monitor_flag_should_be_needed_to_run_the_monitor() {
+        assert!(run_monitor(["--other".into()].into_iter()).is_none());
+    }
+
+    #[test]
+    fn open_sockets_should_find_a_socket_and_skip_a_plain_file() {
+        // A socket and a regular file, both open: only the socket's fd is reported.
+        let mut pair = [0; 2];
+        // SAFETY: `socketpair` writes two fds into `pair` on success; checked below, closed once.
+        let made = unsafe { libc::socketpair(libc::AF_UNIX, libc::SOCK_STREAM, 0, pair.as_mut_ptr()) };
+        assert_eq!(made, 0);
+        let file = File::open("/dev/null").unwrap();
+        let open = open_sockets();
+        assert_eq!(
+            (
+                open.contains(&pair[0]),
+                open.contains(&pair[1]),
+                open.contains(&file.as_raw_fd())
+            ),
+            (true, true, false)
+        );
+        // SAFETY: both fds came from the socketpair above and are closed once here.
+        unsafe {
+            libc::close(pair[0]);
+            libc::close(pair[1]);
+        }
+    }
+
+    #[test]
+    fn connecting_should_install_a_handler() {
+        // The server runs in this process, so its accepted fd also opens: the descriptor diff is
+        // reliable only in the single-threaded engine with an out-of-process monitor, so here we
+        // check only that capture connects and installs its handler.
+        let server = DumpServer::start(socket_path("fd"), scratch("fd"), Role::Many).unwrap();
+        let capture = capture_crashes(server.socket(), Some(std::process::id()));
+        assert!(capture.is_ok());
+        drop(server);
     }
 }

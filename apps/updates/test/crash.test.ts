@@ -98,6 +98,7 @@ describe("checkCrashReport", () => {
     ["a native module with a path", native((n) => (n.frames[0] = { ...n.frames[0], module: "/usr/lib/a.so" }))],
     ["a native module without a debug ID", native((n) => (n.modules[0] = { ...n.modules[0], debug_id: null }))],
     ["a native crash reason over 128 characters", native((n) => (n.crash_reason = "a".repeat(129)))],
+    ["a native frame function that isn't null", native((n) => (n.frames[0] = { ...n.frames[0], function: "render" }))],
     ["65 native frames", native((n) => (n.frames = Array.from({ length: 65 }, () => ({ ...n.frames[0] }))))],
   ];
 
@@ -139,16 +140,11 @@ describe("checkCrashReport", () => {
     expect(errorsOf(value)).toEqual(["/frames/0/function: holds a path, an e-mail address or a long number"]);
   });
 
-  it.each(pathLike)("refuses %j in a native stack's crash reason and function", (text) => {
+  it.each(pathLike)("refuses %j in a native stack's crash reason", (text) => {
     const value = edited((r) => {
-      const stack = r.native as { crash_reason: string; frames: Record<string, unknown>[] };
-      stack.crash_reason = text;
-      stack.frames[1] = { ...stack.frames[1], function: text };
+      (r.native as { crash_reason: string }).crash_reason = text;
     }, nativeCrashFixture());
-    expect(errorsOf(value)).toEqual([
-      "/native/crash_reason: holds a path, an e-mail address or a long number",
-      "/native/frames/1/function: holds a path, an e-mail address or a long number",
-    ]);
+    expect(errorsOf(value)).toEqual(["/native/crash_reason: holds a path, an e-mail address or a long number"]);
   });
 
   it.each(pathLike)("refuses %j in a script frame's function", (text) => {

@@ -26,21 +26,9 @@ probe = ["engine"]
 # Linux, for finding a missing system call: the seccomp filter traps instead of killing, and a
 # SIGSYS handler prints the call's number on stderr before the process exits.
 seccomp-trap = ["engine"]
-# `capture::summary`: reading a minidump into its summary on the computer (the main process, and
-# the engine's tests).
-summary = ["dep:minidump", "dep:minidump-processor", "dep:minidump-unwind"]
-# `capture::fault`: the end-to-end tests' deliberate native fault (only the e2e engine).
-debug-fault = []
 
 [dependencies]
-# Native crash capture (`capture`): the crash handler and the client both processes install,
-# and the server the main process runs for its engines and for itself.
-crash-handler = { workspace = true }
 laminapdf-desktop-protocol = { workspace = true }
-minidumper = { workspace = true }
-minidump = { workspace = true, optional = true }
-minidump-processor = { workspace = true, optional = true }
-minidump-unwind = { workspace = true, optional = true }
 thiserror = { workspace = true }
 
 [target.'cfg(unix)'.dependencies]

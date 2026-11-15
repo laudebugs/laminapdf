@@ -53,5 +53,5 @@ pub(crate) fn debug_panic(message: &str) {
 /// pointer, which the crash handler turns into a minidump.
 #[cfg(feature = "e2e")]
 pub(crate) fn debug_segv() {
-    laminapdf_desktop_sandbox::capture::fault();
+    laminapdf_desktop_crash::fault();
 }

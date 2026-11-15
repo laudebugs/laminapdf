@@ -106,9 +106,13 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   │                    #     process serves) and, feature `engine`, apply_engine_sandbox (macOS Seatbelt; Linux
 │   │                    #     no-new-privs, Landlock, RLIMIT_AS, seccomp; Windows RevertToSelf + post-load policies);
 │   │                    #     `probe` (the selftest's, test only); `seccomp-trap`; LAMINA_PDF_ENGINE_SANDBOX=off in debug
-│   │                    #     builds only (D2c); capture.rs (D7d: native crash capture, a minidumper DumpServer and the
-│   │                    #     crash-handler client the engine connects before lock-down; feature `summary`'s summarize_dump,
-│   │                    #     the dump read into the report's `native` fields and deleted, success or not)
+│   │                    #     builds only (D2c); the seccomp allow-list lets the crash handler use its one connected socket (D7d)
+│   ├── laminapdf-desktop-crash/  # edge, unpublished: native crash capture (D7d, ADR 0014 §10). capture.rs (Unix only, off on
+│   │                    #     Windows): the monitor process (the app binary with --crash-monitor) hosts a minidumper DumpServer
+│   │                    #     for the main process and one for its engines; capture_crashes installs the crash-handler client
+│   │                    #     each process connects before lock-down. summary.rs (feature `summary`, only the engine): summarize_bytes
+│   │                    #     reads a dump into the allow-listed DumpSummary, which the engine's `--summarize-dump` mode runs
+│   │                    #     sandboxed so the main process never links the parser. `debug-crash` (fault), `test-support` (TestDumpServer)
 │   ├── laminapdf-desktop-os/  # edge, unpublished: the desktop main process's calls into the OS's shell (D3b): the recent
 │   │                    #     documents (macOS NSDocumentController, Windows SHAddToRecentDocs and the Jump List of the
 │   │                    #     AppUserModelID set at start-up, Linux GTK RecentManager), on the main thread; open_shared and file_identity

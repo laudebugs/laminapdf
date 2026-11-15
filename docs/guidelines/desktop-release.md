@@ -390,7 +390,7 @@ Crash reason: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS
 #1 libpdfium.dylib FPDF_LoadPage +0x4d2
 ```
 
-A function inlined into a frame gets a line of its own, marked `[inlined]`, above the frame it was inlined into. A frame whose module has no symbols, such as PDFium's or the OS's, prints its module and offset, with any name the app found on the computer. To read symbols from a folder in the same layout instead of the bucket, for example a dry run's `symbols-desktop-*` artifact, add `--symbols <dir>`.
+A function inlined into a frame gets a line of its own, marked `[inlined]`, above the frame it was inlined into. A frame whose module has no symbols, such as PDFium's or the OS's, prints its module and offset only: a native report never carries function names (the app has no symbols on the computer, and a name read from a dump's memory could be document text), so every name comes from the archived symbols here. To read symbols from a folder in the same layout instead of the bucket, for example a dry run's `symbols-desktop-*` artifact, add `--symbols <dir>`.
 
 ## Sources
 

@@ -116,7 +116,7 @@
             "properties": {
               "module": { "description": "The module's file name, or <unknown>.", "oneOf": [{ "$ref": "#/$defs/module_name" }, { "const": "<unknown>" }] },
               "offset": { "description": "The address within the module.", "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
-              "function": { "oneOf": [{ "type": "null" }, { "type": "string", "$ref": "#/$defs/free_text", "maxLength": 256 }] }
+              "function": { "description": "Always null: the computer has no symbols (ADR 0014 §10); cargo xtask crash symbolicate names the frames.", "type": "null" }
             }
           }
         },

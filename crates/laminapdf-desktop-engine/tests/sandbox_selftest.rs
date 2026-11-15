@@ -14,27 +14,23 @@ use std::process::Command;
 use std::sync::{Arc, Mutex, OnceLock, mpsc};
 use std::time::Duration;
 
+use laminapdf_desktop_crash::CRASH_SOCKET_ARG;
+use laminapdf_desktop_crash::test_support::TestDumpServer;
 use laminapdf_desktop_protocol::supervisor::{Config, Event, Process as _, RangeServer, Supervisor};
 use laminapdf_desktop_protocol::{DocId, Layer};
-use laminapdf_desktop_sandbox::capture::{CRASH_SOCKET_ARG, DumpEvent, DumpServer, Serve, socket_path};
 use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner, spawn_sandboxed};
 
 fn engine() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_laminapdf-desktop-engine"))
 }
 
-/// One crash-dump server for every engine these tests start, as the app has; the dumps an
-/// engine leaves (an abort past the memory limit) are deleted.
+/// One crash-dump server for every engine these tests start, as the monitor has; the dumps an
+/// engine leaves (an abort past the memory limit) stay in the server's temporary folder.
 fn crash_args() -> [OsString; 2] {
-    static SERVER: OnceLock<DumpServer> = OnceLock::new();
+    static SERVER: OnceLock<TestDumpServer> = OnceLock::new();
     let server = SERVER.get_or_init(|| {
         let dumps = std::env::temp_dir().join(format!("laminapdf-selftest-dumps-{}", std::process::id()));
-        DumpServer::start(socket_path("selftest"), dumps, Serve::Many, |event| {
-            if let DumpEvent::Written(path) = event {
-                let _ = std::fs::remove_file(path);
-            }
-        })
-        .unwrap()
+        TestDumpServer::start(dumps).unwrap()
     });
     [CRASH_SOCKET_ARG.into(), server.socket().into()]
 }

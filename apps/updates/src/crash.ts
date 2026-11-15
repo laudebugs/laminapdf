@@ -269,7 +269,8 @@ function checkNative(value: unknown, errors: string[]): void {
       if (typeof offset !== "number" || !Number.isInteger(offset) || offset < 0 || offset > MAX_OFFSET) {
         errors.push(`${at}/offset: must be a whole number from 0 to 2^53 - 1`);
       }
-      checkFunction(frame.function, at, errors);
+      // A native frame carries no function name (ADR 0014 §10): the computer has no symbols.
+      if (frame.function !== null) errors.push(`${at}/function: must be null`);
     },
     errors,
   );

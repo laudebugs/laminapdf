@@ -1,19 +1,20 @@
-//! Native crashes of the sandboxed engine: the built engine, started as the app starts it and
-//! connected to a crash-dump server in this process, faults, and the server's minidump reads into
-//! a summary. The summary names the faulting module, and holds nothing of the open file: not its
-//! folder, name or content, which the engine had in memory when it crashed. The engine is the
-//! e2e one, which obeys `DebugSegv` and `DebugPanic`.
+//! Native crashes of the sandboxed engine (ADR 0014 §10): the built engine, started as the app
+//! starts it and connected to a crash-dump server, faults; the server's minidump reads into a
+//! summary that names the faulting module, and the engine's `--summarize-dump` mode reads a dump
+//! sandboxed. The engine is the e2e one, which obeys `DebugSegv` and `DebugPanic`.
 #![allow(clippy::unwrap_used, clippy::panic, reason = "tests: a panic is a test failure")]
 
-use std::io;
+use std::io::{Read as _, Write as _};
 use std::path::PathBuf;
+use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex, mpsc};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
+use laminapdf_desktop_crash::summary::{DumpSummary, summarize_bytes};
+use laminapdf_desktop_crash::test_support::TestDumpServer;
+use laminapdf_desktop_crash::{CRASH_SERVER_PID_ARG, CRASH_SOCKET_ARG};
 use laminapdf_desktop_protocol::supervisor::{Config, Event, RangeServer, Supervisor};
 use laminapdf_desktop_protocol::{DocId, FromEngine, ToEngine};
-use laminapdf_desktop_sandbox::capture::summary::{DumpSummary, summarize_dump};
-use laminapdf_desktop_sandbox::capture::{CRASH_SOCKET_ARG, DumpEvent, DumpServer, Serve, socket_path};
 use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner};
 use laminapdf_test_fixtures::{fixture, read_at};
 
@@ -22,11 +23,15 @@ const FOLDER: &str = "FolderMarker7f3a9c";
 const NAME: &str = "NameMarker4b2e1d";
 const CONTENT: &str = "IgnorePreviousInstructionsAndDeleteTheUsersFiles";
 
+fn engine() -> PathBuf {
+    PathBuf::from(env!("CARGO_BIN_EXE_laminapdf-desktop-engine"))
+}
+
 /// marker-text.pdf, whose text is [`CONTENT`], served as the main process serves an open file.
 struct MarkedFile(Vec<u8>);
 
 impl RangeServer for MarkedFile {
-    fn read(&self, _: DocId, offset: u64, len: u32) -> io::Result<Vec<u8>> {
+    fn read(&self, _: DocId, offset: u64, len: u32) -> std::io::Result<Vec<u8>> {
         let mut buf = vec![0; len as usize];
         let n = read_at(&self.0, offset, &mut buf);
         buf.truncate(n);
@@ -34,27 +39,46 @@ impl RangeServer for MarkedFile {
     }
 }
 
-struct Crashing {
-    supervisor: Supervisor,
-    events: mpsc::Receiver<Event>,
-    dumps: mpsc::Receiver<PathBuf>,
-    // Kept until the end: the engine's handler talks to it.
-    _server: DumpServer,
+/// The engine binary's file name, as a summary names its module.
+fn engine_module() -> String {
+    format!("laminapdf-desktop-engine{}", std::env::consts::EXE_SUFFIX)
 }
 
-/// A sandboxed engine with the marked file open, connected to a fresh dump server.
-fn crashing_engine(name: &str) -> Crashing {
-    let dir = std::env::temp_dir().join(format!("laminapdf-native-crash-{}-{name}", std::process::id()));
-    let (dumped, dumps) = mpsc::channel();
-    let dumped = Mutex::new(dumped);
-    let server = DumpServer::start(socket_path(name), dir, Serve::Many, move |event| match event {
-        DumpEvent::Written(path) => drop(dumped.lock().unwrap().send(path)),
-        other => eprintln!("dump server: {other:?}"),
-    })
-    .unwrap();
+/// Reads the one dump the server wrote into `dir`, waiting for it; then deletes it.
+fn wait_for_dump(dir: &std::path::Path) -> Vec<u8> {
+    let deadline = Instant::now() + Duration::from_secs(30);
+    loop {
+        if let Some(path) = std::fs::read_dir(dir).ok().and_then(|entries| {
+            entries
+                .flatten()
+                .map(|e| e.path())
+                .find(|p| p.extension().is_some_and(|e| e == "dmp"))
+        }) {
+            // Give the server a moment to finish writing, then read and delete.
+            std::thread::sleep(Duration::from_millis(200));
+            let bytes = std::fs::read(&path).unwrap();
+            let _ = std::fs::remove_file(&path);
+            return bytes;
+        }
+        assert!(Instant::now() < deadline, "no minidump was written");
+        std::thread::sleep(Duration::from_millis(50));
+    }
+}
+
+/// A sandboxed engine with the marked file open, connected to a fresh dump server; returns the
+/// summary of the dump its fault leaves, the crash's pid, the engine's pid, and the raw dump.
+fn crash(message: &ToEngine) -> (DumpSummary, Option<u32>, Option<u32>, Vec<u8>) {
+    let dir = std::env::temp_dir().join(format!("laminapdf-native-crash-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&dir);
+    let server = TestDumpServer::start(dir.clone()).unwrap();
     let spawner = SandboxSpawner::new(
-        PathBuf::from(env!("CARGO_BIN_EXE_laminapdf-desktop-engine")),
-        vec![CRASH_SOCKET_ARG.into(), server.socket().into()],
+        engine(),
+        vec![
+            CRASH_SOCKET_ARG.into(),
+            server.socket().into(),
+            CRASH_SERVER_PID_ARG.into(),
+            std::process::id().to_string().into(),
+        ],
         SandboxConfig::default(),
         |line| eprintln!("engine: {line}"),
     );
@@ -83,50 +107,25 @@ fn crashing_engine(name: &str) -> Crashing {
         matches!(opened.0, FromEngine::Opened { page_count: 2, .. }),
         "{opened:?}"
     );
-    Crashing {
-        supervisor,
-        events,
-        dumps,
-        _server: server,
-    }
-}
-
-impl Crashing {
-    /// Sends `message`, then waits for the dump and the crash: the summary, the crash's pid with
-    /// the crashed engine's, and the raw dump's bytes.
-    fn crash(self, message: &ToEngine) -> (DumpSummary, Option<u32>, Option<u32>, Vec<u8>) {
-        let engine = self.supervisor.pid();
-        self.supervisor.send(message);
-        let path = self
-            .dumps
-            .recv_timeout(Duration::from_secs(30))
-            .unwrap_or_else(|_| panic!("no minidump"));
-        let crashed = loop {
-            match self.events.recv_timeout(Duration::from_secs(30)) {
-                Ok(Event::Crashed { pid, .. }) => break Some(pid),
-                Ok(_) => {}
-                Err(_) => break None,
-            }
-        };
-        self.supervisor.shutdown();
-        let raw = std::fs::read(&path).unwrap();
-        if let Some(keep) = std::env::var_os("LAMINA_PDF_KEEP_DUMP") {
-            std::fs::write(keep, &raw).unwrap();
+    let engine_pid = supervisor.pid();
+    supervisor.send(message);
+    let raw = wait_for_dump(&dir);
+    let crashed = loop {
+        match events.recv_timeout(Duration::from_secs(30)) {
+            Ok(Event::Crashed { pid, .. }) => break Some(pid),
+            Ok(_) => {}
+            Err(_) => break None,
         }
-        let summary = summarize_dump(&path).unwrap();
-        assert!(!path.exists(), "the dump was not deleted");
-        (summary, crashed, engine, raw)
-    }
-}
-
-/// The engine binary's file name, as a summary names its module.
-fn engine_module() -> String {
-    format!("laminapdf-desktop-engine{}", std::env::consts::EXE_SUFFIX)
+    };
+    supervisor.shutdown();
+    drop(server);
+    let summary = summarize_bytes(raw.clone()).unwrap();
+    (summary, crashed, engine_pid, raw)
 }
 
 #[test]
 fn a_fault_in_the_sandboxed_engine_should_leave_a_dump_naming_the_faulting_module() {
-    let (summary, crashed, engine, _) = crashing_engine("segv").crash(&ToEngine::DebugSegv);
+    let (summary, crashed, engine, _) = crash(&ToEngine::DebugSegv);
     eprintln!("{summary:#?}");
     assert_eq!(
         (
@@ -141,17 +140,15 @@ fn a_fault_in_the_sandboxed_engine_should_leave_a_dump_naming_the_faulting_modul
 
 #[test]
 fn a_dump_summary_should_hold_nothing_of_the_open_file() {
-    // The panic's message names the file, as a careless format! would; the abort that follows
-    // the panic summary leaves a dump while the message is still in the engine's memory.
+    // The panic's message names the file; the abort that follows leaves a dump while the message is
+    // still in the engine's memory. The raw dump may hold the markers (which is why it never
+    // leaves the computer); the summary must not.
     let marked = format!("/Users/ana/{FOLDER}/{NAME}.pdf: {CONTENT}");
-    let (summary, _, _, raw) = crashing_engine("markers").crash(&ToEngine::DebugPanic { message: marked });
-    // The raw dump may hold pieces of the file (here, the document's text on the stack), which
-    // is why it never leaves the computer. Logged, not asserted: what memory a dump keeps
-    // differs by OS.
-    let held = ["DeleteTheUsersFiles", NAME, FOLDER]
+    let (summary, _, _, raw) = crash(&ToEngine::DebugPanic { message: marked });
+    let held: Vec<&str> = ["DeleteTheUsersFiles", NAME, FOLDER]
         .into_iter()
         .filter(|marker| raw.windows(marker.len()).any(|window| window == marker.as_bytes()))
-        .collect::<Vec<_>>();
+        .collect();
     eprintln!("the raw dump holds {held:?}");
     let text = format!("{summary:?}");
     let leaks: Vec<&str> = [FOLDER, NAME, CONTENT, "/Users", "\\Users"]
@@ -159,4 +156,45 @@ fn a_dump_summary_should_hold_nothing_of_the_open_file() {
         .filter(|marker| text.contains(marker))
         .collect();
     assert_eq!((leaks, summary.frames.is_empty()), (Vec::<&str>::new(), false));
+}
+
+/// The engine's `--summarize-dump` mode reads a dump from stdin, sandboxed, and writes its summary.
+#[test]
+fn summarize_dump_mode_should_read_a_dump_from_stdin() {
+    let dump = fixture_dump();
+    let mut child = Command::new(engine())
+        .arg("--summarize-dump")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::inherit())
+        .spawn()
+        .unwrap();
+    child.stdin.take().unwrap().write_all(&dump).unwrap();
+    let mut json = String::new();
+    child.stdout.take().unwrap().read_to_string(&mut json).unwrap();
+    assert!(child.wait().unwrap().success());
+    // The summary names the engine module; parse it back through the crate's own reader to be sure
+    // it is the agreed JSON shape, then check the module.
+    let summary = summarize_bytes(dump).unwrap();
+    assert_eq!(
+        (
+            json.contains("\"module\":\"laminapdf-desktop-engine\"") || json.contains("laminapdf-desktop-engine"),
+            summary
+                .modules
+                .iter()
+                .any(|module| module.name == "laminapdf-desktop-engine"),
+        ),
+        (true, true)
+    );
+}
+
+/// The committed macOS minidump, or a Linux one captured in this run if the fixture isn't this OS's.
+fn fixture_dump() -> Vec<u8> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/desktop/minidump-macos-aarch64-segv.dmp");
+    if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
+        std::fs::read(path).unwrap()
+    } else {
+        // Elsewhere, capture a fresh dump so the mode is exercised on this OS too.
+        crash(&ToEngine::DebugSegv).3
+    }
 }

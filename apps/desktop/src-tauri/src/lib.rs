@@ -90,6 +90,7 @@ fn engine_args(app: &tauri::AppHandle) -> Vec<OsString> {
             Vec::new()
         }
     };
+    #[cfg(unix)]
     if let Some(dumps) = app.try_state::<crash::EngineDumps>() {
         args.extend(dumps.engine_args());
     }
@@ -112,6 +113,7 @@ impl Notify for WindowEvents {
         // mustn't hold up the engine's restart.
         let (app, window) = (self.0.clone(), window.to_owned());
         tauri::async_runtime::spawn_blocking(move || {
+            #[cfg(unix)]
             if let Some(dumps) = app.try_state::<crash::EngineDumps>() {
                 crash.native = dumps.crashes.take_for_report(pid);
             }
@@ -169,9 +171,21 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let crashes = crash::CrashReports::new(&config, &data, &app.package_info().version.to_string());
     crash::report_panics(&crashes);
     crashes.resume();
-    app.manage(crashes);
-    crash::capture_main(&data);
+    app.manage(Arc::clone(&crashes));
+    // Native crash capture (ADR 0014 §10): the monitor hosts the servers and connects the main
+    // process's handler; the poller reads engine dumps. Unix only; Windows keeps D7a's behaviour.
+    #[cfg(unix)]
     if let Some(dumps) = crash::EngineDumps::start(&data) {
+        // Read the main-process dumps an earlier run left (the newest few) off the start-up path,
+        // and queue each as a held report; the reader summarises them in a subprocess.
+        let (reader, crashes, data_dir) = (dumps.reader(), Arc::clone(&crashes), data.clone());
+        let _ = std::thread::Builder::new()
+            .name("crash-leftover".into())
+            .spawn(move || {
+                for native in crash::leftover_main_crashes(&data_dir, &reader) {
+                    crashes.record_main_native(native);
+                }
+            });
         app.manage(dumps);
     }
     app.manage(prefs::Prefs::load(config.join("preferences.json")));

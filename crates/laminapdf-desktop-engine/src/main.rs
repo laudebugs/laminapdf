@@ -8,10 +8,15 @@
 //!   engine still opens documents and reports their pages, and answers every tile with
 //!   `RenderUnavailable`.
 //! - `--memory-limit <bytes>`: the sandbox's memory limit, which the main process passes.
-//! - `--crash-socket <path>`: the main process's crash-dump server. The engine connects to it
-//!   and installs its crash handler first of all, before PDFium and the sandbox, so a native crash
-//!   leaves a minidump; the sandbox then lets the handler use that one socket. Without it, or if
-//!   the server can't be reached, the engine runs without capture.
+//! - `--crash-socket <path>` and `--crash-server-pid <pid>`: the monitor's engine-dump server and
+//!   the monitor's own process id (ADR 0014 §10). The engine connects and installs its crash
+//!   handler first of all, before PDFium and the sandbox, so a native crash leaves a minidump; the
+//!   sandbox then lets the handler use that one socket, and on Linux lets the monitor trace it while
+//!   it writes the dump. Without them, or if the server can't be reached, the engine runs without
+//!   capture.
+//! - `--summarize-dump`: read a minidump's bytes from stdin, under the full sandbox, and write its
+//!   allow-listed summary to stdout as JSON, then exit. The main process spawns the engine this way
+//!   so the untrusted dump is parsed sandboxed and the parser never links into the main process.
 //! - `--sandbox-selftest[=<probe>]` (feature `selftest`, which the tests and CI turn on): lock
 //!   down, try what the sandbox must stop, print the results and exit (`selftest.rs`).
 //!
@@ -23,12 +28,14 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use std::fmt::Write as _;
+use std::io::{Read as _, Write as _};
 use std::path::Path;
 use std::sync::Arc;
 
+use laminapdf_desktop_crash::summary::summarize_to_json;
+use laminapdf_desktop_crash::{CRASH_SERVER_PID_ARG, CRASH_SOCKET_ARG, SUMMARIZE_DUMP_ARG};
 use laminapdf_desktop_engine::fonts::{FontSource, Fonts};
 use laminapdf_desktop_engine::{Setup, log};
-use laminapdf_desktop_sandbox::capture::{CRASH_SOCKET_ARG, CrashCapture, capture_crashes};
 use laminapdf_desktop_sandbox::{MEMORY_LIMIT_ARG, SandboxConfig, apply_engine_sandbox};
 use laminapdf_render::{RenderBackend, RenderError};
 use laminapdf_render_pdfium::{PDFIUM_DIR_ENV, PdfiumBackend};
@@ -38,6 +45,7 @@ use laminapdf_render_pdfium::{PDFIUM_DIR_ENV, PdfiumBackend};
 struct Args {
     pdfium: Option<PathBuf>,
     crash_socket: Option<PathBuf>,
+    crash_server: Option<u32>,
     config: SandboxConfig,
     mode: Mode,
 }
@@ -48,6 +56,8 @@ enum Mode {
     /// Serve the main process on stdin and stdout.
     #[default]
     Serve,
+    /// Read a minidump from stdin under the sandbox and write its summary to stdout.
+    SummarizeDump,
     /// Run the selftest: every probe (`None`), or one (feature `selftest`).
     #[cfg(feature = "selftest")]
     Selftest(Option<String>),
@@ -61,9 +71,17 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
+    if matches!(args.mode, Mode::SummarizeDump) {
+        return summarize_dump();
+    }
     // Kept to the end: dropping it would detach the handler.
-    let capture = args.crash_socket.as_deref().and_then(connect_crash_server);
-    args.config.crash_socket = capture.as_ref().and_then(CrashCapture::descriptor);
+    let capture = args
+        .crash_socket
+        .as_deref()
+        .and_then(|socket| connect_crash_server(socket, args.crash_server));
+    args.config.crash_socket = capture
+        .as_ref()
+        .and_then(laminapdf_desktop_crash::CrashCapture::descriptor);
     let fonts = Arc::new(Fonts::default());
     let backend: Option<Box<dyn RenderBackend>> = match bind(args.pdfium.as_deref(), &fonts) {
         Ok(backend) => Some(Box::new(backend)),
@@ -108,14 +126,38 @@ fn main() -> ExitCode {
     }
 }
 
-/// Connects to the main process's crash-dump server at `socket` and installs the crash handler;
-/// on Linux the server, the main process, is this process's parent.
-fn connect_crash_server(socket: &Path) -> Option<CrashCapture> {
-    #[cfg(unix)]
-    let server = Some(std::os::unix::process::parent_id());
-    #[cfg(not(unix))]
-    let server = None;
-    match capture_crashes(socket, server) {
+/// Reads a minidump from stdin under the full sandbox and writes its summary to stdout as JSON. The
+/// sandbox goes on before the untrusted dump is touched; the main process caps the time by ending
+/// this process, so there is no timeout here.
+fn summarize_dump() -> ExitCode {
+    // No PDFium, no crash socket: this reads a dump, nothing else.
+    if let Err(error) = apply_engine_sandbox(&SandboxConfig::default()) {
+        log(&format!("the sandbox could not be applied: {}", report(&error)));
+        return ExitCode::FAILURE;
+    }
+    let mut bytes = Vec::new();
+    if std::io::stdin().lock().read_to_end(&mut bytes).is_err() {
+        return ExitCode::FAILURE;
+    }
+    match summarize_to_json(bytes) {
+        Ok(json) => {
+            if std::io::stdout().lock().write_all(json.as_bytes()).is_err() {
+                return ExitCode::FAILURE;
+            }
+            ExitCode::SUCCESS
+        }
+        Err(error) => {
+            log(&format!("the dump could not be read: {error}"));
+            ExitCode::FAILURE
+        }
+    }
+}
+
+/// Connects to the monitor's crash-dump server at `socket` and installs the crash handler; `server`
+/// is the monitor's process id, which on Linux is allowed to trace this process while it writes the
+/// dump.
+fn connect_crash_server(socket: &Path, server: Option<u32>) -> Option<laminapdf_desktop_crash::CrashCapture> {
+    match laminapdf_desktop_crash::capture_crashes(socket, server) {
         Ok(capture) => Some(capture),
         Err(error) => {
             log(&format!("native crashes won't leave a dump: {}", report(&error)));
@@ -158,6 +200,16 @@ fn parse_args() -> Result<Args, String> {
             parsed.pdfium = Some(PathBuf::from(args.next().ok_or("--pdfium needs a folder")?));
         } else if arg == CRASH_SOCKET_ARG {
             parsed.crash_socket = Some(PathBuf::from(args.next().ok_or("--crash-socket needs a path")?));
+        } else if arg == CRASH_SERVER_PID_ARG {
+            let value = args.next().ok_or("--crash-server-pid needs a number")?;
+            parsed.crash_server = Some(
+                value
+                    .to_string_lossy()
+                    .parse()
+                    .map_err(|_| "--crash-server-pid needs a number".to_owned())?,
+            );
+        } else if arg == SUMMARIZE_DUMP_ARG {
+            parsed.mode = Mode::SummarizeDump;
         } else if arg == MEMORY_LIMIT_ARG {
             let value = args.next().ok_or("--memory-limit needs a number of bytes")?;
             parsed.config.memory_limit = value

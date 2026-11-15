@@ -26,7 +26,7 @@
       {
         "module": "<unknown>",
         "offset": 7936,
-        "function": "objc_msgSend"
+        "function": null
       }
     ],
     "modules": [

@@ -3233,6 +3233,7 @@ version = "0.4.0"
 dependencies = [
  "file-id",
  "image-webp",
+ "laminapdf-desktop-crash",
  "laminapdf-desktop-os",
  "laminapdf-desktop-protocol",
  "laminapdf-desktop-sandbox",
@@ -3264,10 +3265,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "laminapdf-desktop-crash"
+version = "0.4.0"
+dependencies = [
+ "crash-handler",
+ "laminapdf-desktop-protocol",
+ "libc",
+ "minidump",
+ "minidump-processor",
+ "minidump-unwind",
+ "minidumper",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "laminapdf-desktop-engine"
 version = "0.4.0"
 dependencies = [
  "laminapdf",
+ "laminapdf-desktop-crash",
  "laminapdf-desktop-protocol",
  "laminapdf-desktop-sandbox",
  "laminapdf-render",
@@ -3306,14 +3324,9 @@ dependencies = [
 name = "laminapdf-desktop-sandbox"
 version = "0.4.0"
 dependencies = [
- "crash-handler",
  "laminapdf-desktop-protocol",
  "landlock",
  "libc",
- "minidump",
- "minidump-processor",
- "minidump-unwind",
- "minidumper",
  "seccompiler",
  "thiserror 2.0.21",
  "windows-sys 0.61.2",

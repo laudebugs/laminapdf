@@ -22,7 +22,6 @@
 //! `LAMINA_PDF_ENGINE_SANDBOX=off` turns the sandbox off for diagnosis, in debug builds only
 //! ([`sandbox_disabled`]).
 
-pub mod capture;
 mod fonts;
 mod spawn;
 #[cfg(windows)]
@@ -52,8 +51,8 @@ pub struct SandboxConfig {
     /// twice it, since address space counts reservations (thread stacks, malloc arenas) too.
     /// macOS has no enforced limit (ADR 0008 §5).
     pub memory_limit: u64,
-    /// The crash socket's descriptor ([`capture::CrashCapture::descriptor`], Unix), which the
-    /// lock-down lets the engine keep and use besides its pipes; `None` without crash capture.
+    /// The crash socket's descriptor (`laminapdf_desktop_crash::CrashCapture::descriptor`, Unix),
+    /// which the lock-down lets the engine keep and use besides its pipes; `None` without capture.
     pub crash_socket: Option<i32>,
 }
 
