@@ -491,6 +491,13 @@ Wrap each in:
 | Wrap lines | `wrap-lines` | `<path d="M4.5 6.5h15M4.5 12h11a3 3 0 0 1 0 6h-4"></path><path d="M13.5 16l-2 2 2 2"></path><path d="M4.5 17.5h4"></path>` | Wrap long lines in a code block |
 | Format code | `format-code` | `<path d="M4.5 6h9M8.5 10h11M8.5 14h7M4.5 18h9"></path>` | Format the code in an editor |
 
+**Icons for the sites' theme switch (Q4w).** Q4w drew these for the Light and Dark choices of the docs site's theme switch; Auto uses Laptop.
+
+| Name | File | Markup | Used for |
+| --- | --- | --- | --- |
+| Sun | `sun` | `<circle cx="12" cy="12" r="3.5"></circle><path d="M12 4v2M12 18v2M4 12h2M18 12h2M6.34 6.34l1.42 1.42M16.24 16.24l1.42 1.42M17.66 6.34l-1.42 1.42M7.76 16.24l-1.42 1.42"></path>` | The light theme |
+| Moon | `moon` | `<path d="M19 14.5A7.5 7.5 0 0 1 9.5 5a7.5 7.5 0 1 0 9.5 9.5z"></path>` | The dark theme |
+
 Window caption glyphs (minimise, maximise, close) are drawn on a 10 × 10 grid with 1 px strokes and are mockup-only.
 
 ## 6. Layout

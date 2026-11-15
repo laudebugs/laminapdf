@@ -125,6 +125,7 @@ export default defineConfig({
         Header: "./src/components/Header.astro",
         Hero: "./src/components/Hero.astro",
         MobileMenuFooter: "./src/components/MobileMenuFooter.astro",
+        PageSidebar: "./src/components/PageSidebar.astro",
         PageTitle: "./src/components/PageTitle.astro",
         ThemeSelect: "./src/components/ThemeSelect.astro",
       },
