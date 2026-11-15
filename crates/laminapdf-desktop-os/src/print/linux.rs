@@ -10,8 +10,8 @@ use gtk::{PageOrientation, PageSetup, PaperSize, PrintOperation, PrintOperationA
 
 use super::{Band, PixelOrder, PrintError, PrintJob, PrintOutcome, PrintPage, PrintSource, check_band};
 
-/// The window the print dialog belongs to.
-pub type Owner = gtk::Window;
+/// The window the print dialog belongs to: Tauri's own GTK window (`WebviewWindow::gtk_window`).
+pub type Owner = gtk::ApplicationWindow;
 
 /// What the operation's handlers share: the source and how the job went.
 struct Job {
