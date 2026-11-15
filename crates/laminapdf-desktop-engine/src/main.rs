@@ -48,7 +48,6 @@ enum Mode {
 }
 
 fn main() -> ExitCode {
-    laminapdf_desktop_engine::crash::report_panics();
     let args = match parse_args() {
         Ok(args) => args,
         Err(message) => {
@@ -85,6 +84,7 @@ fn main() -> ExitCode {
             }
         };
     }
+    laminapdf_desktop_engine::crash::report_panics();
     let setup = Setup {
         backend,
         sandboxed,

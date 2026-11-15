@@ -15,15 +15,22 @@ use crate::outbox::Outbox;
 static TO_MAIN: OnceLock<Outbox> = OnceLock::new();
 
 /// Makes every panic from here on end the engine, after telling the main process what it was.
-/// The binary calls it; the library's tests don't, so a test's panic stays a test failure.
+/// The binary calls it once the sandbox is on and it starts serving; the selftest, whose probes
+/// catch the panics of calls the sandbox refuses, and the library's tests don't.
 pub fn report_panics() {
-    let previous = std::panic::take_hook();
-    std::panic::set_hook(Box::new(move |info| {
-        // The default hook writes the message to stderr, which the main process keeps in its log.
-        previous(info);
+    std::panic::set_hook(Box::new(|info| {
+        let summary = summarize_without_frames(info);
         if let Some(out) = TO_MAIN.get() {
-            out.try_send(&FromEngine::Panic(Box::new(summarize_without_frames(info))));
+            out.try_send(&FromEngine::Panic(Box::new(summary.clone())));
         }
+        // The message goes to stderr, which the main process keeps in its log. Not through the
+        // default hook: with RUST_BACKTRACE set it names the frames, which reads the binary from
+        // disk, and Linux's seccomp ends the engine for that before the summary is sent.
+        let at = summary
+            .location
+            .map(|at| format!(" at {}:{}:{}", at.file, at.line, at.column))
+            .unwrap_or_default();
+        crate::log(&format!("panicked{at}: {}", summary.message));
         std::process::abort();
     }));
 }

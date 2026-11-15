@@ -97,8 +97,9 @@ fn frames(module: &str) -> Vec<NativeFrame> {
         // The innermost symbol: with inlining, a frame can hold several.
         let symbol = frame.symbols().first()?;
         let function = format!("{:#}", symbol.name()?);
-        let start = symbol.addr()? as usize;
-        let offset = (frame.ip() as usize).checked_sub(start)?;
+        // The function's start from the unwind tables: a symbol's own address comes only from debug
+        // info, which release builds (and CI's) don't have.
+        let offset = (frame.ip() as usize).checked_sub(frame.symbol_address() as usize)?;
         // A Rust path; a demangled C++ name (PDFium's, a system library's) has its parameters.
         let rust = function.contains("::") && !function.contains('(');
         Some(NativeFrame {
@@ -119,8 +120,9 @@ fn frames(module: &str) -> Vec<NativeFrame> {
 
 /// Whether `function` is part of raising or reporting a panic rather than the code that panicked.
 fn is_machinery(function: &str) -> bool {
-    const PREFIXES: [&str; 15] = [
+    const PREFIXES: [&str; 17] = [
         "backtrace::",
+        "<backtrace::",
         "std::",
         "core::",
         "alloc::",
@@ -128,6 +130,7 @@ fn is_machinery(function: &str) -> bool {
         "rust_panic",
         "__rust",
         "laminapdf_desktop_protocol::crash::summarize",
+        "laminapdf_desktop_protocol::crash::summary_of",
         "laminapdf_desktop_protocol::crash::frames",
         // The panic hooks themselves, and the trait calls that reach them.
         "laminapdf_desktop_engine::crash::report_panics",
