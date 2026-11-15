@@ -7,6 +7,7 @@ import {
   ToggleButton as AriaToggleButton,
   type ToggleButtonProps as AriaToggleButtonProps,
 } from "react-aria-components";
+import { StableLabel } from "./stable-label.js";
 
 type BaseProps = Omit<AriaToggleButtonProps, "children" | "className" | "style">;
 
@@ -23,7 +24,11 @@ export function ToggleButton({ children, icon, ...rest }: ToggleButtonProps): Re
   return (
     <AriaToggleButton {...rest} className="paper-toggle">
       {icon === undefined ? null : <Icon name={icon} size={16} />}
-      {children === undefined ? null : <span className="paper-toggle-label">{children}</span>}
+      {children === undefined ? null : (
+        <span className="paper-toggle-label">
+          <StableLabel>{children}</StableLabel>
+        </span>
+      )}
     </AriaToggleButton>
   );
 }
@@ -41,7 +46,9 @@ export function ToolToggle({ children, icon, ...rest }: ToolToggleProps): ReactN
   return (
     <AriaToggleButton {...rest} className="paper-tool-toggle">
       <Icon name={icon} size={16} />
-      <span className="paper-toggle-label">{children}</span>
+      <span className="paper-toggle-label">
+        <StableLabel>{children}</StableLabel>
+      </span>
     </AriaToggleButton>
   );
 }

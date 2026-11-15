@@ -12,30 +12,41 @@
     padding-inline: var(--paper-space-10);
     border: var(--paper-border-width) solid transparent;
     border-radius: var(--paper-radius-4);
-    background: transparent;
+    background-color: transparent;
     color: var(--paper-text-3);
     font: var(--paper-type-control);
     white-space: nowrap;
-    cursor: default;
-  }
-
-  .paper-toggle[data-hovered],
-  .paper-tool-toggle[data-hovered] {
-    background: var(--paper-hover);
   }
 
   .paper-toggle[data-selected],
   .paper-tool-toggle[data-selected] {
     border-color: var(--paper-accent);
-    background: var(--paper-accent-tint);
+    background-color: var(--paper-accent-tint);
     color: var(--paper-accent);
     font-weight: 600;
   }
 
+  /* A selected toggle's hover and press move its label to accent-strong and primary-pressed, as
+     the primary button's fill moves: the layer lightens the tint in the dark theme, and a lighter
+     label keeps it at 4.5:1 (darker in the light theme, so it rises there too). */
+  :is(.paper-toggle, .paper-tool-toggle)[data-selected][data-hovered] {
+    color: var(--paper-accent-strong);
+  }
+
+  :is(.paper-toggle, .paper-tool-toggle)[data-selected][data-pressed] {
+    color: var(--paper-primary-pressed);
+  }
+
+  /* Disabled wins over selected (§7.0's order): the disabled text and a hairline edge. */
   .paper-toggle[data-disabled],
   .paper-tool-toggle[data-disabled] {
     color: var(--paper-disabled);
-    background: transparent;
+    background-color: transparent;
+  }
+
+  .paper-toggle[data-selected][data-disabled],
+  .paper-tool-toggle[data-selected][data-disabled] {
+    border-color: var(--paper-hairline);
   }
 
   @media (forced-colors: active) {
