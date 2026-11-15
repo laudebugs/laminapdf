@@ -166,6 +166,16 @@ UPDATE_TEST_OLD=<0.0.1's .app, installer or AppImage> UPDATE_TEST_NEW=<0.0.2's u
 
 The test installs and launches the app. On Windows, it installs for your user under `%LOCALAPPDATA%\Lamina PDF`.
 
+### Releases
+
+`.github/workflows/desktop-release.yml` builds and publishes the app: nightlies every night, staging trials by hand, and beta releases from `desktop-v*` tags. The release runbook, [Cutting a release](../../docs/guidelines/desktop-release.md#6-cutting-a-release), has the steps. The workflow's builds merge up to three more configs over `tauri.bundle.conf.json`:
+
+- `tauri.release.conf.json` bundles the third-party notices (`cargo xtask desktop-notices --bundle`: the Rust crates, the npm packages and the fonts), which Help ▸ View licences opens in the OS's text viewer. A development build bundles none, so the item does nothing.
+- `tauri.nightly.conf.json` (nightlies only) puts the nightly updater key in nightlies, so they update only to nightlies.
+- A config the workflow writes sets the version and turns on the updater's bundles.
+
+`tauri.macos.conf.json`, `tauri.windows.conf.json` and `tauri.linux.conf.json` name each OS's bundles, which Tauri merges on its own: the `.dmg`, NSIS and MSI, the AppImage, `.deb` and `.rpm`. A nightly passes `--bundles` without the MSI and the `.rpm`, whose formats refuse a `-nightly` version.
+
 ### Crash reports
 
 A crash leaves a report on this computer, and the report leaves only with the user's consent ([ADR 0014 §10](../../docs/decisions/0014-desktop-distribution.md#10-crash-reports); Paper [S08](../../docs/design/paper/desktop-shell.md#s08-crash-recovered)). Sending is off until the user says otherwise: the app asks once, after the first crash, and Settings › Privacy turns it on or off.

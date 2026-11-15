@@ -45,7 +45,7 @@ Make lamina behave like a native PDF app: it registers for `.pdf` in every insta
 
 - Recent files, OS recent documents, file watching: [D3b](../done/D3b-recent-files-and-file-watching.md).
 - Tabs and multi-window routing: [D4a](../done/D4a-windows-tabs-and-session-restore.md).
-- Installer-level verification of associations (MSI/NSIS/deb registration on clean VMs): [D6b](../ready/D6b-release-workflow-and-linux-packages.md)–[D6d](../ready/D6d-windows-signing.md) (this PR verifies with dev bundles).
+- Installer-level verification of associations (MSI/NSIS/deb registration on clean VMs): [D6b](../done/D6b-release-workflow-and-linux-packages.md)–[D6d](../ready/D6d-windows-signing.md) (this PR verifies with dev bundles).
 - Custom URL scheme deep links (`lamina://` for the web ↔ desktop handoff): not planned for D-rounds.
 
 ## Tasks

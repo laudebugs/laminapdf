@@ -1,0 +1,276 @@
+# One target of the desktop release (todo D6b; .github/workflows/desktop-release.yml): the app built
+# and bundled by the Tauri CLI, checked, and uploaded as the artifact desktop-<platform>-<mode> whose
+# files sit in <platform>/, as the publish job reads them.
+#
+# The three build jobs (dry run, nightly, release) share these steps. A composite action can't read
+# secrets: the release job sets TAURI_SIGNING_PRIVATE_KEY(_PASSWORD), LINUX_SIGNING_KEY and
+# LINUX_SIGNING_KEY_PASSPHRASE in its env, the nightly job only the first two, the dry run none.
+name: Desktop release build
+description: Build, bundle, sign (Linux) and check one target of the desktop app.
+inputs:
+  target:
+    description: The Rust target triple, which the runner's own CPU and OS run.
+    required: true
+  platform:
+    description: The update manifest's platform key, such as darwin-aarch64.
+    required: true
+  mode:
+    description: "`tag` (plain version: NSIS and MSI) or `nightly` (NSIS only on Windows)."
+    required: true
+  version:
+    description: The version the build carries.
+    required: true
+  bundles:
+    description: The Tauri CLI's --bundles, or empty for tauri.<os>.conf.json's targets.
+    required: false
+    default: ""
+  channel:
+    description: The channel the build is for (LAMINA_UPDATE_CHANNEL, which release builds compile in).
+    required: true
+  updater:
+    description: "`true` to sign updater bundles with the environment's key; dry runs have none."
+    required: true
+  sign-linux:
+    description: "`true` to sign the Linux packages with the owner's GPG key (desktop-release only)."
+    required: false
+    default: "false"
+runs:
+  using: composite
+  steps:
+    # A clean build, with no cache: nothing a pull request saved reaches a release.
+    - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
+      with:
+        cache: false
+    - uses: $/.github/actions/node-pnpm
+    - uses: $/.github/actions/linux-webkit
+    # What Tauri's Linux bundlers run: AppImage's linuxdeploy (FUSE 2, patchelf, file, librsvg for the
+    # icons); and for the signed packages debsigs, rpmsign, and debsig-verify and rpm to check them.
+    - name: Install the Linux packaging tools
+      if: runner.os == 'Linux'
+      uses: nick-fields/retry@v4.0.0
+      with:
+        timeout_minutes: 15
+        max_attempts: 3
+        retry_wait_seconds: 60
+        shell: bash
+        command: |
+          set -euo pipefail
+          sudo timeout -k 30 60 dpkg --configure -a
+          bash .github/actions/apt-fail-fast/update.sh
+          sudo timeout -k 30 420 apt-get install -y -q --no-install-recommends \
+            libfuse2 patchelf file librsvg2-dev xdg-utils debsigs debsig-verify rpm
+    # The same versions as tools/xtask/src/doctor.rs.
+    - uses: $/.github/actions/install-tools
+      with:
+        tool: wasm-bindgen@0.2.129,cargo-cyclonedx@0.5.9${{ inputs.target != 'x86_64-apple-darwin' && ',cargo-about@0.9.2' || '' }}
+    # cargo-about ships no x86_64-apple-darwin binary, and install-action's source fallback leaves
+    # out the `cli` feature its binary needs (as in cli-release.yml).
+    - name: Build cargo-about 0.9.2
+      if: inputs.target == 'x86_64-apple-darwin'
+      shell: bash
+      run: cargo install cargo-about --locked --version 0.9.2 --features cli
+    - name: Build the packages the frontend imports
+      shell: bash
+      run: cargo xtask desktop-frontend
+    # Before the build: the bundle carries the notices (tauri.release.conf.json, Help ▸ View licences).
+    - name: Write the third-party notices the bundle carries
+      shell: bash
+      run: cargo xtask desktop-notices --bundle
+    # The key is the owner's signing subkey alone (runbook §1.6: its primary is a stub). Its
+    # passphrase is preset in gpg's agent, so every tool that calls gpg (appimagetool while Tauri
+    # bundles, debsigs, rpmsign) signs without asking.
+    - name: Import and unlock the Linux signing key
+      if: inputs.sign-linux == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [ -z "${LINUX_SIGNING_KEY:-}" ]; then
+          echo "::error::the desktop-release environment has no LINUX_SIGNING_KEY"
+          exit 1
+        fi
+        printf '%s' "$LINUX_SIGNING_KEY" | gpg --batch --import
+        # The fingerprint and keygrip of the key that can sign (capability s, field 12).
+        read -r fpr grip < <(gpg --batch --with-colons --with-keygrip --list-secret-keys | awk -F: '
+          $1 == "sec" || $1 == "ssb" { signs = ($12 ~ /s/) }
+          signs && $1 == "fpr" && !fpr { fpr = $10 }
+          signs && $1 == "grp" && !grip { grip = $10 }
+          END { print fpr, grip }')
+        if [ -z "$fpr" ] || [ -z "$grip" ]; then
+          echo "::error::LINUX_SIGNING_KEY holds no key that can sign"
+          exit 1
+        fi
+        echo "allow-preset-passphrase" >> ~/.gnupg/gpg-agent.conf
+        gpgconf --kill gpg-agent
+        gpg-connect-agent /bye
+        "$(gpgconf --list-dirs libexecdir)/gpg-preset-passphrase" --preset "$grip" <<< "$LINUX_SIGNING_KEY_PASSPHRASE"
+        {
+          echo "SIGN=1"
+          echo "SIGN_KEY=$fpr"
+          # Fail the build rather than ship an unsigned AppImage when signing fails.
+          echo "APPIMAGETOOL_FORCE_SIGN=1"
+          echo "LINUX_SIGNING_FPR=$fpr"
+        } >> "$GITHUB_ENV"
+    - name: Build and bundle (tauri build)
+      shell: bash
+      working-directory: apps/desktop
+      env:
+        TARGET: ${{ inputs.target }}
+        MODE: ${{ inputs.mode }}
+        VERSION: ${{ inputs.version }}
+        BUNDLES: ${{ inputs.bundles }}
+        UPDATER: ${{ inputs.updater }}
+        SIGN_LINUX: ${{ inputs.sign-linux }}
+        LAMINA_UPDATE_CHANNEL: ${{ inputs.channel }}
+        # Shipped binaries carry no symbols (the workspace's release profile keeps them for others).
+        CARGO_PROFILE_RELEASE_STRIP: symbols
+      run: |
+        set -euo pipefail
+        # The version isn't committed: the run's plan gives it. A file, not a JSON argument,
+        # because Windows passes pnpm's arguments through cmd.exe, which mangles the quotes.
+        run_config="$RUNNER_TEMP/tauri.run.conf.json"
+        printf '{"version":"%s","bundle":{"createUpdaterArtifacts":%s}}\n' "$VERSION" "$UPDATER" > "$run_config"
+        args=(build --ci --target "$TARGET" --config src-tauri/tauri.bundle.conf.json --config src-tauri/tauri.release.conf.json)
+        # Nightlies trust the nightly updater key only, so they update only to nightlies.
+        if [ "$MODE" = nightly ]; then args+=(--config src-tauri/tauri.nightly.conf.json); fi
+        args+=(--config "$run_config")
+        if [ -n "$BUNDLES" ]; then args+=(--bundles "$BUNDLES"); fi
+        if [ "$SIGN_LINUX" = true ]; then export APPIMAGETOOL_SIGN_PASSPHRASE="$LINUX_SIGNING_KEY_PASSPHRASE"; fi
+        pnpm exec tauri "${args[@]}"
+    - name: Collect the files people download and the updater installs
+      shell: bash
+      env:
+        TARGET: ${{ inputs.target }}
+        PLATFORM: ${{ inputs.platform }}
+      run: |
+        set -euo pipefail
+        # Forward slashes on Windows (D:/a/_temp): the later steps glob this path, and a glob reads
+        # D:\a\_temp's backslashes as escapes. Windows programs (xtask) accept the same form.
+        temp="$RUNNER_TEMP"
+        if command -v cygpath > /dev/null; then temp=$(cygpath -m "$temp"); fi
+        out="$temp/desktop/$PLATFORM"
+        mkdir -p "$out"
+        # Globs, not find: on Windows, `find` is the system's own find.exe. Files only: the .app
+        # folder ships inside the .dmg and the .app.tar.gz.
+        shopt -s nullglob
+        for file in target/"$TARGET"/release/bundle/*/*; do
+          case "$file" in
+            *.dmg | *.app.tar.gz | *-setup.exe | *.msi | *.AppImage | *.deb | *.rpm | *.sig)
+              if [ -f "$file" ]; then cp "$file" "$out/"; fi ;;
+          esac
+        done
+        ls -l "$out"
+        echo "DESKTOP_OUT=$out" >> "$GITHUB_ENV"
+    # A nightly's pre-release version fits neither an MSI nor an rpm, so it builds neither.
+    - name: Check the bundles the mode asks for
+      shell: bash
+      env:
+        MODE: ${{ inputs.mode }}
+        UPDATER: ${{ inputs.updater }}
+      run: |
+        set -euo pipefail
+        has() { compgen -G "$DESKTOP_OUT/$1" > /dev/null; }
+        fail() { echo "::error::$1"; exit 1; }
+        case "$RUNNER_OS" in
+          macOS) has '*.dmg' || fail "no .dmg" ;;
+          Windows)
+            has '*-setup.exe' || fail "no NSIS installer"
+            if [ "$MODE" = tag ]; then has '*.msi' || fail "a tag build makes an MSI too"; fi
+            if [ "$MODE" = nightly ] && has '*.msi'; then fail "a nightly can't carry an MSI"; fi ;;
+          Linux)
+            has '*.AppImage' || fail "no AppImage"
+            has '*.deb' || fail "no .deb"
+            if [ "$MODE" = tag ]; then has '*.rpm' || fail "a tag build makes an .rpm too"; fi ;;
+        esac
+        if [ "$UPDATER" = true ] && ! has '*.sig'; then fail "no updater signature"; fi
+    - name: Check the notices are in the bundle
+      shell: bash
+      env:
+        TARGET: ${{ inputs.target }}
+      run: |
+        set -euo pipefail
+        case "$RUNNER_OS" in
+          macOS) test -s target/"$TARGET"/release/bundle/macos/*.app/Contents/Resources/THIRD_PARTY_NOTICES.txt ;;
+          # The listing goes to a file: grep -q stops early, and dpkg-deb's tar fails on the closed pipe.
+          Linux)
+            dpkg-deb -c "$DESKTOP_OUT"/*.deb > "$RUNNER_TEMP/deb-files.txt"
+            grep -q 'THIRD_PARTY_NOTICES.txt$' "$RUNNER_TEMP/deb-files.txt" ;;
+          # The installers pack their files; the build copies the resource next to the executable.
+          Windows) test -s target/"$TARGET"/release/THIRD_PARTY_NOTICES.txt ;;
+        esac
+    # The AppImage was signed while Tauri bundled it; the .deb and .rpm carry their signatures inside.
+    - name: Sign the .deb and the .rpm
+      if: inputs.sign-linux == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        shopt -s nullglob
+        for deb in "$DESKTOP_OUT"/*.deb; do debsigs --sign=origin -k "$LINUX_SIGNING_FPR" "$deb"; done
+        for rpm in "$DESKTOP_OUT"/*.rpm; do rpmsign --addsign --define "_gpg_name $LINUX_SIGNING_FPR" "$rpm"; done
+    - name: Write SHA256SUMS
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd "$DESKTOP_OUT"
+        sum() { if command -v sha256sum > /dev/null; then sha256sum "$1"; else shasum -a 256 "$1"; fi; }
+        # Every file but the signatures, which sign these files rather than ship on their own.
+        for file in *; do
+          case "$file" in *.sig | *.asc) ;; *) if [ -f "$file" ]; then sum "$file"; fi ;; esac
+        done > SHA256SUMS
+        cat SHA256SUMS
+    - name: Sign every Linux file and SHA256SUMS (detached)
+      if: inputs.sign-linux == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        shopt -s nullglob
+        for file in "$DESKTOP_OUT"/*.AppImage "$DESKTOP_OUT"/*.deb "$DESKTOP_OUT"/*.rpm "$DESKTOP_OUT"/SHA256SUMS; do
+          gpg --batch --local-user "$LINUX_SIGNING_FPR" --armor --detach-sign --output "$file.asc" "$file"
+        done
+    # The runbook's checks (§3), here with the key just used: a bad signature fails the release.
+    - name: Verify the Linux signatures
+      if: inputs.sign-linux == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        shopt -s nullglob
+        cd "$DESKTOP_OUT"
+        public="$RUNNER_TEMP/lamina-release.asc"
+        gpg --batch --armor --export "$LINUX_SIGNING_FPR" > "$public"
+        for asc in *.asc; do gpg --batch --verify "$asc" "${asc%.asc}"; done
+        sha256sum --check SHA256SUMS
+        id=${LINUX_SIGNING_FPR: -16}
+        sudo mkdir -p "/usr/share/debsig/keyrings/$id" "/etc/debsig/policies/$id"
+        gpg --dearmor < "$public" | sudo tee "/usr/share/debsig/keyrings/$id/debsig.gpg" > /dev/null
+        sudo tee "/etc/debsig/policies/$id/lamina-pdf.pol" > /dev/null <<POLICY
+        <?xml version="1.0"?>
+        <!DOCTYPE Policy SYSTEM "https://www.debian.org/debsig/1.0/policy.dtd">
+        <Policy xmlns="https://www.debian.org/debsig/1.0/">
+          <Origin Name="Lamina PDF" id="$id" Description="Lamina PDF releases"/>
+          <Selection><Required Type="origin" File="debsig.gpg" id="$id"/></Selection>
+          <Verification MinOptional="0"><Required Type="origin" File="debsig.gpg" id="$id"/></Verification>
+        </Policy>
+        POLICY
+        for deb in *.deb; do debsig-verify "$deb"; done
+        # One rpm database for the import and the check: Ubuntu's rpm keeps it in $HOME, which sudo changes.
+        rpmdb="$RUNNER_TEMP/rpmdb"
+        mkdir -p "$rpmdb"
+        rpm --dbpath "$rpmdb" --import "$public"
+        for rpm in *.rpm; do rpm --dbpath "$rpmdb" -K "$rpm" | tee /dev/stderr | grep -q 'signatures OK'; done
+        for appimage in *.AppImage; do
+          chmod +x "$appimage"
+          test -n "$("./$appimage" --appimage-signature)"
+        done
+    - name: Check the installers against the 15 MB budget
+      shell: bash
+      run: cargo xtask desktop-release sizes "$DESKTOP_OUT"
+    - name: Write the SBOMs
+      shell: bash
+      env:
+        TARGET: ${{ inputs.target }}
+      run: cargo xtask desktop-release sbom "$TARGET" "$DESKTOP_OUT/sbom"
+    - uses: actions/upload-artifact@v7.0.2
+      with:
+        name: desktop-${{ inputs.platform }}-${{ inputs.mode }}
+        path: ${{ runner.temp }}/desktop
+        if-no-files-found: error
+        retention-days: 14

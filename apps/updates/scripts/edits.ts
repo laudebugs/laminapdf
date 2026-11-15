@@ -46,9 +46,19 @@ export function promote(from: Manifest, to: Manifest, version: string, percent: 
   }
   const release = releaseNamed(from, version);
   if (!release) throw new Error(`${from.channel} has no release ${version}`);
+  return publishRelease(to, release, percent);
+}
+
+/**
+ * Makes `release` the release of `to` at `percent`: the release workflow's publish of a new
+ * build, and `promote`'s last step. The release it replaces becomes `previous` when it reached
+ * 100 %; otherwise the old `previous` stays (ADR 0014 §2). A version that isn't newer than the
+ * channel's release is refused, so a re-run can't go back.
+ */
+export function publishRelease(to: Manifest, release: Release, percent: number): Manifest {
   const current = to.release;
-  if (current && compare(current.version, version) >= 0) {
-    throw new Error(`${to.channel} already has ${current.version}, which isn't older than ${version}`);
+  if (current && compare(current.version, release.version) >= 0) {
+    throw new Error(`${to.channel} already has ${current.version}, which isn't older than ${release.version}`);
   }
   const retired = current?.rollout_percent === 100 ? current : to.previous;
   const { previous: _replaced, ...rest } = to;
