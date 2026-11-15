@@ -12,7 +12,9 @@
 //! - `tauri.e2e.conf.json` doesn't list exactly the base capabilities plus `e2e`: `--config` merges
 //!   as a JSON merge patch, which replaces arrays rather than appending to them;
 //! - its CSP isn't the base CSP with only `'unsafe-eval'` added to `script-src` (the test
-//!   plugin runs scripts with `eval`): the e2e build must test the policy users get.
+//!   plugin runs scripts with `eval`): the e2e build must test the policy users get;
+//! - a committed `tauri*.conf.json` turns on the updater's `dangerousInsecureTransportProtocol`:
+//!   only the update test (D5c) passes it, with `--config`, to reach its local server over HTTP.
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -252,4 +254,29 @@ fn the_guard_should_reject_an_e2e_csp_that_differs_otherwise() {
     let base = conf_with_csp(&["main"], "default-src 'self'; script-src 'self'");
     let e2e = conf_with_csp(&["main", "e2e"], "default-src *; script-src 'self' 'unsafe-eval'");
     assert_eq!(problems(&base, &[cap("main.json", "main", &[])], Some(&e2e)).len(), 1);
+}
+
+#[test]
+fn no_committed_configuration_should_let_the_updater_use_plain_http() -> TestResult {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut read = 0;
+    for entry in std::fs::read_dir(root)? {
+        let path = entry?.path();
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        if !(name.starts_with("tauri") && name.ends_with(".conf.json")) {
+            continue;
+        }
+        read += 1;
+        let conf = read_json(&path)?;
+        assert_eq!(
+            conf.pointer("/plugins/updater/dangerousInsecureTransportProtocol"),
+            None,
+            "{name} sets the updater's dangerousInsecureTransportProtocol"
+        );
+    }
+    assert!(read >= 3, "read only {read} tauri*.conf.json files");
+    Ok(())
 }

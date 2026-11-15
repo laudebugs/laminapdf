@@ -212,6 +212,8 @@ mod tests {
     const WEB_DEPLOY: &str = include_str!("../../../.github/workflows/web-deploy.yml");
     const CLI_TRAIN: &str = include_str!("../../release/cli-release-train.yml");
     const CANCEL_MERGED: &str = include_str!("../../../.github/workflows/cancel-merged.yml");
+    const UPDATE_E2E: &str = include_str!("../../../.github/workflows/desktop-update-e2e.yml");
+    const UPDATE_BUILDS: &str = include_str!("../../../.github/actions/desktop-update-builds/action.yml");
 
     #[test]
     fn fast_gate_should_need_every_ci_job() {
@@ -761,6 +763,46 @@ mod tests {
                 .collect::<Vec<_>>(),
             ["actions: write", "contents: read", "pull-requests: read"],
             "the token may cancel runs and read the merged PR, nothing more"
+        );
+    }
+
+    /// The desktop update test (todo D5c): its pull request job, which forks' code runs, names no
+    /// secret and no environment, and its build action reads none; only the staging job runs in
+    /// `desktop-staging`, never on a pull request, whose only secrets are the staging bucket's token and the account ID.
+    #[test]
+    fn the_update_tests_pull_request_job_should_hold_no_secret() {
+        let ids = job_ids(UPDATE_E2E);
+        assert_eq!(ids, ["local", "staging"]);
+        let job = |id: &str| {
+            jobs(UPDATE_E2E)
+                .into_iter()
+                .find(|(job, _)| *job == id)
+                .map(|(_, lines)| lines.join("\n"))
+                .unwrap_or_default()
+        };
+        let local = job("local");
+        assert!(local.contains("if: ${{ github.event_name == 'pull_request' }}"));
+        for forbidden in ["secrets.", "environment:"] {
+            assert!(!local.contains(forbidden), "the pull request job names {forbidden}");
+            assert!(!UPDATE_BUILDS.contains(forbidden), "the build action names {forbidden}");
+        }
+        let staging = job("staging");
+        assert!(staging.contains("if: ${{ github.event_name != 'pull_request'"));
+        assert!(staging.contains("environment: desktop-staging"));
+        assert!(
+            staging.contains("max-parallel: 1"),
+            "staging legs share the channel's manifest"
+        );
+        let secrets: Vec<&str> = staging
+            .split("secrets.")
+            .skip(1)
+            .filter_map(|rest| rest.split(|c: char| !c.is_ascii_alphanumeric() && c != '_').next())
+            .collect();
+        assert!(
+            secrets
+                .iter()
+                .all(|name| ["CLOUDFLARE_STAGING_R2_TOKEN", "CLOUDFLARE_ACCOUNT_ID"].contains(name)),
+            "the staging job reads {secrets:?}"
         );
     }
 

@@ -10,6 +10,8 @@
 //! `debug`) and retried at the next check; only Check now reports one.
 
 pub(crate) mod commands;
+#[cfg(feature = "e2e")]
+mod e2e;
 mod plan;
 mod policy;
 mod settings;
@@ -156,12 +158,26 @@ impl Updates {
         // Cleared however the check ends, a panic included, so later checks still run.
         let _busy = Busy(&self.busy);
         if let Some(request) = plan_check(&self.store, self.applied(), manual, UPDATE_SERVER) {
+            // The update test (D5c) asks its own server, on the staging channel.
+            #[cfg(feature = "e2e")]
+            let request = match e2e::endpoint() {
+                Some(url) => plan::CheckRequest { url, ..request },
+                None => request,
+            };
             self.set_state(app, State::Checking);
             let outcome = self.fetch(app, request, manual).await;
             // "Last checked" counts only checks the server answered.
             if outcome.is_ok() {
                 self.store.update(|settings| settings.last_check = Some(now()));
             }
+            #[cfg(feature = "e2e")]
+            match &outcome {
+                Ok(Some(ready)) => e2e::report(&format!("ready {}", ready.update.version)),
+                Ok(None) => e2e::report("no update"),
+                Err(error) => e2e::report(&format!("failed: {error}")),
+            }
+            #[cfg(feature = "e2e")]
+            let install_now = matches!(outcome, Ok(Some(_))) && e2e::server().is_some();
             let state = match outcome {
                 Ok(Some(ready)) => {
                     let state = State::Ready {
@@ -178,6 +194,10 @@ impl Updates {
                 }
             };
             self.set_state(app, state);
+            #[cfg(feature = "e2e")]
+            if install_now {
+                e2e::install_now(app);
+            }
         }
     }
 
@@ -319,7 +339,17 @@ pub(crate) fn start(app: &tauri::AppHandle) {
     let spawned = std::thread::Builder::new()
         .name("laminapdf-updates".to_owned())
         .spawn(move || {
-            std::thread::sleep(FIRST_CHECK);
+            // The update test (D5c) checks at once.
+            #[cfg(feature = "e2e")]
+            let first = if e2e::server().is_some() {
+                e2e::report(&format!("started {}", app.state::<Arc<Updates>>().build.version));
+                std::time::Duration::ZERO
+            } else {
+                FIRST_CHECK
+            };
+            #[cfg(not(feature = "e2e"))]
+            let first = FIRST_CHECK;
+            std::thread::sleep(first);
             loop {
                 let updates = Arc::clone(&app.state::<Arc<Updates>>());
                 tauri::async_runtime::block_on(updates.check(&app, false));
