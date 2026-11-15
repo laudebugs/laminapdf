@@ -9,7 +9,7 @@ An edit names bytes, such as a replacement image, by an ID that the editing sess
 
 ## Why
 
-Edits stay small by naming large payloads by the SHA-256 hash of their bytes instead of carrying the bytes. The session keeps every payload added to it, so undo, redo and a replayed list of edits find them again. This edit names an ID that was never added, so there is nothing to use.
+Edits stay small by naming large payloads by the SHA-256 hash of their bytes instead of carrying the bytes. The session keeps every payload added to it, so undo, redo and a replayed list of edits find them again. This edit names an ID that was never added, so the session has nothing to use.
 
 ## How to fix
 

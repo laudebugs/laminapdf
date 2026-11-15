@@ -5,7 +5,7 @@
 
 ## What happened
 
-An edit replaces an image on a page, but the document has nothing to turn the new JPEG or PNG into an image in the file with.
+An edit replaces an image on a page, but the document has no image writer to turn the new JPEG or PNG into an image object.
 
 ## Why
 

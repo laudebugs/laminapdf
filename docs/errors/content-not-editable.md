@@ -25,7 +25,7 @@ PDF stores text as glyphs placed one by one in a font's own encoding, not as cha
 
 ## How to fix
 
-The file is fine: Lamina PDF reads this content and shows it as it is. To change it, delete the object and add new content in its place, or edit the file in the program that made it. For `state-not-portable`, try another place in the stacking order: next to objects drawn under the same clip.
+The file is fine: Lamina PDF reads this content and shows it as it is. To change it, delete the object and add new content in its place (except for `clipping-path`, whose object can't be deleted either), or edit the file in the program that made it. For `state-not-portable`, try another place in the stacking order: next to objects drawn under the same clip.
 
 ## Example
 

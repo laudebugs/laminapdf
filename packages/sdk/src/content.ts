@@ -1,19 +1,9 @@
-// What a page already draws, for an editor to select and change: `doc.content`
+// What a page already draws, for an editor to select and change: the type of `doc.content`
 // (ADR 0022). Reads need a document opened while the extract or text module was loaded; edits go
-// through `apply` as one `editContent` op.
+// through `apply` as one `editContent` op. Only a type: `Document` builds the object, which keeps
+// the package's JavaScript small.
 
-import type { WasmDocument as ExtractWasmDocument } from "@laminapdf/wasm/extract";
-import type { ContentEdit, Edited, ObjectRef, Op, PageObject } from "./types.js";
-
-/** What {@link DocumentContent} needs of its document. */
-export interface ContentAccess {
-  /** Runs `read` on the document's extract-module glue, as `doc.call` runs any glue call. */
-  read<T>(what: string, read: (doc: ExtractWasmDocument) => T): T;
-  /** Applies `ops` as one transaction. */
-  apply(ops: readonly Op[]): Edited;
-  /** The ID of page `index`. */
-  pageId(index: number): string;
-}
+import type { ContentEdit, Edited, ObjectRef, PageObject } from "./types.js";
 
 /**
  * The objects the document's pages draw, and edits to them ({@link Document.content}). Pages are
@@ -24,14 +14,7 @@ export interface ContentAccess {
  *
  * @since 0.5.0
  */
-export class DocumentContent {
-  readonly #access: ContentAccess;
-
-  /** @internal */
-  constructor(access: ContentAccess) {
-    this.#access = access;
-  }
-
+export interface DocumentContent {
   /**
    * The objects page `index` draws, in painting order: paths, text objects, images, forms and
    * shadings, each with its name for an edit, its box and, when it can't be moved, why.
@@ -41,9 +24,7 @@ export class DocumentContent {
    *
    * @since 0.5.0
    */
-  objects(index: number): PageObject[] {
-    return this.#access.read("doc.content.objects()", (doc) => doc.contentObjects(index));
-  }
+  objects(index: number): PageObject[];
 
   /**
    * The objects of page `index` at `at`, topmost first: a point `[x, y]` (an object within 2
@@ -53,11 +34,7 @@ export class DocumentContent {
    *
    * @since 0.5.0
    */
-  hitTest(index: number, at: readonly [number, number] | readonly [number, number, number, number]): ObjectRef[] {
-    return this.#access.read("doc.content.hitTest()", (doc) =>
-      at.length === 2 ? doc.hitTest(index, at[0], at[1]) : doc.hitTestRect(index, [...at]),
-    );
-  }
+  hitTest(index: number, at: readonly [number, number] | readonly [number, number, number, number]): ObjectRef[];
 
   /**
    * Makes `edits` on page `index` in one transaction (`editContent`), in order. Each names its
@@ -72,8 +49,5 @@ export class DocumentContent {
    *
    * @since 0.5.0
    */
-  edit(index: number, edits: readonly ContentEdit[]): Edited {
-    const page = this.#access.pageId(index);
-    return this.#access.apply([{ op: "editContent", args: { page, edits: [...edits] } }]);
-  }
+  edit(index: number, edits: readonly ContentEdit[]): Edited;
 }

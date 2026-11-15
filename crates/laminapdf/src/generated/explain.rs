@@ -3325,7 +3325,7 @@ PDF stores text as glyphs placed one by one in a font's own encoding, not as cha
 
 ## How to fix
 
-The file is fine: Lamina PDF reads this content and shows it as it is. To change it, delete the object and add new content in its place, or edit the file in the program that made it. For `state-not-portable`, try another place in the stacking order: next to objects drawn under the same clip.
+The file is fine: Lamina PDF reads this content and shows it as it is. To change it, delete the object and add new content in its place (except for `clipping-path`, whose object can't be deleted either), or edit the file in the program that made it. For `state-not-portable`, try another place in the stacking order: next to objects drawn under the same clip.
 
 ## Example
 
@@ -3358,7 +3358,7 @@ An edit names bytes, such as a replacement image, by an ID that the editing sess
 
 ## Why
 
-Edits stay small by naming large payloads by the SHA-256 hash of their bytes instead of carrying the bytes. The session keeps every payload added to it, so undo, redo and a replayed list of edits find them again. This edit names an ID that was never added, so there is nothing to use.
+Edits stay small by naming large payloads by the SHA-256 hash of their bytes instead of carrying the bytes. The session keeps every payload added to it, so undo, redo and a replayed list of edits find them again. This edit names an ID that was never added, so the session has nothing to use.
 
 ## How to fix
 
@@ -3390,7 +3390,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-An edit replaces an image on a page, but the document has nothing to turn the new JPEG or PNG into an image in the file with.
+An edit replaces an image on a page, but the document has no image writer to turn the new JPEG or PNG into an image object.
 
 ## Why
 

@@ -4,7 +4,7 @@
 // document.
 import type { WasmDocument, WasmPage, WasmSaveJob } from "@laminapdf/wasm/base";
 import type { WasmDocument as ExtractWasmDocument, PageTextJs, WasmExtractJob } from "@laminapdf/wasm/extract";
-import { DocumentContent } from "./content.js";
+import type { DocumentContent } from "./content.js";
 import { isLaminaPdfError, type LaminaPdfWarning, packageError } from "./errors.js";
 import { type ExtractFormat, type ExtractOptions, type ExtractResult, parseExtract } from "./extract.js";
 import { ExtractJob, type ExtractJobOptions } from "./extract-job.js";
@@ -836,11 +836,16 @@ export class Document extends Handle<BaseGlue> {
    * @since 0.5.0
    */
   get content(): DocumentContent {
-    return new DocumentContent({
-      read: (what, read) => this.call(() => read(this.#extracting(what))),
-      apply: (ops) => this.apply(ops),
-      pageId: (index) => this.pageInfo(index).id,
-    });
+    return {
+      objects: (index) => this.call(() => this.#extracting("doc.content.objects()").contentObjects(index)),
+      hitTest: (index, at) =>
+        this.call(() => {
+          const doc = this.#extracting("doc.content.hitTest()");
+          return at.length === 2 ? doc.hitTest(index, at[0], at[1]) : doc.hitTestRect(index, [...at]);
+        }),
+      edit: (index, edits) =>
+        this.apply([{ op: "editContent", args: { page: this.pageInfo(index).id, edits: [...edits] } }]),
+    };
   }
 
   /**

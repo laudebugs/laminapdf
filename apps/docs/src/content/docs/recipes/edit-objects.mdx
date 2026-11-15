@@ -16,10 +16,10 @@ In the result, the red rectangle is half its size about the same centre, the blu
 ## How it works
 
 - `content.objects(index)` (`content_objects` in Rust) lists what the page draws: paths, text, images, forms and shadings. Boxes are in page space, points from the top-left of the page as shown, with y down. `content.hitTest(index, [x, y])` gives the objects at a point, topmost first, and a rectangle `[x0, y0, x1, y1]` gives every object it meets.
-- An edit names an object by its place in the list and a hash of its bytes. Because the hash covers the bytes, a name taken before another edit changed that object fails with `content-object-stale`, so an edit never lands on the wrong object.
+- An edit names an object by its place in the list and a hash of its bytes. So once an edit has changed an object, a name taken before that edit fails with `content-object-stale`, and an edit never lands on the wrong object.
 - A `transform` takes a matrix in page space: `[1, 0, 0, 1, 300, 0]` moves an object 300 points right, and `[0.5, 0, 0, 0.5, e, f]` halves it.
 - Only the objects you name are written again. The rest of the page keeps its bytes, and when another page draws the same content, that page stays as it was.
-- Resources no longer used, such as a deleted image's picture, leave the page's resources.
+- A resource nothing names any more, such as a deleted image's stored picture, leaves the page's resources.
 - **Undo:** one `undo()` reverts the whole edit.
 
 ## What to change
