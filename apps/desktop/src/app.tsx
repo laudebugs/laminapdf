@@ -95,6 +95,43 @@ function useMergedActions(home: CommandActions, tabs: CommandActions, print: Com
   return useMemo(() => ({ ...home, ...tabs, ...print }), [home, tabs, print]);
 }
 
+/** {@link WindowStatus}'s props. */
+interface WindowStatusProps {
+  /** Whether the shown document was repaired as it opened. */
+  readonly repaired: boolean;
+  /** Where the repair's details go. */
+  readonly toasts: ToastQueue;
+  /** The print's progress, while one runs. */
+  readonly print: ReactNode;
+  /** The app's version, when known. */
+  readonly info: AppInfo | undefined;
+}
+
+/**
+ * The status bar's items: the repair notice, the print's progress and the app's version.
+ * @param props - See {@link WindowStatusProps}.
+ * @returns The items.
+ */
+function WindowStatus({ repaired, toasts, print, info }: WindowStatusProps): ReactNode {
+  return (
+    <>
+      {repaired ? (
+        <RepairedNotice
+          label="Repaired on open"
+          details="Details"
+          onPress={() =>
+            toasts.add({
+              message: "The file had damage that Lamina PDF repaired as it opened it. The file itself is unchanged.",
+            })
+          }
+        />
+      ) : null}
+      {print}
+      {info === undefined ? null : <StatusBarItem>{`Lamina PDF ${info.version}`}</StatusBarItem>}
+    </>
+  );
+}
+
 /**
  * The reader's window: top bar, home screen, the document's view, and the notices around them.
  * @param props - See {@link AppProps}.
@@ -147,24 +184,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
             }}
           />
         }
-        status={
-          <>
-            {repaired ? (
-              <RepairedNotice
-                label="Repaired on open"
-                details="Details"
-                onPress={() =>
-                  toasts.add({
-                    message:
-                      "The file had damage that Lamina PDF repaired as it opened it. The file itself is unchanged.",
-                  })
-                }
-              />
-            ) : null}
-            {print.status}
-            {info === undefined ? null : <StatusBarItem>{`Lamina PDF ${info.version}`}</StatusBarItem>}
-          </>
-        }
+        status={<WindowStatus repaired={repaired} toasts={toasts} print={print.status} info={info} />}
       >
         {shows.startScreen ? (
           <OpenDropZone reader={reader} keys={keys}>
