@@ -45,11 +45,11 @@ use std::sync::Arc;
 
 pub use crash::monitor_main;
 pub use error::DesktopError;
-use laminapdf_desktop_protocol::supervisor::{Config, FontServer, Spawner};
-use laminapdf_desktop_sandbox::BackgroundFonts;
+use laminapdf_desktop_protocol::supervisor::{Config, FontServer, Spawned, Spawner};
+use laminapdf_desktop_sandbox::{BackgroundFonts, SandboxConfig, SandboxSpawner};
 use tauri::{Emitter as _, EventTarget, Manager as _, RunEvent, WindowEvent};
 
-use crate::engine::{Engines, FAILED_EVENT, Failed, Launcher, Notify, RESTARTED_EVENT, Restarted, SandboxedEngine};
+use crate::engine::{Engines, FAILED_EVENT, Failed, Launcher, Notify, RESTARTED_EVENT, Restarted};
 
 /// The scheme the viewer fetches tiles from: `lamina://localhost/tile/…`, and
 /// `http://lamina.localhost/tile/…` on Windows (the CSP allows both).
@@ -88,8 +88,8 @@ fn engine_program() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from(name))
 }
 
-/// The engine's PDFium argument: the folder among the app's resources, when it is there.
-fn pdfium_args(app: &tauri::AppHandle) -> Vec<OsString> {
+/// The engine's fixed arguments: the PDFium folder among the app's resources, when it is there.
+fn engine_args(app: &tauri::AppHandle) -> Vec<OsString> {
     match app.path().resource_dir().map(|dir| dir.join("pdfium")) {
         Ok(dir) if dir.is_dir() => vec!["--pdfium".into(), dir.into_os_string()],
         _ => {
@@ -99,15 +99,13 @@ fn pdfium_args(app: &tauri::AppHandle) -> Vec<OsString> {
     }
 }
 
-/// The engine's arguments at this start: `pdfium`, then the current crash monitor's socket, when
-/// one runs (Unix only).
-#[cfg_attr(
-    not(unix),
-    expect(unused_variables, reason = "only capture, on Unix, adds the socket")
-)]
-fn engine_args(app: &tauri::AppHandle, pdfium: &[OsString]) -> Vec<OsString> {
+/// The arguments of an engine about to spawn: the fixed ones, and the crash-dump server's socket
+/// while a monitor runs (Unix). [`FreshArgs`] reads them at each spawn, a window's engine restarts
+/// included, since a restarted monitor has a new socket.
+#[cfg_attr(not(unix), expect(unused_variables, reason = "only capture, on Unix, reads the app"))]
+fn spawn_args(app: &tauri::AppHandle, fixed: &[OsString]) -> Vec<OsString> {
     #[cfg_attr(not(unix), expect(unused_mut, reason = "only capture, on Unix, adds the socket"))]
-    let mut args = pdfium.to_vec();
+    let mut args = fixed.to_vec();
     #[cfg(unix)]
     if let Some(dumps) = app.try_state::<crash::EngineDumps>() {
         args.extend(dumps.engine_args());
@@ -153,19 +151,33 @@ impl Notify for WindowEvents {
     }
 }
 
+/// Starts each engine, a restart of a window's engine included, with [`spawn_args`] read then.
+#[derive(Clone)]
+struct FreshArgs {
+    program: PathBuf,
+    fixed: Vec<OsString>,
+    app: tauri::AppHandle,
+}
+
+impl Spawner for FreshArgs {
+    fn spawn(&self) -> std::io::Result<Spawned> {
+        let args = spawn_args(&self.app, &self.fixed);
+        // Inside its sandbox (ADR 0008 §5); the supervisor logs the layers each engine reports.
+        SandboxSpawner::new(self.program.clone(), args, SandboxConfig::default(), |line| {
+            tracing::info!(target: "laminapdf_desktop::engine", "{line}");
+        })
+        .spawn()
+    }
+}
+
 /// Every window's engine, started on first use.
 fn engines(app: &tauri::AppHandle) -> Arc<Engines> {
-    let (program, pdfium) = (engine_program(), pdfium_args(app));
-    let handle = app.clone();
-    let launcher: Launcher = Arc::new(move || {
-        let (handle, pdfium) = (handle.clone(), pdfium.clone());
-        let engine = SandboxedEngine::new(
-            program.clone(),
-            move || engine_args(&handle, &pdfium),
-            |line| tracing::info!(target: "laminapdf_desktop::engine", "{line}"),
-        );
-        Box::new(engine) as Box<dyn Spawner>
-    });
+    let spawner = FreshArgs {
+        program: engine_program(),
+        fixed: engine_args(app),
+        app: app.clone(),
+    };
+    let launcher: Launcher = Arc::new(move || Box::new(spawner.clone()) as Box<dyn Spawner>);
     // The sandboxed engine can't open font files: the main process lists the system's faces and
     // serves them (ADR 0008 §5, fonts). Windows engines keep PDFium's GDI font mapper.
     let fonts: Option<Arc<dyn FontServer>> = if cfg!(windows) {
