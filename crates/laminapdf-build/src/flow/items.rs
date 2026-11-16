@@ -3,7 +3,7 @@
 
 use std::borrow::Cow;
 
-use super::contents::{Contents, Heading, destination, headings, plain_text};
+use super::contents::{Contents, ContentsEntry, Heading, destination, headings, plain_text};
 use super::measure::{Source, first_style};
 use super::model::{Figure, FlowBlock, Inline, List, ListKind, Paragraph, ParagraphStyle, TextStyle};
 use super::table::{CellItem, RowItem, Section, Table, TableItem, TableRow};
@@ -61,6 +61,8 @@ pub(crate) struct Item {
     pub(crate) entry: Option<usize>,
     /// Room kept at the end of each line, points (a contents entry's number).
     pub(crate) reserve: f64,
+    /// A contents listing's entry: its index among the flow's listed entries.
+    pub(crate) listed: Option<usize>,
 }
 
 /// A footnote: its body (a source, its number first) and its `Note` element.
@@ -93,6 +95,8 @@ pub(crate) struct Items {
     pub(crate) heading_at: Vec<usize>,
     /// Each contents entry's page number: its heading, its source and its style.
     numbers: Vec<(usize, usize, TextStyle)>,
+    /// How many contents listing entries the flow holds.
+    pub(crate) listed: usize,
     /// The flow's first page: its headings' destinations are named after it.
     first: usize,
     keeps: usize,
@@ -309,6 +313,7 @@ impl Items {
             title: None,
             entry: None,
             reserve: 0.0,
+            listed: None,
         }
     }
 
@@ -338,6 +343,12 @@ impl Items {
     fn contents(&mut self, contents: &Contents, parent: Option<usize>, keep: Option<usize>, indent: f64) {
         let toc = self.node(Tag::new(TagKind::TOC), parent);
         let style = ParagraphStyle::new().with_space(0.0, contents.style.size * 0.3);
+        if let Some(entries) = &contents.listing {
+            for entry in entries {
+                self.listed_entry(entry, contents, &style, toc, keep, indent);
+            }
+            return;
+        }
         let listed: Vec<(usize, Heading)> = self
             .headings
             .iter()
@@ -368,6 +379,41 @@ impl Items {
             item.reserve = contents.style.size * 3.0;
             self.entries.push(item);
         }
+    }
+
+    /// A contents listing's entry (`TOCI`): its text, then its label at the end of its last
+    /// line, neither a link.
+    fn listed_entry(
+        &mut self,
+        entry: &ContentsEntry,
+        contents: &Contents,
+        style: &ParagraphStyle,
+        toc: usize,
+        keep: Option<usize>,
+        indent: f64,
+    ) {
+        let tag = Tag::new(TagKind::TOCI);
+        let lang = contents.style.language.clone();
+        let toci = self.node(lang.map_or(tag.clone(), |l| tag.with_lang(l)), Some(toc));
+        let label = Paragraph::new(ParagraphStyle::new()).text(entry.label.clone(), &contents.style);
+        self.sources.push(Source::new(&label));
+        let number = self.sources.len() - 1;
+        let text = Paragraph::new(style.clone()).text(entry.text.clone(), &contents.style);
+        self.sources.push(Source::new(&text));
+        let level_indent = f64::from(entry.level.clamp(1, 6) - 1) * contents.indent.max(0.0);
+        let mut item = Self::item(
+            Content::Para(self.sources.len() - 1),
+            Some(toci),
+            keep,
+            indent + level_indent,
+        );
+        item.space_after = style.space_after;
+        item.entry = Some(number);
+        // Room for the label (as wide as four digits) and the leaders' gap.
+        item.reserve = contents.style.size * 3.0;
+        item.listed = Some(self.listed);
+        self.listed += 1;
+        self.entries.push(item);
     }
 
     fn paragraph(

@@ -5,6 +5,14 @@
 import type { Op as BaseOp, WasmDocument, WasmPage, WasmSaveJob } from "@laminapdf/wasm/base";
 import type { WasmDocument as ExtractWasmDocument, PageTextJs, WasmExtractJob } from "@laminapdf/wasm/extract";
 import type { DocumentContent } from "./content.js";
+import {
+  type ContentsListing,
+  type ContentsPage,
+  type ContentsPageOptions,
+  type ContentsPlacement,
+  layOutContentsPage,
+  parseListing,
+} from "./contents.js";
 import { isLaminaPdfError, type LaminaPdfWarning, packageError } from "./errors.js";
 import { type ExtractFormat, type ExtractOptions, type ExtractResult, parseExtract } from "./extract.js";
 import { ExtractJob, type ExtractJobOptions } from "./extract-job.js";
@@ -1274,6 +1282,69 @@ export class Document extends Handle<BaseGlue> {
    */
   setInitialView(patch: InitialViewPatch): Edited {
     return this.apply([setInitialViewOp(patch)]);
+  }
+
+  /**
+   * Inserts a contents page made from the bookmarks, in one transaction (one undo step). It lists
+   * the bookmarks that go to a page, one or two levels deep, each with the label its page shows
+   * once the contents page is in and a link to that page. Bookmarks that open a web address, or
+   * go nowhere, are left out. Needs the text module loaded, which lays the page out; the document
+   * itself can be open in any module.
+   *
+   * @example
+   * ```ts
+   * await init({ text: true });
+   * const doc = Document.open(bytes);
+   * doc.createContentsPage({ font: Font.fromBytes(fontBytes), bookmark: true });
+   * ```
+   * @param options - where it goes (`at`, before the first page by default), how many levels it
+   *   lists (`levels`, 1 or 2), its heading (`title`), whether a bookmark for it goes first in the
+   *   outline (`bookmark`), its font and fallbacks, and the entries' size in points (`size`).
+   * @throws {@link LaminaPdfError} `text-module-not-loaded` when the text module isn't loaded;
+   *   `no-bookmarks` when no bookmark goes to a page; `font-not-embedded` for the default
+   *   font on a file that claims PDF/A or PDF/UA-1; `missing-glyph` for a title no font can draw;
+   *   as {@link Document.apply}.
+   *
+   * @since 0.5.0
+   */
+  createContentsPage(options: ContentsPageOptions = {}): Edited {
+    this.#notInTransaction("createContentsPage");
+    const { font, fallbacks, ...placement } = options;
+    const listing = this.contentsListing(placement);
+    const page = layOutContentsPage(listing, { ...(font ? { font } : {}), ...(fallbacks ? { fallbacks } : {}) });
+    return this.insertContentsPage(placement, page);
+  }
+
+  /**
+   * What a contents page made with `options` lists, without making it: each bookmark that goes to
+   * a page, with its level, title and the label its page will show. Works in every module; lay the
+   * page out with {@link layOutContentsPage} (text module), then insert it with
+   * {@link Document.insertContentsPage}, which is what {@link Document.createContentsPage} does.
+   *
+   * @throws {@link LaminaPdfError} `no-bookmarks` when no bookmark goes to a page; `unknown-page`
+   *   for an `at` that names no page; reading errors.
+   *
+   * @since 0.5.0
+   */
+  contentsListing(options: ContentsPlacement = {}): ContentsListing {
+    const json = this.call(() => this.#doc.contentsListing(options));
+    return parseListing(json);
+  }
+
+  /**
+   * Inserts `page`, laid out from the listing `options` gives, in one transaction (one undo step):
+   * its pages where `options.at` says, a link over each entry to its bookmark's place, and with
+   * `options.bookmark` a bookmark for it first in the outline.
+   *
+   * @throws {@link LaminaPdfError} `document-changed` when the document no longer gives the listing
+   *   `page` was laid out from (its bookmarks, labels or pages changed since); as
+   *   {@link Document.apply}.
+   *
+   * @since 0.5.0
+   */
+  insertContentsPage(options: ContentsPlacement, page: ContentsPage): Edited {
+    this.#notInTransaction("insertContentsPage");
+    return this.call(() => this.#doc.insertContentsPage(options, page));
   }
 
   /**

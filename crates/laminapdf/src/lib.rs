@@ -107,6 +107,7 @@ mod codes;
 mod comments;
 #[cfg(feature = "content-edit")]
 mod content;
+mod contents_page;
 mod data;
 mod document;
 mod error;
@@ -160,6 +161,9 @@ pub use annotations::{AnnotationGeometry, PageAnnotation};
 pub use comments::{CommentPart, PageComment};
 #[cfg(feature = "content-edit")]
 pub use content::PageObject;
+#[cfg(feature = "text")]
+pub use contents_page::ContentsFonts;
+pub use contents_page::{ContentsListing, ContentsOptions, ContentsPage, ListedEntry, PlacedEntry};
 pub use document::{Document, DocumentInfo, Edited, PageInfo, ReferenceEdit, ReferenceEditKind, Saved};
 pub use error::{CoreError, Error, Result};
 #[cfg(feature = "explain")]

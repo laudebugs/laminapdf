@@ -5927,13 +5927,15 @@ The decisions and todos behind this code:
 
 A job's `step` was given a document other than the one the job was created from, or that document changed since: a committed transaction, an undo, a redo, a save or a rebase. Every step checks the document's instance and revision before any work, and the job is now finished.
 
+A contents page raises it too: `insert_contents_page` (`insertContentsPage` in WebAssembly) was given a listing that the document no longer gives, because its bookmarks, page labels or pages changed after `contents_listing` read them.
+
 ## Why
 
 Jobs don't borrow the document, so other calls can run between two steps. A save or a read that went on after an edit would mix two states of the document, so the job stops instead.
 
 ## How to fix
 
-Pass the document the job was created from, don't change it while the job runs, and create a new job after a change. A failed save left the document as it was.
+Pass the document the job was created from, don't change it while the job runs, and create a new job after a change. For a contents page, read the listing again and lay the page out again. A failed save left the document as it was.
 
 ## Example
 
@@ -5952,6 +5954,7 @@ None.
 The decisions and todos behind this code:
 
 - [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) §3
+- [E3l](../todos/done/E3l-contents-page.md): the contents page
 "#,
         "revision-index-out-of-range" => r"# `revision-index-out-of-range`
 
@@ -5987,6 +5990,40 @@ doc.open_revision(count, OpenOptions::default())?; // revision-index-out-of-rang
 The decisions and todos behind this code:
 
 - [T2b](../todos/done/T2b-check-failed-redactions.md): `revision_count` and `open_revision`
+",
+        "no-bookmarks" => r"# `no-bookmarks`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`Document::create_contents_page` or `contents_listing` was asked for a contents page, but none of the document's bookmarks goes to one of its pages.
+
+## Why
+
+A contents page lists the bookmarks, each with the page it goes to. Bookmarks that open a web address or another file have no page in the document, so they are left out. When every bookmark is like that, or the document has none, the page would list nothing.
+
+## How to fix
+
+Add bookmarks that go to the document's pages, then create the contents page.
+
+## Example
+
+```rust
+let mut doc = Document::open_bytes(bytes, OpenOptions::default())?; // a file with no bookmarks
+doc.create_contents_page(&ContentsOptions::new(), &ContentsFonts::new())?; // no-bookmarks
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3l](../todos/done/E3l-contents-page.md): `create_contents_page`
 ",
         "covered-text" => r#"# `covered-text`
 

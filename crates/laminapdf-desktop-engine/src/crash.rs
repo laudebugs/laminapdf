@@ -48,3 +48,10 @@ pub(crate) fn debug_panic(message: &str) {
         panic!("{message}");
     }
 }
+
+/// `ToEngine::DebugSegv`: the end-to-end tests' forced native fault, a write through a null
+/// pointer, which the crash handler turns into a minidump.
+#[cfg(feature = "e2e")]
+pub(crate) fn debug_segv() {
+    laminapdf_desktop_crash::fault();
+}

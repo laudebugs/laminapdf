@@ -8,10 +8,19 @@
 //!   engine still opens documents and reports their pages, and answers every tile with
 //!   `RenderUnavailable`.
 //! - `--memory-limit <bytes>`: the sandbox's memory limit, which the main process passes.
+//! - `--crash-socket <path>` and `--crash-server-pid <pid>`: the monitor's engine-dump server and
+//!   the monitor's own process id (ADR 0014 §10). The engine connects and installs its crash
+//!   handler first of all, before PDFium and the sandbox, so a native crash leaves a minidump; the
+//!   sandbox then lets the handler use that one socket, and on Linux lets the monitor trace it while
+//!   it writes the dump. Without them, or if the server can't be reached, the engine runs without
+//!   capture.
+//! - `--summarize-dump`: read a minidump's bytes from stdin, under the full sandbox, and write its
+//!   allow-listed summary to stdout as JSON, then exit. The main process spawns the engine this way
+//!   so the untrusted dump is parsed sandboxed and the parser never links into the main process.
 //! - `--sandbox-selftest[=<probe>]` (feature `selftest`, which the tests and CI turn on): lock
 //!   down, try what the sandbox must stop, print the results and exit (`selftest.rs`).
 //!
-//! The start-up order is the sandbox's (ADR 0008 §5): PDFium is loaded first, then the engine
+//! The start-up order is the sandbox's (ADR 0008 §5): crash capture, then PDFium, then the engine
 //! locks itself down, and only then reads its stdin, so no document is read before the sandbox is
 //! on. `Ready` carries the sandbox's layers.
 
@@ -19,9 +28,12 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use std::fmt::Write as _;
+use std::io::{Read as _, Write as _};
 use std::path::Path;
 use std::sync::Arc;
 
+use laminapdf_desktop_crash::summary::summarize_to_json;
+use laminapdf_desktop_crash::{CRASH_SERVER_PID_ARG, CRASH_SOCKET_ARG, SUMMARIZE_DUMP_ARG};
 use laminapdf_desktop_engine::fonts::{FontSource, Fonts};
 use laminapdf_desktop_engine::{Setup, log};
 use laminapdf_desktop_sandbox::{MEMORY_LIMIT_ARG, SandboxConfig, apply_engine_sandbox};
@@ -32,6 +44,8 @@ use laminapdf_render_pdfium::{PDFIUM_DIR_ENV, PdfiumBackend};
 #[derive(Default)]
 struct Args {
     pdfium: Option<PathBuf>,
+    crash_socket: Option<PathBuf>,
+    crash_server: Option<u32>,
     config: SandboxConfig,
     mode: Mode,
 }
@@ -42,19 +56,30 @@ enum Mode {
     /// Serve the main process on stdin and stdout.
     #[default]
     Serve,
+    /// Read a minidump from stdin under the sandbox and write its summary to stdout.
+    SummarizeDump,
     /// Run the selftest: every probe (`None`), or one (feature `selftest`).
     #[cfg(feature = "selftest")]
     Selftest(Option<String>),
 }
 
 fn main() -> ExitCode {
-    let args = match parse_args() {
+    let mut args = match parse_args() {
         Ok(args) => args,
         Err(message) => {
             log(&message);
             return ExitCode::FAILURE;
         }
     };
+    if matches!(args.mode, Mode::SummarizeDump) {
+        return summarize_dump();
+    }
+    // Kept to the end: dropping it would detach the handler.
+    let capture = connect_crash_server(args.crash_socket.as_deref(), args.crash_server);
+    if capture.is_some() {
+        args.config.crash_socket = capture.as_ref().and_then(Capture::descriptor);
+        args.config.crash_server = args.crash_server;
+    }
     let fonts = Arc::new(Fonts::default());
     let backend: Option<Box<dyn RenderBackend>> = match bind(args.pdfium.as_deref(), &fonts) {
         Ok(backend) => Some(Box::new(backend)),
@@ -99,6 +124,83 @@ fn main() -> ExitCode {
     }
 }
 
+/// Reads a minidump from stdin under the full sandbox and writes its summary to stdout as JSON. The
+/// sandbox goes on before the untrusted dump is touched; the main process caps the time by ending
+/// this process, so there is no timeout here.
+fn summarize_dump() -> ExitCode {
+    // No PDFium, no crash socket: this reads a dump, nothing else.
+    if let Err(error) = apply_engine_sandbox(&SandboxConfig::default()) {
+        log(&format!("the sandbox could not be applied: {}", report(&error)));
+        return ExitCode::FAILURE;
+    }
+    let mut bytes = Vec::new();
+    if std::io::stdin().lock().read_to_end(&mut bytes).is_err() {
+        return ExitCode::FAILURE;
+    }
+    match summarize_to_json(bytes) {
+        Ok(json) => {
+            if std::io::stdout().lock().write_all(json.as_bytes()).is_err() {
+                return ExitCode::FAILURE;
+            }
+            ExitCode::SUCCESS
+        }
+        Err(error) => {
+            log(&format!("the dump could not be read: {error}"));
+            ExitCode::FAILURE
+        }
+    }
+}
+
+#[cfg(unix)]
+use laminapdf_desktop_crash::CrashCapture as Capture;
+
+/// No native capture off Unix in this version (ADR 0014 §10).
+#[cfg(not(unix))]
+struct Capture;
+
+#[cfg(not(unix))]
+impl Capture {
+    #[expect(clippy::unused_self, reason = "the Unix capture's method, which reads its socket")]
+    const fn descriptor(&self) -> Option<i32> {
+        None
+    }
+}
+
+/// Connects to the monitor's crash-dump server at `socket` and installs the crash handler; `server`
+/// is the monitor's process id, the one process allowed to trace this one while it writes the dump
+/// (Linux). Without both there is no capture at all, never a handler that lets any process trace it.
+/// On Linux a capture whose socket descriptor couldn't be identified is dropped, closing the socket:
+/// the lock-down would count it as a leaked descriptor and refuse to start, so the engine runs
+/// without capture instead.
+#[cfg(unix)]
+fn connect_crash_server(socket: Option<&Path>, server: Option<u32>) -> Option<Capture> {
+    let (socket, server) = match (socket, server) {
+        (Some(socket), Some(server)) => (socket, server),
+        (None, None) => return None,
+        _ => {
+            log("native crashes won't leave a dump: --crash-socket and --crash-server-pid go together");
+            return None;
+        }
+    };
+    match laminapdf_desktop_crash::capture_crashes(socket, server) {
+        Ok(capture) if cfg!(target_os = "linux") && capture.descriptor().is_none() => {
+            log("native crashes won't leave a dump: the crash socket's descriptor is unknown");
+            drop(capture);
+            None
+        }
+        Ok(capture) => Some(capture),
+        Err(error) => {
+            log(&format!("native crashes won't leave a dump: {}", report(&error)));
+            None
+        }
+    }
+}
+
+#[cfg(not(unix))]
+fn connect_crash_server(_socket: Option<&Path>, _server: Option<u32>) -> Option<Capture> {
+    None
+}
+
 /// Binds PDFium in `dir` (or `LAMINA_PDF_PDFIUM_DIR`) with its system fonts coming from the main
 /// process. Windows keeps PDFium's own font mapper, which asks GDI and needs no file access.
 fn bind(dir: Option<&Path>, fonts: &Arc<Fonts>) -> Result<PdfiumBackend, RenderError> {
@@ -131,6 +233,18 @@ fn parse_args() -> Result<Args, String> {
         let text = arg.to_string_lossy();
         if arg == "--pdfium" {
             parsed.pdfium = Some(PathBuf::from(args.next().ok_or("--pdfium needs a folder")?));
+        } else if arg == CRASH_SOCKET_ARG {
+            parsed.crash_socket = Some(PathBuf::from(args.next().ok_or("--crash-socket needs a path")?));
+        } else if arg == CRASH_SERVER_PID_ARG {
+            let value = args.next().ok_or("--crash-server-pid needs a number")?;
+            parsed.crash_server = Some(
+                value
+                    .to_string_lossy()
+                    .parse()
+                    .map_err(|_| "--crash-server-pid needs a number".to_owned())?,
+            );
+        } else if arg == SUMMARIZE_DUMP_ARG {
+            parsed.mode = Mode::SummarizeDump;
         } else if arg == MEMORY_LIMIT_ARG {
             let value = args.next().ok_or("--memory-limit needs a number of bytes")?;
             parsed.config.memory_limit = value

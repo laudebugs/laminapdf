@@ -309,15 +309,19 @@ jobs:
             echo "::error::apps/desktop/dist holds WebAssembly: $found"
             exit 1
           fi
-      # ADR 0008 §3: the main process never links the parser or PDFium. Exact names: the app and
-      # the protocol crate are expected.
+      # ADR 0008 §3: the main process never links the PDF parser or PDFium. ADR 0014 §10: nor the
+      # minidump parser — it reads dumps by spawning a sandboxed engine, so only the dump writer
+      # (minidump-writer, through minidumper, for the monitor the app binary also is) may appear,
+      # never the reader, minidump, or its unwinder, minidump-unwind. Exact names; the app and protocol
+      # crate are expected.
       - name: Check the main process links no parser or renderer
         shell: bash
         run: |
           set -euo pipefail
           found=$(cargo tree --locked -p laminapdf-desktop -e normal --prefix none --format '{p}' \
             | awk '{print $1}' | sort -u \
-            | grep -Fx -e laminapdf -e laminapdf-render -e laminapdf-render-pdfium -e laminapdf-desktop-engine -e pdfium-render || true)
+            | grep -Fx -e laminapdf -e laminapdf-render -e laminapdf-render-pdfium -e laminapdf-desktop-engine \
+                -e pdfium-render -e minidump -e minidump-unwind || true)
           if [ -n "$found" ]; then
             echo "::error::laminapdf-desktop depends on $found"
             exit 1
@@ -336,11 +340,13 @@ jobs:
               exit 1
             fi
           done
-          # The engine obeys the tests' forced panic only when built for them (desktop-sidecar --e2e).
-          if grep -aq DebugPanic "target/debug/laminapdf-desktop-engine$exe"; then
-            echo "::error::the engine holds DebugPanic without its e2e feature"
-            exit 1
-          fi
+          # The engine obeys the tests' forced panic and fault only when built for them (desktop-sidecar --e2e).
+          for name in DebugPanic DebugSegv; do
+            if grep -aq "$name" "target/debug/laminapdf-desktop-engine$exe"; then
+              echo "::error::the engine holds $name without its e2e feature"
+              exit 1
+            fi
+          done
           if grep -rlq -e __laminaE2e -e __wdio apps/desktop/dist; then
             echo "::error::the frontend bundle holds the e2e probe or WebdriverIO's plugin"
             exit 1

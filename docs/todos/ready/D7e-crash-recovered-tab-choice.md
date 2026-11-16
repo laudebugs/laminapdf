@@ -33,7 +33,7 @@ When Lamina PDF quits unexpectedly, the next launch should not reopen every tab 
 
 **Out of scope**
 
-- Native crash capture: [D7d](./D7d-native-crash-minidumps-and-symbols.md).
+- Native crash capture: [D7d](../done/D7d-native-crash-minidumps-and-symbols.md).
 
 ## Tasks
 

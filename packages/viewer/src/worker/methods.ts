@@ -2,7 +2,7 @@
 // workers too, which add their own hooks on top so none ships.
 
 import type { RenderRequest } from "@laminapdf/render";
-import type { Op, OutlineTarget, SaveOptions, TargetView } from "@laminapdf/sdk";
+import type { ContentsPlacement, Op, OutlineTarget, SaveOptions, TargetView } from "@laminapdf/sdk";
 import type { ExtensionMethod } from "@laminapdf/sdk/worker/server";
 import type { FindOptions } from "../find/fold.js";
 import type {
@@ -33,9 +33,11 @@ import {
   adoptEdits,
   applyEdit,
   copyEdits,
+  createContentsPage,
   editHistory,
   goToStep,
   planSave,
+  readContentsListing,
   readLabelRanges,
   readMetadata,
   readPageBoxes,
@@ -104,6 +106,20 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
     run: ([index, id], { signal }) => readPageBoxes(index as number, id as number, signal),
   },
   labelRanges: { run: ([id], { signal }) => readLabelRanges(id as number, signal) },
+  contentsListing: {
+    run: ([placement, id, font], { signal }) =>
+      readContentsListing(placement as ContentsPlacement, id as number, signal, font as Uint8Array | undefined),
+  },
+  createContentsPage: {
+    run: ([placement, font, id, label], { signal }) =>
+      createContentsPage(
+        placement as ContentsPlacement,
+        font as Uint8Array,
+        id as number,
+        signal,
+        label as string | undefined,
+      ),
+  },
   planSave: {
     run: ([options, id], { signal }) => planSave(options as SaveOptions, id as number, signal),
   },

@@ -116,16 +116,16 @@ pub(crate) fn e2e_crash_engine_panic(
     engines.debug_panic(window.label(), message);
 }
 
-/// Ends this window's engine as a segmentation fault would. Async, and off the async runtime's
-/// threads: it waits between signals, which the main thread mustn't.
+/// Makes this window's engine fault, a real native crash that leaves a minidump (D7d).
 #[cfg(feature = "e2e")]
 #[tauri::command]
-pub(crate) async fn e2e_crash_engine_segv(
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri hands a command its window and state by value"
+)]
+pub(crate) fn e2e_crash_engine_segv(
     window: tauri::WebviewWindow,
     engines: tauri::State<'_, Arc<crate::engine::Engines>>,
-) -> Result<(), crate::DesktopError> {
-    let (engines, label) = (Arc::clone(&engines), window.label().to_owned());
-    tauri::async_runtime::spawn_blocking(move || engines.debug_segv(&label))
-        .await
-        .map_err(|error| crate::DesktopError::Internal(error.to_string()))
+) {
+    engines.debug_segv(window.label());
 }

@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { checkCrashReport, isPathLike, SCRIPT_FILE } from "../src/crash.ts";
 import { MAX_CRASH_BYTES } from "../src/crash-endpoint.ts";
 import { handle } from "../src/handler.ts";
-import { crashFixture, crashRequest, type Harness, harness } from "./helpers.ts";
+import { crashFixture, crashRequest, type Harness, harness, nativeCrashFixture } from "./helpers.ts";
 import { wranglerConfig } from "./wrangler-config.ts";
 
 const schema: object = JSON.parse(
@@ -47,8 +47,8 @@ function errorsOf(value: unknown): string[] {
 }
 
 describe("checkCrashReport", () => {
-  it("accepts the fixture and a webview report, as the schema does", () => {
-    for (const report of [crashFixture(), webviewReport()]) {
+  it("accepts the fixture, a native crash's and a webview report, as the schema does", () => {
+    for (const report of [crashFixture(), nativeCrashFixture(), webviewReport()]) {
       expect(errorsOf(report)).toEqual([]);
       expect(validate(report), JSON.stringify(validate.errors)).toBe(true);
     }
@@ -84,6 +84,30 @@ describe("checkCrashReport", () => {
     ],
   ];
 
+  // A native crash's stack (D7d), one rule broken at a time.
+  type Native = { crash_reason: string; frames: Record<string, unknown>[]; modules: Record<string, unknown>[] };
+  const native = (edit: (n: Native) => void) => (r: Loose) => {
+    edit((r as unknown as { native: Native }).native);
+  };
+  const brokenNative: [string, (r: Loose) => void][] = [
+    ["a native stack with an unknown key", (r) => (r.native = { ...(r.native as object), raw: "AAAA" })],
+    ["a native stack without frames", native((n) => delete (n as Partial<Native>).frames)],
+    ["a native offset as hex text", native((n) => (n.frames[0] = { ...n.frames[0], offset: "0x1a" }))],
+    ["a negative native offset", native((n) => (n.frames[0] = { ...n.frames[0], offset: -1 }))],
+    ["a native offset past 2^53", native((n) => (n.frames[0] = { ...n.frames[0], offset: 2 ** 53 }))],
+    ["a native module with a path", native((n) => (n.frames[0] = { ...n.frames[0], module: "/usr/lib/a.so" }))],
+    ["a native module without a debug ID", native((n) => (n.modules[0] = { ...n.modules[0], debug_id: null }))],
+    ["a native crash reason over 128 characters", native((n) => (n.crash_reason = "a".repeat(129)))],
+    ["a native frame function that isn't null", native((n) => (n.frames[0] = { ...n.frames[0], function: "render" }))],
+    ["65 native frames", native((n) => (n.frames = Array.from({ length: 65 }, () => ({ ...n.frames[0] }))))],
+  ];
+
+  it.each(brokenNative)("refuses %s", (_, edit) => {
+    const value = edited(edit, nativeCrashFixture());
+    expect(errorsOf(value)).not.toEqual([]);
+    expect(validate(value)).toBe(false);
+  });
+
   it.each(broken)("refuses %s", (_, edit) => {
     const value = edited(edit);
     expect(errorsOf(value)).not.toEqual([]);
@@ -114,6 +138,13 @@ describe("checkCrashReport", () => {
   it.each(pathLike)("refuses %j in a native frame's function", (text) => {
     const value = edited((r) => (r.frames[0] = { ...r.frames[0], function: text }));
     expect(errorsOf(value)).toEqual(["/frames/0/function: holds a path, an e-mail address or a long number"]);
+  });
+
+  it.each(pathLike)("refuses %j in a native stack's crash reason", (text) => {
+    const value = edited((r) => {
+      (r.native as { crash_reason: string }).crash_reason = text;
+    }, nativeCrashFixture());
+    expect(errorsOf(value)).toEqual(["/native/crash_reason: holds a path, an e-mail address or a long number"]);
   });
 
   it.each(pathLike)("refuses %j in a script frame's function", (text) => {

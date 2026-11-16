@@ -5,6 +5,7 @@
 // runtime produces the same bytes.
 import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@laminapdf/sdk";
 import { addLinks } from "../../examples/add-links.js";
+import { addContents } from "../../examples/create-contents-page.js";
 import { cropPages } from "../../examples/crop-pages.js";
 import { drawOnPage } from "../../examples/draw-on-page.js";
 import { duplicatePages } from "../../examples/duplicate-pages.js";
@@ -89,6 +90,8 @@ const ANSWERED_AT = "D:20261031090000Z";
 const OUTLINE_PDF = "fixtures/corpus/outline.pdf";
 /** The document edit-bookmarks edits. */
 const BOOKMARKS_PDF = "fixtures/golden/links-and-outlines.pdf";
+/** The file create-contents-page-pdfua adds a contents page to: one that claims PDF/UA-1. */
+const PDF_UA_PDF = "fixtures/golden/flow-table.pdf";
 /** The PDF/A-2b file edit-xmp records a review in. */
 const PDFA_2B_PDF = "fixtures/golden/examples/pdf_a_archive-2b.pdf";
 /** The document organise-pages organises: five pages, with bookmarks, links and named destinations that point at the third. */
@@ -238,6 +241,18 @@ export const EXAMPLES: readonly Example[] = [
     golden: "set_initial_view",
     inputs: [OUTLINE_PDF],
     build: (i) => openOn(input(i, OUTLINE_PDF), 1),
+  },
+  {
+    name: "create-contents-page",
+    golden: "create_contents_page",
+    inputs: [BOOKMARKS_PDF, NOTO],
+    build: (i) => addContents(input(i, BOOKMARKS_PDF), input(i, NOTO)),
+  },
+  {
+    name: "create-contents-page-pdfua",
+    golden: "create_contents_page-pdfua",
+    inputs: [PDF_UA_PDF, NOTO],
+    build: (i) => addContents(input(i, PDF_UA_PDF), input(i, NOTO)),
   },
   {
     name: "edit-bookmarks",

@@ -121,6 +121,11 @@ export function crashFixture(): Record<string, unknown> {
   return JSON.parse(readFileSync(new URL("fixtures/crash-report.json", import.meta.url), "utf8"));
 }
 
+/** A native crash's report (D7d): the fixture with the stack its minidump gave. */
+export function nativeCrashFixture(): Record<string, unknown> {
+  return JSON.parse(readFileSync(new URL("fixtures/crash-report-native.json", import.meta.url), "utf8"));
+}
+
 /** A `POST /crash` with `body`, as JSON from the given IP unless `headers` says otherwise. */
 export function crashRequest(body: BodyInit | null, headers: Record<string, string> = {}): Request {
   return new Request("https://updates.laminapdf.com/crash", {

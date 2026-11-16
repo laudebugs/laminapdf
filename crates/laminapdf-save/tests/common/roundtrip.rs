@@ -97,15 +97,21 @@ pub const B5B_BUILT: [&str; 4] = [
     "metadata.pdf",
 ];
 
-/// The goldens `laminapdf-build` writes (B5a, then [`B5B_BUILT`]): plain files too, so the full
-/// lane's qpdf, pdf.js and PDFium checks cover the builder's output.
-pub const PLAIN_BUILT: [&str; 6] = [
+/// A file with a contents page the façade made (E3l): `links-and-outlines.pdf` with the page
+/// inserted before its first, written by the `create_contents_page` example's golden.
+pub const CONTENTS_PAGE: &str = "examples/create_contents_page.pdf";
+
+/// The goldens `laminapdf-build` writes (B5a, then [`B5B_BUILT`]), and the façade's
+/// [`CONTENTS_PAGE`]: plain files too, so the full lane's qpdf, pdf.js and PDFium checks cover
+/// the builder's output.
+pub const PLAIN_BUILT: [&str; 7] = [
     "vectors.pdf",
     "images.pdf",
     B5B_BUILT[0],
     B5B_BUILT[1],
     B5B_BUILT[2],
     B5B_BUILT[3],
+    CONTENTS_PAGE,
 ];
 
 /// The byte that damages `corpus/tampered.pdf`'s newest catalog so the file repairs to the

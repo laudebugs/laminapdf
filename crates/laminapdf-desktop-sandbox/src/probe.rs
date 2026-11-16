@@ -145,13 +145,14 @@ pub fn inheritable_copy(fd: std::os::fd::BorrowedFd<'_>, at: libc::c_int) -> io:
     Ok(unsafe { std::os::fd::OwnedFd::from_raw_fd(copy) })
 }
 
-/// The descriptors above 2 this process holds, among 3–1023 and `also`: the engine should have
-/// only its three pipes.
+/// The descriptors above 2 this process holds, among 3–1023 and `also`, but its crash socket
+/// (`crash`): the engine should have only its three pipes and that.
 #[cfg(unix)]
 #[must_use]
-pub fn descriptors(also: Option<libc::c_int>) -> Outcome {
+pub fn descriptors(also: Option<libc::c_int>, crash: Option<libc::c_int>) -> Outcome {
     let open: Vec<libc::c_int> = (3..1024)
         .chain(also)
+        .filter(|&fd| Some(fd) != crash)
         // SAFETY: F_GETFD on any number only asks whether it is an open descriptor.
         .filter(|&fd| unsafe { libc::fcntl(fd, libc::F_GETFD) } != -1)
         .collect();

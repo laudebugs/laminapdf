@@ -98,7 +98,7 @@ fn built_features(doc: &laminapdf_model::Document) -> Vec<String> {
                 .and_then(Object::as_dict)
                 .and_then(|a| a.get("URI"))
                 .map(|u| format!("{u:?}"));
-            let page = dict.get("Dest").and_then(|d| dest_page(doc, d));
+            let page = link_page(doc, dict);
             out.push(format!("link uri={uri:?} page={page:?} rect={:?}", dict.get("Rect")));
         }
     }
@@ -178,6 +178,72 @@ fn built_text_links_outlines_labels_and_xmp_survive_a_save() {
             assert_eq!(built_features(&after), before, "{name} {mode:?}");
             assert_eq!(after.warnings(), [], "{name} {mode:?}");
         }
+    }
+}
+
+/// The page a link goes to: its `/Dest`, or its `GoTo` action's `/D`, resolved by [`dest_page`].
+fn link_page(doc: &laminapdf_model::Document, link: &laminapdf_cos::Dict) -> Option<usize> {
+    use laminapdf_cos::Object;
+    let dest = link
+        .get("Dest")
+        .or_else(|| link.get("A").and_then(Object::as_dict).and_then(|a| a.get("D")))?;
+    dest_page(doc, dest)
+}
+
+/// The pages page `index`'s links go to, in annotation order ([`link_page`]).
+fn link_pages(doc: &laminapdf_model::Document, index: usize) -> Vec<Option<usize>> {
+    let pages = doc.pages().unwrap();
+    pages
+        .get(index)
+        .unwrap()
+        .annots()
+        .unwrap()
+        .into_iter()
+        .map(|annot| link_page(doc, doc.resolve(annot).unwrap().as_dict().unwrap()))
+        .collect()
+}
+
+/// The façade's contents page (E3l; `laminapdf`'s `tests/contents_page.rs` checks how it is made)
+/// on `links-and-outlines.pdf`, whose bookmarks two levels deep go to pages 1 to 4 once the page
+/// is in: after an edit and a save in each mode, each entry's link still lands on its
+/// bookmark's page, and the contents page's own bookmark comes first and goes to it. The suite's
+/// families save it with every other op too, and the full lane checks those saves with qpdf,
+/// pdf.js and `PDFium`.
+/// capability: I.05 core round-trip
+#[test]
+fn a_contents_pages_links_land_on_their_bookmarks_pages_after_a_save() {
+    use laminapdf_cos::OpenOptions;
+    use laminapdf_model::Rotation;
+    use laminapdf_ops::{Document, Origin, RotatePage};
+    use laminapdf_save::{Save as _, SaveMode, SaveOptions};
+
+    let path = common::fixtures_dir()
+        .join("golden")
+        .join(common::roundtrip::CONTENTS_PAGE);
+    let bytes = std::fs::read(path).unwrap();
+    let expected = vec![Some(1), Some(2), Some(3), Some(4)];
+    let before = laminapdf_model::Document::open(bytes.clone(), OpenOptions::default()).unwrap();
+    assert_eq!(link_pages(&before, 0), expected);
+    for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
+        let mut doc = Document::open(bytes.clone(), OpenOptions::default()).unwrap();
+        let last = doc.pages().unwrap().iter().last().unwrap().id().clone();
+        doc.apply_all(Origin::Local, [RotatePage::new(last, Rotation::Clockwise90).into()])
+            .unwrap();
+        let mut out = Vec::new();
+        doc.save(&mut out, &SaveOptions::new().with_mode(mode)).unwrap();
+        let after = laminapdf_model::Document::open(out, OpenOptions::default()).unwrap();
+        assert_eq!(link_pages(&after, 0), expected, "{mode:?}");
+        let outline = after.outline().unwrap();
+        let first = outline.iter().next().unwrap();
+        assert_eq!(
+            (
+                first.title().unwrap(),
+                first.target().unwrap().and_then(|d| d.page_index)
+            ),
+            ("Contents".to_owned(), Some(0)),
+            "{mode:?}"
+        );
+        assert_eq!(after.warnings(), [], "{mode:?}");
     }
 }
 
