@@ -34,6 +34,15 @@ export type {
   NavigationHistoryOptions,
   ViewPosition,
 } from "./history/history.js";
+export type { Box, Move, PreviewShape } from "./layers/annotation-geometry.js";
+export { annotationPreview } from "./layers/annotation-geometry.js";
+export { AnnotationGesture, type GestureHost, type GestureState } from "./layers/annotation-gesture.js";
+export {
+  type AnnotationEngine,
+  AnnotationLayer,
+  type AnnotationLayerOptions,
+  type AnnotationViewer,
+} from "./layers/annotation-layer.js";
 export type { CopyMode } from "./layers/copy.js";
 export type { LinkLayerOptions, LinkPreviewPointer, LinkPreviewRequest, LinkWords } from "./layers/link-layer.js";
 export { type ExternalLink, externalLink, type OpenableLink } from "./layers/link-url.js";

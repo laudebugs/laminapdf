@@ -21,6 +21,7 @@ import type {
   ViewerOpenOptions,
   WrittenParts,
 } from "../protocol.js";
+import { forgetAnnotations, pageAnnotations } from "./annotations.js";
 import {
   closeDocument,
   current,
@@ -83,6 +84,7 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
       forgetText();
       forgetSearch();
       forgetLinks();
+      forgetAnnotations();
       return closeDocument();
     },
   },
@@ -227,6 +229,7 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
       ),
   },
   pageLinks: { run: ([index], { signal }) => pageLinks(index as number, signal) },
+  pageAnnotations: { run: ([index], { signal }) => pageAnnotations(index as number, signal) },
   properties: {
     run: async (_params, { signal }) => {
       const model = await textModel(signal);

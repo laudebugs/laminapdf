@@ -151,6 +151,7 @@ export type ViewerEngine = Pick<
   | "readingOrder"
   | "structure"
   | "pageLinks"
+  | "pageAnnotations"
   | "find"
   | "applyEdit"
   | "createContentsPage"
@@ -739,6 +740,17 @@ export class ViewerClient {
     // and come after renders.
     await this.#firstDraw?.wait(options.signal);
     return this.call("pageLinks", [index], { priority: "background", ...options });
+  }
+
+  /**
+   * Page `index`'s annotations, in the order of its `/Annots`, each a record in page space with
+   * its place there (`index`), as the annotation layer reads them. An edit to the page reads
+   * them again.
+   */
+  async pageAnnotations(index: number, options: ViewerCallOptions = {}) {
+    // Read with the extract module, as the links are: after the first page drawn.
+    await this.#firstDraw?.wait(options.signal);
+    return this.call("pageAnnotations", [index], { priority: "background", ...options });
   }
 
   /**

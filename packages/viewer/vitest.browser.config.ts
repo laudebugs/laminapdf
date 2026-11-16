@@ -28,6 +28,26 @@ const dragAcross: BrowserCommand<[selector: string]> = async (ctx, selector) => 
   });
 };
 
+/**
+ * The real mouse at the centre of the element `selector` names, moved by (`dx`, `dy`) CSS px:
+ * pressed there (`down`), moved there in steps (`move`) or released there (`up`). The element's box
+ * is read when the command runs, so a drag names its start once and moves relative to it.
+ */
+const mouseAt: BrowserCommand<[selector: string, action: "down" | "move" | "up", dx?: number, dy?: number]> = async (
+  ctx,
+  selector,
+  action,
+  dx = 0,
+  dy = 0,
+) => {
+  const box = await ctx.iframe.locator(selector).boundingBox();
+  if (box === null) throw new Error(`${selector} has no box`);
+  const [x, y] = [box.x + box.width / 2 + dx, box.y + box.height / 2 + dy];
+  await ctx.page.mouse.move(x, y, { steps: action === "move" ? 8 : 1 });
+  if (action === "down") await ctx.page.mouse.down();
+  if (action === "up") await ctx.page.mouse.up();
+};
+
 /** A PNG screenshot of the element `selector` names, base64: what the reader sees there. */
 const screenshotOf: BrowserCommand<[selector: string]> = async (ctx, selector) =>
   (await ctx.iframe.locator(selector).screenshot()).toString("base64");
@@ -42,7 +62,7 @@ export default defineConfig({
     browser: {
       enabled: true,
       headless: true,
-      commands: { dragAcross, screenshotOf },
+      commands: { dragAcross, mouseAt, screenshotOf },
       provider: playwright(),
       instances: [
         { browser: "chromium", name: "chromium" },

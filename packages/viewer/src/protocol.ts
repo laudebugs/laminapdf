@@ -28,6 +28,7 @@ import type {
   Op,
   OutlineNode,
   OutlineTarget,
+  PageAnnotation,
   PageBoxesRead,
   PageInfo,
   PageLabelRange,
@@ -410,6 +411,7 @@ export interface Methods {
   initialView: { params: []; result: InitialView };
   threads: { params: []; result: ArticleThread[] };
   pageLinks: { params: [index: number]; result: readonly PageLink[] };
+  pageAnnotations: { params: [index: number]; result: readonly PageAnnotation[] };
   properties: { params: []; result: DocumentProperties };
   printPage: { params: [index: number, options: PrintOptions]; result: PrintedPage };
   exportPage: { params: [index: number, options: ExportPageOptions]; result: ExportedPage };
@@ -612,8 +614,8 @@ export function renderKeyFields(key: string): RenderKeyFields {
 
 /**
  * The coalescing key of a render on document `id`: the document and the whole normalised
- * RenderRequest (page, scale, clip, rotation, flags, background and appearance), so two requests
- * share a run only when their pixels are the same (ADR 0009 §3.3).
+ * RenderRequest (page, scale, clip, rotation, flags, background, appearance and the annotations
+ * it hides), so two requests share a run only when their pixels are the same (ADR 0009 §3.3).
  */
 export function renderKey(request: RenderRequest, id: number): string {
   return JSON.stringify(keyFields(request, id));
@@ -636,7 +638,9 @@ export function viewKeyAt(key: string, page: number): string {
 }
 
 function keyFields(request: RenderRequest, id: number): unknown[] {
-  const { page, scale, clip, rotation = 0, flags, background, appearance } = request;
+  const { page, scale, clip, rotation = 0, flags, background, appearance, hiddenAnnotations = [] } = request;
+  // Only a render that hides annotations names them, so every other key stays as it was.
+  const hidden = hiddenAnnotations.length === 0 ? [] : [[...new Set(hiddenAnnotations)].sort((a, b) => a - b)];
   return [
     id,
     page,
@@ -646,6 +650,7 @@ function keyFields(request: RenderRequest, id: number): unknown[] {
     flagsOf(flags),
     background === undefined ? "white" : background,
     appearanceKey(appearance),
+    ...hidden,
   ];
 }
 
