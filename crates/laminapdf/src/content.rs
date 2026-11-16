@@ -4,7 +4,7 @@
 
 use laminapdf_content::{ContentObjectKind, ContentOps, ContentOwner, NotEditable};
 use laminapdf_model::{PointPt, RectPt};
-use laminapdf_ops::{BlobId, ObjectRef};
+use laminapdf_ops::{BlobId, ContentTextRun, ObjectRef};
 
 use crate::{Document, Error, Result};
 
@@ -98,6 +98,32 @@ impl Document {
         Ok(names(&ir, ir.hit_test_rect(rect)))
     }
 
+    /// The runs of text page `index` (0-based) shows, in the order the page draws them: each
+    /// with its name for an [`EditText`](crate::EditText), its text, box, font, line and, when
+    /// it can't be edited, why. A run is the glyphs one show operator draws in one font and size
+    /// on one baseline (and one marked-content sequence on a tagged page). Text inside a form
+    /// isn't listed.
+    ///
+    /// # Errors
+    /// As [`Document::content_objects`]; errors reading the page's fonts.
+    ///
+    /// Added in 0.5.0.
+    pub fn text_runs(&self, index: u32) -> Result<Vec<ContentTextRun>> {
+        let doc = self.ops();
+        let page = {
+            let pages = doc.pages()?;
+            usize::try_from(index)
+                .ok()
+                .and_then(|i| pages.get(i))
+                .map(|p| p.id().clone())
+                .ok_or(Error::PageIndexOutOfRange {
+                    index,
+                    count: u32::try_from(pages.len()).unwrap_or(u32::MAX),
+                })?
+        };
+        Ok(laminapdf_ops::text_runs(doc, &page)?)
+    }
+
     /// Page `index`'s content IR, each object's state and box recorded.
     fn content_ir(&self, index: u32) -> Result<ContentOps> {
         let doc = self.ops();
@@ -113,10 +139,7 @@ impl Document {
         let mut recorder = ir.recorder(page.frame()?);
         // The extractor measures each text show's glyphs and passes the page's events on, so
         // text objects get their width.
-        #[cfg(feature = "extract")]
         laminapdf_text::TextExtractor::new().page_with(doc, &page, &mut recorder)?;
-        #[cfg(not(feature = "extract"))]
-        laminapdf_content::interpret_page(doc, &page, &mut recorder)?;
         Ok(ir)
     }
 }

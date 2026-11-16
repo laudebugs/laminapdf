@@ -7,6 +7,7 @@ mod edits;
 mod encode;
 mod parse;
 mod record;
+mod text;
 
 use std::borrow::Cow;
 use std::ops::Range;
@@ -21,6 +22,7 @@ use crate::state::GraphicsState;
 pub use edits::{Placement, ResourceName};
 pub use encode::{EncodedContent, EncodedPart};
 pub use record::Recorder;
+pub use text::ShownGlyph;
 
 /// How far outside an object's box a point still hits it, in points: thin lines and
 /// hairlines have boxes too narrow to point at.
@@ -110,6 +112,11 @@ pub enum NotEditable {
     RotatedRun,
     /// A show operator writes its glyphs out of reading order.
     GlyphsOutOfOrder,
+    /// The text stands in for other text (`/ActualText`, ISO 32000-2 §14.9.4): extraction, copy
+    /// and search read that text, which an edit of the glyphs would leave behind.
+    ActualText,
+    /// The text is written right to left, whose glyphs a file draws in either order.
+    RightToLeft,
     /// The object is inside Form XObjects nested deeper than the limit allows.
     TooDeep,
     /// The content failed to read, or the object's graphics state wasn't recorded.
@@ -124,7 +131,7 @@ pub enum NotEditable {
 
 impl NotEditable {
     /// The reason as the error's data names it: `type3-font`, `vertical-text`,
-    /// `no-unicode-map`, `rotated-run`, `glyphs-out-of-order`, `too-deep`,
+    /// `no-unicode-map`, `rotated-run`, `glyphs-out-of-order`, `actual-text`, `right-to-left`, `too-deep`,
     /// `content-unreadable`, `clipping-path` or `state-not-portable`.
     ///
     /// Added in 0.5.0.
@@ -136,6 +143,8 @@ impl NotEditable {
             Self::NoUnicodeMap => "no-unicode-map",
             Self::RotatedRun => "rotated-run",
             Self::GlyphsOutOfOrder => "glyphs-out-of-order",
+            Self::ActualText => "actual-text",
+            Self::RightToLeft => "right-to-left",
             Self::TooDeep => "too-deep",
             Self::ContentUnreadable => "content-unreadable",
             Self::ClippingPath => "clipping-path",
@@ -356,6 +365,9 @@ pub struct ContentOps {
     edited: bool,
     /// Whether a reorder has moved an object, so the objects are no longer in ID order.
     reordered: bool,
+    /// For each text-showing operator the interpreter ran, the object showing it, as a
+    /// [`Recorder`] saw them; `None` for one inside a Form XObject.
+    shows: Vec<Option<ContentObjectId>>,
 }
 
 impl ContentOps {
@@ -430,6 +442,7 @@ impl ContentOps {
             dirty,
             edited: false,
             reordered: false,
+            shows: Vec::new(),
         })
     }
 
@@ -613,8 +626,22 @@ impl ContentOps {
     /// in page space as the interpreter reads this content (see [`Recorder`]).
     ///
     /// Added in 0.5.0.
-    pub const fn recorder(&mut self, frame: PageFrame) -> Recorder<'_> {
+    pub fn recorder(&mut self, frame: PageFrame) -> Recorder<'_> {
+        // A second recording starts the show list again, so a glyph's show index never finds
+        // an object of the first.
+        self.shows.clear();
         Recorder::new(self, frame)
+    }
+
+    /// For each text-showing operator (`Tj`, `TJ`, `'`, `"`) the page ran, in order, the
+    /// object that shows it, or `None` for one a Form XObject shows: what a [`Recorder`] saw.
+    /// `laminapdf-text` numbers its glyphs by the same count, so a glyph's show index finds its
+    /// object here.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub fn show_owners(&self) -> &[Option<ContentObjectId>] {
+        &self.shows
     }
 
     /// The object's index in [`ContentOps::objects`]: a binary search while the objects are in

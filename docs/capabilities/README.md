@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 40 | 5 | 18 | 0 | 106 | 54 |
+| core | 169 | 41 | 6 | 18 | 0 | 104 | 55 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
 | web | 168 | 26 | 3 | 1 | 0 | 138 | 30 |
 | desktop | 168 | 4 | 0 | 0 | 0 | 164 | 4 |
@@ -24,8 +24,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | A.01 | Add text anywhere on a page | 🔵 write | — | — | — | E6 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
-| A.02 | Edit existing text | — | — | — | — | E7 round-trip |  |
-| A.03 | Delete or replace text | — | — | — | — | E7 round-trip |  |
+| A.02 | Edit existing text | 🔵 write | — | — | — | E7 round-trip | [`text_edits_round_trip_and_read_back_as_typed`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
+| A.03 | Delete or replace text | 🟢 round-trip | — | — | — | E7 round-trip | [`text_edits_round_trip_and_read_back_as_typed`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | A.04 | Change font family/size/colour/style | — | — | — | — | E7 round-trip |  |
 | A.05 | Bold, italic, underline, super/subscript | — | — | — | — | E7 round-trip |  |
 | A.06 | Alignment & line spacing | — | — | — | — | E7 write |  |
