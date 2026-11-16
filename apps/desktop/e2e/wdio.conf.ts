@@ -1,6 +1,7 @@
 // WebdriverIO against the desktop reader's e2e build: `pnpm --filter @laminapdf/desktop
 // desktop:build:e2e`, then `pnpm --filter @laminapdf/desktop e2e`. The WebDriver server runs
 // inside the app (tauri-plugin-wdio-webdriver), on every OS, so no driver is installed.
+import { execSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { env } from "node:process";
@@ -39,6 +40,16 @@ export function e2eConfig(names: readonly string[], args: readonly string[] = []
       // One picture per attempt: the retry's would otherwise replace the first attempt's.
       const attempt = retries.attempts + 1;
       if (!passed) await browser.saveScreenshot(join(output, `${test.title.replace(/\W+/g, "-")}-${attempt}.png`));
+      // EXPERIMENT: what every Lamina process is doing when a test fails.
+      if (!passed) {
+        const script = `ps -eo pid,ppid,stat,wchan:32,etime,args | grep -i [l]amina; for p in $(pgrep -f laminapdf); do echo "=== $p $(tr '\\0' ' ' < /proc/$p/cmdline)"; ls -l /proc/$p/fd 2>/dev/null | grep socket; sudo gdb -batch -p $p -ex "thread apply all bt" 2>&1 | grep -v '^\\[New LWP\\|^\\[Thread debugging' | head -400; done`;
+        try {
+          const out = execSync(script, { shell: "/bin/bash", encoding: "utf8", timeout: 120_000, maxBuffer: 64 << 20 });
+          writeFileSync(join(output, `${test.title.replace(/\W+/g, "-")}-${attempt}-stacks.txt`), out);
+        } catch (error) {
+          writeFileSync(join(output, `stacks-error-${attempt}.txt`), String(error));
+        }
+      }
       if (passed && retries.attempts > 0) reportFlaky(test.file, test.fullTitle);
     },
   };

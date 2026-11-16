@@ -1,0 +1,96 @@
+# EXPERIMENT for #669 (draft PR, never merged): only the Linux desktop e2e, at #669's head, with stacks
+# of every Lamina process taken when a test fails. Every other workflow is removed on this branch.
+name: Desktop e2e experiment
+
+on:
+  push:
+    branches: [test/e2e-settings-last]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TARGET_DIR: ${{ github.workspace }}/target
+  CARGO_PROFILE_DEV_DEBUG: 0
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  NEXTEST_PROFILE: ci
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  desktop-e2e-linux:
+    name: Desktop e2e (linux)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
+        with:
+          cache: true
+          cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          cache-shared-key: desktop-e2e
+          cache-bin: false
+      - uses: $/.github/actions/node-pnpm
+      - uses: $/.github/actions/linux-webkit
+      - uses: $/.github/actions/install-tools
+        with:
+          tool: wasm-bindgen@0.2.129
+      - name: Build the packages the frontend imports
+        run: cargo xtask desktop-frontend
+      - name: Typecheck the frontend and the scenarios
+        run: pnpm --filter @laminapdf/desktop run typecheck:wasm
+      # The 1,000-page and 1 GB fixtures, generated (never committed) and cached by what writes them:
+      # the example and the crates its bytes come from (path crates aren't in Cargo.lock).
+      # The builder's output is the same bytes on every OS, so the three legs share one entry;
+      # like the other caches, it is saved only from main.
+      - name: Restore the large fixtures
+        id: fixtures
+        uses: actions/cache/restore@v6.1.0
+        with:
+          path: target/fixtures
+          key: desktop-e2e-fixtures-${{ hashFiles('crates/laminapdf-desktop-engine/examples/large_pdf.rs', 'crates/laminapdf/src/**', 'crates/laminapdf-build/src/**', 'crates/laminapdf-cos/src/**', 'crates/laminapdf-model/src/**', 'crates/laminapdf-ops/src/**', 'crates/laminapdf-save/src/**', 'crates/laminapdf-syntax/src/**', 'crates/laminapdf-text/src/**', 'crates/laminapdf-test-fixtures/src/**', 'tools/xtask/src/fixtures.rs', 'Cargo.lock') }}
+          enableCrossOsArchive: true
+      - name: Generate the large fixtures
+        if: steps.fixtures.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo xtask fixtures large-pdf --pages 1000 --out target/fixtures/1000-pages.pdf
+          cargo xtask fixtures large-pdf
+      - name: Save the large fixtures
+        if: steps.fixtures.outputs.cache-hit != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' && true
+        uses: actions/cache/save@v6.1.0
+        with:
+          path: target/fixtures
+          key: ${{ steps.fixtures.outputs.cache-primary-key }}
+          enableCrossOsArchive: true
+      - name: Build the e2e app (feature e2e, tauri.e2e.conf.json)
+        run: pnpm --filter @laminapdf/desktop run desktop:build:e2e
+      - name: Run the scenarios
+        if: runner.os != 'Linux'
+        run: pnpm --filter @laminapdf/desktop run e2e
+      # xvfb-run and dbus-run-session come with GitHub's Ubuntu images, not from linux-webkit. The
+      # session bus is how a second launch finds the running app (the single-instance plugin);
+      # without one, it starts a second app.
+      - name: Install gdb and allow attaching to the app
+        run: |
+          sudo apt-get install -y -q gdb > /dev/null
+          echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope
+      - name: Run the scenarios on a virtual display
+        if: runner.os == 'Linux'
+        run: >-
+          dbus-run-session --
+          xvfb-run --auto-servernum --server-args="-screen 0 1440x900x24"
+          pnpm --filter @laminapdf/desktop run e2e
+      - name: Upload the failed scenarios' screenshots and logs
+        if: failure()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: desktop-e2e-linux
+          path: target/desktop-e2e/
+          if-no-files-found: ignore

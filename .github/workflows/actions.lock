@@ -3,6 +3,16 @@
 # Docs: https://gh.io/actions-lockfile
 version: 'v0.0.3'
 workflows:
+    '.github/workflows/e2e-experiment.yml':
+        - 'actions-rust-lang/setup-rust-toolchain@v2.0.1'
+        - 'actions/cache@v6.1.0'
+        - 'actions/checkout@v7.0.1'
+        - 'actions/setup-node@v7.1.0'
+        - 'actions/setup-python@v7.1.0'
+        - 'actions/upload-artifact@v7.0.2'
+        - 'nick-fields/retry@v4.0.0'
+        - 'pnpm/action-setup@v6.1.1'
+        - 'taiki-e/install-action@v2.90.2'
     '.github/workflows/cancel-merged.yml': []
     '.github/workflows/ci.yml':
         - 'actions-rust-lang/setup-rust-toolchain@v2.0.1'
