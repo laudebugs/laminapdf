@@ -1,5 +1,6 @@
 // The XMP edits: setXmpProperty, removeXmpProperty, replaceXmpPacket and xmpPacket, saved and
-// reopened. The names start with the capability each test proves (J.04).
+// reopened. A test's title starts with the capability it proves
+// (its tag: capability J.04, column pdf), which `cargo xtask capabilities` counts.
 import { Document, init, isLaminaPdfError, type LaminaPdfError } from "@laminapdf/sdk";
 import { beforeAll, describe, expect, it } from "vitest";
 import { read, thrown } from "./helpers.js";
@@ -26,7 +27,7 @@ function savedAndReopened(doc: Document): Document {
 }
 
 describe("xmp", () => {
-  it("J.04 (pdf, round-trip): sets custom properties of every shape", () => {
+  it("[cap J.04 pdf round-trip] sets custom properties of every shape", () => {
     using doc = open();
     doc.transact((tx) => {
       tx.setXmpProperty(REVIEW, "review", "status", { type: "text", value: "Approved" });
@@ -50,14 +51,14 @@ describe("xmp", () => {
     }
   });
 
-  it("J.04 (pdf, round-trip): keeps the Info dictionary in step for a mirrored property", () => {
+  it("[cap J.04 pdf round-trip] keeps the Info dictionary in step for a mirrored property", () => {
     using doc = open();
     doc.setXmpProperty("http://purl.org/dc/elements/1.1/", "dc", "title", { type: "text", value: "Minutes" });
     using again = savedAndReopened(doc);
     expect([again.info.title, again.metadata().title]).toEqual(["Minutes", "Minutes"]);
   });
 
-  it("J.04 (pdf, round-trip): declares a custom property in a PDF/A file", () => {
+  it("[cap J.04 pdf round-trip] declares a custom property in a PDF/A file", () => {
     using doc = open(PDFA);
     expect(doc.xmpPacket().pdfa).toBe("2B");
     const edited = doc.setXmpProperty(REVIEW, "review", "round", { type: "integer", value: 2 });

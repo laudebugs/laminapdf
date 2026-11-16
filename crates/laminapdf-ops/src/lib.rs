@@ -113,7 +113,7 @@ pub use annot::{
     delete_annotations,
 };
 pub use blob::{BlobId, BlobStore, ParseBlobIdError, SourceId};
-pub use class::ModificationClass;
+pub use class::{AnnotRight, ModificationClass};
 #[cfg(feature = "content-edit")]
 pub use content::{
     ContentEdit, ContentTextRun, EditContent, EditText, ObjectRef, StackPosition, TextRunRef, text_runs,

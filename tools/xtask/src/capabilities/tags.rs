@@ -233,6 +233,12 @@ pub(crate) const TS_SUITES: &[TsSuite] = &[
         runner: "the reader's e2e suite (`cargo xtask pdf-runtimes <browser>`, the fast lane's `pdf-runtimes` jobs)",
     },
     TsSuite {
+        dir: "packages/sdk/test",
+        suffix: ".test.ts",
+        surfaces: &[Surface::Pdf],
+        runner: "the TypeScript library's Node tests (`pnpm --filter @laminapdf/sdk test:wasm`, the fast lane's `WASM` job)",
+    },
+    TsSuite {
         dir: "apps/desktop/e2e/specs",
         suffix: ".e2e.ts",
         surfaces: &[Surface::Desktop],
@@ -608,6 +614,19 @@ mod pages {
                     "it(\"[cap J.01 web round-trip] edits the title\", async () => {});\n"
                 )
                 .is_err()
+        );
+    }
+
+    #[test]
+    fn scan_ts_should_read_a_pdf_tag_in_the_librarys_tests_and_refuse_a_web_one_there() {
+        let path = Path::new("packages/sdk/test/pages.test.ts");
+        let pdf = scan_ts(path, "it(\"[cap C.04 pdf round-trip] moves pages\", () => {});").unwrap();
+        assert_eq!(
+            (
+                pdf.iter().map(|t| t.surface).collect::<Vec<_>>(),
+                scan_ts(path, "it(\"[cap C.04 web round-trip] moves pages\", () => {});").is_err()
+            ),
+            (vec![Surface::Pdf], true)
         );
     }
 

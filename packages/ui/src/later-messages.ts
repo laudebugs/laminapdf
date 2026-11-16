@@ -254,6 +254,7 @@ const EN = {
   "organise.signed.rotate": "Rotate page {page} anyway",
   "organise.signed.cancel": "Cancel",
   "organise.certified": "Changing pages would invalidate the certification. Nothing has been changed.",
+  "organise.usageRights": "Changing pages would invalidate the usage rights. Nothing has been changed.",
   "organise.certified.apply": "Apply anyway…",
   "threads.title": "Article threads",
   "threads.note":

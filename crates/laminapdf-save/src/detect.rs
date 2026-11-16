@@ -22,9 +22,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use laminapdf_cos::{Dict, DirectPath, Document, ObjRef, Object, PathSegment};
 use laminapdf_model::FieldId;
-use laminapdf_ops::ModificationClass;
 #[cfg(feature = "page-checks")]
 use laminapdf_ops::WidgetChange;
+use laminapdf_ops::{AnnotRight, ModificationClass};
 #[cfg(feature = "page-checks")]
 use laminapdf_syntax::text::decode_text_string;
 
@@ -42,8 +42,16 @@ enum Rule {
     },
     /// A `FieldMDP` lock that may cover fields, and which.
     FieldMdp(Lock),
-    /// A usage-rights signature, with the op classes its rights cover.
-    UsageRights(BTreeSet<ModificationClass>),
+    /// A usage-rights signature, with the rights it grants.
+    UsageRights(Granted),
+}
+
+/// What a UR3 signature's rights cover: the op classes, and within annotations, which of
+/// `/Create`, `/Modify` and `/Delete` (§12.8.2.3, Table 260).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct Granted {
+    classes: BTreeSet<ModificationClass>,
+    annots: BTreeSet<AnnotRight>,
 }
 
 impl Rule {
@@ -53,7 +61,7 @@ impl Rule {
             // A lock covers named fields, and op classes don't name fields: any form change
             // may touch a locked field (ADR 0007 §9).
             Self::FieldMdp(_) => class != ModificationClass::FormFill,
-            Self::UsageRights(granted) => granted.contains(&class),
+            Self::UsageRights(granted) => granted.classes.contains(&class),
         }
     }
 
@@ -220,6 +228,19 @@ impl Signatures {
                 .into_iter()
                 .map(move |restriction| Violation::new(class, restriction, f.info.clone()))
         })
+    }
+
+    /// The usage-rights signatures whose `/Annots` doesn't grant `right` ([`AnnotRight`]): an
+    /// annotation op the class check lets through when the file grants another right.
+    pub(crate) fn annot_violations(&self, right: AnnotRight) -> impl Iterator<Item = Violation> + '_ {
+        self.found
+            .iter()
+            .filter(move |f| {
+                f.rules
+                    .iter()
+                    .any(|r| matches!(r, Rule::UsageRights(g) if !g.annots.contains(&right)))
+            })
+            .map(|f| Violation::new(ModificationClass::Annotation, Restriction::UsageRights, f.info.clone()))
     }
 
     #[cfg(feature = "page-checks")]
@@ -754,7 +775,7 @@ fn classify(doc: &Document, dict: &Dict, value: &Object, perms: &Perms) -> Resul
     }
     if grants && !rules.iter().any(|r| matches!(r, Rule::UsageRights(_))) {
         kind = SignatureKind::UsageRights;
-        rules.push(Rule::UsageRights(BTreeSet::new()));
+        rules.push(Rule::UsageRights(Granted::default()));
     }
     let covers = byte_range_end(dict);
     let revision = covers.and_then(|end| revision(doc, end));
@@ -770,27 +791,40 @@ fn classify(doc: &Document, dict: &Dict, value: &Object, perms: &Perms) -> Resul
     ))
 }
 
-/// The op classes a UR3 transform's rights cover (§12.8.2.3, Table 260): `/Form [/FillIn]`
-/// form filling, `/Annots` with `/Create`, `/Delete` or `/Modify` annotations, and
-/// `/Signature [/Modify]` signing. Everything else is outside the rights.
-fn granted(params: &Dict) -> BTreeSet<ModificationClass> {
-    let has = |key: &str, rights: &[&[u8]]| -> bool {
+/// What a UR3 transform's rights cover (§12.8.2.3, Table 260): `/Form [/FillIn]` form filling,
+/// `/Annots` with `/Create`, `/Delete` or `/Modify` annotations (each op held to its own right,
+/// [`Signatures::annot_violations`]), and `/Signature [/Modify]` signing. Everything else is
+/// outside the rights.
+fn granted(params: &Dict) -> Granted {
+    let names = |key: &str| -> Vec<&[u8]> {
         params
             .get(key)
             .and_then(Object::as_array)
             .unwrap_or_default()
             .iter()
-            .any(|o| matches!(o, Object::Name(n) if rights.contains(&n.as_bytes())))
+            .filter_map(|o| match o {
+                Object::Name(n) => Some(n.as_bytes()),
+                _ => None,
+            })
+            .collect()
     };
-    let mut out = BTreeSet::new();
-    if has("Form", &[b"FillIn"]) {
-        out.insert(ModificationClass::FormFill);
+    let mut out = Granted::default();
+    if names("Form").contains(&b"FillIn".as_slice()) {
+        out.classes.insert(ModificationClass::FormFill);
     }
-    if has("Annots", &[b"Create", b"Delete", b"Modify"]) {
-        out.insert(ModificationClass::Annotation);
+    for name in names("Annots") {
+        out.annots.extend(match name {
+            b"Create" => Some(AnnotRight::Create),
+            b"Modify" => Some(AnnotRight::Modify),
+            b"Delete" => Some(AnnotRight::Delete),
+            _ => None,
+        });
     }
-    if has("Signature", &[b"Modify"]) {
-        out.insert(ModificationClass::Signature);
+    if !out.annots.is_empty() {
+        out.classes.insert(ModificationClass::Annotation);
+    }
+    if names("Signature").contains(&b"Modify".as_slice()) {
+        out.classes.insert(ModificationClass::Signature);
     }
     out
 }
@@ -856,16 +890,23 @@ mod tests {
         ]
         .into_iter()
         .collect();
-        assert!(granted(&params).is_empty());
+        assert_eq!(granted(&params), Granted::default());
         let params: Dict = [
             ("Annots", Object::Array(vec![Object::name("Modify")])),
             ("Form", Object::Array(vec![Object::name("FillIn")])),
         ]
         .into_iter()
         .collect();
+        let got = granted(&params);
         assert_eq!(
-            granted(&params).into_iter().collect::<Vec<_>>(),
-            [ModificationClass::FormFill, ModificationClass::Annotation]
+            (
+                got.classes.into_iter().collect::<Vec<_>>(),
+                got.annots.into_iter().collect::<Vec<_>>()
+            ),
+            (
+                vec![ModificationClass::FormFill, ModificationClass::Annotation],
+                vec![AnnotRight::Modify]
+            )
         );
     }
 

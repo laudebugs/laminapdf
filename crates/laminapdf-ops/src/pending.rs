@@ -5,7 +5,7 @@ use std::collections::BTreeSet;
 
 use laminapdf_model::PageId;
 
-use crate::class::ModificationClass;
+use crate::class::{AnnotRight, ModificationClass};
 use crate::op::{Effect, Op};
 use crate::widgets::TouchedWidget;
 
@@ -25,6 +25,7 @@ use crate::widgets::TouchedWidget;
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PendingChanges {
     classes: BTreeSet<ModificationClass>,
+    annot_rights: BTreeSet<AnnotRight>,
     requires_rewrite: bool,
     unknown: bool,
     packet_rewritten: bool,
@@ -55,6 +56,9 @@ impl PendingChanges {
             ]
             .into_iter()
             .collect(),
+            annot_rights: [AnnotRight::Create, AnnotRight::Modify, AnnotRight::Delete]
+                .into_iter()
+                .collect(),
             requires_rewrite: true,
             unknown: true,
             packet_rewritten: false,
@@ -80,6 +84,15 @@ impl PendingChanges {
     #[must_use]
     pub const fn classes(&self) -> &BTreeSet<ModificationClass> {
         &self.classes
+    }
+
+    /// The usage rights the annotation changes need ([`Op::annot_right`]): what the save
+    /// planner checks against a UR3 signature's `/Annots`, right by right.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub const fn annot_rights(&self) -> &BTreeSet<AnnotRight> {
+        &self.annot_rights
     }
 
     /// Whether any of them needs a full rewrite ([`Op::requires_rewrite`]).
@@ -169,6 +182,7 @@ impl PendingChanges {
     /// packet whole, and the widgets it touched.
     pub(crate) fn record(&mut self, op: &Op, effect: &Effect) {
         self.classes.insert(op.class());
+        self.annot_rights.extend(op.annot_right());
         self.requires_rewrite |= op.requires_rewrite();
         self.packet_rewritten |= effect.packet_rewritten;
         self.widgets.extend(effect.widgets.iter().cloned());
@@ -181,6 +195,7 @@ impl PendingChanges {
     /// Adds everything `other` holds.
     pub(crate) fn merge(&mut self, other: &Self) {
         self.classes.extend(other.classes.iter().copied());
+        self.annot_rights.extend(other.annot_rights.iter().copied());
         self.requires_rewrite |= other.requires_rewrite;
         self.unknown |= other.unknown;
         self.packet_rewritten |= other.packet_rewritten;

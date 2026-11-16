@@ -1,9 +1,8 @@
 // The page ops: insertBlankPages, deletePages, movePages, rotatePages, reversePages and
 // duplicatePages, cropPages, setPageBoxes, resizePages and setOrientation on
 // fixtures/pages/, each saved and reopened, their `Edited` reports, the transaction handle's
-// twins and the refusal to delete every page. The names start with the capability each test
-// proves (C.01 and the rest); they become capability tags once `cargo xtask capabilities` runs
-// TypeScript tests.
+// twins and the refusal to delete every page. A test's title starts with the capability it
+// proves (its tag: capability C.01, column pdf), which `cargo xtask capabilities` counts.
 import { Document, init, isLaminaPdfError, loadExtract } from "@laminapdf/sdk";
 import { beforeAll, describe, expect, it } from "vitest";
 import { read, thrown } from "./helpers.js";
@@ -36,7 +35,7 @@ function reopened(doc: Document): Document {
 }
 
 describe("insertBlankPages", () => {
-  it("C.01 (pdf, round-trip): inserts blank pages after a page, with new IDs, kept after a save", () => {
+  it("[cap C.01 pdf round-trip] inserts blank pages after a page, with new IDs, kept after a save", () => {
     using doc = open("labels");
     const before = ids(doc);
     const edited = doc.insertBlankPages({ after: before[3] as string }, 2, A5, { rotate: 90 });
@@ -171,7 +170,7 @@ describe("deletePages", () => {
 });
 
 describe("movePages", () => {
-  it("C.04 (pdf, round-trip): moves pages in the order given, keeping their IDs, kept after a save", () => {
+  it("[cap C.04 pdf round-trip] moves pages in the order given, keeping their IDs, kept after a save", () => {
     using doc = open("references");
     const [p1, p2, p3, p4, p5] = ids(doc) as [string, string, string, string, string];
     const edited = doc.movePages([p5, p4], { before: p2 });
@@ -195,7 +194,7 @@ describe("movePages", () => {
 });
 
 describe("rotatePages", () => {
-  it("C.08 (pdf, round-trip): sets and turns several pages' rotation, kept after a save", () => {
+  it("[cap C.08 pdf round-trip] sets and turns several pages' rotation, kept after a save", () => {
     using doc = open("boxes");
     const pages = doc.pages;
     const all = pages.map((p) => p.id);
@@ -212,7 +211,7 @@ describe("rotatePages", () => {
 });
 
 describe("reversePages", () => {
-  it("C.13 (pdf, round-trip): reverses the whole document, kept after a save", () => {
+  it("[cap C.13 pdf round-trip] reverses the whole document, kept after a save", () => {
     using doc = open("references");
     const all = ids(doc);
     const edited = doc.reversePages(all);
@@ -230,7 +229,7 @@ describe("reversePages", () => {
 });
 
 describe("duplicatePages", () => {
-  it("C.03 (pdf, round-trip): copies a form page to the end with new fields, kept after a save", () => {
+  it("[cap C.03 pdf round-trip] copies a form page to the end with new fields, kept after a save", () => {
     using doc = open("forms");
     const [p1, p2] = ids(doc) as [string, string];
     const edited = doc.duplicatePages([p1], "end");
@@ -297,7 +296,7 @@ describe("the transaction handle", () => {
 });
 
 describe("pages from other documents", () => {
-  it("C.02 (pdf, round-trip): copies a page in from a source, renaming a field whose name is taken", () => {
+  it("[cap C.02 pdf round-trip] copies a page in from a source, renaming a field whose name is taken", () => {
     using doc = open("forms");
     const { id: source, pages } = doc.addSource(read("fixtures/pages/references.pdf"));
     expect(source).toMatch(/^[0-9a-f]{64}$/);
@@ -319,7 +318,7 @@ describe("pages from other documents", () => {
     expect(edited.linksRemoved).toEqual([edited.pageOrder?.[0]]);
   });
 
-  it("C.16 (pdf, round-trip): replaces a page, keeping the bookmarks that pointed at it", () => {
+  it("[cap C.16 pdf round-trip] replaces a page, keeping the bookmarks that pointed at it", () => {
     using doc = open("references");
     const before = ids(doc);
     const { id: source, pages } = doc.addSource(read("fixtures/pages/forms.pdf"));
@@ -332,7 +331,7 @@ describe("pages from other documents", () => {
     expect(again.outline()[0]?.target?.page).toBe(2);
   });
 
-  it("C.05 (pdf, write): extracts pages into a new document with their labels", () => {
+  it("[cap C.05 pdf write] extracts pages into a new document with their labels", () => {
     using doc = open("labels");
     const pages = ids(doc).slice(2, 5);
     using part = doc.extractPages(pages);
@@ -341,12 +340,36 @@ describe("pages from other documents", () => {
     expect(again.pages.map((p) => p.label)).toEqual(doc.pages.slice(2, 5).map((p) => p.label));
   });
 
-  it("H.10 (pdf, write): exports ranges as one document each", () => {
+  it("[cap H.10 pdf write] exports ranges as one document each", () => {
     using doc = open("references");
     const pages = ids(doc);
     const parts = doc.exportRanges([pages.slice(0, 2), pages.slice(2)]);
     try {
       expect(parts.map((p) => p.pageCount)).toEqual([2, 3]);
+    } finally {
+      for (const part of parts) part.free();
+    }
+  });
+
+  it("[cap C.06 pdf round-trip] merges a file in at the end, its pages after this one's, kept after a save", () => {
+    using doc = open("labels");
+    const before = markers(doc);
+    const { id } = doc.addSource(read("fixtures/pages/chapters.pdf"));
+    doc.mergeDocuments([id], "end");
+    using again = reopened(doc);
+    expect(again.pageCount).toBe(10 + 12);
+    expect(markers(again).slice(0, 10)).toEqual(before);
+  });
+
+  it("[cap C.07 pdf write] splits every four pages, each part saved and reopened", () => {
+    using doc = open("chapters");
+    const parts = doc.split({ count: 4 });
+    try {
+      const counts = parts.map((part) => {
+        using again = Document.open(part.save());
+        return again.pageCount;
+      });
+      expect(counts).toEqual([4, 4, 4]);
     } finally {
       for (const part of parts) part.free();
     }
@@ -370,7 +393,7 @@ describe("pages from other documents", () => {
 });
 
 describe("cropPages and setPageBoxes", () => {
-  it("C.09 (pdf, round-trip): crops every rotation by the same visible amount, kept after a save", () => {
+  it("[cap C.09 pdf round-trip] crops every rotation by the same visible amount, kept after a save", () => {
     using doc = open("boxes");
     const before = doc.pages.map((p) => [p.width, p.height]);
     const edited = doc.cropPages(ids(doc), { top: 10, right: 20, bottom: 30, left: 40 });
@@ -381,7 +404,7 @@ describe("cropPages and setPageBoxes", () => {
     expect(markers(again)).toEqual(["Page 1", "Page 2", "Page 3", "Page 4"]);
   });
 
-  it("C.11 (pdf, round-trip): sets and removes boxes, refusing one outside the media box", () => {
+  it("[cap C.11 pdf round-trip] sets and removes boxes, refusing one outside the media box", () => {
     using doc = open("boxes");
     const [p1] = ids(doc) as [string];
     const edited = doc.setPageBoxes([p1], { crop: [0, 0, 612, 792], art: null });
@@ -405,7 +428,7 @@ describe("cropPages and setPageBoxes", () => {
 });
 
 describe("resizePages and setOrientation", () => {
-  it("C.10 (pdf, round-trip): puts an A4 page on Letter, scaled to fit, kept after a save", () => {
+  it("[cap C.10 pdf round-trip] puts an A4 page on Letter, scaled to fit, kept after a save", () => {
     using doc = open("geometry");
     const [p1] = ids(doc) as [string];
     const edited = doc.resizePages([p1], LETTER);
@@ -425,7 +448,7 @@ describe("resizePages and setOrientation", () => {
     expect(isLaminaPdfError(error, "invalid-op")).toBe(true);
   });
 
-  it("C.12 (pdf, round-trip): turns portrait pages to landscape by rotate or by swapping the paper", () => {
+  it("[cap C.12 pdf round-trip] turns portrait pages to landscape by rotate or by swapping the paper", () => {
     using doc = open("geometry");
     const [p1, p2] = ids(doc) as [string, string];
     doc.setOrientation([p1], "landscape");

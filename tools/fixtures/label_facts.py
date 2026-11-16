@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""Writes fixtures/pages/set-labels/facts.json (todo E2q): for each file SetPageLabels wrote into
-fixtures/pages/set-labels/ (crates/laminapdf-save/tests/labels.rs writes them with
-UPDATE_GOLDEN=1), its SHA-256, whether `qpdf --check` passes, and the label of every page as
+"""Writes fixtures/pages/set-labels/facts.json (todo E2q) and
+fixtures/pages/cross-op-labels/facts.json (todo E2i): for each file SetPageLabels wrote into
+fixtures/pages/set-labels/, and each file a page op saved after it into
+fixtures/pages/cross-op-labels/ (crates/laminapdf-save/tests/labels.rs and cross_op_labels.rs
+write them with UPDATE_GOLDEN=1), its SHA-256, whether `qpdf --check` passes, and the label of every page as
 pdf.js (`getPageLabels()`, tools/fixtures/pdfjs_labels.mjs) and PDFium (`FPDF_GetPageLabel`,
 through pypdfium2) show it, null for a page without one. The test checks the op's labels and the
 files' current bytes against these facts, so tests need neither Node, Python nor qpdf.
@@ -19,8 +21,7 @@ import pypdfium2
 import pypdfium2.raw as pdfium
 from facts_common import ROOT, qpdf_check, qpdf_version, run_pdfjs, sha256
 
-DIR = ROOT / "fixtures" / "pages" / "set-labels"
-OUT = DIR / "facts.json"
+DIRS = [ROOT / "fixtures" / "pages" / name for name in ("set-labels", "cross-op-labels")]
 
 
 def pdfium_labels(path):
@@ -40,7 +41,12 @@ def pdfium_labels(path):
 
 
 def main():
-    paths = sorted(DIR.glob("*.pdf"))
+    for d in DIRS:
+        write_facts(d)
+
+
+def write_facts(d):
+    paths = sorted(d.glob("*.pdf"))
     js = run_pdfjs("pdfjs_labels.mjs", paths)
     files = {}
     for p in paths:
@@ -56,8 +62,9 @@ def main():
         "qpdf_version": qpdf_version(),
         "files": files,
     }
-    OUT.write_text(json.dumps(result, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(OUT)
+    out = d / "facts.json"
+    out.write_text(json.dumps(result, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(out)
 
 
 if __name__ == "__main__":
