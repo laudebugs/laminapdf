@@ -15,8 +15,8 @@ use std::process::Command;
 
 use laminapdf_cos::{Dict, ObjRef, Object, Warning};
 use laminapdf_model::{
-    Document, Limits, OpenOptions, PageId, PageLabels, PagePosition, PageTreeEditor, PageTreeError, Rotation,
-    UserSpaceRect,
+    Document, LabelRange, LabelStyle, Limits, OpenOptions, PageId, PageLabels, PagePosition, PageTreeEditor,
+    PageTreeError, Rotation, UserSpaceRect,
 };
 use laminapdf_save::{FullWriter, SaveOptions};
 use laminapdf_test_fixtures::fixture;
@@ -507,7 +507,8 @@ fn a_removed_page_inserted_again_should_show_what_it_showed() {
 }
 
 /// Random moves, deletes and inserts of `labels.pdf`'s page list: every surviving page keeps
-/// its label, every new page gets one, and the labels read back the same once written.
+/// its label (but the first range's, renumbered when new pages come before it), every new
+/// page gets one, and the labels read back the same once written.
 #[test]
 fn remapped_labels_keep_every_surviving_page_label() {
     let mut doc = open("labels.pdf");
@@ -555,8 +556,30 @@ fn remapped_labels_keep_every_surviving_page_label() {
             }
         }
         let remapped = labels.remap(&before, &after);
+        // New pages ahead of every old page join the range of the first old page, which may
+        // number its own pages up; their labels stay apart from the new pages'.
+        let leading = after.iter().take_while(|id| !before.contains(id)).count();
+        let range_of = |old: usize| {
+            labels
+                .ranges()
+                .iter()
+                .rposition(|r| u64::try_from(old).is_ok_and(|o| r.start <= o))
+        };
+        let first_range = after
+            .get(leading)
+            .and_then(|id| before.iter().position(|b| b == id))
+            .and_then(range_of)
+            .filter(|_| leading > 0);
+        let lead_labels: Vec<Option<String>> = (0..leading).map(|i| remapped.label(i)).collect();
         for (new_index, id) in after.iter().enumerate() {
             match before.iter().position(|b| b == id) {
+                Some(old) if first_range.is_some() && range_of(old) == first_range => prop_assert!(
+                    remapped.label(new_index).is_some()
+                        && (new_index != leading || !lead_labels.contains(&remapped.label(new_index))),
+                    "{} shares a label with a new page: {:?}",
+                    id,
+                    remapped.label(new_index)
+                ),
                 Some(old) => prop_assert_eq!(remapped.label(new_index), labels.label(old), "{}", id),
                 None => prop_assert!(remapped.label(new_index).is_some(), "new page {} has a label", id),
             }
@@ -586,6 +609,64 @@ fn a_new_page_continues_the_range_it_lands_in() {
         got,
         ["i", "ii", "iii", "1", "2", "3", "3", "4", "A-1", "A-2", "Back cover"]
     );
+}
+
+/// The labels of `labels`' pages after `count` new pages go first.
+fn labels_after_leading_pages(labels: &PageLabels, pages: usize, count: u32) -> Vec<String> {
+    let before: Vec<PageId> = (1..=pages)
+        .map(|n| PageId::object(ObjRef::new(u32::try_from(n).unwrap(), 0)))
+        .collect();
+    let mut after: Vec<PageId> = (0..count).map(|n| PageId::object(ObjRef::new(9_000 + n, 0))).collect();
+    after.extend(before.iter().cloned());
+    let remapped = labels.remap(&before, &after);
+    (0..after.len()).map(|i| remapped.label(i).unwrap()).collect()
+}
+
+#[test]
+fn a_page_before_i_starts_the_front_matter_and_numbers_it_up() {
+    let doc = open("labels.pdf");
+    let labels = doc.page_labels().unwrap();
+    let got = labels_after_leading_pages(&labels, doc.pages().unwrap().len(), 1);
+    // The new page is "i", the front matter goes up by one, the body and appendix stay.
+    assert_eq!(
+        got,
+        ["i", "ii", "iii", "iv", "1", "2", "3", "4", "A-1", "A-2", "Back cover"]
+    );
+}
+
+#[test]
+fn a_page_before_1_takes_1_and_later_ranges_keep_their_labels() {
+    // Paper's O11 contents page: before page 1, it takes 1; the body goes up by one and the
+    // appendix keeps A-1 to A-3.
+    let labels = PageLabels::from_ranges(vec![
+        LabelRange::new(0, Some(LabelStyle::Decimal), "", 1),
+        LabelRange::new(3, Some(LabelStyle::Decimal), "A-", 1),
+    ]);
+    assert_eq!(
+        labels_after_leading_pages(&labels, 6, 1),
+        ["1", "2", "3", "4", "A-1", "A-2", "A-3"]
+    );
+}
+
+#[test]
+fn new_pages_take_the_numbers_below_a_range_that_has_them() {
+    let labels = PageLabels::from_ranges(vec![LabelRange::new(0, Some(LabelStyle::Decimal), "", 5)]);
+    assert_eq!(labels_after_leading_pages(&labels, 2, 1), ["4", "5", "6"]);
+}
+
+#[test]
+fn new_pages_short_of_numbers_below_a_range_number_it_up_by_the_shortfall() {
+    let labels = PageLabels::from_ranges(vec![LabelRange::new(0, Some(LabelStyle::Decimal), "", 2)]);
+    assert_eq!(labels_after_leading_pages(&labels, 2, 3), ["1", "2", "3", "4", "5"]);
+}
+
+#[test]
+fn new_pages_before_a_prefix_only_range_repeat_its_prefix() {
+    let labels = PageLabels::from_ranges(vec![
+        LabelRange::new(0, None, "Cover", 1),
+        LabelRange::new(1, Some(LabelStyle::Decimal), "", 1),
+    ]);
+    assert_eq!(labels_after_leading_pages(&labels, 2, 1), ["Cover", "Cover", "1"]);
 }
 
 #[test]

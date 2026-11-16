@@ -16,6 +16,7 @@ import {
   type MenuEntry,
   type ModeRegistry,
   ModeSwitcher,
+  type Platform,
   type ToastQueue,
   useStoreState,
 } from "@laminapdf/ui";
@@ -43,6 +44,7 @@ import {
 } from "@laminapdf/ui/editing";
 import type { EditResult, Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo } from "react";
+import { DocumentsController, DocumentsDialogs, documentsActions } from "./documents.tsx";
 import type { PageInfo } from "./outline.ts";
 import { PageSetupDialogs, pageSetupActions } from "./page-setup.tsx";
 import type { Engine } from "./session.ts";
@@ -91,11 +93,14 @@ export class OrganiseController implements ExternalStore<OrganiseState> {
     announced: "",
   };
   readonly #listeners = new Set<() => void>();
+  /** Insert from a file, Replace, Merge, Split and Extract (documents.tsx). */
+  readonly documents: DocumentsController;
 
-  constructor(engine: Engine, viewer: Viewer, toasts: ToastQueue) {
+  constructor(engine: Engine, viewer: Viewer, toasts: ToastQueue, platform: Platform) {
     this.#engine = engine;
     this.#viewer = viewer;
     this.#toasts = toasts;
+    this.documents = new DocumentsController({ engine, organise: this, toasts, platform });
     viewer.on("invalidate", ({ pages }) => {
       const ids = this.pages();
       const drawn = new Map(this.#state.drawn);
@@ -353,6 +358,7 @@ export function organiseActions(controller: OrganiseController) {
     "pages.insert-blank": () => controller.open("blank"),
     "pages.select-all": () => controller.selectAll(),
     ...pageSetupActions(controller),
+    ...documentsActions(controller.documents),
   } as const;
 }
 
@@ -422,6 +428,8 @@ export function ModeArea({ modes }: { modes: ModeRegistry }): ReactNode {
 /** Props of `OrganiseMode`. */
 export interface OrganiseModeProps {
   readonly controller: OrganiseController;
+  /** The open file's name, which the files Split and Merge write are named from. */
+  readonly fileName: string;
   readonly engine: Engine;
   readonly viewer: Viewer;
   readonly modes: ModeRegistry;
@@ -442,11 +450,15 @@ export function OrganiseMode(props: OrganiseModeProps): ReactNode {
       viewer.element.hidden = false;
     };
   }, [viewer, current]);
-  return current ? <OrganiseCanvas {...props} /> : <OrganiseDialogs controller={controller} engine={props.engine} />;
+  return current ? (
+    <OrganiseCanvas {...props} />
+  ) : (
+    <OrganiseDialogs controller={controller} engine={props.engine} fileName={props.fileName} />
+  );
 }
 
 /** The grid, the inspector beside it, the live region and the dialogs. */
-function OrganiseCanvas({ controller, engine, viewer, modes, keys }: OrganiseModeProps): ReactNode {
+function OrganiseCanvas({ controller, engine, viewer, modes, keys, fileName }: OrganiseModeProps): ReactNode {
   const state = useStoreState(controller, (s) => s);
   const pages = useStoreState(engine, (s) => s.pages);
   const grid = useMemo<GridPage[]>(
@@ -492,7 +504,7 @@ function OrganiseCanvas({ controller, engine, viewer, modes, keys }: OrganiseMod
         <OrganiseInspector controller={controller} pages={pages} />
       </div>
       <Announcement controller={controller} />
-      <OrganiseDialogs controller={controller} engine={engine} />
+      <OrganiseDialogs controller={controller} engine={engine} fileName={fileName} />
     </div>
   );
 }
@@ -618,8 +630,16 @@ function Announcement({ controller }: { controller: OrganiseController }): React
   );
 }
 
-/** Move to page…, Blank pages… and the questions before an edit a signature forbids. */
-function OrganiseDialogs({ controller, engine }: { controller: OrganiseController; engine: Engine }): ReactNode {
+/** Move to page…, Blank pages…, Page setup's and the dialogs across files, and the questions before an edit a signature forbids. */
+function OrganiseDialogs({
+  controller,
+  engine,
+  fileName,
+}: {
+  controller: OrganiseController;
+  engine: Engine;
+  fileName: string;
+}): ReactNode {
   const state = useStoreState(controller, (s) => s);
   // Read through the stores, not the controller's methods, which the React Compiler would keep from the first render.
   const pages = useStoreState(engine, (s) => s.pages);
@@ -645,6 +665,7 @@ function OrganiseDialogs({ controller, engine }: { controller: OrganiseControlle
         onAnswer={(proceed) => controller.answer(proceed)}
       />
       <PageSetupDialogs controller={controller} engine={engine} />
+      <DocumentsDialogs documents={controller.documents} organise={controller} engine={engine} fileName={fileName} />
       <CertifiedNotice controller={controller} />
     </>
   );

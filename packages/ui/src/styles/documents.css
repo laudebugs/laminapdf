@@ -1,0 +1,165 @@
+/* The dialogs across files (Paper O07, O08): the file card (name in 600, its pages and size in
+   text-2, "Choose another…" at the end, its password field inline); the pages to bring in as a
+   grid of checkable thumbnails, a chosen one on accent-tint with a 1 px accent edge (never the
+   focus ring); the merge's ordered list with its move buttons; and Split's list of files. */
+@layer paper.components {
+  .paper-documents-file {
+    display: grid;
+    gap: var(--paper-space-8);
+    padding: var(--paper-space-12);
+    border: var(--paper-border-width) solid var(--paper-hairline);
+    border-radius: var(--paper-radius-6);
+  }
+
+  .paper-documents-file-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--paper-space-8);
+    align-items: center;
+  }
+
+  .paper-documents-file-name {
+    color: var(--paper-text);
+    font: var(--paper-type-body);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  .paper-documents-file-facts {
+    flex: 1;
+    color: var(--paper-text-2);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-documents-password,
+  .paper-documents-range,
+  .paper-documents-where {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--paper-space-8);
+    align-items: end;
+  }
+
+  /* Two labelled fields side by side: their labels line up, whatever help text each has. */
+  .paper-documents-where {
+    align-items: start;
+  }
+
+  .paper-documents-password > .paper-field,
+  .paper-documents-range > .paper-field,
+  .paper-documents-where > .paper-field {
+    flex: 1 1 12rem;
+  }
+
+  .paper-documents-thumbs {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+    gap: var(--paper-space-8);
+    max-block-size: 16rem;
+    margin: 0;
+    padding: var(--paper-space-2);
+    overflow-y: auto;
+    list-style: none;
+  }
+
+  .paper-documents-thumb {
+    padding: var(--paper-space-4);
+    border: var(--paper-border-width) solid transparent;
+    border-radius: var(--paper-radius-6);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-documents-thumb[data-chosen] {
+    border-color: var(--paper-accent);
+    background: var(--paper-accent-tint);
+  }
+
+  .paper-documents-thumb-page {
+    display: block;
+    inline-size: 4.5rem;
+    block-size: 5.75rem;
+    margin-block-end: var(--paper-space-4);
+    background: var(--paper-page-paper);
+    box-shadow: var(--paper-shadow-thumbnail);
+  }
+
+  .paper-documents-thumb-page[data-landscape] {
+    block-size: 3.5rem;
+  }
+
+  .paper-documents-thumb-page > canvas {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+  }
+
+  .paper-documents-heading {
+    margin: 0;
+    color: var(--paper-text);
+    font: var(--paper-type-label);
+  }
+
+  .paper-documents-order,
+  .paper-documents-parts {
+    display: grid;
+    gap: var(--paper-space-8);
+    margin: 0;
+    padding-inline-start: var(--paper-space-24);
+  }
+
+  .paper-documents-order-item {
+    display: flex;
+    gap: var(--paper-space-8);
+    align-items: start;
+  }
+
+  .paper-documents-order-item > .paper-documents-file {
+    flex: 1;
+  }
+
+  .paper-documents-order-item[data-fixed] {
+    padding: var(--paper-space-12);
+    border: var(--paper-border-width) dashed var(--paper-hairline);
+    border-radius: var(--paper-radius-6);
+  }
+
+  .paper-documents-order-moves {
+    display: flex;
+    gap: var(--paper-space-2);
+  }
+
+  .paper-documents-parts {
+    max-block-size: 12rem;
+    overflow-y: auto;
+  }
+
+  .paper-documents-parts > li {
+    display: flex;
+    gap: var(--paper-space-12);
+    justify-content: space-between;
+  }
+
+  .paper-documents-parts .paper-documents-file-name {
+    font-weight: 400;
+  }
+
+  .paper-documents-parts .paper-documents-file-facts {
+    flex: none;
+  }
+
+  .paper-documents-inline {
+    padding-inline-start: var(--paper-space-24);
+  }
+
+  .paper-documents-result {
+    margin: 0;
+    color: var(--paper-text-2);
+    font: var(--paper-type-body);
+  }
+
+  @media (forced-colors: active) {
+    .paper-documents-thumb[data-chosen] {
+      border-color: Highlight;
+    }
+  }
+}

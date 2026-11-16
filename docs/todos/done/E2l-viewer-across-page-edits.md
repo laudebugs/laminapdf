@@ -36,7 +36,7 @@ Let the reader show edits that insert, delete or move pages. Today the document 
 **Out of scope** (and which todo covers it)
 
 - Commands and the page grid → [E2h](../done/E2h-page-organiser-ui.md)
-- Replaying source documents into a restarted worker → [E2m](../ready/E2m-document-dialogs.md)
+- Replaying source documents into a restarted worker → [E2m](../done/E2m-document-dialogs.md)
 
 **Editor facts**
 

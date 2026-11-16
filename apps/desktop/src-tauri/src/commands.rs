@@ -104,6 +104,20 @@ pub(crate) async fn page_info(
         .map_err(|error| DesktopError::Internal(error.to_string()))?
 }
 
+/// What the Properties dialog shows of one of this window's documents, with its edits so far: the
+/// engine's JSON (`FromEngine::Properties`), which the webview reads as it is.
+#[tauri::command]
+pub(crate) async fn document_properties(
+    window: tauri::WebviewWindow,
+    engines: tauri::State<'_, Arc<Engines>>,
+    doc: u32,
+) -> Result<String, DesktopError> {
+    let engines = Arc::clone(&engines);
+    tauri::async_runtime::spawn_blocking(move || engines.properties(window.label(), DocId(doc)))
+        .await
+        .map_err(|error| DesktopError::Internal(error.to_string()))?
+}
+
 /// Unlocks one of this window's documents with the password the user typed; the main process
 /// keeps it while the document stays open, so a restarted engine never asks again. The command's
 /// own copy is wiped when dropped and never logged; the IPC layer's buffers and serde's copies
