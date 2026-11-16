@@ -11,7 +11,7 @@
 | Branch | `feat/e4e-freetext-callouts` |
 | PR title | `feat(build): FreeText and callout annotations with generated appearances` |
 | Size | L (400–800): `/DA`, the rich-text subset, layout into the appearance and callout geometry; editing in place is E4j |
-| PR | — |
+| PR | [#678](https://github.com/laudebugs/laminapdf/pull/678) |
 
 ## Goal
 
