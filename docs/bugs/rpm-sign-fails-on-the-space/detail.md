@@ -4,7 +4,7 @@
 
 ## What we saw
 
-On 2026-11-16, a staging release ([run 43771064877](https://github.com/laudebugs/laminapdf/actions/runs/43771064877)) failed on both Linux legs in the step "Sign the .deb and the .rpm":
+On 2026-11-15, a staging release ([run 43771064877](https://github.com/laudebugs/laminapdf/actions/runs/43771064877)) failed on both Linux legs in the step "Sign the .deb and the .rpm":
 
 ```
 gpg: can't open 'PDF-0.0.133-1.x86_64.rpm.sig': No such file or directory
