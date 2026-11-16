@@ -198,6 +198,11 @@ fn vitest<'a>(config: &'a str, projects: &[&'a str]) -> Vec<&'a str> {
     for project in projects {
         args.extend(["--project", project]);
     }
+    // WebKit on Linux (pull requests run it there, ci.yml) crashed its page running the viewer's
+    // files side by side, two of them over 1,000-page documents: one file at a time there.
+    if cfg!(target_os = "linux") && projects.contains(&"webkit") {
+        args.push("--no-file-parallelism");
+    }
     args
 }
 
@@ -623,6 +628,17 @@ mod tests {
         // A --reporter replaces the config's list, which reports a pass on retry as flaky.
         assert!(!vitest(BROWSER_CONFIG, &["webkit"]).contains(&"--reporter"));
         assert!(vitest("vitest.node.config.ts", &["node"]).ends_with(&["--reporter", "verbose", "--project", "node"]));
+    }
+
+    #[test]
+    fn webkit_should_run_one_file_at_a_time_on_linux_only() {
+        assert_eq!(
+            [
+                vitest(BROWSER_CONFIG, &["webkit"]).contains(&"--no-file-parallelism"),
+                vitest(BROWSER_CONFIG, &["chromium"]).contains(&"--no-file-parallelism"),
+            ],
+            [cfg!(target_os = "linux"), false]
+        );
     }
 
     #[test]
