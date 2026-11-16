@@ -57,8 +57,41 @@ pub(crate) struct Report {
     pub reason: String,
     pub location: Option<Location>,
     pub frames: Vec<Frame>,
-    /// Filled by minidump processing, which comes later; empty until then.
+    /// Always empty: a native crash's modules are in [`Report::native`].
     pub modules: Vec<Module>,
+    /// A native crash's stack, from its minidump read on this computer (D7d); left out otherwise.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub native: Option<Native>,
+}
+
+/// What a minidump says about a native crash, read on this computer: the raw dump never leaves
+/// it. Every string here passed the allow-list in `native.rs`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct Native {
+    /// Why it crashed, as the OS put it (`EXC_BAD_ACCESS / KERN_INVALID_ADDRESS`); scrubbed.
+    pub crash_reason: String,
+    /// The crashing thread's frames, innermost first, at most 64.
+    pub frames: Vec<DumpFrame>,
+    /// The modules the frames name, each once: the symbol archive's keys.
+    pub modules: Vec<DumpModule>,
+}
+
+/// A native frame: the module's file name (or `<unknown>`) and the address within it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct DumpFrame {
+    pub module: String,
+    pub offset: u64,
+    /// Always `None` here: the computer has no symbols (`cargo xtask crash symbolicate` names it).
+    pub function: Option<String>,
+}
+
+/// A module a native frame names.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct DumpModule {
+    pub name: String,
+    pub version: Option<String>,
+    /// Breakpad's debug ID (32 to 40 hex digits): what `cargo xtask crash symbolicate` looks up.
+    pub debug_id: String,
 }
 
 /// The channel this build follows; `dev` for a debug build.
@@ -224,6 +257,8 @@ pub(crate) struct Crash {
     pub frames: Vec<Frame>,
     /// The engine's sandbox, when the engine was running.
     pub sandbox: Option<SandboxLevel>,
+    /// The minidump's summary, for a native crash; already allow-listed.
+    pub native: Option<Native>,
 }
 
 impl Crash {
@@ -236,6 +271,22 @@ impl Crash {
             location: summary.location,
             frames: summary.frames.iter().map(native).collect(),
             sandbox,
+            native: None,
+        }
+    }
+
+    /// A native crash of the main process, known only from the minidump its monitor wrote: the
+    /// report the next launch makes of it.
+    #[cfg(unix)]
+    pub(crate) fn main_native(native: Native) -> Self {
+        Self {
+            process: ProcessKind::Main,
+            kind: CrashKind::Signal,
+            reason: native.crash_reason.clone(),
+            location: None,
+            frames: Vec::new(),
+            sandbox: None,
+            native: Some(native),
         }
     }
 
@@ -251,6 +302,7 @@ impl Crash {
             location: None,
             frames: Vec::new(),
             sandbox,
+            native: None,
         }
     }
 
@@ -278,6 +330,7 @@ impl Crash {
                 .map(Frame::Script)
                 .collect(),
             sandbox: None,
+            native: None,
         }
     }
 
@@ -304,6 +357,7 @@ impl Crash {
             location: self.location.as_ref().and_then(ours),
             frames: self.frames,
             modules: Vec::new(),
+            native: self.native,
         }
     }
 }
@@ -319,7 +373,7 @@ fn native(frame: &NativeFrame) -> Frame {
 }
 
 /// `name` if it is a plain file name the schema accepts, else `<unknown>`.
-fn module_name(name: &str) -> String {
+pub(super) fn module_name(name: &str) -> String {
     let plain = !name.is_empty()
         && name.len() <= 64
         && name
@@ -409,11 +463,62 @@ mod tests {
 
     /// The fixture the Worker's tests hold to the schema.
     fn fixture() -> serde_json::Value {
-        let path = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../../updates/test/fixtures/crash-report.json"
-        );
+        fixture_named("crash-report.json")
+    }
+
+    /// The Worker's fixture `name`.
+    fn fixture_named(name: &str) -> serde_json::Value {
+        let path = format!("{}/../../updates/test/fixtures/{name}", env!("CARGO_MANIFEST_DIR"));
         serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
+    }
+
+    fn native() -> Native {
+        Native {
+            crash_reason: "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS".into(),
+            frames: vec![DumpFrame {
+                module: "laminapdf-desktop-engine".into(),
+                offset: 0x44_016c,
+                function: None,
+            }],
+            modules: vec![DumpModule {
+                name: "laminapdf-desktop-engine".into(),
+                version: None,
+                debug_id: "5887580E1F1A3CE2BEAB358DCFAA73030".into(),
+            }],
+        }
+    }
+
+    /// The keys of the object at `pointer` in `value`, sorted.
+    fn keys_at(value: &serde_json::Value, pointer: &str) -> Vec<String> {
+        let mut keys = keys(value.pointer(pointer).unwrap_or(&serde_json::Value::Null));
+        keys.sort();
+        keys
+    }
+
+    #[test]
+    fn a_native_report_should_have_exactly_the_schemas_fields() {
+        let mut crash = Crash::engine_exit("crash: signal: 11 (SIGSEGV)".into(), None);
+        crash.native = Some(native());
+        let built = serde_json::to_value(crash.report(&facts(), Duration::ZERO)).unwrap();
+        let expected = fixture_named("crash-report-native.json");
+        let pointers = ["", "/native", "/native/frames/0", "/native/modules/0"];
+        let differ: Vec<&str> = pointers
+            .into_iter()
+            .filter(|pointer| keys_at(&built, pointer) != keys_at(&expected, pointer))
+            .collect();
+        assert_eq!(differ, Vec::<&str>::new());
+    }
+
+    #[test]
+    fn the_native_fixture_should_read_as_a_report_with_its_stack() {
+        let report: Report = serde_json::from_value(fixture_named("crash-report-native.json")).unwrap();
+        assert_eq!(report.native.map(|native| native.frames.len()), Some(2));
+    }
+
+    #[test]
+    fn a_report_without_a_stack_should_leave_native_out() {
+        let report = Crash::engine_exit("killed".into(), None).report(&facts(), Duration::ZERO);
+        assert!(serde_json::to_value(report).unwrap().get("native").is_none());
     }
 
     fn keys(value: &serde_json::Value) -> Vec<String> {

@@ -348,3 +348,35 @@ fn a_shutdown_should_not_count_as_a_crash() {
     supervisor.shutdown();
     assert!(crashes.recv_timeout(Duration::from_millis(300)).is_err());
 }
+
+/// The crash names the engine that crashed, so its minidump can be joined to it, and the
+/// restart still follows, with another engine.
+#[test]
+fn a_crash_should_name_the_crashed_engine_and_still_be_followed_by_a_restart() {
+    let (tx, rx) = mpsc::channel();
+    let tx = Mutex::new(tx);
+    let supervisor = Supervisor::start(
+        Box::new(FakeSpawner::new(Mode::CrashAfterReady)),
+        Arc::new(NoFiles),
+        fast_config(),
+        move |_, event| match event {
+            Event::Crashed { pid, .. } => drop(lock(&tx).send(("crashed", pid))),
+            Event::Restarted { pid } => drop(lock(&tx).send(("restarted", pid))),
+            _ => {}
+        },
+    )
+    .unwrap_or_else(|error| panic!("the fake engine did not start: {error}"));
+    let first = supervisor.pid();
+    let events: Vec<(&str, u32)> = rx.iter().take(2).collect();
+    supervisor.shutdown();
+    let crashed = events.first().map(|&(_, pid)| pid);
+    let restarted = events.get(1).map(|&(_, pid)| pid);
+    assert_eq!(
+        (
+            events.iter().map(|&(name, _)| name).collect::<Vec<_>>(),
+            crashed == first,
+            restarted != first
+        ),
+        (vec!["crashed", "restarted"], true, true)
+    );
+}

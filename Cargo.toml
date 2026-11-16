@@ -50,6 +50,7 @@ laminapdf-tiff-wasm = { version = "0.4.0", path = "crates/laminapdf-tiff-wasm" }
 laminapdf-desktop-protocol = { version = "0.4.0", path = "crates/laminapdf-desktop-protocol" }
 laminapdf-desktop-engine = { version = "0.4.0", path = "crates/laminapdf-desktop-engine" }
 laminapdf-desktop-sandbox = { version = "0.4.0", path = "crates/laminapdf-desktop-sandbox" }
+laminapdf-desktop-crash = { version = "0.4.0", path = "crates/laminapdf-desktop-crash" }
 laminapdf-desktop-os = { version = "0.4.0", path = "crates/laminapdf-desktop-os" }
 
 # Flate (zlib) codec, pure Rust; `with-alloc` is the default feature, named so it stays on.
@@ -184,6 +185,27 @@ rustls = { version = "0.23.46", default-features = false, features = ["ring"] }
 os_info = { version = "3.15.0", default-features = false }
 # The crash reporter's scrubber (D7a). MIT OR Apache-2.0.
 regex = "1.13.1"
+# Native crash capture (D7d), in laminapdf-desktop-sandbox: a crashing process asks another one,
+# unsandboxed, to write its minidump (minidumper's server and client), from the crash handler
+# crash-handler installs (signals, Mach exceptions, Windows exceptions). Embark, MIT OR Apache-2.0
+# (their dependencies, crash-context, minidump-writer, polling, uds, scroll, goblin and others:
+# licences cargo-deny allows).
+crash-handler = { version = "=0.8.1", default-features = false }
+minidumper = { version = "=0.11.0", default-features = false }
+# Reading a minidump on the computer (D7d; the engine's sandboxed `--summarize-dump` mode only, never
+# the main process): the crashing thread's frames and the loaded modules, never the raw dump.
+# rust-minidump, MIT: the reader and the unwinder only, not minidump-processor, whose analysis the
+# summary doesn't use and which added about 2 MB to the engine. No default features: no symbol
+# server client (`http`); symbols are looked up only by maintainers (`cargo xtask crash symbolicate`).
+minidump = { version = "=0.27.0", default-features = false }
+minidump-unwind = { version = "=0.27.0", default-features = false }
+# The unwinder's `SymbolProvider` is an async-trait trait: the engine's no-symbols provider implements
+# it with the same macro (a compile-time proc macro, already in the graph through minidump-unwind).
+# MIT OR Apache-2.0
+async-trait = "0.1.92"
+# Breakpad symbol files read by `cargo xtask crash symbolicate` (D7d), xtask only: a report's native
+# frames looked up in the symbols the desktop release archives. rust-minidump, MIT; no `http`.
+breakpad-symbols = { version = "=0.27.0", default-features = false }
 # The desktop reader's anonymous install ID (ADR 0014 §3): a random UUID v4. MIT OR Apache-2.0.
 uuid = { version = "1.29.0", default-features = false, features = ["std", "v4"] }
 muda = { version = "=0.20.0", default-features = false }  # MIT OR Apache-2.0; Tauri's menus (the desktop app's tests)
@@ -308,6 +330,29 @@ opt-level = 3
 
 [profile.release]
 lto = "thin"
+# The desktop engine's crash path (D7d: the crash handler's client, and the minidump reader of its
+# `--summarize-dump` mode) runs once per crash, never on a page: size over speed, to keep the Linux
+# installers within the desktop plan's budget.
+[profile.release.package.minidump]
+opt-level = "z"
+[profile.release.package.minidump-common]
+opt-level = "z"
+[profile.release.package.minidump-unwind]
+opt-level = "z"
+[profile.release.package.minidump-writer]
+opt-level = "z"
+[profile.release.package.minidumper]
+opt-level = "z"
+[profile.release.package.crash-handler]
+opt-level = "z"
+[profile.release.package.crash-context]
+opt-level = "z"
+[profile.release.package.encoding_rs]
+opt-level = "z"
+[profile.release.package.goblin]
+opt-level = "z"
+[profile.release.package.procfs-core]
+opt-level = "z"
 
 # The `laminapdf` release binaries (cargo-dist, dist-workspace.toml; todo L4d).
 [profile.dist]

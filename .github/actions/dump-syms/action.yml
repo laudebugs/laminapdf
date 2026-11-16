@@ -1,0 +1,48 @@
+name: Pinned dump_syms
+description: Install Mozilla's checksum-verified dump_syms release, which writes Breakpad symbol files.
+# dump_syms (https://github.com/mozilla/dump_syms; MIT OR Apache-2.0) turns a dSYM, a PDB or an ELF
+# file's DWARF into a Breakpad .sym file (todo D7d; docs/guidelines/desktop-release.md §7). A build
+# tool run as a process, never linked. The version is DUMP_SYMS_VERSION in tools/xtask/src/doctor.rs
+# (tools/xtask/src/workflows/desktop_release.rs checks the two agree).
+runs:
+  using: composite
+  steps:
+    - name: Install dump_syms
+      shell: bash
+      env:
+        DUMP_SYMS_VERSION: "2.3.9"
+        # The release assets' SHA-256, from https://github.com/mozilla/dump_syms/releases/tag/v2.3.9
+        # (each asset's .sha256 file and GitHub's digest agree; recorded 2026-11-15).
+        DUMP_SYMS_SHA256_MACOS_ARM64: 4945b7e5de0d7ad403822635f0fb912b69990fc412741ff2b7b512e168c40a32
+        DUMP_SYMS_SHA256_MACOS_X64: e255caf99e403b31613c756babcead8463f6e600c1a9e1e5531fbe27a7e29cf2
+        DUMP_SYMS_SHA256_LINUX_X64: 0fc852a86b00337407d9d423cc388a24c3b489ccaaedcf92623cad57af5ca8ad
+        DUMP_SYMS_SHA256_LINUX_ARM64: 1b8d6ab436fbfeb9820d4a21413cc77c50c6a4221cff25a830f5d53ba0aaa732
+        DUMP_SYMS_SHA256_WINDOWS_X64: bdf48486220708808a3e00aec78856ee1cce096189d47a1e2cb1c635f93bacc7
+      run: |
+        set -euo pipefail
+        # The release has no Windows Arm64 build: Windows on Arm runs the x64 one under emulation,
+        # and it reads an Arm64 PE and PDB as well as an x64 one.
+        case "$RUNNER_OS/$RUNNER_ARCH" in
+          macOS/ARM64) asset=aarch64-apple-darwin.tar.xz sum=$DUMP_SYMS_SHA256_MACOS_ARM64 ;;
+          macOS/X64) asset=x86_64-apple-darwin.tar.xz sum=$DUMP_SYMS_SHA256_MACOS_X64 ;;
+          Linux/X64) asset=x86_64-unknown-linux-gnu.tar.xz sum=$DUMP_SYMS_SHA256_LINUX_X64 ;;
+          Linux/ARM64) asset=aarch64-unknown-linux-gnu.tar.xz sum=$DUMP_SYMS_SHA256_LINUX_ARM64 ;;
+          Windows/X64 | Windows/ARM64) asset=x86_64-pc-windows-msvc.zip sum=$DUMP_SYMS_SHA256_WINDOWS_X64 ;;
+          *) echo "::error::no pinned dump_syms for $RUNNER_OS/$RUNNER_ARCH"; exit 1 ;;
+        esac
+        temp="$RUNNER_TEMP"
+        if command -v cygpath > /dev/null; then temp=$(cygpath -u "$temp"); fi
+        file="dump_syms-$asset"
+        curl -fsSL --retry 3 -o "$temp/$file" "https://github.com/mozilla/dump_syms/releases/download/v$DUMP_SYMS_VERSION/$file"
+        # Git Bash on Windows has sha256sum but no shasum; macOS has shasum.
+        if command -v sha256sum >/dev/null; then check=(sha256sum -c -); else check=(shasum -a 256 -c -); fi
+        echo "$sum  $temp/$file" | "${check[@]}"
+        dir="$temp/dump_syms"
+        mkdir -p "$dir"
+        case "$file" in
+          *.zip) unzip -q -j "$temp/$file" -d "$dir" ;;
+          *) tar -xJf "$temp/$file" -C "$dir" --strip-components 1 ;;
+        esac
+        exe=$(ls "$dir"/dump_syms*)
+        "$exe" --version
+        if command -v cygpath > /dev/null; then cygpath -w "$dir"; else echo "$dir"; fi >> "$GITHUB_PATH"

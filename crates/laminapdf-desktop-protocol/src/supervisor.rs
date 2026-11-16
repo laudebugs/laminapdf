@@ -80,6 +80,8 @@ pub enum Event {
     /// sandbox names it, and the summary its panic hook sent, if it panicked. For crash reports:
     /// the restart policy doesn't depend on it.
     Crashed {
+        /// The crashed engine's process id: what its minidump is joined to.
+        pid: u32,
         /// How it ended (`crash: signal: 11 (SIGSEGV)`, `exit code: 3`); never document content.
         how: String,
         /// What its panic hook sent.
@@ -543,6 +545,7 @@ impl Supervisor {
         self.log(format!("engine {} exited: {how}", engine.pid));
         if !stopping {
             self.emit(Event::Crashed {
+                pid: engine.pid,
                 how,
                 panic,
                 sandboxed: engine.sandboxed,

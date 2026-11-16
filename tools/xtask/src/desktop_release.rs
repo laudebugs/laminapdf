@@ -3,8 +3,8 @@
 //!
 //! - `plan`: the run's version, channel, environment and build matrix (`plan.rs`), from the
 //!   Actions environment, written to `$GITHUB_OUTPUT` and the job summary.
-//! - `sizes <dir>`: every installer under `<dir>` against the desktop plan's budget (< 15 MB,
-//!   warning from 13.5 MB), as a table in the job summary.
+//! - `sizes <dir>`: every installer under `<dir>` against the desktop plan's budget (< 16 MB,
+//!   warning from 14.4 MB), as a table in the job summary.
 //! - `sbom <target> <dir>`: `CycloneDX` SBOMs of the app's crates for `<target>` and of the
 //!   frontend's npm packages, into `<dir>`.
 
@@ -95,9 +95,10 @@ fn run_plan(ws: &Workspace) -> Result<()> {
     summary(&table)
 }
 
-/// The desktop plan's installer budget (§4: under 15 MB per platform), and where it warns.
-const BUDGET: u64 = 15_000_000;
-const WARN: u64 = 13_500_000;
+/// The desktop plan's installer budget (§4: under 16 MB per platform; 15 MB until the owner raised it
+/// on 2026-11-15 for the engine's on-computer minidump reader), and where it warns (90 %).
+const BUDGET: u64 = 16_000_000;
+const WARN: u64 = 14_400_000;
 
 /// The installers the budget gates; updater bundles and signatures aren't counted.
 fn is_installer(name: &str) -> bool {
@@ -153,7 +154,7 @@ impl Verdict {
 }
 
 fn sizes(dir: &Path) -> Result<()> {
-    let mut table = String::from("## Installer sizes\n\n| File | Size | Budget 15 MB |\n| --- | ---: | --- |\n");
+    let mut table = String::from("## Installer sizes\n\n| File | Size | Budget 16 MB |\n| --- | ---: | --- |\n");
     let mut over = Vec::new();
     let mut count = 0;
     for path in files_under(dir)? {
@@ -176,10 +177,10 @@ fn sizes(dir: &Path) -> Result<()> {
         let verdict = Verdict::of(bytes);
         match verdict {
             Verdict::Over => {
-                println!("::error::{name} is {bytes} bytes, over the 15 MB budget");
+                println!("::error::{name} is {bytes} bytes, over the 16 MB budget");
                 over.push(name.clone());
             }
-            Verdict::Near => println!("::warning::{name} is {bytes} bytes, near the 15 MB budget"),
+            Verdict::Near => println!("::warning::{name} is {bytes} bytes, near the 16 MB budget"),
             Verdict::Ok => println!("{name}: {bytes} bytes"),
         }
         writeln!(
@@ -195,7 +196,7 @@ fn sizes(dir: &Path) -> Result<()> {
         bail!("no installer under {}", dir.display());
     }
     if !over.is_empty() {
-        bail!("over the 15 MB budget: {}", over.join(", "));
+        bail!("over the 16 MB budget: {}", over.join(", "));
     }
     Ok(())
 }
@@ -266,10 +267,10 @@ mod tests {
     }
 
     #[test]
-    fn the_budget_should_fail_at_15_mb_and_warn_from_13_5() {
-        assert_eq!(Verdict::of(13_499_999), Verdict::Ok);
-        assert_eq!(Verdict::of(13_500_000), Verdict::Near);
-        assert_eq!(Verdict::of(14_999_999), Verdict::Near);
-        assert_eq!(Verdict::of(15_000_000), Verdict::Over);
+    fn the_budget_should_fail_at_16_mb_and_warn_from_14_4() {
+        assert_eq!(Verdict::of(14_399_999), Verdict::Ok);
+        assert_eq!(Verdict::of(14_400_000), Verdict::Near);
+        assert_eq!(Verdict::of(15_999_999), Verdict::Near);
+        assert_eq!(Verdict::of(16_000_000), Verdict::Over);
     }
 }

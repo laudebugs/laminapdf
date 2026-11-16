@@ -484,6 +484,10 @@ pub enum ToEngine {
         /// The panic's message, which the test fills with what a report must not hold.
         message: String,
     },
+    /// Fault, as a native crash would: a write through a null pointer, which the engine's crash
+    /// handler turns into a minidump. Only the e2e builds have it (feature `debug-crash`).
+    #[cfg(feature = "debug-crash")]
+    DebugSegv,
 }
 
 /// A message from the engine to the main process.
