@@ -763,6 +763,7 @@ const EN = {
   "export.done.file": "Exported {name}",
   "export.done.folder": "Exported to {folder}",
   "export.failed": "The export couldn’t finish",
+  "export.none.pictures": "These pages have no pictures to export",
   "imagesToPdf.title": "New PDF from images",
   "imagesToPdf.description": "Each image becomes one page of a new document, in this order.",
   "imagesToPdf.close": "Close New PDF from images",

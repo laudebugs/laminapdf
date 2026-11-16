@@ -85,6 +85,9 @@ None.
 - **Where the files go is settled before the work**: one file (a page, a TIFF of every page, or the text) is named then and its save dialog opens at once, while the click still lets the browser show it, and is written when made; a browser that refuses the dialog all the same downloads it. Pictures, whose number isn't known first, always go into a zip or a folder.
 - **Pictures aren't counted when the dialog opens**: the SDK counts them only by decoding every one. The card stays open and its button reads "Export pictures".
 - **A page named twice in a range is exported once.**
+- **A page range with no pictures** says so ("These pages have no pictures to export") rather than saving an empty zip: pictures are counted only as they are read.
+- **On Chromium, the file the save dialog made stays empty** when the export then fails or is cancelled: the browser creates it when the person chooses it, before the work. A refused folder picker falls back to a zip.
+- **The desktop's open dialog ignores `openFiles`' new `accept: "images"`**: desktop has no From images yet, and [E3k](../ready/E3k-desktop-navigation-and-export.md) must give its dialog the pictures' filter before wiring it.
 - **A TIFF too large for one file** (past the worker's 256 MB budget) fails with the export's message rather than becoming several files under one name.
 - The palette-only commands have a home of their own, `export-dialog`, since every command needs one besides the palette (ADR 0024).
 

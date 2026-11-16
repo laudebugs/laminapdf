@@ -92,13 +92,20 @@ export async function startExport(start: ExportStart): Promise<void> {
   const abort = new AbortController();
   controller.current = abort;
   const made = deferred<Blob>();
+  // A failed export rejects it; only a save waits on it, and a folder has none.
+  made.promise.catch(() => undefined);
   const saving = "folder" in destination ? undefined : save(platform, made.promise, nameOf(destination));
-  // A dismissed save dialog stops the work it was waiting for.
+  // A dismissed save dialog stops the work it was waiting for; a save that failed stops it too,
+  // with the failure kept so it is reported, not taken for a cancel.
+  let saveFailure: { readonly error: unknown } | undefined;
   void saving?.then(
     (result) => {
       if (!result.saved) abort.abort();
     },
-    () => abort.abort(),
+    (error: unknown) => {
+      saveFailure = { error };
+      abort.abort();
+    },
   );
   const update = (change: Partial<ExportRunning>) => setRunning((r) => (r === undefined ? r : { ...r, ...change }));
   const shown = "folder" in destination ? { folder: destination.folder.name } : destination;
@@ -124,8 +131,9 @@ export async function startExport(start: ExportStart): Promise<void> {
     if (result.saved) toasts.add({ message: doneMessage(destination, result.name) });
   } catch (error) {
     made.reject(error);
-    if (!abort.signal.aborted) {
-      reportError(error);
+    if (error instanceof NothingToExport) toasts.add({ message: laterMessage("export.none.pictures") });
+    else if (!abort.signal.aborted || saveFailure !== undefined) {
+      reportError(saveFailure?.error ?? error);
       toasts.add({ message: laterMessage("export.failed") });
     }
   } finally {
@@ -145,11 +153,16 @@ async function destinationFor(
 ): Promise<Destination | undefined> {
   const single = singleName(choice, stem);
   if (single !== undefined) return { file: single };
-  if (platform.capabilities.canWriteDirectory && platform.chooseFolder !== undefined) {
+  const zip = { zip: `${stem}-${ZIP_SUFFIXES[choice.kind]}.zip` };
+  if (!platform.capabilities.canWriteDirectory || platform.chooseFolder === undefined) return zip;
+  try {
     const folder = await platform.chooseFolder();
     return folder === undefined ? undefined : { folder };
+  } catch (error) {
+    // The browser refused the picker (the click too long ago): a zip needs no folder.
+    if (error instanceof DOMException && error.name === "SecurityError") return zip;
+    throw error;
   }
-  return { zip: `${stem}-${ZIP_SUFFIXES[choice.kind]}.zip` };
 }
 
 /** The toast after an export saved as `saved`: the file or zip, or the folder it was written into. */
@@ -209,6 +222,19 @@ function deferred<T>(): {
   return { promise, resolve, reject };
 }
 
+/** The pages chosen hold no pictures: nothing to save, which the person is told. */
+class NothingToExport extends Error {}
+
+/** `answer`, or a rejection as soon as `signal` aborts: a question on screen goes when the export stops. */
+function untilAborted<T>(answer: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const stop = () => reject(signal.reason);
+    if (signal.aborted) return stop();
+    signal.addEventListener("abort", stop, { once: true });
+    answer.then(resolve, reject).finally(() => signal.removeEventListener("abort", stop));
+  });
+}
+
 /** What making an export's files needs. */
 interface Job {
   readonly choice: ExportChoice;
@@ -246,7 +272,10 @@ function sinkFor(destination: Destination, signal: AbortSignal): Sink {
         if (one !== undefined) throw new Error("an export to one file made more than one");
         one = new Blob([file.bytes as BlobPart]);
       },
-      finish: () => one ?? new Blob([]),
+      finish: () => {
+        if (one === undefined) throw new Error("the export made no file");
+        return one;
+      },
     };
   }
   const zip = new ZipWriter(new Date());
@@ -302,8 +331,10 @@ async function pageImages(job: Job, choice: Choice<"pages">, sink: Sink): Promis
       });
     } catch (error) {
       job.signal.throwIfAborted();
+      // With one page there is no rest to export.
+      if (one) throw error;
       reportError(error);
-      if (!(await job.onFailed(page))) throw error;
+      if (!(await untilAborted(job.onFailed(page), job.signal))) throw error;
     }
   }
   job.onProgress(choice.pages.length, choice.pages.length);
@@ -326,6 +357,7 @@ async function text(job: Job, choice: Choice<"text">, sink: Sink): Promise<void>
  */
 async function pictures(job: Job, choice: Choice<"pictures">, sink: Sink): Promise<void> {
   const { pages } = choice;
+  let written = 0;
   for (let at = 0; at < pages.length; at += PICTURE_PAGES_AT_ONCE) {
     job.onProgress(at, pages.length);
     const read = await job.client.extractPictures(
@@ -339,8 +371,11 @@ async function pictures(job: Job, choice: Choice<"pictures">, sink: Sink): Promi
     for (const picture of read.pictures) {
       job.signal.throwIfAborted();
       await sink.add({ name: `${job.stem}-${picture.name}`, bytes: picture.bytes });
+      written++;
     }
   }
+  // Pictures aren't counted before the export, so a page range with none is found here.
+  if (written === 0) throw new NothingToExport();
   job.onProgress(pages.length, pages.length);
 }
 
