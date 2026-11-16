@@ -1,4 +1,4 @@
-# E2n — Desktop: Organise in the engine, merging files opened together, writing parts to a folder
+# E2n — Desktop: the Organise mode over the engine's edit session
 
 | Field | Value |
 | --- | --- |
@@ -9,17 +9,17 @@
 | Depends on | [D3a](../done/D3a-open-from-os.md), [E1i](../done/E1i-desktop-save-in-place.md), [E2g](../done/E2g-page-labels.md), [E2m](../done/E2m-document-dialogs.md) |
 | ADRs | Follows [0008](../../decisions/0008-desktop-shell.md), [0010](../../decisions/0010-platform-adapter.md) |
 | Branch | `feat/e2n-desktop-organise` |
-| PR title | `feat(desktop): organise pages, merge from Finder and Explorer, split to a folder` |
-| Size | M (200–400): Organise in the engine, the OS merge and folder outputs, over the web's dialogs |
+| PR title | `feat(desktop): the Organise mode, page setup and labels over the engine` |
+| Size | L (600–900): the Organise mode shared with the web, the engine's planner check, the page-setup dialogs |
 | PR | [#683](https://github.com/laudebugs/laminapdf/pull/683) |
 
 ## Goal
 
-The desktop part of round E2 ([full-editor §7](../../plans/full-editor.md#7-phases-and-rounds): an editor round's desktop part is its own todo). The Organise mode and every E2 dialog run over the engine's edit session; several PDFs opened together from Finder or Explorer offer a merge; split and export write into a folder. This completes the desktop column of every E2 row.
+The desktop part of round E2 ([full-editor §7](../../plans/full-editor.md#7-phases-and-rounds): an editor round's desktop part is its own todo), first half. The desktop has no Organise mode yet: this todo brings it over the engine's edit session, with page setup, page labels and the signature checks that gate page edits. The second half, [E2t](../ready/E2t-desktop-sources-and-folders.md), adds what reads or writes other files (insert from a file, replace, merge, split to a folder, the multi-file open offer); the owner split the two on 2026-11-16, when the desktop turned out to need the whole Organise mode first.
 
 ## Context
 
-- **Design (Paper):** [O06](../../design/paper/edit-session-organise.md#o06-organise-mode), [O07](../../design/paper/edit-session-organise.md#o07-insert-pages-and-merge-documents) (desktop: "Merge into one document"), [O08](../../design/paper/edit-session-organise.md#o08-split-document) (Save to a folder, Show in Finder)
+- **Design (Paper):** [O06](../../design/paper/edit-session-organise.md#o06-organise-mode); O07 and O08 are [E2t](../ready/E2t-desktop-sources-and-folders.md)'s
 - [E2 plan §5 and §7](../../plans/editor/e2-page-organisation.md#7-differences-between-the-shells)
 - [E1h](../done/E1h-desktop-edit-session.md) and [E1i](../done/E1i-desktop-save-in-place.md): the engine's edit session and saving in place; [D3a](../done/D3a-open-from-os.md): open requests with several paths
 
@@ -27,15 +27,15 @@ The desktop part of round E2 ([full-editor §7](../../plans/full-editor.md#7-pha
 
 **In scope**
 
-- The engine's edit session reports the new page order as the worker does ([E2l](../done/E2l-viewer-across-page-edits.md)), so the shared viewer follows page-list edits on the desktop
-- `canWriteDirectory` true on the desktop, through the dialog plugin; split and export write into the chosen folder, with Replace / Keep both for existing names and Show in Finder or Explorer
-- An open request with several PDFs offers "Merge into one document" or "Open each"
-- Source documents read through the engine's file access, never a path from the webview (ADR 0008)
+- The Organise mode on the desktop: the web's `OrganiseController`, toolbar, grid and dialogs over the engine's edit session, shared rather than copied
+- The engine's edit session reports the new page order as the worker does ([E2l](../done/E2l-viewer-across-page-edits.md)), checked against the engine's `pageOrder`, so the shared viewer follows page-list edits on the desktop
+- `wouldViolate` through the engine's save planner (a protocol message), so the signed-page question and the certified-document banner work on the desktop
+- The page-setup dialogs (crop, resize, boxes, orientation) and the page labels editor (E2g) over the engine
 - WebdriverIO suites on macOS, Windows and Linux
 
 **Out of scope** (and which todo covers it)
 
-- None
+- Insert from a file, replace, merge, split and extract to a folder, the multi-file open offer: [E2t](../ready/E2t-desktop-sources-and-folders.md)
 
 **Editor facts**
 
@@ -44,19 +44,19 @@ The desktop part of round E2 ([full-editor §7](../../plans/full-editor.md#7-pha
 - **`SaveConstraint`:** as the web; the banner and the named-signature dialog checked on the desktop here
 - **Web vs desktop:** this todo is the desktop side
 - **Server features:** none
-- **Capability-matrix rows to flip:** `C.01`, `C.02`, `C.03`, `C.04`, `C.06`, `C.08`, `C.09`, `C.10`, `C.11`, `C.12`, `C.13`, `C.16`, `I.10` → `round-trip` (desktop); `C.05`, `C.07`, `H.10` → `write` (desktop)
+- **Capability-matrix rows to flip:** `C.01`, `C.03`, `C.04`, `C.08`, `C.09`, `C.10`, `C.11`, `C.12`, `C.13`, `I.10` → `round-trip` (desktop); the rest of round E2's desktop column is [E2t](../ready/E2t-desktop-sources-and-folders.md)'s
 
 ## Tasks
 
+- [ ] The Organise mode on the desktop, sharing the web's controller
 - [ ] Page order from the engine's session
-- [ ] Folder output and `canWriteDirectory`
-- [ ] The merge offer on multi-file open requests
+- [ ] `wouldViolate` through the engine's planner
+- [ ] Page setup and page labels over the engine
 - [ ] WebdriverIO specs `apps/desktop/e2e/specs/organise.e2e.ts`, tagged with capability IDs
 
 ## Acceptance criteria
 
-- [ ] WebdriverIO on three systems: reorder, delete, insert from a file, merge, split to a folder and a page-label edit done through the interface, saved in place, reopened and checked
-- [ ] Opening three PDFs together from the OS offers the merge, and the merged file has every page and outline
+- [ ] WebdriverIO on three systems: reorder, delete, insert blank pages, rotate, reverse, a crop and a page-label edit done through the interface, saved in place, reopened and checked
 - [ ] On the approval-signed fixture, deleting the signature's page shows the named-signature dialog; on a certified one, a drag is refused with the banner
 
 ## Post-merge checks
