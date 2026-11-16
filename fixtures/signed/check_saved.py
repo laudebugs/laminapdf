@@ -1,4 +1,4 @@
-"""Validates the files `crates/laminapdf/tests/signed_gating.rs` saves (todo E2i).
+"""Validates the files `crates/laminapdf/tests/signed_gating.rs` saves.
 
 Run the test with `LAMINA_SIGNED_GATING_OUT=<dir>`, then this script on `<dir>`:
 

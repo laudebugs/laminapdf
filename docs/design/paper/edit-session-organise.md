@@ -138,7 +138,7 @@ Command ids use the registry’s `namespace.verb-object` form ([U1b](../../todos
 
 **Artboards:** `O03-close-unsaved.dc.html`.
 
-**Todos:** [E2i](../../todos/done/E2i-signed-gating-and-close.md) (close guards themselves come from [E1d](../../todos/done/E1d-edit-session-undo-ui.md)).
+**Todos:** [E2t](../../todos/ready/E2t-signed-file-choices.md) (the signed-file states; close guards themselves come from [E1d](../../todos/done/E1d-edit-session-undo-ui.md)).
 
 ## O04 Document info and XMP editor
 
@@ -287,8 +287,8 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 - The rail keeps Read's tabs.
 - The inspector has the title, Rotation, Size and Page labels, with Duplicate pages and Delete; no section context, and no “Linked from” line, which needs a reference count per page that the reader doesn't read yet.
 - The page menu has Insert blank page before and after, Rotate left and right, Duplicate, Move to page…, Page setup's six items (E2g) and Delete page (last); the documents entries wait for E2m.
-- The signed-page question names the page, not the signer: the save planner's signatures don't carry a signer's name. It offers “Delete page 23 anyway” (or Rotate) and Cancel (focused); Remove signature… waits for [E2i](../../todos/done/E2i-signed-gating-and-close.md).
-- The certification banner reads “Changing pages would invalidate the certification. Nothing has been changed.” with Apply anyway… and a close button; Apply anyway… applies the change as one undo step without a second confirmation, and Save a copy and Details wait for E2i.
+- The signed-page question names the page, not the signer: the save planner's signatures don't carry a signer's name. It offers “Delete page 23 anyway” (or Rotate) and Cancel (focused); Remove signature… waits for [E2t](../../todos/ready/E2t-signed-file-choices.md).
+- The certification banner reads “Changing pages would invalidate the certification. Nothing has been changed.” with Apply anyway… and a close button; Apply anyway… applies the change as one undo step without a second confirmation, and Save a copy and Details wait for [E2t](../../todos/ready/E2t-signed-file-choices.md).
 - The delete toast counts what pointed at the deleted pages as “links or bookmarks” (bookmarks, links, named destinations and the opening view together).
 - Deleting every page is refused with a toast. Tiles are white until their picture arrives, with no text-line placeholder.
 - Toolbar actions that need a selection stay enabled without one and do nothing then. With several pages selected, the signed-page question names the first of them: a violation names the signature's field, not its page.

@@ -263,8 +263,9 @@ impl Op {
     }
 
     /// The usage right this op needs if it changes annotations: what `laminapdf-save`'s
-    /// planner checks against a UR3 signature's `/Annots`, op by op ([E4 plan §6]). Adding a
-    /// link, a reply or a review state creates an annotation; every other op needs none.
+    /// planner checks against a UR3 signature's `/Annots`, op by op ([E4 plan §6]). Adding an
+    /// annotation, a link, a reply or a review state needs `/Create`, updating one `/Modify` and
+    /// deleting one `/Delete`; an op that changes no annotation needs none.
     ///
     /// [E4 plan §6]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e4-markup-and-drawing-annotations.md#6-saving-and-the-save-constraint
     ///

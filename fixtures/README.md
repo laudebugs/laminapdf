@@ -216,8 +216,8 @@ The keys and certificates (a throwaway CA, a signer and a timestamping authority
 | `two-signatures.pdf` | Two approval signatures, in fields `Sig1` and `Sig2`, each in its own incremental update (3 revisions): `AppendOnly`, and the second leaves the first's `/ByteRange` intact |
 | `timestamp.pdf` | A document timestamp (`/Type /DocTimeStamp`) |
 | `signed-encrypted.pdf` | AES-128, empty user password (owner `owner-pw`), signed in an encrypted incremental update: `Conflict` (needs both overrides) |
-| `approval-organised.pdf` | Three pages, each showing its number, with an outline (a bookmark per page), a text field `Name` on page 1 and tags (a `/P` per page), then an approval signature whose visible widget is on page 2: the page ops that delete or reshow page 2 break `SignedWidget`, the rest save `AppendOnly` |
-| `certified-p2-outline.pdf` | The same three pages and outline, certified at P2 with the widget on page 2: every page op is a violation |
+| `approval-organised.pdf` | Three pages, each showing its number, with an outline (a bookmark per page), named destinations `page-1` to `page-3`, a text field `Name` on page 1 and tags (a `/P` per page), then an approval signature whose visible widget is on page 2: the page ops that delete or reshow page 2 break `SignedWidget`, the rest save `AppendOnly` |
+| `certified-p2-outline.pdf` | The same three pages, outline and named destinations, certified at P2 with the widget on page 2: every page op is a violation |
 | `locked-page1.pdf` | The same three pages and field, then an approval signature on page 3 whose FieldMDP lock (`/Action /Include`) covers `Name`: the ops that delete or reshow page 1 break `FieldMdp`, those on page 3 `SignedWidget` |
 | `usage-rights.pdf` | The same three pages with a text note on page 1, and `/Perms /UR3` granting `/Annots [/Create /Delete]` and `/Form [/FillIn]`. Only Adobe's key signs usage rights, so the dictionary is written with no valid signature (`/ByteRange [0 0 0 0]`): the planner reads the structure, not the validity. Every page op is a violation; adding and deleting an annotation are inside the rights, changing one isn't |
 

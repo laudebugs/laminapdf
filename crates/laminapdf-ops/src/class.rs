@@ -41,3 +41,23 @@ pub enum AnnotRight {
     /// `/Delete`: removing one.
     Delete,
 }
+
+impl AnnotRight {
+    /// Every right.
+    ///
+    /// Added in 0.5.0.
+    pub const ALL: [Self; 3] = [Self::Create, Self::Modify, Self::Delete];
+
+    /// The right that undoing a change of this kind needs: undoing an addition deletes, and
+    /// undoing a deletion adds back.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub const fn reverted(self) -> Self {
+        match self {
+            Self::Create => Self::Delete,
+            Self::Modify => Self::Modify,
+            Self::Delete => Self::Create,
+        }
+    }
+}

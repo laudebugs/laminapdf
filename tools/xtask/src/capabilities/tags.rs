@@ -618,16 +618,16 @@ mod pages {
     }
 
     #[test]
-    fn scan_ts_should_read_a_pdf_tag_in_the_librarys_tests_and_refuse_a_web_one_there() {
+    fn scan_ts_should_read_a_pdf_tag_in_the_librarys_tests() {
         let path = Path::new("packages/sdk/test/pages.test.ts");
-        let pdf = scan_ts(path, "it(\"[cap C.04 pdf round-trip] moves pages\", () => {});").unwrap();
-        assert_eq!(
-            (
-                pdf.iter().map(|t| t.surface).collect::<Vec<_>>(),
-                scan_ts(path, "it(\"[cap C.04 web round-trip] moves pages\", () => {});").is_err()
-            ),
-            (vec![Surface::Pdf], true)
-        );
+        let tags = scan_ts(path, "it(\"[cap C.04 pdf round-trip] moves pages\", () => {});").unwrap();
+        assert_eq!(tags.iter().map(|t| t.surface).collect::<Vec<_>>(), [Surface::Pdf]);
+    }
+
+    #[test]
+    fn scan_ts_should_refuse_a_web_tag_in_the_librarys_tests() {
+        let path = Path::new("packages/sdk/test/pages.test.ts");
+        assert!(scan_ts(path, "it(\"[cap C.04 web round-trip] moves pages\", () => {});").is_err());
     }
 
     #[test]

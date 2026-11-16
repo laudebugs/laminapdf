@@ -206,6 +206,15 @@ impl PendingChanges {
         self.pdfua_unchecked.extend(other.pdfua_unchecked.iter().cloned());
     }
 
+    /// These changes as their reversion records them: the same, but with each usage right
+    /// turned round ([`AnnotRight::reverted`]).
+    pub(crate) fn reverted(&self) -> Self {
+        Self {
+            annot_rights: self.annot_rights.iter().map(|r| r.reverted()).collect(),
+            ..self.clone()
+        }
+    }
+
     /// Forgets everything (after a rebase, or when the overlay is empty again).
     pub(crate) fn clear(&mut self) {
         *self = Self::default();

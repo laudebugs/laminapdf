@@ -61,7 +61,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | --- | --- | --- | --- |
 | O01 | Edit session and history: unsaved state in title and status bar, undo/redo, History tab | D | [E1d](../../todos/done/E1d-edit-session-undo-ui.md) |
 | O02 | Save, Save as and Download a copy: Save a copy, signed-file constraint banner, incremental vs full explanation | D, W | [E1e](../../todos/done/E1e-save-and-constraint-banner.md) |
-| O03 | Close with unsaved changes (dialog) | D | [E2i](../../todos/done/E2i-signed-gating-and-close.md) |
+| O03 | Close with unsaved changes (dialog) | D | [E2t](../../todos/ready/E2t-signed-file-choices.md) |
 | O04 | Document info and XMP editor (title, author, subject, keywords, dates; XMP tree) | D | [E1f](../../todos/done/E1f-metadata-ui-capability-page.md), [E3e](../../todos/done/E3e-xmp-editor.md) |
 | O05 | Capability page: what lamina can read, write and round-trip | W | [E1f](../../todos/done/E1f-metadata-ui-capability-page.md) |
 | O06 | Organise mode: page grid, multi-select, insertion bar, rotate, delete, duplicate, "Move to page…" | D, W | [E2h](../../todos/done/E2h-page-organiser-ui.md), [E2b](../../todos/done/E2b-page-structure-ops.md) |

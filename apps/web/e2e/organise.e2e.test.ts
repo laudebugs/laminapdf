@@ -230,7 +230,7 @@ describe(`organising pages in ${BROWSER}`, () => {
     await clean(again);
   });
 
-  // E2i: the verdict before a page op, Apply anyway…, and the save that removes what it breaks.
+  // A signed file under a page op: the verdict before it, Apply anyway…, and the save that removes what it breaks.
   it("refuses a move on a certified file until Apply anyway…, then saves it without the certification", async () => {
     const watched = await load(browser, origin, "/", NO_PICKERS, {
       ignoreHTTPSErrors: true,

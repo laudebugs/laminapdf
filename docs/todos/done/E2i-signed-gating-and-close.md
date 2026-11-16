@@ -9,8 +9,8 @@
 | Depends on | [E2g](./E2g-page-labels.md), [E2m](./E2m-document-dialogs.md), [E2o](./E2o-structure-tree-merge.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `test/e2i-signed-gating-and-close` |
-| PR title | `test(editor): signed-document gating suite for page operations` |
-| Size | M (200–400): a table-driven test over every op and signed fixture, the cross-op labels test, one e2e test and the fixture script; no product code |
+| PR title | `feat(editor): signed-document gating suite, and usage rights per annotation op` |
+| Size | L (400–800): planned as M with no product code; the usage-rights check per op, the web banner fix and the capability scanner's `pdf` suite made it L (As built) |
 | PR | [#682](https://github.com/laudebugs/laminapdf/pull/682) |
 
 ## Goal
@@ -66,17 +66,17 @@ Prove, across all E2 ops, that signed documents are protected exactly as ADR 000
 
 ## As built
 
-- **Fixtures.** `fixtures/signed/make.py` writes four more: `approval-organised.pdf` (three pages, an outline, a text field, tags, the signature's widget on page 2), `certified-p2-outline.pdf`, `locked-page1.pdf` (a FieldMDP `/Include` lock on the field on page 1, the signature on page 3) and `usage-rights.pdf` (`/Perms /UR3` granting `/Annots [/Create /Delete]` and `/Form [/FillIn]`, written with no valid signature). Rows in `fixtures/README.md`.
-- **The gating suite** (`crates/laminapdf/tests/signed_gating.rs`) runs the 14 E2 ops on every page of eight signed fixtures:
+- **Fixtures.** `fixtures/signed/make.py` writes four more: `approval-organised.pdf` (three pages, an outline, named destinations, a text field, tags, the signature's widget on page 2), `certified-p2-outline.pdf` (the outline and named destinations), `locked-page1.pdf` (a FieldMDP `/Include` lock on the field on page 1, the signature on page 3) and `usage-rights.pdf` (`/Perms /UR3` granting `/Annots [/Create /Delete]` and `/Form [/FillIn]`, written with no valid signature). Rows in `fixtures/README.md`.
+- **The gating suite** (`crates/laminapdf/tests/signed_gating.rs`) runs the 14 E2 ops on every page of eight signed fixtures (once each for the four with no target page: inserting at the end, inserting from a file, merging and labelling):
   - `would_violate` before the op, and the planner's verdict and constraint once it applies, each against the plan's §6;
   - an incremental save of every allowed op on the approval files, whose bytes start with the signed file;
   - the override on every refused op, after which no signature is left.
-- **pyHanko and `pdfsig`.** `fixtures/signed/check_saved.py` validates the files the suite saves with `LAMINA_SIGNED_GATING_OUT` set. Run by hand (pyHanko 0.38.0, `pdfsig` 26.10.0), all 212 passed:
-  - the 68 allowed saves: each signature intact, covering its whole revision, with the later revision reported as a modification (`ModificationLevel.OTHER`); `pdfsig` calls each valid;
-  - the 144 overridden saves: pyHanko finds no signature, and `pdfsig` lists the field as unsigned.
+- **pyHanko and `pdfsig`.** `fixtures/signed/check_saved.py` validates the files the suite saves with `LAMINA_SIGNED_GATING_OUT` set. Run by hand (pyHanko 0.38.0, `pdfsig` 26.10.0), all 180 passed:
+  - the 52 allowed saves: each signature intact, covering its whole revision, with the later revision reported as a modification (`ModificationLevel.OTHER`); `pdfsig` calls each valid;
+  - the 128 overridden saves: pyHanko finds no signature, and `pdfsig` lists the field as unsigned.
 
   CI doesn't run the script, so `pdfsig` (GPL) stays an outside tool. The suite's own checks run in CI: the signed bytes unchanged, and no signature after the override.
-- **Usage rights per op.** E4c left this for the usage-rights file. Each annotation op now names the right it needs (`Op::annot_right`: `/Create`, `/Modify` or `/Delete`), and pending changes record them (`PendingChanges::annot_rights`). The planner checks each right against `/Annots`, both in `would_violate` and at save time; ADR 0007 §9 records it.
+- **Usage rights per op.** E4c left this for the usage-rights file. Each annotation op now names the right it needs (`Op::annot_right`: `/Create`, `/Modify` or `/Delete`), and pending changes record them (`PendingChanges::annot_rights`). The planner checks each right against `/Annots`, both in `would_violate` and at save time; ADR 0007 §9 records it. Undo and redo turn the rights round (`AnnotRight::reverted`): undoing an added annotation after a save deletes it, so it needs `/Delete` (the review found it recorded `/Create`; `laminapdf-save`'s `markup.rs` tests it on a file that grants only `/Create`).
 - **Cross-op labels** (`crates/laminapdf-save/tests/cross_op_labels.rs`). `SetPageLabels` gives `pages/labels.pdf` the labels i–iii, 1–4 and A-1 to A-3, then nine edits each run once: insert blank pages, delete, duplicate, move, reverse, insert from a file, replace, merge and extract. Every surviving page keeps its label.
   - The labels match `PageLabels::remap`, except after a merge: its copies keep their source's labels (`MergeDocuments`), so `hello.pdf`'s page is 1, not A-4.
   - The saved files are in `fixtures/pages/cross-op-labels/`. Their facts (`tools/fixtures/label_facts.py`, which now writes both folders) show pdf.js 6.4.299 and PDFium (pypdfium2 5.14.0) giving the same labels, and qpdf 12.4.2 accepting each file.
@@ -86,6 +86,8 @@ Prove, across all E2 ops, that signed documents are protected exactly as ADR 000
   - on the approval file: moving the signed page asks nothing, and saves after the signed bytes;
   - on the usage-rights file: turning a page shows the usage-rights banner.
 - **The capability matrix.** Every E2 row was at its target in the core and web columns, but no row had any `pdf` evidence: the scanner read TypeScript tags only in the reader's and the desktop's e2e tests (E1f's note). `packages/sdk/test/*.test.ts` is now a suite for the `pdf` column (the fast lane's `WASM` job runs it). The library's 28 claims written as "C.01 (pdf, round-trip): …" are now tags. New tests prove merge (C.06) and split (C.07). All 16 E2 rows are at target in the core, pdf and web columns, and ten other rows gain `pdf` evidence (B.03, H.08, I.06, I.09, I.11, J.01–J.04, J.10).
+- **Left for [E2t](../ready/E2t-signed-file-choices.md):** O03's signed-file states (Save a copy… when closing in Conflict), and the banner's Save a copy and Details and the signed-page question's Remove signature…, which the area document said wait for this todo. The verdicts behind them are proved here; the controls are a web PR of their own.
+- **Banner kind** is asserted as the planner's constraint (`Conflict` or `AppendOnly`) for every case; the banner itself, in the three e2e tests.
 - **One-page fixtures.** Deleting their only page is refused, and moving or reversing it changes nothing. The suite skips those cases at save time; `would_violate` still judges them, since it can't know an op will change nothing.
 
 ## Post-merge checks

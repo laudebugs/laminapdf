@@ -1,4 +1,4 @@
-//! Page labels across every page op (todo E2i, moved from E2g): after `SetPageLabels` gives
+//! Page labels across every page op: after `SetPageLabels` gives
 //! `pages/labels.pdf` roman front matter, an arabic body and a prefixed appendix, each op that
 //! adds, removes or reorders pages leaves every surviving page the label it had, as
 //! `PageLabels::remap` expects, and gives new pages theirs. pdf.js and PDFium show the same
@@ -12,14 +12,16 @@
 mod common;
 
 use common::fixture;
+use common::label_goldens::{check_golden, labels_of as golden_labels, shown_elsewhere, updating};
 use common::save::editable;
-use laminapdf_cos::OpenOptions;
 use laminapdf_model::{LabelStyle, PageId, PageLabels, PagePosition, PageSize};
 use laminapdf_ops::{
     DeletePages, Document, DuplicatePages, InsertBlankPages, InsertPagesFrom, MergeDocuments, MergeSource, MovePages,
     Op, Origin, PageLabelRange, ReplacePages, ReversePages, SetPageLabels,
 };
 use laminapdf_save::{Save as _, SaveMode, SaveOptions};
+
+const FOLDER: &str = "cross-op-labels";
 
 fn page_ids(doc: &Document) -> Vec<PageId> {
     doc.pages().unwrap().iter().map(|p| p.id().clone()).collect()
@@ -174,42 +176,30 @@ fn case_bytes(edit: &Edit) -> (Vec<u8>, Vec<Option<String>>) {
     (out, expected)
 }
 
-/// Each case's bytes match its committed file (`UPDATE_GOLDEN=1` rewrites them; then run
-/// `tools/fixtures/label_facts.py`), and Lamina PDF, pdf.js and PDFium all show the labels
-/// `PageLabels::remap` expects.
+/// Each case's bytes match its committed file in `fixtures/pages/cross-op-labels/`
+/// (`UPDATE_GOLDEN=1` rewrites them).
 #[test]
-fn pdfjs_and_pdfium_show_the_labels_after_every_page_op() {
-    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/pages/cross-op-labels");
-    let update = std::env::var_os("UPDATE_GOLDEN").is_some();
-    let facts: serde_json::Value = if update {
-        serde_json::Value::Null
-    } else {
-        serde_json::from_slice(&fixture("pages/cross-op-labels/facts.json")).unwrap()
-    };
+fn each_page_ops_saved_file_matches_its_golden() {
+    for (name, edit) in &CASES {
+        check_golden(FOLDER, name, &case_bytes(edit).0);
+    }
+}
+
+/// Lamina PDF, pdf.js and PDFium all show the expected labels on each saved file, and qpdf
+/// accepts it (`fixtures/pages/cross-op-labels/facts.json`).
+#[test]
+fn pdfjs_and_pdfium_show_the_expected_labels_after_every_page_op() {
+    if updating() {
+        return;
+    }
     for (name, edit) in &CASES {
         let (bytes, expected) = case_bytes(edit);
-        if update {
-            std::fs::create_dir_all(&dir).unwrap();
-            std::fs::write(dir.join(name), &bytes).unwrap();
-            continue;
-        }
+        let ours = serde_json::to_value(golden_labels(bytes)).unwrap();
         assert_eq!(
-            bytes,
-            fixture(&format!("pages/cross-op-labels/{name}")),
-            "{name}: run with UPDATE_GOLDEN=1"
-        );
-        let reopened = laminapdf_model::Document::open(bytes, OpenOptions::default()).unwrap();
-        let ours = serde_json::to_value(labels_of(&reopened)).unwrap();
-        let file = &facts["files"][name];
-        assert_eq!(
-            (&ours, &ours, &ours, true),
-            (
-                &serde_json::to_value(&expected).unwrap(),
-                &file["pdfjs"],
-                &file["pdfium"],
-                file["qpdf_check"].as_bool().unwrap()
-            ),
+            (ours.clone(), ours.clone(), true),
+            shown_elsewhere(FOLDER, name),
             "{name}"
         );
+        assert_eq!(ours, serde_json::to_value(&expected).unwrap(), "{name}");
     }
 }

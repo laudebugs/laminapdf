@@ -13,6 +13,7 @@ mod common;
 use std::process::Command;
 
 use common::fixture;
+use common::save::ModeSaves as _;
 use common::save::editable;
 use laminapdf_build::AnnotationAppearances;
 use laminapdf_cos::OpenOptions;
@@ -131,4 +132,53 @@ fn every_mark_saves_in_both_modes_and_reopens_with_its_appearance() {
             );
         }
     }
+}
+
+/// A one-page file whose usage rights grant `/Annots [/Create]` only, built by hand since
+/// pyHanko doesn't sign usage rights.
+fn create_only() -> Document {
+    editable(&common::classic_with_root(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 4 0 R /Perms 6 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 612 792] >>",
+            "<< /Type /Page /Parent 2 0 R >>",
+            "<< /Fields [5 0 R] >>",
+            "<< /FT /Sig /T (UR) /V 7 0 R >>",
+            "<< /UR3 7 0 R >>",
+            "<< /Type /Sig /ByteRange [0 1 2 3] /Contents <00> /Reference [<< /TransformMethod /UR3 \
+             /TransformParams << /Annots [/Create] >> >>] >>",
+        ],
+        "",
+    ))
+    .with_appearances(AnnotationAppearances)
+}
+
+fn constraint(doc: &Document) -> ConstraintKind {
+    SavePlanner::new(doc).unwrap().constraint().kind()
+}
+
+/// Undoing an added note after a save deletes it, which needs `/Delete`; redoing it adds it
+/// it back to the file as saved, with nothing left to save.
+#[test]
+fn undoing_an_added_note_after_a_save_needs_the_right_to_delete() {
+    let mut doc = create_only();
+    let page = doc.pages().unwrap().get(0).unwrap().id().clone();
+    let note = AddAnnot::new(
+        page,
+        AnnotSpec::Note(Note::new(UserSpacePoint::new(72.0, 700.0), NoteIcon::Comment)),
+    );
+    doc.apply_all(Origin::Local, [Op::from(note)]).unwrap();
+    let added = constraint(&doc);
+    doc.save_incremental(&mut Vec::new(), &SaveOptions::new()).unwrap();
+    doc.undo().unwrap();
+    let undone = constraint(&doc);
+    doc.redo().unwrap();
+    assert_eq!(
+        (added, undone, constraint(&doc)),
+        (
+            ConstraintKind::AppendOnly,
+            ConstraintKind::Conflict,
+            ConstraintKind::AppendOnly
+        )
+    );
 }
