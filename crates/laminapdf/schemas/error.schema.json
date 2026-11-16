@@ -55,6 +55,9 @@
             "not-a-link",
             "link-not-tagged",
             "appearance-unavailable",
+            "appearance-needs-text",
+            "annotation-glyph-missing",
+            "annotation-font-invalid",
             "invalid-label-ranges",
             "content-object-stale",
             "content-not-editable",
@@ -318,7 +321,8 @@
             "markdown-image-missing",
             "covered-text",
             "redaction-not-applied",
-            "text-in-earlier-revision"
+            "text-in-earlier-revision",
+            "rich-text-simplified"
           ]
         },
         "data": {

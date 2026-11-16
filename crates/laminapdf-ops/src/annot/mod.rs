@@ -11,6 +11,9 @@ mod appearance;
 mod conformance;
 mod drawing;
 mod drawing_patch;
+mod freetext;
+mod freetext_keys;
+mod freetext_patch;
 pub(crate) mod geom;
 mod redraw;
 mod reply;
@@ -19,12 +22,14 @@ mod tags;
 
 pub use add::{AddAnnot, AnnotCommon};
 pub(crate) use appearance::Generator;
-pub use appearance::{Appearance, AppearanceRequest, Appearances, IntentSpace};
+pub use appearance::{Appearance, AppearanceRefusal, AppearanceRequest, Appearances, IntentSpace};
 pub(crate) use conformance::warnings as conformance_warnings;
 pub use drawing::{
     Border, BorderStyle, Ink, InkStroke, Leader, LineEnding, LineMark, Poly, PolyKind, Shape, ShapeKind,
 };
 pub use drawing_patch::{InkPatch, LinePatch, PolyPatch, ShapePatch};
+pub use freetext::{Callout, FontRef, FreeText, FreeTextIntent, RichText, StandardFamily, TextAlign, TextSpan};
+pub use freetext_patch::FreeTextPatch;
 pub(crate) use geom::quad_points;
 pub use geom::{AnnotColor, Opacity};
 pub use reply::{AddReply, ReviewState, SetReviewState};
@@ -215,6 +220,7 @@ impl UpdateAnnot {
         &self,
         doc: &mut laminapdf_model::Document,
         appearances: Option<&dyn Appearances>,
+        blobs: &crate::BlobStore,
     ) -> Result<Effect> {
         let all = every_annotation(doc)?;
         let found = Found::locate(&all, &self.id)?;
@@ -238,9 +244,7 @@ impl UpdateAnnot {
         if let Some(flags) = self.flags {
             dict.insert("F", Object::Integer(i64::from(flags)));
         }
-        if redraw.any() {
-            redraw.apply(doc, &mut dict, appearances)?;
-        }
+        let simplified = redraw.any() && redraw.apply(doc, &mut dict, appearances, blobs)?;
         // The Popup moves with its parent, unless it is locked, which refuses the move.
         let popup = match (self.translate, &found.annot.popup) {
             (Some(offset), Some(popup)) => match Found::locate(&all, popup) {
@@ -286,6 +290,7 @@ impl UpdateAnnot {
         }
         Ok(Effect {
             pages,
+            rich_text_simplified: if simplified { vec![self.id.clone()] } else { Vec::new() },
             ..Effect::default()
         })
     }

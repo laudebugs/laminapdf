@@ -164,6 +164,23 @@ pub enum Error {
     /// façade always sets one.
     #[error("the document has no appearance generator for annotations")]
     AppearanceUnavailable,
+    /// A `FreeText` annotation needs text layout the appearance generator was built without: a
+    /// font given by its bytes or a fallback font. In WebAssembly, open the document in the text
+    /// module.
+    ///
+    /// Added in 0.5.0.
+    #[error("drawing this text box needs the text layout that this build leaves out")]
+    AppearanceNeedsText,
+    /// A character of a text box is in none of its fonts: add a fallback font that has it.
+    ///
+    /// Added in 0.5.0.
+    #[error("a character of the text box is in none of its fonts")]
+    AnnotationGlyphMissing,
+    /// A text box's font bytes aren't a font that can be read and embedded.
+    ///
+    /// Added in 0.5.0.
+    #[error("a text box's font bytes aren't a font that can be embedded")]
+    AnnotationFontInvalid,
     /// An op names bytes by a [`BlobId`](crate::BlobId) the session doesn't hold: add them
     /// with [`Document::add_blob`](crate::Document::add_blob) first.
     #[error("no bytes with this ID were added to the session")]
@@ -285,6 +302,9 @@ impl Error {
         "not-a-link",
         "link-not-tagged",
         "appearance-unavailable",
+        "appearance-needs-text",
+        "annotation-glyph-missing",
+        "annotation-font-invalid",
         "invalid-label-ranges",
         "content-object-stale",
         "content-not-editable",
@@ -330,6 +350,9 @@ impl Error {
             Self::NotALink(_) => "not-a-link",
             Self::LinkNotTagged => "link-not-tagged",
             Self::AppearanceUnavailable => "appearance-unavailable",
+            Self::AppearanceNeedsText => "appearance-needs-text",
+            Self::AnnotationGlyphMissing => "annotation-glyph-missing",
+            Self::AnnotationFontInvalid => "annotation-font-invalid",
             Self::InvalidLabelRanges { .. } => "invalid-label-ranges",
             Self::ContentObjectStale { .. } => "content-object-stale",
             Self::ContentNotEditable { .. } => "content-not-editable",
@@ -365,6 +388,8 @@ impl Error {
             | Self::ViewNotFinite
             | Self::NoPagesLeft
             | Self::InvalidOp(_)
+            | Self::AnnotationGlyphMissing
+            | Self::AnnotationFontInvalid
             | Self::UnknownAnnotation(_)
             | Self::NotALink(_)
             | Self::OpenActionNotDestination
@@ -378,6 +403,7 @@ impl Error {
             | Self::AnnotationNotEditable(_)
             | Self::LinkNotTagged
             | Self::AppearanceUnavailable
+            | Self::AppearanceNeedsText
             | Self::ImagesUnavailable
             | Self::ContentNotEditable { .. } => ErrorKind::Unsupported,
             Self::InvalidLog(_) | Self::MalformedXmp | Self::InvalidXmpPacket(_) => ErrorKind::Input,
@@ -429,6 +455,9 @@ impl Error {
             | Self::LinkUriRefused
             | Self::LinkNotTagged
             | Self::AppearanceUnavailable
+            | Self::AppearanceNeedsText
+            | Self::AnnotationGlyphMissing
+            | Self::AnnotationFontInvalid
             | Self::ImagesUnavailable
             | Self::UnknownBlob(_)
             | Self::ViewNotFinite
@@ -500,6 +529,9 @@ mod tests {
             Error::NotALink("a7.0".parse().unwrap()),
             Error::LinkNotTagged,
             Error::AppearanceUnavailable,
+            Error::AppearanceNeedsText,
+            Error::AnnotationGlyphMissing,
+            Error::AnnotationFontInvalid,
             Error::InvalidLabelRanges { what: "order" },
             Error::ContentObjectStale { ordinal: 2 },
             Error::ContentNotEditable {

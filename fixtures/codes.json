@@ -703,6 +703,27 @@
       "since": "0.3.0"
     },
     {
+      "code": "appearance-needs-text",
+      "kind": "unsupported",
+      "summary": "drawing this text box needs text layout that this build of Lamina PDF leaves out: a font given by its bytes, or a fallback font",
+      "hint": "use Helvetica, Times or Courier, or open the document in the WebAssembly text module (init({ text: true }) before opening it)",
+      "since": "0.5.0"
+    },
+    {
+      "code": "annotation-glyph-missing",
+      "kind": "usage",
+      "summary": "a character of a text box is in none of its fonts, so it can't be drawn",
+      "hint": "add a fallback font that has the character, or give the box a font that has it",
+      "since": "0.5.0"
+    },
+    {
+      "code": "annotation-font-invalid",
+      "kind": "usage",
+      "summary": "a text box's font bytes aren't a font Lamina PDF can read and embed",
+      "hint": "give the bytes of a TrueType or OpenType font whose licence allows embedding",
+      "since": "0.5.0"
+    },
+    {
       "code": "invalid-label-ranges",
       "kind": "usage",
       "summary": "page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0",
@@ -1372,6 +1393,13 @@
       "summary": "an earlier revision of the file holds text that the latest revision no longer has",
       "hint": "save the file as a full rewrite, which keeps only the latest revision",
       "since": "0.2.0"
+    },
+    {
+      "code": "rich-text-simplified",
+      "kind": "usage",
+      "summary": "an edit changed the text of a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour",
+      "hint": "check how the box looks; bold and italic are kept, and the box's own font, size, colour and alignment apply to all of its text",
+      "since": "0.5.0"
     }
   ],
   "bindingErrors": [

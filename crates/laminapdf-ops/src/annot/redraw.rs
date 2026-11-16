@@ -10,6 +10,7 @@ use super::add::{intent_space, write_spec};
 use super::appearance::{AppearanceRequest, Appearances};
 use super::geom::{self, AnnotColor, Opacity, numbers_of, rect_of};
 use super::spec::{AnnotSpec, AnnotSpecPatch, Caret, CaretSymbol, MarkupKind, Note, NoteIcon, TextMarkup};
+use crate::blob::BlobStore;
 use crate::error::{Error, Result};
 
 /// What an update changes in the drawing.
@@ -30,14 +31,18 @@ impl Redraw<'_> {
     /// Draws the annotation `dict` again with the changes, and writes its `/AP`, `/Rect`, `/C`,
     /// `/CA` and the spec's own keys. Other appearance states (`/D`, `/R`) go: they showed the
     /// old drawing.
+    ///
+    /// Returns whether a text box's rich text lost styles outside the subset (`/RC` it read but
+    /// can't keep, E4 plan §11).
     pub(super) fn apply(
         &self,
         doc: &mut laminapdf_model::Document,
         dict: &mut Dict,
         appearances: Option<&dyn Appearances>,
-    ) -> Result<()> {
-        let current = read_spec(dict).ok_or(Error::InvalidOp(
-            "only text markup, notes, carets, ink, shapes, lines and polygons have their appearance drawn again",
+        blobs: &BlobStore,
+    ) -> Result<bool> {
+        let (current, current_color, simplified) = current(dict).ok_or(Error::InvalidOp(
+            "only text markup, notes, carets, ink, shapes, lines, polygons and text boxes have their appearance drawn again",
         ))?;
         let spec = match self.spec {
             Some(patch) => patch.applied_to(&current).ok_or(Error::InvalidOp(match (patch, &current) {
@@ -54,14 +59,9 @@ impl Redraw<'_> {
             return Err(Error::InvalidOp(super::add::INVALID_GEOMETRY));
         }
         let spec = spec.normalised();
+        super::add::check_blobs(&spec, blobs)?;
         let appearances = appearances.ok_or(Error::AppearanceUnavailable)?;
-        let color = match self.color {
-            Some(color) => color,
-            None => dict
-                .get("C")
-                .and_then(numbers_of)
-                .and_then(|c| AnnotColor::from_components(&c)),
-        };
+        let color = self.color.unwrap_or(current_color);
         let opacity = match self.opacity {
             Some(opacity) => opacity,
             None => current_opacity(doc, dict)?,
@@ -71,20 +71,25 @@ impl Redraw<'_> {
             color,
             opacity,
             intent: intent_space(doc)?,
+            blobs: Some(blobs),
         };
+        appearances.check(&request)?;
         let appearance = appearances.normal(&mut doc.cos_mut().edit(), &request)?;
         dict.insert("Rect", super::add::rect_object(&appearance.rect));
         dict.insert(
             "AP",
             Object::Dict([("N", Object::Ref(appearance.normal))].into_iter().collect()),
         );
-        write_spec(dict, &spec);
-        match color {
-            Some(color) => {
-                dict.insert("C", color.to_object());
-            }
-            None => {
-                dict.remove("C");
+        write_spec(dict, &spec, color);
+        // A text box keeps its colour in `/DA` and its fill in `/C`, which `write_spec` wrote.
+        if !matches!(spec, AnnotSpec::FreeText(_)) {
+            match color {
+                Some(color) => {
+                    dict.insert("C", color.to_object());
+                }
+                None => {
+                    dict.remove("C");
+                }
             }
         }
         if opacity == Opacity::OPAQUE || doc.is_pdf2()? {
@@ -92,8 +97,24 @@ impl Redraw<'_> {
         } else {
             dict.insert("CA", Object::Real(opacity.get()));
         }
-        Ok(())
+        // Only a change to the text loses what it held; a new colour keeps it as it was read.
+        let edited_text = matches!(self.spec, Some(AnnotSpecPatch::FreeText(p)) if p.text.is_some());
+        Ok(simplified && edited_text)
     }
+}
+
+/// The annotation's spec as its keys say, its colour, and whether reading a text box's rich text
+/// dropped styles outside the subset.
+fn current(dict: &Dict) -> Option<(AnnotSpec, Option<AnnotColor>, bool)> {
+    if dict.get_name("Subtype") == Some(b"FreeText".as_slice()) {
+        let read = super::freetext::read(dict)?;
+        return Some((AnnotSpec::FreeText(read.text), read.color, read.simplified));
+    }
+    let color = dict
+        .get("C")
+        .and_then(numbers_of)
+        .and_then(|c| AnnotColor::from_components(&c));
+    Some((read_spec(dict)?, color, false))
 }
 
 /// The spec an annotation's keys describe, for the subtypes this round draws: quads read in
@@ -129,6 +150,7 @@ pub(super) fn read_spec(dict: &Dict) -> Option<AnnotSpec> {
             }
             Some(AnnotSpec::Caret(caret))
         }
+        b"FreeText" => super::freetext::read(dict).map(|r| AnnotSpec::FreeText(r.text)),
         other => super::drawing::read(other, dict, rect),
     }
 }

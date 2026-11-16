@@ -106,11 +106,12 @@ mod wire;
 use laminapdf_test_fixtures::codes as test_codes;
 
 pub use annot::{
-    AddAnnot, AddReply, AnnotColor, AnnotCommon, AnnotSpec, AnnotSpecPatch, Appearance, AppearanceRequest, Appearances,
-    Border, BorderStyle, Caret, CaretPatch, CaretSymbol, DeleteAnnot, Ink, InkPatch, InkStroke, IntentSpace, Leader,
-    LineEnding, LineMark, LinePatch, MarkupKind, Note, NoteIcon, NotePatch, Offset, Opacity, Poly, PolyKind, PolyPatch,
-    ReviewState, SetReviewState, Shape, ShapeKind, ShapePatch, TextMarkup, TextMarkupPatch, UpdateAnnot,
-    delete_annotations,
+    AddAnnot, AddReply, AnnotColor, AnnotCommon, AnnotSpec, AnnotSpecPatch, Appearance, AppearanceRefusal,
+    AppearanceRequest, Appearances, Border, BorderStyle, Callout, Caret, CaretPatch, CaretSymbol, DeleteAnnot, FontRef,
+    FreeText, FreeTextIntent, FreeTextPatch, Ink, InkPatch, InkStroke, IntentSpace, Leader, LineEnding, LineMark,
+    LinePatch, MarkupKind, Note, NoteIcon, NotePatch, Offset, Opacity, Poly, PolyKind, PolyPatch, ReviewState,
+    RichText, SetReviewState, Shape, ShapeKind, ShapePatch, StandardFamily, TextAlign, TextMarkup, TextMarkupPatch,
+    TextSpan, UpdateAnnot, delete_annotations,
 };
 pub use blob::{BlobId, BlobStore, ParseBlobIdError, SourceId};
 pub use class::ModificationClass;

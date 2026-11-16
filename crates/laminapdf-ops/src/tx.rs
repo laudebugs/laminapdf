@@ -167,6 +167,12 @@ pub struct Applied {
     ///
     /// Added in 0.3.0.
     pub bookmarks_dropped: usize,
+    /// The text boxes whose rich text lost styles outside the subset Lamina PDF keeps (sizes,
+    /// colours or fonts per span, other elements) when their text changed
+    /// (`rich-text-simplified`).
+    ///
+    /// Added in 0.5.0.
+    pub rich_text_simplified: Vec<laminapdf_model::AnnotId>,
 }
 
 /// The state of the open transaction, kept on the [`Document`](crate::Document) so the
@@ -208,6 +214,8 @@ pub(crate) struct TxState {
     pub(crate) cropped_content_remains: Vec<PageId>,
     /// The bookmarks the ops so far left out.
     pub(crate) bookmarks_dropped: usize,
+    /// The text boxes the ops so far simplified.
+    pub(crate) rich_text_simplified: Vec<laminapdf_model::AnnotId>,
 }
 
 /// An open transaction ([ADR 0006] §2), handed to the closure of
@@ -291,6 +299,7 @@ impl Tx<'_> {
             structure_renamed: effect.structure_renamed,
             cropped_content_remains: effect.cropped_content_remains,
             bookmarks_dropped: effect.bookmarks_dropped,
+            rich_text_simplified: effect.rich_text_simplified,
         })
     }
 
@@ -341,6 +350,9 @@ impl Tx<'_> {
                     .cropped_content_remains
                     .extend(effect.cropped_content_remains.iter().cloned());
                 self.state.bookmarks_dropped += effect.bookmarks_dropped;
+                self.state
+                    .rich_text_simplified
+                    .extend(effect.rich_text_simplified.iter().cloned());
                 Ok(effect)
             }
             Err(e) => {
@@ -380,6 +392,7 @@ impl Tx<'_> {
             self.state.bookmarks_dropped,
             self.state.structure_renamed.len(),
             self.state.cropped_content_remains.len(),
+            self.state.rich_text_simplified.len(),
         );
         let result = f(self);
         if result.is_err() {
@@ -401,6 +414,7 @@ impl Tx<'_> {
             self.state.bookmarks_dropped = merged.1;
             self.state.structure_renamed.truncate(merged.2);
             self.state.cropped_content_remains.truncate(merged.3);
+            self.state.rich_text_simplified.truncate(merged.4);
         }
         result
     }
@@ -467,6 +481,7 @@ mod tests {
             structure_renamed: Vec::new(),
             cropped_content_remains: Vec::new(),
             bookmarks_dropped: 0,
+            rich_text_simplified: Vec::new(),
         }
     }
 

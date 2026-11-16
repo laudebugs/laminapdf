@@ -149,6 +149,7 @@ impl AddAnnot {
         &self,
         doc: &mut laminapdf_model::Document,
         appearances: Option<&dyn Appearances>,
+        blobs: &crate::BlobStore,
     ) -> Result<Effect> {
         if !self.spec.is_valid() {
             return Err(Error::InvalidOp(INVALID_GEOMETRY));
@@ -160,16 +161,19 @@ impl AddAnnot {
             None => None,
         };
         let spec = self.spec.normalised();
+        check_blobs(&spec, blobs)?;
         let request = AppearanceRequest {
             spec: &spec,
             color: self.common.color,
             opacity: self.common.opacity,
             intent: intent_space(doc)?,
+            blobs: Some(blobs),
         };
+        appearances.check(&request)?;
         let appearance = appearances.normal(&mut doc.cos_mut().edit(), &request)?;
         let mut dict = common_dict(spec.subtype(), page, &appearance.rect, appearance.normal);
         self.write_common(&mut dict, doc.is_pdf2()?);
-        write_spec(&mut dict, &spec);
+        write_spec(&mut dict, &spec, self.common.color);
         if let Some(group) = group {
             dict.insert("IRT", Object::Ref(group));
             dict.insert("RT", Object::name("Group"));
@@ -243,8 +247,24 @@ pub(crate) fn rect_object(r: &UserSpaceRect) -> Object {
     Object::Array(r.to_array().into_iter().map(Object::Real).collect())
 }
 
-/// The entries only this kind of mark has.
-pub(crate) fn write_spec(dict: &mut Dict, spec: &AnnotSpec) {
+/// `unknown-blob` when a text box names a font the session wasn't given.
+pub(crate) fn check_blobs(spec: &AnnotSpec, blobs: &crate::BlobStore) -> Result<()> {
+    let AnnotSpec::FreeText(text) = spec else {
+        return Ok(());
+    };
+    let font = match text.font {
+        super::FontRef::Font(id) => Some(id),
+        _ => None,
+    };
+    match font.iter().chain(&text.fallbacks).find(|id| blobs.get(id).is_none()) {
+        Some(id) => Err(Error::UnknownBlob(*id)),
+        None => Ok(()),
+    }
+}
+
+/// The entries only this kind of mark has; `color` is the mark's, which a text box keeps in
+/// `/DA`.
+pub(crate) fn write_spec(dict: &mut Dict, spec: &AnnotSpec, color: Option<AnnotColor>) {
     match spec {
         AnnotSpec::TextMarkup(m) => {
             dict.insert("QuadPoints", quad_points(&m.quads));
@@ -260,6 +280,7 @@ pub(crate) fn write_spec(dict: &mut Dict, spec: &AnnotSpec) {
             };
             dict.insert("Sy", Object::name(symbol));
         }
+        AnnotSpec::FreeText(text) => super::freetext::write(dict, text, color),
         AnnotSpec::Ink(_) | AnnotSpec::Shape(_) | AnnotSpec::Line(_) | AnnotSpec::Poly(_) => {
             if let Some(drawing) = spec.drawing() {
                 super::drawing::write(dict, &drawing);
