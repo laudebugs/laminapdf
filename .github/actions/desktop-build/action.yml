@@ -429,7 +429,15 @@ runs:
         set -euo pipefail
         shopt -s nullglob
         for deb in "$DESKTOP_OUT"/*.deb; do debsigs --sign=origin -k "$LINUX_SIGNING_FPR" "$deb"; done
-        for rpm in "$DESKTOP_OUT"/*.rpm; do rpmsign --addsign --define "_gpg_name $LINUX_SIGNING_FPR" "$rpm"; done
+        # rpm 4.17 (Ubuntu 22.04) hands gpg the signature's path unquoted, and the package's name
+        # has a space ("Lamina PDF"), so each one is signed under a plain name and moved back.
+        plain="$RUNNER_TEMP/rpmsign/package.rpm"
+        mkdir -p "$(dirname "$plain")"
+        for rpm in "$DESKTOP_OUT"/*.rpm; do
+          cp "$rpm" "$plain"
+          rpmsign --addsign --define "_gpg_name $LINUX_SIGNING_FPR" "$plain"
+          mv "$plain" "$rpm"
+        done
     - name: Write SHA256SUMS
       shell: bash
       run: |
