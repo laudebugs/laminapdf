@@ -378,10 +378,10 @@ The job needs one bucket and two tokens. Without them it uploads nothing, leaves
 Save the report's JSON, as the crash reports bucket holds it, and run:
 
 ```sh
-cargo xtask crash symbolicate report.json
+cargo xtask crash symbolicate report.json --fetch
 ```
 
-The command reads the report's `native` object. For each module a frame names, it fetches the module's `.sym` file from `lamina-pdf-symbols` with the repository's Wrangler (`wrangler r2 object get … --remote`, under your own login) into `target/crash-symbols/`, which later runs reuse. It then prints the crash reason and one line per frame, innermost first:
+The command reads the report's `native` object. For each module a frame names, it reads the module's `.sym` file from `target/crash-symbols/`. With `--fetch`, it downloads the files missing there from `lamina-pdf-symbols` with the repository's Wrangler (`wrangler r2 object get … --remote`, under your own login), and later runs reuse them without `--fetch`. Without `--fetch`, it never contacts the bucket. A report comes from a user's computer, so the command prints its strings with control characters replaced by `?`, and no terminal escape reaches your terminal. It then prints the crash reason and one line per frame, innermost first:
 
 ```text
 Crash reason: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS

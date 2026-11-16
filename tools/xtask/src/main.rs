@@ -242,11 +242,11 @@ tasks:
                     environment and build matrix from the Actions environment into $GITHUB_OUTPUT;
                     the installers under <dir> against the 16 MB budget; the app's and engine's
                     CycloneDX SBOMs for <target> and the frontend's npm SBOM into <dir>
-  crash symbolicate <report.json> [--symbols <dir>]
+  crash symbolicate <report.json> [--symbols <dir>] [--fetch]
                     a desktop crash report's native frames with function names and source lines:
-                    each module's Breakpad symbols from <dir>, else target/crash-symbols/, else
-                    fetched there from the private R2 bucket lamina-pdf-symbols by Wrangler with
-                    your own Cloudflare login; a frame without symbols prints its module and offset
+                    each module's Breakpad symbols from <dir>, else target/crash-symbols/, and with
+                    --fetch, fetched there from the private R2 bucket lamina-pdf-symbols by Wrangler
+                    with your own Cloudflare login; a frame without symbols prints its module and offset
   fixtures large-pdf [--pages N] [--out PATH]
                     write an image-heavy PDF with the laminapdf builder (default 20,000 pages, about
                     1.1 GB, into target/fixtures/1gb.pdf; never committed): the desktop engine's

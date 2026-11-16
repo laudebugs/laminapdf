@@ -1,4 +1,4 @@
-//! `cargo xtask crash symbolicate <report.json> [--symbols <dir>]`: a desktop crash report's
+//! `cargo xtask crash symbolicate <report.json> [--symbols <dir>] [--fetch]`: a desktop crash report's
 //! native frames with function names and source lines, for maintainers (todo D7d;
 //! docs/guidelines/desktop-release.md §7).
 //!
@@ -7,9 +7,11 @@
 //! and the modules with their Breakpad debug IDs. The symbols of each module a frame names are read
 //! from `<debug file>/<debug ID>/<debug file without .pdb>.sym`, the layout in which the release
 //! workflow archives them in the private R2 bucket `lamina-pdf-symbols`: from `--symbols <dir>`
-//! when it is given, else from the cache `target/crash-symbols/`, else fetched into that cache by
-//! Wrangler (`wrangler r2 object get … --remote`) with the maintainer's own Cloudflare login, so
-//! xtask holds no secret. A frame whose module has no symbol file prints its module and offset.
+//! when it is given, else from the cache `target/crash-symbols/`, and with `--fetch` only, fetched
+//! into that cache by Wrangler (`wrangler r2 object get … --remote`) with the maintainer's own
+//! Cloudflare login, so xtask holds no secret and reaches the bucket only when asked. A frame whose
+//! module has no symbol file prints its module and offset. A report comes from a user's computer,
+//! so every string from it is printed without control characters (no terminal escapes).
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -21,7 +23,7 @@ use anyhow::{Context, Result, bail};
 use breakpad_symbols::{FrameSymbolizer, SimpleModule, SymbolFile};
 use serde::Deserialize;
 
-const USAGE: &str = "usage: cargo xtask crash symbolicate <report.json> [--symbols <dir>]";
+const USAGE: &str = "usage: cargo xtask crash symbolicate <report.json> [--symbols <dir>] [--fetch]";
 /// The private bucket the desktop release workflow archives the symbols in (`archive-symbols`).
 const BUCKET: &str = "lamina-pdf-symbols";
 /// The main binary's name in a bundle (`productName` in tauri.conf.json) and the Cargo name its
@@ -34,20 +36,31 @@ const APP_BINARY: &str = "laminapdf-desktop";
 struct Options {
     report: PathBuf,
     symbols: Option<PathBuf>,
+    /// Whether missing symbol files may be fetched from the bucket.
+    fetch: bool,
 }
 
 fn parse(args: &[String]) -> Result<Options> {
-    match args {
-        [cmd, report] if cmd == "symbolicate" => Ok(Options {
-            report: report.into(),
-            symbols: None,
-        }),
-        [cmd, report, flag, dir] if cmd == "symbolicate" && flag == "--symbols" => Ok(Options {
-            report: report.into(),
-            symbols: Some(dir.into()),
-        }),
-        _ => bail!(USAGE),
+    let [cmd, report, rest @ ..] = args else { bail!(USAGE) };
+    if cmd != "symbolicate" {
+        bail!(USAGE);
     }
+    let mut options = Options {
+        report: report.into(),
+        symbols: None,
+        fetch: false,
+    };
+    let mut rest = rest.iter();
+    while let Some(flag) = rest.next() {
+        match flag.as_str() {
+            "--fetch" if !options.fetch => options.fetch = true,
+            "--symbols" if options.symbols.is_none() => {
+                options.symbols = Some(rest.next().context(USAGE)?.into());
+            }
+            _ => bail!(USAGE),
+        }
+    }
+    Ok(options)
 }
 
 /// The part of a crash report this command reads (apps/updates/schemas/crash-report.schema.json).
@@ -95,6 +108,7 @@ pub(crate) fn run(root: &Path, args: &[String]) -> Result<()> {
         None => Source::Bucket {
             root: root.to_owned(),
             cache: root.join("target/crash-symbols"),
+            fetch: options.fetch,
         },
     };
     let symbols = load_symbols(&native, &source)?;
@@ -113,8 +127,8 @@ fn native_of(text: &str) -> Result<Native> {
 enum Source {
     /// A folder in the bucket's layout.
     Dir(PathBuf),
-    /// The bucket, through Wrangler, cached under `cache`.
-    Bucket { root: PathBuf, cache: PathBuf },
+    /// The bucket, through Wrangler when `fetch`, cached under `cache`.
+    Bucket { root: PathBuf, cache: PathBuf, fetch: bool },
 }
 
 impl Source {
@@ -125,10 +139,18 @@ impl Source {
                 let path = dir.join(key);
                 Ok(path.is_file().then_some(path))
             }
-            Source::Bucket { root, cache } => {
+            Source::Bucket {
+                root,
+                cache,
+                fetch: allowed,
+            } => {
                 let path = cache.join(key);
                 if path.is_file() {
                     return Ok(Some(path));
+                }
+                if !allowed {
+                    eprintln!("warning: no cached symbols at {key}; pass --fetch to download them from {BUCKET}");
+                    return Ok(None);
                 }
                 fetch(root, key, &path)
             }
@@ -292,11 +314,12 @@ fn lookup(symbols: &SymbolFile, offset: u64) -> Lookup {
 /// inlined function on a line of its own above the frame it was inlined into.
 fn render(native: &Native, symbols: &BTreeMap<String, SymbolFile>) -> String {
     let mut out = String::new();
-    let reason = native.crash_reason.as_deref().unwrap_or("not given");
+    let reason = printable(native.crash_reason.as_deref().unwrap_or("not given"));
     writeln!(out, "Crash reason: {reason}").unwrap_or_default();
     for (n, frame) in native.frames.iter().enumerate() {
-        let module = frame.module.as_deref().unwrap_or("???");
-        let found = symbols.get(module).map(|file| lookup(file, frame.offset));
+        let raw_module = frame.module.as_deref().unwrap_or("???");
+        let module = printable(raw_module);
+        let found = symbols.get(raw_module).map(|file| lookup(file, frame.offset));
         if let Some(Lookup {
             outer: Some(outer),
             inlined,
@@ -308,7 +331,11 @@ fn render(native: &Native, symbols: &BTreeMap<String, SymbolFile>) -> String {
             }
             writeln!(out, "#{n} {module} {}", described(&outer)).unwrap_or_default();
         } else {
-            let function = frame.function.as_deref().map(|f| format!("{f} ")).unwrap_or_default();
+            let function = frame
+                .function
+                .as_deref()
+                .map(|f| format!("{} ", printable(f)))
+                .unwrap_or_default();
             writeln!(out, "#{n} {module} {function}+{:#x}", frame.offset).unwrap_or_default();
         }
     }
@@ -316,11 +343,18 @@ fn render(native: &Native, symbols: &BTreeMap<String, SymbolFile>) -> String {
 }
 
 fn described(location: &Location) -> String {
+    let function = printable(&location.function);
     match (&location.file, location.line) {
-        (Some(file), Some(line)) => format!("{} ({file}:{line})", location.function),
-        (Some(file), None) => format!("{} ({file})", location.function),
-        _ => location.function.clone(),
+        (Some(file), Some(line)) => format!("{function} ({}:{line})", printable(file)),
+        (Some(file), None) => format!("{function} ({})", printable(file)),
+        _ => function,
     }
+}
+
+/// `text` with every control character, a terminal escape's start among them, as `?`: a report
+/// comes from a user's computer and is printed to a maintainer's terminal.
+fn printable(text: &str) -> String {
+    text.chars().map(|c| if c.is_control() { '?' } else { c }).collect()
 }
 
 #[cfg(test)]
@@ -455,9 +489,27 @@ PUBLIC 3000 0 engine_exported
             parse(&args(&["symbolicate", "r.json", "--symbols", "syms"])).expect("parses"),
             Options {
                 report: "r.json".into(),
-                symbols: Some("syms".into())
+                symbols: Some("syms".into()),
+                fetch: false,
             }
         );
         assert!(parse(&args(&["symbolicate"])).is_err());
+    }
+
+    #[test]
+    fn parse_should_fetch_only_when_asked() {
+        let args = |list: &[&str]| list.iter().map(|a| (*a).to_owned()).collect::<Vec<_>>();
+        assert!(!parse(&args(&["symbolicate", "r.json"])).expect("parses").fetch);
+        assert!(
+            parse(&args(&["symbolicate", "r.json", "--fetch"]))
+                .expect("parses")
+                .fetch
+        );
+        assert!(parse(&args(&["symbolicate", "r.json", "--fetch", "--fetch"])).is_err());
+    }
+
+    #[test]
+    fn printable_should_drop_terminal_escapes_from_a_report() {
+        assert_eq!(printable("SIGSEGV\u{1b}]0;owned\u{7}\n"), "SIGSEGV?]0;owned??");
     }
 }
