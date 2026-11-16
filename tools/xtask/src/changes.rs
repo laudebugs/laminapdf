@@ -130,8 +130,7 @@ pub(crate) fn touches_ts(paths: &[&str]) -> bool {
 }
 
 /// What the render goldens draw from (`cargo xtask render-golden`, a step of the fast lane's macOS
-/// Arm64 Rust leg; todo
-/// X9b). Every crate counts, since the render crates read through the core ones and the examples
+/// Arm64 Rust leg; todo X9b). Every crate counts, since the render crates read through the core ones and the examples
 /// come from the façade. So do the example PDFs and their pictures, the corpus and its goldens,
 /// `tools/render`, `tools/xtask` itself, and the manifests, toolchain and workflow that build them.
 /// The list is wide on purpose: a path left out lets a drawing change through until the next push

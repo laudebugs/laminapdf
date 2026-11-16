@@ -539,6 +539,9 @@ jobs:
           RUST: ${{ needs.changes.outputs.rust }}
           TS: ${{ needs.changes.outputs.ts }}
           RUNTIMES: ${{ needs.changes.outputs.runtimes }}
+          # Not a job's flag: the render goldens are a step of the macOS Arm64 Rust leg, so an
+          # empty or garbled flag, which would skip them, fails here.
+          RENDER: ${{ needs.changes.outputs.render }}
         run: |
           set -euo pipefail
           changes=$(jq -r '.changes.result' <<<"$NEEDS")
@@ -546,7 +549,7 @@ jobs:
             echo "::error::the changes job ended with '$changes'"
             exit 1
           fi
-          for flag in "rust=$RUST" "ts=$TS" "runtimes=$RUNTIMES"; do
+          for flag in "rust=$RUST" "ts=$TS" "runtimes=$RUNTIMES" "render=$RENDER"; do
             case "${flag#*=}" in
               true|false) echo "Needed: $flag" ;;
               *)

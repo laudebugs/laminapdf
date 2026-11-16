@@ -579,9 +579,9 @@ jobs:
           for job in $(jq -r 'del(.changes) | keys[]' <<<"$NEEDS"); do
             result=$(jq -r --arg job "$job" '.[$job].result' <<<"$NEEDS")
             # Each job follows a flag (todos X9c, X10b): desktop `desktop-run` (false when no leg
-            # is left to run); fuzz `rust`; the others `code`, since check-linux and check-windows run the whole
-            # `cargo xtask check` and the suites read both Rust and the TypeScript tests'
-            # capability tags.
+            # is left to run); fuzz `rust`; the others `code`, since check-linux and check-windows
+            # run the whole `cargo xtask check` and the suites read both Rust and the TypeScript
+            # tests' capability tags.
             needed=$CODE
             case "$job" in
               desktop) needed=$DESKTOP_RUN ;;
