@@ -134,6 +134,7 @@ mod properties;
 mod redaction;
 #[cfg(feature = "extract")]
 pub mod reveal;
+mod text_boxes;
 /// Flowing layout ([ADR 0032]): `laminapdf-build`'s flow layer, for [`Builder::flow`].
 ///
 /// [ADR 0032]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0032-flowing-layout-and-document-inputs.md
@@ -198,6 +199,7 @@ pub use laminapdf_syntax::{DOCS_URL_BASE, DOCS_URL_SUFFIX, Diagnostic, ErrorCode
 pub use pages::{ExportJob, MergeJob};
 #[cfg(feature = "extract")]
 pub use redaction::RedactionWarning;
+pub use text_boxes::EditWarning;
 pub use warning::{Warning, WarningCursor};
 
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};
@@ -209,19 +211,20 @@ pub use laminapdf_model::{
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use laminapdf_ops::{
     AddAnnot, AddLink, AddOutlineItem, AddReply, Anchor, AnnotColor, AnnotCommon, AnnotSpec, AnnotSpecPatch, BlobId,
-    Border, BorderStyle, Caret, CaretPatch, CaretSymbol, Carry, ChildItems, ConformanceWarning, CropMargins, CropPages,
-    DeleteAnnot, DeleteLink, DeleteNamedDestination, DeleteOutlineItem, DeletePages, DestinationUse, DestinationView,
-    DocumentMetadata, DuplicatePages, ExplicitDestination, FieldChange, FieldClash, FieldOutcome, InfoPatch, Ink,
-    InkPatch, InkStroke, InsertBlankPages, InsertPagesFrom, Leader, LineEnding, LineMark, LinePatch, MarkupKind,
-    MergeDocuments, MergeInput, MergeOptions, MergeSource, MetadataKey, MetadataPatch, MetadataSource,
-    ModificationClass, MoveOutlineItem, MovePages, Note, NoteIcon, NotePatch, Offset, Op, OpLog, Opacity, OpenAt,
-    OpenZoom, OrientationMethod, OutlineMerge, OutlineStyle, OutlineTarget, PacketStatus, PageBoxes, PageLabelRange,
-    PageOrientation, Poly, PolyKind, PolyPatch, ReferenceOutcome, ReferencePolicy, RemoveMetadata, RemoveXmpProperty,
-    RenameLinks, RenameNamedDestination, RenamedDestination, ReplacePages, ReplaceXmpPacket, ResizeMode, ResizePages,
-    ReversePages, Reverted, ReviewState, Rgb, RotateMode, RotatePage, RotatePages, SetInfo, SetInitialView,
-    SetMetadata, SetNamedDestination, SetOrientation, SetPageBoxes, SetPageLabels, SetReviewState, SetXmpProperty,
-    Shape, ShapeKind, ShapePatch, SourceId, SplitBy, StructureName, StructureRename, TextMarkup, TextMarkupPatch,
-    UndoOutcome, UpdateAnnot, UpdateLink, UpdateOutlineItem, WindowPreferencesPatch,
+    Border, BorderStyle, Callout, Caret, CaretPatch, CaretSymbol, Carry, ChildItems, ConformanceWarning, CropMargins,
+    CropPages, DeleteAnnot, DeleteLink, DeleteNamedDestination, DeleteOutlineItem, DeletePages, DestinationUse,
+    DestinationView, DocumentMetadata, DuplicatePages, ExplicitDestination, FieldChange, FieldClash, FieldOutcome,
+    FontRef, FreeText, FreeTextIntent, FreeTextPatch, InfoPatch, Ink, InkPatch, InkStroke, InsertBlankPages,
+    InsertPagesFrom, Leader, LineEnding, LineMark, LinePatch, MarkupKind, MergeDocuments, MergeInput, MergeOptions,
+    MergeSource, MetadataKey, MetadataPatch, MetadataSource, ModificationClass, MoveOutlineItem, MovePages, Note,
+    NoteIcon, NotePatch, Offset, Op, OpLog, Opacity, OpenAt, OpenZoom, OrientationMethod, OutlineMerge, OutlineStyle,
+    OutlineTarget, PacketStatus, PageBoxes, PageLabelRange, PageOrientation, Poly, PolyKind, PolyPatch,
+    ReferenceOutcome, ReferencePolicy, RemoveMetadata, RemoveXmpProperty, RenameLinks, RenameNamedDestination,
+    RenamedDestination, ReplacePages, ReplaceXmpPacket, ResizeMode, ResizePages, ReversePages, Reverted, ReviewState,
+    Rgb, RichText, RotateMode, RotatePage, RotatePages, SetInfo, SetInitialView, SetMetadata, SetNamedDestination,
+    SetOrientation, SetPageBoxes, SetPageLabels, SetReviewState, SetXmpProperty, Shape, ShapeKind, ShapePatch,
+    SourceId, SplitBy, StandardFamily, StructureName, StructureRename, TextAlign, TextMarkup, TextMarkupPatch,
+    TextSpan, UndoOutcome, UpdateAnnot, UpdateLink, UpdateOutlineItem, WindowPreferencesPatch,
 };
 #[cfg(feature = "content-edit")]
 pub use laminapdf_ops::{ContentEdit, EditContent, ObjectRef, StackPosition};

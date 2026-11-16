@@ -1397,7 +1397,7 @@
     {
       "code": "rich-text-simplified",
       "kind": "usage",
-      "summary": "an edit changed the text of a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour",
+      "summary": "an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour",
       "hint": "check how the box looks; bold and italic are kept, and the box's own font, size, colour and alignment apply to all of its text",
       "since": "0.5.0"
     }

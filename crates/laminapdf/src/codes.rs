@@ -75,6 +75,10 @@ const _: () = assert!(
     all_warnings_listed(crate::RedactionWarning::CODES),
     "a façade warning code is not in codes.json"
 );
+const _: () = assert!(
+    all_warnings_listed(crate::EditWarning::CODES),
+    "an edit warning code is not in codes.json"
+);
 
 /// The [`ErrorCode`] of a wrapped crate's error code. Every such code is in the table (the
 /// assertions above), so the fallback is never taken; it is `unset-object`, kind `internal`,

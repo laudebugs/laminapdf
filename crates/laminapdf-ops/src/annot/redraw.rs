@@ -97,9 +97,8 @@ impl Redraw<'_> {
         } else {
             dict.insert("CA", Object::Real(opacity.get()));
         }
-        // Only a change to the text loses what it held; a new colour keeps it as it was read.
-        let edited_text = matches!(self.spec, Some(AnnotSpecPatch::FreeText(p)) if p.text.is_some());
-        Ok(simplified && edited_text)
+        // Whatever the change, the box's keys are written again from what the subset kept.
+        Ok(simplified)
     }
 }
 

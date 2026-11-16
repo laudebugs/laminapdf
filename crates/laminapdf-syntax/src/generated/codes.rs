@@ -1231,7 +1231,7 @@ pub enum WarningCode {
     RedactionNotApplied,
     /// `text-in-earlier-revision`: an earlier revision of the file holds text that the latest revision no longer has.
     TextInEarlierRevision,
-    /// `rich-text-simplified`: an edit changed the text of a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour.
+    /// `rich-text-simplified`: an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour.
     RichTextSimplified,
 }
 
@@ -1548,7 +1548,7 @@ impl WarningCode {
             Self::CoveredText => "a page draws text and then paints a shape, an image or an annotation over it, so the text is hidden but still in the file",
             Self::RedactionNotApplied => "a page has redaction marks that were never applied, so the text under them is still in the file",
             Self::TextInEarlierRevision => "an earlier revision of the file holds text that the latest revision no longer has",
-            Self::RichTextSimplified => "an edit changed the text of a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour",
+            Self::RichTextSimplified => "an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour",
         }
     }
 

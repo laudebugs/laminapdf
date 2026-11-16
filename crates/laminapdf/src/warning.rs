@@ -31,6 +31,10 @@ pub enum Warning {
     /// A PDF/A or PDF/UA claim the edited metadata breaks
     /// ([`PlannedSave::conformance_warnings`](crate::PlannedSave::conformance_warnings)).
     Conformance(laminapdf_ops::ConformanceWarning),
+    /// What an edit did that its caller may want to check ([`Edited::warnings`](crate::Edited::warnings)).
+    ///
+    /// Added in 0.5.0.
+    Edit(crate::EditWarning),
 }
 
 impl Warning {
@@ -59,6 +63,7 @@ impl Warning {
             #[cfg(feature = "text")]
             Self::Build(w) => codes::warning_code(w.code()),
             Self::Conformance(w) => codes::warning_code(w.code()),
+            Self::Edit(w) => codes::warning_code(w.code()),
         }
     }
 
@@ -88,6 +93,7 @@ impl Warning {
             #[cfg(feature = "text")]
             Self::Build(w) => w.location(),
             Self::Conformance(w) => w.location(),
+            Self::Edit(w) => w.location(),
         }
     }
 

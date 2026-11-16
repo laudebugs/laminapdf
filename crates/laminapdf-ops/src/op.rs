@@ -428,7 +428,7 @@ pub(crate) struct Effect {
     pub(crate) pdfa_unchecked: Vec<PageId>,
     /// The copies it brought into a file claiming PDF/UA-1 from a source without that claim.
     pub(crate) pdfua_unchecked: Vec<PageId>,
-    /// The text boxes whose rich text lost styles outside the subset when their text changed.
+    /// The text boxes whose rich text lost styles outside the subset when the op drew them again.
     pub(crate) rich_text_simplified: Vec<laminapdf_model::AnnotId>,
 }
 

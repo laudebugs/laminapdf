@@ -168,7 +168,7 @@ pub struct Applied {
     /// Added in 0.3.0.
     pub bookmarks_dropped: usize,
     /// The text boxes whose rich text lost styles outside the subset Lamina PDF keeps (sizes,
-    /// colours or fonts per span, other elements) when their text changed
+    /// colours or fonts per span, other elements) when an edit drew them again
     /// (`rich-text-simplified`).
     ///
     /// Added in 0.5.0.

@@ -270,7 +270,7 @@ A PR that adds a code adds:
 | [`covered-text`](covered-text.md) | `security` | a page draws text and then paints a shape, an image or an annotation over it, so the text is hidden but still in the file |
 | [`redaction-not-applied`](redaction-not-applied.md) | `security` | a page has redaction marks that were never applied, so the text under them is still in the file |
 | [`text-in-earlier-revision`](text-in-earlier-revision.md) | `security` | an earlier revision of the file holds text that the latest revision no longer has |
-| [`rich-text-simplified`](rich-text-simplified.md) | `usage` | an edit changed the text of a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour |
+| [`rich-text-simplified`](rich-text-simplified.md) | `usage` | an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour |
 
 ## Binding errors (`laminapdf-wasm`)
 
