@@ -84,7 +84,8 @@ jobs:
           # Every web-v tag, to find the last release.
           fetch-depth: 0
           fetch-tags: true
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           cache: true
       # The last release that deployed is the newest web-v tag with a GitHub release (the deploy
