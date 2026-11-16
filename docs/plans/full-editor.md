@@ -284,7 +284,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 
 ## 9. Open questions
 
-1. JavaScript: never execute, or run a restricted sandbox (for example a WASM JS engine with only the Acrobat form-helper API) for formatting and calculation?
+1. JavaScript: never execute, or run a restricted sandbox (for example a WASM JS engine with only the Acrobat form-helper API) for formatting and calculation? *Answered by [ADR 0021](../decisions/0021-pdf-javascript-policy.md): never execute; the form helpers are recognised as data and run natively, and a sandbox comes back only by amendment, on E8f's evidence.*
 2. Which OCR engine (licence, size, quality) for client-side and Container use?
 3. Is batch processing a desktop/CLI feature only, or also a hosted service?
 4. Do we build a layout-aware "reflow edit" mode for paragraphs, or keep line-level editing only? *Answered 2026-11-13: line-level for E7; paragraph reflow is a later round ([E7 plan §10](editor/e7-editing-existing-content.md#10-decisions-on-the-open-questions)).*
@@ -367,7 +367,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 - [ ] Edit-corpus tests: output renders identically except edited regions
 
 ### E8. Form filling and data
-- [ ] Write ADR 0021 (PDF JavaScript policy)
+- [x] Write ADR 0021 (PDF JavaScript policy) ([E8a](../todos/ongoing/E8a-adr-0021-javascript-policy.md))
 - [ ] Feature-plan PR for E8
 - [ ] Field widgets as DOM overlays; tab order; required/read-only
 - [ ] Value appearance generation for every field type
