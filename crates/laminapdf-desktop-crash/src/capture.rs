@@ -1,4 +1,4 @@
-//! Native crash capture on Unix (ADR 0014 §10): the minidump servers the monitor hosts, and the
+//! Native crash capture (ADR 0014 §10): the minidump servers the monitor hosts, and the
 //! crash handler a faulting process installs to ask its server for a dump. Nothing here runs in the
 //! main process except installing its own handler and spawning the monitor; the servers, which read
 //! a hostile process's memory, run in the monitor, so a bad message crashes only the monitor.
@@ -12,7 +12,9 @@ use std::collections::VecDeque;
 use std::ffi::OsString;
 use std::fs::File;
 use std::io;
+#[cfg(unix)]
 use std::os::fd::RawFd;
+#[cfg(unix)]
 use std::os::unix::fs::{OpenOptionsExt as _, PermissionsExt as _};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -326,12 +328,12 @@ impl ServerHandler for Shared {
             return Err(io::Error::other("too many crash dumps"));
         }
         let path = self.0.dir.join(unique_name(WRITING_EXTENSION));
-        let file = File::options()
-            .write(true)
-            .read(true)
-            .create_new(true)
-            .mode(0o600)
-            .open(&path)?;
+        let mut options = File::options();
+        options.write(true).read(true).create_new(true);
+        // Private to the user; on Windows the folder's inherited ACL already is.
+        #[cfg(unix)]
+        options.mode(0o600);
+        let file = options.open(&path)?;
         *self.0.writing.lock().unwrap_or_else(PoisonError::into_inner) = Some(path.clone());
         Ok((file, path))
     }
@@ -380,6 +382,7 @@ fn socket_path(role: &str) -> PathBuf {
     let dir = runtime.unwrap_or_else(std::env::temp_dir);
     let path = dir.join(unique_name(&format!("{role}.sock")));
     // A Unix socket path holds about 100 bytes; fall back to /tmp if the chosen folder is too deep.
+    #[cfg(unix)]
     if path.as_os_str().len() > 100 {
         return Path::new("/tmp").join(unique_name(&format!("{role}.sock")));
     }
@@ -400,10 +403,12 @@ fn unique_name(suffix: &str) -> String {
     )
 }
 
-/// Makes `dir`, private to the user.
+/// Makes `dir`, private to the user (on Windows, a folder under the user's profile already is).
 fn private_dir(dir: &Path) -> io::Result<()> {
     std::fs::create_dir_all(dir)?;
-    std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700))
+    #[cfg(unix)]
+    std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700))?;
+    Ok(())
 }
 
 /// Set once a crash is reported some other way (the main process's panic hook), so the abort that
@@ -420,9 +425,11 @@ pub fn skip_dumps() {
 pub struct CrashCapture {
     _handler: CrashHandler,
     _client: Arc<Client>,
+    #[cfg(unix)]
     descriptor: Option<RawFd>,
 }
 
+#[cfg(unix)]
 impl CrashCapture {
     /// The crash socket's descriptor: the one descriptor, besides its pipes, the engine's sandbox
     /// must let it send and receive on. `None` when it could not be identified: then the engine
@@ -436,9 +443,10 @@ impl CrashCapture {
 
 impl std::fmt::Debug for CrashCapture {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("CrashCapture")
-            .field("descriptor", &self.descriptor)
-            .finish_non_exhaustive()
+        let mut debug = f.debug_struct("CrashCapture");
+        #[cfg(unix)]
+        debug.field("descriptor", &self.descriptor);
+        debug.finish_non_exhaustive()
     }
 }
 
@@ -468,13 +476,17 @@ pub enum CaptureError {
 /// # Errors
 /// [`CaptureError`] when the server can't be reached or the handler can't be installed.
 pub fn capture_crashes(socket: &Path, server: u32) -> Result<CrashCapture, CaptureError> {
+    #[cfg(unix)]
     let before = open_sockets();
     let client = Arc::new(Client::with_name(SocketName::Path(socket)).map_err(|_| CaptureError::Connect)?);
     // minidumper gives no accessor for the client's socket fd, so the one new connected socket this
     // call opened is it. Exactly one must appear; otherwise we don't guess (the engine then logs and
     // runs without capture rather than allowing the wrong fd through seccomp).
+    #[cfg(unix)]
     let after = open_sockets();
+    #[cfg(unix)]
     let new: Vec<RawFd> = after.into_iter().filter(|fd| !before.contains(fd)).collect();
+    #[cfg(unix)]
     let descriptor = match new.as_slice() {
         [fd] => Some(*fd),
         _ => None,
@@ -499,6 +511,7 @@ pub fn capture_crashes(socket: &Path, server: u32) -> Result<CrashCapture, Captu
     Ok(CrashCapture {
         _handler: handler,
         _client: client,
+        #[cfg(unix)]
         descriptor,
     })
 }
@@ -524,11 +537,13 @@ pub fn capture_crashes_within(socket: &Path, server: u32, wait: Duration) -> Res
 
 /// The open connected-socket descriptors above 2 this process holds, to find the one the client
 /// opened. Only sockets, so an unrelated file opened in between is not mistaken for it.
+#[cfg(unix)]
 fn open_sockets() -> Vec<RawFd> {
     (3..1024).filter(|&fd| is_socket(fd)).collect()
 }
 
 /// Whether `fd` is an open socket descriptor.
+#[cfg(unix)]
 fn is_socket(fd: RawFd) -> bool {
     let mut stat = std::mem::MaybeUninit::<libc::stat>::uninit();
     // SAFETY: `fstat` on any number only reads the descriptor's kind into `stat`, or fails; on
@@ -572,6 +587,7 @@ pub mod test_support {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(unix)]
     use std::os::fd::AsRawFd as _;
 
     use super::*;
@@ -584,6 +600,7 @@ mod tests {
 
     /// Raw bytes at a crash socket, as a hostile client might send; a stream to a seqpacket
     /// listener may even fail to connect, which is itself garbage the server must survive.
+    #[cfg(unix)]
     fn send_garbage(path: &Path) {
         let Some(addr) = os_socket_addr(path) else {
             return;
@@ -604,6 +621,7 @@ mod tests {
     }
 
     /// A `sockaddr_un` for `path`, and its length, or `None` if the path is too long.
+    #[cfg(unix)]
     fn os_socket_addr(path: &Path) -> Option<(libc::sockaddr_un, libc::socklen_t)> {
         use std::mem::size_of;
         use std::os::unix::ffi::OsStrExt as _;
@@ -721,22 +739,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn a_server_should_keep_serving_after_a_client_sends_garbage() {
         let server = DumpServer::start(socket_path("garbage"), scratch("garbage"), Role::Many).unwrap();
         let socket = server.socket().to_owned();
         send_garbage(&socket);
         send_garbage(&socket);
         // A proper client must still connect and get a pong: the server survived the garbage.
-        let mut pinged = false;
-        for _ in 0..50 {
-            if let Ok(client) = Client::with_name(SocketName::Path(&socket))
-                && client.ping().is_ok()
-            {
-                pinged = true;
-                break;
-            }
-            std::thread::sleep(Duration::from_millis(20));
-        }
+        let pinged = pings(&socket);
         drop(server);
         assert!(pinged, "the server did not serve a client after garbage");
     }
@@ -787,6 +797,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn open_sockets_should_find_a_socket_and_skip_a_plain_file() {
         // A socket and a regular file, both open: only the socket's fd is reported.
         let mut pair = [0; 2];
@@ -819,5 +830,46 @@ mod tests {
         let capture = capture_crashes(server.socket(), std::process::id());
         assert!(capture.is_ok());
         drop(server);
+    }
+
+    /// A client that may answer a ping: the server is still serving.
+    fn pings(socket: &Path) -> bool {
+        (0..50).any(|_| {
+            let pinged = Client::with_name(SocketName::Path(socket)).is_ok_and(|client| client.ping().is_ok());
+            if !pinged {
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            pinged
+        })
+    }
+
+    /// The dump writer opens the process a request names. A client naming another process, as a
+    /// compromised engine could, must get no dump of it, and the server must keep serving.
+    #[test]
+    #[cfg(windows)]
+    fn a_dump_request_naming_another_process_should_get_no_dump() {
+        let dir = scratch("impostor");
+        let server = DumpServer::start(socket_path("impostor"), dir.clone(), Role::Many).unwrap();
+        let socket = server.socket().to_owned();
+        // Another process of the same user, standing for the main process or a password manager.
+        let mut other = std::process::Command::new("cmd")
+            .args(["/c", "ping -n 30 127.0.0.1 >nul"])
+            .spawn()
+            .unwrap();
+        let client = Client::with_name(SocketName::Path(&socket)).unwrap();
+        let context = crash_handler::CrashContext {
+            exception_pointers: std::ptr::null(),
+            exception_code: 0,
+            process_id: other.id(),
+            thread_id: 0,
+        };
+        let _ = client.request_dump(&context);
+        drop(client);
+        let still_serving = pings(&socket);
+        let written = files_with(&dir, DUMP_EXTENSION).len() + files_with(&dir, WRITING_EXTENSION).len();
+        let _ = other.kill();
+        let _ = other.wait();
+        drop(server);
+        assert_eq!((written, still_serving), (0, true));
     }
 }

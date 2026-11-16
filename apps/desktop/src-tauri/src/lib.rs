@@ -100,13 +100,10 @@ fn engine_args(app: &tauri::AppHandle) -> Vec<OsString> {
 }
 
 /// The arguments of an engine about to spawn: the fixed ones, and the crash-dump server's socket
-/// while a monitor runs (Unix). [`FreshArgs`] reads them at each spawn, a window's engine restarts
+/// while a monitor runs. [`FreshArgs`] reads them at each spawn, a window's engine restarts
 /// included, since a restarted monitor has a new socket.
-#[cfg_attr(not(unix), expect(unused_variables, reason = "only capture, on Unix, reads the app"))]
 fn spawn_args(app: &tauri::AppHandle, fixed: &[OsString]) -> Vec<OsString> {
-    #[cfg_attr(not(unix), expect(unused_mut, reason = "only capture, on Unix, adds the socket"))]
     let mut args = fixed.to_vec();
-    #[cfg(unix)]
     if let Some(dumps) = app.try_state::<crash::EngineDumps>() {
         args.extend(dumps.engine_args());
     }
@@ -124,16 +121,11 @@ impl Notify for WindowEvents {
         }
     }
 
-    #[cfg_attr(
-        not(unix),
-        expect(unused_variables, unused_mut, reason = "only capture, on Unix, joins a dump by pid")
-    )]
     fn crashed(&self, window: &str, pid: u32, mut crash: crash::Crash) {
         // Off the supervisor's thread: waiting for the engine's minidump and writing the report
         // mustn't hold up the engine's restart.
         let (app, window) = (self.0.clone(), window.to_owned());
         tauri::async_runtime::spawn_blocking(move || {
-            #[cfg(unix)]
             if let Some(dumps) = app.try_state::<crash::EngineDumps>() {
                 crash.native = dumps.crashes.take_for_report(pid);
             }
@@ -212,8 +204,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     graphics::log();
     graphics::watch_start(config.clone());
     // Native crash capture (ADR 0014 §10): the monitor hosts the servers and connects the main
-    // process's handler; the poller reads engine dumps. Unix only; Windows keeps D7a's behaviour.
-    #[cfg(unix)]
+    // process's handler; the poller reads engine dumps.
     if let Some(dumps) = crash::EngineDumps::start(&data) {
         // Read the main-process dumps an earlier run left (the newest few) off the start-up path,
         // and queue each as a held report; the reader summarises them in a subprocess.

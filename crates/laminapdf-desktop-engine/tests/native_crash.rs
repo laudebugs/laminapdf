@@ -1,9 +1,7 @@
 //! Native crashes of the sandboxed engine (ADR 0014 §10): the built engine, started as the app
 //! starts it and connected to a crash-dump server, faults; the server's minidump reads into a
 //! summary that names the faulting module, and the engine's `--summarize-dump` mode reads a dump
-//! sandboxed. The engine is the e2e one, which obeys `DebugSegv` and `DebugPanic`. Unix only:
-//! Windows has no native capture yet (ADR 0014 §10).
-#![cfg(unix)]
+//! sandboxed. The engine is the e2e one, which obeys `DebugSegv` and `DebugPanic`.
 #![allow(clippy::unwrap_used, clippy::panic, reason = "tests: a panic is a test failure")]
 
 use std::io::{Read as _, Write as _};

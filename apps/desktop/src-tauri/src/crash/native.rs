@@ -14,10 +14,8 @@
 //! - **The main process**: its own dumps go to `dumps/main`, read at the next launch
 //!   ([`leftover_main_crashes`], the newest few, off the start-up path) into a held report.
 //!
-//! On Windows there is no capture in this version (ADR 0014 §10); this module is Unix only and the
-//! app guards its use with `cfg(unix)`.
-
-#![cfg(unix)]
+//! On Windows the monitor's dump server dumps only the process on the other end of the connection
+//! (the workspace's patched `minidumper`, D7f), so it runs on every OS.
 
 use std::collections::VecDeque;
 use std::ffi::OsString;

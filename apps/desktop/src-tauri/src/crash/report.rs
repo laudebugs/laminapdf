@@ -277,7 +277,6 @@ impl Crash {
 
     /// A native crash of the main process, known only from the minidump its monitor wrote: the
     /// report the next launch makes of it.
-    #[cfg(unix)]
     pub(crate) fn main_native(native: Native) -> Self {
         Self {
             process: ProcessKind::Main,

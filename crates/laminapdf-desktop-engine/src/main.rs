@@ -77,7 +77,11 @@ fn main() -> ExitCode {
     // Kept to the end: dropping it would detach the handler.
     let capture = connect_crash_server(args.crash_socket.as_deref(), args.crash_server);
     if capture.is_some() {
-        args.config.crash_socket = capture.as_ref().and_then(Capture::descriptor);
+        // The socket the sandbox must leave usable: Linux's seccomp names it by descriptor.
+        #[cfg(unix)]
+        {
+            args.config.crash_socket = capture.as_ref().and_then(Capture::descriptor);
+        }
         args.config.crash_server = args.crash_server;
     }
     let fonts = Arc::new(Fonts::default());
@@ -151,28 +155,15 @@ fn summarize_dump() -> ExitCode {
     }
 }
 
-#[cfg(unix)]
 use laminapdf_desktop_crash::CrashCapture as Capture;
-
-/// No native capture off Unix in this version (ADR 0014 §10).
-#[cfg(not(unix))]
-struct Capture;
-
-#[cfg(not(unix))]
-impl Capture {
-    #[expect(clippy::unused_self, reason = "the Unix capture's method, which reads its socket")]
-    const fn descriptor(&self) -> Option<i32> {
-        None
-    }
-}
 
 /// Connects to the monitor's crash-dump server at `socket` and installs the crash handler; `server`
 /// is the monitor's process id, the one process allowed to trace this one while it writes the dump
 /// (Linux). Without both there is no capture at all, never a handler that lets any process trace it.
 /// On Linux a capture whose socket descriptor couldn't be identified is dropped, closing the socket:
 /// the lock-down would count it as a leaked descriptor and refuse to start, so the engine runs
-/// without capture instead.
-#[cfg(unix)]
+/// without capture instead. On Windows the engine connects while its start-up impersonation still
+/// holds the user's token, before the sandbox locks down; the connection stays usable after.
 fn connect_crash_server(socket: Option<&Path>, server: Option<u32>) -> Option<Capture> {
     let (socket, server) = match (socket, server) {
         (Some(socket), Some(server)) => (socket, server),
@@ -185,7 +176,8 @@ fn connect_crash_server(socket: Option<&Path>, server: Option<u32>) -> Option<Ca
     // The monitor may have just been spawned and not listen yet; a short wait, so an engine never
     // holds a window's first page for long.
     match laminapdf_desktop_crash::capture_crashes_within(socket, server, std::time::Duration::from_secs(2)) {
-        Ok(capture) if cfg!(target_os = "linux") && capture.descriptor().is_none() => {
+        #[cfg(target_os = "linux")]
+        Ok(capture) if capture.descriptor().is_none() => {
             log("native crashes won't leave a dump: the crash socket's descriptor is unknown");
             drop(capture);
             None
@@ -196,11 +188,6 @@ fn connect_crash_server(socket: Option<&Path>, server: Option<u32>) -> Option<Ca
             None
         }
     }
-}
-
-#[cfg(not(unix))]
-fn connect_crash_server(_socket: Option<&Path>, _server: Option<u32>) -> Option<Capture> {
-    None
 }
 
 /// Binds PDFium in `dir` (or `LAMINA_PDF_PDFIUM_DIR`) with its system fonts coming from the main
