@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2n` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E2 page organisation §7](../../plans/editor/e2-page-organisation.md#7-differences-between-the-shells) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [D3a](../done/D3a-open-from-os.md), [E1i](../done/E1i-desktop-save-in-place.md), [E2g](../done/E2g-page-labels.md), [E2m](../done/E2m-document-dialogs.md) |

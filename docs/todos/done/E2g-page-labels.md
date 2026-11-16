@@ -43,7 +43,7 @@ Give Organise's Page setup ▾ its dialogs: page labels (O10), and crop, resize,
 - **Crates and packages:** `@laminapdf/ui`, `apps/web`
 - **`Op` variants:** none of its own
 - **`SaveConstraint`:** the dialogs show the strip and the confirmations of the [E2 plan §6 table](../../plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint)
-- **Web vs desktop:** identical; the desktop column is [E2n](../ready/E2n-desktop-organise.md)'s
+- **Web vs desktop:** identical; the desktop column is [E2n](../ongoing/E2n-desktop-organise.md)'s
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `I.10` → `round-trip` (web); `C.09`, `C.10`, `C.11`, `C.12` → `round-trip` (web). `C.14` is E6d's ([E2 plan §11](../../plans/editor/e2-page-organisation.md#11-decisions-on-the-open-questions))
 
@@ -103,5 +103,5 @@ None.
   - The viewer's `edit.browser.test.ts` covers `relabelled` through an undo, and `pageBoxes` after a crop.
   - `crates/laminapdf/tests/page_setup.rs` covers the façade reads.
   - The gallery has the dialogs' states (`crop`, `crop-mixed`, `resize`, `page-boxes`, `page-labels`, `page-labels-clash`).
-- **Not done here:** the desktop's Organise ([E2n](../ready/E2n-desktop-organise.md)); dragging crop edges on the page; a page range in Apply to; the phone's sheets.
+- **Not done here:** the desktop's Organise ([E2n](../ongoing/E2n-desktop-organise.md)); dragging crop edges on the page; a page range in Apply to; the phone's sheets.
 

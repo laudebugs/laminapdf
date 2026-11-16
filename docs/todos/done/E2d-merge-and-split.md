@@ -35,7 +35,7 @@ Merge whole documents with the hard parts done: outlines appended as subtrees, n
 
 **Out of scope** (and which todo covers it)
 
-- UI (multi-file merge, split dialog) → [E2m](../done/E2m-document-dialogs.md); desktop folder output and Finder/Explorer selections → [E2n](../ready/E2n-desktop-organise.md)
+- UI (multi-file merge, split dialog) → [E2m](../done/E2m-document-dialogs.md); desktop folder output and Finder/Explorer selections → [E2n](../ongoing/E2n-desktop-organise.md)
 - The CLI's page commands (`laminapdf pages delete`, `extract`, `reorder`, `insert`, `merge`, `split`) → [T6a](../ready/T6a-cli-page-commands.md)
 
 **Editor facts**
@@ -44,7 +44,7 @@ Merge whole documents with the hard parts done: outlines appended as subtrees, n
 - **Crates and packages:** `laminapdf-model` (outline, names, AcroForm and layer merge helpers), `laminapdf-ops`
 - **`Op` variants:** `MergeDocuments` op (composite; exactly one class per ADR 0006 §1: `PageStructure`, the most restrictive of the changes it makes, since it inserts pages and is forbidden at every DocMDP level; its document-level merges (outline, names, AcroForm, layers) are covered by that verdict); split is a pure function producing new documents
 - **`SaveConstraint`:** class `PageStructure`; the verdicts per constraint are the [E2 plan §6 table](../../plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint)
-- **Web vs desktop:** identical (core); several files opened together from the OS offer a merge where `hasFileHandlers` ([E2m](../done/E2m-document-dialogs.md), [E2n](../ready/E2n-desktop-organise.md))
+- **Web vs desktop:** identical (core); several files opened together from the OS offer a merge where `hasFileHandlers` ([E2m](../done/E2m-document-dialogs.md), [E2n](../ongoing/E2n-desktop-organise.md))
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `C.06` → `round-trip` (core, pdf); `C.07` → `write` (core, pdf)
 

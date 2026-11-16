@@ -184,7 +184,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E2m](../../todos/done/E2m-document-dialogs.md) | Insert from a file, replace, extract, export, merge and split in the interface | E2d, E2h |
 | [E2g](../../todos/done/E2g-page-labels.md) | The page-setup dialogs: page labels, crop, resize, page boxes and orientation | E2h, E2q, E2s |
 | [E2i](../../todos/ready/E2i-signed-gating-and-close.md) | The signed-document gating suite for every op, the cross-op labels test, and the round's close | E2g, E2m, E2o |
-| [E2n](../../todos/ready/E2n-desktop-organise.md) | Desktop: Organise in the engine, merging files opened together, writing parts to a folder | E2g, E2m, E1i, D3a |
+| [E2n](../../todos/ongoing/E2n-desktop-organise.md) | Desktop: Organise in the engine, merging files opened together, writing parts to a folder | E2g, E2m, E1i, D3a |
 
 E2j, E2e and E2p can start as soon as this plan merges, in parallel; E2r and E2q follow E2j. The web and shared work, E2b to E2m, waits on no desktop todo; E2i closes the round's web and shared columns, and E2n completes the desktop column when the desktop track is ready.
 
