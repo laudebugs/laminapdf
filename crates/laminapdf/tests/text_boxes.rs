@@ -174,5 +174,5 @@ fn a_box_within_the_subset_never_warns() {
     update.spec = Some(AnnotSpecPatch::FreeText(FreeTextPatch::text(RichText::plain(
         "Changed",
     ))));
-    assert!(doc.apply(vec![update.into()]).unwrap().warnings.is_empty());
+    assert_eq!(doc.apply(vec![update.into()]).unwrap().warnings, Vec::<Warning>::new());
 }
