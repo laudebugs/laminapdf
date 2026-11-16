@@ -39,6 +39,7 @@ import { EditLog } from "./edit-log.js";
 import type { FindOptions } from "./find/fold.js";
 import { FirstDraw } from "./first-draw.js";
 import {
+  type AddedSource,
   type BackendInit,
   type EditHistory,
   type EditResult,
@@ -293,10 +294,10 @@ export class ViewerClient {
   async call<M extends MethodName>(
     method: M,
     params: Params<M>,
-    options: ViewerCallOptions & { key?: string } = {},
+    options: ViewerCallOptions & { key?: string; onProgress?: (progress: unknown) => void } = {},
   ): Promise<Result<M>> {
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
-    const { signal, priority, key } = options;
+    const { signal, priority, key, onProgress } = options;
     // Renders, and calls that name a priority (text, at `background`), queue with the tiles; other
     // document calls run first.
     const level = method === "render" || priority !== undefined ? PRIORITY[priority ?? "visible"] : PRIORITY.document;
@@ -305,6 +306,7 @@ export class ViewerClient {
         priority: level,
         ...(signal === undefined ? {} : { signal }),
         ...(key === undefined ? {} : { key }),
+        ...(onProgress === undefined ? {} : { onProgress }),
       })) as Result<M>;
     } catch (e) {
       throw abortError(e);
@@ -400,6 +402,33 @@ export class ViewerClient {
     // A failed edit clears the steps undone: what a restart would replay follows.
     if (opened !== undefined && this.#document === opened) this.#edits.take({ pages: [], history });
     return history;
+  }
+
+  /** The open document's ID in the worker, once a restarted worker has opened it again; 0 when none is open. */
+  async documentId(): Promise<number> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.#document?.id ?? 0;
+  }
+
+  /**
+   * Makes `bytes` a source document of the open document, for the ops that copy its pages
+   * (`insertPagesFrom`, `replacePages`, `mergeDocuments`): its ID and page IDs. The page keeps
+   * the bytes while an edit names the source, so a restarted worker adds it again before it
+   * applies the edits; it keeps no password, so edits from an encrypted source are lost then.
+   */
+  async addSource(
+    bytes: Uint8Array,
+    options?: { readonly password?: string },
+    call?: ViewerCallOptions,
+  ): Promise<AddedSource> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    const opened = this.#document;
+    const password = options?.password;
+    const added = await this.call("addSource", [bytes, password, opened?.id ?? 0], call);
+    if (opened !== undefined && this.#document === opened) {
+      this.#edits.addedSource(added.id, bytes, password !== undefined && password !== "");
+    }
+    return added;
   }
 
   /** The open document's metadata as its edits leave it: Info and XMP read together. */
@@ -762,9 +791,9 @@ export class ViewerClient {
       this.#edits.reset();
       return "lost";
     }
-    const { steps, undone } = replay;
+    const { steps, undone, sources } = replay;
     try {
-      const result = (await this.#pdf.request("restoreEdits", [steps, undone, opened.id], {
+      const result = (await this.#pdf.request("restoreEdits", [steps, undone, opened.id, sources], {
         priority: PRIORITY.document,
       })) as EditResult;
       this.#takePages(opened, result);

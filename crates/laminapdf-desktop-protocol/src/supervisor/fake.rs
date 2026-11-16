@@ -280,6 +280,12 @@ fn answer(msg: ToEngine, locked: &mut Vec<DocId>) -> Option<FromEngine> {
             ],
             ids: fake_ids(),
         },
+        ToEngine::GetProperties { req, doc } if locked.contains(&doc) => FromEngine::NeedsPassword { req, doc },
+        ToEngine::GetProperties { req, doc } => FromEngine::Properties {
+            req,
+            doc,
+            json: r#"{"properties":{"pageCount":3},"metadata":{"authors":[]},"xmp":{"status":"absent"}}"#.into(),
+        },
         ToEngine::Edit { req, doc, .. } if locked.contains(&doc) => FromEngine::NeedsPassword { req, doc },
         ToEngine::Edit { req, doc, call } => FromEngine::Edited {
             req,

@@ -42,6 +42,9 @@ laminapdf-desktop-protocol = { workspace = true }
 laminapdf-desktop-sandbox = { workspace = true, features = ["engine"] }
 laminapdf-render = { workspace = true }
 laminapdf-render-pdfium = { workspace = true }
+# The Properties dialog's data, sent as JSON (FromEngine::Properties).
+serde = { workspace = true }
+serde_json = { workspace = true }
 
 [[test]]
 name = "sandbox_selftest"

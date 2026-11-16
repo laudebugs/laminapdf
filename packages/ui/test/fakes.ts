@@ -28,6 +28,7 @@ const NO_CAPABILITIES: Capabilities = {
   ownsKeyboard: false,
   canShare: false,
   shellTakesDrops: false,
+  canWriteDirectory: false,
 };
 
 /** A file over `bytes`, as a picker or a drop would give it. */

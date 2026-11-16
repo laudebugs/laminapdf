@@ -262,6 +262,7 @@ export function EditingRuntime({
       <InitialViewEditing engine={engine} viewer={viewer} />
       <OrganiseMode
         controller={organising.organise}
+        fileName={fileName}
         engine={engine}
         viewer={viewer}
         modes={organising.modes}

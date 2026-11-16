@@ -140,6 +140,8 @@ While a document has unsaved edits, the window's title starts with "•", and cl
 
 Each window's engine holds its own edits, so a tab with unsaved edits can't move to another window yet: undo them to move it.
 
+File ▸ Document properties… opens the web reader's Properties dialog. When it opens, the engine reads the document's facts, metadata and XMP packet in one call, with the edits made so far (`GetProperties`, `crates/laminapdf-desktop-engine/src/properties.rs`), since only the engine parses. The facts take a pass over every object, so the engine keeps them until an edit or a save changes the document. That pass also waits behind the tiles already queued for the screen. On the Description and XMP tabs, Apply makes the changes one step of the edit session, which File ▸ Save then writes in place. An encrypted document shows the facts alone, because the engine can't edit it (`src/properties.tsx`).
+
 ### Saving
 
 File ▸ Save (⌘S or Ctrl+S) writes the document's file in place, and File ▸ Save as… (⇧⌘S or Ctrl+Shift+S) writes a new file, which the document reads and saves to from then on. Like the web reader, a save plans first and asks before removing signatures or breaking a standard the file claims (`src/saving.tsx`).

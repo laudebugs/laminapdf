@@ -3291,6 +3291,8 @@ dependencies = [
  "laminapdf-render",
  "laminapdf-render-pdfium",
  "laminapdf-test-fixtures",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

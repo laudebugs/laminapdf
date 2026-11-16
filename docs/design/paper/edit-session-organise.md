@@ -283,7 +283,7 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 
 **As built (web, E2h).** The grid is the `listbox` recommended above: React Aria's `ListBox` in its grid layout, with multiple selection. Tiles are `option`s named “Page 5”. Only the tiles near the view are rendered (React Aria's virtualizer), so a selection or a move re-renders a screenful, not every page. The viewer stays under the grid, hidden, and keeps its place for Read; Enter or a double-click on a tile opens that page there. Differences from the boards:
 
-- The toolbar has what this round's commands can do: Insert ▾ (Blank pages… only) · Rotate left · Rotate right · Delete │ Move to page… │ More page actions (Duplicate pages · Reverse page order · Select all pages), then the note and the thumbnail size control at its end. Page setup ▾ came with [E2g](../../todos/done/E2g-page-labels.md) (O09, O10); Extract, Bookmark ▾ and the documents entries wait for [E2m](../../todos/ready/E2m-document-dialogs.md). The top bar keeps its page-number input. The thumbnail size isn't remembered between visits yet.
+- The toolbar has what this round's commands can do: Insert ▾ (Blank pages… only) · Rotate left · Rotate right · Delete │ Move to page… │ More page actions (Duplicate pages · Reverse page order · Select all pages), then the note and the thumbnail size control at its end. Page setup ▾ came with [E2g](../../todos/done/E2g-page-labels.md) (O09, O10); Extract, Bookmark ▾ and the documents entries wait for [E2m](../../todos/done/E2m-document-dialogs.md). The top bar keeps its page-number input. The thumbnail size isn't remembered between visits yet.
 - The rail keeps Read's tabs.
 - The inspector has the title, Rotation, Size and Page labels, with Duplicate pages and Delete; no section context, and no “Linked from” line, which needs a reference count per page that the reader doesn't read yet.
 - The page menu has Insert blank page before and after, Rotate left and right, Duplicate, Move to page…, Page setup's six items (E2g) and Delete page (last); the documents entries wait for E2m.
@@ -323,6 +323,17 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 
 **Artboards:** `O07-insert-pages.dc.html`, `O07-merge.dc.html`.
 
+**As built (web, E2m).** Insert pages from a file and Replace pages are one dialog, opened from Insert ▾; Merge documents… and Add files to merge… are in More page actions. The reader reads the whole file and previews it in the document worker, where PDFium draws its thumbnails before any edit. Each insert, replace or merge is one step, asked about first when its save would break a signature. The build differs from the boards in six ways:
+
+- Blank pages stays its own dialog (E2h), and From images isn't built here, so Insert has no tabs.
+- Form fields always come with the pages: the option is "Link form fields to fields of the same name", since an op can link a field or rename it but never leave it behind.
+- The file card leaves out the comment count, and the Page field has no section hint.
+- On the web, "Create a new document" saves the merged file through the save dialog, or downloads it; a browser tab can't be handed an unsaved document.
+- The merge toast counts renamed fields and has no Details panel.
+- The conformance notice names the claims some files make and others don't, since the merged pages may break them.
+
+Several PDFs opened together with the installed web app ask whether to merge them into one new document, opened unsaved, or to open the first; the web reader shows one document per tab. Dropping files on the grid isn't built.
+
 **Todos:** [E2c](../../todos/done/E2c-cross-document-pages.md), [E2d](../../todos/done/E2d-merge-and-split.md), [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md).
 
 ## O08 Split document
@@ -344,6 +355,13 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 **Platform differences.** Web: no folder choice; the parts download as one zip (“Q3-board-report parts.zip”) or, for two files, separately. Phone: in More; a sheet with the same options.
 
 **Artboards:** `O08-split.dc.html`.
+
+**As built (web, E2m).** Extract pages… opens the same dialog with Page ranges chosen and the selection filled in, titled Extract pages; each comma part is one file, so it also exports ranges. Where the files go depends on the browser. Chromium writes them into a folder the person picks, asking Replace or Keep both when names are taken; elsewhere, one or two files save on their own and more download as one zip ("Q3-board-report parts.zip"). The build differs from the board in four ways:
+
+- Parts always keep their bookmarks, comments and page labels, so the dialog has no checkbox for them.
+- The done toast names the folder or the file, without Show in Finder.
+- File names use a hyphen in page ranges ("pages 3-6"), because Chromium drops a download name with an en dash.
+- The palette's argument ("split every 5") isn't built.
 
 **Todos:** [E2d](../../todos/done/E2d-merge-and-split.md).
 
