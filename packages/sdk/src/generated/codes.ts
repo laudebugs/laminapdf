@@ -240,6 +240,7 @@ export type WarningCode =
   | "annot-not-tagged"
   | "pdfa-annot-flags"
   | "pdfa-transparency"
+  | "pdfa-font-not-embedded"
   | "tounicode-conflict"
   | "whole-font-rebuilt"
   | "flow-keep-broken"
@@ -493,6 +494,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "annot-not-tagged",
   "pdfa-annot-flags",
   "pdfa-transparency",
+  "pdfa-font-not-embedded",
   "tounicode-conflict",
   "whole-font-rebuilt",
   "flow-keep-broken",
@@ -626,6 +628,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "annot-not-tagged": "usage",
   "pdfa-annot-flags": "usage",
   "pdfa-transparency": "usage",
+  "pdfa-font-not-embedded": "usage",
   "sink": "io",
   "not-rebased": "state",
   "sink-not-empty": "usage",
@@ -853,6 +856,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "annot-not-tagged": "tag the document first, or add the annotation to a copy that doesn't claim PDF/UA",
   "pdfa-annot-flags": "keep the annotation's Print flag and clear Hidden, Invisible, NoView and ToggleNoView",
   "pdfa-transparency": "make the mark opaque, or use an underline instead of a highlight",
+  "pdfa-font-not-embedded": "give the box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset",
   "sink": "check the destination and retry the save; the document is unchanged",
   "not-rebased": "retry rebase with the saved output carried by the error",
   "sink-not-empty": "pass an empty sink: output offsets count from the sink's first byte",

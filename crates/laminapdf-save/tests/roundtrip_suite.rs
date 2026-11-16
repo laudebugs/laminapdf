@@ -43,6 +43,8 @@ mod common;
 /// capability: D.04 core round-trip
 /// capability: D.05 core round-trip
 /// capability: B.06 core round-trip
+/// capability: D.06 core round-trip
+/// capability: D.16 core write
 /// capability: D.10 core round-trip
 /// capability: D.11 core round-trip
 #[test]

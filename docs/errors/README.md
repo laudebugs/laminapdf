@@ -148,6 +148,7 @@ A PR that adds a code adds:
 | [`annot-not-tagged`](annot-not-tagged.md) | `usage` | a new annotation isn't in the structure tree, which breaks the document's PDF/UA claim |
 | [`pdfa-annot-flags`](pdfa-annot-flags.md) | `usage` | an annotation doesn't print or is hidden, which breaks the document's PDF/A claim |
 | [`pdfa-transparency`](pdfa-transparency.md) | `usage` | an annotation is translucent or blends, which PDF/A-1 forbids |
+| [`pdfa-font-not-embedded`](pdfa-font-not-embedded.md) | `usage` | the file claims PDF/A, and a text box an edit added or changed is drawn in a standard 14 font, which isn't embedded |
 
 ## Save errors
 

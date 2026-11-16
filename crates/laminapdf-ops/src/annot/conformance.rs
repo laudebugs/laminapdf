@@ -25,7 +25,7 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
     if pdfa_part.is_none() && !claims_ua {
         return Ok(Vec::new());
     }
-    let [mut untitled, mut untagged, mut flags, mut transparent] = [(); 4].map(|()| Vec::new());
+    let [mut untitled, mut untagged, mut flags, mut transparent, mut unembedded] = [(); 5].map(|()| Vec::new());
     for (_, annots) in every_annotation(doc)? {
         for annot in annots {
             // Popups belong to their parent, and widgets and links have checks of their own.
@@ -61,6 +61,14 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
             if pdfa_part.is_some() && (!annot.flags.has(AnnotFlags::PRINT) || annot.flags.0 & PDFA_FORBIDDEN != 0) {
                 flags.push(id.clone());
             }
+            // A text box in a standard 14 font draws with a font that isn't embedded; one given
+            // by its bytes is embedded as a subset.
+            if pdfa_part.is_some()
+                && annot.subtype == AnnotSubtype::FreeText
+                && dict.get(super::freetext::FONT_KEY).is_none()
+            {
+                unembedded.push(id.clone());
+            }
             if pdfa_part == Some(1) && is_transparent(doc, &dict)? {
                 transparent.push(id);
             }
@@ -79,6 +87,11 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
     if !transparent.is_empty() {
         out.push(ConformanceWarning::PdfaTransparency {
             annotations: transparent,
+        });
+    }
+    if !unembedded.is_empty() {
+        out.push(ConformanceWarning::PdfaFontNotEmbedded {
+            annotations: unembedded,
         });
     }
     Ok(out)

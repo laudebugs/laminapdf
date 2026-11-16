@@ -122,6 +122,7 @@ MARKS = {
     c.FPDF_ANNOT_LINE: "Line",
     c.FPDF_ANNOT_POLYGON: "Polygon",
     c.FPDF_ANNOT_POLYLINE: "PolyLine",
+    c.FPDF_ANNOT_FREETEXT: "FreeText",
 }
 
 

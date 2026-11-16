@@ -836,6 +836,13 @@
       "summary": "an annotation is translucent or blends, which PDF/A-1 forbids",
       "hint": "make the mark opaque, or use an underline instead of a highlight",
       "since": "0.3.0"
+    },
+    {
+      "code": "pdfa-font-not-embedded",
+      "kind": "usage",
+      "summary": "the file claims PDF/A, and a text box an edit added or changed is drawn in a standard 14 font, which isn't embedded",
+      "hint": "give the box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset",
+      "since": "0.5.0"
     }
   ],
   "saveErrors": [

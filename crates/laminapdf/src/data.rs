@@ -300,7 +300,8 @@ fn conformance_warning(w: &laminapdf_ops::ConformanceWarning) -> Data {
         W::AnnotWithoutContents { annotations }
         | W::AnnotNotTagged { annotations }
         | W::PdfaAnnotFlags { annotations }
-        | W::PdfaTransparency { annotations } => data([("annotations", json!(annotations))]),
+        | W::PdfaTransparency { annotations }
+        | W::PdfaFontNotEmbedded { annotations } => data([("annotations", json!(annotations))]),
         _ => Data::new(),
     }
 }

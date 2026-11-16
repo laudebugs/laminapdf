@@ -94,6 +94,7 @@ const MARKS = new Set([
   "Line",
   "Polygon",
   "PolyLine",
+  "FreeText",
 ]);
 
 /** Each page's text markup, notes, carets and drawing marks, sorted: [subtype, contents], as lamina lists them. */

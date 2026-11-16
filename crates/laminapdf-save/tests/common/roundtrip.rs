@@ -1091,7 +1091,7 @@ fn copies(root: &Path, suite: &mut Suite) {
 }
 
 /// The subtypes the mark cases make, as the tools name them.
-const MARKS: [&[u8]; 12] = [
+const MARKS: [&[u8]; 13] = [
     b"Highlight",
     b"Underline",
     b"StrikeOut",
@@ -1104,6 +1104,7 @@ const MARKS: [&[u8]; 12] = [
     b"Line",
     b"Polygon",
     b"PolyLine",
+    b"FreeText",
 ];
 
 /// Each page's text markup, notes, carets and drawing marks as the tools list them, sorted: `[subtype,
@@ -1138,7 +1139,10 @@ pub fn mark_facts(doc: &laminapdf_model::Document) -> Vec<Vec<Value>> {
 /// described, on page `first`.
 fn drawing_ops(first: &PageId) -> Vec<Op> {
     use laminapdf_model::{UserSpacePoint, UserSpaceRect};
-    use laminapdf_ops::{AddAnnot, AnnotSpec, Ink, InkStroke, LineEnding, LineMark, Poly, PolyKind, Shape, ShapeKind};
+    use laminapdf_ops::{
+        AddAnnot, AnnotSpec, Callout, FreeText, FreeTextIntent, Ink, InkStroke, LineEnding, LineMark, Poly, PolyKind,
+        RichText, Shape, ShapeKind,
+    };
     let p = UserSpacePoint::new;
     let drawn = |spec, contents: &str| {
         let mut op = AddAnnot::new(first.clone(), spec);
@@ -1174,13 +1178,28 @@ fn drawing_ops(first: &PageId) -> Vec<Op> {
             )),
             "Triangle",
         ),
+        // A callout: its `/Contents` is its text, whatever the op's common entries say.
+        drawn(
+            AnnotSpec::FreeText(
+                FreeText::new(
+                    UserSpaceRect::from_corners(420.0, 40.0, 560.0, 70.0),
+                    RichText::plain("Callout"),
+                )
+                .with_intent(FreeTextIntent::Callout(Callout::new(vec![
+                    p(400.0, 90.0),
+                    p(420.0, 55.0),
+                ]))),
+            ),
+            "Callout",
+        ),
     ]
 }
 
 /// The mark cases (todo E4c, D.01 to D.03; E5b, D.10 and D.11): on every plain fixture, a
 /// highlight and an underline over two lines of the first page, a note, a text replacement (a
 /// caret holding the new text, grouped with a strike-out), and a reply to the highlight and a
-/// review state set on it, and (E4d, D.04, D.05) ink, a circle, an arrow and a polygon, saved
+/// review state set on it, (E4d, D.04, D.05) ink, a circle, an arrow and a polygon, and (E4e,
+/// D.06) a callout in Helvetica, saved
 /// incrementally and as a full rewrite. Lamina reopens
 /// each with the same marks and pages, every mark with its appearance; the tools compare the
 /// marks they read (`marks`).
