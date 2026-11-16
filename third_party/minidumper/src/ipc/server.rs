@@ -318,12 +318,13 @@ impl Server {
                                             // request must come from that process: as on Linux, check the
                                             // pid the client sent against the one the kernel gives for the
                                             // connection's peer, before any process is opened
-                                            let peer_pid = cc.socket.peer_pid()?;
-                                            if peer_pid != dump_request.process_id {
+                                            // A peer the kernel can't name is refused too
+                                            let peer_pid = cc.socket.peer_pid().ok();
+                                            if peer_pid != Some(dump_request.process_id) {
                                                 // Refused, and only this client is dropped (as on a
                                                 // disconnect): the others stay connected and served
                                                 log::error!(
-                                                    "refused a dump request: pid {} asked for pid {}",
+                                                    "refused a dump request: pid {:?} asked for pid {}",
                                                     peer_pid,
                                                     dump_request.process_id
                                                 );

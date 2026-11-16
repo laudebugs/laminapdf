@@ -141,7 +141,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D7. Crash reporting and beta
 
-**Todos:** [D7a](../todos/done/D7a-crash-reporting.md), [D7b](../todos/done/D7b-settings-renderer-switch-and-download-page.md), [D7c](../todos/ready/D7c-desktop-beta-release.md), [D7d](../todos/done/D7d-native-crash-minidumps-and-symbols.md), [D7e](../todos/done/D7e-crash-recovered-tab-choice.md), [D7f](../todos/ongoing/D7f-windows-native-crash-capture.md)
+**Todos:** [D7a](../todos/done/D7a-crash-reporting.md), [D7b](../todos/done/D7b-settings-renderer-switch-and-download-page.md), [D7c](../todos/ready/D7c-desktop-beta-release.md), [D7d](../todos/done/D7d-native-crash-minidumps-and-symbols.md), [D7e](../todos/done/D7e-crash-recovered-tab-choice.md), [D7f](../todos/done/D7f-windows-native-crash-capture.md)
 
 **Deliverable:** opt-in crash and panic reporting to the chosen backend; settings page (updates, channel, crash reports, renderer backend switch for Linux); download page at `laminapdf.com/download`, on the website (`apps/site`, [website plan](website.md)); `desktop v0.1` beta on the beta channel.
 **Accepted when:** a forced crash produces a scrubbed report only after consent (test asserts no paths or content); beta installs and auto-updates for at least one release cycle on all three OSes.

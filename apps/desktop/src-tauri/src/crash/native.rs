@@ -428,12 +428,18 @@ fn spawn_monitor(exe: &Path, data_dir: &Path) -> Option<(MonitorPaths, std::proc
         .args(paths.args())
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::piped())
+        // On Windows the monitor's engines' debugger reports each step there; elsewhere it says
+        // nothing worth reading.
+        .stderr(if cfg!(windows) {
+            std::process::Stdio::piped()
+        } else {
+            std::process::Stdio::null()
+        })
         .spawn()
         .map_err(|error| tracing::warn!("the crash monitor could not start: {error}"))
         .ok()?;
-    // What the monitor says (on Windows, its engines' debugger: each attach, fault and dump) goes
-    // into this process's log; the thread ends with the monitor.
+    // What the monitor says (its engines' debugger: each attach, fault and dump) goes into this
+    // process's log; the thread ends with the monitor.
     if let Some(stderr) = child.stderr.take() {
         let _ = std::thread::Builder::new()
             .name("crash-monitor-log".into())

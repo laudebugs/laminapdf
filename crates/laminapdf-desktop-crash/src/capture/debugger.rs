@@ -5,11 +5,15 @@
 //!
 //! The monitor finds the engines on its own, by polling: the processes whose parent is the main
 //! process (the monitor's parent) and whose image is the engine binary beside the app. It attaches
-//! to each, passes every exception on to it, and on a second-chance one (the engine is about to
-//! end) writes the dump before letting it go. A fail-fast (`STATUS_STACK_BUFFER_OVERRUN`, which a
+//! to each, passes every exception but a breakpoint on to it, and on a second-chance one (the
+//! engine is about to end) writes the dump before letting it go. A fail-fast (`STATUS_STACK_BUFFER_OVERRUN`, which a
 //! Rust panic's abort raises) leaves none: the panic's own report is the crash's.
+//!
+//! The engines the main process starts to read a dump (`--summarize-dump`) run the same image and
+//! are watched too: one that crashes on a hostile dump leaves a dump no report takes, which the
+//! folder's cap bounds.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::io;
 use std::os::windows::io::AsRawHandle as _;
 use std::path::{Path, PathBuf};
@@ -128,55 +132,54 @@ impl Drop for EngineWatcher {
     }
 }
 
+/// How many times an engine that refuses the debugger is tried (every [`RETRY_EVERY`]) before the
+/// monitor leaves it be: about a second, enough for one still starting; one that another debugger
+/// holds stays refused.
+const MAX_ATTACH_TRIES: u32 = 50;
+
+/// `__fastfail`'s code for a Rust panic's abort (`FAST_FAIL_FATAL_APP_EXIT`): that crash's report is
+/// the panic's. Other fail-fasts (a corrupted stack cookie, a control-flow guard check) are the
+/// native crashes a dump is for.
+const FAST_FAIL_FATAL_APP_EXIT: usize = 7;
+
+/// The debug loop's state across events: what each engine has done so far.
+#[derive(Default)]
+struct Engines {
+    /// Every child seen, so each is logged once.
+    seen: BTreeSet<u32>,
+    /// Failed attaches so far, by pid; logged once, given up after [`MAX_ATTACH_TRIES`].
+    tries: BTreeMap<u32, u32>,
+    /// Engines whose attach breakpoint has passed: a later breakpoint is the engine's own.
+    started: BTreeSet<u32>,
+}
+
 /// The debug loop. A debugger's processes belong to the thread that attached them, so attaching,
 /// waiting and detaching all happen here.
 fn watch(parent: u32, image: &Path, handler: &Handler, stop: &AtomicBool, watching: &Mutex<BTreeSet<u32>>, log: Log) {
     let attached = || watching.lock().unwrap_or_else(PoisonError::into_inner);
-    let mut seen: BTreeSet<u32> = BTreeSet::new();
+    let wanted = comparable(&image.to_string_lossy());
+    let mut engines = Engines::default();
     let mut retry = false;
     let mut scanned: Option<Instant> = None;
     log(&format!("watching the children of {parent} that run the engine"));
     while !stop.load(Ordering::SeqCst) {
         let every = if retry { RETRY_EVERY } else { SCAN_EVERY };
         if scanned.is_none_or(|at| at.elapsed() >= every) {
-            retry = false;
-            // Never a path in the log (it is the app's, and it holds no file's path at info level).
-            let wanted = comparable(&image.to_string_lossy());
-            for (pid, path) in children_of(parent) {
-                if seen.insert(pid) {
-                    let what = match path {
-                        Some(path) if comparable(&path) == wanted => "the engine",
-                        Some(_) => "another program",
-                        None => "unreadable",
-                    };
-                    log(&format!("child {pid}: {what}"));
-                }
-            }
-            for pid in children_with_image(parent, image) {
-                if attached().contains(&pid) {
-                    continue;
-                }
-                if attach(pid) {
-                    log(&format!("attached to {pid}"));
-                    attached().insert(pid);
-                } else {
-                    log(&format!(
-                        "could not attach to {pid} yet: {}",
-                        io::Error::last_os_error()
-                    ));
-                    retry = true;
-                }
-            }
+            retry = scan(parent, &wanted, &mut engines, &mut attached(), log);
             scanned = Some(Instant::now());
         }
         // SAFETY: an all-zero DEBUG_EVENT is a valid value for WaitForDebugEvent to overwrite.
         let mut event: DEBUG_EVENT = unsafe { std::mem::zeroed() };
-        let wait = if retry { 20 } else { WAIT_MS };
+        let wait = if retry { RETRY_EVERY } else { SCAN_EVERY };
         // SAFETY: `event` is a local the call fills in.
-        if unsafe { WaitForDebugEvent(&raw mut event, wait) } == 0 {
+        if unsafe { WaitForDebugEvent(&raw mut event, u32::try_from(wait.as_millis()).unwrap_or(WAIT_MS)) } == 0 {
+            // A timeout, or no debuggee yet (the call then fails at once): wait here instead.
+            if attached().is_empty() {
+                std::thread::sleep(wait);
+            }
             continue;
         }
-        let status = handle(&event, handler, &mut attached(), log);
+        let status = handle(&event, handler, &mut engines, &mut attached(), log);
         // SAFETY: answers the event just received, on the thread that received it.
         unsafe { ContinueDebugEvent(event.dwProcessId, event.dwThreadId, status) };
     }
@@ -184,6 +187,51 @@ fn watch(parent: u32, image: &Path, handler: &Handler, stop: &AtomicBool, watchi
         // SAFETY: detaches a process this thread attached; it runs on without a debugger.
         unsafe { DebugActiveProcessStop(pid) };
     }
+}
+
+/// One scan: the engines among `parent`'s children (one process list, each child's image read
+/// once) not yet attached are attached. Returns whether one refused and should be tried again
+/// soon. Never a path in the log: it is the app's, which holds no file's path at info level.
+fn scan(parent: u32, wanted: &str, engines: &mut Engines, attached: &mut BTreeSet<u32>, log: Log) -> bool {
+    let mut retry = false;
+    for (pid, path) in children_of(parent) {
+        let is_engine = path.as_deref().is_some_and(|path| comparable(path) == wanted);
+        if engines.seen.insert(pid) {
+            let what = match (&path, is_engine) {
+                (_, true) => "the engine",
+                (Some(_), false) => "another program",
+                (None, false) => "unreadable",
+            };
+            log(&format!("child {pid}: {what}"));
+        }
+        if !is_engine || attached.contains(&pid) {
+            continue;
+        }
+        let tries = engines.tries.entry(pid).or_insert(0);
+        if *tries >= MAX_ATTACH_TRIES {
+            continue;
+        }
+        if !attach(pid) {
+            if *tries == 0 {
+                log(&format!(
+                    "could not attach to {pid} yet: {}",
+                    io::Error::last_os_error()
+                ));
+            }
+            *tries += 1;
+            retry = true;
+            continue;
+        }
+        // The pid may have gone to another process between the list and the attach.
+        if image_of(pid).is_some_and(|path| comparable(&path) == wanted) {
+            log(&format!("attached to {pid}"));
+            attached.insert(pid);
+        } else {
+            // SAFETY: detaches the process just attached by mistake; it runs on.
+            unsafe { DebugActiveProcessStop(pid) };
+        }
+    }
+    retry
 }
 
 /// Attaches to `pid`, so its exceptions come here first; the engine is not ended when the monitor
@@ -194,21 +242,29 @@ fn attach(pid: u32) -> bool {
     unsafe { DebugActiveProcess(pid) != 0 && DebugSetProcessKillOnExit(0) != 0 }
 }
 
-/// What to answer `event`: every exception goes on to the engine (its own handlers first), but the
+/// What to answer `event`: every exception goes on to the engine (its own handlers first) but the
 /// attach's breakpoint; a second-chance one is fatal, so its dump is written first.
-fn handle(event: &DEBUG_EVENT, handler: &Handler, attached: &mut BTreeSet<u32>, log: Log) -> i32 {
+fn handle(
+    event: &DEBUG_EVENT,
+    handler: &Handler,
+    engines: &mut Engines,
+    attached: &mut BTreeSet<u32>,
+    log: Log,
+) -> i32 {
+    let pid = event.dwProcessId;
     match event.dwDebugEventCode {
         EXCEPTION_DEBUG_EVENT => {
             // SAFETY: the event code says `u` holds the exception's information.
             let info = unsafe { event.u.Exception };
             let code = info.ExceptionRecord.ExceptionCode;
-            if code == EXCEPTION_BREAKPOINT {
+            // The breakpoint Windows raises in a process as a debugger attaches: swallowed once.
+            if code == EXCEPTION_BREAKPOINT && engines.started.insert(pid) {
                 return DBG_CONTINUE;
             }
             if info.dwFirstChance == 0 {
-                log(&format!("{}: second-chance exception {code:#x}", event.dwProcessId));
-                if code != STATUS_STACK_BUFFER_OVERRUN {
-                    write_dump(event.dwProcessId, event.dwThreadId, &info.ExceptionRecord, handler, log);
+                log(&format!("{pid}: second-chance exception {code:#x}"));
+                if !is_panic_abort(&info.ExceptionRecord) {
+                    write_dump(pid, event.dwThreadId, &info.ExceptionRecord, handler, log);
                 }
             }
             DBG_EXCEPTION_NOT_HANDLED
@@ -225,11 +281,21 @@ fn handle(event: &DEBUG_EVENT, handler: &Handler, attached: &mut BTreeSet<u32>, 
             DBG_CONTINUE
         }
         EXIT_PROCESS_DEBUG_EVENT => {
-            attached.remove(&event.dwProcessId);
+            attached.remove(&pid);
+            engines.started.remove(&pid);
+            engines.tries.remove(&pid);
             DBG_CONTINUE
         }
         _ => DBG_CONTINUE,
     }
+}
+
+/// Whether `record` is a Rust panic's abort: a fail-fast whose code is
+/// [`FAST_FAIL_FATAL_APP_EXIT`].
+fn is_panic_abort(record: &EXCEPTION_RECORD) -> bool {
+    record.ExceptionCode == STATUS_STACK_BUFFER_OVERRUN
+        && record.NumberParameters >= 1
+        && record.ExceptionInformation[0] == FAST_FAIL_FATAL_APP_EXIT
 }
 
 /// Writes the minidump of engine `pid`, stopped on `record` in thread `tid`.
@@ -305,17 +371,6 @@ struct Aligned(CONTEXT);
 const CONTEXT_ALL: u32 = windows_sys::Win32::System::Diagnostics::Debug::CONTEXT_ALL_AMD64;
 #[cfg(target_arch = "aarch64")]
 const CONTEXT_ALL: u32 = windows_sys::Win32::System::Diagnostics::Debug::CONTEXT_ALL_ARM64;
-
-/// The processes whose parent is `parent` and whose image is `image` (by path, ignoring case and
-/// which slash separates it: a path built from parts may mix `/` and `\`, Windows reports `\`).
-fn children_with_image(parent: u32, image: &Path) -> Vec<u32> {
-    let wanted = comparable(&image.to_string_lossy());
-    children_of(parent)
-        .into_iter()
-        .filter(|(_, path)| path.as_deref().is_some_and(|path| comparable(path) == wanted))
-        .map(|(pid, _)| pid)
-        .collect()
-}
 
 /// `path` as the image comparison sees it: lower case, with `\` for every separator.
 fn comparable(path: &str) -> String {
@@ -425,6 +480,31 @@ mod tests {
         assert_eq!(
             comparable(r"D:\a\Lamina/target\debug\laminapdf-desktop-engine.exe"),
             comparable(r"d:\a\lamina\target\debug\LAMINAPDF-DESKTOP-ENGINE.EXE")
+        );
+    }
+
+    fn record(code: i32, parameter: Option<usize>) -> super::EXCEPTION_RECORD {
+        // SAFETY: an all-zero EXCEPTION_RECORD is a valid value; the fields set below are plain data.
+        let mut record: super::EXCEPTION_RECORD = unsafe { std::mem::zeroed() };
+        record.ExceptionCode = code;
+        if let Some(parameter) = parameter {
+            record.NumberParameters = 1;
+            record.ExceptionInformation[0] = parameter;
+        }
+        record
+    }
+
+    #[test]
+    fn only_a_panics_fail_fast_should_go_without_a_dump() {
+        use super::{STATUS_STACK_BUFFER_OVERRUN, is_panic_abort};
+        assert_eq!(
+            (
+                is_panic_abort(&record(STATUS_STACK_BUFFER_OVERRUN, Some(7))),
+                is_panic_abort(&record(STATUS_STACK_BUFFER_OVERRUN, Some(2))),
+                is_panic_abort(&record(STATUS_STACK_BUFFER_OVERRUN, None)),
+                is_panic_abort(&record(super::EXCEPTION_BREAKPOINT, Some(7))),
+            ),
+            (true, false, false, false)
         );
     }
 }

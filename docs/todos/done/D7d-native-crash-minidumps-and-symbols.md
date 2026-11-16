@@ -48,7 +48,7 @@ D7a reports panics and how an engine ended, but a native crash (a segmentation f
 
 ## Acceptance criteria
 
-- [x] An engine segmentation fault (`e2e_crash_engine_segv` raising a real fault, not a signal from outside) produces a report whose frames name the faulting module, on macOS and Linux. Windows moved to [D7f](../ongoing/D7f-windows-native-crash-capture.md) (see As built).
+- [x] An engine segmentation fault (`e2e_crash_engine_segv` raising a real fault, not a signal from outside) produces a report whose frames name the faulting module, on macOS and Linux. Windows moved to [D7f](../done/D7f-windows-native-crash-capture.md) (see As built).
 - [x] Raw minidumps are deleted after processing, also when processing fails (test).
 - [x] A Rust integration test: an engine child crashing under the `minidumper` server gives a processed summary with no marker of the open file's folder, name or content.
 - [x] The engine's sandbox selftest still passes with the crash handler connected.
@@ -75,7 +75,7 @@ ADR 0014 §10 ("What comes later" becomes as built), the desktop plan's §9 D7 t
 
 These differ from the text above:
 
-- **Windows has no capture yet.** minidumper's Windows server takes the process ID its client sends without checking it, so a compromised engine could have the server dump any of the user's processes. Windows keeps D7a's reports; [D7f](../ongoing/D7f-windows-native-crash-capture.md) turns capture on once the server checks its peer.
+- **Windows has no capture yet.** minidumper's Windows server takes the process ID its client sends without checking it, so a compromised engine could have the server dump any of the user's processes. Windows keeps D7a's reports; [D7f](../done/D7f-windows-native-crash-capture.md) turns capture on once the server checks its peer.
 - **Nothing hostile in the main process.** A monitor process, the app's binary started with `--crash-monitor`, hosts both dump servers (the main process's and the engines'), so a hostile message can end only the monitor, which the app restarts at most 5 times a session; inside the monitor, a broken server loop restarts at most 16 times a minute. A dump is read by a fresh engine in `--summarize-dump` mode under the full sandbox, killed after 10 s, its answer capped at 1 MiB; the main process links no minidump parser (`full.yml` checks).
 - **Its own crate.** Capture and reading live in the edge crate `laminapdf-desktop-crash`; the sandbox crate keeps only the seccomp allowance for the crash socket (and `PR_SET_PTRACER` naming the dump server alone).
 - **The report's shape.** The data is a new `native` object (`crash_reason`, frames as module and offset, modules with debug IDs), not D7a's reserved top-level `modules`, which stays empty. `function` is always null: a name read from memory could carry document text, so names come only from the archived symbols through `cargo xtask crash symbolicate`.
