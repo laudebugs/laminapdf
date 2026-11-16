@@ -326,9 +326,10 @@ runs:
         set -euo pipefail
         cd "$DESKTOP_OUT"
         sum() { if command -v sha256sum > /dev/null; then sha256sum "$1"; else shasum -a 256 "$1"; fi; }
-        # Every file but the signatures, which sign these files rather than ship on their own.
+        # Every file but the signatures, which sign these files rather than ship on their own, and
+        # SHA256SUMS itself: the redirect below creates it before the glob expands.
         for file in *; do
-          case "$file" in *.sig | *.asc) ;; *) if [ -f "$file" ]; then sum "$file"; fi ;; esac
+          case "$file" in *.sig | *.asc | SHA256SUMS) ;; *) if [ -f "$file" ]; then sum "$file"; fi ;; esac
         done > SHA256SUMS
         cat SHA256SUMS
     - name: Sign every Linux file and SHA256SUMS (detached)
