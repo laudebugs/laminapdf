@@ -929,25 +929,44 @@ mod tests {
         );
     }
 
-    /// Todo X10b: each desktop job runs the `changes` job's legs for it, and each leg saves its pass
-    /// under the name that job looks up: `desktop-passed-<key>-<build|e2e>-<os>`.
+    /// Todo X10b: the desktop job runs the `changes` job's legs, and each leg saves its pass under
+    /// the name that job looks up: `desktop-passed-<key>-<os>`.
     #[test]
     fn each_desktop_leg_should_save_its_pass_where_the_changes_job_looks() {
         let changes = lines_of(FULL, "jobs", "changes");
         let looks_up = changes.iter().any(|l| l.contains(r#"key="desktop-passed-$KEY-""#))
             && changes
                 .iter()
-                .any(|l| l.contains(r#"--arg prefix "desktop-passed-$KEY-$job-""#))
-            && changes.iter().any(|l| l.trim() == "for job in build e2e; do");
-        let saves = [("desktop", "build"), ("desktop-e2e", "e2e")].map(|(job, short)| {
-            let lines = lines_of(FULL, "jobs", job);
-            let matrix = format!("include: ${{{{ fromJSON(needs.changes.outputs.desktop-{short}-legs) }}}}");
-            let key = format!("desktop-passed-$(cargo xtask desktop-key)-{short}-$OS");
-            lines.iter().any(|l| l.trim() == matrix)
-                && lines.iter().any(|l| l.contains(&key))
-                && lines.iter().any(|l| l.trim() == "key: ${{ steps.passed.outputs.key }}")
-        });
-        assert_eq!([looks_up, saves[0], saves[1]], [true; 3]);
+                .any(|l| l.contains(r#"--arg prefix "desktop-passed-$KEY-""#));
+        let lines = lines_of(FULL, "jobs", "desktop");
+        let saves = lines
+            .iter()
+            .any(|l| l.trim() == "include: ${{ fromJSON(needs.changes.outputs.desktop-legs) }}")
+            && lines
+                .iter()
+                .any(|l| l.contains("desktop-passed-$(cargo xtask desktop-key)-$OS"))
+            && lines.iter().any(|l| l.trim() == "key: ${{ steps.passed.outputs.key }}");
+        assert_eq!([looks_up, saves], [true; 2]);
+    }
+
+    /// The fast lane's macOS Arm64 Rust leg runs the render goldens on the `render` flag, so a PR
+    /// waits for no extra Mac, and the full lane has no Mac job of its own but the desktop leg.
+    #[test]
+    fn the_render_goldens_should_be_a_step_of_the_macos_arm64_rust_leg() {
+        let rust = lines_of(CI, "jobs", "rust");
+        let guarded =
+            "if: ${{ !cancelled() && matrix.platform == 'macos-arm64' && needs.changes.outputs.render == 'true' }}";
+        assert_eq!(
+            [
+                rust.iter().any(|l| l.trim() == "cargo xtask render-golden"),
+                rust.iter()
+                    .filter(|l| l.trim().trim_start_matches("- ") == guarded)
+                    .count()
+                    == 2,
+                !FULL.contains("render-golden"),
+            ],
+            [true; 3]
+        );
     }
 
     /// Todo X10c: the schedule analyses every language `cargo xtask changes` can name,

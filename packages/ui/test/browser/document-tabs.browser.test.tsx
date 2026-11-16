@@ -7,11 +7,18 @@
 
 import { useState } from "react";
 import { afterEach, describe, expect, it, onTestFinished } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { type DocumentTab, DocumentTabs, LocateDifferentDialog, RestoreNotice } from "../../src/index.ts";
 import { cleanup, renderIn, settled } from "./render.tsx";
 
 afterEach(() => cleanup());
+
+declare module "vitest/browser" {
+  interface BrowserCommands {
+    /** Makes the page prefer reduced motion or not, whatever the system says, or follow the system again with `null`. */
+    reducedMotion: (value: "reduce" | "no-preference" | null) => Promise<void>;
+  }
+}
 
 const TABS: DocumentTab[] = [
   { id: "a", title: "report.pdf" },
@@ -278,6 +285,9 @@ describe("the document tabs' motion", () => {
   });
 
   it("slides tabs to their new places, and fades a new tab in, growing", async () => {
+    // WebKit on Linux prefers reduced motion: ask for motion first.
+    await commands.reducedMotion("no-preference");
+    onTestFinished(() => commands.reducedMotion(null));
     renderIn(<Moving />);
     await userEvent.click(page.getByRole("button", { name: "Reverse" }));
     // The first and last tabs swap, so both slide; the middle one stays.
