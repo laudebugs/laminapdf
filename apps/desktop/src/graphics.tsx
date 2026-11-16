@@ -18,7 +18,7 @@ import type { DesktopShell } from "./engine/desktop-engine-client.ts";
 
 /** Settings › Graphics' choices, in the order it shows them (`Graphics` in src-tauri/src/graphics.rs,
  * whose test holds this list to the Rust enum). */
-export const GRAPHICS = ["automatic", "compatibility", "safe"] as const;
+const GRAPHICS = ["automatic", "compatibility", "safe"] as const;
 export type Graphics = (typeof GRAPHICS)[number];
 
 /** What this start runs with (`Status` in src-tauri/src/graphics.rs). */

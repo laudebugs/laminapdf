@@ -32,7 +32,7 @@ use std::time::{Duration, Instant};
 use laminapdf_desktop_crash::summary::DumpSummary;
 use laminapdf_desktop_crash::{
     CRASH_SERVER_PID_ARG, CRASH_SOCKET_ARG, CrashCapture, DUMP_EXTENSION, MonitorPaths, SUMMARIZE_DUMP_ARG,
-    capture_crashes,
+    capture_crashes_within,
 };
 use laminapdf_desktop_protocol::crash::truncate_on_char_boundary;
 use laminapdf_desktop_protocol::supervisor::Process as _;
@@ -223,10 +223,13 @@ impl EngineDumps {
     }
 
     /// The engine's arguments that connect it to the current monitor: the socket and the monitor's
-    /// pid (for `PR_SET_PTRACER`). Read live, so an engine started after a monitor restart gets the
-    /// new socket.
+    /// pid (for `PR_SET_PTRACER`). Called for each engine as it spawns, so an engine started after
+    /// a monitor restart gets the new socket; none once the monitor is down for good. The engine
+    /// waits briefly for a monitor that is still starting (`capture_crashes_within`).
     pub(crate) fn engine_args(&self) -> Vec<OsString> {
-        let (socket, pid) = self.monitor.engine_endpoint();
+        let Some((socket, pid)) = self.monitor.engine_endpoint() else {
+            return Vec::new();
+        };
         vec![
             CRASH_SOCKET_ARG.into(),
             socket.into(),
@@ -296,11 +299,19 @@ struct Monitor {
     engine_socket: Mutex<PathBuf>,
     engine_dir: PathBuf,
     pid: AtomicU32,
+    /// Whether a monitor is running: cleared when one exits, set again when its restart spawns.
+    /// Engines are given its socket only while one is.
+    alive: AtomicBool,
     /// The main process's own crash handler, reconnected to each monitor; only one at a time.
     capture: Mutex<Option<CrashCapture>>,
     stop: AtomicBool,
     supervisor: Mutex<Option<JoinHandle<()>>>,
 }
+
+/// How long the main process waits for a monitor it just spawned to listen: a little under the
+/// monitor's own 30 s wait for it, so a slow start (a debug build loading `WebKitGTK`) still connects
+/// before the monitor gives up. The wait runs on the supervisor's thread, off the start-up path.
+const MONITOR_READY: Duration = Duration::from_secs(25);
 
 /// How many times a dead monitor is restarted before the main process gives up on capture.
 const MAX_MONITOR_RESTARTS: u32 = 5;
@@ -314,30 +325,40 @@ impl Monitor {
             engine_dir: paths.engine_dir.clone(),
             engine_socket: Mutex::new(paths.engine_socket.clone()),
             pid: AtomicU32::new(child.id()),
+            alive: AtomicBool::new(true),
             capture: Mutex::new(None),
             stop: AtomicBool::new(false),
             supervisor: Mutex::new(None),
         });
-        this.connect_main(&paths, child.id());
+        // Connected on the supervisor's thread: the monitor needs a moment to listen, and the
+        // start-up path shouldn't wait for it.
         let supervisor = {
             let this = Arc::clone(&this);
             std::thread::Builder::new()
                 .name("crash-monitor".into())
-                .spawn(move || this.supervise(child))
+                .spawn(move || {
+                    this.connect_main(&paths, child.id());
+                    this.supervise(child);
+                })
+                // On Linux the handler's alternate signal stack is this thread's (see
+                // `capture_crashes`); the main thread keeps the standard library's.
                 .ok()
         };
         *this.supervisor.lock().unwrap_or_else(PoisonError::into_inner) = supervisor;
         Some(this)
     }
 
-    fn engine_endpoint(&self) -> (PathBuf, u32) {
-        (
-            self.engine_socket
-                .lock()
-                .unwrap_or_else(PoisonError::into_inner)
-                .clone(),
-            self.pid.load(Ordering::SeqCst),
-        )
+    /// The engines' socket and the monitor's pid, while a monitor is running.
+    fn engine_endpoint(&self) -> Option<(PathBuf, u32)> {
+        self.alive.load(Ordering::SeqCst).then(|| {
+            (
+                self.engine_socket
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .clone(),
+                self.pid.load(Ordering::SeqCst),
+            )
+        })
     }
 
     fn engine_dir(&self) -> PathBuf {
@@ -345,11 +366,14 @@ impl Monitor {
     }
 
     /// Reconnects the main process's crash handler to `paths`' main socket, dropping the old one
-    /// first (crash-handler allows only one installed handler at a time).
+    /// first (crash-handler allows only one installed handler at a time). The monitor was just
+    /// spawned, so its socket may not be listening yet: the connection waits for it, up to
+    /// [`MONITOR_READY`]. Connecting at once failed on every start, and the monitor, with no main
+    /// process connected, exited after its wait and was restarted until the restarts ran out.
     fn connect_main(&self, paths: &MonitorPaths, monitor_pid: u32) {
         let mut capture = self.capture.lock().unwrap_or_else(PoisonError::into_inner);
         *capture = None;
-        match capture_crashes(&paths.main_socket, monitor_pid) {
+        match capture_crashes_within(&paths.main_socket, monitor_pid, MONITOR_READY) {
             Ok(installed) => *capture = Some(installed),
             Err(error) => tracing::warn!("the main process's native crashes won't leave a dump: {error}"),
         }
@@ -360,6 +384,7 @@ impl Monitor {
         let mut restarts = 0u32;
         loop {
             let _ = child.wait();
+            self.alive.store(false, Ordering::SeqCst);
             if self.stop.load(Ordering::SeqCst) || restarts >= MAX_MONITOR_RESTARTS {
                 return;
             }
@@ -371,6 +396,7 @@ impl Monitor {
                         .unwrap_or_else(PoisonError::into_inner)
                         .clone_from(&paths.engine_socket);
                     self.pid.store(next.id(), Ordering::SeqCst);
+                    self.alive.store(true, Ordering::SeqCst);
                     self.connect_main(&paths, next.id());
                     child = next;
                 }
