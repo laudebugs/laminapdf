@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D7f` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [D7d](../done/D7d-native-crash-minidumps-and-symbols.md) |
