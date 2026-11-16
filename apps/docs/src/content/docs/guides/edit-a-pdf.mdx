@@ -50,6 +50,8 @@ This example labels a cover, roman front matter and a numbered body:
 
 `doc.content.objects(index)` lists the shapes, text, images and other objects a page already draws, in painting order, each with its box in page space. `doc.content.hitTest(index, [x, y])` gives the objects under a point, topmost first. Then `doc.content.edit(index, edits)` moves, resizes, deletes, crops, replaces or reorders them in one edit, naming each object as the list gave it. Only the objects you name are written again, so the rest of the page keeps its bytes. [Edit what a page draws](/recipes/edit-objects/) has the whole program.
 
+To change words rather than whole objects, `doc.content.textRuns(index)` lists the runs of text a page shows, and `doc.content.editText(index, run, text)` gives one new text in the font it is set in. The rest of the line moves to fit, and empty text deletes the run. [Edit the text a page shows](/recipes/edit-text/) has the whole program.
+
 Editing what a page already draws is best effort. An object that clips what follows it can't be moved, and its `readOnly` says why before you try. A move in the stacking order that would make an object draw differently is refused with `content-not-editable` and a reason.
 
 ## Undo and redo

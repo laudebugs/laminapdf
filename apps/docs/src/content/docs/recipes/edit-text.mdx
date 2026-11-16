@@ -1,0 +1,31 @@
+---
+title: Edit the text a page shows
+description: List the runs of text a PDF page shows, then change or delete one in the font it is set in, with the rest of its line moved to fit.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll change one word a page already shows: "world" becomes "Lamina PDF". Use it to fix a typo, update a date or a price, or remove a line before you send a file on, without rebuilding the page.
+
+First, the program lists the page's runs of text, each with its line, font and, when it can't be edited, the reason. It then picks the first run that says "world" and gives it new text:
+
+<Example ts="packages/sdk/examples/edit-text.ts" rust="crates/laminapdf/examples/edit_text.rs" result="edit_text" />
+
+In the result, the greeting reads "Hello, Lamina PDF!" in the same font and size. Text extraction, copy and search find the new words, since the page now shows them.
+
+## How it works
+
+- `content.textRuns(index)` (`text_runs` in Rust) lists the runs in reading order. A run is text in one font and size on one baseline, inside one text object; on a tagged page, a run also stays inside one tagged element.
+- An edit names a run by its text object and its glyphs within that object. Once an edit changes the object, a name taken before that edit fails with `content-object-stale`, so an edit never lands on the wrong text.
+- The new text uses the run's own font. Every character must be one the font can draw: for an embedded subset, a character the document already shows in that font; for a font that isn't embedded, any character of its encoding. Any other character fails with `missing-glyph`, and nothing changes.
+- When the text grows or shrinks, the rest of its line moves by the difference. The lines below stay where they were.
+- **Undo:** one `undo()` reverts the edit.
+
+## What to change
+
+- **Delete a run:** give it empty text.
+- **Change part of a run:** name a smaller range of its glyphs, `start` to `end`. In a simple font, one character is one glyph.
+- **Read-only runs:** a run in a Type 3 font, in vertical writing, in a font with no map from its codes to text, or whose glyphs are turned or written out of order can't be edited. Its `readOnly` says why, and editing it fails with `content-not-editable`.
+- **Private content:** the old text stays in the file's earlier revisions until a full save. The edit's `stillInEarlierRevisions` says so; save with `mode: "fullRewrite"` to drop it.
+
+Next: [edit what a page draws](/recipes/edit-objects/), to move or delete whole objects instead.

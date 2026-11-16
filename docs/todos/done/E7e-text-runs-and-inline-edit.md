@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `E7e` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [E7c](../done/E7c-content-ir.md) |
+| Depends on | [E7c](./E7c-content-ir.md) |
 | ADRs | Implements ADR 0022; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e7e-text-runs-and-inline-edit` |
 | PR title | `feat(content): text run detection and in-place text editing` |
 | Size | L (600–1,500) |
-| PR | — |
+| PR | [#677](https://github.com/laudebugs/laminapdf/pull/677) |
 
 ## Goal
 
@@ -51,20 +51,26 @@ Detect editable text runs/lines (MCIDs where tagged, heuristics otherwise), edit
 
 ## Tasks
 
-- [ ] Detection
-- [ ] Glyph check
-- [ ] Re-encode
-- [ ] Op
-- [ ] Façade and SDK
+- [x] Detection
+- [x] Glyph check
+- [x] Re-encode
+- [x] Op
+- [x] Façade and SDK
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
-- [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
-- [ ] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
-- [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
-- [ ] Edited text extracts as typed in pdf.js and pdftotext
-- [ ] Runs that cannot be edited are reported with a reason code
+- [x] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [x] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
+- [x] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
+- [x] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
+- [x] Edited text extracts as typed in pdf.js and pdftotext
+- [x] Runs that cannot be edited are reported with a reason code
+
+## Notes from the work
+
+- A run is an extraction run (one font and size on one baseline, split at each MCID) within one text object, so tagged pages get MCID runs without a second finder. Text inside a Form XObject isn't listed: its glyphs have no object of the page to name.
+- The edit reports no fidelity label yet (ADR 0022 §7): every E7e edit is exact or reflowed on its line, and the label matters once E7f adds substitution, so [E7f](../ready/E7f-font-handling-and-styling.md) adds it with the font chain.
+- A line that overflows its text block isn't reported yet either: E7e moves the rest of the line, and E7f, which adds alignment and spacing, reports overflow.
 
 ## Post-merge checks
 
@@ -87,8 +93,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
