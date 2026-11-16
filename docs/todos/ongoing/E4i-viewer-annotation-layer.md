@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E4i` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E4 plan §5](../../plans/editor/e4-markup-and-drawing-annotations.md#5-the-viewer-while-drawing) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E1g](../done/E1g-redraw-after-edit.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4b](../done/E4b-annotation-model-and-overlay.md) |

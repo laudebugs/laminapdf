@@ -44,7 +44,7 @@ Typed annotation views in `laminapdf-model`, `page_annotations` in the façade a
 **Out of scope** (and which todo covers it)
 
 - Each subtype's spec and appearance → [E4c](../done/E4c-appearances-markup-notes-caret.md), [E4d](../done/E4d-appearances-ink-and-shapes.md), [E4e](E4e-freetext-callouts.md)
-- The viewer's annotation layer → [E4i](../ready/E4i-viewer-annotation-layer.md)
+- The viewer's annotation layer → [E4i](../ongoing/E4i-viewer-annotation-layer.md)
 
 **Editor facts**
 
