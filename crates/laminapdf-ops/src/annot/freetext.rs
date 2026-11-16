@@ -179,9 +179,11 @@ impl FreeText {
         self
     }
 
-    /// The border as drawn: typewriter text has none.
+    /// The border as drawn: the box's, or none for typewriter text.
+    ///
+    /// Added in 0.5.0.
     #[must_use]
-    pub(crate) fn drawn_border(&self) -> Border {
+    pub fn drawn_border(&self) -> Border {
         match self.intent {
             FreeTextIntent::Typewriter => Border::solid(0.0),
             _ => self.border.clone(),

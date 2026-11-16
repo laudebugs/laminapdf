@@ -6,6 +6,8 @@
 //! The generators are deterministic: the same input writes the same bytes on every platform.
 
 mod drawing;
+#[cfg(feature = "freetext")]
+mod freetext;
 mod markup;
 mod note;
 
@@ -50,9 +52,26 @@ impl laminapdf_ops::Appearances for AnnotationAppearances {
             opacity: request.opacity.get(),
             intent: request.intent,
         };
+        #[cfg(feature = "freetext")]
+        if let AnnotSpec::FreeText(text) = request.spec {
+            let (form, rect) = freetext::draw(cos, text, &paint, request.blobs)?;
+            return Ok(laminapdf_ops::Appearance::new(form, rect));
+        }
         let drawn = draw(request.spec, &paint);
         let (form, rect) = drawn.write(cos)?;
         Ok(laminapdf_ops::Appearance::new(form, rect))
+    }
+
+    /// Text boxes need text layout: the standard 14 fonts with the `freetext` feature, any font
+    /// with `text`. Every other mark can always be drawn.
+    fn check(&self, request: &laminapdf_ops::AppearanceRequest<'_>) -> Result<(), laminapdf_ops::AppearanceRefusal> {
+        match request.spec {
+            #[cfg(feature = "freetext")]
+            AnnotSpec::FreeText(text) => freetext::check(text, request.blobs),
+            #[cfg(not(feature = "freetext"))]
+            AnnotSpec::FreeText(_) => Err(laminapdf_ops::AppearanceRefusal::NeedsText),
+            _ => Ok(()),
+        }
     }
 }
 
@@ -170,6 +189,8 @@ pub(crate) struct Drawn {
     content: Content,
     bbox: UserSpaceRect,
     gs: Option<Dict>,
+    /// The `/Font` resources a text box's appearance uses.
+    fonts: Dict,
 }
 
 impl Drawn {
@@ -191,7 +212,12 @@ impl Drawn {
             content.set_parameters(pdf_writer::Name(b"GS0"));
             gs
         });
-        Self { content, bbox, gs }
+        Self {
+            content,
+            bbox,
+            gs,
+            fonts: Dict::new(),
+        }
     }
 
     /// Writes the Form XObject into the overlay; returns it with the `/Rect` it covers.
@@ -205,6 +231,9 @@ impl Drawn {
             let mut states = Dict::new();
             states.insert("GS0", gs);
             resources.insert("ExtGState", states);
+        }
+        if !self.fonts.is_empty() {
+            resources.insert("Font", self.fonts);
         }
         dict.insert("Resources", resources);
         let bytes = self.content.finish().into_vec();

@@ -358,7 +358,7 @@ pub(crate) fn read_rc(rc: &str) -> ReadRc {
         for (prop, value) in declarations(&css) {
             match prop.as_str() {
                 "font-weight" => {
-                    next.bold = value == "bold" || value == "bolder" || value.parse::<u32>().is_ok_and(|w| w >= 600)
+                    next.bold = value == "bold" || value == "bolder" || value.parse::<u32>().is_ok_and(|w| w >= 600);
                 }
                 "font-style" => next.italic = value == "italic" || value == "oblique",
                 "font-family" | "font-size" | "color" | "font" | "text-align" if name != "body" => {

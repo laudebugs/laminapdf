@@ -34,8 +34,9 @@ saslprep = ["laminapdf-cos/saslprep"]
 # opens, reads, edits and saves documents only.
 build = ["dep:laminapdf-build"]
 # Text extraction alone (laminapdf-text's extractor: `page_text`, `laminapdf::extract`), without the
-# builder: what a reader needs (B9c; ADR 0016 §4 places it by size).
-extract = ["dep:laminapdf-text", "dep:laminapdf-extract"]
+# builder: what a reader needs (B9c; ADR 0016 §4 places it by size). With the builder, it also lets
+# text boxes be drawn in the standard 14 fonts (`laminapdf-build/freetext`, E4e).
+extract = ["dep:laminapdf-text", "dep:laminapdf-extract", "laminapdf-build?/freetext"]
 # Reader mode (`Document::reflow`) on top of extraction. Left out of the WASM text module (ADR 0016 §6).
 reflow = ["extract", "laminapdf-extract/reflow"]
 # JBIG2 images decoded when extracting images (`Document::extract_images`). Left out of the WASM
