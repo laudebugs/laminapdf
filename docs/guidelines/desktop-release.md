@@ -366,6 +366,8 @@ Add `-f dry_run=true` to build every target with no environment and publish noth
 
 ### A tagged release
 
+A tag publishes to every beta install, so before the first one, run a staging trial and the person-only checks on clean virtual machines against its files: Gatekeeper on macOS, and on Windows the SmartScreen prompt, the MSI's publisher in UAC, "Open with" and the MSI's "Managed by your organisation" ([D6d](../todos/ongoing/D6d-windows-signing.md) and [D6e](../todos/ready/D6e-macos-signed-release-checks.md) list them).
+
 1. Merge everything the release needs into `main`, and wait for the nightly to pass on it.
 2. Tag the commit: `git tag desktop-v0.1.0 <commit> && git push origin desktop-v0.1.0`. The version must be plain `X.Y.Z`, with X and Y at most 255 and Z at most 65,535, the limits an MSI allows.
 3. Approve the `desktop-release` deployment, twice: the builds start once you approve, and the publish job asks again when the builds have passed.

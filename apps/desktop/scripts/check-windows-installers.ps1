@@ -57,12 +57,17 @@ function Get-RegistryString([string]$key, [string]$name) {
 
 function Format-RegistryValue($value) { if ($null -eq $value) { 'none' } else { "'$value'" } }
 
+# Whether .pdf's default class under `classes` is still `before`.
+function Test-DefaultUnchanged([string]$classes, [string]$label, $before) {
+    $default = Get-RegistryString "$classes\.pdf" '(default)'
+    Write-CheckResult ($default -ceq $before) "$label leaves .pdf's default class as it was (before $(Format-RegistryValue $before), now $(Format-RegistryValue $default))"
+}
+
 # $defaultBefore is untyped: a [string] parameter would turn "no default" ($null) into ''.
 function Test-Registered([string]$hive, [string]$label, $defaultBefore) {
     $classes = "${hive}:\Software\Classes"
     Write-CheckResult ($null -ne (Get-RegistryString "$classes\.pdf\OpenWithProgids" $progId)) "$label lists $progId in .pdf's OpenWithProgids"
-    $default = Get-RegistryString "$classes\.pdf" '(default)'
-    Write-CheckResult ($default -ceq $defaultBefore) "$label leaves .pdf's default class as it was (before $(Format-RegistryValue $defaultBefore), now $(Format-RegistryValue $default))"
+    Test-DefaultUnchanged $classes $label $defaultBefore
     $command = Get-RegistryString "$classes\$progId\shell\open\command" '(default)'
     Write-CheckResult ($null -ne $command -and $command -match '^"(?<exe>[^"]+)" "%1"$') "$label's open command is `"<app>`" `"%1`" ($command)"
     if ($command -match '^"(?<exe>[^"]+)"') {
@@ -80,8 +85,7 @@ function Test-Removed([string]$hive, [string]$label, $defaultBefore, [string]$ex
     $classes = "${hive}:\Software\Classes"
     Write-CheckResult ($null -eq (Get-RegistryString "$classes\.pdf\OpenWithProgids" $progId)) "$label removes $progId from .pdf's OpenWithProgids"
     Write-CheckResult (-not (Test-Path -LiteralPath "$classes\$progId")) "$label removes the $progId class"
-    $default = Get-RegistryString "$classes\.pdf" '(default)'
-    Write-CheckResult ($default -ceq $defaultBefore) "$label leaves .pdf's default class as it was (before $(Format-RegistryValue $defaultBefore), now $(Format-RegistryValue $default))"
+    Test-DefaultUnchanged $classes $label $defaultBefore
     if ($exe) { Write-CheckResult (-not (Test-Path -LiteralPath $exe)) "$label removes the app ($exe)" }
 }
 
@@ -117,11 +121,11 @@ Write-CheckResult ($null -eq (Get-RegistryString 'HKLM:\Software\Lamina' 'Instal
 $uninstall = Get-RegistryString "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\$product" 'UninstallString'
 Write-CheckResult ($null -ne $uninstall) 'the NSIS install registers its uninstaller'
 if ($uninstall) {
+    $uninstaller = $uninstall.Trim('"')
     if ($Signed) {
-        $uninstaller = $uninstall.Trim('"')
         Write-CheckResult ((Get-AuthenticodeSignature -LiteralPath $uninstaller).Status -eq 'Valid') 'the NSIS uninstaller has a Valid signature'
     }
-    Invoke-Installer ($uninstall.Trim('"')) @('/S')
+    Invoke-Installer $uninstaller @('/S')
     # The uninstaller copies itself to a temporary folder and returns at once.
     for ($i = 0; $i -lt 60 -and $exe -and (Test-Path -LiteralPath $exe); $i++) { Start-Sleep -Seconds 1 }
     Test-Removed 'HKCU' 'the NSIS uninstall' $before $exe

@@ -12,8 +12,9 @@
 //! - A pull request, or a dispatch with `dry_run`, builds every target with no environment and
 //!   publishes nothing; a pull request also builds Windows x64 as a tag would, MSI included.
 //!
-//! Until macOS and Windows are both signed at the OS level (`SIGNED_PLATFORMS`), a tag is refused
-//! and staging needs `allow_unsigned_platforms`.
+//! A tag publishes only when `SIGNED_PLATFORMS` names both macOS and Windows, as the workflow's
+//! does; were a platform left out, a tag would be refused and staging would need
+//! `allow_unsigned_platforms`.
 
 use anyhow::{Result, bail};
 use serde::Serialize;

@@ -32,7 +32,7 @@ The first `desktop-release` runs to the `staging` channel prove what [D6c](../do
 ## Tasks
 
 - [ ] Fresh worktree; claim in the work PR. Confirm Apple has enabled notarisation (the owner forwards Apple's answer).
-- [ ] Staging dispatch 1 (`gh workflow run desktop-release.yml -f channel=staging -f allow_unsigned_platforms=true`, the owner approves): both macOS legs green, the verification step included. Record the run.
+- [ ] Staging dispatch 1 (`gh workflow run desktop-release.yml -f channel=staging`, the owner approves; with Windows signed too since D6d, staging needs no `allow_unsigned_platforms`): both macOS legs green, the verification step included. Record the run.
 - [ ] Note whether the runner's Gatekeeper gave `spctl`'s verdict or the step warned that assessments were off; if off, `spctl` on a clean Mac (below) stands in for it.
 - [ ] Check the logs for the identity, the certificate password, the keychain password and the API key: masked or absent.
 - [ ] Install build 1 from staging on a Mac, then run staging dispatch 2 and update to it through the updater.

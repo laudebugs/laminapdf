@@ -41,41 +41,41 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-function Fail([string]$message) {
+function Exit-WithError([string]$message) {
     Write-Host "::error::sign-windows: $message"
     exit 1
 }
 
-function Required([string]$name) {
+function Get-RequiredVariable([string]$name) {
     $value = [Environment]::GetEnvironmentVariable($name)
-    if ([string]::IsNullOrEmpty($value)) { Fail "$name is not set" }
+    if ([string]::IsNullOrEmpty($value)) { Exit-WithError "$name is not set" }
     return $value
 }
 
-$path = Required 'LAMINA_PDF_WIN_SIGN_PATH'
+$path = Get-RequiredVariable 'LAMINA_PDF_WIN_SIGN_PATH'
 if ($path -ne 'artifact-signing') {
-    Fail "LAMINA_PDF_WIN_SIGN_PATH is '$path'; only artifact-signing is set up (runbook §1.5)"
+    Exit-WithError "LAMINA_PDF_WIN_SIGN_PATH is '$path'; only artifact-signing is set up (runbook §1.5)"
 }
-$signtool = Required 'SIGNTOOL'
-$dlib = Required 'ARTIFACT_SIGNING_DLIB'
-$metadata = Required 'ARTIFACT_SIGNING_METADATA'
+$signtool = Get-RequiredVariable 'SIGNTOOL'
+$dlib = Get-RequiredVariable 'ARTIFACT_SIGNING_DLIB'
+$metadata = Get-RequiredVariable 'ARTIFACT_SIGNING_METADATA'
 foreach ($tool in @($signtool, $dlib, $metadata)) {
-    if (-not (Test-Path -LiteralPath $tool -PathType Leaf)) { Fail "$tool doesn't exist" }
+    if (-not (Test-Path -LiteralPath $tool -PathType Leaf)) { Exit-WithError "$tool doesn't exist" }
 }
 
 if ($Presign) {
-    $Files = @((Required 'LAMINA_PDF_WIN_PRESIGN') -split ';' | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Leaf) })
-    if ($Files.Count -eq 0) { Fail "none of LAMINA_PDF_WIN_PRESIGN's files exists" }
+    $Files = @((Get-RequiredVariable 'LAMINA_PDF_WIN_PRESIGN') -split ';' | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Leaf) })
+    if ($Files.Count -eq 0) { Exit-WithError "none of LAMINA_PDF_WIN_PRESIGN's files exists" }
 }
 
 $attempts = 3
 foreach ($file in $Files) {
-    if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { Fail "$file doesn't exist" }
+    if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { Exit-WithError "$file doesn't exist" }
     for ($attempt = 1; ; $attempt++) {
         & $signtool sign /v /fd SHA256 /tr 'http://timestamp.acs.microsoft.com' /td SHA256 `
             /dlib $dlib /dmdf $metadata $file
         if ($LASTEXITCODE -eq 0) { break }
-        if ($attempt -ge $attempts) { Fail "signtool failed on $file after $attempts attempts" }
+        if ($attempt -ge $attempts) { Exit-WithError "signtool failed on $file after $attempts attempts" }
         $wait = 15 * $attempt
         Write-Host "::warning::sign-windows: signtool failed on $file (attempt $attempt); trying again in $wait s"
         Start-Sleep -Seconds $wait
