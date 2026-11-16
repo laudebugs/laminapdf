@@ -63,7 +63,7 @@ ADR 0014 §10, the desktop plan's §9 D7 to-do, `deny.toml` if a fork is pinned.
 ## Risks and open questions
 
 - minidumper's maintainers may want the check done another way; a fork must be kept current until they take it.
-- The engine's start-up impersonation (D2c) may change what it can connect to; test before and after it reverts.
+- The engine's start-up impersonation (D2c) may change what it can connect to; test before and after the impersonation reverts.
 
 ## Definition of done
 

@@ -1,6 +1,6 @@
 # Desktop release and signing runbook
 
-This runbook tells the owner how to set up and look after the identities that sign Lamina PDF's desktop app, and tells the release workflows which secrets they may use. The owner signs every tagged release personally, as the publisher, on macOS, Windows and Linux ([architecture §8 Q5](../plans/architecture.md#8-open-questions-for-the-team), decided 2026-10-28). Sections 1 and 2 are the setup, section 3 checks each release, sections 4 and 5 cover what happens later, section 6 cuts a release, and section 7 archives each release's crash symbols and reads a crash report with them. Todo [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md) wrote it; [D6b](../todos/done/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/ready/D6c-macos-signing-and-notarisation.md) and [D6d](../todos/ready/D6d-windows-signing.md) wire it into the workflows.
+This runbook tells the owner how to set up and look after the identities that sign Lamina PDF's desktop app, and tells the release workflows which secrets they may use. The owner signs every tagged release personally, as the publisher, on macOS, Windows and Linux ([architecture §8 Q5](../plans/architecture.md#8-open-questions-for-the-team), decided 2026-10-28). Sections 1 and 2 are the setup, section 3 checks each release, sections 4 and 5 cover what happens later, section 6 cuts a release, and section 7 covers the crash symbols each release archives and how to read a report with them. Todo [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md) wrote it; [D6b](../todos/done/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/ready/D6c-macos-signing-and-notarisation.md) and [D6d](../todos/ready/D6d-windows-signing.md) wire it into the workflows.
 
 **Never write a secret value, private key, certificate file or recovery code into this repository**, a pull request, an issue or a screenshot. This page names secrets; it never holds them.
 
@@ -146,7 +146,7 @@ D5b's updater tests run in `desktop-staging` on every push to `main` and every n
 ### 1.11 Cloudflare
 
 - [x] Confirm the R2 buckets `lamina-pdf-releases`, `lamina-pdf-nightly` and `lamina-pdf-staging` and their download domains exist (D5a). The staging bucket and the `desktop-staging` environment in §2 serve D5b's updater tests and D6b–D6d's trial runs; they hold only a throwaway updater key and that bucket's token, so nothing in them can reach a user's install.
-- [ ] Create the private symbols bucket `lamina-pdf-symbols` and its two tokens (§7.3).
+- [ ] Create the private symbols bucket `lamina-pdf-symbols` and its R2 token (§7.3).
 - [x] Confirm each token is scoped to one bucket only, stored as in §2. The staging bucket has two separate tokens: one in `desktop-release`, for D6b–D6d's signed trial runs, and one in `desktop-staging`, for D5b's tests.
 
 ## 2. Secrets inventory
@@ -336,11 +336,11 @@ Stable releases come from beta. Promote a beta release to stable at 1 %, then ra
 
 ## 7. Crash symbols
 
-A native crash report names its frames by module and offset only, so each tagged release archives the debug symbols that turn those offsets back into function names and source lines. The app processes a crash's minidump on the user's computer and uploads only the frames and the modules' debug IDs ([D7d](../todos/done/D7d-native-crash-minidumps-and-symbols.md)). The symbols stay in a private bucket, because they describe the app's code rather than anyone's documents, and only maintainers read them.
+A native crash report names its frames by module and offset only, so each tagged release archives the debug symbols that turn those offsets back into function names and source lines. The app processes a crash's minidump on the user's computer and uploads only the frames and the modules' debug IDs ([D7d](../todos/done/D7d-native-crash-minidumps-and-symbols.md)). The symbols hold no user data, but only maintainers need them, so they stay in a private bucket.
 
 ### 7.1 What each release archives
 
-Every build leg writes the symbols of the app's two binaries, the main process (`laminapdf-desktop`) and the engine sidecar (`laminapdf-desktop-engine`), with `.github/actions/desktop-build/symbols.sh`. PDFium has none: it is a prebuilt third-party library built without our symbols, so its frames print as module and offset.
+Every build leg writes the symbols of the app's two binaries, the main process (`laminapdf-desktop`) and the engine sidecar (`laminapdf-desktop-engine`), with `.github/actions/desktop-build/symbols.sh`. PDFium has none: it is a prebuilt third-party library that ships without symbols, so its frames print as module and offset.
 
 The release build keeps line tables (`CARGO_PROFILE_RELEASE_DEBUG=line-tables-only`): function names, source lines and inlined calls, at a fraction of full debug information's size. The shipped binaries still carry none of it, because each OS moves it out:
 
@@ -363,15 +363,15 @@ The `archive-symbols` job uploads a tagged release's symbols to `lamina-pdf-symb
 
 The debug file is the binary's name on macOS and Linux (`laminapdf-desktop-engine`) and the PDB's on Windows (`laminapdf_desktop_engine.pdb`). Beside each `.sym` file sits the raw debug file it came from: `<binary>.dSYM.tar.gz`, the `.pdb`, or `<binary>.debug`. They let a maintainer run a newer `dump_syms` later, or open a debugger on a crash they reproduce.
 
-Only a `desktop-v*` tag push archives anything. Nightlies would add a set every day, and staging trials never reach a user's install. Until macOS and Windows are signed, `plan` refuses a tag (§6), so the first archive comes with the first tagged release. Keep every release's symbols for as long as any install of it can still send a report: so the bucket gets no lifecycle rule. The job's summary lists each file it uploads with its size.
+Only a `desktop-v*` tag push archives anything. Nightlies would add a set every day, and staging trials never reach a user's install. Until macOS and Windows are signed, `plan` refuses a tag (§6), so the first archive comes with the first tagged release. Keep every release's symbols for as long as any install of it can still send a report, so the bucket gets no lifecycle rule. The job's summary lists each file it uploads with its size.
 
 ### 7.3 Owner setup
 
-The job needs one bucket and two tokens. Without them it uploads nothing, leaves a notice in the run, and the release still publishes.
+The job needs one bucket and one R2 token, stored as two secrets. Without them it uploads nothing, leaves a notice in the run, and the release still publishes.
 
 - [ ] In Cloudflare R2, create the bucket `lamina-pdf-symbols`. Leave it private: no public access, no custom domain, no `r2.dev` address.
 - [ ] Create an R2 API token with Object Read & Write on `lamina-pdf-symbols` only. Store its value as `SYMBOLS_R2_TOKEN` and its Access Key ID as `SYMBOLS_R2_ACCESS_KEY_ID` in the `desktop-release` environment (§2). The job reads the account from the environment's `CLOUDFLARE_ACCOUNT_ID`.
-- [ ] Give each maintainer who reads crash reports a Cloudflare account on Lamina PDF's account with read access to R2. `wrangler login` then gives their Wrangler access. Wrangler's `r2 object` commands call Cloudflare's REST API, which a token scoped to one bucket can't use. A maintainer who prefers a token creates an account API token with the Workers R2 Storage Read permission and sets it as `CLOUDFLARE_API_TOKEN` in their own shell.
+- [ ] Give each maintainer who reads crash reports a Cloudflare account on Lamina PDF's account with read access to R2. Wrangler's `r2 object` commands call Cloudflare's REST API, which a token scoped to one bucket can't use. A maintainer who prefers a token creates an account API token with the Workers R2 Storage Read permission and sets it as `CLOUDFLARE_API_TOKEN` in their own shell.
 
 ### 7.4 Symbolicating a crash report
 
@@ -387,7 +387,7 @@ The command reads the report's `native` object. For each module a frame names, i
 Crash reason: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS
 #0 laminapdf-desktop-engine engine::draw (crates/…/render.rs:30) [inlined]
 #0 laminapdf-desktop-engine engine::render (crates/…/render.rs:12)
-#1 libpdfium.dylib FPDF_LoadPage +0x4d2
+#1 libpdfium.dylib +0x4d2
 ```
 
 A function inlined into a frame gets a line of its own, marked `[inlined]`, above the frame it was inlined into. A frame whose module has no symbols, such as PDFium's or the OS's, prints its module and offset only: a native report never carries function names (the app has no symbols on the computer, and a name read from a dump's memory could be document text), so every name comes from the archived symbols here. To read symbols from a folder in the same layout instead of the bucket, for example a dry run's `symbols-desktop-*` artifact, add `--symbols <dir>`.
