@@ -1,6 +1,6 @@
 ---
 title: "Error and warning codes"
-version: "0.4.0"
+version: "0.5.0"
 url: "https://docs.laminapdf.com/reference/codes/"
 ---
 
@@ -21,6 +21,8 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`collection-index`](collection-index.md)
 - [`color-components`](color-components.md)
 - [`content-bad-operands`](content-bad-operands.md)
+- [`content-not-editable`](content-not-editable.md)
+- [`content-object-stale`](content-object-stale.md)
 - [`content-path-unpainted`](content-path-unpainted.md)
 - [`content-resource-missing`](content-resource-missing.md)
 - [`content-syntax`](content-syntax.md)
@@ -69,6 +71,7 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`heading-level-skipped`](heading-level-skipped.md)
 - [`image-data-length`](image-data-length.md)
 - [`image-too-large`](image-too-large.md)
+- [`images-unavailable`](images-unavailable.md)
 - [`imported-pdfa-unchecked`](imported-pdfa-unchecked.md)
 - [`imported-pdfua-unchecked`](imported-pdfua-unchecked.md)
 - [`imported-tags-dropped`](imported-tags-dropped.md)
@@ -122,6 +125,7 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`name-tree-node-skipped`](name-tree-node-skipped.md)
 - [`named-destination-exists`](named-destination-exists.md)
 - [`nested-transaction`](nested-transaction.md)
+- [`no-bookmarks`](no-bookmarks.md)
 - [`no-pages-left`](no-pages-left.md)
 - [`no-pending-save`](no-pending-save.md)
 - [`no-transaction`](no-transaction.md)
@@ -183,6 +187,7 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`unexpected-eof`](unexpected-eof.md)
 - [`unknown-annotation`](unknown-annotation.md)
 - [`unknown-axis`](unknown-axis.md)
+- [`unknown-blob`](unknown-blob.md)
 - [`unknown-code`](unknown-code.md)
 - [`unknown-destination`](unknown-destination.md)
 - [`unknown-font`](unknown-font.md)

@@ -1,7 +1,7 @@
 ---
 title: "Recipes"
 description: "Complete Lamina PDF programs, from one page of text to an archived invoice, each with its code and the PDF it writes."
-version: "0.4.0"
+version: "0.5.0"
 url: "https://docs.laminapdf.com/recipes/"
 ---
 
@@ -33,11 +33,15 @@ To run a Rust recipe from a checkout of Lamina PDF, use `cargo run -p laminapdf 
 - [Edit the metadata](../pages/recipes/edit-metadata.md): a title, authors and keywords in both copies a PDF keeps, checked before the save.
 - [Choose how a PDF opens](../pages/recipes/set-initial-view.md): the page and zoom, the panel beside the page and the title in the window.
 - [Edit the bookmarks](../pages/recipes/edit-bookmarks.md): add, move and style bookmarks, and name places links jump to.
+- [Add a contents page](../pages/recipes/create-contents-page.md): a page listing the bookmarks, each with its page label and a link there.
 - [Add links](../pages/recipes/add-links.md): link a drawn box or a line of text to a page or a web address, with a description screen readers read.
 - [Mark up a page](../pages/recipes/mark-up.md): highlight text, leave a sticky note and propose a replacement word, drawn the same in every reader.
+- [Answer a review](../pages/recipes/review-comments.md): read the comments as threads, reply to a question and mark a highlight done.
+- [Draw on a page](../pages/recipes/draw-on-page.md): freehand ink, shapes, arrows and polygons, each with a description screen readers read.
 - [Record your own metadata](../pages/recipes/edit-xmp.md): properties of your own in the XMP metadata, in a PDF/A file that stays valid.
 - [Organise pages](../pages/recipes/organise-pages.md): delete, move, insert and rotate pages in one edit, with the bookmarks and links that pointed at a deleted page sent on.
 - [Duplicate pages](../pages/recipes/duplicate-pages.md): copy a page so the copy has form fields, annotations and tags of its own.
+- [Edit what a page draws](../pages/recipes/edit-objects.md): move, resize, delete and reorder the shapes, text and images a page already draws.
 - [Crop pages](../pages/recipes/crop-pages.md): crop every page by the same margins, whatever its size or rotation.
 - [Resize pages](../pages/recipes/resize-pages.md): put every page on new paper, scaled to fit or extended, and turn pages to portrait or landscape.
 - [Copy pages between PDFs](../pages/recipes/copy-pages.md): copy pages in from another file, replace a page, or make a new PDF from some pages.
