@@ -266,14 +266,20 @@ const CONTEXT_ALL: u32 = windows_sys::Win32::System::Diagnostics::Debug::CONTEXT
 #[cfg(target_arch = "aarch64")]
 const CONTEXT_ALL: u32 = windows_sys::Win32::System::Diagnostics::Debug::CONTEXT_ALL_ARM64;
 
-/// The processes whose parent is `parent` and whose image is `image` (by path, ignoring case).
+/// The processes whose parent is `parent` and whose image is `image` (by path, ignoring case and
+/// which slash separates it: a path built from parts may mix `/` and `\`, Windows reports `\`).
 fn children_with_image(parent: u32, image: &Path) -> Vec<u32> {
-    let wanted = image.to_string_lossy().to_lowercase();
+    let wanted = comparable(&image.to_string_lossy());
     children_of(parent)
         .into_iter()
-        .filter(|(_, path)| path.as_ref().is_some_and(|path| path.to_lowercase() == wanted))
+        .filter(|(_, path)| path.as_deref().is_some_and(|path| comparable(path) == wanted))
         .map(|(pid, _)| pid)
         .collect()
+}
+
+/// `path` as the image comparison sees it: lower case, with `\` for every separator.
+fn comparable(path: &str) -> String {
+    path.to_lowercase().replace('/', "\\")
 }
 
 /// The children of `parent`, each with its image's path when it can be read.
@@ -367,5 +373,18 @@ fn close(handle: HANDLE) {
     if !handle.is_null() && handle != INVALID_HANDLE_VALUE {
         // SAFETY: a handle this module owns, closed once.
         unsafe { CloseHandle(handle) };
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::comparable;
+
+    #[test]
+    fn image_paths_should_match_whatever_their_slashes_and_case() {
+        assert_eq!(
+            comparable(r"D:\a\Lamina/target\debug\laminapdf-desktop-engine.exe"),
+            comparable(r"d:\a\lamina\target\debug\LAMINAPDF-DESKTOP-ENGINE.EXE")
+        );
     }
 }
