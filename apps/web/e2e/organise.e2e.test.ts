@@ -103,7 +103,7 @@ describe(`organising pages in ${BROWSER}`, () => {
   let browser: Browser;
 
   beforeAll(async () => {
-    await init();
+    await init({ extract: true });
     browser = await launch();
   });
 
