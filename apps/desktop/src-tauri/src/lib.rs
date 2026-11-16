@@ -88,17 +88,23 @@ fn engine_program() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from(name))
 }
 
-/// The engine's arguments: the PDFium folder among the app's resources, when it is there, and
-/// the crash-dump server's socket, when it runs.
+/// The engine's fixed arguments: the PDFium folder among the app's resources, when it is there.
 fn engine_args(app: &tauri::AppHandle) -> Vec<OsString> {
-    #[cfg_attr(not(unix), expect(unused_mut, reason = "only capture, on Unix, adds the socket"))]
-    let mut args = match app.path().resource_dir().map(|dir| dir.join("pdfium")) {
+    match app.path().resource_dir().map(|dir| dir.join("pdfium")) {
         Ok(dir) if dir.is_dir() => vec!["--pdfium".into(), dir.into_os_string()],
         _ => {
             tracing::warn!("PDFium is not among the app's resources; pages won't render");
             Vec::new()
         }
-    };
+    }
+}
+
+/// The arguments of an engine about to spawn: the fixed ones, and the crash-dump server's socket
+/// while a monitor runs (Unix). Read at each spawn, since a restarted monitor has a new socket.
+#[cfg_attr(not(unix), expect(unused_variables, reason = "only capture, on Unix, reads the app"))]
+fn spawn_args(app: &tauri::AppHandle, fixed: &[OsString]) -> Vec<OsString> {
+    #[cfg_attr(not(unix), expect(unused_mut, reason = "only capture, on Unix, adds the socket"))]
+    let mut args = fixed.to_vec();
     #[cfg(unix)]
     if let Some(dumps) = app.try_state::<crash::EngineDumps>() {
         args.extend(dumps.engine_args());
@@ -146,10 +152,11 @@ impl Notify for WindowEvents {
 
 /// Every window's engine, started on first use.
 fn engines(app: &tauri::AppHandle) -> Arc<Engines> {
-    let (program, args) = (engine_program(), engine_args(app));
+    let (program, fixed, handle) = (engine_program(), engine_args(app), app.clone());
     let launcher: Launcher = Arc::new(move || {
+        let args = spawn_args(&handle, &fixed);
         // Inside its sandbox (ADR 0008 §5); the supervisor logs the layers each engine reports.
-        let spawner = SandboxSpawner::new(program.clone(), args.clone(), SandboxConfig::default(), |line| {
+        let spawner = SandboxSpawner::new(program.clone(), args, SandboxConfig::default(), |line| {
             tracing::info!(target: "laminapdf_desktop::engine", "{line}");
         });
         Box::new(spawner) as Box<dyn Spawner>

@@ -223,9 +223,9 @@ impl EngineDumps {
     }
 
     /// The engine's arguments that connect it to the current monitor: the socket and the monitor's
-    /// pid (for `PR_SET_PTRACER`). Read live, so an engine started after a monitor restart gets the
-    /// new socket; none while no monitor is listening, so an engine never races a monitor still
-    /// starting.
+    /// pid (for `PR_SET_PTRACER`). Called for each engine as it spawns, so an engine started after
+    /// a monitor restart gets the new socket; none once the monitor is down for good. The engine
+    /// waits briefly for a monitor that is still starting (`capture_crashes_within`).
     pub(crate) fn engine_args(&self) -> Vec<OsString> {
         let Some((socket, pid)) = self.monitor.engine_endpoint() else {
             return Vec::new();
@@ -299,10 +299,9 @@ struct Monitor {
     engine_socket: Mutex<PathBuf>,
     engine_dir: PathBuf,
     pid: AtomicU32,
-    /// Whether the current monitor is listening: set once the main process has connected to it
-    /// (it binds the engines' socket before the main one), cleared when it exits. Engines are
-    /// given its socket only while it is.
-    listening: AtomicBool,
+    /// Whether a monitor is running: cleared when one exits, set again when its restart spawns.
+    /// Engines are given its socket only while one is.
+    alive: AtomicBool,
     /// The main process's own crash handler, reconnected to each monitor; only one at a time.
     capture: Mutex<Option<CrashCapture>>,
     stop: AtomicBool,
@@ -311,7 +310,7 @@ struct Monitor {
 
 /// How long the main process waits for a monitor it just spawned to listen: a little under the
 /// monitor's own 30 s wait for it, so a slow start (a debug build loading `WebKitGTK`) still connects
-/// before the monitor gives up. The wait runs off the start-up path, and a shutdown cancels it.
+/// before the monitor gives up. The wait runs on the supervisor's thread, off the start-up path.
 const MONITOR_READY: Duration = Duration::from_secs(25);
 
 /// How many times a dead monitor is restarted before the main process gives up on capture.
@@ -326,7 +325,7 @@ impl Monitor {
             engine_dir: paths.engine_dir.clone(),
             engine_socket: Mutex::new(paths.engine_socket.clone()),
             pid: AtomicU32::new(child.id()),
-            listening: AtomicBool::new(false),
+            alive: AtomicBool::new(true),
             capture: Mutex::new(None),
             stop: AtomicBool::new(false),
             supervisor: Mutex::new(None),
@@ -349,9 +348,9 @@ impl Monitor {
         Some(this)
     }
 
-    /// The engines' socket and the monitor's pid, while a monitor is listening.
+    /// The engines' socket and the monitor's pid, while a monitor is running.
     fn engine_endpoint(&self) -> Option<(PathBuf, u32)> {
-        self.listening.load(Ordering::SeqCst).then(|| {
+        self.alive.load(Ordering::SeqCst).then(|| {
             (
                 self.engine_socket
                     .lock()
@@ -371,21 +370,11 @@ impl Monitor {
     /// spawned, so its socket may not be listening yet: the connection waits for it, up to
     /// [`MONITOR_READY`]. Connecting at once failed on every start, and the monitor, with no main
     /// process connected, exited after its wait and was restarted until the restarts ran out.
-    ///
-    /// A shutdown that starts during the wait cancels it, and a handler that connects anyway is
-    /// dropped: installed after [`Drop`] cleared it, it would keep the monitor waiting for the
-    /// main process to disconnect while the drop waits for the monitor.
     fn connect_main(&self, paths: &MonitorPaths, monitor_pid: u32) {
-        *self.capture.lock().unwrap_or_else(PoisonError::into_inner) = None;
-        match capture_crashes_within(&paths.main_socket, monitor_pid, MONITOR_READY, &self.stop) {
-            Ok(installed) => {
-                let mut capture = self.capture.lock().unwrap_or_else(PoisonError::into_inner);
-                if !self.stop.load(Ordering::SeqCst) {
-                    *capture = Some(installed);
-                    self.listening.store(true, Ordering::SeqCst);
-                }
-            }
-            Err(_) if self.stop.load(Ordering::SeqCst) => {}
+        let mut capture = self.capture.lock().unwrap_or_else(PoisonError::into_inner);
+        *capture = None;
+        match capture_crashes_within(&paths.main_socket, monitor_pid, MONITOR_READY) {
+            Ok(installed) => *capture = Some(installed),
             Err(error) => tracing::warn!("the main process's native crashes won't leave a dump: {error}"),
         }
     }
@@ -394,14 +383,8 @@ impl Monitor {
     fn supervise(&self, mut child: std::process::Child) {
         let mut restarts = 0u32;
         loop {
-            // A monitor no main process connected to waits out its own timeout; when shutting
-            // down, end it rather than wait.
-            if self.stop.load(Ordering::SeqCst) && self.capture.lock().unwrap_or_else(PoisonError::into_inner).is_none()
-            {
-                let _ = child.kill();
-            }
             let _ = child.wait();
-            self.listening.store(false, Ordering::SeqCst);
+            self.alive.store(false, Ordering::SeqCst);
             if self.stop.load(Ordering::SeqCst) || restarts >= MAX_MONITOR_RESTARTS {
                 return;
             }
@@ -413,6 +396,7 @@ impl Monitor {
                         .unwrap_or_else(PoisonError::into_inner)
                         .clone_from(&paths.engine_socket);
                     self.pid.store(next.id(), Ordering::SeqCst);
+                    self.alive.store(true, Ordering::SeqCst);
                     self.connect_main(&paths, next.id());
                     child = next;
                 }

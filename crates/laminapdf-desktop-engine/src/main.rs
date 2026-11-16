@@ -182,7 +182,9 @@ fn connect_crash_server(socket: Option<&Path>, server: Option<u32>) -> Option<Ca
             return None;
         }
     };
-    match laminapdf_desktop_crash::capture_crashes(socket, server) {
+    // The monitor may have just been spawned and not listen yet; a short wait, so an engine never
+    // holds a window's first page for long.
+    match laminapdf_desktop_crash::capture_crashes_within(socket, server, std::time::Duration::from_secs(2)) {
         Ok(capture) if cfg!(target_os = "linux") && capture.descriptor().is_none() => {
             log("native crashes won't leave a dump: the crash socket's descriptor is unknown");
             drop(capture);

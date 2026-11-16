@@ -112,7 +112,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   ├── laminapdf-desktop-crash/  # edge, unpublished: native crash capture (D7d, ADR 0014 §10). capture.rs (Unix only, off on
 │   │                    #     Windows): the monitor process (the app binary with --crash-monitor) hosts a minidumper DumpServer
 │   │                    #     for the main process and one for its engines; capture_crashes installs the crash-handler client
-│   │                    #     each process connects before lock-down (the main process: capture_crashes_within, waiting for its new monitor). summary.rs (feature `summary`, only the engine): summarize_bytes
+│   │                    #     each process connects before lock-down (both through capture_crashes_within, which waits for a monitor still starting). summary.rs (feature `summary`, only the engine): summarize_bytes
 │   │                    #     reads a dump into the allow-listed DumpSummary, which the engine's `--summarize-dump` mode runs
 │   │                    #     sandboxed so the main process never links the parser. `debug-crash` (fault), `test-support` (TestDumpServer)
 │   ├── laminapdf-desktop-os/  # edge, unpublished: the desktop main process's calls into the OS's shell (D3b): the recent
