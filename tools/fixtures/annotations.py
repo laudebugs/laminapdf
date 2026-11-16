@@ -230,7 +230,9 @@ def flatten():
         19: "<< /Type /Annot /Subtype /Text /Rect [150 80 170 100] /Contents (Note) /Popup 20 0 R /F 28 "
         "/AP << /N 41 0 R >> >>",
         20: "<< /Type /Annot /Subtype /Popup /Rect [180 40 280 100] /Parent 19 0 R >>",
-        21: "<< /Type /Annot /Subtype /Text /Rect [150 80 170 100] /IRT 19 0 R /Contents (Reply) /F 28 >>",
+        # A reply draws nothing, as Lamina PDF's replies don't.
+        21: "<< /Type /Annot /Subtype /Text /Rect [150 80 170 100] /IRT 19 0 R /Contents (Reply) /F 28 "
+        "/AP << /N 43 0 R >> >>",
         22: "<< /Type /Annot /Subtype /Square /Rect [200 110 280 140] /F 4 /AP << /N 42 0 R >> >>",
         50: "<< /Type /OCG /Name (Hidden layer) >>",
         60: "<< /Type /Annot /Subtype /Square /Rect [20 20 80 80] /F 4 /StructParent 1 /Contents (Tagged square) "
@@ -256,6 +258,7 @@ def flatten():
             "/Type /XObject /Subtype /Form /BBox [0 0 30 80] /Matrix [0 1 -1 0 0 0] /Resources << >>",
             b"1 0 1 rg 0 0 30 40 re f 0 1 1 rg 0 40 30 40 re f",
         ),
+        43: ("/Type /XObject /Subtype /Form /BBox [0 0 20 20] /Resources << >>", b""),
         61: form("0 0.5 0", 60, 60),
         80: ("", b"BT /F1 12 Tf 20 280 Td (Flatten me) Tj ET"),
         81: ("", b"/P << /MCID 0 >> BDC BT /F1 12 Tf 20 250 Td (Tagged text) Tj ET EMC"),

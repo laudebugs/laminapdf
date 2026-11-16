@@ -121,8 +121,9 @@ fn each_appearance_is_drawn_after_the_wrapped_content_as_an_artifact() {
 fn the_quarter_turned_appearance_fills_its_rect() {
     let mut d = doc();
     flatten(&mut d, &["a22.0"], FlattenIntent::View).unwrap();
-    // The box [0 0 30 80] turned by [0 1 -1 0 0 0] then fitted onto [200 110 280 140].
-    assert!(content(&d, 0).contains("0 1 -1 0 280 110 cm"), "{}", content(&d, 0));
+    // The box [0 0 30 80], which `Do` turns by the form's [0 1 -1 0 0 0] to x −80…0, y 0…30, is
+    // moved onto [200 110 280 140]: the page only shifts it.
+    assert!(content(&d, 0).contains("1 0 0 1 280 110 cm"), "{}", content(&d, 0));
 }
 
 #[test]

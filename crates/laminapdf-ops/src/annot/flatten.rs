@@ -268,7 +268,8 @@ fn prepare(doc: &mut laminapdf_model::Document, dict: &Dict) -> Result<Option<Pr
     {
         return Ok(None);
     }
-    let Some(matrix) = doc.appearance_placement(dict, &appearance.stream)? else {
+    // `Do` applies the form's own `/Matrix`: the page sets only the fit.
+    let Some(matrix) = doc.appearance_placement(dict, &appearance.stream)?.map(|p| p.fit) else {
         return Ok(None);
     };
     let form = match appearance.object {

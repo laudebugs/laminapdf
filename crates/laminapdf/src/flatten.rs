@@ -2,7 +2,7 @@
 //! picks the annotations of a scope and applies [`FlattenAnnots`] to them, so each one's
 //! appearance becomes part of its page and the annotation goes.
 
-use laminapdf_model::{AnnotId, AnnotSubtype};
+use laminapdf_model::{AnnotFlags, AnnotId, AnnotSubtype};
 use laminapdf_ops::{FlattenAnnots, FlattenIntent};
 
 use crate::document::Document;
@@ -25,7 +25,8 @@ pub enum FlattenScope {
 impl Document {
     /// The op that flattens the annotations of `scope` for `intent`: for [`FlattenScope::All`]
     /// and [`FlattenScope::Pages`], every annotation on those pages but form fields' widgets,
-    /// links, Popups and replies (a reply goes with the comment it answers).
+    /// links, Popups, replies (a reply goes with the comment it answers) and `Locked` ones, which
+    /// may not be removed.
     ///
     /// # Errors
     /// `page-index-out-of-range` for a page past the end; reading errors.
@@ -54,6 +55,7 @@ impl Document {
                     .into_iter()
                     .filter(|a| {
                         a.in_reply_to.is_none()
+                            && !a.flags.has(AnnotFlags::LOCKED)
                             && !matches!(
                                 a.subtype,
                                 AnnotSubtype::Widget | AnnotSubtype::Link | AnnotSubtype::Popup

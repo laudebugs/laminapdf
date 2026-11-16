@@ -36,9 +36,9 @@
 
 **Out of scope** (and which todo covers it)
 
-- The comment summary → [E5f](E5f-comment-summary.md)
-- The dialog → [E5i](E5i-interchange-flatten-summary-ui.md)
-- Form fields → [E8g](E8g-form-data-and-flatten.md)
+- The comment summary → [E5f](../ready/E5f-comment-summary.md)
+- The dialog → [E5i](../ready/E5i-interchange-flatten-summary-ui.md)
+- Form fields → [E8g](../ready/E8g-form-data-and-flatten.md)
 
 **Editor facts**
 
@@ -52,19 +52,30 @@
 
 ## Tasks
 
-- [ ] The op
-- [ ] The move of the appearance functions
-- [ ] Fixtures and the corpus test
-- [ ] Bindings and examples
+- [x] The op
+- [x] The move of the appearance functions
+- [x] Fixtures and the corpus test
+- [x] Bindings and examples
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new op and function is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
-- [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
-- [ ] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdicts of [E5 plan §5](../../plans/editor/e5-review-stamps-interchange.md#5-saving-and-the-save-constraint), because a misclassified op is a security bug
+- [x] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new op and function is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [x] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
+- [x] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdicts of [E5 plan §5](../../plans/editor/e5-review-stamps-interchange.md#5-saving-and-the-save-constraint), because a misclassified op is a security bug
 - [ ] Round-trip: open → op → save → reopen in Lamina PDF, pdf.js and PDFium preserves the change and everything else; `qpdf --check` is clean
-- [ ] PDFium's render of each flattened page of `flatten.pdf` matches its render before flattening within E4g's threshold
-- [ ] The pdf.js corpus's annotated files flatten and render the same, or are listed with their reason
+- [x] PDFium's render of each flattened page of `flatten.pdf` matches its render before flattening within E4g's threshold
+- [x] The pdf.js corpus's annotated files flatten and render the same, or are listed with their reason
+
+## As built
+
+- **The op** is `FlattenAnnots { annots, intent }` in `laminapdf-ops`' `annot/flatten.rs`, class `Content`, no full rewrite, no usage right of its own (a UR3 file refuses class `Content` already). It draws each annotation, and each member of its Popup, reply and group cascade that has an appearance, in `/Annots` order, then removes the chosen ones through `DeleteAnnot`, so the structure tree loses their `Annot` elements and the parent tree their keys. An ID an earlier one's removal took is skipped. The drawing is `q [/GsN gs] <A> cm /FmN Do Q`, inside `/Artifact BMC … EMC` when the file is tagged (`/MarkInfo /Marked` or a structure tree); `/CA` and `/BM` go through an ExtGState, as §12.5.2 says they apply to the appearance. A stream written in place, or one without `/Subtype /Form`, is drawn from a Form XObject copy.
+- **Left in place, not removed:** an annotation hidden for the intent (`Hidden`; `NoView` on screen; no `Print` flag printed), and one whose `/OC` (or whose appearance's `/OC`) is off in the default configuration (`flatten_oc.rs`: `/BaseState`, `/ON`, `/OFF`, a membership's `/OCGs` and `/P`; `/VE` and usage states aren't evaluated, and what can't be read counts as on). These are not reported. One without an appearance gets the generator's first (`Redraw` with no change); when the generator can't draw its kind, or there is none, it stays and is listed in `Applied::not_flattened`, which the façade reports as the `flatten-no-appearance` edit warning (`facadeWarnings`). A cascade member without an appearance (a reply) is removed without being drawn.
+- **Refusals:** a widget is `flatten-widget` (new `opErrors` code). A `Locked` annotation is refused with `annotation-locked`, as `DeleteAnnot` refuses it, since flattening removes it; the façade's `All` and `Pages` scopes leave locked annotations out, with widgets, links, Popups and replies (anything with `/IRT`).
+- **`flatten-untagged`** is a `ConformanceWarning` (`opWarnings`) that `pending_conformance_warnings` raises on a file claiming PDF/UA-1 while `PendingChanges::flattened` holds annotations, so the save plan reports it. The plan's PDF/A font re-check after flattening (§3) isn't built: flattening keeps each appearance's own resources, which the file already had.
+- **The move:** `laminapdf-model`'s `appearance.rs` has `Document::normal_appearance` (`/AP /N`, the entry `/AS` names for a state dictionary), `Document::annotation_rect`, `Document::appearance_placement` and `AppearancePlacement { matrix, fit }`, plus `UserSpaceRect::transformed`, which `laminapdf-content`'s `transformed_box` now calls. The placement keeps the form's `/Matrix` and the fit `A` apart: `Do` applies the form's matrix itself, so the flattener sets only `A`, while the extractor, which interprets the stream directly, uses `to_user_space()`. The extractor keeps its own visibility rules for covers.
+- **Façade and bindings:** `Document::flatten_annotations(&FlattenScope, FlattenIntent)` and `flatten_op`; `FlattenScope::{All, Pages, Annotations}`; WASM `flattenAnnotations(scope, intent)` in the extract and text modules (`FlattenScopeInit`); the SDK's `doc.flattenAnnotations(scope, intent)` with `FlattenScope` and `FlattenIntent`, following the flat API of `deleteAnnotations` rather than the plan's `doc.annotations.flatten`. The op itself crosses through `apply` in every module. New public items say `Added in 0.6.0.` / `@since 0.6.0`, the next minor release after 0.5.0.
+- **Renders:** E4g's threshold doesn't exist yet, so the comparisons use the render goldens' SSIM ≥ 0.99 (ADR 0004). `laminapdf-render-pdfium`'s `tests/flatten.rs` (ignored, needs PDFium) compares every page of `flatten.pdf` on screen and printed, leaving out two annotations: the translucent square, since PDFium draws an appearance without its `/CA`, and the square without an appearance, which PDFium and Lamina PDF each draw their own way. Its corpus test flattens the 29 `annotation-*.pdf` files of the pdf.js corpus (`cargo xtask corpus fetch --source pdfjs`); 26 match, and the three whose shapes have no appearance are listed with that reason. `laminapdf-render`'s `tests/flatten.rs` checks the annotations hayro draws as the standard says (it ignores `/CA`, `NoView` and `/OC` and draws nothing without an appearance).
+- **Fixtures and tests:** `fixtures/annotations/flatten.pdf` (`tools/fixtures/annotations.py`); `ops/v1/flatten-annots.json`; `laminapdf-ops`' `tests/flatten.rs`; `laminapdf-save`'s `tests/flatten.rs` (planner verdicts, both save modes, `qpdf --check`, undo and redo bytes) and the round-trip suite's flatten cases (`tests/common/roundtrip_flatten.rs`); `laminapdf`'s `tests/flatten.rs`; the SDK's `comments.test.ts`. The example is `flatten_comments` / `flatten-comments`, flattening `mark_up`'s review for printing, on the docs site's Flatten comments recipe.
 
 ## Post-merge checks
 

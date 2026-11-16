@@ -73,16 +73,20 @@ impl Document {
         })
     }
 
-    /// The matrix that draws `appearance` into the annotation `annot` (§12.5.5): from the
-    /// stream's `/BBox`, its `/Matrix` (the identity when absent) and the annotation's `/Rect`,
-    /// as [`appearance_matrix`] computes it. `None` when either box is missing or malformed, or
-    /// the transformed box has no area.
+    /// Where `appearance` draws in the annotation `annot` (§12.5.5): from the stream's `/BBox`,
+    /// its `/Matrix` (the identity when absent) and the annotation's `/Rect`, as
+    /// [`AppearancePlacement::new`] computes it. `None` when either box is missing or malformed,
+    /// or the transformed box has no area.
     ///
     /// # Errors
     /// As [`normal_appearance`](Self::normal_appearance).
     ///
     /// Added in 0.6.0.
-    pub fn appearance_placement(&self, annot: &laminapdf_cos::Dict, appearance: &Stream) -> Result<Option<Matrix>> {
+    pub fn appearance_placement(
+        &self,
+        annot: &laminapdf_cos::Dict,
+        appearance: &Stream,
+    ) -> Result<Option<AppearancePlacement>> {
         let rect = self.annotation_rect(annot)?;
         let bbox = match appearance.dict.get("BBox") {
             Some(bbox) => read_rect(self, bbox)?,
@@ -95,7 +99,7 @@ impl Document {
             Some(m) => self.matrix(m)?.unwrap_or(Matrix::IDENTITY),
             None => Matrix::IDENTITY,
         };
-        Ok(appearance_matrix(&bbox, &matrix, &rect))
+        Ok(AppearancePlacement::new(&bbox, &matrix, &rect))
     }
 
     /// The annotation's `/Rect`, read through references; `None` unless it is four numbers.
@@ -130,27 +134,50 @@ impl Document {
     }
 }
 
-/// The matrix that draws an appearance whose `/BBox` is `bbox` and `/Matrix` is `matrix` into
-/// the annotation's `rect` (§12.5.5, Algorithm 8.1): the matrix, then the scale and shift that
-/// fit the transformed box onto the rectangle. `None` when the transformed box has no area.
+/// Where an appearance draws (§12.5.5, Algorithm 8.1): the form's own `/Matrix`, then the
+/// scale and shift `fit` that map the box it transforms onto the annotation's `/Rect`.
 ///
 /// Added in 0.6.0.
-#[must_use]
-pub fn appearance_matrix(bbox: &UserSpaceRect, matrix: &Matrix, rect: &UserSpaceRect) -> Option<Matrix> {
-    let boxed = bbox.transformed(matrix);
-    let (w, h) = (boxed.x1 - boxed.x0, boxed.y1 - boxed.y0);
-    if w <= 0.0 || h <= 0.0 || !w.is_finite() || !h.is_finite() {
-        return None;
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[non_exhaustive]
+pub struct AppearancePlacement {
+    /// The form's `/Matrix`, which drawing the form with `Do` applies itself.
+    pub matrix: Matrix,
+    /// The matrix `A` that fits the transformed box onto `/Rect`: what a content stream that
+    /// draws the form with `Do` sets with `cm` first.
+    pub fit: Matrix,
+}
+
+impl AppearancePlacement {
+    /// The placement of an appearance whose `/BBox` is `bbox` and `/Matrix` is `matrix` in the
+    /// annotation's `rect`; `None` when the transformed box has no area.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn new(bbox: &UserSpaceRect, matrix: &Matrix, rect: &UserSpaceRect) -> Option<Self> {
+        let boxed = bbox.transformed(matrix);
+        let (w, h) = (boxed.x1 - boxed.x0, boxed.y1 - boxed.y0);
+        if w <= 0.0 || h <= 0.0 || !w.is_finite() || !h.is_finite() {
+            return None;
+        }
+        let fit = Matrix::translate(-boxed.x0, -boxed.y0)
+            .then(&Matrix::scale((rect.x1 - rect.x0) / w, (rect.y1 - rect.y0) / h))
+            .then(&Matrix::translate(rect.x0, rect.y0));
+        Some(Self { matrix: *matrix, fit })
     }
-    let fit = Matrix::translate(-boxed.x0, -boxed.y0)
-        .then(&Matrix::scale((rect.x1 - rect.x0) / w, (rect.y1 - rect.y0) / h))
-        .then(&Matrix::translate(rect.x0, rect.y0));
-    Some(matrix.then(&fit))
+
+    /// The whole mapping from the form's space to user space: its `/Matrix`, then `fit`.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn to_user_space(&self) -> Matrix {
+        self.matrix.then(&self.fit)
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::appearance_matrix;
+    use super::AppearancePlacement;
     use crate::{Matrix, UserSpaceRect};
 
     fn mapped(m: &Matrix, x: f64, y: f64) -> (f64, f64) {
@@ -162,7 +189,8 @@ mod tests {
     fn the_box_maps_onto_the_rect() {
         let bbox = UserSpaceRect::from_corners(0.0, 0.0, 10.0, 20.0);
         let rect = UserSpaceRect::from_corners(100.0, 200.0, 120.0, 220.0);
-        let m = appearance_matrix(&bbox, &Matrix::IDENTITY, &rect).unwrap_or(Matrix::IDENTITY);
+        let m =
+            AppearancePlacement::new(&bbox, &Matrix::IDENTITY, &rect).map_or(Matrix::IDENTITY, |p| p.to_user_space());
         assert_eq!(
             (mapped(&m, 0.0, 0.0), mapped(&m, 10.0, 20.0)),
             ((100.0, 200.0), (120.0, 220.0))
@@ -175,7 +203,7 @@ mod tests {
         // 90° counter-clockwise: the 10 × 20 box becomes 20 × 10, x from −20 to 0.
         let turn = Matrix::new([0.0, 1.0, -1.0, 0.0, 0.0, 0.0]);
         let rect = UserSpaceRect::from_corners(100.0, 200.0, 140.0, 220.0);
-        let m = appearance_matrix(&bbox, &turn, &rect).unwrap_or(Matrix::IDENTITY);
+        let m = AppearancePlacement::new(&bbox, &turn, &rect).map_or(Matrix::IDENTITY, |p| p.to_user_space());
         // (0, 0) turns to (0, 0), the box's right edge: x 140. (10, 20) turns to (−20, 10).
         assert_eq!(
             (mapped(&m, 0.0, 0.0), mapped(&m, 10.0, 20.0)),
@@ -187,6 +215,6 @@ mod tests {
     fn a_box_of_no_area_maps_nothing() {
         let flat = UserSpaceRect::from_corners(0.0, 0.0, 10.0, 0.0);
         let rect = UserSpaceRect::from_corners(0.0, 0.0, 10.0, 10.0);
-        assert!(appearance_matrix(&flat, &Matrix::IDENTITY, &rect).is_none());
+        assert!(AppearancePlacement::new(&flat, &Matrix::IDENTITY, &rect).is_none());
     }
 }

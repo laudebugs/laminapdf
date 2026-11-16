@@ -81,7 +81,7 @@ fn annotation(doc: &Document, annot: laminapdf_syntax::ObjRef, frame: &PageFrame
     let Some(target) = doc.annotation_rect(dict)? else {
         return Ok(Vec::new());
     };
-    let Some(outer) = doc.appearance_placement(dict, &stream)? else {
+    let Some(outer) = doc.appearance_placement(dict, &stream)?.map(|p| p.to_user_space()) else {
         return Ok(Vec::new());
     };
     let content = doc.decode_stream(&stream)?;
