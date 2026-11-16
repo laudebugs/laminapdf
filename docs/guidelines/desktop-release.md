@@ -210,7 +210,7 @@ The release workflow runs these checks on every macOS build it signs, and fails 
 ```powershell
 signtool verify /pa /v .\Lamina-PDF-setup.exe
 Get-AuthenticodeSignature .\Lamina-PDF-setup.exe | Format-List   # Status Valid; SignerCertificate subject shows the legal name
-# Every file inside both installers, as the release build checks them (signer CN, timestamp):
+# Every file inside both installers, as the release build checks them (signer, SHA-256, RFC 3161 timestamp):
 $env:SIGNTOOL = (Get-Command signtool).Source
 .\apps\desktop\scripts\verify-windows-signatures.ps1 -Dir <folder with the installers> -Publisher 'Laurence Ininda'
 ```
@@ -299,7 +299,7 @@ The Windows legs stop at the first file that can't be signed, after two retries.
 - **`azure/login` fails with AADSTS70021 or AADSTS700213.** No federated credential matches the run. The error quotes the subject GitHub sent; the credential must name exactly that, `repo:laudebugs@25782070/laminapdf@1437211634:environment:desktop-release` (§1.5), and the job must run in `desktop-release`. A name-based subject (`repo:laudebugs/laminapdf:…`) never matches here, because the repository uses GitHub's immutable subject format.
 - **SignTool reports 403 Forbidden.** The Entra app lacks the Artifact Signing Certificate Profile Signer role on `LaminaPdfPublicTrust`, or the identity validation lapsed (the renewal calendar above).
 - **SignTool can't load the dlib.** The dlib is x64 only, so the build uses the x64 SignTool on both runners; an Arm64 SignTool can't load it.
-- **The timestamp server or the signing service times out.** The script tries again twice, 15 and 30 seconds apart. Re-run the failed job when it still fails.
+- **The timestamp server or the signing service times out.** The script tries again twice, 15 and 30 seconds apart. If it fails after those retries, re-run the failed job.
 - **The signature check fails on a file nobody signed.** A new PE file reached an installer by a path the signing misses, for example a new resource DLL. Sign it in the build's `beforeBundleCommand`, as PDFium's DLL is.
 
 ### If the project becomes a company
