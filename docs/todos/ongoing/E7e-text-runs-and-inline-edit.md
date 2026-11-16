@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E7e` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [E7c](../done/E7c-content-ir.md) |
@@ -36,8 +36,8 @@ Detect editable text runs/lines (MCIDs where tagged, heuristics otherwise), edit
 
 **Out of scope** (and which todo covers it)
 
-- New subsets, substitution, font changes → [E7f](E7f-font-handling-and-styling.md)
-- The in-place editor in the reader → [E7l](E7l-inline-text-editor.md)
+- New subsets, substitution, font changes → [E7f](../ready/E7f-font-handling-and-styling.md)
+- The in-place editor in the reader → [E7l](../ready/E7l-inline-text-editor.md)
 
 **Editor facts**
 
@@ -47,7 +47,7 @@ Detect editable text runs/lines (MCIDs where tagged, heuristics otherwise), edit
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked unless the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock` (the signature panel, E10h, reports the later content change)
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `A.02` → `write` (core, pdf); `A.03` → `round-trip` (core, pdf); web and desktop in [E7l](E7l-inline-text-editor.md)
+- **Capability-matrix rows to flip:** `A.02` → `write` (core, pdf); `A.03` → `round-trip` (core, pdf); web and desktop in [E7l](../ready/E7l-inline-text-editor.md)
 
 ## Tasks
 
