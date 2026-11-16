@@ -222,11 +222,12 @@ fn dump_into(pid: u32, tid: u32, record: &EXCEPTION_RECORD, file: HANDLE) -> io:
     let process = Opened::process(pid).ok_or_else(|| failed("OpenProcess"))?;
     let thread = Opened::thread(tid).ok_or_else(|| failed("OpenThread"))?;
     // SAFETY: an all-zero CONTEXT is valid before its flags are set and GetThreadContext fills it.
-    let mut context: CONTEXT = unsafe { std::mem::zeroed() };
+    let mut aligned = Aligned(unsafe { std::mem::zeroed() });
+    let context = &mut aligned.0;
     context.ContextFlags = CONTEXT_ALL;
     // SAFETY: `thread` is open with THREAD_GET_CONTEXT and stopped by the debug event; `context` is
-    // a local with the alignment CONTEXT declares.
-    if unsafe { GetThreadContext(thread.0, &raw mut context) } == 0 {
+    // 16-byte aligned, as GetThreadContext requires (ERROR_NOACCESS otherwise).
+    if unsafe { GetThreadContext(thread.0, &raw mut *context) } == 0 {
         return Err(failed("GetThreadContext"));
     }
     let mut record = *record;
@@ -234,7 +235,7 @@ fn dump_into(pid: u32, tid: u32, record: &EXCEPTION_RECORD, file: HANDLE) -> io:
     record.ExceptionRecord = std::ptr::null_mut();
     let mut pointers = EXCEPTION_POINTERS {
         ExceptionRecord: &raw mut record,
-        ContextRecord: &raw mut context,
+        ContextRecord: &raw mut *context,
     };
     let exception = MINIDUMP_EXCEPTION_INFORMATION {
         ThreadId: tid,
@@ -260,6 +261,11 @@ fn dump_into(pid: u32, tid: u32, record: &EXCEPTION_RECORD, file: HANDLE) -> io:
         Ok(())
     }
 }
+
+/// A `CONTEXT` at the 16-byte alignment `GetThreadContext` requires, which the binding's type alone
+/// doesn't give a local.
+#[repr(C, align(16))]
+struct Aligned(CONTEXT);
 
 #[cfg(target_arch = "x86_64")]
 const CONTEXT_ALL: u32 = windows_sys::Win32::System::Diagnostics::Debug::CONTEXT_ALL_AMD64;
