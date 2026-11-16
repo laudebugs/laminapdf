@@ -424,14 +424,26 @@ impl Drop for Monitor {
 /// Spawns the monitor (this binary with [`MonitorPaths::args`]) with a fresh set of sockets.
 fn spawn_monitor(exe: &Path, data_dir: &Path) -> Option<(MonitorPaths, std::process::Child)> {
     let paths = MonitorPaths::new(data_dir);
-    let child = Command::new(exe)
+    let mut child = Command::new(exe)
         .args(paths.args())
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
+        .stderr(std::process::Stdio::piped())
         .spawn()
         .map_err(|error| tracing::warn!("the crash monitor could not start: {error}"))
         .ok()?;
+    // What the monitor says (on Windows, its engines' debugger: each attach, fault and dump) goes
+    // into this process's log; the thread ends with the monitor.
+    if let Some(stderr) = child.stderr.take() {
+        let _ = std::thread::Builder::new()
+            .name("crash-monitor-log".into())
+            .spawn(move || {
+                use std::io::BufRead as _;
+                for line in std::io::BufReader::new(stderr).lines().map_while(Result::ok) {
+                    tracing::info!(target: "laminapdf_desktop::crash_monitor", "{line}");
+                }
+            });
+    }
     Some((paths, child))
 }
 

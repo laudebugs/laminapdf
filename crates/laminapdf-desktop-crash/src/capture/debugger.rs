@@ -90,14 +90,18 @@ impl EngineWatcher {
     }
 
     /// Watches the app's engines: the children of the monitor's parent (the main process) whose
-    /// image is the engine beside the monitor's own executable.
+    /// image is the engine beside the monitor's own executable. Its log goes to the monitor's
+    /// stderr, which the main process copies into its own log.
     pub(crate) fn for_the_app(handler: Handler) -> io::Result<Self> {
         let parent = parent_of(current_pid()).ok_or_else(|| io::Error::other("the monitor's parent is unknown"))?;
         let image = std::env::current_exe()?
             .parent()
             .map(|dir| dir.join(ENGINE_NAME))
             .ok_or_else(|| io::Error::other("the app's folder is unknown"))?;
-        Self::start(parent, image, handler, |_| {})
+        Self::start(parent, image, handler, |line| {
+            use std::io::Write as _;
+            let _ = writeln!(io::stderr(), "{line}");
+        })
     }
 
     /// Whether engine `pid` is attached now.
