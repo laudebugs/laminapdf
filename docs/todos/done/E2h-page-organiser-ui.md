@@ -107,7 +107,7 @@ None.
 - **Not done here:**
   - The user help page: the docs site has no reader help yet, as E1e found; the dialogs and toasts explain in place.
   - The signer's name: the save planner's signatures don't carry it.
-  - Remove signature…, Save a copy and Details: [E2i](../ready/E2i-signed-gating-and-close.md).
+  - Remove signature…, Save a copy and Details: [E2i](../ongoing/E2i-signed-gating-and-close.md).
   - The toolbar entries for other todos' dialogs: [E2m](../done/E2m-document-dialogs.md), [E2g](../done/E2g-page-labels.md).
   - The rest of O06's differences are listed under its "As built (web, E2h)".
 
