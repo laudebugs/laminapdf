@@ -12,8 +12,9 @@
 # line in that `case` (the `lockfile` job).
 # Native Rust checks cover Linux, macOS and Windows on x64 and Arm64 (macOS x64 on pushes to main
 # and in the nightly only, todo X9a). Everything else runs on
-# Linux x64, except WebKit, which runs on macOS Arm64 (closest to Safari). Each job gets a
-# fresh hosted VM.
+# Linux x64, except WebKit, which runs on macOS Arm64 (closest to Safari) on pushes to main and on
+# Linux x64 on PRs, and the render goldens, a step of the macOS Arm64 Rust leg. A Mac's queue is
+# the longest, so a PR asks for one Mac in this lane. Each job gets a fresh hosted VM.
 # Rust caches are saved only on main; fork PRs have read-only tokens and no secrets.
 # Cargo tools install through .github/actions/install-tools.
 # Actions are locked by .github/workflows/actions.lock (ADR 0019, todo X11): `uses:` names a release
@@ -55,6 +56,7 @@ jobs:
     outputs:
       rust: ${{ steps.pr.outputs.rust || steps.push.outputs.rust }}
       ts: ${{ steps.pr.outputs.ts || steps.push.outputs.ts }}
+      render: ${{ steps.pr.outputs.render || steps.push.outputs.render }}
       rust-legs: ${{ steps.legs.outputs.rust-legs }}
       runtime-legs: ${{ steps.runtime-legs.outputs.runtime-legs }}
       runtimes: ${{ steps.runtime-legs.outputs.runtimes }}
@@ -87,6 +89,7 @@ jobs:
           {
             echo "rust=true"
             echo "ts=true"
+            echo "render=true"
           } >> "$GITHUB_OUTPUT"
       - if: github.event_name == 'pull_request'
         uses: actions/checkout@v7.0.1
@@ -109,7 +112,9 @@ jobs:
       # The runtime legs, read by the `pdf-runtimes` job's matrix (todo X12; CI caching plan
       # §8.3): on a pull request, each browser leg runs the suites `cargo xtask changes` found the
       # paths reach, and the server leg runs only when they reach the SDK's examples. Pushes to
-      # main run every leg and suite. `runtimes` is false, and the job skipped, when no leg runs or
+      # main run every leg and suite. WebKit runs on Linux on a pull request and on macOS on
+      # main: a Mac waits longest for a runner, and main still catches what only Safari's
+      # platform does. `runtimes` is false, and the job skipped, when no leg runs or
       # `ts` is false.
       - name: Choose the runtime legs
         id: runtime-legs
@@ -131,6 +136,7 @@ jobs:
                 else map(
                   if .group == "servers" then
                     if ($s | index("examples")) then . + {suites: "examples"} else empty end
+                  elif .group == "webkit" then . + {suites: ($s | join(",")), runner: "ubuntu-24.04"}
                   else . + {suites: ($s | join(","))} end)
                 end' <<< "$legs")
           else
@@ -197,6 +203,29 @@ jobs:
       # Tauri (apps/desktop/src-tauri) is a workspace member: Linux needs WebKitGTK to build it.
       - uses: $/.github/actions/linux-webkit
       - run: cargo xtask check rust
+      # The render goldens were written on macOS arm64, and PDFium's rasteriser (fonts,
+      # anti-aliasing) differs by platform, so they run on this leg only, and only when the change
+      # reaches what they draw (`render`, todo X9b; every render input is a Rust one too). A step
+      # here, not a job, so a PR waits for one Mac, not two. Pushes to main always run them.
+      - if: ${{ !cancelled() && matrix.platform == 'macos-arm64' && needs.changes.outputs.render == 'true' }}
+        uses: actions/setup-python@v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Render goldens (PDFium and hayro)
+        if: ${{ !cancelled() && matrix.platform == 'macos-arm64' && needs.changes.outputs.render == 'true' }}
+        env:
+          LAMINA_PDF_PYTHON: ${{ runner.temp }}/render-venv/bin/python
+        run: |
+          python3 -m venv "$RUNNER_TEMP/render-venv"
+          "$RUNNER_TEMP/render-venv/bin/pip" install -r tools/render/requirements.txt
+          cargo xtask render-golden
+      - name: Upload the render diff images
+        if: failure() && matrix.platform == 'macos-arm64'
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: render-golden-diff
+          path: target/xtask/render-golden/diff/
+          if-no-files-found: ignore
       # The rendered rustdoc of every workspace crate (`check rust` builds it with warnings
       # denied), from main only: the docs site's Rust API page points here until the crates are
       # on docs.rs (B7a).
@@ -266,8 +295,8 @@ jobs:
   # job's own run of the suite). The servers share a job: each one's suite takes 20 to 70 s, less
   # than setting up a job. Each browser has its own, since a browser also runs the packages' browser
   # tests and the reader's e2e suite, 10 to 12 minutes each: `chromium` (with a Vite production
-  # build run in a Chromium page) and `firefox` on Linux, `webkit` on macOS (Vitest browser mode
-  # with Playwright);
+  # build run in a Chromium page) and `firefox` on Linux, `webkit` on Linux on PRs and on macOS on
+  # main (Vitest browser mode with Playwright);
   # `servers` runs Deno, Bun, workerd (wrangler's test harness) and Node 22 and 26. Every runtime
   # runs even when one fails. Timings and WebAssembly memory go to the job summary (`cargo
   # xtask pdf-runtimes`; recorded, not asserted).
@@ -300,7 +329,8 @@ jobs:
       - uses: $/.github/actions/node-pnpm
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
-      - if: matrix.group == 'chromium' || matrix.group == 'firefox'
+      # A no-op on macOS (WebKit on pushes to main).
+      - if: matrix.group != 'servers'
         uses: $/.github/actions/playwright-deps
         with:
           browsers: ${{ matrix.runtimes }}

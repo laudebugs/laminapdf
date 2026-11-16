@@ -6,9 +6,10 @@
 # add a workflow-level `paths` filter here.
 #
 # Adding a suite: give it `needs: changes`, an `if:` on its flag (`code` unless a narrower one
-# fits: `desktop-build`, `desktop-e2e`, `render`, `rust`; CI caching plan §8.1), and add it to
-# `gate.needs`; a suite on any flag but `code` also needs a line in the gate's `case`. The two
-# desktop jobs also leave out each leg that already passed on the same inputs (todo X10b). All
+# fits: `desktop-run`, `rust`; CI caching plan §8.1), and add it to `gate.needs`; a suite on any
+# flag but `code` also needs a line in the gate's `case`. The desktop job also leaves out each leg
+# that already passed on the same inputs (todo X10b). The render goldens run in ci.yml's macOS
+# Arm64 Rust leg, so this lane waits for at most one Mac. All
 # suites are required, including the hosted Linux Arm64 and Windows x64 checks.
 # Fresh hosted VMs replace the persistent Mac runners and Linux container.
 # Actions are locked by .github/workflows/actions.lock (ADR 0019, todo X11): `uses:` names a release
@@ -17,9 +18,10 @@ name: Full lane
 
 on:
   pull_request:
-    # `edited` too: retargeting a PR (a new base branch) changes what `changes` diffs against.
-    # A title or body edit also reruns the lane; the result is the same, only slower.
-    types: [opened, synchronize, reopened, edited]
+    # Not `edited`: a title or body edit would rerun every suite, Macs included, and a run that
+    # skipped itself would post a passing `gate` over the real one. After retargeting a PR (a new
+    # base branch), rerun the lane or push, as for ci.yml.
+    types: [opened, synchronize, reopened]
   push:
     branches: [main]
 
@@ -58,12 +60,9 @@ jobs:
     outputs:
       code: ${{ steps.pr.outputs.code || steps.push.outputs.code }}
       desktop: ${{ steps.pr.outputs.desktop || steps.push.outputs.desktop }}
-      # Whether each desktop job has a leg to run, and the legs (todo X10b).
-      desktop-build: ${{ steps.desktop.outputs.build }}
-      desktop-build-legs: ${{ steps.desktop.outputs.build-legs }}
-      desktop-e2e: ${{ steps.desktop.outputs.e2e }}
-      desktop-e2e-legs: ${{ steps.desktop.outputs.e2e-legs }}
-      render: ${{ steps.pr.outputs.render || steps.push.outputs.render }}
+      # Whether the desktop job has a leg to run, and the legs (todo X10b).
+      desktop-run: ${{ steps.desktop.outputs.run }}
+      desktop-legs: ${{ steps.desktop.outputs.legs }}
       rust: ${{ steps.pr.outputs.rust || steps.push.outputs.rust }}
       ts: ${{ steps.pr.outputs.ts || steps.push.outputs.ts }}
     steps:
@@ -74,7 +73,6 @@ jobs:
           {
             echo "code=true"
             echo "desktop=true"
-            echo "render=true"
             echo "rust=true"
             echo "ts=true"
           } >> "$GITHUB_OUTPUT"
@@ -101,8 +99,8 @@ jobs:
       - name: Docs checks (cargo xtask check docs)
         if: github.event_name == 'pull_request'
         run: cargo xtask check docs
-      # Todo X10b: each desktop leg saves an empty cache entry, desktop-passed-<key>-<job>-<os>,
-      # once it passes, where <key> names the contents of every file the desktop jobs read
+      # Todo X10b: each desktop leg saves an empty cache entry, desktop-passed-<key>-<os>,
+      # once it passes, where <key> names the contents of every file the desktop job reads
       # (`cargo xtask desktop-key`). A PR leaves out each leg with such an entry, saved by this PR
       # or by main (the only scopes a PR's run can restore from), for its own key. Pushes to main
       # run every leg. A failed lookup leaves nothing out.
@@ -129,20 +127,18 @@ jobs:
                 -F per_page=100 --jq '[.actions_caches[].key]' || echo '[]'
             done | jq -cs 'add')
           fi
-          for job in build e2e; do
-            chosen='[]'
-            if [ "$DESKTOP" = true ]; then
-              chosen=$(jq -c --arg prefix "desktop-passed-$KEY-$job-" --argjson passed "$passed" \
-                '[.[] | select((($prefix + .os) as $k | $passed | index($k)) == null)]' <<<"$legs")
-            fi
-            run=true
-            if [ "$chosen" = '[]' ]; then run=false; fi
-            {
-              echo "$job-legs=$chosen"
-              echo "$job=$run"
-            } >> "$GITHUB_OUTPUT"
-            echo "desktop $job legs: $chosen"
-          done
+          chosen='[]'
+          if [ "$DESKTOP" = true ]; then
+            chosen=$(jq -c --arg prefix "desktop-passed-$KEY-" --argjson passed "$passed" \
+              '[.[] | select((($prefix + .os) as $k | $passed | index($k)) == null)]' <<<"$legs")
+          fi
+          run=true
+          if [ "$chosen" = '[]' ]; then run=false; fi
+          {
+            echo "legs=$chosen"
+            echo "run=$run"
+          } >> "$GITHUB_OUTPUT"
+          echo "desktop legs: $chosen"
 
   # ADR 0018 tier 9: every fuzz target under default Limits, 2 at once (`--jobs 2`: built once,
   # then separate cargo-fuzz processes): 30 s per target on PRs, a smoke test that keeps the PR
@@ -247,28 +243,32 @@ jobs:
       - uses: $/.github/actions/linux-webkit
       - run: cargo xtask check
 
-  # The desktop app (apps/desktop, ADR 0008) built on each OS the way `tauri build` builds it, without
-  # installers (D6b makes those). Only when `cargo xtask changes` says the app's inputs changed
-  # (`desktop`: the app, packages/, crates/, the manifests, lockfiles and toolchain, this workflow);
-  # the gate requires it then. Ubuntu 22.04: the oldest Linux the app supports, so its glibc and
-  # WebKitGTK are the floor.
+  # The desktop app (apps/desktop, ADR 0008) on each OS, in one job so each OS waits for one runner
+  # (a Mac's queue is the lane's longest). First the app built the way `tauri build` builds it,
+  # without installers (D6b makes those), and checked; then the reader's end-to-end scenarios (D2e)
+  # against its e2e build: WebdriverIO drives the app through the WebDriver server it embeds
+  # (tauri-plugin-wdio-webdriver, feature `e2e`), so no driver is installed, and Linux runs it on a
+  # virtual display. Screenshots and logs of failed scenarios are uploaded. Only when `cargo xtask
+  # changes` says the app's inputs changed (`desktop`: the app, packages/, crates/, the manifests,
+  # lockfiles and toolchain, this workflow); the gate requires it then. Ubuntu 22.04: the oldest
+  # Linux the app supports, so its glibc and WebKitGTK are the floor.
   desktop:
-    name: Desktop build (${{ matrix.os }})
+    name: Desktop build and e2e (${{ matrix.os }})
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.desktop-build == 'true' }}
+    if: ${{ !cancelled() && needs.changes.outputs.desktop-run == 'true' }}
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 60
+    timeout-minutes: 75
     strategy:
       fail-fast: false
       matrix:
         # The `changes` job's list: Linux, macOS and Windows, less those that passed on these inputs.
-        include: ${{ fromJSON(needs.changes.outputs.desktop-build-legs) }}
+        include: ${{ fromJSON(needs.changes.outputs.desktop-legs) }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       # Installs exactly what rust-toolchain.toml pins. Its own cache: only this job builds the
-      # app's debug binary with Tauri's tree, saved on pushes to main.
+      # app's debug binaries with Tauri's tree, saved on pushes to main.
       - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
@@ -351,57 +351,6 @@ jobs:
             echo "::error::the frontend bundle holds the e2e probe or WebdriverIO's plugin"
             exit 1
           fi
-      # Todo X10b: this leg passed on these inputs, so a later run with the same ones leaves it out.
-      - name: Name this leg's pass
-        id: passed
-        shell: bash
-        env:
-          OS: ${{ matrix.os }}
-        run: |
-          set -euo pipefail
-          mkdir -p target/desktop-passed
-          echo "$GITHUB_RUN_ID" > target/desktop-passed/run
-          echo "key=desktop-passed-$(cargo xtask desktop-key)-build-$OS" >> "$GITHUB_OUTPUT"
-      - name: Save this leg's pass
-        uses: actions/cache/save@v6.1.0
-        with:
-          path: target/desktop-passed
-          key: ${{ steps.passed.outputs.key }}
-
-  # The reader's end-to-end scenarios (D2e) against the desktop app's e2e build on each OS:
-  # WebdriverIO drives the app through the WebDriver server it embeds (tauri-plugin-wdio-webdriver,
-  # feature `e2e`), so no driver is installed. Linux runs it on a virtual display. Screenshots and
-  # logs of failed scenarios are uploaded.
-  desktop-e2e:
-    name: Desktop e2e (${{ matrix.os }})
-    needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.desktop-e2e == 'true' }}
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        # The `changes` job's list: Linux, macOS and Windows, less those that passed on these inputs.
-        include: ${{ fromJSON(needs.changes.outputs.desktop-e2e-legs) }}
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
-        with:
-          cache: true
-          cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-          cache-shared-key: desktop-e2e
-          cache-bin: false
-      - uses: $/.github/actions/node-pnpm
-      - uses: $/.github/actions/linux-webkit
-      - uses: $/.github/actions/install-tools
-        with:
-          tool: wasm-bindgen@0.2.129
-      - name: Build the packages the frontend imports
-        run: cargo xtask desktop-frontend
-      - name: Typecheck the frontend and the scenarios
-        run: pnpm --filter @laminapdf/desktop run typecheck:wasm
       # The 1,000-page and 1 GB fixtures, generated (never committed) and cached by what writes them:
       # the example and the crates its bytes come from (path crates aren't in Cargo.lock).
       # The builder's output is the same bytes on every OS, so the three legs share one entry;
@@ -462,7 +411,7 @@ jobs:
           set -euo pipefail
           mkdir -p target/desktop-passed
           echo "$GITHUB_RUN_ID" > target/desktop-passed/run
-          echo "key=desktop-passed-$(cargo xtask desktop-key)-e2e-$OS" >> "$GITHUB_OUTPUT"
+          echo "key=desktop-passed-$(cargo xtask desktop-key)-$OS" >> "$GITHUB_OUTPUT"
       - name: Save this leg's pass
         uses: actions/cache/save@v6.1.0
         with:
@@ -527,7 +476,7 @@ jobs:
   #   pdfjs-dist from tools/roundtrip/package.json, a venv with tools/roundtrip/requirements.txt).
   # - Todo B5c (ADR 0018 tiers 3 and 8): the `laminapdf` examples, byte-compared with
   #   fixtures/golden/examples/ and checked by `qpdf --check` (`cargo xtask examples`). Their
-  #   render goldens run in the `render-golden` job below, on macOS.
+  #   render goldens run in ci.yml's macOS Arm64 Rust leg.
   # qpdf comes from the checksum-verified release in the shared setup action.
   suites:
     name: Suites (differential, capability matrix, round trip, examples)
@@ -590,44 +539,6 @@ jobs:
           path: target/examples-out/
           if-no-files-found: ignore
 
-  # The render goldens were written on macOS arm64, and PDFium's rasteriser (fonts, anti-aliasing)
-  # differs by platform, so this is the one suite that stays on macOS. It waits for a Mac, so a PR
-  # runs it only when it changes what the goldens draw (`render`, todo X9b); pushes to main always do.
-  render-golden:
-    name: Render goldens (PDFium and hayro)
-    needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.render == 'true' }}
-    runs-on: macos-15
-    timeout-minutes: 40
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@v7.1.0
-        with:
-          python-version: "3.13"
-      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
-        with:
-          cache: true
-          cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-          cache-key: ${{ runner.os }}-${{ runner.arch }}
-          cache-bin: false
-      - name: The Python venv (pypdfium2)
-        run: |
-          python3 -m venv "$RUNNER_TEMP/render-venv"
-          "$RUNNER_TEMP/render-venv/bin/pip" install -r tools/render/requirements.txt
-      - name: Render goldens (PDFium and hayro)
-        env:
-          LAMINA_PDF_PYTHON: ${{ runner.temp }}/render-venv/bin/python
-        run: cargo xtask render-golden
-      - name: Upload the diff images
-        if: failure()
-        uses: actions/upload-artifact@v7.0.2
-        with:
-          name: render-golden-diff
-          path: target/xtask/render-golden/diff/
-          if-no-files-found: ignore
-
   # A required check, with ci.yml's `fast-gate`. Fails unless `changes` succeeded with every flag
   # exactly "true" or "false"; then each suite must have succeeded when its flag is true, or been
   # skipped when it is false. Any failure, cancellation, or skip of a suite that should have run
@@ -635,7 +546,7 @@ jobs:
   gate:
     name: gate
     if: always()
-    needs: [changes, suites, render-golden, fuzz, check-linux, check-windows, desktop, desktop-e2e]
+    needs: [changes, suites, fuzz, check-linux, check-windows, desktop]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -644,9 +555,7 @@ jobs:
           NEEDS: ${{ toJSON(needs) }}
           CODE: ${{ needs.changes.outputs.code }}
           DESKTOP: ${{ needs.changes.outputs.desktop }}
-          DESKTOP_BUILD: ${{ needs.changes.outputs.desktop-build }}
-          DESKTOP_E2E: ${{ needs.changes.outputs.desktop-e2e }}
-          RENDER: ${{ needs.changes.outputs.render }}
+          DESKTOP_RUN: ${{ needs.changes.outputs.desktop-run }}
           RUST: ${{ needs.changes.outputs.rust }}
           TS: ${{ needs.changes.outputs.ts }}
         run: |
@@ -656,8 +565,8 @@ jobs:
             echo "::error::the changes job ended with '$changes'"
             exit 1
           fi
-          for flag in "code=$CODE" "desktop=$DESKTOP" "desktop-build=$DESKTOP_BUILD" "desktop-e2e=$DESKTOP_E2E" \
-            "render=$RENDER" "rust=$RUST" "ts=$TS"; do
+          for flag in "code=$CODE" "desktop=$DESKTOP" "desktop-run=$DESKTOP_RUN" \
+            "rust=$RUST" "ts=$TS"; do
             case "${flag#*=}" in
               true|false) echo "Needed: $flag" ;;
               *)
@@ -669,16 +578,13 @@ jobs:
           failed=0
           for job in $(jq -r 'del(.changes) | keys[]' <<<"$NEEDS"); do
             result=$(jq -r --arg job "$job" '.[$job].result' <<<"$NEEDS")
-            # Each job follows a flag (todos X9b, X9c, X10b): desktop `desktop-build` and
-            # desktop-e2e `desktop-e2e` (false when no leg is left to run); render-golden `render`;
-            # fuzz `rust`; the others `code`, since check-linux and check-windows run the whole
+            # Each job follows a flag (todos X9c, X10b): desktop `desktop-run` (false when no leg
+            # is left to run); fuzz `rust`; the others `code`, since check-linux and check-windows run the whole
             # `cargo xtask check` and the suites read both Rust and the TypeScript tests'
             # capability tags.
             needed=$CODE
             case "$job" in
-              desktop) needed=$DESKTOP_BUILD ;;
-              desktop-e2e) needed=$DESKTOP_E2E ;;
-              render-golden) needed=$RENDER ;;
+              desktop) needed=$DESKTOP_RUN ;;
               fuzz) needed=$RUST ;;
             esac
             echo "$job: $result"
