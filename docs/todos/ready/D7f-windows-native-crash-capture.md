@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D7d](../ongoing/D7d-native-crash-minidumps-and-symbols.md) |
+| Depends on | [D7d](../done/D7d-native-crash-minidumps-and-symbols.md) |
 | ADRs | Follows [ADR 0014 §10](../../decisions/0014-desktop-distribution.md#10-crash-reports) (crash reports), ADR 0008 §5 (the engine's sandbox: it can't touch other processes) |
 | Branch | `feat/d7f-windows-native-crash-capture` |
 | PR title | `feat(desktop): capture native crashes on Windows, dumping only the process that asks` |
@@ -19,7 +19,7 @@ D7d captures native crashes on macOS and Linux but leaves Windows out: there, mi
 
 ## Context
 
-- [D7d](../ongoing/D7d-native-crash-minidumps-and-symbols.md) and its review on #655: the finding, and the design D7d shipped (the monitor process hosts the dump server; a sandboxed engine process reads each dump).
+- [D7d](../done/D7d-native-crash-minidumps-and-symbols.md) and its review on #655: the finding, and the design D7d shipped (the monitor process hosts the dump server; a sandboxed engine process reads each dump).
 - minidumper's Windows server (`server.rs`) and minidump-writer's `windows/minidump_writer.rs`: where the client's `process_id` becomes `OpenProcess(PROCESS_ALL_ACCESS, pid)`.
 - Windows' AF_UNIX sockets name their peer with the `SIO_AF_UNIX_GETPEERPID` ioctl.
 

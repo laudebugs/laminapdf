@@ -336,7 +336,7 @@ Stable releases come from beta. Promote a beta release to stable at 1 %, then ra
 
 ## 7. Crash symbols
 
-A native crash report names its frames by module and offset only, so each tagged release archives the debug symbols that turn those offsets back into function names and source lines. The app processes a crash's minidump on the user's computer and uploads only the frames and the modules' debug IDs ([D7d](../todos/ongoing/D7d-native-crash-minidumps-and-symbols.md)). The symbols stay in a private bucket, because they describe the app's code rather than anyone's documents, and only maintainers read them.
+A native crash report names its frames by module and offset only, so each tagged release archives the debug symbols that turn those offsets back into function names and source lines. The app processes a crash's minidump on the user's computer and uploads only the frames and the modules' debug IDs ([D7d](../todos/done/D7d-native-crash-minidumps-and-symbols.md)). The symbols stay in a private bucket, because they describe the app's code rather than anyone's documents, and only maintainers read them.
 
 ### 7.1 What each release archives
 
