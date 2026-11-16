@@ -41,7 +41,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #     `navigation` (which `edit` implies): OutlineTree (E3b: the outline's lists and counts
 │                        #     rewritten after inserts, moves and removals by OutlineItemId)
 │   ├── laminapdf-ops/   #   core: typed serialisable Op (SetMetadata, RemoveMetadata, the XMP ops, the planner's
-│                        #     UpdateSaveMetadata, AddAnnot (text markup, notes, carets; E4c), AddReply and SetReviewState (E5b, annot/reply.rs; delete_annotations), UpdateAnnot and DeleteAnnot (annot/: the
+│                        #     UpdateSaveMetadata, AddAnnot (text markup, notes, carets; E4c; ink, squares and circles, lines, polygons with cloudy borders and the private /LMNA_Widths and /LMNA_Smoothing keys, annot/drawing.rs; E4d), AddReply and SetReviewState (E5b, annot/reply.rs; delete_annotations), UpdateAnnot and DeleteAnnot (annot/: the
 │                        #     Appearances hook laminapdf-build's AnnotationAppearances implements), AddLink, UpdateLink and
 │                        #     DeleteLink (link/, E3c: tagged links as Link elements over the content they cover),
 │                        #     RotatePage, the deprecated SetInfo; outline/: the bookmark and named-destination ops), metadata/ (one Info + XMP writer, read_metadata,
@@ -92,13 +92,15 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   │                    #     watchdog, restart with backoff, 4th crash in 60 s = failed; `fake` with `test-support`) (D2b);
 │   │                    #     SandboxLevel/Layer (an engine missing a required layer is refused), Fonts/FontRequest/FontData
 │   │                    #     with FontServer (D2c); protocol 5: RenderPrintBand/PrintBand, a page for printing in bands of
-│   │                    #     ≤ 16 MiB at a dpi with the print intent, TileFormat::Bgra8 (D4c)
+│   │                    #     ≤ 16 MiB at a dpi with the print intent, TileFormat::Bgra8 (D4c); protocol 9: GetProperties/Properties, the Properties
+│   │                    #     dialog's data as one JSON string (E1j)
 │   ├── laminapdf-desktop-engine/  # app, unpublished: the desktop engine binary (ADR 0008 §2): stdin/stdout frames, a router
 │   │                    #     thread that never parses, one worker (lamina model + PDFium), RemoteSource (256 KiB blocks
 │   │                    #     read over the pipe); examples large_pdf (the 1 GB fixture) and measure (D2b);
 │   │                    #     fonts.rs (PDFium's system fonts, asked of the main process); --sandbox-selftest[=<probe>]
 │   │                    #     (feature `selftest`, selftest.rs), tests/sandbox_selftest.rs (D2c); print.rs (the print bands'
-│   │                    #     maths: band height, the dpi a page fits, BGRA; D4c)
+│   │                    #     maths: band height, the dpi a page fits, BGRA; D4c); properties.rs (E1j: the Properties dialog's facts, metadata
+│   │                    #     and XMP packet in @laminapdf/ui's shapes, as JSON)
 │   ├── laminapdf-desktop-sandbox/  # edge, unpublished: the engine's sandbox (ADR 0008 §5), both halves: spawn_sandboxed /
 │   │                    #     SandboxSpawner (Windows: job, Low-IL restricted token + start-up impersonation, mitigation
 │   │                    #     policies, CreateProcessAsUserW; Unix: only fds 0–2 inherited; macOS: memory watchdog; names
@@ -106,7 +108,13 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   │                    #     process serves) and, feature `engine`, apply_engine_sandbox (macOS Seatbelt; Linux
 │   │                    #     no-new-privs, Landlock, RLIMIT_AS, seccomp; Windows RevertToSelf + post-load policies);
 │   │                    #     `probe` (the selftest's, test only); `seccomp-trap`; LAMINA_PDF_ENGINE_SANDBOX=off in debug
-│   │                    #     builds only (D2c)
+│   │                    #     builds only (D2c); the seccomp allow-list lets the crash handler use its one connected socket (D7d)
+│   ├── laminapdf-desktop-crash/  # edge, unpublished: native crash capture (D7d, ADR 0014 §10). capture.rs (Unix only, off on
+│   │                    #     Windows): the monitor process (the app binary with --crash-monitor) hosts a minidumper DumpServer
+│   │                    #     for the main process and one for its engines; capture_crashes installs the crash-handler client
+│   │                    #     each process connects before lock-down. summary.rs (feature `summary`, only the engine): summarize_bytes
+│   │                    #     reads a dump into the allow-listed DumpSummary, which the engine's `--summarize-dump` mode runs
+│   │                    #     sandboxed so the main process never links the parser. `debug-crash` (fault), `test-support` (TestDumpServer)
 │   ├── laminapdf-desktop-os/  # edge, unpublished: the desktop main process's calls into the OS's shell (D3b): the recent
 │   │                    #     documents (macOS NSDocumentController, Windows SHAddToRecentDocs and the Jump List of the
 │   │                    #     AppUserModelID set at start-up, Linux GTK RecentManager), on the main thread; open_shared and file_identity
@@ -169,7 +177,10 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   E2l: edits that change the page list (the worker checks the order against `Edited.pageOrder`; `EditResult.order`,
 │                        #   `EditStep.pageIds`), layout/page-moves.ts (pageMoves: old index → new, a deleted page's nearest survivor),
 │                        #   the viewer's `#reorder` (bitmaps rekeyed by `viewKeyAt`, revisions, find.remap, history.remap, the top page kept)
-│                        #   and its `reorder` event, which the thumbnail strip follows;
+│                        #   and its `reorder` event, which the thumbnail strip follows; E2m: worker/sources.ts (previewSource,
+│                        #   renderSource, closeSource, addSource, into the text copy too), worker/parts.ts (writeParts, mergeFiles), worker/zip.ts
+│                        #   (a stored zip, APPNOTE 6.3.10) and crc32.ts; files.ts (those calls as functions over a client), client.addSource,
+│                        #   the edit log keeping each named source's bytes for a restarted worker's replay (none for encrypted ones);
 │                        #   C3b: createViewer (src/layout/, view/, canvas/,
 │                        #   render/, zoom/), demo/viewer-demo.html, examples/show-a-pdf.ts (the docs site's example); test/browser/ (Chromium, Firefox, WebKit);
 │                        #   C3c: perf/ (the performance harness: seeded fixtures, page/ with globalThis.__laminaPerf,
@@ -213,11 +224,11 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   LinkPreview (T5a: a tooltip under its link, or a sheet on touch), CommandPalette; z-order from --paper-z-*), src/dialogs.ts (the ./dialogs entry: PrintDialog, PrintProgressDialog, InitialViewDialog and ThreadsPanel (E3d: reader/initial-view-form.ts, the change as one setInitialView patch; reader/threads.ts's stepThreadPart is in the main entry),
 │                        #   PropertiesDialog, which the web reader loads once a document opens, issue #380; E1f: with `editing`, a Description tab whose form
 │                        #   (reader/properties-editor.tsx, properties-form.ts: changeOf → one setMetadata patch and a removeMetadata list,
-│                        #   fieldWarnings, PDF dates) Apply turns into one edit, and a File tab; E3e: an XMP tab (reader/xmp-editor.tsx: a
+│                        #   fieldWarnings, PDF dates) Apply turns into one edit (reader/properties-ops.ts: propertiesOps, both apps' ops; E1j), and a File tab; E3e: an XMP tab (reader/xmp-editor.tsx: a
 │                        #   tree of schemas, the property's type and value, Add property…, Raw XML checked as typed; xmp-model.ts: the
 │                        #   packet read by DOMParser, XmpChange → setXmpProperty/removeXmpProperty/replaceXmpPacket)), src/capabilities.ts (the ./capabilities entry: CapabilityPage,
 │                        #   help/: the O05 page over docs/capabilities/matrix.json, filters kept in platform storage), src/platform/ (ADR 0010: the Platform interface and capability
-│                        #   flags, createWebPlatform (feature-detected pickers, downloads, IndexedDB and OPFS storage, recent files;
+│                        #   flags, createWebPlatform (feature-detected pickers, canWriteDirectory's chooseFolder (folder.ts, loaded on use), downloads, IndexedDB and OPFS storage, recent files;
 │                        #   T5b: Platform.positions, positions.ts: the `positions` store of `lamina-pdf` v2, 500 by `readAt`; idb.ts opens
 │                        #   the database once; recent.reopen(id, { ask: false })),
 │                        #   PlatformProvider, usePlatform, useCapability), src/state/ (ReaderController over the reader machine,
@@ -231,7 +242,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   ShellLayout, the rail's open state, width and tab kept in platform storage, focus mode per window, the
 │                        #   inspector's content; ModeRegistry; LeftRail (nav, resizable by pointer and arrows, a drawer below 1024 px);
 │                        #   Inspector (docked, a selection's is a layer); FocusModeItem; shellActions for view.toggle-sidebar,
-│                        #   view.focus-mode and mode.<id>; useShell), src/organise/ (E2h, Paper O06: PageGrid, a React Aria ListBox in a virtualized GridLayout with multiple selection, drag with an insertion bar, ⇧⌘/Ctrl Shift + arrows to move, R/⇧R/Delete and the page menu, tiles drawn by page ID; moves.ts (gaps, moveToGap, stepGap, pageRanges); dialogs.tsx (Move to page…, Blank pages…, the signed-page question); OrganiseToolbar; commands.ts (pages.*); report.ts (toasts and step labels); in the ./editing entry), src/edit/ (E1d: EditControls, the session as a shape; E3b: BookmarkEditor, NamedDestinationsDialog, bookmark-moves.ts; HistoryPanel,
+│                        #   view.focus-mode and mode.<id>; useShell), src/organise/ (E2h, Paper O06: PageGrid, a React Aria ListBox in a virtualized GridLayout with multiple selection, drag with an insertion bar, ⇧⌘/Ctrl Shift + arrows to move, R/⇧R/Delete and the page menu, tiles drawn by page ID; moves.ts (gaps, moveToGap, stepGap, pageRanges); dialogs.tsx (Move to page…, Blank pages…, the signed-page question); OrganiseToolbar; commands.ts (pages.*); report.ts (toasts and step labels); E2m: from-file.tsx, merge.tsx, split.tsx (Extract pages too), parts.ts, on-open.ts; in the ./editing entry), src/edit/ (E1d: EditControls, the session as a shape; E3b: BookmarkEditor, NamedDestinationsDialog, bookmark-moves.ts; HistoryPanel,
 │                        #   the virtualised History tab), commands/edit-commands.ts (edit.undo/redo with ⌘Z, ⇧⌘Z/Ctrl Y, `fields: false`;
 │                        #   edit.history, edit.go-to-step, pages.rotate-*), src/tools/ (ToolRegistry: select, hand, textSelect keyed by
 │                        #   InteractionModes, extended by declaration merging; attachTools), ReaderController.setMode and its close guard
@@ -279,6 +290,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   src/reader-mode.tsx (U4b: the Reader toggle, the column over the reflow, crops, the place kept both ways, settings;
 │                        #   U4c: reader-origin.ts outlines a block on its page for View original page, reader-crop.ts a crop's clip);
 │                        #   src/initial-view-editing.tsx, threads-tab.tsx and thread-parts.ts (E3d: the Initial view dialog over the edit session, the Threads tab, the part followed last; the file's opening page and zoom in session.ts, after the first paint; its panel and the thread-part commands' handlers in editing-runtime.tsx);
+│                        #   src/documents.tsx (E2m: DocumentsController: Insert from a file, Replace, Merge, Split, Extract over the worker's sources
+│                        #   and parts; outputs to a chosen folder, one or two saves, or a zip), src/several.tsx (several files opened from the OS);
 │                        #   src/page-setup.tsx (E2g: Organise's Page setup ▾: crop, resize, page boxes, orientation and page labels over `OrganiseController.edit`);
 │                        #   src/editing.tsx (E1d: the edit session in the reader: rotate the current page, the History tab, "•" in the
 │                        #   tab's title, beforeunload) and editing-runtime.tsx (the commands, toasts, the close confirmation, the tools),
@@ -306,7 +319,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   src/platform/desktop.ts (the web platform plus canWriteInPlace, canWatchFiles, hasNativePrint,
 │                        #   multiWindow; their calls reject with NotYetSupportedError naming the feature), src/app.tsx (top bar, home
 │                        #   screen, version from the `app_info` command); src/print.tsx (File ▸ Print: print_document, the
-│                        #   status-bar progress item with cancel_print; D4c); showing a document waits for D2d. src-tauri/: the
+│                        #   status-bar progress item with cancel_print; D4c); src/properties.tsx (E1j: File ▸ Document properties…
+│                        #   over `document_properties`, edits through the session; useOutput groups it with Print); showing a document waits for D2d. src-tauri/: the
 │                        #   workspace crate laminapdf-desktop (layer app, publish = false): lib.rs (plugins dialog/log/opener for
 │                        #   Rust only, window `main` built in Rust, Engines managed state, window close/app exit stop engines),
 │                        #   print.rs (D4c: print_document, cancel_print, e2e_print_to_file; a PrintSource over the window's
@@ -321,13 +335,16 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   open://drag-enter|leave, open://refused), linux/laminapdf.desktop (Exec with %F),
 │                        #   opened.rs (D3b: every open from a path: engine, recent lists, watcher; the fingerprint),
 │                        #   recent.rs (recent.json, 20 entries by canonical path, ids for the webview), prefs.rs
-│                        #   (preferences.json, Settings › Motion among them), motion.rs (U7f: GNOME's reduce-motion setting, which
+│                        #   (preferences.json, Settings › Motion and Graphics among them), graphics.rs (D7b: Linux's
+│                        #   WebKitGTK workarounds chosen before the builder, an in-place `exec` instead of `set_var`,
+│                        #   --safe-graphics, the crash-loop guard in graphics-starts.json), motion.rs (U7f: GNOME's reduce-motion setting, which
 │                        #   WebKitGTK misses under Wayland, read by gsettings for `system_motion`; src/motion.ts applies it), store.rs (atomic JSON), watch/ (notify on each open file's folder,
 │                        #   stamp.rs's settle rule, app.rs's reload as a new document; document://reloaded|missing|
 │                        #   unreadable); crash/ (D7a: opt-in crash reports: report.rs, the allow-list matching
 │                        #   apps/updates/schemas/crash-report.schema.json; scrub.rs; consent.rs, crash.json; queue.rs, held/ and
 │                        #   outbox/; upload.rs, POST /crash without the install ID; the panic hook; src/crashes.tsx, S08's question
-│                        #   and Settings › Privacy); src/recent.tsx, settings.tsx (Settings › Files and Appearance and accessibility's Motion), motion.ts, window-state.ts
+│                        #   and Settings › Privacy); src/recent.tsx, settings.tsx (Settings: Files, Appearance and accessibility's Motion, and the
+│                        #   other sections' registry), graphics.tsx (Settings › Graphics, Linux only), about.tsx, motion.ts, window-state.ts
 │                        #   (the webview's context menu off the chrome, dimmed bars in an inactive window), file-changes.tsx,
 │                        #   error.rs (DesktopError as { kind, message }), build.rs (app manifest: each command needs an allow-*
 │                        #   permission), tauri.conf.json (Lamina PDF, com.laminapdf.desktop, strict CSP, frozen prototype,
@@ -353,7 +370,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   text refused, 64 KiB, rate-limited, into the private bucket lamina-pdf-crash-reports); scripts/manifest.ts
 │                        #   (show, validate, put, pause, resume, set-rollout, promote; R2's S3 API, `--local` on Wrangler),
 │                        #   scripts/r2.ts (the S3 client per-bucket R2 tokens need, SigV4 via aws4fetch; `pnpm run r2
-│                        #   put|delete`), smoke.sh;
+│                        #   put|delete`), scripts/downloads.ts (`manifest downloads`: downloads/<channel>.json, the
+│                        #   installers with their SHA-256 from SHA256SUMS, for the website's download page), smoke.sh;
 │                        #   src/channels.ts (the channels and their buckets, the one map; a test holds wrangler.jsonc to it);
 │                        #   unit tests beside their sources (src/*.test.ts, scripts/edits.test.ts, scripts/r2.test.ts), test/ (handle in Node, the
 │                        #   bundled Worker in workerd through Miniflare, a log-leak test); invocation logs and traces off;
@@ -386,8 +404,10 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── apps/site/           # the website at laminapdf.com (Astro, static, W1b; website plan §4) in the Paper look: src/layouts/Base.astro (head,
 │                        #   font preload, the shared header from @laminapdf/site-kit), src/pages/ (the home page, for now the roadmap (W1c):
 │                        #   src/components/home/, how-we-test.astro (T1b: src/components/how-we-test/, the latest full night's figures,
-│                        #   the licence policy, where the code comes from), 404 and the sitemap.xml endpoint; robots.txt from the site kit), src/data/ (check.ts:
-│                        #   the readers' shared checks; progress.json from `cargo xtask progress` and its reader progress.ts; proof.json
+│                        #   the licence policy, where the code comes from), download.astro (D7b, S09: each channel's installers,
+│                        #   src/scripts/download.ts guessing the visitor's system), 404 and the sitemap.xml endpoint; robots.txt from the site kit), src/data/ (check.ts:
+│                        #   the readers' shared checks; downloads.json, the release lists' snapshot from `pnpm run downloads`
+│                        #   (scripts/downloads.ts), with downloads.ts and downloads-snapshot.ts; progress.json from `cargo xtask progress` and its reader progress.ts; proof.json
 │                        #   from `cargo xtask proof snapshot` and its reader proof.ts, how-we-test.ts its names and percentages;
 │                        #   sources.ts: the code panel and packages from the tested examples, the CLI README and the docs install page,
 │                        #   licencePolicy from Cargo.toml and deny.toml; copy.ts: the words, approved by the owner; rounds.ts: the areas' plain
@@ -480,7 +500,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 
 The CLI's release (`.github/workflows/cli-release.yml`, L4d) is apart from the library's: `dist plan` on PRs that touch `crates/laminapdf-cli`, `packages/cli`, `tools/cli-release` or the dist config; on `workflow_dispatch` (`dry-run` true; false is refused) and `laminapdf-cli-v*` tags, `cargo xtask cli-dist` and `dist build` for all eight targets, each on a GitHub-hosted runner of its own system and CPU (L4g: `macos-15`, `macos-15-intel`, `ubuntu-24.04-arm`, `ubuntu-24.04`, `windows-11-arm`, `windows-2025`; Windows in Git Bash), each archive extracted and run, the npm tarballs installed and run where npm installs them (`tools/cli-release/install-test.sh`; not the musl packages, whose static binaries are checked and run), the Homebrew formula installed from the local archive through a throwaway tap on macOS; then `global`: the formula, `sha256.sum`, the nine npm packages packed with `publish.json` (`tools/cli-release/generate.ts --pack`: the version, its dist-tag, platform packages before the wrapper) and a CycloneDX SBOM; then, only on a tag push while the variable `LAMINA_PDF_PUBLISH_CLI` is `true`, after every build passed, in the `release` environment: `publish` (the GitHub release with build-provenance attestations, which GitHub makes only for a public repository), `publish-npm` (npm trusted publishing from `ubuntu-latest`, versions already on npm skipped, a package not yet on npm refused with the owner's first-publish step) and `publish-homebrew` (the formula written to `laudebugs/homebrew-tap` through the contents API with a release-bot token for that repository alone); `tools/xtask/src/workflows.rs` tests the gates, the OIDC jobs, the only secrets (the release bot's, in `publish-homebrew`) and the build matrix against dist's targets. The owner's one-time setup is in `tools/release/README.md`.
 
-The desktop app's release (`.github/workflows/desktop-release.yml`, D6b; ADR 0014; runbook `docs/guidelines/desktop-release.md` §6) builds six targets with the Tauri CLI on runners of their own OS and CPU (`.github/actions/desktop-build`): nightlies from the schedule in `desktop-nightly` (`X.Y.Z-nightly.YYYYMMDD.N`, NSIS only on Windows, skipped when nothing the app is built from changed in 24 hours), staging trials from a dispatch and beta releases from `desktop-v*` tags in `desktop-release` (the owner approves; Linux packages GPG-signed); pull requests that change the workflow dry-run every target with no environment or secret. macOS release builds are signed with the owner's Developer ID and the hardened runtime, notarised and stapled, `.dmg` included (D6c: the build action's keychain, `cargo xtask desktop-sidecar` signing PDFium with `APPLE_SIGNING_IDENTITY`, `tauri.developer-id.conf.json`; nightlies and dry runs ad hoc without the hardened runtime, and every macOS build has its bundled engine draw a page). Until D6d signs Windows too (`SIGNED_PLATFORMS`), only nightlies publish. Each build checks the 15 MB budget and writes SBOMs; `attest` attests every file; the publish job (`.github/actions/desktop-publish`) uploads to R2 and writes the channel's manifest with the manifest tool's `upload`, `publish` and `verify`. `tools/xtask/src/workflows/desktop_release.rs` checks that no `desktop-nightly` job names an `APPLE_*`, `AZURE_*` or `LINUX_SIGNING_*` secret.
+The desktop app's release (`.github/workflows/desktop-release.yml`, D6b; ADR 0014; runbook `docs/guidelines/desktop-release.md` §6) builds six targets with the Tauri CLI on runners of their own OS and CPU (`.github/actions/desktop-build`): nightlies from the schedule in `desktop-nightly` (`X.Y.Z-nightly.YYYYMMDD.N`, NSIS only on Windows, skipped when nothing the app is built from changed in 24 hours), staging trials from a dispatch and beta releases from `desktop-v*` tags in `desktop-release` (the owner approves; Linux packages GPG-signed); pull requests that change the workflow dry-run every target with no environment or secret. macOS release builds are signed with the owner's Developer ID and the hardened runtime, notarised and stapled, `.dmg` included (D6c: the build action's keychain, `cargo xtask desktop-sidecar` signing PDFium with `APPLE_SIGNING_IDENTITY`, `tauri.developer-id.conf.json`; nightlies and dry runs ad hoc without the hardened runtime, and every macOS build has its bundled engine draw a page). Until D6d signs Windows too (`SIGNED_PLATFORMS`), only nightlies publish. Each build checks the 16 MB budget and writes SBOMs; `attest` attests every file; the publish job (`.github/actions/desktop-publish`) uploads to R2 and writes the channel's manifest with the manifest tool's `upload`, `publish` and `verify`. `tools/xtask/src/workflows/desktop_release.rs` checks that no `desktop-nightly` job names an `APPLE_*`, `AZURE_*` or `LINUX_SIGNING_*` secret.
 
 Daily releases: `release-train.yml` runs after a full successful nightly on `main`. It prepares and atomically pushes a version branch and tag with the release bot. The release lane deploys production docs after publishing and registry checks, then opens the version PR with auto-merge. `RELEASE_TRAIN=off` stops future trains. The web reader releases on its own: `web-release-train.yml`, after the same nightly, tags `web-v<next>` when what the reader ships changed since its last tag (`cargo xtask web next-release`; `WEB_RELEASE_TRAIN=off` stops it), and the tag deploys it. The CLI releases with every daily release: `cli-release-train.yml`, after the release lane succeeds for a `v<version>` tag push, has the release bot tag `laminapdf-cli-v<version>` on the same commit, and the tag runs `cli-release.yml`. `CLI_RELEASE_TRAIN=off` stops it. Workflow installation, bot setup and recovery: [`tools/release/README.md`](tools/release/README.md).
 
@@ -635,7 +655,8 @@ cargo xtask progress [--offline]  # write apps/site/src/data/progress.json, the 
                              #   build, so the committed file only feeds previews and local builds; refreshing it is an exempt PR
 cargo xtask capabilities     # run the tests tagged `/// capability: <ID> <surface> <status>`, regenerate docs/capabilities/README.md and
                              #   matrix.json (the reader's capability page); count `[cap J.01 web round-trip]` titles in apps/web/e2e,
-                             #   which the reader's e2e suite runs
+                             #   which the reader's e2e suite runs, and `[cap J.01 desktop round-trip]` titles in
+                             #   apps/desktop/e2e/specs, which the full lane's desktop-e2e jobs run
 cargo xtask capabilities --check  # full lane: fail if that page differs from what the passing tagged tests prove
 cargo xtask golden --update  # regenerate every golden in fixtures/golden/ (and fixtures/reading-order/) from its source, print the list
                              #   (and fixtures/shaping/ with hb-shape when HarfBuzz is installed)
@@ -685,7 +706,12 @@ cargo xtask desktop-notices [--bundle]  # the desktop app's THIRD_PARTY_NOTICES.
                              #   src-tauri/resources/THIRD_PARTY_NOTICES.txt, which tauri.release.conf.json bundles (Help ▸ View licences)
 cargo xtask desktop-release plan | sizes <dir> | sbom <target> <dir>  # the desktop release's decisions (D6b): the run's
                              #   version, channel, environment and matrix into $GITHUB_OUTPUT (desktop_release/plan.rs, table-tested);
-                             #   installers against the 15 MB budget; the app's and engine's CycloneDX SBOMs and the npm SBOM
+                             #   installers against the 16 MB budget; the app's and engine's CycloneDX SBOMs and the npm SBOM
+cargo xtask crash symbolicate <report.json> [--symbols <dir>] [--fetch]  # a desktop crash report's native frames with
+                             #   function names and lines (D7d): each module's Breakpad symbols from <dir>, else target/crash-symbols/,
+                             #   and with --fetch only, fetched there from the private R2 bucket lamina-pdf-symbols by the repository's
+                             #   Wrangler with your own login (runbook docs/guidelines/desktop-release.md §7); frames without symbols
+                             #   print module and offset; the report's strings are printed without control characters
 cargo xtask desktop-sidecar [--release|--debug] [--e2e]  # the engine into apps/desktop/src-tauri/binaries/ (Tauri's -<triple> name) and
                              #   pinned PDFium into src-tauri/resources/pdfium/ (both git-ignored); the profile defaults to the
                              #   Tauri CLI's (release unless its hook sets TAURI_ENV_DEBUG=true); desktop:dev/desktop:build run it first
@@ -818,6 +844,8 @@ cargo xtask web docs-runner  # what the docs' example runner needs (B7e): the We
                              #   @laminapdf/sdk, @laminapdf/render and -hayro; the docs build then makes the runner
 pnpm --filter @laminapdf/site dev    # the website at localhost:4321; `build` writes apps/site/dist/ (noindex unless
                              #   LAMINA_PDF_ENV=production) and fails on a page that breaks the website's rules
+pnpm --filter @laminapdf/site run downloads  # refresh src/data/downloads.json, the download page's release lists, from
+                             #   the download hosts (production deploys run it; LAMINA_PDF_DOWNLOADS builds from another file)
 pnpm --filter @laminapdf/docs dev    # the docs site at localhost:4321; `build` writes apps/docs/dist/ (what deploys), with a
                              #   Markdown twin per page (`/install.md`), llms.txt and llms-full.txt; `test` runs plugins/ and scripts/ tests
 node apps/docs/scripts/package-docs.mjs <out-dir> [--api]  # the docs/ folder the packages ship: pages, code pages, AGENTS.md

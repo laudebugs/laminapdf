@@ -10,7 +10,7 @@ import { Button, IconButton } from "../components/button.js";
 import type { KeyPlatform } from "../components/shortcut-chip.js";
 import { laterMessage } from "../later-messages.js";
 import { Menu, type MenuEntry, MenuTrigger } from "../overlays/popover.js";
-import { PAGE_SETUP_COMMANDS } from "./commands.js";
+import { INSERT_COMMANDS, MORE_COMMANDS, PAGE_SETUP_COMMANDS } from "./commands.js";
 
 /** Props of `OrganiseToolbar`. */
 export interface OrganiseToolbarProps {
@@ -87,18 +87,13 @@ export function OrganiseToolbar({ note, scale, onScale, platform }: OrganiseTool
   const at = THUMBNAIL_SCALES.indexOf(scale as (typeof THUMBNAIL_SCALES)[number]);
   return (
     <div className="paper-organise-toolbar" role="toolbar" aria-label={laterMessage("command.mode.organise")}>
-      <CommandMenu label={laterMessage("organise.insert")} ids={["pages.insert-blank"]} platform={platform} />
+      <CommandMenu label={laterMessage("organise.insert")} ids={INSERT_COMMANDS} platform={platform} />
       <CommandButton id="pages.rotate-left" icon="rotate-left" />
       <CommandButton id="pages.rotate-right" icon="rotate-right" />
       <CommandButton id="pages.delete" icon="delete" />
       <span className="paper-organise-divider" aria-hidden="true" />
       <CommandButton id="pages.move-to" />
-      <CommandMenu
-        label={laterMessage("organise.more")}
-        icon="more"
-        ids={["pages.duplicate", "pages.reverse", "pages.select-all"]}
-        platform={platform}
-      />
+      <CommandMenu label={laterMessage("organise.more")} icon="more" ids={MORE_COMMANDS} platform={platform} />
       <CommandMenu label={laterMessage("organise.setup")} ids={PAGE_SETUP_COMMANDS} platform={platform} />
       <span className="paper-organise-note" aria-live="polite">
         {note}

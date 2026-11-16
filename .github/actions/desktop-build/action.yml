@@ -2,6 +2,10 @@
 # and bundled by the Tauri CLI, checked, and uploaded as the artifact desktop-<platform>-<mode> whose
 # files sit in <platform>/, as the publish job reads them.
 #
+# Each build also writes the Breakpad symbols of the app's two binaries (symbols.sh; todo D7d) into
+# the artifact symbols-desktop-<platform>-<mode>, which only the symbols archive reads; its name
+# stays out of the publish job's desktop-*-<mode> pattern.
+#
 # The three build jobs (dry run, nightly, release) share these steps. A composite action can't read
 # secrets: the release job sets TAURI_SIGNING_PRIVATE_KEY(_PASSWORD), LINUX_SIGNING_KEY,
 # LINUX_SIGNING_KEY_PASSPHRASE and, on its macOS legs, the APPLE_* secrets and KEYCHAIN_PASSWORD in
@@ -79,6 +83,8 @@ runs:
       if: inputs.target == 'x86_64-apple-darwin'
       shell: bash
       run: cargo install cargo-about --locked --version 0.9.2 --features cli
+    # Writes the app's Breakpad symbols (symbols.sh), on every leg: the dry run checks they come out.
+    - uses: $/.github/actions/dump-syms
     - name: Build the packages the frontend imports
       shell: bash
       run: cargo xtask desktop-frontend
@@ -181,14 +187,31 @@ runs:
         SIGN_LINUX: ${{ inputs.sign-linux }}
         SIGN_MACOS: ${{ inputs.sign-macos }}
         LAMINA_UPDATE_CHANNEL: ${{ inputs.channel }}
-        # Shipped binaries carry no symbols (the workspace's release profile keeps them for others).
-        CARGO_PROFILE_RELEASE_STRIP: symbols
+        # Function names, lines and inlined frames for the crash symbols (todo D7d), at a fraction of
+        # full debug information's size. Only the release build here: the workspace's profile is
+        # unchanged for everyone else.
+        CARGO_PROFILE_RELEASE_DEBUG: line-tables-only
       run: |
         set -euo pipefail
+        # Shipped binaries carry no debug information; it goes beside them, then into symbols.sh's
+        # archive. macOS: a dSYM, made before rustc strips the binary. Windows: the PDB, which the
+        # linker writes only when nothing is stripped (rustc strips a PE with /DEBUG:NONE). Linux:
+        # the binaries keep their DWARF until symbols.sh, as the beforeBundleCommand, moves it out.
+        case "$RUNNER_OS" in
+          macOS)
+            export CARGO_PROFILE_RELEASE_SPLIT_DEBUGINFO=packed
+            export CARGO_PROFILE_RELEASE_STRIP=symbols ;;
+          *) export CARGO_PROFILE_RELEASE_STRIP=none ;;
+        esac
         # The version isn't committed: the run's plan gives it. A file, not a JSON argument,
         # because Windows passes pnpm's arguments through cmd.exe, which mangles the quotes.
         run_config="$RUNNER_TEMP/tauri.run.conf.json"
-        printf '{"version":"%s","bundle":{"createUpdaterArtifacts":%s}}\n' "$VERSION" "$UPDATER" > "$run_config"
+        hook=""
+        if [ "$RUNNER_OS" = Linux ]; then
+          hook=$(printf ',"build":{"beforeBundleCommand":"bash %s/.github/actions/desktop-build/symbols.sh %s %s/desktop-symbols"}' \
+            "$GITHUB_WORKSPACE" "$TARGET" "$RUNNER_TEMP")
+        fi
+        printf '{"version":"%s","bundle":{"createUpdaterArtifacts":%s}%s}\n' "$VERSION" "$UPDATER" "$hook" > "$run_config"
         args=(build --ci --target "$TARGET" --config src-tauri/tauri.bundle.conf.json --config src-tauri/tauri.release.conf.json)
         # Nightlies trust the nightly updater key only, so they update only to nightlies.
         if [ "$MODE" = nightly ]; then args+=(--config src-tauri/tauri.nightly.conf.json); fi
@@ -206,6 +229,13 @@ runs:
           if [ -z "${!name:-}" ]; then unset "$name"; fi
         done
         pnpm exec tauri "${args[@]}"
+    # Linux wrote them while Tauri bundled (the beforeBundleCommand above).
+    - name: Write the Breakpad symbols
+      if: runner.os != 'Linux'
+      shell: bash
+      env:
+        TARGET: ${{ inputs.target }}
+      run: bash .github/actions/desktop-build/symbols.sh "$TARGET" "$RUNNER_TEMP/desktop-symbols"
     - name: Collect the files people download and the updater installs
       shell: bash
       env:
@@ -454,7 +484,7 @@ runs:
           chmod +x "$appimage"
           test -n "$("./$appimage" --appimage-signature)"
         done
-    - name: Check the installers against the 15 MB budget
+    - name: Check the installers against the 16 MB budget
       shell: bash
       run: cargo xtask desktop-release sizes "$DESKTOP_OUT"
     - name: Write the SBOMs
@@ -473,5 +503,13 @@ runs:
       with:
         name: desktop-${{ inputs.platform }}-${{ inputs.mode }}
         path: ${{ runner.temp }}/desktop
+        if-no-files-found: error
+        retention-days: 14
+    # Apart from the files above, which are attested and published: the archive job of a tagged
+    # release uploads these to the private symbols bucket (desktop-release.yml's archive-symbols).
+    - uses: actions/upload-artifact@v7.0.2
+      with:
+        name: symbols-desktop-${{ inputs.platform }}-${{ inputs.mode }}
+        path: ${{ runner.temp }}/desktop-symbols
         if-no-files-found: error
         retention-days: 14

@@ -92,7 +92,7 @@ Decide and build the server side of desktop updates. ADR 0014 records channels, 
 - App-side updater wiring, settings, install-ID generation, managed policy reading, end-to-end update test: [D5b](./D5b-updater-in-app.md).
 - Producing signed artefacts and uploading them: [D6b](../done/D6b-release-workflow-and-linux-packages.md)–[D6d](../ready/D6d-windows-signing.md).
 - Crash-report endpoint on the same Worker: [D7a](../done/D7a-crash-reporting.md).
-- Download page on the website: [D7b](../ready/D7b-settings-renderer-switch-and-download-page.md).
+- Download page on the website: [D7b](../done/D7b-settings-renderer-switch-and-download-page.md).
 
 ## Tasks
 

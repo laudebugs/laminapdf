@@ -1,0 +1,1 @@
+{ "op": "addAnnot", "args": { "page": "p9.0", "spec": { "type": "ink", "strokes": [{ "points": [{ "x": 300, "y": 600 }, { "x": 320, "y": 620 }, { "x": 340, "y": 600 }] }, { "points": [{ "x": 300, "y": 580 }, { "x": 340, "y": 580 }], "widths": [1, 4] }], "width": 2, "smoothing": true }, "common": { "contents": "Signed off", "color": [0, 0, 1] } } }

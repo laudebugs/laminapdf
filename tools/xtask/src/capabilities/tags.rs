@@ -225,12 +225,20 @@ pub(crate) struct TsSuite {
 
 /// Where TypeScript tags may go. Each suite runs in a job the merge waits on, so its tests
 /// pass on every merged commit; add one only with that job.
-pub(crate) const TS_SUITES: &[TsSuite] = &[TsSuite {
-    dir: "apps/web/e2e",
-    suffix: ".e2e.test.ts",
-    surfaces: &[Surface::Web],
-    runner: "the reader's e2e suite (`cargo xtask pdf-runtimes <browser>`, the fast lane's `pdf-runtimes` jobs)",
-}];
+pub(crate) const TS_SUITES: &[TsSuite] = &[
+    TsSuite {
+        dir: "apps/web/e2e",
+        suffix: ".e2e.test.ts",
+        surfaces: &[Surface::Web],
+        runner: "the reader's e2e suite (`cargo xtask pdf-runtimes <browser>`, the fast lane's `pdf-runtimes` jobs)",
+    },
+    TsSuite {
+        dir: "apps/desktop/e2e/specs",
+        suffix: ".e2e.ts",
+        surfaces: &[Surface::Desktop],
+        runner: "the desktop app's scenarios (WebdriverIO, the full lane's `desktop-e2e` jobs on Linux, macOS and Windows)",
+    },
+];
 
 /// The prefix of a tag in a TypeScript test title.
 const TS_MARKER: &str = "[cap ";
@@ -376,10 +384,11 @@ pub(crate) fn scan_ts(path: &Path, text: &str) -> Result<Vec<Tag>> {
 pub(crate) fn is_ts_test(path: &Path) -> bool {
     let name = path.file_name().and_then(|n| n.to_str()).unwrap_or_default();
     let top = path.components().next().and_then(|c| c.as_os_str().to_str());
-    matches!(top, Some("packages" | "apps"))
-        && [".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx"]
-            .iter()
-            .any(|s| name.ends_with(s))
+    let named_as_test = [".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx"]
+        .iter()
+        .any(|s| name.ends_with(s));
+    // A suite may name its files otherwise: the desktop's scenarios end in `.e2e.ts`.
+    matches!(top, Some("packages" | "apps")) && (named_as_test || ts_suite(path).is_some())
 }
 
 /// The results in libtest's default output: `test <name> ... ok|FAILED|ignored`, by full name
@@ -571,6 +580,35 @@ mod pages {
             .map(|t| (t.id.as_str(), t.surface, t.status, t.test.name.as_str(), t.line))
             .collect();
         assert_eq!(found, [("J.01", Surface::Web, Status::RoundTrip, "edits the title", 1)]);
+    }
+
+    #[test]
+    fn is_ts_test_should_take_the_desktop_scenarios_and_not_their_helpers() {
+        assert_eq!(
+            (
+                is_ts_test(Path::new("apps/desktop/e2e/specs/properties.e2e.ts")),
+                is_ts_test(Path::new("apps/desktop/e2e/app.ts"))
+            ),
+            (true, false)
+        );
+    }
+
+    #[test]
+    fn scan_ts_should_read_a_desktop_tag_in_the_desktop_scenarios_and_refuse_a_web_one_there() {
+        let path = Path::new("apps/desktop/e2e/specs/properties.e2e.ts");
+        let tags = scan_ts(
+            path,
+            "it(\"[cap J.01 desktop round-trip] edits the title\", async () => {});\n",
+        )
+        .unwrap();
+        assert!(
+            matches!(tags.as_slice(), [tag] if tag.surface == Surface::Desktop)
+                && scan_ts(
+                    path,
+                    "it(\"[cap J.01 web round-trip] edits the title\", async () => {});\n"
+                )
+                .is_err()
+        );
     }
 
     #[test]

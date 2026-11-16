@@ -24,6 +24,10 @@ const DIST_VERSION: &str = "0.32.0";
 /// cargo-about release (`cargo xtask cli-dist`: the third-party notices in the CLI's archives;
 /// MIT OR Apache-2.0; a build tool).
 const CARGO_ABOUT_VERSION: &str = "0.9.2";
+/// Mozilla's `dump_syms` release, which writes the desktop release's Breakpad symbols
+/// (`.github/actions/dump-syms`, checksum-verified there; MIT OR Apache-2.0; a build tool). A test in
+/// `workflows/desktop_release.rs` checks the action's pin.
+pub(crate) const DUMP_SYMS_VERSION: &str = "2.3.9";
 /// cargo-semver-checks release (`cargo xtask semver`, the fast lane; Apache-2.0 OR MIT).
 const CARGO_SEMVER_CHECKS_VERSION: &str = "0.51.0";
 /// cargo-fuzz release (`cargo xtask fuzz`, `.github/workflows/nightly.yml`); it runs on nightly.
@@ -253,6 +257,19 @@ pub(crate) fn cargo_about() -> Tool {
     }
 }
 
+fn dump_syms() -> Tool {
+    Tool {
+        name: "dump_syms",
+        version_command: &["dump_syms", "--version"],
+        pin: Pin::Exact(DUMP_SYMS_VERSION.to_owned()),
+        fix: format!(
+            "download dump_syms {DUMP_SYMS_VERSION} from https://github.com/mozilla/dump_syms/releases (checksums in \
+             .github/actions/dump-syms)"
+        ),
+        optional_for: Some("the desktop release's Breakpad symbols (.github/actions/desktop-build/symbols.sh)"),
+    }
+}
+
 pub(crate) fn cargo_semver_checks() -> Tool {
     Tool {
         name: "cargo-semver-checks",
@@ -318,6 +335,7 @@ fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
         cargo_cyclonedx(),
         dist(),
         cargo_about(),
+        dump_syms(),
         cargo_semver_checks(),
         cargo_fuzz(),
         gh_actions_lock(),

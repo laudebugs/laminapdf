@@ -20,6 +20,7 @@ pub mod fonts;
 mod limits;
 mod outbox;
 mod print;
+mod properties;
 mod queue;
 mod remote;
 mod save;
@@ -171,6 +172,7 @@ fn route<R: Read>(
             ToEngine::OpenDocument { req, doc, len } => queue.push(Job::Open { req, doc, len }),
             ToEngine::UnlockDocument { req, doc, password } => queue.push(Job::Unlock { req, doc, password }),
             ToEngine::GetPageInfo { req, doc } => queue.push(Job::PageInfo { req, doc }),
+            ToEngine::GetProperties { req, doc } => queue.push(Job::Properties { req, doc }),
             ToEngine::RenderTile(tile) => queue.push(Job::Render(tile)),
             ToEngine::Edit { req, doc, call } => queue.push(Job::Edit { req, doc, call }),
             ToEngine::Save { req, doc, call } => queue.push(Job::Save { req, doc, call }),
@@ -178,6 +180,8 @@ fn route<R: Read>(
             ToEngine::CloseDocument { doc } => queue.push(Job::Close { doc }),
             #[cfg(feature = "e2e")]
             ToEngine::DebugPanic { message } => crash::debug_panic(&message),
+            #[cfg(feature = "e2e")]
+            ToEngine::DebugSegv => crash::debug_segv(),
         }
     }
 }

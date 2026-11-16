@@ -1,10 +1,24 @@
 // The last session, first run (D4d): two windows with their tabs, a page and a zoom, and the main
 // window's size, kept in session.json even after "Clear recent", which empties only the recent
-// list. The next run (session-restore) relaunches the app and checks what comes back.
+// list, and a setting turned off in Settings. The next run (session-restore) relaunches the app and
+// checks what comes back.
 import { writeFileSync } from "node:fs";
 import { browser, expect } from "@wdio/globals";
-import { closeAll, goToPage, moveToNewWindow, openAndWait, runCommand, view, zoomOnce } from "../app.ts";
+import {
+  closeAll,
+  goToPage,
+  moveToNewWindow,
+  openAndWait,
+  runCommand,
+  settingOn,
+  toggleSetting,
+  view,
+  zoomOnce,
+} from "../app.ts";
 import { type Expected, example, expected, MAIN_TABS, OTHER_TABS, savedTabs } from "../session.ts";
+
+/** The setting the relaunch checks (session-restore). */
+const RELOAD = "Reload files that change on disk";
 
 describe("the session as the app runs", () => {
   it("should be kept with both windows, their tabs, a page and a zoom, after Clear recent", async () => {
@@ -29,5 +43,10 @@ describe("the session as the app runs", () => {
       timeoutMsg: `the session file holds ${JSON.stringify(savedTabs())}`,
     });
     expect(savedTabs()).toEqual([MAIN_TABS, OTHER_TABS]);
+  });
+
+  it("should keep a setting changed in Settings, for the next launch to find", async () => {
+    if (await settingOn(RELOAD)) await toggleSetting(RELOAD);
+    expect(await settingOn(RELOAD)).toBe(false);
   });
 });

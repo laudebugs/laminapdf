@@ -93,7 +93,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C02-shape-selected.dc.html`, `C02-ink-drawing.dc.html`.
 
-**Todos.** [E4d](../../todos/ready/E4d-appearances-ink-and-shapes.md).
+**Todos.** [E4d](../../todos/done/E4d-appearances-ink-and-shapes.md).
 
 ## C03 Free text and callouts
 

@@ -40,6 +40,9 @@ mod common;
 /// capability: D.01 core round-trip
 /// capability: D.02 core round-trip
 /// capability: D.03 core round-trip
+/// capability: D.04 core round-trip
+/// capability: D.05 core round-trip
+/// capability: B.06 core round-trip
 /// capability: D.10 core round-trip
 /// capability: D.11 core round-trip
 #[test]

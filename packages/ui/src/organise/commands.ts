@@ -1,6 +1,7 @@
 // The Organise mode's page commands (Paper O06): insert blank pages, delete, duplicate, reverse and
-// Move to page…, each on the grid's selection, and Select all; and Page setup's (O09, O10): crop,
-// resize, page boxes, make landscape or portrait, and page labels. The shell runs them (`delegated`): it
+// Move to page…, each on the grid's selection, and Select all; Page setup's (O09, O10): crop,
+// resize, page boxes, make landscape or portrait, and page labels; and the commands across files
+// (O07, O08): insert pages from a file, replace pages, extract pages, merge and split. The shell runs them (`delegated`): it
 // knows the selection and the pages, and asks before one a signature forbids. Their home is the
 // Organise toolbar and the page menu; Rotate left and right are the edit commands' (edit-commands.ts),
 // which turn the selection while Organise is the mode.
@@ -25,7 +26,31 @@ export const ORGANISE_COMMANDS = [
   "pages.make-landscape",
   "pages.make-portrait",
   "pages.edit-labels",
+  "pages.insert-from-file",
+  "pages.replace",
+  "pages.extract",
+  "document.merge",
+  "document.merge-add-files",
+  "document.split",
 ] as const;
+
+/** Insert ▾'s commands (O06, O07), in the menu's order. */
+export const INSERT_COMMANDS = [
+  "pages.insert-blank",
+  "pages.insert-from-file",
+  "pages.replace",
+] as const satisfies readonly OrganiseCommand[];
+
+/** More page actions' commands (O06, O07, O08), in the menu's order. */
+export const MORE_COMMANDS = [
+  "pages.duplicate",
+  "pages.reverse",
+  "pages.select-all",
+  "pages.extract",
+  "document.split",
+  "document.merge",
+  "document.merge-add-files",
+] as const satisfies readonly OrganiseCommand[];
 
 /** Page setup ▾'s commands (O09, O10), in the menu's order. */
 export const PAGE_SETUP_COMMANDS = [
@@ -48,6 +73,10 @@ const ICONS: Partial<Record<OrganiseCommand, IconName>> = {
   "pages.crop": "crop",
   "pages.resize": "resize",
   "pages.edit-labels": "tag",
+  "pages.insert-from-file": "file",
+  "pages.replace": "replace",
+  "pages.extract": "extract",
+  "document.merge-add-files": "file",
 };
 
 /** Whether the session can take an edit now, and the shell gave the command a handler (Organise is open). */
@@ -65,7 +94,7 @@ function organiseCommand(id: OrganiseCommand): Command {
   return {
     id,
     title: laterMessage(`command.${id}`),
-    keywords: ["page", "pages", "organise"],
+    keywords: id.startsWith("document.") ? ["document", "file", "pages", "organise"] : ["page", "pages", "organise"],
     group: "edit",
     ...(icon === undefined ? {} : { icon }),
     delegated: true,

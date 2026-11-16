@@ -356,6 +356,24 @@ fn a_window_should_not_reach_another_windows_document() {
 }
 
 #[test]
+fn the_properties_should_be_the_engines_json_and_only_for_the_windows_own_document() {
+    let mut f = Fixture::new(Mode::Healthy);
+    let doc = DocId(
+        {
+            let path = f.file(PLAIN);
+            f.engines.open("main", &path)
+        }
+        .unwrap()
+        .doc,
+    );
+    let json = f.engines.properties("main", doc).unwrap();
+    assert!(
+        json.starts_with(r#"{"properties":"#)
+            && matches!(f.engines.properties("doc-2", doc), Err(DesktopError::UnknownDocument))
+    );
+}
+
+#[test]
 fn closing_a_window_should_close_its_documents() {
     let mut f = Fixture::new(Mode::Healthy);
     let doc = DocId(

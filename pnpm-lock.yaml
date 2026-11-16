@@ -252,6 +252,9 @@ importers:
       '@wdio/tauri-service':
         specifier: 'catalog:'
         version: 1.5.1(expect-webdriverio@6.1.0)(supports-color@8.1.1)(tsx@4.23.15)(webdriverio@9.31.9(bare-buffer@3.7.1)(supports-color@8.1.1))
+      axe-core:
+        specifier: 'catalog:'
+        version: 4.14.0
       babel-plugin-react-compiler:
         specifier: 'catalog:'
         version: 1.0.0

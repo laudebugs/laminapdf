@@ -70,7 +70,9 @@ const config: KnipConfig = {
       entry: ["e2e/specs/*.e2e.ts"],
       "webdriver-io": { config: ["e2e/wdio*.conf.ts"] },
       // The config's `runner: "local"` loads it; knip's plugin doesn't map the name to the package.
-      ignoreDependencies: ["@wdio/local-runner"],
+      // e2e/specs/settings.e2e.ts reads axe-core's script by its path (`require.resolve`) and runs
+      // it in the app's webview, which knip can't follow.
+      ignoreDependencies: ["@wdio/local-runner", "axe-core"],
       // The update test (e2e/update/update-test.ts) runs wrangler with `pnpm exec` in apps/updates,
       // which depends on it, and macOS's own xattr, plutil and pkill.
       ignoreBinaries: ["wrangler", "xattr", "plutil", "pkill"],

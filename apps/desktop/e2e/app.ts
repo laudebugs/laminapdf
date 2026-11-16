@@ -390,6 +390,14 @@ export async function settingDisabled(label: string): Promise<boolean> {
   return disabled;
 }
 
+/** Whether the switch labelled `label` in Settings is on. */
+export async function settingOn(label: string): Promise<boolean> {
+  await openSetting(label);
+  const on = await settingSwitch(label).isSelected();
+  await browser.keys("Escape");
+  return on;
+}
+
 /** Opens Settings and waits for the switch labelled `label`. */
 async function openSetting(label: string): Promise<void> {
   await $('button[aria-label="More"]').click();

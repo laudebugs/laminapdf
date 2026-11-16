@@ -4,11 +4,11 @@
 //! PDF's appearance (E4 plan §2.1).
 
 use laminapdf_cos::{Dict, Object};
-use laminapdf_model::{UserSpacePoint, UserSpaceRect};
+use laminapdf_model::UserSpacePoint;
 
 use super::add::{intent_space, write_spec};
 use super::appearance::{AppearanceRequest, Appearances};
-use super::geom::{self, AnnotColor, Opacity};
+use super::geom::{self, AnnotColor, Opacity, numbers_of, rect_of};
 use super::spec::{AnnotSpec, AnnotSpecPatch, Caret, CaretSymbol, MarkupKind, Note, NoteIcon, TextMarkup};
 use crate::error::{Error, Result};
 
@@ -37,26 +37,29 @@ impl Redraw<'_> {
         appearances: Option<&dyn Appearances>,
     ) -> Result<()> {
         let current = read_spec(dict).ok_or(Error::InvalidOp(
-            "only text markup, notes and carets have their appearance drawn again",
+            "only text markup, notes, carets, ink, shapes, lines and polygons have their appearance drawn again",
         ))?;
         let spec = match self.spec {
-            Some(patch) => patch
-                .applied_to(&current)
-                .ok_or(Error::InvalidOp("the spec patch is for another kind of mark"))?,
+            Some(patch) => patch.applied_to(&current).ok_or(Error::InvalidOp(match (patch, &current) {
+                (AnnotSpecPatch::Ink(_), AnnotSpec::Ink(_)) => {
+                    "an ink patch's remove names a stroke the mark doesn't have, or its strokes come with remove or add"
+                }
+                _ => "the spec patch is for another kind of mark",
+            }))?,
             None => current,
-        }
-        .normalised();
+        };
+        // Checked as given, as AddAnnot checks it: thinning would hide widths that don't match
+        // their points.
         if !spec.is_valid() {
-            return Err(Error::InvalidOp(
-                "an annotation needs quads, and every coordinate finite",
-            ));
+            return Err(Error::InvalidOp(super::add::INVALID_GEOMETRY));
         }
+        let spec = spec.normalised();
         let appearances = appearances.ok_or(Error::AppearanceUnavailable)?;
         let color = match self.color {
             Some(color) => color,
             None => dict
                 .get("C")
-                .and_then(components)
+                .and_then(numbers_of)
                 .and_then(|c| AnnotColor::from_components(&c)),
         };
         let opacity = match self.opacity {
@@ -97,12 +100,9 @@ impl Redraw<'_> {
 /// either order, a note at its `/Rect`'s upper-left corner, a caret filling its `/Rect`.
 pub(super) fn read_spec(dict: &Dict) -> Option<AnnotSpec> {
     let subtype = dict.get_name("Subtype")?;
-    let rect = dict.get("Rect").and_then(components).and_then(|r| match *r {
-        [a, b, c, d] => Some(UserSpaceRect::from_corners(a, b, c, d)),
-        _ => None,
-    });
+    let rect = dict.get("Rect").and_then(rect_of);
     if let Some(kind) = MarkupKind::from_subtype(subtype) {
-        let values = dict.get("QuadPoints").and_then(components)?;
+        let values = dict.get("QuadPoints").and_then(numbers_of)?;
         let (quads, _) = values.as_chunks::<8>();
         let quads = quads
             .iter()
@@ -129,7 +129,7 @@ pub(super) fn read_spec(dict: &Dict) -> Option<AnnotSpec> {
             }
             Some(AnnotSpec::Caret(caret))
         }
-        _ => None,
+        other => super::drawing::read(other, dict, rect),
     }
 }
 
@@ -177,11 +177,6 @@ pub(super) fn appearance_states(doc: &laminapdf_model::Document, dict: &Dict) ->
     Ok(out)
 }
 
-/// The numbers of an array.
-fn components(value: &Object) -> Option<Vec<f64>> {
-    value.as_array()?.iter().map(Object::as_f64).collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -227,9 +222,9 @@ mod tests {
     }
 
     #[test]
-    fn a_square_has_no_spec_to_draw_again() {
+    fn a_stamp_has_no_spec_to_draw_again() {
         let d = dict(vec![
-            ("Subtype", Object::name("Square")),
+            ("Subtype", Object::name("Stamp")),
             ("Rect", numbers(&[0.0, 0.0, 1.0, 1.0])),
         ]);
         assert_eq!(read_spec(&d), None);

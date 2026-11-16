@@ -12,6 +12,10 @@ use super::spec::{AnnotSpec, CaretSymbol, Note};
 use super::{Found, every_annotation, object_dict, set_text, tags};
 use crate::error::{Error, Result};
 use crate::link::append_annot;
+
+/// What `invalid-op` says of a spec whose geometry is missing or out of range.
+pub(crate) const INVALID_GEOMETRY: &str =
+    "an annotation's geometry is missing, not finite or out of range (a markup needs quads, a polygon three vertices)";
 use crate::op::Effect;
 use crate::outline::target;
 use crate::pages::edit_dict;
@@ -147,9 +151,7 @@ impl AddAnnot {
         appearances: Option<&dyn Appearances>,
     ) -> Result<Effect> {
         if !self.spec.is_valid() {
-            return Err(Error::InvalidOp(
-                "an annotation needs quads, and every coordinate finite",
-            ));
+            return Err(Error::InvalidOp(INVALID_GEOMETRY));
         }
         let appearances = appearances.ok_or(Error::AppearanceUnavailable)?;
         let page = target::page_ref(doc, &self.page)?;
@@ -257,6 +259,11 @@ pub(crate) fn write_spec(dict: &mut Dict, spec: &AnnotSpec) {
                 CaretSymbol::Paragraph => "P",
             };
             dict.insert("Sy", Object::name(symbol));
+        }
+        AnnotSpec::Ink(_) | AnnotSpec::Shape(_) | AnnotSpec::Line(_) | AnnotSpec::Poly(_) => {
+            if let Some(drawing) = spec.drawing() {
+                super::drawing::write(dict, &drawing);
+            }
         }
     }
 }

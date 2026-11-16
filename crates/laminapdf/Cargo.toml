@@ -173,6 +173,9 @@ name = "mark_up"
 required-features = ["extract"]
 
 [[example]]
+name = "draw_on_page"
+
+[[example]]
 name = "review_comments"
 required-features = ["extract"]
 

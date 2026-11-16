@@ -20,6 +20,7 @@ import type {
   FieldEdit,
   InitialView,
   Limits,
+  MergeOptions,
   NamedDestination,
   Op,
   OutlineNode,
@@ -208,6 +209,52 @@ export interface ReplayedStep {
   readonly at: number;
 }
 
+/** A file the open document took as a source document: its ID (the SHA-256 of its bytes) and its page IDs, in order. */
+export interface AddedSource {
+  readonly id: string;
+  readonly pages: readonly string[];
+}
+
+/** What a dialog shows of a file before its pages come in (`previewSource`). */
+export interface SourcePreview {
+  /** What its pages are drawn by (`renderSource`) until `closeSource`. */
+  readonly key: number;
+  /** Each page's displayed size in points (`/Rotate` applied) and rotation. */
+  readonly pages: readonly { readonly width: number; readonly height: number; readonly rotate: number }[];
+  /** Whether it is encrypted: its pages come in unencrypted. */
+  readonly encrypted: boolean;
+  /** The PDF/A part and conformance its metadata claims (`"2B"`), if any. */
+  readonly pdfa?: string;
+  /** The PDF/UA part it claims, if any. */
+  readonly pdfua?: number;
+  /** Its title, if its metadata has one. */
+  readonly title?: string;
+}
+
+/** How `writeParts` hands back the files it made. */
+export interface PartsOutput {
+  /** One zip of them, under these names and dated `modified` (ms since the epoch); else each file on its own. */
+  readonly zip?: { readonly names: readonly string[]; readonly modified: number };
+}
+
+/** The files `writeParts` made: each one, or one zip of them. */
+export type WrittenParts = { readonly files: readonly Uint8Array[] } | { readonly zip: Uint8Array };
+
+/** What `writeParts` reports after each file. */
+export interface PartsProgress {
+  readonly done: number;
+  readonly total: number;
+}
+
+/** A merge into a new document (`mergeFiles`). */
+export interface MergeFilesRequest {
+  /** The open document, first, under this title, when it takes part: its pages as its edits leave them. */
+  readonly open?: { readonly id: number; readonly title: string };
+  /** The other files, in order. */
+  readonly files: readonly { readonly bytes: Uint8Array; readonly password?: string; readonly title?: string }[];
+  readonly options?: MergeOptions;
+}
+
 /** An edit session with nothing in it. */
 export const EMPTY_HISTORY: EditHistory = { steps: [], position: 0, dropped: 0, unsaved: 0, diverged: false };
 
@@ -268,7 +315,25 @@ export interface Methods {
    * A restarted worker's document takes the edits the old one had: `steps` applied again, one
    * transaction each, then the newest `undone` of them undone, and drawn once.
    */
-  restoreEdits: { params: [steps: readonly ReplayedStep[], undone: number, document: number]; result: EditResult };
+  restoreEdits: {
+    params: [steps: readonly ReplayedStep[], undone: number, document: number, sources?: readonly Uint8Array[]];
+    result: EditResult;
+  };
+  /** Opens a file to preview before its pages come in: its pages, claims and title. */
+  previewSource: { params: [bytes: Uint8Array, password?: string]; result: SourcePreview };
+  /** Page `page` of preview `key`, drawn at `scale`. */
+  renderSource: { params: [key: number, page: number, scale: number]; result: RenderedBitmap };
+  /** Closes preview `key`. */
+  closeSource: { params: [key: number]; result: undefined };
+  /** Makes a file a source document of document `document`, for the ops that copy its pages. */
+  addSource: { params: [bytes: Uint8Array, password: string | undefined, document: number]; result: AddedSource };
+  /** One new file per list of page IDs of document `document`, as `output` says; progress as `PartsProgress`. */
+  writeParts: {
+    params: [ranges: readonly (readonly string[])[], output: PartsOutput, document: number];
+    result: WrittenParts;
+  };
+  /** One new document merged from files (and the open document, when `request.open` names it). */
+  mergeFiles: { params: [request: MergeFilesRequest]; result: Uint8Array };
   pageInfo: { params: [index: number]; result: PageInfo };
   render: { params: [request: RenderRequest, document: number]; result: RenderedBitmap };
   memory: { params: []; result: WorkerMemory };

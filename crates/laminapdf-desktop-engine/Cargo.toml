@@ -29,26 +29,39 @@ selftest = ["laminapdf-desktop-sandbox/probe"]
 # Linux: the seccomp filter traps instead of killing and names the refused system call on stderr
 # (for finding a call a new libc or PDFium makes).
 seccomp-trap = ["laminapdf-desktop-sandbox/seccomp-trap"]
-# The end-to-end tests' engine: it obeys `DebugPanic` (`cargo xtask desktop-sidecar --e2e`).
-e2e = ["laminapdf-desktop-protocol/debug-crash"]
+# The end-to-end tests' engine: it obeys `DebugPanic` and `DebugSegv` (`cargo xtask desktop-sidecar --e2e`).
+e2e = ["laminapdf-desktop-protocol/debug-crash", "laminapdf-desktop-crash/debug-crash"]
 
 [dependencies]
 laminapdf = { workspace = true, features = ["saslprep", "page-checks"] }
+# Native crash capture, and the minidump reader for its `--summarize-dump` mode (ADR 0014 §10): the
+# engine, not the main process, links the minidump parser.
+laminapdf-desktop-crash = { workspace = true, features = ["summary"] }
 laminapdf-desktop-protocol = { workspace = true }
 # Its own half of the sandbox: the lock-down and the selftest's probes.
 laminapdf-desktop-sandbox = { workspace = true, features = ["engine"] }
 laminapdf-render = { workspace = true }
 laminapdf-render-pdfium = { workspace = true }
+# The Properties dialog's data, sent as JSON (FromEngine::Properties).
+serde = { workspace = true }
+serde_json = { workspace = true }
 
 [[test]]
 name = "sandbox_selftest"
 required-features = ["selftest"]
+
+# The e2e engine's forced faults, captured as minidumps.
+[[test]]
+name = "native_crash"
+required-features = ["e2e"]
 
 [dev-dependencies]
 # The builder, for the large-fixture example (`examples/large_pdf.rs`).
 laminapdf = { workspace = true, features = ["build", "saslprep"] }
 # The test helpers every crate shares, by path only (code-organization.md §6).
 laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
+# A crash-dump server for the native-crash test (the engine faults against it).
+laminapdf-desktop-crash = { workspace = true, features = ["summary", "test-support"] }
 
 [lints]
 workspace = true

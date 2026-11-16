@@ -68,6 +68,27 @@ interface Module {
   readonly debug_id: string | null;
 }
 
+/** A frame of a native crash's stack, from its minidump (D7d): the module and the address in it. */
+interface DumpFrame {
+  readonly module: string;
+  readonly offset: number;
+  readonly function: string | null;
+}
+
+/** A module a native crash's frames name, with the debug ID its symbols are archived under. */
+interface DumpModule {
+  readonly name: string;
+  readonly version: string | null;
+  readonly debug_id: string;
+}
+
+/** A native crash's stack, read on the computer from its minidump (D7d). */
+interface Native {
+  readonly crash_reason: string;
+  readonly frames: readonly DumpFrame[];
+  readonly modules: readonly DumpModule[];
+}
+
 /** A crash report as schemas/crash-report.schema.json describes it. */
 export interface CrashReport {
   readonly schema: 1;
@@ -88,6 +109,8 @@ export interface CrashReport {
   readonly location: { readonly file: string; readonly line: number; readonly column: number } | null;
   readonly frames: readonly (NativeFrame | ScriptFrame)[];
   readonly modules: readonly Module[];
+  /** A native crash's stack; absent when the crash left no minidump. */
+  readonly native?: Native;
 }
 
 /** The result of checking a report: the report, or every problem found, each with its JSON path. */
@@ -122,7 +145,11 @@ const TOP_KEYS = [
   "frames",
   "modules",
 ];
+/** Keys a report may leave out. */
+const OPTIONAL_KEYS = ["native"];
 const MAX_ITEMS = { sandbox: 8, frames: 64, modules: 64 } as const;
+/** The largest native offset: JSON numbers stay exact up to 2^53 − 1. */
+const MAX_OFFSET = Number.MAX_SAFE_INTEGER;
 
 function isObject(value: unknown): value is Json {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -144,8 +171,16 @@ export function isPathLike(text: string): boolean {
 }
 
 // Errors name the JSON path and the rule, never a key or a value from the body: they become the 400's text.
-function exactKeys(value: Json, keys: readonly string[], at: string, errors: string[]): void {
-  if (Object.keys(value).some((key) => !keys.includes(key))) errors.push(`${at}: has an unknown key`);
+function exactKeys(
+  value: Json,
+  keys: readonly string[],
+  at: string,
+  errors: string[],
+  optional: readonly string[] = [],
+): void {
+  if (Object.keys(value).some((key) => !keys.includes(key) && !optional.includes(key))) {
+    errors.push(`${at}: has an unknown key`);
+  }
   for (const key of keys) if (!(key in value)) errors.push(`${at}/${key}: required`);
 }
 
@@ -196,6 +231,60 @@ function checkModule(module: unknown, at: string, errors: string[]): void {
   if (module.debug_id !== null && !isText(module.debug_id, DEBUG_ID)) {
     errors.push(`${at}/debug_id: must be 32 to 40 hex digits`);
   }
+}
+
+/** A module name in a native stack: a file name or `<unknown>`. */
+function isModuleName(value: unknown): boolean {
+  return value === "<unknown>" || isText(value, MODULE_NAME);
+}
+
+/** Checks one list of a native stack: an array of at most 64, each item by `check`. */
+function checkNativeList(value: unknown, at: string, check: (item: Json, at: string) => void, errors: string[]): void {
+  if (!Array.isArray(value) || value.length > 64) {
+    errors.push(`${at}: must be a list of at most 64`);
+    return;
+  }
+  value.forEach((item: unknown, i: number) => {
+    if (isObject(item)) check(item, `${at}/${i}`);
+    else errors.push(`${at}/${i}: must be an object`);
+  });
+}
+
+/** A native crash's stack (D7d), when the report has one. */
+function checkNative(value: unknown, errors: string[]): void {
+  if (value === undefined) return;
+  if (!isObject(value)) {
+    errors.push("/native: must be an object");
+    return;
+  }
+  exactKeys(value, ["crash_reason", "frames", "modules"], "/native", errors);
+  checkFreeText(value.crash_reason, 128, "/native/crash_reason", errors);
+  checkNativeList(
+    value.frames,
+    "/native/frames",
+    (frame, at) => {
+      exactKeys(frame, ["module", "offset", "function"], at, errors);
+      if (!isModuleName(frame.module)) errors.push(`${at}/module: must be a file name or <unknown>`);
+      const offset = frame.offset;
+      if (typeof offset !== "number" || !Number.isInteger(offset) || offset < 0 || offset > MAX_OFFSET) {
+        errors.push(`${at}/offset: must be a whole number from 0 to 2^53 - 1`);
+      }
+      // A native frame carries no function name (ADR 0014 §10): the computer has no symbols.
+      if (frame.function !== null) errors.push(`${at}/function: must be null`);
+    },
+    errors,
+  );
+  checkNativeList(
+    value.modules,
+    "/native/modules",
+    (module, at) => {
+      exactKeys(module, ["name", "version", "debug_id"], at, errors);
+      if (!isModuleName(module.name)) errors.push(`${at}/name: must be a file name or <unknown>`);
+      if (module.version !== null && !isText(module.version, VERSION)) errors.push(`${at}/version: must be a version`);
+      if (!isText(module.debug_id, DEBUG_ID)) errors.push(`${at}/debug_id: must be 32 to 40 hex digits`);
+    },
+    errors,
+  );
 }
 
 function checkLocation(value: unknown, errors: string[]): void {
@@ -256,13 +345,14 @@ function checkEnvironment(value: Json, errors: string[]): void {
 export function checkCrashReport(value: unknown): CheckedReport {
   if (!isObject(value)) return { ok: false, errors: ["/: must be an object"] };
   const errors: string[] = [];
-  exactKeys(value, TOP_KEYS, "", errors);
+  exactKeys(value, TOP_KEYS, "", errors, OPTIONAL_KEYS);
   checkEnvironment(value, errors);
   checkSandbox(value.sandbox, errors);
   checkFreeText(value.reason, 1024, "/reason", errors);
   checkLocation(value.location, errors);
   checkList(value.frames, "frames", checkFrame, errors);
   checkList(value.modules, "modules", checkModule, errors);
+  checkNative(value.native, errors);
   // Every field the type names was checked above, so the value is a CrashReport; test/crash.test.ts
   // holds this validator to schemas/crash-report.schema.json, case by case.
   return errors.length === 0 ? { ok: true, report: value as unknown as CrashReport } : { ok: false, errors };

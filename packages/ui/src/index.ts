@@ -195,6 +195,7 @@ export type {
   Capability,
   Platform,
   PlatformFile,
+  PlatformFolder,
   PlatformStorage,
   PrintJob,
   PrintPage,

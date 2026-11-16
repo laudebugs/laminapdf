@@ -413,6 +413,14 @@ pub enum ToEngine {
         /// The document.
         doc: DocId,
     },
+    /// What the Properties dialog shows of the document, with its edits so far. Answered by
+    /// [`FromEngine::Properties`].
+    GetProperties {
+        /// The request.
+        req: ReqId,
+        /// The document.
+        doc: DocId,
+    },
     /// Render a tile. Answered by [`FromEngine::Tile`].
     RenderTile(TileRequest),
     /// Apply, undo or redo an edit of the document. Answered by [`FromEngine::Edited`], or a
@@ -476,6 +484,10 @@ pub enum ToEngine {
         /// The panic's message, which the test fills with what a report must not hold.
         message: String,
     },
+    /// Fault, as a native crash would: a write through a null pointer, which the engine's crash
+    /// handler turns into a minidump. Only the e2e builds have it (feature `debug-crash`).
+    #[cfg(feature = "debug-crash")]
+    DebugSegv,
 }
 
 /// A message from the engine to the main process.
@@ -547,6 +559,17 @@ pub enum FromEngine {
         sizes: Vec<PageDimensions>,
         /// Each page's stable ID (`p12.0`), in the same order.
         ids: Vec<String>,
+    },
+    /// What the Properties dialog shows of the document: its properties, its metadata and its
+    /// XMP packet, as one JSON object (`laminapdf-desktop-engine`'s `properties` module), since the
+    /// pipe's format can't carry a self-describing value. The webview reads it as it is.
+    Properties {
+        /// The request.
+        req: ReqId,
+        /// The document.
+        doc: DocId,
+        /// The JSON object.
+        json: String,
     },
     /// What an edit call did.
     Edited {

@@ -51,8 +51,8 @@ Show that an installed Lamina PDF `0.0.1` updates itself to `0.0.2` on macOS, Wi
 
 ## Post-merge checks
 
-- [ ] The owner has created the `desktop-staging` environment (deployment branches: `main`) with `CLOUDFLARE_STAGING_R2_TOKEN` scoped to `lamina-pdf-staging` only.
-- [ ] The first `staging`-mode run on `main` is green on all three OSes and actually ran: until the token exists, each leg passes with a notice that it skipped, which doesn't count (a new workflow can't be dispatched or scheduled until it is on `main`, and PRs get no secrets).
+- [x] The owner has created the `desktop-staging` environment (deployment branches: `main`) with `CLOUDFLARE_STAGING_R2_TOKEN` scoped to `lamina-pdf-staging` only, and its `STAGING_R2_ACCESS_KEY_ID` (#649).
+- [x] The first `staging`-mode run on `main` is green on all three OSes and actually ran: until the token exists, each leg passes with a notice that it skipped, which doesn't count (a new workflow can't be dispatched or scheduled until it is on `main`, and PRs get no secrets). The first real run, 43735229390, failed: a bucket-scoped token can't use the REST API Wrangler calls, so #650 moved the writes to R2's S3 API. [Run 43742007373](https://github.com/laudebugs/laminapdf/actions/runs/43742007373) then passed on all three OSes, through the staging bucket.
 
 ## Docs to update
 

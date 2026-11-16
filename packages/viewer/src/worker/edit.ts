@@ -148,7 +148,7 @@ export function stepEdit(delta: -1 | 1, id: number, signal: AbortSignal): Promis
  * calls as they come, and an edit's awaits would otherwise let another start against the history
  * it is changing.
  */
-function serial<T>(opened: Open, call: () => Promise<T>): Promise<T> {
+export function serial<T>(opened: Open, call: () => Promise<T>): Promise<T> {
   const run = opened.edit.queue.then(call);
   opened.edit.queue = run.catch(() => undefined);
   return run;
@@ -226,7 +226,8 @@ async function takeBack(opened: Open, kept: Session, done: readonly RevertedStep
 /**
  * Applies `steps` to document `id` again, one transaction each, then undoes the newest `undone`
  * of them, and draws once: a restarted worker's document takes back the edits the old one had.
- * The history keeps their labels and times.
+ * The history keeps their labels and times. The source documents the steps copy pages from,
+ * `sources`, are added first.
  *
  * @throws an op's error, or a save or reopen error: the document is then marked diverged, since
  *   the edits applied so far can't all be taken back (the depth limit may have dropped some).
@@ -236,8 +237,9 @@ export function restoreEdits(
   undone: number,
   id: number,
   signal: AbortSignal,
+  sources: readonly Uint8Array[] = [],
 ): Promise<EditResult> {
-  return serial(current(id), () => replay(steps, undone, id, signal));
+  return serial(current(id), () => replay(steps, undone, id, signal, sources));
 }
 
 async function replay(
@@ -245,6 +247,7 @@ async function replay(
   undone: number,
   id: number,
   signal: AbortSignal,
+  sources: readonly Uint8Array[],
 ): Promise<EditResult> {
   const opened = current(id);
   editable(opened);
@@ -253,6 +256,10 @@ async function replay(
   edit.copy = undefined;
   let after: PagesNow;
   try {
+    for (const source of sources) {
+      await model.ensure(() => model.addSource(source), { signal });
+      followEdit(opened, { source });
+    }
     const known = await knownOrder(opened, signal);
     let order = known;
     for (const step of steps) order = await replayStep(opened, step, order, ids, signal);

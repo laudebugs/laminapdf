@@ -13,6 +13,14 @@ mod crash;
 mod e2e;
 mod engine;
 mod error;
+#[cfg_attr(
+    all(not(target_os = "linux"), not(test)),
+    expect(
+        dead_code,
+        reason = "the graphics choice is made on Linux only; its tests run everywhere"
+    )
+)]
+mod graphics;
 mod menu;
 mod motion;
 mod open;
@@ -35,6 +43,7 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+pub use crash::monitor_main;
 pub use error::DesktopError;
 use laminapdf_desktop_protocol::supervisor::{Config, FontServer, Spawner};
 use laminapdf_desktop_sandbox::{BackgroundFonts, SandboxConfig, SandboxSpawner};
@@ -79,15 +88,22 @@ fn engine_program() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from(name))
 }
 
-/// The engine's arguments: the PDFium folder among the app's resources, when it is there.
+/// The engine's arguments: the PDFium folder among the app's resources, when it is there, and
+/// the crash-dump server's socket, when it runs.
 fn engine_args(app: &tauri::AppHandle) -> Vec<OsString> {
-    match app.path().resource_dir().map(|dir| dir.join("pdfium")) {
+    #[cfg_attr(not(unix), expect(unused_mut, reason = "only capture, on Unix, adds the socket"))]
+    let mut args = match app.path().resource_dir().map(|dir| dir.join("pdfium")) {
         Ok(dir) if dir.is_dir() => vec!["--pdfium".into(), dir.into_os_string()],
         _ => {
             tracing::warn!("PDFium is not among the app's resources; pages won't render");
             Vec::new()
         }
+    };
+    #[cfg(unix)]
+    if let Some(dumps) = app.try_state::<crash::EngineDumps>() {
+        args.extend(dumps.engine_args());
     }
+    args
 }
 
 /// Sends engine events to the one window they concern.
@@ -101,10 +117,19 @@ impl Notify for WindowEvents {
         }
     }
 
-    fn crashed(&self, window: &str, crash: crash::Crash) {
-        // Off the supervisor's thread: writing the report mustn't hold up the engine's restart.
+    #[cfg_attr(
+        not(unix),
+        expect(unused_variables, unused_mut, reason = "only capture, on Unix, joins a dump by pid")
+    )]
+    fn crashed(&self, window: &str, pid: u32, mut crash: crash::Crash) {
+        // Off the supervisor's thread: waiting for the engine's minidump and writing the report
+        // mustn't hold up the engine's restart.
         let (app, window) = (self.0.clone(), window.to_owned());
         tauri::async_runtime::spawn_blocking(move || {
+            #[cfg(unix)]
+            if let Some(dumps) = app.try_state::<crash::EngineDumps>() {
+                crash.native = dumps.crashes.take_for_report(pid);
+            }
             if let Some(reports) = app.try_state::<Arc<crash::CrashReports>>() {
                 reports.record(&app, Some(&window), crash);
             }
@@ -153,15 +178,31 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         tracing::warn!("could not set the app's ID: {error}");
     }
     let config = app.path().app_config_dir()?;
-    // Crash reports first, so a panic in the rest of the start-up leaves one.
-    let crashes = crash::CrashReports::new(
-        &config,
-        &app.path().app_data_dir()?,
-        &app.package_info().version.to_string(),
-    );
+    let data = app.path().app_data_dir()?;
+    // Crash reports first, so a panic in the rest of the start-up leaves one; then the native
+    // crashes' monitor (the main process's) and dump server (the engines'), before any engine.
+    let crashes = crash::CrashReports::new(&config, &data, &app.package_info().version.to_string());
     crash::report_panics(&crashes);
     crashes.resume();
-    app.manage(crashes);
+    app.manage(Arc::clone(&crashes));
+    graphics::log();
+    graphics::watch_start(config.clone());
+    // Native crash capture (ADR 0014 §10): the monitor hosts the servers and connects the main
+    // process's handler; the poller reads engine dumps. Unix only; Windows keeps D7a's behaviour.
+    #[cfg(unix)]
+    if let Some(dumps) = crash::EngineDumps::start(&data) {
+        // Read the main-process dumps an earlier run left (the newest few) off the start-up path,
+        // and queue each as a held report; the reader summarises them in a subprocess.
+        let (reader, crashes, data_dir) = (dumps.reader(), Arc::clone(&crashes), data.clone());
+        let _ = std::thread::Builder::new()
+            .name("crash-leftover".into())
+            .spawn(move || {
+                for native in crash::leftover_main_crashes(&data_dir, &reader) {
+                    crashes.record_main_native(native);
+                }
+            });
+        app.manage(dumps);
+    }
     app.manage(prefs::Prefs::load(config.join("preferences.json")));
     app.manage(recent::RecentFiles::load(config.join("recent.json")));
     app.manage(engines(app.handle()));
@@ -221,6 +262,7 @@ macro_rules! app_commands {
             commands::app_info,
             commands::open_dialog,
             commands::page_info,
+            commands::document_properties,
             commands::edit_document,
             commands::set_unsaved,
             commands::cancel_quit,
@@ -234,6 +276,10 @@ macro_rules! app_commands {
             commands::preferences,
             commands::set_preferences,
             commands::system_motion,
+            commands::graphics_status,
+            commands::graphics_take_notice,
+            commands::restart_app,
+            commands::open_licences,
             commands::new_window,
             commands::move_tab,
             commands::window_list,
@@ -285,6 +331,9 @@ macro_rules! app_commands {
     reason = "tauri::generate_context! builds a HashMap of the bundled assets"
 )]
 pub fn run() -> Result<(), DesktopError> {
+    let context = tauri::generate_context!();
+    // First of all, while nothing else runs: `WebKitGTK` reads its graphics settings as it starts.
+    graphics::prepare(&context.config().identifier);
     #[cfg(feature = "e2e")]
     e2e::start_clock();
     // The test commands and WebdriverIO's plugins exist only in e2e builds; generate_handler!
@@ -364,14 +413,30 @@ pub fn run() -> Result<(), DesktopError> {
         .setup(setup)
         .on_window_event(on_window_event)
         .on_menu_event(|app, event| menu::on_menu_event(app, &event))
-        .build(tauri::generate_context!())?;
+        .build(context)?;
     app.run(|app, event| on_run_event(app, &event));
     Ok(())
 }
 
+/// Restarts the app now (Restart now, Restart to update). On the main thread `restart` raises no
+/// `RunEvent::Exit`, so what a quit does is done here: the windows that close stay in the session,
+/// the engines stop, and the start counts as survived for the graphics guard.
+pub(crate) fn restart(app: &tauri::AppHandle) -> ! {
+    session::app::quitting(app);
+    app.state::<Arc<Engines>>().shutdown();
+    if let Ok(config) = app.path().app_config_dir() {
+        graphics::survived(&config);
+    }
+    app.restart()
+}
+
 /// A second launch's files, which the single-instance plugin forwards: they open in the frontmost
-/// window; a launch with no file still brings that window to the front.
+/// window; a launch with no file still brings that window to the front. The second process ends
+/// here, before its start could count as survived, so the running app takes its count back.
 fn second_launch(app: &tauri::AppHandle, args: &[String], cwd: &str) {
+    if let Ok(config) = app.path().app_config_dir() {
+        graphics::handed_over(&config);
+    }
     let paths = open::paths_from_args(args, std::path::Path::new(cwd));
     match windows::target_window(app) {
         Ok(window) => {
@@ -427,6 +492,10 @@ fn on_run_event(app: &tauri::AppHandle, event: &RunEvent) {
     match event {
         RunEvent::Exit => {
             session::app::flush(app);
+            // A clean quit, however soon after the start, isn't one the graphics guard counts.
+            if let Ok(config) = app.path().app_config_dir() {
+                graphics::survived(&config);
+            }
             app.state::<Arc<Engines>>().shutdown();
             // A downloaded update installs as the app quits (on Windows its installer takes over).
             app.state::<Arc<update::Updates>>().install_on_quit();

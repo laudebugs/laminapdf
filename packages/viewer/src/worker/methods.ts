@@ -11,11 +11,14 @@ import type {
   ExportedTiff,
   ExportPageOptions,
   ExportTiffOptions,
+  MergeFilesRequest,
+  PartsOutput,
   PrintOptions,
   ReplayedStep,
   SavedCopy,
   SourceInit,
   ViewerOpenOptions,
+  WrittenParts,
 } from "../protocol.js";
 import {
   closeDocument,
@@ -57,8 +60,10 @@ import {
   threads,
 } from "./navigation.js";
 import { networkLog } from "./network.js";
+import { mergeFiles, writeParts } from "./parts.js";
 import { fileBytes, printPage, replyBytes } from "./print.js";
 import { render, reply } from "./render.js";
+import { addSource, closeSource, previewSource, renderSource } from "./sources.js";
 import { forgetText, pageText, readingOrder, reflow, replyText, structure } from "./text.js";
 
 /** The viewer's worker methods, by name (see `Methods` in protocol.ts). */
@@ -117,8 +122,40 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
     run: ([token, id]) => adoptEdits(token as number, id as number),
   },
   restoreEdits: {
-    run: ([steps, undone, id], { signal }) =>
-      restoreEdits(steps as readonly ReplayedStep[], undone as number, id as number, signal),
+    run: ([steps, undone, id, sources], { signal }) =>
+      restoreEdits(
+        steps as readonly ReplayedStep[],
+        undone as number,
+        id as number,
+        signal,
+        (sources as readonly Uint8Array[] | undefined) ?? [],
+      ),
+  },
+  previewSource: {
+    run: ([bytes, password]) => previewSource(bytes as Uint8Array, password as string | undefined),
+  },
+  renderSource: {
+    run: ([key, page, scale], { signal }) => renderSource(key as number, page as number, scale as number, signal),
+    reply: (tile) => reply(tile as Parameters<typeof reply>[0]),
+  },
+  closeSource: { run: ([key]) => closeSource(key as number) },
+  addSource: {
+    run: ([bytes, password, id], { signal }) =>
+      addSource(bytes as Uint8Array, password as string | undefined, id as number, signal),
+  },
+  writeParts: {
+    run: ([ranges, output, id], context) =>
+      writeParts(ranges as readonly (readonly string[])[], output as PartsOutput, id as number, context),
+    // Called without a coalescing key, so one caller takes the buffers: moved, never copied.
+    reply: (parts) => {
+      const written = parts as WrittenParts;
+      const buffers = "zip" in written ? [written.zip.buffer] : written.files.map((file) => file.buffer);
+      return [written, buffers];
+    },
+  },
+  mergeFiles: {
+    run: ([request], context) => mergeFiles(request as MergeFilesRequest, context),
+    reply: (bytes) => replyBytes(bytes as Uint8Array),
   },
   pageInfo: {
     run: ([index], { signal }) => {

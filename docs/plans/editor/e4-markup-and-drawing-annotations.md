@@ -61,7 +61,7 @@ Every op is class `Annotation`, and none needs a full rewrite (`requires_rewrite
 | `Caret` | Caret | `{ rect, symbol: None \| Paragraph }` | E4c |
 | `Ink` | Ink | `{ strokes: Vec<InkStroke>, width, smoothing: bool }`; `InkStroke { points, widths: Option<Vec<f32>> }` (§11) | E4d |
 | `Shape` | Square, Circle | `{ kind, rect, interior: Option<Color>, border: Border }` | E4d |
-| `Line` | Line | `{ from, to, ends: [LineEnding; 2], interior, border, leader: Option<Leader> }` | E4d |
+| `Line` (Rust `LineMark`) | Line | `{ from, to, ends: [LineEnding; 2], interior, border, leader: Option<Leader> }` | E4d |
 | `Poly` | Polygon, PolyLine | `{ kind, vertices, ends, interior, border }` | E4d |
 | `FreeText` | FreeText | `{ rect, text: RichText, font: FontRef, size, align, intent: Plain \| Callout { line, knee } \| Typewriter, fill, border }`; `FontRef` is a standard 14 name or a font's bytes by `BlobId` (E2p) | E4e |
 
@@ -164,7 +164,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | --- | --- | --- |
 | [E4b](../../todos/done/E4b-annotation-model-and-overlay.md) | Annotation views, `page_annotations`, the `/NM` index, `UpdateAnnot` and `DeleteAnnot` | E1d, E2j |
 | [E4c](../../todos/done/E4c-appearances-markup-notes-caret.md) | `AddAnnot` and the `Appearances` trait; text markup, notes and caret with their appearances; `replace_text` | C5b, E4b |
-| [E4d](../../todos/ready/E4d-appearances-ink-and-shapes.md) | Ink, shapes, lines, arrows, polygons and cloudy borders with their appearances | E4b |
+| [E4d](../../todos/done/E4d-appearances-ink-and-shapes.md) | Ink, shapes, lines, arrows, polygons and cloudy borders with their appearances | E4b |
 | [E4e](../../todos/ready/E4e-freetext-callouts.md) | FreeText text boxes, callouts and typewriter text: `/DA`, layout, the rich-text subset | B4b, B4c, E2p, E4b |
 | [E4i](../../todos/ready/E4i-viewer-annotation-layer.md) | The viewer's annotation layer: records, hit-testing, handles, previews, `hidden_annotations` | E1g, E4b |
 | [E4f](../../todos/ready/E4f-annotation-tools-ui.md) | Comment mode: the toolbar, the markup, note, caret, ink and shape tools, the inspector, the covered-text notice | E1e, E4c, E4d, E4i |

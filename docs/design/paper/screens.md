@@ -50,9 +50,9 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | S04 | File changed on disk: strip (Compare · Keep mine · Reload from disk); the next Save asks | D | [D3b](../../todos/done/D3b-recent-files-and-file-watching.md) |
 | S05 | Print: native print dialog hand-off, printing progress | D | [D4c](../../todos/done/D4c-native-printing.md) |
 | S06 | Updates: update available / downloading / restart to update; channel note | D | [D5b](../../todos/done/D5b-updater-in-app.md) |
-| S07 | Settings window: General, Appearance, Privacy (telemetry opt-in, crash reports), Shortcuts (single-key on/off), Advanced (renderer switch) | D | [D7b](../../todos/ready/D7b-settings-renderer-switch-and-download-page.md), [D7a](../../todos/done/D7a-crash-reporting.md), [U5c](../../todos/ready/U5c-opt-in-usage-telemetry.md) |
+| S07 | Settings window: General, Appearance, Privacy (telemetry opt-in, crash reports), Shortcuts (single-key on/off), Advanced (renderer switch) | D | [D7b](../../todos/done/D7b-settings-renderer-switch-and-download-page.md), [D7a](../../todos/done/D7a-crash-reporting.md), [U5c](../../todos/ready/U5c-opt-in-usage-telemetry.md) |
 | S08 | Crash recovered: restore session and optional report preview | D | [D7a](../../todos/done/D7a-crash-reporting.md) |
-| S09 | Download page (web): per-OS download, checksums, system requirements | W | [D7b](../../todos/ready/D7b-settings-renderer-switch-and-download-page.md) |
+| S09 | Download page (web): per-OS download, checksums, system requirements | W | [D7b](../../todos/done/D7b-settings-renderer-switch-and-download-page.md) |
 | S10 | Windows window frame (title bar controls, menu bar) | D | [D4b](../../todos/done/D4b-native-menus.md) |
 
 ## O. Edit session, organise, navigation and extraction (E1–E3)
@@ -82,7 +82,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
 | C01 | Comment tools: highlight, underline, strike, caret, note, ink, shapes, arrow, text box; colour and width | D | [E4f](../../todos/ready/E4f-annotation-tools-ui.md) |
-| C02 | Ink and shapes: drawing in progress, selected shape with handles, inspector | D | [E4d](../../todos/ready/E4d-appearances-ink-and-shapes.md) |
+| C02 | Ink and shapes: drawing in progress, selected shape with handles, inspector | D | [E4d](../../todos/done/E4d-appearances-ink-and-shapes.md) |
 | C03 | Free text and callouts: editing | D | [E4e](../../todos/ready/E4e-freetext-callouts.md) |
 | C04 | Comments panel: threads, replies, status (accepted, rejected, done), filter and search | D, W | [E5b](../../todos/done/E5b-comment-threads-and-review.md), [E5g](../../todos/ready/E5g-comments-panel.md) |
 | C05 | Stamps and file attachments (stamps picker: standard, custom image, dynamic date/name; file attachment annotation) | D | [E5c](../../todos/ready/E5c-stamps-and-attachments.md), [E5h](../../todos/ready/E5h-stamps-and-attachments-ui.md) |

@@ -1,0 +1,1 @@
+{ "op": "updateAnnot", "args": { "id": "a12.0", "modified": "D:20261115120000Z", "spec": { "type": "ink", "remove": [0], "add": [{ "points": [{ "x": 310, "y": 590 }, { "x": 330, "y": 610 }] }] } } }

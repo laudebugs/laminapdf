@@ -1,0 +1,1 @@
+{ "op": "addAnnot", "args": { "page": "p9.0", "spec": { "type": "shape", "kind": "square", "rect": { "x0": 300, "y0": 400, "x1": 400, "y1": 460 }, "interior": [1, 1, 0.6], "border": { "width": 1.5, "style": { "type": "cloudy", "intensity": 1 } } }, "common": { "contents": "Check these figures", "opacity": 0.8 } } }

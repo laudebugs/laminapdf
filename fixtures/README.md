@@ -404,6 +404,7 @@ Inputs for the desktop engine's tests (ADR 0008 §5).
 | File | Source | What it tests |
 | --- | --- | --- |
 | `cjk-not-embedded.pdf` | [`tools/fixtures/cjk_not_embedded.py`](../tools/fixtures/cjk_not_embedded.py) (no dependencies) | Six Chinese characters in STSong-Light (Type 0, `UniGB-UCS2-H`, Adobe-GB1), not embedded, and no other ink on the page: the sandboxed engine must get a system font from the main process for any glyph to render. `crates/laminapdf-desktop-engine/tests/engine_process.rs` counts the dark pixels |
+| `minidump-macos-aarch64-segv.dmp` | A minidump of the sandboxed engine faulting on purpose (its e2e `DebugSegv`) on macOS Arm64 (D7d), written by the monitor's engine-dump server; its environment strings and long ASCII strings blanked and the user name in its one home path replaced | `laminapdf-desktop-crash`'s `summarize_bytes` reads it into the report's `native` object: the crash reason, frames in the engine and the modules' debug IDs |
 
 ### `print/`
 

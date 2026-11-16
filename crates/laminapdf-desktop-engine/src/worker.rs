@@ -48,6 +48,9 @@ pub(crate) struct Opened {
     pub(crate) diverged: bool,
     /// A save's output, written and waiting for the main process to put it in place.
     pub(crate) pending: Option<crate::save::Pending>,
+    /// The Properties dialog's facts, which read every object: kept until an edit, an undo, a
+    /// redo or a save changes the document they describe.
+    pub(crate) facts: Option<crate::properties::Facts>,
 }
 
 /// Why a document didn't open.
@@ -89,6 +92,7 @@ impl Worker {
                 Job::Open { req, doc, len } => self.open(req, doc, len),
                 Job::Unlock { req, doc, password } => self.unlock(req, doc, &password),
                 Job::PageInfo { req, doc } => self.page_info(req, doc),
+                Job::Properties { req, doc } => self.properties(req, doc),
                 Job::Render(tile) => self.render(&tile, &token),
                 Job::Edit { req, doc, call } => self.edit(req, doc, call),
                 Job::Save { req, doc, call } => self.save(req, doc, call),
@@ -179,14 +183,28 @@ impl Worker {
         }
     }
 
+    fn properties(&mut self, req: ReqId, doc: DocId) {
+        let opened = match self.docs.get_mut(&doc) {
+            None => return self.error(req, FailureKind::UnknownDocument, "no such document".into()),
+            Some(Doc::Locked { .. }) => return self.send(&FromEngine::NeedsPassword { req, doc }),
+            Some(Doc::Open(opened)) => opened,
+        };
+        match crate::properties::read(&opened.lamina, &mut opened.facts) {
+            Ok(json) => self.send(&FromEngine::Properties { req, doc, json }),
+            Err(code) => self.error(req, kind_of(&code), code),
+        }
+    }
+
     fn edit(&mut self, req: ReqId, doc: DocId, call: EditCall) {
         let opened = match self.docs.get_mut(&doc) {
             None => return self.error(req, FailureKind::UnknownDocument, "no such document".into()),
             Some(Doc::Locked { .. }) => return self.send(&FromEngine::NeedsPassword { req, doc }),
             Some(Doc::Open(opened)) => opened,
         };
-        // A save's output written before this edit no longer matches the document.
+        // A save's output written before this edit no longer matches the document, nor do the
+        // Properties dialog's facts.
         opened.pending = None;
+        opened.facts = None;
         match crate::edit::run(opened, self.backend.as_deref(), &self.limits, call) {
             Ok(report) => {
                 opened.page_count = u32::try_from(report.pages.len()).unwrap_or(u32::MAX);
@@ -206,6 +224,10 @@ impl Worker {
             Some(Doc::Locked { .. }) => return self.send(&FromEngine::NeedsPassword { req, doc }),
             Some(Doc::Open(opened)) => opened,
         };
+        // An adopted save changes the file the facts describe (its size, its revisions).
+        if matches!(call, SaveCall::Adopt) {
+            opened.facts = None;
+        }
         // Room in the frame for the header besides the bytes.
         let max_read = MAX_FRAME.saturating_sub(u32::try_from(TILE_FRAME_SLACK).unwrap_or(u32::MAX));
         match crate::save::run(opened, self.backend.as_deref(), &self.limits, call, max_read) {
@@ -343,6 +365,7 @@ impl Worker {
             page_count,
             diverged: false,
             pending: None,
+            facts: None,
         })
     }
 

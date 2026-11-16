@@ -1,7 +1,7 @@
 # The desktop release's publish (todo D6b; .github/workflows/desktop-release.yml): every target's
 # files to R2 under releases/<version>/<platform>/ in the channel's bucket, the channel's manifest
-# written with the new release, then the update Worker asked for each platform as a fresh install
-# would. Both publish jobs use it; each sets its environment's R2 tokens and their Access Key IDs,
+# written with the new release, the update Worker asked for each platform as a fresh install
+# would, then downloads/<channel>.json written for the website's download page. Both publish jobs use it; each sets its environment's R2 tokens and their Access Key IDs,
 # each scoped to one bucket (ADR 0014 §1), under the names apps/updates/scripts/r2.ts reads. Every
 # R2 call goes through the manifest tool (apps/updates/scripts/manifest.ts), over R2's S3 API.
 name: Desktop release publish
@@ -60,6 +60,17 @@ runs:
           echo "::warning::try $attempt: the Worker doesn't serve $VERSION everywhere yet"
         done
         exit 1
+    # The website's list of the installers (apps/updates/scripts/downloads.ts), once the Worker
+    # serves the release; the website's next deploy shows it (site.yml, every six hours).
+    - name: List the installers for the download page
+      shell: bash
+      env:
+        CHANNEL: ${{ inputs.channel }}
+        VERSION: ${{ inputs.version }}
+        DOWNLOADS: ${{ inputs.downloads }}
+      run: |
+        pnpm --filter @laminapdf/updates manifest downloads "$CHANNEL" "$RUNNER_TEMP/built" \
+          --version "$VERSION" --downloads "$DOWNLOADS"
     - name: Summary
       shell: bash
       env:

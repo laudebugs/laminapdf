@@ -116,6 +116,12 @@ MARKS = {
     c.FPDF_ANNOT_SQUIGGLY: "Squiggly",
     c.FPDF_ANNOT_TEXT: "Text",
     c.FPDF_ANNOT_CARET: "Caret",
+    c.FPDF_ANNOT_INK: "Ink",
+    c.FPDF_ANNOT_SQUARE: "Square",
+    c.FPDF_ANNOT_CIRCLE: "Circle",
+    c.FPDF_ANNOT_LINE: "Line",
+    c.FPDF_ANNOT_POLYGON: "Polygon",
+    c.FPDF_ANNOT_POLYLINE: "PolyLine",
 }
 
 
@@ -128,7 +134,7 @@ def string_value(annot, key: bytes) -> str:
 
 
 def marks_of(pdf: pdfium.PdfDocument) -> list:
-    """Each page's text markup, notes and carets, sorted: [subtype, contents], as lamina lists them."""
+    """Each page's text markup, notes, carets and drawing marks, sorted: [subtype, contents], as lamina lists them."""
     pages = []
     for i in range(len(pdf)):
         page = pdf[i]

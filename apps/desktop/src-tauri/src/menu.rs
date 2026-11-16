@@ -795,7 +795,9 @@ pub(crate) fn run(app: &AppHandle, action: Action) {
                 tracing::warn!("could not open a Help link: {error}");
             }
         }
-        Action::Licences => open_licences(app),
+        Action::Licences => {
+            open_licences(app);
+        }
         Action::None => {}
     }
 }
@@ -807,21 +809,26 @@ const LICENCES: &str = "licences";
 /// `tauri.release.conf.json`).
 const NOTICES: &str = "THIRD_PARTY_NOTICES.txt";
 
-/// Opens the bundled notices in the OS's viewer for text files. Development builds bundle none.
-fn open_licences(app: &AppHandle) {
+/// Opens the bundled notices in the OS's viewer for text files: `false` when it couldn't, as in
+/// development builds, which bundle none (Help ▸ View licences, Settings › About).
+pub(crate) fn open_licences(app: &AppHandle) -> bool {
     let notices = match app.path().resource_dir() {
         Ok(dir) => dir.join(NOTICES),
         Err(error) => {
             tracing::warn!("no resource folder for the licences: {error}");
-            return;
+            return false;
         }
     };
     if !notices.is_file() {
         tracing::warn!("this build bundles no {NOTICES}: release builds do");
-        return;
+        return false;
     }
-    if let Err(error) = app.opener().open_path(notices.to_string_lossy(), None::<&str>) {
-        tracing::warn!("could not open the licences: {error}");
+    match app.opener().open_path(notices.to_string_lossy(), None::<&str>) {
+        Ok(()) => true,
+        Err(error) => {
+            tracing::warn!("could not open the licences: {error}");
+            false
+        }
     }
 }
 

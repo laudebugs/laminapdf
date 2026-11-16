@@ -111,6 +111,7 @@ describe("the web platform's capabilities", () => {
       ownsKeyboard: false,
       canShare: false,
       shellTakesDrops: false,
+      canWriteDirectory: false,
     });
     expect(detectCapabilities(chromiumLike({ indexedDB: {} as IDBFactory })).canReopenRecent).toBe(true);
   });
@@ -246,6 +247,69 @@ describe("saving on the web", () => {
     const platform = createWebPlatform(chromiumLike({ showSaveFilePicker: async () => handle }));
     await expect(platform.saveAs(PDF, "copy.pdf")).rejects.toThrow("Disk full");
     expect(aborted).toEqual(["full.pdf"]);
+  });
+
+  it("saves a zip through the dialog with the zip type, and hands back no document to open", async () => {
+    const { handle, written } = fakeHandle("parts.zip");
+    const asked: object[] = [];
+    const platform = createWebPlatform(
+      chromiumLike({
+        showSaveFilePicker: async (options) => {
+          asked.push(options ?? {});
+          return handle;
+        },
+      }),
+    );
+    expect(await platform.saveAs(PDF, "Report parts.zip")).toEqual({ saved: true, name: "parts.zip" });
+    expect(written).toEqual([PDF]);
+    expect(asked).toEqual([
+      {
+        suggestedName: "Report parts.zip",
+        types: [{ description: "Zip archives", accept: { "application/zip": [".zip"] } }],
+      },
+    ]);
+  });
+
+  describe("a folder to write into", () => {
+    /** A folder over `files`, by name, that a write adds to. */
+    function fakeFolder(files: Map<string, Uint8Array>) {
+      return {
+        kind: "directory",
+        name: "Q3 parts",
+        async getFileHandle(name: string, options?: { create?: boolean }) {
+          if (!files.has(name) && options?.create !== true) throw new DOMException("missing", "NotFoundError");
+          return {
+            createWritable: async () => ({
+              write: async (chunk: Uint8Array) => void files.set(name, chunk),
+              close: async () => undefined,
+            }),
+          };
+        },
+      } as unknown as FileSystemDirectoryHandle;
+    }
+
+    it("is offered where the browser has the folder picker", () => {
+      expect(
+        detectCapabilities(chromiumLike({ showDirectoryPicker: async () => fakeFolder(new Map()) })).canWriteDirectory,
+      ).toBe(true);
+      expect(detectCapabilities(fakeScope()).canWriteDirectory).toBe(false);
+      expect(createWebPlatform(fakeScope()).chooseFolder).toBeUndefined();
+    });
+
+    it("says which files are there already, and writes new ones", async () => {
+      const files = new Map([["Part 1.pdf", PDF]]);
+      const platform = createWebPlatform(chromiumLike({ showDirectoryPicker: async () => fakeFolder(files) }));
+      const folder = await platform.chooseFolder?.();
+      expect(folder?.name).toBe("Q3 parts");
+      expect(await folder?.existing(["Part 1.pdf", "Part 2.pdf"])).toEqual(["Part 1.pdf"]);
+      await folder?.write("Part 2.pdf", PDF);
+      expect([...files.keys()]).toEqual(["Part 1.pdf", "Part 2.pdf"]);
+    });
+
+    it("answers undefined when the picker is dismissed", async () => {
+      const platform = createWebPlatform(chromiumLike({ showDirectoryPicker: abort }));
+      expect(await platform.chooseFolder?.()).toBeUndefined();
+    });
   });
 
   it("reports a dismissed save dialog as cancelled", async () => {

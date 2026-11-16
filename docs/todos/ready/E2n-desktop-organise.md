@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §7](../../plans/editor/e2-page-organisation.md#7-differences-between-the-shells) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [D3a](../done/D3a-open-from-os.md), [E1i](../done/E1i-desktop-save-in-place.md), [E2g](../done/E2g-page-labels.md), [E2m](./E2m-document-dialogs.md) |
+| Depends on | [D3a](../done/D3a-open-from-os.md), [E1i](../done/E1i-desktop-save-in-place.md), [E2g](../done/E2g-page-labels.md), [E2m](../done/E2m-document-dialogs.md) |
 | ADRs | Follows [0008](../../decisions/0008-desktop-shell.md), [0010](../../decisions/0010-platform-adapter.md) |
 | Branch | `feat/e2n-desktop-organise` |
 | PR title | `feat(desktop): organise pages, merge from Finder and Explorer, split to a folder` |

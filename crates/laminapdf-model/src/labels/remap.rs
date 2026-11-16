@@ -84,10 +84,19 @@ impl PageLabels {
 
     /// The labels after a change to the page list: `before` is the list these labels
     /// describe, `after` the new one (each a list of page IDs, in order). Every page in both
-    /// keeps its label; a page only in `after` continues the range it lands in (the label
-    /// after its previous page's; new pages at the start lead into the first page's range,
-    /// numbered down to 1). Ranges are then written again from the labels, so a range
-    /// starts wherever the style, the prefix or the run of numbers breaks.
+    /// keeps its label, but for one case below; a page only in `after` continues the range
+    /// it lands in (the label after its previous page's). Ranges are then written again from
+    /// the labels, so a range starts wherever the style, the prefix or the run of numbers
+    /// breaks.
+    ///
+    /// New pages ahead of the first labelled page join the start of its range. They take the
+    /// numbers below its first label while there are any (before a range that starts at 5,
+    /// one new page is 4 and nothing else moves); since numbers start at 1, a range that
+    /// already starts at 1 (or "i", or "A-1") starts again at 1 on the first new page, and
+    /// that range's own pages are numbered up by as many as are short. Later ranges keep
+    /// their labels: a contents page put before "i" is "i", the old "i" becomes "ii", and the
+    /// body and appendix stay as they were, so the new pages never repeat a label of that
+    /// range.
     ///
     /// A page that had no label (before the first range) keeps none while it stays ahead of
     /// every labelled page; one that lands after a labelled page gets the decimal number it
@@ -112,11 +121,13 @@ impl PageLabels {
         let was: Vec<Was> = after
             .iter()
             .map(|id| match old.get(id) {
-                Some(&i) => self.spec(i).map_or_else(|| Was::Unlabelled(i), Was::Label),
+                Some(&i) => self
+                    .spec(i)
+                    .map_or_else(|| Was::Unlabelled(i), |(spec, range)| Was::Label(spec, range)),
                 None => Was::New,
             })
             .collect();
-        let specs = fill(&was);
+        let specs = fill(was);
         Self::from_specs(&specs)
     }
 
@@ -178,19 +189,21 @@ impl PageLabels {
             })
     }
 
-    /// What page `index` shows: its label's parts, `None` before the first range.
-    fn spec(&self, index: usize) -> Option<Spec> {
+    /// What page `index` shows: its label's parts and the index of its range, `None` before
+    /// the first range.
+    fn spec(&self, index: usize) -> Option<(Spec, usize)> {
         let index = u64::try_from(index).ok()?;
         let at = self.ranges.partition_point(|r| r.start <= index);
         let Some(range) = at.checked_sub(1).and_then(|i| self.ranges.get(i)) else {
             // Unlabelled: a viewer shows the page number.
             return None;
         };
-        Some(Spec {
+        let spec = Spec {
             style: range.style,
             prefix: range.prefix.clone(),
             value: range.first.saturating_add(index - range.start),
-        })
+        };
+        Some((spec, at - 1))
     }
 
     /// The fewest ranges that give each page its label; unlabelled pages lead the list.
@@ -244,8 +257,8 @@ impl Spec {
 
 /// What a page of the new list was in the old one.
 enum Was {
-    /// A labelled page.
-    Label(Spec),
+    /// A labelled page, and the index of its old range.
+    Label(Spec, usize),
     /// An unlabelled page (before the first range), at this old index.
     Unlabelled(usize),
     /// A page the old list didn't have.
@@ -255,13 +268,14 @@ enum Was {
 /// Each page's label in the new list. A new page continues the labelled page before it; an
 /// old unlabelled page after a labelled one gets the decimal number a viewer showed for it.
 /// Pages ahead of every labelled page stay unlabelled, except new pages right before the
-/// first labelled one, which lead into its range, numbered down to 1.
-fn fill(was: &[Was]) -> Vec<Option<Spec>> {
+/// first labelled one, which join the start of its range ([`lead_into_first_range`]).
+fn fill(mut was: Vec<Was>) -> Vec<Option<Spec>> {
+    let lead = lead_into_first_range(&mut was);
     let mut out: Vec<Option<Spec>> = Vec::with_capacity(was.len());
     let mut previous: Option<Spec> = None;
-    for page in was {
+    for page in &was {
         let spec = match (page, &previous) {
-            (Was::Label(spec), _) => Some(spec.clone()),
+            (Was::Label(spec, _), _) => Some(spec.clone()),
             (Was::Unlabelled(index), Some(_)) => Some(Spec {
                 style: Some(LabelStyle::Decimal),
                 prefix: String::new(),
@@ -275,20 +289,59 @@ fn fill(was: &[Was]) -> Vec<Option<Spec>> {
         }
         out.push(spec);
     }
-    let Some(first) = out.iter().position(Option::is_some) else {
-        return out;
-    };
-    let Some(Some(lead)) = out.get(first).cloned() else {
-        return out;
-    };
-    let mut value = lead.value;
-    for (slot, page) in out.iter_mut().zip(was).take(first).rev() {
-        if !matches!(page, Was::New) {
-            break;
+    if let Some(Lead { at, count, spec }) = lead {
+        let mut value = spec.value;
+        for slot in out.iter_mut().skip(at).take(count) {
+            *slot = Some(Spec { value, ..spec.clone() });
+            if spec.style.is_some() {
+                value = value.saturating_add(1);
+            }
         }
-        // Numbers start at 1 (§12.4.2, `/St`): below that the pages repeat it.
-        value = value.saturating_sub(1).max(1);
-        *slot = Some(Spec { value, ..lead.clone() });
     }
     out
+}
+
+/// The new pages that open the new list's labels: `count` of them from index `at`, the
+/// first labelled `spec`.
+struct Lead {
+    at: usize,
+    count: usize,
+    spec: Spec,
+}
+
+/// Where the new pages right before the first labelled page join the start of its range.
+/// They take the numbers below its label while there are any. Numbers start at 1 (§12.4.2,
+/// `/St`), so when there are too few the range starts at 1 on the first new page, and every
+/// old page of that range is numbered up by the shortfall here, before the new pages after
+/// them are numbered. Later ranges keep their labels. A prefix-only range (no style) has no
+/// numbers: the new pages repeat its prefix. `None` when no new page comes first.
+fn lead_into_first_range(was: &mut [Was]) -> Option<Lead> {
+    let first = was.iter().position(|page| matches!(page, Was::Label(..)))?;
+    let count = was
+        .iter()
+        .take(first)
+        .rev()
+        .take_while(|page| matches!(page, Was::New))
+        .count();
+    let at = first.checked_sub(count).filter(|_| count > 0)?;
+    let Some(Was::Label(lead, range)) = was.get(first) else {
+        return None;
+    };
+    let (mut lead, range) = (lead.clone(), *range);
+    if lead.style.is_some() {
+        let count_u64 = u64::try_from(count).unwrap_or(u64::MAX);
+        let start = lead.value.saturating_sub(count_u64).max(1);
+        let shift = start.saturating_add(count_u64).saturating_sub(lead.value);
+        if shift > 0 {
+            for page in was.iter_mut() {
+                if let Was::Label(spec, r) = page
+                    && *r == range
+                {
+                    spec.value = spec.value.saturating_add(shift);
+                }
+            }
+        }
+        lead.value = start;
+    }
+    Some(Lead { at, count, spec: lead })
 }

@@ -662,3 +662,103 @@ main {
 .proof-licences {
   columns: 2;
 }
+
+/* The download page (Paper S09): the channel tabs reuse the code panel's, the card for
+   the visitor's computer, and the table of every installer, its hash wrapping inside its cell. */
+.download h2 {
+  margin: var(--paper-space-32) 0 var(--paper-space-12);
+  font: var(--paper-type-page-heading);
+}
+
+.download h3 {
+  margin: var(--paper-space-20) 0 var(--paper-space-10);
+  font: var(--paper-type-heading);
+}
+
+.download :where(code) {
+  font-family: var(--paper-font-mono);
+  font-size: 0.9em;
+}
+
+.download pre {
+  overflow-x: auto;
+  padding: var(--paper-space-10) var(--paper-space-14);
+  background: var(--paper-field);
+  border: var(--paper-border-width) solid var(--paper-hairline);
+  border-radius: var(--paper-radius-4);
+}
+
+.download ul {
+  margin: 0 0 var(--paper-space-16);
+  padding-left: var(--paper-space-20);
+}
+
+.download-channels .code-pane > h2.code-label {
+  margin: 0 0 var(--paper-space-8);
+  font: var(--paper-type-label);
+}
+
+.download-card {
+  padding: var(--paper-space-16) var(--paper-space-20);
+  background: var(--paper-surface);
+  border: var(--paper-border-width) solid var(--paper-hairline);
+  border-radius: var(--paper-radius-4);
+}
+
+.download-card > :where(p) {
+  margin: 0;
+}
+
+.download-offer h3 {
+  margin-top: 0;
+}
+
+.download-offer + .download-offer:not([hidden]) {
+  margin-top: var(--paper-space-16);
+  padding-top: var(--paper-space-16);
+  border-top: var(--paper-border-width) solid var(--paper-hairline);
+}
+
+.download-meta,
+.download-guess,
+.download-note,
+.download-sums,
+.download-kind {
+  color: var(--paper-text-2);
+  font-size: 14px;
+}
+
+.download-guess {
+  margin: var(--paper-space-10) 0 0;
+}
+
+.download-table {
+  min-width: 640px;
+}
+
+.download-size {
+  white-space: nowrap;
+}
+
+.download-hash {
+  display: block;
+  /* Three lines of a 64-character hash. */
+  width: 22ch;
+  overflow-wrap: anywhere;
+  color: var(--paper-muted);
+  font-size: 12px;
+}
+
+.download-copy {
+  margin-top: var(--paper-space-4);
+  padding: 2px var(--paper-space-8);
+  border: var(--paper-border-width) solid var(--paper-hairline);
+  border-radius: var(--paper-radius-3);
+  background-color: transparent;
+  color: var(--paper-text-2);
+  font: 600 12px / 1.4 var(--paper-font-sans);
+}
+
+.download-status:empty {
+  display: none;
+}

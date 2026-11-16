@@ -116,8 +116,9 @@ pub(crate) struct Failed {
 pub(crate) trait Notify: Send + Sync {
     fn restarted(&self, payload: Restarted);
     fn failed(&self, payload: Failed);
-    /// `window`'s engine crashed: for crash reports. Tests needn't hear it.
-    fn crashed(&self, _window: &str, _crash: crate::crash::Crash) {}
+    /// `window`'s engine, process `pid`, crashed: for crash reports, which join the engine's
+    /// minidump to it by `pid`. Tests needn't hear it.
+    fn crashed(&self, _window: &str, _pid: u32, _crash: crate::crash::Crash) {}
 }
 
 /// How [`Engines`] starts an engine.
@@ -301,6 +302,16 @@ impl Engines {
         }
     }
 
+    /// What the Properties dialog shows of `doc`, one of `window`'s documents, as the engine's JSON.
+    pub(crate) fn properties(&self, window: &str, doc: DocId) -> Result<String, DesktopError> {
+        self.check(window, doc)?;
+        match ask(&self.engine(window)?, |req| ToEngine::GetProperties { req, doc })? {
+            FromEngine::Properties { json, .. } => Ok(json),
+            FromEngine::NeedsPassword { .. } => Err(needs_password()),
+            other => Err(unexpected(&other)),
+        }
+    }
+
     /// Unlocks `doc` with the password the user typed, and keeps the password while it stays
     /// open. The password prompt's command calls it; the restart path reuses the kept password.
     pub(crate) fn unlock(&self, window: &str, doc: DocId, password: &str) -> Result<DocumentMeta, DesktopError> {
@@ -442,34 +453,12 @@ impl Engines {
         }
     }
 
-    /// Ends `window`'s engine as a segmentation fault would (Windows has no signals: there it
-    /// is ended with a failure code). Rust's runtime catches a SIGSEGV to tell a stack overflow
-    /// from other faults; one sent from outside isn't either, so its handler puts the default action
-    /// back and returns, and only a later SIGSEGV ends the engine. Two sent close together can
-    /// arrive as one, so the signal goes again until the engine is gone.
+    /// Asks `window`'s engine to fault (the end-to-end tests' native crash): a write through a
+    /// null pointer, which its crash handler turns into a minidump.
     #[cfg(feature = "e2e")]
     pub(crate) fn debug_segv(&self, window: &str) {
-        let Some(pid) = self.windows().get(window).and_then(Supervisor::pid) else {
-            return;
-        };
-        let pid = pid.to_string();
-        let run = |program: &str, args: &[&str]| std::process::Command::new(program).args(args).status();
-        if cfg!(windows) {
-            if let Err(error) = run("taskkill", &["/F", "/PID", &pid]) {
-                tracing::warn!("could not end the engine: {error}");
-            }
-            return;
-        }
-        for _ in 0..5 {
-            if let Err(error) = run("kill", &["-SEGV", &pid]) {
-                tracing::warn!("could not end the engine: {error}");
-                return;
-            }
-            std::thread::sleep(std::time::Duration::from_millis(300));
-            // `kill -0` fails once the process is gone.
-            if !run("kill", &["-0", &pid]).is_ok_and(|status| status.success()) {
-                return;
-            }
+        if let Some(engine) = self.windows().get(window).cloned() {
+            engine.send(&ToEngine::DebugSegv);
         }
     }
 
@@ -529,13 +518,18 @@ impl Engines {
                     window: window.to_owned(),
                 });
             }
-            Event::Crashed { how, panic, sandboxed } => {
+            Event::Crashed {
+                pid,
+                how,
+                panic,
+                sandboxed,
+            } => {
                 let sandbox = Some(sandboxed);
                 let crash = match panic {
                     Some(summary) => crate::crash::Crash::panic(crate::crash::ProcessKind::Engine, *summary, sandbox),
                     None => crate::crash::Crash::engine_exit(how, sandbox),
                 };
-                self.notify.crashed(window, crash);
+                self.notify.crashed(window, pid, crash);
             }
             Event::Log(line) => tracing::info!(target: "laminapdf_desktop::engine", window, "{line}"),
         }

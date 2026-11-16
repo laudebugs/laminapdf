@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "report_id": "7a1c2a9e-8b7d-4e6f-9a5b-1c2d3e4f5a6b",
+  "app_version": "0.1.0",
+  "channel": "beta",
+  "os": "macos",
+  "os_version": "15.1",
+  "arch": "aarch64",
+  "process": "engine",
+  "renderer": "pdfium",
+  "sandbox": ["seatbelt", "memory_limit"],
+  "uptime": "1m_to_10m",
+  "kind": "signal",
+  "reason": "crash: signal: 11 (SIGSEGV)",
+  "location": null,
+  "frames": [],
+  "modules": [],
+  "native": {
+    "crash_reason": "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS",
+    "frames": [
+      {
+        "module": "laminapdf-desktop-engine",
+        "offset": 4456812,
+        "function": null
+      },
+      {
+        "module": "<unknown>",
+        "offset": 7936,
+        "function": null
+      }
+    ],
+    "modules": [
+      {
+        "name": "laminapdf-desktop-engine",
+        "version": null,
+        "debug_id": "5887580E1F1A3CE2BEAB358DCFAA73030"
+      }
+    ]
+  }
+}

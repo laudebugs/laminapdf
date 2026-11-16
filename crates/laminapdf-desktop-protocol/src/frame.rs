@@ -201,6 +201,7 @@ mod tests {
                 message: "truncated".into(),
             },
             ToEngine::GetPageInfo { req, doc },
+            ToEngine::GetProperties { req, doc },
             ToEngine::Edit {
                 req,
                 doc,
@@ -320,6 +321,11 @@ mod tests {
                     rotate: 90,
                 }],
                 ids: vec!["p4.0".into()],
+            },
+            FromEngine::Properties {
+                req,
+                doc,
+                json: r#"{"properties":{"pageCount":1}}"#.into(),
             },
             FromEngine::Edited {
                 req,

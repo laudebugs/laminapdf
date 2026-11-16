@@ -3,6 +3,9 @@
 // history the worker last answered. The worker holds the session itself; this copy only ever
 // replays it into a new worker, which applies the steps again and undoes the undone ones. After a
 // save, the new worker opens the saved file, so only the steps since the save are replayed.
+// Steps that copy pages from another file need it again: the log keeps the bytes of each source
+// document a logged step names, and a new worker adds them before the steps. The page never keeps
+// a password, so a step that names an encrypted source can't be replayed.
 
 import type { Op } from "@laminapdf/sdk";
 import { type EditHistory, type EditResult, EMPTY_HISTORY, type ReplayedStep } from "./protocol.js";
@@ -12,8 +15,24 @@ interface LoggedStep extends ReplayedStep {
   readonly id: number;
 }
 
+/** A source document's bytes, or that it was encrypted: its password died with the worker. */
+type LoggedSource = { readonly bytes: Uint8Array } | { readonly encrypted: true };
+
+/** The source documents `ops` copy pages from, by ID. */
+function sourcesOf(ops: readonly Op[]): string[] {
+  const ids: string[] = [];
+  for (const op of ops) {
+    const args = op.args as { readonly source?: unknown; readonly sources?: readonly { readonly source?: unknown }[] };
+    if (typeof args.source === "string") ids.push(args.source);
+    for (const entry of args.sources ?? []) if (typeof entry.source === "string") ids.push(entry.source);
+  }
+  return ids;
+}
+
 /** The steps of the open document's edit session and how many of them are undone. */
 export class EditLog {
+  /** The source documents added to the document, by ID, while a logged step may name them. */
+  #sources = new Map<string, LoggedSource>();
   /** The steps the depth limit dropped from the history, oldest first: still part of the document. */
   #dropped: ReplayedStep[] = [];
   /** The history's steps, oldest first. */
@@ -48,6 +67,12 @@ export class EditLog {
     this.#history = EMPTY_HISTORY;
     this.#replayable = true;
     this.#savedAt = undefined;
+    this.#sources.clear();
+  }
+
+  /** The document took a source document: its bytes, kept while a step names it, or that it was encrypted. */
+  addedSource(id: string, bytes: Uint8Array, encrypted: boolean): void {
+    this.#sources.set(id, encrypted ? { encrypted: true } : { bytes });
   }
 
   /**
@@ -83,20 +108,40 @@ export class EditLog {
     // Undone past the save: the steps it would take apply to a file the new worker never opens.
     if (this.#savedAt !== undefined && dropped + result.history.position < this.#savedAt) this.#replayable = false;
     this.#history = result.history;
+    // A source no step names any more is never replayed: its bytes go. Only an edit clears
+    // steps for good, and only after an edit is a source just added sure to be named already.
+    if (edit === undefined) return;
+    const named = new Set(this.#logged().flatMap((step) => sourcesOf(step.ops)));
+    for (const id of this.#sources.keys()) if (!named.has(id)) this.#sources.delete(id);
+  }
+
+  /** Every step a replay applies, oldest first. */
+  #logged(): ReplayedStep[] {
+    return [...this.#dropped, ...this.#steps.map(({ ops, label, at }) => ({ ops, label, at }))];
   }
 
   /**
-   * What a new worker replays: every step, then how many of the newest to undo; undefined when
-   * the replay couldn't reproduce the document (a partial or skipped undo or redo).
+   * What a new worker replays: the source documents the steps name, every step, then how many of
+   * the newest to undo; undefined when the replay couldn't reproduce the document (a partial or
+   * skipped undo or redo, or a step that names an encrypted source).
    */
-  replay(): { readonly steps: readonly ReplayedStep[]; readonly undone: number } | undefined {
+  replay():
+    | { readonly steps: readonly ReplayedStep[]; readonly undone: number; readonly sources: readonly Uint8Array[] }
+    | undefined {
     if (!this.#replayable) return undefined;
     const { steps, position, dropped } = this.#history;
-    const logged = [...this.#dropped, ...this.#steps.map(({ ops, label, at }) => ({ ops, label, at }))];
+    const logged = this.#logged();
+    const sources: Uint8Array[] = [];
+    for (const id of new Set(logged.flatMap((step) => sourcesOf(step.ops)))) {
+      const source = this.#sources.get(id);
+      // An encrypted source, or one this log never saw added: the steps can't be applied again.
+      if (source === undefined || !("bytes" in source)) return undefined;
+      sources.push(source.bytes);
+    }
     // Since a save, the steps done are those past its position.
     const undone =
       this.#savedAt === undefined ? steps.length - position : logged.length - (dropped + position - this.#savedAt);
-    return { steps: logged, undone };
+    return { steps: logged, undone, sources };
   }
 
   /** Takes a new worker's answer to the replay: its steps have new IDs, in the same order. */

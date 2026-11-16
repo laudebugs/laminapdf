@@ -58,13 +58,16 @@ import {
   LinkEditor,
   type LinkGoal,
   LinkPanel,
+  MergeDialog,
   MoveToPageDialog,
   NamedDestinationsDialog,
   PageBoxesDialog,
   PageLabelsDialog,
+  PagesFromFileDialog,
   RemoveSignaturesDialog,
   ResizeDialog,
   SignedPageDialog,
+  SplitDialog,
 } from "@laminapdf/ui/editing";
 import { fakeFile, fakePlatform } from "@laminapdf/ui/testing";
 import { type ReactNode, useEffect, useState } from "react";
@@ -225,6 +228,12 @@ const EDITING_DIALOGS = new Set([
   "page-boxes",
   "page-labels",
   "page-labels-clash",
+  "insert-from-file",
+  "insert-password",
+  "merge",
+  "merge-claims",
+  "split",
+  "extract",
 ]);
 
 /** The 24-page sample: US Letter pages, and pages 3 and 4 on A4 for the mixed states. */
@@ -281,8 +290,97 @@ function OrganiseDialog({ state }: { state: string }): ReactNode {
   return <SignedPageDialog ask={{ action: "delete", page: "23" }} onAnswer={noop} />;
 }
 
+/** A file's pages for the dialogs across files: a US Letter page, then a landscape one. */
+const SOURCE_PAGES = [LETTER, { width: 792, height: 612 }, LETTER];
+
+/** Draws a source page as a white page with a grey block where its heading would be. */
+async function drawSourcePage(_page: number, canvas: HTMLCanvasElement): Promise<void> {
+  canvas.width = 90;
+  canvas.height = 116;
+  const context = canvas.getContext("2d");
+  if (context === null) return;
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, 90, 116);
+  context.fillStyle = "#c8c4bc";
+  context.fillRect(10, 12, 60, 8);
+}
+
+/** One of the dialogs across files (O07, O08). */
+function DocumentsDialog({ state }: { state: string }): ReactNode {
+  if (state === "insert-from-file" || state === "insert-password") {
+    const source =
+      state === "insert-password"
+        ? { name: "Appendix-B.pdf", size: 412_000, status: "password" as const, wrong: true }
+        : { name: "Appendix-B.pdf", size: 412_000, status: "ready" as const, pages: SOURCE_PAGES };
+    const labels = SETUP_IDS.map((_, i) => String(i + 1));
+    return (
+      <PagesFromFileDialog
+        isOpen
+        onClose={noop}
+        mode="insert"
+        source={source}
+        onChoose={noop}
+        onPassword={noop}
+        draw={drawSourcePage}
+        labels={labels}
+        selected={[10]}
+        onApply={noop}
+      />
+    );
+  }
+  if (state === "merge" || state === "merge-claims") {
+    const claims = state === "merge-claims" ? ["PDF/A-2B"] : [];
+    const files = [
+      {
+        key: "a",
+        source: { name: "Rent-collection.pdf", size: 1_204_000, status: "ready" as const, pages: SOURCE_PAGES },
+      },
+      { key: "b", source: { name: "Surveyor-capacity.pdf", size: 88_000, status: "loading" as const } },
+    ];
+    return (
+      <MergeDialog
+        isOpen
+        onClose={noop}
+        current={{ name: "Q3-board-report", claims }}
+        files={files}
+        onAdd={noop}
+        onMove={noop}
+        onRemove={noop}
+        onPassword={noop}
+        onMerge={noop}
+      />
+    );
+  }
+  const chapters = [
+    { title: "Chair’s summary", page: 0 },
+    { title: "Repairs backlog", page: 2 },
+    { title: "Rent collection", page: 6 },
+    { title: "Surveyor capacity", page: 10 },
+    { title: "Risk register", page: 15 },
+    { title: "Appendix A. Data notes", page: 21 },
+  ];
+  return (
+    <SplitDialog
+      isOpen
+      onClose={noop}
+      start={state === "extract" ? "ranges" : "bookmarks"}
+      labels={SETUP_IDS.map((_, i) => String(i + 1))}
+      selected={state === "extract" ? [2, 3, 4, 5] : []}
+      chapters={chapters}
+      stem="Q3-board-report"
+      output={(parts) => (parts === 1 ? "file" : "zip")}
+      signed={state === "split"}
+      progress={undefined}
+      onSplit={noop}
+    />
+  );
+}
+
 /** One of {@link EDITING_DIALOGS}. */
 function EditingDialogs({ state }: { state: string }): ReactNode {
+  if (state.startsWith("insert-") || state.startsWith("merge") || state === "split" || state === "extract") {
+    return <DocumentsDialog state={state} />;
+  }
   if (state === "move-to-page" || state === "blank-pages" || state === "signed-page") {
     return <OrganiseDialog state={state} />;
   }

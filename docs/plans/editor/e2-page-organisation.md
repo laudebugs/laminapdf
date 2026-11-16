@@ -87,7 +87,7 @@ Each op that removes, copies or moves pages reports what it changed to things th
 
 - **Deleted pages** follow the decision in §11: references are retargeted to the nearest surviving page, or removed with `references: remove`.
 - **Moved pages** need nothing: references name page objects, which a move keeps.
-- **Page labels** follow pages: `PageLabels::remap` rebuilds `/PageLabels` from page IDs after every op, so each surviving page keeps its label and new pages continue the range they land in. E2j writes it; every page op calls it.
+- **Page labels** follow pages: `PageLabels::remap` rebuilds `/PageLabels` from page IDs after every op, so each surviving page keeps its label and new pages continue the range they land in. New pages ahead of the first labelled page join the start of its range, which numbers its own pages up when it has no numbers below its first ([bug record](../../bugs/page-label-repeated-before-the-first-page/resolution.md)). E2j writes it; every page op calls it.
 - **Duplicated pages** share content streams and resources with their source, and get new annotation objects with new `/NM`. A widget becomes a new field named `<partial>#<n>`, signature widgets are not copied, and tagged content gets cloned structure elements with fresh `/StructParents` keys and `/ParentTree` entries (ISO 32000-2 §14.7.5.4; E2k, which keeps E2b's rules for this).
 - **Imported pages** (`InsertPagesFrom`, `ReplacePages`, `MergeDocuments`) are deep-copied with fresh object numbers and new IDs; shared resources are copied once per source, matched by stream hash. Their links to pages that came with them are remapped, links to pages that didn't are removed and reported, and the named destinations their links use come with them, renamed on a clash. Fields come per `Carry::fields` (§11). Structure (the logical structure of §14.7): until E2o, imported pages lose their tags, the elements are dropped and `TagsDropped` is reported; E2o merges the trees.
 
@@ -181,7 +181,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E2s](../../todos/done/E2s-resize-and-orientation.md) | Resize pages and change their orientation | E2e, E2f |
 | [E2l](../../todos/done/E2l-viewer-across-page-edits.md) | The viewer and edit session across edits that change the page list | E2b |
 | [E2h](../../todos/done/E2h-page-organiser-ui.md) | The Organise mode: page grid, selection, drag, Move to page… and the single-document commands | E2k, E2l |
-| [E2m](../../todos/ready/E2m-document-dialogs.md) | Insert from a file, replace, extract, export, merge and split in the interface | E2d, E2h |
+| [E2m](../../todos/done/E2m-document-dialogs.md) | Insert from a file, replace, extract, export, merge and split in the interface | E2d, E2h |
 | [E2g](../../todos/done/E2g-page-labels.md) | The page-setup dialogs: page labels, crop, resize, page boxes and orientation | E2h, E2q, E2s |
 | [E2i](../../todos/ready/E2i-signed-gating-and-close.md) | The signed-document gating suite for every op, the cross-op labels test, and the round's close | E2g, E2m, E2o |
 | [E2n](../../todos/ready/E2n-desktop-organise.md) | Desktop: Organise in the engine, merging files opened together, writing parts to a folder | E2g, E2m, E1i, D3a |

@@ -10,12 +10,12 @@
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2h-page-organiser-ui` |
 | PR title | `feat(ui): page organiser with drag-and-drop thumbnails` |
-| Size | L (400–800): the Organise mode's page grid, selection, drag and its commands in `@laminapdf/ui`, with Playwright tests; the viewer's part is [E2l](../done/E2l-viewer-across-page-edits.md)'s and the dialogs [E2g](../done/E2g-page-labels.md)'s and [E2m](../ready/E2m-document-dialogs.md)'s |
+| Size | L (400–800): the Organise mode's page grid, selection, drag and its commands in `@laminapdf/ui`, with Playwright tests; the viewer's part is [E2l](../done/E2l-viewer-across-page-edits.md)'s and the dialogs [E2g](../done/E2g-page-labels.md)'s and [E2m](../done/E2m-document-dialogs.md)'s |
 | PR | [laudebugs/laminapdf#625](https://github.com/laudebugs/laminapdf/pull/625) |
 
 ## Goal
 
-The Organise mode on the web: a page grid with multi-select thumbnails, drag-and-drop reordering with an insertion bar, Move to page…, context menus and the single-document commands (insert blank, delete, duplicate, rotate, reverse), keyboard-accessible. The [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos) moved the documents dialogs (insert from a file, replace, extract, merge, split) to [E2m](../ready/E2m-document-dialogs.md), the page-setup dialogs to [E2g](../done/E2g-page-labels.md), and the desktop part to [E2n](../ready/E2n-desktop-organise.md).
+The Organise mode on the web: a page grid with multi-select thumbnails, drag-and-drop reordering with an insertion bar, Move to page…, context menus and the single-document commands (insert blank, delete, duplicate, rotate, reverse), keyboard-accessible. The [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos) moved the documents dialogs (insert from a file, replace, extract, merge, split) to [E2m](../done/E2m-document-dialogs.md), the page-setup dialogs to [E2g](../done/E2g-page-labels.md), and the desktop part to [E2n](../ready/E2n-desktop-organise.md).
 
 ## Context
 
@@ -36,7 +36,7 @@ The Organise mode on the web: a page grid with multi-select thumbnails, drag-and
 
 **Out of scope** (and which todo covers it)
 
-- The documents dialogs and their outputs → [E2m](../ready/E2m-document-dialogs.md)
+- The documents dialogs and their outputs → [E2m](../done/E2m-document-dialogs.md)
 - Page setup (crop, resize, boxes, orientation, labels) → [E2g](../done/E2g-page-labels.md)
 - The desktop column and OS merge → [E2n](../ready/E2n-desktop-organise.md)
 
@@ -108,6 +108,6 @@ None.
   - The user help page: the docs site has no reader help yet, as E1e found; the dialogs and toasts explain in place.
   - The signer's name: the save planner's signatures don't carry it.
   - Remove signature…, Save a copy and Details: [E2i](../ready/E2i-signed-gating-and-close.md).
-  - The toolbar entries for other todos' dialogs: [E2m](../ready/E2m-document-dialogs.md), [E2g](../done/E2g-page-labels.md).
+  - The toolbar entries for other todos' dialogs: [E2m](../done/E2m-document-dialogs.md), [E2g](../done/E2g-page-labels.md).
   - The rest of O06's differences are listed under its "As built (web, E2h)".
 

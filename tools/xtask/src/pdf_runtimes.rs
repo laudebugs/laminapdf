@@ -245,7 +245,8 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
 /// C4b): typechecked and built over the packages above, then its e2e suite against `wrangler dev`
 /// (headers, local files opened four ways, CSP violations and other origins), and the docs site's
 /// "Edit and run" (B7e: built, then its e2e suite), and the website (built, then its e2e suite: the
-/// cursor check over its pages, U7e). They record no measurements. Only the suites in
+/// cursor check over its pages, and the download page's choice of installer). They record no
+/// measurements. Only the suites in
 /// `args.suites` run (`--suites`, todo X12), each its part of this list.
 fn render_suites(ws: &Workspace, browser: &str, args: &Args) -> Result<()> {
     if args.suites.iter().all(|&s| s == "examples") {
@@ -286,10 +287,17 @@ fn render_suites(ws: &Workspace, browser: &str, args: &Args) -> Result<()> {
                 build()?;
                 e2e()?;
             }
-            // The website's cursor check and states over its built pages, against `wrangler dev`
-            // (U7e).
+            // The website's cursor check and states over its built pages, against `wrangler dev`,
+            // and its download page, built from the e2e fixture's release lists rather than
+            // the snapshot (apps/site/src/data/downloads.ts; the path is the site's own, where its
+            // build runs).
             "site" => {
-                build()?;
+                crate::run_env(
+                    &ws.root,
+                    "pnpm",
+                    &["--filter", suite.package, "run", "build"],
+                    &[("LAMINA_PDF_DOWNLOADS", "e2e/downloads.fixture.json")],
+                )?;
                 e2e()?;
             }
             _ => vitest_browser(ws, suite.package, browser)?,

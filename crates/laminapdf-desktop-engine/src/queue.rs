@@ -14,6 +14,7 @@ pub(crate) enum Job {
     Open { req: ReqId, doc: DocId, len: u64 },
     Unlock { req: ReqId, doc: DocId, password: Password },
     PageInfo { req: ReqId, doc: DocId },
+    Properties { req: ReqId, doc: DocId },
     Render(TileRequest),
     Edit { req: ReqId, doc: DocId, call: EditCall },
     Save { req: ReqId, doc: DocId, call: SaveCall },
@@ -28,6 +29,7 @@ impl Job {
             Self::Open { req, .. }
             | Self::Unlock { req, .. }
             | Self::PageInfo { req, .. }
+            | Self::Properties { req, .. }
             | Self::Edit { req, .. }
             | Self::Save { req, .. } => Some(*req),
             Self::Render(tile) => Some(tile.req),
@@ -43,8 +45,9 @@ impl Job {
                 priority: Priority::Prefetch,
                 ..
             }) => 0,
-            // A print band waits for the user like a tile on screen does.
-            Self::Render(_) | Self::Print(_) => 1,
+            // A print band waits for the user like a tile on screen does. The Properties dialog's
+            // read may scan the whole file, so the tiles already waiting for the screen go first.
+            Self::Render(_) | Self::Print(_) | Self::Properties { .. } => 1,
             _ => 2,
         }
     }

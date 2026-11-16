@@ -47,7 +47,7 @@ import { EchoRegistry } from "./menus/echo-registry.ts";
 import { DESKTOP_EDIT_COMMANDS } from "./menus/menus.ts";
 import { useNativeMenus } from "./menus/use-native-menus.tsx";
 import { NotYetSupportedError } from "./platform/desktop.ts";
-import { usePrint } from "./print.tsx";
+import { useOutput } from "./properties.tsx";
 import { type DesktopRecent, useDesktopRecent } from "./recent.tsx";
 import { useDesktopSaving } from "./saving.tsx";
 import { type DesktopSettings, useDesktopSettings } from "./settings.tsx";
@@ -194,11 +194,10 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const saving = useDesktopSaving(engine, reader, toasts, renamed);
   const editing = useDesktopEditing(engine, reader, engine?.client.current?.name, saving.save);
   const strip = useTabStrip(engine?.shell, tabs, reader, toasts, keys, engine?.viewer, editing.unsaved);
-  const { notice, actions: tabActions } = strip;
   const { settings, recent, updates, actions: homeActions } = useHome(engine, platform, reader, state, toasts);
-  const print = usePrint(engine, toasts);
+  const output = useOutput(engine, platform, toasts);
   const crashes = useCrashReports(engine?.shell);
-  const actions = useMergedActions(homeActions, tabActions, print.actions, editing.actions, saving.actions);
+  const actions = useMergedActions(homeActions, strip.actions, output.actions, editing.actions, saving.actions);
   const open = state.phase === "open";
   const shows = useShownParts(state.phase, tabs);
   // The page input, zoom and the viewer's commands work while a document is on screen.
@@ -210,7 +209,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
     <CommandsProvider registry={registry} context={context} keys={keys} singleKeys={singleKeys}>
       <ReaderShell
         tabs={strip.strip}
-        notice={crashes.notice ?? notice}
+        notice={crashes.notice ?? strip.notice}
         topBar={
           <ReaderTopBar
             reader={reader}
@@ -223,7 +222,9 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
             }}
           />
         }
-        status={<WindowStatus repaired={repaired} toasts={toasts} print={print.status} updates={updates} info={info} />}
+        status={
+          <WindowStatus repaired={repaired} toasts={toasts} print={output.status} updates={updates} info={info} />
+        }
       >
         {shows.startScreen ? (
           <OpenDropZone reader={reader} keys={keys}>
@@ -240,6 +241,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
       {dragging === undefined ? null : <DropOverlay>{dropText(dragging)}</DropOverlay>}
       <PasswordDialog reader={reader} />
       {editing.dialog}
+      {output.dialog}
       {saving.dialog}
       {settings.dialog}
       {crashes.dialog}
@@ -331,6 +333,7 @@ function useHome(
     engine?.shell,
     useCallback(() => setPreferencesChanged((n) => n + 1), []),
     updates,
+    toasts,
   );
   const recent = useDesktopRecent(platform, reader, state, toasts, settings.preferences.rememberRecent);
   const { refresh, actions: recentActions } = recent;

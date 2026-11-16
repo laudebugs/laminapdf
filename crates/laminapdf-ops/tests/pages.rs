@@ -91,6 +91,19 @@ fn inserted_pages_continue_the_label_range_they_land_in() {
 }
 
 #[test]
+fn a_page_inserted_before_i_takes_i_and_numbers_the_front_matter_up() {
+    let mut doc = pages("labels.pdf");
+    let before = labels(&doc);
+    apply(
+        &mut doc,
+        InsertBlankPages::new(PagePosition::Start, 1, PageSize::LETTER),
+    );
+    let after = labels(&doc);
+    let front = ["i", "ii", "iii", "iv"].map(|l| Some(l.to_owned()));
+    assert_eq!((&after[..4], &after[4..]), (&front[..], &before[3..]));
+}
+
+#[test]
 fn deleting_moving_and_reversing_keep_each_surviving_pages_label() {
     let ids = page_ids(&pages("labels.pdf"));
     let before = labels(&pages("labels.pdf"));

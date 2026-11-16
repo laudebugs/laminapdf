@@ -28,6 +28,7 @@ export {
   type PropertiesState,
 } from "./reader/properties-dialog.js";
 export type { DocumentMetadataData, MetadataChange } from "./reader/properties-form.js";
+export { type PropertiesOp, propertiesOps } from "./reader/properties-ops.js";
 export { ThreadsPanel, type ThreadsPanelProps, threadTitle } from "./reader/threads-panel.js";
 export type { XmpPacketData } from "./reader/xmp-editor.js";
 export type { XmpChange, XmpValueData } from "./reader/xmp-model.js";

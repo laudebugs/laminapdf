@@ -47,7 +47,7 @@ The desktop part of E1e. Save writes the open file in place: it appends an incre
 - [x] Edit, Save, reopen in the app and in pdf.js: the change is there, and an incremental save only grew the file by the appended revision.
 - [x] A file changed outside while dirty shows the conflict dialog; a clean one reloads keeping the page.
 - [x] A failed write (a read-only file) leaves the document dirty and the file as it was.
-- ~~On the desktop, editing each metadata field in the Properties dialog, saving and reopening shows the values in Info and XMP; these e2e tests flip the desktop column of J.01–J.03 and J.10.~~ Moved to [E1j](../ready/E1j-desktop-properties.md): the desktop has no Properties dialog yet, and its engine reads no metadata.
+- ~~On the desktop, editing each metadata field in the Properties dialog, saving and reopening shows the values in Info and XMP; these e2e tests flip the desktop column of J.01–J.03 and J.10.~~ Moved to [E1j](./E1j-desktop-properties.md): the desktop has no Properties dialog yet, and its engine reads no metadata.
 
 ## Post-merge checks
 

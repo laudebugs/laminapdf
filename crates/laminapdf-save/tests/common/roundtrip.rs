@@ -1060,9 +1060,22 @@ fn copies(root: &Path, suite: &mut Suite) {
 }
 
 /// The subtypes the mark cases make, as the tools name them.
-const MARKS: [&[u8]; 6] = [b"Highlight", b"Underline", b"StrikeOut", b"Squiggly", b"Text", b"Caret"];
+const MARKS: [&[u8]; 12] = [
+    b"Highlight",
+    b"Underline",
+    b"StrikeOut",
+    b"Squiggly",
+    b"Text",
+    b"Caret",
+    b"Ink",
+    b"Square",
+    b"Circle",
+    b"Line",
+    b"Polygon",
+    b"PolyLine",
+];
 
-/// Each page's text markup, notes and carets as the tools list them, sorted: `[subtype,
+/// Each page's text markup, notes, carets and drawing marks as the tools list them, sorted: `[subtype,
 /// contents]`, contents `""` when there are none. A group member's contents are its primary's
 /// (ISO 32000-2 §12.5.6.2: the group takes the primary's properties), as pdf.js reads them.
 pub fn mark_facts(doc: &laminapdf_model::Document) -> Vec<Vec<Value>> {
@@ -1090,10 +1103,54 @@ pub fn mark_facts(doc: &laminapdf_model::Document) -> Vec<Vec<Value>> {
         .collect()
 }
 
+/// The drawing marks of the mark cases (E4d): ink, a circle, an arrow and a triangle, each
+/// described, on page `first`.
+fn drawing_ops(first: &PageId) -> Vec<Op> {
+    use laminapdf_model::{UserSpacePoint, UserSpaceRect};
+    use laminapdf_ops::{AddAnnot, AnnotSpec, Ink, InkStroke, LineEnding, LineMark, Poly, PolyKind, Shape, ShapeKind};
+    let p = UserSpacePoint::new;
+    let drawn = |spec, contents: &str| {
+        let mut op = AddAnnot::new(first.clone(), spec);
+        op.common.contents = Some(contents.into());
+        Op::from(op)
+    };
+    vec![
+        drawn(
+            AnnotSpec::Ink(Ink::new(vec![InkStroke::new(vec![
+                p(240.0, 40.0),
+                p(260.0, 60.0),
+                p(280.0, 40.0),
+            ])])),
+            "Ink",
+        ),
+        drawn(
+            AnnotSpec::Shape(Shape::new(
+                ShapeKind::Circle,
+                UserSpaceRect::from_corners(300.0, 40.0, 340.0, 70.0),
+            )),
+            "Circle",
+        ),
+        drawn(
+            AnnotSpec::Line(
+                LineMark::new(p(240.0, 90.0), p(340.0, 100.0)).with_ends(LineEnding::None, LineEnding::OpenArrow),
+            ),
+            "Arrow",
+        ),
+        drawn(
+            AnnotSpec::Poly(Poly::new(
+                PolyKind::Polygon,
+                vec![p(360.0, 40.0), p(400.0, 40.0), p(380.0, 70.0)],
+            )),
+            "Triangle",
+        ),
+    ]
+}
+
 /// The mark cases (todo E4c, D.01 to D.03; E5b, D.10 and D.11): on every plain fixture, a
 /// highlight and an underline over two lines of the first page, a note, a text replacement (a
 /// caret holding the new text, grouped with a strike-out), and a reply to the highlight and a
-/// review state set on it, saved incrementally and as a full rewrite. Lamina reopens
+/// review state set on it, and (E4d, D.04, D.05) ink, a circle, an arrow and a polygon, saved
+/// incrementally and as a full rewrite. Lamina reopens
 /// each with the same marks and pages, every mark with its appearance; the tools compare the
 /// marks they read (`marks`).
 fn marks(root: &Path, suite: &mut Suite) {
@@ -1132,15 +1189,20 @@ fn marks(root: &Path, suite: &mut Suite) {
                 AnnotSpec::Caret(Caret::new(UserSpaceRect::from_corners(198.0, 40.0, 204.0, 50.0))),
             );
             caret.common.contents = Some("replacement".into());
-            let ops = vec![
+            let drawings = drawing_ops(&first);
+            let ops = [
                 Op::from(highlight),
                 markup(MarkupKind::Underline, vec![line(100.0)]).into(),
                 note.into(),
                 caret.into(),
-            ];
+            ]
+            .into_iter()
+            .chain(drawings)
+            .collect::<Vec<_>>();
             let applied = doc.apply_all(Origin::Local, ops).unwrap();
             let mut strike = markup(MarkupKind::StrikeOut, vec![line(40.0)]);
-            strike.common.group_with = applied.created_annotations.last().cloned();
+            // The caret is the fourth mark made: the strike-out joins its group, a replacement.
+            strike.common.group_with = applied.created_annotations.get(3).cloned();
             let highlight = applied.created_annotations.first().cloned().unwrap();
             let mut reply = AddReply::new(highlight.clone(), "Agreed");
             reply.author = Some("Ada".into());

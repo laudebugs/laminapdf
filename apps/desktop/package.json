@@ -48,6 +48,7 @@
     "@wdio/spec-reporter": "catalog:",
     "@wdio/tauri-plugin": "catalog:",
     "@wdio/tauri-service": "catalog:",
+    "axe-core": "catalog:",
     "babel-plugin-react-compiler": "catalog:",
     "pdfjs-dist": "catalog:",
     "typescript": "catalog:",

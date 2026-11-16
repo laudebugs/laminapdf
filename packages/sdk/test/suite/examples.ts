@@ -6,6 +6,7 @@
 import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@laminapdf/sdk";
 import { addLinks } from "../../examples/add-links.js";
 import { cropPages } from "../../examples/crop-pages.js";
+import { drawOnPage } from "../../examples/draw-on-page.js";
 import { duplicatePages } from "../../examples/duplicate-pages.js";
 import { editBookmarks } from "../../examples/edit-bookmarks.js";
 import { editMetadata } from "../../examples/edit-metadata.js";
@@ -216,6 +217,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "mark_up",
     inputs: [TAGGED_PDF],
     build: (i) => markUp(input(i, TAGGED_PDF), EDITED_AT),
+  },
+  {
+    name: "draw-on-page",
+    golden: "draw_on_page",
+    inputs: [TAGGED_PDF],
+    build: (i) => drawOnPage(input(i, TAGGED_PDF), EDITED_AT),
   },
   {
     name: "review-comments",

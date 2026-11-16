@@ -10,6 +10,7 @@ import type {
   AnnotCommon as AnnotCommonJs,
   AnnotSpec as AnnotSpecJs,
   AttachmentInit,
+  Border as BorderJs,
   BuildOptionsInit,
   ChildItems as ChildItemsJs,
   CommentJs,
@@ -27,8 +28,11 @@ import type {
   FitInit,
   ImageOptionsInit,
   InitialViewJs,
+  InkStroke as InkStrokeJs,
+  Leader as LeaderJs,
   LimitsInit,
   LineBoxJs,
+  LineEnding as LineEndingJs,
   LinkTargetInit,
   MarkupKind as MarkupKindJs,
   MetadataInit,
@@ -50,6 +54,7 @@ import type {
   PageLabelRange as PageLabelRangeJs,
   PageLinkJs,
   PlannedSaveJs,
+  PolyKind as PolyKindJs,
   ProfileInit,
   ProgressJs,
   PropertiesJs,
@@ -61,6 +66,7 @@ import type {
   SaveOptionsInit,
   SaveReportJs,
   SetInitialView as SetInitialViewJs,
+  ShapeKind as ShapeKindJs,
   SkippedImageJs,
   StructureKidJs,
   StructureNodeJs,
@@ -140,8 +146,11 @@ export type AddLink = AddLinkJs;
 export type AddAnnot = AddAnnotJs;
 
 /**
- * What an annotation edit draws: `{ type: "textMarkup", kind, quads }`, `{ type: "note", at, icon,
- * open }` or `{ type: "caret", rect, symbol }`, in user space.
+ * What an annotation edit draws, in user space: `{ type: "textMarkup", kind, quads }`,
+ * `{ type: "note", at, icon, open }`, `{ type: "caret", rect, symbol }`, `{ type: "ink",
+ * strokes, width, smoothing }`, `{ type: "shape", kind, rect, interior, border }`,
+ * `{ type: "line", from, to, ends, interior, border, leader }` or `{ type: "poly", kind,
+ * vertices, ends, interior, border }`.
  *
  * @since 0.3.0
  */
@@ -178,6 +187,54 @@ export type MarkupKind = MarkupKindJs;
  * @since 0.3.0
  */
 export type NoteIcon = NoteIconJs;
+
+/**
+ * A drawn shape: `"square"` (a rectangle) or `"circle"` (the ellipse inside its box).
+ *
+ * @since 0.5.0
+ */
+export type ShapeKind = ShapeKindJs;
+
+/**
+ * A polygon's kind: `"polygon"` (closed) or `"polyLine"` (open).
+ *
+ * @since 0.5.0
+ */
+export type PolyKind = PolyKindJs;
+
+/**
+ * A line ending: `"none"`, `"square"`, `"circle"`, `"diamond"`, `"openArrow"`, `"closedArrow"`,
+ * `"butt"`, `"rOpenArrow"`, `"rClosedArrow"` (arrowheads pointing back) or `"slash"`.
+ *
+ * @since 0.5.0
+ */
+export type LineEnding = LineEndingJs;
+
+/**
+ * An outline: its `width` in points (0 for none) and `style`: `{ type: "solid" }`,
+ * `{ type: "dashed", pattern }` (dash and gap lengths in points) or `{ type: "cloudy", intensity }`
+ * (from 0 to 2, for squares, circles and polygons).
+ *
+ * @since 0.5.0
+ */
+export type Border = BorderJs;
+
+/**
+ * One stroke of freehand ink: its `points` in user space and, for a pressure-sensitive pen,
+ * `widths`, one per point, in points.
+ *
+ * @since 0.5.0
+ */
+export type InkStroke = InkStrokeJs;
+
+/**
+ * A line's leader lines: their `length` (positive to the left of the line, negative to the
+ * right), how far they carry on past it (`extension`) and the gap before they start (`offset`),
+ * in points.
+ *
+ * @since 0.5.0
+ */
+export type Leader = LeaderJs;
 
 /**
  * A bookmark's look: its `color` (`"#rrggbb"`, or `null` for the default black), `bold` and

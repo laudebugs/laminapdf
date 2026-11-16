@@ -1,5 +1,5 @@
 // What the reader loads once a document is open, not at start (#380), in one chunk: the print,
-// properties and initial view dialogs (the properties form's edits too), the Threads tab's panel, the capability page with its matrix, the link previews, reader mode's column and its settings, the History tab, the link editor (links.tsx) and the rest of the
+// properties and initial view dialogs (the properties form's edits too), the Threads tab's panel, the capability page with its matrix, the link previews, reader mode's column and its settings, the History tab, the link editor (links.tsx), the question about several files opened together (several.tsx) and the rest of the
 // edit session (the top bar's save state, Undo and Redo, and editing-runtime.tsx). One chunk, because every part shares the chrome's own
 // modules: loaded separately, the bundler would split those shared modules out of the startup
 // script into chunks of their own, which compress worse together than as one.
@@ -15,4 +15,5 @@ export { LinkPreviews } from "./link-preview.tsx";
 export { ModeArea, OrganiseController, organiseActions } from "./organise.tsx";
 export { EditablePropertiesDialog } from "./properties-editing.tsx";
 export { SaveFlow } from "./save-flow.ts";
+export { askAboutSeveral } from "./several.tsx";
 export { ThreadsTab } from "./threads-tab.tsx";

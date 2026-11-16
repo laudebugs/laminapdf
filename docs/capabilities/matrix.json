@@ -221,7 +221,7 @@
           "round": "E4",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
+            "core": "round-trip",
             "pdf": null,
             "web": null,
             "desktop": null
@@ -325,7 +325,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -361,7 +361,7 @@
           "surfaces": {
             "core": "write",
             "pdf": null,
-            "web": null,
+            "web": "write",
             "desktop": null
           }
         },
@@ -373,7 +373,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -385,7 +385,7 @@
           "surfaces": {
             "core": "write",
             "pdf": null,
-            "web": null,
+            "web": "write",
             "desktop": null
           }
         },
@@ -493,7 +493,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         }
@@ -545,7 +545,7 @@
           "round": "E4",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
+            "core": "round-trip",
             "pdf": null,
             "web": null,
             "desktop": null
@@ -557,7 +557,7 @@
           "round": "E4",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
+            "core": "round-trip",
             "pdf": null,
             "web": null,
             "desktop": null
@@ -1327,7 +1327,7 @@
           "surfaces": {
             "core": "write",
             "pdf": null,
-            "web": null,
+            "web": "write",
             "desktop": null
           }
         },
@@ -1520,7 +1520,7 @@
             "core": "round-trip",
             "pdf": null,
             "web": "round-trip",
-            "desktop": null
+            "desktop": "round-trip"
           }
         },
         {
@@ -1532,7 +1532,7 @@
             "core": "round-trip",
             "pdf": null,
             "web": "round-trip",
-            "desktop": null
+            "desktop": "round-trip"
           }
         },
         {
@@ -1544,7 +1544,7 @@
             "core": "round-trip",
             "pdf": null,
             "web": "round-trip",
-            "desktop": null
+            "desktop": "round-trip"
           }
         },
         {
@@ -1628,7 +1628,7 @@
             "core": "round-trip",
             "pdf": null,
             "web": "round-trip",
-            "desktop": null
+            "desktop": "round-trip"
           }
         }
       ]

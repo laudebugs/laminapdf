@@ -104,6 +104,20 @@ pub(crate) async fn page_info(
         .map_err(|error| DesktopError::Internal(error.to_string()))?
 }
 
+/// What the Properties dialog shows of one of this window's documents, with its edits so far: the
+/// engine's JSON (`FromEngine::Properties`), which the webview reads as it is.
+#[tauri::command]
+pub(crate) async fn document_properties(
+    window: tauri::WebviewWindow,
+    engines: tauri::State<'_, Arc<Engines>>,
+    doc: u32,
+) -> Result<String, DesktopError> {
+    let engines = Arc::clone(&engines);
+    tauri::async_runtime::spawn_blocking(move || engines.properties(window.label(), DocId(doc)))
+        .await
+        .map_err(|error| DesktopError::Internal(error.to_string()))?
+}
+
 /// Unlocks one of this window's documents with the password the user typed; the main process
 /// keeps it while the document stays open, so a restarted engine never asks again. The command's
 /// own copy is wiped when dropped and never logged; the IPC layer's buffers and serde's copies
@@ -227,6 +241,38 @@ pub(crate) fn set_preferences(
         opened::forget(&app, recent.clear(), true);
     }
     crate::session::app::preferences_changed(&app, was, value);
+}
+
+/// Settings › Graphics: what this start runs with, and whether the crash-loop guard switched it.
+#[tauri::command]
+pub(crate) fn graphics_status() -> crate::graphics::Status {
+    crate::graphics::status()
+}
+
+/// Whether to tell the user the crash-loop guard switched to Compatibility: `true` once per run,
+/// to the first window that asks, which then says so at start.
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its handle by value")]
+pub(crate) fn graphics_take_notice(app: tauri::AppHandle) -> Result<bool, DesktopError> {
+    Ok(crate::graphics::take_notice(&app.path().app_config_dir()?))
+}
+
+/// Settings › About's View licences: `false` when this build bundles none.
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its handle by value")]
+pub(crate) fn open_licences(app: tauri::AppHandle) -> bool {
+    crate::menu::open_licences(&app)
+}
+
+/// Restart now, after a change that takes effect at the next start (Settings › Graphics):
+/// `false`, and no restart, while a window holds unsaved edits.
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its handle by value")]
+pub(crate) fn restart_app(app: tauri::AppHandle) -> bool {
+    if app.state::<crate::unsaved::Unsaved>().to_ask().is_some() {
+        return false;
+    }
+    crate::restart(&app)
 }
 
 /// Whether the system asks for reduced motion where the webview can't tell (`motion.rs`): `None`
