@@ -11,6 +11,7 @@ import {
   ExportDialog,
   type ExportDialogProps,
   ExportProgressDialog,
+  type ExportProgressDialogProps,
   exportProgressTitle,
   type ImagesToPdfChoice,
   ImagesToPdfDialog,
@@ -106,16 +107,39 @@ describe("the export dialog", () => {
     expect(chosen).toEqual([{ kind: "links", format: "csv" }]);
   });
 
-  it("disables a kind the file has none of, and keeps the cards usable while it is read", async () => {
+  it("disables the kinds a file has none of", async () => {
     exportDialog({ counts: { pictures: 0, links: 0, bookmarks: 0, tagged: false } });
     await expect.element(radio("Pictures in the file")).toBeDisabled();
     await expect.element(radio("Links and bookmarks")).toBeDisabled();
     await expect.element(page.getByText("None in this file").first()).toBeVisible();
-    cleanup();
+  });
+
+  it("keeps the cards usable and busy while the file is read", async () => {
     exportDialog({ counts: undefined });
-    await expect.element(radio("Pictures in the file")).toBeEnabled();
+    await expect.element(radio("Pages as images")).toBeInTheDocument();
+    expect(radio("Pages as images").element().closest("[aria-busy=true]")).not.toBeNull();
     await choose("Pictures in the file");
     await expect.element(button("Export pictures")).toBeEnabled();
+  });
+
+  it("offers uncounted pictures without a count", async () => {
+    exportDialog({ counts: { ...COUNTS, pictures: undefined } });
+    await choose("Pictures in the file");
+    await expect.element(page.getByText("The original pictures, unchanged where possible")).toBeInTheDocument();
+    await expect.element(button("Export pictures")).toBeEnabled();
+  });
+
+  it("keeps every card usable, and isn't busy, when nothing could be counted", async () => {
+    exportDialog({ counts: { pictures: undefined, links: undefined, bookmarks: undefined, tagged: false } });
+    await expect.element(radio("Links and bookmarks")).toBeEnabled();
+    await expect.element(radio("Pictures in the file")).toBeEnabled();
+    await expect.element(page.getByText("None in this file")).not.toBeInTheDocument();
+    expect(radio("Pages as images").element().closest("[aria-busy]")).toBeNull();
+  });
+
+  it("offers links when only the bookmarks are uncounted", async () => {
+    exportDialog({ counts: { ...COUNTS, links: 0, bookmarks: undefined } });
+    await expect.element(radio("Links and bookmarks")).toBeEnabled();
   });
 
   it("shows a range's error under the field and exports nothing", async () => {
@@ -130,11 +154,15 @@ describe("the export dialog", () => {
     expect(chosen).toEqual([]);
   });
 
-  it("closes on Cancel and is named Close Export", async () => {
+  it("closes on Cancel", async () => {
     const { onClose } = exportDialog();
-    await expect.element(button("Close Export")).toBeVisible();
     await userEvent.click(button("Cancel"));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("names its close button Close Export", async () => {
+    exportDialog();
+    await expect.element(button("Close Export")).toBeVisible();
   });
 
   it("passes axe", async () => {
@@ -144,33 +172,93 @@ describe("the export dialog", () => {
   });
 });
 
+/** Export's progress, 15 of 24 pages as PNG, recording Cancel. */
+function progressDialog(props: Partial<ExportProgressDialogProps> = {}) {
+  const onCancel = vi.fn();
+  const title = exportProgressTitle({ kind: "pages", pages: [], format: "png", dpi: 150, annotations: true }, 24);
+  renderIn(
+    <ExportProgressDialog
+      isOpen
+      title={title}
+      done={15}
+      total={24}
+      unit="pages"
+      onCancel={onCancel}
+      onClose={() => undefined}
+      {...props}
+    />,
+  );
+  return { onCancel };
+}
+
 describe("the export progress dialog", () => {
-  it("names the work, counts it, says where it goes and keeps focus on Cancel export", async () => {
-    const onCancel = vi.fn();
-    const title = exportProgressTitle({ kind: "pages", pages: [], format: "png", dpi: 150, annotations: true }, 24);
-    renderIn(
-      <ExportProgressDialog
-        isOpen
-        title={title}
-        done={15}
-        total={24}
-        unit="pages"
-        fileName="Q3-board-report-pages.zip"
-        onCancel={onCancel}
-        onClose={() => undefined}
-      />,
-    );
+  it("is named for the work", async () => {
+    progressDialog();
     await expect.element(page.getByRole("dialog", { name: "Exporting 24 pages as PNG" })).toBeVisible();
+  });
+
+  it("counts the pages done in its bar", async () => {
+    progressDialog();
     await expect
       .element(page.getByRole("progressbar", { name: "15 of 24 pages" }))
       .toHaveAttribute("aria-valuenow", "62");
+  });
+
+  it("names the zip the pages are packed into", async () => {
+    progressDialog({ destination: { zip: "Q3-board-report-pages.zip" } });
     await expect
-      .element(page.getByText(/packed into Q3-board-report-pages\.zip, which your browser downloads/))
+      .element(
+        page.getByText(
+          "Pages are drawn on this device and packed into Q3-board-report-pages.zip. Nothing is uploaded.",
+        ),
+      )
       .toBeVisible();
+  });
+
+  it("names the zip the pictures are packed into", async () => {
+    progressDialog({ unit: "pictures", destination: { zip: "Q3 pictures.zip" } });
+    await expect
+      .element(page.getByText("Pictures are read on this device and packed into Q3 pictures.zip. Nothing is uploaded."))
+      .toBeVisible();
+  });
+
+  it("names the one file it saves", async () => {
+    progressDialog({ destination: { file: "Q3 report.json" } });
+    await expect
+      .element(page.getByText("Made on this device and saved as Q3 report.json. Nothing is uploaded."))
+      .toBeVisible();
+  });
+
+  it("names the folder it writes into", async () => {
+    progressDialog({ destination: { folder: "Exports" } });
+    await expect
+      .element(
+        page.getByText("Pages are drawn on this device and written into the folder Exports. Nothing is uploaded."),
+      )
+      .toBeVisible();
+  });
+
+  it("says only that nothing is uploaded when the destination isn't known", async () => {
+    progressDialog();
+    await expect.element(page.getByText("Everything is made on this device. Nothing is uploaded.")).toBeVisible();
+  });
+
+  it("keeps focus on Cancel export while it runs", async () => {
+    progressDialog();
     await expect.element(button("Cancel export")).toHaveFocus();
-    expect(await violations()).toEqual([]);
+  });
+
+  it("cancels on Escape", async () => {
+    const { onCancel } = progressDialog();
+    await expect.element(button("Cancel export")).toHaveFocus();
     await userEvent.keyboard("{Escape}");
     expect(onCancel).toHaveBeenCalled();
+  });
+
+  it("passes axe while it runs", async () => {
+    progressDialog({ destination: { zip: "Q3-board-report-pages.zip" } });
+    await expect.element(button("Cancel export")).toBeVisible();
+    expect(await violations()).toEqual([]);
   });
 
   it("titles each kind", () => {
@@ -205,27 +293,69 @@ describe("the export progress dialog", () => {
   });
 });
 
+/** New PDF from images with three receipts, recording what it makes. */
+function imagesDialog() {
+  const made: ImagesToPdfChoice[] = [];
+  renderIn(
+    <ImagesToPdfDialog
+      isOpen
+      files={[{ name: "receipt-front.jpg" }, { name: "receipt-back.jpg" }, { name: "invoice.png" }]}
+      onChooseFiles={() => undefined}
+      onMake={(choice) => made.push(choice)}
+      onClose={() => undefined}
+    />,
+  );
+  return { made };
+}
+
 describe("a new PDF from images", () => {
-  it("reorders the images with the keyboard and reports the order, size and margin", async () => {
-    const made: ImagesToPdfChoice[] = [];
-    renderIn(
-      <ImagesToPdfDialog
-        isOpen
-        files={[{ name: "a.jpg" }, { name: "b.png" }, { name: "c.jpg" }]}
-        onChooseFiles={() => undefined}
-        onInsert={(choice) => made.push(choice)}
-        onClose={() => undefined}
-      />,
-    );
-    await expect.element(button("Move a.jpg up")).toBeDisabled();
-    button("Move a.jpg down").element().focus();
+  it("can't move the first image up", async () => {
+    imagesDialog();
+    await expect.element(button("Move receipt-front.jpg up")).toBeDisabled();
+  });
+
+  it("moves an image down with the keyboard", async () => {
+    imagesDialog();
+    button("Move receipt-front.jpg down").element().focus();
     await userEvent.keyboard("{Enter}");
-    await expect.element(page.getByRole("listitem").first()).toHaveTextContent("b.png");
+    await expect.element(page.getByRole("listitem").first()).toHaveTextContent("receipt-back.jpg");
+  });
+
+  it("announces an image's new place", async () => {
+    imagesDialog();
+    button("Move receipt-back.jpg up").element().focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByText("receipt-back.jpg, 1 of 3")).toBeInTheDocument();
+  });
+
+  it("keeps focus in the row when Move up reaches the top", async () => {
+    imagesDialog();
+    button("Move receipt-back.jpg up").element().focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.element(button("Move receipt-back.jpg down")).toHaveFocus();
+  });
+
+  it("keeps focus in the row when Move down reaches the bottom", async () => {
+    imagesDialog();
+    button("Move receipt-back.jpg down").element().focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.element(button("Move receipt-back.jpg up")).toHaveFocus();
+  });
+
+  it("makes the PDF in the order, size and margin chosen", async () => {
+    const { made } = imagesDialog();
+    button("Move receipt-front.jpg down").element().focus();
+    await userEvent.keyboard("{Enter}");
     await userEvent.selectOptions(page.getByLabelText("Page size"), "a4");
     await userEvent.selectOptions(page.getByLabelText("Margin"), "medium");
-    expect(await violations()).toEqual([]);
     await userEvent.click(button("Make a PDF of 3 images"));
     expect(made).toEqual([{ order: [1, 0, 2], pageSize: "a4", margin: 36 }]);
+  });
+
+  it("passes axe", async () => {
+    imagesDialog();
+    await expect.element(button("Make a PDF of 3 images")).toBeVisible();
+    expect(await violations()).toEqual([]);
   });
 
   it("can't make a PDF of no images", async () => {
@@ -234,7 +364,7 @@ describe("a new PDF from images", () => {
         isOpen
         files={[]}
         onChooseFiles={() => undefined}
-        onInsert={() => undefined}
+        onMake={() => undefined}
         onClose={() => undefined}
       />,
     );

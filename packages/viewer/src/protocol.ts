@@ -555,8 +555,6 @@ export interface ExtractedPictures {
 
 /** What the open document has to export, for an export dialog to offer. */
 export interface ExportSummary {
-  /** Its pictures, as {@link ExtractedPictures} would give them with no size limit (masks included). */
-  readonly pictures: number;
   /** Its links, on every page. */
   readonly links: number;
   /** Its bookmarks (outline items), at every level. */

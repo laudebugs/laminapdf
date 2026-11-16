@@ -332,7 +332,7 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 - The merge toast counts renamed fields and has no Details panel.
 - The conformance notice names the claims some files make and others don't, since the merged pages may break them.
 
-Insert pages from images… (E3j) makes a new document rather than inserting into this one, so its dialog is titled "New PDF from images" and its primary reads "Make a PDF of 3 images". It lists the images with Move up and Move down, and offers Choose images…, page size (Fit image, Letter, A4) and margin (None, Narrow, Medium, Wide: 0, ¼, ½ and 1 inch). Orientation comes from each image's EXIF, so there's no control for it.
+From images (E3j) makes a new PDF, saved as its own file, and inserts nothing into this one. It stays in Insert ▾, where the boards put From images, but its command is named "New PDF from images…", like its dialog, and the primary reads "Make a PDF of 3 images". The dialog lists the images with Move up and Move down; a button that reaches the list's end hands focus to the other button of its row, and a polite live region says where the image now is ("receipt-back.jpg, 1 of 3"). It also offers Choose images…, page size (Fit image, Letter, A4) and margin (None, Narrow, Medium, Wide: 0, ¼, ½ and 1 inch). Orientation comes from each image's EXIF, so there's no control for it.
 
 Several PDFs opened together with the installed web app ask whether to merge them into one new document, opened unsaved, or to open the first; the web reader shows one document per tab. Dropping files on the grid isn't built.
 

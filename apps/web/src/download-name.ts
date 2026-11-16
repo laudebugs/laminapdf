@@ -34,3 +34,8 @@ export function downloadName(name: string): string {
   if (stem === "" || /^_+$/.test(stem)) return "document.pdf";
   return `${RESERVED.test(stem.split(".")[0] ?? "") ? `_${stem}` : stem}.pdf`;
 }
+
+/** `name` made safe as {@link downloadName} makes it, without `.pdf`: the stem new files are named from. */
+export function downloadStem(name: string): string {
+  return downloadName(name).replace(/\.pdf$/i, "");
+}

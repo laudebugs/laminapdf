@@ -195,8 +195,11 @@ export interface Platform {
    */
   howToEnable(flag: Capability): string | undefined;
 
-  /** Asks the user for documents. Resolves to [] when the dialog is dismissed. */
-  openFiles(options: { readonly multiple: boolean }): Promise<PlatformFile[]>;
+  /**
+   * Asks the user for documents, or with `accept: "images"` for pictures (PNG and JPEG). Resolves to
+   * [] when the dialog is dismissed.
+   */
+  openFiles(options: { readonly multiple: boolean; readonly accept?: "pdf" | "images" }): Promise<PlatformFile[]>;
   /** Files dropped on the window or pasted, normalised the same way. */
   filesFromDataTransfer(data: DataTransfer): Promise<PlatformFile[]>;
   /** Files the OS asked us to open. Subscribe once at startup. */
@@ -214,7 +217,7 @@ export interface Platform {
    * reopens it. Takes a `Blob`, so a large zip need not sit in one buffer. Optional: a platform
    * without it doesn't offer exports.
    */
-  saveExport?(file: Blob, suggestedName: string): Promise<SaveResult>;
+  saveExport?(file: Blob | Promise<Blob>, suggestedName: string): Promise<SaveResult>;
   /** Asks the user for a folder to write files into; undefined when they cancel. Only when capabilities.canWriteDirectory. */
   chooseFolder?(): Promise<PlatformFolder | undefined>;
   /** Overwrites the file `file` came from. Only when capabilities.canWriteInPlace and file.writable. */

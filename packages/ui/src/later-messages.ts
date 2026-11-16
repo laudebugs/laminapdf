@@ -30,7 +30,7 @@ const EN = {
   "command.pages.make-portrait": "Make portrait",
   "command.pages.edit-labels": "Page labels…",
   "command.pages.insert-from-file": "Insert pages from a file…",
-  "command.pages.insert-images": "Insert pages from images…",
+  "command.pages.insert-images": "New PDF from images…",
   "command.pages.replace": "Replace pages…",
   "command.pages.extract": "Extract pages…",
   "command.document.merge": "Merge documents…",
@@ -697,7 +697,7 @@ const EN = {
   "export.kind.text": "Text",
   "export.kind.text.help": "Plain, Markdown, or JSON with positions",
   "export.kind.pictures": "Pictures in the file",
-  "export.kind.pictures.help": "The original images, unchanged where possible",
+  "export.kind.pictures.help": "The original pictures, unchanged where possible",
   "export.kind.links": "Links and bookmarks",
   "export.kind.links.help": "JSON or CSV",
   "export.kind.none": "None in this file",
@@ -747,10 +747,13 @@ const EN = {
   "export.progress.value.pages.one": "{done} of 1 page",
   "export.progress.value.pictures": "{done} of {total} pictures",
   "export.progress.value.pictures.one": "{done} of 1 picture",
-  "export.progress.where.pages":
-    "Pages are drawn on this device and packed into {name}, which your browser downloads when it’s ready. Nothing is uploaded.",
-  "export.progress.where.pictures":
-    "Pictures are read on this device and packed into {name}, which your browser downloads when it’s ready. Nothing is uploaded.",
+  "export.progress.zip.pages": "Pages are drawn on this device and packed into {name}. Nothing is uploaded.",
+  "export.progress.zip.pictures": "Pictures are read on this device and packed into {name}. Nothing is uploaded.",
+  "export.progress.file": "Made on this device and saved as {name}. Nothing is uploaded.",
+  "export.progress.folder.pages":
+    "Pages are drawn on this device and written into the folder {folder}. Nothing is uploaded.",
+  "export.progress.folder.pictures":
+    "Pictures are read on this device and written into the folder {folder}. Nothing is uploaded.",
   "export.progress.here": "Everything is made on this device. Nothing is uploaded.",
   "export.progress.announce": "{percent}% exported",
   "export.progress.cancel": "Cancel export",
@@ -769,6 +772,7 @@ const EN = {
   "imagesToPdf.choose": "Choose images…",
   "imagesToPdf.up": "Move {name} up",
   "imagesToPdf.down": "Move {name} down",
+  "imagesToPdf.moved": "{name}, {position} of {count}",
   "imagesToPdf.size": "Page size",
   "imagesToPdf.size.image": "Fit image",
   "imagesToPdf.size.letter": "Letter",

@@ -5,7 +5,7 @@
 
 import { LaminaPdfError } from "@laminapdf/sdk";
 import { docsUrl } from "@laminapdf/sdk/explain";
-import { crc32 } from "../worker/crc32.js";
+import { crc32 } from "./crc32.js";
 import {
   type DosTime,
   directory,

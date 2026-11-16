@@ -15,8 +15,7 @@ import { ProgressBar } from "../components/progress.js";
 import { countMessage, message } from "../messages.js";
 import { useOnOpen } from "../organise/on-open.js";
 import { Dialog } from "../overlays/dialog.js";
-import { type PagesChoice, usePagesChoice } from "./pages-choice.js";
-import { chosenPages, currentLabel, type PagesMode } from "./print-pages.js";
+import { chosenPages, currentLabel, type PagesChoice, type PagesMode, usePagesChoice } from "./pages-choice.js";
 
 /** What the user chose to print. */
 export interface PrintChoice {

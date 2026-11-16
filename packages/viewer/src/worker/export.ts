@@ -5,7 +5,7 @@
 
 import { DEFAULT_LIMITS, type RenderedTile, type RenderRequest } from "@laminapdf/render";
 import type { ExportedPage, ExportPageOptions } from "../protocol.js";
-import { crc32 } from "./crc32.js";
+import { crc32 } from "../zip/crc32.js";
 import { current, filling } from "./document.js";
 
 /**

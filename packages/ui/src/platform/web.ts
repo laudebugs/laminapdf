@@ -54,6 +54,12 @@ const RECENT_LIMIT = 20;
 /** How long a download's blob URL lives: long enough for every engine to start reading it. */
 const DOWNLOAD_URL_LIFETIME_MS = 40_000;
 const PDF_TYPES = [{ description: message("platform.picker.pdf"), accept: { "application/pdf": [".pdf"] } }];
+const IMAGE_TYPES = [
+  {
+    description: message("platform.picker.images"),
+    accept: { "image/png": [".png"], "image/jpeg": [".jpg", ".jpeg"] },
+  },
+];
 const ZIP_TYPES = [{ description: message("platform.picker.zip"), accept: { "application/zip": [".zip"] } }];
 
 /** Detects the web values of every capability (ADR 0010 §2), once. */
@@ -94,11 +100,12 @@ export function createWebPlatform(scope: WebScope = globalThis as unknown as Web
   return {
     capabilities,
     howToEnable: (flag) => howToEnable(flag, capabilities, scope),
-    async openFiles({ multiple }) {
+    async openFiles({ multiple, accept = "pdf" }) {
       if (scope.showOpenFilePicker === undefined)
-        return (await pickWithInput(scope.document, multiple)).map((f) => fromFile(f));
+        return (await pickWithInput(scope.document, multiple, accept)).map((f) => fromFile(f));
       try {
-        const handles = await scope.showOpenFilePicker({ multiple, types: PDF_TYPES, excludeAcceptAllOption: false });
+        const types = accept === "images" ? IMAGE_TYPES : PDF_TYPES;
+        const handles = await scope.showOpenFilePicker({ multiple, types, excludeAcceptAllOption: false });
         return await Promise.all(handles.map((handle) => fromHandle(handle, capabilities)));
       } catch (error) {
         if (isAbort(error)) return [];
@@ -217,11 +224,11 @@ function filesFromDataTransfer(data: DataTransfer, capabilities: Capabilities): 
 }
 
 /** A hidden file input's choice; [] when the user cancels. */
-function pickWithInput(doc: Document, multiple: boolean): Promise<File[]> {
+function pickWithInput(doc: Document, multiple: boolean, accept: "pdf" | "images"): Promise<File[]> {
   return new Promise((resolve) => {
     const input = doc.createElement("input");
     input.type = "file";
-    input.accept = ".pdf,application/pdf";
+    input.accept = accept === "images" ? "image/png,image/jpeg" : ".pdf,application/pdf";
     input.multiple = multiple;
     input.addEventListener("change", () => resolve([...(input.files ?? [])]), { once: true });
     input.addEventListener("cancel", () => resolve([]), { once: true });

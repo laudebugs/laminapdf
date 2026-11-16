@@ -1,9 +1,9 @@
 // Export (Paper O16): new files made from the PDF, which itself doesn't change. Four kinds as radio
 // cards (pages as images, text, the pictures in the file, links and bookmarks), the pages to read,
 // and each kind's options; the primary names the result. A kind the file has none of is disabled
-// with "None in this file"; while the file is still being read the cards stay usable. Markdown from
-// a file without tags warns that its structure is guessed. The web has no Save to row: the browser
-// downloads the result.
+// with "None in this file"; while the file is still being read, or its pictures aren't counted, the
+// cards stay usable. Markdown from a file without tags warns that its structure is guessed. The web
+// has no Save to row: the browser saves the result.
 
 import { type ReactNode, useId, useRef, useState } from "react";
 import { Radio as AriaRadio, RadioGroup as AriaRadioGroup, Label } from "react-aria-components";
@@ -14,8 +14,7 @@ import { Notice } from "../components/notice.js";
 import { type LaterMessageId, laterCountMessage, laterMessage } from "../later-messages.js";
 import { useOnOpen } from "../organise/on-open.js";
 import { Dialog } from "../overlays/dialog.js";
-import { type PagesChoice, usePagesChoice } from "./pages-choice.js";
-import { chosenPages, currentLabel, type PagesMode } from "./print-pages.js";
+import { chosenPages, currentLabel, type PagesChoice, type PagesMode, usePagesChoice } from "./pages-choice.js";
 
 /** What to export: pages as images, text, the file's pictures, or its links and bookmarks. */
 export type ExportKind = "pages" | "text" | "pictures" | "links";
@@ -49,10 +48,16 @@ export type ExportChoice =
 
 /** What the file holds, for the cards and the primary's count. */
 export interface ExportCounts {
-  readonly pictures: number;
-  readonly links: number;
-  readonly bookmarks: number;
-  /** Whether the file is tagged (has a structure tree). */
+  /**
+   * The pictures in the file, or undefined when they aren't counted: counting decodes every
+   * picture, so a shell may skip it. Uncounted, the card stays usable and the primary has no count.
+   */
+  readonly pictures: number | undefined;
+  /** The links, or undefined when they aren't counted (the read failed). */
+  readonly links: number | undefined;
+  /** The bookmarks, or undefined when they aren't counted. */
+  readonly bookmarks: number | undefined;
+  /** Whether the file is tagged (has a structure tree); false when unknown, so Markdown warns. */
   readonly tagged: boolean;
 }
 
@@ -68,7 +73,10 @@ export interface ExportDialogProps {
   labels?: readonly string[] | undefined;
   /** Each page's size in points, for the pixel sizes beside each resolution; undefined while unknown. */
   pageSize?: { width: number; height: number } | undefined;
-  /** What the file holds; undefined while it is being read (the cards show as loading, not disabled). */
+  /**
+   * What the file holds; undefined while it is being read (the cards show as busy, not disabled). A
+   * counts object is read, though any count in it may be unknown.
+   */
   counts?: ExportCounts | undefined;
   /** An initial page range (from the palette's argument), 0-based. */
   pages?: readonly number[] | undefined;
@@ -104,8 +112,9 @@ export function rangeText(pages: readonly number[]): string {
 /** Whether the file has nothing of `kind` to export; never while the counts are unknown. */
 function isEmpty(kind: ExportKind, counts: ExportCounts | undefined): boolean {
   if (counts === undefined) return false;
+  // An uncounted thing (undefined) isn't known to be none.
   if (kind === "pictures") return counts.pictures === 0;
-  if (kind === "links") return counts.links + counts.bookmarks === 0;
+  if (kind === "links") return counts.links === 0 && counts.bookmarks === 0;
   return false;
 }
 
@@ -203,10 +212,11 @@ function KindCards({ form, counts }: { form: ExportForm; counts: ExportCounts | 
       className="paper-export-kinds"
       value={form.kind}
       onChange={(value) => form.setKind(value as ExportKind)}
-      aria-busy={counts === undefined ? true : undefined}
     >
       <Label className="paper-field-label">{laterMessage("export.what")}</Label>
-      <div className="paper-export-cards">
+      {/* The radio group drops aria-busy, so the cards' box carries it while the file is read. A
+          counts object, even one with unknown counts, is read: not busy. */}
+      <div className="paper-export-cards" aria-busy={counts === undefined ? true : undefined}>
         {KINDS.map((kind) => {
           const empty = isEmpty(kind, counts);
           return (
@@ -390,8 +400,9 @@ function primaryLabel(form: ExportForm, props: ExportDialogProps): string {
   }
   // The file's count holds only when every page is read.
   const every = "pages" in chosen && chosen.pages.length === props.pageCount;
-  if (props.counts === undefined || !every) return laterMessage("export.go.pictures.some");
-  return laterCountMessage(props.counts.pictures, { one: "export.go.pictures.one", many: "export.go.pictures" });
+  const pictures = props.counts?.pictures;
+  if (pictures === undefined || !every) return laterMessage("export.go.pictures.some");
+  return laterCountMessage(pictures, { one: "export.go.pictures.one", many: "export.go.pictures" });
 }
 
 /** Asks what to export from the PDF, from which pages, and how. */

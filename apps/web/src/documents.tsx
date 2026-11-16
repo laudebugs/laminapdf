@@ -40,7 +40,8 @@ import {
   writeParts,
 } from "@laminapdf/viewer";
 import { type ReactNode, useCallback, useEffect } from "react";
-import { downloadName } from "./download-name.ts";
+import { downloadName, downloadStem } from "./download-name.ts";
+import { freeName } from "./free-name.ts";
 import type { OrganiseController } from "./organise.tsx";
 import type { Engine } from "./session.ts";
 
@@ -76,7 +77,7 @@ export interface DocumentsState {
   /** The question when files of the parts' names are in the chosen folder: how many, and the answer's taker. */
   readonly exists: { readonly count: number; readonly answer: (replace: boolean | undefined) => void } | undefined;
   /** The pictures From images makes a PDF of, in the order chosen. */
-  readonly images: readonly File[];
+  readonly images: readonly PlatformFile[];
 }
 
 /** The claims a preview's metadata makes, as the merge's notice names them. */
@@ -87,11 +88,6 @@ function claimsOf(pdfa: string | undefined, pdfua: number | undefined): string[]
 /** Whether `error` is Lamina PDF's code `code`. */
 function hasCode(error: unknown, code: string): boolean {
   return typeof error === "object" && error !== null && (error as { code?: unknown }).code === code;
-}
-
-/** `fileName` without `.pdf`, made safe to save: what new files are named from. */
-function stemOf(fileName: string): string {
-  return downloadName(fileName).replace(/\.pdf$/i, "");
 }
 
 let nextKey = 1;
@@ -245,7 +241,7 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
 
   /** Asks for pictures to add to From images, at the end. */
   async chooseImages(): Promise<void> {
-    const chosen = await pickImages(document);
+    const chosen = await this.#platform.openFiles({ multiple: true, accept: "images" });
     if (chosen.length > 0) this.#set({ images: [...this.#state.images, ...chosen] });
   }
 
@@ -257,13 +253,18 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
     const images = choice.order.flatMap((i) => this.#state.images[i] ?? []);
     const first = images[0];
     if (first === undefined) return;
+    // Named after the first picture, made safe as any new file's name is.
+    const name = downloadName(first.name.replace(/\.[^.]+$/, ""));
     try {
       const { client } = await this.#engine.view();
       const inputs = await Promise.all(
-        images.map(async (file) => ({ bytes: new Uint8Array(await file.arrayBuffer()), type: file.type })),
+        images.map(async (file) => ({
+          bytes: new Uint8Array(await file.read(0, file.size)),
+          type: imageType(file.name),
+        })),
       );
       const made = client.imagesToPdf(inputs, { pageSize: choice.pageSize, margin: choice.margin });
-      await this.#saveOne(made, `${first.name.replace(/\.[^.]+$/, "")}.pdf`);
+      await this.#saveOne(made, name);
     } catch (error) {
       if (error instanceof Cancelled) return;
       reportError(error);
@@ -272,11 +273,7 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
     }
     this.#set({ dialog: undefined, images: [] });
     this.#toasts.add({
-      message: words(
-        1,
-        { one: "documents.done.saved.one", many: "documents.done.saved" },
-        { name: `${first.name.replace(/\.[^.]+$/, "")}.pdf` },
-      ),
+      message: words(1, { one: "documents.done.saved.one", many: "documents.done.saved" }, { name }),
     });
   }
 
@@ -553,26 +550,9 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
   }
 }
 
-/** The pictures a person picks for From images; [] when they cancel. PNG and JPEG, which a PDF holds as they are. */
-function pickImages(doc: Document): Promise<File[]> {
-  return new Promise((resolve) => {
-    const input = doc.createElement("input");
-    input.type = "file";
-    input.accept = "image/png,image/jpeg";
-    input.multiple = true;
-    input.addEventListener("change", () => resolve([...(input.files ?? [])]), { once: true });
-    input.addEventListener("cancel", () => resolve([]), { once: true });
-    input.click();
-  });
-}
-
-/** `name` with ` (2)`, ` (3)`… before `.pdf`, the first that isn't in `folder`. */
-async function freeName(folder: Folder, name: string): Promise<string> {
-  const stem = name.replace(/\.pdf$/i, "");
-  for (let n = 2; ; n++) {
-    const candidate = `${stem} (${n}).pdf`;
-    if ((await folder.existing([candidate])).length === 0) return candidate;
-  }
+/** A picture's media type by its name, as From images takes it: PNG, else JPEG. */
+function imageType(name: string): string {
+  return /\.png$/i.test(name) ? "image/png" : "image/jpeg";
 }
 
 /** The handlers of the commands across files while Organise is the mode. */
@@ -614,7 +594,7 @@ export function DocumentsDialogs({
     (page: number, canvas: HTMLCanvasElement, signal: AbortSignal) => documents.draw(source, page, canvas, signal),
     [documents, source],
   );
-  const name = stemOf(fileName);
+  const name = downloadStem(fileName);
   const mergeFiles: MergeFile[] = state.merge.map((p) => ({
     key: p.key,
     source: p.shown,
@@ -659,15 +639,28 @@ export function DocumentsDialogs({
         progress={state.progress}
         onSplit={(parts) => void documents.split(parts, name)}
       />
-      <ImagesToPdfDialog
-        isOpen={state.dialog === "images"}
-        files={state.images}
-        onChooseFiles={() => void documents.chooseImages()}
-        onInsert={(choice) => void documents.makeImagesPdf(choice)}
-        onClose={close}
-      />
+      <ImagesDialog documents={documents} images={state.dialog === "images" ? state.images : undefined} />
       <ExistsDialog ask={state.exists} />
     </>
+  );
+}
+
+/** From images (O07): the pictures chosen, while its dialog is open (`images` undefined when it isn't). */
+function ImagesDialog({
+  documents,
+  images,
+}: {
+  documents: DocumentsController;
+  images: readonly PlatformFile[] | undefined;
+}): ReactNode {
+  return (
+    <ImagesToPdfDialog
+      isOpen={images !== undefined}
+      files={images ?? []}
+      onChooseFiles={() => void documents.chooseImages()}
+      onMake={(choice) => void documents.makeImagesPdf(choice)}
+      onClose={() => void documents.close()}
+    />
   );
 }
 

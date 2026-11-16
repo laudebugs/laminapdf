@@ -7,6 +7,7 @@ const EN = {
   "platform.enable.reopen": "Use a browser that can keep access to files, such as Chrome or Edge.",
   "platform.enable.install": "Install Lamina PDF to open files from your computer with it.",
   "platform.picker.pdf": "PDF documents",
+  "platform.picker.images": "PNG and JPEG pictures",
   "platform.picker.zip": "Zip archives",
   "platform.error.notWritable": "This file can't be saved in place.",
   "platform.error.externalScheme": "Only web and email links open outside Lamina PDF.",

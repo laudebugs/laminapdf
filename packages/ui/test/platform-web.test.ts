@@ -143,6 +143,22 @@ describe("opening files on the web", () => {
     expect(await file?.read(1, 3)).toEqual(PDF.slice(1, 4));
   });
 
+  it("offers PNG and JPEG pictures when asked for images", async () => {
+    const asked: object[] = [];
+    const platform = createWebPlatform(
+      chromiumLike({
+        showOpenFilePicker: async (options) => {
+          asked.push(options ?? {});
+          return [];
+        },
+      }),
+    );
+    await platform.openFiles({ multiple: true, accept: "images" });
+    expect(asked).toMatchObject([
+      { multiple: true, types: [{ accept: { "image/png": [".png"], "image/jpeg": [".jpg", ".jpeg"] } }] },
+    ]);
+  });
+
   it("returns nothing when the picker is dismissed", async () => {
     const platform = createWebPlatform(chromiumLike({ showOpenFilePicker: abort }));
     expect(await platform.openFiles({ multiple: true })).toEqual([]);
@@ -344,6 +360,37 @@ describe("saving on the web", () => {
     it("reports a dismissed save dialog as cancelled", async () => {
       const platform = createWebPlatform(chromiumLike({ showSaveFilePicker: abort }));
       expect(await platform.saveExport?.(CSV, "Q3-links.csv")).toEqual({ saved: false, reason: "cancelled" });
+    });
+
+    it("opens the save dialog before the file is made, and writes it once it is", async () => {
+      const { handle, written } = fakeHandle("links.csv");
+      const order: string[] = [];
+      const platform = createWebPlatform(
+        chromiumLike({
+          showSaveFilePicker: async () => {
+            order.push("dialog");
+            return handle;
+          },
+        }),
+      );
+      let finish: (file: Blob) => void = () => undefined;
+      const coming = new Promise<Blob>((resolve) => {
+        finish = resolve;
+      });
+      const saved = platform.saveExport?.(coming, "Q3-links.csv");
+      await vi.waitFor(() => expect(order).toEqual(["dialog"]));
+      expect(written).toEqual([]);
+      finish(CSV);
+      expect(await saved).toEqual({ saved: true, name: "links.csv" });
+      expect(written).toHaveLength(1);
+    });
+
+    it("downloads instead when the browser refuses the save dialog", async () => {
+      const { document, clicked } = recordingDocument();
+      const refused = () => Promise.reject(new DOMException("Must be handling a user gesture.", "SecurityError"));
+      const platform = createWebPlatform(chromiumLike({ document, showSaveFilePicker: refused }));
+      expect(await platform.saveExport?.(CSV, "Q3-links.csv")).toEqual({ saved: true, name: "Q3-links.csv" });
+      expect(clicked).toMatchObject([{ download: "Q3-links.csv" }]);
     });
   });
 

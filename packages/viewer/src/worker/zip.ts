@@ -2,6 +2,7 @@
 // write a folder (the E2 plan §7): one download instead of one per part, built in one buffer in
 // the worker. The format and its limits are ../zip/format.ts's.
 
+import { crc32 } from "../zip/crc32.js";
 import {
   directory,
   dosTime,
@@ -12,7 +13,6 @@ import {
   type ZipEntry,
   zipLimit,
 } from "../zip/format.js";
-import { crc32 } from "./crc32.js";
 
 /** One file of a zip. */
 export interface ZipFile {

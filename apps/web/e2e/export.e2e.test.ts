@@ -28,6 +28,33 @@ const NO_PICKERS = {
   arg: [],
 };
 
+/** As {@link NO_PICKERS}, but a folder picker stands in for Chromium's, keeping what's written on `window.written`. */
+const FOLDER = {
+  script: () => {
+    Reflect.deleteProperty(window, "showOpenFilePicker");
+    Reflect.deleteProperty(window, "showSaveFilePicker");
+    const written: Record<string, number> = {};
+    const folder = {
+      kind: "directory",
+      name: "Q3 exports",
+      async getFileHandle(name: string, options?: { create?: boolean }) {
+        if (!(name in written) && options?.create !== true) throw new DOMException("missing", "NotFoundError");
+        return {
+          createWritable: async () => ({
+            write: async (chunk: Uint8Array) => {
+              written[name] = chunk.length;
+            },
+            close: async () => undefined,
+            abort: async () => undefined,
+          }),
+        };
+      },
+    };
+    Object.assign(window, { written, showDirectoryPicker: async () => folder });
+  },
+  arg: [],
+};
+
 /** A 40 × 40 picture in one colour, as RGBA. */
 const square = (r: number, g: number, b: number) =>
   Image.rgba(
@@ -197,15 +224,21 @@ describe(`export in ${BROWSER}`, () => {
     const { ok, errors } = valid(json, "laminapdf-extract/schemas/extract.schema.json");
     expect(ok, errors).toBe(true);
     expect(JSON.stringify(json)).toContain("Quarterly report page 3");
+    // Positions: every block has its box on the page.
+    const blocks = (json as { blocks: { bbox?: number[] }[] }).blocks;
+    expect(blocks.length).toBeGreaterThan(0);
+    expect(blocks.every((b) => Array.isArray(b.bbox) && b.bbox.length === 4)).toBe(true);
     await clean(watched);
   });
 
-  it("[cap B.03 web read] [cap H.07 web read] exports the file's one picture as a file of its own", async () => {
+  it("[cap B.03 web read] [cap H.07 web read] exports the file's picture into a zip of pictures", async () => {
     const page = await opened();
     await exportDialog(page, "Pictures in the file");
-    const { download, bytes } = await exported(page, "Export 1 picture");
-    expect(download.suggestedFilename()).toMatch(/^Q3 report-.*\.png$/);
-    expect(bytes.subarray(0, 4)).toEqual(PNG_SIGNATURE);
+    const { download, bytes } = await exported(page, "Export pictures");
+    expect(download.suggestedFilename()).toBe("Q3 report-pictures.zip");
+    const files = [...unzip(bytes)];
+    expect(files.map(([name]) => name)).toEqual([expect.stringMatching(/^Q3 report-.*\.png$/)]);
+    expect(files[0]?.[1].subarray(0, 4)).toEqual(PNG_SIGNATURE);
     await clean(watched);
   });
 
@@ -222,6 +255,62 @@ describe(`export in ${BROWSER}`, () => {
     expect(valid(bookmarks, "laminapdf/schemas/outline.schema.json").ok).toBe(true);
     expect(JSON.stringify(links)).toContain("https://example.com/");
     expect(JSON.stringify(bookmarks)).toContain("Figures");
+    await clean(watched);
+  });
+
+  it("exports the page in view as one JPEG, not zipped", async () => {
+    const page = await opened();
+    await exportDialog(page, "Pages as images");
+    await pick(page, "This page (1)");
+    await pick(page, "JPEG");
+    const { download, bytes } = await exported(page, "Export 1 page");
+    expect(download.suggestedFilename()).toBe("Q3 report.jpg");
+    expect([...bytes.subarray(0, 3)]).toEqual([0xff, 0xd8, 0xff]);
+    await clean(watched);
+  });
+
+  it("exports every page as one multi-page TIFF", async () => {
+    const page = await opened();
+    await exportDialog(page, "Pages as images");
+    await pick(page, "TIFF");
+    const { download, bytes } = await exported(page, "Export 3 pages");
+    expect(download.suggestedFilename()).toBe("Q3 report.tif");
+    expect(bytes.toString("latin1", 0, 2)).toMatch(/^(II|MM)$/);
+    await clean(watched);
+  });
+
+  it("exports the text as Markdown", async () => {
+    const page = await opened();
+    await exportDialog(page, "Text");
+    await pick(page, "Markdown");
+    const { download, bytes } = await exported(page, "Export text");
+    expect(download.suggestedFilename()).toBe("Q3 report.md");
+    expect(bytes.toString("utf8")).toContain("Quarterly report page 2");
+    await clean(watched);
+  });
+
+  it("exports the links and the bookmarks as CSV, each with its header row", async () => {
+    const page = await opened();
+    await exportDialog(page, "Links and bookmarks");
+    await pick(page, "CSV");
+    const { bytes } = await exported(page, "Export links and bookmarks");
+    const files = unzip(bytes);
+    expect(files.get("Q3 report-links.csv")?.toString("utf8")).toContain("https://example.com/");
+    expect(files.get("Q3 report-bookmarks.csv")?.toString("utf8")).toContain("Figures");
+    await clean(watched);
+  });
+
+  // A folder only where the browser can write one: Chromium, its picker stubbed (it needs a person).
+  it.runIf(BROWSER === "chromium")("writes pages into a folder the person picks, a file a page", async () => {
+    watched = await load(browser, origin, "/", FOLDER, { ignoreHTTPSErrors: true });
+    const { page } = watched;
+    await open(page, report());
+    await exportDialog(page, "Pages as images");
+    await page.getByRole("dialog", { name: "Export" }).getByRole("button", { name: "Export 3 pages" }).click();
+    await expect
+      .poll(() => page.evaluate(() => Object.keys((window as unknown as { written: object }).written).sort()))
+      .toEqual(["Q3 report-page-1.png", "Q3 report-page-2.png", "Q3 report-page-3.png"]);
+    await page.getByText("Exported to Q3 exports").waitFor();
     await clean(watched);
   });
 
@@ -256,7 +345,7 @@ describe(`export in ${BROWSER}`, () => {
     await page.locator(".paper-page-tile").nth(2).waitFor();
     await page.getByRole("button", { name: "Insert", exact: true }).click();
     const chooser = page.waitForEvent("filechooser");
-    await page.getByRole("menuitem", { name: "Insert pages from images…" }).click();
+    await page.getByRole("menuitem", { name: "New PDF from images…" }).click();
     await (await chooser).setFiles([
       { name: "front.png", mimeType: "image/png", buffer: png(200, 30, 30) },
       { name: "back.png", mimeType: "image/png", buffer: png(30, 30, 200) },

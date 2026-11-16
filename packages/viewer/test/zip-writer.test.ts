@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isLaminaPdfError } from "@laminapdf/sdk";
 import { describe, expect, it } from "vitest";
-import { crc32 } from "../src/worker/crc32.js";
+import { crc32 } from "../src/zip/crc32.js";
 import { ZipWriter } from "../src/zip/writer.js";
 import { entries } from "./zip-entries.js";
 

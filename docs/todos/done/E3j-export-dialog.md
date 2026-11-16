@@ -80,8 +80,12 @@ None.
 
 - **No Extract menu in Organise**, so "As images…" isn't there; Export pages as images is in the palette and Export… in the More menu.
 - **Export links and bookmarks takes no page range**: links and bookmarks belong to the whole file.
-- **From images makes a new PDF and saves it as a file of its own**, as Merge's new document does, rather than opening it in place of the document being edited. PNG and JPEG only, which a PDF holds as they are.
+- **From images makes a new PDF and saves it as a file of its own**, as Merge's new document does, rather than opening it in place of the document being edited; Insert's item reads "New PDF from images…". PNG and JPEG only, which a PDF holds as they are.
 - **Several files on the web go into one zip**; where the browser can write a folder (Chromium), into a folder the person picks first, with ` (2)` added to a name already there.
+- **Where the files go is settled before the work**: one file (a page, a TIFF of every page, or the text) is named then and its save dialog opens at once, while the click still lets the browser show it, and is written when made; a browser that refuses the dialog all the same downloads it. Pictures, whose number isn't known first, always go into a zip or a folder.
+- **Pictures aren't counted when the dialog opens**: the SDK counts them only by decoding every one. The card stays open and its button reads "Export pictures".
+- **A page named twice in a range is exported once.**
+- **A TIFF too large for one file** (past the worker's 256 MB budget) fails with the export's message rather than becoming several files under one name.
 - The palette-only commands have a home of their own, `export-dialog`, since every command needs one besides the palette (ADR 0024).
 
 ## Definition of done

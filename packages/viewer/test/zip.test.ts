@@ -1,7 +1,7 @@
 import { isLaminaPdfError } from "@laminapdf/sdk";
 import { describe, expect, it } from "vitest";
-import { crc32 } from "../src/worker/crc32.js";
 import { zip } from "../src/worker/zip.js";
+import { crc32 } from "../src/zip/crc32.js";
 import { entries } from "./zip-entries.js";
 
 describe("zip", () => {

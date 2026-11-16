@@ -1,5 +1,5 @@
 // Export's progress on the web (Paper O16): what is being made, a determinate bar counting pages or
-// pictures, where the result goes (a zip the browser downloads; nothing is uploaded) and Cancel
+// pictures, where the result goes (a zip, one file or a folder; nothing is uploaded) and Cancel
 // export, which keeps focus while it runs. Pages that couldn't be drawn are listed, with Export the
 // rest. Screen readers hear every 25 %, as print's progress does, not every page.
 
@@ -11,6 +11,9 @@ import { laterCountMessage, laterMessage } from "../later-messages.js";
 import { Dialog } from "../overlays/dialog.js";
 import type { ExportChoice } from "./export-dialog.js";
 
+/** Where an export's result goes: the zip's name, the one file's name, or the folder's. */
+export type ExportDestination = { readonly zip: string } | { readonly file: string } | { readonly folder: string };
+
 /** Props of `ExportProgressDialog`. */
 export interface ExportProgressDialogProps {
   isOpen: boolean;
@@ -21,8 +24,11 @@ export interface ExportProgressDialogProps {
   total: number;
   /** What `done` and `total` count. */
   unit: "pages" | "pictures";
-  /** The file the browser downloads (a zip, or the one file), named in the sentence under the bar. */
-  fileName?: string | undefined;
+  /**
+   * Where the result goes, named in the sentence under the bar: a zip of many files, one file, or a
+   * folder written into. Left out, the sentence says only that nothing is uploaded.
+   */
+  destination?: ExportDestination | undefined;
   /** 0-based pages that couldn't be drawn: listed, with Export the rest. */
   failed?: readonly number[] | undefined;
   /** Cancel export, or Escape, while it runs. */
@@ -59,6 +65,17 @@ export function exportProgressTitle(choice: ExportChoice, count: number): string
   }
 }
 
+/**
+ * The sentence under the bar. It doesn't say how a zip arrives: the browser may have asked where
+ * to save it before the work began, or may download it at the end.
+ */
+function whereText(destination: ExportDestination | undefined, unit: ExportProgressDialogProps["unit"]): string {
+  if (destination === undefined) return laterMessage("export.progress.here");
+  if ("zip" in destination) return laterMessage(`export.progress.zip.${unit}`, { name: destination.zip });
+  if ("file" in destination) return laterMessage("export.progress.file", { name: destination.file });
+  return laterMessage(`export.progress.folder.${unit}`, { folder: destination.folder });
+}
+
 /** The quarter reached, 0 to 4. */
 const quarter = (done: number, total: number) => (total === 0 ? 0 : Math.floor((done / total) * 4));
 
@@ -77,7 +94,7 @@ function FailedPages({ failed }: { failed: readonly number[] }): ReactNode {
 
 /** The bar, its live quarter and where the result goes. */
 function ExportProgressBody(props: ExportProgressDialogProps): ReactNode {
-  const { done, total, unit, fileName } = props;
+  const { done, total, unit } = props;
   // Down, so it never reads 100 % before the last page is done.
   const percent = total === 0 ? 0 : Math.floor((done / total) * 100);
   const announced = quarter(done, total) * 25;
@@ -95,11 +112,7 @@ function ExportProgressBody(props: ExportProgressDialogProps): ReactNode {
       <p className="paper-visually-hidden" aria-live="polite">
         {announced === 0 ? "" : laterMessage("export.progress.announce", { percent: announced })}
       </p>
-      <p className="paper-export-where">
-        {fileName === undefined
-          ? laterMessage("export.progress.here")
-          : laterMessage(`export.progress.where.${unit}`, { name: fileName })}
-      </p>
+      <p className="paper-export-where">{whereText(props.destination, unit)}</p>
     </>
   );
 }

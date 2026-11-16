@@ -26,25 +26,34 @@ const EXPORT_TYPES: Readonly<Record<string, string>> = {
   zip: "application/zip",
 };
 
-/** Saves `file` as `suggestedName`. */
+/**
+ * Saves `file`, maybe still being made, as `suggestedName`. The save dialog opens at once, while
+ * the click that started the export still lets the browser show it, and the file is written when
+ * it's ready. A browser that refuses the dialog all the same (the click too long ago) downloads it.
+ */
 export async function saveExport<
   Scope extends { showSaveFilePicker?: (options?: object) => Promise<FileSystemFileHandle> },
->(scope: Scope, file: Blob, suggestedName: string, tools: SaveTools<Scope>): Promise<SaveResult> {
+>(scope: Scope, file: Blob | Promise<Blob>, suggestedName: string, tools: SaveTools<Scope>): Promise<SaveResult> {
   const { download, write, isAbort } = tools;
   const extension = suggestedName.split(".").at(-1)?.toLowerCase() ?? "";
   const type = EXPORT_TYPES[extension] ?? "application/octet-stream";
-  const typed = file.type === type ? file : new Blob([file], { type });
-  if (scope.showSaveFilePicker === undefined) {
-    download(scope, typed, suggestedName);
+  const coming = Promise.resolve(file).then((made) => (made.type === type ? made : new Blob([made], { type })));
+  const downloaded = async (): Promise<SaveResult> => {
+    download(scope, await coming, suggestedName);
     return { saved: true, name: suggestedName };
-  }
+  };
+  if (scope.showSaveFilePicker === undefined) return downloaded();
+  // A dismissed dialog leaves the file's failure, if any, to nobody.
+  coming.catch(() => undefined);
+  let handle: FileSystemFileHandle;
   try {
     const types = [{ description: extension.toUpperCase(), accept: { [type]: [`.${extension}`] } }];
-    const handle = await scope.showSaveFilePicker({ suggestedName, types });
-    await write(handle, typed);
-    return { saved: true, name: handle.name };
+    handle = await scope.showSaveFilePicker({ suggestedName, types });
   } catch (error) {
     if (isAbort(error)) return { saved: false, reason: "cancelled" };
+    if (error instanceof DOMException && error.name === "SecurityError") return downloaded();
     throw error;
   }
+  await write(handle, await coming);
+  return { saved: true, name: handle.name };
 }

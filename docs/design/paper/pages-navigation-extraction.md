@@ -304,13 +304,15 @@ Not built yet:
 
 **Artboards.** `O16-export.dc.html` (desktop dialog), `O16-export-web.dc.html` (web, zipping in progress).
 
-**As built (web, E3j).** The dialog and its progress follow the boards, with five differences:
+**As built (web, E3j).** The dialog and its progress follow the boards, with seven differences:
 
 - The range field sits under the Pages radios, as in Print, not inside the third radio's label: a field inside a radio's label would be one control inside another.
 - Organise has no Extract menu, so "As images…" isn't there; Export pages as images is in the palette, and File › Export… opens on any kind.
 - Export links and bookmarks reads the whole file, so its command takes no page range and the dialog hides Pages for it.
 - Pictures' minimum size is a select: any size, or 32, 64, 128 or 256 px or larger on the longer side.
-- The primary counts pictures only when every page is chosen ("Export 12 pictures"); for some pages it says "Export pictures", since the file's count no longer holds. The progress percentage rounds down, so it never reads 100 % early.
+- The primary counts pictures only when every page is chosen ("Export 12 pictures"); for some pages it says "Export pictures", since the file's count no longer holds. Counting pictures decodes every one, so the web doesn't count them up front: the card stays usable and the primary reads "Export pictures". A link or bookmark count that couldn't be read leaves its card usable too; it is disabled only when both are known to be none. The progress percentage rounds down, so it never reads 100 % early.
+- The sentence under the bar names where the result goes but not how it arrives: "Pages are drawn on this device and packed into Q3-board-report-pages.zip. Nothing is uploaded." Chromium asks where to save before the work begins, while other browsers download at the end, so "which your browser downloads when it’s ready" was true of only one path. One file reads "Made on this device and saved as Q3 report.json. Nothing is uploaded.", and a folder "…written into the folder Exports. Nothing is uploaded."
+- The pictures card's help reads "The original pictures, unchanged where possible", so "pictures" names one thing throughout.
 
 **Todos.** [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md), [E3i](../../todos/done/E3i-extraction.md), [L3b](../../todos/done/L3b-extract-tables-and-serialisers.md) (Markdown).
 

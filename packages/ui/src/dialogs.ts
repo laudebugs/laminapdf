@@ -17,6 +17,7 @@ export {
   type ExportKind,
 } from "./reader/export-dialog.js";
 export {
+  type ExportDestination,
   ExportProgressDialog,
   type ExportProgressDialogProps,
   exportProgressTitle,

@@ -92,20 +92,19 @@ async function asPng(image: ExtractedImage): Promise<Uint8Array<ArrayBuffer> | u
 let summary: { readonly open: Open; readonly summary: ExportSummary } | undefined;
 
 /**
- * How many pictures, links and bookmarks the open document has, and whether it is tagged.
- * Counting the pictures decodes every one (the SDK has no cheaper count), so the answer is kept
- * until {@link forgetSummary}.
+ * How many links and bookmarks the open document has, and whether it is tagged, kept until
+ * {@link forgetSummary}. Not its pictures: the SDK counts them only by decoding every one, which a
+ * dialog opening shouldn't cost on a long scanned file.
  */
 export async function exportSummary(signal: AbortSignal): Promise<ExportSummary> {
   const opened = current();
   if (summary?.open === opened) return summary.summary;
   const model = await textModel(signal);
-  const pictures = (await model.ensure(() => model.extractImages(), { signal })).images.length;
   const links = (JSON.parse(await model.ensure(() => model.linksJson(), { signal })) as { links: unknown[] }).links
     .length;
   const bookmarks = count(await model.ensure(() => model.outline(), { signal }));
   const tagged = await model.ensure(() => model.isTagged, { signal });
-  const read = { pictures, links, bookmarks, tagged };
+  const read = { links, bookmarks, tagged };
   // An edit made while this read ran forgot the summary before it was kept: keep only a read
   // of the document still open, which the next edit forgets in turn.
   if (current() === opened) summary = { open: opened, summary: read };

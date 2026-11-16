@@ -71,31 +71,3 @@ function splitRange(
   }
   return undefined;
 }
-
-/** Which pages a dialog's Pages group names: every page, the one in view, or a typed range. */
-export type PagesMode = "all" | "current" | "range";
-
-/** What a dialog with a Pages group knows about the document. */
-export interface PagesContext {
-  readonly pageCount: number;
-  /** The page in view, 0-based. */
-  readonly currentPage: number;
-  readonly labels?: readonly string[] | undefined;
-}
-
-/** The 0-based pages `mode` names, or the range's error. */
-export function chosenPages(
-  mode: PagesMode,
-  range: string,
-  context: PagesContext,
-): { pages: readonly number[] } | { error: string } {
-  if (mode === "all") return { pages: Array.from({ length: context.pageCount }, (_, i) => i) };
-  if (mode === "current") return { pages: [context.currentPage] };
-  const result = parsePrintPages(range, context.pageCount, context.labels);
-  return result.ok ? { pages: result.pages } : { error: result.error };
-}
-
-/** The page in view as the document names it: its label, else its number. */
-export function currentLabel(context: Pick<PagesContext, "currentPage" | "labels">): string {
-  return context.labels?.[context.currentPage] ?? String(context.currentPage + 1);
-}

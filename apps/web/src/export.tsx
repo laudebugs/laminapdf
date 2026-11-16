@@ -7,6 +7,7 @@ import type { Platform, ToastQueue } from "@laminapdf/ui";
 import type * as Dialogs from "@laminapdf/ui/dialogs";
 import type { ExportChoice, ExportCounts, ExportKind } from "@laminapdf/ui/dialogs";
 import { lazy, type ReactNode, Suspense, useRef, useState } from "react";
+import { downloadStem } from "./download-name.ts";
 import type { ExportRunning } from "./export-run.ts";
 import type { OutputDocument } from "./output.tsx";
 import type { Engine } from "./session.ts";
@@ -20,6 +21,7 @@ const KINDS = {
   "file.export-links-and-bookmarks": "links",
 } as const satisfies Record<string, ExportKind | undefined>;
 
+/** The export commands the reader handles: Export… and the palette's four, each on its own kind. */
 export type ExportCommand = keyof typeof KINDS;
 
 /** What the hook gives the app: the commands' handlers (each takes the palette's page range), and the dialogs. */
@@ -40,6 +42,23 @@ const ExportProgressDialog = lazy<typeof Dialogs.ExportProgressDialog>(() =>
   loadLater().then((m) => ({ default: m.ExportProgressDialog }), nothing),
 );
 
+/**
+ * What the file holds, for the dialog's cards. Pictures aren't counted (only decoding them all
+ * could); a failed read leaves every count unknown, so no card is wrongly shut.
+ */
+function readCounts(engine: Engine): Promise<ExportCounts> {
+  return engine
+    .view()
+    .then(({ client }) => client.exportSummary())
+    .then(
+      (summary) => ({ ...summary, pictures: undefined }),
+      (error: unknown) => {
+        reportError(error);
+        return { pictures: undefined, links: undefined, bookmarks: undefined, tagged: false };
+      },
+    );
+}
+
 /** Export… and the palette's export commands, for the open document. */
 export function useExport(engine: Engine, platform: Platform, toasts: ToastQueue): Exporting {
   const [open, setOpen] = useState(false);
@@ -56,27 +75,25 @@ export function useExport(engine: Engine, platform: Platform, toasts: ToastQueue
     setPages(Array.isArray(args) ? (args as readonly number[]) : undefined);
     setCounts(undefined);
     setOpen(true);
-    void engine.view().then(
-      ({ client }) => client.exportSummary().then(setCounts),
-      (error: unknown) => reportError(error),
-    );
+    void readCounts(engine).then(setCounts);
   };
 
   // The work loads with the dialog it follows; it runs in the lazily loaded chunk.
   const run = (choice: ExportChoice, document: OutputDocument) => {
     setOpen(false);
-    void loadLater().then(({ startExport }) =>
-      startExport({
-        choice,
-        counts,
-        stem: document.fileName.replace(/\.pdf$/i, ""),
-        engine,
-        platform,
-        toasts,
-        controller,
-        setRunning,
-      }),
-    );
+    void loadLater()
+      .then(({ startExport }) =>
+        startExport({
+          choice,
+          stem: downloadStem(document.fileName),
+          engine,
+          platform,
+          toasts,
+          controller,
+          setRunning,
+        }),
+      )
+      .catch((error: unknown) => reportError(error));
   };
 
   const cancel = () => {
@@ -85,44 +102,69 @@ export function useExport(engine: Engine, platform: Platform, toasts: ToastQueue
   };
 
   return {
-    actions: {
-      "file.export": start(KINDS["file.export"]),
-      "pages.export-images": start(KINDS["pages.export-images"]),
-      "file.export-text": start(KINDS["file.export-text"]),
-      "file.export-pictures": start(KINDS["file.export-pictures"]),
-      "file.export-links-and-bookmarks": start(KINDS["file.export-links-and-bookmarks"]),
-    },
+    actions: Object.fromEntries(
+      Object.entries(KINDS).map(([command, opening]) => [command, start(opening)]),
+    ) as Exporting["actions"],
     dialogs: (document) =>
       document === undefined || (!open && running === undefined) ? null : (
-        <Suspense fallback={null}>
-          <ExportDialog
-            isOpen={open}
-            kind={kind}
-            pageCount={document.pages.length}
-            currentPage={document.viewer.getState().currentPage}
-            labels={document.labels}
-            pageSize={document.pages[document.viewer.getState().currentPage]}
-            counts={counts}
-            pages={pages}
-            onExport={(choice) => void run(choice, document)}
-            onClose={() => setOpen(false)}
-          />
-          {running === undefined ? null : (
-            <ExportProgressDialog
-              isOpen
-              title={running.title}
-              done={running.done}
-              total={running.total}
-              // Pictures are read a few pages at a time, so their progress counts pages too.
-              unit="pages"
-              fileName={running.fileName}
-              failed={running.asking === undefined ? undefined : running.failed}
-              onCancel={cancel}
-              onExportRest={running.asking === undefined ? undefined : () => running.asking?.(true)}
-              onClose={cancel}
-            />
-          )}
-        </Suspense>
+        <ExportDialogs
+          document={document}
+          open={open}
+          kind={kind}
+          counts={counts}
+          pages={pages}
+          running={running}
+          onExport={(choice) => run(choice, document)}
+          onClose={() => setOpen(false)}
+          onCancel={cancel}
+        />
       ),
   };
+}
+
+/** The export dialog, then the progress view while an export runs. */
+function ExportDialogs(props: {
+  document: OutputDocument;
+  open: boolean;
+  kind: ExportKind | undefined;
+  counts: ExportCounts | undefined;
+  pages: readonly number[] | undefined;
+  running: ExportRunning | undefined;
+  onExport: (choice: ExportChoice) => void;
+  onClose: () => void;
+  onCancel: () => void;
+}): ReactNode {
+  const { document, running } = props;
+  const current = document.viewer.getState().currentPage;
+  return (
+    <Suspense fallback={null}>
+      <ExportDialog
+        isOpen={props.open}
+        kind={props.kind}
+        pageCount={document.pages.length}
+        currentPage={current}
+        labels={document.labels}
+        pageSize={document.pages[current]}
+        counts={props.counts}
+        pages={props.pages}
+        onExport={props.onExport}
+        onClose={props.onClose}
+      />
+      {running === undefined ? null : (
+        <ExportProgressDialog
+          isOpen
+          title={running.title}
+          done={running.done}
+          total={running.total}
+          // Pictures are read a few pages at a time, so their progress counts pages too.
+          unit="pages"
+          destination={running.destination}
+          failed={running.asking === undefined ? undefined : running.failed}
+          onCancel={props.onCancel}
+          onExportRest={running.asking === undefined ? undefined : () => running.asking?.(true)}
+          onClose={props.onCancel}
+        />
+      )}
+    </Suspense>
+  );
 }
