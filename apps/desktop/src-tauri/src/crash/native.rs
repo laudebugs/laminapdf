@@ -14,10 +14,8 @@
 //! - **The main process**: its own dumps go to `dumps/main`, read at the next launch
 //!   ([`leftover_main_crashes`], the newest few, off the start-up path) into a held report.
 //!
-//! On Windows there is no capture in this version (ADR 0014 §10); this module is Unix only and the
-//! app guards its use with `cfg(unix)`.
-
-#![cfg(unix)]
+//! On Windows the monitor's dump server dumps only the process on the other end of the connection
+//! (the workspace's patched `minidumper`), so it runs on every OS.
 
 use std::collections::VecDeque;
 use std::ffi::OsString;
@@ -226,7 +224,12 @@ impl EngineDumps {
     /// pid (for `PR_SET_PTRACER`). Called for each engine as it spawns, so an engine started after
     /// a monitor restart gets the new socket; none once the monitor is down for good. The engine
     /// waits briefly for a monitor that is still starting (`capture_crashes_within`).
+    /// On Windows the engine gets none: the monitor watches it as its debugger instead, so it never
+    /// opens a socket (which would start Winsock, and with it a way onto the network).
     pub(crate) fn engine_args(&self) -> Vec<OsString> {
+        if cfg!(windows) {
+            return Vec::new();
+        }
         let Some((socket, pid)) = self.monitor.engine_endpoint() else {
             return Vec::new();
         };
@@ -421,14 +424,32 @@ impl Drop for Monitor {
 /// Spawns the monitor (this binary with [`MonitorPaths::args`]) with a fresh set of sockets.
 fn spawn_monitor(exe: &Path, data_dir: &Path) -> Option<(MonitorPaths, std::process::Child)> {
     let paths = MonitorPaths::new(data_dir);
-    let child = Command::new(exe)
+    let mut child = Command::new(exe)
         .args(paths.args())
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
+        // On Windows the monitor's engines' debugger reports each step there; elsewhere it says
+        // nothing worth reading.
+        .stderr(if cfg!(windows) {
+            std::process::Stdio::piped()
+        } else {
+            std::process::Stdio::null()
+        })
         .spawn()
         .map_err(|error| tracing::warn!("the crash monitor could not start: {error}"))
         .ok()?;
+    // What the monitor says (its engines' debugger: each attach, fault and dump) goes into this
+    // process's log; the thread ends with the monitor.
+    if let Some(stderr) = child.stderr.take() {
+        let _ = std::thread::Builder::new()
+            .name("crash-monitor-log".into())
+            .spawn(move || {
+                use std::io::BufRead as _;
+                for line in std::io::BufReader::new(stderr).lines().map_while(Result::ok) {
+                    tracing::info!(target: "laminapdf_desktop::crash_monitor", "{line}");
+                }
+            });
+    }
     Some((paths, child))
 }
 

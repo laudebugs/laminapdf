@@ -1,5 +1,32 @@
 # @laminapdf/sdk
 
+## 0.5.0
+
+### Minor Changes
+
+- e31c820: A document now reads back its page boxes and page labels in the form the edits take, so an app can show the current values and change them. `doc.pageBoxes(index)` returns a page's media, crop, bleed, trim and art boxes in user space, as `setPageBoxes` takes them, and says which of the last three the page sets itself. `doc.labelRanges()` returns the page labels as ranges, in the form `setPageLabels` takes, so they can be changed and written back. Both need the extract or text module; in Rust they are `Document::page_boxes` and `Document::label_ranges`.
+  
+  The viewer's document worker serves both reads, as `client.pageBoxes(index)` and `client.labelRanges()`. An edit that sets the page labels, and its undo and redo, now gives every page its new label in `EditResult.relabelled`, and `client.document.pages` takes them. No page is drawn again, since labels draw nothing.
+
+### Patch Changes
+
+- 80c83fa: In Rust, `Document::adopt_copy_from` makes a saved copy the document's file when the copy is read through a byte source rather than held in memory. An app that appends an incremental save to a large file in place can then adopt the file without reading all of it.
+- a593fdd: Read a review's comments as threads, reply to them and set their status.
+  
+  `doc.commentThreads(pages)` gives each comment with its replies in order, the annotations grouped with it, the review states set on it and the latest of each, and the text a highlight marks. A reply to a missing comment, or a ring of replies, comes back as a thread of its own marked `broken`. The `addReply` and `setReviewState` ops answer a comment or record its status as annotations of their own, as Acrobat does, so the thread keeps its history. `doc.deleteAnnotations(ids)` deletes a selection in one undo step. The Rust crates have the same: `Document::comment_threads`, `delete_annotations`, `AddReply` and `SetReviewState`.
+- bd4b1e9: Add a clickable contents page made from a document's bookmarks.
+  
+  `doc.createContentsPage(options)` lays out a page that lists the bookmarks going to a page, one or two levels deep. Each entry shows the label its page will have once the contents page is in, and links to that page. It inserts the page where `at` says, can add a "Contents" bookmark for it, and does all of this as one undo step. In a tagged file, the page joins the structure tree as a `TOC` element. It needs the text module loaded, though the document can be open in any module, and a font you pass, since Helvetica isn't embedded and a PDF/A or PDF/UA-1 file refuses it.
+  
+  The Rust crates have the same as `Document::create_contents_page(&ContentsOptions, &ContentsFonts)`, and in three parts for a host whose document is open in a build without fonts: `Document::contents_listing` reads what the page lists, `ContentsListing::lay_out` lays it out with the `text` feature, and `Document::insert_contents_page` inserts it, refusing a listing the document no longer gives with `document-changed`. The builder's `Contents::listing` sets a contents block from given entries and labels.
+- 9767f69: Draw on a page: `doc.inkAt`, `doc.shapeAt`, `doc.lineAt` and `doc.polyAt` give the edit that draws on a page from points in page space. They draw freehand ink, squares and circles, lines and arrows, and polygons and polylines. Lamina PDF draws each one into the file, with solid, dashed or cloudy borders, a fill colour, every line ending the PDF standard defines, and leader lines. Ink is smoothed through its points, and a stroke can carry one width per point for a pressure-sensitive pen. `updateAnnot` erases ink strokes and adds new ones. In Rust, the same edits are `Document::ink_at`, `shape_at`, `line_at` and `poly_at`.
+- 2a447ca: Pages inserted before the first page of a labelled document no longer repeat its label. They join the start of the first label range: before a range starting at "i" or "1", the first new page takes that label and the range's own pages are numbered up by one, while later ranges, such as an appendix's "A-1", keep theirs. Before a range that starts higher, say at 5, new pages take the numbers below it and nothing else moves. This applies to inserted blank pages, pages inserted from another file and merges.
+- Updated dependencies [a593fdd]
+- Updated dependencies [91c927d]
+- Updated dependencies [bd4b1e9]
+- Updated dependencies [9767f69]
+  - @laminapdf/wasm@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes

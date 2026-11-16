@@ -1,6 +1,6 @@
 ---
 title: "not-a-link"
-version: "0.4.0"
+version: "0.5.0"
 url: "https://docs.laminapdf.com/reference/codes/not-a-link/"
 ---
 
