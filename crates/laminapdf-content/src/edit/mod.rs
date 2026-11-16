@@ -20,9 +20,9 @@ use crate::operator::Operator;
 use crate::state::GraphicsState;
 
 pub use edits::{Placement, ResourceName};
-pub use text::ShownGlyph;
 pub use encode::{EncodedContent, EncodedPart};
 pub use record::Recorder;
+pub use text::ShownGlyph;
 
 /// How far outside an object's box a point still hits it, in points: thin lines and
 /// hairlines have boxes too narrow to point at.

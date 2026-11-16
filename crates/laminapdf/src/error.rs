@@ -328,6 +328,8 @@ impl From<laminapdf_ops::Error> for Error {
     fn from(e: laminapdf_ops::Error) -> Self {
         match e {
             laminapdf_ops::Error::Cos(e) => Self::core(Inner::Cos(e)),
+            #[cfg(feature = "content-edit")]
+            laminapdf_ops::Error::Text(e) => e.into(),
             other => Self::core(Inner::Ops(other)),
         }
     }

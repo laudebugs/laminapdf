@@ -54,6 +54,18 @@ impl FontEncoder {
         self.refusal
     }
 
+    /// The code `code` of this font with its width, as [`FontEncoder::encode`] gives it.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub fn glyph(&self, code: Code) -> EncodedGlyph {
+        EncodedGlyph {
+            code,
+            width: self.font.displacement(code).0,
+            word_space: ExtractFont::is_word_space(code),
+        }
+    }
+
     /// `text` as codes of this font, longest match first, with their widths.
     ///
     /// # Errors
@@ -72,11 +84,7 @@ impl FontEncoder {
             let Some((code, n)) = longest else {
                 return Err(first);
             };
-            out.push(EncodedGlyph {
-                code,
-                width: self.font.displacement(code).0,
-                word_space: ExtractFont::is_word_space(code),
-            });
+            out.push(self.glyph(code));
             at += n;
         }
         Ok(out)

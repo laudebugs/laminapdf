@@ -43,7 +43,9 @@ impl ShownGlyph {
     /// The code's bytes.
     fn bytes(self) -> Vec<u8> {
         let all = self.code.to_be_bytes();
-        all.get(4usize.saturating_sub(usize::from(self.len))..).unwrap_or_default().to_vec()
+        all.get(4usize.saturating_sub(usize::from(self.len))..)
+            .unwrap_or_default()
+            .to_vec()
     }
 }
 
@@ -149,12 +151,7 @@ fn format_of(op: &ContentOp) -> StringFormat {
 /// `TJ` otherwise (after the line move `'` and `"` make, written as `T*`).
 fn rebuilt(original: &ContentOp, pieces: &[Piece], codes: &dyn Fn(usize) -> Vec<u8>) -> Vec<ContentOp> {
     let format = format_of(original);
-    let string = |bytes: Vec<u8>| {
-        Object::String(PdfString {
-            bytes,
-            format,
-        })
-    };
+    let string = |bytes: Vec<u8>| Object::String(PdfString { bytes, format });
     let mut items: Vec<Object> = Vec::new();
     let mut run: Vec<u8> = Vec::new();
     for piece in pieces {

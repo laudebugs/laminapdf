@@ -23,7 +23,9 @@ fn written(ops: &ContentOps) -> String {
 
 /// One-byte glyphs for `text`, each 500 thousandths wide; a space is a word space.
 fn glyphs(text: &str) -> Vec<ShownGlyph> {
-    text.bytes().map(|b| ShownGlyph::new(u32::from(b), 1, 500.0, b == b' ')).collect()
+    text.bytes()
+        .map(|b| ShownGlyph::new(u32::from(b), 1, 500.0, b == b' '))
+        .collect()
 }
 
 fn rewrite(content: &[u8], shown: &str, range: std::ops::Range<usize>, new: &str) -> (String, f64) {

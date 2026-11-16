@@ -3,7 +3,7 @@
 // through `apply` as one `editContent` op. Only a type: `Document` builds the object, which keeps
 // the package's JavaScript small.
 
-import type { ContentEdit, Edited, ObjectRef, PageObject } from "./types.js";
+import type { ContentEdit, ContentTextRun, Edited, ObjectRef, PageObject, TextRunRef } from "./types.js";
 
 /**
  * The objects the document's pages draw, and edits to them ({@link Document.content}). Pages are
@@ -25,6 +25,32 @@ export interface DocumentContent {
    * @since 0.5.0
    */
   objects(index: number): PageObject[];
+
+  /**
+   * The runs of text page `index` shows, in reading order: each with its name for
+   * {@link DocumentContent.editText}, its text, box, font, size and line and, when it can't be
+   * edited, why. Text inside a form isn't listed.
+   *
+   * @throws {@link LaminaPdfError} as {@link DocumentContent.objects}.
+   *
+   * @since 0.5.0
+   */
+  textRuns(index: number): ContentTextRun[];
+
+  /**
+   * Makes `run` on page `index` show `text` (`editText`), in the font it is set in: every
+   * character must be one the font can draw (for an embedded subset, one the document already
+   * shows in it). The rest of the line moves by the width difference; the lines below stay where
+   * they were. Empty text deletes the run. To change part of a run, name its glyphs: `start` and
+   * `end` within the run's. The old text stays in the file's earlier revisions until a full save.
+   *
+   * @throws {@link LaminaPdfError} `missing-glyph` for a character the font has no code for,
+   *   `content-not-editable` with the reason for a read-only run, `content-object-stale`; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.5.0
+   */
+  editText(index: number, run: TextRunRef, text: string): Edited;
 
   /**
    * The objects of page `index` at `at`, topmost first: a point `[x, y]` (an object within 2

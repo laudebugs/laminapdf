@@ -14,6 +14,7 @@ import notoSansArabic from "../../../../fixtures/fonts/NotoSansArabic-Regular.tt
 import notoSansDevanagari from "../../../../fixtures/fonts/NotoSansDevanagari-Regular.ttf";
 import notoSansHebrew from "../../../../fixtures/fonts/NotoSansHebrew-Regular.ttf";
 import notoSansSC from "../../../../fixtures/fonts/NotoSansSC-Regular.otf";
+import greetingPdf from "../../../../fixtures/golden/examples/hello.pdf";
 import imagesAndVectorsPdf from "../../../../fixtures/golden/examples/images_and_vectors.pdf";
 import linksAndOutlinesPdf from "../../../../fixtures/golden/examples/links_and_outlines.pdf";
 import markedPdf from "../../../../fixtures/golden/examples/mark_up.pdf";
@@ -64,6 +65,7 @@ const inputs: Inputs = {
       "fixtures/corpus/hello.pdf": helloPdf,
       "fixtures/golden/examples/links_and_outlines.pdf": linksAndOutlinesPdf,
       "fixtures/golden/examples/mark_up.pdf": markedPdf,
+      "fixtures/golden/examples/hello.pdf": greetingPdf,
       "fixtures/golden/examples/images_and_vectors.pdf": imagesAndVectorsPdf,
     }).map(([path, data]) => [path, new Uint8Array(data)]),
   ),

@@ -264,8 +264,9 @@ fn new_labels(pages: usize) -> Vec<Option<String>> {
 /// (C.02) or replacing the first page (C.16), from [`SOURCE`], merged in as a whole document
 /// (C.06), the initial view (I.06, I.11), page boxes set (C.09) and cropped (C.11), and pages
 /// resized (C.10) and turned to landscape by swapping their paper's sides (C.12), and the first
-/// object of the first page that can move moved (B.02, B.12).
-const OPS: [&str; 21] = [
+/// object of the first page that can move moved (B.02, B.12), and a run of its text rewritten
+/// (A.02).
+const OPS: [&str; 22] = [
     "setInfo",
     "rotatePage",
     "setMetadata",
@@ -287,6 +288,7 @@ const OPS: [&str; 21] = [
     "resizePages",
     "setOrientation",
     "editContent",
+    "editText",
 ];
 
 /// The source document the import cases copy their page from: one upright page.
@@ -396,6 +398,7 @@ fn op(doc: &Document, name: &str, rotation: Rotation, source: SourceId) -> Optio
             .with_preferences(WindowPreferencesPatch::default().with_display_doc_title(true))
             .into(),
         "editContent" => move_first_object(doc)?,
+        "editText" => reverse_first_run(doc)?,
         _ => RotatePage::new(ids.first().cloned()?, rotation).into(),
     })
 }
@@ -420,6 +423,24 @@ fn move_first_object(doc: &Document) -> Option<Op> {
         matrix: Matrix::translate(10.0, 10.0),
     };
     Some(EditContent::new(page.id().clone(), vec![edit]).into())
+}
+
+/// Reverses the text of the first page's first run that can be edited and shows two or more
+/// plain ASCII letters, digits or spaces: characters the run's font already draws, in another
+/// order, so the edit needs no glyph the font lacks. `None` when no run qualifies.
+fn reverse_first_run(doc: &Document) -> Option<Op> {
+    use laminapdf_ops::EditText;
+
+    let page = doc.pages().ok()?.get(0)?.id().clone();
+    let runs = laminapdf_ops::text_runs(doc, &page).ok()?;
+    let run = runs.iter().find(|r| {
+        r.read_only.is_none()
+            && r.text.chars().count() >= 2
+            && u32::try_from(r.text.chars().count()).ok() == r.run.end.checked_sub(r.run.start)
+            && r.text.chars().all(|c| c.is_ascii_alphanumeric() || c == ' ')
+    })?;
+    let text: String = run.text.chars().rev().collect();
+    Some(EditText::new(page, run.run, text).into())
 }
 
 /// The ops a case applies: `op`, after the edit a removal removes, or with the custom XMP

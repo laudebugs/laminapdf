@@ -3399,6 +3399,7 @@ dependencies = [
  "laminapdf-save",
  "laminapdf-syntax",
  "laminapdf-test-fixtures",
+ "laminapdf-text",
  "proptest",
  "serde",
  "serde_json",
