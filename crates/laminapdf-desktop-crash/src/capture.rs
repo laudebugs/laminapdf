@@ -455,7 +455,11 @@ pub enum CaptureError {
 /// `server` is the server process's pid (the monitor): on Linux it alone may trace this process
 /// while it writes the dump (`PR_SET_PTRACER`, for Yama's `ptrace_scope` 1; never
 /// `PR_SET_PTRACER_ANY`, and the engine's seccomp allows exactly this pid). Call it before the
-/// sandbox goes on, from the only thread (the engine) or early (the main process).
+/// sandbox goes on, from the only thread (the engine), or from the main process's monitor thread
+/// (`capture_crashes_within`). On Linux the handler's alternate signal stack is the calling
+/// thread's; the other threads keep the one the standard library gives them. The descriptor is
+/// found as the one new socket, so it is only reliable where no other thread opens sockets at the
+/// same time: the engine, which reads it; the main process never does.
 ///
 /// # Errors
 /// [`CaptureError`] when the server can't be reached or the handler can't be installed.
@@ -496,17 +500,22 @@ pub fn capture_crashes(socket: &Path, server: u32) -> Result<CrashCapture, Captu
 }
 
 /// [`capture_crashes`] for a server that may not be listening yet, such as a monitor just spawned:
-/// a socket that can't be reached is tried again every 20 ms until `wait` has passed. Any other
-/// failure, and the last unreachable one, is returned at once.
+/// a socket that can't be reached is tried again every 20 ms until `wait` has passed or `cancel` is
+/// set. Any other failure, and the last unreachable one, is returned at once.
 ///
 /// # Errors
-/// [`CaptureError`] when the server is still unreachable after `wait`, or the handler can't be
-/// installed.
-pub fn capture_crashes_within(socket: &Path, server: u32, wait: Duration) -> Result<CrashCapture, CaptureError> {
+/// [`CaptureError`] when the server is still unreachable after `wait` or once cancelled, or the
+/// handler can't be installed.
+pub fn capture_crashes_within(
+    socket: &Path,
+    server: u32,
+    wait: Duration,
+    cancel: &AtomicBool,
+) -> Result<CrashCapture, CaptureError> {
     let deadline = Instant::now() + wait;
     loop {
         match capture_crashes(socket, server) {
-            Err(CaptureError::Connect) if Instant::now() < deadline => {
+            Err(CaptureError::Connect) if Instant::now() < deadline && !cancel.load(Ordering::SeqCst) => {
                 std::thread::sleep(Duration::from_millis(20));
             }
             result => return result,
@@ -744,7 +753,12 @@ mod tests {
                 DumpServer::start(socket, dir, Role::Many).unwrap()
             })
         };
-        let capture = capture_crashes_within(&socket, std::process::id(), Duration::from_secs(5));
+        let capture = capture_crashes_within(
+            &socket,
+            std::process::id(),
+            Duration::from_secs(5),
+            &AtomicBool::new(false),
+        );
         let server = late.join().unwrap();
         assert!(capture.is_ok(), "{:?}", capture.err());
         drop(capture);
@@ -754,7 +768,25 @@ mod tests {
     #[test]
     fn a_capture_should_give_up_once_its_wait_has_passed() {
         let started = Instant::now();
-        let capture = capture_crashes_within(&socket_path("never"), std::process::id(), Duration::from_millis(100));
+        let capture = capture_crashes_within(
+            &socket_path("never"),
+            std::process::id(),
+            Duration::from_millis(100),
+            &AtomicBool::new(false),
+        );
+        assert!(matches!(capture, Err(CaptureError::Connect)));
+        assert!(started.elapsed() < Duration::from_secs(5));
+    }
+
+    #[test]
+    fn a_cancelled_capture_should_stop_waiting() {
+        let started = Instant::now();
+        let capture = capture_crashes_within(
+            &socket_path("cancelled"),
+            std::process::id(),
+            Duration::from_secs(60),
+            &AtomicBool::new(true),
+        );
         assert!(matches!(capture, Err(CaptureError::Connect)));
         assert!(started.elapsed() < Duration::from_secs(5));
     }
