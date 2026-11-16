@@ -231,7 +231,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C07-flatten.dc.html`, `C07-summary.dc.html`, `C07-flatten-history.dc.html`.
 
-**Todos.** [E5e](../../todos/ready/E5e-flatten-and-summary.md), [E5f](../../todos/ready/E5f-comment-summary.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md).
+**Todos.** [E5e](../../todos/ongoing/E5e-flatten-and-summary.md), [E5f](../../todos/ready/E5f-comment-summary.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md).
 
 ## C08 Phone annotate
 

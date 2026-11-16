@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E5e` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E5 plan §2.1](../../plans/editor/e5-review-stamps-interchange.md#21-ops) ([full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E2e](../done/E2e-content-append-api.md), [E4c](../done/E4c-appearances-markup-notes-caret.md), [E4d](../done/E4d-appearances-ink-and-shapes.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md) |
