@@ -112,6 +112,11 @@ pub enum NotEditable {
     RotatedRun,
     /// A show operator writes its glyphs out of reading order.
     GlyphsOutOfOrder,
+    /// The text stands in for other text (`/ActualText`, ISO 32000-2 §14.9.4): extraction, copy
+    /// and search read that text, which an edit of the glyphs would leave behind.
+    ActualText,
+    /// The text is written right to left, whose glyphs a file draws in either order.
+    RightToLeft,
     /// The object is inside Form XObjects nested deeper than the limit allows.
     TooDeep,
     /// The content failed to read, or the object's graphics state wasn't recorded.
@@ -126,7 +131,7 @@ pub enum NotEditable {
 
 impl NotEditable {
     /// The reason as the error's data names it: `type3-font`, `vertical-text`,
-    /// `no-unicode-map`, `rotated-run`, `glyphs-out-of-order`, `too-deep`,
+    /// `no-unicode-map`, `rotated-run`, `glyphs-out-of-order`, `actual-text`, `right-to-left`, `too-deep`,
     /// `content-unreadable`, `clipping-path` or `state-not-portable`.
     ///
     /// Added in 0.5.0.
@@ -138,6 +143,8 @@ impl NotEditable {
             Self::NoUnicodeMap => "no-unicode-map",
             Self::RotatedRun => "rotated-run",
             Self::GlyphsOutOfOrder => "glyphs-out-of-order",
+            Self::ActualText => "actual-text",
+            Self::RightToLeft => "right-to-left",
             Self::TooDeep => "too-deep",
             Self::ContentUnreadable => "content-unreadable",
             Self::ClippingPath => "clipping-path",
@@ -619,7 +626,10 @@ impl ContentOps {
     /// in page space as the interpreter reads this content (see [`Recorder`]).
     ///
     /// Added in 0.5.0.
-    pub const fn recorder(&mut self, frame: PageFrame) -> Recorder<'_> {
+    pub fn recorder(&mut self, frame: PageFrame) -> Recorder<'_> {
+        // A second recording starts the show list again, so a glyph's show index never finds
+        // an object of the first.
+        self.shows.clear();
         Recorder::new(self, frame)
     }
 

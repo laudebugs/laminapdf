@@ -109,7 +109,7 @@ impl TextExtractor {
     /// when it maps to text (ToUnicode, else the encoding and glyph names) and the font program
     /// surely holds its glyph: for a subset (`ABCDEF+Name`) or a composite font, only the codes
     /// in `used`, which the document already draws in this font; for a simple font embedded
-    /// whole or not embedded, every code of its encoding as well. When two codes stand for the
+    /// whole or not embedded, every code of its encoding with a width as well. When two codes stand for the
     /// same text, the first used one wins.
     ///
     /// # Errors
@@ -138,7 +138,12 @@ impl TextExtractor {
         };
         used.iter().copied().for_each(&mut add);
         if whole {
-            (0..=255).map(|value| Code { value, len: 1 }).for_each(&mut add);
+            // A code past `/Widths` takes `/MissingWidth`, usually 0: a glyph drawn with no
+            // advance, which the text after it would cover.
+            (0..=255)
+                .map(|value| Code { value, len: 1 })
+                .filter(|&code| loaded.displacement(code).0 > 0.0)
+                .for_each(&mut add);
         }
         let refusal = if subtype == Some(b"Type3") {
             Some(NotEditable::Type3Font)

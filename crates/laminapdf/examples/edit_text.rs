@@ -3,7 +3,7 @@
 //! Lists the first page's runs of text, then rewrites the first one that says "world" to say
 //! "Lamina PDF" instead. The new text uses the font the run was set in, so every character must
 //! be one that font can draw; a character it can't is refused with `missing-glyph`, and a run
-//! that can't be edited at all (a Type 3 font, vertical text) says why. The rest of the line
+//! that can't be edited at all (a Type 3 font, vertical text) says why. The text after the run
 //! moves by the difference in width; the lines below stay where they were.
 //!
 //! ```sh

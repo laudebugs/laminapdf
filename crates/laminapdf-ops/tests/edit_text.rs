@@ -246,3 +246,67 @@ fn the_frozen_sample_applies_to_the_page_it_was_written_for() {
     doc.apply_all(Origin::Local, [op]).unwrap();
     assert_eq!(lines(&doc), ["Hello there after", "below"]);
 }
+
+/// Each show operator draws its own run, so an edit never spans the moves between them.
+#[test]
+fn a_run_should_end_where_its_show_operator_ends() {
+    let doc = page_with(
+        b"BT /F1 10 Tf 20 150 Td (Hi) Tj 30 0 Td (there) Tj ET\n",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    );
+    let texts: Vec<String> = runs(&doc).into_iter().map(|r| r.text).collect();
+    assert_eq!(texts, ["Hi", "there"]);
+}
+
+#[test]
+fn glyphs_of_two_show_operators_should_be_refused() {
+    let mut doc = page_with(
+        b"BT /F1 10 Tf 20 150 Td (Hi) Tj 30 0 Td (there) Tj ET\n",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    );
+    let hi = run(&doc, "Hi");
+    let both = TextRunRef::new(hi.object, 0, 7);
+    assert_eq!(edit(&mut doc, both, "Hello").map_err(|e| e.code()), Err("invalid-op"));
+}
+
+/// A `TJ` number that makes a word space reads as a space, and a space the subset can't draw is
+/// written back as a number.
+#[test]
+fn a_word_space_made_by_a_number_should_read_and_write_as_a_space() {
+    let font = b"<< /Type /Font /Subtype /Type1 /BaseFont /ABCDEF+Helvetica >>";
+    let mut doc = page_with(b"BT /F1 12 Tf 20 150 Td [(Hello) -333 (world)] TJ ET\n", font);
+    assert_eq!(runs(&doc)[0].text, "Hello world");
+    edit_run(&mut doc, "Hello world", "Hello low").unwrap();
+    assert_eq!(lines(&doc), ["Hello low"]);
+}
+
+#[test]
+fn text_standing_in_for_actual_text_should_be_read_only() {
+    let doc = page_with(
+        b"BT /F1 12 Tf 20 150 Td /Span <</ActualText (Total)>> BDC (Tot.) Tj EMC ET\n",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    );
+    assert_eq!(runs(&doc)[0].read_only, Some(NotEditable::ActualText));
+}
+
+#[test]
+fn right_to_left_text_should_be_read_only() {
+    let font = b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /Differences [65 /afii57664 /afii57665] >> >>";
+    let doc = page_with(b"BT /F1 12 Tf 20 150 Td (AB) Tj ET\n", font);
+    assert_eq!(runs(&doc)[0].read_only, Some(NotEditable::RightToLeft));
+}
+
+/// A code past the font's `/Widths` would be drawn with no advance, so it isn't offered.
+#[test]
+fn a_code_without_a_width_should_be_a_missing_glyph() {
+    let widths = vec!["500"; 34].join(" ");
+    let font = format!(
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Arial /FirstChar 72 /LastChar 105 /Widths [{widths}] /FontDescriptor << /Type /FontDescriptor /FontName /Arial /Flags 32 /MissingWidth 0 >> >>"
+    );
+    let mut doc = page_with(b"BT /F1 12 Tf 20 150 Td (Hi) Tj ET\n", font.as_bytes());
+    assert_eq!(
+        edit_run(&mut doc, "Hi", "Hi~").map_err(|e| e.code()),
+        Err("missing-glyph")
+    );
+    edit_run(&mut doc, "Hi", "IH").unwrap();
+}

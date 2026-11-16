@@ -1,5 +1,5 @@
 //! Rewriting the text a text object shows (ADR 0022 §5, §6; E7 plan §2.2): a range of its glyphs
-//! swapped for others, re-encoded by the caller in the same font, and the rest of the line
+//! swapped for others, re-encoded by the caller in the same font, and the rest of the object's line
 //! moved by the width difference so nothing overlaps; the lines below stay where they were.
 
 use std::ops::Range;
@@ -18,7 +18,7 @@ use super::{ContentObjectId, ContentOp, ContentOps, NotEditable};
 pub struct ShownGlyph {
     /// The character code, big-endian.
     pub code: u32,
-    /// The code's length in bytes (1 to 4).
+    /// The code's length in bytes (1 to 4; 0 for a [`ShownGlyph::gap`]).
     pub len: u8,
     /// Its horizontal displacement `w0` in thousandths of text space (§9.4.4).
     pub width: f64,
@@ -38,6 +38,25 @@ impl ShownGlyph {
             width,
             word_space,
         }
+    }
+
+    /// A gap of `width` thousandths of text space and no glyph, written as a `TJ` number: a
+    /// space the font has no glyph for.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub const fn gap(width: f64) -> Self {
+        Self {
+            code: 0,
+            len: 0,
+            width,
+            word_space: false,
+        }
+    }
+
+    /// Whether this is a [`ShownGlyph::gap`].
+    const fn is_gap(self) -> bool {
+        self.len == 0
     }
 
     /// The code's bytes.
@@ -61,6 +80,9 @@ struct Spacing {
 impl Spacing {
     /// How far a glyph moves the pen, in unscaled text space (§9.4.4).
     fn advance(self, glyph: ShownGlyph) -> f64 {
+        if glyph.is_gap() {
+            return self.kern(-glyph.width);
+        }
         let word = if glyph.word_space { self.word } else { 0.0 };
         (glyph.width / 1000.0 * self.size + self.character + word) * self.scaling
     }
@@ -102,7 +124,10 @@ fn shows(keyword: &[u8]) -> bool {
 fn split(bytes: &[u8], glyphs: &[ShownGlyph], next: &mut usize, out: &mut Vec<Piece>) -> Result<(), NotEditable> {
     let mut at = 0;
     while at < bytes.len() {
-        let glyph = glyphs.get(*next).ok_or(NotEditable::ContentUnreadable)?;
+        let glyph = glyphs
+            .get(*next)
+            .filter(|g| !g.is_gap())
+            .ok_or(NotEditable::ContentUnreadable)?;
         let len = usize::from(glyph.len);
         let code = bytes.get(at..at + len).ok_or(NotEditable::ContentUnreadable)?;
         if code != glyph.bytes().as_slice() {
@@ -195,11 +220,51 @@ fn rebuilt(original: &ContentOp, pieces: &[Piece], codes: &dyn Fn(usize) -> Vec<
     vec![written]
 }
 
+/// The pieces of a show operator with the glyphs in `range` swapped for `new` (placed where the
+/// range starts, gaps as numbers) and the numbers inside the range dropped, and the width this
+/// adds. New glyph `n` is piece `glyphs.len() + n`.
+fn replaced(
+    pieces: Vec<Piece>,
+    glyphs: &[ShownGlyph],
+    range: &Range<usize>,
+    new: &[ShownGlyph],
+    spacing: Spacing,
+) -> (Vec<Piece>, f64) {
+    let mut kept: Vec<Piece> = Vec::new();
+    let mut shift = 0.0;
+    let mut inside = false;
+    for piece in pieces {
+        match piece {
+            Piece::Glyph(i) if range.contains(&i) => {
+                if let Some(&g) = glyphs.get(i) {
+                    shift -= spacing.advance(g);
+                }
+                if i == range.start {
+                    shift += new.iter().map(|&g| spacing.advance(g)).sum::<f64>();
+                    kept.extend(new.iter().enumerate().map(|(n, g)| {
+                        if g.is_gap() {
+                            Piece::Kern(-g.width)
+                        } else {
+                            Piece::Glyph(glyphs.len() + n)
+                        }
+                    }));
+                }
+                inside = i + 1 < range.end;
+            }
+            Piece::Kern(n) if inside => shift -= spacing.kern(n),
+            other => kept.push(other),
+        }
+    }
+    (kept, shift)
+}
+
 impl ContentOps {
     /// Swaps the text object's glyphs `range` for `new`, in the same font: `glyphs` is every
     /// glyph the object shows, in order, as the caller decoded them with its font (the codes
     /// must be the ones its show operators hold). `TJ` numbers inside the range go; the new
-    /// glyphs go where the range started. The rest of the line moves by the width difference:
+    /// glyphs go where the range started, a [`ShownGlyph::gap`] among them as a `TJ` number.
+    /// The range should lie in one show operator: a text-positioning operator between two
+    /// show operators of the range stays where it was. The rest of the line moves by the width difference:
     /// glyphs later in the same show operator move by themselves, and the first `Td` or `TD`
     /// on the same line after the range takes the difference, which the next line's move takes
     /// back, so the lines below stay where they were. An empty `new` deletes the range.
@@ -248,24 +313,8 @@ impl ContentOps {
             };
             let touched = read.filter(|p| p.iter().any(|p| matches!(p, Piece::Glyph(i) if range.contains(i))));
             if let Some(pieces) = touched {
-                let mut kept: Vec<Piece> = Vec::new();
-                let mut inside = false;
-                for piece in pieces {
-                    match piece {
-                        Piece::Glyph(i) if range.contains(&i) => {
-                            if let Some(&g) = glyphs.get(i) {
-                                shift -= spacing.advance(g);
-                            }
-                            if i == range.start {
-                                shift += new.iter().map(|&g| spacing.advance(g)).sum::<f64>();
-                                kept.extend((0..new.len()).map(|n| Piece::Glyph(glyphs.len() + n)));
-                            }
-                            inside = i + 1 < range.end;
-                        }
-                        Piece::Kern(n) if inside => shift -= spacing.kern(n),
-                        other => kept.push(other),
-                    }
-                }
+                let (kept, delta) = replaced(pieces, glyphs, &range, new, spacing);
+                shift += delta;
                 let codes = |i: usize| -> Vec<u8> {
                     glyphs
                         .get(i)

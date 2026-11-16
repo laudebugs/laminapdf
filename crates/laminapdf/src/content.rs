@@ -98,10 +98,11 @@ impl Document {
         Ok(names(&ir, ir.hit_test_rect(rect)))
     }
 
-    /// The runs of text page `index` (0-based) shows, in the order extraction reads them: each
+    /// The runs of text page `index` (0-based) shows, in the order the page draws them: each
     /// with its name for an [`EditText`](crate::EditText), its text, box, font, line and, when
-    /// it can't be edited, why. A run is one font and size on one baseline (one marked-content
-    /// sequence on a tagged page) within one text object. Text inside a form isn't listed.
+    /// it can't be edited, why. A run is the glyphs one show operator draws in one font and size
+    /// on one baseline (and one marked-content sequence on a tagged page). Text inside a form
+    /// isn't listed.
     ///
     /// # Errors
     /// As [`Document::content_objects`]; errors reading the page's fonts.

@@ -2,15 +2,15 @@
 //! E7 plan §2.2). A run is the glyphs of one extraction run (one font and size on one baseline,
 //! and one marked-content sequence in a tagged page) that one text object shows. The new text is
 //! encoded in the codes the font already draws, the run's show operators are written again with
-//! them, and the rest of the line moves by the width difference.
+//! them, and the rest of the object's line moves by the width difference.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::ops::Range;
 
 use laminapdf_content::{ContentObjectId, ContentOps, ContentOwner, NotEditable, PageContentWriter, ShownGlyph};
 use laminapdf_model::{PageId, Pt, RectPt};
 use laminapdf_syntax::ObjRef;
-use laminapdf_text::{EncodedGlyph, FontEncoder, Glyph, PageText, TextExtractor};
+use laminapdf_text::{EncodedGlyph, FontEncoder, Glyph, PageText, TextExtractor, is_right_to_left};
 use serde::{Deserialize, Serialize};
 
 use super::{ObjectRef, find};
@@ -64,7 +64,8 @@ impl TextRunRef {
 /// must be one the font already draws on the page (a subset's or a composite font's glyphs),
 /// or for a simple font embedded whole or not embedded, any its encoding has. A character
 /// with no glyph fails with `missing-glyph`; a run that can't be edited (`content-not-editable`)
-/// says why. The rest of the line moves by the width difference; the lines below stay where
+/// says why. The text after the run in the same text object moves by the width difference (text
+/// on the line that another object places stays put); the lines below stay where
 /// they were. Empty text deletes the run. Saving is an incremental update; the old text stays in
 /// the file's earlier revisions.
 ///
@@ -107,18 +108,21 @@ impl EditText {
             .get(range.clone())
             .filter(|run| !run.is_empty())
             .ok_or(Error::InvalidOp("editText's glyphs aren't among the object's"))?;
+        if !reading.one_show(run) {
+            return Err(Error::InvalidOp("editText's glyphs aren't drawn by one show operator"));
+        }
         let font = reading
             .font_of(run)
             .ok_or(Error::InvalidOp("editText's glyphs aren't in one font"))?;
         reading.load(doc, font)?;
-        if let Some(reason) = reading.refusal(id, run, font) {
+        if let Some(reason) = reading.ir.edit_refusal(id).or_else(|| reading.refusal(run, font)) {
             return Err(Error::ContentNotEditable { reason });
         }
         let encoder = reading
             .encoders
             .get(&font)
             .ok_or(Error::InvalidOp("the font wasn't read"))?;
-        let new = encoder.encode(&self.text).map_err(|ch| {
+        let new = encode(encoder, &self.text).map_err(|ch| {
             let font = run
                 .first()
                 .and_then(|&g| reading.text.glyphs.get(g))
@@ -130,7 +134,6 @@ impl EditText {
             .filter_map(|&g| reading.text.glyphs.get(g))
             .map(|g| shown_glyph(encoder.glyph(g.code)))
             .collect();
-        let new: Vec<ShownGlyph> = new.into_iter().map(shown_glyph).collect();
         reading
             .ir
             .rewrite_text(id, &glyphs, range, &new)
@@ -160,8 +163,8 @@ impl EditText {
 pub struct ContentTextRun {
     /// Its name, which [`EditText`] takes.
     pub run: TextRunRef,
-    /// The text it shows (the `ActualText` it stands in for, when its whole extraction run has
-    /// one).
+    /// The text its glyphs stand for, with a space where the pen jumps forward between two of
+    /// them (a word space a `TJ` number makes): text for [`EditText`] to change.
     pub text: String,
     /// The box around its glyphs, in page space.
     pub bounds: RectPt,
@@ -169,16 +172,17 @@ pub struct ContentTextRun {
     pub font_name: String,
     /// The size its glyphs are drawn at, in user space.
     pub font_size: f64,
-    /// The line it is on: an index into the page's lines, in reading order.
+    /// The line it is on: an index into the page's lines, in the order the content draws them.
     pub line: u32,
     /// Why it can't be edited, or `None` when it can: an editor shows it read-only, with this
     /// reason.
     pub read_only: Option<NotEditable>,
 }
 
-/// The runs of text page `page` shows, in the order extraction reads them. Text inside a Form
-/// XObject isn't listed: it belongs to the form, which [`EditContent`](crate::EditContent) moves
-/// whole.
+/// The runs of text page `page` shows, in the order the content draws them. A run is the glyphs
+/// of one extraction run (one font and size on one baseline, within one marked-content sequence)
+/// that one show operator draws. Text inside a Form XObject isn't listed: it belongs to the form,
+/// which [`EditContent`](crate::EditContent) moves whole.
 ///
 /// # Errors
 /// `unknown-page`; errors reading the page's content or its fonts, and limits it exceeds.
@@ -194,37 +198,41 @@ pub fn text_runs(doc: &laminapdf_model::Document, page: &PageId) -> Result<Vec<C
             }
         }
     }
-    let mut out = Vec::new();
-    for (index, run) in reading.text.runs.clone().iter().enumerate() {
+    let mut pieces = Vec::new();
+    for (index, run) in reading.text.runs.iter().enumerate() {
         for (id, glyphs, start) in reading.pieces(run.glyphs.clone()) {
-            let Some(name) = reading.ir.reference(id) else {
-                continue;
-            };
-            let read_only = match reading.font_of(&glyphs) {
-                Some(font) => {
-                    reading.load(doc, font)?;
-                    reading.refusal(id, &glyphs, font)
-                }
-                None => Some(NotEditable::ContentUnreadable),
-            };
-            let whole = glyphs.len() == run.glyphs.len();
-            let picked: Vec<&Glyph> = glyphs.iter().filter_map(|&g| reading.text.glyphs.get(g)).collect();
-            let text = if whole {
-                run.text.clone()
-            } else {
-                picked.iter().map(|g| g.text.as_str()).collect()
-            };
-            let count = u32::try_from(glyphs.len()).unwrap_or(u32::MAX);
-            out.push(ContentTextRun {
-                run: TextRunRef::new(ObjectRef::from(&name), start, start.saturating_add(count)),
-                text,
-                bounds: bounds(&picked),
-                font_name: run.font_name.to_string(),
-                font_size: run.font_size,
-                line: lines.get(index).copied().unwrap_or(0),
-                read_only,
-            });
+            pieces.push((index, id, glyphs, start));
         }
+    }
+    let fonts: BTreeSet<ObjRef> = pieces
+        .iter()
+        .filter_map(|(_, _, glyphs, _)| reading.font_of(glyphs))
+        .collect();
+    for font in fonts {
+        reading.load(doc, font)?;
+    }
+    let mut objects: BTreeMap<ContentObjectId, Option<NotEditable>> = BTreeMap::new();
+    let mut out = Vec::with_capacity(pieces.len());
+    for (index, id, glyphs, start) in pieces {
+        let (Some(name), Some(run)) = (reading.ir.reference(id), reading.text.runs.get(index)) else {
+            continue;
+        };
+        let object = *objects.entry(id).or_insert_with(|| reading.ir.edit_refusal(id));
+        let read_only = object.or_else(|| match reading.font_of(&glyphs) {
+            Some(font) => reading.refusal(&glyphs, font),
+            None => Some(NotEditable::ContentUnreadable),
+        });
+        let picked: Vec<&Glyph> = glyphs.iter().filter_map(|&g| reading.text.glyphs.get(g)).collect();
+        let count = u32::try_from(glyphs.len()).unwrap_or(u32::MAX);
+        out.push(ContentTextRun {
+            run: TextRunRef::new(ObjectRef::from(&name), start, start.saturating_add(count)),
+            text: joined(&picked),
+            bounds: bounds(&picked),
+            font_name: run.font_name.to_string(),
+            font_size: run.font_size,
+            line: lines.get(index).copied().unwrap_or(0),
+            read_only,
+        });
     }
     Ok(out)
 }
@@ -276,8 +284,8 @@ impl Reading {
         })
     }
 
-    /// The glyphs `glyphs` split by the object that shows them: each piece's object, its glyphs
-    /// and the first one's index among the object's. Glyphs inside a form are left out.
+    /// The glyphs `glyphs` split by the show operator that draws them: each piece's object, its
+    /// glyphs and the first one's index among the object's. Glyphs inside a form are left out.
     fn pieces(&self, glyphs: Range<usize>) -> Vec<(ContentObjectId, Vec<usize>, u32)> {
         let mut out: Vec<(ContentObjectId, Vec<usize>, u32)> = Vec::new();
         for g in glyphs {
@@ -285,13 +293,24 @@ impl Reading {
                 continue;
             };
             match out.last_mut() {
-                Some((object, piece, first)) if *object == id && next_of(*first, piece) == Some(at) => {
+                Some((object, piece, first))
+                    if *object == id
+                        && next_of(*first, piece) == Some(at)
+                        && piece.first().is_some_and(|&f| self.one_show(&[f, g])) =>
+                {
                     piece.push(g);
                 }
                 _ => out.push((id, vec![g], at)),
             }
         }
         out
+    }
+
+    /// Whether one show operator draws every glyph of `glyphs`.
+    fn one_show(&self, glyphs: &[usize]) -> bool {
+        let mut shows = glyphs.iter().map(|&g| self.text.glyphs.get(g).map(|g| g.show));
+        let first = shows.next().flatten();
+        first.is_some() && shows.all(|s| s == first)
     }
 
     /// The one font the glyphs are shown in, when it is an indirect object.
@@ -318,14 +337,24 @@ impl Reading {
         Ok(())
     }
 
-    /// Why the glyphs `glyphs` of object `id`, in `font` (loaded), can't be edited: the
-    /// object's own reason, the font's, or glyphs turned against each other or written out of order (ADR 0022 §5).
-    fn refusal(&self, id: ContentObjectId, glyphs: &[usize], font: ObjRef) -> Option<NotEditable> {
+    /// Why the glyphs `glyphs`, in `font` (loaded), can't be edited, their object aside: the
+    /// font's reason, text that stands in for an `ActualText` or runs right to left, or glyphs
+    /// turned against each other or written out of order (ADR 0022 §5).
+    fn refusal(&self, glyphs: &[usize], font: ObjRef) -> Option<NotEditable> {
         let encoder = self.encoders.get(&font)?;
         let picked: Vec<&Glyph> = glyphs.iter().filter_map(|&g| self.text.glyphs.get(g)).collect();
-        self.ir
-            .edit_refusal(id)
-            .or_else(|| encoder.refusal())
+        encoder
+            .refusal()
+            .or_else(|| {
+                picked
+                    .iter()
+                    .any(|g| g.actual_text.is_some())
+                    .then_some(NotEditable::ActualText)
+            })
+            .or_else(|| {
+                let rtl = picked.iter().any(|g| g.text.chars().any(is_right_to_left));
+                rtl.then_some(NotEditable::RightToLeft)
+            })
             .or_else(|| order_refusal(&picked))
     }
 }
@@ -374,6 +403,51 @@ fn bounds(glyphs: &[&Glyph]) -> RectPt {
         return RectPt::new(Pt::new(0.0), Pt::new(0.0), Pt::new(0.0), Pt::new(0.0));
     }
     RectPt::new(Pt::new(x0), Pt::new(y0), Pt::new(x1), Pt::new(y1))
+}
+
+/// How far forward, in font sizes, the pen must jump between two glyphs for [`joined`] to put a
+/// space between their texts.
+const WORD_JUMP: f64 = 0.2;
+
+/// The gap a space the font can't draw becomes, in thousandths of text space: a third of an
+/// em, the word space TeX writes as a `TJ` number, which extraction reads as a space.
+const WORD_GAP: f64 = 333.0;
+
+/// The glyphs' text, with a space where the pen jumps forward between two of them.
+fn joined(glyphs: &[&Glyph]) -> String {
+    let mut text = String::new();
+    let mut previous: Option<&Glyph> = None;
+    for glyph in glyphs {
+        if let Some(before) = previous {
+            let end = (before.origin.x + before.advance.0, before.origin.y + before.advance.1);
+            let jump = (glyph.origin.x - end.0).hypot(glyph.origin.y - end.1);
+            let spaced = text.ends_with(' ') || glyph.text.starts_with(' ');
+            if jump > WORD_JUMP * glyph.size && !spaced {
+                text.push(' ');
+            }
+        }
+        text.push_str(&glyph.text);
+        previous = Some(glyph);
+    }
+    text
+}
+
+/// `text` in the font's codes; a space the font can't draw becomes a [`WORD_GAP`].
+///
+/// # Errors
+/// The first character the font can't draw.
+fn encode(encoder: &FontEncoder, text: &str) -> std::result::Result<Vec<ShownGlyph>, char> {
+    if encoder.encode(" ").is_ok() {
+        return Ok(encoder.encode(text)?.into_iter().map(shown_glyph).collect());
+    }
+    let mut out = Vec::new();
+    for (index, word) in text.split(' ').enumerate() {
+        if index > 0 {
+            out.push(ShownGlyph::gap(WORD_GAP));
+        }
+        out.extend(encoder.encode(word)?.into_iter().map(shown_glyph));
+    }
+    Ok(out)
 }
 
 /// An encoded glyph as the IR rewrites it.

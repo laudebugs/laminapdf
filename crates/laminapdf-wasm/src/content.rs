@@ -65,7 +65,7 @@ export type ContentTextRunJs = {
   fontName: string;
   /** The size its glyphs are drawn at, in points. */
   fontSize: number;
-  /** The line it is on, an index into the page's lines in reading order. */
+  /** The line it is on, an index into the page's lines in the order the page draws them. */
   line: number;
   /** Why it can't be edited (`type3-font`, `glyphs-out-of-order`, …); absent when it can. */
   readOnly?: string;
@@ -129,7 +129,7 @@ impl WasmDocument {
         Ok(to_js(&objects.iter().map(PageObjectJs::from).collect::<Vec<_>>()))
     }
 
-    /// The runs of text page `index` shows, in reading order (the extract and text modules).
+    /// The runs of text page `index` shows, in the order the page draws them (the extract and text modules).
     ///
     /// # Errors
     /// As `contentObjects`.

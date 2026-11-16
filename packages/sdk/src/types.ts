@@ -559,7 +559,7 @@ export type ContentEdit = ContentEditJs;
  * one baseline (one marked-content sequence on a tagged page) within one text object. It has its
  * name for an `editText` op (`run`), the `text` it shows, its box in page space (`bounds`,
  * `[x0, y0, x1, y1]`), `fontName`, `fontSize`, the `line` it is on (an index into the page's lines
- * in reading order) and, when it can't be edited, why (`readOnly`, such as `"type3-font"`).
+ * in the order the page draws them) and, when it can't be edited, why (`readOnly`, such as `"type3-font"`).
  *
  * @since 0.5.0
  */

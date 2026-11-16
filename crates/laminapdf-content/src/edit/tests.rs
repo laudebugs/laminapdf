@@ -267,6 +267,8 @@ fn every_reason_should_have_its_name() {
         NotEditable::NoUnicodeMap,
         NotEditable::RotatedRun,
         NotEditable::GlyphsOutOfOrder,
+        NotEditable::ActualText,
+        NotEditable::RightToLeft,
         NotEditable::TooDeep,
         NotEditable::ContentUnreadable,
     ]
@@ -279,6 +281,8 @@ fn every_reason_should_have_its_name() {
             "no-unicode-map",
             "rotated-run",
             "glyphs-out-of-order",
+            "actual-text",
+            "right-to-left",
             "too-deep",
             "content-unreadable"
         ]

@@ -108,3 +108,13 @@ fn clipping_text_should_be_refused() {
     let result = ops.rewrite_text(id, &glyphs("Hello"), 0..1, &glyphs("J"));
     assert_eq!(result, Err(NotEditable::ClippingPath));
 }
+
+#[test]
+fn a_gap_should_be_written_as_a_tj_number() {
+    let mut ops = ir(b"BT /F1 10 Tf (AB) Tj ET");
+    let id = ops.objects()[0].id();
+    let new = [glyphs("A")[0], ShownGlyph::gap(250.0), glyphs("B")[0]];
+    let shift = ops.rewrite_text(id, &glyphs("AB"), 0..2, &new).unwrap();
+    assert_eq!(written(&ops), "BT\n/F1 10 Tf\n[(A) -250 (B)] TJ\nET\n");
+    assert!((shift - 2.5).abs() < 1e-9);
+}

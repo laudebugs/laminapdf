@@ -27,7 +27,7 @@ export interface DocumentContent {
   objects(index: number): PageObject[];
 
   /**
-   * The runs of text page `index` shows, in reading order: each with its name for
+   * The runs of text page `index` shows, in the order the page draws them: each with its name for
    * {@link DocumentContent.editText}, its text, box, font, size and line and, when it can't be
    * edited, why. Text inside a form isn't listed.
    *
@@ -40,8 +40,9 @@ export interface DocumentContent {
   /**
    * Makes `run` on page `index` show `text` (`editText`), in the font it is set in: every
    * character must be one the font can draw (for an embedded subset, one the document already
-   * shows in it). The rest of the line moves by the width difference; the lines below stay where
-   * they were. Empty text deletes the run. To change part of a run, name its glyphs: `start` and
+   * shows in it; a space it can't draw becomes a word-sized gap). The text after the run in the
+   * same text object moves by the width difference; text another object places on the line stays
+   * put, and the lines below stay where they were. Empty text deletes the run. To change part of a run, name its glyphs: `start` and
    * `end` within the run's. The old text stays in the file's earlier revisions until a full save.
    *
    * @throws {@link LaminaPdfError} `missing-glyph` for a character the font has no code for,
