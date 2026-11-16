@@ -135,20 +135,21 @@ fn watch(parent: u32, image: &Path, handler: &Handler, stop: &AtomicBool, watchi
     let mut seen: BTreeSet<u32> = BTreeSet::new();
     let mut retry = false;
     let mut scanned: Option<Instant> = None;
-    log(&format!(
-        "watching the children of {parent} whose image is {}",
-        image.display()
-    ));
+    log(&format!("watching the children of {parent} that run the engine"));
     while !stop.load(Ordering::SeqCst) {
         let every = if retry { RETRY_EVERY } else { SCAN_EVERY };
         if scanned.is_none_or(|at| at.elapsed() >= every) {
             retry = false;
+            // Never a path in the log (it is the app's, and it holds no file's path at info level).
+            let wanted = comparable(&image.to_string_lossy());
             for (pid, path) in children_of(parent) {
                 if seen.insert(pid) {
-                    log(&format!(
-                        "child {pid}: {}",
-                        path.as_deref().unwrap_or("(image unreadable)")
-                    ));
+                    let what = match path {
+                        Some(path) if comparable(&path) == wanted => "the engine",
+                        Some(_) => "another program",
+                        None => "unreadable",
+                    };
+                    log(&format!("child {pid}: {what}"));
                 }
             }
             for pid in children_with_image(parent, image) {
