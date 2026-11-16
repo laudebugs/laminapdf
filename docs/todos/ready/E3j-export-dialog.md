@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E3 plan §7](../../plans/editor/e3-navigation-attachments-inspection.md#7-differences-between-the-shells) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2m](./E2m-document-dialogs.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md), [E3h](../done/E3h-images-to-pdf-and-page-export.md), [E3i](../done/E3i-extraction.md), [E3m](../done/E3m-web-image-export.md) |
+| Depends on | [E2m](../done/E2m-document-dialogs.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md), [E3h](../done/E3h-images-to-pdf-and-page-export.md), [E3i](../done/E3i-extraction.md), [E3m](../done/E3m-web-image-export.md) |
 | ADRs | Follows [0010](../../decisions/0010-platform-adapter.md), [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) |
 | Branch | `feat/e3j-export-dialog` |
 | PR title | `feat(web): export pages, text, images, links and bookmarks` |
@@ -21,7 +21,7 @@ The interface for the round's exports: one dialog (O16) that exports pages as PN
 
 - **Design (Paper):** [O16 Export and extraction](../../design/paper/pages-navigation-extraction.md#o16-export-and-extraction), [O07 Insert pages and merge documents](../../design/paper/edit-session-organise.md#o07-insert-pages-and-merge-documents). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [E3 plan §2.3 and §7](../../plans/editor/e3-navigation-attachments-inspection.md#23-functions-that-only-read-or-write-new-files)
-- [E2m](E2m-document-dialogs.md): `canWriteDirectory` and the folder output
+- [E2m](../done/E2m-document-dialogs.md): `canWriteDirectory` and the folder output
 
 ## Scope
 

@@ -306,9 +306,13 @@ Until macOS and Windows are signed ([D6c](../todos/ready/D6c-macos-signing-and-n
 
 Each run builds macOS (arm64 and x64), Windows (x64 and arm64) and Linux (x64 and arm64) on runners of their own OS and CPU. Every build makes the `.dmg`, the NSIS installer, the AppImage, the `.deb`, the updater's bundles and their `.sig` files, `SHA256SUMS` and the SBOMs. Tag and staging builds also make the MSI and the `.rpm`; nightlies can't, because neither format accepts a `-nightly` version. It fails when an installer reaches 15 MB. The AppImage, which carries GTK and WebKitGTK (about 90 MB), is reported but not gated ([desktop plan §4](../plans/desktop-app.md#non-functional-targets-and-release-gates)). Linux packages from `desktop-release` are signed with the GPG key (§1.6), each with a detached `.asc`, and `SHA256SUMS.asc`. After the builds, `attest` attests every file, and the publish job uploads them to `releases/<version>/<platform>/` in the channel's bucket, makes them the channel's release, and asks the update Worker for each platform.
 
+### The download page's lists
+
+Once the update Worker serves a release, the publish job writes `downloads/<channel>.json` beside it in the channel's bucket (`manifest downloads`, `apps/updates/scripts/downloads.ts`). The file lists each installer (`.dmg`, setup `.exe`, `.msi`, AppImage, `.deb`, `.rpm`) with its size, its SHA-256 from the build's `SHA256SUMS`, its address and its `.asc`. An installer missing from `SHA256SUMS` stops the publish. The website's production deploy reads the lists from `downloads.laminapdf.com` and `nightly-downloads.laminapdf.com` (`pnpm --filter @laminapdf/site run downloads`), so a release shows on `laminapdf.com/download` at the next deploy: every six hours, or at once by running the **Website** workflow on `main`.
+
 ### Nightlies
 
-Nightlies need nothing from the owner. A night on which nothing the app is built from changed publishes nothing. The run's summary lists the version, files and sizes. A nightly installs on macOS with a Gatekeeper warning (ad-hoc signed) and on Windows with a SmartScreen warning (unsigned); the download page ([D7b](../todos/ready/D7b-settings-renderer-switch-and-download-page.md)) is to say so.
+Nightlies need nothing from the owner. A night on which nothing the app is built from changed publishes nothing. The run's summary lists the version, files and sizes. A nightly installs on macOS with a Gatekeeper warning (ad-hoc signed) and on Windows with a SmartScreen warning (unsigned); the download page says so.
 
 ### A staging trial
 

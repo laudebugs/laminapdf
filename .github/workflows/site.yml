@@ -15,7 +15,9 @@
 # whatever files it touches, so pushes have no path filter, and the schedule picks up the pull
 # requests opened since the last deploy, whose todos show as in progress. It then refreshes How we
 # test's figures (apps/site/src/data/proof.json) from the newest full night on bench-data with
-# `cargo xtask proof snapshot`. The committed snapshots are what PR previews and local builds show.
+# `cargo xtask proof snapshot`, and the download page's lists (apps/site/src/data/downloads.json)
+# from the download hosts with `pnpm run downloads`. The committed snapshots are what PR previews
+# and local builds show.
 #
 # Fork deploy previews are skipped because they cannot receive deployment secrets. Without
 # the secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, the deploy steps are skipped with a
@@ -266,6 +268,11 @@ jobs:
         run: cargo xtask proof snapshot
       - if: steps.secrets.outputs.enabled == 'true'
         uses: $/.github/actions/node-pnpm
+      # The download page's lists (apps/site/src/data/downloads.json) from the download hosts, where
+      # the desktop release workflow writes them: a release shows here at the next deploy.
+      - name: Refresh the download lists
+        if: steps.secrets.outputs.enabled == 'true'
+        run: pnpm --filter @laminapdf/site run downloads
       - name: Build the site
         if: steps.secrets.outputs.enabled == 'true'
         env:

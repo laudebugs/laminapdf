@@ -141,6 +141,7 @@ A failed write leaves the document dirty and the original file as it was.
 | Undo and Redo | Toolbar, shortcuts, palette | The same, plus the native Edit menu, generated from the command registry (D4b) |
 | Close guard | `beforeunload` | Tauri's `CloseRequested`, and the app's own Quit on macOS, where the OS's ends the app without asking (E1h) |
 | Save | In place with the File System Access API, else Download | In place, with conflict detection (E1i, after D3b) |
+| Properties dialog | Its reads from the document worker, each when the dialog needs it | One engine call when it opens: the facts, the metadata and the XMP packet ([E1j](../../todos/done/E1j-desktop-properties.md)) |
 | Capability flags | `canWriteInPlace`, `canSaveAsDialog` | `canWriteInPlace`, `canWatchFiles` |
 
 No server feature: every edit and save happens on the device, and nothing leaves it ([ADR 0011](../../decisions/0011-cloudflare-topology-and-privacy.md)).
@@ -157,7 +158,7 @@ No server feature: every edit and save happens on the device, and nothing leaves
 | [E1f](../../todos/done/E1f-metadata-ui-capability-page.md) | The editable Properties dialog and the capability page | E1c, E1e |
 | [E1h](../../todos/done/E1h-desktop-edit-session.md) | Desktop: the session in the engine process, the native Edit menu, the close guard | E1d, D4b |
 | [E1i](../../todos/done/E1i-desktop-save-in-place.md) | Desktop: save in place, watcher suppression and the conflict dialog for outside changes | E1e, E1h, D3b |
-| [E1j](../../todos/ready/E1j-desktop-properties.md) | Desktop: the Properties dialog and editing metadata, the desktop column of J.01–J.03 and J.10 | E1f, E1i |
+| [E1j](../../todos/done/E1j-desktop-properties.md) | Desktop: the Properties dialog and editing metadata, the desktop column of J.01–J.03 and J.10 | E1f, E1i |
 
 E1b and E1g can start as soon as this plan merges, in parallel. The round's web and shared work, E1b to E1g, waits on no desktop todo.
 
@@ -180,7 +181,7 @@ E1b and E1g can start as soon as this plan merges, in parallel. The round's web 
 - **Fuzz:** a target over the XMP reader, 10 minutes in the nightly lane.
 - **Undo:** each edit undone saves byte-identical to the original.
 - **e2e (Playwright, three browsers):** rotate a page, undo and redo, checking what the page shows and the dirty indicator at each step. Edit the title, save and reopen. Check the strip on each signed fixture, and that Chromium saves in place while Firefox and WebKit download.
-- **e2e (WebdriverIO, three OSes):** the desktop's session, Edit menu and close guard (E1h), and saving in place with outside changes (E1i), under `apps/desktop/e2e/specs/`.
+- **e2e (WebdriverIO, three OSes):** the desktop's session, Edit menu and close guard (E1h), saving in place with outside changes (E1i), and the metadata edits saved and read back by pdf.js (E1j), under `apps/desktop/e2e/specs/`.
 
 No E1 op draws anything, so the appearance-stream requirement ([full-editor §5](../full-editor.md#5-requirements-that-hold-for-every-round), requirement 3) doesn't apply until E4.
 

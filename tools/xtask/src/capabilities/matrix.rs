@@ -89,10 +89,12 @@ extracted faithfully), 🔵 `write` (created or changed; output passes qpdf `--c
 `tests/<name>.rs`. A TypeScript test claims one at the start of its title, \
 `it(\"[cap J.01 web round-trip] edits the title, …\")` (several tags in a row for several claims), on a plain `it(` \
 or `test(` call (not `.skip`, `.only`, `.todo`, `.skipIf` or `.runIf`), only in the reader's end-to-end tests \
-(`apps/web/e2e/*.e2e.test.ts`, the `web` column). `cargo xtask capabilities` runs every tagged Rust test and rewrites \
+(`apps/web/e2e/*.e2e.test.ts`, the `web` column) and the desktop app's scenarios (`apps/desktop/e2e/specs/*.e2e.ts`, \
+the `desktop` column). `cargo xtask capabilities` runs every tagged Rust test and rewrites \
 this page and [`matrix.json`](matrix.json) (the same matrix as data, which the reader's capability page shows); it \
-doesn't run the TypeScript tests, which need the built reader and a browser: `cargo xtask pdf-runtimes` runs them in \
-Chromium, Firefox and WebKit in the fast lane, whose gate a pull request must pass to merge. \
+doesn't run the TypeScript tests, which need the built apps: `cargo xtask pdf-runtimes` runs the reader's in \
+Chromium, Firefox and WebKit in the fast lane, and the full lane's `desktop-e2e` jobs run the desktop's on Linux, \
+macOS and Windows; a pull request must pass both lanes' gates to merge. \
 `cargo xtask capabilities --check` (full lane) fails when this page or `matrix.json` differs from what the passing \
 tests prove or a tagged Rust test fails, and `cargo xtask check docs` (every PR, no test run) fails when this page \
 claims more than any tagged test could prove or either file differs from what the manifest and the tags generate. Core \

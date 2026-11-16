@@ -1,0 +1,50 @@
+{
+  "metadata": {
+    "authors": ["Ada Lovelace"],
+    "created": "D:20261029120000Z",
+    "creator": "lamina-build tests",
+    "disagreements": [],
+    "keptInfoKeys": [],
+    "keywords": "pdf, xmp, info, lamina",
+    "modified": "D:20261030083000+01'00'",
+    "packet": "parsed",
+    "producer": "lamina-build golden",
+    "source": "info",
+    "subject": "Info and XMP carry the same values",
+    "title": "Metadata golden: Info & XMP <in sync>"
+  },
+  "properties": {
+    "author": "Ada Lovelace",
+    "contains": {
+      "attachments": 0,
+      "forms": false,
+      "javascript": false
+    },
+    "created": "2026-10-29T12:00:00Z",
+    "creator": "lamina-build tests",
+    "fileSize": 3107,
+    "fonts": [
+      {
+        "embedded": false,
+        "kind": "Type1",
+        "name": "Helvetica",
+        "subset": false
+      }
+    ],
+    "keywords": "pdf, xmp, info, lamina",
+    "linearized": false,
+    "modified": "2026-10-30T08:30:00+01:00",
+    "pageCount": 1,
+    "producer": "lamina-build golden",
+    "signatures": 0,
+    "subject": "Info and XMP carry the same values",
+    "tagged": false,
+    "title": "Metadata golden: Info & XMP <in sync>",
+    "version": "1.7",
+    "xmp": "<?xpacket begin=\"﻿\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n<x:xmpmeta xmlns:x=\"adobe:ns:meta/\">\n <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n  <rdf:Description rdf:about=\"\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:pdf=\"http://ns.adobe.com/pdf/1.3/\" xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">\n   <dc:format>application/pdf</dc:format>\n   <dc:title><rdf:Alt><rdf:li xml:lang=\"x-default\">Metadata golden: Info &amp; XMP &lt;in sync&gt;</rdf:li></rdf:Alt></dc:title>\n   <dc:creator><rdf:Seq><rdf:li>Ada Lovelace</rdf:li></rdf:Seq></dc:creator>\n   <dc:description><rdf:Alt><rdf:li xml:lang=\"x-default\">Info and XMP carry the same values</rdf:li></rdf:Alt></dc:description>\n   <pdf:Keywords>pdf, xmp, info, lamina</pdf:Keywords>\n   <pdf:Producer>lamina-build golden</pdf:Producer>\n   <xmp:CreatorTool>lamina-build tests</xmp:CreatorTool>\n   <xmp:CreateDate>2026-10-29T12:00:00Z</xmp:CreateDate>\n   <xmp:ModifyDate>2026-10-30T08:30:00+01:00</xmp:ModifyDate>\n  </rdf:Description>\n </rdf:RDF>\n</x:xmpmeta>\n<?xpacket end=\"w\"?>"
+  },
+  "xmp": {
+    "status": "parsed",
+    "xml": "<?xpacket begin=\"﻿\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n<x:xmpmeta xmlns:x=\"adobe:ns:meta/\">\n <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n  <rdf:Description rdf:about=\"\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:pdf=\"http://ns.adobe.com/pdf/1.3/\" xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">\n   <dc:format>application/pdf</dc:format>\n   <dc:title><rdf:Alt><rdf:li xml:lang=\"x-default\">Metadata golden: Info &amp; XMP &lt;in sync&gt;</rdf:li></rdf:Alt></dc:title>\n   <dc:creator><rdf:Seq><rdf:li>Ada Lovelace</rdf:li></rdf:Seq></dc:creator>\n   <dc:description><rdf:Alt><rdf:li xml:lang=\"x-default\">Info and XMP carry the same values</rdf:li></rdf:Alt></dc:description>\n   <pdf:Keywords>pdf, xmp, info, lamina</pdf:Keywords>\n   <pdf:Producer>lamina-build golden</pdf:Producer>\n   <xmp:CreatorTool>lamina-build tests</xmp:CreatorTool>\n   <xmp:CreateDate>2026-10-29T12:00:00Z</xmp:CreateDate>\n   <xmp:ModifyDate>2026-10-30T08:30:00+01:00</xmp:ModifyDate>\n  </rdf:Description>\n </rdf:RDF>\n</x:xmpmeta>\n<?xpacket end=\"w\"?>"
+  }
+}

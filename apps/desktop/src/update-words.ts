@@ -51,7 +51,12 @@ const WORDS = {
   closeDetails: "Close update details",
 } as const;
 
+/** `template` with each `{name}` filled from `values`; a name with no value stays as it is. */
+export function fill(template: string, values: Readonly<Record<string, string | number>> = {}): string {
+  return template.replace(/\{(\w+)\}/g, (whole, name: string) => (name in values ? String(values[name]) : whole));
+}
+
 /** The words named `id`, with each `{name}` filled from `values`. */
 export function words(id: keyof typeof WORDS, values: Readonly<Record<string, string | number>> = {}): string {
-  return WORDS[id].replace(/\{(\w+)\}/g, (whole, name: string) => (name in values ? String(values[name]) : whole));
+  return fill(WORDS[id], values);
 }

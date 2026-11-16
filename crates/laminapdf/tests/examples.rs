@@ -16,6 +16,9 @@ mod check_what_a_file_hides;
 #[path = "../examples/crop_pages.rs"]
 mod crop_pages;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/draw_on_page.rs"]
+mod draw_on_page;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/duplicate_pages.rs"]
 mod duplicate_pages;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -180,7 +183,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 38] = [
+const EXAMPLES: [(&str, Build); 39] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -217,6 +220,9 @@ const EXAMPLES: [(&str, Build); 38] = [
     // annotations keep the claim.
     ("mark_up-pdfua", || {
         mark_up::mark_up(fixture("golden/examples/pdf_ua_report.pdf"), EDITED.parse()?)
+    }),
+    ("draw_on_page", || {
+        draw_on_page::draw_on_page(fixture("golden/tagged-report.pdf"), EDITED.parse()?)
     }),
     // The marked-up report answered: a reply to its note and its highlight marked done.
     ("review_comments", || {

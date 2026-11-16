@@ -58,6 +58,8 @@ export const DESKTOP_FLAGS = {
   canReopenRecent: true,
   // The main process opens dropped files (src-tauri/src/open.rs); the webview gets no path to open.
   shellTakesDrops: true,
+  // Folders come with the desktop's own dialog (E2n); the webview's picker stays off until then.
+  canWriteDirectory: false,
 } as const satisfies Partial<Capabilities>;
 
 /**
