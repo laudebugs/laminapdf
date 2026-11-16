@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E17](../../plans/full-editor.md#e17-advanced-interactions) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [E8a](./E8a-adr-0021-javascript-policy.md), [E16a](./E16a-optimisation-print-feature-plan.md) |
+| Depends on | [E8a](../ongoing/E8a-adr-0021-javascript-policy.md), [E16a](./E16a-optimisation-print-feature-plan.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e17a-advanced-interactions-feature-plan` |
 | PR title | `docs(editor): E17 feature plan (advanced interactions)` |

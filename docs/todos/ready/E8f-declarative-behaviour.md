@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E8a](./E8a-adr-0021-javascript-policy.md), [E8e](./E8e-field-widgets-ui.md) |
+| Depends on | [E8a](../ongoing/E8a-adr-0021-javascript-policy.md), [E8e](./E8e-field-widgets-ui.md) |
 | ADRs | Implements ADR 0021; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e8f-declarative-behaviour` |
 | PR title | `feat(forms): native formatting, validation and calculation` |

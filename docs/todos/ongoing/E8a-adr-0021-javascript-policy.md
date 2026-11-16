@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
 | Depends on | [E7b](../done/E7b-editing-existing-content-feature-plan.md) |
