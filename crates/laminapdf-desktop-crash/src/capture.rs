@@ -625,14 +625,14 @@ pub mod test_support {
 
     #[cfg(windows)]
     impl TestEngineWatcher {
-        /// Starts watching, writing dumps into `dir`.
+        /// Starts watching, writing dumps into `dir`; what it does and what fails goes to `log`.
         ///
         /// # Errors
         /// When the folder or the watching thread can't be made.
-        pub fn start(dir: PathBuf, engine: PathBuf) -> io::Result<Self> {
+        pub fn start(dir: PathBuf, engine: PathBuf, log: fn(&str)) -> io::Result<Self> {
             let handler = super::Handler::new(dir, Role::Many)?;
             Ok(Self {
-                _watcher: super::debugger::EngineWatcher::start(std::process::id(), engine, handler)?,
+                _watcher: super::debugger::EngineWatcher::start(std::process::id(), engine, handler, log)?,
             })
         }
     }

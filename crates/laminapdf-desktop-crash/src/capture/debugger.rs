@@ -46,6 +46,10 @@ const SCAN_EVERY: Duration = Duration::from_millis(250);
 /// How long one wait for a debug event lasts, so the loop also scans and sees `stop`.
 const WAIT_MS: u32 = 100;
 
+/// Where the watcher says what it did and what failed (the monitor's goes nowhere; a test's to its
+/// output).
+pub(crate) type Log = fn(&str);
+
 /// The engine binary's file name, beside the app's own executable.
 const ENGINE_NAME: &str = "laminapdf-desktop-engine.exe";
 
@@ -59,13 +63,13 @@ pub(crate) struct EngineWatcher {
 impl EngineWatcher {
     /// Watches the children of `parent` whose image is `image`, writing their dumps through
     /// `handler` (its folder, caps and `.tmp` names).
-    pub(crate) fn start(parent: u32, image: PathBuf, handler: Handler) -> io::Result<Self> {
+    pub(crate) fn start(parent: u32, image: PathBuf, handler: Handler, log: Log) -> io::Result<Self> {
         let stop = Arc::new(AtomicBool::new(false));
         let thread = {
             let stop = Arc::clone(&stop);
             std::thread::Builder::new()
                 .name("crash-debugger".into())
-                .spawn(move || watch(parent, &image, &handler, &stop))?
+                .spawn(move || watch(parent, &image, &handler, &stop, log))?
         };
         Ok(Self {
             stop,
@@ -81,7 +85,7 @@ impl EngineWatcher {
             .parent()
             .map(|dir| dir.join(ENGINE_NAME))
             .ok_or_else(|| io::Error::other("the app's folder is unknown"))?;
-        Self::start(parent, image, handler)
+        Self::start(parent, image, handler, |_| {})
     }
 
     /// Whether the watching thread has ended.
@@ -101,14 +105,33 @@ impl Drop for EngineWatcher {
 
 /// The debug loop. A debugger's processes belong to the thread that attached them, so attaching,
 /// waiting and detaching all happen here.
-fn watch(parent: u32, image: &Path, handler: &Handler, stop: &AtomicBool) {
+fn watch(parent: u32, image: &Path, handler: &Handler, stop: &AtomicBool, log: Log) {
     let mut attached: BTreeSet<u32> = BTreeSet::new();
+    let mut seen: BTreeSet<u32> = BTreeSet::new();
     let mut scanned: Option<Instant> = None;
+    log(&format!(
+        "watching the children of {parent} whose image is {}",
+        image.display()
+    ));
     while !stop.load(Ordering::SeqCst) {
         if scanned.is_none_or(|at| at.elapsed() >= SCAN_EVERY) {
+            for (pid, path) in children_of(parent) {
+                if seen.insert(pid) {
+                    log(&format!(
+                        "child {pid}: {}",
+                        path.as_deref().unwrap_or("(image unreadable)")
+                    ));
+                }
+            }
             for pid in children_with_image(parent, image) {
-                if !attached.contains(&pid) && attach(pid) {
+                if attached.contains(&pid) {
+                    continue;
+                }
+                if attach(pid) {
+                    log(&format!("attached to {pid}"));
                     attached.insert(pid);
+                } else {
+                    log(&format!("could not attach to {pid}: {}", io::Error::last_os_error()));
                 }
             }
             scanned = Some(Instant::now());
@@ -119,7 +142,7 @@ fn watch(parent: u32, image: &Path, handler: &Handler, stop: &AtomicBool) {
         if unsafe { WaitForDebugEvent(&raw mut event, WAIT_MS) } == 0 {
             continue;
         }
-        let status = handle(&event, handler, &mut attached);
+        let status = handle(&event, handler, &mut attached, log);
         // SAFETY: answers the event just received, on the thread that received it.
         unsafe { ContinueDebugEvent(event.dwProcessId, event.dwThreadId, status) };
     }
@@ -139,7 +162,7 @@ fn attach(pid: u32) -> bool {
 
 /// What to answer `event`: every exception goes on to the engine (its own handlers first), but the
 /// attach's breakpoint; a second-chance one is fatal, so its dump is written first.
-fn handle(event: &DEBUG_EVENT, handler: &Handler, attached: &mut BTreeSet<u32>) -> i32 {
+fn handle(event: &DEBUG_EVENT, handler: &Handler, attached: &mut BTreeSet<u32>, log: Log) -> i32 {
     match event.dwDebugEventCode {
         EXCEPTION_DEBUG_EVENT => {
             // SAFETY: the event code says `u` holds the exception's information.
@@ -148,8 +171,11 @@ fn handle(event: &DEBUG_EVENT, handler: &Handler, attached: &mut BTreeSet<u32>) 
             if code == EXCEPTION_BREAKPOINT {
                 return DBG_CONTINUE;
             }
-            if info.dwFirstChance == 0 && code != STATUS_STACK_BUFFER_OVERRUN {
-                write_dump(event.dwProcessId, event.dwThreadId, &info.ExceptionRecord, handler);
+            if info.dwFirstChance == 0 {
+                log(&format!("{}: second-chance exception {code:#x}", event.dwProcessId));
+                if code != STATUS_STACK_BUFFER_OVERRUN {
+                    write_dump(event.dwProcessId, event.dwThreadId, &info.ExceptionRecord, handler, log);
+                }
             }
             DBG_EXCEPTION_NOT_HANDLED
         }
@@ -173,30 +199,35 @@ fn handle(event: &DEBUG_EVENT, handler: &Handler, attached: &mut BTreeSet<u32>) 
 }
 
 /// Writes the minidump of engine `pid`, stopped on `record` in thread `tid`.
-fn write_dump(pid: u32, tid: u32, record: &EXCEPTION_RECORD, handler: &Handler) {
-    let Ok((file, _)) = handler.new_dump() else {
-        return;
+fn write_dump(pid: u32, tid: u32, record: &EXCEPTION_RECORD, handler: &Handler, log: Log) {
+    let (file, _) = match handler.new_dump() {
+        Ok(new) => new,
+        Err(error) => {
+            log(&format!("{pid}: no dump file: {error}"));
+            return;
+        }
     };
     let written = dump_into(pid, tid, record, file.as_raw_handle());
-    handler.finish_dump(written.then_some(file));
+    match &written {
+        Ok(()) => log(&format!("{pid}: dump written")),
+        Err(error) => log(&format!("{pid}: dump failed: {error}")),
+    }
+    handler.finish_dump(written.is_ok().then_some(file));
 }
 
 /// The dump itself: the thread's context and the exception's record, both copied into this
 /// process (`ClientPointers` false), so nothing of the engine's is read as a pointer here.
-fn dump_into(pid: u32, tid: u32, record: &EXCEPTION_RECORD, file: HANDLE) -> bool {
-    let Some(process) = Opened::process(pid) else {
-        return false;
-    };
-    let Some(thread) = Opened::thread(tid) else {
-        return false;
-    };
+fn dump_into(pid: u32, tid: u32, record: &EXCEPTION_RECORD, file: HANDLE) -> io::Result<()> {
+    let failed = |step: &str| io::Error::other(format!("{step}: {}", io::Error::last_os_error()));
+    let process = Opened::process(pid).ok_or_else(|| failed("OpenProcess"))?;
+    let thread = Opened::thread(tid).ok_or_else(|| failed("OpenThread"))?;
     // SAFETY: an all-zero CONTEXT is valid before its flags are set and GetThreadContext fills it.
     let mut context: CONTEXT = unsafe { std::mem::zeroed() };
     context.ContextFlags = CONTEXT_ALL;
     // SAFETY: `thread` is open with THREAD_GET_CONTEXT and stopped by the debug event; `context` is
     // a local with the alignment CONTEXT declares.
     if unsafe { GetThreadContext(thread.0, &raw mut context) } == 0 {
-        return false;
+        return Err(failed("GetThreadContext"));
     }
     let mut record = *record;
     // The chained record lives in the engine's memory: not followed.
@@ -212,7 +243,7 @@ fn dump_into(pid: u32, tid: u32, record: &EXCEPTION_RECORD, file: HANDLE) -> boo
     };
     // SAFETY: `process` is open with the rights MiniDumpWriteDump needs; `file` is an open, writable
     // file; `exception` and what it points to are locals alive for the call.
-    unsafe {
+    let written = unsafe {
         MiniDumpWriteDump(
             process.0,
             pid,
@@ -221,7 +252,12 @@ fn dump_into(pid: u32, tid: u32, record: &EXCEPTION_RECORD, file: HANDLE) -> boo
             &raw const exception,
             std::ptr::null(),
             std::ptr::null(),
-        ) != 0
+        )
+    };
+    if written == 0 {
+        Err(failed("MiniDumpWriteDump"))
+    } else {
+        Ok(())
     }
 }
 
@@ -233,11 +269,19 @@ const CONTEXT_ALL: u32 = windows_sys::Win32::System::Diagnostics::Debug::CONTEXT
 /// The processes whose parent is `parent` and whose image is `image` (by path, ignoring case).
 fn children_with_image(parent: u32, image: &Path) -> Vec<u32> {
     let wanted = image.to_string_lossy().to_lowercase();
+    children_of(parent)
+        .into_iter()
+        .filter(|(_, path)| path.as_ref().is_some_and(|path| path.to_lowercase() == wanted))
+        .map(|(pid, _)| pid)
+        .collect()
+}
+
+/// The children of `parent`, each with its image's path when it can be read.
+fn children_of(parent: u32) -> Vec<(u32, Option<String>)> {
     processes()
         .into_iter()
         .filter(|entry| entry.th32ParentProcessID == parent)
-        .map(|entry| entry.th32ProcessID)
-        .filter(|&pid| image_of(pid).is_some_and(|path| path.to_lowercase() == wanted))
+        .map(|entry| (entry.th32ProcessID, image_of(entry.th32ProcessID)))
         .collect()
 }
 

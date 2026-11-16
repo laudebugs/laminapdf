@@ -164,7 +164,8 @@ fn dump_server(dir: PathBuf) -> (impl Drop, Vec<std::ffi::OsString>) {
 /// arguments, as in the app.
 #[cfg(windows)]
 fn dump_server(dir: PathBuf) -> (TestEngineWatcher, Vec<std::ffi::OsString>) {
-    (TestEngineWatcher::start(dir, engine()).unwrap(), Vec::new())
+    let log: fn(&str) = |line| eprintln!("debugger: {line}");
+    (TestEngineWatcher::start(dir, engine(), log).unwrap(), Vec::new())
 }
 
 #[test]
