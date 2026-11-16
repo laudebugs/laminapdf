@@ -660,22 +660,26 @@ pub(crate) fn read(dict: &Dict) -> Option<ReadBack> {
         None => (None, Defaults::default(), false),
     };
     let text = rich.unwrap_or_else(|| RichText::plain(&dict.get("Contents").and_then(text_of).unwrap_or_default()));
-    let named = da.family.or(ds.family).or(body.family);
+    // `/RC` is what readers show, then `/DS`, the default style, then `/DA`, which some apps
+    // fill with the font of a form field's resources rather than the box's.
+    let named = body.family.or(ds.family).or(da.family);
     let font = if let Some(id) = dict.get(FONT_KEY).and_then(text_of).and_then(|s| s.parse().ok()) {
         FontRef::Font(id)
     } else {
         simplified |= da.unknown_font;
         FontRef::Standard(named.unwrap_or(StandardFamily::Helvetica))
     };
-    let size = da.size.or(ds.size).or(body.size).filter(|s| SIZES.contains(s));
-    simplified |= size.is_none() && (da.size.is_some() || ds.size.is_some());
+    let size = body.size.or(ds.size).or(da.size).filter(|s| SIZES.contains(s));
+    simplified |= size.is_none() && (body.size.is_some() || ds.size.is_some() || da.size.is_some());
     let align = match dict.get("Q").and_then(Object::as_int) {
         Some(q) => TextAlign::from_q(q),
         None => ds.align.or(body.align).unwrap_or_default(),
     };
-    let intent = match dict.get_name("IT") {
-        Some(b"FreeTextTypeWriter") => FreeTextIntent::Typewriter,
-        Some(b"FreeTextCallout") | None => match dict.get("CL").and_then(drawing::points_of) {
+    // Acrobat writes `FreeTextTypewriter`, the standard `FreeTextTypeWriter`.
+    let it = dict.get_name("IT").map(<[u8]>::to_ascii_lowercase);
+    let intent = match it.as_deref() {
+        Some(b"freetexttypewriter") => FreeTextIntent::Typewriter,
+        Some(b"freetextcallout") | None => match dict.get("CL").and_then(drawing::points_of) {
             Some(line) if (2..=3).contains(&line.len()) => FreeTextIntent::Callout(Callout {
                 line,
                 end: match dict.get("LE") {
@@ -711,7 +715,7 @@ pub(crate) fn read(dict: &Dict) -> Option<ReadBack> {
     };
     Some(ReadBack {
         text,
-        color: da.color.or(ds.color).or(body.color),
+        color: body.color.or(ds.color).or(da.color),
         simplified,
     })
 }

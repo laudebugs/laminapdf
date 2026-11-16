@@ -31,5 +31,5 @@ None.
 
 The decisions and todos behind this code:
 
-- [E4e](../todos/ongoing/E4e-freetext-callouts.md): text boxes and callouts
+- [E4e](../todos/done/E4e-freetext-callouts.md): text boxes and callouts
 - [E4 plan §2.2](../plans/editor/e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated): where appearances are generated

@@ -176,3 +176,37 @@ fn a_box_within_the_subset_never_warns() {
     ))));
     assert_eq!(doc.apply(vec![update.into()]).unwrap().warnings, Vec::<Warning>::new());
 }
+
+#[test]
+fn typewriter_text_runs_past_its_box_on_one_line_and_its_form_grows() {
+    // Acrobat's typewriter tool never wraps: a box narrower than its text keeps the line whole.
+    let mut doc = page(
+        0,
+        &[
+            "<< /Type /Annot /Subtype /FreeText /Rect [100 600 140 620] /IT /FreeTextTypewriter \
+           /DA (/Helv 12 Tf 0 g) /Contents (short) >>",
+        ],
+    );
+    let id = doc.page_annotations(0).unwrap()[0].id.parse().unwrap();
+    let mut update = UpdateAnnot::new(id);
+    update.spec = Some(AnnotSpecPatch::FreeText(FreeTextPatch::text(RichText::plain(
+        "A line much wider than its box",
+    ))));
+    doc.apply(vec![update.into()]).unwrap();
+    let bytes = doc.save(&SaveOptions::new()).unwrap().bytes;
+    let text = String::from_utf8_lossy(&bytes);
+    let at = text.rfind("/BBox [").unwrap() + "/BBox [".len();
+    let numbers: Vec<f64> = text[at..]
+        .split(']')
+        .next()
+        .unwrap()
+        .split_whitespace()
+        .map(|n| n.parse().unwrap())
+        .collect();
+    let [x0, y0, x1, y1] = numbers[..] else {
+        panic!("{numbers:?}")
+    };
+    // Helvetica 12 sets the line about 170 points wide, on one line: no taller than the box.
+    assert!(x1 - x0 > 150.0, "{numbers:?}");
+    assert!(y1 - y0 < 25.0, "{numbers:?}");
+}

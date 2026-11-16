@@ -123,22 +123,28 @@ fn spans(text: &RichText, fonts: &Fonts) -> (String, Vec<StyledSpan>) {
     (joined, spans)
 }
 
-/// Lays the box's text out in `width` points.
+/// Lays the box's text out in `width` points, or without wrapping when `width` is `None`.
 ///
 /// # Errors
 /// `GlyphMissing` when a character is in none of its span's fonts; `FontInvalid` when shaping
 /// fails.
-pub(super) fn lay_out(text: &FreeText, fonts: &Fonts, width: f64) -> Result<(String, Vec<Line>), AppearanceRefusal> {
+pub(super) fn lay_out(
+    text: &FreeText,
+    fonts: &Fonts,
+    width: Option<f64>,
+) -> Result<(String, Vec<Line>), AppearanceRefusal> {
     let (joined, spans) = spans(&text.text, fonts);
+    // Unwrapped lines are laid out flush left; the caller aligns them in the box.
+    let align = match (width, text.align) {
+        (None, _) | (_, laminapdf_ops::TextAlign::Left) => Alignment::Left,
+        (_, laminapdf_ops::TextAlign::Center) => Alignment::Center,
+        (_, laminapdf_ops::TextAlign::Right) => Alignment::Right,
+    };
     #[expect(
         clippy::cast_possible_truncation,
         reason = "a box's width and size in points, far below f32::MAX"
     )]
-    let options = LayoutOptions::new(width.max(1.0) as f32, text.size as f32).with_align(match text.align {
-        laminapdf_ops::TextAlign::Center => Alignment::Center,
-        laminapdf_ops::TextAlign::Right => Alignment::Right,
-        laminapdf_ops::TextAlign::Left => Alignment::Left,
-    });
+    let options = LayoutOptions::new(width.map_or(f32::MAX, |w| w.max(1.0) as f32), text.size as f32).with_align(align);
     let lines = break_spans(&HarfRust, &fonts.list, &joined, &spans, &options).map_err(|e| match e {
         laminapdf_text::Error::MissingGlyph { .. } => AppearanceRefusal::GlyphMissing,
         _ => AppearanceRefusal::FontInvalid,

@@ -1,0 +1,33 @@
+---
+title: Add a text box
+description: Type on a PDF page with a text box or a callout that points at something, drawn the same in every PDF reader.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll type on a report's first page: a callout pointing at the chart, and a yellow note beside the total with one word in bold. You need this for a text tool in an editor, or a script that adds a review note to every file it checks.
+
+Viewers report where a pointer went in page space: points from the page's top-left corner. `textBoxAt` and `calloutAt` turn a box and points there into the edit that adds a text box, in the page's [user space](/reference/glossary/#user-space):
+
+<Example ts="packages/sdk/examples/add-text-box.ts" rust="crates/laminapdf/examples/add_text_box.rs" result="add_text_box" />
+
+The result is the original bytes, unchanged, followed by one revision. A callout reading "Label the chart's axes" points at the chart's right edge, and a yellow note beside the total puts "€ 4,300" in bold.
+
+## How it works
+
+- Each method gives an edit for a box in 12-point Helvetica, left-aligned, with a 1-point border. Change its `spec` before you apply it: the `font`, `size`, `align`, the `fill` behind the text and the `border`.
+- The text is a string, a paragraph per line, or rich text: an array of paragraphs, each an array of spans that can be `bold` or `italic`. Lamina PDF breaks lines at the box's width.
+- Lamina PDF draws every box itself and stores the drawing in the file, so every reader that draws stored appearances, as pdf.js, PDFium and Acrobat do, shows the same box. The text is upright as the page is shown, even on a turned page.
+- A box keeps its text in the keys other apps read too: the plain text as its description, its font, size and colour, and the bold and italic words as rich text. An app that draws boxes itself from those keys shows plain text where it ignores rich text.
+- The author and dates come from your code, never from a clock inside Lamina PDF, so the same edit gives the same file wherever it runs.
+
+## What to change
+
+- **Another font:** set `spec.font` to `"times"` or `"courier"`, which every reader has. For any other font, add its bytes with `addBlob` and set `spec.font` to the ID it returns. Lamina PDF embeds the characters the box uses.
+- **Characters the font lacks:** set `spec.fallbacks` to the IDs of fonts that have them, for example a Noto font for Chinese or Arabic. A character no font has fails the edit with [`annotation-glyph-missing`](/reference/codes/annotation-glyph-missing/).
+- **Typewriter text:** set `spec.intent` to `{ type: "typewriter" }` for text with no border or fill, as when filling in a form that has no fields. Its lines end only where yours do, never at the box's edge, as in Acrobat's typewriter tool.
+- **Change a box later:** `updateAnnot` with a `freeText` patch replaces its text, font, size or any other field, and Lamina PDF draws it again. A box another app made keeps its look until you change it; then its rich text is kept as paragraphs, bold and italic, and the edit warns with [`rich-text-simplified`](/reference/codes/rich-text-simplified/) when it held more.
+- **In the browser:** boxes in Helvetica, Times and Courier work in the extract and text modules. A font given by its bytes, and fallback fonts, need the text module: open the document after `init({ text: true })`. Elsewhere the edit fails with [`appearance-needs-text`](/reference/codes/appearance-needs-text/).
+- **A PDF/A file:** Helvetica, Times and Courier aren't embedded, which PDF/A forbids, so `doc.plan()` warns with [`pdfa-font-not-embedded`](/reference/codes/pdfa-font-not-embedded/). Give the box a font by its bytes instead.
+
+Next: [draw on a page](/recipes/draw-on-page/), with ink, shapes and arrows made the same way.

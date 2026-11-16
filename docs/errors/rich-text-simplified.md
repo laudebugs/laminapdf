@@ -27,5 +27,5 @@ Changing the text or colour of an Acrobat box whose `/RC` colours one word red.
 
 The decisions and todos behind this code:
 
-- [E4e](../todos/ongoing/E4e-freetext-callouts.md): text boxes and callouts
+- [E4e](../todos/done/E4e-freetext-callouts.md): text boxes and callouts
 - [E4 plan §11](../plans/editor/e4-markup-and-drawing-annotations.md#11-decisions-on-the-open-questions): the rich-text subset

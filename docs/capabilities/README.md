@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 40 | 5 | 18 | 0 | 106 | 54 |
+| core | 169 | 41 | 6 | 18 | 0 | 104 | 55 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
 | web | 168 | 26 | 3 | 1 | 0 | 138 | 30 |
 | desktop | 168 | 4 | 0 | 0 | 0 | 164 | 4 |
@@ -83,7 +83,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | D.03 | Text-correction annotations | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | D.04 | Freehand ink | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | D.05 | Shapes, lines, arrows | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
-| D.06 | Callouts & text boxes | — | — | — | — | E4 round-trip |  |
+| D.06 | Callouts & text boxes | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | D.07 | Custom stamps | — | — | — | — | E5 round-trip |  |
 | D.08 | Attach files as annotations | — | — | — | — | E5 round-trip |  |
 | D.09 | Audio annotations | — | — | — | — | E5 read |  |
@@ -93,7 +93,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | D.13 | Import & export annotation data | — | — | — | — | E5 round-trip |  |
 | D.14 | Flatten annotations into content | — | — | — | — | E5 round-trip |  |
 | D.15 | Delete or summarise annotations | — | — | — | — | E5 round-trip |  |
-| D.16 | (cross-cutting) Generate appearance streams | — | — | — | — | E4 round-trip |  |
+| D.16 | (cross-cutting) Generate appearance streams | 🔵 write | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
 
 ## E. Interactive forms
 

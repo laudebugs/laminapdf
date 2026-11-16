@@ -20,7 +20,10 @@ use super::{DeviceColor, Paint};
 use crate::surface::n;
 
 /// Space between the border and the text, points.
-const PADDING: f64 = 3.0;
+const PADDING: f64 = 2.0;
+/// Space between a box with no border, typewriter text among them, and its text: other apps
+/// size such boxes to their text, so any more would wrap or clip it.
+const BARE_PADDING: f64 = 1.0;
 /// From one baseline to the next, in font sizes.
 const LEADING: f64 = 1.2;
 /// The slant of synthetic italic: tan 12°.
@@ -42,7 +45,7 @@ pub(super) fn check(text: &FreeText, blobs: Option<&BlobStore>) -> Result<(), Ap
         let fonts = shaped::fonts(text, blobs)?;
         // Laid out at the box's width: a character no font has fails here, before anything is
         // written.
-        return shaped::lay_out(text, &fonts, frame(text).width).map(drop);
+        return shaped::lay_out(text, &fonts, wraps(text).then(|| frame(text).width)).map(drop);
     }
     #[cfg(not(feature = "text"))]
     {
@@ -74,22 +77,26 @@ pub(super) fn draw(
     let r = text.rect;
     let c = &mut drawn.content;
     c.save_state();
-    c.rect(
-        n(r.x0 + inset),
-        n(r.y0 + inset),
-        n((r.x1 - r.x0 - 2.0 * inset).max(0.0)),
-        n((r.y1 - r.y0 - 2.0 * inset).max(0.0)),
-    );
-    c.clip_nonzero();
-    c.end_path();
+    // Typewriter text isn't wrapped, so it isn't clipped either: the box grows to hold it.
+    if wraps(text) {
+        c.rect(
+            n(r.x0 + inset),
+            n(r.y0 + inset),
+            n((r.x1 - r.x0 - 2.0 * inset).max(0.0)),
+            n((r.y1 - r.y0 - 2.0 * inset).max(0.0)),
+        );
+        c.clip_nonzero();
+        c.end_path();
+    }
     c.transform(frame.matrix.map(n));
     color.fill(c);
     color.stroke(c);
     let mut fonts = FontNames::default();
     #[cfg(feature = "text")]
     if shaped::needed(text) {
-        let registered = text_tier(c, text, &frame, &mut fonts, blobs, cos)?;
+        let (registered, extent) = text_tier(c, text, &frame, &mut fonts, blobs, cos)?;
         c.restore_state();
+        grow(&mut drawn.bbox, text, &frame, extent);
         drawn.fonts = fonts.write(cos)?;
         let written = drawn.write(cos)?;
         if let Some(registered) = registered {
@@ -98,10 +105,39 @@ pub(super) fn draw(
         return Ok(written);
     }
     let _ = blobs;
-    standard_tier(c, text, &frame, &mut fonts);
+    let extent = standard_tier(c, text, &frame, &mut fonts);
     c.restore_state();
+    grow(&mut drawn.bbox, text, &frame, extent);
     drawn.fonts = fonts.write(cos)?;
     drawn.write(cos)
+}
+
+/// Whether the box's lines wrap at its width: everything but typewriter text, whose lines end
+/// only where its paragraphs do.
+fn wraps(text: &FreeText) -> bool {
+    !matches!(text.intent, laminapdf_ops::FreeTextIntent::Typewriter)
+}
+
+/// What the text covers in the upright frame: `[x0, y0, x1, y1]`.
+type Extent = Option<[f64; 4]>;
+
+/// Takes in a line from `x` `width` wide, its baseline at `baseline`, reaching `descent` below.
+fn cover(extent: &mut Extent, x: f64, width: f64, baseline: f64, descent: f64, top: f64) {
+    let [x0, y0, x1, y1] = extent.unwrap_or([x, baseline - descent, x + width, top]);
+    *extent = Some([x0.min(x), y0.min(baseline - descent), x1.max(x + width), y1.max(top)]);
+}
+
+/// Grows `bbox`, the form's box, to hold typewriter text that runs past the box; text that wraps
+/// is clipped to the box and needs nothing.
+fn grow(bbox: &mut UserSpaceRect, text: &FreeText, frame: &Frame, extent: Extent) {
+    let (Some([x0, y0, x1, y1]), false) = (extent, wraps(text)) else {
+        return;
+    };
+    let m = frame.matrix;
+    for (u, v) in [(x0, y0), (x1, y0), (x0, y1), (x1, y1)] {
+        let (x, y) = (m[0] * u + m[2] * v + m[4], m[1] * u + m[3] * v + m[5]);
+        *bbox = UserSpaceRect::from_corners(bbox.x0.min(x), bbox.y0.min(y), bbox.x1.max(x), bbox.y1.max(y));
+    }
 }
 
 /// The box as shown: its width and height upright, and the matrix from that upright box (origin
@@ -142,7 +178,8 @@ fn frame(text: &FreeText) -> Frame {
 
 /// The padding inside `text`'s border, points.
 fn padding(text: &FreeText) -> f64 {
-    text.drawn_border().width.max(0.0) + PADDING
+    let border = text.drawn_border().width;
+    if border > 0.0 { border + PADDING } else { BARE_PADDING }
 }
 
 /// Where a line `width` points wide starts in a box `room` points wide.
@@ -155,18 +192,22 @@ fn aligned(text: &FreeText, room: f64, width: f64) -> f64 {
 }
 
 /// Draws the text in the standard 14 faces of the box's family.
-fn standard_tier(c: &mut Content, text: &FreeText, frame: &Frame, fonts: &mut FontNames) {
+fn standard_tier(c: &mut Content, text: &FreeText, frame: &Frame, fonts: &mut FontNames) -> Extent {
     let family = match text.font {
         FontRef::Standard(family) => family,
         _ => StandardFamily::Helvetica,
     };
     let pad = padding(text);
     let room = frame.width - 2.0 * pad;
-    let Ok(lines) = simple::lay_out(&text.text, family, text.size, room) else {
+    let limit = if wraps(text) { room } else { f64::INFINITY };
+    let Ok(lines) = simple::lay_out(&text.text, family, text.size, limit) else {
         // `check` refused a character no face has before the op wrote anything.
-        return;
+        return None;
     };
-    let ascent = ascent(simple::face(family, false, false), text.size);
+    let face = simple::face(family, false, false);
+    let ascent = ascent(face, text.size);
+    let descent = -f64::from(face.metrics().descender.unwrap_or(-207)) * text.size / 1000.0;
+    let mut extent = None;
     c.begin_text();
     let mut current = None;
     for (i, line) in lines.iter().enumerate() {
@@ -176,6 +217,7 @@ fn standard_tier(c: &mut Content, text: &FreeText, frame: &Frame, fonts: &mut Fo
         if line.pieces.is_empty() {
             continue;
         }
+        cover(&mut extent, x, line.width, baseline, descent, frame.height);
         c.set_text_matrix([1.0, 0.0, 0.0, 1.0, n(x), n(baseline)]);
         for piece in &line.pieces {
             if current != Some(piece.face) {
@@ -187,6 +229,7 @@ fn standard_tier(c: &mut Content, text: &FreeText, frame: &Frame, fonts: &mut Fo
         }
     }
     c.end_text();
+    extent
 }
 
 /// A standard 14 face's ascent at `size`, points.
@@ -204,7 +247,7 @@ fn text_tier(
     fonts: &mut FontNames,
     blobs: Option<&BlobStore>,
     cos: &CosMut<'_>,
-) -> laminapdf_cos::Result<Option<shaped::Registered>> {
+) -> laminapdf_cos::Result<(Option<shaped::Registered>, Extent)> {
     let refused = |_| laminapdf_cos::Error::InvalidStructure {
         kind: "text box",
         message: "its text can't be laid out in its fonts",
@@ -212,7 +255,8 @@ fn text_tier(
     let list = shaped::fonts(text, blobs).map_err(refused)?;
     let pad = padding(text);
     let room = frame.width - 2.0 * pad;
-    let (joined, lines) = shaped::lay_out(text, &list, room).map_err(refused)?;
+    let (joined, lines) = shaped::lay_out(text, &list, wraps(text).then_some(room)).map_err(refused)?;
+    let mut extent = None;
     let (mut registered, refs) = shaped::register(&list, cos).map_err(text_error)?;
     for (i, r) in refs.into_iter().enumerate() {
         fonts.embedded(i, r);
@@ -220,9 +264,18 @@ fn text_tier(
     let mut baseline = frame.height - pad - lines.first().map_or(text.size, |l| l.ascent);
     c.begin_text();
     for line in &lines {
+        // Unwrapped lines are laid out flush left and aligned here, in the box's width.
+        let start = if wraps(text) {
+            pad + line.x
+        } else {
+            pad + aligned(text, room, line.width)
+        };
+        if !line.runs.is_empty() {
+            cover(&mut extent, start, line.width, baseline, -line.descent, frame.height);
+        }
         for index in line.drawing_order() {
             let Some(run) = line.runs.get(index) else { continue };
-            let x = pad + line.x + run.x;
+            let x = start + run.x;
             match list.faces.get(run.font) {
                 Some(shaped::Face::Standard(face)) => {
                     let bytes: Vec<u8> = joined
@@ -261,7 +314,7 @@ fn text_tier(
         baseline -= (line.ascent - line.descent).max(text.size * LEADING);
     }
     c.end_text();
-    Ok(Some(registered))
+    Ok((Some(registered), extent))
 }
 
 /// A run's pieces: `/ActualText` spans where they need one, `Ts` rises, `TJ` arrays.

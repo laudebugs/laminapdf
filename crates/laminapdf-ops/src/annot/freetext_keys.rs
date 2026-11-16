@@ -109,7 +109,13 @@ pub(crate) fn parse_da(da: &str) -> Defaults {
         };
         match token {
             "Tf" => {
-                if let Some(name) = operands.iter().rev().find_map(|t| t.strip_prefix('/')) {
+                // Preview writes `//Helvetica`: the name's slashes, however many.
+                if let Some(name) = operands
+                    .iter()
+                    .rev()
+                    .find(|t| t.starts_with('/'))
+                    .map(|t| t.trim_start_matches('/'))
+                {
                     out.family = family_of_name(name);
                     out.unknown_font = out.family.is_none();
                 }
@@ -125,6 +131,9 @@ pub(crate) fn parse_da(da: &str) -> Defaults {
                 let values: Option<Vec<f64>> = (1..=n).rev().map(number).collect();
                 out.color = values.and_then(|v| AnnotColor::from_components(&v));
             }
+            // Any other operator (`Tc`, `Tw`, `G`, …) ends its operands; numbers and names are
+            // operands.
+            _ if token.starts_with(|c: char| c.is_ascii_alphabetic() || c == '\'' || c == '"') => {}
             _ => {
                 operands.push(token);
                 continue;
@@ -318,11 +327,49 @@ pub(crate) struct ReadRc {
     pub(crate) simplified: bool,
 }
 
-/// The style in force at a point in `/RC`.
-#[derive(Debug, Clone, Copy, Default)]
+/// The style in force at a point in `/RC`: what spans keep, and what the box keeps once.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
 struct Style {
     bold: bool,
     italic: bool,
+    family: Option<StandardFamily>,
+    size: Option<f64>,
+    color: Option<AnnotColor>,
+    align: Option<TextAlign>,
+}
+
+/// The one value `values` share, and whether they disagree.
+fn uniform<T: PartialEq + Copy>(values: impl Iterator<Item = Option<T>>) -> (Option<T>, bool) {
+    let mut first: Option<Option<T>> = None;
+    let mut differ = false;
+    for v in values {
+        match first {
+            None => first = Some(v),
+            Some(f) => differ |= f != v,
+        }
+    }
+    (first.flatten(), differ)
+}
+
+/// Sets `style`'s weight and slant from `css`; true when `css` asks for something else the subset
+/// can't draw (a stretch, decoration, raise or letter spacing).
+fn emphasis(css: &str, style: &mut Style) -> bool {
+    let mut simplified = false;
+    for (prop, value) in declarations(css) {
+        match prop.as_str() {
+            "font-weight" => {
+                style.bold = value == "bold" || value == "bolder" || value.parse::<u32>().is_ok_and(|w| w >= 600);
+            }
+            "font-style" => style.italic = value == "italic" || value == "oblique",
+            "font-stretch" | "text-decoration" | "vertical-align" | "letter-spacing"
+                if !value.is_empty() && !value.eq_ignore_ascii_case("normal") && value != "none" =>
+            {
+                simplified = true;
+            }
+            _ => {}
+        }
+    }
+    simplified
 }
 
 /// Reads `/RC`'s XHTML, tolerating what Acrobat and others write: any prolog, namespaces and
@@ -332,18 +379,20 @@ pub(crate) fn read_rc(rc: &str) -> ReadRc {
     let mut out = ReadRc::default();
     let mut stack: Vec<(String, Style)> = Vec::new();
     let mut paragraph: Vec<TextSpan> = Vec::new();
+    // The style of every stretch of text that draws something.
+    let mut seen: Vec<Style> = Vec::new();
     let mut in_body = false;
     let mut rest = rc;
     while !rest.is_empty() {
         let style = stack.last().map(|(_, s)| *s).unwrap_or_default();
         let Some(open) = rest.find('<') else {
-            push_text(&mut paragraph, &unescape(rest), style);
+            push_text(&mut paragraph, &mut seen, &unescape(rest), style);
             break;
         };
         let (text, tail) = rest.split_at(open);
-        push_text(&mut paragraph, &unescape(text), style);
+        push_text(&mut paragraph, &mut seen, &unescape(text), style);
         let Some(close) = tail.find('>') else {
-            push_text(&mut paragraph, &unescape(tail), style);
+            push_text(&mut paragraph, &mut seen, &unescape(tail), style);
             break;
         };
         let (tag, after) = tail.split_at(close + 1);
@@ -367,31 +416,16 @@ pub(crate) fn read_rc(rc: &str) -> ReadRc {
         let name = local_name(inner.split_ascii_whitespace().next().unwrap_or_default());
         let css = attribute(inner, "style").unwrap_or_default();
         let declared = parse_css(&css);
-        let mut next = style;
-        for (prop, value) in declarations(&css) {
-            match prop.as_str() {
-                "font-weight" => {
-                    next.bold = value == "bold" || value == "bolder" || value.parse::<u32>().is_ok_and(|w| w >= 600);
-                }
-                "font-style" => next.italic = value == "italic" || value == "oblique",
-                "font-family" | "font-size" | "color" | "font" | "text-align" if name != "body" => {
-                    // Per-span or per-paragraph sizes, colours, fonts and alignment: the subset keeps
-                    // one for the whole box.
-                    out.simplified |= !same_as_body(&prop, &declared, &out.body);
-                }
-                "font-stretch" | "text-decoration" | "vertical-align" | "letter-spacing"
-                    if !value.is_empty() && value != "normal" && value != "none" =>
-                {
-                    out.simplified = true;
-                }
-                _ => {}
-            }
-        }
+        let mut next = Style {
+            family: declared.family.or(style.family),
+            size: declared.size.or(style.size),
+            color: declared.color.or(style.color),
+            align: declared.align.or(style.align),
+            ..style
+        };
+        out.simplified |= emphasis(&css, &mut next);
         match name.as_str() {
-            "body" => {
-                in_body = true;
-                out.body = declared;
-            }
+            "body" => in_body = true,
             "b" | "strong" => next.bold = true,
             "i" | "em" => next.italic = true,
             "p" | "div" => {
@@ -420,26 +454,33 @@ pub(crate) fn read_rc(rc: &str) -> ReadRc {
     if out.text.paragraphs.is_empty() {
         out.text.paragraphs.push(Vec::new());
     }
+    // A size, colour, font or alignment all the text shares is the box's, however the XHTML
+    // nests it; one that changes inside the text is what the subset can't keep.
+    let (family, f) = uniform(seen.iter().map(|s| s.family));
+    let (size, z) = uniform(seen.iter().map(|s| s.size));
+    let (color, c) = uniform(seen.iter().map(|s| s.color));
+    let (align, a) = uniform(seen.iter().map(|s| s.align));
+    out.simplified |= f || z || c || a;
+    out.body = Defaults {
+        family,
+        size,
+        color,
+        align,
+        unknown_font: false,
+    };
     out
 }
 
-/// Whether `prop` declared as `declared` says what the body already does.
-fn same_as_body(prop: &str, declared: &Defaults, body: &Defaults) -> bool {
-    match prop {
-        "font-family" => declared.family == body.family,
-        "font-size" => declared.size == body.size,
-        "color" => declared.color == body.color,
-        "text-align" => declared.align == body.align,
-        _ => declared.family == body.family && declared.size == body.size,
-    }
-}
-
-/// Text read at the current style, merged into the last span when that has the same style.
-/// Line breaks inside the XHTML's source are white space, as XHTML reads them.
-fn push_text(paragraph: &mut Vec<TextSpan>, text: &str, style: Style) {
+/// Text read at the current style, merged into the last span when that has the same style;
+/// its style is kept in `seen` when it draws something. Line breaks inside the XHTML's source
+/// are white space, as XHTML reads them.
+fn push_text(paragraph: &mut Vec<TextSpan>, seen: &mut Vec<Style>, text: &str, style: Style) {
     let text = text.replace(['\r', '\n'], " ");
     if text.is_empty() {
         return;
+    }
+    if !text.trim().is_empty() {
+        seen.push(style);
     }
     if let Some(last) = paragraph.last_mut()
         && last.bold == style.bold

@@ -569,7 +569,7 @@
           "round": "E4",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
+            "core": "round-trip",
             "pdf": null,
             "web": null,
             "desktop": null
@@ -689,7 +689,7 @@
           "round": "E4",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
+            "core": "write",
             "pdf": null,
             "web": null,
             "desktop": null
