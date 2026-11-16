@@ -105,6 +105,15 @@ fn crash(message: &ToEngine) -> (DumpSummary, Option<u32>, Option<u32>, Vec<u8>)
         "{opened:?}"
     );
     let engine_pid = supervisor.pid();
+    // Windows: the debugger finds the engine on its next scan; fault it only once it is watched.
+    #[cfg(windows)]
+    {
+        let deadline = Instant::now() + Duration::from_secs(10);
+        while !engine_pid.is_some_and(|pid| server.watches(pid)) {
+            assert!(Instant::now() < deadline, "the debugger never attached to the engine");
+            std::thread::sleep(Duration::from_millis(20));
+        }
+    }
     supervisor.send(message);
     let raw = wait_for_dump(&dir);
     let crashed = loop {

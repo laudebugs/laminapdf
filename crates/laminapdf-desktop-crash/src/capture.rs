@@ -620,11 +620,18 @@ pub mod test_support {
     /// and writing their dumps into a folder, as the monitor watches the app's.
     #[cfg(windows)]
     pub struct TestEngineWatcher {
-        _watcher: super::debugger::EngineWatcher,
+        watcher: super::debugger::EngineWatcher,
     }
 
     #[cfg(windows)]
     impl TestEngineWatcher {
+        /// Whether engine `pid` is attached now: a test waits for it before faulting the engine,
+        /// which the monitor finds only on its next scan.
+        #[must_use]
+        pub fn watches(&self, pid: u32) -> bool {
+            self.watcher.watches(pid)
+        }
+
         /// Starts watching, writing dumps into `dir`; what it does and what fails goes to `log`.
         ///
         /// # Errors
@@ -632,7 +639,7 @@ pub mod test_support {
         pub fn start(dir: PathBuf, engine: PathBuf, log: fn(&str)) -> io::Result<Self> {
             let handler = super::Handler::new(dir, Role::Many)?;
             Ok(Self {
-                _watcher: super::debugger::EngineWatcher::start(std::process::id(), engine, handler, log)?,
+                watcher: super::debugger::EngineWatcher::start(std::process::id(), engine, handler, log)?,
             })
         }
     }

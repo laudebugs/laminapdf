@@ -13,8 +13,8 @@ use std::collections::BTreeSet;
 use std::io;
 use std::os::windows::io::AsRawHandle as _;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, PoisonError};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
@@ -43,6 +43,10 @@ use super::Handler;
 /// dump: its crash is still reported, without the `native` part.
 const SCAN_EVERY: Duration = Duration::from_millis(250);
 
+/// How soon an engine the monitor couldn't attach to is tried again: one still starting refuses a
+/// debugger for a moment.
+const RETRY_EVERY: Duration = Duration::from_millis(20);
+
 /// How long one wait for a debug event lasts, so the loop also scans and sees `stop`.
 const WAIT_MS: u32 = 100;
 
@@ -57,6 +61,8 @@ const ENGINE_NAME: &str = "laminapdf-desktop-engine.exe";
 /// dropped.
 pub(crate) struct EngineWatcher {
     stop: Arc<AtomicBool>,
+    /// The engines attached now.
+    watching: Arc<Mutex<BTreeSet<u32>>>,
     thread: Option<JoinHandle<()>>,
 }
 
@@ -65,14 +71,16 @@ impl EngineWatcher {
     /// `handler` (its folder, caps and `.tmp` names).
     pub(crate) fn start(parent: u32, image: PathBuf, handler: Handler, log: Log) -> io::Result<Self> {
         let stop = Arc::new(AtomicBool::new(false));
+        let watching = Arc::new(Mutex::new(BTreeSet::new()));
         let thread = {
-            let stop = Arc::clone(&stop);
+            let (stop, watching) = (Arc::clone(&stop), Arc::clone(&watching));
             std::thread::Builder::new()
                 .name("crash-debugger".into())
-                .spawn(move || watch(parent, &image, &handler, &stop, log))?
+                .spawn(move || watch(parent, &image, &handler, &stop, &watching, log))?
         };
         Ok(Self {
             stop,
+            watching,
             thread: Some(thread),
         })
     }
@@ -86,6 +94,14 @@ impl EngineWatcher {
             .map(|dir| dir.join(ENGINE_NAME))
             .ok_or_else(|| io::Error::other("the app's folder is unknown"))?;
         Self::start(parent, image, handler, |_| {})
+    }
+
+    /// Whether engine `pid` is attached now.
+    pub(crate) fn watches(&self, pid: u32) -> bool {
+        self.watching
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .contains(&pid)
     }
 
     /// Whether the watching thread has ended.
@@ -105,16 +121,19 @@ impl Drop for EngineWatcher {
 
 /// The debug loop. A debugger's processes belong to the thread that attached them, so attaching,
 /// waiting and detaching all happen here.
-fn watch(parent: u32, image: &Path, handler: &Handler, stop: &AtomicBool, log: Log) {
-    let mut attached: BTreeSet<u32> = BTreeSet::new();
+fn watch(parent: u32, image: &Path, handler: &Handler, stop: &AtomicBool, watching: &Mutex<BTreeSet<u32>>, log: Log) {
+    let attached = || watching.lock().unwrap_or_else(PoisonError::into_inner);
     let mut seen: BTreeSet<u32> = BTreeSet::new();
+    let mut retry = false;
     let mut scanned: Option<Instant> = None;
     log(&format!(
         "watching the children of {parent} whose image is {}",
         image.display()
     ));
     while !stop.load(Ordering::SeqCst) {
-        if scanned.is_none_or(|at| at.elapsed() >= SCAN_EVERY) {
+        let every = if retry { RETRY_EVERY } else { SCAN_EVERY };
+        if scanned.is_none_or(|at| at.elapsed() >= every) {
+            retry = false;
             for (pid, path) in children_of(parent) {
                 if seen.insert(pid) {
                     log(&format!(
@@ -124,29 +143,34 @@ fn watch(parent: u32, image: &Path, handler: &Handler, stop: &AtomicBool, log: L
                 }
             }
             for pid in children_with_image(parent, image) {
-                if attached.contains(&pid) {
+                if attached().contains(&pid) {
                     continue;
                 }
                 if attach(pid) {
                     log(&format!("attached to {pid}"));
-                    attached.insert(pid);
+                    attached().insert(pid);
                 } else {
-                    log(&format!("could not attach to {pid}: {}", io::Error::last_os_error()));
+                    log(&format!(
+                        "could not attach to {pid} yet: {}",
+                        io::Error::last_os_error()
+                    ));
+                    retry = true;
                 }
             }
             scanned = Some(Instant::now());
         }
         // SAFETY: an all-zero DEBUG_EVENT is a valid value for WaitForDebugEvent to overwrite.
         let mut event: DEBUG_EVENT = unsafe { std::mem::zeroed() };
+        let wait = if retry { 20 } else { WAIT_MS };
         // SAFETY: `event` is a local the call fills in.
-        if unsafe { WaitForDebugEvent(&raw mut event, WAIT_MS) } == 0 {
+        if unsafe { WaitForDebugEvent(&raw mut event, wait) } == 0 {
             continue;
         }
-        let status = handle(&event, handler, &mut attached, log);
+        let status = handle(&event, handler, &mut attached(), log);
         // SAFETY: answers the event just received, on the thread that received it.
         unsafe { ContinueDebugEvent(event.dwProcessId, event.dwThreadId, status) };
     }
-    for pid in attached {
+    for pid in std::mem::take(&mut *attached()) {
         // SAFETY: detaches a process this thread attached; it runs on without a debugger.
         unsafe { DebugActiveProcessStop(pid) };
     }
