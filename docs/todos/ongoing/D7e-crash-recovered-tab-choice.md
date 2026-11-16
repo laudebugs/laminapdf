@@ -11,7 +11,7 @@
 | Branch | `feat/d7e-crash-recovered-tab-choice` |
 | PR title | `feat(desktop): choose which tabs to reopen after a crash` |
 | Size | M (300–500 lines) |
-| PR | — |
+| PR | [#666](https://github.com/laudebugs/laminapdf/pull/666) |
 
 ## Goal
 
