@@ -326,3 +326,113 @@ fn metadata_edits_round_trip_with_info_and_xmp_in_step() {
         }
     }
 }
+
+/// capability: A.07 core round-trip
+/// capability: B.01 core round-trip
+/// capability: B.02 core round-trip
+/// capability: B.08 core round-trip
+/// capability: B.12 core round-trip
+#[test]
+fn content_edits_round_trip_with_the_rest_of_the_page_unchanged() {
+    use laminapdf_content::{ContentObjectKind, ContentOps, ContentOwner, interpret_page};
+    use laminapdf_cos::OpenOptions;
+    use laminapdf_model::{Matrix, RectPt};
+    use laminapdf_ops::{ContentEdit, Document, EditContent, ObjectRef, Op, Origin, StackPosition};
+    use laminapdf_save::{Save as _, SaveMode, SaveOptions};
+
+    /// The first page's objects: kind, name, box (rounded to a hundredth of a point) and whether
+    /// it can be edited.
+    fn objects(doc: &laminapdf_model::Document) -> Vec<(ContentObjectKind, ObjectRef, Option<[i64; 4]>, bool)> {
+        let pages = doc.pages().unwrap();
+        let page = pages.get(0).unwrap();
+        let mut ir = ContentOps::read_page(doc, page.cos(), ContentOwner::Page(page.id().clone())).unwrap();
+        interpret_page(doc, &page, &mut ir.recorder(page.frame().unwrap())).unwrap();
+        #[expect(clippy::cast_possible_truncation, reason = "rounded points, well inside i64")]
+        let round = |r: RectPt| [r.x0, r.y0, r.x1, r.y1].map(|v| (v.get() * 100.0).round() as i64);
+        ir.objects()
+            .iter()
+            .map(|o| {
+                let name = ObjectRef::from(&ir.reference(o.id()).unwrap());
+                (o.kind(), name, o.bounds().map(round), ir.edit_refusal(o.id()).is_none())
+            })
+            .collect()
+    }
+
+    let root = common::fixtures_dir();
+    let jpeg = std::fs::read(root.join("images/photo-rgb.jpg")).unwrap();
+    for (name, kinds) in [
+        // Shapes and images: an image replaced and cropped, a shape scaled, a shape to the back.
+        (
+            "golden/examples/images_and_vectors.pdf",
+            [ContentObjectKind::Image, ContentObjectKind::Path],
+        ),
+        // Text: a line of text moved.
+        (
+            "golden/examples/multilingual.pdf",
+            [ContentObjectKind::Text, ContentObjectKind::Text],
+        ),
+    ] {
+        for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
+            let bytes = std::fs::read(root.join(name)).unwrap();
+            let mut doc = Document::open(bytes, OpenOptions::default())
+                .unwrap()
+                .with_images(laminapdf_build::ImageXObjectWriter);
+            let blob = doc.add_blob(jpeg.clone());
+            let before = objects(&doc);
+            let first = before.iter().position(|o| o.0 == kinds[0] && o.3).unwrap();
+            // The third shape, the dashed curve, sits outside any transparency, so it can go
+            // to the back.
+            let last = (0..before.len())
+                .filter(|&i| before[i].0 == kinds[1] && before[i].3)
+                .nth(2)
+                .unwrap();
+            let mut edits = vec![ContentEdit::Transform {
+                object: before[first].1,
+                matrix: Matrix::translate(-10.0, 0.0).then(&Matrix::scale(0.5, 0.5)),
+            }];
+            if kinds[0] == ContentObjectKind::Image {
+                edits.push(ContentEdit::ReplaceImage {
+                    object: before[first].1,
+                    blob,
+                });
+                edits.push(ContentEdit::Reorder {
+                    object: before[last].1,
+                    to: StackPosition::Back,
+                });
+            }
+            let page = doc.pages().unwrap().get(0).unwrap().id().clone();
+            doc.apply_all(Origin::Local, [Op::from(EditContent::new(page, edits))])
+                .unwrap();
+            let edited = objects(&doc);
+            let mut out = Vec::new();
+            doc.save(&mut out, &SaveOptions::new().with_mode(mode)).unwrap();
+            let reopened = laminapdf_model::Document::open(out, OpenOptions::default()).unwrap();
+            let again = objects(&reopened);
+            assert_eq!(again, edited, "{name} {mode:?}");
+            assert_eq!(reopened.warnings(), [], "{name} {mode:?}");
+            // Every object kept its box but the one moved and halved, x' = (x - 10) / 2 and
+            // y' = y / 2, in hundredths of a point and to within one.
+            let mut order: Vec<usize> = (0..before.len()).collect();
+            if kinds[0] == ContentObjectKind::Image {
+                let back = order.remove(last);
+                order.insert(0, back);
+            }
+            assert_eq!(order.len(), edited.len(), "{name} {mode:?}");
+            for (now, &was) in edited.iter().zip(&order) {
+                assert_eq!(now.0, before[was].0, "{name} {mode:?}");
+                if was != first {
+                    assert_eq!(now.2, before[was].2, "{name} {mode:?}: object {was}");
+                    continue;
+                }
+                let (Some(now), Some(was)) = (now.2, before[was].2) else {
+                    panic!("{name} {mode:?}: the moved object has no box");
+                };
+                let want = [was[0] / 2 - 500, was[1] / 2, was[2] / 2 - 500, was[3] / 2];
+                assert!(
+                    now.iter().zip(want).all(|(n, w)| (n - w).abs() <= 1),
+                    "{name} {mode:?}: {now:?}, expected {want:?}"
+                );
+            }
+        }
+    }
+}

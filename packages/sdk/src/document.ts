@@ -2,8 +2,9 @@
 // WasmDocument (ADR 0028 F12): every call is synchronous and throws LaminaPdfError. Documents,
 // pages and save jobs are handles (internal/handle.ts): a page or save job is freed with its
 // document.
-import type { WasmDocument, WasmPage, WasmSaveJob } from "@laminapdf/wasm/base";
+import type { Op as BaseOp, WasmDocument, WasmPage, WasmSaveJob } from "@laminapdf/wasm/base";
 import type { WasmDocument as ExtractWasmDocument, PageTextJs, WasmExtractJob } from "@laminapdf/wasm/extract";
+import type { DocumentContent } from "./content.js";
 import {
   type ContentsListing,
   type ContentsPage,
@@ -903,6 +904,26 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * What the pages draw, to select and change: `content.objects(index)`, `content.hitTest(index,
+   * at)` and `content.edit(index, edits)`. Reads need a document opened while the extract or
+   * text module was loaded.
+   *
+   * @since 0.5.0
+   */
+  get content(): DocumentContent {
+    return {
+      objects: (index) => this.call(() => this.#extracting("doc.content.objects()").contentObjects(index)),
+      hitTest: (index, at) =>
+        this.call(() => {
+          const doc = this.#extracting("doc.content.hitTest()");
+          return at.length === 2 ? doc.hitTest(index, at[0], at[1]) : doc.hitTestRect(index, [...at]);
+        }),
+      edit: (index, edits) =>
+        this.apply([{ op: "editContent", args: { page: this.pageInfo(index).id, edits: [...edits] } }]),
+    };
+  }
+
+  /**
    * The annotations on page `index` (0-based), in the order of the page's annotation list, every
    * subtype included. Change one with the `updateAnnot` op (its text, author, flags, or a move by
    * `translate`) and delete one with `deleteAnnot`, which also deletes its pop-up, its replies
@@ -1151,7 +1172,9 @@ export class Document extends Handle<BaseGlue> {
    */
   apply(ops: readonly Op[]): Edited {
     this.#notInTransaction("apply");
-    return this.call(() => this.#doc.apply(ops as Op[]));
+    // The base module's op type leaves out `editContent`, which only the extract and text modules
+    // apply; the base module refuses it as an unknown op.
+    return this.call(() => this.#doc.apply(ops as BaseOp[]));
   }
 
   /**
@@ -1609,6 +1632,21 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * Keeps `bytes` for the session (a replacement image's JPEG or PNG) and returns their ID, 64 hex
+   * digits (the SHA-256 of the bytes), which a `replaceImage` content edit names them by. The same
+   * bytes get the same ID everywhere and are kept once. Adding bytes changes nothing to save or
+   * undo. Needs a document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded`.
+   *
+   * @since 0.5.0
+   */
+  addBlob(bytes: Uint8Array | ArrayBuffer): string {
+    const data = bytesOf(bytes);
+    return this.call(() => this.#extracting("doc.addBlob()").addBlob(data));
+  }
+
+  /**
    * Copies `pages` of the source document `source` (IDs from {@link Document.addSource}), each
    * once and in the order given, to `at`, in one transaction (`insertPagesFrom`). The copies are
    * new pages with new IDs, listed in the result's `pageOrder`. Their annotations come along
@@ -1736,7 +1774,7 @@ export class Document extends Handle<BaseGlue> {
    * @since 0.2.0
    */
   wouldViolate(op: Op): Violation[] {
-    return this.call(() => this.#doc.wouldViolate(op));
+    return this.call(() => this.#doc.wouldViolate(op as BaseOp));
   }
 
   /**

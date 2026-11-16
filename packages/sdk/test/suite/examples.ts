@@ -11,6 +11,7 @@ import { drawOnPage } from "../../examples/draw-on-page.js";
 import { duplicatePages } from "../../examples/duplicate-pages.js";
 import { editBookmarks } from "../../examples/edit-bookmarks.js";
 import { editMetadata } from "../../examples/edit-metadata.js";
+import { editObjects } from "../../examples/edit-objects.js";
 import { editXmp } from "../../examples/edit-xmp.js";
 import { elementFlow, type Report } from "../../examples/element-flow.js";
 import { extractPages } from "../../examples/extract-pages.js";
@@ -99,6 +100,8 @@ const REFERENCES_PDF = "fixtures/pages/references.pdf";
 const FORMS_PDF = "fixtures/pages/forms.pdf";
 /** The input of crop-pages: four pages, one per rotation, the second with a user unit of 2. */
 const BOXES_PDF = "fixtures/pages/boxes.pdf";
+/** The input of edit-objects: an example golden with shapes, transparency and two images. */
+const SHAPES_PDF = "fixtures/golden/examples/images_and_vectors.pdf";
 /** The input of resize-pages: an A4 page with every kind of destination aimed at it, and a Letter page. */
 const GEOMETRY_PDF = "fixtures/pages/geometry.pdf";
 /** The input of page-labels: an example golden of four pages. */
@@ -268,6 +271,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "crop_pages",
     inputs: [BOXES_PDF],
     build: (i) => cropPages(input(i, BOXES_PDF)),
+  },
+  {
+    name: "edit-objects",
+    golden: "edit_objects",
+    inputs: [SHAPES_PDF],
+    build: (i) => editObjects(input(i, SHAPES_PDF)),
   },
   {
     name: "resize-pages",

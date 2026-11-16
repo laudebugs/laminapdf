@@ -7,6 +7,8 @@
 
 An edit tried to change content that Lamina PDF can't change safely. The edit changed nothing, and the content stays on the page, selectable and readable.
 
+Most reasons are about text. Two are about moving any object: whether it clips what comes after it, and whether it draws the same in its new place in the stacking order.
+
 ## Why
 
 PDF stores text as glyphs placed one by one in a font's own encoding, not as characters. To change text, Lamina PDF has to find the glyphs that belong together, learn which characters they stand for, and place new glyphs in the same font. It refuses, and names the reason, when it can't do that reliably:
@@ -18,10 +20,12 @@ PDF stores text as glyphs placed one by one in a font's own encoding, not as cha
 - `glyphs-out-of-order`: the file draws the line's glyphs out of reading order.
 - `too-deep`: the content sits inside more nested drawings than the limits allow.
 - `content-unreadable`: the page's content could not be read.
+- `clipping-path`: the object clips everything drawn after it. Moving, deleting or reordering it would change other content too, so its clip has to be edited on its own.
+- `state-not-portable`: moving the object in the stacking order would change how it looks, because the clip, the transparency or the font differ where it would go.
 
 ## How to fix
 
-The file is fine: Lamina PDF reads this content and shows it as it is. To change it, delete the object and add new content in its place, or edit the file in the program that made it.
+The file is fine: Lamina PDF reads this content and shows it as it is. To change it, delete the object and add new content in its place (except for `clipping-path`, whose object can't be deleted either), or edit the file in the program that made it. For `state-not-portable`, try another place in the stacking order: next to objects drawn under the same clip.
 
 ## Example
 
@@ -33,7 +37,7 @@ When `/T3` is a Type 3 font, an edit of this text fails with `content-not-editab
 
 ## Data fields
 
-- `reason`: why the content can't be edited: `type3-font`, `vertical-text`, `no-unicode-map`, `rotated-run`, `glyphs-out-of-order`, `too-deep` or `content-unreadable`.
+- `reason`: why the content can't be edited: `type3-font`, `vertical-text`, `no-unicode-map`, `rotated-run`, `glyphs-out-of-order`, `too-deep`, `content-unreadable`, `clipping-path` or `state-not-portable`.
 
 ## For contributors
 
@@ -41,3 +45,4 @@ The decisions and todos behind this code:
 
 - [ADR 0022 §5–§7](../decisions/0022-content-stream-editing.md#5-finding-text-runs-marked-content-first-layout-second): which text runs are read-only, and why
 - [E7c](../todos/done/E7c-content-ir.md): the content IR and this code
+- [E7d](../todos/done/E7d-select-transform-existing.md): moving, deleting and reordering objects, and the `clipping-path` and `state-not-portable` reasons

@@ -31,6 +31,8 @@ mod annotations;
 mod build_dto;
 #[cfg(feature = "build")]
 mod builder;
+#[cfg(feature = "extract")]
+mod content;
 mod contents_page;
 mod convert;
 mod document;

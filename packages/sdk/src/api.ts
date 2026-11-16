@@ -27,6 +27,7 @@ export type {
   TextOptions,
 } from "./builder.js";
 export { Builder, imagesToPdf, PAGE_SIZES, Page, PendingPath, Surface, TAG_NAMES } from "./builder.js";
+export type { DocumentContent } from "./content.js";
 export {
   type ContentsEntry,
   type ContentsFonts,
@@ -148,6 +149,7 @@ export type {
   Color,
   CommentPart,
   CommentThread,
+  ContentEdit,
   DestinationUse,
   DestinationView,
   Direction,
@@ -176,6 +178,7 @@ export type {
   MetadataPatch,
   NamedDestination,
   NoteIcon,
+  ObjectRef,
   Op,
   OpenAt,
   OpenOptions,
@@ -191,6 +194,7 @@ export type {
   PageLabel,
   PageLabelRange,
   PageLink,
+  PageObject,
   PlannedSave,
   Point,
   PolyKind,

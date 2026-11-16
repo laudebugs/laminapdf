@@ -263,8 +263,9 @@ fn new_labels(pages: usize) -> Vec<Option<String>> {
 /// C.04, C.08, C.13), duplicating included (C.03), pages copied in from another document
 /// (C.02) or replacing the first page (C.16), from [`SOURCE`], merged in as a whole document
 /// (C.06), the initial view (I.06, I.11), page boxes set (C.09) and cropped (C.11), and pages
-/// resized (C.10) and turned to landscape by swapping their paper's sides (C.12).
-const OPS: [&str; 20] = [
+/// resized (C.10) and turned to landscape by swapping their paper's sides (C.12), and the first
+/// object of the first page that can move moved (B.02, B.12).
+const OPS: [&str; 21] = [
     "setInfo",
     "rotatePage",
     "setMetadata",
@@ -285,6 +286,7 @@ const OPS: [&str; 20] = [
     "cropPages",
     "resizePages",
     "setOrientation",
+    "editContent",
 ];
 
 /// The source document the import cases copy their page from: one upright page.
@@ -393,8 +395,31 @@ fn op(doc: &Document, name: &str, rotation: Rotation, source: SourceId) -> Optio
             .with_page_layout(Some(INITIAL_LAYOUT))
             .with_preferences(WindowPreferencesPatch::default().with_display_doc_title(true))
             .into(),
+        "editContent" => move_first_object(doc)?,
         _ => RotatePage::new(ids.first().cloned()?, rotation).into(),
     })
+}
+
+/// Moves the first page's first object that can move 10 points right and down, or `None` when
+/// none can.
+fn move_first_object(doc: &Document) -> Option<Op> {
+    use laminapdf_content::{ContentOps, ContentOwner, interpret_page};
+    use laminapdf_model::Matrix;
+    use laminapdf_ops::{ContentEdit, EditContent, ObjectRef};
+
+    let pages = doc.pages().ok()?;
+    let page = pages.get(0)?;
+    let mut ir = ContentOps::read_page(doc, page.cos(), ContentOwner::Page(page.id().clone())).ok()?;
+    interpret_page(doc, &page, &mut ir.recorder(page.frame().ok()?)).ok()?;
+    let object = ir
+        .objects()
+        .iter()
+        .find(|o| o.bounds().is_some() && ir.edit_refusal(o.id()).is_none())?;
+    let edit = ContentEdit::Transform {
+        object: ObjectRef::from(&ir.reference(object.id())?),
+        matrix: Matrix::translate(10.0, 10.0),
+    };
+    Some(EditContent::new(page.id().clone(), vec![edit]).into())
 }
 
 /// The ops a case applies: `op`, after the edit a removal removes, or with the custom XMP

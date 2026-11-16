@@ -75,9 +75,14 @@ fn the_identification_is_read_only() {
         Op::from(RemoveXmpProperty::new(PDFUA_ID, "part")),
     ] {
         assert_eq!(
-            op.apply_to(&mut d, &crate::document::Sources::new(), None)
-                .unwrap_err()
-                .code(),
+            op.apply_to(
+                &mut d,
+                &crate::document::Sources::new(),
+                None,
+                (&crate::BlobStore::default(), None)
+            )
+            .unwrap_err()
+            .code(),
             "xmp-claim-read-only"
         );
     }

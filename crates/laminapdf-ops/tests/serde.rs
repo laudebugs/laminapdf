@@ -95,6 +95,7 @@ mod samples {
             "replace-xmp-packet",
             "set-page-labels",
             "update-annot-redraw",
+            "edit-content",
             "update-annot-ink",
         ]
         .into_iter()

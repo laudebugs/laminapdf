@@ -30,6 +30,10 @@ mod edit_bookmarks;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/edit_metadata.rs"]
 mod edit_metadata;
+
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/edit_objects.rs"]
+mod edit_objects;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/edit_xmp.rs"]
 mod edit_xmp;
@@ -182,7 +186,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 40] = [
+const EXAMPLES: [(&str, Build); 41] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -234,6 +238,9 @@ const EXAMPLES: [(&str, Build); 40] = [
         duplicate_pages::duplicate(fixture("pages/forms.pdf"))
     }),
     ("crop_pages", || crop_pages::crop(fixture("pages/boxes.pdf"))),
+    ("edit_objects", || {
+        edit_objects::edit(fixture("golden/examples/images_and_vectors.pdf"))
+    }),
     ("resize_pages", || resize_pages::resize(fixture("pages/geometry.pdf"))),
     ("insert_pages", || {
         insert_pages::insert(fixture("pages/forms.pdf"), fixture("pages/references.pdf"))

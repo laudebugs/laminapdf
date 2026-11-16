@@ -807,6 +807,9 @@ impl From<laminapdf_ops::Document> for Document {
         // Every annotation an edit makes gets its appearance drawn (E4 plan §2.2).
         #[cfg(feature = "build")]
         let inner = inner.with_appearances(laminapdf_build::AnnotationAppearances);
+        // Replacement images for content edits (ADR 0022).
+        #[cfg(feature = "content-edit")]
+        let inner = inner.with_images(laminapdf_build::ImageXObjectWriter);
         Self {
             inner,
             instance: Arc::new(Instance),

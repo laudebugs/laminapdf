@@ -415,7 +415,7 @@ Everything else in the area is identical on web and desktop.
 
 **Artboards.** `A05-select-transform.dc.html`, `A05-text-block.dc.html`, `A05-edit-points.dc.html`
 
-**Todos.** [E7d](../../todos/ready/E7d-select-transform-existing.md), [E7h](../../todos/ready/E7h-vector-clipping-masks.md)
+**Todos.** [E7d](../../todos/done/E7d-select-transform-existing.md), [E7h](../../todos/ready/E7h-vector-clipping-masks.md)
 
 ## A06 Search and replace across the document
 

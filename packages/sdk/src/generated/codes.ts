@@ -76,6 +76,8 @@ export type ErrorCode =
   | "invalid-label-ranges"
   | "content-object-stale"
   | "content-not-editable"
+  | "unknown-blob"
+  | "images-unavailable"
   | "sink"
   | "not-rebased"
   | "sink-not-empty"
@@ -322,6 +324,8 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "invalid-label-ranges",
   "content-object-stale",
   "content-not-editable",
+  "unknown-blob",
+  "images-unavailable",
   "sink",
   "not-rebased",
   "sink-not-empty",
@@ -598,6 +602,8 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "invalid-label-ranges": "usage",
   "content-object-stale": "state",
   "content-not-editable": "unsupported",
+  "unknown-blob": "usage",
+  "images-unavailable": "unsupported",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
   "pdfa-info-mismatch": "input",
@@ -819,6 +825,8 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "invalid-label-ranges": "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
   "content-object-stale": "read the page's content objects again and name the object from that list",
   "content-not-editable": "the content stays selectable and readable; the reason says why it can't be changed",
+  "unknown-blob": "add the bytes with addBlob before applying ops that name them",
+  "images-unavailable": "edit through the laminapdf crate, which writes images, or give laminapdf-ops a writer with Document::with_images",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
