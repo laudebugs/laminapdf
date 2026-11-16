@@ -5,7 +5,7 @@
 
 ## What happened
 
-The file says it conforms to PDF/A, and a text box the edits added or changed is drawn in Helvetica, Times or Courier. Those fonts aren't embedded in the file, so saving it as it is writes one that no longer meets PDF/A.
+The file says it conforms to PDF/A, and a text box the edits added or changed is drawn with a font that isn't embedded in the file, as Helvetica, Times and Courier aren't. So saving it as it is writes one that no longer meets PDF/A.
 
 ## Why
 

@@ -9,11 +9,11 @@ An edit adds a text box or callout, or changes one, but this build of Lamina PDF
 
 ## Why
 
-Laying out text in any font takes shaping, line breaking and font subsetting, about 470 KB of WebAssembly once compressed. The WebAssembly modules most apps load first leave that out to stay small. The extract module, which the reader uses, lays out boxes in Helvetica, Times and Courier with their built-in metrics. The base module lays out no text boxes at all. The text module and the native crates lay out every box.
+Laying out text in any font takes shaping, line breaking and font subsetting, about 470 KB of WebAssembly once compressed. The base and extract modules leave it out to stay small. The extract module, which the reader uses, lays out boxes in Helvetica, Times and Courier with their built-in metrics. The base module lays out no text boxes at all. The text module and the native crates lay out every box.
 
 ## How to fix
 
-Use Helvetica, Times or Courier for the box, or open the document in the text module: call `init({ text: true })` before `Document.open`. In Rust, the `laminapdf` crate with its default features lays out every box.
+In the extract module, use Helvetica, Times or Courier for the box. Otherwise, open the document in the text module: call `init({ text: true })` before `Document.open`. In Rust, the `laminapdf` crate with its default features lays out every box.
 
 ## Example
 

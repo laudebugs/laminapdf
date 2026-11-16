@@ -5,7 +5,7 @@
 
 ## What happened
 
-An edit changed a text box made by another app: its text, colour, font or box, and that box's rich text held styles Lamina PDF doesn't keep, such as a size or colour for a single word. The box now uses one font, size and colour for all of its text, with bold and italic kept.
+An edit changed a text box made by another app, and its rich text held styles Lamina PDF doesn't keep, such as a size or colour for a single word. The box now uses one font, size and colour for all of its text, with bold and italic kept.
 
 ## Why
 

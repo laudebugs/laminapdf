@@ -3234,11 +3234,11 @@ An edit adds a text box or callout, or changes one, but this build of Lamina PDF
 
 ## Why
 
-Laying out text in any font takes shaping, line breaking and font subsetting, about 470 KB of WebAssembly once compressed. The WebAssembly modules most apps load first leave that out to stay small. The extract module, which the reader uses, lays out boxes in Helvetica, Times and Courier with their built-in metrics. The base module lays out no text boxes at all. The text module and the native crates lay out every box.
+Laying out text in any font takes shaping, line breaking and font subsetting, about 470 KB of WebAssembly once compressed. The base and extract modules leave it out to stay small. The extract module, which the reader uses, lays out boxes in Helvetica, Times and Courier with their built-in metrics. The base module lays out no text boxes at all. The text module and the native crates lay out every box.
 
 ## How to fix
 
-Use Helvetica, Times or Courier for the box, or open the document in the text module: call `init({ text: true })` before `Document.open`. In Rust, the `laminapdf` crate with its default features lays out every box.
+In the extract module, use Helvetica, Times or Courier for the box. Otherwise, open the document in the text module: call `init({ text: true })` before `Document.open`. In Rust, the `laminapdf` crate with its default features lays out every box.
 
 ## Example
 
@@ -3874,7 +3874,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-The file says it conforms to PDF/A, and a text box the edits added or changed is drawn in Helvetica, Times or Courier. Those fonts aren't embedded in the file, so saving it as it is writes one that no longer meets PDF/A.
+The file says it conforms to PDF/A, and a text box the edits added or changed is drawn with a font that isn't embedded in the file, as Helvetica, Times and Courier aren't. So saving it as it is writes one that no longer meets PDF/A.
 
 ## Why
 
@@ -6269,7 +6269,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-An edit changed a text box made by another app: its text, colour, font or box, and that box's rich text held styles Lamina PDF doesn't keep, such as a size or colour for a single word. The box now uses one font, size and colour for all of its text, with bold and italic kept.
+An edit changed a text box made by another app, and its rich text held styles Lamina PDF doesn't keep, such as a size or colour for a single word. The box now uses one font, size and colour for all of its text, with bold and italic kept.
 
 ## Why
 
