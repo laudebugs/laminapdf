@@ -126,7 +126,10 @@ impl Notify for WindowEvents {
         // mustn't hold up the engine's restart.
         let (app, window) = (self.0.clone(), window.to_owned());
         tauri::async_runtime::spawn_blocking(move || {
-            if let Some(dumps) = app.try_state::<crash::EngineDumps>() {
+            // A panic's report is its summary: the engine asks for no dump then, so none is waited for.
+            if !crash.is_panic()
+                && let Some(dumps) = app.try_state::<crash::EngineDumps>()
+            {
                 crash.native = dumps.crashes.take_for_report(pid);
             }
             if let Some(reports) = app.try_state::<Arc<crash::CrashReports>>() {

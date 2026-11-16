@@ -27,21 +27,17 @@ fn engine() -> PathBuf {
 /// One crash-dump server for every engine these tests start, as the monitor has; the dumps an
 /// engine leaves (an abort past the memory limit) stay in the server's temporary folder. The server
 /// pid the engines are given is a stand-in process's, not their parent's, as in the app.
-fn crash_args() -> [OsString; 4] {
+fn crash_args() -> Vec<OsString> {
     // The stand-in is kept here for the test process's life; it ends on its own.
     static SERVER: OnceLock<(TestDumpServer, std::process::Child)> = OnceLock::new();
+    // Windows' engines open no crash socket: the monitor debugs them instead (ADR 0014 §10).
+    if cfg!(windows) {
+        return Vec::new();
+    }
     let (server, stand_in) = SERVER.get_or_init(|| {
         let dumps = std::env::temp_dir().join(format!("laminapdf-selftest-dumps-{}", std::process::id()));
-        let mut stand_in = if cfg!(windows) {
-            let mut wait = Command::new("cmd");
-            wait.args(["/c", "ping -n 300 127.0.0.1 >nul"]);
-            wait
-        } else {
-            let mut wait = Command::new("sleep");
-            wait.arg("300");
-            wait
-        };
-        let stand_in = stand_in
+        let stand_in = Command::new("sleep")
+            .arg("300")
             .stdin(std::process::Stdio::null())
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
@@ -49,7 +45,7 @@ fn crash_args() -> [OsString; 4] {
             .unwrap();
         (TestDumpServer::start(dumps).unwrap(), stand_in)
     });
-    [
+    vec![
         CRASH_SOCKET_ARG.into(),
         server.socket().into(),
         CRASH_SERVER_PID_ARG.into(),
@@ -120,7 +116,9 @@ fn assert_blocked(probe: &str) {
 }
 
 /// The engine connects its crash handler before it locks down; a connection that failed is only
-/// logged, so the sandbox would still hold without it: the log must not say so.
+/// logged, so the sandbox would still hold without it: the log must not say so. (Windows' engines
+/// connect nowhere.)
+#[cfg(unix)]
 #[test]
 fn the_crash_handler_should_connect_before_the_lock_down() {
     let run = selftest("threads");

@@ -224,7 +224,12 @@ impl EngineDumps {
     /// pid (for `PR_SET_PTRACER`). Called for each engine as it spawns, so an engine started after
     /// a monitor restart gets the new socket; none once the monitor is down for good. The engine
     /// waits briefly for a monitor that is still starting (`capture_crashes_within`).
+    /// On Windows the engine gets none: the monitor watches it as its debugger instead, so it never
+    /// opens a socket (which would start Winsock, and with it a way onto the network).
     pub(crate) fn engine_args(&self) -> Vec<OsString> {
+        if cfg!(windows) {
+            return Vec::new();
+        }
         let Some((socket, pid)) = self.monitor.engine_endpoint() else {
             return Vec::new();
         };

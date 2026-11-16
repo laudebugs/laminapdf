@@ -5,8 +5,11 @@
 
 #![expect(
     unsafe_code,
-    reason = "FFI: crash-handler's unsafe callback, the open-socket probe (Unix) and the socket's integrity label (Windows)"
+    reason = "FFI: crash-handler's unsafe callback, the open-socket probe (Unix) and the engines' debugger (Windows)"
 )]
+
+#[cfg(windows)]
+mod debugger;
 
 use std::collections::VecDeque;
 use std::ffi::OsString;
@@ -118,9 +121,17 @@ pub fn run_monitor(mut args: impl Iterator<Item = OsString>) -> Option<ExitCode>
         }
         _ => return Some(ExitCode::FAILURE),
     };
-    // The engines' server runs for the monitor's whole life; the main server stops when the main
-    // process disconnects, which ends the monitor.
+    // The engines' server (on Windows, their debugger) runs for the monitor's whole life; the main
+    // server stops when the main process disconnects, which ends the monitor.
+    #[cfg(not(windows))]
     let Ok(engines) = DumpServer::start(engine_socket, engine_dir, Role::Many) else {
+        return Some(ExitCode::FAILURE);
+    };
+    #[cfg(windows)]
+    let Ok(engines) = Handler::new(engine_dir, Role::Many)
+        .and_then(debugger::EngineWatcher::for_the_app)
+        .inspect(|_| drop(engine_socket))
+    else {
         return Some(ExitCode::FAILURE);
     };
     let Ok(main) = DumpServer::start(main_socket, main_dir, Role::One) else {
@@ -151,16 +162,12 @@ pub(crate) struct DumpServer {
 
 impl DumpServer {
     fn start(socket: PathBuf, dir: PathBuf, role: Role) -> io::Result<Self> {
-        private_dir(&dir)?;
-        // A dump an earlier monitor left half written is never read: delete it.
-        for path in files_with(&dir, WRITING_EXTENSION) {
-            let _ = std::fs::remove_file(path);
-        }
-        let one = matches!(role, Role::One);
+        let handler = Handler::new(dir, role)?;
+        let one = handler.one;
+        let connected = Arc::clone(&handler.connected);
         // Bind once up front so a failure is reported before the thread starts.
-        let server = bind(&socket, role)?;
+        let server = bind(&socket)?;
         let stop = Arc::new(AtomicBool::new(false));
-        let connected = Arc::new(AtomicBool::new(false));
         if one {
             let (stop, connected) = (Arc::clone(&stop), Arc::clone(&connected));
             // Detached: it only flips the stop flag if no client ever connects.
@@ -173,18 +180,11 @@ impl DumpServer {
                     }
                 })?;
         }
-        let handler = Handler {
-            dir,
-            one,
-            connected,
-            writing: Arc::new(Mutex::new(None)),
-            written: Arc::new(Mutex::new(VecDeque::new())),
-        };
         let thread = {
             let (socket, stop) = (socket.clone(), Arc::clone(&stop));
             std::thread::Builder::new()
                 .name("crash-dumps".into())
-                .spawn(move || serve_loop(server, &socket, role, &handler, &stop))?
+                .spawn(move || serve_loop(server, &socket, &handler, &stop))?
         };
         Ok(Self {
             socket,
@@ -220,7 +220,7 @@ impl Drop for DumpServer {
 /// `minidumper`'s `run` — is started again, at most [`MAX_RESTARTS`] times in [`RESTART_WINDOW`];
 /// past that the loop ends (and the monitor with it). The old `Server` is dropped **before** the
 /// new one binds, so the new socket file the bind just made is never removed by the old one's `Drop`.
-fn serve_loop(mut server: Server, socket: &Path, role: Role, handler: &Handler, stop: &AtomicBool) {
+fn serve_loop(mut server: Server, socket: &Path, handler: &Handler, stop: &AtomicBool) {
     let mut budget = RestartBudget::new(Instant::now());
     loop {
         let handler = Box::new(Shared(handler.clone()));
@@ -235,7 +235,7 @@ fn serve_loop(mut server: Server, socket: &Path, role: Role, handler: &Handler, 
                     return;
                 }
                 drop(server);
-                match bind(socket, role) {
+                match bind(socket) {
                     Ok(again) => server = again,
                     Err(_) => return,
                 }
@@ -269,82 +269,8 @@ impl RestartBudget {
     }
 }
 
-/// A server listening at `socket`. On Windows the engines' socket ([`Role::Many`]) is labelled Low
-/// integrity: the sandboxed engine runs at Low, and connecting is a write to the socket file, which
-/// Windows refuses to a lower integrity level than the file's. The main process's socket keeps the
-/// Medium label its folder gives it, so the engines can't reach it.
-#[cfg_attr(not(windows), expect(unused_variables, reason = "only Windows labels the socket"))]
-fn bind(socket: &Path, role: Role) -> io::Result<Server> {
-    let server = Server::with_name(SocketName::Path(socket)).map_err(io::Error::other)?;
-    #[cfg(windows)]
-    if matches!(role, Role::Many) {
-        label_low_integrity(socket)?;
-    }
-    Ok(server)
-}
-
-/// Gives the file at `path` a Low mandatory label that keeps writes up from below Low out
-/// (`S:(ML;;NW;;;LW)`).
-#[cfg(windows)]
-fn label_low_integrity(path: &Path) -> io::Result<()> {
-    use std::os::windows::ffi::OsStrExt as _;
-
-    use windows_sys::Win32::Foundation::{ERROR_SUCCESS, LocalFree};
-    use windows_sys::Win32::Security::Authorization::{
-        ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1, SE_FILE_OBJECT, SetNamedSecurityInfoW,
-    };
-    use windows_sys::Win32::Security::{
-        ACL, GetSecurityDescriptorSacl, LABEL_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR,
-    };
-
-    let sddl: Vec<u16> = "S:(ML;;NW;;;LW)".encode_utf16().chain(Some(0)).collect();
-    let name: Vec<u16> = path.as_os_str().encode_wide().chain(Some(0)).collect();
-    let mut descriptor: PSECURITY_DESCRIPTOR = std::ptr::null_mut();
-    // SAFETY: `sddl` is a NUL-terminated wide string; `descriptor` receives a LocalAlloc'd security
-    // descriptor, freed below.
-    let made = unsafe {
-        ConvertStringSecurityDescriptorToSecurityDescriptorW(
-            sddl.as_ptr(),
-            SDDL_REVISION_1,
-            &raw mut descriptor,
-            std::ptr::null_mut(),
-        )
-    };
-    if made == 0 {
-        return Err(io::Error::last_os_error());
-    }
-    let (mut present, mut defaulted) = (0, 0);
-    let mut sacl: *mut ACL = std::ptr::null_mut();
-    // SAFETY: `descriptor` is the valid descriptor made above; the out pointers are locals.
-    let found = unsafe { GetSecurityDescriptorSacl(descriptor, &raw mut present, &raw mut sacl, &raw mut defaulted) };
-    let result = if found == 0 {
-        Err(io::Error::last_os_error())
-    } else if present == 0 {
-        Err(io::Error::other("the label's descriptor has no SACL"))
-    } else {
-        // SAFETY: `name` is a NUL-terminated wide path; `sacl` points into `descriptor`, alive until
-        // it is freed below; only the label is set.
-        let error = unsafe {
-            SetNamedSecurityInfoW(
-                name.as_ptr(),
-                SE_FILE_OBJECT,
-                LABEL_SECURITY_INFORMATION,
-                std::ptr::null_mut(),
-                std::ptr::null_mut(),
-                std::ptr::null(),
-                sacl,
-            )
-        };
-        if error == ERROR_SUCCESS {
-            Ok(())
-        } else {
-            Err(io::Error::from_raw_os_error(i32::try_from(error).unwrap_or(i32::MAX)))
-        }
-    };
-    // SAFETY: `descriptor` was allocated by ConvertStringSecurityDescriptorToSecurityDescriptorW
-    // with LocalAlloc and is freed once.
-    unsafe { LocalFree(descriptor) };
-    result
+fn bind(socket: &Path) -> io::Result<Server> {
+    Server::with_name(SocketName::Path(socket)).map_err(io::Error::other)
 }
 
 #[derive(Clone)]
@@ -359,6 +285,57 @@ struct Handler {
 }
 
 impl Handler {
+    /// The dumps of one folder, `dir` (made private to the user; a dump an earlier monitor left
+    /// half written there is deleted, never read).
+    fn new(dir: PathBuf, role: Role) -> io::Result<Self> {
+        private_dir(&dir)?;
+        for path in files_with(&dir, WRITING_EXTENSION) {
+            let _ = std::fs::remove_file(path);
+        }
+        Ok(Self {
+            dir,
+            one: matches!(role, Role::One),
+            connected: Arc::new(AtomicBool::new(false)),
+            writing: Arc::new(Mutex::new(None)),
+            written: Arc::new(Mutex::new(VecDeque::new())),
+        })
+    }
+
+    /// A new `.tmp` file for a dump, private to the user; refused past the folder's or the minute's
+    /// cap (minidumper logs it and answers the client).
+    fn new_dump(&self) -> io::Result<(File, PathBuf)> {
+        if !self.may_write() {
+            return Err(io::Error::other("too many crash dumps"));
+        }
+        let path = self.dir.join(unique_name(WRITING_EXTENSION));
+        let mut options = File::options();
+        options.write(true).read(true).create_new(true);
+        // Private to the user; on Windows the folder's inherited ACL already is.
+        #[cfg(unix)]
+        options.mode(0o600);
+        let file = options.open(&path)?;
+        *self.writing.lock().unwrap_or_else(PoisonError::into_inner) = Some(path.clone());
+        Ok((file, path))
+    }
+
+    /// Ends the dump [`new_dump`](Self::new_dump) began: complete (`Some`, its file) is flushed and
+    /// renamed to `.dmp`, the only name the main process reads; failed (`None`) is deleted.
+    fn finish_dump(&self, written: Option<File>) {
+        let Some(path) = self.writing.lock().unwrap_or_else(PoisonError::into_inner).take() else {
+            return;
+        };
+        match written {
+            Some(file) => {
+                let _ = file.sync_all();
+                drop(file);
+                let _ = std::fs::rename(&path, path.with_extension(DUMP_EXTENSION));
+            }
+            None => {
+                let _ = std::fs::remove_file(path);
+            }
+        }
+    }
+
     /// Whether one more dump may be written now: few enough in the folder and in the last minute.
     fn may_write(&self) -> bool {
         let held = files_with(&self.dir, DUMP_EXTENSION).len() + files_with(&self.dir, WRITING_EXTENSION).len();
@@ -397,35 +374,13 @@ struct Shared(Handler);
 
 impl ServerHandler for Shared {
     fn create_minidump_file(&self) -> Result<(File, PathBuf), io::Error> {
-        // Refused (minidumper logs it and answers the client) past the folder's or the minute's cap.
-        if !self.0.may_write() {
-            return Err(io::Error::other("too many crash dumps"));
-        }
-        let path = self.0.dir.join(unique_name(WRITING_EXTENSION));
-        let mut options = File::options();
-        options.write(true).read(true).create_new(true);
-        // Private to the user; on Windows the folder's inherited ACL already is.
-        #[cfg(unix)]
-        options.mode(0o600);
-        let file = options.open(&path)?;
-        *self.0.writing.lock().unwrap_or_else(PoisonError::into_inner) = Some(path.clone());
-        Ok((file, path))
+        self.0.new_dump()
     }
 
     fn on_minidump_created(&self, result: Result<MinidumpBinary, minidumper::Error>) -> LoopAction {
-        let writing = self.0.writing.lock().unwrap_or_else(PoisonError::into_inner).take();
         match result {
-            // Complete: flushed, then renamed to `.dmp`, the only name the main process reads.
-            Ok(binary) => {
-                let _ = binary.file.sync_all();
-                drop(binary.file);
-                let _ = std::fs::rename(&binary.path, binary.path.with_extension(DUMP_EXTENSION));
-            }
-            Err(_) => {
-                if let Some(path) = writing {
-                    let _ = std::fs::remove_file(path);
-                }
-            }
+            Ok(binary) => self.0.finish_dump(Some(binary.file)),
+            Err(_) => self.0.finish_dump(None),
         }
         LoopAction::Continue
     }
@@ -658,6 +613,27 @@ pub mod test_support {
         #[must_use]
         pub fn socket(&self) -> &Path {
             &self.0.socket
+        }
+    }
+
+    /// Windows: the engines' debugger, watching this process's children whose image is `engine`
+    /// and writing their dumps into a folder, as the monitor watches the app's.
+    #[cfg(windows)]
+    pub struct TestEngineWatcher {
+        _watcher: super::debugger::EngineWatcher,
+    }
+
+    #[cfg(windows)]
+    impl TestEngineWatcher {
+        /// Starts watching, writing dumps into `dir`.
+        ///
+        /// # Errors
+        /// When the folder or the watching thread can't be made.
+        pub fn start(dir: PathBuf, engine: PathBuf) -> io::Result<Self> {
+            let handler = super::Handler::new(dir, Role::Many)?;
+            Ok(Self {
+                _watcher: super::debugger::EngineWatcher::start(std::process::id(), engine, handler)?,
+            })
         }
     }
 }

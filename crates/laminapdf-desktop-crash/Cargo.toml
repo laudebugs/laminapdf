@@ -41,12 +41,16 @@ minidumper = { workspace = true }
 [target.'cfg(unix)'.dependencies]
 libc = { workspace = true }
 
-# The engines' socket file labelled Low integrity, so the sandboxed engine may connect to it.
+# The monitor watching the engines as their debugger, and writing their dumps (Windows).
 [target.'cfg(windows)'.dependencies]
 windows-sys = { workspace = true, features = [
     "Win32_Foundation",
-    "Win32_Security",
-    "Win32_Security_Authorization",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_Diagnostics_ToolHelp",
+    "Win32_System_Kernel",
+    "Win32_System_Memory",
+    "Win32_System_Threading",
 ] }
 
 # Reading a minidump (feature `summary`): rust-minidump's reader and unwinder, no symbol server

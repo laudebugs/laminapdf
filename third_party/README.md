@@ -4,6 +4,6 @@ Each folder here is a crates.io release copied whole, with a patch Lamina PDF ne
 
 | Crate | Release | Patch | Why |
 | --- | --- | --- | --- |
-| `minidumper` | 0.11.0 (MIT OR Apache-2.0, [EmbarkStudios/crash-handling](https://github.com/EmbarkStudios/crash-handling)) | `src/ipc/windows.rs`: `UnixStream::peer_pid` (`SIO_AF_UNIX_GETPEERPID`). `src/ipc/server.rs`: a Windows dump request whose `process_id` isn't the connection's peer is refused (`Error::UnknownClientPid`) before any process is opened, as the Linux server already checks. | The desktop app's crash monitor (D7f, ADR 0014 §10): without it a client could have any of the user's processes dumped. |
+| `minidumper` | 0.11.0 (MIT OR Apache-2.0, [EmbarkStudios/crash-handling](https://github.com/EmbarkStudios/crash-handling)) | `src/ipc/windows.rs`: `UnixStream::peer_pid` (`SIO_AF_UNIX_GETPEERPID`). `src/ipc/server.rs`: a Windows dump request whose `process_id` isn't the connection's peer is refused (`Error::UnknownClientPid`) before any process is opened, as the Linux server already checks. | The desktop app's crash monitor (D7f, ADR 0014 §10): the main process's dump server on Windows; without it a client could have any of the user's processes dumped. A refused client alone is dropped. |
 
 To see the patch: `diff -ru ~/.cargo/registry/src/*/minidumper-0.11.0 third_party/minidumper` (the copy drops the crate's `Cargo.lock`, `release.toml` and `.cargo_vcs_info.json`).

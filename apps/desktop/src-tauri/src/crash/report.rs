@@ -262,6 +262,11 @@ pub(crate) struct Crash {
 }
 
 impl Crash {
+    /// Whether this crash was a Rust panic, whose summary is its whole report.
+    pub(crate) const fn is_panic(&self) -> bool {
+        matches!(self.kind, CrashKind::Panic)
+    }
+
     /// A panic in `process`.
     pub(crate) fn panic(process: ProcessKind, summary: PanicSummary, sandbox: Option<SandboxLevel>) -> Self {
         Self {

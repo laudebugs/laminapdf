@@ -15,9 +15,11 @@
 //!   The engine binary does it in a `--summarize-dump` mode under the full sandbox; the main process
 //!   only reads the summary's JSON, so it never links the minidump parser.
 //!
-//! On Windows the dump server checks that a dump request comes from the process it names (the
-//! connection's peer, from the kernel), so a compromised engine can have only itself dumped: the
-//! workspace carries `minidumper` with that check (`third_party/minidumper`, ADR 0014 §10).
+//! On Windows the engine takes no part: it opens no socket (Winsock would give it a way onto the
+//! network), and the monitor watches it as its debugger instead, writing its dump itself
+//! (`capture::debugger`). The main process's own server checks that a dump request comes from the
+//! process it names (the connection's peer, from the kernel): the workspace carries `minidumper`
+//! with that check (`third_party/minidumper`, ADR 0014 §10).
 
 pub mod summary;
 
