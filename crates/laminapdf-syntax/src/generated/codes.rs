@@ -148,8 +148,12 @@ pub enum ErrorCode {
     InvalidLabelRanges,
     /// `content-object-stale`: an edit names a content object whose bytes are no longer what the edit expects, so it would change another object.
     ContentObjectStale,
-    /// `content-not-editable`: the content can't be edited: its font, its writing direction or the order of its glyphs is one Lamina PDF can't change safely, or it can't be read.
+    /// `content-not-editable`: the content can't be edited: its font, its writing direction, the order of its glyphs, a clip it sets or the state it draws in is one Lamina PDF can't change safely, or it can't be read.
     ContentNotEditable,
+    /// `unknown-blob`: an op names bytes by an ID that were not added to the session.
+    UnknownBlob,
+    /// `images-unavailable`: the document has no image writer, so it can't put a replacement image in the file.
+    ImagesUnavailable,
     /// `sink`: the sink failed to take the bytes or could not give them back.
     Sink,
     /// `not-rebased`: the output was written, but rebasing the document onto it failed.
@@ -374,6 +378,8 @@ impl ErrorCode {
         Self::InvalidLabelRanges,
         Self::ContentObjectStale,
         Self::ContentNotEditable,
+        Self::UnknownBlob,
+        Self::ImagesUnavailable,
         Self::Sink,
         Self::NotRebased,
         Self::SinkNotEmpty,
@@ -532,6 +538,8 @@ impl ErrorCode {
             Self::InvalidLabelRanges => "invalid-label-ranges",
             Self::ContentObjectStale => "content-object-stale",
             Self::ContentNotEditable => "content-not-editable",
+            Self::UnknownBlob => "unknown-blob",
+            Self::ImagesUnavailable => "images-unavailable",
             Self::Sink => "sink",
             Self::NotRebased => "not-rebased",
             Self::SinkNotEmpty => "sink-not-empty",
@@ -676,6 +684,8 @@ impl ErrorCode {
             Self::InvalidLabelRanges => ErrorKind::Usage,
             Self::ContentObjectStale => ErrorKind::State,
             Self::ContentNotEditable => ErrorKind::Unsupported,
+            Self::UnknownBlob => ErrorKind::Usage,
+            Self::ImagesUnavailable => ErrorKind::Unsupported,
             Self::Sink => ErrorKind::Io,
             Self::NotRebased => ErrorKind::State,
             Self::SinkNotEmpty => ErrorKind::Usage,
@@ -819,7 +829,9 @@ impl ErrorCode {
             Self::AppearanceUnavailable => "the document has no appearance generator, so it can't draw a new annotation",
             Self::InvalidLabelRanges => "page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0",
             Self::ContentObjectStale => "an edit names a content object whose bytes are no longer what the edit expects, so it would change another object",
-            Self::ContentNotEditable => "the content can't be edited: its font, its writing direction or the order of its glyphs is one Lamina PDF can't change safely, or it can't be read",
+            Self::ContentNotEditable => "the content can't be edited: its font, its writing direction, the order of its glyphs, a clip it sets or the state it draws in is one Lamina PDF can't change safely, or it can't be read",
+            Self::UnknownBlob => "an op names bytes by an ID that were not added to the session",
+            Self::ImagesUnavailable => "the document has no image writer, so it can't put a replacement image in the file",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
             Self::SinkNotEmpty => "the sink already held bytes before the save started",
@@ -964,6 +976,8 @@ impl ErrorCode {
             Self::InvalidLabelRanges => "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
             Self::ContentObjectStale => "read the page's content objects again and name the object from that list",
             Self::ContentNotEditable => "the content stays selectable and readable; the reason says why it can't be changed",
+            Self::UnknownBlob => "add the bytes with addBlob before applying ops that name them",
+            Self::ImagesUnavailable => "edit through the laminapdf crate, which writes images, or give laminapdf-ops a writer with Document::with_images",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",
             Self::SinkNotEmpty => "pass an empty sink: output offsets count from the sink's first byte",

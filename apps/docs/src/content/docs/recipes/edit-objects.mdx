@@ -1,0 +1,33 @@
+---
+title: Edit what a page draws
+description: List the shapes, text and images a PDF page already draws, then move, resize, delete and reorder them in one edit that rewrites only the objects it names.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll change four things a page already draws: shrink a rectangle, delete a circle, move an image across the page and send a curve under everything else. Use it to tidy a generated page, move a logo, or remove a stray mark before you send a file on.
+
+First, the program lists the page's objects in painting order, each with its box and, when it can't be moved, the reason. Each edit then names its object as the list gave it, and the four edits apply together:
+
+<Example ts="packages/sdk/examples/edit-objects.ts" rust="crates/laminapdf/examples/edit_objects.rs" result="edit_objects" />
+
+In the result, the red rectangle is half its size about the same centre, the blue circle is gone and the gradient image sits 300 points to the right. The dashed curve now paints first, under everything else; nothing overlaps it, so it looks the same.
+
+## How it works
+
+- `content.objects(index)` (`content_objects` in Rust) lists what the page draws: paths, text, images, forms and shadings. Boxes are in page space, points from the top-left of the page as shown, with y down. `content.hitTest(index, [x, y])` gives the objects at a point, topmost first, and a rectangle `[x0, y0, x1, y1]` gives every object it meets.
+- An edit names an object by its place in the list and a hash of its bytes. So once an edit has changed an object, a name taken before that edit fails with `content-object-stale`, and an edit never lands on the wrong object.
+- A `transform` takes a matrix in page space: `[1, 0, 0, 1, 300, 0]` moves an object 300 points right, and `[0.5, 0, 0, 0.5, e, f]` halves it.
+- Only the objects you name are written again. The rest of the page keeps its bytes, and when another page draws the same content, that page stays as it was.
+- A resource nothing names any more, such as a deleted image's stored picture, leaves the page's resources.
+- **Undo:** one `undo()` reverts the whole edit.
+
+## What to change
+
+- **Replace an image:** add the new JPEG or PNG with `addBlob(bytes)` (`add_blob`), then edit `{ replaceImage: { object, blob } }`. The new picture fills the same box.
+- **Crop an image:** `{ crop: { object, rect } }` clips an image, a form or a shading to a rectangle in page space.
+- **Stacking order:** `to` takes `"front"`, `"back"`, `{ before: object }` or `{ after: object }`. A move that would put the object under another clip or other transparency, where it would draw differently, is refused with `content-not-editable`, and nothing changes.
+- **Clipping objects:** an object that clips what follows it can't be moved or deleted; its `readOnly` says `clipping-path`.
+- **Private content:** a deleted object stays in the file's earlier revisions until a full save. The edit's `stillInEarlierRevisions` says so; save with `mode: "fullRewrite"` to drop it.
+
+Next: [crop pages](/recipes/crop-pages/), to hide part of every page instead.

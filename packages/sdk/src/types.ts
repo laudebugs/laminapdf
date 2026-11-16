@@ -15,6 +15,7 @@ import type {
   ChildItems as ChildItemsJs,
   CommentJs,
   CommentPartJs,
+  ContentEdit as ContentEditJs,
   DestinationUse as DestinationUseJs,
   DestinationView as DestinationViewJs,
   DirectionInit,
@@ -40,6 +41,7 @@ import type {
   MetadataPatch as MetadataPatchJs,
   NamedDestinationJs,
   NoteIcon as NoteIconJs,
+  ObjectRef as ObjectRefJs,
   OpenAt as OpenAtJs,
   Op as OpJs,
   OutlineEntryInit,
@@ -53,6 +55,7 @@ import type {
   PageLabelInit,
   PageLabelRange as PageLabelRangeJs,
   PageLinkJs,
+  PageObjectJs,
   PlannedSaveJs,
   PolyKind as PolyKindJs,
   ProfileInit,
@@ -91,7 +94,8 @@ import type {
  * (`addOutlineItem`, `updateOutlineItem`, `moveOutlineItem`, `deleteOutlineItem`), the named-destination edits
  * (`setNamedDestination`, `renameNamedDestination`, `deleteNamedDestination`), `setInitialView`, the link
  * edits (`addLink`, `updateLink`, `deleteLink`), the annotation edits (`addAnnot`, `updateAnnot`,
- * `deleteAnnot`), or the deprecated `setInfo` (use
+ * `deleteAnnot`), `editContent` (move, delete, replace, crop or reorder what a page draws), or the
+ * deprecated `setInfo` (use
  * `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
  *
  * @since 0.2.0
@@ -516,6 +520,36 @@ export type OutlineNode = OutlineNodeJs;
  * @since 0.2.0
  */
 export type PageLink = PageLinkJs;
+
+/**
+ * One object a page draws, in painting order (later ones over earlier ones): its name for an
+ * edit (`object`), its `kind` (`"path"`, `"text"`, `"image"`, `"form"`, `"xobject"` or
+ * `"shading"`), its box in page space (`bounds`, `[x0, y0, x1, y1]`, before clipping) and, when it
+ * can't be moved, deleted or reordered, why (`readOnly`, such as `"clipping-path"`).
+ *
+ * @since 0.5.0
+ */
+export type PageObject = PageObjectJs;
+
+/**
+ * An object a page draws, named so the name lasts: its 0-based `ordinal` among the page's
+ * objects and the `hash` of its bytes (16 hex digits), as {@link PageObject} gives them. An edit
+ * whose name no longer matches the page fails with `content-object-stale`.
+ *
+ * @since 0.5.0
+ */
+export type ObjectRef = ObjectRefJs;
+
+/**
+ * One change to an object a page draws: `{ transform: { object, matrix } }` (a matrix
+ * `[a, b, c, d, e, f]` in page space), `{ delete: { object } }`, `{ replaceImage: { object, blob } }`
+ * (a blob ID from {@link Document.addBlob}), `{ crop: { object, rect } }` (`[x0, y0, x1, y1]` in page
+ * space) or `{ reorder: { object, to } }` (`"front"`, `"back"`, `{ before: ObjectRef }` or
+ * `{ after: ObjectRef }`).
+ *
+ * @since 0.5.0
+ */
+export type ContentEdit = ContentEditJs;
 
 /**
  * One annotation on a page, in page space: its ID (which the `updateAnnot` and `deleteAnnot`

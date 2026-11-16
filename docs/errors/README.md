@@ -126,7 +126,9 @@ A PR that adds a code adds:
 | [`appearance-unavailable`](appearance-unavailable.md) | `unsupported` | the document has no appearance generator, so it can't draw a new annotation |
 | [`invalid-label-ranges`](invalid-label-ranges.md) | `usage` | page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0 |
 | [`content-object-stale`](content-object-stale.md) | `state` | an edit names a content object whose bytes are no longer what the edit expects, so it would change another object |
-| [`content-not-editable`](content-not-editable.md) | `unsupported` | the content can't be edited: its font, its writing direction or the order of its glyphs is one Lamina PDF can't change safely, or it can't be read |
+| [`content-not-editable`](content-not-editable.md) | `unsupported` | the content can't be edited: its font, its writing direction, the order of its glyphs, a clip it sets or the state it draws in is one Lamina PDF can't change safely, or it can't be read |
+| [`unknown-blob`](unknown-blob.md) | `usage` | an op names bytes by an ID that were not added to the session |
+| [`images-unavailable`](images-unavailable.md) | `unsupported` | the document has no image writer, so it can't put a replacement image in the file |
 
 ## Op warnings
 

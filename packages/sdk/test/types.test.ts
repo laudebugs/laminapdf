@@ -56,6 +56,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "unsupported-layout-option":
     case "font-not-shapable":
     case "unsupported-image":
+    case "images-unavailable":
       return "unsupported";
     case "limit-exceeded":
     case "encoding-full":
@@ -139,6 +140,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "template-data-type":
     case "template-too-large":
     case "open-action-not-destination":
+    case "unknown-blob":
     case "no-bookmarks":
       return "usage";
     case "data-pending":

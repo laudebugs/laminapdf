@@ -153,6 +153,7 @@ fn group(ops: &[ContentOp]) -> (Vec<ContentObject>, Vec<MarkedSequence>) {
             kind,
             ops: i..last + 1,
             state: None,
+            end_state: None,
             bounds: None,
             marked: open.clone(),
         });

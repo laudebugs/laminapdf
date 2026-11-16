@@ -3395,6 +3395,7 @@ dependencies = [
  "laminapdf-content",
  "laminapdf-cos",
  "laminapdf-model",
+ "laminapdf-ops",
  "laminapdf-save",
  "laminapdf-syntax",
  "laminapdf-test-fixtures",
@@ -3414,6 +3415,7 @@ dependencies = [
  "boon",
  "hayro",
  "jpeg-encoder",
+ "laminapdf",
  "laminapdf-cos",
  "laminapdf-model",
  "laminapdf-syntax",
@@ -3455,6 +3457,7 @@ version = "0.4.0"
 dependencies = [
  "criterion",
  "laminapdf-build",
+ "laminapdf-content",
  "laminapdf-cos",
  "laminapdf-model",
  "laminapdf-ops",

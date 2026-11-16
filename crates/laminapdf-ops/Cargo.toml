@@ -24,6 +24,9 @@ tsify = ["dep:tsify", "dep:wasm-bindgen"]
 # An op that declares the widgets it touches, for the save planner's tests (E2r); off by default,
 # turned on by laminapdf-save's dev-dependency, never by a published crate.
 test-support = []
+# EditContent: editing what a page already draws (ADR 0022). Off in the WebAssembly base
+# module, which keeps its size budget; the façade's default `content-edit` turns it on.
+content-edit = []
 
 [dependencies]
 laminapdf-content = { workspace = true }
@@ -48,6 +51,8 @@ laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
 # Draws annotation appearances for the integration tests (E4 plan §2.2); another dev-dependency
 # cycle, which only `tests/` uses, so they see one copy of this crate.
 laminapdf-build = { path = "../laminapdf-build" }
+# This crate's own tests run with EditContent (Cargo allows the self-dependency for tests).
+laminapdf-ops = { path = ".", features = ["content-edit"] }
 proptest = { workspace = true }
 
 [lints]

@@ -168,6 +168,16 @@
         }
       ]
     },
+    "edit_objects": {
+      "sha256": "cb57a513a4db7b8d5ffb8215b9662be56c8f4f5cbf4bb7f1b72e9ee10c14a42d",
+      "bytes": 6233,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
     "edit_xmp": {
       "sha256": "e5b7fb93aaf2891c0070fc4f4aefd3b6a2daefbd32b62018d3210095e8b293ec",
       "bytes": 17973,

@@ -78,9 +78,12 @@
 mod annot;
 mod blob;
 mod class;
+#[cfg(feature = "content-edit")]
+mod content;
 mod document;
 mod error;
 mod history;
+mod images;
 mod info;
 mod initial_view;
 mod labels;
@@ -111,9 +114,12 @@ pub use annot::{
 };
 pub use blob::{BlobId, BlobStore, ParseBlobIdError, SourceId};
 pub use class::ModificationClass;
+#[cfg(feature = "content-edit")]
+pub use content::{ContentEdit, EditContent, ObjectRef, StackPosition};
 pub use document::{Document, PendingRebase, SaveState};
 pub use error::{Error, Result};
 pub use history::{History, Reverted, UndoOutcome};
+pub use images::{ImageXObjects, WrittenImage};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use info::{InfoPatch, SetInfo};
 pub use initial_view::{OpenAt, OpenZoom, SetInitialView, WindowPreferencesPatch};

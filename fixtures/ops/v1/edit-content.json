@@ -1,0 +1,12 @@
+{
+  "op": "editContent",
+  "args": {
+    "page": "p3.0",
+    "edits": [
+      { "transform": { "object": { "ordinal": 0, "hash": "c9d9d93fc09038b6" }, "matrix": [1, 0, 0, 1, 20, 10] } },
+      { "crop": { "object": { "ordinal": 1, "hash": "91f7b887ade380b0" }, "rect": [100, 60, 120, 100] } },
+      { "reorder": { "object": { "ordinal": 1, "hash": "91f7b887ade380b0" }, "to": "back" } },
+      { "delete": { "object": { "ordinal": 2, "hash": "80f07b0b16df5d27" } } }
+    ]
+  }
+}

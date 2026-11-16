@@ -58,6 +58,8 @@
             "invalid-label-ranges",
             "content-object-stale",
             "content-not-editable",
+            "unknown-blob",
+            "images-unavailable",
             "sink",
             "not-rebased",
             "sink-not-empty",
