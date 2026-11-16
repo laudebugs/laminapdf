@@ -160,6 +160,8 @@ pub enum ErrorCode {
     UnknownBlob,
     /// `images-unavailable`: the document has no image writer, so it can't put a replacement image in the file.
     ImagesUnavailable,
+    /// `flatten-widget`: flattening names a form field's widget, which annotation flattening leaves alone.
+    FlattenWidget,
     /// `sink`: the sink failed to take the bytes or could not give them back.
     Sink,
     /// `not-rebased`: the output was written, but rebasing the document onto it failed.
@@ -389,6 +391,7 @@ impl ErrorCode {
         Self::ContentNotEditable,
         Self::UnknownBlob,
         Self::ImagesUnavailable,
+        Self::FlattenWidget,
         Self::Sink,
         Self::NotRebased,
         Self::SinkNotEmpty,
@@ -552,6 +555,7 @@ impl ErrorCode {
             Self::ContentNotEditable => "content-not-editable",
             Self::UnknownBlob => "unknown-blob",
             Self::ImagesUnavailable => "images-unavailable",
+            Self::FlattenWidget => "flatten-widget",
             Self::Sink => "sink",
             Self::NotRebased => "not-rebased",
             Self::SinkNotEmpty => "sink-not-empty",
@@ -701,6 +705,7 @@ impl ErrorCode {
             Self::ContentNotEditable => ErrorKind::Unsupported,
             Self::UnknownBlob => ErrorKind::Usage,
             Self::ImagesUnavailable => ErrorKind::Unsupported,
+            Self::FlattenWidget => ErrorKind::Usage,
             Self::Sink => ErrorKind::Io,
             Self::NotRebased => ErrorKind::State,
             Self::SinkNotEmpty => ErrorKind::Usage,
@@ -850,6 +855,7 @@ impl ErrorCode {
             Self::ContentNotEditable => "the content can't be edited: its font, its writing direction, the order of its glyphs, a clip it sets or the state it draws in is one Lamina PDF can't change safely, or it can't be read",
             Self::UnknownBlob => "an op names bytes by an ID that were not added to the session",
             Self::ImagesUnavailable => "the document has no image writer, so it can't put a replacement image in the file",
+            Self::FlattenWidget => "flattening names a form field's widget, which annotation flattening leaves alone",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
             Self::SinkNotEmpty => "the sink already held bytes before the save started",
@@ -999,6 +1005,7 @@ impl ErrorCode {
             Self::ContentNotEditable => "the content stays selectable and readable; the reason says why it can't be changed",
             Self::UnknownBlob => "add the bytes with addBlob before applying ops that name them",
             Self::ImagesUnavailable => "edit through the laminapdf crate, which writes images, or give laminapdf-ops a writer with Document::with_images",
+            Self::FlattenWidget => "leave widgets out of the annotations to flatten; form fields are flattened on their own, and a signature field never is",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",
             Self::SinkNotEmpty => "pass an empty sink: output offsets count from the sink's first byte",
@@ -1217,6 +1224,8 @@ pub enum WarningCode {
     PdfaTransparency,
     /// `pdfa-font-not-embedded`: the file claims PDF/A, and a text box an edit added or changed is drawn in a standard 14 font, which isn't embedded.
     PdfaFontNotEmbedded,
+    /// `flatten-untagged`: the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out.
+    FlattenUntagged,
     /// `tounicode-conflict`: one glyph was used for two different texts; ToUnicode keeps the first.
     TounicodeConflict,
     /// `whole-font-rebuilt`: a font that forbids subsetting was rebuilt with every glyph kept.
@@ -1235,6 +1244,8 @@ pub enum WarningCode {
     TextInEarlierRevision,
     /// `rich-text-simplified`: an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour.
     RichTextSimplified,
+    /// `flatten-no-appearance`: flattening left annotations in place because none of them has an appearance and Lamina PDF can't draw one for its kind.
+    FlattenNoAppearance,
 }
 
 impl WarningCode {
@@ -1301,6 +1312,7 @@ impl WarningCode {
         Self::PdfaAnnotFlags,
         Self::PdfaTransparency,
         Self::PdfaFontNotEmbedded,
+        Self::FlattenUntagged,
         Self::TounicodeConflict,
         Self::WholeFontRebuilt,
         Self::FlowKeepBroken,
@@ -1310,6 +1322,7 @@ impl WarningCode {
         Self::RedactionNotApplied,
         Self::TextInEarlierRevision,
         Self::RichTextSimplified,
+        Self::FlattenNoAppearance,
     ];
 
     /// The code with this name, if there is one.
@@ -1392,6 +1405,7 @@ impl WarningCode {
             Self::PdfaAnnotFlags => "pdfa-annot-flags",
             Self::PdfaTransparency => "pdfa-transparency",
             Self::PdfaFontNotEmbedded => "pdfa-font-not-embedded",
+            Self::FlattenUntagged => "flatten-untagged",
             Self::TounicodeConflict => "tounicode-conflict",
             Self::WholeFontRebuilt => "whole-font-rebuilt",
             Self::FlowKeepBroken => "flow-keep-broken",
@@ -1401,6 +1415,7 @@ impl WarningCode {
             Self::RedactionNotApplied => "redaction-not-applied",
             Self::TextInEarlierRevision => "text-in-earlier-revision",
             Self::RichTextSimplified => "rich-text-simplified",
+            Self::FlattenNoAppearance => "flatten-no-appearance",
         }
     }
 
@@ -1469,6 +1484,7 @@ impl WarningCode {
             Self::PdfaAnnotFlags => ErrorKind::Usage,
             Self::PdfaTransparency => ErrorKind::Usage,
             Self::PdfaFontNotEmbedded => ErrorKind::Usage,
+            Self::FlattenUntagged => ErrorKind::Usage,
             Self::TounicodeConflict => ErrorKind::Usage,
             Self::WholeFontRebuilt => ErrorKind::Usage,
             Self::FlowKeepBroken => ErrorKind::Usage,
@@ -1478,6 +1494,7 @@ impl WarningCode {
             Self::RedactionNotApplied => ErrorKind::Security,
             Self::TextInEarlierRevision => ErrorKind::Security,
             Self::RichTextSimplified => ErrorKind::Usage,
+            Self::FlattenNoAppearance => ErrorKind::Usage,
         }
     }
 
@@ -1546,6 +1563,7 @@ impl WarningCode {
             Self::PdfaAnnotFlags => "an annotation doesn't print or is hidden, which breaks the document's PDF/A claim",
             Self::PdfaTransparency => "an annotation is translucent or blends, which PDF/A-1 forbids",
             Self::PdfaFontNotEmbedded => "the file claims PDF/A, and a text box an edit added or changed is drawn in a standard 14 font, which isn't embedded",
+            Self::FlattenUntagged => "the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out",
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
             Self::WholeFontRebuilt => "a font that forbids subsetting was rebuilt with every glyph kept",
             Self::FlowKeepBroken => "blocks kept together are taller than a page, so the flow split them",
@@ -1555,6 +1573,7 @@ impl WarningCode {
             Self::RedactionNotApplied => "a page has redaction marks that were never applied, so the text under them is still in the file",
             Self::TextInEarlierRevision => "an earlier revision of the file holds text that the latest revision no longer has",
             Self::RichTextSimplified => "an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour",
+            Self::FlattenNoAppearance => "flattening left annotations in place because none of them has an appearance and Lamina PDF can't draw one for its kind",
         }
     }
 
@@ -1623,6 +1642,7 @@ impl WarningCode {
             Self::PdfaAnnotFlags => "keep the annotation's Print flag and clear Hidden, Invisible, NoView and ToggleNoView",
             Self::PdfaTransparency => "make the mark opaque, or use an underline instead of a highlight",
             Self::PdfaFontNotEmbedded => "give the box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset",
+            Self::FlattenUntagged => "save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy",
             Self::TounicodeConflict => "mark the second occurrence with /ActualText so extraction gets its text",
             Self::WholeFontRebuilt => "check that the font's licence allows this, or use a static TrueType or CFF version",
             Self::FlowKeepBroken => "split the keep group or drop keep-with-next on a heading chain, or use a taller page",
@@ -1632,6 +1652,7 @@ impl WarningCode {
             Self::RedactionNotApplied => "apply the redactions in a tool that removes what they cover, then save a full rewrite",
             Self::TextInEarlierRevision => "save the file as a full rewrite, which keeps only the latest revision",
             Self::RichTextSimplified => "check how the box looks; bold and italic are kept, and the box's own font, size, colour and alignment apply to all of its text",
+            Self::FlattenNoAppearance => "nothing to do if they should stay; otherwise give them an appearance in the app that made them, or delete them",
         }
     }
 

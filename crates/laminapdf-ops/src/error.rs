@@ -195,6 +195,12 @@ pub enum Error {
     /// always sets one.
     #[error("the document has no image writer for replacement images")]
     ImagesUnavailable,
+    /// Flattening names a widget: form fields are flattened with their own op, and a signature
+    /// field never is ([`FlattenAnnots`](crate::FlattenAnnots)).
+    ///
+    /// Added in 0.6.0.
+    #[error("annotation {} is a form field's widget, which flattening refuses", ShownAnnot(.0))]
+    FlattenWidget(AnnotId),
 }
 
 /// An outline item ID as a message may show it, as [`Shown`] does pages.
@@ -315,6 +321,7 @@ impl Error {
         "content-not-editable",
         "unknown-blob",
         "images-unavailable",
+        "flatten-widget",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -365,6 +372,7 @@ impl Error {
             Self::ContentNotEditable { .. } => "content-not-editable",
             Self::UnknownBlob(_) => "unknown-blob",
             Self::ImagesUnavailable => "images-unavailable",
+            Self::FlattenWidget(_) => "flatten-widget",
         }
     }
 
@@ -401,6 +409,7 @@ impl Error {
             | Self::AnnotationFontInvalid
             | Self::UnknownAnnotation(_)
             | Self::NotALink(_)
+            | Self::FlattenWidget(_)
             | Self::OpenActionNotDestination
             | Self::XmpClaimReadOnly
             | Self::InvalidXmpProperty { .. }
@@ -441,6 +450,7 @@ impl Error {
             Self::UnknownAnnotation(annot)
             | Self::AnnotationLocked(annot)
             | Self::AnnotationNotEditable(annot)
+            | Self::FlattenWidget(annot)
             | Self::NotALink(annot) => match annot.as_lamina_id().obj_ref() {
                 Some(r) => Location {
                     object: Some(r.num),
@@ -550,6 +560,7 @@ mod tests {
             },
             Error::UnknownBlob(crate::BlobId::of(b"")),
             Error::ImagesUnavailable,
+            Error::FlattenWidget("a7.0".parse().unwrap()),
         ]
     }
 

@@ -71,6 +71,7 @@
 #![forbid(unsafe_code)]
 
 mod annot;
+mod appearance;
 mod comments;
 mod copy;
 mod date;
@@ -105,6 +106,7 @@ mod widgets;
 pub mod xmp;
 
 pub use annot::{Annot, AnnotFlags, AnnotGeometry, AnnotLink, AnnotSubtype, ReplyType};
+pub use appearance::{NormalAppearance, appearance_matrix};
 pub use comments::{AnnotState, BrokenThread, CommentThread, StateModel, ThreadMember};
 pub use copy::{Copied, ObjectCopier};
 pub use date::{InvalidDate, PdfDate};

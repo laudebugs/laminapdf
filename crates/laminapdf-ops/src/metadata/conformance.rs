@@ -94,6 +94,15 @@ pub enum ConformanceWarning {
         /// The text boxes' IDs.
         annotations: Vec<String>,
     },
+    /// The file claims PDF/UA-1, and flattening drew comments into the page as artifacts and
+    /// took them out of the structure tree, so their text is no longer read out (ISO 14289-1
+    /// §7.18.1) (`flatten-untagged`).
+    ///
+    /// Added in 0.6.0.
+    FlattenUntagged {
+        /// The flattened annotations' IDs.
+        annotations: Vec<String>,
+    },
 }
 
 impl ConformanceWarning {
@@ -113,6 +122,7 @@ impl ConformanceWarning {
         "pdfa-annot-flags",
         "pdfa-transparency",
         "pdfa-font-not-embedded",
+        "flatten-untagged",
     ];
 
     /// The stable kebab-case code.
@@ -133,6 +143,7 @@ impl ConformanceWarning {
             Self::PdfaAnnotFlags { .. } => "pdfa-annot-flags",
             Self::PdfaTransparency { .. } => "pdfa-transparency",
             Self::PdfaFontNotEmbedded { .. } => "pdfa-font-not-embedded",
+            Self::FlattenUntagged { .. } => "flatten-untagged",
         }
     }
 
@@ -157,7 +168,8 @@ impl ConformanceWarning {
             | Self::AnnotNotTagged { .. }
             | Self::PdfaAnnotFlags { .. }
             | Self::PdfaTransparency { .. }
-            | Self::PdfaFontNotEmbedded { .. } => ErrorKind::Usage,
+            | Self::PdfaFontNotEmbedded { .. }
+            | Self::FlattenUntagged { .. } => ErrorKind::Usage,
             Self::PdfaInfoMismatch { .. } => ErrorKind::Input,
         }
     }
@@ -219,6 +231,14 @@ pub fn pending_conformance_warnings(
     let mut out = conformance_warnings(doc)?;
     if pending.classes().contains(&crate::ModificationClass::Annotation) {
         out.extend(crate::annot::conformance_warnings(doc)?);
+    }
+    if !pending.flattened().is_empty()
+        && let PacketState::Parsed(packet) = doc.xmp()?
+        && packet.pdfua_part() == Some(1)
+    {
+        out.push(ConformanceWarning::FlattenUntagged {
+            annotations: pending.flattened().iter().map(ToString::to_string).collect(),
+        });
     }
     let (incomplete, dropped, unchecked, ua_unchecked) = (
         pending.tags_incomplete(),

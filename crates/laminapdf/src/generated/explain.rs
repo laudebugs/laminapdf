@@ -3520,6 +3520,42 @@ The decisions and todos behind this code:
 - [E7d](../todos/done/E7d-select-transform-existing.md): replacing images
 - [E7 plan §2.3](../plans/editor/e7-editing-existing-content.md#23-objects): what a replaced image writes
 "#,
+        "flatten-widget" => r#"# `flatten-widget`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An edit asked to flatten an annotation that is a form field's widget. Flattening draws comments and marks into the page; it leaves form fields alone, so nothing was changed.
+
+## Why
+
+A widget is the part of a form field you see and type into. Drawing it into the page and removing it would take the field's value out of the form while still showing it, and flattening a signature field would make a signature look present when it can no longer be checked. Form fields are flattened on their own, by an edit that knows about their values, and a signature field never is.
+
+## How to fix
+
+Leave widgets out of the annotations you flatten. `Document::flatten_annotations` with `FlattenScope::All` or `FlattenScope::Pages` (`doc.flattenAnnotations` in TypeScript) leaves them out for you.
+
+## Example
+
+```json
+{ "op": "flattenAnnots", "args": { "annots": ["a18.0"], "intent": "view" } }
+```
+
+Applied to a page where `a18.0` is a text field's widget.
+
+## Data fields
+
+None. The `location` is the widget's `object` and `id`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5e](../todos/ongoing/E5e-flatten-and-summary.md): flattening annotations
+- [E5 plan §2.1](../plans/editor/e5-review-stamps-interchange.md#21-ops): what flattening refuses
+"#,
         "pdfa-one-author" => r#"# `pdfa-one-author`
 
 - Type: warning
@@ -3900,6 +3936,38 @@ A text box in Helvetica added to a PDF/A-2b file, then `doc.plan()`, lists `pdfa
 The decisions and todos behind this code:
 
 - [E4e](../todos/done/E4e-freetext-callouts.md): text boxes and callouts
+",
+        "flatten-untagged" => r"# `flatten-untagged`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file claims PDF/UA-1, and an edit flattened comments into the page. Their drawings are now page content marked as artifacts, and the comments themselves left the structure tree, so a screen reader no longer reads their text.
+
+## Why
+
+PDF/UA-1 asks that every annotation be tagged, with its text as its description. A flattened comment is no longer an annotation: what it drew is part of the page, and the words it held are gone. A screen reader skips artifacts, so the file no longer says what the comments said.
+
+## How to fix
+
+Save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy of the file instead. The warning never blocks the edit or the save.
+
+## Example
+
+Flattening the comments of a file whose XMP metadata has `pdfuaid:part` 1, then `doc.plan()`, lists `flatten-untagged`.
+
+## Data fields
+
+- `annotations`: the IDs of the flattened annotations.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5e](../todos/ongoing/E5e-flatten-and-summary.md): flattening annotations
+- [E5 plan §3](../plans/editor/e5-review-stamps-interchange.md#3-conformance-the-edits-must-keep): flattening in a tagged file
 ",
         "sink" => r"# `sink`
 
@@ -6296,6 +6364,38 @@ The decisions and todos behind this code:
 
 - [E4e](../todos/done/E4e-freetext-callouts.md): text boxes and callouts
 - [E4 plan §11](../plans/editor/e4-markup-and-drawing-annotations.md#11-decisions-on-the-open-questions): the rich-text subset
+",
+        "flatten-no-appearance" => r"# `flatten-no-appearance`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An edit flattened annotations, and some of them stayed in place: they have no appearance, and Lamina PDF can't draw one for their kind. The others were flattened.
+
+## Why
+
+Flattening draws each annotation's appearance, the picture a viewer shows for it, into the page. Lamina PDF draws one for notes, carets, text markup, ink, shapes, lines, polygons and text boxes that lack it. For other kinds, such as a file attachment or a sound, each viewer draws its own icon, so there is no picture to keep.
+
+## How to fix
+
+Nothing, if the annotations should stay. Otherwise open the file in the app that made them, which may give them an appearance, or delete them. The warning never blocks the edit or the save.
+
+## Example
+
+Flattening a page with a file attachment that has no `/AP` entry.
+
+## Data fields
+
+- `annotations`: the IDs of the annotations left in place.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5e](../todos/ongoing/E5e-flatten-and-summary.md): flattening annotations
+- [E5 plan §2.1](../plans/editor/e5-review-stamps-interchange.md#21-ops): what flattening leaves in place
 ",
         "builder-finished" => r#"# `builder-finished`
 

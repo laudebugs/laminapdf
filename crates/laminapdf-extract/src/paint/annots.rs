@@ -6,10 +6,10 @@
 //! out, so an annotation that can't be read for any reason, a hard limit included, is skipped
 //! (ADR 0003's tolerant reading): it covers nothing, and the page's text stays.
 
-use laminapdf_content::{Visitor, interpret_content, transformed_box};
+use laminapdf_content::{Visitor, interpret_content};
 use laminapdf_cos::{Result, absent_if_malformed, tolerant};
 use laminapdf_model::BlendMode;
-use laminapdf_model::{Document, Matrix, Page, PageFrame, UserSpaceRect};
+use laminapdf_model::{Document, Page, PageFrame};
 use laminapdf_syntax::CancelToken;
 use laminapdf_syntax::{Dict, Object, Stream};
 
@@ -42,40 +42,10 @@ pub(crate) fn covers(doc: &Document, page: &Page<'_>, frame: &PageFrame, cancel:
     Ok(out)
 }
 
-/// `value` as numbers, each read through a reference; `None` unless all are numbers.
-fn numbers(doc: &Document, value: Option<&Object>) -> Result<Option<Vec<f64>>> {
-    let Some(value) = value else {
-        return Ok(None);
-    };
-    let array = doc.deref(value)?;
-    let Some(items) = array.as_array() else {
-        return Ok(None);
-    };
-    let mut out = Vec::with_capacity(items.len());
-    for item in items {
-        match doc.deref(item)?.as_f64() {
-            Some(v) => out.push(v),
-            None => return Ok(None),
-        }
-    }
-    Ok(Some(out))
-}
-
-fn rect(values: &[f64]) -> Option<UserSpaceRect> {
-    match *values {
-        [x0, y0, x1, y1] => Some(UserSpaceRect::from_corners(x0, y0, x1, y1)),
-        _ => None,
-    }
-}
-
-/// The normal appearance stream (`/AP /N`, or its entry `/AS` names), when the annotation is
-/// shown on screen at full opacity.
+/// The normal appearance stream ([`Document::normal_appearance`]), when the annotation is shown
+/// on screen at full opacity.
 fn appearance(doc: &Document, dict: &Dict) -> Result<Option<Stream>> {
-    let name = |key: &str| match dict.get(key) {
-        Some(Object::Name(n)) => Some(n.as_bytes().to_vec()),
-        _ => None,
-    };
-    if name("Subtype").as_deref() == Some(b"Popup") {
+    if matches!(dict.get("Subtype"), Some(Object::Name(n)) if n.as_bytes() == b"Popup") {
         return Ok(None);
     }
     let flags = match dict.get("F") {
@@ -97,41 +67,7 @@ fn appearance(doc: &Document, dict: &Dict) -> Result<Option<Stream>> {
     if dict.get("BM").is_some_and(|bm| !normal(bm)) {
         return Ok(None);
     }
-    let Some(ap) = dict.get("AP") else {
-        return Ok(None);
-    };
-    let ap = doc.deref(ap)?;
-    let Some(normal) = ap.as_dict().and_then(|ap| ap.get("N")) else {
-        return Ok(None);
-    };
-    let normal = doc.deref(normal)?;
-    let stream = match &*normal {
-        Object::Stream(s) => Some(s.clone()),
-        Object::Dict(states) => match name("AS").and_then(|state| states.get(&String::from_utf8_lossy(&state))) {
-            Some(chosen) => match &*doc.deref(chosen)? {
-                Object::Stream(s) => Some(s.clone()),
-                _ => None,
-            },
-            None => None,
-        },
-        _ => None,
-    };
-    Ok(stream)
-}
-
-/// The matrix that draws an appearance whose `/BBox` is `bbox` and `/Matrix` is `matrix` into
-/// the annotation's `rect` (§12.5.5): the matrix, then the scale and shift that fit the
-/// transformed box onto the rectangle.
-pub(crate) fn appearance_matrix(bbox: &UserSpaceRect, matrix: &Matrix, rect: &UserSpaceRect) -> Option<Matrix> {
-    let boxed = transformed_box(bbox, matrix);
-    let (w, h) = (boxed.x1 - boxed.x0, boxed.y1 - boxed.y0);
-    if w <= 0.0 || h <= 0.0 || !w.is_finite() || !h.is_finite() {
-        return None;
-    }
-    let fit = Matrix::translate(-boxed.x0, -boxed.y0)
-        .then(&Matrix::scale((rect.x1 - rect.x0) / w, (rect.y1 - rect.y0) / h))
-        .then(&Matrix::translate(rect.x0, rect.y0));
-    Some(matrix.then(&fit))
+    Ok(doc.normal_appearance(dict)?.map(|a| a.stream))
 }
 
 fn annotation(doc: &Document, annot: laminapdf_syntax::ObjRef, frame: &PageFrame) -> Result<Vec<Cover>> {
@@ -142,16 +78,10 @@ fn annotation(doc: &Document, annot: laminapdf_syntax::ObjRef, frame: &PageFrame
     let Some(stream) = appearance(doc, dict)?.filter(|s| s.dict.get("OC").is_none()) else {
         return Ok(Vec::new());
     };
-    let (Some(target), Some(bbox)) = (
-        numbers(doc, dict.get("Rect"))?.as_deref().and_then(rect),
-        numbers(doc, stream.dict.get("BBox"))?.as_deref().and_then(rect),
-    ) else {
+    let Some(target) = doc.annotation_rect(dict)? else {
         return Ok(Vec::new());
     };
-    let matrix = numbers(doc, stream.dict.get("Matrix"))?
-        .and_then(|m| <[f64; 6]>::try_from(m).ok())
-        .map_or(Matrix::IDENTITY, Matrix::new);
-    let Some(outer) = appearance_matrix(&bbox, &matrix, &target) else {
+    let Some(outer) = doc.appearance_placement(dict, &stream)? else {
         return Ok(Vec::new());
     };
     let content = doc.decode_stream(&stream)?;
@@ -163,48 +93,4 @@ fn annotation(doc: &Document, annot: laminapdf_syntax::ObjRef, frame: &PageFrame
     // A trait object, as `laminapdf-text` passes one: one interpreter in the WebAssembly modules.
     interpret_content(doc, &content, resources, &mut collector as &mut dyn Visitor)?;
     Ok(collector.finish().1)
-}
-
-#[cfg(test)]
-mod tests {
-    use laminapdf_model::{Matrix, UserSpaceRect};
-
-    use super::appearance_matrix;
-
-    fn mapped(m: &Matrix, x: f64, y: f64) -> (f64, f64) {
-        let (x, y) = m.apply(x, y);
-        ((x * 1000.0).round() / 1000.0, (y * 1000.0).round() / 1000.0)
-    }
-
-    #[test]
-    fn the_box_maps_onto_the_rect() {
-        let bbox = UserSpaceRect::from_corners(0.0, 0.0, 10.0, 20.0);
-        let rect = UserSpaceRect::from_corners(100.0, 200.0, 120.0, 220.0);
-        let m = appearance_matrix(&bbox, &Matrix::IDENTITY, &rect).unwrap_or(Matrix::IDENTITY);
-        assert_eq!(
-            (mapped(&m, 0.0, 0.0), mapped(&m, 10.0, 20.0)),
-            ((100.0, 200.0), (120.0, 220.0))
-        );
-    }
-
-    #[test]
-    fn a_quarter_turned_matrix_still_fills_the_rect() {
-        let bbox = UserSpaceRect::from_corners(0.0, 0.0, 10.0, 20.0);
-        // 90° counter-clockwise: the 10 × 20 box becomes 20 × 10, x from −20 to 0.
-        let turn = Matrix::new([0.0, 1.0, -1.0, 0.0, 0.0, 0.0]);
-        let rect = UserSpaceRect::from_corners(100.0, 200.0, 140.0, 220.0);
-        let m = appearance_matrix(&bbox, &turn, &rect).unwrap_or(Matrix::IDENTITY);
-        // (0, 0) turns to (0, 0), the box's right edge: x 140. (10, 20) turns to (−20, 10).
-        assert_eq!(
-            (mapped(&m, 0.0, 0.0), mapped(&m, 10.0, 20.0)),
-            ((140.0, 200.0), (100.0, 220.0))
-        );
-    }
-
-    #[test]
-    fn a_box_of_no_area_maps_nothing() {
-        let flat = UserSpaceRect::from_corners(0.0, 0.0, 10.0, 0.0);
-        let rect = UserSpaceRect::from_corners(0.0, 0.0, 10.0, 10.0);
-        assert!(appearance_matrix(&flat, &Matrix::IDENTITY, &rect).is_none());
-    }
 }

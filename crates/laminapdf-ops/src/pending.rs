@@ -3,7 +3,7 @@
 
 use std::collections::BTreeSet;
 
-use laminapdf_model::PageId;
+use laminapdf_model::{AnnotId, PageId};
 
 use crate::class::{AnnotRight, ModificationClass};
 use crate::op::{Effect, Op};
@@ -35,6 +35,7 @@ pub struct PendingChanges {
     tags_dropped: BTreeSet<PageId>,
     pdfa_unchecked: BTreeSet<PageId>,
     pdfua_unchecked: BTreeSet<PageId>,
+    flattened: BTreeSet<AnnotId>,
 }
 
 impl PendingChanges {
@@ -66,6 +67,7 @@ impl PendingChanges {
             tags_dropped: BTreeSet::new(),
             pdfa_unchecked: BTreeSet::new(),
             pdfua_unchecked: BTreeSet::new(),
+            flattened: BTreeSet::new(),
         }
     }
 
@@ -169,6 +171,18 @@ impl PendingChanges {
         &self.pdfua_unchecked
     }
 
+    /// The annotations flattening drew into their pages and removed, which the save planner
+    /// reports on a file that claims PDF/UA-1
+    /// ([`ConformanceWarning::FlattenUntagged`](crate::ConformanceWarning::FlattenUntagged)):
+    /// their text left the structure tree. Like the rest of these changes, the set only grows
+    /// until a save.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn flattened(&self) -> &BTreeSet<AnnotId> {
+        &self.flattened
+    }
+
     /// Whether there are none.
     ///
     /// Added in 0.2.0.
@@ -189,6 +203,7 @@ impl PendingChanges {
         self.tags_dropped.extend(effect.tags_dropped.iter().cloned());
         self.pdfa_unchecked.extend(effect.pdfa_unchecked.iter().cloned());
         self.pdfua_unchecked.extend(effect.pdfua_unchecked.iter().cloned());
+        self.flattened.extend(effect.flattened.iter().cloned());
     }
 
     /// Adds everything `other` holds.
@@ -203,6 +218,7 @@ impl PendingChanges {
         self.tags_dropped.extend(other.tags_dropped.iter().cloned());
         self.pdfa_unchecked.extend(other.pdfa_unchecked.iter().cloned());
         self.pdfua_unchecked.extend(other.pdfua_unchecked.iter().cloned());
+        self.flattened.extend(other.flattened.iter().cloned());
     }
 
     /// These changes as their reversion records them: the same, but with each usage right

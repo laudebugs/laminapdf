@@ -325,6 +325,29 @@ impl UserSpaceRect {
     pub const fn to_array(&self) -> [f64; 4] {
         [self.x0, self.y0, self.x1, self.y1]
     }
+
+    /// The bounding box of the rectangle after `m`: the smallest upright rectangle holding its
+    /// four transformed corners.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn transformed(&self, m: &Matrix) -> Self {
+        let corners = [
+            (self.x0, self.y0),
+            (self.x1, self.y0),
+            (self.x0, self.y1),
+            (self.x1, self.y1),
+        ]
+        .map(|(x, y)| m.apply(x, y));
+        let (mut x0, mut y0, mut x1, mut y1) = (f64::INFINITY, f64::INFINITY, f64::NEG_INFINITY, f64::NEG_INFINITY);
+        for (x, y) in corners {
+            x0 = x0.min(x);
+            y0 = y0.min(y);
+            x1 = x1.max(x);
+            y1 = y1.max(y);
+        }
+        Self::from_corners(x0, y0, x1, y1)
+    }
 }
 
 /// US Letter, `[0 0 612 792]`: the frame's box when a page has no usable box (ADR 0027 §3,

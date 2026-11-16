@@ -286,9 +286,10 @@ pub(crate) fn of_warning(warning: &Warning) -> Data {
         #[cfg(feature = "text")]
         Warning::Build(w) => build_warning(w),
         Warning::Conformance(w) => conformance_warning(w),
-        Warning::Edit(crate::EditWarning::RichTextSimplified { annotations }) => {
-            data([("annotations", json!(annotations))])
-        }
+        Warning::Edit(
+            crate::EditWarning::RichTextSimplified { annotations }
+            | crate::EditWarning::FlattenNoAppearance { annotations },
+        ) => data([("annotations", json!(annotations))]),
     }
 }
 
@@ -301,7 +302,8 @@ fn conformance_warning(w: &laminapdf_ops::ConformanceWarning) -> Data {
         | W::AnnotNotTagged { annotations }
         | W::PdfaAnnotFlags { annotations }
         | W::PdfaTransparency { annotations }
-        | W::PdfaFontNotEmbedded { annotations } => data([("annotations", json!(annotations))]),
+        | W::PdfaFontNotEmbedded { annotations }
+        | W::FlattenUntagged { annotations } => data([("annotations", json!(annotations))]),
         _ => Data::new(),
     }
 }

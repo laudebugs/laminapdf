@@ -757,6 +757,13 @@
       "summary": "the document has no image writer, so it can't put a replacement image in the file",
       "hint": "edit through the laminapdf crate, which writes images, or give laminapdf-ops a writer with Document::with_images",
       "since": "0.5.0"
+    },
+    {
+      "code": "flatten-widget",
+      "kind": "usage",
+      "summary": "flattening names a form field's widget, which annotation flattening leaves alone",
+      "hint": "leave widgets out of the annotations to flatten; form fields are flattened on their own, and a signature field never is",
+      "since": "0.6.0"
     }
   ],
   "opWarnings": [
@@ -843,6 +850,13 @@
       "summary": "the file claims PDF/A, and a text box an edit added or changed is drawn in a standard 14 font, which isn't embedded",
       "hint": "give the box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset",
       "since": "0.5.0"
+    },
+    {
+      "code": "flatten-untagged",
+      "kind": "usage",
+      "summary": "the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out",
+      "hint": "save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy",
+      "since": "0.6.0"
     }
   ],
   "saveErrors": [
@@ -1407,6 +1421,13 @@
       "summary": "an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour",
       "hint": "check how the box looks; bold and italic are kept, and the box's own font, size, colour and alignment apply to all of its text",
       "since": "0.5.0"
+    },
+    {
+      "code": "flatten-no-appearance",
+      "kind": "usage",
+      "summary": "flattening left annotations in place because none of them has an appearance and Lamina PDF can't draw one for its kind",
+      "hint": "nothing to do if they should stay; otherwise give them an appearance in the app that made them, or delete them",
+      "since": "0.6.0"
     }
   ],
   "bindingErrors": [

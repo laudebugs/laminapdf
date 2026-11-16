@@ -325,6 +325,29 @@ pub(crate) mod page_ids {
     }
 }
 
+/// A list of [`AnnotId`](laminapdf_model::AnnotId)s as their string forms.
+pub(crate) mod annot_ids {
+    use laminapdf_model::AnnotId;
+    use serde::{Deserialize, Serializer, ser::SerializeSeq};
+
+    use super::{Deserializer, de};
+
+    pub(crate) fn serialize<S: Serializer>(ids: &[AnnotId], s: S) -> Result<S::Ok, S::Error> {
+        let mut seq = s.serialize_seq(Some(ids.len()))?;
+        for id in ids {
+            seq.serialize_element(&id.to_string())?;
+        }
+        seq.end()
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<AnnotId>, D::Error> {
+        Vec::<String>::deserialize(d)?
+            .into_iter()
+            .map(|s| s.parse().map_err(de::Error::custom))
+            .collect()
+    }
+}
+
 /// An optional list of page IDs, as [`page_ids`] writes one; absent when `None`.
 pub(crate) mod opt_page_ids {
     use laminapdf_model::PageId;
