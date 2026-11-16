@@ -46,6 +46,7 @@ export interface CrashRecoveredDialogProps {
   readonly tabs: readonly RecoveredTab[];
   /** The report part, when the app may ask about this crash. */
   readonly report?: RecoveredReport;
+  /** The user chose: the tabs to reopen (none for Start without tabs) and the report's answer. */
   readonly onChoose: (choice: RecoveredChoice) => void;
 }
 
