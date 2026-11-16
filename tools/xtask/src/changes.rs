@@ -186,8 +186,10 @@ pub(crate) const CODEQL_LANGUAGES: [&str; 4] = ["actions", "javascript-typescrip
 /// file for `python`, and a Rust file or the Cargo manifests for `rust`. Docs change none; the
 /// CodeQL workflow itself changes all four.
 pub(crate) fn codeql_languages(paths: &[&str]) -> Vec<&'static str> {
-    const SCRIPTS: [&str; 12] = [
-        "ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cjs", "html", "htm", "vue", "json",
+    // Files that hold script. Not JSON: a config or data file alone (tauri.conf.json, a fixture,
+    // size-budgets.json) gives the JavaScript analysis nothing new to find.
+    const SCRIPTS: [&str; 11] = [
+        "ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cjs", "html", "htm", "vue",
     ];
     let language = |path: &str| -> &[&'static str] {
         let extension = Path::new(path).extension().and_then(|e| e.to_str()).unwrap_or_default();
@@ -320,12 +322,17 @@ mod tests {
                 codeql_languages(&["crates/laminapdf/src/lib.rs", "Cargo.lock"]),
                 codeql_languages(&[".github/workflows/full.yml", ".github/actions/node-pnpm/action.yml"]),
                 codeql_languages(&["crates/laminapdf/README.md", "fixtures/corpus/hello.pdf"]),
+                codeql_languages(&[
+                    "apps/desktop/src-tauri/tauri.conf.json",
+                    "packages/wasm/size-budgets.json"
+                ]),
             ],
             [
                 vec!["javascript-typescript"],
                 vec!["python"],
                 vec!["rust"],
                 vec!["actions"],
+                vec![],
                 vec![],
             ]
         );
