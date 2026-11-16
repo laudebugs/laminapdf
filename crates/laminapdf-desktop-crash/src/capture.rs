@@ -456,10 +456,11 @@ pub enum CaptureError {
 /// while it writes the dump (`PR_SET_PTRACER`, for Yama's `ptrace_scope` 1; never
 /// `PR_SET_PTRACER_ANY`, and the engine's seccomp allows exactly this pid). Call it before the
 /// sandbox goes on, from the only thread (the engine), or from the main process's monitor thread;
-/// both connect through [`capture_crashes_within`], since the monitor may still be starting. On Linux the handler's alternate signal stack is the calling
-/// thread's; the other threads keep the one the standard library gives them. The descriptor is
-/// found as the one new socket, so it is only reliable where no other thread opens sockets at the
-/// same time: the engine, which reads it; the main process never does.
+/// both connect through [`capture_crashes_within`], since the monitor may still be starting. On
+/// Linux the handler's alternate signal stack is the calling thread's; the other threads keep the
+/// one the standard library gives them. The descriptor is found as the one new socket, so it is
+/// only reliable where no other thread opens sockets at the same time: the engine, which reads it;
+/// the main process never does.
 ///
 /// # Errors
 /// [`CaptureError`] when the server can't be reached or the handler can't be installed.

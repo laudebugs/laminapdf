@@ -6,7 +6,7 @@
 
 - `laminapdf-desktop-crash` has `capture_crashes_within(socket, server, wait)`: it tries again every 20 ms while the socket can't be reached, until `wait` has passed. Any other failure returns at once.
 - The app connects its crash handler with it, waiting up to 25 s, a little under the monitor's own 30 s wait, for a monitor it has just spawned. The connection runs on the monitor's supervisor thread rather than during start-up, so the app's start never waits for the monitor. On Linux the handler's alternate signal stack is that thread's; the main thread keeps the standard library's.
-- Each engine's crash arguments are read as it spawns, so an engine gets the monitor that is running then, and none once the monitor is down for good. The engine waits up to 2 s for a monitor that is still starting.
+- Each engine's crash arguments are read as it spawns, a restart of a window's engine included, so an engine gets the monitor that is running then, and none once the monitor is down for good. The engine waits up to 2 s for a monitor that is still starting.
 
 With the main process connected, the first monitor stays up for the whole run, and it restarts only if it crashes.
 
