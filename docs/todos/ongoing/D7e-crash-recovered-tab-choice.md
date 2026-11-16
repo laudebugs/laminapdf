@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D7e` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [D7a](../done/D7a-crash-reporting.md) |
@@ -33,7 +33,7 @@ When Lamina PDF quits unexpectedly, the next launch should not reopen every tab 
 
 **Out of scope**
 
-- Native crash capture: [D7d](./D7d-native-crash-minidumps-and-symbols.md).
+- Native crash capture: [D7d](../ready/D7d-native-crash-minidumps-and-symbols.md).
 
 ## Tasks
 
