@@ -358,7 +358,7 @@ Nightlies need nothing from the owner. A night on which nothing the app is built
 
 ### A staging trial
 
-1. Run `gh workflow run desktop-release.yml -f channel=staging`. Add `-f only_os=windows` (or `macos`, `linux`) to build and publish that OS alone, for example while another platform's signing waits on its vendor; the staging channel then serves only that OS.
+1. Run `gh workflow run desktop-release.yml -f channel=staging`. Add `-f only_os=windows` (or `macos`, `linux`) to build and publish that OS alone, for example while another platform's signing waits on its vendor; the staging channel then serves only that OS. The publish job resumes the staging channel, which D5c's update test leaves paused after each of its runs.
 2. Approve the `desktop-release` deployment each time GitHub asks: for the builds, then for the publish job.
 3. Check the files with §3's commands. Staging builds never reach a user's install: the app offers no staging channel.
 
