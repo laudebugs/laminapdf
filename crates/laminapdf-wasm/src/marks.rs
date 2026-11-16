@@ -208,6 +208,6 @@ fn boxes(lines: &JsValue) -> JsResult<Vec<RectPt>> {
 }
 
 /// A page-space rectangle from its corners.
-fn rect(x0: f64, y0: f64, x1: f64, y1: f64) -> RectPt {
+pub(crate) fn rect(x0: f64, y0: f64, x1: f64, y1: f64) -> RectPt {
     RectPt::new(Pt::new(x0), Pt::new(y0), Pt::new(x1), Pt::new(y1))
 }

@@ -307,7 +307,13 @@ mod tests {
             .collect();
         let own: Vec<&str> = samples().iter().map(RedactionWarning::code).collect();
         assert_eq!(own, RedactionWarning::CODES);
-        assert_eq!(listed, RedactionWarning::CODES);
+        // The edit warnings follow the redaction warnings.
+        let all: Vec<&str> = RedactionWarning::CODES
+            .iter()
+            .chain(crate::EditWarning::CODES)
+            .copied()
+            .collect();
+        assert_eq!(listed, all);
     }
 
     #[test]

@@ -199,6 +199,11 @@ pub struct Edited {
     ///
     /// Added in 0.3.0.
     pub bookmarks_dropped: usize,
+    /// What the edit did that its caller may want to check: `rich-text-simplified` when it
+    /// changed a text box whose rich text held styles Lamina PDF doesn't keep.
+    ///
+    /// Added in 0.5.0.
+    pub warnings: Vec<Warning>,
 }
 
 /// One reference to a deleted page and what the deletion did to it.
@@ -575,6 +580,7 @@ impl Document {
             structure_renamed: applied.structure_renamed,
             cropped_content_remains: applied.cropped_content_remains,
             bookmarks_dropped: applied.bookmarks_dropped,
+            warnings: edit_warnings(&applied.rich_text_simplified),
         }
     }
 
@@ -844,4 +850,14 @@ impl ReadableSink for Output<'_> {
     fn into_source(self) -> core::result::Result<Arc<dyn ByteSource>, SinkError> {
         Ok(Arc::new(self.bytes.clone()))
     }
+}
+
+/// The warnings of an edit's report.
+fn edit_warnings(simplified: &[laminapdf_model::AnnotId]) -> Vec<Warning> {
+    if simplified.is_empty() {
+        return Vec::new();
+    }
+    vec![Warning::Edit(crate::EditWarning::RichTextSimplified {
+        annotations: simplified.iter().map(ToString::to_string).collect(),
+    })]
 }

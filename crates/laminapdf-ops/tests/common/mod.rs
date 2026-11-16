@@ -20,6 +20,7 @@
 use laminapdf_cos::{Dict, OverlayEntry};
 
 pub mod annot_fuzz_entry;
+pub mod rich_text_fuzz_entry;
 use laminapdf_model::{PageId, Rotation};
 use laminapdf_ops::{Document, InfoPatch, Origin, RotatePage, SetInfo};
 pub use laminapdf_test_fixtures::{classic, classic_with_root, fixture, fixture_text, fixtures_dir, stream_body};

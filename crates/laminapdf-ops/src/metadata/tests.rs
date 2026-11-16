@@ -434,6 +434,9 @@ mod conformance {
             ConformanceWarning::PdfaTransparency {
                 annotations: Vec::new(),
             },
+            ConformanceWarning::PdfaFontNotEmbedded {
+                annotations: Vec::new(),
+            },
         ];
         assert_eq!(samples.map(|w| w.code()), ConformanceWarning::CODES);
     }
@@ -458,6 +461,9 @@ mod conformance {
                 annotations: Vec::new(),
             },
             ConformanceWarning::PdfaTransparency {
+                annotations: Vec::new(),
+            },
+            ConformanceWarning::PdfaFontNotEmbedded {
                 annotations: Vec::new(),
             },
         ];

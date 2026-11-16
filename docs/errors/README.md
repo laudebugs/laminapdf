@@ -124,6 +124,9 @@ A PR that adds a code adds:
 | [`not-a-link`](not-a-link.md) | `usage` | a link op names an annotation that isn't a link |
 | [`link-not-tagged`](link-not-tagged.md) | `unsupported` | the file claims PDF/UA-1 but has no structure tree for a new link to join |
 | [`appearance-unavailable`](appearance-unavailable.md) | `unsupported` | the document has no appearance generator, so it can't draw a new annotation |
+| [`appearance-needs-text`](appearance-needs-text.md) | `unsupported` | drawing this text box needs text layout that this build of Lamina PDF leaves out: a font given by its bytes, or a fallback font |
+| [`annotation-glyph-missing`](annotation-glyph-missing.md) | `usage` | a character of a text box is in none of its fonts, so it can't be drawn |
+| [`annotation-font-invalid`](annotation-font-invalid.md) | `usage` | a text box's font bytes aren't a font Lamina PDF can read and embed |
 | [`invalid-label-ranges`](invalid-label-ranges.md) | `usage` | page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0 |
 | [`content-object-stale`](content-object-stale.md) | `state` | an edit names a content object whose bytes are no longer what the edit expects, so it would change another object |
 | [`content-not-editable`](content-not-editable.md) | `unsupported` | the content can't be edited: its font, its writing direction, the order of its glyphs, a clip it sets or the state it draws in is one Lamina PDF can't change safely, or it can't be read |
@@ -145,6 +148,7 @@ A PR that adds a code adds:
 | [`annot-not-tagged`](annot-not-tagged.md) | `usage` | a new annotation isn't in the structure tree, which breaks the document's PDF/UA claim |
 | [`pdfa-annot-flags`](pdfa-annot-flags.md) | `usage` | an annotation doesn't print or is hidden, which breaks the document's PDF/A claim |
 | [`pdfa-transparency`](pdfa-transparency.md) | `usage` | an annotation is translucent or blends, which PDF/A-1 forbids |
+| [`pdfa-font-not-embedded`](pdfa-font-not-embedded.md) | `usage` | the file claims PDF/A, and a text box an edit added or changed is drawn in a standard 14 font, which isn't embedded |
 
 ## Save errors
 
@@ -267,6 +271,7 @@ A PR that adds a code adds:
 | [`covered-text`](covered-text.md) | `security` | a page draws text and then paints a shape, an image or an annotation over it, so the text is hidden but still in the file |
 | [`redaction-not-applied`](redaction-not-applied.md) | `security` | a page has redaction marks that were never applied, so the text under them is still in the file |
 | [`text-in-earlier-revision`](text-in-earlier-revision.md) | `security` | an earlier revision of the file holds text that the latest revision no longer has |
+| [`rich-text-simplified`](rich-text-simplified.md) | `usage` | an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour |
 
 ## Binding errors (`laminapdf-wasm`)
 

@@ -19,6 +19,7 @@
 pub mod across_pages;
 pub mod annots;
 pub mod annots_drawing;
+pub mod annots_freetext;
 pub mod flow_table;
 pub mod reading_order;
 pub mod reflow;

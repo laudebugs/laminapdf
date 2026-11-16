@@ -509,6 +509,7 @@ impl Document {
             structure_renamed: Vec::new(),
             cropped_content_remains: Vec::new(),
             bookmarks_dropped: 0,
+            rich_text_simplified: Vec::new(),
         });
         Ok(())
     }
@@ -584,6 +585,7 @@ impl Document {
             structure_renamed: state.structure_renamed,
             cropped_content_remains: state.cropped_content_remains,
             bookmarks_dropped: state.bookmarks_dropped,
+            rich_text_simplified: state.rich_text_simplified,
         })
     }
 

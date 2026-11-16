@@ -251,19 +251,11 @@ mod tests {
     }
 
     /// Every step that calls a local action has a name, so the run's log says what it does. The
-    /// release workflows the owner installs from tools/release are left as reviewed.
+    /// release workflows are covered too: their reviewed copies in tools/release must match them.
     #[test]
     fn every_local_action_step_should_have_a_name() {
-        let reviewed: Vec<String> = entries("tools/release")
-            .into_iter()
-            .filter(|p| Path::new(p).extension().is_some_and(|e| e == "yml"))
-            .map(|p| p.replace("tools/release/", ".github/workflows/"))
-            .collect();
         let mut unnamed: Vec<String> = Vec::new();
         for path in workflow_files().into_iter().chain(action_files()) {
-            if reviewed.contains(&path) {
-                continue;
-            }
             let text = repository_file(&path).unwrap_or_else(|| panic!("can't read {path}"));
             unnamed.extend(
                 unnamed_local_steps(&text)

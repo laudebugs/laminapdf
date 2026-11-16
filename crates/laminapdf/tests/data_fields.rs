@@ -438,6 +438,12 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         Warning::Conformance(laminapdf::ConformanceWarning::PdfaTransparency {
             annotations: vec!["a12.0".into()],
         }),
+        Warning::Conformance(laminapdf::ConformanceWarning::PdfaFontNotEmbedded {
+            annotations: vec!["a12.0".into()],
+        }),
+        Warning::Edit(laminapdf::EditWarning::RichTextSimplified {
+            annotations: vec!["a12.0".into()],
+        }),
     ];
     (errors, warnings)
 }

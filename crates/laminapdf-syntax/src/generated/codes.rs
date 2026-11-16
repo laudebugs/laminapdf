@@ -144,6 +144,12 @@ pub enum ErrorCode {
     LinkNotTagged,
     /// `appearance-unavailable`: the document has no appearance generator, so it can't draw a new annotation.
     AppearanceUnavailable,
+    /// `appearance-needs-text`: drawing this text box needs text layout that this build of Lamina PDF leaves out: a font given by its bytes, or a fallback font.
+    AppearanceNeedsText,
+    /// `annotation-glyph-missing`: a character of a text box is in none of its fonts, so it can't be drawn.
+    AnnotationGlyphMissing,
+    /// `annotation-font-invalid`: a text box's font bytes aren't a font Lamina PDF can read and embed.
+    AnnotationFontInvalid,
     /// `invalid-label-ranges`: page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0.
     InvalidLabelRanges,
     /// `content-object-stale`: an edit names a content object whose bytes are no longer what the edit expects, so it would change another object.
@@ -375,6 +381,9 @@ impl ErrorCode {
         Self::NotALink,
         Self::LinkNotTagged,
         Self::AppearanceUnavailable,
+        Self::AppearanceNeedsText,
+        Self::AnnotationGlyphMissing,
+        Self::AnnotationFontInvalid,
         Self::InvalidLabelRanges,
         Self::ContentObjectStale,
         Self::ContentNotEditable,
@@ -535,6 +544,9 @@ impl ErrorCode {
             Self::NotALink => "not-a-link",
             Self::LinkNotTagged => "link-not-tagged",
             Self::AppearanceUnavailable => "appearance-unavailable",
+            Self::AppearanceNeedsText => "appearance-needs-text",
+            Self::AnnotationGlyphMissing => "annotation-glyph-missing",
+            Self::AnnotationFontInvalid => "annotation-font-invalid",
             Self::InvalidLabelRanges => "invalid-label-ranges",
             Self::ContentObjectStale => "content-object-stale",
             Self::ContentNotEditable => "content-not-editable",
@@ -681,6 +693,9 @@ impl ErrorCode {
             Self::NotALink => ErrorKind::Usage,
             Self::LinkNotTagged => ErrorKind::Unsupported,
             Self::AppearanceUnavailable => ErrorKind::Unsupported,
+            Self::AppearanceNeedsText => ErrorKind::Unsupported,
+            Self::AnnotationGlyphMissing => ErrorKind::Usage,
+            Self::AnnotationFontInvalid => ErrorKind::Usage,
             Self::InvalidLabelRanges => ErrorKind::Usage,
             Self::ContentObjectStale => ErrorKind::State,
             Self::ContentNotEditable => ErrorKind::Unsupported,
@@ -827,6 +842,9 @@ impl ErrorCode {
             Self::NotALink => "a link op names an annotation that isn't a link",
             Self::LinkNotTagged => "the file claims PDF/UA-1 but has no structure tree for a new link to join",
             Self::AppearanceUnavailable => "the document has no appearance generator, so it can't draw a new annotation",
+            Self::AppearanceNeedsText => "drawing this text box needs text layout that this build of Lamina PDF leaves out: a font given by its bytes, or a fallback font",
+            Self::AnnotationGlyphMissing => "a character of a text box is in none of its fonts, so it can't be drawn",
+            Self::AnnotationFontInvalid => "a text box's font bytes aren't a font Lamina PDF can read and embed",
             Self::InvalidLabelRanges => "page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0",
             Self::ContentObjectStale => "an edit names a content object whose bytes are no longer what the edit expects, so it would change another object",
             Self::ContentNotEditable => "the content can't be edited: its font, its writing direction, the order of its glyphs, a clip it sets or the state it draws in is one Lamina PDF can't change safely, or it can't be read",
@@ -973,6 +991,9 @@ impl ErrorCode {
             Self::NotALink => "name a link from the page's links; change other annotations with updateAnnot and deleteAnnot",
             Self::LinkNotTagged => "tag the document first, or add the link to a copy that doesn't claim PDF/UA",
             Self::AppearanceUnavailable => "edit through the laminapdf crate, which draws appearances, or give laminapdf-ops a generator with Document::with_appearances",
+            Self::AppearanceNeedsText => "in the extract module, use Helvetica, Times or Courier; otherwise open the document in the WebAssembly text module (pass text: true to init before opening it)",
+            Self::AnnotationGlyphMissing => "add a fallback font that has the character, or give the box a font that has it",
+            Self::AnnotationFontInvalid => "give the bytes of a TrueType or OpenType font whose licence allows embedding",
             Self::InvalidLabelRanges => "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
             Self::ContentObjectStale => "read the page's content objects again and name the object from that list",
             Self::ContentNotEditable => "the content stays selectable and readable; the reason says why it can't be changed",
@@ -1194,6 +1215,8 @@ pub enum WarningCode {
     PdfaAnnotFlags,
     /// `pdfa-transparency`: an annotation is translucent or blends, which PDF/A-1 forbids.
     PdfaTransparency,
+    /// `pdfa-font-not-embedded`: the file claims PDF/A, and a text box an edit added or changed is drawn in a standard 14 font, which isn't embedded.
+    PdfaFontNotEmbedded,
     /// `tounicode-conflict`: one glyph was used for two different texts; ToUnicode keeps the first.
     TounicodeConflict,
     /// `whole-font-rebuilt`: a font that forbids subsetting was rebuilt with every glyph kept.
@@ -1210,6 +1233,8 @@ pub enum WarningCode {
     RedactionNotApplied,
     /// `text-in-earlier-revision`: an earlier revision of the file holds text that the latest revision no longer has.
     TextInEarlierRevision,
+    /// `rich-text-simplified`: an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour.
+    RichTextSimplified,
 }
 
 impl WarningCode {
@@ -1275,6 +1300,7 @@ impl WarningCode {
         Self::AnnotNotTagged,
         Self::PdfaAnnotFlags,
         Self::PdfaTransparency,
+        Self::PdfaFontNotEmbedded,
         Self::TounicodeConflict,
         Self::WholeFontRebuilt,
         Self::FlowKeepBroken,
@@ -1283,6 +1309,7 @@ impl WarningCode {
         Self::CoveredText,
         Self::RedactionNotApplied,
         Self::TextInEarlierRevision,
+        Self::RichTextSimplified,
     ];
 
     /// The code with this name, if there is one.
@@ -1364,6 +1391,7 @@ impl WarningCode {
             Self::AnnotNotTagged => "annot-not-tagged",
             Self::PdfaAnnotFlags => "pdfa-annot-flags",
             Self::PdfaTransparency => "pdfa-transparency",
+            Self::PdfaFontNotEmbedded => "pdfa-font-not-embedded",
             Self::TounicodeConflict => "tounicode-conflict",
             Self::WholeFontRebuilt => "whole-font-rebuilt",
             Self::FlowKeepBroken => "flow-keep-broken",
@@ -1372,6 +1400,7 @@ impl WarningCode {
             Self::CoveredText => "covered-text",
             Self::RedactionNotApplied => "redaction-not-applied",
             Self::TextInEarlierRevision => "text-in-earlier-revision",
+            Self::RichTextSimplified => "rich-text-simplified",
         }
     }
 
@@ -1439,6 +1468,7 @@ impl WarningCode {
             Self::AnnotNotTagged => ErrorKind::Usage,
             Self::PdfaAnnotFlags => ErrorKind::Usage,
             Self::PdfaTransparency => ErrorKind::Usage,
+            Self::PdfaFontNotEmbedded => ErrorKind::Usage,
             Self::TounicodeConflict => ErrorKind::Usage,
             Self::WholeFontRebuilt => ErrorKind::Usage,
             Self::FlowKeepBroken => ErrorKind::Usage,
@@ -1447,6 +1477,7 @@ impl WarningCode {
             Self::CoveredText => ErrorKind::Security,
             Self::RedactionNotApplied => ErrorKind::Security,
             Self::TextInEarlierRevision => ErrorKind::Security,
+            Self::RichTextSimplified => ErrorKind::Usage,
         }
     }
 
@@ -1514,6 +1545,7 @@ impl WarningCode {
             Self::AnnotNotTagged => "a new annotation isn't in the structure tree, which breaks the document's PDF/UA claim",
             Self::PdfaAnnotFlags => "an annotation doesn't print or is hidden, which breaks the document's PDF/A claim",
             Self::PdfaTransparency => "an annotation is translucent or blends, which PDF/A-1 forbids",
+            Self::PdfaFontNotEmbedded => "the file claims PDF/A, and a text box an edit added or changed is drawn in a standard 14 font, which isn't embedded",
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
             Self::WholeFontRebuilt => "a font that forbids subsetting was rebuilt with every glyph kept",
             Self::FlowKeepBroken => "blocks kept together are taller than a page, so the flow split them",
@@ -1522,6 +1554,7 @@ impl WarningCode {
             Self::CoveredText => "a page draws text and then paints a shape, an image or an annotation over it, so the text is hidden but still in the file",
             Self::RedactionNotApplied => "a page has redaction marks that were never applied, so the text under them is still in the file",
             Self::TextInEarlierRevision => "an earlier revision of the file holds text that the latest revision no longer has",
+            Self::RichTextSimplified => "an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour",
         }
     }
 
@@ -1589,6 +1622,7 @@ impl WarningCode {
             Self::AnnotNotTagged => "tag the document first, or add the annotation to a copy that doesn't claim PDF/UA",
             Self::PdfaAnnotFlags => "keep the annotation's Print flag and clear Hidden, Invisible, NoView and ToggleNoView",
             Self::PdfaTransparency => "make the mark opaque, or use an underline instead of a highlight",
+            Self::PdfaFontNotEmbedded => "give the box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset",
             Self::TounicodeConflict => "mark the second occurrence with /ActualText so extraction gets its text",
             Self::WholeFontRebuilt => "check that the font's licence allows this, or use a static TrueType or CFF version",
             Self::FlowKeepBroken => "split the keep group or drop keep-with-next on a heading chain, or use a taller page",
@@ -1597,6 +1631,7 @@ impl WarningCode {
             Self::CoveredText => "remove the text itself with a tool that deletes what a redaction covers, then save a full rewrite",
             Self::RedactionNotApplied => "apply the redactions in a tool that removes what they cover, then save a full rewrite",
             Self::TextInEarlierRevision => "save the file as a full rewrite, which keeps only the latest revision",
+            Self::RichTextSimplified => "check how the box looks; bold and italic are kept, and the box's own font, size, colour and alignment apply to all of its text",
         }
     }
 

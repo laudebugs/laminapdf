@@ -26,6 +26,9 @@ pub mod append_entry;
 /// The `annots` target's entry point, shared with laminapdf-ops' `tests/annotations.rs`.
 #[path = "../../crates/laminapdf-ops/tests/common/annot_fuzz_entry.rs"]
 pub mod annot_entry;
+/// The `rich_text` target's entry point, shared with laminapdf-ops' `tests/freetext.rs`.
+#[path = "../../crates/laminapdf-ops/tests/common/rich_text_fuzz_entry.rs"]
+pub mod rich_text_entry;
 /// The save targets' entry points (`ops_json`, `save_roundtrip`, `copy_pages`), shared with
 /// laminapdf-save's `tests/regressions.rs`.
 #[path = "../../crates/laminapdf-save/tests/common/fuzz_entry.rs"]

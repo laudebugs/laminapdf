@@ -73,6 +73,9 @@ export type ErrorCode =
   | "not-a-link"
   | "link-not-tagged"
   | "appearance-unavailable"
+  | "appearance-needs-text"
+  | "annotation-glyph-missing"
+  | "annotation-font-invalid"
   | "invalid-label-ranges"
   | "content-object-stale"
   | "content-not-editable"
@@ -237,6 +240,7 @@ export type WarningCode =
   | "annot-not-tagged"
   | "pdfa-annot-flags"
   | "pdfa-transparency"
+  | "pdfa-font-not-embedded"
   | "tounicode-conflict"
   | "whole-font-rebuilt"
   | "flow-keep-broken"
@@ -244,7 +248,8 @@ export type WarningCode =
   | "markdown-image-missing"
   | "covered-text"
   | "redaction-not-applied"
-  | "text-in-earlier-revision";
+  | "text-in-earlier-revision"
+  | "rich-text-simplified";
 
 /**
  * The names of the resource limits (`Limits`), as `data.limit` of `limit-exceeded`.
@@ -321,6 +326,9 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "not-a-link",
   "link-not-tagged",
   "appearance-unavailable",
+  "appearance-needs-text",
+  "annotation-glyph-missing",
+  "annotation-font-invalid",
   "invalid-label-ranges",
   "content-object-stale",
   "content-not-editable",
@@ -486,6 +494,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "annot-not-tagged",
   "pdfa-annot-flags",
   "pdfa-transparency",
+  "pdfa-font-not-embedded",
   "tounicode-conflict",
   "whole-font-rebuilt",
   "flow-keep-broken",
@@ -494,6 +503,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "covered-text",
   "redaction-not-applied",
   "text-in-earlier-revision",
+  "rich-text-simplified",
 ];
 
 /**
@@ -599,6 +609,9 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "not-a-link": "usage",
   "link-not-tagged": "unsupported",
   "appearance-unavailable": "unsupported",
+  "appearance-needs-text": "unsupported",
+  "annotation-glyph-missing": "usage",
+  "annotation-font-invalid": "usage",
   "invalid-label-ranges": "usage",
   "content-object-stale": "state",
   "content-not-editable": "unsupported",
@@ -615,6 +628,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "annot-not-tagged": "usage",
   "pdfa-annot-flags": "usage",
   "pdfa-transparency": "usage",
+  "pdfa-font-not-embedded": "usage",
   "sink": "io",
   "not-rebased": "state",
   "sink-not-empty": "usage",
@@ -692,6 +706,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "covered-text": "security",
   "redaction-not-applied": "security",
   "text-in-earlier-revision": "security",
+  "rich-text-simplified": "usage",
   "builder-finished": "state",
   "disposed": "state",
   "invalid-argument": "usage",
@@ -822,6 +837,9 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "not-a-link": "name a link from the page's links; change other annotations with updateAnnot and deleteAnnot",
   "link-not-tagged": "tag the document first, or add the link to a copy that doesn't claim PDF/UA",
   "appearance-unavailable": "edit through the laminapdf crate, which draws appearances, or give laminapdf-ops a generator with Document::with_appearances",
+  "appearance-needs-text": "in the extract module, use Helvetica, Times or Courier; otherwise open the document in the WebAssembly text module (pass text: true to init before opening it)",
+  "annotation-glyph-missing": "add a fallback font that has the character, or give the box a font that has it",
+  "annotation-font-invalid": "give the bytes of a TrueType or OpenType font whose licence allows embedding",
   "invalid-label-ranges": "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
   "content-object-stale": "read the page's content objects again and name the object from that list",
   "content-not-editable": "the content stays selectable and readable; the reason says why it can't be changed",
@@ -838,6 +856,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "annot-not-tagged": "tag the document first, or add the annotation to a copy that doesn't claim PDF/UA",
   "pdfa-annot-flags": "keep the annotation's Print flag and clear Hidden, Invisible, NoView and ToggleNoView",
   "pdfa-transparency": "make the mark opaque, or use an underline instead of a highlight",
+  "pdfa-font-not-embedded": "give the box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset",
   "sink": "check the destination and retry the save; the document is unchanged",
   "not-rebased": "retry rebase with the saved output carried by the error",
   "sink-not-empty": "pass an empty sink: output offsets count from the sink's first byte",
@@ -915,6 +934,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "covered-text": "remove the text itself with a tool that deletes what a redaction covers, then save a full rewrite",
   "redaction-not-applied": "apply the redactions in a tool that removes what they cover, then save a full rewrite",
   "text-in-earlier-revision": "save the file as a full rewrite, which keeps only the latest revision",
+  "rich-text-simplified": "check how the box looks; bold and italic are kept, and the box's own font, size, colour and alignment apply to all of its text",
   "builder-finished": "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",
   "disposed": "free a handle only after its last use; to keep working, open the document again or create a new builder",
   "invalid-argument": "pass the value the type declarations describe; the data field says what was wrong",
