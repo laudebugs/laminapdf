@@ -135,9 +135,15 @@ export interface EditState {
 
 /**
  * What the model did that a text-capable copy does after it: an edit's ops, a contents page
- * inserted, an undo or a redo.
+ * inserted, an undo, a redo, or a source document added (sources.ts), which later ops name.
  */
-export type EditAction = readonly Op[] | ContentsInsert | "undo" | "redo";
+export type EditAction = readonly Op[] | ContentsInsert | "undo" | "redo" | SourceAdded;
+
+/** A source document the model was given: its bytes, and the password it opened with. */
+interface SourceAdded {
+  readonly source: Uint8Array;
+  readonly password?: string;
+}
 
 /**
  * Rounds of fetching a call may need before it gives up with its last `data-pending`: the SDK's
@@ -275,15 +281,16 @@ async function replayEdits(opened: Open, copy: Document): Promise<void> {
   const { pending } = opened.edit;
   for (let action = pending[0]; action !== undefined; action = pending[0]) {
     const next = action;
-    await copy.ensure(() =>
-      next === "undo"
-        ? copy.undo()
-        : next === "redo"
-          ? copy.redo()
-          : "page" in next
-            ? copy.insertContentsPage(next.placement, next.page)
-            : copy.apply(next),
-    );
+    await copy.ensure(() => {
+      if (next === "undo") return copy.undo();
+      if (next === "redo") return copy.redo();
+      if ("source" in next) {
+        const { source, password } = next;
+        return copy.addSource(source, password === undefined ? {} : { password });
+      }
+      if ("page" in next) return copy.insertContentsPage(next.placement, next.page);
+      return copy.apply(next);
+    });
     pending.shift();
   }
 }

@@ -67,6 +67,13 @@ export {
   selectionNote,
 } from "./organise/dialogs.js";
 export {
+  type FromFileChoice,
+  type FromFileWhere,
+  PagesFromFileDialog,
+  type PagesFromFileDialogProps,
+  type SourceFile,
+} from "./organise/from-file.js";
+export {
   type LengthUnit,
   type Margins,
   type PageSize as SetupPageSize,
@@ -74,6 +81,14 @@ export {
 } from "./organise/geometry.js";
 export type { LabelRangeValue } from "./organise/labels.js";
 export { PageLabelsDialog, type PageLabelsDialogProps } from "./organise/labels-dialog.js";
+export {
+  type MergeChoice,
+  MergeDialog,
+  type MergeDialogProps,
+  type MergeFile,
+  type MergeResult,
+  unsharedClaims,
+} from "./organise/merge.js";
 export { gapOf, type MoveTo, moveToGap, type PageMove, pageRanges, stepGap } from "./organise/moves.js";
 export { type GridCommand, type GridPage, PageGrid } from "./organise/page-grid.js";
 export {
@@ -91,6 +106,17 @@ export {
   type ResizeDialogProps,
 } from "./organise/page-setup.js";
 export {
+  type Chapter,
+  MAX_PARTS,
+  type Part,
+  type PartNaming,
+  type PartsResult,
+  partNames,
+  partsAtBookmarks,
+  partsEvery,
+  partsOfRanges,
+} from "./organise/parts.js";
+export {
   deletedMessage,
   duplicatedMessage,
   insertedMessage,
@@ -98,5 +124,6 @@ export {
   type OrganiseStep,
   stepLabel,
 } from "./organise/report.js";
+export { type NamedPart, type SplitBy, SplitDialog, type SplitDialogProps } from "./organise/split.js";
 export { OrganiseToolbar, THUMBNAIL_SCALES } from "./organise/toolbar.js";
 export { attachTools, handTool, SELECT_TOOL, TEXT_SELECT_TOOL, ToolRegistry } from "./tools/tools.js";

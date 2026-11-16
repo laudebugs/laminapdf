@@ -16,7 +16,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | core | 169 | 32 | 5 | 18 | 0 | 114 | 46 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
-| web | 168 | 23 | 0 | 1 | 0 | 144 | 24 |
+| web | 168 | 26 | 3 | 1 | 0 | 138 | 30 |
 | desktop | 168 | 4 | 0 | 0 | 0 | 164 | 4 |
 
 ## A. Text & typography
@@ -58,12 +58,12 @@ Rows per surface by best proven status (of the rows that target the surface).
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | C.01 | Insert blank pages | 🟢 round-trip | — | 🟢 round-trip | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[moves, turns, duplicates, reverses, deletes and inserts pages](../../apps/web/e2e/organise.e2e.test.ts) web round-trip |
-| C.02 | Insert pages from other PDFs | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| C.02 | Insert pages from other PDFs | 🟢 round-trip | — | 🟢 round-trip | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[inserts pages from a file, from an encrypted one, and replaces a page](../../apps/web/e2e/organise-documents.e2e.test.ts) web round-trip |
 | C.03 | Delete & duplicate pages | 🟢 round-trip | — | 🟢 round-trip | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[moves, turns, duplicates, reverses, deletes and inserts pages](../../apps/web/e2e/organise.e2e.test.ts) web round-trip |
 | C.04 | Reorder pages | 🟢 round-trip | — | 🟢 round-trip | — | E2 round-trip | [`ids_are_the_page_objects`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[moves, turns, duplicates, reverses, deletes and inserts pages](../../apps/web/e2e/organise.e2e.test.ts) web round-trip |
-| C.05 | Extract selected pages | 🔵 write | — | — | — | E2 write | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
-| C.06 | Merge multiple documents | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
-| C.07 | Split by count, ranges, bookmarks | 🔵 write | — | — | — | E2 write | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
+| C.05 | Extract selected pages | 🔵 write | — | 🔵 write | — | E2 write | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[splits every two pages, and extracts the selected pages](../../apps/web/e2e/organise-documents.e2e.test.ts) web write |
+| C.06 | Merge multiple documents | 🟢 round-trip | — | 🟢 round-trip | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[merges two files into the document, in the order chosen](../../apps/web/e2e/organise-documents.e2e.test.ts) web round-trip |
+| C.07 | Split by count, ranges, bookmarks | 🔵 write | — | 🔵 write | — | E2 write | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[splits every two pages, and extracts the selected pages](../../apps/web/e2e/organise-documents.e2e.test.ts) web write |
 | C.08 | Rotate pages 90/180/270 | 🟢 round-trip | — | 🟢 round-trip | — | E2 round-trip | [`rotate_normalises_negative_multiples_of_90`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[moves, turns, duplicates, reverses, deletes and inserts pages](../../apps/web/e2e/organise.e2e.test.ts) web round-trip |
 | C.09 | Crop display area | 🟢 round-trip | — | 🟢 round-trip | — | E2 round-trip | [`crop_box_is_clipped_to_the_media_box`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[crops, resizes, sets boxes, turns and labels pages through the dialogs](../../apps/web/e2e/page-setup.e2e.test.ts) web round-trip |
 | C.10 | Resize page dimensions | 🟢 round-trip | — | 🟢 round-trip | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[crops, resizes, sets boxes, turns and labels pages through the dialogs](../../apps/web/e2e/page-setup.e2e.test.ts) web round-trip |
@@ -72,7 +72,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | C.13 | Reverse page order | 🟢 round-trip | — | 🟢 round-trip | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[moves, turns, duplicates, reverses, deletes and inserts pages](../../apps/web/e2e/organise.e2e.test.ts) web round-trip |
 | C.14 | Labels, page numbers, headers/footers | 🟡 read | — | — | — | E6 round-trip | [`labels_follow_the_ranges`](../../crates/laminapdf-model/tests/views.rs) core read |
 | C.15 | Booklet / N-up layouts | — | — | — | — | E16 round-trip |  |
-| C.16 | Replace pages, preserving the rest | 🟢 round-trip | — | — | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| C.16 | Replace pages, preserving the rest | 🟢 round-trip | — | 🟢 round-trip | — | E2 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[inserts pages from a file, from an encrypted one, and replaces a page](../../apps/web/e2e/organise-documents.e2e.test.ts) web round-trip |
 
 ## D. Comments & annotations
 
@@ -164,7 +164,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | H.07 | Extract text & images | 🟡 read | — | — | — | E3 read | [`page_text_agrees_with_pdfjs_and_pdftotext`](../../crates/laminapdf/tests/text_differential.rs) core read<br>[`gives_as_many_images_as_pdfimages_lists_in_every_fixture`](../../crates/laminapdf-extract/tests/images.rs) core read |
 | H.08 | Extract hyperlinks & bookmarks | 🟡 read | — | — | — | E3 read | [`every_link_kind_goes_out_as_json_and_csv`](../../crates/laminapdf/tests/navigation_export.rs) core read<br>[`the_outline_goes_out_as_json_and_csv`](../../crates/laminapdf/tests/navigation_export.rs) core read |
 | H.09 | Extract attachments | — | — | — | — | E3 read |  |
-| H.10 | Export pages/ranges | 🔵 write | — | — | — | E2 write | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
+| H.10 | Export pages/ranges | 🔵 write | — | 🔵 write | — | E2 write | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[splits every two pages, and extracts the selected pages](../../apps/web/e2e/organise-documents.e2e.test.ts) web write |
 | H.11 | Render pages to images | 🟡 read | — | — | — | E3 read | [`a_png_holds_the_drawn_pixels_with_the_resolution_in_its_header`](../../crates/laminapdf-render/tests/export.rs) core read |
 | H.12 | Convert to PDF/A, PDF/X, PDF/UA | — | — | — | — | E16 round-trip |  |
 | H.13 | Scanned → searchable PDF | — | — | — | — | E13 round-trip |  |

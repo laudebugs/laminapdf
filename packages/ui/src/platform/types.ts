@@ -34,6 +34,8 @@ export interface Capabilities {
   readonly canShare: boolean;
   /** The shell takes files dropped on the window and opens them itself; the UI's drop zone leaves drops alone. */
   readonly shellTakesDrops: boolean;
+  /** `chooseFolder` lets the user pick a folder to write several files into. */
+  readonly canWriteDirectory: boolean;
 }
 
 /** One of the capability flags. */
@@ -52,6 +54,16 @@ export interface PlatformFile {
   readonly handle?: File | FileSystemFileHandle;
   /** True when saveInPlace can write back to this file. */
   readonly writable: boolean;
+}
+
+/** A folder the user chose to write files into (`chooseFolder`). */
+export interface PlatformFolder {
+  /** Its name, as the user sees it. */
+  readonly name: string;
+  /** Which of `names` are files in it already. */
+  existing(names: readonly string[]): Promise<string[]>;
+  /** Writes `bytes` to the file `name` in it, replacing a file of that name. */
+  write(name: string, bytes: Uint8Array): Promise<void>;
 }
 
 /** How a save ended. */
@@ -190,8 +202,14 @@ export interface Platform {
   /** Files the OS asked us to open. Subscribe once at startup. */
   onOpenRequest(listener: (files: PlatformFile[]) => void): () => void;
 
-  /** Saves as a new file the user chooses, or as a download. */
-  saveAs(bytes: Uint8Array, suggestedName: string): Promise<SaveResult>;
+  /**
+   * Saves as a new file the user chooses, or as a download: a PDF, or a zip of several when the
+   * name ends in `.zip` (the parts of a split where no folder can be chosen). `bytes` may still be
+   * coming: a save dialog opens first, while the click that asked for it lets the browser show it.
+   */
+  saveAs(bytes: Uint8Array | Promise<Uint8Array>, suggestedName: string): Promise<SaveResult>;
+  /** Asks the user for a folder to write files into; undefined when they cancel. Only when capabilities.canWriteDirectory. */
+  chooseFolder?(): Promise<PlatformFolder | undefined>;
   /** Overwrites the file `file` came from. Only when capabilities.canWriteInPlace and file.writable. */
   saveInPlace(file: PlatformFile, bytes: Uint8Array): Promise<SaveResult>;
 
