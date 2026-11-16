@@ -40,7 +40,7 @@ Show that an installed Lamina PDF `0.0.1` updates itself to `0.0.2` on macOS, Wi
 
 **Out of scope**
 
-- The release workflow and OS code signing: [D6b](../done/D6b-release-workflow-and-linux-packages.md)–[D6d](../ongoing/D6d-windows-signing.md).
+- The release workflow and OS code signing: [D6b](../done/D6b-release-workflow-and-linux-packages.md)–[D6d](D6d-windows-signing.md).
 
 ## Acceptance criteria
 

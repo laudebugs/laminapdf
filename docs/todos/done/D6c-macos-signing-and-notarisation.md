@@ -42,7 +42,7 @@ Every macOS artefact lamina publishes — the `.app` inside the updater `.app.ta
 **Out of scope** (and which todo covers it)
 
 - Mac App Store packaging (non-goal).
-- Windows signing: [D6d](../ongoing/D6d-windows-signing.md).
+- Windows signing: [D6d](D6d-windows-signing.md).
 
 ## Tasks
 

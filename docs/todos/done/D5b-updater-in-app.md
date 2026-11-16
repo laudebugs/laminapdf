@@ -47,7 +47,7 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 
 **Out of scope** (and which todo covers it)
 
-- Production signing of installers (Apple/Windows/Linux) and the release workflow: [D6b](../done/D6b-release-workflow-and-linux-packages.md)–[D6d](../ongoing/D6d-windows-signing.md). The staging e2e uses OS-unsigned (or ad-hoc signed) bundles; updater signatures are independent of OS code signing.
+- Production signing of installers (Apple/Windows/Linux) and the release workflow: [D6b](../done/D6b-release-workflow-and-linux-packages.md)–[D6d](D6d-windows-signing.md). The staging e2e uses OS-unsigned (or ad-hoc signed) bundles; updater signatures are independent of OS code signing.
 - Crash reporting settings: [D7a](../done/D7a-crash-reporting.md). Renderer switch: [D7b](../done/D7b-settings-renderer-switch-and-download-page.md).
 - Mac App Store/Microsoft Store builds without the updater (non-goal).
 

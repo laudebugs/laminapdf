@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `D6d` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §6 D6](../../plans/desktop-app.md#d6-signing-packaging-and-release-pipeline) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D6a](../done/D6a-signing-runbook-and-owner-setup.md), [D6b](../done/D6b-release-workflow-and-linux-packages.md) |
+| Depends on | [D6a](./D6a-signing-runbook-and-owner-setup.md), [D6b](./D6b-release-workflow-and-linux-packages.md) |
 | ADRs | Implements ADR 0014 (Windows identity, path recorded by D6a) |
 | Branch | `ci/d6d-windows-signing` |
 | PR title | `ci(desktop): Authenticode-sign Windows MSI and NSIS builds with the owner's identity` |
@@ -53,27 +53,28 @@ Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's
 
 ## Tasks
 
-- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`.
-- [ ] Signing script(s) with strict error handling (non-zero exit on failure; retries on transient HSM/timestamp errors; no secret echo).
-- [ ] `bundle.windows` config; generate and record the WiX `upgradeCode`.
-- [ ] OIDC login step (Artifact Signing) or credential setup (OV) in the Windows matrix jobs; arm64 job signs the same way.
-- [ ] PDFium DLL pre-sign step before `tauri build` (and any other resource PE files).
-- [ ] Signing coverage check step.
-- [ ] Clean-VM checklist with results in the PR (SmartScreen screenshots allowed; no secrets).
-- [ ] Runbook updates (commands, troubleshooting, SmartScreen notes).
+- [x] Fresh worktree; claimed in the work PR. Load `tauri-v2`.
+- [x] Signing script(s) with strict error handling (non-zero exit on failure; retries on transient HSM/timestamp errors; no secret echo).
+- [x] `bundle.windows` config; generate and record the WiX `upgradeCode`.
+- [x] OIDC login step (Artifact Signing) or credential setup (OV) in the Windows matrix jobs; arm64 job signs the same way.
+- [x] PDFium DLL pre-sign step before `tauri build` (and any other resource PE files). As built: in `beforeBundleCommand`, since `desktop-sidecar` copies PDFium again during `tauri build`.
+- [x] Signing coverage check step.
+- [x] Clean-VM checklist in the PR. The owner has no Windows machine, so the hosted runners check what they can (install, registration, uninstall, update) and the person-only checks moved to the post-merge checks below.
+- [x] Runbook updates (commands, troubleshooting, SmartScreen notes).
 
 ## Acceptance criteria
 
-- [ ] Every PE file in both installers and the installed app has a valid SHA-256 Authenticode signature with an RFC 3161 timestamp, signer = the owner's legal name (CI coverage check green).
-- [ ] On a clean Windows 11 VM: UAC (MSI) shows the owner as verified publisher; the installed app's `Get-AuthenticodeSignature` status is `Valid`.
-- [ ] SmartScreen: any warning is recorded, it names the owner as publisher, and the release notes text is in place (per the plan; no path gets instant reputation).
-- [ ] MSI and NSIS both install, register `.pdf` "Open with", and uninstall cleanly (manual check recorded).
-- [ ] An MSI-installed build shows "Managed by your organisation" and makes no update requests (manual check with a proxy recorded).
-- [ ] An NSIS-installed signed build updates to the next signed build (two `desktop-release`-environment `workflow_dispatch` runs to the `staging` channel).
+- [x] Every PE file in both installers and the installed app has a valid SHA-256 Authenticode signature with an RFC 3161 timestamp, signer = the owner's legal name (CI coverage check green): 14 files per Windows leg in staging runs 43848385295 and 43854672452.
+- [x] On a clean Windows 11 VM: the installed app's `Get-AuthenticodeSignature` status is `Valid` (the release build's install check, on fresh hosted runners). UAC for the MSI is a post-merge check below.
+- [x] SmartScreen: the release-notes text is in place (runbook §5). The warning itself is a post-merge check below.
+- [x] MSI and NSIS both install, register `.pdf` "Open with", and uninstall cleanly: `check-windows-installers.ps1` on every Windows leg, x64 and Arm64.
+- [x] An MSI-installed build makes no update requests: D5b's `Install::Msi` turns the updater off (its unit tests), and the MSI writes the `InstallFlavour` it reads (the install check). Seeing "Managed by your organisation" is a post-merge check below.
+- [x] An NSIS-installed signed build updates to the next signed build. A build for staging asks the beta channel, so the app can't be pointed at the staging trials; D5c covers the check and download. A temporary workflow (run 43860543801, deleted before merge) installed signed 0.0.174, started it and ran signed 0.0.178's installer as tauri-plugin-updater does (`/P /UPDATE`) on x64 and Arm64: updated in place, signed, one install entry, the PDF registration kept.
 
 ## Post-merge checks
 
 - [ ] Owner removes the temporary `ci/d6c-*` / `ci/d6d-*` deployment-branch patterns from the `desktop-release` environment (D6a), leaving `main` and `desktop-v*` tags.
+- [ ] Before the first `desktop-v*` tag, on a clean Windows 11 machine with a staging trial's installers (runbook §6): SmartScreen's prompt recorded and naming Laurence Ininda; UAC for the MSI naming the verified publisher; an MSI install showing "Managed by your organisation"; Windows 10 22H2 smoke test (best effort).
 - [ ] The first scheduled nightly after merge still builds Windows NSIS-only and unsigned in the `desktop-nightly` environment (no signing secrets referenced).
 
 ## Tests
@@ -97,8 +98,17 @@ Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed in the work PR's first commit (ready → ongoing)
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed: high (20 findings), then medium (20); `/writing-review` (7); each listed in its commit
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## As built
+
+- **Signing:** `apps/desktop/scripts/sign-windows.ps1` (SignTool + the Artifact Signing dlib from `Microsoft.ArtifactSigning.Client` 1.0.151, pinned by SHA-256; `azure/login` over the `desktop-release` OIDC token, no client secret). The app compiles with `--no-bundle`, then `tauri bundle` signs, so the Azure session is fresh. The Tauri CLI also signs NSIS's plugin DLLs.
+- **Checks:** `verify-windows-signatures.ps1` (every PE file in both unpacked installers: Valid, signer CN, SHA-256 digest and RFC 3161 timestamp read from the certificate table) and `check-windows-installers.ps1` (install, registration, `InstallFlavour`, uninstall) on every Windows leg.
+- **Installers:** per-user NSIS, per-machine MSI with upgrade code `14768FB6-BF74-4078-9967-8ACFF111542F`; `.pdf` registered through `OpenWithProgids` only (`src-tauri/windows/installer-hooks.nsh`, `registry.wxs`); WebView2 by the download bootstrapper for both (ADR 0014 §6).
+- **Found by the signed staging runs and fixed:** the OIDC subject is GitHub's immutable one (runbook §1.5); `SHA256SUMS` listed itself; the `.rpm` signing broke on the space in the name (fixed on main by #668 too); D5c's update test leaves the staging channel paused, so a staging publish resumes it.
+- **Added for the owner's choice:** `only_os` on staging dispatches, so a Windows trial publishes while Apple hasn't enabled notarisation for the team (macOS legs rejected with status 7000; D6e waits on it).
+
