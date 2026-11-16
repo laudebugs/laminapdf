@@ -91,5 +91,4 @@ Playwright in `apps/web/e2e/organise.e2e.test.ts` (or a new spec beside it) on E
 - **The banner also on the strip.** After Apply anyway…, the strip also offers Save a copy, as O02 draws it.
 - **Words name the kind of signature.** Details and the close dialog say "the certification" or "usage rights". They name no signer, field or date: the save planner carries no signer or date, and its field is Lamina PDF's internal ID, not the file's field name.
 - **No "Delete page N only".** The signed-page question offers Remove signature and delete (or rotate) and Cancel; a violation names the signature's field, not its page, so the reader can't tell which selected pages to leave out.
-- **Startup budget.** The reader's startup budget rose to 285,450 bytes for `copyWithEdit` in the viewer client.
 - **Words.** Where the browser has no save dialog, Save a copy reads Download a copy, and its confirmation says the copy downloads.
