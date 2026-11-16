@@ -4,21 +4,26 @@
 // session (which needs the recent files remembered), reloading open files that change on disk,
 // opening files in tabs or windows, and opening a file that is open already; Appearance and
 // accessibility's Motion, kept beside them so every window shares it (motion.ts applies it); its
-// Updates section (S06) and its Privacy section (crash reports). The full settings page adds its
+// Updates section (S06), its Privacy section (crash reports), on Linux Graphics (graphics.tsx),
+// which the next start reads, and About (about.tsx). The full settings page adds its
 // other sections to the same registry.
 
 import {
+  Button,
   type Motion,
   MotionField,
   message,
   SettingsDialog,
   SettingsRegistry,
   Switch,
+  type ToastQueue,
   useSettingsSection,
 } from "@laminapdf/ui";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { useAboutSection } from "./about.tsx";
 import { PrivacySettings, privacySummary, useCrashSetting } from "./crashes.tsx";
 import type { DesktopShell } from "./engine/desktop-engine-client.ts";
+import { type Graphics, useGraphicsSection } from "./graphics.tsx";
 import { useMotion } from "./motion.ts";
 import { words } from "./update-words.ts";
 import { type DesktopUpdates, UpdateSettings, updatesSummary } from "./updates.tsx";
@@ -35,7 +40,12 @@ interface Preferences {
   readonly reopenLast: boolean;
   /** Settings › Motion: the system's, or reduced whatever it says. */
   readonly motion: Motion;
+  /** Settings › Graphics (Linux): the WebKitGTK workarounds the next start runs with. */
+  readonly graphics: Graphics;
 }
+
+/** Settings › Files' button; desktop-only words stay here, out of the shared messages. */
+const CLEAR_RECENT = "Clear recent files";
 
 /** The main process's event with the preferences, after any window changed them (`commands.rs`). */
 const PREFERENCES_EVENT = "preferences://changed";
@@ -48,6 +58,7 @@ const DEFAULTS: Preferences = {
   allowDuplicates: false,
   reopenLast: true,
   motion: "system",
+  graphics: "automatic",
 };
 
 /** What the settings give the app. */
@@ -67,32 +78,26 @@ export function useDesktopSettings(
   shell: DesktopShell | undefined,
   onChange: () => void,
   updates: DesktopUpdates,
+  toasts: ToastQueue,
 ): DesktopSettings {
-  const [preferences, setPreferences] = useState(DEFAULTS);
+  const { preferences, change } = usePreferences(shell, onChange);
   const [isOpen, setOpen] = useState(false);
   const [section, setSection] = useState<string>();
   const [registry] = useState(() => new SettingsRegistry());
   // Outside the shell nothing updates, so the Updates section goes to a registry nobody shows.
   const [unshown] = useState(() => new SettingsRegistry());
-  useEffect(() => {
-    if (shell === undefined) return;
-    shell.invoke<Preferences>("preferences").then(setPreferences, reportError);
-    // A change made in another window (src-tauri's PREFERENCES_EVENT) shows here too.
-    const unlisten = shell.listen<Preferences>(PREFERENCES_EVENT, setPreferences);
-    return () => void unlisten.then((stop) => stop(), reportError);
-  }, [shell]);
-  const change = useCallback(
-    (value: Preferences) => {
-      setPreferences(value);
-      shell?.invoke("set_preferences", { value }).then(onChange, reportError);
-    },
-    [shell, onChange],
-  );
+  const open = useCallback((at?: string) => {
+    setSection(at);
+    setOpen(true);
+  }, []);
+  const clearRecent = useCallback(() => {
+    shell?.invoke("recent_clear").then(onChange, reportError);
+  }, [shell, onChange]);
   useSettingsSection(
     registry,
     "files",
     message("settings.files"),
-    () => <FileSettings preferences={preferences} onChange={change} />,
+    () => <FileSettings preferences={preferences} onChange={change} onClearRecent={clearRecent} />,
     { shows: [preferences], summary: () => filesSummary(preferences) },
   );
   useMotion(shell, preferences.motion);
@@ -115,6 +120,10 @@ export function useDesktopSettings(
     () => <UpdateSettings updates={updates} />,
     { shows: [updates], summary: () => updatesSummary(updates.status) },
   );
+  // Settings › Graphics, on Linux only (the main process says whether it applies).
+  useGraphicsSection({ shell, shown: registry, unshown, toasts, open }, preferences.graphics, (graphics) =>
+    change({ ...preferences, graphics }),
+  );
   // S07: Settings › Privacy, inside the shell only (the main process keeps the crash reports).
   const [crashReports, setCrashReports] = useCrashSetting(shell);
   useSettingsSection(
@@ -125,10 +134,8 @@ export function useDesktopSettings(
       shell === undefined ? null : <PrivacySettings shell={shell} enabled={crashReports} onChange={setCrashReports} />,
     { shows: [crashReports], summary: () => privacySummary(crashReports) },
   );
-  const open = useCallback((at?: string) => {
-    setSection(at);
-    setOpen(true);
-  }, []);
+  // S07: Settings › About, inside the shell only.
+  useAboutSection(shell, shell === undefined ? unshown : registry, updates.status);
   return {
     preferences,
     open,
@@ -136,13 +143,41 @@ export function useDesktopSettings(
   };
 }
 
+/**
+ * The main process's preferences, kept current when another window changes them, and `change`,
+ * which sets them there; `onChange` runs once the main process has applied a change.
+ */
+function usePreferences(
+  shell: DesktopShell | undefined,
+  onChange: () => void,
+): { preferences: Preferences; change: (value: Preferences) => void } {
+  const [preferences, setPreferences] = useState(DEFAULTS);
+  useEffect(() => {
+    if (shell === undefined) return;
+    shell.invoke<Preferences>("preferences").then(setPreferences, reportError);
+    // A change made in another window (src-tauri's PREFERENCES_EVENT) shows here too.
+    const unlisten = shell.listen<Preferences>(PREFERENCES_EVENT, setPreferences);
+    return () => void unlisten.then((stop) => stop(), reportError);
+  }, [shell]);
+  const change = useCallback(
+    (value: Preferences) => {
+      setPreferences(value);
+      shell?.invoke("set_preferences", { value }).then(onChange, reportError);
+    },
+    [shell, onChange],
+  );
+  return { preferences, change };
+}
+
 /** Settings › Files: remembering recent files, reloading changed ones, and where files open. */
 function FileSettings({
   preferences,
   onChange,
+  onClearRecent,
 }: {
   preferences: Preferences;
   onChange: (value: Preferences) => void;
+  onClearRecent: () => void;
 }): ReactNode {
   return (
     <div className="paper-settings-fields">
@@ -153,6 +188,11 @@ function FileSettings({
         {message("settings.files.rememberRecent")}
       </Switch>
       <p className="desktop-settings-help">{message("settings.files.rememberRecent.help")}</p>
+      <div>
+        <Button isDisabled={!preferences.rememberRecent} onPress={onClearRecent}>
+          {CLEAR_RECENT}
+        </Button>
+      </div>
       <Switch
         isSelected={preferences.rememberRecent && preferences.reopenLast}
         isDisabled={!preferences.rememberRecent}

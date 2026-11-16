@@ -1,13 +1,17 @@
 // The last session, second run (D4d): the app relaunched after session-save brings back both
 // windows, the main one at its size, their tabs, and the moved tab at its page and zoom; a tab not
-// shown opens when it is first shown. Turning "Reopen last session" off deletes the session file.
+// shown opens when it is first shown; the setting session-save turned off is still off. Turning
+// "Reopen last session" off deletes the session file.
 import { existsSync, readFileSync } from "node:fs";
 import { $, browser, expect } from "@wdio/globals";
-import { shownTab, tabNames, toggleSetting, view, waitForSharp, waitForShown } from "../app.ts";
-import { sessionFile } from "../paths.ts";
+import { settingOn, shownTab, tabNames, toggleSetting, view, waitForSharp, waitForShown } from "../app.ts";
+import { preferencesFile, sessionFile } from "../paths.ts";
 import { type Expected, expected, MAIN_TABS, OTHER_TABS } from "../session.ts";
 
 const measured = () => JSON.parse(readFileSync(expected, "utf8")) as Expected;
+
+/** The setting the last launch turned off (session-save). */
+const RELOAD = "Reload files that change on disk";
 
 describe("the last session after a relaunch", () => {
   it("should bring back both windows and the main window's tabs", async () => {
@@ -55,5 +59,12 @@ describe("the last session after a relaunch", () => {
   it("should delete the session file when Reopen last session is turned off", async () => {
     await toggleSetting("Reopen last session");
     await browser.waitUntil(() => !existsSync(sessionFile), { timeoutMsg: "session.json is still there" });
+  });
+
+  it("should keep the setting the last launch turned off in Settings", async () => {
+    const saved = JSON.parse(readFileSync(preferencesFile, "utf8")) as { reloadOnChange?: boolean };
+    expect([saved.reloadOnChange, await settingOn(RELOAD)]).toEqual([false, false]);
+    // On again, as the later runs expect.
+    await toggleSetting(RELOAD);
   });
 });

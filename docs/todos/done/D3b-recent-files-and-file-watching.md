@@ -45,7 +45,7 @@ Two desktop-only conveniences that power users expect. **Recent files**: every o
 
 - Session restore (reopen last session): [D4a](../done/D4a-windows-tabs-and-session-restore.md), which keeps its own document references in `session.json` (it does not depend on recent entries) but follows this todo's "Remember recent files" switch.
 - "Open Recent" native menu: [D4b](../done/D4b-native-menus.md) (reads `RecentFiles`).
-- Settings page: [D5b](./D5b-updater-in-app.md) creates it; [D7b](../ready/D7b-settings-renderer-switch-and-download-page.md) completes it.
+- Settings page: [D5b](./D5b-updater-in-app.md) creates it; [D7b](../done/D7b-settings-renderer-switch-and-download-page.md) completes it.
 - Watching for the editor's unsaved-changes conflicts: editor plan.
 
 ## Tasks

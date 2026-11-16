@@ -243,6 +243,38 @@ pub(crate) fn set_preferences(
     crate::session::app::preferences_changed(&app, was, value);
 }
 
+/// Settings › Graphics: what this start runs with, and whether the crash-loop guard switched it.
+#[tauri::command]
+pub(crate) fn graphics_status() -> crate::graphics::Status {
+    crate::graphics::status()
+}
+
+/// Whether to tell the user the crash-loop guard switched to Compatibility: `true` once per run,
+/// to the first window that asks, which then says so at start.
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its handle by value")]
+pub(crate) fn graphics_take_notice(app: tauri::AppHandle) -> Result<bool, DesktopError> {
+    Ok(crate::graphics::take_notice(&app.path().app_config_dir()?))
+}
+
+/// Settings › About's View licences: `false` when this build bundles none.
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its handle by value")]
+pub(crate) fn open_licences(app: tauri::AppHandle) -> bool {
+    crate::menu::open_licences(&app)
+}
+
+/// Restart now, after a change that takes effect at the next start (Settings › Graphics):
+/// `false`, and no restart, while a window holds unsaved edits.
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its handle by value")]
+pub(crate) fn restart_app(app: tauri::AppHandle) -> bool {
+    if app.state::<crate::unsaved::Unsaved>().to_ask().is_some() {
+        return false;
+    }
+    crate::restart(&app)
+}
+
 /// Whether the system asks for reduced motion where the webview can't tell (`motion.rs`): `None`
 /// where the webview reads it itself, or the setting can't be read.
 #[tauri::command]
