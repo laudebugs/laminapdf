@@ -11,7 +11,7 @@
 | Branch | `docs/e8a-adr-0021-javascript-policy` |
 | PR title | `docs(adr): 0021 PDF JavaScript policy` |
 | Size | M (200–600) |
-| PR | — |
+| PR | [#673](https://github.com/laudebugs/laminapdf/pull/673) |
 
 ## Goal
 
