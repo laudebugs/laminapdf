@@ -8,9 +8,9 @@ unpacks it (the MSI by an administrative install, `msiexec /a`; NSIS with 7-Zip)
 PE file inside: `signtool verify /pa`, and Get-AuthenticodeSignature's status Valid, a signer whose
 name is -Publisher and an RFC 3161 timestamp. Any file that fails fails the step, with the list.
 
-NSIS's own plugin DLLs, which the installer unpacks into $PLUGINSDIR while it runs, are listed but
-don't fail it: they come with the NSIS toolkit the Tauri CLI downloads and checks by hash, so a
-signed copy would be replaced by the unsigned one. The installer that loads them is signed.
+NSIS's plugin DLLs in $PLUGINSDIR count like any other file: the Tauri CLI signs its copies of them
+before it builds the installer. The administrative install also writes a copy of the MSI database
+into the folder, which isn't a file the MSI ships, so it is left out.
 
 .PARAMETER Dir
 The folder holding the installers (the desktop-build action's output).
@@ -31,7 +31,6 @@ if ([string]::IsNullOrEmpty($signtool)) { Write-Host '::error::SIGNTOOL is not s
 $sevenZip = Join-Path $env:ProgramFiles '7-Zip\7z.exe'
 
 $failures = [System.Collections.Generic.List[string]]::new()
-$plugins = [System.Collections.Generic.List[string]]::new()
 $checked = 0
 
 function Test-Pe([string]$file) {
@@ -67,11 +66,8 @@ function Test-Unpacked([string]$root, [string]$installer) {
     foreach ($item in Get-ChildItem -LiteralPath $root -Recurse -File) {
         if (-not (Test-Pe $item.FullName)) { continue }
         $label = "$installer › $($item.FullName.Substring($root.Length).TrimStart('\'))"
-        if ($item.FullName -like '*\$PLUGINSDIR\*') {
-            $script:plugins.Add($label)
-            Write-Host "plugin  $label"
-            continue
-        }
+        # msiexec /a's own copy of the database, unsigned: what ships is the .msi checked above.
+        if ($item.DirectoryName -eq $root -and $item.Extension -eq '.msi') { continue }
         Test-Signed $item.FullName $label
     }
 }
@@ -95,11 +91,6 @@ foreach ($installer in $installers) {
 }
 
 $summary = @("### Windows signatures", "", "$checked files checked; signer must be $Publisher.", "")
-if ($plugins.Count -gt 0) {
-    $summary += "NSIS plugins in `$PLUGINSDIR (not signed by the owner; the signed installer loads them):"
-    $summary += ($plugins | ForEach-Object { "- $_" })
-    $summary += ''
-}
 if ($failures.Count -gt 0) {
     $summary += 'Failed:'
     $summary += ($failures | ForEach-Object { "- $_" })

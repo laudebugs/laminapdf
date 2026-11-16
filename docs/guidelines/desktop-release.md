@@ -207,7 +207,7 @@ $env:SIGNTOOL = (Get-Command signtool).Source
 .\apps\desktop\scripts\verify-windows-signatures.ps1 -Dir <folder with the installers> -Publisher 'Laurence Ininda'
 ```
 
-The release build runs the last script on what it built, and installs and removes each installer on the runner (`apps/desktop/scripts/check-windows-installers.ps1`): Lamina PDF in `.pdf`'s "Open with" list and never its default, the MSI's install flavour, nothing left after the uninstall. NSIS's own plugin DLLs, which the NSIS installer unpacks while it runs, are listed but not signed by the owner: they come with the NSIS toolkit, which the Tauri CLI checks by hash.
+The release build runs the last script on what it built, and installs and removes each installer on the runner (`apps/desktop/scripts/check-windows-installers.ps1`): Lamina PDF in `.pdf`'s "Open with" list and never its default, the MSI's install flavour, nothing left after the uninstall. NSIS's plugin DLLs, which the NSIS installer unpacks while it runs, are checked too: the Tauri CLI signs its copies of them.
 
 **Linux:**
 
