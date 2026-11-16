@@ -353,8 +353,8 @@ Conventions on this canvas:
 **As built ([D7e](../../todos/ongoing/D7e-crash-recovered-tab-choice.md)).** The tab choice:
 
 - **What counts as an unexpected quit.** A `running` mark is written as the app starts and removed when it quits, restarts or installs an update. A panic, a native crash, a kill or a power cut leaves it, so the next launch knows whether or not a report came.
-- **The front tab** is the shown tab of the window focused last, which the session file now keeps (`focused`). A file from before that marks the first window's.
-- **Before the choice**, only the main window opens and the session file stays as it was. Quitting before choosing keeps the file and the mark, so the next launch asks again. **Start without tabs** keeps the file until the next normal quit. When the session had no main window, the main window stays open with the chosen windows.
+- **The front tab** is the shown tab of the window focused last, which the session file now keeps (`focused`, written again when the focus moves). A file from before that marks the first window's.
+- **Before the choice**, only the main window opens and the session file stays as it was. **Start without tabs** keeps the file until the next normal quit, and closing the main window before choosing counts as Start without tabs. Only a crash before the choice keeps the mark, so the next launch asks again. When the session had no main window, the main window stays open with the chosen windows.
 - **Focus** starts on **Reopen N tabs**, or on **Start without tabs** when no tab starts checked (a session whose only tab was in front). **Reopen** is disabled while none is checked.
 - **Always send reports after a crash** is read-only, not `aria-disabled`, until **Send an anonymous crash report** is checked: react-aria's check box has no `aria-disabled` state. It stays focusable, and its reason is its description.
 - **"Reporting already on"** isn't built: with reporting on, D7a's reports go without a question, and the dialog shows the tabs alone.

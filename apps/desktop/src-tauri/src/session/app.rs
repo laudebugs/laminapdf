@@ -199,6 +199,21 @@ pub(crate) fn window_closed(app: &tauri::AppHandle, label: &str) {
     app.state::<Arc<Session>>()
         .tracker()
         .closed(label, !cfg!(target_os = "macos"));
+    // The main window asks the tab choice: closed before an answer, it is Start without tabs, so
+    // the choice never waits for the rest of the run and the next normal quit writes the session.
+    if label == crate::MAIN_WINDOW {
+        app.state::<Recovery>()
+            .0
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .take();
+    }
+}
+
+/// Another window came to the front: the session is written again, so after a crash the tab
+/// offered unchecked is the one in the window the user was in.
+pub(crate) fn focus_changed(app: &tauri::AppHandle) {
+    app.state::<Arc<Session>>().tracker().report_changed();
 }
 
 /// What a change of the preferences does to the session file.

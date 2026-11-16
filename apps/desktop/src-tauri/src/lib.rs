@@ -490,6 +490,7 @@ fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
         // The menus show the focused window's commands.
         WindowEvent::Focused(true) => {
             window.state::<windows::Windows>().focused(window.label());
+            session::app::focus_changed(window.app_handle());
             menu::refresh(window.app_handle());
         }
         // Files dragged over or dropped on the window: Rust opens them, never the webview.
