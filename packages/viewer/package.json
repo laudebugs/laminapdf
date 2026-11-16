@@ -57,6 +57,7 @@
   "devDependencies": {
     "@embedpdf/pdfium": "2.15.1",
     "@laminapdf/test-utils": "workspace:*",
+    "@laminapdf/tokens": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/browser-playwright": "catalog:",
     "playwright": "catalog:",
