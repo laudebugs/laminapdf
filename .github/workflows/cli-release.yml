@@ -155,7 +155,7 @@ jobs:
           cache-bin: false
           target: ${{ matrix.target }}
       # Same versions as tools/xtask/src/doctor.rs.
-      - name: Install the pinned tools
+      - name: Install cargo-dist, and cargo-about where it ships a binary
         uses: $/.github/actions/install-tools
         with:
           tool: cargo-dist@0.32.0${{ matrix.target != 'x86_64-apple-darwin' && ',cargo-about@0.9.2' || '' }}

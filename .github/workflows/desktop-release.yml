@@ -162,7 +162,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - name: Build the desktop release (${{ matrix.platform }}, ${{ matrix.target }})
+      - name: Build the desktop app (${{ matrix.platform }}, ${{ matrix.target }})
         uses: $/.github/actions/desktop-build
         with:
           target: ${{ matrix.target }}
@@ -191,7 +191,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - name: Build the desktop release (${{ matrix.platform }}, ${{ matrix.target }})
+      - name: Build the desktop app (${{ matrix.platform }}, ${{ matrix.target }})
         uses: $/.github/actions/desktop-build
         with:
           target: ${{ matrix.target }}
@@ -243,7 +243,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - name: Build the desktop release (${{ matrix.platform }}, ${{ matrix.target }})
+      - name: Build the desktop app (${{ matrix.platform }}, ${{ matrix.target }})
         uses: $/.github/actions/desktop-build
         with:
           target: ${{ matrix.target }}

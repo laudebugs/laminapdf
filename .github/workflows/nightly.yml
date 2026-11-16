@@ -172,7 +172,7 @@ jobs:
       # or hang costs one file, not the run (tools/xtask/src/runner.rs).
       - name: Differential
         run: cargo xtask differential --live ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
-      - name: Install pdftotext
+      - name: Build pdftotext
         uses: $/.github/actions/poppler
         if: ${{ !cancelled() }}
       # Page text (todo B9f) runs even when the structural differential failed, so one night

@@ -348,7 +348,7 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
-      - name: Load the Cloudflare secrets
+      - name: Check the Cloudflare secrets are set
         id: secrets
         uses: $/.github/actions/cloudflare-secrets
         with:
@@ -529,7 +529,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - name: Load the Cloudflare secrets
+      - name: Check the Cloudflare secrets are set
         id: secrets
         uses: $/.github/actions/cloudflare-secrets
         with:
