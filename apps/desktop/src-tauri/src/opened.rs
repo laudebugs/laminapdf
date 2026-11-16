@@ -27,6 +27,7 @@ pub(crate) fn open_path(app: &tauri::AppHandle, window: &str, path: &Path) -> Re
     if !app.state::<Prefs>().get().allow_duplicates
         && let Some((doc, owner)) = engines.open_from(path)
     {
+        tracing::info!(window, owner, "the file is open already: showing its tab instead");
         crate::windows::activate(app, &owner, doc);
         return Err(DesktopError::AlreadyOpen);
     }

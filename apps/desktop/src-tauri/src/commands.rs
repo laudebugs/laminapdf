@@ -77,8 +77,11 @@ pub(crate) fn pick_pdf(window: &tauri::WebviewWindow) -> Result<Option<PathBuf>,
     // End-to-end builds: a scenario's queued fixture stands in for the dialog.
     #[cfg(feature = "e2e")]
     if let Some(path) = tauri::Manager::state::<crate::e2e::QueuedPick>(window).take() {
+        tracing::info!(window = window.label(), "e2e: the queued pick stands in for the dialog");
         return Ok(Some(path));
     }
+    #[cfg(feature = "e2e")]
+    tracing::warn!(window = window.label(), "e2e: no queued pick; the real dialog opens");
     let picked = window
         .dialog()
         .file()
