@@ -96,6 +96,7 @@ mod samples {
             "set-page-labels",
             "update-annot-redraw",
             "edit-content",
+            "edit-text",
             "update-annot-ink",
             "update-annot-freetext",
         ]

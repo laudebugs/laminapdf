@@ -13,6 +13,7 @@ import { duplicatePages } from "../../examples/duplicate-pages.js";
 import { editBookmarks } from "../../examples/edit-bookmarks.js";
 import { editMetadata } from "../../examples/edit-metadata.js";
 import { editObjects } from "../../examples/edit-objects.js";
+import { editText } from "../../examples/edit-text.js";
 import { editXmp } from "../../examples/edit-xmp.js";
 import { elementFlow, type Report } from "../../examples/element-flow.js";
 import { extractPages } from "../../examples/extract-pages.js";
@@ -103,6 +104,7 @@ const FORMS_PDF = "fixtures/pages/forms.pdf";
 const BOXES_PDF = "fixtures/pages/boxes.pdf";
 /** The input of edit-objects: an example golden with shapes, transparency and two images. */
 const SHAPES_PDF = "fixtures/golden/examples/images_and_vectors.pdf";
+const GREETING_PDF = "fixtures/golden/examples/hello.pdf";
 /** The input of resize-pages: an A4 page with every kind of destination aimed at it, and a Letter page. */
 const GEOMETRY_PDF = "fixtures/pages/geometry.pdf";
 /** The input of page-labels: an example golden of four pages. */
@@ -284,6 +286,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "edit_objects",
     inputs: [SHAPES_PDF],
     build: (i) => editObjects(input(i, SHAPES_PDF)),
+  },
+  {
+    name: "edit-text",
+    golden: "edit_text",
+    inputs: [GREETING_PDF],
+    build: (i) => editText(input(i, GREETING_PDF)),
   },
   {
     name: "resize-pages",

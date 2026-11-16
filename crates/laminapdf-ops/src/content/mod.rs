@@ -3,6 +3,7 @@
 //! order. Every edit goes through `laminapdf-content`'s IR, so only the objects it names are
 //! written again; the rest of the content keeps its bytes.
 
+mod text;
 mod wire;
 
 use std::collections::BTreeSet;
@@ -15,6 +16,7 @@ use laminapdf_model::{Matrix, PageId, RectPt};
 use serde::{Deserialize, Serialize};
 
 use crate::images::ImageXObjects;
+pub use text::{ContentTextRun, EditText, TextRunRef, text_runs};
 
 use crate::blob::{BlobId, BlobStore};
 use crate::error::{Error, Result};

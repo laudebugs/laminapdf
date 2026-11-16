@@ -5,11 +5,13 @@
 //! [`TextExtractor`] documents how; this module holds it, its font cache and its runs.
 
 mod cmap;
+mod encode;
 mod font;
 mod runs;
 
 pub use cmap::Code;
-pub use runs::{PageTextRun, is_right_to_left};
+pub use encode::{EncodedGlyph, FontEncoder};
+pub use runs::{PageTextRun, TextLine, is_right_to_left};
 
 use std::sync::Arc;
 
@@ -91,6 +93,12 @@ pub struct Glyph {
     /// the `image` and `paint_shading` calls. Anything painted with a higher count was drawn
     /// over it.
     pub paints_before: u32,
+    /// Which text-showing operator drew it: the count of `Tj`, `TJ`, `'` and `"` operators the
+    /// page ran before it, Form XObjects included. `laminapdf-content`'s recorder counts the
+    /// same operators, which ties a glyph to the object that shows it.
+    ///
+    /// Added in 0.5.0.
+    pub show: u32,
 }
 
 /// The text a page shows, in content order.
@@ -121,6 +129,17 @@ impl PageText {
     #[must_use]
     pub fn lines(&self) -> Vec<String> {
         runs::lines(&self.glyphs, &self.runs)
+    }
+
+    /// The page's lines with the runs and glyphs each is made of, in content order: what
+    /// [`PageText::lines`] joins into strings, kept with their glyph ranges so an editor can
+    /// tell which glyphs a line holds. Unlike [`PageText::lines`], a line whose text is empty
+    /// once trimmed is kept.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub fn text_lines(&self) -> Vec<TextLine> {
+        runs::text_lines(&self.glyphs, &self.runs)
     }
 
     /// The same text without invisible glyphs (`Tr` 3 and 7): the drawn text only (runs
@@ -263,6 +282,7 @@ impl TextExtractor {
             unmapped: 0,
             error: None,
             paints: 0,
+            shows: 0,
             paths,
         };
         // As a trait object, so this and extraction's annotation appearances share one copy of
@@ -339,6 +359,8 @@ struct Collector<'a, 'p> {
     error: Option<Error>,
     /// How many paints came so far ([`Glyph::paints_before`]).
     paints: u32,
+    /// How many text-showing operators came so far ([`Glyph::show`]).
+    shows: u32,
     /// Where path events go besides ([`TextExtractor::page_with`]).
     paths: Option<&'p mut dyn Visitor>,
 }
@@ -430,6 +452,7 @@ impl Collector<'_, '_> {
                             clip,
                             color,
                             paints_before: self.paints,
+                            show: self.shows,
                         });
                         step(advance, &mut tm, &mut total);
                     }
@@ -510,13 +533,15 @@ impl Visitor for Collector<'_, '_> {
     }
 
     fn show_text(&mut self, show: &TextShow<'_>) -> TextAdvance {
-        match self.show(show) {
+        let advance = match self.show(show) {
             Ok(advance) => advance,
             Err(error) => {
                 self.error.get_or_insert(error);
                 TextAdvance::default()
             }
-        }
+        };
+        self.shows = self.shows.saturating_add(1);
+        advance
     }
 
     fn shown_text(&mut self, show: &TextShow<'_>, advance: TextAdvance) {

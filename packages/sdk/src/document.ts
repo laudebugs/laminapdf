@@ -940,8 +940,8 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
-   * What the pages draw, to select and change: `content.objects(index)`, `content.hitTest(index,
-   * at)` and `content.edit(index, edits)`. Reads need a document opened while the extract or
+   * What the pages draw, to select and change: `content.objects(index)`, `content.textRuns(index)`,
+   * `content.hitTest(index, at)`, `content.edit(index, edits)` and `content.editText(index, run, text)`. Reads need a document opened while the extract or
    * text module was loaded.
    *
    * @since 0.5.0
@@ -949,6 +949,7 @@ export class Document extends Handle<BaseGlue> {
   get content(): DocumentContent {
     return {
       objects: (index) => this.call(() => this.#extracting("doc.content.objects()").contentObjects(index)),
+      textRuns: (index) => this.call(() => this.#extracting("doc.content.textRuns()").textRuns(index)),
       hitTest: (index, at) =>
         this.call(() => {
           const doc = this.#extracting("doc.content.hitTest()");
@@ -956,6 +957,8 @@ export class Document extends Handle<BaseGlue> {
         }),
       edit: (index, edits) =>
         this.apply([{ op: "editContent", args: { page: this.pageInfo(index).id, edits: [...edits] } }]),
+      editText: (index, run, text) =>
+        this.apply([{ op: "editText", args: { page: this.pageInfo(index).id, run, text } }]),
     };
   }
 
@@ -1208,7 +1211,7 @@ export class Document extends Handle<BaseGlue> {
    */
   apply(ops: readonly Op[]): Edited {
     this.#notInTransaction("apply");
-    // The base module's op type leaves out `editContent`, which only the extract and text modules
+    // The base module's op type leaves out `editContent` and `editText`, which only the extract and text modules
     // apply; the base module refuses it as an unknown op.
     return this.call(() => this.#doc.apply(ops as BaseOp[]));
   }

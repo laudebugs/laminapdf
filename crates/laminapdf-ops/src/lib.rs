@@ -116,7 +116,9 @@ pub use annot::{
 pub use blob::{BlobId, BlobStore, ParseBlobIdError, SourceId};
 pub use class::ModificationClass;
 #[cfg(feature = "content-edit")]
-pub use content::{ContentEdit, EditContent, ObjectRef, StackPosition};
+pub use content::{
+    ContentEdit, ContentTextRun, EditContent, EditText, ObjectRef, StackPosition, TextRunRef, text_runs,
+};
 pub use document::{Document, PendingRebase, SaveState};
 pub use error::{Error, Result};
 pub use history::{History, Reverted, UndoOutcome};

@@ -227,7 +227,7 @@ pub use laminapdf_ops::{
     TextSpan, UndoOutcome, UpdateAnnot, UpdateLink, UpdateOutlineItem, WindowPreferencesPatch,
 };
 #[cfg(feature = "content-edit")]
-pub use laminapdf_ops::{ContentEdit, EditContent, ObjectRef, StackPosition};
+pub use laminapdf_ops::{ContentEdit, ContentTextRun, EditContent, EditText, ObjectRef, StackPosition, TextRunRef};
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,
     SaveMode, SaveOptions, SaveReport, SignatureInfo, SignatureKind, Violation, XrefEol, XrefKind,

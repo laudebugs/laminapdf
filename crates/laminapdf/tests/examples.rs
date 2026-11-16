@@ -38,6 +38,9 @@ mod edit_metadata;
 #[path = "../examples/edit_objects.rs"]
 mod edit_objects;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/edit_text.rs"]
+mod edit_text;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/edit_xmp.rs"]
 mod edit_xmp;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -189,7 +192,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 42] = [
+const EXAMPLES: [(&str, Build); 43] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -247,6 +250,7 @@ const EXAMPLES: [(&str, Build); 42] = [
     ("edit_objects", || {
         edit_objects::edit(fixture("golden/examples/images_and_vectors.pdf"))
     }),
+    ("edit_text", || edit_text::edit(fixture("golden/examples/hello.pdf"))),
     ("resize_pages", || resize_pages::resize(fixture("pages/geometry.pdf"))),
     ("insert_pages", || {
         insert_pages::insert(fixture("pages/forms.pdf"), fixture("pages/references.pdf"))

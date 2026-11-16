@@ -18,6 +18,7 @@ import type {
   CommentJs,
   CommentPartJs,
   ContentEdit as ContentEditJs,
+  ContentTextRunJs,
   DestinationUse as DestinationUseJs,
   DestinationView as DestinationViewJs,
   DirectionInit,
@@ -84,6 +85,7 @@ import type {
   TextAlign as TextAlignJs,
   TextLayoutJs,
   TextRunJs,
+  TextRunRef as TextRunRefJs,
   TextSpan as TextSpanJs,
   ThreadJs,
   UndoOutcomeJs,
@@ -102,7 +104,8 @@ import type {
  * (`addOutlineItem`, `updateOutlineItem`, `moveOutlineItem`, `deleteOutlineItem`), the named-destination edits
  * (`setNamedDestination`, `renameNamedDestination`, `deleteNamedDestination`), `setInitialView`, the link
  * edits (`addLink`, `updateLink`, `deleteLink`), the annotation edits (`addAnnot`, `updateAnnot`,
- * `deleteAnnot`), `editContent` (move, delete, replace, crop or reorder what a page draws), or the
+ * `deleteAnnot`), `editContent` (move, delete, replace, crop or reorder what a page draws),
+ * `editText` (change the text a run shows, in its own font), or the
  * deprecated `setInfo` (use
  * `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
  *
@@ -621,6 +624,25 @@ export type ObjectRef = ObjectRefJs;
  * @since 0.5.0
  */
 export type ContentEdit = ContentEditJs;
+
+/**
+ * One run of text a page shows, as {@link DocumentContent.textRuns} lists it: one font and size on
+ * one baseline (one marked-content sequence on a tagged page) within one text object. It has its
+ * name for an `editText` op (`run`), the `text` it shows, its box in page space (`bounds`,
+ * `[x0, y0, x1, y1]`), `fontName`, `fontSize`, the `line` it is on (an index into the page's lines
+ * in the order the page draws them) and, when it can't be edited, why (`readOnly`, such as `"type3-font"`).
+ *
+ * @since 0.5.0
+ */
+export type ContentTextRun = ContentTextRunJs;
+
+/**
+ * A run of text named so the name lasts: its text object (`object`, an {@link ObjectRef}) and its
+ * glyphs `start` to `end` (0-based, `end` exclusive) among the glyphs the object shows.
+ *
+ * @since 0.5.0
+ */
+export type TextRunRef = TextRunRefJs;
 
 /**
  * One annotation on a page, in page space: its ID (which the `updateAnnot` and `deleteAnnot`

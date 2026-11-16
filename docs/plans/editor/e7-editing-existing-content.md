@@ -58,7 +58,7 @@ Every op names objects by `ContentObjectRef`: the owner (`PageId`, or a Form XOb
 
 `EditText` follows ADR 0022 §6's order. It re-encodes with the embedded subset when every new character has a glyph in it (E7e); otherwise E7f's chain applies: a new subset of the same font when the full font is available, then a metrics-matched substitute for the missing characters only, which the edit reports as `substituted`. Reflow stays on the edited line: glyphs after the edit on the same line move by the width difference, and the lines below it don't move. A line that would overflow its text block is reported (`reflowed`, with the overflow in points), not wrapped. Paragraph reflow is a later round's (§10, question 1).
 
-The glyph check needs the font program, so `EditText`, `SetTextStyle` and `ReplaceText` work in the text and extract modules. In the base module they fail with `appearance-needs-text`, the code [E4's plan](e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated) defines for the same split. Whichever of E4 and E7e lands first adds it. The viewer opens documents in the extract module.
+The glyph check needs the font program, so `EditText`, `SetTextStyle` and `ReplaceText` work in the text and extract modules. The base module leaves out content editing (`content-edit`) altogether, as it does for `EditContent`, so it refuses these ops as unknown ones (E7e: the op isn't compiled there, which keeps the base module's budget). The viewer opens documents in the extract module.
 
 ### 2.3 Objects
 
@@ -115,7 +115,7 @@ E7d and E7e hand their reader UI to E7k and E7l, so the core can land while E6's
 | --- | --- | --- |
 | [E7c](../../todos/done/E7c-content-ir.md) | `ContentOps`, identity, hit testing, the encoder, `content-object-stale`, `content-not-editable`, fuzzing | E7b |
 | [E7d](../../todos/done/E7d-select-transform-existing.md) | `EditContent` (`Transform`, `Delete`, `ReplaceImage`, `Crop`, `Reorder`), copy on write, resources dropped, the façade and SDK | E7c |
-| [E7e](../../todos/ready/E7e-text-runs-and-inline-edit.md) | Line grouping, run detection, glyph availability, `EditText` with the embedded subset, the façade and SDK | E7c |
+| [E7e](../../todos/done/E7e-text-runs-and-inline-edit.md) | Line grouping, run detection, glyph availability, `EditText` with the embedded subset, the façade and SDK | E7c |
 | [E7f](../../todos/ready/E7f-font-handling-and-styling.md) | The font chain, `SetTextStyle`, line-level alignment and spacing | E6c, E7e |
 | [E7g](../../todos/ready/E7g-search-and-replace.md) | `ReplaceText`, A06's Replace row, Results and report | C5b, E7f, E7l |
 | [E7h](../../todos/ready/E7h-vector-clipping-masks.md) | `EditPath`, `SetPaint`, `SetClip`, `RemoveMask`, A05's Edit points | E7d, E7k |

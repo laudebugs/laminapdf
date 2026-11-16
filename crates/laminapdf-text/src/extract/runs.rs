@@ -432,13 +432,48 @@ impl Unit<'_> {
     }
 }
 
-/// The runs' text as lines (see [`PageText::lines`](super::PageText::lines)).
-pub(super) fn lines(glyphs: &[Glyph], runs: &[PageTextRun]) -> Vec<String> {
-    // Group runs into lines, in content order.
-    let mut grouped: Vec<Vec<Unit<'_>>> = vec![Vec::new()];
+/// One line of a page's text: consecutive runs on one baseline, in content order.
+///
+/// Added in 0.5.0.
+#[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub struct TextLine {
+    /// The line's text, as [`PageText::lines`](super::PageText::lines) gives it, trimmed.
+    pub text: String,
+    /// Its runs: indices into [`PageText::runs`](super::PageText::runs).
+    pub runs: Range<usize>,
+    /// Its glyphs: indices into [`PageText::glyphs`](super::PageText::glyphs), from its first
+    /// run's first glyph to its last run's last.
+    pub glyphs: Range<usize>,
+    /// The union of its runs' boxes, in page space.
+    pub bounds: RectPt,
+}
+
+/// The page's lines (see [`PageText::text_lines`](super::PageText::text_lines)).
+pub(super) fn text_lines(glyphs: &[Glyph], runs: &[PageTextRun]) -> Vec<TextLine> {
+    line_groups(glyphs, runs)
+        .into_iter()
+        .filter_map(|group| {
+            let members = runs.get(group.runs.clone())?;
+            let (first, last) = (members.first()?, members.last()?);
+            let bounds = members.iter().skip(1).fold(first.bounds, |b, r| b.union(&r.bounds));
+            Some(TextLine {
+                text: line_text(glyphs, runs, &group).trim().to_owned(),
+                glyphs: first.glyphs.start..last.glyphs.end,
+                runs: group.runs,
+                bounds,
+            })
+        })
+        .collect()
+}
+
+/// The runs grouped into lines, in content order: indices into `runs`. A run starts a new line
+/// where the baseline moves by more than half the size or the direction turns (see
+/// [`PageText::lines`](super::PageText::lines)).
+pub(super) fn line_groups(glyphs: &[Glyph], runs: &[PageTextRun]) -> Vec<LineGroup> {
+    let mut groups: Vec<LineGroup> = Vec::new();
     let mut previous: Option<(Vector, Vector, f64)> = None;
-    let mut line_direction: Vector = (1.0, 0.0);
-    for run in runs {
+    for (index, run) in runs.iter().enumerate() {
         let last_index = run.glyphs.end.checked_sub(1);
         let (Some(first), Some(last)) = (glyphs.get(run.glyphs.start), last_index.and_then(|i| glyphs.get(i))) else {
             continue;
@@ -446,33 +481,57 @@ pub(super) fn lines(glyphs: &[Glyph], runs: &[PageTextRun]) -> Vec<String> {
         let direction = unit(first.advance)
             .or(previous.map(|(_, d, _)| d))
             .unwrap_or((1.0, 0.0));
-        if let Some((end, prev_direction, size)) = previous {
+        let new_line = previous.is_none_or(|(end, prev_direction, size)| {
             let size = size.max(run.font_size).max(f64::EPSILON);
             let (across, _) = offset(end, prev_direction, first);
             let turned = direction.0 * prev_direction.0 + direction.1 * prev_direction.1 < 0.9;
-            if across > LINE_SHIFT * size || turned {
-                grouped.push(Vec::new());
-                line_direction = direction;
-            }
-        } else {
-            line_direction = direction;
-        }
-        if let Some(line) = grouped.last_mut() {
-            line.push(Unit::new(run, first, last, line_direction));
+            across > LINE_SHIFT * size || turned
+        });
+        match groups.last_mut() {
+            Some(group) if !new_line => group.runs.end = index + 1,
+            _ => groups.push(LineGroup {
+                runs: index..index + 1,
+                direction,
+            }),
         }
         let last_direction = unit(last.advance).unwrap_or(direction);
         previous = Some((end_of(last), last_direction, run.font_size));
     }
-    grouped
-        .into_iter()
-        .map(|units| {
-            if units.iter().any(|u| u.class == 'R') {
-                bidi_line(units)
-            } else {
-                join(&units)
-            }
+    groups
+}
+
+/// One line: its runs (indices into the page's runs) and the direction it runs in.
+pub(super) struct LineGroup {
+    pub(super) runs: Range<usize>,
+    direction: Vector,
+}
+
+/// The text of a line (see [`PageText::lines`](super::PageText::lines)), untrimmed.
+pub(super) fn line_text(glyphs: &[Glyph], runs: &[PageTextRun], group: &LineGroup) -> String {
+    let members = runs.get(group.runs.clone()).unwrap_or_default();
+    let units: Vec<Unit<'_>> = members
+        .iter()
+        .filter_map(|run| {
+            let last_index = run.glyphs.end.checked_sub(1);
+            let (Some(first), Some(last)) = (glyphs.get(run.glyphs.start), last_index.and_then(|i| glyphs.get(i)))
+            else {
+                return None;
+            };
+            Some(Unit::new(run, first, last, group.direction))
         })
-        .map(|l| l.trim().to_owned())
+        .collect();
+    if units.iter().any(|u| u.class == 'R') {
+        bidi_line(units)
+    } else {
+        join(&units)
+    }
+}
+
+/// The runs' text as lines (see [`PageText::lines`](super::PageText::lines)).
+pub(super) fn lines(glyphs: &[Glyph], runs: &[PageTextRun]) -> Vec<String> {
+    line_groups(glyphs, runs)
+        .into_iter()
+        .map(|group| line_text(glyphs, runs, &group).trim().to_owned())
         .filter(|l| !l.is_empty())
         .collect()
 }

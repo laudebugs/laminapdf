@@ -64,7 +64,7 @@ mod write;
 pub use edit::{
     ContentObject, ContentObjectId, ContentObjectKind, ContentObjectRef, ContentOp, ContentOps, ContentOwner,
     ContentPart, EncodedContent, EncodedPart, MarkedSequence, NotEditable, Placement, Recorder, ResourceName,
-    source_hash,
+    ShownGlyph, source_hash,
 };
 pub use interp::{Summary, interpret_content, interpret_page};
 pub use laminapdf_model::{Dash, FillRule, Matrix};

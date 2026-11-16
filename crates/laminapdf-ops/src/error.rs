@@ -140,6 +140,11 @@ pub enum Error {
         /// Why.
         reason: laminapdf_content::NotEditable,
     },
+    /// A text error: [`EditText`](crate::EditText)'s text has a character no code of the run's
+    /// font draws (`missing-glyph`), or the font failed to read.
+    #[cfg(feature = "content-edit")]
+    #[error(transparent)]
+    Text(laminapdf_text::Error),
     /// The op names an annotation that no page's `/Annots` lists.
     #[error("no annotation {}", ShownAnnot(.0))]
     UnknownAnnotation(AnnotId),
@@ -319,6 +324,8 @@ impl Error {
     pub const fn code(&self) -> &'static str {
         match self {
             Self::Cos(e) => e.code(),
+            #[cfg(feature = "content-edit")]
+            Self::Text(e) => e.code(),
             Self::NestedTransaction => "nested-transaction",
             Self::NoTransaction => "no-transaction",
             Self::UnknownPage(_) => "unknown-page",
@@ -372,6 +379,8 @@ impl Error {
     pub const fn kind(&self) -> ErrorKind {
         match self {
             Self::Cos(e) => e.kind(),
+            #[cfg(feature = "content-edit")]
+            Self::Text(e) => e.kind(),
             Self::NestedTransaction | Self::NoTransaction | Self::SavedNotRebased | Self::NoPendingSave => {
                 ErrorKind::State
             }
@@ -419,6 +428,8 @@ impl Error {
     pub fn location(&self) -> Location {
         match self {
             Self::Cos(e) => e.location(),
+            #[cfg(feature = "content-edit")]
+            Self::Text(e) => e.location(),
             Self::UnknownPage(page) | Self::DirectPage(page) => match page.as_lamina_id().obj_ref() {
                 Some(r) => Location {
                     object: Some(r.num),
