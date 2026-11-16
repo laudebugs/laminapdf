@@ -1,0 +1,103 @@
+# TEMPORARY (todo D6d): a signed NSIS install takes the next signed build the way the in-app
+# updater installs it. Deleted before the PR merges. The owner has no Windows machine, so a hosted
+# runner does it.
+#
+# A build for staging asks the beta channel (update/policy.rs: `staging` is no user channel), so the
+# app itself can't be pointed at the staging trials; D5c's test covers the check, the download and
+# the updater signature with its e2e builds. What signing changes is the install: here B's signed
+# NSIS installer runs over a running signed A with the arguments tauri-plugin-updater 2.14.1 passes
+# in passive mode (`/P /UPDATE`, src/updater.rs), and the result is checked.
+#
+# Both versions come from the staging bucket, signed by the D6d staging trials: 0.0.174 (run
+# 43848385295) and 0.0.178 (run 43854672452). No checkout, no secret, no environment.
+name: D6d update check (temporary)
+
+on:
+  push:
+    branches: ["ci/d6d-*"]
+    paths: [.github/workflows/d6d-update-check.yml]
+
+permissions:
+  contents: read
+
+env:
+  FROM: "0.0.174"
+  TO: "0.0.178"
+
+jobs:
+  update:
+    name: NSIS ${{ matrix.arch }}, 0.0.174 to 0.0.178
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: windows-2025, arch: x64, platform: x86_64 }
+          - { runner: windows-11-arm, arch: arm64, platform: aarch64 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - name: Download both signed installers
+        shell: pwsh
+        env:
+          ARCH: ${{ matrix.arch }}
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($pair in @(@('A', $env:FROM), @('B', $env:TO))) {
+            $which, $version = $pair
+            $name = "Lamina PDF_$($version)_$($env:ARCH)-setup.exe"
+            $url = "https://staging-downloads.laminapdf.com/releases/$version/windows-$env:PLATFORM/$([uri]::EscapeDataString($name))"
+            $file = Join-Path $env:RUNNER_TEMP "$which-setup.exe"
+            Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $file
+            $signature = Get-AuthenticodeSignature -LiteralPath $file
+            Write-Host "$which ($version): $($signature.Status), $($signature.SignerCertificate.Subject)"
+            if ($signature.Status -ne 'Valid') { exit 1 }
+          }
+      - name: Install A, start it, update it to B as the updater does
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Lamina PDF'
+          $app = Join-Path $env:LOCALAPPDATA 'Lamina PDF\laminapdf-desktop.exe'
+          $a = Start-Process -FilePath (Join-Path $env:RUNNER_TEMP 'A-setup.exe') -ArgumentList '/S' -Wait -PassThru
+          if ($a.ExitCode -ne 0) { Write-Host "::error::A's installer exited $($a.ExitCode)"; exit 1 }
+          $installed = (Get-ItemProperty $key).DisplayVersion
+          if ($installed -ne $env:FROM) { Write-Host "::error::installed $installed, not $env:FROM"; exit 1 }
+          Write-Host "installed A: $installed"
+          # The updater runs the installer while the app is still up; the installer closes it.
+          $running = Start-Process -FilePath $app -PassThru
+          Start-Sleep -Seconds 15
+          if ($running.HasExited) { Write-Host "::error::A exited on its own ($($running.ExitCode))"; exit 1 }
+          $b = Start-Process -FilePath (Join-Path $env:RUNNER_TEMP 'B-setup.exe') -ArgumentList '/P', '/UPDATE' -Wait -PassThru
+          if ($b.ExitCode -ne 0) { Write-Host "::error::B's installer exited $($b.ExitCode)"; exit 1 }
+          $failures = @()
+          $now = (Get-ItemProperty $key).DisplayVersion
+          Write-Host "installed now: $now"
+          if ($now -ne $env:TO) { $failures += "installed $now, not $env:TO" }
+          $file = (Get-Item -LiteralPath $app).VersionInfo.ProductVersion
+          Write-Host "the app's file version: $file"
+          if ($file -notlike "$env:TO*") { $failures += "the app's file is $file" }
+          $signature = Get-AuthenticodeSignature -LiteralPath $app
+          Write-Host "B's app: $($signature.Status), $($signature.SignerCertificate.Subject)"
+          if ($signature.Status -ne 'Valid') { $failures += "the app's signature is $($signature.Status)" }
+          # One install: no second entry, per user or per machine.
+          $entries = @(Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall' -ErrorAction SilentlyContinue |
+            Where-Object { (Get-ItemProperty $_.PSPath).DisplayName -eq 'Lamina PDF' })
+          Write-Host "install entries: $($entries.Count)"
+          if ($entries.Count -ne 1) { $failures += "$($entries.Count) install entries" }
+          if ($null -eq (Get-ItemProperty 'HKCU:\Software\Classes\.pdf\OpenWithProgids' -ErrorAction SilentlyContinue).'LaminaPDF.Document') {
+            $failures += 'the update lost the PDF registration'
+          }
+          if (-not $running.HasExited) { $failures += 'A was still running after the update' }
+          if ($failures.Count -gt 0) { Write-Host "::error::$($failures -join '; ')"; exit 1 }
+          Write-Host "A $env:FROM updated in place to B $env:TO, signed, registered for PDFs"
+      - name: Uninstall B
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $uninstall = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Lamina PDF').UninstallString.Trim('"')
+          Start-Process -FilePath $uninstall -ArgumentList '/S' -Wait | Out-Null
+          $app = Join-Path $env:LOCALAPPDATA 'Lamina PDF\laminapdf-desktop.exe'
+          for ($i = 0; $i -lt 60 -and (Test-Path -LiteralPath $app); $i++) { Start-Sleep -Seconds 1 }
+          if (Test-Path -LiteralPath $app) { Write-Host '::error::the uninstall left the app'; exit 1 }
+          Write-Host 'uninstalled'

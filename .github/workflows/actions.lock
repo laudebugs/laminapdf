@@ -32,6 +32,7 @@ workflows:
         - 'actions-rust-lang/setup-rust-toolchain@v2.0.1'
         - 'actions/checkout@v7.0.1'
         - 'github/codeql-action@v4.39.3'
+    '.github/workflows/d6d-update-check.yml': []
     '.github/workflows/dependabot-fixup-commit.yml':
         - 'actions/create-github-app-token@v3.3.0'
     '.github/workflows/dependabot-fixup.yml':
