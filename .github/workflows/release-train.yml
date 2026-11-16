@@ -79,10 +79,12 @@ jobs:
           ref: ${{ steps.nightly.outputs.sha }}
           persist-credentials: false
           fetch-depth: 0
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           cache: true
-      - uses: $/.github/actions/node-pnpm
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
       - name: Prepare the version commit
         id: version
         env:
