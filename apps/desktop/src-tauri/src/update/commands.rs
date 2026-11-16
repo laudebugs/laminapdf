@@ -91,11 +91,8 @@ pub(crate) fn update_restart_to_install(app: tauri::AppHandle) -> Result<(), Des
         return Err(DesktopError::Internal(error.to_string()));
     }
     // Here only on macOS and Linux (Windows' installer has exited the app, stopping the engines
-    // first). The windows that close now stay in the session. On the main thread `restart` raises
-    // no `RunEvent::Exit`, so the session and the engines are seen to here.
-    crate::session::app::quitting(&app);
-    app.state::<Arc<crate::engine::Engines>>().shutdown();
-    app.restart()
+    // first).
+    crate::restart(&app)
 }
 
 /// A page about updates, which Rust opens in the browser: the webview names it, never its address.

@@ -95,6 +95,7 @@ mod samples {
             "replace-xmp-packet",
             "set-page-labels",
             "update-annot-redraw",
+            "update-annot-ink",
         ]
         .into_iter()
         .chain(OUTLINE_SAMPLES)
@@ -144,7 +145,15 @@ mod samples {
     }
 
     /// The annotation samples, written for the same page; the caret groups with its first link.
-    const ANNOT_SAMPLES: [&str; 3] = ["add-annot-highlight", "add-annot-note", "add-annot-caret"];
+    const ANNOT_SAMPLES: [&str; 7] = [
+        "add-annot-highlight",
+        "add-annot-note",
+        "add-annot-caret",
+        "add-annot-ink",
+        "add-annot-shape",
+        "add-annot-line",
+        "add-annot-poly",
+    ];
 
     #[test]
     fn every_annotation_sample_deserialises_and_applies_to_the_links_fixture() {
@@ -158,12 +167,54 @@ mod samples {
     }
 
     #[test]
+    fn the_ink_update_sample_erases_a_stroke_and_adds_one() {
+        let mut doc = common::open(&fixture("golden/links-and-outlines.pdf"))
+            .with_appearances(laminapdf_build::AnnotationAppearances);
+        let add: Op = serde_json::from_slice(&fixture("ops/v1/add-annot-ink.json")).unwrap();
+        let id = doc.apply_all(Origin::Local, [add]).unwrap().created_annotations[0].to_string();
+        let sample = String::from_utf8(fixture("ops/v1/update-annot-ink.json"))
+            .unwrap()
+            .replace("a12.0", &id);
+        let update: Op = serde_json::from_str(&sample).unwrap();
+        assert!(!doc.apply_all(Origin::Local, [update]).unwrap().undo.is_empty());
+    }
+
+    #[test]
+    fn an_ink_update_with_widths_off_its_points_or_a_missing_stroke_is_refused() {
+        let mut doc = common::open(&fixture("golden/links-and-outlines.pdf"))
+            .with_appearances(laminapdf_build::AnnotationAppearances);
+        let add: Op = serde_json::from_slice(&fixture("ops/v1/add-annot-ink.json")).unwrap();
+        let id = doc.apply_all(Origin::Local, [add]).unwrap().created_annotations[0].to_string();
+        let points = r#"[{ "x": 310, "y": 590 }, { "x": 320, "y": 600 }, { "x": 330, "y": 610 }]"#;
+        for (spec, why) in [
+            (
+                format!(r#"{{ "type": "ink", "add": [{{ "points": {points}, "widths": [2] }}] }}"#),
+                "geometry",
+            ),
+            (
+                r#"{ "type": "ink", "remove": [9] }"#.to_owned(),
+                "a stroke the mark doesn't have",
+            ),
+        ] {
+            let json = format!(r#"{{ "op": "updateAnnot", "args": {{ "id": "{id}", "spec": {spec} }} }}"#);
+            let update: Op = serde_json::from_str(&json).unwrap();
+            match doc.apply_all(Origin::Local, [update]) {
+                Err(Error::InvalidOp(message)) => assert!(message.contains(why), "{message}"),
+                other => panic!("{spec}: {other:?}"),
+            }
+        }
+    }
+
+    #[test]
     fn an_annotation_spec_rejects_unknown_fields_and_types() {
         for spec in [
             r#"{ "type": "note", "at": { "x": 0, "y": 0 }, "colour": "red" }"#,
             r#"{ "type": "stamp", "rect": { "x0": 0, "y0": 0, "x1": 1, "y1": 1 } }"#,
             r#"{ "type": "caret", "rect": { "x0": 0, "y0": 0, "x1": 1, "y1": 1 }, "symbol": "star" }"#,
             r#"{ "type": "textMarkup", "kind": "highlight", "quads": [[{ "x": 0, "y": 0 }]] }"#,
+            r#"{ "type": "line", "from": { "x": 0, "y": 0 }, "to": { "x": 1, "y": 1 }, "ends": ["none", "arrow"] }"#,
+            r#"{ "type": "shape", "kind": "triangle", "rect": { "x0": 0, "y0": 0, "x1": 1, "y1": 1 } }"#,
+            r#"{ "type": "ink", "strokes": [{ "points": [{ "x": 0, "y": 0 }], "pressure": [1] }] }"#,
         ] {
             let json = format!(r#"{{ "op": "addAnnot", "args": {{ "page": "p9.0", "spec": {spec} }} }}"#);
             assert!(serde_json::from_str::<Op>(&json).is_err(), "{spec}");

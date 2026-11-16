@@ -81,9 +81,22 @@ async function linksOf(doc) {
 }
 
 /** The subtypes lamina's mark cases make. */
-const MARKS = new Set(["Highlight", "Underline", "StrikeOut", "Squiggly", "Text", "Caret"]);
+const MARKS = new Set([
+  "Highlight",
+  "Underline",
+  "StrikeOut",
+  "Squiggly",
+  "Text",
+  "Caret",
+  "Ink",
+  "Square",
+  "Circle",
+  "Line",
+  "Polygon",
+  "PolyLine",
+]);
 
-/** Each page's text markup, notes and carets, sorted: [subtype, contents], as lamina lists them. */
+/** Each page's text markup, notes, carets and drawing marks, sorted: [subtype, contents], as lamina lists them. */
 async function marksOf(doc) {
   const pages = [];
   for (let i = 1; i <= doc.numPages; i++) {

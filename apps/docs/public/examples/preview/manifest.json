@@ -46,6 +46,20 @@
         }
       ]
     },
+    "draw_on_page": {
+      "sha256": "c790d0520af76d7b244a4e0ff2bd43cf3d1a5638ea9ab9c724a377052a90a9ba",
+      "bytes": 29872,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        },
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
     "duplicate_pages": {
       "sha256": "5920e53b512d93aacd78406e3772eb25a929d510b3a443cb18cc0b6a04a40347",
       "bytes": 3072,

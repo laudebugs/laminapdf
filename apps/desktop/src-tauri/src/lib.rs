@@ -13,6 +13,14 @@ mod crash;
 mod e2e;
 mod engine;
 mod error;
+#[cfg_attr(
+    all(not(target_os = "linux"), not(test)),
+    expect(
+        dead_code,
+        reason = "the graphics choice is made on Linux only; its tests run everywhere"
+    )
+)]
+mod graphics;
 mod menu;
 mod motion;
 mod open;
@@ -177,6 +185,8 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     crash::report_panics(&crashes);
     crashes.resume();
     app.manage(Arc::clone(&crashes));
+    graphics::log();
+    graphics::watch_start(config.clone());
     // Native crash capture (ADR 0014 §10): the monitor hosts the servers and connects the main
     // process's handler; the poller reads engine dumps. Unix only; Windows keeps D7a's behaviour.
     #[cfg(unix)]
@@ -266,6 +276,10 @@ macro_rules! app_commands {
             commands::preferences,
             commands::set_preferences,
             commands::system_motion,
+            commands::graphics_status,
+            commands::graphics_take_notice,
+            commands::restart_app,
+            commands::open_licences,
             commands::new_window,
             commands::move_tab,
             commands::window_list,
@@ -317,6 +331,9 @@ macro_rules! app_commands {
     reason = "tauri::generate_context! builds a HashMap of the bundled assets"
 )]
 pub fn run() -> Result<(), DesktopError> {
+    let context = tauri::generate_context!();
+    // First of all, while nothing else runs: `WebKitGTK` reads its graphics settings as it starts.
+    graphics::prepare(&context.config().identifier);
     #[cfg(feature = "e2e")]
     e2e::start_clock();
     // The test commands and WebdriverIO's plugins exist only in e2e builds; generate_handler!
@@ -396,14 +413,30 @@ pub fn run() -> Result<(), DesktopError> {
         .setup(setup)
         .on_window_event(on_window_event)
         .on_menu_event(|app, event| menu::on_menu_event(app, &event))
-        .build(tauri::generate_context!())?;
+        .build(context)?;
     app.run(|app, event| on_run_event(app, &event));
     Ok(())
 }
 
+/// Restarts the app now (Restart now, Restart to update). On the main thread `restart` raises no
+/// `RunEvent::Exit`, so what a quit does is done here: the windows that close stay in the session,
+/// the engines stop, and the start counts as survived for the graphics guard.
+pub(crate) fn restart(app: &tauri::AppHandle) -> ! {
+    session::app::quitting(app);
+    app.state::<Arc<Engines>>().shutdown();
+    if let Ok(config) = app.path().app_config_dir() {
+        graphics::survived(&config);
+    }
+    app.restart()
+}
+
 /// A second launch's files, which the single-instance plugin forwards: they open in the frontmost
-/// window; a launch with no file still brings that window to the front.
+/// window; a launch with no file still brings that window to the front. The second process ends
+/// here, before its start could count as survived, so the running app takes its count back.
 fn second_launch(app: &tauri::AppHandle, args: &[String], cwd: &str) {
+    if let Ok(config) = app.path().app_config_dir() {
+        graphics::handed_over(&config);
+    }
     let paths = open::paths_from_args(args, std::path::Path::new(cwd));
     match windows::target_window(app) {
         Ok(window) => {
@@ -459,6 +492,10 @@ fn on_run_event(app: &tauri::AppHandle, event: &RunEvent) {
     match event {
         RunEvent::Exit => {
             session::app::flush(app);
+            // A clean quit, however soon after the start, isn't one the graphics guard counts.
+            if let Ok(config) = app.path().app_config_dir() {
+                graphics::survived(&config);
+            }
             app.state::<Arc<Engines>>().shutdown();
             // A downloaded update installs as the app quits (on Windows its installer takes over).
             app.state::<Arc<update::Updates>>().install_on_quit();

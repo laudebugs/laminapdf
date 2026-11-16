@@ -116,6 +116,7 @@ mod generated {
     #[rustfmt::skip]
     pub(crate) mod explain;
 }
+mod drawing_marks;
 mod initial_view;
 mod job;
 mod links;
@@ -197,19 +198,20 @@ pub use laminapdf_model::{
 };
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use laminapdf_ops::{
-    AddAnnot, AddLink, AddOutlineItem, AddReply, Anchor, AnnotColor, AnnotCommon, AnnotSpec, AnnotSpecPatch, Caret,
-    CaretPatch, CaretSymbol, Carry, ChildItems, ConformanceWarning, CropMargins, CropPages, DeleteAnnot, DeleteLink,
-    DeleteNamedDestination, DeleteOutlineItem, DeletePages, DestinationUse, DestinationView, DocumentMetadata,
-    DuplicatePages, ExplicitDestination, FieldChange, FieldClash, FieldOutcome, InfoPatch, InsertBlankPages,
-    InsertPagesFrom, MarkupKind, MergeDocuments, MergeInput, MergeOptions, MergeSource, MetadataKey, MetadataPatch,
-    MetadataSource, ModificationClass, MoveOutlineItem, MovePages, Note, NoteIcon, NotePatch, Offset, Op, OpLog,
-    Opacity, OpenAt, OpenZoom, OrientationMethod, OutlineMerge, OutlineStyle, OutlineTarget, PacketStatus, PageBoxes,
-    PageLabelRange, PageOrientation, ReferenceOutcome, ReferencePolicy, RemoveMetadata, RemoveXmpProperty, RenameLinks,
-    RenameNamedDestination, RenamedDestination, ReplacePages, ReplaceXmpPacket, ResizeMode, ResizePages, ReversePages,
-    Reverted, ReviewState, Rgb, RotateMode, RotatePage, RotatePages, SetInfo, SetInitialView, SetMetadata,
-    SetNamedDestination, SetOrientation, SetPageBoxes, SetPageLabels, SetReviewState, SetXmpProperty, SourceId,
-    SplitBy, StructureName, StructureRename, TextMarkup, TextMarkupPatch, UndoOutcome, UpdateAnnot, UpdateLink,
-    UpdateOutlineItem, WindowPreferencesPatch,
+    AddAnnot, AddLink, AddOutlineItem, AddReply, Anchor, AnnotColor, AnnotCommon, AnnotSpec, AnnotSpecPatch, Border,
+    BorderStyle, Caret, CaretPatch, CaretSymbol, Carry, ChildItems, ConformanceWarning, CropMargins, CropPages,
+    DeleteAnnot, DeleteLink, DeleteNamedDestination, DeleteOutlineItem, DeletePages, DestinationUse, DestinationView,
+    DocumentMetadata, DuplicatePages, ExplicitDestination, FieldChange, FieldClash, FieldOutcome, InfoPatch, Ink,
+    InkPatch, InkStroke, InsertBlankPages, InsertPagesFrom, Leader, LineEnding, LineMark, LinePatch, MarkupKind,
+    MergeDocuments, MergeInput, MergeOptions, MergeSource, MetadataKey, MetadataPatch, MetadataSource,
+    ModificationClass, MoveOutlineItem, MovePages, Note, NoteIcon, NotePatch, Offset, Op, OpLog, Opacity, OpenAt,
+    OpenZoom, OrientationMethod, OutlineMerge, OutlineStyle, OutlineTarget, PacketStatus, PageBoxes, PageLabelRange,
+    PageOrientation, Poly, PolyKind, PolyPatch, ReferenceOutcome, ReferencePolicy, RemoveMetadata, RemoveXmpProperty,
+    RenameLinks, RenameNamedDestination, RenamedDestination, ReplacePages, ReplaceXmpPacket, ResizeMode, ResizePages,
+    ReversePages, Reverted, ReviewState, Rgb, RotateMode, RotatePage, RotatePages, SetInfo, SetInitialView,
+    SetMetadata, SetNamedDestination, SetOrientation, SetPageBoxes, SetPageLabels, SetReviewState, SetXmpProperty,
+    Shape, ShapeKind, ShapePatch, SourceId, SplitBy, StructureName, StructureRename, TextMarkup, TextMarkupPatch,
+    UndoOutcome, UpdateAnnot, UpdateLink, UpdateOutlineItem, WindowPreferencesPatch,
 };
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,
