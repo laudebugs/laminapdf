@@ -950,7 +950,7 @@ mod tests {
         assert_eq!([looks_up, saves[0], saves[1]], [true; 3]);
     }
 
-    /// Todo X10c: pushes and the schedule analyse every language `cargo xtask changes` can name,
+    /// Todo X10c: the schedule analyses every language `cargo xtask changes` can name,
     /// and the matrix is the `changes` job's list.
     #[test]
     fn codeql_should_analyse_every_language_on_main_and_the_changed_ones_on_a_pr() {
