@@ -245,7 +245,7 @@ macro_rules! app_commands {
             commands::set_preferences,
             commands::system_motion,
             commands::graphics_status,
-            commands::graphics_notice_seen,
+            commands::graphics_take_notice,
             commands::restart_app,
             commands::open_licences,
             commands::new_window,
@@ -386,9 +386,25 @@ pub fn run() -> Result<(), DesktopError> {
     Ok(())
 }
 
+/// Restarts the app now (Restart now, Restart to update). On the main thread `restart` raises no
+/// `RunEvent::Exit`, so what a quit does is done here: the windows that close stay in the session,
+/// the engines stop, and the start counts as survived for the graphics guard.
+pub(crate) fn restart(app: &tauri::AppHandle) -> ! {
+    session::app::quitting(app);
+    app.state::<Arc<Engines>>().shutdown();
+    if let Ok(config) = app.path().app_config_dir() {
+        graphics::survived(&config);
+    }
+    app.restart()
+}
+
 /// A second launch's files, which the single-instance plugin forwards: they open in the frontmost
-/// window; a launch with no file still brings that window to the front.
+/// window; a launch with no file still brings that window to the front. The second process ends
+/// here, before its start could count as survived, so the running app clears its count.
 fn second_launch(app: &tauri::AppHandle, args: &[String], cwd: &str) {
+    if let Ok(config) = app.path().app_config_dir() {
+        graphics::survived(&config);
+    }
     let paths = open::paths_from_args(args, std::path::Path::new(cwd));
     match windows::target_window(app) {
         Ok(window) => {

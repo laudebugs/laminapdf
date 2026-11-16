@@ -1,5 +1,6 @@
 // The downloads list (scripts/downloads.ts): which files are installers, SHA256SUMS' lines, and
 // the list a release's built folders make.
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { type BuiltFolder, downloadsFrom, installerKind, parseSums } from "./downloads.ts";
 
@@ -82,5 +83,23 @@ describe("downloadsFrom", () => {
 
   it("refuses a folder that isn't a platform", () => {
     expect(() => downloadsFrom(INPUT, [folder("plan9-mips", { "a.deb": 1 }, "")])).toThrow("isn't a platform key");
+  });
+});
+
+// The website reads these lists (apps/site/src/data/downloads.ts, its own copy of the shape, since
+// one app can't import another): its test fixture must be a list this file could have written.
+describe("the website's fixture", () => {
+  const fixture = JSON.parse(
+    readFileSync(new URL("../../site/e2e/downloads.fixture.json", import.meta.url), "utf8"),
+  ) as Record<string, { files: Record<string, unknown>[] } | null>;
+  const files = Object.values(fixture).flatMap((list) => list?.files ?? []);
+
+  it("names each file's kind as installerKind does", () => {
+    expect(files.filter((file) => installerKind(String(file.name)) !== file.kind)).toEqual([]);
+  });
+
+  it("holds only the fields a listed file has", () => {
+    const fields = new Set(["platform", "kind", "name", "size", "sha256", "url", "signature"]);
+    expect(files.flatMap((file) => Object.keys(file)).filter((key) => !fields.has(key))).toEqual([]);
   });
 });

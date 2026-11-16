@@ -3,7 +3,7 @@
 // and the user agent string elsewhere (src/data/downloads.ts' visitorFrom), and turns on the copy
 // buttons. Without it the page keeps "Choose your system below" and the full table.
 
-import { offeredPlatforms, type Visitor, visitorFrom } from "../data/downloads.js";
+import { offeredPlatforms, type Visitor, visitorFrom, WORDS } from "../data/downloads.js";
 
 interface HighEntropyHints {
   platform?: string;
@@ -43,10 +43,10 @@ function enableCopy(status: HTMLElement | null): void {
     button.addEventListener("click", () => {
       navigator.clipboard.writeText(button.dataset.copy ?? "").then(
         () => {
-          if (status !== null) status.textContent = "SHA-256 copied";
+          if (status !== null) status.textContent = WORDS.copied;
         },
         () => {
-          if (status !== null) status.textContent = "Couldn't copy: select the hash instead";
+          if (status !== null) status.textContent = WORDS.copyFailed;
         },
       );
     });

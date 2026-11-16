@@ -15,7 +15,6 @@ function text(status: Partial<GraphicsStatus>, saved: Graphics = "automatic"): s
     saved,
     choose: vi.fn(),
     restart: vi.fn(async () => true),
-    noticeSeen: vi.fn(),
   };
   return renderToStaticMarkup(createElement(GraphicsSettings, { controls }))
     .replace(/<[^>]+>/g, " ")
@@ -41,7 +40,7 @@ describe("GraphicsSettings", () => {
     );
   });
 
-  it("says Safe mode lasts one start after --safe-graphics, with no restart", () => {
+  it("says Safe mode lasts until quitting after --safe-graphics, with no restart", () => {
     const shown = text({ running: "safe" }, "automatic");
     expect([shown.includes("--safe-graphics"), shown.includes("Restart now")]).toEqual([true, false]);
   });

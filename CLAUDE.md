@@ -321,13 +321,16 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   open://drag-enter|leave, open://refused), linux/laminapdf.desktop (Exec with %F),
 │                        #   opened.rs (D3b: every open from a path: engine, recent lists, watcher; the fingerprint),
 │                        #   recent.rs (recent.json, 20 entries by canonical path, ids for the webview), prefs.rs
-│                        #   (preferences.json, Settings › Motion among them), motion.rs (U7f: GNOME's reduce-motion setting, which
+│                        #   (preferences.json, Settings › Motion and Graphics among them), graphics.rs (D7b: Linux's
+│                        #   WebKitGTK workarounds chosen before the builder, an in-place `exec` instead of `set_var`,
+│                        #   --safe-graphics, the crash-loop guard in graphics-starts.json), motion.rs (U7f: GNOME's reduce-motion setting, which
 │                        #   WebKitGTK misses under Wayland, read by gsettings for `system_motion`; src/motion.ts applies it), store.rs (atomic JSON), watch/ (notify on each open file's folder,
 │                        #   stamp.rs's settle rule, app.rs's reload as a new document; document://reloaded|missing|
 │                        #   unreadable); crash/ (D7a: opt-in crash reports: report.rs, the allow-list matching
 │                        #   apps/updates/schemas/crash-report.schema.json; scrub.rs; consent.rs, crash.json; queue.rs, held/ and
 │                        #   outbox/; upload.rs, POST /crash without the install ID; the panic hook; src/crashes.tsx, S08's question
-│                        #   and Settings › Privacy); src/recent.tsx, settings.tsx (Settings › Files and Appearance and accessibility's Motion), motion.ts, window-state.ts
+│                        #   and Settings › Privacy); src/recent.tsx, settings.tsx (Settings: Files, Appearance and accessibility's Motion, and the
+│                        #   other sections' registry), graphics.tsx (Settings › Graphics, Linux only), about.tsx, motion.ts, window-state.ts
 │                        #   (the webview's context menu off the chrome, dimmed bars in an inactive window), file-changes.tsx,
 │                        #   error.rs (DesktopError as { kind, message }), build.rs (app manifest: each command needs an allow-*
 │                        #   permission), tauri.conf.json (Lamina PDF, com.laminapdf.desktop, strict CSP, frozen prototype,
@@ -353,7 +356,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   text refused, 64 KiB, rate-limited, into the private bucket lamina-pdf-crash-reports); scripts/manifest.ts
 │                        #   (show, validate, put, pause, resume, set-rollout, promote; R2's S3 API, `--local` on Wrangler),
 │                        #   scripts/r2.ts (the S3 client per-bucket R2 tokens need, SigV4 via aws4fetch; `pnpm run r2
-│                        #   put|delete`), smoke.sh;
+│                        #   put|delete`), scripts/downloads.ts (`manifest downloads`: downloads/<channel>.json, the
+│                        #   installers with their SHA-256 from SHA256SUMS, for the website's download page), smoke.sh;
 │                        #   src/channels.ts (the channels and their buckets, the one map; a test holds wrangler.jsonc to it);
 │                        #   unit tests beside their sources (src/*.test.ts, scripts/edits.test.ts, scripts/r2.test.ts), test/ (handle in Node, the
 │                        #   bundled Worker in workerd through Miniflare, a log-leak test); invocation logs and traces off;
@@ -386,8 +390,10 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── apps/site/           # the website at laminapdf.com (Astro, static, W1b; website plan §4) in the Paper look: src/layouts/Base.astro (head,
 │                        #   font preload, the shared header from @laminapdf/site-kit), src/pages/ (the home page, for now the roadmap (W1c):
 │                        #   src/components/home/, how-we-test.astro (T1b: src/components/how-we-test/, the latest full night's figures,
-│                        #   the licence policy, where the code comes from), 404 and the sitemap.xml endpoint; robots.txt from the site kit), src/data/ (check.ts:
-│                        #   the readers' shared checks; progress.json from `cargo xtask progress` and its reader progress.ts; proof.json
+│                        #   the licence policy, where the code comes from), download.astro (D7b, S09: each channel's installers,
+│                        #   src/scripts/download.ts guessing the visitor's system), 404 and the sitemap.xml endpoint; robots.txt from the site kit), src/data/ (check.ts:
+│                        #   the readers' shared checks; downloads.json, the release lists' snapshot from `pnpm run downloads`
+│                        #   (scripts/downloads.ts), with downloads.ts and downloads-snapshot.ts; progress.json from `cargo xtask progress` and its reader progress.ts; proof.json
 │                        #   from `cargo xtask proof snapshot` and its reader proof.ts, how-we-test.ts its names and percentages;
 │                        #   sources.ts: the code panel and packages from the tested examples, the CLI README and the docs install page,
 │                        #   licencePolicy from Cargo.toml and deny.toml; copy.ts: the words, approved by the owner; rounds.ts: the areas' plain
@@ -818,6 +824,8 @@ cargo xtask web docs-runner  # what the docs' example runner needs (B7e): the We
                              #   @laminapdf/sdk, @laminapdf/render and -hayro; the docs build then makes the runner
 pnpm --filter @laminapdf/site dev    # the website at localhost:4321; `build` writes apps/site/dist/ (noindex unless
                              #   LAMINA_PDF_ENV=production) and fails on a page that breaks the website's rules
+pnpm --filter @laminapdf/site run downloads  # refresh src/data/downloads.json, the download page's release lists, from
+                             #   the download hosts (production deploys run it; LAMINA_PDF_DOWNLOADS builds from another file)
 pnpm --filter @laminapdf/docs dev    # the docs site at localhost:4321; `build` writes apps/docs/dist/ (what deploys), with a
                              #   Markdown twin per page (`/install.md`), llms.txt and llms-full.txt; `test` runs plugins/ and scripts/ tests
 node apps/docs/scripts/package-docs.mjs <out-dir> [--api]  # the docs/ folder the packages ship: pages, code pages, AGENTS.md

@@ -6,16 +6,10 @@
 //   pnpm --filter @laminapdf/site run downloads
 import { writeFileSync } from "node:fs";
 import process from "node:process";
-import { CHANNELS, type Channel, type Downloads, parseDownloads } from "../src/data/downloads.ts";
-
-const HOST: Readonly<Record<Channel, string>> = {
-  beta: "https://downloads.laminapdf.com",
-  stable: "https://downloads.laminapdf.com",
-  nightly: "https://nightly-downloads.laminapdf.com",
-};
+import { CHANNELS, type Channel, DOWNLOAD_HOSTS, type Downloads, parseDownloads } from "../src/data/downloads.ts";
 
 async function fetchList(channel: Channel): Promise<Downloads | null> {
-  const url = `${HOST[channel]}/downloads/${channel}.json`;
+  const url = `${DOWNLOAD_HOSTS[channel]}/downloads/${channel}.json`;
   const answer = await fetch(url, { headers: { accept: "application/json" } });
   if (answer.status === 404) return null;
   if (!answer.ok) throw new Error(`${url} answered ${answer.status}`);

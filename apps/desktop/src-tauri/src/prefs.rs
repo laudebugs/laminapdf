@@ -1,8 +1,7 @@
 //! The desktop app's own preferences, kept in `preferences.json` in the app's config folder:
 //! whether it remembers recent files and whether it reloads files that change on disk, where files
 //! open, Settings › Motion and, on Linux, Settings › Graphics (`graphics.rs`, read before the app
-//! starts). The
-//! settings page (D5b, D7b) will show them; until then the Recent popover holds the toggles.
+//! starts). Settings shows and changes them all (`src/settings.tsx`).
 
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard, PoisonError};

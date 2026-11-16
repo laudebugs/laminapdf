@@ -16,6 +16,7 @@ import {
   SettingsDialog,
   SettingsRegistry,
   Switch,
+  type ToastQueue,
   useSettingsSection,
 } from "@laminapdf/ui";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
@@ -77,6 +78,7 @@ export function useDesktopSettings(
   shell: DesktopShell | undefined,
   onChange: () => void,
   updates: DesktopUpdates,
+  toasts: ToastQueue,
 ): DesktopSettings {
   const { preferences, change } = usePreferences(shell, onChange);
   const [isOpen, setOpen] = useState(false);
@@ -84,6 +86,10 @@ export function useDesktopSettings(
   const [registry] = useState(() => new SettingsRegistry());
   // Outside the shell nothing updates, so the Updates section goes to a registry nobody shows.
   const [unshown] = useState(() => new SettingsRegistry());
+  const open = useCallback((at?: string) => {
+    setSection(at);
+    setOpen(true);
+  }, []);
   const clearRecent = useCallback(() => {
     shell?.invoke("recent_clear").then(onChange, reportError);
   }, [shell, onChange]);
@@ -115,7 +121,7 @@ export function useDesktopSettings(
     { shows: [updates], summary: () => updatesSummary(updates.status) },
   );
   // Settings › Graphics, on Linux only (the main process says whether it applies).
-  useGraphicsSection(shell, { shown: registry, unshown }, preferences.graphics, (graphics) =>
+  useGraphicsSection({ shell, shown: registry, unshown, toasts, open }, preferences.graphics, (graphics) =>
     change({ ...preferences, graphics }),
   );
   // S07: Settings › Privacy, inside the shell only (the main process keeps the crash reports).
@@ -130,10 +136,6 @@ export function useDesktopSettings(
   );
   // S07: Settings › About, inside the shell only.
   useAboutSection(shell, shell === undefined ? unshown : registry, updates.status);
-  const open = useCallback((at?: string) => {
-    setSection(at);
-    setOpen(true);
-  }, []);
   return {
     preferences,
     open,

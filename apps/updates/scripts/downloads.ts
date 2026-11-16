@@ -6,6 +6,7 @@
 
 import type { PlatformKey } from "../src/route.ts";
 import { isPlatformKey } from "../src/route.ts";
+import type { PlatformFiles } from "./release.ts";
 
 /** What a person installs from, by file name; the updater's own bundles aren't listed. */
 export type InstallerKind = "dmg" | "nsis" | "msi" | "appimage" | "deb" | "rpm";
@@ -48,11 +49,8 @@ export interface Downloads {
   readonly files: readonly DownloadFile[];
 }
 
-/** One platform's built folder, as `manifest downloads` reads it. */
-export interface BuiltFolder {
-  readonly platform: string;
-  readonly files: readonly string[];
-  readonly read: (file: string) => string;
+/** One platform's built folder, as `manifest downloads` reads it: release.ts's, with sizes. */
+export interface BuiltFolder extends PlatformFiles {
   readonly size: (file: string) => number;
 }
 

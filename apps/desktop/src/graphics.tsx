@@ -1,14 +1,25 @@
 // Settings › Graphics, on Linux only (S07's renderer switch): which WebKitGTK workarounds the app
 // starts with (src-tauri/src/graphics.rs). They take effect at the next start, so a change offers
-// Restart now; and when two starts in a row failed, the main process switched to Compatibility and
-// this section says so, once. The words stay in the desktop app, as Updates' do.
+// Restart now. When two starts in a row failed, the main process switched to Compatibility: the
+// first window says so once at start, with a way to Settings, and this section says so for the
+// rest of the run. The words stay in the desktop app, as Updates' do.
 
-import { Button, Notice, Radio, RadioGroup, type SettingsRegistry, useSettingsSection } from "@laminapdf/ui";
+import {
+  Button,
+  Notice,
+  Radio,
+  RadioGroup,
+  type SettingsRegistry,
+  type ToastQueue,
+  useSettingsSection,
+} from "@laminapdf/ui";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import type { DesktopShell } from "./engine/desktop-engine-client.ts";
 
-/** Settings › Graphics (`Graphics` in src-tauri/src/graphics.rs). */
-export type Graphics = "automatic" | "compatibility" | "safe";
+/** Settings › Graphics' choices, in the order it shows them (`Graphics` in src-tauri/src/graphics.rs,
+ * whose test holds this list to the Rust enum). */
+export const GRAPHICS = ["automatic", "compatibility", "safe"] as const;
+export type Graphics = (typeof GRAPHICS)[number];
 
 /** What this start runs with (`Status` in src-tauri/src/graphics.rs). */
 export interface GraphicsStatus {
@@ -36,7 +47,9 @@ const WORDS = {
   unsaved: "Save or close the documents with unsaved edits first, then restart.",
   fellBackTitle: "Lamina PDF switched to Compatibility.",
   fellBack: "It closed twice just after starting, so it now draws without the DMABUF renderer.",
-  flag: "Started with --safe-graphics: Safe mode is on until the next start.",
+  flag: "Started with --safe-graphics: Safe mode is on until you quit Lamina PDF.",
+  openSettings: "Graphics settings",
+  later: "Later",
   "summary.automatic": "Automatic",
   "summary.compatibility": "Compatibility",
   "summary.safe": "Safe mode",
@@ -55,27 +68,46 @@ function useGraphicsStatus(shell: DesktopShell | undefined): GraphicsStatus | un
   return status;
 }
 
+/** Where Settings › Graphics goes, and what it may use. */
+export interface GraphicsSectionHost {
+  readonly shell: DesktopShell | undefined;
+  /** Where it applies (Linux), and the registry no dialog shows. */
+  readonly shown: SettingsRegistry;
+  readonly unshown: SettingsRegistry;
+  /** The start notice's queue, and how it opens Settings at the section. */
+  readonly toasts: ToastQueue;
+  readonly open: (section: string) => void;
+}
+
 /**
- * Registers Settings › Graphics in `registries.shown` where it applies (Linux), else in
- * `registries.unshown`, which no dialog shows. `saved` is the preferences' choice; `choose` saves another.
+ * Registers Settings › Graphics, and says once at start when the crash-loop guard switched to
+ * Compatibility. `saved` is the preferences' choice; `choose` saves another.
  */
 export function useGraphicsSection(
-  shell: DesktopShell | undefined,
-  registries: { readonly shown: SettingsRegistry; readonly unshown: SettingsRegistry },
+  host: GraphicsSectionHost,
   saved: Graphics,
   choose: (value: Graphics) => void,
 ): void {
+  const { shell, shown, unshown, toasts, open } = host;
   const status = useGraphicsStatus(shell);
   const restart = useCallback(async () => (await shell?.invoke<boolean>("restart_app")) ?? false, [shell]);
-  const noticeSeen = useCallback(() => {
-    shell?.invoke("graphics_notice_seen").catch(reportError);
-  }, [shell]);
+  useEffect(() => {
+    if (status?.fellBack !== true) return;
+    shell?.invoke<boolean>("graphics_take_notice").then((tell) => {
+      if (!tell) return;
+      toasts.add({
+        message: `${words("fellBackTitle")} ${words("fellBack")}`,
+        action: { label: words("openSettings"), onPress: () => open("graphics") },
+        dismissLabel: words("later"),
+        timeout: Number.POSITIVE_INFINITY,
+      });
+    }, reportError);
+  }, [status, shell, toasts, open]);
   useSettingsSection(
-    status?.applies === true ? registries.shown : registries.unshown,
+    status?.applies === true ? shown : unshown,
     "graphics",
     words("title"),
-    () =>
-      status === undefined ? null : <GraphicsSettings controls={{ status, saved, choose, restart, noticeSeen }} />,
+    () => (status === undefined ? null : <GraphicsSettings controls={{ status, saved, choose, restart }} />),
     { shows: [saved, status], summary: () => words(`summary.${saved}`) },
   );
 }
@@ -90,19 +122,14 @@ export interface GraphicsControls {
   readonly choose: (value: Graphics) => void;
   /** Restarts the app: `false` while a window holds unsaved edits. */
   readonly restart: () => Promise<boolean>;
-  /** The crash-loop notice has been shown. */
-  readonly noticeSeen: () => void;
 }
 
 /** Settings › Graphics: the three choices, Restart now after a change, and the guard's notice. */
 export function GraphicsSettings({ controls }: { controls: GraphicsControls }): ReactNode {
-  const { status, saved, choose, restart, noticeSeen } = controls;
+  const { status, saved, choose, restart } = controls;
   const [blocked, setBlocked] = useState(false);
   const { fellBack } = status;
-  useEffect(() => {
-    if (fellBack) noticeSeen();
-  }, [fellBack, noticeSeen]);
-  // `--safe-graphics` runs Safe mode without saving it.
+  // `--safe-graphics` runs Safe mode without saving it; a restart keeps the flag, so none is offered.
   const flagged = status.running === "safe" && saved !== "safe";
   const changed = !flagged && saved !== status.running;
   return (
@@ -114,7 +141,7 @@ export function GraphicsSettings({ controls }: { controls: GraphicsControls }): 
       ) : null}
       {flagged ? <p className="desktop-settings-help">{words("flag")}</p> : null}
       <RadioGroup label={words("choice")} value={saved} onChange={(value) => choose(value as Graphics)}>
-        {(["automatic", "compatibility", "safe"] as const).map((choice) => (
+        {GRAPHICS.map((choice) => (
           <Radio key={choice} value={choice}>
             {words(choice)}
             <span className="desktop-radio-help">{words(`${choice}.help`)}</span>

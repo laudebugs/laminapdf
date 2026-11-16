@@ -46,7 +46,13 @@ export type Snapshot = Readonly<Record<Channel, Downloads | null>>;
 
 const PLATFORM = /^(darwin|windows|linux)-(aarch64|x86_64)$/;
 const HASH = /^[0-9a-f]{64}$/;
-const HOSTS = ["https://downloads.laminapdf.com/", "https://nightly-downloads.laminapdf.com/"];
+/** Each channel's download host, where the release workflow writes its list (ADR 0014 §1). */
+export const DOWNLOAD_HOSTS: Readonly<Record<Channel, string>> = {
+  beta: "https://downloads.laminapdf.com",
+  stable: "https://downloads.laminapdf.com",
+  nightly: "https://nightly-downloads.laminapdf.com",
+};
+const HOSTS = [...new Set(Object.values(DOWNLOAD_HOSTS))].map((host) => `${host}/`);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -198,6 +204,7 @@ export const WORDS = {
   allDownloads: "All downloads",
   columns: ["System", "File", "Processor", "Size", "SHA-256"] as const,
   copied: "SHA-256 copied",
+  copyFailed: "Couldn't copy: select the hash instead",
   checksums: "SHA256SUMS",
   checksumsSignature: "SHA256SUMS.asc",
   signingKey: "the signing key",

@@ -5,6 +5,7 @@
 import { Button, type SettingsRegistry, useSettingsSection } from "@laminapdf/ui";
 import { type ReactNode, useState } from "react";
 import type { DesktopShell } from "./engine/desktop-engine-client.ts";
+import { fill } from "./update-words.ts";
 import { channelName, type UpdateStatus } from "./updates.tsx";
 
 const WORDS = {
@@ -17,7 +18,7 @@ const WORDS = {
 } as const;
 
 function words(id: keyof typeof WORDS, values: Readonly<Record<string, string>> = {}): string {
-  return WORDS[id].replace(/\{(\w+)\}/g, (whole, name: string) => values[name] ?? whole);
+  return fill(WORDS[id], values);
 }
 
 /** Registers Settings › About in `registry` (an unshown one outside the shell). */

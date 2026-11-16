@@ -331,6 +331,7 @@ function useHome(
     engine?.shell,
     useCallback(() => setPreferencesChanged((n) => n + 1), []),
     updates,
+    toasts,
   );
   const recent = useDesktopRecent(platform, reader, state, toasts, settings.preferences.rememberRecent);
   const { refresh, actions: recentActions } = recent;

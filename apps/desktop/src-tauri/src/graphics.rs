@@ -10,16 +10,17 @@
 //!   NVIDIA's own driver under Wayland, where `WebKitGTK`'s windows are known to stay blank.
 //! - **Compatibility** turns `WebKitGTK`'s DMABUF renderer off.
 //! - **Safe mode** turns compositing off too: slower, the last resort.
-//! - `--safe-graphics` on the command line starts in Safe mode once, for a user who can't reach
-//!   Settings.
+//! - `--safe-graphics` on the command line starts in Safe mode until the app quits (a restart
+//!   keeps the flag), for a user who can't reach Settings.
 //!
 //! A variable the user set themselves is left alone. The ones the app set are named in
 //! [`MARKER`], so choosing Automatic again and restarting drops them.
 //!
 //! The crash-loop guard: each start counts in `graphics-starts.json` until it has run for
 //! [`SURVIVED_AFTER`]. When two starts in a row ended before that, the next one switches Automatic
-//! to Compatibility, saves it, and the Graphics section says why. End-to-end builds, which the
-//! tests start and stop within seconds, have no guard.
+//! to Compatibility and saves it; the app says so once at start, and Settings › Graphics says
+//! why. A second launch, which hands its files to the running app and ends, counts as survived.
+//! End-to-end builds, which the tests start and stop within seconds, have no guard.
 //!
 //! [Tauri's Linux graphics notes]: https://v2.tauri.app/develop/debug/linux-graphics/
 
@@ -92,7 +93,7 @@ pub(crate) fn effective(saved: Graphics, safe_flag: bool, crash_loop: bool) -> G
 }
 
 /// The starts that haven't yet run for [`SURVIVED_AFTER`], and whether the guard switched to
-/// Compatibility and hasn't said so in Settings yet.
+/// Compatibility and hasn't told the user yet.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub(crate) struct Starts {
@@ -127,6 +128,19 @@ impl Starts {
         Self {
             unfinished: 0,
             fell_back: self.fell_back,
+        }
+    }
+
+    /// The starts saved in `config`'s starts file, or none.
+    pub(crate) fn load(config: &Path) -> Self {
+        read_json(&config.join(STARTS_FILE), "graphics starts").unwrap_or_default()
+    }
+
+    /// Saves them in `config`'s starts file; a failure is logged (on stderr before the log is up).
+    pub(crate) fn save(self, config: &Path) {
+        if let Err(error) = write_json(&config.join(STARTS_FILE), &self) {
+            tracing::warn!("could not save the graphics starts: {error}");
+            eprintln!("Lamina PDF could not save the graphics starts: {error}");
         }
     }
 }
@@ -208,18 +222,16 @@ pub(crate) fn prepare(identifier: &str) {
     let _ = identifier;
 }
 
-/// The start survived: after [`SURVIVED_AFTER`] on a thread of its own, and at a clean quit.
+/// The start survived: after [`SURVIVED_AFTER`] on a thread of its own, at a clean quit or a
+/// restart, and when a second launch reaches the running app (the single-instance plugin ends the
+/// second process at once, so its own start never would).
 pub(crate) fn survived(config: &Path) {
     if !cfg!(target_os = "linux") {
         return;
     }
-    let file = config.join(STARTS_FILE);
-    let starts: Starts = read_json(&file, "graphics starts").unwrap_or_default();
-    if starts.unfinished == 0 {
-        return;
-    }
-    if let Err(error) = write_json(&file, &starts.survived()) {
-        tracing::warn!("could not save the graphics starts: {error}");
+    let starts = Starts::load(config);
+    if starts.unfinished > 0 {
+        starts.survived().save(config);
     }
 }
 
@@ -239,21 +251,21 @@ pub(crate) fn watch_start(config: PathBuf) {
     }
 }
 
-/// Settings has shown the guard's notice: it isn't shown again.
-pub(crate) fn notice_seen(config: &Path) {
-    let file = config.join(STARTS_FILE);
-    let starts: Starts = read_json(&file, "graphics starts").unwrap_or_default();
-    if starts.fell_back
-        && let Err(error) = write_json(
-            &file,
-            &Starts {
-                fell_back: false,
-                ..starts
-            },
-        )
-    {
-        tracing::warn!("could not save the graphics starts: {error}");
+/// Whether to tell the user the guard switched to Compatibility: `true` once per run, while the
+/// starts file says it hasn't been told yet; it is then marked told. Settings › Graphics still says
+/// so for the rest of this run ([`Status::fell_back`]).
+pub(crate) fn take_notice(config: &Path) -> bool {
+    static TOLD: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    let starts = Starts::load(config);
+    if !starts.fell_back || TOLD.swap(true, std::sync::atomic::Ordering::SeqCst) {
+        return false;
     }
+    Starts {
+        fell_back: false,
+        ..starts
+    }
+    .save(config);
+    true
 }
 
 /// Logs this start's graphics, once the log is up.
@@ -272,8 +284,8 @@ mod linux {
     use crate::prefs::Preferences;
 
     use super::{
-        Graphics, MARKER, Machine, STARTS_FILE, STATUS, Starts, Status, config_dir, effective, graphics_env, read_json,
-        rerun, write_json,
+        Graphics, MARKER, Machine, STATUS, Starts, Status, config_dir, effective, graphics_env, read_json, rerun,
+        write_json,
     };
 
     /// Set to the process ID by the `exec`: the new image is the same start, not another one.
@@ -295,17 +307,16 @@ mod linux {
         let again = var(RERUN).as_deref() == Some(me.as_str());
         let prefs_file = config.join("preferences.json");
         let mut prefs: Preferences = read_json(&prefs_file, "preferences").unwrap_or_default();
-        let starts_file = config.join(STARTS_FILE);
-        let starts: Starts = read_json(&starts_file, "graphics starts").unwrap_or_default();
+        let starts = Starts::load(&config);
         // End-to-end builds are started and stopped within seconds, test after test: no guard.
         let counted = !again && !cfg!(feature = "e2e");
         let (starts, crash_loop) = if counted { starts.started() } else { (starts, false) };
-        if counted && let Err(error) = write_json(&starts_file, &starts) {
-            eprintln!("Lamina PDF could not save the graphics starts: {error}");
+        if counted {
+            starts.save(&config);
         }
         let safe_flag = std::env::args_os().any(|arg| arg == SAFE_FLAG);
         let running = effective(prefs.graphics, safe_flag, crash_loop);
-        // The guard's switch is saved; the flag's lasts one start.
+        // The guard's switch is saved; the flag's lasts until the app quits (a restart keeps it).
         if crash_loop && prefs.graphics == Graphics::Automatic {
             prefs.graphics = Graphics::Compatibility;
             if let Err(error) = write_json(&prefs_file, &prefs) {
@@ -419,6 +430,27 @@ mod tests {
     #[test]
     fn a_crash_loop_should_keep_safe_mode() {
         assert_eq!(effective(Graphics::Safe, false, true), Graphics::Safe);
+    }
+
+    #[test]
+    fn the_settings_page_should_offer_exactly_the_choices_rust_reads() {
+        let source = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../src/graphics.tsx")).unwrap();
+        let line = source
+            .lines()
+            .find(|line| line.starts_with("export const GRAPHICS = ["))
+            .unwrap();
+        let offered: Vec<&str> = line.split('"').skip(1).step_by(2).collect();
+        let rust: Vec<String> = [Graphics::Automatic, Graphics::Compatibility, Graphics::Safe]
+            .iter()
+            .map(|choice| {
+                serde_json::to_value(choice)
+                    .unwrap()
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_owned()
+            })
+            .collect();
+        assert_eq!(offered, rust);
     }
 
     #[test]

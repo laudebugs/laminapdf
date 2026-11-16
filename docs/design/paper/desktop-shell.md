@@ -304,6 +304,14 @@ Conventions on this canvas:
 
 **As built ([D7a](../../todos/done/D7a-crash-reporting.md)), Privacy.** The Settings dialog has a Privacy section with **Send crash reports** (off) and its help, and **See a sample report**, which opens, below it, a focusable block with the JSON of a report this app would send. The usage counts belong to U5c and aren't built. The section sits in the shared Settings dialog after Files and Updates, as S07's other sections do until D7b.
 
+**As built ([D7b](../../todos/ongoing/D7b-settings-renderer-switch-and-download-page.md)).** Settings is the reader's dialog (D5b's), not a window of its own. Its sections are Files (General), Appearance and accessibility, Updates, Privacy (D7a), About and, on Linux, Graphics. The differences from the board:
+- **Graphics has its own section**, on Linux only, not under Advanced: there is nothing else for Advanced to hold. Printing (`print.mode`) has nothing to choose, since D4c built no compatibility path (S05). The `--safe-graphics` hint shows only when the app started with the flag.
+- **Reset anonymous ID and the privacy policy link stay in Updates**, where D5b put them beside what an update check sends. Privacy holds D7a's crash reports.
+- **About** has the version and channel, the licence line and View licences. It has no build line, no Copy version info and no help link yet.
+- **Clear recent files** clears at once, with no Undo toast. The Recent popover's Clear list does the same.
+- **No Default PDF app button**: D3a chose to register as a handler and leave the default to the user.
+- **The crash-loop notice** is a toast once at start, with **Graphics settings**, as well as a warning notice in the section.
+
 **Artboards:** `S07-settings-general.dc.html`, `S07-settings-appearance.dc.html`, `S07-settings-privacy.dc.html`, `S07-settings-shortcuts.dc.html`, `S07-settings-advanced.dc.html` (and `S06-update-settings.dc.html` for Updates).
 
 **Todos:** [D7b](../../todos/ongoing/D7b-settings-renderer-switch-and-download-page.md), [D7a](../../todos/done/D7a-crash-reporting.md), [U5c](../../todos/ready/U5c-opt-in-usage-telemetry.md).

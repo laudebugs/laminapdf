@@ -663,7 +663,7 @@ main {
   columns: 2;
 }
 
-/* The download page (todo D7b; Paper S09): the channel tabs reuse the code panel's, the card for
+/* The download page (Paper S09): the channel tabs reuse the code panel's, the card for
    the visitor's computer, and the table of every installer, its hash wrapping inside its cell. */
 .download h2 {
   margin: var(--paper-space-32) 0 var(--paper-space-12);
