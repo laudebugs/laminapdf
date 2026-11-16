@@ -186,4 +186,3 @@ fn undoing_an_added_note_after_a_save_needs_the_right_to_delete() {
         )
     );
 }
-
