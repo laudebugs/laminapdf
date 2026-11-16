@@ -950,7 +950,7 @@ mod tests {
     }
 
     /// The fast lane's macOS Arm64 Rust leg runs the render goldens on the `render` flag, so a PR
-    /// waits for one Mac there, and the full lane has no Mac job of its own but the desktop leg.
+    /// waits for no extra Mac, and the full lane has no Mac job of its own but the desktop leg.
     #[test]
     fn the_render_goldens_should_be_a_step_of_the_macos_arm64_rust_leg() {
         let rust = lines_of(CI, "jobs", "rust");
