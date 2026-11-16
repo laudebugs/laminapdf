@@ -69,6 +69,7 @@ import type {
   ImageOptions,
   InitialView,
   InitialViewPatch,
+  LineEnding,
   MarkupKind,
   MetadataKey,
   MetadataPatch,
@@ -85,10 +86,12 @@ import type {
   PageLabelRange,
   PageLink,
   PlannedSave,
+  PolyKind,
   Progress,
   Reverted,
   SaveOptions,
   SaveReport,
+  ShapeKind,
   StructureNode,
   Target,
   TargetView,
@@ -777,6 +780,70 @@ export class Document extends Handle<BaseGlue> {
    */
   caretAt(page: number, area: readonly [number, number, number, number]): AddAnnot {
     return this.call(() => this.#doc.caretAt(page, [...area]));
+  }
+
+  /**
+   * The edit that draws freehand ink on page `page`: one stroke per list of points, each
+   * `[x, y]` in page space, by a pen `width` points wide (1 by default), smoothed through the
+   * points. Apply it with `{ op: "addAnnot", args }`. For a pressure-sensitive pen, give each of
+   * the edit's `spec.strokes` its `widths`, one per point, before applying it.
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`.
+   *
+   * @since 0.5.0
+   */
+  inkAt(page: number, strokes: readonly (readonly (readonly [number, number])[])[], width = 1): AddAnnot {
+    const lists = strokes.map((stroke) => stroke.map((p) => [...p] as [number, number]));
+    return this.call(() => this.#doc.inkAt(page, lists, width));
+  }
+
+  /**
+   * The edit that draws a square or circle on page `page` along `area` (`[x0, y0, x1, y1]` in
+   * page space): a rectangle, or the ellipse inside the box. Set the edit's `spec.interior` to
+   * fill it and `spec.border` for a dashed or cloudy outline.
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`.
+   *
+   * @since 0.5.0
+   */
+  shapeAt(page: number, kind: ShapeKind, area: readonly [number, number, number, number]): AddAnnot {
+    return this.call(() => this.#doc.shapeAt(page, kind, [...area]));
+  }
+
+  /**
+   * The edit that draws a line on page `page` from `from` to `to` (`[x, y]` in page space), with
+   * `ends` at its start and end: an arrow is `["none", "closedArrow"]`.
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`.
+   *
+   * @since 0.5.0
+   */
+  lineAt(
+    page: number,
+    from: readonly [number, number],
+    to: readonly [number, number],
+    ends?: readonly [LineEnding, LineEnding],
+  ): AddAnnot {
+    return this.call(() => this.#doc.lineAt(page, [...from], [...to], ends === undefined ? undefined : [...ends]));
+  }
+
+  /**
+   * The edit that draws a polygon (`"polygon"`, closed) or polyline (`"polyLine"`, open) on page
+   * `page` through `vertices` (`[x, y]` in page space): at least three for a polygon, two for a
+   * polyline.
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`.
+   *
+   * @since 0.5.0
+   */
+  polyAt(page: number, kind: PolyKind, vertices: readonly (readonly [number, number])[]): AddAnnot {
+    return this.call(() =>
+      this.#doc.polyAt(
+        page,
+        kind,
+        vertices.map((p) => [...p] as [number, number]),
+      ),
+    );
   }
 
   /**

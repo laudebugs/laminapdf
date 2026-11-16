@@ -17,6 +17,9 @@
 //     publish <channel> <dir> --version <v> --downloads <url> --notes <text> --rollout <percent>
 //                                            make the uploaded build the channel's release
 //     verify <channel> <version> [--server <url>]   ask the Worker for each platform's update
+//     downloads <channel> <dir> --version <v> --downloads <url>
+//                                            write downloads/<channel>.json, the website's list of
+//                                            the installers (scripts/downloads.ts)
 //
 // --local works on Wrangler's local R2 (what `pnpm dev` serves) instead of the real buckets; without
 // it, the bucket's credentials must be in the environment (scripts/r2.ts names them).
@@ -28,9 +31,10 @@ import { join } from "node:path";
 import process from "node:process";
 import { CHANNEL_BUCKETS, CHANNELS, type Channel, isChannel } from "../src/channels.ts";
 import { type Manifest, parseManifest } from "../src/manifest.ts";
+import { type BuiltFolder, downloadsFrom } from "./downloads.ts";
 import { emptyManifest, promote, publishRelease, setPaused, setRollout } from "./edits.ts";
 import { R2Bucket } from "./r2.ts";
-import { type PlatformFiles, releaseFrom } from "./release.ts";
+import { releaseFrom } from "./release.ts";
 
 const local = process.argv.includes("--local");
 const args = process.argv.slice(2).filter((a) => a !== "--local");
@@ -157,7 +161,7 @@ function fromFile(path: string | undefined, channel?: Channel): Manifest {
 }
 
 /** Each `<dir>/<platform>/` folder the release workflow downloaded, with its files. */
-function builtPlatforms(dir: string | undefined): PlatformFiles[] {
+function builtPlatforms(dir: string | undefined): BuiltFolder[] {
   if (!dir) fail("expected the folder of built files");
   return readdirSync(dir)
     .filter((platform) => statSync(join(dir, platform)).isDirectory())
@@ -165,6 +169,7 @@ function builtPlatforms(dir: string | undefined): PlatformFiles[] {
       platform,
       files: readdirSync(join(dir, platform)).filter((file) => statSync(join(dir, platform, file)).isFile()),
       read: (file: string) => readFileSync(join(dir, platform, file), "utf8"),
+      size: (file: string) => statSync(join(dir, platform, file)).size,
     }));
 }
 
@@ -248,6 +253,25 @@ async function verify(channel: Channel, version: string | undefined, server: str
   if (problems.length > 0) fail(`the Worker doesn't serve ${version} everywhere:\n  ${problems.join("\n  ")}`);
 }
 
+/**
+ * Writes `downloads/<channel>.json`, the website's list of the installers, once the Worker serves
+ * the release. Cached five minutes: the website reads it when it deploys.
+ */
+async function writeDownloads(channel: Channel, dir: string | undefined, version: string, downloads: string) {
+  const pubDate = new Date().toISOString().replace(/\.\d+Z$/, "Z");
+  const list = downloadsFrom({ channel, version, pubDate, downloads }, builtPlatforms(dir));
+  const temp = mkdtempSync(join(tmpdir(), "lamina-downloads-"));
+  try {
+    const file = join(temp, `${channel}.json`);
+    writeFileSync(file, `${JSON.stringify(list, null, 2)}\n`);
+    const key = `downloads/${channel}.json`;
+    await putFile(channel, key, file, { contentType: "application/json", cacheControl: "public, max-age=300" });
+    console.log(`${channel}: ${list.files.length} installers listed in ${bucketOf(channel)}/${key}`);
+  } finally {
+    rmSync(temp, { recursive: true, force: true });
+  }
+}
+
 async function run(): Promise<void> {
   const [command, first, second] = args;
   switch (command) {
@@ -299,9 +323,15 @@ async function run(): Promise<void> {
     case "verify":
       await verify(channelOf(first), second, option("--server") ?? "https://updates.laminapdf.com");
       return;
+    case "downloads": {
+      const downloads = option("--downloads") ?? fail("expected --downloads");
+      const version = option("--version") ?? fail("expected --version");
+      await writeDownloads(channelOf(first), second, version, downloads);
+      return;
+    }
     default:
       fail(
-        "commands: show, validate, put, pause, resume, set-rollout, promote, upload, publish, verify (see scripts/manifest.ts)",
+        "commands: show, validate, put, pause, resume, set-rollout, promote, upload, publish, verify, downloads (see scripts/manifest.ts)",
       );
   }
 }

@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `D7b` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Desktop app §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [C4b](../done/C4b-web-app-shell.md), [C4d](../done/C4d-deploy-previews-and-production.md), [W1b](../done/W1b-site-scaffold-and-deploys.md), [D6b](../done/D6b-release-workflow-and-linux-packages.md), [D7a](../done/D7a-crash-reporting.md) |
+| Depends on | [C4b](./C4b-web-app-shell.md), [C4d](./C4d-deploy-previews-and-production.md), [W1b](./W1b-site-scaffold-and-deploys.md), [D6b](./D6b-release-workflow-and-linux-packages.md), [D7a](./D7a-crash-reporting.md) |
 | Dependency notes | [D7a](../done/D7a-crash-reporting.md) (settings sections for crash reports), [D6b](../done/D6b-release-workflow-and-linux-packages.md) (artefacts and `SHA256SUMS` in R2). Cross-plan: the download page lives on the website, `apps/site`, from [W1b](../done/W1b-site-scaffold-and-deploys.md) ([website plan §4](../../plans/website.md#4-the-website)). |
 | ADRs | Follows ADR 0008 (Linux fallback: renderer switch), ADR 0014 (downloads domain, channels), ADR 0011 (privacy page) |
 | Branch | `feat/d7b-settings-and-download-page` |
 | PR title | `feat(desktop): finish the settings page and add the download page` |
 | Size | M–L (500–900 lines) |
-| PR | — |
+| PR | [#647](https://github.com/laudebugs/laminapdf/pull/647) |
 
 ## Goal
 
@@ -42,26 +42,43 @@ Finish the desktop settings page so every user-facing control the beta needs is 
 
 **Out of scope** (and which todo covers it)
 
-- Shipping the beta and the update cycle: [D7c](D7c-desktop-beta-release.md).
+- Shipping the beta and the update cycle: [D7c](../ready/D7c-desktop-beta-release.md).
 - Store listings (non-goals).
 - The privacy page itself (ADR 0011, web C7) — this PR adds desktop sections to it if it exists, else provides text for its owner.
 
 ## Tasks
 
-- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
-- [ ] Renderer switch: early-startup env application, auto-detection, crash-loop guard, `--safe-graphics`; unit tests for the decision function (`fn graphics_env(settings, env_probe) -> Vec<(&str, &str)>`).
-- [ ] Settings UI sections + desktop `Platform` methods; capability for the `settings` window updated (only the commands it uses).
-- [ ] D6b publish job: write `downloads/{channel}.json` (version, files with size/sha256/url) to R2; R2 CORS rule for the web origin (owner action if done in the dashboard).
-- [ ] `apps/site` download page; Playwright test (the website's suite) with a mocked `downloads/beta.json`.
-- [ ] Manual check on Linux with NVIDIA + Wayland if hardware is available (else record the gap and ask beta testers).
+- [x] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
+- [x] Renderer switch: early-startup env application, auto-detection, crash-loop guard, `--safe-graphics`; unit tests for the decision function (`fn graphics_env(settings, env_probe) -> Vec<(&str, &str)>`).
+- [x] Settings UI sections + desktop `Platform` methods; capability for the `settings` window updated (only the commands it uses).
+- [x] D6b publish job: write `downloads/{channel}.json` (version, files with size/sha256/url) to R2; R2 CORS rule for the web origin (owner action if done in the dashboard).
+- [x] `apps/site` download page; Playwright test (the website's suite) with a mocked `downloads/beta.json`.
+- [x] Manual check on Linux with NVIDIA + Wayland if hardware is available (else record the gap and ask beta testers). No such hardware: recorded as a gap below, for D7c to ask the beta testers.
 
 ## Acceptance criteria
 
-- [ ] On Linux, choosing *Compatibility* and restarting launches with `WEBKIT_DISABLE_DMABUF_RENDERER=1` in the process environment (unit test of the decision function + manual check via `/proc/<pid>/environ`).
-- [ ] Two abnormal exits within 10 s on Linux trigger the automatic fallback and a notice (unit test of the guard).
-- [ ] Every setting stored by D3b, D4a, D4c, D5b and D7a is visible and changeable in the settings page; axe reports zero serious violations on the settings route.
-- [ ] `/download` on the PR's preview deploy offers the right installer first on macOS arm64, Windows x64 and Linux x64 browsers (Playwright with UA/client-hint overrides) and lists all artefacts with SHA-256 values matching `SHA256SUMS` (test against the mocked JSON).
-- [ ] The download page works without JavaScript errors in Chromium, Firefox and WebKit (the website's Playwright suite).
+- [x] On Linux, choosing *Compatibility* and restarting launches with `WEBKIT_DISABLE_DMABUF_RENDERER=1` in the process environment: the decision function's and `rerun`'s unit tests (`graphics.rs`).
+- [ ] …and the manual check via `/proc/<pid>/environ`: not run, for lack of a Linux machine with a desktop session here (a gap, below).
+- [x] Two abnormal exits within 10 s on Linux trigger the automatic fallback and a notice: the guard's unit tests (`Starts`), the notice once at start (`graphics_take_notice`) and in Settings › Graphics (`graphics.test.ts`).
+- [x] Every setting stored by D3b, D4a, D4c, D5b and D7a is visible and changeable in the settings page (D4c stores none: it built no compatibility print path); axe reports zero serious violations in every section of Settings (the desktop `settings` scenario, on macOS, Windows and Linux in CI).
+- [x] `/download` offers the right installer first on macOS arm64 (with client hints; without them, both Mac builds, Apple silicon first), Windows x64 and Linux x64 browsers, and lists every installer with the list's SHA-256 (`e2e/download.e2e.test.ts` against the fixture lists, under `wrangler dev` with the site's headers rather than the preview deploy). The publish job takes each SHA-256 from the build's `SHA256SUMS` and stops on a missing one (`downloads.test.ts`).
+- [x] The download page works without JavaScript errors in Chromium, Firefox and WebKit (the same suite, one browser per `cargo xtask pdf-runtimes` run; checked by hand in Chromium at desktop and phone widths).
+
+## Decisions and deviations
+
+- **No `set_var`.** `std::env::set_var` is `unsafe` in Rust 2024, and rust.md allows `unsafe` only where a crate needs it. When the environment isn't the one the choice needs, `graphics::prepare` runs the app again in place with `exec`, before anything else starts. The process ID stays the same for the AppImage runtime and test drivers. The user's own variables are left alone. The app names its own in `LAMINA_GRAPHICS_ENV`, so going back to Automatic removes them at the next restart.
+- **Automatic** sets `WEBKIT_DISABLE_DMABUF_RENDERER=1` and `__NV_DISABLE_EXPLICIT_SYNC=1` on NVIDIA's own driver under Wayland, and nothing elsewhere.
+- **The crash-loop guard** counts starts in `graphics-starts.json` until a start has run 10 s, quit or restarted. A second launch, which the single-instance plugin ends at once, takes its own count back. The guard switches only Automatic, to Compatibility. Safe mode and a saved Compatibility stay as they are, with no notice. End-to-end builds have no guard, since the tests stop the app within seconds.
+- **`--safe-graphics` lasts until the app quits**, since `app.restart()` keeps the arguments.
+- **Restart now refuses** while a window holds unsaved edits, and says why.
+- **The download lists are built in, not fetched** (S09 drew a runtime fetch). The release workflow writes `downloads/<channel>.json` beside each release, and the website's production deploy reads them into `apps/site/src/data/downloads.json` every six hours and on each push. So there is no ADR 0011 amendment, no CORS rule on the buckets and no owner action, and a release shows on the page at the next deploy. The release runbook says how to deploy at once.
+- **A Nightly tab** sits beside Beta and Stable, since only nightlies exist until D7c.
+- **Settings' differences from S07** (Graphics as its own section, no Printing, Reset ID under Updates, a short About, Clear without Undo, no Default PDF app button) are in the area document's As built note.
+- **The renderer switch's tests** are Rust unit tests. The Graphics section's view is a Vitest; whether it shows (Linux only) is the `settings` scenario's check on each OS. Opening Settings with `CmdOrCtrl+,` is the `menus` scenario's test.
+
+## Gaps
+
+- **NVIDIA under Wayland, by hand:** no such machine was available. D7c's beta testers are to check `/proc/<pid>/environ` with each choice.
 
 ## Post-merge checks
 
@@ -89,8 +106,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

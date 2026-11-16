@@ -62,7 +62,7 @@ target/debug/laminapdf-desktop /tmp/watched.pdf
 cp fixtures/golden/examples/invoice_from_json.pdf /tmp/watched.pdf   # the window reloads: 2 pages
 ```
 
-Settings (in the More menu) has a switch for each: Remember recent files and Reload files that change on disk. The config folder is `~/Library/Application Support/com.laminapdf.desktop` on macOS, `%APPDATA%\com.laminapdf.desktop` on Windows and `~/.config/com.laminapdf.desktop` on Linux; e2e builds use `com.laminapdf.desktop.e2e`. [`e2e/MANUAL-OPEN.md`](e2e/MANUAL-OPEN.md) lists the checks of each OS's own recent list.
+Settings (in the More menu) has a switch for each: Remember recent files and Reload files that change on disk, and a Clear recent files button. Its other sections are Appearance, Updates, Privacy, About and, on Linux, Graphics; the `settings` scenario checks each with axe. The config folder is `~/Library/Application Support/com.laminapdf.desktop` on macOS, `%APPDATA%\com.laminapdf.desktop` on Windows and `~/.config/com.laminapdf.desktop` on Linux; e2e builds use `com.laminapdf.desktop.e2e`. [`e2e/MANUAL-OPEN.md`](e2e/MANUAL-OPEN.md) lists the checks of each OS's own recent list.
 
 The engine runs sandboxed on every OS ([ADR 0008 §5](../../docs/decisions/0008-desktop-shell.md#5-sandboxing-per-os)): it can't open files, use the network or start processes. It gets the system's fonts from the main process, which lists them once at start-up. To see whether a problem comes from the sandbox, turn it off in a debug build and try again:
 
@@ -140,6 +140,8 @@ While a document has unsaved edits, the window's title starts with "•", and cl
 
 Each window's engine holds its own edits, so a tab with unsaved edits can't move to another window yet: undo them to move it.
 
+File ▸ Document properties… opens the web reader's Properties dialog. When it opens, the engine reads the document's facts, metadata and XMP packet in one call, with the edits made so far (`GetProperties`, `crates/laminapdf-desktop-engine/src/properties.rs`), since only the engine parses. The facts take a pass over every object, so the engine keeps them until an edit or a save changes the document. That pass also waits behind the tiles already queued for the screen. On the Description and XMP tabs, Apply makes the changes one step of the edit session, which File ▸ Save then writes in place. An encrypted document shows the facts alone, because the engine can't edit it (`src/properties.tsx`).
+
 ### Saving
 
 File ▸ Save (⌘S or Ctrl+S) writes the document's file in place, and File ▸ Save as… (⇧⌘S or Ctrl+Shift+S) writes a new file, which the document reads and saves to from then on. Like the web reader, a save plans first and asks before removing signatures or breaking a standard the file claims (`src/saving.tsx`).
@@ -203,6 +205,21 @@ A crash leaves a report on this computer, and the report leaves only with the us
 - **How it goes.** `upload.rs` posts it to `https://updates.laminapdf.com/crash` with its own reqwest-over-rustls client, built as the updater's is. It never sends the install ID. While the Worker can't be reached, it tries again after a minute, then at longer waits up to an hour.
 
 The e2e build reads the endpoint from `LAMINA_PDF_CRASH_ENDPOINT`. Its `e2e_crash_engine_panic`, `e2e_crash_engine_segv` and `e2e_crash_main_panic` commands force each kind of crash. For the first, the engine is built with `cargo xtask desktop-sidecar --e2e` and panics with the test's message; `e2e/wdio.crash.conf.ts` runs the crash scenario against a local stand-in for the Worker.
+
+### Graphics on Linux
+
+WebKitGTK leaves some windows blank or draws them slowly, mostly with NVIDIA's own driver under Wayland. Settings › Graphics, shown on Linux only, picks the workarounds the app starts with (`src-tauri/src/graphics.rs`):
+
+| Choice | Sets |
+| --- | --- |
+| Automatic (default) | nothing; on NVIDIA's driver under Wayland, `WEBKIT_DISABLE_DMABUF_RENDERER=1` and `__NV_DISABLE_EXPLICIT_SYNC=1` |
+| Compatibility | `WEBKIT_DISABLE_DMABUF_RENDERER=1` |
+| Safe mode | that, and `WEBKIT_DISABLE_COMPOSITING_MODE=1` (slower; the last resort) |
+
+WebKitGTK reads these once, as it starts, so a change takes effect at the next start, and Settings offers Restart now. The app doesn't call `set_var`: when its environment isn't the one the choice needs, it runs itself again in place (`exec`, same process ID) with it. It never changes a variable you set yourself, and it names the ones it set in `LAMINA_GRAPHICS_ENV`, so choosing Automatic again removes them. To check what a running app has, read `/proc/<pid>/environ`.
+
+- **Can't reach Settings?** Start it with `laminapdf-desktop --safe-graphics` (or the AppImage with the same flag) for Safe mode until you quit it.
+- **It closes as it starts:** when two starts in a row end within 10 s, the next one switches Automatic to Compatibility and saves it, says so once at start, and Settings › Graphics says why. A second launch that hands its files to the running app doesn't count. End-to-end builds have no such guard, since the tests start and stop the app within seconds.
 
 ## How it fits together
 

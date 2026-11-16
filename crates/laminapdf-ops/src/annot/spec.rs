@@ -5,6 +5,8 @@
 use laminapdf_model::{UserSpacePoint, UserSpaceRect};
 use serde::{Deserialize, Serialize};
 
+use super::drawing::{self, Drawing, Ink, LineMark, Poly, Shape};
+use super::drawing_patch::{InkPatch, LinePatch, PolyPatch, ShapePatch};
 use super::geom;
 use crate::wire;
 
@@ -26,6 +28,22 @@ pub enum AnnotSpec {
     Note(Note),
     /// A caret marking where text goes (§12.5.6.11).
     Caret(Caret),
+    /// Freehand ink (§12.5.6.13).
+    ///
+    /// Added in 0.5.0.
+    Ink(Ink),
+    /// A square or circle (§12.5.6.8).
+    ///
+    /// Added in 0.5.0.
+    Shape(Shape),
+    /// A line, an arrow or a dimension line (§12.5.6.7).
+    ///
+    /// Added in 0.5.0.
+    Line(LineMark),
+    /// A polygon or polyline (§12.5.6.9).
+    ///
+    /// Added in 0.5.0.
+    Poly(Poly),
 }
 
 // Sound: an op holding a non-finite coordinate is refused before it writes (`invalid-op`), and
@@ -39,17 +57,34 @@ impl AnnotSpec {
             Self::TextMarkup(m) => m.kind.subtype(),
             Self::Note(_) => "Text",
             Self::Caret(_) => "Caret",
+            Self::Ink(_) => "Ink",
+            Self::Shape(s) => s.kind.subtype(),
+            Self::Line(_) => "Line",
+            Self::Poly(p) => p.kind.subtype(),
+        }
+    }
+
+    /// The drawing marks' part of the spec, for their own module.
+    pub(crate) const fn drawing(&self) -> Option<Drawing<'_>> {
+        match self {
+            Self::Ink(i) => Some(Drawing::Ink(i)),
+            Self::Shape(s) => Some(Drawing::Shape(s)),
+            Self::Line(l) => Some(Drawing::Line(l)),
+            Self::Poly(p) => Some(Drawing::Poly(p)),
+            Self::TextMarkup(_) | Self::Note(_) | Self::Caret(_) => None,
         }
     }
 
     /// The same spec with every quad in Acrobat's order, which both the appearance and
-    /// `/QuadPoints` use, whichever order the op gave.
+    /// `/QuadPoints` use, whichever order the op gave, and ink points thinned to a quarter of a
+    /// point (E4 plan §11).
     pub(crate) fn normalised(&self) -> Self {
         match self {
             Self::TextMarkup(m) => Self::TextMarkup(TextMarkup::new(
                 m.kind,
                 m.quads.iter().map(|q| geom::acrobat_order(*q)).collect(),
             )),
+            Self::Ink(ink) => Self::Ink(drawing::normalised_ink(ink)),
             other => other.clone(),
         }
     }
@@ -60,6 +95,9 @@ impl AnnotSpec {
             Self::TextMarkup(m) => !m.quads.is_empty() && geom::finite(m.quads.iter().flatten().copied()),
             Self::Note(n) => geom::finite([n.at]),
             Self::Caret(c) => geom::finite(geom::corners(&c.rect)),
+            Self::Ink(_) | Self::Shape(_) | Self::Line(_) | Self::Poly(_) => {
+                self.drawing().is_some_and(|d| d.is_valid())
+            }
         }
     }
 }
@@ -296,6 +334,22 @@ pub enum AnnotSpecPatch {
     Note(NotePatch),
     /// A caret's box or symbol.
     Caret(CaretPatch),
+    /// An ink mark's strokes, pen width or smoothing.
+    ///
+    /// Added in 0.5.0.
+    Ink(InkPatch),
+    /// A square's or circle's box, fill or outline.
+    ///
+    /// Added in 0.5.0.
+    Shape(ShapePatch),
+    /// A line's ends, endings, fill, stroke or leader lines.
+    ///
+    /// Added in 0.5.0.
+    Line(LinePatch),
+    /// A polygon's or polyline's vertices, endings, fill or outline.
+    ///
+    /// Added in 0.5.0.
+    Poly(PolyPatch),
 }
 
 // Sound: as for `AnnotSpec`.
@@ -371,6 +425,10 @@ impl AnnotSpecPatch {
                 rect: p.rect.unwrap_or(c.rect),
                 symbol: p.symbol.unwrap_or(c.symbol),
             })),
+            (Self::Ink(p), AnnotSpec::Ink(i)) => p.applied_to(i).map(AnnotSpec::Ink),
+            (Self::Shape(p), AnnotSpec::Shape(s)) => Some(AnnotSpec::Shape(p.applied_to(s))),
+            (Self::Line(p), AnnotSpec::Line(l)) => Some(AnnotSpec::Line(p.applied_to(l))),
+            (Self::Poly(p), AnnotSpec::Poly(q)) => Some(AnnotSpec::Poly(p.applied_to(q))),
             _ => None,
         }
     }

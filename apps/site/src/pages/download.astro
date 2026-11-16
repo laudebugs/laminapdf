@@ -1,0 +1,212 @@
+---
+// The download page (Paper S09): each channel's installers, from the snapshot of the release
+// workflow's lists (src/data/downloads.ts), with the card for the visitor's computer, the full
+// table and how to check a download. Every file is a plain link, so the page works without
+// JavaScript; src/scripts/download.ts shows the card for the visitor's system and the copy buttons.
+import { APP_URL } from "@laminapdf/site-kit/nav";
+import {
+  ARCH_NAMES,
+  type Arch,
+  CHANNELS,
+  type Channel,
+  cardFiles,
+  type DownloadFile,
+  forYour,
+  KIND_NOTES,
+  megabytes,
+  OS_NAMES,
+  type Os,
+  tableOrder,
+  WORDS,
+} from "../data/downloads.js";
+import { loadSnapshot } from "../data/downloads-snapshot.js";
+import Base from "../layouts/Base.astro";
+
+const snapshot = loadSnapshot();
+// The released channels first, so the first tab has files.
+const channels: Channel[] = [...CHANNELS].sort((a, b) => Number(snapshot[a] === null) - Number(snapshot[b] === null));
+const parts = (file: DownloadFile) => file.platform.split("-") as [Os, Arch];
+const extension = (file: DownloadFile) => (file.kind === "nsis" ? ".exe" : file.name.slice(file.name.lastIndexOf(".")));
+const KEY = "/keys/lamina-release.asc";
+const REPO = "laudebugs/laminapdf";
+---
+
+<Base title={WORDS.title} description={WORDS.description}>
+  <article class="sheet download">
+    <h1>{WORDS.heading}</h1>
+    <p class="lead">{WORDS.lead}</p>
+
+    <div class="code-panel download-channels" data-tabs>
+      <div class="code-tabs" data-tablist aria-label="Channel" hidden>
+        {
+          channels.map((channel) => (
+            <button type="button" class="code-tab site-control" id={`tab-${channel}`} data-tab>
+              {snapshot[channel] === null ? `${WORDS.channel[channel]} · ${WORDS.notYet}` : WORDS.channel[channel]}
+            </button>
+          ))
+        }
+      </div>
+      {
+        channels.map((channel) => {
+          const list = snapshot[channel];
+          return (
+            <section class="code-pane" id={`pane-${channel}`} data-pane aria-labelledby={`heading-${channel}`}>
+              <h2 class="code-label" id={`heading-${channel}`}>
+                {WORDS.channel[channel]}
+              </h2>
+              {list === null ? (
+                <p>{WORDS.unreleased[channel]}</p>
+              ) : (
+                <>
+                  {channel === "nightly" && <p class="download-note">{WORDS.nightlyNote}</p>}
+                  <div class="download-card">
+                    <p data-card="default">{WORDS.chooseBelow}</p>
+                    <div data-card="phone" hidden>
+                      <p>{WORDS.phone}</p>
+                      <a class="button-secondary site-control" href={APP_URL}>
+                        {WORDS.openWebReader}
+                      </a>
+                    </div>
+                    {cardFiles(list.files).map((file) => (
+                      <div class="download-offer" data-card={file.platform} hidden>
+                        <h3>{forYour(file)}</h3>
+                        <p class="download-meta">
+                          Lamina PDF {list.version} {channel} · {extension(file)} · {megabytes(file.size)}
+                        </p>
+                        <div class="actions">
+                          <a class="button-primary site-control" href={file.url}>
+                            Download for {OS_NAMES[parts(file)[0]]}
+                          </a>
+                          <button
+                            type="button"
+                            class="button-secondary site-control"
+                            data-copy={file.sha256}
+                            aria-label={`Copy SHA-256 of ${file.name}`}
+                            hidden
+                          >
+                            Copy SHA-256
+                          </button>
+                        </div>
+                        <p class="download-guess">{WORDS.guessed}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <h3>{WORDS.allDownloads}</h3>
+                  <div class="table-scroll">
+                    <table class="figures figures-text download-table">
+                      <caption>
+                        Lamina PDF {list.version}, published {list.pub_date.slice(0, 10)}
+                      </caption>
+                      <thead>
+                        <tr>
+                          {WORDS.columns.map((column) => (
+                            <th scope="col">{column}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tableOrder(list.files).map((file) => {
+                          const [os, arch] = parts(file);
+                          const note = KIND_NOTES[file.kind];
+                          return (
+                            <tr>
+                              <th scope="row">{OS_NAMES[os]}</th>
+                              <td>
+                                <a href={file.url}>{file.name}</a>
+                                {note && <span class="download-kind"> · {note}</span>}
+                                {file.signature && (
+                                  <>
+                                    {" "}
+                                    (<a href={file.signature}>.asc</a>)
+                                  </>
+                                )}
+                              </td>
+                              <td>{ARCH_NAMES[os][arch]}</td>
+                              <td class="download-size">{megabytes(file.size)}</td>
+                              <td>
+                                <code class="download-hash">{file.sha256}</code>
+                                <button
+                                  type="button"
+                                  class="download-copy site-control"
+                                  data-copy={file.sha256}
+                                  aria-label={`Copy SHA-256 of ${file.name}`}
+                                  hidden
+                                >
+                                  Copy
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p class="download-sums">
+                    {WORDS.checksums}:{" "}
+                    {Object.entries(list.checksums).map(([platform, sums], i) => {
+                      const [os, arch] = platform.split("-") as [Os, Arch];
+                      return (
+                        <>
+                          {i > 0 && " · "}
+                          <a href={sums.url}>
+                            {OS_NAMES[os]} {ARCH_NAMES[os][arch]}
+                          </a>
+                          {sums.signature && (
+                            <>
+                              {" "}
+                              (<a href={sums.signature}>.asc</a>)
+                            </>
+                          )}
+                        </>
+                      );
+                    })}
+                    . Linux files are signed with <a href={KEY}>{WORDS.signingKey}</a>.
+                  </p>
+                </>
+              )}
+            </section>
+          );
+        })
+      }
+    </div>
+    <p class="download-status" role="status" data-copy-status></p>
+
+    <section aria-labelledby="check">
+      <h2 id="check">{WORDS.check.heading}</h2>
+      <p>{WORDS.check.body}</p>
+      <pre><code>shasum -a 256 &lt;file&gt;
+gh attestation verify &lt;file&gt; --repo {REPO}</code></pre>
+      <p>
+        Linux release files and SHA256SUMS are also signed with <a href={KEY}>the project's GPG key</a>; check one
+        with <code>gpg --verify &lt;file&gt;.asc &lt;file&gt;</code>.
+      </p>
+    </section>
+
+    <section aria-labelledby="requirements">
+      <h2 id="requirements">{WORDS.requirements.heading}</h2>
+      <ul>
+        {WORDS.requirements.items.map((item) => <li>{item}</li>)}
+      </ul>
+    </section>
+
+    <section aria-labelledby="sends">
+      <h2 id="sends">{WORDS.sends.heading}</h2>
+      <p>
+        {WORDS.sends.body} <a href="/privacy/">{WORDS.sends.privacy}</a>.
+      </p>
+    </section>
+
+    <section aria-labelledby="first-open">
+      <h2 id="first-open">{WORDS.firstOpen.heading}</h2>
+      <p>{WORDS.firstOpen.windows}</p>
+      <p>{WORDS.firstOpen.linux} <code>--safe-graphics</code>.</p>
+      <p>{WORDS.firstOpen.nightly}</p>
+    </section>
+  </article>
+</Base>
+
+<script>
+  import "../scripts/tabs.js";
+  import "../scripts/download.js";
+</script>
