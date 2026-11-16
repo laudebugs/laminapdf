@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `U2d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [UI/UX §5.5](../../plans/ui-ux.md#55-page-appearance-and-themes-r8) |
 | Round / milestone | Round U (UI/UX) — U2 Reading quality |
 | Depends on | [U2c](../done/U2c-page-appearance-modes.md) |
 | ADRs | Follows [0024 §5](../../decisions/0024-app-shell-ux.md) (page appearance) |
-| Branch | `fix/u2d-selection-on-page-appearances` |
+| Branch | `fix/selection-on-page-colours` |
 | PR title | `fix(viewer): selection and find marks show on Sepia and Dark pages` |
 | Size | L (400–800) |
-| PR | — |
+| PR | [#688](https://github.com/laudebugs/laminapdf/pull/688) |
 
 ## Goal
 
