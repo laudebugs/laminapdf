@@ -32,12 +32,14 @@ Set-StrictMode -Version Latest
 $signtool = $env:SIGNTOOL
 if ([string]::IsNullOrEmpty($signtool)) { Write-Host '::error::SIGNTOOL is not set'; exit 1 }
 $sevenZip = Join-Path $env:ProgramFiles '7-Zip\7z.exe'
+if (-not (Test-Path -LiteralPath $sevenZip -PathType Leaf)) { Write-Host "::error::7-Zip isn't installed ($sevenZip)"; exit 1 }
 
 $failures = [System.Collections.Generic.List[string]]::new()
 $checked = 0
 
-function Test-Pe([string]$file) {
-    if ($file -match '\.(exe|dll|sys|ocx|msi)$') { return $true }
+# Whether SignTool signs `file`: a PE file (by extension, else by its MZ header) or an MSI.
+function Test-SignableFile([string]$file) {
+    if ($file -match '\.(exe|dll|msi)$') { return $true }
     $stream = [System.IO.File]::OpenRead($file)
     try {
         $header = [byte[]]::new(2)
@@ -46,26 +48,38 @@ function Test-Pe([string]$file) {
 }
 
 # The PKCS #7 signature in a PE file's certificate table (the data directory's entry 4, whose
-# address is a file offset), or $null when the file has none or isn't a PE file.
+# address is a file offset), or $null when the file isn't a PE file, has no such table, or holds
+# anything this can't read: a malformed file is reported as unsigned, never stops the check.
 function Get-PeSignature([string]$file) {
-    $bytes = [System.IO.File]::ReadAllBytes($file)
-    if ($bytes.Length -lt 0x40 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) { return $null }
-    $pe = [BitConverter]::ToInt32($bytes, 0x3C)
-    if ($pe -lt 0 -or $pe + 24 -ge $bytes.Length) { return $null }
-    $optional = $pe + 24
-    $directories = switch ([BitConverter]::ToUInt16($bytes, $optional)) {
-        0x10b { $optional + 96 }
-        0x20b { $optional + 112 }
-        default { return $null }
+    try {
+        $bytes = [System.IO.File]::ReadAllBytes($file)
+        # Whether `count` bytes from `at` lie inside the file.
+        $inside = { param($at, $count) $at -ge 0 -and $count -ge 0 -and $at + $count -le $bytes.Length }
+        if (-not (& $inside 0 0x40) -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) { return $null }
+        $pe = [BitConverter]::ToInt32($bytes, 0x3C)
+        if (-not (& $inside $pe 26) -or [BitConverter]::ToUInt32($bytes, $pe) -ne 0x00004550) { return $null }
+        $optional = $pe + 24
+        # The PE32 and PE32+ layouts: where NumberOfRvaAndSizes sits, and the directories after it.
+        $count, $directories = switch ([BitConverter]::ToUInt16($bytes, $optional)) {
+            0x10b { ($optional + 92), ($optional + 96) }
+            0x20b { ($optional + 108), ($optional + 112) }
+            default { return $null }
+        }
+        if (-not (& $inside $directories 40) -or [BitConverter]::ToUInt32($bytes, $count) -lt 5) { return $null }
+        $offset = [BitConverter]::ToInt32($bytes, $directories + 32)
+        $size = [BitConverter]::ToInt32($bytes, $directories + 36)
+        if ($offset -le 0 -or $size -le 8 -or -not (& $inside $offset $size)) { return $null }
+        # WIN_CERTIFICATE: dwLength, wRevision, wCertificateType (2: PKCS #7), then the signature.
+        $length = [BitConverter]::ToInt32($bytes, $offset)
+        if ($length -le 8 -or $length -gt $size -or [BitConverter]::ToUInt16($bytes, $offset + 6) -ne 2) { return $null }
+        $signature = [byte[]]::new($length - 8)
+        [Array]::Copy($bytes, $offset + 8, $signature, 0, $length - 8)
+        $cms = [System.Security.Cryptography.Pkcs.SignedCms]::new()
+        $cms.Decode($signature)
+        return $cms
+    } catch {
+        return $null
     }
-    $offset = [BitConverter]::ToInt32($bytes, $directories + 32)
-    $size = [BitConverter]::ToInt32($bytes, $directories + 36)
-    if ($offset -le 0 -or $size -le 8 -or $offset + $size -gt $bytes.Length) { return $null }
-    # WIN_CERTIFICATE: dwLength, wRevision, wCertificateType, then the signature.
-    $length = [BitConverter]::ToInt32($bytes, $offset)
-    $cms = [System.Security.Cryptography.Pkcs.SignedCms]::new()
-    $cms.Decode([byte[]]$bytes[($offset + 8)..($offset + $length - 1)])
-    return $cms
 }
 
 $sha256 = '2.16.840.1.101.3.4.2.1'
@@ -74,8 +88,11 @@ $rfc3161 = '1.3.6.1.4.1.311.3.3.1'
 function Test-Signed([string]$file, [string]$label) {
     $script:checked++
     $problems = @()
-    & $signtool verify /pa /q $file *> $null
-    if ($LASTEXITCODE -ne 0) { $problems += 'signtool verify /pa failed' }
+    $verified = & $signtool verify /pa $file 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        $reason = ($verified | Where-Object { "$_" -match 'SignTool Error' } | Select-Object -First 1)
+        $problems += "signtool verify /pa failed$(if ($reason) { ": $reason" })"
+    }
     $signature = Get-AuthenticodeSignature -LiteralPath $file
     if ($signature.Status -ne 'Valid') { $problems += "status $($signature.Status)" }
     $signer = if ($signature.SignerCertificate) {
@@ -104,7 +121,7 @@ function Test-Signed([string]$file, [string]$label) {
 
 function Test-Unpacked([string]$root, [string]$installer) {
     foreach ($item in Get-ChildItem -LiteralPath $root -Recurse -File) {
-        if (-not (Test-Pe $item.FullName)) { continue }
+        if (-not (Test-SignableFile $item.FullName)) { continue }
         $label = "$installer › $($item.FullName.Substring($root.Length).TrimStart('\'))"
         # msiexec /a's own copy of the database, unsigned: what ships is the .msi checked above.
         if ($item.DirectoryName -eq $root -and $item.Extension -eq '.msi') { continue }
@@ -115,7 +132,9 @@ function Test-Unpacked([string]$root, [string]$installer) {
 $installers = @(Get-ChildItem -LiteralPath $Dir -File | Where-Object { $_.Name -like '*-setup.exe' -or $_.Name -like '*.msi' })
 if ($installers.Count -eq 0) { Write-Host "::error::no installer in $Dir"; exit 1 }
 
-$work = Join-Path $env:RUNNER_TEMP 'signature-check'
+# CI's temporary folder, or the user's when the runbook's §3 runs this by hand.
+$temp = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { [System.IO.Path]::GetTempPath() }
+$work = Join-Path $temp 'signature-check'
 foreach ($installer in $installers) {
     Test-Signed $installer.FullName $installer.Name
     $into = Join-Path $work $installer.BaseName
