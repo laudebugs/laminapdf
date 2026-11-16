@@ -5,8 +5,8 @@ Authenticode-signs Windows files as the owner (docs/guidelines/desktop-release.m
 .DESCRIPTION
 The Tauri CLI calls it for each file it signs (bundle.windows.signCommand: the app, the engine
 sidecar, the installers, the NSIS uninstaller), and the release build's beforeBundleCommand calls it
-for the PE files the bundle copies as they are (PDFium's DLL). The desktop-build action writes that
-configuration and sets the environment below; nothing else signs.
+with -Presign for the PE files the bundle copies as they are (PDFium's DLL). The desktop-build
+action writes that configuration and sets the environment below; nothing else signs.
 
 LAMINA_PDF_WIN_SIGN_PATH chooses the identity. `artifact-signing` (the only one set up: the owner
 qualifies for Azure Artifact Signing) signs with SignTool and Microsoft's Artifact Signing dlib, which
@@ -25,12 +25,16 @@ fails the build. The script prints no credential: it never sees one.
 .PARAMETER Files
 The files to sign.
 
-.PARAMETER SkipMissing
-Leave out files that don't exist, for the beforeBundleCommand's list of places PDFium may sit.
+.PARAMETER Presign
+Sign the files LAMINA_PDF_WIN_PRESIGN lists (separated by `;`), leaving out those that don't
+exist: the beforeBundleCommand's places PDFium may sit. The Tauri CLI hands that hook to cmd.exe
+with any quotes kept as part of the arguments, so the hook passes no path.
 #>
+[CmdletBinding(DefaultParameterSetName = 'Files')]
 param(
-    [switch]$SkipMissing,
-    [Parameter(Mandatory, ValueFromRemainingArguments)]
+    [Parameter(Mandatory, ParameterSetName = 'Presign')]
+    [switch]$Presign,
+    [Parameter(Mandatory, ParameterSetName = 'Files', ValueFromRemainingArguments)]
     [string[]]$Files
 )
 
@@ -59,12 +63,14 @@ foreach ($tool in @($signtool, $dlib, $metadata)) {
     if (-not (Test-Path -LiteralPath $tool -PathType Leaf)) { Fail "$tool doesn't exist" }
 }
 
+if ($Presign) {
+    $Files = @((Required 'LAMINA_PDF_WIN_PRESIGN') -split ';' | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Leaf) })
+    if ($Files.Count -eq 0) { Fail "none of LAMINA_PDF_WIN_PRESIGN's files exists" }
+}
+
 $attempts = 3
 foreach ($file in $Files) {
-    if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
-        if ($SkipMissing) { continue }
-        Fail "$file doesn't exist"
-    }
+    if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { Fail "$file doesn't exist" }
     for ($attempt = 1; ; $attempt++) {
         & $signtool sign /v /fd SHA256 /tr 'http://timestamp.acs.microsoft.com' /td SHA256 `
             /dlib $dlib /dmdf $metadata $file

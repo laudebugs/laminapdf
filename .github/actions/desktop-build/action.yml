@@ -157,9 +157,10 @@ runs:
           (Join-Path $app 'resources\pdfium\pdfium.dll'),
           (Join-Path $env:GITHUB_WORKSPACE "target\$env:TARGET\release\pdfium\pdfium.dll")
         )
-        # The hook is one command line (cmd.exe runs it), so each path is quoted.
-        $quoted = ($pdfium | ForEach-Object { '"' + $_ + '"' }) -join ' '
-        $hook = 'pwsh -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $script + '" -SkipMissing ' + $quoted
+        # The Tauri CLI hands the hook to cmd.exe with quotes kept in the arguments, so the hook
+        # quotes nothing: the script's path has no space, and PDFium's places come by environment.
+        if ($script -match '\s') { Write-Host "::error::the hook can't name $script, which has a space"; exit 1 }
+        $hook = "pwsh -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script -Presign"
         $config = @{
           build = @{ beforeBundleCommand = $hook }
           bundle = @{ windows = @{ signCommand = @{ cmd = 'pwsh'; args = $pwsh + '%1' } } }
@@ -172,7 +173,8 @@ runs:
           "SIGNTOOL=$($signtool.FullName)",
           "ARTIFACT_SIGNING_DLIB=$dlib",
           "ARTIFACT_SIGNING_METADATA=$(Join-Path $app 'windows\artifact-signing.json')",
-          "WINDOWS_SIGN_CONFIG=$file"
+          "WINDOWS_SIGN_CONFIG=$file",
+          "LAMINA_PDF_WIN_PRESIGN=$($pdfium -join ';')"
         )
     - name: Build and bundle (tauri build)
       shell: bash
