@@ -129,8 +129,8 @@ pub(crate) fn touches_ts(paths: &[&str]) -> bool {
     touches_unless_outside(paths, &OUTSIDE_TS, ts_anyway)
 }
 
-/// What the render goldens draw from (`cargo xtask render-golden`, the full lane's macOS job; todo
-/// X9b). Every crate counts, since the render crates read through the core ones and the examples
+/// What the render goldens draw from (`cargo xtask render-golden`, a step of the fast lane's macOS
+/// Arm64 Rust leg; todo X9b). Every crate counts, since the render crates read through the core ones and the examples
 /// come from the façade. So do the example PDFs and their pictures, the corpus and its goldens,
 /// `tools/render`, `tools/xtask` itself, and the manifests, toolchain and workflow that build them.
 /// The list is wide on purpose: a path left out lets a drawing change through until the next push
@@ -147,10 +147,10 @@ const RENDER_INPUTS: [&str; 12] = [
     "Cargo.lock",
     "rust-toolchain.toml",
     ".cargo/",
-    ".github/workflows/full.yml",
+    ".github/workflows/ci.yml",
 ];
 
-/// Whether any of `paths` can change what the render goldens draw, so the full lane runs them.
+/// Whether any of `paths` can change what the render goldens draw, so the fast lane runs them.
 pub(crate) fn touches_render(paths: &[&str]) -> bool {
     paths
         .iter()
@@ -288,8 +288,8 @@ fn pick_base(has_origin_main: bool) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{
-        CODEQL_LANGUAGES, codeql_languages, is_docs, pick_base, touches_code, touches_gallery, touches_render,
-        touches_rust, touches_ts,
+        CODEQL_LANGUAGES, RENDER_INPUTS, codeql_languages, is_docs, pick_base, touches_code, touches_gallery,
+        touches_render, touches_rust, touches_ts,
     };
 
     #[test]
@@ -361,7 +361,7 @@ mod tests {
                 "tools/render/pdfium.py",
                 "tools/xtask/src/pdfium.rs",
                 "Cargo.lock",
-                ".github/workflows/full.yml",
+                ".github/workflows/ci.yml",
             ]
             .map(|path| touches_render(&[path])),
             [true; 9]
@@ -374,9 +374,27 @@ mod tests {
             "apps/web/src/app.tsx",
             "packages/ui/src/index.ts",
             "docs/README.md",
-            ".github/workflows/ci.yml",
+            ".github/workflows/full.yml",
             "pnpm-lock.yaml",
         ]));
+    }
+
+    /// The render goldens are a step of the `rust` job's macOS Arm64 leg, so every change they
+    /// follow must start that job.
+    #[test]
+    fn every_render_input_should_touch_rust() {
+        let inputs: Vec<String> = RENDER_INPUTS
+            .iter()
+            .map(|input| {
+                if input.ends_with('/') {
+                    format!("{input}x.rs")
+                } else {
+                    (*input).to_owned()
+                }
+            })
+            .collect();
+        let missed: Vec<&String> = inputs.iter().filter(|path| !touches_rust(&[path.as_str()])).collect();
+        assert_eq!(missed, Vec::<&String>::new());
     }
 
     #[test]
