@@ -11,14 +11,10 @@ use std::io::Read as _;
 use std::net::TcpListener;
 use std::path::PathBuf;
 use std::process::Command;
-#[cfg(unix)]
-use std::sync::OnceLock;
-use std::sync::{Arc, Mutex, mpsc};
+use std::sync::{Arc, Mutex, OnceLock, mpsc};
 use std::time::Duration;
 
-#[cfg(unix)]
 use laminapdf_desktop_crash::test_support::TestDumpServer;
-#[cfg(unix)]
 use laminapdf_desktop_crash::{CRASH_SERVER_PID_ARG, CRASH_SOCKET_ARG};
 use laminapdf_desktop_protocol::supervisor::{Config, Event, Process as _, RangeServer, Supervisor};
 use laminapdf_desktop_protocol::{DocId, Layer};
@@ -31,10 +27,13 @@ fn engine() -> PathBuf {
 /// One crash-dump server for every engine these tests start, as the monitor has; the dumps an
 /// engine leaves (an abort past the memory limit) stay in the server's temporary folder. The server
 /// pid the engines are given is a stand-in process's, not their parent's, as in the app.
-#[cfg(unix)]
-fn crash_args() -> [OsString; 4] {
-    // The stand-in is kept here for the test process's life; `sleep` ends on its own.
+fn crash_args() -> Vec<OsString> {
+    // The stand-in is kept here for the test process's life; it ends on its own.
     static SERVER: OnceLock<(TestDumpServer, std::process::Child)> = OnceLock::new();
+    // Windows' engines open no crash socket: the monitor debugs them instead (ADR 0014 §10).
+    if cfg!(windows) {
+        return Vec::new();
+    }
     let (server, stand_in) = SERVER.get_or_init(|| {
         let dumps = std::env::temp_dir().join(format!("laminapdf-selftest-dumps-{}", std::process::id()));
         let stand_in = Command::new("sleep")
@@ -46,18 +45,12 @@ fn crash_args() -> [OsString; 4] {
             .unwrap();
         (TestDumpServer::start(dumps).unwrap(), stand_in)
     });
-    [
+    vec![
         CRASH_SOCKET_ARG.into(),
         server.socket().into(),
         CRASH_SERVER_PID_ARG.into(),
         stand_in.id().to_string().into(),
     ]
-}
-
-/// No native capture off Unix (ADR 0014 §10): the engines start without a crash server.
-#[cfg(not(unix))]
-fn crash_args() -> [OsString; 0] {
-    []
 }
 
 /// What one selftest run printed on stdout and how it ended.
@@ -120,6 +113,20 @@ fn assert_blocked(probe: &str) {
         .outcome(name)
         .unwrap_or_else(|| panic!("{name}: no outcome ({})", run.exit));
     assert!(outcome.starts_with("blocked"), "{name}: {outcome}");
+}
+
+/// The engine connects its crash handler before it locks down; a connection that failed is only
+/// logged, so the sandbox would still hold without it: the log must not say so. (Windows' engines
+/// connect nowhere.)
+#[cfg(unix)]
+#[test]
+fn the_crash_handler_should_connect_before_the_lock_down() {
+    let run = selftest("threads");
+    assert!(
+        !run.stderr.contains("native crashes won't leave a dump"),
+        "the crash handler didn't connect: {}",
+        run.stderr
+    );
 }
 
 #[test]

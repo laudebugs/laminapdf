@@ -10,7 +10,8 @@ members = ["crates/*", "apps/desktop/src-tauri", "tools/xtask", "tools/std14-gen
 # Spikes are frozen research code and fuzz/ is its own (nightly) workspace: never members (ADR 0015).
 # tools/render (hayro, for `cargo xtask render-golden`) is its own workspace too, with its own
 # Cargo.lock, so the fast lane never compiles a renderer; the full lane builds it.
-exclude = ["spikes", "fuzz", "tools/render"]
+# third_party/ holds crates carried with a patch until upstream releases it: [patch.crates-io] below.
+exclude = ["spikes", "fuzz", "tools/render", "third_party"]
 
 [workspace.package]
 version = "0.5.0"
@@ -376,3 +377,9 @@ panic = "abort"
 # Keep the name section: `cargo xtask wasm` strips it with wasm-opt after keeping a named copy
 # for twiggy (`cargo xtask size`).
 strip = "debuginfo"
+
+# minidumper 0.11.0 with its Windows dump server checking the connecting process's pid against
+# the dump request's, as its Linux server does (D7f): without it a client could have any process
+# dumped. Remove once a minidumper release carries the check.
+[patch.crates-io]
+minidumper = { path = "third_party/minidumper" }
