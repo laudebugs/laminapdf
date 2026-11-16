@@ -125,6 +125,7 @@ export function sidebar(typeDoc) {
         { label: "Organise pages", slug: "recipes/organise-pages" },
         { label: "Duplicate pages", slug: "recipes/duplicate-pages" },
         { label: "Edit what a page draws", slug: "recipes/edit-objects" },
+        { label: "Edit the text a page shows", slug: "recipes/edit-text" },
         { label: "Crop pages", slug: "recipes/crop-pages" },
         { label: "Resize pages", slug: "recipes/resize-pages" },
         { label: "Copy pages between PDFs", slug: "recipes/copy-pages" },
