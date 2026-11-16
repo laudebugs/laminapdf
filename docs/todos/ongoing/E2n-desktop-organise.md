@@ -11,7 +11,7 @@
 | Branch | `feat/e2n-desktop-organise` |
 | PR title | `feat(desktop): organise pages, merge from Finder and Explorer, split to a folder` |
 | Size | M (200–400): Organise in the engine, the OS merge and folder outputs, over the web's dialogs |
-| PR | — |
+| PR | [#683](https://github.com/laudebugs/laminapdf/pull/683) |
 
 ## Goal
 
