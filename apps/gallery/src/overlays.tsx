@@ -420,8 +420,9 @@ function EditingDialogs({ state }: { state: string }): ReactNode {
     return <RemoveSignaturesDialog signatures={[{ kind: "certification" }]} copy="download" onAnswer={noop} />;
   }
   if (state === "signature-details") {
-    // O06's Details on a refused change: a certification for form filling only.
-    return <SignatureDetails restrictions={[{ restriction: "docMdp", permission: 2, revision: 1 }]} defaultOpen />;
+    // O06's Details on a refused change, a certification for form filling only: its button, which
+    // opens the popover (the reader's e2e tests and the package's browser tests open it).
+    return <SignatureDetails restrictions={[{ restriction: "docMdp", permission: 2, revision: 1 }]} />;
   }
   if (state === "conformance") {
     const warnings = ["The file claims PDF/A-2b, and the saved file may no longer meet it."];

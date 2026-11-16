@@ -672,7 +672,10 @@ export function copyWithEdit(
   return serial(opened, async () => {
     editable(opened);
     const { model, edit } = opened;
-    // One call: no abort can land between the ops and their undo.
+    // One call: no abort can land between the ops and their undo. As in `apply`, the transaction
+    // clears the model's redo stack, so the session's undone steps go too (below), and the undone
+    // copy transaction is left on the model's redo stack, where no step of the session names it:
+    // nothing redoes it, and the next edit clears it.
     const copied = await model.ensure(
       () => {
         if (!model.apply(ops).changed) return undefined;

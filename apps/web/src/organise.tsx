@@ -39,6 +39,7 @@ import {
   laterMessage as organiseWords,
   PageGrid,
   pageRanges,
+  type RestrictionKind,
   registerOrganiseCommands,
   type SaveSignature,
   SignatureDetails,
@@ -52,7 +53,7 @@ import { type ReactNode, useEffect, useMemo } from "react";
 import { DocumentsController, DocumentsDialogs, documentsActions } from "./documents.tsx";
 import type { PageInfo } from "./outline.ts";
 import { PageSetupDialogs, pageSetupActions } from "./page-setup.tsx";
-import type { SaveFlow } from "./save-flow.ts";
+import { type SaveFlow, signature } from "./save-flow.ts";
 import type { Engine } from "./session.ts";
 
 /** A question before an edit applies: about a signature on the page, or the certification. */
@@ -100,6 +101,8 @@ export class OrganiseController implements ExternalStore<OrganiseState> {
   readonly #engine: Engine;
   readonly #viewer: Viewer;
   readonly #toasts: ToastQueue;
+  /** Saving's copies, for the certification banner's Save a copy. */
+  readonly #copies: Pick<SaveFlow, "copyWith" | "copyTitle">;
   #state: OrganiseState = {
     selected: new Set(),
     scale: 1,
@@ -112,10 +115,17 @@ export class OrganiseController implements ExternalStore<OrganiseState> {
   /** Insert from a file, Replace, Merge, Split and Extract (documents.tsx). */
   readonly documents: DocumentsController;
 
-  constructor(engine: Engine, viewer: Viewer, toasts: ToastQueue, platform: Platform) {
+  constructor(
+    engine: Engine,
+    viewer: Viewer,
+    toasts: ToastQueue,
+    platform: Platform,
+    copies: Pick<SaveFlow, "copyWith" | "copyTitle">,
+  ) {
     this.#engine = engine;
     this.#viewer = viewer;
     this.#toasts = toasts;
+    this.#copies = copies;
     this.documents = new DocumentsController({ engine, organise: this, toasts, platform });
     viewer.on("invalidate", ({ pages }) => {
       const ids = this.pages();
@@ -190,15 +200,20 @@ export class OrganiseController implements ExternalStore<OrganiseState> {
 
   /**
    * Save a copy on the certification's banner: the refused change written to a copy without the
-   * signatures it breaks, through `flow`'s confirmation. The banner goes once the copy is written;
+   * signatures it breaks, through saving's confirmation. The banner goes once the copy is written;
    * the document stays as it was.
    */
-  saveCopy(flow: SaveFlow): void {
+  saveCopy(): void {
     const ask = this.#state.ask;
     if (ask?.kind !== "noPageChanges") return;
-    void flow.copyWith(ask.ops as unknown as Op[], brokenSignatures(ask.violations)).then((written) => {
+    void this.#copies.copyWith(ask.ops as unknown as Op[], brokenSignatures(ask.violations)).then((written) => {
       if (written && this.#state.ask === ask) this.#set({ ask: undefined });
     });
+  }
+
+  /** Save a copy's name: "Save a copy…", or "Download a copy" where the browser downloads it. */
+  copyTitle(): string {
+    return this.#copies.copyTitle();
   }
 
   /** Turns the selection a quarter (`delta` 90 clockwise, -90 the other way). */
@@ -374,32 +389,41 @@ function askFor(
   return { kind: "signed", action: action ?? "delete", page, proceed };
 }
 
-/** Each signature `violations` break, once. */
-function brokenSignatures(violations: readonly Violation[]): SaveSignature[] {
+/** `violations` mapped by `map`, each key `keyOf` gives once, in order. */
+function onceEach<T>(violations: readonly Violation[], keyOf: (v: Violation) => string, map: (v: Violation) => T): T[] {
   const seen = new Set<string>();
-  return violations.flatMap(({ signature: { kind, field } }) => {
-    const key = `${kind}:${field ?? ""}`;
+  return violations.flatMap((v) => {
+    const key = keyOf(v);
     if (seen.has(key)) return [];
     seen.add(key);
-    return [field === undefined ? { kind } : { kind, field }];
+    return [map(v)];
   });
+}
+
+/** A signature's identity: its kind and field. */
+const signatureKey = ({ kind, field }: Violation["signature"]) => `${kind}:${field ?? ""}`;
+
+/** Each signature `violations` break, once. */
+function brokenSignatures(violations: readonly Violation[]): SaveSignature[] {
+  return onceEach(
+    violations,
+    (v) => signatureKey(v.signature),
+    (v) => signature(v.signature),
+  );
 }
 
 /** Each restriction `violations` break, once, for Details. */
 function restrictionsOf(violations: readonly Violation[]): SignatureRestriction[] {
-  const seen = new Set<string>();
-  return violations.flatMap(({ restriction, permission, signature }) => {
-    const key = `${restriction}:${signature.kind}:${signature.field ?? ""}`;
-    if (seen.has(key)) return [];
-    seen.add(key);
-    return [
-      {
-        restriction,
-        ...(permission === undefined ? {} : { permission }),
-        ...(signature.revision === undefined ? {} : { revision: signature.revision }),
-      },
-    ];
-  });
+  return onceEach(
+    violations,
+    (v) => `${v.restriction}:${signatureKey(v.signature)}`,
+    ({ restriction, permission, signature: { revision } }) => ({
+      // The WASM type says string; the planner names only these five.
+      restriction: restriction as RestrictionKind,
+      ...(permission === undefined ? {} : { permission }),
+      ...(revision === undefined ? {} : { revision }),
+    }),
+  );
 }
 
 /** The indices of the pages in `selected`, in document order. */
@@ -496,8 +520,6 @@ export interface OrganiseModeProps {
   readonly modes: ModeRegistry;
   readonly registry: CommandRegistry;
   readonly keys: KeyPlatform;
-  /** Saving, for the certification banner's Save a copy. */
-  readonly flow: SaveFlow;
 }
 
 /** The Organise mode: registered while a document is open, its grid over the viewer while current. */
@@ -516,12 +538,12 @@ export function OrganiseMode(props: OrganiseModeProps): ReactNode {
   return current ? (
     <OrganiseCanvas {...props} />
   ) : (
-    <OrganiseDialogs controller={controller} engine={props.engine} fileName={props.fileName} flow={props.flow} />
+    <OrganiseDialogs controller={controller} engine={props.engine} fileName={props.fileName} />
   );
 }
 
 /** The grid, the inspector beside it, the live region and the dialogs. */
-function OrganiseCanvas({ controller, engine, viewer, modes, keys, fileName, flow }: OrganiseModeProps): ReactNode {
+function OrganiseCanvas({ controller, engine, viewer, modes, keys, fileName }: OrganiseModeProps): ReactNode {
   const state = useStoreState(controller, (s) => s);
   const pages = useStoreState(engine, (s) => s.pages);
   const grid = useMemo<GridPage[]>(
@@ -567,7 +589,7 @@ function OrganiseCanvas({ controller, engine, viewer, modes, keys, fileName, flo
         <OrganiseInspector controller={controller} pages={pages} />
       </div>
       <Announcement controller={controller} />
-      <OrganiseDialogs controller={controller} engine={engine} fileName={fileName} flow={flow} />
+      <OrganiseDialogs controller={controller} engine={engine} fileName={fileName} />
     </div>
   );
 }
@@ -698,12 +720,10 @@ function OrganiseDialogs({
   controller,
   engine,
   fileName,
-  flow,
 }: {
   controller: OrganiseController;
   engine: Engine;
   fileName: string;
-  flow: SaveFlow;
 }): ReactNode {
   const state = useStoreState(controller, (s) => s);
   // Read through the stores, not the controller's methods, which the React Compiler would keep from the first render.
@@ -731,7 +751,7 @@ function OrganiseDialogs({
       />
       <PageSetupDialogs controller={controller} engine={engine} />
       <DocumentsDialogs documents={controller.documents} organise={controller} engine={engine} fileName={fileName} />
-      <NoPageChangesNotice controller={controller} flow={flow} />
+      <NoPageChangesNotice controller={controller} />
     </>
   );
 }
@@ -740,14 +760,14 @@ function OrganiseDialogs({
  * The banner on a certified file, or one with usage rights (O06): the change was refused, with
  * Save a copy (the change in a copy, the file left signed), Apply anyway… and Details.
  */
-function NoPageChangesNotice({ controller, flow }: { controller: OrganiseController; flow: SaveFlow }): ReactNode {
+function NoPageChangesNotice({ controller }: { controller: OrganiseController }): ReactNode {
   const ask = useStoreState(controller, (s) => (s.ask?.kind === "noPageChanges" ? s.ask : undefined));
   if (ask === undefined) return null;
   return (
     <div className="web-organise-certified" role="alert">
       <span>{organiseWords(ask.breaks === "certification" ? "organise.certified" : "organise.usageRights")}</span>
-      <Button size={30} onPress={() => controller.saveCopy(flow)}>
-        {flow.copyTitle()}
+      <Button size={30} onPress={() => controller.saveCopy()}>
+        {controller.copyTitle()}
       </Button>
       <Button size={30} onPress={() => controller.answer(true)}>
         {organiseWords("organise.certified.apply")}

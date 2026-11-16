@@ -1,13 +1,14 @@
 // Saving in the reader (E1 plan §7, Paper O02): Save, Save as…, Save as optimised and Download a
-// copy, each planned first, and a copy with a change a signature refused (O06's Save a copy). A save that would invalidate signatures asks, naming each one, and
-// one that breaks a standard the file claims asks too; the engine then writes the file through
-// the platform, and the document takes it as saved only once that worked. The plan for a save now
-// is kept for the strip under the top bar, read again as the history changes. Loaded with the
-// rest of the edit session once a document is open (later.ts).
+// copy, each planned first, and a copy with a change a signature refused (O06's Save a copy). A
+// save that would invalidate signatures asks, naming each one, and one that breaks a standard the
+// file claims asks too; the engine then writes the file through the platform, and the document
+// takes it as saved only once that worked. The plan for a save now is kept for the strip under the
+// top bar, read again as the history changes. Loaded with the rest of the edit session once a
+// document is open (later.ts).
 
 import type { Op, PlannedSave, SaveOptions } from "@laminapdf/sdk";
 import { type ExternalStore, message, type Platform, type ToastQueue } from "@laminapdf/ui";
-import { type SavePlanSlice, type SaveSignature, signatureKind } from "@laminapdf/ui/editing";
+import { type CopyKind, type SavePlanSlice, type SaveSignature, signatureKind } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { downloadName } from "./download-name.ts";
 import type { Engine } from "./session.ts";
@@ -21,7 +22,7 @@ export type SaveQuestion =
       readonly kind: "signatures";
       readonly signatures: readonly SaveSignature[];
       /** Set for a copy, which leaves the open file signed: saved as a file, or downloaded. */
-      readonly copy?: "save" | "download";
+      readonly copy?: CopyKind;
     }
   | { readonly kind: "conformance"; readonly warnings: readonly string[] };
 
@@ -59,7 +60,8 @@ function slice(plan: PlannedSave, invalidated: readonly SaveSignature[]): SavePl
   };
 }
 
-function signature(s: PlannedSave["signatures"][number]): SaveSignature {
+/** A signature the planner found, as the confirmations name it; a violation's `signature` too. */
+export function signature(s: PlannedSave["signatures"][number]): SaveSignature {
   return s.field === undefined ? { kind: s.kind } : { kind: s.kind, field: s.field };
 }
 
@@ -254,7 +256,7 @@ export class SaveFlow implements ExternalStore<SaveFlowState> {
   }
 
   /** How a copy is written here: saved as a file where the browser can, else downloaded. */
-  #copyKind(): "save" | "download" {
+  #copyKind(): CopyKind {
     return this.#platform.capabilities.canSaveAsDialog ? "save" : "download";
   }
 
@@ -284,7 +286,7 @@ export class SaveFlow implements ExternalStore<SaveFlowState> {
    *
    * @throws a refusal no answer can lift (an encrypted file, a rewrite a signature forbids being chosen).
    */
-  async #prepare(options: SaveOptions, copy?: "save" | "download"): Promise<SaveOptions | undefined> {
+  async #prepare(options: SaveOptions, copy?: CopyKind): Promise<SaveOptions | undefined> {
     const edits = this.#viewer.edits;
     let plan = await edits.plan(options);
     if (plan.refusal === "would-invalidate-signatures") {

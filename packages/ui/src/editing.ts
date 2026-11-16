@@ -42,8 +42,10 @@ export {
 export { blockedReason, revertedText } from "./edit/outcome.js";
 export {
   ConformanceDialog,
+  type CopyKind,
   conflictLine,
   RemoveSignaturesDialog,
+  type RestrictionKind,
   type SavePlanSlice,
   type SaveSignature,
   SaveStrip,

@@ -535,11 +535,17 @@ export class ViewerClient {
   async copyWithEdit(ops: readonly Op[], options: SaveOptions, call?: ViewerCallOptions): Promise<EditedCopy> {
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
     const opened = this.#document;
-    const copy = await this.call("copyWithEdit", [ops, options, opened?.id ?? 0], call);
-    if (opened === undefined || this.#document !== opened) return copy;
-    const edited = { pages: [], history: copy.history };
-    this.#edits.take(edited);
-    this.#events.emit("edit", edited);
+    const copy = this.call("copyWithEdit", [ops, options, opened?.id ?? 0], call);
+    // A copy that failed once the ops applied still cleared the undone steps: the worker's history follows.
+    const history = await copy.then(
+      (c) => c.history,
+      () => this.editHistory().catch(() => undefined),
+    );
+    if (history !== undefined && opened !== undefined && this.#document === opened) {
+      const edited = { pages: [], history };
+      this.#edits.take(edited);
+      this.#events.emit("edit", edited);
+    }
     return copy;
   }
 

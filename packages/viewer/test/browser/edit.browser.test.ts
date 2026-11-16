@@ -8,7 +8,7 @@
 // call, keeps 500 steps, records nothing for an edit that changed nothing, and refuses an
 // encrypted document.
 
-import { Builder, Font, init, type Op } from "@laminapdf/sdk";
+import { Builder, Document, Font, init, type Op, type SaveOptions } from "@laminapdf/sdk";
 import { createViewer, ThumbnailStrip, type Viewer, type ViewerClient } from "@laminapdf/viewer";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { addressOf, ENCRYPTED, hook, next, PASSWORD, read, rejection, testViewer } from "./helpers.js";
@@ -480,6 +480,32 @@ describe("saving the edit session", () => {
     await client.applyEdit(turn(client.document?.pages[1]?.id as string));
     await client.copyEdits({});
     expect((await client.editHistory()).unsaved).toBe(1);
+  });
+
+  it("writes a copy with ops the document never takes, and the history loses only its undone steps", async () => {
+    const client = await opened();
+    const v = await showing(client);
+    const id = client.document?.pages[1]?.id as string;
+    await v.edits.apply(turn(id), "Rotate page 2");
+    await v.edits.undo();
+    const copy = await v.edits.copyWith(turn(id, 180), {});
+    using written = Document.open(copy.bytes);
+    expect([written.pages[1]?.rotation, client.document?.pages[1]?.rotation]).toEqual([180, 0]);
+    await expect.poll(() => v.edits.getState().history.steps.length).toBe(0);
+    expect((await client.editHistory()).steps).toEqual([]);
+  });
+
+  it("follows the worker's history when a copy with ops fails after they applied", async () => {
+    const client = await opened();
+    const v = await showing(client);
+    const id = client.document?.pages[1]?.id as string;
+    await v.edits.apply(turn(id), "Rotate page 2");
+    await v.edits.undo();
+    expect(v.edits.getState().history.steps).toHaveLength(1);
+    // An unknown save mode: the ops apply, the copy is refused, and the ops are taken back.
+    await rejection(v.edits.copyWith(turn(id, 180), { mode: "sideways" } as unknown as SaveOptions));
+    await expect.poll(() => v.edits.getState().history.steps.length).toBe(0);
+    expect(client.document?.pages[1]?.rotation).toBe(0);
   });
 
   it("refuses a copy an edit made stale: the document stays unsaved", async () => {

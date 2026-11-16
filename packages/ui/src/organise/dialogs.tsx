@@ -209,8 +209,8 @@ export interface SignedPageDialogProps {
       }
     | undefined;
   /**
-   * The person's answer: Remove signature… (the change applies, and the next save asks once before
-   * it removes the signature) or Cancel.
+   * The person's answer: Remove signature and delete (or rotate), where the change applies and
+   * the next save asks once before it removes the signature, or Cancel.
    */
   readonly onAnswer: (proceed: boolean) => void;
 }
@@ -218,10 +218,11 @@ export interface SignedPageDialogProps {
 /**
  * The question before deleting or turning a page that holds a signature's box (O06-delete-signed).
  * It names the page; it can't name the signer, whom the save planner's signatures don't carry.
- * Remove signature… is the danger ghost button; Cancel, the safe answer, has the focus.
+ * Remove signature and delete (or rotate) is the danger ghost button; Cancel, the safe answer, has the focus.
  */
 export function SignedPageDialog({ ask, onAnswer }: SignedPageDialogProps): ReactNode {
   const page = ask?.page ?? "";
+  const remove = laterMessage(ask?.action === "rotate" ? "organise.signed.rotate" : "organise.signed.delete");
   return (
     <Dialog
       isOpen={ask !== undefined}
@@ -232,11 +233,11 @@ export function SignedPageDialog({ ask, onAnswer }: SignedPageDialogProps): Reac
       }}
       onEscape={() => onAnswer(false)}
       title={laterMessage("organise.signed.title", { page })}
-      description={laterMessage("organise.signed.body", { page })}
+      description={laterMessage("organise.signed.body", { page, action: remove })}
       actions={
         <>
           <Button variant="danger" onPress={() => onAnswer(true)}>
-            {laterMessage(ask?.action === "rotate" ? "organise.signed.rotate" : "organise.signed.delete", { page })}
+            {remove}
           </Button>
           <Button variant="primary" autoFocus onPress={() => onAnswer(false)}>
             {laterMessage("organise.signed.cancel")}

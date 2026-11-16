@@ -287,7 +287,6 @@ export function EditingRuntime({
       <InitialViewEditing engine={engine} viewer={viewer} />
       <OrganiseMode
         controller={organising.organise}
-        flow={flow}
         fileName={fileName}
         engine={engine}
         viewer={viewer}
@@ -319,7 +318,7 @@ export function SaveNotices({ flow }: { flow: SaveFlow }): ReactNode {
           </Button>
         </div>
       )}
-      <SaveStrip plan={plan} />
+      <SaveStrip plan={plan} copy={{ label: flow.copyTitle(), onPress: () => void flow.copy() }} />
     </>
   );
 }

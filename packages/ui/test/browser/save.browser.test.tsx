@@ -49,6 +49,20 @@ describe("SaveStrip", () => {
     ]);
   });
 
+  it("offers Save a copy on a conflict only", async () => {
+    const copy = vi.fn();
+    const host = renderIn(
+      <>
+        <SaveStrip plan={plan("conflict", [CERTIFICATION])} copy={{ label: "Save a copy…", onPress: copy }} />
+        <SaveStrip plan={plan("appendOnly")} copy={{ label: "Save a copy…", onPress: copy }} />
+      </>,
+    );
+    const buttons = [...host.querySelectorAll("button")].filter((b) => b.textContent === "Save a copy…");
+    expect(buttons).toHaveLength(1);
+    await userEvent.click(buttons[0] as HTMLElement);
+    expect(copy).toHaveBeenCalledOnce();
+  });
+
   it("says a rewrite drops earlier versions", () => {
     const host = renderIn(<SaveStrip plan={plan("requiresRewrite")} />);
     expect(strip(host)?.textContent).toContain("Earlier versions are dropped.");
@@ -103,7 +117,7 @@ describe("RemoveSignaturesDialog", () => {
     expect([
       dialog.querySelector("h2")?.textContent,
       [...dialog.querySelectorAll("button")].map((b) => b.textContent),
-      dialog.textContent?.includes("still signed"),
+      dialog.textContent?.includes("The file you opened stays signed."),
     ]).toEqual([title, ["Cancel", confirm], true]);
   });
 
@@ -136,7 +150,9 @@ describe("SignatureDetails", () => {
     if (button === undefined) throw new Error("no Details button");
     await userEvent.click(button);
     const popover = await vi.waitFor(() => {
-      const found = document.querySelector<HTMLElement>('[role="dialog"][aria-label="What the signature allows"]');
+      const found = document.querySelector<HTMLElement>(
+        `[role="dialog"][aria-label="What the file's signatures allow"]`,
+      );
       if (found === null) throw new Error("no popover yet");
       return found;
     });
@@ -145,7 +161,7 @@ describe("SignatureDetails", () => {
       "Allows form filling and signing only.",
       "Signed in version 1 of the file.",
       "Usage rights",
-      "Lets Adobe Reader fill in or comment on this file. Changing pages invalidates them.",
+      "Lets Adobe Reader fill in or comment on this file. Changing pages invalidates these rights.",
     ]);
     await settled();
     const result = await axe.run(popover);

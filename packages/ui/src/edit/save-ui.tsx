@@ -117,8 +117,17 @@ export function SaveButton({ keys }: { keys: KeyPlatform }): ReactNode {
  * added after the signature), rewritten whole, or a save that would invalidate a signature, with
  * the signatures it names. A labelled region, announced politely; nothing for a plain file.
  */
-export function SaveStrip({ plan }: { plan: SavePlanSlice | undefined }): ReactNode {
-  const [details, setDetails] = useState(false);
+export function SaveStrip({
+  plan,
+  copy,
+}: {
+  plan: SavePlanSlice | undefined;
+  /**
+   * Save a copy, offered while a save would invalidate a signature (O02's banner after Apply
+   * anyway): its name here ("Save a copy…", "Download a copy") and what it does.
+   */
+  copy?: { readonly label: string; readonly onPress: () => void };
+}): ReactNode {
   if (plan === undefined || plan.constraint === "free") return null;
   const conflict = plan.constraint === "conflict";
   const listed = conflict ? plan.wouldInvalidate : plan.signatures;
@@ -131,27 +140,41 @@ export function SaveStrip({ plan }: { plan: SavePlanSlice | undefined }): ReactN
       <Notice tone={tone} title={title}>
         {conflict ? message("save.strip.conflictHint") : null}
       </Notice>
-      {listed.length === 0 ? null : (
-        <>
-          <Button variant="ghost" size={26} aria-expanded={details} onPress={() => setDetails(!details)}>
-            {message(details ? "save.strip.hideDetails" : "save.strip.details")}
-          </Button>
-          {details ? (
-            <ul className="paper-save-strip-signatures">
-              {signatureLines(listed).map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          ) : null}
-        </>
-      )}
+      {conflict && copy !== undefined ? (
+        <Button size={26} onPress={copy.onPress}>
+          {copy.label}
+        </Button>
+      ) : null}
+      {listed.length === 0 ? null : <StripSignatures listed={listed} />}
     </section>
   );
 }
 
+/** The strip's Details: the signatures it names, shown and hidden in place. */
+function StripSignatures({ listed }: { listed: readonly SaveSignature[] }): ReactNode {
+  const [details, setDetails] = useState(false);
+  return (
+    <>
+      <Button variant="ghost" size={26} aria-expanded={details} onPress={() => setDetails(!details)}>
+        {message(details ? "save.strip.hideDetails" : "save.strip.details")}
+      </Button>
+      {details ? (
+        <ul className="paper-save-strip-signatures">
+          {signatureLines(listed).map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      ) : null}
+    </>
+  );
+}
+
+/** How a copy is written: saved as a file where the platform can, else downloaded. */
+export type CopyKind = "save" | "download";
+
 /** The remove-signature confirmation's words for a copy, saved or downloaded (O02's "Save a copy without the certification?"). */
 const COPY_WORDS: Record<
-  "save" | "download",
+  CopyKind,
   { readonly title: LaterMessageId; readonly body: LaterMessageId; readonly confirm: LaterMessageId }
 > = {
   save: { title: "save.copy.title", body: "save.copy.body", confirm: "save.copy.confirm" },
@@ -177,7 +200,7 @@ export function RemoveSignaturesDialog({
    * Set for a copy, which leaves the open file signed: `save` where the copy is saved as a file,
    * `download` where the browser downloads it. Left out for a save of the file itself.
    */
-  copy?: "save" | "download" | undefined;
+  copy?: CopyKind | undefined;
   onAnswer: (remove: boolean) => void;
 }): ReactNode {
   const kind = conflictKind(signatures ?? []);
@@ -253,57 +276,67 @@ export function ConformanceDialog({
   );
 }
 
+/** The restrictions a signature puts on changes, as the save planner names them (`Violation.restriction`). */
+export type RestrictionKind = "docMdp" | "fieldMdp" | "usageRights" | "signedBytes" | "signedWidget";
+
 /** A signature restriction a change breaks, as Details names it: the signature, and for a certification its level. */
 export interface SignatureRestriction {
-  /** `docMdp` (a certification), `usageRights`, or another restriction of a signature. */
-  readonly restriction: string;
+  readonly restriction: RestrictionKind;
   /** The certification's DocMDP level (`/P`: 1, 2 or 3). */
   readonly permission?: number;
   /** The 1-based version of the file the signature closes, when known. */
   readonly revision?: number;
 }
 
-/** What `restriction` allows, in words: the DocMDP level for a certification. */
-function allows(restriction: SignatureRestriction): string {
-  if (restriction.restriction === "usageRights") return laterMessage("organise.details.usageRights.allows");
-  if (restriction.restriction !== "docMdp") return laterMessage("organise.details.signature.allows");
-  const level = restriction.permission === 1 ? "p1" : restriction.permission === 3 ? "p3" : "p2";
-  return laterMessage(`organise.details.${level}`);
+/** What Details says of a restriction: its name, and what it allows (a certification's by its DocMDP level). */
+interface RestrictionWords {
+  readonly title: LaterMessageId;
+  readonly allows: (permission?: number) => LaterMessageId;
 }
 
-function restrictionTitle(restriction: SignatureRestriction): string {
-  if (restriction.restriction === "docMdp") return laterMessage("organise.details.certification");
-  if (restriction.restriction === "usageRights") return laterMessage("organise.details.usageRights");
-  return laterMessage("organise.details.signature");
-}
+/** A signature's own restriction: the signed bytes, its field lock, or its box on the page. */
+const SIGNATURE: RestrictionWords = {
+  title: "organise.details.signature",
+  allows: () => "organise.details.signature.allows",
+};
+
+/** Details' words for each restriction. */
+const RESTRICTION_WORDS: Record<RestrictionKind, RestrictionWords> = {
+  docMdp: {
+    title: "organise.details.certification",
+    allows: (permission) =>
+      permission === 1 ? "organise.details.p1" : permission === 3 ? "organise.details.p3" : "organise.details.p2",
+  },
+  usageRights: { title: "organise.details.usageRights", allows: () => "organise.details.usageRights.allows" },
+  fieldMdp: SIGNATURE,
+  signedBytes: SIGNATURE,
+  signedWidget: SIGNATURE,
+};
 
 /**
  * Details (O02, O06): a button whose popover names each signature a change breaks and what it
- * allows. By kind and level, not signer or field: the save plan carries neither's name.
+ * allows. By kind and level: the save plan carries no signer's name or date, and names the field
+ * only by Lamina PDF's own ID for it, not the name the file gives it.
  */
-export function SignatureDetails({
-  restrictions,
-  defaultOpen,
-}: {
-  restrictions: readonly SignatureRestriction[];
-  /** Opens the popover at first (the gallery's state). */
-  defaultOpen?: boolean;
-}): ReactNode {
+export function SignatureDetails({ restrictions }: { restrictions: readonly SignatureRestriction[] }): ReactNode {
   return (
-    <PopoverTrigger {...(defaultOpen === undefined ? {} : { defaultOpen })}>
+    <PopoverTrigger>
       <Button size={30}>{message("save.strip.details")}</Button>
       <Popover aria-label={laterMessage("organise.details")} placement="bottom end">
         <dl className="paper-signature-details">
-          {restrictions.map((restriction, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: a fixed list, read once per open.
-            <div key={i}>
-              <dt>{restrictionTitle(restriction)}</dt>
-              <dd>{allows(restriction)}</dd>
-              {restriction.revision === undefined ? null : (
-                <dd>{laterMessage("organise.details.revision", { revision: restriction.revision })}</dd>
-              )}
-            </div>
-          ))}
+          {restrictions.map((restriction, i) => {
+            const words = RESTRICTION_WORDS[restriction.restriction];
+            return (
+              // biome-ignore lint/suspicious/noArrayIndexKey: a fixed list, read once per open.
+              <div key={i}>
+                <dt>{laterMessage(words.title)}</dt>
+                <dd>{laterMessage(words.allows(restriction.permission))}</dd>
+                {restriction.revision === undefined ? null : (
+                  <dd>{laterMessage("organise.details.revision", { revision: restriction.revision })}</dd>
+                )}
+              </div>
+            );
+          })}
         </dl>
       </Popover>
     </PopoverTrigger>
