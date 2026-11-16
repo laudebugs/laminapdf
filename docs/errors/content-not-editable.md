@@ -19,7 +19,7 @@ PDF stores text as glyphs placed one by one in a font's own encoding, not as cha
 - `rotated-run`: glyphs of one line are turned against each other.
 - `glyphs-out-of-order`: the file draws the line's glyphs out of reading order.
 - `actual-text`: the glyphs stand in for other text the file gives (its `ActualText`), which copy and search read; changing the glyphs would leave that text behind.
-- `right-to-left`: the text is written right to left, and files draw such glyphs in either order.
+- `right-to-left`: the text is written right to left. Files draw such glyphs left to right or right to left, so Lamina PDF can't tell in which order to write new text.
 - `too-deep`: the content sits inside more nested drawings than the limits allow.
 - `content-unreadable`: the page's content could not be read.
 - `clipping-path`: the object clips everything drawn after it. Moving, deleting or reordering it would change other content too, so its clip has to be edited on its own.
