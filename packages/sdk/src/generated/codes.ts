@@ -76,6 +76,8 @@ export type ErrorCode =
   | "invalid-label-ranges"
   | "content-object-stale"
   | "content-not-editable"
+  | "unknown-blob"
+  | "images-unavailable"
   | "sink"
   | "not-rebased"
   | "sink-not-empty"
@@ -144,6 +146,7 @@ export type ErrorCode =
   | "job-finished"
   | "document-changed"
   | "revision-index-out-of-range"
+  | "no-bookmarks"
   | "builder-finished"
   | "disposed"
   | "invalid-argument"
@@ -321,6 +324,8 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "invalid-label-ranges",
   "content-object-stale",
   "content-not-editable",
+  "unknown-blob",
+  "images-unavailable",
   "sink",
   "not-rebased",
   "sink-not-empty",
@@ -389,6 +394,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "job-finished",
   "document-changed",
   "revision-index-out-of-range",
+  "no-bookmarks",
   "builder-finished",
   "disposed",
   "invalid-argument",
@@ -596,6 +602,8 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "invalid-label-ranges": "usage",
   "content-object-stale": "state",
   "content-not-editable": "unsupported",
+  "unknown-blob": "usage",
+  "images-unavailable": "unsupported",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
   "pdfa-info-mismatch": "input",
@@ -680,6 +688,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "job-finished": "state",
   "document-changed": "state",
   "revision-index-out-of-range": "usage",
+  "no-bookmarks": "usage",
   "covered-text": "security",
   "redaction-not-applied": "security",
   "text-in-earlier-revision": "security",
@@ -816,6 +825,8 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "invalid-label-ranges": "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
   "content-object-stale": "read the page's content objects again and name the object from that list",
   "content-not-editable": "the content stays selectable and readable; the reason says why it can't be changed",
+  "unknown-blob": "add the bytes with addBlob before applying ops that name them",
+  "images-unavailable": "edit through the laminapdf crate, which writes images, or give laminapdf-ops a writer with Document::with_images",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
@@ -898,8 +909,9 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "model-needs-host": "step an extraction job and hand it each result with provide, or give the plug-in a page renderer",
   "cancelled": "nothing to do: this is the outcome the caller asked for; start a new job to try again",
   "job-finished": "stop stepping a job once a step returned its result or an error; create a new job",
-  "document-changed": "pass the document the job was created from, and don't change it while the job runs; create a new job",
+  "document-changed": "pass the document the job was created from, and don't change it while the job runs; create a new job, or read the contents listing again",
   "revision-index-out-of-range": "ask for an index below the document's revision count",
+  "no-bookmarks": "add bookmarks that go to the document's pages first, then create the contents page",
   "covered-text": "remove the text itself with a tool that deletes what a redaction covers, then save a full rewrite",
   "redaction-not-applied": "apply the redactions in a tool that removes what they cover, then save a full rewrite",
   "text-in-earlier-revision": "save the file as a full rewrite, which keeps only the latest revision",

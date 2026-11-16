@@ -3,6 +3,8 @@
 - Status: Accepted
 - Date: 2026-11-12
 - Amended 2026-11-15 (D7a): §10 adds crash reports, which the same Worker receives ([desktop plan §8 Q2](../plans/desktop-app.md#8-open-questions)).
+- Amended 2026-11-15 ([D6c](../todos/done/D6c-macos-signing-and-notarisation.md)): §6 records how macOS builds are signed: one build per architecture, the hardened runtime only with the Developer ID, PDFium signed before Tauri bundles, the `.dmg` notarised on its own, and macOS 13 as the oldest supported version.
+- Amended 2026-11-15: §7's updater keys replaced before anything published, because the first release key's password didn't unlock it.
 
 ## Context
 
@@ -75,6 +77,13 @@ The owner, **Laurence Ininda**, is the publisher on every operating system. The 
 - **Windows eligibility.** Artifact Signing accepts individuals only in the US and Canada ([quickstart](https://learn.microsoft.com/azure/artifact-signing/quickstart), checked 2026-11-12, updated 2026-10-08). The owner lives in the US, so no OV certificate is needed.
 - **SmartScreen.** Microsoft gives no certificate instant reputation, Artifact Signing included ([SmartScreen reputation](https://learn.microsoft.com/windows/apps/package-and-deploy/smartscreen-reputation), checked 2026-11-12). The first downloads may show a warning that names the publisher.
 - **Nightlies are not OS-signed** (D6b). macOS builds are ad-hoc signed, Windows builds unsigned, and Linux packages ship with `SHA256SUMS` only. A compromised nightly job therefore can't produce anything signed with the owner's identity.
+- **macOS signing** (D6c). Release builds sign every piece of code with the Developer ID and give executables the hardened runtime:
+  - **Per architecture.** Each architecture is built, signed and notarised on its own runner; there is no universal build.
+  - **PDFium.** Tauri signs the app and the engine but not the files in `Resources/`, so `cargo xtask desktop-sidecar` signs PDFium's library first: the hardened runtime's library validation loads only libraries with the engine's own Team ID.
+  - **No entitlements.** Neither the app nor the engine has an entitlement or a hardened-runtime exception: WKWebView needs none in a Developer ID app, and the engine's sandbox is its own Seatbelt profile ([ADR 0008 §5](0008-desktop-shell.md#5-sandboxing-per-os)). Tauri signs the engine with the app's entitlements, so an entitlement added to the app would reach the engine; the release workflow fails a build in which either has one.
+  - **Notarisation.** Tauri notarises and staples the app. The release workflow notarises and staples the `.dmg`, which needs a ticket of its own for Gatekeeper's offline check.
+  - **Ad-hoc builds** leave out the hardened runtime: an ad-hoc signature has no Team ID, so library validation would refuse PDFium and the engine would draw nothing.
+  - **macOS 13 and later** (`bundle.macOS.minimumSystemVersion`).
 
 ### 7. The updater keys: custody and rotation
 
@@ -82,8 +91,8 @@ An updater key is the one key whose loss a new certificate can't repair. The own
 
 | Key | minisign key ID | Signs | GitHub environment |
 | --- | --- | --- | --- |
-| Release | `AF48D217C8FBC9BB` | stable and beta | `desktop-release` (the owner approves every run) |
-| Nightly | `D8B5180692ABC3EF` | nightly only | `desktop-nightly` (no reviewer, `main` only) |
+| Release | `34929FE857511973` | stable and beta | `desktop-release` (the owner approves every run) |
+| Nightly | `46010ED395B59CAF` | nightly only | `desktop-nightly` (no reviewer, `main` only) |
 
 Their Tauri `pubkey` values, which D5b compiles into the apps' updater configuration, are in [`apps/updates/README.md`](../../apps/updates/README.md#updater-public-keys).
 
@@ -119,7 +128,13 @@ The app reports crashes to the update Worker, not to Sentry or another service, 
 - **Consent.** Sending is off until the user turns it on. After the first crash the app asks once: "Send report" sends that report, and with "Always send reports after a crash" checked it sends every later one too. Settings › Privacy turns sending on and off. Held reports stay on the computer for 30 days at most, ten at a time.
 - **No install ID.** The crash client never sends `Lamina-Install-Id`, and the Worker refuses a report that carries it. Each report gets a random ID of its own, kept nowhere else. The Worker still sees the sender's IP address, which it uses as the rate limit's key and doesn't keep.
 - **The Worker.** `POST /crash` checks the body against the schema and refuses a free-text field that still looks like a path, a `file:` URL, an e-mail address or a long number. It caps a body at 64 KiB and allows ten reports a minute from one address. It stores each report in the private bucket `lamina-pdf-crash-reports` under `crash-reports/{yyyy}/{mm}/{dd}/{report_id}.json`, and a lifecycle rule deletes reports after 30 days. It logs no body and no address.
-- **What comes later.** Minidumps of native crashes, which hold memory and so may hold document bytes, are processed on the computer into the same fields and never uploaded raw (D7d). D7d also archives debug symbols for maintainers to read frames with.
+- **Native crashes** (D7d, 2026-11-15). A segmentation fault or access violation leaves no panic, so the app captures a minidump out of process, and nothing hostile is parsed in the main process.
+  - **Capture.** A monitor process, the app's binary started with `--crash-monitor` outside the sandbox, hosts two minidump servers, one for the main process and one for its engines. Each process installs a crash handler that asks its server for a dump; the engine does so before its sandbox locks down. A hostile message can crash only the monitor, which the main process restarts at most 5 times a session, giving each new engine the current socket. Inside the monitor, a server loop that a bad client keeps breaking restarts at most 16 times a minute; then the monitor exits and the app replaces it.
+  - **Limits.** Each server refuses a new dump while its folder holds 4, or after 6 in the last minute, so an engine can't flood the disk or the reader. It writes each dump under a temporary name and renames it once complete, so no dump is read half written. On Linux the engine's seccomp lets the crash handler name only the monitor's pid in `PR_SET_PTRACER`; without that pid there is no capture.
+  - **Reading, sandboxed.** The main process reads a dump's bytes and deletes the file, whether what follows succeeds or fails, and refuses a dump over 64 MiB. A fresh engine in `--summarize-dump` mode, under the full engine sandbox, reads the bytes from stdin and writes an allow-listed summary to stdout. The app ends it after 10 s.
+  - **What the report holds.** Only the `native` object joins the report: the crash reason, at most 64 frames of the crashing thread as a module's file name and an offset within it, and each module's file name and debug ID. It holds no function names, since a name read from memory could carry document text; `cargo xtask crash symbolicate` adds them for maintainers from the archived symbols. The main process's own native crashes go to the monitor's main folder, and the next launch reads the newest few into held reports, as it does a main-process panic.
+  - **Windows, later.** Capture is Unix only in this version: `minidumper` takes the client-supplied pid on Windows without checking it, so a compromised engine could make the server dump any process. Windows keeps D7a's panic and exit reports, with no `native` object, until D7f.
+  - **Symbols.** The release workflow archives the builds' Breakpad symbols in a private bucket, `lamina-pdf-symbols`.
 
 ## Consequences
 

@@ -82,7 +82,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
 | C01 | Comment tools: highlight, underline, strike, caret, note, ink, shapes, arrow, text box; colour and width | D | [E4f](../../todos/ready/E4f-annotation-tools-ui.md) |
-| C02 | Ink and shapes: drawing in progress, selected shape with handles, inspector | D | [E4d](../../todos/ready/E4d-appearances-ink-and-shapes.md) |
+| C02 | Ink and shapes: drawing in progress, selected shape with handles, inspector | D | [E4d](../../todos/done/E4d-appearances-ink-and-shapes.md) |
 | C03 | Free text and callouts: editing | D | [E4e](../../todos/ready/E4e-freetext-callouts.md) |
 | C04 | Comments panel: threads, replies, status (accepted, rejected, done), filter and search | D, W | [E5b](../../todos/done/E5b-comment-threads-and-review.md), [E5g](../../todos/ready/E5g-comments-panel.md) |
 | C05 | Stamps and file attachments (stamps picker: standard, custom image, dynamic date/name; file attachment annotation) | D | [E5c](../../todos/ready/E5c-stamps-and-attachments.md), [E5h](../../todos/ready/E5h-stamps-and-attachments-ui.md) |
@@ -99,7 +99,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | A02 | Place image and shapes (as content, not annotations), transform handles, opacity | D | [E6b](../../todos/ready/E6b-place-images-and-shapes.md) |
 | A03 | Watermark, header and footer dialog with live preview and page ranges | D | [E6d](../../todos/ready/E6d-watermarks-headers-footers.md) |
 | A04 | Edit existing text inline: text run selection, font substitution warning | D | [E7e](../../todos/ready/E7e-text-runs-and-inline-edit.md), [E7f](../../todos/ready/E7f-font-handling-and-styling.md) |
-| A05 | Select and transform existing objects (images, paths), arrange, delete | D | [E7d](../../todos/ready/E7d-select-transform-existing.md), [E7h](../../todos/ready/E7h-vector-clipping-masks.md) |
+| A05 | Select and transform existing objects (images, paths), arrange, delete | D | [E7d](../../todos/done/E7d-select-transform-existing.md), [E7h](../../todos/ready/E7h-vector-clipping-masks.md) |
 | A06 | Search and replace across the document | D | [E7g](../../todos/ready/E7g-search-and-replace.md) |
 | A07 | Structure and conformance warning when editing tagged or PDF/A files | D | [E7i](../../todos/ready/E7i-structure-and-conformance-maintenance.md) |
 

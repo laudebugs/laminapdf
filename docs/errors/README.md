@@ -126,7 +126,9 @@ A PR that adds a code adds:
 | [`appearance-unavailable`](appearance-unavailable.md) | `unsupported` | the document has no appearance generator, so it can't draw a new annotation |
 | [`invalid-label-ranges`](invalid-label-ranges.md) | `usage` | page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0 |
 | [`content-object-stale`](content-object-stale.md) | `state` | an edit names a content object whose bytes are no longer what the edit expects, so it would change another object |
-| [`content-not-editable`](content-not-editable.md) | `unsupported` | the content can't be edited: its font, its writing direction or the order of its glyphs is one Lamina PDF can't change safely, or it can't be read |
+| [`content-not-editable`](content-not-editable.md) | `unsupported` | the content can't be edited: its font, its writing direction, the order of its glyphs, a clip it sets or the state it draws in is one Lamina PDF can't change safely, or it can't be read |
+| [`unknown-blob`](unknown-blob.md) | `usage` | an op names bytes by an ID that were not added to the session |
+| [`images-unavailable`](images-unavailable.md) | `unsupported` | the document has no image writer, so it can't put a replacement image in the file |
 
 ## Op warnings
 
@@ -254,8 +256,9 @@ A PR that adds a code adds:
 | --- | --- | --- |
 | [`cancelled`](cancelled.md) | `cancelled` | a CancelToken stopped the work; the job is finished and returned no partial result |
 | [`job-finished`](job-finished.md) | `state` | a job was stepped after it had finished, failed or been cancelled |
-| [`document-changed`](document-changed.md) | `state` | the document a job was created for changed (an edit, undo, redo, save or rebase) or a different document was passed to step |
+| [`document-changed`](document-changed.md) | `state` | the document a job or a contents listing was made from changed (an edit, undo, redo, save or rebase), or a different document was passed to step |
 | [`revision-index-out-of-range`](revision-index-out-of-range.md) | `usage` | an earlier revision was asked for by an index past the file's last revision |
+| [`no-bookmarks`](no-bookmarks.md) | `usage` | a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing |
 
 ## Façade warnings (`laminapdf`)
 

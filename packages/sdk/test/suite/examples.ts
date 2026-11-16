@@ -5,10 +5,13 @@
 // runtime produces the same bytes.
 import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@laminapdf/sdk";
 import { addLinks } from "../../examples/add-links.js";
+import { addContents } from "../../examples/create-contents-page.js";
 import { cropPages } from "../../examples/crop-pages.js";
+import { drawOnPage } from "../../examples/draw-on-page.js";
 import { duplicatePages } from "../../examples/duplicate-pages.js";
 import { editBookmarks } from "../../examples/edit-bookmarks.js";
 import { editMetadata } from "../../examples/edit-metadata.js";
+import { editObjects } from "../../examples/edit-objects.js";
 import { editXmp } from "../../examples/edit-xmp.js";
 import { elementFlow, type Report } from "../../examples/element-flow.js";
 import { extractPages } from "../../examples/extract-pages.js";
@@ -87,6 +90,8 @@ const ANSWERED_AT = "D:20261031090000Z";
 const OUTLINE_PDF = "fixtures/corpus/outline.pdf";
 /** The document edit-bookmarks edits. */
 const BOOKMARKS_PDF = "fixtures/golden/links-and-outlines.pdf";
+/** The file create-contents-page-pdfua adds a contents page to: one that claims PDF/UA-1. */
+const PDF_UA_PDF = "fixtures/golden/flow-table.pdf";
 /** The PDF/A-2b file edit-xmp records a review in. */
 const PDFA_2B_PDF = "fixtures/golden/examples/pdf_a_archive-2b.pdf";
 /** The document organise-pages organises: five pages, with bookmarks, links and named destinations that point at the third. */
@@ -95,6 +100,8 @@ const REFERENCES_PDF = "fixtures/pages/references.pdf";
 const FORMS_PDF = "fixtures/pages/forms.pdf";
 /** The input of crop-pages: four pages, one per rotation, the second with a user unit of 2. */
 const BOXES_PDF = "fixtures/pages/boxes.pdf";
+/** The input of edit-objects: an example golden with shapes, transparency and two images. */
+const SHAPES_PDF = "fixtures/golden/examples/images_and_vectors.pdf";
 /** The input of resize-pages: an A4 page with every kind of destination aimed at it, and a Letter page. */
 const GEOMETRY_PDF = "fixtures/pages/geometry.pdf";
 /** The input of page-labels: an example golden of four pages. */
@@ -218,6 +225,12 @@ export const EXAMPLES: readonly Example[] = [
     build: (i) => markUp(input(i, TAGGED_PDF), EDITED_AT),
   },
   {
+    name: "draw-on-page",
+    golden: "draw_on_page",
+    inputs: [TAGGED_PDF],
+    build: (i) => drawOnPage(input(i, TAGGED_PDF), EDITED_AT),
+  },
+  {
     name: "review-comments",
     golden: "review_comments",
     inputs: [MARKED_PDF],
@@ -228,6 +241,18 @@ export const EXAMPLES: readonly Example[] = [
     golden: "set_initial_view",
     inputs: [OUTLINE_PDF],
     build: (i) => openOn(input(i, OUTLINE_PDF), 1),
+  },
+  {
+    name: "create-contents-page",
+    golden: "create_contents_page",
+    inputs: [BOOKMARKS_PDF, NOTO],
+    build: (i) => addContents(input(i, BOOKMARKS_PDF), input(i, NOTO)),
+  },
+  {
+    name: "create-contents-page-pdfua",
+    golden: "create_contents_page-pdfua",
+    inputs: [PDF_UA_PDF, NOTO],
+    build: (i) => addContents(input(i, PDF_UA_PDF), input(i, NOTO)),
   },
   {
     name: "edit-bookmarks",
@@ -246,6 +271,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "crop_pages",
     inputs: [BOXES_PDF],
     build: (i) => cropPages(input(i, BOXES_PDF)),
+  },
+  {
+    name: "edit-objects",
+    golden: "edit_objects",
+    inputs: [SHAPES_PDF],
+    build: (i) => editObjects(input(i, SHAPES_PDF)),
   },
   {
     name: "resize-pages",

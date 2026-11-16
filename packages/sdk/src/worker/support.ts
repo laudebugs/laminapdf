@@ -13,6 +13,8 @@ import type { Document, PageRef } from "../document.js";
  * - `extractJob` returns a job whose model results the caller provides between steps: run the
  *   model in the worker's own context, or extract on the main thread;
  * - `ensure` fetches a range document's bytes: the worker does that for every call;
+ * - `content` is an object of methods: edit through `apply` with an `editContent` op, and read a
+ *   page's objects on the main thread;
  * - `extractPages`, `exportRanges` and `split` return new documents, which stay in the worker: save one
  *   on the main thread, or open the saved bytes with the client;
  * - `free` and `Symbol.dispose`: the remote handle's `close()` and `Symbol.asyncDispose`.
@@ -27,6 +29,7 @@ export type ExcludedDocumentMembers =
   | "exportRanges"
   | "split"
   | "ensure"
+  | "content"
   | "free"
   | typeof Symbol.dispose;
 
@@ -42,12 +45,15 @@ export type RemotableDocumentMember = Exclude<keyof Document, ExcludedDocumentMe
 export type RemotablePageMember = Exclude<keyof PageRef, ExcludedPageMembers>;
 
 export const DOCUMENT_METHODS = {
+  addBlob: 1,
   addSource: 2,
   adoptCopy: 2,
   apply: 1,
   applyLog: 1,
   canExtractText: 0,
   commentThreads: 1,
+  contentsListing: 1,
+  createContentsPage: 1,
   cropPages: 2,
   caretAt: 2,
   deleteAnnotations: 1,
@@ -57,13 +63,16 @@ export const DOCUMENT_METHODS = {
   extract: 1,
   extractImages: 1,
   hasUnsavedChanges: 0,
+  inkAt: 3,
   info: 0,
   initialView: 0,
   insertBlankPages: 4,
+  insertContentsPage: 2,
   insertPagesFrom: 4,
   isEncrypted: 0,
   isTagged: 0,
   labelRanges: 0,
+  lineAt: 4,
   linkOnArea: 3,
   linkOnText: 3,
   linksCsv: 0,
@@ -87,6 +96,7 @@ export const DOCUMENT_METHODS = {
   pageLinks: 1,
   pages: 0,
   plan: 1,
+  polyAt: 3,
   properties: 0,
   rebase: 1,
   redo: 0,
@@ -108,6 +118,7 @@ export const DOCUMENT_METHODS = {
   setPageBoxes: 2,
   setPageLabels: 1,
   setXmpProperty: 5,
+  shapeAt: 3,
   structureTree: 0,
   threads: 0,
   undo: 0,

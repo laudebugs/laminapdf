@@ -10,10 +10,12 @@ import type {
   AnnotCommon as AnnotCommonJs,
   AnnotSpec as AnnotSpecJs,
   AttachmentInit,
+  Border as BorderJs,
   BuildOptionsInit,
   ChildItems as ChildItemsJs,
   CommentJs,
   CommentPartJs,
+  ContentEdit as ContentEditJs,
   DestinationUse as DestinationUseJs,
   DestinationView as DestinationViewJs,
   DirectionInit,
@@ -27,8 +29,11 @@ import type {
   FitInit,
   ImageOptionsInit,
   InitialViewJs,
+  InkStroke as InkStrokeJs,
+  Leader as LeaderJs,
   LimitsInit,
   LineBoxJs,
+  LineEnding as LineEndingJs,
   LinkTargetInit,
   MarkupKind as MarkupKindJs,
   MetadataInit,
@@ -36,6 +41,7 @@ import type {
   MetadataPatch as MetadataPatchJs,
   NamedDestinationJs,
   NoteIcon as NoteIconJs,
+  ObjectRef as ObjectRefJs,
   OpenAt as OpenAtJs,
   Op as OpJs,
   OutlineEntryInit,
@@ -49,7 +55,9 @@ import type {
   PageLabelInit,
   PageLabelRange as PageLabelRangeJs,
   PageLinkJs,
+  PageObjectJs,
   PlannedSaveJs,
+  PolyKind as PolyKindJs,
   ProfileInit,
   ProgressJs,
   PropertiesJs,
@@ -61,6 +69,7 @@ import type {
   SaveOptionsInit,
   SaveReportJs,
   SetInitialView as SetInitialViewJs,
+  ShapeKind as ShapeKindJs,
   SkippedImageJs,
   StructureKidJs,
   StructureNodeJs,
@@ -85,7 +94,8 @@ import type {
  * (`addOutlineItem`, `updateOutlineItem`, `moveOutlineItem`, `deleteOutlineItem`), the named-destination edits
  * (`setNamedDestination`, `renameNamedDestination`, `deleteNamedDestination`), `setInitialView`, the link
  * edits (`addLink`, `updateLink`, `deleteLink`), the annotation edits (`addAnnot`, `updateAnnot`,
- * `deleteAnnot`), or the deprecated `setInfo` (use
+ * `deleteAnnot`), `editContent` (move, delete, replace, crop or reorder what a page draws), or the
+ * deprecated `setInfo` (use
  * `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
  *
  * @since 0.2.0
@@ -140,8 +150,11 @@ export type AddLink = AddLinkJs;
 export type AddAnnot = AddAnnotJs;
 
 /**
- * What an annotation edit draws: `{ type: "textMarkup", kind, quads }`, `{ type: "note", at, icon,
- * open }` or `{ type: "caret", rect, symbol }`, in user space.
+ * What an annotation edit draws, in user space: `{ type: "textMarkup", kind, quads }`,
+ * `{ type: "note", at, icon, open }`, `{ type: "caret", rect, symbol }`, `{ type: "ink",
+ * strokes, width, smoothing }`, `{ type: "shape", kind, rect, interior, border }`,
+ * `{ type: "line", from, to, ends, interior, border, leader }` or `{ type: "poly", kind,
+ * vertices, ends, interior, border }`.
  *
  * @since 0.3.0
  */
@@ -178,6 +191,54 @@ export type MarkupKind = MarkupKindJs;
  * @since 0.3.0
  */
 export type NoteIcon = NoteIconJs;
+
+/**
+ * A drawn shape: `"square"` (a rectangle) or `"circle"` (the ellipse inside its box).
+ *
+ * @since 0.5.0
+ */
+export type ShapeKind = ShapeKindJs;
+
+/**
+ * A polygon's kind: `"polygon"` (closed) or `"polyLine"` (open).
+ *
+ * @since 0.5.0
+ */
+export type PolyKind = PolyKindJs;
+
+/**
+ * A line ending: `"none"`, `"square"`, `"circle"`, `"diamond"`, `"openArrow"`, `"closedArrow"`,
+ * `"butt"`, `"rOpenArrow"`, `"rClosedArrow"` (arrowheads pointing back) or `"slash"`.
+ *
+ * @since 0.5.0
+ */
+export type LineEnding = LineEndingJs;
+
+/**
+ * An outline: its `width` in points (0 for none) and `style`: `{ type: "solid" }`,
+ * `{ type: "dashed", pattern }` (dash and gap lengths in points) or `{ type: "cloudy", intensity }`
+ * (from 0 to 2, for squares, circles and polygons).
+ *
+ * @since 0.5.0
+ */
+export type Border = BorderJs;
+
+/**
+ * One stroke of freehand ink: its `points` in user space and, for a pressure-sensitive pen,
+ * `widths`, one per point, in points.
+ *
+ * @since 0.5.0
+ */
+export type InkStroke = InkStrokeJs;
+
+/**
+ * A line's leader lines: their `length` (positive to the left of the line, negative to the
+ * right), how far they carry on past it (`extension`) and the gap before they start (`offset`),
+ * in points.
+ *
+ * @since 0.5.0
+ */
+export type Leader = LeaderJs;
 
 /**
  * A bookmark's look: its `color` (`"#rrggbb"`, or `null` for the default black), `bold` and
@@ -459,6 +520,36 @@ export type OutlineNode = OutlineNodeJs;
  * @since 0.2.0
  */
 export type PageLink = PageLinkJs;
+
+/**
+ * One object a page draws, in painting order (later ones over earlier ones): its name for an
+ * edit (`object`), its `kind` (`"path"`, `"text"`, `"image"`, `"form"`, `"xobject"` or
+ * `"shading"`), its box in page space (`bounds`, `[x0, y0, x1, y1]`, before clipping) and, when it
+ * can't be moved, deleted or reordered, why (`readOnly`, such as `"clipping-path"`).
+ *
+ * @since 0.5.0
+ */
+export type PageObject = PageObjectJs;
+
+/**
+ * An object a page draws, named so the name lasts: its 0-based `ordinal` among the page's
+ * objects and the `hash` of its bytes (16 hex digits), as {@link PageObject} gives them. An edit
+ * whose name no longer matches the page fails with `content-object-stale`.
+ *
+ * @since 0.5.0
+ */
+export type ObjectRef = ObjectRefJs;
+
+/**
+ * One change to an object a page draws: `{ transform: { object, matrix } }` (a matrix
+ * `[a, b, c, d, e, f]` in page space), `{ delete: { object } }`, `{ replaceImage: { object, blob } }`
+ * (a blob ID from {@link Document.addBlob}), `{ crop: { object, rect } }` (`[x0, y0, x1, y1]` in page
+ * space) or `{ reorder: { object, to } }` (`"front"`, `"back"`, `{ before: ObjectRef }` or
+ * `{ after: ObjectRef }`).
+ *
+ * @since 0.5.0
+ */
+export type ContentEdit = ContentEditJs;
 
 /**
  * One annotation on a page, in page space: its ID (which the `updateAnnot` and `deleteAnnot`

@@ -40,6 +40,9 @@ mod common;
 /// capability: D.01 core round-trip
 /// capability: D.02 core round-trip
 /// capability: D.03 core round-trip
+/// capability: D.04 core round-trip
+/// capability: D.05 core round-trip
+/// capability: B.06 core round-trip
 /// capability: D.10 core round-trip
 /// capability: D.11 core round-trip
 #[test]
@@ -95,7 +98,7 @@ fn built_features(doc: &laminapdf_model::Document) -> Vec<String> {
                 .and_then(Object::as_dict)
                 .and_then(|a| a.get("URI"))
                 .map(|u| format!("{u:?}"));
-            let page = dict.get("Dest").and_then(|d| dest_page(doc, d));
+            let page = link_page(doc, dict);
             out.push(format!("link uri={uri:?} page={page:?} rect={:?}", dict.get("Rect")));
         }
     }
@@ -178,6 +181,72 @@ fn built_text_links_outlines_labels_and_xmp_survive_a_save() {
     }
 }
 
+/// The page a link goes to: its `/Dest`, or its `GoTo` action's `/D`, resolved by [`dest_page`].
+fn link_page(doc: &laminapdf_model::Document, link: &laminapdf_cos::Dict) -> Option<usize> {
+    use laminapdf_cos::Object;
+    let dest = link
+        .get("Dest")
+        .or_else(|| link.get("A").and_then(Object::as_dict).and_then(|a| a.get("D")))?;
+    dest_page(doc, dest)
+}
+
+/// The pages page `index`'s links go to, in annotation order ([`link_page`]).
+fn link_pages(doc: &laminapdf_model::Document, index: usize) -> Vec<Option<usize>> {
+    let pages = doc.pages().unwrap();
+    pages
+        .get(index)
+        .unwrap()
+        .annots()
+        .unwrap()
+        .into_iter()
+        .map(|annot| link_page(doc, doc.resolve(annot).unwrap().as_dict().unwrap()))
+        .collect()
+}
+
+/// The façade's contents page (E3l; `laminapdf`'s `tests/contents_page.rs` checks how it is made)
+/// on `links-and-outlines.pdf`, whose bookmarks two levels deep go to pages 1 to 4 once the page
+/// is in: after an edit and a save in each mode, each entry's link still lands on its
+/// bookmark's page, and the contents page's own bookmark comes first and goes to it. The suite's
+/// families save it with every other op too, and the full lane checks those saves with qpdf,
+/// pdf.js and `PDFium`.
+/// capability: I.05 core round-trip
+#[test]
+fn a_contents_pages_links_land_on_their_bookmarks_pages_after_a_save() {
+    use laminapdf_cos::OpenOptions;
+    use laminapdf_model::Rotation;
+    use laminapdf_ops::{Document, Origin, RotatePage};
+    use laminapdf_save::{Save as _, SaveMode, SaveOptions};
+
+    let path = common::fixtures_dir()
+        .join("golden")
+        .join(common::roundtrip::CONTENTS_PAGE);
+    let bytes = std::fs::read(path).unwrap();
+    let expected = vec![Some(1), Some(2), Some(3), Some(4)];
+    let before = laminapdf_model::Document::open(bytes.clone(), OpenOptions::default()).unwrap();
+    assert_eq!(link_pages(&before, 0), expected);
+    for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
+        let mut doc = Document::open(bytes.clone(), OpenOptions::default()).unwrap();
+        let last = doc.pages().unwrap().iter().last().unwrap().id().clone();
+        doc.apply_all(Origin::Local, [RotatePage::new(last, Rotation::Clockwise90).into()])
+            .unwrap();
+        let mut out = Vec::new();
+        doc.save(&mut out, &SaveOptions::new().with_mode(mode)).unwrap();
+        let after = laminapdf_model::Document::open(out, OpenOptions::default()).unwrap();
+        assert_eq!(link_pages(&after, 0), expected, "{mode:?}");
+        let outline = after.outline().unwrap();
+        let first = outline.iter().next().unwrap();
+        assert_eq!(
+            (
+                first.title().unwrap(),
+                first.target().unwrap().and_then(|d| d.page_index)
+            ),
+            ("Contents".to_owned(), Some(0)),
+            "{mode:?}"
+        );
+        assert_eq!(after.warnings(), [], "{mode:?}");
+    }
+}
+
 /// Each metadata edit, saved in each mode with the save-time stamp and reopened: Info and XMP
 /// hold the new values and agree, the pages and every other mapped field are kept, and a
 /// removal leaves neither side holding the value.
@@ -254,6 +323,116 @@ fn metadata_edits_round_trip_with_info_and_xmp_in_step() {
                 "{name} {mode:?}"
             );
             assert_eq!(reopened.warnings(), [], "{name} {mode:?}");
+        }
+    }
+}
+
+/// capability: A.07 core round-trip
+/// capability: B.01 core round-trip
+/// capability: B.02 core round-trip
+/// capability: B.08 core round-trip
+/// capability: B.12 core round-trip
+#[test]
+fn content_edits_round_trip_with_the_rest_of_the_page_unchanged() {
+    use laminapdf_content::{ContentObjectKind, ContentOps, ContentOwner, interpret_page};
+    use laminapdf_cos::OpenOptions;
+    use laminapdf_model::{Matrix, RectPt};
+    use laminapdf_ops::{ContentEdit, Document, EditContent, ObjectRef, Op, Origin, StackPosition};
+    use laminapdf_save::{Save as _, SaveMode, SaveOptions};
+
+    /// The first page's objects: kind, name, box (rounded to a hundredth of a point) and whether
+    /// it can be edited.
+    fn objects(doc: &laminapdf_model::Document) -> Vec<(ContentObjectKind, ObjectRef, Option<[i64; 4]>, bool)> {
+        let pages = doc.pages().unwrap();
+        let page = pages.get(0).unwrap();
+        let mut ir = ContentOps::read_page(doc, page.cos(), ContentOwner::Page(page.id().clone())).unwrap();
+        interpret_page(doc, &page, &mut ir.recorder(page.frame().unwrap())).unwrap();
+        #[expect(clippy::cast_possible_truncation, reason = "rounded points, well inside i64")]
+        let round = |r: RectPt| [r.x0, r.y0, r.x1, r.y1].map(|v| (v.get() * 100.0).round() as i64);
+        ir.objects()
+            .iter()
+            .map(|o| {
+                let name = ObjectRef::from(&ir.reference(o.id()).unwrap());
+                (o.kind(), name, o.bounds().map(round), ir.edit_refusal(o.id()).is_none())
+            })
+            .collect()
+    }
+
+    let root = common::fixtures_dir();
+    let jpeg = std::fs::read(root.join("images/photo-rgb.jpg")).unwrap();
+    for (name, kinds) in [
+        // Shapes and images: an image replaced and cropped, a shape scaled, a shape to the back.
+        (
+            "golden/examples/images_and_vectors.pdf",
+            [ContentObjectKind::Image, ContentObjectKind::Path],
+        ),
+        // Text: a line of text moved.
+        (
+            "golden/examples/multilingual.pdf",
+            [ContentObjectKind::Text, ContentObjectKind::Text],
+        ),
+    ] {
+        for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
+            let bytes = std::fs::read(root.join(name)).unwrap();
+            let mut doc = Document::open(bytes, OpenOptions::default())
+                .unwrap()
+                .with_images(laminapdf_build::ImageXObjectWriter);
+            let blob = doc.add_blob(jpeg.clone());
+            let before = objects(&doc);
+            let first = before.iter().position(|o| o.0 == kinds[0] && o.3).unwrap();
+            // The third shape, the dashed curve, sits outside any transparency, so it can go
+            // to the back.
+            let last = (0..before.len())
+                .filter(|&i| before[i].0 == kinds[1] && before[i].3)
+                .nth(2)
+                .unwrap();
+            let mut edits = vec![ContentEdit::Transform {
+                object: before[first].1,
+                matrix: Matrix::translate(-10.0, 0.0).then(&Matrix::scale(0.5, 0.5)),
+            }];
+            if kinds[0] == ContentObjectKind::Image {
+                edits.push(ContentEdit::ReplaceImage {
+                    object: before[first].1,
+                    blob,
+                });
+                edits.push(ContentEdit::Reorder {
+                    object: before[last].1,
+                    to: StackPosition::Back,
+                });
+            }
+            let page = doc.pages().unwrap().get(0).unwrap().id().clone();
+            doc.apply_all(Origin::Local, [Op::from(EditContent::new(page, edits))])
+                .unwrap();
+            let edited = objects(&doc);
+            let mut out = Vec::new();
+            doc.save(&mut out, &SaveOptions::new().with_mode(mode)).unwrap();
+            let reopened = laminapdf_model::Document::open(out, OpenOptions::default()).unwrap();
+            let again = objects(&reopened);
+            assert_eq!(again, edited, "{name} {mode:?}");
+            assert_eq!(reopened.warnings(), [], "{name} {mode:?}");
+            // Every object kept its box but the one moved and halved, x' = (x - 10) / 2 and
+            // y' = y / 2, in hundredths of a point and to within one.
+            let mut order: Vec<usize> = (0..before.len()).collect();
+            if kinds[0] == ContentObjectKind::Image {
+                let back = order.remove(last);
+                order.insert(0, back);
+            }
+            assert_eq!(order.len(), edited.len(), "{name} {mode:?}");
+            for (now, &was) in edited.iter().zip(&order) {
+                assert_eq!(now.0, before[was].0, "{name} {mode:?}");
+                if was != first {
+                    assert_eq!(now.2, before[was].2, "{name} {mode:?}: object {was}");
+                    continue;
+                }
+                let (Some(now), Some(was)) = (now.2, before[was].2) else {
+                    panic!("{name} {mode:?}: the moved object has no box");
+                };
+                let want = [was[0] / 2 - 500, was[1] / 2, was[2] / 2 - 500, was[3] / 2];
+                assert!(
+                    now.iter().zip(want).all(|(n, w)| (n - w).abs() <= 1),
+                    "{name} {mode:?}: {now:?}, expected {want:?}"
+                );
+            }
         }
     }
 }

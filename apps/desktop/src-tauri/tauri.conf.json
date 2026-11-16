@@ -51,7 +51,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEFGNDhEMjE3QzhGQkM5QkIKUldTN3lmdklGOUpJcjVmRzd0Zjk5Ty9TTnJFMVl1NFJ1WDRlZXdKQkM3bGM2VHM5VENndUFrTHEK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM0OTI5RkU4NTc1MTE5NzMKUldSekdWRlg2SitTTkMzVnhnOXYwajk2RmFXUkN4U1lOVVVudk8ya0VlamkwMEFUUjdXZ2FORkUK",
       "endpoints": ["https://updates.laminapdf.com/beta/{{target}}/{{arch}}/{{current_version}}"],
       "requireSignedVersion": true,
       "windows": {

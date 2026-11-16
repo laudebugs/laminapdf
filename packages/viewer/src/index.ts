@@ -45,6 +45,7 @@ export type {
   AddedSource,
   BackendInit,
   BackendName,
+  ContentsPreview,
   EditHistory,
   EditResult,
   EditStep,

@@ -42,8 +42,9 @@ impl Declared {
         doc: &mut laminapdf_model::Document,
         sources: &crate::document::Sources,
         class: ModificationClass,
+        content: (&crate::BlobStore, Option<&dyn crate::ImageXObjects>),
     ) -> Result<Effect> {
-        let mut effect = self.op.apply_to(doc, sources, None)?;
+        let mut effect = self.op.apply_to(doc, sources, None, content)?;
         effect.widgets.extend(
             self.widgets
                 .iter()

@@ -180,6 +180,8 @@ fn route<R: Read>(
             ToEngine::CloseDocument { doc } => queue.push(Job::Close { doc }),
             #[cfg(feature = "e2e")]
             ToEngine::DebugPanic { message } => crash::debug_panic(&message),
+            #[cfg(feature = "e2e")]
+            ToEngine::DebugSegv => crash::debug_segv(),
         }
     }
 }

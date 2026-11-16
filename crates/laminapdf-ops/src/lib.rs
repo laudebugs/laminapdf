@@ -78,9 +78,12 @@
 mod annot;
 mod blob;
 mod class;
+#[cfg(feature = "content-edit")]
+mod content;
 mod document;
 mod error;
 mod history;
+mod images;
 mod info;
 mod initial_view;
 mod labels;
@@ -104,14 +107,19 @@ use laminapdf_test_fixtures::codes as test_codes;
 
 pub use annot::{
     AddAnnot, AddReply, AnnotColor, AnnotCommon, AnnotSpec, AnnotSpecPatch, Appearance, AppearanceRequest, Appearances,
-    Caret, CaretPatch, CaretSymbol, DeleteAnnot, IntentSpace, MarkupKind, Note, NoteIcon, NotePatch, Offset, Opacity,
-    ReviewState, SetReviewState, TextMarkup, TextMarkupPatch, UpdateAnnot, delete_annotations,
+    Border, BorderStyle, Caret, CaretPatch, CaretSymbol, DeleteAnnot, Ink, InkPatch, InkStroke, IntentSpace, Leader,
+    LineEnding, LineMark, LinePatch, MarkupKind, Note, NoteIcon, NotePatch, Offset, Opacity, Poly, PolyKind, PolyPatch,
+    ReviewState, SetReviewState, Shape, ShapeKind, ShapePatch, TextMarkup, TextMarkupPatch, UpdateAnnot,
+    delete_annotations,
 };
 pub use blob::{BlobId, BlobStore, ParseBlobIdError, SourceId};
 pub use class::ModificationClass;
+#[cfg(feature = "content-edit")]
+pub use content::{ContentEdit, EditContent, ObjectRef, StackPosition};
 pub use document::{Document, PendingRebase, SaveState};
 pub use error::{Error, Result};
 pub use history::{History, Reverted, UndoOutcome};
+pub use images::{ImageXObjects, WrittenImage};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use info::{InfoPatch, SetInfo};
 pub use initial_view::{OpenAt, OpenZoom, SetInitialView, WindowPreferencesPatch};

@@ -87,10 +87,13 @@ impl Visitor for Recorder<'_> {
             .checked_sub(1)
             .filter(|&i| self.ops.objects.get(i).is_some_and(|o| o.ops.contains(&index)));
         self.current = object;
-        if let Some(object) = object.and_then(|i| self.ops.objects.get_mut(i))
-            && object.ops.start == index
-        {
-            object.state = Some(Box::new(state.clone()));
+        if let Some(object) = object.and_then(|i| self.ops.objects.get_mut(i)) {
+            if object.ops.start == index {
+                object.state = Some(Box::new(state.clone()));
+            }
+            if object.ops.end.checked_sub(1) == Some(index) {
+                object.end_state = Some(Box::new(state.clone()));
+            }
         }
     }
 

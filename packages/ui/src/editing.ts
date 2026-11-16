@@ -13,6 +13,13 @@ export {
   type BookmarkStyle,
   bookmarkWords,
 } from "./edit/bookmarks.js";
+export {
+  type ContentsChoice,
+  type ContentsInsert,
+  ContentsPageDialog,
+  type ContentsPageDialogProps,
+  type ContentsPreviewEntry,
+} from "./edit/contents-page.js";
 export { EditArea } from "./edit/edit-area.js";
 export { HistoryPanel, type HistoryPanelProps } from "./edit/history-panel.js";
 export {

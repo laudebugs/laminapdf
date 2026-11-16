@@ -13,6 +13,7 @@ use laminapdf_cos::{Dict, ObjRef, Object};
 use laminapdf_model::{AnnotFlags, AnnotId, AnnotSubtype, PageId, UserSpacePoint, UserSpaceRect};
 use serde::{Deserialize, Serialize};
 
+use crate::annot::geom::numbers_of;
 use crate::annot::{DeleteAnnot, Found, every_annotation, object_dict, quad_points, set_text};
 use crate::error::{Error, Result};
 use crate::op::Effect;
@@ -314,10 +315,6 @@ fn read_quads(dict: &Dict) -> Vec<[UserSpacePoint; 4]> {
             ]
         })
         .collect()
-}
-
-fn numbers_of(value: &Object) -> Option<Vec<f64>> {
-    value.as_array()?.iter().map(Object::as_f64).collect()
 }
 
 /// `rect` grown to hold every corner of `quads`; every number must be finite.

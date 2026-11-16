@@ -3307,6 +3307,8 @@ The decisions and todos behind this code:
 
 An edit tried to change content that Lamina PDF can't change safely. The edit changed nothing, and the content stays on the page, selectable and readable.
 
+Most reasons are about text. Two are about moving any object: whether it clips what comes after it, and whether it draws the same in its new place in the stacking order.
+
 ## Why
 
 PDF stores text as glyphs placed one by one in a font's own encoding, not as characters. To change text, Lamina PDF has to find the glyphs that belong together, learn which characters they stand for, and place new glyphs in the same font. It refuses, and names the reason, when it can't do that reliably:
@@ -3318,10 +3320,12 @@ PDF stores text as glyphs placed one by one in a font's own encoding, not as cha
 - `glyphs-out-of-order`: the file draws the line's glyphs out of reading order.
 - `too-deep`: the content sits inside more nested drawings than the limits allow.
 - `content-unreadable`: the page's content could not be read.
+- `clipping-path`: the object clips everything drawn after it. Moving, deleting or reordering it would change other content too, so its clip has to be edited on its own.
+- `state-not-portable`: moving the object in the stacking order would change how it looks, because the clip, the transparency or the font differ where it would go.
 
 ## How to fix
 
-The file is fine: Lamina PDF reads this content and shows it as it is. To change it, delete the object and add new content in its place, or edit the file in the program that made it.
+The file is fine: Lamina PDF reads this content and shows it as it is. To change it, delete the object and add new content in its place (except for `clipping-path`, whose object can't be deleted either), or edit the file in the program that made it. For `state-not-portable`, try another place in the stacking order: next to objects drawn under the same clip.
 
 ## Example
 
@@ -3333,7 +3337,7 @@ When `/T3` is a Type 3 font, an edit of this text fails with `content-not-editab
 
 ## Data fields
 
-- `reason`: why the content can't be edited: `type3-font`, `vertical-text`, `no-unicode-map`, `rotated-run`, `glyphs-out-of-order`, `too-deep` or `content-unreadable`.
+- `reason`: why the content can't be edited: `type3-font`, `vertical-text`, `no-unicode-map`, `rotated-run`, `glyphs-out-of-order`, `too-deep`, `content-unreadable`, `clipping-path` or `state-not-portable`.
 
 ## For contributors
 
@@ -3341,7 +3345,80 @@ The decisions and todos behind this code:
 
 - [ADR 0022 §5–§7](../decisions/0022-content-stream-editing.md#5-finding-text-runs-marked-content-first-layout-second): which text runs are read-only, and why
 - [E7c](../todos/done/E7c-content-ir.md): the content IR and this code
+- [E7d](../todos/done/E7d-select-transform-existing.md): moving, deleting and reordering objects, and the `clipping-path` and `state-not-portable` reasons
 ",
+        "unknown-blob" => r#"# `unknown-blob`
+
+- Type: error
+- Kind: `usage` (the call or its arguments are wrong)
+
+## What happened
+
+An edit names bytes, such as a replacement image, by an ID that the editing session doesn't hold.
+
+## Why
+
+Edits stay small by naming large payloads by the SHA-256 hash of their bytes instead of carrying the bytes. The session keeps every payload added to it, so undo, redo and a replayed list of edits find them again. This edit names an ID that was never added, so the session has nothing to use.
+
+## How to fix
+
+Add the bytes to the document first, then apply the edit with the ID that call returns: `Document::add_blob` in Rust, `doc.addBlob(bytes)` in TypeScript. When you replay a saved list of edits into a newly opened document, add its payloads again before the edits.
+
+## Example
+
+```json
+{ "op": "editContent", "args": { "page": "p3.0", "edits": [{ "replaceImage": { "object": { "ordinal": 2, "hash": "a3f1c2d4e5f60718" }, "blob": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08" } }] } }
+```
+
+Applied to a document whose session holds no bytes with that ID.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0006 §1](../decisions/0006-op-log-and-undo.md#1-the-op-enum-laminapdf-ops): large payloads named by their hash
+- [E7d](../todos/done/E7d-select-transform-existing.md): replacing images, the first op that names a payload other than a source document
+"#,
+        "images-unavailable" => r#"# `images-unavailable`
+
+- Type: error
+- Kind: `unsupported` (valid input that Lamina PDF does not support yet)
+
+## What happened
+
+An edit replaces an image on a page, but the document has no image writer to turn the new JPEG or PNG into an image object.
+
+## Why
+
+A PDF stores an image as an image object: its pixels, their colour space and how they are compressed. Reading a JPEG or PNG and writing that object is the `laminapdf-build` crate's work. The `laminapdf` crate and the `@laminapdf/sdk` package always connect it, so only code that uses `laminapdf-ops` directly meets this error.
+
+## How to fix
+
+Edit through the `laminapdf` crate or `@laminapdf/sdk`. If you use `laminapdf-ops` directly, give the document an image writer first: `Document::with_images` with `laminapdf-build`'s `ImageXObjectWriter`.
+
+## Example
+
+```json
+{ "op": "editContent", "args": { "page": "p3.0", "edits": [{ "replaceImage": { "object": { "ordinal": 2, "hash": "a3f1c2d4e5f60718" }, "blob": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08" } }] } }
+```
+
+Applied to a `laminapdf_ops::Document` opened without `with_images`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E7d](../todos/done/E7d-select-transform-existing.md): replacing images
+- [E7 plan §2.3](../plans/editor/e7-editing-existing-content.md#23-objects): what a replaced image writes
+"#,
         "pdfa-one-author" => r#"# `pdfa-one-author`
 
 - Type: warning
@@ -5850,13 +5927,15 @@ The decisions and todos behind this code:
 
 A job's `step` was given a document other than the one the job was created from, or that document changed since: a committed transaction, an undo, a redo, a save or a rebase. Every step checks the document's instance and revision before any work, and the job is now finished.
 
+A contents page raises it too: `insert_contents_page` (`insertContentsPage` in WebAssembly) was given a listing that the document no longer gives, because its bookmarks, page labels or pages changed after `contents_listing` read them.
+
 ## Why
 
 Jobs don't borrow the document, so other calls can run between two steps. A save or a read that went on after an edit would mix two states of the document, so the job stops instead.
 
 ## How to fix
 
-Pass the document the job was created from, don't change it while the job runs, and create a new job after a change. A failed save left the document as it was.
+Pass the document the job was created from, don't change it while the job runs, and create a new job after a change. For a contents page, read the listing again and lay the page out again. A failed save left the document as it was.
 
 ## Example
 
@@ -5875,6 +5954,7 @@ None.
 The decisions and todos behind this code:
 
 - [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) §3
+- [E3l](../todos/done/E3l-contents-page.md): the contents page
 "#,
         "revision-index-out-of-range" => r"# `revision-index-out-of-range`
 
@@ -5910,6 +5990,40 @@ doc.open_revision(count, OpenOptions::default())?; // revision-index-out-of-rang
 The decisions and todos behind this code:
 
 - [T2b](../todos/done/T2b-check-failed-redactions.md): `revision_count` and `open_revision`
+",
+        "no-bookmarks" => r"# `no-bookmarks`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`Document::create_contents_page` or `contents_listing` was asked for a contents page, but none of the document's bookmarks goes to one of its pages.
+
+## Why
+
+A contents page lists the bookmarks, each with the page it goes to. Bookmarks that open a web address or another file have no page in the document, so they are left out. When every bookmark is like that, or the document has none, the page would list nothing.
+
+## How to fix
+
+Add bookmarks that go to the document's pages, then create the contents page.
+
+## Example
+
+```rust
+let mut doc = Document::open_bytes(bytes, OpenOptions::default())?; // a file with no bookmarks
+doc.create_contents_page(&ContentsOptions::new(), &ContentsFonts::new())?; // no-bookmarks
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3l](../todos/done/E3l-contents-page.md): `create_contents_page`
 ",
         "covered-text" => r#"# `covered-text`
 

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E18](../../plans/full-editor.md#e18-collaboration-hosted-service) |
 | Round / milestone | Editor phase 6 (E18) — M10 Collaboration |
-| Depends on | [E7d](./E7d-select-transform-existing.md), [E10d](./E10d-pades-signing-core.md), [E12d](./E12d-scrub-and-rewrite.md), [E13e](./E13e-server-jobs-infrastructure.md), [E18e](./E18e-client-sync-and-presence.md), [H4](./H4-document-sync.md) |
+| Depends on | [E7d](../done/E7d-select-transform-existing.md), [E10d](./E10d-pades-signing-core.md), [E12d](./E12d-scrub-and-rewrite.md), [E13e](./E13e-server-jobs-infrastructure.md), [E18e](./E18e-client-sync-and-presence.md), [H4](./H4-document-sync.md) |
 | ADRs | Implements ADR 0012; follows ADR 0006 §5 (barriers) |
 | Branch | `feat/e18g-leases-and-base-revisions` |
 | PR title | `feat(collab): leases and new base revisions for non-mergeable edits` |
@@ -22,7 +22,7 @@ Non-mergeable changes (content edits, page structure if decided, applied redacti
 - **Design (Paper):** [H06 Shared review](../../design/paper/account-cloud-product.md#h06-shared-review). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - ADR 0012
 - [editing notes §3](../../research/architecture/notes/editing-architecture.md#3-collaboration-annotation-layer-sync-crdt-vs-server-authoritative-conflict-semantics)
-- What runs under a lease or as a job: content-edit ops from [E7d](E7d-select-transform-existing.md), the `Sign` op from [E10d](E10d-pades-signing-core.md), `ApplyRedactions` from [E12d](E12d-scrub-and-rewrite.md); server jobs reuse the `apps/jobs` Workflow/Container pipeline from [E13e](E13e-server-jobs-infrastructure.md)
+- What runs under a lease or as a job: content-edit ops from [E7d](../done/E7d-select-transform-existing.md), the `Sign` op from [E10d](E10d-pades-signing-core.md), `ApplyRedactions` from [E12d](E12d-scrub-and-rewrite.md); server jobs reuse the `apps/jobs` Workflow/Container pipeline from [E13e](E13e-server-jobs-infrastructure.md)
 
 ## Scope
 

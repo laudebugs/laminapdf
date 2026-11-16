@@ -2,8 +2,17 @@
 // WasmDocument (ADR 0028 F12): every call is synchronous and throws LaminaPdfError. Documents,
 // pages and save jobs are handles (internal/handle.ts): a page or save job is freed with its
 // document.
-import type { WasmDocument, WasmPage, WasmSaveJob } from "@laminapdf/wasm/base";
+import type { Op as BaseOp, WasmDocument, WasmPage, WasmSaveJob } from "@laminapdf/wasm/base";
 import type { WasmDocument as ExtractWasmDocument, PageTextJs, WasmExtractJob } from "@laminapdf/wasm/extract";
+import type { DocumentContent } from "./content.js";
+import {
+  type ContentsListing,
+  type ContentsPage,
+  type ContentsPageOptions,
+  type ContentsPlacement,
+  layOutContentsPage,
+  parseListing,
+} from "./contents.js";
 import { isLaminaPdfError, type LaminaPdfWarning, packageError } from "./errors.js";
 import { type ExtractFormat, type ExtractOptions, type ExtractResult, parseExtract } from "./extract.js";
 import { ExtractJob, type ExtractJobOptions } from "./extract-job.js";
@@ -69,6 +78,7 @@ import type {
   ImageOptions,
   InitialView,
   InitialViewPatch,
+  LineEnding,
   MarkupKind,
   MetadataKey,
   MetadataPatch,
@@ -85,10 +95,12 @@ import type {
   PageLabelRange,
   PageLink,
   PlannedSave,
+  PolyKind,
   Progress,
   Reverted,
   SaveOptions,
   SaveReport,
+  ShapeKind,
   StructureNode,
   Target,
   TargetView,
@@ -780,6 +792,70 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * The edit that draws freehand ink on page `page`: one stroke per list of points, each
+   * `[x, y]` in page space, by a pen `width` points wide (1 by default), smoothed through the
+   * points. Apply it with `{ op: "addAnnot", args }`. For a pressure-sensitive pen, give each of
+   * the edit's `spec.strokes` its `widths`, one per point, before applying it.
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`.
+   *
+   * @since 0.5.0
+   */
+  inkAt(page: number, strokes: readonly (readonly (readonly [number, number])[])[], width = 1): AddAnnot {
+    const lists = strokes.map((stroke) => stroke.map((p) => [...p] as [number, number]));
+    return this.call(() => this.#doc.inkAt(page, lists, width));
+  }
+
+  /**
+   * The edit that draws a square or circle on page `page` along `area` (`[x0, y0, x1, y1]` in
+   * page space): a rectangle, or the ellipse inside the box. Set the edit's `spec.interior` to
+   * fill it and `spec.border` for a dashed or cloudy outline.
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`.
+   *
+   * @since 0.5.0
+   */
+  shapeAt(page: number, kind: ShapeKind, area: readonly [number, number, number, number]): AddAnnot {
+    return this.call(() => this.#doc.shapeAt(page, kind, [...area]));
+  }
+
+  /**
+   * The edit that draws a line on page `page` from `from` to `to` (`[x, y]` in page space), with
+   * `ends` at its start and end: an arrow is `["none", "closedArrow"]`.
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`.
+   *
+   * @since 0.5.0
+   */
+  lineAt(
+    page: number,
+    from: readonly [number, number],
+    to: readonly [number, number],
+    ends?: readonly [LineEnding, LineEnding],
+  ): AddAnnot {
+    return this.call(() => this.#doc.lineAt(page, [...from], [...to], ends === undefined ? undefined : [...ends]));
+  }
+
+  /**
+   * The edit that draws a polygon (`"polygon"`, closed) or polyline (`"polyLine"`, open) on page
+   * `page` through `vertices` (`[x, y]` in page space): at least three for a polygon, two for a
+   * polyline.
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`.
+   *
+   * @since 0.5.0
+   */
+  polyAt(page: number, kind: PolyKind, vertices: readonly (readonly [number, number])[]): AddAnnot {
+    return this.call(() =>
+      this.#doc.polyAt(
+        page,
+        kind,
+        vertices.map((p) => [...p] as [number, number]),
+      ),
+    );
+  }
+
+  /**
    * Proposes replacing the text in `lines` of page `page` with `replacement`: a strike-out over
    * the text and a caret after it, grouped so they show, move and delete together. The caret
    * holds `replacement`. `common` (author, dates, colour…) goes to both. The two edits are
@@ -825,6 +901,26 @@ export class Document extends Handle<BaseGlue> {
    */
   pageLinks(index: number): PageLink[] {
     return this.call(() => this.#extracting("doc.pageLinks()").pageLinks(index));
+  }
+
+  /**
+   * What the pages draw, to select and change: `content.objects(index)`, `content.hitTest(index,
+   * at)` and `content.edit(index, edits)`. Reads need a document opened while the extract or
+   * text module was loaded.
+   *
+   * @since 0.5.0
+   */
+  get content(): DocumentContent {
+    return {
+      objects: (index) => this.call(() => this.#extracting("doc.content.objects()").contentObjects(index)),
+      hitTest: (index, at) =>
+        this.call(() => {
+          const doc = this.#extracting("doc.content.hitTest()");
+          return at.length === 2 ? doc.hitTest(index, at[0], at[1]) : doc.hitTestRect(index, [...at]);
+        }),
+      edit: (index, edits) =>
+        this.apply([{ op: "editContent", args: { page: this.pageInfo(index).id, edits: [...edits] } }]),
+    };
   }
 
   /**
@@ -1076,7 +1172,9 @@ export class Document extends Handle<BaseGlue> {
    */
   apply(ops: readonly Op[]): Edited {
     this.#notInTransaction("apply");
-    return this.call(() => this.#doc.apply(ops as Op[]));
+    // The base module's op type leaves out `editContent`, which only the extract and text modules
+    // apply; the base module refuses it as an unknown op.
+    return this.call(() => this.#doc.apply(ops as BaseOp[]));
   }
 
   /**
@@ -1184,6 +1282,69 @@ export class Document extends Handle<BaseGlue> {
    */
   setInitialView(patch: InitialViewPatch): Edited {
     return this.apply([setInitialViewOp(patch)]);
+  }
+
+  /**
+   * Inserts a contents page made from the bookmarks, in one transaction (one undo step). It lists
+   * the bookmarks that go to a page, one or two levels deep, each with the label its page shows
+   * once the contents page is in and a link to that page. Bookmarks that open a web address, or
+   * go nowhere, are left out. Needs the text module loaded, which lays the page out; the document
+   * itself can be open in any module.
+   *
+   * @example
+   * ```ts
+   * await init({ text: true });
+   * const doc = Document.open(bytes);
+   * doc.createContentsPage({ font: Font.fromBytes(fontBytes), bookmark: true });
+   * ```
+   * @param options - where it goes (`at`, before the first page by default), how many levels it
+   *   lists (`levels`, 1 or 2), its heading (`title`), whether a bookmark for it goes first in the
+   *   outline (`bookmark`), its font and fallbacks, and the entries' size in points (`size`).
+   * @throws {@link LaminaPdfError} `text-module-not-loaded` when the text module isn't loaded;
+   *   `no-bookmarks` when no bookmark goes to a page; `font-not-embedded` for the default
+   *   font on a file that claims PDF/A or PDF/UA-1; `missing-glyph` for a title no font can draw;
+   *   as {@link Document.apply}.
+   *
+   * @since 0.5.0
+   */
+  createContentsPage(options: ContentsPageOptions = {}): Edited {
+    this.#notInTransaction("createContentsPage");
+    const { font, fallbacks, ...placement } = options;
+    const listing = this.contentsListing(placement);
+    const page = layOutContentsPage(listing, { ...(font ? { font } : {}), ...(fallbacks ? { fallbacks } : {}) });
+    return this.insertContentsPage(placement, page);
+  }
+
+  /**
+   * What a contents page made with `options` lists, without making it: each bookmark that goes to
+   * a page, with its level, title and the label its page will show. Works in every module; lay the
+   * page out with {@link layOutContentsPage} (text module), then insert it with
+   * {@link Document.insertContentsPage}, which is what {@link Document.createContentsPage} does.
+   *
+   * @throws {@link LaminaPdfError} `no-bookmarks` when no bookmark goes to a page; `unknown-page`
+   *   for an `at` that names no page; reading errors.
+   *
+   * @since 0.5.0
+   */
+  contentsListing(options: ContentsPlacement = {}): ContentsListing {
+    const json = this.call(() => this.#doc.contentsListing(options));
+    return parseListing(json);
+  }
+
+  /**
+   * Inserts `page`, laid out from the listing `options` gives, in one transaction (one undo step):
+   * its pages where `options.at` says, a link over each entry to its bookmark's place, and with
+   * `options.bookmark` a bookmark for it first in the outline.
+   *
+   * @throws {@link LaminaPdfError} `document-changed` when the document no longer gives the listing
+   *   `page` was laid out from (its bookmarks, labels or pages changed since); as
+   *   {@link Document.apply}.
+   *
+   * @since 0.5.0
+   */
+  insertContentsPage(options: ContentsPlacement, page: ContentsPage): Edited {
+    this.#notInTransaction("insertContentsPage");
+    return this.call(() => this.#doc.insertContentsPage(options, page));
   }
 
   /**
@@ -1471,6 +1632,21 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * Keeps `bytes` for the session (a replacement image's JPEG or PNG) and returns their ID, 64 hex
+   * digits (the SHA-256 of the bytes), which a `replaceImage` content edit names them by. The same
+   * bytes get the same ID everywhere and are kept once. Adding bytes changes nothing to save or
+   * undo. Needs a document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded`.
+   *
+   * @since 0.5.0
+   */
+  addBlob(bytes: Uint8Array | ArrayBuffer): string {
+    const data = bytesOf(bytes);
+    return this.call(() => this.#extracting("doc.addBlob()").addBlob(data));
+  }
+
+  /**
    * Copies `pages` of the source document `source` (IDs from {@link Document.addSource}), each
    * once and in the order given, to `at`, in one transaction (`insertPagesFrom`). The copies are
    * new pages with new IDs, listed in the result's `pageOrder`. Their annotations come along
@@ -1598,7 +1774,7 @@ export class Document extends Handle<BaseGlue> {
    * @since 0.2.0
    */
   wouldViolate(op: Op): Violation[] {
-    return this.call(() => this.#doc.wouldViolate(op));
+    return this.call(() => this.#doc.wouldViolate(op as BaseOp));
   }
 
   /**

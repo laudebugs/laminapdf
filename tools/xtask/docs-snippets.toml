@@ -39,6 +39,10 @@ ts = "packages/sdk/examples/mark-up.ts"
 rust = "crates/laminapdf/examples/mark_up.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/draw-on-page.ts"
+rust = "crates/laminapdf/examples/draw_on_page.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/review-comments.ts"
 rust = "crates/laminapdf/examples/review_comments.rs"
 
@@ -51,6 +55,10 @@ ts = "packages/sdk/examples/edit-metadata.ts"
 rust = "crates/laminapdf/examples/edit_metadata.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/create-contents-page.ts"
+rust = "crates/laminapdf/examples/create_contents_page.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/set-initial-view.ts"
 rust = "crates/laminapdf/examples/set_initial_view.rs"
 
@@ -61,6 +69,10 @@ rust = "crates/laminapdf/examples/duplicate_pages.rs"
 [[pair]]
 ts = "packages/sdk/examples/crop-pages.ts"
 rust = "crates/laminapdf/examples/crop_pages.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/edit-objects.ts"
+rust = "crates/laminapdf/examples/edit_objects.rs"
 
 [[pair]]
 ts = "packages/sdk/examples/resize-pages.ts"

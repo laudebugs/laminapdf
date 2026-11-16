@@ -27,6 +27,16 @@ export type {
   TextOptions,
 } from "./builder.js";
 export { Builder, imagesToPdf, PAGE_SIZES, Page, PendingPath, Surface, TAG_NAMES } from "./builder.js";
+export type { DocumentContent } from "./content.js";
+export {
+  type ContentsEntry,
+  type ContentsFonts,
+  type ContentsListing,
+  type ContentsPage,
+  type ContentsPageOptions,
+  type ContentsPlacement,
+  layOutContentsPage,
+} from "./contents.js";
 export { Document, type MergeInput, PageRef, SaveJob, type SplitBy } from "./document.js";
 export type { Diagnostic, ErrorKind, LaminaPdfWarning, Location } from "./errors.js";
 export { isLaminaPdfError, LaminaPdfError } from "./errors.js";
@@ -132,12 +142,14 @@ export type {
   AnnotSpec,
   ArticleThread,
   AttachmentOptions,
+  Border,
   BoxRect,
   BuildOptions,
   ChildItems,
   Color,
   CommentPart,
   CommentThread,
+  ContentEdit,
   DestinationUse,
   DestinationView,
   Direction,
@@ -154,8 +166,11 @@ export type {
   ImageOptions,
   InitialView,
   InitialViewPatch,
+  InkStroke,
+  Leader,
   Limits,
   LineBox,
+  LineEnding,
   LinkTarget,
   MarkupKind,
   Metadata,
@@ -163,6 +178,7 @@ export type {
   MetadataPatch,
   NamedDestination,
   NoteIcon,
+  ObjectRef,
   Op,
   OpenAt,
   OpenOptions,
@@ -178,8 +194,10 @@ export type {
   PageLabel,
   PageLabelRange,
   PageLink,
+  PageObject,
   PlannedSave,
   Point,
+  PolyKind,
   Profile,
   Progress,
   Rect,
@@ -189,6 +207,7 @@ export type {
   Reverted,
   SaveOptions,
   SaveReport,
+  ShapeKind,
   SkippedImage,
   StructureKid,
   StructureNode,

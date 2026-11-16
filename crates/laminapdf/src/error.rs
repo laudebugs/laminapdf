@@ -70,6 +70,13 @@ pub enum Error {
         /// The number of revisions.
         count: u32,
     },
+    /// A contents page was asked for, but no bookmark goes to a page of the document
+    /// ([`Document::create_contents_page`](crate::Document::create_contents_page),
+    /// `no-bookmarks`).
+    ///
+    /// Added in 0.5.0.
+    #[error("no bookmark goes to a page of the document, so a contents page would list nothing")]
+    NoBookmarks,
 }
 
 /// Shorthand for `Result<T, laminapdf::Error>`.
@@ -131,6 +138,7 @@ impl Error {
         "job-finished",
         "document-changed",
         "revision-index-out-of-range",
+        "no-bookmarks",
     ];
 
     /// The stable kebab-case code ([ADR 0026] §3).
@@ -168,6 +176,7 @@ impl Error {
             Self::JobFinished => ErrorCode::JobFinished,
             Self::DocumentChanged => ErrorCode::DocumentChanged,
             Self::RevisionIndexOutOfRange { .. } => ErrorCode::RevisionIndexOutOfRange,
+            Self::NoBookmarks => ErrorCode::NoBookmarks,
         }
     }
 
@@ -205,7 +214,8 @@ impl Error {
             | Self::Cancelled
             | Self::JobFinished
             | Self::DocumentChanged
-            | Self::RevisionIndexOutOfRange { .. } => Location::NONE,
+            | Self::RevisionIndexOutOfRange { .. }
+            | Self::NoBookmarks => Location::NONE,
         }
     }
 
@@ -386,6 +396,7 @@ mod tests {
             Error::JobFinished,
             Error::DocumentChanged,
             Error::RevisionIndexOutOfRange { index: 2, count: 2 },
+            Error::NoBookmarks,
         ]
     }
 

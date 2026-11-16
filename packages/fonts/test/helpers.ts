@@ -24,6 +24,8 @@ export interface Lock {
     readonly files: Record<string, string>;
   }[];
   readonly outputs: Record<string, Output>;
+  /** The TrueType faces PDFs embed, under pdf/. */
+  readonly pdf: Record<string, Output>;
   readonly fallbacks: readonly {
     readonly style: string;
     readonly weight: number;

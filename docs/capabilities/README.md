@@ -14,9 +14,9 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 31 | 5 | 18 | 0 | 115 | 45 |
+| core | 169 | 40 | 5 | 18 | 0 | 106 | 54 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
-| web | 168 | 25 | 3 | 1 | 0 | 139 | 29 |
+| web | 168 | 26 | 3 | 1 | 0 | 138 | 30 |
 | desktop | 168 | 4 | 0 | 0 | 0 | 164 | 4 |
 
 ## A. Text & typography
@@ -29,7 +29,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | A.04 | Change font family/size/colour/style | — | — | — | — | E7 round-trip |  |
 | A.05 | Bold, italic, underline, super/subscript | — | — | — | — | E7 round-trip |  |
 | A.06 | Alignment & line spacing | — | — | — | — | E7 write |  |
-| A.07 | Move/resize/rotate text blocks | — | — | — | — | E7 round-trip |  |
+| A.07 | Move/resize/rotate text blocks | 🟢 round-trip | — | — | — | E7 round-trip | [`content_edits_round_trip_with_the_rest_of_the_page_unchanged`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | A.08 | Search & replace throughout document | — | — | — | — | E7 round-trip |  |
 | A.09 | Add hyperlinks to text | 🟢 round-trip | — | 🟢 round-trip | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[draws a link to a page, refuses a script address and makes a web link on text](../../apps/web/e2e/link-editing.e2e.test.ts) web round-trip |
 | A.10 | Extract text with position & formatting | 🟡 read | — | — | — | E3 read | [`a_quad_spans_the_advance_and_the_fonts_extent_in_page_space`](../../crates/laminapdf-text/tests/extract_runs.rs) core read |
@@ -40,18 +40,18 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| B.01 | Insert, delete, replace images | — | — | — | — | E7 round-trip |  |
-| B.02 | Resize, rotate, crop, reposition | — | — | — | — | E7 round-trip |  |
+| B.01 | Insert, delete, replace images | 🟢 round-trip | — | — | — | E7 round-trip | [`content_edits_round_trip_with_the_rest_of_the_page_unchanged`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| B.02 | Resize, rotate, crop, reposition | 🟢 round-trip | — | — | — | E7 round-trip | [`content_edits_round_trip_with_the_rest_of_the_page_unchanged`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | B.03 | Extract original embedded images | 🟡 read | — | — | — | E3 read | [`jpegs_and_jpeg_2000_come_out_byte_for_byte`](../../crates/laminapdf-extract/tests/images.rs) core read |
 | B.04 | Adjust transparency/opacity | — | — | — | — | E6 round-trip |  |
 | B.05 | Draw lines, rectangles, circles, polygons | — | — | — | — | E6 round-trip |  |
-| B.06 | Arrows, paths, freehand drawing | — | — | — | — | E4 round-trip |  |
+| B.06 | Arrows, paths, freehand drawing | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | B.07 | Edit vector paths, fills, strokes | — | — | — | — | E7 round-trip |  |
-| B.08 | Change stacking order | — | — | — | — | E7 round-trip |  |
+| B.08 | Change stacking order | 🟢 round-trip | — | — | — | E7 round-trip | [`content_edits_round_trip_with_the_rest_of_the_page_unchanged`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | B.09 | Add logos, icons, stamps | — | — | — | — | E6 round-trip |  |
 | B.10 | Background images & watermarks | — | — | — | — | E6 round-trip |  |
 | B.11 | Clipping paths & masks | — | — | — | — | E7 round-trip |  |
-| B.12 | Transformations on graphical objects | — | — | — | — | E7 round-trip |  |
+| B.12 | Transformations on graphical objects | 🟢 round-trip | — | — | — | E7 round-trip | [`content_edits_round_trip_with_the_rest_of_the_page_unchanged`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 
 ## C. Page organisation & geometry
 
@@ -81,8 +81,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 | D.01 | Highlight / underline / strike through | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | D.02 | Sticky notes & text comments | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | D.03 | Text-correction annotations | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
-| D.04 | Freehand ink | — | — | — | — | E4 round-trip |  |
-| D.05 | Shapes, lines, arrows | — | — | — | — | E4 round-trip |  |
+| D.04 | Freehand ink | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| D.05 | Shapes, lines, arrows | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | D.06 | Callouts & text boxes | — | — | — | — | E4 round-trip |  |
 | D.07 | Custom stamps | — | — | — | — | E5 round-trip |  |
 | D.08 | Attach files as annotations | — | — | — | — | E5 round-trip |  |
@@ -177,7 +177,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | I.02 | Internal page links | 🟢 round-trip | — | 🟢 round-trip | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[draws a link to a page, refuses a script address and makes a web link on text](../../apps/web/e2e/link-editing.e2e.test.ts) web round-trip |
 | I.03 | External hyperlinks | 🟢 round-trip | — | 🟢 round-trip | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[draws a link to a page, refuses a script address and makes a web link on text](../../apps/web/e2e/link-editing.e2e.test.ts) web round-trip |
 | I.04 | Named destinations | 🟢 round-trip | — | 🟢 round-trip | — | E3 round-trip | [`a_goto_action_resolves_through_the_names_tree`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`a_named_destination_resolves_through_the_catalog_dests`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[adds, renames, nests and moves a bookmark and renames a destination](../../apps/web/e2e/bookmarks.e2e.test.ts) web round-trip |
-| I.05 | Clickable table of contents | — | — | — | — | E3 round-trip |  |
+| I.05 | Clickable table of contents | 🟢 round-trip | — | 🟢 round-trip | — | E3 round-trip | [`a_contents_pages_links_land_on_their_bookmarks_pages_after_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[creates a contents page whose entries go to their bookmarks' pages](../../apps/web/e2e/bookmarks.e2e.test.ts) web round-trip |
 | I.06 | Initial view & zoom; page display mode | 🟢 round-trip | — | 🟢 round-trip | — | E3 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[sets where the file opens, its panel and window title, and opens there](../../apps/web/e2e/initial-view.e2e.test.ts) web round-trip |
 | I.07 | Define reading order; logical structure tags | — | — | — | — | E15 round-trip |  |
 | I.08 | Optional content groups (layers) | — | — | — | — | E17 round-trip |  |

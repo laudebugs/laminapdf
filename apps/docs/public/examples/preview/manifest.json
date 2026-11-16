@@ -24,6 +24,54 @@
         }
       ]
     },
+    "create_contents_page": {
+      "sha256": "d5ad1f673b6b0ac3e8f6c2993e3769facab6852c41216ded985daf3ad0a51748",
+      "bytes": 20285,
+      "pages": [
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        },
+        {
+          "width": 839,
+          "height": 1190
+        }
+      ]
+    },
+    "create_contents_page-pdfua": {
+      "sha256": "220db15b1919460cf0ca5ddeaba2128b8ea16810da4378c6b96574bdf775d648",
+      "bytes": 111186,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        },
+        {
+          "width": 1190,
+          "height": 1683
+        },
+        {
+          "width": 1190,
+          "height": 1683
+        },
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
     "crop_pages": {
       "sha256": "8c2c71ebcc80eb8271370f12b4900789c0bdfa6997241c504ee9e2e2c565fa29",
       "bytes": 2890,
@@ -43,6 +91,20 @@
         {
           "width": 1368,
           "height": 1008
+        }
+      ]
+    },
+    "draw_on_page": {
+      "sha256": "c790d0520af76d7b244a4e0ff2bd43cf3d1a5638ea9ab9c724a377052a90a9ba",
+      "bytes": 29872,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        },
+        {
+          "width": 1190,
+          "height": 1683
         }
       ]
     },
@@ -99,6 +161,16 @@
     "edit_metadata-pdfa": {
       "sha256": "0194815e561520b5e1df07ee228f7d05310e4ef3add2d9f6863fe960ec96b614",
       "bytes": 19506,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
+    "edit_objects": {
+      "sha256": "cb57a513a4db7b8d5ffb8215b9662be56c8f4f5cbf4bb7f1b72e9ee10c14a42d",
+      "bytes": 6233,
       "pages": [
         {
           "width": 1190,

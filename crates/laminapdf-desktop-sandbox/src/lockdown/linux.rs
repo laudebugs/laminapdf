@@ -14,6 +14,9 @@
 //!    - the calls that name a path (`openat`, `newfstatat`, …) fail with `EACCES`, so PDFium's
 //!      font lookup finds nothing instead of killing the engine, Landlock or not; so does
 //!      `sysinfo`;
+//!    - with crash capture, the crash handler's calls: send and receive on its socket, which
+//!      was connected before the lock-down, and the `prctl`s that let the dump server (the monitor,
+//!      `SandboxConfig::crash_server`, and no other process) trace the engine while it writes the dump;
 //!    - `clone3` fails with `ENOSYS`: its flags sit behind a pointer the filter can't read, and
 //!      glibc (≥ 2.34) and Rust's std then fall back to `clone`, which the first filter checks.
 //!
@@ -40,6 +43,11 @@ use crate::{SandboxConfig, SandboxError};
 /// `prctl(PR_SET_VMA, PR_SET_VMA_ANON_NAME, …)` (Linux 5.17), which the libc crate lacks.
 const PR_SET_VMA: u64 = 0x5356_4d41;
 
+/// `prctl`'s options the crash handler uses (crash-handler names them itself, as here).
+const PR_GET_DUMPABLE: u64 = 3;
+const PR_SET_DUMPABLE: u64 = 4;
+const PR_SET_PTRACER: u64 = 0x5961_6d61;
+
 /// The newest Landlock ABI the `landlock` crate knows; the kernel's own may be older.
 const LANDLOCK_ABI: ABI = ABI::V9;
 
@@ -55,7 +63,7 @@ pub(super) fn apply(config: SandboxConfig) -> Result<SandboxLevel, SandboxError>
     if threads > 1 {
         return Err(SandboxError::Threads(threads));
     }
-    let inherited = inherited_descriptors()?;
+    let inherited = inherited_descriptors(config.crash_socket)?;
     if inherited > 0 {
         return Err(SandboxError::Inherited(inherited));
     }
@@ -75,7 +83,8 @@ pub(super) fn apply(config: SandboxConfig) -> Result<SandboxLevel, SandboxError>
     }
     #[cfg(feature = "seccomp-trap")]
     trap::install();
-    for filter in filters()? {
+    let crash = config.crash_socket.zip(config.crash_server);
+    for filter in filters(crash)? {
         seccompiler::apply_filter_all_threads(&filter)?;
     }
     let mut layers = vec![Layer::NoNewPrivs];
@@ -84,16 +93,17 @@ pub(super) fn apply(config: SandboxConfig) -> Result<SandboxLevel, SandboxError>
     Ok(SandboxLevel { layers })
 }
 
-/// How many descriptors above 2 the engine holds: the main process starts it with every other
-/// one closed (`spawn.rs`), so any is a leak. Read from /proc before seccomp forbids it.
-fn inherited_descriptors() -> Result<usize, SandboxError> {
+/// How many descriptors above 2 the engine holds besides its crash socket (`crash`): the main
+/// process starts it with every other one closed (`spawn.rs`), so any is a leak. Read from /proc
+/// before seccomp forbids it.
+fn inherited_descriptors(crash: Option<i32>) -> Result<usize, SandboxError> {
     let entries = std::fs::read_dir("/proc/self/fd").map_err(|source| SandboxError::Os {
         step: "listing /proc/self/fd",
         source,
     })?;
     let above = entries
         .filter_map(|entry| entry.ok()?.file_name().to_str()?.parse::<i32>().ok())
-        .filter(|fd| *fd > 2)
+        .filter(|fd| *fd > 2 && Some(*fd) != crash)
         .count();
     // The listing itself holds one.
     Ok(above.saturating_sub(1))
@@ -168,6 +178,9 @@ const ALLOWED: &[libc::c_long] = &[
     libc::SYS_rt_sigprocmask,
     libc::SYS_rt_sigreturn,
     libc::SYS_sigaltstack,
+    // The kernel resumes a call a signal interrupted with it: the crash handler waits for the dump
+    // server in one, and a fault on another thread interrupts it (Linux on Arm64 showed it).
+    libc::SYS_restart_syscall,
     libc::SYS_exit,
     libc::SYS_exit_group,
     // Allowed here, answered by the later filters.
@@ -202,8 +215,9 @@ const PATHS: &[libc::c_long] = &[
 ];
 
 /// The three filters, in the order they are installed. Which filter comes first doesn't change
-/// the answer: the kernel takes the strictest.
-fn filters() -> Result<Vec<BpfProgram>, seccompiler::Error> {
+/// the answer: the kernel takes the strictest. With a crash socket and its server's pid (`crash`),
+/// the crash path's calls are allowed too ([`crash_rules`]).
+fn filters(crash: Option<(i32, u32)>) -> Result<Vec<BpfProgram>, seccompiler::Error> {
     let pid = u64::from(std::process::id());
     let mut allow: BTreeMap<i64, Vec<SeccompRule>> = ALLOWED.iter().chain(PATHS).map(|&nr| (nr, Vec::new())).collect();
     let no_exec = || masked(2, libc::PROT_EXEC as u64, 0);
@@ -212,15 +226,16 @@ fn filters() -> Result<Vec<BpfProgram>, seccompiler::Error> {
     let thread = libc::CLONE_THREAD as u64;
     allow.insert(libc::SYS_clone, vec![rule(vec![masked(0, thread, thread)?])?]);
     // Names: std names its threads through prctl, glibc its anonymous mappings.
-    allow.insert(
-        libc::SYS_prctl,
-        vec![
-            rule(vec![equal(0, libc::PR_SET_NAME as u64)?])?,
-            rule(vec![equal(0, libc::PR_GET_NAME as u64)?])?,
-            // glibc (2.39 and later) names its malloc arenas and thread stacks.
-            rule(vec![equal(0, PR_SET_VMA)?])?,
-        ],
-    );
+    let mut prctl = vec![
+        rule(vec![equal(0, libc::PR_SET_NAME as u64)?])?,
+        rule(vec![equal(0, libc::PR_GET_NAME as u64)?])?,
+        // glibc (2.39 and later) names its malloc arenas and thread stacks.
+        rule(vec![equal(0, PR_SET_VMA)?])?,
+    ];
+    if let Some((socket, server)) = crash {
+        prctl.extend(crash_rules(&mut allow, socket, server)?);
+    }
+    allow.insert(libc::SYS_prctl, prctl);
     // The selftest's descriptor probe: whether a descriptor is open, nothing else. Test builds only.
     #[cfg(feature = "probe")]
     allow.insert(libc::SYS_fcntl, vec![rule(vec![equal(1, libc::F_GETFD as u64)?])?]);
@@ -247,6 +262,31 @@ fn filters() -> Result<Vec<BpfProgram>, seccompiler::Error> {
         Ok(BpfProgram::try_from(filter)?)
     })
     .collect()
+}
+
+/// What the crash handler (crash-handler, minidumper's client) calls once the engine faults, beyond
+/// what it always may (signals, `gettid`, `tgkill` to itself): the request and its answer on the
+/// crash socket, already connected before the lock-down, and no other descriptor; and the `prctl`s
+/// that let the dump server, the monitor process (`server`), trace the engine while it writes the
+/// dump (`PR_GET_DUMPABLE`, `PR_SET_DUMPABLE`, and `PR_SET_PTRACER` naming exactly `server` or no
+/// one: never `PR_SET_PTRACER_ANY`). Returns the `prctl` rules; inserts the socket's.
+fn crash_rules(
+    allow: &mut BTreeMap<i64, Vec<SeccompRule>>,
+    socket: i32,
+    server: u32,
+) -> Result<Vec<SeccompRule>, seccompiler::Error> {
+    let fd = u64::try_from(socket).unwrap_or(u64::MAX);
+    for call in [libc::SYS_sendmsg, libc::SYS_recvfrom, libc::SYS_recvmsg] {
+        allow.insert(call, vec![rule(vec![equal(0, fd)?])?]);
+    }
+    let server = u64::from(server);
+    Ok(vec![
+        rule(vec![equal(0, PR_GET_DUMPABLE)?])?,
+        rule(vec![equal(0, PR_SET_DUMPABLE)?, equal(1, 1)?])?,
+        rule(vec![equal(0, PR_SET_DUMPABLE)?, equal(1, 0)?])?,
+        rule(vec![equal(0, PR_SET_PTRACER)?, equal(1, server)?])?,
+        rule(vec![equal(0, PR_SET_PTRACER)?, equal(1, 0)?])?,
+    ])
 }
 
 fn rule(conditions: Vec<SeccompCondition>) -> Result<SeccompRule, seccompiler::Error> {

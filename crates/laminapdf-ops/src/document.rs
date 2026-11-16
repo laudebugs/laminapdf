@@ -60,6 +60,8 @@ pub struct Document {
     sources: Sources,
     /// What draws new annotations' appearances (E4 plan §2.2).
     appearances: Option<Generator>,
+    /// What writes replacement images (E7 plan §2.3).
+    images: Option<crate::images::ImageWriter>,
 }
 
 /// What a save that wrote its bytes means for the rebase onto them
@@ -121,6 +123,7 @@ impl From<laminapdf_model::Document> for Document {
             blobs: BlobStore::default(),
             sources: BTreeMap::new(),
             appearances: None,
+            images: None,
         }
     }
 }
@@ -205,6 +208,25 @@ impl Document {
         self.blobs.insert(bytes);
         self.sources.insert(id, source);
         Ok(id)
+    }
+
+    /// The same document, writing the replacement images of its content edits with `images`
+    /// (`laminapdf-build`'s `ImageXObjectWriter`). Without one, an edit that replaces an image
+    /// fails with [`Error::ImagesUnavailable`]; the `laminapdf` façade always sets it.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub fn with_images(mut self, images: impl crate::ImageXObjects + Send + 'static) -> Self {
+        self.images = Some(crate::images::ImageWriter(Box::new(images)));
+        self
+    }
+
+    /// Keeps `bytes` for the session, for ops that name them by [`BlobId`](crate::BlobId) (a
+    /// replacement image), and returns their ID. Bytes already held are kept once.
+    ///
+    /// Added in 0.5.0.
+    pub fn add_blob(&mut self, bytes: impl Into<Arc<[u8]>>) -> crate::BlobId {
+        self.blobs.insert(bytes)
     }
 
     /// The source document added with this ID ([`Document::add_source`]).
@@ -498,6 +520,8 @@ impl Document {
             sources: &self.sources,
             state,
             appearances: self.appearances.as_ref().map(|g| &*g.0 as &dyn Appearances),
+            blobs: &self.blobs,
+            images: self.images.as_ref().map(|w| &*w.0 as &dyn crate::ImageXObjects),
         })
     }
 

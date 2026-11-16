@@ -217,7 +217,7 @@ fn image_dict(width: u32, height: u32, color_space: &str, bits: u8) -> Dict {
 }
 
 /// An image XObject (§8.9.5), with its `/SMask` (§11.6.5.3) first when it has alpha.
-fn write_image(cos: &mut CosMut<'_>, image: &Image) -> Result<ObjRef> {
+pub(crate) fn write_image(cos: &mut CosMut<'_>, image: &Image) -> Result<ObjRef> {
     let data = &image.data;
     let mut dict = image_dict(data.width, data.height, data.color.pdf_name(), data.bits);
     if let Some(alpha) = &data.alpha {

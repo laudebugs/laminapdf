@@ -178,6 +178,19 @@ impl<'de> Deserialize<'de> for Opacity {
     }
 }
 
+/// The numbers of an array, or `None` when an item isn't one.
+pub(crate) fn numbers_of(value: &Object) -> Option<Vec<f64>> {
+    value.as_array()?.iter().map(Object::as_f64).collect()
+}
+
+/// A `/Rect`-shaped array of four numbers as a rectangle, its corners in either order.
+pub(crate) fn rect_of(value: &Object) -> Option<UserSpaceRect> {
+    match *numbers_of(value)? {
+        [a, b, c, d] => Some(UserSpaceRect::from_corners(a, b, c, d)),
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -4,8 +4,8 @@
 #![expect(clippy::unwrap_used, reason = "test code: a panic is a test failure")]
 
 use laminapdf::{
-    AnnotCommon, AnnotationGeometry, Document, MarkupKind, NoteIcon, OpenOptions, PageAnnotation, PointPt, Pt, RectPt,
-    SaveOptions,
+    AnnotCommon, AnnotSpec, AnnotationGeometry, Document, MarkupKind, NoteIcon, OpenOptions, PageAnnotation, PointPt,
+    Pt, RectPt, SaveOptions, ShapeKind,
 };
 use laminapdf_test_fixtures::fixture;
 
@@ -171,6 +171,32 @@ fn a_popup_clears_its_icon_on_a_page_with_a_user_unit() {
     let note = annots.iter().find(|a| a.subtype == "Text").unwrap().rect.unwrap();
     let popup = annots.iter().find(|a| a.subtype == "Popup").unwrap().rect.unwrap();
     assert!(near(popup.x0, note.x1), "{note:?} {popup:?}");
+}
+
+#[test]
+fn drawing_widths_are_points_on_a_page_with_a_user_unit() {
+    let bytes = laminapdf_test_fixtures::classic_with_root(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 400] /UserUnit 2 >>",
+        ],
+        "",
+    );
+    let doc = Document::open_bytes(bytes, OpenOptions::default()).unwrap();
+    let points = vec![PointPt::from_points(10.0, 10.0), PointPt::from_points(60.0, 40.0)];
+    let ink = doc.ink_at(0, &[points], 3.0).unwrap();
+    let AnnotSpec::Ink(ink) = ink.spec else {
+        panic!("{:?}", ink.spec)
+    };
+    assert!((ink.width - 1.5).abs() < 1e-9, "{}", ink.width);
+    let area = doc
+        .shape_at(0, ShapeKind::Square, rect(10.0, 10.0, 60.0, 40.0))
+        .unwrap();
+    let AnnotSpec::Shape(shape) = area.spec else {
+        panic!("{:?}", area.spec)
+    };
+    assert!((shape.border.width - 0.5).abs() < 1e-9, "{:?}", shape.border);
 }
 
 #[test]

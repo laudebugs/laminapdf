@@ -148,8 +148,12 @@ pub enum ErrorCode {
     InvalidLabelRanges,
     /// `content-object-stale`: an edit names a content object whose bytes are no longer what the edit expects, so it would change another object.
     ContentObjectStale,
-    /// `content-not-editable`: the content can't be edited: its font, its writing direction or the order of its glyphs is one Lamina PDF can't change safely, or it can't be read.
+    /// `content-not-editable`: the content can't be edited: its font, its writing direction, the order of its glyphs, a clip it sets or the state it draws in is one Lamina PDF can't change safely, or it can't be read.
     ContentNotEditable,
+    /// `unknown-blob`: an op names bytes by an ID that were not added to the session.
+    UnknownBlob,
+    /// `images-unavailable`: the document has no image writer, so it can't put a replacement image in the file.
+    ImagesUnavailable,
     /// `sink`: the sink failed to take the bytes or could not give them back.
     Sink,
     /// `not-rebased`: the output was written, but rebasing the document onto it failed.
@@ -282,10 +286,12 @@ pub enum ErrorCode {
     Cancelled,
     /// `job-finished`: a job was stepped after it had finished, failed or been cancelled.
     JobFinished,
-    /// `document-changed`: the document a job was created for changed (an edit, undo, redo, save or rebase) or a different document was passed to step.
+    /// `document-changed`: the document a job or a contents listing was made from changed (an edit, undo, redo, save or rebase), or a different document was passed to step.
     DocumentChanged,
     /// `revision-index-out-of-range`: an earlier revision was asked for by an index past the file's last revision.
     RevisionIndexOutOfRange,
+    /// `no-bookmarks`: a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing.
+    NoBookmarks,
     /// `builder-finished`: a builder or one of its pages was used after it finished.
     BuilderFinished,
     /// `disposed`: a document, builder or other handle was used after free(), or after the using block that held it ended.
@@ -372,6 +378,8 @@ impl ErrorCode {
         Self::InvalidLabelRanges,
         Self::ContentObjectStale,
         Self::ContentNotEditable,
+        Self::UnknownBlob,
+        Self::ImagesUnavailable,
         Self::Sink,
         Self::NotRebased,
         Self::SinkNotEmpty,
@@ -440,6 +448,7 @@ impl ErrorCode {
         Self::JobFinished,
         Self::DocumentChanged,
         Self::RevisionIndexOutOfRange,
+        Self::NoBookmarks,
         Self::BuilderFinished,
         Self::Disposed,
         Self::InvalidArgument,
@@ -529,6 +538,8 @@ impl ErrorCode {
             Self::InvalidLabelRanges => "invalid-label-ranges",
             Self::ContentObjectStale => "content-object-stale",
             Self::ContentNotEditable => "content-not-editable",
+            Self::UnknownBlob => "unknown-blob",
+            Self::ImagesUnavailable => "images-unavailable",
             Self::Sink => "sink",
             Self::NotRebased => "not-rebased",
             Self::SinkNotEmpty => "sink-not-empty",
@@ -597,6 +608,7 @@ impl ErrorCode {
             Self::JobFinished => "job-finished",
             Self::DocumentChanged => "document-changed",
             Self::RevisionIndexOutOfRange => "revision-index-out-of-range",
+            Self::NoBookmarks => "no-bookmarks",
             Self::BuilderFinished => "builder-finished",
             Self::Disposed => "disposed",
             Self::InvalidArgument => "invalid-argument",
@@ -672,6 +684,8 @@ impl ErrorCode {
             Self::InvalidLabelRanges => ErrorKind::Usage,
             Self::ContentObjectStale => ErrorKind::State,
             Self::ContentNotEditable => ErrorKind::Unsupported,
+            Self::UnknownBlob => ErrorKind::Usage,
+            Self::ImagesUnavailable => ErrorKind::Unsupported,
             Self::Sink => ErrorKind::Io,
             Self::NotRebased => ErrorKind::State,
             Self::SinkNotEmpty => ErrorKind::Usage,
@@ -740,6 +754,7 @@ impl ErrorCode {
             Self::JobFinished => ErrorKind::State,
             Self::DocumentChanged => ErrorKind::State,
             Self::RevisionIndexOutOfRange => ErrorKind::Usage,
+            Self::NoBookmarks => ErrorKind::Usage,
             Self::BuilderFinished => ErrorKind::State,
             Self::Disposed => ErrorKind::State,
             Self::InvalidArgument => ErrorKind::Usage,
@@ -814,7 +829,9 @@ impl ErrorCode {
             Self::AppearanceUnavailable => "the document has no appearance generator, so it can't draw a new annotation",
             Self::InvalidLabelRanges => "page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0",
             Self::ContentObjectStale => "an edit names a content object whose bytes are no longer what the edit expects, so it would change another object",
-            Self::ContentNotEditable => "the content can't be edited: its font, its writing direction or the order of its glyphs is one Lamina PDF can't change safely, or it can't be read",
+            Self::ContentNotEditable => "the content can't be edited: its font, its writing direction, the order of its glyphs, a clip it sets or the state it draws in is one Lamina PDF can't change safely, or it can't be read",
+            Self::UnknownBlob => "an op names bytes by an ID that were not added to the session",
+            Self::ImagesUnavailable => "the document has no image writer, so it can't put a replacement image in the file",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
             Self::SinkNotEmpty => "the sink already held bytes before the save started",
@@ -881,8 +898,9 @@ impl ErrorCode {
             Self::ModelNeedsHost => "an extraction in one call was given a model whose results only the host can give: a host model, or a plug-in model without a page renderer",
             Self::Cancelled => "a CancelToken stopped the work; the job is finished and returned no partial result",
             Self::JobFinished => "a job was stepped after it had finished, failed or been cancelled",
-            Self::DocumentChanged => "the document a job was created for changed (an edit, undo, redo, save or rebase) or a different document was passed to step",
+            Self::DocumentChanged => "the document a job or a contents listing was made from changed (an edit, undo, redo, save or rebase), or a different document was passed to step",
             Self::RevisionIndexOutOfRange => "an earlier revision was asked for by an index past the file's last revision",
+            Self::NoBookmarks => "a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing",
             Self::BuilderFinished => "a builder or one of its pages was used after it finished",
             Self::Disposed => "a document, builder or other handle was used after free(), or after the using block that held it ended",
             Self::InvalidArgument => "a value passed to a binding does not have the shape its type declares",
@@ -958,6 +976,8 @@ impl ErrorCode {
             Self::InvalidLabelRanges => "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
             Self::ContentObjectStale => "read the page's content objects again and name the object from that list",
             Self::ContentNotEditable => "the content stays selectable and readable; the reason says why it can't be changed",
+            Self::UnknownBlob => "add the bytes with addBlob before applying ops that name them",
+            Self::ImagesUnavailable => "edit through the laminapdf crate, which writes images, or give laminapdf-ops a writer with Document::with_images",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",
             Self::SinkNotEmpty => "pass an empty sink: output offsets count from the sink's first byte",
@@ -1024,8 +1044,9 @@ impl ErrorCode {
             Self::ModelNeedsHost => "step an extraction job and hand it each result with provide, or give the plug-in a page renderer",
             Self::Cancelled => "nothing to do: this is the outcome the caller asked for; start a new job to try again",
             Self::JobFinished => "stop stepping a job once a step returned its result or an error; create a new job",
-            Self::DocumentChanged => "pass the document the job was created from, and don't change it while the job runs; create a new job",
+            Self::DocumentChanged => "pass the document the job was created from, and don't change it while the job runs; create a new job, or read the contents listing again",
             Self::RevisionIndexOutOfRange => "ask for an index below the document's revision count",
+            Self::NoBookmarks => "add bookmarks that go to the document's pages first, then create the contents page",
             Self::BuilderFinished => "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",
             Self::Disposed => "free a handle only after its last use; to keep working, open the document again or create a new builder",
             Self::InvalidArgument => "pass the value the type declarations describe; the data field says what was wrong",

@@ -7,7 +7,7 @@
 // calls too (E1 plan §7): a save writes a copy, the caller writes it where the file lives, and only
 // then does the document take it as saved; edits wait until it is done.
 
-import type { Op, PlannedSave, SaveOptions } from "@laminapdf/sdk";
+import type { ContentsPlacement, Op, PlannedSave, SaveOptions } from "@laminapdf/sdk";
 import {
   type EditHistory,
   type EditResult,
@@ -44,6 +44,12 @@ export interface EditSessionState {
 /** What the session drives: the viewer's edit calls, which redraw the pages they touch. */
 export interface EditSessionHost {
   applyEdit(ops: readonly Op[], options: { readonly label: string }): Promise<EditResult>;
+  /** Inserts a contents page of the bookmarks laid out in `font`, as one step. */
+  createContentsPage(
+    placement: ContentsPlacement,
+    font: Uint8Array,
+    options: { readonly label: string },
+  ): Promise<EditResult>;
   undoEdit(): Promise<EditResult>;
   redoEdit(): Promise<EditResult>;
   goToStep(position: number): Promise<EditResult>;
@@ -213,6 +219,14 @@ export class EditSession {
   /** Applies `ops` as one step named `label` ("Rotate page 5"). Rejects as the edit failed. */
   apply(ops: readonly Op[], label: string): Promise<EditResult> {
     return this.#run(() => this.#host.applyEdit(ops, { label }), true, { call: "apply", label });
+  }
+
+  /**
+   * Inserts a contents page made from the bookmarks, laid out in `font`, as one step named `label`.
+   * Rejects as the edit failed.
+   */
+  createContentsPage(placement: ContentsPlacement, font: Uint8Array, label: string): Promise<EditResult> {
+    return this.#run(() => this.#host.createContentsPage(placement, font, { label }), true, { call: "apply", label });
   }
 
   /** Undoes the newest done step; resolves undefined when there was none. */
