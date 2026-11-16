@@ -62,8 +62,8 @@ The desktop app compiles one of these into its updater configuration, `plugins.u
 
 | Builds | minisign key ID | GitHub environment |
 | --- | --- | --- |
-| stable and beta | `AF48D217C8FBC9BB` | `desktop-release` |
-| nightly | `D8B5180692ABC3EF` | `desktop-nightly` |
+| stable and beta | `34929FE857511973` | `desktop-release` |
+| nightly | `46010ED395B59CAF` | `desktop-nightly` |
 
 Stable and beta `pubkey`:
 

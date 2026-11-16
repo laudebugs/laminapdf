@@ -7,8 +7,14 @@
 # stays out of the publish job's desktop-*-<mode> pattern.
 #
 # The three build jobs (dry run, nightly, release) share these steps. A composite action can't read
-# secrets: the release job sets TAURI_SIGNING_PRIVATE_KEY(_PASSWORD), LINUX_SIGNING_KEY and
-# LINUX_SIGNING_KEY_PASSPHRASE in its env, the nightly job only the first two, the dry run none.
+# secrets: the release job sets TAURI_SIGNING_PRIVATE_KEY(_PASSWORD), LINUX_SIGNING_KEY,
+# LINUX_SIGNING_KEY_PASSPHRASE and, on its macOS legs, the APPLE_* secrets and KEYCHAIN_PASSWORD in
+# its env; the nightly job only the first two, the dry run none.
+#
+# macOS (todo D6c; runbook §1.3, §1.4): a release build signs with the owner's Developer ID and the
+# hardened runtime, Tauri notarises and staples the .app, and this action notarises and staples
+# the .dmg. Every other build is signed ad hoc without the hardened runtime, whose library
+# validation would refuse PDFium (it then has no Team ID).
 name: Desktop release build
 description: Build, bundle, sign (Linux) and check one target of the desktop app.
 inputs:
@@ -36,6 +42,10 @@ inputs:
     required: true
   sign-linux:
     description: "`true` to sign the Linux packages with the owner's GPG key (desktop-release only)."
+    required: false
+    default: "false"
+  sign-macos:
+    description: "`true` to sign with the owner's Developer ID and notarise (desktop-release macOS only)."
     required: false
     default: "false"
 runs:
@@ -116,6 +126,55 @@ runs:
           echo "APPIMAGETOOL_FORCE_SIGN=1"
           echo "LINUX_SIGNING_FPR=$fpr"
         } >> "$GITHUB_ENV"
+    # A keychain of its own, in the search list, so both signers find the identity: the engine and
+    # PDFium are signed by `cargo xtask desktop-sidecar` before Tauri bundles, then Tauri signs the
+    # rest. Tauri isn't given APPLE_CERTIFICATE (the build step drops it), which would make it
+    # import the certificate again into a keychain of its own.
+    - name: Import the Developer ID certificate
+      if: inputs.sign-macos == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY KEYCHAIN_PASSWORD \
+          APPLE_API_KEY APPLE_API_ISSUER APPLE_API_KEY_P8; do
+          if [ -z "${!name:-}" ]; then
+            echo "::error::the desktop-release environment has no $name"
+            exit 1
+          fi
+        done
+        keychain="$RUNNER_TEMP/lamina-signing.keychain-db"
+        security create-keychain -p "$KEYCHAIN_PASSWORD" "$keychain"
+        # Named at once, so the last step deletes it even if this one fails part-way.
+        echo "APPLE_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
+        security set-keychain-settings -lut 21600 "$keychain"
+        security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$keychain"
+        certificate="$RUNNER_TEMP/developer-id.p12"
+        # The decoded certificate goes as soon as the step ends, whether the import worked or not.
+        trap 'rm -f "$certificate"' EXIT
+        printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$certificate"
+        security import "$certificate" -k "$keychain" -P "$APPLE_CERTIFICATE_PASSWORD" \
+          -T /usr/bin/codesign -T /usr/bin/security > /dev/null
+        # The Developer ID G2 intermediate the certificate chains to (runbook §1.3), pinned by SHA-256.
+        intermediate="$RUNNER_TEMP/DeveloperIDG2CA.cer"
+        curl -fsSL --retry 3 -o "$intermediate" https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer
+        if ! echo "f16cd3c54c7f83cea4bf1a3e6a0819c8aaa8e4a1528fd144715f350643d2df3a  $intermediate" | shasum -a 256 --check --status; then
+          echo "::error::Apple's Developer ID G2 certificate doesn't match its pinned SHA-256"
+          exit 1
+        fi
+        security import "$intermediate" -k "$keychain" > /dev/null
+        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$keychain" > /dev/null
+        # Ahead of the login keychain, which keeps its place in the list.
+        read -r -a others <<< "$(security list-keychains -d user | tr -d '"' | xargs)"
+        security list-keychains -d user -s "$keychain" "${others[@]}"
+        if ! security find-identity -v -p codesigning "$keychain" | grep -qF "$APPLE_SIGNING_IDENTITY"; then
+          echo "::error::the keychain holds no valid identity named APPLE_SIGNING_IDENTITY"
+          exit 1
+        fi
+        # The App Store Connect key as Tauri reads it (runbook §1.4).
+        key="$RUNNER_TEMP/private_keys/AuthKey_${APPLE_API_KEY}.p8"
+        mkdir -p "$(dirname "$key")"
+        printf '%s' "$APPLE_API_KEY_P8" > "$key"
+        echo "APPLE_API_KEY_PATH=$key" >> "$GITHUB_ENV"
     - name: Build and bundle (tauri build)
       shell: bash
       working-directory: apps/desktop
@@ -126,6 +185,7 @@ runs:
         BUNDLES: ${{ inputs.bundles }}
         UPDATER: ${{ inputs.updater }}
         SIGN_LINUX: ${{ inputs.sign-linux }}
+        SIGN_MACOS: ${{ inputs.sign-macos }}
         LAMINA_UPDATE_CHANNEL: ${{ inputs.channel }}
         # Function names, lines and inlined frames for the crash symbols (todo D7d), at a fraction of
         # full debug information's size. Only the release build here: the workspace's profile is
@@ -158,6 +218,16 @@ runs:
         args+=(--config "$run_config")
         if [ -n "$BUNDLES" ]; then args+=(--bundles "$BUNDLES"); fi
         if [ "$SIGN_LINUX" = true ]; then export APPIMAGETOOL_SIGN_PASSPHRASE="$LINUX_SIGNING_KEY_PASSPHRASE"; fi
+        # The Developer ID build adds the hardened runtime. The certificate stays in the keychain the
+        # last step made; Tauri signs with APPLE_SIGNING_IDENTITY and notarises with APPLE_API_*.
+        if [ "$SIGN_MACOS" = true ]; then
+          args+=(--config src-tauri/tauri.developer-id.conf.json)
+          unset APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD
+        fi
+        # Every other leg leaves the Apple variables unset: an empty one would name an empty identity.
+        for name in APPLE_SIGNING_IDENTITY APPLE_API_KEY APPLE_API_ISSUER APPLE_API_KEY_PATH; do
+          if [ -z "${!name:-}" ]; then unset "$name"; fi
+        done
         pnpm exec tauri "${args[@]}"
     # Linux wrote them while Tauri bundled (the beforeBundleCommand above).
     - name: Write the Breakpad symbols
@@ -212,6 +282,130 @@ runs:
             if [ "$MODE" = tag ]; then has '*.rpm' || fail "a tag build makes an .rpm too"; fi ;;
         esac
         if [ "$UPDATER" = true ] && ! has '*.sig'; then fail "no updater signature"; fi
+    # Tauri notarises and staples the .app, which the .dmg and the updater bundle hold; the .dmg
+    # needs a ticket of its own for Gatekeeper's check while the Mac is offline.
+    - name: Notarise and staple the .dmg
+      if: inputs.sign-macos == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        shopt -s nullglob
+        notary=(--key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY" --issuer "$APPLE_API_ISSUER")
+        # Hand-written retries rather than nick-fields/retry: a submission that Apple has (it has an
+        # id) is waited on again, never sent twice, and a rejection fails at once with Apple's log.
+        for dmg in "$DESKTOP_OUT"/*.dmg; do
+          name=$(basename "$dmg")
+          id=""
+          for attempt in 1 2 3; do
+            id=$(xcrun notarytool submit "$dmg" "${notary[@]}" --output-format json | jq -r '.id // empty') || id=""
+            if [ -n "$id" ]; then break; fi
+            echo "::warning::$name wasn't submitted (attempt $attempt); trying again in 60 s"
+            sleep 60
+          done
+          [ -n "$id" ] || { echo "::error::$name couldn't be submitted for notarisation"; exit 1; }
+          echo "Submission $id for $name"
+          # Apple's queue is usually minutes; a wait that runs out resumes the same submission.
+          for attempt in 1 2 3; do
+            if xcrun notarytool wait "$id" "${notary[@]}" --timeout 15m; then break; fi
+            echo "::warning::still waiting for submission $id (attempt $attempt)"
+          done
+          status=""
+          for attempt in 1 2 3; do
+            status=$(xcrun notarytool info "$id" "${notary[@]}" --output-format json | jq -r '.status // empty') || status=""
+            if [ -n "$status" ]; then break; fi
+            sleep 30
+          done
+          if [ "$status" != Accepted ]; then
+            xcrun notarytool log "$id" "${notary[@]}" || true
+            echo "::error::Apple's notary service answered ${status:-nothing} for $name (submission $id)"
+            exit 1
+          fi
+          # The ticket can take a minute to reach Apple's servers after the notary accepts.
+          for attempt in 1 2 3 4 5; do
+            if xcrun stapler staple "$dmg"; then break; fi
+            if [ "$attempt" = 5 ]; then
+              echo "::error::$name was notarised but its ticket couldn't be stapled"
+              exit 1
+            fi
+            sleep 30
+          done
+        done
+    # The runbook's checks (§3): a signature, a staple or an entitlement out of place fails the release.
+    - name: Verify the macOS signatures and tickets
+      if: inputs.sign-macos == 'true'
+      shell: bash
+      env:
+        TARGET: ${{ inputs.target }}
+      run: |
+        set -euo pipefail
+        shopt -s nullglob
+        fail() { echo "::error::$1"; exit 1; }
+        apps=(target/"$TARGET"/release/bundle/macos/*.app)
+        app=${apps[0]}
+        team=$(sed -nE 's/.*\(([A-Z0-9]{10})\)$/\1/p' <<< "$APPLE_SIGNING_IDENTITY")
+        [ -n "$team" ] || fail "APPLE_SIGNING_IDENTITY ends in no Team ID"
+        # Gatekeeper's verdict, when the runner lets it give one: a runner image may turn its
+        # assessments off, and spctl then accepts everything. The staples are checked either way.
+        sudo spctl --master-enable 2> /dev/null || true
+        gatekeeper=false
+        if spctl --status 2>&1 | grep -q 'assessments enabled'; then gatekeeper=true; else
+          echo "::warning::Gatekeeper's assessments are off on this runner: its verdicts are left out"
+        fi
+        assess() {
+          if [ "$gatekeeper" != true ]; then return 0; fi
+          spctl -a -vvv "$@" 2>&1 | tee "$RUNNER_TEMP/spctl.txt"
+          grep -q 'source=Notarized Developer ID' "$RUNNER_TEMP/spctl.txt"
+        }
+        codesign --verify --deep --strict --verbose=2 "$app"
+        assess -t exec "$app" || fail "Gatekeeper doesn't accept the .app as notarised"
+        xcrun stapler validate "$app"
+        # Every piece of code in the bundle: the owner's Team ID; executables with the hardened runtime.
+        while IFS= read -r -d '' file; do
+          if ! file -b "$file" | grep -q 'Mach-O'; then continue; fi
+          details=$(codesign -dvv "$file" 2>&1)
+          grep -q "TeamIdentifier=$team" <<< "$details" || fail "$file isn't signed with the Developer ID"
+          if file -b "$file" | grep -q 'executable'; then
+            grep -qE 'flags=.*runtime' <<< "$details" || fail "$file lacks the hardened runtime"
+          fi
+        done < <(find "$app" -type f -print0)
+        # Neither the app nor the engine has an entitlement (ADR 0008 §5, ADR 0014 §6). Tauri signs
+        # the engine with the app's entitlements, so one added to the app would reach the engine.
+        for code in "$app" "$app/Contents/MacOS/laminapdf-desktop-engine"; do
+          if codesign -d --entitlements - --xml "$code" 2> /dev/null | grep -q '<key>'; then
+            fail "$(basename "$code") has entitlements; the app and the engine need none"
+          fi
+        done
+        for dmg in "$DESKTOP_OUT"/*.dmg; do
+          assess -t open --context context:primary-signature "$dmg" || fail "Gatekeeper doesn't accept $(basename "$dmg") as notarised"
+          xcrun stapler validate "$dmg"
+        done
+        # The updater installs the .app from this archive: it must be the signed, stapled one.
+        for archive in "$DESKTOP_OUT"/*.app.tar.gz; do
+          unpacked="$RUNNER_TEMP/updater-app"
+          rm -rf "$unpacked"
+          mkdir -p "$unpacked"
+          tar -xzf "$archive" -C "$unpacked"
+          for bundled in "$unpacked"/*.app; do
+            codesign --verify --deep --strict "$bundled"
+            xcrun stapler validate "$bundled"
+          done
+        done
+    # Every macOS build, signed or ad hoc: the bundled engine, as signed, loads the bundled PDFium and
+    # draws a page. The hardened runtime's library validation refuses PDFium otherwise, and the
+    # engine then draws nothing.
+    - name: Draw a page with the bundled engine and PDFium
+      if: runner.os == 'macOS'
+      shell: bash
+      env:
+        TARGET: ${{ inputs.target }}
+        CARGO_PROFILE_RELEASE_STRIP: symbols
+      run: |
+        set -euo pipefail
+        cargo build --locked --release -p laminapdf-desktop-engine --example measure
+        apps=(target/"$TARGET"/release/bundle/macos/*.app)
+        app=${apps[0]}
+        LAMINA_PDF_PDFIUM_DIR="$app/Contents/Resources/pdfium" target/release/examples/measure \
+          --engine "$app/Contents/MacOS/laminapdf-desktop-engine" --file fixtures/golden/examples/hello.pdf --tiles 2
     - name: Check the notices are in the bundle
       shell: bash
       env:
@@ -298,6 +492,13 @@ runs:
       env:
         TARGET: ${{ inputs.target }}
       run: cargo xtask desktop-release sbom "$TARGET" "$DESKTOP_OUT/sbom"
+    # The keychain and the App Store Connect key leave the runner, whatever the build came to.
+    - name: Remove the signing keychain and key
+      if: always() && inputs.sign-macos == 'true'
+      shell: bash
+      run: |
+        if [ -n "${APPLE_KEYCHAIN:-}" ]; then security delete-keychain "$APPLE_KEYCHAIN" || true; fi
+        rm -rf "$RUNNER_TEMP/private_keys"
     - uses: actions/upload-artifact@v7.0.2
       with:
         name: desktop-${{ inputs.platform }}-${{ inputs.mode }}

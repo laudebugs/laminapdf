@@ -116,6 +116,22 @@ fn the_staging_publish_should_share_the_update_tests_concurrency_group() {
     );
 }
 
+/// The Developer ID and the notarisation key reach the release build's macOS legs alone: every
+/// other leg sees an empty value.
+#[test]
+fn the_apple_secrets_should_reach_only_the_macos_legs_of_the_release_build() {
+    let workflow = workflow();
+    let lines: Vec<&str> = workflow.lines().collect();
+    let apple: Vec<&&str> = lines
+        .iter()
+        .filter(|line| line.contains("secrets.APPLE_") || line.contains("secrets.KEYCHAIN_PASSWORD"))
+        .collect();
+    assert_eq!(apple.len(), 7, "the seven Apple secrets of runbook §1.3 and §1.4");
+    for line in apple {
+        assert!(line.contains("matrix.os == 'macos' && secrets."), "{line}");
+    }
+}
+
 /// The symbols bucket's secrets (todo D7d): only `archive-symbols` reads them.
 const SYMBOLS_SECRETS: [&str; 2] = ["SYMBOLS_R2_TOKEN", "SYMBOLS_R2_ACCESS_KEY_ID"];
 
