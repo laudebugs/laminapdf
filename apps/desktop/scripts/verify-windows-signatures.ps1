@@ -1,12 +1,15 @@
 <#
 .SYNOPSIS
-Checks that every Windows file the release ships is signed by the owner (todo D6d's coverage check).
+Checks that every Windows file the release ships is signed by the owner, with a timestamp.
 
 .DESCRIPTION
 For each installer in -Dir (the NSIS `*-setup.exe` and the `.msi`), checks the installer, then
 unpacks it (the MSI by an administrative install, `msiexec /a`; NSIS with 7-Zip) and checks every
 PE file inside: `signtool verify /pa`, and Get-AuthenticodeSignature's status Valid, a signer whose
-name is -Publisher and an RFC 3161 timestamp. Any file that fails fails the step, with the list.
+name is -Publisher and a timestamp. A PE file's signature, read from its certificate table, must also
+use SHA-256 and carry an RFC 3161 timestamp rather than the older Authenticode countersignature. An
+MSI keeps its signature in a stream of its own, so it gets the checks before that one only; the same
+SignTool call signs it as every PE file. Any file that fails fails the step, with the list.
 
 NSIS's plugin DLLs in $PLUGINSDIR count like any other file: the Tauri CLI signs its copies of them
 before it builds the installer. The administrative install also writes a copy of the MSI database
@@ -42,6 +45,32 @@ function Test-Pe([string]$file) {
     } finally { $stream.Dispose() }
 }
 
+# The PKCS #7 signature in a PE file's certificate table (the data directory's entry 4, whose
+# address is a file offset), or $null when the file has none or isn't a PE file.
+function Get-PeSignature([string]$file) {
+    $bytes = [System.IO.File]::ReadAllBytes($file)
+    if ($bytes.Length -lt 0x40 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) { return $null }
+    $pe = [BitConverter]::ToInt32($bytes, 0x3C)
+    if ($pe -lt 0 -or $pe + 24 -ge $bytes.Length) { return $null }
+    $optional = $pe + 24
+    $directories = switch ([BitConverter]::ToUInt16($bytes, $optional)) {
+        0x10b { $optional + 96 }
+        0x20b { $optional + 112 }
+        default { return $null }
+    }
+    $offset = [BitConverter]::ToInt32($bytes, $directories + 32)
+    $size = [BitConverter]::ToInt32($bytes, $directories + 36)
+    if ($offset -le 0 -or $size -le 8 -or $offset + $size -gt $bytes.Length) { return $null }
+    # WIN_CERTIFICATE: dwLength, wRevision, wCertificateType, then the signature.
+    $length = [BitConverter]::ToInt32($bytes, $offset)
+    $cms = [System.Security.Cryptography.Pkcs.SignedCms]::new()
+    $cms.Decode([byte[]]$bytes[($offset + 8)..($offset + $length - 1)])
+    return $cms
+}
+
+$sha256 = '2.16.840.1.101.3.4.2.1'
+$rfc3161 = '1.3.6.1.4.1.311.3.3.1'
+
 function Test-Signed([string]$file, [string]$label) {
     $script:checked++
     $problems = @()
@@ -54,6 +83,17 @@ function Test-Signed([string]$file, [string]$label) {
     } else { '' }
     if ($signer -ne $Publisher) { $problems += "signer '$signer'" }
     if (-not $signature.TimeStamperCertificate) { $problems += 'no timestamp' }
+    if ($file -notmatch '\.msi$') {
+        $cms = Get-PeSignature $file
+        if (-not $cms) {
+            $problems += 'no signature in the certificate table'
+        } else {
+            $info = $cms.SignerInfos[0]
+            if ($info.DigestAlgorithm.Value -ne $sha256) { $problems += "digest $($info.DigestAlgorithm.FriendlyName)" }
+            $stamped = $info.UnsignedAttributes | Where-Object { $_.Oid.Value -eq $rfc3161 }
+            if (-not $stamped) { $problems += 'no RFC 3161 timestamp' }
+        }
+    }
     if ($problems.Count -eq 0) {
         Write-Host "ok      $label"
     } else {

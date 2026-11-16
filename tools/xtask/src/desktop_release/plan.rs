@@ -643,13 +643,10 @@ mod tests {
         );
     }
 
-    /// The workflow's own list parses, and names both platforms, which the release job now signs.
+    /// The workflow's own `SIGNED_PLATFORMS` parses and leaves no platform unsigned: tags publish.
     #[test]
     fn the_workflow_should_sign_both_platforms() {
-        let workflow = std::fs::read_to_string(
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.github/workflows/desktop-release.yml"),
-        )
-        .unwrap();
+        let workflow = crate::workflows::repository_file(".github/workflows/desktop-release.yml").unwrap();
         let line = workflow
             .lines()
             .find(|l| l.trim_start().starts_with("SIGNED_PLATFORMS:"))

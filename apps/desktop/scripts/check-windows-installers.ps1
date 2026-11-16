@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Installs and uninstalls each Windows installer on the runner and checks what it leaves (todo D6d).
+Installs and uninstalls each Windows installer on the runner and checks what it leaves.
 
 .DESCRIPTION
 For the NSIS installer (per user, silent) and the MSI (per machine, quiet), checks that the
@@ -33,13 +33,13 @@ $progId = 'LaminaPDF.Document'
 $product = 'Lamina PDF'
 $failures = [System.Collections.Generic.List[string]]::new()
 
-function Check([bool]$ok, [string]$what) {
+function Write-CheckResult([bool]$ok, [string]$what) {
     if ($ok) { Write-Host "ok      $what" } else { $script:failures.Add($what); Write-Host "FAILED  $what" }
 }
 
 # A registry value as a string, or $null when the key or the value is missing. `(default)` is the
 # key's default value. Read through .NET, which tells a missing value from an empty one.
-function Value([string]$key, [string]$name) {
+function Get-RegistryString([string]$key, [string]$name) {
     $hive, $path = $key -split ':\\', 2
     $root = switch ($hive) {
         'HKCU' { [Microsoft.Win32.Registry]::CurrentUser }
@@ -55,21 +55,21 @@ function Value([string]$key, [string]$name) {
     } finally { $opened.Dispose() }
 }
 
-function Show($value) { if ($null -eq $value) { 'none' } else { "'$value'" } }
+function Format-RegistryValue($value) { if ($null -eq $value) { 'none' } else { "'$value'" } }
 
 # $defaultBefore is untyped: a [string] parameter would turn "no default" ($null) into ''.
 function Test-Registered([string]$hive, [string]$label, $defaultBefore) {
     $classes = "${hive}:\Software\Classes"
-    Check ($null -ne (Value "$classes\.pdf\OpenWithProgids" $progId)) "$label lists $progId in .pdf's OpenWithProgids"
-    $default = Value "$classes\.pdf" '(default)'
-    Check ($default -ceq $defaultBefore) "$label leaves .pdf's default class as it was (before $(Show $defaultBefore), now $(Show $default))"
-    $command = Value "$classes\$progId\shell\open\command" '(default)'
-    Check ($null -ne $command -and $command -match '^"(?<exe>[^"]+)" "%1"$') "$label's open command is `"<app>`" `"%1`" ($command)"
+    Write-CheckResult ($null -ne (Get-RegistryString "$classes\.pdf\OpenWithProgids" $progId)) "$label lists $progId in .pdf's OpenWithProgids"
+    $default = Get-RegistryString "$classes\.pdf" '(default)'
+    Write-CheckResult ($default -ceq $defaultBefore) "$label leaves .pdf's default class as it was (before $(Format-RegistryValue $defaultBefore), now $(Format-RegistryValue $default))"
+    $command = Get-RegistryString "$classes\$progId\shell\open\command" '(default)'
+    Write-CheckResult ($null -ne $command -and $command -match '^"(?<exe>[^"]+)" "%1"$') "$label's open command is `"<app>`" `"%1`" ($command)"
     if ($command -match '^"(?<exe>[^"]+)"') {
         $exe = $Matches.exe
-        Check (Test-Path -LiteralPath $exe -PathType Leaf) "$label's open command runs an installed file ($exe)"
+        Write-CheckResult (Test-Path -LiteralPath $exe -PathType Leaf) "$label's open command runs an installed file ($exe)"
         if ($Signed) {
-            Check ((Get-AuthenticodeSignature -LiteralPath $exe).Status -eq 'Valid') "$label's app has a Valid signature"
+            Write-CheckResult ((Get-AuthenticodeSignature -LiteralPath $exe).Status -eq 'Valid') "$label's app has a Valid signature"
         }
         return $exe
     }
@@ -78,14 +78,14 @@ function Test-Registered([string]$hive, [string]$label, $defaultBefore) {
 
 function Test-Removed([string]$hive, [string]$label, $defaultBefore, [string]$exe) {
     $classes = "${hive}:\Software\Classes"
-    Check ($null -eq (Value "$classes\.pdf\OpenWithProgids" $progId)) "$label removes $progId from .pdf's OpenWithProgids"
-    Check (-not (Test-Path -LiteralPath "$classes\$progId")) "$label removes the $progId class"
-    $default = Value "$classes\.pdf" '(default)'
-    Check ($default -ceq $defaultBefore) "$label leaves .pdf's default class as it was (before $(Show $defaultBefore), now $(Show $default))"
-    if ($exe) { Check (-not (Test-Path -LiteralPath $exe)) "$label removes the app ($exe)" }
+    Write-CheckResult ($null -eq (Get-RegistryString "$classes\.pdf\OpenWithProgids" $progId)) "$label removes $progId from .pdf's OpenWithProgids"
+    Write-CheckResult (-not (Test-Path -LiteralPath "$classes\$progId")) "$label removes the $progId class"
+    $default = Get-RegistryString "$classes\.pdf" '(default)'
+    Write-CheckResult ($default -ceq $defaultBefore) "$label leaves .pdf's default class as it was (before $(Format-RegistryValue $defaultBefore), now $(Format-RegistryValue $default))"
+    if ($exe) { Write-CheckResult (-not (Test-Path -LiteralPath $exe)) "$label removes the app ($exe)" }
 }
 
-function Run([string]$file, [string[]]$arguments) {
+function Invoke-Installer([string]$file, [string[]]$arguments) {
     $process = Start-Process -FilePath $file -ArgumentList $arguments -Wait -PassThru
     if ($process.ExitCode -ne 0) { throw "$file $($arguments -join ' ') exited with $($process.ExitCode)" }
 }
@@ -98,30 +98,30 @@ if ($nsis.Count -ne 1) { Write-Host "::error::expected one NSIS installer in $Di
 # installs where an earlier install of either kind went (HKCU\Software\<manufacturer>\<product>), so
 # it goes before the NSIS installer, whose uninstall leaves that key.
 foreach ($package in $msi) {
-    $before = Value 'HKLM:\Software\Classes\.pdf' '(default)'
+    $before = Get-RegistryString 'HKLM:\Software\Classes\.pdf' '(default)'
     $log = Join-Path $env:RUNNER_TEMP "$($package.BaseName).install.log"
-    Run 'msiexec.exe' @('/i', "`"$($package.FullName)`"", '/qn', '/l*v', "`"$log`"")
+    Invoke-Installer 'msiexec.exe' @('/i', "`"$($package.FullName)`"", '/qn', '/l*v', "`"$log`"")
     $exe = Test-Registered 'HKLM' 'the MSI install' $before
-    Check ($null -ne $exe -and $exe.StartsWith("$env:ProgramFiles\", [StringComparison]::OrdinalIgnoreCase)) "the MSI installs under Program Files ($exe)"
-    Check ((Value 'HKLM:\Software\Lamina' 'InstallFlavour') -eq 'msi') 'the MSI install writes InstallFlavour = msi'
-    Run 'msiexec.exe' @('/x', "`"$($package.FullName)`"", '/qn')
+    Write-CheckResult ($null -ne $exe -and $exe.StartsWith("$env:ProgramFiles\", [StringComparison]::OrdinalIgnoreCase)) "the MSI installs under Program Files ($exe)"
+    Write-CheckResult ((Get-RegistryString 'HKLM:\Software\Lamina' 'InstallFlavour') -eq 'msi') 'the MSI install writes InstallFlavour = msi'
+    Invoke-Installer 'msiexec.exe' @('/x', "`"$($package.FullName)`"", '/qn')
     Test-Removed 'HKLM' 'the MSI uninstall' $before $exe
-    Check ($null -eq (Value 'HKLM:\Software\Lamina' 'InstallFlavour')) 'the MSI uninstall removes InstallFlavour'
+    Write-CheckResult ($null -eq (Get-RegistryString 'HKLM:\Software\Lamina' 'InstallFlavour')) 'the MSI uninstall removes InstallFlavour'
 }
 
 # The NSIS installer, per user (installMode currentUser): HKCU.
-$before = Value 'HKCU:\Software\Classes\.pdf' '(default)'
-Run $nsis[0].FullName @('/S')
+$before = Get-RegistryString 'HKCU:\Software\Classes\.pdf' '(default)'
+Invoke-Installer $nsis[0].FullName @('/S')
 $exe = Test-Registered 'HKCU' 'the NSIS install' $before
-Check ($null -eq (Value 'HKLM:\Software\Lamina' 'InstallFlavour')) 'the NSIS install writes no InstallFlavour'
-$uninstall = Value "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\$product" 'UninstallString'
-Check ($null -ne $uninstall) 'the NSIS install registers its uninstaller'
+Write-CheckResult ($null -eq (Get-RegistryString 'HKLM:\Software\Lamina' 'InstallFlavour')) 'the NSIS install writes no InstallFlavour'
+$uninstall = Get-RegistryString "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\$product" 'UninstallString'
+Write-CheckResult ($null -ne $uninstall) 'the NSIS install registers its uninstaller'
 if ($uninstall) {
     if ($Signed) {
         $uninstaller = $uninstall.Trim('"')
-        Check ((Get-AuthenticodeSignature -LiteralPath $uninstaller).Status -eq 'Valid') 'the NSIS uninstaller has a Valid signature'
+        Write-CheckResult ((Get-AuthenticodeSignature -LiteralPath $uninstaller).Status -eq 'Valid') 'the NSIS uninstaller has a Valid signature'
     }
-    Run ($uninstall.Trim('"')) @('/S')
+    Invoke-Installer ($uninstall.Trim('"')) @('/S')
     # The uninstaller copies itself to a temporary folder and returns at once.
     for ($i = 0; $i -lt 60 -and $exe -and (Test-Path -LiteralPath $exe); $i++) { Start-Sleep -Seconds 1 }
     Test-Removed 'HKCU' 'the NSIS uninstall' $before $exe

@@ -46,6 +46,8 @@ inputs:
     default: "false"
   sign-windows:
     description: "`true` to Authenticode-sign as the owner through Azure Artifact Signing (desktop-release only)."
+    required: false
+    default: "false"
   sign-macos:
     description: "`true` to sign with the owner's Developer ID and notarise (desktop-release macOS only)."
     required: false

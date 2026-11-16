@@ -22,9 +22,8 @@
 #
 # Each build job reads only its environment's secrets, and no job in `desktop-nightly` may name an
 # APPLE_*, AZURE_* or LINUX_SIGNING_* secret (tools/xtask/src/workflows/desktop_release.rs checks it).
-# macOS and Windows are both signed (D6c, D6d; SIGNED_PLATFORMS below), so tags publish. Were a
-# platform left out of the list, a tag would fail `plan`, and a staging dispatch would need
-# allow_unsigned_platforms.
+# macOS and Windows are both signed (D6c, D6d), so tags publish: SIGNED_PLATFORMS below says what
+# a platform left out of it would change.
 #
 # Actions are locked by .github/workflows/actions.lock (ADR 0019, todo X11): `uses:` names a release
 # tag, and `gh actions-lock` rewrites the lockfile after a `uses:` line changes.
@@ -60,8 +59,7 @@ on:
       - .github/actions/desktop-build/**
       - .github/actions/dump-syms/**
       - .github/actions/desktop-publish/**
-      - apps/desktop/scripts/sign-windows.ps1
-      - apps/desktop/scripts/verify-windows-signatures.ps1
+      - apps/desktop/scripts/**
       - apps/desktop/src-tauri/tauri*.conf.json
       - apps/desktop/src-tauri/windows/**
       - apps/updates/scripts/edits.ts
