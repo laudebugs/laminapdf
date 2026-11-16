@@ -41,7 +41,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #     `navigation` (which `edit` implies): OutlineTree (E3b: the outline's lists and counts
 │                        #     rewritten after inserts, moves and removals by OutlineItemId)
 │   ├── laminapdf-ops/   #   core: typed serialisable Op (SetMetadata, RemoveMetadata, the XMP ops, the planner's
-│                        #     UpdateSaveMetadata, AddAnnot (text markup, notes, carets; E4c), AddReply and SetReviewState (E5b, annot/reply.rs; delete_annotations), UpdateAnnot and DeleteAnnot (annot/: the
+│                        #     UpdateSaveMetadata, AddAnnot (text markup, notes, carets; E4c; ink, squares and circles, lines, polygons with cloudy borders and the private /LMNA_Widths and /LMNA_Smoothing keys, annot/drawing.rs; E4d), AddReply and SetReviewState (E5b, annot/reply.rs; delete_annotations), UpdateAnnot and DeleteAnnot (annot/: the
 │                        #     Appearances hook laminapdf-build's AnnotationAppearances implements), AddLink, UpdateLink and
 │                        #     DeleteLink (link/, E3c: tagged links as Link elements over the content they cover),
 │                        #     RotatePage, the deprecated SetInfo; outline/: the bookmark and named-destination ops), metadata/ (one Info + XMP writer, read_metadata,

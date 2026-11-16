@@ -39,6 +39,10 @@ ts = "packages/sdk/examples/mark-up.ts"
 rust = "crates/laminapdf/examples/mark_up.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/draw-on-page.ts"
+rust = "crates/laminapdf/examples/draw_on_page.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/review-comments.ts"
 rust = "crates/laminapdf/examples/review_comments.rs"
 

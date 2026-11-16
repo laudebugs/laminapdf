@@ -5,6 +5,7 @@
 //!
 //! The generators are deterministic: the same input writes the same bytes on every platform.
 
+mod drawing;
 mod markup;
 mod note;
 
@@ -19,8 +20,8 @@ use note::{caret, note_icon};
 use crate::page::rect_object;
 use crate::surface::n;
 
-/// Draws the appearances of the annotations `laminapdf-ops` makes: text markup, notes and
-/// carets. Give it to a document with
+/// Draws the appearances of the annotations `laminapdf-ops` makes: text markup, notes, carets,
+/// ink, squares, circles, lines, polygons and polylines. Give it to a document with
 /// [`Document::with_appearances`](laminapdf_ops::Document::with_appearances); the `laminapdf`
 /// façade does so for every document it opens.
 ///
@@ -64,7 +65,7 @@ fn draw(spec: &AnnotSpec, paint: &Paint) -> Drawn {
         AnnotSpec::TextMarkup(m) => markup(m.kind, &m.quads, paint).unwrap_or_else(empty),
         AnnotSpec::Note(n) => note_icon(n.icon, n.at.x, n.at.y - laminapdf_ops::Note::ICON, paint),
         AnnotSpec::Caret(c) => caret(c.symbol, c.rect, paint),
-        _ => empty(),
+        other => drawing::draw(other, paint).unwrap_or_else(empty),
     }
 }
 

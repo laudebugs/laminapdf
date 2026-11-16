@@ -1,0 +1,34 @@
+---
+title: Draw on a page
+description: Draw freehand ink, boxes, clouds, arrows and polygons on a PDF page, each drawn the same in every PDF reader.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll draw on a report's first page as a reviewer does: a cloud around a row of the table, an arrow at the chart and a wavy line under the total. You need this for a drawing tool in an editor, or a script that circles what a checker finds.
+
+Viewers report where a pointer went as points in page space: points from the page's top-left corner. `inkAt`, `shapeAt`, `lineAt` and `polyAt` turn those points into the page's [user space](/reference/glossary/#user-space) and give the edit that adds the drawing:
+
+<Example ts="packages/sdk/examples/draw-on-page.ts" rust="crates/laminapdf/examples/draw_on_page.rs" result="draw_on_page" />
+
+The result is the original bytes, unchanged, followed by one revision. The Q2 row sits in a red cloud, a red arrow points at the chart from the space beside it, and a hand-drawn wave runs under "Total sales".
+
+## How it works
+
+- Each method gives an edit with a 1-point red outline and nothing filled. Change its `spec` before you apply it: the border's width and style (`solid`, `dashed` with a pattern, or `cloudy` with an intensity), the `interior` colour that fills a shape or a closed arrowhead, and a line's `ends`.
+- `inkAt` takes one list of points per stroke and draws a smooth curve through them, as a pen does. Lamina PDF drops each point less than 0.25 pt from the last one it kept, so a pen that reports every pixel doesn't bloat the file.
+- Lamina PDF draws every mark itself and stores the drawing in the file, so every reader that draws stored appearances, as pdf.js, PDFium and Acrobat do, shows the same mark. The cloud's bumps and the arrowheads are drawn at sizes taken from the border's width and intensity.
+- The report is a tagged PDF, the kind screen readers follow. A drawing marks no text, so give each one a description (`contents`) that says what it means. The mark joins the document's structure, and a screen reader reads the description.
+- The author and dates come from your code, never from a clock inside Lamina PDF, so the same edit gives the same file wherever it runs.
+
+## What to change
+
+- **A circle:** pass `"circle"` to `shapeAt`. It draws the ellipse inside the box.
+- **Another line ending:** `ends` takes two of `none`, `square`, `circle`, `diamond`, `openArrow`, `closedArrow`, `butt`, `rOpenArrow`, `rClosedArrow` and `slash`, for the start and the end.
+- **A measured line:** set the line's `leader` to draw it a set distance from its two points, with a leader line back to each, like a dimension on a technical drawing.
+- **A polygon or polyline:** `polyAt` with `"polygon"` closes the shape through at least three points, and `"polyLine"` leaves it open, with endings like a line's.
+- **A pressure-sensitive pen:** give each stroke of the ink spec its `widths`, one per point. Lamina PDF fills the stroke as an outline that swells and thins with them. Lamina PDF stores the widths under `/LMNA_Widths`, a key of its own. Other readers show the stored drawing. A tool that draws the mark again from its keys uses the single `width`.
+- **Erase a stroke:** `updateAnnot` with an ink patch removes strokes by their place in the list (`remove`) and adds new ones (`add`). Lamina PDF draws the mark again.
+- **A PDF/A or PDF/UA file:** the marks keep the file's claims, and `doc.plan()` warns before you save when an edit breaks one. A mark with no description breaks PDF/UA ([`annot-without-contents`](/reference/codes/annot-without-contents/)).
+
+Next: [answer a review](/recipes/review-comments/), which reads these marks back as comments.
