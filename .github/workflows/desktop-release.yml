@@ -47,6 +47,11 @@ on:
         description: Build every target with no environment and publish nothing
         type: boolean
         default: false
+      only_os:
+        description: Build and publish one OS's targets only, for a staging trial that can't wait on another platform's signing
+        type: choice
+        options: [all, macos, windows, linux]
+        default: all
       allow_unsigned_platforms:
         description: Publish to staging although a platform isn't signed (left out of SIGNED_PLATFORMS)
         type: boolean
@@ -131,6 +136,7 @@ jobs:
           INPUT_CHANNEL: ${{ inputs.channel }}
           INPUT_DRY_RUN: ${{ inputs.dry_run }}
           INPUT_ALLOW_UNSIGNED_PLATFORMS: ${{ inputs.allow_unsigned_platforms }}
+          INPUT_ONLY_OS: ${{ inputs.only_os }}
         run: BUILD_DATE=$(date -u +%Y%m%d) cargo xtask desktop-release plan
       # A night with no change to what the app is built from publishes nothing.
       - name: Skip a nightly with nothing new
