@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E4e` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E4 plan §2.1](../../plans/editor/e4-markup-and-drawing-annotations.md#21-ops) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [B4b](../done/B4b-shaping-bidi-line-breaking.md), [B4c](../done/B4c-standard-14-and-simple-fonts.md), [E2p](../done/E2p-source-documents-and-copier.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4b](../done/E4b-annotation-model-and-overlay.md) |
@@ -39,8 +39,8 @@ Create and edit FreeText annotations (a text box, typewriter text, and a callout
 
 **Out of scope** (and which todo covers it)
 
-- Editing in place, the font picker and the bold and italic controls → [E4j](E4j-text-box-tools.md)
-- System fonts on the desktop → [E6c](E6c-add-text.md)
+- Editing in place, the font picker and the bold and italic controls → [E4j](../ready/E4j-text-box-tools.md)
+- System fonts on the desktop → [E6c](../ready/E6c-add-text.md)
 
 **Editor facts**
 
