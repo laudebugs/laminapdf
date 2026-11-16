@@ -3,6 +3,8 @@
 //! the plan and the dry run, which pull requests start, read no secret and use no environment;
 //! each build and publish job reads only its own environment's secrets; and the staging publish
 //! shares the update test's concurrency group (`desktop-update-e2e.yml`), so the two never write the staging channel at once.
+//! Only `archive-symbols` holds the symbols bucket's token, in `desktop-release` and only on a tag
+//! push, and the `dump_syms` it runs is doctor.rs's pin (todo D7d).
 
 use super::{jobs, repository_file};
 
@@ -111,6 +113,53 @@ fn the_staging_publish_should_share_the_update_tests_concurrency_group() {
     assert!(
         update_test.contains("'desktop-staging-channel'"),
         "desktop-update-e2e.yml must take the same group"
+    );
+}
+
+/// The symbols bucket's secrets (todo D7d): only `archive-symbols` reads them.
+const SYMBOLS_SECRETS: [&str; 2] = ["SYMBOLS_R2_TOKEN", "SYMBOLS_R2_ACCESS_KEY_ID"];
+
+#[test]
+fn the_symbols_should_be_archived_only_from_a_tag_push_in_desktop_release() {
+    let text = workflow();
+    let (_, lines) = jobs(&text)
+        .into_iter()
+        .find(|(id, _)| *id == "archive-symbols")
+        .expect("archive-symbols");
+    assert_eq!(environment(&lines), Some("desktop-release"));
+    let body = lines.join("\n");
+    assert!(
+        body.contains("github.event_name == 'push' && github.ref_type == 'tag'"),
+        "a staging dispatch or a dry run archives nothing"
+    );
+    let mut read = secrets(&lines);
+    read.sort_unstable();
+    assert_eq!(
+        read,
+        ["CLOUDFLARE_ACCOUNT_ID", "SYMBOLS_R2_ACCESS_KEY_ID", "SYMBOLS_R2_TOKEN"]
+    );
+    // A missing token is a notice, never a failure of the release.
+    assert!(body.contains("::notice::") && body.contains("steps.token.outputs.set == 'true'"));
+}
+
+#[test]
+fn no_other_job_should_read_the_symbols_token() {
+    let text = workflow();
+    for (id, lines) in jobs(&text) {
+        if id != "archive-symbols" {
+            let read = secrets(&lines);
+            assert!(!SYMBOLS_SECRETS.iter().any(|s| read.contains(s)), "{id}");
+        }
+    }
+}
+
+#[test]
+fn the_dump_syms_action_should_install_the_doctor_pin() {
+    let action = repository_file(".github/actions/dump-syms/action.yml").expect("the dump_syms action");
+    let pin = format!("DUMP_SYMS_VERSION: \"{}\"", crate::doctor::DUMP_SYMS_VERSION);
+    assert!(
+        action.contains(&pin),
+        "the action pins dump_syms at doctor.rs's version"
     );
 }
 

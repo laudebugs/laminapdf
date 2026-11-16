@@ -12,6 +12,7 @@ publish.workspace = true
 # The codes.json group rules, shared with the crates' code tests.
 laminapdf-test-fixtures = { path = "../../crates/laminapdf-test-fixtures" }
 anyhow = { workspace = true }
+breakpad-symbols = { workspace = true }
 boon = { workspace = true }
 brotli = { workspace = true }
 miniz_oxide = { workspace = true }

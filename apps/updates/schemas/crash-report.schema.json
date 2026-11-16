@@ -85,7 +85,7 @@
       "items": { "oneOf": [{ "$ref": "#/$defs/native_frame" }, { "$ref": "#/$defs/script_frame" }] }
     },
     "modules": {
-      "description": "The loaded modules a native crash's frames refer to, by name; filled by minidump processing (D7d), empty until then.",
+      "description": "Unused, always empty: a native crash's modules are in native.modules (D7d).",
       "type": "array",
       "maxItems": 64,
       "items": {
@@ -96,6 +96,43 @@
           "name": { "$ref": "#/$defs/module_name" },
           "version": { "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^[0-9A-Za-z.+-]{1,32}$" }] },
           "debug_id": { "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^[0-9A-Fa-f]{32,40}$" }] }
+        }
+      }
+    },
+    "native": {
+      "description": "A native crash's stack (D7d), read on the computer from its minidump, which is never sent: why it crashed, the crashing thread's frames as modules and offsets, innermost first, and the modules they name with the debug IDs their symbols are archived under (cargo xtask crash symbolicate). Left out when the crash left no minidump.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["crash_reason", "frames", "modules"],
+      "properties": {
+        "crash_reason": { "type": "string", "$ref": "#/$defs/free_text", "maxLength": 128 },
+        "frames": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["module", "offset", "function"],
+            "properties": {
+              "module": { "description": "The module's file name, or <unknown>.", "oneOf": [{ "$ref": "#/$defs/module_name" }, { "const": "<unknown>" }] },
+              "offset": { "description": "The address within the module.", "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+              "function": { "description": "Always null: the computer has no symbols (ADR 0014 §10); cargo xtask crash symbolicate names the frames.", "type": "null" }
+            }
+          }
+        },
+        "modules": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "version", "debug_id"],
+            "properties": {
+              "name": { "oneOf": [{ "$ref": "#/$defs/module_name" }, { "const": "<unknown>" }] },
+              "version": { "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^[0-9A-Za-z.+-]{1,32}$" }] },
+              "debug_id": { "type": "string", "pattern": "^[0-9A-Fa-f]{32,40}$" }
+            }
+          }
         }
       }
     }

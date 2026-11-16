@@ -2,7 +2,10 @@
 // a crash of the document process sends nothing and asks once, in the window's notice; View report
 // shows the report itself. Turned on in Settings › Privacy, each crash (the engine's panic, its
 // segmentation fault, the page's own error) reaches the Worker's stand-in as a report with no
-// path, no marker of the open file's folder, name or content, and no install ID.
+// path, no marker of the open file's folder, name or content, and no install ID. The segmentation
+// fault is a real one, a write through a null pointer in the engine (D7d): on macOS and Linux its
+// report's native stack, read from its minidump on this computer, names the engine as the faulting
+// module. Windows has no native capture yet (ADR 0014 §10), so its report has no native stack.
 import { platform } from "node:process";
 import { expect } from "@wdio/globals";
 import { invoke, open, pageSizes, restarts, withText } from "../app.ts";
@@ -32,6 +35,19 @@ async function crashAndWait(command: string, args: object = {}): Promise<void> {
   });
 }
 
+/** The engine's file name, as a native stack names its module. */
+const ENGINE_MODULE = `laminapdf-desktop-engine${platform === "win32" ? ".exe" : ""}`;
+
+/** Native crash capture runs on macOS and Linux, not Windows yet (ADR 0014 §10). */
+const CAPTURES_NATIVE = platform !== "win32";
+
+/** A native crash's stack, as a report carries it (D7d). */
+interface NativeStack {
+  readonly crash_reason: string;
+  readonly frames: readonly { readonly module: string; readonly offset: number; readonly function: null }[];
+  readonly modules: readonly { readonly name: string; readonly debug_id: string }[];
+}
+
 /** Whether `request` holds anything of the open file, any path, or the install ID's header. */
 function leaks(request: Received): string[] {
   const found = [FOLDER_MARKER, NAME_MARKER, CONTENT_MARKER, "/Users/", "/home/", "\\\\", ":\\"].filter((marker) =>
@@ -56,6 +72,11 @@ describe("crash reports", () => {
     await $("button=View report").click();
     const report = $('[role="region"][aria-label="Crash report"]');
     await expect(report).toHaveText(expect.stringContaining('"process": "engine"'));
+    // The report shown is the one that would be sent; on macOS and Linux its native stack names
+    // the engine.
+    if (CAPTURES_NATIVE) {
+      await expect(report).toHaveText(expect.stringContaining(`"module": "${ENGINE_MODULE}"`));
+    }
     await $("button=Don't send").click();
     await expect(report).not.toBeExisting();
     // A moment for anything that would go out.
@@ -93,9 +114,21 @@ describe("crash reports", () => {
     const reports = await reportsOnceThere(3);
     expect(reports.map((report) => [report.process, report.kind])).toEqual([
       ["engine", "panic"],
-      ["engine", platform === "win32" ? "exit" : "signal"],
+      ["engine", "signal"],
       ["webview", "error"],
     ]);
+    expectNativeStack(reports[1]?.native as NativeStack | undefined);
     expect(requests().flatMap(leaks)).toEqual([]);
   });
 });
+
+/** The segfault's report names the engine as its faulting module, where native capture runs. */
+function expectNativeStack(stack: NativeStack | undefined): void {
+  if (!CAPTURES_NATIVE) {
+    expect(stack).toBeUndefined();
+    return;
+  }
+  expect(stack?.frames[0]?.module).toBe(ENGINE_MODULE);
+  expect(stack?.modules.find((module) => module.name === ENGINE_MODULE)?.debug_id).toMatch(/^[0-9A-Fa-f]{32,40}$/);
+  expect(stack?.crash_reason).not.toBe("");
+}

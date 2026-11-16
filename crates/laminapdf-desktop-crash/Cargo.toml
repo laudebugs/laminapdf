@@ -1,0 +1,61 @@
+[package]
+name = "laminapdf-desktop-crash"
+description = "Native crash capture and on-the-computer minidump summarising for Lamina PDF's desktop reader (ADR 0014 §10)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+# Part of the desktop app, never on crates.io.
+publish = false
+homepage.workspace = true
+
+# Read by `cargo xtask`: an edge crate, since it installs the OS's crash handlers and talks to a
+# minidump server over a socket through FFI (rust.md: `unsafe` only in edge crates). The main
+# process links it without `summary`, so it never pulls the minidump parser (ADR 0008 §3); the
+# engine links it with `summary` for its `--summarize-dump` mode, which reads a dump sandboxed.
+[package.metadata.laminapdf]
+layer = "edge"
+
+[features]
+# `summary::summarize_bytes`: reading a minidump into its summary. Only the engine turns it on, so
+# the minidump parser lives in the engine binary, never the main process.
+summary = ["dep:async-trait", "dep:minidump", "dep:minidump-unwind"]
+# `fault`: the end-to-end tests' deliberate native fault (the engine's `e2e`).
+debug-crash = []
+# `test_support`: a crash-dump server for other crates' tests (the engine's native-crash test).
+test-support = []
+
+[dependencies]
+laminapdf-desktop-protocol = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+# Capture is native crashes caught out of process; off on Windows in this version (ADR 0014 §10:
+# minidumper trusts the client-supplied pid on Windows, so a compromised engine could make the
+# server dump any process). Unix only.
+[target.'cfg(unix)'.dependencies]
+crash-handler = { workspace = true }
+libc = { workspace = true }
+minidumper = { workspace = true }
+
+# Reading a minidump (feature `summary`): rust-minidump's reader and unwinder, no symbol server
+# client; not minidump-processor, whose analysis the summary never uses and which would add megabytes.
+[dependencies.async-trait]
+workspace = true
+optional = true
+[dependencies.minidump]
+workspace = true
+optional = true
+[dependencies.minidump-unwind]
+workspace = true
+optional = true
+
+# The monitor path end to end needs the summariser and the deliberate fault.
+[[test]]
+name = "monitor"
+required-features = ["summary", "debug-crash"]
+
+[lints]
+workspace = true
