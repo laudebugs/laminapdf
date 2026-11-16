@@ -31,6 +31,9 @@ pub fn report_panics() {
             .map(|at| format!(" at {}:{}:{}", at.file, at.line, at.column))
             .unwrap_or_default();
         crate::log(&format!("panicked{at}: {}", summary.message));
+        // This report is the crash's: the abort asks the crash handler for no dump (on Windows the
+        // abort is a fail-fast no handler sees anyway), as the main process's panic hook does.
+        laminapdf_desktop_crash::skip_dumps();
         std::process::abort();
     }));
 }

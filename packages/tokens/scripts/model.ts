@@ -165,7 +165,7 @@ function swapAccent(path: string, accent: string): string {
 }
 
 /** A colour token's value as straight RGBA in 0–255 (alpha 0–1). */
-function rgba(token: Token): Rgba {
+export function rgba(token: Token): Rgba {
   const c = token.value as Colour;
   if (token.type !== "color" || c.colorSpace !== "srgb") throw new Error(`${token.path}: not an sRGB colour`);
   const [r, g, b] = c.components.map((x) => Math.round(x * 255)) as [number, number, number];

@@ -31,14 +31,27 @@ laminapdf-desktop-protocol = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-
-# Capture is native crashes caught out of process; off on Windows in this version (ADR 0014 §10:
-# minidumper trusts the client-supplied pid on Windows, so a compromised engine could make the
-# server dump any process). Unix only.
-[target.'cfg(unix)'.dependencies]
+# Capture: native crashes caught out of process. On Windows the dump server checks the connecting
+# process's pid with the patched minidumper the workspace carries (third_party/minidumper).
 crash-handler = { workspace = true }
-libc = { workspace = true }
 minidumper = { workspace = true }
+
+# The open-socket probe that finds the crash socket's descriptor for Linux's seccomp, and the tests'
+# raw sockets.
+[target.'cfg(unix)'.dependencies]
+libc = { workspace = true }
+
+# The monitor watching the engines as their debugger, and writing their dumps (Windows).
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_Diagnostics_ToolHelp",
+    "Win32_System_Kernel",
+    "Win32_System_Memory",
+    "Win32_System_Threading",
+] }
 
 # Reading a minidump (feature `summary`): rust-minidump's reader and unwinder, no symbol server
 # client; not minidump-processor, whose analysis the summary never uses and which would add megabytes.

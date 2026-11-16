@@ -4,6 +4,7 @@
 // forced colours (Chromium) the reader starts in High contrast, its paper the system's Canvas.
 // No CSP violation throughout.
 
+import { composite, contrastRatio, type Rgba } from "@laminapdf/tokens";
 import type { Browser, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { BROWSER, launch } from "./browser.ts";
@@ -12,6 +13,7 @@ import { clean, load, opened, type Watched, WITHOUT_PICKER } from "./reader.ts";
 const origin = inject("origin");
 const APPEARANCE = new URL("../../../fixtures/appearance/", import.meta.url);
 const CORPUS = new URL("../../../fixtures/corpus/", import.meta.url);
+const READING_ORDER = new URL("../../../fixtures/reading-order/", import.meta.url);
 
 /** Opens `file` from the home screen (More › Close document goes back to it) and waits for it to show. */
 async function open(watched: Watched, file: URL, title: string): Promise<void> {
@@ -117,4 +119,82 @@ describe(`page appearance in ${BROWSER}`, () => {
     await expect.poll(async () => close(await pixel(page, 5, 5), canvas)).toBe(true);
     await clean(watched);
   });
+
+  // Bug selection-on-dark-pages: the selection was multiplied over the page, so on a Dark page it
+  // drew near black, with the words under it at 2.24:1. No screenshot: taking one in WebKit adds
+  // an inline style sheet, which the reader's CSP refuses; the page's own pixels and the
+  // selection's colour, as the browser resolves it from the style sheets, give what it shows.
+  it("draws a mouse selection on a Dark page in its tint, with the words readable", async () => {
+    const watched = await load(browser, origin, "/", WITHOUT_PICKER, { ignoreHTTPSErrors: true });
+    const { page } = watched;
+    await open(watched, new URL("header-footer-ordered.pdf", READING_ORDER), "header-footer-ordered.pdf");
+    await choose(page, "Dark");
+    await expect.poll(async () => close(await pixel(page, 5, 5), DARK_PAPER)).toBe(true);
+    // A line of the first paragraph, dragged across as a reader selects it.
+    const line = page.locator('.lamina-page[data-page-index="0"] .lamina-text-layer span').nth(2);
+    const box = await line.boundingBox();
+    if (box === null) throw new Error("no line on the first page");
+    await page.mouse.move(box.x + 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width - 2, box.y + box.height / 2, { steps: 10 });
+    await page.mouse.up();
+    expect(await page.evaluate(() => document.getSelection()?.toString().length ?? 0)).toBeGreaterThan(10);
+    // Drawn as it is over the page, not blended with it (multiply was the bug).
+    expect(await line.evaluate((span) => getComputedStyle(span.parentElement as Element).mixBlendMode)).toBe("normal");
+    const { selection, paper, ink } = await line.evaluate(selectionOver);
+    const landed = composite(selection, paper);
+    // Teal on a Dark page: #425858.
+    expect(
+      [landed.r - 0x42, landed.g - 0x58, landed.b - 0x58].every((d) => Math.abs(d) <= 4),
+      `the selection lands on rgb(${landed.r} ${landed.g} ${landed.b})`,
+    ).toBe(true);
+    expect(contrastRatio(composite(selection, ink), landed)).toBeGreaterThanOrEqual(4.5);
+    await clean(watched);
+  });
 });
+
+/**
+ * Runs in the page: `span`'s `::selection` colour as the browser resolves it, and the paper and
+ * the ink the page's canvas draws under it (the commonest pixel and the one furthest from it).
+ * The viewer's browser tests read a screenshot the same way; this one runs in the page, so it
+ * can't import theirs.
+ */
+function selectionOver(span: Element): { selection: Rgba; paper: Rgba; ink: Rgba } {
+  const rgba = (css: string): Rgba => {
+    const [r = 0, g = 0, b = 0, a = 1] = (css.match(/[\d.]+/g) ?? []).map(Number);
+    return { r, g, b, a };
+  };
+  const selection = rgba(getComputedStyle(span, "::selection").backgroundColor);
+  const r = span.getBoundingClientRect();
+  const [x, y] = [r.left + r.width / 2, r.top + r.height / 2];
+  const canvas = [...(span.closest(".lamina-page")?.querySelectorAll("canvas") ?? [])].find((c) => {
+    const b = c.getBoundingClientRect();
+    return x >= b.left && x <= b.right && y >= b.top && y <= b.bottom;
+  });
+  if (canvas === undefined) throw new Error("no canvas under the line");
+  const b = canvas.getBoundingClientRect();
+  const s = canvas.width / b.width;
+  const data =
+    canvas
+      .getContext("2d")
+      ?.getImageData(
+        Math.round((r.left - b.left) * s),
+        Math.round((r.top - b.top) * s),
+        Math.round(r.width * s),
+        Math.round(r.height * s),
+      ).data ?? new Uint8ClampedArray();
+  const counts = new Map<string, number>();
+  for (let i = 0; i < data.length; i += 4) {
+    const key = `${data[i]},${data[i + 1]},${data[i + 2]}`;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  const paper = rgba([...counts].sort((p, q) => q[1] - p[1])[0]?.[0] ?? "0,0,0");
+  let ink = paper;
+  let far = -1;
+  for (const [key, n] of counts) {
+    const c = rgba(key);
+    const d = Math.abs(c.r - paper.r) + Math.abs(c.g - paper.g) + Math.abs(c.b - paper.b);
+    if (n > 3 && d > far) [far, ink] = [d, c];
+  }
+  return { selection, paper, ink };
+}

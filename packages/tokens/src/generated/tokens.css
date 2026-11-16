@@ -290,6 +290,9 @@
   --paper-page-sepia-accent: #1F5C63;
   --paper-page-dark-selection-tint: #425858;
   --paper-page-dark-accent: #7DBDC2;
+  --paper-page-original-selection-overlay: rgb(31 92 99 / 22%);
+  --paper-page-sepia-selection-overlay: rgb(31 92 99 / 22%);
+  --paper-page-dark-selection-overlay: rgb(125 189 194 / 35%);
 }
 
 /* Accent blue: light values and its page tints (page tints follow the accent in every theme) */
@@ -306,6 +309,9 @@
   --paper-page-sepia-accent: #2D4A6B;
   --paper-page-dark-selection-tint: #495461;
   --paper-page-dark-accent: #91B3DC;
+  --paper-page-original-selection-overlay: rgb(45 74 107 / 22%);
+  --paper-page-sepia-selection-overlay: rgb(45 74 107 / 22%);
+  --paper-page-dark-selection-overlay: rgb(145 179 220 / 35%);
 }
 
 /* Accent plum: light values and its page tints (page tints follow the accent in every theme) */
@@ -322,6 +328,9 @@
   --paper-page-sepia-accent: #5B3B6B;
   --paper-page-dark-selection-tint: #5B4D60;
   --paper-page-dark-accent: #C59FD9;
+  --paper-page-original-selection-overlay: rgb(91 59 107 / 22%);
+  --paper-page-sepia-selection-overlay: rgb(91 59 107 / 22%);
+  --paper-page-dark-selection-overlay: rgb(197 159 217 / 35%);
 }
 
 /* Accent green: light values and its page tints (page tints follow the accent in every theme) */
@@ -338,6 +347,9 @@
   --paper-page-sepia-accent: #495533;
   --paper-page-dark-selection-tint: #515646;
   --paper-page-dark-accent: #A8B78F;
+  --paper-page-original-selection-overlay: rgb(73 85 51 / 22%);
+  --paper-page-sepia-selection-overlay: rgb(73 85 51 / 22%);
+  --paper-page-dark-selection-overlay: rgb(168 183 143 / 35%);
 }
 
 /* Paper dark with the default accent */
@@ -620,6 +632,10 @@
   --paper-page-mockup-rule: #E6E3DE;
   --paper-page-mockup-chart-bars: #4E5A63;
   --paper-page-mockup-chart-labels: #3A3733;
+  --paper-page-selection-overlay: var(--paper-page-original-selection-overlay);
+  --paper-page-find-blend: multiply;
+  --paper-page-find-match-fill: #F6E3BC;
+  --paper-page-find-current-fill: #EDBF6A;
 }
 
 /* Page appearance sepia */
@@ -636,6 +652,10 @@
   --paper-page-mockup-rule: #DCD0B6;
   --paper-page-mockup-chart-bars: #4E5A63;
   --paper-page-mockup-chart-labels: #5A4C38;
+  --paper-page-selection-overlay: var(--paper-page-sepia-selection-overlay);
+  --paper-page-find-blend: multiply;
+  --paper-page-find-match-fill: #F4E0B0;
+  --paper-page-find-current-fill: #E3B660;
 }
 
 /* Page appearance dark */
@@ -652,6 +672,10 @@
   --paper-page-mockup-rule: #3A3833;
   --paper-page-mockup-chart-bars: #A9B4BC;
   --paper-page-mockup-chart-labels: #C9C2B6;
+  --paper-page-selection-overlay: var(--paper-page-dark-selection-overlay);
+  --paper-page-find-blend: screen;
+  --paper-page-find-match-fill: #412901;
+  --paper-page-find-current-fill: #663F00;
 }
 
 /* Page appearance high-contrast */
@@ -668,6 +692,10 @@
   --paper-page-mockup-rule: var(--paper-page-ink);
   --paper-page-mockup-chart-bars: var(--paper-page-ink);
   --paper-page-mockup-chart-labels: var(--paper-page-ink);
+  --paper-page-selection-overlay: color-mix(in srgb, Highlight 40%, transparent);
+  --paper-page-find-blend: multiply;
+  --paper-page-find-match-fill: Mark;
+  --paper-page-find-current-fill: Highlight;
 }
 
 /* Reduced motion */

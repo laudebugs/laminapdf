@@ -3278,6 +3278,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.21",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3860,8 +3861,6 @@ dependencies = [
 [[package]]
 name = "minidumper"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c56279c70e341c9de54c18c804950595e76799e8ee627ff8931b64f795f09741"
 dependencies = [
  "cfg-if",
  "crash-context",
