@@ -35,6 +35,7 @@ import {
   type Arrived,
   DRAG_OVER_EVENT,
   type MoveTarget,
+  REOPEN_EVENT,
   type RestoredWindow,
   type Tab,
   WINDOWS_CHANGED_EVENT,
@@ -237,6 +238,19 @@ function useTabEvents(
         shell.listen<boolean>(DRAG_OVER_EVENT, (over) => {
           if (over) document.documentElement.dataset.tabDrop = "";
           else delete document.documentElement.dataset.tabDrop;
+        }),
+        // After an unexpected quit, the tabs the user chose to reopen (S08), once they wait.
+        shell.listen<null>(REOPEN_EVENT, () => {
+          void shell.invoke<RestoredWindow | null>("take_session_tabs").then(
+            (restored) => {
+              if (restored !== null) {
+                turn = turn
+                  .then(() => tabs.restore(restored))
+                  .catch((error: unknown) => console.warn("reopening", error));
+              }
+            },
+            () => undefined,
+          );
         }),
         shell.listen<RestartedPayload>(RESTARTED_EVENT, (payload) => {
           for (const name of tabs.restarted(payload)) {

@@ -161,7 +161,10 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         tracing::warn!("could not set the app's ID: {error}");
     }
     let config = app.path().app_config_dir()?;
-    // Crash reports first, so a panic in the rest of the start-up leaves one.
+    // First of all: whether the last run quit unexpectedly, and this run marked as running, so a
+    // crash anywhere after this point is known at the next launch (S08's tab choice).
+    let unexpected = session::marker::launched(&config);
+    // Crash reports next, so a panic in the rest of the start-up leaves one.
     let crashes = crash::CrashReports::new(
         &config,
         &app.path().app_data_dir()?,
@@ -194,7 +197,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(Arc::new(print::Printing::default()));
     // The last session's windows (D4d), else one window. Windows are made here, not in
     // tauri.conf.json, so the app chooses every label.
-    let restored = session::app::start(app, config);
+    let restored = session::app::start(app, config, unexpected);
     // The menus first: each window is made with them, so the window-state plugin puts its size
     // back with the menu bar already in it. On Windows a menu bar added later takes its height
     // out of the restored size, and the window came back 20 px shorter at each launch.
@@ -256,6 +259,8 @@ macro_rules! app_commands {
             commands::take_pending_tabs,
             session::app::session_tabs,
             session::app::take_session_tabs,
+            session::app::session_recovery,
+            session::app::session_reopen,
             session::app::session_open,
             session::locate::session_locate,
             session::locate::session_locate_answer,
@@ -389,11 +394,12 @@ pub fn run() -> Result<(), DesktopError> {
 
 /// Restarts the app now (Restart now, Restart to update). On the main thread `restart` raises no
 /// `RunEvent::Exit`, so what a quit does is done here: the windows that close stay in the session,
-/// the engines stop, and the start counts as survived for the graphics guard.
+/// the engines stop, and the run counts as quit normally and as survived for the graphics guard.
 pub(crate) fn restart(app: &tauri::AppHandle) -> ! {
     session::app::quitting(app);
     app.state::<Arc<Engines>>().shutdown();
     if let Ok(config) = app.path().app_config_dir() {
+        session::marker::quit_normally(&config);
         graphics::survived(&config);
     }
     app.restart()
@@ -461,8 +467,10 @@ fn on_run_event(app: &tauri::AppHandle, event: &RunEvent) {
     match event {
         RunEvent::Exit => {
             session::app::flush(app);
-            // A clean quit, however soon after the start, isn't one the graphics guard counts.
+            // A clean quit, however soon after the start: neither a crash for the next launch's
+            // tab choice nor one the graphics guard counts.
             if let Ok(config) = app.path().app_config_dir() {
+                session::marker::quit_normally(&config);
                 graphics::survived(&config);
             }
             app.state::<Arc<Engines>>().shutdown();

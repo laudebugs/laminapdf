@@ -9,6 +9,7 @@
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
 
@@ -209,6 +210,9 @@ pub(crate) struct Session {
     dir: PathBuf,
     tracker: Mutex<Tracker>,
     bookmarks: Mutex<BTreeMap<PathBuf, Option<String>>>,
+    /// The file on disk is kept as it is (after an unexpected quit, until the user chooses tabs
+    /// or the app next quits normally): the saver leaves it alone.
+    held: AtomicBool,
 }
 
 impl Session {
@@ -217,6 +221,7 @@ impl Session {
             dir,
             tracker: Mutex::new(Tracker::default()),
             bookmarks: Mutex::new(BTreeMap::new()),
+            held: AtomicBool::new(false),
         })
     }
 
@@ -227,6 +232,16 @@ impl Session {
     pub(crate) fn tracker(&self) -> MutexGuard<'_, Tracker> {
         // Maps of reports: nothing a panic could leave half-done.
         self.tracker.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    /// Whether the file on disk is held as it is.
+    pub(crate) fn held(&self) -> bool {
+        self.held.load(Ordering::SeqCst)
+    }
+
+    /// Holds the file on disk as it is, or lets the saver write it again.
+    pub(crate) fn hold(&self, held: bool) {
+        self.held.store(held, Ordering::SeqCst);
     }
 
     /// The bookmarks made already, by path; only a save takes them, never under the tracker's lock.

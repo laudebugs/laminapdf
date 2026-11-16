@@ -11,6 +11,9 @@ export const example = (name: string) => fixture("fixtures", "golden", "examples
 export const MAIN_TABS = ["invoice_from_json.pdf", "hello.pdf"];
 export const OTHER_TABS = ["markdown_to_pdf.pdf"];
 
+/** The crash-recovered pair's tabs, in order (D7e); the last is the one in front when the app quits. */
+export const RECOVER_TABS = ["hello.pdf", "invoice_from_json.pdf", "markdown_to_pdf.pdf"];
+
 /** What session-save measured, for session-restore to compare: the zoom and the main window's size. */
 export const expected = join(output, "session-expected.json");
 

@@ -10,6 +10,7 @@
 
 pub(crate) mod app;
 pub(crate) mod locate;
+pub(crate) mod marker;
 pub(crate) mod restore;
 pub(crate) mod track;
 

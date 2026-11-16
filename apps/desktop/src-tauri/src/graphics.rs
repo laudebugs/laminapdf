@@ -455,7 +455,7 @@ mod tests {
         let source = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../src/graphics.tsx")).unwrap();
         let line = source
             .lines()
-            .find(|line| line.starts_with("export const GRAPHICS = ["))
+            .find(|line| line.starts_with("const GRAPHICS = ["))
             .unwrap();
         let offered: Vec<&str> = line.split('"').skip(1).step_by(2).collect();
         // A new choice stops this compiling until it joins the list below.
