@@ -63,7 +63,7 @@ Every op is class `Annotation`, and none needs a full rewrite (`requires_rewrite
 | `Shape` | Square, Circle | `{ kind, rect, interior: Option<Color>, border: Border }` | E4d |
 | `Line` (Rust `LineMark`) | Line | `{ from, to, ends: [LineEnding; 2], interior, border, leader: Option<Leader> }` | E4d |
 | `Poly` | Polygon, PolyLine | `{ kind, vertices, ends, interior, border }` | E4d |
-| `FreeText` | FreeText | `{ rect, text: RichText, font: FontRef, size, align, intent: Plain \| Callout { line, knee } \| Typewriter, fill, border }`; `FontRef` is a standard 14 name or a font's bytes by `BlobId` (E2p) | E4e |
+| `FreeText` | FreeText | `{ rect, text: RichText, font: AnnotFont, size, align, intent: Plain \| Callout { line, knee } \| Typewriter, fill, border }`; `AnnotFont` is a standard 14 name or a font's bytes by `BlobId` (E2p) | E4e |
 
 `Border` is a width and a style: solid, dashed with its pattern, or cloudy with an intensity (`/BE`). `LineEnding` names every `/LE` style. `RichText` is paragraphs of spans, each plain, bold or italic (§11).
 

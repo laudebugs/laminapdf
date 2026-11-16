@@ -253,7 +253,7 @@ pub(crate) fn check_blobs(spec: &AnnotSpec, blobs: &crate::BlobStore) -> Result<
         return Ok(());
     };
     let font = match text.font {
-        super::FontRef::Font(id) => Some(id),
+        super::AnnotFont::Font(id) => Some(id),
         _ => None,
     };
     match font.iter().chain(&text.fallbacks).find(|id| blobs.get(id).is_none()) {

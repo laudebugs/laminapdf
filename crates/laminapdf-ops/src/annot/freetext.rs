@@ -1,12 +1,13 @@
 //! `FreeText` annotations (ISO 32000-2 §12.5.6.6): a text box, a callout with a leader line, or
 //! typewriter text. The text is [`RichText`], paragraphs of plain, bold and italic spans (E4 plan
-//! §11); the font is one of the standard 14 families or a font's bytes by [`BlobId`] (E2p).
+//! §11); the font is one of the standard 14 families or a font's bytes by [`BlobId`].
 //!
 //! The keys other readers draw from are written with every box: `/DA` and `/DS` (font, size,
 //! colour, alignment), `/Q`, `/Contents` (the plain text), `/RC` when a span is bold or italic,
 //! `/IT`, `/CL` and `/LE` for a callout, `/RD`, `/BS` and `/BE`. Lamina PDF's own key
-//! `/LMNA_Font` names a font given by its bytes, so the session that added the bytes can draw the
-//! box again; Annex E's second-class names keep it apart from the standard's keys.
+//! `/LMNA_Font` names a font given by its bytes, and `/LMNA_Fallbacks` the fallback fonts, so the
+//! session that added the bytes can draw the box again; Annex E's second-class names keep them
+//! apart from the standard's keys.
 
 use laminapdf_cos::{Dict, Object, PdfString};
 use laminapdf_model::{UserSpacePoint, UserSpaceRect};
@@ -21,6 +22,8 @@ use crate::wire;
 
 /// Lamina PDF's key naming a box's font by its bytes' [`BlobId`] (ISO 32000-2 Annex E).
 pub(crate) const FONT_KEY: &str = "LMNA_Font";
+/// Lamina PDF's key listing a box's fallback fonts by their bytes' [`BlobId`]s, in order.
+const FALLBACKS_KEY: &str = "LMNA_Fallbacks";
 /// The most characters a box holds: far more than a page shows, few enough to lay out at once.
 const MAX_CHARS: usize = 100_000;
 /// The font sizes a box takes, in points.
@@ -55,7 +58,7 @@ pub struct FreeText {
     /// The font: `helvetica`, `times`, `courier`, or a font's bytes by their ID; Helvetica when
     /// absent.
     #[serde(default)]
-    pub font: FontRef,
+    pub font: AnnotFont,
     /// Fonts by their bytes' IDs for characters `font` lacks, tried in order.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[cfg_attr(feature = "tsify", tsify(optional, type = "string[]"))]
@@ -104,7 +107,7 @@ impl FreeText {
         Self {
             rect,
             text,
-            font: FontRef::default(),
+            font: AnnotFont::default(),
             fallbacks: Vec::new(),
             size: 12.0,
             align: TextAlign::Left,
@@ -119,7 +122,7 @@ impl FreeText {
     ///
     /// Added in 0.5.0.
     #[must_use]
-    pub fn with_font(mut self, font: FontRef, size: f64) -> Self {
+    pub fn with_font(mut self, font: AnnotFont, size: f64) -> Self {
         self.font = font;
         self.size = size;
         self
@@ -191,7 +194,8 @@ impl FreeText {
     }
 
     /// Whether every value is in range: a box with area, a size from 1 to 500, a right angle,
-    /// a callout of two or three points, at most 100,000 characters.
+    /// a callout of two or three points, at most 100,000 characters, and at most 100,000
+    /// paragraphs and spans together.
     pub(crate) fn is_valid(&self) -> bool {
         let r = self.rect;
         let callout = match &self.intent {
@@ -206,6 +210,7 @@ impl FreeText {
             && callout
             && self.border.is_valid(true)
             && self.text.char_count() <= MAX_CHARS
+            && self.text.paragraphs.len() + self.text.paragraphs.iter().map(Vec::len).sum::<usize>() <= MAX_CHARS
     }
 }
 
@@ -351,7 +356,7 @@ impl TextSpan {
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[cfg_attr(feature = "tsify", tsify(type = "string"))]
 #[non_exhaustive]
-pub enum FontRef {
+pub enum AnnotFont {
     /// A standard 14 family, its bold and italic faces for bold and italic spans.
     Standard(StandardFamily),
     /// A font's bytes, added to the session with
@@ -360,13 +365,13 @@ pub enum FontRef {
     Font(BlobId),
 }
 
-impl Default for FontRef {
+impl Default for AnnotFont {
     fn default() -> Self {
         Self::Standard(StandardFamily::Helvetica)
     }
 }
 
-impl TryFrom<String> for FontRef {
+impl TryFrom<String> for AnnotFont {
     type Error = String;
 
     fn try_from(s: String) -> Result<Self, Self::Error> {
@@ -380,11 +385,11 @@ impl TryFrom<String> for FontRef {
     }
 }
 
-impl From<FontRef> for String {
-    fn from(font: FontRef) -> Self {
+impl From<AnnotFont> for String {
+    fn from(font: AnnotFont) -> Self {
         match font {
-            FontRef::Standard(family) => family.name().to_owned(),
-            FontRef::Font(id) => id.to_string(),
+            AnnotFont::Standard(family) => family.name().to_owned(),
+            AnnotFont::Font(id) => id.to_string(),
         }
     }
 }
@@ -594,15 +599,24 @@ pub(crate) fn write(dict: &mut Dict, text: &FreeText, color: Option<AnnotColor>)
     drawing::write_border(dict, &text.drawn_border());
     write_rd(dict, text.rect);
     match text.font {
-        FontRef::Font(id) => {
+        AnnotFont::Font(id) => {
             dict.insert(
                 FONT_KEY,
                 Object::String(PdfString::literal(id.to_string().into_bytes())),
             );
         }
-        FontRef::Standard(_) => {
+        AnnotFont::Standard(_) => {
             dict.remove(FONT_KEY);
         }
+    }
+    if text.fallbacks.is_empty() {
+        dict.remove(FALLBACKS_KEY);
+    } else {
+        let ids = text
+            .fallbacks
+            .iter()
+            .map(|id| Object::String(PdfString::literal(id.to_string().into_bytes())));
+        dict.insert(FALLBACKS_KEY, Object::Array(ids.collect()));
     }
     if text.rotation == 0 {
         dict.remove("Rotate");
@@ -664,10 +678,10 @@ pub(crate) fn read(dict: &Dict) -> Option<ReadBack> {
     // fill with the font of a form field's resources rather than the box's.
     let named = body.family.or(ds.family).or(da.family);
     let font = if let Some(id) = dict.get(FONT_KEY).and_then(text_of).and_then(|s| s.parse().ok()) {
-        FontRef::Font(id)
+        AnnotFont::Font(id)
     } else {
         simplified |= da.unknown_font;
-        FontRef::Standard(named.unwrap_or(StandardFamily::Helvetica))
+        AnnotFont::Standard(named.unwrap_or(StandardFamily::Helvetica))
     };
     let size = body.size.or(ds.size).or(da.size).filter(|s| SIZES.contains(s));
     simplified |= size.is_none() && (body.size.is_some() || ds.size.is_some() || da.size.is_some());
@@ -703,7 +717,10 @@ pub(crate) fn read(dict: &Dict) -> Option<ReadBack> {
         rect,
         text,
         font,
-        fallbacks: Vec::new(),
+        fallbacks: match dict.get(FALLBACKS_KEY) {
+            Some(Object::Array(ids)) => ids.iter().filter_map(text_of).filter_map(|s| s.parse().ok()).collect(),
+            _ => Vec::new(),
+        },
         size: size.unwrap_or(12.0),
         align,
         fill: (!matches!(intent, FreeTextIntent::Typewriter))

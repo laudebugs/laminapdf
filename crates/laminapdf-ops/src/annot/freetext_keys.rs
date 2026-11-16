@@ -8,7 +8,7 @@
 use laminapdf_cos::Dict;
 use laminapdf_syntax::format_real;
 
-use super::freetext::{FontRef, FreeText, RichText, StandardFamily, TextAlign, TextSpan};
+use super::freetext::{AnnotFont, FreeText, RichText, StandardFamily, TextAlign, TextSpan};
 use super::geom::AnnotColor;
 use laminapdf_cos::{Object, PdfString};
 use laminapdf_syntax::text::encode_text_string;
@@ -51,10 +51,10 @@ pub(crate) fn write_da(dict: &mut Dict, text: &FreeText, color: Option<AnnotColo
 
 /// The family a box's keys name: its own, or Helvetica for a font given by its bytes, which no
 /// other reader can name.
-const fn family_of(font: FontRef) -> StandardFamily {
+const fn family_of(font: AnnotFont) -> StandardFamily {
     match font {
-        FontRef::Standard(family) => family,
-        FontRef::Font(_) => StandardFamily::Helvetica,
+        AnnotFont::Standard(family) => family,
+        AnnotFont::Font(_) => StandardFamily::Helvetica,
     }
 }
 

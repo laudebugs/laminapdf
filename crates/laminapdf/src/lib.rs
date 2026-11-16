@@ -210,11 +210,11 @@ pub use laminapdf_model::{
 };
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use laminapdf_ops::{
-    AddAnnot, AddLink, AddOutlineItem, AddReply, Anchor, AnnotColor, AnnotCommon, AnnotSpec, AnnotSpecPatch, BlobId,
-    Border, BorderStyle, Callout, Caret, CaretPatch, CaretSymbol, Carry, ChildItems, ConformanceWarning, CropMargins,
-    CropPages, DeleteAnnot, DeleteLink, DeleteNamedDestination, DeleteOutlineItem, DeletePages, DestinationUse,
-    DestinationView, DocumentMetadata, DuplicatePages, ExplicitDestination, FieldChange, FieldClash, FieldOutcome,
-    FontRef, FreeText, FreeTextIntent, FreeTextPatch, InfoPatch, Ink, InkPatch, InkStroke, InsertBlankPages,
+    AddAnnot, AddLink, AddOutlineItem, AddReply, Anchor, AnnotColor, AnnotCommon, AnnotFont, AnnotSpec, AnnotSpecPatch,
+    BlobId, Border, BorderStyle, Callout, Caret, CaretPatch, CaretSymbol, Carry, ChildItems, ConformanceWarning,
+    CropMargins, CropPages, DeleteAnnot, DeleteLink, DeleteNamedDestination, DeleteOutlineItem, DeletePages,
+    DestinationUse, DestinationView, DocumentMetadata, DuplicatePages, ExplicitDestination, FieldChange, FieldClash,
+    FieldOutcome, FreeText, FreeTextIntent, FreeTextPatch, InfoPatch, Ink, InkPatch, InkStroke, InsertBlankPages,
     InsertPagesFrom, Leader, LineEnding, LineMark, LinePatch, MarkupKind, MergeDocuments, MergeInput, MergeOptions,
     MergeSource, MetadataKey, MetadataPatch, MetadataSource, ModificationClass, MoveOutlineItem, MovePages, Note,
     NoteIcon, NotePatch, Offset, Op, OpLog, Opacity, OpenAt, OpenZoom, OrientationMethod, OutlineMerge, OutlineStyle,

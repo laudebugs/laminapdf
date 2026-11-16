@@ -41,7 +41,7 @@ impl Redraw<'_> {
         appearances: Option<&dyn Appearances>,
         blobs: &BlobStore,
     ) -> Result<bool> {
-        let (current, current_color, simplified) = current(dict).ok_or(Error::InvalidOp(
+        let (current, current_color, simplified) = current(doc, dict)?.ok_or(Error::InvalidOp(
             "only text markup, notes, carets, ink, shapes, lines, polygons and text boxes have their appearance drawn again",
         ))?;
         let spec = match self.spec {
@@ -104,16 +104,62 @@ impl Redraw<'_> {
 
 /// The annotation's spec as its keys say, its colour, and whether reading a text box's rich text
 /// dropped styles outside the subset.
-fn current(dict: &Dict) -> Option<(AnnotSpec, Option<AnnotColor>, bool)> {
+fn current(doc: &laminapdf_model::Document, dict: &Dict) -> Result<Option<(AnnotSpec, Option<AnnotColor>, bool)>> {
     if dict.get_name("Subtype") == Some(b"FreeText".as_slice()) {
-        let read = super::freetext::read(dict)?;
-        return Some((AnnotSpec::FreeText(read.text), read.color, read.simplified));
+        let (inline, unreadable) = text_keys_inline(doc, dict)?;
+        return Ok(super::freetext::read(&inline).map(|read| {
+            (
+                AnnotSpec::FreeText(read.text),
+                read.color,
+                read.simplified || unreadable,
+            )
+        }));
     }
     let color = dict
         .get("C")
         .and_then(numbers_of)
         .and_then(|c| AnnotColor::from_components(&c));
-    Some((read_spec(dict)?, color, false))
+    Ok(read_spec(dict).map(|spec| (spec, color, false)))
+}
+
+/// A text box's keys with its text values as strings: an indirect one resolved, and `/RC` as a
+/// text stream (ISO 32000-2 §12.5.6.6) decoded. True when `/RC` couldn't be decoded, so the
+/// rich text it held is lost.
+fn text_keys_inline(doc: &laminapdf_model::Document, dict: &Dict) -> Result<(Dict, bool)> {
+    let mut inline = dict.clone();
+    let mut unreadable = false;
+    for key in ["RC", "DA", "DS", "Contents"] {
+        let Some(value) = dict.get(key) else { continue };
+        if !matches!(value, Object::Ref(_) | Object::Stream(_)) {
+            continue;
+        }
+        let resolved = doc.deref(value)?.into_owned();
+        let text = match resolved {
+            Object::Stream(stream) => match doc.cos().decode_stream(&stream) {
+                // A stream's XHTML is UTF-8 as a rule, with no byte order mark to say so.
+                Ok(bytes) if std::str::from_utf8(&bytes).is_ok() && !bytes.starts_with(&[0xef, 0xbb, 0xbf]) => {
+                    let marked = [&[0xef, 0xbb, 0xbf][..], &bytes].concat();
+                    Some(Object::String(laminapdf_cos::PdfString::literal(marked)))
+                }
+                Ok(bytes) => Some(Object::String(laminapdf_cos::PdfString::literal(bytes))),
+                Err(_) => {
+                    unreadable |= key == "RC";
+                    None
+                }
+            },
+            other @ Object::String(_) => Some(other),
+            _ => None,
+        };
+        match text {
+            Some(text) => {
+                inline.insert(key, text);
+            }
+            None => {
+                inline.remove(key);
+            }
+        }
+    }
+    Ok((inline, unreadable))
 }
 
 /// The spec an annotation's keys describe, for the subtypes this round draws: quads read in
@@ -170,6 +216,12 @@ fn current_opacity(doc: &laminapdf_model::Document, dict: &Dict) -> Result<Opaci
 /// The `ExtGState`s of an annotation's normal appearance, in its resources' order; none when it
 /// has no appearance or the appearance names none.
 pub(super) fn appearance_states(doc: &laminapdf_model::Document, dict: &Dict) -> Result<Vec<Dict>> {
+    appearance_resources(doc, dict, "ExtGState")
+}
+
+/// The entries of the `kind` resources (`ExtGState`, `Font`) of the annotation's normal
+/// appearance, resolved.
+pub(super) fn appearance_resources(doc: &laminapdf_model::Document, dict: &Dict, kind: &str) -> Result<Vec<Dict>> {
     let resolve = |value: Option<&Object>| -> Result<Option<Dict>> {
         match value {
             Some(v) => Ok(doc.deref(v)?.as_dict().cloned()),
@@ -186,13 +238,13 @@ pub(super) fn appearance_states(doc: &laminapdf_model::Document, dict: &Dict) ->
     let Some(resources) = resolve(normal.get("Resources"))? else {
         return Ok(Vec::new());
     };
-    let Some(states) = resolve(resources.get("ExtGState"))? else {
+    let Some(entries) = resolve(resources.get(kind))? else {
         return Ok(Vec::new());
     };
     let mut out = Vec::new();
-    for (_, state) in states.iter() {
-        if let Some(state) = resolve(Some(state))? {
-            out.push(state);
+    for (_, entry) in entries.iter() {
+        if let Some(entry) = resolve(Some(entry))? {
+            out.push(entry);
         }
     }
     Ok(out)

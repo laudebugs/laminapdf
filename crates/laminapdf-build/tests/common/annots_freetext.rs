@@ -9,7 +9,7 @@
 use laminapdf_build::{AnnotationAppearances, BuildOptions, Builder, PageSize, Rotation};
 use laminapdf_model::{UserSpacePoint, UserSpaceRect};
 use laminapdf_ops::{
-    AddAnnot, AnnotColor, AnnotSpec, Border, Callout, FontRef, FreeText, FreeTextIntent, LineEnding, Op, Origin,
+    AddAnnot, AnnotColor, AnnotFont, AnnotSpec, Border, Callout, FreeText, FreeTextIntent, LineEnding, Op, Origin,
     RichText, StandardFamily, TextAlign, TextSpan,
 };
 use laminapdf_test_fixtures::fixture;
@@ -68,7 +68,7 @@ fn standard() -> Vec<AnnotSpec> {
         )),
         AnnotSpec::FreeText(
             FreeText::new(area(300.0, 50.0, 230.0, 70.0), rich)
-                .with_font(FontRef::Standard(StandardFamily::Times), 13.0)
+                .with_font(AnnotFont::Standard(StandardFamily::Times), 13.0)
                 .with_align(TextAlign::Center)
                 .with_fill(Some(AnnotColor::Rgb(1.0, 0.98, 0.8))),
         ),
@@ -77,7 +77,7 @@ fn standard() -> Vec<AnnotSpec> {
                 area(60.0, 140.0, 220.0, 40.0),
                 RichText::plain("Right-aligned Courier, €12.50"),
             )
-            .with_font(FontRef::Standard(StandardFamily::Courier), 11.0)
+            .with_font(AnnotFont::Standard(StandardFamily::Courier), 11.0)
             .with_align(TextAlign::Right)
             .with_border(Border::dashed(1.0, vec![4.0, 2.0])),
         ),
@@ -105,7 +105,7 @@ fn standard() -> Vec<AnnotSpec> {
                 RichText::plain("Jane Doe, 12 Main Street"),
             )
             .with_intent(FreeTextIntent::Typewriter)
-            .with_font(FontRef::Standard(StandardFamily::Courier), 12.0),
+            .with_font(AnnotFont::Standard(StandardFamily::Courier), 12.0),
         ),
         AnnotSpec::FreeText(
             FreeText::new(area(70.0, 260.0, 200.0, 50.0), RichText::plain("A cloudy box"))
@@ -132,19 +132,21 @@ fn embedded(doc: &mut laminapdf_ops::Document) -> Vec<AnnotSpec> {
         ]],
     };
     vec![
-        AnnotSpec::FreeText(FreeText::new(area(60.0, 340.0, 230.0, 46.0), styled).with_font(FontRef::Font(sans), 12.0)),
+        AnnotSpec::FreeText(
+            FreeText::new(area(60.0, 340.0, 230.0, 46.0), styled).with_font(AnnotFont::Font(sans), 12.0),
+        ),
         AnnotSpec::FreeText(
             FreeText::new(
                 area(310.0, 340.0, 220.0, 46.0),
                 RichText::plain("مرحبا بالعالم، هذا نص عربي"),
             )
-            .with_font(FontRef::Font(arabic), 14.0)
+            .with_font(AnnotFont::Font(arabic), 14.0)
             .with_align(TextAlign::Right),
         ),
         AnnotSpec::FreeText(
             FreeText::new(area(60.0, 410.0, 230.0, 46.0), RichText::plain("Hello, 你好世界"))
                 .with_fallbacks(vec![chinese])
-                .with_font(FontRef::Standard(StandardFamily::Helvetica), 14.0),
+                .with_font(AnnotFont::Standard(StandardFamily::Helvetica), 14.0),
         ),
     ]
 }

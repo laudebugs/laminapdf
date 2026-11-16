@@ -1,7 +1,7 @@
 //! Text boxes in the standard 14 fonts: each character encoded in `WinAnsiEncoding` and measured
 //! with its AFM width, lines broken greedily after spaces and hyphens, a word wider than the box
 //! broken between characters. It needs no shaping and no Unicode tables, so the WebAssembly
-//! extract module can draw boxes too, and every build draws the same bytes (E4e).
+//! extract module can draw boxes too, and every build draws the same bytes.
 
 use laminapdf_ops::{RichText, StandardFamily};
 use laminapdf_text::{Encoding, Standard14};
@@ -37,16 +37,47 @@ pub(super) fn face(family: StandardFamily, bold: bool, italic: bool) -> Standard
     Standard14::from_base_font(family.face(bold, italic)).unwrap_or(Standard14::Helvetica)
 }
 
+/// `WinAnsiEncoding`'s codes from 0x80 to 0x9F, by the character each draws (ISO 32000-2
+/// Annex D.2); the codes below are ASCII's and those above Latin-1's.
+const WIN_ANSI_HIGH: [(char, u8); 27] = [
+    ('\u{20ac}', 0x80),
+    ('\u{201a}', 0x82),
+    ('\u{0192}', 0x83),
+    ('\u{201e}', 0x84),
+    ('\u{2026}', 0x85),
+    ('\u{2020}', 0x86),
+    ('\u{2021}', 0x87),
+    ('\u{02c6}', 0x88),
+    ('\u{2030}', 0x89),
+    ('\u{0160}', 0x8a),
+    ('\u{2039}', 0x8b),
+    ('\u{0152}', 0x8c),
+    ('\u{017d}', 0x8e),
+    ('\u{2018}', 0x91),
+    ('\u{2019}', 0x92),
+    ('\u{201c}', 0x93),
+    ('\u{201d}', 0x94),
+    ('\u{2022}', 0x95),
+    ('\u{2013}', 0x96),
+    ('\u{2014}', 0x97),
+    ('\u{02dc}', 0x98),
+    ('\u{2122}', 0x99),
+    ('\u{0161}', 0x9a),
+    ('\u{203a}', 0x9b),
+    ('\u{0153}', 0x9c),
+    ('\u{017e}', 0x9e),
+    ('\u{0178}', 0x9f),
+];
+
 /// The `WinAnsiEncoding` code that draws `ch`, if any.
 pub(super) fn win_ansi(ch: char) -> Option<u8> {
-    if ch == ' ' || ch == '\u{a0}' {
-        return Some(b' ');
+    match ch {
+        ' ' | '\u{a0}' => Some(b' '),
+        // The soft hyphen's code draws a hyphen, which 0x2D already does.
+        '\u{ad}' => None,
+        '\u{21}'..='\u{7e}' | '\u{a1}'..='\u{ff}' => u8::try_from(u32::from(ch)).ok(),
+        _ => WIN_ANSI_HIGH.iter().find(|(c, _)| *c == ch).map(|(_, code)| *code),
     }
-    (0x20..=0xff_u8).find(|&code| {
-        let text = Encoding::WinAnsi.to_unicode(code).unwrap_or_default();
-        let mut chars = text.chars();
-        chars.next() == Some(ch) && chars.next().is_none()
-    })
 }
 
 /// The first character of `text` that `WinAnsiEncoding` can't draw, characters a standard 14
@@ -70,7 +101,20 @@ pub(super) fn lay_out(text: &RichText, family: StandardFamily, size: f64, limit:
         for span in paragraph {
             let face = face(family, span.bold, span.italic);
             let mut previous = ' ';
-            for ch in span.text.chars().filter(|&c| !Standard14::draws_nothing(c)) {
+            for ch in span.text.chars() {
+                // A line break inside a span breaks the line, as the shaped layout's UAX #14
+                // rules do; `\r\n` is one break.
+                if matches!(ch, '\n' | '\r' | '\u{b}' | '\u{c}' | '\u{85}' | '\u{2028}' | '\u{2029}') {
+                    if !(ch == '\n' && previous == '\r') {
+                        break_paragraph(&glyphs, limit, &mut lines);
+                        glyphs.clear();
+                    }
+                    previous = ch;
+                    continue;
+                }
+                if Standard14::draws_nothing(ch) {
+                    continue;
+                }
                 let code = win_ansi(ch).ok_or(ch)?;
                 let name = Encoding::WinAnsi.glyph_name(code).unwrap_or("space");
                 let width = f64::from(face.width(name).unwrap_or(0)) * size / 1000.0;
@@ -188,6 +232,31 @@ mod tests {
         let lines = lay_out(&text, StandardFamily::Times, 12.0, 500.0).unwrap();
         let faces: Vec<Standard14> = lines[0].pieces.iter().map(|p| p.face).collect();
         assert_eq!(faces, [Standard14::TimesRoman, Standard14::TimesBold]);
+    }
+
+    #[test]
+    fn the_lookup_finds_the_first_code_of_every_character_win_ansi_draws() {
+        // The scan the lookup replaces: the lowest code whose glyph is the character.
+        let scan = |ch: char| {
+            (0x20..=0xff_u8).find(|&code| {
+                let text = Encoding::WinAnsi.to_unicode(code).unwrap_or_default();
+                let mut chars = text.chars();
+                chars.next() == Some(ch) && chars.next().is_none()
+            })
+        };
+        let differ: Vec<char> = ('\u{21}'..='\u{3000}')
+            .filter(|&ch| ch != '\u{a0}' && win_ansi(ch) != scan(ch))
+            .collect();
+        assert_eq!(differ, Vec::<char>::new());
+    }
+
+    #[test]
+    fn a_line_break_inside_a_span_breaks_the_line() {
+        let text = RichText {
+            paragraphs: vec![vec![TextSpan::plain("one\r\ntwo\nthree")]],
+        };
+        let lines = lay_out(&text, StandardFamily::Courier, 10.0, 500.0).unwrap();
+        assert_eq!(widths(&lines), [b"one".to_vec(), b"two".to_vec(), b"three".to_vec()]);
     }
 
     #[test]

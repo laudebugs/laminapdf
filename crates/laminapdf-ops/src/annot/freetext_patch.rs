@@ -6,7 +6,7 @@ use laminapdf_model::UserSpaceRect;
 use serde::{Deserialize, Serialize};
 
 use super::drawing::Border;
-use super::freetext::{FontRef, FreeText, FreeTextIntent, RichText, TextAlign};
+use super::freetext::{AnnotFont, FreeText, FreeTextIntent, RichText, TextAlign};
 use super::geom::AnnotColor;
 use crate::blob::BlobId;
 use crate::wire;
@@ -33,7 +33,7 @@ pub struct FreeTextPatch {
     /// The font.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional, type = "string"))]
-    pub font: Option<FontRef>,
+    pub font: Option<AnnotFont>,
     /// The fallback fonts, all of them.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional, type = "string[]"))]
@@ -86,8 +86,7 @@ impl FreeTextPatch {
         }
     }
 
-    /// `text` changed. The fallbacks of a box read from a file are none (they live only in the
-    /// session that added them), so a patch that keeps the font keeps the box's.
+    /// `text` changed: each field given replaces the box's.
     pub(crate) fn applied_to(&self, text: &FreeText) -> FreeText {
         FreeText {
             rect: self.rect.unwrap_or(text.rect),

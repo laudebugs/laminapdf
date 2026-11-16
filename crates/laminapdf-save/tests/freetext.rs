@@ -18,7 +18,7 @@ use laminapdf_build::AnnotationAppearances;
 use laminapdf_cos::OpenOptions;
 use laminapdf_model::{UserSpacePoint, UserSpaceRect};
 use laminapdf_ops::{
-    AddAnnot, AnnotSpec, Callout, Document, FontRef, FreeText, FreeTextIntent, Op, Origin, RichText, StandardFamily,
+    AddAnnot, AnnotFont, AnnotSpec, Callout, Document, FreeText, FreeTextIntent, Op, Origin, RichText, StandardFamily,
     TextSpan,
 };
 use laminapdf_save::{ConstraintKind, DocMdpPermission, Restriction, Save as _, SaveMode, SaveOptions, SavePlanner};
@@ -44,7 +44,7 @@ fn every_box(doc: &Document) -> Vec<Op> {
         add(
             FreeText::new(rect(72.0, 400.0, 272.0, 420.0), RichText::plain("Typed in"))
                 .with_intent(FreeTextIntent::Typewriter)
-                .with_font(FontRef::Standard(StandardFamily::Courier), 11.0),
+                .with_font(AnnotFont::Standard(StandardFamily::Courier), 11.0),
         ),
     ]
 }
@@ -160,7 +160,7 @@ fn redo_writes_the_same_bytes_as_the_edit() {
 }
 
 /// The PDF/A-2b example with a text box in `font` on its first page.
-fn pdfa_with_box(font: impl FnOnce(&mut Document) -> FontRef) -> Vec<String> {
+fn pdfa_with_box(font: impl FnOnce(&mut Document) -> AnnotFont) -> Vec<String> {
     let mut doc = editable(&fixture("golden/examples/pdf_a_archive-2b.pdf")).with_appearances(AnnotationAppearances);
     let font = font(&mut doc);
     let page = doc.pages().unwrap().get(0).unwrap().id().clone();
@@ -180,8 +180,8 @@ fn pdfa_with_box(font: impl FnOnce(&mut Document) -> FontRef) -> Vec<String> {
 
 #[test]
 fn a_box_in_a_standard_font_on_a_pdfa_file_warns_and_one_in_an_embedded_font_doesn_t() {
-    let standard = pdfa_with_box(|_| FontRef::Standard(StandardFamily::Helvetica));
-    let embedded = pdfa_with_box(|doc| FontRef::Font(doc.add_blob(fixture("fonts/NotoSans-Regular.ttf"))));
+    let standard = pdfa_with_box(|_| AnnotFont::Standard(StandardFamily::Helvetica));
+    let embedded = pdfa_with_box(|doc| AnnotFont::Font(doc.add_blob(fixture("fonts/NotoSans-Regular.ttf"))));
     assert_eq!(
         (
             standard.contains(&"pdfa-font-not-embedded".to_owned()),

@@ -8,6 +8,7 @@ import type {
   AlignInit,
   AnnotColor as AnnotColorJs,
   AnnotCommon as AnnotCommonJs,
+  AnnotFont as AnnotFontJs,
   AnnotSpec as AnnotSpecJs,
   AttachmentInit,
   Border as BorderJs,
@@ -28,7 +29,6 @@ import type {
   ExtractedImageJs,
   FieldEditJs,
   FitInit,
-  FontRef as FontRefJs,
   FreeTextIntent as FreeTextIntentJs,
   FreeText as FreeTextJs,
   ImageOptionsInit,
@@ -279,7 +279,7 @@ export type TextSpan = TextSpanJs;
  *
  * @since 0.5.0
  */
-export type FontRef = FontRefJs;
+export type AnnotFont = AnnotFontJs;
 
 /**
  * A standard 14 family a text box can use: `"helvetica"`, `"times"` or `"courier"`.

@@ -28,7 +28,7 @@ pub use drawing::{
     Border, BorderStyle, Ink, InkStroke, Leader, LineEnding, LineMark, Poly, PolyKind, Shape, ShapeKind,
 };
 pub use drawing_patch::{InkPatch, LinePatch, PolyPatch, ShapePatch};
-pub use freetext::{Callout, FontRef, FreeText, FreeTextIntent, RichText, StandardFamily, TextAlign, TextSpan};
+pub use freetext::{AnnotFont, Callout, FreeText, FreeTextIntent, RichText, StandardFamily, TextAlign, TextSpan};
 pub use freetext_patch::FreeTextPatch;
 pub(crate) use geom::quad_points;
 pub use geom::{AnnotColor, Opacity};
@@ -113,8 +113,9 @@ impl<'de> Deserialize<'de> for Offset {
 /// the subtype's geometry (`/QuadPoints`, `/InkList`, `/Vertices`, `/L`, `/CL`) and the
 /// annotation's Popup with it, and keeps the appearance, which §12.5.5 maps onto the new
 /// `/Rect`. A `Locked` annotation refuses everything but a change of its flags and its
-/// contents; a `LockedContents` one refuses a change of its contents (`annotation-locked`).
-/// Widgets and annotations stored as direct dictionaries are refused (`annotation-not-editable`).
+/// contents; a `LockedContents` one refuses a change of its contents, a text box's text included
+/// (`annotation-locked`). A text box's contents are its text, changed by a `freeText` spec patch:
+/// `contents` on one is refused (`invalid-op`). Widgets and annotations stored as direct dictionaries are refused (`annotation-not-editable`).
 ///
 /// On the wire: `{ "op": "updateAnnot", "args": { "id": "a12.0", "contents": "Checked",
 /// "translate": { "dx": 0, "dy": -10 } } }`.
@@ -231,10 +232,18 @@ impl UpdateAnnot {
             spec: self.spec.as_ref(),
         };
         let properties = self.author.is_some() || self.subject.is_some() || self.translate.is_some() || redraw.any();
+        // A text box's text is its contents (ISO 32000-2 §12.5.6.6).
+        let new_text = matches!(&self.spec, Some(AnnotSpecPatch::FreeText(patch)) if patch.text.is_some());
         if (properties && flags.has(AnnotFlags::LOCKED))
-            || (self.contents.is_some() && flags.has(AnnotFlags::LOCKED_CONTENTS))
+            || ((self.contents.is_some() || new_text) && flags.has(AnnotFlags::LOCKED_CONTENTS))
         {
             return Err(Error::AnnotationLocked(self.id.clone()));
+        }
+        // `/Contents` is the plain copy of the text the box draws, written with it.
+        if self.contents.is_some() && found.annot.subtype == AnnotSubtype::FreeText {
+            return Err(Error::InvalidOp(
+                "a text box's contents are its text: change them with a freeText patch's text",
+            ));
         }
         let mut dict = found.dict(doc)?;
         let before = dict.clone();

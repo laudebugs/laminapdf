@@ -2,10 +2,10 @@
 //! fallback fonts), with fonts given by their bytes embedded as subsets in the appearance's
 //! resources. The standard 14 faces, when a box uses one with fallbacks, are encoded as
 //! [`simple`](super::simple) encodes them. Bold and italic in a font given by its bytes are drawn
-//! bolder (filled and outlined) and slanted (E4e).
+//! bolder (filled and outlined) and slanted.
 
 use laminapdf_cos::CosMut;
-use laminapdf_ops::{AppearanceRefusal, BlobStore, FontRef, FreeText, RichText};
+use laminapdf_ops::{AnnotFont, AppearanceRefusal, BlobStore, FreeText, RichText};
 use laminapdf_text::{
     Alignment, EmbedPolicy, Font, FontKey, FontRegistry, HarfRust, LayoutOptions, Line, PdfPiece, Standard14,
     StyledSpan, break_spans, pdf_line_run,
@@ -38,7 +38,8 @@ pub(super) struct Fonts {
 /// Whether the box needs this module: a font given by its bytes, or a character the standard 14
 /// faces lack when fallbacks are given.
 pub(super) fn needed(text: &FreeText) -> bool {
-    matches!(text.font, FontRef::Font(_)) || (!text.fallbacks.is_empty() && simple::first_missing(&text.text).is_some())
+    matches!(text.font, AnnotFont::Font(_))
+        || (!text.fallbacks.is_empty() && simple::first_missing(&text.text).is_some())
 }
 
 /// The box's fonts, each style of each listed once.
@@ -74,14 +75,14 @@ pub(super) fn fonts(text: &FreeText, blobs: Option<&BlobStore>) -> Result<Fonts,
         }
     };
     match text.font {
-        FontRef::Standard(family) => {
+        AnnotFont::Standard(family) => {
             for style in 0..STYLES {
                 let face = simple::face(family, style & 1 == 1, style & 2 == 2);
                 out.list.push(Font::standard(face));
                 out.faces.push(Face::Standard(face));
             }
         }
-        FontRef::Font(ref id) => push_embedded(load(id)?, &mut out),
+        AnnotFont::Font(ref id) => push_embedded(load(id)?, &mut out),
         _ => return Err(AppearanceRefusal::NeedsText),
     }
     for id in &text.fallbacks {
@@ -103,10 +104,26 @@ fn spans(text: &RichText, fonts: &Fonts) -> (String, Vec<StyledSpan>) {
                 continue;
             }
             let style = usize::from(span.bold) + 2 * usize::from(span.italic);
-            let from = joined.len();
-            joined.push_str(&span.text);
-            let list: Vec<usize> = (0..families).map(|f| f * STYLES + style).collect();
-            spans.push(StyledSpan::new(from..joined.len()).with_fonts(list));
+            let every: Vec<usize> = (0..families).map(|f| f * STYLES + style).collect();
+            // A standard 14 face draws only what `WinAnsiEncoding` encodes, though its AFM file
+            // lists more glyphs: the rest goes to the fallbacks.
+            let standard = matches!(fonts.faces.first(), Some(Face::Standard(_)));
+            let mut rest = span.text.as_str();
+            while let Some(first) = rest.chars().next() {
+                let encodable = |ch: char| !standard || Standard14::draws_nothing(ch) || simple::win_ansi(ch).is_some();
+                let kind = encodable(first);
+                let end = rest.find(|ch: char| encodable(ch) != kind).unwrap_or(rest.len());
+                let (piece, tail) = rest.split_at(end);
+                let from = joined.len();
+                joined.push_str(piece);
+                let list = if kind {
+                    every.clone()
+                } else {
+                    every.get(1..).unwrap_or_default().to_vec()
+                };
+                spans.push(StyledSpan::new(from..joined.len()).with_fonts(list));
+                rest = tail;
+            }
         }
         if p + 1 < text.paragraphs.len() {
             joined.push('\n');
@@ -184,4 +201,37 @@ pub(super) fn pieces(
 ) -> Option<laminapdf_text::Result<Vec<PdfPiece>>> {
     let key = registered.keys.get(font).copied()?;
     Some(pdf_line_run(run, text, &mut registered.registry, key).map(|pdf| pdf.pieces))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn letters_win_ansi_lacks_list_only_the_fallbacks() {
+        // Helvetica's AFM file has Ł, but WinAnsiEncoding has no code for it. The list's fonts
+        // only count here: two families of four styles, the first standard.
+        let standard = Face::Standard(Standard14::Helvetica);
+        let fallback = Face::Embedded {
+            font: 0,
+            bold: false,
+            italic: false,
+        };
+        let fonts = Fonts {
+            list: vec![Font::standard(Standard14::Helvetica); 2 * STYLES],
+            faces: [[standard; STYLES], [fallback; STYLES]].concat(),
+            embedded: Vec::new(),
+        };
+        let (joined, spans) = spans(&RichText::plain("aŁb"), &fonts);
+        let lists: Vec<(&str, Vec<usize>)> = spans
+            .iter()
+            .map(|s| {
+                (
+                    joined.get(s.range.clone()).unwrap_or_default(),
+                    s.fonts.clone().unwrap_or_default(),
+                )
+            })
+            .collect();
+        assert_eq!(lists, [("a", vec![0, 4]), ("Ł", vec![4]), ("b", vec![0, 4])]);
+    }
 }

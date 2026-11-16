@@ -54,7 +54,7 @@ fn round_trip(text: &FreeText, color: Option<AnnotColor>) -> (Dict, ReadBack) {
 #[test]
 fn a_styled_box_reads_back_as_written() {
     let text = FreeText::new(rect(), styled())
-        .with_font(FontRef::Standard(StandardFamily::Times), 14.0)
+        .with_font(AnnotFont::Standard(StandardFamily::Times), 14.0)
         .with_align(TextAlign::Center)
         .with_fill(Some(AnnotColor::Rgb(1.0, 1.0, 0.8)));
     let (_, read) = round_trip(&text, Some(AnnotColor::Rgb(1.0, 0.0, 0.0)));
@@ -77,7 +77,7 @@ fn a_plain_box_writes_no_rich_text_and_its_text_as_contents() {
 #[test]
 fn da_and_ds_name_the_font_size_colour_and_alignment() {
     let text = FreeText::new(rect(), RichText::plain("x"))
-        .with_font(FontRef::Standard(StandardFamily::Courier), 9.5)
+        .with_font(AnnotFont::Standard(StandardFamily::Courier), 9.5)
         .with_align(TextAlign::Right);
     let (dict, _) = round_trip(&text, Some(AnnotColor::Rgb(0.0, 0.0, 1.0)));
     assert_eq!(
@@ -130,11 +130,11 @@ fn typewriter_text_has_no_border_or_fill() {
 #[test]
 fn a_font_given_by_its_bytes_is_named_by_lamina_pdf_s_key() {
     let id = BlobId::of(b"font");
-    let text = FreeText::new(rect(), RichText::plain("x")).with_font(FontRef::Font(id), 12.0);
+    let text = FreeText::new(rect(), RichText::plain("x")).with_font(AnnotFont::Font(id), 12.0);
     let (dict, read) = round_trip(&text, None);
     assert_eq!(
         (text_key(&dict, FONT_KEY), read.text.font),
-        (id.to_string(), FontRef::Font(id))
+        (id.to_string(), AnnotFont::Font(id))
     );
 }
 
@@ -253,20 +253,20 @@ fn a_box_reads_from_the_wire_with_its_defaults() {
     let AnnotSpec::FreeText(text) = spec else { panic!() };
     assert_eq!(
         (text.font, text.size, text.border, text.intent),
-        (FontRef::default(), 12.0, Border::default(), FreeTextIntent::TextBox)
+        (AnnotFont::default(), 12.0, Border::default(), FreeTextIntent::TextBox)
     );
 }
 
 #[test]
 fn a_font_is_a_family_or_a_blob_id_on_the_wire() {
     let id = BlobId::of(b"f");
-    let fonts: Vec<FontRef> = serde_json::from_str(&format!(r#"["times", "{id}"]"#)).unwrap();
-    assert_eq!(fonts, [FontRef::Standard(StandardFamily::Times), FontRef::Font(id)]);
+    let fonts: Vec<AnnotFont> = serde_json::from_str(&format!(r#"["times", "{id}"]"#)).unwrap();
+    assert_eq!(fonts, [AnnotFont::Standard(StandardFamily::Times), AnnotFont::Font(id)]);
 }
 
 #[test]
 fn an_unknown_font_name_is_refused() {
-    assert!(serde_json::from_str::<FontRef>(r#""comic-sans""#).is_err());
+    assert!(serde_json::from_str::<AnnotFont>(r#""comic-sans""#).is_err());
 }
 
 #[test]
@@ -279,7 +279,7 @@ fn out_of_range_boxes_are_invalid() {
         ])))
     };
     let cases = [
-        base.clone().with_font(FontRef::default(), 0.5),
+        base.clone().with_font(AnnotFont::default(), 0.5),
         base.clone().with_rotation(45),
         callout(1),
         callout(4),

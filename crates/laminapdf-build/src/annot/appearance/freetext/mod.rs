@@ -1,8 +1,9 @@
 //! `FreeText` appearances (ISO 32000-2 §12.5.6.6): the box's fill and border, the callout's
-//! leader line and ending, then the text, clipped to the box and upright as the page is shown.
+//! leader line and ending, then the text, upright as the page is shown and clipped to the box
+//! but for typewriter text, which never wraps and widens the drawing instead.
 //! The text is laid out by [`simple`] in the standard 14 fonts, which every build that draws text
 //! boxes has, or by [`shaped`] (feature `text`) for fonts given by their bytes and fallback
-//! fonts (E4e; the owner's two tiers, 2026-11-16).
+//! fonts, as the owner chose to keep the WebAssembly modules in budget.
 
 #[cfg(feature = "text")]
 mod shaped;
@@ -10,7 +11,7 @@ mod simple;
 
 use laminapdf_cos::{CosMut, Dict, Name, ObjRef, Object};
 use laminapdf_model::UserSpaceRect;
-use laminapdf_ops::{AppearanceRefusal, BlobStore, FontRef, FreeText, StandardFamily};
+use laminapdf_ops::{AnnotFont, AppearanceRefusal, BlobStore, FreeText, StandardFamily};
 use laminapdf_text::Standard14;
 #[cfg(feature = "text")]
 use pdf_writer::types::TextRenderingMode;
@@ -50,7 +51,7 @@ pub(super) fn check(text: &FreeText, blobs: Option<&BlobStore>) -> Result<(), Ap
     #[cfg(not(feature = "text"))]
     {
         let _ = blobs;
-        if matches!(text.font, FontRef::Font(_)) {
+        if matches!(text.font, AnnotFont::Font(_)) {
             return Err(AppearanceRefusal::NeedsText);
         }
         if simple::first_missing(&text.text).is_some() && !text.fallbacks.is_empty() {
@@ -194,7 +195,7 @@ fn aligned(text: &FreeText, room: f64, width: f64) -> f64 {
 /// Draws the text in the standard 14 faces of the box's family.
 fn standard_tier(c: &mut Content, text: &FreeText, frame: &Frame, fonts: &mut FontNames) -> Extent {
     let family = match text.font {
-        FontRef::Standard(family) => family,
+        AnnotFont::Standard(family) => family,
         _ => StandardFamily::Helvetica,
     };
     let pad = padding(text);
