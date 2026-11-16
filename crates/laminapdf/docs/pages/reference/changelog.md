@@ -1,7 +1,7 @@
 ---
 title: "Changelog"
 description: "What changed in each Lamina PDF release, newest first."
-version: "0.4.0"
+version: "0.5.0"
 url: "https://docs.laminapdf.com/reference/changelog/"
 ---
 
@@ -17,6 +17,38 @@ Each entry lists its changes under two headings:
 - **Patch Changes** holds fixes and, from `0.2.0` on, new features. Neither needs a change to your code.
 
 For example, to move from `0.2.0` to `0.3.1`, read the Minor Changes of `0.3.0`; `0.3.1` needs no code change. To move from an alpha to `0.2.0`, read both headings of every entry after your alpha: the alphas promised nothing to each other.
+
+## 0.5.0
+
+### Minor Changes
+
+- [`e31c820`](https://github.com/laudebugs/laminapdf/commit/e31c820): A document now reads back its page boxes and page labels in the form the edits take, so an app can show the current values and change them. `doc.pageBoxes(index)` returns a page's media, crop, bleed, trim and art boxes in user space, as `setPageBoxes` takes them, and says which of the last three the page sets itself. `doc.labelRanges()` returns the page labels as ranges, in the form `setPageLabels` takes, so they can be changed and written back. Both need the extract or text module; in Rust they are `Document::page_boxes` and `Document::label_ranges`.
+  
+The viewer's document worker serves both reads, as `client.pageBoxes(index)` and `client.labelRanges()`. An edit that sets the page labels, and its undo and redo, now gives every page its new label in `EditResult.relabelled`, and `client.document.pages` takes them. No page is drawn again, since labels draw nothing.
+- [`3640cf8`](https://github.com/laudebugs/laminapdf/commit/3640cf8): An app whose document model runs outside the document worker, such as Lamina PDF's desktop app, can now keep its edit history the way the worker does. The new entry point `@laminapdf/viewer/edit-history` exports the code that keeps an edit session's history: its steps, where the document stands among them, and how many steps aren't saved.
+- [`8a65839`](https://github.com/laudebugs/laminapdf/commit/8a65839): Bring pages in from other PDFs and write pages out as new files.
+  
+`client.addSource(bytes)` makes another PDF a source of the open document, so `insertPagesFrom`, `replacePages` and `mergeDocuments` can copy its pages. If the worker restarts, the client adds the file again before it replays those edits. The client keeps no password, so a restart loses the edits that copied pages from a file opened with one. `previewSource` reads a file's pages and claims before they come in, and `renderSource` draws them as thumbnails. `writeParts` writes pages of the open document as new files, or as one zip of them, and `mergeFiles` merges files into a new document.
+- [`ad7bf9f`](https://github.com/laudebugs/laminapdf/commit/ad7bf9f): A view that an app hides, for example under a page grid, keeps its place. Before, hiding the view's element refitted a fit zoom to no width, so the view came back on another page. Now a hidden view draws nothing, even when edits change its pages, and, once shown again, returns to where it was, with no new Back entry. If an edit moved or deleted the page it was on, it returns to that page's new place, or to the nearest page that stayed. A jump made as the view shows again, such as `goToPage`, wins over the kept place.
+  
+The document worker answers two more questions about edits. Before an app applies ops, `client.wouldViolate(ops)` lists the signatures or the certification that saving them would break. An edit's `EditResult` now carries what it did to links, bookmarks and form fields (`references` and `fields`), so an app can tell the person what moved.
+- [`9d863bf`](https://github.com/laudebugs/laminapdf/commit/9d863bf): The viewer shows edits that insert, delete or move pages. Before, the document worker refused any edit that changed the page count. Now an edit, undo or redo that changes the page list returns the pages in their new order (`EditResult.order`). The view and its thumbnails follow each page to its new place, as do find, Back and Forward, and the edit history. A moved page keeps its pictures, and what the viewer kept for a deleted page, such as history entries or find's current match, moves to its nearest surviving page. Each history step lists its pages' IDs (`EditStep.pageIds`), so the history names a step's pages by where they are now. The viewer fires a `reorder` event when the page list changes.
+- [`72318e3`](https://github.com/laudebugs/laminapdf/commit/72318e3): An app can show its own cursor over a page's words, such as a drawing tool's crosshair, in place of the I-beam: it sets the custom property `TEXT_CURSOR_PROPERTY` (`--lamina-text-cursor`) on the viewer's element. Each page also names how far its picture has drawn in `data-render` (`placeholder`, `low`, `sharp` or `error`), so an app can style it, for example to fade the picture in.
+
+### Patch Changes
+
+- [`80c83fa`](https://github.com/laudebugs/laminapdf/commit/80c83fa): In Rust, `Document::adopt_copy_from` makes a saved copy the document's file when the copy is read through a byte source rather than held in memory. An app that appends an incremental save to a large file in place can then adopt the file without reading all of it.
+- [`a593fdd`](https://github.com/laudebugs/laminapdf/commit/a593fdd): Read a review's comments as threads, reply to them and set their status.
+  
+`doc.commentThreads(pages)` gives each comment with its replies in order, the annotations grouped with it, the review states set on it and the latest of each, and the text a highlight marks. A reply to a missing comment, or a ring of replies, comes back as a thread of its own marked `broken`. The `addReply` and `setReviewState` ops answer a comment or record its status as annotations of their own, as Acrobat does, so the thread keeps its history. `doc.deleteAnnotations(ids)` deletes a selection in one undo step. The Rust crates have the same: `Document::comment_threads`, `delete_annotations`, `AddReply` and `SetReviewState`.
+- [`bd4b1e9`](https://github.com/laudebugs/laminapdf/commit/bd4b1e9): Add a clickable contents page made from a document's bookmarks.
+  
+`doc.createContentsPage(options)` lays out a page that lists the bookmarks going to a page, one or two levels deep. Each entry shows the label its page will have once the contents page is in, and links to that page. It inserts the page where `at` says, can add a "Contents" bookmark for it, and does all of this as one undo step. In a tagged file, the page joins the structure tree as a `TOC` element. It needs the text module loaded, though the document can be open in any module, and a font you pass, since Helvetica isn't embedded and a PDF/A or PDF/UA-1 file refuses it.
+  
+The Rust crates have the same as `Document::create_contents_page(&ContentsOptions, &ContentsFonts)`, and in three parts for a host whose document is open in a build without fonts: `Document::contents_listing` reads what the page lists, `ContentsListing::lay_out` lays it out with the `text` feature, and `Document::insert_contents_page` inserts it, refusing a listing the document no longer gives with `document-changed`. The builder's `Contents::listing` sets a contents block from given entries and labels.
+- [`9767f69`](https://github.com/laudebugs/laminapdf/commit/9767f69): Draw on a page: `doc.inkAt`, `doc.shapeAt`, `doc.lineAt` and `doc.polyAt` give the edit that draws on a page from points in page space. They draw freehand ink, squares and circles, lines and arrows, and polygons and polylines. Lamina PDF draws each one into the file, with solid, dashed or cloudy borders, a fill colour, every line ending the PDF standard defines, and leader lines. Ink is smoothed through its points, and a stroke can carry one width per point for a pressure-sensitive pen. `updateAnnot` erases ink strokes and adds new ones. In Rust, the same edits are `Document::ink_at`, `shape_at`, `line_at` and `poly_at`.
+- [`2a447ca`](https://github.com/laudebugs/laminapdf/commit/2a447ca): Pages inserted before the first page of a labelled document no longer repeat its label. They join the start of the first label range: before a range starting at "i" or "1", the first new page takes that label and the range's own pages are numbered up by one, while later ranges, such as an appendix's "A-1", keep theirs. Before a range that starts higher, say at 5, new pages take the numbers below it and nothing else moves. This applies to inserted blank pages, pages inserted from another file and merges.
+- [`91c927d`](https://github.com/laudebugs/laminapdf/commit/91c927d): `laminapdf-content` can now edit what a page draws. `ContentOps::read_page` reads a page's content into objects (text, paths, images, forms and shadings), each with the bytes it came from. A `Recorder`, passed to the interpreter or to `laminapdf-text`'s `TextExtractor::page_with`, gives each object its graphics state and its box on the page, so `hit_test` finds the objects under a point or in a rectangle. `replace` and `remove` change objects, and `encode` writes the page again, copying every byte no edit changed. A `ContentObjectRef` names an object so the name still finds it after the page is read again, and `find` refuses the name once the object has changed. Two new error codes, `content-object-stale` and `content-not-editable`, come with the edit operations that will build on the IR: one for a stale name, one for content that can't be changed safely.
 
 ## 0.4.0
 

@@ -1,6 +1,6 @@
 ---
 title: "document-changed"
-version: "0.4.0"
+version: "0.5.0"
 url: "https://docs.laminapdf.com/reference/codes/document-changed/"
 ---
 
@@ -13,13 +13,15 @@ url: "https://docs.laminapdf.com/reference/codes/document-changed/"
 
 A job's `step` was given a document other than the one the job was created from, or that document changed since: a committed transaction, an undo, a redo, a save or a rebase. Every step checks the document's instance and revision before any work, and the job is now finished.
 
+A contents page raises it too: `insert_contents_page` (`insertContentsPage` in WebAssembly) was given a listing that the document no longer gives, because its bookmarks, page labels or pages changed after `contents_listing` read them.
+
 ## Why
 
 Jobs don't borrow the document, so other calls can run between two steps. A save or a read that went on after an edit would mix two states of the document, so the job stops instead.
 
 ## How to fix
 
-Pass the document the job was created from, don't change it while the job runs, and create a new job after a change. A failed save left the document as it was.
+Pass the document the job was created from, don't change it while the job runs, and create a new job after a change. For a contents page, read the listing again and lay the page out again. A failed save left the document as it was.
 
 ## Example
 

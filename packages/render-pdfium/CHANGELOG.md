@@ -1,5 +1,11 @@
 # @laminapdf/render-pdfium
 
+## 0.5.0
+
+### Patch Changes
+
+- @laminapdf/render@0.5.0
+
 ## 0.4.0
 
 ### Patch Changes
