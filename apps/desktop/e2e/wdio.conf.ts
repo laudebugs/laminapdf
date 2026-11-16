@@ -42,7 +42,7 @@ export function e2eConfig(names: readonly string[], args: readonly string[] = []
       if (!passed) await browser.saveScreenshot(join(output, `${test.title.replace(/\W+/g, "-")}-${attempt}.png`));
       // EXPERIMENT: what every Lamina process is doing when a test fails.
       if (!passed) {
-        const script = `ps -eo pid,ppid,stat,wchan:32,etime,args | grep -i [l]amina; for p in $(pgrep -f laminapdf); do echo "=== $p $(tr '\\0' ' ' < /proc/$p/cmdline)"; ls -l /proc/$p/fd 2>/dev/null | grep socket; sudo gdb -batch -p $p -ex "thread apply all bt" 2>&1 | grep -v '^\\[New LWP\\|^\\[Thread debugging' | head -400; done`;
+        const script = `ps -eo pid,ppid,stat,wchan:32,etime,args --forest | grep -iE "[l]amina|[W]ebKit"; app=$(pgrep -f "target/debug/laminapdf-desktop$" | head -1); for p in $app $(pgrep -f WebKit); do echo "=== $p $(tr '\\0' ' ' < /proc/$p/cmdline)"; ls -l /proc/$p/fd 2>/dev/null | grep -c socket; sudo gdb -batch -p $p -ex "thread apply all bt 25" 2>&1 | grep -v '^\\[New LWP\\|^\\[Thread debugging'; done`;
         try {
           const out = execSync(script, { shell: "/bin/bash", encoding: "utf8", timeout: 120_000, maxBuffer: 64 << 20 });
           writeFileSync(join(output, `${test.title.replace(/\W+/g, "-")}-${attempt}-stacks.txt`), out);
