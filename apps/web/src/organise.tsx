@@ -57,7 +57,13 @@ type Ask =
       readonly page: string;
       readonly proceed: () => void;
     }
-  | { readonly kind: "certified"; readonly proceed: () => void };
+  | {
+      /** A certification or usage rights: no page change is permitted (E2 plan §6). */
+      readonly kind: "noPageChanges";
+      /** What the change would invalidate. */
+      readonly breaks: "certification" | "usageRights";
+      readonly proceed: () => void;
+    };
 
 /** The dialog open over the grid: Organise's own, or one of Page setup's (page-setup.tsx). */
 export type OrganiseDialog = "move" | "blank" | "crop" | "resize" | "boxes" | "labels";
@@ -337,7 +343,10 @@ function askFor(
   proceed: () => void,
 ): Ask | undefined {
   if (violations.length === 0) return undefined;
-  if (violations.some((v) => v.restriction === "docMdp")) return { kind: "certified", proceed };
+  if (violations.some((v) => v.restriction === "docMdp"))
+    return { kind: "noPageChanges", breaks: "certification", proceed };
+  if (violations.some((v) => v.restriction === "usageRights"))
+    return { kind: "noPageChanges", breaks: "usageRights", proceed };
   return { kind: "signed", action: action ?? "delete", page, proceed };
 }
 
@@ -666,18 +675,18 @@ function OrganiseDialogs({
       />
       <PageSetupDialogs controller={controller} engine={engine} />
       <DocumentsDialogs documents={controller.documents} organise={controller} engine={engine} fileName={fileName} />
-      <CertifiedNotice controller={controller} />
+      <NoPageChangesNotice controller={controller} />
     </>
   );
 }
 
-/** The banner on a certified file (O06): the change was refused, with Apply anyway…. */
-function CertifiedNotice({ controller }: { controller: OrganiseController }): ReactNode {
-  const asking = useStoreState(controller, (s) => s.ask?.kind === "certified");
-  if (!asking) return null;
+/** The banner on a certified file, or one with usage rights (O06): the change was refused, with Apply anyway…. */
+function NoPageChangesNotice({ controller }: { controller: OrganiseController }): ReactNode {
+  const breaks = useStoreState(controller, (s) => (s.ask?.kind === "noPageChanges" ? s.ask.breaks : undefined));
+  if (breaks === undefined) return null;
   return (
     <div className="web-organise-certified" role="alert">
-      <span>{organiseWords("organise.certified")}</span>
+      <span>{organiseWords(breaks === "certification" ? "organise.certified" : "organise.usageRights")}</span>
       <Button size={30} onPress={() => controller.answer(true)}>
         {organiseWords("organise.certified.apply")}
       </Button>

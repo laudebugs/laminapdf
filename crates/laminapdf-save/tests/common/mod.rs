@@ -18,6 +18,7 @@
 pub mod content;
 pub mod copy;
 pub mod fuzz_entry;
+pub mod label_goldens;
 pub mod legacy;
 pub mod roundtrip;
 pub mod samples;

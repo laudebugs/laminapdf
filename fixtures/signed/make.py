@@ -16,6 +16,18 @@ Writes, in fixtures/signed/:
 * two-signatures.pdf: two approval signatures, in fields `Sig1` and `Sig2`, each added in its
   own incremental update (3 revisions);
 * timestamp.pdf: a document timestamp (`/Type /DocTimeStamp`, ISO 32000-2 §12.8.5);
+* approval-organised.pdf: three pages with an outline (one item per page), named destinations
+  (`page-1` to `page-3`), a text field `Name` whose widget is on page 1, and tags (a
+  `/StructTreeRoot` with one `/P` per page), then an approval signature whose visible widget is
+  on page 2 (E2 plan §9);
+* certified-p2-outline.pdf: the same three pages with the outline and named destinations,
+  certified at P2;
+* locked-page1.pdf: the same three pages and text field, then an approval signature on page 3
+  whose FieldMDP lock (`/Action /Include`) covers `Name`, whose widget is on page 1;
+* usage-rights.pdf: the same three pages with a text annotation on page 1, and `/Perms /UR3`
+  granting `/Annots [/Create /Delete]` and `/Form [/FillIn]`. Only Adobe's key can sign usage
+  rights, so the dictionary is written with no valid signature: the planner reads its
+  structure, not its validity;
 * signed-encrypted.pdf: an AES-128 file with an empty user password (owner password
   `owner-pw`), signed in an encrypted incremental update.
 
@@ -42,6 +54,16 @@ from pyhanko.sign import fields, signers, timestamps
 from pyhanko.sign.fields import FieldMDPAction, FieldMDPSpec, MDPPerm, SigFieldSpec
 from pyhanko_certvalidator.registry import SimpleCertificateStore
 from pypdf import PdfWriter
+from pypdf.generic import (
+    ArrayObject,
+    BooleanObject,
+    DecodedStreamObject,
+    DictionaryObject,
+    FloatObject,
+    NameObject,
+    NumberObject,
+    TextStringObject,
+)
 
 HERE = Path(__file__).resolve().parent
 FIXED = datetime.datetime(2026, 10, 29, 12, 0, 0, tzinfo=datetime.timezone.utc)
@@ -90,6 +112,163 @@ def base(*, encrypt: bool = False) -> bytes:
     return out.getvalue()
 
 
+def name(n: str) -> NameObject:
+    return NameObject(n)
+
+
+def three_pages(w: PdfWriter, *, tagged: bool) -> list:
+    """Three Letter pages, each drawing "Page n"; with `tagged`, each in a marked-content
+    sequence (MCID 0) with `/StructParents n`. Returns the pages' `/P` elements (or none)."""
+    font = w._add_object(DictionaryObject({
+        name("/Type"): name("/Font"), name("/Subtype"): name("/Type1"), name("/BaseFont"): name("/Helvetica"),
+    }))
+    elements = []
+    for n in range(3):
+        page = w.add_blank_page(612, 792)
+        body = f"BT /F1 24 Tf 72 700 Td (Page {n + 1}) Tj ET".encode()
+        if tagged:
+            body = b"/P <</MCID 0>> BDC " + body + b" EMC"
+            page[name("/StructParents")] = NumberObject(n)
+            elements.append(w._add_object(DictionaryObject({
+                name("/Type"): name("/StructElem"), name("/S"): name("/P"),
+                name("/Pg"): page.indirect_reference, name("/K"): NumberObject(0),
+            })))
+        stream = DecodedStreamObject()
+        stream.set_data(body)
+        page[name("/Contents")] = w._add_object(stream)
+        page[name("/Resources")] = DictionaryObject({name("/Font"): DictionaryObject({name("/F1"): font})})
+    return elements
+
+
+def add_outline(w: PdfWriter) -> None:
+    """A bookmark per page."""
+    for n in range(3):
+        w.add_outline_item(f"Page {n + 1}", n)
+
+
+def add_named_destinations(w: PdfWriter) -> None:
+    """`page-1` to `page-3` in the `/Names /Dests` tree, each fitting its page."""
+    names = ArrayObject()
+    for n, page in enumerate(w.pages):
+        names.extend([TextStringObject(f"page-{n + 1}"), ArrayObject([page.indirect_reference, name("/Fit")])])
+    w._root_object[name("/Names")] = DictionaryObject({
+        name("/Dests"): w._add_object(DictionaryObject({name("/Names"): names})),
+    })
+
+
+def add_annotation(w: PdfWriter, annot: DictionaryObject) -> None:
+    """`annot` on page 1."""
+    page = w.pages[0]
+    annot[name("/P")] = page.indirect_reference
+    page[name("/Annots")] = ArrayObject([w._add_object(annot)])
+
+
+def rect(*values: float) -> ArrayObject:
+    return ArrayObject([FloatObject(v) for v in values])
+
+
+def add_name_field(w: PdfWriter) -> None:
+    """A text field `Name` holding "Ada", its widget on page 1."""
+    add_annotation(w, DictionaryObject({
+        name("/Type"): name("/Annot"), name("/Subtype"): name("/Widget"), name("/FT"): name("/Tx"),
+        name("/T"): TextStringObject("Name"), name("/V"): TextStringObject("Ada"), name("/F"): NumberObject(4),
+        name("/Rect"): rect(72, 600, 272, 624),
+    }))
+    field = w.pages[0]["/Annots"][0]
+    w._root_object[name("/AcroForm")] = DictionaryObject({name("/Fields"): ArrayObject([field])})
+
+
+def add_note(w: PdfWriter) -> None:
+    """A text note on page 1."""
+    add_annotation(w, DictionaryObject({
+        name("/Type"): name("/Annot"), name("/Subtype"): name("/Text"), name("/Rect"): rect(300, 700, 320, 720),
+        name("/Contents"): TextStringObject("A note"),
+    }))
+
+
+def add_tags(w: PdfWriter, elements: list) -> None:
+    """A structure tree: a `/Document` holding the pages' `/P` elements, with its parent tree."""
+    tree = w._add_object(DictionaryObject({name("/Type"): name("/StructTreeRoot")}))
+    doc = w._add_object(DictionaryObject({
+        name("/Type"): name("/StructElem"), name("/S"): name("/Document"), name("/P"): tree,
+        name("/K"): ArrayObject(elements),
+    }))
+    parents = ArrayObject()
+    for n, e in enumerate(elements):
+        e.get_object()[name("/P")] = doc
+        parents.extend([NumberObject(n), ArrayObject([e])])
+    tree.get_object().update({
+        name("/K"): doc,
+        name("/ParentTree"): DictionaryObject({name("/Nums"): parents}),
+        name("/ParentTreeNextKey"): NumberObject(len(elements)),
+    })
+    w._root_object[name("/StructTreeRoot")] = tree
+    w._root_object[name("/MarkInfo")] = DictionaryObject({name("/Marked"): BooleanObject(True)})
+
+
+def add_usage_rights(w: PdfWriter) -> None:
+    """`/Perms /UR3` granting `/Annots [/Create /Delete]` and `/Form [/FillIn]`. Only Adobe's key
+    signs usage rights, so the signature is a placeholder: the planner reads the structure."""
+    rights = DictionaryObject({
+        name("/Type"): name("/TransformParams"), name("/V"): name("/2.2"),
+        name("/Annots"): ArrayObject([name("/Create"), name("/Delete")]),
+        name("/Form"): ArrayObject([name("/FillIn")]),
+    })
+    sig = w._add_object(DictionaryObject({
+        name("/Type"): name("/Sig"), name("/Filter"): name("/Adobe.PPKLite"),
+        name("/SubFilter"): name("/adbe.pkcs7.detached"), name("/ByteRange"): ArrayObject([NumberObject(0)] * 4),
+        name("/Contents"): TextStringObject(""),
+        name("/Reference"): ArrayObject([DictionaryObject({
+            name("/Type"): name("/SigRef"), name("/TransformMethod"): name("/UR3"), name("/TransformParams"): rights,
+        })]),
+    }))
+    w._root_object[name("/Perms")] = DictionaryObject({name("/UR3"): sig})
+
+
+def written(w: PdfWriter) -> bytes:
+    w.add_metadata({"/Title": "Signed fixture", "/Producer": "lamina fixtures/signed/make.py"})
+    out = io.BytesIO()
+    w.write(out)
+    return out.getvalue()
+
+
+def organised() -> bytes:
+    """Three pages with an outline, named destinations, the `Name` field and tags."""
+    w = PdfWriter()
+    elements = three_pages(w, tagged=True)
+    add_outline(w)
+    add_named_destinations(w)
+    add_name_field(w)
+    add_tags(w, elements)
+    return written(w)
+
+
+def with_outline() -> bytes:
+    """Three pages with an outline and named destinations."""
+    w = PdfWriter()
+    three_pages(w, tagged=False)
+    add_outline(w)
+    add_named_destinations(w)
+    return written(w)
+
+
+def with_field() -> bytes:
+    """Three pages with the `Name` field."""
+    w = PdfWriter()
+    three_pages(w, tagged=False)
+    add_name_field(w)
+    return written(w)
+
+
+def with_usage_rights() -> bytes:
+    """Three pages with a note on page 1, and usage rights."""
+    w = PdfWriter()
+    three_pages(w, tagged=False)
+    add_note(w)
+    add_usage_rights(w)
+    return written(w)
+
+
 def main() -> None:
     ca_key, signer_key, tsa_key = key(), key(), key()
     ca = cert("lamina test CA", ca_key.public_key(), "lamina test CA", ca_key, ca=True)
@@ -135,6 +314,18 @@ def main() -> None:
         ),
     )
     sign("signed-encrypted.pdf", meta(), encrypt=True)
+
+    page2 = SigFieldSpec(sig_field_name="Sig1", on_page=1, box=(50, 50, 250, 100))
+    (HERE / "approval-organised.pdf").write_bytes(
+        signed(organised(), meta(), page2)
+    )
+    (HERE / "certified-p2-outline.pdf").write_bytes(
+        signed(with_outline(), meta(certify=True, docmdp_permissions=MDPPerm.FILL_FORMS), page2)
+    )
+    lock = FieldMDPSpec(FieldMDPAction.INCLUDE, fields=["Name"])
+    page3 = SigFieldSpec(sig_field_name="Sig1", on_page=2, box=(50, 50, 250, 100), field_mdp_spec=lock)
+    (HERE / "locked-page1.pdf").write_bytes(signed(with_field(), meta(), page3))
+    (HERE / "usage-rights.pdf").write_bytes(with_usage_rights())
 
     once = signed(base(), meta(), SigFieldSpec(sig_field_name="Sig1", box=(50, 700, 250, 750)))
     twice = signed(once, meta("Sig2"), SigFieldSpec(sig_field_name="Sig2", box=(300, 700, 500, 750)))

@@ -34,7 +34,7 @@ Edit a document's page labels (style, prefix and first number per range) as one 
 
 - Keeping labels right as pages move is E2j's `PageLabels::remap`, which every page op calls
 - The labels editor dialog and thumbnail captions → [E2g](../done/E2g-page-labels.md)
-- The test that labels survive every page op, merge and extract → [E2i](../ready/E2i-signed-gating-and-close.md)
+- The test that labels survive every page op, merge and extract → [E2i](../done/E2i-signed-gating-and-close.md)
 
 **Editor facts**
 

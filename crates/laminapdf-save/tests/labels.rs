@@ -10,8 +10,8 @@
 mod common;
 
 use common::fixture;
+use common::label_goldens::{check_golden, labels_of, shown_elsewhere, updating};
 use common::save::editable;
-use laminapdf_cos::OpenOptions;
 use laminapdf_model::{LabelStyle, PageId};
 use laminapdf_ops::{Document, Op, Origin, PageLabelRange, SetPageLabels};
 use laminapdf_save::{Save as _, SaveMode, SaveOptions, SavePlanner};
@@ -28,12 +28,6 @@ fn front_matter(doc: &Document) -> Op {
         ranges.push(PageLabelRange::new(third.clone(), Some(LabelStyle::Decimal)));
     }
     SetPageLabels::new(ranges).into()
-}
-
-fn labels_of(bytes: Vec<u8>) -> Vec<Option<String>> {
-    let doc = laminapdf_model::Document::open(bytes, OpenOptions::default()).unwrap();
-    let labels = doc.page_labels().unwrap();
-    (0..doc.pages().unwrap().len()).map(|i| labels.label(i)).collect()
 }
 
 fn qpdf_accepts(bytes: &[u8]) -> bool {
@@ -170,35 +164,27 @@ fn case_bytes(ranges: &[(usize, Option<LabelStyle>, &str, u32)]) -> Vec<u8> {
     out
 }
 
-/// Each case's bytes match its committed file (`UPDATE_GOLDEN=1` rewrites them; then run
-/// `tools/fixtures/label_facts.py`), and Lamina PDF, pdf.js and PDFium show the same label on
-/// every page of it (`fixtures/pages/set-labels/facts.json`).
+/// Each case's bytes match its committed file in `fixtures/pages/set-labels/`
+/// (`UPDATE_GOLDEN=1` rewrites them).
+#[test]
+fn each_cases_saved_file_matches_its_golden() {
+    for (name, ranges) in CASES {
+        check_golden("set-labels", name, &case_bytes(ranges));
+    }
+}
+
+/// Lamina PDF, pdf.js and PDFium show the same label on every page of each case, and qpdf
+/// accepts it (`fixtures/pages/set-labels/facts.json`).
 #[test]
 fn pdfjs_and_pdfium_show_the_labels_the_op_wrote() {
-    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/pages/set-labels");
-    let update = std::env::var_os("UPDATE_GOLDEN").is_some();
-    let facts: serde_json::Value = if update {
-        serde_json::Value::Null
-    } else {
-        serde_json::from_slice(&fixture("pages/set-labels/facts.json")).unwrap()
-    };
+    if updating() {
+        return;
+    }
     for (name, ranges) in CASES {
-        let bytes = case_bytes(ranges);
-        if update {
-            std::fs::create_dir_all(&dir).unwrap();
-            std::fs::write(dir.join(name), &bytes).unwrap();
-            continue;
-        }
+        let ours = serde_json::to_value(labels_of(case_bytes(ranges))).unwrap();
         assert_eq!(
-            bytes,
-            fixture(&format!("pages/set-labels/{name}")),
-            "{name}: run with UPDATE_GOLDEN=1"
-        );
-        let file = &facts["files"][name];
-        let ours = serde_json::to_value(labels_of(bytes)).unwrap();
-        assert_eq!(
-            (&ours, &ours, true),
-            (&file["pdfjs"], &file["pdfium"], file["qpdf_check"].as_bool().unwrap()),
+            (ours.clone(), ours, true),
+            shown_elsewhere("set-labels", name),
             "{name}"
         );
     }

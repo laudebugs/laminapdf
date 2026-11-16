@@ -5,7 +5,7 @@ use std::collections::BTreeSet;
 
 use laminapdf_model::PageId;
 
-use crate::class::ModificationClass;
+use crate::class::{AnnotRight, ModificationClass};
 use crate::op::{Effect, Op};
 use crate::widgets::TouchedWidget;
 
@@ -14,7 +14,8 @@ use crate::widgets::TouchedWidget;
 /// needs a full rewrite ([ADR 0007] §2).
 ///
 /// It errs on the side of reporting: every committed transaction's op classes are added (an
-/// undo or redo adds those of the transaction it reverts), and only an empty overlay (nothing
+/// undo or redo adds those of the transaction it reverts, with its usage rights turned round:
+/// undoing an addition deletes), and only an empty overlay (nothing
 /// left to save) or a rebase clears it. A class that is reported but whose change was undone
 /// can make the planner refuse a save it could allow; a class that is missing would let a save
 /// break a signature without saying so.
@@ -25,6 +26,7 @@ use crate::widgets::TouchedWidget;
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PendingChanges {
     classes: BTreeSet<ModificationClass>,
+    annot_rights: BTreeSet<AnnotRight>,
     requires_rewrite: bool,
     unknown: bool,
     packet_rewritten: bool,
@@ -55,6 +57,7 @@ impl PendingChanges {
             ]
             .into_iter()
             .collect(),
+            annot_rights: AnnotRight::ALL.into_iter().collect(),
             requires_rewrite: true,
             unknown: true,
             packet_rewritten: false,
@@ -80,6 +83,15 @@ impl PendingChanges {
     #[must_use]
     pub const fn classes(&self) -> &BTreeSet<ModificationClass> {
         &self.classes
+    }
+
+    /// The usage rights the annotation changes need ([`Op::annot_right`]): what the save
+    /// planner checks against a UR3 signature's `/Annots`, right by right.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub const fn annot_rights(&self) -> &BTreeSet<AnnotRight> {
+        &self.annot_rights
     }
 
     /// Whether any of them needs a full rewrite ([`Op::requires_rewrite`]).
@@ -169,6 +181,7 @@ impl PendingChanges {
     /// packet whole, and the widgets it touched.
     pub(crate) fn record(&mut self, op: &Op, effect: &Effect) {
         self.classes.insert(op.class());
+        self.annot_rights.extend(op.annot_right());
         self.requires_rewrite |= op.requires_rewrite();
         self.packet_rewritten |= effect.packet_rewritten;
         self.widgets.extend(effect.widgets.iter().cloned());
@@ -181,6 +194,7 @@ impl PendingChanges {
     /// Adds everything `other` holds.
     pub(crate) fn merge(&mut self, other: &Self) {
         self.classes.extend(other.classes.iter().copied());
+        self.annot_rights.extend(other.annot_rights.iter().copied());
         self.requires_rewrite |= other.requires_rewrite;
         self.unknown |= other.unknown;
         self.packet_rewritten |= other.packet_rewritten;
@@ -189,6 +203,15 @@ impl PendingChanges {
         self.tags_dropped.extend(other.tags_dropped.iter().cloned());
         self.pdfa_unchecked.extend(other.pdfa_unchecked.iter().cloned());
         self.pdfua_unchecked.extend(other.pdfua_unchecked.iter().cloned());
+    }
+
+    /// These changes as their reversion records them: the same, but with each usage right
+    /// turned round ([`AnnotRight::reverted`]).
+    pub(crate) fn reverted(&self) -> Self {
+        Self {
+            annot_rights: self.annot_rights.iter().map(|r| r.reverted()).collect(),
+            ..self.clone()
+        }
     }
 
     /// Forgets everything (after a rebase, or when the overlay is empty again).

@@ -138,7 +138,7 @@ Command ids use the registry’s `namespace.verb-object` form ([U1b](../../todos
 
 **Artboards:** `O03-close-unsaved.dc.html`.
 
-**Todos:** [E2i](../../todos/ready/E2i-signed-gating-and-close.md) (close guards themselves come from [E1d](../../todos/done/E1d-edit-session-undo-ui.md)).
+**Todos:** [E2t](../../todos/ready/E2t-signed-file-choices.md) (the signed-file states; close guards themselves come from [E1d](../../todos/done/E1d-edit-session-undo-ui.md)).
 
 ## O04 Document info and XMP editor
 
@@ -269,7 +269,7 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 
 - **Nothing selected:** no inspector; toolbar actions that need a selection are disabled; note “24 pages”.
 - **Dragging:** drawn in `O06-organise`.
-- **Approval-signed file, deleting or rotating the signature's page:** [E2r](../../todos/done/E2r-planner-page-checks.md)'s checks report `Restriction::SignedWidget { field }` for [E2b](../../todos/done/E2b-page-structure-ops.md)'s `DeletePages` and `RotatePages` on the page that holds a signed signature's widget (deleting removes the signature's appearance and leaves its widget pointing at a missing page; rotating turns the signed appearance), so the save would be `Conflict`. The op is refused before applying and the `alertdialog` drawn in `O06-delete-signed` names the signature and offers “Delete page 23 only” (primary), Cancel (focus) and “Remove signature and delete…” (danger ghost, leads to the O02 confirm). For a rotate the same dialog reads “Rotate page 23 only” and “Remove signature and rotate…”. Moving, inserting or duplicating pages, and deleting or rotating other pages, on an approval-only file is `AppendOnly` and needs no dialog ([E2i](../../todos/ready/E2i-signed-gating-and-close.md)).
+- **Approval-signed file, deleting or rotating the signature's page:** [E2r](../../todos/done/E2r-planner-page-checks.md)'s checks report `Restriction::SignedWidget { field }` for [E2b](../../todos/done/E2b-page-structure-ops.md)'s `DeletePages` and `RotatePages` on the page that holds a signed signature's widget (deleting removes the signature's appearance and leaves its widget pointing at a missing page; rotating turns the signed appearance), so the save would be `Conflict`. The op is refused before applying and the `alertdialog` drawn in `O06-delete-signed` names the signature and offers “Delete page 23 only” (primary), Cancel (focus) and “Remove signature and delete…” (danger ghost, leads to the O02 confirm). For a rotate the same dialog reads “Rotate page 23 only” and “Remove signature and rotate…”. Moving, inserting or duplicating pages, and deleting or rotating other pages, on an approval-only file is `AppendOnly` and needs no dialog ([E2i](../../todos/done/E2i-signed-gating-and-close.md)).
 - **Certified file, any page change:** refused before applying (`would_violate`, the area's signed-file rule): a drop, delete, rotate or insert changes nothing and shows the banner “**Moving pages would invalidate the certification.** … nothing has been moved.” with Save a copy · Apply anyway… · Details. A dropped drag animates back to its place. Apply anyway… confirms and then applies the change as one undo step.
 - **Delete with references:** the toast after deleting says what changed: “Deleted 2 pages. 1 bookmark now points to page 4.” with Undo.
 - **Duplicate on a form:** toast “Duplicated page 6. Its 2 fields were copied as new fields; the signature field wasn’t copied.”
@@ -287,8 +287,8 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 - The rail keeps Read's tabs.
 - The inspector has the title, Rotation, Size and Page labels, with Duplicate pages and Delete; no section context, and no “Linked from” line, which needs a reference count per page that the reader doesn't read yet.
 - The page menu has Insert blank page before and after, Rotate left and right, Duplicate, Move to page…, Page setup's six items (E2g) and Delete page (last); the documents entries wait for E2m.
-- The signed-page question names the page, not the signer: the save planner's signatures don't carry a signer's name. It offers “Delete page 23 anyway” (or Rotate) and Cancel (focused); Remove signature… waits for [E2i](../../todos/ready/E2i-signed-gating-and-close.md).
-- The certification banner reads “Changing pages would invalidate the certification. Nothing has been changed.” with Apply anyway… and a close button; Apply anyway… applies the change as one undo step without a second confirmation, and Save a copy and Details wait for E2i.
+- The signed-page question names the page, not the signer: the save planner's signatures don't carry a signer's name. It offers “Delete page 23 anyway” (or Rotate) and Cancel (focused); Remove signature… waits for [E2t](../../todos/ready/E2t-signed-file-choices.md).
+- The certification banner reads “Changing pages would invalidate the certification. Nothing has been changed.” with Apply anyway… and a close button; Apply anyway… applies the change as one undo step without a second confirmation, and Save a copy and Details wait for [E2t](../../todos/ready/E2t-signed-file-choices.md).
 - The delete toast counts what pointed at the deleted pages as “links or bookmarks” (bookmarks, links, named destinations and the opening view together).
 - Deleting every page is refused with a toast. Tiles are white until their picture arrives, with no text-line placeholder.
 - Toolbar actions that need a selection stay enabled without one and do nothing then. With several pages selected, the signed-page question names the first of them: a violation names the signature's field, not its page.

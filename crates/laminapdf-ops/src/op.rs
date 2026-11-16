@@ -8,7 +8,7 @@ use laminapdf_model::{OutlineItemId, PageId};
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::annot::{AddAnnot, AddReply, Appearances, DeleteAnnot, SetReviewState, UpdateAnnot};
-use crate::class::ModificationClass;
+use crate::class::{AnnotRight, ModificationClass};
 #[cfg(feature = "content-edit")]
 use crate::content::{EditContent, EditText};
 use crate::error::{Error, Result};
@@ -259,6 +259,28 @@ impl Op {
             Self::EditContent(_) | Self::EditText(_) => false,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.requires_rewrite(),
+        }
+    }
+
+    /// The usage right this op needs if it changes annotations: what `laminapdf-save`'s
+    /// planner checks against a UR3 signature's `/Annots`, op by op ([E4 plan §6]). Adding an
+    /// annotation, a link, a reply or a review state needs `/Create`, updating one `/Modify` and
+    /// deleting one `/Delete`; an op that changes no annotation needs none.
+    ///
+    /// [E4 plan §6]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e4-markup-and-drawing-annotations.md#6-saving-and-the-save-constraint
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub fn annot_right(&self) -> Option<AnnotRight> {
+        match self {
+            Self::AddAnnot(_) | Self::AddLink(_) | Self::AddReply(_) | Self::SetReviewState(_) => {
+                Some(AnnotRight::Create)
+            }
+            Self::UpdateAnnot(_) | Self::UpdateLink(_) => Some(AnnotRight::Modify),
+            Self::DeleteAnnot(_) | Self::DeleteLink(_) => Some(AnnotRight::Delete),
+            #[cfg(feature = "test-support")]
+            Self::Declared(op) => op.op.annot_right(),
+            _ => None,
         }
     }
 

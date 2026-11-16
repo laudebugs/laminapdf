@@ -1,0 +1,251 @@
+{
+ "pdfjs_version": "6.4.299",
+ "pypdfium2_version": "5.14.0",
+ "qpdf_version": "12.4.2",
+ "files": {
+  "delete.pdf": {
+   "sha256": "841baebabe1c06ea5aa8692b91e1074e4094ae9bff8b0bfdccaef379322c9ead",
+   "qpdf_check": true,
+   "pdfjs": [
+    "i",
+    "ii",
+    "iii",
+    "2",
+    "3",
+    "4",
+    "A-1",
+    "A-3"
+   ],
+   "pdfium": [
+    "i",
+    "ii",
+    "iii",
+    "2",
+    "3",
+    "4",
+    "A-1",
+    "A-3"
+   ]
+  },
+  "duplicate.pdf": {
+   "sha256": "293c1ce1384fbe406d9873b147e2eb126ce466945b2cd06d9a820c7b253be202",
+   "qpdf_check": true,
+   "pdfjs": [
+    "i",
+    "ii",
+    "iii",
+    "1",
+    "2",
+    "3",
+    "4",
+    "4",
+    "A-1",
+    "A-2",
+    "A-3"
+   ],
+   "pdfium": [
+    "i",
+    "ii",
+    "iii",
+    "1",
+    "2",
+    "3",
+    "4",
+    "4",
+    "A-1",
+    "A-2",
+    "A-3"
+   ]
+  },
+  "extract.pdf": {
+   "sha256": "05071b6364ffc2262a8098d9932986ea2a85834b221d567218a9bf611c76c9d4",
+   "qpdf_check": true,
+   "pdfjs": [
+    "ii",
+    "3",
+    "A-2"
+   ],
+   "pdfium": [
+    "ii",
+    "3",
+    "A-2"
+   ]
+  },
+  "insert-blank.pdf": {
+   "sha256": "84745f4aa55f5d164efa4545278620dca91d7d00bd4e1de2d454ddae68852d93",
+   "qpdf_check": true,
+   "pdfjs": [
+    "i",
+    "ii",
+    "iii",
+    "1",
+    "2",
+    "3",
+    "2",
+    "3",
+    "4",
+    "A-1",
+    "A-2",
+    "A-3"
+   ],
+   "pdfium": [
+    "i",
+    "ii",
+    "iii",
+    "1",
+    "2",
+    "3",
+    "2",
+    "3",
+    "4",
+    "A-1",
+    "A-2",
+    "A-3"
+   ]
+  },
+  "insert-from.pdf": {
+   "sha256": "3d117cd3f3067f1dec5f64061456dd8136501b1d88351aeb5709a3c78a6748d8",
+   "qpdf_check": true,
+   "pdfjs": [
+    "i",
+    "ii",
+    "iii",
+    "1",
+    "2",
+    "3",
+    "4",
+    "4",
+    "A-1",
+    "A-2",
+    "A-3"
+   ],
+   "pdfium": [
+    "i",
+    "ii",
+    "iii",
+    "1",
+    "2",
+    "3",
+    "4",
+    "4",
+    "A-1",
+    "A-2",
+    "A-3"
+   ]
+  },
+  "merge.pdf": {
+   "sha256": "185734bd24cf356ee712ac3c92c0808266b47bc7f16b7b1a5735547e3b500878",
+   "qpdf_check": true,
+   "pdfjs": [
+    "i",
+    "ii",
+    "iii",
+    "1",
+    "2",
+    "3",
+    "4",
+    "A-1",
+    "A-2",
+    "A-3",
+    "1"
+   ],
+   "pdfium": [
+    "i",
+    "ii",
+    "iii",
+    "1",
+    "2",
+    "3",
+    "4",
+    "A-1",
+    "A-2",
+    "A-3",
+    "1"
+   ]
+  },
+  "move.pdf": {
+   "sha256": "1f9035d18b854d26b072918cfca4db7842bec66aa34f5b976182e91f8c355d83",
+   "qpdf_check": true,
+   "pdfjs": [
+    "i",
+    "ii",
+    "iii",
+    "1",
+    "A-2",
+    "2",
+    "3",
+    "4",
+    "A-1",
+    "A-3"
+   ],
+   "pdfium": [
+    "i",
+    "ii",
+    "iii",
+    "1",
+    "A-2",
+    "2",
+    "3",
+    "4",
+    "A-1",
+    "A-3"
+   ]
+  },
+  "replace.pdf": {
+   "sha256": "ce1b9b89c41d99f17064f7a6715be5b1f1e29338c10369397056dfddc314d56e",
+   "qpdf_check": true,
+   "pdfjs": [
+    "i",
+    "ii",
+    "iii",
+    "1",
+    "2",
+    "3",
+    "4",
+    "A-1",
+    "A-2",
+    "A-3"
+   ],
+   "pdfium": [
+    "i",
+    "ii",
+    "iii",
+    "1",
+    "2",
+    "3",
+    "4",
+    "A-1",
+    "A-2",
+    "A-3"
+   ]
+  },
+  "reverse.pdf": {
+   "sha256": "8c0d94b82aa3d75a467290d7f8e9115bb4e11cad22cf164b5b1061259c922d90",
+   "qpdf_check": true,
+   "pdfjs": [
+    "i",
+    "ii",
+    "iii",
+    "4",
+    "3",
+    "2",
+    "1",
+    "A-1",
+    "A-2",
+    "A-3"
+   ],
+   "pdfium": [
+    "i",
+    "ii",
+    "iii",
+    "4",
+    "3",
+    "2",
+    "1",
+    "A-1",
+    "A-2",
+    "A-3"
+   ]
+  }
+ }
+}

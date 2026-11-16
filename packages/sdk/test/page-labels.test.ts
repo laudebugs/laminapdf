@@ -1,6 +1,6 @@
 // The page-labels edit: doc.setPageLabels and Transaction.setPageLabels, saved and reopened, and
-// the ranges it refuses. The names start with the capability each test proves (I.10); they become
-// capability tags once `cargo xtask capabilities` runs TypeScript tests.
+// the ranges it refuses. A test's title starts with the capability it proves
+// (its tag: capability I.10, column pdf), which `cargo xtask capabilities` counts.
 import { Document, init, isLaminaPdfError, type PageLabelRange } from "@laminapdf/sdk";
 import { beforeAll, describe, expect, it } from "vitest";
 import { read, thrown } from "./helpers.js";
@@ -17,7 +17,7 @@ function labels(doc: Document): (string | undefined)[] {
 }
 
 describe("page labels", () => {
-  it("I.10 (pdf, round-trip): sets labels that a saved and reopened file shows", () => {
+  it("[cap I.10 pdf round-trip] sets labels that a saved and reopened file shows", () => {
     for (const mode of ["incremental", "fullRewrite"] as const) {
       using doc = open();
       const ids = doc.pages.map((page) => page.id);
