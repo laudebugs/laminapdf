@@ -156,6 +156,8 @@ describe(`page appearance in ${BROWSER}`, () => {
 /**
  * Runs in the page: `span`'s `::selection` colour as the browser resolves it, and the paper and
  * the ink the page's canvas draws under it (the commonest pixel and the one furthest from it).
+ * The viewer's browser tests read a screenshot the same way; this one runs in the page, so it
+ * can't import theirs.
  */
 function selectionOver(span: Element): { selection: Rgba; paper: Rgba; ink: Rgba } {
   const rgba = (css: string): Rgba => {

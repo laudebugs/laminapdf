@@ -14,7 +14,7 @@ The selection and the find marks follow different rules, because they need diffe
 
 ## How it was checked
 
-- **Token tests** (`packages/tokens/test/page-marks.test.ts`, 53 checks): for Original, Sepia and Dark with every accent, the selection lands within 1/255 of its tint and the find colours within 8/255 of theirs; the ink under each measures at least 4.5:1; the selection measures at least 1.1:1 over white and black pictures.
+- **Token tests** (`packages/tokens/test/page-marks.test.ts`, 81 checks): for Original, Sepia and Dark with every accent, the selection lands within 1/255 of its tint and the find colours within 8/255 of theirs; the ink under each measures at least 4.5:1; the selection measures at least 1.1:1 over white and black pictures.
 - **Viewer browser tests** (`text-layer.browser.test.ts`, "selection tint" and "find marks", in Chromium, Firefox and WebKit): on a Dark page, a selected word's background lands on `#425858` with its ink at 4.5:1 or more, and a word selected over a white picture still shows; the current find match lands on `find-current`, with its word readable and its outline drawn unblended; and on an Original page a found word keeps its ink under an opaque find colour. Run against the multiplied text layer, the Dark selection test failed with the selection drawn as `#1C1E1C`.
 - **A reader e2e test** (`apps/web/e2e/page-appearance.e2e.test.ts`, in Chromium, Firefox and WebKit): in the built reader with its style sheets, a mouse drag across a line on a Dark page; the text layer is unblended, and the selection's colour as the browser resolves it lands on `#425858` over the page's paper, with the words at 4.5:1 or more.
 - **The reproduction again**, in the built reader in Chromium, with a mouse drag across four lines:
@@ -30,7 +30,7 @@ The selection and the find marks follow different rules, because they need diffe
 
 ## Left for later
 
-- **High contrast.** Its selection is now the system's `Highlight` at 40%, translucent since the text layer is no longer blended; its find marks keep the multiply they had. The renderer draws the page on the system's `Canvas`, which can be white or black, while the design language assumes black and asks for the text under those fills in `HighlightText` and `MarkText`. That needs its own look.
+- **High contrast.** Its selection is now the system's `Highlight` at 40%, translucent since the text layer is no longer blended; its find marks keep the multiply they had. On a black `Canvas` that hides their fills, leaving the 1 px edge and the outline to mark them; on `main` the fill showed, opaque over the word. The renderer draws the page on the system's `Canvas`, which can be white or black, while the design language assumes black and asks for the text under those fills in `HighlightText` and `MarkText`. That needs its own look.
 - **Overlapping line boxes**, carried over from [selection-hides-text](../selection-hides-text/resolution.md): a span is one font size tall, which can be more than the gap between lines, so where two lines' selections overlap the overlay shows twice, as a lighter band on a Dark page.
 - **The desktop app** wasn't driven by hand. It loads the same style sheet, and has no page appearance to switch to yet.
 - **The column selection's drag rectangle** keeps its own light blue at 8%, outside the page's colours.

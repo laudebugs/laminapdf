@@ -37,8 +37,8 @@ On a Dark page, selected text sits on a near-black box and the text itself dims,
 **In scope**
 
 - Tokens: for each appearance but High contrast, the selection overlay (the accent with its opacity, per accent), the find blend, and the fills for `find-match` and `find-current`, computed and emitted by the generator into `tokens.css` and `tokens.ts`.
-- The viewer: the text layer's box unblended; the column selection's spans and its drag rectangle in the selection colour (`--lamina-selection`) instead of the hard-coded blue; find marks blended with `--lamina-find-blend`, with the 1 px edge and the 2 px outline drawn unblended.
-- One stylesheet in `@laminapdf/ui` that maps the page tokens onto the viewer's `--lamina-*` properties and the text layer's `::selection`, on `:root`, for the web reader and the desktop app alike. The desktop app has no `::selection` rule or find colours today, so it gains both.
+- The viewer: the text layer's box unblended; the column selection's spans in the selection colour (`--lamina-selection`) instead of the hard-coded blue (its drag rectangle, a light 8% blue, stays); the box of find marks blended with `--lamina-find-blend`, with the 1 px edge and the 2 px outline drawn unblended.
+- One stylesheet in `@laminapdf/ui` that maps the page tokens onto the viewer's `--lamina-*` properties and the text layer's `::selection`, wherever `data-page-appearance` is set, for the web reader and the desktop app alike. The desktop app has no `::selection` rule or find colours today, so it gains both.
 
 **Out of scope**
 
@@ -50,7 +50,7 @@ On a Dark page, selected text sits on a near-black box and the text itself dims,
 - [x] `packages/tokens/scripts`: a function that takes a paper and a colour and returns the blend and the fill, in 8-bit sRGB, rounded so the result lands on the colour where it can; and the selection overlay from the accent and the appearance's opacity.
 - [x] Emit them into `tokens.css` (per appearance, the selection per accent) and `tokens.ts` (`PAGE_APPEARANCES`); regenerate with `pnpm --filter @laminapdf/tokens generate`.
 - [x] `packages/viewer/src/layers/text-layer.ts`: drop the box's `multiply`; column selection uses `var(--lamina-selection, …)` (its drag rectangle keeps its own 8% blue).
-- [x] `packages/viewer/src/layers/highlight-layer.ts`: each mark blended with `var(--lamina-find-blend, multiply)`; the edge and the outline in an unblended element above it.
+- [x] `packages/viewer/src/layers/highlight-layer.ts`: the box that holds the marks blended with `var(--lamina-find-blend, multiply)`; the edge and the outline in a second, unblended box.
 - [x] `packages/ui/src/styles`: the mapping stylesheet; take the same rules out of `apps/web/src/app.css`.
 - [x] Record the bug in `docs/bugs/selection-on-dark-pages/` (detail and resolution) and its line in `docs/bugs/README.md`.
 
@@ -79,7 +79,7 @@ None.
 
 ## Risks and open questions
 
-- `::selection` with `var()`: Chromium's highlight inheritance resolves custom properties differently from Firefox and WebKit. Defining the tokens on `:root`, where `data-page-appearance` sits, works in both models; the browser test covers all three engines, and the desktop webviews are checked by hand.
+- `::selection` with `var()`: Chromium's highlight inheritance resolves custom properties differently from Firefox and WebKit. Defining the properties where `data-page-appearance` sits works in both models; the browser test covers all three engines, and the desktop webviews are checked by hand.
 - A browser may draw an opaque `::selection` colour translucent on its own; the overlay is translucent already, and the screenshot test measures what is drawn.
 
 ## What changed from the plan

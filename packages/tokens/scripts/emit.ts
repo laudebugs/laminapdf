@@ -184,8 +184,9 @@ function appearanceMarks(tokens: Map<string, Token>, p: string, a?: string): [st
   if (!(MARKED as readonly string[]).includes(p)) {
     const system = (name: string) => literal(resolve(tokens, at(name)));
     return [
-      // Translucent, since the text layer is no longer blended: an opaque Highlight would hide the
-      // words. The find marks keep the multiply they had; High contrast's own look is still to come.
+      // Translucent: the text layer is unblended, so an opaque Highlight would hide the words. The
+      // paper is the system's Canvas, light or dark, so no blend suits every page; multiply keeps
+      // the find fills over a light one, and the edge and outline show over either.
       [
         "selection-overlay",
         `color-mix(in srgb, ${system("selection-tint")} ${SYSTEM_SELECTION_OPACITY}%, transparent)`,
