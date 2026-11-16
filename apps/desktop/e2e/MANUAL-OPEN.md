@@ -29,7 +29,7 @@ Use three files: one plain (`fixtures/golden/examples/invoice.pdf`), one whose n
 | 8 | Windows: pin the app to the taskbar, then "Open with" from Explorer. | The running window shows it. |
 | 9 | Windows: open the long-path copy and the network-share copy. | Both open. |
 | 10 | With the app running, start its binary again with the path of a PDF that doesn't exist. | A toast names the file; the window keeps what it shows. |
-| 11 | Check the default PDF app in the OS's settings after installing. | It is unchanged: Lamina PDF is listed as able to open PDFs but isn't the default. (Windows: on a machine where no default was ever chosen, Tauri's installers still make it the default until D6d changes them; record what you see.) |
+| 11 | Check the default PDF app in the OS's settings after installing. | It is unchanged: Lamina PDF is listed as able to open PDFs but isn't the default. (Windows too, even where no default was ever chosen: both installers register it in "Open with" only.) |
 
 ## Recent lists
 

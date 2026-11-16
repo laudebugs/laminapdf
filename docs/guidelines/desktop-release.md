@@ -1,6 +1,6 @@
 # Desktop release and signing runbook
 
-This runbook tells the owner how to set up and look after the identities that sign Lamina PDF's desktop app, and tells the release workflows which secrets they may use. The owner signs every tagged release personally, as the publisher, on macOS, Windows and Linux ([architecture §8 Q5](../plans/architecture.md#8-open-questions-for-the-team), decided 2026-10-28). Sections 1 and 2 are the setup, section 3 checks each release, sections 4 and 5 cover what happens later, section 6 cuts a release, and section 7 covers the crash symbols each release archives and how to read a report with them. Todo [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md) wrote it; [D6b](../todos/done/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/done/D6c-macos-signing-and-notarisation.md) and [D6d](../todos/ready/D6d-windows-signing.md) wire it into the workflows.
+This runbook tells the owner how to set up and look after the identities that sign Lamina PDF's desktop app, and tells the release workflows which secrets they may use. The owner signs every tagged release personally, as the publisher, on macOS, Windows and Linux ([architecture §8 Q5](../plans/architecture.md#8-open-questions-for-the-team), decided 2026-10-28). Sections 1 and 2 are the setup, section 3 checks each release, sections 4 and 5 cover what happens later, section 6 cuts a release, and section 7 covers the crash symbols each release archives and how to read a report with them. Todo [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md) wrote it; [D6b](../todos/done/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/done/D6c-macos-signing-and-notarisation.md) and [D6d](../todos/done/D6d-windows-signing.md) wire it into the workflows.
 
 **Never write a secret value, private key, certificate file or recovery code into this repository**, a pull request, an issue or a screenshot. This page names secrets; it never holds them.
 
@@ -85,9 +85,9 @@ The steps follow Microsoft's [quickstart](https://learn.microsoft.com/azure/arti
 | Account | `LaurenceIninda`, resource group `Laurence_Ininda` |
 | Certificate profile | `LaminaPdfPublicTrust` (Public Trust); subject `CN=Laurence Ininda, O=Laurence Ininda, L=Brooklyn, S=NY, C=US`; Microsoft reissues its certificate every few days |
 | Identity validation completed | 2026-11-12 (ID `62b8833a-2cbf-46c0-8f7c-702606975b2a`) |
-| Entra app (no client secret) | `lamina-pdf-release-signing`, federated credential `github-desktop-release` for `repo:laudebugs/laminapdf:environment:desktop-release` |
+| Entra app (no client secret) | `lamina-pdf-release-signing`, federated credential `github-desktop-release` with the subject `repo:laudebugs@25782070/laminapdf@1437211634:environment:desktop-release`: this repository uses GitHub's immutable subject format, which names the owner and repository by ID (`gh api repos/laudebugs/laminapdf/actions/oidc/customization/sub`) |
 
-**For D6d (recommendation, not yet tested):** sign with `signtool` and Microsoft's Artifact Signing dlib in `bundle.windows.signCommand`, logged in through `azure/login` with the federated credential, so no client secret exists. Tauri's guide uses `artifact-signing-cli` instead, but that tool needs a client secret, `AZURE_CLIENT_SECRET` ([Tauri Windows signing](https://v2.tauri.app/distribute/sign/windows/); [artifact-signing-cli](https://github.com/Levminer/artifact-signing-cli)). Only if `signtool` fails does the owner add a client secret, with a 12-month expiry.
+**How the release build signs (D6d).** The Windows legs of `build-release` sign with SignTool and Microsoft's Artifact Signing dlib, logged in through `azure/login` with the federated credential, so no client secret exists. The dlib comes from the NuGet package `Microsoft.ArtifactSigning.Client`, pinned by version and SHA-256 in `.github/actions/desktop-build` and fetched only there; `apps/desktop/src-tauri/windows/artifact-signing.json` holds the endpoint, account and profile above. `apps/desktop/scripts/sign-windows.ps1` signs one file at a time; the Tauri CLI calls it for the app, the engine, both installers and the uninstaller, and the build calls it for PDFium's DLL. Tauri's guide uses `artifact-signing-cli` instead, but that tool needs a client secret, `AZURE_CLIENT_SECRET` ([Tauri Windows signing](https://v2.tauri.app/distribute/sign/windows/); [artifact-signing-cli](https://github.com/Levminer/artifact-signing-cli)). Add one, with a 12-month expiry, only if the federated login stops working.
 
 **OV certificate: not applicable**, because the owner qualifies for Artifact Signing. If Microsoft's rules change or validation fails, the fallback is the OV certificate in a cloud HSM that the D6a todo describes, and this section and ADR 0014 then record the CA and signing tool.
 
@@ -126,7 +126,7 @@ D5a's key ceremony makes two Tauri updater keys: one for releases and one for ni
 The `desktop-release` environment holds every production secret, and every job that uses it waits for the owner's approval ([GitHub environments](https://docs.github.com/actions/deployment/targeting-different-environments/using-environments-for-deployment)).
 
 - [x] Create it with required reviewer = the owner, and "Prevent self-review" off so the owner can approve their own runs.
-- [x] Limit deployment branches and tags to the tag pattern `desktop-v*`, the branch `main`, and, for now, the branches `ci/d6c-*` and `ci/d6d-*`, so D6c and D6d can test their signing steps before they merge. D6d removes the two `ci/` patterns when it merges.
+- [x] Limit deployment branches and tags to the tag pattern `desktop-v*`, the branch `main`, and, for now, the branches `ci/d6c-*` and `ci/d6d-*`, so D6c and D6d can test their signing steps before they merge. Remove each `ci/` pattern once its todo has merged.
 - [x] Add the secrets listed for `desktop-release` in §2, and none at repository level.
 
 ### 1.9 GitHub `desktop-nightly` environment
@@ -210,7 +210,12 @@ The release workflow runs these checks on every macOS build it signs, and fails 
 ```powershell
 signtool verify /pa /v .\Lamina-PDF-setup.exe
 Get-AuthenticodeSignature .\Lamina-PDF-setup.exe | Format-List   # Status Valid; SignerCertificate subject shows the legal name
+# Every file inside both installers, as the release build checks them (signer, SHA-256, RFC 3161 timestamp):
+$env:SIGNTOOL = (Get-Command signtool).Source
+.\apps\desktop\scripts\verify-windows-signatures.ps1 -Dir <folder with the installers> -Publisher 'Laurence Ininda'
 ```
+
+The release build runs the last script on what it built, and installs and removes each installer on the runner (`apps/desktop/scripts/check-windows-installers.ps1`): Lamina PDF in `.pdf`'s "Open with" list and never its default, the MSI's install flavour, nothing left after the uninstall. NSIS's plugin DLLs, which the NSIS installer unpacks while it runs, are checked too: the Tauri CLI signs its copies of them.
 
 **Linux:**
 
@@ -287,6 +292,16 @@ Fill in each date when the item is created, and add a calendar reminder as far a
 4. **Re-sign and republish** the current release with the new identity, verify it with §3, and lift the pause.
 5. **Tell users** in the release notes, on the download page, and in a GitHub security advisory: what was exposed, which builds to distrust and what to install.
 
+### When Windows signing fails
+
+The Windows legs stop at the first file that can't be signed, after two retries. The log names the file and SignTool's message.
+
+- **`azure/login` fails with AADSTS70021 or AADSTS700213.** No federated credential matches the run. The error quotes the subject GitHub sent; the credential must name exactly that, `repo:laudebugs@25782070/laminapdf@1437211634:environment:desktop-release` (§1.5), and the job must run in `desktop-release`. A name-based subject (`repo:laudebugs/laminapdf:…`) never matches here, because the repository uses GitHub's immutable subject format.
+- **SignTool reports 403 Forbidden.** The Entra app lacks the Artifact Signing Certificate Profile Signer role on `LaminaPdfPublicTrust`, or the identity validation lapsed (the renewal calendar above).
+- **SignTool can't load the dlib.** The dlib is x64 only, so the build uses the x64 SignTool on both runners; an Arm64 SignTool can't load it.
+- **The timestamp server or the signing service times out.** The script tries again twice, 15 and 30 seconds apart. If it fails after those retries, re-run the failed job.
+- **The signature check fails on a file nobody signed.** A new PE file reached an installer by a path the signing misses, for example a new resource DLL. Sign it in the build's `beforeBundleCommand`, as PDFium's DLL is.
+
 ### If the project becomes a company
 
 The publisher identities move to the company: a new Apple organisation membership, a new Artifact Signing organisation validation and a new GPG key. Releases signed after the move show the company's name. The updater key stays the same, because Tauri checks it independently of the OS publisher, so installed copies keep updating.
@@ -310,9 +325,9 @@ The desktop release workflow, `.github/workflows/desktop-release.yml`, builds an
 | A `desktop-vX.Y.Z` tag | `X.Y.Z`, plain: no `-rc.1` or other suffix | `beta`, `lamina-pdf-releases` | `desktop-release` |
 | A pull request that changes the release files (the workflow, its actions, the Tauri configs, the plan code or the manifest tool's publish code) | a nightly version; Windows x64 also builds once in tag mode, to check the MSI | nothing is published | none |
 
-Until Windows is signed too ([D6d](../todos/ready/D6d-windows-signing.md)), only nightlies publish. `plan` refuses a tag, and a staging dispatch publishes only with `allow_unsigned_platforms`. The workflow's `SIGNED_PLATFORMS` lists the platforms signed so far: macOS since [D6c](../todos/done/D6c-macos-signing-and-notarisation.md), and D6d adds Windows.
+macOS and Windows builds from `desktop-release` are signed ([D6c](../todos/done/D6c-macos-signing-and-notarisation.md), [D6d](../todos/done/D6d-windows-signing.md)), so `plan` publishes tags, and a staging dispatch needs no `allow_unsigned_platforms`. The workflow's `SIGNED_PLATFORMS` reads `macos,windows`; were a platform left out, `plan` would refuse a tag and a staging dispatch would publish only with that input.
 
-Each run builds macOS (arm64 and x64), Windows (x64 and arm64) and Linux (x64 and arm64) on runners of their own OS and CPU. Every build makes the `.dmg`, the NSIS installer, the AppImage, the `.deb`, the updater's bundles and their `.sig` files, `SHA256SUMS` and the SBOMs. Tag and staging builds also make the MSI and the `.rpm`; nightlies can't, because neither format accepts a `-nightly` version. It fails when an installer reaches 16 MB (15 MB until 2026-11-15, [desktop plan §4](../plans/desktop-app.md#non-functional-targets-and-release-gates)). The AppImage, which carries GTK and WebKitGTK (about 90 MB), is reported but not gated ([desktop plan §4](../plans/desktop-app.md#non-functional-targets-and-release-gates)). Linux packages from `desktop-release` are signed with the GPG key (§1.6), each with a detached `.asc`, and `SHA256SUMS.asc`. After the builds, `attest` attests every file, and the publish job uploads them to `releases/<version>/<platform>/` in the channel's bucket, makes them the channel's release, and asks the update Worker for each platform.
+Each run builds macOS (arm64 and x64), Windows (x64 and arm64) and Linux (x64 and arm64) on runners of their own OS and CPU. Every build makes the `.dmg`, the NSIS installer, the AppImage, the `.deb`, the updater's bundles and their `.sig` files, `SHA256SUMS` and the SBOMs. Tag and staging builds also make the MSI and the `.rpm`; nightlies can't, because neither format accepts a `-nightly` version. It fails when an installer reaches 16 MB (15 MB until 2026-11-15, [desktop plan §4](../plans/desktop-app.md#non-functional-targets-and-release-gates)). The AppImage, which carries GTK and WebKitGTK (about 90 MB), is reported but not gated ([desktop plan §4](../plans/desktop-app.md#non-functional-targets-and-release-gates)). Linux packages from `desktop-release` are signed with the GPG key (§1.6), each with a detached `.asc`, and `SHA256SUMS.asc`; Windows files from it are Authenticode-signed (§1.5). After the builds, `attest` attests every file, and the publish job uploads them to `releases/<version>/<platform>/` in the channel's bucket, makes them the channel's release, and asks the update Worker for each platform.
 
 ### The download page's lists
 
@@ -343,13 +358,15 @@ Nightlies need nothing from the owner. A night on which nothing the app is built
 
 ### A staging trial
 
-1. Run `gh workflow run desktop-release.yml -f channel=staging -f allow_unsigned_platforms=true` (drop `allow_unsigned_platforms` once D6d has merged).
+1. Run `gh workflow run desktop-release.yml -f channel=staging`. Add `-f only_os=windows` (or `macos`, `linux`) to build and publish that OS alone, for example while another platform's signing waits on its vendor; the staging channel then serves only that OS. The publish job resumes the staging channel, which D5c's update test leaves paused after each of its runs.
 2. Approve the `desktop-release` deployment each time GitHub asks: for the builds, then for the publish job.
 3. Check the files with §3's commands. Staging builds never reach a user's install: the app offers no staging channel.
 
 Add `-f dry_run=true` to build every target with no environment and publish nothing.
 
 ### A tagged release
+
+A tag publishes to every beta install, so before the first one, run a staging trial and the person-only checks on clean virtual machines against its files: Gatekeeper on macOS, and on Windows the SmartScreen prompt, the MSI's publisher in UAC, "Open with" and the MSI's "Managed by your organisation" ([D6d](../todos/done/D6d-windows-signing.md) and [D6e](../todos/ready/D6e-macos-signed-release-checks.md) list them).
 
 1. Merge everything the release needs into `main`, and wait for the nightly to pass on it.
 2. Tag the commit: `git tag desktop-v0.1.0 <commit> && git push origin desktop-v0.1.0`. The version must be plain `X.Y.Z`, with X and Y at most 255 and Z at most 65,535, the limits an MSI allows.

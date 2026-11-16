@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The MSI's registry entries (bundle.windows.wix.fragmentPaths and componentRefs in
+  tauri.windows.conf.json), removed with the product:
+
+  - HKLM\Software\Lamina\InstallFlavour = "msi": the app reads it (laminapdf-desktop-os's
+    installed_by_msi) and leaves updates to the organisation that deployed it, since the update
+    manifest carries only the per-user NSIS installer (ADR 0014).
+  - The PDF registration without the default (ADR 0008 §10): a class with an open command, listed in
+    .pdf's OpenWithProgids. Tauri's own association would make the class .pdf's default, so
+    Windows gets no fileAssociations. The NSIS twin is windows/installer-hooks.nsh.
+
+  [INSTALLDIR]laminapdf-desktop.exe is the main binary, which Tauri installs under the crate's binary
+  name. A [#Path] file reference would tie this component to the main binary's feature (ICE69).
+-->
+<?if $(sys.BUILDARCH)="x86"?>
+    <?define Win64 = "no" ?>
+<?else?>
+    <?define Win64 = "yes" ?>
+<?endif?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Fragment>
+        <DirectoryRef Id="INSTALLDIR">
+            <Component Id="LaminaRegistry" Guid="87BCDC47-D5D2-4F62-92FF-233609720552" Win64="$(var.Win64)">
+                <RegistryValue Root="HKLM" Key="Software\Lamina" Name="InstallFlavour" Type="string" Value="msi" KeyPath="yes"/>
+                <RegistryValue Root="HKLM" Key="Software\Classes\LaminaPDF.Document" Type="string" Value="PDF Document"/>
+                <RegistryValue Root="HKLM" Key="Software\Classes\LaminaPDF.Document\DefaultIcon" Type="string" Value="&quot;[INSTALLDIR]laminapdf-desktop.exe&quot;,0"/>
+                <RegistryValue Root="HKLM" Key="Software\Classes\LaminaPDF.Document\shell\open" Type="string" Value="Open with Lamina PDF"/>
+                <RegistryValue Root="HKLM" Key="Software\Classes\LaminaPDF.Document\shell\open\command" Type="string" Value="&quot;[INSTALLDIR]laminapdf-desktop.exe&quot; &quot;%1&quot;"/>
+                <RegistryValue Root="HKLM" Key="Software\Classes\.pdf\OpenWithProgids" Name="LaminaPDF.Document" Type="string" Value=""/>
+            </Component>
+        </DirectoryRef>
+    </Fragment>
+</Wix>
