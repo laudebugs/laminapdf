@@ -36,7 +36,7 @@ D7a reports panics and how an engine ended, but a native crash (a segmentation f
 
 **Out of scope**
 
-- The crash question's tab choice: [D7e](../ongoing/D7e-crash-recovered-tab-choice.md).
+- The crash question's tab choice: [D7e](../done/D7e-crash-recovered-tab-choice.md).
 
 ## Tasks
 

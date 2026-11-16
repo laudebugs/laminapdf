@@ -141,7 +141,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D7. Crash reporting and beta
 
-**Todos:** [D7a](../todos/done/D7a-crash-reporting.md), [D7b](../todos/done/D7b-settings-renderer-switch-and-download-page.md), [D7c](../todos/ready/D7c-desktop-beta-release.md), [D7d](../todos/done/D7d-native-crash-minidumps-and-symbols.md), [D7e](../todos/ongoing/D7e-crash-recovered-tab-choice.md), [D7f](../todos/ready/D7f-windows-native-crash-capture.md)
+**Todos:** [D7a](../todos/done/D7a-crash-reporting.md), [D7b](../todos/done/D7b-settings-renderer-switch-and-download-page.md), [D7c](../todos/ready/D7c-desktop-beta-release.md), [D7d](../todos/done/D7d-native-crash-minidumps-and-symbols.md), [D7e](../todos/done/D7e-crash-recovered-tab-choice.md), [D7f](../todos/ready/D7f-windows-native-crash-capture.md)
 
 **Deliverable:** opt-in crash and panic reporting to the chosen backend; settings page (updates, channel, crash reports, renderer backend switch for Linux); download page at `laminapdf.com/download`, on the website (`apps/site`, [website plan](website.md)); `desktop v0.1` beta on the beta channel.
 **Accepted when:** a forced crash produces a scrubbed report only after consent (test asserts no paths or content); beta installs and auto-updates for at least one release cycle on all three OSes.
@@ -233,7 +233,7 @@ Ticked by the PR that completes them.
 - [x] Decide the crash backend (record in ADR 0014 or a short ADR) ([D7a](../todos/done/D7a-crash-reporting.md): ADR 0014 §10)
 - [x] Implement opt-in crash/panic capture with scrubbing; test that no paths or content leak ([D7a](../todos/done/D7a-crash-reporting.md); native crashes from minidumps: [D7d](../todos/done/D7d-native-crash-minidumps-and-symbols.md))
 - [x] Native crash minidumps processed on the computer, and debug symbols ([D7d](../todos/done/D7d-native-crash-minidumps-and-symbols.md))
-- [ ] Choose which tabs to reopen after an unexpected quit, S08 ([D7e](../todos/ongoing/D7e-crash-recovered-tab-choice.md))
+- [x] Choose which tabs to reopen after an unexpected quit, S08 ([D7e](../todos/done/D7e-crash-recovered-tab-choice.md))
 - [x] Settings page: updates, channel, crash reports, renderer backend switch ([D7b](../todos/done/D7b-settings-renderer-switch-and-download-page.md))
 - [x] Download page on the website (`laminapdf.com/download`) with per-OS links from R2 ([D7b](../todos/done/D7b-settings-renderer-switch-and-download-page.md))
 - [ ] Ship `desktop v0.1` on the beta channel and complete one auto-update cycle
