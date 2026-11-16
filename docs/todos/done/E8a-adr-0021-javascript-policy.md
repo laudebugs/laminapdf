@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E7b](../done/E7b-editing-existing-content-feature-plan.md) |
+| Depends on | [E7b](./E7b-editing-existing-content-feature-plan.md) |
 | ADRs | Writes ADR 0021 |
 | Branch | `docs/e8a-adr-0021-javascript-policy` |
 | PR title | `docs(adr): 0021 PDF JavaScript policy` |
@@ -48,15 +48,15 @@ Decide what lamina does with PDF JavaScript before forms ship (full-editor §8: 
 
 ## Tasks
 
-- [ ] Survey pdf.js's QuickJS sandbox and PDFium's FXJS scope
-- [ ] Measure engine wasm size
-- [ ] Write the ADR
-- [ ] Owner sign-off
+- [x] Survey pdf.js's QuickJS sandbox and PDFium's FXJS scope
+- [x] Measure engine wasm size
+- [x] Write the ADR
+- [x] Owner sign-off
 
 ## Acceptance criteria
 
-- [ ] ADR accepted with a decision for E8 (formatting/validation/calculation) and E17 (authoring)
-- [ ] Security review notes attached
+- [x] ADR accepted with a decision for E8 (formatting/validation/calculation) and E17 (authoring)
+- [x] Security review notes attached
 
 ## Post-merge checks
 
@@ -80,8 +80,8 @@ None (decision).
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

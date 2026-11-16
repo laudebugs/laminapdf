@@ -164,11 +164,11 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 
 #### E8. Form filling and data
 
-- **Ships (group E):** fill text fields (single/multi-line), checkboxes and radio buttons, dropdowns and list boxes, push buttons (non-JS actions), date/formatted input, required and read-only, tab order (follow `/Tabs`), reset form, import/export form data (FDF, XFDF, JSON), populate fields programmatically (library), flatten forms. Input validation, automatic calculations and conditional behaviour: declarative cases (Hide actions, `/CO` order) first; JavaScript-driven ones depend on ADR 0021. Submit to external endpoints: off by default, confirm per submit. XFA: detect and report.
+- **Ships (group E):** fill text fields (single/multi-line), checkboxes and radio buttons, dropdowns and list boxes, push buttons (non-JS actions), date/formatted input, required and read-only, tab order (follow `/Tabs`), reset form, import/export form data (FDF, XFDF, JSON), populate fields programmatically (library), flatten forms. Input validation, automatic calculations and conditional behaviour: declarative cases (Hide actions, `/CO` order) first; JavaScript-driven ones: Acrobat helper calls run natively, everything else reported ([ADR 0021](../decisions/0021-pdf-javascript-policy.md)). Submit to external endpoints: off by default, confirm per submit. XFA: detect and report.
 - **Crates:** `laminapdf-model` AcroForm field tree; appearance generation for field values ([04 §3.5](../research/pdf/04-interactive-security.md)); widgets as DOM overlays in `@laminapdf/viewer`.
 - **Save:** incremental. Signed files: field filling allowed when DocMDP P2/P3 permit, blocked for locked fields.
 - **Web vs desktop:** identical.
-- **Todos:** [E8a](../todos/ongoing/E8a-adr-0021-javascript-policy.md) ADR 0021: PDF JavaScript policy · [E8b](../todos/ready/E8b-form-filling-feature-plan.md) feature plan · [E8c](../todos/ready/E8c-acroform-field-model.md) AcroForm field model, value ops, flags and XFA detection · [E8d](../todos/ready/E8d-field-appearances.md) Value appearance generation for every field type · [E8e](../todos/ready/E8e-field-widgets-ui.md) Field widgets as DOM overlays, tab order, required/read-only, push buttons and submit · [E8f](../todos/ready/E8f-declarative-behaviour.md) Formatting, validation, calculation and conditional behaviour (declarative and per ADR 0021) · [E8g](../todos/ready/E8g-form-data-and-flatten.md) Form data import/export (FDF, XFDF, JSON), reset, programmatic fill and flatten.
+- **Todos:** [E8a](../todos/done/E8a-adr-0021-javascript-policy.md) ADR 0021: PDF JavaScript policy · [E8b](../todos/ready/E8b-form-filling-feature-plan.md) feature plan · [E8c](../todos/ready/E8c-acroform-field-model.md) AcroForm field model, value ops, flags and XFA detection · [E8d](../todos/ready/E8d-field-appearances.md) Value appearance generation for every field type · [E8e](../todos/ready/E8e-field-widgets-ui.md) Field widgets as DOM overlays, tab order, required/read-only, push buttons and submit · [E8f](../todos/ready/E8f-declarative-behaviour.md) Formatting, validation, calculation and conditional behaviour (declarative and per ADR 0021) · [E8g](../todos/ready/E8g-form-data-and-flatten.md) Form data import/export (FDF, XFDF, JSON), reset, programmatic fill and flatten.
 
 #### E9. Form authoring
 
@@ -239,7 +239,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 
 #### E17. Advanced interactions
 
-- **Ships (group M):** add/edit JavaScript actions (authoring only; execution per ADR 0021), interactive buttons, event-triggered actions, manage/show/hide layers (OCGs; visibility toggles also in the reader), embed audio and video (Screen/Rendition and RichMedia, playback on desktop first), rich-media annotations, 3D models (`read`: detect and show a poster; interactive 3D out of scope for now), measurement tools and scales, geospatial coordinates (`read`, measure on maps), document open actions. Group D: audio annotations playback.
+- **Ships (group M):** add/edit JavaScript actions (authoring only; never run, per ADR 0021), interactive buttons, event-triggered actions, manage/show/hide layers (OCGs; visibility toggles also in the reader), embed audio and video (Screen/Rendition and RichMedia, playback on desktop first), rich-media annotations, 3D models (`read`: detect and show a poster; interactive 3D out of scope for now), measurement tools and scales, geospatial coordinates (`read`, measure on maps), document open actions. Group D: audio annotations playback.
 - **Crates:** `laminapdf-model` actions, OCGs, measurement dictionaries.
 - **Save:** incremental on `Free`.
 - **Web vs desktop:** media playback depends on codecs per platform; JavaScript never runs ([ADR 0021](../decisions/0021-pdf-javascript-policy.md)).
@@ -367,7 +367,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 - [ ] Edit-corpus tests: output renders identically except edited regions
 
 ### E8. Form filling and data
-- [x] Write ADR 0021 (PDF JavaScript policy) ([E8a](../todos/ongoing/E8a-adr-0021-javascript-policy.md))
+- [x] Write ADR 0021 (PDF JavaScript policy) ([E8a](../todos/done/E8a-adr-0021-javascript-policy.md))
 - [ ] Feature-plan PR for E8
 - [ ] Field widgets as DOM overlays; tab order; required/read-only
 - [ ] Value appearance generation for every field type

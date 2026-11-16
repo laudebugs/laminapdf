@@ -1,6 +1,6 @@
 # 0021 — PDF JavaScript: never run it; read the form helpers as data
 
-- Status: Proposed (E8a; accepted when the owner signs off on its PR)
+- Status: Accepted (2026-11-16, owner sign-off on E8a's PR)
 - Date: 2026-11-16
 
 ## Context
@@ -83,7 +83,7 @@ The decision is the same on the web, the desktop, the CLI and the MCP server: no
 
 These notes are for the owner's review. With no engine, the attack surface left is the recogniser and the places script text is shown.
 
-- **The recogniser reads untrusted text.** It runs within `Limits` (ADR 0003): a script over a size cap, or with more tokens than a helper call can have, is `not handled` before it is tokenised. E8f adds a fuzz target for it, with the other parsers' corpus.
+- **The recogniser reads untrusted text.** ADR 0003's `Limits` has no cap that fits it (the nearest, `max_string_length`, is 16 MiB), so E8f adds `max_script_length` through ADR 0003's process, with a default it measures. A script over that cap, or with more tokens than a helper call can have, is `not handled` before it is tokenised. E8f adds a fuzz target for it, with the other parsers' corpus.
 - **Script text is never code.** No surface turns a script's text into code, a URL or markup. The reader and the action editor show it as plain text, never through `innerHTML`, and the CLI's JSON escapes it. ADR 0026's rule holds too: no error message includes it.
 - **Nothing in a script reaches the network.** Its `SubmitForm` targets, `app.launchURL` URLs and `Launch` paths are listed in the inventory as text and never fetched, opened or resolved.
 - **Stripping is the user's remedy.** A user who distrusts a file's scripts removes them with E11d, and the report names what changes.
