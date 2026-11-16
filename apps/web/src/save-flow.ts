@@ -1,11 +1,11 @@
 // Saving in the reader (E1 plan §7, Paper O02): Save, Save as…, Save as optimised and Download a
-// copy, each planned first. A save that would invalidate signatures asks, naming each one, and
+// copy, each planned first, and a copy with a change a signature refused (O06's Save a copy). A save that would invalidate signatures asks, naming each one, and
 // one that breaks a standard the file claims asks too; the engine then writes the file through
 // the platform, and the document takes it as saved only once that worked. The plan for a save now
 // is kept for the strip under the top bar, read again as the history changes. Loaded with the
 // rest of the edit session once a document is open (later.ts).
 
-import type { PlannedSave, SaveOptions } from "@laminapdf/sdk";
+import type { Op, PlannedSave, SaveOptions } from "@laminapdf/sdk";
 import { type ExternalStore, message, type Platform, type ToastQueue } from "@laminapdf/ui";
 import { type SavePlanSlice, type SaveSignature, signatureKind } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
@@ -17,7 +17,12 @@ export type SaveHow = "save" | "save-as" | "optimised";
 
 /** A question a save waits on. */
 export type SaveQuestion =
-  | { readonly kind: "signatures"; readonly signatures: readonly SaveSignature[] }
+  | {
+      readonly kind: "signatures";
+      readonly signatures: readonly SaveSignature[];
+      /** Set for a copy, which leaves the open file signed: saved as a file, or downloaded. */
+      readonly copy?: "save" | "download";
+    }
   | { readonly kind: "conformance"; readonly warnings: readonly string[] };
 
 /** What the strip and the dialogs read. */
@@ -210,29 +215,76 @@ export class SaveFlow implements ExternalStore<SaveFlowState> {
     return true;
   }
 
-  /** Download a copy: the document with its edits, saved under a new name, which stays unsaved. */
-  async copy(): Promise<void> {
+  /**
+   * Download a copy: the document with its edits, saved under a new name, which stays unsaved.
+   * Resolves true once the copy is written.
+   */
+  async copy(): Promise<boolean> {
     try {
-      const prepared = await this.#prepare({ metadataDate: this.#now().toISOString(), instanceId: this.#id() });
-      if (prepared === undefined) return;
+      const options = { metadataDate: this.#now().toISOString(), instanceId: this.#id() };
+      const prepared = await this.#prepare(options, this.#copyKind());
+      if (prepared === undefined) return false;
       const { name, bytes } = await this.#engine.copyEdits(prepared);
-      const result = await this.#platform.saveAs(bytes, downloadName(name));
-      if (result.saved) this.#toasts.add({ message: message("download.done", { name: result.name }) });
+      return await this.#writeCopy(name, bytes);
     } catch (error) {
-      reportError(error);
-      this.#retry = () => void this.copy();
-      this.#set({ failure: { name: this.#fileName(), reason: failureReason(error) } });
+      this.#failed(error, () => void this.copy());
+      return false;
     }
   }
 
   /**
+   * Save a copy of a change a signature refused (O06): the document with `ops` applied, written
+   * without the signatures they break once the person agrees, which the confirmation names
+   * (`signatures`). The open document stays as it was, still signed. Resolves true once written.
+   */
+  async copyWith(ops: readonly Op[], signatures: readonly SaveSignature[]): Promise<boolean> {
+    try {
+      if (!(await this.#ask({ kind: "signatures", signatures, copy: this.#copyKind() }))) return false;
+      const options = {
+        metadataDate: this.#now().toISOString(),
+        instanceId: this.#id(),
+        invalidateSignatures: true,
+      };
+      const { name, bytes } = await this.#engine.copyWithEdit(ops, options);
+      return await this.#writeCopy(name, bytes);
+    } catch (error) {
+      this.#failed(error, () => void this.copyWith(ops, signatures));
+      return false;
+    }
+  }
+
+  /** How a copy is written here: saved as a file where the browser can, else downloaded. */
+  #copyKind(): "save" | "download" {
+    return this.#platform.capabilities.canSaveAsDialog ? "save" : "download";
+  }
+
+  /** Save a copy's name here, as its command's: "Save a copy…", or "Download a copy" where the browser downloads it. */
+  copyTitle(): string {
+    return message(this.#copyKind() === "save" ? "command.file.save-copy.save" : "command.file.save-copy");
+  }
+
+  /** Writes a copy as a new file named after `name`; true once written. */
+  async #writeCopy(name: string, bytes: Uint8Array): Promise<boolean> {
+    const result = await this.#platform.saveAs(bytes, downloadName(name));
+    if (result.saved) this.#toasts.add({ message: message("download.done", { name: result.name }) });
+    return result.saved;
+  }
+
+  /** Shows a write's failure under the top bar, with Try again running `retry`. */
+  #failed(error: unknown, retry: () => void): void {
+    reportError(error);
+    this.#retry = retry;
+    this.#set({ failure: { name: this.#fileName(), reason: failureReason(error) } });
+  }
+
+  /**
    * Plans a save with `options` and asks what it needs: before invalidating signatures (the
-   * options then override them) and before breaking a standard the file claims. Undefined when the
-   * user said no.
+   * options then override them; worded for a copy when `copy` says how it is written) and before
+   * breaking a standard the file claims. Undefined when the user said no.
    *
    * @throws a refusal no answer can lift (an encrypted file, a rewrite a signature forbids being chosen).
    */
-  async #prepare(options: SaveOptions): Promise<SaveOptions | undefined> {
+  async #prepare(options: SaveOptions, copy?: "save" | "download"): Promise<SaveOptions | undefined> {
     const edits = this.#viewer.edits;
     let plan = await edits.plan(options);
     if (plan.refusal === "would-invalidate-signatures") {
@@ -240,7 +292,8 @@ export class SaveFlow implements ExternalStore<SaveFlowState> {
       plan = await edits.plan(overridden);
       if (plan.refusal !== undefined) throw new Error(plan.refusal);
       const signatures = plan.wouldInvalidate.map(signature);
-      if (!(await this.#ask({ kind: "signatures", signatures }))) return undefined;
+      const question = copy === undefined ? { signatures } : { signatures, copy };
+      if (!(await this.#ask({ kind: "signatures", ...question }))) return undefined;
       options = overridden;
     } else if (plan.refusal !== undefined) {
       throw new Error(plan.refusal);

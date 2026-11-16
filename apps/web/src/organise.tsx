@@ -3,7 +3,9 @@
 // dialogs. Loaded with later.ts once a document is open (#380). Each action is one step of the edit
 // session; before one applies, the engine asks what its save would break (`wouldViolate`), so a
 // change a certification forbids, or one to a page that holds a signature's box, is asked about
-// first and changes nothing when declined. Moves, deletes, duplicates and inserts follow the pages
+// first and changes nothing when declined. A certification's refusal offers Save a copy (the change
+// written to a copy without the certification, the open file left as it was), Apply anyway… and
+// Details (what the signature allows). Moves, deletes, duplicates and inserts follow the pages
 // by ID (E2l), so the grid's selection does too.
 
 import type { Op, Violation } from "@laminapdf/sdk";
@@ -38,6 +40,9 @@ import {
   PageGrid,
   pageRanges,
   registerOrganiseCommands,
+  type SaveSignature,
+  SignatureDetails,
+  type SignatureRestriction,
   SignedPageDialog,
   selectionNote,
   stepLabel,
@@ -47,6 +52,7 @@ import { type ReactNode, useEffect, useMemo } from "react";
 import { DocumentsController, DocumentsDialogs, documentsActions } from "./documents.tsx";
 import type { PageInfo } from "./outline.ts";
 import { PageSetupDialogs, pageSetupActions } from "./page-setup.tsx";
+import type { SaveFlow } from "./save-flow.ts";
 import type { Engine } from "./session.ts";
 
 /** A question before an edit applies: about a signature on the page, or the certification. */
@@ -62,6 +68,10 @@ type Ask =
       readonly kind: "noPageChanges";
       /** What the change would invalidate. */
       readonly breaks: "certification" | "usageRights";
+      /** The refused change's ops, which Save a copy writes to the copy. */
+      readonly ops: readonly object[];
+      /** What its save would break: Details names them, and the copy's confirmation too. */
+      readonly violations: readonly Violation[];
       readonly proceed: () => void;
     };
 
@@ -176,6 +186,19 @@ export class OrganiseController implements ExternalStore<OrganiseState> {
     const ask = this.#state.ask;
     this.#set({ ask: undefined });
     if (proceed) ask?.proceed();
+  }
+
+  /**
+   * Save a copy on the certification's banner: the refused change written to a copy without the
+   * signatures it breaks, through `flow`'s confirmation. The banner goes once the copy is written;
+   * the document stays as it was.
+   */
+  saveCopy(flow: SaveFlow): void {
+    const ask = this.#state.ask;
+    if (ask?.kind !== "noPageChanges") return;
+    void flow.copyWith(ask.ops as unknown as Op[], brokenSignatures(ask.violations)).then((written) => {
+      if (written && this.#state.ask === ask) this.#set({ ask: undefined });
+    });
   }
 
   /** Turns the selection a quarter (`delta` 90 clockwise, -90 the other way). */
@@ -306,7 +329,7 @@ export class OrganiseController implements ExternalStore<OrganiseState> {
     void this.#engine
       .wouldViolate(ops as unknown as Op[])
       .then((violations) => {
-        const ask = askFor(violations, action, this.#names(indices.slice(0, 1)), go);
+        const ask = askFor(violations, ops, action, this.#names(indices.slice(0, 1)), go);
         if (ask === undefined) go();
         else this.#set({ ask });
       })
@@ -338,16 +361,45 @@ export class OrganiseController implements ExternalStore<OrganiseState> {
 /** The question `violations` ask before an edit, or undefined when its save would break nothing. */
 function askFor(
   violations: readonly Violation[],
+  ops: readonly object[],
   action: "delete" | "rotate" | undefined,
   page: string,
   proceed: () => void,
 ): Ask | undefined {
   if (violations.length === 0) return undefined;
   if (violations.some((v) => v.restriction === "docMdp"))
-    return { kind: "noPageChanges", breaks: "certification", proceed };
+    return { kind: "noPageChanges", breaks: "certification", ops, violations, proceed };
   if (violations.some((v) => v.restriction === "usageRights"))
-    return { kind: "noPageChanges", breaks: "usageRights", proceed };
+    return { kind: "noPageChanges", breaks: "usageRights", ops, violations, proceed };
   return { kind: "signed", action: action ?? "delete", page, proceed };
+}
+
+/** Each signature `violations` break, once. */
+function brokenSignatures(violations: readonly Violation[]): SaveSignature[] {
+  const seen = new Set<string>();
+  return violations.flatMap(({ signature: { kind, field } }) => {
+    const key = `${kind}:${field ?? ""}`;
+    if (seen.has(key)) return [];
+    seen.add(key);
+    return [field === undefined ? { kind } : { kind, field }];
+  });
+}
+
+/** Each restriction `violations` break, once, for Details. */
+function restrictionsOf(violations: readonly Violation[]): SignatureRestriction[] {
+  const seen = new Set<string>();
+  return violations.flatMap(({ restriction, permission, signature }) => {
+    const key = `${restriction}:${signature.kind}:${signature.field ?? ""}`;
+    if (seen.has(key)) return [];
+    seen.add(key);
+    return [
+      {
+        restriction,
+        ...(permission === undefined ? {} : { permission }),
+        ...(signature.revision === undefined ? {} : { revision: signature.revision }),
+      },
+    ];
+  });
 }
 
 /** The indices of the pages in `selected`, in document order. */
@@ -444,6 +496,8 @@ export interface OrganiseModeProps {
   readonly modes: ModeRegistry;
   readonly registry: CommandRegistry;
   readonly keys: KeyPlatform;
+  /** Saving, for the certification banner's Save a copy. */
+  readonly flow: SaveFlow;
 }
 
 /** The Organise mode: registered while a document is open, its grid over the viewer while current. */
@@ -462,12 +516,12 @@ export function OrganiseMode(props: OrganiseModeProps): ReactNode {
   return current ? (
     <OrganiseCanvas {...props} />
   ) : (
-    <OrganiseDialogs controller={controller} engine={props.engine} fileName={props.fileName} />
+    <OrganiseDialogs controller={controller} engine={props.engine} fileName={props.fileName} flow={props.flow} />
   );
 }
 
 /** The grid, the inspector beside it, the live region and the dialogs. */
-function OrganiseCanvas({ controller, engine, viewer, modes, keys, fileName }: OrganiseModeProps): ReactNode {
+function OrganiseCanvas({ controller, engine, viewer, modes, keys, fileName, flow }: OrganiseModeProps): ReactNode {
   const state = useStoreState(controller, (s) => s);
   const pages = useStoreState(engine, (s) => s.pages);
   const grid = useMemo<GridPage[]>(
@@ -513,7 +567,7 @@ function OrganiseCanvas({ controller, engine, viewer, modes, keys, fileName }: O
         <OrganiseInspector controller={controller} pages={pages} />
       </div>
       <Announcement controller={controller} />
-      <OrganiseDialogs controller={controller} engine={engine} fileName={fileName} />
+      <OrganiseDialogs controller={controller} engine={engine} fileName={fileName} flow={flow} />
     </div>
   );
 }
@@ -644,10 +698,12 @@ function OrganiseDialogs({
   controller,
   engine,
   fileName,
+  flow,
 }: {
   controller: OrganiseController;
   engine: Engine;
   fileName: string;
+  flow: SaveFlow;
 }): ReactNode {
   const state = useStoreState(controller, (s) => s);
   // Read through the stores, not the controller's methods, which the React Compiler would keep from the first render.
@@ -675,21 +731,28 @@ function OrganiseDialogs({
       />
       <PageSetupDialogs controller={controller} engine={engine} />
       <DocumentsDialogs documents={controller.documents} organise={controller} engine={engine} fileName={fileName} />
-      <NoPageChangesNotice controller={controller} />
+      <NoPageChangesNotice controller={controller} flow={flow} />
     </>
   );
 }
 
-/** The banner on a certified file, or one with usage rights (O06): the change was refused, with Apply anyway…. */
-function NoPageChangesNotice({ controller }: { controller: OrganiseController }): ReactNode {
-  const breaks = useStoreState(controller, (s) => (s.ask?.kind === "noPageChanges" ? s.ask.breaks : undefined));
-  if (breaks === undefined) return null;
+/**
+ * The banner on a certified file, or one with usage rights (O06): the change was refused, with
+ * Save a copy (the change in a copy, the file left signed), Apply anyway… and Details.
+ */
+function NoPageChangesNotice({ controller, flow }: { controller: OrganiseController; flow: SaveFlow }): ReactNode {
+  const ask = useStoreState(controller, (s) => (s.ask?.kind === "noPageChanges" ? s.ask : undefined));
+  if (ask === undefined) return null;
   return (
     <div className="web-organise-certified" role="alert">
-      <span>{organiseWords(breaks === "certification" ? "organise.certified" : "organise.usageRights")}</span>
+      <span>{organiseWords(ask.breaks === "certification" ? "organise.certified" : "organise.usageRights")}</span>
+      <Button size={30} onPress={() => controller.saveCopy(flow)}>
+        {flow.copyTitle()}
+      </Button>
       <Button size={30} onPress={() => controller.answer(true)}>
         {organiseWords("organise.certified.apply")}
       </Button>
+      <SignatureDetails restrictions={restrictionsOf(ask.violations)} />
       <IconButton
         icon="close"
         label={organiseWords("organise.close")}

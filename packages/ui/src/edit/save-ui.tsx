@@ -10,9 +10,10 @@ import type { CommandId } from "../commands/types.js";
 import { Button, IconButton } from "../components/button.js";
 import { Notice } from "../components/notice.js";
 import type { KeyPlatform } from "../components/shortcut-chip.js";
+import { type LaterMessageId, laterMessage } from "../later-messages.js";
 import { message } from "../messages.js";
 import { Dialog } from "../overlays/dialog.js";
-import { Menu, type MenuEntry, MenuTrigger } from "../overlays/popover.js";
+import { Menu, type MenuEntry, MenuTrigger, Popover, PopoverTrigger } from "../overlays/popover.js";
 
 /** A signature a save is about: its kind and the field that holds it (the save plan's). */
 export interface SaveSignature {
@@ -60,6 +61,11 @@ function signatureLines(signatures: readonly SaveSignature[]): string[] {
 function conflictKind(signatures: readonly SaveSignature[]): string {
   const certified = signatures.some((s) => s.kind === "certification");
   return signatureKind(certified ? "certification" : (signatures[0]?.kind ?? "approval"));
+}
+
+/** "Saving this file would invalidate its certification. …": the close confirmation's line on a save that would. */
+export function conflictLine(signatures: readonly SaveSignature[]): string {
+  return laterMessage("edit.close.conflict", { kind: conflictKind(signatures) });
 }
 
 /** The save commands the options menu lists, in order. */
@@ -143,18 +149,39 @@ export function SaveStrip({ plan }: { plan: SavePlanSlice | undefined }): ReactN
   );
 }
 
+/** The remove-signature confirmation's words for a copy, saved or downloaded (O02's "Save a copy without the certification?"). */
+const COPY_WORDS: Record<
+  "save" | "download",
+  { readonly title: LaterMessageId; readonly body: LaterMessageId; readonly confirm: LaterMessageId }
+> = {
+  save: { title: "save.copy.title", body: "save.copy.body", confirm: "save.copy.confirm" },
+  download: {
+    title: "save.copy.title.download",
+    body: "save.copy.body.download",
+    confirm: "save.copy.confirm.download",
+  },
+};
+
 /**
  * The confirmation before a save that invalidates signatures (O02's "Remove the certification and
  * save?"): it names each one; Cancel has the focus, and the confirm button is the danger one.
  */
 export function RemoveSignaturesDialog({
   signatures,
+  copy,
   onAnswer,
 }: {
   /** The signatures the save would invalidate; undefined while nothing is asked. */
   signatures: readonly SaveSignature[] | undefined;
+  /**
+   * Set for a copy, which leaves the open file signed: `save` where the copy is saved as a file,
+   * `download` where the browser downloads it. Left out for a save of the file itself.
+   */
+  copy?: "save" | "download" | undefined;
   onAnswer: (remove: boolean) => void;
 }): ReactNode {
+  const kind = conflictKind(signatures ?? []);
+  const words = copy === undefined ? undefined : COPY_WORDS[copy];
   return (
     <Dialog
       isOpen={signatures !== undefined}
@@ -164,15 +191,15 @@ export function RemoveSignaturesDialog({
         if (!open) onAnswer(false);
       }}
       onEscape={() => onAnswer(false)}
-      title={message("save.remove.title", { kind: conflictKind(signatures ?? []) })}
-      description={message("save.remove.body")}
+      title={words === undefined ? message("save.remove.title", { kind }) : laterMessage(words.title, { kind })}
+      description={words === undefined ? message("save.remove.body") : laterMessage(words.body)}
       actions={
         <>
           <Button autoFocus onPress={() => onAnswer(false)}>
             {message("edit.close.cancel")}
           </Button>
           <Button variant="danger-filled" onPress={() => onAnswer(true)}>
-            {message("save.remove.confirm")}
+            {words === undefined ? message("save.remove.confirm") : laterMessage(words.confirm)}
           </Button>
         </>
       }
@@ -223,5 +250,62 @@ export function ConformanceDialog({
         ))}
       </ul>
     </Dialog>
+  );
+}
+
+/** A signature restriction a change breaks, as Details names it: the signature, and for a certification its level. */
+export interface SignatureRestriction {
+  /** `docMdp` (a certification), `usageRights`, or another restriction of a signature. */
+  readonly restriction: string;
+  /** The certification's DocMDP level (`/P`: 1, 2 or 3). */
+  readonly permission?: number;
+  /** The 1-based version of the file the signature closes, when known. */
+  readonly revision?: number;
+}
+
+/** What `restriction` allows, in words: the DocMDP level for a certification. */
+function allows(restriction: SignatureRestriction): string {
+  if (restriction.restriction === "usageRights") return laterMessage("organise.details.usageRights.allows");
+  if (restriction.restriction !== "docMdp") return laterMessage("organise.details.signature.allows");
+  const level = restriction.permission === 1 ? "p1" : restriction.permission === 3 ? "p3" : "p2";
+  return laterMessage(`organise.details.${level}`);
+}
+
+function restrictionTitle(restriction: SignatureRestriction): string {
+  if (restriction.restriction === "docMdp") return laterMessage("organise.details.certification");
+  if (restriction.restriction === "usageRights") return laterMessage("organise.details.usageRights");
+  return laterMessage("organise.details.signature");
+}
+
+/**
+ * Details (O02, O06): a button whose popover names each signature a change breaks and what it
+ * allows. By kind and level, not signer or field: the save plan carries neither's name.
+ */
+export function SignatureDetails({
+  restrictions,
+  defaultOpen,
+}: {
+  restrictions: readonly SignatureRestriction[];
+  /** Opens the popover at first (the gallery's state). */
+  defaultOpen?: boolean;
+}): ReactNode {
+  return (
+    <PopoverTrigger {...(defaultOpen === undefined ? {} : { defaultOpen })}>
+      <Button size={30}>{message("save.strip.details")}</Button>
+      <Popover aria-label={laterMessage("organise.details")} placement="bottom end">
+        <dl className="paper-signature-details">
+          {restrictions.map((restriction, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: a fixed list, read once per open.
+            <div key={i}>
+              <dt>{restrictionTitle(restriction)}</dt>
+              <dd>{allows(restriction)}</dd>
+              {restriction.revision === undefined ? null : (
+                <dd>{laterMessage("organise.details.revision", { revision: restriction.revision })}</dd>
+              )}
+            </div>
+          ))}
+        </dl>
+      </Popover>
+    </PopoverTrigger>
   );
 }

@@ -6,7 +6,7 @@
 import axe from "axe-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
-import { RemoveSignaturesDialog, type SavePlanSlice, SaveStrip } from "../../src/editing.ts";
+import { RemoveSignaturesDialog, type SavePlanSlice, SaveStrip, SignatureDetails } from "../../src/editing.ts";
 import { cleanup, focused, renderIn, settled } from "./render.tsx";
 
 afterEach(cleanup);
@@ -90,6 +90,23 @@ describe("RemoveSignaturesDialog", () => {
     expect(onAnswer).toHaveBeenCalledWith(true);
   });
 
+  it.each([
+    ["save", "Save a copy without the certification?", "Remove signature and save copy"],
+    ["download", "Download a copy without the certification?", "Remove signature and download copy"],
+  ] as const)("is worded for a copy that is a %s", async (copy, title, confirm) => {
+    renderIn(<RemoveSignaturesDialog signatures={[CERTIFICATION]} copy={copy} onAnswer={() => {}} />);
+    const dialog = await vi.waitFor(() => {
+      const found = document.querySelector<HTMLElement>('[role="alertdialog"]');
+      if (found === null) throw new Error("no dialog yet");
+      return found;
+    });
+    expect([
+      dialog.querySelector("h2")?.textContent,
+      [...dialog.querySelectorAll("button")].map((b) => b.textContent),
+      dialog.textContent?.includes("still signed"),
+    ]).toEqual([title, ["Cancel", confirm], true]);
+  });
+
   it("asks nothing without signatures", () => {
     renderIn(<RemoveSignaturesDialog signatures={undefined} onAnswer={() => {}} />);
     expect(document.querySelector('[role="alertdialog"]')).toBeNull();
@@ -104,6 +121,34 @@ describe("RemoveSignaturesDialog", () => {
     });
     await settled();
     const result = await axe.run(dialog);
+    expect(result.violations.filter((v) => v.impact === "serious" || v.impact === "critical")).toEqual([]);
+  });
+});
+
+describe("SignatureDetails", () => {
+  it("names each restriction and what it allows in a popover, which passes axe", async () => {
+    renderIn(
+      <SignatureDetails
+        restrictions={[{ restriction: "docMdp", permission: 2, revision: 1 }, { restriction: "usageRights" }]}
+      />,
+    );
+    const button = [...document.querySelectorAll("button")].find((b) => b.textContent === "Details");
+    if (button === undefined) throw new Error("no Details button");
+    await userEvent.click(button);
+    const popover = await vi.waitFor(() => {
+      const found = document.querySelector<HTMLElement>('[role="dialog"][aria-label="What the signature allows"]');
+      if (found === null) throw new Error("no popover yet");
+      return found;
+    });
+    expect([...popover.querySelectorAll("dt, dd")].map((e) => e.textContent)).toEqual([
+      "Certification",
+      "Allows form filling and signing only.",
+      "Signed in version 1 of the file.",
+      "Usage rights",
+      "Lets Adobe Reader fill in or comment on this file. Changing pages invalidates them.",
+    ]);
+    await settled();
+    const result = await axe.run(popover);
     expect(result.violations.filter((v) => v.impact === "serious" || v.impact === "critical")).toEqual([]);
   });
 });

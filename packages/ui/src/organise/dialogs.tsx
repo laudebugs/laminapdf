@@ -208,13 +208,17 @@ export interface SignedPageDialogProps {
         readonly page: string;
       }
     | undefined;
-  /** The person's answer: go ahead anyway (the save will break the signature) or not. */
+  /**
+   * The person's answer: Remove signature… (the change applies, and the next save asks once before
+   * it removes the signature) or Cancel.
+   */
   readonly onAnswer: (proceed: boolean) => void;
 }
 
 /**
  * The question before deleting or turning a page that holds a signature's box (O06-delete-signed).
  * It names the page; it can't name the signer, whom the save planner's signatures don't carry.
+ * Remove signature… is the danger ghost button; Cancel, the safe answer, has the focus.
  */
 export function SignedPageDialog({ ask, onAnswer }: SignedPageDialogProps): ReactNode {
   const page = ask?.page ?? "";

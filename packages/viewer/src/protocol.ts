@@ -208,6 +208,17 @@ export interface SavedCopy {
 }
 
 /**
+ * A copy of the document with ops applied that the document itself never takes
+ * (`copyWithEdit`): what a save with them would write. `history` is the session's after it, which
+ * loses its undone steps (applying the ops cleared them in the model).
+ */
+export interface EditedCopy {
+  readonly bytes: Uint8Array;
+  readonly report: SaveReport;
+  readonly history: EditHistory;
+}
+
+/**
  * A contents page laid out from the bookmarks and how it was placed (`createContentsPage`): the
  * step a restarted worker inserts again, since a page's text can't travel as ops.
  */
@@ -351,6 +362,8 @@ export interface Methods {
   /** What saving document `document` with `ops` applied would break, before they apply: each signature restriction they violate. */
   wouldViolate: { params: [ops: readonly Op[], document: number]; result: Violation[] };
   copyEdits: { params: [options: SaveOptions, document: number]; result: SavedCopy };
+  /** A copy of document `document` as a save with `options` writes it with `ops` applied, which leaves the document as it was. */
+  copyWithEdit: { params: [ops: readonly Op[], options: SaveOptions, document: number]; result: EditedCopy };
   adoptEdits: { params: [token: number, document: number]; result: EditHistory };
   /**
    * A restarted worker's document takes the edits the old one had: `steps` applied again, one

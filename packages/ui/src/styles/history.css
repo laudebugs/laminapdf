@@ -148,6 +148,23 @@
     padding-inline-start: var(--paper-space-20);
   }
 
+  /* Details (O02, O06): each signature a change breaks, and what it allows, in a popover. */
+  .paper-signature-details {
+    display: grid;
+    gap: var(--paper-space-8);
+    max-inline-size: 20rem;
+    margin: 0;
+  }
+
+  .paper-signature-details dt {
+    font-weight: 600;
+  }
+
+  .paper-signature-details dd {
+    margin: 0;
+    color: var(--paper-muted);
+  }
+
   @media (forced-colors: active) {
     .paper-history-row[data-current] {
       forced-color-adjust: none;
