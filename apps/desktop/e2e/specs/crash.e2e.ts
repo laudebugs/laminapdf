@@ -99,6 +99,10 @@ describe("crash reports", () => {
 
     // The panic's message names the open file, as a careless format! would: the report must not.
     await crashAndWait("e2e_crash_engine_panic", { message: `could not read ${markedFile}` });
+    // On Windows the crash monitor finds a new engine by scanning, every 50 ms; an engine that
+    // faults sooner after it starts is reported without its native stack. A user's crash comes
+    // well after start: give the restarted engine that moment too.
+    await browser.pause(500);
     await crashAndWait("e2e_crash_engine_segv");
     await browser.execute((path) => {
       setTimeout(() => {

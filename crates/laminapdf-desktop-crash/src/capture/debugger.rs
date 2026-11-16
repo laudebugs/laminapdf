@@ -41,7 +41,7 @@ use super::Handler;
 
 /// How often the monitor looks for new engines. One that faults sooner after it starts leaves no
 /// dump: its crash is still reported, without the `native` part.
-const SCAN_EVERY: Duration = Duration::from_millis(250);
+const SCAN_EVERY: Duration = Duration::from_millis(50);
 
 /// How soon an engine the monitor couldn't attach to is tried again: one still starting refuses a
 /// debugger for a moment.
