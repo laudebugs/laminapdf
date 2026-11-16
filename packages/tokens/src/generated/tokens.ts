@@ -589,11 +589,7 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#6E6A64",
       "mockup-rule": "#E6E3DE",
       "mockup-chart-bars": "#4E5A63",
-      "mockup-chart-labels": "#3A3733",
-      "selection-overlay": "rgb(31 92 99 / 22%)",
-      "find-blend": "multiply",
-      "find-match-fill": "#F6E3BC",
-      "find-current-fill": "#EDBF6A"
+      "mockup-chart-labels": "#3A3733"
     },
     "blue": {
       "paper": "#FFFFFF",
@@ -607,11 +603,7 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#6E6A64",
       "mockup-rule": "#E6E3DE",
       "mockup-chart-bars": "#4E5A63",
-      "mockup-chart-labels": "#3A3733",
-      "selection-overlay": "rgb(45 74 107 / 22%)",
-      "find-blend": "multiply",
-      "find-match-fill": "#F6E3BC",
-      "find-current-fill": "#EDBF6A"
+      "mockup-chart-labels": "#3A3733"
     },
     "plum": {
       "paper": "#FFFFFF",
@@ -625,11 +617,7 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#6E6A64",
       "mockup-rule": "#E6E3DE",
       "mockup-chart-bars": "#4E5A63",
-      "mockup-chart-labels": "#3A3733",
-      "selection-overlay": "rgb(91 59 107 / 22%)",
-      "find-blend": "multiply",
-      "find-match-fill": "#F6E3BC",
-      "find-current-fill": "#EDBF6A"
+      "mockup-chart-labels": "#3A3733"
     },
     "green": {
       "paper": "#FFFFFF",
@@ -643,11 +631,7 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#6E6A64",
       "mockup-rule": "#E6E3DE",
       "mockup-chart-bars": "#4E5A63",
-      "mockup-chart-labels": "#3A3733",
-      "selection-overlay": "rgb(73 85 51 / 22%)",
-      "find-blend": "multiply",
-      "find-match-fill": "#F6E3BC",
-      "find-current-fill": "#EDBF6A"
+      "mockup-chart-labels": "#3A3733"
     }
   },
   "sepia": {
@@ -663,11 +647,7 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#6B5B45",
       "mockup-rule": "#DCD0B6",
       "mockup-chart-bars": "#4E5A63",
-      "mockup-chart-labels": "#5A4C38",
-      "selection-overlay": "rgb(31 92 99 / 22%)",
-      "find-blend": "multiply",
-      "find-match-fill": "#F4E0B0",
-      "find-current-fill": "#E3B660"
+      "mockup-chart-labels": "#5A4C38"
     },
     "blue": {
       "paper": "#F4ECD8",
@@ -681,11 +661,7 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#6B5B45",
       "mockup-rule": "#DCD0B6",
       "mockup-chart-bars": "#4E5A63",
-      "mockup-chart-labels": "#5A4C38",
-      "selection-overlay": "rgb(45 74 107 / 22%)",
-      "find-blend": "multiply",
-      "find-match-fill": "#F4E0B0",
-      "find-current-fill": "#E3B660"
+      "mockup-chart-labels": "#5A4C38"
     },
     "plum": {
       "paper": "#F4ECD8",
@@ -699,11 +675,7 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#6B5B45",
       "mockup-rule": "#DCD0B6",
       "mockup-chart-bars": "#4E5A63",
-      "mockup-chart-labels": "#5A4C38",
-      "selection-overlay": "rgb(91 59 107 / 22%)",
-      "find-blend": "multiply",
-      "find-match-fill": "#F4E0B0",
-      "find-current-fill": "#E3B660"
+      "mockup-chart-labels": "#5A4C38"
     },
     "green": {
       "paper": "#F4ECD8",
@@ -717,11 +689,7 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#6B5B45",
       "mockup-rule": "#DCD0B6",
       "mockup-chart-bars": "#4E5A63",
-      "mockup-chart-labels": "#5A4C38",
-      "selection-overlay": "rgb(73 85 51 / 22%)",
-      "find-blend": "multiply",
-      "find-match-fill": "#F4E0B0",
-      "find-current-fill": "#E3B660"
+      "mockup-chart-labels": "#5A4C38"
     }
   },
   "dark": {
@@ -737,11 +705,7 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#ADA597",
       "mockup-rule": "#3A3833",
       "mockup-chart-bars": "#A9B4BC",
-      "mockup-chart-labels": "#C9C2B6",
-      "selection-overlay": "rgb(125 189 194 / 35%)",
-      "find-blend": "screen",
-      "find-match-fill": "#412901",
-      "find-current-fill": "#663F00"
+      "mockup-chart-labels": "#C9C2B6"
     },
     "blue": {
       "paper": "#22211F",
@@ -755,11 +719,7 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#ADA597",
       "mockup-rule": "#3A3833",
       "mockup-chart-bars": "#A9B4BC",
-      "mockup-chart-labels": "#C9C2B6",
-      "selection-overlay": "rgb(145 179 220 / 35%)",
-      "find-blend": "screen",
-      "find-match-fill": "#412901",
-      "find-current-fill": "#663F00"
+      "mockup-chart-labels": "#C9C2B6"
     },
     "plum": {
       "paper": "#22211F",
@@ -773,11 +733,7 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#ADA597",
       "mockup-rule": "#3A3833",
       "mockup-chart-bars": "#A9B4BC",
-      "mockup-chart-labels": "#C9C2B6",
-      "selection-overlay": "rgb(197 159 217 / 35%)",
-      "find-blend": "screen",
-      "find-match-fill": "#412901",
-      "find-current-fill": "#663F00"
+      "mockup-chart-labels": "#C9C2B6"
     },
     "green": {
       "paper": "#22211F",
@@ -791,11 +747,7 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#ADA597",
       "mockup-rule": "#3A3833",
       "mockup-chart-bars": "#A9B4BC",
-      "mockup-chart-labels": "#C9C2B6",
-      "selection-overlay": "rgb(168 183 143 / 35%)",
-      "find-blend": "screen",
-      "find-match-fill": "#412901",
-      "find-current-fill": "#663F00"
+      "mockup-chart-labels": "#C9C2B6"
     }
   },
   "high-contrast": {
@@ -811,11 +763,7 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#FFFFFF",
       "mockup-rule": "#FFFFFF",
       "mockup-chart-bars": "#FFFFFF",
-      "mockup-chart-labels": "#FFFFFF",
-      "selection-overlay": "color-mix(in srgb, Highlight 40%, transparent)",
-      "find-blend": "multiply",
-      "find-match-fill": "Mark",
-      "find-current-fill": "Highlight"
+      "mockup-chart-labels": "#FFFFFF"
     },
     "blue": {
       "paper": "#000000",
@@ -829,11 +777,7 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#FFFFFF",
       "mockup-rule": "#FFFFFF",
       "mockup-chart-bars": "#FFFFFF",
-      "mockup-chart-labels": "#FFFFFF",
-      "selection-overlay": "color-mix(in srgb, Highlight 40%, transparent)",
-      "find-blend": "multiply",
-      "find-match-fill": "Mark",
-      "find-current-fill": "Highlight"
+      "mockup-chart-labels": "#FFFFFF"
     },
     "plum": {
       "paper": "#000000",
@@ -847,11 +791,7 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#FFFFFF",
       "mockup-rule": "#FFFFFF",
       "mockup-chart-bars": "#FFFFFF",
-      "mockup-chart-labels": "#FFFFFF",
-      "selection-overlay": "color-mix(in srgb, Highlight 40%, transparent)",
-      "find-blend": "multiply",
-      "find-match-fill": "Mark",
-      "find-current-fill": "Highlight"
+      "mockup-chart-labels": "#FFFFFF"
     },
     "green": {
       "paper": "#000000",
@@ -865,11 +805,7 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#FFFFFF",
       "mockup-rule": "#FFFFFF",
       "mockup-chart-bars": "#FFFFFF",
-      "mockup-chart-labels": "#FFFFFF",
-      "selection-overlay": "color-mix(in srgb, Highlight 40%, transparent)",
-      "find-blend": "multiply",
-      "find-match-fill": "Mark",
-      "find-current-fill": "Highlight"
+      "mockup-chart-labels": "#FFFFFF"
     }
   }
 } as const;

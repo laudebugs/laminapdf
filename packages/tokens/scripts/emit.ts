@@ -175,11 +175,8 @@ function accentMarks(tokens: Map<string, Token>, a: string): [string, string][] 
   return MARKED.map((p) => [`page-${p}-selection-overlay`, overlayOf(tokens, a, p)]);
 }
 
-/**
- * Appearance `p`'s marks: the selection overlay, and the blend and fills of the find marks. The
- * selection is accent `a`'s value in TypeScript, the accent block's variable in CSS (`a` undefined).
- */
-function appearanceMarks(tokens: Map<string, Token>, p: string, a?: string): [string, string][] {
+/** Appearance `p`'s marks: the selection overlay (its accent block's variable), and the blend and fills of the find marks. */
+function appearanceMarks(tokens: Map<string, Token>, p: string): [string, string][] {
   const at = (name: string) => `appearance.${p}.${name}`;
   if (!(MARKED as readonly string[]).includes(p)) {
     const system = (name: string) => literal(resolve(tokens, at(name)));
@@ -200,7 +197,7 @@ function appearanceMarks(tokens: Map<string, Token>, p: string, a?: string): [st
   const match = blendFill(paper, colourAt(tokens, at("find-match")));
   const current = blendFill(paper, colourAt(tokens, at("find-current")));
   return [
-    ["selection-overlay", a === undefined ? `var(--paper-page-${p}-selection-overlay)` : overlayOf(tokens, a, p)],
+    ["selection-overlay", `var(--paper-page-${p}-selection-overlay)`],
     ["find-blend", match.blend],
     ["find-match-fill", css(match.fill)],
     ["find-current-fill", css(current.fill)],
@@ -415,12 +412,7 @@ export function emitTs(tokens: Map<string, Token>): string {
     constant(
       "The page appearances, each with every accent (the selection tint and find outline follow it).",
       "PAGE_APPEARANCES",
-      per(APPEARANCES, (p) =>
-        per(ACCENTS, (a) => ({
-          ...record(tokens, `appearance.${p}.`, "page-", a),
-          ...Object.fromEntries(appearanceMarks(tokens, p, a)),
-        })),
-      ),
+      per(APPEARANCES, (p) => per(ACCENTS, (a) => record(tokens, `appearance.${p}.`, "page-", a))),
     ),
     constant(
       "Highlight and annotation colours: the same in every theme and appearance.",
