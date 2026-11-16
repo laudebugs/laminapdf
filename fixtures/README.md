@@ -221,7 +221,7 @@ The keys and certificates (a throwaway CA, a signer and a timestamping authority
 | `locked-page1.pdf` | The same three pages and field, then an approval signature on page 3 whose FieldMDP lock (`/Action /Include`) covers `Name`: the ops that delete or reshow page 1 break `FieldMdp`, those on page 3 `SignedWidget` |
 | `usage-rights.pdf` | The same three pages with a text note on page 1, and `/Perms /UR3` granting `/Annots [/Create /Delete]` and `/Form [/FillIn]`. Only Adobe's key signs usage rights, so the dictionary is written with no valid signature (`/ByteRange [0 0 0 0]`): the planner reads the structure, not the validity. Every page op is a violation; adding and deleting an annotation are inside the rights, changing one isn't |
 
-[`signed/check_saved.py`](signed/check_saved.py) validates the files `signed_gating.rs` saves with `LAMINA_SIGNED_GATING_OUT` set: each signature on an incremental save intact in pyHanko with the later revision reported as a modification, and no signature left after the override (pyHanko and `pdfsig`).
+[`signed/check_saved.py`](signed/check_saved.py) validates the files `signed_gating.rs` saves with `LAMINA_SIGNED_GATING_OUT` set (the nightly's `signed-saves` job runs both): each signature on an incremental save intact in pyHanko with the later revision reported as a modification, and no signature left after the override (pyHanko and `pdfsig`).
 
 ### `metadata/`
 

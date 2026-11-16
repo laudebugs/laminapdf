@@ -55,8 +55,9 @@ pub(crate) struct Entry {
     pub(crate) key: Option<String>,
     /// Identifies the document state this entry leads to, for the semantic dirty state.
     pub(crate) serial: u64,
-    /// The op classes of the transaction, added back to the document's pending changes when
-    /// the entry is undone or redone.
+    /// The changes the entry makes when it is reverted: its op classes, and the usage rights
+    /// reverting it needs (those of the transaction it undoes, turned round). They are added to
+    /// the document's pending changes when the entry is undone or redone.
     pub(crate) pending: PendingChanges,
 }
 

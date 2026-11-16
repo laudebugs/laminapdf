@@ -375,7 +375,7 @@ jobs:
     # A new label starts a hosted baseline, separate from the old private Macs. GitHub's
     # physical hosts vary, so timing regressions remain advisory. Preserve the job graph:
     # tools/xtask/src/workflows.rs checks these dependencies stay complete.
-    needs: [differential, fuzz, scaling, links, render-diff, verapdf, roundtrip, forced-failure]
+    needs: [differential, fuzz, scaling, links, render-diff, verapdf, signed-saves, roundtrip, forced-failure]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     # A full run takes 3 to 11 minutes. A hung runner takes a job and runs no step until the
@@ -676,6 +676,43 @@ jobs:
           path: target/xtask/verapdf/
           if-no-files-found: ignore
 
+  # The files the signed-document gating suite saves (crates/laminapdf/tests/signed_gating.rs),
+  # validated by pyHanko and Poppler's pdfsig (fixtures/signed/check_saved.py): every signature
+  # on an incremental save intact, none left after the override. pdfsig is GPL: noble's
+  # poppler-utils, run as a process, never linked (ADR 0019). Only its verdicts are read, so it
+  # isn't pinned; it has its own job so its pdftotext can't replace the one the differential
+  # builds at doctor.rs's pin.
+  signed-saves:
+    name: Signed saves (pyHanko, pdfsig)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
+        with:
+          # This job's own dependency cache (per job and OS), saved by the scheduled runs on
+          # main: the next night rebuilds only Lamina PDF's crates.
+          cache: true
+      - name: Install pdfsig and pyHanko (fixtures/signed/requirements.txt)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends poppler-utils
+          pdfsig -v
+          python3 -m venv "$RUNNER_TEMP/signed-venv"
+          "$RUNNER_TEMP/signed-venv/bin/python" -m pip install --disable-pip-version-check -q \
+            -r fixtures/signed/requirements.txt
+      - name: Save every case, then validate each file
+        run: |
+          out="$RUNNER_TEMP/signed-saves"
+          LAMINA_SIGNED_GATING_OUT="$out" cargo test -p laminapdf --test signed_gating
+          "$RUNNER_TEMP/signed-venv/bin/python" -I fixtures/signed/check_saved.py "$out"
+
   # Todo T1a: the round-trip suite (ADR 0018 tier 7), set up as full.yml's `suites` job, so the
   # proof record has its counts. It writes nothing but its artefact, so it needs no record gate.
   roundtrip:
@@ -849,6 +886,7 @@ jobs:
         links,
         render-diff,
         verapdf,
+        signed-saves,
         roundtrip,
         proof,
         rust-macos-x64,

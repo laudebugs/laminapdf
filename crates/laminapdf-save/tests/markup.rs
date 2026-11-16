@@ -134,19 +134,23 @@ fn every_mark_saves_in_both_modes_and_reopens_with_its_appearance() {
     }
 }
 
-/// A one-page file whose usage rights grant `/Annots [/Create]` only, built by hand since
-/// pyHanko doesn't sign usage rights.
-fn create_only() -> Document {
+/// A one-page file with a text note (`a8.0`) whose usage rights grant `/Annots [<rights>]`
+/// only, built by hand since pyHanko doesn't sign usage rights.
+fn granting(rights: &str) -> Document {
+    let reference = format!(
+        "<< /Type /Sig /ByteRange [0 1 2 3] /Contents <00> /Reference [<< /TransformMethod /UR3 \
+         /TransformParams << /Annots [{rights}] >> >>] >>"
+    );
     editable(&common::classic_with_root(
         &[
             "<< /Type /Catalog /Pages 2 0 R /AcroForm 4 0 R /Perms 6 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 612 792] >>",
-            "<< /Type /Page /Parent 2 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /Annots [8 0 R] >>",
             "<< /Fields [5 0 R] >>",
             "<< /FT /Sig /T (UR) /V 7 0 R >>",
             "<< /UR3 7 0 R >>",
-            "<< /Type /Sig /ByteRange [0 1 2 3] /Contents <00> /Reference [<< /TransformMethod /UR3 \
-             /TransformParams << /Annots [/Create] >> >>] >>",
+            &reference,
+            "<< /Type /Annot /Subtype /Text /Rect [72 700 92 720] /P 3 0 R /Contents (A note) >>",
         ],
         "",
     ))
@@ -157,11 +161,11 @@ fn constraint(doc: &Document) -> ConstraintKind {
     SavePlanner::new(doc).unwrap().constraint().kind()
 }
 
-/// Undoing an added note after a save deletes it, which needs `/Delete`; redoing it adds it
-/// it back to the file as saved, with nothing left to save.
+/// Undoing an added note after a save deletes it, which needs `/Delete`; redoing it brings the
+/// file back to the state it was saved in, with nothing left to save.
 #[test]
 fn undoing_an_added_note_after_a_save_needs_the_right_to_delete() {
-    let mut doc = create_only();
+    let mut doc = granting("/Create");
     let page = doc.pages().unwrap().get(0).unwrap().id().clone();
     let note = AddAnnot::new(
         page,
@@ -182,3 +186,4 @@ fn undoing_an_added_note_after_a_save_needs_the_right_to_delete() {
         )
     );
 }
+

@@ -385,6 +385,27 @@ fn an_allowed_op_on_an_approval_signed_file_saves_after_the_signed_bytes() {
     }
 }
 
+/// The named destinations of the approval file outlast every op it allows: none of them
+/// deletes page 2, which holds the signature's widget, and a deleted page's destination
+/// follows to the next page.
+#[test]
+fn an_allowed_op_keeps_the_named_destinations() {
+    let fixture = Fixture::named("approval-organised.pdf");
+    for case in Case::all() {
+        if !std::ptr::eq(case.fixture, fixture) || !case.expected().is_empty() {
+            continue;
+        }
+        let (mut doc, op) = case.build();
+        if !case.applied(&mut doc, op) {
+            continue;
+        }
+        let again = Document::open_bytes(doc.save(&SaveOptions::new()).unwrap().bytes, OpenOptions::default()).unwrap();
+        for name in ["page-1", "page-2", "page-3"] {
+            assert!(again.named_destination(name).unwrap().is_some(), "{case}: {name}");
+        }
+    }
+}
+
 /// An op that breaks a signature saves only through the override, which removes the
 /// signatures it would break: the file opens again with no signed signature left.
 #[test]

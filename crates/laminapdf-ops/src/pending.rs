@@ -14,7 +14,8 @@ use crate::widgets::TouchedWidget;
 /// needs a full rewrite ([ADR 0007] §2).
 ///
 /// It errs on the side of reporting: every committed transaction's op classes are added (an
-/// undo or redo adds those of the transaction it reverts), and only an empty overlay (nothing
+/// undo or redo adds those of the transaction it reverts, with its usage rights turned round:
+/// undoing an addition deletes), and only an empty overlay (nothing
 /// left to save) or a rebase clears it. A class that is reported but whose change was undone
 /// can make the planner refuse a save it could allow; a class that is missing would let a save
 /// break a signature without saying so.
@@ -56,9 +57,7 @@ impl PendingChanges {
             ]
             .into_iter()
             .collect(),
-            annot_rights: [AnnotRight::Create, AnnotRight::Modify, AnnotRight::Delete]
-                .into_iter()
-                .collect(),
+            annot_rights: AnnotRight::ALL.into_iter().collect(),
             requires_rewrite: true,
             unknown: true,
             packet_rewritten: false,
