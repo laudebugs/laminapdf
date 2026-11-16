@@ -134,7 +134,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D6. Signing, packaging and release pipeline
 
-**Todos:** [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md), [D6b](../todos/done/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/ongoing/D6c-macos-signing-and-notarisation.md), [D6d](../todos/ready/D6d-windows-signing.md)
+**Todos:** [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md), [D6b](../todos/done/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/done/D6c-macos-signing-and-notarisation.md), [D6e](../todos/ready/D6e-macos-signed-release-checks.md), [D6d](../todos/ready/D6d-windows-signing.md)
 
 **Deliverable:** release workflow (tauri-action matrix) producing artefacts signed with the owner's identities as publisher: dmg (Developer ID + notarisation + stapling), MSI and NSIS (Azure Artifact Signing if the owner is eligible as an individual, otherwise an OV certificate in a cloud HSM), AppImage and deb (rpm optional); uploads to R2 with attestations; manifests updated per channel.
 **Accepted when:** Gatekeeper and `debsig`/AppImage signature checks pass on clean VMs; on Windows the Authenticode signature is valid and the owner is shown as publisher. SmartScreen may warn on the first downloads with either path, since no certificate (OV, EV or Artifact Signing) gets instant reputation ([Microsoft](https://learn.microsoft.com/windows/apps/package-and-deploy/smartscreen-reputation), checked 2026-11-12 by D6a); the prompt names the owner as publisher, a warning is acceptable for early releases, and the release notes document how reputation builds up; release artifacts carry GitHub attestations; a nightly channel build publishes automatically (nightlies are built in a separate `desktop-nightly` environment, are not OS-code-signed, and form their own install line: switching to beta or stable means reinstalling; see [D6b](../todos/done/D6b-release-workflow-and-linux-packages.md)).
@@ -221,7 +221,7 @@ Ticked by the PR that completes them.
 ### D6. Signing, packaging and release pipeline
 
 - [x] Release workflow with tauri-action matrix (macOS arm64/x64, Windows x64/arm64, Linux x64/arm64) (the Tauri CLI itself, [D6b](../todos/done/D6b-release-workflow-and-linux-packages.md))
-- [ ] Apple Developer ID signing, notarisation and stapling
+- [x] Apple Developer ID signing, notarisation and stapling (built by [D6c](../todos/done/D6c-macos-signing-and-notarisation.md); the first signed run is [D6e](../todos/ready/D6e-macos-signed-release-checks.md), waiting on Apple)
 - [x] Owner confirms Windows Artifact Signing individual eligibility (US/Canada only); otherwise obtain an OV certificate in a cloud HSM (confirmed eligible 2026-11-12, [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md))
 - [ ] Windows signing via `signCommand` (Artifact Signing or the OV certificate); MSI and NSIS outputs
 - [x] Linux AppImage (updater) and deb; rpm if the matrix allows (all three, signed; [D6b](../todos/done/D6b-release-workflow-and-linux-packages.md))

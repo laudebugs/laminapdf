@@ -49,7 +49,7 @@ Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's
 
 - Microsoft Store/MSIX (non-goal).
 - EV certificates (no reputation advantage since 2024; not planned).
-- macOS: [D6c](../ongoing/D6c-macos-signing-and-notarisation.md).
+- macOS: [D6c](../done/D6c-macos-signing-and-notarisation.md).
 
 ## Tasks
 

@@ -39,7 +39,7 @@ Make a `laminapdf-cli-v*` tag release the CLI everywhere it says it runs. CI bui
 
 - A download table on the docs site: [L4f](../done/L4f-command-line-docs.md).
 - Build-provenance attestations: the `publish` job already makes them whenever the repository is public, as it now is.
-- Code signing and notarisation: [D6c](../ongoing/D6c-macos-signing-and-notarisation.md), [D6d](../ready/D6d-windows-signing.md).
+- Code signing and notarisation: [D6c](../done/D6c-macos-signing-and-notarisation.md), [D6d](../ready/D6d-windows-signing.md).
 - crates.io: `laminapdf-cli` stays `publish = false` (ADR 0031).
 
 ## Tasks

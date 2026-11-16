@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-11-12
 - Amended 2026-11-15 (D7a): §10 adds crash reports, which the same Worker receives ([desktop plan §8 Q2](../plans/desktop-app.md#8-open-questions)).
-- Amended 2026-11-15 ([D6c](../todos/ongoing/D6c-macos-signing-and-notarisation.md)): §6 records how macOS builds are signed: one build per architecture, the hardened runtime only with the Developer ID, PDFium signed before Tauri bundles, the `.dmg` notarised on its own, and macOS 13 as the oldest supported version.
+- Amended 2026-11-15 ([D6c](../todos/done/D6c-macos-signing-and-notarisation.md)): §6 records how macOS builds are signed: one build per architecture, the hardened runtime only with the Developer ID, PDFium signed before Tauri bundles, the `.dmg` notarised on its own, and macOS 13 as the oldest supported version.
 - Amended 2026-11-15: §7's updater keys replaced before anything published, because the first release key's password didn't unlock it.
 
 ## Context

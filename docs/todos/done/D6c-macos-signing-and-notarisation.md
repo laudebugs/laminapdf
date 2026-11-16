@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `D6c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §6 D6](../../plans/desktop-app.md#d6-signing-packaging-and-release-pipeline) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D6a](../done/D6a-signing-runbook-and-owner-setup.md), [D6b](../done/D6b-release-workflow-and-linux-packages.md) |
+| Depends on | [D6a](./D6a-signing-runbook-and-owner-setup.md), [D6b](./D6b-release-workflow-and-linux-packages.md) |
 | ADRs | Implements ADR 0014 (macOS identity); respects ADR 0008 / D2c (engine helper entitlements) |
 | Branch | `ci/d6c-macos-signing` |
 | PR title | `ci(desktop): sign, notarise and staple macOS builds with the owner's Developer ID` |
@@ -46,21 +46,23 @@ Every macOS artefact lamina publishes — the `.app` inside the updater `.app.ta
 
 ## Tasks
 
-- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`.
-- [ ] Entitlements files and `tauri.conf.json` macOS keys.
-- [ ] Helper/PDFium signing order; verify with `codesign -dvvv` in CI.
-- [ ] dmg notarisation + stapling step; retry/backoff around `notarytool` (Apple service hiccups) and a timeout.
-- [ ] Verification step that fails the job on any check failure.
-- [ ] Clean-VM checklist results in the PR.
-- [ ] Update the runbook with exact commands and troubleshooting (common notarisation rejections: unsigned nested binaries, missing hardened runtime, secure timestamp).
+- [x] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`.
+- [x] Entitlements files and `tauri.conf.json` macOS keys.
+- [x] Helper/PDFium signing order; verify with `codesign -dvvv` in CI.
+- [x] dmg notarisation + stapling step; retry/backoff around `notarytool` (Apple service hiccups) and a timeout.
+- [x] Verification step that fails the job on any check failure.
+- [ ] Clean-VM checklist results in the PR. Moved to [D6e](../ready/D6e-macos-signed-release-checks.md).
+- [x] Update the runbook with exact commands and troubleshooting (common notarisation rejections: unsigned nested binaries, missing hardened runtime, secure timestamp).
 
 ## Acceptance criteria
 
-- [ ] `spctl` accepts the `.app` as "Notarized Developer ID" and the `.dmg` passes its Gatekeeper check; `stapler validate` passes for both (CI step green).
-- [ ] On a clean macOS 13 VM and the latest macOS, the downloaded dmg installs and launches with no Gatekeeper warning beyond the standard first-launch prompt showing the owner as developer (recorded with OS versions).
-- [ ] The engine helper in the signed build runs sandboxed (`--sandbox-selftest` all blocked) and the app opens fixtures.
-- [ ] An installed signed build updates to the next signed build via the updater (two `desktop-release`-environment `workflow_dispatch` runs to the `staging` channel; nightlies stay ad-hoc signed per D6b).
-- [ ] No signing secrets are printed in logs (masking verified).
+Apple's notary service didn't yet accept the owner's team when this merged (statusCode 7000, "Team is not yet configured for notarization", 2026-11-15), so no signed run could pass. The owner chose to merge and move the criteria that need one to [D6e](../ready/D6e-macos-signed-release-checks.md); they stay unticked here.
+
+- [ ] (D6e) `spctl` accepts the `.app` as "Notarized Developer ID" and the `.dmg` passes its Gatekeeper check; `stapler validate` passes for both (CI step green).
+- [ ] (D6e) On a clean macOS 13 VM and the latest macOS, the downloaded dmg installs and launches with no Gatekeeper warning beyond the standard first-launch prompt showing the owner as developer (recorded with OS versions).
+- [ ] (D6e) The engine helper in the signed build runs sandboxed (`--sandbox-selftest` all blocked) and the app opens fixtures.
+- [ ] (D6e) An installed signed build updates to the next signed build via the updater (two `desktop-release`-environment `workflow_dispatch` runs to the `staging` channel; nightlies stay ad-hoc signed per D6b).
+- [ ] (D6e) No signing secrets are printed in logs (masking verified).
 
 ## Post-merge checks
 
@@ -96,8 +98,8 @@ Where the work differs from the plan above:
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
