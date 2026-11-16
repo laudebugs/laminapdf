@@ -30,12 +30,12 @@ An annotation layer in the viewer's `annot` slot that reads each page's annotati
 - The worker's `pageAnnotations(page)` method over the façade's records, cached per page revision
 - `AnnotationLayer` in the `annot` slot: hit-testing, selection and multiple selection, the handles of §7.32, SVG previews while drawing, moving and resizing, each annotation a button in reading order with the keyboard moves of C02
 - `RenderRequest::hidden_annotations` in `laminapdf-render` and `@laminapdf/render`; PDFium finds the annotation by its index in the page's `/Annots` (carried in the record) and sets the Hidden flag on the loaded page for that render only; a render with hidden annotations has its own view key and never enters the bitmap cache; hayro honours it if its renderer can, and the adapter's docs say whether it does
-- A gesture API the tools of [E4f](E4f-annotation-tools-ui.md) use: start, update, commit, cancel; commit applies the op and swaps the preview for the new bitmap in one frame
+- A gesture API the tools of [E4f](../ready/E4f-annotation-tools-ui.md) use: start, update, commit, cancel; commit applies the op and swaps the preview for the new bitmap in one frame
 - The cost of the extra render measured against E1's 150 ms budget in the viewer's performance harness
 
 **Out of scope** (and which todo covers it)
 
-- The tools and the inspector → [E4f](E4f-annotation-tools-ui.md)
+- The tools and the inspector → [E4f](../ready/E4f-annotation-tools-ui.md)
 
 **Editor facts**
 
@@ -47,11 +47,11 @@ An annotation layer in the viewer's `annot` slot that reads each page's annotati
 
 ## Tasks
 
-- [ ] `pageAnnotations` in the worker
-- [ ] The layer, hit-testing, handles and previews
-- [ ] `hidden_annotations` in the adapters
-- [ ] The gesture API
-- [ ] The performance case
+- [x] `pageAnnotations` in the worker
+- [x] The layer, hit-testing, handles and previews
+- [x] `hidden_annotations` in the adapters
+- [x] The gesture API
+- [x] The performance case
 
 ## Acceptance criteria
 
@@ -78,6 +78,16 @@ None.
 ## Risks and open questions
 
 - Setting a flag on PDFium's loaded page may need the page reloaded after the render; measure it
+
+## As built
+
+- **The render request.** `RenderRequest::hidden_annotations` (`hiddenAnnotations` in TypeScript) lists places in the page's `/Annots`. In Rust the request is no longer `Copy`, since the list is a `Vec`: callers that reused a request clone it, and the changeset says so. Both PDFium adapters, native and WebAssembly, set the Hidden flag on the loaded page's annotation and clear it after the render, since the flag lands on the document's own objects and PDFium reads it afresh at every render; no page reload was needed. The recolouring decision (which annotation rectangles keep their colours) is made before anything is hidden, so its cache stays right.
+- **hayro honours it, approximately.** hayro draws every annotation or none and exposes no per-annotation filter, so its adapter draws the tile again without annotations and copies that drawing over each hidden annotation's `/Rect`. An annotation that overlaps a hidden one is left out inside that rectangle too; the adapter's docs say so. The contract suite's fixture, `fixtures/annotations/same-name.pdf`, has two squares with the same `/NM` that don't overlap, and a third already Hidden.
+- **The layer is opt-in.** `AnnotationLayer` is a class the app adds with `viewer.addLayer` while an editing mode is on, not a `createViewer` option. Its buttons take the pointer from the text under them, and the reader's startup script never loads it. It shares the `annot` slot with the link layer.
+- **The viewer's part.** `viewer.hideAnnotations(page, places)` and `viewer.whenDrawn(page)` are public. A page with hidden annotations renders under its own view key, never enters the bitmap cache, and keeps its backdrop as it was (only the part in view is drawn without the annotation, so a drag never costs a whole-page render). An edit to the page clears its hidden list. While someone waits on `whenDrawn`, the page's new tiles are fetched first and drawn in one task, so the preview goes in the frame the new pixels show.
+- **Resizing is the tools'.** The handles of §7.32 are drawn round the selection, and the gesture API previews any change, but dragging a handle doesn't resize yet: a resize is a spec patch per subtype, which E4f's tools and inspector make through `startGesture`. Moves, by drag and by the arrow keys, are built in, as one `updateAnnot` with `translate` per annotation.
+- **The desktop engine.** The desktop client's `pageAnnotations` answers an empty list, as its `pageLinks` does, and its tile protocol carries no hidden list yet: the desktop part is E4h's.
+- **The measurement.** The perf harness's new case hides the annotation of the page in view on a 100-page file with one on every page (`marked`), nine times. In Chromium on the owner's Mac (`cargo xtask viewer-perf chromium --quick`, 2026-11-16), the page in view was drawn without it in a median 25 ms and with it again in 5 ms, against the edit's 150 ms budget.
 
 ## Definition of done
 

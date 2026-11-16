@@ -29,7 +29,7 @@ Comment mode in the web reader: its secondary toolbar, the Select, Highlight, Un
 **In scope**
 
 - `mode.comment` in the mode registry and its toolbar; the `comment.*` tool commands and the `annot.*` inspector commands of C01 and C02, each in the command registry
-- One tool module per mark over [E4i](E4i-viewer-annotation-layer.md)'s layer; text tools snap to text runs through the text layer's quads
+- One tool module per mark over [E4i](../ongoing/E4i-viewer-annotation-layer.md)'s layer; text tools snap to text runs through the text layer's quads
 - The inspector, with colours and widths remembered per tool on this device; the author name from Settings, asked the first time
 - Keyboard creation and editing (C01, C02), single-key shortcuts that Settings can turn off, ARIA names and focus order
 - The banner from the moment Comment mode opens on a P1 or P2 file (C01); tools disabled with the reason on a file whose permissions forbid annotating
