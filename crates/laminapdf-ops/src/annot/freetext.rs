@@ -248,6 +248,27 @@ impl RichText {
             .join("\r")
     }
 
+    /// Reads rich text as `/RC` holds it (XHTML), tolerating what other apps write, and says
+    /// whether it held styles this subset doesn't keep: a size, colour or font for part of the
+    /// text, or elements other than `body`, `p`, `span`, `b`, `i` and `br`. It never fails: text
+    /// it can't parse is read as text.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub fn from_xhtml(xhtml: &str) -> (Self, bool) {
+        let read = freetext_keys::read_rc(xhtml);
+        (read.text, read.simplified)
+    }
+
+    /// The text as XHTML in the subset: a `p` per paragraph and a `span` per bold or italic span,
+    /// which [`RichText::from_xhtml`] reads back unchanged.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub fn to_xhtml(&self) -> String {
+        freetext_keys::write_body(self, None)
+    }
+
     /// Whether a span is bold or italic, which only `/RC` keeps.
     pub(crate) fn is_styled(&self) -> bool {
         self.paragraphs.iter().flatten().any(|s| s.bold || s.italic)

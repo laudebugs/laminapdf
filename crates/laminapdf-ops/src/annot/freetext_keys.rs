@@ -249,14 +249,27 @@ fn css_color(value: &str) -> Option<AnnotColor> {
 /// alignment, a `p` per paragraph and a `span` per bold or italic span.
 pub(crate) fn write_rc(text: &FreeText, color: Option<AnnotColor>) -> String {
     let family = family_of(text.font);
-    let mut out = format!(
-        "<?xml version=\"1.0\"?><body xmlns=\"http://www.w3.org/1999/xhtml\" style=\"font-family:{};font-size:{}pt;text-align:{};color:{}\">",
+    let style = format!(
+        "font-family:{};font-size:{}pt;text-align:{};color:{}",
         css_family(family),
         format_real(text.size),
         text.align.css(),
         hex(color.unwrap_or(AnnotColor::Gray(0.0)))
     );
-    for paragraph in &text.text.paragraphs {
+    write_body(&text.text, Some(&style))
+}
+
+/// The XHTML document of `text`: a body (with `style` when given), a `p` per paragraph and a
+/// `span` per bold or italic span.
+pub(crate) fn write_body(text: &RichText, style: Option<&str>) -> String {
+    let mut out = String::from("<?xml version=\"1.0\"?><body xmlns=\"http://www.w3.org/1999/xhtml\"");
+    if let Some(style) = style {
+        out.push_str(" style=\"");
+        out.push_str(style);
+        out.push('"');
+    }
+    out.push('>');
+    for paragraph in &text.paragraphs {
         out.push_str("<p>");
         for span in paragraph {
             let style = match (span.bold, span.italic) {

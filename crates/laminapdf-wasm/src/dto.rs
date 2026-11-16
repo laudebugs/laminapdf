@@ -408,6 +408,11 @@ pub(crate) struct EditedJs {
     #[serde(skip_serializing_if = "is_zero")]
     #[tsify(optional)]
     pub bookmarks_dropped: usize,
+    /// What the edit did that its caller may want to check (`rich-text-simplified`); left out
+    /// when there is nothing.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[tsify(optional, type = "Diagnostic[]")]
+    pub warnings: Vec<laminapdf::Diagnostic>,
 }
 
 /// A structure name brought in under another name: `kind` is `role`, `class` or `id`.
@@ -559,6 +564,7 @@ impl From<laminapdf::Edited> for EditedJs {
                 .collect(),
             cropped_content_remains: e.cropped_content_remains.iter().map(ToString::to_string).collect(),
             bookmarks_dropped: e.bookmarks_dropped,
+            warnings: e.warnings.iter().map(laminapdf::Warning::diagnostic).collect(),
             declared: e.declared.into_iter().map(ExtensionPropertyJs::from).collect(),
         }
     }

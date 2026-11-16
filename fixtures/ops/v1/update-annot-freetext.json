@@ -1,0 +1,1 @@
+{ "op": "updateAnnot", "args": { "id": "a12.0", "modified": "D:20261116120000Z", "spec": { "type": "freeText", "text": [[{ "text": "Checked: " }, { "text": "fine", "italic": true }]], "align": "left", "fill": null } } }

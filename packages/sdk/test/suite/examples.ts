@@ -5,6 +5,7 @@
 // runtime produces the same bytes.
 import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@laminapdf/sdk";
 import { addLinks } from "../../examples/add-links.js";
+import { addTextBox } from "../../examples/add-text-box.js";
 import { addContents } from "../../examples/create-contents-page.js";
 import { cropPages } from "../../examples/crop-pages.js";
 import { drawOnPage } from "../../examples/draw-on-page.js";
@@ -229,6 +230,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "draw_on_page",
     inputs: [TAGGED_PDF],
     build: (i) => drawOnPage(input(i, TAGGED_PDF), EDITED_AT),
+  },
+  {
+    name: "add-text-box",
+    golden: "add_text_box",
+    inputs: [TAGGED_PDF],
+    build: (i) => addTextBox(input(i, TAGGED_PDF), EDITED_AT),
   },
   {
     name: "review-comments",
