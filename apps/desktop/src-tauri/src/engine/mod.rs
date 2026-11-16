@@ -489,7 +489,12 @@ impl Engines {
                 }
             },
         )
-        .map_err(|error| supervisor_error(&error))?;
+        .map_err(|error| {
+            // The window only hears the error; without this line a start that never reached Ready
+            // leaves no trace in the log.
+            tracing::warn!(window, "the document process could not start: {error}");
+            supervisor_error(&error)
+        })?;
         let mut windows = self.windows();
         if let Some(raced) = windows.get(window) {
             // Another command started one meanwhile: keep that one.

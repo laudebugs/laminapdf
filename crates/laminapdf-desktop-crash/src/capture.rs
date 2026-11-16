@@ -222,7 +222,10 @@ fn serve_loop(mut server: Server, socket: &Path, handler: &Handler, stop: &Atomi
     let mut budget = RestartBudget::new(Instant::now());
     loop {
         let handler = Box::new(Shared(handler.clone()));
-        match server.run(handler, stop, Some(Duration::from_secs(60))) {
+        // No stale timeout: a client sends nothing until it crashes, so a quiet connection is the
+        // normal case. With one, minidumper dropped every connection after a minute: the engines'
+        // capture ended silently, and the main process's drop ended the monitor.
+        match server.run(handler, stop, None) {
             Ok(()) => return,
             Err(_) if stop.load(Ordering::SeqCst) => return,
             Err(_) => {

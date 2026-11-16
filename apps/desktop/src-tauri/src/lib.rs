@@ -146,10 +146,13 @@ impl Notify for WindowEvents {
 
 /// Every window's engine, started on first use.
 fn engines(app: &tauri::AppHandle) -> Arc<Engines> {
-    let (program, args) = (engine_program(), engine_args(app));
+    let (program, handle) = (engine_program(), app.clone());
     let launcher: Launcher = Arc::new(move || {
+        // The arguments are read at each launch: after a crash monitor restart, the engine needs
+        // the new monitor's socket, not the one there was when the app started.
+        let args = engine_args(&handle);
         // Inside its sandbox (ADR 0008 §5); the supervisor logs the layers each engine reports.
-        let spawner = SandboxSpawner::new(program.clone(), args.clone(), SandboxConfig::default(), |line| {
+        let spawner = SandboxSpawner::new(program.clone(), args, SandboxConfig::default(), |line| {
             tracing::info!(target: "laminapdf_desktop::engine", "{line}");
         });
         Box::new(spawner) as Box<dyn Spawner>
