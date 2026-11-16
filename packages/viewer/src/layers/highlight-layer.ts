@@ -2,9 +2,15 @@
 // `lamina-layer-highlight` slot. Like the text layer, the boxes sit in page points inside one box
 // that a CSS transform scales and turns to the page, so a zoom or a rotation moves none of them.
 // Each match quad is drawn as its bounding box. The current match gets its own class. The viewer
-// adds no style sheet: colours come from `--lamina-find-match` and `--lamina-find-current`, and
-// the current match also gets an outline (`--lamina-find-current-outline`), so it never differs
-// by colour alone. The boxes take no pointer events, so they never stand in a selection's way.
+// adds no style sheet: colours come from `--lamina-find-match` and `--lamina-find-current`.
+// The boxes lie over the page's drawing, so the box that holds them is blended with it
+// (`--lamina-find-blend`: multiply, for a light page, by default; screen for a dark one), which
+// leaves the ink under a match as drawn. The blend is on that box, not on each mark: the box is
+// transformed, so it is a group of its own, and a mark blended inside it would blend with nothing.
+// Each match also gets an unblended frame, in a second box, so it shows over a picture too: a
+// 1 px bottom edge (`--lamina-find-match-edge`), and on the current match an outline
+// (`--lamina-find-current-outline`), so the current one never differs by colour alone. The boxes
+// take no pointer events, so they never stand in a selection's way.
 
 import type { Rotation } from "../layout/page-layout.js";
 import type { PageLayer } from "../view/viewer.js";
@@ -19,10 +25,26 @@ export interface HighlightHost {
   rotation(): Rotation;
 }
 
-/** One mounted page's highlights. */
+/** One mounted page's highlights: the blended fills and the unblended frames. */
 interface PageHighlights {
   readonly box: HTMLDivElement;
+  readonly frames: HTMLDivElement;
   size: { readonly width: number; readonly height: number } | undefined;
+}
+
+/** A box in page points over the page, for the fills (`blend`) or the frames. */
+function layerBox(className: string, blend: boolean): HTMLDivElement {
+  const box = document.createElement("div");
+  box.className = className;
+  Object.assign(box.style, {
+    position: "absolute",
+    left: "0",
+    top: "0",
+    transformOrigin: "0 0",
+    pointerEvents: "none",
+    ...(blend ? { mixBlendMode: "var(--lamina-find-blend, multiply)" } : {}),
+  });
+  return box;
 }
 
 /** The axis-aligned box around a quad's four corners. */
@@ -45,22 +67,17 @@ export class HighlightLayer implements PageLayer {
   }
 
   onMount(page: number, slot: HTMLElement): void {
-    const box = document.createElement("div");
-    box.className = "lamina-highlight-layer";
-    Object.assign(box.style, {
-      position: "absolute",
-      left: "0",
-      top: "0",
-      transformOrigin: "0 0",
-      pointerEvents: "none",
-    });
-    slot.append(box);
-    this.#pages.set(page, { box, size: undefined });
+    const box = layerBox("lamina-highlight-layer", true);
+    const frames = layerBox("lamina-highlight-frames", false);
+    slot.append(box, frames);
+    this.#pages.set(page, { box, frames, size: undefined });
     this.#draw(page);
   }
 
   onUnmount(page: number): void {
-    this.#pages.get(page)?.box.remove();
+    const view = this.#pages.get(page);
+    view?.box.remove();
+    view?.frames.remove();
     this.#pages.delete(page);
   }
 
@@ -83,7 +100,8 @@ export class HighlightLayer implements PageLayer {
 
   #place(page: number, view: PageHighlights): void {
     const points = this.#host.points(page);
-    if (points !== undefined && view.size !== undefined) placeBox(view.box, points, view.size, this.#host.rotation());
+    if (points === undefined || view.size === undefined) return;
+    for (const box of [view.box, view.frames]) placeBox(box, points, view.size, this.#host.rotation());
   }
 
   #draw(page: number): void {
@@ -91,27 +109,40 @@ export class HighlightLayer implements PageLayer {
     if (view === undefined) return;
     const { matches, current } = this.#host.matchesOn(page);
     const marks: HTMLElement[] = [];
+    const frames: HTMLElement[] = [];
     matches.forEach((quads, index) => {
       for (let at = 0; at + 8 <= quads.length; at += 8) {
         const r = bounds(quads, at);
-        const mark = document.createElement("div");
         const isCurrent = index === current;
-        mark.className = isCurrent ? "lamina-find-match lamina-find-current" : "lamina-find-match";
-        Object.assign(mark.style, {
+        const place = {
           position: "absolute",
           left: `${r.x}px`,
           top: `${r.y}px`,
           width: `${r.width}px`,
           height: `${r.height}px`,
+          boxSizing: "border-box",
+        };
+        const mark = document.createElement("div");
+        mark.className = isCurrent ? "lamina-find-match lamina-find-current" : "lamina-find-match";
+        Object.assign(mark.style, {
+          ...place,
           background: isCurrent
             ? "var(--lamina-find-current, rgba(237, 191, 106, 0.6))"
             : "var(--lamina-find-match, rgba(246, 227, 188, 0.6))",
-          mixBlendMode: "multiply",
-          outline: isCurrent ? "2px solid var(--lamina-find-current-outline, #8a5300)" : "",
+        });
+        const frame = document.createElement("div");
+        frame.className = "lamina-find-frame";
+        Object.assign(frame.style, {
+          ...place,
+          ...(isCurrent
+            ? { outline: "2px solid var(--lamina-find-current-outline, #8a5300)" }
+            : { borderBottom: "1px solid var(--lamina-find-match-edge, #8a5300)" }),
         });
         marks.push(mark);
+        frames.push(frame);
       }
     });
     view.box.replaceChildren(...marks);
+    view.frames.replaceChildren(...frames);
   }
 }

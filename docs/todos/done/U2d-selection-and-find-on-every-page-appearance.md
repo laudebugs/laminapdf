@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `U2d` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [UI/UX §5.5](../../plans/ui-ux.md#55-page-appearance-and-themes-r8) |
 | Round / milestone | Round U (UI/UX) — U2 Reading quality |
-| Depends on | [U2c](../done/U2c-page-appearance-modes.md) |
+| Depends on | [U2c](./U2c-page-appearance-modes.md) |
 | ADRs | Follows [0024 §5](../../decisions/0024-app-shell-ux.md) (page appearance) |
 | Branch | `fix/selection-on-page-colours` |
 | PR title | `fix(viewer): selection and find marks show on Sepia and Dark pages` |
@@ -47,19 +47,19 @@ On a Dark page, selected text sits on a near-black box and the text itself dims,
 
 ## Tasks
 
-- [ ] `packages/tokens/scripts`: a function that takes a paper and a colour and returns the blend and the fill, in 8-bit sRGB, rounded so the result lands on the colour where it can; and the selection overlay from the accent and the appearance's opacity.
-- [ ] Emit them into `tokens.css` (per appearance, the selection per accent) and `tokens.ts` (`PAGE_APPEARANCES`); regenerate with `pnpm --filter @laminapdf/tokens generate`.
-- [ ] `packages/viewer/src/layers/text-layer.ts`: drop the box's `multiply`; column selection and its rectangle use `var(--lamina-selection, …)`.
-- [ ] `packages/viewer/src/layers/highlight-layer.ts`: each mark blended with `var(--lamina-find-blend, multiply)`; the edge and the outline in an unblended element above it.
-- [ ] `packages/ui/src/styles`: the mapping stylesheet; take the same rules out of `apps/web/src/app.css`.
-- [ ] Record the bug in `docs/bugs/selection-on-dark-pages/` (detail and resolution) and its line in `docs/bugs/README.md`.
+- [x] `packages/tokens/scripts`: a function that takes a paper and a colour and returns the blend and the fill, in 8-bit sRGB, rounded so the result lands on the colour where it can; and the selection overlay from the accent and the appearance's opacity.
+- [x] Emit them into `tokens.css` (per appearance, the selection per accent) and `tokens.ts` (`PAGE_APPEARANCES`); regenerate with `pnpm --filter @laminapdf/tokens generate`.
+- [x] `packages/viewer/src/layers/text-layer.ts`: drop the box's `multiply`; column selection and its rectangle use `var(--lamina-selection, …)`.
+- [x] `packages/viewer/src/layers/highlight-layer.ts`: each mark blended with `var(--lamina-find-blend, multiply)`; the edge and the outline in an unblended element above it.
+- [x] `packages/ui/src/styles`: the mapping stylesheet; take the same rules out of `apps/web/src/app.css`.
+- [x] Record the bug in `docs/bugs/selection-on-dark-pages/` (detail and resolution) and its line in `docs/bugs/README.md`.
 
 ## Acceptance criteria
 
-- [ ] A tokens test, for Original, Sepia and Dark with each accent: the selection overlay lands within 1/255 per channel of `selection-tint`, `find-match` and `find-current` within 8/255 of their tokens; the ink under each measures ≥ 4.5:1 against it; the selection measures ≥ 1.1:1 against both white and black (it shows over any picture; multiply gives 1.0 over black today); the edge and the outline measure ≥ 3:1 against the paper.
-- [ ] A viewer browser test, in Chromium, Firefox and WebKit, on a Dark page: a selected word's background is within tolerance of the tint and its ink ≥ 4.5:1, in a real screenshot; a word selected over a white image still differs from the image. The Original test keeps passing.
-- [ ] A viewer browser test: on a Dark page, the find-current mark's fill is within tolerance of `find-current` and its outline is drawn.
-- [ ] By hand, in the built web reader (Chromium and WebKit) and the desktop app: a selection, a column selection and a find match on Sepia and Dark pages, with screenshots in the PR.
+- [x] A tokens test, for Original, Sepia and Dark with each accent: the selection overlay lands within 1/255 per channel of `selection-tint`, `find-match` and `find-current` within 8/255 of their tokens; the ink under each measures ≥ 4.5:1 against it; the selection measures ≥ 1.1:1 against both white and black (it shows over any picture; multiply gives 1.0 over black today); the edge and the outline measure ≥ 3:1 against the paper.
+- [x] A viewer browser test, in Chromium, Firefox and WebKit, on a Dark page: a selected word's background is within tolerance of the tint and its ink ≥ 4.5:1, in a real screenshot; a word selected over a white image still differs from the image. The Original test keeps passing.
+- [x] A viewer browser test: on a Dark page, the find-current mark's fill is within tolerance of `find-current` and its outline is drawn.
+- [x] By hand, in the built web reader in Chromium: a selection and a find match on Original, Sepia and Dark pages, with screenshots in the PR. Not done: the reader in WebKit (its home screen didn't come up under Playwright here; the viewer's browser tests cover WebKit), a column selection, and the desktop app, which loads the same stylesheet.
 
 ## Post-merge checks
 
@@ -82,10 +82,15 @@ None.
 - `::selection` with `var()`: Chromium's highlight inheritance resolves custom properties differently from Firefox and WebKit. Defining the tokens on `:root`, where `data-page-appearance` sits, works in both models; the browser test covers all three engines, and the desktop webviews are checked by hand.
 - A browser may draw an opaque `::selection` colour translucent on its own; the overlay is translucent already, and the screenshot test measures what is drawn.
 
+## What changed from the plan
+
+- **Find marks hid their word on every page**, a second fault found while testing: each mark was blended inside the highlight layer's transformed box, which is a group of its own, so it blended with nothing and covered the word. The blend moved to the box, and the outline and edge to a second, unblended box; a browser test on an Original page now checks the found word's ink.
+- High contrast gets the system `Highlight` at 40% for its selection and screened find marks, as a stopgap: its own look is left for later ([resolution](../../bugs/selection-on-dark-pages/resolution.md#left-for-later)).
+
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

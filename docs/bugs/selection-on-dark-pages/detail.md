@@ -1,6 +1,6 @@
 # Selected text disappears on a Dark page
 
-With the page appearance set to Dark, selecting text in the reader turned the selected lines into a near-black box with dim text in it, so a reader couldn't see what they had selected. Sepia showed the selection darker than designed, and find matches went dark the same way. The fix is in [resolution.md](resolution.md).
+With the page appearance set to Dark, selecting text in the reader turned the selected lines into a near-black box with dim text in it, so a reader couldn't see what they had selected. Sepia showed the selection darker than designed, and on every page a find match hid the word it matched. The fix is in [resolution.md](resolution.md).
 
 ## What the user saw
 
@@ -25,15 +25,19 @@ In the built reader in Chromium, a mouse drag across four lines, then the most c
 | Sepia | `#BDBDA1` | `#C5CCBE` | `#2E2618` | 7.79:1 |
 | Dark | `#090B0B` | `#425858` | `#3C4E4B` | 2.24:1, under the 4.5:1 that text needs |
 
-The same arithmetic on every accent gives the same picture: on a Dark page, the selection lands between `#090B0B` and `#0C0A0C` and the ink at 2.17–2.24:1. The find colours do the same: Dark's `find-match` (`#5A4520`) lands on `#0C0904` and `find-current` (`#7A5818`) on `#100B03`.
+The same arithmetic on every accent gives the same picture: on a Dark page, the selection lands between `#090B0B` and `#0C0A0C` and the ink at 2.17–2.24:1.
 
 ## The cause
 
-The text layer, which holds the selection, and the find marks are drawn over the page with `mix-blend-mode: multiply` (`packages/viewer/src/layers/text-layer.ts` and `highlight-layer.ts`). That was the fix for [selection-hides-text](../selection-hides-text/resolution.md): multiplied over the page, a tint shows where the page is paper and leaves the ink as dark as drawn.
+The text layer, which holds the selection, is drawn over the page with `mix-blend-mode: multiply` (`packages/viewer/src/layers/text-layer.ts`). That was the fix for [selection-hides-text](../selection-hides-text/resolution.md): multiplied over the page, a tint shows where the page is paper and leaves the ink as dark as drawn.
 
 A multiplied fill shows as paper × fill. On the Original page the paper is white, so that is the fill itself. On the Dark page the paper is `#22211F`, so the tint is multiplied down to near black; and the ink, light on a Dark page, is multiplied down with it. That fix's own notes left this open: "Multiply suits a light page. … When the reader draws pages in those appearances, the text layer needs `screen` instead." The reader has since gained page appearances ([U2c](../../todos/done/U2c-page-appearance-modes.md)).
 
 The desktop app has no `::selection` rule and doesn't set the find colours, so it shows the system's selection colour and the viewer's built-in find colours, multiplied the same way.
+
+## Find matches hid the word they matched, on every page
+
+Checking the find marks turned up a second fault with the same root. The find marks were blended one by one, inside the highlight layer's box. That box is transformed to the page's size, which makes it a group of its own, so each mark blended with the empty group and was then drawn over the page as it was: an opaque fill over the word it matched. In the built reader, searching for "basket" showed an amber box with no word in it on the Original page and a brown one on the Dark page. The text layer never had this fault, since its blend is on the transformed box itself.
 
 ## What the fix had to weigh
 

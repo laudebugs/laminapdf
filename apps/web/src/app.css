@@ -23,10 +23,6 @@ body {
   inset: 0;
   /* A page's paper before it is drawn, in the page appearance's colour. */
   --lamina-page-paper: var(--paper-page-paper);
-  /* Find marks in the page appearance's colours (design language §2.6). */
-  --lamina-find-match: var(--paper-page-find-match);
-  --lamina-find-current: var(--paper-page-find-current);
-  --lamina-find-current-outline: var(--paper-page-find-current-outline);
 }
 
 /* High contrast pages are drawn in the system's colours, so their paper before drawing is too. */
@@ -57,12 +53,6 @@ body {
   [data-react-aria-pressable] {
     touch-action: pan-x pan-y pinch-zoom;
   }
-}
-
-/* The text layer's selection over the page (design language §2.2): the page appearance's
-   selection tint, so the transparent text shows only where it is selected. */
-.lamina-text-layer span::selection {
-  background: var(--paper-page-selection-tint);
 }
 
 /* The rail's Pages tab: the viewer's thumbnails strip fills the panel and scrolls inside it, each

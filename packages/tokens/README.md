@@ -48,6 +48,7 @@ The tokens come in three layers, and each layer reads only the one below it. Pri
 | `theme.<theme>` and `accent.<accent>.<light or dark>` | The semantic colours and shadows | `--paper-surface` |
 | `accent.<accent>.page` | Each page appearance's tint of the accent | `--paper-page-sepia-selection-tint` |
 | `appearance.<appearance>` | The page colours, under `data-page-appearance` | `--paper-page-ink` |
+| Computed by the generator (`scripts/page-marks.ts`) | How the viewer's marks land on each appearance's colours: the selection overlay (the accent at the opacity of its tint), the find marks' blend and fills | `--paper-page-selection-overlay`, `--paper-page-find-blend` |
 | `annotation`, `content` | Fixed colours, the same in every theme | `--paper-annotation-yellow` |
 | `semantic`, `font`, `type` | Space, radius, font stacks, type roles | `--paper-space-16`, `--paper-type-body` |
 | `component`, `breakpoint` | Component sizes, breakpoints | `--paper-rail-width` |

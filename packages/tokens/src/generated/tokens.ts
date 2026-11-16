@@ -589,7 +589,11 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#6E6A64",
       "mockup-rule": "#E6E3DE",
       "mockup-chart-bars": "#4E5A63",
-      "mockup-chart-labels": "#3A3733"
+      "mockup-chart-labels": "#3A3733",
+      "selection-overlay": "rgb(31 92 99 / 22%)",
+      "find-blend": "multiply",
+      "find-match-fill": "#F6E3BC",
+      "find-current-fill": "#EDBF6A"
     },
     "blue": {
       "paper": "#FFFFFF",
@@ -603,7 +607,11 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#6E6A64",
       "mockup-rule": "#E6E3DE",
       "mockup-chart-bars": "#4E5A63",
-      "mockup-chart-labels": "#3A3733"
+      "mockup-chart-labels": "#3A3733",
+      "selection-overlay": "rgb(45 74 107 / 22%)",
+      "find-blend": "multiply",
+      "find-match-fill": "#F6E3BC",
+      "find-current-fill": "#EDBF6A"
     },
     "plum": {
       "paper": "#FFFFFF",
@@ -617,7 +625,11 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#6E6A64",
       "mockup-rule": "#E6E3DE",
       "mockup-chart-bars": "#4E5A63",
-      "mockup-chart-labels": "#3A3733"
+      "mockup-chart-labels": "#3A3733",
+      "selection-overlay": "rgb(91 59 107 / 22%)",
+      "find-blend": "multiply",
+      "find-match-fill": "#F6E3BC",
+      "find-current-fill": "#EDBF6A"
     },
     "green": {
       "paper": "#FFFFFF",
@@ -631,7 +643,11 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#6E6A64",
       "mockup-rule": "#E6E3DE",
       "mockup-chart-bars": "#4E5A63",
-      "mockup-chart-labels": "#3A3733"
+      "mockup-chart-labels": "#3A3733",
+      "selection-overlay": "rgb(73 85 51 / 22%)",
+      "find-blend": "multiply",
+      "find-match-fill": "#F6E3BC",
+      "find-current-fill": "#EDBF6A"
     }
   },
   "sepia": {
@@ -647,7 +663,11 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#6B5B45",
       "mockup-rule": "#DCD0B6",
       "mockup-chart-bars": "#4E5A63",
-      "mockup-chart-labels": "#5A4C38"
+      "mockup-chart-labels": "#5A4C38",
+      "selection-overlay": "rgb(31 92 99 / 22%)",
+      "find-blend": "multiply",
+      "find-match-fill": "#F4E0B0",
+      "find-current-fill": "#E3B660"
     },
     "blue": {
       "paper": "#F4ECD8",
@@ -661,7 +681,11 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#6B5B45",
       "mockup-rule": "#DCD0B6",
       "mockup-chart-bars": "#4E5A63",
-      "mockup-chart-labels": "#5A4C38"
+      "mockup-chart-labels": "#5A4C38",
+      "selection-overlay": "rgb(45 74 107 / 22%)",
+      "find-blend": "multiply",
+      "find-match-fill": "#F4E0B0",
+      "find-current-fill": "#E3B660"
     },
     "plum": {
       "paper": "#F4ECD8",
@@ -675,7 +699,11 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#6B5B45",
       "mockup-rule": "#DCD0B6",
       "mockup-chart-bars": "#4E5A63",
-      "mockup-chart-labels": "#5A4C38"
+      "mockup-chart-labels": "#5A4C38",
+      "selection-overlay": "rgb(91 59 107 / 22%)",
+      "find-blend": "multiply",
+      "find-match-fill": "#F4E0B0",
+      "find-current-fill": "#E3B660"
     },
     "green": {
       "paper": "#F4ECD8",
@@ -689,7 +717,11 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#6B5B45",
       "mockup-rule": "#DCD0B6",
       "mockup-chart-bars": "#4E5A63",
-      "mockup-chart-labels": "#5A4C38"
+      "mockup-chart-labels": "#5A4C38",
+      "selection-overlay": "rgb(73 85 51 / 22%)",
+      "find-blend": "multiply",
+      "find-match-fill": "#F4E0B0",
+      "find-current-fill": "#E3B660"
     }
   },
   "dark": {
@@ -705,7 +737,11 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#ADA597",
       "mockup-rule": "#3A3833",
       "mockup-chart-bars": "#A9B4BC",
-      "mockup-chart-labels": "#C9C2B6"
+      "mockup-chart-labels": "#C9C2B6",
+      "selection-overlay": "rgb(125 189 194 / 35%)",
+      "find-blend": "screen",
+      "find-match-fill": "#412901",
+      "find-current-fill": "#663F00"
     },
     "blue": {
       "paper": "#22211F",
@@ -719,7 +755,11 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#ADA597",
       "mockup-rule": "#3A3833",
       "mockup-chart-bars": "#A9B4BC",
-      "mockup-chart-labels": "#C9C2B6"
+      "mockup-chart-labels": "#C9C2B6",
+      "selection-overlay": "rgb(145 179 220 / 35%)",
+      "find-blend": "screen",
+      "find-match-fill": "#412901",
+      "find-current-fill": "#663F00"
     },
     "plum": {
       "paper": "#22211F",
@@ -733,7 +773,11 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#ADA597",
       "mockup-rule": "#3A3833",
       "mockup-chart-bars": "#A9B4BC",
-      "mockup-chart-labels": "#C9C2B6"
+      "mockup-chart-labels": "#C9C2B6",
+      "selection-overlay": "rgb(197 159 217 / 35%)",
+      "find-blend": "screen",
+      "find-match-fill": "#412901",
+      "find-current-fill": "#663F00"
     },
     "green": {
       "paper": "#22211F",
@@ -747,7 +791,11 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#ADA597",
       "mockup-rule": "#3A3833",
       "mockup-chart-bars": "#A9B4BC",
-      "mockup-chart-labels": "#C9C2B6"
+      "mockup-chart-labels": "#C9C2B6",
+      "selection-overlay": "rgb(168 183 143 / 35%)",
+      "find-blend": "screen",
+      "find-match-fill": "#412901",
+      "find-current-fill": "#663F00"
     }
   },
   "high-contrast": {
@@ -763,7 +811,11 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#FFFFFF",
       "mockup-rule": "#FFFFFF",
       "mockup-chart-bars": "#FFFFFF",
-      "mockup-chart-labels": "#FFFFFF"
+      "mockup-chart-labels": "#FFFFFF",
+      "selection-overlay": "color-mix(in srgb, Highlight 40%, transparent)",
+      "find-blend": "screen",
+      "find-match-fill": "Mark",
+      "find-current-fill": "Highlight"
     },
     "blue": {
       "paper": "#000000",
@@ -777,7 +829,11 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#FFFFFF",
       "mockup-rule": "#FFFFFF",
       "mockup-chart-bars": "#FFFFFF",
-      "mockup-chart-labels": "#FFFFFF"
+      "mockup-chart-labels": "#FFFFFF",
+      "selection-overlay": "color-mix(in srgb, Highlight 40%, transparent)",
+      "find-blend": "screen",
+      "find-match-fill": "Mark",
+      "find-current-fill": "Highlight"
     },
     "plum": {
       "paper": "#000000",
@@ -791,7 +847,11 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#FFFFFF",
       "mockup-rule": "#FFFFFF",
       "mockup-chart-bars": "#FFFFFF",
-      "mockup-chart-labels": "#FFFFFF"
+      "mockup-chart-labels": "#FFFFFF",
+      "selection-overlay": "color-mix(in srgb, Highlight 40%, transparent)",
+      "find-blend": "screen",
+      "find-match-fill": "Mark",
+      "find-current-fill": "Highlight"
     },
     "green": {
       "paper": "#000000",
@@ -805,7 +865,11 @@ export const PAGE_APPEARANCES = {
       "mockup-muted": "#FFFFFF",
       "mockup-rule": "#FFFFFF",
       "mockup-chart-bars": "#FFFFFF",
-      "mockup-chart-labels": "#FFFFFF"
+      "mockup-chart-labels": "#FFFFFF",
+      "selection-overlay": "color-mix(in srgb, Highlight 40%, transparent)",
+      "find-blend": "screen",
+      "find-match-fill": "Mark",
+      "find-current-fill": "Highlight"
     }
   }
 } as const;
@@ -1173,4 +1237,4 @@ export const Z_ORDER = {
 export type SemanticColour = "ground" | "surface" | "raised" | "field" | "gutter" | "text" | "text-2" | "text-3" | "muted" | "code-keyword" | "code-string" | "code-comment" | "code-function" | "code-constant" | "hairline" | "chip-border" | "control-border" | "on-accent" | "danger" | "danger-strong" | "danger-pressed" | "positive" | "warning" | "danger-tint" | "positive-tint" | "warning-tint" | "hover" | "pressed" | "disabled" | "scrim" | "pill" | "on-pill" | "accent" | "accent-strong" | "primary-pressed" | "accent-tint" | "focus" | "field-tint" | "outline-blue";
 
 /** Every custom property the CSS declares, without `--paper-`. */
-export type TokenName = "space-2" | "space-4" | "space-6" | "space-8" | "space-10" | "space-12" | "space-14" | "space-16" | "space-18" | "space-20" | "space-22" | "space-24" | "space-28" | "space-32" | "space-48" | "radius-3" | "radius-4" | "radius-6" | "radius-12" | "radius-pill" | "font-sans" | "font-serif" | "font-page" | "font-mono" | "font-signature" | "type-site-display" | "type-site-display-letter-spacing" | "type-display" | "type-display-letter-spacing" | "type-page-heading" | "type-page-heading-letter-spacing" | "type-title" | "type-title-letter-spacing" | "type-heading" | "type-heading-letter-spacing" | "type-document-name" | "type-document-name-letter-spacing" | "type-outline" | "type-outline-letter-spacing" | "type-outline-nested" | "type-outline-nested-letter-spacing" | "type-quote" | "type-quote-letter-spacing" | "type-input-large" | "type-input-large-letter-spacing" | "type-body" | "type-body-letter-spacing" | "type-control" | "type-control-letter-spacing" | "type-label" | "type-label-letter-spacing" | "type-caption" | "type-caption-letter-spacing" | "type-overline" | "type-overline-letter-spacing" | "type-chip" | "type-chip-letter-spacing" | "type-tab-label" | "type-tab-label-letter-spacing" | "type-mono" | "type-mono-letter-spacing" | "breakpoint-phone-max" | "breakpoint-rail-open" | "duration-toast" | "duration-pill-fade" | "duration-progress-cycle" | "duration-tooltip-delay" | "duration-state-in" | "duration-state-out" | "duration-enter-small" | "duration-exit-small" | "duration-enter-panel" | "duration-exit-panel" | "duration-view" | "duration-link-preview-delay" | "motion-scale" | "motion-travel" | "ease-standard" | "ease-enter" | "ease-exit" | "cursor-action" | "cursor-link" | "cursor-disabled" | "cursor-pending" | "cursor-grab" | "cursor-grabbing" | "z-page" | "z-page-overlay" | "z-chrome" | "z-floating-toolbar" | "z-sheet" | "z-modal" | "z-popover" | "z-toast" | "ground" | "surface" | "raised" | "field" | "gutter" | "text" | "text-2" | "text-3" | "muted" | "code-keyword" | "code-string" | "code-comment" | "code-function" | "code-constant" | "hairline" | "chip-border" | "control-border" | "on-accent" | "danger" | "danger-strong" | "danger-pressed" | "positive" | "warning" | "danger-tint" | "positive-tint" | "warning-tint" | "hover" | "pressed" | "disabled" | "scrim" | "pill" | "on-pill" | "outline-blue" | "shadow-page" | "shadow-page-phone" | "shadow-thumbnail" | "shadow-float" | "shadow-sheet" | "shadow-overlay" | "accent" | "accent-strong" | "primary-pressed" | "accent-tint" | "focus" | "field-tint" | "page-original-selection-tint" | "page-original-accent" | "page-sepia-selection-tint" | "page-sepia-accent" | "page-dark-selection-tint" | "page-dark-accent" | "page-paper" | "page-ink" | "page-selection-tint" | "page-find-match" | "page-find-match-edge" | "page-find-current" | "page-find-current-outline" | "page-mockup-heading" | "page-mockup-muted" | "page-mockup-rule" | "page-mockup-chart-bars" | "page-mockup-chart-labels" | "annotation-yellow" | "annotation-green" | "annotation-blue" | "annotation-pink" | "content-line-black" | "content-line-red" | "content-line-blue" | "content-line-green" | "content-page-ink" | "content-page-grey" | "content-page-teal" | "content-page-red" | "content-signature-black" | "content-signature-dark-blue" | "content-presence-violet" | "content-presence-blue" | "content-presence-plum" | "content-presence-teal-green" | "content-diff-orange" | "content-diff-blue" | "border-width" | "focus-ring-width" | "focus-ring-offset" | "focus-ring-offset-tight" | "focus-ring-offset-inset" | "button-height" | "button-height-inspector" | "button-height-top-bar" | "button-height-touch" | "icon-button-size" | "icon-button-size-zoom" | "icon-button-size-touch" | "swatch-size-toolbar" | "swatch-size-inspector" | "top-bar-height" | "secondary-toolbar-height" | "top-bar-group-basis" | "zoom-percent-min-width" | "open-column-width" | "drop-border-width" | "page-input-height" | "find-field-width" | "find-count-inline" | "page-input-min-width" | "status-bar-height" | "rail-width" | "rail-width-min" | "rail-width-wide" | "inspector-width" | "wide-panel-width" | "phone-top-bar-height" | "phone-bottom-bar-height" | "phone-action-bar-height" | "sheet-radius" | "sheet-grabber-width" | "sheet-grabber-height" | "sheet-grabber-bar-width" | "sheet-grabber-bar-height" | "thumbnail-width" | "thumbnail-height" | "thumbnail-width-phone" | "thumbnail-height-phone" | "organise-tile-size" | "organise-tile-short-size" | "organise-drop-dot-size" | "organise-ghost-width" | "organise-ghost-height" | "organise-ghost-offset" | "page-pill-height" | "icon-button-size-large" | "icon-button-radius-touch" | "target-min" | "target-min-touch" | "tool-toggle-height" | "selected-underline-width" | "field-height" | "select-chevron-space" | "select-chevron-inset" | "checkbox-size" | "checkbox-radius" | "radio-dot" | "mixed-dash-width" | "mixed-dash-height" | "switch-width" | "switch-height" | "switch-knob" | "swatch-size-touch" | "chip-preview-height" | "chip-preview-font-size" | "icon-size-label" | "icon-size-toolbar" | "icon-size-touch" | "badge-height" | "badge-icon-size" | "progress-height" | "empty-state-width" | "thumbnail-current-offset" | "outline-row-padding-block-nested" | "shortcut-chip-padding-block" | "shortcut-chip-glyph-lift" | "dialog-width" | "dialog-width-form" | "properties-label-width" | "properties-chrome-height" | "capability-page-width" | "capability-legend-width" | "dialog-width-wide" | "menu-width" | "document-tab-strip-height" | "document-tab-min-width" | "document-tab-max-width" | "document-tab-close-size" | "document-tab-close-icon-size" | "menu-item-height" | "tooltip-offset" | "link-preview-width" | "link-preview-crop-max-width" | "link-preview-crop-width" | "link-preview-crop-height" | "toast-region-offset" | "sheet-detent-large" | "sheet-detent-medium" | "palette-offset" | "palette-width" | "palette-input-height" | "palette-row-height" | "toolbar-divider-height";
+export type TokenName = "space-2" | "space-4" | "space-6" | "space-8" | "space-10" | "space-12" | "space-14" | "space-16" | "space-18" | "space-20" | "space-22" | "space-24" | "space-28" | "space-32" | "space-48" | "radius-3" | "radius-4" | "radius-6" | "radius-12" | "radius-pill" | "font-sans" | "font-serif" | "font-page" | "font-mono" | "font-signature" | "type-site-display" | "type-site-display-letter-spacing" | "type-display" | "type-display-letter-spacing" | "type-page-heading" | "type-page-heading-letter-spacing" | "type-title" | "type-title-letter-spacing" | "type-heading" | "type-heading-letter-spacing" | "type-document-name" | "type-document-name-letter-spacing" | "type-outline" | "type-outline-letter-spacing" | "type-outline-nested" | "type-outline-nested-letter-spacing" | "type-quote" | "type-quote-letter-spacing" | "type-input-large" | "type-input-large-letter-spacing" | "type-body" | "type-body-letter-spacing" | "type-control" | "type-control-letter-spacing" | "type-label" | "type-label-letter-spacing" | "type-caption" | "type-caption-letter-spacing" | "type-overline" | "type-overline-letter-spacing" | "type-chip" | "type-chip-letter-spacing" | "type-tab-label" | "type-tab-label-letter-spacing" | "type-mono" | "type-mono-letter-spacing" | "breakpoint-phone-max" | "breakpoint-rail-open" | "duration-toast" | "duration-pill-fade" | "duration-progress-cycle" | "duration-tooltip-delay" | "duration-state-in" | "duration-state-out" | "duration-enter-small" | "duration-exit-small" | "duration-enter-panel" | "duration-exit-panel" | "duration-view" | "duration-link-preview-delay" | "motion-scale" | "motion-travel" | "ease-standard" | "ease-enter" | "ease-exit" | "cursor-action" | "cursor-link" | "cursor-disabled" | "cursor-pending" | "cursor-grab" | "cursor-grabbing" | "z-page" | "z-page-overlay" | "z-chrome" | "z-floating-toolbar" | "z-sheet" | "z-modal" | "z-popover" | "z-toast" | "ground" | "surface" | "raised" | "field" | "gutter" | "text" | "text-2" | "text-3" | "muted" | "code-keyword" | "code-string" | "code-comment" | "code-function" | "code-constant" | "hairline" | "chip-border" | "control-border" | "on-accent" | "danger" | "danger-strong" | "danger-pressed" | "positive" | "warning" | "danger-tint" | "positive-tint" | "warning-tint" | "hover" | "pressed" | "disabled" | "scrim" | "pill" | "on-pill" | "outline-blue" | "shadow-page" | "shadow-page-phone" | "shadow-thumbnail" | "shadow-float" | "shadow-sheet" | "shadow-overlay" | "accent" | "accent-strong" | "primary-pressed" | "accent-tint" | "focus" | "field-tint" | "page-original-selection-tint" | "page-original-accent" | "page-sepia-selection-tint" | "page-sepia-accent" | "page-dark-selection-tint" | "page-dark-accent" | "page-paper" | "page-ink" | "page-selection-tint" | "page-find-match" | "page-find-match-edge" | "page-find-current" | "page-find-current-outline" | "page-mockup-heading" | "page-mockup-muted" | "page-mockup-rule" | "page-mockup-chart-bars" | "page-mockup-chart-labels" | "annotation-yellow" | "annotation-green" | "annotation-blue" | "annotation-pink" | "content-line-black" | "content-line-red" | "content-line-blue" | "content-line-green" | "content-page-ink" | "content-page-grey" | "content-page-teal" | "content-page-red" | "content-signature-black" | "content-signature-dark-blue" | "content-presence-violet" | "content-presence-blue" | "content-presence-plum" | "content-presence-teal-green" | "content-diff-orange" | "content-diff-blue" | "border-width" | "focus-ring-width" | "focus-ring-offset" | "focus-ring-offset-tight" | "focus-ring-offset-inset" | "button-height" | "button-height-inspector" | "button-height-top-bar" | "button-height-touch" | "icon-button-size" | "icon-button-size-zoom" | "icon-button-size-touch" | "swatch-size-toolbar" | "swatch-size-inspector" | "top-bar-height" | "secondary-toolbar-height" | "top-bar-group-basis" | "zoom-percent-min-width" | "open-column-width" | "drop-border-width" | "page-input-height" | "find-field-width" | "find-count-inline" | "page-input-min-width" | "status-bar-height" | "rail-width" | "rail-width-min" | "rail-width-wide" | "inspector-width" | "wide-panel-width" | "phone-top-bar-height" | "phone-bottom-bar-height" | "phone-action-bar-height" | "sheet-radius" | "sheet-grabber-width" | "sheet-grabber-height" | "sheet-grabber-bar-width" | "sheet-grabber-bar-height" | "thumbnail-width" | "thumbnail-height" | "thumbnail-width-phone" | "thumbnail-height-phone" | "organise-tile-size" | "organise-tile-short-size" | "organise-drop-dot-size" | "organise-ghost-width" | "organise-ghost-height" | "organise-ghost-offset" | "page-pill-height" | "icon-button-size-large" | "icon-button-radius-touch" | "target-min" | "target-min-touch" | "tool-toggle-height" | "selected-underline-width" | "field-height" | "select-chevron-space" | "select-chevron-inset" | "checkbox-size" | "checkbox-radius" | "radio-dot" | "mixed-dash-width" | "mixed-dash-height" | "switch-width" | "switch-height" | "switch-knob" | "swatch-size-touch" | "chip-preview-height" | "chip-preview-font-size" | "icon-size-label" | "icon-size-toolbar" | "icon-size-touch" | "badge-height" | "badge-icon-size" | "progress-height" | "empty-state-width" | "thumbnail-current-offset" | "outline-row-padding-block-nested" | "shortcut-chip-padding-block" | "shortcut-chip-glyph-lift" | "dialog-width" | "dialog-width-form" | "properties-label-width" | "properties-chrome-height" | "capability-page-width" | "capability-legend-width" | "dialog-width-wide" | "menu-width" | "document-tab-strip-height" | "document-tab-min-width" | "document-tab-max-width" | "document-tab-close-size" | "document-tab-close-icon-size" | "menu-item-height" | "tooltip-offset" | "link-preview-width" | "link-preview-crop-max-width" | "link-preview-crop-width" | "link-preview-crop-height" | "toast-region-offset" | "sheet-detent-large" | "sheet-detent-medium" | "palette-offset" | "palette-width" | "palette-input-height" | "palette-row-height" | "toolbar-divider-height" | "page-original-selection-overlay" | "page-sepia-selection-overlay" | "page-dark-selection-overlay" | "page-selection-overlay" | "page-find-blend" | "page-find-match-fill" | "page-find-current-fill";

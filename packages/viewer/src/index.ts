@@ -37,7 +37,12 @@ export type {
 export type { CopyMode } from "./layers/copy.js";
 export type { LinkLayerOptions, LinkPreviewPointer, LinkPreviewRequest, LinkWords } from "./layers/link-layer.js";
 export { type ExternalLink, externalLink, type OpenableLink } from "./layers/link-url.js";
-export { TEXT_CURSOR_PROPERTY, type TextLayerOptions, type TextSelection } from "./layers/text-layer.js";
+export {
+  SELECTION_PROPERTY,
+  TEXT_CURSOR_PROPERTY,
+  type TextLayerOptions,
+  type TextSelection,
+} from "./layers/text-layer.js";
 export type { PageSize, Rotation } from "./layout/page-layout.js";
 export type { PageMoves } from "./layout/page-moves.js";
 export { type NetworkSink, watchNetwork } from "./network/watch.js";

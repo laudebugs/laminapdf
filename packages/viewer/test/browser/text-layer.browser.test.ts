@@ -4,10 +4,10 @@
 // a tagged file's structure owns its spans, and an untagged file says so once; a real mouse drag
 // selects a word, whatever layers lie over the text, and the selection's tint never hides the ink.
 
-import { Builder, Document, Font, init } from "@laminapdf/sdk";
+import { Builder, Document, Font, Image, init } from "@laminapdf/sdk";
 import { decodePng } from "@laminapdf/test-utils/browser-harness";
 import { createViewer, type Viewer, type ViewerClient } from "@laminapdf/viewer";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, onTestFinished } from "vitest";
 import { commands, userEvent } from "vitest/browser";
 import { viewer as client, ENCRYPTED, PASSWORD, read } from "./helpers.js";
 
@@ -429,10 +429,15 @@ describe("pointer", () => {
 });
 
 describe("selection tint", () => {
+  /** `selector`'s screenshot as RGBA pixels. */
+  async function pixelsOf(selector: string): Promise<Uint8ClampedArray> {
+    const png = Uint8Array.from(atob(await commands.screenshotOf(selector)), (c) => c.charCodeAt(0));
+    return (await decodePng(png)).pixels;
+  }
+
   /** How many pixels of `selector`'s screenshot are ink: darker than any selection tint. */
   async function inkPixels(selector: string): Promise<number> {
-    const png = Uint8Array.from(atob(await commands.screenshotOf(selector)), (c) => c.charCodeAt(0));
-    const { pixels: data } = await decodePng(png);
+    const data = await pixelsOf(selector);
     let ink = 0;
     for (let i = 0; i < data.length; i += 4) {
       const luma = 0.2126 * (data[i] ?? 255) + 0.7152 * (data[i + 1] ?? 255) + 0.0722 * (data[i + 2] ?? 255);
@@ -441,29 +446,160 @@ describe("selection tint", () => {
     return ink;
   }
 
-  it("leaves a selected word's ink as dark as drawn under an opaque tint", async () => {
-    await show(await read("fixtures/golden/text-latin.pdf"));
-    // An app's tint, opaque as the Paper selection tint is.
-    const style = document.createElement("style");
-    style.textContent = ".lamina-text-layer span::selection { background: #cedbdd; }";
-    document.head.append(style);
-    try {
-      const span = (await spansOf(0)).find((s) => {
-        const box = s.getBoundingClientRect();
-        const inView =
-          box.top >= 0 && box.bottom <= window.innerHeight && box.left >= 0 && box.right <= window.innerWidth;
-        return (s.textContent ?? "").trim().length > 8 && inView;
-      });
-      if (span === undefined) throw new Error("no word in view on page 0");
-      span.id = "tinted";
-      // The page's sharp pixels are in once the word shows ink.
-      await expect.poll(() => inkPixels("#tinted"), { timeout: 20_000 }).toBeGreaterThan(20);
-      const before = await inkPixels("#tinted");
-      document.getSelection()?.selectAllChildren(span);
-      const after = await inkPixels("#tinted");
-      expect(after).toBeGreaterThanOrEqual(before * 0.8);
-    } finally {
-      style.remove();
+  type Rgb = [number, number, number];
+
+  /** The colour most of `pixels` have (a selected word's background), and the one furthest from it (its ink). */
+  function backgroundAndInk(pixels: Uint8ClampedArray): { background: Rgb; ink: Rgb } {
+    const counts = new Map<string, number>();
+    for (let i = 0; i < pixels.length; i += 4) {
+      const key = `${pixels[i]},${pixels[i + 1]},${pixels[i + 2]}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
     }
+    const parse = (k: string) => k.split(",").map(Number) as Rgb;
+    const background = parse([...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "0,0,0");
+    let ink = background;
+    let far = -1;
+    for (const [key, n] of counts) {
+      const c = parse(key);
+      const d = c.reduce((sum, v, i) => sum + Math.abs(v - (background[i] ?? 0)), 0);
+      if (n > 3 && d > far) [far, ink] = [d, c];
+    }
+    return { background, ink };
+  }
+
+  function contrast(a: Rgb, b: Rgb): number {
+    const lum = ([r, g, b2]: Rgb) => {
+      const c = (v: number) => {
+        const x = v / 255;
+        return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+      };
+      return 0.2126 * c(r) + 0.7152 * c(g) + 0.0722 * c(b2);
+    };
+    const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x) as [number, number];
+    return (hi + 0.05) / (lo + 0.05);
+  }
+
+  const near = (a: Rgb, b: Rgb, by: number) => a.every((v, i) => Math.abs(v - (b[i] ?? 0)) <= by);
+
+  /** Sets the app's `::selection` colour for the test. */
+  function selectionColour(css: string): void {
+    const style = document.createElement("style");
+    style.textContent = `.lamina-text-layer span::selection { background: ${css}; }`;
+    document.head.append(style);
+    onTestFinished(() => style.remove());
+  }
+
+  /** A page with one word on the paper and one over a white picture. */
+  function wordOnPaperAndOnPicture(): Uint8Array {
+    using b = new Builder();
+    const font = Font.standard("Helvetica");
+    const page = b.page("A4");
+    using white = Image.rgba(2, 2, new Uint8Array(16).fill(255));
+    page.surface().image(white, [40, 200, 400, 120]);
+    page.surface().text("Paperword", { font, size: 32, at: [72, 120] });
+    page.surface().text("Pictureword", { font, size: 32, at: [72, 270] });
+    page.finish();
+    using doc = b.finish();
+    return doc.save();
+  }
+
+  /** The span whose text is `text`, on page 0, with `id`. */
+  async function spanOf(text: string, id: string): Promise<HTMLElement> {
+    const span = (await spansOf(0)).find((s) => (s.textContent ?? "").trim() === text);
+    if (span === undefined) throw new Error(`no span "${text}" on page 0`);
+    span.id = id;
+    return span;
+  }
+
+  it("leaves a selected word's ink as dark as drawn under a translucent tint", async () => {
+    await show(await read("fixtures/golden/text-latin.pdf"));
+    // The Paper selection on an Original page: Teal at 22%.
+    selectionColour("rgb(31 92 99 / 22%)");
+    const span = (await spansOf(0)).find((s) => {
+      const box = s.getBoundingClientRect();
+      const inView =
+        box.top >= 0 && box.bottom <= window.innerHeight && box.left >= 0 && box.right <= window.innerWidth;
+      return (s.textContent ?? "").trim().length > 8 && inView;
+    });
+    if (span === undefined) throw new Error("no word in view on page 0");
+    span.id = "tinted";
+    // The page's sharp pixels are in once the word shows ink.
+    await expect.poll(() => inkPixels("#tinted"), { timeout: 20_000 }).toBeGreaterThan(20);
+    const before = await inkPixels("#tinted");
+    document.getSelection()?.selectAllChildren(span);
+    const after = await inkPixels("#tinted");
+    expect(after).toBeGreaterThanOrEqual(before * 0.8);
+  });
+
+  it("lands on the Dark page's tint with the ink readable, and shows over a picture (bug selection-on-dark-pages)", async () => {
+    const v = await show(wordOnPaperAndOnPicture());
+    v.setAppearance("dark");
+    // The Paper selection on a Dark page: the dark Teal at 35%, which lands on #425858.
+    selectionColour("rgb(125 189 194 / 35%)");
+    const paper = await spanOf("Paperword", "on-paper");
+    const picture = await spanOf("Pictureword", "on-picture");
+    // The Dark page's paper is in once the word's commonest colour is it.
+    await expect
+      .poll(async () => near(backgroundAndInk(await pixelsOf("#on-paper")).background, [0x22, 0x21, 0x1f], 3), {
+        timeout: 20_000,
+      })
+      .toBe(true);
+    const pictureBefore = backgroundAndInk(await pixelsOf("#on-picture")).background;
+
+    document.getSelection()?.selectAllChildren(paper);
+    const onPaper = backgroundAndInk(await pixelsOf("#on-paper"));
+    expect(near(onPaper.background, [0x42, 0x58, 0x58], 4), `the selection drawn as ${onPaper.background}`).toBe(true);
+    expect(contrast(onPaper.ink, onPaper.background)).toBeGreaterThanOrEqual(4.5);
+
+    // A picture keeps its colours on a Dark page; the selection still shows over it.
+    document.getSelection()?.selectAllChildren(picture);
+    const onPicture = backgroundAndInk(await pixelsOf("#on-picture")).background;
+    expect(contrast(onPicture, pictureBefore)).toBeGreaterThanOrEqual(1.1);
+  });
+
+  it("draws the current find match on a Dark page in its colour, outlined (bug selection-on-dark-pages)", async () => {
+    const v = await show(wordOnPaperAndOnPicture());
+    v.setAppearance("dark");
+    // What @laminapdf/ui sets on a Dark page: screen, and the fill that lands on find-current #7A5818.
+    const root = document.documentElement.style;
+    root.setProperty("--lamina-find-blend", "screen");
+    root.setProperty("--lamina-find-current", "#663F00");
+    root.setProperty("--lamina-find-current-outline", "#7DBDC2");
+    onTestFinished(() => {
+      for (const name of ["--lamina-find-blend", "--lamina-find-current", "--lamina-find-current-outline"])
+        root.removeProperty(name);
+    });
+    await spanOf("Paperword", "found");
+    await expect
+      .poll(async () => near(backgroundAndInk(await pixelsOf("#found")).background, [0x22, 0x21, 0x1f], 3), {
+        timeout: 20_000,
+      })
+      .toBe(true);
+    v.find.find("Paperword");
+    await expect.poll(() => document.querySelector(".lamina-find-current") !== null, { timeout: 20_000 }).toBe(true);
+    const mark = backgroundAndInk(await pixelsOf("#found"));
+    // Screen can't take blue below the paper's, so find-current lands on #7A581F.
+    expect(near(mark.background, [0x7a, 0x58, 0x1f], 4), `the mark drawn as ${mark.background}`).toBe(true);
+    expect(contrast(mark.ink, mark.background)).toBeGreaterThanOrEqual(4.5);
+    // The outline is in the unblended box, so it shows in its own colour over a picture too.
+    const outlined = [...document.querySelectorAll<HTMLElement>(".lamina-highlight-frames .lamina-find-frame")];
+    expect(outlined.some((f) => f.style.outline.includes("solid"))).toBe(true);
+    expect(getComputedStyle(outlined[0]?.parentElement as HTMLElement).mixBlendMode).toBe("normal");
+  });
+
+  it("leaves a found word's ink as dark as drawn under the find mark on an Original page", async () => {
+    await show(wordOnPaperAndOnPicture());
+    // The Paper find colours on an Original page, opaque.
+    const root = document.documentElement.style;
+    root.setProperty("--lamina-find-current", "#EDBF6A");
+    onTestFinished(() => {
+      root.removeProperty("--lamina-find-current");
+    });
+    await spanOf("Paperword", "found");
+    await expect.poll(() => inkPixels("#found"), { timeout: 20_000 }).toBeGreaterThan(20);
+    const before = await inkPixels("#found");
+    view?.find.find("Paperword");
+    await expect.poll(() => document.querySelector(".lamina-find-current") !== null, { timeout: 20_000 }).toBe(true);
+    expect(await inkPixels("#found")).toBeGreaterThanOrEqual(before * 0.8);
   });
 });
