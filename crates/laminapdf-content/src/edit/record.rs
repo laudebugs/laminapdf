@@ -98,6 +98,12 @@ impl Visitor for Recorder<'_> {
     }
 
     fn shown_text(&mut self, show: &TextShow<'_>, advance: TextAdvance) {
+        if !self.ops.edited {
+            let owner = (self.depth == 0)
+                .then(|| self.current.and_then(|i| self.ops.objects.get(i)).map(|o| o.id))
+                .flatten();
+            self.ops.shows.push(owner);
+        }
         let text = &show.state.text;
         let size = text.font_size;
         let run = if advance.ty != 0.0 && advance.tx == 0.0 {

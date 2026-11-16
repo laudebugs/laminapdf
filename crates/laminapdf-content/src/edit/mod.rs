@@ -7,6 +7,7 @@ mod edits;
 mod encode;
 mod parse;
 mod record;
+mod text;
 
 use std::borrow::Cow;
 use std::ops::Range;
@@ -19,6 +20,7 @@ use crate::operator::Operator;
 use crate::state::GraphicsState;
 
 pub use edits::{Placement, ResourceName};
+pub use text::ShownGlyph;
 pub use encode::{EncodedContent, EncodedPart};
 pub use record::Recorder;
 
@@ -356,6 +358,9 @@ pub struct ContentOps {
     edited: bool,
     /// Whether a reorder has moved an object, so the objects are no longer in ID order.
     reordered: bool,
+    /// For each text-showing operator the interpreter ran, the object showing it, as a
+    /// [`Recorder`] saw them; `None` for one inside a Form XObject.
+    shows: Vec<Option<ContentObjectId>>,
 }
 
 impl ContentOps {
@@ -430,6 +435,7 @@ impl ContentOps {
             dirty,
             edited: false,
             reordered: false,
+            shows: Vec::new(),
         })
     }
 
@@ -615,6 +621,17 @@ impl ContentOps {
     /// Added in 0.5.0.
     pub const fn recorder(&mut self, frame: PageFrame) -> Recorder<'_> {
         Recorder::new(self, frame)
+    }
+
+    /// For each text-showing operator (`Tj`, `TJ`, `'`, `"`) the page ran, in order, the
+    /// object that shows it, or `None` for one a Form XObject shows: what a [`Recorder`] saw.
+    /// `laminapdf-text` numbers its glyphs by the same count, so a glyph's show index finds its
+    /// object here.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub fn show_owners(&self) -> &[Option<ContentObjectId>] {
+        &self.shows
     }
 
     /// The object's index in [`ContentOps::objects`]: a binary search while the objects are in

@@ -327,7 +327,7 @@ impl ContentOps {
     }
 
     /// The object's operators, refused when it clips what follows.
-    fn own_ops(&self, id: ContentObjectId) -> Result<Vec<ContentOp>, NotEditable> {
+    pub(super) fn own_ops(&self, id: ContentObjectId) -> Result<Vec<ContentOp>, NotEditable> {
         let object = self.object(id).ok_or(NotEditable::ContentUnreadable)?;
         let ops = self.ops.get(object.operators()).unwrap_or_default().to_vec();
         let text_clips = object.kind == ContentObjectKind::Text
@@ -339,7 +339,7 @@ impl ContentOps {
         Ok(ops)
     }
 
-    fn state_of(&self, id: ContentObjectId) -> Result<GraphicsState, NotEditable> {
+    pub(super) fn state_of(&self, id: ContentObjectId) -> Result<GraphicsState, NotEditable> {
         self.object(id)
             .and_then(super::ContentObject::state)
             .cloned()
@@ -618,7 +618,7 @@ fn clipping_mode(op: &ContentOp) -> bool {
     }
 }
 
-fn op(keyword: &'static [u8], operands: Vec<Object>) -> ContentOp {
+pub(super) fn op(keyword: &'static [u8], operands: Vec<Object>) -> ContentOp {
     ContentOp::new(Operator::from_keyword(keyword), operands)
 }
 
