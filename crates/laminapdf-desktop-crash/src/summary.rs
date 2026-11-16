@@ -144,14 +144,18 @@ mod read {
         path.rsplit(['/', '\\']).next().unwrap_or_default().to_owned()
     }
 
-    /// Linux dumps carry the process's `/proc/<pid>/status`, not the misc-info stream.
+    /// Linux dumps carry a `/proc/<id>/status`, not the misc-info stream. Its `Pid` is the crashing
+    /// thread's ID; the process's is `Tgid` (the thread group), which is what the app joins on.
     fn linux_pid(dump: &Minidump<'_, Vec<u8>>) -> Option<u32> {
         let status = dump.get_stream::<MinidumpLinuxProcStatus<'_>>().ok()?;
-        status.iter().find_map(|(key, value)| {
-            (key.as_bytes() == b"Pid")
-                .then(|| value.to_str().ok()?.trim().parse().ok())
-                .flatten()
-        })
+        let field = |name: &[u8]| {
+            status.iter().find_map(|(key, value)| {
+                (key.as_bytes() == name)
+                    .then(|| value.to_str().ok()?.trim().parse().ok())
+                    .flatten()
+            })
+        };
+        field(b"Tgid").or_else(|| field(b"Pid"))
     }
 
     /// Runs `future` to its end on this thread. Without a symbol server, the processor's futures

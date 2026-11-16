@@ -178,6 +178,9 @@ const ALLOWED: &[libc::c_long] = &[
     libc::SYS_rt_sigprocmask,
     libc::SYS_rt_sigreturn,
     libc::SYS_sigaltstack,
+    // The kernel resumes a call a signal interrupted with it: the crash handler waits for the dump
+    // server in one, and a fault on another thread interrupts it (Linux on Arm64 showed it).
+    libc::SYS_restart_syscall,
     libc::SYS_exit,
     libc::SYS_exit_group,
     // Allowed here, answered by the later filters.

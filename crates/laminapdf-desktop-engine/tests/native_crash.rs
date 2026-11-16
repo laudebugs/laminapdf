@@ -15,9 +15,9 @@ use std::time::{Duration, Instant};
 use laminapdf_desktop_crash::summary::{DumpSummary, summarize_bytes};
 use laminapdf_desktop_crash::test_support::TestDumpServer;
 use laminapdf_desktop_crash::{CRASH_SERVER_PID_ARG, CRASH_SOCKET_ARG};
-use laminapdf_desktop_protocol::supervisor::{Config, Event, RangeServer, Supervisor};
+use laminapdf_desktop_protocol::supervisor::{Config, Event, Process as _, RangeServer, Supervisor};
 use laminapdf_desktop_protocol::{DocId, FromEngine, ToEngine};
-use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner};
+use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner, spawn_sandboxed};
 use laminapdf_test_fixtures::{fixture, read_at};
 
 /// The markers D7a's scrubber tests use: in the open file's folder, its name and its content.
@@ -177,17 +177,25 @@ fn a_dump_summary_should_hold_nothing_of_the_open_file() {
 #[test]
 fn summarize_dump_mode_should_read_a_dump_from_stdin() {
     let dump = fixture_dump();
-    let mut child = Command::new(engine())
-        .arg("--summarize-dump")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::inherit())
-        .spawn()
-        .unwrap();
-    child.stdin.take().unwrap().write_all(&dump).unwrap();
+    // Started as the app starts it: through the sandbox's spawner, which passes the engine no
+    // descriptor but its pipes (a plain Command would hand on the test runner's).
+    let mut command = Command::new(engine());
+    command.arg("--summarize-dump");
+    let mut child = spawn_sandboxed(
+        command,
+        &SandboxConfig::default(),
+        &(Arc::new(|line| eprintln!("sandbox: {line}")) as Arc<dyn Fn(String) + Send + Sync>),
+    )
+    .unwrap();
+    child.stdin.write_all(&dump).unwrap();
+    drop(child.stdin);
     let mut json = String::new();
-    child.stdout.take().unwrap().read_to_string(&mut json).unwrap();
-    assert!(child.wait().unwrap().success());
+    child.stdout.read_to_string(&mut json).unwrap();
+    let mut stderr = String::new();
+    child.stderr.read_to_string(&mut stderr).unwrap();
+    let exit = child.process.wait();
+    eprintln!("summarizer: {stderr}exit: {exit}");
+    assert!(!json.is_empty(), "the summarizer wrote nothing ({exit})");
     // The summary names the engine module; parse it back through the crate's own reader to be sure
     // it is the agreed JSON shape, then check the module.
     let summary = summarize_bytes(dump).unwrap();
