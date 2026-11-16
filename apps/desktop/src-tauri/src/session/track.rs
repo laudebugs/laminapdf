@@ -202,7 +202,11 @@ pub(crate) fn snapshot<K: Ord>(
             active,
         });
     }
-    SessionFile { v: VERSION, windows }
+    SessionFile {
+        v: VERSION,
+        windows,
+        focused: None,
+    }
 }
 
 /// The session, where it is saved, and the bookmarks made already (making one reads the disk).
@@ -239,9 +243,14 @@ impl Session {
         self.held.load(Ordering::SeqCst)
     }
 
-    /// Holds the file on disk as it is, or lets the saver write it again.
-    pub(crate) fn hold(&self, held: bool) {
-        self.held.store(held, Ordering::SeqCst);
+    /// Holds the file on disk as it is: the saver leaves it alone.
+    pub(crate) fn hold(&self) {
+        self.held.store(true, Ordering::SeqCst);
+    }
+
+    /// Lets the saver write the file again.
+    pub(crate) fn release(&self) {
+        self.held.store(false, Ordering::SeqCst);
     }
 
     /// The bookmarks made already, by path; only a save takes them, never under the tracker's lock.

@@ -163,7 +163,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let config = app.path().app_config_dir()?;
     // First of all: whether the last run quit unexpectedly, and this run marked as running, so a
     // crash anywhere after this point is known at the next launch (S08's tab choice).
-    let unexpected = session::marker::launched(&config);
+    let unexpected = session::marker::start(&config);
     // Crash reports next, so a panic in the rest of the start-up leaves one.
     let crashes = crash::CrashReports::new(
         &config,
@@ -394,15 +394,25 @@ pub fn run() -> Result<(), DesktopError> {
 
 /// Restarts the app now (Restart now, Restart to update). On the main thread `restart` raises no
 /// `RunEvent::Exit`, so what a quit does is done here: the windows that close stay in the session,
-/// the engines stop, and the run counts as quit normally and as survived for the graphics guard.
+/// the engines stop, and the run quits cleanly ([`quit_cleanly`]).
 pub(crate) fn restart(app: &tauri::AppHandle) -> ! {
     session::app::quitting(app);
     app.state::<Arc<Engines>>().shutdown();
-    if let Ok(config) = app.path().app_config_dir() {
-        session::marker::quit_normally(&config);
-        graphics::survived(&config);
-    }
+    quit_cleanly(app);
     app.restart()
+}
+
+/// A clean quit or restart, however soon after the start: not a crash for the next launch's tab
+/// choice, unless that choice is still waiting (so the next launch asks again), and not a start the
+/// graphics guard counts.
+pub(crate) fn quit_cleanly(app: &tauri::AppHandle) {
+    let Ok(config) = app.path().app_config_dir() else {
+        return;
+    };
+    if !session::app::choice_pending(app) {
+        session::marker::quit_normally(&config);
+    }
+    graphics::survived(&config);
 }
 
 /// A second launch's files, which the single-instance plugin forwards: they open in the frontmost
@@ -467,12 +477,7 @@ fn on_run_event(app: &tauri::AppHandle, event: &RunEvent) {
     match event {
         RunEvent::Exit => {
             session::app::flush(app);
-            // A clean quit, however soon after the start: neither a crash for the next launch's
-            // tab choice nor one the graphics guard counts.
-            if let Ok(config) = app.path().app_config_dir() {
-                session::marker::quit_normally(&config);
-                graphics::survived(&config);
-            }
+            quit_cleanly(app);
             app.state::<Arc<Engines>>().shutdown();
             // A downloaded update installs as the app quits (on Windows its installer takes over).
             app.state::<Arc<update::Updates>>().install_on_quit();

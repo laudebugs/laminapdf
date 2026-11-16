@@ -107,20 +107,23 @@ pub(crate) struct RecoveryTab {
     pub front: bool,
 }
 
-/// Every tab of `windows` for the choice, front window first; the front window's shown tab is
-/// marked [`RecoveryTab::front`].
-pub(crate) fn recovery_tabs(windows: &[RestoredWindow]) -> Vec<RecoveryTab> {
+/// Every tab of `windows` for the choice; the shown tab of the window focused last (`focused`, else
+/// the first window) is marked [`RecoveryTab::front`].
+pub(crate) fn recovery_tabs(windows: &[RestoredWindow], focused: Option<&str>) -> Vec<RecoveryTab> {
+    let front = focused
+        .filter(|label| windows.iter().any(|window| window.label == *label))
+        .or_else(|| windows.first().map(|window| window.label.as_str()));
     windows
         .iter()
-        .enumerate()
-        .flat_map(|(w, window)| {
+        .flat_map(|window| {
+            let in_front = front == Some(window.label.as_str());
             window.tabs.iter().enumerate().map(move |(t, tab)| RecoveryTab {
                 token: tab.token.clone(),
                 name: tab.name.clone(),
                 window: window.label.clone(),
                 view: tab.view.clone(),
                 missing: tab.missing,
-                front: w == 0 && window.active == Some(t),
+                front: in_front && window.active == Some(t),
             })
         })
         .collect()
@@ -202,6 +205,7 @@ mod tests {
         let a = file("report.pdf");
         let session = SessionFile {
             v: VERSION,
+            focused: None,
             windows: vec![window("main", vec![tab(&a, 3)], Some(0))],
         };
         let mut tracker = Tracker::default();
@@ -221,6 +225,7 @@ mod tests {
     fn a_file_that_is_gone_should_still_come_back_as_a_tab() {
         let session = SessionFile {
             v: VERSION,
+            focused: None,
             windows: vec![window("main", vec![tab(Path::new("/nowhere/gone.pdf"), 1)], Some(0))],
         };
         let planned = plan(session, &NoBookmarks, &mut Tracker::default());
@@ -232,6 +237,7 @@ mod tests {
         let here = file("here.pdf");
         let session = SessionFile {
             v: VERSION,
+            focused: None,
             windows: vec![window(
                 "main",
                 vec![tab(&here, 1), tab(Path::new("/nowhere/gone.pdf"), 2)],
@@ -247,6 +253,7 @@ mod tests {
     fn windows_with_labels_the_app_wouldnt_make_or_twice_should_be_left_out() {
         let session = SessionFile {
             v: VERSION,
+            focused: None,
             windows: vec![
                 window("main", Vec::new(), None),
                 window("evil", Vec::new(), None),
@@ -264,6 +271,7 @@ mod tests {
     fn an_active_index_past_the_tabs_should_be_dropped() {
         let session = SessionFile {
             v: VERSION,
+            focused: None,
             windows: vec![window("main", vec![tab(&file("e.pdf"), 1)], Some(5))],
         };
         assert_eq!(plan(session, &NoBookmarks, &mut Tracker::default())[0].active, None);
@@ -274,6 +282,7 @@ mod tests {
         let a = file("f.pdf");
         let session = SessionFile {
             v: VERSION,
+            focused: None,
             windows: vec![
                 window("main", vec![tab(&a, 1), tab(&a, 2)], None),
                 window("doc-1", vec![tab(&a, 3)], None),
@@ -300,18 +309,30 @@ mod tests {
         }
     }
 
+    fn front(windows: &[RestoredWindow], focused: Option<&str>) -> Vec<String> {
+        recovery_tabs(windows, focused)
+            .into_iter()
+            .filter(|tab| tab.front)
+            .map(|tab| tab.token)
+            .collect()
+    }
+
     #[test]
-    fn the_front_windows_shown_tab_should_be_marked_front() {
+    fn the_focused_windows_shown_tab_should_be_marked_front() {
+        let windows = [
+            restored("main", &["a", "b"], Some(1)),
+            restored("doc-1", &["c", "d"], Some(1)),
+        ];
+        assert_eq!(front(&windows, Some("doc-1")), ["d"]);
+    }
+
+    #[test]
+    fn without_a_focused_window_the_first_windows_shown_tab_should_be_front() {
         let windows = [
             restored("main", &["a", "b"], Some(1)),
             restored("doc-1", &["c"], Some(0)),
         ];
-        let front: Vec<_> = recovery_tabs(&windows)
-            .into_iter()
-            .filter(|tab| tab.front)
-            .map(|tab| tab.token)
-            .collect();
-        assert_eq!(front, ["b"]);
+        assert_eq!(front(&windows, None), ["b"]);
     }
 
     #[test]

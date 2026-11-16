@@ -249,7 +249,7 @@ function useTabEvents(
                   .catch((error: unknown) => console.warn("reopening", error));
               }
             },
-            () => undefined,
+            (error: unknown) => console.warn("taking the reopened tabs", error),
           );
         }),
         shell.listen<RestartedPayload>(RESTARTED_EVENT, (payload) => {

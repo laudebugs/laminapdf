@@ -12,8 +12,9 @@ use std::path::Path;
 /// The marker's name in the app's config folder.
 const FILE: &str = "running";
 
-/// Marks this run as running: `true` when the last run left its mark, so didn't quit normally.
-pub(crate) fn launched(config: &Path) -> bool {
+/// Marks this run as running, and says whether the last run left its mark: `true` when it didn't
+/// quit normally.
+pub(crate) fn start(config: &Path) -> bool {
     let file = config.join(FILE);
     let left = file.exists();
     if let Err(error) = std::fs::create_dir_all(config).and_then(|()| std::fs::write(&file, b"")) {
@@ -45,21 +46,21 @@ mod tests {
 
     #[test]
     fn a_first_launch_should_not_be_after_a_crash() {
-        assert!(!launched(&dir("first")));
+        assert!(!start(&dir("first")));
     }
 
     #[test]
     fn a_launch_after_a_run_that_never_quit_should_be_after_a_crash() {
         let dir = dir("crash");
-        launched(&dir);
-        assert!(launched(&dir));
+        start(&dir);
+        assert!(start(&dir));
     }
 
     #[test]
     fn a_launch_after_a_normal_quit_should_not_be_after_a_crash() {
         let dir = dir("quit");
-        launched(&dir);
+        start(&dir);
         quit_normally(&dir);
-        assert!(!launched(&dir));
+        assert!(!start(&dir));
     }
 }

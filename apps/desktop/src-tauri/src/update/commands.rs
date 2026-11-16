@@ -83,14 +83,13 @@ pub(crate) fn update_restart_to_install(app: tauri::AppHandle) -> Result<(), Des
     if !updates.has_ready() {
         return Err(DesktopError::UpdateNotReady);
     }
-    // The session is written, and the run counted as quit normally, before the install: on
-    // Windows the installer exits the app.
+    // The session is written, and the run quits cleanly, before the install: on Windows the
+    // installer exits the app.
     crate::session::app::flush(&app);
-    let config = app.path().app_config_dir()?;
-    crate::session::marker::quit_normally(&config);
+    crate::quit_cleanly(&app);
     if let Err(error) = updates.install() {
         // The app keeps running, with the update still waiting to install on quit: marked again.
-        crate::session::marker::launched(&config);
+        crate::session::marker::start(&app.path().app_config_dir()?);
         tracing::warn!("could not install the update: {error}");
         return Err(DesktopError::Internal(error.to_string()));
     }

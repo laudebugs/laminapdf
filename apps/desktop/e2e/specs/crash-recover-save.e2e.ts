@@ -15,5 +15,17 @@ describe("a session ended by a crash", () => {
     });
     // The app ends here, so the command's answer never comes.
     await invoke("e2e_crash_main_panic").catch(() => undefined);
+    // It ended from the panic, not from the service's kill after the run: it stops answering.
+    await browser.waitUntil(
+      async () => {
+        try {
+          await browser.execute(() => 1);
+          return false;
+        } catch {
+          return true;
+        }
+      },
+      { timeout: 15_000, timeoutMsg: "the app kept running after the panic" },
+    );
   });
 });

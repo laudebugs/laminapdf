@@ -21,6 +21,12 @@ export function clearRunningMark(): void {
   rmSync(runningFile, { force: true });
 }
 
+/** As if the user had once answered the crash question with Don't send: no question asks, and nothing is sent. */
+export function crashQuestionAnswered(): void {
+  mkdirSync(dirname(crashConsentFile), { recursive: true });
+  writeFileSync(crashConsentFile, JSON.stringify({ consent: { state: "asked", send: false } }));
+}
+
 /**
  * A run of the scenarios `names`, in this order, against one launch of the app with `args`.
  * @wdio/tauri-service reads `tauri:options` but doesn't declare it in WebdriverIO's types. With
@@ -86,8 +92,7 @@ export const config: WebdriverIO.Config = {
   // had once said Don't send, so no notice comes between the scenarios and nothing is sent.
   onPrepare: () => {
     clearRunningMark();
-    mkdirSync(dirname(crashConsentFile), { recursive: true });
-    writeFileSync(crashConsentFile, JSON.stringify({ consent: { state: "asked", send: false } }));
+    crashQuestionAnswered();
   },
   // Opening adds a tab rather than replacing the document before, so each scenario starts with
   // every tab closed, as if it had the app to itself. The scenarios run as one group, where

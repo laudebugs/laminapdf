@@ -4,7 +4,7 @@
 
 import axe from "axe-core";
 import { afterEach, describe, expect, it } from "vitest";
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { CrashRecoveredDialog, type RecoveredChoice, type RecoveredTab } from "../../src/index.ts";
 import { cleanup, renderIn } from "./render.tsx";
 
@@ -18,12 +18,12 @@ const TABS: RecoveredTab[] = [
 
 const REPORT = JSON.stringify({ schema: 1, process: "main", kind: "panic" }, null, 2);
 
-/** The dialog over `TABS`, with the report part when `withReport`, recording its choices. */
-function choose(withReport = false) {
+/** The dialog over `tabs`, with the report part when `withReport`, recording its choices. */
+function choose(withReport = false, tabs: RecoveredTab[] = TABS) {
   const choices: RecoveredChoice[] = [];
   renderIn(
     <CrashRecoveredDialog
-      tabs={TABS}
+      tabs={tabs}
       {...(withReport ? { report: { json: REPORT } } : {})}
       onChoose={(choice) => choices.push(choice)}
     />,
@@ -57,11 +57,29 @@ describe("CrashRecoveredDialog", () => {
     expect(choices).toEqual([{ tokens: [], send: false, always: false }]);
   });
 
-  it("keeps Always off until Send an anonymous crash report is checked", async () => {
+  it("focuses Reopen first", async () => {
+    const { dialog } = choose();
+    await expect.element(dialog.getByRole("button", { name: "Reopen 2 tabs" })).toHaveFocus();
+  });
+
+  it("focuses Start without tabs first when the only tab is the one in front", async () => {
+    const { dialog } = choose(false, [{ token: "t1", name: "big-scan.pdf", front: true }]);
+    await expect.element(dialog.getByRole("button", { name: "Start without tabs" })).toHaveFocus();
+  });
+
+  it("stays open on Escape: it asks a required question", async () => {
+    const { choices, dialog } = choose();
+    await userEvent.keyboard("{Escape}");
+    await expect.element(dialog).toBeVisible();
+    expect(choices).toEqual([]);
+  });
+
+  it("says why Always waits for Send, and leaves it unchecked when pressed", async () => {
     const { dialog } = choose(true);
-    await expect
-      .element(dialog.getByRole("checkbox", { name: "Always send reports after a crash" }))
-      .toBeDisabled();
+    const always = dialog.getByRole("checkbox", { name: "Always send reports after a crash" });
+    await expect.element(always).toHaveAccessibleDescription("Available after you choose to send this report");
+    await dialog.getByText("Always send reports after a crash").click();
+    await expect.element(always).not.toBeChecked();
   });
 
   it("carries the report's answer into the choice", async () => {

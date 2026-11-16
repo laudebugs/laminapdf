@@ -73,19 +73,12 @@ export function CrashReportDialog({
       title={message(restarted ? "crash.title.restarted" : "crash.title.main")}
       description={description}
       actions={
-        <>
-          {preview && onCopy !== undefined ? (
-            <span className="paper-crash-copy">
-              <Button variant="ghost" icon="copy" onPress={onCopy}>
-                {message("crash.copy")}
-              </Button>
-            </span>
-          ) : null}
-          <Button onPress={dontSend}>{message("crash.dontSend")}</Button>
-          <Button variant="primary" autoFocus={view === "question"} onPress={send}>
-            {message("crash.send")}
-          </Button>
-        </>
+        <ReportAnswers
+          {...(preview && onCopy !== undefined ? { onCopy } : {})}
+          onDontSend={dontSend}
+          onSend={send}
+          focusSend={view === "question"}
+        />
       }
     >
       {preview ? (
@@ -100,6 +93,35 @@ export function CrashReportDialog({
         />
       )}
     </Dialog>
+  );
+}
+
+/** The report's answers: Copy report (when `onCopy`), Don't send and Send report. */
+export function ReportAnswers({
+  onCopy,
+  onDontSend,
+  onSend,
+  focusSend = false,
+}: {
+  onCopy?: () => void;
+  onDontSend: () => void;
+  onSend: () => void;
+  focusSend?: boolean;
+}): ReactNode {
+  return (
+    <>
+      {onCopy === undefined ? null : (
+        <span className="paper-crash-copy">
+          <Button variant="ghost" icon="copy" onPress={onCopy}>
+            {message("crash.copy")}
+          </Button>
+        </span>
+      )}
+      <Button onPress={onDontSend}>{message("crash.dontSend")}</Button>
+      <Button variant="primary" autoFocus={focusSend} onPress={onSend}>
+        {message("crash.send")}
+      </Button>
+    </>
   );
 }
 

@@ -4,13 +4,13 @@
 // tabs and Reopen N tabs both answer the report part too. Without a session the app shows
 // `CrashReportDialog` alone (S08's "No session to restore").
 
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useId, useState } from "react";
 import { Badge } from "../components/badge.js";
 import { Button } from "../components/button.js";
 import { Checkbox } from "../components/choice.js";
 import { message } from "../messages.js";
 import { Dialog } from "../overlays/dialog.js";
-import { ReportPreview } from "./crash-report.js";
+import { ReportAnswers, ReportPreview } from "./crash-report.js";
 
 /** A tab of the last session, as the choice lists it. */
 export interface RecoveredTab {
@@ -62,14 +62,20 @@ export function CrashRecoveredDialog({ tabs, report, onChoose }: CrashRecoveredD
       else next.delete(token);
       return next;
     });
+  // Always goes only with Send: clearing Send clears it.
+  const sendThis = (on: boolean) => {
+    setSend(on);
+    if (!on) setAlways(false);
+  };
   const answer = (tokens: readonly string[]) => onChoose({ tokens, send, always: send && always });
   // From the report: Send report ticks the box, Don't send clears it, and both go back to the tabs.
   const decide = (yes: boolean) => {
-    setSend(yes);
-    if (!yes) setAlways(false);
+    sendThis(yes);
     setPreview(false);
   };
   const count = chosen.size;
+  // The first focus goes to Reopen, or to Start without tabs when no tab starts checked.
+  const [startsEmpty] = useState(count === 0);
   return (
     // A required question: no close button, and Escape and the scrim leave it open (S08).
     <Dialog
@@ -81,25 +87,19 @@ export function CrashRecoveredDialog({ tabs, report, onChoose }: CrashRecoveredD
       description={preview ? message("crash.server") : message("crash.chooseTabs")}
       actions={
         preview && report !== undefined ? (
-          <>
-            {report.onCopy === undefined ? null : (
-              <span className="paper-crash-copy">
-                <Button variant="ghost" icon="copy" onPress={report.onCopy}>
-                  {message("crash.copy")}
-                </Button>
-              </span>
-            )}
-            <Button onPress={() => decide(false)}>{message("crash.dontSend")}</Button>
-            <Button variant="primary" onPress={() => decide(true)}>
-              {message("crash.send")}
-            </Button>
-          </>
+          <ReportAnswers
+            {...(report.onCopy === undefined ? {} : { onCopy: report.onCopy })}
+            onDontSend={() => decide(false)}
+            onSend={() => decide(true)}
+          />
         ) : (
           <>
-            <Button onPress={() => answer([])}>{message("crash.startEmpty")}</Button>
+            <Button autoFocus={startsEmpty} onPress={() => answer([])}>
+              {message("crash.startEmpty")}
+            </Button>
             <Button
               variant="primary"
-              autoFocus
+              autoFocus={!startsEmpty}
               isDisabled={count === 0}
               onPress={() => answer(tabs.filter((tab) => chosen.has(tab.token)).map((tab) => tab.token))}
             >
@@ -113,49 +113,95 @@ export function CrashRecoveredDialog({ tabs, report, onChoose }: CrashRecoveredD
         <ReportPreview report={report.json} onBack={() => setPreview(false)} />
       ) : (
         <>
-          <fieldset className="paper-crash-tabs">
-            <legend className="paper-visually-hidden">{message("crash.tabs")}</legend>
-            {tabs.map((tab) => (
-              <Checkbox key={tab.token} isSelected={chosen.has(tab.token)} onChange={(on) => toggle(tab.token, on)}>
-                <span className="paper-crash-tab">
-                  <span className="paper-crash-tab-name">{tab.name}</span>
-                  {tab.page === undefined ? null : (
-                    <span className="paper-crash-tab-page">{message("crash.page", { page: tab.page })}</span>
-                  )}
-                  {tab.front ? (
-                    <Badge tone="warning" icon="warning">
-                      {message("crash.frontTab")}
-                    </Badge>
-                  ) : null}
-                </span>
-              </Checkbox>
-            ))}
-          </fieldset>
+          <TabList tabs={tabs} chosen={chosen} onToggle={toggle} />
           {report === undefined ? null : (
-            <div className="paper-crash-report-part">
-              <p className="paper-crash-about">{message("crash.about")}</p>
-              <Checkbox
-                isSelected={send}
-                onChange={(on) => {
-                  setSend(on);
-                  if (!on) setAlways(false);
-                }}
-              >
-                {message("crash.sendThis")}
-              </Checkbox>
-              <Checkbox isSelected={always} isDisabled={!send} onChange={setAlways}>
-                {message("crash.always")}
-              </Checkbox>
-              {send ? null : <p className="paper-crash-note">{message("crash.alwaysNeedsSend")}</p>}
-              <span className="paper-crash-view">
-                <Button variant="ghost" onPress={() => setPreview(true)}>
-                  {message("crash.viewReport")}
-                </Button>
-              </span>
-            </div>
+            <ReportPart
+              send={send}
+              always={always}
+              onSend={sendThis}
+              onAlways={setAlways}
+              onView={() => setPreview(true)}
+            />
           )}
         </>
       )}
     </Dialog>
+  );
+}
+
+/** The session's tabs as check boxes, each with its page, the one in front badged. */
+function TabList({
+  tabs,
+  chosen,
+  onToggle,
+}: {
+  tabs: readonly RecoveredTab[];
+  chosen: ReadonlySet<string>;
+  onToggle: (token: string, on: boolean) => void;
+}): ReactNode {
+  return (
+    <fieldset className="paper-crash-tabs">
+      <legend className="paper-visually-hidden">{message("crash.tabs")}</legend>
+      {tabs.map((tab) => (
+        <Checkbox key={tab.token} isSelected={chosen.has(tab.token)} onChange={(on) => onToggle(tab.token, on)}>
+          <span className="paper-crash-tab">
+            <span className="paper-crash-tab-name">{tab.name}</span>
+            {tab.page === undefined ? null : (
+              <span className="paper-crash-tab-page">{message("crash.page", { page: tab.page })}</span>
+            )}
+            {tab.front ? (
+              <Badge tone="warning" icon="warning">
+                {message("crash.frontTab")}
+              </Badge>
+            ) : null}
+          </span>
+        </Checkbox>
+      ))}
+    </fieldset>
+  );
+}
+
+/** The report part under the tabs: what a report holds, Send, Always (only after Send) and View report. */
+function ReportPart({
+  send,
+  always,
+  onSend,
+  onAlways,
+  onView,
+}: {
+  send: boolean;
+  always: boolean;
+  onSend: (on: boolean) => void;
+  onAlways: (on: boolean) => void;
+  onView: () => void;
+}): ReactNode {
+  const reasonId = useId();
+  return (
+    <div className="paper-crash-report-part">
+      <p className="paper-crash-about">{message("crash.about")}</p>
+      <Checkbox isSelected={send} onChange={onSend}>
+        {message("crash.sendThis")}
+      </Checkbox>
+      {/* Read-only until Send is checked, not disabled, so the keyboard still reaches it and its
+          reason (S08 asks for aria-disabled, which react-aria's check box lacks). */}
+      <Checkbox
+        isSelected={always}
+        isReadOnly={!send}
+        onChange={onAlways}
+        {...(send ? {} : { "aria-describedby": reasonId })}
+      >
+        {message("crash.always")}
+      </Checkbox>
+      {send ? null : (
+        <p className="paper-crash-note" id={reasonId}>
+          {message("crash.alwaysNeedsSend")}
+        </p>
+      )}
+      <span className="paper-crash-view">
+        <Button variant="ghost" onPress={onView}>
+          {message("crash.viewReport")}
+        </Button>
+      </span>
+    </div>
   );
 }

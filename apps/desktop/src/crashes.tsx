@@ -16,6 +16,7 @@ import {
   type RecoveredTab,
   Switch,
 } from "@laminapdf/ui";
+import type { ViewPosition } from "@laminapdf/viewer";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import type { DesktopShell } from "./engine/desktop-engine-client.ts";
 
@@ -34,13 +35,13 @@ interface Question {
 interface RecoveryTab {
   readonly token: string;
   readonly name: string;
-  readonly view: { readonly point?: { readonly page?: number } } | null;
+  readonly view: ViewPosition | null;
   readonly front: boolean;
 }
 
 /** The dialog's tab, its page counted from 1. */
 function recoveredTab(tab: RecoveryTab): RecoveredTab {
-  const page = tab.view?.point?.page;
+  const page = tab.view?.point.page;
   return {
     token: tab.token,
     name: tab.name,

@@ -62,6 +62,10 @@ export interface RestoredWindow {
   readonly active: number | null;
 }
 
+/** The main process's event when the tabs chosen after an unexpected quit wait to be taken with
+ * `take_session_tabs` (`REOPEN_EVENT` in src-tauri/src/session/app.rs). */
+export const REOPEN_EVENT = "session://reopen";
+
 /** Why a tab with unsaved edits stays: its edits are this window's engine's until they're saved. */
 const UNSAVED_MOVE =
   "This document has unsaved edits, which can't move to another window yet. Undo them to move the tab.";
@@ -71,9 +75,6 @@ const REPORT_AFTER_MS = 500;
 
 /** The main process's tab events, the same names as src-tauri/src/windows.rs's. */
 export const ARRIVED_EVENT = "tab://arrived";
-
-/** The main process's event when the tabs chosen after an unexpected quit wait (`REOPEN_EVENT` in session/app.rs). */
-export const REOPEN_EVENT = "session://reopen";
 export const ACTIVATE_EVENT = "tab://activate";
 export const WINDOWS_CHANGED_EVENT = "windows://changed";
 /** Whether another window's dragged tab is over this window (src-tauri/src/tab_drag.rs). */
