@@ -637,6 +637,49 @@ fn an_op_on_a_page_that_does_not_exist_should_be_refused_with_its_code() {
     );
 }
 
+/// The Properties dialog's data for `doc`, parsed.
+fn properties(engine: &Engine, doc: DocId) -> serde_json::Value {
+    match engine.ask(|req| ToEngine::GetProperties { req, doc }) {
+        FromEngine::Properties { json, .. } => {
+            serde_json::from_str(&json).unwrap_or_else(|error| panic!("the data isn't JSON: {error}"))
+        }
+        other => panic!("expected Properties, got {other:?}"),
+    }
+}
+
+#[test]
+fn the_properties_should_show_a_metadata_edit_before_it_is_saved() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("golden/metadata.pdf"));
+    engine.open(doc, len);
+    edit(
+        &engine,
+        doc,
+        &EditCall::Apply {
+            log: r#"{"v":1,"ops":[{"op":"setMetadata","args":{"patch":{"title":"Edited title"}}}]}"#.into(),
+        },
+    );
+    let data = properties(&engine, doc);
+    assert_eq!(
+        (
+            &data["metadata"]["title"],
+            data["xmp"]["xml"].as_str().map(|x| x.contains("Edited title"))
+        ),
+        (&serde_json::json!("Edited title"), Some(true))
+    );
+}
+
+#[test]
+fn the_properties_of_a_locked_document_should_wait_for_its_password() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("encrypted/r4-aes-128-user.pdf"));
+    engine.open(doc, len);
+    assert!(matches!(
+        engine.ask(|req| ToEngine::GetProperties { req, doc }),
+        FromEngine::NeedsPassword { .. }
+    ));
+}
+
 /// The answer to a save call on `doc`, and the bytes its frame carried.
 fn save(engine: &Engine, doc: DocId, call: &SaveCall) -> Result<(SaveAnswer, Vec<u8>), (FailureKind, String)> {
     let deadline = Instant::now() + Duration::from_secs(5);

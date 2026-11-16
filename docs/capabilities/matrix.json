@@ -1520,7 +1520,7 @@
             "core": "round-trip",
             "pdf": null,
             "web": "round-trip",
-            "desktop": null
+            "desktop": "round-trip"
           }
         },
         {
@@ -1532,7 +1532,7 @@
             "core": "round-trip",
             "pdf": null,
             "web": "round-trip",
-            "desktop": null
+            "desktop": "round-trip"
           }
         },
         {
@@ -1544,7 +1544,7 @@
             "core": "round-trip",
             "pdf": null,
             "web": "round-trip",
-            "desktop": null
+            "desktop": "round-trip"
           }
         },
         {
@@ -1628,7 +1628,7 @@
             "core": "round-trip",
             "pdf": null,
             "web": "round-trip",
-            "desktop": null
+            "desktop": "round-trip"
           }
         }
       ]

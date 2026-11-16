@@ -628,6 +628,7 @@ const fn reply_req(msg: &FromEngine) -> Option<ReqId> {
         | FromEngine::NeedsPassword { req, .. }
         | FromEngine::Unlocked { req, .. }
         | FromEngine::PageInfo { req, .. }
+        | FromEngine::Properties { req, .. }
         | FromEngine::Edited { req, .. }
         | FromEngine::Saved { req, .. }
         | FromEngine::Tile { req, .. }

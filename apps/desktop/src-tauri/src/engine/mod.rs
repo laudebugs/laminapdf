@@ -301,6 +301,16 @@ impl Engines {
         }
     }
 
+    /// What the Properties dialog shows of `doc`, one of `window`'s documents, as the engine's JSON.
+    pub(crate) fn properties(&self, window: &str, doc: DocId) -> Result<String, DesktopError> {
+        self.check(window, doc)?;
+        match ask(&self.engine(window)?, |req| ToEngine::GetProperties { req, doc })? {
+            FromEngine::Properties { json, .. } => Ok(json),
+            FromEngine::NeedsPassword { .. } => Err(needs_password()),
+            other => Err(unexpected(&other)),
+        }
+    }
+
     /// Unlocks `doc` with the password the user typed, and keeps the password while it stays
     /// open. The password prompt's command calls it; the restart path reuses the kept password.
     pub(crate) fn unlock(&self, window: &str, doc: DocId, password: &str) -> Result<DocumentMeta, DesktopError> {

@@ -221,6 +221,7 @@ macro_rules! app_commands {
             commands::app_info,
             commands::open_dialog,
             commands::page_info,
+            commands::document_properties,
             commands::edit_document,
             commands::set_unsaved,
             commands::cancel_quit,
