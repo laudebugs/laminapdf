@@ -30,7 +30,7 @@ A sanitiser as a set of ops, each removing one category and reporting what it re
 
 - Ops: `StripMetadata`, `StripAnnotations`, `StripAttachments`, `StripActiveContent`, `StripHiddenContent` (OCG-off content needs the E7c IR; off-page via CropBox), `Sanitise { categories }`; `categories` are `laminapdf.reveal/1`'s names ([T2c](../done/T2c-reveal-command.md)): `metadata`, `annotations`, `attachments`, `active-content`, `hidden-content`, `history` (the full rewrite)
 - XFA in `StripActiveContent`: XFA forms carry their own scripts (`<script>` in the template packet, FormCalc and JavaScript) that ignore the AcroForm action dictionaries, so the op removes `/AcroForm /XFA` entirely (the stream or the packet array and every packet stream it references) and clears `NeedsRendering` in the catalog; the AcroForm fields, if any, remain as the static fallback. A dynamic XFA document (no usable AcroForm) is reported as `XfaOnlyContentRemoved` so the user knows the form will not render as before
-- `SanitiseReport` (JSON + UI), each removed item named by the object number `laminapdf reveal` lists
+- `SanitiseReport` (JSON + UI), each removed item named by the object number `laminapdf reveal` lists; stripping helper calls names the fields that lose their formatting (ADR 0021 §3)
 - Sanitise dialog with presets
 
 **Out of scope** (and which todo covers it)
