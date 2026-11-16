@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Writes @laminapdf/fonts (todo U6b): subset WOFF2 files, fonts.css and the lock's outputs.
+"""Writes @laminapdf/fonts (todo U6b): subset WOFF2 files, fonts.css and the lock's outputs, and
+the TrueType face PDFs embed (todo E3l).
 
 The sources are three npm tarballs, listed with the SHA-256 of each file this script reads in
 packages/fonts/fonts.lock.json ("sources"). The script never touches the network: fetch the
@@ -16,6 +17,11 @@ browser fetches Latin Extended only for text that needs it), keeps the OpenType 
 needs (FEATURES), drops hinting, and is compressed as WOFF2. Newsreader's optical-size axis is
 pinned at its default, 18: with the axis its Latin file is 90 KB, without it 37 KB. Output is
 deterministic: no timestamp is recalculated and Brotli is pinned.
+
+One face is also written for PDFs (PDF_FACES): Lamina Sans Regular as a static TrueType file
+covering Latin and Latin Extended together, which the web reader embeds in the pages it builds,
+such as a contents page. PDF readers can't read WOFF2 and a PDF subsets the font again to the
+glyphs it uses, so it is uncompressed and outside fonts.css; the lock lists it under "pdf".
 
 Source Sans 3's copyright notice reserves the font name "Source" (SIL OFL 1.1 §3), and a subset
 is a Modified Version, so its subsets are renamed "Lamina Sans"; the copyright notice and the
@@ -79,6 +85,13 @@ FACES = [
      ("latin", "latin-ext"), False),
     ("Caveat", "normal", "500", "caveat", "package/files/caveat-latin-500-normal.woff2",
      {}, ("latin",), False),
+]
+
+# The faces written for PDFs to embed: (family, style, weight, source id, member, axis limits,
+# ranges, rename, file). Regular only: a contents page sets its heading larger, not bolder.
+PDF_FACES = [
+    ("Lamina Sans", "normal", "400", "source-sans-3", "package/VF/SourceSans3VF-Upright.ttf",
+     {"wght": 400}, ("latin", "latin-ext"), True, "pdf/lamina-sans-regular.ttf"),
 ]
 
 # The fallback faces are Arial in its four styles, whose advance widths match Helvetica's
@@ -160,7 +173,8 @@ def rename(font: TTFont, style: str) -> None:
         sys.exit(f"name IDs {leftover} still say 'Source' after renaming")
 
 
-def subset_face(data: bytes, limits: dict, unicodes: str, renamed: bool, style: str) -> TTFont:
+def subset_face(data: bytes, limits: dict, unicodes: str, renamed: bool, style: str,
+                flavor: str | None = "woff2") -> TTFont:
     font = TTFont(io.BytesIO(data), recalcTimestamp=False)
     if limits:
         # Saved and reloaded: the subsetter needs the instanced tables compiled, not lazy.
@@ -168,7 +182,7 @@ def subset_face(data: bytes, limits: dict, unicodes: str, renamed: bool, style: 
         instancer.instantiateVariableFont(font, limits).save(buffer)
         font = TTFont(io.BytesIO(buffer.getvalue()), recalcTimestamp=False)
     options = subset.Options()
-    options.flavor = "woff2"
+    options.flavor = flavor
     options.layout_features = FEATURES
     options.hinting = False
     options.name_IDs = [0, 1, 2, 3, 4, 5, 6, 10, 13, 14, 16, 17, 25]
@@ -179,7 +193,7 @@ def subset_face(data: bytes, limits: dict, unicodes: str, renamed: bool, style: 
     subsetter.subset(font)
     if renamed:
         rename(font, style)
-    font.flavor = "woff2"
+    font.flavor = flavor
     return font
 
 
@@ -290,6 +304,18 @@ def main() -> None:
                 "range": RANGES[name], "coverage": coverage(font),
             })
 
+    pdf = {}
+    for family, style, weight, source, member, limits, ranges, renamed, file in PDF_FACES:
+        unicodes = ",".join(RANGES[name] for name in ranges)
+        font = subset_face(sources[(source, member)], limits, unicodes, renamed, style, flavor=None)
+        buffer = io.BytesIO()
+        font.save(buffer)
+        written[file] = buffer.getvalue()
+        pdf[file] = {
+            "sha256": sha256(written[file]), "bytes": len(written[file]),
+            "family": family, "style": style, "weight": weight, "coverage": coverage(font),
+        }
+
     lock["outputs"] = {
         out["file"]: {
             "sha256": sha256(written[out["file"]]),
@@ -304,6 +330,7 @@ def main() -> None:
          **fallback_metrics(sources[("source-sans-3", member)], weight, afm)}
         for style, weight, member, afm, names in FALLBACKS
     ]
+    lock["pdf"] = pdf
     lock.pop("fallback", None)
     lock["fallbacks"] = fallbacks
     new_lock = json.dumps(lock, indent=2, ensure_ascii=False) + "\n"
@@ -315,6 +342,8 @@ def main() -> None:
     stale = [p for p, data in written.items() if not current(PACKAGE / p, data)]
     stale += [f"files/{p.name} (not an output)" for p in (PACKAGE / "files").glob("*.woff2")
               if f"files/{p.name}" not in written]
+    stale += [f"pdf/{p.name} (not an output)" for p in (PACKAGE / "pdf").glob("*.ttf")
+              if f"pdf/{p.name}" not in written]
     if LOCK.read_text() != new_lock:
         stale.append("fonts.lock.json")
     if not CSS.is_file() or CSS.read_text() != new_css:
@@ -325,8 +354,9 @@ def main() -> None:
         print("packages/fonts is up to date")
         return
     (PACKAGE / "files").mkdir(exist_ok=True)
-    for old in (PACKAGE / "files").glob("*.woff2"):
-        if f"files/{old.name}" not in written:
+    (PACKAGE / "pdf").mkdir(exist_ok=True)
+    for old in [*(PACKAGE / "files").glob("*.woff2"), *(PACKAGE / "pdf").glob("*.ttf")]:
+        if f"{old.parent.name}/{old.name}" not in written:
             old.unlink()
     for path, data in written.items():
         (PACKAGE / path).write_bytes(data)

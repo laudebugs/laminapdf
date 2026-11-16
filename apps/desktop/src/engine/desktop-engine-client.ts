@@ -12,7 +12,8 @@
 // - Edits go to the engine, which draws the pages from the edited file from then on; the history
 //   is kept here, per document, so it survives a tab switch (desktop-edits.ts). A save runs in the
 //   main process, which writes the file (desktop-saves.ts); checking an edit against the
-//   signatures before it applies (`wouldViolate`) isn't served yet.
+//   signatures before it applies (`wouldViolate`) and the contents page (`createContentsPage`)
+//   aren't served yet.
 // - The Properties dialog's facts, metadata and XMP packet come from the engine in one call
 //   (`properties`), with the edits so far.
 // - Text, links and search aren't served by the engine yet: their calls answer as for a document
@@ -531,6 +532,11 @@ export class DesktopEngineClient implements ViewerEngine {
   }
 
   wouldViolate(): ReturnType<ViewerEngine["wouldViolate"]> {
+    return notYet();
+  }
+
+  /** A contents page made from the bookmarks: the engine doesn't make one yet. */
+  createContentsPage(): ReturnType<ViewerEngine["createContentsPage"]> {
     return notYet();
   }
 

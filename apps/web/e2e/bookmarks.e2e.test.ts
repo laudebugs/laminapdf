@@ -3,7 +3,8 @@
 // with the keyboard, and the named destinations dialog renames a name a bookmark uses. Saved
 // (Save downloads where the browser can't write files) and read back by Lamina PDF's SDK, the
 // outline and the names are as edited; reopened, the reader shows them. No CSP violation or other
-// origin throughout.
+// origin throughout. The contents page dialog (E3l) puts a page of links before the first page,
+// as one step: each entry goes to its bookmark's page, saved and read back.
 
 import { readFileSync } from "node:fs";
 import { Document, init, type OutlineNode } from "@laminapdf/sdk";
@@ -143,6 +144,52 @@ describe(`bookmarks in ${BROWSER}`, () => {
       .getByRole("treegrid", { name: "Document outline" })
       .getByRole("row", { name: /Results/ })
       .waitFor();
+    await clean(watched);
+  });
+
+  it("[cap I.05 web round-trip] creates a contents page whose entries go to their bookmarks' pages", async () => {
+    const watched = await load(browser, origin, "/", NO_PICKERS, {
+      ignoreHTTPSErrors: true,
+      viewport: { width: 1280, height: 900 },
+    });
+    const { page } = watched;
+    await editing(watched, FILE.pathname);
+    await page.getByRole("button", { name: "Edit bookmarks" }).click();
+    await page.getByRole("button", { name: "Create a contents page" }).click();
+    const dialog = page.getByRole("dialog", { name: "Create a contents page" });
+    // The preview lists the bookmarks two levels deep, with their pages' labels after the insert.
+    const preview = dialog.getByRole("region", { name: "Preview" });
+    await expect.poll(() => preview.getByRole("listitem").count()).toBeGreaterThan(0);
+    await dialog.getByRole("button", { name: "Create contents page" }).click();
+    await unsaved(page, 1);
+
+    // The new first page's links go where the bookmarks do: follow one.
+    const before = await page.getByRole("textbox", { name: "Page", exact: true }).inputValue();
+    const links = page.locator('[data-page-index="0"]').getByRole("link");
+    await expect.poll(() => links.count()).toBeGreaterThan(1);
+    await links.nth(1).click();
+    await expect.poll(() => page.getByRole("textbox", { name: "Page", exact: true }).inputValue()).not.toBe(before);
+
+    const download = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Download", exact: true }).click();
+    const saved = new Uint8Array(readFileSync(await (await download).path()));
+
+    using doc = Document.open(saved);
+    using original = Document.open(new Uint8Array(readFileSync(FILE)));
+    expect(doc.pageCount).toBe(original.pageCount + 1);
+    // A bookmark for the contents page goes first.
+    expect(doc.outline()[0]?.title).toBe("Contents");
+    expect(doc.outline()[0]?.target?.page).toBe(0);
+    // Each entry links to its bookmark's page (by name where the bookmark goes by name), one later
+    // now; bookmarks with no page get no link.
+    const pagesOf = (nodes: readonly OutlineNode[], depth = 0): number[] =>
+      depth > 1
+        ? []
+        : nodes.flatMap((n) => [...(n.target === undefined ? [] : [n.target.page]), ...pagesOf(n.children, depth + 1)]);
+    const targets = doc
+      .pageLinks(0)
+      .map((link) => (link.kind === "dest" || link.kind === "named" ? link.target?.page : undefined));
+    expect(targets).toEqual(pagesOf(original.outline()).map((p) => p + 1));
     await clean(watched);
   });
 });

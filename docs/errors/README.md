@@ -254,8 +254,9 @@ A PR that adds a code adds:
 | --- | --- | --- |
 | [`cancelled`](cancelled.md) | `cancelled` | a CancelToken stopped the work; the job is finished and returned no partial result |
 | [`job-finished`](job-finished.md) | `state` | a job was stepped after it had finished, failed or been cancelled |
-| [`document-changed`](document-changed.md) | `state` | the document a job was created for changed (an edit, undo, redo, save or rebase) or a different document was passed to step |
+| [`document-changed`](document-changed.md) | `state` | the document a job or a contents listing was made from changed (an edit, undo, redo, save or rebase), or a different document was passed to step |
 | [`revision-index-out-of-range`](revision-index-out-of-range.md) | `usage` | an earlier revision was asked for by an index past the file's last revision |
+| [`no-bookmarks`](no-bookmarks.md) | `usage` | a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing |
 
 ## Façade warnings (`laminapdf`)
 

@@ -54,6 +54,8 @@ import {
   type AddressCheck,
   BlankPagesDialog,
   ConformanceDialog,
+  ContentsPageDialog,
+  type ContentsPreviewEntry,
   CropDialog,
   LinkEditor,
   type LinkGoal,
@@ -214,11 +216,28 @@ function NamedDestinations(): ReactNode {
   );
 }
 
-/** The editor's dialogs: the save's two confirmations, the named destinations and Organise's three (O06). */
+/** O11's second artboard's entries, with the labels they show once the page is before page 1. */
+const CONTENTS_ENTRIES: readonly ContentsPreviewEntry[] = [
+  { level: 1, title: "Chair’s summary", label: "3" },
+  { level: 1, title: "Repairs", label: "4" },
+  { level: 2, title: "Backlog", label: "6" },
+  { level: 2, title: "By region", label: "7" },
+  { level: 1, title: "Budget", label: "12" },
+  { level: 1, title: "Appendix", label: "A-1" },
+];
+const contentsPreview = () => Promise.resolve(CONTENTS_ENTRIES);
+
+/** O11's second artboard: a contents page before page 1, two levels, with its bookmark. */
+function ContentsPage(): ReactNode {
+  return <ContentsPageDialog isOpen onOpenChange={noop} firstPage="1" preview={contentsPreview} onCreate={noop} />;
+}
+
+/** The editor's dialogs: the save's two confirmations, the bookmarks' two and Organise's three (O06). */
 const EDITING_DIALOGS = new Set([
   "remove-signatures",
   "conformance",
   "named-destinations",
+  "contents-page",
   "move-to-page",
   "blank-pages",
   "signed-page",
@@ -396,6 +415,7 @@ function EditingDialogs({ state }: { state: string }): ReactNode {
     const warnings = ["The file claims PDF/A-2b, and the saved file may no longer meet it."];
     return <ConformanceDialog warnings={warnings} onAnswer={noop} />;
   }
+  if (state === "contents-page") return <ContentsPage />;
   return <NamedDestinations />;
 }
 

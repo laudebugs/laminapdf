@@ -1318,8 +1318,8 @@
     {
       "code": "document-changed",
       "kind": "state",
-      "summary": "the document a job was created for changed (an edit, undo, redo, save or rebase) or a different document was passed to step",
-      "hint": "pass the document the job was created from, and don't change it while the job runs; create a new job",
+      "summary": "the document a job or a contents listing was made from changed (an edit, undo, redo, save or rebase), or a different document was passed to step",
+      "hint": "pass the document the job was created from, and don't change it while the job runs; create a new job, or read the contents listing again",
       "since": "0.1.0"
     },
     {
@@ -1328,6 +1328,13 @@
       "summary": "an earlier revision was asked for by an index past the file's last revision",
       "hint": "ask for an index below the document's revision count",
       "since": "0.2.0"
+    },
+    {
+      "code": "no-bookmarks",
+      "kind": "usage",
+      "summary": "a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing",
+      "hint": "add bookmarks that go to the document's pages first, then create the contents page",
+      "since": "0.5.0"
     }
   ],
   "facadeWarnings": [

@@ -139,6 +139,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "template-data-type":
     case "template-too-large":
     case "open-action-not-destination":
+    case "no-bookmarks":
       return "usage";
     case "data-pending":
     case "repaired-base":

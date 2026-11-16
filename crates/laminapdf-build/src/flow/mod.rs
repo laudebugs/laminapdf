@@ -48,10 +48,10 @@ mod template;
 #[cfg(test)]
 mod tests;
 
-use laminapdf_model::{PageId, Pt};
+use laminapdf_model::{PageId, Pt, RectPt};
 
-pub use contents::Contents;
 pub(crate) use contents::destination;
+pub use contents::{Contents, ContentsEntry};
 #[cfg(feature = "markdown")]
 pub(crate) use contents::{headings, plain_text};
 #[cfg(feature = "markdown")]
@@ -77,6 +77,26 @@ pub struct FlowReport {
     pub pages: Vec<PageId>,
     /// What it worked around (`flow-keep-broken`).
     pub warnings: Vec<Warning>,
+    /// Where each entry of a [`Contents::listing`] was drawn, in the listings' order: an
+    /// entry broken across two pages has a box on each.
+    ///
+    /// Added in 0.5.0.
+    pub entries: Vec<ContentsEntryBox>,
+}
+
+/// Where an entry of a [`Contents::listing`] was drawn: from its text's left edge to its
+/// label's right edge, over its lines on one page.
+///
+/// Added in 0.5.0.
+#[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub struct ContentsEntryBox {
+    /// The entry: its index among the flow's listed entries.
+    pub entry: usize,
+    /// The page it was drawn on.
+    pub page: PageId,
+    /// Its box, in page space.
+    pub rect: RectPt,
 }
 
 impl Builder {
@@ -126,7 +146,7 @@ impl Builder {
         } else {
             lay(&items)?
         };
-        let pages = emit::emit(self, flow, &items, &laid.pages, first)?;
+        let (pages, entries) = emit::emit(self, flow, &items, &laid.pages, first)?;
         if contents || flow.outline {
             for (n, &item) in items.heading_at.iter().enumerate() {
                 if let Some(Some((page, top))) = laid.starts.get(item) {
@@ -148,6 +168,7 @@ impl Builder {
         Ok(FlowReport {
             pages,
             warnings: laid.warnings,
+            entries,
         })
     }
 }

@@ -26,6 +26,37 @@ pub struct Contents {
     pub(crate) style: TextStyle,
     pub(crate) levels: u8,
     pub(crate) indent: f64,
+    /// The entries a listing prints instead of the flow's headings.
+    pub(crate) listing: Option<Vec<ContentsEntry>>,
+}
+
+/// An entry of a contents listing ([`Contents::listing`]): its level, its text and the page
+/// label printed at the end of its line.
+///
+/// Added in 0.5.0.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct ContentsEntry {
+    /// Its level, from 1: each level is indented by [`Contents::with_indent`].
+    pub level: u8,
+    /// Its text.
+    pub text: String,
+    /// The page label printed at the end of its line.
+    pub label: String,
+}
+
+impl ContentsEntry {
+    /// An entry of `level` (clamped to 1–6) reading `text`, with `label` at the end of its line.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub fn new(level: u8, text: impl Into<String>, label: impl Into<String>) -> Self {
+        Self {
+            level: level.clamp(1, 6),
+            text: text.into(),
+            label: label.into(),
+        }
+    }
 }
 
 impl Contents {
@@ -39,6 +70,21 @@ impl Contents {
             style: style.clone(),
             levels: 2,
             indent: 12.0,
+            listing: None,
+        }
+    }
+
+    /// A contents page in `style` listing `entries` instead of the flow's headings: each
+    /// entry's text with dot leaders to its label, and no link. The flow is laid out once, and
+    /// [`FlowReport::entries`](super::FlowReport::entries) says where each entry was drawn, so
+    /// a caller can put its own link over it. [`Contents::with_levels`] doesn't apply.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub fn listing(style: &TextStyle, entries: Vec<ContentsEntry>) -> Self {
+        Self {
+            listing: Some(entries),
+            ..Self::new(style)
         }
     }
 
@@ -110,7 +156,8 @@ pub(crate) fn destination(first: usize, n: usize) -> String {
 /// Whether `blocks` hold a contents page (so the flow needs more than one layout).
 pub(crate) fn has_contents(blocks: &[FlowBlock]) -> bool {
     blocks.iter().any(|b| match b {
-        FlowBlock::Contents(_) => true,
+        // A listing prints the labels it was given: one layout is enough.
+        FlowBlock::Contents(c) => c.listing.is_none(),
         FlowBlock::Keep(inner) | FlowBlock::Quote(inner) => has_contents(inner),
         _ => false,
     })

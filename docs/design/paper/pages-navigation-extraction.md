@@ -126,9 +126,15 @@ Differs from the boards:
 - The rebuilt-outline notice shows after the first edit that rebuilds it, not on open, since reading a file changes nothing. A failed change, or Add bookmark with no page in view, shows a notice above the tree; deleting a bookmark has no toast, and Undo or the History tab takes it back.
 - The drag grip is a 44 px button at each row's end, shown on hover, focus or selection; dropping onto a row nests it, with React Aria's drop indicator in place of the indented accent line.
 
+**As built (web, E3l): the contents page dialog.** It opens from the editor's header, a button beside Named destinations, off while the file has no bookmarks. Differs from the board:
+
+- The consequence sentence doesn't count pages or name a label range: "Adds the contents page before page 1, so page 1 and every page after it move down one place. Bookmarks, links and page labels follow their pages." A long outline can take two or three pages, and the labels each entry's page will show are in the preview instead.
+- The preview lists the entries in the reader's own type, as a miniature of the page; the page itself is set in Lamina Sans, embedded, so files that claim PDF/A or PDF/UA-1 keep their claim.
+- After Create, the view goes to the new page (a history jump, so Back returns).
+
 Not built yet:
 
-- The rail header's More menu (Expand all, Collapse all, Sort by page, Create a contents page…); the contents page is [E3l](../../todos/ready/E3l-contents-page.md)'s.
+- The rail header's More menu (Expand all, Collapse all, Sort by page, Create a contents page…), Organise's Bookmark ▾ menu and the `organise.create-contents-page` palette command.
 - The destination marker on the page, and "Page removed" for a bookmark whose page was deleted (page deletion came with [E2b](../../todos/done/E2b-page-structure-ops.md), which sends a bookmark on to a surviving page).
 - The palette commands (`organise.add-bookmark`, `organise.named-destinations`, `organise.set-bookmark-destination`, `organise.delete-bookmark`) and the selection toolbar's Add bookmark here, which join Organise's commands.
 - The polite announcement of a move ("Moved under …"), and the phone's Edit button with its Move… sheets.
