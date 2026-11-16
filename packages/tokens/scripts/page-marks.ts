@@ -1,5 +1,5 @@
 // How the viewer's marks over a page land on their designed colours on each page appearance
-// (todo U2d; bug selection-on-dark-pages). The page is a canvas the viewer can't draw under, so a
+// (docs/bugs/selection-on-dark-pages). The page is a canvas the viewer can't draw under, so a
 // mark lies over it:
 //
 // - The selection is translucent: the design language defines `selection-tint` as the accent at
@@ -10,7 +10,10 @@
 //
 // High contrast's colours are the system's, unknown here; the generator writes its values as CSS.
 
-import { composite, type Rgba } from "../src/contrast.ts";
+import { luminance, type Rgba } from "../src/contrast.ts";
+
+/** The appearances whose page colours are known when the tokens are built; High contrast's are the system's. */
+export const MARKED = ["original", "sepia", "dark"] as const;
 
 /** The blend a find mark is drawn with: multiply darkens a light paper, screen lightens a dark one. */
 export type Blend = "multiply" | "screen";
@@ -19,14 +22,6 @@ const channels = ["r", "g", "b"] as const;
 
 /** WCAG relative luminance below which a paper counts as dark (mid-grey, `#767676`, is 0.18). */
 const DARK_PAPER = 0.18;
-
-function luminance(c: Rgba): number {
-  const lin = (v: number) => {
-    const s = v / 255;
-    return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-  };
-  return 0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b);
-}
 
 const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
 
@@ -68,9 +63,6 @@ export function selectionOverlay(paper: Rgba, accent: Rgba, tint: Rgba): Rgba {
 export function distance(a: Rgba, b: Rgba): number {
   return Math.max(...channels.map((k) => Math.abs(a[k] - b[k])));
 }
-
-/** `overlay` over `under`, as a screen shows it. */
-export const over = (overlay: Rgba, under: Rgba): Rgba => composite(overlay, under);
 
 /** A colour as CSS: `#RRGGBB` when opaque, else `rgb(r g b / n%)`. */
 export function css(c: Rgba): string {

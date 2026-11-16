@@ -32,8 +32,8 @@ interface PageHighlights {
   size: { readonly width: number; readonly height: number } | undefined;
 }
 
-/** A box in page points over the page, for the fills (`blend`) or the frames. */
-function layerBox(className: string, blend: boolean): HTMLDivElement {
+/** A box in page points over the page, with `style` on top of the placement every box has. */
+function layerBox(className: string, style: Partial<CSSStyleDeclaration> = {}): HTMLDivElement {
   const box = document.createElement("div");
   box.className = className;
   Object.assign(box.style, {
@@ -42,7 +42,7 @@ function layerBox(className: string, blend: boolean): HTMLDivElement {
     top: "0",
     transformOrigin: "0 0",
     pointerEvents: "none",
-    ...(blend ? { mixBlendMode: "var(--lamina-find-blend, multiply)" } : {}),
+    ...style,
   });
   return box;
 }
@@ -67,8 +67,8 @@ export class HighlightLayer implements PageLayer {
   }
 
   onMount(page: number, slot: HTMLElement): void {
-    const box = layerBox("lamina-highlight-layer", true);
-    const frames = layerBox("lamina-highlight-frames", false);
+    const box = layerBox("lamina-highlight-layer", { mixBlendMode: "var(--lamina-find-blend, multiply)" });
+    const frames = layerBox("lamina-highlight-frames");
     slot.append(box, frames);
     this.#pages.set(page, { box, frames, size: undefined });
     this.#draw(page);

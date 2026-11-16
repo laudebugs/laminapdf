@@ -693,7 +693,7 @@
   --paper-page-mockup-chart-bars: var(--paper-page-ink);
   --paper-page-mockup-chart-labels: var(--paper-page-ink);
   --paper-page-selection-overlay: color-mix(in srgb, Highlight 40%, transparent);
-  --paper-page-find-blend: screen;
+  --paper-page-find-blend: multiply;
   --paper-page-find-match-fill: Mark;
   --paper-page-find-current-fill: Highlight;
 }

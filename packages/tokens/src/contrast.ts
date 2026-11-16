@@ -25,7 +25,7 @@ function channel(c: number): number {
 }
 
 /** The relative luminance of an opaque colour, 0 (black) to 1 (white). */
-function luminance(c: Rgba): number {
+export function luminance(c: Rgba): number {
   return 0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b);
 }
 

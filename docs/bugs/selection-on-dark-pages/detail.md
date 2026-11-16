@@ -33,7 +33,7 @@ The text layer, which holds the selection, is drawn over the page with `mix-blen
 
 A multiplied fill shows as paper × fill. On the Original page the paper is white, so that is the fill itself. On the Dark page the paper is `#22211F`, so the tint is multiplied down to near black; and the ink, light on a Dark page, is multiplied down with it. That fix's own notes left this open: "Multiply suits a light page. … When the reader draws pages in those appearances, the text layer needs `screen` instead." The reader has since gained page appearances ([U2c](../../todos/done/U2c-page-appearance-modes.md)).
 
-The desktop app has no `::selection` rule and doesn't set the find colours, so it shows the system's selection colour and the viewer's built-in find colours, multiplied the same way.
+The desktop app has no `::selection` rule and doesn't set the find colours, so it shows the system's selection colour and the viewer's built-in find colours. It has no page appearance setting, so its pages are always Original.
 
 ## Find matches hid the word they matched, on every page
 

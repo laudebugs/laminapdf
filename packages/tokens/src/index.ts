@@ -3,6 +3,9 @@
 
 import type { ANNOTATION_COLOURS, PAGE_APPEARANCES, THEMES, TokenName } from "./generated/tokens.js";
 
+/** WCAG 2.x contrast, for tests that measure what the tokens look like on screen. */
+export { composite, contrastRatio, hex, luminance, type Rgba } from "./contrast.js";
+
 export {
   ANNOTATION_COLOURS,
   BREAKPOINTS,

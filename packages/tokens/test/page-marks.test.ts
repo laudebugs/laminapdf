@@ -1,16 +1,15 @@
-// The viewer's marks over a page (todo U2d; bug selection-on-dark-pages): on the Original, Sepia
+// The viewer's marks over a page (docs/bugs/selection-on-dark-pages): on the Original, Sepia
 // and Dark pages, with every accent, the selection and the find marks land on their designed
 // colours, the page's ink stays readable under them, and the selection shows over any picture.
 
 import { describe, expect, it } from "vitest";
 import { ACCENTS, resolve, rgba, type Token } from "../scripts/model.ts";
-import { blended, blendFill, distance, over, selectionOverlay } from "../scripts/page-marks.ts";
-import { contrastRatio, hex } from "../src/contrast.ts";
+import { blended, blendFill, distance, MARKED as PAGES, selectionOverlay } from "../scripts/page-marks.ts";
+import { contrastRatio, hex, composite as over } from "../src/contrast.ts";
 import { loadTokens } from "./helpers.ts";
 
 const tokens = loadTokens();
 const at = (path: string) => rgba(resolve(tokens, path) as Token);
-const PAGES = ["original", "sepia", "dark"] as const;
 const WHITE = hex("#FFFFFF");
 const BLACK = hex("#000000");
 
@@ -31,9 +30,12 @@ describe("the selection overlay", () => {
         expect(contrastRatio(over(overlay, ink), landed)).toBeGreaterThanOrEqual(4.5);
       });
 
-      it(`shows over white and black pictures on a ${p} page (${a})`, () => {
-        // A picture keeps its colours in every appearance; multiply gave 1.0 over black.
+      // A picture keeps its colours in every appearance; multiply gave 1.0 over black.
+      it(`shows over a white picture on a ${p} page (${a})`, () => {
         expect(contrastRatio(over(overlay, WHITE), WHITE)).toBeGreaterThanOrEqual(1.1);
+      });
+
+      it(`shows over a black picture on a ${p} page (${a})`, () => {
         expect(contrastRatio(over(overlay, BLACK), BLACK)).toBeGreaterThanOrEqual(1.1);
       });
     }
@@ -62,18 +64,33 @@ describe("the find marks", () => {
     it(`blends to darken the ${p} paper only where it is light`, () => {
       expect(blendFill(paper, paper).blend).toBe(p === "dark" ? "screen" : "multiply");
     });
+
+    // The edge and the outline are drawn unblended, in their own colours.
+    it(`draws the find-match edge on the ${p} paper at 3:1 or more`, () => {
+      expect(contrastRatio(at(`appearance.${p}.find-match-edge`), paper)).toBeGreaterThanOrEqual(3);
+    });
+
+    for (const a of ACCENTS) {
+      it(`draws the ${a} find-current outline on the ${p} paper at 3:1 or more`, () => {
+        expect(contrastRatio(at(`accent.${a}.page.${p}.accent`), paper)).toBeGreaterThanOrEqual(3);
+      });
+    }
   }
 });
 
-describe("the arithmetic", () => {
-  it("multiplies and screens as the CSS blend modes do", () => {
-    const grey = hex("#808080");
-    expect(blended("multiply", WHITE, grey)).toEqual(grey);
-    expect(blended("screen", BLACK, grey)).toEqual(grey);
-    expect(blended("multiply", grey, WHITE)).toEqual(grey);
-    expect(blended("screen", grey, BLACK)).toEqual(grey);
+describe("blended", () => {
+  const grey = hex("#808080");
+
+  it("multiplies as the CSS blend mode does: white leaves a colour as it is", () => {
+    expect([blended("multiply", WHITE, grey), blended("multiply", grey, WHITE)]).toEqual([grey, grey]);
   });
 
+  it("screens as the CSS blend mode does: black leaves a colour as it is", () => {
+    expect([blended("screen", BLACK, grey), blended("screen", grey, BLACK)]).toEqual([grey, grey]);
+  });
+});
+
+describe("selectionOverlay", () => {
   it("finds the opacity an overlay was mixed at", () => {
     // Teal at 22% over white is the Original page's tint, as the design language derives it.
     expect(selectionOverlay(WHITE, hex("#1F5C63"), hex("#CEDBDD")).a).toBe(0.22);

@@ -813,7 +813,7 @@ export const PAGE_APPEARANCES = {
       "mockup-chart-bars": "#FFFFFF",
       "mockup-chart-labels": "#FFFFFF",
       "selection-overlay": "color-mix(in srgb, Highlight 40%, transparent)",
-      "find-blend": "screen",
+      "find-blend": "multiply",
       "find-match-fill": "Mark",
       "find-current-fill": "Highlight"
     },
@@ -831,7 +831,7 @@ export const PAGE_APPEARANCES = {
       "mockup-chart-bars": "#FFFFFF",
       "mockup-chart-labels": "#FFFFFF",
       "selection-overlay": "color-mix(in srgb, Highlight 40%, transparent)",
-      "find-blend": "screen",
+      "find-blend": "multiply",
       "find-match-fill": "Mark",
       "find-current-fill": "Highlight"
     },
@@ -849,7 +849,7 @@ export const PAGE_APPEARANCES = {
       "mockup-chart-bars": "#FFFFFF",
       "mockup-chart-labels": "#FFFFFF",
       "selection-overlay": "color-mix(in srgb, Highlight 40%, transparent)",
-      "find-blend": "screen",
+      "find-blend": "multiply",
       "find-match-fill": "Mark",
       "find-current-fill": "Highlight"
     },
@@ -867,7 +867,7 @@ export const PAGE_APPEARANCES = {
       "mockup-chart-bars": "#FFFFFF",
       "mockup-chart-labels": "#FFFFFF",
       "selection-overlay": "color-mix(in srgb, Highlight 40%, transparent)",
-      "find-blend": "screen",
+      "find-blend": "multiply",
       "find-match-fill": "Mark",
       "find-current-fill": "Highlight"
     }

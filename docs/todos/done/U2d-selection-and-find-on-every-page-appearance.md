@@ -49,7 +49,7 @@ On a Dark page, selected text sits on a near-black box and the text itself dims,
 
 - [x] `packages/tokens/scripts`: a function that takes a paper and a colour and returns the blend and the fill, in 8-bit sRGB, rounded so the result lands on the colour where it can; and the selection overlay from the accent and the appearance's opacity.
 - [x] Emit them into `tokens.css` (per appearance, the selection per accent) and `tokens.ts` (`PAGE_APPEARANCES`); regenerate with `pnpm --filter @laminapdf/tokens generate`.
-- [x] `packages/viewer/src/layers/text-layer.ts`: drop the box's `multiply`; column selection and its rectangle use `var(--lamina-selection, …)`.
+- [x] `packages/viewer/src/layers/text-layer.ts`: drop the box's `multiply`; column selection uses `var(--lamina-selection, …)` (its drag rectangle keeps its own 8% blue).
 - [x] `packages/viewer/src/layers/highlight-layer.ts`: each mark blended with `var(--lamina-find-blend, multiply)`; the edge and the outline in an unblended element above it.
 - [x] `packages/ui/src/styles`: the mapping stylesheet; take the same rules out of `apps/web/src/app.css`.
 - [x] Record the bug in `docs/bugs/selection-on-dark-pages/` (detail and resolution) and its line in `docs/bugs/README.md`.
@@ -59,7 +59,7 @@ On a Dark page, selected text sits on a near-black box and the text itself dims,
 - [x] A tokens test, for Original, Sepia and Dark with each accent: the selection overlay lands within 1/255 per channel of `selection-tint`, `find-match` and `find-current` within 8/255 of their tokens; the ink under each measures ≥ 4.5:1 against it; the selection measures ≥ 1.1:1 against both white and black (it shows over any picture; multiply gives 1.0 over black today); the edge and the outline measure ≥ 3:1 against the paper.
 - [x] A viewer browser test, in Chromium, Firefox and WebKit, on a Dark page: a selected word's background is within tolerance of the tint and its ink ≥ 4.5:1, in a real screenshot; a word selected over a white image still differs from the image. The Original test keeps passing.
 - [x] A viewer browser test: on a Dark page, the find-current mark's fill is within tolerance of `find-current` and its outline is drawn.
-- [x] By hand, in the built web reader in Chromium: a selection and a find match on Original, Sepia and Dark pages, with screenshots in the PR. Not done: the reader in WebKit (its home screen didn't come up under Playwright here; the viewer's browser tests cover WebKit), a column selection, and the desktop app, which loads the same stylesheet.
+- [ ] By hand, in the built web reader (Chromium and WebKit) and the desktop app: a selection, a column selection and a find match on Sepia and Dark pages, with screenshots in the PR. Done in the built reader in Chromium for a selection and a find match on Original, Sepia and Dark. A reader e2e test now drives a Dark-page selection in all three browsers. Not done: a column selection by hand, and the desktop app, which has no page appearance setting yet.
 
 ## Post-merge checks
 
@@ -85,7 +85,9 @@ None.
 ## What changed from the plan
 
 - **Find marks hid their word on every page**, a second fault found while testing: each mark was blended inside the highlight layer's transformed box, which is a group of its own, so it blended with nothing and covered the word. The blend moved to the box, and the outline and edge to a second, unblended box; a browser test on an Original page now checks the found word's ink.
-- High contrast gets the system `Highlight` at 40% for its selection and screened find marks, as a stopgap: its own look is left for later ([resolution](../../bugs/selection-on-dark-pages/resolution.md#left-for-later)).
+- High contrast gets the system `Highlight` at 40% for its selection, translucent now that the text layer isn't blended, and keeps multiplied find marks; its own look is left for later ([resolution](../../bugs/selection-on-dark-pages/resolution.md#left-for-later)).
+- The desktop app has no page appearance setting, so it gains only the Original page's selection and find colours.
+- A reader e2e test checks the style sheets' selection colour in the built reader in all three browsers, since the viewer's tests set the colours themselves.
 
 ## Definition of done
 
