@@ -495,6 +495,25 @@ pub fn capture_crashes(socket: &Path, server: u32) -> Result<CrashCapture, Captu
     })
 }
 
+/// [`capture_crashes`] for a server that may not be listening yet, such as a monitor just spawned:
+/// a socket that can't be reached is tried again every 20 ms until `wait` has passed. Any other
+/// failure, and the last unreachable one, is returned at once.
+///
+/// # Errors
+/// [`CaptureError`] when the server is still unreachable after `wait`, or the handler can't be
+/// installed.
+pub fn capture_crashes_within(socket: &Path, server: u32, wait: Duration) -> Result<CrashCapture, CaptureError> {
+    let deadline = Instant::now() + wait;
+    loop {
+        match capture_crashes(socket, server) {
+            Err(CaptureError::Connect) if Instant::now() < deadline => {
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            result => return result,
+        }
+    }
+}
+
 /// The open connected-socket descriptors above 2 this process holds, to find the one the client
 /// opened. Only sockets, so an unrelated file opened in between is not mistaken for it.
 fn open_sockets() -> Vec<RawFd> {
@@ -712,6 +731,32 @@ mod tests {
         }
         drop(server);
         assert!(pinged, "the server did not serve a client after garbage");
+    }
+
+    #[test]
+    fn a_capture_should_wait_for_a_server_that_starts_late() {
+        let socket = socket_path("late");
+        let dir = scratch("late");
+        let late = {
+            let socket = socket.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(Duration::from_millis(200));
+                DumpServer::start(socket, dir, Role::Many).unwrap()
+            })
+        };
+        let capture = capture_crashes_within(&socket, std::process::id(), Duration::from_secs(5));
+        let server = late.join().unwrap();
+        assert!(capture.is_ok(), "{:?}", capture.err());
+        drop(capture);
+        drop(server);
+    }
+
+    #[test]
+    fn a_capture_should_give_up_once_its_wait_has_passed() {
+        let started = Instant::now();
+        let capture = capture_crashes_within(&socket_path("never"), std::process::id(), Duration::from_millis(100));
+        assert!(matches!(capture, Err(CaptureError::Connect)));
+        assert!(started.elapsed() < Duration::from_secs(5));
     }
 
     #[test]

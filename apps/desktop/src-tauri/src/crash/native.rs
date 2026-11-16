@@ -32,7 +32,7 @@ use std::time::{Duration, Instant};
 use laminapdf_desktop_crash::summary::DumpSummary;
 use laminapdf_desktop_crash::{
     CRASH_SERVER_PID_ARG, CRASH_SOCKET_ARG, CrashCapture, DUMP_EXTENSION, MonitorPaths, SUMMARIZE_DUMP_ARG,
-    capture_crashes,
+    capture_crashes_within,
 };
 use laminapdf_desktop_protocol::crash::truncate_on_char_boundary;
 use laminapdf_desktop_protocol::supervisor::Process as _;
@@ -302,6 +302,9 @@ struct Monitor {
     supervisor: Mutex<Option<JoinHandle<()>>>,
 }
 
+/// How long the main process waits for a monitor it just spawned to listen.
+const MONITOR_READY: Duration = Duration::from_secs(5);
+
 /// How many times a dead monitor is restarted before the main process gives up on capture.
 const MAX_MONITOR_RESTARTS: u32 = 5;
 
@@ -318,12 +321,16 @@ impl Monitor {
             stop: AtomicBool::new(false),
             supervisor: Mutex::new(None),
         });
-        this.connect_main(&paths, child.id());
+        // Connected on the supervisor's thread: the monitor needs a moment to listen, and the
+        // start-up path shouldn't wait for it.
         let supervisor = {
             let this = Arc::clone(&this);
             std::thread::Builder::new()
                 .name("crash-monitor".into())
-                .spawn(move || this.supervise(child))
+                .spawn(move || {
+                    this.connect_main(&paths, child.id());
+                    this.supervise(child);
+                })
                 .ok()
         };
         *this.supervisor.lock().unwrap_or_else(PoisonError::into_inner) = supervisor;
@@ -345,12 +352,14 @@ impl Monitor {
     }
 
     /// Reconnects the main process's crash handler to `paths`' main socket, dropping the old one
-    /// first (crash-handler allows only one installed handler at a time).
+    /// first (crash-handler allows only one installed handler at a time). The monitor was just
+    /// spawned, so its socket may not be listening yet: the connection waits for it, up to
+    /// [`MONITOR_READY`]. Connecting at once failed on every start, and the monitor, with no main
+    /// process connected, exited after its wait and was restarted until the restarts ran out.
     fn connect_main(&self, paths: &MonitorPaths, monitor_pid: u32) {
-        let mut capture = self.capture.lock().unwrap_or_else(PoisonError::into_inner);
-        *capture = None;
-        match capture_crashes(&paths.main_socket, monitor_pid) {
-            Ok(installed) => *capture = Some(installed),
+        *self.capture.lock().unwrap_or_else(PoisonError::into_inner) = None;
+        match capture_crashes_within(&paths.main_socket, monitor_pid, MONITOR_READY) {
+            Ok(installed) => *self.capture.lock().unwrap_or_else(PoisonError::into_inner) = Some(installed),
             Err(error) => tracing::warn!("the main process's native crashes won't leave a dump: {error}"),
         }
     }
