@@ -20,7 +20,7 @@ layer = "edge"
 [features]
 # `summary::summarize_bytes`: reading a minidump into its summary. Only the engine turns it on, so
 # the minidump parser lives in the engine binary, never the main process.
-summary = ["dep:minidump", "dep:minidump-processor", "dep:minidump-unwind"]
+summary = ["dep:async-trait", "dep:minidump", "dep:minidump-unwind"]
 # `fault`: the end-to-end tests' deliberate native fault (the engine's `e2e`).
 debug-crash = []
 # `test_support`: a crash-dump server for other crates' tests (the engine's native-crash test).
@@ -40,11 +40,12 @@ crash-handler = { workspace = true }
 libc = { workspace = true }
 minidumper = { workspace = true }
 
-# Reading a minidump (feature `summary`): rust-minidump, no symbol server client or disassembler.
-[dependencies.minidump]
+# Reading a minidump (feature `summary`): rust-minidump's reader and unwinder, no symbol server
+# client; not minidump-processor, whose analysis the summary never uses and which would add megabytes.
+[dependencies.async-trait]
 workspace = true
 optional = true
-[dependencies.minidump-processor]
+[dependencies.minidump]
 workspace = true
 optional = true
 [dependencies.minidump-unwind]

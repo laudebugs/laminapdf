@@ -290,7 +290,7 @@ runs:
           chmod +x "$appimage"
           test -n "$("./$appimage" --appimage-signature)"
         done
-    - name: Check the installers against the 15 MB budget
+    - name: Check the installers against the 16 MB budget
       shell: bash
       run: cargo xtask desktop-release sizes "$DESKTOP_OUT"
     - name: Write the SBOMs

@@ -55,9 +55,14 @@ pub use read::{SummaryError, summarize_bytes, summarize_to_json};
 mod read {
     use std::task::{Context, Poll, Waker};
 
-    use minidump::{Minidump, MinidumpLinuxProcStatus, MinidumpModule, Module as _};
-    use minidump_processor::ProcessState;
-    use minidump_unwind::{Symbolizer, simple_symbol_supplier};
+    use minidump::{
+        Minidump, MinidumpBreakpadInfo, MinidumpException, MinidumpLinuxProcStatus, MinidumpMiscInfo, MinidumpModule,
+        MinidumpModuleList, MinidumpSystemInfo, MinidumpThreadList, Module as _, UnifiedMemoryList,
+    };
+    use minidump_unwind::{
+        CallStack, FileError, FileKind, FillSymbolError, FrameSymbolizer, FrameWalker, StackFrame, SymbolProvider,
+        SystemInfo, walk_stack,
+    };
 
     use super::{DumpFrame, DumpModule, DumpSummary, MAX_FRAMES};
 
@@ -65,9 +70,13 @@ mod read {
     #[derive(Debug, thiserror::Error)]
     #[non_exhaustive]
     pub enum SummaryError {
-        /// Not a minidump, or one the processor couldn't follow.
+        /// Not a minidump, or one without what a summary needs (system info, threads).
         #[error("the dump is not a minidump it can read: {0}")]
         Unreadable(String),
+    }
+
+    fn unreadable(error: impl std::fmt::Display) -> SummaryError {
+        SummaryError::Unreadable(error.to_string())
     }
 
     /// [`summarize_bytes`] serialised to JSON, for the engine's `--summarize-dump` mode.
@@ -76,36 +85,132 @@ mod read {
     /// [`SummaryError::Unreadable`] when the bytes aren't a minidump, or JSON encoding fails.
     pub fn summarize_to_json(bytes: Vec<u8>) -> Result<String, SummaryError> {
         let summary = summarize_bytes(bytes)?;
-        serde_json::to_string(&summary).map_err(|error| SummaryError::Unreadable(error.to_string()))
+        serde_json::to_string(&summary).map_err(unreadable)
     }
 
-    /// The summary of a dump's bytes. Runs to completion; the caller (the engine's parent) caps the
-    /// time by ending the process, so this needs no timeout of its own.
+    /// The summary of a dump's bytes: the crash reason, the crashing thread's frames and the
+    /// modules they name. Read with `minidump` and unwound with `minidump-unwind` directly, not
+    /// `minidump-processor`, which also analyses every thread and instruction and would add
+    /// megabytes to the engine for fields the summary drops. Runs to completion; the caller (the
+    /// engine's parent) caps the time by ending the process.
     ///
     /// # Errors
-    /// [`SummaryError::Unreadable`] when the bytes aren't a minidump the processor can follow.
+    /// [`SummaryError::Unreadable`] when the bytes aren't a minidump it can follow.
     pub fn summarize_bytes(bytes: Vec<u8>) -> Result<DumpSummary, SummaryError> {
-        let dump = Minidump::read(bytes).map_err(|error| SummaryError::Unreadable(error.to_string()))?;
-        // No symbol files: the computer has none, and unwinding uses frame pointers and the stack.
-        let symbolizer = Symbolizer::new(simple_symbol_supplier(Vec::new()));
-        let state = block_on(minidump_processor::process_minidump(&dump, &symbolizer))
-            .map_err(|error| SummaryError::Unreadable(error.to_string()))?;
-        let pid = state.process_id.or_else(|| linux_pid(&dump));
-        Ok(summary_of(&state, pid))
+        let dump = Minidump::read(bytes).map_err(unreadable)?;
+        let system = dump.get_stream::<MinidumpSystemInfo>().map_err(unreadable)?;
+        let threads = dump.get_stream::<MinidumpThreadList<'_>>().map_err(unreadable)?;
+        let misc = dump.get_stream::<MinidumpMiscInfo>().ok();
+        let exception = dump.get_stream::<MinidumpException<'_>>().ok();
+        let modules = dump.get_stream::<MinidumpModuleList>().unwrap_or_default();
+        let memory = dump.get_memory().unwrap_or_default();
+        let crash_reason = exception.as_ref().map_or_else(
+            || "unknown".to_owned(),
+            |exception| exception.get_crash_reason(system.os, system.cpu).to_string(),
+        );
+        let frames = crashing_frames(
+            &dump,
+            &system,
+            &threads,
+            misc.as_ref(),
+            exception.as_ref(),
+            &modules,
+            &memory,
+        );
+        // The process's ID, which the app joins the dump to its report by: on Linux the status
+        // stream's `Tgid` (its `Pid` is the crashing thread's), which only Linux dumps carry; else
+        // the misc-info stream's (macOS, Windows).
+        let pid = linux_pid(&dump).or_else(|| misc.as_ref().and_then(|misc| misc.raw.process_id().copied()));
+        Ok(summary_of(&frames, pid, crash_reason))
     }
 
-    fn summary_of(state: &ProcessState, pid: Option<u32>) -> DumpSummary {
-        let crash_reason = state
-            .exception_info
-            .as_ref()
-            .map_or_else(|| "unknown".to_owned(), |info| info.reason.to_string());
-        let thread = state
-            .requesting_thread
-            .and_then(|index| state.threads.get(index))
-            .or_else(|| state.threads.first());
+    /// The crashing thread's frames, unwound without symbols (frame pointers and stack scanning):
+    /// the exception's thread with the exception's context, else the thread that asked for the
+    /// dump, else the first.
+    fn crashing_frames(
+        dump: &Minidump<'_, Vec<u8>>,
+        system: &MinidumpSystemInfo,
+        threads: &MinidumpThreadList<'_>,
+        misc: Option<&MinidumpMiscInfo>,
+        exception: Option<&MinidumpException<'_>>,
+        modules: &MinidumpModuleList,
+        memory: &UnifiedMemoryList<'_>,
+    ) -> Vec<StackFrame> {
+        let requesting = dump
+            .get_stream::<MinidumpBreakpadInfo>()
+            .ok()
+            .and_then(|info| info.requesting_thread_id);
+        let id = exception.map(MinidumpException::get_crashing_thread_id).or(requesting);
+        let Some(thread) = id
+            .and_then(|id| threads.get_thread(id))
+            .or_else(|| threads.threads.first())
+        else {
+            return Vec::new();
+        };
+        let exception_context = exception
+            .filter(|exception| Some(exception.get_crashing_thread_id()) == Some(thread.raw.thread_id))
+            .and_then(|exception| exception.context(system, misc));
+        let Some(context) = exception_context.or_else(|| thread.context(system, misc)) else {
+            return Vec::new();
+        };
+        let context = context.into_owned();
+        // The stack the context's stack pointer is in: the exception's may differ from the thread's.
+        let pointer = context.get_stack_pointer();
+        let stack_memory = thread
+            .stack_memory(memory)
+            .filter(|stack| stack.get_memory_at_address::<u64>(pointer).is_some())
+            .or_else(|| memory.memory_at_address(pointer))
+            .or_else(|| thread.stack_memory(memory));
+        let info = SystemInfo {
+            os: system.os,
+            os_version: None,
+            os_build: None,
+            cpu: system.cpu,
+            cpu_info: None,
+            cpu_microcode_version: None,
+            cpu_count: 1,
+        };
+        let mut stack = CallStack::with_context(context);
+        block_on(walk_stack(0, (), &mut stack, stack_memory, modules, &info, &NoSymbols));
+        stack.frames
+    }
+
+    /// The computer has no symbol files: every module answers "no symbols", as an empty
+    /// Breakpad supplier would, so unwinding uses frame pointers and stack scanning alone. Not
+    /// `Symbolizer`, whose symbol-file parser would be linked into the engine for nothing.
+    struct NoSymbols;
+
+    #[async_trait::async_trait]
+    impl SymbolProvider for NoSymbols {
+        async fn fill_symbol(
+            &self,
+            _module: &(dyn minidump::Module + Sync),
+            _frame: &mut (dyn FrameSymbolizer + Send),
+        ) -> Result<(), FillSymbolError> {
+            Err(FillSymbolError {})
+        }
+
+        async fn walk_frame(
+            &self,
+            _module: &(dyn minidump::Module + Sync),
+            _walker: &mut (dyn FrameWalker + Send),
+        ) -> Option<()> {
+            None
+        }
+
+        async fn get_file_path(
+            &self,
+            _module: &(dyn minidump::Module + Sync),
+            _file_kind: FileKind,
+        ) -> Result<std::path::PathBuf, FileError> {
+            Err(FileError::NotFound)
+        }
+    }
+
+    fn summary_of(walked: &[StackFrame], pid: Option<u32>, crash_reason: String) -> DumpSummary {
         let mut frames = Vec::new();
         let mut modules: Vec<DumpModule> = Vec::new();
-        for frame in thread.map(|thread| thread.frames.as_slice()).unwrap_or_default() {
+        for frame in walked {
             let Some(module) = &frame.module else {
                 continue;
             };
@@ -158,7 +263,7 @@ mod read {
         field(b"Tgid").or_else(|| field(b"Pid"))
     }
 
-    /// Runs `future` to its end on this thread. Without a symbol server, the processor's futures
+    /// Runs `future` to its end on this thread. Without a symbol server, the unwinder's futures
     /// never wait on anything, so a plain poll loop finishes at once.
     fn block_on<F: Future>(future: F) -> F::Output {
         let mut future = std::pin::pin!(future);

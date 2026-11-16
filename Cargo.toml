@@ -192,13 +192,17 @@ regex = "1.13.1"
 # licences cargo-deny allows).
 crash-handler = { version = "=0.8.1", default-features = false }
 minidumper = { version = "=0.11.0", default-features = false }
-# Reading a minidump on the computer (D7d, the desktop's main process only): the crashing thread's
-# frames and the loaded modules, never the raw dump. rust-minidump, MIT. No default features: no
-# symbol server client (`http`), no disassembler; symbols are looked up only by maintainers
-# (`cargo xtask crash symbolicate`).
+# Reading a minidump on the computer (D7d; the engine's sandboxed `--summarize-dump` mode only, never
+# the main process): the crashing thread's frames and the loaded modules, never the raw dump.
+# rust-minidump, MIT: the reader and the unwinder only, not minidump-processor, whose analysis the
+# summary doesn't use and which added about 2 MB to the engine. No default features: no symbol
+# server client (`http`); symbols are looked up only by maintainers (`cargo xtask crash symbolicate`).
 minidump = { version = "=0.27.0", default-features = false }
-minidump-processor = { version = "=0.27.0", default-features = false }
 minidump-unwind = { version = "=0.27.0", default-features = false }
+# The unwinder's `SymbolProvider` is an async-trait trait: the engine's no-symbols provider implements
+# it with the same macro (a compile-time proc macro, already in the graph through minidump-unwind).
+# MIT OR Apache-2.0
+async-trait = "0.1.92"
 # Breakpad symbol files read by `cargo xtask crash symbolicate` (D7d), xtask only: a report's native
 # frames looked up in the symbols the desktop release archives. rust-minidump, MIT; no `http`.
 breakpad-symbols = { version = "=0.27.0", default-features = false }
@@ -326,6 +330,29 @@ opt-level = 3
 
 [profile.release]
 lto = "thin"
+# The desktop engine's crash path (D7d: the crash handler's client, and the minidump reader of its
+# `--summarize-dump` mode) runs once per crash, never on a page: size over speed, to keep the Linux
+# installers within the desktop plan's budget.
+[profile.release.package.minidump]
+opt-level = "z"
+[profile.release.package.minidump-common]
+opt-level = "z"
+[profile.release.package.minidump-unwind]
+opt-level = "z"
+[profile.release.package.minidump-writer]
+opt-level = "z"
+[profile.release.package.minidumper]
+opt-level = "z"
+[profile.release.package.crash-handler]
+opt-level = "z"
+[profile.release.package.crash-context]
+opt-level = "z"
+[profile.release.package.encoding_rs]
+opt-level = "z"
+[profile.release.package.goblin]
+opt-level = "z"
+[profile.release.package.procfs-core]
+opt-level = "z"
 
 # The `laminapdf` release binaries (cargo-dist, dist-workspace.toml; todo L4d).
 [profile.dist]

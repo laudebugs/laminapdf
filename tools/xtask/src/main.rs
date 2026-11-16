@@ -240,7 +240,7 @@ tasks:
   desktop-release plan | sizes <dir> | sbom <target> <dir>
                     the desktop release workflow's decisions: the run's version, channel,
                     environment and build matrix from the Actions environment into $GITHUB_OUTPUT;
-                    the installers under <dir> against the 15 MB budget; the app's and engine's
+                    the installers under <dir> against the 16 MB budget; the app's and engine's
                     CycloneDX SBOMs for <target> and the frontend's npm SBOM into <dir>
   crash symbolicate <report.json> [--symbols <dir>]
                     a desktop crash report's native frames with function names and source lines:

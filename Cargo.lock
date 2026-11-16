@@ -3268,11 +3268,11 @@ dependencies = [
 name = "laminapdf-desktop-crash"
 version = "0.4.0"
 dependencies = [
+ "async-trait",
  "crash-handler",
  "laminapdf-desktop-protocol",
  "libc",
  "minidump",
- "minidump-processor",
  "minidump-unwind",
  "minidumper",
  "serde",
@@ -3809,26 +3809,6 @@ dependencies = [
  "range-map",
  "scroll 0.13.0",
  "smart-default",
-]
-
-[[package]]
-name = "minidump-processor"
-version = "0.27.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18ca2c7f6f820b83a1e4916178aa678eded0b9aad0eab1e1a71f573283a13ff0"
-dependencies = [
- "async-trait",
- "breakpad-symbols",
- "debugid",
- "futures-util",
- "minidump",
- "minidump-common 0.27.0",
- "minidump-unwind",
- "scroll 0.13.0",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "tracing",
 ]
 
 [[package]]
