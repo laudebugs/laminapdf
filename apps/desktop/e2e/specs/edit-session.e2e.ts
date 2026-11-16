@@ -74,10 +74,13 @@ async function newWindowWith(path: string): Promise<string> {
   await $("button=Choose a file").waitForExist({ timeoutMsg: "the new window shows no Choose a file" });
   await queuePick(path);
   const since = await now();
-  await browser.execute(() => {
+  const clicked = await browser.execute(() => {
     const buttons = Array.from(globalThis.document.querySelectorAll("button"));
-    buttons.find((button) => button.textContent === "Choose a file")?.click();
+    const choose = buttons.find((button) => button.textContent?.trim() === "Choose a file");
+    choose?.click();
+    return choose !== undefined;
   });
+  expect(clicked).toBe(true);
   await waitForSharpSince(0, since);
   return added;
 }
