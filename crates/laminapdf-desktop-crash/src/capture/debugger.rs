@@ -61,7 +61,11 @@ const ENGINE_NAME: &str = "laminapdf-desktop-engine.exe";
 /// dropped.
 pub(crate) struct EngineWatcher {
     stop: Arc<AtomicBool>,
-    /// The engines attached now.
+    /// The engines attached now (read by tests, which wait for their engine to be watched).
+    #[cfg_attr(
+        not(feature = "test-support"),
+        expect(dead_code, reason = "only the tests' watcher asks which engines are watched")
+    )]
     watching: Arc<Mutex<BTreeSet<u32>>>,
     thread: Option<JoinHandle<()>>,
 }
@@ -97,6 +101,7 @@ impl EngineWatcher {
     }
 
     /// Whether engine `pid` is attached now.
+    #[cfg(feature = "test-support")]
     pub(crate) fn watches(&self, pid: u32) -> bool {
         self.watching
             .lock()
