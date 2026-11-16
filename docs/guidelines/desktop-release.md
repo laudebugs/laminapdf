@@ -85,7 +85,7 @@ The steps follow Microsoft's [quickstart](https://learn.microsoft.com/azure/arti
 | Account | `LaurenceIninda`, resource group `Laurence_Ininda` |
 | Certificate profile | `LaminaPdfPublicTrust` (Public Trust); subject `CN=Laurence Ininda, O=Laurence Ininda, L=Brooklyn, S=NY, C=US`; Microsoft reissues its certificate every few days |
 | Identity validation completed | 2026-11-12 (ID `62b8833a-2cbf-46c0-8f7c-702606975b2a`) |
-| Entra app (no client secret) | `lamina-pdf-release-signing`, federated credential `github-desktop-release` for `repo:laudebugs/laminapdf:environment:desktop-release` |
+| Entra app (no client secret) | `lamina-pdf-release-signing`, federated credential `github-desktop-release` with the subject `repo:laudebugs@25782070/laminapdf@1437211634:environment:desktop-release`: this repository uses GitHub's immutable subject format, which names the owner and repository by ID (`gh api repos/laudebugs/laminapdf/actions/oidc/customization/sub`) |
 
 **How the release build signs (D6d).** The Windows legs of `build-release` sign with SignTool and Microsoft's Artifact Signing dlib, logged in through `azure/login` with the federated credential, so no client secret exists. The dlib comes from the NuGet package `Microsoft.ArtifactSigning.Client`, pinned by version and SHA-256 in `.github/actions/desktop-build` and fetched only there; `apps/desktop/src-tauri/windows/artifact-signing.json` holds the endpoint, account and profile above. `apps/desktop/scripts/sign-windows.ps1` signs one file at a time; the Tauri CLI calls it for the app, the engine, both installers and the uninstaller, and the build calls it for PDFium's DLL. Tauri's guide uses `artifact-signing-cli` instead, but that tool needs a client secret, `AZURE_CLIENT_SECRET` ([Tauri Windows signing](https://v2.tauri.app/distribute/sign/windows/); [artifact-signing-cli](https://github.com/Levminer/artifact-signing-cli)). Add one, with a 12-month expiry, only if the federated login stops working.
 
@@ -288,7 +288,7 @@ Fill in each date when the item is created, and add a calendar reminder as far a
 
 The Windows legs stop at the first file that can't be signed, after two retries. The log names the file and SignTool's message.
 
-- **`azure/login` fails with AADSTS70021 or AADSTS700213.** No federated credential matches the run. The credential trusts `repo:laudebugs/laminapdf:environment:desktop-release` only, so check that the job ran in that environment and that the credential's subject still matches it.
+- **`azure/login` fails with AADSTS70021 or AADSTS700213.** No federated credential matches the run. The error quotes the subject GitHub sent; the credential must name exactly that, `repo:laudebugs@25782070/laminapdf@1437211634:environment:desktop-release` (§1.5), and the job must run in `desktop-release`. A name-based subject (`repo:laudebugs/laminapdf:…`) never matches here, because the repository uses GitHub's immutable subject format.
 - **SignTool reports 403 Forbidden.** The Entra app lacks the Artifact Signing Certificate Profile Signer role on `LaminaPdfPublicTrust`, or the identity validation lapsed (the renewal calendar above).
 - **SignTool can't load the dlib.** The dlib is x64 only, so the build uses the x64 SignTool on both runners; an Arm64 SignTool can't load it.
 - **The timestamp server or the signing service times out.** The script tries again twice, 15 and 30 seconds apart. Re-run the failed job when it still fails.
