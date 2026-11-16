@@ -11,7 +11,7 @@
 | Branch | `test/e2i-signed-gating-and-close` |
 | PR title | `test(editor): signed-document gating suite for page operations` |
 | Size | M (200–400): a table-driven test over every op and signed fixture, the cross-op labels test, one e2e test and the fixture script; no product code |
-| PR | — |
+| PR | [#682](https://github.com/laudebugs/laminapdf/pull/682) |
 
 ## Goal
 
