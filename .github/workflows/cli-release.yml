@@ -86,7 +86,8 @@ jobs:
         with:
           persist-credentials: false
       # dist plan reads the workspace through cargo, and the tag step runs `cargo pkgid`.
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           cache: true
       - name: The release tag
@@ -103,7 +104,8 @@ jobs:
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
       # Same version as tools/xtask/src/doctor.rs.
-      - uses: $/.github/actions/install-tools
+      - name: Install cargo-dist
+        uses: $/.github/actions/install-tools
         with:
           tool: cargo-dist@0.32.0
       - name: dist plan
@@ -153,7 +155,8 @@ jobs:
           cache-bin: false
           target: ${{ matrix.target }}
       # Same versions as tools/xtask/src/doctor.rs.
-      - uses: $/.github/actions/install-tools
+      - name: Install cargo-dist, and cargo-about where it ships a binary
+        uses: $/.github/actions/install-tools
         with:
           tool: cargo-dist@0.32.0${{ matrix.target != 'x86_64-apple-darwin' && ',cargo-about@0.9.2' || '' }}
       # cargo-about ships no x86_64-apple-darwin binary, and install-action's source fallback builds
@@ -252,14 +255,17 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           cache: true
       # Same versions as tools/xtask/src/doctor.rs.
-      - uses: $/.github/actions/install-tools
+      - name: Install cargo-dist and cargo-cyclonedx
+        uses: $/.github/actions/install-tools
         with:
           tool: cargo-dist@0.32.0,cargo-cyclonedx@0.5.9
-      - uses: $/.github/actions/node-pnpm
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
       - run: pnpm install --frozen-lockfile --filter @laminapdf/cli
       - uses: actions/download-artifact@v8.0.2
         with:

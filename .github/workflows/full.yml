@@ -82,7 +82,8 @@ jobs:
           persist-credentials: false
           # Full history, so the merge base with the base branch is always present.
           fetch-depth: 0
-      - if: github.event_name == 'pull_request'
+      - name: Set up the host Rust toolchain
+        if: github.event_name == 'pull_request'
         uses: $/.github/actions/host-rust
         with:
           cache: true
@@ -166,7 +167,8 @@ jobs:
       - name: Install nightly Rust
         run: rustup toolchain install nightly --profile minimal
       # Same version as tools/xtask/src/doctor.rs; xtask fails if it drifts.
-      - uses: $/.github/actions/install-tools
+      - name: Install cargo-fuzz
+        uses: $/.github/actions/install-tools
         with:
           tool: cargo-fuzz@0.13.2
       - name: Restore the fuzz corpus saved on main
@@ -233,14 +235,17 @@ jobs:
           # The tools come from install-tools below on every run.
           cache-bin: false
       # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
-      - uses: $/.github/actions/install-tools
+      - name: Install cargo-nextest and cargo-deny
+        uses: $/.github/actions/install-tools
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
       # Versions come from package.json and .nvmrc.
       # The pnpm store is restored on every run and saved only on pushes to main (node-pnpm).
-      - uses: $/.github/actions/node-pnpm
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
       # Tauri (apps/desktop/src-tauri) is a workspace member: Linux needs WebKitGTK to build it.
-      - uses: $/.github/actions/linux-webkit
+      - name: Install WebKitGTK (Linux only)
+        uses: $/.github/actions/linux-webkit
       - run: cargo xtask check
 
   # The desktop app (apps/desktop, ADR 0008) on each OS, in one job so each OS waits for one runner
@@ -275,9 +280,12 @@ jobs:
           cache-save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           cache-shared-key: desktop
           cache-bin: false
-      - uses: $/.github/actions/node-pnpm
-      - uses: $/.github/actions/linux-webkit
-      - uses: $/.github/actions/install-tools
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
+      - name: Install WebKitGTK (Linux only)
+        uses: $/.github/actions/linux-webkit
+      - name: Install wasm-bindgen
+        uses: $/.github/actions/install-tools
         with:
           tool: wasm-bindgen@0.2.129
       # The frontend imports the built @laminapdf/ui, tokens, fonts and icons, and the viewer over
@@ -449,7 +457,8 @@ jobs:
           cache-key: ${{ runner.os }}-${{ runner.arch }}
           cache-bin: false
       # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
-      - uses: $/.github/actions/install-tools
+      - name: Install cargo-nextest and cargo-deny
+        uses: $/.github/actions/install-tools
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
       # Versions come from package.json and .nvmrc.
@@ -488,7 +497,8 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: $/.github/actions/qpdf
+      - name: Install qpdf
+        uses: $/.github/actions/qpdf
       - uses: actions/setup-python@v7.1.0
         with:
           python-version: "3.13"
@@ -499,7 +509,8 @@ jobs:
           cache-key: ${{ runner.os }}-${{ runner.arch }}
           cache-bin: false
       # Same version as tools/xtask/src/doctor.rs; xtask fails if it drifts.
-      - uses: $/.github/actions/install-tools
+      - name: Install cargo-nextest
+        uses: $/.github/actions/install-tools
         with:
           tool: cargo-nextest@0.9.150
       - uses: actions/setup-node@v7.1.0

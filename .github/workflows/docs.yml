@@ -121,7 +121,8 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: $/.github/actions/node-pnpm
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
       - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
@@ -129,7 +130,8 @@ jobs:
           cache-shared-key: wasm
           cache-bin: false
       # Same version as ci.yml's wasm job and tools/xtask/src/doctor.rs; xtask fails if they drift.
-      - uses: $/.github/actions/install-tools
+      - name: Install wasm-bindgen
+        uses: $/.github/actions/install-tools
         with:
           tool: wasm-bindgen@0.2.129
       # "Edit and run" (B7e): the docs build makes the example runner from these.
@@ -285,7 +287,8 @@ jobs:
         uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - if: steps.mode.outputs.mode != 'skip'
+      - name: Set up Node and pnpm
+        if: steps.mode.outputs.mode != 'skip'
         uses: $/.github/actions/node-pnpm
       - if: steps.mode.outputs.mode != 'skip'
         uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
@@ -295,7 +298,8 @@ jobs:
           cache-shared-key: wasm
           cache-bin: false
       # Same version as ci.yml's wasm job and tools/xtask/src/doctor.rs; xtask fails if they drift.
-      - if: steps.mode.outputs.mode != 'skip'
+      - name: Install wasm-bindgen
+        if: steps.mode.outputs.mode != 'skip'
         uses: $/.github/actions/install-tools
         with:
           tool: wasm-bindgen@0.2.129
@@ -365,7 +369,8 @@ jobs:
           # The sitemap dates each page by its last commit, which a shallow checkout can't tell;
           # the production build refuses one (apps/docs/plugins/sitemap.mjs).
           fetch-depth: 0
-      - if: steps.mode.outputs.mode != 'skip'
+      - name: Set up Node and pnpm
+        if: steps.mode.outputs.mode != 'skip'
         uses: $/.github/actions/node-pnpm
       - name: Check that the tag names the docs' version
         if: steps.mode.outputs.mode != 'skip'
@@ -385,7 +390,8 @@ jobs:
           cache-shared-key: wasm
           cache-bin: false
       # Same version as ci.yml's wasm job and tools/xtask/src/doctor.rs; xtask fails if they drift.
-      - if: steps.mode.outputs.mode != 'skip'
+      - name: Install wasm-bindgen
+        if: steps.mode.outputs.mode != 'skip'
         uses: $/.github/actions/install-tools
         with:
           tool: wasm-bindgen@0.2.129
