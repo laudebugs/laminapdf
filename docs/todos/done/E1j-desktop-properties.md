@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `E1j` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [E1 editing foundation §2](../../plans/editor/e1-editing-foundation.md#2-the-operations) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E1f](../done/E1f-metadata-ui-capability-page.md), [E1i](../done/E1i-desktop-save-in-place.md) |
+| Depends on | [E1f](./E1f-metadata-ui-capability-page.md), [E1i](./E1i-desktop-save-in-place.md) |
 | ADRs | Follows ADR 0005, 0007, 0008 |
 | Branch | `feat/e1j-desktop-properties` |
 | PR title | `feat(desktop): the Properties dialog, with metadata edits that save` |
 | Size | M (200–400) |
-| PR | — |
+| PR | [#660](https://github.com/laudebugs/laminapdf/pull/660) |
 
 ## Goal
 
@@ -35,17 +35,17 @@ The desktop's File ▸ Document properties… opens the Properties dialog the we
 
 **Out of scope**
 
-- The XMP tab's general editor on the desktop: [E3k](./E3k-desktop-navigation-and-export.md).
+- The XMP tab's general editor on the desktop: [E3k](../ready/E3k-desktop-navigation-and-export.md).
 
 ## Tasks
 
-- [ ] The engine's metadata read and its protocol message.
-- [ ] The dialog in the desktop window, over the engine's answers.
-- [ ] `properties.e2e.ts`, tagged so `cargo xtask capabilities` flips the desktop column.
+- [x] The engine's metadata read and its protocol message.
+- [x] The dialog in the desktop window, over the engine's answers.
+- [x] `properties.e2e.ts`, tagged so `cargo xtask capabilities` flips the desktop column.
 
 ## Acceptance criteria
 
-- [ ] On the desktop, editing each metadata field in the Properties dialog, saving and reopening shows the values in Info and XMP; these e2e tests flip the desktop column of J.01–J.03 and J.10.
+- [x] On the desktop, editing each metadata field in the Properties dialog, saving and reopening shows the values in Info and XMP; these e2e tests flip the desktop column of J.01–J.03 and J.10.
 
 ## Post-merge checks
 
@@ -63,10 +63,18 @@ WebdriverIO e2e on three OSes; engine tests of the metadata read.
 
 - The dialog's facts come from the engine, not a document worker: the dialog must take them as a shape, not from the viewer's client.
 
+## Notes
+
+- **One call when the dialog opens.** In protocol 9, the engine answers `GetProperties` with the facts, the metadata and the XMP packet as one JSON string in `@laminapdf/ui`'s shapes (`crates/laminapdf-desktop-engine/src/properties.rs`): the pipe's format can't carry a self-describing value, and the main process passes the string on unread.
+- **The XMP tab works too.** The engine's answer carries the packet, and Apply's ops go through the same edit session, so the tab isn't left waiting. Its desktop capability row (J.04) stays [E3k](../ready/E3k-desktop-navigation-and-export.md)'s, with its e2e test.
+- **One home for Apply's ops.** `propertiesOps` (`@laminapdf/ui/dialogs`) turns the dialog's changes into ops for both apps, so the web reader no longer keeps its own copy.
+- **The desktop's scenarios can carry capability tags.** `TS_SUITES` (`tools/xtask/src/capabilities/tags.rs`) lists `apps/desktop/e2e/specs` for the `desktop` surface. The full lane's `desktop-e2e` jobs run those scenarios, and its `gate` waits on them.
+- **Checkboxes in the scenario are ticked from the page.** WebKit's driver can't click a visually hidden input or its label, as `toggleSetting` already found.
+
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

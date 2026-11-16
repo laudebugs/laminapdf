@@ -13,12 +13,16 @@
 //   is kept here, per document, so it survives a tab switch (desktop-edits.ts). A save runs in the
 //   main process, which writes the file (desktop-saves.ts); checking an edit against the
 //   signatures before it applies (`wouldViolate`) isn't served yet.
+// - The Properties dialog's facts, metadata and XMP packet come from the engine in one call
+//   (`properties`), with the edits so far.
 // - Text, links and search aren't served by the engine yet: their calls answer as for a document
 //   without them (no text runs, no links, untagged).
 // - Only types come from `@laminapdf/viewer` here, so the app's Node tests run without the
 //   viewer's build (which needs the WebAssembly); the app itself imports `createViewer`.
 
 import { DEFAULT_LIMITS, type PixelRect, planTile, type RenderRequest } from "@laminapdf/render";
+import type { DocumentPropertiesData } from "@laminapdf/ui";
+import type { DocumentMetadataData, XmpPacketData } from "@laminapdf/ui/dialogs";
 import type {
   EditHistory,
   EditResult,
@@ -76,6 +80,18 @@ type Reopened = "open" | "locked" | "closed";
 export interface RestartedPayload {
   readonly window: string;
   readonly docs: readonly { readonly doc: number; readonly state: Reopened }[];
+}
+
+/**
+ * What the Properties dialog shows of a document, as the engine reads it in one call
+ * (`laminapdf-desktop-engine`'s `properties` module): `@laminapdf/ui`'s shapes.
+ */
+export interface DesktopProperties {
+  readonly properties: DocumentPropertiesData;
+  readonly metadata: DocumentMetadataData;
+  readonly xmp: XmpPacketData;
+  /** Each page's label, when the document labels its pages. */
+  readonly labels?: readonly string[];
 }
 
 /** The main process's error, `{ kind, message }` (`DesktopError` in Rust); `code` is its kind. */
@@ -503,6 +519,15 @@ export class DesktopEngineClient implements ViewerEngine {
         throw engineError(e);
       });
     return plannedSave(plan);
+  }
+
+  /** What the Properties dialog shows of the shown document, with its edits so far. */
+  async properties(): Promise<DesktopProperties> {
+    const doc = this.#shownDoc();
+    const json = await this.#shell.invoke<string>("document_properties", { doc }).catch((e: unknown) => {
+      throw engineError(e);
+    });
+    return JSON.parse(json) as DesktopProperties;
   }
 
   wouldViolate(): ReturnType<ViewerEngine["wouldViolate"]> {
