@@ -7,10 +7,13 @@
 mod bytesource;
 mod documents;
 mod edit;
+mod launch;
 mod print;
 mod save;
 mod secret;
 mod tiles;
+
+pub(crate) use launch::SandboxedEngine;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -492,7 +495,7 @@ impl Engines {
         .map_err(|error| {
             // The window only hears the error; without this line a start that never reached Ready
             // leaves no trace in the log.
-            tracing::warn!(window, "the document process could not start: {error}");
+            tracing::warn!(window, "{error}");
             supervisor_error(&error)
         })?;
         let mut windows = self.windows();
