@@ -312,6 +312,41 @@ describe("saving on the web", () => {
     });
   });
 
+  describe("an export", () => {
+    const CSV = new Blob(["title,page\n"], { type: "text/csv" });
+
+    it("downloads under the suggested name where there is no save dialog", async () => {
+      const { document, clicked } = recordingDocument();
+      const platform = createWebPlatform(fakeScope({ document }));
+      expect(await platform.saveExport?.(CSV, "Q3-bookmarks.csv")).toEqual({ saved: true, name: "Q3-bookmarks.csv" });
+      expect(clicked).toMatchObject([{ href: "blob:fake", download: "Q3-bookmarks.csv", attached: true }]);
+    });
+
+    it("offers the save dialog the type its extension names, and hands back no document to open", async () => {
+      const { handle, written } = fakeHandle("pages.png");
+      const asked: object[] = [];
+      const platform = createWebPlatform(
+        chromiumLike({
+          showSaveFilePicker: async (options) => {
+            asked.push(options ?? {});
+            return handle;
+          },
+        }),
+      );
+      const png = new Blob([new Uint8Array([0x89, 0x50])], { type: "image/png" });
+      expect(await platform.saveExport?.(png, "Q3-page-1.png")).toEqual({ saved: true, name: "pages.png" });
+      expect(written).toHaveLength(1);
+      expect(asked).toEqual([
+        { suggestedName: "Q3-page-1.png", types: [{ description: "PNG", accept: { "image/png": [".png"] } }] },
+      ]);
+    });
+
+    it("reports a dismissed save dialog as cancelled", async () => {
+      const platform = createWebPlatform(chromiumLike({ showSaveFilePicker: abort }));
+      expect(await platform.saveExport?.(CSV, "Q3-links.csv")).toEqual({ saved: false, reason: "cancelled" });
+    });
+  });
+
   it("reports a dismissed save dialog as cancelled", async () => {
     const platform = createWebPlatform(chromiumLike({ showSaveFilePicker: abort }));
     expect(await platform.saveAs(PDF, "copy.pdf")).toEqual({ saved: false, reason: "cancelled" });

@@ -208,6 +208,13 @@ export interface Platform {
    * coming: a save dialog opens first, while the click that asked for it lets the browser show it.
    */
   saveAs(bytes: Uint8Array | Promise<Uint8Array>, suggestedName: string): Promise<SaveResult>;
+  /**
+   * Saves an export (pictures of pages, text, JSON, CSV, or a zip of them) as a new file: a save
+   * dialog typed by the name's extension where the platform has one, else a download. Nothing
+   * reopens it. Takes a `Blob`, so a large zip need not sit in one buffer. Optional: a platform
+   * without it doesn't offer exports.
+   */
+  saveExport?(file: Blob, suggestedName: string): Promise<SaveResult>;
   /** Asks the user for a folder to write files into; undefined when they cancel. Only when capabilities.canWriteDirectory. */
   chooseFolder?(): Promise<PlatformFolder | undefined>;
   /** Overwrites the file `file` came from. Only when capabilities.canWriteInPlace and file.writable. */

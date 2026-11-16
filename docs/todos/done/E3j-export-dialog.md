@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E3j` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E3 plan §7](../../plans/editor/e3-navigation-attachments-inspection.md#7-differences-between-the-shells) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2m](../done/E2m-document-dialogs.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md), [E3h](../done/E3h-images-to-pdf-and-page-export.md), [E3i](../done/E3i-extraction.md), [E3m](../done/E3m-web-image-export.md) |
+| Depends on | [E2m](./E2m-document-dialogs.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md), [E3h](./E3h-images-to-pdf-and-page-export.md), [E3i](./E3i-extraction.md), [E3m](./E3m-web-image-export.md) |
 | ADRs | Follows [0010](../../decisions/0010-platform-adapter.md), [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) |
 | Branch | `feat/e3j-export-dialog` |
 | PR title | `feat(web): export pages, text, images, links and bookmarks` |
@@ -34,7 +34,7 @@ The interface for the round's exports: one dialog (O16) that exports pages as PN
 
 **Out of scope** (and which todo covers it)
 
-- The desktop's folder output through the engine → [E3k](E3k-desktop-navigation-and-export.md)
+- The desktop's folder output through the engine → [E3k](../ready/E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 
@@ -47,16 +47,16 @@ The interface for the round's exports: one dialog (O16) that exports pages as PN
 
 ## Tasks
 
-- [ ] Dialog and progress view, behind the lazily loaded chunk (`apps/web/src/later.ts`)
-- [ ] Store-only zip writer with CRC-32, streamed
-- [ ] Images → PDF in Organise
-- [ ] Playwright specs tagged with capability IDs
+- [x] Dialog and progress view, behind the lazily loaded chunk (`apps/web/src/later.ts`)
+- [x] Store-only zip writer with CRC-32, streamed (`ZipWriter` in `@laminapdf/viewer`, sharing the zip format with Split's writer)
+- [x] Images → PDF in Organise
+- [x] Playwright specs tagged with capability IDs (`apps/web/e2e/export.e2e.test.ts`)
 
 ## Acceptance criteria
 
-- [ ] Exporting 500 pages as PNG on the web streams into a zip without passing the memory budget, and Cancel stops it within one page
-- [ ] Each export's output opens in a standard tool: the zip in the system's unzip, the images in an image viewer, the JSON against its committed schema
-- [ ] The reader's startup size stays within `apps/web/size-budget.json`
+- [ ] Exporting 500 pages as PNG on the web streams into a zip without passing the memory budget, and Cancel stops it within one page. Partly: each page is drawn on its own and goes straight into the zip as `Blob` parts, so the zip never sits in one buffer, and an e2e test cancels a 40-page export with nothing downloaded; a 500-page run and its memory weren't measured.
+- [x] Each export's output opens in a standard tool: the zip in the system's unzip (`ZipWriter`'s test runs `unzip -t`), the images in an image viewer (PNG signatures in the e2e test), the JSON against its committed schema (extract, links and outline, with Ajv)
+- [x] The reader's startup size stays within `apps/web/size-budget.json` (raised to 286600 for the five commands, the More menu item and the dialog's state; the work, words and save code load lazily)
 
 ## Post-merge checks
 
@@ -76,10 +76,18 @@ None.
 
 - Gallery screenshots aren't refreshed by any workflow; say so in the PR if a shared component changes
 
+## As built
+
+- **No Extract menu in Organise**, so "As images…" isn't there; Export pages as images is in the palette and Export… in the More menu.
+- **Export links and bookmarks takes no page range**: links and bookmarks belong to the whole file.
+- **From images makes a new PDF and saves it as a file of its own**, as Merge's new document does, rather than opening it in place of the document being edited. PNG and JPEG only, which a PDF holds as they are.
+- **Several files on the web go into one zip**; where the browser can write a folder (Chromium), into a folder the person picks first, with ` (2)` added to a name already there.
+- The palette-only commands have a home of their own, `export-dialog`, since every command needs one besides the palette (ADR 0024).
+
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

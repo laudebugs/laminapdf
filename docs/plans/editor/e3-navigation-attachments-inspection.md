@@ -202,7 +202,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md) | Images → PDF and page export with the three encoders (the Rust core) | C2b |
 | [E3m](../../todos/done/E3m-web-image-export.md) | Images → PDF and page export in TypeScript and the web reader: the binding, the worker's export call and the TIFF module | E3h |
 | [E3i](../../todos/done/E3i-extraction.md) | Image extraction, and links and bookmarks as JSON and CSV | B9c |
-| [E3j](../../todos/ready/E3j-export-dialog.md) | The export dialog (O16): pages, text, images, links and bookmarks; images → PDF in the interface | E2m, E3i, E3m |
+| [E3j](../../todos/done/E3j-export-dialog.md) | The export dialog (O16): pages, text, images, links and bookmarks; images → PDF in the interface | E2m, E3i, E3m |
 | [E3l](../../todos/done/E3l-contents-page.md) | The contents page: `create_contents_page` and its dialog | E2c, E2o, E3b, E3c |
 | [E3k](../../todos/ready/E3k-desktop-navigation-and-export.md) | Desktop: the round's panels and dialogs in the engine, exports to a folder, attachments to disk; the round's close | E3b–E3j, E3l, E1i, E2i, E2n |
 

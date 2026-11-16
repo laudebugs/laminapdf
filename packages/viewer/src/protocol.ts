@@ -402,6 +402,14 @@ export interface Methods {
   exportPage: { params: [index: number, options: ExportPageOptions]; result: ExportedPage };
   exportTiff: { params: [indexes: readonly number[], options: ExportTiffOptions]; result: ExportedTiff };
   fileBytes: { params: []; result: Uint8Array };
+  extractText: { params: [options: ExtractTextOptions]; result: ExtractedText };
+  extractPictures: { params: [options: ExtractPicturesOptions]; result: ExtractedPictures };
+  exportSummary: { params: []; result: ExportSummary };
+  linksAndBookmarks: { params: [format: "json" | "csv"]; result: LinksAndBookmarks };
+  imagesToPdf: {
+    params: [images: readonly ImageToPdf[], options: ImagesToPdfOptions];
+    result: Uint8Array<ArrayBuffer>;
+  };
   find: { params: [query: string, options: FindOptions, pages: readonly number[]]; result: FindPageResult[] };
   readingOrder: { params: [index: number]; result: ReadingBlock[] };
 }
@@ -445,6 +453,8 @@ export interface ExportPageOptions {
   readonly dpi: number;
   /** JPEG quality, 1–100 (default 90). */
   readonly quality?: number;
+  /** Draw comments and filled-in form fields, as the page shows them on screen (default `true`). */
+  readonly annotations?: boolean;
 }
 
 /** One page exported as an image. */
@@ -467,6 +477,8 @@ export interface ExportTiffOptions {
    * come as a file each.
    */
   readonly multiPage: boolean;
+  /** Draw comments and filled-in form fields, as the page shows them on screen (default `true`). */
+  readonly annotations?: boolean;
 }
 
 /** Pages exported as TIFF. */
@@ -475,6 +487,105 @@ export interface ExportedTiff {
   readonly files: readonly Uint8Array<ArrayBuffer>[];
   /** Each page's resolution, in page order: below the one asked for when a page was too large. */
   readonly dpis: readonly number[];
+}
+
+/** How the open document's text is exported. */
+export interface ExtractTextOptions {
+  /**
+   * Plain text, Markdown (headings, lists and tables), or the `laminapdf.extract/1` JSON, which
+   * gives every block its box (`bbox`) and page.
+   */
+  readonly format: "text" | "markdown" | "json";
+  /** The pages (0-based) in this order; every page when absent. */
+  readonly pages?: readonly number[];
+  /**
+   * Where the reading order comes from: `auto` follows the structure tree when it looks right,
+   * else the layout; `tagged` follows the structure tree wherever the file has one.
+   */
+  readonly readingOrder: "auto" | "tagged";
+}
+
+/** The open document's text, as {@link ExtractTextOptions} asked. */
+export interface ExtractedText {
+  /** The text, the Markdown, or the JSON (indented two spaces). */
+  readonly text: string;
+  /**
+   * The file says it is tagged (`/MarkInfo /Marked true`): its headings and lists come from its
+   * tags, not guessed from the layout.
+   */
+  readonly tagged: boolean;
+}
+
+/** How the open document's pictures are exported. */
+export interface ExtractPicturesOptions {
+  /** The pages (0-based) to read; every page when absent. */
+  readonly pages?: readonly number[];
+  /**
+   * Keep JPEG and JPEG 2000 pictures byte for byte, as the file stores them. When false, JPEGs
+   * are decoded and written as PNG (where the worker has `createImageBitmap` and
+   * `OffscreenCanvas`); JPEG 2000 stays as it is, since browsers can't decode it.
+   */
+  readonly keepOriginals: boolean;
+  /** Leave out pictures smaller than this many pixels on their longer side (0 keeps them all). */
+  readonly minimumSize: number;
+}
+
+/** One picture of the open document, as a file. */
+export interface ExtractedPicture {
+  /** The first page (0-based) that draws it: a picture drawn on several pages comes once. */
+  readonly page: number;
+  /** A file name unique among the pictures: `page-3-picture-2.png` (page and picture 1-based). */
+  readonly name: string;
+  /** The file: PNG, JPEG (`.jpg`) or JPEG 2000 (`.jp2`), as `name`'s extension says. */
+  readonly bytes: Uint8Array<ArrayBuffer>;
+  /** Its size in pixels. */
+  readonly width: number;
+  readonly height: number;
+}
+
+/** The open document's pictures, page by page. */
+export interface ExtractedPictures {
+  readonly pictures: readonly ExtractedPicture[];
+  /**
+   * The pictures left out: those that can't be decoded (JBIG2, an unsupported colour space) and
+   * those under `minimumSize`.
+   */
+  readonly skipped: number;
+}
+
+/** What the open document has to export, for an export dialog to offer. */
+export interface ExportSummary {
+  /** Its pictures, as {@link ExtractedPictures} would give them with no size limit (masks included). */
+  readonly pictures: number;
+  /** Its links, on every page. */
+  readonly links: number;
+  /** Its bookmarks (outline items), at every level. */
+  readonly bookmarks: number;
+  /** The file says it is tagged (`/MarkInfo /Marked true`). */
+  readonly tagged: boolean;
+}
+
+/** The open document's links and bookmarks, as files. */
+export interface LinksAndBookmarks {
+  /** `laminapdf.links/1` JSON, or CSV with a header row. */
+  readonly links: string;
+  /** `laminapdf.outline/1` JSON, or CSV with a header row and each item's depth in `level`. */
+  readonly bookmarks: string;
+}
+
+/** One picture for {@link ImagesToPdfOptions | imagesToPdf}. */
+export interface ImageToPdf {
+  readonly bytes: Uint8Array<ArrayBuffer>;
+  /** Its MIME type: `image/jpeg` (embedded as it is) or `image/png`. Others are refused. */
+  readonly type: string;
+}
+
+/** How imagesToPdf lays its pictures out, one a page. */
+export interface ImagesToPdfOptions {
+  /** `image`: each page the picture's size; `letter` or `a4`: the picture fitted and centred, the page turned its way. */
+  readonly pageSize: "image" | "letter" | "a4";
+  /** The space around each picture, in points. */
+  readonly margin: number;
 }
 
 /** One page's find results: each match as its quads (8 numbers per run it touches), in page space. */

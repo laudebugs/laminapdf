@@ -13,8 +13,10 @@ import { Select, TextInput } from "../components/field.js";
 import { Notice } from "../components/notice.js";
 import { ProgressBar } from "../components/progress.js";
 import { countMessage, message } from "../messages.js";
+import { useOnOpen } from "../organise/on-open.js";
 import { Dialog } from "../overlays/dialog.js";
-import { parsePrintPages } from "./print-pages.js";
+import { type PagesChoice, usePagesChoice } from "./pages-choice.js";
+import { chosenPages, currentLabel, type PagesMode } from "./print-pages.js";
 
 /** What the user chose to print. */
 export interface PrintChoice {
@@ -48,36 +50,11 @@ export interface PrintDialogProps {
   onClose: () => void;
 }
 
-type PagesMode = "all" | "current" | "range";
-
-/** The 0-based pages `mode` names, or the range's error. */
-function chosenPages(
-  mode: PagesMode,
-  range: string,
-  props: Pick<PrintDialogProps, "pageCount" | "currentPage" | "labels">,
-): { pages: readonly number[] } | { error: string } {
-  if (mode === "all") return { pages: Array.from({ length: props.pageCount }, (_, i) => i) };
-  if (mode === "current") return { pages: [props.currentPage] };
-  const result = parsePrintPages(range, props.pageCount, props.labels);
-  return result.ok ? { pages: result.pages } : { error: result.error };
-}
-
-function currentLabel(props: Pick<PrintDialogProps, "currentPage" | "labels">): string {
-  return props.labels?.[props.currentPage] ?? String(props.currentPage + 1);
-}
-
 /** The dialog's choices, and what changes them. */
-interface PrintForm {
-  readonly mode: PagesMode;
-  readonly range: string;
-  readonly error: string | undefined;
+interface PrintForm extends PagesChoice {
   readonly scale: PrintChoice["scale"];
   readonly quality: "standard" | "high";
   readonly annotations: boolean;
-  setMode(mode: PagesMode): void;
-  /** The range field took focus: its radio is chosen, and an error under it stays. */
-  chooseRange(): void;
-  setRange(range: string): void;
   setScale(scale: PrintChoice["scale"]): void;
   setQuality(quality: "standard" | "high"): void;
   setAnnotations(on: boolean): void;
@@ -92,42 +69,23 @@ function usePrintForm(
   standardOnly: boolean,
   focusRange: () => void,
 ): PrintForm & { submit(): PrintChoice | undefined } {
-  const [mode, setModeState] = useState<PagesMode>("all");
-  const [range, setRangeState] = useState("");
-  const [error, setError] = useState<string | undefined>();
+  const { showError, reset, ...pages } = usePagesChoice();
   const [scale, setScale] = useState<PrintChoice["scale"]>("fit");
   const [quality, setQuality] = useState<"standard" | "high">("standard");
   const [annotations, setAnnotations] = useState(true);
-  useEffect(() => {
-    if (props.isOpen) {
-      setModeState("all");
-      setError(undefined);
-    }
-  }, [props.isOpen]);
+  useOnOpen(props.isOpen, () => reset("all"));
   return {
-    mode,
-    range,
-    error,
+    ...pages,
     scale,
     quality,
     annotations,
-    setMode: (next) => {
-      setModeState(next);
-      setError(undefined);
-    },
-    chooseRange: () => setModeState("range"),
-    setRange: (next) => {
-      setRangeState(next);
-      setModeState("range");
-      setError(undefined);
-    },
     setScale,
     setQuality,
     setAnnotations,
     submit: () => {
-      const chosen = chosenPages(mode, range, props);
+      const chosen = chosenPages(pages.mode, pages.range, props);
       if ("error" in chosen) {
-        setError(chosen.error);
+        showError(chosen.error);
         focusRange();
         return undefined;
       }

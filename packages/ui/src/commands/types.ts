@@ -69,6 +69,8 @@ export type CommandHome =
   | "threads-panel"
   | "layer"
   | "tab-strip"
+  /** A kind of file in the Export dialog (File › Export…), which its own command opens on. */
+  | "export-dialog"
   | "native-menu";
 
 /** What a parser made of typed arguments. */

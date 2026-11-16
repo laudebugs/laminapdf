@@ -34,7 +34,7 @@ Bring E3h's two functions to TypeScript and the web reader, so E3j's export dial
 
 **Out of scope** (and which todo covers it)
 
-- The export dialog, the zip and images → PDF in the interface → [E3j](../ready/E3j-export-dialog.md)
+- The export dialog, the zip and images → PDF in the interface → [E3j](E3j-export-dialog.md)
 - The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
 
 ## Tasks
@@ -55,7 +55,7 @@ Bring E3h's two functions to TypeScript and the web reader, so E3j's export dial
 - **Glue budget.** `imagesToPdf` put the extract module's JS glue at 5,011 bytes; the owner raised its budget to 5,200 on 2026-11-13 ([ADR 0016](../../decisions/0016-package-design.md)).
 - **TIFF.** laminapdf-render's TIFF encoder became `TiffWriter` (feature `tiff`), so the module `lamina_pdf_tiff` (62,374 B gzip, budget 70,000) binds the writer alone. A multi-page file holds pages while their pixels fit 256 MiB, else each page gets a file.
 - **Resolution.** A page is drawn as one tile, so an export is capped at the renderers' limit (16,777,216 pixels, Letter at about 424 dpi, and 16,384 a side); the result reports the resolution used. The canvas writes no resolution, so the worker writes it: PNG `pHYs`, JFIF density.
-- **Capability matrix.** No row changes. No TypeScript suite can claim the `pdf` column yet (only the reader's end-to-end tests can claim `web`, which needs [E3j](../ready/E3j-export-dialog.md)'s dialog).
+- **Capability matrix.** No row changes. No TypeScript suite can claim the `pdf` column yet (only the reader's end-to-end tests can claim `web`, which needs [E3j](E3j-export-dialog.md)'s dialog).
 
 ## Post-merge checks
 

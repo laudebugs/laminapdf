@@ -108,6 +108,9 @@ export function createWebPlatform(scope: WebScope = globalThis as unknown as Web
     filesFromDataTransfer: (data) => filesFromDataTransfer(data, capabilities),
     onOpenRequest: launches.subscribe,
     saveAs: (bytes, name) => saveAs(scope, bytes, name, capabilities),
+    // Loaded with the first export, not at start.
+    saveExport: (file, name) =>
+      import("./save-export.js").then(({ saveExport }) => saveExport(scope, file, name, { download, write, isAbort })),
     // Loaded when first asked for, within the click's activation, which the picker needs.
     ...(capabilities.canWriteDirectory
       ? { chooseFolder: () => import("./folder.js").then(({ chooseFolder }) => chooseFolder(scope, write)) }
@@ -226,6 +229,19 @@ function pickWithInput(doc: Document, multiple: boolean): Promise<File[]> {
   });
 }
 
+/** Has the browser download `file` under `name`, with no dialog. */
+function download(scope: WebScope, file: Blob, name: string): void {
+  const url = scope.URL.createObjectURL(file);
+  // Attached while it is clicked, which some engines need before they download.
+  const link = scope.document.createElement("a");
+  link.href = url;
+  link.download = name;
+  scope.document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => scope.URL.revokeObjectURL(url), DOWNLOAD_URL_LIFETIME_MS);
+}
+
 async function saveAs(
   scope: WebScope,
   coming: Uint8Array | Promise<Uint8Array>,
@@ -236,17 +252,11 @@ async function saveAs(
   if (scope.showSaveFilePicker === undefined) {
     const bytes = await coming;
     // No dialog: the browser downloads it, under the suggested name.
-    const url = scope.URL.createObjectURL(
+    download(
+      scope,
       new Blob([bytes as BlobPart], { type: zip ? "application/zip" : "application/pdf" }),
+      suggestedName,
     );
-    // Attached while it is clicked, which some engines need before they download.
-    const link = scope.document.createElement("a");
-    link.href = url;
-    link.download = suggestedName;
-    scope.document.body.append(link);
-    link.click();
-    link.remove();
-    setTimeout(() => scope.URL.revokeObjectURL(url), DOWNLOAD_URL_LIFETIME_MS);
     return { saved: true, name: suggestedName };
   }
   try {
@@ -264,7 +274,7 @@ async function saveAs(
 }
 
 /** Writes `bytes` over the file; on a failure the stream is aborted, so no swap file or lock stays. */
-async function write(handle: FileSystemFileHandle, bytes: Uint8Array): Promise<void> {
+async function write(handle: FileSystemFileHandle, bytes: Uint8Array | Blob): Promise<void> {
   const writable = await handle.createWritable();
   try {
     await writable.write(bytes as FileSystemWriteChunkType);
