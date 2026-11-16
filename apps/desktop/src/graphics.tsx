@@ -71,11 +71,13 @@ function useGraphicsStatus(shell: DesktopShell | undefined): GraphicsStatus | un
 /** Where Settings › Graphics goes, and what it may use. */
 export interface GraphicsSectionHost {
   readonly shell: DesktopShell | undefined;
-  /** Where it applies (Linux), and the registry no dialog shows. */
+  /** The dialog's registry, where the section goes when it applies (Linux). */
   readonly shown: SettingsRegistry;
+  /** The registry no dialog shows, where it goes elsewhere. */
   readonly unshown: SettingsRegistry;
-  /** The start notice's queue, and how it opens Settings at the section. */
+  /** The queue the start notice goes to. */
   readonly toasts: ToastQueue;
+  /** Opens Settings at a section, for the start notice's action. */
   readonly open: (section: string) => void;
 }
 

@@ -19,7 +19,7 @@
 //! The crash-loop guard: each start counts in `graphics-starts.json` until it has run for
 //! [`SURVIVED_AFTER`]. When two starts in a row ended before that, the next one switches Automatic
 //! to Compatibility and saves it; the app says so once at start, and Settings › Graphics says
-//! why. A second launch, which hands its files to the running app and ends, counts as survived.
+//! why. A second launch, which hands its files to the running app and ends, is taken back out.
 //! End-to-end builds, which the tests start and stop within seconds, have no guard.
 //!
 //! [Tauri's Linux graphics notes]: https://v2.tauri.app/develop/debug/linux-graphics/
@@ -102,16 +102,11 @@ pub(crate) struct Starts {
 }
 
 impl Starts {
-    /// A new start: counted, and `true` when the two before it both ended early.
-    pub(crate) fn started(self) -> (Self, bool) {
+    /// A new start: counted, and `true` when the two before it both ended early. Whether the
+    /// guard then switched anything is the caller's to say ([`Starts::fell_back`]).
+    pub(crate) const fn started(self) -> (Self, bool) {
         if self.unfinished >= 2 {
-            (
-                Self {
-                    unfinished: 1,
-                    fell_back: true,
-                },
-                true,
-            )
+            (Self { unfinished: 1, ..self }, true)
         } else {
             (
                 Self {
@@ -120,6 +115,15 @@ impl Starts {
                 },
                 false,
             )
+        }
+    }
+
+    /// A second launch handed its files to the running app and ended: its own start no longer
+    /// counts, and the running app's still does until it survives.
+    pub(crate) const fn handed_over(self) -> Self {
+        Self {
+            unfinished: self.unfinished.saturating_sub(1),
+            fell_back: self.fell_back,
         }
     }
 
@@ -222,9 +226,8 @@ pub(crate) fn prepare(identifier: &str) {
     let _ = identifier;
 }
 
-/// The start survived: after [`SURVIVED_AFTER`] on a thread of its own, at a clean quit or a
-/// restart, and when a second launch reaches the running app (the single-instance plugin ends the
-/// second process at once, so its own start never would).
+/// The start survived: after [`SURVIVED_AFTER`] on a thread of its own, and at a clean quit or a
+/// restart.
 pub(crate) fn survived(config: &Path) {
     if !cfg!(target_os = "linux") {
         return;
@@ -232,6 +235,18 @@ pub(crate) fn survived(config: &Path) {
     let starts = Starts::load(config);
     if starts.unfinished > 0 {
         starts.survived().save(config);
+    }
+}
+
+/// A second launch reached the running app: the single-instance plugin ends that process at once,
+/// so its own count is taken back here, and the running app's start still counts.
+pub(crate) fn handed_over(config: &Path) {
+    if !cfg!(target_os = "linux") {
+        return;
+    }
+    let starts = Starts::load(config);
+    if starts.unfinished > 0 {
+        starts.handed_over().save(config);
     }
 }
 
@@ -310,14 +325,17 @@ mod linux {
         let starts = Starts::load(&config);
         // End-to-end builds are started and stopped within seconds, test after test: no guard.
         let counted = !again && !cfg!(feature = "e2e");
-        let (starts, crash_loop) = if counted { starts.started() } else { (starts, false) };
+        let (mut starts, crash_loop) = if counted { starts.started() } else { (starts, false) };
+        // Only a switch is news: Compatibility and Safe mode stay as they are.
+        let switched = crash_loop && prefs.graphics == Graphics::Automatic;
+        starts.fell_back |= switched;
         if counted {
             starts.save(&config);
         }
         let safe_flag = std::env::args_os().any(|arg| arg == SAFE_FLAG);
         let running = effective(prefs.graphics, safe_flag, crash_loop);
         // The guard's switch is saved; the flag's lasts until the app quits (a restart keeps it).
-        if crash_loop && prefs.graphics == Graphics::Automatic {
+        if switched {
             prefs.graphics = Graphics::Compatibility;
             if let Err(error) = write_json(&prefs_file, &prefs) {
                 eprintln!("Lamina PDF could not save the graphics choice: {error}");
@@ -440,7 +458,13 @@ mod tests {
             .find(|line| line.starts_with("export const GRAPHICS = ["))
             .unwrap();
         let offered: Vec<&str> = line.split('"').skip(1).step_by(2).collect();
-        let rust: Vec<String> = [Graphics::Automatic, Graphics::Compatibility, Graphics::Safe]
+        // A new choice stops this compiling until it joins the list below.
+        let in_list = |choice: Graphics| match choice {
+            Graphics::Automatic | Graphics::Compatibility | Graphics::Safe => (),
+        };
+        let all = [Graphics::Automatic, Graphics::Compatibility, Graphics::Safe];
+        all.iter().copied().for_each(in_list);
+        let rust: Vec<String> = all
             .iter()
             .map(|choice| {
                 serde_json::to_value(choice)
@@ -468,16 +492,13 @@ mod tests {
     #[test]
     fn two_early_exits_in_a_row_should_be_a_crash_loop() {
         let (starts, crash_loop) = Starts::default().started().0.started().0.started();
-        assert_eq!(
-            (starts, crash_loop),
-            (
-                Starts {
-                    unfinished: 1,
-                    fell_back: true
-                },
-                true
-            )
-        );
+        assert_eq!((starts.unfinished, crash_loop), (1, true));
+    }
+
+    #[test]
+    fn a_handed_over_launch_should_leave_the_running_apps_start_counted() {
+        let (starts, _) = Starts::default().started().0.started();
+        assert_eq!(starts.handed_over().unfinished, 1);
     }
 
     #[test]
