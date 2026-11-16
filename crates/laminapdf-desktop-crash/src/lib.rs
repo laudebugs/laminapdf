@@ -26,7 +26,8 @@ mod capture;
 
 #[cfg(unix)]
 pub use capture::{
-    CaptureError, CrashCapture, DUMP_EXTENSION, MONITOR_ARG, MonitorPaths, capture_crashes, run_monitor, skip_dumps,
+    CaptureError, CrashCapture, DUMP_EXTENSION, MONITOR_ARG, MonitorPaths, capture_crashes, capture_crashes_within,
+    run_monitor, skip_dumps,
 };
 
 #[cfg(all(unix, feature = "test-support"))]
