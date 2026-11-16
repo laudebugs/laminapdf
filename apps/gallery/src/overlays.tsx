@@ -9,6 +9,7 @@ import {
   CommandPalette,
   CommandRegistry,
   CommandsProvider,
+  CrashRecoveredDialog,
   CrashReportDialog,
   DEFAULT_APPEARANCE,
   DebugMenu,
@@ -446,13 +447,37 @@ const CRASH_REPORT = JSON.stringify(
   2,
 );
 
-/** The desktop's own dialogs: S02's located-file question, S08's crash report question and preview. */
-const DESKTOP_DIALOGS = new Set(["locate-different", "crash-main", "crash-engine", "crash-report"]);
+/** The desktop's own dialogs: S02's located-file question, S08's crash report question and preview, and its tab choice. */
+const DESKTOP_DIALOGS = new Set([
+  "locate-different",
+  "crash-main",
+  "crash-engine",
+  "crash-report",
+  "crash-tabs",
+  "crash-tabs-report",
+]);
+
+/** S08's tab choice: three tabs of the last session, the one in front when the app quit unchecked. */
+const CRASH_TABS = [
+  { token: "t1", name: "Q3-board-report.pdf", page: 4, front: false },
+  { token: "t2", name: "site-survey-scans.pdf", page: 212, front: true },
+  { token: "t3", name: "lease-agreement.pdf", page: 1, front: false },
+];
 
 /** One of {@link DESKTOP_DIALOGS}. */
 function DesktopDialog({ state }: { state: string }): ReactNode {
   // S02: the desktop's question before a located file that differs from the session's opens.
   if (state === "locate-different") return <LocateDifferentDialog name="Q2-board-report.pdf" onAnswer={noop} />;
+  // S08's tab choice after an unexpected quit, alone (crash-tabs) and with the report part (crash-tabs-report).
+  if (state === "crash-tabs" || state === "crash-tabs-report") {
+    return (
+      <CrashRecoveredDialog
+        tabs={CRASH_TABS}
+        {...(state === "crash-tabs-report" ? { report: { json: CRASH_REPORT, onCopy: noop } } : {})}
+        onChoose={noop}
+      />
+    );
+  }
   // S08: after the app quit (crash-main) or the document view restarted (crash-engine), and the report.
   return (
     <CrashReportDialog

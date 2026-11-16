@@ -125,6 +125,7 @@ export const ROUTES: readonly Route[] = [
       "SplitDialog",
       "LocateDifferentDialog",
       "CrashReportDialog",
+      "CrashRecoveredDialog",
     ],
     states: [
       "default",
@@ -166,6 +167,8 @@ export const ROUTES: readonly Route[] = [
       "crash-main",
       "crash-engine",
       "crash-report",
+      "crash-tabs",
+      "crash-tabs-report",
     ],
   },
   {

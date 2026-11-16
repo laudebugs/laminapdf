@@ -202,8 +202,11 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         tracing::warn!("could not set the app's ID: {error}");
     }
     let config = app.path().app_config_dir()?;
+    // First of all: whether the last run quit unexpectedly, and this run marked as running, so a
+    // crash anywhere after this point is known at the next launch (S08's tab choice).
+    let unexpected = session::marker::start(&config);
     let data = app.path().app_data_dir()?;
-    // Crash reports first, so a panic in the rest of the start-up leaves one; then the native
+    // Crash reports next, so a panic in the rest of the start-up leaves one; then the native
     // crashes' monitor (the main process's) and dump server (the engines'), before any engine.
     let crashes = crash::CrashReports::new(&config, &data, &app.package_info().version.to_string());
     crash::report_panics(&crashes);
@@ -249,7 +252,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(Arc::new(print::Printing::default()));
     // The last session's windows (D4d), else one window. Windows are made here, not in
     // tauri.conf.json, so the app chooses every label.
-    let restored = session::app::start(app, config);
+    let restored = session::app::start(app, config, unexpected);
     // The menus first: each window is made with them, so the window-state plugin puts its size
     // back with the menu bar already in it. On Windows a menu bar added later takes its height
     // out of the restored size, and the window came back 20 px shorter at each launch.
@@ -311,6 +314,8 @@ macro_rules! app_commands {
             commands::take_pending_tabs,
             session::app::session_tabs,
             session::app::take_session_tabs,
+            session::app::session_recovery,
+            session::app::session_reopen,
             session::app::session_open,
             session::locate::session_locate,
             session::locate::session_locate_answer,
@@ -444,14 +449,25 @@ pub fn run() -> Result<(), DesktopError> {
 
 /// Restarts the app now (Restart now, Restart to update). On the main thread `restart` raises no
 /// `RunEvent::Exit`, so what a quit does is done here: the windows that close stay in the session,
-/// the engines stop, and the start counts as survived for the graphics guard.
+/// the engines stop, and the run quits cleanly ([`quit_cleanly`]).
 pub(crate) fn restart(app: &tauri::AppHandle) -> ! {
     session::app::quitting(app);
     app.state::<Arc<Engines>>().shutdown();
-    if let Ok(config) = app.path().app_config_dir() {
-        graphics::survived(&config);
-    }
+    quit_cleanly(app);
     app.restart()
+}
+
+/// A clean quit or restart, however soon after the start: not a crash for the next launch's tab
+/// choice, unless that choice is still waiting (so the next launch asks again), and not a start the
+/// graphics guard counts.
+pub(crate) fn quit_cleanly(app: &tauri::AppHandle) {
+    let Ok(config) = app.path().app_config_dir() else {
+        return;
+    };
+    if !session::app::choice_pending(app) {
+        session::marker::quit_normally(&config);
+    }
+    graphics::survived(&config);
 }
 
 /// A second launch's files, which the single-instance plugin forwards: they open in the frontmost
@@ -498,6 +514,7 @@ fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
         // The menus show the focused window's commands.
         WindowEvent::Focused(true) => {
             window.state::<windows::Windows>().focused(window.label());
+            session::app::focus_changed(window.app_handle());
             menu::refresh(window.app_handle());
         }
         // Files dragged over or dropped on the window: Rust opens them, never the webview.
@@ -516,10 +533,7 @@ fn on_run_event(app: &tauri::AppHandle, event: &RunEvent) {
     match event {
         RunEvent::Exit => {
             session::app::flush(app);
-            // A clean quit, however soon after the start, isn't one the graphics guard counts.
-            if let Ok(config) = app.path().app_config_dir() {
-                graphics::survived(&config);
-            }
+            quit_cleanly(app);
             app.state::<Arc<Engines>>().shutdown();
             // A downloaded update installs as the app quits (on Windows its installer takes over).
             app.state::<Arc<update::Updates>>().install_on_quit();

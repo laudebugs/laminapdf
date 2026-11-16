@@ -10,6 +10,7 @@
 
 pub(crate) mod app;
 pub(crate) mod locate;
+pub(crate) mod marker;
 pub(crate) mod restore;
 pub(crate) mod track;
 
@@ -32,6 +33,10 @@ pub(crate) const VERSION: u32 = 1;
 pub(crate) struct SessionFile {
     pub v: u32,
     pub windows: Vec<WindowRecord>,
+    /// The window focused last when the session was saved: after an unexpected quit, its shown
+    /// tab is the one offered unchecked. Files from before it have none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub focused: Option<String>,
 }
 
 /// One window: its label, its tabs in order and the shown one.
@@ -214,6 +219,7 @@ mod tests {
     fn session(path: &Path) -> SessionFile {
         SessionFile {
             v: VERSION,
+            focused: None,
             windows: vec![WindowRecord {
                 label: "main".into(),
                 tabs: vec![tab(path, Some(b"bm"))],

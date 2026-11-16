@@ -228,6 +228,13 @@ export {
 } from "./reader/appearance.js";
 export { formatBytes } from "./reader/bytes.js";
 export {
+  CrashRecoveredDialog,
+  type CrashRecoveredDialogProps,
+  type RecoveredChoice,
+  type RecoveredReport,
+  type RecoveredTab,
+} from "./reader/crash-recovered.js";
+export {
   type CrashAnswer,
   CrashNotice,
   type CrashNoticeProps,

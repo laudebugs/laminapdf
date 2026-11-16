@@ -1,16 +1,31 @@
 // WebdriverIO against the desktop reader's e2e build: `pnpm --filter @laminapdf/desktop
 // desktop:build:e2e`, then `pnpm --filter @laminapdf/desktop e2e`. The WebDriver server runs
 // inside the app (tauri-plugin-wdio-webdriver), on every OS, so no driver is installed.
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { env } from "node:process";
 import { fileURLToPath } from "node:url";
 import { describeFlaky, warningLine } from "@laminapdf/test-utils/flaky";
 import { closeAll } from "./app.ts";
-import { appBinary, crashConsentFile, output } from "./paths.ts";
+import { appBinary, crashConsentFile, output, runningFile } from "./paths.ts";
 
 const specs = join(fileURLToPath(new URL(".", import.meta.url)), "specs");
 mkdirSync(output, { recursive: true });
+
+/**
+ * Clears the running mark the last run left: WebdriverIO's service ends a run by killing the app,
+ * so without this every launch would look like one after a crash. A run's own `onPrepare` calls it
+ * too, but for the one that checks the tab choice after a crash.
+ */
+export function clearRunningMark(): void {
+  rmSync(runningFile, { force: true });
+}
+
+/** As if the user had once answered the crash question with Don't send: no question asks, and nothing is sent. */
+export function crashQuestionAnswered(): void {
+  mkdirSync(dirname(crashConsentFile), { recursive: true });
+  writeFileSync(crashConsentFile, JSON.stringify({ consent: { state: "asked", send: false } }));
+}
 
 /**
  * A run of the scenarios `names`, in this order, against one launch of the app with `args`.
@@ -30,6 +45,7 @@ export function e2eConfig(names: readonly string[], args: readonly string[] = []
     ],
     framework: "mocha",
     reporters: ["spec"],
+    onPrepare: clearRunningMark,
     logLevel: "warn",
     outputDir: output,
     waitforTimeout: 10_000,
@@ -75,8 +91,8 @@ export const config: WebdriverIO.Config = {
   // The restart scenario kills the engine, which would ask about the crash (D7a): as if the user
   // had once said Don't send, so no notice comes between the scenarios and nothing is sent.
   onPrepare: () => {
-    mkdirSync(dirname(crashConsentFile), { recursive: true });
-    writeFileSync(crashConsentFile, JSON.stringify({ consent: { state: "asked", send: false } }));
+    clearRunningMark();
+    crashQuestionAnswered();
   },
   // Opening adds a tab rather than replacing the document before, so each scenario starts with
   // every tab closed, as if it had the app to itself. The scenarios run as one group, where
