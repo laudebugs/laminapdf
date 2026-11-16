@@ -3,7 +3,8 @@
 // of the edit session. Loaded with later.ts once a document is open, so none of it is in the
 // startup script. "Use current view" and the new bookmarks take the place at the top of the view.
 
-import type { ExplicitDestination, Op } from "@laminapdf/sdk";
+import contentsFontUrl from "@laminapdf/fonts/pdf/lamina-sans-regular.ttf?url";
+import type { ContentsPlacement, ExplicitDestination, Op, PagePosition } from "@laminapdf/sdk";
 import { Button, type KeyPlatform, useStoreState } from "@laminapdf/ui";
 import {
   BookmarkEditor,
@@ -11,13 +12,16 @@ import {
   type BookmarkMove,
   type BookmarkStyle,
   bookmarkWords,
+  type ContentsChoice,
+  ContentsPageDialog,
+  type ContentsPreviewEntry,
   type NamedDestinationRow,
   NamedDestinationsDialog,
   placeOf,
   type SiblingAt,
 } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
-import { type ReactNode, useEffect, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { KEYS } from "./keys.ts";
 import { downThePage, pageLabel, TOP_PROBE } from "./outline.ts";
 import type { OutlineEditingProps } from "./rail.tsx";
@@ -170,7 +174,100 @@ function useNamedDestinations(
   return { named, open: () => void read(), close: () => setNamed(undefined), change };
 }
 
-/** The Outline tab's editor and its named destinations dialog. */
+/** The contents page's font, fetched once: Lamina Sans, embedded so PDF/A and PDF/UA-1 files take it. */
+let contentsFont: Promise<Uint8Array> | undefined;
+function readContentsFont(): Promise<Uint8Array> {
+  contentsFont ??= fetch(contentsFontUrl)
+    .then((answer) => {
+      if (!answer.ok) throw new Error(`the contents page's font answered ${answer.status}`);
+      return answer.arrayBuffer();
+    })
+    .then((bytes) => new Uint8Array(bytes));
+  // A failed fetch is tried again next time.
+  contentsFont.catch(() => {
+    contentsFont = undefined;
+  });
+  return contentsFont;
+}
+
+/** What the dialog's choice asks of the library: the place by page ID, the rest as chosen. */
+function placementOf(engine: Engine, choice: ContentsChoice): ContentsPlacement {
+  const first = engine.getState().pages[0]?.id;
+  const at: PagePosition =
+    choice.insert === "start" ? "start" : choice.insert === "end" || first === undefined ? "end" : { after: first };
+  return { at, levels: choice.levels, title: choice.title, bookmark: choice.bookmark };
+}
+
+/**
+ * The contents page dialog's state: open or not, its preview (what the page would list, with the
+ * label each entry's page shows after a one-page insert) and Create, one step of the edit session.
+ */
+function useContentsPage(
+  engine: Engine,
+  setFailure: (failure: string | undefined) => void,
+  setInFlight: (change: (n: number) => number) => void,
+) {
+  const [open, setOpen] = useState(false);
+  const preview = useCallback(
+    async (choice: ContentsChoice): Promise<readonly ContentsPreviewEntry[]> => {
+      const [{ client }, font] = await Promise.all([engine.view(), readContentsFont()]);
+      try {
+        // Laid out in its font, the listing says how many pages the page takes, and so which
+        // label each entry prints.
+        const listing = await client.contentsListing(placementOf(engine, choice), font);
+        const at = listing.pages - 1;
+        return listing.entries.map((e) => ({ level: e.level, title: e.title, label: e.labels[at] ?? "" }));
+      } catch (error) {
+        // Bookmarks that all open web addresses or other files leave nothing to list.
+        if ((error as { code?: unknown }).code === "no-bookmarks") return [];
+        throw error;
+      }
+    },
+    [engine],
+  );
+  // An edit in flight from the click, so the editor waits while the font loads and the page is made.
+  const create = async (choice: ContentsChoice) => {
+    setFailure(undefined);
+    setInFlight((n) => n + 1);
+    try {
+      const [{ viewer }, font] = await Promise.all([engine.view(), readContentsFont()]);
+      const before = new Set(engine.getState().pages.map((p) => p.id));
+      const step = bookmarkWords("contents.step");
+      const result = await viewer.edits.createContentsPage(placementOf(engine, choice), font, step);
+      // Show the new page: the view keeps the page it was on, which the insert may have moved past.
+      const added = result.order?.findIndex((p) => !before.has(p.id)) ?? -1;
+      if (added >= 0) viewer.jumpToPage(added);
+      await engine.loadOutline(true);
+    } catch (error) {
+      setFailure(bookmarkWords("contents.failed"));
+      reportError(error);
+    } finally {
+      setInFlight((n) => n - 1);
+    }
+  };
+  return { open, setOpen, preview, create };
+}
+
+/** The contents page dialog over `contents`, its state. */
+function ContentsPage({
+  engine,
+  contents,
+}: {
+  readonly engine: Engine;
+  readonly contents: ReturnType<typeof useContentsPage>;
+}): ReactNode {
+  return (
+    <ContentsPageDialog
+      isOpen={contents.open}
+      onOpenChange={contents.setOpen}
+      firstPage={pageLabel(engine.getState().pages, 0)}
+      preview={contents.preview}
+      onCreate={(choice) => void contents.create(choice)}
+    />
+  );
+}
+
+/** The Outline tab's editor and its named destinations and contents page dialogs. */
 function BookmarkPanel({ engine, items, current, onNavigate, keys }: BookmarkPanelProps): ReactNode {
   const { viewer } = engine.getState();
   // Edits in flight: moves wait until the outline is read again after them.
@@ -197,6 +294,7 @@ function BookmarkPanel({ engine, items, current, onNavigate, keys }: BookmarkPan
   };
   const actions = bookmarkActions(items, apply, here);
   const names = useNamedDestinations(engine, items, apply);
+  const contents = useContentsPage(engine, setFailure, setInFlight);
   return (
     <>
       <BookmarkEditor
@@ -212,7 +310,9 @@ function BookmarkPanel({ engine, items, current, onNavigate, keys }: BookmarkPan
         onAdd={(after) => void actions.onAdd(after)}
         onUseCurrentView={(id) => void actions.onUseCurrentView(id)}
         onNamedDestinations={names.open}
+        onContentsPage={() => contents.setOpen(true)}
       />
+      <ContentsPage engine={engine} contents={contents} />
       <NamedDestinationsDialog
         isOpen={names.named !== undefined}
         onOpenChange={(open) => {

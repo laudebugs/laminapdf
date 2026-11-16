@@ -13,6 +13,9 @@ mod add_links;
 #[path = "../examples/check_what_a_file_hides.rs"]
 mod check_what_a_file_hides;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/create_contents_page.rs"]
+mod create_contents_page;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/crop_pages.rs"]
 mod crop_pages;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -179,7 +182,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 38] = [
+const EXAMPLES: [(&str, Build); 40] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -252,6 +255,14 @@ const EXAMPLES: [(&str, Build); 38] = [
     }),
     ("organise_pages", || {
         organise_pages::organise(fixture("pages/references.pdf"))
+    }),
+    ("create_contents_page", || {
+        create_contents_page::add_contents(fixture("golden/links-and-outlines.pdf"), fixture(NOTO))
+    }),
+    // The same page in a file that claims PDF/UA-1, so `cargo xtask verapdf` checks that the
+    // contents page, its links and its tags keep the claim.
+    ("create_contents_page-pdfua", || {
+        create_contents_page::add_contents(fixture("golden/flow-table.pdf"), fixture(NOTO))
     }),
     ("set_initial_view", || {
         set_initial_view::open_on(fixture("corpus/outline.pdf"), 1)

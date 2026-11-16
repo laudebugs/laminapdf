@@ -11,8 +11,9 @@
 #   build-nightly  the schedule, in `desktop-nightly`: the nightly updater key only; macOS ad-hoc
 #                  signed, Windows unsigned, Linux with SHA256SUMS only
 #   build-release  tags and staging dispatches, in `desktop-release` (the owner approves): the release
-#                  updater key, the Linux GPG key and, on Windows, Authenticode through Azure Artifact
-#                  Signing (OIDC, no secret)
+#                  updater key, the Linux GPG key, on macOS the Developer ID and the notarisation
+#                  key (signed, notarised and stapled; D6c), and on Windows Authenticode through Azure
+#                  Artifact Signing (OIDC, no secret; D6d)
 #   attest         build provenance and SBOM attestations for every file (public repository only)
 #   publish-*      the files to R2 under releases/<version>/<platform>/, the channel's manifest
 #                  (apps/updates/scripts/manifest.ts), then the update Worker asked for each platform
@@ -21,8 +22,9 @@
 #
 # Each build job reads only its environment's secrets, and no job in `desktop-nightly` may name an
 # APPLE_*, AZURE_* or LINUX_SIGNING_* secret (tools/xtask/src/workflows/desktop_release.rs checks it).
-# Until macOS is signed too (D6c; SIGNED_PLATFORMS below), only nightlies publish: a tag fails
-# `plan`, and a staging dispatch needs allow_unsigned_platforms.
+# macOS and Windows are both signed (D6c, D6d; SIGNED_PLATFORMS below), so tags publish. Were a
+# platform left out of the list, a tag would fail `plan`, and a staging dispatch would need
+# allow_unsigned_platforms.
 #
 # Actions are locked by .github/workflows/actions.lock (ADR 0019, todo X11): `uses:` names a release
 # tag, and `gh actions-lock` rewrites the lockfile after a `uses:` line changes.
@@ -47,7 +49,7 @@ on:
         type: boolean
         default: false
       allow_unsigned_platforms:
-        description: Publish to staging although macOS isn't signed yet (D6c)
+        description: Publish to staging although a platform isn't signed (left out of SIGNED_PLATFORMS)
         type: boolean
         default: false
   # The dry run proves the workflow on the pull requests that change it; the app's own changes are
@@ -84,9 +86,10 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
-  # The platforms the workflow signs at the OS level: D6d added windows, D6c adds macos. Until both
-  # are here, tags fail `plan` and staging needs allow_unsigned_platforms.
-  SIGNED_PLATFORMS: "windows"
+  # The platforms the workflow signs at the OS level: macos (D6c) and windows (D6d). With both
+  # here, tags publish; a platform left out would make tags fail `plan` and staging need
+  # allow_unsigned_platforms.
+  SIGNED_PLATFORMS: "macos,windows"
 
 jobs:
   plan:
@@ -199,7 +202,9 @@ jobs:
     if: needs.plan.outputs.environment == 'desktop-release'
     environment: desktop-release
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 90
+    # macOS adds Apple's notarisation of the .app and the .dmg to the build: usually minutes, but
+    # the .dmg's wait may take up to 45 (Notarise and staple the .dmg).
+    timeout-minutes: 150
     # id-token: the Windows legs trade GitHub's OIDC token for an Azure session (azure/login in
     # desktop-build), which only this environment's federated credential accepts.
     permissions:
@@ -214,6 +219,15 @@ jobs:
       # Read by the Linux legs only (sign-linux below).
       LINUX_SIGNING_KEY: ${{ matrix.os == 'linux' && secrets.LINUX_SIGNING_KEY || '' }}
       LINUX_SIGNING_KEY_PASSPHRASE: ${{ matrix.os == 'linux' && secrets.LINUX_SIGNING_KEY_PASSPHRASE || '' }}
+      # Read by the macOS legs only (sign-macos below): the Developer ID, CI's keychain and the
+      # App Store Connect key that notarises (runbook §1.3, §1.4).
+      APPLE_CERTIFICATE: ${{ matrix.os == 'macos' && secrets.APPLE_CERTIFICATE || '' }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ matrix.os == 'macos' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
+      APPLE_SIGNING_IDENTITY: ${{ matrix.os == 'macos' && secrets.APPLE_SIGNING_IDENTITY || '' }}
+      KEYCHAIN_PASSWORD: ${{ matrix.os == 'macos' && secrets.KEYCHAIN_PASSWORD || '' }}
+      APPLE_API_KEY: ${{ matrix.os == 'macos' && secrets.APPLE_API_KEY || '' }}
+      APPLE_API_ISSUER: ${{ matrix.os == 'macos' && secrets.APPLE_API_ISSUER || '' }}
+      APPLE_API_KEY_P8: ${{ matrix.os == 'macos' && secrets.APPLE_API_KEY_P8 || '' }}
       # The Entra app and tenant Artifact Signing signs through (runbook §1.5): IDs, not credentials.
       # Read by the Windows legs only (sign-windows below).
       AZURE_CLIENT_ID: ${{ matrix.os == 'windows' && secrets.AZURE_CLIENT_ID || '' }}
@@ -233,6 +247,7 @@ jobs:
           channel: ${{ needs.plan.outputs.channel }}
           updater: "true"
           sign-linux: ${{ matrix.os == 'linux' }}
+          sign-macos: ${{ matrix.os == 'macos' }}
           sign-windows: ${{ matrix.os == 'windows' }}
 
   # GitHub makes these only for a public repository (docs/guidelines/desktop-release.md §3).

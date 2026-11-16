@@ -47,6 +47,10 @@ class FakeWorker implements EditSessionHost {
     return { pages: [], history: this.history() };
   }
 
+  async createContentsPage(_placement: unknown, _font: unknown, options: { label: string }): Promise<EditResult> {
+    return this.applyEdit([], options);
+  }
+
   async undoEdit(): Promise<EditResult> {
     return this.goToStep(this.position - 1);
   }

@@ -54,7 +54,7 @@ The project owner signs the desktop app **personally, as the publisher**, on Win
 
 **Out of scope** (and which todo covers it)
 
-- Wiring the secrets into workflows: [D6b](../done/D6b-release-workflow-and-linux-packages.md) (pipeline + Linux), [D6c](../ready/D6c-macos-signing-and-notarisation.md) (macOS), [D6d](../ongoing/D6d-windows-signing.md) (Windows).
+- Wiring the secrets into workflows: [D6b](../done/D6b-release-workflow-and-linux-packages.md) (pipeline + Linux), [D6c](../done/D6c-macos-signing-and-notarisation.md) (macOS), [D6d](../ongoing/D6d-windows-signing.md) (Windows).
 - Mac App Store / Microsoft Store identities (non-goals).
 
 ## Tasks

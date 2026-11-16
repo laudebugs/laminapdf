@@ -183,6 +183,10 @@ required-features = ["extract"]
 name = "duplicate_pages"
 
 [[example]]
+name = "create_contents_page"
+required-features = ["text"]
+
+[[example]]
 name = "crop_pages"
 
 [[example]]

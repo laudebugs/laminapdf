@@ -14,6 +14,9 @@ import {
 import type {
   AddLink,
   ArticleThread,
+  ContentsListing,
+  ContentsPage,
+  ContentsPlacement,
   DocumentMetadata,
   DocumentProperties,
   ExplicitDestination,
@@ -136,6 +139,8 @@ export interface EditResult {
   readonly references?: readonly ReferenceEdit[];
   /** What a page duplication or copy did to form fields (none for an undo or redo). */
   readonly fields?: readonly FieldEdit[];
+  /** The contents page a `createContentsPage` step inserted, which a restarted worker inserts again. */
+  readonly contents?: ContentsInsert;
 }
 
 /** The most steps an edit session keeps: the oldest go after this many (ADR 0006 §4). */
@@ -202,9 +207,31 @@ export interface SavedCopy {
   readonly report: SaveReport;
 }
 
-/** The ops of one step and its label, as a restarted worker replays them (`restoreEdits`). */
+/**
+ * A contents page laid out from the bookmarks and how it was placed (`createContentsPage`): the
+ * step a restarted worker inserts again, since a page's text can't travel as ops.
+ */
+export interface ContentsInsert {
+  readonly placement: ContentsPlacement;
+  readonly page: ContentsPage;
+}
+
+/**
+ * What a contents page would list, for a preview: the listing, and with a font the number of
+ * pages it takes laid out in it, so `entries[i].labels[pages - 1]` is the label each entry prints.
+ */
+export interface ContentsPreview extends ContentsListing {
+  /** The pages it takes; 1 when it wasn't laid out (no font given). */
+  readonly pages: number;
+}
+
+/**
+ * The ops of one step and its label, as a restarted worker replays them (`restoreEdits`); a
+ * contents page's step has no ops but its `contents`.
+ */
 export interface ReplayedStep {
   readonly ops: readonly Op[];
+  readonly contents?: ContentsInsert;
   readonly label: string;
   readonly at: number;
 }
@@ -306,6 +333,20 @@ export interface Methods {
   pageBoxes: { params: [index: number, document: number]; result: PageBoxesRead };
   /** Document `document`'s page label ranges, as its edits leave them. */
   labelRanges: { params: [document: number]; result: PageLabelRange[] };
+  /** What a contents page placed as `placement` would list in document `document`, for a preview. */
+  contentsListing: {
+    params: [placement: ContentsPlacement, document: number, font?: Uint8Array];
+    result: ContentsPreview;
+  };
+  /**
+   * Lays out a contents page of document `document`'s bookmarks in `font` (TrueType or OpenType
+   * bytes; the text module loads for it) and inserts it as one step; the result carries the page
+   * (`contents`) so a restarted worker can insert it again.
+   */
+  createContentsPage: {
+    params: [placement: ContentsPlacement, font: Uint8Array, document: number, label?: string];
+    result: EditResult;
+  };
   planSave: { params: [options: SaveOptions, document: number]; result: PlannedSave };
   /** What saving document `document` with `ops` applied would break, before they apply: each signature restriction they violate. */
   wouldViolate: { params: [ops: readonly Op[], document: number]; result: Violation[] };

@@ -121,19 +121,16 @@ impl Signing {
         Ok(signing)
     }
 
-    fn all(self) -> bool {
-        self.macos && self.windows
-    }
-
-    /// What isn't signed yet, for the refusals: "macOS isn't signed …".
-    fn unsigned(self) -> String {
+    /// Why a release can't publish yet: the platforms not signed at the OS level. `None` once
+    /// every platform is.
+    fn unsigned_reason(self) -> Option<String> {
         let missing = match (self.macos, self.windows) {
+            (true, true) => return None,
             (false, false) => "macOS and Windows aren't",
             (false, true) => "macOS isn't",
             (true, false) => "Windows isn't",
-            (true, true) => "every platform is",
         };
-        format!("{missing} signed at the OS level yet (SIGNED_PLATFORMS)")
+        Some(format!("{missing} signed at the OS level yet (SIGNED_PLATFORMS)"))
     }
 }
 
@@ -300,10 +297,9 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
     match &inputs.trigger {
         Trigger::Tag(tag) => {
             let version = tag_version(tag)?.to_string();
-            if !inputs.signing.all() {
+            if let Some(reason) = inputs.signing.unsigned_reason() {
                 bail!(
-                    "{}: until it is, only the nightly channel publishes, so {tag} can't be released",
-                    inputs.signing.unsigned()
+                    "{reason}: until every platform is, only the nightly channel publishes, so {tag} can't be released"
                 );
             }
             Ok(Plan {
@@ -333,11 +329,11 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
                 );
             }
             let version = staging_version(inputs.run_number)?;
-            if !dry_run && !inputs.signing.all() && !allow_unsigned {
-                bail!(
-                    "{}: set allow_unsigned_platforms to publish an unsigned staging build",
-                    inputs.signing.unsigned()
-                );
+            if !dry_run
+                && !allow_unsigned
+                && let Some(reason) = inputs.signing.unsigned_reason()
+            {
+                bail!("{reason}: set allow_unsigned_platforms to publish an unsigned staging build");
             }
             Ok(Plan {
                 legs: every_target(Mode::Tag, &version),
@@ -635,20 +631,21 @@ mod tests {
     }
 
     #[test]
-    fn a_refusal_should_name_the_platform_still_unsigned() {
-        let windows = Signing::parse("windows").unwrap();
-        let refused = plan(&Inputs {
-            signing: windows,
-            ..inputs(dispatch("staging", false, false))
-        })
-        .unwrap_err()
-        .to_string();
-        assert!(refused.starts_with("macOS isn't signed"), "{refused}");
+    fn the_refusal_should_name_only_the_platforms_still_unsigned() {
+        let reason = |list| Signing::parse(list).unwrap().unsigned_reason();
+        assert_eq!(
+            [reason(""), reason("macos"), reason("macos,windows")],
+            [
+                Some("macOS and Windows aren't signed at the OS level yet (SIGNED_PLATFORMS)".to_owned()),
+                Some("Windows isn't signed at the OS level yet (SIGNED_PLATFORMS)".to_owned()),
+                None,
+            ]
+        );
     }
 
-    /// The workflow's own list parses, and names Windows, which the release job signs.
+    /// The workflow's own list parses, and names both platforms, which the release job now signs.
     #[test]
-    fn the_workflow_should_sign_windows() {
+    fn the_workflow_should_sign_both_platforms() {
         let workflow = std::fs::read_to_string(
             std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.github/workflows/desktop-release.yml"),
         )
@@ -658,7 +655,7 @@ mod tests {
             .find(|l| l.trim_start().starts_with("SIGNED_PLATFORMS:"))
             .unwrap();
         let list = line.split_once(':').unwrap().1.trim().trim_matches('"');
-        assert!(Signing::parse(list).unwrap().windows, "{line}");
+        assert_eq!(Signing::parse(list).unwrap().unsigned_reason(), None, "{line}");
     }
 
     /// The update Worker's lists are the source: apps/updates/src/channels.ts names the channels,

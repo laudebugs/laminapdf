@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) |
 | Round / milestone | Round D (desktop) — **M3 Desktop reader beta** (milestone exit) |
-| Depends on | [D4c](../done/D4c-native-printing.md), [D4d](../done/D4d-session-restore.md), [D4e](../done/D4e-tab-drag-between-windows.md), [D5c](../done/D5c-desktop-update-e2e.md), [D6c](./D6c-macos-signing-and-notarisation.md), [D6d](../ongoing/D6d-windows-signing.md), [D7a](../done/D7a-crash-reporting.md), [D7b](../done/D7b-settings-renderer-switch-and-download-page.md) |
+| Depends on | [D4c](../done/D4c-native-printing.md), [D4d](../done/D4d-session-restore.md), [D4e](../done/D4e-tab-drag-between-windows.md), [D5c](../done/D5c-desktop-update-e2e.md), [D6c](../done/D6c-macos-signing-and-notarisation.md), [D6d](../ongoing/D6d-windows-signing.md), [D6e](./D6e-macos-signed-release-checks.md), [D7a](../done/D7a-crash-reporting.md), [D7b](../done/D7b-settings-renderer-switch-and-download-page.md) |
 | ADRs | Follows ADR 0014 (channels, rollout, promotion), ADR 0008, ADR 0011 (privacy page), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (SBOM/notices at first public release) |
 | Branch | `chore/d7c-desktop-beta` |
 | PR title | `chore(desktop): release desktop v0.1.0 beta` |

@@ -52,7 +52,7 @@ One workflow turns a `desktop-v*` tag (and, nightly, `main`) into published desk
 
 **Out of scope** (and which todo covers it)
 
-- Apple signing, notarisation and stapling: [D6c](../ready/D6c-macos-signing-and-notarisation.md) (this PR builds macOS unsigned/ad-hoc for nightly only).
+- Apple signing, notarisation and stapling: [D6c](../done/D6c-macos-signing-and-notarisation.md) (this PR builds macOS unsigned/ad-hoc for nightly only).
 - Windows Authenticode signing: [D6d](../ongoing/D6d-windows-signing.md) (this PR builds Windows unsigned for nightly only).
 - Download page: [D7b](../done/D7b-settings-renderer-switch-and-download-page.md). First beta: [D7c](../ready/D7c-desktop-beta-release.md).
 - Flatpak/Snap/stores (non-goals).

@@ -17,6 +17,7 @@ import notoSansSC from "../../../../fixtures/fonts/NotoSansSC-Regular.otf";
 import linksAndOutlinesPdf from "../../../../fixtures/golden/examples/links_and_outlines.pdf";
 import markedPdf from "../../../../fixtures/golden/examples/mark_up.pdf";
 import pdfaArchive2b from "../../../../fixtures/golden/examples/pdf_a_archive-2b.pdf";
+import flowTablePdf from "../../../../fixtures/golden/flow-table.pdf";
 import bookmarksPdf from "../../../../fixtures/golden/links-and-outlines.pdf";
 import metadataPdf from "../../../../fixtures/golden/metadata.pdf";
 import taggedPdf from "../../../../fixtures/golden/tagged-report.pdf";
@@ -50,6 +51,7 @@ const inputs: Inputs = {
       "fixtures/golden/metadata.pdf": metadataPdf,
       "fixtures/corpus/outline.pdf": outlinePdf,
       "fixtures/golden/links-and-outlines.pdf": bookmarksPdf,
+      "fixtures/golden/flow-table.pdf": flowTablePdf,
       "fixtures/golden/tagged-report.pdf": taggedPdf,
       "fixtures/golden/examples/pdf_a_archive-2b.pdf": pdfaArchive2b,
       "fixtures/pages/references.pdf": referencesPdf,

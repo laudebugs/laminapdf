@@ -13,6 +13,7 @@
 
 import type { RenderSource } from "@laminapdf/render";
 import type {
+  ContentsPlacement,
   Document,
   DocumentMetadata,
   Op,
@@ -25,8 +26,26 @@ import type {
   Violation,
   XmpText,
 } from "@laminapdf/sdk";
-import type { EditHistory, EditResult, ReplayedStep, RevertedStep, SavedCopy } from "../protocol.js";
-import { current, currentBackend, type EditState, filling, followEdit, type Open, textModel } from "./document.js";
+import { Font, layOutContentsPage, loadText } from "@laminapdf/sdk";
+import type {
+  ContentsInsert,
+  ContentsPreview,
+  EditHistory,
+  EditResult,
+  ReplayedStep,
+  RevertedStep,
+  SavedCopy,
+} from "../protocol.js";
+import {
+  current,
+  currentBackend,
+  type EditAction,
+  type EditState,
+  filling,
+  followEdit,
+  type Open,
+  textModel,
+} from "./document.js";
 import { forgetSearch } from "./find.js";
 import { forgetLinks } from "./navigation.js";
 import {
@@ -80,15 +99,82 @@ export function applyEdit(
   signal: AbortSignal,
   label = describe(ops),
 ): Promise<EditResult> {
-  return serial(current(id), () => apply(ops, id, signal, label));
+  return serial(current(id), () => apply({ ops }, id, signal, label));
 }
 
-async function apply(ops: readonly Op[], id: number, signal: AbortSignal, label: string): Promise<EditResult> {
+/** One step's change: ops, or a contents page with no ops (`contents`). */
+interface Change {
+  readonly ops: readonly Op[];
+  readonly contents?: ContentsInsert | undefined;
+}
+
+/** Makes `change` on `model` as one transaction. */
+function make(model: Document, change: Change) {
+  const { contents } = change;
+  return contents === undefined ? model.apply(change.ops) : model.insertContentsPage(contents.placement, contents.page);
+}
+
+/** What a text-capable copy makes after the model: `change`'s ops, or its contents page. */
+function followed(change: Change): EditAction {
+  return change.contents ?? change.ops;
+}
+
+/**
+ * Lays out a contents page of document `id`'s bookmarks in `font` and inserts it as one step named
+ * `label`. The page is laid out in the text module, which loads for it; the document stays in
+ * whichever module it opened in. The result carries the page, which a restarted worker inserts
+ * again.
+ *
+ * @throws `no-bookmarks`, `font-not-embedded`, `missing-glyph`, `invalid-font`; as `applyEdit`.
+ */
+export function createContentsPage(
+  placement: ContentsPlacement,
+  font: Uint8Array,
+  id: number,
+  signal: AbortSignal,
+  label = "Create a contents page",
+): Promise<EditResult> {
+  return serial(current(id), async () => {
+    const opened = current(id);
+    editable(opened);
+    const { model } = opened;
+    const listing = await model.ensure(() => model.contentsListing(placement), { signal });
+    await loadText();
+    const page = layOutContentsPage(listing, { font: Font.fromBytes(font) });
+    const contents: ContentsInsert = { placement, page };
+    const result = await apply({ ops: [], contents }, id, signal, label);
+    return { ...result, contents };
+  });
+}
+
+/**
+ * What a contents page placed as `placement` would list in document `id`, and how many pages it
+ * takes laid out in `font` (1 without one).
+ */
+export async function readContentsListing(
+  placement: ContentsPlacement,
+  id: number,
+  signal: AbortSignal,
+  font?: Uint8Array,
+): Promise<ContentsPreview> {
+  const { model } = current(id);
+  const listing = await model.ensure(() => model.contentsListing(placement), { signal });
+  if (font === undefined) return { ...listing, pages: 1 };
+  await loadText();
+  const { boxes } = layOutContentsPage(listing, { font: Font.fromBytes(font) });
+  // Six numbers per entry, the second its page on the contents page.
+  let pages = 1;
+  for (let i = 1; i < boxes.length; i += 6) pages = Math.max(pages, (boxes[i] ?? 0) + 1);
+  return { ...listing, pages };
+}
+
+async function apply(change: Change, id: number, signal: AbortSignal, label: string): Promise<EditResult> {
+  const { ops } = change;
   const opened = current(id);
   editable(opened);
   const { model, edit } = opened;
   const known = await knownOrder(opened, signal);
-  const edited = await model.ensure(() => model.apply(ops), { signal });
+  const edited = await model.ensure(() => make(model, change), { signal });
   if (!edited.changed) return { pages: [], history: historyOf(edit.session, false, edit.order) };
   edit.copy = undefined;
   // The transaction cleared the model's redo stack, whatever happens next.
@@ -106,7 +192,7 @@ async function apply(ops: readonly Op[], id: number, signal: AbortSignal, label:
     await revert(model, edit, "undo", e);
     throw e;
   }
-  followEdit(opened, ops);
+  followEdit(opened, followed(change));
   const pages = touched(opened, after, shown);
   const step = record(edit.session, label, pages.length > 0 ? pages : listed(after, edited.touchedPages), Date.now());
   if (after.moved) edit.reorders.set(step.id, onlyMoves(ops));
@@ -301,11 +387,11 @@ async function replayStep(
   signal: AbortSignal,
 ): Promise<PageOrder> {
   const { model, edit } = opened;
-  const edited = await model.ensure(() => model.apply(step.ops), { signal });
+  const edited = await model.ensure(() => make(model, step), { signal });
   if (!edited.changed) return order;
   const moves = onlyMoves(step.ops);
   if (!moves) for (const page of edited.touchedPages) ids.add(page);
-  followEdit(opened, step.ops);
+  followEdit(opened, followed(step));
   const pages = await model.ensure(() => model.pages);
   const wanted = new Set(edited.touchedPages);
   const recorded = record(

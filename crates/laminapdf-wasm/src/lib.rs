@@ -31,6 +31,7 @@ mod annotations;
 mod build_dto;
 #[cfg(feature = "build")]
 mod builder;
+mod contents_page;
 mod convert;
 mod document;
 mod dto;
@@ -64,6 +65,8 @@ pub use builder::{WasmBuilder, WasmImage, WasmPageBuilder};
 pub use builder::{WasmFlowResources, WasmFont, WasmMarkdownOptions};
 #[cfg(all(feature = "build", feature = "extract"))]
 pub use builder::{WasmImageList, images_to_pdf};
+#[cfg(feature = "text")]
+pub use contents_page::lay_out_contents_page;
 pub use document::{WasmDocument, WasmPage, WasmSaveJob, WasmWarningCursor};
 pub use memory::allocation_failed;
 pub use source::WasmSparseSource;

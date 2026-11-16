@@ -50,9 +50,11 @@ Greek, Cyrillic, CJK, Arabic, Hebrew, Indic and every other script fall back to 
 
 Source Serif 4, which the designs use for page mockups, isn't shipped: nothing in the interface needs it yet.
 
+**For PDFs**, `pdf/lamina-sans-regular.ttf` is Lamina Sans Regular as TrueType, Latin and Latin Extended in one file (100 KB). The reader embeds it in the pages it builds, such as a contents page: PDF readers can't read WOFF2, and the PDF keeps only the glyphs it uses. The reader downloads it only when it builds a page. A title in another script can't be set in it, and the reader says so.
+
 ## How the files are made
 
-`tools/fonts/subset.py` writes `files/`, `fonts.css` and the `outputs` of `fonts.lock.json` from three npm packages. It checks each source file against the SHA-256 in the lock and limits the variable fonts to the weights above. Each file keeps Latin or Latin Extended (the same ranges as Google Fonts' subsets) and the OpenType features text needs: kerning, marks, ligatures, contextual alternates, case forms and figure styles. Hinting is dropped, Source Sans 3 is renamed, and the result is compressed to WOFF2. Running it twice gives the same bytes.
+`tools/fonts/subset.py` writes `files/`, `pdf/`, `fonts.css` and the `outputs` and `pdf` of `fonts.lock.json` from three npm packages. It checks each source file against the SHA-256 in the lock and limits the variable fonts to the weights above. Each file keeps Latin or Latin Extended (the same ranges as Google Fonts' subsets) and the OpenType features text needs: kerning, marks, ligatures, contextual alternates, case forms and figure styles. Hinting is dropped, Source Sans 3 is renamed, and the result is compressed to WOFF2 (the PDF face stays TrueType). Running it twice gives the same bytes.
 
 | Source | npm package | Upstream |
 | --- | --- | --- |

@@ -126,6 +126,7 @@
             "job-finished",
             "document-changed",
             "revision-index-out-of-range",
+            "no-bookmarks",
             "builder-finished",
             "disposed",
             "invalid-argument",
